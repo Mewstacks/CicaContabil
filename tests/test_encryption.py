@@ -6,7 +6,14 @@ import pytest
 from django.core.exceptions import SuspiciousOperation
 from django.test import override_settings
 
-from apps.common.encryption import _key, blind_index, decrypt_text, encrypt_text
+from apps.common.encryption import (
+    EncryptedTextField,
+    _key,
+    blind_index,
+    decrypt_text,
+    encrypt_text,
+)
+from apps.privacy.models import DataSubjectRequest, PersonalDataIncident
 
 KEY_ONE = base64.urlsafe_b64encode(b"a" * 32).decode()
 KEY_TWO = base64.urlsafe_b64encode(b"b" * 32).decode()
@@ -44,6 +51,19 @@ def test_old_ciphertext_remains_decryptable_during_rotation() -> None:
         _key.cache_clear()
         assert decrypt_text(ciphertext) == "rotate me"
         assert encrypt_text("new value").startswith("enc:v1:two:")
+
+
+def test_ciphertext_cannot_be_moved_between_columns() -> None:
+    details = DataSubjectRequest._meta.get_field("details")
+    summary = PersonalDataIncident._meta.get_field("summary")
+    assert isinstance(details, EncryptedTextField)
+    assert isinstance(summary, EncryptedTextField)
+    assert details.associated_data() != summary.associated_data()
+
+    ciphertext = details.get_prep_value("private note")
+    assert details.from_db_value(ciphertext, None, None) == "private note"
+    with pytest.raises(SuspiciousOperation):
+        summary.from_db_value(ciphertext, None, None)
 
 
 @override_settings(PRIVACY_HMAC_KEY="independent-test-hmac-key")

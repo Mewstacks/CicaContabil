@@ -187,13 +187,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 ADMIN_ENABLED = env_bool("ADMIN_ENABLED", True)
 API_DOCS_ENABLED = env_bool("API_DOCS_ENABLED", True)
 
+# The readiness probe stays unauthenticated and unthrottled so that a cache outage can
+# never turn a "degraded" answer into a 500. Memoising the result per worker keeps the
+# endpoint from being a cheap way to hammer the database instead.
+HEALTH_READINESS_CACHE_SECONDS = env_int("HEALTH_READINESS_CACHE_SECONDS", 5)
+
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 SESSION_COOKIE_AGE = env_int("SESSION_COOKIE_AGE_SECONDS", 43_200)
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_SAVE_EVERY_REQUEST = False
 CSRF_COOKIE_HTTPONLY = True
-CSRF_COOKIE_SAMESITE = "Lax"
+# "Lax" assumes the browser client is same-site. A SPA served from a different site
+# needs "None" (which production enforces alongside Secure) or the session cookie is
+# never sent with the cross-site XHR.
+SESSION_COOKIE_SAMESITE = env_str("SESSION_COOKIE_SAMESITE", "Lax")
+CSRF_COOKIE_SAMESITE = env_str("CSRF_COOKIE_SAMESITE", "Lax")
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
@@ -234,10 +242,14 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "apps.common.exceptions.api_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "apps.common.pagination.DefaultPagination",
     "PAGE_SIZE": 50,
+    # Throttle buckets are keyed by the validated edge IP, never by a forwarded header.
     "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
+        "apps.common.throttling.IPAnonRateThrottle",
+        "apps.common.throttling.IPUserRateThrottle",
     ],
+    # Defence in depth: anything that still uses DRF's own get_ident must not read
+    # X-Forwarded-For, which is fully caller-controlled.
+    "NUM_PROXIES": 0,
     "DEFAULT_THROTTLE_RATES": {
         "anon": env_str("API_THROTTLE_ANON", "30/minute"),
         "user": env_str("API_THROTTLE_USER", "300/minute"),
@@ -277,10 +289,16 @@ AXES_FAILURE_LIMIT = env_int("AXES_FAILURE_LIMIT", 5)
 AXES_COOLOFF_TIME = timedelta(minutes=env_int("AXES_COOLOFF_MINUTES", 30))
 AXES_USE_ATTEMPT_EXPIRATION = True
 AXES_RESET_ON_SUCCESS = True
+# (username, ip_address) alone never stops a distributed brute force against one
+# account. Adding the username-only group closes that, at the cost of letting a third
+# party lock somebody else out on purpose, so it stays an explicit deployment choice.
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+if env_bool("AXES_LOCKOUT_BY_USERNAME", False):
+    AXES_LOCKOUT_PARAMETERS.append(["username"])
 AXES_HANDLER = "axes.handlers.cache.AxesCacheHandler"
 AXES_CACHE = "default"
 AXES_USERNAME_FORM_FIELD = "email"
+AXES_USERNAME_CALLABLE = "apps.accounts.security.axes_username"
 AXES_SENSITIVE_PARAMETERS = ["password"]
 AXES_HTTP_RESPONSE_CODE = 429
 AXES_ENABLE_RETRY_AFTER_HEADER = True

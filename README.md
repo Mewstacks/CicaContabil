@@ -1,6 +1,6 @@
 # Guia rápido de uso
 
-[English version](README.en.md)
+[English version](README.en.md) · [Índice da documentação](docs/README.md)
 
 Este projeto é uma base reutilizável para backends SaaS em Django. Ele já oferece autenticação,
 API REST, organizações, controles técnicos para LGPD, criptografia, auditoria, tarefas
@@ -241,7 +241,7 @@ Após criar o Redis, configure sua URL privada em `REDIS_URL`, `CELERY_BROKER_UR
 fly secrets set REDIS_URL="URL_PRIVADA" CELERY_BROKER_URL="URL_PRIVADA" CELERY_RESULT_BACKEND="URL_PRIVADA" -a nome-unico-do-app
 ```
 
-Consulte o passo a passo completo em [deployment-fly.md](docs/deployment-fly.md).
+Consulte o passo a passo completo em [deploy-fly.md](docs/pt-BR/deploy-fly.md).
 
 ## 9. Validar antes de publicar
 
@@ -254,5 +254,11 @@ python manage.py check
 python manage.py makemigrations --check --dry-run
 ```
 
-Antes de receber dados reais, revise também [security.md](docs/security.md),
-[lgpd.md](docs/lgpd.md) e os runbooks de incidente e restauração.
+Antes de receber dados reais, revise também [seguranca.md](docs/pt-BR/seguranca.md),
+[lgpd.md](docs/pt-BR/lgpd.md), o
+[runbook de incidentes](docs/pt-BR/runbooks/resposta-incidentes.md) e o
+[runbook de backup](docs/pt-BR/runbooks/backup-restauracao.md).
+
+As melhorias incorporadas após a revisão externa estão registradas em
+[revisao-claude.md](docs/pt-BR/revisao-claude.md), incluindo trade-offs e migração de
+ciphertexts antigos.

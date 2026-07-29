@@ -1,5 +1,7 @@
 # Fly.io deployment
 
+[Versão em português](../pt-BR/deploy-fly.md)
+
 ## Provisioning
 
 1. Configure a unique app name with `scripts/configure_fly.py`, create the app, and keep its
@@ -17,12 +19,20 @@
    Production fails closed when Sentry is enabled without a DSN. Only set
    `SENTRY_ENABLED=false` as an explicit, temporary operational decision.
 
+Configuration added by the review:
+
+- `HEALTH_READINESS_CACHE_SECONDS=5`: per-worker readiness TTL; `0` disables it.
+- `AXES_LOCKOUT_BY_USERNAME=false`: optional account lockout with deliberate-lockout risk.
+- `SESSION_COOKIE_SAMESITE=Lax` and `CSRF_COOKIE_SAMESITE=Lax`: use `None` only for a cross-site
+  browser client over HTTPS.
+
 ## Deployment behavior
 
 The image runs as UID/GID 10001. Static files are fingerprinted at build time. `fly deploy`
 runs `migrate --noinput` once in a release Machine; a non-zero exit aborts the release. Web
 readiness requires both PostgreSQL and Redis. Web and worker process groups use the same image
 but scale independently.
+Gunicorn workers recycle after about 1,000 requests with a jitter of 100.
 
 Prefer backward-compatible expand/migrate/contract database changes:
 

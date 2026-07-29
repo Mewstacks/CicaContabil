@@ -1,5 +1,7 @@
 # New SaaS clone checklist
 
+[Versão em português](../pt-BR/checklist-clonagem.md)
+
 1. Rename the package/project metadata, API title, Fly app, cache prefix, Sentry project, and
    domains. Generate new secrets; never reuse keys between SaaS products or environments.
 2. Decide whether the product is single-organization or multi-organization. Even for a
@@ -16,4 +18,3 @@
    personal data into local, CI, demos, or Sentry.
 8. Run unit/integration/security tests, `check --deploy`, dependency/container scans, restore
    rehearsal, key-rotation rehearsal, load test, and an independent pre-launch review.
-

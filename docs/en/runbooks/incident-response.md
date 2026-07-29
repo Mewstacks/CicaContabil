@@ -1,5 +1,7 @@
 # Personal-data incident response
 
+[Versão em português](../../pt-BR/runbooks/resposta-incidentes.md)
+
 1. **Triage and contain:** open a restricted incident record, assign commander/DPO/legal/tech
    owners, stop ongoing exposure, rotate compromised credentials, and preserve immutable
    evidence. Do not paste personal data into chat, tickets, logs, or Sentry.
@@ -20,4 +22,3 @@
 
 If Fly, PostgreSQL, Tigris, Upstash, Sentry, or another processor is involved, preserve their
 case IDs and notices and activate contractual incident-cooperation terms.
-

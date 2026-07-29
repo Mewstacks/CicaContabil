@@ -11,10 +11,10 @@ from rest_framework import generics, serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.throttling import AnonRateThrottle, ScopedRateThrottle
 from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from apps.common.throttling import IPAnonRateThrottle, IPScopedRateThrottle
 
 
 class MeSerializer(serializers.ModelSerializer[User]):
@@ -45,7 +45,7 @@ class CsrfTokenSerializer(serializers.Serializer[dict[str, str]]):
 class CsrfTokenView(APIView):
     authentication_classes: list[type] = []
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle]
+    throttle_classes = [IPAnonRateThrottle]
 
     @extend_schema(responses=CsrfTokenSerializer)
     def get(self, request: Request) -> Response:
@@ -56,7 +56,7 @@ class CsrfTokenView(APIView):
 class LoginView(APIView):
     authentication_classes: list[type] = []
     permission_classes = [AllowAny]
-    throttle_classes = [AnonRateThrottle, ScopedRateThrottle]
+    throttle_classes = [IPAnonRateThrottle, IPScopedRateThrottle]
     throttle_scope = "login"
 
     @extend_schema(request=LoginSerializer, responses=MeSerializer)
@@ -64,8 +64,12 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email = serializer.validated_data["email"].strip().casefold()
+        # django-axes flags a lockout by setting an attribute on the request it is given,
+        # and AxesMiddleware later reads that flag off the Django HttpRequest. DRF's
+        # Request proxies attribute reads but not writes, so the underlying request has
+        # to be passed here or the lockout response is silently dropped.
         user = authenticate(
-            request=request,
+            request=request._request,
             username=email,
             password=serializer.validated_data["password"],
         )

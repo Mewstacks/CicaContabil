@@ -6,10 +6,10 @@ from typing import Any, cast
 from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework import serializers, viewsets
-from rest_framework.throttling import UserRateThrottle
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.throttling import IPUserRateThrottle
 from apps.privacy.models import (
     ConsentRecord,
     DataSubjectRequest,
@@ -18,7 +18,7 @@ from apps.privacy.models import (
 )
 
 
-class PrivacyThrottle(UserRateThrottle):
+class PrivacyThrottle(IPUserRateThrottle):
     scope = "privacy"
 
 

@@ -1,5 +1,7 @@
 # LGPD implementation guide
 
+[Versão em português](../pt-BR/lgpd.md)
+
 The code supports accountability evidence; the controller still owns the legal decisions.
 Before launch, appoint the responsible people and review this implementation with privacy/legal
 counsel familiar with the product.
@@ -68,4 +70,3 @@ Official references:
 - [LGPD consolidated text](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)
 - [ANPD data-subject rights](https://www.gov.br/anpd/pt-br/assuntos/titular-de-dados-1/direito-dos-titulares)
 - [ANPD security incident guidance](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis)
-

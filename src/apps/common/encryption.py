@@ -78,18 +78,33 @@ class EncryptedTextField(models.TextField):  # type: ignore[type-arg]
         kwargs.setdefault("editable", True)
         super().__init__(*args, **kwargs)
 
+    def associated_data(self) -> bytes:
+        """Bind each ciphertext to the column it belongs to.
+
+        Without this, GCM authenticates the bytes but not their location, so anyone with
+        write access to the database can move a ciphertext from one model or column into
+        another and it still decrypts cleanly. Row identity is deliberately not part of
+        the binding: the primary key is not available when Django hydrates a field from
+        a query result, so a same-column row swap remains possible.
+        """
+
+        model = getattr(self, "model", None)
+        if model is None:
+            return b""
+        return f"{model._meta.label_lower}:{self.attname}".encode()
+
     def from_db_value(self, value: str | None, expression: Any, connection: Any) -> str | None:
         if value is None:
             return value
-        return decrypt_text(value)
+        return decrypt_text(value, associated_data=self.associated_data())
 
     def to_python(self, value: Any) -> Any:
         if value is None or not isinstance(value, str):
             return value
-        return decrypt_text(value)
+        return decrypt_text(value, associated_data=self.associated_data())
 
     def get_prep_value(self, value: Any) -> Any:
         value = super().get_prep_value(value)
         if value is None:
             return value
-        return encrypt_text(str(value))
+        return encrypt_text(str(value), associated_data=self.associated_data())

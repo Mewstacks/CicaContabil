@@ -1,5 +1,7 @@
 # Backup and restore
 
+[Versão em português](../../pt-BR/runbooks/backup-restauracao.md)
+
 - Use Fly Managed Postgres rather than unmanaged Postgres for production. Confirm automatic
   backup/HA status and retention in the dashboard.
 - Define RPO/RTO per product. Managed service defaults are not the business requirement.
@@ -15,4 +17,3 @@
 
 Record the backup identifier, restore start/end, RPO/RTO achieved, validation results, operator,
 problems, and corrective actions without including personal data.
-

@@ -97,7 +97,10 @@ class AuditEvent(models.Model):
     ) -> None:
         if not self._state.adding:
             raise ValidationError("Audit events are append-only.")
-        self.full_clean()
+        # Uniqueness and constraint validation would add a SELECT per event on the
+        # authentication hot path. The primary key is a client-side UUID and the
+        # database still enforces both, so only the field validators are worth running.
+        self.full_clean(validate_unique=False, validate_constraints=False)
         super().save(
             force_insert=force_insert,
             force_update=force_update,
