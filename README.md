@@ -1,38 +1,18 @@
-# Security-first Django SaaS backend
+# Guia rápido de uso
 
-A clone-per-product Django 6 backend with organization tenancy, a versioned REST API,
-privacy workflows, append-only audit events, application-level AES-256-GCM fields,
-PostgreSQL, Redis/Celery, Sentry, Docker, and a first-class Fly.io deployment.
+[English version](README.en.md)
 
-Para instalação e uso em português, consulte o
-[guia rápido em português](docs/guia-rapido-pt-br.md).
+Este projeto é uma base reutilizável para backends SaaS em Django. Ele já oferece autenticação,
+API REST, organizações, controles técnicos para LGPD, criptografia, auditoria, tarefas
+assíncronas, Sentry e configuração para Fly.io.
 
-This repository supplies technical controls and operational evidence for an LGPD program. It
-does not make a product legally compliant by itself; each product still needs a data inventory,
-lawful-basis assessment, privacy notice, contracts, retention decisions, incident ownership,
-and qualified Brazilian legal/privacy review.
+> Os controles do projeto ajudam na segurança e na geração de evidências, mas não tornam um
+> produto automaticamente adequado à LGPD. Cada SaaS ainda precisa definir finalidades, bases
+> legais, retenção, fornecedores, avisos de privacidade e responsáveis.
 
-## What is included
+## 1. Iniciar localmente
 
-- Email-based UUID users with Argon2 password hashing, CSRF-protected session authentication,
-  login throttling, and account lockouts.
-- Optional organization tenancy with explicit `X-Organization-ID` resolution through active
-  membership—there is no unsafe implicit tenant fallback.
-- Processing-purpose and privacy-notice records, append-only consent evidence, data-subject
-  request tracking, and five-year personal-data incident records.
-- Independent AES-256-GCM field keys and HMAC keys, safe rotation support, TLS/secure-cookie
-  production defaults, native Django CSP, and strict host/origin validation.
-- JSON logs with request/organization correlation and redaction; privacy-safe Sentry event and
-  trace capture with health-check exclusion.
-- PostgreSQL readiness, Redis-backed cache/sessions/throttles, Celery worker processes,
-  Docker Compose, Fly.io release migrations, and CI dependency/image checks.
-
-Read [the architecture](docs/architecture.md), [security model](docs/security.md), and
-[LGPD implementation guide](docs/lgpd.md) before adding product features.
-
-## Local quick start
-
-Python 3.12 is required. Docker is optional.
+Requer Python 3.12. Para iniciar rapidamente com SQLite:
 
 ```powershell
 python -m pip install uv==0.12.0
@@ -44,7 +24,16 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-For PostgreSQL and Redis, omit `--sqlite`, install Docker Desktop, then run:
+Endereços locais:
+
+- API: `http://127.0.0.1:8000/api/v1/`
+- Swagger: `http://127.0.0.1:8000/api/docs/`
+- Admin: `http://127.0.0.1:8000/admin/`
+
+Swagger e Django Admin ficam desabilitados por padrão em produção.
+
+Para usar PostgreSQL e Redis localmente, instale o Docker, execute
+`python scripts/init_local.py` sem `--sqlite` e depois:
 
 ```powershell
 docker compose up -d postgres redis
@@ -52,11 +41,209 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-API documentation is at `http://127.0.0.1:8000/api/docs/`. A browser client first calls
-`GET /api/v1/auth/csrf/`, sends the returned token as `X-CSRFToken`, and then posts credentials
-to `/api/v1/auth/login/`.
+## 2. O que já está incluído
 
-Run the validation suite with:
+- Usuários UUID identificados por e-mail e senhas com Argon2.
+- Autenticação por sessão segura, proteção CSRF, limitação de requisições e bloqueio de login.
+- Organizações e membros para SaaS multiempresa/multitenant.
+- API REST versionada com paginação e documentação OpenAPI.
+- Criptografia AES-256-GCM para campos confidenciais.
+- Auditoria imutável, logs JSON e remoção de dados sensíveis dos logs.
+- Finalidades de tratamento, avisos de privacidade, consentimentos e solicitações de titulares.
+- PostgreSQL, Redis, Celery, Docker, CI e deploy no Fly.io.
+- Sentry com ambiente, release, erros e traces; dados pessoais e credenciais são filtrados.
+
+O projeto não inclui cadastro público, recuperação de senha, cobrança, MFA ou SSO. Esses fluxos
+devem ser adicionados conforme as regras de cada produto.
+
+## 3. Como consumir a API
+
+A autenticação usa cookie de sessão e proteção CSRF. Em Python, instale `requests` e use uma
+`Session` para preservar os cookies:
+
+```powershell
+python -m pip install requests
+```
+
+Exemplo completo de login e consulta:
+
+```python
+import requests
+
+BASE_URL = "http://127.0.0.1:8000/api/v1"
+TIMEOUT = 10
+
+session = requests.Session()
+session.headers["Accept"] = "application/json"
+
+
+def obter_csrf() -> str:
+    response = session.get(f"{BASE_URL}/auth/csrf/", timeout=TIMEOUT)
+    response.raise_for_status()
+    return response.json()["csrf_token"]
+
+
+# O primeiro token autoriza o login.
+csrf_token = obter_csrf()
+login = session.post(
+    f"{BASE_URL}/auth/login/",
+    json={
+        "email": "usuario@exemplo.com",
+        "password": "senha-segura",
+    },
+    headers={"X-CSRFToken": csrf_token},
+    timeout=TIMEOUT,
+)
+login.raise_for_status()
+
+# O Django troca o token durante o login. Obtenha o novo token antes de alterar dados.
+csrf_token = obter_csrf()
+
+profile = session.get(f"{BASE_URL}/auth/me/", timeout=TIMEOUT)
+profile.raise_for_status()
+print(profile.json())
+```
+
+Para criar uma organização:
+
+```python
+organization = session.post(
+    f"{BASE_URL}/organizations/",
+    json={"name": "Empresa Exemplo", "slug": "empresa-exemplo"},
+    headers={"X-CSRFToken": csrf_token},
+    timeout=TIMEOUT,
+)
+organization.raise_for_status()
+organization_id = organization.json()["id"]
+```
+
+Em APIs de negócio vinculadas a uma organização, inclua o tenant:
+
+```python
+tenant_headers = {
+    "X-CSRFToken": csrf_token,
+    "X-Organization-ID": organization_id,
+}
+
+# Troque "seu-recurso" pela rota criada para o seu produto.
+response = session.get(
+    f"{BASE_URL}/seu-recurso/",
+    headers=tenant_headers,
+    timeout=TIMEOUT,
+)
+response.raise_for_status()
+```
+
+Envie `X-CSRFToken` em qualquer `POST`, `PATCH`, `PUT` ou `DELETE`. Para encerrar:
+
+```python
+logout = session.post(
+    f"{BASE_URL}/auth/logout/",
+    headers={"X-CSRFToken": csrf_token},
+    timeout=TIMEOUT,
+)
+logout.raise_for_status()
+session.close()
+```
+
+Clientes Python não dependem de CORS. Use sempre HTTPS em produção, mantenha verificação TLS
+ativa e nunca grave senha, cookie de sessão ou token em logs.
+
+## 4. Endpoints disponíveis
+
+| Método | Endpoint | Uso |
+| --- | --- | --- |
+| `GET` | `/api/v1/health/live/` | Processo está ativo |
+| `GET` | `/api/v1/health/ready/` | PostgreSQL e Redis estão disponíveis |
+| `GET` | `/api/v1/auth/csrf/` | Obter token CSRF |
+| `POST` | `/api/v1/auth/login/` | Iniciar sessão |
+| `POST` | `/api/v1/auth/logout/` | Encerrar sessão |
+| `GET/PATCH` | `/api/v1/auth/me/` | Consultar ou alterar o perfil |
+| `GET/POST` | `/api/v1/organizations/` | Listar ou criar organizações |
+| `GET` | `/api/v1/organizations/{uuid}/` | Consultar uma organização |
+| `GET` | `/api/v1/privacy/purposes/` | Listar finalidades ativas |
+| `GET/POST` | `/api/v1/privacy/consents/` | Consultar ou registrar consentimento |
+| `GET/POST` | `/api/v1/privacy/requests/` | Solicitações de titulares |
+
+Antes de registrar consentimentos, cadastre no admin uma finalidade com base legal
+`consent` e um aviso de privacidade ativo.
+
+## 5. Usar organizações
+
+Ao criar uma organização, o usuário atual recebe o papel `owner`. Nos endpoints de negócio que
+tenham dados de uma organização, envie:
+
+```text
+X-Organization-ID: UUID_DA_ORGANIZACAO
+```
+
+O middleware valida se o usuário possui uma associação ativa. Novos modelos que armazenam
+dados de clientes devem herdar de `OrganizationScopedModel`, e todas as consultas devem ser
+filtradas por `request.organization`.
+
+## 6. Criar uma nova API
+
+Fluxo recomendado:
+
+1. Crie um app dentro de `src/apps/`.
+2. Crie o model; use `OrganizationScopedModel` se o dado pertencer a uma organização.
+3. Crie serializer e view/viewset do Django REST Framework.
+4. Defina permissões e filtre explicitamente pelo usuário ou organização.
+5. Registre a rota em `src/config/urls_api.py`.
+6. Crie migrations e testes de autorização e isolamento.
+
+Comandos:
+
+```powershell
+python manage.py makemigrations
+python manage.py migrate
+pytest --cov
+```
+
+Para conectar APIs externas, guarde tokens somente em variáveis de ambiente/Fly Secrets,
+configure timeout, trate retentativas e execute operações demoradas no Celery. Não envie dados
+pessoais em URLs, argumentos de tarefas, logs ou eventos do Sentry.
+
+## 7. Sentry
+
+Crie um projeto Django no Sentry e configure o DSN:
+
+```text
+SENTRY_ENABLED=true
+SENTRY_DSN=https://CHAVE@ORGANIZACAO.ingest.sentry.io/PROJETO
+SENTRY_ENVIRONMENT=production
+SENTRY_TRACES_SAMPLE_RATE=0.05
+```
+
+Em produção, o backend não inicia com Sentry habilitado e sem DSN. Corpos de requisição,
+cookies, query strings, usuários, e-mails, tokens e variáveis locais são removidos antes do
+envio. Também habilite a filtragem de dados no painel do Sentry.
+
+## 8. Deploy resumido no Fly.io
+
+```powershell
+python scripts/configure_fly.py nome-unico-do-app
+fly apps create nome-unico-do-app
+python scripts/generate_production_secrets.py | fly secrets import -a nome-unico-do-app
+fly mpg create
+fly mpg attach ID_DO_POSTGRES -a nome-unico-do-app
+fly redis create
+fly storage create -a nome-unico-do-app
+fly secrets set SENTRY_DSN="SEU_DSN" -a nome-unico-do-app
+fly deploy
+fly scale count web=2 worker=1 -a nome-unico-do-app
+```
+
+Após criar o Redis, configure sua URL privada em `REDIS_URL`, `CELERY_BROKER_URL` e
+`CELERY_RESULT_BACKEND`. O deploy executa as migrations antes de publicar a nova versão.
+
+```powershell
+fly secrets set REDIS_URL="URL_PRIVADA" CELERY_BROKER_URL="URL_PRIVADA" CELERY_RESULT_BACKEND="URL_PRIVADA" -a nome-unico-do-app
+```
+
+Consulte o passo a passo completo em [deployment-fly.md](docs/deployment-fly.md).
+
+## 9. Validar antes de publicar
 
 ```powershell
 ruff check .
@@ -67,58 +254,5 @@ python manage.py check
 python manage.py makemigrations --check --dry-run
 ```
 
-## Fly.io deployment
-
-The production path keeps the app and managed data services in São Paulo (`gru`). Install and
-authenticate `flyctl`, choose a globally unique lowercase app name, then:
-
-```powershell
-python scripts/configure_fly.py your-unique-app-name
-fly apps create your-unique-app-name
-python scripts/generate_production_secrets.py | fly secrets import -a your-unique-app-name
-fly mpg create
-fly mpg attach YOUR_MPG_CLUSTER_ID -a your-unique-app-name
-fly redis create
-fly storage create -a your-unique-app-name
-fly secrets set SENTRY_DSN="YOUR_SENTRY_DSN" -a your-unique-app-name
-fly deploy
-fly scale count web=2 worker=1 -a your-unique-app-name
-```
-
-Choose `gru` for Managed Postgres and Redis. After `fly redis create`, copy its private URL
-into all three runtime values:
-
-```powershell
-fly secrets set REDIS_URL="YOUR_PRIVATE_REDIS_URL" CELERY_BROKER_URL="YOUR_PRIVATE_REDIS_URL" CELERY_RESULT_BACKEND="YOUR_PRIVATE_REDIS_URL" -a your-unique-app-name
-```
-
-`fly mpg attach` provides the pooled `DATABASE_URL`. `fly storage create` provisions a private
-Tigris bucket and injects its S3-compatible credentials. Every deploy runs migrations once in
-a temporary release Machine; failure aborts the rollout. The service uses readiness checks and
-two independently scalable process groups.
-
-Before accepting traffic:
-
-1. Add the production domain to `DJANGO_ALLOWED_HOSTS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, and
-   `DJANGO_CORS_ALLOWED_ORIGINS` with `fly secrets set`.
-   Because HSTS includes subdomains and the preload directive, confirm every subdomain is
-   permanently HTTPS before serving a custom parent domain; otherwise explicitly disable
-   those two options until the domain is ready.
-2. Keep admin/API docs disabled publicly. For a temporary operations session, set
-   `ADMIN_ENABLED=true`, create a superuser through `fly ssh console`, and disable it again;
-   add staff MFA/SSO before making it persistent.
-3. Verify `python manage.py check --deploy` through `fly ssh console`.
-4. Configure a custom domain/TLS, Sentry alerts, Fly billing alerts, database alerts, and
-   external uptime monitoring.
-5. Test a Managed Postgres restore and a field-key rotation in staging.
-6. Complete the product-specific LGPD checklist in [docs/lgpd.md](docs/lgpd.md).
-
-Detailed commands and rollback notes are in [docs/deployment-fly.md](docs/deployment-fly.md).
-
-## Replicating for a new SaaS
-
-Follow [docs/clone-checklist.md](docs/clone-checklist.md). Product tables containing tenant data
-must inherit `OrganizationScopedModel`, require explicit organization context at the API
-boundary, and filter every query by `request.organization`. Encryption is for confidential
-values that do not need normal database lookup; use a keyed blind index for equality lookup
-when truly required.
+Antes de receber dados reais, revise também [security.md](docs/security.md),
+[lgpd.md](docs/lgpd.md) e os runbooks de incidente e restauração.
