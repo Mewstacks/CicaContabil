@@ -262,3 +262,5 @@ Antes de receber dados reais, revise também [seguranca.md](docs/pt-BR/seguranca
 As melhorias incorporadas após a revisão externa estão registradas em
 [revisao-claude.md](docs/pt-BR/revisao-claude.md), incluindo trade-offs e migração de
 ciphertexts antigos.
+
+Se você está começando, leia [Tecnologias e middlewares: por que cada peça existe](docs/pt-BR/tecnologias-e-middlewares.md).

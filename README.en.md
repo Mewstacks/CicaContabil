@@ -256,3 +256,6 @@ Before processing real data, read the [security model](docs/en/security.md),
 Improvements incorporated after the external review are recorded in
 [claude-review.md](docs/en/claude-review.md), including trade-offs and legacy-ciphertext
 migration requirements.
+
+If you are new to backend development, read
+[Technologies and middleware: why every piece exists](docs/en/technologies-and-middleware.md).
