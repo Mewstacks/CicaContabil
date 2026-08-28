@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import timedelta
+from unittest import mock
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -123,6 +124,59 @@ def test_subject_requests_are_visible_only_to_requester(user: User) -> None:
     other_client.force_authenticate(other)
     hidden = other_client.get(f"/api/v1/privacy/requests/{created.data['id']}/")
     assert hidden.status_code == 404
+
+
+@pytest.mark.django_db
+def test_subject_request_rejects_the_internal_encryption_marker(user: User) -> None:
+    client = APIClient()
+    client.force_authenticate(user)
+    response = client.post(
+        "/api/v1/privacy/requests/",
+        {"request_type": "access", "details": "enc:v1:test-v1:AAAA:AAAA"},
+        format="json",
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_consent_idempotency_race_converges_without_a_500(
+    user: User,
+    notice: PrivacyNotice,
+    consent_purpose: ProcessingPurpose,
+) -> None:
+    from apps.privacy.api import ConsentSerializer
+
+    key = uuid.uuid4()
+    # The record a concurrent request already committed under the same idempotency key.
+    winner = ConsentRecord.objects.create(
+        idempotency_key=key,
+        user=user,
+        purpose=consent_purpose,
+        notice=notice,
+        decision=ConsentRecord.Decision.GRANTED,
+        source="api",
+    )
+    client = APIClient()
+    client.force_authenticate(user)
+    payload = {
+        "idempotency_key": str(key),
+        "purpose": str(consent_purpose.id),
+        "notice": str(notice.id),
+        "decision": ConsentRecord.Decision.GRANTED,
+    }
+    # Reproduce the TOCTOU window deterministically: the initial lookup misses the row that
+    # already exists, so the insert hits the unique constraint and the except-branch must
+    # converge on the winner instead of raising a 500.
+    with mock.patch.object(
+        ConsentSerializer,
+        "_existing_for_key",
+        side_effect=[None, winner],
+    ):
+        response = client.post("/api/v1/privacy/consents/", payload, format="json")
+
+    assert response.status_code in (200, 201)
+    assert response.data["id"] == str(winner.id)
+    assert ConsentRecord.objects.filter(idempotency_key=key).count() == 1
 
 
 @pytest.mark.django_db

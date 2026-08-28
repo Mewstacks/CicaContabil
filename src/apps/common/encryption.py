@@ -34,8 +34,34 @@ def _key(key_id: str) -> bytes:
     return _decode_key(encoded, key_id)
 
 
+def _is_own_ciphertext(value: str) -> bool:
+    """True only for a well-formed token that this application actually produced.
+
+    The stored form is a plain string, so the "already encrypted, skip" decision must not
+    trust a raw text prefix: a user could type ``enc:v1:...`` into a plaintext field and,
+    with a prefix-only check, have it stored verbatim (never encrypted) or poison their own
+    row on read. Require the full structure and a configured key id before treating a value
+    as ciphertext; anything else is plaintext to be encrypted.
+    """
+
+    parts = value.split(":", 4)
+    if len(parts) != 5:
+        return False
+    prefix, version, key_id, encoded_nonce, encoded_ciphertext = parts
+    if f"{prefix}:{version}" != PREFIX:
+        return False
+    if key_id not in settings.FIELD_ENCRYPTION_KEYS:
+        return False
+    try:
+        base64.urlsafe_b64decode(encoded_nonce)
+        base64.urlsafe_b64decode(encoded_ciphertext)
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
 def encrypt_text(value: str, *, associated_data: bytes = b"") -> str:
-    if not value or value.startswith(f"{PREFIX}:"):
+    if not value or _is_own_ciphertext(value):
         return value
     key_id = settings.FIELD_ENCRYPTION_ACTIVE_KEY_ID
     if not key_id:
@@ -57,7 +83,11 @@ def decrypt_text(value: str, *, associated_data: bytes = b"") -> str:
         nonce = base64.urlsafe_b64decode(encoded_nonce)
         ciphertext = base64.urlsafe_b64decode(encoded_ciphertext)
         plaintext = AESGCM(_key(key_id)).decrypt(nonce, ciphertext, associated_data)
-    except (ValueError, InvalidTag) as exc:
+    except (ValueError, InvalidTag, ImproperlyConfigured) as exc:
+        # ImproperlyConfigured: the stored token names a key id that is not in the ring.
+        # That is a property of the (attacker- or corruption-supplied) *data*, not of the
+        # process config, so it must surface as a handled 400, never an unhandled 500 that
+        # would break every subsequent read of the owner's row and the admin changelist.
         raise SuspiciousOperation("Encrypted field authentication failed.") from exc
     return plaintext.decode()
 

@@ -3,12 +3,14 @@ from __future__ import annotations
 import uuid
 from typing import Any, cast
 
-from django.db import transaction
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 from django.db.models import QuerySet
 from rest_framework import serializers, viewsets
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.encryption import PREFIX
 from apps.common.throttling import IPUserRateThrottle
 from apps.privacy.models import (
     ConsentRecord,
@@ -71,27 +73,51 @@ class ConsentSerializer(serializers.ModelSerializer[ConsentRecord]):
             raise serializers.ValidationError("This privacy notice is inactive.")
         return notice
 
+    def _existing_for_key(self, key: uuid.UUID) -> ConsentRecord | None:
+        return ConsentRecord.objects.filter(idempotency_key=key).first()
+
+    def _reconcile(
+        self,
+        existing: ConsentRecord,
+        user: User,
+        validated_data: dict[str, Any],
+    ) -> ConsentRecord:
+        same_event = (
+            existing.user_id == user.id
+            and existing.purpose_id == validated_data["purpose"].id
+            and existing.notice_id == validated_data["notice"].id
+            and existing.decision == validated_data["decision"]
+        )
+        if not same_event:
+            raise serializers.ValidationError("Idempotency key was already used.")
+        return existing
+
     @transaction.atomic
     def create(self, validated_data: dict[str, Any]) -> ConsentRecord:
         key = validated_data.pop("idempotency_key", uuid.uuid4())
         user = cast(User, self.context["request"].user)
-        existing = ConsentRecord.objects.filter(idempotency_key=key).first()
-        if existing:
-            same_event = (
-                existing.user_id == user.id
-                and existing.purpose_id == validated_data["purpose"].id
-                and existing.notice_id == validated_data["notice"].id
-                and existing.decision == validated_data["decision"]
-            )
-            if not same_event:
-                raise serializers.ValidationError("Idempotency key was already used.")
-            return existing
-        record = ConsentRecord.objects.create(
-            idempotency_key=key,
-            user=user,
-            source="api",
-            **validated_data,
-        )
+        existing = self._existing_for_key(key)
+        if existing is not None:
+            return self._reconcile(existing, user, validated_data)
+        try:
+            with transaction.atomic():
+                record = ConsentRecord.objects.create(
+                    idempotency_key=key,
+                    user=user,
+                    source="api",
+                    **validated_data,
+                )
+        except (IntegrityError, DjangoValidationError):
+            # A concurrent request committed the same idempotency_key between our lookup and
+            # our insert (TOCTOU). The duplicate can surface either as a database
+            # IntegrityError or, via ConsentRecord.save()'s full_clean(), as a Django
+            # ValidationError. The inner atomic() savepoint rolled the failed insert back
+            # without poisoning the outer transaction, so converge on the winning record if
+            # one now exists; otherwise the error was not a duplicate and must propagate.
+            existing = self._existing_for_key(key)
+            if existing is None:
+                raise
+            return self._reconcile(existing, user, validated_data)
         record_event(
             action=f"privacy.consent.{record.decision}",
             actor=user,
@@ -119,6 +145,13 @@ class ConsentViewSet(viewsets.ModelViewSet[ConsentRecord]):
 
 
 class DataSubjectRequestSerializer(serializers.ModelSerializer[DataSubjectRequest]):
+    details = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        max_length=10_000,
+    )
+
     class Meta:
         model = DataSubjectRequest
         fields = (
@@ -141,6 +174,15 @@ class DataSubjectRequestSerializer(serializers.ModelSerializer[DataSubjectReques
             "denial_reason_code",
             "created_at",
         )
+
+    def validate_details(self, value: str) -> str:
+        # Defence in depth for the encrypted column: a user must never be able to submit a
+        # value that looks like an internal ciphertext token (see apps.common.encryption).
+        if value.startswith(f"{PREFIX}:"):
+            raise serializers.ValidationError(
+                "Details must not begin with the internal encryption marker."
+            )
+        return value
 
     def create(self, validated_data: dict[str, Any]) -> DataSubjectRequest:
         user = cast(User, self.context["request"].user)

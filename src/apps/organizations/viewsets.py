@@ -36,3 +36,8 @@ class OrganizationScopedViewSet(viewsets.ModelViewSet[ScopedModelT]):
 
     def perform_create(self, serializer: BaseSerializer[ScopedModelT]) -> None:
         serializer.save(organization=self.get_organization())
+
+    def perform_update(self, serializer: BaseSerializer[ScopedModelT]) -> None:
+        # Pin the tenant on write as well as create: even if a subclass serializer exposes
+        # ``organization`` as writable, a PATCH/PUT can never move a row to another tenant.
+        serializer.save(organization=self.get_organization())
