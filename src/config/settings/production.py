@@ -27,6 +27,11 @@ if "*" in ALLOWED_HOSTS or not ALLOWED_HOSTS:
     raise ImproperlyConfigured("Set explicit DJANGO_ALLOWED_HOSTS values; wildcards are forbidden.")
 if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
     raise ImproperlyConfigured("Production requires PostgreSQL.")
+if DATABASES["default"].get("OPTIONS", {}).get("sslmode") == "disable":
+    # DB_SSL_REQUIRE uses setdefault, so an explicit sslmode=disable in DATABASE_URL would
+    # otherwise win. Refuse it: require DB TLS (DB_SSL_REQUIRE=true or an sslmode in the URL),
+    # or provide transport security at the network layer and drop the explicit disable.
+    raise ImproperlyConfigured("Production database must not use sslmode=disable.")
 if not redis_url:
     raise ImproperlyConfigured("Production requires REDIS_URL.")
 if not FIELD_ENCRYPTION_KEYS or not FIELD_ENCRYPTION_ACTIVE_KEY_ID:
