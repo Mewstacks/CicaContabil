@@ -37,8 +37,7 @@ Pass IDs, not bundles of personal data:
 
 ```python
 @shared_task
-def generate_export(request_id: str) -> None:
-    ...
+def generate_export(request_id: str) -> None: ...
 ```
 
 The worker loads the authorized record, checks state and retention, then saves results privately.

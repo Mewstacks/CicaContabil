@@ -43,8 +43,7 @@ Passe IDs como argumento:
 
 ```python
 @shared_task
-def generate_export(request_id: str) -> None:
-    ...
+def generate_export(request_id: str) -> None: ...
 ```
 
 Não envie um perfil inteiro com dados pessoais pelo broker. O worker busca o registro autorizado,
