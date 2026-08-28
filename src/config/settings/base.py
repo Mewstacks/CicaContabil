@@ -184,8 +184,11 @@ STORAGES = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-ADMIN_ENABLED = env_bool("ADMIN_ENABLED", True)
-API_DOCS_ENABLED = env_bool("API_DOCS_ENABLED", True)
+# Fail safe: the admin and the interactive API docs are off unless a settings module or
+# the environment opts in. local.py turns them on for development; production keeps them
+# off. A deployment that forgets to use production.py therefore does not expose them.
+ADMIN_ENABLED = env_bool("ADMIN_ENABLED", False)
+API_DOCS_ENABLED = env_bool("API_DOCS_ENABLED", False)
 
 # The readiness probe stays unauthenticated and unthrottled so that a cache outage can
 # never turn a "degraded" answer into a 500. Memoising the result per worker keeps the
@@ -197,6 +200,10 @@ SESSION_COOKIE_AGE = env_int("SESSION_COOKIE_AGE_SECONDS", 43_200)
 SESSION_COOKIE_HTTPONLY = True
 SESSION_SAVE_EVERY_REQUEST = False
 CSRF_COOKIE_HTTPONLY = True
+# Secure by default; local.py relaxes this for plain-HTTP development and production.py
+# pins it True. A new settings module thus cannot silently ship insecure cookies.
+SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
+CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
 # "Lax" assumes the browser client is same-site. A SPA served from a different site
 # needs "None" (which production enforces alongside Secure) or the session cookie is
 # never sent with the cross-site XHR.
@@ -276,6 +283,10 @@ SERVER_EMAIL = env_str("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = env_int("DATA_UPLOAD_MAX_MEMORY_SIZE", 10 * 1024 * 1024)
 FILE_UPLOAD_MAX_MEMORY_SIZE = env_int("FILE_UPLOAD_MAX_MEMORY_SIZE", 2_621_440)
+# Cap the shape of a request, not just its size: bound the number of POST fields and
+# uploaded files so a single request cannot exhaust CPU/memory building huge structures.
+DATA_UPLOAD_MAX_NUMBER_FIELDS = env_int("DATA_UPLOAD_MAX_NUMBER_FIELDS", 1_000)
+DATA_UPLOAD_MAX_NUMBER_FILES = env_int("DATA_UPLOAD_MAX_NUMBER_FILES", 100)
 FILE_UPLOAD_PERMISSIONS = 0o640
 
 FIELD_ENCRYPTION_ACTIVE_KEY_ID = env_str("FIELD_ENCRYPTION_ACTIVE_KEY_ID")
