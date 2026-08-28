@@ -35,4 +35,7 @@ RUN DJANGO_SETTINGS_MODULE=config.settings.test python manage.py collectstatic -
 USER 10001:10001
 EXPOSE 8000
 
-CMD ["gunicorn", "config.asgi:application", "--bind", "0.0.0.0:8000", "--worker-class", "uvicorn_worker.UvicornWorker", "--workers", "2", "--timeout", "30", "--graceful-timeout", "30", "--max-requests", "1000", "--max-requests-jitter", "100", "--access-logfile", "-", "--error-logfile", "-"]
+# Bind to $PORT so the image runs on any host that injects a port (Heroku, Render, Railway,
+# Cloud Run, …); defaults to 8000 elsewhere. `exec` keeps gunicorn as PID 1 so SIGTERM is
+# delivered for graceful shutdown.
+CMD ["sh", "-c", "exec gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-8000} --worker-class uvicorn_worker.UvicornWorker --workers 2 --timeout 30 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile -"]

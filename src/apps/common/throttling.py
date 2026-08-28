@@ -12,8 +12,9 @@ class ClientIPIdentMixin:
 
     DRF's ``get_ident`` returns the raw ``X-Forwarded-For`` value whenever ``NUM_PROXIES``
     is unset, so any client can mint a fresh throttle bucket per request by varying the
-    header. ``apps.common.network.client_ip`` only trusts ``REMOTE_ADDR`` and the
-    edge-controlled ``Fly-Client-IP`` header, so buckets cannot be forged.
+    header. ``apps.common.network.client_ip`` trusts only the direct peer unless trusted
+    proxies are configured (``TRUSTED_PROXY_IPS`` / ``TRUSTED_PROXY_COUNT``), so buckets
+    cannot be forged on any host.
     """
 
     def get_ident(self, request: Request | HttpRequest) -> str:

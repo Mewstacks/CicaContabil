@@ -45,6 +45,9 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - .:/app
+      # Preserve the image's virtualenv; the bind mount above would otherwise hide it and
+      # the host has no matching .venv, leaving python/celery unresolved in the container.
+      - /app/.venv
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,6 +65,9 @@ services:
     command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=1"]
     volumes:
       - .:/app
+      # Preserve the image's virtualenv; the bind mount above would otherwise hide it and
+      # the host has no matching .venv, leaving python/celery unresolved in the container.
+      - /app/.venv
     depends_on:
       postgres:
         condition: service_healthy

@@ -19,11 +19,13 @@
 
 ## Rate limiting and lockout
 
-Throttle buckets are keyed by `apps.common.network.client_ip`, which only trusts `REMOTE_ADDR`
-and the edge-set `Fly-Client-IP` header. DRF's own `get_ident` reads the caller-supplied
-`X-Forwarded-For` whenever `NUM_PROXIES` is unset, which lets a client mint a fresh bucket per
-request, so `NUM_PROXIES` is pinned to `0` and every throttle derives from
-`apps.common.throttling`. Adjust `client_ip` if you deploy behind a different edge.
+Throttle buckets are keyed by `apps.common.network.client_ip`, which trusts only the direct peer
+(`REMOTE_ADDR`) unless trusted proxies are configured — `TRUSTED_PROXY_IPS` (proxy CIDRs) or
+`TRUSTED_PROXY_COUNT` (number of proxies in front). DRF's own `get_ident` reads the
+caller-supplied `X-Forwarded-For` whenever `NUM_PROXIES` is unset, which lets a client mint a
+fresh bucket per request, so `NUM_PROXIES` is pinned to `0` and every throttle derives from
+`apps.common.throttling`. This is host-agnostic; set the two variables to match your edge (behind
+one reverse proxy, `TRUSTED_PROXY_COUNT=1`).
 
 Lockout is scoped to `(username, ip_address)`. Set `AXES_LOCKOUT_BY_USERNAME=true` to also lock
 on the username alone, which stops a brute force spread over many addresses at the cost of

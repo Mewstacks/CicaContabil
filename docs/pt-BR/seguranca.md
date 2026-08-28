@@ -17,11 +17,13 @@
 
 ## Rate limiting e bloqueio
 
-Os buckets de throttling usam `apps.common.network.client_ip`, que só confia em `REMOTE_ADDR` e
-no cabeçalho `Fly-Client-IP` definido pela borda. O `get_ident` do DRF lê o `X-Forwarded-For`
-enviado pelo cliente quando `NUM_PROXIES` não está definido, o que permite criar um bucket novo
-a cada requisição; por isso `NUM_PROXIES` é fixado em `0` e todos os throttles derivam de
-`apps.common.throttling`. Ajuste `client_ip` se publicar atrás de outra borda.
+Os buckets de throttling usam `apps.common.network.client_ip`, que confia apenas no peer direto
+(`REMOTE_ADDR`), a menos que proxies confiáveis sejam configurados — `TRUSTED_PROXY_IPS` (CIDRs
+dos proxies) ou `TRUSTED_PROXY_COUNT` (número de proxies na frente). O `get_ident` do DRF lê o
+`X-Forwarded-For` enviado pelo cliente quando `NUM_PROXIES` não está definido, o que permite criar
+um bucket novo a cada requisição; por isso `NUM_PROXIES` é fixado em `0` e todos os throttles
+derivam de `apps.common.throttling`. É agnóstico de host; ajuste as duas variáveis conforme sua
+borda (atrás de um proxy reverso, `TRUSTED_PROXY_COUNT=1`).
 
 O bloqueio é por `(username, ip_address)`. Use `AXES_LOCKOUT_BY_USERNAME=true` para bloquear
 também apenas por usuário, o que barra força bruta distribuída em muitos IPs, mas permite que um

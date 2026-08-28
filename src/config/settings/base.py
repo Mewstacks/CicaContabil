@@ -126,7 +126,12 @@ else:
 
 redis_url = env_str("REDIS_URL")
 FLY_APP_NAME = env_str("FLY_APP_NAME")
-deployment_name = FLY_APP_NAME or "saas"
+deployment_name = env_str("APP_NAME") or FLY_APP_NAME or "saas"
+
+# Host-agnostic client-IP resolution (see apps.common.network.client_ip). Set whichever
+# matches the deployment; both default to trusting only the direct peer.
+TRUSTED_PROXY_IPS = env_list("TRUSTED_PROXY_IPS")
+TRUSTED_PROXY_COUNT = env_int("TRUSTED_PROXY_COUNT", 0)
 if redis_url:
     CACHES = {
         "default": {
