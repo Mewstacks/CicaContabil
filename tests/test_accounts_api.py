@@ -51,3 +51,41 @@ def test_login_error_does_not_reveal_account_existence(user: User) -> None:
     assert response.status_code == 401
     assert response.data["error"]["code"] == "invalid_credentials"
     assert user.email not in str(response.data)
+
+
+@pytest.mark.django_db
+def test_me_patch_updates_full_name_only(user: User) -> None:
+    client = APIClient()
+    client.force_authenticate(user)
+    response = client.patch(
+        "/api/v1/auth/me/",
+        {
+            "full_name": "Renamed User",
+            "email": "attacker@evil.example",  # read-only
+            "is_staff": True,  # not a serializer field
+        },
+        format="json",
+    )
+    assert response.status_code == 200
+    user.refresh_from_db()
+    assert user.full_name == "Renamed User"
+    assert user.email == "user@example.com"
+    assert user.is_staff is False
+
+
+@pytest.mark.django_db
+def test_logout_ends_the_session(user: User) -> None:
+    client = APIClient(enforce_csrf_checks=True)
+    login_token = client.get("/api/v1/auth/csrf/").data["csrf_token"]
+    client.post(
+        "/api/v1/auth/login/",
+        {"email": user.email, "password": "correct-horse-battery-staple"},
+        format="json",
+        HTTP_X_CSRFTOKEN=login_token,
+    )
+    assert client.get("/api/v1/auth/me/").status_code == 200
+
+    logout_token = client.get("/api/v1/auth/csrf/").data["csrf_token"]
+    logout_response = client.post("/api/v1/auth/logout/", HTTP_X_CSRFTOKEN=logout_token)
+    assert logout_response.status_code == 204
+    assert client.get("/api/v1/auth/me/").status_code == 403

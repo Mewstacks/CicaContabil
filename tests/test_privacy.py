@@ -127,6 +127,31 @@ def test_subject_requests_are_visible_only_to_requester(user: User) -> None:
 
 
 @pytest.mark.django_db
+def test_processing_purposes_require_auth_and_list_only_active(
+    user: User,
+    consent_purpose: ProcessingPurpose,
+) -> None:
+    ProcessingPurpose.objects.create(
+        code="retired-purpose",
+        name="Retired",
+        description="No longer offered.",
+        lawful_basis=ProcessingPurpose.LawfulBasis.CONTRACT,
+        data_categories=[],
+        retention_days=30,
+        active=False,
+    )
+    assert APIClient().get("/api/v1/privacy/purposes/").status_code == 403
+
+    client = APIClient()
+    client.force_authenticate(user)
+    response = client.get("/api/v1/privacy/purposes/")
+    assert response.status_code == 200
+    codes = {row["code"] for row in response.data["results"]}
+    assert "product-email" in codes
+    assert "retired-purpose" not in codes
+
+
+@pytest.mark.django_db
 def test_subject_request_rejects_the_internal_encryption_marker(user: User) -> None:
     client = APIClient()
     client.force_authenticate(user)
