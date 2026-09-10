@@ -1,0 +1,406 @@
+from __future__ import annotations
+
+import json
+from datetime import timedelta
+from unittest.mock import patch
+
+from django.test import TestCase
+from django.utils import timezone
+
+from apps.intelligence.gateway import generate_claude_fallback_completion, select_provider
+from apps.intelligence.models import (
+    AssistantSettings,
+    ClaudeFallbackApproval,
+    ModelVersion,
+    TrainingExample,
+)
+from apps.intelligence.releases import publish_model
+from apps.intelligence.training import (
+    claude_curation_batch_spec,
+    compare_evaluation_runs,
+    qlora_job_spec,
+    record_evaluation,
+    stable_hash,
+    training_manifest,
+)
+from apps.organizations.models import Organization
+
+
+class TrainingAndGatewayTests(TestCase):
+    def setUp(self) -> None:
+        self.organization = Organization.objects.create(name="Acme", slug="acme")
+
+    def test_manifest_only_exports_validated_examples_with_sources(self) -> None:
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.RISK,
+            question="Caso sem fonte",
+            expected_answer="Não exportar",
+            source_references=[],
+            scenario_hash=stable_hash("no-source"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.RISK,
+            question="Caso aprovado",
+            expected_answer="Resposta com fonte",
+            source_references=["Manual v1 § 2"],
+            scenario_hash=stable_hash("sourced"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+
+        manifest = training_manifest(organization=self.organization)
+
+        self.assertEqual(len(manifest), 1)
+        self.assertEqual(manifest[0]["source_references"], ["Manual v1 § 2"])
+
+    def test_evaluation_gate_requires_quality_sources_and_security(self) -> None:
+        _, failed = record_evaluation(
+            organization=self.organization,
+            report={
+                "total_cases": 100,
+                "correct_cases": 96,
+                "sourced_cases": 99,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        _, passed = record_evaluation(
+            organization=self.organization,
+            report={
+                "total_cases": 100,
+                "correct_cases": 95,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+
+        self.assertFalse(failed.passed)
+        self.assertTrue(passed.passed)
+
+    def test_regression_comparison_requires_same_frozen_suite_and_no_quality_loss(self) -> None:
+        baseline, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "total_cases": 100,
+                "correct_cases": 96,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        regressed, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "total_cases": 100,
+                "correct_cases": 95,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+
+        result = compare_evaluation_runs(baseline=baseline, candidate=regressed)
+
+        self.assertFalse(result.passed)
+        self.assertIn("reduziu", result.reason)
+
+        improved, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "total_cases": 100,
+                "correct_cases": 97,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        mismatched_suite, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v2",
+                "total_cases": 100,
+                "correct_cases": 97,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        failed_baseline, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "total_cases": 100,
+                "correct_cases": 94,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+
+        self.assertTrue(compare_evaluation_runs(baseline=baseline, candidate=improved).passed)
+        self.assertFalse(
+            compare_evaluation_runs(baseline=baseline, candidate=mismatched_suite).passed
+        )
+        self.assertFalse(
+            compare_evaluation_runs(baseline=failed_baseline, candidate=improved).passed
+        )
+
+    def test_qlora_job_is_reproducible_and_requires_sourced_examples(self) -> None:
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.CLASSIFICATION,
+            question="Classificar serviço",
+            expected_answer="Use a regra aprovada.",
+            source_references=["Procedimento 2.1"],
+            scenario_hash=stable_hash("qlora-sourced"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+
+        first = qlora_job_spec(
+            organization=self.organization,
+            base_model="qwen-14b",
+            adapter_name="acme-2026-09",
+            chat_template="qwen3",
+        )
+        second = qlora_job_spec(
+            organization=self.organization,
+            base_model="qwen-14b",
+            adapter_name="acme-2026-09",
+            chat_template="qwen3",
+        )
+
+        self.assertEqual(first["corpus_version"], second["corpus_version"])
+        self.assertEqual(first["manifest_sha256"], second["manifest_sha256"])
+        self.assertEqual(first["method"], "qlora")
+        self.assertEqual(first["chat_template"], "qwen3")
+        self.assertEqual(first["required_evaluation"]["source_coverage_percent"], 100)
+
+        with self.assertRaisesRegex(ValueError, "modelo base local"):
+            qlora_job_spec(
+                organization=self.organization,
+                base_model="../remote-model",
+                adapter_name="acme-2026-09",
+                chat_template="qwen3",
+            )
+
+    def test_claude_curation_batch_is_tenant_bound_and_requires_anonymized_examples(self) -> None:
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.RISK,
+            question="Quando revisar a obrigação?",
+            expected_answer="Revise a fonte aprovada antes do vencimento.",
+            source_references=["Manual aprovado § 3"],
+            scenario_hash=stable_hash("curation-safe"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+        assistant_settings = AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_model="claude-sonnet-4-20250514",
+            claude_offline_curation_enabled=True,
+            claude_curation_max_batch_requests=10,
+        )
+        approval = ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=500,
+            monthly_limit_cents=4_000,
+            valid_until=timezone.now() + timedelta(days=1),
+        )
+
+        batch = claude_curation_batch_spec(
+            organization=self.organization,
+            assistant_settings=assistant_settings,
+            approval=approval,
+        )
+
+        serialized = json.dumps(batch, ensure_ascii=False)
+        self.assertEqual(batch["format"], "hubcontador.claude-curation-batch.v1")
+        self.assertEqual(batch["request_count"], 1)
+        self.assertIn("curation-", batch["requests"][0]["custom_id"])
+        self.assertNotIn("claude_api_key", serialized)
+        self.assertNotIn("local-key", serialized)
+
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.RISK,
+            question="Revisar CPF 123.456.789-09?",
+            expected_answer="Não enviar identificador.",
+            source_references=["Manual aprovado § 4"],
+            scenario_hash=stable_hash("curation-personal"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+        with self.assertRaisesRegex(ValueError, "identificador pessoal"):
+            claude_curation_batch_spec(
+                organization=self.organization,
+                assistant_settings=assistant_settings,
+                approval=approval,
+            )
+
+    def test_cloud_fallback_requires_timeout_opt_in_and_role(self) -> None:
+        settings = AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=["owner"],
+        )
+        approval = ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=1_000,
+            monthly_limit_cents=10_000,
+        )
+
+        blocked = select_provider(
+            settings=settings,
+            approval=approval,
+            role="owner",
+            local_available=False,
+            local_timed_out=False,
+        )
+        allowed = select_provider(
+            settings=settings,
+            approval=approval,
+            role="owner",
+            local_available=False,
+            local_timed_out=True,
+        )
+
+        self.assertIsNone(blocked.provider)
+        self.assertEqual(allowed.provider, "claude")
+
+    def test_model_publication_requires_a_passing_matching_evaluation(self) -> None:
+        version = ModelVersion.objects.create(
+            organization=self.organization, name="local-v2", corpus_version="corpus-v2"
+        )
+        evaluation, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "corpus_version": "corpus-v2",
+                "total_cases": 100,
+                "correct_cases": 98,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+
+        publish_model(
+            organization=self.organization, version=version, evaluation=evaluation, actor=None
+        )
+
+        version.refresh_from_db()
+        self.assertTrue(version.is_active)
+
+    def test_model_publication_rejects_a_regression_against_the_active_model(self) -> None:
+        active = ModelVersion.objects.create(
+            organization=self.organization,
+            name="local-v1",
+            corpus_version="corpus-v1",
+            is_active=True,
+        )
+        record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "corpus_version": active.corpus_version,
+                "total_cases": 100,
+                "correct_cases": 98,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        candidate = ModelVersion.objects.create(
+            organization=self.organization, name="local-v2", corpus_version="corpus-v2"
+        )
+        evaluation, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "suite_name": "regressao-v1",
+                "corpus_version": candidate.corpus_version,
+                "total_cases": 100,
+                "correct_cases": 95,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+
+        with self.assertRaisesRegex(ValueError, "reduziu o número de acertos"):
+            publish_model(
+                organization=self.organization,
+                version=candidate,
+                evaluation=evaluation,
+                actor=None,
+            )
+
+        active.refresh_from_db()
+        candidate.refresh_from_db()
+        self.assertTrue(active.is_active)
+        self.assertFalse(candidate.is_active)
+
+    @patch("apps.intelligence.gateway.urlopen")
+    def test_claude_fallback_masks_payload_and_caches_only_the_stable_policy(
+        self, mocked_urlopen
+    ) -> None:
+        mocked_urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(
+            {
+                "model": "claude-sonnet-4-5",
+                "content": [{"type": "text", "text": "Resposta com fonte."}],
+            }
+        ).encode()
+
+        completion = generate_claude_fallback_completion(
+            api_key="test-local-key",
+            model="claude-sonnet-4-5",
+            question="Verifique CPF 123.456.789-09 e email pessoa@example.test; senha=nao-enviar",
+            company_name="Empresa Protegida",
+            conversation_context="Usuário informou 12.345.678/0001-99",
+            evidence=[
+                {
+                    "label": "Espelho",
+                    "reference": "Fonte pessoa@example.test",
+                    "detail": "CPF 123.456.789-09",
+                }
+            ],
+            allow_full_data=False,
+        )
+
+        request = mocked_urlopen.call_args.args[0]
+        payload = json.loads(request.data)
+        serialized = json.dumps(payload, ensure_ascii=False)
+        self.assertEqual(completion.content, "Resposta com fonte.")
+        self.assertEqual(payload["system"][0]["cache_control"], {"type": "ephemeral", "ttl": "5m"})
+        self.assertEqual(
+            json.loads(payload["messages"][0]["content"])["empresa"], "empresa selecionada"
+        )
+        self.assertNotIn("123.456.789-09", serialized)
+        self.assertNotIn("pessoa@example.test", serialized)
+        self.assertNotIn("nao-enviar", serialized)
+        self.assertIn("[documento oculto]", serialized)
+        self.assertIn("[segredo oculto]", serialized)

@@ -1,0 +1,11 @@
+.metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.account-menu{position:relative;margin-left:auto}
+.account-button{display:flex;align-items:center;gap:9px;height:44px;max-width:250px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);cursor:pointer}
+.account-button:hover{background:#f0f4f8}
+.account-button svg{width:16px;height:16px;flex:0 0 16px;fill:currentColor}
+.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:180px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}
+.account-list form{margin:0}
+.account-list a,.account-list button{display:flex;align-items:center;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+.account-list a:hover,.account-list button:hover{background:#f0f4f8}
+@media(max-width:900px){.account-button{gap:5px;padding:6px}.account-button svg{display:none}}
+@media(max-width:560px){.account-button{width:44px;min-width:44px;justify-content:center}.account-button .account-avatar{display:grid}}

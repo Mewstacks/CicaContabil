@@ -1,0 +1,124 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Assistente IA">
+  <aside class="assistant-history" aria-label="Conversas recentes">
+    <a class="button button-quiet new-conversation" href="{% url 'intelligence:assistant' %}">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Nova conversa
+    </a>
+    {% if conversation_history %}
+      <nav class="conversation-history" aria-label="Histórico de conversas">
+        {% for conversation in conversation_history %}
+          <a href="?conversation={{ conversation.id }}"{% if active_conversation and conversation.id == active_conversation.id %} aria-current="page"{% endif %}>
+            <strong>{{ conversation.title }}</strong><span>{{ conversation.company.name }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </aside>
+
+  <div class="assistant-thread">
+    <header class="assistant-thread-head">
+      <div>
+        <p class="section-kicker">Assistente IA</p>
+        <h2>{% if active_conversation %}{{ active_conversation.title }}{% else %}Nova análise{% endif %}</h2>
+      </div>
+      <span class="company-context" title="Empresa atual">{{ active_company.name|default:"Escolha uma empresa" }}</span>
+    </header>
+
+    <section class="conversation-panel" aria-live="polite" aria-label="Mensagens">
+      {% if conversation_messages %}
+        {% for message in conversation_messages %}
+          {% if message.role == 'user' %}
+            <article class="chat-message chat-message-user">
+              <p class="message-label">Você</p>
+              <p>{{ message.content }}</p>
+              {% if message.attachments.all %}
+                <ul class="message-files" aria-label="Anexos enviados">
+                  {% for attachment in message.attachments.all %}
+                    <li>
+                      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm0 1.5L18.5 8H14V3.5ZM8 13h8v1.5H8V13Zm0 3h8v1.5H8V16Zm0-6h3v1.5H8V10Z"/></svg>
+                      <span>{{ attachment.original_name }}</span>
+                      {% if attachment.status == 'analyzed' %}<em>Pronto</em>{% elif attachment.status == 'awaiting_model' %}<em>Em análise</em>{% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </article>
+          {% else %}
+            <article class="chat-message chat-message-assistant">
+              <div class="message-heading">
+                <p class="message-label">HubContador IA</p>
+                {% if message.evidence %}<span class="model-mark">Com fontes</span>{% endif %}
+              </div>
+              <p>{{ message.content }}</p>
+              {% if message.evidence %}
+                <details class="answer-trace">
+                  <summary><span>Ver análise</span><span>{{ message.evidence|length }} fonte{{ message.evidence|length|pluralize:"s" }}</span></summary>
+                  <div class="trace-body">
+                    <p class="trace-intro">Fontes e dados usados nesta resposta.</p>
+                    <div class="evidence-list">
+                      {% for evidence in message.evidence %}
+                        <article>
+                          <strong>{{ evidence.label }}</strong>
+                          <span>{{ evidence.reference }}</span>
+                          <p>{{ evidence.detail }}</p>
+                        </article>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </details>
+              {% endif %}
+              <div class="feedback-row" aria-label="Avaliar resposta">
+                <span>Foi útil?</span>
+                <form method="post" action="{% url 'intelligence:feedback' message.id %}" data-feedback-form>{% csrf_token %}<input type="hidden" name="verdict" value="helpful"><button type="submit" class="feedback-button" aria-label="Esta resposta foi útil" title="Útil"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h4v11Zm2 0V10l3-7a2 2 0 0 1 2 2v4h3.4a2 2 0 0 1 2 2.4l-1.2 7A3 3 0 0 1 17.2 21H11Z"/></svg><span>Útil</span></button></form>
+                <form method="post" action="{% url 'intelligence:feedback' message.id %}" data-feedback-form>{% csrf_token %}<input type="hidden" name="verdict" value="not_helpful"><button type="submit" class="feedback-button" aria-label="Esta resposta não resolveu" title="Não resolveu"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4V3Zm-2 0v11l-3 7a2 2 0 0 1-2-2v-4H4.6a2 2 0 0 1-2-2.4l1.2-7A3 3 0 0 1 6.8 3H13Z"/></svg><span>Não</span></button></form>
+              </div>
+            </article>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div class="conversation-empty">
+          <p class="section-kicker">{{ active_company.name|default:"Assistente IA" }}</p>
+          <h3>O que você precisa resolver?</h3>
+          <div class="prompt-suggestions" aria-label="Sugestões de pergunta">
+            <button type="button" data-prompt="Quais pendências merecem atenção nesta empresa?">Pendências</button>
+            <button type="button" data-prompt="Resuma os riscos deste período.">Riscos do período</button>
+            <button type="button" data-prompt="Explique a classificação mais provável.">Classificação</button>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <form method="post" enctype="multipart/form-data" class="question-composer" data-assistant-composer>
+      {% csrf_token %}{{ form.company_id }}{% if active_conversation %}<input type="hidden" name="conversation_id" value="{{ active_conversation.id }}">{% endif %}
+      <label class="sr-only" for="{{ form.question.id_for_label }}">Pergunte ao Assistente IA</label>
+      {{ form.question }}
+      {% if form.question.errors %}<p class="field-error" role="alert">{{ form.question.errors|join:", " }}</p>{% endif %}
+      <div id="attachment-preview" class="attachment-preview" hidden aria-live="polite"></div>
+      {% if form.attachments.errors %}<p class="field-error" role="alert">{{ form.attachments.errors|join:", " }}</p>{% endif %}
+      <div class="composer-foot">
+        <label class="attachment-button" title="Anexar PDF, imagem, TXT ou CSV">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 12 5.4-5.4a3 3 0 0 1 4.2 4.2l-7.5 7.5a5 5 0 0 1-7.1-7.1l7-7a1.5 1.5 0 1 1 2.1 2.1l-7 7a2 2 0 0 0 2.8 2.8l7.5-7.5"/></svg><span>Anexar</span><span class="sr-only"> PDF, imagem, TXT ou CSV</span>{{ form.attachments }}
+        </label>
+        <span class="composer-context">{{ active_company.name|default:"Empresa não selecionada" }}</span>
+        <span id="composer-status" class="composer-status" aria-live="polite"></span>
+        <button class="button send-button" type="submit"><span data-submit-label>Enviar</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2.5-7.5L3 11Zm8.3 1.1 2.2 5.8 4.3-9.7-9.7 4.3 3.2-.4Z"/></svg></button>
+      </div>
+    </form>
+  </div>
+
+  {% if draft %}
+    <aside class="assistant-artifact" aria-label="Rascunho sugerido">
+      <section class="workspace-panel draft-card">
+        <p class="section-kicker">Para revisão</p>
+        <h3>Classificação sugerida</h3>
+        <code>{{ draft.suggested_code }}</code>
+        <p>Rascunho. Nada foi alterado no Domínio.</p>
+      </section>
+    </aside>
+  {% endif %}
+</section>
+<script src="{% static 'intelligence/assistant.js' %}" defer></script>
+{% endblock %}

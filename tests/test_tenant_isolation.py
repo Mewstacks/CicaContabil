@@ -142,6 +142,9 @@ def test_a_foreign_organization_header_is_never_accepted(
 ) -> None:
     """Sweeps every scoped route registered in production, for resources added later."""
 
+    # APIClient keeps fixture credentials and would otherwise overwrite the
+    # forged request header with the caller's own organization header.
+    other_org_client.credentials()
     for prefix in SCOPED_PREFIXES:
         response = other_org_client.get(
             f"/api/v1/{prefix}/",

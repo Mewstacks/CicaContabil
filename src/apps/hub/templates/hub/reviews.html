@@ -1,0 +1,25 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="workspace-panel review-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Fila de revisões</h2></div>
+    <span class="record-count">{{ cases|length }} item{{ cases|length|pluralize:"s" }}</span>
+  </header>
+  {% if cases %}
+    <div class="data-table-wrap">
+      <table class="operational-table review-table">
+        <thead><tr><th>Empresa & ocorrência</th><th>Sugestão</th><th>Confiança</th><th>Decisão</th></tr></thead>
+        <tbody>{% for case in cases %}<tr class="{% if case.status == 'open' %}is-open{% endif %}">
+          <td><strong>{{ case.document.company.name }}</strong><small><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</small></td>
+          <td>{% if case.suggested_accumulator %}<span class="source-code">{{ case.suggested_accumulator }}</span>{% else %}<span class="table-muted">Sem sugestão</span>{% endif %}</td>
+          <td><span class="confidence">{{ case.confidence }}%</span></td>
+          <td>{% if case.status == 'open' %}<form action="{% url 'hub:resolve-review' case.id %}" method="post" class="decision-control">{% csrf_token %}<label class="sr-only" for="acc-{{ case.id }}">Acumulador para {{ case.document.company.name }}</label><input id="acc-{{ case.id }}" name="accumulator_code" value="{{ case.suggested_accumulator }}" required autocomplete="off"><button class="button button-small" type="submit">Registrar</button></form>{% else %}<span class="module-state is-active">Decidida · {{ case.resolved_accumulator }}</span>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nada esperando revisão</strong><p>Quando uma regra não tiver segurança suficiente, a decisão aparecerá aqui.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

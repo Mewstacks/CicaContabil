@@ -1,0 +1,32 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="metric-strip" aria-label="Resumo da NFS-e para a empresa atual">
+  <article><span>Recebidas</span><strong>{{ nfse_stats.received }}</strong></article>
+  <article class="metric-needs-attention"><span>Em revisão</span><strong>{{ nfse_stats.pending }}</strong></article>
+  <article><span>Classificadas</span><strong>{{ nfse_stats.classified }}</strong></article>
+</section>
+
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">{{ active_company.name|default:"Empresa atual" }}</p><h2>Documentos recebidos</h2></div>
+    {% if nfse_stats.pending %}<a class="text-action" href="{% url 'hub:reviews' %}">Ver revisões</a>{% endif %}
+  </header>
+  {% if document_rows %}
+    <div class="data-table-wrap">
+      <table class="operational-table">
+        <thead><tr><th>Documento</th><th>Capturado</th><th>Situação</th><th>Acumulador</th><th>Confiança</th></tr></thead>
+        <tbody>{% for row in document_rows %}<tr>
+          <td><strong>{{ row.document.source_nsu|default:"Documento NFS-e" }}</strong><small>Hash {{ row.document.document_hash|slice:":12" }}</small></td>
+          <td>{{ row.document.captured_at|date:"d/m/Y H:i" }}</td>
+          <td><span class="nfse-status nfse-status-{{ row.status_class }}">{{ row.status }}</span></td>
+          <td>{{ row.accumulator }}</td>
+          <td>{% if row.confidence is not None %}{{ row.confidence }}%{% else %}—{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Quando a captura estiver ativa, os documentos desta empresa aparecerão aqui.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

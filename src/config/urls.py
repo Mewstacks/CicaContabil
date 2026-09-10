@@ -7,6 +7,9 @@ from django.urls.resolvers import URLPattern, URLResolver
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 urlpatterns: list[URLPattern | URLResolver] = [
+    path("", include("apps.hub.urls")),
+    path("app/ia/", include("apps.intelligence.urls")),
+    path("platform/", include("apps.platform.urls")),
     path("api/v1/", include("config.urls_api")),
 ]
 

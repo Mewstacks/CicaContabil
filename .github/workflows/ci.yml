@@ -81,3 +81,5 @@ jobs:
         run: uv run pip-audit
       - name: Production image
         run: docker build --tag saas-backend:test .
+      - name: Private multimodal image
+        run: docker build --file runtime/multimodal/Dockerfile --tag hubcontador-multimodal:test .

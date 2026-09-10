@@ -1,0 +1,24 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}
+  {% if support_can_mutate %}
+    <button class="button" type="button" data-modal-open="certificate-dialog">Enviar certificado</button>
+  {% endif %}
+{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel registry-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Certificados A1</h2></div>
+    <span class="record-count">{{ certificates|length }} ativo{{ certificates|length|pluralize:"s" }}</span>
+  </header>
+  {% if certificates %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Identificação</th><th>Validade</th><th>Estado</th></tr></thead><tbody>{% for certificate in certificates %}<tr><td><strong>{{ certificate.company.name }}</strong></td><td>{{ certificate.label }}</td><td>{% if certificate.valid_until %}{{ certificate.valid_until|date:"d/m/Y" }}{% else %}<span class="table-muted">Sem data informada</span>{% endif %}</td><td>{% if certificate.revoked_at %}<span class="module-state is-danger">Revogado</span>{% elif certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Sem certificados sob custódia</strong><p>{% if support_can_mutate %}Envie um A1/PFX para ativar a consulta de NFS-e desta empresa.{% else %}Não há certificado registrado para esta empresa.{% endif %}</p>{% if support_can_mutate %}<button class="button button-small" type="button" data-modal-open="certificate-dialog">Enviar certificado</button>{% endif %}</div>
+  {% endif %}
+</section>
+{% if support_can_mutate %}
+<div id="certificate-dialog" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="certificate-title"><header class="modal-head"><div><p class="section-kicker">Custódia cifrada</p><h2 id="certificate-title">Enviar certificado</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}{% if form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">Revise os campos marcados.</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Guardar certificado</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form></section></div>
+{% endif %}
+{% endblock %}

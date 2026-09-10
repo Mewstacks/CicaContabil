@@ -4,6 +4,7 @@ from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
+from celery.schedules import crontab
 from django.utils.csp import CSP
 
 from config.settings.env import env_bool, env_int, env_json, env_list, env_str
@@ -17,6 +18,14 @@ SECRET_KEY = env_str(
 DEBUG = False
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ("localhost", "127.0.0.1"))
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+
+# Deployment-owned, private OpenAI-compatible inference runtime (vLLM/Ollama
+# proxy). Leave unset to keep the chat source-grounded without model egress.
+LOCAL_LLM_ENDPOINT = env_str("LOCAL_LLM_ENDPOINT", "")
+LOCAL_LLM_MODEL = env_str("LOCAL_LLM_MODEL", "hubcontador-local")
+LOCAL_LLM_API_KEY = env_str("LOCAL_LLM_API_KEY", "")
+LOCAL_MULTIMODAL_ENDPOINT = env_str("LOCAL_MULTIMODAL_ENDPOINT", "")
+INTELLIGENCE_ATTACHMENT_RETRY_LIMIT = env_int("INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -38,6 +47,10 @@ LOCAL_APPS = [
     "apps.organizations",
     "apps.audit",
     "apps.privacy",
+    "apps.hub",
+    "apps.platform",
+    "apps.intelligence",
+    "apps.knowledge",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
@@ -124,6 +137,51 @@ elif db_engine == "postgresql":
 else:
     raise RuntimeError("DB_ENGINE must be either 'sqlite' or 'postgresql'.")
 
+# The shared intelligence corpus is physically isolated from per-office data.
+# A deployment may share a PostgreSQL server, but it must use another database;
+# production requires the explicit URL so an accidental same-database setup fails.
+knowledge_database_url = env_str("KNOWLEDGE_DATABASE_URL")
+if knowledge_database_url:
+    parsed_knowledge_url = urlparse(knowledge_database_url)
+    if parsed_knowledge_url.scheme not in {"postgres", "postgresql"}:
+        raise RuntimeError("KNOWLEDGE_DATABASE_URL must use the postgres or postgresql scheme.")
+    knowledge_options = {
+        key: values[-1] for key, values in parse_qs(parsed_knowledge_url.query).items()
+    }
+    if env_bool("KNOWLEDGE_DB_SSL_REQUIRE", env_bool("DB_SSL_REQUIRE", False)):
+        knowledge_options.setdefault("sslmode", "require")
+    DATABASES["knowledge"] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(parsed_knowledge_url.path.lstrip("/")),
+        "USER": unquote(parsed_knowledge_url.username or ""),
+        "PASSWORD": unquote(parsed_knowledge_url.password or ""),
+        "HOST": parsed_knowledge_url.hostname or "",
+        "PORT": parsed_knowledge_url.port or 5432,
+        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", 60),
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": knowledge_options,
+    }
+elif db_engine == "sqlite":
+    DATABASES["knowledge"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": PROJECT_ROOT / "knowledge.sqlite3",
+    }
+else:
+    DATABASES["knowledge"] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": env_str("KNOWLEDGE_DB_NAME", "hubcontador_knowledge"),
+        "USER": env_str("KNOWLEDGE_DB_USER", env_str("DB_USER", "saas")),
+        "PASSWORD": env_str("KNOWLEDGE_DB_PASSWORD", env_str("DB_PASSWORD")),
+        "HOST": env_str("KNOWLEDGE_DB_HOST", env_str("DB_HOST", "127.0.0.1")),
+        "PORT": env_str("KNOWLEDGE_DB_PORT", env_str("DB_PORT", "5432")),
+        "CONN_MAX_AGE": env_int("DB_CONN_MAX_AGE", 60),
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {"sslmode": "require"}
+        if env_bool("KNOWLEDGE_DB_SSL_REQUIRE", env_bool("DB_SSL_REQUIRE", False))
+        else {},
+    }
+DATABASE_ROUTERS = ["apps.knowledge.routers.SharedKnowledgeRouter"]
+
 redis_url = env_str("REDIS_URL")
 FLY_APP_NAME = env_str("FLY_APP_NAME")
 deployment_name = env_str("APP_NAME") or FLY_APP_NAME or "saas"
@@ -183,6 +241,9 @@ STATIC_URL = "/static/"
 STATIC_ROOT = PROJECT_ROOT / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = PROJECT_ROOT / "media"
+LOGIN_URL = "hub:login"
+LOGIN_REDIRECT_URL = "hub:dashboard"
+LOGOUT_REDIRECT_URL = "hub:home"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
@@ -194,6 +255,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # off. A deployment that forgets to use production.py therefore does not expose them.
 ADMIN_ENABLED = env_bool("ADMIN_ENABLED", False)
 API_DOCS_ENABLED = env_bool("API_DOCS_ENABLED", False)
+# Local development may grant the platform developer a full test session. Production
+# pins this off: support sessions can inspect metadata but cannot mutate tenant data.
+PLATFORM_DEVELOPER_FULL_ACCESS = env_bool("PLATFORM_DEVELOPER_FULL_ACCESS", False)
 
 # The readiness probe stays unauthenticated and unthrottled so that a cache outage can
 # never turn a "degraded" answer into a 500. Memoising the result per worker keeps the
@@ -297,7 +361,13 @@ FILE_UPLOAD_PERMISSIONS = 0o640
 FIELD_ENCRYPTION_ACTIVE_KEY_ID = env_str("FIELD_ENCRYPTION_ACTIVE_KEY_ID")
 FIELD_ENCRYPTION_KEYS = env_json("FIELD_ENCRYPTION_KEYS", {})
 PRIVACY_HMAC_KEY = env_str("PRIVACY_HMAC_KEY")
+MEWPULSE_INGEST_URL = env_str("MEWPULSE_INGEST_URL")
+MEWPULSE_INGEST_TOKEN = env_str("MEWPULSE_INGEST_TOKEN")
+MEWGUARD_POSTURE_URL = env_str("MEWGUARD_POSTURE_URL")
 PRIVACY_REQUEST_TARGET_DAYS = env_int("PRIVACY_REQUEST_TARGET_DAYS", 15)
+# The reverse proxy must verify the certificate and overwrite the two forwarded
+# headers; Django then binds that verified client certificate to one EdgeAgent.
+EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", False)
 
 AXES_ENABLED = True
 AXES_CLIENT_IP_CALLABLE = "apps.common.network.client_ip"
@@ -334,6 +404,24 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_SOFT_TIME_LIMIT = env_int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", 270)
 CELERY_TASK_TIME_LIMIT = env_int("CELERY_TASK_TIME_LIMIT_SECONDS", 300)
 CELERY_WORKER_MAX_TASKS_PER_CHILD = env_int("CELERY_WORKER_MAX_TASKS_PER_CHILD", 500)
+CELERY_BEAT_SCHEDULE = {
+    "refresh-approved-knowledge-chunks": {
+        "task": "intelligence.refresh_knowledge_chunks",
+        "schedule": crontab(hour=2, minute=10),
+    },
+    "refresh-shared-knowledge-chunks": {
+        "task": "intelligence.refresh_shared_knowledge_chunks",
+        "schedule": crontab(hour=2, minute=25),
+    },
+    "purge-expired-intelligence-conversations": {
+        "task": "intelligence.purge_expired_conversations",
+        "schedule": crontab(hour=2, minute=40),
+    },
+    "retry-pending-intelligence-attachments": {
+        "task": "intelligence.retry_pending_attachments",
+        "schedule": timedelta(minutes=5),
+    },
+}
 
 LOGGING = {
     "version": 1,

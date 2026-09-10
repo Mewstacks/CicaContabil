@@ -47,7 +47,9 @@ class Membership(UUIDTimeStampedModel):
     class Role(models.TextChoices):
         OWNER = "owner", "Owner"
         ADMIN = "admin", "Administrator"
-        MEMBER = "member", "Member"
+        MANAGER = "manager", "Manager"
+        OPERATOR = "operator", "Operator"
+        MEMBER = "member", "Member (legacy)"
         BILLING = "billing", "Billing"
         AUDITOR = "auditor", "Auditor"
 

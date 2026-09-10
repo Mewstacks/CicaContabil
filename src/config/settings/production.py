@@ -8,6 +8,8 @@ from config.settings.base import *
 from config.settings.env import env_bool, env_int, env_str
 
 DEBUG = False
+PLATFORM_DEVELOPER_FULL_ACCESS = False
+EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", True)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 fly_app_name = env_str("FLY_APP_NAME")
@@ -27,6 +29,18 @@ if "*" in ALLOWED_HOSTS or not ALLOWED_HOSTS:
     raise ImproperlyConfigured("Set explicit DJANGO_ALLOWED_HOSTS values; wildcards are forbidden.")
 if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
     raise ImproperlyConfigured("Production requires PostgreSQL.")
+if not env_str("KNOWLEDGE_DATABASE_URL"):
+    raise ImproperlyConfigured("Production requires an explicit KNOWLEDGE_DATABASE_URL.")
+if DATABASES["knowledge"]["ENGINE"] != "django.db.backends.postgresql":
+    raise ImproperlyConfigured("Shared knowledge requires PostgreSQL.")
+if (
+    DATABASES["knowledge"]["HOST"],
+    DATABASES["knowledge"]["PORT"],
+    DATABASES["knowledge"]["NAME"],
+) == (DATABASES["default"]["HOST"], DATABASES["default"]["PORT"], DATABASES["default"]["NAME"]):
+    raise ImproperlyConfigured(
+        "KNOWLEDGE_DATABASE_URL must point to a database separate from tenant data."
+    )
 if DATABASES["default"].get("OPTIONS", {}).get("sslmode") == "disable":
     # DB_SSL_REQUIRE uses setdefault, so an explicit sslmode=disable in DATABASE_URL would
     # otherwise win. Refuse it: require DB TLS (DB_SSL_REQUIRE=true or an sslmode in the URL),

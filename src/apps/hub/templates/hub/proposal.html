@@ -1,0 +1,5 @@
+{% extends 'hub/base.html' %}
+{% block title %}Solicitar proposta — HubContador{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page"><a class="brand" href="{% url 'hub:home' %}" translate="no"><span class="brand-mark" aria-hidden="true">H</span>HubContador</a><section class="auth-card"><p class="eyebrow">COMERCIAL</p><h1>Solicitar proposta</h1><p class="form-intro">Conte o essencial. A equipe retorna pelo canal combinado.</p>{% if messages %}{% for message in messages %}<div class="flash" role="status">{{ message }}</div>{% endfor %}{% endif %}<form method="post" class="form-stack">{% csrf_token %}{% if form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise os campos marcados.</strong></div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Enviar pedido</button></form></section></main>
+{% endblock %}

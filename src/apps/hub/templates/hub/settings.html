@@ -1,0 +1,22 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="split-grid">
+  <section class="panel">
+    <header class="panel-header"><div><h2>Uso</h2></div></header>
+    {% for allowance in allowances %}
+      <div class="usage-row"><div><strong>{{ allowance.get_metric_display }}</strong><small>{{ allowance.consumed }} de {{ allowance.included }}</small></div><div class="usage-track"><span style="width: {% widthratio allowance.consumed allowance.included 100 %}%"></span></div></div>
+    {% empty %}
+      <div class="compact-empty">Sem limites definidos.</div>
+    {% endfor %}
+  </section>
+  <section class="panel">
+    <header class="panel-header"><div><h2>Conexões</h2></div></header>
+    {% for connector in connectors %}
+      <div class="connector-row"><div><strong>{{ connector.get_kind_display }}</strong><small>{{ connector.status }}</small></div><span class="status-badge {% if connector.enabled %}is-active{% else %}is-muted{% endif %}">{% if connector.enabled %}Ativa{% else %}Pendente{% endif %}</span></div>
+    {% empty %}
+      <div class="compact-empty">Nenhuma conexão liberada.</div>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

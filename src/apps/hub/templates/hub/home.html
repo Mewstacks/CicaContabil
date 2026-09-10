@@ -1,0 +1,14 @@
+{% extends 'hub/base.html' %}
+{% block title %}HubContador{% endblock %}
+{% block body %}
+<header class="public-header">
+  <a class="brand" href="{% url 'hub:home' %}" translate="no"><span class="brand-mark" aria-hidden="true">H</span>HubContador</a>
+  <nav aria-label="Navegação pública"><a href="#produto">Produto</a><a href="#seguranca">Segurança</a><a class="button button-small" href="{% url 'hub:login' %}">Entrar</a></nav>
+</header>
+<main id="conteudo">
+  <section class="hero hero-brief"><div><p class="eyebrow">OPERAÇÃO CONTÁBIL</p><h1>NFS-e organizada para fechar com segurança.</h1><p class="lead">Capture, classifique e revise documentos em uma única operação conectada ao Domínio.</p><div class="hero-actions"><a class="button" href="{% url 'hub:proposal' %}">Solicitar proposta</a></div></div><aside class="hero-panel" aria-label="Fluxo NFS-e"><p class="panel-kicker">NFS-e Inteligente</p><ol class="flow-list"><li>Capturar</li><li>Classificar</li><li>Revisar exceções</li><li>Exportar</li></ol></aside></section>
+  <section id="produto" class="section brief-section"><h2>O que o HubContador resolve</h2><div class="feature-grid"><article><h3>Fila de exceções</h3><p>O que precisa de decisão aparece primeiro.</p></article><article><h3>Regras rastreáveis</h3><p>Cada acumulador tem contexto e histórico.</p></article><article><h3>Sistemas sob medida</h3><p>Libere somente o que o escritório usa.</p></article></div></section>
+  <section id="seguranca" class="security-band brief-band"><div><p class="eyebrow">SEGURANÇA</p><h2>Dados fiscais sob controle.</h2></div><p>Certificados cifrados, XML imutável e acesso por papel.</p></section>
+</main>
+<footer class="public-footer"><span translate="no">HubContador</span><a href="{% url 'hub:proposal' %}">Falar com comercial</a></footer>
+{% endblock %}

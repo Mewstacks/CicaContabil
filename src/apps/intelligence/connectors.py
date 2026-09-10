@@ -1,0 +1,180 @@
+"""Governed read-only adapters for Domínio through SQL Anywhere ODBC.
+
+No API, MCP tool, model, or database row can supply SQL to this module. The
+only data queries are named entries in ``QUERY_REGISTRY``; discovery uses the
+ODBC metadata API instead of querying arbitrary system tables.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
+from typing import Any, Protocol, cast
+
+MAX_CATALOG_TABLES = 500
+MAX_CATALOG_COLUMNS = 250
+_DSN_RE = re.compile(r"^[A-Za-z0-9 _.-]{1,128}$")
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,127}$")
+
+
+class CursorProtocol(Protocol):
+    description: Any
+    timeout: int
+
+    def execute(self, operation: str) -> Any: ...
+    def fetchmany(self, size: int) -> Iterable[tuple[Any, ...]]: ...
+    def tables(self, **kwargs: Any) -> Iterable[Any]: ...
+    def columns(self, **kwargs: Any) -> Iterable[Any]: ...
+
+
+class ConnectionProtocol(Protocol):
+    def __enter__(self) -> ConnectionProtocol: ...
+    def __exit__(self, *args: Any) -> None: ...
+    def cursor(self) -> CursorProtocol: ...
+
+
+ConnectionFactory = Callable[..., ConnectionProtocol]
+
+
+@dataclass(frozen=True)
+class QuerySpec:
+    sql: str
+    max_rows: int
+
+
+@dataclass(frozen=True)
+class CatalogTable:
+    schema_name: str
+    object_name: str
+    object_kind: str
+
+
+@dataclass(frozen=True)
+class CatalogColumn:
+    name: str
+    type_name: str
+    ordinal: int
+    nullable: bool | None
+
+
+QUERY_REGISTRY: dict[str, QuerySpec] = {
+    "companies": QuerySpec(
+        sql="SELECT TOP 500 codigo, nome FROM geempre WHERE ativa = 'S' ORDER BY nome",
+        max_rows=500,
+    ),
+}
+
+
+def _safe_dsn(value: str) -> str:
+    dsn = value.strip()
+    if not _DSN_RE.fullmatch(dsn):
+        raise ValueError("DSN inválido. Informe somente o nome do DSN de sistema.")
+    return dsn
+
+
+def _safe_identifier(value: str, *, field: str) -> str:
+    identifier = value.strip()
+    if not _IDENTIFIER_RE.fullmatch(identifier):
+        raise ValueError(f"{field} inválido para descoberta de catálogo.")
+    return identifier
+
+
+def _metadata_value(row: object, name: str, position: int, default: object = "") -> object:
+    """Read pyodbc metadata rows by stable attribute, with tuple fallback for tests."""
+    value = getattr(row, name, None)
+    if value is not None:
+        return value
+    if isinstance(row, tuple) and len(row) > position:
+        return row[position]
+    return default
+
+
+class ReadOnlyDominoOdbc:
+    """Private-network ODBC bridge with a fixed query and metadata contract."""
+
+    def __init__(self, dsn: str, *, connection_factory: ConnectionFactory | None = None) -> None:
+        self.dsn = _safe_dsn(dsn)
+        self._connection_factory = connection_factory
+
+    def _connect(self) -> ConnectionProtocol:
+        if self._connection_factory is not None:
+            return self._connection_factory(f"DSN={self.dsn}", autocommit=True, timeout=10)
+        try:
+            import pyodbc  # type: ignore[import-not-found]
+        except ImportError as exc:  # pragma: no cover - deployment-only dependency
+            raise RuntimeError("O driver ODBC do agente não está instalado.") from exc
+        return cast(
+            ConnectionProtocol,
+            pyodbc.connect(f"DSN={self.dsn}", autocommit=True, timeout=10),
+        )
+
+    def execute(self, query_name: str) -> list[dict[str, Any]]:
+        """Run one source-controlled query; caller-supplied SQL is impossible."""
+        spec = QUERY_REGISTRY.get(query_name)
+        if spec is None:
+            raise ValueError("Consulta Domínio não permitida.")
+        with self._connect() as connection:
+            cursor = connection.cursor()
+            cursor.timeout = 15
+            cursor.execute(spec.sql)
+            columns = [str(column[0]) for column in (cursor.description or ())]
+            rows = list(cursor.fetchmany(spec.max_rows))
+        return [dict(zip(columns, row, strict=True)) for row in rows]
+
+    def list_catalog_tables(
+        self, *, prefix: str = "", include_views: bool = False
+    ) -> list[CatalogTable]:
+        """Read bounded ODBC metadata without exposing it to a model or MCP client."""
+        normalized_prefix = prefix.strip().casefold()
+        if normalized_prefix and not _IDENTIFIER_RE.fullmatch(prefix.strip()):
+            raise ValueError("Prefixo de catálogo inválido.")
+        allowed_types = {"TABLE"}
+        if include_views:
+            allowed_types.add("VIEW")
+        tables: list[CatalogTable] = []
+        with self._connect() as connection:
+            cursor = connection.cursor()
+            cursor.timeout = 15
+            for row in cursor.tables():
+                object_kind = str(_metadata_value(row, "table_type", 3)).upper()
+                object_name = str(_metadata_value(row, "table_name", 2)).strip()
+                schema_name = str(_metadata_value(row, "table_schem", 1)).strip()
+                if object_kind not in allowed_types or not object_name:
+                    continue
+                if normalized_prefix and not object_name.casefold().startswith(normalized_prefix):
+                    continue
+                tables.append(CatalogTable(schema_name, object_name, object_kind.lower()))
+                if len(tables) >= MAX_CATALOG_TABLES:
+                    break
+        return tables
+
+    def list_catalog_columns(self, *, table_name: str) -> list[CatalogColumn]:
+        """Read a single validated object's columns through ODBC metadata."""
+        table_name = _safe_identifier(table_name, field="Tabela")
+        columns: list[CatalogColumn] = []
+        with self._connect() as connection:
+            cursor = connection.cursor()
+            cursor.timeout = 15
+            for row in cursor.columns(table=table_name):
+                name = str(_metadata_value(row, "column_name", 3)).strip()
+                if not name:
+                    continue
+                nullable_value = _metadata_value(row, "nullable", 10, None)
+                nullable = bool(nullable_value) if nullable_value is not None else None
+                raw_ordinal = _metadata_value(row, "ordinal_position", 16, 0)
+                try:
+                    ordinal = int(str(raw_ordinal))
+                except (TypeError, ValueError):
+                    ordinal = 0
+                columns.append(
+                    CatalogColumn(
+                        name=name,
+                        type_name=str(_metadata_value(row, "type_name", 5)).strip()[:96],
+                        ordinal=max(0, ordinal),
+                        nullable=nullable,
+                    )
+                )
+                if len(columns) >= MAX_CATALOG_COLUMNS:
+                    break
+        return columns

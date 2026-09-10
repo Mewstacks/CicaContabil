@@ -1,0 +1,135 @@
+# Produção local Windows/Cobalchini. Copie .env.cobalchini.example para .env.cobalchini
+# e mantenha esse arquivo fora do repositório. O agente ODBC roda no Windows host;
+# containers Linux não devem tentar reutilizar o DSN Windows do Domínio.
+name: hub-cobalchini
+
+services:
+  postgres:
+    image: postgres:17-bookworm
+    env_file: .env.cobalchini
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes: ["hub-postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    volumes: ["hub-redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    image: ${HUB_IMAGE:?Defina uma imagem Hub imutável por digest}
+    env_file: .env.cobalchini
+    environment:
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/v1/health/ready/', timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    image: ${HUB_IMAGE:?Defina uma imagem Hub imutável por digest}
+    env_file: .env.cobalchini
+    environment:
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    command: ["celery", "-A", "config", "worker", "--loglevel=INFO", "--concurrency=1"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+
+  beat:
+    image: ${HUB_IMAGE:?Defina uma imagem Hub imutável por digest}
+    env_file: .env.cobalchini
+    environment:
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+    command: ["celery", "-A", "config", "beat", "--loglevel=INFO", "--schedule=/var/lib/hub/celerybeat-schedule"]
+    volumes: ["hub-celery-beat:/var/lib/hub"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    restart: unless-stopped
+
+  ollama:
+    image: ${OLLAMA_IMAGE:?Defina o digest imutável e aprovado do Ollama}
+    profiles: ["ai"]
+    volumes: ["hub-ollama:/root/.ollama"]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  multimodal:
+    build:
+      context: .
+      dockerfile: runtime/multimodal/Dockerfile
+    image: hubcontador-multimodal:${HUB_RUNTIME_VERSION:-dev}
+    profiles: ["ai"]
+    environment:
+      OLLAMA_ENDPOINT: http://ollama:11434
+      LOCAL_MULTIMODAL_MODEL: ${LOCAL_MULTIMODAL_MODEL:-qwen2.5vl:7b}
+    depends_on:
+      ollama: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8081/healthz', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+    restart: unless-stopped
+
+  multimodal-model-init:
+    image: ${OLLAMA_IMAGE:?Defina o digest imutável e aprovado do Ollama}
+    profiles: ["ai-bootstrap"]
+    command: ["pull", "${LOCAL_MULTIMODAL_MODEL:-qwen2.5vl:7b}"]
+    volumes: ["hub-ollama:/root/.ollama"]
+    depends_on:
+      ollama: {condition: service_healthy}
+    restart: "no"
+
+  migrate:
+    image: ${HUB_IMAGE:?Defina uma imagem Hub imutável por digest}
+    profiles: ["deploy"]
+    env_file: .env.cobalchini
+    environment:
+      DB_HOST: postgres
+      REDIS_URL: redis://redis:6379/0
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    depends_on:
+      postgres: {condition: service_healthy}
+
+volumes:
+  hub-postgres:
+  hub-redis:
+  hub-celery-beat:
+  hub-ollama:

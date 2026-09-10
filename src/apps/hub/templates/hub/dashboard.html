@@ -1,0 +1,48 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="metric-strip" aria-label="Resumo operacional">
+  <article><span>Empresas ativas</span><strong>{{ stats.companies }}</strong></article>
+  <article><span>Documentos recebidos</span><strong>{{ stats.documents }}</strong></article>
+  <article class="metric-needs-attention"><span>Em revisão</span><strong>{{ stats.pending }}</strong></article>
+  <article><span>Certificados ativos</span><strong>{{ stats.certificates }}</strong></article>
+</section>
+
+<section class="workbench-grid">
+  <section class="workspace-panel review-queue">
+    <header class="workspace-panel-head">
+      <div>
+        <p class="section-kicker">Fila de decisão</p>
+        <h2>Exceções abertas</h2>
+      </div>
+      <a class="text-action" href="{% url 'hub:reviews' %}">Abrir fila completa <span aria-hidden="true">→</span></a>
+    </header>
+    {% if open_cases %}
+      <div class="data-table-wrap">
+        <table class="operational-table">
+          <thead><tr><th>Empresa</th><th>Ocorrência</th><th>Confiança</th><th><span class="sr-only">Ação</span></th></tr></thead>
+          <tbody>{% for case in open_cases %}<tr>
+            <td><strong>{{ case.document.company.name }}</strong><small>Documento em conferência</small></td>
+            <td><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</td>
+            <td><span class="confidence">{{ case.confidence }}%</span></td>
+            <td><a class="row-action" href="{% url 'hub:reviews' %}">Analisar<span class="sr-only"> {{ case.document.company.name }}</span></a></td>
+          </tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-block operational-empty"><strong>Fila limpa</strong><p>Não há exceções aguardando uma decisão.</p></div>
+    {% endif %}
+  </section>
+
+  <aside class="workspace-panel module-ledger">
+    <header class="workspace-panel-head">
+      <div><h2>Sistemas ativos</h2></div>
+    </header>
+    {% for module in module_states %}
+      <div class="module-item"><span class="module-glyph" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span><span>{{ module.get_code_display }}</span><span class="module-state is-active">Ativo</span></div>
+    {% empty %}
+      <div class="compact-empty">Nenhum sistema ativo.</div>
+    {% endfor %}
+  </aside>
+</section>
+{% endblock %}

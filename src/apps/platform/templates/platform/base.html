@@ -1,0 +1,40 @@
+{% extends 'hub/base.html' %}
+
+{% load static %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=20260910"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}?v=20260910">{% endblock %}
+
+{% block body %}
+<div class="product-shell platform-shell">
+  <aside class="rail" aria-label="Navegação da plataforma">
+    <a class="wordmark" href="{% url 'platform:dashboard' %}" translate="no"><span aria-hidden="true">H</span><b>HubContador</b></a>
+    <p class="rail-label">Controle</p>
+    <nav class="rail-nav">
+      <a href="{% url 'platform:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Visão geral</a>
+      <a href="{% url 'platform:tenants' %}" {% if 'tenant' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Escritórios</a>
+    </nav>
+  </aside>
+  <section class="app-stage">
+    <header class="app-bar">
+      <a class="platform-link" href="{% url 'hub:home' %}" translate="no">HubContador</a>
+      <div class="account-menu">
+        <button class="account-button" type="button" data-popover-toggle="account-list" aria-expanded="false" aria-controls="account-list">
+          <span class="account-avatar" aria-hidden="true">{{ request.user.full_name|default:request.user.email|slice:':1' }}</span>
+          <span class="account-name">{{ request.user.full_name|default:request.user.email }}</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5H7Z"/></svg>
+          <span class="sr-only">Abrir menu da conta</span>
+        </button>
+        <div id="account-list" class="account-list" hidden>
+          <form action="{% url 'hub:logout' %}" method="post">{% csrf_token %}<button type="submit">Sair</button></form>
+        </div>
+      </div>
+    </header>
+    <main id="conteudo" class="work-area">
+      {% if page_title %}<div class="page-header"><div><p class="breadcrumb">Plataforma</p><h1>{{ page_title }}</h1></div></div>{% endif %}
+      {% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}</div>{% endif %}
+      {% block platform_content %}{% endblock %}
+    </main>
+  </section>
+</div>
+<script src="{% static 'hub/hub.js' %}?v=20260910" defer></script>
+{% endblock %}

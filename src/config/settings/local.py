@@ -9,6 +9,7 @@ from config.settings.base import *  # noqa: E402
 DEBUG = True
 ADMIN_ENABLED = True
 API_DOCS_ENABLED = True
+PLATFORM_DEVELOPER_FULL_ACCESS = True
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

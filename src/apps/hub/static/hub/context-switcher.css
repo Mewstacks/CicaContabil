@@ -1,0 +1,23 @@
+.company-switcher{position:relative;margin-left:10px}
+.account-menu{position:relative;margin-left:auto}
+.account-button{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);cursor:pointer}
+.account-button:hover{background:#f0f4f8}
+.account-button svg{width:16px;fill:currentColor}
+.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:190px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}
+.account-list a,.account-list button{display:flex;width:100%;min-height:38px;align-items:center;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+.account-list a:hover,.account-list button:hover{background:#f0f4f8}
+.account-list form{margin:0}
+.account-logout{padding:6px;border:0;background:transparent;color:var(--blue);font:inherit;font-weight:750;cursor:pointer}
+.nfse-status{display:inline-flex;padding:3px 7px;border-radius:99px;font-size:11px;font-weight:800}.nfse-status-success{background:var(--green-soft);color:var(--green)}.nfse-status-attention{background:var(--amber-soft);color:var(--amber)}.nfse-status-muted{background:#f0f2f5;color:#718096}
+.company-avatar{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--green-soft);color:var(--green);font-size:12px;font-weight:800;text-transform:uppercase}
+.composer-context{margin-right:auto;color:#65747a;font-size:12px;font-weight:700}
+@media(max-width:560px){
+  .office-switcher .office-button{padding:7px}
+  .office-switcher .office-button>span:nth-child(2),.office-switcher .office-button>svg{display:none}
+  .company-switcher{margin-left:4px}
+  .company-switcher .office-button{gap:5px;padding:6px}
+  .company-switcher .office-button small{display:none}
+  .company-switcher .office-button b{max-width:100px}
+  .account-button{gap:5px;padding:6px}
+  .account-button .account-name,.account-button svg{display:none}
+}
