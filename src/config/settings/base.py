@@ -5,16 +5,23 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 from celery.schedules import crontab
+from django.core.exceptions import ImproperlyConfigured
 from django.utils.csp import CSP
 
 from config.settings.env import env_bool, env_int, env_json, env_list, env_str
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
-SECRET_KEY = env_str(
-    "DJANGO_SECRET_KEY",
-    "insecure-local-only-key-change-before-production",
-)
+INSECURE_FALLBACK_SECRET_KEY = "insecure-local-only-key-change-before-production"
+SECRET_KEY = env_str("DJANGO_SECRET_KEY", INSECURE_FALLBACK_SECRET_KEY)
+if SECRET_KEY == INSECURE_FALLBACK_SECRET_KEY and env_str("DJANGO_SETTINGS_MODULE") not in {
+    "config.settings.local",
+    "config.settings.test",
+}:
+    # Only the local and test modules may boot on a key everyone in the repository knows.
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be set for any settings module other than local or test."
+    )
 DEBUG = False
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ("localhost", "127.0.0.1"))
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
@@ -339,6 +346,11 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
 }
+
+# Plain Django views that reach a database, an ODBC link or a paid API are outside DRF's
+# throttles, so they carry their own budget.
+MCP_RATE_LIMIT_PER_MINUTE = env_int("MCP_RATE_LIMIT_PER_MINUTE", 60)
+LEAD_RATE_LIMIT_PER_HOUR = env_int("LEAD_RATE_LIMIT_PER_HOUR", 5)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",

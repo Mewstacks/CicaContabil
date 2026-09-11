@@ -4,10 +4,12 @@ import json
 from time import perf_counter
 from typing import Any
 
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import record_event
+from apps.common.ratelimit import rate_limited
 from apps.hub.controlplane import authorization_is_fresh
 from apps.hub.views import active_membership
 from apps.intelligence.mcp import PROTOCOL_VERSION, TOOLS, McpToolError, call_tool
@@ -30,6 +32,10 @@ def mcp_endpoint(request: HttpRequest) -> HttpResponse:
     """MCP JSON-RPC transport for the Hub-internal gateway only."""
     if not request.user.is_authenticated:
         return _error(None, -32001, "Autenticação necessária.", 401)
+    if rate_limited(
+        f"mcp:{request.user.pk}", limit=settings.MCP_RATE_LIMIT_PER_MINUTE, window_seconds=60
+    ):
+        return _error(None, -32005, "Muitas requisições. Tente novamente em instantes.", 429)
     if len(request.body) > 65_536:
         return _error(None, -32600, "Requisição MCP excede 64 KB.", 413)
     try:

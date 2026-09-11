@@ -8,6 +8,7 @@ from functools import wraps
 from typing import Concatenate, cast
 from urllib.parse import quote
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
@@ -21,6 +22,8 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.forms import IdentifierAuthenticationForm
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.network import client_ip
+from apps.common.ratelimit import rate_limited
 from apps.common.redirects import safe_next
 from apps.hub.controlplane import authorization_is_fresh, companies_for_membership
 from apps.hub.forms import (
@@ -64,6 +67,14 @@ def home(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 def proposal(request: HttpRequest) -> HttpResponse:
     form = LeadForm(request.POST or None)
+    if request.method == "POST" and rate_limited(
+        f"lead:{client_ip(request)}",
+        limit=settings.LEAD_RATE_LIMIT_PER_HOUR,
+        window_seconds=3600,
+    ):
+        # Anonymous, unauthenticated, and it writes personal data to the database.
+        messages.error(request, "Muitos pedidos deste endereço. Tente mais tarde.")
+        return render(request, "hub/proposal.html", {"form": form}, status=429)
     if request.method == "POST" and form.is_valid():
         lead = form.save()
         record_event(action="hub.proposal.requested", target=lead, request=request)

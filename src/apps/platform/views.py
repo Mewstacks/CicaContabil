@@ -277,9 +277,11 @@ def start_support(request: HttpRequest, organization_id: str) -> HttpResponse:
     return redirect("hub:dashboard")
 
 
-@platform_required(PlatformAccess.Role.SUPPORT)
+@platform_required(PlatformAccess.Role.SUPPORT, PlatformAccess.Role.DEVELOPER)
 @require_http_methods(["POST"])
 def end_support(request: HttpRequest) -> HttpResponse:
+    # start_support admits DEVELOPER too; without the same role here a developer could
+    # open a tenant session and not close it until it expired on its own.
     user = _platform_user(request)
     support = current_support(request)
     if support:

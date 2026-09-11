@@ -119,3 +119,20 @@ def test_logout_ends_the_session(user: User) -> None:
     logout_response = client.post("/api/v1/auth/logout/", HTTP_X_CSRFTOKEN=logout_token)
     assert logout_response.status_code == 204
     assert client.get("/api/v1/auth/me/").status_code == 403
+
+
+@pytest.mark.django_db
+def test_an_unknown_identifier_costs_the_same_password_hash_as_a_known_one() -> None:
+    """Returning before check_password would make the login form an enumeration oracle."""
+
+    from unittest.mock import patch
+
+    from apps.accounts.backends import IdentifierBackend
+
+    User.objects.create_user(email="known@example.test", password="safe-password-123456")
+    backend = IdentifierBackend()
+
+    with patch.object(User, "set_password") as dummy_hash:
+        assert backend.authenticate(None, username="nobody@example.test", password="guess") is None
+
+    assert dummy_hash.call_count == 1

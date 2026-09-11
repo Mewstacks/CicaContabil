@@ -30,7 +30,13 @@ class IdentifierBackend(BaseBackend):
         if user is None:
             matches = list(User.objects.filter(full_name__iexact=identifier, is_active=True)[:2])
             user = matches[0] if len(matches) == 1 else None
-        if user is not None and user.check_password(password):
+        if user is None:
+            # Argon2 is deliberately slow, so returning before hashing would make an
+            # unknown identifier answer measurably faster than a known one and turn the
+            # login form into an account-enumeration oracle. Pay the same cost either way.
+            User().set_password(password)
+            return None
+        if user.check_password(password):
             return user
         return None
 

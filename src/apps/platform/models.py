@@ -4,9 +4,11 @@ import hashlib
 import secrets
 
 from django.conf import settings
+from django.core.validators import EmailValidator
 from django.db import models
 from django.utils import timezone
 
+from apps.common.encryption import EncryptedTextField
 from apps.common.models import UUIDTimeStampedModel
 
 
@@ -168,9 +170,11 @@ class Lead(UUIDTimeStampedModel):
         QUALIFIED = "qualified", "Qualificado"
         CLOSED = "closed", "Encerrado"
 
-    office_name = models.CharField(max_length=160)
-    contact_name = models.CharField(max_length=150)
-    contact_email = models.EmailField()
+    # A lead is written by an anonymous visitor and read by nobody in the product, so
+    # its contact details get the same custody as every other personal field here.
+    office_name = EncryptedTextField()
+    contact_name = EncryptedTextField()
+    contact_email = EncryptedTextField(validators=[EmailValidator()])
     company_count = models.PositiveIntegerField(null=True, blank=True)
-    message = models.TextField(max_length=1000, blank=True)
+    message = EncryptedTextField(blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.NEW)

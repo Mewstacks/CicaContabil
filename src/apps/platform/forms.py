@@ -5,6 +5,12 @@ from apps.platform.models import Lead, TenantContract
 
 
 class LeadForm(forms.ModelForm):  # type: ignore[type-arg]
+    # The stored columns are encrypted text, so length and format are enforced here.
+    office_name = forms.CharField(max_length=160)
+    contact_name = forms.CharField(max_length=150)
+    contact_email = forms.EmailField(max_length=254)
+    message = forms.CharField(max_length=1000, required=False)
+
     class Meta:
         model = Lead
         fields = ("office_name", "contact_name", "contact_email", "company_count", "message")
