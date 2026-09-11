@@ -21,6 +21,7 @@ from apps.platform.models import (
     SupportSession,
     TenantLifecycle,
 )
+from apps.platform.notifications import send_invitation_email
 from apps.platform.policies import platform_required
 from apps.platform.services import has_platform_role, platform_role, support_access_mode
 
@@ -123,7 +124,6 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
     user = _platform_user(request)
     organization = get_object_or_404(Organization, id=organization_id)
     invite_form = InvitationForm(request.POST or None, prefix="invite")
-    activation_link = None
     if request.method == "POST" and request.POST.get("action") == "modules":
         if ControlPlaneBinding.objects.filter(organization=organization).exists():
             messages.error(request, "Os sistemas desta instalação são definidos pelo CRMew.")
@@ -151,6 +151,15 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
     if (
         request.method == "POST"
         and request.POST.get("action") == "invite"
+        and not has_platform_role(
+            request.user, PlatformAccess.Role.SUPPORT, PlatformAccess.Role.DEVELOPER
+        )
+    ):
+        # An activation link is a bearer credential for the tenant it opens.
+        raise PermissionDenied
+    if (
+        request.method == "POST"
+        and request.POST.get("action") == "invite"
         and invite_form.is_valid()
     ):
         raw_token, digest = Invitation.issue_token()
@@ -168,22 +177,25 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
             expires_at=timezone.now() + timedelta(days=7),
             created_by=user,
         )
-        activation_link = request.build_absolute_uri(f"/ativar/{raw_token}/")
+        send_invitation_email(
+            invitation=invitation,
+            activation_url=request.build_absolute_uri(f"/ativar/{raw_token}/"),
+        )
         record_event(
             action="platform.invitation.issued",
             actor=user,
             organization=organization,
             target=invitation,
             request=request,
+            metadata={"delivery": "email"},
         )
-        messages.success(request, "Ativação criada. Copie o link agora; ele não é exibido de novo.")
+        messages.success(request, f"Convite enviado para {invitation.email}.")
     ctx = context(request)
     ctx.update(
         {
             "page_title": "",
             "tenant": organization,
             "invite_form": invite_form,
-            "activation_link": activation_link,
             "can_start_support": has_platform_role(
                 request.user,
                 PlatformAccess.Role.SUPPORT,

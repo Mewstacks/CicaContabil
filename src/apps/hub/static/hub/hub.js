@@ -102,21 +102,6 @@ if (menuButton && mobileNav) {
 const firstError = document.querySelector('[data-form-errors]');
 if (firstError) firstError.focus();
 
-document.querySelectorAll('[data-copy]').forEach((button) =>
-  button.addEventListener('click', async () => {
-    const input = button.parentElement?.querySelector('[data-copy-source]');
-    if (!input) return;
-    try {
-      await navigator.clipboard.writeText(input.value);
-      button.textContent = 'Copiado';
-    } catch {
-      input.select();
-      document.execCommand('copy');
-      button.textContent = 'Copiado';
-    }
-  }),
-);
-
 const openIntegrationDetails = (target) => {
   if (!(target instanceof HTMLDetailsElement)) return;
   target.open = true;

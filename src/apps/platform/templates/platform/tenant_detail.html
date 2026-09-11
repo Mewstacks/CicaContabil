@@ -61,7 +61,4 @@
     </form>
   </section>
 </div>
-{% if activation_link %}
-  <section class="panel invitation-result"><div><strong>Convite criado</strong><span>Copie o link agora; ele não será exibido novamente.</span></div><div class="activation-link"><label class="sr-only" for="activation-link">Link de convite</label><input id="activation-link" value="{{ activation_link }}" readonly data-copy-source><button class="button button-small button-quiet" type="button" data-copy>Copiar</button></div></section>
-{% endif %}
 {% endblock %}

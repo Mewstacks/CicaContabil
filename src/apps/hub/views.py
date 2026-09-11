@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Callable
 from datetime import timedelta
 from functools import wraps
 from typing import Concatenate, cast
+from urllib.parse import quote
 
 from django.contrib import messages
 from django.contrib.auth import login
@@ -19,6 +21,7 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.forms import IdentifierAuthenticationForm
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.redirects import safe_next
 from apps.hub.controlplane import authorization_is_fresh, companies_for_membership
 from apps.hub.forms import (
     ActivationForm,
@@ -73,55 +76,83 @@ def proposal(request: HttpRequest) -> HttpResponse:
 
 @require_http_methods(["GET", "POST"])
 def activate_invitation(request: HttpRequest, token: str) -> HttpResponse:
-    import hashlib
-
     invitation = get_object_or_404(
         Invitation, token_digest=hashlib.sha256(token.encode()).hexdigest()
     )
     if not invitation.usable():
         return render(request, "hub/activation_invalid.html", status=410)
+
+    existing = User.objects.filter(email=invitation.email).first()
+    if existing is not None:
+        return _accept_as_existing_user(request, invitation, existing, token)
+
     form = ActivationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         with transaction.atomic():
-            user, created = User.objects.get_or_create(
+            user = User.objects.create_user(
                 email=invitation.email,
-                defaults={"full_name": invitation.full_name},
+                password=form.cleaned_data["password"],
             )
-            if (
-                not created
-                and Membership.objects.filter(
-                    organization=invitation.organization, user=user, is_active=True
-                ).exists()
-            ):
-                form.add_error(None, "Este acesso já foi ativado.")
-                return render(request, "hub/activate.html", {"form": form})
-            user.set_password(form.cleaned_data["password"])
-            if invitation.full_name and not user.full_name:
-                user.full_name = invitation.full_name
-            user.is_active = True
-            user.save()
-            Membership.objects.update_or_create(
-                organization=invitation.organization,
-                user=user,
-                defaults={"role": invitation.role, "is_active": True},
-            )
-            invitation.status = Invitation.Status.ACCEPTED
-            invitation.accepted_by = user
-            invitation.save(update_fields=["status", "accepted_by", "updated_at"])
-            TenantLifecycle.objects.filter(organization=invitation.organization).update(
-                state=TenantLifecycle.State.ACTIVE, changed_by=user
-            )
-            record_event(
-                action="hub.invitation.activated",
-                actor=user,
-                organization=invitation.organization,
-                target=invitation,
-                request=request,
-            )
+            user.full_name = invitation.full_name
+            user.save(update_fields=["full_name"])
+            _accept_invitation(request, invitation, user, account_existed=False)
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         request.session["hub_organization_id"] = str(invitation.organization_id)
         return redirect("hub:dashboard")
     return render(request, "hub/activate.html", {"form": form})
+
+
+def _accept_as_existing_user(
+    request: HttpRequest, invitation: Invitation, invited: User, token: str
+) -> HttpResponse:
+    """An invitation never sets the password of an account that already exists.
+
+    Doing so would let anyone who can issue an invitation take over any account by
+    typing its e-mail address. The invited person signs in first and then accepts.
+    """
+
+    if not request.user.is_authenticated or request.user.pk != invited.pk:
+        login_url = f"{reverse('hub:login')}?next={quote(request.path)}"
+        return render(
+            request,
+            "hub/activate_signin.html",
+            {"invited_email": invitation.email, "login_url": login_url},
+            status=403 if request.user.is_authenticated else 200,
+        )
+    if request.method == "POST":
+        with transaction.atomic():
+            _accept_invitation(request, invitation, invited, account_existed=True)
+        request.session["hub_organization_id"] = str(invitation.organization_id)
+        return redirect("hub:dashboard")
+    return render(
+        request,
+        "hub/activate_accept.html",
+        {"invitation": invitation, "token": token},
+    )
+
+
+def _accept_invitation(
+    request: HttpRequest, invitation: Invitation, user: User, *, account_existed: bool
+) -> None:
+    Membership.objects.update_or_create(
+        organization=invitation.organization,
+        user=user,
+        defaults={"role": invitation.role, "is_active": True},
+    )
+    invitation.status = Invitation.Status.ACCEPTED
+    invitation.accepted_by = user
+    invitation.save(update_fields=["status", "accepted_by", "updated_at"])
+    TenantLifecycle.objects.filter(organization=invitation.organization).update(
+        state=TenantLifecycle.State.ACTIVE, changed_by=user
+    )
+    record_event(
+        action="hub.invitation.activated",
+        actor=user,
+        organization=invitation.organization,
+        target=invitation,
+        request=request,
+        metadata={"account_existed": account_existed},
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -145,7 +176,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
             request.session["hub_organization_id"] = str(membership.organization_id)
         target = request.POST.get("next")
         if target:
-            return redirect(target)
+            return redirect(safe_next(request, target, fallback="hub:dashboard"))
         if has_platform_role(
             user,
             PlatformAccess.Role.DEVELOPER,
@@ -154,7 +185,11 @@ def login_view(request: HttpRequest) -> HttpResponse:
         ):
             return redirect("platform:dashboard")
         return redirect("hub:dashboard")
-    return render(request, "hub/login.html", {"form": form})
+    return render(
+        request,
+        "hub/login.html",
+        {"form": form, "next": safe_next(request, request.GET.get("next"), fallback="")},
+    )
 
 
 def active_membership(request: HttpRequest) -> Membership | None:
@@ -288,7 +323,7 @@ def switch_office(request: HttpRequest) -> HttpResponse:
     )
     request.session["hub_organization_id"] = str(membership.organization_id)
     request.session.pop("hub_company_id", None)
-    return redirect(request.POST.get("next") or "hub:dashboard")
+    return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
 
 
 @office_required
@@ -301,7 +336,7 @@ def switch_company(request: HttpRequest) -> HttpResponse:
     if company is None:
         return HttpResponseForbidden("Empresa fora do seu escopo.")
     request.session["hub_company_id"] = str(company.id)
-    return redirect(request.POST.get("next") or "hub:dashboard")
+    return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
 
 
 @office_required

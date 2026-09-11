@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -13,7 +14,7 @@ from apps.hub.models import (
     RemoteSupportGrant,
 )
 from apps.organizations.models import Membership, Organization
-from apps.platform.models import PlatformAccess, SupportSession
+from apps.platform.models import Invitation, PlatformAccess, SupportSession
 
 
 class PlatformTenantViewTests(TestCase):
@@ -105,7 +106,7 @@ class PlatformTenantViewTests(TestCase):
         self.assertContains(page, "Empresa Fedrizzi")
         self.assertNotContains(page, "Empresa QA")
 
-    def test_platform_can_provision_an_office_and_issue_its_one_time_activation(self):
+    def test_commercial_provisions_an_office_but_cannot_issue_its_activation(self):
         commercial = User.objects.create_user(
             email="commercial@example.test", password="safe-password-123"
         )
@@ -128,8 +129,28 @@ class PlatformTenantViewTests(TestCase):
         )
 
         self.assertRedirects(created, detail_url)
-        self.assertEqual(invitation.status_code, 200)
-        self.assertContains(invitation, "Ativação criada")
+        self.assertEqual(invitation.status_code, 403)
+        self.assertFalse(Invitation.objects.filter(email="owner@new.test").exists())
+
+    def test_support_issues_an_activation_that_is_delivered_by_email(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "invite",
+                "invite-email": "owner@new.test",
+                "invite-full_name": "Owner New",
+                "invite-role": Membership.Role.OWNER,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(Invitation.objects.filter(email="owner@new.test").exists())
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["owner@new.test"])
+        self.assertIn("/ativar/", mail.outbox[0].body)
+        self.assertNotContains(response, "/ativar/")
 
     def test_crmew_managed_support_needs_a_temporary_controller_grant(self):
         ControlPlaneBinding.objects.create(
