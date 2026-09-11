@@ -69,7 +69,8 @@ jobs:
           DJANGO_SECRET_KEY: deploy-check-only-please-use-a-generated-value-000000000000000000000000
           DJANGO_ALLOWED_HOSTS: example.com
           DJANGO_CSRF_TRUSTED_ORIGINS: https://example.com
-          DATABASE_URL: postgresql://user:pass@localhost:5432/app
+          DATABASE_URL: postgresql://user:pass@localhost:5432/app?sslmode=require
+          KNOWLEDGE_DATABASE_URL: postgresql://user:pass@localhost:5432/knowledge?sslmode=require
           REDIS_URL: redis://localhost:6379/0
           SENTRY_DSN: https://public@example.com/1
           FIELD_ENCRYPTION_ACTIVE_KEY_ID: v1
