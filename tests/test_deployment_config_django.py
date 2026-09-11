@@ -100,3 +100,17 @@ class DeploymentConfigurationTests(SimpleTestCase):
         self.assertIn("$ssl_client_verify != SUCCESS", proxy)
         self.assertIn("$ssl_client_escaped_cert", proxy)
         self.assertIn("EDGE_AGENT_MTLS_REQUIRED", production)
+
+    def test_production_refuses_a_database_link_without_a_verified_tls_mode(self) -> None:
+        """libpq falls back to "prefer" - refusing only sslmode=disable leaves a plaintext gap."""
+
+        production = (ROOT / "src" / "config" / "settings" / "production.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('SECURE_DB_SSL_MODES = {"require", "verify-ca", "verify-full"}', production)
+        self.assertIn('for alias in ("default", "knowledge"):', production)
+        self.assertIn("DB_TLS_ENFORCED_BY_NETWORK", production)
+
+        fly = (ROOT / "fly.toml").read_text(encoding="utf-8")
+        self.assertIn('DB_SSL_REQUIRE = "true"', fly)

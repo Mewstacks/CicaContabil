@@ -41,11 +41,20 @@ if (
     raise ImproperlyConfigured(
         "KNOWLEDGE_DATABASE_URL must point to a database separate from tenant data."
     )
-if DATABASES["default"].get("OPTIONS", {}).get("sslmode") == "disable":
-    # DB_SSL_REQUIRE uses setdefault, so an explicit sslmode=disable in DATABASE_URL would
-    # otherwise win. Refuse it: require DB TLS (DB_SSL_REQUIRE=true or an sslmode in the URL),
-    # or provide transport security at the network layer and drop the explicit disable.
-    raise ImproperlyConfigured("Production database must not use sslmode=disable.")
+# Refusing sslmode=disable is not enough: with DB_SSL_REQUIRE unset and no sslmode in the
+# URL, libpq falls back to "prefer" and silently accepts a plaintext connection. Demand an
+# explicit, verified mode instead. A deployment whose database traffic never leaves a private
+# encrypted network (a Fly .internal mesh, a WireGuard tunnel) opts out on purpose.
+SECURE_DB_SSL_MODES = {"require", "verify-ca", "verify-full"}
+if not env_bool("DB_TLS_ENFORCED_BY_NETWORK", False):
+    for alias in ("default", "knowledge"):
+        mode = DATABASES[alias].get("OPTIONS", {}).get("sslmode")
+        if mode not in SECURE_DB_SSL_MODES:
+            raise ImproperlyConfigured(
+                f"The {alias} database needs sslmode in {sorted(SECURE_DB_SSL_MODES)}; "
+                f"got {mode!r}. Set DB_SSL_REQUIRE=true, put sslmode in the URL, or set "
+                "DB_TLS_ENFORCED_BY_NETWORK=true when the link is already encrypted."
+            )
 if not redis_url:
     raise ImproperlyConfigured("Production requires REDIS_URL.")
 if not FIELD_ENCRYPTION_KEYS or not FIELD_ENCRYPTION_ACTIVE_KEY_ID:

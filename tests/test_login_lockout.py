@@ -57,3 +57,26 @@ def test_username_is_resolved_from_either_credential_key() -> None:
         "form@example.com"
     )
     assert axes_username(None, {"password": "irrelevant"}) == ""
+
+
+@pytest.mark.django_db
+@override_settings(AXES_FAILURE_LIMIT=2)
+def test_rotating_the_source_address_does_not_evade_the_lockout(user: User) -> None:
+    """A per-IP lockout alone never stops a distributed attack on a single account."""
+
+    cache.clear()
+    client = APIClient()
+    payload = {"email": user.email, "password": "wrong-password"}
+    for octet in range(1, 4):
+        client.post(
+            "/api/v1/auth/login/",
+            payload,
+            format="json",
+            REMOTE_ADDR=f"203.0.113.{octet}",
+        )
+
+    fresh_address = client.post(
+        "/api/v1/auth/login/", payload, format="json", REMOTE_ADDR="198.51.100.7"
+    )
+
+    assert fresh_address.status_code == 429

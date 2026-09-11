@@ -376,11 +376,13 @@ AXES_FAILURE_LIMIT = env_int("AXES_FAILURE_LIMIT", 5)
 AXES_COOLOFF_TIME = timedelta(minutes=env_int("AXES_COOLOFF_MINUTES", 30))
 AXES_USE_ATTEMPT_EXPIRATION = True
 AXES_RESET_ON_SUCCESS = True
-# (username, ip_address) alone never stops a distributed brute force against one
-# account. Adding the username-only group closes that, at the cost of letting a third
-# party lock somebody else out on purpose, so it stays an explicit deployment choice.
+# (username, ip_address) alone never stops a distributed brute force against one account:
+# an attacker rotating source addresses is never locked out, and the login throttle is
+# keyed per IP too, so it rotates away as well. The username-only group closes that. It
+# does let a third party lock somebody out on purpose, which for fiscal data is the lesser
+# harm - and the cooloff releases it. A deployment that weighs availability higher opts out.
 AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
-if env_bool("AXES_LOCKOUT_BY_USERNAME", False):
+if env_bool("AXES_LOCKOUT_BY_USERNAME", True):
     AXES_LOCKOUT_PARAMETERS.append(["username"])
 AXES_HANDLER = "axes.handlers.cache.AxesCacheHandler"
 AXES_CACHE = "default"
