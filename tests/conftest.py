@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -70,3 +72,17 @@ def other_org_client(db: object) -> APIClient:
     client.force_login(outsider)
     client.credentials(HTTP_X_ORGANIZATION_ID=str(other_organization.id))
     return client
+
+
+def complete_mfa(client: Any) -> None:
+    """Mark this client's session as having passed the second factor.
+
+    Enforcement itself is proved in tests/test_mfa.py; every other test that signs in
+    as a platform operator only needs to get past the door.
+    """
+
+    from apps.accounts.mfa import SESSION_KEY
+
+    session = client.session
+    session[SESSION_KEY] = True
+    session.save()

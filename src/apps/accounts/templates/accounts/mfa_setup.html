@@ -1,0 +1,5 @@
+{% extends 'hub/base.html' %}
+{% block title %}Segundo fator — HubContador{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Cadastrar aplicativo</h1><ol class="mfa-steps"><li>Abra seu aplicativo autenticador.</li><li>Escaneie o QR ou informe a chave.</li><li>Digite o código gerado.</li></ol><div class="mfa-secret"><label for="mfa-secret">Chave</label><code id="mfa-secret" translate="no">{{ secret }}</code></div><img class="mfa-qr" src="{% url 'accounts:mfa-qr' %}" alt="QR code para o aplicativo autenticador" width="200" height="200"><form method="post" class="form-stack">{% csrf_token %}{% if form.non_field_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{{ form.non_field_errors|striptags }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Confirmar</button></form></section></main>
+{% endblock %}

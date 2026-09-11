@@ -10,6 +10,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import Invitation, PlatformAccess, SupportSession
+from conftest import complete_mfa
 
 
 @pytest.mark.django_db
@@ -19,6 +20,7 @@ def test_superuser_gets_platform_console_without_tenant_membership() -> None:
     )
     client = Client()
     client.force_login(user)
+    complete_mfa(client)
 
     response = client.get(reverse("platform:dashboard"))
 
@@ -44,6 +46,7 @@ def test_support_session_grants_temporary_operational_access_without_membership(
     office = Organization.objects.create(name="Escritório", slug="escritorio")
     client = Client()
     client.force_login(support)
+    complete_mfa(client)
 
     response = client.post(
         reverse("platform:start-support", args=[office.id]),

@@ -1355,6 +1355,18 @@ wheels = [
 ]
 
 [[package]]
+name = "qrcode"
+version = "8.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8f/b2/7fc2931bfae0af02d5f53b174e9cf701adbb35f39d69c2af63d4a39f81a9/qrcode-8.2.tar.gz", hash = "sha256:35c3f2a4172b33136ab9f6b3ef1c00260dd2f66f858f24d88418a015f446506c", size = 43317, upload-time = "2025-05-01T15:44:24.726Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/dd/b8/d2d6d731733f51684bbf76bf34dab3b70a9148e8f2cef2bb544fccec681a/qrcode-8.2-py3-none-any.whl", hash = "sha256:16e64e0716c14960108e85d853062c9e8bba5ca8252c0b4d0231b9df4060ff4f", size = 45986, upload-time = "2025-05-01T15:44:22.781Z" },
+]
+
+[[package]]
 name = "redis"
 version = "8.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1527,6 +1539,7 @@ dependencies = [
     { name = "gunicorn" },
     { name = "psycopg", extra = ["binary"] },
     { name = "python-dotenv" },
+    { name = "qrcode" },
     { name = "sentry-sdk", extra = ["django"] },
     { name = "sqlparse" },
     { name = "uvicorn-worker" },
@@ -1551,6 +1564,11 @@ dev = [
 dominio-agent = [
     { name = "pyodbc", marker = "sys_platform == 'win32'" },
     { name = "pywin32", marker = "sys_platform == 'win32'" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "types-qrcode" },
 ]
 
 [package.metadata]
@@ -1580,6 +1598,7 @@ requires-dist = [
     { name = "pytest-django", marker = "extra == 'dev'", specifier = "==4.12.0" },
     { name = "python-dotenv", specifier = "==1.2.2" },
     { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'dominio-agent'", specifier = "==311" },
+    { name = "qrcode", specifier = "==8.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.16.0" },
     { name = "sentry-sdk", extras = ["django"], specifier = "==2.66.1" },
     { name = "sqlparse", specifier = "==0.6.0" },
@@ -1588,6 +1607,9 @@ requires-dist = [
     { name = "whitenoise", specifier = "==6.12.0" },
 ]
 provides-extras = ["dominio-agent", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "types-qrcode", specifier = "==8.2.0.20250506" }]
 
 [[package]]
 name = "sentry-sdk"
@@ -1695,6 +1717,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/3f/6f/a28f44bcd56bebed42b028a2894c79853e2f5e6b5279e633cb3f287a05e7/types_pyyaml-6.0.12.20260724.tar.gz", hash = "sha256:3c1ce1bb73cd5ec02e90390c2b1f00e810d241d8825fd73ff359696839271b6b", size = 17893, upload-time = "2026-07-24T04:58:43.453Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/42/0337fefc615e20ee55d1c8f71b774a9b2b734a04669139c20753b27a2a3a/types_pyyaml-6.0.12.20260724-py3-none-any.whl", hash = "sha256:d57db930a4b2efbc57cf430ec8882765d246929432fa253092f383902329a453", size = 20312, upload-time = "2026-07-24T04:58:42.486Z" },
+]
+
+[[package]]
+name = "types-qrcode"
+version = "8.2.0.20250506"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9b/78/9f99714645b241c8762ba7a457b503024cd84805f4f645421deefd76d1d0/types_qrcode-8.2.0.20250506.tar.gz", hash = "sha256:6c28eec34da5ca0ec655e5f43501311e49d6b922fb7ad3d7ed9923b8ace9805f", size = 15020, upload-time = "2025-05-06T03:03:45.012Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/51/fb46d55e07bf785ca1d06c9d4917808ab2d691b45ee4df199d7336256412/types_qrcode-8.2.0.20250506-py3-none-any.whl", hash = "sha256:f6354b3aee767f6f48f1c21759ff00b54fef2691d0fc2afd3479242cd9cb0953", size = 19892, upload-time = "2025-05-06T03:03:43.821Z" },
 ]
 
 [[package]]

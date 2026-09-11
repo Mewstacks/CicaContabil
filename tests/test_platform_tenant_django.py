@@ -15,6 +15,7 @@ from apps.hub.models import (
 )
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import Invitation, PlatformAccess, SupportSession
+from conftest import complete_mfa
 
 
 class PlatformTenantViewTests(TestCase):
@@ -25,6 +26,7 @@ class PlatformTenantViewTests(TestCase):
         PlatformAccess.objects.create(user=self.developer, role=PlatformAccess.Role.DEVELOPER)
         self.office = Organization.objects.create(name="Escritório Demo", slug="escritorio-demo")
         self.client.force_login(self.developer)
+        complete_mfa(self.client)
 
     def test_developer_can_select_systems_without_a_contract_form(self):
         self.assertEqual(self.client.get(reverse("platform:tenants")).status_code, 200)
@@ -112,6 +114,7 @@ class PlatformTenantViewTests(TestCase):
         )
         PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
         self.client.force_login(commercial)
+        complete_mfa(self.client)
         created = self.client.post(
             reverse("platform:tenants"), {"name": "Novo escritório", "slug": "novo-escritorio"}
         )
@@ -199,6 +202,7 @@ class PlatformTenantViewTests(TestCase):
             expires_at=timezone.now() + timedelta(minutes=20),
         )
         self.client.force_login(support_user)
+        complete_mfa(self.client)
         session = self.client.session
         session["hub_support_session_id"] = str(support.id)
         session.save()

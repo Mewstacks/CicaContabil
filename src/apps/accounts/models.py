@@ -10,6 +10,8 @@ from django.db.models.base import ModelBase
 from django.utils import timezone
 
 from apps.accounts.managers import UserManager
+from apps.common.encryption import EncryptedTextField
+from apps.common.models import UUIDTimeStampedModel
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -48,3 +50,41 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self) -> str:
         return self.email
+
+
+class TotpDevice(UUIDTimeStampedModel):
+    """One authenticator binding per account.
+
+    ``last_counter`` is what stops a replay: a code observed in transit is refused
+    once its own time step has been spent, instead of staying valid for the rest of
+    the 30-second window.
+    """
+
+    user = models.OneToOneField(
+        "accounts.User", on_delete=models.CASCADE, related_name="totp_device"
+    )
+    secret = EncryptedTextField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    last_counter = models.BigIntegerField(default=0)
+
+    @property
+    def is_confirmed(self) -> bool:
+        return self.confirmed_at is not None
+
+    def __str__(self) -> str:
+        return f"TOTP for {self.user_id}"
+
+
+class RecoveryCode(UUIDTimeStampedModel):
+    """A single-use way back in when the authenticator is lost. Stored hashed."""
+
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="recovery_codes"
+    )
+    code_hash = models.CharField(max_length=64, db_index=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=("user", "code_hash"), name="unique_recovery_code")
+        ]

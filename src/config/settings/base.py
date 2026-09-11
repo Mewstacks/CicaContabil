@@ -69,6 +69,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.accounts.middleware.MfaEnforcementMiddleware",
     "apps.organizations.middleware.OrganizationContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -351,6 +352,7 @@ REST_FRAMEWORK = {
 # throttles, so they carry their own budget.
 MCP_RATE_LIMIT_PER_MINUTE = env_int("MCP_RATE_LIMIT_PER_MINUTE", 60)
 LEAD_RATE_LIMIT_PER_HOUR = env_int("LEAD_RATE_LIMIT_PER_HOUR", 5)
+MFA_ATTEMPTS_PER_MINUTE = env_int("MFA_ATTEMPTS_PER_MINUTE", 8)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",

@@ -1,0 +1,5 @@
+{% extends 'hub/base.html' %}
+{% block title %}Códigos de recuperação — HubContador{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Códigos de recuperação</h1><p class="form-intro">Cada código serve uma vez. Não são exibidos de novo.</p><ul class="recovery-codes" translate="no">{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul><a class="button" href="{% url 'hub:dashboard' %}">Continuar</a></section></main>
+{% endblock %}

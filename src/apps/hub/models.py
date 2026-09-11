@@ -27,6 +27,7 @@ class OfficeProfile(OrganizationScopedModel):
     )
     grace_ends_at = models.DateField(null=True, blank=True)
     reference_invoice_note = models.CharField(max_length=240, blank=True)
+    require_mfa = models.BooleanField(default=False)
 
 
 class ProductModule(OrganizationScopedModel):

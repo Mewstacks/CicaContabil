@@ -12,6 +12,7 @@ from apps.hub.models import ClientCompany, Connector, ControlPlaneBinding, Produ
 from apps.hub.services import create_document_and_artifact
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import PlatformAccess
+from conftest import complete_mfa
 
 
 class HubWorkspaceViewTests(TestCase):
@@ -185,6 +186,7 @@ class HubWorkspaceViewTests(TestCase):
 
     def test_platform_user_gets_a_return_link_in_the_account_menu(self) -> None:
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.DEVELOPER)
+        complete_mfa(self.client)
 
         response = self.client.get(reverse("hub:dashboard"))
 
