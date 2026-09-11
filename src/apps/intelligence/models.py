@@ -290,6 +290,34 @@ class IntelligenceConnector(OrganizationScopedModel):
         ]
 
 
+class DominioCommunication(OrganizationScopedModel):
+    """Minimal encrypted mirror of a Domínio notification, excluding personal fields."""
+
+    connector = models.ForeignKey(
+        IntelligenceConnector, on_delete=models.PROTECT, related_name="communications"
+    )
+    company = models.ForeignKey(
+        "hub.ClientCompany", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    source_id = models.CharField(max_length=64)
+    subject = EncryptedTextField(blank=True)
+    type_code = models.CharField(max_length=32, blank=True)
+    status_code = models.CharField(max_length=32, blank=True)
+    is_read = models.BooleanField(default=False)
+    source_captured_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "source_id"),
+                name="intelligence_unique_dominio_communication",
+            )
+        ]
+        indexes = [
+            models.Index(fields=("organization", "company", "is_read", "source_captured_at")),
+        ]
+
+
 class AgentEnrollment(OrganizationScopedModel):
     """Single-use bootstrap code; only its digest is stored."""
 

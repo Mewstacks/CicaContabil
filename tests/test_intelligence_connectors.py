@@ -7,7 +7,7 @@ from apps.intelligence.connectors import ReadOnlyDominoOdbc
 
 
 class FakeCursor:
-    description = [("codigo",), ("nome",)]
+    description = [("codigo",), ("nome",), ("cnpj",)]
 
     def __init__(self) -> None:
         self.timeout = 0
@@ -17,8 +17,8 @@ class FakeCursor:
         self.executed.append(operation)
 
     def fetchmany(self, size: int):
-        assert size == 500
-        return [("001", "Empresa Acme")]
+        assert size == 1000
+        return [("001", "Empresa Acme", "12345678000199")]
 
     def tables(self, **kwargs):
         return [
@@ -66,9 +66,12 @@ class OdbcConnectorTests(TestCase):
     def test_only_registry_queries_reach_odbc(self) -> None:
         rows = self.adapter.execute("companies")
 
-        self.assertEqual(rows, [{"codigo": "001", "nome": "Empresa Acme"}])
+        self.assertEqual(
+            rows,
+            [{"codigo": "001", "nome": "Empresa Acme", "cnpj_masked": "12.***.***/0001-**"}],
+        )
         self.assertEqual(self.calls, [("DSN=Dominio64", True, 10)])
-        self.assertIn("SELECT TOP 500", self.cursor.executed[0])
+        self.assertIn("SELECT TOP 1000", self.cursor.executed[0])
         with self.assertRaisesRegex(ValueError, "não permitida"):
             self.adapter.execute("SELECT * FROM geempre")
         self.assertEqual(len(self.calls), 1)
@@ -88,3 +91,34 @@ class OdbcConnectorTests(TestCase):
             self.adapter.list_catalog_columns(table_name="geempre; DROP TABLE geempre")
         with self.assertRaisesRegex(ValueError, "DSN inválido"):
             ReadOnlyDominoOdbc("Dominio64;UID=DBA")
+
+    def test_communications_project_only_the_approved_source_fields(self) -> None:
+        self.cursor.description = [
+            ("source_id",),
+            ("company_code",),
+            ("subject",),
+            ("type_code",),
+            ("status_code",),
+            ("is_read",),
+        ]
+        self.cursor.fetchmany = lambda size: [("7", "001", "Prazo", "2", "1", 0)]
+
+        rows = self.adapter.execute("communications")
+
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "source_id": "7",
+                    "company_code": "001",
+                    "subject": "Prazo",
+                    "type_code": "2",
+                    "status_code": "1",
+                    "is_read": 0,
+                }
+            ],
+        )
+        query = self.cursor.executed[-1].casefold()
+        self.assertIn("genotificacoes_usuario_atendimento", query)
+        self.assertNotIn("cpf_empregado", query)
+        self.assertNotIn("responsavel", query)

@@ -181,6 +181,7 @@ class EdgeAgentLocalTests(TestCase):
         self.assertEqual(outcome.status, "synchronized")
         self.assertEqual(outcome.company_count, 1)
         self.assertTrue(connection.closed)
-        self.assertIn("SELECT geempre.codigo", connection.cursor_value.query)
+        self.assertIn("SELECT TOP 500 codi_emp AS codigo", connection.cursor_value.query)
         sent = mocked_post.call_args.args[1]
         self.assertEqual(sent["companies"][0]["cnpj_masked"], "12.***.***/0001-**")
+        self.assertFalse(sent["full_snapshot"])

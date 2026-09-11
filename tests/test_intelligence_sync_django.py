@@ -5,6 +5,7 @@ import hashlib
 from django.test import TestCase
 from django.utils import timezone
 
+from apps.hub.models import ClientCompany
 from apps.intelligence.connectors import CatalogColumn, CatalogTable
 from apps.intelligence.models import (
     DataCatalogEntry,
@@ -48,6 +49,30 @@ class SyncAndRagTests(TestCase):
         self.assertEqual((first.created, first.updated, first.ignored), (1, 0, 0))
         self.assertEqual((second.created, second.updated, second.ignored), (0, 1, 0))
         self.assertEqual(connector.mode, IntelligenceConnector.Mode.DIRECT_ODBC)
+
+    def test_full_snapshot_pauses_missing_dominio_companies_without_touching_manual_ones(
+        self,
+    ) -> None:
+        connector = IntelligenceConnector.objects.create(
+            organization=self.organization, mode=IntelligenceConnector.Mode.EDGE_AGENT
+        )
+        synced = ClientCompany.objects.create(
+            organization=self.organization, name="Sincronizada", dominio_code="001"
+        )
+        manual = ClientCompany.objects.create(organization=self.organization, name="Manual")
+
+        result = sync_companies(
+            organization=self.organization,
+            connector=connector,
+            rows=[],
+            full_snapshot=True,
+        )
+        synced.refresh_from_db()
+        manual.refresh_from_db()
+
+        self.assertEqual(result.deactivated, 1)
+        self.assertFalse(synced.active)
+        self.assertTrue(manual.active)
 
     def test_rag_returns_only_approved_compact_source_cards(self) -> None:
         content = "Procedimento para revisar pendência da obrigação fiscal."

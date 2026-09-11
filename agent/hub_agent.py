@@ -21,9 +21,10 @@ class OdbcCursor(Protocol):
 
 
 COMPANIES_QUERY = """
-SELECT geempre.codigo, geempre.nome, geempre.cnpj
-FROM geempre
-WHERE geempre.ativa = 'S'
+SELECT TOP 500 codi_emp AS codigo, nome_emp AS nome, cgce_emp AS cnpj
+FROM bethadba.geempre
+WHERE stat_emp = 'A'
+ORDER BY nome_emp
 """
 
 

@@ -14,13 +14,13 @@ from typing import Any, Protocol, cast
 
 MAX_CATALOG_TABLES = 500
 MAX_CATALOG_COLUMNS = 250
+MAX_COMPANY_ROWS = 1_000
 _DSN_RE = re.compile(r"^[A-Za-z0-9 _.-]{1,128}$")
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,127}$")
 
 
 class CursorProtocol(Protocol):
     description: Any
-    timeout: int
 
     def execute(self, operation: str) -> Any: ...
     def fetchmany(self, size: int) -> Iterable[tuple[Any, ...]]: ...
@@ -60,8 +60,20 @@ class CatalogColumn:
 
 QUERY_REGISTRY: dict[str, QuerySpec] = {
     "companies": QuerySpec(
-        sql="SELECT TOP 500 codigo, nome FROM geempre WHERE ativa = 'S' ORDER BY nome",
-        max_rows=500,
+        sql=(
+            "SELECT TOP 1000 codi_emp AS codigo, nome_emp AS nome, cgce_emp AS cnpj "
+            "FROM bethadba.geempre WHERE stat_emp = 'A' ORDER BY nome_emp"
+        ),
+        max_rows=MAX_COMPANY_ROWS,
+    ),
+    "communications": QuerySpec(
+        sql=(
+            "SELECT TOP 1000 SEQUENCIAL AS source_id, EMPRESA AS company_code, "
+            "ASSUNTO AS subject, TIPO AS type_code, SITUACAO AS status_code, "
+            "VISUALIZADO AS is_read "
+            "FROM bethadba.GENOTIFICACOES_USUARIO_ATENDIMENTO ORDER BY SEQUENCIAL DESC"
+        ),
+        max_rows=MAX_COMPANY_ROWS,
     ),
 }
 
@@ -90,6 +102,37 @@ def _metadata_value(row: object, name: str, position: int, default: object = "")
     return default
 
 
+def _mask_cnpj(value: object) -> str:
+    """Keep taxpayer identifiers out of the application mirror and command output."""
+    digits = "".join(character for character in str(value or "") if character.isdigit())
+    if len(digits) != 14:
+        return ""
+    return f"{digits[:2]}.***.***/{digits[8:12]}-**"
+
+
+def _company_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, str]:
+    """Normalize the one approved company query before raw ODBC values leave this adapter."""
+    raw = dict(zip(columns, row, strict=True))
+    return {
+        "codigo": str(raw.get("codigo") or "").strip(),
+        "nome": str(raw.get("nome") or "").strip(),
+        "cnpj_masked": _mask_cnpj(raw.get("cnpj")),
+    }
+
+
+def _communication_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, object]:
+    """Project only the approved non-personal notification fields from Domínio."""
+    raw = dict(zip(columns, row, strict=True))
+    return {
+        "source_id": str(raw.get("source_id") or "").strip(),
+        "company_code": str(raw.get("company_code") or "").strip(),
+        "subject": str(raw.get("subject") or "").strip(),
+        "type_code": str(raw.get("type_code") or "").strip(),
+        "status_code": str(raw.get("status_code") or "").strip(),
+        "is_read": raw.get("is_read"),
+    }
+
+
 class ReadOnlyDominoOdbc:
     """Private-network ODBC bridge with a fixed query and metadata contract."""
 
@@ -116,10 +159,13 @@ class ReadOnlyDominoOdbc:
             raise ValueError("Consulta Domínio não permitida.")
         with self._connect() as connection:
             cursor = connection.cursor()
-            cursor.timeout = 15
             cursor.execute(spec.sql)
             columns = [str(column[0]) for column in (cursor.description or ())]
             rows = list(cursor.fetchmany(spec.max_rows))
+        if query_name == "companies":
+            return [_company_snapshot(columns, row) for row in rows]
+        if query_name == "communications":
+            return [_communication_snapshot(columns, row) for row in rows]
         return [dict(zip(columns, row, strict=True)) for row in rows]
 
     def list_catalog_tables(
@@ -135,7 +181,6 @@ class ReadOnlyDominoOdbc:
         tables: list[CatalogTable] = []
         with self._connect() as connection:
             cursor = connection.cursor()
-            cursor.timeout = 15
             for row in cursor.tables():
                 object_kind = str(_metadata_value(row, "table_type", 3)).upper()
                 object_name = str(_metadata_value(row, "table_name", 2)).strip()
@@ -155,7 +200,6 @@ class ReadOnlyDominoOdbc:
         columns: list[CatalogColumn] = []
         with self._connect() as connection:
             cursor = connection.cursor()
-            cursor.timeout = 15
             for row in cursor.columns(table=table_name):
                 name = str(_metadata_value(row, "column_name", 3)).strip()
                 if not name:

@@ -13,12 +13,25 @@ from django.utils import timezone
 from apps.audit.services import record_event
 from apps.hub.models import ClientCompany
 from apps.intelligence.connectors import CatalogColumn, CatalogTable
-from apps.intelligence.models import DataCatalogEntry, DominioSchemaObject, IntelligenceConnector
+from apps.intelligence.models import (
+    DataCatalogEntry,
+    DominioCommunication,
+    DominioSchemaObject,
+    IntelligenceConnector,
+)
 from apps.organizations.models import Organization
 
 
 @dataclass(frozen=True)
 class SyncResult:
+    created: int
+    updated: int
+    ignored: int
+    deactivated: int
+
+
+@dataclass(frozen=True)
+class CommunicationSyncResult:
     created: int
     updated: int
     ignored: int
@@ -154,12 +167,14 @@ def sync_companies(
     rows: Iterable[Mapping[str, object]],
     actor: object = None,
     request: object = None,
+    full_snapshot: bool = False,
 ) -> SyncResult:
     """Mirror only minimum company metadata; raw taxpayer IDs must already be masked."""
     if connector.organization_id != organization.id:
         raise ValueError("Conector não pertence ao escritório informado.")
-    created = updated = ignored = 0
+    created = updated = ignored = deactivated = 0
     now = timezone.now()
+    active_codes: set[str] = set()
     with transaction.atomic():
         for row in rows:
             code = _clean_text(row.get("codigo") or row.get("dominio_code"), 64)
@@ -168,6 +183,7 @@ def sync_companies(
             if not code or not name:
                 ignored += 1
                 continue
+            active_codes.add(code)
             company, was_created = ClientCompany.objects.get_or_create(
                 organization=organization,
                 dominio_code=code,
@@ -183,10 +199,18 @@ def sync_companies(
             if masked and company.cnpj_masked != masked:
                 company.cnpj_masked = masked
                 changes.append("cnpj_masked")
+            if not company.active:
+                company.active = True
+                changes.append("active")
             company.last_dominio_sync_at = now
             changes.extend(["last_dominio_sync_at", "updated_at"])
             company.save(update_fields=changes)
             updated += 1
+        if full_snapshot:
+            stale_companies = ClientCompany.objects.filter(
+                organization=organization, active=True, dominio_code__gt=""
+            ).exclude(dominio_code__in=active_codes)
+            deactivated = stale_companies.update(active=False, updated_at=now)
         connector.status = "healthy"
         connector.last_sync_at = now
         connector.save(update_fields=["status", "last_sync_at", "updated_at"])
@@ -200,7 +224,83 @@ def sync_companies(
                 "created": created,
                 "updated": updated,
                 "ignored": ignored,
+                "deactivated": deactivated,
+                "full_snapshot": full_snapshot,
                 "mode": connector.mode,
             },
         )
-    return SyncResult(created, updated, ignored)
+    return SyncResult(created, updated, ignored, deactivated)
+
+
+def _as_read_flag(value: object) -> bool:
+    return str(value or "").strip().casefold() in {"1", "s", "sim", "true", "yes"}
+
+
+def sync_communications(
+    *,
+    organization: Organization,
+    connector: IntelligenceConnector,
+    rows: Iterable[Mapping[str, object]],
+    actor: object = None,
+    request: object = None,
+) -> CommunicationSyncResult:
+    """Mirror the allowlisted notification projection; personal source fields never enter it."""
+    if connector.organization_id != organization.id:
+        raise ValueError("Conector não pertence ao escritório informado.")
+    created = updated = ignored = 0
+    now = timezone.now()
+    with transaction.atomic():
+        for row in rows:
+            source_id = _clean_text(row.get("source_id"), 64)
+            if not source_id:
+                ignored += 1
+                continue
+            company_code = _clean_text(row.get("company_code"), 64)
+            company = (
+                ClientCompany.objects.filter(
+                    organization=organization, dominio_code=company_code
+                ).first()
+                if company_code
+                else None
+            )
+            defaults = {
+                "connector": connector,
+                "company": company,
+                "subject": _clean_text(row.get("subject"), 500),
+                "type_code": _clean_text(row.get("type_code"), 32),
+                "status_code": _clean_text(row.get("status_code"), 32),
+                "is_read": _as_read_flag(row.get("is_read")),
+            }
+            communication, was_created = DominioCommunication.objects.get_or_create(
+                organization=organization,
+                source_id=source_id,
+                defaults=defaults,
+            )
+            if was_created:
+                created += 1
+                continue
+            changed = [
+                field for field, value in defaults.items() if getattr(communication, field) != value
+            ]
+            if changed:
+                for field in changed:
+                    setattr(communication, field, defaults[field])
+                communication.save(update_fields=[*changed, "source_captured_at", "updated_at"])
+                updated += 1
+        connector.status = "healthy"
+        connector.last_sync_at = now
+        connector.save(update_fields=["status", "last_sync_at", "updated_at"])
+        record_event(
+            action="intelligence.dominio.communications_synced",
+            actor=actor,
+            organization=organization,
+            target=connector,
+            request=request,
+            metadata={
+                "created": created,
+                "updated": updated,
+                "ignored": ignored,
+                "mode": connector.mode,
+            },
+        )
+    return CommunicationSyncResult(created, updated, ignored)

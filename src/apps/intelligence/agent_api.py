@@ -104,6 +104,7 @@ def sync(request: HttpRequest) -> JsonResponse:
         return _json_error("Agente não autorizado.", 401)
     payload = _body(request, 512_000)
     rows = payload.get("companies") if payload else None
+    full_snapshot = bool(payload.get("full_snapshot", False)) if payload else False
     if (
         not isinstance(rows, list)
         or len(rows) > 500
@@ -120,11 +121,17 @@ def sync(request: HttpRequest) -> JsonResponse:
         connector=connector,
         rows=rows,
         request=request,
+        full_snapshot=full_snapshot,
     )
     agent.last_seen_at = timezone.now()
     agent.save(update_fields=["last_seen_at", "updated_at"])
     response = JsonResponse(
-        {"created": result.created, "updated": result.updated, "ignored": result.ignored}
+        {
+            "created": result.created,
+            "updated": result.updated,
+            "ignored": result.ignored,
+            "deactivated": result.deactivated,
+        }
     )
     response["Cache-Control"] = "no-store"
     return response

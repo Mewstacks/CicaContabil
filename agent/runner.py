@@ -108,7 +108,9 @@ def synchronize_once(
         companies = serialize_companies(connection.cursor())
     finally:
         connection.close()
-    item_id = queue.push({"companies": companies})
+    # The allowlisted company query is bounded. It is therefore an incremental
+    # snapshot and must never deactivate a company absent from this batch.
+    item_id = queue.push({"companies": companies, "full_snapshot": False})
     pending = queue.first()
     if pending is None or pending["id"] != item_id:
         raise RuntimeError("Fila local do agente não confirmou o snapshot.")
