@@ -52,6 +52,7 @@ def test_lockout_is_scoped_to_the_attacked_account(user: User) -> None:
 def test_username_is_resolved_from_either_credential_key() -> None:
     assert axes_username(None, {"email": " User@Example.COM "}) == "user@example.com"
     assert axes_username(None, {"username": "person@example.com"}) == "person@example.com"
+    assert axes_username(None, {"identifier": " Nome Cadastrado "}) == "nome cadastrado"
     assert axes_username(RequestFactory().post("/", {"email": "form@example.com"})) == (
         "form@example.com"
     )

@@ -33,8 +33,18 @@ class MeView(generics.RetrieveUpdateAPIView[User]):
 
 
 class LoginSerializer(serializers.Serializer[dict[str, Any]]):
-    email = serializers.EmailField()
+    identifier = serializers.CharField(max_length=254, required=False)
+    email = serializers.EmailField(required=False)
     password = serializers.CharField(trim_whitespace=False, write_only=True)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        identifier = str(attrs.get("identifier") or attrs.get("email") or "").strip()
+        if not identifier:
+            raise serializers.ValidationError(
+                {"identifier": "Informe o e-mail ou nome cadastrado."}
+            )
+        attrs["identifier"] = identifier
+        return attrs
 
 
 class CsrfTokenSerializer(serializers.Serializer[dict[str, str]]):
@@ -63,14 +73,14 @@ class LoginView(APIView):
     def post(self, request: Request) -> Response:
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data["email"].strip().casefold()
+        identifier = serializer.validated_data["identifier"]
         # django-axes flags a lockout by setting an attribute on the request it is given,
         # and AxesMiddleware later reads that flag off the Django HttpRequest. DRF's
         # Request proxies attribute reads but not writes, so the underlying request has
         # to be passed here or the lockout response is silently dropped.
         user = authenticate(
             request=request._request,
-            username=email,
+            username=identifier,
             password=serializer.validated_data["password"],
         )
         if user is None:

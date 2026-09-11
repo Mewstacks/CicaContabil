@@ -54,6 +54,36 @@ def test_login_error_does_not_reveal_account_existence(user: User) -> None:
 
 
 @pytest.mark.django_db
+def test_session_login_accepts_a_unique_full_name(user: User) -> None:
+    client = APIClient(enforce_csrf_checks=True)
+    token = client.get("/api/v1/auth/csrf/").data["csrf_token"]
+    response = client.post(
+        "/api/v1/auth/login/",
+        {"identifier": user.full_name, "password": "correct-horse-battery-staple"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    assert response.status_code == 200
+    assert response.data["id"] == str(user.id)
+
+
+@pytest.mark.django_db
+def test_session_login_rejects_an_ambiguous_full_name(user: User) -> None:
+    User.objects.create_user(
+        "another@example.test", "correct-horse-battery-staple", full_name=user.full_name
+    )
+    client = APIClient(enforce_csrf_checks=True)
+    token = client.get("/api/v1/auth/csrf/").data["csrf_token"]
+    response = client.post(
+        "/api/v1/auth/login/",
+        {"identifier": user.full_name, "password": "correct-horse-battery-staple"},
+        format="json",
+        HTTP_X_CSRFTOKEN=token,
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
 def test_me_patch_updates_full_name_only(user: User) -> None:
     client = APIClient()
     client.force_authenticate(user)

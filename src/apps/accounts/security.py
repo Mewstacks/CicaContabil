@@ -20,7 +20,7 @@ def axes_username(request: HttpRequest | None, credentials: dict[str, Any] | Non
     if request is not None:
         sources.append(getattr(request, "data", None) or request.POST)
     for source in sources:
-        for key in ("email", "username"):
+        for key in ("identifier", "email", "username"):
             value = source.get(key)
             if value:
                 return str(value).strip().casefold()

@@ -215,6 +215,7 @@ else:
 AUTH_USER_MODEL = "accounts.User"
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
+    "apps.accounts.backends.IdentifierBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 PASSWORD_HASHERS = [
