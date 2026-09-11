@@ -71,6 +71,40 @@ class PlatformTenantViewTests(TestCase):
             Membership.objects.filter(user=self.developer, organization=self.office).exists()
         )
 
+    def test_support_session_overrides_an_unrelated_active_membership(self):
+        qa_office = Organization.objects.create(name="Escritório QA", slug="escritorio-qa")
+        Membership.objects.create(
+            organization=qa_office,
+            user=self.developer,
+            role=Membership.Role.OWNER,
+        )
+        ClientCompany.objects.create(
+            organization=qa_office,
+            name="Empresa QA",
+            dominio_code="QA01",
+        )
+        ClientCompany.objects.create(
+            organization=self.office,
+            name="Empresa Fedrizzi",
+            dominio_code="FD01",
+        )
+        session = self.client.session
+        session["hub_organization_id"] = str(qa_office.id)
+        session.save()
+
+        entered = self.client.post(
+            reverse("platform:start-support", args=[self.office.id]),
+            {"justification": "Abertura operacional pela plataforma."},
+        )
+        page = self.client.get(reverse("hub:companies"))
+
+        self.assertRedirects(entered, reverse("hub:dashboard"), fetch_redirect_response=False)
+        self.assertEqual(self.client.session["hub_organization_id"], str(self.office.id))
+        self.assertContains(page, "Acesso de suporte")
+        self.assertContains(page, "Escritório Demo")
+        self.assertContains(page, "Empresa Fedrizzi")
+        self.assertNotContains(page, "Empresa QA")
+
     def test_platform_can_provision_an_office_and_issue_its_one_time_activation(self):
         commercial = User.objects.create_user(
             email="commercial@example.test", password="safe-password-123"

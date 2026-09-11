@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from django.db import connection
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.hub.models import ClientCompany, ControlPlaneBinding, ReviewCase
+from apps.hub.models import ClientCompany, Connector, ControlPlaneBinding, ProductModule, ReviewCase
 from apps.hub.services import create_document_and_artifact
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import PlatformAccess
@@ -45,6 +46,113 @@ class HubWorkspaceViewTests(TestCase):
             self.assertEqual(response.status_code, 200, endpoint)
 
         self.assertEqual(self.client.session["hub_company_id"], str(self.company.id))
+
+    def test_companies_page_identifies_the_active_office(self) -> None:
+        response = self.client.get(reverse("hub:companies"))
+
+        self.assertContains(response, "Escritório atual:")
+        self.assertContains(response, self.organization.name)
+
+    def test_enabled_product_modules_have_company_scoped_screens(self) -> None:
+        for code in (
+            ProductModule.Code.GUIDES,
+            ProductModule.Code.INTEGRA,
+            ProductModule.Code.RECONCILIATION,
+            ProductModule.Code.REFORM,
+        ):
+            ProductModule.objects.create(organization=self.organization, code=code, enabled=True)
+
+        for endpoint, heading in (
+            ("hub:guides", "Guias e DCTFWeb"),
+            ("hub:reconciliation", "Conciliação OFX x Domínio"),
+            ("hub:reform", "Radar da Reforma Tributária"),
+        ):
+            response = self.client.get(reverse(endpoint))
+            self.assertEqual(response.status_code, 200, endpoint)
+            self.assertContains(response, heading)
+            self.assertContains(response, self.company.name)
+
+        integra = self.client.get(reverse("hub:integra"))
+        self.assertRedirects(integra, reverse("hub:dte-center"))
+
+        nav = self.client.get(reverse("hub:dashboard"))
+        self.assertContains(nav, reverse("hub:guides"))
+        self.assertContains(nav, reverse("hub:integra"))
+
+    def test_disabled_product_module_is_not_available(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization,
+            code=ProductModule.Code.RECONCILIATION,
+            enabled=False,
+        )
+        response = self.client.get(reverse("hub:reconciliation"))
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "não está habilitado", status_code=403)
+        self.assertNotContains(
+            self.client.get(reverse("hub:dashboard")), reverse("hub:reconciliation")
+        )
+
+    def test_external_connector_setup_is_encrypted_and_audited(self) -> None:
+        response = self.client.post(
+            reverse("hub:settings"),
+            {
+                "kind": Connector.Kind.INTEGRA,
+                "label": "Domínio QA",
+                "endpoint": "",
+                "database_alias": "DOMINIO_QA",
+                "secret": "local-secret",
+            },
+        )
+        self.assertRedirects(response, reverse("hub:settings"))
+        connector = Connector.objects.get(
+            organization=self.organization, kind=Connector.Kind.INTEGRA
+        )
+        self.assertTrue(connector.enabled)
+        self.assertEqual(connector.status, "configured")
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT encrypted_configuration FROM hub_connector WHERE id = %s",
+                [connector._meta.pk.get_db_prep_value(connector.id, connection=connection)],
+            )
+            stored_value = cursor.fetchone()[0]
+        self.assertNotIn("local-secret", stored_value)
+        self.assertTrue(stored_value.startswith("enc:v1:"))
+
+    def test_dominio_is_not_configured_through_the_generic_connector_form(self) -> None:
+        response = self.client.post(
+            reverse("hub:settings"),
+            {"kind": Connector.Kind.DOMINIO_AGENT, "label": "Domínio", "secret": "x"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Configurações avançadas")
+        self.assertFalse(
+            Connector.objects.filter(
+                organization=self.organization, kind=Connector.Kind.DOMINIO_AGENT
+            ).exists()
+        )
+
+    def test_settings_survives_a_legacy_connector_with_an_unavailable_key(self) -> None:
+        connector = Connector.objects.create(
+            organization=self.organization,
+            kind=Connector.Kind.INTEGRA,
+            enabled=True,
+            status="configured",
+            encrypted_configuration="initial configuration",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE hub_connector SET encrypted_configuration = %s WHERE id = %s",
+                [
+                    "enc:v1:test-v1:AAAAAAAAAAAAAAAA:AAAAAAAAAAAAAAAAAAAAAA==",
+                    connector._meta.pk.get_db_prep_value(connector.id, connection=connection),
+                ],
+            )
+
+        response = self.client.get(reverse("hub:settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Integra")
 
     def test_nfse_center_is_scoped_to_the_active_company(self) -> None:
         other_company = ClientCompany.objects.create(

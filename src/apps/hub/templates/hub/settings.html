@@ -1,22 +1,80 @@
 {% extends 'hub/workspace.html' %}
 
 {% block workspace_content %}
-<section class="split-grid">
-  <section class="panel">
-    <header class="panel-header"><div><h2>Uso</h2></div></header>
-    {% for allowance in allowances %}
-      <div class="usage-row"><div><strong>{{ allowance.get_metric_display }}</strong><small>{{ allowance.consumed }} de {{ allowance.included }}</small></div><div class="usage-track"><span style="width: {% widthratio allowance.consumed allowance.included 100 %}%"></span></div></div>
-    {% empty %}
-      <div class="compact-empty">Sem limites definidos.</div>
-    {% endfor %}
-  </section>
-  <section class="panel">
-    <header class="panel-header"><div><h2>Conexões</h2></div></header>
-    {% for connector in connectors %}
-      <div class="connector-row"><div><strong>{{ connector.get_kind_display }}</strong><small>{{ connector.status }}</small></div><span class="status-badge {% if connector.enabled %}is-active{% else %}is-muted{% endif %}">{% if connector.enabled %}Ativa{% else %}Pendente{% endif %}</span></div>
-    {% empty %}
-      <div class="compact-empty">Nenhuma conexão liberada.</div>
-    {% endfor %}
-  </section>
+<section class="settings-intro settings-intro-compact">
+  <div>
+    <p class="section-kicker">INTEGRAÇÕES</p>
+    <h2>Conecte o que sua operação realmente usa.</h2>
+    <p>Comece pelo Domínio para manter a carteira atualizada. As demais conexões ficam disponíveis quando precisar delas.</p>
+  </div>
 </section>
+
+<section class="workspace-panel dominio-panel dominio-primary" id="dominio" aria-labelledby="dominio-heading">
+  <header class="workspace-panel-head dominio-primary-head">
+    <div>
+      <p class="section-kicker">PRINCIPAL</p>
+      <h2 id="dominio-heading">Domínio</h2>
+      <p>Sincronize empresas ativas do servidor do escritório sem expor banco, senha ou certificado ao Hub.</p>
+    </div>
+    <span class="status-badge {% if dominio_connector and dominio_connector.status == 'healthy' %}is-active{% else %}is-muted{% endif %}">{% if dominio_connector and dominio_connector.status == 'healthy' %}Sincronizando{% else %}Não conectado{% endif %}</span>
+  </header>
+
+  <div class="dominio-primary-body">
+    <div class="dominio-primary-copy">
+      {% if dominio_connector and dominio_connector.status == 'healthy' %}
+        <strong>Cadastro das empresas atualizado pelo agente local.</strong>
+        <p>As empresas que deixam de estar ativas no Domínio ficam pausadas no Hub, sem apagar o histórico.</p>
+      {% else %}
+        <strong>Importe a carteira ativa automaticamente.</strong>
+        <p>Gere um código e use-o uma vez no servidor Windows onde o Domínio já está instalado.</p>
+      {% endif %}
+    </div>
+    {% if enrollment_code %}
+      <div class="dominio-code" role="status" aria-live="polite"><div><strong>Código de pareamento</strong><p>Copie no instalador local. Expira em 30 minutos.</p></div><code translate="no">{{ enrollment_code }}</code></div>
+    {% elif can_manage_dominio_agent %}
+      <form method="post" action="{% url 'hub:dominio-agent-enrollment' %}" class="dominio-action">{% csrf_token %}<button class="button" type="submit">Gerar código para o servidor</button></form>
+    {% else %}
+      <p class="dominio-restricted">Peça a um owner ou administrador para gerar o código do servidor.</p>
+    {% endif %}
+  </div>
+
+  {% if dominio_agents %}
+    <div class="dominio-agent-list dominio-agent-list-compact">
+      {% for agent in dominio_agents %}<article><span class="module-nav-icon" aria-hidden="true">DO</span><div><strong>{{ agent.label }}</strong><small>{% if agent.last_seen_at %}Último contato: {{ agent.last_seen_at|date:"d/m/Y H:i" }}{% else %}Aguardando primeiro contato{% endif %}</small></div><span class="status-badge {% if agent.status == 'active' %}is-active{% else %}is-muted{% endif %}">{{ agent.get_status_display }}</span></article>{% endfor %}
+    </div>
+  {% endif %}
+
+  <details class="integration-details">
+    <summary>Como essa conexão protege os dados</summary>
+    <ul><li>O agente usa apenas o DSN de leitura no servidor do escritório.</li><li>O Hub recebe um snapshot seguro das empresas ativas.</li><li>O Domínio nunca recebe escrita a partir do Hub.</li></ul>
+  </details>
+</section>
+
+<section class="workspace-panel connector-panel" id="conexoes" aria-labelledby="other-connections-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">OUTRAS CONEXÕES</p><h2 id="other-connections-heading">Serviços fiscais</h2><p>Configure somente o serviço que você vai usar.</p></div>
+  </header>
+  <div class="connector-grid connector-grid-compact">
+    {% for item in connector_cards %}{% with connector=item.connector %}<article class="connector-card"><div class="connector-card-top"><span class="module-nav-icon" aria-hidden="true">{% if item.kind == 'integra' %}IC{% else %}ON{% endif %}</span><span class="status-badge {% if connector and connector.enabled %}is-active{% else %}is-muted{% endif %}">{% if connector and connector.enabled %}Configurado{% else %}Não conectado{% endif %}</span></div><h3>{{ item.label }}</h3><p>{% if connector and connector.status == 'healthy' %}Conexão verificada e pronta para uso.{% elif connector and connector.enabled %}Dados salvos; aguardando verificação.{% else %}Ainda não configurado.{% endif %}</p><a class="text-action" href="#configurar-conector" data-open-details>Configurar <span aria-hidden="true">→</span></a></article>{% endwith %}{% endfor %}
+  </div>
+</section>
+
+<details class="workspace-panel connector-wizard integration-advanced" id="configurar-conector"{% if connector_form_invalid %} open{% endif %}>
+  <summary><span><strong>Configurações avançadas</strong><small>Integra Contador e Onvio API</small></span><span aria-hidden="true">+</span></summary>
+  <div class="integration-advanced-content">
+    <p>Informe apenas os dados do serviço selecionado. Senhas ficam cifradas e não aparecem novamente.</p>
+    <form method="post" class="connector-form" aria-label="Configurar conector">
+      {% csrf_token %}
+      {% if connector_form.non_field_errors %}<div class="form-errors" role="alert">{{ connector_form.non_field_errors }}</div>{% endif %}
+      <div class="connector-form-grid">
+        <div class="field"{% if connector_form.kind.errors %} data-focus-error{% endif %}>{{ connector_form.kind.label_tag }}{{ connector_form.kind }}{% for error in connector_form.kind.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        <div class="field"{% if connector_form.label.errors %} data-focus-error{% endif %}>{{ connector_form.label.label_tag }}{{ connector_form.label }}{% for error in connector_form.label.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        <div class="field"{% if connector_form.endpoint.errors %} data-focus-error{% endif %}>{{ connector_form.endpoint.label_tag }}{{ connector_form.endpoint }}<small>{{ connector_form.endpoint.help_text }}</small></div>
+        <div class="field"{% if connector_form.database_alias.errors %} data-focus-error{% endif %}>{{ connector_form.database_alias.label_tag }}{{ connector_form.database_alias }}{% for error in connector_form.database_alias.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        <div class="field connector-secret"{% if connector_form.secret.errors %} data-focus-error{% endif %}>{{ connector_form.secret.label_tag }}{{ connector_form.secret }}<small>{{ connector_form.secret.help_text }}</small></div>
+      </div>
+      <div class="connector-form-footer"><span class="table-muted">Você poderá trocar a empresa no topo antes de consultar os dados.</span><button class="button" type="submit">Salvar conexão</button></div>
+    </form>
+  </div>
+</details>
 {% endblock %}

@@ -17,6 +17,9 @@ from apps.hub.models import (
     AccumulatorRule,
     Certificate,
     ClientCompany,
+    Connector,
+    DteRun,
+    DteRunItem,
     IntegrationArtifact,
     NfseDocument,
     ReviewCase,
@@ -187,3 +190,42 @@ def store_certificate(
 def integration_artifact_export(artifact: IntegrationArtifact) -> str:
     """Contract v1: a derived artifact only. The immutable original XML is never altered."""
     return json.dumps(artifact.payload, ensure_ascii=False, sort_keys=True)
+
+
+@transaction.atomic
+def prepare_dte_run(
+    *,
+    organization: Any,
+    connector: Connector | None,
+    companies: list[ClientCompany],
+    actor: Any = None,
+    request: Any = None,
+) -> DteRun:
+    """Persist the operator's scope before a separately-authorized Serpro dispatch.
+
+    This deliberately creates no network request. The later dispatcher must require a
+    confirmed ConsumptionConfirmation and configured mTLS credentials.
+    """
+
+    if not companies:
+        raise ValueError("Selecione pelo menos uma empresa.")
+    if any(company.organization_id != organization.id for company in companies):
+        raise ValueError("Todas as empresas precisam pertencer ao mesmo escrit\u00f3rio.")
+    run = DteRun.objects.create(
+        organization=organization,
+        connector=connector,
+        requested_by=actor if getattr(actor, "is_authenticated", False) else None,
+        total_companies=len(companies),
+    )
+    DteRunItem.objects.bulk_create(
+        [DteRunItem(organization=organization, run=run, company=company) for company in companies]
+    )
+    record_event(
+        action="hub.dte.run_prepared",
+        actor=actor,
+        organization=organization,
+        target=run,
+        request=request,
+        metadata={"companies": len(companies), "network_dispatched": False},
+    )
+    return run

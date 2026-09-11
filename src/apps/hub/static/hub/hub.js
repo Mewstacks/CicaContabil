@@ -116,3 +116,21 @@ document.querySelectorAll('[data-copy]').forEach((button) =>
     }
   }),
 );
+
+const openIntegrationDetails = (target) => {
+  if (!(target instanceof HTMLDetailsElement)) return;
+  target.open = true;
+  requestAnimationFrame(() => target.querySelector('summary')?.focus());
+};
+
+document.querySelectorAll('[data-open-details]').forEach((link) => {
+  link.addEventListener('click', () => {
+    const target = document.querySelector(link.getAttribute('href'));
+    openIntegrationDetails(target);
+  });
+});
+
+if (window.location.hash) openIntegrationDetails(document.querySelector(window.location.hash));
+
+const invalidField = document.querySelector('[data-focus-error] input, [data-focus-error] select');
+if (invalidField) invalidField.focus();

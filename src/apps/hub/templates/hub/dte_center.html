@@ -1,0 +1,54 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=20260910.3">
+  <link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}?v=20260910">
+  <link rel="stylesheet" href="{% static 'hub/dte.css' %}?v=20260910">
+  <script src="{% static 'hub/dte.js' %}?v=20260910" defer></script>
+{% endblock %}
+
+{% block page_action %}{% if not connector_ready %}<a class="button button-quiet" href="{% url 'hub:settings' %}#conexoes">Configurar Integra Contador</a>{% endif %}{% endblock %}
+
+{% block workspace_content %}
+<section class="dte-intro" aria-labelledby="dte-heading">
+  <div><p class="section-kicker">Integra Contador · Caixa Postal</p><h2 id="dte-heading">Consulte as mensagens das empresas sem planilhas.</h2><p>Escolha as empresas no Hub. A consulta só é enviada depois da aprovação de consumo.</p></div>
+  <div class="dte-connection {% if connector_ready %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready %}Integra Contador configurado{% else %}Conexão pendente{% endif %}</div>
+</section>
+
+<section class="metric-strip dte-metrics" aria-label="Resumo do DTE">
+  <article><span>Empresas disponíveis</span><strong>{{ dte_companies_count }}</strong><small>No seu escopo atual</small></article>
+  <article class="{% if dte_stats.awaiting %}metric-needs-attention{% endif %}"><span>Aguardando autorização</span><strong>{{ dte_stats.awaiting }}</strong><small>Consultas ainda não enviadas</small></article>
+  <article><span>Novas em 7 dias</span><strong>{{ dte_stats.new_this_week }}</strong><small>Mensagens recebidas</small></article>
+  <article class="{% if dte_stats.unread %}metric-needs-attention{% endif %}"><span>Não lidas</span><strong>{{ dte_stats.unread }}</strong><small>Caixa Postal</small></article>
+</section>
+
+<div class="dte-grid">
+  <section class="workspace-panel dte-preparation">
+    <header class="workspace-panel-head"><div><p class="section-kicker">Nova consulta</p><h2>1. Selecione as empresas</h2><p>O escopo fica registrado nesta solicitação. Nenhuma empresa fora da sua permissão aparece aqui.</p></div><span class="record-count">{{ dte_companies_count }} disponíveis</span></header>
+    <form method="post" class="dte-form">
+      {% csrf_token %}
+      {% if dte_form.non_field_errors %}<div class="form-errors" id="dte-form-error-summary" role="alert" tabindex="-1" data-focus-error>{{ dte_form.non_field_errors }}</div>{% endif %}
+      <fieldset><legend class="sr-only">{{ dte_form.companies.label }}</legend>{% if dte_form.companies.errors %}<p class="field-error" id="dte-field-errors" role="alert" tabindex="-1" data-focus-error>{{ dte_form.companies.errors|join:', ' }}</p>{% endif %}
+        <div class="dte-company-list">{% for choice in dte_form.companies %}<label class="dte-company-option" for="{{ choice.id_for_label }}">{{ choice.tag }}<span><strong>{{ choice.choice_label }}</strong><small>Consulta da Caixa Postal</small></span></label>{% empty %}<div class="compact-empty">Não há empresas ativas no seu escopo.</div>{% endfor %}</div>
+      </fieldset>
+      <footer class="dte-form-footer"><p>2. Na próxima etapa, revise o consumo antes de enviar.</p><button class="button" type="submit"{% if not dte_companies_count %} disabled{% endif %}>Preparar consulta</button></footer>
+    </form>
+  </section>
+  <aside class="workspace-panel dte-next-step">
+    <header class="workspace-panel-head"><div><p class="section-kicker">Como funciona</p><h2>Claro antes de consultar</h2></div></header>
+    <ol><li><span>1</span><div><strong>Selecione</strong><p>Marque as empresas da sua carteira.</p></div></li><li><span>2</span><div><strong>Autorize</strong><p>Confirme o consumo informado pelo Integra Contador.</p></div></li><li><span>3</span><div><strong>Acompanhe</strong><p>Veja o resultado e as mensagens na mesma tela.</p></div></li></ol>
+    {% if not connector_ready %}<p class="dte-setup-note">Configure a conexão do escritório antes do primeiro envio.</p>{% endif %}
+  </aside>
+</div>
+
+<section class="workspace-panel dte-history">
+  <header class="workspace-panel-head"><div><p class="section-kicker">Acompanhamento</p><h2>Consultas preparadas e em andamento</h2><p>O status de cada empresa evita que uma falha esconda o restante do lote.</p></div><span class="record-count">{{ dte_items|length }} itens</span></header>
+  {% if dte_items %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Solicitação</th><th>Status</th><th>Mensagens</th></tr></thead><tbody>{% for item in dte_items %}<tr><td><strong>{{ item.company.name }}</strong><small>{{ item.company.cnpj_masked|default:'CNPJ não informado' }}</small></td><td><span class="source-code">DTE-{{ item.run.id|stringformat:'s'|slice:':8' }}</span><small>{{ item.run.requested_at|date:'d/m/Y H:i' }}</small></td><td><span class="dte-status dte-status-{{ item.status }}">{{ item.get_status_display }}</span>{% if item.error_message %}<small>{{ item.error_message }}</small>{% endif %}</td><td>{{ item.messages_found }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma consulta preparada</strong><p>Selecione uma ou mais empresas acima para criar a primeira consulta DTE.</p></div>{% endif %}
+</section>
+
+<section class="workspace-panel dte-history">
+  <header class="workspace-panel-head"><div><p class="section-kicker">Caixa Postal</p><h2>Mensagens recentes</h2></div><span class="record-count">{{ recent_dte_messages|length }} exibidas</span></header>
+  {% if recent_dte_messages %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Assunto</th><th>Recebida em</th><th>Leitura</th></tr></thead><tbody>{% for message in recent_dte_messages %}<tr><td><strong>{{ message.company.name }}</strong><small>{{ message.company.cnpj_masked|default:'CNPJ não informado' }}</small></td><td>{{ message.subject }}</td><td>{% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }}{% else %}Data não informada{% endif %}</td><td>{% if message.read_at %}<span class="dte-status dte-status-completed">Lida</span>{% else %}<span class="dte-status dte-status-pending">Não lida</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>A caixa está pronta para receber</strong><p>Depois da primeira consulta concluída, as mensagens novas aparecem aqui, sem exportar ou importar arquivos.</p></div>{% endif %}
+</section>
+{% endblock %}

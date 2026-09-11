@@ -1,0 +1,26 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="module-heading">
+  <div>
+    <p class="section-kicker">{{ company_name }}</p>
+    <h2 id="module-heading">{{ module.description }}</h2>
+    <p>{% if connector_ready %}A conexão do escritório está pronta. Os dados desta empresa aparecerão aqui assim que forem sincronizados.{% else %}Conecte o serviço do escritório para começar a acompanhar esta rotina nesta empresa.{% endif %}</p>
+  </div>
+  <span class="module-readiness {% if connector_ready or not module.connector_kind %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready or not module.connector_kind %}Pronto para receber dados{% else %}Conexão necessária{% endif %}</span>
+</section>
+
+<section class="workspace-panel module-main-panel">
+  {% if records %}
+    <header class="workspace-panel-head"><div><h2>{{ panel_title }}</h2><p>{{ panel_note }}</p></div></header>
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr>{% for heading in table_headers %}<th>{{ heading }}</th>{% endfor %}</tr></thead><tbody>{% for row in records %}<tr>{% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="module-clean-empty">
+      <span class="module-empty-icon" aria-hidden="true">{{ module.icon }}</span>
+      <h2>{{ empty_title }}</h2>
+      <p>{{ empty_text }}</p>
+      {% if not connector_ready and module.connector_kind %}<a class="button" href="{% url 'hub:settings' %}#conexoes">Configurar {{ module.label }}</a>{% endif %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

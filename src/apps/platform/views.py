@@ -249,6 +249,8 @@ def start_support(request: HttpRequest, organization_id: str) -> HttpResponse:
         expires_at=expires_at,
     )
     request.session["hub_support_session_id"] = str(support.id)
+    request.session["hub_organization_id"] = str(organization.id)
+    request.session.pop("hub_company_id", None)
     record_event(
         action="platform.support.opened",
         actor=user,

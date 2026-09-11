@@ -5,7 +5,10 @@
 {% block workspace_content %}
 <section class="workspace-panel registry-panel">
   <header class="workspace-panel-head">
-    <div><h2>Empresas vinculadas</h2></div>
+    <div>
+      <h2>Empresas vinculadas</h2>
+      <p>Escritório atual: <strong>{{ office.name }}</strong>. Esta lista mostra somente a carteira deste escritório.</p>
+    </div>
     <span class="record-count">{{ companies|length }} cadastro{{ companies|length|pluralize:"s" }}</span>
   </header>
   {% if companies %}

@@ -86,6 +86,9 @@ class ClientCompany(OrganizationScopedModel):
             )
         ]
 
+    def __str__(self) -> str:
+        return self.name
+
 
 class CompanyAccessGrant(OrganizationScopedModel):
     """The effective company boundary for a user, normally synchronized from CRMew."""
@@ -332,3 +335,143 @@ class ConsumptionConfirmation(OrganizationScopedModel):
         related_name="serpro_confirmations",
     )
     confirmed_at = models.DateTimeField(null=True, blank=True)
+
+
+class DteRun(OrganizationScopedModel):
+    """A prepared Caixa Postal consultation. Preparing a run never calls Serpro."""
+
+    class Status(models.TextChoices):
+        AWAITING_APPROVAL = "awaiting_approval", "Aguardando autoriza\u00e7\u00e3o"
+        QUEUED = "queued", "Na fila"
+        RUNNING = "running", "Em consulta"
+        COMPLETED = "completed", "Conclu\u00edda"
+        PARTIAL = "partial", "Conclu\u00edda com pend\u00eancias"
+        FAILED = "failed", "N\u00e3o conclu\u00edda"
+        CANCELLED = "cancelled", "Cancelada"
+
+    connector = models.ForeignKey(
+        Connector, null=True, blank=True, on_delete=models.SET_NULL, related_name="dte_runs"
+    )
+    status = models.CharField(
+        max_length=24, choices=Status.choices, default=Status.AWAITING_APPROVAL
+    )
+    requested_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="dte_runs"
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    total_companies = models.PositiveIntegerField(default=0)
+    completed_companies = models.PositiveIntegerField(default=0)
+    messages_found = models.PositiveIntegerField(default=0)
+    error_summary = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        ordering = ("-requested_at",)
+        indexes = [
+            models.Index(
+                fields=["organization", "status", "requested_at"],
+                name="hub_dterun_organiz_8421d3_idx",
+            )
+        ]
+
+
+class DteRunItem(OrganizationScopedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Aguardando"
+        RUNNING = "running", "Em consulta"
+        COMPLETED = "completed", "Conclu\u00edda"
+        FAILED = "failed", "Falhou"
+        SKIPPED = "skipped", "Ignorada"
+
+    run = models.ForeignKey(DteRun, on_delete=models.CASCADE, related_name="items")
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="dte_run_items"
+    )
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
+    messages_found = models.PositiveIntegerField(default=0)
+    service_response_id = models.CharField(max_length=120, blank=True)
+    error_code = models.CharField(max_length=80, blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("company__name",)
+        constraints = [
+            models.UniqueConstraint(fields=("run", "company"), name="hub_unique_dte_run_company")
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization", "company", "status"],
+                name="hub_dteruni_organiz_4b0b65_idx",
+            )
+        ]
+
+
+class DteMessage(ImmutableOrganizationModel):
+    """Immutable evidence returned by the Integra Contador Caixa Postal service."""
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="dte_messages"
+    )
+    source_isn = models.CharField(max_length=120)
+    subject = models.CharField(max_length=500)
+    sender = models.CharField(max_length=240, blank=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    raw_payload = EncryptedTextField(blank=True)
+
+    class Meta:
+        ordering = ("-sent_at", "-first_seen_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "source_isn"),
+                name="hub_unique_dte_message_source",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization", "company", "sent_at"],
+                name="hub_dtemess_organiz_a0a7f2_idx",
+            )
+        ]
+
+
+class OperationalTask(OrganizationScopedModel):
+    """An office-owned operational follow-up, optionally tied to a client company."""
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Em aberto"
+        COMPLETED = "completed", "Concluída"
+
+    class Priority(models.TextChoices):
+        NORMAL = "normal", "Normal"
+        HIGH = "high", "Alta"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="operational_tasks"
+    )
+    title = models.CharField(max_length=180)
+    details = models.TextField(blank=True)
+    due_on = models.DateField(null=True, blank=True, db_index=True)
+    priority = models.CharField(max_length=12, choices=Priority.choices, default=Priority.NORMAL)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
+    created_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="created_operational_tasks",
+    )
+    completed_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="completed_operational_tasks",
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("status", "due_on", "-created_at")
+        indexes = [models.Index(fields=["organization", "status", "due_on"])]
