@@ -57,6 +57,7 @@ LOCAL_APPS = [
     "apps.hub",
     "apps.platform",
     "apps.intelligence",
+    "apps.integra",
     "apps.knowledge",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
@@ -353,6 +354,17 @@ REST_FRAMEWORK = {
 MCP_RATE_LIMIT_PER_MINUTE = env_int("MCP_RATE_LIMIT_PER_MINUTE", 60)
 LEAD_RATE_LIMIT_PER_HOUR = env_int("LEAD_RATE_LIMIT_PER_HOUR", 5)
 MFA_ATTEMPTS_PER_MINUTE = env_int("MFA_ATTEMPTS_PER_MINUTE", 8)
+
+# Integra Contador (Serpro). Authentication needs the office's own e-CNPJ A1 certificate
+# presented as the TLS client identity, so the file lives outside the repository and only
+# its path is configured. "trial" is the demonstration gateway and costs nothing.
+INTEGRA_ENVIRONMENT = env_str("INTEGRA_ENVIRONMENT", "trial")
+INTEGRA_CONSUMER_KEY = env_str("INTEGRA_CONSUMER_KEY")
+INTEGRA_CONSUMER_SECRET = env_str("INTEGRA_CONSUMER_SECRET")
+INTEGRA_CERTIFICATE_PATH = env_str("INTEGRA_CERTIFICATE_PATH")
+INTEGRA_CERTIFICATE_PASSWORD = env_str("INTEGRA_CERTIFICATE_PASSWORD")
+INTEGRA_CONTRATANTE_CNPJ = env_str("INTEGRA_CONTRATANTE_CNPJ")
+INTEGRA_AUTOR_PEDIDO_CNPJ = env_str("INTEGRA_AUTOR_PEDIDO_CNPJ")
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
