@@ -239,7 +239,7 @@ def start_support(request: HttpRequest, organization_id: str) -> HttpResponse:
         if control_grant is None:
             messages.error(
                 request,
-                "O CRMew nÃ£o autorizou uma sessÃ£o de suporte ativa para este escritÃ³rio.",
+                "O CRMew não autorizou uma sessão de suporte ativa para este escritório.",
             )
             return redirect("platform:tenant-detail", organization_id=organization.id)
     active = SupportSession.objects.filter(

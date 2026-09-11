@@ -6,7 +6,7 @@ from apps.hub.models import ControlPlaneBinding
 
 
 class Command(BaseCommand):
-    help = "Atualiza permissÃµes e configuraÃ§Ãµes assinadas recebidas do CRMew."
+    help = "Atualiza permissões e configurações assinadas recebidas do CRMew."
 
     def handle(self, *args, **options):
         failures = 0
@@ -19,4 +19,4 @@ class Command(BaseCommand):
             else:
                 self.stdout.write(f"{binding.organization}: controle atualizado")
         if failures:
-            raise CommandError(f"{failures} instalaÃ§Ã£o(Ãµes) nÃ£o sincronizaram.")
+            raise CommandError(f"{failures} instalação(ões) não sincronizaram.")

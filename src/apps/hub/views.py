@@ -313,7 +313,7 @@ def office_required[**ViewParams](
             return render(
                 request,
                 "hub/forbidden.html",
-                {"reason": "A permissÃ£o precisa ser renovada pelo CRMew."},
+                {"reason": "A permissão precisa ser renovada pelo CRMew."},
                 status=403,
             )
         return view(request, *args, **kwargs)

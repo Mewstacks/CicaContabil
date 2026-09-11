@@ -59,7 +59,7 @@ def mcp_endpoint(request: HttpRequest) -> HttpResponse:
     organization = membership.organization
     if not authorization_is_fresh(organization):
         return _error(
-            request_id, -32001, "PermissÃ£o expirada; aguarde a renovaÃ§Ã£o pelo CRMew.", 403
+            request_id, -32001, "Permissão expirada; aguarde a renovação pelo CRMew.", 403
         )
     if method == "initialize":
         return _response(

@@ -183,7 +183,7 @@ def call_tool(
     if name not in allowed_arguments or set(arguments) - allowed_arguments[name]:
         raise McpToolError("Ferramenta MCP ou argumento não permitido.")
     if not authorization_is_fresh(organization):
-        raise McpToolError("PermissÃ£o expirada; aguarde a renovaÃ§Ã£o pelo CRMew.")
+        raise McpToolError("Permissão expirada; aguarde a renovação pelo CRMew.")
     allowed_company_ids = {str(company.id) for company in companies_for_membership(membership)}
     required_capability = "draft" if name == "create_classification_draft" else "read"
     if name in {"search_data_catalog", "retrieve_knowledge"} and not membership_has_capability(
@@ -259,7 +259,7 @@ def call_tool(
             message.conversation.company_id
             and str(message.conversation.company_id) not in allowed_company_ids
         ):
-            raise McpToolError("Resposta nÃ£o encontrada no escopo autorizado.")
+            raise McpToolError("Resposta não encontrada no escopo autorizado.")
         result = {"evidence": message.evidence, "message_id": str(message.id)}
     elif name == "create_classification_draft":
         raw_company_id = arguments.get("company_id")

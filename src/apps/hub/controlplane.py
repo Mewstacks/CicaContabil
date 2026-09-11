@@ -85,13 +85,13 @@ def public_key_for_private(private_key: str) -> str:
 
 def _parse_datetime(value: object) -> datetime:
     if not isinstance(value, str):
-        raise ControlPlaneError("Controle sem data de expiraÃ§Ã£o.")
+        raise ControlPlaneError("Controle sem data de expiração.")
     try:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise ControlPlaneError("Data do controle invÃ¡lida.") from exc
+        raise ControlPlaneError("Data do controle inválida.") from exc
     if timezone.is_naive(parsed):
-        raise ControlPlaneError("Data do controle precisa incluir fuso horÃ¡rio.")
+        raise ControlPlaneError("Data do controle precisa incluir fuso horário.")
     return parsed
 
 
@@ -129,13 +129,13 @@ def _fetch_json(request: Request) -> dict[str, Any]:
         with urlopen(request, timeout=NETWORK_TIMEOUT_SECONDS) as response:  # noqa: S310 - validated controller origin
             raw = response.read(256_000)
     except (OSError, URLError) as exc:
-        raise ControlPlaneError(f"CRMew indisponÃ­vel: {exc}") from exc
+        raise ControlPlaneError(f"CRMew indisponível: {exc}") from exc
     try:
         payload = json.loads(raw)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ControlPlaneError("CRMew devolveu JSON invÃ¡lido.") from exc
+        raise ControlPlaneError("CRMew devolveu JSON inválido.") from exc
     if not isinstance(payload, dict):
-        raise ControlPlaneError("CRMew devolveu payload invÃ¡lido.")
+        raise ControlPlaneError("CRMew devolveu payload inválido.")
     return payload
 
 
@@ -149,7 +149,7 @@ def _verify_signature(
             _b64decode(signature), canonical_json(control)
         )
     except Exception as exc:
-        raise ControlPlaneError("Assinatura do CRMew invÃ¡lida.") from exc
+        raise ControlPlaneError("Assinatura do CRMew inválida.") from exc
 
 
 def authorization_is_fresh(organization: Organization) -> bool:
@@ -455,18 +455,18 @@ def _sync_support_grants(organization: Organization, control: dict[str, Any]) ->
 def apply_control(binding: ControlPlaneBinding, control: dict[str, Any], signature: object) -> None:
     _verify_signature(binding, control, signature)
     if str(control.get("installation_id")) != str(binding.remote_installation_id):
-        raise ControlPlaneError("Controle destinado a outra instalaÃ§Ã£o.")
+        raise ControlPlaneError("Controle destinado a outra instalação.")
     if str(control.get("hub_organization_id")) != str(binding.organization_id):
-        raise ControlPlaneError("Controle destinado a outro escritÃ³rio.")
+        raise ControlPlaneError("Controle destinado a outro escritório.")
     expires_at = _parse_datetime(control.get("expires_at"))
     now = timezone.now()
     if expires_at <= now or expires_at > now + CONTROL_CACHE_TTL + timedelta(minutes=1):
-        raise ControlPlaneError("ExpiraÃ§Ã£o do controle fora da polÃ­tica.")
+        raise ControlPlaneError("Expiração do controle fora da política.")
     version = control.get("configuration_version")
     if not isinstance(version, int) or version < binding.applied_configuration_version:
-        raise ControlPlaneError("VersÃ£o de controle invÃ¡lida ou regressiva.")
+        raise ControlPlaneError("Versão de controle inválida ou regressiva.")
     if control.get("status") != "active":
-        raise ControlPlaneError("InstalaÃ§Ã£o revogada ou suspensa pelo CRMew.")
+        raise ControlPlaneError("Instalação revogada ou suspensa pelo CRMew.")
     with transaction.atomic():
         _sync_grants(binding.organization, control)
         _sync_modules(binding.organization, control)
@@ -494,7 +494,7 @@ def sync_binding(binding: ControlPlaneBinding) -> None:
         payload = _fetch_json(_signed_request(binding, method="GET", path="/control/v1/state/"))
         control = payload.get("control")
         if not isinstance(control, dict):
-            raise ControlPlaneError("CRMew nÃ£o enviou controle.")
+            raise ControlPlaneError("CRMew não enviou controle.")
         apply_control(binding, control, payload.get("signature"))
         acknowledge_control(binding)
     except ControlPlaneError as exc:

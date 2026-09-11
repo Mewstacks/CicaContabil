@@ -115,9 +115,9 @@ class CompanyAccessGrant(OrganizationScopedModel):
     def clean(self) -> None:
         super().clean()
         if self.membership_id and self.membership.organization_id != self.organization_id:
-            raise ValidationError("O acesso precisa pertencer ao mesmo escritÃ³rio.")
+            raise ValidationError("O acesso precisa pertencer ao mesmo escritório.")
         if self.company_id and self.company.organization_id != self.organization_id:
-            raise ValidationError("A empresa precisa pertencer ao mesmo escritÃ³rio.")
+            raise ValidationError("A empresa precisa pertencer ao mesmo escritório.")
 
 
 class ControlPlaneBinding(UUIDTimeStampedModel):
