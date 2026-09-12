@@ -18,6 +18,7 @@ from apps.hub.models import (
     Certificate,
     ClientCompany,
     Connector,
+    ConsumptionConfirmation,
     DteRun,
     DteRunItem,
     IntegrationArtifact,
@@ -210,7 +211,7 @@ def prepare_dte_run(
     if not companies:
         raise ValueError("Selecione pelo menos uma empresa.")
     if any(company.organization_id != organization.id for company in companies):
-        raise ValueError("Todas as empresas precisam pertencer ao mesmo escrit\u00f3rio.")
+        raise ValueError("Todas as empresas precisam pertencer ao mesmo escritório.")
     run = DteRun.objects.create(
         organization=organization,
         connector=connector,
@@ -227,5 +228,94 @@ def prepare_dte_run(
         target=run,
         request=request,
         metadata={"companies": len(companies), "network_dispatched": False},
+    )
+    return run
+
+
+class DteRunTransitionError(RuntimeError):
+    """A run was asked for a transition its current status does not allow."""
+
+
+# The catalogue key that a Caixa Postal consultation bills against. Kept here rather than
+# imported so a change to the Integra catalogue cannot silently change what was approved.
+DTE_ACTION_CODE = "caixapostal.mensagens"
+
+
+@transaction.atomic
+def approve_dte_run(
+    *,
+    run: DteRun,
+    actor: Any = None,
+    request: Any = None,
+) -> ConsumptionConfirmation:
+    """Record the consumption the operator is authorizing, and release the run.
+
+    This is the second step the preparation screen promises. It still calls no network:
+    approving states what will be spent and moves the run out of the approval queue, so
+    a dispatcher may act on it. Dispatching stays separate because it needs credentials
+    this step does not touch.
+    """
+
+    if run.status != DteRun.Status.AWAITING_APPROVAL:
+        raise DteRunTransitionError("Esta consulta já saiu da fila de autorização.")
+    if run.connector is None:
+        # The confirmation records consumption against a connector. Without one there is
+        # nothing to bill and nothing that could dispatch the run.
+        raise DteRunTransitionError("Configure o Integra Contador antes de autorizar.")
+
+    confirmation = ConsumptionConfirmation.objects.create(
+        organization=run.organization,
+        connector=run.connector,
+        action_code=DTE_ACTION_CODE,
+        scope_summary=f"Caixa Postal de {run.total_companies} empresa(s).",
+        estimated_units=run.total_companies,
+        status="confirmed",
+        confirmed_by=actor if getattr(actor, "is_authenticated", False) else None,
+        confirmed_at=timezone.now(),
+    )
+    run.status = DteRun.Status.QUEUED
+    run.save(update_fields=["status", "updated_at"])
+    record_event(
+        action="hub.dte.run_approved",
+        actor=actor,
+        organization=run.organization,
+        target=run,
+        request=request,
+        metadata={
+            "companies": run.total_companies,
+            "action_code": DTE_ACTION_CODE,
+            "network_dispatched": False,
+        },
+    )
+    return confirmation
+
+
+@transaction.atomic
+def cancel_dte_run(
+    *,
+    run: DteRun,
+    actor: Any = None,
+    request: Any = None,
+) -> DteRun:
+    """Withdraw a run the operator decided not to authorize.
+
+    Without this the only way out of the approval queue is approving, so a scope chosen
+    by mistake stays on the screen forever.
+    """
+
+    if run.status != DteRun.Status.AWAITING_APPROVAL:
+        raise DteRunTransitionError("Esta consulta já saiu da fila de autorização.")
+
+    run.status = DteRun.Status.CANCELLED
+    run.completed_at = timezone.now()
+    run.save(update_fields=["status", "completed_at", "updated_at"])
+    run.items.filter(status=DteRunItem.Status.PENDING).update(status=DteRunItem.Status.SKIPPED)
+    record_event(
+        action="hub.dte.run_cancelled",
+        actor=actor,
+        organization=run.organization,
+        target=run,
+        request=request,
+        metadata={"companies": run.total_companies},
     )
     return run

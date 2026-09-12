@@ -6,14 +6,17 @@ from collections.abc import Callable
 from datetime import timedelta
 from functools import wraps
 from typing import Concatenate, cast
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
+from django.db.models import Q, QuerySet
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -25,14 +28,13 @@ from apps.audit.services import record_event
 from apps.common.network import client_ip
 from apps.common.ratelimit import rate_limited
 from apps.common.redirects import safe_next
-from apps.hub.controlplane import authorization_is_fresh, companies_for_membership
+from apps.hub.controlplane import authorization_is_fresh, company_queryset_for_membership
 from apps.hub.forms import (
     ActivationForm,
     CertificateUploadForm,
     CompanyForm,
     ConnectorConfigForm,
     DtePreparationForm,
-    OperationalTaskForm,
 )
 from apps.hub.models import (
     Certificate,
@@ -44,13 +46,19 @@ from apps.hub.models import (
     DteRunItem,
     IntegrationArtifact,
     NfseDocument,
-    OperationalTask,
+    OfficeProfile,
     ProductModule,
     ReviewCase,
     UsageAllowance,
 )
 from apps.hub.module_catalog import MODULES, ModuleDefinition, definition
-from apps.hub.services import prepare_dte_run, store_certificate
+from apps.hub.services import (
+    DteRunTransitionError,
+    approve_dte_run,
+    cancel_dte_run,
+    prepare_dte_run,
+    store_certificate,
+)
 from apps.intelligence.agents import issue_enrollment
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.organizations.models import Membership, Organization
@@ -219,6 +227,14 @@ def active_membership(request: HttpRequest) -> Membership | None:
     return membership
 
 
+# How many companies the header popover lists before it defers to search.
+SWITCHER_COMPANY_LIMIT = 8
+# How many matches the switcher search returns at once.
+SWITCHER_SEARCH_LIMIT = 20
+# Rows per page on the company registry.
+COMPANIES_PER_PAGE = 25
+
+
 def workspace_context(request: HttpRequest) -> dict[str, object]:
     user = cast(User, request.user)
     support_session = current_support(request) if request.user.is_authenticated else None
@@ -231,25 +247,35 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         companies_query = ClientCompany.objects.filter(
             organization=support_session.organization, active=True
         )
-        companies = list(
+        companies = (
             companies_query.filter(id__in=support_session.company_ids)
             if support_session.company_ids
             else companies_query
         )
     elif membership:
         office = membership.organization
-        companies = companies_for_membership(membership)
+        companies = company_queryset_for_membership(membership)
     else:
         office = None
-        companies = []
+        companies = ClientCompany.objects.none()
+    # An office can carry hundreds of companies. Resolving the active one by query keeps
+    # every workspace page from loading the whole portfolio into memory just to render a
+    # header, and keeps the switcher bounded.
+    # No company is selected until somebody selects one. An accounting office works
+    # across its whole portfolio; silently pinning the workspace to whichever company
+    # sorts first scopes every screen to an arbitrary client and hides the rest.
     selected_company_id = request.session.get("hub_company_id")
-    active_company = next(
-        (company for company in companies if str(company.id) == selected_company_id), None
+    active_company = None
+    if selected_company_id:
+        try:
+            active_company = companies.filter(id=selected_company_id).first()
+        except (ValidationError, ValueError):
+            active_company = None
+        if active_company is None:
+            request.session.pop("hub_company_id", None)
+    company_scope = (
+        companies.filter(pk=active_company.pk) if active_company is not None else companies
     )
-    if active_company is None and companies:
-        active_company = companies[0]
-        request.session["hub_company_id"] = str(active_company.id)
-    company_scope = [active_company] if active_company else companies
     support_can_mutate = support_session is None or support_session.can_mutate
     module_rows = (
         ProductModule.objects.filter(organization=office, enabled=True).order_by("code")
@@ -275,7 +301,14 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
             user=user, is_active=True, organization__is_active=True
         ),
         "companies": companies,
+        "companies_count": companies.count(),
+        # The switcher is a popover, not a directory: it shows a working set and sends
+        # anyone looking for the rest to the search box beside it.
+        "switcher_companies": companies[:SWITCHER_COMPANY_LIMIT],
         "active_company": active_company,
+        # Which companies the screens read from: the selected one, or the whole
+        # allowed portfolio when nothing is selected.
+        "company_scope": company_scope,
         "can_access_platform": has_platform_role(
             user,
             PlatformAccess.Role.DEVELOPER,
@@ -289,6 +322,18 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         else 0,
         "enabled_modules": enabled_modules,
     }
+
+
+def refuse(request: HttpRequest, reason: str) -> HttpResponse:
+    """Refuse with a page the person can leave, not a bare sentence.
+
+    ``HttpResponseForbidden`` renders unstyled text with no navigation: whoever just
+    clicked a menu item or submitted a form lands on a blank page whose only way out is
+    the browser's back button. The status stays 403; only the body becomes a page that
+    says what happened and where to go.
+    """
+
+    return render(request, "hub/forbidden.html", {"reason": reason}, status=403)
 
 
 def office_required[**ViewParams](
@@ -308,7 +353,22 @@ def office_required[**ViewParams](
             support.organization if support else membership.organization if membership else None
         )
         if office is None:
-            return render(request, "hub/no_office.html", status=403)
+            # A platform operator has no membership of their own, so every workspace URL
+            # lands here. Without their own way out the only control on the page signs
+            # them out of the console they were actually working in.
+            return render(
+                request,
+                "hub/no_office.html",
+                {
+                    "has_platform_console": has_platform_role(
+                        request.user,
+                        PlatformAccess.Role.DEVELOPER,
+                        PlatformAccess.Role.SUPPORT,
+                        PlatformAccess.Role.COMMERCIAL,
+                    )
+                },
+                status=403,
+            )
         if not authorization_is_fresh(office):
             return render(
                 request,
@@ -338,14 +398,57 @@ def switch_office(request: HttpRequest) -> HttpResponse:
 
 
 @office_required
+def search_companies(request: HttpRequest) -> HttpResponse:
+    """Feed the header switcher so it stays a popover instead of a second screen.
+
+    An office can hold hundreds of companies. Rendering them all into a dropdown on
+    every page made the popover unusable and every page slower; the switcher now asks
+    for what was typed and never leaves the current screen.
+    """
+
+    context = workspace_context(request)
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    query = request.GET.get("q", "").strip()
+    if query:
+        scope = scope.filter(
+            Q(name__icontains=query)
+            | Q(cnpj_masked__icontains=query)
+            | Q(dominio_code__icontains=query)
+        )
+    rows = scope.order_by("name")[:SWITCHER_SEARCH_LIMIT]
+    return JsonResponse(
+        {
+            "results": [
+                {
+                    "id": str(company.id),
+                    "name": company.name,
+                    "dominio_code": company.dominio_code,
+                }
+                for company in rows
+            ]
+        }
+    )
+
+
+@office_required
 @require_http_methods(["POST"])
 def switch_company(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     selected = str(request.POST.get("company_id", ""))
-    companies = cast(list[ClientCompany], context["companies"])
-    company = next((item for item in companies if str(item.id) == selected), None)
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    if not selected:
+        # An empty choice is how the switcher goes back to the whole portfolio.
+        request.session.pop("hub_company_id", None)
+        return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
+    # One lookup inside the allowed scope: scanning the whole portfolio in Python to
+    # match a single id costs the same as loading it. A malformed id is not a crash,
+    # it is simply not in scope.
+    try:
+        company = companies.filter(id=selected).first()
+    except (ValidationError, ValueError):
+        company = None
     if company is None:
-        return HttpResponseForbidden("Empresa fora do seu escopo.")
+        return refuse(request, "Empresa fora do seu escopo.")
     request.session["hub_company_id"] = str(company.id)
     return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
 
@@ -355,32 +458,30 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    active_company = cast(ClientCompany | None, context["active_company"])
-    companies = cast(list[ClientCompany], context["companies"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
     open_cases = ReviewCase.objects.filter(
-        organization=office, status=ReviewCase.Status.OPEN, document__company=active_company
+        organization=office,
+        status=ReviewCase.Status.OPEN,
+        document__company__in=scope,
     ).select_related("document", "document__company")[:8]
     context.update(
         {
             "page_title": "Visão geral",
             "open_cases": open_cases,
             "stats": {
-                "companies": len(companies),
+                "companies": companies.count(),
                 "documents": NfseDocument.objects.filter(
-                    organization=office, company=active_company
-                ).count()
-                if active_company
-                else 0,
+                    organization=office, company__in=scope
+                ).count(),
                 "pending": ReviewCase.objects.filter(
                     organization=office,
                     status=ReviewCase.Status.OPEN,
-                    document__company=active_company,
+                    document__company__in=scope,
                 ).count(),
                 "certificates": Certificate.objects.filter(
-                    organization=office, company=active_company, revoked_at__isnull=True
-                ).count()
-                if active_company
-                else 0,
+                    organization=office, company__in=scope, revoked_at__isnull=True
+                ).count(),
             },
             "module_states": context["enabled_modules"],
         }
@@ -394,49 +495,43 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
 
     context = workspace_context(request)
     office = context["office"]
-    active_company = cast(ClientCompany | None, context["active_company"])
     assert isinstance(office, Organization)
+    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
 
-    documents = NfseDocument.objects.none()
+    documents = (
+        NfseDocument.objects.filter(organization=office, company__in=scope)
+        .select_related("review_case", "company")
+        .prefetch_related("integration_artifacts")
+        .order_by("-captured_at")
+    )
     document_rows: list[dict[str, object]] = []
-    if active_company:
-        documents = (
-            NfseDocument.objects.filter(organization=office, company=active_company)
-            .select_related("review_case")
-            .prefetch_related("integration_artifacts")
-            .order_by("-captured_at")
+    for document in documents[:100]:
+        artifact = next(iter(document.integration_artifacts.all()), None)
+        review = getattr(document, "review_case", None)
+        document_rows.append(
+            {
+                "document": document,
+                "status": "Em revisão" if review else "Classificada" if artifact else "Recebida",
+                "status_class": "attention" if review else "success" if artifact else "muted",
+                "accumulator": artifact.accumulator_code if artifact else "—",
+                "confidence": artifact.confidence
+                if artifact
+                else review.confidence
+                if review
+                else None,
+            }
         )
-        for document in documents[:100]:
-            artifact = next(iter(document.integration_artifacts.all()), None)
-            review = getattr(document, "review_case", None)
-            document_rows.append(
-                {
-                    "document": document,
-                    "status": "Em revisão"
-                    if review
-                    else "Classificada"
-                    if artifact
-                    else "Recebida",
-                    "status_class": "attention" if review else "success" if artifact else "muted",
-                    "accumulator": artifact.accumulator_code if artifact else "—",
-                    "confidence": artifact.confidence
-                    if artifact
-                    else review.confidence
-                    if review
-                    else None,
-                }
-            )
 
     context.update(
         {
             "page_title": "Central NFS-e",
             "document_rows": document_rows,
             "nfse_stats": {
-                "received": documents.count() if active_company else 0,
+                "received": documents.count(),
                 "pending": ReviewCase.objects.filter(
                     organization=office,
                     status=ReviewCase.Status.OPEN,
-                    document__company=active_company,
+                    document__company__in=scope,
                 ).count(),
                 "classified": sum(1 for row in document_rows if row["status"] == "Classificada"),
             },
@@ -617,7 +712,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
     if blocked:
         return blocked
     office = cast(Organization, context["office"])
-    allowed_companies = cast(list[ClientCompany], context["companies"])
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
     allowed_company_ids = [company.id for company in allowed_companies]
     companies = ClientCompany.objects.filter(id__in=allowed_company_ids, active=True)
     connector = cast(Connector | None, context["connector"])
@@ -625,15 +720,9 @@ def dte_center(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         if not context["support_can_mutate"]:
-            return HttpResponseForbidden("Esta sess\u00e3o \u00e9 somente leitura.")
-        membership = context["membership"]
-        if context["support_session"] is None and (
-            not isinstance(membership, Membership)
-            or membership.role in {Membership.Role.AUDITOR, Membership.Role.BILLING}
-        ):
-            return HttpResponseForbidden(
-                "Seu perfil pode consultar, mas n\u00e3o preparar consultas DTE."
-            )
+            return refuse(request, "Esta sessão é somente leitura.")
+        if not _can_prepare_dte(context):
+            return refuse(request, "Seu perfil pode consultar, mas não preparar consultas DTE.")
         if form.is_valid():
             run = prepare_dte_run(
                 organization=office,
@@ -678,9 +767,61 @@ def dte_center(request: HttpRequest) -> HttpResponse:
                     organization=office, company_id__in=allowed_company_ids, sent_at__gte=week_ago
                 ).count(),
             },
+            "pending_runs": (
+                DteRun.objects.filter(organization=office, status=DteRun.Status.AWAITING_APPROVAL)
+                .select_related("requested_by")
+                .prefetch_related("items__company")
+                .order_by("-requested_at")
+            ),
+            "can_prepare_dte": _can_prepare_dte(context),
         }
     )
     return render(request, "hub/dte_center.html", context)
+
+
+def _can_prepare_dte(context: dict[str, object]) -> bool:
+    if not context["support_can_mutate"]:
+        return False
+    if context["support_session"] is not None:
+        return True
+    membership = context["membership"]
+    return isinstance(membership, Membership) and membership.role not in {
+        Membership.Role.AUDITOR,
+        Membership.Role.BILLING,
+    }
+
+
+@office_required
+@require_http_methods(["POST"])
+def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
+    """Authorize or withdraw a prepared run: the second step the screen promises."""
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
+    if blocked:
+        return blocked
+    if not _can_prepare_dte(context):
+        return refuse(request, "Seu perfil pode consultar, mas não autorizar consultas DTE.")
+    office = cast(Organization, context["office"])
+    run = get_object_or_404(
+        DteRun, id=run_id, organization=office, status=DteRun.Status.AWAITING_APPROVAL
+    )
+    decision = request.POST.get("decision", "")
+    try:
+        if decision == "approve":
+            confirmation = approve_dte_run(run=run, actor=request.user, request=request)
+            messages.success(
+                request,
+                f"Consumo autorizado para {confirmation.estimated_units} empresa(s). "
+                "A consulta entrou na fila de envio.",
+            )
+        elif decision == "cancel":
+            cancel_dte_run(run=run, actor=request.user, request=request)
+            messages.success(request, "Consulta retirada da fila.")
+        else:
+            messages.error(request, "Escolha autorizar ou retirar.")
+    except DteRunTransitionError as error:
+        messages.error(request, str(error))
+    return redirect("hub:dte-center")
 
 
 @office_required
@@ -699,14 +840,21 @@ def companies(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    form = CompanyForm(request.POST or None)
+    require_dominio_code = OfficeProfile.objects.filter(
+        organization=office, require_dominio_code=True
+    ).exists()
+    form = CompanyForm(
+        request.POST or None,
+        organization=office,
+        require_dominio_code=require_dominio_code,
+    )
     if request.method == "POST" and not context["support_can_mutate"]:
-        return HttpResponseForbidden("Esta sessão é somente leitura.")
+        return refuse(request, "Esta sessão é somente leitura.")
     if (
         request.method == "POST"
         and ControlPlaneBinding.objects.filter(organization=office).exists()
     ):
-        return HttpResponseForbidden("As empresas desta instalação são controladas pelo CRMew.")
+        return refuse(request, "As empresas desta instalação são controladas pelo CRMew.")
     if request.method == "POST" and form.is_valid():
         company = form.save(commit=False)
         company.organization = office
@@ -720,105 +868,65 @@ def companies(request: HttpRequest) -> HttpResponse:
         )
         messages.success(request, "Empresa adicionada à operação.")
         return redirect("hub:companies")
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    query = request.GET.get("q", "").strip()
+    situation = request.GET.get("situacao", "")
+    link = request.GET.get("vinculo", "")
+
+    rows = ClientCompany.objects.filter(organization=office)
+    if not _sees_every_company(context):
+        # The workspace scope already applied the CRMew company boundary; the registry
+        # must not widen it just because it queries the office directly.
+        rows = rows.filter(id__in=scope.values_list("id", flat=True))
+    if query:
+        rows = rows.filter(
+            Q(name__icontains=query)
+            | Q(cnpj_masked__icontains=query)
+            | Q(dominio_code__icontains=query)
+        )
+    if situation == "pausada":
+        rows = rows.filter(active=False)
+    elif situation == "ativa":
+        rows = rows.filter(active=True)
+    if link == "sem":
+        rows = rows.filter(dominio_code="")
+    elif link == "com":
+        rows = rows.exclude(dominio_code="")
+
+    paginator = Paginator(rows.order_by("name"), COMPANIES_PER_PAGE)
+    page = paginator.get_page(request.GET.get("pagina"))
+    filters = {"q": query, "situacao": situation, "vinculo": link}
     context.update(
         {
             "page_title": "Empresas",
-            "companies": context["companies"],
+            "companies": page.object_list,
+            "page_obj": page,
+            "paginator": paginator,
+            "total_companies": paginator.count,
+            "filters": filters,
+            "filters_applied": any(filters.values()),
+            "query_without_page": urlencode(
+                {key: value for key, value in filters.items() if value}
+            ),
+            "office_company_total": ClientCompany.objects.filter(organization=office).count(),
+            "missing_dominio_code": ClientCompany.objects.filter(
+                organization=office, dominio_code=""
+            ).count(),
+            "require_dominio_code": require_dominio_code,
             "form": form,
         }
     )
     return render(request, "hub/companies.html", context)
 
 
-def _can_manage_operations(context: dict[str, object]) -> bool:
-    membership = context["membership"]
-    return bool(
-        context["support_can_mutate"]
-        and (
-            context["support_session"] is not None
-            or (
-                isinstance(membership, Membership)
-                and membership.role not in {Membership.Role.AUDITOR, Membership.Role.BILLING}
-            )
-        )
-    )
+def _sees_every_company(context: dict[str, object]) -> bool:
+    """True when no CRMew binding narrows the office to a per-user company list."""
 
-
-@office_required
-@require_http_methods(["GET", "POST"])
-def operational_tasks(request: HttpRequest) -> HttpResponse:
-    context = workspace_context(request)
     office = context["office"]
-    assert isinstance(office, Organization)
-    allowed_companies = cast(list[ClientCompany], context["companies"])
-    allowed_company_ids = [company.id for company in allowed_companies]
-    form = OperationalTaskForm(
-        request.POST or None,
-        companies=ClientCompany.objects.filter(id__in=allowed_company_ids, active=True),
+    return (
+        isinstance(office, Organization)
+        and not ControlPlaneBinding.objects.filter(organization=office).exists()
     )
-    can_manage = _can_manage_operations(context)
-    if request.method == "POST" and not can_manage:
-        return HttpResponseForbidden("Seu perfil pode consultar, mas não alterar pendências.")
-    if request.method == "POST" and form.is_valid():
-        task = form.save(commit=False)
-        task.organization = office
-        task.created_by = cast(User, request.user)
-        task.save()
-        record_event(
-            action="hub.operational_task.created",
-            actor=request.user,
-            organization=office,
-            target=task,
-            request=request,
-        )
-        messages.success(request, "Pendência adicionada à rotina do escritório.")
-        return redirect("hub:tasks")
-    tasks = OperationalTask.objects.filter(
-        organization=office, company_id__in=allowed_company_ids
-    ).select_related("company", "completed_by")
-    today = timezone.localdate()
-    context.update(
-        {
-            "page_title": "Pendências e rotinas",
-            "task_form": form,
-            "tasks": tasks,
-            "open_tasks": tasks.filter(status=OperationalTask.Status.OPEN),
-            "completed_tasks": tasks.filter(status=OperationalTask.Status.COMPLETED)[:8],
-            "can_manage_operations": can_manage,
-            "today": today,
-        }
-    )
-    return render(request, "hub/operational_tasks.html", context)
-
-
-@office_required
-@require_http_methods(["POST"])
-def complete_operational_task(request: HttpRequest, task_id: str) -> HttpResponse:
-    context = workspace_context(request)
-    if not _can_manage_operations(context):
-        return HttpResponseForbidden("Seu perfil pode consultar, mas não alterar pendências.")
-    office = context["office"]
-    assert isinstance(office, Organization)
-    task = get_object_or_404(
-        OperationalTask,
-        id=task_id,
-        organization=office,
-        status=OperationalTask.Status.OPEN,
-        company_id__in=[company.id for company in cast(list[ClientCompany], context["companies"])],
-    )
-    task.status = OperationalTask.Status.COMPLETED
-    task.completed_by = cast(User, request.user)
-    task.completed_at = timezone.now()
-    task.save(update_fields=["status", "completed_by", "completed_at", "updated_at"])
-    record_event(
-        action="hub.operational_task.completed",
-        actor=request.user,
-        organization=office,
-        target=task,
-        request=request,
-    )
-    messages.success(request, "Pendência concluída e registrada na auditoria.")
-    return redirect("hub:tasks")
 
 
 @office_required
@@ -828,8 +936,8 @@ def certificates(request: HttpRequest) -> HttpResponse:
     office = context["office"]
     assert isinstance(office, Organization)
     if request.method == "POST" and not context["support_can_mutate"]:
-        return HttpResponseForbidden("Esta sessão é somente leitura.")
-    allowed_companies = cast(list[ClientCompany], context["companies"])
+        return refuse(request, "Esta sessão é somente leitura.")
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
     form = CertificateUploadForm(
         request.POST or None,
         request.FILES or None,
@@ -879,13 +987,13 @@ def reviews(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    active_company = cast(ClientCompany | None, context["active_company"])
+    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
     context.update(
         {
             "page_title": "Revisão de NFS-e",
             "cases": ReviewCase.objects.filter(
                 organization=office,
-                document__company=active_company,
+                document__company__in=scope,
             ).select_related("document", "document__company", "resolved_by"),
         }
     )
@@ -898,10 +1006,10 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    active_company = cast(ClientCompany | None, context["active_company"])
+    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
     membership = context["membership"]
     if not context["support_can_mutate"]:
-        return HttpResponseForbidden("Esta sessão é somente leitura.")
+        return refuse(request, "Esta sessão é somente leitura.")
     if context["support_session"] is None and (
         not isinstance(membership, Membership)
         or membership.role
@@ -910,13 +1018,13 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
             Membership.Role.BILLING,
         }
     ):
-        return HttpResponseForbidden("Seu perfil pode consultar, mas não classificar documentos.")
+        return refuse(request, "Seu perfil pode consultar, mas não classificar documentos.")
     review = get_object_or_404(
         ReviewCase,
         id=case_id,
         organization=office,
         status=ReviewCase.Status.OPEN,
-        document__company=active_company,
+        document__company__in=scope,
     )
     accumulator = request.POST.get("accumulator_code", "").strip()
     if not accumulator:
@@ -954,9 +1062,34 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
     )
     connector_form_invalid = False
+    if request.method == "POST" and request.POST.get("action") == "dominio-policy":
+        if not context["support_can_mutate"]:
+            return refuse(request, "Esta sessão é somente leitura.")
+        if not can_manage_dominio_agent:
+            return refuse(
+                request, "Somente owners e administradores mudam a política do escritório."
+            )
+        required = request.POST.get("require_dominio_code") == "on"
+        OfficeProfile.objects.update_or_create(
+            organization=office, defaults={"require_dominio_code": required}
+        )
+        record_event(
+            action="hub.office.dominio_policy_changed",
+            actor=request.user,
+            organization=office,
+            request=request,
+            metadata={"require_dominio_code": required},
+        )
+        messages.success(
+            request,
+            "Código do Domínio passa a ser obrigatório."
+            if required
+            else "Código do Domínio volta a ser opcional.",
+        )
+        return redirect("hub:settings")
     if request.method == "POST":
         if not context["support_can_mutate"]:
-            return HttpResponseForbidden("Esta sessão é somente leitura.")
+            return refuse(request, "Esta sessão é somente leitura.")
         form = ConnectorConfigForm(request.POST)
         if form.is_valid():
             kind = form.cleaned_data["kind"]
@@ -1029,6 +1162,12 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             ),
             "can_manage_dominio_agent": can_manage_dominio_agent,
             "enrollment_code": request.session.pop("dominio_enrollment_code", ""),
+            "require_dominio_code": OfficeProfile.objects.filter(
+                organization=office, require_dominio_code=True
+            ).exists(),
+            "companies_missing_dominio_code": ClientCompany.objects.filter(
+                organization=office, dominio_code=""
+            ).count(),
         }
     )
     return render(request, "hub/settings.html", context)
@@ -1042,18 +1181,16 @@ def issue_dominio_agent_enrollment(request: HttpRequest) -> HttpResponse:
     membership = context["membership"]
     assert isinstance(office, Organization)
     if not context["support_can_mutate"]:
-        return HttpResponseForbidden("Esta sess\u00e3o \u00e9 somente leitura.")
+        return refuse(request, "Esta sessão é somente leitura.")
     if (
         context["support_session"] is not None
         or not isinstance(membership, Membership)
         or membership.role not in {Membership.Role.OWNER, Membership.Role.ADMIN}
     ):
-        return HttpResponseForbidden(
-            "Somente owners e administradores podem parear um agente Dom\u00ednio."
-        )
+        return refuse(request, "Somente owners e administradores podem parear um agente Domínio.")
     enrollment = issue_enrollment(
         organization=office, actor=cast(User, request.user), request=request
     )
     request.session["dominio_enrollment_code"] = enrollment.code
-    messages.success(request, "C\u00f3digo de pareamento criado. Ele expira em 30 minutos.")
+    messages.success(request, "Código de pareamento criado. Ele expira em 30 minutos.")
     return redirect("hub:settings")

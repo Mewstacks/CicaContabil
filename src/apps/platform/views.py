@@ -13,7 +13,7 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.models import ControlPlaneBinding, ProductModule, RemoteSupportGrant
-from apps.organizations.models import Organization
+from apps.organizations.models import Membership, Organization
 from apps.platform.forms import InvitationForm
 from apps.platform.models import (
     Invitation,
@@ -49,6 +49,14 @@ def current_support(request: HttpRequest) -> SupportSession | None:
     ).first()
     if not session or not session.usable():
         request.session.pop("hub_support_session_id", None)
+        return None
+    # Somebody who already belongs to the office is not visiting it. Impersonating an
+    # office you are a member of hides your own role, drops your office switcher and
+    # labels you a visitor in your own workspace -- and it narrows you to the session's
+    # company list even though your membership grants more.
+    if Membership.objects.filter(
+        organization=session.organization, user=session.support_user, is_active=True
+    ).exists():
         return None
     return session
 
@@ -221,6 +229,12 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
 def start_support(request: HttpRequest, organization_id: str) -> HttpResponse:
     user = _platform_user(request)
     organization = get_object_or_404(Organization, id=organization_id, is_active=True)
+    if Membership.objects.filter(organization=organization, user=user, is_active=True).exists():
+        messages.error(
+            request,
+            "Você já faz parte deste escritório. Abra-o pelo seletor, sem sessão de suporte.",
+        )
+        return redirect("platform:tenant-detail", organization_id=organization.id)
     justification = request.POST.get("justification", "").strip()
     if len(justification) < 12:
         messages.error(request, "Explique o motivo do acesso em pelo menos 12 caracteres.")

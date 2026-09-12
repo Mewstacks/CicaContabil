@@ -25,7 +25,6 @@ from apps.hub.models import (
     DteMessage,
     DteRun,
     OfficeProfile,
-    OperationalTask,
     ProductModule,
     UsageAllowance,
 )
@@ -44,16 +43,6 @@ COMPANIES: list[tuple[str, str, str]] = [
 ]
 
 SERVICE_CODES = ["1401", "0702", "1701", "0910"]
-
-TASKS: list[tuple[str, str, int, str]] = [
-    ("Enviar DCTFWeb da competência", "high", 2, "open"),
-    ("Conferir retenções de ISS", "normal", 6, "open"),
-    ("Solicitar procuração eletrônica no e-CAC", "high", 1, "open"),
-    ("Atualizar quadro societário", "normal", 14, "open"),
-    ("Baixar guias do Simples Nacional", "normal", 4, "open"),
-    ("Revisar acumuladores do mês anterior", "normal", -3, "completed"),
-    ("Conciliar extrato bancário de agosto", "normal", -8, "completed"),
-]
 
 DTE_SUBJECTS = [
     "Comunicado de pendência - Malha Fiscal",
@@ -90,7 +79,6 @@ class Command(BaseCommand):
             self._modules_and_limits(organization)
             self._certificates(companies[:3], owner)
             self._documents(organization, companies)
-            self._tasks(organization, companies, owner)
             self._dte(organization, companies, owner)
 
         self.stdout.write(self.style.SUCCESS(f"Escritório: {organization.name}"))
@@ -232,28 +220,6 @@ class Command(BaseCommand):
                     },
                     source_nsu=f"{company.dominio_code}{sequence:04d}",
                 )
-
-    def _tasks(
-        self, organization: Organization, companies: list[ClientCompany], owner: User
-    ) -> None:
-        today = timezone.localdate()
-        for index, (title, priority, offset, status) in enumerate(TASKS):
-            company = companies[index % len(companies)]
-            completed = status == OperationalTask.Status.COMPLETED
-            OperationalTask.objects.get_or_create(
-                organization=organization,
-                company=company,
-                title=title,
-                defaults={
-                    "details": "",
-                    "due_on": today + dt.timedelta(days=offset),
-                    "priority": priority,
-                    "status": status,
-                    "created_by": owner,
-                    "completed_by": owner if completed else None,
-                    "completed_at": timezone.now() if completed else None,
-                },
-            )
 
     def _dte(self, organization: Organization, companies: list[ClientCompany], owner: User) -> None:
         connector, _ = Connector.objects.get_or_create(

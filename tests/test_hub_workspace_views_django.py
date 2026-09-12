@@ -32,7 +32,11 @@ class HubWorkspaceViewTests(TestCase):
         session["hub_organization_id"] = str(self.organization.id)
         session.save()
 
-    def test_workspace_pages_render_inside_the_effective_company_context(self) -> None:
+    def test_the_workspace_opens_on_the_whole_portfolio_not_one_arbitrary_company(
+        self,
+    ) -> None:
+        """An office works across its clients; nothing is pinned until somebody picks."""
+
         endpoints = [
             "hub:dashboard",
             "hub:nfse-center",
@@ -45,14 +49,28 @@ class HubWorkspaceViewTests(TestCase):
         for endpoint in endpoints:
             response = self.client.get(reverse(endpoint))
             self.assertEqual(response.status_code, 200, endpoint)
+            self.assertIsNone(response.context["active_company"], endpoint)
 
+        self.assertNotIn("hub_company_id", self.client.session)
+
+    def test_choosing_a_company_pins_it_and_clearing_returns_to_the_portfolio(self) -> None:
+        chosen = self.client.post(
+            reverse("hub:switch-company"), {"company_id": str(self.company.id)}
+        )
+
+        self.assertRedirects(chosen, reverse("hub:dashboard"))
         self.assertEqual(self.client.session["hub_company_id"], str(self.company.id))
+
+        cleared = self.client.post(reverse("hub:switch-company"), {"company_id": ""})
+
+        self.assertRedirects(cleared, reverse("hub:dashboard"))
+        self.assertNotIn("hub_company_id", self.client.session)
 
     def test_companies_page_identifies_the_active_office(self) -> None:
         response = self.client.get(reverse("hub:companies"))
 
-        self.assertContains(response, "Escritório atual:")
         self.assertContains(response, self.organization.name)
+        self.assertContains(response, self.company.name)
 
     def test_enabled_product_modules_have_company_scoped_screens(self) -> None:
         for code in (
@@ -172,11 +190,35 @@ class HubWorkspaceViewTests(TestCase):
             source_nsu="other",
         )
 
+        self.client.post(reverse("hub:switch-company"), {"company_id": str(self.company.id)})
+
         response = self.client.get(reverse("hub:nfse-center"))
 
         self.assertContains(response, "Central NFS-e")
         self.assertContains(response, "owned")
         self.assertNotContains(response, "other")
+
+    def test_nfse_center_shows_the_whole_portfolio_when_no_company_is_chosen(self) -> None:
+        other_company = ClientCompany.objects.create(
+            organization=self.organization, name="Outra empresa", dominio_code="002"
+        )
+        create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='owned' />",
+            normalized_data={},
+            source_nsu="owned",
+        )
+        create_document_and_artifact(
+            company=other_company,
+            original_xml="<nfse id='other' />",
+            normalized_data={},
+            source_nsu="other",
+        )
+
+        response = self.client.get(reverse("hub:nfse-center"))
+
+        self.assertContains(response, "owned")
+        self.assertContains(response, "other")
 
     def test_logout_uses_post_and_ends_the_workspace_session(self) -> None:
         response = self.client.post(reverse("hub:logout"))

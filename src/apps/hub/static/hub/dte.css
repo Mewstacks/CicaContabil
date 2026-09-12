@@ -3,7 +3,60 @@
 .dte-connection{display:inline-flex;align-items:center;gap:7px;flex:0 0 auto;padding:8px 10px;border-radius:99px;background:var(--amber-soft);color:#8f4c18;font-size:11px;font-weight:800;white-space:nowrap}.dte-connection.is-ready{background:var(--green-soft);color:#226750}
 .dte-metrics{margin-top:0}.dte-metrics article{min-height:104px}.dte-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.72fr);gap:18px}.dte-form{padding:18px 22px 0}
 .dte-company-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.dte-company-option{display:flex;align-items:flex-start;gap:10px;min-height:66px;padding:13px;border:1px solid #dfe4dd;border-radius:6px;background:#fcfdf9;cursor:pointer}.dte-company-option:hover{border-color:#8eb5ad;background:#f4f9f6}.dte-company-option:has(input:focus-visible){outline:3px solid #d8edeb;outline-offset:2px}.dte-company-option input{width:16px;height:16px;margin:2px 0 0;accent-color:#166877}.dte-company-option strong,.dte-company-option small{display:block}.dte-company-option strong{color:var(--ink);font-size:12px}.dte-company-option small{margin-top:4px;color:var(--muted);font-size:11px}
-.dte-form-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:17px;padding:16px 0;border-top:1px solid var(--line)}.dte-form-footer p{max-width:330px;margin:0;color:var(--muted);font-size:12px}.dte-next-step{align-self:start}.dte-next-step ol{display:grid;gap:0;margin:0;padding:5px 20px 12px;list-style:none}.dte-next-step li{display:flex;gap:11px;padding:12px 0;border-bottom:1px solid var(--line)}.dte-next-step li:last-child{border-bottom:0}.dte-next-step li>span{display:grid;place-items:center;flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:#e4efee;color:#2e6263;font-size:11px;font-weight:800}.dte-next-step strong{font-size:12px}.dte-next-step p{margin:3px 0 0;color:var(--muted);font-size:11px;line-height:1.4}.dte-setup-note{margin:0;padding:0 20px 19px;color:var(--amber);font-size:11px;font-weight:700}.dte-history{margin-top:18px}
+.dte-form-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:17px;padding:16px 0;border-top:1px solid var(--line)}.dte-form-footer p{max-width:330px;margin:0;color:var(--muted);font-size:12px}.dte-setup-note{margin:0;padding:0 20px 19px;color:var(--amber);font-size:11px;font-weight:700}.dte-history{margin-top:18px}
 .dte-status{display:inline-flex;align-items:center;padding:4px 7px;border-radius:99px;background:#edeeea;color:#667571;font-size:10px;font-weight:800;white-space:nowrap}.dte-status-running,.dte-status-pending{background:#fff1e4;color:#8f4c18}.dte-status-completed{background:#e5f2eb;color:#226750}.dte-status-failed{background:#fae9e6;color:#9d3f33}
 .dte-history td:nth-child(2){overflow-wrap:anywhere}
-@media(max-width:900px){.dte-grid{grid-template-columns:1fr}.dte-next-step{display:block}}@media(max-width:680px){.dte-intro{align-items:stretch;flex-direction:column;gap:14px}.dte-intro h2{font-size:21px}.dte-connection{align-self:flex-start}.dte-company-list{grid-template-columns:1fr}.dte-form{padding:16px 16px 0}.dte-form-footer{align-items:stretch;flex-direction:column}.dte-form-footer .button{width:100%}}
+@media(max-width:900px){.dte-grid{grid-template-columns:1fr}}@media(max-width:680px){.dte-intro{align-items:stretch;flex-direction:column;gap:14px}.dte-intro h2{font-size:21px}.dte-connection{align-self:flex-start}.dte-company-list{grid-template-columns:1fr}.dte-form{padding:16px 16px 0}.dte-form-footer{align-items:stretch;flex-direction:column}.dte-form-footer .button{width:100%}}
+
+/* Authorization panel: the step between preparing a scope and spending on it. */
+.dte-approval {
+  align-self: start;
+}
+.dte-approval-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 4px 20px 12px;
+  list-style: none;
+}
+.dte-approval-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dte-approval-item:last-child {
+  border-bottom: 0;
+}
+.dte-approval-scope {
+  display: grid;
+  gap: 3px;
+}
+.dte-approval-scope strong {
+  font-size: 13px;
+}
+.dte-approval-scope small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.dte-approval-companies {
+  display: grid;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.dte-approval-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 680px) {
+  .dte-approval-actions {
+    flex-direction: column;
+  }
+  .dte-approval-actions .button {
+    width: 100%;
+  }
+}

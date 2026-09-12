@@ -6,33 +6,71 @@
 <section class="workspace-panel registry-panel">
   <header class="workspace-panel-head">
     <div>
-      <h2>Empresas vinculadas</h2>
-      <p>Escritório atual: <strong>{{ office.name }}</strong>. Esta lista mostra somente a carteira deste escritório.</p>
+      <h2>Empresas</h2>
+      <p>{{ office.name }}</p>
     </div>
-    <span class="record-count">{{ companies|length }} cadastro{{ companies|length|pluralize:"s" }}</span>
+    <span class="record-count">{{ total_companies }} de {{ office_company_total }}</span>
   </header>
+
+  <form method="get" class="toolbar" role="search">
+    <div class="toolbar-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <label class="sr-only" for="filtro-busca">Buscar empresa</label>
+      <input id="filtro-busca" type="search" name="q" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="sr-only" for="filtro-situacao">Situação</label>
+    <select id="filtro-situacao" name="situacao">
+      <option value="">Situação: todas</option>
+      <option value="ativa"{% if filters.situacao == 'ativa' %} selected{% endif %}>Em operação</option>
+      <option value="pausada"{% if filters.situacao == 'pausada' %} selected{% endif %}>Pausada</option>
+    </select>
+    <label class="sr-only" for="filtro-vinculo">Código Domínio</label>
+    <select id="filtro-vinculo" name="vinculo">
+      <option value="">Domínio: todos</option>
+      <option value="com"{% if filters.vinculo == 'com' %} selected{% endif %}>Com código</option>
+      <option value="sem"{% if filters.vinculo == 'sem' %} selected{% endif %}>Sem código</option>
+    </select>
+    <div class="toolbar-actions">
+      <button class="button button-small" type="submit">Filtrar</button>
+      {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'hub:companies' %}">Limpar</a>{% endif %}
+    </div>
+  </form>
+
+  {% if missing_dominio_code and not filters.vinculo %}
+    <p class="toolbar-note">{{ missing_dominio_code }} sem código do Domínio<a href="?vinculo=sem">Ver</a></p>
+  {% endif %}
+
   {% if companies %}
     <div class="data-table-wrap">
       <table class="operational-table company-table">
-        <thead><tr><th>Empresa</th><th>Vínculo Domínio</th><th>Última sincronização</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Código Domínio</th><th>Última sincronização</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead>
         <tbody>{% for company in companies %}<tr>
           <td><strong>{{ company.name }}</strong><small>CNPJ {{ company.cnpj_masked|default:"não informado" }}</small></td>
-          <td>{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Aguardando vínculo</span>{% endif %}</td>
-          <td>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y · H:i" }}{% else %}<span class="table-muted">Ainda não sincronizada</span>{% endif %}</td>
+          <td>{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
+          <td>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y · H:i" }}{% else %}<span class="table-muted">Nunca</span>{% endif %}</td>
           <td><span class="module-state {% if company.active %}is-active{% else %}is-muted{% endif %}">{% if company.active %}Em operação{% else %}Pausada{% endif %}</span></td>
-          <td class="table-action-cell"><form action="{% url 'hub:switch-company' %}" method="post">{% csrf_token %}<input type="hidden" name="next" value="{% url 'hub:dashboard' %}"><button class="row-action-button" type="submit" name="company_id" value="{{ company.id }}">Abrir empresa</button></form></td>
+          <td class="table-action-cell"><form action="{% url 'hub:switch-company' %}" method="post">{% csrf_token %}<input type="hidden" name="next" value="{% url 'hub:dashboard' %}"><button class="row-action-button" type="submit" name="company_id" value="{{ company.id }}">Abrir</button></form></td>
         </tr>{% endfor %}</tbody>
       </table>
     </div>
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Paginação">
+        {% if page_obj.has_previous %}<a class="button button-quiet button-small" href="?pagina={{ page_obj.previous_page_number }}{% if query_without_page %}&{{ query_without_page }}{% endif %}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+        <span class="pagination-status">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="button button-quiet button-small" href="?pagina={{ page_obj.next_page_number }}{% if query_without_page %}&{{ query_without_page }}{% endif %}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif filters_applied %}
+    <div class="empty-block operational-empty"><strong>Nenhuma empresa encontrada</strong><a class="button button-small" href="{% url 'hub:companies' %}">Ver todas</a></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sua base ainda está vazia</strong><p>Adicione a primeira empresa para começar a organizar a operação.</p><button class="button button-small" type="button" data-modal-open="company-dialog">Adicionar empresa</button></div>
+    <div class="empty-block operational-empty"><strong>Sua base ainda está vazia</strong>{% if support_can_mutate %}<button class="button button-small" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}</div>
   {% endif %}
 </section>
 
 {% if support_can_mutate %}<div id="company-dialog" class="modal-backdrop" data-modal hidden>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-title">
     <header class="modal-head"><div><p class="section-kicker">Novo cadastro</p><h2 id="company-title">Adicionar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
-    <form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>
+    <form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}-erro">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>
   </section>
 </div>{% endif %}
 {% endblock %}

@@ -3,7 +3,7 @@ from typing import Any, cast
 from django import forms
 from django.db.models import QuerySet
 
-from apps.hub.models import ClientCompany, Connector, OperationalTask
+from apps.hub.models import ClientCompany, Connector
 from apps.organizations.models import Organization
 
 
@@ -20,13 +20,43 @@ class CompanyForm(forms.ModelForm):  # type: ignore[type-arg]
                     "placeholder": "00.000.000/0000-00…",
                 }
             ),
-            "dominio_code": forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false"}),
+            "dominio_code": forms.TextInput(
+                attrs={"autocomplete": "off", "spellcheck": "false", "placeholder": "Ex.: 0101"}
+            ),
         }
         labels = {
             "name": "Razão social ou nome fantasia",
             "cnpj_masked": "CNPJ",
             "dominio_code": "Código no Domínio",
         }
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization | None = None,
+        require_dominio_code: bool = False,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.organization = organization
+        if require_dominio_code:
+            self.fields["dominio_code"].required = True
+            self.fields["dominio_code"].error_messages["required"] = (
+                "Este escritório exige o código do Domínio."
+            )
+
+    def clean_dominio_code(self) -> str:
+        code = str(self.cleaned_data.get("dominio_code") or "").strip()
+        if not code or self.organization is None:
+            return code
+        # The model's unique constraint is scoped to the office and skips blanks, so the
+        # database would raise IntegrityError instead of showing a field error.
+        duplicate = ClientCompany.objects.filter(
+            organization=self.organization, dominio_code=code
+        ).exclude(pk=self.instance.pk)
+        if duplicate.exists():
+            raise forms.ValidationError("Outra empresa já usa este código.")
+        return code
 
 
 class CertificateUploadForm(forms.Form):
@@ -149,42 +179,6 @@ class DtePreparationForm(forms.Form):
         company_field = cast(
             "forms.ModelMultipleChoiceField[ClientCompany]", self.fields["companies"]
         )
-        company_field.queryset = (
-            companies if companies is not None else ClientCompany.objects.none()
-        )
-
-
-class OperationalTaskForm(forms.ModelForm):  # type: ignore[type-arg]
-    class Meta:
-        model = OperationalTask
-        fields = ("company", "title", "details", "due_on", "priority")
-        widgets = {
-            "company": forms.Select(attrs={"autocomplete": "off"}),
-            "title": forms.TextInput(
-                attrs={"autocomplete": "off", "placeholder": "Ex.: Confirmar guia do Simples"}
-            ),
-            "details": forms.Textarea(
-                attrs={"rows": 3, "autocomplete": "off", "placeholder": "Contexto opcional"}
-            ),
-            "due_on": forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
-            "priority": forms.Select(attrs={"autocomplete": "off"}),
-        }
-        labels = {
-            "company": "Empresa",
-            "title": "Pendência",
-            "details": "Detalhes",
-            "due_on": "Prazo",
-            "priority": "Prioridade",
-        }
-
-    def __init__(
-        self,
-        *args: Any,
-        companies: QuerySet[ClientCompany] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        company_field = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company_field.queryset = (
             companies if companies is not None else ClientCompany.objects.none()
         )

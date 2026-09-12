@@ -28,6 +28,11 @@ class OfficeProfile(OrganizationScopedModel):
     grace_ends_at = models.DateField(null=True, blank=True)
     reference_invoice_note = models.CharField(max_length=240, blank=True)
     require_mfa = models.BooleanField(default=False)
+    # The Domínio code is the identity every downstream integration joins on: the mirror
+    # looks companies up by it, the NFS-e sync keys on it, and DTE evidence is filed under
+    # it. An office that works against Domínio turns this on so a company cannot be
+    # registered without the key that makes it addressable.
+    require_dominio_code = models.BooleanField(default=False)
 
 
 class ProductModule(OrganizationScopedModel):

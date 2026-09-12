@@ -21,3 +21,52 @@
   .account-button{gap:5px;padding:6px}
   .account-button .account-name,.account-button svg{display:none}
 }
+
+/* Searchable company picker. */
+.company-picker {
+  min-width: 280px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.company-picker-search {
+  width: calc(100% - 16px);
+  min-height: 38px;
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.company-picker button small {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.company-picker-status {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.company-picker-all {
+  display: block;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* "All companies" sits above the list and reads as the neutral state, not a company. */
+.company-picker-all-option {
+  border-bottom: 1px solid var(--line);
+  font-weight: 700;
+}
+.company-avatar svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}

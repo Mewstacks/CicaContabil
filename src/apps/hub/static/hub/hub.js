@@ -119,3 +119,77 @@ if (window.location.hash) openIntegrationDetails(document.querySelector(window.l
 
 const invalidField = document.querySelector('[data-focus-error] input, [data-focus-error] select');
 if (invalidField) invalidField.focus();
+
+// Company picker: an office may hold hundreds of companies, so the popover asks the
+// server for what was typed instead of rendering the whole portfolio on every page.
+(function () {
+  var picker = document.querySelector('[data-company-picker]');
+  if (!picker) return;
+  var input = picker.querySelector('[data-company-search]');
+  var results = picker.querySelector('[data-company-results]');
+  var status = picker.querySelector('[data-company-status]');
+  if (!input || !results) return;
+  var url = picker.getAttribute('data-search-url');
+  var initial = results.innerHTML;
+  var timer = null;
+  var lastQuery = '';
+
+  function announce(text) {
+    if (!status) return;
+    status.textContent = text;
+    status.hidden = !text;
+  }
+
+  function render(rows) {
+    var hidden = results.querySelectorAll('input[type="hidden"]');
+    var html = '';
+    for (var i = 0; i < hidden.length; i++) html += hidden[i].outerHTML;
+    for (var j = 0; j < rows.length; j++) {
+      var row = rows[j];
+      html +=
+        '<button type="submit" name="company_id" value="' + row.id + '">' +
+        row.name.replace(/[<>&]/g, '') +
+        (row.dominio_code ? ' <small>' + row.dominio_code.replace(/[<>&]/g, '') + '</small>' : '') +
+        '</button>';
+    }
+    results.innerHTML = html;
+    announce(rows.length ? '' : 'Nenhuma empresa encontrada.');
+  }
+
+  function search() {
+    var query = input.value.trim();
+    if (query === lastQuery) return;
+    lastQuery = query;
+    if (!query) {
+      results.innerHTML = initial;
+      announce('');
+      return;
+    }
+    fetch(url + '?q=' + encodeURIComponent(query), {
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin'
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error('search failed');
+        return response.json();
+      })
+      .then(function (payload) {
+        render(payload.results || []);
+      })
+      .catch(function () {
+        announce('Busca indisponível. Abra a lista completa de empresas.');
+      });
+  }
+
+  input.addEventListener('input', function () {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(search, 200);
+  });
+  input.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      window.clearTimeout(timer);
+      search();
+    }
+  });
+})();

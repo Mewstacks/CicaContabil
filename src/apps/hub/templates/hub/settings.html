@@ -44,6 +44,25 @@
     </div>
   {% endif %}
 
+  <div class="dominio-policy">
+    <div class="dominio-policy-state">
+      <strong>Código do Domínio</strong>
+      <small>{% if require_dominio_code %}Obrigatório em novas empresas{% else %}Opcional{% endif %}{% if companies_missing_dominio_code %} · <a href="{% url 'hub:companies' %}?vinculo=sem">{{ companies_missing_dominio_code }} sem código</a>{% endif %}</small>
+    </div>
+    {% if can_manage_dominio_agent and support_can_mutate %}
+      <form method="post" class="dominio-policy-action">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="dominio-policy">
+        {% if require_dominio_code %}
+          <button class="button button-quiet button-small" type="submit">Tornar opcional</button>
+        {% else %}
+          <input type="hidden" name="require_dominio_code" value="on">
+          <button class="button button-small" type="submit">Exigir sempre</button>
+        {% endif %}
+      </form>
+    {% endif %}
+  </div>
+
   <details class="integration-details">
     <summary>Como essa conexão protege os dados</summary>
     <ul><li>O agente usa apenas o DSN de leitura no servidor do escritório.</li><li>O Hub recebe um snapshot seguro das empresas ativas.</li><li>O Domínio nunca recebe escrita a partir do Hub.</li></ul>

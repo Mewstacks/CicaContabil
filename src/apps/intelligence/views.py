@@ -5,14 +5,14 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse, HttpResponseForbidden
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
 from apps.hub.models import ClientCompany
-from apps.hub.views import office_required, workspace_context
+from apps.hub.views import office_required, refuse, workspace_context
 from apps.intelligence.forms import AssistantQuestionForm, FeedbackForm
 from apps.intelligence.models import (
     ClassificationDraft,
@@ -157,7 +157,7 @@ def submit_feedback(request: HttpRequest, message_id: str) -> HttpResponse:
         message.conversation.company_id
         and str(message.conversation.company_id) not in allowed_company_ids
     ):
-        return HttpResponseForbidden("Esta resposta não está disponível para a empresa atual.")
+        return refuse(request, "Esta resposta não está disponível para a empresa atual.")
     form = FeedbackForm(request.POST)
     if not form.is_valid():
         messages.error(request, "Não foi possível registrar o feedback.")
@@ -180,9 +180,7 @@ def learning_center(request: HttpRequest) -> HttpResponse:
     office = context["office"]
     assert isinstance(office, Organization)
     if not _can_curate(context):
-        return HttpResponseForbidden(
-            "A central de aprendizado é restrita a owners e administradores."
-        )
+        return refuse(request, "A central de aprendizado é restrita a owners e administradores.")
     context.update(
         {
             "page_title": "Central de aprendizado",
@@ -202,7 +200,7 @@ def review_candidate(request: HttpRequest, candidate_id: str, decision: str) -> 
     office = context["office"]
     assert isinstance(office, Organization)
     if not _can_curate(context):
-        return HttpResponseForbidden("Seu perfil não pode publicar aprendizado.")
+        return refuse(request, "Seu perfil não pode publicar aprendizado.")
     candidate = get_object_or_404(LearningCandidate, id=candidate_id, organization=office)
     if decision == "approve":
         candidate.status = LearningCandidate.Status.APPROVED

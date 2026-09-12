@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=20260910"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}?v=20260910">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
 
 {% block body %}
 <div class="product-shell platform-shell">
@@ -36,5 +36,5 @@
     </main>
   </section>
 </div>
-<script src="{% static 'hub/hub.js' %}?v=20260910" defer></script>
+<script src="{% static 'hub/hub.js' %}" defer></script>
 {% endblock %}

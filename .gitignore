@@ -116,3 +116,7 @@ compose.override.yaml
 # - migrations/
 # - fly.toml
 # - .env.example
+
+# Local database snapshots kept while switching between seeded and real data
+*.sqlite3.bak
+*.sqlite3.seeded

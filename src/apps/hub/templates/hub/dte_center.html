@@ -1,18 +1,16 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
 
-{% block extra_head %}
-  <link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=20260910.3">
-  <link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}?v=20260910">
-  <link rel="stylesheet" href="{% static 'hub/dte.css' %}?v=20260910">
-  <script src="{% static 'hub/dte.js' %}?v=20260910" defer></script>
+{% block extra_head %}{{ block.super }}
+  <link rel="stylesheet" href="{% static 'hub/dte.css' %}">
+  <script src="{% static 'hub/dte.js' %}" defer></script>
 {% endblock %}
 
 {% block page_action %}{% if not connector_ready %}<a class="button button-quiet" href="{% url 'hub:settings' %}#conexoes">Configurar Integra Contador</a>{% endif %}{% endblock %}
 
 {% block workspace_content %}
 <section class="dte-intro" aria-labelledby="dte-heading">
-  <div><p class="section-kicker">Integra Contador · Caixa Postal</p><h2 id="dte-heading">Consulte as mensagens das empresas sem planilhas.</h2><p>Escolha as empresas no Hub. A consulta só é enviada depois da aprovação de consumo.</p></div>
+  <div><p class="section-kicker">Integra Contador · Caixa Postal</p><h2 id="dte-heading">Consulte as mensagens das empresas sem planilhas.</h2></div>
   <div class="dte-connection {% if connector_ready %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready %}Integra Contador configurado{% else %}Conexão pendente{% endif %}</div>
 </section>
 
@@ -25,25 +23,47 @@
 
 <div class="dte-grid">
   <section class="workspace-panel dte-preparation">
-    <header class="workspace-panel-head"><div><p class="section-kicker">Nova consulta</p><h2>1. Selecione as empresas</h2><p>O escopo fica registrado nesta solicitação. Nenhuma empresa fora da sua permissão aparece aqui.</p></div><span class="record-count">{{ dte_companies_count }} disponíveis</span></header>
+    <header class="workspace-panel-head"><div><p class="section-kicker">Nova consulta</p><h2>Selecionar empresas</h2></div><span class="record-count">{{ dte_companies_count }} disponíveis</span></header>
     <form method="post" class="dte-form">
       {% csrf_token %}
       {% if dte_form.non_field_errors %}<div class="form-errors" id="dte-form-error-summary" role="alert" tabindex="-1" data-focus-error>{{ dte_form.non_field_errors }}</div>{% endif %}
       <fieldset><legend class="sr-only">{{ dte_form.companies.label }}</legend>{% if dte_form.companies.errors %}<p class="field-error" id="dte-field-errors" role="alert" tabindex="-1" data-focus-error>{{ dte_form.companies.errors|join:', ' }}</p>{% endif %}
         <div class="dte-company-list">{% for choice in dte_form.companies %}<label class="dte-company-option" for="{{ choice.id_for_label }}">{{ choice.tag }}<span><strong>{{ choice.choice_label }}</strong><small>Consulta da Caixa Postal</small></span></label>{% empty %}<div class="compact-empty">Não há empresas ativas no seu escopo.</div>{% endfor %}</div>
       </fieldset>
-      <footer class="dte-form-footer"><p>2. Na próxima etapa, revise o consumo antes de enviar.</p><button class="button" type="submit"{% if not dte_companies_count %} disabled{% endif %}>Preparar consulta</button></footer>
+      <footer class="dte-form-footer"><button class="button" type="submit"{% if not dte_companies_count %} disabled{% endif %}>Preparar consulta</button></footer>
     </form>
   </section>
-  <aside class="workspace-panel dte-next-step">
-    <header class="workspace-panel-head"><div><p class="section-kicker">Como funciona</p><h2>Claro antes de consultar</h2></div></header>
-    <ol><li><span>1</span><div><strong>Selecione</strong><p>Marque as empresas da sua carteira.</p></div></li><li><span>2</span><div><strong>Autorize</strong><p>Confirme o consumo informado pelo Integra Contador.</p></div></li><li><span>3</span><div><strong>Acompanhe</strong><p>Veja o resultado e as mensagens na mesma tela.</p></div></li></ol>
-    {% if not connector_ready %}<p class="dte-setup-note">Configure a conexão do escritório antes do primeiro envio.</p>{% endif %}
+  <aside class="workspace-panel dte-approval">
+    <header class="workspace-panel-head"><div><p class="section-kicker">Autorização</p><h2>Consumo a autorizar</h2></div><span class="record-count">{{ pending_runs|length }} na fila</span></header>
+    {% if pending_runs %}
+      <ul class="dte-approval-list">
+        {% for run in pending_runs %}
+          <li class="dte-approval-item">
+            <div class="dte-approval-scope">
+              <span class="source-code">DTE-{{ run.id|stringformat:'s'|slice:':8' }}</span>
+              <strong>{{ run.total_companies }} empresa{{ run.total_companies|pluralize:",s" }}</strong>
+              <small>{{ run.requested_at|date:'d/m/Y H:i' }}{% if run.requested_by %} · {{ run.requested_by.full_name|default:run.requested_by.email }}{% endif %}</small>
+            </div>
+            <ul class="dte-approval-companies">{% for item in run.items.all %}<li>{{ item.company.name }}</li>{% endfor %}</ul>
+            {% if can_prepare_dte %}
+              <form method="post" action="{% url 'hub:decide-dte-run' run.id %}" class="dte-approval-actions">
+                {% csrf_token %}
+                <button class="button button-small" type="submit" name="decision" value="approve">Autorizar</button>
+                <button class="button button-quiet button-small" type="submit" name="decision" value="cancel">Retirar</button>
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="compact-empty">Nada aguardando autorização.</div>
+    {% endif %}
+    {% if not connector_ready %}<p class="dte-setup-note">Conexão do escritório pendente.</p>{% endif %}
   </aside>
 </div>
 
 <section class="workspace-panel dte-history">
-  <header class="workspace-panel-head"><div><p class="section-kicker">Acompanhamento</p><h2>Consultas preparadas e em andamento</h2><p>O status de cada empresa evita que uma falha esconda o restante do lote.</p></div><span class="record-count">{{ dte_items|length }} itens</span></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">Acompanhamento</p><h2>Consultas preparadas e em andamento</h2></div><span class="record-count">{{ dte_items|length }} itens</span></header>
   {% if dte_items %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Solicitação</th><th>Status</th><th>Mensagens</th></tr></thead><tbody>{% for item in dte_items %}<tr><td><strong>{{ item.company.name }}</strong><small>{{ item.company.cnpj_masked|default:'CNPJ não informado' }}</small></td><td><span class="source-code">DTE-{{ item.run.id|stringformat:'s'|slice:':8' }}</span><small>{{ item.run.requested_at|date:'d/m/Y H:i' }}</small></td><td><span class="dte-status dte-status-{{ item.status }}">{{ item.get_status_display }}</span>{% if item.error_message %}<small>{{ item.error_message }}</small>{% endif %}</td><td>{{ item.messages_found }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma consulta preparada</strong><p>Selecione uma ou mais empresas acima para criar a primeira consulta DTE.</p></div>{% endif %}
 </section>
 
