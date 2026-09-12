@@ -49,7 +49,7 @@
           <td>{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
           <td>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y · H:i" }}{% else %}<span class="table-muted">Nunca</span>{% endif %}</td>
           <td><span class="module-state {% if company.active %}is-active{% else %}is-muted{% endif %}">{% if company.active %}Em operação{% else %}Pausada{% endif %}</span></td>
-          <td class="table-action-cell"><form action="{% url 'hub:switch-company' %}" method="post">{% csrf_token %}<input type="hidden" name="next" value="{% url 'hub:dashboard' %}"><button class="row-action-button" type="submit" name="company_id" value="{{ company.id }}">Abrir</button></form></td>
+          <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:company-detail' company.id %}">Abrir</a></td>
         </tr>{% endfor %}</tbody>
       </table>
     </div>

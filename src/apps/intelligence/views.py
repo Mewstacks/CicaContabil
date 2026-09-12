@@ -74,10 +74,9 @@ def assistant(request: HttpRequest) -> HttpResponse:
     )
     form = AssistantQuestionForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
-        active_company = context.get("active_company")
-        selected_id = form.cleaned_data["company_id"] or (
-            active_company.id if isinstance(active_company, ClientCompany) else ""
-        )
+        # The assistant asks for its own company: there is no global selection to fall
+        # back on, and guessing one would answer about a client nobody named.
+        selected_id = form.cleaned_data["company_id"]
         membership = context.get("membership")
         company = accessible_company(
             organization=office,

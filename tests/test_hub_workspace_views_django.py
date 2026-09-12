@@ -49,22 +49,7 @@ class HubWorkspaceViewTests(TestCase):
         for endpoint in endpoints:
             response = self.client.get(reverse(endpoint))
             self.assertEqual(response.status_code, 200, endpoint)
-            self.assertIsNone(response.context["active_company"], endpoint)
-
-        self.assertNotIn("hub_company_id", self.client.session)
-
-    def test_choosing_a_company_pins_it_and_clearing_returns_to_the_portfolio(self) -> None:
-        chosen = self.client.post(
-            reverse("hub:switch-company"), {"company_id": str(self.company.id)}
-        )
-
-        self.assertRedirects(chosen, reverse("hub:dashboard"))
-        self.assertEqual(self.client.session["hub_company_id"], str(self.company.id))
-
-        cleared = self.client.post(reverse("hub:switch-company"), {"company_id": ""})
-
-        self.assertRedirects(cleared, reverse("hub:dashboard"))
-        self.assertNotIn("hub_company_id", self.client.session)
+            self.assertNotIn("active_company", response.context, endpoint)
 
     def test_companies_page_identifies_the_active_office(self) -> None:
         response = self.client.get(reverse("hub:companies"))
@@ -72,7 +57,7 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(response, self.organization.name)
         self.assertContains(response, self.company.name)
 
-    def test_enabled_product_modules_have_company_scoped_screens(self) -> None:
+    def test_enabled_product_modules_render_for_the_office(self) -> None:
         for code in (
             ProductModule.Code.GUIDES,
             ProductModule.Code.INTEGRA,
@@ -89,7 +74,7 @@ class HubWorkspaceViewTests(TestCase):
             response = self.client.get(reverse(endpoint))
             self.assertEqual(response.status_code, 200, endpoint)
             self.assertContains(response, heading)
-            self.assertContains(response, self.company.name)
+            self.assertContains(response, self.organization.name)
 
         integra = self.client.get(reverse("hub:integra"))
         self.assertRedirects(integra, reverse("hub:dte-center"))
@@ -173,7 +158,7 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Integra")
 
-    def test_nfse_center_is_scoped_to_the_active_company(self) -> None:
+    def test_nfse_center_shows_the_whole_portfolio(self) -> None:
         other_company = ClientCompany.objects.create(
             organization=self.organization, name="Outra empresa", dominio_code="002"
         )
@@ -190,13 +175,16 @@ class HubWorkspaceViewTests(TestCase):
             source_nsu="other",
         )
 
-        self.client.post(reverse("hub:switch-company"), {"company_id": str(self.company.id)})
-
         response = self.client.get(reverse("hub:nfse-center"))
 
         self.assertContains(response, "Central NFS-e")
         self.assertContains(response, "owned")
-        self.assertNotContains(response, "other")
+        self.assertContains(response, "other")
+
+        scoped = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
+
+        self.assertContains(scoped, "owned")
+        self.assertNotContains(scoped, "other")
 
     def test_nfse_center_shows_the_whole_portfolio_when_no_company_is_chosen(self) -> None:
         other_company = ClientCompany.objects.create(
@@ -244,17 +232,14 @@ class HubWorkspaceViewTests(TestCase):
             organization=other_organization, user=self.user, role=Membership.Role.MANAGER
         )
 
-        company_response = self.client.post(
-            reverse("hub:switch-company"), {"company_id": str(second_company.id)}
-        )
         office_response = self.client.post(
             reverse("hub:switch-office"), {"organization_id": str(other_organization.id)}
         )
 
-        self.assertRedirects(company_response, reverse("hub:dashboard"))
         self.assertRedirects(office_response, reverse("hub:dashboard"))
         self.assertEqual(self.client.session["hub_organization_id"], str(other_organization.id))
-        self.assertNotIn("hub_company_id", self.client.session)
+        portfolio = self.client.get(reverse("hub:companies")).context["companies"]
+        self.assertNotIn(second_company, portfolio)
 
     def test_company_creation_is_available_only_to_unmanaged_installations(self) -> None:
         response = self.client.post(
@@ -305,10 +290,7 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(review.resolved_accumulator, "AC-200")
         self.assertEqual(review.resolved_by, self.user)
 
-    def test_unknown_company_switch_and_anonymous_workspace_are_blocked(self) -> None:
-        unknown = self.client.post(reverse("hub:switch-company"), {"company_id": "not-an-id"})
-        self.assertEqual(unknown.status_code, 403)
-
+    def test_the_anonymous_workspace_is_blocked(self) -> None:
         self.client.logout()
         anonymous = self.client.get(reverse("hub:dashboard"))
         self.assertEqual(anonymous.status_code, 302)

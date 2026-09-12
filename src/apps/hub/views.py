@@ -12,11 +12,10 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -227,10 +226,6 @@ def active_membership(request: HttpRequest) -> Membership | None:
     return membership
 
 
-# How many companies the header popover lists before it defers to search.
-SWITCHER_COMPANY_LIMIT = 8
-# How many matches the switcher search returns at once.
-SWITCHER_SEARCH_LIMIT = 20
 # Rows per page on the company registry.
 COMPANIES_PER_PAGE = 25
 
@@ -261,21 +256,9 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
     # An office can carry hundreds of companies. Resolving the active one by query keeps
     # every workspace page from loading the whole portfolio into memory just to render a
     # header, and keeps the switcher bounded.
-    # No company is selected until somebody selects one. An accounting office works
-    # across its whole portfolio; silently pinning the workspace to whichever company
-    # sorts first scopes every screen to an arbitrary client and hides the rest.
-    selected_company_id = request.session.get("hub_company_id")
-    active_company = None
-    if selected_company_id:
-        try:
-            active_company = companies.filter(id=selected_company_id).first()
-        except (ValidationError, ValueError):
-            active_company = None
-        if active_company is None:
-            request.session.pop("hub_company_id", None)
-    company_scope = (
-        companies.filter(pk=active_company.pk) if active_company is not None else companies
-    )
+    # There is no global "current company". A header switch that silently reinterprets
+    # every screen is hidden modal state: the office works across its portfolio, and a
+    # single company is a place you open (hub:company-detail), not a mode you enter.
     support_can_mutate = support_session is None or support_session.can_mutate
     module_rows = (
         ProductModule.objects.filter(organization=office, enabled=True).order_by("code")
@@ -302,13 +285,6 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         ),
         "companies": companies,
         "companies_count": companies.count(),
-        # The switcher is a popover, not a directory: it shows a working set and sends
-        # anyone looking for the rest to the search box beside it.
-        "switcher_companies": companies[:SWITCHER_COMPANY_LIMIT],
-        "active_company": active_company,
-        # Which companies the screens read from: the selected one, or the whole
-        # allowed portfolio when nothing is selected.
-        "company_scope": company_scope,
         "can_access_platform": has_platform_role(
             user,
             PlatformAccess.Role.DEVELOPER,
@@ -316,7 +292,7 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
             PlatformAccess.Role.COMMERCIAL,
         ),
         "open_reviews_count": ReviewCase.objects.filter(
-            organization=office, status=ReviewCase.Status.OPEN, document__company__in=company_scope
+            organization=office, status=ReviewCase.Status.OPEN, document__company__in=companies
         ).count()
         if office
         else 0,
@@ -393,64 +369,49 @@ def switch_office(request: HttpRequest) -> HttpResponse:
         organization__is_active=True,
     )
     request.session["hub_organization_id"] = str(membership.organization_id)
-    request.session.pop("hub_company_id", None)
     return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
 
 
 @office_required
-def search_companies(request: HttpRequest) -> HttpResponse:
-    """Feed the header switcher so it stays a popover instead of a second screen.
+def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
+    """Everything the office holds about one client, on one page.
 
-    An office can hold hundreds of companies. Rendering them all into a dropdown on
-    every page made the popover unusable and every page slower; the switcher now asks
-    for what was typed and never leaves the current screen.
+    This replaces the header's "current company" switch. A single company is a place
+    you open from the registry and leave again, not a global mode that quietly
+    reinterprets every other screen.
     """
 
     context = workspace_context(request)
-    scope = cast("QuerySet[ClientCompany]", context["companies"])
-    query = request.GET.get("q", "").strip()
-    if query:
-        scope = scope.filter(
-            Q(name__icontains=query)
-            | Q(cnpj_masked__icontains=query)
-            | Q(dominio_code__icontains=query)
-        )
-    rows = scope.order_by("name")[:SWITCHER_SEARCH_LIMIT]
-    return JsonResponse(
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    company = get_object_or_404(companies, id=company_id)
+
+    documents = (
+        NfseDocument.objects.filter(organization=office, company=company)
+        .select_related("review_case")
+        .order_by("-captured_at")[:20]
+    )
+    context.update(
         {
-            "results": [
-                {
-                    "id": str(company.id),
-                    "name": company.name,
-                    "dominio_code": company.dominio_code,
-                }
-                for company in rows
-            ]
+            "page_title": company.name,
+            "company": company,
+            "documents": documents,
+            "open_cases": ReviewCase.objects.filter(
+                organization=office, status=ReviewCase.Status.OPEN, document__company=company
+            ).select_related("document")[:20],
+            "certificates": Certificate.objects.filter(
+                organization=office, company=company, revoked_at__isnull=True
+            ).order_by("-valid_until"),
+            "dte_messages": DteMessage.objects.filter(
+                organization=office, company=company
+            ).order_by("-sent_at", "-first_seen_at")[:10],
+            "document_count": NfseDocument.objects.filter(
+                organization=office, company=company
+            ).count(),
+            "today": timezone.now(),
         }
     )
-
-
-@office_required
-@require_http_methods(["POST"])
-def switch_company(request: HttpRequest) -> HttpResponse:
-    context = workspace_context(request)
-    selected = str(request.POST.get("company_id", ""))
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
-    if not selected:
-        # An empty choice is how the switcher goes back to the whole portfolio.
-        request.session.pop("hub_company_id", None)
-        return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
-    # One lookup inside the allowed scope: scanning the whole portfolio in Python to
-    # match a single id costs the same as loading it. A malformed id is not a crash,
-    # it is simply not in scope.
-    try:
-        company = companies.filter(id=selected).first()
-    except (ValidationError, ValueError):
-        company = None
-    if company is None:
-        return refuse(request, "Empresa fora do seu escopo.")
-    request.session["hub_company_id"] = str(company.id)
-    return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
+    return render(request, "hub/company_detail.html", context)
 
 
 @office_required
@@ -459,7 +420,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     office = context["office"]
     assert isinstance(office, Organization)
     companies = cast("QuerySet[ClientCompany]", context["companies"])
-    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
     open_cases = ReviewCase.objects.filter(
         organization=office,
         status=ReviewCase.Status.OPEN,
@@ -496,7 +457,7 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
 
     documents = (
         NfseDocument.objects.filter(organization=office, company__in=scope)
@@ -545,7 +506,6 @@ def _module_page_context(
 ) -> tuple[dict[str, object], HttpResponse | None]:
     context = workspace_context(request)
     office = context["office"]
-    active_company = cast(ClientCompany | None, context["active_company"])
     assert isinstance(office, Organization)
     enabled = ProductModule.objects.filter(
         organization=office, code=module.code, enabled=True
@@ -581,7 +541,6 @@ def _module_page_context(
             "module": module,
             "connector": connector,
             "connector_ready": connected,
-            "active_company": active_company,
         }
     )
     return context, None
@@ -592,7 +551,7 @@ def _operational_module(request: HttpRequest, code: str) -> HttpResponse:
     if blocked:
         return blocked
     office = cast(Organization, context["office"])
-    company = cast(ClientCompany | None, context["active_company"])
+    company = None
     connector = context["connector"]
     if code == ProductModule.Code.GUIDES:
         kpis = [
@@ -683,7 +642,6 @@ def _operational_module(request: HttpRequest, code: str) -> HttpResponse:
                 "Sincronização segura",
                 "Dados prontos para uso",
             ],
-            "company_name": company.name if company else "Nenhuma empresa selecionada",
             "connector": connector,
         }
     )
@@ -987,7 +945,7 @@ def reviews(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
     context.update(
         {
             "page_title": "Revisão de NFS-e",
@@ -1006,7 +964,7 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    scope = cast("QuerySet[ClientCompany]", context["company_scope"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
     membership = context["membership"]
     if not context["support_can_mutate"]:
         return refuse(request, "Esta sessão é somente leitura.")

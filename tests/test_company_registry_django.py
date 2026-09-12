@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import timedelta
 
 from django.test import TestCase
@@ -201,12 +200,14 @@ class DominioCodePolicyTests(TestCase):
         self.assertFalse(self.profile.require_dominio_code)
 
 
-class CompanySwitcherSearchTests(TestCase):
+class CompanyDetailTests(TestCase):
+    """One company is a page you open, not a global mode you enter."""
+
     databases = {"default", "knowledge"}
 
     def setUp(self) -> None:
-        self.user = User.objects.create_user("seletor@example.test", "safe-password-123")
-        self.organization = Organization.objects.create(name="Seletor", slug="seletor")
+        self.user = User.objects.create_user("detalhe@example.test", "safe-password-123")
+        self.organization = Organization.objects.create(name="Detalhe", slug="detalhe")
         Membership.objects.create(
             organization=self.organization, user=self.user, role=Membership.Role.OWNER
         )
@@ -214,58 +215,35 @@ class CompanySwitcherSearchTests(TestCase):
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.NFSE, enabled=True
         )
-        ClientCompany.objects.bulk_create(
-            [
-                ClientCompany(
-                    organization=self.organization,
-                    name=f"Empresa {index:03d}",
-                    dominio_code=f"{index:04d}",
-                )
-                for index in range(40)
-            ]
+        self.company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa Detalhe", dominio_code="0101"
         )
         self.client.force_login(self.user)
         session = self.client.session
         session["hub_organization_id"] = str(self.organization.id)
         session.save()
 
-    def test_the_header_popover_stays_bounded_and_offers_the_full_list(self) -> None:
-        response = self.client.get(reverse("hub:dashboard"))
+    def test_the_registry_links_straight_to_the_company_page(self) -> None:
+        response = self.client.get(reverse("hub:companies"))
 
-        self.assertEqual(len(response.context["switcher_companies"]), 8)
-        self.assertEqual(response.context["companies_count"], 40)
-        self.assertContains(response, "Ver todas (40)")
+        self.assertContains(response, reverse("hub:company-detail", args=[self.company.id]))
 
-    def test_the_search_endpoint_answers_inside_the_office_scope(self) -> None:
-        response = self.client.get(reverse("hub:search-companies"), {"q": "Empresa 03"})
+    def test_the_company_page_shows_the_identity_and_honest_empty_states(self) -> None:
+        response = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
 
         self.assertEqual(response.status_code, 200)
-        payload = json.loads(response.content)
-        names = {row["name"] for row in payload["results"]}
-        self.assertEqual(len(names), 10)
-        self.assertTrue(all(name.startswith("Empresa 03") for name in names))
+        self.assertEqual(response.context["company"], self.company)
+        self.assertContains(response, "0101")
+        self.assertContains(response, "Nenhuma NFS-e desta empresa")
+        self.assertContains(response, "Sem certificado A1")
 
-    def test_the_search_endpoint_never_answers_for_another_office(self) -> None:
-        other = Organization.objects.create(name="Outro", slug="outro-seletor")
-        ClientCompany.objects.create(organization=other, name="Empresa Alheia")
-
-        response = self.client.get(reverse("hub:search-companies"), {"q": "Alheia"})
-
-        self.assertEqual(json.loads(response.content)["results"], [])
-
-    def test_switching_to_a_company_outside_the_scope_is_refused(self) -> None:
-        other = Organization.objects.create(name="Outro", slug="fora-seletor")
+    def test_a_company_from_another_office_is_not_found(self) -> None:
+        other = Organization.objects.create(name="Outro", slug="outro-detalhe")
         alien = ClientCompany.objects.create(organization=other, name="Empresa Alheia")
 
-        response = self.client.post(reverse("hub:switch-company"), {"company_id": str(alien.id)})
+        response = self.client.get(reverse("hub:company-detail", args=[alien.id]))
 
-        self.assertEqual(response.status_code, 403)
-        self.assertTemplateUsed(response, "hub/forbidden.html")
-
-    def test_a_malformed_company_id_is_refused_rather_than_crashing(self) -> None:
-        response = self.client.post(reverse("hub:switch-company"), {"company_id": "nao-e-uuid"})
-
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 404)
 
 
 class SupportSessionOnOwnOfficeTests(TestCase):

@@ -3,9 +3,8 @@
 {% block workspace_content %}
 <section class="module-hero" aria-labelledby="module-heading">
   <div>
-    <p class="section-kicker">{{ company_name }}</p>
+    <p class="section-kicker">{{ office.name }}</p>
     <h2 id="module-heading">{{ module.description }}</h2>
-    <p>{% if connector_ready %}A conexão do escritório está pronta. Os dados desta empresa aparecerão aqui assim que forem sincronizados.{% else %}Conecte o serviço do escritório para começar a acompanhar esta rotina nesta empresa.{% endif %}</p>
   </div>
   <span class="module-readiness {% if connector_ready or not module.connector_kind %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready or not module.connector_kind %}Pronto para receber dados{% else %}Conexão necessária{% endif %}</span>
 </section>

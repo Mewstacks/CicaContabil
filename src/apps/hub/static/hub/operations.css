@@ -49,7 +49,7 @@ body{background:var(--canvas);background-image:radial-gradient(rgba(25,49,61,.08
 .account a{color:#285c67;font-weight:700}
 .work-area{max-width:1420px;padding:38px 42px 76px}
 .page-header{align-items:center;margin-bottom:27px}
-.breadcrumb{color:#75847f;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.breadcrumb{color:#5f6d68;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
 .page-header h1{font-size:31px;letter-spacing:-.045em}
 .button{min-height:39px;border-color:#174c59;border-radius:4px;background:#174c59;font-weight:750;letter-spacing:.005em}
 .button:hover{border-color:#0f3a45;background:#0f3a45}
@@ -125,7 +125,7 @@ body{background:var(--canvas);background-image:radial-gradient(rgba(25,49,61,.08
 .operation-summary{display:flex;align-items:end;justify-content:space-between;gap:30px;padding:2px 0 27px;border-bottom:1px solid var(--line)}
 .operation-summary h2{max-width:580px;margin:0;letter-spacing:-.04em;font-size:clamp(24px,2.5vw,34px);line-height:1.08}
 .operation-summary p:not(.section-kicker){max-width:570px;margin:9px 0 0;color:var(--muted);font-size:14px}
-.closing-window{display:grid;min-width:245px;gap:4px;padding:15px 17px;border-left:3px solid #d6ac6b;background:#e9eee9}
+.closing-window{display:grid;min-width:245px;gap:4px;padding:15px 17px;border:1px solid #b8c4b8;border-radius:8px;background:#e9eee9}
 .closing-window span,.closing-window small{color:#61716e;font-size:11px}
 .closing-window strong{font-size:14px}
 .closing-window i{display:inline-block;width:7px;height:7px;margin-right:5px;border-radius:50%;background:#4e9a7d}
@@ -168,6 +168,7 @@ body{background:var(--canvas);background-image:radial-gradient(rgba(25,49,61,.08
 .module-state.is-active::before{width:5px;height:5px;border-radius:50%;background:currentColor;content:""}
 .module-state.is-muted{background:#edeeea;color:#74807d}
 .module-state.is-danger{background:#fae9e6;color:#9d3f33}
+.module-state.is-warning{background:#f7ecd8;color:#7d5106}
 .source-code{display:inline-block;padding:4px 7px;border-radius:3px;background:#e8efed;color:#315b59;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;font-variant-numeric:tabular-nums}
 .table-muted{color:#78837f;font-size:12px}
 .decision-control{display:flex;align-items:center;gap:7px}
@@ -413,3 +414,10 @@ body{background:var(--canvas);background-image:radial-gradient(rgba(25,49,61,.08
     padding: 10px 16px;
   }
 }
+
+/* Company identity: a metadata row under the title, the way Stripe shows a customer's
+   ids. Definition pairs, not a table -- there is one record, and columns would lie. */
+.identity-grid{display:grid;gap:18px 32px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin:0;padding:20px 22px}
+.identity-grid div{display:grid;gap:5px}
+.identity-grid dt{color:#5f6d68;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.identity-grid dd{margin:0;font-size:15px;font-weight:600}

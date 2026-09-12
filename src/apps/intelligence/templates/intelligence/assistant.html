@@ -24,7 +24,7 @@
         <p class="section-kicker">Assistente IA</p>
         <h2>{% if active_conversation %}{{ active_conversation.title }}{% else %}Nova análise{% endif %}</h2>
       </div>
-      <span class="company-context" title="Empresa atual">{{ active_company.name|default:"Escolha uma empresa" }}</span>
+      <span class="company-context">{{ active_conversation.company.name|default:"Escolha uma empresa" }}</span>
     </header>
 
     <section class="conversation-panel" aria-live="polite" aria-label="Mensagens">
@@ -80,7 +80,7 @@
         {% endfor %}
       {% else %}
         <div class="conversation-empty">
-          <p class="section-kicker">{{ active_company.name|default:"Assistente IA" }}</p>
+          <p class="section-kicker">{{ active_conversation.company.name|default:"Assistente IA" }}</p>
           <h3>O que você precisa resolver?</h3>
           <div class="prompt-suggestions" aria-label="Sugestões de pergunta">
             <button type="button" data-prompt="Quais pendências merecem atenção nesta empresa?">Pendências</button>
@@ -102,7 +102,7 @@
         <label class="attachment-button" title="Anexar PDF, imagem, TXT ou CSV">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 12 5.4-5.4a3 3 0 0 1 4.2 4.2l-7.5 7.5a5 5 0 0 1-7.1-7.1l7-7a1.5 1.5 0 1 1 2.1 2.1l-7 7a2 2 0 0 0 2.8 2.8l7.5-7.5"/></svg><span>Anexar</span><span class="sr-only"> PDF, imagem, TXT ou CSV</span>{{ form.attachments }}
         </label>
-        <span class="composer-context">{{ active_company.name|default:"Empresa não selecionada" }}</span>
+        <span class="composer-context">{{ active_conversation.company.name|default:"Escolha a empresa abaixo" }}</span>
         <span id="composer-status" class="composer-status" aria-live="polite"></span>
         <button class="button send-button" type="submit"><span data-submit-label>Enviar</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2.5-7.5L3 11Zm8.3 1.1 2.2 5.8 4.3-9.7-9.7 4.3 3.2-.4Z"/></svg></button>
       </div>

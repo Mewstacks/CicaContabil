@@ -24,7 +24,6 @@ class IntelligenceViewsTests(TestCase):
         self.client.force_login(self.owner)
         session = self.client.session
         session["hub_organization_id"] = str(self.organization.id)
-        session["hub_company_id"] = str(self.company.id)
         session.save()
 
     def assistant_message(self) -> Message:

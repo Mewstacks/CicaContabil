@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 
 {% block workspace_content %}
-<section class="metric-strip" aria-label="Resumo da NFS-e para a empresa atual">
+<section class="metric-strip" aria-label="Resumo da NFS-e do escritório">
   <article><span>Recebidas</span><strong>{{ nfse_stats.received }}</strong></article>
   <article class="metric-needs-attention"><span>Em revisão</span><strong>{{ nfse_stats.pending }}</strong></article>
   <article><span>Classificadas</span><strong>{{ nfse_stats.classified }}</strong></article>
@@ -9,7 +9,7 @@
 
 <section class="workspace-panel">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">{{ active_company.name|default:"Empresa atual" }}</p><h2>Documentos recebidos</h2></div>
+    <div><h2>Documentos recebidos</h2></div>
     {% if nfse_stats.pending %}<a class="text-action" href="{% url 'hub:reviews' %}">Ver revisões</a>{% endif %}
   </header>
   {% if document_rows %}
@@ -26,7 +26,7 @@
       </table>
     </div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Quando a captura estiver ativa, os documentos desta empresa aparecerão aqui.</p></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Quando a captura estiver ativa, os documentos aparecerão aqui.</p></div>
   {% endif %}
 </section>
 {% endblock %}

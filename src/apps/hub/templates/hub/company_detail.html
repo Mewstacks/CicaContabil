@@ -1,0 +1,85 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}
+  <a class="button button-quiet" href="{% url 'hub:companies' %}">Voltar às empresas</a>
+{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Identificação</h2></div>
+    {% if company.active %}<span class="module-state is-active">Ativa</span>{% else %}<span class="module-state is-danger">Inativa</span>{% endif %}
+  </header>
+  <dl class="identity-grid">
+    <div><dt>CNPJ</dt><dd>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
+    <div><dt>Código no Domínio</dt><dd>{% if company.dominio_code %}<span class="dominio-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
+    <div><dt>Última sincronização</dt><dd>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Nunca</span>{% endif %}</dd></div>
+    <div><dt>NFS-e recebidas</dt><dd>{{ document_count }}</dd></div>
+  </dl>
+</section>
+
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Documentos NFS-e</h2></div>
+    <span class="record-count">{{ document_count }} no total</span>
+  </header>
+  {% if documents %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Documento</th><th>Capturado</th><th>Revisão</th></tr></thead><tbody>{% for document in documents %}<tr>
+      <td><strong>{{ document.source_nsu|default:"Documento NFS-e" }}</strong><small>Hash {{ document.document_hash|slice:":12" }}</small></td>
+      <td>{{ document.captured_at|date:"d/m/Y H:i" }}</td>
+      <td>{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>A captura publica os documentos aqui assim que o certificado e o conector estiverem ativos.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Revisões abertas</h2></div>
+    <span class="record-count">{{ open_cases|length }}</span>
+  </header>
+  {% if open_cases %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Documento</th><th>Motivo</th><th>Aberta em</th><th></th></tr></thead><tbody>{% for case in open_cases %}<tr>
+      <td><strong>{{ case.document.source_nsu|default:"Documento NFS-e" }}</strong></td>
+      <td>{{ case.reason|default:"Sem motivo registrado" }}</td>
+      <td>{{ case.created_at|date:"d/m/Y" }}</td>
+      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:reviews' %}">Abrir revisões</a></td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Sem revisões abertas</strong><p>Nada desta empresa está parado esperando decisão.</p></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Certificados</h2></div>
+    <span class="record-count">{{ certificates|length }}</span>
+  </header>
+  {% if certificates %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Identificação</th><th>Validade</th><th>Estado</th></tr></thead><tbody>{% for certificate in certificates %}<tr>
+      <td><strong>{{ certificate.label }}</strong></td>
+      <td>{% if certificate.valid_until %}{{ certificate.valid_until|date:"d/m/Y" }}{% else %}<span class="table-muted">Sem data informada</span>{% endif %}</td>
+      <td>{% if certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>Sem certificado não há consulta de NFS-e nem DTE para esta empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Caixa postal (DTE)</h2></div>
+    <span class="record-count">{{ dte_messages|length }}</span>
+  </header>
+  {% if dte_messages %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Assunto</th><th>Enviada</th><th>Leitura</th></tr></thead><tbody>{% for dte in dte_messages %}<tr>
+      <td><strong>{{ dte.subject|default:"Mensagem sem assunto" }}</strong></td>
+      <td>{% if dte.sent_at %}{{ dte.sent_at|date:"d/m/Y" }}{% else %}{{ dte.first_seen_at|date:"d/m/Y" }}{% endif %}</td>
+      <td>{% if dte.read_at %}<span class="table-muted">Lida</span>{% else %}<span class="module-state is-warning">Não lida</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma mensagem</strong><p>As consultas ao DTE começam na central do Integra Contador.</p><a class="button button-small button-quiet" href="{% url 'hub:dte-center' %}">Abrir central DTE</a></div>
+  {% endif %}
+</section>
+{% endblock %}
