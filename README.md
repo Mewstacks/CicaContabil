@@ -20,15 +20,39 @@ uv sync --locked --all-extras
 .\.venv\Scripts\Activate.ps1
 python scripts/init_local.py --sqlite
 python manage.py migrate
+python manage.py migrate --database=knowledge
 python manage.py createsuperuser
 python manage.py runserver
 ```
 
+O corpus compartilhado fica em um banco separado (`knowledge`), com router próprio: sem o segundo
+`migrate` as telas de conhecimento falham por tabela inexistente.
+
+Redis é opcional em desenvolvimento. `config.settings.local` usa cache em memória a menos que
+`LOCAL_USE_REDIS=true` esteja no ambiente.
+
 Endereços locais:
 
+- Workspace do escritório: `http://127.0.0.1:8000/entrar/`
+- Console da plataforma: `http://127.0.0.1:8000/platform/`
+- Assistente: `http://127.0.0.1:8000/app/ia/`
 - API: `http://127.0.0.1:8000/api/v1/`
 - Swagger: `http://127.0.0.1:8000/api/docs/`
 - Admin: `http://127.0.0.1:8000/admin/`
+
+### Dados e contas de demonstração
+
+```powershell
+python manage.py seed_demo
+python manage.py seed_personas
+```
+
+`seed_demo` cria um escritório com empresas, documentos, certificados e evidência de DTE.
+`seed_personas` cria uma conta por papel — administradora, operador com escopo parcial, auditor,
+financeiro, as três funções da plataforma, um segundo escritório para testar isolamento, um
+escritório com segundo fator obrigatório e um convite pendente. O comando imprime a senha e o
+link de ativação; o link só existe nesse momento, porque apenas o digest é armazenado. Os dois
+comandos exigem `DEBUG` ligado e podem ser repetidos sem duplicar nada.
 
 Swagger e Django Admin ficam desabilitados por padrão em produção.
 
@@ -53,8 +77,10 @@ python manage.py runserver
 - PostgreSQL, Redis, Celery, Docker, CI e deploy no Fly.io.
 - Sentry com ambiente, release, erros e traces; dados pessoais e credenciais são filtrados.
 
-O projeto não inclui cadastro público, recuperação de senha, cobrança, MFA ou SSO. Esses fluxos
-devem ser adicionados conforme as regras de cada produto.
+- Segundo fator TOTP com códigos de recuperação, exigido por escritório ou por função da plataforma.
+
+O projeto não inclui cadastro público, recuperação de senha, cobrança ou SSO. Esses fluxos devem
+ser adicionados conforme as regras de cada produto.
 
 ## 3. Como consumir a API
 
