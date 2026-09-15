@@ -11,12 +11,11 @@ converte no máximo as três primeiras páginas em imagens antes da inferência.
 3. Baixe o modelo em janela de manutenção: `docker compose --env-file
    .env.cobalchini -f compose.cobalchini.yml --profile ai --profile ai-bootstrap
    up multimodal-model-init`.
-4. Mantenha `LOCAL_MULTIMODAL_ENDPOINT=http://multimodal:8081` apenas no
-   ambiente Docker do HubContador.
+4. Informe `http://multimodal:8081` no campo **Endpoint de análise de documentos**
+   do console de desenvolvedor. Não exponha essa URL no host.
 
-O mesmo Ollama pode atender o chat local via
-`LOCAL_LLM_ENDPOINT=http://ollama:11434`; o Hub usa a compatibilidade OpenAI
-somente na rede interna.
+O endpoint e o modelo textuais são configurados no console; o Hub usa a
+compatibilidade OpenAI somente na rede interna.
 
 O download do modelo consome armazenamento e rede locais e nunca ocorre durante
 o deploy automático. O adaptador usa o endpoint `/api/chat` com imagens base64,
