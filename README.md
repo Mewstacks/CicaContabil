@@ -1,293 +1,71 @@
-# Guia rápido de uso
+# CICA — Central de Inteligência Contábil Avançada
 
-[English version](README.en.md) · [Índice da documentação](docs/README.md)
+[Documentação](docs/README.md) · [Planejamento e decisões](docs/planejamento/README.md) · [English](README.en.md)
 
-CICA, Central de Inteligência Contábil Avançada, é a plataforma da Mewstack para escritórios
-contábeis. Reúne autenticação com MFA, API REST, organizações, triagem de documentos,
-integração Domínio por agente de borda, controles técnicos para LGPD, criptografia, auditoria,
-tarefas assíncronas, Sentry e configuração para Fly.io.
+A CICA é o sistema da Mewstack para a operação de escritórios contábeis. O repositório contém o SaaS Django, o console da plataforma, tarefas Celery, integrações fiscais e um agente Windows para leitura autorizada do Domínio. A meta atual é fazer **cada função completar seu trabalho operacional antes da venda**. A existência de uma tela, modelo ou teste isolado não significa que o módulo esteja homologado.
 
-> Os controles técnicos ajudam na segurança e na geração de evidências, mas não tornam o
-> produto automaticamente adequado à LGPD. A CICA ainda precisa manter finalidades, bases
-> legais, retenção, fornecedores, avisos de privacidade e responsáveis definidos.
+O [estado operacional](docs/planejamento/estado-operacional.md) registra o que foi verificado, o que falta e qual evidência libera cada área. As [decisões confirmadas](docs/planejamento/decisoes.md), as [dúvidas abertas](docs/planejamento/duvidas-abertas.md) e as [ações do responsável](docs/planejamento/acoes-do-responsavel.md) são a referência para regras de produto; planos antigos estão identificados por origem e não viram especificação automaticamente.
 
-## 1. Iniciar localmente
+## Iniciar no PC local
 
-Requer Python 3.12. Para iniciar rapidamente com SQLite:
+Requer Python 3.12 a 3.14 e `uv` 0.12.0. Para uma instalação de desenvolvimento com SQLite:
 
 ```powershell
 python -m pip install uv==0.12.0
 uv sync --locked --all-extras
-.\.venv\Scripts\Activate.ps1
-python scripts/init_local.py --sqlite
-python manage.py migrate
-python manage.py migrate --database=knowledge
-python manage.py createsuperuser
-python manage.py runserver
+uv run python scripts/init_local.py --sqlite
+uv run python manage.py migrate
+uv run python manage.py migrate --database=knowledge
+uv run python manage.py runserver
 ```
 
-O corpus compartilhado fica em um banco separado (`knowledge`), com router próprio: sem o segundo
-`migrate` as telas de conhecimento falham por tabela inexistente.
+`init_local.py` cria o `.env` com segredos locais aleatórios e recusa sobrescrever um arquivo existente. Se o `.env` já existir, preserve-o e continue a partir das migrations. O banco `knowledge` é separado dos dados dos escritórios; migre ambos. Redis é opcional no desenvolvimento SQLite; PostgreSQL, Redis e workers Celery são necessários para validar as rotinas em um ambiente semelhante ao de produção.
 
-Redis é opcional em desenvolvimento. `config.settings.local` usa cache em memória a menos que
-`LOCAL_USE_REDIS=true` esteja no ambiente.
+Abra `http://127.0.0.1:8000/entrar/` para o escritório e `http://127.0.0.1:8000/platform/` para o console Mewstack. A API está em `/api/v1/`, a documentação OpenAPI em `/api/docs/` e o admin Django em `/admin/` quando habilitado. O cadastro público, a confirmação por e-mail, a recuperação de senha e o MFA existem no código, mas dependem de SMTP e homologação para um uso comercial real.
 
-Endereços locais:
+Depois de configurar o segundo fator, o botão de saída dos códigos de recuperação leva à área do escritório ou ao console. Um acesso iniciado pelas configurações volta a elas. As credenciais Serpro da Mewstack são **centrais**: configure `INTEGRA_CONSUMER_KEY`, `INTEGRA_CONSUMER_SECRET`, `INTEGRA_CERTIFICATE_PATH` e `INTEGRA_CONTRATANTE_CNPJ` no `.env` protegido do servidor; o console `/platform/configuracoes/` mostra o estado dessa configuração. Escritórios não devem receber essas chaves. Ter variáveis preenchidas não substitui contrato, tarifa e homologação dos serviços.
 
-- Workspace do escritório: `http://127.0.0.1:8000/entrar/`
-- Console da plataforma: `http://127.0.0.1:8000/platform/`
-- Assistente: `http://127.0.0.1:8000/app/ia/`
-- API: `http://127.0.0.1:8000/api/v1/`
-- Swagger: `http://127.0.0.1:8000/api/docs/`
-- Admin: `http://127.0.0.1:8000/admin/`
+Os comandos `uv run python manage.py seed_demo` e `uv run python manage.py seed_personas` criam dados locais de demonstração apenas com `DEBUG` ligado. `seed_personas` imprime credenciais temporárias; use somente em desenvolvimento. Dados de demonstração e testes automatizados não provam a operação dos fornecedores externos.
 
-### Dados e contas de demonstração
+Para desenvolvimento com PostgreSQL e Redis, crie o `.env` sem `--sqlite`, suba os serviços de `compose.yaml` e aplique as migrations nos dois bancos. Os detalhes de [arquitetura](docs/pt-BR/arquitetura.md), [segurança](docs/pt-BR/seguranca.md), [LGPD](docs/pt-BR/lgpd.md) e [backup](docs/pt-BR/runbooks/backup-restauracao.md) ficam na documentação técnica.
 
-```powershell
-python manage.py seed_demo
-python manage.py seed_personas
-```
+## Claude agora; modelo local depois
 
-`seed_demo` cria um escritório com empresas, documentos, certificados e evidência de DTE.
-`seed_personas` cria uma conta por papel — administradora, operador com escopo parcial, auditor,
-financeiro, as três funções da plataforma, um segundo escritório para testar isolamento, um
-escritório com segundo fator obrigatório e um convite pendente. O comando imprime a senha e o
-link de ativação; o link só existe nesse momento, porque apenas o digest é armazenado. Os dois
-comandos exigem `DEBUG` ligado e podem ser repetidos sem duplicar nada.
+A chave Claude é **única da implantação Mewstack**. Ela já foi adicionada ao `.env` como `CICA_CLAUDE_API_KEY`; não a cadastre em cada escritório nem a copie para documentos, logs ou templates. A Anthropic aceitou a chave para `claude-sonnet-5` na **contagem gratuita de tokens** e em **uma geração real, sintética e limitada**, autorizada pelo responsável (16 tokens de entrada, 64 de saída; custo calculado de US$ 0,000672 antes de câmbio/impostos). Isso valida o transporte da API, mas não o Copiloto em uso pelo escritório. O console da plataforma define o modelo permitido, os tetos globais e a liberação do Copiloto. Cada escritório precisa de sua política de acesso e cotas próprias. O Copiloto está oculto por padrão até que limites, consentimento e oferta estejam configurados e validados. A escolha atual é Claude **Sonnet 5**; as franquias comerciais ainda estão em confirmação.
 
-Swagger e Django Admin ficam desabilitados por padrão em produção.
+O endpoint e o modelo do futuro PC privado já são configuráveis no console. Quando o runtime local estiver disponível, a aplicação tenta usá-lo primeiro; a política de Claude externo permanece sob controle global e por escritório. A análise de anexos da Triagem também deverá usar essa chave central, mas o fluxo de e-mail e as regras de privacidade/classificação ainda não estão completos. A [memória de IA e custo](docs/planejamento/duvidas-abertas.md#ia-e-custo) separa o que foi decidido do que precisa de resposta.
 
-Para usar PostgreSQL e Redis localmente, instale o Docker, execute
-`python scripts/init_local.py` sem `--sqlite` e depois:
+## Módulos e integração operacional
 
-```powershell
-docker compose up -d postgres redis
-python manage.py migrate
-python manage.py runserver
-```
-
-## 2. O que já está incluído
-
-- Usuários UUID identificados por e-mail e senhas com Argon2.
-- Autenticação por sessão segura, proteção CSRF, limitação de requisições e bloqueio de login.
-- Organizações e membros para SaaS multiempresa/multitenant.
-- API REST versionada com paginação e documentação OpenAPI.
-- Criptografia AES-256-GCM para campos confidenciais.
-- Auditoria imutável, logs JSON e remoção de dados sensíveis dos logs.
-- Finalidades de tratamento, avisos de privacidade, consentimentos e solicitações de titulares.
-- PostgreSQL, Redis, Celery, Docker, CI e deploy no Fly.io.
-- Sentry com ambiente, release, erros e traces; dados pessoais e credenciais são filtrados.
-
-- Segundo fator TOTP com códigos de recuperação, exigido por escritório ou por função da plataforma.
-
-O projeto não inclui cadastro público, recuperação de senha, cobrança ou SSO. Esses fluxos devem
-ser adicionados conforme as regras de cada produto.
-
-## 3. Como consumir a API
-
-A autenticação usa cookie de sessão e proteção CSRF. Em Python, instale `requests` e use uma
-`Session` para preservar os cookies:
-
-```powershell
-python -m pip install requests
-```
-
-Exemplo completo de login e consulta:
-
-```python
-import requests
-
-BASE_URL = "http://127.0.0.1:8000/api/v1"
-TIMEOUT = 10
-
-session = requests.Session()
-session.headers["Accept"] = "application/json"
-
-
-def obter_csrf() -> str:
-    response = session.get(f"{BASE_URL}/auth/csrf/", timeout=TIMEOUT)
-    response.raise_for_status()
-    return response.json()["csrf_token"]
-
-
-# O primeiro token autoriza o login.
-csrf_token = obter_csrf()
-login = session.post(
-    f"{BASE_URL}/auth/login/",
-    json={
-        "email": "usuario@exemplo.com",
-        "password": "senha-segura",
-    },
-    headers={"X-CSRFToken": csrf_token},
-    timeout=TIMEOUT,
-)
-login.raise_for_status()
-
-# O Django troca o token durante o login. Obtenha o novo token antes de alterar dados.
-csrf_token = obter_csrf()
-
-profile = session.get(f"{BASE_URL}/auth/me/", timeout=TIMEOUT)
-profile.raise_for_status()
-print(profile.json())
-```
-
-Para criar uma organização:
-
-```python
-organization = session.post(
-    f"{BASE_URL}/organizations/",
-    json={"name": "Empresa Exemplo", "slug": "empresa-exemplo"},
-    headers={"X-CSRFToken": csrf_token},
-    timeout=TIMEOUT,
-)
-organization.raise_for_status()
-organization_id = organization.json()["id"]
-```
-
-Em APIs de negócio vinculadas a uma organização, inclua o tenant:
-
-```python
-tenant_headers = {
-    "X-CSRFToken": csrf_token,
-    "X-Organization-ID": organization_id,
-}
-
-# Troque "seu-recurso" pela rota criada para o seu produto.
-response = session.get(
-    f"{BASE_URL}/seu-recurso/",
-    headers=tenant_headers,
-    timeout=TIMEOUT,
-)
-response.raise_for_status()
-```
-
-Envie `X-CSRFToken` em qualquer `POST`, `PATCH`, `PUT` ou `DELETE`. Para encerrar:
-
-```python
-logout = session.post(
-    f"{BASE_URL}/auth/logout/",
-    headers={"X-CSRFToken": csrf_token},
-    timeout=TIMEOUT,
-)
-logout.raise_for_status()
-session.close()
-```
-
-Clientes Python não dependem de CORS. Use sempre HTTPS em produção, mantenha verificação TLS
-ativa e nunca grave senha, cookie de sessão ou token em logs.
-
-## 4. Endpoints disponíveis
-
-| Método | Endpoint | Uso |
+| Área | Estado verificável nesta versão de trabalho | Para a venda |
 | --- | --- | --- |
-| `GET` | `/api/v1/health/live/` | Processo está ativo |
-| `GET` | `/api/v1/health/ready/` | PostgreSQL e Redis estão disponíveis |
-| `GET` | `/api/v1/auth/csrf/` | Obter token CSRF |
-| `POST` | `/api/v1/auth/login/` | Iniciar sessão |
-| `POST` | `/api/v1/auth/logout/` | Encerrar sessão |
-| `GET/PATCH` | `/api/v1/auth/me/` | Consultar ou alterar o perfil |
-| `GET/POST` | `/api/v1/organizations/` | Listar ou criar organizações |
-| `GET` | `/api/v1/organizations/{uuid}/` | Consultar uma organização |
-| `GET` | `/api/v1/privacy/purposes/` | Listar finalidades ativas |
-| `GET/POST` | `/api/v1/privacy/consents/` | Consultar ou registrar consentimento |
-| `GET/POST` | `/api/v1/privacy/requests/` | Solicitações de titulares |
+| NFS-e Inteligente | Custódia de certificado e classificação/revisão de documentos já recebidos | Implementar e homologar a coleta ADN/NFS-e com certificado autorizado e cursor |
+| Central Integra Contador | Entrada com três escolhas confirmadas: Caixa DTE, Parcelamentos e DCTFWeb. A Caixa tem busca/seleção de toda a carteira, preparo local, estados de mensagem e abertura com ciência explícita em código/testes. Parcelamentos está indisponível; Guias/DCTFWeb acompanha obrigações locais do Domínio. | Implementar Parcelamentos e consulta da declaração DCTFWeb, completar paginação DTE, validar CNPJ/tarifa e homologar cada chamada Serpro, ciência, cotas e erros com o contrato Mewstack |
+| Conciliação OFX × Domínio | Importação e cruzamento determinístico com confirmação de ambiguidades | Validar o espelho Domínio e casos reais por escritório/empresa |
+| Radar da Reforma | Coleta de fontes oficiais e alertas com links | Provar rotina, frescor, falha e recuperação em ambiente operacional |
+| Jornadas | Quadro interno com empresa, responsável, prazo e etapas | Destino funcional em decisão; não ofertar como módulo pago isolado |
+| Copiloto | Conversa por empresa, evidências, anexos, relatórios e roteamento local/Claude; chave e geração sintética Sonnet comprovadas | Aprovar cotas/consentimento e validar conversa real do escritório, falhas e futura virada para PC local |
+| Triagem de Arquivos | Domínio e estados, OAuth Microsoft/Google e assistente IMAP de conexão testados localmente; padrão puro da pasta Windows | Homologar caixas reais, receber **somente por e-mail**, proteger/analisar anexos e arquivar em biblioteca interna **ou** pastas Windows escolhidas pelo escritório |
+| Siescon | Sem adaptador ou contrato técnico homologado | Obter documentação e piloto autorizado antes de liberar |
 
-Antes de registrar consentimentos, cadastre no admin uma finalidade com base legal
-`consent` e um aviso de privacidade ativo.
+Para conectar sua caixa, o escritório usa login e consentimento Microsoft/Google em botões da Triagem; o fluxo OAuth central, callback, isolamento por escritório, teste de leitura e guarda criptografada já estão implementados e testados localmente. A Mewstack ainda precisa registrar e homologar os apps dos provedores. O assistente IMAP genérico agora testa TLS/leitura e cifra a credencial, mas também requer piloto com um servidor autorizado. **Conectar não inicia a leitura incremental nem o arquivamento.** A [pesquisa e jornada de conexão](docs/planejamento/conexao-caixas-email.md) registram passos, permissões e a verificação obrigatória do Google antes da venda. Para Windows, o escritório escolherá sua raiz; o [padrão técnico de pasta](docs/planejamento/padrao-pastas-windows.md) calcula `Nome [Domínio código]` com código obrigatório, ainda sem escrita. Falta definir a fonte do nome e regra de renomeação. O agente atual lê o Domínio por ODBC de modo autorizado; escrita documental segura no Windows não está implementada. A [verdade dos módulos](docs/cica-module-truth.md) e o [plano da triagem](docs/plano-triagem-documental.md) descrevem os limites em detalhe.
 
-## 5. Usar organizações
+## Contrato, cobrança e produção
 
-Ao criar uma organização, o usuário atual recebe o papel `owner`. Nos endpoints de negócio que
-tenham dados de uma organização, envie:
+O sistema já registra planos, contratos, franquias, consumo e faturas. **Asaas foi escolhido como cobrança padrão** para Pix, boleto e cartão; contratos manuais com preço individual também serão admitidos. O receptor de webhook Asaas já valida token, eventos idempotentes e conciliação de uma tentativa de pagamento conhecida, mas permanece oculto até `ASAAS_WEBHOOK_TOKEN` ser definido. Criação de cliente/cobrança, configuração sandbox/produção, reconciliação e suspensão após carência ainda precisam de implementação e regras finais.
 
-```text
-X-Organization-ID: UUID_DA_ORGANIZACAO
-```
+Há configurações para Fly.io e para o servidor Windows Cobalchini. Uma configuração de deploy não prova ambiente publicado. O [runbook Cobalchini](docs/operations-cobalchini.md) descreve Compose, mTLS e rollback; há workflow manual protegido, sem deploy automático, e o destino de produção ainda está em confirmação. No host Cobalchini, defina `COBALCHINI_ENV_FILE` para o arquivo protegido fora do checkout antes de executar o Compose. Nenhum recurso pago é provisionado pela preparação local. A única chamada cobrada executada foi a prova sintética Claude descrita acima, mediante autorização específica.
 
-O middleware valida se o usuário possui uma associação ativa. Novos modelos que armazenam
-dados de clientes devem herdar de `OrganizationScopedModel`, e todas as consultas devem ser
-filtradas por `request.organization`.
-
-## 6. Criar uma nova API
-
-Fluxo recomendado:
-
-1. Crie um app dentro de `src/apps/`.
-2. Crie o model; use `OrganizationScopedModel` se o dado pertencer a uma organização.
-3. Crie serializer e view/viewset do Django REST Framework.
-4. Defina permissões e filtre explicitamente pelo usuário ou organização.
-5. Registre a rota em `src/config/urls_api.py`.
-6. Crie migrations e testes de autorização e isolamento.
-
-Comandos:
+## Verificar alterações
 
 ```powershell
-python manage.py makemigrations
-python manage.py migrate
-pytest --cov
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest -q
+uv run python manage.py check
+uv run python manage.py makemigrations --check --dry-run
 ```
 
-Para conectar APIs externas, guarde tokens somente em variáveis de ambiente/Fly Secrets,
-configure timeout, trate retentativas e execute operações demoradas no Celery. Não envie dados
-pessoais em URLs, argumentos de tarefas, logs ou eventos do Sentry.
+Em 15/09/2026, a suíte local teve **512 testes aprovados, 1 ignorado e 8 subtestes aprovados** em 38,15 s. Testes simulados precisam ser complementados por homologação de Serpro, NFS-e, Domínio, e-mail, pagamento e uso do Copiloto por escritório, além de inspeção desktop/mobile das telas afetadas. O [registro de execução](docs/planejamento/registro-de-execucao.md) guarda cada resultado e seus limites; a [revisão de telas](docs/planejamento/revisao-operacional-telas-2026-09-15.md) registra os problemas de primeiro uso e as correções locais.
 
-## 7. Sentry
-
-Crie um projeto Django no Sentry e configure o DSN:
-
-```text
-SENTRY_ENABLED=true
-SENTRY_DSN=https://CHAVE@ORGANIZACAO.ingest.sentry.io/PROJETO
-SENTRY_ENVIRONMENT=production
-SENTRY_TRACES_SAMPLE_RATE=0.05
-```
-
-Em produção, o backend não inicia com Sentry habilitado e sem DSN. Corpos de requisição,
-cookies, query strings, usuários, e-mails, tokens e variáveis locais são removidos antes do
-envio. Também habilite a filtragem de dados no painel do Sentry.
-
-## 8. Deploy resumido no Fly.io
-
-```powershell
-python scripts/configure_fly.py nome-unico-do-app
-fly apps create nome-unico-do-app
-python scripts/generate_production_secrets.py | fly secrets import -a nome-unico-do-app
-fly mpg create
-fly mpg attach ID_DO_POSTGRES -a nome-unico-do-app
-fly redis create
-fly storage create -a nome-unico-do-app
-fly secrets set SENTRY_DSN="SEU_DSN" -a nome-unico-do-app
-fly deploy
-fly scale count web=2 worker=1 -a nome-unico-do-app
-```
-
-Após criar o Redis, configure sua URL privada em `REDIS_URL`, `CELERY_BROKER_URL` e
-`CELERY_RESULT_BACKEND`. O deploy executa as migrations antes de publicar a nova versão.
-
-```powershell
-fly secrets set REDIS_URL="URL_PRIVADA" CELERY_BROKER_URL="URL_PRIVADA" CELERY_RESULT_BACKEND="URL_PRIVADA" -a nome-unico-do-app
-```
-
-Consulte o passo a passo completo em [deploy-fly.md](docs/pt-BR/deploy-fly.md).
-
-## 9. Validar antes de publicar
-
-```powershell
-ruff check .
-ruff format --check .
-mypy src
-pytest --cov
-python manage.py check
-python manage.py makemigrations --check --dry-run
-```
-
-Antes de receber dados reais, revise também [seguranca.md](docs/pt-BR/seguranca.md),
-[lgpd.md](docs/pt-BR/lgpd.md), o
-[runbook de incidentes](docs/pt-BR/runbooks/resposta-incidentes.md) e o
-[runbook de backup](docs/pt-BR/runbooks/backup-restauracao.md).
-
-As melhorias incorporadas após a revisão externa estão registradas em
-[revisao-claude.md](docs/pt-BR/revisao-claude.md), incluindo trade-offs e migração de
-ciphertexts antigos.
-
-Se você está começando, leia [Tecnologias e middlewares: por que cada peça existe](docs/pt-BR/tecnologias-e-middlewares.md).
+O produto ainda precisa de contatos de suporte/privacidade, termos finais, retenção/exportação e prova de backup/restauração. Os controles técnicos de criptografia, auditoria, isolamento e MFA ajudam a operar com segurança; a adequação jurídica depende de decisões e revisão próprias.

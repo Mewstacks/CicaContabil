@@ -24,6 +24,7 @@ from apps.platform.models import (
     Invitation,
     Plan,
     PlatformAccess,
+    PlatformConfiguration,
     SupportSession,
     TenantContract,
     TenantLifecycle,
@@ -147,9 +148,12 @@ class PlatformTenantViewTests(TestCase):
             TenantLifecycle.State.ACTIVE,
         )
 
-    def test_developer_configures_a_time_bounded_encrypted_fallback(self):
+    def test_developer_configures_a_time_bounded_office_quota_without_provider_key(self):
         detail_url = reverse("platform:tenant-detail", args=[self.office.id])
         valid_until = (timezone.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M")
+        PlatformConfiguration.objects.update_or_create(
+            key="default", defaults={"cloud_fallback_model": "claude-sonnet-5"}
+        )
 
         response = self.client.post(
             detail_url,
@@ -158,8 +162,7 @@ class PlatformTenantViewTests(TestCase):
                 "enabled": "on",
                 "allow_full_data": "on",
                 "allowed_roles": [Membership.Role.OWNER, Membership.Role.ADMIN],
-                "api_key": "tenant-fallback-key-not-rendered",
-                "model": "claude-test-model",
+                "api_key": "tenant-fallback-key-must-be-ignored",
                 "max_request_brl": "0.75",
                 "daily_limit_brl": "15.00",
                 "monthly_limit_brl": "120.00",
@@ -171,13 +174,14 @@ class PlatformTenantViewTests(TestCase):
         policy = AssistantSettings.objects.get(organization=self.office)
         approval = ClaudeFallbackApproval.objects.get(organization=self.office)
         self.assertTrue(policy.claude_fallback_enabled)
-        self.assertEqual(policy.claude_api_key, "tenant-fallback-key-not-rendered")
+        self.assertEqual(policy.claude_api_key, "")
+        self.assertEqual(policy.claude_model, "claude-sonnet-5")
         self.assertEqual(policy.claude_max_request_cents, 75)
         self.assertEqual(approval.status, ClaudeFallbackApproval.Status.APPROVED)
         self.assertEqual(approval.daily_limit_cents, 1500)
         self.assertEqual(approval.monthly_limit_cents, 12000)
         self.assertNotContains(
-            self.client.get(detail_url), "tenant-fallback-key-not-rendered"
+            self.client.get(detail_url), "Chave do provedor"
         )
 
     def test_developer_controls_copilot_retention_and_confirms_shortening(self):
@@ -215,7 +219,7 @@ class PlatformTenantViewTests(TestCase):
             30,
         )
 
-    def test_fallback_cannot_be_enabled_without_a_key_and_a_time_bound(self):
+    def test_office_claude_policy_requires_a_time_bound(self):
         response = self.client.post(
             reverse("platform:tenant-detail", args=[self.office.id]),
             {
@@ -230,11 +234,10 @@ class PlatformTenantViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Informe a chave")
         self.assertContains(response, "Defina quando essa aprovação expira")
         self.assertFalse(AssistantSettings.objects.filter(organization=self.office).exists())
 
-    def test_developer_replaces_local_fallback_key_without_changing_crmew_policy(self):
+    def test_office_credential_action_cannot_replace_mewstack_key(self):
         ControlPlaneBinding.objects.create(
             organization=self.office,
             remote_installation_id="5b3dd36b-4da4-4b7a-9f12-8e933c2ed0e4",
@@ -265,15 +268,15 @@ class PlatformTenantViewTests(TestCase):
 
         policy = AssistantSettings.objects.get(organization=self.office)
         approval.refresh_from_db()
-        self.assertRedirects(response, detail_url)
-        self.assertEqual(policy.claude_api_key, "local-secret-not-rendered")
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(policy.claude_api_key, "")
         self.assertTrue(policy.claude_fallback_enabled)
         self.assertEqual(approval.status, ClaudeFallbackApproval.Status.APPROVED)
         page = self.client.get(detail_url)
-        self.assertContains(page, "Chave do provedor")
+        self.assertNotContains(page, "Chave do provedor")
         self.assertNotContains(page, "local-secret-not-rendered")
 
-    def test_developer_can_remove_a_crmew_managed_local_fallback_key(self):
+    def test_office_credential_action_cannot_remove_legacy_key(self):
         ControlPlaneBinding.objects.create(
             organization=self.office,
             remote_installation_id="5b3dd36b-4da4-4b7a-9f12-8e933c2ed0e4",
@@ -291,10 +294,10 @@ class PlatformTenantViewTests(TestCase):
             {"action": "ai-fallback-credential", "clear_api_key": "on"},
         )
 
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 403)
         self.assertEqual(
             AssistantSettings.objects.get(organization=self.office).claude_api_key,
-            "",
+            "to-be-removed",
         )
 
     def test_platform_account_menu_has_only_account_actions(self):
@@ -303,6 +306,20 @@ class PlatformTenantViewTests(TestCase):
         self.assertContains(response, 'data-popover-toggle="account-list"')
         self.assertContains(response, "Sair")
         self.assertNotContains(response, "Abrir Hub")
+
+    def test_recent_offices_are_sorted_by_creation_date_not_alphabet(self):
+        old_date = timezone.now() - timedelta(days=3)
+        for index in range(8):
+            old = Organization.objects.create(name=f"A escritório {index}", slug=f"old-{index}")
+            Organization.objects.filter(pk=old.pk).update(created_at=old_date)
+        fedrizzi = Organization.objects.create(
+            name="Fedrizzi Contabilidade", slug="fedrizzi-contabilidade"
+        )
+
+        response = self.client.get(reverse("platform:dashboard"))
+
+        self.assertContains(response, "Fedrizzi Contabilidade")
+        self.assertEqual(next(iter(response.context["tenants"])), fedrizzi)
 
     def test_developer_sees_open_dominio_tickets_on_the_dashboard(self):
         connector = IntelligenceConnector.objects.create(

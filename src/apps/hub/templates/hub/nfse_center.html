@@ -26,7 +26,7 @@
       </table>
     </div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Quando a captura estiver ativa, os documentos aparecerão aqui.</p></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>A captura automática da NFS-e Nacional ainda precisa ser homologada pela Mewstack. Você pode conferir se os certificados das empresas estão sob custódia.</p><a class="button button-quiet" href="{% url 'hub:certificates' %}">Ver certificados das empresas</a></div>
   {% endif %}
 </section>
 {% endblock %}

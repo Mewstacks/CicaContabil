@@ -97,5 +97,15 @@ MODULES: dict[str, ModuleDefinition] = {
 }
 
 
+OFFERED_MODULE_CODES: tuple[str, ...] = tuple(
+    code for code in ProductModule.Code.values if code != ProductModule.Code.JOURNEY
+)
+OFFERED_MODULE_CHOICES: tuple[tuple[str, str], ...] = tuple(
+    (str(code), str(label))
+    for code, label in ProductModule.Code.choices
+    if code in OFFERED_MODULE_CODES
+)
+
+
 def definition(code: str) -> ModuleDefinition:
     return MODULES[code]

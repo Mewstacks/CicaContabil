@@ -20,7 +20,7 @@ from apps.platform.models import Plan, PlanServiceRate, TenantContract, UsageEve
 def _guide(*, suffix: str = "") -> FiscalGuide:
     organization = Organization.objects.create(name=f"Guias {suffix}", slug=f"guias{suffix}")
     company = ClientCompany.objects.create(
-        organization=organization, name="Empresa Guias", cnpj_masked="12.345.678/0001-90"
+        organization=organization, name="Empresa Guias", cnpj_masked="12.345.678/0001-95"
     )
     plan = Plan.objects.create(code=f"guias{suffix}", name="Guias")
     PlanServiceRate.objects.create(
@@ -160,10 +160,10 @@ def test_guide_worker_fails_safely_without_a_reservation_or_valid_cnpj() -> None
     assert missing_usage.error_code == "usage_missing"
 
     invalid_cnpj = _guide(suffix="-invalid")
-    invalid_cnpj.company.cnpj_masked = "invalido"
-    invalid_cnpj.company.save(update_fields=["cnpj_masked"])
     with patch("apps.hub.services.transaction.on_commit", side_effect=lambda callback: None):
         issue_fiscal_guide(guide=invalid_cnpj)
+    invalid_cnpj.company.cnpj_masked = "invalido"
+    invalid_cnpj.company.save(update_fields=["cnpj_masked"])
     dispatch_fiscal_guide.run(str(invalid_cnpj.id))
     invalid_cnpj.refresh_from_db()
     assert invalid_cnpj.error_code == "invalid_cnpj"
@@ -196,7 +196,7 @@ class GuidesViewTests(TestCase):
             organization=self.organization, user=self.user, role=Membership.Role.OWNER
         )
         self.company = ClientCompany.objects.create(
-            organization=self.organization, name="Empresa da tela", cnpj_masked="12.345.678/0001-90"
+            organization=self.organization, name="Empresa da tela", cnpj_masked="12.345.678/0001-95"
         )
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.GUIDES, enabled=True

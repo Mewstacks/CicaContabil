@@ -6,7 +6,7 @@
     <p class="section-kicker">{{ office.name }}</p>
     <h2 id="module-heading">{{ module.description }}</h2>
   </div>
-  <span class="module-readiness {% if connector_ready or not module.connector_kind %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready or not module.connector_kind %}Pronto para receber dados{% else %}Conexão necessária{% endif %}</span>
+  <span class="module-readiness {% if not readiness_label %}{% if connector_ready or not module.connector_kind %}is-ready{% endif %}{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if readiness_label %}{{ readiness_label }}{% elif connector_ready or not module.connector_kind %}Pronto para receber dados{% else %}Conexão necessária{% endif %}</span>
 </section>
 
 <section class="workspace-panel module-main-panel">

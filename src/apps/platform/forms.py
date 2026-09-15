@@ -1,5 +1,4 @@
 import json
-import re
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
 
@@ -9,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from apps.common.cnpj import lookup_company, normalize_cnpj
+from apps.hub.module_catalog import OFFERED_MODULE_CHOICES
 from apps.integra.catalog import SERVICES
 from apps.organizations.models import Membership
 from apps.platform.models import (
@@ -19,8 +19,6 @@ from apps.platform.models import (
     TenantServiceRate,
     TenantUsagePolicy,
 )
-
-_CLAUDE_MODEL_RE = re.compile(r"claude-[a-z0-9._-]{1,72}")
 
 
 class LeadForm(forms.ModelForm):  # type: ignore[type-arg]
@@ -154,15 +152,7 @@ class PlanCatalogForm(forms.ModelForm):  # type: ignore[type-arg]
     modules = forms.MultipleChoiceField(
         label="Módulos incluídos",
         required=False,
-        choices=(
-            ("nfse", "NFS-e Inteligente"),
-            ("guides", "Guias e DCTFWeb"),
-            ("integra", "Central Integra Contador"),
-            ("reconciliation", "Conciliação OFX"),
-            ("reform", "Radar da Reforma"),
-            ("journey", "Jornadas"),
-            ("ai", "Copiloto CICA"),
-        ),
+        choices=OFFERED_MODULE_CHOICES,
         widget=forms.CheckboxSelectMultiple,
     )
     ai_included_requests = forms.IntegerField(
@@ -326,15 +316,15 @@ class TenantServiceRateForm(forms.Form):
 
 
 class ClaudeFallbackForm(forms.Form):
-    """Developer-only policy for the encrypted, last-resort cloud route."""
+    """Office quota and consent policy; provider secrets belong to Mewstack."""
 
     enabled = forms.BooleanField(
         required=False,
-        label="Permitir fallback externo após timeout técnico local",
+        label="Permitir Claude via API key",
     )
     allow_full_data = forms.BooleanField(
         required=False,
-        label="Permitir contexto completo quando o fallback for usado",
+        label="Permitir contexto completo enviado ao Claude",
     )
     allowed_roles = forms.MultipleChoiceField(
         label="Perfis autorizados",
@@ -348,19 +338,6 @@ class ClaudeFallbackForm(forms.Form):
         ),
         required=False,
         widget=forms.CheckboxSelectMultiple,
-    )
-    api_key = forms.CharField(
-        label="Chave do provedor",
-        required=False,
-        help_text="Fica cifrada e não será exibida novamente.",
-        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
-    )
-    clear_api_key = forms.BooleanField(required=False, label="Remover chave armazenada")
-    model = forms.CharField(
-        label="Modelo permitido",
-        max_length=80,
-        required=False,
-        widget=forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false"}),
     )
     max_request_brl = forms.DecimalField(
         label="Teto por solicitação (R$)",
@@ -403,7 +380,6 @@ class ClaudeFallbackForm(forms.Form):
                 "enabled": bool(settings and settings.claude_fallback_enabled),
                 "allow_full_data": bool(settings and settings.claude_full_data_allowed),
                 "allowed_roles": list(settings.claude_allowed_roles) if settings else [],
-                "model": settings.claude_model if settings else "",
                 "max_request_brl": (
                     Decimal(settings.claude_max_request_cents) / 100 if settings else None
                 ),
@@ -430,49 +406,21 @@ class ClaudeFallbackForm(forms.Form):
             return cleaned
         if not cleaned.get("allowed_roles"):
             self.add_error("allowed_roles", "Selecione ao menos um perfil.")
-        model = str(cleaned.get("model") or "")
-        if not _CLAUDE_MODEL_RE.fullmatch(model):
-            self.add_error("model", "Informe um modelo Claude permitido.")
-        if not cleaned.get("api_key") and not (self.settings and self.settings.claude_api_key):
-            self.add_error("api_key", "Informe a chave antes de habilitar o fallback.")
-        if cleaned.get("clear_api_key"):
-            self.add_error("clear_api_key", "Não remova a chave enquanto o fallback estiver ativo.")
         for field in ("max_request_brl", "daily_limit_brl", "monthly_limit_brl"):
             if self.cents(cleaned.get(field)) <= 0:
                 self.add_error(field, "Informe um teto maior que zero.")
+        request_limit = self.cents(cleaned.get("max_request_brl"))
+        daily_limit = self.cents(cleaned.get("daily_limit_brl"))
+        monthly_limit = self.cents(cleaned.get("monthly_limit_brl"))
+        if request_limit > daily_limit > 0:
+            self.add_error("daily_limit_brl", "O teto diário deve cobrir uma solicitação.")
+        if daily_limit > monthly_limit > 0:
+            self.add_error("monthly_limit_brl", "O teto mensal deve cobrir o diário.")
         valid_until = cleaned.get("valid_until")
         if valid_until is None:
             self.add_error("valid_until", "Defina quando essa aprovação expira.")
         elif valid_until <= timezone.now():
             self.add_error("valid_until", "Informe uma data futura.")
-        return cleaned
-
-
-class ClaudeFallbackCredentialForm(forms.Form):
-    """Local provider secret, deliberately separate from a CRMew-owned policy."""
-
-    api_key = forms.CharField(
-        label="Nova chave do provedor",
-        required=False,
-        help_text="Fica cifrada e não será exibida novamente.",
-        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
-    )
-    clear_api_key = forms.BooleanField(
-        required=False,
-        label="Remover a chave armazenada",
-        help_text="Isso bloqueia o fallback até que uma nova chave seja configurada.",
-    )
-
-    def clean(self) -> dict[str, Any]:
-        cleaned = super().clean() or {}
-        api_key = str(cleaned.get("api_key") or "").strip()
-        clear_api_key = bool(cleaned.get("clear_api_key"))
-        if api_key and clear_api_key:
-            self.add_error(
-                "clear_api_key", "Escolha cadastrar uma chave ou removê-la, não os dois."
-            )
-        elif not api_key and not clear_api_key:
-            self.add_error("api_key", "Informe uma nova chave ou selecione a remoção.")
         return cleaned
 
 

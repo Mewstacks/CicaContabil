@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from itertools import pairwise
 
-from django.db import IntegrityError, transaction
+from django.core.exceptions import SuspiciousFileOperation, ValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, connection, transaction
 from django.test import TestCase
 
+from apps.accounts.models import User
 from apps.hub.models import ClientCompany
 from apps.organizations.models import Organization
 from apps.triage.models import (
@@ -17,6 +20,7 @@ from apps.triage.models import (
     Mailbox,
     TriageItem,
 )
+from apps.triage.services import decide_item, intake_manual
 from apps.triage.transitions import InvalidTransition, TriageStatus, ensure_transition_allowed
 
 
@@ -164,6 +168,22 @@ class TriageItemModelTests(TestCase):
                 part_id="1",
             )
 
+    def test_mailbox_supports_gmail_and_encrypts_long_checkpoints(self) -> None:
+        token = "gmail-history-" + ("opaque-token-" * 40)
+        mailbox = Mailbox.objects.create(
+            organization=self.organization,
+            provider=Mailbox.Provider.GMAIL_API,
+            address="documentos@gmail.test",
+            cursor=token,
+        )
+        with connection.cursor() as database_cursor:
+            database_cursor.execute("SELECT cursor FROM triage_mailbox")
+            stored = database_cursor.fetchone()[0]
+        self.assertTrue(stored.startswith("enc:v1:"))
+        self.assertNotIn(token, stored)
+        mailbox.refresh_from_db()
+        self.assertEqual(mailbox.cursor, token)
+
 
 class DestinationProfileTests(TestCase):
     def test_an_office_gets_exactly_one_destination_profile(self) -> None:
@@ -259,3 +279,74 @@ class AgentFileJobTests(TestCase):
         job.refresh_from_db()
 
         self.assertEqual(job.status, AgentFileJob.Status.CLAIMED)
+
+
+class ManualIntakeTests(TestCase):
+    def setUp(self) -> None:
+        self.organization = Organization.objects.create(name="Acme", slug="manual-intake")
+        self.other_organization = Organization.objects.create(name="Other", slug="manual-other")
+        self.company = ClientCompany.objects.create(
+            organization=self.organization, name="Acme Ltda"
+        )
+        self.other_company = ClientCompany.objects.create(
+            organization=self.other_organization, name="Other Ltda"
+        )
+        self.user = User.objects.create_user(email="operator@acme.test", password="not-a-secret")
+
+    def _upload(self, name: str = "extrato.ofx") -> SimpleUploadedFile:
+        return SimpleUploadedFile(name, b"OFXHEADER:100", content_type="application/x-ofx")
+
+    def test_manual_intake_stores_a_private_blob_and_waits_for_review(self) -> None:
+        item = intake_manual(
+            organization=self.organization,
+            actor=self.user,
+            company=self.company,
+            document_type=None,
+            upload=self._upload(),
+        )
+
+        self.assertEqual(item.status, TriageStatus.AWAITING_REVIEW)
+        self.assertEqual(item.events.count(), 4)
+        self.assertTrue(
+            item.blob.content.name.startswith(f"private/triage/{self.organization.id}/")
+        )
+        with self.assertRaises(SuspiciousFileOperation):
+            _ = item.blob.content.url
+
+    def test_manual_intake_refuses_cross_office_company(self) -> None:
+        with self.assertRaises(ValidationError):
+            intake_manual(
+                organization=self.organization,
+                actor=self.user,
+                company=self.other_company,
+                document_type=None,
+                upload=self._upload(),
+            )
+
+    def test_reviewer_can_archive_and_the_audit_is_preserved(self) -> None:
+        item = intake_manual(
+            organization=self.organization,
+            actor=self.user,
+            company=self.company,
+            document_type=None,
+            upload=self._upload(),
+        )
+
+        decide_item(item=item, actor=self.user, decision="archive", reason="")
+        item.refresh_from_db()
+
+        self.assertEqual(item.status, TriageStatus.ARCHIVED)
+        self.assertEqual(item.destination_kind, DestinationProfile.Mode.INTERNAL)
+        self.assertEqual(item.events.count(), 7)
+
+    def test_reviewer_must_supply_a_reason_to_reject(self) -> None:
+        item = intake_manual(
+            organization=self.organization,
+            actor=self.user,
+            company=self.company,
+            document_type=None,
+            upload=self._upload(),
+        )
+
+        with self.assertRaises(ValidationError):
+            decide_item(item=item, actor=self.user, decision="reject", reason="")

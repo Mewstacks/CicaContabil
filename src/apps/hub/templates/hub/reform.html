@@ -11,6 +11,31 @@
     </select>
     {% if selected_source %}<div class="toolbar-actions"><a class="button button-quiet button-small" href="{% url 'hub:reform' %}" data-filter-clear>Limpar</a></div>{% endif %}
   </form>
+  <section class="source-health" aria-labelledby="source-health-heading">
+    <div class="source-health-heading"><h3 id="source-health-heading">Saúde das fontes</h3><p>Resultado da última coleta agendada.</p></div>
+    <ul class="source-health-list">
+      {% for value, label, status in source_health %}
+        <li class="source-health-item">
+          <div><strong>{{ label }}</strong>
+            {% if status and status.last_success_at %}
+              <small>Última atualização: {{ status.last_success_at|date:'d/m/Y H:i' }}</small>
+            {% elif status and status.last_error %}
+              <small>Falha na última tentativa; a próxima coleta tentará novamente.</small>
+            {% else %}
+              <small>Aguardando a primeira coleta.</small>
+            {% endif %}
+          </div>
+          {% if status and status.last_success_at %}
+            <span class="module-state is-active">Coleta concluída</span>
+          {% elif status and status.last_error %}
+            <span class="module-state is-danger">Falha na coleta</span>
+          {% else %}
+            <span class="module-state is-muted">Ainda não coletada</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
   {% if alerts %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Atualização</th><th>Fonte</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
       {% for alert in alerts %}<tr><td><strong>{{ alert.title }}</strong><small>{% if alert.published_at %}{{ alert.published_at|date:'d/m/Y' }}{% else %}Coletada em {{ alert.created_at|date:'d/m/Y' }}{% endif %}</small></td><td><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir<span class="sr-only">: {{ alert.title }}</span></a></td></tr>{% endfor %}

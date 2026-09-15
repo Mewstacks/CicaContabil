@@ -40,6 +40,14 @@ class UsageProjection:
     projected_overage_cents: int
 
 
+@dataclass(frozen=True)
+class UsageQuote:
+    included_remaining: int
+    additional_overage_units: int
+    additional_overage_cents: int
+    overage_unit_price_cents: int
+
+
 def month_bounds(value: date) -> tuple[date, date]:
     start = value.replace(day=1)
     next_month = (start + timedelta(days=32)).replace(day=1)
@@ -138,6 +146,30 @@ def usage_projection(meter: UsageMeter, *, units: int = 1) -> UsageProjection:
     )
 
 
+def quote_usage(*, organization: Organization, action_code: str, units: int = 1) -> UsageQuote:
+    """Quote this request; reservation still checks the live meter atomically."""
+
+    if units < 1:
+        raise BillingError("Uma consulta precisa incluir ao menos uma unidade.")
+    with transaction.atomic():
+        meter, _rate_record = _meter(
+            organization=organization, action_code=action_code, on_date=timezone.localdate()
+        )
+        meter = UsageMeter.objects.select_for_update().get(id=meter.id)
+        before = usage_projection(meter, units=0)
+        after = usage_projection(meter, units=units)
+        return UsageQuote(
+            included_remaining=before.included_remaining,
+            additional_overage_units=(
+                after.projected_overage_units - before.projected_overage_units
+            ),
+            additional_overage_cents=(
+                after.projected_overage_cents - before.projected_overage_cents
+            ),
+            overage_unit_price_cents=meter.overage_unit_price_cents,
+        )
+
+
 def reserve_usage(
     *,
     organization: Organization,
@@ -145,6 +177,8 @@ def reserve_usage(
     idempotency_key: str,
     units: int = 1,
     approved_overage: bool = False,
+    approved_overage_cents: int | None = None,
+    require_explicit_overage: bool = False,
 ) -> UsageEvent:
     """Reserve a billable central call before it leaves the application."""
 
@@ -165,6 +199,19 @@ def reserve_usage(
             organization=organization, action_code=action_code
         ).first()
         crosses_allowance = projection.projected_overage_units > meter.overage_units
+        additional_overage_cents = (
+            projection.projected_overage_cents
+            - usage_projection(meter, units=0).projected_overage_cents
+        )
+        if crosses_allowance and require_explicit_overage and (
+            not approved_overage
+            or approved_overage_cents is None
+            or approved_overage_cents < additional_overage_cents
+        ):
+            raise UsageApprovalRequired(
+                "O excedente mudou ou ainda não foi autorizado com o valor exato. "
+                "Revise a consulta antes de enviar."
+            )
         if policy is not None:
             if (
                 policy.monthly_overage_cap_cents

@@ -259,6 +259,71 @@ def test_developer_configures_the_local_runtime_without_exposing_or_clearing_its
     assert config.local_llm_api_key == "runtime-secret"
 
 
+def test_developer_configures_mewstack_cloud_fallback_without_exposing_its_secret(
+    developer_client,
+):
+    PlatformConfiguration.objects.update_or_create(
+        key="default",
+        defaults={
+            "local_llm_endpoint": "http://runtime.mewstack.test",
+            "local_llm_model": "qwen-local",
+        },
+    )
+
+    response = developer_client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "cloud-fallback",
+            "cloud_fallback_enabled": "on",
+            "cloud_fallback_api_key": "mewstack-cloud-secret",
+            "cloud_fallback_model": "claude-sonnet-4-5",
+            "cloud_fallback_max_request_cents": "35",
+            "cloud_fallback_daily_limit_cents": "500",
+            "cloud_fallback_monthly_limit_cents": "5000",
+        },
+    )
+
+    assert response.status_code == 302
+    config = PlatformConfiguration.objects.get(key="default")
+    assert config.cloud_fallback_enabled is True
+    assert config.cloud_fallback_api_key == "mewstack-cloud-secret"
+    assert config.cloud_fallback_model == "claude-sonnet-4-5"
+    page = developer_client.get("/platform/configuracoes/")
+    assert b"mewstack-cloud-secret" not in page.content
+
+
+def test_claude_env_key_releases_copilot_before_local_pc(developer_client, settings):
+    settings.CICA_CLAUDE_API_KEY = "env-only-secret"
+    response = developer_client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "cloud-fallback",
+            "cloud_fallback_enabled": "on",
+            "cloud_fallback_api_key": "",
+            "cloud_fallback_model": "claude-sonnet-5",
+            "cloud_fallback_max_request_cents": "15",
+            "cloud_fallback_daily_limit_cents": "1000",
+            "cloud_fallback_monthly_limit_cents": "7500",
+        },
+    )
+    assert response.status_code == 302
+    configuration = PlatformConfiguration.objects.get(key="default")
+    assert configuration.cloud_fallback_api_key == ""
+    assert configuration.cloud_fallback_enabled is True
+    response = developer_client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "copilot-availability",
+            "copilot_available_for_offices": "on",
+            "trial_ai_included_requests": "12",
+        },
+    )
+    assert response.status_code == 302
+    configuration.refresh_from_db()
+    assert configuration.copilot_available_for_offices is True
+    assert b"env-only-secret" not in developer_client.get("/platform/configuracoes/").content
+
+
 def test_developer_configures_transactional_email_without_exposing_or_clearing_secret(
     developer_client,
 ):
@@ -373,7 +438,7 @@ def test_database_email_backend_applies_the_console_sender_without_exposing_secr
     assert "smtp-secret" not in repr(captured)
 
 
-def test_copilot_cannot_be_released_before_a_local_runtime_is_configured(developer_client):
+def test_copilot_cannot_be_released_without_local_or_claude_runtime(developer_client):
     response = developer_client.post(
         "/platform/configuracoes/",
         {
@@ -384,7 +449,7 @@ def test_copilot_cannot_be_released_before_a_local_runtime_is_configured(develop
     )
 
     assert response.status_code == 200
-    assert b"Configure o endpoint e o modelo locais" in response.content
+    assert b"Configure Claude com chave e limites ou o runtime local" in response.content
     assert PlatformConfiguration.objects.get(key="default").copilot_available_for_offices is False
 
 

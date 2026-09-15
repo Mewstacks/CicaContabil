@@ -22,6 +22,7 @@ from apps.intelligence.gateway import (
     claude_fallback_payload,
     generate_claude_fallback_completion,
     generate_local_completion,
+    platform_claude_api_key,
 )
 from apps.intelligence.mirror import get_mirror_cards
 from apps.intelligence.models import (
@@ -539,9 +540,13 @@ def answer_question(
             conclusion = local_completion.content
             model_version = local_completion.model
         elif PlatformConfiguration.objects.filter(
-            key="default", local_llm_endpoint__gt=""
+            key="default", cloud_fallback_enabled=True
         ).exists():
-            # Cloud is considered only after an actual local runtime attempt failed.
+            # Lock the singleton before reserving the shared Mewstack fallback
+            # budget; two offices cannot race past the same daily ceiling.
+            platform_configuration = (
+                PlatformConfiguration.objects.select_for_update().filter(key="default").first()
+            )
             assistant_settings = (
                 AssistantSettings.objects.select_for_update()
                 .filter(organization=organization)
@@ -553,12 +558,13 @@ def answer_question(
                 .first()
             )
             role = membership.role if membership is not None else ""
-            if assistant_settings is not None:
+            if assistant_settings is not None and platform_configuration is not None:
                 decision = can_use_claude_fallback(
                     assistant_settings=assistant_settings,
                     approval=approval,
+                    platform_configuration=platform_configuration,
                     role=role,
-                    estimated_cost_cents=assistant_settings.claude_max_request_cents,
+                    estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
                 )
                 fallback_payload = claude_fallback_payload(
                     question=question,
@@ -566,7 +572,7 @@ def answer_question(
                     conversation_context=conversation_context,
                     evidence=model_evidence,
                     allow_full_data=assistant_settings.claude_full_data_allowed,
-                    model=assistant_settings.claude_model,
+                    model=platform_configuration.cloud_fallback_model,
                 )
                 audit_claude_egress(
                     organization=organization,
@@ -574,13 +580,13 @@ def answer_question(
                     role=role,
                     payload=json.dumps(fallback_payload, ensure_ascii=False, sort_keys=True),
                     allowed=decision.provider == "claude",
-                    estimated_cost_cents=assistant_settings.claude_max_request_cents,
-                    model=assistant_settings.claude_model,
+                    estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
+                    model=platform_configuration.cloud_fallback_model,
                 )
                 if decision.provider == "claude":
                     cloud_completion = generate_claude_fallback_completion(
-                        api_key=assistant_settings.claude_api_key,
-                        model=assistant_settings.claude_model,
+                        api_key=platform_claude_api_key(platform_configuration),
+                        model=platform_configuration.cloud_fallback_model,
                         question=question,
                         company_name=company.name if company else "Não selecionada",
                         conversation_context=conversation_context,

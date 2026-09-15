@@ -83,6 +83,59 @@ class InternalMcpTests(TestCase):
             local_llm_api_key=api_key,
         )
 
+    @staticmethod
+    def configure_mewstack_cloud_fallback() -> None:
+        PlatformConfiguration.objects.filter(key="default").update(
+            cloud_fallback_enabled=True,
+            cloud_fallback_api_key="mewstack-test-key",
+            cloud_fallback_model="claude-sonnet-4-5",
+            cloud_fallback_max_request_cents=35,
+            cloud_fallback_daily_limit_cents=100,
+            cloud_fallback_monthly_limit_cents=1_000,
+        )
+
+    @patch("apps.intelligence.services.generate_claude_fallback_completion")
+    @patch("apps.intelligence.services.generate_local_completion", return_value=None)
+    def test_claude_works_by_platform_api_key_before_local_pc_arrives(
+        self, mocked_local, mocked_claude
+    ) -> None:
+        self.configure_mewstack_cloud_fallback()
+        AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER],
+            claude_max_request_cents=35,
+        )
+        ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=70,
+            monthly_limit_cents=350,
+        )
+        mocked_claude.return_value = ClaudeCompletion("Resposta com fonte.", "claude-sonnet-4-5")
+
+        _, first, _ = answer_question(
+            organization=self.organization, actor=self.user,
+            question="Qual a pendência?", company=None, request=None,
+        )
+        self.assertEqual(first.content, "Resposta com fonte.")
+        self.assertEqual(mocked_claude.call_args.kwargs["api_key"], "mewstack-test-key")
+        self.assertTrue(mocked_local.called)
+
+        answer_question(
+            organization=self.organization, actor=self.user,
+            question="E outra?", company=None, request=None,
+        )
+        self.assertEqual(mocked_claude.call_count, 2)
+        answer_question(
+            organization=self.organization, actor=self.user,
+            question="Mais uma?", company=None, request=None,
+        )
+        self.assertEqual(mocked_claude.call_count, 2)
+        self.assertEqual(
+            EgressAudit.objects.filter(organization=self.organization, allowed=True).count(), 2
+        )
+
     def post_rpc(self, method: str, params: dict[str, object] | None = None):
         return self.client.post(
             reverse("intelligence-mcp"),
@@ -597,12 +650,11 @@ class InternalMcpTests(TestCase):
         self, mocked_local, mocked_claude
     ) -> None:
         self.configure_local_runtime()
+        self.configure_mewstack_cloud_fallback()
         AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=True,
             claude_allowed_roles=[Membership.Role.OWNER],
-            claude_api_key="office-owned-test-key",
-            claude_model="claude-sonnet-4-5",
             claude_max_request_cents=35,
         )
         ClaudeFallbackApproval.objects.create(
@@ -625,6 +677,7 @@ class InternalMcpTests(TestCase):
         self.assertEqual(response.model_version, "claude-sonnet-4-5")
         self.assertTrue(mocked_local.called)
         self.assertTrue(mocked_claude.called)
+        self.assertEqual(mocked_claude.call_args.kwargs["api_key"], "mewstack-test-key")
         self.assertFalse(mocked_claude.call_args.kwargs["allow_full_data"])
         audit = EgressAudit.objects.get(organization=self.organization)
         self.assertTrue(audit.allowed)
@@ -636,6 +689,7 @@ class InternalMcpTests(TestCase):
         self, mocked_local, mocked_claude
     ) -> None:
         self.configure_local_runtime()
+        self.configure_mewstack_cloud_fallback()
         AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=False,

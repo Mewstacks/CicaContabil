@@ -22,8 +22,24 @@ _SOURCES: dict[str, str] = {
     ReformAlert.Source.FAZENDA: "https://www.gov.br/fazenda/pt-br/canais_atendimento/imprensa",
     ReformAlert.Source.PLANALTO: "https://www.gov.br/planalto/pt-br/acompanhe-o-planalto/noticias",
 }
-_REFORM_TERMS = ("reforma tribut", "ibs", "cbs", "imposto sobre bens", "consumo")
-_FISCAL_TERMS = ("tribut", "fiscal", "receita", "simples nacional", "dctf", "sped")
+_REFORM_TERMS = (
+    "reforma tribut",
+    "ibs",
+    "cbs",
+    "imposto sobre bens",
+    "tributação do consumo",
+    "tributacao do consumo",
+)
+_FISCAL_TERMS = (
+    "tribut",
+    "imposto",
+    "benefícios fiscais",
+    "beneficios fiscais",
+    "crédito fiscal",
+    "credito fiscal",
+    "simples nacional",
+)
+_FISCAL_ACRONYMS = re.compile(r"\b(?:pis|cofins|irrf|itr|dctf|sped)\b", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -75,7 +91,7 @@ def _relevance(title: str) -> str:
     normalized = title.casefold()
     if any(term in normalized for term in _REFORM_TERMS):
         return ReformAlert.Relevance.REFORM
-    if any(term in normalized for term in _FISCAL_TERMS):
+    if any(term in normalized for term in _FISCAL_TERMS) or _FISCAL_ACRONYMS.search(normalized):
         return ReformAlert.Relevance.FISCAL
     return ReformAlert.Relevance.GENERAL
 
@@ -123,11 +139,19 @@ def refresh_reform_source(source: str) -> tuple[int, int]:
     with transaction.atomic():
         relevant_items = 0
         for item in items:
+            key = hashlib.sha256(item.source_url.encode()).hexdigest()
             relevance = _relevance(item.title)
             if relevance == ReformAlert.Relevance.GENERAL:
+                # An older broad rule may have marked this same official link as
+                # fiscal. Preserve its evidence, but withdraw it from the radar.
+                if (
+                    ReformAlert.objects.filter(source=source, external_key=key)
+                    .exclude(relevance=ReformAlert.Relevance.GENERAL)
+                    .update(relevance=ReformAlert.Relevance.GENERAL)
+                ):
+                    updated += 1
                 continue
             relevant_items += 1
-            key = hashlib.sha256(item.source_url.encode()).hexdigest()
             content_hash = hashlib.sha256(item.title.encode()).hexdigest()
             alert, was_created = ReformAlert.objects.get_or_create(
                 source=source,
@@ -141,7 +165,7 @@ def refresh_reform_source(source: str) -> tuple[int, int]:
             )
             if was_created:
                 created += 1
-            elif alert.content_hash != content_hash:
+            elif alert.content_hash != content_hash or alert.relevance != relevance:
                 alert.title = item.title
                 alert.relevance = relevance
                 alert.content_hash = content_hash

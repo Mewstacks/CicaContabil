@@ -97,7 +97,7 @@
 
 {% if can_edit_fallback %}
 <section class="panel access-panel">
-  <header class="panel-header"><div><h2>Fallback do Copiloto</h2><p>{% if managed_by_crmew %}Política definida pelo controle central da Mewstack.{% elif fallback_settings and fallback_settings.claude_fallback_enabled %}Externo apenas após timeout técnico local.{% else %}Desabilitado.{% endif %}</p></div><div class="panel-actions">{% if managed_by_crmew %}<button class="button button-quiet button-small" type="button" data-modal-open="fallback-credential-dialog">Chave do provedor</button>{% else %}<button class="button button-small" type="button" data-modal-open="fallback-dialog">Configurar</button>{% endif %}</div></header>
+  <header class="panel-header"><div><h2>Uso Claude do Copiloto</h2><p>{% if managed_by_crmew %}Política definida pelo controle central da Mewstack.{% elif fallback_settings and fallback_settings.claude_fallback_enabled %}Permitido com limites e perfis deste escritório.{% else %}Desabilitado.{% endif %}</p></div><div class="panel-actions">{% if not managed_by_crmew %}<button class="button button-small" type="button" data-modal-open="fallback-dialog">Configurar</button>{% endif %}</div></header>
 </section>
 
 <section class="panel access-panel">
@@ -119,12 +119,12 @@
 {% if not managed_by_crmew %}
 <div id="fallback-dialog" class="modal-backdrop" data-modal {% if not fallback_form.errors %}hidden{% endif %}>
   <section class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-labelledby="fallback-title">
-    <header class="modal-head"><div><h2 id="fallback-title">Fallback externo</h2><p>Usado somente quando o modelo local exceder o timeout técnico.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <header class="modal-head"><div><h2 id="fallback-title">Uso Claude</h2><p>Define os perfis, o consentimento e os tetos do escritório para chamadas pela chave Mewstack.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack fallback-form">
       {% csrf_token %}<input type="hidden" name="action" value="ai-fallback">
       {% if fallback_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
       {% for field in fallback_form %}
-        {% if field.name == 'enabled' or field.name == 'allow_full_data' or field.name == 'clear_api_key' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>
+        {% if field.name == 'enabled' or field.name == 'allow_full_data' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>
         {% elif field.name == 'allowed_roles' %}<fieldset class="field"><legend>{{ field.label }}</legend><div class="scope-options">{{ field }}</div>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</fieldset>
         {% else %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endif %}
       {% endfor %}
@@ -135,22 +135,6 @@
 {% endif %}
 {% endif %}
 
-{% if can_edit_fallback and managed_by_crmew %}
-<div id="fallback-credential-dialog" class="modal-backdrop" data-modal {% if not fallback_credential_form.errors %}hidden{% endif %}>
-  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fallback-credential-title">
-    <header class="modal-head"><div><h2 id="fallback-credential-title">Chave do provedor</h2><p>Política, limites e permissões continuam no controle central da Mewstack.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
-    <form method="post" class="form-stack">
-      {% csrf_token %}<input type="hidden" name="action" value="ai-fallback-credential">
-      {% if fallback_credential_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
-      {% for field in fallback_credential_form %}
-        {% if field.name == 'clear_api_key' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>
-        {% else %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endif %}
-      {% endfor %}
-      <div class="modal-actions"><button class="button" type="submit">Salvar chave</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
-    </form>
-  </section>
-</div>
-{% endif %}
 
 <div id="invite-dialog" class="modal-backdrop" data-modal {% if not invite_form.errors %}hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="invite-title">

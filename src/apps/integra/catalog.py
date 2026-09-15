@@ -97,6 +97,22 @@ SERVICES: dict[str, ServiceSpec] = {
         Verb.CONSULTAR,
         "XML da declaração DCTFWeb",
     ),
+    "dctfweb.recibo": _spec(
+        "dctfweb.recibo", "DCTFWEB", "CONSRECIBO32", Verb.CONSULTAR,
+        "Recibo de transmissão DCTFWeb",
+    ),
+    "dctfweb.declaracao_completa": _spec(
+        "dctfweb.declaracao_completa", "DCTFWEB", "CONSDECCOMPLETA33", Verb.CONSULTAR,
+        "Relatório da declaração DCTFWeb",
+    ),
+    "parcelamento.parcsn.pedidos": _spec(
+        "parcelamento.parcsn.pedidos", "PARCSN", "PEDIDOSPARC163", Verb.CONSULTAR,
+        "Pedidos de parcelamento do Simples Nacional",
+    ),
+    "parcelamento.parcsn.detalhe": _spec(
+        "parcelamento.parcsn.detalhe", "PARCSN", "OBTERPARC164", Verb.CONSULTAR,
+        "Detalhe de parcelamento do Simples Nacional",
+    ),
     "pgdasd.das": _spec("pgdasd.das", "PGDASD", "GERARDAS12", Verb.EMITIR, "DAS do Simples"),
     "pgmei.das": _spec("pgmei.das", "PGMEI", "GERARDASPDF21", Verb.EMITIR, "DAS do MEI"),
     "pgmei.divida": _spec(

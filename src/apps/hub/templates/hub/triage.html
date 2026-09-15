@@ -1,0 +1,70 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="triage-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="triage-heading">Documentos recebidos por e-mail, com revisão antes do arquivo.</h2>
+  </div>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if mailbox_error_exists %}Caixa com erro; recebimento indisponível{% elif authorized_mailboxes_exist %}Caixa autorizada; recebimento não disponível{% else %}Caixa de e-mail não configurada{% endif %}</span>
+</section>
+
+<section class="workspace-panel triage-connect-panel" aria-labelledby="triage-connect-heading">
+  <header class="workspace-panel-head"><div><h2 id="triage-connect-heading">Conectar caixa do escritório</h2><p>Escolha o provedor da caixa que recebe documentos. Você autoriza somente a caixa em que entrar; a CICA não pede sua senha principal.</p></div></header>
+  <div class="triage-provider-grid">
+    <article class="triage-provider-card">
+      <div><p class="section-kicker">Microsoft 365</p><h3>Conectar com Microsoft</h3><p>Entre na conta da caixa e conceda leitura de e-mail. Se sua empresa bloquear novos aplicativos, peça ao administrador Microsoft 365 que autorize a CICA.</p></div>
+      {% if can_manage_mailboxes and ms_oauth_ready %}
+      <form method="post" action="{% url 'hub:triage-oauth-start' 'ms365_graph' %}">{% csrf_token %}<button class="button" type="submit">Conectar Microsoft 365</button></form>
+      {% elif not ms_oauth_ready %}<p class="triage-provider-state">A Mewstack ainda precisa ativar o aplicativo Microsoft nesta instalação.</p>
+      {% else %}<p class="triage-provider-state">Peça ao administrador do escritório para conectar a caixa.</p>{% endif %}
+    </article>
+    <article class="triage-provider-card">
+      <div><p class="section-kicker">Gmail / Workspace</p><h3>Conectar com Google</h3><p>Entre na caixa Google e conceda leitura de e-mail. A autorização é individual; uma política do Workspace pode exigir liberação do administrador.</p></div>
+      {% if can_manage_mailboxes and google_oauth_ready %}
+      <form method="post" action="{% url 'hub:triage-oauth-start' 'gmail_api' %}">{% csrf_token %}<button class="button" type="submit">Conectar Gmail</button></form>
+      {% elif not google_oauth_ready %}<p class="triage-provider-state">A Mewstack precisa concluir a verificação Google antes de ativar esta conexão.</p>
+      {% else %}<p class="triage-provider-state">Peça ao administrador do escritório para conectar a caixa.</p>{% endif %}
+    </article>
+    <article class="triage-provider-card">
+      <div><p class="section-kicker">Outros provedores</p><h3>IMAP com TLS</h3><p>Use os dados de IMAP do seu provedor. O teste usa TLS, porta 993 e leitura sem alterar mensagens. Uma senha específica de aplicativo pode ser necessária.</p></div>
+      {% if can_manage_mailboxes %}
+      <details class="triage-imap-details" {% if imap_form.errors %}open{% endif %}>
+        <summary>Configurar IMAP</summary>
+        <form class="triage-imap-form" method="post" action="{% url 'hub:triage-imap-connect' %}" data-imap-connect>
+          {% csrf_token %}
+          {% if imap_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise os campos indicados e tente novamente. {{ imap_form.non_field_errors|striptags }}</div>{% endif %}
+          {% for field in imap_form %}<div class="field{% if field.errors %} has-error{% endif %}" {% if field.errors %}data-focus-error{% endif %}><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error" id="{{ field.auto_id }}-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
+          <p class="triage-imap-note">Se o usuário IMAP for o próprio e-mail, deixe esse campo vazio. A credencial será cifrada e não aparecerá novamente.</p>
+          <button class="button" type="submit">Testar e conectar IMAP</button><span class="sr-only" aria-live="polite" data-imap-status></span>
+        </form>
+      </details>
+      {% else %}<p class="triage-provider-state">Peça ao administrador do escritório para conectar a caixa.</p>{% endif %}
+    </article>
+  </div>
+  <details class="triage-connection-guide"><summary>Ver passo a passo e permissões</summary><div><ol><li>Escolha o provedor da sua caixa.</li><li>Microsoft ou Google: entre diretamente no provedor com a conta da caixa e autorize apenas leitura.</li><li>Se a organização exigir aprovação, peça ao administrador do e-mail que autorize o aplicativo CICA.</li><li>Após o retorno, confira o endereço identificado e o teste de leitura na lista abaixo.</li></ol><p>A CICA não marca mensagens como lidas, não move nem apaga e-mails neste fluxo de autorização. O recebimento de anexos, a escolha da pasta/data inicial e a definição do destino ainda não estão disponíveis nesta instalação.</p></div></details>
+</section>
+
+<section class="workspace-panel triage-mailboxes-panel" aria-labelledby="triage-mailboxes-heading">
+  <header class="workspace-panel-head"><div><h2 id="triage-mailboxes-heading">Caixas deste escritório</h2><p>Conexão e recebimento são etapas separadas. Nenhum anexo é recebido ou arquivado automaticamente enquanto a sincronização não estiver habilitada.</p></div></header>
+  {% if mailboxes %}
+  <ul class="triage-mailbox-list">
+    {% for mailbox in mailboxes %}
+    <li class="triage-mailbox-row">
+      <div><strong>{{ mailbox.address }}</strong><span>{{ mailbox.get_provider_display }} · {% if mailbox.status == 'disabled' %}Desconectada{% elif mailbox.status == 'error' %}Precisa reconectar. Use o provedor acima; se o botão não estiver disponível, peça suporte à Mewstack.{% else %}Autorizada; recebimento de anexos indisponível{% endif %}</span></div>
+      {% if can_manage_mailboxes and mailbox.status != 'disabled' %}
+      <button class="button button-secondary" type="button" data-modal-open="disconnect-mailbox-{{ mailbox.id }}">Desconectar</button>
+      <div id="disconnect-mailbox-{{ mailbox.id }}" class="modal-backdrop" data-modal hidden>
+        <section class="modal-card triage-disconnect-modal" role="dialog" aria-modal="true" aria-labelledby="disconnect-mailbox-title-{{ mailbox.id }}" aria-describedby="disconnect-mailbox-description-{{ mailbox.id }}">
+          <header class="modal-head"><h2 id="disconnect-mailbox-title-{{ mailbox.id }}">Desconectar esta caixa?</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar confirmação">×</button></header>
+          <p id="disconnect-mailbox-description-{{ mailbox.id }}">A CICA perderá acesso a <strong>{{ mailbox.address }}</strong>. O recebimento de anexos já está desligado.</p>
+          <form method="post" action="{% url 'hub:triage-mailbox-disconnect' mailbox.id %}">{% csrf_token %}<div class="modal-actions"><button class="button button-quiet" type="button" data-modal-close data-modal-initial-focus>Manter conectada</button><button class="button triage-confirm-disconnect" type="submit">Desconectar caixa</button></div></form>
+        </section>
+      </div>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<div class="module-clean-empty"><h3>Nenhuma caixa de e-mail conectada</h3><p>A conexão do provedor vem primeiro. O processamento de anexos continua desligado nesta instalação.</p></div>{% endif %}
+</section>
+{% endblock %}

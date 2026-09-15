@@ -12,7 +12,7 @@
 ## Evidências realizadas
 
 - Suíte completa executada em 14/09/2026: 427 testes aprovados e 2 subtestes aprovados. Um cenário de navegador permaneceu marcado como opcional porque o ambiente não disponibilizou Playwright/browser; isso não comprova validação visual.
-- A cobertura foi alinhada à operação aprovada: Copiloto oculto até a infraestrutura local existir, sem franquia publicada na landing; após o teste, a carência não suspende escritório automaticamente, pois a decisão de cobrança é manual pela Mewstack.
+- A cobertura foi alinhada ao estado então aprovado: Copiloto oculto até a infraestrutura local existir, sem franquia publicada na landing; após o teste, a carência não suspende escritório automaticamente, pois a decisão de cobrança era manual pela Mewstack. A decisão posterior de Claude temporário e Asaas está registrada em `docs/planejamento/`.
 - Leitura dos pontos de entrada hub, plataforma e MFA; serviços de cadastro, preços, pagamentos, webhooks e parte do gateway de IA.
 - Falha encontrada: link de cadastro consumido retornava o proprietário e permitia autenticação repetida. Removido retorno; testes de replay e expiração passaram (2 testes).
 - Estado consumido agora considera verified_at, inclusive quando a organização foi removida.
@@ -32,8 +32,8 @@
 ## Evidência adicional — Copiloto não lançado
 
 - A chave global `copilot_available_for_offices` inicia desligada. Enquanto estiver desligada, landing, cadastro, teste, navegação, cards, condições e documentos públicos não mostram o Copiloto; URLs diretas, exportações e MCP retornam 404.
-- O console de desenvolvedor permite preparar a franquia e liberar o recurso somente quando houver infraestrutura local.
-- Endpoint, modelo e token do runtime textual, além do endpoint privado do adaptador de documentos, são configurados pelo console. O token fica cifrado e não é devolvido pela interface, por auditoria ou por logs. A liberação do Copiloto exige endpoint e modelo textuais configurados.
+- O console de desenvolvedor permite preparar franquia e liberar o recurso com Claude Sonnet temporário ou com infraestrutura local. A liberação exige uma rota utilizável, política por escritório e limites positivos; não basta habilitar a interface.
+- Endpoint, modelo e token do runtime textual, além do endpoint privado do adaptador de documentos, são configurados pelo console. A chave Claude central pertence ao ambiente da Mewstack (`CICA_CLAUDE_API_KEY`); nenhum segredo é devolvido pela interface, auditoria ou logs. O runtime local tem precedência quando estiver disponível.
 - O nome da imagem/modelo no contêiner multimodal continua sendo uma configuração de implantação, porque inicia um serviço privado antes de o SaaS estar disponível. A ponte entre a CICA e esse adaptador já é configurável pelo console.
 
 ## Evidência adicional — e-mail transacional
@@ -50,7 +50,7 @@
 |---|---|---|---|
 | Confirmação de cadastro | /comecar/verificar/ | Token expira, é de uso único e só provisiona após senha em POST | test_cica_signup_security.py e test_cica_signup_flow.py |
 | Teste / MFA | /comecar/, /mfa/ | 14 dias; MFA após teste | Integração contratual a revisar |
-| Cobrança | /platform/escritorios/&lt;id&gt;/ | Status interno de contrato/cobrança, restrito ao time da Mewstack | Sem checkout, Asaas ou webhook; cobrança externa precisa de processo operacional definido |
+| Cobrança | /platform/escritorios/&lt;id&gt;/ e `POST /platform/webhooks/asaas/` | Status interno de contrato/cobrança, restrito ao time da Mewstack; receptor Asaas autenticado e idempotente atualiza apenas tentativas Asaas conhecidas | Ainda não há criação de cliente/cobrança Asaas, checkout, Sandbox homologado nem regra aprovada de carência/suspensão; ver `docs/planejamento/asaas-operacao.md` |
 | Marca | Templates públicos/autenticados | CICA marfim/verde | Troca inicial; todas as telas ainda precisam de inspeção |
 | Console dev | /platform/ | Configuração restrita e auditada | Expansão pendente |
 | E-mail transacional | /platform/configuracoes/ | SMTP cifrado, teste sem envio e remetente central | 69 testes focados; provedor e domínio de envio ainda precisam ser escolhidos e homologados |

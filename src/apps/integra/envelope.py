@@ -7,9 +7,7 @@ from typing import Any
 
 from apps.integra.catalog import ServiceSpec
 
-CPF_LENGTH = 11
-CNPJ_LENGTH = 14
-_DIGITS = re.compile(r"\D+")
+_SEPARATORS = re.compile(r"[./\-\s]+")
 
 
 class PersonType:
@@ -26,19 +24,19 @@ class Party:
     numero: str
 
     @property
-    def digits(self) -> str:
-        return _DIGITS.sub("", self.numero)
+    def normalized(self) -> str:
+        return _SEPARATORS.sub("", self.numero).upper()
 
     @property
     def tipo(self) -> int:
-        if len(self.digits) == CPF_LENGTH:
+        if re.fullmatch(r"[0-9]{11}", self.normalized):
             return PersonType.CPF
-        if len(self.digits) == CNPJ_LENGTH:
+        if re.fullmatch(r"[A-Z0-9]{12}[0-9]{2}", self.normalized):
             return PersonType.CNPJ
         raise ValueError(f"{self.numero!r} não é um CPF nem um CNPJ.")
 
     def as_payload(self) -> dict[str, Any]:
-        return {"numero": self.digits, "tipo": self.tipo}
+        return {"numero": self.normalized, "tipo": self.tipo}
 
 
 def build(

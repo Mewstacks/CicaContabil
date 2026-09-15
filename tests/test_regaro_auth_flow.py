@@ -69,6 +69,40 @@ class RegaroAuthFlowTests(TestCase):
         device.refresh_from_db()
         self.assertEqual(device.secret, secret)
         self.assertTrue(device.is_confirmed)
+        follow_up = self.client.get(target)
+        self.assertEqual(follow_up.status_code, 200)
+        self.assertNotIn(reverse("accounts:mfa-verify"), follow_up.get("Location", ""))
+
+    def test_platform_operator_can_leave_recovery_screen_for_console(self):
+        PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.DEVELOPER)
+        self.client.force_login(self.user)
+        self.client.get(reverse("accounts:mfa-setup"), {"next": reverse("hub:dashboard")})
+        device = mfa.device_for(self.user)
+        response = self.client.post(
+            reverse("accounts:mfa-setup"),
+            {
+                "code": totp.code_for(device.secret, totp.counter_at()),
+                "next": reverse("hub:dashboard"),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{reverse("platform:dashboard")}"')
+        self.assertContains(response, "Ir às configurações da Mewstack")
+        self.assertEqual(self.client.get(reverse("platform:dashboard")).status_code, 200)
+
+    def test_recovery_continue_has_navigable_url_when_setup_has_no_next(self):
+        PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.DEVELOPER)
+        self.client.force_login(self.user)
+        self.client.get(reverse("accounts:mfa-setup"))
+        device = mfa.device_for(self.user)
+        response = self.client.post(
+            reverse("accounts:mfa-setup"),
+            {"code": totp.code_for(device.secret, totp.counter_at())},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{reverse("platform:dashboard")}"')
+        self.assertNotContains(response, 'href="platform:dashboard"')
+        self.assertEqual(self.client.get(reverse("platform:configuration")).status_code, 200)
 
     def test_invitation_activation_starts_trial_once(self):
         office = Organization.objects.create(name="Novo escritório", slug="new-auth-review")

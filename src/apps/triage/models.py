@@ -10,10 +10,12 @@ build services on top of this schema.
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.common.encryption import EncryptedTextField
 from apps.organizations.models import OrganizationScopedModel
+from apps.triage.storage import PrivateTriageStorage
 from apps.triage.transitions import TriageStatus, ensure_transition_allowed
 
 
@@ -29,6 +31,7 @@ class Mailbox(OrganizationScopedModel):
 
     class Provider(models.TextChoices):
         MS365_GRAPH = "ms365_graph", "Microsoft 365 (Graph)"
+        GMAIL_API = "gmail_api", "Gmail / Google Workspace"
         IMAP = "imap", "IMAP"
 
     class Status(models.TextChoices):
@@ -43,9 +46,8 @@ class Mailbox(OrganizationScopedModel):
     # OAuth token / app-password / refresh token, whichever the provider needs. Never
     # logged, never returned to a template — only decrypted inside the poller service.
     credential = EncryptedTextField(blank=True)
-    # Graph delta token or IMAP "UIDVALIDITY:UID" watermark. Makes polling idempotent
-    # without re-reading the whole mailbox every run.
-    cursor = models.CharField(max_length=255, blank=True)
+    # Provider checkpoints can be long and contain opaque tokens. Encrypt them at rest.
+    cursor = EncryptedTextField(blank=True)
     since = models.DateTimeField(null=True, blank=True)
     sender_filter = models.CharField(max_length=255, blank=True)
     subject_filter = models.CharField(max_length=255, blank=True)
@@ -228,16 +230,49 @@ class TriageItem(OrganizationScopedModel):
         ensure_transition_allowed(self.status, target)
         self.status = target
 
+    def clean(self) -> None:
+        errors: dict[str, str] = {}
+        for field in ("mailbox", "company", "document_type"):
+            related = getattr(self, field, None)
+            if related is not None and related.organization_id != self.organization_id:
+                errors[field] = "Este registro pertence a outro escritório."
+        if errors:
+            raise ValidationError(errors)
+
 
 class TriageBlob(OrganizationScopedModel):
     """The quarantined binary itself, kept apart from anything servable."""
 
     triage_item = models.OneToOneField(TriageItem, on_delete=models.CASCADE, related_name="blob")
-    content = models.FileField(upload_to=private_triage_path)
+    content = models.FileField(upload_to=private_triage_path, storage=PrivateTriageStorage())
     content_type = models.CharField(max_length=100, blank=True)
 
     def __str__(self) -> str:
         return f"blob for {self.triage_item_id}"
+
+    def clean(self) -> None:
+        if self.triage_item_id and self.triage_item.organization_id != self.organization_id:
+            raise ValidationError({"triage_item": "O arquivo pertence a outro escritório."})
+
+
+class TriageEvent(OrganizationScopedModel):
+    """Append-only evidence of a state change or reviewer decision."""
+
+    triage_item = models.ForeignKey(TriageItem, on_delete=models.CASCADE, related_name="events")
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    from_status = models.CharField(max_length=24)
+    to_status = models.CharField(max_length=24)
+    note = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        ordering = ("created_at",)
+        indexes = [models.Index(fields=("organization", "triage_item", "created_at"))]
+
+    def clean(self) -> None:
+        if self.triage_item_id and self.triage_item.organization_id != self.organization_id:
+            raise ValidationError({"triage_item": "O evento pertence a outro escritório."})
 
 
 class ChecklistExpectation(OrganizationScopedModel):

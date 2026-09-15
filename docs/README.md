@@ -1,8 +1,8 @@
 # Documentação / Documentation
 
-Toda a documentação do projeto está disponível em português brasileiro e inglês.
+Os guias técnicos abaixo têm versões em português brasileiro e inglês. A memória de produto em `planejamento/` está em português.
 
-All project documentation is available in Brazilian Portuguese and English.
+The technical guides below have Brazilian Portuguese and English versions. Product planning notes under `planejamento/` are in Portuguese.
 
 | Assunto / Topic | Português (pt-BR) | English |
 | --- | --- | --- |
@@ -23,3 +23,7 @@ All project documentation is available in Brazilian Portuguese and English.
 | Backup e restauração | [Runbook](pt-BR/runbooks/backup-restauracao.md) | [Runbook](en/runbooks/backup-restore.md) |
 | Revisão externa incorporada | [Revisão Claude](pt-BR/revisao-claude.md) | [Claude review](en/claude-review.md) |
 | Política de segurança | [Security policy](../SECURITY.md) | [Security policy](../SECURITY.md) |
+
+## Memória de planejamento CICA
+
+Os planos antigos do Claude e do Codex, as decisões confirmadas, o estado operacional e as dúvidas abertas estão consolidados em [planejamento/README.md](planejamento/README.md). Essa memória de produto está em português; a documentação técnica bilíngue permanece nas seções acima.

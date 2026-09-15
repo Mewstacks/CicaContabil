@@ -6,6 +6,7 @@ from typing import Any, NoReturn
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.base import ModelBase
+from django.utils import timezone
 
 from apps.common.encryption import EncryptedTextField
 from apps.common.models import AppendOnlyQuerySet, UUIDTimeStampedModel
@@ -617,6 +618,7 @@ class DteRunItem(OrganizationScopedModel):
     )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     messages_found = models.PositiveIntegerField(default=0)
+    more_available = models.BooleanField(default=False)
     service_response_id = models.CharField(max_length=120, blank=True)
     error_code = models.CharField(max_length=80, blank=True)
     error_message = models.CharField(max_length=240, blank=True)
@@ -636,7 +638,7 @@ class DteRunItem(OrganizationScopedModel):
 
 
 class DteMessage(ImmutableOrganizationModel):
-    """Immutable evidence returned by the Integra Contador Caixa Postal service."""
+    """Immutable first observation returned by the Caixa Postal service."""
 
     company = models.ForeignKey(
         ClientCompany, on_delete=models.PROTECT, related_name="dte_messages"
@@ -646,6 +648,7 @@ class DteMessage(ImmutableOrganizationModel):
     sender = models.CharField(max_length=240, blank=True)
     sent_at = models.DateTimeField(null=True, blank=True)
     read_at = models.DateTimeField(null=True, blank=True)
+    source_science_at = models.DateTimeField(null=True, blank=True)
     first_seen_at = models.DateTimeField(auto_now_add=True)
     raw_payload = EncryptedTextField(blank=True)
 
@@ -663,6 +666,71 @@ class DteMessage(ImmutableOrganizationModel):
                 name="hub_dtemess_organiz_a0a7f2_idx",
             )
         ]
+
+
+class DteMessageObservation(ImmutableOrganizationModel):
+    """Append-only proof of each list response that mentioned a message."""
+
+    message = models.ForeignKey(
+        DteMessage, on_delete=models.PROTECT, related_name="observations"
+    )
+    run_item = models.ForeignKey(
+        DteRunItem, on_delete=models.PROTECT, related_name="message_observations"
+    )
+    observed_at = models.DateTimeField(default=timezone.now)
+    read_at = models.DateTimeField(null=True, blank=True)
+    science_at = models.DateTimeField(null=True, blank=True)
+    raw_payload = EncryptedTextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run_item", "message"), name="hub_unique_dte_list_observation"
+            )
+        ]
+
+
+class DteMessageState(OrganizationScopedModel):
+    """Current queue state, backed by immutable list observations."""
+
+    message = models.OneToOneField(
+        DteMessage, on_delete=models.PROTECT, related_name="current_state"
+    )
+    read_at = models.DateTimeField(null=True, blank=True)
+    science_at = models.DateTimeField(null=True, blank=True)
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    last_observation = models.ForeignKey(
+        DteMessageObservation, null=True, blank=True, on_delete=models.PROTECT
+    )
+
+
+class DteMessageAccess(OrganizationScopedModel):
+    """One auditable provider detail request, which itself may give legal notice."""
+
+    class Status(models.TextChoices):
+        READING = "reading", "Abertura em andamento"
+        OPENED = "opened", "Teor consultado"
+        FAILED = "failed", "Consulta recusada"
+        UNKNOWN = "unknown", "Resultado a confirmar"
+
+    message = models.OneToOneField(
+        DteMessage, on_delete=models.PROTECT, related_name="access_receipt"
+    )
+    status = models.CharField(max_length=16, choices=Status.choices)
+    attempt_count = models.PositiveSmallIntegerField(default=0)
+    requested_by = models.ForeignKey(
+        "accounts.User", null=True, on_delete=models.SET_NULL, related_name="dte_detail_requests"
+    )
+    requested_at = models.DateTimeField(default=timezone.now)
+    opened_at = models.DateTimeField(null=True, blank=True)
+    provider_read_at = models.DateTimeField(null=True, blank=True)
+    provider_science_at = models.DateTimeField(null=True, blank=True)
+    provider_request_id = models.CharField(max_length=160, blank=True)
+    provider_payload = EncryptedTextField(blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "status", "requested_at"))]
 
 
 class FiscalGuide(OrganizationScopedModel):

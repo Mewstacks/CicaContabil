@@ -4,6 +4,7 @@ from typing import Any, cast
 from django import forms
 from django.db.models import QuerySet
 
+from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import (
     ClientCompany,
     ClientJourney,
@@ -26,7 +27,7 @@ class CompanyForm(forms.ModelForm):  # type: ignore[type-arg]
             "cnpj_masked": forms.TextInput(
                 attrs={
                     "autocomplete": "off",
-                    "inputmode": "numeric",
+                    "inputmode": "text",
                     "placeholder": "00.000.000/0000-00…",
                 }
             ),
@@ -192,6 +193,11 @@ class CollaboratorInvitationForm(forms.Form):
 class CollaboratorAccessForm(CollaboratorInvitationForm):
     """The same explicit scope controls used after a teammate has joined."""
 
+    can_acknowledge_dte = forms.BooleanField(
+        required=False,
+        label="Pode abrir mensagens DTE e registrar ciência",
+    )
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields.pop("full_name")
@@ -273,8 +279,25 @@ class DtePreparationForm(forms.Form):
         company_field = cast(
             "forms.ModelMultipleChoiceField[ClientCompany]", self.fields["companies"]
         )
+        candidates = list(companies) if companies is not None else []
+        eligible_ids = []
+        for company in candidates:
+            try:
+                normalize_cnpj(company.cnpj_masked)
+            except forms.ValidationError:
+                continue
+            eligible_ids.append(company.id)
+        self.scope_count = len(candidates)
+        self.ineligible_count = self.scope_count - len(eligible_ids)
         company_field.queryset = (
-            companies if companies is not None else ClientCompany.objects.none()
+            companies.filter(id__in=eligible_ids)
+            if companies is not None
+            else ClientCompany.objects.none()
+        )
+        company_field.label_from_instance = lambda company: (
+            company.name
+            + (f" · Domínio {company.dominio_code}" if company.dominio_code else "")
+            + (f" · {company.cnpj_masked}" if company.cnpj_masked else " · CNPJ ausente")
         )
 
 

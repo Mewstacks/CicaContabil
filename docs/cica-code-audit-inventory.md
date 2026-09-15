@@ -20,8 +20,8 @@ Atualizado em 14/09/2026. Este registro separa o que foi inspecionado do que ain
 | Documentos legais | `src/apps/platform/legal.py`, `src/apps/platform/legal_versions.py` | Há minutas versionadas e aceite registrado no cadastro. Elas permanecem como rascunho: e-mails de suporte/privacidade e os prazos de exportação, retenção e descarte ainda não foram definidos. |
 | Integrações | `docs/cica-siescon-discovery.md`, testes Domínio/agent | Domínio tem caminho local somente leitura. Siescon não tem adaptador homologado. Integra Contador ainda depende da decisão de escopo de credenciais Serpro. |
 | NFS-e Inteligente | `src/apps/hub/models.py`, `src/apps/hub/services.py`, `src/apps/hub/views.py` | A custódia A1/PFX, evidência imutável e classificação determinística existem. A coleta externa não: `NfseSync` não é criado/executado por serviço ou tarefa. Não anunciar captura como ativa até a homologação. |
-| Copiloto | `tests/test_intelligence*.py`, `docs/cica-ai-scope-review.md` | Mantido oculto e indisponível para escritórios até infraestrutura local e fallback global da Mewstack. |
-| Rotinas operacionais | `src/config/settings/base.py`, `src/apps/*/tasks.py` | Ciclos de cobrança, teste, Radar, retenção e conhecimento existem como tarefas Celery agendadas. O console ainda não apresenta saúde, última execução ou acionamento seguro dessas rotinas. |
+| Copiloto | `tests/test_intelligence*.py`, `docs/cica-ai-scope-review.md`, `docs/planejamento/ia-operacao.md` | Continua indisponível enquanto a configuração global estiver desligada. O caminho temporário Claude via chave central, cotas, consentimento e auditoria existe, mas a chave, os limites aprovados e o piloto real ainda faltam. |
+| Rotinas operacionais | `src/config/settings/base.py`, `src/apps/*/tasks.py`, `src/apps/platform/operations.py` | Ciclos de cobrança, teste, Radar, retenção e conhecimento existem como tarefas Celery agendadas e gravam a última execução, resultado ou falha compacta no console de desenvolvedor. Beat, worker, alertas e restauração ainda exigem homologação no ambiente de implantação. |
 
 ## Pendências que não podem ser declaradas concluídas
 

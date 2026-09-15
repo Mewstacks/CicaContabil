@@ -65,6 +65,7 @@ class Membership(UUIDTimeStampedModel):
     )
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.MEMBER)
     is_active = models.BooleanField(default=True)
+    can_acknowledge_dte = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

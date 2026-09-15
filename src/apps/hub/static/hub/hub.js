@@ -252,6 +252,27 @@ document.querySelectorAll('[data-dominio-sync-form]').forEach((form) => {
   });
 });
 
+document.querySelectorAll('[data-imap-connect]').forEach((form) => {
+  let dirty = false;
+  let submitting = false;
+  form.addEventListener('input', () => { dirty = true; });
+  window.addEventListener('beforeunload', (event) => {
+    if (!dirty || submitting) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
+  form.addEventListener('submit', () => {
+    submitting = true;
+    const button = form.querySelector('button[type="submit"]');
+    if (!(button instanceof HTMLButtonElement)) return;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = 'Testando caixa…';
+    const status = form.querySelector('[data-imap-status]');
+    if (status) status.textContent = 'Testando a conexão IMAP…';
+  });
+});
+
 document.querySelectorAll('[data-modal] form input[name="action"][value="lifecycle"]').forEach((action) => {
   const form = action.closest('form');
   const state = form?.querySelector('select[name="state"]');

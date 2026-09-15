@@ -1,8 +1,10 @@
+import re
 from datetime import date
 from decimal import Decimal
-import re
+from pathlib import Path
 
 from django import forms
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -116,12 +118,20 @@ class CopilotAvailabilityForm(forms.ModelForm):
                 "trial_ai_included_requests",
                 "Defina ao menos uma pergunta antes de disponibilizar o Copiloto.",
             )
-        if cleaned.get("copilot_available_for_offices") and (
-            not self.instance.local_llm_endpoint or not self.instance.local_llm_model
-        ):
+        local_ready = bool(self.instance.local_llm_endpoint and self.instance.local_llm_model)
+        cloud_ready = bool(
+            self.instance.cloud_fallback_enabled
+            and self.instance.cloud_fallback_model
+            and (django_settings.CICA_CLAUDE_API_KEY or self.instance.cloud_fallback_api_key)
+            and self.instance.cloud_fallback_max_request_cents > 0
+            and self.instance.cloud_fallback_daily_limit_cents > 0
+            and self.instance.cloud_fallback_monthly_limit_cents > 0
+        )
+        if cleaned.get("copilot_available_for_offices") and not (local_ready or cloud_ready):
             self.add_error(
                 None,
-                "Configure o endpoint e o modelo locais antes de disponibilizar o Copiloto.",
+                "Configure Claude com chave e limites ou o runtime local antes de "
+                "disponibilizar o Copiloto.",
             )
         return cleaned
 
@@ -228,14 +238,16 @@ class CloudFallbackForm(forms.ModelForm):
             "cloud_fallback_monthly_limit_cents",
         )
         labels = {
-            "cloud_fallback_enabled": "Permitir fallback externo após falha técnica local",
+            "cloud_fallback_enabled": "Permitir Claude via API key",
             "cloud_fallback_model": "Modelo permitido",
             "cloud_fallback_max_request_cents": "Teto por solicitação (centavos)",
             "cloud_fallback_daily_limit_cents": "Teto diário da Mewstack (centavos)",
             "cloud_fallback_monthly_limit_cents": "Teto mensal da Mewstack (centavos)",
         }
         help_texts = {
-            "cloud_fallback_enabled": "Fica desativado até que a infraestrutura local esteja pronta.",
+            "cloud_fallback_enabled": (
+                "Usado agora; quando o PC local estiver pronto, será reserva após falha técnica."
+            ),
             "cloud_fallback_max_request_cents": "Reserva conservadora antes de chamar o provedor.",
         }
         widgets = {
@@ -261,13 +273,15 @@ class CloudFallbackForm(forms.ModelForm):
         cleaned = super().clean()
         if not cleaned.get("cloud_fallback_enabled"):
             return cleaned
-        if not self.instance.local_llm_endpoint or not self.instance.local_llm_model:
+        if not (
+            cleaned.get("cloud_fallback_api_key")
+            or self._saved_api_key
+            or django_settings.CICA_CLAUDE_API_KEY
+        ):
             self.add_error(
-                None,
-                "Configure o runtime local antes de liberar o fallback externo.",
+                "cloud_fallback_api_key",
+                "Informe a chave no .env ou neste campo antes de habilitar Claude.",
             )
-        if not (cleaned.get("cloud_fallback_api_key") or self._saved_api_key):
-            self.add_error("cloud_fallback_api_key", "Informe a chave antes de habilitar o fallback.")
         model = str(cleaned.get("cloud_fallback_model") or "").strip()
         if not _CLOUD_MODEL_RE.fullmatch(model):
             self.add_error("cloud_fallback_model", "Informe um modelo permitido.")
@@ -278,6 +292,17 @@ class CloudFallbackForm(forms.ModelForm):
         ):
             if int(cleaned.get(field) or 0) <= 0:
                 self.add_error(field, "Informe um teto maior que zero.")
+        request_limit = int(cleaned.get("cloud_fallback_max_request_cents") or 0)
+        daily_limit = int(cleaned.get("cloud_fallback_daily_limit_cents") or 0)
+        monthly_limit = int(cleaned.get("cloud_fallback_monthly_limit_cents") or 0)
+        if request_limit > daily_limit > 0:
+            self.add_error(
+                "cloud_fallback_daily_limit_cents", "O teto diário deve cobrir uma solicitação."
+            )
+        if daily_limit > monthly_limit > 0:
+            self.add_error(
+                "cloud_fallback_monthly_limit_cents", "O teto mensal deve cobrir o diário."
+            )
         cleaned["cloud_fallback_model"] = model
         return cleaned
 
@@ -656,6 +681,17 @@ def configuration(request):
         )
         plan.monthly_price_brl = Decimal(plan.monthly_price_cents) / 100  # type: ignore[attr-defined]
     ctx = context(request)
+    integra_required = (
+        "INTEGRA_CONSUMER_KEY",
+        "INTEGRA_CONSUMER_SECRET",
+        "INTEGRA_CERTIFICATE_PATH",
+        "INTEGRA_CONTRATANTE_CNPJ",
+    )
+    integra_missing = [
+        name for name in integra_required if not getattr(django_settings, name, "")
+    ]
+    certificate_path = str(getattr(django_settings, "INTEGRA_CERTIFICATE_PATH", "") or "")
+    certificate_found = bool(certificate_path and Path(certificate_path).is_file())
     ctx.update(
         page_title="Configurações da CICA",
         form=form,
@@ -669,5 +705,8 @@ def configuration(request):
         plan_form=plan_form,
         editing_plan=bool(selected_plan_id),
         plans=plans,
+        integra_missing=integra_missing,
+        integra_certificate_found=certificate_found,
+        integra_environment=getattr(django_settings, "INTEGRA_ENVIRONMENT", "trial"),
     )
     return render(request, "platform/configuration.html", ctx)

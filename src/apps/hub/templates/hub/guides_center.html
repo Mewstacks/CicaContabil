@@ -1,9 +1,12 @@
 {% extends 'hub/workspace.html' %}
 
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:integra' %}">Voltar à Central Integra</a>{% endblock %}
+
 {% block workspace_content %}
 <section class="operation-summary" aria-labelledby="guides-heading">
   <div><p class="section-kicker">GUIAS</p><h2 id="guides-heading">Guias e DCTFWeb</h2></div>
 </section>
+<p class="operation-context">Esta área acompanha obrigações recebidas do Domínio. A consulta da declaração DCTFWeb no Serpro ainda depende de implementação e homologação da conexão central.</p>
 
 <section class="metric-strip" aria-label="Resumo de obrigações">
   <article><span>Vencem em 7 dias</span><strong>{{ guide_stats.due_this_week }}</strong></article>
@@ -20,7 +23,7 @@
     </tbody></table></div>
     {% if can_issue_guides %}{% for guide in guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}<div id="issue-guide-{{ guide.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="issue-guide-title-{{ guide.id }}"><header class="modal-head"><div><p class="section-kicker">CONFIRMAR EMISSÃO</p><h2 id="issue-guide-title-{{ guide.id }}">Emitir {{ guide.get_kind_display }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>Será emitida para <strong>{{ guide.company.name }}</strong>, competência {{ guide.competence }}, com vencimento em {{ guide.due_on|date:"d/m/Y" }}.</p><form method="post" action="{% url 'hub:issue-guide' guide.id %}" class="modal-actions">{% csrf_token %}<button class="button" type="submit">Confirmar emissão</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}{% endfor %}{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma guia por aqui</strong><p>Sincronize o Domínio para começar.</p></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma obrigação carregada</strong><p>Verifique a conexão e a última sincronização do Domínio. Quando houver obrigações recebidas, elas aparecerão aqui por empresa e vencimento.</p><a class="button button-quiet" href="{% url 'hub:settings' %}#dominio">Ver conexão do Domínio</a></div>
   {% endif %}
 </section>
 {% endblock %}

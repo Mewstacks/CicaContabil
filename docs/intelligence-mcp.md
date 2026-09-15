@@ -116,7 +116,7 @@ Feedback “Não resolveu” cria somente um `LearningCandidate` pendente. Não 
 
 ## Modelo local e Claude
 
-O chat usa modelo local como caminho normal. O cliente Anthropic existe, mas não fará chamada paga por padrão. Para habilitar o fallback, cada escritório precisa de:
+Enquanto o PC local não estiver disponível, o chat pode usar Claude Sonnet pela chave central da Mewstack; quando o runtime local estiver configurado e saudável, ele tem precedência. Nenhuma chamada paga ocorre por padrão: Claude exige ativação global, política por escritório e limite positivo. Para habilitar a rota Claude, cada escritório precisa de:
 
 - opt-in explícito do owner;
 - perfis permitidos; neste produto, owner, admin, manager e operator;
@@ -124,9 +124,9 @@ O chat usa modelo local como caminho normal. O cliente Anthropic existe, mas nã
 - modelo Claude permitido, teto por requisição e diário/mensal em centavos, aprovação de custo vigente e revogável;
 - auditoria de usuário, papel, finalidade, horário, modelo e hash do pacote enviado.
 
-Fallback somente pode ocorrer após falha técnica do runtime local configurado. Ele nunca pode ser usado por pergunta “difícil” ou quando o runtime local não está configurado. Claude serve como professor/avaliador offline e não como fine-tuning: o adaptador é treinado no modelo local. O cliente envia apenas pergunta mascarada, resumo estruturado, turnos relevantes e cartões de evidência; nunca schema inteiro, histórico completo, anexo bruto ou dump de tabela. CPF/CNPJ e e-mail são mascarados antes do envio. O prefixo estável de política recebe cache efêmero de cinco minutos, sem colocar conteúdo do escritório no prefixo cacheado.
+Claude pode ser a rota temporária enquanto o runtime local ainda não estiver configurado ou o fallback técnico quando ele não devolver resposta utilizável. Ele nunca pode ser usado apenas por uma pergunta “difícil”. A chave é central da Mewstack, e cada escritório continua sujeito a consentimento, papel e cotas. Claude serve como professor/avaliador offline e não como fine-tuning: o adaptador é treinado no modelo local. O cliente envia apenas pergunta mascarada, resumo estruturado, turnos relevantes e cartões de evidência; nunca schema inteiro, histórico completo, anexo bruto ou dump de tabela. CPF/CNPJ e e-mail são mascarados antes do envio. O prefixo estável de política recebe cache efêmero de cinco minutos, sem colocar conteúdo do escritório no prefixo cacheado.
 
-O código falha fechado se a aprovação não existir, estiver revogada/expirada, tiver teto diário/mensal zero, não tiver modelo permitido, teto por requisição ou chave local. Antes de uma chamada autorizada, registra somente usuário, perfil, modelo, estimativa e hash do payload. O custo reservado é conservador: o teto por requisição conta contra o limite aprovado antes da chamada.
+O código falha fechado se a aprovação não existir, estiver revogada/expirada, tiver teto diário/mensal zero, não tiver modelo permitido, teto por requisição ou chave central. Antes de uma chamada autorizada, registra somente usuário, perfil, modelo, estimativa e hash do payload. O custo reservado é conservador: o teto por requisição conta contra o limite aprovado antes da chamada.
 
 ### Política assinada pelo CRMew e chave local
 

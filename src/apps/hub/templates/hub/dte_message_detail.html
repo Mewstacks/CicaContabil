@@ -1,0 +1,57 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/dte.css' %}?v=cica-6">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:dte-center' %}">Voltar à Caixa Postal</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="dte-detail-heading" aria-labelledby="dte-detail-title">
+  <p class="section-kicker">{{ dte_message.company.name }} · Caixa Postal</p>
+  <h2 id="dte-detail-title">{{ dte_message.subject|default:'Assunto não informado' }}</h2>
+  <p>{{ dte_message.sender|default:'Origem não informada' }} · {% if dte_message.sent_at %}Enviada em {{ dte_message.sent_at|date:'d/m/Y H:i' }}{% else %}Data de envio não informada{% endif %}</p>
+</section>
+
+<div class="dte-detail-grid">
+  <section class="workspace-panel dte-detail-content" aria-labelledby="dte-content-title">
+    <header class="workspace-panel-head"><div><p class="section-kicker">Teor oficial</p><h2 id="dte-content-title">Mensagem</h2></div>{% if dte_access.status == 'opened' %}<span class="dte-status dte-status-completed">Consultada no Serpro</span>{% endif %}</header>
+    {% if dte_access.status == 'opened' %}
+      {% if dte_body_text %}<div class="dte-body-text">{{ dte_body_text }}</div>{% else %}<div class="empty-block operational-empty"><strong>Teor vazio no retorno</strong><p>A abertura foi registrada, mas o Serpro não devolveu texto exibível. Confira a evidência e solicite suporte.</p></div>{% endif %}
+    {% elif dte_access.status == 'unknown' %}
+      <div class="dte-legal-warning" role="alert"><strong>Resultado da abertura a confirmar</strong><p>O Serpro pode ter registrado ciência. Não repita a chamada antes de a Mewstack conferir o evento e o consumo.</p>{% if dte_access.error_message %}<p>{{ dte_access.error_message }}</p>{% endif %}</div>
+    {% elif dte_access.status == 'reading' %}
+      <div class="dte-legal-warning" role="status"><strong>Abertura em andamento</strong><p>Aguarde o retorno antes de tentar novamente. Se demorar, a Mewstack deverá confirmar a ciência no Serpro.</p></div>
+    {% else %}
+      <div class="empty-block operational-empty"><strong>Teor ainda não consultado</strong><p>Este resumo mostra apenas os metadados trazidos pela lista. A consulta do detalhe no Serpro pode registrar ciência de uma intimação e iniciar prazo.</p></div>
+      {% if dte_access.status == 'failed' %}<div class="dte-legal-warning" role="alert"><strong>Consulta anterior recusada</strong><p>{{ dte_access.error_message }}</p></div>{% endif %}
+      {% if can_open_dte_detail %}
+      <form class="dte-legal-form" method="post">
+        {% csrf_token %}
+        <label><input type="checkbox" name="confirm_legal_notice" value="on" required> <span>Entendo que abrir esta mensagem no Serpro pode registrar ciência oficial e iniciar prazos para {{ dte_message.company.name }}.</span></label>
+        <p>Esta ação consulta <strong>1 unidade de detalhe</strong> do contrato do escritório.</p>
+        {% if dte_detail_quote.additional_overage_units %}<label><input type="checkbox" name="confirm_overage" value="on" required> <span>Autorizo o excedente de <strong>R$ {{ dte_detail_overage_brl|floatformat:2 }}</strong> para esta abertura. O valor entrará na fatura do escritório.</span></label><input type="hidden" name="approved_overage_cents" value="{{ dte_detail_quote.additional_overage_cents }}">{% endif %}
+        <button class="button" type="submit">Abrir mensagem e dar ciência</button>
+      </form>
+      {% elif not can_acknowledge_dte %}<div class="dte-permission-note">Seu perfil pode acompanhar a mensagem. Peça a um dono, administrador ou operador com permissão de ciência para abrir o teor.</div>
+      {% elif not connector_ready %}<div class="dte-permission-note">A Mewstack precisa ativar e homologar a conexão central para consultar o teor.</div>
+      {% elif not dte_detail_rate or not dte_detail_quote %}<div class="dte-permission-note">O contrato ainda não inclui a operação de detalhe da Caixa Postal. A Mewstack precisa definir a franquia antes da abertura.</div>{% elif dte_detail_quote.additional_overage_units %}<div class="dte-permission-note">A franquia de detalhe terminou. Peça a um dono ou administrador para conferir e autorizar o excedente antes da abertura.</div>{% endif %}
+    {% endif %}
+  </section>
+
+  <aside class="workspace-panel dte-detail-evidence" aria-labelledby="dte-evidence-title">
+    <header class="workspace-panel-head"><div><p class="section-kicker">Evidência</p><h2 id="dte-evidence-title">Registro da mensagem</h2></div></header>
+    <dl>
+      <div><dt>Empresa</dt><dd>{{ dte_message.company.name }}<small>{{ dte_message.company.cnpj_masked|default:'CNPJ não informado' }}</small></dd></div>
+      <div><dt>ISN Serpro</dt><dd>{{ dte_message.source_isn }}</dd></div>
+      <div><dt>Primeira observação CICA</dt><dd>{{ dte_message.first_seen_at|date:'d/m/Y H:i' }}</dd></div>
+      <div><dt>Leitura na lista</dt><dd>{% if dte_latest_read_at %}{{ dte_latest_read_at|date:'d/m/Y H:i' }}{% else %}Não registrada{% endif %}</dd></div>
+      <div><dt>Ciência na lista</dt><dd>{% if dte_latest_science_at %}{{ dte_latest_science_at|date:'d/m/Y' }}{% else %}Não informada{% endif %}</dd></div>
+      <div><dt>Abertura nesta Central</dt><dd>{% if dte_access.opened_at %}{{ dte_access.opened_at|date:'d/m/Y H:i' }}{% elif dte_access.status == 'unknown' %}Solicitada em {{ dte_access.requested_at|date:'d/m/Y H:i' }}; resultado incerto{% elif dte_access.status == 'reading' %}Solicitada em {{ dte_access.requested_at|date:'d/m/Y H:i' }}; em andamento{% else %}Não realizada{% endif %}</dd></div>
+      <div><dt>Ciência informada pelo Serpro</dt><dd>{% if dte_access.provider_science_at %}{{ dte_access.provider_science_at|date:'d/m/Y' }}{% elif dte_access.status == 'opened' %}Data não informada no retorno; a operação de detalhe pode caracterizar ciência{% elif dte_access.status == 'unknown' or dte_access.status == 'reading' %}Ainda não confirmada; confira no Serpro ou e-CAC{% else %}Não consultada nesta Central{% endif %}</dd></div>
+      {% if dte_access.provider_request_id %}<div><dt>Requisição Serpro</dt><dd>{{ dte_access.provider_request_id }}</dd></div>{% endif %}
+      {% if dte_access.requested_by %}<div><dt>Responsável pela abertura</dt><dd>{{ dte_access.requested_by.full_name|default:dte_access.requested_by.email }}</dd></div>{% endif %}
+    </dl>
+    <p class="dte-evidence-note">A data de abertura na CICA é operacional. Para prazos e prova jurídica, confira a ciência indicada pelo Serpro ou pelo e-CAC.</p>
+  </aside>
+</div>
+{% endblock %}

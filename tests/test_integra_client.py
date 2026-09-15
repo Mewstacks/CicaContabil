@@ -184,9 +184,20 @@ def test_every_catalogued_service_declares_a_real_verb() -> None:
         assert spec.id_servico.isupper()
 
 
+def test_initial_central_services_match_official_serpro_identifiers() -> None:
+    assert service("parcelamento.parcsn.pedidos").id_servico == "PEDIDOSPARC163"
+    assert service("parcelamento.parcsn.detalhe").id_servico == "OBTERPARC164"
+    assert service("dctfweb.recibo").id_servico == "CONSRECIBO32"
+    assert service("dctfweb.declaracao_completa").id_servico == "CONSDECCOMPLETA33"
+
+
 def test_a_party_number_decides_its_own_type() -> None:
     assert Party("11.111.111/1111-11").tipo == 2
     assert Party("123.456.789-09").tipo == 1
+    assert Party("00.000.000/E08G-12").as_payload() == {
+        "numero": "00000000E08G12",
+        "tipo": 2,
+    }
     with pytest.raises(ValueError, match="não é um CPF nem um CNPJ"):
         assert Party("123").tipo
 

@@ -27,6 +27,7 @@ from apps.hub.models import (
     ProductModule,
     RemoteSupportGrant,
 )
+from apps.hub.module_catalog import OFFERED_MODULE_CODES
 from apps.organizations.models import Membership, Organization
 
 CONTROL_CACHE_TTL = timedelta(minutes=15)
@@ -324,7 +325,7 @@ def _sync_modules(organization: Organization, control: dict[str, Any]) -> None:
     enabled_modules = configuration.get("modules")
     if not isinstance(enabled_modules, list):
         return
-    accepted = {str(code) for code in ProductModule.Code.values}
+    accepted = set(OFFERED_MODULE_CODES)
     requested = {str(code) for code in enabled_modules if str(code) in accepted}
     for code in accepted:
         ProductModule.objects.update_or_create(

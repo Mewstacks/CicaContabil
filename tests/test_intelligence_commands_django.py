@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 import tempfile
 from datetime import timedelta
-from io import StringIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from apps.intelligence.connectors import CatalogColumn, CatalogTable
@@ -46,6 +46,47 @@ class IntelligenceCommandTests(TestCase):
             scenario_hash="a" * 64,
             status=TrainingExample.Status.VALIDATED,
         )
+
+    @override_settings(CICA_CLAUDE_API_KEY="fake-central-key")
+    def test_claude_key_probe_uses_only_free_token_endpoint(self) -> None:
+        response = BytesIO(b'{"input_tokens": 16}')
+        output = StringIO()
+        with patch(
+            "apps.intelligence.management.commands.verify_claude_token_endpoint.urlopen"
+        ) as mocked_urlopen:
+            mocked_urlopen.return_value.__enter__.return_value = response
+            call_command("verify_claude_token_endpoint", stdout=output)
+
+        request = mocked_urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.anthropic.com/v1/messages/count_tokens")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertNotIn("fake-central-key", output.getvalue())
+        self.assertIn("16 tokens", output.getvalue())
+
+    @override_settings(CICA_CLAUDE_API_KEY="fake-central-key")
+    def test_paid_claude_probe_requires_cost_approval_and_caps_output(self) -> None:
+        with patch(
+            "apps.intelligence.management.commands.verify_claude_messages.urlopen"
+        ) as mocked_urlopen:
+            with self.assertRaises(CommandError):
+                call_command("verify_claude_messages")
+            mocked_urlopen.assert_not_called()
+
+            mocked_urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(
+                {
+                    "content": [{"type": "text", "text": "OK"}],
+                    "usage": {"input_tokens": 16, "output_tokens": 2},
+                }
+            ).encode()
+            output = StringIO()
+            call_command("verify_claude_messages", cost_approved=True, stdout=output)
+
+        request = mocked_urlopen.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.anthropic.com/v1/messages")
+        payload = json.loads(request.data)
+        self.assertEqual(payload["max_tokens"], 64)
+        self.assertEqual(payload["model"], "claude-sonnet-5")
+        self.assertNotIn("fake-central-key", output.getvalue())
 
     def test_training_artifact_commands_export_manifest_and_lora_job(self) -> None:
         self.training_example()
@@ -187,9 +228,8 @@ class IntelligenceCommandTests(TestCase):
 
         self.assertIn("conhecimento global", output.getvalue().casefold())
 
-    @patch("apps.intelligence.management.commands.configure_claude_local_key.getpass")
-    def test_claude_key_command_stores_a_local_key(self, mocked_getpass) -> None:
-        mocked_getpass.return_value = "tenant-local-claude-key"
+    @override_settings(CICA_CLAUDE_API_KEY="central-test-key")
+    def test_claude_key_command_verifies_central_env_without_storing_an_office_key(self) -> None:
         stdout = StringIO()
 
         call_command(
@@ -198,9 +238,9 @@ class IntelligenceCommandTests(TestCase):
             stdout=stdout,
         )
 
-        settings = AssistantSettings.objects.get(organization=self.organization)
-        self.assertEqual(settings.claude_api_key, "tenant-local-claude-key")
-        self.assertIn("local", stdout.getvalue().casefold())
+        self.assertFalse(AssistantSettings.objects.filter(organization=self.organization).exists())
+        self.assertIn("central", stdout.getvalue().casefold())
+        self.assertNotIn("central-test-key", stdout.getvalue())
 
     @patch("apps.intelligence.management.commands.probe_dominio_odbc.ReadOnlyDominoOdbc.execute")
     def test_odbc_probe_command_can_preview_and_apply_allowlisted_companies(

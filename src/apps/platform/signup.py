@@ -15,6 +15,7 @@ from apps.audit.services import record_event
 from apps.common.cnpj import lookup_company
 from apps.common.encryption import blind_index
 from apps.hub.models import OfficeProfile, ProductModule
+from apps.hub.module_catalog import OFFERED_MODULE_CODES
 from apps.organizations.models import Membership, Organization
 from apps.platform.availability import copilot_is_available
 from apps.platform.legal_versions import LEGAL_VERSION
@@ -29,7 +30,6 @@ from apps.platform.models import (
     TenantServiceRate,
 )
 from apps.platform.notifications import send_transactional_email
-from apps.platform.pricing import MODULE_PRICES
 
 TRIAL_DAYS = 14
 TRIAL_PLAN_CODE = "cica-trial-v1"
@@ -85,15 +85,16 @@ def issue_signup(
         raise SignupError("Não encontramos este CNPJ. Confira o número e tente novamente.")
     resolved_office_name = (office_name or registry.get("razao_social") or f"CNPJ {cnpj}").strip()
     default_modules = [
-        item.code
-        for item in MODULE_PRICES
-        if copilot_is_available() or item.code != ProductModule.Code.AI
+        code
+        for code in OFFERED_MODULE_CODES
+        if copilot_is_available() or code != ProductModule.Code.AI
     ]
     requested_modules = module_codes or default_modules
     resolved_modules = [
         code
         for code in dict.fromkeys(requested_modules)
-        if copilot_is_available() or code != ProductModule.Code.AI
+        if code in OFFERED_MODULE_CODES
+        and (copilot_is_available() or code != ProductModule.Code.AI)
     ]
     if not resolved_modules:
         raise SignupError("Nenhum módulo disponível para iniciar o teste.")

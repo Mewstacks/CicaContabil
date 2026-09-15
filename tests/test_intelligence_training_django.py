@@ -24,6 +24,7 @@ from apps.intelligence.training import (
     training_manifest,
 )
 from apps.organizations.models import Organization
+from apps.platform.models import PlatformConfiguration
 
 
 class TrainingAndGatewayTests(TestCase):
@@ -256,12 +257,19 @@ class TrainingAndGatewayTests(TestCase):
                 approval=approval,
             )
 
-    def test_cloud_fallback_requires_timeout_opt_in_and_role(self) -> None:
+    def test_claude_can_start_before_local_pc_and_requires_timeout_afterward(self) -> None:
+        platform_configuration, _ = PlatformConfiguration.objects.update_or_create(
+            key="default",
+            defaults={
+                "cloud_fallback_enabled": True,
+                "cloud_fallback_api_key": "mewstack-test-key",
+                "cloud_fallback_model": "claude-sonnet-4-5",
+            },
+        )
         settings = AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=True,
             claude_allowed_roles=["owner"],
-            claude_api_key="encrypted-local-key",
         )
         approval = ClaudeFallbackApproval.objects.create(
             organization=self.organization,
@@ -270,9 +278,10 @@ class TrainingAndGatewayTests(TestCase):
             monthly_limit_cents=10_000,
         )
 
-        blocked = select_provider(
+        before_pc = select_provider(
             settings=settings,
             approval=approval,
+            platform_configuration=platform_configuration,
             role="owner",
             local_available=False,
             local_timed_out=False,
@@ -280,15 +289,26 @@ class TrainingAndGatewayTests(TestCase):
         allowed = select_provider(
             settings=settings,
             approval=approval,
+            platform_configuration=platform_configuration,
             role="owner",
             local_available=False,
             local_timed_out=True,
         )
 
-        self.assertIsNone(blocked.provider)
+        self.assertEqual(before_pc.provider, "claude")
         self.assertEqual(allowed.provider, "claude")
+        platform_configuration.local_llm_endpoint = "http://private-model.test/v1"
+        blocked = select_provider(
+            settings=settings,
+            approval=approval,
+            platform_configuration=platform_configuration,
+            role="owner",
+            local_available=False,
+            local_timed_out=False,
+        )
+        self.assertIsNone(blocked.provider)
 
-    def test_cloud_fallback_requires_a_local_provider_key(self) -> None:
+    def test_cloud_fallback_requires_a_mewstack_provider_key(self) -> None:
         settings = AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=True,
@@ -304,13 +324,14 @@ class TrainingAndGatewayTests(TestCase):
         decision = select_provider(
             settings=settings,
             approval=approval,
+            platform_configuration=None,
             role="owner",
             local_available=False,
             local_timed_out=True,
         )
 
         self.assertIsNone(decision.provider)
-        self.assertIn("chave local", decision.reason)
+        self.assertIn("Mewstack", decision.reason)
 
     def test_model_publication_requires_a_passing_matching_evaluation(self) -> None:
         version = ModelVersion.objects.create(
@@ -429,3 +450,35 @@ class TrainingAndGatewayTests(TestCase):
         self.assertNotIn("nao-enviar", serialized)
         self.assertIn("[documento oculto]", serialized)
         self.assertIn("[segredo oculto]", serialized)
+
+    @patch("apps.intelligence.gateway.urlopen")
+    def test_sonnet_5_http_contract_is_validated_without_paid_api_call(
+        self, mocked_urlopen
+    ) -> None:
+        mocked_urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(
+            {
+                "model": "claude-sonnet-5",
+                "content": [{"type": "text", "text": "Resposta fundamentada."}],
+            }
+        ).encode()
+
+        completion = generate_claude_fallback_completion(
+            api_key="only-a-mocked-test-key",
+            model="claude-sonnet-5",
+            question="O que mudou?",
+            company_name="Empresa de teste",
+            conversation_context="",
+            evidence=[{"label": "Fonte", "reference": "ref", "detail": "dado"}],
+            allow_full_data=False,
+        )
+
+        request = mocked_urlopen.call_args.args[0]
+        payload = json.loads(request.data)
+        self.assertEqual(request.full_url, "https://api.anthropic.com/v1/messages")
+        self.assertEqual(request.get_header("Anthropic-version"), "2023-06-01")
+        self.assertEqual(payload["model"], "claude-sonnet-5")
+        self.assertEqual(payload["max_tokens"], 900)
+        self.assertEqual(payload["output_config"], {"effort": "low"})
+        self.assertNotIn("temperature", payload)
+        self.assertEqual(completion.content, "Resposta fundamentada.")
+        self.assertEqual(mocked_urlopen.call_count, 1)

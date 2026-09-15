@@ -9,10 +9,12 @@ from datetime import date, datetime
 from typing import Any
 
 from cryptography.hazmat.primitives.serialization import pkcs12
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import record_event
+from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import (
     AccumulatorObservation,
     AccumulatorRule,
@@ -27,7 +29,7 @@ from apps.hub.models import (
     NfseDocument,
     ReviewCase,
 )
-from apps.platform.billing import BillingError, reserve_usage
+from apps.platform.billing import BillingError, quote_usage, reserve_usage
 
 
 @dataclass(frozen=True)
@@ -222,6 +224,13 @@ def prepare_dte_run(
         raise ValueError("Selecione pelo menos uma empresa.")
     if any(company.organization_id != organization.id for company in companies):
         raise ValueError("Todas as empresas precisam pertencer ao mesmo escritório.")
+    for company in companies:
+        try:
+            normalize_cnpj(company.cnpj_masked)
+        except ValidationError as exc:
+            raise ValueError(
+                "Uma empresa selecionada está sem CNPJ válido. Revise o cadastro antes de preparar."
+            ) from exc
     run = DteRun.objects.create(
         organization=organization,
         connector=connector,
@@ -249,6 +258,7 @@ class DteRunTransitionError(RuntimeError):
 # The catalogue key that a Caixa Postal consultation bills against. Kept here rather than
 # imported so a change to the Integra catalogue cannot silently change what was approved.
 DTE_ACTION_CODE = "caixapostal.mensagens"
+DTE_DETAIL_ACTION_CODE = "caixapostal.detalhe"
 
 
 class FiscalGuideTransitionError(RuntimeError):
@@ -268,6 +278,12 @@ def issue_fiscal_guide(
     guide = FiscalGuide.objects.select_for_update().get(id=guide.id)
     if guide.status not in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
         raise FiscalGuideTransitionError("Essa obrigação já está em emissão ou foi concluída.")
+    try:
+        normalize_cnpj(guide.company.cnpj_masked)
+    except ValidationError as exc:
+        raise FiscalGuideTransitionError(
+            "Confira o CNPJ da empresa antes de autorizar a emissão."
+        ) from exc
     guide.issue_attempt += 1
     idempotency_key = f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
     try:
@@ -396,6 +412,7 @@ def approve_dte_run(
     actor: Any = None,
     request: Any = None,
     approved_overage: bool = False,
+    approved_overage_total_cents: int | None = None,
 ) -> ConsumptionConfirmation:
     """Record the consumption the operator is authorizing, and release the run.
 
@@ -405,6 +422,30 @@ def approve_dte_run(
 
     if run.status != DteRun.Status.AWAITING_APPROVAL:
         raise DteRunTransitionError("Esta consulta já saiu da fila de autorização.")
+    for item in run.items.select_related("company"):
+        try:
+            normalize_cnpj(item.company.cnpj_masked)
+        except ValidationError as exc:
+            raise DteRunTransitionError(
+                "Uma empresa desta consulta está sem CNPJ válido. Retire a preparação, "
+                "revise o cadastro e prepare novamente antes de autorizar consumo."
+            ) from exc
+    try:
+        quote = quote_usage(
+            organization=run.organization,
+            action_code=DTE_ACTION_CODE,
+            units=run.total_companies,
+        )
+    except BillingError as exc:
+        raise DteRunTransitionError(str(exc)) from exc
+    if quote.additional_overage_units and (
+        not approved_overage
+        or approved_overage_total_cents != quote.additional_overage_cents
+    ):
+        raise DteRunTransitionError(
+            "O excedente desta consulta mudou ou não foi autorizado com o valor exato. "
+            "Revise a fila antes de enviar."
+        )
     # Reserve each outbound Caixa Postal call before it is queued. A failed reservation
     # means no provider request can escape the product and no unexpected overage occurs.
     for item in run.items.select_for_update().filter(status=DteRunItem.Status.PENDING):
@@ -414,6 +455,10 @@ def approve_dte_run(
                 action_code=DTE_ACTION_CODE,
                 idempotency_key=f"dte-run-item:{item.id}:caixapostal",
                 approved_overage=approved_overage,
+                approved_overage_cents=(
+                    quote.overage_unit_price_cents if approved_overage else None
+                ),
+                require_explicit_overage=True,
             )
         except BillingError as exc:
             raise DteRunTransitionError(str(exc)) from exc

@@ -380,6 +380,15 @@ class PaymentAttempt(UUIDTimeStampedModel):
     external_id = models.CharField(max_length=160, blank=True, db_index=True)
     checkout_url = models.URLField(blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("provider", "external_id"),
+                condition=~models.Q(external_id=""),
+                name="platform_unique_provider_payment_external_id",
+            )
+        ]
+
 
 class PaymentWebhookDelivery(UUIDTimeStampedModel):
     """Provider event receipt ledger; the provider event id is the idempotency boundary."""
@@ -388,6 +397,23 @@ class PaymentWebhookDelivery(UUIDTimeStampedModel):
     event_id = models.CharField(max_length=160)
     event_name = models.CharField(max_length=80)
     external_id = models.CharField(max_length=160)
+    payment_attempt = models.ForeignKey(
+        PaymentAttempt,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="webhook_deliveries",
+    )
+
+    class ProcessingStatus(models.TextChoices):
+        PROCESSED = "processed", "Processado"
+        IGNORED = "ignored", "Ignorado"
+        FAILED = "failed", "Falhou"
+
+    processing_status = models.CharField(
+        max_length=12, choices=ProcessingStatus.choices, default=ProcessingStatus.PROCESSED
+    )
+    error_code = models.CharField(max_length=80, blank=True)
 
     class Meta:
         constraints = [

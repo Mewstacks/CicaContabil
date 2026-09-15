@@ -14,8 +14,13 @@
     <div class="provider-actions"><button class="button" type="submit" name="action" value="provider">Salvar canais</button><button class="button button-quiet" type="submit" name="action" value="provider_sync">Atualizar pelo CNPJ</button></div>
   </form>
 </section>
+<section class="configuration-card" aria-labelledby="serpro-credentials-title">
+  <header class="configuration-heading"><div><p class="section-kicker">ACESSO CENTRAL DA MEWSTACK</p><h2 id="serpro-credentials-title">Integra Contador · Serpro</h2><p>A credencial é única para a Mewstack; cada escritório usa seu próprio contrato, franquia e autorização de consumo. As chaves não aparecem nesta tela.</p></div></header>
+  {% if integra_missing %}<div class="form-errors" role="status"><strong>Configuração incompleta.</strong> Faltam: {% for name in integra_missing %}<code>{{ name }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}.</div>{% elif not integra_certificate_found %}<div class="form-errors" role="status"><strong>Certificado não encontrado.</strong> Confira o caminho definido em <code>INTEGRA_CERTIFICATE_PATH</code>.</div>{% else %}<p><strong>Chaves e certificado presentes.</strong> Ambiente {{ integra_environment }}. Ainda é necessário homologar as operações com dados autorizados antes de liberar consultas externas.</p>{% endif %}
+  <ol class="serpro-setup-steps"><li>Neste PC, abra o arquivo <code>.env</code> na raiz do projeto; em produção, use variáveis seguras do servidor.</li><li>Preencha <code>INTEGRA_CONSUMER_KEY</code>, <code>INTEGRA_CONSUMER_SECRET</code>, <code>INTEGRA_CERTIFICATE_PATH</code> e <code>INTEGRA_CONTRATANTE_CNPJ</code>. O certificado A1 fica no servidor, fora da área pública.</li><li>Se o A1 tiver senha, defina <code>INTEGRA_CERTIFICATE_PASSWORD</code>. Escolha <code>INTEGRA_ENVIRONMENT=trial</code> para homologação ou <code>production</code> após liberação.</li><li>Reinicie o servidor depois da alteração e configure a franquia e tarifa de cada operação no catálogo comercial abaixo.</li></ol>
+</section>
 <section class="configuration-card" aria-labelledby="copilot-availability-title">
-  <header class="configuration-heading"><div><p class="section-kicker">RECURSO EM PREPARAÇÃO</p><h2 id="copilot-availability-title">Copiloto</h2><p>{% if copilot_available %}Disponível para escritórios. As regras de franquia aparecem abaixo.{% else %}Oculto para escritórios enquanto a infraestrutura local não estiver pronta.{% endif %}</p></div></header>
+  <header class="configuration-heading"><div><p class="section-kicker">RECURSO EM PREPARAÇÃO</p><h2 id="copilot-availability-title">Copiloto</h2><p>{% if copilot_available %}Disponível para escritórios. As regras de franquia aparecem abaixo.{% else %}Oculto até a configuração da chave, modelo, cotas e política de acesso.{% endif %}</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="copilot-availability">
     {% if copilot_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira a disponibilidade configurada.</strong>{% for error in copilot_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
@@ -33,12 +38,12 @@
   </form>
 </section>
 <section class="configuration-card" aria-labelledby="cloud-fallback-title">
-  <header class="configuration-heading"><div><p class="section-kicker">INFRAESTRUTURA DA MEWSTACK</p><h2 id="cloud-fallback-title">Fallback externo</h2><p>Uso excepcional após falha técnica local. A chave e os limites são da Mewstack.</p></div></header>
+  <header class="configuration-heading"><div><p class="section-kicker">INFRAESTRUTURA DA MEWSTACK</p><h2 id="cloud-fallback-title">Claude via API</h2><p>Opera antes da chegada do PC privado e fica sujeito à política de uso após sua ativação. A chave e os limites são da Mewstack.</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="cloud-fallback">
     {% if cloud_fallback_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira a configuração do fallback.</strong>{% for error in cloud_fallback_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in cloud_fallback_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
     {% for field in cloud_fallback_form %}<div class="field{% if field.field.widget.input_type == 'checkbox' %} field-checkbox{% endif %}">{% if field.field.widget.input_type == 'checkbox' %}<label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label><div class="input-wrap">{{ field }}</div>{% endif %}{% if field.help_text %}<div class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
-    <button class="button" type="submit">Salvar fallback externo</button>
+    <button class="button" type="submit">Salvar Claude via API</button>
   </form>
 </section>
 <section class="configuration-card" aria-labelledby="transactional-email-title">

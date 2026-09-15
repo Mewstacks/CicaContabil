@@ -1,5 +1,5 @@
 {% extends 'hub/auth_base.html' %}
 {% block title %}Códigos de recuperação — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Guarde estes códigos.</h1><p class="form-intro">Salve em um local seguro. Cada código funciona uma vez e não será exibido novamente.</p><ul class="recovery-codes" translate="no">{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul><a class="button" href="{% if next %}{{ next }}{% else %}{% url 'hub:dashboard' %}{% endif %}">Continuar</a></section></main>
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Guarde estes códigos.</h1><p class="form-intro">Salve em um local seguro. Cada código funciona uma vez e não será exibido novamente.</p><ul class="recovery-codes" translate="no">{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ul><a class="button" href="{{ next }}">{{ continue_label }}</a>{% if show_configuration_link %}<a class="button button-quiet" href="{% url 'platform:configuration' %}">Ir às configurações da Mewstack</a>{% endif %}</section></main>
 {% endblock %}

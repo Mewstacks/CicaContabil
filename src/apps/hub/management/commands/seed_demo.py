@@ -28,18 +28,19 @@ from apps.hub.models import (
     ProductModule,
     UsageAllowance,
 )
+from apps.hub.module_catalog import OFFERED_MODULE_CODES
 from apps.hub.services import create_document_and_artifact, prepare_dte_run, store_certificate
 from apps.organizations.models import Membership, Organization
 
 COMPANIES: list[tuple[str, str, str]] = [
-    ("Padaria Vila Nova Ltda", "12.345.678/0001-90", "0101"),
-    ("Transportes Guaíba ME", "23.456.789/0001-01", "0102"),
-    ("Clínica Odonto Sorriso", "34.567.890/0001-12", "0103"),
-    ("Mercado São Jorge Ltda", "45.678.901/0001-23", "0104"),
-    ("Studio Alfa Arquitetura", "56.789.012/0001-34", "0105"),
-    ("Oficina Motor Forte", "67.890.123/0001-45", "0106"),
-    ("Consultoria Ponte Nova", "78.901.234/0001-56", "0107"),
-    ("Distribuidora Campo Bom", "89.012.345/0001-67", "0108"),
+    ("Padaria Vila Nova Ltda", "12.345.678/0001-95", "0101"),
+    ("Transportes Guaíba ME", "23.456.789/0001-95", "0102"),
+    ("Clínica Odonto Sorriso", "34.567.890/0001-30", "0103"),
+    ("Mercado São Jorge Ltda", "45.678.901/0001-75", "0104"),
+    ("Studio Alfa Arquitetura", "56.789.012/0001-00", "0105"),
+    ("Oficina Motor Forte", "67.890.123/0001-16", "0106"),
+    ("Consultoria Ponte Nova", "78.901.234/0001-05", "0107"),
+    ("Distribuidora Campo Bom", "89.012.345/0001-79", "0108"),
 ]
 
 SERVICE_CODES = ["1401", "0702", "1701", "0910"]
@@ -136,7 +137,7 @@ class Command(BaseCommand):
                 membership=membership,
                 company=company,
                 defaults={
-                    "modules": list(ProductModule.Code.values),
+                    "modules": list(OFFERED_MODULE_CODES),
                     "capabilities": ["read", "write", "dispatch"],
                 },
             )
@@ -144,7 +145,7 @@ class Command(BaseCommand):
         return companies
 
     def _modules_and_limits(self, organization: Organization) -> None:
-        for code in ProductModule.Code.values:
+        for code in OFFERED_MODULE_CODES:
             ProductModule.objects.get_or_create(
                 organization=organization,
                 code=code,

@@ -3,16 +3,23 @@
 from __future__ import annotations
 
 import json
-import re
-from collections.abc import Iterable
 from typing import Any
 
 from celery import shared_task
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 
-from apps.hub.models import DteMessage, DteRun, DteRunItem, FiscalGuide
+from apps.common.cnpj import normalize_cnpj
+from apps.hub.dte_payload import DtePayloadError, list_rows, source_date, subject, value
+from apps.hub.models import (
+    DteMessage,
+    DteMessageObservation,
+    DteMessageState,
+    DteRun,
+    DteRunItem,
+    FiscalGuide,
+)
 from apps.hub.reform import refresh_reform_sources
 from apps.integra.client import IntegraClient
 from apps.integra.errors import IntegraError, IntegraServiceError
@@ -30,50 +37,61 @@ def refresh_reform_sources_task() -> dict[str, int]:
     return {"created": created, "updated": updated, "failed": failed}
 
 
-def _messages(payload: dict[str, Any]) -> Iterable[dict[str, Any]]:
-    raw_data = payload.get("dados", {})
-    if isinstance(raw_data, str):
-        try:
-            raw_data = json.loads(raw_data)
-        except json.JSONDecodeError:
-            return ()
-    if not isinstance(raw_data, dict):
-        return ()
-    for key in ("mensagens", "listaMensagens", "itens"):
-        values = raw_data.get(key)
-        if isinstance(values, list):
-            return (value for value in values if isinstance(value, dict))
-    return ()
-
-
 def _value(row: dict[str, Any], *keys: str) -> str:
-    for key in keys:
-        value = row.get(key)
-        if value is not None:
-            return str(value)
-    return ""
+    return value(row, *keys)
 
 
 def _save_messages(*, item: DteRunItem, payload: dict[str, Any]) -> int:
     saved = 0
-    for row in _messages(payload):
+    rows, _more_available = list_rows(payload)
+    for row in rows:
         source_id = _value(row, "isn", "id", "identificador", "numero")
         if not source_id:
             continue
-        sent_at = parse_datetime(_value(row, "dataEnvio", "data", "sentAt"))
-        read_at = parse_datetime(_value(row, "dataLeitura", "readAt"))
-        DteMessage.objects.get_or_create(
+        sent_at = source_date(
+            _value(row, "dataEnvio", "data", "sentAt"), _value(row, "horaEnvio")
+        )
+        read_at = source_date(_value(row, "dataLeitura", "readAt"), _value(row, "horaLeitura"))
+        science_at = source_date(_value(row, "dataCiencia"))
+        message, _created = DteMessage.objects.get_or_create(
             organization=item.organization,
             company=item.company,
             source_isn=source_id[:120],
             defaults={
-                "subject": _value(row, "assunto", "assuntoModelo", "subject")[:500],
-                "sender": _value(row, "remetente", "sender")[:240],
+                "subject": subject(row)[:500],
+                "sender": _value(row, "descricaoOrigem", "remetente", "sender")[:240],
                 "sent_at": sent_at,
                 "read_at": read_at,
+                "source_science_at": science_at,
                 "raw_payload": json.dumps(row, ensure_ascii=False, sort_keys=True),
             },
         )
+        observation, observation_created = DteMessageObservation.objects.get_or_create(
+            organization=item.organization,
+            run_item=item,
+            message=message,
+            defaults={
+                "read_at": read_at,
+                "science_at": science_at,
+                "raw_payload": json.dumps(row, ensure_ascii=False, sort_keys=True),
+            },
+        )
+        state, state_created = DteMessageState.objects.get_or_create(
+            organization=item.organization,
+            message=message,
+            defaults={
+                "read_at": read_at,
+                "science_at": science_at,
+                "last_observation": observation,
+                "last_seen_at": observation.observed_at,
+            },
+        )
+        if observation_created and not state_created:
+            state.read_at = read_at or state.read_at
+            state.science_at = science_at or state.science_at
+            state.last_observation = observation
+            state.last_seen_at = observation.observed_at
+            state.save(update_fields=["read_at", "science_at", "last_observation", "last_seen_at"])
         saved += 1
     return saved
 
@@ -124,8 +142,9 @@ def dispatch_dte_run(run_id: str) -> None:
             )
             failed += 1
             continue
-        cnpj = re.sub(r"\D", "", item.company.cnpj_masked)
-        if len(cnpj) != 14:
+        try:
+            cnpj = normalize_cnpj(item.company.cnpj_masked)
+        except ValidationError:
             settle_usage(event=usage, provider_http_status=400, billable=False)
             item.status = DteRunItem.Status.FAILED
             item.error_code = "invalid_cnpj"
@@ -146,7 +165,7 @@ def dispatch_dte_run(run_id: str) -> None:
             payload = client.call(
                 "caixapostal.mensagens",
                 contribuinte=cnpj,
-                dados={"statusLeitura": 0, "indicadorPagina": 0, "indicadorFavorito": 0},
+                dados={"statusLeitura": "0", "indicadorPagina": "0"},
             )
         except IntegraServiceError as exc:
             settle_usage(
@@ -192,15 +211,31 @@ def dispatch_dte_run(run_id: str) -> None:
             provider_request_id=_value(payload, "idRequisicao", "requestId"),
             billable=True,
         )
-        found = _save_messages(item=item, payload=payload)
+        try:
+            _rows, more_available = list_rows(payload)
+            found = _save_messages(item=item, payload=payload)
+        except DtePayloadError as exc:
+            item.status = DteRunItem.Status.FAILED
+            item.error_code = "provider_payload"
+            item.error_message = str(exc)[:240]
+            item.completed_at = timezone.now()
+            item.save(
+                update_fields=[
+                    "status", "error_code", "error_message", "completed_at", "updated_at"
+                ]
+            )
+            failed += 1
+            continue
         item.status = DteRunItem.Status.COMPLETED
         item.messages_found = found
+        item.more_available = more_available
         item.service_response_id = _value(payload, "idRequisicao", "requestId")[:120]
         item.completed_at = timezone.now()
         item.save(
             update_fields=[
                 "status",
                 "messages_found",
+                "more_available",
                 "service_response_id",
                 "completed_at",
                 "updated_at",
@@ -267,8 +302,9 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         guide.error_message = "A reserva de consumo não foi encontrada."
         guide.save(update_fields=["status", "error_code", "error_message", "updated_at"])
         return
-    cnpj = re.sub(r"\D", "", guide.company.cnpj_masked)
-    if len(cnpj) != 14:
+    try:
+        cnpj = normalize_cnpj(guide.company.cnpj_masked)
+    except ValidationError:
         _fail_fiscal_guide(
             guide=guide,
             usage=usage,

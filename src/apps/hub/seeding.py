@@ -25,6 +25,7 @@ from apps.hub.models import (
     OfficeProfile,
     ProductModule,
 )
+from apps.hub.module_catalog import OFFERED_MODULE_CODES
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import (
     Invitation,
@@ -107,7 +108,7 @@ def ensure_office(
         },
     )
     if enable_modules:
-        for code in ProductModule.Code.values:
+        for code in OFFERED_MODULE_CODES:
             ProductModule.objects.get_or_create(
                 organization=organization,
                 code=code,
@@ -128,7 +129,7 @@ def ensure_membership(
             membership=membership,
             company=company,
             defaults={
-                "modules": list(ProductModule.Code.values),
+                "modules": list(OFFERED_MODULE_CODES),
                 "capabilities": ["read", "write", "dispatch"],
             },
         )
@@ -147,7 +148,7 @@ def ensure_plan() -> Plan:
         code="essencial",
         defaults={
             "name": "Essencial",
-            "modules": list(ProductModule.Code.values),
+            "modules": list(OFFERED_MODULE_CODES),
             "limits": {"companies": 25, "users": 10, "documents": 2000},
         },
     )

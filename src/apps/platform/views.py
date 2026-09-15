@@ -14,11 +14,11 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.models import ControlPlaneBinding, ProductModule, RemoteSupportGrant
+from apps.hub.module_catalog import OFFERED_MODULE_CHOICES, OFFERED_MODULE_CODES
 from apps.intelligence.models import AssistantSettings, ClaudeFallbackApproval
 from apps.organizations.models import Membership, Organization
 from apps.platform.forms import (
     AssistantRetentionForm,
-    ClaudeFallbackCredentialForm,
     ClaudeFallbackForm,
     InvitationForm,
     TenantContractForm,
@@ -29,6 +29,7 @@ from apps.platform.models import (
     Invitation,
     Invoice,
     PlatformAccess,
+    PlatformConfiguration,
     SupportSession,
     TenantContract,
     TenantLifecycle,
@@ -101,7 +102,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "suspended_count": TenantLifecycle.objects.filter(
                 state=TenantLifecycle.State.SUSPENDED
             ).count(),
-            "tenants": Organization.objects.filter(is_active=True).select_related("lifecycle")[:8],
+            "tenants": Organization.objects.filter(is_active=True)
+            .select_related("lifecycle")
+            .order_by("-created_at", "-id")[:8],
             "dominio_tickets": (
                 DominioSupportTicket.objects.filter(status=DominioSupportTicket.Status.OPEN)
                 .select_related("organization")
@@ -162,7 +165,7 @@ def _save_modules(request: HttpRequest, user: User, organization: Organization) 
         )
         return
     selected = set(request.POST.getlist("modules"))
-    allowed = set(ProductModule.Code.values)
+    allowed = set(OFFERED_MODULE_CODES)
     for code in allowed:
         ProductModule.objects.update_or_create(
             organization=organization,
@@ -318,7 +321,6 @@ _TENANT_ACTION_ROLES: dict[str, tuple[str, ...]] = {
     "service-rate": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
     "invoice-status": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
     "ai-fallback": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
-    "ai-fallback-credential": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
     "ai-retention": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
     "lifecycle": (
         PlatformAccess.Role.SUPPORT,
@@ -355,9 +357,8 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
         settings=assistant_settings,
         approval=fallback_approval,
     )
-    fallback_credential_form = ClaudeFallbackCredentialForm(
-        request.POST if action == "ai-fallback-credential" else None
-    )
+    if action == "ai-fallback-credential":
+        raise PermissionDenied("A chave Claude pertence ao .env da Mewstack.")
     retention_form = AssistantRetentionForm(
         request.POST if action == "ai-retention" else None,
         settings=assistant_settings,
@@ -437,18 +438,17 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 settings.claude_allowed_roles = (
                     list(fallback_form.cleaned_data["allowed_roles"]) if fallback_enabled else []
                 )
+                platform_configuration = PlatformConfiguration.objects.filter(key="default").first()
                 settings.claude_model = (
-                    str(fallback_form.cleaned_data["model"]).strip() if fallback_enabled else ""
+                    platform_configuration.cloud_fallback_model
+                    if fallback_enabled and platform_configuration else ""
                 )
                 settings.claude_max_request_cents = (
                     fallback_form.cents(fallback_form.cleaned_data["max_request_brl"])
                     if fallback_enabled
                     else 0
                 )
-                if fallback_form.cleaned_data["api_key"]:
-                    settings.claude_api_key = fallback_form.cleaned_data["api_key"]
-                elif fallback_form.cleaned_data["clear_api_key"]:
-                    settings.claude_api_key = ""
+                settings.claude_api_key = ""
                 settings.save()
                 approval, _ = ClaudeFallbackApproval.objects.select_for_update().get_or_create(
                     organization=organization
@@ -495,30 +495,6 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 else "Fallback externo desabilitado.",
             )
             return redirect_back
-        if action == "ai-fallback-credential" and fallback_credential_form.is_valid():
-            with transaction.atomic():
-                settings, _ = AssistantSettings.objects.select_for_update().get_or_create(
-                    organization=organization
-                )
-                new_key = str(fallback_credential_form.cleaned_data["api_key"] or "").strip()
-                removing_key = bool(fallback_credential_form.cleaned_data["clear_api_key"])
-                settings.claude_api_key = "" if removing_key else new_key
-                settings.save(update_fields=["claude_api_key", "updated_at"])
-            record_event(
-                action="platform.tenant.ai_fallback_credential_updated",
-                actor=user,
-                organization=organization,
-                target=settings,
-                request=request,
-                metadata={"operation": "removed" if removing_key else "replaced"},
-            )
-            messages.success(
-                request,
-                "Chave removida. O fallback permanece bloqueado até uma nova configuração."
-                if removing_key
-                else "Chave do fallback atualizada.",
-            )
-            return redirect_back
         if action == "ai-retention" and retention_form.is_valid():
             with transaction.atomic():
                 settings, _ = AssistantSettings.objects.select_for_update().get_or_create(
@@ -549,7 +525,7 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
     ctx = context(request)
     ctx.update(
         {
-            "page_title": organization.name,
+            "page_title": "",
             "tenant": organization,
             "invite_form": invite_form,
             "contract_form": contract_form,
@@ -578,7 +554,7 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 PlatformAccess.Role.DEVELOPER,
             ),
             "modules": ProductModule.objects.filter(organization=organization).order_by("code"),
-            "module_choices": ProductModule.Code.choices,
+            "module_choices": OFFERED_MODULE_CHOICES,
             "enabled_module_codes": set(
                 ProductModule.objects.filter(organization=organization, enabled=True).values_list(
                     "code", flat=True
@@ -588,7 +564,6 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 organization=organization
             ).exists(),
             "fallback_form": fallback_form,
-            "fallback_credential_form": fallback_credential_form,
             "retention_form": retention_form,
             "fallback_settings": assistant_settings,
             "fallback_approval": fallback_approval,

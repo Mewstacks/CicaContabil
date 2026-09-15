@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import secrets
+import uuid
 from collections.abc import Callable
 from datetime import timedelta
 from decimal import Decimal
@@ -18,7 +21,14 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
+from django.db.models.functions import Coalesce
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseBadRequest,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -36,6 +46,8 @@ from apps.hub.controlplane import (
     company_queryset_for_membership,
     module_codes_for_membership,
 )
+from apps.hub.dte_access import DteAccessError, open_message
+from apps.hub.dte_payload import body_text
 from apps.hub.forms import (
     ActivationForm,
     CertificateUploadForm,
@@ -63,6 +75,7 @@ from apps.hub.models import (
     DataSource,
     DominioBankEntry,
     DteMessage,
+    DteMessageAccess,
     DteRun,
     DteRunItem,
     FiscalGuide,
@@ -79,9 +92,10 @@ from apps.hub.models import (
     ReviewCase,
     UsageAllowance,
 )
-from apps.hub.module_catalog import MODULES, ModuleDefinition, definition
+from apps.hub.module_catalog import MODULES, OFFERED_MODULE_CODES, ModuleDefinition, definition
 from apps.hub.reconciliation import OfxParseError, confirm_reconciliation_match, import_ofx
 from apps.hub.services import (
+    DTE_ACTION_CODE,
     DteRunTransitionError,
     FiscalGuideTransitionError,
     approve_dte_run,
@@ -90,12 +104,14 @@ from apps.hub.services import (
     prepare_dte_run,
     store_certificate,
 )
+from apps.integra.client import IntegraConfigurationError, credentials_from_settings
 from apps.intelligence.agents import issue_enrollment
 from apps.intelligence.connectors import ReadOnlyDominoOdbc
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_bank_entries, sync_companies
 from apps.organizations.models import Membership, Organization
 from apps.platform.availability import copilot_is_available
+from apps.platform.billing import BillingError, quote_usage
 from apps.platform.forms import LegacyLeadForm, SelfServiceSignupForm, SignupPasswordForm
 from apps.platform.models import (
     DominioSupportTicket,
@@ -117,6 +133,16 @@ from apps.platform.signup import (
     signup_intent_from_token,
 )
 from apps.platform.views import current_support
+from apps.triage.forms import IMAPConnectionForm
+from apps.triage.imap import MailboxIMAPError, encrypted_imap_credential, probe_imap_mailbox
+from apps.triage.models import Mailbox, TriageItem
+from apps.triage.oauth import (
+    MailboxOAuthError,
+    encrypted_refresh_credential,
+    exchange_code,
+    new_authorization,
+    probe_mailbox,
+)
 
 
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
@@ -467,7 +493,11 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         if office
         else ProductModule.objects.none()
     )
-    enabled_modules = [MODULES[row.code] for row in module_rows if row.code in MODULES]
+    enabled_modules = [
+        MODULES[row.code]
+        for row in module_rows
+        if row.code in MODULES and row.code in OFFERED_MODULE_CODES
+    ]
     if not copilot_is_available():
         enabled_modules = [item for item in enabled_modules if item.code != ProductModule.Code.AI]
     # A support session is scoped to its target office, not to a Membership row.
@@ -490,6 +520,13 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
     ):
         enabled_modules.insert(0, MODULES[ProductModule.Code.NFSE])
     copilot_enabled = any(item.code == ProductModule.Code.AI for item in enabled_modules)
+    active_module_code = (
+        ProductModule.Code.INTEGRA
+        if request.resolver_match
+        and request.resolver_match.url_name
+        in {"integra", "dte-center", "dte-message-detail", "decide-dte-run"}
+        else None
+    )
     return {
         "membership": membership,
         "support_session": support_session,
@@ -513,6 +550,7 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         else 0,
         "enabled_modules": enabled_modules,
         "copilot_enabled": copilot_enabled,
+        "active_module_code": active_module_code,
         "permitted_module_codes": permitted_module_codes,
     }
 
@@ -669,7 +707,7 @@ def _office_module_codes(office: Organization) -> set[str]:
     )
     if not ProductModule.objects.filter(organization=office, code=ProductModule.Code.NFSE).exists():
         codes.add(ProductModule.Code.NFSE)
-    return {code for code in codes if code in MODULES}
+    return {code for code in codes if code in OFFERED_MODULE_CODES}
 
 
 def _apply_collaborator_scope(
@@ -757,11 +795,21 @@ def team(request: HttpRequest) -> HttpResponse:
     )
     for item in collaborators:
         grants = list(item.company_grants.all())
+        item.role_label = {  # type: ignore[attr-defined]
+            Membership.Role.OWNER: "Dono",
+            Membership.Role.ADMIN: "Administrador",
+            Membership.Role.MANAGER: "Gestor",
+            Membership.Role.OPERATOR: "Operador",
+            Membership.Role.AUDITOR: "Auditor",
+            Membership.Role.BILLING: "Financeiro",
+            Membership.Role.MEMBER: "Membro",
+        }.get(item.role, item.get_role_display())
         item.scope_modules = sorted(  # type: ignore[attr-defined]
             {str(code) for grant in grants for code in grant.modules if isinstance(code, str)}
         )
         item.scope_companies = [grant.company for grant in grants]  # type: ignore[attr-defined]
         item.scope_is_explicit = bool(grants)  # type: ignore[attr-defined]
+        item.dte_science_permission = item.can_acknowledge_dte  # type: ignore[attr-defined]
     context.update(
         {
             "page_title": "Equipe e acessos",
@@ -872,7 +920,13 @@ def update_collaborator_access(request: HttpRequest, membership_id: str) -> Http
         return redirect("hub:team")
     with transaction.atomic():
         target.role = form.cleaned_data["role"]
-        target.save(update_fields=["role", "updated_at"])
+        target.can_acknowledge_dte = bool(
+            form.cleaned_data["can_acknowledge_dte"]
+            and target.role == Membership.Role.OPERATOR
+            and ProductModule.Code.INTEGRA in form.cleaned_data["modules"]
+            and form.cleaned_data["companies"]
+        )
+        target.save(update_fields=["role", "can_acknowledge_dte", "updated_at"])
         _apply_collaborator_scope(
             membership=target,
             company_ids=form.cleaned_data["companies"],
@@ -887,6 +941,7 @@ def update_collaborator_access(request: HttpRequest, membership_id: str) -> Http
         metadata={
             "company_count": len(form.cleaned_data["companies"]),
             "modules": form.cleaned_data["modules"],
+            "can_acknowledge_dte": target.can_acknowledge_dte,
         },
     )
     messages.success(request, "Acessos atualizados.")
@@ -1350,7 +1405,13 @@ def _module_page_context(
         # The platform is the sole Serpro contractor.  A tenant never configures
         # credentials, certificate, endpoint, or a duplicate connector record.
         connector = None
-        connected = True
+        try:
+            credentials = credentials_from_settings()
+            connected = credentials.certificate_path.is_file() and bool(
+                credentials.base_url
+            )  # Validate the environment without a provider call.
+        except IntegraConfigurationError:
+            connected = False
     else:
         connector = None
         from apps.hub.models import DataSource
@@ -1560,10 +1621,30 @@ def issue_guide(request: HttpRequest, guide_id: str) -> HttpResponse:
 
 @office_required
 def integra(request: HttpRequest) -> HttpResponse:
-    _context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
     if blocked:
         return blocked
-    return redirect("hub:dte-center")
+    office = cast(Organization, context["office"])
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
+    allowed_company_ids = [company.id for company in allowed_companies]
+    context.update(
+        {
+            "page_title": "Central Integra Contador",
+            "integra_company_count": ClientCompany.objects.filter(
+                id__in=allowed_company_ids, active=True
+            ).count(),
+            "integra_message_count": DteMessage.objects.filter(
+                organization=office, company_id__in=allowed_company_ids
+            ).count(),
+            "integra_pending_count": DteRun.objects.filter(
+                organization=office, status=DteRun.Status.AWAITING_APPROVAL
+            ).count(),
+            "integra_guides_enabled": ProductModule.objects.filter(
+                organization=office, code=ProductModule.Code.GUIDES, enabled=True
+            ).exists(),
+        }
+    )
+    return render(request, "hub/integra_home.html", context)
 
 
 @office_required
@@ -1606,47 +1687,249 @@ def dte_center(request: HttpRequest) -> HttpResponse:
         .select_related("company", "run", "run__requested_by")
         .order_by("-run__requested_at", "company__name")[:30]
     )
-    recent_messages = (
-        DteMessage.objects.filter(organization=office, company_id__in=allowed_company_ids)
-        .select_related("company")
-        .order_by("-sent_at", "-first_seen_at")[:8]
+    message_filter = request.GET.get("status", "all")
+    if message_filter not in {"all", "unread", "read"}:
+        message_filter = "all"
+    company_filter = request.GET.get("company", "")
+    try:
+        selected_company = (
+            companies.filter(id=uuid.UUID(company_filter)).first() if company_filter else None
+        )
+    except ValueError:
+        selected_company = None
+    message_query = DteMessage.objects.filter(
+        organization=office, company_id__in=allowed_company_ids
+    ).select_related("company", "access_receipt", "current_state").annotate(
+        display_read_at=Coalesce("current_state__read_at", "read_at"),
+        display_science_at=Coalesce("current_state__science_at", "source_science_at"),
     )
+    if selected_company:
+        message_query = message_query.filter(company=selected_company)
+    search_term = request.GET.get("q", "").strip()[:100]
+    if search_term:
+        message_query = message_query.filter(
+            Q(subject__icontains=search_term) | Q(sender__icontains=search_term)
+        )
+    if message_filter == "unread":
+        message_query = message_query.filter(display_read_at__isnull=True).exclude(
+            access_receipt__status=DteMessageAccess.Status.OPENED
+        )
+    elif message_filter == "read":
+        message_query = message_query.filter(
+            Q(display_read_at__isnull=False)
+            | Q(access_receipt__status=DteMessageAccess.Status.OPENED)
+        )
+    message_page = Paginator(
+        message_query.order_by("-sent_at", "-first_seen_at"), 25
+    ).get_page(request.GET.get("page"))
     week_ago = timezone.now() - timedelta(days=7)
+    pending_runs = list(
+        DteRun.objects.filter(organization=office, status=DteRun.Status.AWAITING_APPROVAL)
+        .select_related("requested_by")
+        .prefetch_related("items__company")
+        .order_by("-requested_at")
+    )
+    for pending in pending_runs:
+        try:
+            pending.usage_quote = quote_usage(  # type: ignore[attr-defined]
+                organization=office, action_code=DTE_ACTION_CODE, units=pending.total_companies
+            )
+        except BillingError:
+            pending.usage_quote = None  # type: ignore[attr-defined]
+        pending.overage_brl = (  # type: ignore[attr-defined]
+            Decimal(pending.usage_quote.additional_overage_cents) / 100
+            if pending.usage_quote is not None
+            else None
+        )
+    membership = context["membership"]
+    can_authorize_overage = isinstance(membership, Membership) and membership.role in {
+        Membership.Role.OWNER, Membership.Role.ADMIN
+    }
     context.update(
         {
-            "page_title": "DTE \u2014 Caixa Postal",
+            "page_title": (
+                "Central Integra Contador"
+                if request.resolver_match and request.resolver_match.url_name == "integra"
+                else "Caixa Postal DTE"
+            ),
             "dte_form": form,
-            "dte_companies_count": companies.count(),
+            "dte_companies_count": form.scope_count - form.ineligible_count,
+            "dte_scope_count": form.scope_count,
+            "dte_ineligible_count": form.ineligible_count,
             "dte_items": items,
-            "recent_dte_messages": recent_messages,
+            "dte_message_page": message_page,
+            "dte_message_filter": message_filter,
+            "dte_selected_company": selected_company,
+            "dte_search_term": search_term,
+            "dte_companies": companies.order_by("name"),
             "dte_stats": {
                 "awaiting": DteRun.objects.filter(
                     organization=office, status=DteRun.Status.AWAITING_APPROVAL
                 ).count(),
                 "unread": DteMessage.objects.filter(
-                    organization=office, company_id__in=allowed_company_ids, read_at__isnull=True
+                    organization=office, company_id__in=allowed_company_ids
+                ).annotate(
+                    display_read_at=Coalesce("current_state__read_at", "read_at")
+                ).filter(display_read_at__isnull=True).exclude(
+                    access_receipt__status=DteMessageAccess.Status.OPENED
                 ).count(),
                 "new_this_week": DteMessage.objects.filter(
                     organization=office, company_id__in=allowed_company_ids, sent_at__gte=week_ago
                 ).count(),
             },
-            "pending_runs": (
-                DteRun.objects.filter(organization=office, status=DteRun.Status.AWAITING_APPROVAL)
-                .select_related("requested_by")
-                .prefetch_related("items__company")
-                .order_by("-requested_at")
-            ),
+            "pending_runs": pending_runs,
             "can_prepare_dte": _can_prepare_dte(context),
+            "can_authorize_overage": can_authorize_overage,
+            "integra_guides_enabled": ProductModule.objects.filter(
+                organization=office, code=ProductModule.Code.GUIDES, enabled=True
+            ).exists(),
         }
     )
     return render(request, "hub/dte_center.html", context)
+
+
+def _can_acknowledge_dte(context: dict[str, object]) -> bool:
+    if not context["support_can_mutate"] or context["support_session"] is not None:
+        return False
+    membership = context["membership"]
+    return isinstance(membership, Membership) and (
+        membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+        or (
+            membership.role == Membership.Role.OPERATOR
+            and membership.can_acknowledge_dte
+        )
+    )
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
+    """Show metadata safely; only the confirmed POST opens the legal provider detail."""
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
+    message = get_object_or_404(
+        DteMessage.objects.select_related("company", "current_state"),
+        pk=message_id,
+        organization=office,
+        company__in=allowed_companies,
+    )
+    access = DteMessageAccess.objects.filter(organization=office, message=message).first()
+    current_state = getattr(message, "current_state", None)
+    can_acknowledge = _can_acknowledge_dte(context)
+    contract = TenantContract.objects.filter(
+        organization=office, status__in=[TenantContract.Status.TRIAL, TenantContract.Status.ACTIVE]
+    ).select_related("plan").order_by("-created_at").first()
+    detail_rate = None
+    if contract:
+        detail_rate = contract.service_rates.filter(action_code="caixapostal.detalhe").first()
+        if detail_rate is None and contract.plan:
+            detail_rate = contract.plan.service_rates.filter(
+                action_code="caixapostal.detalhe"
+            ).first()
+    try:
+        detail_quote = (
+            quote_usage(organization=office, action_code="caixapostal.detalhe")
+            if detail_rate is not None
+            else None
+        )
+    except BillingError:
+        detail_quote = None
+    can_authorize_overage = isinstance(context["membership"], Membership) and context[
+        "membership"
+    ].role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+    if request.method == "POST":
+        if not can_acknowledge:
+            return refuse(request, "Este perfil não pode confirmar a ciência do DTE.")
+        if not context["connector_ready"]:
+            messages.error(request, "A conexão central Serpro ainda não está configurada.")
+        elif detail_rate is None or detail_quote is None:
+            messages.error(request, "O contrato não inclui a consulta de detalhes da Caixa Postal.")
+        elif request.POST.get("confirm_legal_notice") != "on":
+            messages.error(
+                request, "Confirme que esta abertura pode registrar ciência e iniciar prazo."
+            )
+        elif detail_quote.additional_overage_units and (
+            not can_authorize_overage
+            or request.POST.get("confirm_overage") != "on"
+            or request.POST.get("approved_overage_cents")
+            != str(detail_quote.additional_overage_cents)
+        ):
+            messages.error(
+                request,
+                "O valor do excedente precisa ser conferido e autorizado por um dono "
+                "ou administrador antes da abertura.",
+            )
+        else:
+            membership = context["membership"]
+            approved_overage = bool(detail_quote.additional_overage_units) and isinstance(
+                membership, Membership
+            ) and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+            try:
+                access = open_message(
+                    message=message,
+                    actor=request.user,
+                    request=request,
+                    approved_overage=approved_overage,
+                    approved_overage_cents=(
+                        detail_quote.additional_overage_cents if approved_overage else None
+                    ),
+                )
+            except DteAccessError as exc:
+                messages.error(request, str(exc))
+            else:
+                messages.success(
+                    request, "Teor recuperado. Confira a ciência e os prazos indicados."
+                )
+        return redirect("hub:dte-message-detail", message_id=message.id)
+    content = ""
+    if access and access.status == DteMessageAccess.Status.OPENED and access.provider_payload:
+        try:
+            provider_row = json.loads(access.provider_payload)
+        except json.JSONDecodeError:
+            provider_row = {}
+        if isinstance(provider_row, dict):
+            content = body_text(provider_row)
+    context.update(
+        {
+            "page_title": "Mensagem da Caixa Postal",
+            "dte_message": message,
+            "dte_access": access,
+            "dte_body_text": content,
+            "dte_latest_read_at": (
+                current_state.read_at
+                if current_state and current_state.read_at
+                else message.read_at
+            ),
+            "dte_latest_science_at": (
+                current_state.science_at
+                if current_state and current_state.science_at
+                else message.source_science_at
+            ),
+            "can_acknowledge_dte": can_acknowledge,
+            "dte_detail_rate": detail_rate,
+            "dte_detail_quote": detail_quote,
+            "dte_detail_overage_brl": (
+                Decimal(detail_quote.additional_overage_cents) / 100 if detail_quote else None
+            ),
+            "can_open_dte_detail": can_acknowledge
+            and bool(context["connector_ready"])
+            and detail_rate is not None
+            and detail_quote is not None
+            and (not detail_quote.additional_overage_units or can_authorize_overage),
+        }
+    )
+    return render(request, "hub/dte_message_detail.html", context)
 
 
 def _can_prepare_dte(context: dict[str, object]) -> bool:
     if not context["support_can_mutate"]:
         return False
     if context["support_session"] is not None:
-        return True
+        return False
     membership = context["membership"]
     return isinstance(membership, Membership) and membership.role not in {
         Membership.Role.AUDITOR,
@@ -1671,16 +1954,33 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
     decision = request.POST.get("decision", "")
     try:
         if decision == "approve":
+            if not context["connector_ready"]:
+                messages.error(
+                    request,
+                    "A conexão central Serpro ainda não está configurada. "
+                    "A Mewstack precisa ativá-la antes de autorizar a consulta.",
+                )
+                return redirect("hub:dte-center")
             membership = context["membership"]
-            approved_overage = isinstance(membership, Membership) and membership.role in {
-                Membership.Role.OWNER,
-                Membership.Role.ADMIN,
-            }
+            approved_overage = (
+                isinstance(membership, Membership)
+                and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+                and request.POST.get("confirm_overage") == "on"
+            )
+            try:
+                approved_overage_total_cents = (
+                    int(request.POST["approved_overage_cents"])
+                    if approved_overage
+                    else None
+                )
+            except (KeyError, ValueError):
+                approved_overage_total_cents = None
             confirmation = approve_dte_run(
                 run=run,
                 actor=request.user,
                 request=request,
                 approved_overage=approved_overage,
+                approved_overage_total_cents=approved_overage_total_cents,
             )
             messages.success(
                 request,
@@ -1816,41 +2116,296 @@ def reform(request: HttpRequest) -> HttpResponse:
         return blocked
     source = request.GET.get("fonte", "")
     valid_sources = set(ReformAlert.Source.values)
-    alerts = ReformAlert.objects.all()
+    alerts = ReformAlert.objects.exclude(relevance=ReformAlert.Relevance.GENERAL)
     if source in valid_sources:
         alerts = alerts.filter(source=source)
     else:
         source = ""
+    statuses_by_source = {
+        status.source: status for status in ReformSourceStatus.objects.all()
+    }
     context.update(
         {
             "page_title": "Radar da Reforma Tributária",
             "alerts": alerts[:80],
             "selected_source": source,
             "sources": ReformAlert.Source.choices,
-            "source_statuses": ReformSourceStatus.objects.all(),
+            "source_health": [
+                (value, label, statuses_by_source.get(value))
+                for value, label in ReformAlert.Source.choices
+            ],
         }
     )
     return render(request, "hub/reform.html", context)
 
 
 @office_required
+@require_http_methods(["GET"])
 def triage(request: HttpRequest) -> HttpResponse:
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    context, blocked = _triage_page_context(request)
     if blocked:
         return blocked
+    context["imap_form"] = IMAPConnectionForm()
+    return render(request, "hub/triage.html", context)
+
+
+def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpResponse | None]:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return context, blocked
+    office = context["office"]
+    assert isinstance(office, Organization)
+    mailboxes = Mailbox.objects.filter(organization=office).order_by("provider", "address")
     context.update(
         {
             "page_title": "Triagem de Arquivos",
-            "table_headers": [],
-            "records": [],
-            "empty_title": "Nenhuma caixa de e-mail conectada",
-            "empty_text": (
-                "Conecte uma caixa em Configurações para que os anexos recebidos comecem a "
-                "ser triados."
+            "mailboxes": mailboxes,
+            "authorized_mailboxes_exist": mailboxes.filter(status=Mailbox.Status.ACTIVE).exists(),
+            "mailbox_error_exists": mailboxes.filter(status=Mailbox.Status.ERROR).exists(),
+            "can_manage_mailboxes": _can_manage_collaborators(context),
+            "ms_oauth_ready": bool(
+                settings.TRIAGE_MS_OAUTH_ENABLED
+                and settings.TRIAGE_MS_CLIENT_ID
+                and settings.TRIAGE_MS_CLIENT_SECRET
+                and settings.TRIAGE_OAUTH_BASE_URL
+            ),
+            "google_oauth_ready": bool(
+                settings.TRIAGE_GOOGLE_OAUTH_ENABLED
+                and settings.TRIAGE_GOOGLE_CLIENT_ID
+                and settings.TRIAGE_GOOGLE_CLIENT_SECRET
+                and settings.TRIAGE_OAUTH_BASE_URL
             ),
         }
     )
-    return render(request, "hub/module_page.html", context)
+    return context, None
+
+
+@office_required
+@require_http_methods(["POST"])
+def triage_imap_connect(request: HttpRequest) -> HttpResponse:
+    context, blocked = _triage_page_context(request)
+    if blocked:
+        return blocked
+    if not _can_manage_collaborators(context):
+        return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
+    form = IMAPConnectionForm(request.POST)
+    context["imap_form"] = form
+    if not form.is_valid():
+        return render(request, "hub/triage.html", context)
+    if rate_limited(f"triage-imap:{request.user.id}", limit=5, window_seconds=60):
+        form.add_error(None, "Muitas tentativas. Aguarde 1 minuto e tente novamente.")
+        return render(request, "hub/triage.html", context, status=429)
+    host = str(form.cleaned_data["host"])
+    address = str(form.cleaned_data["address"]).casefold()
+    username = str(form.cleaned_data["username"] or address)
+    password = str(form.cleaned_data["password"])
+    folder = str(form.cleaned_data["folder"])
+    try:
+        probe_imap_mailbox(host=host, username=username, password=password, folder=folder)
+    except MailboxIMAPError as exc:
+        form.add_error(None, str(exc))
+        return render(request, "hub/triage.html", context)
+    office = context["office"]
+    assert isinstance(office, Organization)
+    with transaction.atomic():
+        mailbox, _ = Mailbox.objects.update_or_create(
+            organization=office,
+            provider=Mailbox.Provider.IMAP,
+            address=address,
+            folder=folder,
+            defaults={
+                "credential": encrypted_imap_credential(
+                    host=host, username=username, password=password
+                ),
+                "cursor": "",
+                "since": None,
+                "status": Mailbox.Status.ACTIVE,
+                "active": False,
+                "last_error": "",
+            },
+        )
+    record_event(
+        action="triage.mailbox.authorized",
+        actor=request.user,
+        organization=office,
+        target=mailbox,
+        request=request,
+        metadata={"provider": "imap"},
+    )
+    messages.success(
+        request, "Caixa IMAP autorizada e leitura testada. O recebimento continua desligado."
+    )
+    return redirect("hub:triage")
+
+
+@office_required
+@require_http_methods(["POST"])
+def triage_oauth_start(request: HttpRequest, provider: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return blocked
+    if not _can_manage_collaborators(context):
+        return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
+    office = context["office"]
+    assert isinstance(office, Organization)
+    try:
+        url, state, verifier = new_authorization(provider)
+    except MailboxOAuthError as exc:
+        messages.error(request, str(exc))
+        return redirect("hub:triage")
+    request.session["triage_oauth_flow"] = {
+        "provider": provider,
+        "state": state,
+        "verifier": verifier,
+        "office_id": str(office.id),
+        "user_id": str(request.user.id),
+        "started_at": timezone.now().timestamp(),
+    }
+    response = redirect(url)
+    response["Cache-Control"] = "no-store"
+    response["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@office_required
+@require_http_methods(["GET"])
+def triage_oauth_callback(request: HttpRequest, provider: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return blocked
+    flow = request.session.pop("triage_oauth_flow", None)
+    office = context["office"]
+    assert isinstance(office, Organization)
+    valid = (
+        isinstance(flow, dict)
+        and flow.get("provider") == provider
+        and flow.get("office_id") == str(office.id)
+        and flow.get("user_id") == str(request.user.id)
+        and isinstance(flow.get("state"), str)
+        and isinstance(flow.get("verifier"), str)
+        and secrets.compare_digest(flow["state"], request.GET.get("state", ""))
+        and isinstance(flow.get("started_at"), (int, float))
+        and 0 <= timezone.now().timestamp() - flow["started_at"] <= 600
+        and _can_manage_collaborators(context)
+    )
+    if not valid:
+        messages.error(request, "A autorização expirou ou pertence a outra sessão.")
+        return _triage_oauth_return()
+    if request.GET.get("error"):
+        messages.error(
+            request,
+            "O provedor não autorizou a caixa. Entre novamente com a conta correta; se o "
+            "escritório bloquear aplicativos, peça a liberação ao administrador do e-mail.",
+        )
+        return _triage_oauth_return()
+    try:
+        access_token, refresh_token = exchange_code(
+            provider, code=request.GET.get("code", ""), verifier=flow["verifier"]
+        )
+        address = probe_mailbox(provider, access_token=access_token)
+    except MailboxOAuthError as exc:
+        messages.error(request, str(exc))
+        return _triage_oauth_return()
+    with transaction.atomic():
+        mailbox, _ = Mailbox.objects.update_or_create(
+            organization=office,
+            provider=provider,
+            address=address,
+            folder="INBOX",
+            defaults={
+                "credential": encrypted_refresh_credential(provider, refresh_token),
+                "status": Mailbox.Status.ACTIVE,
+                "active": False,
+                "last_error": "",
+            },
+        )
+    record_event(
+        action="triage.mailbox.authorized",
+        actor=request.user,
+        organization=office,
+        target=mailbox,
+        request=request,
+        metadata={"provider": provider},
+    )
+    messages.success(
+        request,
+        "Caixa autorizada e leitura testada. A sincronização aguarda o corte inicial.",
+    )
+    return _triage_oauth_return()
+
+
+def _triage_oauth_return() -> HttpResponse:
+    """Keep the provider authorization code out of caches and referrers."""
+    response = redirect("hub:triage")
+    response["Cache-Control"] = "no-store"
+    response["Referrer-Policy"] = "no-referrer"
+    return response
+
+
+@office_required
+@require_http_methods(["POST"])
+def triage_mailbox_disconnect(request: HttpRequest, mailbox_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return blocked
+    if not _can_manage_collaborators(context):
+        return refuse(request, "Somente o administrador do escritório desconecta caixas.")
+    office = context["office"]
+    assert isinstance(office, Organization)
+    mailbox = get_object_or_404(Mailbox, organization=office, id=mailbox_id)
+    mailbox.credential = ""
+    mailbox.cursor = ""
+    mailbox.active = False
+    mailbox.status = Mailbox.Status.DISABLED
+    mailbox.save(update_fields=["credential", "cursor", "active", "status", "updated_at"])
+    record_event(
+        action="triage.mailbox.disconnected",
+        actor=request.user,
+        organization=office,
+        target=mailbox,
+        request=request,
+        metadata={"provider": mailbox.provider},
+    )
+    messages.success(request, "Caixa desconectada deste escritório.")
+    return redirect("hub:triage")
+
+@office_required
+@require_http_methods(["GET"])
+def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return blocked
+    office = context["office"]
+    assert isinstance(office, Organization)
+    item = get_object_or_404(
+        TriageItem.objects.select_related(
+            "company", "document_type", "reviewed_by", "blob"
+        ).prefetch_related("events__actor"),
+        organization=office,
+        company__in=context["companies"],
+        id=item_id,
+    )
+    context.update({"page_title": "Arquivo em triagem", "item": item})
+    return render(request, "hub/triage_item.html", context)
+
+
+@office_required
+@require_http_methods(["GET"])
+def triage_download(request: HttpRequest, item_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        raise Http404
+    office = context["office"]
+    assert isinstance(office, Organization)
+    get_object_or_404(
+        TriageItem.objects.all(),
+        organization=office,
+        company__in=context["companies"],
+        id=item_id,
+    )
+    # There is no verified malware scan in this worktree. Never serve a quarantined
+    # attachment, including one marked archived by the older manual prototype.
+    raise Http404
 
 
 @office_required

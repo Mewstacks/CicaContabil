@@ -20,6 +20,7 @@ from apps.hub.models import (
     PortalRequest,
     ProductModule,
     ReformAlert,
+    ReformSourceStatus,
     ReviewCase,
 )
 from apps.hub.services import create_document_and_artifact
@@ -36,6 +37,7 @@ from apps.platform.models import (
     TenantUsagePolicy,
 )
 from apps.platform.notifications import TransactionalEmailError
+from apps.triage.models import TriageItem
 from conftest import complete_mfa
 
 
@@ -143,6 +145,27 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(response, "Cronograma IBS")
         self.assertNotContains(response, "Nota econômica")
         self.assertContains(response, "data-auto-filter")
+        self.assertContains(response, "Saúde das fontes")
+        self.assertContains(response, "Aguardando a primeira coleta")
+
+        unfiltered = self.client.get(reverse("hub:reform"))
+        self.assertContains(unfiltered, "Cronograma IBS")
+        self.assertNotContains(unfiltered, "Nota econômica")
+
+    def test_reform_radar_shows_a_source_collection_failure_without_raw_error(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.REFORM, enabled=True
+        )
+        ReformSourceStatus.objects.create(
+            source=ReformAlert.Source.RFB,
+            last_error="upstream timeout with internal trace 9d1f",
+        )
+
+        response = self.client.get(reverse("hub:reform"))
+
+        self.assertContains(response, "Falha na coleta")
+        self.assertContains(response, "a próxima coleta tentará novamente")
+        self.assertNotContains(response, "internal trace 9d1f")
 
     def test_account_menu_persists_an_explicit_theme_choice(self) -> None:
         response = self.client.post(
@@ -554,13 +577,17 @@ class HubWorkspaceViewTests(TestCase):
             self.assertContains(response, self.organization.name)
 
         integra = self.client.get(reverse("hub:integra"))
-        self.assertRedirects(integra, reverse("hub:dte-center"))
+        self.assertEqual(integra.status_code, 200)
+        self.assertContains(integra, "Caixa DTE")
+        self.assertContains(integra, "Parcelamentos")
+        self.assertContains(integra, "DCTFWeb")
+        self.assertContains(integra, reverse("hub:dte-center"))
 
         nav = self.client.get(reverse("hub:dashboard"))
         self.assertContains(nav, reverse("hub:guides"))
         self.assertContains(nav, reverse("hub:integra"))
 
-    def test_triage_module_renders_its_empty_state_when_enabled(self) -> None:
+    def test_triage_module_requires_an_email_mailbox_when_enabled(self) -> None:
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
         )
@@ -570,9 +597,70 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Triagem de Arquivos")
         self.assertContains(response, "Nenhuma caixa de e-mail conectada")
+        self.assertContains(response, "Caixa de e-mail não configurada")
+        self.assertNotContains(response, "Pronto para receber dados")
 
         nav = self.client.get(reverse("hub:dashboard"))
         self.assertContains(nav, reverse("hub:triage"))
+
+    def test_triage_item_routes_respect_the_collaborators_company_scope(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
+        )
+        restricted_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa restrita", dominio_code="002"
+        )
+        restricted_item = TriageItem.objects.create(
+            organization=self.organization,
+            company=restricted_company,
+            original_name="documento.pdf",
+        )
+        collaborator = User.objects.create_user(
+            email="triage-scoped@example.test", password="a-safe-password-123"
+        )
+        membership = Membership.objects.create(
+            organization=self.organization, user=collaborator, role=Membership.Role.OPERATOR
+        )
+        CompanyAccessGrant.objects.create(
+            organization=self.organization,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.TRIAGE],
+            capabilities=["read"],
+        )
+        self.client.force_login(collaborator)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.id)
+        session.save()
+
+        for endpoint in ("hub:triage-item", "hub:triage-download"):
+            self.assertEqual(
+                self.client.get(reverse(endpoint, args=[restricted_item.id])).status_code,
+                404,
+            )
+
+    def test_triage_prototype_cannot_review_or_download_unscanned_files(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
+        )
+        item = TriageItem.objects.create(
+            organization=self.organization,
+            company=self.company,
+            original_name="anexo-nao-verificado.pdf",
+        )
+
+        detail = self.client.get(reverse("hub:triage-item", args=[item.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(detail, "verificação de segurança")
+        self.assertNotContains(detail, "Baixar arquivo")
+        self.assertEqual(
+            self.client.post(reverse("hub:triage-item", args=[item.id]), {}).status_code,
+            405,
+        )
+        self.assertEqual(
+            self.client.get(reverse("hub:triage-download", args=[item.id])).status_code,
+            404,
+        )
 
     def test_triage_module_is_unavailable_until_the_office_enables_it(self) -> None:
         response = self.client.get(reverse("hub:triage"))

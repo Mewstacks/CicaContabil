@@ -1,0 +1,27 @@
+{% extends 'hub/workspace.html' %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Voltar à Triagem</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="item-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">REGISTRO DE ARQUIVO</p>
+      <h2 id="item-heading">{{ item.original_name }}</h2>
+      <p>{{ item.company.name|default:"Empresa não identificada" }}{% if item.document_type %} · {{ item.document_type.label }}{% endif %}</p>
+    </div>
+    <span class="module-state {% if item.status == 'aguardando_revisao' %}is-warning{% elif item.status == 'arquivado' %}is-active{% else %}is-muted{% endif %}">{{ item.get_status_display }}</span>
+  </header>
+  <dl class="triage-details">
+    <div><dt>Recebido</dt><dd>{{ item.created_at|date:"d/m/Y H:i" }}</dd></div>
+    <div><dt>Tamanho</dt><dd>{{ item.byte_size|filesizeformat }}</dd></div>
+    <div><dt>Formato</dt><dd>{{ item.detected_type|default:"Não identificado" }}</dd></div>
+    {% if item.reviewed_by %}<div><dt>Revisado por</dt><dd>{{ item.reviewed_by.full_name|default:item.reviewed_by.email }}</dd></div>{% endif %}
+  </dl>
+  <p class="triage-decision-note" role="status">A revisão e o download estarão disponíveis após a conexão de e-mail e a verificação de segurança dos anexos.</p>
+</section>
+<section class="workspace-panel" aria-labelledby="history-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">AUDITORIA</p><h2 id="history-heading">Histórico do arquivo</h2></div></header>
+  <ol class="triage-history">
+    {% for event in item.events.all %}<li><strong>{{ event.get_to_status_display }}</strong><span>{{ event.created_at|date:"d/m/Y H:i" }}{% if event.actor %} · {{ event.actor.full_name|default:event.actor.email }}{% endif %}</span>{% if event.note %}<p>{{ event.note }}</p>{% endif %}</li>{% empty %}<li><span>Nenhuma etapa registrada.</span></li>{% endfor %}
+  </ol>
+</section>
+{% endblock %}

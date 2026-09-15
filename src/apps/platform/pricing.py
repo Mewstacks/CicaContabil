@@ -26,9 +26,7 @@ MODULE_PRICES: tuple[ModulePrice, ...] = (
     ModulePrice("integra", "Central Integra Contador", 7_900, "Consumo cobrado separadamente"),
     ModulePrice("reconciliation", "Conciliação OFX", 12_900),
     ModulePrice("reform", "Radar Reforma", 5_900),
-    ModulePrice("journey", "Jornadas", 15_900),
     ModulePrice("ai", "Copiloto CICA", 24_900),
-    ModulePrice("triage", "Triagem de Arquivos", 14_900),
 )
 MODULE_PRICE_BY_CODE = {item.code: item for item in MODULE_PRICES}
 
