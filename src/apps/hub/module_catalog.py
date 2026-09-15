@@ -12,7 +12,7 @@ class ModuleDefinition:
     short_label: str
     description: str
     route_name: str
-    connector_kind: str | None
+    required_capabilities: tuple[str, ...]
     icon: str
 
 
@@ -21,9 +21,11 @@ MODULES: dict[str, ModuleDefinition] = {
         code=ProductModule.Code.NFSE,
         label="NFS-e Inteligente",
         short_label="NFS-e",
-        description="Capture, classifique e acompanhe documentos de serviço desta empresa.",
+        description=(
+            "Organize, classifique e acompanhe documentos recebidos pela integração homologada."
+        ),
         route_name="hub:nfse-center",
-        connector_kind="dominio_agent",
+        required_capabilities=("companies", "fiscal_documents"),
         icon="NF",
     ),
     ProductModule.Code.GUIDES: ModuleDefinition(
@@ -32,7 +34,7 @@ MODULES: dict[str, ModuleDefinition] = {
         short_label="Guias",
         description="Organize vencimentos, transmissões e pendências fiscais em um só lugar.",
         route_name="hub:guides",
-        connector_kind="dominio_agent",
+        required_capabilities=("companies", "obligations"),
         icon="GU",
     ),
     ProductModule.Code.INTEGRA: ModuleDefinition(
@@ -41,7 +43,8 @@ MODULES: dict[str, ModuleDefinition] = {
         short_label="Integra",
         description="Acompanhe solicitações e retornos enviados ao Integra Contador.",
         route_name="hub:integra",
-        connector_kind="integra",
+        # The platform, not the office, contracts and configures Serpro.
+        required_capabilities=(),
         icon="IC",
     ),
     ProductModule.Code.RECONCILIATION: ModuleDefinition(
@@ -50,17 +53,46 @@ MODULES: dict[str, ModuleDefinition] = {
         short_label="Conciliação",
         description="Compare extratos bancários com o Domínio e trate divergências.",
         route_name="hub:reconciliation",
-        connector_kind="dominio_agent",
+        required_capabilities=("bank_statements", "accounting_entries"),
         icon="OF",
     ),
     ProductModule.Code.REFORM: ModuleDefinition(
         code=ProductModule.Code.REFORM,
         label="Radar da Reforma Tributária",
         short_label="Radar",
-        description="Veja mudanças relevantes e o impacto potencial para esta empresa.",
+        description="Acompanhe publicações fiscais relevantes em fontes oficiais.",
         route_name="hub:reform",
-        connector_kind=None,
+        required_capabilities=(),
         icon="RT",
+    ),
+    ProductModule.Code.JOURNEY: ModuleDefinition(
+        code=ProductModule.Code.JOURNEY,
+        label="Jornadas",
+        short_label="Jornadas",
+        description="Crie jornadas por empresa, responsável, prazo e visibilidade.",
+        route_name="hub:journey",
+        required_capabilities=(),
+        icon="JP",
+    ),
+    ProductModule.Code.AI: ModuleDefinition(
+        code=ProductModule.Code.AI,
+        label="Copiloto CICA",
+        short_label="Copiloto",
+        description="Analise o contexto autorizado de uma empresa com fontes e limites claros.",
+        route_name="intelligence:assistant",
+        required_capabilities=(),
+        icon="IA",
+    ),
+    ProductModule.Code.TRIAGE: ModuleDefinition(
+        code=ProductModule.Code.TRIAGE,
+        label="Triagem de Arquivos",
+        short_label="Triagem",
+        description=(
+            "Receba documentos por e-mail, identifique empresa e período, e arquive com revisão."
+        ),
+        route_name="hub:triage",
+        required_capabilities=(),
+        icon="TR",
     ),
 }
 

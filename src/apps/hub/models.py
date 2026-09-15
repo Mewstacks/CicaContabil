@@ -12,6 +12,11 @@ from apps.common.models import AppendOnlyQuerySet, UUIDTimeStampedModel
 from apps.organizations.models import Membership, OrganizationScopedModel
 
 
+def private_import_path(instance: ImportBatch, filename: str) -> str:
+    suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"private/imports/{instance.organization_id}/{instance.id}.{suffix}"
+
+
 class OfficeProfile(OrganizationScopedModel):
     class ContractStatus(models.TextChoices):
         TRIAL = "trial", "Em carência"
@@ -22,12 +27,15 @@ class OfficeProfile(OrganizationScopedModel):
         "organizations.Organization", on_delete=models.CASCADE, related_name="hub_profile"
     )
     legal_name = models.CharField(max_length=180, blank=True)
+    cnpj = EncryptedTextField(blank=True)
+    cnpj_hash = models.CharField(max_length=64, blank=True, db_index=True)
     contract_status = models.CharField(
         max_length=16, choices=ContractStatus.choices, default=ContractStatus.TRIAL
     )
     grace_ends_at = models.DateField(null=True, blank=True)
     reference_invoice_note = models.CharField(max_length=240, blank=True)
     require_mfa = models.BooleanField(default=False)
+    trial_started_at = models.DateTimeField(null=True, blank=True, editable=False)
     # The Domínio code is the identity every downstream integration joins on: the mirror
     # looks companies up by it, the NFS-e sync keys on it, and DTE evidence is filed under
     # it. An office that works against Domínio turns this on so a company cannot be
@@ -42,6 +50,10 @@ class ProductModule(OrganizationScopedModel):
         INTEGRA = "integra", "Central Integra Contador"
         RECONCILIATION = "reconciliation", "Conciliação OFX x Domínio"
         REFORM = "reform", "Radar da Reforma Tributária"
+
+        JOURNEY = "journey", "Jornadas"
+        AI = "ai", "Copiloto CICA"
+        TRIAGE = "triage", "Triagem de Arquivos"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)
@@ -81,6 +93,11 @@ class ClientCompany(OrganizationScopedModel):
     dominio_code = models.CharField(max_length=64, blank=True, db_index=True)
     active = models.BooleanField(default=True)
     last_dominio_sync_at = models.DateTimeField(null=True, blank=True)
+    data_source = models.ForeignKey(
+        "DataSource", null=True, blank=True, on_delete=models.SET_NULL, related_name="companies"
+    )
+    external_key = models.CharField(max_length=160, blank=True, db_index=True)
+    source_updated_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ("name",)
@@ -89,11 +106,96 @@ class ClientCompany(OrganizationScopedModel):
                 fields=("organization", "dominio_code"),
                 condition=models.Q(dominio_code__gt=""),
                 name="hub_unique_dominio_company_code",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=("data_source", "external_key"),
+                condition=models.Q(data_source__isnull=False, external_key__gt=""),
+                name="hub_unique_company_source_key",
+            ),
         ]
 
     def __str__(self) -> str:
         return self.name
+
+
+class ClientJourney(OrganizationScopedModel):
+    """An office-owned internal workboard with an explicit company boundary."""
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Em andamento"
+        PAUSED = "paused", "Pausada"
+        COMPLETED = "completed", "Concluída"
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE, related_name="journeys")
+    title = models.CharField(max_length=160)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    owner = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="owned_journeys",
+    )
+    due_on = models.DateField(null=True, blank=True)
+    portal_visible = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("due_on", "-created_at")
+        indexes = [models.Index(fields=("organization", "company", "status"))]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.company_id and self.company.organization_id != self.organization_id:
+            raise ValidationError("A jornada precisa pertencer ao mesmo escritório da empresa.")
+
+
+class JourneyStep(OrganizationScopedModel):
+    journey = models.ForeignKey(ClientJourney, on_delete=models.CASCADE, related_name="steps")
+    title = models.CharField(max_length=160)
+    description = models.TextField(blank=True)
+    position = models.PositiveSmallIntegerField(default=1)
+    due_on = models.DateField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    portal_visible = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("position", "created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("journey", "position"),
+                name="hub_unique_journey_step_position",
+            )
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.journey_id and self.journey.organization_id != self.organization_id:
+            raise ValidationError("A etapa precisa pertencer ao mesmo escritório da jornada.")
+
+
+class PortalRequest(OrganizationScopedModel):
+    class Status(models.TextChoices):
+        OPEN = "open", "Aberta"
+        RECEIVED = "received", "Recebida"
+        RESOLVED = "resolved", "Concluída"
+
+    journey = models.ForeignKey(ClientJourney, on_delete=models.CASCADE, related_name="requests")
+    title = models.CharField(max_length=160)
+    details = models.TextField(blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
+    due_on = models.DateField(null=True, blank=True)
+    # Kept only for compatibility with historical records. CICA does not expose
+    # a client-facing portal; every new internal pendency is private by default.
+    portal_visible = models.BooleanField(default=False)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("due_on", "-created_at")
+
+    def clean(self) -> None:
+        super().clean()
+        if self.journey_id and self.journey.organization_id != self.organization_id:
+            raise ValidationError("A solicitação precisa pertencer ao mesmo escritório da jornada.")
 
 
 class CompanyAccessGrant(OrganizationScopedModel):
@@ -304,10 +406,121 @@ class IntegrationArtifact(ImmutableOrganizationModel):
     payload = models.JSONField(default=dict)
 
 
+class DataSource(OrganizationScopedModel):
+    """One office-owned source feeding normalized CICA records."""
+
+    class Kind(models.TextChoices):
+        DOMINIO_LOCAL_AGENT = "dominio_local_agent", "Domínio Local (agente)"
+        DOMINIO_WEB_BACKUP = "dominio_web_backup", "Domínio Web (backup manual)"
+        OTHER_MANUAL = "other_manual", "Outro sistema (importação manual)"
+        DOMINIO_OFFICIAL_API = "dominio_official_api", "Domínio API oficial"
+
+    class Status(models.TextChoices):
+        NOT_CONFIGURED = "not_configured", "Não configurada"
+        READY = "ready", "Pronta"
+        PROCESSING = "processing", "Processando"
+        ATTENTION = "attention", "Requer atenção"
+        DISABLED = "disabled", "Desativada"
+
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    label = models.CharField(max_length=120)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.NOT_CONFIGURED)
+    capabilities = models.JSONField(default=list)
+    last_import_at = models.DateTimeField(null=True, blank=True)
+    source_snapshot_at = models.DateTimeField(null=True, blank=True)
+    last_error_code = models.CharField(max_length=80, blank=True)
+    last_error_message = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "kind"), name="hub_unique_data_source_kind"
+            )
+        ]
+
+
+class ImportBatch(OrganizationScopedModel):
+    """A bounded, auditable manual import; raw files are discarded after processing."""
+
+    class Kind(models.TextChoices):
+        COMPANIES = "companies", "Empresas"
+        OBLIGATIONS = "obligations", "Obrigações e guias"
+        ACCOUNTING = "accounting", "Lançamentos contábeis"
+        FISCAL_XML = "fiscal_xml", "Documentos fiscais XML"
+        BANK_OFX = "bank_ofx", "Extratos bancários OFX"
+        DOMINIO_BACKUP = "dominio_backup", "Backup completo Domínio Web"
+
+    class Status(models.TextChoices):
+        PREVIEW = "preview", "Aguardando confirmação"
+        QUEUED = "queued", "Na fila de extração"
+        PROCESSING = "processing", "Processando"
+        COMPLETED = "completed", "Concluído"
+        FAILED = "failed", "Falhou"
+
+    data_source = models.ForeignKey(DataSource, on_delete=models.PROTECT, related_name="imports")
+    kind = models.CharField(max_length=24, choices=Kind.choices)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PREVIEW)
+    original_filename = models.CharField(max_length=255)
+    content_hash = models.CharField(max_length=64)
+    template_version = models.PositiveSmallIntegerField(default=1)
+    mapping = models.JSONField(default=dict)
+    encrypted_payload = EncryptedTextField(blank=True)
+    source_file = models.FileField(upload_to=private_import_path, blank=True)
+    backup_key = EncryptedTextField(blank=True)
+    source_snapshot_at = models.DateTimeField(null=True, blank=True)
+    row_count = models.PositiveIntegerField(default=0)
+    created_count = models.PositiveIntegerField(default=0)
+    updated_count = models.PositiveIntegerField(default=0)
+    ignored_count = models.PositiveIntegerField(default=0)
+    errors = models.JSONField(default=list)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="imports"
+    )
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "data_source", "kind", "content_hash"),
+                name="hub_unique_import_batch_content",
+            )
+        ]
+
+
+class AccountingEntry(OrganizationScopedModel):
+    """Source-neutral accounting entry used by reconciliation and future adapters."""
+
+    data_source = models.ForeignKey(DataSource, on_delete=models.PROTECT, related_name="entries")
+    source_batch = models.ForeignKey(
+        ImportBatch, null=True, blank=True, on_delete=models.SET_NULL, related_name="entries"
+    )
+    company = models.ForeignKey(
+        ClientCompany, null=True, blank=True, on_delete=models.SET_NULL, related_name="entries"
+    )
+    external_key = models.CharField(max_length=160)
+    occurred_on = models.DateField(db_index=True)
+    description = models.CharField(max_length=500, blank=True)
+    amount_cents = models.BigIntegerField()
+    direction = models.CharField(max_length=8, blank=True)
+    is_linked = models.BooleanField(default=False)
+    source_updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-occurred_on", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("data_source", "external_key"), name="hub_unique_accounting_source_key"
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "occurred_on"))]
+
+
 class Connector(OrganizationScopedModel):
     class Kind(models.TextChoices):
         DOMINIO_AGENT = "dominio_agent", "Agente Domínio local"
         ONVIO = "onvio", "Onvio API"
+        SIESCON = "siescon", "Siescon"
         INTEGRA = "integra", "Integra Contador"
 
     kind = models.CharField(max_length=32, choices=Kind.choices)
@@ -328,7 +541,15 @@ class Connector(OrganizationScopedModel):
 class ConsumptionConfirmation(OrganizationScopedModel):
     """An explicit approval gate before a billable Serpro action can be dispatched."""
 
-    connector = models.ForeignKey(Connector, on_delete=models.PROTECT, related_name="confirmations")
+    # Serpro credentials belong to CICA. This nullable historic link only
+    # preserves confirmations created before central contracting.
+    connector = models.ForeignKey(
+        Connector,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="confirmations",
+    )
     action_code = models.CharField(max_length=100)
     scope_summary = models.CharField(max_length=240)
     estimated_units = models.PositiveIntegerField(default=0)
@@ -442,6 +663,234 @@ class DteMessage(ImmutableOrganizationModel):
                 name="hub_dtemess_organiz_a0a7f2_idx",
             )
         ]
+
+
+class FiscalGuide(OrganizationScopedModel):
+    """An obligation received from Domínio and optionally issued through the central API."""
+
+    class Kind(models.TextChoices):
+        DCTFWEB = "dctfweb", "DCTFWeb"
+        DAS = "das", "DAS Simples Nacional"
+        MEI = "mei", "DAS MEI"
+
+    class Status(models.TextChoices):
+        READY = "ready", "Pronta para emitir"
+        QUEUED = "queued", "Na fila"
+        ISSUING = "issuing", "Emitindo"
+        ISSUED = "issued", "Emitida"
+        FAILED = "failed", "Não emitida"
+        SKIPPED = "skipped", "Dispensada"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="fiscal_guides"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.READY)
+    reference = models.CharField(max_length=120)
+    competence = models.CharField(max_length=7)
+    due_on = models.DateField(db_index=True)
+    amount_cents = models.PositiveIntegerField(default=0)
+    integra_service_key = models.CharField(max_length=100)
+    issue_attempt = models.PositiveSmallIntegerField(default=0)
+    provider_request_id = models.CharField(max_length=160, blank=True)
+    provider_payload = EncryptedTextField(blank=True)
+    error_code = models.CharField(max_length=80, blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+    issue_requested_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="requested_fiscal_guides",
+    )
+    issue_requested_at = models.DateTimeField(null=True, blank=True)
+    issued_at = models.DateTimeField(null=True, blank=True)
+    data_source = models.ForeignKey(
+        DataSource, null=True, blank=True, on_delete=models.SET_NULL, related_name="fiscal_guides"
+    )
+    source_batch = models.ForeignKey(
+        ImportBatch, null=True, blank=True, on_delete=models.SET_NULL, related_name="fiscal_guides"
+    )
+    external_key = models.CharField(max_length=160, blank=True, db_index=True)
+    source_updated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("due_on", "company__name", "reference")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "reference"),
+                name="hub_unique_fiscal_guide_reference",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=["organization", "status", "due_on"],
+                name="hub_fguide_org_stat_due_idx",
+            )
+        ]
+
+
+class ReformAlert(UUIDTimeStampedModel):
+    """An official public update collected once for every office to consult."""
+
+    class Source(models.TextChoices):
+        RFB = "rfb", "Receita Federal"
+        FAZENDA = "fazenda", "Ministério da Fazenda"
+        PLANALTO = "planalto", "Planalto"
+
+    class Relevance(models.TextChoices):
+        REFORM = "reform", "Reforma tributária"
+        FISCAL = "fiscal", "Fiscal"
+        GENERAL = "general", "Geral"
+
+    source = models.CharField(max_length=16, choices=Source.choices)
+    external_key = models.CharField(max_length=64)
+    title = models.CharField(max_length=360)
+    source_url = models.URLField(max_length=1_500)
+    summary = models.TextField(blank=True)
+    published_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    relevance = models.CharField(
+        max_length=16, choices=Relevance.choices, default=Relevance.GENERAL
+    )
+    content_hash = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ("-published_at", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source", "external_key"), name="hub_unique_reform_alert_source"
+            )
+        ]
+        indexes = [models.Index(fields=["source", "relevance", "published_at"])]
+
+
+class ReformSourceStatus(UUIDTimeStampedModel):
+    """Latest daily collection result per public source, without storing raw fetches."""
+
+    source = models.CharField(max_length=16, choices=ReformAlert.Source.choices, unique=True)
+    last_collected_at = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.CharField(max_length=240, blank=True)
+    items_seen = models.PositiveIntegerField(default=0)
+
+
+class BankStatementImport(OrganizationScopedModel):
+    """A parsed OFX file; source bytes are discarded after validation and extraction."""
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="bank_statement_imports"
+    )
+    original_filename = models.CharField(max_length=255)
+    content_hash = models.CharField(max_length=64)
+    account_reference = models.CharField(max_length=160, blank=True)
+    transaction_count = models.PositiveIntegerField(default=0)
+    imported_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="ofx_imports",
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "content_hash"),
+                name="hub_unique_bank_statement_content",
+            )
+        ]
+
+
+class BankTransaction(OrganizationScopedModel):
+    """Normalized OFX transaction ready to be matched to an approved Domínio ledger source."""
+
+    statement = models.ForeignKey(
+        BankStatementImport, on_delete=models.CASCADE, related_name="transactions"
+    )
+    external_id = models.CharField(max_length=160)
+    occurred_on = models.DateField(db_index=True)
+    description = models.CharField(max_length=500)
+    amount_cents = models.BigIntegerField()
+
+    class Meta:
+        ordering = ("-occurred_on", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("statement", "external_id"), name="hub_unique_bank_transaction_source"
+            )
+        ]
+        indexes = [models.Index(fields=["organization", "occurred_on"])]
+
+
+class DominioBankEntry(OrganizationScopedModel):
+    """Read-only mirror of a Domínio bank-statement item, never a journal assumption."""
+
+    company = models.ForeignKey(
+        ClientCompany,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dominio_bank_entries",
+    )
+    source_id = models.CharField(max_length=160)
+    occurred_on = models.DateField(db_index=True)
+    description = models.CharField(max_length=500, blank=True)
+    amount_cents = models.BigIntegerField()
+    direction = models.CharField(max_length=8, blank=True)
+    is_linked = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("-occurred_on", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "source_id"), name="hub_unique_dominio_bank_entry"
+            )
+        ]
+        indexes = [
+            models.Index(fields=["organization", "company", "occurred_on"]),
+            models.Index(fields=["organization", "occurred_on", "amount_cents"]),
+        ]
+
+
+class ReconciliationMatch(OrganizationScopedModel):
+    """Deterministic OFX-to-Domínio result; ambiguous rows remain untouched."""
+
+    class Status(models.TextChoices):
+        MATCHED = "matched", "Conciliado"
+        AMBIGUOUS = "ambiguous", "Revisar"
+        UNMATCHED = "unmatched", "Sem correspondência"
+
+    transaction = models.OneToOneField(
+        BankTransaction, on_delete=models.CASCADE, related_name="reconciliation_match"
+    )
+    dominio_entry = models.ForeignKey(
+        DominioBankEntry,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_matches",
+    )
+    accounting_entry = models.ForeignKey(
+        AccountingEntry,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_matches",
+    )
+    status = models.CharField(max_length=16, choices=Status.choices)
+    is_manual = models.BooleanField(default=False)
+    resolved_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resolved_reconciliation_matches",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["organization", "status"])]
 
 
 class OperationalTask(OrganizationScopedModel):

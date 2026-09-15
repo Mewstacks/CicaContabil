@@ -1,21 +1,24 @@
 from __future__ import annotations
 
 import hashlib
-import json
 from collections.abc import Callable
 from datetime import timedelta
+from decimal import Decimal
 from functools import wraps
 from typing import Concatenate, cast
 from urllib.parse import quote, urlencode
 
+from django import forms
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, QuerySet
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -24,56 +27,140 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.forms import IdentifierAuthenticationForm
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.cnpj import lookup_company, normalize_cnpj
 from apps.common.network import client_ip
 from apps.common.ratelimit import rate_limited
 from apps.common.redirects import safe_next
-from apps.hub.controlplane import authorization_is_fresh, company_queryset_for_membership
+from apps.hub.controlplane import (
+    authorization_is_fresh,
+    company_queryset_for_membership,
+    module_codes_for_membership,
+)
 from apps.hub.forms import (
     ActivationForm,
     CertificateUploadForm,
+    CollaboratorAccessForm,
+    CollaboratorInvitationForm,
     CompanyForm,
-    ConnectorConfigForm,
+    DataSourceForm,
     DtePreparationForm,
+    JourneyForm,
+    JourneyStepForm,
+    OfxImportForm,
+    PortalRequestForm,
+    UnifiedImportForm,
+    UsagePolicyForm,
 )
+from apps.hub.imports import ImportValidationError, confirm_import, create_import_preview
 from apps.hub.models import (
+    BankStatementImport,
     Certificate,
     ClientCompany,
+    ClientJourney,
+    CompanyAccessGrant,
     Connector,
     ControlPlaneBinding,
+    DataSource,
+    DominioBankEntry,
     DteMessage,
     DteRun,
     DteRunItem,
+    FiscalGuide,
+    ImportBatch,
     IntegrationArtifact,
+    JourneyStep,
     NfseDocument,
     OfficeProfile,
+    PortalRequest,
     ProductModule,
+    ReconciliationMatch,
+    ReformAlert,
+    ReformSourceStatus,
     ReviewCase,
     UsageAllowance,
 )
 from apps.hub.module_catalog import MODULES, ModuleDefinition, definition
+from apps.hub.reconciliation import OfxParseError, confirm_reconciliation_match, import_ofx
 from apps.hub.services import (
     DteRunTransitionError,
+    FiscalGuideTransitionError,
     approve_dte_run,
     cancel_dte_run,
+    issue_fiscal_guide,
     prepare_dte_run,
     store_certificate,
 )
 from apps.intelligence.agents import issue_enrollment
+from apps.intelligence.connectors import ReadOnlyDominoOdbc
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
+from apps.intelligence.sync import sync_bank_entries, sync_companies
 from apps.organizations.models import Membership, Organization
-from apps.platform.forms import LeadForm
-from apps.platform.models import Invitation, PlatformAccess, TenantLifecycle
+from apps.platform.availability import copilot_is_available
+from apps.platform.forms import LegacyLeadForm, SelfServiceSignupForm, SignupPasswordForm
+from apps.platform.models import (
+    DominioSupportTicket,
+    Invitation,
+    Invoice,
+    PlatformAccess,
+    TenantContract,
+    TenantLifecycle,
+    TenantUsagePolicy,
+    UsageMeter,
+)
+from apps.platform.notifications import TransactionalEmailError, send_invitation_email
 from apps.platform.services import has_platform_role
+from apps.platform.signup import (
+    SignupError,
+    issue_signup,
+    provision_signup,
+    send_verification_email,
+    signup_intent_from_token,
+)
 from apps.platform.views import current_support
 
 
+class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
+    """Keep the one-use reset token out of every subsequent Referer header."""
+
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+        response = super().dispatch(request, *args, **kwargs)
+        response["Referrer-Policy"] = "no-referrer"
+        return response
+
+
 def home(request: HttpRequest) -> HttpResponse:
-    return render(request, "hub/home.html")
+    return render(request, "hub/home.html", {"copilot_available": copilot_is_available()})
+
+
+@require_http_methods(["POST"])
+def proposal_cnpj(request: HttpRequest) -> HttpResponse:
+    if rate_limited(f"public-cnpj:{client_ip(request)}", limit=12, window_seconds=60):
+        response = JsonResponse(
+            {
+                "status": "limited",
+                "message": "Muitas consultas. Aguarde um minuto ou envie seu pedido.",
+            },
+            status=429,
+        )
+        response["Retry-After"] = "60"
+    else:
+        try:
+            cnpj = normalize_cnpj(request.POST.get("cnpj", ""))
+        except ValidationError:
+            response = JsonResponse(
+                {"status": "invalid", "message": "Confira o CNPJ informado."}, status=400
+            )
+        else:
+            response = JsonResponse(lookup_company(cnpj))
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @require_http_methods(["GET", "POST"])
-def proposal(request: HttpRequest) -> HttpResponse:
-    form = LeadForm(request.POST or None)
+def legacy_proposal(request: HttpRequest) -> HttpResponse:
+    if request.method == "GET":
+        return redirect("hub:signup")
+    form = LegacyLeadForm(request.POST or None)
     if request.method == "POST" and rate_limited(
         f"lead:{client_ip(request)}",
         limit=settings.LEAD_RATE_LIMIT_PER_HOUR,
@@ -93,11 +180,70 @@ def proposal(request: HttpRequest) -> HttpResponse:
 
 
 @require_http_methods(["GET", "POST"])
+def signup(request: HttpRequest) -> HttpResponse:
+    if request.user.is_authenticated:
+        return redirect("hub:dashboard")
+    form = SelfServiceSignupForm(request.POST or None)
+    if request.method == "POST" and rate_limited(
+        f"signup:{client_ip(request)}", limit=5, window_seconds=3600
+    ):
+        messages.error(request, "Muitas tentativas. Aguarde alguns minutos e tente novamente.")
+        return render(request, "hub/signup.html", {"form": form}, status=429)
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                issued = issue_signup(
+                    email=form.cleaned_data["email"],
+                    full_name=form.cleaned_data["full_name"],
+                    cnpj=form.cleaned_data["cnpj"],
+                    terms_accepted=form.cleaned_data["accept_terms"],
+                    marketing_opt_in=form.cleaned_data["accept_marketing"],
+                    request=request,
+                )
+                send_verification_email(issued=issued, base_url=request.build_absolute_uri("/"))
+        except SignupError as exc:
+            form.add_error(None, str(exc))
+        except TransactionalEmailError:
+            form.add_error(
+                None,
+                "Não foi possível enviar a confirmação agora. Tente novamente em alguns minutos.",
+            )
+        else:
+            return render(
+                request, "hub/signup_pending.html", {"email": issued.intent.email}, status=202
+            )
+    return render(request, "hub/signup.html", {"form": form})
+
+
+@require_http_methods(["GET", "POST"])
+def verify_signup(request: HttpRequest, token: str) -> HttpResponse:
+    try:
+        intent = signup_intent_from_token(token=token)
+    except SignupError as exc:
+        return render(request, "hub/signup_invalid.html", {"reason": str(exc)}, status=410)
+    form = SignupPasswordForm(request.POST or None)
+    if request.method == "GET":
+        return render(request, "hub/signup_password.html", {"form": form, "email": intent.email})
+    if not form.is_valid():
+        return render(request, "hub/signup_password.html", {"form": form, "email": intent.email})
+    try:
+        intent, user = provision_signup(
+            token=token, password=form.cleaned_data["password"], request=request
+        )
+    except SignupError as exc:
+        return render(request, "hub/signup_invalid.html", {"reason": str(exc)}, status=410)
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    request.session["hub_organization_id"] = str(intent.organization_id)
+    messages.success(request, "Escritório confirmado. Seus 14 dias grátis começaram agora.")
+    return redirect("hub:setup")
+
+
+@require_http_methods(["GET", "POST"])
 def activate_invitation(request: HttpRequest, token: str) -> HttpResponse:
-    invitation = get_object_or_404(
-        Invitation, token_digest=hashlib.sha256(token.encode()).hexdigest()
-    )
-    if not invitation.usable():
+    invitation = Invitation.objects.filter(
+        token_digest=hashlib.sha256(token.encode()).hexdigest()
+    ).first()
+    if invitation is None or not invitation.usable():
         return render(request, "hub/activation_invalid.html", status=410)
 
     existing = User.objects.filter(email=invitation.email).first()
@@ -152,17 +298,64 @@ def _accept_as_existing_user(
 def _accept_invitation(
     request: HttpRequest, invitation: Invitation, user: User, *, account_existed: bool
 ) -> None:
-    Membership.objects.update_or_create(
+    profile, _ = OfficeProfile.objects.get_or_create(organization=invitation.organization)
+    if (
+        profile.contract_status == OfficeProfile.ContractStatus.TRIAL
+        and profile.trial_started_at is None
+    ):
+        # First activation only; concurrent invitations cannot restart the trial.
+        OfficeProfile.objects.filter(pk=profile.pk, trial_started_at__isnull=True).update(
+            trial_started_at=(
+                profile.created_at
+                if invitation.organization.memberships.filter(is_active=True).exists()
+                else timezone.now()
+            )
+        )
+    membership, _ = Membership.objects.update_or_create(
         organization=invitation.organization,
         user=user,
         defaults={"role": invitation.role, "is_active": True},
     )
+    # Invitations issued inside CICA are explicitly bounded by both company and
+    # module. Older platform invitations deliberately have an empty module list
+    # and keep their existing unrestricted behavior.
+    if invitation.modules:
+        selected_company_ids = {
+            str(value) for value in invitation.company_ids if isinstance(value, str)
+        }
+        selected_modules = [str(value) for value in invitation.modules if isinstance(value, str)]
+        scoped_companies = ClientCompany.objects.filter(
+            organization=invitation.organization,
+            id__in=selected_company_ids,
+            active=True,
+        )
+        CompanyAccessGrant.objects.filter(
+            organization=invitation.organization, membership=membership
+        ).exclude(company__in=scoped_companies).delete()
+        for company in scoped_companies:
+            CompanyAccessGrant.objects.update_or_create(
+                organization=invitation.organization,
+                membership=membership,
+                company=company,
+                defaults={"modules": selected_modules, "capabilities": ["*"], "is_active": True},
+            )
     invitation.status = Invitation.Status.ACCEPTED
     invitation.accepted_by = user
     invitation.save(update_fields=["status", "accepted_by", "updated_at"])
-    TenantLifecycle.objects.filter(organization=invitation.organization).update(
-        state=TenantLifecycle.State.ACTIVE, changed_by=user
-    )
+    # A platform-created office is deliberately activated by the Mewstack team,
+    # after its commercial contract has been configured.  Accepting an owner
+    # invitation proves the e-mail address, not that the office may operate.
+    # Self-service signups are provisioned separately with their trial contract
+    # and lifecycle already active.
+    TenantLifecycle.objects.filter(
+        organization=invitation.organization,
+        state=TenantLifecycle.State.ACTIVATION_PENDING,
+    ).filter(
+        organization__contracts__status__in=[
+            TenantContract.Status.TRIAL,
+            TenantContract.Status.ACTIVE,
+        ]
+    ).update(state=TenantLifecycle.State.ACTIVE, changed_by=user)
     record_event(
         action="hub.invitation.activated",
         actor=user,
@@ -206,7 +399,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "hub/login.html",
-        {"form": form, "next": safe_next(request, request.GET.get("next"), fallback="")},
+        {
+            "form": form,
+            "next": safe_next(
+                request, request.POST.get("next") or request.GET.get("next"), fallback=""
+            ),
+        },
     )
 
 
@@ -228,6 +426,10 @@ def active_membership(request: HttpRequest) -> Membership | None:
 
 # Rows per page on the company registry.
 COMPANIES_PER_PAGE = 25
+INTEGRA_SERVICE_LABELS = {
+    "caixapostal.mensagens": "Caixa Postal",
+    "ai.answer": "Copiloto CICA",
+}
 
 
 def workspace_context(request: HttpRequest) -> dict[str, object]:
@@ -266,6 +468,17 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         else ProductModule.objects.none()
     )
     enabled_modules = [MODULES[row.code] for row in module_rows if row.code in MODULES]
+    if not copilot_is_available():
+        enabled_modules = [item for item in enabled_modules if item.code != ProductModule.Code.AI]
+    # A support session is scoped to its target office, not to a Membership row.
+    # Passing its deliberate ``None`` membership into the collaborator permission
+    # resolver used to produce an empty set and silently hide every enabled module
+    # (including NFS-e) from the support rail.
+    permitted_module_codes = (
+        None if support_session is not None else module_codes_for_membership(membership)
+    )
+    if permitted_module_codes is not None:
+        enabled_modules = [item for item in enabled_modules if item.code in permitted_module_codes]
     # NFS-e is the original core workspace and remains visible for existing offices
     # that have not yet received a CRMew module snapshot.
     if (
@@ -273,8 +486,10 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         and not ProductModule.objects.filter(
             organization=office, code=ProductModule.Code.NFSE
         ).exists()
+        and (permitted_module_codes is None or ProductModule.Code.NFSE in permitted_module_codes)
     ):
         enabled_modules.insert(0, MODULES[ProductModule.Code.NFSE])
+    copilot_enabled = any(item.code == ProductModule.Code.AI for item in enabled_modules)
     return {
         "membership": membership,
         "support_session": support_session,
@@ -297,6 +512,8 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         if office
         else 0,
         "enabled_modules": enabled_modules,
+        "copilot_enabled": copilot_enabled,
+        "permitted_module_codes": permitted_module_codes,
     }
 
 
@@ -310,6 +527,12 @@ def refuse(request: HttpRequest, reason: str) -> HttpResponse:
     """
 
     return render(request, "hub/forbidden.html", {"reason": reason}, status=403)
+
+
+def collaborator_can_use_module(context: dict[str, object], code: str) -> bool:
+    """Keep module permission independent from menu visibility and URL guessing."""
+    permitted = context.get("permitted_module_codes")
+    return permitted is None or code in permitted
 
 
 def office_required[**ViewParams](
@@ -349,9 +572,45 @@ def office_required[**ViewParams](
             return render(
                 request,
                 "hub/forbidden.html",
-                {"reason": "A permissão precisa ser renovada pelo CRMew."},
+                {"reason": "A permissão precisa ser renovada pelo controle central da Mewstack."},
                 status=403,
             )
+        lifecycle = TenantLifecycle.objects.filter(organization=office).first()
+        if support is None and lifecycle is not None:
+            if lifecycle.state in {
+                TenantLifecycle.State.PROVISIONING,
+                TenantLifecycle.State.ACTIVATION_PENDING,
+            }:
+                return render(
+                    request,
+                    "hub/office_activation_pending.html",
+                    {"office": office},
+                    status=403,
+                )
+            if lifecycle.state == TenantLifecycle.State.ARCHIVED:
+                return refuse(
+                    request,
+                    "Este escritório foi encerrado e não está disponível para acesso.",
+                )
+            if (
+                lifecycle.state == TenantLifecycle.State.SUSPENDED
+                and view.__name__ != "settings_view"
+            ):
+                return refuse(
+                    request,
+                    "O escritório está suspenso. Acesse Integrações para solicitar "
+                    "suporte à Mewstack.",
+                )
+            if lifecycle.state == TenantLifecycle.State.GRACE and request.method not in {
+                "GET",
+                "HEAD",
+                "OPTIONS",
+            }:
+                return refuse(
+                    request,
+                    "O período de carência permite consulta e suporte em Integrações, "
+                    "mas não altera dados operacionais.",
+                )
         return view(request, *args, **kwargs)
 
     return cast(Callable[Concatenate[HttpRequest, ViewParams], HttpResponse], wrapped)
@@ -370,6 +629,300 @@ def switch_office(request: HttpRequest) -> HttpResponse:
     )
     request.session["hub_organization_id"] = str(membership.organization_id)
     return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
+
+
+@login_required
+@require_http_methods(["POST"])
+def set_theme(request: HttpRequest) -> HttpResponse:
+    """Persist an appearance preference without client-side storage."""
+
+    theme = request.POST.get("theme")
+    if theme not in {"system", "light", "dark"}:
+        return HttpResponseBadRequest("Tema inv\u00e1lido.")
+
+    response = redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
+    response.set_cookie(
+        "hub_theme",
+        theme,
+        max_age=60 * 60 * 24 * 365,
+        secure=settings.SESSION_COOKIE_SECURE,
+        httponly=True,
+        samesite="Lax",
+    )
+    return response
+
+
+def _can_manage_collaborators(context: dict[str, object]) -> bool:
+    membership = context.get("membership")
+    return bool(
+        context.get("support_can_mutate")
+        and isinstance(membership, Membership)
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+    )
+
+
+def _office_module_codes(office: Organization) -> set[str]:
+    codes = set(
+        ProductModule.objects.filter(organization=office, enabled=True).values_list(
+            "code", flat=True
+        )
+    )
+    if not ProductModule.objects.filter(organization=office, code=ProductModule.Code.NFSE).exists():
+        codes.add(ProductModule.Code.NFSE)
+    return {code for code in codes if code in MODULES}
+
+
+def _apply_collaborator_scope(
+    *, membership: Membership, company_ids: list[str], modules: list[str]
+) -> None:
+    office = membership.organization
+    companies = ClientCompany.objects.filter(organization=office, id__in=company_ids, active=True)
+    CompanyAccessGrant.objects.filter(organization=office, membership=membership).exclude(
+        company__in=companies
+    ).delete()
+    for company in companies:
+        CompanyAccessGrant.objects.update_or_create(
+            organization=office,
+            membership=membership,
+            company=company,
+            defaults={"modules": modules, "capabilities": ["*"], "is_active": True},
+        )
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def team(request: HttpRequest) -> HttpResponse:
+    context = workspace_context(request)
+    if not _can_manage_collaborators(context):
+        return refuse(
+            request,
+            "A gest\u00e3o de equipe \u00e9 restrita a propriet\u00e1rios e administradores.",
+        )
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    module_codes = _office_module_codes(office)
+    form = CollaboratorInvitationForm(
+        request.POST or None, companies=companies, module_codes=module_codes
+    )
+    if request.method == "POST" and form.is_valid():
+        try:
+            with transaction.atomic():
+                raw_token, digest = Invitation.issue_token()
+                email = form.cleaned_data["email"].casefold()
+                Invitation.objects.filter(
+                    organization=office, email__iexact=email, status=Invitation.Status.PENDING
+                ).update(status=Invitation.Status.REVOKED)
+                invitation = Invitation.objects.create(
+                    organization=office,
+                    email=email,
+                    full_name=form.cleaned_data["full_name"],
+                    role=form.cleaned_data["role"],
+                    company_ids=form.cleaned_data["companies"],
+                    modules=form.cleaned_data["modules"],
+                    token_digest=digest,
+                    expires_at=timezone.now() + timedelta(days=7),
+                    created_by=request.user,
+                )
+                send_invitation_email(
+                    invitation=invitation,
+                    activation_url=request.build_absolute_uri(
+                        reverse("hub:activate", args=[raw_token])
+                    ),
+                )
+        except TransactionalEmailError:
+            form.add_error(
+                None,
+                "Não foi possível enviar o convite agora. Tente novamente em alguns minutos.",
+            )
+        else:
+            record_event(
+                action="hub.collaborator.invited",
+                actor=request.user,
+                organization=office,
+                target=invitation,
+                request=request,
+                metadata={
+                    "company_count": len(invitation.company_ids),
+                    "modules": invitation.modules,
+                },
+            )
+            messages.success(request, f"Convite enviado para {invitation.email}.")
+            return redirect("hub:team")
+
+    collaborators = list(
+        Membership.objects.filter(organization=office, is_active=True)
+        .select_related("user")
+        .prefetch_related("company_grants__company")
+        .order_by("user__full_name", "user__email")
+    )
+    for item in collaborators:
+        grants = list(item.company_grants.all())
+        item.scope_modules = sorted(  # type: ignore[attr-defined]
+            {str(code) for grant in grants for code in grant.modules if isinstance(code, str)}
+        )
+        item.scope_companies = [grant.company for grant in grants]  # type: ignore[attr-defined]
+        item.scope_is_explicit = bool(grants)  # type: ignore[attr-defined]
+    context.update(
+        {
+            "page_title": "Equipe e acessos",
+            "collaborator_form": form,
+            "collaborators": collaborators,
+            "pending_invitations": Invitation.objects.filter(
+                organization=office, status=Invitation.Status.PENDING
+            ).order_by("-created_at"),
+        }
+    )
+    return render(request, "hub/team.html", context)
+
+
+@office_required
+@require_http_methods(["POST"])
+def resend_collaborator_invitation(request: HttpRequest, invitation_id: str) -> HttpResponse:
+    context = workspace_context(request)
+    if not _can_manage_collaborators(context):
+        return refuse(
+            request,
+            "A gestão de equipe é restrita a proprietários e administradores.",
+        )
+    office = cast(Organization, context["office"])
+    invitation = get_object_or_404(
+        Invitation,
+        organization=office,
+        pk=invitation_id,
+        status=Invitation.Status.PENDING,
+    )
+    try:
+        with transaction.atomic():
+            raw_token, digest = Invitation.issue_token()
+            invitation.token_digest = digest
+            invitation.expires_at = timezone.now() + timedelta(days=7)
+            invitation.save(update_fields=["token_digest", "expires_at", "updated_at"])
+            send_invitation_email(
+                invitation=invitation,
+                activation_url=request.build_absolute_uri(
+                    reverse("hub:activate", args=[raw_token])
+                ),
+            )
+    except TransactionalEmailError:
+        messages.error(request, "Não foi possível reenviar o convite agora. Tente novamente.")
+        return redirect("hub:team")
+    record_event(
+        action="hub.collaborator.invitation_resent",
+        actor=request.user,
+        organization=office,
+        target=invitation,
+        request=request,
+    )
+    messages.success(request, f"Novo convite enviado para {invitation.email}.")
+    return redirect("hub:team")
+
+
+@office_required
+@require_http_methods(["POST"])
+def revoke_collaborator_invitation(request: HttpRequest, invitation_id: str) -> HttpResponse:
+    context = workspace_context(request)
+    if not _can_manage_collaborators(context):
+        return refuse(
+            request,
+            "A gestão de equipe é restrita a proprietários e administradores.",
+        )
+    office = cast(Organization, context["office"])
+    invitation = get_object_or_404(
+        Invitation,
+        organization=office,
+        pk=invitation_id,
+        status=Invitation.Status.PENDING,
+    )
+    invitation.status = Invitation.Status.REVOKED
+    invitation.save(update_fields=["status", "updated_at"])
+    record_event(
+        action="hub.collaborator.invitation_revoked",
+        actor=request.user,
+        organization=office,
+        target=invitation,
+        request=request,
+    )
+    messages.success(request, "Convite revogado.")
+    return redirect("hub:team")
+
+
+@office_required
+@require_http_methods(["POST"])
+def update_collaborator_access(request: HttpRequest, membership_id: str) -> HttpResponse:
+    context = workspace_context(request)
+    if not _can_manage_collaborators(context):
+        return refuse(
+            request,
+            "A gest\u00e3o de equipe \u00e9 restrita a propriet\u00e1rios e administradores.",
+        )
+    office = cast(Organization, context["office"])
+    target = get_object_or_404(Membership, organization=office, pk=membership_id, is_active=True)
+    if target.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
+        return refuse(
+            request,
+            "Proteja o acesso de propriet\u00e1rios e administradores pelo console da Mewstack.",
+        )
+    form = CollaboratorAccessForm(
+        request.POST,
+        companies=cast("QuerySet[ClientCompany]", context["companies"]),
+        module_codes=_office_module_codes(office),
+    )
+    if not form.is_valid():
+        messages.error(request, "Revise o escopo do colaborador e tente novamente.")
+        return redirect("hub:team")
+    with transaction.atomic():
+        target.role = form.cleaned_data["role"]
+        target.save(update_fields=["role", "updated_at"])
+        _apply_collaborator_scope(
+            membership=target,
+            company_ids=form.cleaned_data["companies"],
+            modules=form.cleaned_data["modules"],
+        )
+    record_event(
+        action="hub.collaborator.scope_updated",
+        actor=request.user,
+        organization=office,
+        target=target,
+        request=request,
+        metadata={
+            "company_count": len(form.cleaned_data["companies"]),
+            "modules": form.cleaned_data["modules"],
+        },
+    )
+    messages.success(request, "Acessos atualizados.")
+    return redirect("hub:team")
+
+
+@office_required
+@require_http_methods(["POST"])
+def deactivate_collaborator(request: HttpRequest, membership_id: str) -> HttpResponse:
+    context = workspace_context(request)
+    if not _can_manage_collaborators(context):
+        return refuse(
+            request,
+            "A gest\u00e3o de equipe \u00e9 restrita a propriet\u00e1rios e administradores.",
+        )
+    office = cast(Organization, context["office"])
+    target = get_object_or_404(Membership, organization=office, pk=membership_id, is_active=True)
+    if target.user_id == request.user.id or target.role in {
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    }:
+        return refuse(request, "Este acesso n\u00e3o pode ser removido por esta tela.")
+    target.is_active = False
+    target.save(update_fields=["is_active", "updated_at"])
+    CompanyAccessGrant.objects.filter(organization=office, membership=target).update(
+        is_active=False
+    )
+    record_event(
+        action="hub.collaborator.deactivated",
+        actor=request.user,
+        organization=office,
+        target=target,
+        request=request,
+    )
+    messages.success(request, "Acesso interno removido.")
+    return redirect("hub:team")
 
 
 @office_required
@@ -451,10 +1004,282 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 
 @office_required
+@require_http_methods(["GET", "POST"])
+def journey(request: HttpRequest) -> HttpResponse:
+    """Internal operational workboard, deliberately scoped to the active office."""
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    membership = context["membership"]
+    can_manage = bool(
+        context["support_can_mutate"]
+        and isinstance(membership, Membership)
+        and membership.role
+        in {
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.OPERATOR,
+        }
+    )
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
+    selected_journey: ClientJourney | None = None
+    selected_id = request.GET.get("j")
+    if selected_id:
+        selected_journey = get_object_or_404(
+            ClientJourney.objects.select_related("company", "owner").prefetch_related(
+                "steps", "requests"
+            ),
+            organization=office,
+            company__in=allowed_companies,
+            pk=selected_id,
+        )
+    if request.method == "POST":
+        if not can_manage:
+            return refuse(request, "Seu perfil pode acompanhar jornadas, mas não criar uma nova.")
+        form = JourneyForm(request.POST, instance=ClientJourney(organization=office))
+        cast(
+            "forms.ModelChoiceField[ClientCompany]", form.fields["company"]
+        ).queryset = allowed_companies
+        if form.is_valid():
+            created = form.save(commit=False)
+            created.organization = office
+            created.owner = request.user
+            created.save()
+            record_event(
+                action="hub.journey.created",
+                actor=request.user,
+                organization=office,
+                target=created,
+                request=request,
+                metadata={"company_id": str(created.company_id)},
+            )
+            messages.success(
+                request,
+                "Jornada criada. Agora você pode organizar as pendências internas.",
+            )
+            return redirect(f"{reverse('hub:journey')}?{urlencode({'j': created.id})}")
+    else:
+        form = JourneyForm(instance=ClientJourney(organization=office))
+        cast(
+            "forms.ModelChoiceField[ClientCompany]", form.fields["company"]
+        ).queryset = allowed_companies
+    journey_rows = list(
+        ClientJourney.objects.filter(organization=office, company__in=allowed_companies)
+        .select_related("company", "owner")
+        .prefetch_related("steps", "requests")[:12]
+    )
+    context.update(
+        {
+            "page_title": "Jornadas",
+            "journey_form": form,
+            "journey_step_form": JourneyStepForm(prefix="step"),
+            "portal_request_form": PortalRequestForm(prefix="request"),
+            "selected_journey": selected_journey,
+            "can_manage_journey": can_manage,
+            "journey_rows": journey_rows,
+            "journey_steps": (
+                ("Onboarding", "Defina responsáveis, empresas e o primeiro prazo.", "Pronto"),
+                (
+                    "Pendências",
+                    "Centralize o que precisa ser tratado pelo time.",
+                    "Pronto",
+                ),
+                (
+                    "Documentos",
+                    "Mantenha o histórico operacional por empresa.",
+                    "Pronto",
+                ),
+            ),
+        }
+    )
+    return render(request, "hub/journey.html", context)
+
+
+def _journey_can_manage(context: dict[str, object]) -> bool:
+    membership = context["membership"]
+    return bool(
+        context["support_can_mutate"]
+        and isinstance(membership, Membership)
+        and membership.role
+        in {
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.OPERATOR,
+        }
+    )
+
+
+def _journey_in_scope(
+    office: Organization, companies: QuerySet[ClientCompany], journey_id: str | None
+) -> ClientJourney:
+    return get_object_or_404(
+        ClientJourney.objects.select_related("company"),
+        organization=office,
+        company__in=companies,
+        pk=journey_id,
+    )
+
+
+def _journey_redirect(journey: ClientJourney) -> HttpResponse:
+    return redirect(f"{reverse('hub:journey')}?{urlencode({'j': journey.id})}")
+
+
+@office_required
+@require_http_methods(["POST"])
+def create_journey_step(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
+    if blocked:
+        return blocked
+    if not _journey_can_manage(context):
+        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
+    form = JourneyStepForm(request.POST, prefix="step")
+    if not form.is_valid():
+        messages.error(request, "Revise os campos da etapa e tente novamente.")
+        return _journey_redirect(journey)
+    with transaction.atomic():
+        locked_journey = ClientJourney.objects.select_for_update().get(pk=journey.pk)
+        last_position = (
+            JourneyStep.objects.filter(journey=locked_journey)
+            .order_by("-position")
+            .values_list("position", flat=True)
+            .first()
+            or 0
+        )
+        step = form.save(commit=False)
+        step.organization = office
+        step.journey = locked_journey
+        step.position = last_position + 1
+        step.full_clean()
+        step.save()
+    record_event(
+        action="hub.journey.step_created",
+        actor=request.user,
+        organization=office,
+        target=step,
+        request=request,
+        metadata={"journey_id": str(journey.id)},
+    )
+    messages.success(request, "Etapa criada.")
+    return _journey_redirect(journey)
+
+
+@office_required
+@require_http_methods(["POST"])
+def create_portal_request(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
+    if blocked:
+        return blocked
+    if not _journey_can_manage(context):
+        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
+    form = PortalRequestForm(request.POST, prefix="request")
+    if not form.is_valid():
+        messages.error(request, "Revise os campos da solicitação e tente novamente.")
+        return _journey_redirect(journey)
+    item = form.save(commit=False)
+    item.organization = office
+    item.journey = journey
+    item.full_clean()
+    item.save()
+    record_event(
+        action="hub.journey.request_created",
+        actor=request.user,
+        organization=office,
+        target=item,
+        request=request,
+        metadata={"journey_id": str(journey.id)},
+    )
+    messages.success(request, "Solicitação criada.")
+    return _journey_redirect(journey)
+
+
+@office_required
+@require_http_methods(["POST"])
+def complete_journey_step(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
+    if blocked:
+        return blocked
+    if not _journey_can_manage(context):
+        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
+    step = get_object_or_404(
+        JourneyStep, organization=office, journey=journey, pk=request.POST.get("item_id")
+    )
+    if step.completed_at is None:
+        step.completed_at = timezone.now()
+        step.save(update_fields=["completed_at", "updated_at"])
+        record_event(
+            action="hub.journey.step_completed",
+            actor=request.user,
+            organization=office,
+            target=step,
+            request=request,
+            metadata={"journey_id": str(journey.id)},
+        )
+        messages.success(request, "Etapa concluída.")
+    else:
+        messages.info(request, "Essa etapa já foi concluída.")
+    return _journey_redirect(journey)
+
+
+@office_required
+@require_http_methods(["POST"])
+def transition_portal_request(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
+    if blocked:
+        return blocked
+    if not _journey_can_manage(context):
+        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
+    item = get_object_or_404(
+        PortalRequest, organization=office, journey=journey, pk=request.POST.get("item_id")
+    )
+    action = request.POST.get("action")
+    if action == "received":
+        item.status = PortalRequest.Status.RECEIVED
+        item.resolved_at = None
+        event_action, feedback = (
+            "hub.journey.request_received",
+            "Solicitação marcada como recebida.",
+        )
+    elif action == "resolve":
+        item.status = PortalRequest.Status.RESOLVED
+        item.resolved_at = timezone.now()
+        event_action, feedback = "hub.journey.request_resolved", "Solicitação concluída."
+    else:
+        return HttpResponseBadRequest("Ação de solicitação inválida.")
+    item.save(update_fields=["status", "resolved_at", "updated_at"])
+    record_event(
+        action=event_action,
+        actor=request.user,
+        organization=office,
+        target=item,
+        request=request,
+        metadata={"journey_id": str(journey.id)},
+    )
+    messages.success(request, feedback)
+    return _journey_redirect(journey)
+
+
+@office_required
 def nfse_center(request: HttpRequest) -> HttpResponse:
     """Show only the fiscal documents belonging to the active company context."""
 
     context = workspace_context(request)
+    if not collaborator_can_use_module(context, ProductModule.Code.NFSE):
+        return refuse(request, "Seu acesso n\u00e3o inclui NFS-e Inteligente.")
     office = context["office"]
     assert isinstance(office, Organization)
     scope = cast("QuerySet[ClientCompany]", context["companies"])
@@ -505,6 +1330,10 @@ def _module_page_context(
     request: HttpRequest, module: ModuleDefinition
 ) -> tuple[dict[str, object], HttpResponse | None]:
     context = workspace_context(request)
+    if module.code == ProductModule.Code.AI and not copilot_is_available():
+        return context, HttpResponse(status=404)
+    if not collaborator_can_use_module(context, module.code):
+        return context, refuse(request, f"Seu acesso n\u00e3o inclui {module.label}.")
     office = context["office"]
     assert isinstance(office, Organization)
     enabled = ProductModule.objects.filter(
@@ -517,23 +1346,30 @@ def _module_page_context(
             {**context, "page_title": module.label, "module": module},
             status=403,
         )
-    if module.connector_kind == Connector.Kind.DOMINIO_AGENT:
+    if module.code == ProductModule.Code.INTEGRA:
+        # The platform is the sole Serpro contractor.  A tenant never configures
+        # credentials, certificate, endpoint, or a duplicate connector record.
         connector = None
-        connected = IntelligenceConnector.objects.filter(
-            organization=office,
-            mode=IntelligenceConnector.Mode.EDGE_AGENT,
-            status="healthy",
-        ).exists()
+        connected = True
     else:
-        connector = (
-            Connector.objects.defer("encrypted_configuration")
-            .filter(organization=office, kind=module.connector_kind)
-            .first()
-            if module.connector_kind
-            else None
-        )
-        connected = bool(
-            connector and connector.enabled and connector.status in {"configured", "healthy"}
+        connector = None
+        from apps.hub.models import DataSource
+
+        capabilities: set[str] = set()
+        for source_capabilities in DataSource.objects.filter(
+            organization=office, status=DataSource.Status.READY
+        ).values_list("capabilities", flat=True):
+            capabilities.update(source_capabilities)
+        legacy_connected = IntelligenceConnector.objects.filter(
+            organization=office,
+            status="healthy",
+            mode__in=[
+                IntelligenceConnector.Mode.DIRECT_ODBC,
+                IntelligenceConnector.Mode.EDGE_AGENT,
+            ],
+        ).exists()
+        connected = legacy_connected or all(
+            item in capabilities for item in module.required_capabilities
         )
     context.update(
         {
@@ -541,6 +1377,11 @@ def _module_page_context(
             "module": module,
             "connector": connector,
             "connector_ready": connected,
+            "missing_capabilities": [
+                item for item in module.required_capabilities if item not in capabilities
+            ]
+            if module.code != ProductModule.Code.INTEGRA
+            else [],
         }
     )
     return context, None
@@ -650,7 +1491,71 @@ def _operational_module(request: HttpRequest, code: str) -> HttpResponse:
 
 @office_required
 def guides(request: HttpRequest) -> HttpResponse:
-    return _operational_module(request, ProductModule.Code.GUIDES)
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.GUIDES))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
+    today = timezone.localdate()
+    guide_list = list(
+        FiscalGuide.objects.filter(organization=office, company__in=allowed_companies)
+        .select_related("company")
+        .order_by("due_on", "company__name")[:60]
+    )
+    for guide in guide_list:
+        guide.amount_brl = Decimal(guide.amount_cents) / 100  # type: ignore[attr-defined]
+    pending_statuses = [FiscalGuide.Status.READY, FiscalGuide.Status.FAILED]
+    context.update(
+        {
+            "page_title": "Guias e DCTFWeb",
+            "guides": guide_list,
+            "guide_stats": {
+                "due_this_week": sum(
+                    guide.status in pending_statuses and 0 <= (guide.due_on - today).days <= 7
+                    for guide in guide_list
+                ),
+                "pending": sum(guide.status in pending_statuses for guide in guide_list),
+                "issued": sum(guide.status == FiscalGuide.Status.ISSUED for guide in guide_list),
+            },
+            "can_issue_guides": _can_prepare_dte(context),
+        }
+    )
+    return render(request, "hub/guides_center.html", context)
+
+
+@office_required
+@require_http_methods(["POST"])
+def issue_guide(request: HttpRequest, guide_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.GUIDES))
+    if blocked:
+        return blocked
+    if not _can_prepare_dte(context):
+        return refuse(request, "Seu perfil pode consultar, mas não emitir guias.")
+    office = cast(Organization, context["office"])
+    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
+    guide = get_object_or_404(
+        FiscalGuide,
+        id=guide_id,
+        organization=office,
+        company__in=allowed_companies,
+    )
+    try:
+        membership = context["membership"]
+        approved_overage = isinstance(membership, Membership) and membership.role in {
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+        }
+        issue_fiscal_guide(
+            guide=guide,
+            actor=request.user,
+            request=request,
+            approved_overage=approved_overage,
+        )
+    except FiscalGuideTransitionError as error:
+        messages.error(request, str(error))
+    else:
+        messages.success(request, "Emissão autorizada. A guia entrou na fila da central.")
+    return redirect("hub:guides")
 
 
 @office_required
@@ -766,7 +1671,17 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
     decision = request.POST.get("decision", "")
     try:
         if decision == "approve":
-            confirmation = approve_dte_run(run=run, actor=request.user, request=request)
+            membership = context["membership"]
+            approved_overage = isinstance(membership, Membership) and membership.role in {
+                Membership.Role.OWNER,
+                Membership.Role.ADMIN,
+            }
+            confirmation = approve_dte_run(
+                run=run,
+                actor=request.user,
+                request=request,
+                approved_overage=approved_overage,
+            )
             messages.success(
                 request,
                 f"Consumo autorizado para {confirmation.estimated_units} empresa(s). "
@@ -783,13 +1698,159 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
 
 
 @office_required
+@require_http_methods(["GET", "POST"])
 def reconciliation(request: HttpRequest) -> HttpResponse:
-    return _operational_module(request, ProductModule.Code.RECONCILIATION)
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    form = OfxImportForm(request.POST or None, request.FILES or None, companies=companies)
+    if request.method == "POST" and not context["support_can_mutate"]:
+        return refuse(request, "Esta sessão é somente leitura.")
+    if request.method == "POST" and form.is_valid():
+        upload = form.cleaned_data["ofx_file"]
+        if upload.size > 5_000_000:
+            form.add_error("ofx_file", "O arquivo deve ter no máximo 5 MB.")
+        else:
+            try:
+                _statement, created = import_ofx(
+                    organization=office,
+                    company=form.cleaned_data["company"],
+                    filename=upload.name,
+                    content=upload.read(),
+                    actor=request.user,
+                    request=request,
+                )
+            except OfxParseError as exc:
+                form.add_error("ofx_file", str(exc))
+            else:
+                messages.success(
+                    request, "OFX importado." if created else "Este OFX já foi importado."
+                )
+                return redirect("hub:reconciliation")
+    matches = list(
+        ReconciliationMatch.objects.filter(
+            organization=office, transaction__statement__company__in=companies
+        )
+        .select_related("transaction__statement__company", "dominio_entry")
+        .order_by("-transaction__occurred_on", "-created_at")[:100]
+    )
+    review_keys = {
+        (match.transaction.statement.company_id, match.transaction.occurred_on)
+        for match in matches
+        if match.status == ReconciliationMatch.Status.AMBIGUOUS and not match.is_manual
+    }
+    candidate_entries = DominioBankEntry.objects.none()
+    if review_keys:
+        pair_filter = Q()
+        for candidate_company_id, occurred_on in review_keys:
+            pair_filter |= Q(company_id=candidate_company_id, occurred_on=occurred_on)
+        candidate_entries = DominioBankEntry.objects.filter(organization=office).filter(pair_filter)
+    candidates_by_key: dict[tuple[object, object, int], list[DominioBankEntry]] = {}
+    for entry in candidate_entries:
+        entry.amount_brl = Decimal(entry.amount_cents) / 100  # type: ignore[attr-defined]
+        candidates_by_key.setdefault(
+            (entry.company_id, entry.occurred_on, entry.amount_cents), []
+        ).append(entry)
+    for match in matches:
+        match.candidates = candidates_by_key.get(  # type: ignore[attr-defined]
+            (
+                match.transaction.statement.company_id,
+                match.transaction.occurred_on,
+                abs(match.transaction.amount_cents),
+            ),
+            [],
+        )
+    context.update(
+        {
+            "page_title": "Conciliação OFX x Domínio",
+            "form": form,
+            "imports": BankStatementImport.objects.filter(
+                organization=office, company__in=companies
+            ).select_related("company")[:20],
+            "matches": matches,
+            "can_import_ofx": _can_prepare_dte(context),
+            "open_import_modal": request.method == "POST" and bool(form.errors),
+        }
+    )
+    return render(request, "hub/reconciliation.html", context)
+
+
+@office_required
+@require_http_methods(["POST"])
+def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    if not context["support_can_mutate"] or not _can_prepare_dte(context):
+        return refuse(request, "Seu perfil pode consultar, mas não confirmar conciliações.")
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    match = get_object_or_404(
+        ReconciliationMatch.objects.select_related("transaction__statement"),
+        id=match_id,
+        organization=office,
+        transaction__statement__company__in=companies,
+    )
+    entry = get_object_or_404(
+        DominioBankEntry,
+        id=request.POST.get("dominio_entry_id"),
+        organization=office,
+    )
+    try:
+        confirm_reconciliation_match(
+            match=match, dominio_entry=entry, actor=request.user, request=request
+        )
+    except ValueError as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Conciliação confirmada.")
+    return redirect("hub:reconciliation")
 
 
 @office_required
 def reform(request: HttpRequest) -> HttpResponse:
-    return _operational_module(request, ProductModule.Code.REFORM)
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.REFORM))
+    if blocked:
+        return blocked
+    source = request.GET.get("fonte", "")
+    valid_sources = set(ReformAlert.Source.values)
+    alerts = ReformAlert.objects.all()
+    if source in valid_sources:
+        alerts = alerts.filter(source=source)
+    else:
+        source = ""
+    context.update(
+        {
+            "page_title": "Radar da Reforma Tributária",
+            "alerts": alerts[:80],
+            "selected_source": source,
+            "sources": ReformAlert.Source.choices,
+            "source_statuses": ReformSourceStatus.objects.all(),
+        }
+    )
+    return render(request, "hub/reform.html", context)
+
+
+@office_required
+def triage(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        return blocked
+    context.update(
+        {
+            "page_title": "Triagem de Arquivos",
+            "table_headers": [],
+            "records": [],
+            "empty_title": "Nenhuma caixa de e-mail conectada",
+            "empty_text": (
+                "Conecte uma caixa em Configurações para que os anexos recebidos comecem a "
+                "ser triados."
+            ),
+        }
+    )
+    return render(request, "hub/module_page.html", context)
 
 
 @office_required
@@ -801,6 +1862,13 @@ def companies(request: HttpRequest) -> HttpResponse:
     require_dominio_code = OfficeProfile.objects.filter(
         organization=office, require_dominio_code=True
     ).exists()
+    dominio_manages_companies = (
+        IntelligenceConnector.objects.filter(
+            organization=office,
+        )
+        .exclude(status="not_configured")
+        .exists()
+    )
     form = CompanyForm(
         request.POST or None,
         organization=office,
@@ -808,11 +1876,16 @@ def companies(request: HttpRequest) -> HttpResponse:
     )
     if request.method == "POST" and not context["support_can_mutate"]:
         return refuse(request, "Esta sessão é somente leitura.")
+    if request.method == "POST" and dominio_manages_companies:
+        return refuse(request, "As empresas deste escritório são sincronizadas pelo Domínio.")
     if (
         request.method == "POST"
         and ControlPlaneBinding.objects.filter(organization=office).exists()
     ):
-        return refuse(request, "As empresas desta instalação são controladas pelo CRMew.")
+        return refuse(
+            request,
+            "As empresas desta instalação são controladas pelo controle central da Mewstack.",
+        )
     if request.method == "POST" and form.is_valid():
         company = form.save(commit=False)
         company.organization = office
@@ -846,9 +1919,7 @@ def companies(request: HttpRequest) -> HttpResponse:
         rows = rows.filter(active=False)
     elif situation == "ativa":
         rows = rows.filter(active=True)
-    if link == "sem":
-        rows = rows.filter(dominio_code="")
-    elif link == "com":
+    if link == "com":
         rows = rows.exclude(dominio_code="")
 
     paginator = Paginator(rows.order_by("name"), COMPANIES_PER_PAGE)
@@ -867,10 +1938,8 @@ def companies(request: HttpRequest) -> HttpResponse:
                 {key: value for key, value in filters.items() if value}
             ),
             "office_company_total": ClientCompany.objects.filter(organization=office).count(),
-            "missing_dominio_code": ClientCompany.objects.filter(
-                organization=office, dominio_code=""
-            ).count(),
             "require_dominio_code": require_dominio_code,
+            "dominio_manages_companies": dominio_manages_companies,
             "form": form,
         }
     )
@@ -1009,6 +2078,167 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
 
 @office_required
 @require_http_methods(["GET", "POST"])
+def setup_center(request: HttpRequest) -> HttpResponse:
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    membership = context["membership"]
+    can_manage = bool(
+        context["support_session"] is None
+        and isinstance(membership, Membership)
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+        and context["support_can_mutate"]
+    )
+    sources = DataSource.objects.filter(organization=office).order_by("created_at")
+    selected_source = sources.filter(id=request.GET.get("source")).first()
+    if selected_source is None:
+        selected_source = sources.first()
+    posted_source = sources.filter(id=request.POST.get("source_id")).first()
+    if posted_source is not None:
+        selected_source = posted_source
+    source_form = DataSourceForm(request.POST or None, prefix="source")
+    import_form = UnifiedImportForm(
+        request.POST or None,
+        request.FILES or None,
+        prefix="import",
+        companies=cast("QuerySet[ClientCompany]", context["companies"]),
+        source_kind=selected_source.kind if selected_source else "",
+    )
+    if request.method == "POST":
+        if not can_manage:
+            return refuse(request, "Somente owners e administradores alteram a configuração.")
+        action = request.POST.get("action")
+        if action == "choose-source" and source_form.is_valid():
+            kind = source_form.cleaned_data["kind"]
+            labels = dict(DataSource.Kind.choices)
+            selected_source, _ = DataSource.objects.get_or_create(
+                organization=office, kind=kind, defaults={"label": labels[kind]}
+            )
+            record_event(
+                action="hub.data_source.selected",
+                actor=request.user,
+                organization=office,
+                target=selected_source,
+                request=request,
+                metadata={"kind": kind},
+            )
+            return redirect(f"{reverse('hub:setup')}?source={selected_source.id}")
+        if action == "upload" and import_form.is_valid():
+            selected_source = get_object_or_404(
+                DataSource, id=request.POST.get("source_id"), organization=office
+            )
+            try:
+                batch, created = create_import_preview(
+                    organization=office,
+                    data_source=selected_source,
+                    kind=import_form.cleaned_data["kind"],
+                    upload=import_form.cleaned_data["upload"],
+                    actor=cast(User, request.user),
+                    company=import_form.cleaned_data.get("company"),
+                    source_snapshot_at=import_form.cleaned_data.get("source_snapshot_at"),
+                    backup_key=import_form.cleaned_data.get("backup_key", ""),
+                    request=request,
+                )
+            except ImportValidationError as exc:
+                import_form.add_error("upload", str(exc))
+            else:
+                messages.info(
+                    request,
+                    "Arquivo analisado. Confira e confirme a importação."
+                    if created
+                    else "Este mesmo arquivo já foi enviado anteriormente.",
+                )
+                return redirect(
+                    f"{reverse('hub:setup')}?source={selected_source.id}&preview={batch.id}"
+                )
+        if action == "confirm-import":
+            batch = get_object_or_404(
+                ImportBatch,
+                id=request.POST.get("batch_id"),
+                organization=office,
+                status=ImportBatch.Status.PREVIEW,
+            )
+            try:
+                confirm_import(batch=batch, actor=cast(User, request.user), request=request)
+            except (ImportValidationError, ValueError) as exc:
+                messages.error(request, f"Não foi possível importar: {exc}")
+            else:
+                messages.success(
+                    request,
+                    "Backup enviado para extração. Você pode fechar esta página."
+                    if batch.kind == ImportBatch.Kind.DOMINIO_BACKUP
+                    else "Importação concluída.",
+                )
+            return redirect(f"{reverse('hub:setup')}?source={batch.data_source_id}")
+        if action == "retry-backup":
+            batch = get_object_or_404(
+                ImportBatch,
+                id=request.POST.get("batch_id"),
+                organization=office,
+                kind=ImportBatch.Kind.DOMINIO_BACKUP,
+                status__in=[ImportBatch.Status.FAILED, ImportBatch.Status.PROCESSING],
+            )
+            if not batch.source_file or not batch.backup_key:
+                messages.error(request, "Envie o backup e a chave novamente para tentar outra vez.")
+            else:
+                batch.status = ImportBatch.Status.QUEUED
+                batch.mapping = {
+                    key: value
+                    for key, value in batch.mapping.items()
+                    if key not in {"claimed_by", "claimed_at"}
+                }
+                batch.errors = []
+                batch.completed_at = None
+                batch.save(
+                    update_fields=["status", "mapping", "errors", "completed_at", "updated_at"]
+                )
+                messages.success(request, "Nova tentativa colocada na fila.")
+            return redirect(f"{reverse('hub:setup')}?source={batch.data_source_id}")
+    preview = ImportBatch.objects.filter(
+        id=request.GET.get("preview"), organization=office, status=ImportBatch.Status.PREVIEW
+    ).first()
+    profile = OfficeProfile.objects.filter(organization=office).first()
+    try:
+        mfa_complete = request.user.totp_device.is_confirmed
+    except (AttributeError, ObjectDoesNotExist):
+        mfa_complete = False
+    context.update(
+        {
+            "page_title": "Configuração",
+            "source_form": source_form,
+            "import_form": import_form,
+            "data_sources": sources,
+            "selected_source": selected_source,
+            "preview_batch": preview,
+            "recent_imports": ImportBatch.objects.filter(organization=office)[:8],
+            "can_manage_setup": can_manage,
+            "agent_installer_url": getattr(settings, "EDGE_AGENT_INSTALLER_URL", ""),
+            "setup_steps": [
+                {"label": "Confirmar escritório", "done": bool(profile and profile.cnpj_hash)},
+                {"label": "Escolher fonte de dados", "done": sources.exists()},
+                {
+                    "label": "Cadastrar ou importar empresas",
+                    "done": ClientCompany.objects.filter(organization=office, active=True).exists(),
+                },
+                {
+                    "label": "Configurar os módulos",
+                    "done": ProductModule.objects.filter(
+                        organization=office, enabled=True
+                    ).exists(),
+                },
+                {
+                    "label": "Convidar sua equipe",
+                    "done": Membership.objects.filter(organization=office, is_active=True).count()
+                    > 1,
+                },
+                {"label": "Ativar MFA", "done": mfa_complete},
+            ],
+        }
+    )
+    return render(request, "hub/setup.html", context)
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
 def settings_view(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
@@ -1019,7 +2249,83 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         and isinstance(membership, Membership)
         and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
     )
-    connector_form_invalid = False
+    can_manage_usage_policy = can_manage_dominio_agent
+    contract = (
+        TenantContract.objects.filter(
+            organization=office,
+            status__in=[
+                TenantContract.Status.TRIAL,
+                TenantContract.Status.ACTIVE,
+                TenantContract.Status.GRACE,
+                TenantContract.Status.SUSPENDED,
+            ],
+        )
+        .prefetch_related("service_rates")
+        .order_by("-created_at")
+        .first()
+    )
+    dominio_connector = (
+        IntelligenceConnector.objects.filter(
+            organization=office, mode=IntelligenceConnector.Mode.EDGE_AGENT
+        ).first()
+        or IntelligenceConnector.objects.filter(
+            organization=office, mode=IntelligenceConnector.Mode.DIRECT_ODBC
+        ).first()
+    )
+    edge_agent_online = EdgeAgent.objects.filter(
+        organization=office,
+        status=EdgeAgent.Status.ACTIVE,
+        last_seen_at__gte=timezone.now() - timedelta(minutes=2),
+    ).exists()
+    if dominio_connector is None:
+        dominio_sync_state = "not_configured"
+    elif dominio_connector.sync_requested_at:
+        dominio_sync_state = "syncing"
+    elif dominio_connector.status == "error" or dominio_connector.last_error_at:
+        dominio_sync_state = "failed"
+    elif dominio_connector.mode == IntelligenceConnector.Mode.EDGE_AGENT and not edge_agent_online:
+        dominio_sync_state = "attention"
+    elif dominio_connector.status == "healthy":
+        dominio_sync_state = "synced"
+    else:
+        dominio_sync_state = "attention"
+    policy_form_invalid = False
+    policy_form = UsagePolicyForm()
+    policy_error_rate_id = ""
+    if request.method == "POST" and request.POST.get("action") == "usage-policy":
+        if not context["support_can_mutate"]:
+            return refuse(request, "Esta sessão é somente leitura.")
+        if not can_manage_usage_policy:
+            return refuse(request, "Somente owners e administradores mudam o limite de consumo.")
+        rate_id = request.POST.get("rate_id", "")
+        rate = contract.service_rates.filter(id=rate_id).first() if contract else None
+        if rate is None:
+            return refuse(request, "Esse serviço não faz parte do contrato deste escritório.")
+        if rate.action_code == "ai.answer" and not copilot_is_available():
+            return HttpResponse(status=404)
+        policy_form = UsagePolicyForm(request.POST, prefix=f"usage_{rate.id}")
+        if policy_form.is_valid():
+            saved_policy, _ = TenantUsagePolicy.objects.update_or_create(
+                organization=office,
+                action_code=rate.action_code,
+                defaults={
+                    "overage_mode": policy_form.cleaned_data["overage_mode"],
+                    "warning_percent": policy_form.cleaned_data["warning_percent"],
+                    "monthly_overage_cap_cents": policy_form.cap_cents(),
+                },
+            )
+            record_event(
+                action="hub.office.usage_policy_changed",
+                actor=request.user,
+                organization=office,
+                target=saved_policy,
+                request=request,
+                metadata={"action_code": rate.action_code, "mode": saved_policy.overage_mode},
+            )
+            messages.success(request, "Regra de consumo atualizada.")
+            return redirect("hub:settings")
+        policy_form_invalid = True
+        policy_error_rate_id = str(rate.id)
     if request.method == "POST" and request.POST.get("action") == "dominio-policy":
         if not context["support_can_mutate"]:
             return refuse(request, "Esta sessão é somente leitura.")
@@ -1045,87 +2351,230 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             else "Código do Domínio volta a ser opcional.",
         )
         return redirect("hub:settings")
-    if request.method == "POST":
+    if request.method == "POST" and request.POST.get("action") == "request-dominio-sync":
         if not context["support_can_mutate"]:
             return refuse(request, "Esta sessão é somente leitura.")
-        form = ConnectorConfigForm(request.POST)
-        if form.is_valid():
-            kind = form.cleaned_data["kind"]
-            configuration = {
-                "label": form.cleaned_data["label"],
-                "endpoint": form.cleaned_data["endpoint"],
-                "database_alias": form.cleaned_data["database_alias"],
-            }
-            if form.cleaned_data["secret"]:
-                configuration["secret"] = form.cleaned_data["secret"]
-            connector_updates = {
-                "enabled": True,
-                "status": "configured",
-                "encrypted_configuration": json.dumps(configuration),
-                "last_error_code": "",
-            }
-            updated = Connector.objects.filter(organization=office, kind=kind).update(
-                **connector_updates
-            )
-            connector = (
-                Connector.objects.defer("encrypted_configuration").get(
-                    organization=office, kind=kind
+        if not can_manage_dominio_agent:
+            return refuse(request, "Somente owners e administradores podem atualizar o Domínio.")
+        if dominio_connector is None or dominio_connector.status not in {"healthy", "error"}:
+            return refuse(request, "O Domínio não está conectado.")
+        if dominio_connector.mode == IntelligenceConnector.Mode.DIRECT_ODBC:
+            if not dominio_connector.odbc_dsn:
+                return refuse(
+                    request, "Conclua a configuração local do Domínio antes de atualizar."
                 )
-                if updated
-                else Connector.objects.create(
+            try:
+                adapter = ReadOnlyDominoOdbc(dominio_connector.odbc_dsn)
+                result = sync_companies(
                     organization=office,
-                    kind=kind,
-                    **connector_updates,
+                    connector=dominio_connector,
+                    rows=adapter.execute("companies"),
                 )
+                bank_entries = sync_bank_entries(
+                    organization=office,
+                    connector=dominio_connector,
+                    rows=adapter.execute("bank_entries"),
+                )
+            except (RuntimeError, ValueError) as error:
+                dominio_connector.status = "error"
+                dominio_connector.last_error_code = "odbc_sync"
+                dominio_connector.last_error_message = str(error)[:240]
+                dominio_connector.last_error_at = timezone.now()
+                dominio_connector.save(
+                    update_fields=[
+                        "status",
+                        "last_error_code",
+                        "last_error_message",
+                        "last_error_at",
+                        "updated_at",
+                    ]
+                )
+                messages.error(request, f"Não foi possível atualizar o Domínio: {error}")
+            else:
+                messages.success(
+                    request,
+                    "Domínio atualizado: "
+                    f"{result.created + result.updated} empresa(s) e "
+                    f"{bank_entries.created + bank_entries.updated} item(ns) bancários.",
+                )
+        else:
+            dominio_connector.sync_requested_at = timezone.now()
+            dominio_connector.save(update_fields=["sync_requested_at", "updated_at"])
+        record_event(
+            action="hub.dominio.sync_requested",
+            actor=request.user,
+            organization=office,
+            target=dominio_connector,
+            request=request,
+        )
+        if dominio_connector.mode == IntelligenceConnector.Mode.EDGE_AGENT:
+            messages.success(
+                request, "Atualização solicitada. O agente consulta o Domínio no próximo ciclo."
             )
-            record_event(
-                action="hub.connector.configured",
-                actor=request.user,
-                organization=office,
-                target=connector,
-                request=request,
-                metadata={"kind": kind, "has_secret": bool(form.cleaned_data["secret"])},
+        return redirect("hub:settings")
+    if request.method == "POST" and request.POST.get("action") == "dominio-support-ticket":
+        if not context["support_can_mutate"]:
+            return refuse(request, "Esta sessão é somente leitura.")
+        if not can_manage_dominio_agent:
+            return refuse(request, "Somente owners e administradores podem abrir um chamado.")
+        if dominio_connector is None or dominio_sync_state != "failed":
+            return refuse(request, "Não há uma falha de sincronização para encaminhar.")
+        ticket, created = DominioSupportTicket.objects.get_or_create(
+            organization=office,
+            connector=dominio_connector,
+            status=DominioSupportTicket.Status.OPEN,
+            defaults={
+                "error_code": dominio_connector.last_error_code,
+                "error_message": dominio_connector.last_error_message,
+                "opened_by": request.user if isinstance(request.user, User) else None,
+            },
+        )
+        record_event(
+            action="hub.dominio.support_ticket_created",
+            actor=request.user,
+            organization=office,
+            target=ticket,
+            request=request,
+            metadata={"created": created, "error_code": dominio_connector.last_error_code},
+        )
+        messages.success(
+            request,
+            "Chamado aberto para desenvolvimento."
+            if created
+            else "Já existe um chamado aberto para esta falha.",
+        )
+        return redirect("hub:settings")
+    if request.method == "POST":
+        # The legacy generic form accepted credentials for connectors that have no
+        # adapter or verification path. Refuse direct posts too, so the UI is not
+        # the only protection against collecting unusable secrets.
+        return refuse(
+            request,
+            "Esta integração ainda não está disponível. Não informe credenciais.",
+        )
+    current_period = timezone.localdate().replace(day=1)
+    meters_by_action = {
+        meter.action_code: meter
+        for meter in UsageMeter.objects.filter(organization=office, period_start=current_period)
+    }
+    policies_by_action = {
+        policy.action_code: policy
+        for policy in TenantUsagePolicy.objects.filter(organization=office)
+    }
+    usage_cards = []
+    if contract:
+        for rate in contract.service_rates.all().order_by("action_code"):
+            if rate.action_code == "ai.answer" and not copilot_is_available():
+                continue
+            meter = meters_by_action.get(rate.action_code)
+            policy = policies_by_action.get(rate.action_code)
+            usage_cards.append(
+                {
+                    "action_code": rate.action_code,
+                    "label": INTEGRA_SERVICE_LABELS.get(rate.action_code, rate.action_code),
+                    "included_units": rate.included_units,
+                    "consumed_units": meter.consumed_units if meter else 0,
+                    "reserved_units": meter.reserved_units if meter else 0,
+                    "overage_units": meter.overage_units if meter else 0,
+                    "remaining_units": max(
+                        0,
+                        rate.included_units
+                        - (meter.consumed_units if meter else 0)
+                        - (meter.reserved_units if meter else 0),
+                    ),
+                    "overage_price_cents": rate.overage_unit_price_cents,
+                    "overage_price_brl": Decimal(rate.overage_unit_price_cents) / 100,
+                    "usage_percent": min(
+                        100,
+                        round(
+                            (
+                                (meter.consumed_units if meter else 0)
+                                + (meter.reserved_units if meter else 0)
+                            )
+                            / rate.included_units
+                            * 100,
+                        )
+                        if rate.included_units
+                        else 100,
+                    ),
+                    "policy": policy,
+                    "policy_form": (
+                        policy_form
+                        if policy_form_invalid and policy_error_rate_id == str(rate.id)
+                        else UsagePolicyForm(
+                            prefix=f"usage_{rate.id}",
+                            initial={
+                                "overage_mode": (
+                                    policy.overage_mode
+                                    if policy
+                                    else TenantUsagePolicy.OverageMode.BLOCK
+                                ),
+                                "warning_percent": policy.warning_percent if policy else 80,
+                                "monthly_overage_cap_brl": (
+                                    Decimal(policy.monthly_overage_cap_cents) / 100
+                                    if policy and policy.monthly_overage_cap_cents
+                                    else None
+                                ),
+                            },
+                        )
+                    ),
+                    "rate_id": rate.id,
+                    "has_policy_error": policy_form_invalid
+                    and policy_error_rate_id == str(rate.id),
+                }
             )
-            messages.success(request, "Conexão salva. O próximo ciclo fará o teste automático.")
-            return redirect("hub:settings")
-        connector_form_invalid = True
-    else:
-        form = ConnectorConfigForm()
-    connectors = list(
-        Connector.objects.defer("encrypted_configuration").filter(organization=office)
-    )
-    connector_by_kind = {item.kind: item for item in connectors}
     context.update(
         {
             "page_title": "Integrações",
             "modules": ProductModule.objects.filter(organization=office),
             "allowances": UsageAllowance.objects.filter(organization=office).order_by("metric"),
-            "connectors": connectors,
             "connector_cards": [
                 {
                     "kind": kind,
                     "label": label,
-                    "connector": connector_by_kind.get(kind),
                 }
                 for kind, label in Connector.Kind.choices
-                if kind != Connector.Kind.DOMINIO_AGENT
+                if kind not in {Connector.Kind.DOMINIO_AGENT, Connector.Kind.INTEGRA}
             ],
-            "connector_form": form,
-            "connector_form_invalid": connector_form_invalid,
-            "dominio_connector": IntelligenceConnector.objects.filter(
-                organization=office, mode=IntelligenceConnector.Mode.EDGE_AGENT
-            ).first(),
+            "usage_cards": usage_cards,
+            "can_manage_usage_policy": can_manage_usage_policy,
+            "recent_invoices": [
+                {
+                    "period_start": invoice.period_start,
+                    "due_on": invoice.due_on,
+                    "status": invoice.status,
+                    "status_label": invoice.get_status_display(),
+                    "total_brl": Decimal(invoice.total_amount_cents) / 100,
+                }
+                for invoice in Invoice.objects.filter(organization=office).order_by(
+                    "-period_start"
+                )[:4]
+            ],
+            "dominio_connector": dominio_connector,
             "dominio_agents": EdgeAgent.objects.filter(organization=office).order_by(
                 "-last_seen_at", "-enrolled_at"
+            ),
+            "dominio_sync_state": dominio_sync_state,
+            "can_request_dominio_sync": bool(
+                can_manage_dominio_agent
+                and dominio_connector
+                and dominio_sync_state in {"synced", "failed"}
+                and (
+                    (
+                        dominio_connector.mode == IntelligenceConnector.Mode.DIRECT_ODBC
+                        and dominio_connector.odbc_dsn
+                    )
+                    or (
+                        dominio_connector.mode == IntelligenceConnector.Mode.EDGE_AGENT
+                        and edge_agent_online
+                    )
+                )
             ),
             "can_manage_dominio_agent": can_manage_dominio_agent,
             "enrollment_code": request.session.pop("dominio_enrollment_code", ""),
             "require_dominio_code": OfficeProfile.objects.filter(
                 organization=office, require_dominio_code=True
             ).exists(),
-            "companies_missing_dominio_code": ClientCompany.objects.filter(
-                organization=office, dominio_code=""
-            ).count(),
         }
     )
     return render(request, "hub/settings.html", context)
