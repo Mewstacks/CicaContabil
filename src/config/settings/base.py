@@ -26,12 +26,16 @@ DEBUG = False
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ("localhost", "127.0.0.1"))
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
-# Deployment-owned, private OpenAI-compatible inference runtime (vLLM/Ollama
-# proxy). Leave unset to keep the chat source-grounded without model egress.
-LOCAL_LLM_ENDPOINT = env_str("LOCAL_LLM_ENDPOINT", "")
-LOCAL_LLM_MODEL = env_str("LOCAL_LLM_MODEL", "hubcontador-local")
-LOCAL_LLM_API_KEY = env_str("LOCAL_LLM_API_KEY", "")
-LOCAL_MULTIMODAL_ENDPOINT = env_str("LOCAL_MULTIMODAL_ENDPOINT", "")
+# Cloudflare Quick Tunnels generate a different hostname for each session. Keep the
+# suffix rule in settings (rather than only in .env) so a pre-existing process
+# environment cannot accidentally omit it.
+cloudflare_quick_tunnel_host = ".trycloudflare.com"
+if cloudflare_quick_tunnel_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(cloudflare_quick_tunnel_host)
+cloudflare_quick_tunnel_origin = "https://*.trycloudflare.com"
+if cloudflare_quick_tunnel_origin not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(cloudflare_quick_tunnel_origin)
+
 INTELLIGENCE_ATTACHMENT_RETRY_LIMIT = env_int("INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)
 
 DJANGO_APPS = [
@@ -59,6 +63,7 @@ LOCAL_APPS = [
     "apps.intelligence",
     "apps.integra",
     "apps.knowledge",
+    "apps.triage",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
@@ -395,6 +400,10 @@ PRIVACY_REQUEST_TARGET_DAYS = env_int("PRIVACY_REQUEST_TARGET_DAYS", 15)
 # The reverse proxy must verify the certificate and overwrite the two forwarded
 # headers; Django then binds that verified client certificate to one EdgeAgent.
 EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", False)
+EDGE_AGENT_CA_CERT_PATH = env_str("EDGE_AGENT_CA_CERT_PATH")
+EDGE_AGENT_CA_KEY_PATH = env_str("EDGE_AGENT_CA_KEY_PATH")
+EDGE_AGENT_INSTALLER_URL = env_str("EDGE_AGENT_INSTALLER_URL")
+EDGE_AGENT_LATEST_VERSION = env_str("EDGE_AGENT_LATEST_VERSION", "")
 
 AXES_ENABLED = True
 AXES_CLIENT_IP_CALLABLE = "apps.common.network.client_ip"
@@ -434,6 +443,14 @@ CELERY_TASK_SOFT_TIME_LIMIT = env_int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", 270
 CELERY_TASK_TIME_LIMIT = env_int("CELERY_TASK_TIME_LIMIT_SECONDS", 300)
 CELERY_WORKER_MAX_TASKS_PER_CHILD = env_int("CELERY_WORKER_MAX_TASKS_PER_CHILD", 500)
 CELERY_BEAT_SCHEDULE = {
+    "advance-tenant-lifecycles": {
+        "task": "platform.advance_tenant_lifecycles",
+        "schedule": crontab(hour=0, minute=1),
+    },
+    "close-previous-billing-competence": {
+        "task": "platform.close_previous_competence",
+        "schedule": crontab(hour=0, minute=5),
+    },
     "refresh-approved-knowledge-chunks": {
         "task": "intelligence.refresh_knowledge_chunks",
         "schedule": crontab(hour=2, minute=10),
@@ -449,6 +466,10 @@ CELERY_BEAT_SCHEDULE = {
     "retry-pending-intelligence-attachments": {
         "task": "intelligence.retry_pending_attachments",
         "schedule": timedelta(minutes=5),
+    },
+    "refresh-reform-radar": {
+        "task": "hub.refresh_reform_sources",
+        "schedule": crontab(hour=5, minute=20),
     },
 }
 
