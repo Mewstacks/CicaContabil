@@ -295,6 +295,102 @@ wheels = [
 ]
 
 [[package]]
+name = "cica-contabil"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "argon2-cffi" },
+    { name = "celery" },
+    { name = "cryptography" },
+    { name = "defusedxml" },
+    { name = "django" },
+    { name = "django-axes" },
+    { name = "django-cors-headers" },
+    { name = "django-redis" },
+    { name = "django-storages", extra = ["s3"] },
+    { name = "djangorestframework" },
+    { name = "drf-spectacular" },
+    { name = "gunicorn" },
+    { name = "openpyxl" },
+    { name = "psycopg", extra = ["binary"] },
+    { name = "python-dotenv" },
+    { name = "qrcode" },
+    { name = "reportlab" },
+    { name = "sentry-sdk", extra = ["django"] },
+    { name = "sqlparse" },
+    { name = "uvicorn-worker" },
+    { name = "whitenoise" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "coverage" },
+    { name = "django-stubs" },
+    { name = "djangorestframework-stubs" },
+    { name = "mypy" },
+    { name = "pillow" },
+    { name = "pip" },
+    { name = "pip-audit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "pytest-django" },
+    { name = "ruff" },
+    { name = "uv" },
+]
+dominio-agent = [
+    { name = "pyodbc", marker = "sys_platform == 'win32'" },
+    { name = "pywin32", marker = "sys_platform == 'win32'" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "types-qrcode" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "argon2-cffi", specifier = "==25.1.0" },
+    { name = "celery", specifier = "==5.6.3" },
+    { name = "coverage", marker = "extra == 'dev'", specifier = "==7.13.4" },
+    { name = "cryptography", specifier = "==50.0.0" },
+    { name = "defusedxml", specifier = "==0.7.1" },
+    { name = "django", specifier = "==6.0.8" },
+    { name = "django-axes", specifier = "==8.3.1" },
+    { name = "django-cors-headers", specifier = "==4.9.0" },
+    { name = "django-redis", specifier = "==7.0.0" },
+    { name = "django-storages", extras = ["s3"], specifier = "==1.14.6" },
+    { name = "django-stubs", marker = "extra == 'dev'", specifier = "==6.0.7" },
+    { name = "djangorestframework", specifier = "==3.17.2" },
+    { name = "djangorestframework-stubs", marker = "extra == 'dev'", specifier = "==3.17.1" },
+    { name = "drf-spectacular", specifier = "==0.30.0" },
+    { name = "gunicorn", specifier = "==26.0.0" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = "==1.19.1" },
+    { name = "openpyxl", specifier = "==3.1.5" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = "==12.3.0" },
+    { name = "pip", marker = "extra == 'dev'", specifier = "==26.2.1" },
+    { name = "pip-audit", marker = "extra == 'dev'", specifier = "==2.10.0" },
+    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
+    { name = "pyodbc", marker = "sys_platform == 'win32' and extra == 'dominio-agent'", specifier = "==5.3.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = "==9.0.3" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==7.0.0" },
+    { name = "pytest-django", marker = "extra == 'dev'", specifier = "==4.12.0" },
+    { name = "python-dotenv", specifier = "==1.2.2" },
+    { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'dominio-agent'", specifier = "==311" },
+    { name = "qrcode", specifier = "==8.2" },
+    { name = "reportlab", specifier = "==4.5.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.16.0" },
+    { name = "sentry-sdk", extras = ["django"], specifier = "==2.66.1" },
+    { name = "sqlparse", specifier = "==0.6.0" },
+    { name = "uv", marker = "extra == 'dev'", specifier = "==0.12.0" },
+    { name = "uvicorn-worker", specifier = "==0.4.0" },
+    { name = "whitenoise", specifier = "==6.12.0" },
+]
+provides-extras = ["dominio-agent", "dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "types-qrcode", specifier = "==8.2.0.20250506" }]
+
+[[package]]
 name = "click"
 version = "8.4.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1554,102 +1650,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/76/43/35e4d8aa320bffe82
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/e7/5c595c75e9f41a44f30e526eda465ea0b4eec93470e074e4a111b253f13a/s3transfer-0.19.2-py3-none-any.whl", hash = "sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25", size = 90216, upload-time = "2026-07-22T19:30:43.251Z" },
 ]
-
-[[package]]
-name = "saas-django-backend"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "argon2-cffi" },
-    { name = "celery" },
-    { name = "cryptography" },
-    { name = "defusedxml" },
-    { name = "django" },
-    { name = "django-axes" },
-    { name = "django-cors-headers" },
-    { name = "django-redis" },
-    { name = "django-storages", extra = ["s3"] },
-    { name = "djangorestframework" },
-    { name = "drf-spectacular" },
-    { name = "gunicorn" },
-    { name = "openpyxl" },
-    { name = "psycopg", extra = ["binary"] },
-    { name = "python-dotenv" },
-    { name = "qrcode" },
-    { name = "reportlab" },
-    { name = "sentry-sdk", extra = ["django"] },
-    { name = "sqlparse" },
-    { name = "uvicorn-worker" },
-    { name = "whitenoise" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "coverage" },
-    { name = "django-stubs" },
-    { name = "djangorestframework-stubs" },
-    { name = "mypy" },
-    { name = "pillow" },
-    { name = "pip" },
-    { name = "pip-audit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "pytest-django" },
-    { name = "ruff" },
-    { name = "uv" },
-]
-dominio-agent = [
-    { name = "pyodbc", marker = "sys_platform == 'win32'" },
-    { name = "pywin32", marker = "sys_platform == 'win32'" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "types-qrcode" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "argon2-cffi", specifier = "==25.1.0" },
-    { name = "celery", specifier = "==5.6.3" },
-    { name = "coverage", marker = "extra == 'dev'", specifier = "==7.13.4" },
-    { name = "cryptography", specifier = "==50.0.0" },
-    { name = "defusedxml", specifier = "==0.7.1" },
-    { name = "django", specifier = "==6.0.8" },
-    { name = "django-axes", specifier = "==8.3.1" },
-    { name = "django-cors-headers", specifier = "==4.9.0" },
-    { name = "django-redis", specifier = "==7.0.0" },
-    { name = "django-storages", extras = ["s3"], specifier = "==1.14.6" },
-    { name = "django-stubs", marker = "extra == 'dev'", specifier = "==6.0.7" },
-    { name = "djangorestframework", specifier = "==3.17.2" },
-    { name = "djangorestframework-stubs", marker = "extra == 'dev'", specifier = "==3.17.1" },
-    { name = "drf-spectacular", specifier = "==0.30.0" },
-    { name = "gunicorn", specifier = "==26.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = "==1.19.1" },
-    { name = "openpyxl", specifier = "==3.1.5" },
-    { name = "pillow", marker = "extra == 'dev'", specifier = "==12.3.0" },
-    { name = "pip", marker = "extra == 'dev'", specifier = "==26.2.1" },
-    { name = "pip-audit", marker = "extra == 'dev'", specifier = "==2.10.0" },
-    { name = "psycopg", extras = ["binary"], specifier = "==3.3.4" },
-    { name = "pyodbc", marker = "sys_platform == 'win32' and extra == 'dominio-agent'", specifier = "==5.3.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = "==9.0.3" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==7.0.0" },
-    { name = "pytest-django", marker = "extra == 'dev'", specifier = "==4.12.0" },
-    { name = "python-dotenv", specifier = "==1.2.2" },
-    { name = "pywin32", marker = "sys_platform == 'win32' and extra == 'dominio-agent'", specifier = "==311" },
-    { name = "qrcode", specifier = "==8.2" },
-    { name = "reportlab", specifier = "==4.5.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.16.0" },
-    { name = "sentry-sdk", extras = ["django"], specifier = "==2.66.1" },
-    { name = "sqlparse", specifier = "==0.6.0" },
-    { name = "uv", marker = "extra == 'dev'", specifier = "==0.12.0" },
-    { name = "uvicorn-worker", specifier = "==0.4.0" },
-    { name = "whitenoise", specifier = "==6.12.0" },
-]
-provides-extras = ["dominio-agent", "dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "types-qrcode", specifier = "==8.2.0.20250506" }]
 
 [[package]]
 name = "sentry-sdk"

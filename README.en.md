@@ -2,13 +2,14 @@
 
 [Versão em português](README.md) · [Documentation index](docs/README.md)
 
-This project is a reusable Django SaaS backend. It includes authentication, a REST API,
-organizations, technical LGPD controls, encryption, audit trails, background tasks, Sentry,
-and Fly.io deployment configuration.
+CICA (Central de Inteligência Contábil Avançada) is Mewstack's platform for Brazilian
+accounting firms. It includes authentication with MFA, a REST API, organizations, document
+triage, Domínio integration through an edge agent, technical LGPD controls, encryption, audit
+trails, background tasks, Sentry, and Fly.io deployment configuration.
 
-> The technical controls help with security and accountability evidence, but do not make a
-> product automatically compliant. Each SaaS still needs product-specific purposes, lawful
-> bases, retention, vendors, privacy notices, and accountable owners.
+> The technical controls help with security and accountability evidence, but do not make the
+> product automatically compliant. CICA still needs documented purposes, lawful bases,
+> retention, vendors, privacy notices, and accountable owners.
 
 ## 1. Run locally
 
