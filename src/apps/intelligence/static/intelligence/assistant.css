@@ -45,6 +45,7 @@
 .evidence-list span{margin-top:2px;color:#4e6c84;font-size:11px;font-weight:700}
 .evidence-list p{margin-top:4px!important;color:var(--muted);font-size:12px}
 .feedback-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-top:16px;color:var(--muted);font-size:12px}
+.answer-exports{display:flex;align-items:center;gap:10px;margin-top:15px;color:var(--muted);font-size:11px;font-weight:750}.answer-exports a{min-height:32px;display:inline-flex;align-items:center;padding:5px 8px;border:1px solid var(--line);border-radius:7px;color:#315a7f;text-decoration:none;transition:background .15s ease,border-color .15s ease,color .15s ease}.answer-exports a:hover{border-color:#9fc1b4;background:var(--green-soft);color:#17624d}.answer-exports a:focus-visible{outline:3px solid #b8d8ff;outline-offset:2px}
 .feedback-row form{margin:0}
 .feedback-button{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:#426178;font:inherit;font-size:11px;font-weight:750;cursor:pointer;touch-action:manipulation;transition:background .15s ease,border-color .15s ease,color .15s ease}
 .feedback-button:hover{border-color:#9fc1b4;background:var(--green-soft);color:#17624d}

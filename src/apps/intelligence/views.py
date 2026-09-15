@@ -5,14 +5,16 @@ from urllib.parse import urlencode
 from uuid import UUID
 
 from django.contrib import messages
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
-from apps.hub.models import ClientCompany
-from apps.hub.views import office_required, refuse, workspace_context
+from apps.audit.services import record_event
+from apps.hub.models import ClientCompany, ProductModule
+from apps.hub.module_catalog import MODULES
+from apps.hub.views import collaborator_can_use_module, office_required, refuse, workspace_context
 from apps.intelligence.forms import AssistantQuestionForm, FeedbackForm
 from apps.intelligence.models import (
     ClassificationDraft,
@@ -20,8 +22,10 @@ from apps.intelligence.models import (
     LearningCandidate,
     Message,
 )
+from apps.intelligence.reports import build_pdf_report, build_xlsx_report, export_filename
 from apps.intelligence.services import accessible_company, answer_question, record_feedback
 from apps.organizations.models import Membership, Organization
+from apps.platform.availability import copilot_is_available
 
 
 def _can_curate(context: dict[str, object]) -> bool:
@@ -55,10 +59,42 @@ def _assistant_url(conversation: Conversation | None = None) -> str:
     return f"{reverse('intelligence:assistant')}?{urlencode({'conversation': conversation.id})}"
 
 
+def _assistant_context_or_blocked(
+    request: HttpRequest,
+) -> tuple[dict[str, object], HttpResponse | None]:
+    """Apply the same tenant-module gate to every Copilot endpoint."""
+
+    context = workspace_context(request)
+    # Do not advertise an unreleased service through a direct URL.  The
+    # technical runtime and its safeguards remain prepared behind this gate.
+    if not copilot_is_available():
+        return context, HttpResponse(status=404)
+    if not collaborator_can_use_module(context, ProductModule.Code.AI):
+        return context, refuse(request, "Seu acesso não inclui o Copiloto CICA.")
+    office = context["office"]
+    assert isinstance(office, Organization)
+    if not ProductModule.objects.filter(
+        organization=office, code=ProductModule.Code.AI, enabled=True
+    ).exists():
+        return context, render(
+            request,
+            "hub/module_unavailable.html",
+            {
+                **context,
+                "page_title": MODULES[ProductModule.Code.AI].label,
+                "module": MODULES[ProductModule.Code.AI],
+            },
+            status=403,
+        )
+    return context, None
+
+
 @office_required
 @require_http_methods(["GET", "POST"])
 def assistant(request: HttpRequest) -> HttpResponse:
-    context = workspace_context(request)
+    context, blocked = _assistant_context_or_blocked(request)
+    if blocked:
+        return blocked
     office = context["office"]
     assert isinstance(office, Organization)
     allowed_companies = cast(list[ClientCompany], context["companies"])
@@ -130,7 +166,7 @@ def assistant(request: HttpRequest) -> HttpResponse:
     )
     context.update(
         {
-            "page_title": "Assistente IA",
+            "page_title": "Copiloto CICA",
             "form": form,
             "active_conversation": active_conversation,
             "conversation_messages": conversation_messages,
@@ -144,7 +180,9 @@ def assistant(request: HttpRequest) -> HttpResponse:
 @office_required
 @require_http_methods(["POST"])
 def submit_feedback(request: HttpRequest, message_id: str) -> HttpResponse:
-    context = workspace_context(request)
+    context, blocked = _assistant_context_or_blocked(request)
+    if blocked:
+        return blocked
     office = context["office"]
     assert isinstance(office, Organization)
     message = get_object_or_404(
@@ -174,8 +212,54 @@ def submit_feedback(request: HttpRequest, message_id: str) -> HttpResponse:
 
 
 @office_required
+@require_http_methods(["GET"])
+def export_answer(request: HttpRequest, message_id: str, export_format: str) -> HttpResponse:
+    context, blocked = _assistant_context_or_blocked(request)
+    if blocked:
+        return blocked
+    office = context["office"]
+    assert isinstance(office, Organization)
+    allowed_company_ids = {
+        company.id for company in cast(list[ClientCompany], context["companies"])
+    }
+    message = get_object_or_404(
+        Message.objects.select_related("conversation__company"),
+        id=message_id,
+        organization=office,
+        role=Message.Role.ASSISTANT,
+    )
+    if message.conversation.company_id not in allowed_company_ids:
+        return refuse(request, "Esta resposta não está disponível para a empresa atual.")
+    if export_format == "pdf":
+        payload = build_pdf_report(message=message)
+        content_type = "application/pdf"
+    elif export_format == "xlsx":
+        payload = build_xlsx_report(message=message)
+        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    else:
+        return HttpResponseBadRequest("Formato de relatório inválido.")
+    record_event(
+        action="intelligence.answer.exported",
+        actor=cast(User, request.user),
+        organization=office,
+        target=message,
+        request=request,
+        metadata={"format": export_format, "evidence_count": len(message.evidence)},
+    )
+    response = HttpResponse(payload, content_type=content_type)
+    response["Content-Disposition"] = (
+        f'attachment; filename="{export_filename(message=message, export_format=export_format)}"'
+    )
+    response["Cache-Control"] = "no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@office_required
 def learning_center(request: HttpRequest) -> HttpResponse:
-    context = workspace_context(request)
+    context, blocked = _assistant_context_or_blocked(request)
+    if blocked:
+        return blocked
     office = context["office"]
     assert isinstance(office, Organization)
     if not _can_curate(context):
@@ -195,7 +279,9 @@ def learning_center(request: HttpRequest) -> HttpResponse:
 @office_required
 @require_http_methods(["POST"])
 def review_candidate(request: HttpRequest, candidate_id: str, decision: str) -> HttpResponse:
-    context = workspace_context(request)
+    context, blocked = _assistant_context_or_blocked(request)
+    if blocked:
+        return blocked
     office = context["office"]
     assert isinstance(office, Organization)
     if not _can_curate(context):

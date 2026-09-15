@@ -15,7 +15,7 @@
   {% if certificates %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Identificação</th><th>Validade</th><th>Estado</th></tr></thead><tbody>{% for certificate in certificates %}<tr><td><strong>{{ certificate.company.name }}</strong></td><td>{{ certificate.label }}</td><td>{% if certificate.valid_until %}{{ certificate.valid_until|date:"d/m/Y" }}{% else %}<span class="table-muted">Sem data informada</span>{% endif %}</td><td>{% if certificate.revoked_at %}<span class="module-state is-danger">Revogado</span>{% elif certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sem certificados sob custódia</strong><p>{% if support_can_mutate %}Envie um A1/PFX para ativar a consulta de NFS-e desta empresa.{% else %}Não há certificado registrado para esta empresa.{% endif %}</p>{% if support_can_mutate %}<button class="button button-small" type="button" data-modal-open="certificate-dialog">Enviar certificado</button>{% endif %}</div>
+    <div class="empty-block operational-empty"><strong>Sem certificados sob custódia</strong><p>{% if support_can_mutate %}Envie o A1/PFX da empresa. A captura NFS-e depende de uma conexão homologada.{% else %}Não há certificado registrado para esta empresa.{% endif %}</p>{% if support_can_mutate %}<button class="button button-small" type="button" data-modal-open="certificate-dialog">Enviar certificado</button>{% endif %}</div>
   {% endif %}
 </section>
 {% if support_can_mutate %}

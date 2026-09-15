@@ -1,8 +1,7 @@
-{% extends 'hub/base.html' %}
-{% block title %}Entrar — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Entrar — CICA{% endblock %}
 {% block body %}
 <main class="auth-page" id="conteudo">
-  <a class="brand" href="{% url 'hub:home' %}" translate="no"><span class="brand-mark" aria-hidden="true">H</span>HubContador</a>
-  <section class="auth-card"><p class="eyebrow">ACESSO</p><h1>Entrar</h1><form method="post" class="form-stack">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% if form.non_field_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{{ form.non_field_errors|striptags }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Entrar</button></form></section>
+  <section class="auth-card"><p class="eyebrow">BEM-VINDO À CICA</p><h1>Acesse seu escritório.</h1><p class="form-intro">Entre com seu e-mail ou nome cadastrado.</p><form method="post" class="form-stack">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% include 'hub/auth_fields.html' %}<button class="button" type="submit">Entrar</button></form><details class="auth-help"><summary>Não consegue entrar?</summary><p><a href="{% url 'hub:password-reset' %}">Redefinir minha senha</a></p><p>Se não tiver mais acesso ao e-mail, peça ajuda ao administrador do escritório.</p></details><p class="auth-alt">Ainda não conhece? <a href="{% url 'hub:signup' %}">Teste grátis por 14 dias.</a></p></section>
 </main>
 {% endblock %}

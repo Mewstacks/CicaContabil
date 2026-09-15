@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.organizations.models import Membership, Organization
-from apps.platform.models import Invitation
+from apps.platform.models import Invitation, Plan, TenantContract, TenantLifecycle
 
 pytestmark = pytest.mark.django_db
 
@@ -108,3 +108,60 @@ def test_a_brand_new_invited_account_still_sets_its_password() -> None:
     created = User.objects.get(email="newcomer@example.test")
     assert created.check_password(ATTACKER_PASSWORD)
     assert Membership.objects.filter(user=created, organization=office).exists()
+
+
+def test_platform_invitation_does_not_activate_an_office_without_a_contract() -> None:
+    office = Organization.objects.create(name="Escritório", slug="escritorio")
+    TenantLifecycle.objects.create(
+        organization=office, state=TenantLifecycle.State.ACTIVATION_PENDING
+    )
+    token = _invite(office, "newcomer@example.test")
+
+    response = Client().post(
+        reverse("hub:activate", args=[token]),
+        {"password": ATTACKER_PASSWORD, "password_confirm": ATTACKER_PASSWORD},
+    )
+
+    assert response.status_code == 302
+    assert TenantLifecycle.objects.get(organization=office).state == (
+        TenantLifecycle.State.ACTIVATION_PENDING
+    )
+    pending = Client()
+    pending.force_login(User.objects.get(email="newcomer@example.test"))
+    response = pending.get(reverse("hub:dashboard"))
+    assert response.status_code == 403
+    assert "Seu acesso ainda está sendo preparado." in response.content.decode()
+
+
+def test_platform_invitation_can_activate_an_office_with_a_trial_or_active_contract() -> None:
+    office = Organization.objects.create(name="Escritório", slug="escritorio")
+    TenantLifecycle.objects.create(
+        organization=office, state=TenantLifecycle.State.ACTIVATION_PENDING
+    )
+    plan = Plan.objects.create(code="invitation-trial", name="Teste")
+    TenantContract.objects.create(
+        organization=office, plan=plan, status=TenantContract.Status.TRIAL
+    )
+    token = _invite(office, "newcomer@example.test")
+
+    response = Client().post(
+        reverse("hub:activate", args=[token]),
+        {"password": ATTACKER_PASSWORD, "password_confirm": ATTACKER_PASSWORD},
+    )
+
+    assert response.status_code == 302
+    assert TenantLifecycle.objects.get(organization=office).state == TenantLifecycle.State.ACTIVE
+
+
+def test_archived_office_cannot_be_opened_by_a_member() -> None:
+    office = Organization.objects.create(name="Arquivado", slug="arquivado")
+    user = User.objects.create_user(email="member@example.test", password=VICTIM_PASSWORD)
+    Membership.objects.create(organization=office, user=user, role=Membership.Role.OWNER)
+    TenantLifecycle.objects.create(organization=office, state=TenantLifecycle.State.ARCHIVED)
+    client = Client()
+    client.force_login(user)
+
+    response = client.get(reverse("hub:dashboard"))
+
+    assert response.status_code == 403
+    assert "Este escritório foi encerrado" in response.content.decode()

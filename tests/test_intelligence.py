@@ -1,16 +1,41 @@
 from __future__ import annotations
 
+from datetime import timedelta
+
 import pytest
 from django.urls import reverse
+from django.utils import timezone
 
-from apps.hub.models import AccumulatorRule, ClientCompany
+from apps.hub.models import AccumulatorRule, ClientCompany, OfficeProfile, ProductModule
 from apps.intelligence.models import AnswerFeedback, ClassificationDraft, LearningCandidate, Message
 from apps.intelligence.services import DominioMcp
 from apps.organizations.models import Organization
+from apps.platform.models import Plan, PlanServiceRate, PlatformConfiguration, TenantContract
+
+
+@pytest.fixture
+def ai_trial(organization):
+    PlatformConfiguration.objects.update_or_create(
+        key="default", defaults={"copilot_available_for_offices": True}
+    )
+    plan = Plan.objects.create(code="intelligence-test", name="Intelligence test")
+    PlanServiceRate.objects.create(plan=plan, action_code="ai.answer", included_units=10)
+    OfficeProfile.objects.create(organization=organization, trial_started_at=timezone.now())
+    ProductModule.objects.create(organization=organization, code="ai", enabled=True)
+    return TenantContract.objects.create(
+        organization=organization,
+        plan=plan,
+        status="trial",
+        starts_on=timezone.localdate(),
+        trial_ends_on=timezone.localdate() + timedelta(days=14),
+        selected_modules=["ai"],
+    )
 
 
 @pytest.mark.django_db(databases={"default", "knowledge"})
-def test_assistant_creates_grounded_answer_and_reviewable_draft(org_client, organization) -> None:
+def test_assistant_creates_grounded_answer_and_reviewable_draft(
+    org_client, organization, ai_trial
+) -> None:
     company = ClientCompany.objects.create(
         organization=organization, name="Empresa Acme", dominio_code="001"
     )
@@ -39,7 +64,7 @@ def test_assistant_creates_grounded_answer_and_reviewable_draft(org_client, orga
 
 @pytest.mark.django_db(databases={"default", "knowledge"})
 def test_negative_feedback_creates_candidate_not_an_automatic_change(
-    org_client, organization
+    org_client, organization, ai_trial
 ) -> None:
     company = ClientCompany.objects.create(
         organization=organization,

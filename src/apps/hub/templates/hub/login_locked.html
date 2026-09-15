@@ -1,0 +1,3 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Aguarde para entrar — CICA{% endblock %}
+{% block body %}<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">ACESSO PROTEGIDO</p><h1>Aguarde para tentar de novo.</h1><p class="form-intro">Houve várias tentativas sem sucesso. Tente novamente em {{ retry_minutes }} minutos.</p><a class="button" href="{% url 'hub:login' %}">Voltar ao login</a></section></main>{% endblock %}

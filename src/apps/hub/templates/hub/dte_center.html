@@ -6,12 +6,10 @@
   <script src="{% static 'hub/dte.js' %}" defer></script>
 {% endblock %}
 
-{% block page_action %}{% if not connector_ready %}<a class="button button-quiet" href="{% url 'hub:settings' %}#conexoes">Configurar Integra Contador</a>{% endif %}{% endblock %}
-
 {% block workspace_content %}
 <section class="dte-intro" aria-labelledby="dte-heading">
   <div><p class="section-kicker">Integra Contador · Caixa Postal</p><h2 id="dte-heading">Consulte as mensagens das empresas sem planilhas.</h2></div>
-  <div class="dte-connection {% if connector_ready %}is-ready{% endif %}"><span class="readiness-dot" aria-hidden="true"></span>{% if connector_ready %}Integra Contador configurado{% else %}Conexão pendente{% endif %}</div>
+  <div class="dte-connection is-ready"><span class="readiness-dot" aria-hidden="true"></span>Central CICA ativa</div>
 </section>
 
 <section class="metric-strip dte-metrics" aria-label="Resumo do DTE">
@@ -58,7 +56,6 @@
     {% else %}
       <div class="compact-empty">Nada aguardando autorização.</div>
     {% endif %}
-    {% if not connector_ready %}<p class="dte-setup-note">Conexão do escritório pendente.</p>{% endif %}
   </aside>
 </div>
 

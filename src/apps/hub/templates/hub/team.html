@@ -1,0 +1,69 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}<a class="button" href="#convidar">Convidar colaborador</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="team-intro" aria-labelledby="team-intro-title">
+  <div>
+    <p class="section-kicker">ACESSO INTERNO</p>
+    <h2 id="team-intro-title">Equipe do escrit&oacute;rio</h2>
+    <p>Defina quem entra, quais empresas v&ecirc; e quais m&oacute;dulos pode usar.</p>
+  </div>
+</section>
+
+<section id="convidar" class="workspace-panel team-invite" aria-labelledby="invite-title">
+  <header class="workspace-panel-head"><div><p class="section-kicker">NOVO ACESSO</p><h2 id="invite-title">Convidar colaborador</h2></div></header>
+  <form method="post" class="team-form" novalidate>
+    {% csrf_token %}
+    {% if collaborator_form.non_field_errors %}<div class="form-errors" role="alert" data-form-errors tabindex="-1">{{ collaborator_form.non_field_errors }}</div>{% endif %}
+    <div class="team-form-basics">
+      {% for field in collaborator_form %}{% if field.name == 'full_name' or field.name == 'email' or field.name == 'role' %}
+        <div class="field{% if field.errors %} has-error" data-focus-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+      {% endif %}{% endfor %}
+    </div>
+    <div class="team-form-scopes">
+      {% for field in collaborator_form %}{% if field.name == 'modules' or field.name == 'companies' %}
+        <fieldset class="scope-picker{% if field.errors %} has-error" data-focus-error{% endif %}"><legend>{{ field.label }}</legend><div class="scope-options">{{ field }}</div>{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</fieldset>
+      {% endif %}{% endfor %}
+    </div>
+    <button class="button" type="submit">Enviar convite</button>
+  </form>
+</section>
+
+<section class="workspace-panel team-list" aria-labelledby="team-title">
+  <header class="workspace-panel-head"><div><p class="section-kicker">PESSOAS ATIVAS</p><h2 id="team-title">Acessos do escrit&oacute;rio</h2></div></header>
+  <div class="team-rows">
+    {% for collaborator in collaborators %}
+    <article class="team-row">
+      <div class="team-person"><span class="team-avatar" aria-hidden="true">{{ collaborator.user.full_name|default:collaborator.user.email|slice:':1' }}</span><div><h3>{{ collaborator.user.full_name|default:collaborator.user.email }}</h3><p>{{ collaborator.user.email }} &middot; {{ collaborator.get_role_display }}</p></div></div>
+      <div class="team-scope-summary"><span>{{ collaborator.scope_companies|length }} empresa{{ collaborator.scope_companies|length|pluralize }}</span><span>{{ collaborator.scope_modules|length }} m&oacute;dulo{{ collaborator.scope_modules|length|pluralize }}</span></div>
+      {% if collaborator.role != 'owner' and collaborator.role != 'admin' %}
+      <details class="team-edit"><summary>Editar acesso</summary>
+        <form method="post" action="{% url 'hub:collaborator-access' collaborator.id %}" class="team-form team-edit-form">{% csrf_token %}
+          <div class="field"><label for="role-{{ collaborator.id }}">Perfil</label><select name="role" id="role-{{ collaborator.id }}"><option value="manager"{% if collaborator.role == 'manager' %} selected{% endif %}>Gestor</option><option value="operator"{% if collaborator.role == 'operator' %} selected{% endif %}>Operador</option><option value="auditor"{% if collaborator.role == 'auditor' %} selected{% endif %}>Auditor</option><option value="billing"{% if collaborator.role == 'billing' %} selected{% endif %}>Financeiro</option></select></div>
+          <fieldset class="scope-picker"><legend>M&oacute;dulos permitidos</legend><div class="scope-options">{% for module in enabled_modules %}<label><input type="checkbox" name="modules" value="{{ module.code }}"{% if module.code in collaborator.scope_modules %} checked{% endif %}> <span>{{ module.label }}</span></label>{% endfor %}</div></fieldset>
+          <fieldset class="scope-picker"><legend>Empresas permitidas</legend><div class="scope-options">{% for company in companies %}<label><input type="checkbox" name="companies" value="{{ company.id }}"{% if company in collaborator.scope_companies %} checked{% endif %}> <span>{{ company.name }}</span></label>{% endfor %}</div></fieldset>
+          <button class="button button-small" type="submit">Salvar acessos</button>
+        </form>
+        <button class="button button-quiet button-small" type="button" data-modal-open="remove-collaborator-{{ collaborator.id }}">Remover</button>
+        <div id="remove-collaborator-{{ collaborator.id }}" class="modal-backdrop" data-modal hidden>
+          <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="remove-collaborator-title-{{ collaborator.id }}">
+            <header class="modal-head"><h2 id="remove-collaborator-title-{{ collaborator.id }}">Remover acesso</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">&times;</button></header>
+            <p>{{ collaborator.user.full_name|default:collaborator.user.email }} n&atilde;o conseguir&aacute; mais entrar neste escrit&oacute;rio.</p>
+            <div class="modal-actions"><form method="post" action="{% url 'hub:collaborator-deactivate' collaborator.id %}">{% csrf_token %}<button class="button" type="submit">Remover acesso</button></form><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+          </section>
+        </div>
+      </details>
+      {% else %}<span class="team-protected">Acesso total</span>{% endif %}
+    </article>
+    {% empty %}<div class="compact-empty">Nenhum acesso ativo neste escrit&oacute;rio.</div>{% endfor %}
+  </div>
+</section>
+
+{% if pending_invitations %}
+<section class="workspace-panel team-pending" aria-labelledby="pending-title">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONVITES</p><h2 id="pending-title">Aguardando aceite</h2></div></header>
+  <ul>{% for invitation in pending_invitations %}<li><div><strong>{{ invitation.full_name|default:invitation.email }}</strong><span>{{ invitation.email }} &middot; expira {{ invitation.expires_at|date:"d/m/Y" }}</span></div><div class="team-pending-actions"><form method="post" action="{% url 'hub:collaborator-invitation-resend' invitation.id %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Reenviar</button></form><button class="button button-quiet button-small" type="button" data-modal-open="revoke-invitation-{{ invitation.id }}">Revogar</button></div><div id="revoke-invitation-{{ invitation.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="revoke-invitation-title-{{ invitation.id }}"><header class="modal-head"><h2 id="revoke-invitation-title-{{ invitation.id }}">Revogar convite</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">&times;</button></header><p>O link enviado para {{ invitation.email }} deixará de funcionar.</p><div class="modal-actions"><form method="post" action="{% url 'hub:collaborator-invitation-revoke' invitation.id %}">{% csrf_token %}<button class="button" type="submit">Revogar convite</button></form><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></section></div></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% endblock %}

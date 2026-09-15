@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from apps.hub.services import sync_fiscal_guides
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_companies
@@ -104,6 +105,7 @@ def sync(request: HttpRequest) -> JsonResponse:
         return _json_error("Agente não autorizado.", 401)
     payload = _body(request, 512_000)
     rows = payload.get("companies") if payload else None
+    obligation_rows = payload.get("obligations", []) if payload else []
     full_snapshot = bool(payload.get("full_snapshot", False)) if payload else False
     if (
         not isinstance(rows, list)
@@ -111,6 +113,12 @@ def sync(request: HttpRequest) -> JsonResponse:
         or not all(isinstance(row, Mapping) for row in rows)
     ):
         return _json_error("Snapshot de empresas inválido.", 400)
+    if (
+        not isinstance(obligation_rows, list)
+        or len(obligation_rows) > 500
+        or not all(isinstance(row, Mapping) for row in obligation_rows)
+    ):
+        return _json_error("Snapshot de obrigações inválido.", 400)
     connector, _ = IntelligenceConnector.objects.get_or_create(
         organization=agent.organization,
         mode=IntelligenceConnector.Mode.EDGE_AGENT,
@@ -123,6 +131,17 @@ def sync(request: HttpRequest) -> JsonResponse:
         request=request,
         full_snapshot=full_snapshot,
     )
+    obligation_result = sync_fiscal_guides(
+        organization=agent.organization,
+        rows=[dict(row) for row in obligation_rows],
+    )
+    requested_sync_completed = connector.sync_requested_at is not None
+    if requested_sync_completed:
+        connector.sync_requested_at = None
+        connector.sync_request_completed_at = timezone.now()
+        connector.save(
+            update_fields=["sync_requested_at", "sync_request_completed_at", "updated_at"]
+        )
     agent.last_seen_at = timezone.now()
     agent.save(update_fields=["last_seen_at", "updated_at"])
     response = JsonResponse(
@@ -131,6 +150,12 @@ def sync(request: HttpRequest) -> JsonResponse:
             "updated": result.updated,
             "ignored": result.ignored,
             "deactivated": result.deactivated,
+            "obligations": {
+                "created": obligation_result.created,
+                "updated": obligation_result.updated,
+                "ignored": obligation_result.ignored,
+            },
+            "requested_sync_completed": requested_sync_completed,
         }
     )
     response["Cache-Control"] = "no-store"

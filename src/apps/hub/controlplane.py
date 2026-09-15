@@ -169,9 +169,19 @@ def company_queryset_for_membership(
     if membership is None:
         return ClientCompany.objects.none()
     organization = membership.organization
-    binding_exists = ControlPlaneBinding.objects.filter(organization=organization).exists()
     companies = ClientCompany.objects.filter(organization=organization, active=True)
+    binding_exists = ControlPlaneBinding.objects.filter(organization=organization).exists()
+    has_workspace_grants = CompanyAccessGrant.objects.filter(
+        organization=organization, membership=membership, is_active=True
+    ).exists()
     if not binding_exists:
+        # CICA collaborators can be scoped without a CRMew control-plane binding.
+        # Existing memberships without an explicit grant retain their historical scope.
+        if has_workspace_grants:
+            return companies.filter(
+                access_grants__membership=membership,
+                access_grants__is_active=True,
+            ).distinct()
         return companies
     if not authorization_is_fresh(organization):
         return ClientCompany.objects.none()
@@ -185,6 +195,23 @@ def companies_for_membership(membership: Membership | None) -> list[ClientCompan
     return list(company_queryset_for_membership(membership))
 
 
+def module_codes_for_membership(membership: Membership | None) -> set[str] | None:
+    """Return an explicit module boundary, or ``None`` for a legacy full scope."""
+    if membership is None:
+        return set()
+    if membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
+        return None
+    grants = CompanyAccessGrant.objects.filter(
+        organization=membership.organization, membership=membership, is_active=True
+    ).values_list("modules", flat=True)
+    scoped_codes: set[str] = set()
+    has_grant = False
+    for values in grants:
+        has_grant = True
+        scoped_codes.update(str(value) for value in values if isinstance(value, str))
+    return scoped_codes if has_grant else None
+
+
 def company_is_allowed(*, membership: Membership | None, company: ClientCompany) -> bool:
     return any(item.id == company.id for item in companies_for_membership(membership))
 
@@ -196,7 +223,11 @@ def company_has_capability(
     if membership is None or membership.organization_id != company.organization_id:
         return False
     organization = membership.organization
-    if not ControlPlaneBinding.objects.filter(organization=organization).exists():
+    binding_exists = ControlPlaneBinding.objects.filter(organization=organization).exists()
+    has_workspace_grants = CompanyAccessGrant.objects.filter(
+        organization=organization, membership=membership, is_active=True
+    ).exists()
+    if not binding_exists and not has_workspace_grants:
         return True
     if not authorization_is_fresh(organization):
         return False
@@ -220,7 +251,12 @@ def membership_has_capability(*, membership: Membership | None, capability: str)
     """Check an office-level action through any currently allowed company grant."""
     if membership is None:
         return False
-    if not ControlPlaneBinding.objects.filter(organization=membership.organization).exists():
+    if (
+        not ControlPlaneBinding.objects.filter(organization=membership.organization).exists()
+        and not CompanyAccessGrant.objects.filter(
+            organization=membership.organization, membership=membership, is_active=True
+        ).exists()
+    ):
         return True
     return any(
         company_has_capability(membership=membership, company=company, capability=capability)

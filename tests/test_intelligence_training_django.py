@@ -261,6 +261,7 @@ class TrainingAndGatewayTests(TestCase):
             organization=self.organization,
             claude_fallback_enabled=True,
             claude_allowed_roles=["owner"],
+            claude_api_key="encrypted-local-key",
         )
         approval = ClaudeFallbackApproval.objects.create(
             organization=self.organization,
@@ -286,6 +287,30 @@ class TrainingAndGatewayTests(TestCase):
 
         self.assertIsNone(blocked.provider)
         self.assertEqual(allowed.provider, "claude")
+
+    def test_cloud_fallback_requires_a_local_provider_key(self) -> None:
+        settings = AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=["owner"],
+        )
+        approval = ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=1_000,
+            monthly_limit_cents=10_000,
+        )
+
+        decision = select_provider(
+            settings=settings,
+            approval=approval,
+            role="owner",
+            local_available=False,
+            local_timed_out=True,
+        )
+
+        self.assertIsNone(decision.provider)
+        self.assertIn("chave local", decision.reason)
 
     def test_model_publication_requires_a_passing_matching_evaluation(self) -> None:
         version = ModelVersion.objects.create(

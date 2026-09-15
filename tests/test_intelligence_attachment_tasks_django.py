@@ -9,6 +9,7 @@ from apps.intelligence.models import ChatAttachment, Conversation, Message
 from apps.intelligence.services import prior_attachment_cards
 from apps.intelligence.tasks import analyze_attachment_task, retry_pending_attachments_task
 from apps.organizations.models import Organization
+from apps.platform.models import PlatformConfiguration
 
 
 class AttachmentAnalysisTaskTests(TestCase):
@@ -87,9 +88,11 @@ class AttachmentAnalysisTaskTests(TestCase):
         self.assertEqual(cards[0].detail, "Darf vence em 20/09.")
         self.assertNotIn("ZmFrZS1wZGY", cards[0].detail)
 
-    @override_settings(LOCAL_MULTIMODAL_ENDPOINT="http://multimodal:8081")
     @patch("apps.intelligence.tasks.analyze_attachment_task.delay")
     def test_periodic_retry_enqueues_identifiers_only(self, mocked_delay) -> None:
+        PlatformConfiguration.objects.update_or_create(
+            key="default", defaults={"local_multimodal_endpoint": "http://multimodal:8081"}
+        )
         attachment = self.attachment()
 
         result = retry_pending_attachments_task.run()

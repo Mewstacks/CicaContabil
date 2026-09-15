@@ -2,6 +2,6 @@
 
 {% block workspace_content %}
 <section class="workspace-panel module-unavailable">
-  <div class="module-empty empty-block"><div class="module-empty-icon" aria-hidden="true">{{ module.icon }}</div><strong>{{ module.label }} não está habilitado</strong><p>Peça ao administrador do escritório para liberar este sistema no plano de operação.</p><a class="button button-small" href="{% url 'hub:settings' %}">Ver integrações</a></div>
+  <div class="module-empty empty-block"><div class="module-empty-icon" aria-hidden="true">{{ module.icon }}</div><strong>{{ module.label }} não está habilitado</strong><p>Este módulo não faz parte do acesso atual deste escritório.</p><a class="button button-small" href="{% url 'hub:dashboard' %}">Voltar à visão geral</a></div>
 </section>
 {% endblock %}

@@ -1,0 +1,325 @@
+"""Versioned API for the outbound-only CICA Windows agent."""
+
+from __future__ import annotations
+
+import hmac
+import json
+from collections.abc import Mapping
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+from urllib.parse import unquote
+
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.x509.oid import ExtendedKeyUsageOID
+from django.conf import settings
+from django.db import transaction
+from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+
+from apps.audit.services import record_event
+from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_backup
+from apps.hub.models import ImportBatch
+from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
+from apps.intelligence.models import EdgeAgent
+
+
+def _error(detail: str, status: int) -> JsonResponse:
+    response = JsonResponse({"error": detail}, status=status)
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+def _payload(request: HttpRequest, limit: int = 5_000_000) -> dict[str, Any] | None:
+    if len(request.body) > limit:
+        return None
+    try:
+        value = json.loads(request.body or b"{}")
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _agent(request: HttpRequest) -> EdgeAgent | None:
+    agent_id = request.headers.get("X-Hub-Agent-ID", "")
+    try:
+        agent = EdgeAgent.objects.select_related("organization").filter(id=agent_id).first()
+    except (TypeError, ValueError):
+        return None
+    if agent is None:
+        return None
+    if settings.EDGE_AGENT_MTLS_REQUIRED:
+        verified = request.headers.get("X-Hub-MTLS-Verified", "")
+        encoded = request.headers.get("X-Hub-MTLS-Client-Cert", "")
+        try:
+            observed = (
+                x509.load_pem_x509_certificate(unquote(encoded).encode("ascii"))
+                .fingerprint(hashes.SHA256())
+                .hex()
+            )
+        except (TypeError, ValueError):
+            return None
+        if verified != "SUCCESS" or not hmac.compare_digest(
+            observed, agent.mtls_certificate_sha256
+        ):
+            return None
+    if not verify_agent_signature(
+        agent=agent,
+        timestamp=request.headers.get("X-Hub-Agent-Timestamp", ""),
+        body=request.body,
+        signature=request.headers.get("X-Hub-Agent-Signature", ""),
+    ):
+        return None
+    return agent
+
+
+def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
+    """Sign one client CSR with the deployment CA; the private key never leaves Windows."""
+
+    cert_path = Path(settings.EDGE_AGENT_CA_CERT_PATH)
+    key_path = Path(settings.EDGE_AGENT_CA_KEY_PATH)
+    if not cert_path.is_file() or not key_path.is_file():
+        raise RuntimeError("A autoridade certificadora do agente não está configurada.")
+    try:
+        csr = x509.load_pem_x509_csr(csr_pem.encode("ascii"))
+        if not csr.is_signature_valid:
+            raise ValueError
+        ca_cert = x509.load_pem_x509_certificate(cert_path.read_bytes())
+        ca_key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("CSR inválida.") from exc
+    now = timezone.now()
+    certificate = (
+        x509.CertificateBuilder()
+        .subject_name(csr.subject)
+        .issuer_name(ca_cert.subject)
+        .public_key(csr.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now - timedelta(minutes=5))
+        .not_valid_after(now + timedelta(days=90))
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]), critical=False)
+        .sign(ca_key, hashes.SHA256())
+    )
+    pem = certificate.public_bytes(serialization.Encoding.PEM).decode("ascii")
+    chain = ca_cert.public_bytes(serialization.Encoding.PEM).decode("ascii")
+    return pem, chain, certificate.fingerprint(hashes.SHA256()).hex()
+
+
+@csrf_exempt
+@require_POST
+def enroll(request: HttpRequest) -> JsonResponse:
+    payload = _payload(request, 64_000)
+    if payload is None:
+        return _error("Cadastro do agente inválido.", 400)
+    try:
+        certificate, chain, fingerprint = _sign_csr(str(payload.get("csr", "")))
+    except RuntimeError as exc:
+        return _error(str(exc), 503)
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    try:
+        credentials = redeem_enrollment(
+            code=str(payload.get("code", "")),
+            label=str(payload.get("label", "")),
+            fingerprint=str(payload.get("fingerprint", "")),
+            mtls_certificate_sha256=fingerprint,
+            request=request,
+        )
+    except ValueError as exc:
+        return _error(str(exc), 403)
+    response = JsonResponse(
+        {
+            "agent_id": credentials.agent_id,
+            "shared_secret": credentials.shared_secret,
+            "certificate": certificate,
+            "certificate_chain": chain,
+            "certificate_expires_in_days": 90,
+        }
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@csrf_exempt
+@require_POST
+def heartbeat(request: HttpRequest) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request, 64_000)
+    if payload is None:
+        return _error("Heartbeat inválido.", 400)
+    agent.last_seen_at = timezone.now()
+    agent.save(update_fields=["last_seen_at", "updated_at"])
+    return JsonResponse(
+        {
+            "status": "ok",
+            "server_time": timezone.now().isoformat(),
+            "update": getattr(settings, "EDGE_AGENT_LATEST_VERSION", ""),
+            "installer_url": getattr(settings, "EDGE_AGENT_INSTALLER_URL", ""),
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def next_backup(request: HttpRequest) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    with transaction.atomic():
+        batch = ImportBatch.objects.filter(
+            organization=agent.organization,
+            kind=ImportBatch.Kind.DOMINIO_BACKUP,
+            status=ImportBatch.Status.PROCESSING,
+            mapping__claimed_by=str(agent.id),
+        ).first()
+        if batch is None:
+            batch = (
+                ImportBatch.objects.select_for_update(skip_locked=True)
+                .filter(
+                    organization=agent.organization,
+                    kind=ImportBatch.Kind.DOMINIO_BACKUP,
+                    status=ImportBatch.Status.QUEUED,
+                )
+                .order_by("created_at")
+                .first()
+            )
+        if batch is None:
+            return JsonResponse({"job": None})
+        if batch.status == ImportBatch.Status.QUEUED:
+            batch.status = ImportBatch.Status.PROCESSING
+            batch.mapping = {
+                **batch.mapping,
+                "claimed_by": str(agent.id),
+                "claimed_at": timezone.now().isoformat(),
+            }
+            batch.save(update_fields=["status", "mapping", "updated_at"])
+    response = JsonResponse(
+        {
+            "job": {
+                "id": str(batch.id),
+                "filename": batch.original_filename,
+                "sha256": batch.content_hash,
+                "backup_key": batch.backup_key,
+                "source_snapshot_at": batch.source_snapshot_at.isoformat()
+                if batch.source_snapshot_at
+                else None,
+                "download_url": request.build_absolute_uri(
+                    reverse("agent-v2-backup-download", args=(batch.id,))
+                ),
+            }
+        }
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@csrf_exempt
+@require_POST
+def download_backup(request: HttpRequest, batch_id: str) -> HttpResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    batch = ImportBatch.objects.filter(
+        id=batch_id,
+        organization=agent.organization,
+        kind=ImportBatch.Kind.DOMINIO_BACKUP,
+        status=ImportBatch.Status.PROCESSING,
+    ).first()
+    if batch is None or batch.mapping.get("claimed_by") != str(agent.id):
+        return _error("Backup não encontrado para este agente.", 404)
+    if not batch.source_file:
+        return _error("Arquivo do backup não está disponível.", 410)
+    response = FileResponse(
+        batch.source_file.open("rb"),
+        as_attachment=True,
+        filename=batch.original_filename,
+        content_type="application/octet-stream",
+    )
+    response["Cache-Control"] = "no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@csrf_exempt
+@require_POST
+def sync_capability(request: HttpRequest, capability: str) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request)
+    if payload is None:
+        return _error("Página de sincronização inválida.", 400)
+    batch = ImportBatch.objects.filter(
+        id=payload.get("batch_id"),
+        organization=agent.organization,
+        kind=ImportBatch.Kind.DOMINIO_BACKUP,
+        status=ImportBatch.Status.PROCESSING,
+    ).first()
+    if batch is None or batch.mapping.get("claimed_by") != str(agent.id):
+        return _error("Trabalho não encontrado para este agente.", 404)
+    if capability == "complete":
+        complete_backup(batch=batch, agent=agent, request=request)
+        return JsonResponse({"status": "completed"})
+    if capability == "failed":
+        fail_backup(
+            batch=batch,
+            code=str(payload.get("code", "processing_failed")),
+            detail=str(payload.get("detail", "Não foi possível ler o backup.")),
+            agent=agent,
+            request=request,
+        )
+        return JsonResponse({"status": "failed"})
+    rows = payload.get("rows")
+    if (
+        capability not in {"companies", "obligations", "accounting_entries"}
+        or not isinstance(rows, list)
+        or len(rows) > 2_000
+        or not all(isinstance(row, Mapping) for row in rows)
+    ):
+        return _error("Capacidade ou registros inválidos.", 400)
+    try:
+        result = apply_backup_page(
+            batch=batch,
+            capability=capability,
+            rows=[dict(row) for row in rows],
+            agent=agent,
+            request=request,
+        )
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    return JsonResponse(result)
+
+
+@csrf_exempt
+@require_POST
+def renew_certificate(request: HttpRequest) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request, 64_000)
+    if payload is None:
+        return _error("Renovação inválida.", 400)
+    try:
+        certificate, chain, fingerprint = _sign_csr(str(payload.get("csr", "")))
+    except RuntimeError as exc:
+        return _error(str(exc), 503)
+    except ValueError as exc:
+        return _error(str(exc), 400)
+    agent.mtls_certificate_sha256 = fingerprint
+    agent.save(update_fields=["mtls_certificate_sha256", "updated_at"])
+    record_event(
+        action="intelligence.agent.certificate_renewed",
+        organization=agent.organization,
+        target=agent,
+        request=request,
+    )
+    response = JsonResponse({"certificate": certificate, "certificate_chain": chain})
+    response["Cache-Control"] = "no-store"
+    return response

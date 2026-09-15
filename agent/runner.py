@@ -1,8 +1,8 @@
 """Runtime local do agente Domínio, executado somente no Windows do escritório.
 
 O processo não aceita comandos remotos nem SQL. Ele lê uma consulta constante,
-persiste snapshots mascarados na fila local cifrada e faz somente uma chamada
-HTTPS mTLS de saída ao HubContador.
+persiste snapshots na fila local cifrada e faz somente uma chamada
+HTTPS mTLS de saída à CICA.
 """
 
 from __future__ import annotations
@@ -36,7 +36,7 @@ class AgentRuntimeConfig:
     dsn: str
     sync: EdgeAgentConfig
     queue_path: Path
-    interval_seconds: int = 300
+    interval_seconds: int = 60
 
     @classmethod
     def from_environment(cls, environment: Mapping[str, str] | None = None) -> AgentRuntimeConfig:
@@ -52,7 +52,7 @@ class AgentRuntimeConfig:
         if not _DSN_PATTERN.fullmatch(dsn):
             raise ValueError("HUB_AGENT_DSN deve conter somente o nome do DSN de sistema.")
         try:
-            interval_seconds = int(values.get("HUB_AGENT_INTERVAL_SECONDS", "300"))
+            interval_seconds = int(values.get("HUB_AGENT_INTERVAL_SECONDS", "60"))
         except ValueError as exc:
             raise ValueError("HUB_AGENT_INTERVAL_SECONDS deve ser numérico.") from exc
         if not 10 <= interval_seconds <= 86_400:
@@ -137,7 +137,7 @@ def run_forever(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Agente Domínio somente leitura do HubContador")
+    parser = argparse.ArgumentParser(description="Agente Domínio da CICA, somente leitura")
     parser.add_argument(
         "--once", action="store_true", help="Executa um ciclo sem imprimir dados fiscais"
     )

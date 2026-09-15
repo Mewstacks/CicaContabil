@@ -1,0 +1,24 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR" data-auth-theme="light">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light"><meta name="theme-color" content="#f6f1e5">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Acesso — CICA{% endblock %}</title>
+  <link rel="icon" href="{% static 'hub/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'hub/regaro-auth.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=cica-4">
+  <script src="{% static 'hub/regaro-auth.js' %}" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  <header class="auth-header"><a class="auth-brand" href="{% url 'hub:home' %}" translate="no" aria-label="CICA, início"><svg class="auth-brand-mark" viewBox="0 0 42 42" aria-hidden="true"><path d="M31 12.3a14 14 0 1 0 0 17.4"/><path d="M34.7 16.8H20.8v8.4H34.7"/></svg><span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span></a><a href="{% url 'hub:home' %}">Voltar ao site <span aria-hidden="true">↗</span></a></header>
+  <div class="auth-layout">
+    <aside class="auth-story" aria-label="CICA"><p class="eyebrow">SUA OPERAÇÃO, CONECTADA.</p><h2>Menos pontas soltas.<br>Mais <span>controle.</span></h2></aside>
+    {% block body %}{% endblock %}
+  </div>
+  <footer class="auth-footer"><span>CICA · Mewstack</span><nav aria-label="Documentos legais"><a href="{% url 'hub:legal' document='termos' %}">Termos de Uso</a><a href="{% url 'hub:legal' document='privacidade' %}">Privacidade</a></nav></footer>
+</body>
+</html>

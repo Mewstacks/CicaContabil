@@ -15,9 +15,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser) -> None:
         parser.add_argument("--organization", required=True, help="UUID ou slug do escritório")
         parser.add_argument("--dsn", required=True, help="Nome do DSN de sistema ODBC, sem senha")
-        parser.add_argument(
-            "--apply", action="store_true", help="Espelha empresas mascaradas após o probe"
-        )
+        parser.add_argument("--apply", action="store_true", help="Espelha empresas após o probe")
 
     def handle(self, *args, **options) -> None:
         selector = options["organization"]
@@ -39,6 +37,8 @@ class Command(BaseCommand):
         connector, _ = IntelligenceConnector.objects.get_or_create(
             organization=organization, mode=IntelligenceConnector.Mode.DIRECT_ODBC
         )
+        connector.odbc_dsn = options["dsn"]
+        connector.save(update_fields=["odbc_dsn", "updated_at"])
         result = sync_companies(organization=organization, connector=connector, rows=rows)
         self.stdout.write(
             self.style.SUCCESS(

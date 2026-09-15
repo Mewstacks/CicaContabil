@@ -1,0 +1,3 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Confirme seu e-mail — CICA{% endblock %}
+{% block body %}<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">FALTA SÓ CONFIRMAR</p><h1>Confira seu e-mail.</h1><p class="form-intro">Enviamos um link para <strong>{{ email }}</strong>. Ele expira em 24 horas; no próximo passo você define a senha e inicia o teste.</p><p class="auth-alt"><a href="{% url 'hub:signup' %}">Corrigir os dados e tentar novamente</a></p></section></main>{% endblock %}

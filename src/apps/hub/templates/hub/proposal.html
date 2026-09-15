@@ -1,5 +1,7 @@
-{% extends 'hub/base.html' %}
-{% block title %}Solicitar proposta — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Teste gratuito guiado — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><a class="brand" href="{% url 'hub:home' %}" translate="no"><span class="brand-mark" aria-hidden="true">H</span>HubContador</a><section class="auth-card"><p class="eyebrow">COMERCIAL</p><h1>Solicitar proposta</h1><p class="form-intro">Conte o essencial. A equipe retorna pelo canal combinado.</p>{% if messages %}{% for message in messages %}<div class="flash" role="status">{{ message }}</div>{% endfor %}{% endif %}<form method="post" class="form-stack">{% csrf_token %}{% if form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise os campos marcados.</strong></div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Enviar pedido</button></form></section></main>
+<main id="conteudo" class="auth-page">
+  <section class="auth-card"><p class="eyebrow">14 DIAS GRÁTIS</p><h1>Conheça a CICA.</h1><p class="form-intro">Solicite seu teste guiado. IA com limite de uso informado antes da ativação.</p>{% if messages %}{% for message in messages %}<div class="flash {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}{% endif %}<form method="post" class="form-stack" data-cnpj-lookup="{% url 'hub:proposal-cnpj' %}">{% csrf_token %}{% include 'hub/auth_fields.html' %}<div class="registry-result" id="registry-result" hidden><p id="registry-status" role="status" aria-live="polite"></p><strong id="registry-name"></strong><p id="registry-place"></p></div><p class="field-help">Consultamos os dados públicos do CNPJ na BrasilAPI.</p><button class="button" type="submit">Solicitar teste gratuito</button></form><p class="auth-alt">Já tem acesso? <a href="{% url 'hub:login' %}">Entrar no escritório.</a></p></section>
+</main>
 {% endblock %}

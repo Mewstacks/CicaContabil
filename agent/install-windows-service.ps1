@@ -20,7 +20,7 @@ param(
     [string]$PrivateKeyFile,
     [string]$PythonExecutable = 'python',
     [ValidateRange(10, 86400)]
-    [int]$IntervalSeconds = 300
+    [int]$IntervalSeconds = 60
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,7 +71,7 @@ agent_id, shared_secret = enroll_agent(
 )
 print(json.dumps({'agent_id': agent_id, 'shared_secret': shared_secret}))
 "@ | & $PythonExecutable -
-    if ($LASTEXITCODE -ne 0) { throw 'Enrollment recusado pelo HubContador.' }
+    if ($LASTEXITCODE -ne 0) { throw 'Ativação recusada pela CICA.' }
 } finally {
     Remove-Item Env:HUB_AGENT_ENROLLMENT_CODE -ErrorAction SilentlyContinue
     Remove-Variable enrollmentCode -ErrorAction SilentlyContinue
@@ -109,4 +109,4 @@ if ($LASTEXITCODE -ne 0) { throw 'Não foi possível registrar o serviço Window
 & $PythonExecutable -m agent.windows_service start
 if ($LASTEXITCODE -ne 0) { throw 'O serviço foi registrado, mas não iniciou. Consulte o Event Viewer.' }
 
-Write-Information 'Agente HubContador instalado. O segredo não foi exibido nem salvo em argumentos de processo.' -InformationAction Continue
+Write-Information 'Agente CICA instalado. O segredo não foi exibido nem salvo em argumentos de processo.' -InformationAction Continue

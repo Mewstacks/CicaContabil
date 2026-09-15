@@ -1,8 +1,8 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=2">{% endblock %}
 {% block workspace_content %}
-<section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Assistente IA">
+<section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Copiloto CICA">
   <aside class="assistant-history" aria-label="Conversas recentes">
     <a class="button button-quiet new-conversation" href="{% url 'intelligence:assistant' %}">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Nova conversa
@@ -21,7 +21,7 @@
   <div class="assistant-thread">
     <header class="assistant-thread-head">
       <div>
-        <p class="section-kicker">Assistente IA</p>
+        <p class="section-kicker">Copiloto CICA</p>
         <h2>{% if active_conversation %}{{ active_conversation.title }}{% else %}Nova análise{% endif %}</h2>
       </div>
       <span class="company-context">{{ active_conversation.company.name|default:"Escolha uma empresa" }}</span>
@@ -49,7 +49,7 @@
           {% else %}
             <article class="chat-message chat-message-assistant">
               <div class="message-heading">
-                <p class="message-label">HubContador IA</p>
+                <p class="message-label">CICA IA</p>
                 {% if message.evidence %}<span class="model-mark">Com fontes</span>{% endif %}
               </div>
               <p>{{ message.content }}</p>
@@ -70,6 +70,11 @@
                   </div>
                 </details>
               {% endif %}
+              <div class="answer-exports" aria-label="Exportar esta análise">
+                <span>Exportar</span>
+                <a href="{% url 'intelligence:export' message.id 'pdf' %}">PDF</a>
+                <a href="{% url 'intelligence:export' message.id 'xlsx' %}">XLSX</a>
+              </div>
               <div class="feedback-row" aria-label="Avaliar resposta">
                 <span>Foi útil?</span>
                 <form method="post" action="{% url 'intelligence:feedback' message.id %}" data-feedback-form>{% csrf_token %}<input type="hidden" name="verdict" value="helpful"><button type="submit" class="feedback-button" aria-label="Esta resposta foi útil" title="Útil"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h4v11Zm2 0V10l3-7a2 2 0 0 1 2 2v4h3.4a2 2 0 0 1 2 2.4l-1.2 7A3 3 0 0 1 17.2 21H11Z"/></svg><span>Útil</span></button></form>
@@ -80,7 +85,7 @@
         {% endfor %}
       {% else %}
         <div class="conversation-empty">
-          <p class="section-kicker">{{ active_conversation.company.name|default:"Assistente IA" }}</p>
+          <p class="section-kicker">{{ active_conversation.company.name|default:"Copiloto CICA" }}</p>
           <h3>O que você precisa resolver?</h3>
           <div class="prompt-suggestions" aria-label="Sugestões de pergunta">
             <button type="button" data-prompt="Quais pendências merecem atenção nesta empresa?">Pendências</button>
@@ -93,7 +98,7 @@
 
     <form method="post" enctype="multipart/form-data" class="question-composer" data-assistant-composer>
       {% csrf_token %}{{ form.company_id }}{% if active_conversation %}<input type="hidden" name="conversation_id" value="{{ active_conversation.id }}">{% endif %}
-      <label class="sr-only" for="{{ form.question.id_for_label }}">Pergunte ao Assistente IA</label>
+      <label class="sr-only" for="{{ form.question.id_for_label }}">Pergunte ao Copiloto CICA</label>
       {{ form.question }}
       {% if form.question.errors %}<p class="field-error" role="alert">{{ form.question.errors|join:", " }}</p>{% endif %}
       <div id="attachment-preview" class="attachment-preview" hidden aria-live="polite"></div>

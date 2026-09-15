@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 from django.conf import settings
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import render
+from django.urls import reverse
 
 
 def axes_username(request: HttpRequest | None, credentials: dict[str, Any] | None = None) -> str:
@@ -33,8 +35,12 @@ def axes_lockout_response(
     credentials: dict[str, Any],
     *args: object,
     **kwargs: object,
-) -> JsonResponse:
+) -> HttpResponse:
     retry_after = int(settings.AXES_COOLOFF_TIME.total_seconds())
+    if request.path == reverse('hub:login'):
+        result = render(request, 'hub/login_locked.html', {'retry_minutes': max(1, (retry_after + 59) // 60)}, status=429)
+        result['Retry-After'] = str(retry_after)
+        return result
     result = JsonResponse(
         {
             "error": {

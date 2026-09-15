@@ -12,7 +12,7 @@ class IdentifierAuthenticationForm(AuthenticationForm):
                 "autocomplete": "username",
                 "autocapitalize": "none",
                 "spellcheck": "false",
-                "placeholder": "voce@escritorio.com ou seu nome",
+                "placeholder": "voce@escritorio.com…",
             }
         ),
     )

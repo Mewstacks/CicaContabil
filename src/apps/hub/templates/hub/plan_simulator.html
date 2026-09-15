@@ -1,0 +1,18 @@
+{% load static %}
+<link rel="stylesheet" href="{% static 'hub/regaro-plan.css' %}">
+<script src="{% static 'hub/regaro-plan.js' %}" defer></script>
+<section class="workspace-panel regaro-plan" id="meu-plano" aria-labelledby="plan-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">MÓDULOS E PLANO</p><h2 id="plan-heading">Simule sua combinação</h2><p>Teste gratuito de 14 dias, com limites de uso da IA informados antes da ativação.</p></div></header>
+  <div class="plan-layout"><div><label for="company-band">Empresas atendidas</label><select id="company-band" name="company_band"><option value="1">Até 20 empresas</option><option value="1.34">21 a 50 empresas</option><option value="1.82">51 a 150 empresas</option></select><p class="plan-note">Esta é uma simulação. Não altera seu contrato, ativa módulos ou gera cobrança.</p><output id="quote-total" aria-live="polite">R$ 249,00</output><p id="quote-detail">1 módulo · sem desconto</p><p class="plan-note">Mensalidade estimada. Consumo à parte, sem desconto.</p></div>
+  <fieldset><legend>Selecione os módulos <small>Valores-base mensais · até 20 empresas</small></legend>
+    <label><input type="checkbox" name="plan_module" value="249" checked><span>IA CICA</span><b>R$ 249</b></label>
+    <label><input type="checkbox" name="plan_module" value="169"><span>NFS-e Inteligente</span><b>R$ 169</b></label>
+    <label><input type="checkbox" name="plan_module" value="99"><span>Guias e DCTFWeb</span><b>R$ 99</b></label>
+    <label><input type="checkbox" name="plan_module" value="79"><span>Central Integra Contador</span><b>R$ 79</b></label>
+    <label><input type="checkbox" name="plan_module" value="129"><span>Conciliação OFX</span><b>R$ 129</b></label>
+    <label><input type="checkbox" name="plan_module" value="59"><span>Radar da Reforma</span><b>R$ 59</b></label>
+    <label><input type="checkbox" name="plan_module" value="159"><span>Jornadas</span><b>R$ 159</b></label>
+  </fieldset></div>
+  <details><summary>Descontos e faixas</summary><p>2 módulos: 10% · 3: 15% · 4–5: 20% · 7: 25%. Para 6 módulos, consulte a equipe.</p><p>21–50 empresas: ×1,34. 51–150: ×1,82. Acima de 150, solicite uma proposta. Consumo não recebe desconto.</p></details>
+  <noscript><p>Ative JavaScript para calcular combinações. Os valores individuais estão na lista.</p></noscript>
+</section>

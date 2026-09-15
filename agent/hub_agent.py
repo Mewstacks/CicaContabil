@@ -28,11 +28,11 @@ ORDER BY nome_emp
 """
 
 
-def mask_cnpj(value: object) -> str:
+def format_cnpj(value: object) -> str:
     digits = "".join(character for character in str(value or "") if character.isdigit())
     if len(digits) != 14:
         return ""
-    return f"{digits[:2]}.***.***/{digits[8:12]}-**"
+    return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
 
 
 def read_companies(cursor: OdbcCursor) -> list[CompanySnapshot]:
@@ -40,7 +40,7 @@ def read_companies(cursor: OdbcCursor) -> list[CompanySnapshot]:
     timestamp = datetime.now().astimezone().isoformat()
     rows = cursor.execute(COMPANIES_QUERY).fetchall()
     return [
-        CompanySnapshot(str(code), str(name), mask_cnpj(cnpj), timestamp)
+        CompanySnapshot(str(code), str(name), format_cnpj(cnpj), timestamp)
         for code, name, cnpj in rows
     ]
 

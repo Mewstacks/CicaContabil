@@ -13,8 +13,23 @@ from apps.hub.models import (
     ProductModule,
     RemoteSupportGrant,
 )
+from apps.intelligence.models import (
+    AssistantSettings,
+    ClaudeFallbackApproval,
+    IntelligenceConnector,
+)
 from apps.organizations.models import Membership, Organization
-from apps.platform.models import Invitation, PlatformAccess, SupportSession
+from apps.platform.models import (
+    DominioSupportTicket,
+    Invitation,
+    Plan,
+    PlatformAccess,
+    SupportSession,
+    TenantContract,
+    TenantLifecycle,
+    TenantServiceRate,
+    TenantUsagePolicy,
+)
 from conftest import complete_mfa
 
 
@@ -49,12 +64,263 @@ class PlatformTenantViewTests(TestCase):
         )
         self.assertTrue(enabled.enabled)
 
+    def test_developer_moves_operational_access_with_reason_and_confirmation(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+        plan = Plan.objects.create(code="lifecycle-plan", name="Lifecycle")
+        TenantContract.objects.create(
+            organization=self.office,
+            plan=plan,
+            status=TenantContract.Status.ACTIVE,
+        )
+
+        first = self.client.post(
+            detail_url,
+            {
+                "action": "lifecycle",
+                "state": TenantLifecycle.State.ACTIVATION_PENDING,
+                "reason": "Aguardando a ativação do proprietário.",
+            },
+        )
+        self.assertRedirects(first, detail_url)
+        lifecycle = TenantLifecycle.objects.get(organization=self.office)
+        self.assertEqual(lifecycle.state, TenantLifecycle.State.ACTIVATION_PENDING)
+
+        self.client.post(
+            detail_url,
+            {
+                "action": "lifecycle",
+                "state": TenantLifecycle.State.ACTIVE,
+                "reason": "Ativação concluída.",
+            },
+        )
+        denied = self.client.post(
+            detail_url,
+            {
+                "action": "lifecycle",
+                "state": TenantLifecycle.State.SUSPENDED,
+                "reason": "Acesso temporariamente bloqueado.",
+            },
+        )
+        self.assertRedirects(denied, detail_url)
+        lifecycle.refresh_from_db()
+        self.assertEqual(lifecycle.state, TenantLifecycle.State.ACTIVE)
+
+        confirmed = self.client.post(
+            detail_url,
+            {
+                "action": "lifecycle",
+                "state": TenantLifecycle.State.SUSPENDED,
+                "reason": "Acesso temporariamente bloqueado.",
+                "confirm_lifecycle": "on",
+            },
+        )
+        self.assertRedirects(confirmed, detail_url)
+        lifecycle.refresh_from_db()
+        self.assertEqual(lifecycle.state, TenantLifecycle.State.SUSPENDED)
+
+    def test_reactivation_of_a_commercially_blocked_office_reactivates_contract_too(self):
+        plan = Plan.objects.create(code="reactivation-plan", name="Reativação")
+        contract = TenantContract.objects.create(
+            organization=self.office,
+            plan=plan,
+            status=TenantContract.Status.SUSPENDED,
+        )
+        TenantLifecycle.objects.create(
+            organization=self.office,
+            state=TenantLifecycle.State.SUSPENDED,
+        )
+
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {
+                "action": "lifecycle",
+                "state": TenantLifecycle.State.ACTIVE,
+                "reason": "Cobrança regularizada fora da CICA.",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        contract.refresh_from_db()
+        self.assertEqual(contract.status, TenantContract.Status.ACTIVE)
+        self.assertEqual(
+            TenantLifecycle.objects.get(organization=self.office).state,
+            TenantLifecycle.State.ACTIVE,
+        )
+
+    def test_developer_configures_a_time_bounded_encrypted_fallback(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+        valid_until = (timezone.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M")
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "ai-fallback",
+                "enabled": "on",
+                "allow_full_data": "on",
+                "allowed_roles": [Membership.Role.OWNER, Membership.Role.ADMIN],
+                "api_key": "tenant-fallback-key-not-rendered",
+                "model": "claude-test-model",
+                "max_request_brl": "0.75",
+                "daily_limit_brl": "15.00",
+                "monthly_limit_brl": "120.00",
+                "valid_until": valid_until,
+            },
+        )
+
+        self.assertRedirects(response, detail_url)
+        policy = AssistantSettings.objects.get(organization=self.office)
+        approval = ClaudeFallbackApproval.objects.get(organization=self.office)
+        self.assertTrue(policy.claude_fallback_enabled)
+        self.assertEqual(policy.claude_api_key, "tenant-fallback-key-not-rendered")
+        self.assertEqual(policy.claude_max_request_cents, 75)
+        self.assertEqual(approval.status, ClaudeFallbackApproval.Status.APPROVED)
+        self.assertEqual(approval.daily_limit_cents, 1500)
+        self.assertEqual(approval.monthly_limit_cents, 12000)
+        self.assertNotContains(
+            self.client.get(detail_url), "tenant-fallback-key-not-rendered"
+        )
+
+    def test_developer_controls_copilot_retention_and_confirms_shortening(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        initial = self.client.post(
+            detail_url,
+            {"action": "ai-retention", "retention_days": "30"},
+        )
+        self.assertEqual(initial.status_code, 200)
+        self.assertContains(initial, "Confirme a redução")
+        self.assertFalse(AssistantSettings.objects.filter(organization=self.office).exists())
+
+        configured = self.client.post(
+            detail_url,
+            {
+                "action": "ai-retention",
+                "retention_days": "30",
+                "confirm_shortening": "on",
+            },
+        )
+        self.assertRedirects(configured, detail_url)
+        self.assertEqual(
+            AssistantSettings.objects.get(organization=self.office).retention_days,
+            30,
+        )
+
+        shorter = self.client.post(
+            detail_url,
+            {"action": "ai-retention", "retention_days": "7"},
+        )
+        self.assertEqual(shorter.status_code, 200)
+        self.assertEqual(
+            AssistantSettings.objects.get(organization=self.office).retention_days,
+            30,
+        )
+
+    def test_fallback_cannot_be_enabled_without_a_key_and_a_time_bound(self):
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {
+                "action": "ai-fallback",
+                "enabled": "on",
+                "allowed_roles": [Membership.Role.OWNER],
+                "model": "claude-test-model",
+                "max_request_brl": "0.75",
+                "daily_limit_brl": "15.00",
+                "monthly_limit_brl": "120.00",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Informe a chave")
+        self.assertContains(response, "Defina quando essa aprovação expira")
+        self.assertFalse(AssistantSettings.objects.filter(organization=self.office).exists())
+
+    def test_developer_replaces_local_fallback_key_without_changing_crmew_policy(self):
+        ControlPlaneBinding.objects.create(
+            organization=self.office,
+            remote_installation_id="5b3dd36b-4da4-4b7a-9f12-8e933c2ed0e4",
+            controller_url="https://crmew.example.test",
+            device_private_key="local-control-key",
+            controller_public_key="controller-key",
+        )
+        AssistantSettings.objects.create(
+            organization=self.office,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER],
+            claude_model="claude-test-model",
+            claude_max_request_cents=75,
+        )
+        approval = ClaudeFallbackApproval.objects.create(
+            organization=self.office,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=1500,
+            monthly_limit_cents=12000,
+            valid_until=timezone.now() + timedelta(days=7),
+        )
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        response = self.client.post(
+            detail_url,
+            {"action": "ai-fallback-credential", "api_key": "local-secret-not-rendered"},
+        )
+
+        policy = AssistantSettings.objects.get(organization=self.office)
+        approval.refresh_from_db()
+        self.assertRedirects(response, detail_url)
+        self.assertEqual(policy.claude_api_key, "local-secret-not-rendered")
+        self.assertTrue(policy.claude_fallback_enabled)
+        self.assertEqual(approval.status, ClaudeFallbackApproval.Status.APPROVED)
+        page = self.client.get(detail_url)
+        self.assertContains(page, "Chave do provedor")
+        self.assertNotContains(page, "local-secret-not-rendered")
+
+    def test_developer_can_remove_a_crmew_managed_local_fallback_key(self):
+        ControlPlaneBinding.objects.create(
+            organization=self.office,
+            remote_installation_id="5b3dd36b-4da4-4b7a-9f12-8e933c2ed0e4",
+            controller_url="https://crmew.example.test",
+            device_private_key="local-control-key",
+            controller_public_key="controller-key",
+        )
+        AssistantSettings.objects.create(
+            organization=self.office,
+            claude_api_key="to-be-removed",
+        )
+
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {"action": "ai-fallback-credential", "clear_api_key": "on"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            AssistantSettings.objects.get(organization=self.office).claude_api_key,
+            "",
+        )
+
     def test_platform_account_menu_has_only_account_actions(self):
         response = self.client.get(reverse("platform:dashboard"))
 
         self.assertContains(response, 'data-popover-toggle="account-list"')
         self.assertContains(response, "Sair")
         self.assertNotContains(response, "Abrir Hub")
+
+    def test_developer_sees_open_dominio_tickets_on_the_dashboard(self):
+        connector = IntelligenceConnector.objects.create(
+            organization=self.office,
+            mode=IntelligenceConnector.Mode.DIRECT_ODBC,
+            status="error",
+        )
+        DominioSupportTicket.objects.create(
+            organization=self.office,
+            connector=connector,
+            error_code="odbc_sync",
+            opened_by=self.developer,
+        )
+
+        response = self.client.get(reverse("platform:dashboard"))
+
+        self.assertContains(response, "Chamados Domínio")
+        self.assertContains(response, "odbc_sync")
 
     def test_developer_enters_the_office_without_impersonating_a_member(self):
         response = self.client.post(
@@ -135,6 +401,121 @@ class PlatformTenantViewTests(TestCase):
         self.assertEqual(invitation.status_code, 403)
         self.assertFalse(Invitation.objects.filter(email="owner@new.test").exists())
 
+    def test_commercial_configures_the_monthly_contract_in_the_tenant_modal(self):
+        commercial = User.objects.create_user(
+            email="commercial-contract@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        plan = Plan.objects.create(code="integra", name="Integra")
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "contract",
+                "plan": plan.id,
+                "status": TenantContract.Status.ACTIVE,
+                "monthly_price_brl": "249.90",
+                "reference": "Proposta 1",
+            },
+        )
+
+        contract = TenantContract.objects.get(organization=self.office)
+        self.assertRedirects(response, detail_url)
+        self.assertEqual(contract.monthly_price_cents, 24990)
+        self.assertEqual(contract.status, TenantContract.Status.ACTIVE)
+
+    def test_commercial_can_approve_a_zero_price_without_inheriting_the_plan_price(self):
+        commercial = User.objects.create_user(
+            email="commercial-zero@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        plan = Plan.objects.create(code="trial-zero", name="Teste", monthly_price_cents=19_900)
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {
+                "action": "contract",
+                "plan": plan.id,
+                "status": TenantContract.Status.TRIAL,
+                "monthly_price_brl": "0.00",
+                "reference": "Teste aprovado",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        contract = TenantContract.objects.get(organization=self.office)
+        self.assertEqual(contract.monthly_price_cents, 0)
+        self.assertTrue(contract.monthly_price_locked)
+
+    def test_commercial_plan_change_updates_the_explicit_contract_module_snapshot(self):
+        commercial = User.objects.create_user(
+            email="commercial-snapshot@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        previous_plan = Plan.objects.create(code="old-snapshot", name="Anterior", modules=["nfse"])
+        new_plan = Plan.objects.create(code="new-snapshot", name="Novo", modules=["journey"])
+        contract = TenantContract.objects.create(
+            organization=self.office, plan=previous_plan, status=TenantContract.Status.ACTIVE
+        )
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {
+                "action": "contract",
+                "plan": new_plan.id,
+                "status": TenantContract.Status.ACTIVE,
+                "monthly_price_brl": "249.90",
+                "reference": "Proposta atualizada",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        contract.refresh_from_db()
+        self.assertEqual(contract.plan_id, new_plan.id)
+        self.assertEqual(contract.selected_modules, ["journey"])
+
+    def test_commercial_configures_a_service_allowance_and_overage_cap(self):
+        commercial = User.objects.create_user(
+            email="commercial-rate@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        plan = Plan.objects.create(code="integra-rate", name="Integra")
+        TenantContract.objects.create(
+            organization=self.office, plan=plan, status=TenantContract.Status.ACTIVE
+        )
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+
+        response = self.client.post(
+            reverse("platform:tenant-detail", args=[self.office.id]),
+            {
+                "action": "service-rate",
+                "service": "caixapostal.mensagens",
+                "included_units": "100",
+                "overage_price_brl": "1.25",
+                "overage_cap_brl": "250.00",
+                "overage_mode": TenantUsagePolicy.OverageMode.REQUIRE_APPROVAL,
+            },
+        )
+
+        rate = TenantServiceRate.objects.get(
+            contract__organization=self.office, action_code="caixapostal.mensagens"
+        )
+        policy = TenantUsagePolicy.objects.get(
+            organization=self.office, action_code="caixapostal.mensagens"
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(rate.included_units, 100)
+        self.assertEqual(rate.overage_unit_price_cents, 125)
+        self.assertEqual(policy.monthly_overage_cap_cents, 25000)
+
     def test_support_issues_an_activation_that_is_delivered_by_email(self):
         detail_url = reverse("platform:tenant-detail", args=[self.office.id])
 
@@ -148,12 +529,12 @@ class PlatformTenantViewTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
+        self.assertRedirects(response, detail_url)
         self.assertTrue(Invitation.objects.filter(email="owner@new.test").exists())
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].to, ["owner@new.test"])
         self.assertIn("/ativar/", mail.outbox[0].body)
-        self.assertNotContains(response, "/ativar/")
+        self.assertNotIn("/ativar/", response.content.decode())
 
     def test_crmew_managed_support_needs_a_temporary_controller_grant(self):
         ControlPlaneBinding.objects.create(

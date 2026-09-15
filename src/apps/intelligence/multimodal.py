@@ -1,4 +1,4 @@
-"""Private local PDF/image adapter for the HubContador assistant.
+"""Private local PDF/image adapter for the CICA assistant.
 
 Hub posts an attachment to a private Docker network, the adapter converts only
 bounded pages/images, and local Ollama receives base64 raster images. No
@@ -186,7 +186,7 @@ def analyze_payload(payload: object) -> dict[str, object]:
 class MultimodalRequestHandler(BaseHTTPRequestHandler):
     """Small private HTTP surface; Compose keeps it off the host network."""
 
-    server_version = "HubContadorMultimodal/1"
+    server_version = "CICAMultimodal/1"
 
     def _send_json(self, status: HTTPStatus, payload: dict[str, object]) -> None:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()

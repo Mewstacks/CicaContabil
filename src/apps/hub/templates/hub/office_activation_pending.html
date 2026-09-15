@@ -1,0 +1,15 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Ativação pendente — CICA{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page">
+  <section class="auth-card" aria-labelledby="activation-heading">
+    <p class="eyebrow">ATIVAÇÃO PENDENTE</p>
+    <h1 id="activation-heading">Seu acesso ainda está sendo preparado.</h1>
+    <p class="form-intro">A CICA recebeu seu cadastro para <span class="activation-office-name">{{ office.name }}</span>. A Mewstack precisa concluir a configuração comercial antes de liberar a operação.</p>
+    <form method="post" action="{% url 'hub:logout' %}">
+      {% csrf_token %}
+      <button class="button button-quiet" type="submit">Encerrar sessão</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

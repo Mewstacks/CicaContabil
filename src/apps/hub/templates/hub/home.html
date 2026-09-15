@@ -1,14 +1,79 @@
-{% extends 'hub/base.html' %}
-{% block title %}HubContador{% endblock %}
-{% block body %}
-<header class="public-header">
-  <a class="brand" href="{% url 'hub:home' %}" translate="no"><span class="brand-mark" aria-hidden="true">H</span>HubContador</a>
-  <nav aria-label="Navegação pública"><a href="#produto">Produto</a><a href="#seguranca">Segurança</a><a class="button button-small" href="{% url 'hub:login' %}">Entrar</a></nav>
-</header>
-<main id="conteudo">
-  <section class="hero hero-brief"><div><p class="eyebrow">OPERAÇÃO CONTÁBIL</p><h1>NFS-e organizada para fechar com segurança.</h1><p class="lead">Capture, classifique e revise documentos em uma única operação conectada ao Domínio.</p><div class="hero-actions"><a class="button" href="{% url 'hub:proposal' %}">Solicitar proposta</a></div></div><aside class="hero-panel" aria-label="Fluxo NFS-e"><p class="panel-kicker">NFS-e Inteligente</p><ol class="flow-list"><li>Capturar</li><li>Classificar</li><li>Revisar exceções</li><li>Exportar</li></ol></aside></section>
-  <section id="produto" class="section brief-section"><h2>O que o HubContador resolve</h2><div class="feature-grid"><article><h3>Fila de exceções</h3><p>O que precisa de decisão aparece primeiro.</p></article><article><h3>Regras rastreáveis</h3><p>Cada acumulador tem contexto e histórico.</p></article><article><h3>Sistemas sob medida</h3><p>Libere somente o que o escritório usa.</p></article></div></section>
-  <section id="seguranca" class="security-band brief-band"><div><p class="eyebrow">SEGURANÇA</p><h2>Dados fiscais sob controle.</h2></div><p>Certificados cifrados, XML imutável e acesso por papel.</p></section>
-</main>
-<footer class="public-footer"><span translate="no">HubContador</span><a href="{% url 'hub:proposal' %}">Falar com comercial</a></footer>
-{% endblock %}
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f1e5">
+  <meta name="description" content="CICA: a central que organiza a operação fiscal, financeira e de clientes do escritório contábil.">
+  <title>CICA — Central de Inteligência Contábil Avançada</title>
+  <link rel="icon" href="{% static 'hub/favicon.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'hub/regaro-landing.css' %}?v=cica-7">
+  <link rel="stylesheet" href="{% static 'hub/cica-campaign.css' %}?v=11">
+  <script src="{% static 'hub/cica-scene.js' %}?v=9" defer></script>
+  <script src="{% static 'hub/regaro-landing.js' %}?v=cica-7" defer></script>
+</head>
+<body class="cica-landing">
+  <a class="cica-skip" href="#conteudo">Pular para o conteúdo</a>
+  <header class="cica-header cica-shell">
+    <a class="cica-lockup" href="{% url 'hub:home' %}" translate="no" aria-label="CICA, início">
+      <svg class="cica-mark" viewBox="0 0 36 36" aria-hidden="true"><path d="M28.5 8.4A13.4 13.4 0 1 0 28.5 27.6"/><path d="M25.3 13.1A8 8 0 1 0 25.3 22.9"/><path d="M20.1 18h11.4"/></svg>
+      <span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span>
+    </a>
+    <nav aria-label="Navegação principal"><a href="#modulos">Módulos</a><a href="#central">A central</a>{% if copilot_available %}<a href="#copiloto">Copiloto CICA</a>{% endif %}<a href="#integracoes">Integrações</a></nav>
+    <div class="cica-header-actions"><a href="{% url 'hub:login' %}">Entrar</a><a class="cica-header-cta" href="{% url 'hub:signup' %}">Teste de 14 dias <span aria-hidden="true">→</span></a></div>
+  </header>
+
+  <main id="conteudo">
+    <section class="cica-hero cica-shell" aria-labelledby="hero-title">
+      <div class="cica-hero-copy" data-reveal>
+        <p class="cica-kicker">CICA / CENTRAL DE INTELIGÊNCIA CONTÁBIL AVANÇADA</p>
+        <h1 id="hero-title">Menos retrabalho.<em>Mais contabilidade.</em></h1>
+        <p class="cica-lead">Fiscal, financeiro, documentos e clientes no mesmo lugar.</p>
+        <div class="cica-actions"><a class="cica-cta" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a><a class="cica-text-link" href="#modulos">Ver os módulos <span aria-hidden="true">↓</span></a></div>
+        <p class="cica-assurance">Sem cartão. Os módulos disponíveis ficam liberados durante o teste.</p>
+      </div>
+
+      {% include 'hub/cica_motion.html' %}
+    </section>
+
+    <section id="modulos" class="module-atlas cica-shell" aria-labelledby="modules-title">
+      <header class="module-atlas-heading" data-reveal><p class="cica-kicker">MÓDULOS PARA A OPERAÇÃO.</p><h2 id="modules-title">Cada frente<br><em>no seu lugar.</em></h2><p>Teste a suíte disponível por 14 dias.</p></header>
+      <div class="module-atlas-list">
+        <article data-reveal><span class="module-index">01</span><div><p class="module-area">FISCAL</p><h3>NFS-e Inteligente</h3><p>Receba, classifique e acompanhe NFS-e.</p></div></article>
+        <article data-reveal><span class="module-index">02</span><div><p class="module-area">OBRIGAÇÕES</p><h3>Guias e DCTFWeb</h3><p>Antecipe guias, DCTFWeb e vencimentos.</p></div></article>
+        <article data-reveal><span class="module-index">03</span><div><p class="module-area">ATENDIMENTO FISCAL</p><h3>Central Integra Contador</h3><p>Solicite, acompanhe e encontre retornos.</p></div></article>
+        <article data-reveal><span class="module-index">04</span><div><p class="module-area">FINANCEIRO</p><h3>Conciliação OFX x Domínio</h3><p>Cruze OFX e Domínio. Revise divergências.</p></div></article>
+        <article data-reveal><span class="module-index">05</span><div><p class="module-area">TRIBUTÁRIO</p><h3>Radar da Reforma</h3><p>Veja o que muda antes do cliente perguntar.</p></div></article>
+        <article data-reveal><span class="module-index">06</span><div><p class="module-area">OPERAÇÃO</p><h3>Jornadas</h3><p>Organize etapas, responsáveis e prazos por empresa.</p></div></article>
+        {% if copilot_available %}<article class="module-copilot" data-reveal><span class="module-index">07</span><div><p class="module-area">INTELIGÊNCIA</p><h3>Copiloto CICA</h3><p>Analise documentos e classificações com fontes.</p></div></article>{% endif %}
+      </div>
+      <a class="module-atlas-cta" href="{% url 'hub:signup' %}">Testar a suíte completa por 14 dias <span aria-hidden="true">→</span></a>
+    </section>
+
+    <section id="central" class="central-intro cica-shell" aria-labelledby="central-title">
+      <div data-reveal><p class="cica-kicker">POR QUE CICA</p><h2 id="central-title">Central não é<br>mais um painel.</h2></div>
+      <div class="central-copy" data-reveal><p><strong>CICA significa Central de Inteligência Contábil Avançada.</strong> Central porque o trabalho deixa de atravessar abas, planilhas e cobranças soltas. Inteligência porque cada etapa ganha contexto. A decisão continua com a sua equipe.</p><a class="cica-text-link" href="{% url 'hub:signup' %}">Conhecer a central por dentro <span aria-hidden="true">→</span></a></div>
+    </section>
+
+    <section class="operation-map" aria-labelledby="operation-title"><div class="cica-shell"><header data-reveal><p class="cica-kicker">UMA PAUTA, CINCO FRENTES</p><h2 id="operation-title">A operação deixa de correr.<br><em>Ela avança.</em></h2></header><div class="operation-steps">
+      <article data-reveal><span>01</span><h3>Receber</h3><p>NFS-e, extratos e guias chegam com empresa e origem definidas.</p></article>
+      <article data-reveal><span>02</span><h3>Organizar</h3><p>Fiscal, financeiro e cliente passam a falar da mesma empresa e competência.</p></article>
+      <article data-reveal><span>03</span><h3>Revisar</h3><p>Exceções surgem na pauta antes de virarem urgência no fim do dia.</p></article>
+      <article data-reveal><span>04</span><h3>Decidir</h3><p>Ação, aprovação e evidência ficam registradas onde o trabalho acontece.</p></article>
+    </div></div></section>
+
+    {% if copilot_available %}<section id="copiloto" class="copilot-section"><div class="cica-shell copilot-layout"><div data-reveal><p class="cica-kicker">COPILOTO CICA</p><h2>Uma empresa por conversa.<br><em>Fontes em cada resposta.</em></h2><p class="section-copy">Selecione a empresa, faça a pergunta ou anexe um documento. O Copiloto consulta apenas o contexto autorizado e mantém qualquer classificação como rascunho para revisão.</p><a class="cica-light-link" href="{% url 'hub:signup' %}">Experimentar a suíte completa <span aria-hidden="true">→</span></a></div>
+      <div class="copilot-ledger" data-reveal aria-label="Escopo atual do Copiloto CICA"><header><span>ESCOPO DA ANÁLISE</span><span>SOMENTE LEITURA</span></header><p class="ledger-question">Empresa selecionada antes da pergunta</p><div class="ledger-answer"><span class="cica-mini-mark" aria-hidden="true">C</span><div><b>PDF, imagem, TXT ou CSV</b><p>Fatos verificáveis extraídos pelo serviço privado configurado.</p></div></div><ul><li><span>01</span><b>Fontes autorizadas</b><small>Conhecimento, obrigações e fila de revisão</small><em>Com origem</em></li><li><span>02</span><b>Classificação sugerida</b><small>Regra aprovada ou histórico disponível</small><em>Rascunho</em></li></ul><footer>Nenhuma gravação é feita no banco externo.</footer></div>
+    </div></section>{% endif %}
+
+    <section id="integracoes" class="integration-section cica-shell" aria-labelledby="integration-title"><div data-reveal><p class="cica-kicker">INTEGRAÇÕES COM CONTROLE</p><h2 id="integration-title">Conectado ao seu escritório.<br>Sem entregar o controle.</h2></div><div class="integration-list" data-reveal><article><span class="integration-mark">D</span><div><h3>Domínio</h3><p>Conexão local e somente leitura, com escopo por escritório, saúde de sincronização e trilha de auditoria.</p></div><b>Leitura segura</b></article><article><span class="integration-mark">S</span><div><h3>Siescon</h3><p>Fluxo previsto na central, com habilitação comercial e operacional somente após homologação autorizada.</p></div><b>Em homologação</b></article><article><span class="integration-mark">+</span><div><h3>Jornadas por empresa</h3><p>Responsável, prazo, etapas e pendências reunidos para o time do escritório.</p></div><b>Operação interna</b></article></div></section>
+
+    <section class="cica-final"><div class="cica-shell"><p class="cica-kicker">A PRÓXIMA PAUTA COMEÇA AQUI</p><h2>Deixe o escritório<br>respirar no fechamento.</h2><a class="cica-cta cica-cta-light" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a><p>Sem cartão. A contratação e os valores são apresentados dentro do ambiente CICA.</p></div></section>
+
+    <section class="cica-faq cica-shell" aria-label="Dúvidas frequentes">{% if copilot_available %}<details><summary>O Copiloto CICA altera os dados do escritório?<span aria-hidden="true">+</span></summary><p>Não. Bases externas permanecem em modo somente leitura. Ações sensíveis dentro da CICA exigem aprovação e ficam registradas.</p></details>{% endif %}<details><summary>O que acontece no teste de 14 dias?<span aria-hidden="true">+</span></summary><p>Você testa os módulos disponíveis sem cartão.</p></details><details><summary>O que significa “em homologação”?<span aria-hidden="true">+</span></summary><p>É um fluxo já planejado na plataforma, mas que ainda não é oferecido como conexão ativa até a validação autorizada.</p></details></section>
+  </main>
+  <footer class="cica-footer cica-shell"><a class="cica-lockup" href="{% url 'hub:home' %}" translate="no"><svg class="cica-mark" viewBox="0 0 36 36" aria-hidden="true"><path d="M28.5 8.4A13.4 13.4 0 1 0 28.5 27.6"/><path d="M25.3 13.1A8 8 0 1 0 25.3 22.9"/><path d="M20.1 18h11.4"/></svg><span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span></a><div><a href="{% url 'hub:legal' 'termos' %}">Termos de Uso</a><a href="{% url 'hub:legal' 'privacidade' %}">Privacidade</a><a href="{% url 'hub:login' %}">Entrar</a></div></footer>
+</body>
+</html>

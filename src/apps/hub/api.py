@@ -17,7 +17,9 @@ from apps.organizations.viewsets import OrganizationScopedViewSet
 class HasFreshHubAuthorization(HasOrganizationContext):
     """Reject a CRMew-managed installation after its signed cache expires."""
 
-    message = "A autorização desta instalação precisa ser renovada pelo CRMew."
+    message = (
+        "A autorização desta instalação precisa ser renovada pelo controle central da Mewstack."
+    )
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         if not super().has_permission(request, view):

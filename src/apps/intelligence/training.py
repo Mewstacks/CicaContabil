@@ -34,7 +34,7 @@ _PERSONAL_DATA_RE = re.compile(
     re.IGNORECASE,
 )
 CURATION_SYSTEM_PROMPT = (
-    "Você é um avaliador de treinamento do HubContador. Gere apenas JSON válido com "
+    "Você é um avaliador de treinamento da CICA. Gere apenas JSON válido com "
     "cenários de teste, ambiguidades e critérios de correção. Use exclusivamente a resposta "
     "aprovada e as fontes fornecidas; não invente regras, não gere SQL e não inclua dados pessoais."
 )

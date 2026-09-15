@@ -1,9 +1,24 @@
 from __future__ import annotations
 
-from django.conf import settings
+from smtplib import SMTPException
+
+from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
 
 from apps.platform.models import Invitation
+
+
+class TransactionalEmailError(RuntimeError):
+    """A delivery failure safe to surface as an operational form error."""
+
+
+def send_transactional_email(*args, **kwargs) -> None:
+    try:
+        delivered = send_mail(*args, fail_silently=False, **kwargs)
+    except (ImproperlyConfigured, OSError, SMTPException) as exc:
+        raise TransactionalEmailError("E-mail transacional indisponível.") from exc
+    if delivered != 1:
+        raise TransactionalEmailError("E-mail transacional indisponível.")
 
 
 def send_invitation_email(*, invitation: Invitation, activation_url: str) -> None:
@@ -14,14 +29,15 @@ def send_invitation_email(*, invitation: Invitation, activation_url: str) -> Non
     path into the tenant they just created.
     """
 
-    send_mail(
-        subject=f"Acesso ao HubContador — {invitation.organization.name}",
+    send_transactional_email(
+        subject=f"Acesso ao CICA — {invitation.organization.name}",
         message=(
-            f"{invitation.organization.name} criou um acesso para você no HubContador.\n\n"
+            f"{invitation.organization.name} criou um acesso para você no CICA.\n\n"
             f"{activation_url}\n\n"
             "O link expira em 7 dias e só pode ser usado uma vez."
         ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        # The developer-console transport supplies the configured sender.  Do
+        # not pin an environment default here: that would silently bypass it.
+        from_email=None,
         recipient_list=[invitation.email],
-        fail_silently=False,
     )

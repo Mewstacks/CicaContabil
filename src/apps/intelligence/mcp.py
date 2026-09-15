@@ -183,7 +183,9 @@ def call_tool(
     if name not in allowed_arguments or set(arguments) - allowed_arguments[name]:
         raise McpToolError("Ferramenta MCP ou argumento não permitido.")
     if not authorization_is_fresh(organization):
-        raise McpToolError("Permissão expirada; aguarde a renovação pelo CRMew.")
+        raise McpToolError(
+            "Permissão expirada; aguarde a renovação pelo controle central da Mewstack."
+        )
     allowed_company_ids = {str(company.id) for company in companies_for_membership(membership)}
     required_capability = "draft" if name == "create_classification_draft" else "read"
     if name in {"search_data_catalog", "retrieve_knowledge"} and not membership_has_capability(

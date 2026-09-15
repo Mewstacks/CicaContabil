@@ -3,8 +3,9 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from cryptography.hazmat.primitives.serialization import pkcs12
@@ -21,10 +22,12 @@ from apps.hub.models import (
     ConsumptionConfirmation,
     DteRun,
     DteRunItem,
+    FiscalGuide,
     IntegrationArtifact,
     NfseDocument,
     ReviewCase,
 )
+from apps.platform.billing import BillingError, reserve_usage
 
 
 @dataclass(frozen=True)
@@ -34,6 +37,13 @@ class ClassificationResult:
     rule_name: str
     evidence: dict[str, object]
     needs_review: bool
+
+
+@dataclass(frozen=True)
+class FiscalGuideSyncResult:
+    created: int
+    updated: int
+    ignored: int
 
 
 def _matches(rule: AccumulatorRule, data: dict[str, Any]) -> bool:
@@ -241,27 +251,172 @@ class DteRunTransitionError(RuntimeError):
 DTE_ACTION_CODE = "caixapostal.mensagens"
 
 
+class FiscalGuideTransitionError(RuntimeError):
+    """An obligation cannot be sent from its current operational state."""
+
+
+@transaction.atomic
+def issue_fiscal_guide(
+    *,
+    guide: FiscalGuide,
+    actor: Any = None,
+    request: Any = None,
+    approved_overage: bool = False,
+) -> FiscalGuide:
+    """Reserve one central issuance before queueing a Domínio obligation."""
+
+    guide = FiscalGuide.objects.select_for_update().get(id=guide.id)
+    if guide.status not in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
+        raise FiscalGuideTransitionError("Essa obrigação já está em emissão ou foi concluída.")
+    guide.issue_attempt += 1
+    idempotency_key = f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
+    try:
+        reserve_usage(
+            organization=guide.organization,
+            action_code=guide.integra_service_key,
+            idempotency_key=idempotency_key,
+            approved_overage=approved_overage,
+        )
+    except BillingError as exc:
+        raise FiscalGuideTransitionError(str(exc)) from exc
+    guide.status = FiscalGuide.Status.QUEUED
+    guide.issue_requested_by = actor if getattr(actor, "is_authenticated", False) else None
+    guide.issue_requested_at = timezone.now()
+    guide.error_code = ""
+    guide.error_message = ""
+    guide.save(
+        update_fields=[
+            "status",
+            "issue_attempt",
+            "issue_requested_by",
+            "issue_requested_at",
+            "error_code",
+            "error_message",
+            "updated_at",
+        ]
+    )
+    from apps.hub.tasks import dispatch_fiscal_guide
+
+    transaction.on_commit(lambda: dispatch_fiscal_guide.delay(str(guide.id)))
+    record_event(
+        action="hub.fiscal_guide.issuance_requested",
+        actor=actor,
+        organization=guide.organization,
+        target=guide,
+        request=request,
+        metadata={
+            "kind": guide.kind,
+            "competence": guide.competence,
+            "service": guide.integra_service_key,
+        },
+    )
+    return guide
+
+
+_GUIDE_SERVICE_BY_KIND: dict[str, str] = {
+    FiscalGuide.Kind.DCTFWEB: "dctfweb.guia",
+    FiscalGuide.Kind.DAS: "pgdasd.das",
+    FiscalGuide.Kind.MEI: "pgmei.das",
+}
+
+
+@transaction.atomic
+def sync_fiscal_guides(
+    *, organization: Any, rows: list[dict[str, object]]
+) -> FiscalGuideSyncResult:
+    """Accept the bounded obligation snapshot emitted by the local Domínio agent."""
+
+    companies = {
+        company.dominio_code: company
+        for company in ClientCompany.objects.filter(organization=organization, active=True)
+        if company.dominio_code
+    }
+    created = updated = ignored = 0
+    for row in rows:
+        company = companies.get(str(row.get("company_code", "")).strip())
+        reference = str(row.get("reference", "")).strip()
+        kind = str(row.get("kind", "")).strip()
+        competence = str(row.get("competence", "")).strip()
+        try:
+            due_on = datetime.strptime(str(row.get("due_on", "")), "%Y-%m-%d").date()
+            amount_cents = int(str(row.get("amount_cents", 0)))
+        except (TypeError, ValueError):
+            ignored += 1
+            continue
+        if (
+            company is None
+            or not reference
+            or kind not in FiscalGuide.Kind.values
+            or re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None
+            or amount_cents < 0
+        ):
+            ignored += 1
+            continue
+        guide, was_created = FiscalGuide.objects.get_or_create(
+            organization=organization,
+            company=company,
+            reference=reference[:120],
+            defaults={
+                "kind": kind,
+                "competence": competence,
+                "due_on": due_on,
+                "amount_cents": amount_cents,
+                "integra_service_key": _GUIDE_SERVICE_BY_KIND[kind],
+            },
+        )
+        if was_created:
+            created += 1
+            continue
+        if guide.status not in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
+            ignored += 1
+            continue
+        guide.kind = kind
+        guide.competence = competence
+        guide.due_on = due_on
+        guide.amount_cents = amount_cents
+        guide.integra_service_key = _GUIDE_SERVICE_BY_KIND[kind]
+        guide.save(
+            update_fields=[
+                "kind",
+                "competence",
+                "due_on",
+                "amount_cents",
+                "integra_service_key",
+                "updated_at",
+            ]
+        )
+        updated += 1
+    return FiscalGuideSyncResult(created=created, updated=updated, ignored=ignored)
+
+
 @transaction.atomic
 def approve_dte_run(
     *,
     run: DteRun,
     actor: Any = None,
     request: Any = None,
+    approved_overage: bool = False,
 ) -> ConsumptionConfirmation:
     """Record the consumption the operator is authorizing, and release the run.
 
-    This is the second step the preparation screen promises. It still calls no network:
-    approving states what will be spent and moves the run out of the approval queue, so
-    a dispatcher may act on it. Dispatching stays separate because it needs credentials
-    this step does not touch.
+    CICA owns the Serpro credentials; the office only approves its operational
+    scope.  The queued worker later performs the centrally metered dispatch.
     """
 
     if run.status != DteRun.Status.AWAITING_APPROVAL:
         raise DteRunTransitionError("Esta consulta já saiu da fila de autorização.")
-    if run.connector is None:
-        # The confirmation records consumption against a connector. Without one there is
-        # nothing to bill and nothing that could dispatch the run.
-        raise DteRunTransitionError("Configure o Integra Contador antes de autorizar.")
+    # Reserve each outbound Caixa Postal call before it is queued. A failed reservation
+    # means no provider request can escape the product and no unexpected overage occurs.
+    for item in run.items.select_for_update().filter(status=DteRunItem.Status.PENDING):
+        try:
+            reserve_usage(
+                organization=run.organization,
+                action_code=DTE_ACTION_CODE,
+                idempotency_key=f"dte-run-item:{item.id}:caixapostal",
+                approved_overage=approved_overage,
+            )
+        except BillingError as exc:
+            raise DteRunTransitionError(str(exc)) from exc
 
     confirmation = ConsumptionConfirmation.objects.create(
         organization=run.organization,
@@ -275,6 +430,9 @@ def approve_dte_run(
     )
     run.status = DteRun.Status.QUEUED
     run.save(update_fields=["status", "updated_at"])
+    from apps.hub.tasks import dispatch_dte_run
+
+    transaction.on_commit(lambda: dispatch_dte_run.delay(str(run.id)))
     record_event(
         action="hub.dte.run_approved",
         actor=actor,
@@ -284,7 +442,7 @@ def approve_dte_run(
         metadata={
             "companies": run.total_companies,
             "action_code": DTE_ACTION_CODE,
-            "network_dispatched": False,
+            "queued_for_central_dispatch": True,
         },
     )
     return confirmation

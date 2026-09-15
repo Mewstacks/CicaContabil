@@ -1,5 +1,5 @@
-{% extends 'hub/base.html' %}
-{% block title %}Aceitar convite — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Aceitar convite — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">CONVITE</p><h1>Entre para aceitar</h1><p class="form-intro">{{ invited_email }}</p><a class="button" href="{{ login_url }}">Entrar</a></section></main>
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">CONVITE</p><h1>Aceite seu convite.</h1><p class="form-intro">{{ invited_email }}</p>{% if user.is_authenticated %}<p class="form-intro">Troque para a conta convidada.</p><form method="post" action="{% url 'hub:logout' %}">{% csrf_token %}<input type="hidden" name="next" value="{{ login_url }}"><button class="button" type="submit">Trocar de conta</button></form>{% else %}<a class="button" href="{{ login_url }}">Entre para aceitar</a>{% endif %}</section></main>
 {% endblock %}

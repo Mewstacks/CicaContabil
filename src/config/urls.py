@@ -12,6 +12,7 @@ urlpatterns: list[URLPattern | URLResolver] = [
     path("mfa/", include("apps.accounts.urls")),
     path("platform/", include("apps.platform.urls")),
     path("api/v1/", include("config.urls_api")),
+    path("api/agent/v2/", include("config.urls_agent_v2")),
 ]
 
 if settings.API_DOCS_ENABLED:

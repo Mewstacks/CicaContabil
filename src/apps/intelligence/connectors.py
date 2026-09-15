@@ -15,6 +15,7 @@ from typing import Any, Protocol, cast
 MAX_CATALOG_TABLES = 500
 MAX_CATALOG_COLUMNS = 250
 MAX_COMPANY_ROWS = 1_000
+MAX_BANK_ENTRY_ROWS = 10_000
 _DSN_RE = re.compile(r"^[A-Za-z0-9 _.-]{1,128}$")
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,127}$")
 
@@ -75,6 +76,23 @@ QUERY_REGISTRY: dict[str, QuerySpec] = {
         ),
         max_rows=MAX_COMPANY_ROWS,
     ),
+    "bank_entries": QuerySpec(
+        sql=(
+            "SELECT TOP 10000 "
+            "CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || "
+            "CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || "
+            "CAST(i.I_ITEM AS VARCHAR(64)) AS source_id, i.CODI_EMP AS company_code, "
+            "i.DATA_ITEM AS occurred_on, i.HISTORICO AS description, i.VALOR AS amount, "
+            "i.TIPO AS direction, "
+            "CASE WHEN EXISTS (SELECT 1 FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM_LANCTO l "
+            "WHERE l.CODI_EMP = i.CODI_EMP AND l.I_LANCAMENTO = i.I_LANCAMENTO "
+            "AND l.I_ITEM = i.I_ITEM) "
+            "THEN 1 ELSE 0 END AS is_linked "
+            "FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM i "
+            "ORDER BY i.DATA_ITEM DESC, i.CODI_EMP DESC, i.I_LANCAMENTO DESC, i.I_ITEM DESC"
+        ),
+        max_rows=MAX_BANK_ENTRY_ROWS,
+    ),
 }
 
 
@@ -102,12 +120,12 @@ def _metadata_value(row: object, name: str, position: int, default: object = "")
     return default
 
 
-def _mask_cnpj(value: object) -> str:
-    """Keep taxpayer identifiers out of the application mirror and command output."""
+def _format_cnpj(value: object) -> str:
+    """Normalize a company identifier for authorized operational use."""
     digits = "".join(character for character in str(value or "") if character.isdigit())
     if len(digits) != 14:
         return ""
-    return f"{digits[:2]}.***.***/{digits[8:12]}-**"
+    return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
 
 
 def _company_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, str]:
@@ -116,7 +134,7 @@ def _company_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, str
     return {
         "codigo": str(raw.get("codigo") or "").strip(),
         "nome": str(raw.get("nome") or "").strip(),
-        "cnpj_masked": _mask_cnpj(raw.get("cnpj")),
+        "cnpj_masked": _format_cnpj(raw.get("cnpj")),
     }
 
 
@@ -130,6 +148,20 @@ def _communication_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[st
         "type_code": str(raw.get("type_code") or "").strip(),
         "status_code": str(raw.get("status_code") or "").strip(),
         "is_read": raw.get("is_read"),
+    }
+
+
+def _bank_entry_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, object]:
+    """Project the verified Domínio bank-statement schema only."""
+    raw = dict(zip(columns, row, strict=True))
+    return {
+        "source_id": str(raw.get("source_id") or "").strip(),
+        "company_code": str(raw.get("company_code") or "").strip(),
+        "occurred_on": raw.get("occurred_on"),
+        "description": str(raw.get("description") or "").strip(),
+        "amount": raw.get("amount"),
+        "direction": str(raw.get("direction") or "").strip(),
+        "is_linked": raw.get("is_linked"),
     }
 
 
@@ -166,6 +198,8 @@ class ReadOnlyDominoOdbc:
             return [_company_snapshot(columns, row) for row in rows]
         if query_name == "communications":
             return [_communication_snapshot(columns, row) for row in rows]
+        if query_name == "bank_entries":
+            return [_bank_entry_snapshot(columns, row) for row in rows]
         return [dict(zip(columns, row, strict=True)) for row in rows]
 
     def list_catalog_tables(

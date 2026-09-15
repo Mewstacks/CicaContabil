@@ -21,7 +21,11 @@ EXEMPT_URL_NAMES = frozenset(
         "hub:login",
         "hub:logout",
         "hub:home",
+        "hub:legal",
         "hub:proposal",
+        "hub:proposal-cnpj",
+        "hub:signup",
+        "hub:signup-verify",
     }
 )
 EXEMPT_PATH_PREFIXES = ("/api/v1/health/",)

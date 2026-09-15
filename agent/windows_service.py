@@ -93,7 +93,9 @@ if win32serviceutil is not None:  # pragma: no cover - exercised by the Windows 
 
     class HubContadorDominioAgentService(win32serviceutil.ServiceFramework):
         _svc_name_ = SERVICE_NAME
-        _svc_display_name_ = "HubContador — Agente Domínio"
+        # Keep SERVICE_NAME stable for existing Windows installations, but never
+        # show the retired product name in the Services console.
+        _svc_display_name_ = "CICA — Agente Domínio"
         _svc_description_ = "Sincroniza dados Domínio autorizados, somente por HTTPS de saída."
 
         def __init__(self, args: list[str]) -> None:

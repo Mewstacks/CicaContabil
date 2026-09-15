@@ -6,12 +6,14 @@ import hashlib
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from datetime import date, datetime
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.db import transaction
 from django.utils import timezone
 
 from apps.audit.services import record_event
-from apps.hub.models import ClientCompany
+from apps.hub.models import AccountingEntry, ClientCompany, DataSource, DominioBankEntry
 from apps.intelligence.connectors import CatalogColumn, CatalogTable
 from apps.intelligence.models import (
     DataCatalogEntry,
@@ -32,6 +34,13 @@ class SyncResult:
 
 @dataclass(frozen=True)
 class CommunicationSyncResult:
+    created: int
+    updated: int
+    ignored: int
+
+
+@dataclass(frozen=True)
+class BankEntrySyncResult:
     created: int
     updated: int
     ignored: int
@@ -169,17 +178,22 @@ def sync_companies(
     request: object = None,
     full_snapshot: bool = False,
 ) -> SyncResult:
-    """Mirror only minimum company metadata; raw taxpayer IDs must already be masked."""
+    """Mirror operational company metadata from the authenticated Domínio agent."""
     if connector.organization_id != organization.id:
         raise ValueError("Conector não pertence ao escritório informado.")
     created = updated = ignored = deactivated = 0
     now = timezone.now()
     active_codes: set[str] = set()
     with transaction.atomic():
+        data_source, _ = DataSource.objects.get_or_create(
+            organization=organization,
+            kind=DataSource.Kind.DOMINIO_LOCAL_AGENT,
+            defaults={"label": "Domínio Local"},
+        )
         for row in rows:
             code = _clean_text(row.get("codigo") or row.get("dominio_code"), 64)
             name = _clean_text(row.get("nome") or row.get("name"), 180)
-            masked = _clean_text(row.get("cnpj_masked"), 18)
+            cnpj = _clean_text(row.get("cnpj_masked"), 18)
             if not code or not name:
                 ignored += 1
                 continue
@@ -187,7 +201,14 @@ def sync_companies(
             company, was_created = ClientCompany.objects.get_or_create(
                 organization=organization,
                 dominio_code=code,
-                defaults={"name": name, "cnpj_masked": masked, "last_dominio_sync_at": now},
+                defaults={
+                    "name": name,
+                    "cnpj_masked": cnpj,
+                    "last_dominio_sync_at": now,
+                    "data_source": data_source,
+                    "external_key": code,
+                    "source_updated_at": now,
+                },
             )
             if was_created:
                 created += 1
@@ -196,14 +217,25 @@ def sync_companies(
             if company.name != name:
                 company.name = name
                 changes.append("name")
-            if masked and company.cnpj_masked != masked:
-                company.cnpj_masked = masked
+            if cnpj and company.cnpj_masked != cnpj:
+                company.cnpj_masked = cnpj
                 changes.append("cnpj_masked")
             if not company.active:
                 company.active = True
                 changes.append("active")
             company.last_dominio_sync_at = now
-            changes.extend(["last_dominio_sync_at", "updated_at"])
+            company.data_source = data_source
+            company.external_key = code
+            company.source_updated_at = now
+            changes.extend(
+                [
+                    "last_dominio_sync_at",
+                    "data_source",
+                    "external_key",
+                    "source_updated_at",
+                    "updated_at",
+                ]
+            )
             company.save(update_fields=changes)
             updated += 1
         if full_snapshot:
@@ -213,7 +245,28 @@ def sync_companies(
             deactivated = stale_companies.update(active=False, updated_at=now)
         connector.status = "healthy"
         connector.last_sync_at = now
-        connector.save(update_fields=["status", "last_sync_at", "updated_at"])
+        connector.last_error_code = ""
+        connector.last_error_message = ""
+        connector.last_error_at = None
+        connector.save(
+            update_fields=[
+                "status",
+                "last_sync_at",
+                "last_error_code",
+                "last_error_message",
+                "last_error_at",
+                "updated_at",
+            ]
+        )
+        capabilities = set(data_source.capabilities)
+        capabilities.add("companies")
+        data_source.capabilities = sorted(capabilities)
+        data_source.status = DataSource.Status.READY
+        data_source.last_import_at = now
+        data_source.source_snapshot_at = now
+        data_source.last_error_code = ""
+        data_source.last_error_message = ""
+        data_source.save()
         record_event(
             action="intelligence.dominio.companies_synced",
             actor=actor,
@@ -234,6 +287,162 @@ def sync_companies(
 
 def _as_read_flag(value: object) -> bool:
     return str(value or "").strip().casefold() in {"1", "s", "sim", "true", "yes"}
+
+
+def _as_date(value: object) -> date | None:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    try:
+        return datetime.strptime(str(value).strip()[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
+def _as_cents(value: object) -> int | None:
+    try:
+        amount = Decimal(str(value).replace(",", "."))
+    except (InvalidOperation, ValueError):
+        return None
+    return int((amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def sync_bank_entries(
+    *,
+    organization: Organization,
+    connector: IntelligenceConnector,
+    rows: Iterable[Mapping[str, object]],
+    actor: object = None,
+    request: object = None,
+) -> BankEntrySyncResult:
+    """Mirror only verified bank-statement items, preserving Domínio linkage state."""
+    if connector.organization_id != organization.id:
+        raise ValueError("Conector não pertence ao escritório informado.")
+    created = updated = ignored = 0
+    now = timezone.now()
+    normalized: dict[str, dict[str, object]] = {}
+    company_codes: set[str] = set()
+    for row in rows:
+        source_id = _clean_text(row.get("source_id"), 160)
+        company_code = _clean_text(row.get("company_code"), 64)
+        occurred_on = _as_date(row.get("occurred_on"))
+        amount_cents = _as_cents(row.get("amount"))
+        if not source_id or not company_code or occurred_on is None or amount_cents is None:
+            ignored += 1
+            continue
+        company_codes.add(company_code)
+        normalized[source_id] = {
+            "company_code": company_code,
+            "occurred_on": occurred_on,
+            "description": _clean_text(row.get("description"), 500),
+            "amount_cents": amount_cents,
+            "direction": _clean_text(row.get("direction"), 8),
+            "is_linked": _as_read_flag(row.get("is_linked")),
+        }
+    with transaction.atomic():
+        data_source, _ = DataSource.objects.get_or_create(
+            organization=organization,
+            kind=DataSource.Kind.DOMINIO_LOCAL_AGENT,
+            defaults={"label": "Domínio Local"},
+        )
+        companies_by_code = dict(
+            ClientCompany.objects.filter(
+                organization=organization, dominio_code__in=company_codes
+            ).values_list("dominio_code", "id")
+        )
+        existing_by_source = {
+            entry.source_id: entry
+            for entry in DominioBankEntry.objects.filter(
+                organization=organization, source_id__in=normalized
+            )
+        }
+        to_create: list[DominioBankEntry] = []
+        to_update: list[DominioBankEntry] = []
+        tracked_fields = (
+            "company_id",
+            "occurred_on",
+            "description",
+            "amount_cents",
+            "direction",
+            "is_linked",
+        )
+        for source_id, values in normalized.items():
+            defaults = {
+                "company_id": companies_by_code.get(str(values["company_code"])),
+                "occurred_on": values["occurred_on"],
+                "description": values["description"],
+                "amount_cents": values["amount_cents"],
+                "direction": values["direction"],
+                "is_linked": values["is_linked"],
+            }
+            entry = existing_by_source.get(source_id)
+            if entry is None:
+                to_create.append(
+                    DominioBankEntry(organization=organization, source_id=source_id, **defaults)
+                )
+                continue
+            if any(getattr(entry, field) != value for field, value in defaults.items()):
+                for field, value in defaults.items():
+                    setattr(entry, field, value)
+                entry.updated_at = now
+                to_update.append(entry)
+        DominioBankEntry.objects.bulk_create(to_create, batch_size=500)
+        if to_update:
+            DominioBankEntry.objects.bulk_update(
+                to_update, [*tracked_fields, "updated_at"], batch_size=500
+            )
+        for source_id, values in normalized.items():
+            AccountingEntry.objects.update_or_create(
+                data_source=data_source,
+                external_key=source_id,
+                defaults={
+                    "organization": organization,
+                    "company_id": companies_by_code.get(str(values["company_code"])),
+                    "occurred_on": values["occurred_on"],
+                    "description": values["description"],
+                    "amount_cents": values["amount_cents"],
+                    "direction": values["direction"],
+                    "is_linked": values["is_linked"],
+                    "source_updated_at": now,
+                },
+            )
+        created = len(to_create)
+        updated = len(to_update)
+        connector.status = "healthy"
+        connector.last_sync_at = now
+        connector.last_error_code = ""
+        connector.last_error_message = ""
+        connector.last_error_at = None
+        connector.save(
+            update_fields=[
+                "status",
+                "last_sync_at",
+                "last_error_code",
+                "last_error_message",
+                "last_error_at",
+                "updated_at",
+            ]
+        )
+        capabilities = set(data_source.capabilities)
+        capabilities.add("accounting_entries")
+        data_source.capabilities = sorted(capabilities)
+        data_source.status = DataSource.Status.READY
+        data_source.last_import_at = now
+        data_source.source_snapshot_at = now
+        data_source.save()
+        record_event(
+            action="intelligence.dominio.bank_entries_synced",
+            actor=actor,
+            organization=organization,
+            target=connector,
+            request=request,
+            metadata={"created": created, "updated": updated, "ignored": ignored},
+        )
+    from apps.hub.reconciliation import rebuild_reconciliation_matches
+
+    rebuild_reconciliation_matches(organization=organization)
+    return BankEntrySyncResult(created, updated, ignored)
 
 
 def sync_communications(
@@ -289,7 +498,19 @@ def sync_communications(
                 updated += 1
         connector.status = "healthy"
         connector.last_sync_at = now
-        connector.save(update_fields=["status", "last_sync_at", "updated_at"])
+        connector.last_error_code = ""
+        connector.last_error_message = ""
+        connector.last_error_at = None
+        connector.save(
+            update_fields=[
+                "status",
+                "last_sync_at",
+                "last_error_code",
+                "last_error_message",
+                "last_error_at",
+                "updated_at",
+            ]
+        )
         record_event(
             action="intelligence.dominio.communications_synced",
             actor=actor,

@@ -8,9 +8,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from urllib.error import URLError
 from urllib.request import Request, urlopen
-from uuid import UUID
+from uuid import UUID, uuid4
 
-from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 
@@ -40,6 +39,12 @@ from apps.intelligence.models import (
 )
 from apps.intelligence.retrieval import query_words, retrieve_chunks, retrieve_shared_chunks
 from apps.organizations.models import Membership, Organization
+from apps.platform.availability import copilot_is_available
+from apps.platform.billing import reserve_usage, settle_usage
+from apps.platform.models import PlatformConfiguration
+from apps.platform.operation_access import require_operation_access
+
+AI_ANSWER_ACTION = "ai.answer"
 
 
 @dataclass(frozen=True)
@@ -135,6 +140,17 @@ MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 MAX_ATTACHMENTS_PER_MESSAGE = 5
 
 
+def local_multimodal_endpoint() -> str:
+    """Return only the developer-configured private adapter origin."""
+
+    return str(
+        PlatformConfiguration.objects.filter(key="default")
+        .values_list("local_multimodal_endpoint", flat=True)
+        .first()
+        or ""
+    ).rstrip("/")
+
+
 def _attachment_type(name: str, declared_type: str) -> str:
     normalized = declared_type.casefold().split(";", 1)[0].strip()
     if normalized in ALLOWED_ATTACHMENT_TYPES:
@@ -145,7 +161,7 @@ def _attachment_type(name: str, declared_type: str) -> str:
 
 def _analyze_with_private_model(*, content: bytes, content_type: str, name: str) -> str | None:
     """Use only a deployment-owned local multimodal service; never Claude fallback."""
-    endpoint = str(getattr(settings, "LOCAL_MULTIMODAL_ENDPOINT", "")).rstrip("/")
+    endpoint = local_multimodal_endpoint()
     if not endpoint:
         return None
     payload = json.dumps(
@@ -218,7 +234,7 @@ def store_chat_attachments(
         )
         if analysis:
             cards.append(EvidenceCard("Anexo analisado", attachment.original_name, analysis))
-        elif str(getattr(settings, "LOCAL_MULTIMODAL_ENDPOINT", "")).strip():
+        elif local_multimodal_endpoint():
             from apps.intelligence.tasks import analyze_attachment_task
 
             attachment_id = str(attachment.id)
@@ -313,7 +329,7 @@ class DominioMcp:
         return [
             EvidenceCard(
                 "Fila de revisão",
-                "Hub Contador · Revisões",
+                "CICA · Revisões",
                 f"{pending} ocorrência(s) aguardando decisão humana para esta empresa.",
             )
         ]
@@ -347,7 +363,7 @@ class DominioMcp:
                 EvidenceCard(
                     chunk.source.title,
                     chunk.source.source_reference,
-                    chunk.content[:280] + ("â€¦" if len(chunk.content) > 280 else ""),
+                    chunk.content[:280] + ("…" if len(chunk.content) > 280 else ""),
                 )
                 for chunk in global_chunks
             ]
@@ -421,12 +437,38 @@ def answer_question(
     uploads: Iterable[UploadedFile] = (),
     conversation: Conversation | None = None,
 ) -> tuple[Conversation, Message, ClassificationDraft | None]:
-    """Create a traceable, source-grounded response without sending data to any model."""
+    """Create a grounded response only after rechecking the caller's data scope."""
+    if not copilot_is_available():
+        raise ValueError("O Copiloto ainda não está disponível para escritórios.")
     with transaction.atomic():
         # The membership is also used to decide whether a managed installation may
         # create a reviewable draft.  Resolve it independently from the optional
         # Claude fallback path so a local-only answer follows the same policy.
-        membership = Membership.objects.filter(organization=organization, user=actor).first()
+        membership = Membership.objects.filter(
+            organization=organization,
+            organization__is_active=True,
+            user=actor,
+            user__is_active=True,
+            is_active=True,
+        ).first()
+        if membership is None:
+            raise ValueError("Acesso ao escritório não autorizado.")
+        require_operation_access(organization, "ai")
+        usage = reserve_usage(
+            organization=organization,
+            action_code=AI_ANSWER_ACTION,
+            idempotency_key=f"ai-answer:{uuid4()}",
+        )
+        if (
+            company is not None
+            and accessible_company(
+                organization=organization, company_id=str(company.pk), membership=membership
+            )
+            is None
+        ):
+            raise ValueError("Empresa fora do escopo autorizado.")
+        if conversation is not None and conversation.closed_at is not None:
+            raise ValueError("Esta conversa está encerrada.")
         if conversation is None:
             conversation = Conversation.objects.create(
                 organization=organization,
@@ -496,7 +538,9 @@ def answer_question(
         if local_completion:
             conclusion = local_completion.content
             model_version = local_completion.model
-        elif str(getattr(settings, "LOCAL_LLM_ENDPOINT", "")).strip():
+        elif PlatformConfiguration.objects.filter(
+            key="default", local_llm_endpoint__gt=""
+        ).exists():
             # Cloud is considered only after an actual local runtime attempt failed.
             assistant_settings = (
                 AssistantSettings.objects.select_for_update()
@@ -583,6 +627,7 @@ def answer_question(
                 + "|".join(card.reference for card in cards)
             ),
         )
+        settle_usage(event=usage, provider_http_status=200, billable=True)
         conversation.summary = next_conversation_summary(
             previous=conversation.summary,
             question=question,

@@ -1,0 +1,36 @@
+{% extends 'hub/auth_base.html' %}
+{% load static %}
+{% block title %}Teste grátis por 14 dias — CICA{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/signup-consent.css' %}?v=1">{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page">
+  <section class="auth-card signup-card">
+    <p class="eyebrow">14 DIAS GRÁTIS · SEM CARTÃO</p>
+    <h1>Comece com seu escritório.</h1>
+    <p class="form-intro">A CICA consulta o CNPJ para preparar o ambiente. Você cria a senha depois de confirmar seu e-mail.</p>
+    {% if messages %}{% for message in messages %}<div class="flash {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}{% endif %}
+    <form method="post" class="form-stack signup-form" data-cnpj-lookup="{% url 'hub:proposal-cnpj' %}">
+      {% csrf_token %}
+      {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors aria-labelledby="signup-errors-title"><strong id="signup-errors-title">Revise os campos indicados.</strong>{{ form.non_field_errors }}</div>{% endif %}
+      {% for field in form %}
+        <div class="field" data-field-name="{{ field.name }}">
+          {% if field.field.widget.input_type == 'checkbox' and field.name == 'accept_terms' %}
+            <label for="{{ field.id_for_label }}">{{ field }} Li e aceito os <a href="{% url 'hub:legal' 'termos' %}" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="{% url 'hub:legal' 'privacidade' %}" target="_blank" rel="noopener">Política de Privacidade</a> e o <a href="{% url 'hub:legal' 'tratamento-de-dados' %}" target="_blank" rel="noopener">Anexo de Tratamento de Dados</a>.</label>
+          {% elif field.field.widget.input_type == 'checkbox' %}
+            <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
+          {% else %}
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+          {% endif %}
+          {% if field.help_text %}<small class="field-help">{{ field.help_text }}</small>{% endif %}
+          {% for error in field.errors %}<p id="{{ field.auto_id }}-error" class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+      {% endfor %}
+      <div class="registry-result" id="registry-result" hidden><p id="registry-status" role="status" aria-live="polite"></p><strong id="registry-name"></strong><p id="registry-place"></p></div>
+      <button class="button" type="submit">Enviar confirmação</button>
+    </form>
+    <p class="form-progress">Teste os módulos disponíveis por 14 dias. Não há cobrança automática.</p>
+    <p class="auth-alt">Já tem acesso? <a href="{% url 'hub:login' %}">Entrar no escritório.</a></p>
+  </section>
+</main>
+<script src="{% static 'hub/regaro-signup.js' %}?v=3" defer></script>
+{% endblock %}

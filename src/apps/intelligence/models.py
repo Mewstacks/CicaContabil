@@ -280,7 +280,15 @@ class IntelligenceConnector(OrganizationScopedModel):
     status = models.CharField(max_length=24, default="not_configured")
     last_sync_at = models.DateTimeField(null=True, blank=True)
     sync_lag_seconds = models.PositiveIntegerField(default=0)
+    sync_requested_at = models.DateTimeField(null=True, blank=True)
+    sync_request_completed_at = models.DateTimeField(null=True, blank=True)
+    # A DSN may contain a server path or credentials. It is only read by the local,
+    # allowlisted connector and must never be stored as plain database text.
+    odbc_dsn = EncryptedTextField(blank=True)
     device_fingerprint = models.CharField(max_length=64, blank=True)
+    last_error_code = models.CharField(max_length=80, blank=True)
+    last_error_message = models.CharField(max_length=240, blank=True)
+    last_error_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [

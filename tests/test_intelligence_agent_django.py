@@ -14,7 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.intelligence.agents import issue_enrollment, revoke_agent
-from apps.intelligence.models import EdgeAgent
+from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.organizations.models import Organization
 
 
@@ -46,7 +46,7 @@ class EdgeAgentTests(TestCase):
         body = json.dumps(
             {
                 "companies": [
-                    {"codigo": "001", "nome": "Empresa Agente", "cnpj_masked": "12.***.***/0001-**"}
+                    {"codigo": "001", "nome": "Empresa Agente", "cnpj_masked": "12.345.678/0001-90"}
                 ]
             }
         ).encode()
@@ -66,6 +66,41 @@ class EdgeAgentTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["created"], 1)
+
+    def test_sync_completes_a_pending_on_demand_update(self) -> None:
+        enrollment = issue_enrollment(organization=self.organization)
+        credentials = self.client.post(
+            reverse("intelligence-agent-enroll"),
+            data=json.dumps({"code": enrollment.code, "label": "Servidor", "fingerprint": "fp"}),
+            content_type="application/json",
+        ).json()
+        connector = IntelligenceConnector.objects.create(
+            organization=self.organization,
+            mode=IntelligenceConnector.Mode.EDGE_AGENT,
+            status="healthy",
+            sync_requested_at=timezone.now(),
+        )
+        body = b'{"companies": []}'
+        timestamp = str(int(timezone.now().timestamp()))
+        signature = hmac.new(
+            credentials["shared_secret"].encode(), timestamp.encode() + b"." + body, hashlib.sha256
+        ).hexdigest()
+
+        response = self.client.post(
+            reverse("intelligence-agent-sync"),
+            data=body,
+            content_type="application/json",
+            headers={
+                "X-Hub-Agent-ID": credentials["agent_id"],
+                "X-Hub-Agent-Timestamp": timestamp,
+                "X-Hub-Agent-Signature": signature,
+            },
+        )
+
+        connector.refresh_from_db()
+        self.assertTrue(response.json()["requested_sync_completed"])
+        self.assertIsNone(connector.sync_requested_at)
+        self.assertIsNotNone(connector.sync_request_completed_at)
 
     def test_revoked_agent_cannot_sync(self) -> None:
         enrollment = issue_enrollment(organization=self.organization)

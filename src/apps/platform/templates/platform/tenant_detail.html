@@ -14,7 +14,7 @@
 
 <section class="panel systems-panel">
   {% if managed_by_crmew %}
-    <header class="panel-header"><div><h2>Sistemas</h2><p>Definidos pelo CRMew para este escritório.</p></div></header>
+    <header class="panel-header"><div><h2>Sistemas</h2><p>Definidos pelo controle central da Mewstack para este escritório.</p></div></header>
   {% else %}
     <form method="post" class="systems-form">
       {% csrf_token %}
@@ -42,6 +42,115 @@
 <section class="panel access-panel">
   <header class="panel-header"><div><h2>Acessos</h2><p>Convide pessoas para este escritório.</p></div><button class="button button-small" type="button" data-modal-open="invite-dialog">Adicionar acesso</button></header>
 </section>
+
+{% if can_edit_contract %}
+<section class="panel access-panel">
+  <header class="panel-header"><div><h2>Contrato</h2><p>{% if contract %}{{ contract.get_status_display }}{% else %}Ainda não definido{% endif %}</p></div><button class="button button-small" type="button" data-modal-open="contract-dialog">Editar</button></header>
+  {% if contract %}<p><button class="button button-quiet button-small" type="button" data-modal-open="rate-dialog">Consumo</button></p>{% endif %}
+</section>
+
+{% if contract %}<div id="rate-dialog" class="modal-backdrop" data-modal {% if not rate_form.errors %}hidden{% endif %}><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rate-title"><header class="modal-head"><h2 id="rate-title">Consumo</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="action" value="service-rate">{% for field in rate_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar consumo</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form></section></div>{% endif %}
+
+<div id="contract-dialog" class="modal-backdrop" data-modal {% if not contract_form.errors %}hidden{% endif %}>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="contract-title">
+    <header class="modal-head"><h2 id="contract-title">Contrato</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="contract">
+      {% if contract_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
+      {% for field in contract_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
+      <div class="modal-actions"><button class="button" type="submit">Salvar contrato</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+
+{% if can_move_lifecycle %}
+<section class="panel access-panel lifecycle-panel" aria-labelledby="lifecycle-heading">
+  <header class="panel-header"><div><h2 id="lifecycle-heading">Acesso operacional</h2><p><strong>{{ lifecycle.get_state_display }}</strong>{% if lifecycle.reason %} · {{ lifecycle.reason }}{% endif %}</p></div>{% if lifecycle_targets %}<button class="button button-small" type="button" data-modal-open="lifecycle-dialog">Alterar acesso</button>{% endif %}</header>
+  <p class="settings-note">A cobrança interna não altera este estado. Registre o pagamento e libere o acesso separadamente, quando cabível.</p>
+</section>
+
+{% if lifecycle_targets %}
+<div id="lifecycle-dialog" class="modal-backdrop" data-modal hidden>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title">
+    <header class="modal-head"><div><h2 id="lifecycle-title">Alterar acesso operacional</h2><p>Esta mudança fica registrada na trilha de auditoria.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="lifecycle">
+      <div class="field"><label for="lifecycle-state">Novo estado</label><select id="lifecycle-state" name="state" autocomplete="off">{% for value, label in lifecycle_targets %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="lifecycle-reason">Motivo</label><textarea id="lifecycle-reason" name="reason" rows="3" autocomplete="off" required></textarea></div>
+      <div class="field checkbox-field" data-lifecycle-confirmation hidden><input id="confirm-lifecycle" name="confirm_lifecycle" type="checkbox" disabled><label for="confirm-lifecycle">Confirmo o bloqueio de acesso deste escritório.</label></div>
+      <div class="modal-actions"><button class="button" type="submit">Registrar mudança</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endif %}
+
+{% if can_manage_billing %}
+<section class="panel access-panel" aria-labelledby="billing-title">
+  <header class="panel-header"><div><h2 id="billing-title">Cobrança interna</h2><p>Registro da cobrança tratada fora da CICA.</p></div></header>
+  {% if recent_invoices %}
+    <div class="data-table-wrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th>Total</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.period_start|date:"m/Y" }}</td><td>{{ invoice.due_on|date:"d/m/Y" }}</td><td>R$ {{ invoice.total_brl|floatformat:2 }}</td><td>{{ invoice.get_status_display }}</td><td><form method="post" class="invoice-status-form">{% csrf_token %}<input type="hidden" name="action" value="invoice-status"><input type="hidden" name="invoice_id" value="{{ invoice.id }}"><select id="invoice-status-{{ invoice.id }}" name="status" autocomplete="off" aria-label="Status da cobrança {{ invoice.period_start|date:"m/Y" }}">{% for value, label in invoice_status_choices %}<option value="{{ value }}"{% if invoice.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button button-quiet button-small" type="submit">Registrar</button></form></td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="settings-note">Sem registros de cobrança para este escritório.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if can_edit_fallback %}
+<section class="panel access-panel">
+  <header class="panel-header"><div><h2>Fallback do Copiloto</h2><p>{% if managed_by_crmew %}Política definida pelo controle central da Mewstack.{% elif fallback_settings and fallback_settings.claude_fallback_enabled %}Externo apenas após timeout técnico local.{% else %}Desabilitado.{% endif %}</p></div><div class="panel-actions">{% if managed_by_crmew %}<button class="button button-quiet button-small" type="button" data-modal-open="fallback-credential-dialog">Chave do provedor</button>{% else %}<button class="button button-small" type="button" data-modal-open="fallback-dialog">Configurar</button>{% endif %}</div></header>
+</section>
+
+<section class="panel access-panel">
+  <header class="panel-header"><div><h2>Retenção do Copiloto</h2><p>{{ retention_form.initial.retention_days }} dias para conversas elegíveis.</p></div><button class="button button-quiet button-small" type="button" data-modal-open="retention-dialog">Editar</button></header>
+</section>
+
+<div id="retention-dialog" class="modal-backdrop" data-modal {% if not retention_form.errors %}hidden{% endif %}>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="retention-title">
+    <header class="modal-head"><div><h2 id="retention-title">Retenção do Copiloto</h2><p>A rotina diária remove apenas conversas sem rascunhos ou candidatos de aprendizado.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="ai-retention">
+      {% if retention_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise o prazo e a confirmação.</div>{% endif %}
+      {% for field in retention_form %}{% if field.name == 'confirm_shortening' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% else %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endif %}{% endfor %}
+      <div class="modal-actions"><button class="button" type="submit">Salvar retenção</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+
+{% if not managed_by_crmew %}
+<div id="fallback-dialog" class="modal-backdrop" data-modal {% if not fallback_form.errors %}hidden{% endif %}>
+  <section class="modal-card modal-card-wide" role="dialog" aria-modal="true" aria-labelledby="fallback-title">
+    <header class="modal-head"><div><h2 id="fallback-title">Fallback externo</h2><p>Usado somente quando o modelo local exceder o timeout técnico.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack fallback-form">
+      {% csrf_token %}<input type="hidden" name="action" value="ai-fallback">
+      {% if fallback_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
+      {% for field in fallback_form %}
+        {% if field.name == 'enabled' or field.name == 'allow_full_data' or field.name == 'clear_api_key' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>
+        {% elif field.name == 'allowed_roles' %}<fieldset class="field"><legend>{{ field.label }}</legend><div class="scope-options">{{ field }}</div>{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</fieldset>
+        {% else %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endif %}
+      {% endfor %}
+      <div class="modal-actions"><button class="button" type="submit">Salvar política</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endif %}
+
+{% if can_edit_fallback and managed_by_crmew %}
+<div id="fallback-credential-dialog" class="modal-backdrop" data-modal {% if not fallback_credential_form.errors %}hidden{% endif %}>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fallback-credential-title">
+    <header class="modal-head"><div><h2 id="fallback-credential-title">Chave do provedor</h2><p>Política, limites e permissões continuam no controle central da Mewstack.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="ai-fallback-credential">
+      {% if fallback_credential_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
+      {% for field in fallback_credential_form %}
+        {% if field.name == 'clear_api_key' %}<div class="field checkbox-field">{{ field }}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>
+        {% else %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endif %}
+      {% endfor %}
+      <div class="modal-actions"><button class="button" type="submit">Salvar chave</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
 
 <div id="invite-dialog" class="modal-backdrop" data-modal {% if not invite_form.errors %}hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="invite-title">

@@ -30,7 +30,7 @@
       <td>{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>A captura publica os documentos aqui assim que o certificado e o conector estiverem ativos.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>Os documentos aparecerão aqui depois da conexão NFS-e desta empresa ser homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
   {% endif %}
 </section>
 
@@ -63,7 +63,7 @@
       <td>{% if certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>Sem certificado não há consulta de NFS-e nem DTE para esta empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
+    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>O certificado fica disponível para uso depois da conexão homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
   {% endif %}
 </section>
 

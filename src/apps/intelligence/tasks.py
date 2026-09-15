@@ -11,11 +11,14 @@ from django.utils import timezone
 from apps.intelligence.models import ChatAttachment
 from apps.intelligence.retention import purge_expired_conversations
 from apps.intelligence.retrieval import refresh_knowledge_chunks, refresh_shared_knowledge_chunks
-from apps.intelligence.services import _analyze_with_private_model
+from apps.intelligence.services import _analyze_with_private_model, local_multimodal_endpoint
 from apps.organizations.models import Organization
+from apps.platform.models import OperationalRun
+from apps.platform.operations import track_scheduled_operation
 
 
 @shared_task(name="intelligence.refresh_knowledge_chunks")  # type: ignore[untyped-decorator]
+@track_scheduled_operation(OperationalRun.Task.REFRESH_KNOWLEDGE)
 def refresh_knowledge_chunks_task() -> dict[str, int]:
     """Daily RAG refresh; returns counts only and never logs source content."""
     created = removed = unchanged = 0
@@ -28,6 +31,7 @@ def refresh_knowledge_chunks_task() -> dict[str, int]:
 
 
 @shared_task(name="intelligence.refresh_shared_knowledge_chunks")  # type: ignore[untyped-decorator]
+@track_scheduled_operation(OperationalRun.Task.REFRESH_SHARED_KNOWLEDGE)
 def refresh_shared_knowledge_chunks_task() -> dict[str, int]:
     """Refresh global rules only; tenant databases are never read here."""
     result = refresh_shared_knowledge_chunks()
@@ -35,6 +39,7 @@ def refresh_shared_knowledge_chunks_task() -> dict[str, int]:
 
 
 @shared_task(name="intelligence.purge_expired_conversations")  # type: ignore[untyped-decorator]
+@track_scheduled_operation(OperationalRun.Task.PURGE_INTELLIGENCE)
 def purge_expired_conversations_task() -> dict[str, int]:
     """Apply the retention policy without emitting conversation content."""
     eligible = deleted = 0
@@ -122,9 +127,10 @@ def analyze_attachment_task(attachment_id: str) -> dict[str, object]:
 
 
 @shared_task(name="intelligence.retry_pending_attachments")  # type: ignore[untyped-decorator]
+@track_scheduled_operation(OperationalRun.Task.RETRY_ATTACHMENTS)
 def retry_pending_attachments_task() -> dict[str, int]:
     """Schedule a bounded batch; only identifiers pass through Celery."""
-    if not str(getattr(settings, "LOCAL_MULTIMODAL_ENDPOINT", "")).strip():
+    if not local_multimodal_endpoint():
         return {"scheduled": 0}
     limit = max(1, int(getattr(settings, "INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)))
     stale_before = timezone.now() - timedelta(minutes=10)

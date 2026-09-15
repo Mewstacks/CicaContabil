@@ -1,5 +1,5 @@
-{% extends 'hub/base.html' %}
-{% block title %}Aceitar convite — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Aceitar convite — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">CONVITE</p><h1>{{ invitation.organization.name }}</h1><form method="post" class="form-stack">{% csrf_token %}<button class="button" type="submit">Aceitar</button></form></section></main>
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">CONVITE</p><h1>{{ invitation.organization.name }}</h1><form method="post" class="form-stack">{% csrf_token %}<button class="button" type="submit">Aceitar convite</button></form></section></main>
 {% endblock %}

@@ -68,7 +68,7 @@ class OdbcConnectorTests(TestCase):
 
         self.assertEqual(
             rows,
-            [{"codigo": "001", "nome": "Empresa Acme", "cnpj_masked": "12.***.***/0001-**"}],
+            [{"codigo": "001", "nome": "Empresa Acme", "cnpj_masked": "12.345.678/0001-99"}],
         )
         self.assertEqual(self.calls, [("DSN=Dominio64", True, 10)])
         self.assertIn("SELECT TOP 1000", self.cursor.executed[0])

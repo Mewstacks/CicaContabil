@@ -8,13 +8,13 @@ Antes de instalação, valide as consultas contra uma cópia homologada do banco
 
 ## Runtime do serviço
 
-O instalador oficial é [`install-windows-service.ps1`](install-windows-service.ps1). Ele faz o enrollment por código de uso único, cifra a configuração com DPAPI antes de gravá-la em `C:\ProgramData\HubContador\agent-config.dpapi`, restringe as ACLs a `LOCAL SERVICE`, `SYSTEM` e administradores e registra o host nativo `HubContadorDominioAgent` no Windows SCM. **Nenhum segredo é aceito por argumento de linha de comando nem impresso.**
+O instalador oficial é [`install-windows-service.ps1`](install-windows-service.ps1). Ele faz a ativação por código de uso único, cifra a configuração com DPAPI antes de gravá-la em `C:\ProgramData\HubContador\agent-config.dpapi`, restringe as ACLs a `LOCAL SERVICE`, `SYSTEM` e administradores e registra o agente CICA no Windows SCM. **Nenhum segredo é aceito por argumento de linha de comando nem impresso.** O caminho e o identificador interno antigos são mantidos apenas para não quebrar instalações já existentes.
 
 Execute somente em PowerShell elevado, a partir do ambiente Python que contém o extra `dominio-agent`:
 
 ```powershell
 uv sync --extra dominio-agent
-.\agent\install-windows-service.ps1 -SystemDsn Dominio64 -HubUrl https://hub.exemplo.com -Label 'Servidor Domínio' -CaFile C:\HubContador\mtls\ca.pem -CertificateFile C:\HubContador\mtls\agent.pem -PrivateKeyFile C:\HubContador\mtls\agent.key
+.\agent\install-windows-service.ps1 -SystemDsn Dominio64 -HubUrl https://cica.exemplo.com -Label 'Servidor Domínio' -CaFile C:\CICA\mtls\ca.pem -CertificateFile C:\CICA\mtls\agent.pem -PrivateKeyFile C:\CICA\mtls\agent.key
 ```
 
 O prompt solicita o código de enrollment; ele não deve ser colocado em script, variável persistente, CI ou ticket. DPAPI em escopo de máquina depende da ACL para limitar leitura a contas confiáveis: administradores locais continuam sendo administradores e fazem parte da fronteira de confiança do servidor.
@@ -24,11 +24,11 @@ O prompt solicita o código de enrollment; ele não deve ser colocado em script,
 | Variável | Finalidade |
 | --- | --- |
 | `HUB_AGENT_DSN` | Apenas o nome do DSN de sistema Windows; não aceita `UID`, senha ou string de conexão. |
-| `HUB_AGENT_HUB_URL` | Origem HTTPS do HubContador. |
+| `HUB_AGENT_HUB_URL` | Origem HTTPS da CICA. |
 | `HUB_AGENT_ID` e `HUB_AGENT_SHARED_SECRET` | Identidade após enrollment; o segredo também cifra a fila local. |
 | `HUB_AGENT_CA_FILE`, `HUB_AGENT_CERTIFICATE_FILE`, `HUB_AGENT_PRIVATE_KEY_FILE` | Material técnico mTLS protegido por ACL local. |
 | `HUB_AGENT_QUEUE_PATH` | Fila AES-GCM, padrão `C:\ProgramData\HubContador\agent-queue.bin`. |
-| `HUB_AGENT_INTERVAL_SECONDS` | Intervalo entre ciclos, de 10 a 86.400 segundos; padrão 300. |
+| `HUB_AGENT_INTERVAL_SECONDS` | Intervalo entre ciclos, de 10 a 86.400 segundos; padrão 60. |
 
 Antes de registrar o serviço, execute uma vez no console protegido:
 
@@ -36,7 +36,7 @@ Antes de registrar o serviço, execute uma vez no console protegido:
 python -m agent.runner --once
 ```
 
-O comando mostra somente `status` e quantidade de empresas. Em queda de rede, o snapshot mascarado fica na fila cifrada e o próximo ciclo o reenvia **antes** de abrir ODBC novamente. Não execute duas instâncias para o mesmo dispositivo; o instalador definitivo deve configurar reinício do serviço e ACL apenas para sua conta técnica.
+O comando mostra somente `status` e quantidade de empresas. Em queda de rede, o snapshot fica na fila cifrada e o próximo ciclo o reenvia **antes** de abrir ODBC novamente. Não execute duas instâncias para o mesmo dispositivo; o instalador definitivo deve configurar reinício do serviço e ACL apenas para sua conta técnica.
 
 ## Fluxo de instalação assistida
 

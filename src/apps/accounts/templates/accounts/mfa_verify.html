@@ -1,5 +1,5 @@
-{% extends 'hub/base.html' %}
-{% block title %}Segundo fator — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Segundo fator — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Confirmar acesso</h1><form method="post" class="form-stack">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% if form.non_field_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{{ form.non_field_errors|striptags }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Entrar</button></form><p class="auth-alt">Use um código de recuperação se perdeu o aplicativo.</p></section></main>
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">SEGUNDO FATOR</p><h1>Confirme seu acesso.</h1><p class="form-intro">Digite o código do aplicativo autenticador.</p><form method="post" class="form-stack">{% csrf_token %}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}{% include 'hub/auth_fields.html' %}<button class="button" type="submit">Entrar</button></form><details class="auth-help"><summary>Perdeu o aplicativo?</summary><p>Use um código de recuperação no mesmo campo. Sem os códigos, procure o administrador.</p></details><form method="post" action="{% url 'hub:logout' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Sair desta conta</button></form></section></main>
 {% endblock %}

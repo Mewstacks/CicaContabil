@@ -13,6 +13,7 @@ from apps.common.ratelimit import rate_limited
 from apps.hub.controlplane import authorization_is_fresh
 from apps.hub.views import active_membership
 from apps.intelligence.mcp import PROTOCOL_VERSION, TOOLS, McpToolError, call_tool
+from apps.platform.availability import copilot_is_available
 
 
 def _response(payload: dict[str, object], status: int = 200) -> JsonResponse:
@@ -30,6 +31,8 @@ def _error(request_id: object, code: int, message: str, status: int = 200) -> Js
 @require_POST
 def mcp_endpoint(request: HttpRequest) -> HttpResponse:
     """MCP JSON-RPC transport for the Hub-internal gateway only."""
+    if not copilot_is_available():
+        return HttpResponse(status=404)
     if not request.user.is_authenticated:
         return _error(None, -32001, "Autenticação necessária.", 401)
     if rate_limited(
@@ -59,7 +62,10 @@ def mcp_endpoint(request: HttpRequest) -> HttpResponse:
     organization = membership.organization
     if not authorization_is_fresh(organization):
         return _error(
-            request_id, -32001, "Permissão expirada; aguarde a renovação pelo CRMew.", 403
+            request_id,
+            -32001,
+            "Permissão expirada; aguarde a renovação pelo controle central da Mewstack.",
+            403,
         )
     if method == "initialize":
         return _response(

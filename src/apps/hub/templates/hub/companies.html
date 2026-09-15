@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 
-{% block page_action %}{% if support_can_mutate %}<button class="button" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}{% endblock %}
+{% block page_action %}{% if support_can_mutate and not dominio_manages_companies %}<button class="button" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}{% endblock %}
 
 {% block workspace_content %}
 <section class="workspace-panel registry-panel">
@@ -9,14 +9,17 @@
       <h2>Empresas</h2>
       <p>{{ office.name }}</p>
     </div>
-    <span class="record-count">{{ total_companies }} de {{ office_company_total }}</span>
+    <div class="company-heading-meta">
+      <span class="record-count">{{ office_company_total }} empresa{{ office_company_total|pluralize:"s" }}</span>
+      {% if dominio_manages_companies %}<span class="status-badge is-active"><span aria-hidden="true">✓ </span> Domínio</span>{% endif %}
+    </div>
   </header>
 
-  <form method="get" class="toolbar" role="search">
+  <form method="get" class="toolbar" role="search" data-auto-filter>
     <div class="toolbar-search">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
       <label class="sr-only" for="filtro-busca">Buscar empresa</label>
-      <input id="filtro-busca" type="search" name="q" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código" autocomplete="off" spellcheck="false">
+      <input id="filtro-busca" type="search" name="q" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código…" autocomplete="off" spellcheck="false">
     </div>
     <label class="sr-only" for="filtro-situacao">Situação</label>
     <select id="filtro-situacao" name="situacao">
@@ -28,27 +31,20 @@
     <select id="filtro-vinculo" name="vinculo">
       <option value="">Domínio: todos</option>
       <option value="com"{% if filters.vinculo == 'com' %} selected{% endif %}>Com código</option>
-      <option value="sem"{% if filters.vinculo == 'sem' %} selected{% endif %}>Sem código</option>
     </select>
     <div class="toolbar-actions">
-      <button class="button button-small" type="submit">Filtrar</button>
-      {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'hub:companies' %}">Limpar</a>{% endif %}
+      {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'hub:companies' %}" data-filter-clear>Limpar</a>{% endif %}
     </div>
   </form>
-
-  {% if missing_dominio_code and not filters.vinculo %}
-    <p class="toolbar-note">{{ missing_dominio_code }} sem código do Domínio<a href="?vinculo=sem">Ver</a></p>
-  {% endif %}
 
   {% if companies %}
     <div class="data-table-wrap">
       <table class="operational-table company-table">
-        <thead><tr><th>Empresa</th><th>Código Domínio</th><th>Última sincronização</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead>
+        <thead><tr><th>Empresa</th><th>CNPJ</th><th>Código Domínio</th><th><span class="sr-only">Ações</span></th></tr></thead>
         <tbody>{% for company in companies %}<tr>
-          <td><strong>{{ company.name }}</strong><small>CNPJ {{ company.cnpj_masked|default:"não informado" }}</small></td>
+          <td><strong>{{ company.name }}</strong></td>
+          <td>{% if company.cnpj_masked %}<span class="source-code">{{ company.cnpj_masked }}</span>{% else %}<span class="table-muted">Não informado</span>{% endif %}</td>
           <td>{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
-          <td>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y · H:i" }}{% else %}<span class="table-muted">Nunca</span>{% endif %}</td>
-          <td><span class="module-state {% if company.active %}is-active{% else %}is-muted{% endif %}">{% if company.active %}Em operação{% else %}Pausada{% endif %}</span></td>
           <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:company-detail' company.id %}">Abrir</a></td>
         </tr>{% endfor %}</tbody>
       </table>
@@ -63,11 +59,11 @@
   {% elif filters_applied %}
     <div class="empty-block operational-empty"><strong>Nenhuma empresa encontrada</strong><a class="button button-small" href="{% url 'hub:companies' %}">Ver todas</a></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sua base ainda está vazia</strong>{% if support_can_mutate %}<button class="button button-small" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}</div>
+    <div class="empty-block operational-empty"><strong>Sua base ainda está vazia</strong>{% if dominio_manages_companies %}<p>Sincronize o Domínio para importar empresas.</p>{% elif support_can_mutate %}<button class="button button-small" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}</div>
   {% endif %}
 </section>
 
-{% if support_can_mutate %}<div id="company-dialog" class="modal-backdrop" data-modal hidden>
+{% if support_can_mutate and not dominio_manages_companies %}<div id="company-dialog" class="modal-backdrop" data-modal hidden>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-title">
     <header class="modal-head"><div><p class="section-kicker">Novo cadastro</p><h2 id="company-title">Adicionar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}-erro">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>

@@ -1,0 +1,17 @@
+.signup-form [data-field-name="accept_terms"] label,
+.signup-form [data-field-name="accept_marketing"] label {
+  align-items: flex-start;
+  justify-content: flex-start;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+.signup-form [data-field-name="accept_terms"] input,
+.signup-form [data-field-name="accept_marketing"] input {
+  display: block;
+  flex: 0 0 20px;
+  width: 20px;
+  min-height: 20px;
+  margin: 1px 10px 0 0;
+  padding: 0;
+}

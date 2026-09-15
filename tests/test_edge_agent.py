@@ -104,6 +104,19 @@ class EdgeAgentLocalTests(TestCase):
         with self.assertRaises(ValueError):
             AgentRuntimeConfig.from_environment(values)
 
+    def test_runtime_checks_for_updates_every_minute_by_default(self) -> None:
+        values = {
+            "HUB_AGENT_DSN": "Dominio64",
+            "HUB_AGENT_HUB_URL": "https://hub.example.test",
+            "HUB_AGENT_ID": "agent-1",
+            "HUB_AGENT_SHARED_SECRET": "device-secret",
+            "HUB_AGENT_CA_FILE": "ca.pem",
+            "HUB_AGENT_CERTIFICATE_FILE": "client.pem",
+            "HUB_AGENT_PRIVATE_KEY_FILE": "client.key",
+        }
+
+        self.assertEqual(AgentRuntimeConfig.from_environment(values).interval_seconds, 60)
+
     @patch("agent.runner.post_snapshot")
     def test_runtime_replays_the_encrypted_queue_before_reading_odbc(self, mocked_post) -> None:
         runtime = AgentRuntimeConfig(
@@ -183,5 +196,5 @@ class EdgeAgentLocalTests(TestCase):
         self.assertTrue(connection.closed)
         self.assertIn("SELECT TOP 500 codi_emp AS codigo", connection.cursor_value.query)
         sent = mocked_post.call_args.args[1]
-        self.assertEqual(sent["companies"][0]["cnpj_masked"], "12.***.***/0001-**")
+        self.assertEqual(sent["companies"][0]["cnpj_masked"], "12.345.678/0001-99")
         self.assertFalse(sent["full_snapshot"])

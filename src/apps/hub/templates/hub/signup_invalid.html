@@ -1,0 +1,3 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Link indisponível — CICA{% endblock %}
+{% block body %}<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">LINK INDISPONÍVEL</p><h1>Não foi possível confirmar.</h1><p class="form-intro">{{ reason }}</p><a class="button" href="{% url 'hub:signup' %}">Iniciar um novo cadastro</a></section></main>{% endblock %}

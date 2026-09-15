@@ -1,29 +1,7 @@
 {% extends 'hub/workspace.html' %}
-
 {% block workspace_content %}
-<section class="dashboard-intro">
-  <div><p class="section-kicker">OPERAÇÃO ATUAL</p><h2>Veja o que precisa de atenção sem procurar em várias telas.</h2></div>
-  <a class="text-action" href="{% url 'hub:companies' %}">Ver empresas <span aria-hidden="true">→</span></a>
-</section>
-
-<section class="metric-strip" aria-label="Resumo operacional">
-  <article><span>Empresas ativas</span><strong>{{ stats.companies }}</strong></article>
-  <article><span>Documentos recebidos</span><strong>{{ stats.documents }}</strong></article>
-  <article class="metric-needs-attention"><span>Em revisão</span><strong>{{ stats.pending }}</strong></article>
-  <article><span>Certificados ativos</span><strong>{{ stats.certificates }}</strong></article>
-</section>
-
-<section class="dashboard-primary">
-  <section class="workspace-panel review-queue">
-    <header class="workspace-panel-head">
-      <div><p class="section-kicker">FILA DE DECISÃO</p><h2>Exceções abertas</h2></div>
-      <a class="text-action" href="{% url 'hub:reviews' %}">Abrir fila completa <span aria-hidden="true">→</span></a>
-    </header>
-    {% if open_cases %}
-      <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Ocorrência</th><th>Confiança</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for case in open_cases %}<tr><td><strong>{{ case.document.company.name }}</strong><small>Documento em conferência</small></td><td><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</td><td><span class="confidence">{{ case.confidence }}%</span></td><td><a class="row-action" href="{% url 'hub:reviews' %}">Analisar<span class="sr-only"> {{ case.document.company.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>
-    {% else %}
-      <div class="empty-block operational-empty"><strong>Fila limpa</strong><p>Nenhuma exceção aguardando decisão.</p></div>
-    {% endif %}
-  </section>
-</section>
+<section class="dashboard-intro"><div><p class="section-kicker">CENTRO DE CONTROLE</p><h2>Fechamento mais calmo começa pela próxima decisão certa.</h2></div><a class="text-action" href="{% url 'hub:companies' %}">Ver empresas <span aria-hidden="true">→</span></a></section>
+<section class="metric-strip" aria-label="Resumo operacional"><article><span>Empresas ativas</span><strong>{{ stats.companies }}</strong></article><article><span>Documentos recebidos</span><strong>{{ stats.documents }}</strong></article><article class="metric-needs-attention"><span>Em revisão</span><strong>{{ stats.pending }}</strong></article><article><span>Certificados ativos</span><strong>{{ stats.certificates }}</strong></article></section>
+{% if copilot_enabled %}<section class="regaro-ai-callout" aria-labelledby="ai-callout-heading"><div><p class="section-kicker">COPILOTO CICA · SOMENTE LEITURA</p><h2 id="ai-callout-heading">Pergunte o que está travando o fechamento.</h2><p>Selecione uma empresa para consultar fontes autorizadas, anexos e classificações. O Copiloto nunca altera o Domínio.</p><div class="ai-prompt-chips"><span>"Quais pendências vencem esta semana?"</span><span>"Mostre classificações que precisam de revisão."</span></div></div><div class="ai-callout-actions"><span class="status-badge is-active">Conexão segura</span><a class="button" href="{% url 'intelligence:assistant' %}">Abrir Copiloto CICA</a></div></section>{% endif %}
+<section class="dashboard-primary"><section class="workspace-panel review-queue"><header class="workspace-panel-head"><div><p class="section-kicker">FILA DE DECISÃO</p><h2>Exceções abertas</h2></div><a class="text-action" href="{% url 'hub:reviews' %}">Abrir fila completa <span aria-hidden="true">→</span></a></header>{% if open_cases %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Ocorrência</th><th>Confiança</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for case in open_cases %}<tr><td><strong>{{ case.document.company.name }}</strong><small>Documento em conferência</small></td><td><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</td><td><span class="confidence">{{ case.confidence }}%</span></td><td><a class="row-action" href="{% url 'hub:reviews' %}">Analisar<span class="sr-only"> {{ case.document.company.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Fila limpa</strong><p>Nenhuma exceção aguardando decisão.</p></div>{% endif %}</section></section>
 {% endblock %}

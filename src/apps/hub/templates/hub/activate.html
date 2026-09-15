@@ -1,5 +1,5 @@
-{% extends 'hub/base.html' %}
-{% block title %}Ativar acesso — HubContador{% endblock %}
+{% extends 'hub/auth_base.html' %}
+{% block title %}Ativar acesso — CICA{% endblock %}
 {% block body %}
-<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">ATIVAÇÃO</p><h1>Criar acesso</h1><form method="post" class="form-stack">{% csrf_token %}{% if form.non_field_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{{ form.non_field_errors|striptags }}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<button class="button" type="submit">Ativar</button></form></section></main>
+<main id="conteudo" class="auth-page"><section class="auth-card"><p class="eyebrow">ATIVAÇÃO</p><h1>Crie sua senha.</h1><form method="post" class="form-stack">{% csrf_token %}{% include 'hub/auth_fields.html' %}<button class="button" type="submit">Ativar meu acesso</button></form></section></main>
 {% endblock %}

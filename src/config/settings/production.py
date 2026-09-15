@@ -123,15 +123,9 @@ if media_bucket:
         },
     }
 
-EMAIL_BACKEND = env_str(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.smtp.EmailBackend",
-)
-EMAIL_HOST = env_str("EMAIL_HOST", "email-smtp.sa-east-1.amazonaws.com")
-EMAIL_PORT = env_int("EMAIL_PORT", 587)
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-EMAIL_HOST_USER = env_str("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env_str("EMAIL_HOST_PASSWORD")
+# The developer console holds the platform SMTP credentials encrypted at rest.
+# A production process never reads delivery credentials from environment variables.
+EMAIL_BACKEND = "apps.common.database_email.DatabaseEmailBackend"
 
 sentry_enabled = env_bool("SENTRY_ENABLED", True)
 sentry_dsn = env_str("SENTRY_DSN")

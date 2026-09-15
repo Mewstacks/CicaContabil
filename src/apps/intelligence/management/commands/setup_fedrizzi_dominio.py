@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.hub.models import OfficeProfile
 from apps.intelligence.connectors import ReadOnlyDominoOdbc
 from apps.intelligence.models import IntelligenceConnector
-from apps.intelligence.sync import sync_communications, sync_companies
+from apps.intelligence.sync import sync_bank_entries, sync_communications, sync_companies
 from apps.organizations.models import Organization
 
 OFFICE_NAME = "Fedrizzi Contabilidade"
@@ -49,6 +49,9 @@ class Command(BaseCommand):
             organization=office,
             mode=IntelligenceConnector.Mode.DIRECT_ODBC,
         )
+        if dsn and connector.odbc_dsn != dsn:
+            connector.odbc_dsn = dsn
+            connector.save(update_fields=["odbc_dsn", "updated_at"])
         state = "criado" if created else "já existente"
         connector_state = "criado" if connector_created else "já existente"
         self.stdout.write(
@@ -66,6 +69,7 @@ class Command(BaseCommand):
             adapter = ReadOnlyDominoOdbc(dsn)
             company_rows = adapter.execute("companies")
             communication_rows = adapter.execute("communications")
+            bank_entry_rows = adapter.execute("bank_entries")
         except (RuntimeError, ValueError) as exc:
             raise CommandError(str(exc)) from exc
         result = sync_companies(organization=office, connector=connector, rows=company_rows)
@@ -74,11 +78,23 @@ class Command(BaseCommand):
             connector=connector,
             rows=communication_rows,
         )
+        bank_entries = sync_bank_entries(
+            organization=office,
+            connector=connector,
+            rows=bank_entry_rows,
+        )
         self.stdout.write(
             self.style.SUCCESS(
                 "Cadastros sincronizados sem identificadores brutos: "
                 f"{result.created} criado(s), {result.updated} atualizado(s), "
                 f"{result.ignored} ignorado(s)."
+            )
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Itens bancários sincronizados: "
+                f"{bank_entries.created} criado(s), {bank_entries.updated} atualizado(s), "
+                f"{bank_entries.ignored} ignorado(s)."
             )
         )
         self.stdout.write(

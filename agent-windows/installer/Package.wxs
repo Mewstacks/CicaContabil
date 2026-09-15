@@ -1,0 +1,55 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Regaro Agent" Manufacturer="Regaro" Version="1.0.0.0"
+           UpgradeCode="8D0CF3A2-CB09-4F78-A90B-23042EA1CE32" Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="Já existe uma versão mais nova do Regaro Agent." />
+    <MediaTemplate EmbedCab="yes" />
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Regaro Agent">
+        <Directory Id="SERVICEFOLDER" Name="Service" />
+        <Directory Id="CONFIGURATORFOLDER" Name="Configurator" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="RegaroData" Name="Regaro">
+        <Directory Id="AgentData" Name="Agent" />
+      </Directory>
+    </StandardDirectory>
+    <Feature Id="Main" Title="Regaro Agent" Level="1">
+      <ComponentGroupRef Id="ServiceFiles" />
+      <ComponentGroupRef Id="ConfiguratorFiles" />
+      <ComponentRef Id="ServiceRegistration" />
+      <ComponentRef Id="DataPermissions" />
+    </Feature>
+    <CustomAction Id="LaunchConfigurator" Directory="CONFIGURATORFOLDER"
+                  ExeCommand="Regaro.Agent.Configurator.exe"
+                  Execute="immediate" Return="asyncNoWait" Impersonate="yes" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchConfigurator" After="InstallFinalize" Condition="NOT Installed" />
+    </InstallExecuteSequence>
+  </Package>
+  <Fragment>
+    <ComponentGroup Id="ServiceFiles" Directory="SERVICEFOLDER">
+      <Files Include="$(ServiceDir)\**">
+        <Exclude Files="$(ServiceDir)\Regaro.Agent.Service.exe" />
+      </Files>
+    </ComponentGroup>
+    <ComponentGroup Id="ConfiguratorFiles" Directory="CONFIGURATORFOLDER">
+      <Files Include="$(ConfiguratorDir)\**" />
+    </ComponentGroup>
+    <DirectoryRef Id="SERVICEFOLDER">
+      <Component Id="ServiceRegistration" Guid="507A8F88-251B-4FE1-BE99-2A692A17EC33" Bitness="always64">
+        <File Id="ServiceExe" Source="$(ServiceDir)\Regaro.Agent.Service.exe" KeyPath="yes" />
+        <ServiceInstall Id="RegaroService" Name="RegaroAgent" DisplayName="Regaro Agent"
+                        Description="Sincronização segura do Domínio com o Regaro"
+                        Start="auto" Type="ownProcess" ErrorControl="normal" Account="LocalSystem" />
+        <ServiceControl Id="RegaroServiceControl" Name="RegaroAgent" Start="install"
+                        Stop="both" Remove="uninstall" Wait="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="AgentData">
+      <Component Id="DataPermissions" Guid="1A43F804-91BB-40E2-8056-BEF51DE432D2">
+        <CreateFolder />
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>

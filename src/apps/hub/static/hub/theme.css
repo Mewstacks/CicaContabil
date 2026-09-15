@@ -1,0 +1,54 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --canvas: #10191d;
+    --surface: #18242a;
+    --ink: #edf5f1;
+    --muted: #b5c5c0;
+    --faint: #a4b5af;
+    --line: #394950;
+    --navy: #0d252f;
+    --blue: #73c9ca;
+    --blue-soft: #1a3b3e;
+    --amber: #efb377;
+    --amber-soft: #3b2d20;
+    --green: #82d1ad;
+    --green-soft: #183b31;
+    --red: #ffaba0;
+    --red-soft: #442522;
+    --shadow: 0 12px 30px rgba(0, 0, 0, .28);
+  }
+
+  body { background-color: var(--canvas); background-image: radial-gradient(rgba(224, 245, 238, .1) .6px, transparent .6px); }
+  .app-bar { background: rgba(16, 25, 29, .92); border-color: var(--line); }
+  .office-list, .account-list, .icon-control, .button-quiet, .field input, .field select, .field textarea, .modal-card { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .office-button:hover, .account-button:hover, .account-list a:hover, .account-list button:hover, .button-quiet:hover { background: #24343b; }
+  .record-count { border-color: var(--line); color: var(--muted); }
+  .operational-table th { background: #213139; color: var(--faint); }
+  .operational-table td { border-color: var(--line); color: var(--ink); }
+  .operational-table tbody tr:hover { background: #203037; }
+  .module-clean-empty, .operational-empty, .dominio-primary-head { background: #1b292f; }
+  .connector-card, .system-status-card, .dominio-step, .dominio-agent-list article, .system-choice { background: #1b292f; border-color: var(--line); }
+  .system-choice:hover { background: #223640; border-color: var(--blue); }
+  .system-choice.is-selected, .system-choice:has(input:checked) { background: #1a383d; color: var(--ink); }
+  .source-code, .mfa-secret code, .recovery-codes code { background: #20363a; color: #c9f1e9; border-color: var(--line); }
+  .table-muted, .settings-check-list span, .integration-details summary, .integration-advanced > summary { color: var(--muted); }
+  .metric-needs-attention, .dominio-code { background: #3b2d20; border-color: #72543b; }
+  .dominio-code p, .dominio-code code { color: #f2d7b4; }
+  .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline-color: #2c6267; }
+}
+
+:root[data-theme="dark"] { color-scheme: dark; --canvas:#10191d;--surface:#18242a;--ink:#edf5f1;--muted:#b5c5c0;--faint:#a4b5af;--line:#394950;--navy:#0d252f;--blue:#73c9ca;--blue-soft:#1a3b3e;--amber:#efb377;--amber-soft:#3b2d20;--green:#82d1ad;--green-soft:#183b31;--red:#ffaba0;--red-soft:#442522;--shadow:0 12px 30px rgba(0,0,0,.28) }
+:root[data-theme="light"] { color-scheme: light; --canvas:#f5f7fa;--surface:#fff;--ink:#152238;--muted:#607087;--faint:#8b98aa;--line:#dce3eb;--navy:#122a4a;--blue:#2563b8;--blue-soft:#eaf2ff;--amber:#b75d0b;--amber-soft:#fff4e7;--green:#08755b;--green-soft:#e9f8f1;--red:#b42318;--red-soft:#ffeded;--shadow:0 10px 28px rgba(22,38,61,.07) }
+
+html[data-theme="dark"] body{background-color:var(--canvas);background-image:radial-gradient(rgba(224,245,238,.1) .6px,transparent .6px)}
+html[data-theme="dark"] .app-bar{background:rgba(16,25,29,.92);border-color:var(--line)}
+html[data-theme="dark"] .office-list,html[data-theme="dark"] .account-list,html[data-theme="dark"] .icon-control,html[data-theme="dark"] .button-quiet,html[data-theme="dark"] .field input,html[data-theme="dark"] .field select,html[data-theme="dark"] .field textarea,html[data-theme="dark"] .modal-card{background:var(--surface);color:var(--ink);border-color:var(--line)}
+html[data-theme="dark"] .office-button:hover,html[data-theme="dark"] .account-button:hover,html[data-theme="dark"] .account-list a:hover,html[data-theme="dark"] .account-list button:hover,html[data-theme="dark"] .button-quiet:hover{background:#24343b}
+html[data-theme="dark"] .record-count{border-color:var(--line);color:var(--muted)}
+html[data-theme="dark"] .operational-table th{background:#213139;color:var(--faint)}html[data-theme="dark"] .operational-table td{border-color:var(--line);color:var(--ink)}html[data-theme="dark"] .operational-table tbody tr:hover{background:#203037}
+html[data-theme="dark"] .module-clean-empty,html[data-theme="dark"] .operational-empty,html[data-theme="dark"] .dominio-primary-head{background:#1b292f}
+html[data-theme="dark"] .connector-card,html[data-theme="dark"] .system-status-card,html[data-theme="dark"] .dominio-step,html[data-theme="dark"] .dominio-agent-list article,html[data-theme="dark"] .system-choice{background:#1b292f;border-color:var(--line)}html[data-theme="dark"] .system-choice:hover{background:#223640;border-color:var(--blue)}html[data-theme="dark"] .system-choice.is-selected,html[data-theme="dark"] .system-choice:has(input:checked){background:#1a383d;color:var(--ink)}
+html[data-theme="dark"] .source-code,html[data-theme="dark"] .mfa-secret code,html[data-theme="dark"] .recovery-codes code{background:#20363a;color:#c9f1e9;border-color:var(--line)}html[data-theme="dark"] .table-muted,html[data-theme="dark"] .settings-check-list span,html[data-theme="dark"] .integration-details summary,html[data-theme="dark"] .integration-advanced>summary{color:var(--muted)}html[data-theme="dark"] .metric-needs-attention,html[data-theme="dark"] .dominio-code{background:#3b2d20;border-color:#72543b}html[data-theme="dark"] .dominio-code p,html[data-theme="dark"] .dominio-code code{color:#f2d7b4}html[data-theme="dark"] .field input:focus-visible,html[data-theme="dark"] .field select:focus-visible,html[data-theme="dark"] .field textarea:focus-visible{outline-color:#2c6267}
+
+html[data-theme="light"] body{background-color:var(--canvas);background-image:none}html[data-theme="light"] .app-bar{background:rgba(255,255,255,.94);border-color:var(--line)}html[data-theme="light"] .office-list,html[data-theme="light"] .account-list,html[data-theme="light"] .icon-control,html[data-theme="light"] .button-quiet,html[data-theme="light"] .field input,html[data-theme="light"] .field select,html[data-theme="light"] .field textarea,html[data-theme="light"] .modal-card{background:var(--surface);color:var(--ink);border-color:var(--line)}html[data-theme="light"] .office-button:hover,html[data-theme="light"] .account-button:hover,html[data-theme="light"] .account-list a:hover,html[data-theme="light"] .account-list button:hover,html[data-theme="light"] .button-quiet:hover{background:#f0f4f8}html[data-theme="light"] .operational-table th{background:#f0f0ea;color:#657572}html[data-theme="light"] .operational-table td{border-color:var(--line);color:var(--ink)}html[data-theme="light"] .operational-table tbody tr:hover{background:#fafcff}html[data-theme="light"] .module-clean-empty,html[data-theme="light"] .operational-empty,html[data-theme="light"] .dominio-primary-head{background:var(--surface)}html[data-theme="light"] .connector-card,html[data-theme="light"] .system-status-card,html[data-theme="light"] .dominio-step,html[data-theme="light"] .dominio-agent-list article,html[data-theme="light"] .system-choice{background:var(--surface);border-color:var(--line)}html[data-theme="light"] .system-choice:hover{background:#f4f7fa;border-color:var(--blue)}html[data-theme="light"] .system-choice.is-selected,html[data-theme="light"] .system-choice:has(input:checked){background:var(--blue-soft);color:var(--ink)}html[data-theme="light"] .source-code,html[data-theme="light"] .mfa-secret code,html[data-theme="light"] .recovery-codes code{background:#f0f4f8;color:var(--ink);border-color:var(--line)}html[data-theme="light"] .metric-needs-attention,html[data-theme="light"] .dominio-code{background:var(--amber-soft);border-color:#f0c99d}html[data-theme="light"] .dominio-code p,html[data-theme="light"] .dominio-code code{color:#82501d}html[data-theme="light"] .field input:focus-visible,html[data-theme="light"] .field select:focus-visible,html[data-theme="light"] .field textarea:focus-visible{outline-color:#dbeafe}

@@ -1,0 +1,26 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="operation-summary" aria-labelledby="guides-heading">
+  <div><p class="section-kicker">GUIAS</p><h2 id="guides-heading">Guias e DCTFWeb</h2></div>
+</section>
+
+<section class="metric-strip" aria-label="Resumo de obrigações">
+  <article><span>Vencem em 7 dias</span><strong>{{ guide_stats.due_this_week }}</strong></article>
+  <article class="{% if guide_stats.pending %}metric-needs-attention{% endif %}"><span>A emitir</span><strong>{{ guide_stats.pending }}</strong></article>
+  <article><span>Emitidas</span><strong>{{ guide_stats.issued }}</strong></article>
+</section>
+
+<section class="workspace-panel" aria-labelledby="guide-list-heading">
+  <header class="workspace-panel-head"><div><h2 id="guide-list-heading">Próximas guias</h2></div><span class="record-count">{{ guides|length }}</span></header>
+  {% if guides %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Obrigação</th><th>Vencimento</th><th>Valor</th><th>Status</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for guide in guides %}<tr><td><strong>{{ guide.company.name }}</strong><small>{{ guide.competence }} · {{ guide.reference }}</small></td><td>{{ guide.get_kind_display }}</td><td>{{ guide.due_on|date:"d/m/Y" }}</td><td>R$ {{ guide.amount_brl|floatformat:2 }}</td><td><span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% elif guide.status == 'ready' %}is-warning{% else %}is-muted{% endif %}">{{ guide.get_status_display }}</span>{% if guide.error_message %}<small>{{ guide.error_message }}</small>{% endif %}</td><td class="table-action-cell">{% if can_issue_guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}<button class="row-action-button" type="button" data-modal-open="issue-guide-{{ guide.id }}">Emitir</button>{% endif %}{% endif %}</td></tr>
+      {% endfor %}
+    </tbody></table></div>
+    {% if can_issue_guides %}{% for guide in guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}<div id="issue-guide-{{ guide.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="issue-guide-title-{{ guide.id }}"><header class="modal-head"><div><p class="section-kicker">CONFIRMAR EMISSÃO</p><h2 id="issue-guide-title-{{ guide.id }}">Emitir {{ guide.get_kind_display }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>Será emitida para <strong>{{ guide.company.name }}</strong>, competência {{ guide.competence }}, com vencimento em {{ guide.due_on|date:"d/m/Y" }}.</p><form method="post" action="{% url 'hub:issue-guide' guide.id %}" class="modal-actions">{% csrf_token %}<button class="button" type="submit">Confirmar emissão</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}{% endfor %}{% endif %}
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma guia por aqui</strong><p>Sincronize o Domínio para começar.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

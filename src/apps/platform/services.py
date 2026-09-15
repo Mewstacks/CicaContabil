@@ -6,7 +6,13 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.organizations.models import Organization
-from apps.platform.models import Entitlement, FeatureFlag, PlatformAccess, TenantContract
+from apps.platform.models import (
+    Entitlement,
+    FeatureFlag,
+    PlatformAccess,
+    TenantContract,
+    TenantLifecycle,
+)
 
 
 def platform_role(user: User | AnonymousUser) -> str | None:
@@ -46,13 +52,23 @@ def has_entitlement(organization: Organization, code: str) -> bool:
     contract = (
         TenantContract.objects.filter(
             organization=organization,
-            status__in=[TenantContract.Status.ACTIVE, TenantContract.Status.GRACE],
+            status__in=[
+                TenantContract.Status.TRIAL,
+                TenantContract.Status.ACTIVE,
+                TenantContract.Status.GRACE,
+            ],
         )
         .select_related("plan")
         .order_by("-created_at")
         .first()
     )
-    return bool(contract and contract.plan and code in contract.plan.modules)
+    if contract is None:
+        return False
+    # Older contracts were created before module snapshots existed. Preserve
+    # their access until commercial migration can review them; every new
+    # contract gets a non-empty snapshot on creation.
+    modules = contract.selected_modules or (contract.plan.modules if contract.plan else [])
+    return code in modules
 
 
 def flag_enabled(key: str, organization: Organization | None = None) -> bool:
@@ -65,3 +81,56 @@ def flag_enabled(key: str, organization: Organization | None = None) -> bool:
         if scoped:
             return True
     return flags.filter(organization__isnull=True).exists()
+
+
+class LifecycleTransitionError(Exception):
+    """A tenant's lifecycle moved somewhere the state machine does not go."""
+
+
+# Archived is terminal on purpose: a tenant comes back by being provisioned again,
+# not by a click that silently revives data somebody decided to retire.
+LIFECYCLE_TRANSITIONS: dict[str, tuple[str, ...]] = {
+    TenantLifecycle.State.PROVISIONING: (
+        TenantLifecycle.State.ACTIVATION_PENDING,
+        TenantLifecycle.State.ARCHIVED,
+    ),
+    TenantLifecycle.State.ACTIVATION_PENDING: (
+        TenantLifecycle.State.ACTIVE,
+        TenantLifecycle.State.ARCHIVED,
+    ),
+    TenantLifecycle.State.ACTIVE: (
+        TenantLifecycle.State.GRACE,
+        TenantLifecycle.State.SUSPENDED,
+        TenantLifecycle.State.ARCHIVED,
+    ),
+    TenantLifecycle.State.GRACE: (
+        TenantLifecycle.State.ACTIVE,
+        TenantLifecycle.State.SUSPENDED,
+        TenantLifecycle.State.ARCHIVED,
+    ),
+    TenantLifecycle.State.SUSPENDED: (
+        TenantLifecycle.State.ACTIVE,
+        TenantLifecycle.State.ARCHIVED,
+    ),
+    TenantLifecycle.State.ARCHIVED: (),
+}
+
+
+def allowed_lifecycle_targets(lifecycle: TenantLifecycle) -> tuple[str, ...]:
+    return LIFECYCLE_TRANSITIONS.get(lifecycle.state, ())
+
+
+def transition_lifecycle(
+    *, lifecycle: TenantLifecycle, target: str, reason: str, actor: User
+) -> TenantLifecycle:
+    """Move a tenant between lifecycle states, always with a reason on the record."""
+
+    if target not in allowed_lifecycle_targets(lifecycle):
+        raise LifecycleTransitionError(f"{lifecycle.get_state_display()} não vai para este estado.")
+    if not reason.strip():
+        raise LifecycleTransitionError("Escreva o motivo da mudança.")
+    lifecycle.state = target
+    lifecycle.reason = reason.strip()[:240]
+    lifecycle.changed_by = actor
+    lifecycle.save(update_fields=["state", "reason", "changed_by", "updated_at"])
+    return lifecycle

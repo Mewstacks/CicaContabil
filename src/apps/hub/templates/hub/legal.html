@@ -1,0 +1,14 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}{{ document.title }} — CICA{% endblock %}
+{% block body %}
+<main id="conteudo" class="legal-layout">
+  <nav aria-label="Documentos legais"><a href="{% url 'hub:legal' document='termos' %}">Termos de Uso</a><a href="{% url 'hub:legal' document='privacidade' %}">Privacidade</a><a href="{% url 'hub:legal' document='tratamento-de-dados' %}">Tratamento de dados</a></nav>
+  <h1>{{ document.title }}</h1>
+  <p class="flash">Minuta em revisão. As condições comerciais e os fornecedores devem ser concluídos antes da abertura comercial.</p>
+  <p>Versão {{ version }} · {{ provider.provider_legal_name|default:'Mewstack Desenvolvimento de Sistemas Ltda.' }} · CNPJ <span translate="no">{{ provider.provider_cnpj_display|default:'68.340.160/0001-13' }}</span>.</p>
+  {% for heading, content in document.sections %}<section><h2>{{ heading }}</h2><p>{{ content }}</p></section>{% endfor %}
+  {% if provider.legal_address %}<p>{{ provider.legal_address }}</p>{% endif %}
+  {% if provider.support_email or provider.support_phone %}<p>Suporte: {% if provider.support_email %}<a href="mailto:{{ provider.support_email }}">{{ provider.support_email }}</a>{% endif %}{% if provider.support_email and provider.support_phone %} · {% endif %}{% if provider.support_phone %}<a href="tel:+55{{ provider.support_phone|cut:'('|cut:')'|cut:' '|cut:'-' }}">{{ provider.support_phone }}</a>{% endif %}.{% if provider.support_hours %} {{ provider.support_hours }}{% endif %}</p>{% endif %}
+  {% if provider.privacy_email %}<p>Privacidade: <a href="mailto:{{ provider.privacy_email }}">{{ provider.privacy_email }}</a>.</p>{% endif %}
+</main>
+{% endblock %}

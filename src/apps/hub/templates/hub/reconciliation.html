@@ -1,0 +1,47 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">OFX × Domínio</p><h2>Conciliação</h2></div>
+    {% if can_import_ofx %}<button class="button button-small" type="button" data-modal-open="import-ofx">Importar OFX</button>{% endif %}
+  </header>
+  {% if matches %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Data</th><th>Empresa</th><th>OFX</th><th>Domínio</th><th>Status</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for match in matches %}<tr><td>{{ match.transaction.occurred_on|date:'SHORT_DATE_FORMAT' }}</td><td>{{ match.transaction.statement.company.name }}</td><td>{{ match.transaction.description }}</td><td>{% if match.dominio_entry %}{{ match.dominio_entry.description|default:'Item bancário' }}{% else %}—{% endif %}</td><td><span class="status-badge {% if match.status == 'matched' %}is-active{% elif match.status == 'ambiguous' %}is-warning{% else %}is-muted{% endif %}">{{ match.get_status_display }}</span></td><td>{% if can_import_ofx and match.candidates and not match.is_manual %}<button class="row-action-button" type="button" data-modal-open="confirm-match-{{ match.id }}">Revisar</button>{% endif %}</td></tr>{% endfor %}
+    </tbody></table></div>
+  {% elif imports %}
+    <div class="empty-block operational-empty"><strong>Atualizando cruzamento</strong></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Sem extratos</strong></div>
+  {% endif %}
+</section>
+{% for match in matches %}{% if can_import_ofx and match.candidates and not match.is_manual %}<div id="confirm-match-{{ match.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirm-match-title-{{ match.id }}"><header class="modal-head"><h2 id="confirm-match-title-{{ match.id }}">Confirmar conciliação</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><form method="post" action="{% url 'hub:confirm-reconciliation' match.id %}" class="form-stack">{% csrf_token %}<div class="field"><label for="dominio-entry-{{ match.id }}">Item do Domínio</label><select id="dominio-entry-{{ match.id }}" name="dominio_entry_id">{% for entry in match.candidates %}<option value="{{ entry.id }}">{{ entry.description|default:'Item bancário' }} · {{ entry.direction }} · R$ {{ entry.amount_brl|floatformat:2 }}</option>{% endfor %}</select></div><div class="modal-actions"><button class="button" type="submit">Confirmar</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form></section></div>{% endif %}{% endfor %}
+{% if can_import_ofx %}
+  <div id="import-ofx" class="modal-backdrop" data-modal{% if not open_import_modal %} hidden{% endif %}>
+    <section class="modal-card ofx-import-modal" role="dialog" aria-modal="true" aria-labelledby="import-ofx-title">
+      <header class="modal-head"><h2 id="import-ofx-title">Importar OFX</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+      <form method="post" enctype="multipart/form-data" class="form-stack">
+        {% csrf_token %}
+        {% if form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">Revise os campos marcados.</div>{% endif %}
+        <div class="field company-picker" data-company-picker>
+          <label for="{{ form.company.id_for_label }}">Empresa</label>
+          {{ form.company }}
+          <input class="company-picker-search" type="search" name="company_search" placeholder="Buscar nome ou CNPJ…" autocomplete="off" hidden data-company-search aria-label="Buscar empresa" aria-expanded="false">
+          <div class="company-picker-options" role="listbox" hidden data-company-options></div>
+          {% for error in form.company.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="field">
+          <span class="field-label">Arquivo OFX</span>
+          <label class="ofx-file-picker" for="{{ form.ofx_file.id_for_label }}">
+            {{ form.ofx_file }}
+            <span class="ofx-file-picker-copy" data-file-name>Selecionar arquivo</span>
+            <span class="ofx-file-picker-action" aria-hidden="true">Escolher</span>
+          </label>
+          {% for error in form.ofx_file.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="modal-actions"><button class="button" type="submit">Importar</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+      </form>
+    </section>
+  </div>
+{% endif %}
+{% endblock %}

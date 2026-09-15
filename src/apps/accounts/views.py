@@ -11,6 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.cache import never_cache
 
 from apps.accounts import mfa
 from apps.accounts.models import User
@@ -27,15 +28,16 @@ class CodeForm(forms.Form):
         widget=forms.TextInput(
             attrs={
                 "autocomplete": "one-time-code",
-                "inputmode": "numeric",
-                "autofocus": "autofocus",
-                "placeholder": "000000",
+                "autocapitalize": "none",
+                "spellcheck": "false",
+                "placeholder": "Código de acesso…",
             }
         ),
     )
 
 
 @login_required
+@never_cache
 @require_http_methods(["GET", "POST"])
 def setup(request: HttpRequest) -> HttpResponse:
     user = request.user
@@ -43,24 +45,28 @@ def setup(request: HttpRequest) -> HttpResponse:
     if mfa.is_enrolled(user):
         return redirect("accounts:mfa-verify")
 
-    device = mfa.start_enrollment(user)
+    device = mfa.device_for(user) if request.method == 'POST' else mfa.start_enrollment(user)
+    if device is None:
+        return redirect('accounts:mfa-setup')
+    next_url = safe_next(request, request.POST.get('next') or request.GET.get('next'), fallback='hub:dashboard')
     form = CodeForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         codes = mfa.confirm_enrollment(device, form.cleaned_data["code"])
         if codes is None:
-            form.add_error("code", "Código inválido.")
+            form.add_error("code", "Código inválido. Confira o aplicativo e tente o código atual.")
         else:
             mfa.mark_verified(request)
             record_event(action="accounts.mfa.enrolled", actor=user, request=request)
-            return render(request, "accounts/mfa_recovery.html", {"codes": codes})
+            return render(request, "accounts/mfa_recovery.html", {"codes": codes, "next": next_url})
     return render(
         request,
         "accounts/mfa_setup.html",
-        {"form": form, "secret": device.secret, "uri": mfa.provisioning_uri(device)},
+        {"form": form, "secret": device.secret, "uri": mfa.provisioning_uri(device), "next": next_url},
     )
 
 
 @login_required
+@never_cache
 @require_http_methods(["GET", "POST"])
 def verify(request: HttpRequest) -> HttpResponse:
     user = request.user
@@ -83,13 +89,13 @@ def verify(request: HttpRequest) -> HttpResponse:
             mfa.mark_verified(request)
             record_event(action="accounts.mfa.verified", actor=user, request=request)
             return redirect(safe_next(request, request.POST.get("next"), fallback="hub:dashboard"))
-        form.add_error("code", "Código inválido ou já utilizado.")
+        form.add_error("code", "Código inválido ou usado. Gere outro ou use um código de recuperação.")
         record_event(action="accounts.mfa.failed", actor=user, request=request)
 
     return render(
         request,
         "accounts/mfa_verify.html",
-        {"form": form, "next": safe_next(request, request.GET.get("next"), fallback="")},
+        {"form": form, "next": safe_next(request, request.POST.get("next") or request.GET.get("next"), fallback="")},
     )
 
 
@@ -114,6 +120,7 @@ def enrollment_qr(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
+@never_cache
 @require_http_methods(["POST"])
 def regenerate_recovery_codes(request: HttpRequest) -> HttpResponse:
     user = request.user

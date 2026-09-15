@@ -1,0 +1,22 @@
+{% extends 'hub/workspace.html' %}
+
+{% block workspace_content %}
+<section class="workspace-panel registry-panel" aria-labelledby="radar-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">Fontes oficiais</p><h2 id="radar-heading">Radar da Reforma Tributária</h2></div></header>
+  <form class="toolbar" method="get" data-auto-filter>
+    <label class="sr-only" for="filtro-fonte">Fonte</label>
+    <select id="filtro-fonte" name="fonte">
+      <option value="">Todas as fontes</option>
+      {% for value, label in sources %}<option value="{{ value }}"{% if selected_source == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    {% if selected_source %}<div class="toolbar-actions"><a class="button button-quiet button-small" href="{% url 'hub:reform' %}" data-filter-clear>Limpar</a></div>{% endif %}
+  </form>
+  {% if alerts %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Atualização</th><th>Fonte</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for alert in alerts %}<tr><td><strong>{{ alert.title }}</strong><small>{% if alert.published_at %}{{ alert.published_at|date:'d/m/Y' }}{% else %}Coletada em {{ alert.created_at|date:'d/m/Y' }}{% endif %}</small></td><td><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir<span class="sr-only">: {{ alert.title }}</span></a></td></tr>{% endfor %}
+    </tbody></table></div>
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Sem alertas ainda</strong><p>A coleta diária consulta Receita Federal, Fazenda e Planalto.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

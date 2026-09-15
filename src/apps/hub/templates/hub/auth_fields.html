@@ -1,0 +1,14 @@
+{% if form.errors %}
+<div class="form-errors" data-form-errors tabindex="-1" role="alert">
+  {% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}<strong>Confira os campos abaixo.</strong>{% endif %}
+  {% for field in form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}
+</div>
+{% endif %}
+{% for field in form %}
+<div class="field">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %}<span class="optional">Opcional</span>{% endif %}</label>
+  <div class="input-wrap">{{ field }}{% if field.field.widget.input_type == 'password' %}<button type="button" class="password-toggle" data-password-toggle="{{ field.id_for_label }}" aria-controls="{{ field.id_for_label }}" aria-pressed="false" hidden>Mostrar</button>{% endif %}</div>
+  {% if field.help_text %}<div class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</div>{% endif %}
+  {% if field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ field.errors|striptags }}</p>{% endif %}
+</div>
+{% endfor %}

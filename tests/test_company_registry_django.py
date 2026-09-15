@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.hub.models import ClientCompany, OfficeProfile, ProductModule
+from apps.intelligence.models import IntelligenceConnector
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import PlatformAccess, SupportSession
 
@@ -62,11 +63,7 @@ class CompanyRegistryTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(self._names(response), expected, term)
 
-    def test_the_registry_can_isolate_companies_without_a_dominio_code(self) -> None:
-        response = self.client.get(reverse("hub:companies"), {"vinculo": "sem"})
-
-        self.assertEqual(self._names(response), {self.unlinked.name})
-
+    def test_the_registry_can_isolate_companies_with_a_dominio_code(self) -> None:
         linked = self.client.get(reverse("hub:companies"), {"vinculo": "com"})
 
         self.assertEqual(self._names(linked), {self.linked.name, self.paused.name})
@@ -107,6 +104,27 @@ class CompanyRegistryTests(TestCase):
         response = self.client.get(reverse("hub:companies"), {"q": "Alheia"})
 
         self.assertEqual(self._names(response), set())
+
+    def test_a_dominio_connected_office_cannot_add_companies_manually(self) -> None:
+        for mode in IntelligenceConnector.Mode.values:
+            with self.subTest(mode=mode):
+                IntelligenceConnector.objects.filter(organization=self.organization).delete()
+                IntelligenceConnector.objects.create(
+                    organization=self.organization,
+                    mode=mode,
+                    status="healthy",
+                )
+
+                page = self.client.get(reverse("hub:companies"))
+                response = self.client.post(
+                    reverse("hub:companies"),
+                    {"name": "Cadastro manual", "cnpj_masked": "", "dominio_code": ""},
+                )
+
+                self.assertNotContains(page, "Adicionar empresa")
+                self.assertContains(page, "Domínio")
+                self.assertEqual(response.status_code, 403)
+                self.assertFalse(ClientCompany.objects.filter(name="Cadastro manual").exists())
 
 
 class DominioCodePolicyTests(TestCase):

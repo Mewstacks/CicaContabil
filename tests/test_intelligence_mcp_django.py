@@ -5,14 +5,21 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.hub.controlplane import generate_device_private_key, public_key_for_private
-from apps.hub.models import AccumulatorRule, ClientCompany, CompanyAccessGrant, ControlPlaneBinding
+from apps.hub.models import (
+    AccumulatorRule,
+    ClientCompany,
+    CompanyAccessGrant,
+    ControlPlaneBinding,
+    OfficeProfile,
+    ProductModule,
+)
 from apps.intelligence.gateway import ClaudeCompletion
 from apps.intelligence.mirror import sync_mirror_rows
 from apps.intelligence.models import (
@@ -32,19 +39,49 @@ from apps.intelligence.retrieval import refresh_knowledge_chunks
 from apps.intelligence.services import answer_question
 from apps.knowledge.models import SharedKnowledgeSource
 from apps.organizations.models import Membership, Organization
+from apps.platform.models import Plan, PlanServiceRate, PlatformConfiguration, TenantContract
 
 
 class InternalMcpTests(TestCase):
     databases = {"default", "knowledge"}
 
     def setUp(self) -> None:
+        PlatformConfiguration.objects.update_or_create(
+            key="default", defaults={"copilot_available_for_offices": True}
+        )
         self.user = User.objects.create_user("mcp@example.test", "safe-password-123")
         self.organization = Organization.objects.create(name="Acme", slug="acme")
         Membership.objects.create(
             organization=self.organization, user=self.user, role=Membership.Role.OWNER
         )
+        self.enable_trial(self.organization)
         self.client = Client()
         self.client.force_login(self.user)
+
+    @staticmethod
+    def enable_trial(organization):
+        plan = Plan.objects.create(code=f"ai-{organization.pk}", name="AI test")
+        PlanServiceRate.objects.create(plan=plan, action_code="ai.answer", included_units=100)
+        OfficeProfile.objects.create(organization=organization, trial_started_at=timezone.now())
+        ProductModule.objects.create(organization=organization, code="ai", enabled=True)
+        TenantContract.objects.create(
+            organization=organization,
+            plan=plan,
+            status="trial",
+            starts_on=timezone.localdate(),
+            trial_ends_on=timezone.localdate() + timedelta(days=14),
+            selected_modules=["ai"],
+        )
+
+    @staticmethod
+    def configure_local_runtime(
+        *, endpoint: str = "http://private-model.test", model: str = "qwen-local", api_key: str = ""
+    ) -> None:
+        PlatformConfiguration.objects.filter(key="default").update(
+            local_llm_endpoint=endpoint,
+            local_llm_model=model,
+            local_llm_api_key=api_key,
+        )
 
     def post_rpc(self, method: str, params: dict[str, object] | None = None):
         return self.client.post(
@@ -139,6 +176,7 @@ class InternalMcpTests(TestCase):
         other = Organization.objects.create(name="Globex", slug="globex")
         other_user = User.objects.create_user("other@example.test", "safe-password-123")
         Membership.objects.create(organization=other, user=other_user, role=Membership.Role.OWNER)
+        self.enable_trial(other)
         _, other_answer, _ = answer_question(
             organization=other,
             actor=other_user,
@@ -319,13 +357,9 @@ class InternalMcpTests(TestCase):
         self.assertNotEqual(attachment.encrypted_content_b64, "REFSRiB2ZW5jZSBtIDIwLzA5")
         self.assertTrue(any(item["label"] == "Anexo analisado" for item in response.evidence))
 
-    @override_settings(
-        LOCAL_LLM_ENDPOINT="http://private-model.test",
-        LOCAL_LLM_MODEL="qwen-local",
-        LOCAL_LLM_API_KEY="local-only-token",
-    )
     @patch("apps.intelligence.gateway.urlopen")
     def test_local_model_receives_only_compact_evidence_cards(self, mocked_urlopen) -> None:
+        self.configure_local_runtime(api_key="local-only-token")
         company = ClientCompany.objects.create(
             organization=self.organization, name="Modelo local", dominio_code="004"
         )
@@ -557,12 +591,12 @@ class InternalMcpTests(TestCase):
         conversation.refresh_from_db()
         self.assertIn("priorizar", conversation.summary.casefold())
 
-    @override_settings(LOCAL_LLM_ENDPOINT="http://private-model.test")
     @patch("apps.intelligence.services.generate_claude_fallback_completion")
     @patch("apps.intelligence.services.generate_local_completion", return_value=None)
     def test_claude_is_used_only_after_local_failure_and_audited(
         self, mocked_local, mocked_claude
     ) -> None:
+        self.configure_local_runtime()
         AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=True,
@@ -596,12 +630,12 @@ class InternalMcpTests(TestCase):
         self.assertTrue(audit.allowed)
         self.assertEqual(audit.estimated_cost_cents, 35)
 
-    @override_settings(LOCAL_LLM_ENDPOINT="http://private-model.test")
     @patch("apps.intelligence.services.generate_claude_fallback_completion")
     @patch("apps.intelligence.services.generate_local_completion", return_value=None)
     def test_claude_egress_is_audited_and_blocked_without_office_opt_in(
         self, mocked_local, mocked_claude
     ) -> None:
+        self.configure_local_runtime()
         AssistantSettings.objects.create(
             organization=self.organization,
             claude_fallback_enabled=False,
