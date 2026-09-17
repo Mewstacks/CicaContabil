@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Iterable
 from typing import Any, NoReturn
 
@@ -16,6 +17,12 @@ from apps.organizations.models import Membership, OrganizationScopedModel
 def private_import_path(instance: ImportBatch, filename: str) -> str:
     suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
     return f"private/imports/{instance.organization_id}/{instance.id}.{suffix}"
+
+
+def private_reconciliation_path(instance: models.Model, filename: str) -> str:
+    """Keep financial evidence private and unguessable in the configured storage."""
+    suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    return f"private/reconciliation/{instance.organization_id}/{instance.pk or uuid.uuid4()}.{suffix}"
 
 
 class OfficeProfile(OrganizationScopedModel):
@@ -278,14 +285,28 @@ class Certificate(OrganizationScopedModel):
 
 
 class NfseSync(OrganizationScopedModel):
+    class Status(models.TextChoices):
+        PAUSED = "paused", "Pausada"
+        IDLE = "idle", "Aguardando"
+        RUNNING = "running", "Sincronizando"
+        RETRY = "retry", "Nova tentativa agendada"
+        ERROR = "error", "Requer atenção"
+
     company = models.ForeignKey(ClientCompany, on_delete=models.CASCADE, related_name="nfse_syncs")
     certificate = models.ForeignKey(Certificate, null=True, blank=True, on_delete=models.SET_NULL)
+    enabled = models.BooleanField(default=False)
     checkpoint_nsu = models.CharField(max_length=80, blank=True)
-    status = models.CharField(max_length=24, default="idle")
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.PAUSED)
     last_error_code = models.CharField(max_length=80, blank=True)
+    last_error_message = models.CharField(max_length=500, blank=True)
     last_error_at = models.DateTimeField(null=True, blank=True)
     last_run_at = models.DateTimeField(null=True, blank=True)
+    last_success_at = models.DateTimeField(null=True, blank=True)
     next_run_at = models.DateTimeField(null=True, blank=True)
+    last_batch_count = models.PositiveSmallIntegerField(default=0)
+    failure_count = models.PositiveSmallIntegerField(default=0)
+    lease_token = models.UUIDField(null=True, blank=True, editable=False)
+    lease_until = models.DateTimeField(null=True, blank=True, editable=False)
 
     class Meta:
         constraints = [
@@ -339,8 +360,14 @@ class NfseDocument(ImmutableOrganizationModel):
         ordering = ("-captured_at",)
         constraints = [
             models.UniqueConstraint(
-                fields=("organization", "document_hash"), name="hub_unique_nfse_document_hash"
-            )
+                fields=("organization", "company", "document_hash"),
+                name="hub_unique_nfse_company_document_hash",
+            ),
+            models.UniqueConstraint(
+                fields=("organization", "company", "source_nsu"),
+                condition=models.Q(source_nsu__gt=""),
+                name="hub_unique_nfse_company_source_nsu",
+            ),
         ]
 
 
@@ -619,10 +646,21 @@ class DteRunItem(OrganizationScopedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     messages_found = models.PositiveIntegerField(default=0)
     more_available = models.BooleanField(default=False)
+    requested_page_pointer = models.CharField(max_length=24, blank=True)
+    next_page_pointer = models.CharField(max_length=24, blank=True)
+    continued_from = models.OneToOneField(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="continuation"
+    )
     service_response_id = models.CharField(max_length=120, blank=True)
     error_code = models.CharField(max_length=80, blank=True)
     error_message = models.CharField(max_length=240, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    token_usage_event = models.ForeignKey(
+        "platform.TokenUsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
+    usage_event = models.ForeignKey(
+        "platform.UsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
 
     class Meta:
         ordering = ("company__name",)
@@ -671,9 +709,7 @@ class DteMessage(ImmutableOrganizationModel):
 class DteMessageObservation(ImmutableOrganizationModel):
     """Append-only proof of each list response that mentioned a message."""
 
-    message = models.ForeignKey(
-        DteMessage, on_delete=models.PROTECT, related_name="observations"
-    )
+    message = models.ForeignKey(DteMessage, on_delete=models.PROTECT, related_name="observations")
     run_item = models.ForeignKey(
         DteRunItem, on_delete=models.PROTECT, related_name="message_observations"
     )
@@ -728,6 +764,12 @@ class DteMessageAccess(OrganizationScopedModel):
     provider_request_id = models.CharField(max_length=160, blank=True)
     provider_payload = EncryptedTextField(blank=True)
     error_message = models.CharField(max_length=240, blank=True)
+    token_usage_event = models.ForeignKey(
+        "platform.TokenUsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
+    usage_event = models.ForeignKey(
+        "platform.UsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
 
     class Meta:
         indexes = [models.Index(fields=("organization", "status", "requested_at"))]
@@ -742,6 +784,7 @@ class FiscalGuide(OrganizationScopedModel):
         MEI = "mei", "DAS MEI"
 
     class Status(models.TextChoices):
+        DISCOVERED = "discovered", "Apuração a conferir"
         READY = "ready", "Pronta para emitir"
         QUEUED = "queued", "Na fila"
         ISSUING = "issuing", "Emitindo"
@@ -794,6 +837,113 @@ class FiscalGuide(OrganizationScopedModel):
             models.Index(
                 fields=["organization", "status", "due_on"],
                 name="hub_fguide_org_stat_due_idx",
+            )
+        ]
+
+
+class DctfWebDocument(OrganizationScopedModel):
+    """One paid DCTFWeb document consultation for a company and competence."""
+
+    class Kind(models.TextChoices):
+        DECLARATION = "declaration", "Declaração completa"
+        RECEIPT = "receipt", "Recibo de transmissão"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Na fila"
+        FETCHING = "fetching", "Consultando"
+        AVAILABLE = "available", "Disponível"
+        FAILED = "failed", "Não obtido"
+        UNKNOWN = "unknown", "Resultado a confirmar"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="dctfweb_documents"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
+    competence = models.CharField(max_length=7)
+    service_key = models.CharField(max_length=100)
+    attempt = models.PositiveSmallIntegerField(default=0)
+    usage_event = models.ForeignKey(
+        "platform.UsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
+    token_usage_event = models.ForeignKey(
+        "platform.TokenUsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
+    requested_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="requested_dctfweb_documents",
+    )
+    requested_at = models.DateTimeField(default=timezone.now)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    provider_request_id = models.CharField(max_length=160, blank=True)
+    provider_payload = EncryptedTextField(blank=True)
+    error_code = models.CharField(max_length=80, blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        ordering = ("-requested_at", "company__name", "competence", "kind")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "competence", "kind"),
+                name="hub_unique_dctfweb_document",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("organization", "status", "requested_at"),
+                name="hub_dctfdoc_org_stat_req_idx",
+            )
+        ]
+
+
+class ParcelamentoOperation(OrganizationScopedModel):
+    """One explicitly authorized PARCSN request and its encrypted provider evidence."""
+
+    class Kind(models.TextChoices):
+        ORDERS = "orders", "Pedidos"
+        DETAIL = "detail", "Detalhe do acordo"
+        INSTALLMENTS = "installments", "Parcelas disponíveis"
+        DAS = "das", "DAS da parcela"
+
+    class Status(models.TextChoices):
+        QUEUED = "queued", "Na fila"
+        FETCHING = "fetching", "Consultando"
+        AVAILABLE = "available", "Disponível"
+        EMPTY = "empty", "Nenhum resultado"
+        FAILED = "failed", "Não concluída"
+        UNKNOWN = "unknown", "Resultado a confirmar"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="parcelamento_operations"
+    )
+    kind = models.CharField(max_length=16, choices=Kind.choices)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
+    service_key = models.CharField(max_length=100)
+    agreement_number = models.PositiveBigIntegerField(null=True, blank=True)
+    competence = models.CharField(max_length=6, blank=True)
+    attempt = models.PositiveSmallIntegerField(default=0)
+    token_usage_event = models.ForeignKey(
+        "platform.TokenUsageEvent", null=True, blank=True, on_delete=models.PROTECT
+    )
+    requested_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    requested_at = models.DateTimeField(default=timezone.now)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    provider_request_id = models.CharField(max_length=160, blank=True)
+    provider_payload = EncryptedTextField(blank=True)
+    error_code = models.CharField(max_length=80, blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        ordering = ("-requested_at",)
+        indexes = [
+            models.Index(
+                fields=("organization", "status", "requested_at"),
+                name="hub_parcop_org_stat_req_idx",
             )
         ]
 
@@ -959,6 +1109,370 @@ class ReconciliationMatch(OrganizationScopedModel):
 
     class Meta:
         indexes = [models.Index(fields=["organization", "status"])]
+
+
+# The models below are intentionally separate from the legacy OFX x Domínio mirror.
+# A source document, a financial movement and an accounting entry are different facts;
+# keeping them separate prevents a receipt, invoice and bank debit from becoming three
+# expenses merely because they describe the same business event.
+class ReconciliationSourceFile(OrganizationScopedModel):
+    class Kind(models.TextChoices):
+        OFX = "ofx", "OFX"
+        CSV = "csv", "CSV"
+        XLSX = "xlsx", "XLSX"
+        PDF = "pdf", "PDF"
+
+    class Origin(models.TextChoices):
+        BANK_STATEMENT = "bank_statement", "Extrato bancário"
+        ACCOUNTING = "accounting", "Registros contábeis"
+        OBLIGATION = "obligation", "Títulos ou obrigações"
+        DOCUMENT = "document", "Documento comprobatório"
+
+    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="reconciliation_files")
+    financial_account = models.ForeignKey(
+        "FinancialAccount",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="source_files",
+    )
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    origin = models.CharField(max_length=20, choices=Origin.choices)
+    original_filename = models.CharField(max_length=255)
+    content_hash = models.CharField(max_length=64)
+    content_type = models.CharField(max_length=120, blank=True)
+    size_bytes = models.PositiveIntegerField()
+    content = models.FileField(upload_to=private_reconciliation_path)
+    uploaded_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_files"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "content_hash"),
+                name="hub_unique_reconciliation_file_hash",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "created_at"))]
+
+
+class ReconciliationRun(OrganizationScopedModel):
+    class State(models.TextChoices):
+        WAITING = "waiting", "Aguardando"
+        PROCESSING = "processing", "Processando"
+        REVIEW = "review", "Aguardando revisão"
+        COMPLETED = "completed", "Concluída"
+        COMPLETED_ALERTS = "completed_alerts", "Concluída com alertas"
+        FAILED = "failed", "Falhou"
+        CANCELED = "canceled", "Cancelada"
+
+    source_file = models.ForeignKey(ReconciliationSourceFile, on_delete=models.PROTECT, related_name="runs")
+    continued_from = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="retries"
+    )
+    state = models.CharField(max_length=24, choices=State.choices, default=State.WAITING)
+    stage = models.CharField(max_length=48, default="queued")
+    total_count = models.PositiveIntegerField(default=0)
+    processed_count = models.PositiveIntegerField(default=0)
+    created_count = models.PositiveIntegerField(default=0)
+    updated_count = models.PositiveIntegerField(default=0)
+    ignored_count = models.PositiveIntegerField(default=0)
+    error_count = models.PositiveIntegerField(default=0)
+    checkpoint = models.JSONField(default=dict)
+    errors = models.JSONField(default=list)
+    layout_version = models.ForeignKey(
+        "ReconciliationLayout", null=True, blank=True, on_delete=models.SET_NULL, related_name="runs"
+    )
+    lease_token = models.UUIDField(null=True, blank=True, editable=False)
+    lease_until = models.DateTimeField(null=True, blank=True, editable=False)
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_runs"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=("organization", "state", "created_at")),
+            models.Index(fields=("lease_until",)),
+        ]
+
+
+class ReconciliationLayout(OrganizationScopedModel):
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_layouts")
+    kind = models.CharField(max_length=12, choices=ReconciliationSourceFile.Kind.choices)
+    name = models.CharField(max_length=120)
+    version = models.PositiveIntegerField(default=1)
+    active = models.BooleanField(default=True)
+    header_signature = models.CharField(max_length=64, blank=True)
+    configuration = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_layouts"
+    )
+
+    class Meta:
+        ordering = ("company_id", "kind", "name", "-version")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "kind", "name", "version"),
+                name="hub_unique_reconciliation_layout_version",
+            )
+        ]
+
+
+class FinancialAccount(OrganizationScopedModel):
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="financial_accounts")
+    name = models.CharField(max_length=160)
+    bank_code = models.CharField(max_length=20, blank=True)
+    account_reference = models.CharField(max_length=160, blank=True)
+    ledger_code = models.CharField(max_length=64, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "account_reference"),
+                name="hub_unique_financial_account_reference",
+            )
+        ]
+
+
+class LedgerAccount(OrganizationScopedModel):
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="ledger_accounts")
+    code = models.CharField(max_length=64)
+    name = models.CharField(max_length=200)
+    nature = models.CharField(max_length=12, blank=True)
+    active = models.BooleanField(default=True)
+    accepts_entries = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "code"), name="hub_unique_ledger_account_code"
+            )
+        ]
+
+
+class CostCenter(OrganizationScopedModel):
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="cost_centers")
+    code = models.CharField(max_length=64)
+    name = models.CharField(max_length=160)
+    active = models.BooleanField(default=True)
+    required = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "code"), name="hub_unique_cost_center_code"
+            )
+        ]
+
+
+class AccountingPeriod(OrganizationScopedModel):
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="accounting_periods")
+    starts_on = models.DateField()
+    ends_on = models.DateField()
+    locked_at = models.DateTimeField(null=True, blank=True)
+    locked_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="locked_accounting_periods"
+    )
+    lock_reason = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "starts_on", "ends_on"),
+                name="hub_unique_accounting_period",
+            )
+        ]
+
+
+class ReconciliationRule(OrganizationScopedModel):
+    class State(models.TextChoices):
+        DRAFT = "draft", "Rascunho"
+        ACTIVE = "active", "Ativa"
+        DISABLED = "disabled", "Desativada"
+
+    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_rules")
+    name = models.CharField(max_length=160)
+    priority = models.PositiveIntegerField(default=100)
+    version = models.PositiveIntegerField(default=1)
+    state = models.CharField(max_length=12, choices=State.choices, default=State.DRAFT)
+    all_conditions = models.JSONField(default=list)
+    any_conditions = models.JSONField(default=list)
+    actions = models.JSONField(default=dict)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_rules"
+    )
+
+    class Meta:
+        ordering = ("priority", "created_at", "id")
+        indexes = [models.Index(fields=("organization", "company", "state", "priority"))]
+
+
+class NormalizedMovement(OrganizationScopedModel):
+    class Direction(models.TextChoices):
+        INFLOW = "inflow", "Entrada"
+        OUTFLOW = "outflow", "Saída"
+
+    class ClassificationSource(models.TextChoices):
+        NONE = "none", "Sem classificação"
+        RULE = "rule", "Regra"
+        SUGGESTION = "suggestion", "Sugestão"
+        MANUAL = "manual", "Manual"
+
+    class ReviewState(models.TextChoices):
+        PENDING = "pending", "Pendente"
+        READY = "ready", "Pronto"
+        IGNORED = "ignored", "Ignorado"
+        CONFLICT = "conflict", "Conflito"
+
+    run = models.ForeignKey(ReconciliationRun, on_delete=models.PROTECT, related_name="movements")
+    source_file = models.ForeignKey(ReconciliationSourceFile, on_delete=models.PROTECT, related_name="movements")
+    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="normalized_movements")
+    financial_account = models.ForeignKey(
+        FinancialAccount, null=True, blank=True, on_delete=models.SET_NULL, related_name="movements"
+    )
+    source_key = models.CharField(max_length=255)
+    source_reference = models.JSONField(default=dict)
+    original_date = models.CharField(max_length=64, blank=True)
+    occurred_on = models.DateField(null=True, blank=True, db_index=True)
+    original_amount = models.CharField(max_length=64, blank=True)
+    amount_cents = models.BigIntegerField(default=0)
+    currency = models.CharField(max_length=3, default="BRL")
+    direction = models.CharField(max_length=12, choices=Direction.choices)
+    original_description = models.CharField(max_length=1000, blank=True)
+    description = models.CharField(max_length=1000, blank=True)
+    document_number = models.CharField(max_length=160, blank=True)
+    counterparty = models.CharField(max_length=255, blank=True)
+    debit_account_code = models.CharField(max_length=64, blank=True)
+    credit_account_code = models.CharField(max_length=64, blank=True)
+    cost_center_code = models.CharField(max_length=64, blank=True)
+    accounting_history = models.CharField(max_length=500, blank=True)
+    review_state = models.CharField(max_length=12, choices=ReviewState.choices, default=ReviewState.PENDING)
+    classification_source = models.CharField(
+        max_length=12, choices=ClassificationSource.choices, default=ClassificationSource.NONE
+    )
+    confidence = models.PositiveSmallIntegerField(default=0)
+    confidence_details = models.JSONField(default=dict)
+    applied_rule = models.ForeignKey(
+        ReconciliationRule, null=True, blank=True, on_delete=models.SET_NULL, related_name="applied_movements"
+    )
+    revision = models.PositiveIntegerField(default=1)
+    edited_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="edited_movements"
+    )
+
+    class Meta:
+        ordering = ("-occurred_on", "-created_at")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source_file", "source_key"), name="hub_unique_normalized_source_key"
+            )
+        ]
+        indexes = [
+            models.Index(fields=("organization", "company", "occurred_on")),
+            models.Index(fields=("organization", "company", "review_state")),
+        ]
+
+
+class JournalEntry(OrganizationScopedModel):
+    class State(models.TextChoices):
+        DRAFT = "draft", "Rascunho"
+        APPROVED = "approved", "Aprovado"
+        EXPORTED = "exported", "Exportado"
+        INVALID = "invalid", "Inválido"
+
+    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="journal_entries")
+    movement = models.ForeignKey(
+        NormalizedMovement, null=True, blank=True, on_delete=models.SET_NULL, related_name="journal_entries"
+    )
+    source_movement_revision = models.PositiveIntegerField(null=True, blank=True)
+    occurred_on = models.DateField()
+    history = models.CharField(max_length=500)
+    purpose = models.CharField(max_length=24)
+    state = models.CharField(max_length=12, choices=State.choices, default=State.DRAFT)
+    revision = models.PositiveIntegerField(default=1)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="approved_journal_entries"
+    )
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "company", "occurred_on", "state"))]
+
+
+class JournalLine(OrganizationScopedModel):
+    class Side(models.TextChoices):
+        DEBIT = "debit", "Débito"
+        CREDIT = "credit", "Crédito"
+
+    entry = models.ForeignKey(JournalEntry, on_delete=models.CASCADE, related_name="lines")
+    account_code = models.CharField(max_length=64)
+    side = models.CharField(max_length=8, choices=Side.choices)
+    amount_cents = models.PositiveBigIntegerField()
+    cost_center_code = models.CharField(max_length=64, blank=True)
+    history = models.CharField(max_length=500, blank=True)
+
+
+class MovementReconciliation(OrganizationScopedModel):
+    class State(models.TextChoices):
+        SUGGESTED = "suggested", "Sugerida"
+        CONFIRMED = "confirmed", "Confirmada"
+        UNDONE = "undone", "Desfeita"
+
+    movement = models.ForeignKey(NormalizedMovement, on_delete=models.CASCADE, related_name="reconciliations")
+    entry = models.ForeignKey(JournalEntry, on_delete=models.PROTECT, related_name="movement_reconciliations")
+    amount_cents = models.PositiveBigIntegerField()
+    state = models.CharField(max_length=12, choices=State.choices, default=State.SUGGESTED)
+    evidence = models.JSONField(default=dict)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="confirmed_movement_reconciliations"
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("movement", "entry"), name="hub_unique_movement_entry_reconciliation"
+            )
+        ]
+
+
+class AccountingExport(OrganizationScopedModel):
+    class State(models.TextChoices):
+        GENERATING = "generating", "Gerando"
+        READY = "ready", "Arquivo gerado"
+        CONFIRMED = "confirmed", "Importação confirmada"
+        FAILED = "failed", "Falhou"
+
+    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="accounting_exports")
+    period_start = models.DateField()
+    period_end = models.DateField()
+    state = models.CharField(max_length=16, choices=State.choices, default=State.GENERATING)
+    adapter_version = models.CharField(max_length=32, default="dominio-3.1-pending-homologation")
+    content_hash = models.CharField(max_length=64, blank=True)
+    content = models.FileField(upload_to=private_reconciliation_path, blank=True)
+    entry_ids = models.JSONField(default=list)
+    reexport_of = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="reexports"
+    )
+    reexport_reason = models.CharField(max_length=240, blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="accounting_exports"
+    )
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="confirmed_accounting_exports"
+    )
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [models.Index(fields=("organization", "company", "period_start", "period_end"))]
 
 
 class OperationalTask(OrganizationScopedModel):

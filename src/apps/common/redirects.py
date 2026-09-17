@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from django.http import HttpRequest
+from urllib.parse import urlencode
+
+from django.http import HttpRequest, HttpResponseRedirect
+from django.shortcuts import redirect
+from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 
 
@@ -19,3 +23,12 @@ def safe_next(request: HttpRequest, candidate: str | None, *, fallback: str) -> 
     ):
         return candidate
     return fallback
+
+
+def detail_redirect(request: HttpRequest, view: str, **kwargs: object) -> HttpResponseRedirect:
+    """Retain the originating list after a detail action; the template validates it."""
+    target = reverse(view, kwargs=kwargs)
+    candidate = request.POST.get("return_to") or request.GET.get("return_to")
+    if candidate:
+        target += "?" + urlencode({"return_to": candidate})
+    return redirect(target)

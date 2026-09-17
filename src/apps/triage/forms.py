@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import re
+import uuid
+from datetime import date
+from pathlib import PureWindowsPath
 
 from django import forms
 
 from apps.hub.models import ClientCompany
 from apps.organizations.models import Organization
-from apps.triage.models import DocumentType
+from apps.triage.models import DestinationProfile, DocumentType, Mailbox
 
 
 class ManualIntakeForm(forms.Form):
@@ -115,3 +118,149 @@ class IMAPConnectionForm(forms.Form):
         if any(char in password for char in "\r\n\x00"):
             raise forms.ValidationError("Credencial IMAP inválida.")
         return password
+
+
+class OfficeOAuthAppForm(forms.Form):
+    client_id = forms.CharField(label="ID do aplicativo (Client ID)", max_length=255)
+    client_secret = forms.CharField(
+        label="Valor do segredo (Client Secret)",
+        max_length=512,
+        strip=False,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
+    )
+    tenant_id = forms.CharField(
+        label="ID do diretório Microsoft (Tenant ID)", max_length=64, required=False
+    )
+
+    def __init__(self, *args: object, provider: str, **kwargs: object) -> None:
+        kwargs.setdefault("prefix", provider)
+        super().__init__(*args, **kwargs)
+        self.provider = provider
+        self.fields["client_id"].widget.attrs.update({"autocomplete": "off", "spellcheck": "false"})
+        self.fields["tenant_id"].widget.attrs.update({"autocomplete": "off", "spellcheck": "false"})
+        if provider == "ms365_graph":
+            self.fields["tenant_id"].required = True
+        elif provider == "gmail_api":
+            del self.fields["tenant_id"]
+        else:
+            raise ValueError("Provedor OAuth invalido.")
+
+    def clean_client_id(self) -> str:
+        value = str(self.cleaned_data["client_id"]).strip()
+        if not value or any(c.isspace() for c in value):
+            raise forms.ValidationError("Copie o ID do aplicativo sem espaços.")
+        return value
+
+    def clean_client_secret(self) -> str:
+        value = str(self.cleaned_data["client_secret"])
+        if not value.strip() or any(c in value for c in "\r\n\x00"):
+            raise forms.ValidationError("Copie o valor do segredo, não o ID do segredo.")
+        return value
+
+    def clean_tenant_id(self) -> str:
+        value = str(self.cleaned_data["tenant_id"]).strip()
+        try:
+            return str(uuid.UUID(value))
+        except ValueError as exc:
+            raise forms.ValidationError("Copie o ID do diretório em formato UUID.") from exc
+
+
+class MailboxOperationForm(forms.Form):
+    folder = forms.CharField(label="Pasta ou etiqueta", max_length=160)
+    since = forms.DateField(
+        label="Ler mensagens recebidas a partir de",
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
+    )
+    sender_filter = forms.CharField(
+        label="Remetente contém (opcional)", required=False, max_length=255
+    )
+    subject_filter = forms.CharField(
+        label="Assunto contém (opcional)", required=False, max_length=255
+    )
+    active = forms.BooleanField(
+        label="Ativar leitura automática desta caixa", required=False
+    )
+
+    def __init__(self, *args: object, mailbox: Mailbox, **kwargs: object) -> None:
+        kwargs.setdefault("prefix", f"mailbox-{mailbox.id}")
+        super().__init__(*args, **kwargs)
+        self.mailbox = mailbox
+        if not self.is_bound:
+            self.initial.update(
+                {
+                    "folder": mailbox.folder,
+                    "since": mailbox.since.date() if mailbox.since else date.today(),
+                    "sender_filter": mailbox.sender_filter,
+                    "subject_filter": mailbox.subject_filter,
+                    "active": mailbox.active,
+                }
+            )
+        for name in ("folder", "sender_filter", "subject_filter"):
+            self.fields[name].widget.attrs.update(
+                {"autocomplete": "off", "spellcheck": "false"}
+            )
+
+    def clean_folder(self) -> str:
+        value = str(self.cleaned_data["folder"]).strip()
+        if not value or any(char in value for char in "\r\n\x00"):
+            raise forms.ValidationError("Informe uma pasta ou etiqueta válida.")
+        return value
+
+    def clean_since(self) -> date:
+        value = self.cleaned_data["since"]
+        if value > date.today():
+            raise forms.ValidationError("A data inicial não pode estar no futuro.")
+        return value
+
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        if cleaned.get("active") and (
+            self.mailbox.status != Mailbox.Status.ACTIVE or not self.mailbox.credential
+        ):
+            self.add_error("active", "Reconecte a caixa antes de ativar a leitura.")
+        return cleaned
+
+
+class DestinationProfileForm(forms.Form):
+    mode = forms.ChoiceField(
+        label="Destino dos arquivos aprovados", choices=DestinationProfile.Mode.choices
+    )
+    windows_root = forms.CharField(
+        label="Pasta raiz no Windows",
+        required=False,
+        max_length=500,
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "placeholder": r"Ex.: D:\Clientes\Documentos",
+            }
+        ),
+    )
+
+    def __init__(
+        self, *args: object, profile: DestinationProfile | None, **kwargs: object
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if profile is not None and not self.is_bound:
+            self.initial.update({"mode": profile.mode, "windows_root": profile.windows_root})
+
+    def clean_windows_root(self) -> str:
+        value = str(self.cleaned_data.get("windows_root", "")).strip()
+        if any(char in value for char in "\r\n\x00"):
+            raise forms.ValidationError("A pasta raiz contém caracteres inválidos.")
+        return value
+
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        root = str(cleaned.get("windows_root") or "")
+        if cleaned.get("mode") == DestinationProfile.Mode.WINDOWS:
+            path = PureWindowsPath(root)
+            if not root or not path.is_absolute() or ".." in path.parts:
+                self.add_error(
+                    "windows_root",
+                    r"Informe uma pasta absoluta, por exemplo D:\Clientes\Documentos.",
+                )
+        else:
+            cleaned["windows_root"] = ""
+        return cleaned

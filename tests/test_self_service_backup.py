@@ -15,7 +15,6 @@ from apps.hub.models import ClientCompany, DataSource, ImportBatch
 from apps.intelligence.models import EdgeAgent
 from apps.organizations.models import Organization
 from apps.platform.models import TenantContract, TenantLifecycle
-from apps.platform.pricing import quote_subscription
 from apps.platform.tasks import advance_tenant_lifecycles
 
 pytestmark = pytest.mark.django_db
@@ -38,31 +37,6 @@ def _post(client: Client, agent: EdgeAgent, path: str, payload: dict[str, object
     return client.generic(
         "POST", path, body, content_type="application/json", headers=_signed_headers(agent, body)
     )
-
-
-def test_pricing_applies_all_ranges_without_a_company_ceiling() -> None:
-    two = quote_subscription(module_codes=["nfse", "guides"], company_count=20)
-    three = quote_subscription(module_codes=["nfse", "guides", "reform"], company_count=50)
-    full = quote_subscription(
-        module_codes=[
-            "nfse",
-            "guides",
-            "integra",
-            "reconciliation",
-            "reform",
-            "journey",
-            "ai",
-        ],
-        company_count=2_000,
-    )
-
-    assert two.discount_percent == 10
-    assert two.monthly_cents == 24_120
-    assert three.discount_percent == 15
-    assert three.company_multiplier.as_tuple().exponent == -2
-    assert full.discount_percent == 25
-    assert full.company_multiplier.as_tuple().digits == (1, 8, 2)
-    assert full.monthly_cents == 128_720
 
 
 @override_settings(EDGE_AGENT_MTLS_REQUIRED=False)

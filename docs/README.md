@@ -1,5 +1,7 @@
 # Documentação / Documentation
 
+**Referência vigente:** [Plano mestre na raiz](../PLANO-MESTRE.md), [decisões](../DECISOES.md), [validações](../VALIDACOES.md) e [etapas/prompts](planejamento/etapas/README.md). As decisões confirmadas não devem ser perguntadas novamente; documentos históricos preservam contexto, não autorização atual.
+
 Os guias técnicos abaixo têm versões em português brasileiro e inglês. A memória de produto em `planejamento/` está em português.
 
 The technical guides below have Brazilian Portuguese and English versions. Product planning notes under `planejamento/` are in Portuguese.

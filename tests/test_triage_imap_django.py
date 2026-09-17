@@ -103,7 +103,7 @@ class IMAPConnectionTests(TestCase):
     def test_connection_encrypts_secret_and_does_not_start_intake(self) -> None:
         with patch("apps.hub.views.probe_imap_mailbox") as probe:
             response = self.client.post(reverse("hub:triage-imap-connect"), self.form_data())
-        self.assertRedirects(response, reverse("hub:triage"))
+        self.assertRedirects(response, reverse("hub:triage-connections"))
         probe.assert_called_once_with(
             host="imap.provider.example",
             username="box@office.example",

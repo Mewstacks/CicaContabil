@@ -19,9 +19,11 @@ internal sealed class SetupForm : Form
     private readonly ComboBox driver = new() { Dock = DockStyle.Fill };
     private readonly TextBox user = new() { Text = "DBA", Dock = DockStyle.Fill };
     private readonly TextBox password = new() { Text = "sql", UseSystemPasswordChar = true, Dock = DockStyle.Fill };
+    private readonly TextBox archiveRoot = new() { Dock = DockStyle.Fill };
     private readonly Label status = new() { AutoSize = true, MaximumSize = new(520, 0), Padding = new(0, 8, 0, 8) };
     private readonly Button test = new() { Text = "Testar conexão", AutoSize = true };
     private readonly Button finish = new() { Text = "Conectar ao Regaro", AutoSize = true };
+    private readonly Button chooseArchiveRoot = new() { Text = "Escolher pasta de arquivos", AutoSize = true };
 
     internal SetupForm()
     {
@@ -51,6 +53,8 @@ internal sealed class SetupForm : Form
         Add(layout, "Driver SQL Anywhere para backups", driver);
         Add(layout, "Usuário do banco", user);
         Add(layout, "Senha do banco", password);
+        Add(layout, "Pasta raiz para arquivos aprovados (opcional)", archiveRoot);
+        layout.Controls.Add(chooseArchiveRoot);
         var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
         buttons.Controls.Add(test); buttons.Controls.Add(finish); layout.Controls.Add(buttons);
         layout.Controls.Add(status);
@@ -58,6 +62,7 @@ internal sealed class SetupForm : Form
         mode.SelectedIndexChanged += (_, _) => RefreshMode();
         test.Click += async (_, _) => await TestConnection();
         finish.Click += async (_, _) => await Enroll();
+        chooseArchiveRoot.Click += (_, _) => ChooseArchiveRoot();
         RefreshMode();
     }
 
@@ -120,9 +125,21 @@ internal sealed class SetupForm : Form
             string pfx = Convert.ToBase64String(identity.Export(X509ContentType.Pkcs12));
             Save(new Config(server.Text.Trim(), root.GetProperty("agent_id").GetString()!,
                 root.GetProperty("shared_secret").GetString()!, pfx,
-                mode.SelectedIndex == 1 ? dsn.Text : null, driver.Text, user.Text, password.Text));
+                mode.SelectedIndex == 1 ? dsn.Text : null, driver.Text, user.Text, password.Text,
+                string.IsNullOrWhiteSpace(archiveRoot.Text) ? null : Path.GetFullPath(archiveRoot.Text)));
             status.Text = "Tudo pronto. O serviço Regaro Agent pode ser iniciado.";
         });
+    }
+
+    private void ChooseArchiveRoot()
+    {
+        using var dialog = new FolderBrowserDialog
+        {
+            Description = "Escolha a mesma pasta raiz configurada na Triagem do Regaro",
+            UseDescriptionForTitle = true,
+            ShowNewFolderButton = true,
+        };
+        if (dialog.ShowDialog(this) == DialogResult.OK) archiveRoot.Text = dialog.SelectedPath;
     }
 
     private async Task Busy(Func<Task> action)
@@ -186,5 +203,5 @@ internal sealed class SetupForm : Form
 
     private sealed record Config(string ServerUrl, string AgentId, string SharedSecret,
         string CertificatePfxBase64, string? Dsn, string SqlAnywhereDriver,
-        string DatabaseUser, string DatabasePassword);
+        string DatabaseUser, string DatabasePassword, string? WindowsArchiveRoot);
 }

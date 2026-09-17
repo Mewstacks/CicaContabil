@@ -1,0 +1,21 @@
+{% extends 'hub/workspace.html' %}
+{% load ui_navigation %}
+{% block page_action %}<a class="button button-quiet" href="{% back_url 'hub:guides' %}">Voltar às guias</a>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="guide-result-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">{% if office.is_demo %}RESULTADO FICTÍCIO{% else %}REGISTRO OPERACIONAL{% endif %}</p><h2 id="guide-result-heading">{{ guide.get_kind_display }} · {{ guide.company.name }}</h2><p>Competência {{ guide.competence }} · vencimento {{ guide.due_on|date:'d/m/Y' }}</p></div><span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ guide.get_status_display }}{% if office.is_demo %} (fictícia){% endif %}</span></header>
+  <dl class="triage-details">
+    <div><dt>Empresa</dt><dd>{{ guide.company.name }} · {{ guide.company.cnpj_masked }}</dd></div>
+    <div><dt>Competência</dt><dd>{{ guide.competence }}</dd></div>
+    <div><dt>{% if office.is_demo %}Valor de exemplo{% else %}Soma calculada no Domínio{% endif %}</dt><dd>R$ {{ guide_amount_brl|floatformat:2 }}</dd></div>
+    <div><dt>Referência{% if office.is_demo %} fictícia{% endif %}</dt><dd>{{ guide.reference }}</dd></div>
+    {% if guide.issue_requested_at %}<div><dt>Solicitada em</dt><dd>{{ guide.issue_requested_at|date:'d/m/Y H:i' }}</dd></div>{% endif %}
+    {% if guide.issue_requested_by %}<div><dt>Responsável</dt><dd>{{ guide.issue_requested_by.full_name|default:guide.issue_requested_by.email }}</dd></div>{% endif %}
+    {% if guide.issued_at %}<div><dt>Resultado em</dt><dd>{{ guide.issued_at|date:'d/m/Y H:i' }}</dd></div>{% endif %}
+    {% if guide.provider_request_id %}<div><dt>{% if office.is_demo %}Registro local fictício{% else %}Identificador do fornecedor{% endif %}</dt><dd>{{ guide.provider_request_id }}</dd></div>{% endif %}
+  </dl>
+  {% if office.is_demo %}<p class="triage-decision-note">Nenhuma declaração foi consultada ou guia oficial emitida. Este resultado foi criado localmente para mostrar o fluxo de trabalho.</p>{% if guide.status == 'issued' %}<a class="button" href="{% url 'hub:demo-guide-pdf' guide.id %}">Baixar PDF fictício sem validade</a>{% endif %}
+  {% elif guide.status == 'issued' %}<p class="triage-decision-note">A emissão foi confirmada com um PDF válido devolvido pelo Serpro. A soma exibida acima permanece identificada como cálculo do Domínio; confira o valor oficial no DARF. Baixar o documento salvo não gera outra consulta.</p><a class="button" href="{% url 'hub:guide-pdf' guide.id %}">Baixar DARF oficial</a>
+  {% elif guide.error_message %}<p class="triage-decision-note" role="alert">{{ guide.error_message }} Confira o registro antes de tentar novamente.</p>{% endif %}
+</section>
+{% endblock %}

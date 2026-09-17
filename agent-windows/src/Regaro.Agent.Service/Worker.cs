@@ -15,6 +15,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 using var client = new AgentClient(config);
                 await client.PostAsync("api/agent/v2/heartbeat", new { version = "1.0.0" }, stoppingToken);
                 await new BackupProcessor(config, client).RunOnce(stoppingToken);
+                await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {

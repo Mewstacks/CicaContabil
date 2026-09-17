@@ -1,0 +1,31 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">MAPEAR</p>
+      <h2>{{ mapping_source.original_filename }}</h2>
+      <p>Confirme a leitura antes de normalizar. O layout é versionado por empresa e formato.</p>
+    </div>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#processamentos">Voltar</a>
+  </header>
+  <form method="post" class="form-stack reconciliation-mapping-form">
+    {% csrf_token %}
+    <div class="field"><label for="layout-name">Nome do layout</label><input id="layout-name" name="name" maxlength="120" autocomplete="off" value="{{ mapping_source.original_filename|cut:'.csv'|cut:'.xlsx' }}"></div>
+    <div class="mapping-grid">
+      {% for field, label, current in mapping_fields %}
+        <div class="field">
+          <label for="map-{{ field }}">{{ label }}</label>
+          <select id="map-{{ field }}" name="map_{{ field }}" autocomplete="off">
+            <option value="">Não mapear</option>
+            {% for header in mapping_preview.headers %}<option value="{{ header }}"{% if current == header %} selected{% endif %}>{{ header }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+    <p class="field-help">Data e histórico são obrigatórios. Escolha valor com sinal ou as colunas separadas de débito e crédito.</p>
+    <button class="button" type="submit">Salvar layout e processar</button>
+  </form>
+  <div class="data-table-wrap"><table class="operational-table"><thead><tr>{% for header in mapping_preview.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in mapping_preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

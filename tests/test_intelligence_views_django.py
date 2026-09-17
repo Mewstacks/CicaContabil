@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from io import BytesIO
+from uuid import uuid4
 
 from django.test import TestCase
 from django.urls import reverse
@@ -10,9 +11,21 @@ from openpyxl import load_workbook
 
 from apps.accounts.models import User
 from apps.hub.models import ClientCompany, OfficeProfile, ProductModule
-from apps.intelligence.models import AnswerFeedback, Conversation, LearningCandidate, Message
+from apps.intelligence.models import (
+    AnswerFeedback,
+    Conversation,
+    EgressAudit,
+    LearningCandidate,
+    Message,
+)
 from apps.organizations.models import Membership, Organization
-from apps.platform.models import Plan, PlanServiceRate, PlatformConfiguration, TenantContract
+from apps.platform.models import (
+    Plan,
+    PlanServiceRate,
+    PlatformConfiguration,
+    TenantContract,
+    UsageEvent,
+)
 
 
 class IntelligenceViewsTests(TestCase):
@@ -78,6 +91,88 @@ class IntelligenceViewsTests(TestCase):
                 organization=self.organization, company=self.company
             ).exists()
         )
+
+    def test_same_submission_redirects_without_second_answer_or_reservation(self) -> None:
+        submission_id = uuid4()
+        payload = {
+            "question": "Quais são as pendências?",
+            "company_id": str(self.company.id),
+            "request_id": str(submission_id),
+        }
+        first = self.client.post(reverse("intelligence:assistant"), payload)
+        repeated = self.client.post(reverse("intelligence:assistant"), payload)
+        self.assertEqual(first.status_code, 302)
+        self.assertEqual(repeated.status_code, 302)
+        self.assertEqual(first.url, repeated.url)
+        self.assertEqual(Message.objects.filter(request_id=submission_id).count(), 1)
+        self.assertEqual(
+            Message.objects.filter(organization=self.organization, role=Message.Role.ASSISTANT)
+            .exclude(in_reply_to__isnull=True)
+            .count(),
+            1,
+        )
+        self.assertEqual(UsageEvent.objects.filter(organization=self.organization).count(), 1)
+
+    def test_company_picker_and_existing_thread_company(self) -> None:
+        new_page = self.client.get(reverse("intelligence:assistant"))
+        self.assertContains(new_page, 'id="assistant-company"')
+        self.assertContains(new_page, "Empresa para esta análise")
+        self.assertContains(new_page, self.company.name)
+
+        conversation = Conversation.objects.create(
+            organization=self.organization, company=self.company, title="Análise existente"
+        )
+        thread_url = reverse("intelligence:assistant") + f"?conversation={conversation.id}"
+        thread_page = self.client.get(thread_url)
+        self.assertContains(
+            thread_page, f'name="company_id" value="{self.company.id}"'
+        )
+        answered = self.client.post(
+            thread_url,
+            {"question": "Outra dúvida da mesma empresa?", "conversation_id": str(conversation.id)},
+        )
+        self.assertEqual(answered.status_code, 302)
+        self.assertEqual(
+            Message.objects.filter(
+                organization=self.organization,
+                conversation=conversation,
+                role=Message.Role.ASSISTANT,
+            ).count(),
+            1,
+        )
+
+    def test_uncertain_attempt_is_visible_beside_question_with_support_reference(self) -> None:
+        PlatformConfiguration.objects.filter(key="default").update(
+            support_email="suporte@example.test"
+        )
+        conversation = Conversation.objects.create(
+            organization=self.organization, company=self.company, title="Pendência"
+        )
+        question = Message.objects.create(
+            organization=self.organization,
+            conversation=conversation,
+            role=Message.Role.USER,
+            content="Qual pendência?",
+            request_id=uuid4(),
+        )
+        audit = EgressAudit.objects.create(
+            organization=self.organization,
+            provider="anthropic",
+            purpose="technical_fallback",
+            payload_hash="b" * 64,
+            actor=self.owner,
+            role=Membership.Role.OWNER,
+            allowed=True,
+            call_state=EgressAudit.CallState.UNKNOWN,
+            user_message=question,
+        )
+        page = self.client.get(
+            reverse("intelligence:assistant"), {"conversation": str(conversation.id)}
+        )
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Resultado da IA incerto")
+        self.assertContains(page, str(audit.id))
+        self.assertContains(page, "mailto:suporte@example.test")
 
     def test_disabled_copilot_module_blocks_page_feedback_and_exports(self) -> None:
         message = self.assistant_message()

@@ -1,5 +1,7 @@
 # Ativação operacional da IA
 
+> Estado histórico de 15/09, preservado. Decisões atualizadas em [DECISOES.md](../../DECISOES.md), D-46–D-52: SaaS/IA centrais, aprendizado privado por escritório, contábil/fiscal/folha, API agora e reserva autorizada após a migração local. [Etapa 05](etapas/05-ia-api-pipeline-local.md) prepara o pipeline; [etapa 13](etapas/13-ia-local-definitiva.md) exige hardware e treino reais e não bloqueia a venda inicial por API. Nomes de modelo, tarifas e testes do texto abaixo são relatos datados, não revalidados nesta etapa nem autorização de gasto.
+
 Atualizado em 15/09/2026. A IA deve permanecer indisponível para escritórios até que todas as verificações abaixo sejam verdadeiras. Este documento não autoriza uma chamada cobrada à Anthropic.
 
 ## Estado verificado nesta máquina

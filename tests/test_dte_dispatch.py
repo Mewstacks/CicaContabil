@@ -6,6 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from apps.accounts.models import User
+from apps.hub.dte_payload import list_page
 from apps.hub.models import (
     ClientCompany,
     DteMessage,
@@ -13,26 +15,131 @@ from apps.hub.models import (
     DteMessageState,
     DteRun,
     DteRunItem,
+    OfficeProfile,
 )
 from apps.hub.services import (
     DTE_ACTION_CODE,
     DteRunTransitionError,
     approve_dte_run,
     cancel_dte_run,
+    prepare_dte_next_page,
 )
 from apps.hub.tasks import _save_messages, dispatch_dte_run
 from apps.integra.errors import IntegraConfigurationError
-from apps.organizations.models import Organization
+from apps.organizations.models import Membership, Organization
 from apps.platform.billing import reserve_usage
 from apps.platform.models import (
     Plan,
     PlanServiceRate,
     TenantContract,
     TenantUsagePolicy,
+    TokenActionWeight,
+    TokenModuleRate,
+    TokenPriceBook,
+    TokenUsageEvent,
     UsageEvent,
 )
 
 pytestmark = pytest.mark.django_db
+
+
+def test_dte_approval_uses_accepted_token_book_and_links_each_company() -> None:
+    organization = Organization.objects.create(name="DTE tokens", slug="dte-tokens")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa", cnpj_masked="12.345.678/0001-95"
+    )
+    plan = Plan.objects.create(code="dte-token-plan", name="DTE tokens")
+    contract = TenantContract.objects.create(
+        organization=organization, plan=plan, status=TenantContract.Status.ACTIVE
+    )
+    owner = User.objects.create_user("dte-token-owner@example.test", "test-password")
+    Membership.objects.create(organization=organization, user=owner, role=Membership.Role.OWNER)
+    book = TokenPriceBook.objects.create(
+        contract=contract, version=1,
+        token_price_cents=5, monthly_overage_cap_cents=500,
+        effective_from=timezone.localdate().replace(day=1), accepted_by=owner,
+        accepted_at=timezone.now(), activated_at=timezone.now(),
+    )
+    rate = TokenModuleRate.objects.create(
+        book=book, module_code="integra", monthly_base_cents=1000, included_tokens=100
+    )
+    TokenActionWeight.objects.create(
+        module_rate=rate, action_code=DTE_ACTION_CODE, tokens=4
+    )
+    TokenPriceBook.objects.filter(id=book.id).update(status=TokenPriceBook.Status.ACTIVE)
+    run = DteRun.objects.create(organization=organization, total_companies=1)
+    item = DteRunItem.objects.create(organization=organization, run=run, company=company)
+
+    with patch("apps.hub.services.transaction.on_commit"):
+        approve_dte_run(run=run, actor=owner)
+
+    item.refresh_from_db()
+    event = TokenUsageEvent.objects.get(id=item.token_usage_event_id)
+    assert event.tokens == 4
+    assert event.action_code == DTE_ACTION_CODE
+    assert item.usage_event_id is None
+
+
+def test_demo_dte_run_completes_locally_without_serpro() -> None:
+    organization = Organization.objects.create(
+        name="Demonstração fictícia", slug="dte-demo-central", is_demo=True
+    )
+    company = ClientCompany.objects.create(organization=organization, name="Empresa fictícia")
+    DteMessage.objects.create(
+        organization=organization,
+        company=company,
+        source_isn="demo-1",
+        subject="Aviso fictício",
+        sender="Origem simulada",
+        sent_at=timezone.now(),
+    )
+    run = DteRun.objects.create(
+        organization=organization, status=DteRun.Status.QUEUED, total_companies=1
+    )
+    item = DteRunItem.objects.create(organization=organization, run=run, company=company)
+    with patch("apps.hub.tasks.IntegraClient") as client:
+        dispatch_dte_run.run(str(run.id))
+    client.assert_not_called()
+    run.refresh_from_db()
+    item.refresh_from_db()
+    assert run.status == DteRun.Status.COMPLETED
+    assert run.messages_found == 1
+    assert item.service_response_id.startswith("DEMO-")
+
+
+def test_demo_dte_approval_needs_no_commercial_contract_or_usage_event() -> None:
+    organization = Organization.objects.create(
+        name="DTE demo", slug="dte-demo-approval", is_demo=True
+    )
+    company = ClientCompany.objects.create(
+        organization=organization,
+        name="Empresa fictícia",
+        cnpj_masked="12.345.678/0001-95",
+    )
+    run = DteRun.objects.create(
+        organization=organization, status=DteRun.Status.AWAITING_APPROVAL, total_companies=1
+    )
+    DteRunItem.objects.create(organization=organization, run=run, company=company)
+    with patch("apps.hub.services.transaction.on_commit", side_effect=lambda callback: None):
+        approve_dte_run(run=run, actor=None)
+    run.refresh_from_db()
+    assert run.status == DteRun.Status.QUEUED
+    assert not UsageEvent.objects.filter(organization=organization).exists()
+    with patch("apps.hub.tasks.IntegraClient") as client:
+        dispatch_dte_run.run(str(run.id))
+    client.assert_not_called()
+    run.refresh_from_db()
+    assert run.status == DteRun.Status.COMPLETED
+
+
+def test_dte_page_pointer_accepts_new_24_digit_format_and_keeps_rows_without_pointer() -> None:
+    payload = {"dados": {"conteudo": [{
+        "indicadorUltimaPagina": "N", "ponteiroProximaPagina": "1" * 24,
+        "listaMensagens": [{"isn": "123"}],
+    }]}}
+    assert list_page(payload) == ([{"isn": "123"}], True, "1" * 24)
+    payload["dados"]["conteudo"][0]["ponteiroProximaPagina"] = "invalid"
+    assert list_page(payload) == ([{"isn": "123"}], True, "")
 
 
 @patch("apps.hub.tasks.IntegraClient")
@@ -40,6 +147,7 @@ def test_dte_worker_settles_usage_and_deduplicates_returned_messages(
     mock_client: MagicMock,
 ) -> None:
     organization = Organization.objects.create(name="DTE Central", slug="dte-central")
+    OfficeProfile.objects.create(organization=organization, cnpj="11.222.333/0001-81")
     company = ClientCompany.objects.create(
         organization=organization, name="Empresa DTE", cnpj_masked="12.345.678/0001-95"
     )
@@ -95,6 +203,7 @@ def test_dte_worker_settles_usage_and_deduplicates_returned_messages(
 @patch("apps.hub.tasks.IntegraClient")
 def test_dte_worker_uses_official_nested_rows_dates_and_more_pages(mock_client: MagicMock) -> None:
     organization = Organization.objects.create(name="Caixa oficial", slug="caixa-oficial")
+    OfficeProfile.objects.create(organization=organization, cnpj="11.222.333/0001-81")
     company = ClientCompany.objects.create(
         organization=organization, name="Empresa", cnpj_masked="12.345.678/0001-95"
     )
@@ -142,6 +251,7 @@ def test_dte_worker_uses_official_nested_rows_dates_and_more_pages(mock_client: 
     message = DteMessage.objects.get(organization=organization, source_isn="0000082838")
     assert item.status == DteRunItem.Status.COMPLETED
     assert item.more_available is True
+    assert item.next_page_pointer == "20260912093015"
     assert item.messages_found == 1
     assert message.subject == "Processo 2026"
     assert message.sent_at is not None and message.sent_at.year == 2026
@@ -150,7 +260,58 @@ def test_dte_worker_uses_official_nested_rows_dates_and_more_pages(mock_client: 
     mock_client.return_value.call.assert_called_once_with(
         "caixapostal.mensagens",
         contribuinte="12345678000195",
+        autor_pedido="11222333000181",
         dados={"statusLeitura": "0", "indicadorPagina": "0"},
+    )
+
+
+@patch("apps.hub.tasks.IntegraClient")
+def test_next_dte_page_requires_new_usage_and_uses_saved_pointer(mock_client: MagicMock) -> None:
+    organization = Organization.objects.create(name="Caixa em páginas", slug="caixa-em-paginas")
+    OfficeProfile.objects.create(organization=organization, cnpj="11.222.333/0001-81")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa", cnpj_masked="12.345.678/0001-95"
+    )
+    plan = Plan.objects.create(code="caixa-em-paginas", name="Caixa")
+    PlanServiceRate.objects.create(plan=plan, action_code=DTE_ACTION_CODE, included_units=10)
+    TenantContract.objects.create(
+        organization=organization, plan=plan, status=TenantContract.Status.ACTIVE
+    )
+    first = DteRun.objects.create(organization=organization, status=DteRun.Status.COMPLETED)
+    source = DteRunItem.objects.create(
+        organization=organization, run=first, company=company,
+        status=DteRunItem.Status.COMPLETED, more_available=True,
+        next_page_pointer="20260912093015",
+    )
+    second = prepare_dte_next_page(source_item=source)
+    item = second.items.get()
+    assert second.status == DteRun.Status.AWAITING_APPROVAL
+    assert item.requested_page_pointer == "20260912093015"
+    with pytest.raises(ValueError, match="já foi preparada"):
+        prepare_dte_next_page(source_item=source)
+    reserve_usage(
+        organization=organization,
+        action_code=DTE_ACTION_CODE,
+        idempotency_key=f"dte-run-item:{item.id}:caixapostal",
+    )
+    second.status = DteRun.Status.QUEUED
+    second.save(update_fields=["status"])
+    mock_client.return_value.call.return_value = {
+        "status": 200,
+        "dados": {"conteudo": [{"indicadorUltimaPagina": "S", "listaMensagens": []}]},
+    }
+    dispatch_dte_run.run(str(second.id))
+    item.refresh_from_db()
+    assert item.status == DteRunItem.Status.COMPLETED
+    assert item.more_available is False
+    mock_client.return_value.call.assert_called_once_with(
+        "caixapostal.mensagens",
+        contribuinte="12345678000195",
+        autor_pedido="11222333000181",
+        dados={
+            "statusLeitura": "0", "indicadorPagina": "1",
+            "ponteiroPagina": "20260912093015",
+        },
     )
 
 

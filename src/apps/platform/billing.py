@@ -5,17 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.organizations.models import Organization
 from apps.platform.models import (
+    BillingCloseDeferral,
     Invoice,
     InvoiceLine,
     PlanServiceRate,
     TenantContract,
     TenantServiceRate,
     TenantUsagePolicy,
+    TokenMeter,
+    TokenModuleRate,
+    TokenPriceBook,
+    TokenUsageEvent,
     UsageEvent,
     UsageMeter,
 )
@@ -152,6 +158,10 @@ def quote_usage(*, organization: Organization, action_code: str, units: int = 1)
     if units < 1:
         raise BillingError("Uma consulta precisa incluir ao menos uma unidade.")
     with transaction.atomic():
+        Organization.objects.select_for_update().get(id=organization.id)
+        start, _end = month_bounds(timezone.localdate())
+        if Invoice.objects.filter(organization=organization, period_start=start).exists():
+            raise BillingError("A competência já foi faturada; não prepare outro consumo.")
         meter, _rate_record = _meter(
             organization=organization, action_code=action_code, on_date=timezone.localdate()
         )
@@ -184,12 +194,24 @@ def reserve_usage(
 
     if units < 1:
         raise BillingError("Uma chamada precisa consumir ao menos uma unidade.")
+    if getattr(settings, "TOKEN_BILLING_ENABLED", False) and TokenPriceBook.objects.filter(
+        contract__organization=organization,
+        status=TokenPriceBook.Status.ACTIVE,
+        effective_from__lte=timezone.localdate(),
+    ).exists():
+        raise BillingError(
+            "Esta competência usa tokens. Migre a operação antes de enviar uma chamada externa."
+        )
     with transaction.atomic():
+        Organization.objects.select_for_update().get(id=organization.id)
         existing = UsageEvent.objects.filter(idempotency_key=idempotency_key).first()
         if existing is not None:
             if existing.organization_id != organization.id or existing.action_code != action_code:
                 raise BillingError("A chave de idempotência já pertence a outro consumo.")
             return existing
+        start, _end = month_bounds(timezone.localdate())
+        if Invoice.objects.filter(organization=organization, period_start=start).exists():
+            raise BillingError("A competência já foi faturada; não reserve outro consumo.")
         meter, _rate_record = _meter(
             organization=organization, action_code=action_code, on_date=timezone.localdate()
         )
@@ -250,6 +272,7 @@ def settle_usage(
     """Settle a reservation only after knowing whether Serpro billed the request."""
 
     with transaction.atomic():
+        Organization.objects.select_for_update().get(id=event.organization_id)
         event = UsageEvent.objects.select_for_update().select_related("meter").get(id=event.id)
         if event.status != UsageEvent.Status.RESERVED:
             return event
@@ -281,10 +304,14 @@ def settle_usage(
         return event
 
 
-def close_competence(*, period_start: date) -> list[Invoice]:
+def close_competence(
+    *, period_start: date, deferred_organization_ids: list[str] | None = None
+) -> list[Invoice]:
     """Generate exactly one immutable-open invoice per active office and month."""
 
     start, end = month_bounds(period_start)
+    if start >= timezone.localdate().replace(day=1):
+        raise BillingError("A competência ainda não terminou; aguarde o mês completo.")
     invoices: list[Invoice] = []
     contracts = (
         TenantContract.objects.filter(
@@ -299,7 +326,75 @@ def close_competence(*, period_start: date) -> list[Invoice]:
             continue
         seen_organizations.add(contract.organization_id)
         with transaction.atomic():
+            Organization.objects.select_for_update().get(id=contract.organization_id)
+            if (
+                UsageEvent.objects.filter(
+                    organization=contract.organization,
+                    meter__period_start=start,
+                    status=UsageEvent.Status.RESERVED,
+                ).exists()
+                or TokenUsageEvent.objects.filter(
+                    organization=contract.organization,
+                    meter__period_start=start,
+                    status=TokenUsageEvent.Status.RESERVED,
+                ).exists()
+                or UsageMeter.objects.filter(
+                    organization=contract.organization, period_start=start,
+                    reserved_units__gt=0,
+                ).exists()
+                or TokenMeter.objects.filter(
+                    organization=contract.organization, period_start=start,
+                    reserved_tokens__gt=0,
+                ).exists()
+            ):
+                if deferred_organization_ids is not None:
+                    BillingCloseDeferral.objects.update_or_create(
+                        organization=contract.organization,
+                        period_start=start,
+                        defaults={
+                            "reason": "reserved_usage",
+                            "last_seen_at": timezone.now(),
+                            "resolved_at": None,
+                        },
+                    )
+                    deferred_organization_ids.append(str(contract.organization_id))
+                    continue
+                raise BillingError(
+                    "Há operações reservadas nesta competência. "
+                    "Conclua ou libere todas antes de gerar a fatura."
+                )
             snapshot_contract_pricing(contract)
+            token_book = None
+            if getattr(settings, "TOKEN_BILLING_ENABLED", False):
+                token_book = TokenPriceBook.objects.filter(
+                    contract=contract,
+                    status__in=[
+                        TokenPriceBook.Status.ACTIVE, TokenPriceBook.Status.RETIRED
+                    ],
+                    effective_from__lte=start,
+                ).order_by("-effective_from", "-version").first()
+            if token_book is None and TokenMeter.objects.filter(
+                organization=contract.organization, period_start=start
+            ).exists():
+                raise BillingError(
+                    "Há consumo por tokens nesta competência sem tabela ativa. "
+                    "Reconcilie antes de fechar a fatura."
+                )
+            if token_book is not None and UsageMeter.objects.filter(
+                organization=contract.organization, period_start=start
+            ).exists():
+                raise BillingError(
+                    "Há consumo legado e consumo por tokens na mesma competência. "
+                    "Reconcilie antes de fechar a fatura."
+                )
+            base_amount = (
+                sum(
+                    rate.monthly_base_cents or 0
+                    for rate in TokenModuleRate.objects.filter(book=token_book)
+                )
+                if token_book is not None
+                else contract.monthly_price_cents
+            )
             invoice, created = Invoice.objects.get_or_create(
                 organization=contract.organization,
                 period_start=start,
@@ -307,20 +402,67 @@ def close_competence(*, period_start: date) -> list[Invoice]:
                     "contract": contract,
                     "period_end": end,
                     "due_on": (end + timedelta(days=10)),
-                    "base_amount_cents": contract.monthly_price_cents,
-                    "total_amount_cents": contract.monthly_price_cents,
+                    "base_amount_cents": base_amount,
+                    "total_amount_cents": base_amount,
                 },
             )
             if not created:
+                BillingCloseDeferral.objects.filter(
+                    organization=contract.organization, period_start=start,
+                    resolved_at__isnull=True,
+                ).update(resolved_at=timezone.now())
                 invoices.append(invoice)
                 continue
-            InvoiceLine.objects.create(
-                invoice=invoice,
-                kind=InvoiceLine.Kind.SUBSCRIPTION,
-                description=f"Mensalidade {contract.plan.name}",
-                unit_amount_cents=contract.monthly_price_cents,
-                total_amount_cents=contract.monthly_price_cents,
-            )
+            if token_book is None:
+                InvoiceLine.objects.create(
+                    invoice=invoice,
+                    kind=InvoiceLine.Kind.SUBSCRIPTION,
+                    description=f"Mensalidade {contract.plan.name}",
+                    unit_amount_cents=contract.monthly_price_cents,
+                    total_amount_cents=contract.monthly_price_cents,
+                )
+            else:
+                for rate in TokenModuleRate.objects.filter(book=token_book).order_by(
+                    "module_code"
+                ):
+                    InvoiceLine.objects.create(
+                        invoice=invoice,
+                        kind=InvoiceLine.Kind.SUBSCRIPTION,
+                        action_code=rate.module_code,
+                        description=f"Mensalidade {rate.module_code}",
+                        unit_amount_cents=rate.monthly_base_cents or 0,
+                        total_amount_cents=rate.monthly_base_cents or 0,
+                    )
+                overage_total = 0
+                for meter in TokenMeter.objects.filter(
+                    organization=contract.organization, period_start=start
+                ).order_by("module_code"):
+                    if meter.book_id != token_book.id:
+                        raise BillingError("O medidor de tokens não pertence ao preço do período.")
+                    if not meter.overage_tokens:
+                        continue
+                    amount = meter.overage_tokens * meter.token_price_cents
+                    overage_total += amount
+                    InvoiceLine.objects.create(
+                        invoice=invoice,
+                        kind=InvoiceLine.Kind.OVERAGE,
+                        action_code=meter.module_code,
+                        description=f"Tokens excedentes {meter.module_code}",
+                        quantity=meter.overage_tokens,
+                        unit_amount_cents=meter.token_price_cents,
+                        total_amount_cents=amount,
+                    )
+                invoice.overage_amount_cents = overage_total
+                invoice.total_amount_cents = invoice.base_amount_cents + overage_total
+                invoice.save(update_fields=[
+                    "overage_amount_cents", "total_amount_cents", "updated_at"
+                ])
+                BillingCloseDeferral.objects.filter(
+                    organization=contract.organization, period_start=start,
+                    resolved_at__isnull=True,
+                ).update(resolved_at=timezone.now())
+                invoices.append(invoice)
+                continue
             meters = UsageMeter.objects.filter(
                 organization=contract.organization, period_start=start
             ).order_by("action_code")
@@ -342,5 +484,9 @@ def close_competence(*, period_start: date) -> list[Invoice]:
             invoice.overage_amount_cents = overage_total
             invoice.total_amount_cents = invoice.base_amount_cents + overage_total
             invoice.save(update_fields=["overage_amount_cents", "total_amount_cents", "updated_at"])
+            BillingCloseDeferral.objects.filter(
+                organization=contract.organization, period_start=start,
+                resolved_at__isnull=True,
+            ).update(resolved_at=timezone.now())
             invoices.append(invoice)
     return invoices

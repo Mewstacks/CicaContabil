@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from types import SimpleNamespace
 from unittest import TestCase
 
@@ -122,3 +123,27 @@ class OdbcConnectorTests(TestCase):
         self.assertIn("genotificacoes_usuario_atendimento", query)
         self.assertNotIn("cpf_empregado", query)
         self.assertNotIn("responsavel", query)
+
+    def test_guide_calculations_are_bounded_and_keep_source_codes_uninterpreted(self) -> None:
+        self.cursor.description = [
+            ("source_id",),
+            ("company_code",),
+            ("competence",),
+            ("due_on",),
+            ("amount",),
+            ("guide_type_code",),
+            ("process_type_code",),
+            ("status_code",),
+        ]
+        self.cursor.fetchmany = lambda size: [
+            ("abc", 323, date(2026, 8, 1), date(2026, 9, 18), "1234.56", 1, 11, 1)
+        ] if size == 5000 else []
+
+        rows = self.adapter.execute("guide_calculations")
+
+        self.assertEqual(rows[0]["company_code"], "323")
+        self.assertEqual(rows[0]["amount"], "1234.56")
+        self.assertEqual(rows[0]["status_code"], "1")
+        query = self.cursor.executed[-1].casefold()
+        self.assertIn("fovguiainss", query)
+        self.assertIn("top 5000", query)

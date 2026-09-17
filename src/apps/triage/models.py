@@ -1,10 +1,7 @@
 """The triage domain: mailboxes, the naming catalogue, items and their destination.
 
 Every model here is ``OrganizationScopedModel`` — one office never sees another's mail,
-catalogue, item or destination. Nothing in this module performs I/O: no mailbox is
-polled, no AI adapter is called, no file is written. Those belong to later fronts
-(see ``docs/plano-triagem-documental.md`` and the approved implementation plan) that
-build services on top of this schema.
+catalogue, item or destination. I/O belongs in services, never in these models.
 """
 
 from __future__ import annotations
@@ -12,6 +9,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.common.encryption import EncryptedTextField
 from apps.organizations.models import OrganizationScopedModel
@@ -20,10 +18,30 @@ from apps.triage.transitions import TriageStatus, ensure_transition_allowed
 
 
 def private_triage_path(instance: TriageBlob, filename: str) -> str:
-    suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    return (
-        f"private/triage/{instance.triage_item.organization_id}/{instance.triage_item_id}.{suffix}"
-    )
+    # The original name is metadata. Never let an untrusted extension shape a storage path.
+    return f"private/triage/{instance.triage_item.organization_id}/{instance.triage_item_id}.bin"
+
+
+class MailboxOAuthApp(OrganizationScopedModel):
+    """OAuth application registered and controlled by one office."""
+
+    class Provider(models.TextChoices):
+        MS365_GRAPH = "ms365_graph", "Microsoft 365"
+        GMAIL_API = "gmail_api", "Gmail / Google Workspace"
+
+    provider = models.CharField(max_length=16, choices=Provider.choices)
+    client_id = models.CharField(max_length=255)
+    client_secret = EncryptedTextField()
+    # Microsoft single-tenant registration uses its Directory (tenant) ID.
+    tenant_id = models.CharField(max_length=64, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "provider"), name="triage_one_oauth_app_per_office_provider"
+            )
+        ]
 
 
 class Mailbox(OrganizationScopedModel):
@@ -41,6 +59,9 @@ class Mailbox(OrganizationScopedModel):
         DISABLED = "disabled", "Desativada"
 
     provider = models.CharField(max_length=16, choices=Provider.choices)
+    oauth_app = models.ForeignKey(
+        MailboxOAuthApp, null=True, blank=True, on_delete=models.SET_NULL, related_name="mailboxes"
+    )
     address = models.EmailField()
     folder = models.CharField(max_length=160, default="INBOX")
     # OAuth token / app-password / refresh token, whichever the provider needs. Never
@@ -54,6 +75,12 @@ class Mailbox(OrganizationScopedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     last_polled_at = models.DateTimeField(null=True, blank=True)
     last_error = models.CharField(max_length=500, blank=True)
+    # Database lease prevents overlapping Celery workers from polling one mailbox.
+    # Expiration permits recovery after a worker crash.
+    poll_lease_until = models.DateTimeField(null=True, blank=True)
+    poll_lease_token = models.UUIDField(null=True, blank=True)
+    poll_retry_after = models.DateTimeField(null=True, blank=True)
+    poll_failure_count = models.PositiveSmallIntegerField(default=0)
     active = models.BooleanField(default=True)
 
     class Meta:
@@ -67,6 +94,15 @@ class Mailbox(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.address} ({self.get_provider_display()})"
+
+    def clean(self) -> None:
+        if self.oauth_app_id and (
+            self.oauth_app.organization_id != self.organization_id
+            or self.oauth_app.provider != self.provider
+        ):
+            raise ValidationError(
+                {"oauth_app": "O aplicativo não pertence a esta caixa e escritório."}
+            )
 
 
 class DocumentType(OrganizationScopedModel):
@@ -213,13 +249,11 @@ class TriageItem(OrganizationScopedModel):
                 condition=models.Q(mailbox__isnull=False) & ~models.Q(message_id=""),
                 name="triage_unique_mailbox_message_part",
             ),
-            models.UniqueConstraint(
-                fields=("organization", "content_hash"),
-                condition=models.Q(content_hash__gt=""),
-                name="triage_unique_content_hash_per_office",
-            ),
         ]
-        indexes = [models.Index(fields=("organization", "status"))]
+        indexes = [
+            models.Index(fields=("organization", "status")),
+            models.Index(fields=("organization", "content_hash")),
+        ]
 
     def __str__(self) -> str:
         return self.final_name or self.original_name
@@ -255,6 +289,37 @@ class TriageBlob(OrganizationScopedModel):
             raise ValidationError({"triage_item": "O arquivo pertence a outro escritório."})
 
 
+class TriageSafetyScan(OrganizationScopedModel):
+    """Last antimalware verdict for the exact bytes held in quarantine."""
+
+    class Verdict(models.TextChoices):
+        CLEAN = "clean", "Sem detecção"
+        INFECTED = "infected", "Ameaça detectada"
+        ERROR = "error", "Varredura falhou"
+
+    class FormatVerdict(models.TextChoices):
+        PENDING = "pending", "Formato pendente"
+        VALID = "valid", "Formato validado"
+        INVALID = "invalid", "Formato recusado"
+
+    triage_item = models.OneToOneField(
+        TriageItem, on_delete=models.CASCADE, related_name="safety_scan"
+    )
+    engine = models.CharField(max_length=40, blank=True)
+    verdict = models.CharField(max_length=16, choices=Verdict.choices)
+    content_hash = models.CharField(max_length=64)
+    scanned_at = models.DateTimeField(default=timezone.now)
+    note = models.CharField(max_length=200, blank=True)
+    format_verdict = models.CharField(
+        max_length=16, choices=FormatVerdict.choices, default=FormatVerdict.PENDING
+    )
+    format_note = models.CharField(max_length=200, blank=True)
+
+    def clean(self) -> None:
+        if self.triage_item_id and self.triage_item.organization_id != self.organization_id:
+            raise ValidationError({"triage_item": "A varredura pertence a outro escritório."})
+
+
 class TriageEvent(OrganizationScopedModel):
     """Append-only evidence of a state change or reviewer decision."""
 
@@ -262,8 +327,8 @@ class TriageEvent(OrganizationScopedModel):
     actor = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
     )
-    from_status = models.CharField(max_length=24)
-    to_status = models.CharField(max_length=24)
+    from_status = models.CharField(max_length=24, choices=TriageStatus.choices)
+    to_status = models.CharField(max_length=24, choices=TriageStatus.choices)
     note = models.CharField(max_length=500, blank=True)
 
     class Meta:

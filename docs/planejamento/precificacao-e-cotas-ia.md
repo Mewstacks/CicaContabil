@@ -1,6 +1,6 @@
 # Pesquisa de custo e proposta de cotas da IA
 
-Atualizado em 15/09/2026. **Proposta para decisão, não preço ou franquia aprovados.** O responsável escolheu Claude Sonnet via chave central no `.env` e pediu limites ideais por escritório. Os planos antigos descrevem cotas por organização e nenhuma cobrança avulsa por pergunta; `pricing.py` ainda indica R$ 249/mês para o Copiloto, mas esse valor de código não confirma a oferta final. A Triagem usará a mesma chave, porém seu consumo documental exige orçamento próprio.
+Atualizado em 15/09/2026. **Proposta para decisão, não preço ou franquia aprovados.** O responsável escolheu Claude Sonnet via chave central no `.env` e pediu limites ideais por escritório. O modelo comercial novo usa mensalidade mínima e franquia de tokens inteiros **própria do Copiloto**, com excedente automático só até o teto aceito. O simulador antigo de preços fixos foi removido porque não representa essa oferta. O console já permite incluir o Copiloto numa proposta com mensalidade, franquia e peso inteiro de `ai.answer`; esses campos são infraestrutura de aceite e não definem valores por conta própria. A Triagem usará a mesma chave, porém seu consumo documental exige franquia separada.
 
 ## Referência verificável
 

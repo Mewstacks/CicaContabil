@@ -1,5 +1,15 @@
 # Memória de planejamento da CICA
 
+## Comece pelos arquivos da raiz
+
+- [PLANO-MESTRE.md](../../PLANO-MESTRE.md): plano único aprovado e dependências.
+- [DECISOES.md](../../DECISOES.md): decisões, incluindo todas as respostas de 17/09/2026.
+- [VALIDACOES.md](../../VALIDACOES.md): resultados observados e limites.
+- [Etapas 00–13 e prompts](etapas/README.md): checklists de execução.
+- [Inventário de conclusão](inventario-conclusao.md): aplicações, modelos, rotas, APIs, tarefas e serviços.
+
+**Escopo da entrega atual: somente etapa 00**, conforme D-60. Não iniciar as próximas etapas por inferência. Os registros datados abaixo permanecem como evidência histórica e não substituem a memória vigente na raiz.
+
 Atualizado em 15/09/2026. Esta pasta reúne as decisões e dúvidas extraídas dos planos antigos do Claude, do histórico local do Codex, dos documentos do repositório e das confirmações recentes do responsável. Ela é uma memória de produto e execução; não equivale a homologação, aprovação de preço, parecer jurídico ou autorização de gasto.
 
 ## Como ler
@@ -9,7 +19,7 @@ Atualizado em 15/09/2026. Esta pasta reúne as decisões e dúvidas extraídas d
 3. [Estado operacional](estado-operacional.md) compara intenção com evidência local e aponta o que falta validar para uma oferta vendável.
 4. [Dúvidas abertas](duvidas-abertas.md) concentra respostas necessárias antes de fechar regras, alterar contratos, ativar integrações ou publicar promessas.
 5. [Catálogo de triagem a confirmar](catalogo-triagem-a-confirmar.md) preserva a transcrição das 19 linhas da fotografia, sem tratá-las como taxonomia aprovada.
-6. [Avaliação de Jornadas](avaliacao-jornadas.md) explica o uso atual, compara capacidade de mercado e registra a escolha comercial ainda aberta.
+6. [Avaliação histórica de Jornadas](avaliacao-jornadas.md) registra a função substituída pela Triagem.
 7. [Pesquisa de custo e proposta de cotas da IA](precificacao-e-cotas-ia.md) calcula um cenário Sonnet e separa proposta de aprovação.
 8. [Registro de execução](registro-de-execucao.md) guarda testes, mudanças, limites e provas externas ainda necessárias.
 9. [Auditoria das telas de 15/09](auditoria-ui-2026-09-15.md) registra pesquisa de interface, revisão das diretrizes web e inspeção Playwright com seus limites.
@@ -20,6 +30,9 @@ Atualizado em 15/09/2026. Esta pasta reúne as decisões e dúvidas extraídas d
 14. [Ações do responsável](acoes-do-responsavel.md) separa o que já foi provado da preparação de contas, credenciais, contratos e regras que só o responsável pode autorizar.
 15. [Revisão crítica da conexão de e-mail](auditoria-triagem-oauth-2026-09-15.md) registra a jornada renderizada, evidência de desktop/celular/teclado e bloqueios concretos de uso real.
 16. [Padrão de pasta Windows por empresa](padrao-pastas-windows.md) define o componente com nome + código Domínio e separa a validação local do arquivamento no agente.
+17. [Mensalidade, franquia e tokens por módulo](precificacao-tokens-modulos.md) pesquisa concorrentes/custos, registra o modelo decidido e distingue números propostos de preços aprovados.
+18. [Conversa e recuperação do Copiloto](auditoria-copiloto-conversa-recuperacao-2026-09-15.md) registra o bloqueio real de empresa no envio, a correção, o estado incerto visível, idempotência e limites do suporte.
+19. [Coleta NFS-e pelo ADN](auditoria-nfse-adn-2026-09-16.md) registra o contrato oficial, cliente mTLS, checkpoint, recuperação, área de trabalho e a homologação externa ainda pendente.
 
 ## Regra de atualização
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from urllib.error import HTTPError, URLError
@@ -33,6 +34,11 @@ class LocalCompletion:
 class ClaudeCompletion:
     content: str
     model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_creation_input_tokens: int = 0
+    cache_read_input_tokens: int = 0
+    request_id: str = ""
 
 
 CLAUDE_MESSAGES_URL = "https://api.anthropic.com/v1/messages"
@@ -124,6 +130,7 @@ def generate_claude_fallback_completion(
     conversation_context: str,
     evidence: list[dict[str, str]],
     allow_full_data: bool,
+    on_response_metadata: Callable[[str, int], None] | None = None,
 ) -> ClaudeCompletion | None:
     """One non-retrying Anthropic request after the service has reserved budget."""
     if not api_key.strip() or not re.fullmatch(r"claude-[a-z0-9._-]{1,72}", model):
@@ -147,10 +154,22 @@ def generate_claude_fallback_completion(
         },
         method="POST",
     )
+    def provider_request_id(raw: object) -> str:
+        return raw if isinstance(raw, str) and re.fullmatch(r"req_[A-Za-z0-9]{8,110}", raw) else ""
+
+    request_id = ""
     try:
         with urlopen(request, timeout=30) as response:  # noqa: S310 - fixed Anthropic API URL
+            request_id = provider_request_id(response.headers.get("request-id"))
+            status = response.status if type(getattr(response, "status", None)) is int else 200
+            if on_response_metadata is not None:
+                on_response_metadata(request_id, status)
             result = json.loads(response.read(64_000))
-    except (HTTPError, URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError):
+    except HTTPError as exc:
+        if on_response_metadata is not None:
+            on_response_metadata(provider_request_id(exc.headers.get("request-id")), exc.code)
+        return None
+    except (URLError, TimeoutError, OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
     content = result.get("content") if isinstance(result, dict) else None
     if not isinstance(content, list):
@@ -162,7 +181,20 @@ def generate_claude_fallback_completion(
     ).strip()
     if not text:
         return None
-    return ClaudeCompletion(content=text[:1_600], model=str(result.get("model") or model)[:80])
+    usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
+
+    def token_count(field: str) -> int:
+        value = usage.get(field)
+        return value if type(value) is int and 0 <= value <= 100_000_000 else 0
+
+    return ClaudeCompletion(
+        content=text[:1_600], model=str(result.get("model") or model)[:80],
+        input_tokens=token_count("input_tokens"),
+        output_tokens=token_count("output_tokens"),
+        cache_creation_input_tokens=token_count("cache_creation_input_tokens"),
+        cache_read_input_tokens=token_count("cache_read_input_tokens"),
+        request_id=request_id,
+    )
 
 
 def generate_local_completion(

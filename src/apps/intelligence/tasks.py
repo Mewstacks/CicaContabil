@@ -11,7 +11,11 @@ from django.utils import timezone
 from apps.intelligence.models import ChatAttachment
 from apps.intelligence.retention import purge_expired_conversations
 from apps.intelligence.retrieval import refresh_knowledge_chunks, refresh_shared_knowledge_chunks
-from apps.intelligence.services import _analyze_with_private_model, local_multimodal_endpoint
+from apps.intelligence.services import (
+    _analyze_with_private_model,
+    local_multimodal_endpoint,
+    reconcile_stale_claude_attempts,
+)
 from apps.organizations.models import Organization
 from apps.platform.models import OperationalRun
 from apps.platform.operations import track_scheduled_operation
@@ -36,6 +40,12 @@ def refresh_shared_knowledge_chunks_task() -> dict[str, int]:
     """Refresh global rules only; tenant databases are never read here."""
     result = refresh_shared_knowledge_chunks()
     return {"created": result.created, "removed": result.removed, "unchanged": result.unchanged}
+
+
+@shared_task(name="intelligence.reconcile_claude_attempts")  # type: ignore[untyped-decorator]
+def reconcile_claude_attempts_task() -> dict[str, int]:
+    """Retain the quota for any lost worker until the provider result is proven."""
+    return {"marked_unknown": reconcile_stale_claude_attempts()}
 
 
 @shared_task(name="intelligence.purge_expired_conversations")  # type: ignore[untyped-decorator]

@@ -14,12 +14,21 @@ from apps.platform.operations import track_scheduled_operation
 
 @shared_task(name="platform.close_previous_competence")  # type: ignore[untyped-decorator]
 @track_scheduled_operation(OperationalRun.Task.CLOSE_COMPETENCE)
-def close_previous_competence() -> int:
+def close_previous_competence() -> dict[str, int | str]:
     """Close the prior BRT competence; repeated beat delivery is safe."""
 
-    previous_day = timezone.localdate() - timedelta(days=1)
+    current_month_start = timezone.localdate().replace(day=1)
+    previous_day = current_month_start - timedelta(days=1)
     previous_month = previous_day.replace(day=1)
-    return len(close_competence(period_start=previous_month))
+    deferred: list[str] = []
+    invoices = close_competence(
+        period_start=previous_month, deferred_organization_ids=deferred
+    )
+    return {
+        "competencia": f"{previous_month:%m/%Y}",
+        "faturas_concluidas": len(invoices),
+        "escritorios_adiados": len(deferred),
+    }
 
 
 @shared_task(name="platform.advance_tenant_lifecycles")  # type: ignore[untyped-decorator]

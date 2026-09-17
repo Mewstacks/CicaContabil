@@ -14,13 +14,25 @@ class MailboxIMAPError(ValueError):
     """Actionable error that never includes server replies or credentials."""
 
 
+class MailboxIMAPTemporaryError(MailboxIMAPError):
+    """A transport failure that may recover without changing credentials."""
+
+
 def public_imap_address(host: str) -> str:
     """Resolve once and fail closed if any answer is non-public."""
     try:
         addresses = socket.getaddrinfo(host, 993, type=socket.SOCK_STREAM)
-    except (socket.gaierror, TimeoutError, OSError) as exc:
+    except socket.gaierror as exc:
+        if exc.errno == socket.EAI_AGAIN:
+            raise MailboxIMAPTemporaryError(
+                "DNS IMAP temporariamente indisponível; a caixa tentará novamente."
+            ) from exc
         raise MailboxIMAPError(
             "Servidor não encontrado. Confira o endereço IMAP com seu provedor."
+        ) from exc
+    except (TimeoutError, OSError) as exc:
+        raise MailboxIMAPTemporaryError(
+            "Servidor IMAP não respondeu; a caixa tentará novamente."
         ) from exc
     if not addresses:
         raise MailboxIMAPError("Servidor não encontrado. Confira o endereço IMAP com seu provedor.")

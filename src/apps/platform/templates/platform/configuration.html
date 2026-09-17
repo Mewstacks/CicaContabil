@@ -3,7 +3,17 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/configuration.css' %}"><link rel="stylesheet" href="{% static 'hub/configuration-a11y.css' %}"><script src="{% static 'hub/regaro-auth.js' %}" defer></script><script src="{% static 'hub/configuration.js' %}" defer></script>{% endblock %}
 {% block platform_content %}
 <div class="configuration-page">
-<section class="configuration-card" aria-labelledby="configuration-title">
+<nav class="configuration-nav" aria-label="Seções das configurações">
+  <p>Configuração da plataforma</p>
+  <a href="#config-mewstack">Cadastro da Mewstack</a>
+  <a href="#config-integra">Integra Contador</a>
+  <a href="#config-copilot">Copiloto e IA</a>
+  <a href="#config-email">E-mail transacional</a>
+  <a href="#config-operations">Rotinas</a>
+  <a href="#config-catalog">Oferta e planos</a>
+</nav>
+<div class="configuration-stack">
+<section class="configuration-card" id="config-mewstack" data-config-group="mewstack" aria-labelledby="configuration-title">
   <p class="section-kicker">Fornecedora</p>
   <h2 id="configuration-title">Cadastro da Mewstack</h2>
   {% if form.instance.provider_legal_name %}<div class="provider-registry"><div><strong>{{ form.instance.provider_trade_name|default:'MEWSTACK' }}</strong><span>{{ form.instance.provider_legal_name }}</span></div><dl><div><dt>CNPJ</dt><dd translate="no">{{ form.instance.provider_cnpj_display }}</dd></div><div><dt>Situação</dt><dd>{{ form.instance.provider_registration_status }}</dd></div>{% if form.instance.provider_opened_on %}<div><dt>Início</dt><dd>{{ form.instance.provider_opened_on|date:'d/m/Y' }}</dd></div>{% endif %}</dl>{% if form.instance.provider_primary_activity %}<p>{{ form.instance.provider_primary_activity }}</p>{% endif %}{% if form.instance.provider_registry_checked_at %}<small>Fonte {{ form.instance.provider_registry_source }} · consulta em {{ form.instance.provider_registry_checked_at|date:'d/m/Y H:i' }}</small>{% endif %}</div>{% else %}<p>Sincronize o CNPJ para preencher razão social, situação, atividade e endereço.</p>{% endif %}
@@ -14,12 +24,31 @@
     <div class="provider-actions"><button class="button" type="submit" name="action" value="provider">Salvar canais</button><button class="button button-quiet" type="submit" name="action" value="provider_sync">Atualizar pelo CNPJ</button></div>
   </form>
 </section>
-<section class="configuration-card" aria-labelledby="serpro-credentials-title">
-  <header class="configuration-heading"><div><p class="section-kicker">ACESSO CENTRAL DA MEWSTACK</p><h2 id="serpro-credentials-title">Integra Contador · Serpro</h2><p>A credencial é única para a Mewstack; cada escritório usa seu próprio contrato, franquia e autorização de consumo. As chaves não aparecem nesta tela.</p></div></header>
-  {% if integra_missing %}<div class="form-errors" role="status"><strong>Configuração incompleta.</strong> Faltam: {% for name in integra_missing %}<code>{{ name }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}.</div>{% elif not integra_certificate_found %}<div class="form-errors" role="status"><strong>Certificado não encontrado.</strong> Confira o caminho definido em <code>INTEGRA_CERTIFICATE_PATH</code>.</div>{% else %}<p><strong>Chaves e certificado presentes.</strong> Ambiente {{ integra_environment }}. Ainda é necessário homologar as operações com dados autorizados antes de liberar consultas externas.</p>{% endif %}
-  <ol class="serpro-setup-steps"><li>Neste PC, abra o arquivo <code>.env</code> na raiz do projeto; em produção, use variáveis seguras do servidor.</li><li>Preencha <code>INTEGRA_CONSUMER_KEY</code>, <code>INTEGRA_CONSUMER_SECRET</code>, <code>INTEGRA_CERTIFICATE_PATH</code> e <code>INTEGRA_CONTRATANTE_CNPJ</code>. O certificado A1 fica no servidor, fora da área pública.</li><li>Se o A1 tiver senha, defina <code>INTEGRA_CERTIFICATE_PASSWORD</code>. Escolha <code>INTEGRA_ENVIRONMENT=trial</code> para homologação ou <code>production</code> após liberação.</li><li>Reinicie o servidor depois da alteração e configure a franquia e tarifa de cada operação no catálogo comercial abaixo.</li></ol>
+<section class="configuration-card" id="config-integra" data-config-group="integra" aria-labelledby="serpro-credentials-title">
+  <header class="configuration-heading"><div><p class="section-kicker">ACESSO CENTRAL DA MEWSTACK</p><h2 id="serpro-credentials-title">Integra Contador · Serpro</h2><p>A credencial e o certificado são únicos da Mewstack. O certificado fica cifrado no sistema e nunca é entregue aos escritórios.</p></div></header>
+  {% if integra_missing %}<div class="form-errors" role="status"><strong>Configuração incompleta.</strong> Informe abaixo: {% for name in integra_missing %}<code>{{ name }}</code>{% if not forloop.last %}, {% endif %}{% endfor %}.</div>{% endif %}
+  <section class="integra-setup-status" aria-labelledby="integra-setup-title"><div><p class="section-kicker">PRÉ-REQUISITOS</p><h3 id="integra-setup-title">Estado da conexão</h3><p>Salve as credenciais e o certificado aqui. A primeira consulta externa continua sendo preparada e autorizada no escritório, com o consumo mostrado antes do envio.</p></div><ol><li class="{% if integra_credential_status.consumer_key and integra_credential_status.consumer_secret %}is-complete{% endif %}"><strong>1. Credenciais</strong><span>{% if integra_credential_status.consumer_key and integra_credential_status.consumer_secret %}Disponíveis{% else %}Consumer key e secret pendentes{% endif %}</span></li><li class="{% if integra_credential_status.contratante %}is-complete{% endif %}"><strong>2. Contratante</strong><span>{% if integra_credential_status.contratante %}CNPJ disponível{% else %}CNPJ contratante pendente{% endif %}</span></li><li class="{% if integra_certificate_found %}is-complete{% endif %}"><strong>3. Certificado A1</strong><span>{% if integra_certificate_found %}Disponível{% else %}Arquivo e senha pendentes{% endif %}</span></li><li class="{% if integra_ready %}is-complete{% endif %}"><strong>4. Operação</strong><span>{% if integra_ready %}Pronta para preparo no escritório{% else %}Conclua os itens anteriores{% endif %}</span></li></ol></section>
+  <section class="configuration-subsection" aria-labelledby="integra-credentials-title">
+    <div class="configuration-heading"><div><p class="section-kicker">1. CREDENCIAIS</p><h3 id="integra-credentials-title">Acesso da Mewstack ao Serpro</h3><p>Os segredos são gravados cifrados e nunca voltam para esta tela. Deixe-os vazios somente para manter o valor já disponível.</p></div><span class="status-badge {% if integra_missing %}is-warning{% else %}is-active{% endif %}">{% if integra_missing %}Pendente{% else %}Disponível{% endif %}</span></div>
+    <dl class="credential-status" aria-label="Situação das credenciais"><div><dt>Ambiente</dt><dd>{% if integra_credential_status.environment == 'production' %}Produção{% else %}Homologação{% endif %}</dd></div><div><dt>Consumer key</dt><dd>{% if integra_credential_status.consumer_key %}Disponível{% else %}Pendente{% endif %}</dd></div><div><dt>Consumer secret</dt><dd>{% if integra_credential_status.consumer_secret %}Disponível{% else %}Pendente{% endif %}</dd></div><div><dt>CNPJ contratante</dt><dd>{% if integra_credential_status.contratante %}Disponível{% else %}Pendente{% endif %}</dd></div></dl>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="integra-credentials">
+      {% if integra_credentials_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira as credenciais informadas.</strong>{% for error in integra_credentials_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in integra_credentials_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
+      {% for field in integra_credentials_form %}<div class="field{% if field.field.widget.input_type == 'checkbox' %} field-checkbox{% endif %}">{% if field.field.widget.input_type == 'checkbox' %}<label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label><div class="input-wrap">{{ field }}</div>{% endif %}{% if field.help_text %}<div class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+      <button class="button" type="submit">Salvar credenciais centrais</button>
+    </form>
+  </section>
+  {% if integra_certificate %}<div class="provider-registry"><div><strong>Certificado armazenado</strong><span>{{ integra_certificate.integra_certificate_name }}</span></div><dl><div><dt>Validade</dt><dd>{{ integra_certificate.integra_certificate_valid_until|date:'d/m/Y H:i' }}</dd></div><div><dt>Identificação</dt><dd translate="no">…{{ integra_certificate.integra_certificate_fingerprint|slice:'-12:' }}</dd></div></dl><p>{{ integra_certificate.integra_certificate_subject }}</p><small>O arquivo e a senha não podem ser recuperados pela interface. Envie outro arquivo para substituir.</small></div>{% elif integra_certificate_found %}<p><strong>Certificado legado encontrado.</strong> Faça o upload abaixo para migrar a custódia ao sistema.</p>{% else %}<div class="form-errors" role="status"><strong>Certificado ausente.</strong> Envie o A1 da Mewstack abaixo.</div>{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form-stack">
+    {% csrf_token %}<input type="hidden" name="action" value="integra-certificate">
+    {% if integra_certificate_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira o certificado.</strong>{{ integra_certificate_form.non_field_errors }}</div>{% endif %}
+    {% for field in integra_certificate_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required %}<span class="optional">Opcional</span>{% endif %}</label><div class="input-wrap">{{ field }}</div>{% if field.help_text %}<div class="field-help">{{ field.help_text }}</div>{% endif %}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <button class="button" type="submit">{% if integra_certificate %}Substituir certificado A1{% else %}Armazenar certificado A1{% endif %}</button>
+  </form>
+  <div class="configuration-note"><strong>Identidades usadas em cada consulta</strong><ul><li><span>Contratante</span>Mewstack, definida uma vez no servidor.</li><li><span>Autor do pedido</span>O CNPJ do escritório responsável, preenchido pelo cadastro.</li><li><span>Contribuinte</span>A empresa selecionada pelo operador.</li></ul></div>
+  <p class="field-help">As credenciais ficam protegidas no servidor: a configuração armazenada é usada primeiro e as variáveis de ambiente só servem como compatibilidade durante a migração. Nenhum segredo aparece na tela ou na auditoria.</p>
 </section>
-<section class="configuration-card" aria-labelledby="copilot-availability-title">
+<section class="configuration-card" id="config-copilot" data-config-group="copilot" aria-labelledby="copilot-availability-title">
   <header class="configuration-heading"><div><p class="section-kicker">RECURSO EM PREPARAÇÃO</p><h2 id="copilot-availability-title">Copiloto</h2><p>{% if copilot_available %}Disponível para escritórios. As regras de franquia aparecem abaixo.{% else %}Oculto até a configuração da chave, modelo, cotas e política de acesso.{% endif %}</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="copilot-availability">
@@ -28,7 +57,7 @@
     <button class="button" type="submit">Salvar disponibilidade</button>
   </form>
 </section>
-<section class="configuration-card" aria-labelledby="local-runtime-title">
+<section class="configuration-card" data-config-group="copilot" aria-labelledby="local-runtime-title">
   <header class="configuration-heading"><div><p class="section-kicker">INFRAESTRUTURA DA MEWSTACK</p><h2 id="local-runtime-title">Runtime local</h2><p>Configure o modelo textual e, quando houver, o adaptador privado de documentos. Escritórios não veem estes dados nem o recurso antes da liberação.</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="local-runtime">
@@ -37,7 +66,7 @@
     <button class="button" type="submit">Salvar runtime local</button>
   </form>
 </section>
-<section class="configuration-card" aria-labelledby="cloud-fallback-title">
+<section class="configuration-card" data-config-group="copilot" aria-labelledby="cloud-fallback-title">
   <header class="configuration-heading"><div><p class="section-kicker">INFRAESTRUTURA DA MEWSTACK</p><h2 id="cloud-fallback-title">Claude via API</h2><p>Opera antes da chegada do PC privado e fica sujeito à política de uso após sua ativação. A chave e os limites são da Mewstack.</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="cloud-fallback">
@@ -46,7 +75,7 @@
     <button class="button" type="submit">Salvar Claude via API</button>
   </form>
 </section>
-<section class="configuration-card" aria-labelledby="transactional-email-title">
+<section class="configuration-card" id="config-email" data-config-group="email" aria-labelledby="transactional-email-title">
   <header class="configuration-heading"><div><p class="section-kicker">INFRAESTRUTURA DA MEWSTACK</p><h2 id="transactional-email-title">E-mail transacional</h2><p>Confirmação, convite e recuperação de senha. A senha não volta para a tela nem para a auditoria.</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="transactional-email">
@@ -55,12 +84,14 @@
     <div class="provider-actions"><button class="button" type="submit">Salvar e-mail</button><button class="button button-quiet" type="submit" name="action" value="transactional-email-test">Testar conexão</button></div>
   </form>
 </section>
-<section class="configuration-card" aria-labelledby="operations-title">
+<section class="configuration-card" id="config-operations" data-config-group="operations" aria-labelledby="operations-title">
   <header class="configuration-heading"><div><p class="section-kicker">OPERAÇÃO DA PLATAFORMA</p><h2 id="operations-title">Rotinas agendadas</h2><p>Última execução e resultado das rotinas automáticas.</p></div></header>
   <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Rotina</th><th>Agenda</th><th>Última execução</th><th>Resultado</th></tr></thead><tbody>{% for row in operation_rows %}<tr><td><strong>{{ row.label }}</strong></td><td>{{ row.cadence }}</td><td>{% if row.run %}<span class="module-state {% if row.run.state == 'succeeded' %}is-active{% elif row.run.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ row.run.get_state_display }}</span><small>{{ row.run.started_at|date:'d/m/Y H:i' }}</small>{% else %}<span class="table-muted">Sem execução registrada</span>{% endif %}</td><td>{% if row.run %}{% if row.run.state == 'failed' %}{{ row.run.error_message }}{% elif row.summary %}{{ row.summary }}{% else %}<span class="table-muted">—</span>{% endif %}{% else %}<span class="table-muted">—</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  <div class="configuration-heading form-heading"><div><h3 id="billing-deferrals-title">Fechamentos adiados</h3><p>Operações ainda reservadas impedem a fatura destes escritórios. Conclua ou libere a operação e rode o fechamento novamente.</p></div></div>
+  {% if billing_close_deferrals %}<div class="data-table-wrap" aria-labelledby="billing-deferrals-title"><table class="operational-table"><thead><tr><th>Escritório</th><th>Competência</th><th>Última verificação</th><th>Ação</th></tr></thead><tbody>{% for deferral in billing_close_deferrals %}<tr><td><strong>{{ deferral.organization.name }}</strong></td><td>{{ deferral.period_start|date:'m/Y' }}</td><td>{{ deferral.last_seen_at|date:'d/m/Y H:i' }}</td><td><a href="{% url 'platform:tenant-detail' deferral.organization_id %}">Abrir escritório<span class="sr-only"> {{ deferral.organization.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>{% else %}<p>Nenhum fechamento adiado.</p>{% endif %}
 </section>
 {% if copilot_available %}
-<section class="configuration-card" aria-labelledby="trial-title">
+<section class="configuration-card" data-config-group="catalog" aria-labelledby="trial-title">
   <header class="configuration-heading"><div><p class="section-kicker">TESTE GRATUITO</p><h2 id="trial-title">Franquia do Copiloto</h2><p>Aplicada aos novos testes de 14 dias. O limite bloqueia novas perguntas, sem cobrança automática.</p></div></header>
   <form method="post" class="form-stack">
     {% csrf_token %}<input type="hidden" name="action" value="trial">
@@ -70,7 +101,7 @@
   </form>
 </section>
 {% endif %}
-<section class="configuration-card catalog-card" aria-labelledby="catalog-title">
+<section class="configuration-card catalog-card" id="config-catalog" data-config-group="catalog" aria-labelledby="catalog-title">
   <header class="configuration-heading"><div><p class="section-kicker">Oferta</p><h2 id="catalog-title">Catálogo comercial</h2><p>Crie outra versão para alterar um plano contratado. A franquia limita o consumo antes do processamento.</p></div><span class="catalog-count">{{ plans|length }} plano{{ plans|length|pluralize }}</span></header>
   {% if plans %}<ul class="configuration-plan-list">{% for plan in plans %}<li><div><strong>{{ plan.name }}</strong><span translate="no">{{ plan.code }} · versão {{ plan.version }}</span></div><div class="plan-facts"><span>R$ {{ plan.monthly_price_brl|localize }}</span>{% if plan.ai_rate %}<span>{{ plan.ai_rate.included_units }} perguntas/mês</span>{% endif %}<span class="plan-state {% if plan.is_active %}is-live{% endif %}">{% if plan.is_active %}Disponível{% else %}Rascunho{% endif %}</span>{% if plan.is_contracted %}<span class="plan-locked">Versão contratada</span>{% else %}<a href="?plan={{ plan.id }}#plan-editor">Editar</a>{% endif %}</div></li>{% endfor %}</ul>{% else %}<p class="catalog-empty">Nenhum plano configurado.</p>{% endif %}
   <form method="post" class="form-stack catalog-form" id="plan-editor">
@@ -83,5 +114,6 @@
     <button class="button" type="submit">Salvar {% if editing_plan %}alterações{% else %}plano{% endif %}</button>
   </form>
 </section>
+</div>
 </div>
 {% endblock %}

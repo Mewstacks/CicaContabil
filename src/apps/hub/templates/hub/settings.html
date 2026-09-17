@@ -1,7 +1,8 @@
 {% extends 'hub/workspace.html' %}
 
 {% block workspace_content %}
-<section class="workspace-panel" id="meu-plano" aria-labelledby="plan-heading"><header class="workspace-panel-head"><div><p class="section-kicker">PLANO E MÓDULOS</p><h2 id="plan-heading">Condições do escritório</h2><p>Durante o teste, os módulos disponíveis ficam liberados por 14 dias.</p></div></header><p class="settings-plan-notice">A composição comercial será apresentada para aprovação dentro da CICA quando o catálogo for liberado. Nenhum preço ou alteração contratual é aplicado por esta tela.</p></section>
+<nav class="section-links" aria-label="Seções das configurações"><a href="#dominio">Integração Domínio</a><a href="#meu-plano">Contrato e módulos</a><a href="#consumo">Consumo</a><a href="{% url 'hub:triage-connections' %}">Caixas de e-mail</a><a href="{% url 'hub:setup' %}">Primeiros passos</a></nav>
+<section class="workspace-panel" id="meu-plano" aria-labelledby="plan-heading"><header class="workspace-panel-head"><div><p class="section-kicker">PLANO E MÓDULOS</p><h2 id="plan-heading">Condições do escritório</h2><p>Durante o teste, os módulos disponíveis ficam liberados por 14 dias.</p></div></header>{% if active_token_book %}<div class="settings-plan-notice" role="status"><strong>{% if token_book_in_effect %}Tokens vigentes desde {{ active_token_book.effective_from|date:"m/Y" }}{% else %}Tokens programados para {{ active_token_book.effective_from|date:"m/Y" }}{% endif %}</strong><p>1 token = R$ {{ active_token_book.token_price_brl|floatformat:2 }} · teto mensal de excedente R$ {{ active_token_book.monthly_overage_cap_brl|floatformat:2 }}.{% if not token_book_in_effect %} Até a vigência, nenhuma operação nova será cobrada por tokens.{% endif %}</p><dl class="active-token-terms">{% for rate in active_token_rates %}<div><dt>{{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}/mês · {{ rate.included_tokens }} tokens incluídos</dd></div>{% endfor %}</dl></div>{% elif token_draft and token_draft_rates %}<div class="token-offer-review"><div><strong>Proposta de tokens aguardando sua decisão</strong><p>Revise todos os termos. O aceite agenda a vigência; ele não faz uma chamada externa nem gera uma cobrança imediata.</p></div><dl class="detail-list"><div><dt>Valor do token</dt><dd>R$ {{ token_draft.token_price_brl|floatformat:2 }}</dd></div>{% for rate in token_draft_rates %}<div><dt>Mensalidade {{ rate.label }}</dt><dd>R$ {{ rate.monthly_base_brl|floatformat:2 }}</dd></div><div><dt>Franquia {{ rate.label }}</dt><dd>{{ rate.included_tokens }} tokens</dd></div>{% endfor %}<div><dt>Teto mensal de excedente</dt><dd>R$ {{ token_draft.monthly_overage_cap_brl|floatformat:2 }}</dd></div></dl><div class="token-weight-list"><strong>Pesos por operação</strong>{% for rate in token_draft_rates %}<span class="token-module-label">{{ rate.label }}</span>{% for weight in rate.action_weights.all %}<span><span>{{ weight.label }}</span><b>{{ weight.tokens }} token{{ weight.tokens|pluralize }}</b></span>{% endfor %}{% endfor %}</div>{% if can_manage_usage_policy %}<form method="post" class="token-accept-form">{% csrf_token %}<input type="hidden" name="action" value="accept-token-offer"><div class="field"><label for="token-effective-from">Vigência</label><input id="token-effective-from" name="effective_from" type="date" min="{{ token_effective_min }}" value="{{ token_effective_min }}" required></div><label class="checkbox-field" for="accept-token-terms"><input id="accept-token-terms" name="accept_token_terms" type="checkbox" required>Confirmo o valor do token, a mensalidade, a franquia, os pesos e o teto mensal.</label><button class="button" type="submit">Aceitar termos para a vigência escolhida</button></form>{% else %}<p>Somente dono ou administrador pode aceitar estes termos.</p>{% endif %}</div>{% else %}<p class="settings-plan-notice">Nenhuma proposta de tokens foi enviada para aceite. As operações tarifadas permanecem bloqueadas.</p>{% endif %}</section>
 <section class="settings-intro settings-intro-compact">
   <div>
     <p class="section-kicker">INTEGRAÇÕES</p>
@@ -13,29 +14,12 @@
   <header class="workspace-panel-head">
     <div><p class="section-kicker">CENTRAL INTEGRA</p><h2 id="usage-heading">Consumo</h2></div>
   </header>
-  {% if usage_cards %}
-    {% for card in usage_cards %}
-      <div class="usage-row">
-        <div><div><strong>{{ card.label }}</strong><small>{{ card.consumed_units }} consumida{{ card.consumed_units|pluralize }} · {{ card.remaining_units }} restante{{ card.remaining_units|pluralize }}</small></div><span class="status-badge {% if card.overage_units %}is-muted{% else %}is-active{% endif %}">{% if card.overage_units %}{{ card.overage_units }} excedente{{ card.overage_units|pluralize }}{% else %}Dentro da franquia{% endif %}</span></div>
-        <div class="usage-track" role="progressbar" aria-label="Consumo da franquia" aria-valuemin="0" aria-valuemax="{{ card.included_units }}" aria-valuenow="{{ card.consumed_units }}"><span style="width:{{ card.usage_percent }}%"></span></div>
-        <small>{{ card.included_units }} chamadas incluídas · excedente a R$ {{ card.overage_price_brl|floatformat:2 }} por chamada{% if card.policy %} · {{ card.policy.get_overage_mode_display }}{% endif %}</small>
-        {% if can_manage_usage_policy %}<p><button class="button button-quiet button-small" type="button" data-modal-open="usage-policy-{{ forloop.counter }}">Regra de consumo</button></p>{% endif %}
-      </div>
-      {% if can_manage_usage_policy %}
-        <div id="usage-policy-{{ forloop.counter }}" class="modal-backdrop" data-modal{% if not card.has_policy_error %} hidden{% endif %}>
-          <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="usage-policy-title-{{ forloop.counter }}">
-            <header class="modal-head"><h2 id="usage-policy-title-{{ forloop.counter }}">Regra da {{ card.label }}</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
-            <form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="action" value="usage-policy"><input type="hidden" name="rate_id" value="{{ card.rate_id }}">
-              {% if card.policy_form.non_field_errors %}<div class="form-errors" role="alert" data-form-errors tabindex="-1">{{ card.policy_form.non_field_errors }}</div>{% endif %}
-              {% for field in card.policy_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}
-              <div class="modal-actions"><button class="button" type="submit">Salvar regra</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
-            </form>
-          </section>
-        </div>
-      {% endif %}
-    {% endfor %}
+  {% if active_token_book and token_book_in_effect %}
+    {% if token_active_meters %}{% for meter in token_active_meters %}<div class="usage-row"><div><div><strong>{{ meter.module_code|title }}</strong><small>{{ meter.consumed_tokens }} consumidos · {{ meter.reserved_tokens }} reservados · {{ meter.included_tokens }} incluídos</small></div><span class="status-badge {% if meter.overage_tokens %}is-warning{% else %}is-active{% endif %}">{% if meter.overage_tokens %}{{ meter.overage_tokens }} tokens excedentes{% else %}Dentro da franquia{% endif %}</span></div><small>1 token = R$ {{ active_token_book.token_price_brl|floatformat:2 }}{% if meter.overage_tokens %} · excedente acumulado R$ {{ meter.overage_brl|floatformat:2 }}{% endif %}</small></div>{% endfor %}{% else %}<div class="compact-empty">A tabela de tokens entra em vigor em {{ active_token_book.effective_from|date:"m/Y" }}. O consumo aparecerá aqui na primeira operação do período.</div>{% endif %}
+  {% elif active_token_book %}
+    <div class="compact-empty" role="status">A tabela de tokens começa em {{ active_token_book.effective_from|date:"m/Y" }}. O consumo será aberto automaticamente na primeira operação após a vigência.</div>
   {% else %}
-    <div class="compact-empty">A franquia aparece aqui assim que o Comercial ativar um contrato com serviços Integra.</div>
+    <div class="compact-empty">O consumo permanece bloqueado até o escritório receber e aceitar uma proposta com valor do token, franquia por módulo, pesos e teto mensal. Nenhuma cobrança é criada nesta tela.</div>
   {% endif %}
 </section>
 
@@ -47,7 +31,7 @@
       <p>Empresas e obrigações do servidor local.</p>
     </div>
     <span class="status-badge {% if dominio_sync_state == 'synced' %}is-active{% elif dominio_sync_state == 'failed' or dominio_sync_state == 'attention' %}is-warning{% else %}is-muted{% endif %}" role="status" aria-live="polite">
-      {% if dominio_sync_state == 'synced' %}<span aria-hidden="true">✓</span> Sincronizado{% elif dominio_sync_state == 'syncing' %}Sincronizando{% elif dominio_sync_state == 'failed' %}Atenção{% elif dominio_sync_state == 'attention' %}Aguardando agente{% else %}Não conectado{% endif %}
+      {% if dominio_sync_state == 'synced' %}<span aria-hidden="true">✓</span> Sincronizado{% elif dominio_sync_state == 'syncing' %}Sincronizando{% elif dominio_sync_state == 'failed' %}Atenção{% elif dominio_sync_state == 'not_synced' %}Aguardando primeira atualização{% elif dominio_sync_state == 'attention' %}Aguardando agente{% else %}Não conectado{% endif %}
     </span>
   </header>
 
@@ -56,9 +40,15 @@
       {% if dominio_sync_state == 'synced' or dominio_sync_state == 'syncing' %}
         <strong>{% if dominio_connector.last_sync_at %}Atualizado {{ dominio_connector.last_sync_at|date:"d/m/Y · H:i" }}{% else %}Aguardando primeira atualização{% endif %}</strong>
         {% if dominio_connector.sync_requested_at %}<p role="status" aria-live="polite">Atualização solicitada.</p>{% endif %}
+        {% if dominio_bank_entries_may_be_truncated %}
+          <p class="dominio-coverage-warning" role="status" aria-live="polite"><strong>Cobertura parcial de itens bancarios.</strong> A ultima leitura atingiu o limite da conexao. Use os dados recentes para revisao e nao trate o historico como completo.</p>
+        {% endif %}
       {% elif dominio_sync_state == 'failed' %}
         <strong>Não foi possível sincronizar.</strong>
         <p>{{ dominio_connector.last_error_message|default:"Verifique a conexão local." }}</p>
+      {% elif dominio_sync_state == 'not_synced' %}
+        <strong>Conector configurado, sem dados atualizados.</strong>
+        <p>Ainda não há uma sincronização comprovada para este escritório. Confira o conector local e faça a primeira atualização antes de usar os dados.</p>
       {% else %}
         <strong>Importe a carteira ativa automaticamente.</strong>
         <p>Gere um código e use-o uma vez no servidor Windows onde o Domínio já está instalado.</p>

@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=2">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=5">{% endblock %}
 {% block workspace_content %}
 <section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Copiloto CICA">
   <aside class="assistant-history" aria-label="Conversas recentes">
@@ -45,6 +45,22 @@
                   {% endfor %}
                 </ul>
               {% endif %}
+              {% if message.delivery_state %}
+                <div class="answer-delivery answer-delivery-{{ message.delivery_state }}" role="status" aria-atomic="true">
+                  {% if message.delivery_state == 'processing' %}
+                    <strong>Análise em andamento</strong>
+                    <p>A pergunta foi recebida. Aguarde a resposta nesta conversa e evite reenviar a mesma pergunta.</p>
+                  {% elif message.delivery_state == 'unknown' %}
+                    <strong>Resultado da IA incerto</strong>
+                    <p>A resposta não chegou a esta conversa. Uma nova chamada pode consumir a cota novamente. Peça ao suporte que confira a tentativa antes de reenviar.</p>
+                  {% else %}
+                    <strong>Análise interrompida</strong>
+                    <p>A pergunta foi registrada, mas a resposta não foi concluída aqui. Peça ao suporte que confira a tentativa antes de reenviar.</p>
+                  {% endif %}
+                  <p class="answer-delivery-reference">Protocolo: <code translate="no">{{ message.delivery_reference|default:message.id }}</code></p>
+                  {% if copilot_support_email %}<a href="mailto:{{ copilot_support_email }}">Contatar suporte Mewstack</a>{% else %}<p>Peça ao administrador do escritório o contato de suporte Mewstack e informe este protocolo.</p>{% endif %}
+                </div>
+              {% endif %}
             </article>
           {% else %}
             <article class="chat-message chat-message-assistant">
@@ -70,16 +86,16 @@
                   </div>
                 </details>
               {% endif %}
-              <div class="answer-exports" aria-label="Exportar esta análise">
+              {% if not demo_copilot %}<div class="answer-exports" aria-label="Exportar esta análise">
                 <span>Exportar</span>
                 <a href="{% url 'intelligence:export' message.id 'pdf' %}">PDF</a>
                 <a href="{% url 'intelligence:export' message.id 'xlsx' %}">XLSX</a>
-              </div>
-              <div class="feedback-row" aria-label="Avaliar resposta">
+              </div>{% endif %}
+              {% if not demo_copilot %}<div class="feedback-row" aria-label="Avaliar resposta">
                 <span>Foi útil?</span>
                 <form method="post" action="{% url 'intelligence:feedback' message.id %}" data-feedback-form>{% csrf_token %}<input type="hidden" name="verdict" value="helpful"><button type="submit" class="feedback-button" aria-label="Esta resposta foi útil" title="Útil"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h4v11Zm2 0V10l3-7a2 2 0 0 1 2 2v4h3.4a2 2 0 0 1 2 2.4l-1.2 7A3 3 0 0 1 17.2 21H11Z"/></svg><span>Útil</span></button></form>
                 <form method="post" action="{% url 'intelligence:feedback' message.id %}" data-feedback-form>{% csrf_token %}<input type="hidden" name="verdict" value="not_helpful"><button type="submit" class="feedback-button" aria-label="Esta resposta não resolveu" title="Não resolveu"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4V3Zm-2 0v11l-3 7a2 2 0 0 1-2-2v-4H4.6a2 2 0 0 1-2-2.4l1.2-7A3 3 0 0 1 6.8 3H13Z"/></svg><span>Não</span></button></form>
-              </div>
+              </div>{% endif %}
             </article>
           {% endif %}
         {% endfor %}
@@ -97,17 +113,27 @@
     </section>
 
     <form method="post" enctype="multipart/form-data" class="question-composer" data-assistant-composer>
-      {% csrf_token %}{{ form.company_id }}{% if active_conversation %}<input type="hidden" name="conversation_id" value="{{ active_conversation.id }}">{% endif %}
+      {% csrf_token %}<input type="hidden" name="request_id" value="{{ request_id }}">{% if active_conversation %}<input type="hidden" name="conversation_id" value="{{ active_conversation.id }}"><input type="hidden" name="company_id" value="{{ active_conversation.company_id }}">{% else %}
+      <div class="assistant-company-picker">
+        <label for="assistant-company">Empresa para esta análise</label>
+        <input id="assistant-company-search" name="company_search" type="search" autocomplete="off" placeholder="Buscar por nome, código Domínio ou CNPJ…" aria-label="Buscar empresa para análise" aria-controls="assistant-company">
+        <select id="assistant-company" name="company_id" required autocomplete="off" aria-describedby="assistant-company-hint">
+          <option value="">Escolha uma empresa</option>
+          {% for company in companies %}<option value="{{ company.id }}"{% if selected_company_id == company.id|stringformat:"s" %} selected{% endif %}>{{ company.name }} · Domínio {{ company.dominio_code }}{% if company.cnpj %} · {{ company.cnpj }}{% endif %}</option>{% endfor %}
+        </select>
+        <p id="assistant-company-hint" class="company-picker-hint" role="status">{{ companies|length }} empresa{{ companies|length|pluralize:"s" }} na lista. Escolha antes de enviar.</p>
+      </div>
+      {% endif %}
       <label class="sr-only" for="{{ form.question.id_for_label }}">Pergunte ao Copiloto CICA</label>
       {{ form.question }}
       {% if form.question.errors %}<p class="field-error" role="alert">{{ form.question.errors|join:", " }}</p>{% endif %}
-      <div id="attachment-preview" class="attachment-preview" hidden aria-live="polite"></div>
-      {% if form.attachments.errors %}<p class="field-error" role="alert">{{ form.attachments.errors|join:", " }}</p>{% endif %}
+      {% if not office.is_demo %}<div id="attachment-preview" class="attachment-preview" hidden aria-live="polite"></div>
+      {% if form.attachments.errors %}<p class="field-error" role="alert">{{ form.attachments.errors|join:", " }}</p>{% endif %}{% endif %}
       <div class="composer-foot">
-        <label class="attachment-button" title="Anexar PDF, imagem, TXT ou CSV">
+        {% if office.is_demo %}<span class="composer-context">Pergunte sobre as empresas fictícias. Não envie arquivos reais nesta demonstração.</span>{% else %}<label class="attachment-button" title="Anexar PDF, imagem, TXT ou CSV">
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 12 5.4-5.4a3 3 0 0 1 4.2 4.2l-7.5 7.5a5 5 0 0 1-7.1-7.1l7-7a1.5 1.5 0 1 1 2.1 2.1l-7 7a2 2 0 0 0 2.8 2.8l7.5-7.5"/></svg><span>Anexar</span><span class="sr-only"> PDF, imagem, TXT ou CSV</span>{{ form.attachments }}
-        </label>
-        <span class="composer-context">{{ active_conversation.company.name|default:"Escolha a empresa abaixo" }}</span>
+        </label>{% endif %}
+        <span class="composer-context">{{ active_conversation.company.name|default:"Escolha a empresa acima" }}</span>
         <span id="composer-status" class="composer-status" aria-live="polite"></span>
         <button class="button send-button" type="submit"><span data-submit-label>Enviar</span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 11 18-8-8 18-2.5-7.5L3 11Zm8.3 1.1 2.2 5.8 4.3-9.7-9.7 4.3 3.2-.4Z"/></svg></button>
       </div>
@@ -125,5 +151,5 @@
     </aside>
   {% endif %}
 </section>
-<script src="{% static 'intelligence/assistant.js' %}" defer></script>
+<script src="{% static 'intelligence/assistant.js' %}?v=4" defer></script>
 {% endblock %}

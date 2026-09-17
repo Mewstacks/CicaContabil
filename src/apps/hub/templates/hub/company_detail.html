@@ -1,7 +1,8 @@
 {% extends 'hub/workspace.html' %}
+{% load ui_navigation %}
 
 {% block page_action %}
-  <a class="button button-quiet" href="{% url 'hub:companies' %}">Voltar às empresas</a>
+  <a class="button button-quiet" href="{% back_url 'hub:companies' %}">Voltar às empresas</a>
 {% endblock %}
 
 {% block workspace_content %}
@@ -44,7 +45,7 @@
       <td><strong>{{ case.document.source_nsu|default:"Documento NFS-e" }}</strong></td>
       <td>{{ case.reason|default:"Sem motivo registrado" }}</td>
       <td>{{ case.created_at|date:"d/m/Y" }}</td>
-      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:reviews' %}">Abrir revisões</a></td>
+      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:review-detail' case.id %}">Conferir caso</a></td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}
     <div class="empty-block operational-empty"><strong>Sem revisões abertas</strong><p>Nada desta empresa está parado esperando decisão.</p></div>

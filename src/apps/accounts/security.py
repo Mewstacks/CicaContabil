@@ -37,9 +37,14 @@ def axes_lockout_response(
     **kwargs: object,
 ) -> HttpResponse:
     retry_after = int(settings.AXES_COOLOFF_TIME.total_seconds())
-    if request.path == reverse('hub:login'):
-        result = render(request, 'hub/login_locked.html', {'retry_minutes': max(1, (retry_after + 59) // 60)}, status=429)
-        result['Retry-After'] = str(retry_after)
+    if request.path == reverse("hub:login"):
+        result = render(
+            request,
+            "hub/login_locked.html",
+            {"retry_minutes": max(1, (retry_after + 59) // 60)},
+            status=429,
+        )
+        result["Retry-After"] = str(retry_after)
         return result
     result = JsonResponse(
         {

@@ -1,0 +1,21 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:guides' %}">Voltar à carteira</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="operation-summary" aria-labelledby="bulk-heading">
+  <div><p class="section-kicker">DCTFWEB EM LOTE</p><h2 id="bulk-heading">Confirmar {{ bulk_kind_label|lower }}</h2><p>Confira o escopo e o consumo antes de adicionar qualquer chamada à fila.</p></div>
+</section>
+
+<section class="metric-strip" aria-label="Resumo do lote">
+  <article><span>Empresas e competências</span><strong>{{ bulk_targets|length }}</strong><small>Máximo de 30 por lote</small></article>
+  <article><span>Consumo</span><strong>{% if bulk_quote %}{{ bulk_quote.total_tokens }} tokens{% else %}—{% endif %}</strong><small>{% if bulk_quote %}{{ bulk_quote.tokens_per_operation }} por consulta{% else %}Cotação indisponível{% endif %}</small></article>
+  <article><span>Excedente</span><strong>{% if bulk_quote %}R$ {{ bulk_overage_brl|floatformat:2 }}{% else %}—{% endif %}</strong><small>{% if bulk_quote and bulk_quote.additional_overage_cents %}Além da franquia mensal{% elif bulk_quote %}Dentro da franquia{% else %}{{ bulk_quote_error }}{% endif %}</small></article>
+</section>
+
+<section class="workspace-panel" aria-labelledby="bulk-list-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">ESCOPO</p><h2 id="bulk-list-heading">Consultas selecionadas</h2><p>Cada linha gera uma consulta independente, com protocolo e resultado próprios.</p></div></header>
+  <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Código Domínio</th><th>Competência</th></tr></thead><tbody>{% for company, competence in bulk_targets %}<tr><td data-label="Empresa"><strong>{{ company.name }}</strong><small>{{ company.cnpj_masked }}</small></td><td data-label="Código Domínio">{{ company.dominio_code }}</td><td data-label="Competência">{{ competence }}</td></tr>{% endfor %}</tbody></table></div>
+  {% if bulk_quote %}<form method="post" action="{% url 'hub:dctfweb-bulk-consult' %}" class="modal-actions">{% csrf_token %}<input type="hidden" name="step" value="confirm"><input type="hidden" name="kind" value="{{ bulk_kind }}"><input type="hidden" name="approved_overage_cents" value="{{ bulk_quote.additional_overage_cents }}">{% for company, competence in bulk_targets %}<input type="hidden" name="targets" value="{{ company.id }}|{{ competence }}">{% endfor %}<button class="button" type="submit">Autorizar {{ bulk_quote.total_tokens }} tokens</button><a class="button button-quiet" href="{% url 'hub:guides' %}">Cancelar</a></form>{% else %}<div class="inline-alert inline-alert-danger" role="alert"><strong>O lote não pode ser autorizado.</strong><span>{{ bulk_quote_error }}</span></div>{% endif %}
+</section>
+{% endblock %}

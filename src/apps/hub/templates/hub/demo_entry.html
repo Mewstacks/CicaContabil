@@ -1,0 +1,14 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Demonstração — CICA{% endblock %}
+{% block body %}
+<main class="auth-page" id="conteudo">
+  <section class="auth-card" aria-labelledby="demo-entry-title">
+    <p class="eyebrow">AMBIENTE DE DEMONSTRAÇÃO</p>
+    <h1 id="demo-entry-title">Conheça a área de trabalho da CICA.</h1>
+    <p class="form-intro">Dados fictícios. Explore os fluxos sem consultas externas ou cobranças.</p>
+    {% if demo_available %}<form method="post" class="form-stack">{% csrf_token %}<button class="button" type="submit">Iniciar demonstração fictícia</button></form><p class="auth-alt">Seu progresso fica nesta sessão do navegador e termina quando ele for fechado.</p>
+    {% else %}<p class="form-intro" role="status">A demonstração separada está sendo preparada. O acesso será liberado após a validação do isolamento entre visitantes.</p>{% endif %}
+    <p class="auth-alt">Quer testar com seu escritório? <a href="{% url 'hub:signup' %}">Comece o teste de 14 dias.</a></p>
+  </section>
+</main>
+{% endblock %}

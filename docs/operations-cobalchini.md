@@ -1,5 +1,7 @@
 # Operação Cobalchini
 
+> Runbook de uma modalidade técnica existente. Não determina o destino atual da CICA nem prova implantação: D-46 confirma SaaS/IA centralizados na Mewstack; ambiente definitivo está em Q-35. Consulte [plano mestre](../PLANO-MESTRE.md) e [validações](../VALIDACOES.md) antes de executar qualquer procedimento. Nenhum deploy foi autorizado pela etapa 00.
+
 O HubContador no servidor Cobalchini roda por Docker Compose. O Domínio e seu DSN Windows continuam no host, por meio do agente de borda; containers não acessam nem armazenam o DSN, senhas ou certificados fiscais. O container web fica em loopback: o proxy HTTPS do host aplica mTLS no endpoint do agente usando [`edge-agent-mtls.conf`](../deploy/nginx/edge-agent-mtls.conf).
 
 ## Preparação única

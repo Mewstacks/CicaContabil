@@ -5,7 +5,8 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase
+from django.db import connection
+from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 
@@ -36,10 +37,192 @@ from apps.intelligence.models import (
     SemanticPackage,
 )
 from apps.intelligence.retrieval import refresh_knowledge_chunks
-from apps.intelligence.services import answer_question
+from apps.intelligence.services import answer_question, reconcile_stale_claude_attempts
 from apps.knowledge.models import SharedKnowledgeSource
 from apps.organizations.models import Membership, Organization
-from apps.platform.models import Plan, PlanServiceRate, PlatformConfiguration, TenantContract
+from apps.platform.billing import reserve_usage
+from apps.platform.models import (
+    Plan,
+    PlanServiceRate,
+    PlatformConfiguration,
+    TenantContract,
+    TokenActionWeight,
+    TokenModuleRate,
+    TokenPriceBook,
+    TokenUsageEvent,
+    UsageEvent,
+)
+
+
+class CentralDemoCopilotTests(TestCase):
+    databases = {"default", "knowledge"}
+
+    def test_demo_answers_from_fabricated_local_data_without_provider_or_usage(self) -> None:
+        PlatformConfiguration.objects.update_or_create(
+            key="default",
+            defaults={"copilot_available_for_offices": False, "cloud_fallback_enabled": True},
+        )
+        user = User.objects.create_user("central-demo@example.test", "test-only-password")
+        organization = Organization.objects.create(
+            name="Escritório Demo Central", slug="central-demo-copilot", is_demo=True
+        )
+        Membership.objects.create(
+            organization=organization, user=user, role=Membership.Role.OWNER
+        )
+        ProductModule.objects.create(
+            organization=organization, code=ProductModule.Code.AI, enabled=True
+        )
+        with (
+            patch("apps.intelligence.services.generate_local_completion") as local,
+            patch("apps.intelligence.services.generate_claude_fallback_completion") as cloud,
+        ):
+            _, response, _ = answer_question(
+                organization=organization,
+                actor=user,
+                question="Mostre as pendências fictícias",
+                company=None,
+                request=None,
+            )
+        local.assert_not_called()
+        cloud.assert_not_called()
+        self.assertTrue(response.content.startswith("Demonstração fictícia:"))
+        self.assertEqual(response.model_version, "demo-simulado-v1")
+        self.assertFalse(UsageEvent.objects.filter(organization=organization).exists())
+        self.client.force_login(user)
+        session = self.client.session
+        session["hub_organization_id"] = str(organization.id)
+        session.save()
+        page = self.client.get(reverse("intelligence:assistant"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Demonstração fictícia")
+
+    def test_demo_rejects_real_uploaded_files_before_storing_them(self) -> None:
+        user = User.objects.create_user("central-demo-upload@example.test", "test-only-password")
+        organization = Organization.objects.create(
+            name="Demo Upload", slug="central-demo-upload", is_demo=True
+        )
+        with self.assertRaisesRegex(ValueError, "não envie arquivos"):
+            answer_question(
+                organization=organization,
+                actor=user,
+                question="Analise este arquivo",
+                company=None,
+                request=None,
+                uploads=[
+                    SimpleUploadedFile("real.pdf", b"sensitive", content_type="application/pdf")
+                ],
+            )
+        self.assertFalse(ChatAttachment.objects.filter(organization=organization).exists())
+
+
+class ClaudeReservationTransactionTests(TransactionTestCase):
+    databases = {"default", "knowledge"}
+
+    @patch("apps.intelligence.services.generate_claude_fallback_completion")
+    @patch("apps.intelligence.services.generate_local_completion", return_value=None)
+    def test_reservation_is_committed_before_provider_call(self, _local, provider) -> None:
+        PlatformConfiguration.objects.update_or_create(
+            key="default",
+            defaults={
+                "copilot_available_for_offices": True,
+                "cloud_fallback_enabled": True,
+                "cloud_fallback_api_key": "test-key-only",
+                "cloud_fallback_model": "claude-sonnet-4-5",
+                "cloud_fallback_max_request_cents": 35,
+                "cloud_fallback_daily_limit_cents": 100,
+                "cloud_fallback_monthly_limit_cents": 1000,
+            },
+        )
+        user = User.objects.create_user("reservation@example.test", "safe-password-123")
+        organization = Organization.objects.create(
+            name="Reservation office", slug="reservation-office"
+        )
+        Membership.objects.create(
+            organization=organization, user=user, role=Membership.Role.OWNER
+        )
+        InternalMcpTests.enable_trial(organization)
+        AssistantSettings.objects.create(
+            organization=organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER],
+            claude_max_request_cents=35,
+        )
+        ClaudeFallbackApproval.objects.create(
+            organization=organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=70,
+            monthly_limit_cents=350,
+        )
+
+        def inspect_provider_boundary(**kwargs):
+            self.assertFalse(connection.in_atomic_block)
+            audit = EgressAudit.objects.get(organization=organization, allowed=True)
+            self.assertEqual(audit.call_state, EgressAudit.CallState.RESERVED)
+            self.assertIsNone(audit.completed_at)
+            self.assertEqual(audit.user_message.role, Message.Role.USER)
+            self.assertEqual(audit.usage_event.status, UsageEvent.Status.RESERVED)
+            kwargs["on_response_metadata"]("req_12345678abc", 200)
+            audit.refresh_from_db()
+            self.assertEqual(audit.provider_request_id, "req_12345678abc")
+            self.assertEqual(audit.provider_http_status, 200)
+            self.assertEqual(
+                Message.objects.filter(organization=organization, role=Message.Role.USER).count(),
+                1,
+            )
+            EgressAudit.objects.filter(pk=audit.pk).update(
+                created_at=timezone.now() - timedelta(minutes=11)
+            )
+            self.assertEqual(reconcile_stale_claude_attempts(), 1)
+            audit.refresh_from_db()
+            self.assertEqual(audit.call_state, EgressAudit.CallState.UNKNOWN)
+            audit.usage_event.refresh_from_db()
+            self.assertEqual(audit.usage_event.status, UsageEvent.Status.RESERVED)
+            return ClaudeCompletion(
+                "Resposta validada.", "claude-sonnet-4-5", request_id="req_12345678abc"
+            )
+
+        provider.side_effect = inspect_provider_boundary
+        _, response, _ = answer_question(
+            organization=organization,
+            actor=user,
+            question="Qual a pendência?",
+            company=None,
+            request=None,
+        )
+        self.assertEqual(response.content, "Resposta validada.")
+        self.assertEqual(provider.call_count, 1)
+        self.assertEqual(
+            EgressAudit.objects.get(organization=organization).call_state,
+            EgressAudit.CallState.SUCCEEDED,
+        )
+        stranded_usage = reserve_usage(
+            organization=organization,
+            action_code="ai.answer",
+            idempotency_key="stale-claude-test-only",
+        )
+        stranded = EgressAudit.objects.create(
+            organization=organization,
+            provider="anthropic",
+            purpose="technical_fallback",
+            payload_hash="a" * 64,
+            actor=user,
+            role=Membership.Role.OWNER,
+            allowed=True,
+            model="claude-sonnet-4-5",
+            estimated_cost_cents=35,
+            call_state=EgressAudit.CallState.RESERVED,
+            user_message=Message.objects.get(organization=organization, role=Message.Role.USER),
+            usage_event=stranded_usage,
+        )
+        EgressAudit.objects.filter(pk=stranded.pk).update(
+            created_at=timezone.now() - timedelta(minutes=11)
+        )
+        self.assertEqual(reconcile_stale_claude_attempts(), 1)
+        stranded.refresh_from_db()
+        stranded_usage.refresh_from_db()
+        self.assertEqual(stranded.call_state, EgressAudit.CallState.UNKNOWN)
+        self.assertEqual(stranded_usage.status, UsageEvent.Status.RESERVED)
+        self.assertEqual(reconcile_stale_claude_attempts(), 0)
 
 
 class InternalMcpTests(TestCase):
@@ -96,6 +279,71 @@ class InternalMcpTests(TestCase):
 
     @patch("apps.intelligence.services.generate_claude_fallback_completion")
     @patch("apps.intelligence.services.generate_local_completion", return_value=None)
+    def test_active_ai_token_terms_meter_answer_and_link_claude_audit(
+        self, _local, cloud
+    ) -> None:
+        self.configure_mewstack_cloud_fallback()
+        AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER],
+            claude_max_request_cents=35,
+        )
+        ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=100,
+            monthly_limit_cents=1_000,
+        )
+        contract = TenantContract.objects.get(organization=self.organization)
+        book = TokenPriceBook.objects.create(
+            contract=contract,
+            version=1,
+            token_price_cents=5,
+            monthly_overage_cap_cents=500,
+            effective_from=timezone.localdate(),
+            accepted_by=self.user,
+            accepted_at=timezone.now(),
+            activated_at=timezone.now(),
+        )
+        rate = TokenModuleRate.objects.create(
+            book=book,
+            module_code="ai",
+            monthly_base_cents=14_900,
+            included_tokens=100,
+        )
+        TokenActionWeight.objects.create(
+            module_rate=rate,
+            action_code="ai.answer",
+            tokens=7,
+        )
+        book.status = TokenPriceBook.Status.ACTIVE
+        book.save(update_fields=["status"])
+        cloud.return_value = ClaudeCompletion(
+            "Resposta Sonnet auditada.", "claude-sonnet-5", request_id="req-token-ai"
+        )
+
+        _, response, _ = answer_question(
+            organization=self.organization,
+            actor=self.user,
+            question="Quais pendências exigem atenção?",
+            company=None,
+            request=None,
+        )
+
+        event = TokenUsageEvent.objects.get(organization=self.organization)
+        audit = EgressAudit.objects.get(organization=self.organization)
+        self.assertEqual(response.content, "Resposta Sonnet auditada.")
+        self.assertEqual(event.module_code, "ai")
+        self.assertEqual(event.action_code, "ai.answer")
+        self.assertEqual(event.tokens, 7)
+        self.assertEqual(event.status, TokenUsageEvent.Status.SETTLED)
+        self.assertEqual(audit.token_usage_event, event)
+        self.assertIsNone(audit.usage_event)
+        self.assertFalse(UsageEvent.objects.filter(organization=self.organization).exists())
+
+    @patch("apps.intelligence.services.generate_claude_fallback_completion")
+    @patch("apps.intelligence.services.generate_local_completion", return_value=None)
     def test_claude_works_by_platform_api_key_before_local_pc_arrives(
         self, mocked_local, mocked_claude
     ) -> None:
@@ -112,7 +360,11 @@ class InternalMcpTests(TestCase):
             daily_limit_cents=70,
             monthly_limit_cents=350,
         )
-        mocked_claude.return_value = ClaudeCompletion("Resposta com fonte.", "claude-sonnet-4-5")
+        mocked_claude.return_value = ClaudeCompletion(
+            "Resposta com fonte.", "claude-sonnet-4-5",
+            input_tokens=120, output_tokens=45, cache_read_input_tokens=10,
+            request_id="req_12345678abc",
+        )
 
         _, first, _ = answer_question(
             organization=self.organization, actor=self.user,
@@ -135,6 +387,50 @@ class InternalMcpTests(TestCase):
         self.assertEqual(
             EgressAudit.objects.filter(organization=self.organization, allowed=True).count(), 2
         )
+        self.assertEqual(
+            set(EgressAudit.objects.filter(organization=self.organization).values_list(
+                "call_state", flat=True
+            )),
+            {EgressAudit.CallState.SUCCEEDED, EgressAudit.CallState.DENIED},
+        )
+        successful = EgressAudit.objects.filter(
+            organization=self.organization, call_state=EgressAudit.CallState.SUCCEEDED
+        ).first()
+        self.assertEqual(successful.input_tokens, 120)
+        self.assertEqual(successful.output_tokens, 45)
+        self.assertEqual(successful.cache_read_input_tokens, 10)
+        self.assertEqual(successful.provider_request_id, "req_12345678abc")
+
+    @patch("apps.intelligence.services.generate_claude_fallback_completion", return_value=None)
+    @patch("apps.intelligence.services.generate_local_completion", return_value=None)
+    def test_uncertain_claude_response_keeps_conservative_budget_evidence(
+        self, mocked_local, mocked_claude
+    ) -> None:
+        self.configure_mewstack_cloud_fallback()
+        AssistantSettings.objects.create(
+            organization=self.organization, claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER], claude_max_request_cents=35,
+        )
+        ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=35, monthly_limit_cents=35,
+        )
+        answer_question(
+            organization=self.organization, actor=self.user,
+            question="Pergunta sem retorno", company=None, request=None,
+        )
+        self.assertTrue(mocked_local.called)
+        self.assertEqual(mocked_claude.call_count, 1)
+        audit = EgressAudit.objects.get(organization=self.organization)
+        self.assertEqual(audit.call_state, EgressAudit.CallState.UNKNOWN)
+        self.assertEqual(audit.estimated_cost_cents, 35)
+        self.assertIsNotNone(audit.completed_at)
+        answer_question(
+            organization=self.organization, actor=self.user,
+            question="Outra pergunta", company=None, request=None,
+        )
+        self.assertEqual(mocked_claude.call_count, 1)
 
     def post_rpc(self, method: str, params: dict[str, object] | None = None):
         return self.client.post(
@@ -682,6 +978,7 @@ class InternalMcpTests(TestCase):
         audit = EgressAudit.objects.get(organization=self.organization)
         self.assertTrue(audit.allowed)
         self.assertEqual(audit.estimated_cost_cents, 35)
+        self.assertEqual(audit.call_state, EgressAudit.CallState.SUCCEEDED)
 
     @patch("apps.intelligence.services.generate_claude_fallback_completion")
     @patch("apps.intelligence.services.generate_local_completion", return_value=None)
@@ -718,5 +1015,6 @@ class InternalMcpTests(TestCase):
         self.assertNotEqual(response.model_version, "claude-sonnet-4-5")
         audit = EgressAudit.objects.get(organization=self.organization)
         self.assertFalse(audit.allowed)
+        self.assertEqual(audit.call_state, EgressAudit.CallState.DENIED)
         self.assertEqual(audit.payload_hash, audit.payload_hash.lower())
         self.assertEqual(len(audit.payload_hash), 64)

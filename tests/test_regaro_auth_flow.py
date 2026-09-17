@@ -53,6 +53,24 @@ class RegaroAuthFlowTests(TestCase):
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.SUPPORT)
         self.assertTrue(mfa.is_required(self.user))
 
+    def test_demo_only_membership_skips_mfa_but_real_membership_requires_it(self):
+        demo = Organization.objects.create(name="Escritório Demo", slug="auth-demo", is_demo=True)
+        visitor = User.objects.create_user("demo-visitor@example.test", "test-password-123456")
+        Membership.objects.create(user=visitor, organization=demo, role=Membership.Role.OWNER)
+        OfficeProfile.objects.create(
+            organization=demo,
+            trial_started_at=timezone.now() - timedelta(days=30),
+            contract_status=OfficeProfile.ContractStatus.ACTIVE,
+            require_mfa=True,
+        )
+        self.assertFalse(mfa.is_required(visitor))
+        Membership.objects.create(
+            user=visitor, organization=self.office, role=Membership.Role.OPERATOR
+        )
+        self.profile.contract_status = OfficeProfile.ContractStatus.ACTIVE
+        self.profile.save(update_fields=["contract_status"])
+        self.assertTrue(mfa.is_required(visitor))
+
     def test_mfa_setup_preserves_secret_on_post_and_destination(self):
         self.client.force_login(self.user)
         target = reverse("hub:companies")

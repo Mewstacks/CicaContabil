@@ -1,32 +1,44 @@
 {% extends 'hub/workspace.html' %}
+{% block title %}NFS-e · {% if nfse_view == 'collection' %}Coleta automática{% else %}Notas{% endif %} · CICA{% endblock %}
 
+{% block workspace_subnav %}{% include 'hub/nfse_navigation.html' %}{% endblock %}
 {% block workspace_content %}
+{% if nfse_view == 'collection' %}
+  {% include 'hub/nfse_collection.html' %}
+{% else %}
 <section class="metric-strip" aria-label="Resumo da NFS-e do escritório">
-  <article><span>Recebidas</span><strong>{{ nfse_stats.received }}</strong></article>
-  <article class="metric-needs-attention"><span>Em revisão</span><strong>{{ nfse_stats.pending }}</strong></article>
-  <article><span>Classificadas</span><strong>{{ nfse_stats.classified }}</strong></article>
+  <article><span>Recebidas</span><strong>{{ nfse_stats.received }}</strong><a href="?status=all">Ver todas</a></article>
+  <article class="{% if nfse_stats.pending %}metric-needs-attention{% endif %}"><span>Em revisão</span><strong>{{ nfse_stats.pending }}</strong><a href="{% url 'hub:reviews' %}">Revisar notas</a></article>
+  <article><span>Classificadas</span><strong>{{ nfse_stats.classified }}</strong><a href="?status=classified">Ver classificadas</a></article>
 </section>
 
 <section class="workspace-panel">
   <header class="workspace-panel-head">
-    <div><h2>Documentos recebidos</h2></div>
-    {% if nfse_stats.pending %}<a class="text-action" href="{% url 'hub:reviews' %}">Ver revisões</a>{% endif %}
+    <div><p class="section-kicker">CARTEIRA DO ESCRITÓRIO</p><h2>Documentos recebidos</h2><p>Pesquise a empresa ou a nota e abra diretamente qualquer decisão pendente.</p></div>
+    <span class="record-count">{{ document_filtered_total }} resultado{{ document_filtered_total|pluralize }}</span>
   </header>
+  <form class="workspace-filter-form" method="get" aria-label="Pesquisar e filtrar NFS-e">
+    <div class="workspace-filter-search"><label for="nfse-search">Empresa, código Domínio, NSU ou hash</label><input id="nfse-search" type="search" name="q" maxlength="100" value="{{ document_search }}" autocomplete="off" placeholder="Ex.: Padaria, 0101 ou NSU 123…"></div>
+    <div><label for="nfse-status">Situação</label><select id="nfse-status" name="status" autocomplete="off"><option value="all"{% if document_status == 'all' %} selected{% endif %}>Todas</option><option value="review"{% if document_status == 'review' %} selected{% endif %}>Em revisão</option><option value="classified"{% if document_status == 'classified' %} selected{% endif %}>Classificadas</option><option value="received"{% if document_status == 'received' %} selected{% endif %}>Recebidas sem decisão</option></select></div>
+    <button class="button button-small" type="submit">Pesquisar carteira</button>
+    {% if document_search or document_status != 'all' %}<a class="button button-quiet button-small" href="{% url 'hub:nfse-center' %}">Limpar filtros</a>{% endif %}
+  </form>
   {% if document_rows %}
     <div class="data-table-wrap">
       <table class="operational-table">
-        <thead><tr><th>Documento</th><th>Capturado</th><th>Situação</th><th>Acumulador</th><th>Confiança</th></tr></thead>
+        <thead><tr><th scope="col">Empresa e documento</th><th scope="col">Capturado</th><th scope="col">Situação</th><th scope="col">Acumulador</th><th scope="col">Confiança</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
         <tbody>{% for row in document_rows %}<tr>
-          <td><strong>{{ row.document.source_nsu|default:"Documento NFS-e" }}</strong><small>Hash {{ row.document.document_hash|slice:":12" }}</small></td>
+          <td><strong>{{ row.document.company.name }}</strong><small>{{ row.document.source_nsu|default:"Documento NFS-e" }} · Domínio {{ row.document.company.dominio_code|default:"não informado" }} · Hash {{ row.document.document_hash|slice:":12" }}</small></td>
           <td>{{ row.document.captured_at|date:"d/m/Y H:i" }}</td>
           <td><span class="nfse-status nfse-status-{{ row.status_class }}">{{ row.status }}</span></td>
           <td>{{ row.accumulator }}</td>
-          <td>{% if row.confidence is not None %}{{ row.confidence }}%{% else %}—{% endif %}</td>
+          <td>{% if row.confidence is not None %}{{ row.confidence }}%{% else %}—{% endif %}</td><td>{% if row.review %}<a class="row-action-button" href="{% url 'hub:review-detail' row.review.id %}?return_to={{ request.get_full_path|urlencode }}">Conferir caso<span class="sr-only"> de {{ row.document.company.name }}</span></a>{% else %}<span class="table-muted">Sem ação pendente</span>{% endif %}</td>
         </tr>{% endfor %}</tbody>
       </table>
     </div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>A captura automática da NFS-e Nacional ainda precisa ser homologada pela Mewstack. Você pode conferir se os certificados das empresas estão sob custódia.</p><a class="button button-quiet" href="{% url 'hub:certificates' %}">Ver certificados das empresas</a></div>
+    {% if nfse_stats.received %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e corresponde aos filtros</strong><p>Altere a pesquisa ou a situação para voltar à carteira completa.</p><a class="button button-quiet" href="{% url 'hub:nfse-center' %}">Limpar filtros</a></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Configure a coleta automática para receber as notas das empresas.</p><a class="button button-quiet" href="?view=collection">Configurar coleta automática</a></div>{% endif %}
   {% endif %}
 </section>
+{% endif %}
 {% endblock %}

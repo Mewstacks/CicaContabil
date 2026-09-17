@@ -6,6 +6,9 @@
   const submitButton = form?.querySelector('button[type="submit"]');
   const submitLabel = form?.querySelector('[data-submit-label]');
   const status = document.getElementById('composer-status');
+  const companySearch = document.getElementById('assistant-company-search');
+  const companySelect = document.getElementById('assistant-company');
+  const companyHint = document.getElementById('assistant-company-hint');
   let draftChanged = false;
 
   const markDraftChanged = () => { draftChanged = true; };
@@ -20,6 +23,22 @@
     });
     preview.hidden = attachmentInput.files.length === 0;
   };
+
+  const normalizeCompany = (value) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  companySearch?.addEventListener('input', () => {
+    if (!companySelect) return;
+    const query = normalizeCompany(companySearch.value);
+    let matches = 0;
+    [...companySelect.options].forEach((option) => {
+      if (!option.value) return;
+      const matched = !query || normalizeCompany(option.textContent || '').includes(query);
+      option.hidden = !matched;
+      if (matched) matches += 1;
+    });
+    if (companyHint) companyHint.textContent = matches
+      ? `${matches} empresa${matches === 1 ? '' : 's'} na lista. Escolha antes de enviar.`
+      : 'Nenhuma empresa corresponde à busca. Revise o nome, código ou CNPJ.';
+  });
 
   document.querySelectorAll('[data-prompt]').forEach((button) => {
     button.addEventListener('click', () => {

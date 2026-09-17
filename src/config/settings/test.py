@@ -6,6 +6,7 @@ from config.settings.env import env_bool
 
 SECRET_KEY = "test-only-secret-key-not-used-outside-the-test-suite"
 DEBUG = env_bool("TEST_VISUAL_DEBUG", False)
+DEMO_SESSION_ISOLATION_READY = env_bool("TEST_DEMO_SESSION_ISOLATION_READY", False)
 test_database_path = os.environ.get("TEST_SQLITE_PATH", "")
 if not env_bool("TEST_USE_EXTERNAL_SERVICES", False):
     default_database_name: str | Path = ":memory:"

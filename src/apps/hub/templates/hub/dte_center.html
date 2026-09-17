@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block extra_head %}{{ block.super }}
-  <link rel="stylesheet" href="{% static 'hub/dte.css' %}?v=cica-9">
+  <link rel="stylesheet" href="{% static 'hub/dte.css' %}?v=cica-12">
   <script src="{% static 'hub/dte.js' %}?v=cica-9" defer></script>
 {% endblock %}
 
@@ -10,19 +10,19 @@
 <section class="dte-intro" aria-labelledby="dte-heading">
   <div>
     <p class="section-kicker">Integra Contador · operação do escritório</p>
-    <h2 id="dte-heading">Caixa Postal e consultas fiscais no mesmo trabalho.</h2>
-    <p>Encontre mensagens por empresa, confira a situação e prepare consultas quando precisar atualizar a caixa.</p>
+    <h2 id="dte-heading">Mensagens por empresa</h2>
+    <p>Confira mensagens e atualize a caixa quando precisar.</p>
   </div>
   <div class="dte-connection" role="status">
     <span class="readiness-dot" aria-hidden="true"></span>
-    {% if connector_ready %}Credenciais centrais informadas; homologação real pendente{% else %}Conexão Serpro indisponível{% endif %}
+    {% if office.is_demo %}Consulta fictícia local; sem envio ao Serpro{% elif connector_ready %}Credenciais centrais informadas; homologação real pendente{% else %}Conexão Serpro indisponível{% endif %}
   </div>
 </section>
 
 <nav class="dte-service-nav" aria-label="Ferramentas da Central Integra">
   <a href="{% url 'hub:integra' %}">Central Integra</a>
   <a href="{% url 'hub:dte-center' %}" aria-current="page">Caixa DTE</a>
-  <span>Parcelamentos em implantação</span>
+  <a href="{% url 'hub:parcelamentos' %}">Parcelamentos</a>
   {% if integra_guides_enabled %}<a href="{% url 'hub:guides' %}">DCTFWeb</a>{% endif %}
 </nav>
 
@@ -32,16 +32,16 @@
 
 <section class="metric-strip dte-metrics" aria-label="Resumo da Caixa Postal">
   <article><span>Empresas no escopo</span><strong>{{ dte_companies_count }}</strong><small>Ativas neste escritório</small></article>
-  <article class="{% if dte_stats.unread %}metric-needs-attention{% endif %}"><span>Sem leitura registrada</span><strong>{{ dte_stats.unread }}</strong><small>Na Caixa Postal consultada</small></article>
-  <article><span>Novas em 7 dias</span><strong>{{ dte_stats.new_this_week }}</strong><small>Conforme data do Serpro</small></article>
+  <article class="{% if dte_stats.unread %}metric-needs-attention{% endif %}"><span>A abrir</span><strong>{{ dte_stats.unread }}</strong><small>Sem leitura ou abertura pendente</small><a href="?status=unread">Ver mensagens a abrir</a></article>
+  <article class="{% if dte_stats.uncertain %}metric-needs-attention{% endif %}"><span>Aberturas pendentes</span><strong>{{ dte_stats.uncertain }}</strong><small>Em andamento ou com retorno incerto</small><a href="?status=uncertain">Ver aberturas pendentes</a></article>
   <article class="{% if dte_stats.awaiting %}metric-needs-attention{% endif %}"><span>Consulta a autorizar</span><strong>{{ dte_stats.awaiting }}</strong><small>Nenhuma enviada ainda</small></article>
 </section>
 
 <section class="workspace-panel dte-inbox" aria-labelledby="dte-inbox-title">
   <header class="workspace-panel-head"><div><p class="section-kicker">Fila de mensagens</p><h2 id="dte-inbox-title">Caixa Postal</h2></div><span class="record-count">{{ dte_message_page.paginator.count }} resultado{{ dte_message_page.paginator.count|pluralize }}</span></header>
   <form class="dte-filter-form" method="get" aria-label="Filtrar mensagens">
-    <div><label for="dte-status-filter">Leitura</label><select id="dte-status-filter" name="status"><option value="all"{% if dte_message_filter == 'all' %} selected{% endif %}>Todas</option><option value="unread"{% if dte_message_filter == 'unread' %} selected{% endif %}>Sem leitura</option><option value="read"{% if dte_message_filter == 'read' %} selected{% endif %}>Lidas</option></select></div>
-    <div><label for="dte-company-filter">Empresa</label><select id="dte-company-filter" name="company"><option value="">Todas no escopo</option>{% for company in dte_companies %}<option value="{{ company.id }}"{% if dte_selected_company.id == company.id %} selected{% endif %}>{{ company.name }}</option>{% endfor %}</select></div>
+    <div><label for="dte-status-filter">Situação</label><select id="dte-status-filter" name="status" autocomplete="off"><option value="all"{% if dte_message_filter == 'all' %} selected{% endif %}>Todas</option><option value="unread"{% if dte_message_filter == 'unread' %} selected{% endif %}>A abrir</option><option value="uncertain"{% if dte_message_filter == 'uncertain' %} selected{% endif %}>Aberturas pendentes</option><option value="read"{% if dte_message_filter == 'read' %} selected{% endif %}>Lidas/consultadas</option></select></div>
+    <div><label for="dte-company-filter">Empresa</label><select id="dte-company-filter" name="company" autocomplete="off"><option value="">Todas no escopo</option>{% for company in dte_companies %}<option value="{{ company.id }}"{% if dte_selected_company.id == company.id %} selected{% endif %}>{{ company.name }}</option>{% endfor %}</select></div>
     <div class="dte-search-field"><label for="dte-search">Assunto ou origem</label><input id="dte-search" type="search" name="q" maxlength="100" value="{{ dte_search_term }}" autocomplete="off" placeholder="Ex.: intimação…"></div>
     <button class="button button-small" type="submit">Filtrar</button>
     <a class="button button-quiet button-small" href="{% url 'hub:dte-center' %}">Limpar</a>
@@ -50,29 +50,30 @@
     <ul class="dte-message-list">
       {% for message in dte_message_page %}
       <li class="dte-message-row">
-        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3><a href="{% url 'hub:dte-message-detail' message.id %}">{{ message.subject|default:'Assunto não informado' }}</a></h3><p>{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }}{% else %}Data não informada{% endif %}</p></div>
+        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3><a href="{% url 'hub:dte-message-detail' message.id %}?return_to={{ request.get_full_path|urlencode }}">{{ message.subject|default:'Assunto não informado' }}</a></h3><p>{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }}{% else %}Data não informada{% endif %}</p></div>
         <div class="dte-message-state">
-          {% if message.access_receipt.status == 'unknown' %}<span class="dte-status dte-status-failed">Ciência a confirmar</span>
-          {% elif message.access_receipt.status == 'opened' %}<span class="dte-status dte-status-completed">Teor consultado</span>
-          {% elif message.display_science_at %}<span class="dte-status dte-status-completed">Ciência no Serpro</span>
-          {% elif message.display_read_at %}<span class="dte-status dte-status-completed">Lida no Serpro</span>
+          {% if message.access_receipt.status == 'unknown' %}<span class="dte-status dte-status-failed">Ciência a conferir</span>
+          {% elif message.access_receipt.status == 'reading' %}<span class="dte-status dte-status-pending">Abertura em andamento</span>
+          {% elif message.access_receipt.status == 'opened' %}<span class="dte-status dte-status-completed">{% if office.is_demo %}Teor fictício aberto{% else %}Teor consultado{% endif %}</span>
+          {% elif message.display_science_at %}<span class="dte-status dte-status-completed">{% if office.is_demo %}Ciência fictícia{% else %}Ciência no Serpro{% endif %}</span>
+          {% elif message.display_read_at %}<span class="dte-status dte-status-completed">{% if office.is_demo %}Leitura fictícia{% else %}Lida no Serpro{% endif %}</span>
           {% else %}<span class="dte-status dte-status-pending">Sem leitura</span>{% endif %}
-          <a href="{% url 'hub:dte-message-detail' message.id %}">Ver resumo<span class="sr-only"> de {{ message.subject|default:'mensagem' }}</span></a>
+          <a href="{% url 'hub:dte-message-detail' message.id %}?return_to={{ request.get_full_path|urlencode }}">Ver resumo<span class="sr-only"> de {{ message.subject|default:'mensagem' }}</span></a>
         </div>
       </li>
       {% endfor %}
     </ul>
     {% if dte_message_page.has_other_pages %}<nav class="dte-pagination" aria-label="Páginas de mensagens">{% if dte_message_page.has_previous %}<a href="?status={{ dte_message_filter }}&company={{ dte_selected_company.id|default:'' }}&q={{ dte_search_term|urlencode }}&page={{ dte_message_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ dte_message_page.number }} de {{ dte_message_page.paginator.num_pages }}</span>{% if dte_message_page.has_next %}<a href="?status={{ dte_message_filter }}&company={{ dte_selected_company.id|default:'' }}&q={{ dte_search_term|urlencode }}&page={{ dte_message_page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma mensagem neste filtro</strong><p>{% if dte_message_page.paginator.count == 0 and not connector_ready %}A conexão central precisa ser configurada e homologada pela Mewstack antes da primeira consulta.{% elif dte_search_term or dte_message_filter != 'all' or dte_selected_company %}Revise os filtros ou veja todas as mensagens já consultadas.{% else %}Prepare uma consulta por empresa abaixo; o envio só ocorre após autorização de consumo.{% endif %}</p>{% if dte_search_term or dte_message_filter != 'all' or dte_selected_company %}<a class="button button-quiet button-small" href="{% url 'hub:dte-center' %}">Ver todas</a>{% endif %}</div>
+    <div class="empty-block operational-empty"><strong>Nenhuma mensagem neste filtro</strong><p>{% if dte_search_term or dte_message_filter != 'all' or dte_selected_company %}Revise os filtros ou veja todas as mensagens já consultadas.{% elif not connector_ready %}A conexão central precisa ser configurada e homologada pela Mewstack antes da primeira consulta.{% else %}Prepare uma consulta por empresa abaixo; o envio só ocorre após autorização de consumo.{% endif %}</p>{% if dte_search_term or dte_message_filter != 'all' or dte_selected_company %}<a class="button button-quiet button-small" href="{% url 'hub:dte-center' %}">Ver todas</a>{% endif %}</div>
   {% endif %}
 </section>
 
 <div class="dte-grid dte-work-actions{% if not pending_runs %} dte-grid-single{% endif %}">
   <section class="workspace-panel dte-preparation" aria-labelledby="dte-preparation-title">
     <details{% if not dte_message_page.paginator.count or dte_form.errors %} open{% endif %}>
-      <summary><span><span class="section-kicker">Atualizar a Caixa Postal</span><strong id="dte-preparation-title">Preparar consulta por empresa</strong></span><span class="record-count">{{ dte_companies_count }} aptas de {{ dte_scope_count }}</span></summary>
-      <p class="dte-panel-explainer">O preparo é local. Cada empresa selecionada exige uma consulta Serpro, cobrada conforme o contrato e autorizada no passo seguinte. Esta consulta traz a primeira página, até 50 mensagens por empresa.</p>
+      <summary><span><span class="section-kicker">Atualizar a Caixa Postal</span><strong id="dte-preparation-title">Preparar consulta por empresa</strong></span><span class="record-count">{{ dte_companies_count }} {% if dte_companies_count == 1 %}empresa apta{% else %}empresas aptas{% endif %} de {{ dte_scope_count }}</span></summary>
+      <p class="dte-panel-explainer">{% if office.is_demo %}O preparo e o resultado são fictícios e ficam apenas nesta sessão. Escolha as empresas e simule a atualização, sem consultar o Serpro ou gerar cobrança.{% else %}O preparo é local. Cada empresa selecionada exige uma consulta Serpro, cobrada conforme o contrato e autorizada no passo seguinte. Esta consulta traz a primeira página, até 50 mensagens por empresa.{% endif %}</p>
       {% if dte_ineligible_count %}<p class="dte-panel-explainer" role="status">{{ dte_ineligible_count }} empresa{{ dte_ineligible_count|pluralize }} sem CNPJ válido {% if dte_ineligible_count == 1 %}não entra na seleção nem gera cobrança{% else %}não entram na seleção nem geram cobrança{% endif %}. <a href="{% url 'hub:companies' %}">Revise o cadastro das empresas</a> para consultá-las.</p>{% endif %}
       <form method="post" class="dte-form" action="{% url 'hub:dte-center' %}">
         {% csrf_token %}
@@ -96,14 +97,14 @@
               <span class="source-code">DTE-{{ run.id|stringformat:'s'|slice:':8' }}</span>
               <strong>{{ run.total_companies }} empresa{{ run.total_companies|pluralize:",s" }} · {{ run.total_companies }} consulta{{ run.total_companies|pluralize }}</strong>
               <small>{{ run.requested_at|date:'d/m/Y H:i' }}{% if run.requested_by %} · {{ run.requested_by.full_name|default:run.requested_by.email }}{% endif %}</small>
-              {% if run.usage_quote %}<small>{{ run.usage_quote.included_remaining }} unidade{{ run.usage_quote.included_remaining|pluralize }} restante{{ run.usage_quote.included_remaining|pluralize }} na franquia{% if run.usage_quote.additional_overage_units %} · {{ run.usage_quote.additional_overage_units }} excedente{{ run.usage_quote.additional_overage_units|pluralize }} · R$ {{ run.overage_brl|floatformat:2 }}{% endif %}</small>{% else %}<small>Contrato sem tarifa de Caixa Postal; envio bloqueado.</small>{% endif %}
+              {% if office.is_demo %}<small>Sem Serpro, sem consumo e sem cobrança nesta demonstração.</small>{% elif run.usage_quote %}<small><strong>{{ run.usage_quote.total_tokens }} tokens</strong> para consultar {{ run.total_companies }} empresa{{ run.total_companies|pluralize }} · {{ run.usage_quote.included_remaining }} tokens restantes na franquia{% if run.usage_quote.additional_overage_tokens %} · {{ run.usage_quote.additional_overage_tokens }} tokens excedentes · R$ {{ run.overage_brl|floatformat:2 }}{% endif %}</small>{% else %}<small>Tabela de tokens da Central Integra não aceita ou sem peso para Caixa DTE; envio bloqueado.</small>{% endif %}
             </div>
             <ul class="dte-approval-companies">{% for item in run.items.all %}<li>{{ item.company.name }}</li>{% endfor %}</ul>
             {% if can_prepare_dte %}
               <form method="post" action="{% url 'hub:decide-dte-run' run.id %}" class="dte-approval-actions">
                 {% csrf_token %}
-                {% if run.usage_quote.additional_overage_units and can_authorize_overage %}<label class="dte-overage-consent"><input type="checkbox" name="confirm_overage" value="on" required> <span>Autorizo o excedente de <strong>R$ {{ run.overage_brl|floatformat:2 }}</strong> para estas consultas. {% if run.usage_quote.additional_overage_cents %}O valor entrará na fatura do escritório.{% else %}Sem preço adicional, mas fora da franquia.{% endif %}</span></label><input type="hidden" name="approved_overage_cents" value="{{ run.usage_quote.additional_overage_cents }}">{% elif run.usage_quote.additional_overage_units %}<p>Peça a um dono ou administrador para autorizar o excedente antes do envio.</p>{% endif %}
-                <button class="button button-small" type="submit" name="decision" value="approve"{% if not connector_ready or not run.usage_quote or run.usage_quote.additional_overage_units and not can_authorize_overage %} disabled{% endif %}>Autorizar consultas</button>
+                {% if run.usage_quote.additional_overage_cents and can_authorize_overage %}<label class="dte-overage-consent"><input type="checkbox" name="confirm_overage" value="on" required> <span>Autorizo <strong>R$ {{ run.overage_brl|floatformat:2 }}</strong> de excedente para estas consultas.</span></label><input type="hidden" name="approved_overage_cents" value="{{ run.usage_quote.additional_overage_cents }}">{% elif run.usage_quote.additional_overage_cents %}<p>Peça a um dono ou administrador para autorizar o excedente antes do envio.</p>{% endif %}
+                <button class="button button-small" type="submit" name="decision" value="approve"{% if not connector_ready or not run.usage_quote or run.usage_quote.additional_overage_cents and not can_authorize_overage %} disabled{% endif %}>{% if office.is_demo %}Simular consultas{% else %}Autorizar {{ run.usage_quote.total_tokens }} tokens{% endif %}</button>
                 <button class="button button-quiet button-small" type="submit" name="decision" value="cancel" formnovalidate>Retirar</button>
               </form>
             {% endif %}
@@ -116,6 +117,6 @@
 
 <section class="workspace-panel dte-history" aria-labelledby="dte-history-title">
   <header class="workspace-panel-head"><div><p class="section-kicker">Histórico e falhas</p><h2 id="dte-history-title">Resultado das consultas</h2></div><span class="record-count">{{ dte_items|length }} exibidos</span></header>
-  {% if dte_items %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Empresa</th><th scope="col">Solicitação</th><th scope="col">Resultado</th><th scope="col">Mensagens</th></tr></thead><tbody>{% for item in dte_items %}<tr><td><strong>{{ item.company.name }}</strong><small>{{ item.company.cnpj_masked|default:'CNPJ não informado' }}</small></td><td><span class="source-code">DTE-{{ item.run.id|stringformat:'s'|slice:':8' }}</span><small>{{ item.run.requested_at|date:'d/m/Y H:i' }}</small></td><td><span class="dte-status dte-status-{{ item.status }}">{{ item.get_status_display }}</span>{% if item.error_message %}<small>{{ item.error_message }}</small>{% endif %}{% if item.more_available %}<small>Há mais páginas no Serpro; esta aprovação cobriu apenas a primeira.</small>{% endif %}</td><td>{{ item.messages_found }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma consulta preparada</strong><p>Abra “Preparar consulta por empresa” para criar a primeira solicitação.</p></div>{% endif %}
+  {% if dte_items %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Empresa</th><th scope="col">Solicitação</th><th scope="col">Resultado</th><th scope="col">Mensagens</th></tr></thead><tbody>{% for item in dte_items %}<tr><td><strong>{{ item.company.name }}</strong><small>{{ item.company.cnpj_masked|default:'CNPJ não informado' }}</small></td><td><span class="source-code">DTE-{{ item.run.id|stringformat:'s'|slice:':8' }}</span><small>{{ item.run.requested_at|date:'d/m/Y H:i' }}</small>{% if item.requested_page_pointer %}<small>Página seguinte</small>{% else %}<small>Primeira página</small>{% endif %}</td><td><span class="dte-status dte-status-{{ item.status }}">{{ item.get_status_display }}</span>{% if item.error_message %}<small>{{ item.error_message }}</small>{% endif %}{% if item.more_available %}<small>Há outra página no Serpro. Cada página exige nova autorização e consome uma consulta.</small>{% if can_prepare_dte and item.next_page_pointer and not item.continuation %}<form method="post" action="{% url 'hub:dte-next-page' item.id %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Preparar próxima página de {{ item.company.name }}</button></form>{% elif item.continuation %}<small>Próxima página já preparada.</small>{% else %}<small>Próxima página indisponível; revise a consulta.</small>{% endif %}{% endif %}</td><td>{{ item.messages_found }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma consulta preparada</strong><p>Abra “Preparar consulta por empresa” para criar a primeira solicitação.</p></div>{% endif %}
 </section>
 {% endblock %}

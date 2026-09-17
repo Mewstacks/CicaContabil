@@ -1,0 +1,13 @@
+<nav class="workspace-navigation" id="workspace-navigation" aria-label="Navegação principal">
+  <a class="topnav-link" href="{% url 'hub:dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' %} aria-current="page"{% endif %}>Visão geral</a>
+  {% for group in groups %}
+  <details class="topnav-group{% if group.active %} is-current{% endif %}" data-workspace-menu>
+    <summary>{{ group.label }}<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>
+    <div class="topnav-panel">
+      <p class="topnav-caption">{{ group.label }}</p>
+      {% for item in group.links %}<a href="{{ item.url }}"{% if item.active %} aria-current="{% if item.url == request.path %}page{% else %}location{% endif %}"{% endif %}><strong>{{ item.label }}</strong><span>{{ item.description }}</span></a>{% endfor %}
+    </div>
+  </details>
+  {% endfor %}
+  {% if copilot_enabled %}<a class="topnav-link topnav-copilot" href="{% url 'intelligence:assistant' %}"{% if request.resolver_match.app_name == 'intelligence' %} aria-current="page"{% endif %}>Copiloto CICA<svg aria-hidden="true" viewBox="0 0 20 20"><path d="m10 2 2.2 5.8L18 10l-5.8 2.2L10 18l-2.2-5.8L2 10l5.8-2.2Z"/></svg></a>{% endif %}
+</nav>

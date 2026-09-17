@@ -24,12 +24,25 @@
     // control the person actually selected (for example, “Testar conexão”).
     const button = event.submitter || form.querySelector('button[type=submit]');
     if (!button || !form.checkValidity()) return;
+    if (form.getAttribute('aria-busy') === 'true') {
+      event.preventDefault();
+      return;
+    }
+    if (button.name) {
+      const field = document.createElement('input');
+      field.type = 'hidden';
+      field.name = button.name;
+      field.value = button.value;
+      field.dataset.submitterField = '';
+      form.append(field);
+    }
     button.disabled = true;
     button.dataset.originalLabel = button.textContent;
     button.textContent = 'Aguarde…';
     form.setAttribute('aria-busy', 'true');
   }));
   window.addEventListener('pageshow', () => {
+    document.querySelectorAll('[data-submitter-field]').forEach(field => field.remove());
     document.querySelectorAll('button[data-original-label]').forEach(button => {
       button.disabled = false;
       button.textContent = button.dataset.originalLabel;

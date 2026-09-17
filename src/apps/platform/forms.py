@@ -5,6 +5,7 @@ from typing import Any, cast
 from django import forms
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 
 from apps.common.cnpj import lookup_company, normalize_cnpj
@@ -18,6 +19,9 @@ from apps.platform.models import (
     TenantContract,
     TenantServiceRate,
     TenantUsagePolicy,
+    TokenActionWeight,
+    TokenModuleRate,
+    TokenPriceBook,
 )
 
 
@@ -160,9 +164,7 @@ class PlanCatalogForm(forms.ModelForm):  # type: ignore[type-arg]
         min_value=0,
         initial=0,
         help_text="No teste, o limite bloqueia novas perguntas sem cobrança automática.",
-        widget=forms.NumberInput(
-            attrs={"min": "0", "inputmode": "numeric", "autocomplete": "off"}
-        ),
+        widget=forms.NumberInput(attrs={"min": "0", "inputmode": "numeric", "autocomplete": "off"}),
     )
     ai_overage_price_brl = forms.DecimalField(
         label="Valor por pergunta excedente",
@@ -313,6 +315,198 @@ class TenantServiceRateForm(forms.Form):
                 "monthly_overage_cap_cents": int(data["overage_cap_brl"] * 100),
             },
         )
+
+
+class TokenOfferForm(forms.Form):
+    """Commercial proposal with one token value and module-specific terms."""
+
+    token_price_brl = forms.DecimalField(
+        label="Valor de 1 token",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=8,
+        widget=forms.NumberInput(
+            attrs={"min": "0.01", "step": "0.01", "inputmode": "decimal", "autocomplete": "off"}
+        ),
+    )
+    monthly_overage_cap_brl = forms.DecimalField(
+        label="Teto mensal de excedente",
+        min_value=0,
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(
+            attrs={"min": "0", "step": "0.01", "inputmode": "decimal", "autocomplete": "off"}
+        ),
+    )
+    integra_monthly_base_brl = forms.DecimalField(
+        label="Mensalidade da Central Integra",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        widget=forms.NumberInput(
+            attrs={"min": "0.01", "step": "0.01", "inputmode": "decimal", "autocomplete": "off"}
+        ),
+    )
+    integra_included_tokens = forms.IntegerField(
+        label="Tokens incluídos na Central Integra",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    dctfweb_declaration_tokens = forms.IntegerField(
+        label="Declaração completa DCTFWeb",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    dctfweb_receipt_tokens = forms.IntegerField(
+        label="Recibo DCTFWeb",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    dctfweb_guide_tokens = forms.IntegerField(
+        label="Emissão de DARF DCTFWeb",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    dte_list_tokens = forms.IntegerField(
+        label="Consulta da Caixa Postal por empresa",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    dte_detail_tokens = forms.IntegerField(
+        label="Abertura do teor e ciência DTE",
+        min_value=1,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    include_ai_module = forms.BooleanField(
+        label="Incluir o Copiloto nesta proposta",
+        required=False,
+    )
+    ai_monthly_base_brl = forms.DecimalField(
+        label="Mensalidade do Copiloto",
+        min_value=Decimal("0.01"),
+        decimal_places=2,
+        max_digits=12,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={"min": "0.01", "step": "0.01", "inputmode": "decimal", "autocomplete": "off"}
+        ),
+    )
+    ai_included_tokens = forms.IntegerField(
+        label="Tokens incluídos no Copiloto",
+        min_value=1,
+        required=False,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+    ai_answer_tokens = forms.IntegerField(
+        label="Resposta do Copiloto",
+        min_value=1,
+        required=False,
+        widget=forms.NumberInput(attrs={"min": "1", "inputmode": "numeric", "autocomplete": "off"}),
+    )
+
+    ACTION_FIELDS = {
+        "dctfweb.declaracao_completa": "dctfweb_declaration_tokens",
+        "dctfweb.recibo": "dctfweb_receipt_tokens",
+        "dctfweb.guia": "dctfweb_guide_tokens",
+        "caixapostal.mensagens": "dte_list_tokens",
+        "caixapostal.detalhe": "dte_detail_tokens",
+    }
+
+    def __init__(self, *args: Any, book: TokenPriceBook | None = None, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.book = book
+        if book is None:
+            return
+        self.fields["token_price_brl"].initial = (
+            Decimal(book.token_price_cents) / 100 if book.token_price_cents else None
+        )
+        self.fields["monthly_overage_cap_brl"].initial = (
+            Decimal(book.monthly_overage_cap_cents) / 100
+            if book.monthly_overage_cap_cents is not None
+            else None
+        )
+        rate = book.module_rates.filter(module_code="integra").first()
+        if rate is None:
+            return
+        self.fields["integra_monthly_base_brl"].initial = (
+            Decimal(rate.monthly_base_cents) / 100 if rate.monthly_base_cents is not None else None
+        )
+        self.fields["integra_included_tokens"].initial = rate.included_tokens
+        weights = {weight.action_code: weight.tokens for weight in rate.action_weights.all()}
+        for action_code, field_name in self.ACTION_FIELDS.items():
+            self.fields[field_name].initial = weights.get(action_code)
+        ai_rate = book.module_rates.filter(module_code="ai").first()
+        if ai_rate is not None:
+            self.fields["include_ai_module"].initial = True
+            self.fields["ai_monthly_base_brl"].initial = (
+                Decimal(ai_rate.monthly_base_cents) / 100
+                if ai_rate.monthly_base_cents is not None
+                else None
+            )
+            self.fields["ai_included_tokens"].initial = ai_rate.included_tokens
+            ai_weight = ai_rate.action_weights.filter(action_code="ai.answer").first()
+            self.fields["ai_answer_tokens"].initial = ai_weight.tokens if ai_weight else None
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean()
+        ai_fields = ("ai_monthly_base_brl", "ai_included_tokens", "ai_answer_tokens")
+        if cleaned.get("include_ai_module"):
+            for field_name in ai_fields:
+                if cleaned.get(field_name) in {None, ""}:
+                    self.add_error(field_name, "Informe este termo para incluir o Copiloto.")
+        else:
+            for field_name in ai_fields:
+                cleaned[field_name] = None
+        return cleaned
+
+    @staticmethod
+    def cents(value: Decimal) -> int:
+        return int((value * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+    @transaction.atomic
+    def save(self, *, contract: TenantContract) -> TokenPriceBook:
+        book = self.book
+        if book is None:
+            last_version = (
+                TokenPriceBook.objects.filter(contract=contract)
+                .order_by("-version")
+                .values_list("version", flat=True)
+                .first()
+                or 0
+            )
+            book = TokenPriceBook.objects.create(contract=contract, version=last_version + 1)
+        if book.status != TokenPriceBook.Status.DRAFT:
+            raise ValidationError("A proposta aceita está congelada. Crie uma nova versão.")
+        book.token_price_cents = self.cents(self.cleaned_data["token_price_brl"])
+        book.monthly_overage_cap_cents = self.cents(self.cleaned_data["monthly_overage_cap_brl"])
+        book.save(update_fields=["token_price_cents", "monthly_overage_cap_cents", "updated_at"])
+        rate, _ = TokenModuleRate.objects.get_or_create(book=book, module_code="integra")
+        rate.monthly_base_cents = self.cents(self.cleaned_data["integra_monthly_base_brl"])
+        rate.included_tokens = self.cleaned_data["integra_included_tokens"]
+        rate.save(update_fields=["monthly_base_cents", "included_tokens", "updated_at"])
+        for action_code, field_name in self.ACTION_FIELDS.items():
+            TokenActionWeight.objects.update_or_create(
+                module_rate=rate,
+                action_code=action_code,
+                defaults={"tokens": self.cleaned_data[field_name]},
+            )
+        if self.cleaned_data["include_ai_module"]:
+            ai_rate, _ = TokenModuleRate.objects.get_or_create(book=book, module_code="ai")
+            ai_rate.monthly_base_cents = self.cents(self.cleaned_data["ai_monthly_base_brl"])
+            ai_rate.included_tokens = self.cleaned_data["ai_included_tokens"]
+            ai_rate.save(update_fields=["monthly_base_cents", "included_tokens", "updated_at"])
+            TokenActionWeight.objects.update_or_create(
+                module_rate=ai_rate,
+                action_code="ai.answer",
+                defaults={"tokens": self.cleaned_data["ai_answer_tokens"]},
+            )
+        else:
+            ai_rate = book.module_rates.filter(module_code="ai").first()
+            if ai_rate is not None:
+                ai_rate.action_weights.all().delete()
+                ai_rate.delete()
+        self.book = book
+        return book
 
 
 class ClaudeFallbackForm(forms.Form):

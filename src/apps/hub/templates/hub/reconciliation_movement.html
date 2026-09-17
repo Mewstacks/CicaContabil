@@ -1,0 +1,65 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block workspace_content %}
+<section class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">REVISAR MOVIMENTO</p>
+      <h2>{{ movement.description|default:movement.original_description }}</h2>
+      <p>{{ movement.company.name }} · origem {{ movement.source_file.original_filename }}</p>
+    </div>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#movimentos">Voltar</a>
+  </header>
+  <div class="reconciliation-detail-grid">
+    <article>
+      <h3>Dados normalizados</h3>
+      <form method="post" class="form-stack">
+        {% csrf_token %}
+        {% if movement_form.non_field_errors %}<div class="form-errors" role="alert">{{ movement_form.non_field_errors }}</div>{% endif %}
+        {% for field in movement_form %}
+          {% if field.is_hidden %}{{ field }}{% else %}
+            <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+          {% endif %}
+        {% endfor %}
+        <button class="button" name="action" value="save" type="submit">Salvar revisão</button>
+      </form>
+      {% if movement.review_state != 'ignored' %}<form method="post">{% csrf_token %}<button class="button button-quiet" name="action" value="save_rule" type="submit">Salvar correção como regra</button></form>{% endif %}
+      {% if movement.review_state == 'ignored' %}<form method="post"><input type="hidden" name="action" value="restore_movement">{% csrf_token %}<button class="button button-quiet" type="submit">Desfazer ignorar</button></form>{% else %}<form method="post" class="form-stack"><input type="hidden" name="action" value="ignore_movement">{% csrf_token %}<div class="field"><label for="ignore-reason">Motivo para ignorar</label><input id="ignore-reason" name="reason" maxlength="240" autocomplete="off" placeholder="Ex.: saldo inicial já conferido…" required></div><button class="button button-quiet" type="submit">Ignorar movimento</button></form>{% endif %}
+      {% if movement.review_state != 'ignored' and journal_entry %}
+        <div class="inline-alert" role="status"><strong>Lançamento {{ journal_entry.get_state_display|lower }}</strong><span>{{ journal_entry.history }}</span></div>
+        {% if journal_entry.state == 'draft' %}<form method="post">{% csrf_token %}<button class="button" name="action" value="approve_entry" type="submit">Validar e aprovar lançamento</button></form>{% endif %}
+      {% elif movement.review_state != 'ignored' %}
+        <form method="post">{% csrf_token %}<button class="button" name="action" value="generate_entry" type="submit">Gerar lançamento rascunho</button></form>
+      {% endif %}
+      <section class="reconciliation-allocation-summary" aria-labelledby="allocation-heading">
+        <h3 id="allocation-heading">Alocações da conciliação</h3>
+        <dl><div><dt>Valor do movimento</dt><dd>R$ {{ movement.amount_brl|floatformat:2 }}</dd></div><div><dt>Já alocado</dt><dd>R$ {{ movement.allocated_brl|floatformat:2 }}</dd></div><div><dt>Disponível</dt><dd>R$ {{ movement.remaining_brl|floatformat:2 }}</dd></div></dl>
+        {% if movement_reconciliations %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Lançamento</th><th>Valor</th><th>Evidência</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for reconciliation in movement_reconciliations %}<tr><td>{{ reconciliation.entry.occurred_on|date:'SHORT_DATE_FORMAT' }} · {{ reconciliation.entry.history }}</td><td>R$ {{ reconciliation.amount_brl|floatformat:2 }}</td><td>{% if reconciliation.evidence.method == 'deterministic_exact_1to1' %}<span class="status-badge is-active">Automática</span><small>Documento, data e valor coincidem de forma única.</small>{% else %}{{ reconciliation.evidence.note|default:'Evidência registrada' }}{% endif %}</td><td>{% if support_can_mutate %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="undo_reconciliation"><input type="hidden" name="reconciliation_id" value="{{ reconciliation.id }}"><button class="row-action-button" type="submit">Desfazer</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% else %}<p class="field-help">Nenhuma alocação confirmada. Você pode confirmar mais de uma relação até consumir o valor disponível.</p>{% endif %}
+      </section>
+      {% if reconciliation_suggestion_state == 'unique' %}<div class="inline-alert" role="status"><strong>Uma sugestão encontrada.</strong><span>{{ reconciliation_suggestions.0.reasons }}. Confirme a evidência antes de efetivar.</span></div>{% elif reconciliation_suggestion_state == 'ambiguous' %}<div class="inline-alert inline-alert-warning" role="status"><strong>{{ reconciliation_suggestions|length }} sugestões possíveis.</strong><span>Escolha a relação correta; o sistema não confirma uma sugestão ambígua.</span></div>{% endif %}
+      {% if reconciliation_candidates and movement.remaining_cents %}
+        <form method="post" class="form-stack reconciliation-confirm-form" data-reconciliation-confirm-form>
+          {% csrf_token %}<input type="hidden" name="action" value="confirm_reconciliation">
+          <h3>Conciliar com registro existente</h3>
+          <div class="field"><label for="entry-id">Lançamento independente</label><select id="entry-id" name="entry_id" required>{% for suggestion in reconciliation_candidates %}<option value="{{ suggestion.entry.id }}" data-allocation-limit="{{ suggestion.allocation_limit_input }}">{{ suggestion.entry.occurred_on|date:'SHORT_DATE_FORMAT' }} · {{ suggestion.entry.history }} — {{ suggestion.reasons }} · disponível R$ {{ suggestion.allocation_limit_brl|floatformat:2 }}</option>{% endfor %}</select></div>
+          <div class="field"><label for="amount-brl">Valor alocado</label><input id="amount-brl" name="amount_brl" type="number" min="0.01" max="{{ reconciliation_candidates.0.allocation_limit_input }}" step="0.01" inputmode="decimal" value="{{ reconciliation_candidates.0.allocation_limit_input }}" required><p class="field-help" data-reconciliation-allocation-limit>O limite considera o valor ainda disponível nos dois registros.</p></div>
+          <div class="field"><label for="evidence-note">Evidência da relação</label><input id="evidence-note" name="evidence_note" maxlength="240" autocomplete="off" placeholder="Ex.: documento, número do título…" required></div>
+          <button class="button button-quiet" type="submit">Confirmar conciliação</button>
+        </form>
+      {% endif %}
+    </article>
+    <aside>
+      <h3>Evidência de origem</h3>
+      <dl class="triage-details">
+        <div><dt>Arquivo</dt><dd><a href="{% url 'hub:reconciliation-source-download' movement.source_file.id %}">{{ movement.source_file.original_filename }}</a>{% if movement.source_file.kind == 'pdf' %}<br><a href="{% url 'hub:reconciliation-source-preview' movement.source_file.id %}#page={{ movement.source_reference.page|default:1 }}" target="_blank" rel="noopener">Abrir PDF na página indicada</a>{% endif %}</dd></div>
+        <div><dt>Localização</dt><dd>{% if movement.source_reference.page %}Página {{ movement.source_reference.page }}{% if movement.source_reference.line %} · linha {{ movement.source_reference.line }}{% elif movement.source_reference.ocr_line %} · linha OCR {{ movement.source_reference.ocr_line }}{% endif %}{% elif movement.source_reference.row %}Linha {{ movement.source_reference.row }}{% elif movement.source_reference.fitid %}OFX {{ movement.source_reference.fitid }}{% else %}Origem registrada{% endif %}{% if movement.source_reference.bbox %}<br><small>Região: x {{ movement.source_reference.bbox.x0|floatformat:0 }}–{{ movement.source_reference.bbox.x1|floatformat:0 }}, y {{ movement.source_reference.bbox.top|floatformat:0 }}–{{ movement.source_reference.bbox.bottom|floatformat:0 }} ({{ movement.source_reference.bbox.unit }})</small>{% endif %}</dd></div>
+        <div><dt>Data original</dt><dd>{{ movement.original_date }}</dd></div>
+        <div><dt>Valor original</dt><dd>{{ movement.original_amount }}</dd></div>
+        <div><dt>Qualidade</dt><dd>{{ movement.confidence }}% · {{ movement.confidence_details.method|default:'extração estruturada' }}</dd></div>
+        <div><dt>Regra</dt><dd>{{ movement.applied_rule.name|default:'nenhuma' }}</dd></div>
+      </dl>
+    </aside>
+  </div>
+</section>
+<script src="{% static 'hub/reconciliation_ui.js' %}?v=2" defer></script>
+{% endblock %}

@@ -1,8 +1,19 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.hub.models import ClientCompany, Connector, DteMessage, DteRun, DteRunItem, ProductModule
+from apps.hub.models import (
+    ClientCompany,
+    Connector,
+    DteMessage,
+    DteMessageAccess,
+    DteRun,
+    DteRunItem,
+    ProductModule,
+)
 from apps.organizations.models import Membership, Organization
 
 
@@ -38,7 +49,8 @@ class DteCenterTests(TestCase):
         response = self.client.get(reverse("hub:dte-center"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Caixa Postal e consultas fiscais no mesmo trabalho")
+        self.assertContains(response, "Mensagens por empresa")
+        self.assertContains(response, reverse("hub:parcelamentos"))
         self.assertContains(response, self.company.name)
         self.assertNotContains(response, "ClientCompany object")
         self.assertContains(response, "Conexão Serpro indisponível")
@@ -71,6 +83,26 @@ class DteCenterTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "A empresa selecionada n\u00e3o est\u00e1 no seu escopo")
         self.assertFalse(DteRun.objects.filter(organization=self.organization).exists())
+
+    def test_operator_prepares_next_page_from_own_history_without_dispatch(self) -> None:
+        first = DteRun.objects.create(
+            organization=self.organization, status=DteRun.Status.COMPLETED
+        )
+        source = DteRunItem.objects.create(
+            organization=self.organization, run=first, company=self.company,
+            status=DteRunItem.Status.COMPLETED, more_available=True,
+            next_page_pointer="20260912093015",
+        )
+        screen = self.client.get(reverse("hub:dte-center"))
+        self.assertContains(screen, "Preparar próxima página de Empresa DTE")
+        prepared = self.client.post(reverse("hub:dte-next-page", args=[source.id]))
+        self.assertRedirects(prepared, reverse("hub:dte-center"))
+        continuation = DteRunItem.objects.get(continued_from=source)
+        self.assertEqual(continuation.run.status, DteRun.Status.AWAITING_APPROVAL)
+        self.assertEqual(continuation.requested_page_pointer, "20260912093015")
+        repeated = self.client.post(reverse("hub:dte-next-page", args=[source.id]), follow=True)
+        self.assertContains(repeated, "já foi preparada")
+        self.assertEqual(DteRunItem.objects.filter(continued_from=source).count(), 1)
 
     def test_company_without_valid_cnpj_is_excluded_before_paid_preparation(self) -> None:
         missing = ClientCompany.objects.create(
@@ -116,6 +148,98 @@ class DteCenterTests(TestCase):
         self.assertContains(summary, "Teor ainda não consultado")
         self.assertNotContains(summary, "<form class=\"dte-legal-form\"")
         self.assertEqual(refused.status_code, 403)
+
+    def test_demo_opens_fictitious_dte_detail_without_provider_or_usage(self) -> None:
+        self.organization.is_demo = True
+        self.organization.save(update_fields=["is_demo"])
+        self.membership.role = Membership.Role.OWNER
+        self.membership.save(update_fields=["role"])
+        message = DteMessage.objects.create(
+            organization=self.organization,
+            company=self.company,
+            source_isn="DEMO-001",
+            subject="Aviso fictício",
+        )
+        url = reverse("hub:dte-message-detail", args=[message.id])
+        with patch("apps.hub.views.open_message") as provider, patch(
+            "apps.hub.views.quote_usage"
+        ) as usage:
+            before = self.client.get(url)
+            opened = self.client.post(url, {"confirm_legal_notice": "on"}, follow=True)
+        self.assertContains(before, "Abrir teor fictício")
+        self.assertContains(opened, "nenhuma ciência oficial foi registrada")
+        self.assertContains(opened, "Mensagem fictícia para Empresa DTE")
+        provider.assert_not_called()
+        usage.assert_not_called()
+        access = DteMessageAccess.objects.get(message=message)
+        self.assertEqual(access.status, DteMessageAccess.Status.OPENED)
+        self.assertTrue(access.provider_request_id.startswith("DEMO-"))
+
+    def test_uncertain_opening_is_separate_from_actionable_unread_messages(self) -> None:
+        actionable = DteMessage.objects.create(
+            organization=self.organization,
+            company=self.company,
+            source_isn="0000082841",
+            subject="Mensagem ainda a abrir",
+        )
+        uncertain = DteMessage.objects.create(
+            organization=self.organization,
+            company=self.company,
+            source_isn="0000082842",
+            subject="Mensagem com retorno incerto",
+        )
+        in_progress = DteMessage.objects.create(
+            organization=self.organization,
+            company=self.company,
+            source_isn="0000082843",
+            subject="Mensagem em andamento",
+        )
+        science_recorded = DteMessage.objects.create(
+            organization=self.organization,
+            company=self.company,
+            source_isn="0000082844",
+            subject="Mensagem com ciência no Serpro",
+            source_science_at=timezone.now(),
+        )
+        DteMessageAccess.objects.create(
+            organization=self.organization,
+            message=uncertain,
+            status=DteMessageAccess.Status.UNKNOWN,
+        )
+        DteMessageAccess.objects.create(
+            organization=self.organization,
+            message=in_progress,
+            status=DteMessageAccess.Status.READING,
+        )
+
+        all_messages = self.client.get(reverse("hub:dte-center"))
+        self.assertEqual(all_messages.context["dte_stats"]["unread"], 1)
+        self.assertEqual(all_messages.context["dte_stats"]["uncertain"], 2)
+        self.assertContains(all_messages, "Ciência a conferir")
+        self.assertContains(all_messages, "Abertura em andamento")
+
+        to_open = self.client.get(reverse("hub:dte-center"), {"status": "unread"})
+        self.assertContains(to_open, actionable.subject)
+        for blocked in (uncertain, in_progress, science_recorded):
+            self.assertNotContains(to_open, blocked.subject)
+
+        to_confirm = self.client.get(reverse("hub:dte-center"), {"status": "uncertain"})
+        self.assertContains(to_confirm, uncertain.subject)
+        self.assertContains(to_confirm, in_progress.subject)
+        self.assertNotContains(to_confirm, actionable.subject)
+        self.assertNotContains(to_confirm, science_recorded.subject)
+
+        consulted = self.client.get(reverse("hub:dte-center"), {"status": "read"})
+        self.assertContains(consulted, science_recorded.subject)
+        self.assertNotContains(consulted, uncertain.subject)
+
+        empty_filter = self.client.get(
+            reverse("hub:dte-center"), {"status": "uncertain", "q": "semresultado"}
+        )
+        self.assertContains(empty_filter, "Revise os filtros")
+        self.assertNotContains(
+            empty_filter, "A conexão central precisa ser configurada e homologada pela Mewstack"
+        )
 
     def test_operator_with_explicit_science_permission_reaches_configuration_gate(self) -> None:
         self.membership.can_acknowledge_dte = True

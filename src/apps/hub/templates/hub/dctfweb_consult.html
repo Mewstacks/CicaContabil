@@ -1,0 +1,80 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:guides' %}">Voltar à carteira</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="operation-summary" aria-labelledby="dctfweb-consult-heading">
+  <div>
+    <p class="section-kicker">DCTFWEB · CONFIRMAÇÃO OFICIAL</p>
+    <h2 id="dctfweb-consult-heading">{{ consult_company.name }}</h2>
+    <p>Competência {{ consult_competence }} · Domínio {{ consult_company.dominio_code }} · {{ consult_company.cnpj_masked }}</p>
+  </div>
+</section>
+
+<div class="inline-alert" role="note">
+  <strong>Cada documento é uma consulta separada ao Integra Contador.</strong>
+  <span>Confira o documento e o custo abaixo. O PDF obtido fica salvo no histórico e novos downloads não geram outra consulta.</span>
+</div>
+
+<section class="dctfweb-document-grid" aria-label="Documentos da DCTFWeb">
+  {% for card in consult_cards %}
+  <article class="workspace-panel dctfweb-document-card">
+    <header class="workspace-panel-head">
+      <div>
+        <p class="section-kicker">{{ card.service_key }}</p>
+        <h2>{{ card.label }}</h2>
+      </div>
+      {% if card.document %}<span class="module-state {% if card.document.status == 'available' %}is-active{% elif card.document.status == 'failed' or card.document.status == 'unknown' %}is-danger{% else %}is-warning{% endif %}">{{ card.document.get_status_display }}</span>{% endif %}
+    </header>
+
+    {% if card.document.status == 'available' %}
+      <p>Documento obtido em {{ card.document.completed_at|date:"d/m/Y H:i" }}. O arquivo abaixo é a cópia persistida desta consulta.</p>
+      <a class="button" href="{% url 'hub:dctfweb-document-pdf' card.document.id %}">Baixar PDF</a>
+    {% elif card.document.status == 'queued' or card.document.status == 'fetching' %}
+      <p>A consulta está em processamento. Atualize esta página para acompanhar o resultado.</p>
+    {% elif card.document.status == 'unknown' %}
+      <p>{{ card.document.error_message }}</p>
+      <p><strong>Não repita a consulta.</strong> O resultado e a cobrança precisam ser conciliados antes de uma nova tentativa.</p>
+    {% else %}
+      {% if card.document.error_message %}<div class="inline-alert inline-alert-danger" role="alert"><span>{{ card.document.error_message }}</span></div>{% endif %}
+      {% if card.error %}
+        <div class="inline-alert inline-alert-danger" role="alert"><strong>Consulta indisponível</strong><span>{{ card.error }}</span></div>
+      {% elif card.quote %}
+        <dl class="detail-list">
+          <div><dt>Consumo desta consulta</dt><dd>{% if office.is_demo %}Fictício{% else %}{{ card.quote.total_tokens }} token{{ card.quote.total_tokens|pluralize }}{% endif %}</dd></div>
+          <div><dt>Franquia restante</dt><dd>{% if office.is_demo %}Sem consumo{% else %}{{ card.quote.included_remaining }} token{{ card.quote.included_remaining|pluralize }}{% endif %}</dd></div>
+          {% if not office.is_demo %}<div><dt>Excedente desta consulta</dt><dd>{{ card.quote.additional_overage_tokens }} token{{ card.quote.additional_overage_tokens|pluralize }} · R$ {{ card.additional_overage_brl|floatformat:2 }}</dd></div><div><dt>Valor unitário aceito</dt><dd>R$ {{ card.token_price_brl|floatformat:2 }} por token</dd></div>{% endif %}
+        </dl>
+        {% if can_authorize %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="company" value="{{ consult_company.id }}">
+          <input type="hidden" name="competence" value="{{ consult_competence }}">
+          <input type="hidden" name="kind" value="{{ card.kind }}">
+          <input type="hidden" name="approved_overage_cents" value="{{ card.quote.additional_overage_cents }}">
+          <button class="button" type="submit">{% if office.is_demo %}Gerar documento fictício{% else %}Confirmar {{ card.quote.total_tokens }} token{{ card.quote.total_tokens|pluralize }}{% if card.quote.additional_overage_cents %} · R$ {{ card.additional_overage_brl|floatformat:2 }} de excedente{% endif %}{% endif %}</button>
+        </form>
+        {% else %}<p>Seu perfil pode baixar resultados, mas não autorizar novas consultas.</p>{% endif %}
+      {% endif %}
+    {% endif %}
+  </article>
+  {% endfor %}
+</section>
+
+{% if dominio_calculation %}
+<section class="workspace-panel dctfweb-reconcile" aria-labelledby="dctfweb-reconcile-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">PRÓXIMA ETAPA</p><h2 id="dctfweb-reconcile-heading">Preparar emissão da competência</h2><p>O servidor relê a apuração no Domínio no momento da confirmação. O valor abaixo continua identificado como cálculo local até a emissão devolver o DARF oficial.</p></div>{% if prepared_guide %}<span class="module-state {% if prepared_guide.status == 'issued' %}is-active{% else %}is-warning{% endif %}">{{ prepared_guide.get_status_display }}</span>{% endif %}</header>
+  <dl class="detail-list">
+    <div><dt>Componentes no Domínio</dt><dd>{{ dominio_calculation.component_count }}</dd></div>
+    <div><dt>Soma calculada</dt><dd>R$ {{ dominio_calculation.amount_brl|floatformat:2 }}</dd></div>
+    <div><dt>Vencimento calculado</dt><dd>{{ dominio_calculation.due_on|date:'d/m/Y' }}{% if dominio_calculation.due_on_end != dominio_calculation.due_on %} a {{ dominio_calculation.due_on_end|date:'d/m/Y' }}{% endif %}</dd></div>
+    <div><dt>Provas oficiais</dt><dd>{% if dctfweb_documents_ready %}Declaração e recibo disponíveis{% else %}Declaração e recibo ainda necessários{% endif %}</dd></div>
+  </dl>
+  {% if prepared_guide %}<div class="panel-footer-action"><a class="button" href="{% url 'hub:guide-detail' prepared_guide.id %}">Abrir registro de emissão</a></div>
+  {% elif dctfweb_documents_ready and can_authorize %}<form method="post" class="panel-footer-action">{% csrf_token %}<input type="hidden" name="company" value="{{ consult_company.id }}"><input type="hidden" name="competence" value="{{ consult_competence }}"><input type="hidden" name="action" value="prepare_guide"><button class="button" type="submit">Conferir provas e preparar emissão</button></form>
+  {% else %}<p class="table-footnote">Obtenha os dois documentos acima para liberar esta etapa.</p>{% endif %}
+</section>
+{% elif not office.is_demo %}
+<div class="inline-alert inline-alert-danger" role="alert"><strong>Apuração não localizada no Domínio.</strong><span>Volte à carteira e confirme a empresa e a competência antes de consultar ou emitir.</span></div>
+{% endif %}
+{% endblock %}

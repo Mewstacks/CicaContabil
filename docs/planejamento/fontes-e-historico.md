@@ -1,5 +1,13 @@
 # Fontes e histórico de planos
 
+## Fonte vigente — conversa de 17/09/2026
+
+O responsável aprovou o plano de conclusão, respondeu decisões de arquitetura/IA/Siescon/automação e depois limitou a execução atual à documentação da etapa 00, exigindo os registros na raiz. Essa fonte direta está transcrita em D-46–D-60 de [DECISOES.md](../../DECISOES.md). O [PLANO-MESTRE.md](../../PLANO-MESTRE.md) incorpora as etapas e prompts; [VALIDACOES.md](../../VALIDACOES.md) separa decisões e verificações técnicas.
+
+Os levantamentos de conversas externas abaixo são históricos; não foram refeitos nesta etapa. Nenhuma informação depende de reencontrar um arquivo de sessão para consultar as escolhas essenciais.
+
+## Acervo histórico de 15/09/2026
+
 Levantamento em 15/09/2026. Foram inspecionados `docs/`, os planos em `C:\Users\gege\.claude\plans`, os arquivos de sessão em `C:\Users\gege\.codex\sessions` e o `PLAN.md` citado no histórico em `Downloads`. Não foi indicado outro acervo. A busca de nomes e conteúdo mostrou muitos planos de CRMew, IdeaLead, Spreading, Conta200 e outros sistemas; a presença incidental de “HubContador”, “CICA” ou “Mewstack” nesses planos não os transforma em especificação desta aplicação.
 
 ## Planos Claude diretamente relacionados

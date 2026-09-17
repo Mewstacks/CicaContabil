@@ -24,6 +24,7 @@ from apps.hub.models import (
     Connector,
     DteMessage,
     DteRun,
+    FiscalGuide,
     OfficeProfile,
     ProductModule,
     UsageAllowance,
@@ -31,6 +32,15 @@ from apps.hub.models import (
 from apps.hub.module_catalog import OFFERED_MODULE_CODES
 from apps.hub.services import create_document_and_artifact, prepare_dte_run, store_certificate
 from apps.organizations.models import Membership, Organization
+from apps.triage.ingest import receive_email_attachment
+from apps.triage.models import (
+    DestinationProfile,
+    DocumentType,
+    Mailbox,
+    TriageEvent,
+    TriageSafetyScan,
+)
+from apps.triage.transitions import TriageStatus
 
 COMPANIES: list[tuple[str, str, str]] = [
     ("Padaria Vila Nova Ltda", "12.345.678/0001-95", "0101"),
@@ -81,6 +91,8 @@ class Command(BaseCommand):
             self._certificates(companies[:3], owner)
             self._documents(organization, companies)
             self._dte(organization, companies, owner)
+            self._guides(organization, companies)
+            self._triage(organization, companies)
 
         self.stdout.write(self.style.SUCCESS(f"Escritório: {organization.name}"))
         self.stdout.write(f"Login:      {owner.email}")
@@ -91,8 +103,12 @@ class Command(BaseCommand):
 
     def _office(self, options: dict[str, Any], password: str) -> tuple[Organization, User, bool]:
         organization, _ = Organization.objects.get_or_create(
-            slug=options["slug"], defaults={"name": options["name"]}
+            slug=options["slug"], defaults={"name": options["name"], "is_demo": True}
         )
+        if not organization.is_demo:
+            raise CommandError(
+                "O slug pertence a um escritório operacional. Escolha um novo slug de demonstração."
+            )
         owner = User.objects.filter(email=options["email"].casefold()).first()
         owner_created = owner is None
         if owner is None:
@@ -255,6 +271,114 @@ class Command(BaseCommand):
                     read_at=None if sequence == 0 else sent_at + dt.timedelta(hours=5),
                     raw_payload="",
                 )
+
+    def _guides(self, organization: Organization, companies: list[ClientCompany]) -> None:
+        """Create obligations only from synthetic reference data, with no Domínio import."""
+
+        today = timezone.localdate()
+        competence = (today.replace(day=1) - dt.timedelta(days=1)).strftime("%m/%Y")
+        for index, company in enumerate(companies[:3], start=1):
+            FiscalGuide.objects.get_or_create(
+                organization=organization,
+                company=company,
+                reference=f"DEMO-DCTFWEB-{company.dominio_code}-{competence}",
+                defaults={
+                    "kind": FiscalGuide.Kind.DCTFWEB,
+                    "status": FiscalGuide.Status.READY,
+                    "competence": competence,
+                    "due_on": today + dt.timedelta(days=index + 2),
+                    "amount_cents": 12_500 * index,
+                    "integra_service_key": "dctfweb.guia",
+                },
+            )
+
+    def _triage(self, organization: Organization, companies: list[ClientCompany]) -> None:
+        """Seed only fabricated e-mail attachments; no provider box is consulted."""
+
+        mailbox, _ = Mailbox.objects.get_or_create(
+            organization=organization,
+            provider=Mailbox.Provider.IMAP,
+            address="documentos@demo.example.test",
+            folder="INBOX",
+            defaults={
+                "status": Mailbox.Status.ACTIVE,
+                "active": True,
+                "since": timezone.now(),
+            },
+        )
+        document_type, _ = DocumentType.objects.get_or_create(
+            organization=organization,
+            code="documento-demo",
+            defaults={
+                "label": "Documento de demonstração",
+                "name_template": "{codigo}_DOCUMENTO_{periodo}",
+                "period_kind": DocumentType.PeriodKind.COMPETENCIA,
+            },
+        )
+        DestinationProfile.objects.get_or_create(
+            organization=organization,
+            defaults={"mode": DestinationProfile.Mode.INTERNAL},
+        )
+        for sequence, company in enumerate(companies[:2], start=1):
+            payload = (
+                f"<documento-demo><empresa>{company.dominio_code}</empresa>"
+                f"<referencia>EXEMPLO-{sequence}</referencia></documento-demo>"
+            ).encode()
+            receipt = receive_email_attachment(
+                mailbox=mailbox,
+                message_id=f"demo-triage-{sequence}",
+                part_id="1",
+                filename=f"DOCUMENTO_FICTICIO_{sequence}.xml",
+                payload=payload,
+                sender="origem-ficticia@demo.example.test",
+                subject="Documento de demonstração fictícia",
+                received_at=timezone.now(),
+                declared_type="application/xml",
+            )
+            if not receipt.created:
+                continue
+            item = receipt.item
+            item.company = company
+            item.document_type = document_type
+            item.detected_type = "application/xml"
+            item.final_name = f"{company.dominio_code}_DOCUMENTO_DEMO_09-2026.xml"
+            item.save(
+                update_fields=["company", "document_type", "detected_type", "final_name"]
+            )
+            TriageSafetyScan.objects.create(
+                organization=organization,
+                triage_item=item,
+                engine="demo-simulado",
+                verdict=(
+                    TriageSafetyScan.Verdict.CLEAN
+                    if sequence == 1
+                    else TriageSafetyScan.Verdict.ERROR
+                ),
+                content_hash=item.content_hash,
+                note="Veredito fictício, apenas para demonstração",
+                format_verdict=(
+                    TriageSafetyScan.FormatVerdict.VALID
+                    if sequence == 1
+                    else TriageSafetyScan.FormatVerdict.PENDING
+                ),
+            )
+            if sequence == 1:
+                for target in (
+                    TriageStatus.AWAITING_EXTRACTION,
+                    TriageStatus.EXTRACTING,
+                    TriageStatus.AWAITING_REVIEW,
+                ):
+                    previous = item.status
+                    item.transition_to(target)
+                    item.save(update_fields=["status", "updated_at"])
+                    TriageEvent.objects.create(
+                        organization=organization,
+                        triage_item=item,
+                        actor=None,
+                        from_status=previous,
+                        to_status=target,
+                        note="Etapa simulada da demonstração fictícia",
+                    )
 
 
 def _self_signed_pfx(common_name: str) -> tuple[bytes, str]:

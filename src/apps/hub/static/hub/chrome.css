@@ -1,12 +1,12 @@
 .metric-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
 .account-menu{position:relative;margin-left:auto}
 .account-button{display:flex;align-items:center;gap:9px;height:44px;max-width:250px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);cursor:pointer}
-.account-button:hover{background:#f0f4f8}
+.account-button:hover{background:var(--blue-soft)}
 .account-button svg{width:16px;height:16px;flex:0 0 16px;fill:currentColor}
-.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:180px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}
+.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:180px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
 .account-list form{margin:0}
 .account-list a,.account-list button{display:flex;align-items:center;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}
-.account-list a:hover,.account-list button:hover{background:#f0f4f8}
+.account-list a:hover,.account-list button:hover{background:var(--blue-soft)}
 .theme-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:4px 0;padding:6px 4px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .account-list .theme-picker button{justify-content:center;min-height:32px;padding:5px 4px;font-size:11px}
 .account-list .theme-picker button[aria-pressed=true]{background:var(--blue-soft);color:var(--blue);font-weight:750}

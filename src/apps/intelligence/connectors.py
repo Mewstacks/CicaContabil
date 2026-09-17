@@ -16,6 +16,7 @@ MAX_CATALOG_TABLES = 500
 MAX_CATALOG_COLUMNS = 250
 MAX_COMPANY_ROWS = 1_000
 MAX_BANK_ENTRY_ROWS = 10_000
+MAX_GUIDE_CALCULATION_ROWS = 5_000
 _DSN_RE = re.compile(r"^[A-Za-z0-9 _.-]{1,128}$")
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]{0,127}$")
 
@@ -93,6 +94,20 @@ QUERY_REGISTRY: dict[str, QuerySpec] = {
         ),
         max_rows=MAX_BANK_ENTRY_ROWS,
     ),
+    "guide_calculations": QuerySpec(
+        sql=(
+            "SELECT TOP 5000 CAST(g.I_GUIAINSS AS VARCHAR(64)) AS source_id, "
+            "g.CODI_EMP AS company_code, g.COMPETENCIA AS competence, "
+            "g.VENCIMENTO AS due_on, g.TOTAL_GUIA AS amount, "
+            "g.TIPO_GUIA AS guide_type_code, g.TIPO_PROCESS AS process_type_code, "
+            "g.SITUACAO AS status_code "
+            "FROM bethadba.FOVGUIAINSS g "
+            "WHERE g.COMPETENCIA >= DATEADD(month, -18, CURRENT DATE) "
+            "AND g.TOTAL_GUIA > 0 "
+            "ORDER BY g.COMPETENCIA DESC, g.VENCIMENTO DESC, g.CODI_EMP"
+        ),
+        max_rows=MAX_GUIDE_CALCULATION_ROWS,
+    ),
 }
 
 
@@ -165,6 +180,23 @@ def _bank_entry_snapshot(columns: list[str], row: tuple[Any, ...]) -> dict[str, 
     }
 
 
+def _guide_calculation_snapshot(
+    columns: list[str], row: tuple[Any, ...]
+) -> dict[str, object]:
+    """Project calculated payroll guides without claiming an official DCTFWeb state."""
+    raw = dict(zip(columns, row, strict=True))
+    return {
+        "source_id": str(raw.get("source_id") or "").strip(),
+        "company_code": str(raw.get("company_code") or "").strip(),
+        "competence": raw.get("competence"),
+        "due_on": raw.get("due_on"),
+        "amount": raw.get("amount"),
+        "guide_type_code": str(raw.get("guide_type_code") or "").strip(),
+        "process_type_code": str(raw.get("process_type_code") or "").strip(),
+        "status_code": str(raw.get("status_code") or "").strip(),
+    }
+
+
 class ReadOnlyDominoOdbc:
     """Private-network ODBC bridge with a fixed query and metadata contract."""
 
@@ -200,6 +232,8 @@ class ReadOnlyDominoOdbc:
             return [_communication_snapshot(columns, row) for row in rows]
         if query_name == "bank_entries":
             return [_bank_entry_snapshot(columns, row) for row in rows]
+        if query_name == "guide_calculations":
+            return [_guide_calculation_snapshot(columns, row) for row in rows]
         return [dict(zip(columns, row, strict=True)) for row in rows]
 
     def list_catalog_tables(

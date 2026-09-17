@@ -66,8 +66,8 @@ def test_confirmation_requires_a_password_before_provisioning(mock_lookup):
         "integra",
         "reconciliation",
         "reform",
-        "journey",
         "ai",
+        "triage",
     ]
     rate = TenantServiceRate.objects.get(contract=contract, action_code="ai.answer")
     assert rate.included_units == 3

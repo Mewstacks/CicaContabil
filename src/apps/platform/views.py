@@ -6,6 +6,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -15,7 +16,7 @@ from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.models import ControlPlaneBinding, ProductModule, RemoteSupportGrant
 from apps.hub.module_catalog import OFFERED_MODULE_CHOICES, OFFERED_MODULE_CODES
-from apps.intelligence.models import AssistantSettings, ClaudeFallbackApproval
+from apps.intelligence.models import AssistantSettings, ClaudeFallbackApproval, EgressAudit
 from apps.organizations.models import Membership, Organization
 from apps.platform.forms import (
     AssistantRetentionForm,
@@ -23,6 +24,7 @@ from apps.platform.forms import (
     InvitationForm,
     TenantContractForm,
     TenantServiceRateForm,
+    TokenOfferForm,
 )
 from apps.platform.models import (
     DominioSupportTicket,
@@ -33,6 +35,8 @@ from apps.platform.models import (
     SupportSession,
     TenantContract,
     TenantLifecycle,
+    TokenPriceBook,
+    UsageEvent,
 )
 from apps.platform.notifications import TransactionalEmailError, send_invitation_email
 from apps.platform.payments import ManualBillingError, set_manual_invoice_status
@@ -239,10 +243,14 @@ def _save_contract(
 def _move_lifecycle(request: HttpRequest, user: User, lifecycle: TenantLifecycle) -> None:
     previous = lifecycle.state
     target = request.POST.get("state", "")
-    if target in {
-        TenantLifecycle.State.SUSPENDED,
-        TenantLifecycle.State.ARCHIVED,
-    } and request.POST.get("confirm_lifecycle") != "on":
+    if (
+        target
+        in {
+            TenantLifecycle.State.SUSPENDED,
+            TenantLifecycle.State.ARCHIVED,
+        }
+        and request.POST.get("confirm_lifecycle") != "on"
+    ):
         messages.error(
             request,
             "Confirme o bloqueio de acesso antes de suspender ou arquivar o escritório.",
@@ -319,6 +327,7 @@ _TENANT_ACTION_ROLES: dict[str, tuple[str, ...]] = {
     # Money is commercial's call; support reads contracts but does not write them.
     "contract": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
     "service-rate": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
+    "token-offer": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
     "invoice-status": (PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN),
     "ai-fallback": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
     "ai-retention": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
@@ -349,6 +358,25 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
     )
     rate_form = TenantServiceRateForm(
         request.POST if action == "service-rate" else None, contract=contract
+    )
+    token_draft = (
+        TokenPriceBook.objects.filter(contract=contract, status=TokenPriceBook.Status.DRAFT)
+        .prefetch_related("module_rates__action_weights")
+        .order_by("-version")
+        .first()
+        if contract
+        else None
+    )
+    active_token_book = (
+        TokenPriceBook.objects.filter(contract=contract, status=TokenPriceBook.Status.ACTIVE)
+        .prefetch_related("module_rates__action_weights")
+        .first()
+        if contract
+        else None
+    )
+    token_offer_form = TokenOfferForm(
+        request.POST if action == "token-offer" else None,
+        book=token_draft,
     )
     assistant_settings = AssistantSettings.objects.filter(organization=organization).first()
     fallback_approval = ClaudeFallbackApproval.objects.filter(organization=organization).first()
@@ -391,6 +419,22 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
         if action == "service-rate" and rate_form.is_valid() and contract is not None:
             rate_form.save()
             messages.success(request, "Regra de consumo salva.")
+            return redirect_back
+        if action == "token-offer" and token_offer_form.is_valid() and contract is not None:
+            book = token_offer_form.save(contract=contract)
+            record_event(
+                action="platform.tenant.token_offer_saved",
+                actor=user,
+                organization=organization,
+                target=book,
+                request=request,
+                metadata={"version": book.version, "status": book.status},
+            )
+            messages.success(
+                request,
+                "Proposta de tokens salva. O dono ou administrador do escritório "
+                "ainda precisa aceitar os termos.",
+            )
             return redirect_back
         if action == "invoice-status":
             invoice = get_object_or_404(
@@ -441,7 +485,8 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 platform_configuration = PlatformConfiguration.objects.filter(key="default").first()
                 settings.claude_model = (
                     platform_configuration.cloud_fallback_model
-                    if fallback_enabled and platform_configuration else ""
+                    if fallback_enabled and platform_configuration
+                    else ""
                 )
                 settings.claude_max_request_cents = (
                     fallback_form.cents(fallback_form.cleaned_data["max_request_brl"])
@@ -522,6 +567,32 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
     )
     for invoice in recent_invoices:
         invoice.total_brl = Decimal(invoice.total_amount_cents) / 100  # type: ignore[attr-defined]
+    can_inspect_egress = has_platform_role(
+        request.user,
+        PlatformAccess.Role.SUPPORT,
+        PlatformAccess.Role.DEVELOPER,
+        PlatformAccess.Role.ADMIN,
+    )
+    egress_attention = (
+        list(
+            EgressAudit.objects.filter(organization=organization, provider="anthropic")
+            .filter(
+                Q(call_state=EgressAudit.CallState.UNKNOWN)
+                | Q(
+                    call_state=EgressAudit.CallState.RESERVED,
+                    created_at__lt=timezone.now() - timedelta(minutes=10),
+                )
+                | Q(
+                    usage_event__status=UsageEvent.Status.RESERVED,
+                    created_at__lt=timezone.now() - timedelta(minutes=10),
+                )
+            )
+            .select_related("usage_event", "user_message__conversation")
+            .order_by("-created_at", "-id")[:20]
+        )
+        if can_inspect_egress
+        else []
+    )
     ctx = context(request)
     ctx.update(
         {
@@ -530,8 +601,13 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
             "invite_form": invite_form,
             "contract_form": contract_form,
             "rate_form": rate_form,
+            "token_offer_form": token_offer_form,
+            "token_draft": token_draft,
+            "active_token_book": active_token_book,
             "contract": contract,
             "recent_invoices": recent_invoices,
+            "can_inspect_egress": can_inspect_egress,
+            "egress_attention": egress_attention,
             "invoice_status_choices": Invoice.Status.choices,
             "lifecycle": lifecycle,
             "lifecycle_targets": [

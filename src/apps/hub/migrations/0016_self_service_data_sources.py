@@ -1,9 +1,11 @@
-import apps.common.encryption
-import apps.hub.models
-import django.db.models.deletion
 import uuid
+
+import django.db.models.deletion
 from django.conf import settings
 from django.db import migrations, models
+
+import apps.common.encryption
+import apps.hub.models
 
 
 class Migration(migrations.Migration):

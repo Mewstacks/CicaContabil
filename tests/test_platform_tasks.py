@@ -16,11 +16,49 @@ from apps.platform.tasks import advance_tenant_lifecycles, close_previous_compet
 def test_monthly_task_closes_the_previous_competence(
     _mock_date: MagicMock, mock_close: MagicMock
 ) -> None:
-    assert close_previous_competence.run() == 2
-    mock_close.assert_called_once_with(period_start=date(2026, 8, 1))
+    assert close_previous_competence.run() == {
+        "competencia": "08/2026", "faturas_concluidas": 2, "escritorios_adiados": 0
+    }
+    mock_close.assert_called_once_with(
+        period_start=date(2026, 8, 1), deferred_organization_ids=[]
+    )
     run = OperationalRun.objects.get(task=OperationalRun.Task.CLOSE_COMPETENCE)
     assert run.state == OperationalRun.State.SUCCEEDED
-    assert run.summary == {"processed": 2}
+    assert run.summary == {
+        "competencia": "08/2026", "faturas_concluidas": 2, "escritorios_adiados": 0
+    }
+
+
+@patch("apps.platform.tasks.close_competence", return_value=[])
+@patch("apps.platform.tasks.timezone.localdate", return_value=date(2026, 9, 14))
+@pytest.mark.django_db
+def test_daily_retry_never_closes_the_current_competence(
+    _mock_date: MagicMock, mock_close: MagicMock
+) -> None:
+    assert close_previous_competence.run()["faturas_concluidas"] == 0
+    mock_close.assert_called_once_with(
+        period_start=date(2026, 8, 1), deferred_organization_ids=[]
+    )
+
+
+@patch("apps.platform.tasks.timezone.localdate", return_value=date(2026, 9, 14))
+@pytest.mark.django_db
+def test_daily_close_marks_partial_when_an_office_is_deferred(
+    _mock_date: MagicMock,
+) -> None:
+    def close_with_deferral(*, period_start: date, deferred_organization_ids: list[str]):
+        assert period_start == date(2026, 8, 1)
+        deferred_organization_ids.append("synthetic-office-id")
+        return [object()]
+
+    with patch("apps.platform.tasks.close_competence", side_effect=close_with_deferral):
+        result = close_previous_competence.run()
+    assert result == {
+        "competencia": "08/2026", "faturas_concluidas": 1, "escritorios_adiados": 1
+    }
+    run = OperationalRun.objects.get(task=OperationalRun.Task.CLOSE_COMPETENCE)
+    assert run.state == OperationalRun.State.PARTIAL
+    assert run.summary["escritorios_adiados"] == 1
 
 
 @pytest.mark.django_db

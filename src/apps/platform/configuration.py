@@ -1,8 +1,11 @@
+import base64
+import hashlib
 import re
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
+from cryptography.hazmat.primitives.serialization import pkcs12
 from django import forms
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -19,7 +22,13 @@ from apps.audit.services import record_event
 from apps.common.cnpj import lookup_company, normalize_cnpj
 from apps.common.database_email import smtp_backend_for_configuration
 from apps.platform.forms import PlanCatalogForm
-from apps.platform.models import Plan, PlatformAccess, PlatformConfiguration, TenantContract
+from apps.platform.models import (
+    BillingCloseDeferral,
+    Plan,
+    PlatformAccess,
+    PlatformConfiguration,
+    TenantContract,
+)
 from apps.platform.operations import scheduled_operation_overview
 from apps.platform.policies import platform_required
 from apps.platform.views import context
@@ -72,6 +81,190 @@ class ConfigurationForm(forms.ModelForm):
 
     def clean_provider_cnpj(self) -> str:
         return normalize_cnpj(self.cleaned_data["provider_cnpj"])
+
+
+class IntegraCertificateForm(forms.Form):
+    certificate = forms.FileField(
+        label="Certificado A1 da Mewstack (.pfx ou .p12)",
+        help_text="Máximo de 2 MB. O arquivo será cifrado e não poderá ser baixado.",
+    )
+    password = forms.CharField(
+        label="Senha do certificado",
+        required=False,
+        strip=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={"autocomplete": "new-password", "spellcheck": "false"},
+        ),
+    )
+
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        upload = cleaned.get("certificate")
+        if upload is None:
+            return cleaned
+        if upload.size > 2 * 1024 * 1024:
+            self.add_error("certificate", "O certificado deve ter no máximo 2 MB.")
+            return cleaned
+        suffix = Path(upload.name).suffix.lower()
+        if suffix not in {".pfx", ".p12"}:
+            self.add_error("certificate", "Envie um certificado PKCS#12 .pfx ou .p12.")
+            return cleaned
+        blob = upload.read()
+        password = str(cleaned.get("password") or "")
+        try:
+            key, certificate, _chain = pkcs12.load_key_and_certificates(
+                blob, password.encode() or None
+            )
+        except ValueError:
+            self.add_error("password", "Não foi possível abrir o certificado com esta senha.")
+            return cleaned
+        if key is None or certificate is None:
+            self.add_error("certificate", "O arquivo não contém certificado e chave privada.")
+            return cleaned
+        cleaned["certificate_bytes"] = blob
+        cleaned["parsed_certificate"] = certificate
+        return cleaned
+
+    def save(self, configuration: PlatformConfiguration) -> PlatformConfiguration:
+        upload = self.cleaned_data["certificate"]
+        blob = self.cleaned_data["certificate_bytes"]
+        certificate = self.cleaned_data["parsed_certificate"]
+        configuration.integra_certificate_blob = base64.b64encode(blob).decode("ascii")
+        configuration.integra_certificate_password = str(self.cleaned_data.get("password") or "")
+        configuration.integra_certificate_name = Path(upload.name).name[:180]
+        configuration.integra_certificate_fingerprint = hashlib.sha256(blob).hexdigest()
+        configuration.integra_certificate_subject = certificate.subject.rfc4514_string()[:240]
+        configuration.integra_certificate_valid_until = certificate.not_valid_after_utc
+        configuration.save()
+        return configuration
+
+
+class IntegraCredentialsForm(forms.ModelForm):
+    """Write-only central Serpro credentials, protected by the platform MFA gate."""
+
+    consumer_key = forms.CharField(
+        label="Consumer key",
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={"autocomplete": "new-password", "spellcheck": "false"},
+        ),
+    )
+    consumer_secret = forms.CharField(
+        label="Consumer secret",
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={"autocomplete": "new-password", "spellcheck": "false"},
+        ),
+    )
+    integra_contratante_cnpj = forms.CharField(
+        max_length=18,
+        label="CNPJ contratante",
+        widget=forms.TextInput(
+            attrs={"autocomplete": "off", "inputmode": "numeric", "spellcheck": "false"}
+        ),
+    )
+    integra_autor_pedido_cnpj = forms.CharField(
+        max_length=18,
+        required=False,
+        label="CNPJ autor do pedido (fallback)",
+        help_text="Deixe vazio para usar o CNPJ do escritório responsável pela consulta.",
+        widget=forms.TextInput(
+            attrs={"autocomplete": "off", "inputmode": "numeric", "spellcheck": "false"}
+        ),
+    )
+    confirm_production = forms.BooleanField(
+        required=False,
+        label="Confirmo que as credenciais pertencem ao ambiente de produção.",
+        help_text="A alteração só grava a configuração; ela não realiza consultas ao Serpro.",
+    )
+    field_order = (
+        "integra_environment",
+        "integra_contratante_cnpj",
+        "integra_autor_pedido_cnpj",
+        "consumer_key",
+        "consumer_secret",
+        "confirm_production",
+    )
+
+    class Meta:
+        model = PlatformConfiguration
+        fields = ("integra_contratante_cnpj", "integra_autor_pedido_cnpj", "integra_environment")
+        labels = {
+            "integra_contratante_cnpj": "CNPJ contratante",
+            "integra_autor_pedido_cnpj": "CNPJ autor do pedido",
+            "integra_environment": "Ambiente",
+        }
+        widgets = {
+            "integra_environment": forms.Select(
+                choices=(("trial", "Homologação"), ("production", "Produção"))
+            ),
+        }
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            if field.help_text:
+                field.widget.attrs["aria-describedby"] = f"id_{name}_helptext"
+
+    def clean_integra_contratante_cnpj(self) -> str:
+        value = normalize_cnpj(self.cleaned_data["integra_contratante_cnpj"])
+        if not value:
+            raise forms.ValidationError("Informe o CNPJ contratante da Mewstack.")
+        return value
+
+    def clean_integra_autor_pedido_cnpj(self) -> str:
+        value = str(self.cleaned_data.get("integra_autor_pedido_cnpj") or "")
+        return normalize_cnpj(value) if value else ""
+
+    def clean_integra_environment(self) -> str:
+        value = str(self.cleaned_data["integra_environment"])
+        if value not in {"trial", "production"}:
+            raise forms.ValidationError("Selecione homologação ou produção.")
+        return value
+
+    def clean(self) -> dict[str, object]:
+        cleaned = super().clean()
+        key = str(cleaned.get("consumer_key") or "")
+        secret = str(cleaned.get("consumer_secret") or "")
+        if not key and not self.instance.integra_consumer_key:
+            self.add_error("consumer_key", "Informe a consumer key para concluir a configuração.")
+            self.fields["consumer_key"].widget.attrs["aria-describedby"] = (
+                "id_consumer_key_error"
+            )
+        if not secret and not self.instance.integra_consumer_secret:
+            self.add_error(
+                "consumer_secret", "Informe a consumer secret para concluir a configuração."
+            )
+            self.fields["consumer_secret"].widget.attrs["aria-describedby"] = (
+                "id_consumer_secret_error"
+            )
+        if (
+            cleaned.get("integra_environment") == "production"
+            and not cleaned.get("confirm_production")
+        ):
+            self.add_error(
+                "confirm_production",
+                "Confirme a mudança para produção antes de salvar.",
+            )
+            self.fields["confirm_production"].widget.attrs["aria-describedby"] = (
+                "id_confirm_production_helptext id_confirm_production_error"
+            )
+        return cleaned
+
+    def save(self, commit: bool = True) -> PlatformConfiguration:
+        configuration = super().save(commit=False)
+        key = str(self.cleaned_data.get("consumer_key") or "")
+        secret = str(self.cleaned_data.get("consumer_secret") or "")
+        if key:
+            configuration.integra_consumer_key = key
+        if secret:
+            configuration.integra_consumer_secret = secret
+        if commit:
+            configuration.save()
+        return configuration
 
 
 class TrialConfigurationForm(forms.ModelForm):
@@ -480,6 +673,14 @@ def configuration(request):
         else None,
         instance=instance,
     )
+    integra_certificate_form = IntegraCertificateForm(
+        request.POST if request.method == "POST" and action == "integra-certificate" else None,
+        request.FILES if request.method == "POST" and action == "integra-certificate" else None,
+    )
+    integra_credentials_form = IntegraCredentialsForm(
+        request.POST if request.method == "POST" and action == "integra-credentials" else None,
+        instance=instance,
+    )
     plan_instance = Plan(is_active=False)
     selected_plan_id = (
         request.POST.get("plan_id") if request.method == "POST" else request.GET.get("plan")
@@ -563,6 +764,52 @@ def configuration(request):
             metadata={"trial_ai_included_requests": configuration.trial_ai_included_requests},
         )
         messages.success(request, "Franquia do Copiloto para novos testes atualizada.")
+        return redirect("platform:configuration")
+    if (
+        request.method == "POST"
+        and action == "integra-certificate"
+        and integra_certificate_form.is_valid()
+    ):
+        configuration = instance or PlatformConfiguration(key="default")
+        configuration.updated_by = request.user
+        integra_certificate_form.save(configuration)
+        record_event(
+            action="platform.integra_certificate.updated",
+            actor=request.user,
+            target=configuration,
+            request=request,
+            metadata={
+                "fingerprint_suffix": configuration.integra_certificate_fingerprint[-12:],
+                "valid_until": (
+                    configuration.integra_certificate_valid_until.isoformat()
+                    if configuration.integra_certificate_valid_until
+                    else ""
+                ),
+            },
+        )
+        messages.success(request, "Certificado A1 da Mewstack armazenado com segurança.")
+        return redirect("platform:configuration")
+    if (
+        request.method == "POST"
+        and action == "integra-credentials"
+        and integra_credentials_form.is_valid()
+    ):
+        configuration = integra_credentials_form.save(commit=False)
+        configuration.updated_by = request.user
+        configuration.save()
+        record_event(
+            action="platform.integra_credentials.updated",
+            actor=request.user,
+            target=configuration,
+            request=request,
+            metadata={
+                "consumer_key_configured": bool(configuration.integra_consumer_key),
+                "consumer_secret_configured": bool(configuration.integra_consumer_secret),
+                "contratante_configured": bool(configuration.integra_contratante_cnpj),
+                "environment": configuration.integra_environment,
+            },
+        )
+        messages.success(request, "Credenciais centrais do Integra Contador atualizadas.")
         return redirect("platform:configuration")
     if request.method == "POST" and action == "copilot-availability" and copilot_form.is_valid():
         configuration = copilot_form.save(commit=False)
@@ -684,14 +931,30 @@ def configuration(request):
     integra_required = (
         "INTEGRA_CONSUMER_KEY",
         "INTEGRA_CONSUMER_SECRET",
-        "INTEGRA_CERTIFICATE_PATH",
         "INTEGRA_CONTRATANTE_CNPJ",
     )
-    integra_missing = [
-        name for name in integra_required if not getattr(django_settings, name, "")
-    ]
+    credential_values = {
+        "INTEGRA_CONSUMER_KEY": (instance.integra_consumer_key if instance else "")
+        or getattr(django_settings, "INTEGRA_CONSUMER_KEY", ""),
+        "INTEGRA_CONSUMER_SECRET": (instance.integra_consumer_secret if instance else "")
+        or getattr(django_settings, "INTEGRA_CONSUMER_SECRET", ""),
+        "INTEGRA_CONTRATANTE_CNPJ": (instance.integra_contratante_cnpj if instance else "")
+        or getattr(django_settings, "INTEGRA_CONTRATANTE_CNPJ", ""),
+    }
+    integra_missing = [name for name in integra_required if not credential_values[name]]
+    integra_credential_status = {
+        "environment": (instance.integra_environment if instance else "")
+        or getattr(django_settings, "INTEGRA_ENVIRONMENT", "trial"),
+        "consumer_key": bool(credential_values["INTEGRA_CONSUMER_KEY"]),
+        "consumer_secret": bool(credential_values["INTEGRA_CONSUMER_SECRET"]),
+        "contratante": bool(credential_values["INTEGRA_CONTRATANTE_CNPJ"]),
+    }
     certificate_path = str(getattr(django_settings, "INTEGRA_CERTIFICATE_PATH", "") or "")
-    certificate_found = bool(certificate_path and Path(certificate_path).is_file())
+    certificate_found = bool(
+        (instance and instance.integra_certificate_blob)
+        or (certificate_path and Path(certificate_path).is_file())
+    )
+    integra_ready = not integra_missing and certificate_found
     ctx.update(
         page_title="Configurações da CICA",
         form=form,
@@ -700,13 +963,24 @@ def configuration(request):
         runtime_form=runtime_form,
         cloud_fallback_form=cloud_fallback_form,
         email_form=email_form,
+        integra_certificate_form=integra_certificate_form,
+        integra_credentials_form=integra_credentials_form,
         operation_rows=scheduled_operation_overview(),
+        billing_close_deferrals=list(
+            BillingCloseDeferral.objects.filter(resolved_at__isnull=True)
+            .select_related("organization")
+            .order_by("period_start", "organization__name")[:30]
+        ),
         copilot_available=bool(instance and instance.copilot_available_for_offices),
         plan_form=plan_form,
         editing_plan=bool(selected_plan_id),
         plans=plans,
         integra_missing=integra_missing,
+        integra_ready=integra_ready,
+        integra_credential_status=integra_credential_status,
         integra_certificate_found=certificate_found,
-        integra_environment=getattr(django_settings, "INTEGRA_ENVIRONMENT", "trial"),
+        integra_certificate=instance if instance and instance.integra_certificate_blob else None,
+        integra_environment=(instance.integra_environment if instance else "")
+        or getattr(django_settings, "INTEGRA_ENVIRONMENT", "trial"),
     )
     return render(request, "platform/configuration.html", ctx)

@@ -54,8 +54,9 @@ def run_scheduled_operation(
         summary = {str(key): value for key, value in result.items()}
     else:
         summary = {}
+    partial = bool(summary.get("escritorios_adiados", 0))
     OperationalRun.objects.filter(id=run.id).update(
-        state=OperationalRun.State.SUCCEEDED,
+        state=(OperationalRun.State.PARTIAL if partial else OperationalRun.State.SUCCEEDED),
         finished_at=timezone.now(),
         summary=summary,
     )
@@ -95,7 +96,20 @@ def scheduled_operation_overview() -> list[dict[str, object]]:
         run = latest_by_task.get(task)
         summary = ""
         if run and run.summary:
-            summary = " · ".join(f"{key}: {value}" for key, value in run.summary.items())
+            if task == OperationalRun.Task.CLOSE_COMPETENCE:
+                completed = int(run.summary.get("faturas_concluidas", 0))
+                deferred = int(run.summary.get("escritorios_adiados", 0))
+                summary = (
+                    f"Competência {run.summary.get('competencia', '—')} · "
+                    f"{completed} fatura{'s' if completed != 1 else ''} concluída"
+                    f"{'s' if completed != 1 else ''} · "
+                    f"{deferred} escritório{'s' if deferred != 1 else ''} adiado"
+                    f"{'s' if deferred != 1 else ''}"
+                )
+            else:
+                summary = " · ".join(
+                    f"{key}: {value}" for key, value in run.summary.items()
+                )
         rows.append(
             {
                 "task": task,

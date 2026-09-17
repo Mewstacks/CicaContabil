@@ -1,23 +1,24 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from django.db import connection
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.audit.models import AuditEvent
 from apps.hub.controlplane import company_queryset_for_membership, module_codes_for_membership
 from apps.hub.models import (
+    Certificate,
     ClientCompany,
-    ClientJourney,
     CompanyAccessGrant,
     Connector,
     ControlPlaneBinding,
-    JourneyStep,
-    PortalRequest,
+    NfseSync,
     ProductModule,
     ReformAlert,
     ReformSourceStatus,
@@ -37,7 +38,17 @@ from apps.platform.models import (
     TenantUsagePolicy,
 )
 from apps.platform.notifications import TransactionalEmailError
-from apps.triage.models import TriageItem
+from apps.triage.ingest import receive_email_attachment
+from apps.triage.models import (
+    DestinationProfile,
+    DocumentType,
+    Mailbox,
+    TriageItem,
+    TriageSafetyScan,
+)
+from apps.triage.security import ScanVerdict, scan_quarantined_item
+from apps.triage.storage import PrivateTriageStorage
+from apps.triage.transitions import TriageStatus
 from conftest import complete_mfa
 
 
@@ -120,6 +131,75 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(company, "conexão NFS-e desta empresa ser homologada")
         self.assertNotContains(company, "certificado não há consulta de NFS-e nem DTE")
 
+    def test_certificate_workspace_prioritizes_expiry_and_missing_companies(self) -> None:
+        valid_company = ClientCompany.objects.create(
+            organization=self.organization,
+            name="Empresa com certificado longo",
+            dominio_code="090",
+        )
+        expiring_company = ClientCompany.objects.create(
+            organization=self.organization,
+            name="Empresa vencendo logo",
+            dominio_code="091",
+        )
+        Certificate.objects.create(
+            organization=self.organization,
+            company=valid_company,
+            label="A1 matriz",
+            pfx_blob="encrypted-valid",
+            password="encrypted-password",
+            fingerprint_sha256="a" * 64,
+            valid_until=timezone.now() + timedelta(days=90),
+        )
+        Certificate.objects.create(
+            organization=self.organization,
+            company=expiring_company,
+            label="A1 filial",
+            pfx_blob="encrypted-expiring",
+            password="encrypted-password",
+            fingerprint_sha256="b" * 64,
+            valid_until=timezone.now() + timedelta(days=5),
+        )
+
+        attention = self.client.get(reverse("hub:certificates"))
+
+        self.assertContains(attention, "Empresa vencendo logo")
+        self.assertNotContains(attention, "A1 matriz")
+        self.assertContains(attention, "Vence em breve")
+        self.assertContains(attention, "Empresas sem certificado A1 válido")
+        self.assertContains(attention, self.company.name)
+
+        searched = self.client.get(
+            reverse("hub:certificates"), {"q": "090", "status": "all"}
+        )
+        self.assertContains(searched, "Empresa com certificado longo")
+        self.assertEqual(
+            [certificate.company for certificate in searched.context["certificates"]],
+            [valid_company],
+        )
+        self.assertContains(searched, "1 resultado")
+
+    def test_demo_certificate_action_is_session_only_and_never_stores_a_pfx(self) -> None:
+        self.organization.is_demo = True
+        self.organization.save(update_fields=["is_demo"])
+        session = self.client.session
+        session["demo_visit_id"] = "certificate-demo-visitor"
+        session.save()
+
+        response = self.client.post(
+            reverse("hub:certificates"), {"demo_company_id": str(self.company.id)}, follow=True
+        )
+
+        self.assertContains(response, "Certificado fictício registrado")
+        self.assertContains(response, "Nenhum arquivo ou senha foi recebido")
+        self.assertEqual(response.context["certificate_stats"]["missing_companies"], 0)
+        self.assertFalse(Certificate.objects.filter(organization=self.organization).exists())
+        self.assertTrue(
+            self.client.session["demo_progress"]["certificates"][str(self.company.id)][
+                "simulated"
+            ]
+        )
+
     def test_reform_radar_filters_official_alerts_without_an_extra_page(self) -> None:
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.REFORM, enabled=True
@@ -135,22 +215,30 @@ class HubWorkspaceViewTests(TestCase):
         ReformAlert.objects.create(
             source=ReformAlert.Source.FAZENDA,
             external_key="fazenda-1",
-            title="Nota econômica",
+            title="Crédito tributário da CBS",
             source_url="https://www.gov.br/fazenda/noticia",
+            relevance=ReformAlert.Relevance.FISCAL,
             content_hash="hash-2",
         )
 
         response = self.client.get(reverse("hub:reform"), {"fonte": "rfb"})
 
         self.assertContains(response, "Cronograma IBS")
-        self.assertNotContains(response, "Nota econômica")
-        self.assertContains(response, "data-auto-filter")
+        self.assertNotContains(response, "Crédito tributário da CBS")
+        self.assertContains(response, "Pesquisar publicações")
         self.assertContains(response, "Saúde das fontes")
         self.assertContains(response, "Aguardando a primeira coleta")
 
         unfiltered = self.client.get(reverse("hub:reform"))
         self.assertContains(unfiltered, "Cronograma IBS")
-        self.assertNotContains(unfiltered, "Nota econômica")
+        self.assertContains(unfiltered, "Crédito tributário da CBS")
+
+        searched = self.client.get(
+            reverse("hub:reform"), {"q": "crédito", "relevancia": "fiscal"}
+        )
+        self.assertContains(searched, "Crédito tributário da CBS")
+        self.assertNotContains(searched, "Cronograma IBS")
+        self.assertContains(searched, "1 resultado")
 
     def test_reform_radar_shows_a_source_collection_failure_without_raw_error(self) -> None:
         ProductModule.objects.create(
@@ -183,98 +271,10 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    def test_journey_workboard_creates_and_updates_items_with_audit_scope(self) -> None:
-        ProductModule.objects.create(
-            organization=self.organization,
-            code=ProductModule.Code.JOURNEY,
-            enabled=True,
-        )
-        journey = ClientJourney.objects.create(
-            organization=self.organization,
-            company=self.company,
-            title="Entrada fiscal",
-            owner=self.user,
-        )
-        create_step = self.client.post(
-            reverse("hub:journey-step-create"),
-            {
-                "journey_id": journey.id,
-                "step-title": "Conferir documentos",
-            },
-        )
-        self.assertRedirects(create_step, f"{reverse('hub:journey')}?j={journey.id}")
-        step = JourneyStep.objects.get(journey=journey)
-        self.assertEqual(step.organization, self.organization)
-        self.assertEqual(step.position, 1)
-
-        complete = self.client.post(
-            reverse("hub:journey-step-complete"),
-            {"journey_id": journey.id, "item_id": step.id},
-        )
-        self.assertEqual(complete.status_code, 302)
-        step.refresh_from_db()
-        self.assertIsNotNone(step.completed_at)
-
-        create_request = self.client.post(
-            reverse("hub:portal-request-create"),
-            {
-                "journey_id": journey.id,
-                "request-title": "Extrato bancário",
-            },
-        )
-        self.assertEqual(create_request.status_code, 302)
-        request_item = PortalRequest.objects.get(journey=journey)
-        transition = self.client.post(
-            reverse("hub:portal-request-transition"),
-            {"journey_id": journey.id, "item_id": request_item.id, "action": "resolve"},
-        )
-        self.assertEqual(transition.status_code, 302)
-        request_item.refresh_from_db()
-        self.assertEqual(request_item.status, PortalRequest.Status.RESOLVED)
-        self.assertIsNotNone(request_item.resolved_at)
-
-    def test_journey_creation_assigns_its_office_before_model_validation(self) -> None:
-        ProductModule.objects.create(
-            organization=self.organization,
-            code=ProductModule.Code.JOURNEY,
-            enabled=True,
-        )
-        response = self.client.post(
-            reverse("hub:journey"),
-            {"company": self.company.id, "title": "Onboarding fiscal"},
-        )
-
-        self.assertEqual(response.status_code, 302)
-        journey = ClientJourney.objects.get(organization=self.organization)
-        self.assertEqual(journey.company, self.company)
-        self.assertEqual(journey.owner, self.user)
-
-    def test_journey_mutations_cannot_cross_the_active_office_boundary(self) -> None:
-        ProductModule.objects.create(
-            organization=self.organization,
-            code=ProductModule.Code.JOURNEY,
-            enabled=True,
-        )
-        other = Organization.objects.create(name="Outro escritório", slug="outro-escritorio")
-        other_company = ClientCompany.objects.create(
-            organization=other, name="Empresa externa", dominio_code="OUT-1"
-        )
-        other_journey = ClientJourney.objects.create(
-            organization=other, company=other_company, title="Fora do escopo"
-        )
-
-        response = self.client.post(
-            reverse("hub:journey-step-create"),
-            {"journey_id": other_journey.id, "step-title": "Não pode criar"},
-        )
-
-        self.assertEqual(response.status_code, 404)
-        self.assertFalse(JourneyStep.objects.filter(journey=other_journey).exists())
-
     @patch("apps.hub.views.send_invitation_email")
     def test_owner_invites_a_collaborator_with_company_and_module_scope(self, send_email) -> None:
         ProductModule.objects.create(
-            organization=self.organization, code=ProductModule.Code.JOURNEY, enabled=True
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
         )
         response = self.client.post(
             reverse("hub:team"),
@@ -282,7 +282,7 @@ class HubWorkspaceViewTests(TestCase):
                 "full_name": "Ana Fiscal",
                 "email": "ana@example.test",
                 "role": Membership.Role.OPERATOR,
-                "modules": [ProductModule.Code.NFSE, ProductModule.Code.JOURNEY],
+                "modules": [ProductModule.Code.NFSE, ProductModule.Code.TRIAGE],
                 "companies": [str(self.company.id)],
             },
         )
@@ -291,7 +291,7 @@ class HubWorkspaceViewTests(TestCase):
         invitation = Invitation.objects.get(email="ana@example.test")
         self.assertEqual(invitation.company_ids, [str(self.company.id)])
         self.assertEqual(
-            set(invitation.modules), {ProductModule.Code.NFSE, ProductModule.Code.JOURNEY}
+            set(invitation.modules), {ProductModule.Code.NFSE, ProductModule.Code.TRIAGE}
         )
         send_email.assert_called_once()
 
@@ -434,7 +434,7 @@ class HubWorkspaceViewTests(TestCase):
 
         page = self.client.get(reverse("hub:settings"))
         self.assertContains(page, "Atualizar agora")
-        self.assertContains(page, "Sincronizado")
+        self.assertContains(page, "Aguardando primeira atualização")
 
         response = self.client.post(reverse("hub:settings"), {"action": "request-dominio-sync"})
 
@@ -514,6 +514,26 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["connector_ready"])
+
+    def test_settings_exposes_a_bank_snapshot_limit_warning(self) -> None:
+        IntelligenceConnector.objects.create(
+            organization=self.organization,
+            mode=IntelligenceConnector.Mode.DIRECT_ODBC,
+            status="healthy",
+            last_sync_at=timezone.now(),
+            odbc_dsn="Contabil",
+        )
+        AuditEvent.objects.create(
+            organization=self.organization,
+            action="intelligence.dominio.bank_entries_synced",
+            metadata={"may_be_truncated": True},
+        )
+
+        response = self.client.get(reverse("hub:settings"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Cobertura parcial de itens bancarios.")
+        self.assertTrue(response.context["dominio_bank_entries_may_be_truncated"])
 
     def test_ofx_validation_reopens_the_import_modal(self) -> None:
         ProductModule.objects.create(
@@ -596,9 +616,13 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Triagem de Arquivos")
-        self.assertContains(response, "Nenhuma caixa de e-mail conectada")
         self.assertContains(response, "Caixa de e-mail não configurada")
+        self.assertContains(response, reverse("hub:triage-connections"))
         self.assertNotContains(response, "Pronto para receber dados")
+
+        connections = self.client.get(reverse("hub:triage-connections"))
+        self.assertEqual(connections.status_code, 200)
+        self.assertContains(connections, "Nenhuma caixa de e-mail conectada")
 
         nav = self.client.get(reverse("hub:dashboard"))
         self.assertContains(nav, reverse("hub:triage"))
@@ -639,6 +663,56 @@ class HubWorkspaceViewTests(TestCase):
                 404,
             )
 
+    def test_triage_queue_shows_unassigned_mail_only_to_admin_and_filters_by_stage(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
+        )
+        unknown = TriageItem.objects.create(
+            organization=self.organization,
+            original_name="pendente-de-identificacao.pdf",
+            status=TriageItem.Status.QUARANTINED,
+        )
+        assigned = TriageItem.objects.create(
+            organization=self.organization,
+            company=self.company,
+            original_name="documento-atribuido.xml",
+            status=TriageItem.Status.AWAITING_REVIEW,
+        )
+        response = self.client.get(reverse("hub:triage"))
+        self.assertContains(response, unknown.original_name)
+        self.assertContains(response, assigned.original_name)
+        self.assertContains(response, "1 em quarentena")
+        self.assertEqual(
+            self.client.get(reverse("hub:triage-item", args=[unknown.id])).status_code, 200
+        )
+        filtered = self.client.get(reverse("hub:triage"), {"status": TriageItem.Status.QUARANTINED})
+        self.assertContains(filtered, unknown.original_name)
+        self.assertNotContains(filtered, assigned.original_name)
+
+        collaborator = User.objects.create_user(
+            email="triage-queue-scope@example.test", password="a-safe-password-123"
+        )
+        membership = Membership.objects.create(
+            organization=self.organization, user=collaborator, role=Membership.Role.OPERATOR
+        )
+        CompanyAccessGrant.objects.create(
+            organization=self.organization,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.TRIAGE],
+            capabilities=["read"],
+        )
+        self.client.force_login(collaborator)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.id)
+        session.save()
+        operator_page = self.client.get(reverse("hub:triage"))
+        self.assertContains(operator_page, assigned.original_name)
+        self.assertNotContains(operator_page, unknown.original_name)
+        self.assertEqual(
+            self.client.get(reverse("hub:triage-item", args=[unknown.id])).status_code, 404
+        )
+
     def test_triage_prototype_cannot_review_or_download_unscanned_files(self) -> None:
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
@@ -653,10 +727,68 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(detail.status_code, 200)
         self.assertContains(detail, "verificação de segurança")
         self.assertNotContains(detail, "Baixar arquivo")
+        refused = self.client.post(reverse("hub:triage-item", args=[item.id]), {}, follow=True)
+        self.assertContains(refused, "Escolha uma decisão válida")
         self.assertEqual(
-            self.client.post(reverse("hub:triage-item", args=[item.id]), {}).status_code,
-            405,
+            self.client.get(reverse("hub:triage-download", args=[item.id])).status_code,
+            404,
         )
+
+    def test_internal_library_download_uses_verified_copy_and_refuses_tampering(self) -> None:
+        self.enterContext(override_settings(MEDIA_ROOT=self.enterContext(TemporaryDirectory())))
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
+        )
+        mailbox = Mailbox.objects.create(
+            organization=self.organization, provider=Mailbox.Provider.IMAP,
+            address="arquivo@acme.test", active=True, status=Mailbox.Status.ACTIVE,
+        )
+        payload = b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n"
+        item = receive_email_attachment(
+            mailbox=mailbox, message_id="download-test", part_id="1",
+            filename="documento.pdf", payload=payload,
+        ).item
+
+        class CleanScanner:
+            def scan(self, stream: object) -> ScanVerdict:
+                return ScanVerdict(TriageSafetyScan.Verdict.CLEAN, "test-scanner")
+
+        scan_quarantined_item(item=item, scanner=CleanScanner())
+        item.refresh_from_db()
+        doc_type = DocumentType.objects.create(
+            organization=self.organization, code="documento", label="Documento",
+            name_template="{codigo}_DOCUMENTO_{periodo}",
+            period_kind=DocumentType.PeriodKind.COMPETENCIA,
+        )
+        DestinationProfile.objects.create(
+            organization=self.organization, mode=DestinationProfile.Mode.INTERNAL
+        )
+        item.company = self.company
+        item.document_type = doc_type
+        item.final_name = "001_DOCUMENTO_082026.pdf"
+        item.transition_to(TriageStatus.EXTRACTING)
+        item.transition_to(TriageStatus.AWAITING_REVIEW)
+        item.save()
+        detail_url = reverse("hub:triage-item", args=[item.id])
+        self.assertContains(self.client.get(detail_url), "Aprovar para arquivamento")
+        approved = self.client.post(detail_url, {"decision": "archive"}, follow=True)
+        self.assertContains(approved, "Arquivar na biblioteca interna")
+        item.refresh_from_db()
+        archived = self.client.post(detail_url, {"decision": "finish_archive"}, follow=True)
+        self.assertContains(archived, "Baixar arquivo da biblioteca")
+        item.refresh_from_db()
+        detail = self.client.get(reverse("hub:triage-item", args=[item.id]))
+        self.assertContains(detail, "Baixar arquivo da biblioteca")
+        self.assertContains(detail, "Aguardando extração")
+        self.assertContains(detail, "Cópia interna íntegra confirmada")
+        download = self.client.get(reverse("hub:triage-download", args=[item.id]))
+        self.assertEqual(download.status_code, 200)
+        self.assertEqual(b"".join(download.streaming_content), payload)
+        self.assertEqual(download["Cache-Control"], "no-store, private")
+        self.assertIn("attachment", download["Content-Disposition"])
+        download.close()
+        with PrivateTriageStorage().open(item.destination_path, "wb") as copy:
+            copy.write(b"tampered")
         self.assertEqual(
             self.client.get(reverse("hub:triage-download", args=[item.id])).status_code,
             404,
@@ -682,87 +814,22 @@ class HubWorkspaceViewTests(TestCase):
             self.client.get(reverse("hub:dashboard")), reverse("hub:reconciliation")
         )
 
-    def test_disabled_journey_module_blocks_its_direct_urls(self) -> None:
-        """A hidden menu item is not an authorization boundary for internal work."""
-
-        journey = ClientJourney.objects.create(
-            organization=self.organization,
-            company=self.company,
-            title="Fechamento interno",
-            owner=self.user,
-        )
-        step = JourneyStep.objects.create(
-            organization=self.organization,
-            journey=journey,
-            title="Conferir",
-            position=1,
-        )
-        request_item = PortalRequest.objects.create(
-            organization=self.organization,
-            journey=journey,
-            title="Extrato",
-        )
-        ProductModule.objects.create(
-            organization=self.organization,
-            code=ProductModule.Code.JOURNEY,
-            enabled=False,
-        )
-
-        attempts = (
-            ("get", reverse("hub:journey"), {}),
-            (
-                "post",
-                reverse("hub:journey-step-create"),
-                {"journey_id": journey.id, "step-title": "Não criar"},
-            ),
-            (
-                "post",
-                reverse("hub:portal-request-create"),
-                {"journey_id": journey.id, "request-title": "Não criar"},
-            ),
-            (
-                "post",
-                reverse("hub:journey-step-complete"),
-                {"journey_id": journey.id, "item_id": step.id},
-            ),
-            (
-                "post",
-                reverse("hub:portal-request-transition"),
-                {"journey_id": journey.id, "item_id": request_item.id, "action": "resolve"},
-            ),
-        )
-        for method, url, data in attempts:
-            response = getattr(self.client, method)(url, data)
-            self.assertEqual(response.status_code, 403, url)
-            self.assertContains(response, "não está habilitado", status_code=403)
-
-        self.assertEqual(JourneyStep.objects.filter(journey=journey).count(), 1)
-        step.refresh_from_db()
-        request_item.refresh_from_db()
-        self.assertIsNone(step.completed_at)
-        self.assertEqual(request_item.status, PortalRequest.Status.OPEN)
-        self.assertNotContains(self.client.get(reverse("hub:dashboard")), reverse("hub:journey"))
-
-    def test_anonymous_request_cannot_use_internal_journey_urls(self) -> None:
-        """Jornadas is an authenticated office feature, never a client portal."""
-
+    def test_retired_journey_routes_and_navigation_are_unavailable(self) -> None:
         ProductModule.objects.create(
             organization=self.organization,
             code=ProductModule.Code.JOURNEY,
             enabled=True,
         )
-        self.client.logout()
-
-        for method, url in (
-            ("get", reverse("hub:journey")),
-            ("post", reverse("hub:journey-step-create")),
-            ("post", reverse("hub:portal-request-create")),
-            ("post", reverse("hub:journey-step-complete")),
-            ("post", reverse("hub:portal-request-transition")),
+        for path in (
+            "/app/jornada/",
+            "/app/jornada/etapas/criar/",
+            "/app/jornada/pedidos/criar/",
+            "/app/jornada/etapas/concluir/",
+            "/app/jornada/pedidos/transicionar/",
         ):
-            response = getattr(self.client, method)(url, {})
-            self.assertEqual(response.status_code, 302, url)
-            self.assertIn(reverse("hub:login"), response.url)
+            self.assertEqual(self.client.get(path).status_code, 404, path)
+            self.assertEqual(self.client.post(path, {}).status_code, 404, path)
+        self.assertNotContains(self.client.get(reverse("hub:dashboard")), "/app/jornada/")
 
     def test_unavailable_external_connector_rejects_credentials(self) -> None:
         response = self.client.post(
@@ -783,7 +850,7 @@ class HubWorkspaceViewTests(TestCase):
             ).exists()
         )
 
-    def test_owner_can_set_a_central_usage_rule_without_creating_an_integra_connector(
+    def test_legacy_per_call_usage_rule_is_rejected_in_favor_of_tokens(
         self,
     ) -> None:
         plan = Plan.objects.create(code="usage", name="Uso", monthly_price_cents=9_900)
@@ -811,12 +878,17 @@ class HubWorkspaceViewTests(TestCase):
             },
         )
 
-        self.assertRedirects(response, reverse("hub:settings"))
-        policy = TenantUsagePolicy.objects.get(organization=self.organization)
-        self.assertEqual(policy.monthly_overage_cap_cents, 3_550)
+        self.assertEqual(response.status_code, 403)
+        self.assertContains(response, "cobrança por chamada foi descontinuada", status_code=403)
+        self.assertFalse(TenantUsagePolicy.objects.filter(organization=self.organization).exists())
         self.assertFalse(
             Connector.objects.filter(organization=self.organization, kind=Connector.Kind.INTEGRA)
         )
+
+        page = self.client.get(reverse("hub:settings"))
+        self.assertNotContains(page, "chamadas incluídas")
+        self.assertNotContains(page, "por chamada")
+        self.assertContains(page, "proposta com valor do token")
 
     def test_generic_connector_posts_are_not_accepted(self) -> None:
         response = self.client.post(
@@ -873,7 +945,7 @@ class HubWorkspaceViewTests(TestCase):
 
         response = self.client.get(reverse("hub:nfse-center"))
 
-        self.assertContains(response, "Central NFS-e")
+        self.assertContains(response, "<h1>NFS-e</h1>", html=True)
         self.assertContains(response, "owned")
         self.assertContains(response, "other")
 
@@ -881,6 +953,49 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertContains(scoped, "owned")
         self.assertNotContains(scoped, "other")
+
+    def test_nfse_center_is_an_operational_bulk_sync_workspace(self) -> None:
+        response = self.client.get(reverse("hub:nfse-center"), {"view": "collection"})
+
+        self.assertContains(response, "Coleta por empresa")
+        self.assertContains(response, "Selecionar todas as empresas exibidas")
+        self.assertContains(response, "Ativar coleta")
+        self.assertContains(response, "Coleta externa ainda desligada neste ambiente")
+        self.assertContains(response, self.company.name)
+
+    def test_nfse_activation_without_a_valid_company_certificate_is_blocked(self) -> None:
+        response = self.client.post(
+            reverse("hub:nfse-center"),
+            {"action": "activate", "companies": [str(self.company.id)]},
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("hub:nfse-center"))
+        self.assertFalse(
+            NfseSync.objects.filter(organization=self.organization, company=self.company).exists()
+        )
+        self.assertContains(response, "sem e-CNPJ válido e compatível")
+
+    def test_nfse_bulk_pause_stops_scheduling_without_removing_history(self) -> None:
+        sync = NfseSync.objects.create(
+            organization=self.organization,
+            company=self.company,
+            enabled=True,
+            status=NfseSync.Status.IDLE,
+            checkpoint_nsu="981",
+            next_run_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("hub:nfse-center"),
+            {"action": "pause", "companies": [str(self.company.id)]},
+        )
+
+        self.assertRedirects(response, reverse("hub:nfse-center"))
+        sync.refresh_from_db()
+        self.assertFalse(sync.enabled)
+        self.assertEqual(sync.status, NfseSync.Status.PAUSED)
+        self.assertEqual(sync.checkpoint_nsu, "981")
 
     def test_nfse_center_shows_the_whole_portfolio_when_no_company_is_chosen(self) -> None:
         other_company = ClientCompany.objects.create(
@@ -903,6 +1018,27 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertContains(response, "owned")
         self.assertContains(response, "other")
+
+    def test_nfse_center_searches_the_portfolio_and_links_the_exact_review(self) -> None:
+        other_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa pesquisável", dominio_code="0888"
+        )
+        _document, _artifact, review = create_document_and_artifact(
+            company=other_company,
+            original_xml="<nfse id='search-review' />",
+            normalized_data={"service_code": "sem-regra"},
+            source_nsu="NSU-PESQUISA",
+        )
+        assert review is not None
+
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"q": "0888", "status": "review"}
+        )
+
+        self.assertContains(response, other_company.name)
+        self.assertContains(response, "NSU-PESQUISA")
+        self.assertContains(response, reverse("hub:review-detail", args=[review.id]))
+        self.assertNotContains(response, self.company.name)
 
     def test_logout_uses_post_and_ends_the_workspace_session(self) -> None:
         response = self.client.post(reverse("hub:logout"))
@@ -979,12 +1115,111 @@ class HubWorkspaceViewTests(TestCase):
         missing = self.client.post(url, {})
         resolved = self.client.post(url, {"accumulator_code": "AC-200"})
 
-        self.assertRedirects(missing, reverse("hub:reviews"))
-        self.assertRedirects(resolved, reverse("hub:reviews"))
+        detail_url = reverse("hub:review-detail", args=[review.id])
+        self.assertRedirects(missing, detail_url)
+        self.assertRedirects(resolved, detail_url)
         review.refresh_from_db()
         self.assertEqual(review.status, ReviewCase.Status.RESOLVED)
         self.assertEqual(review.resolved_accumulator, "AC-200")
         self.assertEqual(review.resolved_by, self.user)
+
+    def test_review_queue_searches_the_portfolio_and_defaults_to_open_cases(self) -> None:
+        _document, _artifact, open_review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='open-filter' />",
+            normalized_data={"service_code": "1401"},
+        )
+        assert open_review is not None
+        resolved_company = ClientCompany.objects.create(
+            organization=self.organization,
+            name="Empresa já conferida",
+            dominio_code="0777",
+        )
+        _document, _artifact, resolved_review = create_document_and_artifact(
+            company=resolved_company,
+            original_xml="<nfse id='resolved-filter' />",
+            normalized_data={"service_code": "1702"},
+        )
+        assert resolved_review is not None
+        resolved_review.status = ReviewCase.Status.RESOLVED
+        resolved_review.resolved_accumulator = "AC-777"
+        resolved_review.resolved_by = self.user
+        resolved_review.resolved_at = timezone.now()
+        resolved_review.save()
+
+        default_queue = self.client.get(reverse("hub:reviews"))
+        self.assertContains(default_queue, self.company.name)
+        self.assertNotContains(default_queue, resolved_company.name)
+        resolved_queue = self.client.get(
+            reverse("hub:reviews"), {"status": "resolved", "q": "0777"}
+        )
+        self.assertContains(resolved_queue, resolved_company.name)
+        self.assertNotContains(resolved_queue, self.company.name)
+
+    def test_dashboard_exposes_exact_operational_queues(self) -> None:
+        for code in (
+            ProductModule.Code.INTEGRA,
+            ProductModule.Code.GUIDES,
+            ProductModule.Code.TRIAGE,
+            ProductModule.Code.RECONCILIATION,
+        ):
+            ProductModule.objects.update_or_create(
+                organization=self.organization,
+                code=code,
+                defaults={"enabled": True, "enabled_at": timezone.now()},
+            )
+        response = self.client.get(reverse("hub:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Pendências por área")
+        self.assertContains(response, f'{reverse("hub:reviews")}')
+        self.assertContains(response, f'{reverse("hub:dte-center")}?status=unread')
+        self.assertContains(response, f'{reverse("hub:guides")}?status=pending')
+
+    def test_review_detail_links_to_exact_case_and_scopes_original_xml(self) -> None:
+        original = "<nfse id='case-owned' />"
+        _document, _artifact, review = create_document_and_artifact(
+            company=self.company,
+            original_xml=original,
+            normalized_data={"service_code": "1401"},
+        )
+        assert review is not None
+        detail_url = reverse("hub:review-detail", args=[review.id])
+        xml_url = reverse("hub:review-original-xml", args=[review.id])
+
+        dashboard = self.client.get(reverse("hub:dashboard"))
+        detail = self.client.get(detail_url)
+        downloaded = self.client.get(xml_url)
+
+        self.assertContains(dashboard, detail_url)
+        self.assertContains(detail, "Código de serviço")
+        self.assertContains(detail, "1401")
+        self.assertContains(detail, xml_url)
+        self.assertEqual(downloaded.status_code, 200)
+        self.assertEqual(downloaded.content.decode(), original)
+        self.assertIn("attachment", downloaded["Content-Disposition"])
+        self.assertEqual(downloaded["Cache-Control"], "private, no-store")
+
+        other_office = Organization.objects.create(
+            name="Outro escritório", slug="review-other-office"
+        )
+        other_company = ClientCompany.objects.create(
+            organization=other_office, name="Outra empresa", dominio_code="899"
+        )
+        _other_document, _other_artifact, other_review = create_document_and_artifact(
+            company=other_company,
+            original_xml="<nfse id='case-other' />",
+            normalized_data={},
+        )
+        assert other_review is not None
+        self.assertEqual(
+            self.client.get(reverse("hub:review-detail", args=[other_review.id])).status_code,
+            404,
+        )
+        self.assertEqual(
+            self.client.get(reverse("hub:review-original-xml", args=[other_review.id])).status_code,
+            404,
+        )
 
     def test_the_anonymous_workspace_is_blocked(self) -> None:
         self.client.logout()

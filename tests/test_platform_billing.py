@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
+from unittest.mock import patch
 
 import pytest
+from django.utils import timezone
 
 from apps.organizations.models import Organization
 from apps.platform.billing import (
@@ -10,6 +12,7 @@ from apps.platform.billing import (
     UsageApprovalRequired,
     UsageLimitReached,
     close_competence,
+    quote_usage,
     reserve_usage,
     settle_usage,
 )
@@ -186,3 +189,83 @@ def test_usage_requires_a_contract_rate_and_releases_non_billable_calls() -> Non
     released = settle_usage(event=event, provider_http_status=503, billable=False)
     assert released.status == UsageEvent.Status.RELEASED
     assert settle_usage(event=event, provider_http_status=503, billable=False).id == event.id
+
+
+def test_competence_waits_for_reserved_legacy_calls_and_refuses_late_use() -> None:
+    organization, _plan = _contract()
+    event = reserve_usage(
+        organization=organization, action_code="caixapostal.mensagens",
+        idempotency_key="pending-at-close",
+    )
+    period_start = timezone.localdate().replace(day=1)
+    next_month = (period_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    with patch(
+        "apps.platform.billing.timezone.localdate", return_value=next_month
+    ), pytest.raises(BillingError, match="operações reservadas"):
+        close_competence(period_start=period_start)
+    settle_usage(event=event, provider_http_status=200, billable=True)
+    with patch("apps.platform.billing.timezone.localdate", return_value=next_month):
+        close_competence(period_start=period_start)
+    with pytest.raises(BillingError, match="já foi faturada"):
+        quote_usage(organization=organization, action_code="caixapostal.mensagens")
+    with pytest.raises(BillingError, match="já foi faturada"):
+        reserve_usage(
+            organization=organization, action_code="caixapostal.mensagens",
+            idempotency_key="late-after-close",
+        )
+    assert reserve_usage(
+        organization=organization, action_code="caixapostal.mensagens",
+        idempotency_key="pending-at-close",
+    ).id == event.id
+
+
+def test_current_month_cannot_be_closed_even_without_usage() -> None:
+    _organization, _plan = _contract()
+    with pytest.raises(BillingError, match="ainda não terminou"):
+        close_competence(period_start=timezone.localdate().replace(day=1))
+
+
+def test_deferred_office_does_not_block_other_offices_or_duplicate_retry() -> None:
+    pending_office, _plan = _contract()
+    second_office = Organization.objects.create(name="Segundo", slug="segundo-fechamento")
+    second_plan = Plan.objects.create(code="segundo-fechamento", name="Segundo")
+    TenantContract.objects.create(
+        organization=second_office, plan=second_plan, status=TenantContract.Status.ACTIVE
+    )
+    event = reserve_usage(
+        organization=pending_office, action_code="caixapostal.mensagens",
+        idempotency_key="office-deferred",
+    )
+    period_start = timezone.localdate().replace(day=1)
+    next_month = (period_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    deferred: list[str] = []
+    with patch("apps.platform.billing.timezone.localdate", return_value=next_month):
+        invoices = close_competence(
+            period_start=period_start, deferred_organization_ids=deferred
+        )
+    assert deferred == [str(pending_office.id)]
+    assert [invoice.organization_id for invoice in invoices] == [second_office.id]
+    second_invoice_id = invoices[0].id
+    assert not Invoice.objects.filter(
+        organization=pending_office, period_start=period_start
+    ).exists()
+    from apps.platform.models import BillingCloseDeferral
+
+    deferral = BillingCloseDeferral.objects.get(
+        organization=pending_office, period_start=period_start
+    )
+    assert deferral.resolved_at is None
+    settle_usage(event=event, provider_http_status=200, billable=True)
+    with patch("apps.platform.billing.timezone.localdate", return_value=next_month):
+        retried = close_competence(
+            period_start=period_start, deferred_organization_ids=[]
+        )
+    assert {invoice.organization_id for invoice in retried} == {
+        pending_office.id, second_office.id
+    }
+    assert Invoice.objects.get(
+        organization=second_office, period_start=period_start
+    ).id == second_invoice_id
+    assert Invoice.objects.filter(period_start=period_start).count() == 2
+    deferral.refresh_from_db()
+    assert deferral.resolved_at is not None

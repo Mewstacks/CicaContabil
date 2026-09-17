@@ -6,33 +6,33 @@
 {% block workspace_content %}
 <section class="integra-intro" aria-labelledby="integra-intro-title">
   <p class="section-kicker">Trabalho fiscal por empresa</p>
-  <h2 id="integra-intro-title">Escolha a rotina que precisa resolver.</h2>
-  <p>Caixa DTE, Parcelamentos e DCTFWeb ficam nesta Central. Cada ferramenta mostra o que já pode ser feito, seu histórico e o próximo passo possível.</p>
+  <h2 id="integra-intro-title">Qual rotina você quer abrir?</h2>
+
 </section>
 
-{% if not connector_ready %}<div class="integra-readiness" role="status"><strong>Consultas externas indisponíveis neste ambiente.</strong> A Mewstack ainda precisa configurar e homologar a conexão central com o Serpro. Dados locais já registrados podem ser revisados nas ferramentas abertas.</div>{% endif %}
+{% if not connector_ready %}<div class="integra-readiness" role="status"><strong>Consultas externas indisponíveis neste ambiente.</strong> Conexão Serpro pendente. Você pode revisar os dados locais.</div>{% endif %}
 
 <section aria-labelledby="integra-tools-title">
   <div class="integra-section-head"><div><p class="section-kicker">Ferramentas</p><h2 id="integra-tools-title">Central Integra Contador</h2></div><span>{{ integra_company_count }} empresas no seu escopo</span></div>
   <div class="integra-tools">
     <article class="integra-tool">
-      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">01</span><span class="integra-tool-state">{% if connector_ready %}Área de trabalho disponível{% else %}Consulta externa bloqueada{% endif %}</span></div>
+      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">01</span><span class="integra-tool-state">{% if connector_ready %}Disponível{% else %}Consulta externa bloqueada{% endif %}</span></div>
       <h3>Caixa DTE</h3>
-      <p>Encontre mensagens por empresa, revise o resumo e abra o teor com confirmação explícita quando a consulta puder registrar ciência e iniciar prazo.</p>
+      <p>Revise mensagens por empresa. Abrir o teor pode registrar ciência e iniciar prazo.</p>
       <dl><div><dt>Mensagens registradas</dt><dd>{{ integra_message_count }}</dd></div><div><dt>Consultas a autorizar</dt><dd>{{ integra_pending_count }}</dd></div></dl>
       <a class="button" href="{% url 'hub:dte-center' %}">Abrir Caixa DTE</a>
     </article>
-    <article class="integra-tool integra-tool-pending">
-      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">02</span><span class="integra-tool-state">Em implantação</span></div>
+    <article class="integra-tool{% if not office.is_demo %} integra-tool-pending{% endif %}">
+      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">02</span><span class="integra-tool-state">{% if office.is_demo %}Demonstração interativa{% else %}Homologação pendente{% endif %}</span></div>
       <h3>Parcelamentos</h3>
-      <p>Consultar acordos do Simples Nacional e MEI, ver parcelas e pagamentos e emitir a guia da parcela escolhida com confirmação de consumo.</p>
-      <p class="integra-tool-limitation">Ainda não há consulta ou emissão conectada. A ferramenta só abrirá após implementação e homologação com o Serpro.</p>
-      <span class="integra-tool-unavailable">Acesso ainda indisponível</span>
+      <p>Consulte acordos e pagamentos. Emita o DAS da parcela.</p>
+      <p class="integra-tool-limitation">{% if office.is_demo %}Dados e emissões fictícios, só nesta sessão.{% else %}Chamadas reais seguem bloqueadas até a homologação do PARCSN e da tarifa.{% endif %}</p>
+      <a class="button button-quiet" href="{% url 'hub:parcelamentos' %}">Abrir Parcelamentos</a>
     </article>
     <article class="integra-tool">
       <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">03</span><span class="integra-tool-state">{% if integra_guides_enabled %}Acompanhamento disponível{% else %}Módulo não liberado{% endif %}</span></div>
       <h3>DCTFWeb</h3>
-      <p>Acompanhe obrigações por empresa e competência, revise a situação e encaminhe a geração de guias pela área de Guias e DCTFWeb.</p>
+      <p>Confira obrigações por competência e emita guias.</p>
       <p class="integra-tool-limitation">A emissão externa depende da conexão Serpro homologada e de contrato com tarifa configurada.</p>
       {% if integra_guides_enabled %}<a class="button button-quiet" href="{% url 'hub:guides' %}">Abrir DCTFWeb</a>{% else %}<span class="integra-tool-unavailable">Peça a liberação do módulo</span>{% endif %}
     </article>

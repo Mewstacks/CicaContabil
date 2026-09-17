@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from apps.hub.models import BankTransaction, ClientCompany, DominioBankEntry, ReconciliationMatch
+from apps.hub.models import (
+    AccountingEntry,
+    BankTransaction,
+    ClientCompany,
+    DataSource,
+    DominioBankEntry,
+    ReconciliationMatch,
+)
 from apps.hub.reconciliation import (
     OfxParseError,
     confirm_reconciliation_match,
@@ -50,7 +57,7 @@ def test_ofx_import_is_idempotent() -> None:
 
 
 @pytest.mark.django_db
-def test_reconciliation_matches_only_one_exact_dominio_item() -> None:
+def test_reconciliation_keeps_a_single_value_date_candidate_for_review() -> None:
     organization = Organization.objects.create(name="Conciliação", slug="conciliacao")
     company = ClientCompany.objects.create(organization=organization, name="Cliente")
     statement, _ = import_ofx(
@@ -68,8 +75,9 @@ def test_reconciliation_matches_only_one_exact_dominio_item() -> None:
     rebuild_reconciliation_matches(organization=organization)
 
     match = ReconciliationMatch.objects.get(transaction=transaction)
-    assert match.status == ReconciliationMatch.Status.MATCHED
-    assert match.dominio_entry is not None
+    assert match.status == ReconciliationMatch.Status.AMBIGUOUS
+    assert match.dominio_entry is None
+    assert match.is_manual is False
 
 
 @pytest.mark.django_db
@@ -128,3 +136,48 @@ def test_manual_confirmation_rejects_an_entry_from_another_company() -> None:
 
     with pytest.raises(ValueError, match="não corresponde"):
         confirm_reconciliation_match(match=match, dominio_entry=entry)
+
+
+@pytest.mark.django_db
+def test_manual_accounting_confirmation_is_visible_and_survives_rebuild() -> None:
+    organization = Organization.objects.create(name="Origem contábil", slug="origem-contabil")
+    company = ClientCompany.objects.create(organization=organization, name="Cliente")
+    source = DataSource.objects.create(
+        organization=organization,
+        kind=DataSource.Kind.OTHER_MANUAL,
+        label="Importação contábil",
+    )
+    statement, _ = import_ofx(
+        organization=organization, company=company, filename="extrato.ofx", content=_OFX
+    )
+    bank_transaction = statement.transactions.get()
+    selected = AccountingEntry.objects.create(
+        organization=organization,
+        data_source=source,
+        company=company,
+        external_key="contabil-1",
+        occurred_on=bank_transaction.occurred_on,
+        description="Recebimento identificado",
+        amount_cents=1234,
+    )
+    AccountingEntry.objects.create(
+        organization=organization,
+        data_source=source,
+        company=company,
+        external_key="contabil-2",
+        occurred_on=bank_transaction.occurred_on,
+        description="Outro candidato",
+        amount_cents=1234,
+    )
+    rebuild_reconciliation_matches(organization=organization)
+    match = ReconciliationMatch.objects.get(transaction=bank_transaction)
+    assert match.status == ReconciliationMatch.Status.AMBIGUOUS
+
+    confirm_reconciliation_match(match=match, accounting_entry=selected)
+    rebuild_reconciliation_matches(organization=organization)
+
+    match.refresh_from_db()
+    assert match.status == ReconciliationMatch.Status.MATCHED
+    assert match.accounting_entry == selected
+    assert match.dominio_entry is None
+    assert match.is_manual is True

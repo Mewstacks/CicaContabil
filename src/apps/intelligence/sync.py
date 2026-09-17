@@ -14,7 +14,11 @@ from django.utils import timezone
 
 from apps.audit.services import record_event
 from apps.hub.models import AccountingEntry, ClientCompany, DataSource, DominioBankEntry
-from apps.intelligence.connectors import CatalogColumn, CatalogTable
+from apps.intelligence.connectors import (
+    MAX_BANK_ENTRY_ROWS,
+    CatalogColumn,
+    CatalogTable,
+)
 from apps.intelligence.models import (
     DataCatalogEntry,
     DominioCommunication,
@@ -44,6 +48,7 @@ class BankEntrySyncResult:
     created: int
     updated: int
     ignored: int
+    may_be_truncated: bool = False
 
 
 @dataclass(frozen=True)
@@ -340,6 +345,7 @@ def sync_bank_entries(
             "direction": _clean_text(row.get("direction"), 8),
             "is_linked": _as_read_flag(row.get("is_linked")),
         }
+    may_be_truncated = len(normalized) >= MAX_BANK_ENTRY_ROWS
     with transaction.atomic():
         data_source, _ = DataSource.objects.get_or_create(
             organization=organization,
@@ -437,12 +443,22 @@ def sync_bank_entries(
             organization=organization,
             target=connector,
             request=request,
-            metadata={"created": created, "updated": updated, "ignored": ignored},
+            metadata={
+                "created": created,
+                "updated": updated,
+                "ignored": ignored,
+                "may_be_truncated": may_be_truncated,
+            },
         )
     from apps.hub.reconciliation import rebuild_reconciliation_matches
 
     rebuild_reconciliation_matches(organization=organization)
-    return BankEntrySyncResult(created, updated, ignored)
+    return BankEntrySyncResult(
+        created,
+        updated,
+        ignored,
+        may_be_truncated=may_be_truncated,
+    )
 
 
 def sync_communications(

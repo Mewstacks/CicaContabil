@@ -108,19 +108,19 @@ class TriageItemModelTests(TestCase):
 
         self.assertEqual(item.status, TriageStatus.RECEIVED)
 
-    def test_duplicate_content_hash_in_the_same_office_is_rejected(self) -> None:
-        TriageItem.objects.create(
+    def test_duplicate_content_hash_keeps_both_receipts_for_review(self) -> None:
+        first = TriageItem.objects.create(
             organization=self.organization,
             original_name="extrato.pdf",
             content_hash="a" * 64,
         )
-
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            TriageItem.objects.create(
-                organization=self.organization,
-                original_name="extrato-copia.pdf",
-                content_hash="a" * 64,
-            )
+        second = TriageItem.objects.create(
+            organization=self.organization,
+            original_name="extrato-copia.pdf",
+            content_hash="a" * 64,
+        )
+        self.assertNotEqual(first.id, second.id)
+        self.assertEqual(first.content_hash, second.content_hash)
 
     def test_the_same_hash_is_allowed_in_a_different_office(self) -> None:
         """A duplicate is a per-office concept, not a global one."""
@@ -323,7 +323,7 @@ class ManualIntakeTests(TestCase):
                 upload=self._upload(),
             )
 
-    def test_reviewer_can_archive_and_the_audit_is_preserved(self) -> None:
+    def test_reviewer_cannot_archive_unverified_manual_prototype(self) -> None:
         item = intake_manual(
             organization=self.organization,
             actor=self.user,
@@ -332,12 +332,12 @@ class ManualIntakeTests(TestCase):
             upload=self._upload(),
         )
 
-        decide_item(item=item, actor=self.user, decision="archive", reason="")
+        with self.assertRaises(ValidationError):
+            decide_item(item=item, actor=self.user, decision="archive", reason="")
         item.refresh_from_db()
-
-        self.assertEqual(item.status, TriageStatus.ARCHIVED)
-        self.assertEqual(item.destination_kind, DestinationProfile.Mode.INTERNAL)
-        self.assertEqual(item.events.count(), 7)
+        self.assertEqual(item.status, TriageStatus.AWAITING_REVIEW)
+        self.assertEqual(item.destination_path, "")
+        self.assertEqual(item.events.count(), 4)
 
     def test_reviewer_must_supply_a_reason_to_reject(self) -> None:
         item = intake_manual(

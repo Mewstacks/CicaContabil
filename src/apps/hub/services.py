@@ -22,14 +22,17 @@ from apps.hub.models import (
     ClientCompany,
     Connector,
     ConsumptionConfirmation,
+    DctfWebDocument,
     DteRun,
     DteRunItem,
     FiscalGuide,
     IntegrationArtifact,
     NfseDocument,
+    ParcelamentoOperation,
     ReviewCase,
 )
 from apps.platform.billing import BillingError, quote_usage, reserve_usage
+from apps.platform.token_billing import quote_tokens, reserve_tokens
 
 
 @dataclass(frozen=True)
@@ -112,9 +115,9 @@ def create_document_and_artifact(
     digest = hashlib.sha256(original_xml.encode()).hexdigest()
     document, created = NfseDocument.objects.get_or_create(
         organization=company.organization,
+        company=company,
         document_hash=digest,
         defaults={
-            "company": company,
             "source_nsu": source_nsu,
             "original_xml": original_xml,
             "normalized_data": normalized_data,
@@ -251,6 +254,47 @@ def prepare_dte_run(
     return run
 
 
+@transaction.atomic
+def prepare_dte_next_page(
+    *, source_item: DteRunItem, actor: Any = None, request: Any = None
+) -> DteRun:
+    """Prepare exactly one additional Serpro page; approval and billing stay separate."""
+
+    source = (
+        DteRunItem.objects.select_for_update()
+        .select_related("run", "company")
+        .get(id=source_item.id)
+    )
+    if source.status != DteRunItem.Status.COMPLETED or not source.more_available:
+        raise ValueError("Esta consulta não tem outra página disponível.")
+    if not re.fullmatch(r"\d{1,24}", source.next_page_pointer):
+        raise ValueError("Falta o ponteiro da próxima página. Atualize a primeira consulta.")
+    if DteRunItem.objects.filter(continued_from=source).exists():
+        raise ValueError("A próxima página desta consulta já foi preparada.")
+    run = DteRun.objects.create(
+        organization=source.organization,
+        connector=source.run.connector,
+        requested_by=actor if getattr(actor, "is_authenticated", False) else None,
+        total_companies=1,
+    )
+    DteRunItem.objects.create(
+        organization=source.organization,
+        run=run,
+        company=source.company,
+        requested_page_pointer=source.next_page_pointer,
+        continued_from=source,
+    )
+    record_event(
+        action="hub.dte.next_page_prepared",
+        actor=actor,
+        organization=source.organization,
+        target=run,
+        request=request,
+        metadata={"source_item_id": str(source.id), "network_dispatched": False},
+    )
+    return run
+
+
 class DteRunTransitionError(RuntimeError):
     """A run was asked for a transition its current status does not allow."""
 
@@ -265,13 +309,341 @@ class FiscalGuideTransitionError(RuntimeError):
     """An obligation cannot be sent from its current operational state."""
 
 
+class DctfWebDocumentTransitionError(RuntimeError):
+    """A DCTFWeb document cannot be consulted from its current state."""
+
+
+@transaction.atomic
+def prepare_dctfweb_guide_from_documents(
+    *,
+    organization: Any,
+    company: ClientCompany,
+    competence: str,
+    due_on: date,
+    amount_cents: int,
+    source_reference: str,
+    actor: Any = None,
+    request: Any = None,
+) -> FiscalGuide:
+    """Promote one governed Domínio calculation after both official PDFs exist."""
+
+    if company.organization_id != organization.id or not company.active:
+        raise DctfWebDocumentTransitionError("A empresa não pertence à carteira ativa.")
+    if re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None:
+        raise DctfWebDocumentTransitionError("Informe uma competência no formato MM/AAAA.")
+    if amount_cents < 1 or not source_reference:
+        raise DctfWebDocumentTransitionError(
+            "A apuração do Domínio não possui valor e referência válidos."
+        )
+    available_kinds = set(
+        DctfWebDocument.objects.filter(
+            organization=organization,
+            company=company,
+            competence=competence,
+            status=DctfWebDocument.Status.AVAILABLE,
+        ).values_list("kind", flat=True)
+    )
+    required = {
+        DctfWebDocument.Kind.DECLARATION,
+        DctfWebDocument.Kind.RECEIPT,
+    }
+    if not required.issubset(available_kinds):
+        raise DctfWebDocumentTransitionError(
+            "Baixe e confira a declaração completa e o recibo antes de preparar a emissão."
+        )
+
+    reference = f"dominio-dctfweb-{company.dominio_code}-{competence[3:]}{competence[:2]}"
+    guide, created = FiscalGuide.objects.select_for_update().get_or_create(
+        organization=organization,
+        company=company,
+        reference=reference,
+        defaults={
+            "kind": FiscalGuide.Kind.DCTFWEB,
+            "status": FiscalGuide.Status.READY,
+            "competence": competence,
+            "due_on": due_on,
+            "amount_cents": amount_cents,
+            "integra_service_key": "dctfweb.guia",
+            "external_key": source_reference[:160],
+            "source_updated_at": timezone.now(),
+        },
+    )
+    if not created:
+        if guide.status in {
+            FiscalGuide.Status.QUEUED,
+            FiscalGuide.Status.ISSUING,
+            FiscalGuide.Status.ISSUED,
+        }:
+            return guide
+        guide.kind = FiscalGuide.Kind.DCTFWEB
+        guide.status = FiscalGuide.Status.READY
+        guide.competence = competence
+        guide.due_on = due_on
+        guide.amount_cents = amount_cents
+        guide.integra_service_key = "dctfweb.guia"
+        guide.external_key = source_reference[:160]
+        guide.source_updated_at = timezone.now()
+        guide.error_code = ""
+        guide.error_message = ""
+        guide.save()
+    record_event(
+        action="hub.dctfweb.guide_prepared",
+        actor=actor,
+        organization=organization,
+        target=guide,
+        request=request,
+        metadata={
+            "competence": competence,
+            "source_reference": source_reference[:160],
+            "documents": sorted(required),
+            "created": created,
+        },
+    )
+    return guide
+
+
+class ParcelamentoTransitionError(RuntimeError):
+    """A PARCSN operation cannot be queued in its current state."""
+
+
+DCTFWEB_DOCUMENT_SERVICE = {
+    DctfWebDocument.Kind.DECLARATION: "dctfweb.declaracao_completa",
+    DctfWebDocument.Kind.RECEIPT: "dctfweb.recibo",
+}
+
+PARCELAMENTO_SERVICE = {
+    ParcelamentoOperation.Kind.ORDERS: "parcelamento.parcsn.pedidos",
+    ParcelamentoOperation.Kind.DETAIL: "parcelamento.parcsn.detalhe",
+    ParcelamentoOperation.Kind.INSTALLMENTS: "parcelamento.parcsn.parcelas",
+    ParcelamentoOperation.Kind.DAS: "parcelamento.parcsn.das",
+}
+
+
+@transaction.atomic
+def request_parcelamento_operation(
+    *,
+    organization: Any,
+    company: ClientCompany,
+    kind: str,
+    agreement_number: int | None = None,
+    competence: str = "",
+    actor: Any = None,
+    request: Any = None,
+    approved_overage_cents: int = 0,
+) -> ParcelamentoOperation:
+    """Reserve the quoted PARCSN action before dispatching it once."""
+
+    if company.organization_id != organization.id or not company.active:
+        raise ParcelamentoTransitionError("A empresa não pertence à carteira ativa.")
+    try:
+        service_key = PARCELAMENTO_SERVICE[kind]
+    except KeyError as exc:
+        raise ParcelamentoTransitionError("Escolha uma operação de parcelamento válida.") from exc
+    if kind == ParcelamentoOperation.Kind.DETAIL:
+        if agreement_number is None or agreement_number < 1:
+            raise ParcelamentoTransitionError("Informe um acordo válido para consultar o detalhe.")
+    elif agreement_number is not None:
+        raise ParcelamentoTransitionError("Esta operação não aceita número de acordo.")
+    if kind == ParcelamentoOperation.Kind.DAS:
+        if re.fullmatch(r"\d{4}(0[1-9]|1[0-2])", competence) is None:
+            raise ParcelamentoTransitionError("Informe a parcela no formato AAAAMM.")
+    elif competence:
+        raise ParcelamentoTransitionError("Esta operação não aceita competência.")
+    try:
+        normalize_cnpj(company.cnpj_masked)
+    except ValidationError as exc:
+        raise ParcelamentoTransitionError(
+            "Confira o CNPJ da empresa antes de consultar o parcelamento."
+        ) from exc
+
+    previous = (
+        ParcelamentoOperation.objects.select_for_update()
+        .filter(
+            organization=organization,
+            company=company,
+            kind=kind,
+            agreement_number=agreement_number,
+            competence=competence,
+        )
+        .first()
+    )
+    if previous and previous.status in {
+        ParcelamentoOperation.Status.QUEUED,
+        ParcelamentoOperation.Status.FETCHING,
+        ParcelamentoOperation.Status.UNKNOWN,
+    }:
+        raise ParcelamentoTransitionError(
+            "Essa operação já está na fila ou aguardando confirmação."
+        )
+    if (
+        previous
+        and kind == ParcelamentoOperation.Kind.DAS
+        and previous.status == ParcelamentoOperation.Status.AVAILABLE
+    ):
+        raise ParcelamentoTransitionError("O DAS desta competência já foi emitido.")
+    operation = ParcelamentoOperation(
+        organization=organization,
+        company=company,
+        kind=kind,
+        agreement_number=agreement_number,
+        competence=competence,
+        attempt=(previous.attempt + 1 if previous else 1),
+    )
+    if not organization.is_demo:
+        try:
+            live_quote = quote_tokens(
+                organization=organization,
+                module_code="integra",
+                action_code=service_key,
+            )
+            if live_quote.additional_overage_cents != approved_overage_cents:
+                raise ParcelamentoTransitionError(
+                    "O custo em tokens mudou. Revise e confirme novamente."
+                )
+            operation.token_usage_event = reserve_tokens(
+                organization=organization,
+                module_code="integra",
+                action_code=service_key,
+                idempotency_key=f"parcelamento:{operation.id}:{operation.attempt}",
+            )
+        except BillingError as exc:
+            raise ParcelamentoTransitionError(str(exc)) from exc
+    operation.service_key = service_key
+    operation.status = ParcelamentoOperation.Status.QUEUED
+    operation.requested_by = actor if getattr(actor, "is_authenticated", False) else None
+    operation.requested_at = timezone.now()
+    operation.completed_at = None
+    operation.provider_request_id = ""
+    operation.provider_payload = ""
+    operation.error_code = ""
+    operation.error_message = ""
+    operation.save()
+
+    from apps.hub.tasks import dispatch_parcelamento_operation
+
+    if organization.is_demo:
+        transaction.on_commit(lambda: dispatch_parcelamento_operation.run(str(operation.id)))
+    else:
+        transaction.on_commit(lambda: dispatch_parcelamento_operation.delay(str(operation.id)))
+    record_event(
+        action="hub.parcelamento.requested",
+        actor=actor,
+        organization=organization,
+        target=operation,
+        request=request,
+        metadata={
+            "kind": kind,
+            "agreement_number": agreement_number,
+            "competence": competence,
+            "service": service_key,
+        },
+    )
+    return operation
+
+
+@transaction.atomic
+def request_dctfweb_document(
+    *,
+    organization: Any,
+    company: ClientCompany,
+    competence: str,
+    kind: str,
+    actor: Any = None,
+    request: Any = None,
+    approved_overage_cents: int = 0,
+) -> DctfWebDocument:
+    """Reserve exactly the quoted consultation before it reaches the worker."""
+
+    if company.organization_id != organization.id or not company.active:
+        raise DctfWebDocumentTransitionError("A empresa não pertence à carteira ativa.")
+    if re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None:
+        raise DctfWebDocumentTransitionError("Informe uma competência no formato MM/AAAA.")
+    try:
+        service_key = DCTFWEB_DOCUMENT_SERVICE[kind]
+    except KeyError as exc:
+        raise DctfWebDocumentTransitionError("Escolha declaração completa ou recibo.") from exc
+    try:
+        normalize_cnpj(company.cnpj_masked)
+    except ValidationError as exc:
+        raise DctfWebDocumentTransitionError(
+            "Confira o CNPJ da empresa antes de consultar a DCTFWeb."
+        ) from exc
+
+    document, _created = DctfWebDocument.objects.select_for_update().get_or_create(
+        organization=organization,
+        company=company,
+        competence=competence,
+        kind=kind,
+        defaults={"service_key": service_key},
+    )
+    if (
+        document.status
+        in {
+            DctfWebDocument.Status.QUEUED,
+            DctfWebDocument.Status.FETCHING,
+            DctfWebDocument.Status.AVAILABLE,
+            DctfWebDocument.Status.UNKNOWN,
+        }
+        and document.attempt
+    ):
+        raise DctfWebDocumentTransitionError(
+            "Essa consulta já está na fila, concluída ou aguardando confirmação."
+        )
+    document.attempt += 1
+    idempotency_key = f"dctfweb-document:{document.id}:{document.attempt}"
+    if not organization.is_demo:
+        try:
+            live_quote = quote_tokens(
+                organization=organization,
+                module_code="integra",
+                action_code=service_key,
+            )
+            if live_quote.additional_overage_cents != approved_overage_cents:
+                raise DctfWebDocumentTransitionError(
+                    "O custo em tokens mudou. Revise e confirme novamente."
+                )
+            usage = reserve_tokens(
+                organization=organization,
+                module_code="integra",
+                action_code=service_key,
+                idempotency_key=idempotency_key,
+            )
+        except BillingError as exc:
+            raise DctfWebDocumentTransitionError(str(exc)) from exc
+        document.token_usage_event = usage
+    document.service_key = service_key
+    document.status = DctfWebDocument.Status.QUEUED
+    document.requested_by = actor if getattr(actor, "is_authenticated", False) else None
+    document.requested_at = timezone.now()
+    document.completed_at = None
+    document.error_code = ""
+    document.error_message = ""
+    document.save()
+
+    from apps.hub.tasks import dispatch_dctfweb_document
+
+    if organization.is_demo:
+        transaction.on_commit(lambda: dispatch_dctfweb_document.run(str(document.id)))
+    else:
+        transaction.on_commit(lambda: dispatch_dctfweb_document.delay(str(document.id)))
+    record_event(
+        action="hub.dctfweb.document_requested",
+        actor=actor,
+        organization=organization,
+        target=document,
+        request=request,
+        metadata={"kind": kind, "competence": competence, "service": service_key},
+    )
+    return document
+
+
 @transaction.atomic
 def issue_fiscal_guide(
     *,
     guide: FiscalGuide,
     actor: Any = None,
     request: Any = None,
-    approved_overage: bool = False,
+    approved_overage_cents: int = 0,
 ) -> FiscalGuide:
     """Reserve one central issuance before queueing a Domínio obligation."""
 
@@ -286,15 +658,25 @@ def issue_fiscal_guide(
         ) from exc
     guide.issue_attempt += 1
     idempotency_key = f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
-    try:
-        reserve_usage(
-            organization=guide.organization,
-            action_code=guide.integra_service_key,
-            idempotency_key=idempotency_key,
-            approved_overage=approved_overage,
-        )
-    except BillingError as exc:
-        raise FiscalGuideTransitionError(str(exc)) from exc
+    if not guide.organization.is_demo:
+        try:
+            live_quote = quote_tokens(
+                organization=guide.organization,
+                module_code="integra",
+                action_code=guide.integra_service_key,
+            )
+            if live_quote.additional_overage_cents != approved_overage_cents:
+                raise FiscalGuideTransitionError(
+                    "O custo em tokens mudou. Revise e confirme novamente."
+                )
+            reserve_tokens(
+                organization=guide.organization,
+                module_code="integra",
+                action_code=guide.integra_service_key,
+                idempotency_key=idempotency_key,
+            )
+        except BillingError as exc:
+            raise FiscalGuideTransitionError(str(exc)) from exc
     guide.status = FiscalGuide.Status.QUEUED
     guide.issue_requested_by = actor if getattr(actor, "is_authenticated", False) else None
     guide.issue_requested_at = timezone.now()
@@ -313,7 +695,10 @@ def issue_fiscal_guide(
     )
     from apps.hub.tasks import dispatch_fiscal_guide
 
-    transaction.on_commit(lambda: dispatch_fiscal_guide.delay(str(guide.id)))
+    if guide.organization.is_demo:
+        transaction.on_commit(lambda: dispatch_fiscal_guide.run(str(guide.id)))
+    else:
+        transaction.on_commit(lambda: dispatch_fiscal_guide.delay(str(guide.id)))
     record_event(
         action="hub.fiscal_guide.issuance_requested",
         actor=actor,
@@ -374,6 +759,7 @@ def sync_fiscal_guides(
             reference=reference[:120],
             defaults={
                 "kind": kind,
+                "status": FiscalGuide.Status.DISCOVERED,
                 "competence": competence,
                 "due_on": due_on,
                 "amount_cents": amount_cents,
@@ -383,7 +769,7 @@ def sync_fiscal_guides(
         if was_created:
             created += 1
             continue
-        if guide.status not in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
+        if guide.status not in {FiscalGuide.Status.DISCOVERED, FiscalGuide.Status.FAILED}:
             ignored += 1
             continue
         guide.kind = kind
@@ -430,17 +816,28 @@ def approve_dte_run(
                 "Uma empresa desta consulta está sem CNPJ válido. Retire a preparação, "
                 "revise o cadastro e prepare novamente antes de autorizar consumo."
             ) from exc
-    try:
-        quote = quote_usage(
-            organization=run.organization,
-            action_code=DTE_ACTION_CODE,
-            units=run.total_companies,
-        )
-    except BillingError as exc:
-        raise DteRunTransitionError(str(exc)) from exc
-    if quote.additional_overage_units and (
-        not approved_overage
-        or approved_overage_total_cents != quote.additional_overage_cents
+    if run.organization.is_demo:
+        quote = None
+    else:
+        try:
+            quote = quote_tokens(
+                organization=run.organization,
+                module_code="integra",
+                action_code=DTE_ACTION_CODE,
+                operations=run.total_companies,
+            )
+        except BillingError as exc:
+            try:
+                quote = quote_usage(
+                    organization=run.organization,
+                    action_code=DTE_ACTION_CODE,
+                    units=run.total_companies,
+                )
+            except BillingError:
+                raise DteRunTransitionError(str(exc)) from exc
+    additional_overage_cents = quote.additional_overage_cents if quote is not None else 0
+    if additional_overage_cents and (
+        not approved_overage or approved_overage_total_cents != quote.additional_overage_cents
     ):
         raise DteRunTransitionError(
             "O excedente desta consulta mudou ou não foi autorizado com o valor exato. "
@@ -449,17 +846,32 @@ def approve_dte_run(
     # Reserve each outbound Caixa Postal call before it is queued. A failed reservation
     # means no provider request can escape the product and no unexpected overage occurs.
     for item in run.items.select_for_update().filter(status=DteRunItem.Status.PENDING):
+        if run.organization.is_demo:
+            continue
         try:
-            reserve_usage(
-                organization=run.organization,
-                action_code=DTE_ACTION_CODE,
-                idempotency_key=f"dte-run-item:{item.id}:caixapostal",
-                approved_overage=approved_overage,
-                approved_overage_cents=(
-                    quote.overage_unit_price_cents if approved_overage else None
-                ),
-                require_explicit_overage=True,
-            )
+            key = f"dte-run-item:{item.id}:caixapostal"
+            if hasattr(quote, "total_tokens"):
+                usage = reserve_tokens(
+                    organization=run.organization,
+                    module_code="integra",
+                    action_code=DTE_ACTION_CODE,
+                    idempotency_key=key,
+                )
+                item.token_usage_event = usage
+                item.save(update_fields=["token_usage_event", "updated_at"])
+            else:
+                usage = reserve_usage(
+                    organization=run.organization,
+                    action_code=DTE_ACTION_CODE,
+                    idempotency_key=key,
+                    approved_overage=approved_overage,
+                    approved_overage_cents=(
+                        quote.overage_unit_price_cents if approved_overage else None
+                    ),
+                    require_explicit_overage=True,
+                )
+                item.usage_event = usage
+                item.save(update_fields=["usage_event", "updated_at"])
         except BillingError as exc:
             raise DteRunTransitionError(str(exc)) from exc
 
@@ -477,7 +889,10 @@ def approve_dte_run(
     run.save(update_fields=["status", "updated_at"])
     from apps.hub.tasks import dispatch_dte_run
 
-    transaction.on_commit(lambda: dispatch_dte_run.delay(str(run.id)))
+    if run.organization.is_demo:
+        transaction.on_commit(lambda: dispatch_dte_run.run(str(run.id)))
+    else:
+        transaction.on_commit(lambda: dispatch_dte_run.delay(str(run.id)))
     record_event(
         action="hub.dte.run_approved",
         actor=actor,

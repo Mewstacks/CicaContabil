@@ -113,6 +113,18 @@ SERVICES: dict[str, ServiceSpec] = {
         "parcelamento.parcsn.detalhe", "PARCSN", "OBTERPARC164", Verb.CONSULTAR,
         "Detalhe de parcelamento do Simples Nacional",
     ),
+    "parcelamento.parcsn.pagamento": _spec(
+        "parcelamento.parcsn.pagamento", "PARCSN", "DETPAGTOPARC165", Verb.CONSULTAR,
+        "Pagamento de parcela do Simples Nacional",
+    ),
+    "parcelamento.parcsn.parcelas": _spec(
+        "parcelamento.parcsn.parcelas", "PARCSN", "PARCELASPARAGERAR162", Verb.CONSULTAR,
+        "Parcelas disponíveis do Simples Nacional",
+    ),
+    "parcelamento.parcsn.das": _spec(
+        "parcelamento.parcsn.das", "PARCSN", "GERARDAS161", Verb.EMITIR,
+        "DAS de parcela do Simples Nacional",
+    ),
     "pgdasd.das": _spec("pgdasd.das", "PGDASD", "GERARDAS12", Verb.EMITIR, "DAS do Simples"),
     "pgmei.das": _spec("pgmei.das", "PGMEI", "GERARDASPDF21", Verb.EMITIR, "DAS do MEI"),
     "pgmei.divida": _spec(

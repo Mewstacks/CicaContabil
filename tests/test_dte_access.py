@@ -8,7 +8,7 @@ import pytest
 from apps.accounts.models import User
 from apps.hub.dte_access import DteAccessError, open_message
 from apps.hub.dte_payload import body_text
-from apps.hub.models import ClientCompany, DteMessage, DteMessageAccess
+from apps.hub.models import ClientCompany, DteMessage, DteMessageAccess, OfficeProfile
 from apps.integra.errors import IntegraTransportError
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import (
@@ -25,6 +25,7 @@ pytestmark = pytest.mark.django_db
 
 def _message() -> tuple[DteMessage, User]:
     office = Organization.objects.create(name="Ofício", slug="oficio")
+    OfficeProfile.objects.create(organization=office, cnpj="11.222.333/0001-81")
     user = User.objects.create_user("dte-access@example.test", "SafePassword2026!")
     Membership.objects.create(organization=office, user=user, role=Membership.Role.OWNER)
     company = ClientCompany.objects.create(
@@ -84,6 +85,7 @@ def test_open_dte_detail_meters_once_and_renders_official_body_as_safe_text(mock
     mock_client.return_value.call.assert_called_once_with(
         "caixapostal.detalhe",
         contribuinte="12345678000195",
+        autor_pedido="11222333000181",
         dados={"isn": "0000082838"},
     )
 

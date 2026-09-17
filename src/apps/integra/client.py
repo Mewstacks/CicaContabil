@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 import os
 import ssl
@@ -20,6 +21,8 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from django.conf import settings
 from django.core.cache import cache
+from django.core.exceptions import SuspiciousOperation
+from django.db import DatabaseError
 
 from apps.integra.catalog import ServiceSpec, service
 from apps.integra.envelope import Party, build
@@ -87,6 +90,7 @@ class Credentials:
     contratante: str
     autor_pedido: str
     environment: str
+    certificate_blob: bytes | None = None
 
     @property
     def base_url(self) -> str:
@@ -99,26 +103,57 @@ class Credentials:
 
 
 def credentials_from_settings() -> Credentials:
+    certificate_blob: bytes | None = None
+    certificate_password = settings.INTEGRA_CERTIFICATE_PASSWORD
+    consumer_key = settings.INTEGRA_CONSUMER_KEY
+    consumer_secret = settings.INTEGRA_CONSUMER_SECRET
+    contratante = settings.INTEGRA_CONTRATANTE_CNPJ
+    autor_pedido = settings.INTEGRA_AUTOR_PEDIDO_CNPJ
+    environment = settings.INTEGRA_ENVIRONMENT
+    try:
+        from apps.platform.models import PlatformConfiguration
+
+        platform_configuration = PlatformConfiguration.objects.filter(key="default").first()
+        if platform_configuration and platform_configuration.integra_certificate_blob:
+            certificate_blob = base64.b64decode(
+                platform_configuration.integra_certificate_blob, validate=True
+            )
+            certificate_password = platform_configuration.integra_certificate_password
+        if platform_configuration:
+            consumer_key = platform_configuration.integra_consumer_key or consumer_key
+            consumer_secret = platform_configuration.integra_consumer_secret or consumer_secret
+            contratante = platform_configuration.integra_contratante_cnpj or contratante
+            autor_pedido = platform_configuration.integra_autor_pedido_cnpj or autor_pedido
+            environment = platform_configuration.integra_environment or environment
+    except (DatabaseError, ValueError, binascii.Error, SuspiciousOperation) as exc:
+        if not settings.INTEGRA_CERTIFICATE_PATH:
+            raise IntegraConfigurationError(
+                "Não foi possível carregar o certificado central armazenado."
+            ) from exc
     missing = [
         name
-        for name in (
-            "INTEGRA_CONSUMER_KEY",
-            "INTEGRA_CONSUMER_SECRET",
-            "INTEGRA_CERTIFICATE_PATH",
-            "INTEGRA_CONTRATANTE_CNPJ",
+        for name, value in (
+            ("INTEGRA_CONSUMER_KEY", consumer_key),
+            ("INTEGRA_CONSUMER_SECRET", consumer_secret),
+            ("INTEGRA_CONTRATANTE_CNPJ", contratante),
         )
-        if not getattr(settings, name, "")
+        if not value
     ]
+    if certificate_blob is None and not settings.INTEGRA_CERTIFICATE_PATH:
+        missing.append("certificado A1 da Mewstack")
     if missing:
         raise IntegraConfigurationError(f"Configuração ausente: {', '.join(missing)}.")
     return Credentials(
-        consumer_key=settings.INTEGRA_CONSUMER_KEY,
-        consumer_secret=settings.INTEGRA_CONSUMER_SECRET,
-        certificate_path=Path(settings.INTEGRA_CERTIFICATE_PATH),
-        certificate_password=settings.INTEGRA_CERTIFICATE_PASSWORD,
-        contratante=settings.INTEGRA_CONTRATANTE_CNPJ,
-        autor_pedido=settings.INTEGRA_AUTOR_PEDIDO_CNPJ or settings.INTEGRA_CONTRATANTE_CNPJ,
-        environment=settings.INTEGRA_ENVIRONMENT,
+        consumer_key=consumer_key,
+        consumer_secret=consumer_secret,
+        certificate_path=(
+            Path(settings.INTEGRA_CERTIFICATE_PATH) if settings.INTEGRA_CERTIFICATE_PATH else Path()
+        ),
+        certificate_password=certificate_password,
+        contratante=contratante,
+        autor_pedido=autor_pedido or contratante,
+        environment=environment,
+        certificate_blob=certificate_blob,
     )
 
 
@@ -130,11 +165,12 @@ def build_ssl_context(credentials: Credentials) -> ssl.SSLContext:
     protecting that temporary file is random and never leaves this function.
     """
 
-    if not credentials.certificate_path.is_file():
-        raise IntegraConfigurationError(
-            f"Certificado não encontrado em {credentials.certificate_path}."
-        )
-    blob = credentials.certificate_path.read_bytes()
+    if credentials.certificate_blob is not None:
+        blob = credentials.certificate_blob
+    elif credentials.certificate_path.is_file():
+        blob = credentials.certificate_path.read_bytes()
+    else:
+        raise IntegraConfigurationError("Certificado A1 da Mewstack não configurado.")
     password = credentials.certificate_password.encode() or None
     try:
         key, certificate, extra = pkcs12.load_key_and_certificates(blob, password)
@@ -221,6 +257,7 @@ class IntegraClient:
         service_key: str,
         *,
         contribuinte: str,
+        autor_pedido: str | None = None,
         dados: dict[str, Any] | str | None = None,
     ) -> dict[str, Any]:
         """Dispatch one catalogued service. There is no way to name an arbitrary endpoint."""
@@ -229,7 +266,7 @@ class IntegraClient:
         envelope = build(
             spec=spec,
             contratante=Party(self.credentials.contratante),
-            autor_pedido=Party(self.credentials.autor_pedido),
+            autor_pedido=Party(autor_pedido or self.credentials.autor_pedido),
             contribuinte=Party(contribuinte),
             dados=dados,
         )

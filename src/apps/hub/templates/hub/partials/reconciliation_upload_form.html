@@ -1,0 +1,25 @@
+<form method="post" action="{% url 'hub:reconciliation-upload' %}" enctype="multipart/form-data" class="form-stack reconciliation-upload-form" data-reconciliation-upload>
+  {% csrf_token %}
+  {% if upload_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os campos do envio.</strong>{% if upload_form.non_field_errors %} {{ upload_form.non_field_errors }}{% endif %}</div>{% endif %}
+  <div class="reconciliation-upload-fields">
+    <div class="field"><label for="{{ upload_form.company.id_for_label }}">Empresa</label>{{ upload_form.company }}{% for error in upload_form.company.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ upload_form.financial_account.id_for_label }}">{{ upload_form.financial_account.label }}</label>{{ upload_form.financial_account }}{% if upload_form.financial_account.help_text %}<p class="field-help">{{ upload_form.financial_account.help_text }}</p>{% endif %}{% for error in upload_form.financial_account.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ upload_form.origin.id_for_label }}">Origem</label>{{ upload_form.origin }}{% for error in upload_form.origin.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ upload_form.period_start.id_for_label }}">{{ upload_form.period_start.label }}</label>{{ upload_form.period_start }}{% for error in upload_form.period_start.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ upload_form.period_end.id_for_label }}">{{ upload_form.period_end.label }}</label>{{ upload_form.period_end }}{% for error in upload_form.period_end.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ upload_form.physical_batch.id_for_label }}">{{ upload_form.physical_batch.label }}</label>{{ upload_form.physical_batch }}{% for error in upload_form.physical_batch.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+  </div>
+  <div class="field reconciliation-upload-files-field">
+    <span id="{{ upload_form.files.id_for_label }}-label" class="field-label">Arquivos</span>
+    <label class="reconciliation-dropzone" for="{{ upload_form.files.id_for_label }}" data-reconciliation-dropzone aria-describedby="{{ upload_form.files.id_for_label }}-help {{ upload_form.files.id_for_label }}-files">
+      {{ upload_form.files }}
+      <span class="reconciliation-dropzone-icon" aria-hidden="true">↑</span>
+      <span class="reconciliation-dropzone-copy"><strong>Arraste os arquivos aqui</strong><small>ou escolha no computador</small></span>
+      <span class="reconciliation-dropzone-action" aria-hidden="true">Escolher arquivos</span>
+    </label>
+    <p id="{{ upload_form.files.id_for_label }}-help" class="field-help">OFX, CSV, XLSX e PDF. Até 20 arquivos por lote e 25 MiB por arquivo.</p>
+    <p id="{{ upload_form.files.id_for_label }}-files" class="reconciliation-file-feedback" aria-live="polite">Nenhum arquivo selecionado.</p>
+    {% for error in upload_form.files.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </div>
+  <button class="button" type="submit">Criar processamentos</button>
+</form>

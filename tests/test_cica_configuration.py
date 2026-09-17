@@ -1,9 +1,13 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.mail import EmailMessage
+from django.db import connection
 from django.test import Client
 
 from apps.accounts.mfa import SESSION_KEY
+from apps.hub.management.commands.seed_demo import _self_signed_pfx
+from apps.integra.client import credentials_from_settings
 from apps.platform.models import (
     OperationalRun,
     Plan,
@@ -14,6 +18,108 @@ from apps.platform.models import (
 )
 
 pytestmark = pytest.mark.django_db
+
+
+def test_developer_uploads_encrypted_central_integra_certificate(user, settings):
+    PlatformAccess.objects.create(user=user, role="developer")
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session[SESSION_KEY] = True
+    session.save()
+    pfx_bytes, password = _self_signed_pfx("MEWSTACK INTEGRA")
+
+    response = client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "integra-certificate",
+            "password": password,
+            "certificate": SimpleUploadedFile(
+                "mewstack-integracontador.pfx", pfx_bytes, content_type="application/x-pkcs12"
+            ),
+        },
+    )
+
+    assert response.status_code == 302
+    config = PlatformConfiguration.objects.get(key="default")
+    assert config.integra_certificate_name == "mewstack-integracontador.pfx"
+    assert config.integra_certificate_fingerprint
+    assert config.integra_certificate_valid_until is not None
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "SELECT integra_certificate_blob FROM platform_platformconfiguration WHERE id = %s",
+            [config.id.hex],
+        )
+        raw = cursor.fetchone()[0]
+    assert raw != config.integra_certificate_blob
+    settings.INTEGRA_CONSUMER_KEY = "consumer"
+    settings.INTEGRA_CONSUMER_SECRET = "secret"
+    settings.INTEGRA_CONTRATANTE_CNPJ = "68340160000113"
+    settings.INTEGRA_AUTOR_PEDIDO_CNPJ = ""
+    settings.INTEGRA_CERTIFICATE_PATH = ""
+    credentials = credentials_from_settings()
+    assert credentials.certificate_blob == pfx_bytes
+    assert credentials.certificate_password == password
+
+
+def test_developer_can_store_write_only_integra_credentials_without_deploy(user, settings):
+    PlatformAccess.objects.create(user=user, role="developer")
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session[SESSION_KEY] = True
+    session.save()
+    settings.INTEGRA_CONSUMER_KEY = ""
+    settings.INTEGRA_CONSUMER_SECRET = ""
+    settings.INTEGRA_CONTRATANTE_CNPJ = ""
+    settings.INTEGRA_CERTIFICATE_PATH = "configured-in-environment.pfx"
+
+    response = client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "integra-credentials",
+            "consumer_key": "key-from-console",
+            "consumer_secret": "secret-from-console",
+            "integra_contratante_cnpj": "68.340.160/0001-13",
+            "integra_autor_pedido_cnpj": "",
+            "integra_environment": "trial",
+        },
+    )
+
+    assert response.status_code == 302
+    configuration = PlatformConfiguration.objects.get(key="default")
+    assert configuration.integra_consumer_key == "key-from-console"
+    assert configuration.integra_consumer_secret == "secret-from-console"
+    assert configuration.integra_contratante_cnpj == "68340160000113"
+    credentials = credentials_from_settings()
+    assert credentials.consumer_key == "key-from-console"
+    assert credentials.consumer_secret == "secret-from-console"
+
+
+def test_production_integra_credentials_require_explicit_confirmation(user):
+    PlatformAccess.objects.create(user=user, role="developer")
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session[SESSION_KEY] = True
+    session.save()
+
+    response = client.post(
+        "/platform/configuracoes/",
+        {
+            "action": "integra-credentials",
+            "consumer_key": "production-key",
+            "consumer_secret": "production-secret",
+            "integra_contratante_cnpj": "68.340.160/0001-13",
+            "integra_environment": "production",
+        },
+    )
+
+    assert response.status_code == 200
+    assert "Confirme a mudança para produção" in response.content.decode()
+    assert not PlatformConfiguration.objects.filter(
+        integra_consumer_key="production-key"
+    ).exists()
 
 
 @pytest.mark.parametrize("role", ["support", "commercial"])
@@ -78,6 +184,33 @@ def test_developer_sees_the_latest_scheduled_operation_without_customer_content(
     assert b"Rotinas agendadas" in response.content
     assert b"Radar da Reforma" in response.content
     assert b"created: 2" in response.content
+
+
+def test_configuration_is_split_into_focused_deep_linked_sections(user):
+    PlatformAccess.objects.create(user=user, role="developer")
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session[SESSION_KEY] = True
+    session.save()
+
+    response = client.get("/platform/configuracoes/")
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert 'class="configuration-nav"' in content
+    assert 'href="#config-integra"' in content
+    assert 'data-config-group="integra"' in content
+    assert 'data-config-group="copilot"' in content
+    assert "Identidades usadas em cada consulta" in content
+    assert "Acesso da Mewstack ao Serpro" in content
+    assert "Salvar credenciais centrais" in content
+    assert 'class="credential-status"' in content
+    assert 'aria-label="Situação das credenciais"' in content
+    assert 'class="integra-setup-status"' in content
+    assert "Estado da conex" in content
+    assert "A primeira consulta externa continua sendo preparada" in content
+    assert "Se??es" not in content
 
 
 def test_developer_syncs_verified_provider_registry(user, monkeypatch):
@@ -158,7 +291,7 @@ def test_developer_saves_draft_commercial_catalog(user):
             "name": "Suíte CICA",
             "version": "1",
             "monthly_price_brl": "0.00",
-            "modules": ["ai", "journey"],
+            "modules": ["ai", "triage"],
             "ai_included_requests": "25",
             "ai_overage_price_brl": "0.00",
         },
@@ -167,7 +300,7 @@ def test_developer_saves_draft_commercial_catalog(user):
     plan = Plan.objects.get(code="suite-cica")
     assert plan.is_active is False
     assert plan.monthly_price_cents == 0
-    assert plan.modules == ["ai", "journey"]
+    assert plan.modules == ["ai", "triage"]
     rate = PlanServiceRate.objects.get(plan=plan, action_code="ai.answer")
     assert rate.included_units == 25
     assert rate.overage_unit_price_cents == 0
@@ -629,7 +762,7 @@ def test_catalog_cannot_rewrite_contracted_version(developer_client, organizatio
             "name": "Rewritten",
             "version": "2",
             "monthly_price_brl": "99.00",
-            "modules": ["journey"],
+            "modules": ["triage"],
         },
     )
     assert response.status_code == 409

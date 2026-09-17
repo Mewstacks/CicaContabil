@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,6 +16,7 @@ from apps.hub.models import (
 from apps.intelligence.models import (
     AssistantSettings,
     ClaudeFallbackApproval,
+    EgressAudit,
     IntelligenceConnector,
 )
 from apps.organizations.models import Membership, Organization
@@ -30,6 +31,9 @@ from apps.platform.models import (
     TenantLifecycle,
     TenantServiceRate,
     TenantUsagePolicy,
+    TokenActionWeight,
+    TokenModuleRate,
+    TokenPriceBook,
 )
 from conftest import complete_mfa
 
@@ -64,6 +68,148 @@ class PlatformTenantViewTests(TestCase):
             organization=self.office, code=ProductModule.Code.INTEGRA
         )
         self.assertTrue(enabled.enabled)
+
+    def test_commercial_proposes_tokens_and_owner_accepts_future_terms(self):
+        commercial = User.objects.create_user(
+            email="commercial-token@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        plan = Plan.objects.create(code="token-offer-plan", name="Oferta tokens")
+        contract = TenantContract.objects.create(
+            organization=self.office,
+            plan=plan,
+            status=TenantContract.Status.ACTIVE,
+        )
+        TenantLifecycle.objects.update_or_create(
+            organization=self.office,
+            defaults={"state": TenantLifecycle.State.ACTIVE},
+        )
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        proposed = self.client.post(
+            detail_url,
+            {
+                "action": "token-offer",
+                "token_price_brl": "0.05",
+                "monthly_overage_cap_brl": "500.00",
+                "integra_monthly_base_brl": "199.00",
+                "integra_included_tokens": "2000",
+                "dctfweb_declaration_tokens": "8",
+                "dctfweb_receipt_tokens": "5",
+                "dctfweb_guide_tokens": "9",
+                "dte_list_tokens": "4",
+                "dte_detail_tokens": "6",
+                "include_ai_module": "on",
+                "ai_monthly_base_brl": "149.00",
+                "ai_included_tokens": "1200",
+                "ai_answer_tokens": "7",
+            },
+        )
+
+        self.assertRedirects(proposed, detail_url)
+        book = TokenPriceBook.objects.get(contract=contract)
+        rate = TokenModuleRate.objects.get(book=book, module_code="integra")
+        self.assertEqual(book.status, TokenPriceBook.Status.DRAFT)
+        self.assertEqual(book.token_price_cents, 5)
+        self.assertEqual(rate.monthly_base_cents, 19_900)
+        self.assertEqual(rate.included_tokens, 2000)
+        ai_rate = TokenModuleRate.objects.get(book=book, module_code="ai")
+        self.assertEqual(ai_rate.monthly_base_cents, 14_900)
+        self.assertEqual(ai_rate.included_tokens, 1200)
+        self.assertEqual(
+            ai_rate.action_weights.get(action_code="ai.answer").tokens,
+            7,
+        )
+        self.assertEqual(
+            dict(
+                TokenActionWeight.objects.filter(module_rate=rate).values_list(
+                    "action_code", "tokens"
+                )
+            ),
+            {
+                "caixapostal.detalhe": 6,
+                "caixapostal.mensagens": 4,
+                "dctfweb.declaracao_completa": 8,
+                "dctfweb.recibo": 5,
+                "dctfweb.guia": 9,
+            },
+        )
+
+        owner = User.objects.create_user(
+            email="token-owner-office@example.test", password="safe-password-123"
+        )
+        Membership.objects.create(organization=self.office, user=owner, role=Membership.Role.OWNER)
+        self.client.force_login(owner)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.office.id)
+        session.save()
+        complete_mfa(self.client)
+        current_month = timezone.localdate().replace(day=1)
+        effective_from = (current_month + timedelta(days=32)).replace(day=1)
+
+        review = self.client.get(reverse("hub:settings"))
+        self.assertContains(review, "Proposta de tokens aguardando sua decisão")
+        self.assertContains(review, "Mensalidade Copiloto")
+        self.assertContains(review, "Franquia Copiloto")
+        self.assertContains(review, "Copiloto CICA")
+        with override_settings(TOKEN_BILLING_ENABLED=True):
+            accepted = self.client.post(
+                reverse("hub:settings"),
+                {
+                    "action": "accept-token-offer",
+                    "effective_from": effective_from.isoformat(),
+                    "accept_token_terms": "on",
+                },
+            )
+
+        self.assertRedirects(accepted, reverse("hub:settings"))
+        book.refresh_from_db()
+        self.assertEqual(book.status, TokenPriceBook.Status.ACTIVE)
+        self.assertEqual(book.accepted_by, owner)
+        self.assertEqual(book.effective_from, effective_from)
+        scheduled = self.client.get(reverse("hub:settings"))
+        self.assertContains(scheduled, "Tokens programados para")
+        self.assertContains(scheduled, "Até a vigência")
+        self.assertContains(scheduled, "1200 tokens incluídos")
+        self.assertNotContains(scheduled, "Tokens vigentes desde")
+
+    def test_token_offer_cannot_hide_incomplete_copilot_terms(self):
+        commercial = User.objects.create_user(
+            email="commercial-token-validation@example.test", password="safe-password-123"
+        )
+        PlatformAccess.objects.create(user=commercial, role=PlatformAccess.Role.COMMERCIAL)
+        self.client.force_login(commercial)
+        complete_mfa(self.client)
+        plan = Plan.objects.create(code="token-ai-validation", name="Token AI validation")
+        contract = TenantContract.objects.create(
+            organization=self.office,
+            plan=plan,
+            status=TenantContract.Status.ACTIVE,
+        )
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "token-offer",
+                "token_price_brl": "0.05",
+                "monthly_overage_cap_brl": "500.00",
+                "integra_monthly_base_brl": "199.00",
+                "integra_included_tokens": "2000",
+                "dctfweb_declaration_tokens": "8",
+                "dctfweb_receipt_tokens": "5",
+                "dctfweb_guide_tokens": "9",
+                "dte_list_tokens": "4",
+                "dte_detail_tokens": "6",
+                "include_ai_module": "on",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Informe este termo para incluir o Copiloto", count=3)
+        self.assertFalse(TokenPriceBook.objects.filter(contract=contract).exists())
 
     def test_developer_moves_operational_access_with_reason_and_confirmation(self):
         detail_url = reverse("platform:tenant-detail", args=[self.office.id])
@@ -180,9 +326,7 @@ class PlatformTenantViewTests(TestCase):
         self.assertEqual(approval.status, ClaudeFallbackApproval.Status.APPROVED)
         self.assertEqual(approval.daily_limit_cents, 1500)
         self.assertEqual(approval.monthly_limit_cents, 12000)
-        self.assertNotContains(
-            self.client.get(detail_url), "Chave do provedor"
-        )
+        self.assertNotContains(self.client.get(detail_url), "Chave do provedor")
 
     def test_developer_controls_copilot_retention_and_confirms_shortening(self):
         detail_url = reverse("platform:tenant-detail", args=[self.office.id])
@@ -468,6 +612,43 @@ class PlatformTenantViewTests(TestCase):
         contract = TenantContract.objects.get(organization=self.office)
         self.assertEqual(contract.monthly_price_cents, 0)
         self.assertTrue(contract.monthly_price_locked)
+
+    def test_support_sees_only_own_office_uncertain_claude_attempts(self):
+        second_office = Organization.objects.create(
+            name="Outro escritório", slug="outro-escritorio"
+        )
+        attempt = EgressAudit.objects.create(
+            organization=self.office,
+            provider="anthropic",
+            purpose="copilot",
+            payload_hash="0" * 64,
+            role="owner",
+            call_state=EgressAudit.CallState.UNKNOWN,
+            provider_request_id="req_abcdefgh12345678",
+            provider_http_status=200,
+        )
+        EgressAudit.objects.create(
+            organization=second_office,
+            provider="anthropic",
+            purpose="copilot",
+            payload_hash="1" * 64,
+            role="owner",
+            call_state=EgressAudit.CallState.UNKNOWN,
+            provider_request_id="req_otheroffice12345678",
+        )
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+        response = self.client.get(detail_url)
+        self.assertContains(response, "Tentativas Claude para verificar")
+        self.assertContains(response, str(attempt.id))
+        self.assertContains(response, "req_abcdefgh12345678")
+        self.assertNotContains(response, "req_otheroffice12345678")
+
+        PlatformAccess.objects.filter(user=self.developer).update(
+            role=PlatformAccess.Role.COMMERCIAL
+        )
+        response = self.client.get(detail_url)
+        self.assertNotContains(response, "Tentativas Claude para verificar")
+        self.assertNotContains(response, "req_abcdefgh12345678")
 
     def test_commercial_plan_change_updates_the_explicit_contract_module_snapshot(self):
         commercial = User.objects.create_user(

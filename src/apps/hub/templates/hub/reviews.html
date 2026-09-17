@@ -1,25 +1,35 @@
 {% extends 'hub/workspace.html' %}
+{% block title %}NFS-e · Revisões · CICA{% endblock %}
 
+{% block workspace_subnav %}{% include 'hub/nfse_navigation.html' %}{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel review-panel">
   <header class="workspace-panel-head">
-    <div><h2>Fila de revisões</h2></div>
-    <span class="record-count">{{ cases|length }} item{{ cases|length|pluralize:"s" }}</span>
+    <div><p class="section-kicker">CARTEIRA DO ESCRITÓRIO</p><h2>Revisões de NFS-e</h2><p>Pesquise todas as empresas e comece pelas decisões com menor confiança.</p></div>
+    <span class="record-count">{{ review_filtered_total }} {% if review_filtered_total == 1 %}item{% else %}itens{% endif %}</span>
   </header>
+  <form class="workspace-filter-form" method="get" aria-label="Pesquisar e filtrar revisões">
+    <div class="workspace-filter-search"><label for="review-search">Empresa, código Domínio, NSU, motivo ou acumulador</label><input id="review-search" type="search" name="q" maxlength="100" value="{{ review_search }}" autocomplete="off" placeholder="Ex.: Padaria, 0101 ou serviço não classificado…"></div>
+    <div><label for="review-status">Situação</label><select id="review-status" name="status" autocomplete="off"><option value="open"{% if review_status == 'open' %} selected{% endif %}>Aguardando decisão</option><option value="resolved"{% if review_status == 'resolved' %} selected{% endif %}>Resolvidas</option><option value="all"{% if review_status == 'all' %} selected{% endif %}>Todas</option></select></div>
+    <div><label for="review-confidence">Confiança</label><select id="review-confidence" name="confidence" autocomplete="off"><option value="all"{% if review_confidence == 'all' %} selected{% endif %}>Qualquer confiança</option><option value="low"{% if review_confidence == 'low' %} selected{% endif %}>Abaixo de 80%</option><option value="high"{% if review_confidence == 'high' %} selected{% endif %}>80% ou mais</option></select></div>
+    <button class="button button-small" type="submit">Pesquisar fila</button>
+    {% if review_search or review_status != 'open' or review_confidence != 'all' %}<a class="button button-quiet button-small" href="{% url 'hub:reviews' %}">Limpar filtros</a>{% endif %}
+  </form>
   {% if cases %}
     <div class="data-table-wrap">
       <table class="operational-table review-table">
-        <thead><tr><th>Empresa & ocorrência</th><th>Sugestão</th><th>Confiança</th><th>Decisão</th></tr></thead>
+        <thead><tr><th scope="col">Empresa & ocorrência</th><th scope="col">Sugestão</th><th scope="col">Confiança</th><th scope="col">Decisão</th></tr></thead>
         <tbody>{% for case in cases %}<tr class="{% if case.status == 'open' %}is-open{% endif %}">
           <td><strong>{{ case.document.company.name }}</strong><small><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</small></td>
           <td>{% if case.suggested_accumulator %}<span class="source-code">{{ case.suggested_accumulator }}</span>{% else %}<span class="table-muted">Sem sugestão</span>{% endif %}</td>
           <td><span class="confidence">{{ case.confidence }}%</span></td>
-          <td>{% if case.status == 'open' %}<form action="{% url 'hub:resolve-review' case.id %}" method="post" class="decision-control">{% csrf_token %}<label class="sr-only" for="acc-{{ case.id }}">Acumulador para {{ case.document.company.name }}</label><input id="acc-{{ case.id }}" name="accumulator_code" value="{{ case.suggested_accumulator }}" required autocomplete="off"><button class="button button-small" type="submit">Registrar</button></form>{% else %}<span class="module-state is-active">Decidida · {{ case.resolved_accumulator }}</span>{% endif %}</td>
+          <td><a class="row-action-button" href="{% url 'hub:review-detail' case.id %}?return_to={{ request.get_full_path|urlencode }}">{% if case.status == 'open' %}Conferir e decidir{% else %}Ver decisão{% endif %}<span class="sr-only"> {{ case.document.company.name }}</span></a></td>
         </tr>{% endfor %}</tbody>
       </table>
     </div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nada esperando revisão</strong><p>Quando uma regra não tiver segurança suficiente, a decisão aparecerá aqui.</p></div>
+    <div class="empty-block operational-empty"><strong>{% if review_search or review_status != 'open' or review_confidence != 'all' %}Nenhuma revisão corresponde aos filtros{% else %}Nada esperando revisão{% endif %}</strong><p>{% if review_search or review_status != 'open' or review_confidence != 'all' %}Altere a pesquisa, a situação ou a confiança para consultar outros casos.{% else %}Quando uma regra não tiver segurança suficiente, a decisão aparecerá aqui.{% endif %}</p></div>
   {% endif %}
+  {% if review_page.has_other_pages %}<nav class="triage-queue-pagination" aria-label="Páginas das revisões">{% if review_page.has_previous %}<a href="?q={{ review_search|urlencode }}&amp;status={{ review_status|urlencode }}&amp;confidence={{ review_confidence|urlencode }}&amp;page={{ review_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ review_page.number }} de {{ review_page.paginator.num_pages }}</span>{% if review_page.has_next %}<a href="?q={{ review_search|urlencode }}&amp;status={{ review_status|urlencode }}&amp;confidence={{ review_confidence|urlencode }}&amp;page={{ review_page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
 </section>
 {% endblock %}

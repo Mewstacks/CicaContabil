@@ -5,21 +5,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#10191d" media="(prefers-color-scheme: dark)">
-  <title>{% block title %}CICA{% endblock %}</title>
+  <meta name="theme-color" content="#f7f3e8">
+  <title>{% block title %}{{ page_title|default:'CICA' }}{% if page_title %} · CICA{% endif %}{% endblock %}</title>
   <link rel="icon" href="{% static 'hub/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'hub/hub.css' %}">
   <link rel="stylesheet" href="{% static 'hub/chrome.css' %}">
   <link rel="stylesheet" href="{% static 'hub/components.css' %}">
   <link rel="stylesheet" href="{% static 'hub/utility.css' %}">
-  <link rel="stylesheet" href="{% static 'hub/theme.css' %}">
   <link rel="stylesheet" href="{% static 'hub/regaro.css' %}?v=12">
-  <link rel="stylesheet" href="{% static 'hub/regaro-v2.css' %}">
-  <link rel="stylesheet" href="{% static 'hub/regaro-font-safe.css' %}">
   <link rel="stylesheet" href="{% static 'hub/regaro-a11y.css' %}">
   {% block extra_head %}{% endblock %}
   <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=14">
+  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=ui-review-1">
+  <script src="{% static 'hub/theme.js' %}?v=workspace-2" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>

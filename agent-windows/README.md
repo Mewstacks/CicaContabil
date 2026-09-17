@@ -3,10 +3,15 @@
 Native .NET 8 Windows service and guided configurator. The MSI supports:
 
 - Domínio Web backup jobs uploaded manually in Regaro.
+- approved Triagem attachments copied to the office's Windows folder.
 
 The configurator discovers 32- and 64-bit system DSNs and can validate a Domínio Local connection.
 Local synchronization remains on the compatible Python agent until the native x86/x64 workers are
-finished; the native service in this version processes Domínio Web backup jobs.
+finished; the native service in this version processes Domínio Web backup jobs and Triagem
+archive jobs. For Triagem, the configurator stores the approved root with DPAPI and the server
+sends only a relative company/document path. The service refuses path escape and reparse-point
+redirects, proves the configured root, writes a temporary file, validates SHA-256 and size, and
+renames atomically. CICA keeps the item in `Arquivando` until that proof returns.
 
 The service only opens outbound HTTPS connections. Enrollment creates the private key and CSR
 on the office computer; the API returns only the signed client certificate and its chain. Runtime

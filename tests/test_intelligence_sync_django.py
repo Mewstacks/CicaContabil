@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
@@ -112,6 +113,30 @@ class SyncAndRagTests(TestCase):
         self.assertEqual(entry.company, company)
         self.assertEqual(entry.amount_cents, 1234)
         self.assertTrue(entry.is_linked)
+
+    def test_bank_entry_sync_reports_when_the_source_limit_is_reached(self) -> None:
+        connector = IntelligenceConnector.objects.create(
+            organization=self.organization, mode=IntelligenceConnector.Mode.DIRECT_ODBC
+        )
+        ClientCompany.objects.create(
+            organization=self.organization, name="Empresa", dominio_code="001"
+        )
+
+        with patch("apps.intelligence.sync.MAX_BANK_ENTRY_ROWS", 1):
+            result = sync_bank_entries(
+                organization=self.organization,
+                connector=connector,
+                rows=[
+                    {
+                        "source_id": "001|10|20",
+                        "company_code": "001",
+                        "occurred_on": "2026-08-31",
+                        "amount": "12.34",
+                    }
+                ],
+            )
+
+        self.assertTrue(result.may_be_truncated)
 
     def test_rag_returns_only_approved_compact_source_cards(self) -> None:
         content = "Procedimento para revisar pendência da obrigação fiscal."

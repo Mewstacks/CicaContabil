@@ -32,17 +32,18 @@ def data_object(payload: dict[str, Any]) -> dict[str, Any]:
     return raw
 
 
-def list_rows(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], bool]:
+def list_page(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], bool, str]:
     data = data_object(payload)
     contents = data.get("conteudo")
     if isinstance(contents, list):
         pages = [page for page in contents if isinstance(page, dict)]
         if not pages:
-            return [], False
+            return [], False, ""
     else:
         pages = [data]
     rows: list[dict[str, Any]] = []
     more_available = False
+    next_pointer = ""
     for page in pages:
         values: object = None
         for key in ("listaMensagens", "mensagens", "itens"):
@@ -55,6 +56,15 @@ def list_rows(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], bool]:
         more_available = more_available or (
             str(page.get("indicadorUltimaPagina", "S")).upper() == "N"
         )
+        if str(page.get("indicadorUltimaPagina", "S")).upper() == "N":
+            next_pointer = str(page.get("ponteiroProximaPagina", "")).strip()
+            if not re.fullmatch(r"\d{1,24}", next_pointer):
+                next_pointer = ""
+    return rows, more_available, next_pointer
+
+
+def list_rows(payload: dict[str, Any]) -> tuple[list[dict[str, Any]], bool]:
+    rows, more_available, _next_pointer = list_page(payload)
     return rows, more_available
 
 

@@ -1,0 +1,6 @@
+<form class="theme-picker" action="{% url 'hub:set-theme' %}" method="post" aria-label="Aparência">
+  {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <button type="submit" name="theme" value="system" aria-pressed="{% if not request.COOKIES.hub_theme or request.COOKIES.hub_theme == 'system' %}true{% else %}false{% endif %}">Sistema</button>
+  <button type="submit" name="theme" value="light" aria-pressed="{% if request.COOKIES.hub_theme == 'light' %}true{% else %}false{% endif %}">Claro</button>
+  <button type="submit" name="theme" value="dark" aria-pressed="{% if request.COOKIES.hub_theme == 'dark' %}true{% else %}false{% endif %}">Escuro</button>
+</form>

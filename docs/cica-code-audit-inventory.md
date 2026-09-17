@@ -1,5 +1,7 @@
 # Inventário da auditoria CICA
 
+> **Fotografia histórica de 14/09/2026, não estado vigente.** Consulte o [plano mestre](../PLANO-MESTRE.md), as [decisões](../DECISOES.md), as [validações](../VALIDACOES.md) e o [inventário de 17/09](planejamento/inventario-conclusao.md). As afirmações abaixo sobre ausência de coleta NFS-e e titularidade Serpro foram superadas: há cliente ADN no código e D-08 confirma credenciais centrais Mewstack. Isso não prova homologação externa. O conteúdo foi preservado para rastreabilidade.
+
 Atualizado em 14/09/2026. Este registro separa o que foi inspecionado do que ainda precisa de validação; não é certificação de segurança nem autorização de lançamento.
 
 ## Escopo próprio encontrado

@@ -2,7 +2,7 @@
 
 {% load static %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=9"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=10"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
 
 {% block body %}
 <div class="product-shell platform-shell">
@@ -17,6 +17,12 @@
   </aside>
   <section class="app-stage">
     <header class="app-bar">
+      <button class="icon-control mobile-trigger" type="button" data-menu-toggle aria-expanded="false" aria-controls="mobile-nav" aria-label="Abrir navegação"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></button>
+      <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Navegação móvel">
+        <a href="{% url 'platform:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Visão geral</a>
+        <a href="{% url 'platform:tenants' %}" {% if 'tenant' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Escritórios</a>
+        {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a>{% endif %}
+      </nav>
       <a class="platform-link" href="{% url 'hub:home' %}" translate="no">CICA</a>
       <div class="account-menu">
         <button class="account-button" type="button" data-popover-toggle="account-list" aria-expanded="false" aria-controls="account-list">
@@ -26,16 +32,17 @@
           <span class="sr-only">Abrir menu da conta</span>
         </button>
         <div id="account-list" class="account-list" hidden>
+          {% include 'hub/theme_picker.html' %}
           <form action="{% url 'hub:logout' %}" method="post">{% csrf_token %}<button type="submit">Sair</button></form>
         </div>
       </div>
     </header>
-    <main id="conteudo" class="work-area">
+    <main tabindex="-1" id="conteudo" class="work-area">
       {% if page_title %}<div class="page-header"><div><p class="breadcrumb">Plataforma</p><h1>{{ page_title }}</h1></div></div>{% endif %}
       {% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash">{{ message }}</div>{% endfor %}</div>{% endif %}
       {% block platform_content %}{% endblock %}
     </main>
   </section>
 </div>
-<script src="{% static 'hub/hub.js' %}?v=8" defer></script>
+<script src="{% static 'hub/hub.js' %}?v=9" defer></script>
 {% endblock %}

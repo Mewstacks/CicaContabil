@@ -1,32 +1,13 @@
 {% extends 'hub/base.html' %}
-{% load static %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-5"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
+{% load static ui_navigation %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-24"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=3">{% endblock %}
 {% block body %}
-<div class="product-shell">
-  <aside class="rail" aria-label="Navegação principal">
-    <a class="wordmark" href="{% url 'hub:dashboard' %}"><span aria-hidden="true">C</span><b>CICA</b></a>
-    <p class="rail-label">Operação</p>
-    <nav class="rail-nav">
-      <a href="{% url 'hub:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg>Visão geral</a>
-      <a href="{% url 'hub:reviews' %}" {% if request.resolver_match.url_name == 'reviews' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Zm0 5 5 9H7l5-9Zm-1 3v3h2v-3h-2Zm0 4v2h2v-2h-2Z"/></svg>Revisões <span class="nav-count">{{ open_reviews_count }}</span></a>
-      {% if copilot_enabled %}<a href="{% url 'intelligence:assistant' %}" {% if request.resolver_match.app_name == 'intelligence' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2v-7H5v-2a7 7 0 1 1 14 0v2h-3v7h2a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9Zm-2 14h4v2h-4v-2Z"/></svg>Copiloto CICA</a>{% endif %}
-      <a href="{% url 'hub:companies' %}" {% if request.resolver_match.url_name == 'companies' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 21h18v-2h-2V3H5v16H3v2Zm4-16h10v14h-3v-4H10v4H7V5Zm3 3v2h2V8h-2Zm0 4v2h2v-2h-2Z"/></svg>Empresas</a>
-      <a href="{% url 'hub:certificates' %}" {% if request.resolver_match.url_name == 'certificates' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2 5 5v6c0 4.6 3 8.9 7 11 4-2.1 7-6.4 7-11V5l-7-3Zm0 3.2 4 1.7V11c0 3.2-1.9 6.5-4 8-2.1-1.5-4-4.8-4-8V6.9l4-1.7Z"/></svg>Certificados</a>
-    </nav>
-    <p class="rail-label">Sistemas</p>
-    <nav class="rail-nav">
-      {% for module in enabled_modules %}{% if module.code != 'ai' %}<a href="{% url module.route_name %}" {% if request.resolver_match.url_name == module.route_name|cut:'hub:' or active_module_code == module.code %}aria-current="page"{% endif %}><span class="module-nav-icon" aria-hidden="true">{{ module.icon }}</span><span class="module-nav-label">{{ module.label }}</span></a>{% endif %}{% endfor %}
-    </nav>
-    <p class="rail-label rail-label-bottom">Administração</p>
-    <nav class="rail-nav"><a href="{% url 'hub:setup' %}" {% if request.resolver_match.url_name == 'setup' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4h16v4H4V4Zm0 6h16v4H4v-4Zm0 6h16v4H4v-4Z"/></svg>Configuração</a><a href="{% url 'hub:settings' %}" {% if request.resolver_match.url_name == 'settings' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M19.4 13.5c.04-.5.04-1 0-1.5l2-1.5-2-3.5-2.4 1a7 7 0 0 0-1.3-.75L15.4 4h-4l-.4 3.2c-.46.2-.9.45-1.3.75l-2.4-1-2 3.5 2 1.5a8 8 0 0 0 0 1.5l-2 1.5 2 3.5 2.4-1c.4.3.84.55 1.3.75l.4 3.3h4l.4-3.2c.46-.2.9-.45 1.3-.75l2.4 1 2-3.5-2-1.5ZM13.4 15.4a3.4 3.4 0 1 1 0-6.8 3.4 3.4 0 0 1 0 6.8Z"/></svg>Integrações</a></nav>
-    {% if membership and membership.role == 'owner' or membership and membership.role == 'admin' %}
-    <nav class="rail-nav"><a href="{% url 'hub:team' %}" {% if request.resolver_match.url_name == 'team' %}aria-current="page"{% endif %}><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20h16v-2c0-2.3-3.6-4-8-4s-8 1.7-8 4v2Zm8-8a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/></svg>Equipe</a></nav>
-    {% endif %}
-  </aside>
+<div class="product-shell workspace-shell">
   <section class="app-stage">
-    <header class="app-bar">
-      <button class="icon-control mobile-trigger" type="button" data-menu-toggle aria-expanded="false" aria-controls="mobile-nav"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16v2H4V7Zm0 4h16v2H4v-2Zm0 4h16v2H4v-2Z"/></svg><span class="sr-only">Abrir navegação</span></button>
-      <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Navegação móvel"><a href="{% url 'hub:dashboard' %}">Visão geral</a><a href="{% url 'hub:reviews' %}">Revisões</a>{% if copilot_enabled %}<a href="{% url 'intelligence:assistant' %}">Copiloto CICA</a>{% endif %}<a href="{% url 'hub:companies' %}">Empresas</a><a href="{% url 'hub:certificates' %}">Certificados</a>{% for module in enabled_modules %}{% if module.code != 'ai' %}<a href="{% url module.route_name %}">{{ module.short_label }}</a>{% endif %}{% endfor %}<a href="{% url 'hub:setup' %}">Configuração</a>{% if membership and membership.role == 'owner' or membership and membership.role == 'admin' %}<a href="{% url 'hub:team' %}">Equipe</a>{% endif %}<a href="{% url 'hub:settings' %}">Integrações</a></nav>
+    <header class="workspace-header">
+      <div class="app-bar workspace-identity">
+        <a class="workspace-brand" href="{% url 'hub:dashboard' %}" aria-label="CICA, visão geral"><span aria-hidden="true">C</span><b translate="no">CICA</b></a>
+        <span class="workspace-divider" aria-hidden="true"></span>
       {% if office %}
         {% if support_session %}
           <div class="office-context">
@@ -46,19 +27,19 @@
           <span class="sr-only">Abrir menu da conta</span>
         </button>
         <div id="account-list" class="account-list" hidden>
-          <form class="theme-picker" action="{% url 'hub:set-theme' %}" method="post" aria-label="Aparência">
-            {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
-            <button type="submit" name="theme" value="system" aria-pressed="{% if not request.COOKIES.hub_theme or request.COOKIES.hub_theme == 'system' %}true{% else %}false{% endif %}">Sistema</button>
-            <button type="submit" name="theme" value="light" aria-pressed="{% if request.COOKIES.hub_theme == 'light' %}true{% else %}false{% endif %}">Claro</button>
-            <button type="submit" name="theme" value="dark" aria-pressed="{% if request.COOKIES.hub_theme == 'dark' %}true{% else %}false{% endif %}">Escuro</button>
-          </form>
+          {% include 'hub/theme_picker.html' %}
           {% if membership and membership.role == 'owner' or membership and membership.role == 'admin' %}<a href="{% url 'hub:team' %}">Equipe e acessos</a>{% endif %}
           {% if can_access_platform %}<a href="{% url 'platform:dashboard' %}">Voltar à plataforma</a>{% endif %}
           <form action="{% url 'hub:logout' %}" method="post">{% csrf_token %}<button type="submit">Sair</button></form>
         </div>
       </div>
+      </div>
+      <div class="workspace-menu-row">
+        <button class="workspace-menu-toggle" type="button" aria-expanded="false" aria-controls="workspace-navigation" data-workspace-toggle><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
+        {% workspace_menu %}
+      </div>
     </header>
-    <main id="conteudo" class="work-area"><div class="page-header"><div><h1>{{ page_title }}</h1></div>{% block page_action %}{% endblock %}</div>{% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash flash-{{ message.tags|default:'info' }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v6h-2V7Zm0 8h2v2h-2v-2Z"/></svg><span>{{ message }}</span></div>{% endfor %}</div>{% endif %}{% block workspace_content %}{% endblock %}</main>
+    <main tabindex="-1" id="conteudo" class="work-area">{% if support_session %}<aside class="support-banner" aria-label="Sessão de suporte"><span><strong>Suporte · {{ office.name }}</strong> · {% if support_can_mutate %}Alterações autorizadas{% else %}Somente leitura{% endif %}</span><form method="post" action="{% url 'platform:end-support' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Encerrar suporte</button></form></aside>{% endif %}<div class="page-header"><div><h1>{{ page_title }}</h1></div>{% block page_action %}{% endblock %}</div>{% if office.is_demo %}<aside class="demo-office-banner" aria-label="Ambiente de demonstração"><strong>Demonstração fictícia</strong><span>Dados fictícios. Sem consultas externas ou cobranças.</span></aside>{% endif %}{% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash flash-{{ message.tags|default:'info' }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v6h-2V7Zm0 8h2v2h-2v-2Z"/></svg><span>{{ message }}</span></div>{% endfor %}</div>{% endif %}{% block workspace_subnav %}{% endblock %}{% block workspace_content %}{% endblock %}</main>
   </section>
-</div><script src="{% static 'hub/hub.js' %}?v=cica-5" defer></script>
+</div><script src="{% static 'hub/workspace.js' %}?v=3" defer></script><script src="{% static 'hub/hub.js' %}?v=cica-8" defer></script>
 {% endblock %}

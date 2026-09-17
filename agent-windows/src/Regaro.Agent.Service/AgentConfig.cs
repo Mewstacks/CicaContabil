@@ -11,7 +11,8 @@ internal sealed record AgentConfig(
     string? Dsn,
     string SqlAnywhereDriver,
     string DatabaseUser,
-    string DatabasePassword)
+    string DatabasePassword,
+    string? WindowsArchiveRoot)
 {
     internal static readonly string DirectoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Regaro", "Agent");

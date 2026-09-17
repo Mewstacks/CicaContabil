@@ -375,6 +375,10 @@ class Message(OrganizationScopedModel):
     conversation = models.ForeignKey(
         Conversation, on_delete=models.CASCADE, related_name="messages"
     )
+    request_id = models.UUIDField(null=True, blank=True, unique=True)
+    in_reply_to = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="replies"
+    )
     role = models.CharField(max_length=12, choices=Role.choices)
     content = EncryptedTextField()
     evidence = models.JSONField(default=list)
@@ -495,11 +499,36 @@ class ModelVersion(OrganizationScopedModel):
 class EgressAudit(OrganizationScopedModel):
     """Metadata-only proof for a permitted external fallback, never the payload."""
 
+    class CallState(models.TextChoices):
+        DENIED = "denied", "Bloqueada"
+        RESERVED = "reserved", "Reservada"
+        SUCCEEDED = "succeeded", "Respondida"
+        UNKNOWN = "unknown", "Resultado incerto"
+
     provider = models.CharField(max_length=40)
     purpose = models.CharField(max_length=80)
     payload_hash = models.CharField(max_length=64)
+    user_message = models.ForeignKey(
+        Message, null=True, blank=True, on_delete=models.SET_NULL, related_name="egress_attempts"
+    )
+    usage_event = models.ForeignKey(
+        "platform.UsageEvent", null=True, blank=True, on_delete=models.SET_NULL
+    )
+    token_usage_event = models.ForeignKey(
+        "platform.TokenUsageEvent", null=True, blank=True, on_delete=models.SET_NULL
+    )
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
     role = models.CharField(max_length=16)
     allowed = models.BooleanField(default=False)
     model = models.CharField(max_length=80, blank=True)
     estimated_cost_cents = models.PositiveIntegerField(default=0)
+    provider_request_id = models.CharField(max_length=120, blank=True)
+    provider_http_status = models.PositiveSmallIntegerField(null=True, blank=True)
+    call_state = models.CharField(
+        max_length=16, choices=CallState.choices, default=CallState.DENIED
+    )
+    input_tokens = models.PositiveIntegerField(default=0)
+    output_tokens = models.PositiveIntegerField(default=0)
+    cache_creation_input_tokens = models.PositiveIntegerField(default=0)
+    cache_read_input_tokens = models.PositiveIntegerField(default=0)
+    completed_at = models.DateTimeField(null=True, blank=True)

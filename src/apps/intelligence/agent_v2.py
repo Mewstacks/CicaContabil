@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import unquote
 
@@ -14,7 +15,8 @@ from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from django.conf import settings
-from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
@@ -26,6 +28,9 @@ from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_back
 from apps.hub.models import ImportBatch
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent
+from apps.triage.models import AgentFileJob, DestinationProfile, TriageEvent, TriageItem
+from apps.triage.services import open_verified_quarantine_for_agent
+from apps.triage.transitions import TriageStatus
 
 
 def _error(detail: str, status: int) -> JsonResponse:
@@ -218,6 +223,235 @@ def next_backup(request: HttpRequest) -> JsonResponse:
     )
     response["Cache-Control"] = "no-store"
     return response
+
+
+@csrf_exempt
+@require_POST
+def next_file_job(request: HttpRequest) -> JsonResponse:
+    """Claim one office-scoped Windows archive job, reclaiming abandoned work safely."""
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    now = timezone.now()
+    stale_before = now - timedelta(minutes=15)
+    with transaction.atomic():
+        job = (
+            AgentFileJob.objects.select_for_update()
+            .select_related("triage_item")
+            .filter(
+                organization=agent.organization,
+                status=AgentFileJob.Status.CLAIMED,
+                claimed_by=str(agent.id),
+            )
+            .order_by("claimed_at")
+            .first()
+        )
+        if job is None:
+            job = (
+                AgentFileJob.objects.select_for_update(skip_locked=True)
+                .select_related("triage_item")
+                .filter(organization=agent.organization)
+                .filter(
+                    models.Q(status=AgentFileJob.Status.QUEUED)
+                    | models.Q(
+                        status=AgentFileJob.Status.CLAIMED,
+                        claimed_at__lt=stale_before,
+                    )
+                )
+                .order_by("created_at")
+                .first()
+            )
+        if job is None:
+            return JsonResponse({"job": None})
+        item = job.triage_item
+        if item.status != TriageStatus.ARCHIVING:
+            job.status = AgentFileJob.Status.FAILED
+            job.completed_at = now
+            job.result = "O item saiu da etapa de arquivamento."
+            job.save(update_fields=["status", "completed_at", "result", "updated_at"])
+            return JsonResponse({"job": None})
+        job.status = AgentFileJob.Status.CLAIMED
+        job.claimed_by = str(agent.id)
+        job.claimed_at = now
+        job.save(update_fields=["status", "claimed_by", "claimed_at", "updated_at"])
+        profile = DestinationProfile.objects.filter(organization=agent.organization).first()
+        if profile is None or profile.mode != DestinationProfile.Mode.WINDOWS:
+            job.status = AgentFileJob.Status.FAILED
+            job.completed_at = now
+            job.result = "O destino Windows não está ativo."
+            job.save(update_fields=["status", "completed_at", "result", "updated_at"])
+            _agent_item_transition(
+                item=item,
+                target=TriageStatus.ARCHIVE_FAILED,
+                note=job.result,
+            )
+            return JsonResponse({"job": None})
+        normalized_root = str(PureWindowsPath(profile.windows_root)).rstrip("\\").lower()
+        root_sha256 = hashlib.sha256(normalized_root.encode("utf-8")).hexdigest()
+    response = JsonResponse(
+        {
+            "job": {
+                "id": str(job.id),
+                "relative_path": job.destination_path,
+                "sha256": item.content_hash,
+                "byte_size": item.byte_size,
+                "root_sha256": root_sha256,
+                "download_url": request.build_absolute_uri(
+                    reverse("agent-v2-file-download", args=(job.id,))
+                ),
+            }
+        }
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@csrf_exempt
+@require_POST
+def download_file_job(request: HttpRequest, job_id: str) -> HttpResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    job = (
+        AgentFileJob.objects.select_related("triage_item__company", "triage_item__document_type")
+        .filter(
+            id=job_id,
+            organization=agent.organization,
+            status=AgentFileJob.Status.CLAIMED,
+            claimed_by=str(agent.id),
+        )
+        .first()
+    )
+    if job is None:
+        return _error("Trabalho de arquivo não encontrado para este agente.", 404)
+    try:
+        source = open_verified_quarantine_for_agent(item=job.triage_item)
+    except ValidationError as exc:
+        return _error(str(exc), 409)
+    response = FileResponse(
+        source,
+        as_attachment=True,
+        filename=PureWindowsPath(job.destination_path).name,
+        content_type="application/octet-stream",
+    )
+    response["Cache-Control"] = "no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    response["X-CICA-Content-SHA256"] = job.triage_item.content_hash
+    return response
+
+
+def _agent_item_transition(*, item: TriageItem, target: str, note: str) -> None:
+    previous = item.status
+    item.transition_to(target)
+    item.save(update_fields=["status", "updated_at"])
+    TriageEvent.objects.create(
+        organization=item.organization,
+        triage_item=item,
+        actor=None,
+        from_status=previous,
+        to_status=target,
+        note=note[:500],
+    )
+
+
+@csrf_exempt
+@require_POST
+def complete_file_job(request: HttpRequest, job_id: str) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request, 16_384)
+    if payload is None:
+        return _error("Resultado de arquivamento inválido.", 400)
+    success = payload.get("success") is True
+    reported_hash = str(payload.get("sha256", "")).lower()
+    reported_path = str(payload.get("relative_path", ""))
+    detail = str(payload.get("detail", ""))[:500]
+    try:
+        reported_size = int(payload.get("byte_size", -1))
+    except (TypeError, ValueError):
+        reported_size = -1
+    with transaction.atomic():
+        job = (
+            AgentFileJob.objects.select_for_update()
+            .select_related("triage_item")
+            .filter(id=job_id, organization=agent.organization)
+            .first()
+        )
+        if job is None or job.claimed_by != str(agent.id):
+            return _error("Trabalho de arquivo não encontrado para este agente.", 404)
+        item = TriageItem.objects.select_for_update().get(
+            id=job.triage_item_id, organization=agent.organization
+        )
+        if job.status == AgentFileJob.Status.DONE:
+            if (
+                success
+                and reported_hash == item.content_hash
+                and reported_path == job.destination_path
+                and reported_size == item.byte_size
+            ):
+                return JsonResponse({"status": "completed"})
+            return _error("A confirmação repetida não corresponde ao arquivo concluído.", 409)
+        if job.status != AgentFileJob.Status.CLAIMED or item.status != TriageStatus.ARCHIVING:
+            return _error("Este trabalho não aceita mais resultado.", 409)
+        if not success:
+            job.status = AgentFileJob.Status.FAILED
+            job.completed_at = timezone.now()
+            job.result = detail or "O agente não conseguiu gravar o arquivo."
+            job.save(update_fields=["status", "completed_at", "result", "updated_at"])
+            _agent_item_transition(
+                item=item,
+                target=TriageStatus.ARCHIVE_FAILED,
+                note=job.result,
+            )
+            record_event(
+                action="triage.item.windows_archive_failed",
+                organization=agent.organization,
+                target=item,
+                request=request,
+                metadata={"job_id": str(job.id), "detail": job.result},
+            )
+            return JsonResponse({"status": "failed"})
+        if (
+            reported_hash != item.content_hash
+            or reported_size != item.byte_size
+            or reported_path != job.destination_path
+        ):
+            return _error("Hash, tamanho ou destino não correspondem ao trabalho.", 409)
+        profile = DestinationProfile.objects.filter(organization=agent.organization).first()
+        if profile is None or profile.mode != DestinationProfile.Mode.WINDOWS:
+            return _error("O destino Windows não está mais ativo.", 409)
+        absolute_path = str(PureWindowsPath(profile.windows_root) / job.destination_path)
+        item.destination_kind = DestinationProfile.Mode.WINDOWS
+        item.destination_path = absolute_path
+        item.destination_hash = reported_hash
+        item.archived_at = timezone.now()
+        item.save(
+            update_fields=[
+                "destination_kind",
+                "destination_path",
+                "destination_hash",
+                "archived_at",
+                "updated_at",
+            ]
+        )
+        _agent_item_transition(
+            item=item,
+            target=TriageStatus.ARCHIVED,
+            note="Hash e destino confirmados pelo agente Windows",
+        )
+        job.status = AgentFileJob.Status.DONE
+        job.completed_at = timezone.now()
+        job.result = "Hash e destino confirmados."
+        job.save(update_fields=["status", "completed_at", "result", "updated_at"])
+    record_event(
+        action="triage.item.archived_windows",
+        organization=agent.organization,
+        target=item,
+        request=request,
+        metadata={"job_id": str(job.id), "content_hash": reported_hash},
+    )
+    return JsonResponse({"status": "completed"})
 
 
 @csrf_exempt

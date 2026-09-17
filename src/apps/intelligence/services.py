@@ -6,18 +6,21 @@ import json
 import mimetypes
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import timedelta
 from urllib.error import URLError
 from urllib.request import Request, urlopen
 from uuid import UUID, uuid4
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.controlplane import company_has_capability, company_is_allowed
 from apps.hub.models import AccumulatorObservation, AccumulatorRule, ClientCompany, ReviewCase
 from apps.intelligence.gateway import (
+    ClaudeCompletion,
     can_use_claude_fallback,
     claude_fallback_payload,
     generate_claude_fallback_completion,
@@ -41,11 +44,18 @@ from apps.intelligence.models import (
 from apps.intelligence.retrieval import query_words, retrieve_chunks, retrieve_shared_chunks
 from apps.organizations.models import Membership, Organization
 from apps.platform.availability import copilot_is_available
-from apps.platform.billing import reserve_usage, settle_usage
-from apps.platform.models import PlatformConfiguration
+from apps.platform.billing import BillingError, reserve_usage, settle_usage
+from apps.platform.models import PlatformConfiguration, TokenUsageEvent, UsageEvent
 from apps.platform.operation_access import require_operation_access
+from apps.platform.token_billing import reserve_tokens, settle_tokens
 
 AI_ANSWER_ACTION = "ai.answer"
+
+
+class QuestionAlreadySubmitted(Exception):
+    def __init__(self, conversation: Conversation) -> None:
+        super().__init__("Esta pergunta já foi enviada.")
+        self.conversation = conversation
 
 
 @dataclass(frozen=True)
@@ -428,6 +438,123 @@ class DominioMcp:
         return "", []
 
 
+def _attempt_cloud_after_reservation(
+    *,
+    organization: Organization,
+    actor: User,
+    membership: Membership,
+    question: str,
+    company: ClientCompany | None,
+    conversation_context: str,
+    model_evidence: list[dict[str, str]],
+    user_message: Message,
+    usage_event: UsageEvent | TokenUsageEvent,
+) -> ClaudeCompletion | None:
+    """Commit the shared quota reservation before any paid provider I/O."""
+    with transaction.atomic():
+        platform_configuration = (
+            PlatformConfiguration.objects.select_for_update().filter(key="default").first()
+        )
+        assistant_settings = (
+            AssistantSettings.objects.select_for_update()
+            .filter(organization=organization)
+            .first()
+        )
+        approval = (
+            ClaudeFallbackApproval.objects.select_for_update()
+            .filter(organization=organization)
+            .first()
+        )
+        if assistant_settings is None or platform_configuration is None:
+            return None
+        decision = can_use_claude_fallback(
+            assistant_settings=assistant_settings,
+            approval=approval,
+            platform_configuration=platform_configuration,
+            role=membership.role,
+            estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
+        )
+        model = platform_configuration.cloud_fallback_model
+        allow_full_data = assistant_settings.claude_full_data_allowed
+        api_key = platform_claude_api_key(platform_configuration)
+        fallback_payload = claude_fallback_payload(
+            question=question,
+            company_name=company.name if company else "Não selecionada",
+            conversation_context=conversation_context,
+            evidence=model_evidence,
+            allow_full_data=allow_full_data,
+            model=model,
+        )
+        egress = audit_claude_egress(
+            organization=organization,
+            actor=actor,
+            role=membership.role,
+            payload=json.dumps(fallback_payload, ensure_ascii=False, sort_keys=True),
+            allowed=decision.provider == "claude",
+            estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
+            model=model,
+            user_message=user_message,
+            usage_event=usage_event,
+        )
+    if decision.provider != "claude":
+        return None
+
+    completion = None
+
+    def persist_response_metadata(request_id: str, http_status: int) -> None:
+        with transaction.atomic():
+            EgressAudit.objects.filter(pk=egress.pk).update(
+                provider_request_id=request_id,
+                provider_http_status=http_status,
+            )
+
+    try:
+        completion = generate_claude_fallback_completion(
+            api_key=api_key,
+            model=model,
+            question=question,
+            company_name=company.name if company else "Não selecionada",
+            conversation_context=conversation_context,
+            evidence=model_evidence,
+            allow_full_data=allow_full_data,
+            on_response_metadata=persist_response_metadata,
+        )
+    finally:
+        with transaction.atomic():
+            if completion is not None:
+                updates = dict(
+                    call_state=EgressAudit.CallState.SUCCEEDED,
+                    input_tokens=completion.input_tokens,
+                    output_tokens=completion.output_tokens,
+                    cache_creation_input_tokens=completion.cache_creation_input_tokens,
+                    cache_read_input_tokens=completion.cache_read_input_tokens,
+                    completed_at=timezone.now(),
+                )
+                if completion.request_id:
+                    updates["provider_request_id"] = completion.request_id
+                EgressAudit.objects.filter(pk=egress.pk).update(**updates)
+            else:
+                EgressAudit.objects.filter(pk=egress.pk).update(
+                    call_state=EgressAudit.CallState.UNKNOWN,
+                    completed_at=timezone.now(),
+                )
+    return completion
+
+
+def reconcile_stale_claude_attempts(*, older_than: timedelta = timedelta(minutes=10)) -> int:
+    """Flag lost workers conservatively; an unknown provider charge retains its quota."""
+    if older_than < timedelta(minutes=1):
+        raise ValueError("A janela de reconciliação deve ser de pelo menos um minuto.")
+    cutoff = timezone.now() - older_than
+    with transaction.atomic():
+        return EgressAudit.objects.filter(
+            provider="anthropic",
+            call_state=EgressAudit.CallState.RESERVED,
+            completed_at__isnull=True,
+            created_at__lt=cutoff,
+        ).update(call_state=EgressAudit.CallState.UNKNOWN, completed_at=timezone.now())
+
+
 def answer_question(
     *,
     organization: Organization,
@@ -437,10 +564,18 @@ def answer_question(
     request: object,
     uploads: Iterable[UploadedFile] = (),
     conversation: Conversation | None = None,
+    request_id: UUID | None = None,
 ) -> tuple[Conversation, Message, ClassificationDraft | None]:
     """Create a grounded response only after rechecking the caller's data scope."""
-    if not copilot_is_available():
+    if not organization.is_demo and not copilot_is_available():
         raise ValueError("O Copiloto ainda não está disponível para escritórios.")
+    uploads = tuple(uploads)
+    if organization.is_demo and uploads:
+        raise ValueError(
+            "A demonstração central aceita apenas perguntas sobre dados fictícios; "
+            "não envie arquivos do seu escritório."
+        )
+    submission_id = request_id or uuid4()
     with transaction.atomic():
         # The membership is also used to decide whether a managed installation may
         # create a reviewable draft.  Resolve it independently from the optional
@@ -454,12 +589,24 @@ def answer_question(
         ).first()
         if membership is None:
             raise ValueError("Acesso ao escritório não autorizado.")
-        require_operation_access(organization, "ai")
-        usage = reserve_usage(
-            organization=organization,
-            action_code=AI_ANSWER_ACTION,
-            idempotency_key=f"ai-answer:{uuid4()}",
-        )
+        if not organization.is_demo:
+            require_operation_access(organization, "ai")
+        usage = None
+        if not organization.is_demo:
+            usage_key = f"ai-answer:{submission_id}"
+            try:
+                usage = reserve_tokens(
+                    organization=organization,
+                    module_code="ai",
+                    action_code=AI_ANSWER_ACTION,
+                    idempotency_key=usage_key,
+                )
+            except BillingError:
+                usage = reserve_usage(
+                    organization=organization,
+                    action_code=AI_ANSWER_ACTION,
+                    idempotency_key=usage_key,
+                )
         if (
             company is not None
             and accessible_company(
@@ -470,6 +617,14 @@ def answer_question(
             raise ValueError("Empresa fora do escopo autorizado.")
         if conversation is not None and conversation.closed_at is not None:
             raise ValueError("Esta conversa está encerrada.")
+        existing_message = Message.objects.filter(request_id=submission_id).first()
+        if existing_message is not None:
+            if (
+                existing_message.organization_id != organization.id
+                or existing_message.conversation.company_id != getattr(company, "id", None)
+            ):
+                raise ValueError("Esta chave de envio pertence a outra conversa.")
+            raise QuestionAlreadySubmitted(existing_message.conversation)
         if conversation is None:
             conversation = Conversation.objects.create(
                 organization=organization,
@@ -487,6 +642,7 @@ def answer_question(
             conversation=conversation,
             role=Message.Role.USER,
             content=question,
+            request_id=submission_id,
             context_hash=_digest(question),
         )
         attachment_cards = store_chat_attachments(
@@ -526,76 +682,49 @@ def answer_question(
         if suggested_code:
             conclusion = f"Sugestão: acumulador {suggested_code}."
         elif cards:
-            conclusion = f"Encontrei {len(cards)} ponto(s) relevante(s) para revisão."
+            count = len(cards)
+            conclusion = (
+                f"Encontrei {count} ponto relevante para revisão."
+                if count == 1
+                else f"Encontrei {count} pontos relevantes para revisão."
+            )
         else:
             conclusion = "Não encontrei fonte suficiente. Escolha uma empresa ou refine a pergunta."
-        local_completion = generate_local_completion(
+
+    local_completion = (
+        None
+        if organization.is_demo
+        else generate_local_completion(
             question=question,
             company_name=company.name if company else "Não selecionada",
             evidence=model_evidence,
             conversation_context=conversation_context,
         )
-        model_version = "grounded-rules-v1"
-        if local_completion:
-            conclusion = local_completion.content
-            model_version = local_completion.model
-        elif PlatformConfiguration.objects.filter(
-            key="default", cloud_fallback_enabled=True
-        ).exists():
-            # Lock the singleton before reserving the shared Mewstack fallback
-            # budget; two offices cannot race past the same daily ceiling.
-            platform_configuration = (
-                PlatformConfiguration.objects.select_for_update().filter(key="default").first()
-            )
-            assistant_settings = (
-                AssistantSettings.objects.select_for_update()
-                .filter(organization=organization)
-                .first()
-            )
-            approval = (
-                ClaudeFallbackApproval.objects.select_for_update()
-                .filter(organization=organization)
-                .first()
-            )
-            role = membership.role if membership is not None else ""
-            if assistant_settings is not None and platform_configuration is not None:
-                decision = can_use_claude_fallback(
-                    assistant_settings=assistant_settings,
-                    approval=approval,
-                    platform_configuration=platform_configuration,
-                    role=role,
-                    estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
-                )
-                fallback_payload = claude_fallback_payload(
-                    question=question,
-                    company_name=company.name if company else "Não selecionada",
-                    conversation_context=conversation_context,
-                    evidence=model_evidence,
-                    allow_full_data=assistant_settings.claude_full_data_allowed,
-                    model=platform_configuration.cloud_fallback_model,
-                )
-                audit_claude_egress(
-                    organization=organization,
-                    actor=actor,
-                    role=role,
-                    payload=json.dumps(fallback_payload, ensure_ascii=False, sort_keys=True),
-                    allowed=decision.provider == "claude",
-                    estimated_cost_cents=platform_configuration.cloud_fallback_max_request_cents,
-                    model=platform_configuration.cloud_fallback_model,
-                )
-                if decision.provider == "claude":
-                    cloud_completion = generate_claude_fallback_completion(
-                        api_key=platform_claude_api_key(platform_configuration),
-                        model=platform_configuration.cloud_fallback_model,
-                        question=question,
-                        company_name=company.name if company else "Não selecionada",
-                        conversation_context=conversation_context,
-                        evidence=model_evidence,
-                        allow_full_data=assistant_settings.claude_full_data_allowed,
-                    )
-                    if cloud_completion is not None:
-                        conclusion = cloud_completion.content
-                        model_version = cloud_completion.model
+    )
+    model_version = "demo-simulado-v1" if organization.is_demo else "grounded-rules-v1"
+    if organization.is_demo:
+        conclusion = f"Demonstração fictícia: {conclusion}"
+    if local_completion:
+        conclusion = local_completion.content
+        model_version = local_completion.model
+    elif not organization.is_demo and PlatformConfiguration.objects.filter(
+        key="default", cloud_fallback_enabled=True
+    ).exists():
+        cloud_completion = _attempt_cloud_after_reservation(
+            organization=organization,
+            actor=actor,
+            membership=membership,
+            question=question,
+            company=company,
+            conversation_context=conversation_context,
+            model_evidence=model_evidence,
+            user_message=user_message,
+            usage_event=usage,
+        )
+        if cloud_completion is not None:
+            conclusion = cloud_completion.content
+            model_version = cloud_completion.model
+    with transaction.atomic():
         draft = None
         if (
             suggested_code
@@ -623,6 +752,7 @@ def answer_question(
             conversation=conversation,
             role=Message.Role.ASSISTANT,
             content=conclusion,
+            in_reply_to=user_message,
             evidence=[card.as_dict() for card in cards],
             model_version=model_version,
             context_hash=_digest(
@@ -633,7 +763,11 @@ def answer_question(
                 + "|".join(card.reference for card in cards)
             ),
         )
-        settle_usage(event=usage, provider_http_status=200, billable=True)
+        if usage is not None:
+            if isinstance(usage, TokenUsageEvent):
+                settle_tokens(event=usage, provider_http_status=200, billable=True)
+            else:
+                settle_usage(event=usage, provider_http_status=200, billable=True)
         conversation.summary = next_conversation_summary(
             previous=conversation.summary,
             question=question,
@@ -673,7 +807,7 @@ def record_feedback(
         submitted_by=actor,
         defaults={"organization": organization, "verdict": verdict, "comment": comment},
     )
-    if verdict == AnswerFeedback.Verdict.NOT_HELPFUL:
+    if verdict == AnswerFeedback.Verdict.NOT_HELPFUL and not organization.is_demo:
         LearningCandidate.objects.get_or_create(
             feedback=feedback,
             defaults={
@@ -707,6 +841,8 @@ def audit_claude_egress(
     allowed: bool,
     estimated_cost_cents: int = 0,
     model: str = "",
+    user_message: Message | None = None,
+    usage_event: UsageEvent | TokenUsageEvent | None = None,
 ) -> EgressAudit:
     """Call this before any provider client. It stores a hash only, never payload content."""
     return EgressAudit.objects.create(
@@ -719,4 +855,12 @@ def audit_claude_egress(
         allowed=allowed,
         estimated_cost_cents=max(0, estimated_cost_cents),
         model=model[:80],
+        user_message=user_message,
+        usage_event=usage_event if isinstance(usage_event, UsageEvent) else None,
+        token_usage_event=(
+            usage_event if isinstance(usage_event, TokenUsageEvent) else None
+        ),
+        call_state=(
+            EgressAudit.CallState.RESERVED if allowed else EgressAudit.CallState.DENIED
+        ),
     )

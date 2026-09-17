@@ -1,18 +1,20 @@
 {% load static %}
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR"{% if request.COOKIES.hub_theme == 'dark' %} data-theme="dark"{% elif request.COOKIES.hub_theme == 'light' %} data-theme="light"{% endif %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f6f1e5">
   <meta name="description" content="CICA: a central que organiza a operação fiscal, financeira e de clientes do escritório contábil.">
   <title>CICA — Central de Inteligência Contábil Avançada</title>
   <link rel="icon" href="{% static 'hub/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'hub/regaro-landing.css' %}?v=cica-7">
-  <link rel="stylesheet" href="{% static 'hub/cica-campaign.css' %}?v=11">
-  <script src="{% static 'hub/cica-scene.js' %}?v=9" defer></script>
+  <link rel="stylesheet" href="{% static 'hub/cica-campaign.css' %}?v=13">
+  <script src="{% static 'hub/cica-scene.js' %}?v=11" defer></script>
   <script src="{% static 'hub/regaro-landing.js' %}?v=cica-7" defer></script>
+  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=ui-review-1">
+  <script src="{% static 'hub/theme.js' %}" defer></script>
 </head>
 <body class="cica-landing">
   <a class="cica-skip" href="#conteudo">Pular para o conteúdo</a>
@@ -22,7 +24,7 @@
       <span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span>
     </a>
     <nav aria-label="Navegação principal"><a href="#modulos">Módulos</a><a href="#central">A central</a>{% if copilot_available %}<a href="#copiloto">Copiloto CICA</a>{% endif %}<a href="#integracoes">Integrações</a></nav>
-    <div class="cica-header-actions"><a href="{% url 'hub:login' %}">Entrar</a><a class="cica-header-cta" href="{% url 'hub:signup' %}">Teste de 14 dias <span aria-hidden="true">→</span></a></div>
+    <div class="cica-header-actions"><a href="{% url 'hub:login' %}">Entrar</a>{% if demo_available %}<a href="{% url 'hub:demo-entry' %}">Ver demonstração</a>{% endif %}<a class="cica-header-cta" href="{% url 'hub:signup' %}">Teste de 14 dias <span aria-hidden="true">→</span></a></div>
   </header>
 
   <main id="conteudo">
@@ -31,8 +33,8 @@
         <p class="cica-kicker">CICA / CENTRAL DE INTELIGÊNCIA CONTÁBIL AVANÇADA</p>
         <h1 id="hero-title">Menos retrabalho.<em>Mais contabilidade.</em></h1>
         <p class="cica-lead">Fiscal, financeiro, documentos e clientes no mesmo lugar.</p>
-        <div class="cica-actions"><a class="cica-cta" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a><a class="cica-text-link" href="#modulos">Ver os módulos <span aria-hidden="true">↓</span></a></div>
-        <p class="cica-assurance">Sem cartão. Os módulos disponíveis ficam liberados durante o teste.</p>
+        <div class="cica-actions"><a class="cica-cta" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a>{% if demo_available %}<a class="cica-text-link" href="{% url 'hub:demo-entry' %}">Explorar demo fictícia <span aria-hidden="true">→</span></a>{% else %}<a class="cica-text-link" href="#modulos">Ver os módulos <span aria-hidden="true">↓</span></a>{% endif %}</div>
+        <p class="cica-assurance">Sem cartão e sem cobrança automática. Cada integração real é habilitada somente após configuração e homologação para o escritório.</p>
       </div>
 
       {% include 'hub/cica_motion.html' %}
@@ -41,15 +43,15 @@
     <section id="modulos" class="module-atlas cica-shell" aria-labelledby="modules-title">
       <header class="module-atlas-heading" data-reveal><p class="cica-kicker">MÓDULOS PARA A OPERAÇÃO.</p><h2 id="modules-title">Cada frente<br><em>no seu lugar.</em></h2><p>Teste a suíte disponível por 14 dias.</p></header>
       <div class="module-atlas-list">
-        <article data-reveal><span class="module-index">01</span><div><p class="module-area">FISCAL</p><h3>NFS-e Inteligente</h3><p>Receba, classifique e acompanhe NFS-e.</p></div></article>
-        <article data-reveal><span class="module-index">02</span><div><p class="module-area">OBRIGAÇÕES</p><h3>Guias e DCTFWeb</h3><p>Antecipe guias, DCTFWeb e vencimentos.</p></div></article>
-        <article data-reveal><span class="module-index">03</span><div><p class="module-area">ATENDIMENTO FISCAL</p><h3>Central Integra Contador</h3><p>Solicite, acompanhe e encontre retornos.</p></div></article>
+        <article data-reveal><span class="module-index">01</span><div><p class="module-area">FISCAL</p><h3>NFS-e Inteligente</h3><p>Organize, classifique e revise NFS-e disponibilizadas à CICA.</p></div></article>
+        <article data-reveal><span class="module-index">02</span><div><p class="module-area">OBRIGAÇÕES</p><h3>Guias e DCTFWeb</h3><p>Trabalhe apurações do Domínio e consulte documentos DCTFWeb quando habilitados.</p></div></article>
+        <article data-reveal><span class="module-index">03</span><div><p class="module-area">ATENDIMENTO FISCAL</p><h3>Central Integra Contador</h3><p>Reúna Caixa DTE, DCTFWeb e Parcelamentos com autorização por operação.</p></div></article>
         <article data-reveal><span class="module-index">04</span><div><p class="module-area">FINANCEIRO</p><h3>Conciliação OFX x Domínio</h3><p>Cruze OFX e Domínio. Revise divergências.</p></div></article>
         <article data-reveal><span class="module-index">05</span><div><p class="module-area">TRIBUTÁRIO</p><h3>Radar da Reforma</h3><p>Veja o que muda antes do cliente perguntar.</p></div></article>
         <article data-reveal><span class="module-index">06</span><div><p class="module-area">DOCUMENTOS</p><h3>Triagem de Arquivos</h3><p>Conecte a caixa do escritório e revise anexos antes do arquivo. Recebimento em implantação.</p></div></article>
         {% if copilot_available %}<article class="module-copilot" data-reveal><span class="module-index">07</span><div><p class="module-area">INTELIGÊNCIA</p><h3>Copiloto CICA</h3><p>Analise documentos e classificações com fontes.</p></div></article>{% endif %}
       </div>
-      <a class="module-atlas-cta" href="{% url 'hub:signup' %}">Testar a suíte completa por 14 dias <span aria-hidden="true">→</span></a>
+      <a class="module-atlas-cta" href="{% url 'hub:signup' %}">Testar os módulos disponíveis por 14 dias <span aria-hidden="true">→</span></a>
     </section>
 
     <section id="central" class="central-intro cica-shell" aria-labelledby="central-title">
@@ -58,22 +60,22 @@
     </section>
 
     <section class="operation-map" aria-labelledby="operation-title"><div class="cica-shell"><header data-reveal><p class="cica-kicker">UMA PAUTA, CINCO FRENTES</p><h2 id="operation-title">A operação deixa de correr.<br><em>Ela avança.</em></h2></header><div class="operation-steps">
-      <article data-reveal><span>01</span><h3>Receber</h3><p>NFS-e, extratos e guias chegam com empresa e origem definidas.</p></article>
+      <article data-reveal><span>01</span><h3>Receber</h3><p>Após conectar ou importar cada fonte, NFS-e, extratos e guias ficam vinculados à empresa e à origem.</p></article>
       <article data-reveal><span>02</span><h3>Organizar</h3><p>Fiscal, financeiro e cliente passam a falar da mesma empresa e competência.</p></article>
       <article data-reveal><span>03</span><h3>Revisar</h3><p>Exceções surgem na pauta antes de virarem urgência no fim do dia.</p></article>
       <article data-reveal><span>04</span><h3>Decidir</h3><p>Ação, aprovação e evidência ficam registradas onde o trabalho acontece.</p></article>
     </div></div></section>
 
-    {% if copilot_available %}<section id="copiloto" class="copilot-section"><div class="cica-shell copilot-layout"><div data-reveal><p class="cica-kicker">COPILOTO CICA</p><h2>Uma empresa por conversa.<br><em>Fontes em cada resposta.</em></h2><p class="section-copy">Selecione a empresa, faça a pergunta ou anexe um documento. O Copiloto consulta apenas o contexto autorizado e mantém qualquer classificação como rascunho para revisão.</p><a class="cica-light-link" href="{% url 'hub:signup' %}">Experimentar a suíte completa <span aria-hidden="true">→</span></a></div>
-      <div class="copilot-ledger" data-reveal aria-label="Escopo atual do Copiloto CICA"><header><span>ESCOPO DA ANÁLISE</span><span>SOMENTE LEITURA</span></header><p class="ledger-question">Empresa selecionada antes da pergunta</p><div class="ledger-answer"><span class="cica-mini-mark" aria-hidden="true">C</span><div><b>PDF, imagem, TXT ou CSV</b><p>Fatos verificáveis extraídos pelo serviço privado configurado.</p></div></div><ul><li><span>01</span><b>Fontes autorizadas</b><small>Conhecimento, obrigações e fila de revisão</small><em>Com origem</em></li><li><span>02</span><b>Classificação sugerida</b><small>Regra aprovada ou histórico disponível</small><em>Rascunho</em></li></ul><footer>Nenhuma gravação é feita no banco externo.</footer></div>
+    {% if copilot_available %}<section id="copiloto" class="copilot-section"><div class="cica-shell copilot-layout"><div data-reveal><p class="cica-kicker">COPILOTO CICA</p><h2>Uma empresa por conversa.<br><em>Fontes em cada resposta.</em></h2><p class="section-copy">Selecione a empresa, faça a pergunta ou anexe um documento. O Copiloto consulta apenas o contexto autorizado e mantém qualquer classificação como rascunho para revisão.</p><a class="cica-light-link" href="{% url 'hub:signup' %}">Experimentar os módulos disponíveis <span aria-hidden="true">→</span></a></div>
+      <div class="copilot-ledger" data-reveal aria-label="Escopo atual do Copiloto CICA"><header><span>ESCOPO DA ANÁLISE</span><span>SOMENTE LEITURA</span></header><p class="ledger-question">Empresa selecionada antes da pergunta</p><div class="ledger-answer"><span class="cica-mini-mark" aria-hidden="true">C</span><div><b>PDF, imagem, TXT ou CSV</b><p>Fatos verificáveis extraídos pelo serviço privado configurado.</p></div></div><ul><li><span>01</span><b>Fontes autorizadas</b><small>Conhecimento, obrigações e fila de revisão</small><em>Com origem</em></li><li><span>02</span><b>Classificação sugerida</b><small>Regra aprovada ou histórico disponível</small><em>Rascunho</em></li></ul><footer>Nenhuma gravação é feita no banco externo.{% include 'hub/theme_picker.html' %}</footer></div>
     </div></section>{% endif %}
 
     <section id="integracoes" class="integration-section cica-shell" aria-labelledby="integration-title"><div data-reveal><p class="cica-kicker">INTEGRAÇÕES COM CONTROLE</p><h2 id="integration-title">Conectado ao seu escritório.<br>Sem entregar o controle.</h2></div><div class="integration-list" data-reveal><article><span class="integration-mark">D</span><div><h3>Domínio</h3><p>Conexão local e somente leitura, com escopo por escritório, saúde de sincronização e trilha de auditoria.</p></div><b>Leitura segura</b></article><article><span class="integration-mark">S</span><div><h3>Siescon</h3><p>Fluxo previsto na central, com habilitação comercial e operacional somente após homologação autorizada.</p></div><b>Em homologação</b></article><article><span class="integration-mark">@</span><div><h3>Caixa de e-mail da Triagem</h3><p>Conexão Microsoft, Google ou IMAP com autorização de cada escritório; leitura e arquivamento em implantação.</p></div><b>Conexão guiada</b></article></div></section>
 
-    <section class="cica-final"><div class="cica-shell"><p class="cica-kicker">A PRÓXIMA PAUTA COMEÇA AQUI</p><h2>Deixe o escritório<br>respirar no fechamento.</h2><a class="cica-cta cica-cta-light" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a><p>Sem cartão. A contratação e os valores são apresentados dentro do ambiente CICA.</p></div></section>
+    <section class="cica-final"><div class="cica-shell"><p class="cica-kicker">A PRÓXIMA PAUTA COMEÇA AQUI</p><h2>Deixe o escritório<br>respirar no fechamento.</h2><a class="cica-cta cica-cta-light" href="{% url 'hub:signup' %}">Começar teste de 14 dias <span aria-hidden="true">→</span></a>{% if demo_available %}<a class="cica-light-link" href="{% url 'hub:demo-entry' %}">Abrir demonstração fictícia <span aria-hidden="true">→</span></a>{% endif %}<p>Sem cartão e sem cobrança automática. A contratação e os valores são apresentados dentro do ambiente CICA.</p></div></section>
 
-    <section class="cica-faq cica-shell" aria-label="Dúvidas frequentes">{% if copilot_available %}<details><summary>O Copiloto CICA altera os dados do escritório?<span aria-hidden="true">+</span></summary><p>Não. Bases externas permanecem em modo somente leitura. Ações sensíveis dentro da CICA exigem aprovação e ficam registradas.</p></details>{% endif %}<details><summary>O que acontece no teste de 14 dias?<span aria-hidden="true">+</span></summary><p>Você testa os módulos disponíveis sem cartão.</p></details><details><summary>O que significa “em homologação”?<span aria-hidden="true">+</span></summary><p>É um fluxo já planejado na plataforma, mas que ainda não é oferecido como conexão ativa até a validação autorizada.</p></details></section>
+    <section class="cica-faq cica-shell" aria-label="Dúvidas frequentes">{% if copilot_available %}<details><summary>O Copiloto CICA altera os dados do escritório?<span aria-hidden="true">+</span></summary><p>Não. Bases externas permanecem em modo somente leitura. Ações sensíveis dentro da CICA exigem aprovação e ficam registradas.</p></details>{% endif %}<details><summary>O que acontece no teste de 14 dias?<span aria-hidden="true">+</span></summary><p>Você acessa sem cartão e sem cobrança automática. Módulos e integrações que dependem de credenciais ou homologação são ativados gradualmente para o escritório.</p></details>{% if demo_available %}<details><summary>A demonstração consulta dados reais?<span aria-hidden="true">+</span></summary><p>Não. A demo usa empresas, documentos, valores e resultados fictícios, e reinicia quando a sessão do navegador termina.</p></details>{% endif %}<details><summary>O que significa “em homologação”?<span aria-hidden="true">+</span></summary><p>É um fluxo já planejado na plataforma, mas que ainda não é oferecido como conexão ativa até a validação autorizada.</p></details></section>
   </main>
-  <footer class="cica-footer cica-shell"><a class="cica-lockup" href="{% url 'hub:home' %}" translate="no"><svg class="cica-mark" viewBox="0 0 36 36" aria-hidden="true"><path d="M28.5 8.4A13.4 13.4 0 1 0 28.5 27.6"/><path d="M25.3 13.1A8 8 0 1 0 25.3 22.9"/><path d="M20.1 18h11.4"/></svg><span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span></a><div><a href="{% url 'hub:legal' 'termos' %}">Termos de Uso</a><a href="{% url 'hub:legal' 'privacidade' %}">Privacidade</a><a href="{% url 'hub:login' %}">Entrar</a></div></footer>
+  <footer class="cica-footer cica-shell"><a class="cica-lockup" href="{% url 'hub:home' %}" translate="no"><svg class="cica-mark" viewBox="0 0 36 36" aria-hidden="true"><path d="M28.5 8.4A13.4 13.4 0 1 0 28.5 27.6"/><path d="M25.3 13.1A8 8 0 1 0 25.3 22.9"/><path d="M20.1 18h11.4"/></svg><span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span></a><div><a href="{% url 'hub:legal' 'termos' %}">Termos de Uso</a><a href="{% url 'hub:legal' 'privacidade' %}">Privacidade</a><a href="{% url 'hub:login' %}">Entrar</a></div>{% include 'hub/theme_picker.html' %}</footer>
 </body>
 </html>

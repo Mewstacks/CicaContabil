@@ -12,6 +12,7 @@ from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from apps.audit.models import AuditEvent
 from apps.intelligence.connectors import CatalogColumn, CatalogTable
 from apps.intelligence.models import (
     AssistantSettings,
@@ -298,6 +299,65 @@ class IntelligenceCommandTests(TestCase):
 
         self.assertIn("nada foi persistido", preview.getvalue().casefold())
         self.assertIn("catálogo salvo", applied.getvalue().casefold())
+
+    @patch("apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc")
+    def test_odbc_contract_command_checks_every_allowlisted_query_and_schema(self, mocked_odbc) -> None:
+        adapter = mocked_odbc.return_value
+        adapter.execute.return_value = [{}]
+        required_by_table = {
+            "geempre": {"codi_emp", "nome_emp", "cgce_emp", "stat_emp"},
+            "GENOTIFICACOES_USUARIO_ATENDIMENTO": {
+                "sequencial", "empresa", "assunto", "tipo", "situacao", "visualizado"
+            },
+            "CTEXTRATO_BANCARIO_LANCAMENTO_ITEM": {
+                "codi_emp", "i_lancamento", "i_item", "data_item", "historico", "valor", "tipo"
+            },
+            "CTEXTRATO_BANCARIO_LANCAMENTO_ITEM_LANCTO": {
+                "codi_emp", "i_lancamento", "i_item"
+            },
+            "FOVGUIAINSS": {
+                "i_guiainss", "codi_emp", "competencia", "vencimento", "total_guia",
+                "tipo_guia", "tipo_process", "situacao"
+            },
+        }
+        adapter.list_catalog_columns.side_effect = lambda table_name: [
+            CatalogColumn(name=name, type_name="varchar", ordinal=index, nullable=True)
+            for index, name in enumerate(required_by_table[table_name], start=1)
+        ]
+        output = StringIO()
+
+        call_command(
+            "validate_dominio_odbc_contract",
+            organization=self.organization.slug,
+            dsn="DominioExterno",
+            stdout=output,
+        )
+
+        self.assertIn("contrato odbc validado", output.getvalue().casefold())
+        self.assertEqual(
+            [call.args for call in adapter.execute.call_args_list],
+            [("companies",), ("communications",), ("bank_entries",), ("guide_calculations",)],
+        )
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                organization=self.organization,
+                action="intelligence.dominio.odbc_contract_validated",
+                metadata__missing_columns=0,
+            ).exists()
+        )
+
+    @patch("apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc")
+    def test_odbc_contract_command_rejects_a_missing_schema_column(self, mocked_odbc) -> None:
+        adapter = mocked_odbc.return_value
+        adapter.execute.return_value = []
+        adapter.list_catalog_columns.return_value = []
+
+        with self.assertRaises(CommandError):
+            call_command(
+                "validate_dominio_odbc_contract",
+                organization=self.organization.slug,
+                dsn="DominioExterno",
+            )
 
     def test_missing_organization_is_rejected_by_operational_commands(self) -> None:
         with self.assertRaises(CommandError):

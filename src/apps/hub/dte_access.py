@@ -16,8 +16,11 @@ from apps.hub.dte_payload import DtePayloadError, detail_row, source_date, value
 from apps.hub.models import DteMessage, DteMessageAccess
 from apps.integra.client import IntegraClient
 from apps.integra.errors import IntegraConfigurationError, IntegraError, IntegraServiceError
+from apps.integra.parties import author_cnpj_for
 from apps.organizations.models import Membership
 from apps.platform.billing import BillingError, reserve_usage, settle_usage
+from apps.platform.models import TokenUsageEvent
+from apps.platform.token_billing import reserve_tokens, settle_tokens
 
 DETAIL_ACTION_CODE = "caixapostal.detalhe"
 
@@ -87,16 +90,24 @@ def open_message(
         attempt = (access.attempt_count if access else 0) + 1
         key = f"dte-message-detail:{message.id}:{attempt}"
         try:
-            usage = reserve_usage(
+            usage = reserve_tokens(
                 organization=message.organization,
+                module_code="integra",
                 action_code=DETAIL_ACTION_CODE,
                 idempotency_key=key,
-                approved_overage=approved_overage,
-                approved_overage_cents=approved_overage_cents,
-                require_explicit_overage=True,
             )
-        except BillingError as exc:
-            raise DteAccessError(str(exc)) from exc
+        except BillingError:
+            try:
+                usage = reserve_usage(
+                    organization=message.organization,
+                    action_code=DETAIL_ACTION_CODE,
+                    idempotency_key=key,
+                    approved_overage=approved_overage,
+                    approved_overage_cents=approved_overage_cents,
+                    require_explicit_overage=True,
+                )
+            except BillingError as legacy_exc:
+                raise DteAccessError(str(legacy_exc)) from legacy_exc
         if access is None:
             access = DteMessageAccess.objects.create(
                 organization=message.organization,
@@ -104,6 +115,8 @@ def open_message(
                 status=DteMessageAccess.Status.READING,
                 attempt_count=attempt,
                 requested_by=actor,
+                token_usage_event=usage if isinstance(usage, TokenUsageEvent) else None,
+                usage_event=None if isinstance(usage, TokenUsageEvent) else usage,
             )
         else:
             access.status = DteMessageAccess.Status.READING
@@ -112,6 +125,13 @@ def open_message(
             access.requested_at = timezone.now()
             access.error_message = ""
             access.save()
+            if isinstance(usage, TokenUsageEvent):
+                access.token_usage_event = usage
+                fields = ["token_usage_event", "updated_at"]
+            else:
+                access.usage_event = usage
+                fields = ["usage_event", "updated_at"]
+            access.save(update_fields=fields)
         record_event(
             action="hub.dte.message_open_requested",
             actor=actor,
@@ -124,14 +144,15 @@ def open_message(
         response = IntegraClient().call(
             DETAIL_ACTION_CODE,
             contribuinte=cnpj,
+            autor_pedido=author_cnpj_for(message.organization),
             dados={"isn": message.source_isn},
         )
     except IntegraConfigurationError as exc:
-        settle_usage(event=usage, provider_http_status=503, billable=False)
+        _settle(usage, provider_http_status=503, billable=False)
         _finish(access, status=DteMessageAccess.Status.FAILED, error=str(exc))
         raise DteAccessError("A conexão central não está configurada.") from exc
     except IntegraServiceError as exc:
-        settle_usage(event=usage, provider_http_status=exc.status, billable=False)
+        _settle(usage, provider_http_status=exc.status, billable=False)
         _finish(access, status=DteMessageAccess.Status.FAILED, error=str(exc))
         raise DteAccessError(str(exc)) from exc
     except IntegraError as exc:
@@ -141,7 +162,7 @@ def open_message(
         ) from exc
 
     request_id = value(response, "idRequisicao", "requestId")
-    settle_usage(
+    _settle(
         event=usage,
         provider_http_status=int(response.get("status", 200)),
         provider_request_id=request_id,
@@ -165,3 +186,10 @@ def open_message(
         metadata={"company_id": str(message.company_id), "provider_request_id": request_id},
     )
     return receipt
+
+
+def _settle(event: Any, **kwargs: Any) -> None:
+    if isinstance(event, TokenUsageEvent):
+        settle_tokens(event=event, **kwargs)
+    else:
+        settle_usage(event=event, **kwargs)

@@ -39,9 +39,11 @@ migração ser executada no ambiente adequado.
 3. **A máquina de estados não é uma barreira de persistência.** `transition_to()` é opcional;
    um `update()` ou atribuição direta de `status` contorna o grafo. Não há serviço transacional,
    evento de auditoria, versão otimista ou regra que exija revisão humana antes de arquivar.
-4. **Destino Windows é apenas texto.** Não há allowlist canônica, resolução de caminho,
-   validação contra escape de raiz, mTLS/claim do agente ou confirmação de hash de escrita.
-   `AgentFileJob` é schema, não protocolo.
+4. **Destino Windows — corrigido em 16/09/2026.** `AgentFileJob` passou a ter protocolo v2
+   autenticado: claim isolado por escritório, download somente do anexo validado, raiz local
+   comprovada, caminho relativo limitado, confirmação de tamanho/SHA-256, falha recuperável e
+   executor .NET com gravação temporária e renomeação atômica. A escrita ainda precisa ser
+   homologada no PC e na pasta real de cada escritório antes da ativação comercial.
 5. **Segurança de entrada ausente.** Não há limite de tamanho/tipo próprio, validação de
    conteúdo, quarentena efetiva, varredura, deduplicação de ingestão com tratamento idempotente
    ou proteção contra arquivos maliciosos.

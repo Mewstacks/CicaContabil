@@ -103,12 +103,28 @@ def test_a_call_reaches_the_trial_gateway_with_the_documented_envelope() -> None
     envelope = json.loads(call["data"])
     assert envelope["contratante"] == {"numero": "11111111111111", "tipo": 2}
     assert envelope["contribuinte"] == {"numero": "99999999999999", "tipo": 2}
+    assert envelope["autorPedidoDados"] == {"numero": "11111111111111", "tipo": 2}
     assert envelope["pedidoDados"] == {
         "idSistema": "DTE",
         "idServico": "CONSULTASITUACAODTE111",
         "versaoSistema": "1.0",
         "dados": "",
     }
+
+
+def test_a_call_can_use_the_office_as_author_without_changing_contractor() -> None:
+    client, transport = _client((200, {"status": 200}))
+
+    client.call(
+        "dte.situacao",
+        contribuinte="99.999.999/9999-99",
+        autor_pedido="22.222.222/2222-22",
+    )
+
+    envelope = json.loads(transport.calls[-1]["data"])
+    assert envelope["contratante"] == {"numero": "11111111111111", "tipo": 2}
+    assert envelope["autorPedidoDados"] == {"numero": "22222222222222", "tipo": 2}
+    assert envelope["contribuinte"] == {"numero": "99999999999999", "tipo": 2}
 
 
 def test_dados_travels_as_a_json_string_not_a_nested_object() -> None:
@@ -187,6 +203,9 @@ def test_every_catalogued_service_declares_a_real_verb() -> None:
 def test_initial_central_services_match_official_serpro_identifiers() -> None:
     assert service("parcelamento.parcsn.pedidos").id_servico == "PEDIDOSPARC163"
     assert service("parcelamento.parcsn.detalhe").id_servico == "OBTERPARC164"
+    assert service("parcelamento.parcsn.pagamento").id_servico == "DETPAGTOPARC165"
+    assert service("parcelamento.parcsn.parcelas").id_servico == "PARCELASPARAGERAR162"
+    assert service("parcelamento.parcsn.das").id_servico == "GERARDAS161"
     assert service("dctfweb.recibo").id_servico == "CONSRECIBO32"
     assert service("dctfweb.declaracao_completa").id_servico == "CONSDECCOMPLETA33"
 

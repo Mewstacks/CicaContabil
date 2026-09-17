@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import timedelta
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from django.test import TestCase
 from django.utils import timezone
@@ -455,13 +456,24 @@ class TrainingAndGatewayTests(TestCase):
     def test_sonnet_5_http_contract_is_validated_without_paid_api_call(
         self, mocked_urlopen
     ) -> None:
+        mocked_urlopen.return_value.__enter__.return_value.headers = {
+            "request-id": "req_12345678abc"
+        }
+        mocked_urlopen.return_value.__enter__.return_value.status = 200
         mocked_urlopen.return_value.__enter__.return_value.read.return_value = json.dumps(
             {
                 "model": "claude-sonnet-5",
                 "content": [{"type": "text", "text": "Resposta fundamentada."}],
+                "usage": {
+                    "input_tokens": 120,
+                    "output_tokens": 45,
+                    "cache_creation_input_tokens": 20,
+                    "cache_read_input_tokens": 10,
+                },
             }
         ).encode()
 
+        metadata = []
         completion = generate_claude_fallback_completion(
             api_key="only-a-mocked-test-key",
             model="claude-sonnet-5",
@@ -470,6 +482,7 @@ class TrainingAndGatewayTests(TestCase):
             conversation_context="",
             evidence=[{"label": "Fonte", "reference": "ref", "detail": "dado"}],
             allow_full_data=False,
+            on_response_metadata=lambda request_id, status: metadata.append((request_id, status)),
         )
 
         request = mocked_urlopen.call_args.args[0]
@@ -481,4 +494,33 @@ class TrainingAndGatewayTests(TestCase):
         self.assertEqual(payload["output_config"], {"effort": "low"})
         self.assertNotIn("temperature", payload)
         self.assertEqual(completion.content, "Resposta fundamentada.")
+        self.assertEqual(completion.input_tokens, 120)
+        self.assertEqual(completion.output_tokens, 45)
+        self.assertEqual(completion.cache_creation_input_tokens, 20)
+        self.assertEqual(completion.cache_read_input_tokens, 10)
+        self.assertEqual(completion.request_id, "req_12345678abc")
+        self.assertEqual(metadata, [("req_12345678abc", 200)])
         self.assertEqual(mocked_urlopen.call_count, 1)
+
+    @patch("apps.intelligence.gateway.urlopen")
+    def test_claude_http_error_keeps_request_id_for_support(self, mocked_urlopen) -> None:
+        mocked_urlopen.side_effect = HTTPError(
+            "https://api.anthropic.com/v1/messages",
+            429,
+            "rate limit",
+            {"request-id": "req_12345678error"},
+            None,
+        )
+        metadata = []
+        completion = generate_claude_fallback_completion(
+            api_key="only-a-mocked-test-key",
+            model="claude-sonnet-5",
+            question="Teste sem custo",
+            company_name="Empresa de teste",
+            conversation_context="",
+            evidence=[],
+            allow_full_data=False,
+            on_response_metadata=lambda request_id, status: metadata.append((request_id, status)),
+        )
+        self.assertIsNone(completion)
+        self.assertEqual(metadata, [("req_12345678error", 429)])

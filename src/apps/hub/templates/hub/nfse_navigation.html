@@ -1,0 +1,5 @@
+<nav class="workspace-tabs" aria-label="NFS-e">
+  <a href="{% url 'hub:nfse-center' %}"{% if request.resolver_match.url_name == 'nfse-center' and nfse_view != 'collection' %} aria-current="page"{% endif %}>Notas</a>
+  <a href="{% url 'hub:reviews' %}"{% if request.resolver_match.url_name == 'reviews' or request.resolver_match.url_name == 'review-detail' %} aria-current="{% if request.resolver_match.url_name == 'reviews' %}page{% else %}location{% endif %}"{% endif %}>Revisões{% if open_reviews_count %}<span class="workspace-tab-count">{{ open_reviews_count }}<span class="sr-only"> pendentes</span></span>{% endif %}</a>
+  <a href="{% url 'hub:nfse-center' %}?view=collection"{% if nfse_view == 'collection' %} aria-current="page"{% endif %}>Coleta automática</a>
+</nav>

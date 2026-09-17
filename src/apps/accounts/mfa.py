@@ -39,6 +39,7 @@ def is_required(user: User) -> bool:
     contracts = TenantContract.objects.filter(
         organization__memberships__user=user,
         organization__memberships__is_active=True,
+        organization__is_demo=False,
     ).order_by("organization_id", "-created_at", "-id")
     seen = set()
     for contract in contracts:
@@ -64,6 +65,7 @@ def is_required(user: User) -> bool:
         require_mfa=True,
         organization__memberships__user=user,
         organization__memberships__is_active=True,
+        organization__is_demo=False,
     )
     for profile in profiles:
         if profile.trial_started_at is None:

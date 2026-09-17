@@ -1,14 +1,14 @@
 .account-menu{position:relative;margin-left:auto}
 .account-button{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);cursor:pointer}
-.account-button:hover{background:#f0f4f8}
+.account-button:hover{background:var(--blue-soft)}
 .account-button svg{width:16px;fill:currentColor}
-.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:190px;padding:6px;border:1px solid var(--line);border-radius:10px;background:#fff;box-shadow:var(--shadow)}
+.account-list{position:absolute;top:calc(100% + 8px);right:0;z-index:40;min-width:190px;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow)}
 .account-list a,.account-list button{display:flex;width:100%;min-height:38px;align-items:center;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}
-.account-list a:hover,.account-list button:hover{background:#f0f4f8}
+.account-list a:hover,.account-list button:hover{background:var(--blue-soft)}
 .account-list form{margin:0}
 .account-logout{padding:6px;border:0;background:transparent;color:var(--blue);font:inherit;font-weight:750;cursor:pointer}
-.nfse-status{display:inline-flex;padding:3px 7px;border-radius:99px;font-size:11px;font-weight:800}.nfse-status-success{background:var(--green-soft);color:var(--green)}.nfse-status-attention{background:var(--amber-soft);color:var(--amber)}.nfse-status-muted{background:#f0f2f5;color:#718096}
-.composer-context{margin-right:auto;color:#65747a;font-size:12px;font-weight:700}
+.nfse-status{display:inline-flex;padding:3px 7px;border-radius:99px;font-size:11px;font-weight:800}.nfse-status-success{background:var(--green-soft);color:var(--green)}.nfse-status-attention{background:var(--amber-soft);color:var(--amber)}.nfse-status-muted{background:var(--surface-subtle);color:var(--muted)}
+.composer-context{margin-right:auto;color:var(--muted);font-size:12px;font-weight:700}
 @media(max-width:560px){
   .office-switcher .office-button{padding:7px}
   .office-switcher .office-button>span:nth-child(2),.office-switcher .office-button>svg{display:none}

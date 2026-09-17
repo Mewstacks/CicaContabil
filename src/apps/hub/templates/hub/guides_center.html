@@ -3,27 +3,79 @@
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:integra' %}">Voltar à Central Integra</a>{% endblock %}
 
 {% block workspace_content %}
-<section class="operation-summary" aria-labelledby="guides-heading">
-  <div><p class="section-kicker">GUIAS</p><h2 id="guides-heading">Guias e DCTFWeb</h2></div>
-</section>
-<p class="operation-context">Esta área acompanha obrigações recebidas do Domínio. A consulta da declaração DCTFWeb no Serpro ainda depende de implementação e homologação da conexão central.</p>
+<p class="operation-context">{% if office.is_demo %}Simule a emissão e baixe um PDF de exemplo, sem validade fiscal.{% else %}Confira as apurações do Domínio na DCTFWeb antes de emitir.{% endif %}</p>
+{% if not office.is_demo %}<p class="operation-context" role="status">Fonte Domínio: {% if guide_source_connector %}{{ guide_source_connector.get_mode_display }} · leitura realizada ao abrir esta carteira{% else %}não configurada{% endif %}. {{ guide_source_company_count }} empresa{{ guide_source_company_count|pluralize:'s' }} ativa{{ guide_source_company_count|pluralize:'s' }} no cadastro CICA.</p>{% endif %}
 
 <section class="metric-strip" aria-label="Resumo de obrigações">
-  <article><span>Vencem em 7 dias</span><strong>{{ guide_stats.due_this_week }}</strong></article>
-  <article class="{% if guide_stats.pending %}metric-needs-attention{% endif %}"><span>A emitir</span><strong>{{ guide_stats.pending }}</strong></article>
-  <article><span>Emitidas</span><strong>{{ guide_stats.issued }}</strong></article>
+  <article><span>Apurações no Domínio</span><strong>{{ dominio_calculation_total }}</strong><small>{{ dominio_calculation_companies }} empresa{{ dominio_calculation_companies|pluralize:'s' }} nos filtros</small></article>
+  <article class="{% if guide_stats.pending %}metric-needs-attention{% endif %}"><span>Guias oficiais a emitir</span><strong>{{ guide_stats.pending }}</strong>{% if guide_data_available %}<a href="?status=pending">Ver pendências</a>{% else %}<small>Aguardando conferência DCTFWeb</small>{% endif %}</article>
+  <article><span>Emitidas</span><strong>{% if guide_data_available %}{{ guide_stats.issued }}{% else %}—{% endif %}</strong>{% if guide_data_available %}<a href="?status=issued">Ver emitidas</a>{% else %}<small>Sem registros no sistema</small>{% endif %}</article>
 </section>
 
+<section class="workspace-panel guide-filter-panel" aria-labelledby="guide-filter-heading">
+  <header class="workspace-panel-head"><h2 id="guide-filter-heading">Filtrar apurações e guias</h2></header>
+  <form class="workspace-filter-form" method="get" aria-label="Pesquisar e filtrar guias">
+    <div class="workspace-filter-search"><label for="guide-search">Empresa ou competência</label><input id="guide-search" type="search" name="q" maxlength="100" value="{{ guide_search }}" autocomplete="off" placeholder="Nome, CNPJ, código ou mês…"></div>
+    <div><label for="guide-status">Situação</label><select id="guide-status" name="status" autocomplete="off"><option value="pending"{% if guide_status == 'pending' %} selected{% endif %}>Apurações ou a emitir</option><option value="issued"{% if guide_status == 'issued' %} selected{% endif %}>Emitidas</option><option value="failed"{% if guide_status == 'failed' %} selected{% endif %}>Com falha</option><option value="all"{% if guide_status == 'all' %} selected{% endif %}>Todas</option></select></div>
+    <div><label for="guide-due">Vencimento</label><select id="guide-due" name="due" autocomplete="off"><option value="all"{% if guide_due == 'all' %} selected{% endif %}>Qualquer data</option><option value="7"{% if guide_due == '7' %} selected{% endif %}>Próximos 7 dias</option><option value="overdue"{% if guide_due == 'overdue' %} selected{% endif %}>Vencidas</option></select></div>
+    <button class="button button-small" type="submit">Filtrar</button>
+    {% if guide_search or guide_status != 'pending' or guide_due != 'all' %}<a class="button button-quiet button-small" href="{% url 'hub:guides' %}">Limpar filtros</a>{% endif %}
+  </form>
+</section>
+
+{% if dominio_calculation_error %}<div class="inline-alert inline-alert-danger" role="alert"><strong>Não foi possível ler as apurações do Domínio.</strong><span>{{ dominio_calculation_error }}</span></div>{% endif %}
+
+{% if dominio_calculations %}
+<section class="workspace-panel" aria-labelledby="dominio-calculations-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">APURAÇÃO LOCAL</p><h2 id="dominio-calculations-heading">Apurações do Domínio</h2><p>Valores estimados. Confirme na DCTFWeb.</p></div><span class="record-count">{{ dominio_calculation_total }} competência{{ dominio_calculation_total|pluralize }}</span></header>
+  <form method="post" action="{% url 'hub:dctfweb-bulk-consult' %}" data-guide-bulk-form>{% csrf_token %}
+    <div class="bulk-toolbar" aria-label="Ações em lote">
+      <label class="checkbox-field"><input type="checkbox" data-guide-select-all>Selecionar esta página</label>
+      <span role="status" aria-live="polite" data-guide-selection-count>0 selecionadas</span>
+      <div class="guide-bulk-actions" data-guide-bulk-actions>
+        <label for="guide-bulk-kind">Documento</label><select id="guide-bulk-kind" name="kind" autocomplete="off" required><option value="declaration">Declaração completa</option><option value="receipt">Recibo de transmissão</option></select>
+        <button class="button button-small" type="submit" data-guide-bulk-submit>Consultar selecionadas</button>
+      </div>
+    </div>
+    <div class="data-table-wrap">
+      <table class="operational-table guide-calculation-table">
+        <colgroup><col class="guide-col-select"><col><col class="guide-col-period"><col class="guide-col-due"><col class="guide-col-amount"><col class="guide-col-action"></colgroup>
+        <thead><tr><th scope="col"><span class="sr-only">Selecionar</span></th><th scope="col">Empresa</th><th scope="col">Competência</th><th scope="col">Vencimento</th><th scope="col" class="guide-amount">Valor estimado</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+        <tbody>
+          {% for calculation in dominio_calculations %}
+          <tr>
+            <td class="guide-select"><label class="table-checkbox"><input type="checkbox" name="targets" value="{{ calculation.company.id }}|{{ calculation.competence_label }}" data-guide-target><span class="sr-only">Selecionar {{ calculation.company.name }} em {{ calculation.competence_label }}</span></label></td>
+            <td class="guide-company"><a href="{% url 'hub:company-detail' calculation.company.id %}?return_to={{ request.get_full_path|urlencode }}">{{ calculation.company.name }}</a><small>Domínio {{ calculation.company.dominio_code }} · {{ calculation.company.cnpj_masked }}</small></td>
+            <td data-label="Competência">{{ calculation.competence_label }}</td>
+            <td data-label="Vencimento">{{ calculation.due_on|date:"d/m/Y" }}{% if calculation.due_on_end != calculation.due_on %}<small>até {{ calculation.due_on_end|date:"d/m/Y" }}</small>{% endif %}</td>
+            <td data-label="Valor estimado" class="guide-amount">R$ {{ calculation.amount_brl|floatformat:2 }}{% if calculation.component_count > 1 %}<small>{{ calculation.component_count }} componentes</small>{% endif %}</td>
+            <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:dctfweb-consult' %}?company={{ calculation.company.id }}&amp;competence={{ calculation.competence_label|urlencode }}">Consultar<span class="sr-only"> DCTFWeb de {{ calculation.company.name }} em {{ calculation.competence_label }}</span></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
+  {% if calculation_page.has_other_pages %}
+  <nav class="pagination" aria-label="Páginas de apurações">
+    {% if calculation_page.has_previous %}<a class="button button-quiet button-small" href="?{{ calculation_query }}&amp;apuracao_pagina={{ calculation_page.previous_page_number }}#dominio-calculations-heading" rel="prev">Anterior</a>{% else %}<span></span>{% endif %}
+    <span class="pagination-status">{{ calculation_page.start_index }}–{{ calculation_page.end_index }} de {{ dominio_calculation_total }}</span>
+    {% if calculation_page.has_next %}<a class="button button-quiet button-small" href="?{{ calculation_query }}&amp;apuracao_pagina={{ calculation_page.next_page_number }}#dominio-calculations-heading" rel="next">Próxima</a>{% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="workspace-panel" aria-labelledby="guide-list-heading">
-  <header class="workspace-panel-head"><div><h2 id="guide-list-heading">Próximas guias</h2></div><span class="record-count">{{ guides|length }}</span></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">DCTFWEB</p><h2 id="guide-list-heading">Guias oficiais</h2><p>Resultados já conferidos na fonte oficial, com protocolo e histórico de emissão.</p></div><span class="record-count">{{ guide_filtered_total }} resultado{{ guide_filtered_total|pluralize }}</span></header>
   {% if guides %}
-    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Empresa</th><th>Obrigação</th><th>Vencimento</th><th>Valor</th><th>Status</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
-      {% for guide in guides %}<tr><td><strong>{{ guide.company.name }}</strong><small>{{ guide.competence }} · {{ guide.reference }}</small></td><td>{{ guide.get_kind_display }}</td><td>{{ guide.due_on|date:"d/m/Y" }}</td><td>R$ {{ guide.amount_brl|floatformat:2 }}</td><td><span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% elif guide.status == 'ready' %}is-warning{% else %}is-muted{% endif %}">{{ guide.get_status_display }}</span>{% if guide.error_message %}<small>{{ guide.error_message }}</small>{% endif %}</td><td class="table-action-cell">{% if can_issue_guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}<button class="row-action-button" type="button" data-modal-open="issue-guide-{{ guide.id }}">Emitir</button>{% endif %}{% endif %}</td></tr>
+    <div class="data-table-wrap"><table class="operational-table guide-official-table"><thead><tr><th>Empresa</th><th>Obrigação</th><th>Vencimento</th><th>Valor</th><th>Status</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for guide in guides %}<tr><td data-label="Empresa"><strong>{{ guide.company.name }}</strong><small>{{ guide.competence }} · {{ guide.reference }}</small></td><td data-label="Obrigação">{{ guide.get_kind_display }}</td><td data-label="Vencimento">{{ guide.due_on|date:"d/m/Y" }}</td><td data-label="Valor">R$ {{ guide.amount_brl|floatformat:2 }}</td><td data-label="Status"><span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% elif guide.status == 'ready' %}is-warning{% else %}is-muted{% endif %}">{% if office.is_demo %}{{ guide.get_status_display }} (fictícia){% else %}{{ guide.get_status_display }}{% endif %}</span>{% if guide.error_message %}<small>{{ guide.error_message }}</small>{% endif %}{% if guide.usage_error %}<small>{{ guide.usage_error }}</small>{% endif %}</td><td class="table-action-cell"><a href="{% url 'hub:guide-detail' guide.id %}?return_to={{ request.get_full_path|urlencode }}">Ver resultado<span class="sr-only"> de {{ guide.company.name }} na competência {{ guide.competence }}</span></a>{% if can_issue_guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}{% if guide.usage_quote %}<button class="row-action-button" type="button" data-modal-open="issue-guide-{{ guide.id }}">{% if office.is_demo %}Simular emissão{% else %}Emitir{% endif %}</button>{% else %}<span class="table-muted">Consumo indisponível</span>{% endif %}{% endif %}{% endif %}</td></tr>
       {% endfor %}
     </tbody></table></div>
-    {% if can_issue_guides %}{% for guide in guides %}{% if guide.status == 'ready' or guide.status == 'failed' %}<div id="issue-guide-{{ guide.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="issue-guide-title-{{ guide.id }}"><header class="modal-head"><div><p class="section-kicker">CONFIRMAR EMISSÃO</p><h2 id="issue-guide-title-{{ guide.id }}">Emitir {{ guide.get_kind_display }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>Será emitida para <strong>{{ guide.company.name }}</strong>, competência {{ guide.competence }}, com vencimento em {{ guide.due_on|date:"d/m/Y" }}.</p><form method="post" action="{% url 'hub:issue-guide' guide.id %}" class="modal-actions">{% csrf_token %}<button class="button" type="submit">Confirmar emissão</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}{% endfor %}{% endif %}
+    {% if can_issue_guides %}{% for guide in guides %}{% if guide.usage_quote %}<div id="issue-guide-{{ guide.id }}" class="modal-backdrop" data-modal hidden><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="issue-guide-title-{{ guide.id }}"><header class="modal-head"><div><p class="section-kicker">CONFIRMAR EMISSÃO</p><h2 id="issue-guide-title-{{ guide.id }}">{% if office.is_demo %}Simular emissão{% else %}Emitir{% endif %} {{ guide.get_kind_display }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>{% if office.is_demo %}O resultado será fictício e não criará guia oficial para{% else %}Será emitida para{% endif %} <strong>{{ guide.company.name }}</strong>, competência {{ guide.competence }}, com vencimento em {{ guide.due_on|date:"d/m/Y" }}.</p>{% if not office.is_demo %}<p><strong>{{ guide.usage_quote.total_tokens }} token{{ guide.usage_quote.total_tokens|pluralize }}</strong> nesta emissão{% if guide.usage_quote.additional_overage_cents %}, com R$ {{ guide.usage_overage_brl|floatformat:2 }} de excedente{% else %}, dentro da franquia{% endif %}.</p>{% endif %}<form method="post" action="{% url 'hub:issue-guide' guide.id %}" class="modal-actions">{% csrf_token %}<input type="hidden" name="approved_overage_cents" value="{{ guide.usage_quote.additional_overage_cents }}"><button class="button" type="submit">{% if office.is_demo %}Gerar resultado fictício{% else %}Confirmar {{ guide.usage_quote.total_tokens }} token{{ guide.usage_quote.total_tokens|pluralize }}{% endif %}</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}{% endfor %}{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma obrigação carregada</strong><p>Verifique a conexão e a última sincronização do Domínio. Quando houver obrigações recebidas, elas aparecerão aqui por empresa e vencimento.</p><a class="button button-quiet" href="{% url 'hub:settings' %}#dominio">Ver conexão do Domínio</a></div>
+    {% if guide_data_available %}<div class="empty-block operational-empty"><strong>Nenhuma guia oficial corresponde aos filtros</strong><p>Altere a situação, o vencimento ou a pesquisa para voltar à fila da carteira.</p><a class="button button-quiet" href="{% url 'hub:guides' %}">Limpar filtros</a></div>{% elif dominio_calculations %}<div class="empty-block operational-empty"><strong>Nenhuma guia oficial conferida</strong><p>Consulte a DCTFWeb para confirmar os valores antes de emitir.</p></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma apuração encontrada nos filtros</strong><p>Confira a competência e a última sincronização do Domínio.</p><a class="button button-quiet" href="{% url 'hub:settings' %}#dominio">Ver origem e sincronização</a></div>{% endif %}
   {% endif %}
 </section>
 {% endblock %}

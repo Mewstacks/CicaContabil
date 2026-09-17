@@ -4,6 +4,7 @@ import hashlib
 import secrets
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import models
 from django.utils import timezone
@@ -55,6 +56,21 @@ class PlatformConfiguration(UUIDTimeStampedModel):
     transactional_email_password = EncryptedTextField(blank=True)
     transactional_email_use_tls = models.BooleanField(default=True)
     transactional_email_from = models.EmailField(blank=True)
+    # Central Serpro A1 custody. The PKCS#12 bytes and password are encrypted at
+    # application level and are never exposed again by the console.
+    integra_certificate_blob = EncryptedTextField(blank=True)
+    integra_certificate_password = EncryptedTextField(blank=True)
+    integra_certificate_name = models.CharField(max_length=180, blank=True)
+    integra_certificate_fingerprint = models.CharField(max_length=64, blank=True)
+    integra_certificate_subject = models.CharField(max_length=240, blank=True)
+    integra_certificate_valid_until = models.DateTimeField(null=True, blank=True)
+    # Central Serpro credentials are write-only in the developer console. They
+    # may be rotated without exposing the previous value or relying on a deploy.
+    integra_consumer_key = EncryptedTextField(blank=True)
+    integra_consumer_secret = EncryptedTextField(blank=True)
+    integra_contratante_cnpj = models.CharField(max_length=14, blank=True)
+    integra_autor_pedido_cnpj = models.CharField(max_length=14, blank=True)
+    integra_environment = models.CharField(max_length=16, blank=True)
     updated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -84,6 +100,7 @@ class OperationalRun(UUIDTimeStampedModel):
     class State(models.TextChoices):
         RUNNING = "running", "Em execução"
         SUCCEEDED = "succeeded", "Concluída"
+        PARTIAL = "partial", "Parcial"
         FAILED = "failed", "Falhou"
 
     task = models.CharField(max_length=48, choices=Task.choices, db_index=True)
@@ -96,6 +113,31 @@ class OperationalRun(UUIDTimeStampedModel):
 
     class Meta:
         indexes = [models.Index(fields=("task", "-started_at"))]
+
+
+class BillingCloseDeferral(UUIDTimeStampedModel):
+    """Office-level evidence that monthly billing waited for reserved work."""
+
+    organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.PROTECT,
+        related_name="billing_close_deferrals",
+    )
+    period_start = models.DateField()
+    reason = models.CharField(max_length=40, default="reserved_usage")
+    last_seen_at = models.DateTimeField(default=timezone.now)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "period_start"),
+                name="platform_unique_billing_close_deferral",
+            )
+        ]
+        indexes = [
+            models.Index(fields=("resolved_at", "period_start"),
+                         name="plat_bill_deferral_open_idx")
+        ]
 
 
 class PlatformAccess(UUIDTimeStampedModel):
@@ -220,6 +262,192 @@ class TenantContract(UUIDTimeStampedModel):
     asaas_customer_id = models.CharField(max_length=80, blank=True)
     asaas_subscription_id = models.CharField(max_length=80, blank=True)
     notes = models.CharField(max_length=240, blank=True)
+
+
+class TokenPriceBook(UUIDTimeStampedModel):
+    """A contract-specific, versioned token offer; drafts cannot dispatch usage."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Rascunho"
+        ACTIVE = "active", "Ativa"
+        RETIRED = "retired", "Encerrada"
+
+    contract = models.ForeignKey(
+        TenantContract, on_delete=models.PROTECT, related_name="token_price_books"
+    )
+    version = models.PositiveIntegerField()
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
+    token_price_cents = models.PositiveIntegerField(null=True, blank=True)
+    monthly_overage_cap_cents = models.PositiveIntegerField(null=True, blank=True)
+    effective_from = models.DateField(null=True, blank=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.PROTECT, related_name="accepted_token_price_books",
+    )
+    accepted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("contract", "version"), name="platform_unique_token_book_version"
+            ),
+            models.UniqueConstraint(
+                fields=("contract",),
+                condition=models.Q(status="active"),
+                name="platform_unique_active_token_book",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    ~models.Q(status="active")
+                    | (
+                        models.Q(token_price_cents__gt=0)
+                        & models.Q(monthly_overage_cap_cents__isnull=False)
+                        & models.Q(effective_from__isnull=False)
+                        & models.Q(accepted_by__isnull=False)
+                        & models.Q(accepted_at__isnull=False)
+                    )
+                ),
+                name="platform_active_token_book_has_price_cap",
+            ),
+        ]
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        if self.pk:
+            previous = type(self).objects.filter(pk=self.pk).first()
+            if previous and previous.status in {self.Status.ACTIVE, self.Status.RETIRED}:
+                frozen = (
+                    "contract_id", "version", "token_price_cents",
+                    "monthly_overage_cap_cents", "effective_from", "activated_at",
+                    "accepted_by_id", "accepted_at",
+                )
+                if any(getattr(self, field) != getattr(previous, field) for field in frozen):
+                    raise ValidationError(
+                        "Preço e aceite de tokens estão congelados. Crie outra versão."
+                    )
+                if previous.status == self.Status.RETIRED and self.status != previous.status:
+                    raise ValidationError("Uma tabela encerrada não pode voltar a ser ativa.")
+                if previous.status == self.Status.ACTIVE and self.status not in {
+                    self.Status.ACTIVE, self.Status.RETIRED
+                }:
+                    raise ValidationError("Uma tabela ativa só pode ser encerrada.")
+        super().save(*args, **kwargs)
+
+
+class TokenModuleRate(UUIDTimeStampedModel):
+    """One module's fixed monthly price and separate included token allowance."""
+
+    book = models.ForeignKey(TokenPriceBook, on_delete=models.PROTECT, related_name="module_rates")
+    module_code = models.CharField(max_length=40)
+    monthly_base_cents = models.PositiveIntegerField(null=True, blank=True)
+    included_tokens = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("book", "module_code"), name="platform_unique_token_module_rate"
+            )
+        ]
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        if not TokenPriceBook.objects.filter(
+            id=self.book_id, status=TokenPriceBook.Status.DRAFT
+        ).exists():
+            raise ValidationError(
+                "Mensalidade e franquia estão congeladas. Crie outra versão da tabela."
+            )
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: object, **kwargs: object) -> tuple[int, dict[str, int]]:
+        if not TokenPriceBook.objects.filter(
+            id=self.book_id, status=TokenPriceBook.Status.DRAFT
+        ).exists():
+            raise ValidationError("Uma mensalidade aceita não pode ser excluída.")
+        return super().delete(*args, **kwargs)
+
+
+class TokenActionWeight(UUIDTimeStampedModel):
+    """An integer token weight for one operation inside one module."""
+
+    module_rate = models.ForeignKey(
+        TokenModuleRate, on_delete=models.PROTECT, related_name="action_weights"
+    )
+    action_code = models.CharField(max_length=100)
+    tokens = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("module_rate", "action_code"), name="platform_unique_token_action_weight"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(tokens__isnull=True) | models.Q(tokens__gt=0),
+                name="platform_token_weight_positive",
+            ),
+        ]
+
+    def save(self, *args: object, **kwargs: object) -> None:
+        if not TokenPriceBook.objects.filter(
+            module_rates__id=self.module_rate_id,
+            status=TokenPriceBook.Status.DRAFT,
+        ).exists():
+            raise ValidationError("Peso aceito está congelado. Crie outra versão da tabela.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: object, **kwargs: object) -> tuple[int, dict[str, int]]:
+        if not TokenPriceBook.objects.filter(
+            module_rates__id=self.module_rate_id,
+            status=TokenPriceBook.Status.DRAFT,
+        ).exists():
+            raise ValidationError("Um peso aceito não pode ser excluído.")
+        return super().delete(*args, **kwargs)
+
+
+class TokenMeter(UUIDTimeStampedModel):
+    """Monthly balance snapshotted by module, never shared across modules."""
+
+    organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.PROTECT, related_name="token_meters"
+    )
+    contract = models.ForeignKey(TenantContract, on_delete=models.PROTECT)
+    book = models.ForeignKey(TokenPriceBook, on_delete=models.PROTECT)
+    module_code = models.CharField(max_length=40)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    included_tokens = models.PositiveIntegerField()
+    token_price_cents = models.PositiveIntegerField()
+    reserved_tokens = models.PositiveIntegerField(default=0)
+    consumed_tokens = models.PositiveIntegerField(default=0)
+    overage_tokens = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "module_code", "period_start"),
+                name="platform_unique_token_meter_period",
+            )
+        ]
+
+
+class TokenUsageEvent(UUIDTimeStampedModel):
+    """Reservation and settlement with a frozen module, weight and token value."""
+
+    class Status(models.TextChoices):
+        RESERVED = "reserved", "Reservado"
+        SETTLED = "settled", "Consumido"
+        RELEASED = "released", "Liberado"
+
+    meter = models.ForeignKey(TokenMeter, on_delete=models.PROTECT, related_name="events")
+    organization = models.ForeignKey("organizations.Organization", on_delete=models.PROTECT)
+    module_code = models.CharField(max_length=40)
+    action_code = models.CharField(max_length=100)
+    idempotency_key = models.CharField(max_length=160, unique=True)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RESERVED)
+    tokens = models.PositiveIntegerField()
+    token_price_cents = models.PositiveIntegerField()
+    overage_cents = models.PositiveIntegerField(default=0)
+    provider_request_id = models.CharField(max_length=160, blank=True)
+    provider_http_status = models.PositiveSmallIntegerField(null=True, blank=True)
 
 
 class TenantServiceRate(UUIDTimeStampedModel):

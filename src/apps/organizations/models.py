@@ -19,6 +19,7 @@ class Organization(UUIDTimeStampedModel):
     name = models.CharField(max_length=160)
     slug = models.CharField(max_length=63, unique=True, validators=[slug_validator])
     is_active = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("name",)

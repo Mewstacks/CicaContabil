@@ -172,7 +172,9 @@ def rebuild_reconciliation_matches(
         transactions = transactions.filter(statement__company=company)
     for transaction_item in transactions.iterator():
         existing = ReconciliationMatch.objects.filter(transaction=transaction_item).first()
-        if existing is not None and existing.is_manual and existing.dominio_entry_id:
+        if existing is not None and existing.is_manual and (
+            existing.dominio_entry_id or existing.accounting_entry_id
+        ):
             continue
         candidates = AccountingEntry.objects.filter(
             organization=organization,
@@ -190,15 +192,9 @@ def rebuild_reconciliation_matches(
                 amount_cents=abs(transaction_item.amount_cents),
             ).order_by("id")
         legacy_count = legacy_candidates.count()
-        if count == 1:
-            status = ReconciliationMatch.Status.MATCHED
-            entry = candidates.first()
-            dominio_entry = None
-        elif legacy_count == 1:
-            status = ReconciliationMatch.Status.MATCHED
-            entry = None
-            dominio_entry = legacy_candidates.first()
-        elif count > 1 or legacy_count > 1:
+        if count or legacy_count:
+            # Value and date are only a suggestion. An operator confirms every
+            # candidate after comparing the source evidence.
             status = ReconciliationMatch.Status.AMBIGUOUS
             entry = None
             dominio_entry = None
@@ -223,22 +219,28 @@ def rebuild_reconciliation_matches(
 def confirm_reconciliation_match(
     *,
     match: ReconciliationMatch,
-    dominio_entry: DominioBankEntry,
+    dominio_entry: DominioBankEntry | None = None,
+    accounting_entry: AccountingEntry | None = None,
     actor: object = None,
     request: object = None,
 ) -> ReconciliationMatch:
     """Confirm one compatible candidate and prevent later sync from replacing the decision."""
     transaction_item = match.transaction
+    if (dominio_entry is None) == (accounting_entry is None):
+        raise ValueError("Escolha exatamente um lançamento contábil para confirmar.")
+    selected_entry = dominio_entry or accounting_entry
+    assert selected_entry is not None
     if (
-        dominio_entry.organization_id != match.organization_id
-        or dominio_entry.company_id != transaction_item.statement.company_id
-        or dominio_entry.occurred_on != transaction_item.occurred_on
-        or dominio_entry.amount_cents != abs(transaction_item.amount_cents)
+        selected_entry.organization_id != match.organization_id
+        or selected_entry.company_id != transaction_item.statement.company_id
+        or selected_entry.occurred_on != transaction_item.occurred_on
+        or selected_entry.amount_cents != abs(transaction_item.amount_cents)
     ):
         raise ValueError("O item escolhido não corresponde a esta transação.")
     with transaction.atomic():
         locked = ReconciliationMatch.objects.select_for_update().get(id=match.id)
         locked.dominio_entry = dominio_entry
+        locked.accounting_entry = accounting_entry
         locked.status = ReconciliationMatch.Status.MATCHED
         locked.is_manual = True
         locked.resolved_by = actor if isinstance(actor, User) else None
@@ -246,6 +248,7 @@ def confirm_reconciliation_match(
         locked.save(
             update_fields=[
                 "dominio_entry",
+                "accounting_entry",
                 "status",
                 "is_manual",
                 "resolved_by",
@@ -259,6 +262,9 @@ def confirm_reconciliation_match(
             organization=locked.organization,
             target=locked,
             request=request,
-            metadata={"dominio_entry_id": str(dominio_entry.id)},
+            metadata={
+                "source_kind": "dominio" if dominio_entry is not None else "accounting",
+                "source_entry_id": str(selected_entry.id),
+            },
         )
     return locked

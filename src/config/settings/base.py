@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -38,6 +39,16 @@ if cloudflare_quick_tunnel_origin not in CSRF_TRUSTED_ORIGINS:
 
 INTELLIGENCE_ATTACHMENT_RETRY_LIMIT = env_int("INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)
 ASAAS_WEBHOOK_TOKEN = env_str("ASAAS_WEBHOOK_TOKEN")
+TOKEN_BILLING_ENABLED = env_bool("TOKEN_BILLING_ENABLED", False)
+RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = env_bool(
+    "RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED", False
+)
+RECONCILIATION_TESSERACT_PATH = os.environ.get("RECONCILIATION_TESSERACT_PATH", "")
+RECONCILIATION_TESSDATA_PATH = os.environ.get("RECONCILIATION_TESSDATA_PATH", "")
+DEMO_ENTRY_ENABLED = env_bool("DEMO_ENTRY_ENABLED", False)
+DEMO_ORGANIZATION_SLUG = env_str("DEMO_ORGANIZATION_SLUG", "escritorio-demo")
+# The public switch must not bypass incomplete per-visitor progress isolation.
+DEMO_SESSION_ISOLATION_READY = env_bool("DEMO_SESSION_ISOLATION_READY", False)
 
 DJANGO_APPS = [
     "django.contrib.admin",
@@ -382,6 +393,19 @@ TRIAGE_MS_CLIENT_SECRET = env_str("TRIAGE_MS_CLIENT_SECRET")
 TRIAGE_GOOGLE_OAUTH_ENABLED = env_bool("TRIAGE_GOOGLE_OAUTH_ENABLED", False)
 TRIAGE_GOOGLE_CLIENT_ID = env_str("TRIAGE_GOOGLE_CLIENT_ID")
 TRIAGE_GOOGLE_CLIENT_SECRET = env_str("TRIAGE_GOOGLE_CLIENT_SECRET")
+TRIAGE_GOOGLE_PERSONAL_VERIFIED = env_bool("TRIAGE_GOOGLE_PERSONAL_VERIFIED", False)
+# Candidate local antimalware transport. Disabled until the office-facing policy and
+# deployment are approved; TCP is hard-wired to loopback by the adapter.
+TRIAGE_CLAMD_SOCKET = env_str("TRIAGE_CLAMD_SOCKET")
+TRIAGE_CLAMD_PORT = env_int("TRIAGE_CLAMD_PORT", 0)
+TRIAGE_EMAIL_POLL_ENABLED = env_bool("TRIAGE_EMAIL_POLL_ENABLED", False)
+TRIAGE_EMAIL_POLL_INTERVAL_MINUTES = max(1, env_int("TRIAGE_EMAIL_POLL_INTERVAL_MINUTES", 5))
+
+# Contributor distribution in the official NFS-e ADN. Disabled until the first
+# production-restricted certificate pilot is explicitly homologated.
+NFSE_ADN_SYNC_ENABLED = env_bool("NFSE_ADN_SYNC_ENABLED", False)
+NFSE_ADN_ENVIRONMENT = env_str("NFSE_ADN_ENVIRONMENT", "trial")
+NFSE_ADN_POLL_INTERVAL_MINUTES = max(5, env_int("NFSE_ADN_POLL_INTERVAL_MINUTES", 15))
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
@@ -479,9 +503,29 @@ CELERY_BEAT_SCHEDULE = {
         "task": "intelligence.retry_pending_attachments",
         "schedule": timedelta(minutes=5),
     },
+    "reconcile-stale-claude-attempts": {
+        "task": "intelligence.reconcile_claude_attempts",
+        "schedule": timedelta(minutes=5),
+    },
+    "dispatch-active-triage-mailboxes": {
+        "task": "triage.dispatch_active_mailboxes",
+        "schedule": timedelta(minutes=TRIAGE_EMAIL_POLL_INTERVAL_MINUTES),
+    },
+    "dispatch-active-nfse-syncs": {
+        "task": "hub.dispatch_active_nfse_syncs",
+        "schedule": timedelta(minutes=NFSE_ADN_POLL_INTERVAL_MINUTES),
+    },
     "refresh-reform-radar": {
         "task": "hub.refresh_reform_sources",
         "schedule": crontab(hour=5, minute=20),
+    },
+    "recover-reconciliation-runs": {
+        "task": "hub.recover_reconciliation_runs",
+        "schedule": timedelta(minutes=5),
+    },
+    "dispatch-waiting-reconciliation-runs": {
+        "task": "hub.dispatch_waiting_reconciliation_runs",
+        "schedule": timedelta(minutes=1),
     },
 }
 
