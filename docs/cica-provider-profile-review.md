@@ -30,7 +30,7 @@ Revisado em 13/09/2026 para a preparação comercial da CICA.
 
 ## Evidências
 
-- Testes: `tests/test_cica_configuration.py` e `tests/test_regaro_cnpj.py`.
+- Testes: `tests/test_cica_configuration.py` e `tests/test_cica_cnpj.py`.
 - Playwright: sincronização real, erro de franquia do Copiloto, foco no resumo
   de erros, desktop 1440×900, mobile 390×844, landscape 844×390, ausência de
   overflow horizontal e ausência de erros/avisos no console.

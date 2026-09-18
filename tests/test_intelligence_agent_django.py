@@ -102,6 +102,41 @@ class EdgeAgentTests(TestCase):
         self.assertIsNone(connector.sync_requested_at)
         self.assertIsNotNone(connector.sync_request_completed_at)
 
+    def test_native_agent_syncs_bounded_local_companies_without_deactivation(self) -> None:
+        enrollment = issue_enrollment(organization=self.organization)
+        credentials = self.client.post(
+            reverse("intelligence-agent-enroll"),
+            data=json.dumps({"code": enrollment.code, "label": "Servidor", "fingerprint": "fp"}),
+            content_type="application/json",
+        ).json()
+        body = json.dumps(
+            {
+                "companies": [
+                    {"codigo": "001", "nome": "Empresa local", "cnpj_masked": "12.345.678/0001-90"}
+                ]
+            }
+        ).encode()
+        timestamp = str(int(timezone.now().timestamp()))
+        signature = hmac.new(
+            credentials["shared_secret"].encode(), timestamp.encode() + b"." + body, hashlib.sha256
+        ).hexdigest()
+        response = self.client.post(
+            reverse("agent-v2-dominio-companies"),
+            data=body,
+            content_type="application/json",
+            headers={
+                "X-Hub-Agent-ID": credentials["agent_id"],
+                "X-Hub-Agent-Timestamp": timestamp,
+                "X-Hub-Agent-Signature": signature,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["created"], 1)
+        connector = IntelligenceConnector.objects.get(
+            organization=self.organization, mode=IntelligenceConnector.Mode.EDGE_AGENT
+        )
+        self.assertEqual(connector.status, "healthy")
+
     def test_revoked_agent_cannot_sync(self) -> None:
         enrollment = issue_enrollment(organization=self.organization)
         enrolled = self.client.post(

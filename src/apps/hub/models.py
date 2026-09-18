@@ -22,7 +22,9 @@ def private_import_path(instance: ImportBatch, filename: str) -> str:
 def private_reconciliation_path(instance: models.Model, filename: str) -> str:
     """Keep financial evidence private and unguessable in the configured storage."""
     suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
-    return f"private/reconciliation/{instance.organization_id}/{instance.pk or uuid.uuid4()}.{suffix}"
+    return (
+        f"private/reconciliation/{instance.organization_id}/{instance.pk or uuid.uuid4()}.{suffix}"
+    )
 
 
 class OfficeProfile(OrganizationScopedModel):
@@ -440,6 +442,7 @@ class DataSource(OrganizationScopedModel):
     class Kind(models.TextChoices):
         DOMINIO_LOCAL_AGENT = "dominio_local_agent", "Domínio Local (agente)"
         DOMINIO_WEB_BACKUP = "dominio_web_backup", "Domínio Web (backup manual)"
+        SIESCON = "siescon", "Siescon"
         OTHER_MANUAL = "other_manual", "Outro sistema (importação manual)"
         DOMINIO_OFFICIAL_API = "dominio_official_api", "Domínio API oficial"
 
@@ -1128,7 +1131,9 @@ class ReconciliationSourceFile(OrganizationScopedModel):
         OBLIGATION = "obligation", "Títulos ou obrigações"
         DOCUMENT = "document", "Documento comprobatório"
 
-    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="reconciliation_files")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.PROTECT, related_name="reconciliation_files"
+    )
     financial_account = models.ForeignKey(
         "FinancialAccount",
         null=True,
@@ -1144,7 +1149,11 @@ class ReconciliationSourceFile(OrganizationScopedModel):
     size_bytes = models.PositiveIntegerField()
     content = models.FileField(upload_to=private_reconciliation_path)
     uploaded_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_files"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_files",
     )
 
     class Meta:
@@ -1168,7 +1177,9 @@ class ReconciliationRun(OrganizationScopedModel):
         FAILED = "failed", "Falhou"
         CANCELED = "canceled", "Cancelada"
 
-    source_file = models.ForeignKey(ReconciliationSourceFile, on_delete=models.PROTECT, related_name="runs")
+    source_file = models.ForeignKey(
+        ReconciliationSourceFile, on_delete=models.PROTECT, related_name="runs"
+    )
     continued_from = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="retries"
     )
@@ -1183,7 +1194,11 @@ class ReconciliationRun(OrganizationScopedModel):
     checkpoint = models.JSONField(default=dict)
     errors = models.JSONField(default=list)
     layout_version = models.ForeignKey(
-        "ReconciliationLayout", null=True, blank=True, on_delete=models.SET_NULL, related_name="runs"
+        "ReconciliationLayout",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="runs",
     )
     lease_token = models.UUIDField(null=True, blank=True, editable=False)
     lease_until = models.DateTimeField(null=True, blank=True, editable=False)
@@ -1191,7 +1206,11 @@ class ReconciliationRun(OrganizationScopedModel):
     started_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_runs"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_runs",
     )
 
     class Meta:
@@ -1203,7 +1222,9 @@ class ReconciliationRun(OrganizationScopedModel):
 
 
 class ReconciliationLayout(OrganizationScopedModel):
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_layouts")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_layouts"
+    )
     kind = models.CharField(max_length=12, choices=ReconciliationSourceFile.Kind.choices)
     name = models.CharField(max_length=120)
     version = models.PositiveIntegerField(default=1)
@@ -1211,7 +1232,11 @@ class ReconciliationLayout(OrganizationScopedModel):
     header_signature = models.CharField(max_length=64, blank=True)
     configuration = models.JSONField(default=dict)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_layouts"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_layouts",
     )
 
     class Meta:
@@ -1225,7 +1250,9 @@ class ReconciliationLayout(OrganizationScopedModel):
 
 
 class FinancialAccount(OrganizationScopedModel):
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="financial_accounts")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="financial_accounts"
+    )
     name = models.CharField(max_length=160)
     bank_code = models.CharField(max_length=20, blank=True)
     account_reference = models.CharField(max_length=160, blank=True)
@@ -1242,7 +1269,9 @@ class FinancialAccount(OrganizationScopedModel):
 
 
 class LedgerAccount(OrganizationScopedModel):
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="ledger_accounts")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="ledger_accounts"
+    )
     code = models.CharField(max_length=64)
     name = models.CharField(max_length=200)
     nature = models.CharField(max_length=12, blank=True)
@@ -1258,7 +1287,9 @@ class LedgerAccount(OrganizationScopedModel):
 
 
 class CostCenter(OrganizationScopedModel):
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="cost_centers")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="cost_centers"
+    )
     code = models.CharField(max_length=64)
     name = models.CharField(max_length=160)
     active = models.BooleanField(default=True)
@@ -1273,12 +1304,18 @@ class CostCenter(OrganizationScopedModel):
 
 
 class AccountingPeriod(OrganizationScopedModel):
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="accounting_periods")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="accounting_periods"
+    )
     starts_on = models.DateField()
     ends_on = models.DateField()
     locked_at = models.DateTimeField(null=True, blank=True)
     locked_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="locked_accounting_periods"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="locked_accounting_periods",
     )
     lock_reason = models.CharField(max_length=240, blank=True)
 
@@ -1297,7 +1334,9 @@ class ReconciliationRule(OrganizationScopedModel):
         ACTIVE = "active", "Ativa"
         DISABLED = "disabled", "Desativada"
 
-    company = models.ForeignKey("ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_rules")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_rules"
+    )
     name = models.CharField(max_length=160)
     priority = models.PositiveIntegerField(default=100)
     version = models.PositiveIntegerField(default=1)
@@ -1306,7 +1345,11 @@ class ReconciliationRule(OrganizationScopedModel):
     any_conditions = models.JSONField(default=list)
     actions = models.JSONField(default=dict)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="reconciliation_rules"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="reconciliation_rules",
     )
 
     class Meta:
@@ -1332,8 +1375,12 @@ class NormalizedMovement(OrganizationScopedModel):
         CONFLICT = "conflict", "Conflito"
 
     run = models.ForeignKey(ReconciliationRun, on_delete=models.PROTECT, related_name="movements")
-    source_file = models.ForeignKey(ReconciliationSourceFile, on_delete=models.PROTECT, related_name="movements")
-    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="normalized_movements")
+    source_file = models.ForeignKey(
+        ReconciliationSourceFile, on_delete=models.PROTECT, related_name="movements"
+    )
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.PROTECT, related_name="normalized_movements"
+    )
     financial_account = models.ForeignKey(
         FinancialAccount, null=True, blank=True, on_delete=models.SET_NULL, related_name="movements"
     )
@@ -1353,18 +1400,28 @@ class NormalizedMovement(OrganizationScopedModel):
     credit_account_code = models.CharField(max_length=64, blank=True)
     cost_center_code = models.CharField(max_length=64, blank=True)
     accounting_history = models.CharField(max_length=500, blank=True)
-    review_state = models.CharField(max_length=12, choices=ReviewState.choices, default=ReviewState.PENDING)
+    review_state = models.CharField(
+        max_length=12, choices=ReviewState.choices, default=ReviewState.PENDING
+    )
     classification_source = models.CharField(
         max_length=12, choices=ClassificationSource.choices, default=ClassificationSource.NONE
     )
     confidence = models.PositiveSmallIntegerField(default=0)
     confidence_details = models.JSONField(default=dict)
     applied_rule = models.ForeignKey(
-        ReconciliationRule, null=True, blank=True, on_delete=models.SET_NULL, related_name="applied_movements"
+        ReconciliationRule,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="applied_movements",
     )
     revision = models.PositiveIntegerField(default=1)
     edited_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="edited_movements"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="edited_movements",
     )
 
     class Meta:
@@ -1387,9 +1444,15 @@ class JournalEntry(OrganizationScopedModel):
         EXPORTED = "exported", "Exportado"
         INVALID = "invalid", "Inválido"
 
-    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="journal_entries")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.PROTECT, related_name="journal_entries"
+    )
     movement = models.ForeignKey(
-        NormalizedMovement, null=True, blank=True, on_delete=models.SET_NULL, related_name="journal_entries"
+        NormalizedMovement,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="journal_entries",
     )
     source_movement_revision = models.PositiveIntegerField(null=True, blank=True)
     occurred_on = models.DateField()
@@ -1399,7 +1462,11 @@ class JournalEntry(OrganizationScopedModel):
     revision = models.PositiveIntegerField(default=1)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="approved_journal_entries"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="approved_journal_entries",
     )
 
     class Meta:
@@ -1425,14 +1492,22 @@ class MovementReconciliation(OrganizationScopedModel):
         CONFIRMED = "confirmed", "Confirmada"
         UNDONE = "undone", "Desfeita"
 
-    movement = models.ForeignKey(NormalizedMovement, on_delete=models.CASCADE, related_name="reconciliations")
-    entry = models.ForeignKey(JournalEntry, on_delete=models.PROTECT, related_name="movement_reconciliations")
+    movement = models.ForeignKey(
+        NormalizedMovement, on_delete=models.CASCADE, related_name="reconciliations"
+    )
+    entry = models.ForeignKey(
+        JournalEntry, on_delete=models.PROTECT, related_name="movement_reconciliations"
+    )
     amount_cents = models.PositiveBigIntegerField()
     state = models.CharField(max_length=12, choices=State.choices, default=State.SUGGESTED)
     evidence = models.JSONField(default=dict)
     confirmed_at = models.DateTimeField(null=True, blank=True)
     confirmed_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="confirmed_movement_reconciliations"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_movement_reconciliations",
     )
 
     class Meta:
@@ -1444,15 +1519,22 @@ class MovementReconciliation(OrganizationScopedModel):
 
 
 class AccountingExport(OrganizationScopedModel):
+    class Target(models.TextChoices):
+        DOMINIO = "dominio", "Domínio"
+        SIESCON = "siescon", "Siescon"
+
     class State(models.TextChoices):
         GENERATING = "generating", "Gerando"
         READY = "ready", "Arquivo gerado"
         CONFIRMED = "confirmed", "Importação confirmada"
         FAILED = "failed", "Falhou"
 
-    company = models.ForeignKey("ClientCompany", on_delete=models.PROTECT, related_name="accounting_exports")
+    company = models.ForeignKey(
+        "ClientCompany", on_delete=models.PROTECT, related_name="accounting_exports"
+    )
     period_start = models.DateField()
     period_end = models.DateField()
+    target = models.CharField(max_length=24, choices=Target.choices, default=Target.DOMINIO)
     state = models.CharField(max_length=16, choices=State.choices, default=State.GENERATING)
     adapter_version = models.CharField(max_length=32, default="dominio-3.1-pending-homologation")
     content_hash = models.CharField(max_length=64, blank=True)
@@ -1463,11 +1545,19 @@ class AccountingExport(OrganizationScopedModel):
     )
     reexport_reason = models.CharField(max_length=240, blank=True)
     created_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="accounting_exports"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="accounting_exports",
     )
     confirmed_at = models.DateTimeField(null=True, blank=True)
     confirmed_by = models.ForeignKey(
-        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="confirmed_accounting_exports"
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_accounting_exports",
     )
 
     class Meta:

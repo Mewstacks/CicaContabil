@@ -27,3 +27,7 @@ jobs:
       - run: uv run pytest -q
       - run: docker build --tag saas-backend:test .
       - run: docker build --file runtime/multimodal/Dockerfile --tag hubcontador-multimodal:test .
+      - run: >-
+          docker build --file runtime/trainer/Dockerfile
+          --build-arg LLAMAFACTORY_IMAGE=hiyouga/llamafactory@sha256:46b6969e444681829294ed1fce2c4e8848613e654b682dc0359ba94357a0267b
+          --tag cica-trainer:test .

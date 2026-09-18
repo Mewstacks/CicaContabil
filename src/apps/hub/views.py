@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import io
 import json
@@ -7,6 +8,7 @@ import logging
 import re
 import secrets
 import uuid
+import zipfile
 from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
@@ -38,7 +40,7 @@ from django.http import (
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.forms import IdentifierAuthenticationForm
@@ -1640,9 +1642,32 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
     )
 
     if request.method == "POST":
+        action = request.POST.get("action", "")
+        if action in {"demo_download_issued", "demo_download_taken"}:
+            if not is_demo_visitor(request, office):
+                return refuse(
+                    request, "O download em lote está disponível somente na demonstração."
+                )
+            selected_query = NfseDocument.objects.filter(
+                organization=office, company__in=scope
+            ).select_related("company")
+            if request.POST.get("all_documents") == "1":
+                selected_documents = list(selected_query.order_by("-issued_at", "-captured_at"))
+            else:
+                document_ids = list(dict.fromkeys(request.POST.getlist("documents")))
+                selected_documents = list(selected_query.filter(id__in=document_ids))
+            if not selected_documents:
+                messages.error(request, "Selecione ao menos uma NFS-e para a demonstração.")
+                return redirect(reverse("hub:nfse-center"))
+            folder = "Tomadas" if action == "demo_download_taken" else "Emitidas"
+            return _demo_nfse_bulk_download(
+                selected_documents,
+                folder=folder,
+                classifications=_demo_nfse_download_classifications(request, selected_documents),
+            )
+
         if not can_manage_sync:
             return refuse(request, "Somente dono ou administrador configura a coleta NFS-e.")
-        action = request.POST.get("action", "")
         target_ids = list(dict.fromkeys(request.POST.getlist("companies")))[:100]
         selected_companies = list(scope.filter(id__in=target_ids, active=True))
         if not selected_companies:
@@ -1752,8 +1777,18 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
     )
     document_search = request.GET.get("q", "").strip()[:100]
     document_status = request.GET.get("status", "all")
+    document_date_filter = request.GET.get("date_filter", "competence")
+    document_competence = request.GET.get("competence", "").strip()[:7]
+    if "competence_month" in request.GET:
+        month = request.GET.get("competence_month", "")
+        year = request.GET.get("competence_year", "")
+        document_competence = f"{year}-{month}" if month and year else ""
+    issued_from = request.GET.get("issued_from", "").strip()[:10]
+    issued_to = request.GET.get("issued_to", "").strip()[:10]
     if document_status not in {"all", "review", "classified", "received"}:
         document_status = "all"
+    if document_date_filter not in {"competence", "issued"}:
+        document_date_filter = "competence"
     documents = document_query
     if document_search:
         documents = documents.filter(
@@ -1770,16 +1805,97 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
         documents = documents.filter(integration_artifacts__isnull=True).exclude(
             review_case__status=ReviewCase.Status.OPEN
         )
+    if document_date_filter == "competence" and re.fullmatch(
+        r"\d{4}-(0[1-9]|1[0-2])", document_competence
+    ):
+        competence_year, competence_month = document_competence.split("-")
+        if not office.is_demo:
+            documents = documents.filter(
+                issued_at__year=int(competence_year), issued_at__month=int(competence_month)
+            )
+    elif document_date_filter == "competence":
+        document_competence = ""
+    date_filter_error = ""
+
+    def parse_filter_date(value):
+        nonlocal date_filter_error
+        if not value:
+            return None
+        try:
+            return (
+                datetime.strptime(value, "%d/%m/%Y").date()
+                if "/" in value
+                else date.fromisoformat(value)
+            )
+        except ValueError:
+            if document_date_filter == "issued":
+                date_filter_error = "Informe uma data válida no formato DD/MM/AAAA."
+            return None
+
+    issued_from_date = parse_filter_date(issued_from)
+    issued_to_date = parse_filter_date(issued_to)
+    if issued_from_date:
+        issued_from = issued_from_date.strftime("%d/%m/%Y")
+    if issued_to_date:
+        issued_to = issued_to_date.strftime("%d/%m/%Y")
+    if (
+        document_date_filter == "issued"
+        and issued_from_date
+        and issued_to_date
+        and issued_from_date > issued_to_date
+    ):
+        date_filter_error = "A data final deve ser igual ou posterior à inicial."
+    if date_filter_error:
+        documents = documents.none()
+    if not office.is_demo and document_date_filter == "issued" and issued_from_date:
+        documents = documents.filter(issued_at__date__gte=issued_from_date)
+    if not office.is_demo and document_date_filter == "issued" and issued_to_date:
+        documents = documents.filter(issued_at__date__lte=issued_to_date)
     documents = documents.distinct()
     document_total = documents.count()
+    ordered_documents = documents.order_by("-issued_at", "-captured_at")
+    if office.is_demo:
+        # Old demo fixtures keep their emission date in the normalized XML data.
+        # Filter against the same date shown in the table, before limiting rows.
+        demo_documents = []
+        for document in ordered_documents:
+            issued = document.issued_at or _nfse_issued_at_from_normalized_data(document)
+            if issued and timezone.is_aware(issued):
+                issued = timezone.localtime(issued)
+            issued_date = issued.date() if issued else None
+            if (
+                document_date_filter == "competence"
+                and document_competence
+                and (not issued_date or issued_date.strftime("%Y-%m") != document_competence)
+            ):
+                continue
+            if document_date_filter == "issued":
+                if issued_from_date and (not issued_date or issued_date < issued_from_date):
+                    continue
+                if issued_to_date and (not issued_date or issued_date > issued_to_date):
+                    continue
+            demo_documents.append(document)
+        document_total = len(demo_documents)
+        ordered_documents = demo_documents
     document_rows: list[dict[str, object]] = []
-    for document in documents.order_by("-captured_at")[:100]:
+    for document in ordered_documents[:100]:
         artifact = next(iter(document.integration_artifacts.all()), None)
         review = getattr(document, "review_case", None)
         open_review = review if review and review.status == ReviewCase.Status.OPEN else None
+        issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
+        confidence = (
+            97
+            if office.is_demo and artifact and artifact.confidence <= 95
+            else artifact.confidence
+            if artifact
+            else open_review.confidence
+            if open_review
+            else None
+        )
         document_rows.append(
             {
                 "document": document,
+                "issued_at": issued_at,
                 "review": open_review,
                 "status": (
                     "Em revisão" if open_review else "Classificada" if artifact else "Recebida"
@@ -1788,11 +1904,8 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
                     "attention" if open_review else "success" if artifact else "muted"
                 ),
                 "accumulator": artifact.accumulator_code if artifact else "—",
-                "confidence": artifact.confidence
-                if artifact
-                else open_review.confidence
-                if open_review
-                else None,
+                "confidence": confidence,
+                "artifact": artifact,
             }
         )
 
@@ -1849,6 +1962,31 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
             "document_filtered_total": document_total,
             "document_search": document_search,
             "document_status": document_status,
+            "document_date_filter": document_date_filter,
+            "document_competence": document_competence,
+            "competence_months": list(
+                enumerate(
+                    [
+                        "Janeiro",
+                        "Fevereiro",
+                        "Março",
+                        "Abril",
+                        "Maio",
+                        "Junho",
+                        "Julho",
+                        "Agosto",
+                        "Setembro",
+                        "Outubro",
+                        "Novembro",
+                        "Dezembro",
+                    ],
+                    1,
+                )
+            ),
+            "competence_year": document_competence[:4] or str(timezone.localdate().year),
+            "date_filter_error": date_filter_error,
+            "issued_from": issued_from,
+            "issued_to": issued_to,
             "nfse_stats": {
                 "received": document_query.count(),
                 "pending": ReviewCase.objects.filter(
@@ -1878,6 +2016,110 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
         }
     )
     return render(request, "hub/nfse_center.html", context)
+
+
+def _demo_nfse_download_classifications(
+    request: HttpRequest, documents: list[NfseDocument]
+) -> dict[str, dict[str, object]]:
+    """Build the demo manifest without changing the fiscal document or its review."""
+
+    artifacts = {
+        str(artifact.document_id): artifact
+        for artifact in IntegrationArtifact.objects.filter(document__in=documents)
+    }
+    classifications: dict[str, dict[str, object]] = {}
+    for document in documents:
+        accumulator = request.POST.get(f"accumulator_{document.id}", "").strip()[:80]
+        artifact = artifacts.get(str(document.id))
+        confidence = int(artifact.confidence) if artifact and artifact.confidence is not None else 0
+        if artifact and confidence <= 95:
+            confidence = 97
+        is_ai_classification = bool(
+            artifact and artifact.accumulator_code == accumulator and confidence > 95
+        )
+        if is_ai_classification:
+            classifications[str(document.id)] = {
+                "accumulator": accumulator,
+                "confidence": confidence,
+                "status": "Classificada pela IA",
+            }
+        elif accumulator:
+            classifications[str(document.id)] = {
+                "accumulator": accumulator,
+                "confidence": 100,
+                "status": "Definida pelo contador",
+            }
+        else:
+            classifications[str(document.id)] = {
+                "accumulator": "Transitória",
+                "confidence": 0,
+                "status": "Transitória sem acumulador",
+            }
+    return classifications
+
+
+def _nfse_issued_at_from_normalized_data(document: NfseDocument) -> datetime | None:
+    """Use the issuance embedded in a legacy payload until the record is reimported."""
+
+    raw_issued_at = document.normalized_data.get("issued_at")
+    if not isinstance(raw_issued_at, str):
+        return None
+    parsed_datetime = parse_datetime(raw_issued_at)
+    if parsed_datetime is not None:
+        return parsed_datetime
+    parsed_date = parse_date(raw_issued_at)
+    return datetime.combine(parsed_date, time.min) if parsed_date else None
+
+
+def _demo_nfse_bulk_download(
+    documents: list[NfseDocument], *, folder: str, classifications: dict[str, dict[str, object]]
+) -> FileResponse:
+    """Return fictitious XML evidence and a non-persistent classification manifest."""
+
+    archive = io.BytesIO()
+    with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        manifest = io.StringIO(newline="")
+        writer = csv.writer(manifest, delimiter=";")
+        writer.writerow(
+            [
+                "Documento",
+                "Empresa",
+                "Código Domínio",
+                "Pasta",
+                "Acumulador",
+                "Confiança",
+                "Situação",
+            ]
+        )
+        for document in documents:
+            code = re.sub(r"[^A-Za-z0-9._-]", "_", document.company.dominio_code or "SEM-CODIGO")
+            source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
+            classification = classifications[str(document.id)]
+            bundle.writestr(
+                f"{folder}/{code} -/NFS-e-{source}.xml",
+                document.original_xml,
+            )
+            writer.writerow(
+                [
+                    document.source_nsu or str(document.id),
+                    document.company.name,
+                    document.company.dominio_code or "",
+                    f"{folder}/{code} -",
+                    classification["accumulator"],
+                    classification["confidence"],
+                    classification["status"],
+                ]
+            )
+        bundle.writestr("manifesto-classificacao.csv", manifest.getvalue().encode("utf-8-sig"))
+    archive.seek(0)
+    response = FileResponse(
+        archive,
+        as_attachment=True,
+        filename=f"nfse-demonstracao-{folder.casefold()}.zip",
+        content_type="application/zip",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def _module_page_context(
@@ -4425,9 +4667,7 @@ def _reconciliation_v2_context(
         ),
         50,
     ).get_page(request.GET.get("movement_page") if request else 1)
-    movements = list(
-        movement_page.object_list
-    )
+    movements = list(movement_page.object_list)
     for movement in movements:
         movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100  # type: ignore[attr-defined]
     exports = AccountingExport.objects.filter(
@@ -4883,17 +5123,20 @@ def reconciliation_run_status(request: HttpRequest, run_id: str) -> JsonResponse
         organization=office,
         source_file__company__in=companies,
     )
-    return JsonResponse({
-        "id": str(run.id),
-        "state": run.state,
-        "state_label": run.get_state_display(),
-        "stage": run.stage,
-        "total": run.total_count,
-        "processed": run.processed_count,
-        "created": run.created_count,
-        "updated": run.updated_count,
-        "errors": run.error_count, "cancel_requested": bool(run.cancel_requested_at),
-    })
+    return JsonResponse(
+        {
+            "id": str(run.id),
+            "state": run.state,
+            "state_label": run.get_state_display(),
+            "stage": run.stage,
+            "total": run.total_count,
+            "processed": run.processed_count,
+            "created": run.created_count,
+            "updated": run.updated_count,
+            "errors": run.error_count,
+            "cancel_requested": bool(run.cancel_requested_at),
+        }
+    )
 
 
 @office_required
@@ -4925,8 +5168,12 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
             messages.info(request, "Este processamento não está em execução.")
     elif action == "retry":
         retry = ReconciliationRun.objects.create(
-            organization=office, source_file=run.source_file, continued_from=run,
-            layout_version=run.layout_version, checkpoint=run.checkpoint, created_by=request.user,
+            organization=office,
+            source_file=run.source_file,
+            continued_from=run,
+            layout_version=run.layout_version,
+            checkpoint=run.checkpoint,
+            created_by=request.user,
         )
         from apps.hub.tasks import process_reconciliation_run
 
@@ -4934,7 +5181,9 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
         messages.success(request, "Novo processamento criado a partir do checkpoint anterior.")
     elif action == "reapply_rules":
         if run.state in {ReconciliationRun.State.WAITING, ReconciliationRun.State.PROCESSING}:
-            messages.info(request, "Aguarde o processamento atual terminar antes de reaplicar regras.")
+            messages.info(
+                request, "Aguarde o processamento atual terminar antes de reaplicar regras."
+            )
             return redirect("hub:reconciliation")
         reapplication = ReconciliationRun.objects.create(
             organization=office,
@@ -4987,7 +5236,13 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não salvar layouts.")
         mapping_fields = (
-            "date", "amount", "debit", "credit", "description", "document", "counterparty"
+            "date",
+            "amount",
+            "debit",
+            "credit",
+            "description",
+            "document",
+            "counterparty",
         )
         submitted_mapping = {
             field: request.POST.get(f"map_{field}", "").strip()
@@ -5202,19 +5457,24 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     movement = get_object_or_404(
         NormalizedMovement.objects.select_related("source_file", "company", "applied_rule"),
-        id=movement_id, organization=office, company__in=companies,
+        id=movement_id,
+        organization=office,
+        company__in=companies,
     )
-    form = ReconciliationMovementForm(request.POST or None, initial={
-        "occurred_on": movement.occurred_on,
-        "description": movement.description,
-        "document_number": movement.document_number,
-        "counterparty": movement.counterparty,
-        "debit_account_code": movement.debit_account_code,
-        "credit_account_code": movement.credit_account_code,
-        "cost_center_code": movement.cost_center_code,
-        "accounting_history": movement.accounting_history,
-        "expected_revision": movement.revision,
-    })
+    form = ReconciliationMovementForm(
+        request.POST or None,
+        initial={
+            "occurred_on": movement.occurred_on,
+            "description": movement.description,
+            "document_number": movement.document_number,
+            "counterparty": movement.counterparty,
+            "debit_account_code": movement.debit_account_code,
+            "credit_account_code": movement.credit_account_code,
+            "cost_center_code": movement.cost_center_code,
+            "accounting_history": movement.accounting_history,
+            "expected_revision": movement.revision,
+        },
+    )
     if request.method == "POST":
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não revisar movimentos.")
@@ -5256,7 +5516,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             )
             messages.success(
                 request,
-                "Movimento ignorado." if action == "ignore_movement" else "Movimento devolvido à revisão.",
+                "Movimento ignorado."
+                if action == "ignore_movement"
+                else "Movimento devolvido à revisão.",
             )
             return redirect("hub:reconciliation-movement", movement_id=movement.id)
         if action == "generate_entry":
@@ -5360,31 +5622,41 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
         if form.is_valid():
             for field_name in ("debit_account_code", "credit_account_code"):
                 account_code = str(form.cleaned_data[field_name] or "").strip()
-                if account_code and not LedgerAccount.objects.filter(
-                    organization=office,
-                    company=movement.company,
-                    code=account_code,
-                    active=True,
-                    accepts_entries=True,
-                ).exists():
+                if (
+                    account_code
+                    and not LedgerAccount.objects.filter(
+                        organization=office,
+                        company=movement.company,
+                        code=account_code,
+                        active=True,
+                        accepts_entries=True,
+                    ).exists()
+                ):
                     form.add_error(
                         field_name,
                         "Escolha uma conta ativa que aceite lançamentos desta empresa.",
                     )
             cost_center_code = str(form.cleaned_data["cost_center_code"] or "").strip()
-            if cost_center_code and not CostCenter.objects.filter(
-                organization=office,
-                company=movement.company,
-                code=cost_center_code,
-                active=True,
-            ).exists():
+            if (
+                cost_center_code
+                and not CostCenter.objects.filter(
+                    organization=office,
+                    company=movement.company,
+                    code=cost_center_code,
+                    active=True,
+                ).exists()
+            ):
                 form.add_error(
                     "cost_center_code",
                     "Escolha um centro de custo ativo desta empresa.",
                 )
         if form.is_valid():
             if movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists():
-                form.add_error(None, "Este movimento j\u00e1 foi exportado; crie uma retifica\u00e7\u00e3o auditada.")
+                form.add_error(
+                    None,
+                    "Este movimento j\u00e1 foi exportado; "
+                    "crie uma retifica\u00e7\u00e3o auditada.",
+                )
             elif form.cleaned_data["expected_revision"] != movement.revision:
                 form.add_error(
                     None,
@@ -5392,8 +5664,13 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 )
             else:
                 for field in (
-                    "occurred_on", "description", "document_number", "counterparty",
-                    "debit_account_code", "credit_account_code", "cost_center_code",
+                    "occurred_on",
+                    "description",
+                    "document_number",
+                    "counterparty",
+                    "debit_account_code",
+                    "credit_account_code",
+                    "cost_center_code",
                     "accounting_history",
                 ):
                     setattr(movement, field, form.cleaned_data[field])
@@ -5405,8 +5682,11 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
                 ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
                 record_event(
-                    action="hub.reconciliation.movement_edited", actor=request.user,
-                    organization=office, target=movement, request=request,
+                    action="hub.reconciliation.movement_edited",
+                    actor=request.user,
+                    organization=office,
+                    target=movement,
+                    request=request,
                     metadata={
                         "revision": movement.revision,
                         "invalidated_entries": invalidated_entries,
@@ -6295,7 +6575,7 @@ def triage_destination_configure(request: HttpRequest) -> HttpResponse:
         defaults={
             "mode": form.cleaned_data["mode"],
             "windows_root": form.cleaned_data["windows_root"],
-            "folder_template": "{company_name} [Domínio {dominio_code}]",
+            "folder_template": form.cleaned_data["folder_template"],
         },
     )
     record_event(
@@ -7324,9 +7604,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         .first()
         or {}
     )
-    dominio_bank_entries_may_be_truncated = bool(
-        latest_bank_sync_metadata.get("may_be_truncated")
-    )
+    dominio_bank_entries_may_be_truncated = bool(latest_bank_sync_metadata.get("may_be_truncated"))
     if request.method == "POST" and request.POST.get("action") == "usage-policy":
         return refuse(
             request,

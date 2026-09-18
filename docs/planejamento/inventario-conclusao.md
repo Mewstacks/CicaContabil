@@ -297,16 +297,16 @@ Inclui prefixos de configuração e declarações nas aplicações; combinaçõe
 - `agent-windows/Directory.Build.props`
 - `agent-windows/build.ps1`
 - `agent-windows/installer/Package.wxs`
-- `agent-windows/installer/Regaro.Agent.Installer.wixproj`
-- `agent-windows/src/Regaro.Agent.Configurator/Program.cs`
-- `agent-windows/src/Regaro.Agent.Configurator/Regaro.Agent.Configurator.csproj`
-- `agent-windows/src/Regaro.Agent.Service/AgentClient.cs`
-- `agent-windows/src/Regaro.Agent.Service/AgentConfig.cs`
-- `agent-windows/src/Regaro.Agent.Service/BackupProcessor.cs`
-- `agent-windows/src/Regaro.Agent.Service/FileArchiveProcessor.cs`
-- `agent-windows/src/Regaro.Agent.Service/Program.cs`
-- `agent-windows/src/Regaro.Agent.Service/Regaro.Agent.Service.csproj`
-- `agent-windows/src/Regaro.Agent.Service/Worker.cs`
+- `agent-windows/installer/CICA.Agent.Installer.wixproj`
+- `agent-windows/src/CICA.Agent.Configurator/Program.cs`
+- `agent-windows/src/CICA.Agent.Configurator/CICA.Agent.Configurator.csproj`
+- `agent-windows/src/CICA.Agent.Service/AgentClient.cs`
+- `agent-windows/src/CICA.Agent.Service/AgentConfig.cs`
+- `agent-windows/src/CICA.Agent.Service/BackupProcessor.cs`
+- `agent-windows/src/CICA.Agent.Service/FileArchiveProcessor.cs`
+- `agent-windows/src/CICA.Agent.Service/Program.cs`
+- `agent-windows/src/CICA.Agent.Service/CICA.Agent.Service.csproj`
+- `agent-windows/src/CICA.Agent.Service/Worker.cs`
 - `agent/__init__.py`
 - `agent/hub_agent.py`
 - `agent/install-windows-service.ps1`
@@ -324,7 +324,7 @@ Inclui prefixos de configuração e declarações nas aplicações; combinaçõe
 - `scripts/generate_production_secrets.py`
 - `scripts/init_local.py`
 - `scripts/probe_fedrizzi_dctfweb_readonly.py`
-- `scripts/qa_regaro_landing.py`
+- `scripts/qa_cica_landing.py`
 - `scripts/qa_ui_server.py`
 - `scripts/setup-local-dominio.ps1`
 

@@ -14,7 +14,7 @@ Atualizado em 14/09/2026. Este registro separa o que foi inspecionado do que ain
 
 | Área | Evidência atual | Resultado |
 |---|---|---|
-| Cadastro, confirmação e MFA | `tests/test_cica_signup_flow.py`, `tests/test_cica_signup_security.py`, `tests/test_regaro_auth_flow.py` | Cadastro requer nome, e-mail, CNPJ e aceite; teste dura 14 dias; MFA é exigido fora do teste. Navegador MCP indisponível nesta sessão. |
+| Cadastro, confirmação e MFA | `tests/test_cica_signup_flow.py`, `tests/test_cica_signup_security.py`, `tests/test_cica_auth_flow.py` | Cadastro requer nome, e-mail, CNPJ e aceite; teste dura 14 dias; MFA é exigido fora do teste. Navegador MCP indisponível nesta sessão. |
 | Isolamento e colaboradores | `tests/test_hub_workspace_views_django.py`, `tests/test_platform_isolation.py` | Convites, escopo de empresas/módulos e rotas de jornadas são internos ao escritório. |
 | Configuração Mewstack | `tests/test_cica_configuration.py` | Runtime local, SMTP, contatos e catálogo são configuráveis pelo console; segredos não são exibidos. |
 | Cobrança manual | `tests/test_platform_tenant_django.py`, `tests/test_platform_services.py` | A CICA registra contrato/cobrança; não coleta cartão nem chama gateway. |

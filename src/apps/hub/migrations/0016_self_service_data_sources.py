@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
         migrations.AddField(model_name="fiscalguide", name="source_updated_at", field=models.DateTimeField(blank=True, null=True)),
         migrations.AddField(model_name="officeprofile", name="cnpj", field=apps.common.encryption.EncryptedTextField(blank=True)),
         migrations.AddField(model_name="officeprofile", name="cnpj_hash", field=models.CharField(blank=True, db_index=True, max_length=64)),
-        migrations.AlterField(model_name="productmodule", name="code", field=models.CharField(choices=[("nfse", "NFS-e Inteligente"), ("guides", "Guias e DCTFWeb"), ("integra", "Central Integra Contador"), ("reconciliation", "Conciliação OFX x Domínio"), ("reform", "Radar da Reforma Tributária"), ("journey", "Jornada e Portal"), ("ai", "IA Regaro")], max_length=32)),
+        migrations.AlterField(model_name="productmodule", name="code", field=models.CharField(choices=[("nfse", "NFS-e Inteligente"), ("guides", "Guias e DCTFWeb"), ("integra", "Central Integra Contador"), ("reconciliation", "Conciliação OFX x Domínio"), ("reform", "Radar da Reforma Tributária"), ("journey", "Jornada e Portal"), ("ai", "IA CICA")], max_length=32)),
         migrations.CreateModel(
             name="AccountingEntry",
             fields=[

@@ -19,7 +19,7 @@
 - Cadastro público simplificado para nome, e-mail e CNPJ. A razão social é consultada no servidor; o e-mail só abre a definição de senha, e a conta é provisionada somente após o POST válido. O teste inicia com a suíte completa, preço zero e sem cobrança automática enquanto o catálogo comercial permanece em revisão.
 - Testes cobrem confirmação sem provisionamento no GET, senha posterior e teste completo; 3 testes de cadastro passaram nesta rodada.
 - A validação visual precisa ser repetida quando houver navegador Playwright/MCP disponível. Nesta sessão, a ferramenta retornou inventário vazio; não há evidência nova de navegador a declarar.
-- Identidade textual substituída nos templates que continham Regaro/HubContador; IDs e caminhos técnicos preservados.
+- Identidade textual substituída nos templates que continham CICA/HubContador; IDs e caminhos técnicos preservados.
 - Tokens marfim/verde-escuro introduzidos; revisão visual em andamento, não concluída.
 - Console /platform/configuracoes/ permite ao desenvolvedor com MFA editar contatos/horário/endereço da Mewstack, com auditoria; suporte e comercial não podem editar.
 - Minutas versionadas de termos, privacidade e tratamento de dados em /legal/. Dados de contato vêm do console. Ainda não são versão final para contratação.

@@ -42,6 +42,6 @@ Fonte consultada novamente: https://raw.githubusercontent.com/vercel-labs/web-in
 - `cica_motion.html`: figura com descrição, exemplo identificado, controle nativo rotulado; dados legíveis fora da superfície 3D.
 - `cica-campaign.css`: foco visível herdado, controles por toque, responsividade, alternativa reduced-motion; conteúdo permanece visível sem JS.
 - `cica-scene.js`: loop controlável, suspensão fora da área visível, reduced-motion, perda de contexto e liberação de recursos. Não altera dados do SaaS.
-- `regaro-landing.js`: animação de entrada progressiva, cancelável com mudança de preferência; sem esconder previamente o conteúdo.
+- `cica-landing.js`: animação de entrada progressiva, cancelável com mudança de preferência; sem esconder previamente o conteúdo.
 
 Não foram medidos FPS em hardware do público, Web Vitals de produção ou conversão. A aprovação visual do usuário permanece pendente. Demais telas, cobrança, catálogo, homologação das integrações e auditoria integral continuam no objetivo ativo.

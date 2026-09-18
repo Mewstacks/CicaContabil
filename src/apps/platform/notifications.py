@@ -4,6 +4,7 @@ from smtplib import SMTPException
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 from apps.platform.models import Invitation
 
@@ -40,4 +41,11 @@ def send_invitation_email(*, invitation: Invitation, activation_url: str) -> Non
         # not pin an environment default here: that would silently bypass it.
         from_email=None,
         recipient_list=[invitation.email],
+        html_message=render_to_string(
+            "platform/emails/invitation.html",
+            {
+                "activation_url": activation_url,
+                "organization_name": invitation.organization.name,
+            },
+        ),
     )

@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
@@ -156,6 +157,10 @@ def send_verification_email(*, issued: SignupIssued, base_url: str) -> None:
         f"Confirme seu e-mail e inicie os 14 dias grátis: {url}\n\nO link expira em 24 horas.",
         None,
         [issued.intent.email],
+        html_message=render_to_string(
+            "platform/emails/signup_verification.html",
+            {"verification_url": url, "office_name": issued.intent.office_name},
+        ),
     )
 
 

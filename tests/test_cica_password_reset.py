@@ -23,6 +23,8 @@ def test_password_reset_is_neutral_and_sends_a_link_for_active_account():
     assert known.url == unknown.url == "/recuperar-senha/enviado/"
     assert len(mail.outbox) == 1
     assert "recuperar-senha/" in mail.outbox[0].body
+    assert mail.outbox[0].alternatives
+    assert "Criar nova senha" in mail.outbox[0].alternatives[0].content
 
 
 def test_password_reset_confirmation_does_not_expose_the_token_in_a_referer_header():

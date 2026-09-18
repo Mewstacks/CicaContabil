@@ -16,7 +16,7 @@ import shutil
 import subprocess
 import tempfile
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -131,9 +131,7 @@ def local_ocr_available() -> bool:
         )
     except (OSError, subprocess.TimeoutExpired):
         return False
-    return result.returncode == 0 and "por" in {
-        line.strip() for line in result.stdout.splitlines()
-    }
+    return result.returncode == 0 and "por" in {line.strip() for line in result.stdout.splitlines()}
 
 
 @transaction.atomic
@@ -440,7 +438,13 @@ def _validate_tabular_mapping(mapping: object, *, headers: Iterable[str]) -> Non
     if not isinstance(mapping, dict):
         raise ReconciliationError("Informe o mapeamento das colunas antes de salvar o layout.")
     allowed_fields = {
-        "date", "amount", "debit", "credit", "description", "document", "counterparty"
+        "date",
+        "amount",
+        "debit",
+        "credit",
+        "description",
+        "document",
+        "counterparty",
     }
     unexpected = set(mapping) - allowed_fields
     if unexpected:
@@ -925,12 +929,16 @@ def auto_reconcile_unique_movement(movement: NormalizedMovement) -> MovementReco
         ).exists():
             continue
         candidates.append(entry)
-    competing_movements = NormalizedMovement.objects.filter(
-        organization=movement.organization,
-        company=movement.company,
-        occurred_on=movement.occurred_on,
-        amount_cents=movement.amount_cents,
-    ).exclude(id=movement.id).exclude(review_state=NormalizedMovement.ReviewState.IGNORED)
+    competing_movements = (
+        NormalizedMovement.objects.filter(
+            organization=movement.organization,
+            company=movement.company,
+            occurred_on=movement.occurred_on,
+            amount_cents=movement.amount_cents,
+        )
+        .exclude(id=movement.id)
+        .exclude(review_state=NormalizedMovement.ReviewState.IGNORED)
+    )
     if len(candidates) != 1 or competing_movements.exists():
         return None
     reconciliation = confirm_reconciliation(
@@ -1229,9 +1237,7 @@ def process_run(run_id: str) -> dict[str, int | str]:
                 )
         for movement_id in auto_reconciliation_candidates:
             try:
-                auto_reconcile_unique_movement(
-                    NormalizedMovement.objects.get(id=movement_id)
-                )
+                auto_reconcile_unique_movement(NormalizedMovement.objects.get(id=movement_id))
             except ReconciliationError:
                 # A concurrent review may have consumed the candidate after this
                 # run's deterministic check. Leave it pending for manual review.
@@ -1269,9 +1275,7 @@ def process_run(run_id: str) -> dict[str, int | str]:
         return {"state": "failed"}
 
 
-def _reapply_rules_for_source(
-    run: ReconciliationRun, token: uuid.UUID
-) -> dict[str, int | str]:
+def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[str, int | str]:
     """Apply current rules only where no protected accounting decision exists."""
 
     source = run.source_file
@@ -1293,7 +1297,9 @@ def _reapply_rules_for_source(
     eligible_count = eligible.count()
     protected_count = total - eligible_count
     changed = 0
-    for index, movement_id in enumerate(eligible.values_list("id", flat=True).iterator(100), start=1):
+    for index, movement_id in enumerate(
+        eligible.values_list("id", flat=True).iterator(100), start=1
+    ):
         if ReconciliationRun.objects.filter(
             id=run.id, lease_token=token, cancel_requested_at__isnull=False
         ).exists():
@@ -1521,9 +1527,14 @@ def approve_journal_entry(
 
     failure = ""
     with transaction.atomic():
-        locked = JournalEntry.objects.select_for_update().select_related(
-            "company", "movement"
-        ).get(id=entry.id)
+        locked = (
+            # ``movement`` is optional.  PostgreSQL rejects a blanket ``FOR UPDATE``
+            # when ``select_related`` introduces that outer join, so lock only the
+            # journal entry whose approval is being decided.
+            JournalEntry.objects.select_for_update(of=("self",))
+            .select_related("company", "movement")
+            .get(id=entry.id)
+        )
         errors = validate_journal_entry(locked)
         if errors:
             locked.state = JournalEntry.State.INVALID
@@ -1597,6 +1608,36 @@ def render_dominio_csv(entries: Iterable[JournalEntry]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+@dataclass(frozen=True)
+class AccountingExportAdapter:
+    """A reviewed target contract; no target falls back to another system."""
+
+    target: str
+    version: str
+    render: Callable[[Iterable[JournalEntry]], bytes]
+
+
+ACCOUNTING_EXPORT_ADAPTERS: dict[str, AccountingExportAdapter] = {
+    AccountingExport.Target.DOMINIO: AccountingExportAdapter(
+        target=AccountingExport.Target.DOMINIO,
+        version="dominio-3.1-pending-homologation",
+        render=render_dominio_csv,
+    ),
+}
+
+
+def get_accounting_export_adapter(target: str) -> AccountingExportAdapter:
+    """Return only an explicitly registered, reviewed export target."""
+    adapter = ACCOUNTING_EXPORT_ADAPTERS.get(target)
+    if adapter is None:
+        if target == AccountingExport.Target.SIESCON:
+            raise ReconciliationError(
+                "Exportação Siescon está bloqueada até registrar layout e adaptador revisados."
+            )
+        raise ReconciliationError("Destino de exportação contábil inválido.")
+    return adapter
+
+
 @transaction.atomic
 def create_export(
     *,
@@ -1607,16 +1648,27 @@ def create_export(
     actor: object = None,
     reexport_of: AccountingExport | None = None,
     reexport_reason: str = "",
+    target: str = AccountingExport.Target.DOMINIO,
     request: object = None,
 ) -> AccountingExport:
-    if not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED:
+    adapter = get_accounting_export_adapter(target)
+    if (
+        target == AccountingExport.Target.DOMINIO
+        and not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
+    ):
         raise ReconciliationError(
             "Exportação Domínio está bloqueada até a homologação real do adaptador."
         )
-    query = JournalEntry.objects.select_for_update().select_related("movement").filter(
-        organization=organization,
-        company=company,
-        occurred_on__range=(start, end),
+    query = (
+        # ``movement`` is optional, therefore this join is outer.  Locking the
+        # entry alone keeps export serialization valid on PostgreSQL.
+        JournalEntry.objects.select_for_update(of=("self",))
+        .select_related("movement")
+        .filter(
+            organization=organization,
+            company=company,
+            occurred_on__range=(start, end),
+        )
     )
     if reexport_of is None:
         query = query.filter(state=JournalEntry.State.APPROVED)
@@ -1642,13 +1694,15 @@ def create_export(
         errors = validate_journal_entry(entry)
         if errors:
             raise ReconciliationError(" ".join(errors))
-    rendered = render_dominio_csv(entries)
+    rendered = adapter.render(entries)
     digest = hashlib.sha256(rendered).hexdigest()
     export = AccountingExport(
         organization=organization,
         company=company,
         period_start=start,
         period_end=end,
+        target=adapter.target,
+        adapter_version=adapter.version,
         state=AccountingExport.State.READY,
         content_hash=digest,
         entry_ids=[str(entry.id) for entry in entries],

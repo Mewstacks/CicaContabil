@@ -2,15 +2,15 @@
 
 [Plano mestre na raiz](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Escopo atual: somente etapa 00.** Os prompts seguintes estão preparados, não executados.
+**Escopo atual:** etapas 00–03 concluídas no nível de implementação e validação local. Por D-87, toda dependência de site em produção será executada na etapa 12; as demais etapas seguem preparando e validando localmente seus respectivos módulos. Isso não autoriza deploy, chamadas externas reais ou custos.
 
 | Etapa | Dependências | Estado desta execução |
 |---|---|---|
-| [00 — Consolidar decisões, inventário e pendências](00-documentacao.md) | Nenhuma | Documentação materializada; conferir aceite em VALIDACOES.md |
-| [01 — Estabilizar a base técnica](01-base-tecnica.md) | 00 | Não iniciada nesta execução |
-| [02 — Fechar cadastro, acesso e administração](02-acesso-administracao.md) | 01 | Não iniciada nesta execução |
-| [03 — Concluir agente Windows e integração Domínio](03-agente-dominio.md) | 01–02 | Não iniciada nesta execução |
-| [04 — Implementar e homologar Siescon](04-siescon.md) | 02–03 | Não iniciada nesta execução |
+| [00 — Consolidar decisões, inventário e pendências](00-documentacao.md) | Nenhuma | Concluída em 17/09/2026; evidência V-003 em VALIDACOES.md |
+| [01 — Estabilizar a base técnica](01-base-tecnica.md) | 00 | Concluída no nível de implementação e validação local; limitações de homologação seguem para a etapa 12 |
+| [02 — Fechar cadastro, acesso e administração](02-acesso-administracao.md) | 01 | Concluída no nível de implementação e validação local; SMTP/DNS real seguem para a etapa 12 |
+| [03 — Concluir agente Windows e integração Domínio](03-agente-dominio.md) | 01–02 | Concluída no nível de implementação e validação local; piloto com site publicado e ambiente real segue para a etapa 12 (D-86) |
+| [04 — Implementar e homologar Siescon](04-siescon.md) | 02–03 | Em andamento: a inspeção local não encontrou configuração Siescon; aguardando contrato técnico de Q-33 |
 | [05 — Concluir IA por API e preparação da IA local](05-ia-api-pipeline-local.md) | 02–03; incorporar Siescon após 04 | Não iniciada nesta execução |
 | [06 — Concluir Triagem de Arquivos](06-triagem.md) | 03 e 05 | Não iniciada nesta execução |
 | [07 — Concluir NFS-e, certificados e revisão fiscal](07-nfse.md) | 03 e 05 | Não iniciada nesta execução |

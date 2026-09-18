@@ -99,7 +99,7 @@
 .workspace-shell .metric-strip article>a { color: var(--blue); text-underline-offset: 3px; }
 .workspace-shell .dashboard-intro a.text-action { color: var(--blue); }
 .workspace-shell .module-state.is-active { color: var(--green); }
-.workspace-shell .regaro-ai-callout { background: var(--surface); border-color: var(--line); }
+.workspace-shell .cica-ai-callout { background: var(--surface); border-color: var(--line); }
 .workspace-shell .operational-table tbody strong { color: var(--ink); }
 .workspace-shell input:not([type=hidden]), .workspace-shell select, .workspace-shell textarea,
 .workspace-shell .button-quiet, .workspace-shell .icon-control { border-color: var(--control-border); }

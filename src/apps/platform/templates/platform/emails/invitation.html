@@ -1,0 +1,8 @@
+{% extends "platform/emails/base.html" %}
+{% block content %}
+<p style="margin:0 0 16px;color:#627078;font-size:13px;font-weight:bold;letter-spacing:.08em;">CONVITE DE EQUIPE</p>
+<h1 style="margin:0 0 16px;font-size:26px;line-height:1.2;">Você recebeu um convite</h1>
+<p style="margin:0 0 24px;">{{ organization_name }} criou um acesso para você na CICA.</p>
+<p style="margin:0 0 24px;"><a href="{{ activation_url }}" style="display:inline-block;padding:13px 18px;border-radius:8px;background:#16705f;color:#ffffff;font-weight:bold;text-decoration:none;">Aceitar convite</a></p>
+<p style="margin:0;color:#627078;font-size:13px;">O link expira em 7 dias e só pode ser usado uma vez. Se você não esperava este convite, ignore esta mensagem.</p>
+{% endblock %}

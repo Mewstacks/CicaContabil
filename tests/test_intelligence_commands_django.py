@@ -300,24 +300,43 @@ class IntelligenceCommandTests(TestCase):
         self.assertIn("nada foi persistido", preview.getvalue().casefold())
         self.assertIn("catálogo salvo", applied.getvalue().casefold())
 
-    @patch("apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc")
-    def test_odbc_contract_command_checks_every_allowlisted_query_and_schema(self, mocked_odbc) -> None:
+    @patch(
+        "apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc"
+    )
+    def test_odbc_contract_command_checks_every_allowlisted_query_and_schema(
+        self, mocked_odbc
+    ) -> None:
         adapter = mocked_odbc.return_value
         adapter.execute.return_value = [{}]
         required_by_table = {
             "geempre": {"codi_emp", "nome_emp", "cgce_emp", "stat_emp"},
             "GENOTIFICACOES_USUARIO_ATENDIMENTO": {
-                "sequencial", "empresa", "assunto", "tipo", "situacao", "visualizado"
+                "sequencial",
+                "empresa",
+                "assunto",
+                "tipo",
+                "situacao",
+                "visualizado",
             },
             "CTEXTRATO_BANCARIO_LANCAMENTO_ITEM": {
-                "codi_emp", "i_lancamento", "i_item", "data_item", "historico", "valor", "tipo"
+                "codi_emp",
+                "i_lancamento",
+                "i_item",
+                "data_item",
+                "historico",
+                "valor",
+                "tipo",
             },
-            "CTEXTRATO_BANCARIO_LANCAMENTO_ITEM_LANCTO": {
-                "codi_emp", "i_lancamento", "i_item"
-            },
+            "CTEXTRATO_BANCARIO_LANCAMENTO_ITEM_LANCTO": {"codi_emp", "i_lancamento", "i_item"},
             "FOVGUIAINSS": {
-                "i_guiainss", "codi_emp", "competencia", "vencimento", "total_guia",
-                "tipo_guia", "tipo_process", "situacao"
+                "i_guiainss",
+                "codi_emp",
+                "competencia",
+                "vencimento",
+                "total_guia",
+                "tipo_guia",
+                "tipo_process",
+                "situacao",
             },
         }
         adapter.list_catalog_columns.side_effect = lambda table_name: [
@@ -346,7 +365,9 @@ class IntelligenceCommandTests(TestCase):
             ).exists()
         )
 
-    @patch("apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc")
+    @patch(
+        "apps.intelligence.management.commands.validate_dominio_odbc_contract.ReadOnlyDominoOdbc"
+    )
     def test_odbc_contract_command_rejects_a_missing_schema_column(self, mocked_odbc) -> None:
         adapter = mocked_odbc.return_value
         adapter.execute.return_value = []

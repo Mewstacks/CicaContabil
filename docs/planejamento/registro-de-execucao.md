@@ -1,5 +1,48 @@
 # Registro de execução da meta operacional
 
+## 18/09/2026 — etapa 02: auditoria inicial de acesso e administração
+
+Etapa iniciada após a conclusão técnica da etapa 01. Auditoria local localizou cadastro, recuperação, convite, MFA, escopo, contrato/teste, isolamento e console já implementados. A suíte específica fechou com 83 aprovados em 54,47 s (V-007). Não houve envio de e-mail, alteração de cobrança nem integração externa. Q-01–Q-06/Q-29 continuam condicionando as regras comerciais e a homologação de e-mail; etapa segue aberta.
+
+Cadastro inspecionado por Playwright em desktop e móvel: sem overflow, foco visível e console limpo; sessões fechadas. UI/UX Pro Max, Watermelon, referências SaaSFrame e Web Interface Guidelines aplicados conforme V-007. Sem mudança de UI nesta auditoria.
+
+D-76 aprovou as regras documentadas para implementação e definiu `suporte@mewstack.com.br`. Implementados e-mails HTML de confirmação, convite e recuperação com texto de reserva; 62 testes e Ruff passaram (V-008). D-77 transferiu SMTP real, DNS e homologação de entrega para a etapa 12; nenhum envio foi feito nesta fase.
+
+Brevo definido como provedor SMTP transacional (D-78). A decisão não configura conta, crédito, credenciais, domínio nem envio; tudo isso fica para a etapa 12.
+
+## 18/09/2026 — retomada do plano (D-70)
+
+Identificado o primeiro item pendente: build de treinamento na etapa 01. Corrigido o resumo desatualizado do plano mestre. D-71 manteve LlamaFactory como ferramenta interna e fixou a imagem oficial por digest. Corrigida a cópia inválida do executor no Dockerfile; `cica-trainer:stage01` foi construído e o CLI iniciou (V-006). O digest também foi centralizado em `runtime/trainer/image.env` e incluído no CI; seu rebuild local passou. Sem modelo, treino ou GPU. Etapa segue aberta por Q-28/Q-30 e D-61.
+
+Fedrizzi Contabilidade confirmado como ambiente disponível para homologação e proprietário definido como aprovador de cada módulo (D-72). Faltam apenas acessos/amostras concretos por integração e metas mensuráveis de aceite; etapa 01 continua aberta.
+
+Critérios recomendados foram aprovados e registrados em D-73. Metas de aceite deixam de ser bloqueio; primeira homologação Fedrizzi ainda depende da amostra e do acesso seguro da integração que será exercitada. Etapa 01 segue aberta por D-61.
+
+Validação integral posterior: 742 testes aprovados, 2 ignorados e 8 subtestes em 85,31 s; Django check, migrations dry-run e Ruff aprovados. Correção D-74: inspeção segura do banco confirmou conector Fedrizzi `direct_odbc` e fonte Domínio local `ready`; nenhuma credencial, DSN ou dado empresarial foi exposto. A etapa 01 está concluída como validação técnica local; conexões externas restantes pertencem às próximas etapas. Evidência V-006.
+
+## 18/09/2026 — demonstração NFS-e em ajuste
+
+Pedido “mais bonito”: refinado agrupamento, hierarquia, espaçamento e estados visuais do filtro, mantendo D-69. Inspeção desktop/mobile e evidências no complemento V-005. Sem nova regra de negócio.
+
+Complemento D-69: substituído calendário nativo de emissão por digitação brasileira e atalhos mensais. Validação cliente/servidor e filtragem dos dados antigos da demo corrigidas. Evidências e pesquisa no complemento V-005 de VALIDACOES.md. Etapa 07 continua aberta.
+
+- Revisão visual posterior: CSS específico da carteira, filtros em linha, acumulador com ícone de edição e foco, seleção destacada, adaptação móvel e cache do JS atualizado. Playwright verificou claro/escuro, desktop/mobile, digitar/limpar/Enter e troca exclusiva do período. Evidência detalhada em V-005; nenhuma etapa homologada por esta revisão.
+
+- Carteira demonstrativa passou a usar a emissão da NFS-e, com escolha exclusiva entre competência e intervalo de emissão.
+- Download em lote separado em `Emitidas/CÓDIGO -/` ou `Tomadas/CÓDIGO -/`, com manifesto de classificação; acumulador manual, Transitória a 0% e classificadas da demonstração a 97%.
+- Corrigido Enter no acumulador: seleciona a nota e avança o foco, sem tentar baixar uma seleção vazia.
+- Evidência local, limites e inspeção Playwright em [V-005](../../VALIDACOES.md). Etapa 07 continua aberta.
+
+## 17/09/2026 — etapa 01: estabilização técnica parcial
+
+- Ruff: 66 achados eliminados com formatação mecânica e ordenação de imports nas nove unidades apontadas.
+- Segurança de dependência: pypdf passou de 6.9.2 para 6.16.1; lockfile e requisitos foram atualizados. pip check e pip_audit aprovados; o pacote local é ignorado pelo auditor por não estar no PyPI.
+- Base Django: check e dry-run de migrations aprovados; suíte completa: **740 aprovados, 1 ignorado e 8 subtestes** em 70,07 s. Testes focados de token/faturamento/IA/fila/conciliação: 66 aprovados.
+- Agente Windows: service, configurador e MSI compilados; MSI de 79.285.770 bytes e checksum SHA-256 6ed0a1592fc3f0b5c5277e9dfc3ce8f27c000c6ca493cb3f5c245ac94c23f9b9 gerados em agent-windows/artifacts/.
+- Ambiente atualizado em 18/09: Docker Desktop 4.91.0 e WSL 2.7.1 operacionais; PostgreSQL 17 e Redis 7.4 saudáveis por Compose. Migrations dos bancos principal e de conhecimento sem operações pendentes. Worker Celery com pool `solo` consumiu tarefa via Redis; o pool `prefork` apresentou `WinError 5` no Windows, limitação que não representa o worker Linux de produção.
+- Correção PostgreSQL: aprovação e exportação de lançamentos usavam `FOR UPDATE` sobre joins opcionais; PostgreSQL rejeitava a consulta. Os locks foram restringidos ao `JournalEntry` principal, e 35 testes de conciliação passaram no banco real. A suíte crítica PostgreSQL fechou com 95 aprovados; uma regressão de quatro chamadas concorrentes com mesma chave confirmou um único evento de consumo.
+- Builds: `cica-backend:stage01` e `cica-multimodal:stage01` foram construídas. O MSI do agente continua validado pelo checksum já registrado. A etapa 01 permanece aberta e bloqueada apenas por Q-37: referência LlamaFactory aprovada por digest para construir o runtime de treinamento. D-61 impede o encerramento antes disso. Ver [V-004](../../VALIDACOES.md) e [checklist](etapas/01-base-tecnica.md).
+
 ## 17/09/2026 — etapa 00: documentação única na raiz
 
 Escopo limitado pelo responsável a **somente a primeira etapa (00)**. Não iniciadas correções de código ou demais etapas.
@@ -134,3 +177,29 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - PKCS#12 e senha ficam cifrados com AES-256-GCM no banco; a tela mostra somente nome, sujeito, validade e os 12 ?ltimos caracteres do SHA-256. N?o existe rota de download.
 - O cliente Integra usa primeiro o certificado armazenado; `INTEGRA_CERTIFICATE_PATH` permanece apenas como fallback legado.
 - Migration `platform.0032` aplicada localmente; 44 testes focados aprovados.
+## 18/09/2026 — Etapa 02 concluída localmente (V-009)
+
+- Fechada a etapa de cadastro, acesso e administração no nível de implementação/teste local. As regras comerciais D-79 estão documentadas; a integração de cobrança pertence à etapa 10.
+- APIs, isolamento e demonstração foram executados em banco de testes; 22 testes de autorização/API e 4 testes de isolamento da demo passaram. O browser confirmou MFA, painel autenticado, equipe, empresas, configurações, foco, responsividade e console limpo.
+- A massa demo não foi regravada: o comando recusou corretamente usar um slug operacional existente. SMTP/DNS/Brevo ficam para homologação integrada na etapa 12 por D-77/D-78.
+## 18/09/2026 — Etapa 03 iniciada: contrato Domínio Fedrizzi (V-010)
+
+- A leitura autorizada do conector existente passou: 4 consultas fixas, 5 objetos, 13.875 linhas e nenhuma coluna obrigatória ausente. A descoberta de 500 objetos/4.733 colunas só confirmou metadados já registrados; não imprimiu ou gravou dados Domínio.
+- D-80 fixa o serviço nativo CICA como pacote único. O Python fica somente para diagnóstico/migração até a sincronização nativa v2 estar homologada.
+- Implementada a primeira projeção nativa: empresas Domínio em páginas de 500 via API v2 autenticada. O teste do agente passou e o serviço .NET compilou em Release sem aviso; uma página interrompida não desativa empresas ausentes.
+- A estação Fedrizzi tem DSN `contabil` SQL Anywhere 17 e permissões/ferramentas para instalação. O MSI foi gerado, mas não instalado: não existe endpoint HTTPS CICA nem CA de agente configurada, portanto instalar agora criaria serviço falho. V-011 registra o procedimento e a dependência sem expor DSN ou dados.
+
+## 18/09/2026 — Dependências de produção centralizadas na etapa 12 (D-87)
+
+- O responsável definiu que toda atividade dependente do site em produção será feita somente na etapa 12.
+- As etapas 01–11 permanecem responsáveis por implementação, configuração sem segredos, testes locais/isolados e documentação. Nenhum deploy, credencial externa de produção, chamada real, piloto ou custo foi acionado por este registro.
+
+## 18/09/2026 — Etapa 04 iniciada: descoberta Siescon (V-029)
+
+- A inspeção local de metadados encontrou drivers SQL Anywhere 16/17, mas nenhum DSN, driver ou instalação identificada como Siescon. Não foram lidos dados nem expostos segredos.
+- O próximo passo exige o contrato técnico de Q-33 por canal seguro: versão do Siescon, mecanismo de leitura autorizado, acesso de homologação e layout de exportação/importação. Sem isso, um adaptador seria especulativo e não será implementado.
+
+## 18/09/2026 — Etapa 04: base de exportação neutra (V-030)
+
+- `AccountingExport` agora registra destino e versão do adaptador. O layout Domínio continua preservado; Siescon é recusado explicitamente até a revisão de contrato/layout, sem gerar arquivo ou escrever no sistema de origem.
+- A fonte Siescon foi modelada e a matriz de capacidades foi registrada. A suíte focada aprovou 36 testes; migrações e Ruff passaram. Não houve conexão ou exportação Siescon.

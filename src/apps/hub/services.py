@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.serialization import pkcs12
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
 
 from apps.audit.services import record_event
 from apps.common.cnpj import normalize_cnpj
@@ -113,6 +114,7 @@ def create_document_and_artifact(
     request: Any = None,
 ) -> tuple[NfseDocument, IntegrationArtifact | None, ReviewCase | None]:
     digest = hashlib.sha256(original_xml.encode()).hexdigest()
+    issued_at = _issued_at_from_normalized_data(normalized_data)
     document, created = NfseDocument.objects.get_or_create(
         organization=company.organization,
         company=company,
@@ -121,6 +123,7 @@ def create_document_and_artifact(
             "source_nsu": source_nsu,
             "original_xml": original_xml,
             "normalized_data": normalized_data,
+            "issued_at": issued_at,
         },
     )
     if not created:
@@ -159,6 +162,23 @@ def create_document_and_artifact(
         metadata={"source": "adn", "has_review": bool(review_case)},
     )
     return document, artifact, review_case
+
+
+def _issued_at_from_normalized_data(normalized_data: dict[str, Any]) -> datetime | None:
+    """Keep the fiscal issuance date parsed from the NFS-e payload, never capture time."""
+
+    raw_issued_at = normalized_data.get("issued_at")
+    if not isinstance(raw_issued_at, str) or not raw_issued_at.strip():
+        return None
+    parsed_datetime = parse_datetime(raw_issued_at)
+    if parsed_datetime is not None:
+        if timezone.is_aware(parsed_datetime):
+            return parsed_datetime
+        return timezone.make_aware(parsed_datetime)
+    parsed_date = parse_date(raw_issued_at)
+    if parsed_date is None:
+        return None
+    return timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
 
 
 def store_certificate(

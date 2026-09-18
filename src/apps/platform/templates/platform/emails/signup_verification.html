@@ -1,0 +1,8 @@
+{% extends "platform/emails/base.html" %}
+{% block content %}
+<p style="margin:0 0 16px;color:#627078;font-size:13px;font-weight:bold;letter-spacing:.08em;">CONFIRMAÇÃO DE CADASTRO</p>
+<h1 style="margin:0 0 16px;font-size:26px;line-height:1.2;">Confirme seu e-mail</h1>
+<p style="margin:0 0 24px;">Confirme o acesso de {{ office_name }} e inicie os 14 dias gratuitos da CICA.</p>
+<p style="margin:0 0 24px;"><a href="{{ verification_url }}" style="display:inline-block;padding:13px 18px;border-radius:8px;background:#16705f;color:#ffffff;font-weight:bold;text-decoration:none;">Confirmar e iniciar teste</a></p>
+<p style="margin:0;color:#627078;font-size:13px;">Este link expira em 24 horas. Se você não iniciou este cadastro, ignore esta mensagem.</p>
+{% endblock %}

@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento em 18/09/2026. A inspeção local segura não encontrou instalação, DSN ou driver identificado como Siescon; portanto o servidor/banco disponibilizado em D-53 ainda não está acessível nesta estação. A implementação do adaptador permanece condicionada ao contrato técnico de Q-33.
 
 **Dependências:** 02–03.
 
@@ -12,15 +12,15 @@
 
 - [ ] Identificar versão, banco, mecanismo permitido de acesso e ambiente disponibilizado.
 - [ ] Obter schema e arquivos de referência por acesso autorizado.
-- [ ] Implementar leitura, sincronização e diagnóstico.
+- [-] Preparar leitura, sincronização e diagnóstico. O espelho idempotente existente pode receber um adaptador revisado, mas não há contrato Siescon para implementar leitura específica (Q-33).
 - [ ] Mapear empresas, contas, lançamentos e demais dados necessários aos fluxos contratados.
-- [ ] Preparar exportação revisada no layout efetivamente suportado.
-- [ ] Generalizar vínculos hoje dependentes exclusivamente do código Domínio.
-- [ ] Registrar matriz de capacidades: o que funciona com Domínio, Siescon ou ambos.
+- [-] Preparar exportação revisada no layout efetivamente suportado. D-88 separou destino e adaptador; Siescon é recusado até existir layout revisado, sem gerar arquivo fictício.
+- [x] Generalizar vínculos hoje dependentes exclusivamente do código Domínio. `AccountingExport` passou a registrar destino/versionamento e a fonte Siescon existe no modelo; a compatibilidade permanece bloqueada até a revisão do adaptador.
+- [x] Registrar [matriz de capacidades](../../siescon-matriz-capacidades.md): o que funciona com Domínio, Siescon ou ambos.
 
 ## Bloqueios e responsabilidade
 
-Q-28 e Q-33. Banco disponível foi confirmado; versão, meio de acesso e layout não foram fornecidos.
+Q-28 e Q-33. Banco disponível foi confirmado; versão, meio de acesso e layout não foram fornecidos. A inspeção de 18/09 verificou somente metadados locais e não encontrou instalação, DSN ou driver Siescon nesta estação; não houve tentativa de conexão nem leitura de dados.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -32,7 +32,7 @@ Leitura autorizada, escopo por empresa, cursor/repetição, revogação, exporta
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-029 registra que esta estação possui 26 drivers ODBC e 5 DSNs, mas nenhum identificado como Siescon e nenhuma instalação Siescon nas pastas locais usuais. V-030 registra a base de destino/adaptador versionado: 36 testes focados passaram, a migração não tem drift e Siescon é recusado até receber layout revisado. Nenhuma homologação nova foi atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

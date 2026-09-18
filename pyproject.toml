@@ -31,7 +31,7 @@ dependencies = [
   "openpyxl==3.1.5",
   "ofxtools==1.1.1",
   "pdfplumber==0.11.10",
-  "pypdf==6.9.2",
+  "pypdf==6.16.1",
   "pypdfium2==5.13.0",
   "Pillow==12.3.0",
   "reportlab==4.5.1",

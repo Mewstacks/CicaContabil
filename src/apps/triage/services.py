@@ -211,7 +211,7 @@ def _windows_component(value: str, *, fallback: str) -> str:
     return cleaned
 
 
-def windows_relative_destination(item: TriageItem) -> str:
+def windows_relative_destination(item: TriageItem, profile: DestinationProfile) -> str:
     """Build the office-standard relative path; the agent owns the absolute root."""
     if item.company is None or not item.company.dominio_code.strip():
         raise ValidationError("Informe o código Domínio da empresa antes de arquivar.")
@@ -224,8 +224,18 @@ def windows_relative_destination(item: TriageItem) -> str:
         raise ValidationError("Revise e confirme um nome final de arquivo válido.")
     company = _windows_component(item.company.name, fallback="Empresa")
     dominio = _windows_component(item.company.dominio_code, fallback="sem-codigo")
+    document_type = _windows_component(item.document_type.label if item.document_type else "Documentos", fallback="Documentos")
+    period = _windows_component(item.period_label or "Sem período", fallback="Sem período")
     filename = _windows_component(item.final_name, fallback="documento")
-    return str(PureWindowsPath(f"{company} [Domínio {dominio}]") / filename)
+    template = profile.folder_template or "{company_name} [Domínio {dominio_code}]"
+    try:
+        folder = template.format(company_name=company, dominio_code=dominio, document_type=document_type, period=period)
+    except (KeyError, ValueError) as exc:
+        raise ValidationError("O formato de pastas Windows precisa ser configurado novamente.") from exc
+    relative = PureWindowsPath(folder)
+    if relative.is_absolute() or ".." in relative.parts or any(not part for part in relative.parts):
+        raise ValidationError("O formato de pastas Windows gerou um destino inválido.")
+    return str(relative / filename)
 
 
 def queue_windows_archive(
@@ -264,7 +274,7 @@ def queue_windows_archive(
         root = PureWindowsPath(profile.windows_root)
         if not profile.windows_root or not root.is_absolute() or ".." in root.parts:
             raise ValidationError("A pasta raiz Windows precisa ser configurada novamente.")
-        relative_path = windows_relative_destination(item)
+        relative_path = windows_relative_destination(item, profile)
         active = (
             item.agent_jobs.filter(
                 status__in=[AgentFileJob.Status.QUEUED, AgentFileJob.Status.CLAIMED]

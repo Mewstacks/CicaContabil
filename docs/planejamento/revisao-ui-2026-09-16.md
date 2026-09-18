@@ -94,7 +94,7 @@ Achados corrigidos, no formato da skill:
 src/apps/hub/static/hub/operations.css:141 — coluna de ações sem espaço intrínseco; links agora não quebram letra por letra.
 src/apps/hub/templates/hub/guides_center.html:28 — seleção sem alcance e fila truncada; seleção da página e paginação explícitas.
 src/apps/hub/static/hub/hub.js — modal, filtros assíncronos, estado de seleção e seletor OFX corrigidos.
-src/apps/hub/static/hub/regaro-auth.js — submitter preservado e estado restaurado no histórico.
+src/apps/hub/static/hub/cica-auth.js — submitter preservado e estado restaurado no histórico.
 src/apps/hub/static/hub/theme.css — superfícies, texto, foco, controles nativos e estados nos dois temas.
 src/apps/hub/templates/hub/auth_base.html — tema claro fixo removido.
 src/apps/platform/templates/platform/base.html — navegação móvel disponível.

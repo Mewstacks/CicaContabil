@@ -1,27 +1,28 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="Regaro Agent" Manufacturer="Regaro" Version="1.0.0.0"
+  <Package Name="CICA Agent" Manufacturer="Mewstack" Version="$(var.InstallerVersion)"
            UpgradeCode="8D0CF3A2-CB09-4F78-A90B-23042EA1CE32" Scope="perMachine">
-    <MajorUpgrade DowngradeErrorMessage="Já existe uma versão mais nova do Regaro Agent." />
+    <MajorUpgrade DowngradeErrorMessage="Já existe uma versão mais nova do CICA Agent." />
     <MediaTemplate EmbedCab="yes" />
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="Regaro Agent">
+      <Directory Id="INSTALLFOLDER" Name="CICA Agent">
         <Directory Id="SERVICEFOLDER" Name="Service" />
         <Directory Id="CONFIGURATORFOLDER" Name="Configurator" />
       </Directory>
     </StandardDirectory>
     <StandardDirectory Id="CommonAppDataFolder">
-      <Directory Id="RegaroData" Name="Regaro">
+      <Directory Id="CicaData" Name="CICA">
         <Directory Id="AgentData" Name="Agent" />
       </Directory>
     </StandardDirectory>
-    <Feature Id="Main" Title="Regaro Agent" Level="1">
+    <Feature Id="Main" Title="CICA Agent" Level="1">
       <ComponentGroupRef Id="ServiceFiles" />
       <ComponentGroupRef Id="ConfiguratorFiles" />
       <ComponentRef Id="ServiceRegistration" />
       <ComponentRef Id="DataPermissions" />
+      <ComponentRef Id="DiagnosticScript" />
     </Feature>
     <CustomAction Id="LaunchConfigurator" Directory="CONFIGURATORFOLDER"
-                  ExeCommand="Regaro.Agent.Configurator.exe"
+                  ExeCommand="Cica.Agent.Configurator.exe"
                   Execute="immediate" Return="asyncNoWait" Impersonate="yes" />
     <InstallExecuteSequence>
       <Custom Action="LaunchConfigurator" After="InstallFinalize" Condition="NOT Installed" />
@@ -30,7 +31,7 @@
   <Fragment>
     <ComponentGroup Id="ServiceFiles" Directory="SERVICEFOLDER">
       <Files Include="$(ServiceDir)\**">
-        <Exclude Files="$(ServiceDir)\Regaro.Agent.Service.exe" />
+        <Exclude Files="$(ServiceDir)\Cica.Agent.Service.exe" />
       </Files>
     </ComponentGroup>
     <ComponentGroup Id="ConfiguratorFiles" Directory="CONFIGURATORFOLDER">
@@ -38,12 +39,17 @@
     </ComponentGroup>
     <DirectoryRef Id="SERVICEFOLDER">
       <Component Id="ServiceRegistration" Guid="507A8F88-251B-4FE1-BE99-2A692A17EC33" Bitness="always64">
-        <File Id="ServiceExe" Source="$(ServiceDir)\Regaro.Agent.Service.exe" KeyPath="yes" />
-        <ServiceInstall Id="RegaroService" Name="RegaroAgent" DisplayName="Regaro Agent"
-                        Description="Sincronização segura do Domínio com o Regaro"
+        <File Id="ServiceExe" Source="$(ServiceDir)\Cica.Agent.Service.exe" KeyPath="yes" />
+        <ServiceInstall Id="CicaService" Name="CicaAgent" DisplayName="CICA Agent"
+                        Description="Sincronização segura do Domínio com a CICA"
                         Start="auto" Type="ownProcess" ErrorControl="normal" Account="LocalSystem" />
-        <ServiceControl Id="RegaroServiceControl" Name="RegaroAgent" Start="install"
+        <ServiceControl Id="CicaServiceControl" Name="CicaAgent" Start="install"
                         Stop="both" Remove="uninstall" Wait="yes" />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="CONFIGURATORFOLDER">
+      <Component Id="DiagnosticScript" Guid="9D820CAA-A07F-4E73-ADDD-1739C6A4D4A2" Bitness="always64">
+        <File Id="DiagnosticScriptFile" Source="$(var.DiagnosticScript)" KeyPath="yes" />
       </Component>
     </DirectoryRef>
     <DirectoryRef Id="AgentData">

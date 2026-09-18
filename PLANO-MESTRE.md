@@ -2,7 +2,7 @@
 
 Atualizado em 17/09/2026. Plano aprovado pelo responsável nesta conversa; localização na raiz conforme D-59.
 
-**Execução autorizada agora: somente etapa 00 — documentação e consolidação.** As etapas 01–13 não foram iniciadas por esta entrega. O estado final da etapa 00 está em [VALIDACOES.md](VALIDACOES.md).
+**Situação em 18/09/2026:** etapas 00, 01, 02 e 03 concluídas no nível de implementação e validação local. Por D-87, toda dependência de site em produção fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualização distribuída, backup Domínio Web e escrita Windows definitiva. A demonstração NFS-e foi ajustada separadamente e não conclui a etapa 07. Evidências em [VALIDACOES.md](VALIDACOES.md).
 
 ## 1. Objetivo e ponto de partida
 
@@ -18,12 +18,15 @@ Verificações da análise de 17/09/2026, anteriores à edição documental: 740
 - [VALIDACOES.md](VALIDACOES.md): verificações efetivamente executadas, resultados, limites e estado desta entrega.
 - [Etapas e prompts](docs/planejamento/etapas/README.md): execução detalhada das etapas 00–13.
 - [Inventário de código, rotas, tarefas e APIs](docs/planejamento/inventario-conclusao.md): mapa estático, não prova de funcionamento.
+- [Limitações comerciais Domínio Web](docs/dominio-web-limitacoes-comerciais.md): linguagem de venda, capacidades verificadas e limites da API/backup.
 - [Dúvidas abertas](docs/planejamento/duvidas-abertas.md): registro único de perguntas, com etapa e dono.
 - [Estado operacional](docs/planejamento/estado-operacional.md) e [histórico de execução](docs/planejamento/registro-de-execucao.md): evidências anteriores, com data e ressalvas.
 
 Os caminhos antigos de plano e decisões são ponteiros, não planos concorrentes. Documentos históricos não viram especificação por serem mais antigos ou mais extensos. Decisões confirmadas só voltam a ser perguntadas diante de conflito concreto ou mudança solicitada, indicando o ID e o motivo.
 
 Cada item distingue: **implementado → testado localmente → homologado no ambiente real → liberado para venda**. Um bloqueio documentado não transforma uma etapa incompleta em concluída.
+
+Por D-87, as etapas 01–11 encerram o respectivo escopo de implementação e validação local. A etapa 12 reúne toda execução que exija site publicado, ambiente hospedado, credencial externa de produção, chamada real, piloto ou homologação comercial. Essa organização não antecipa deploy nem autoriza custos.
 
 ### Decisões encerradas nesta conversa
 
@@ -141,7 +144,7 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 
 **Prompt**
 
-> Execute a etapa 03. Complete o serviço instalável e o conector Domínio local/Web. Apresente a decisão técnica pendente sobre Python e serviço nativo com evidências antes de alterar essa arquitetura. Homologue instalação, leitura, recuperação, atualização e pastas Windows, sem SQL arbitrário nem escrita no banco Domínio.
+> Execute a etapa 03. Complete localmente o serviço instalável e o conector Domínio local/Web. Registre a arquitetura definitiva antes de alterá-la. Prepare instalação, leitura, recuperação, atualização e pastas Windows sem SQL arbitrário nem escrita no banco Domínio; a homologação contra o site publicado e o piloto real pertencem à etapa 12.
 
 [Checklist, testes e continuidade da etapa 03](docs/planejamento/etapas/03-agente-dominio.md).
 
@@ -393,4 +396,4 @@ Cada entrega deve registrar critérios atendidos e bloqueios, testes proporciona
 
 ## 5. Próximo trabalho
 
-Somente após nova solicitação, executar [01 — estabilizar a base técnica](docs/planejamento/etapas/01-base-tecnica.md). Nesta entrega, limitar alterações a documentação e instruções de continuidade. As 66 violações Ruff permanecem como achado, sem correção nesta etapa.
+[01 — estabilizar a base técnica](docs/planejamento/etapas/01-base-tecnica.md) permanece **aberta e bloqueada** em 18/09/2026. Ruff, dependências, PostgreSQL, Redis, migrations, worker real, concorrência de consumo, MSI do agente e imagens da aplicação/multimodal foram validados em V-004. **O responsável precisa informar a imagem LlamaFactory aprovada por digest imutável (Q-37)** para construir o runtime de treinamento. Não iniciar a etapa 02 antes de concluir e registrar esse item. D-61 proíbe encerrar etapas com pendências.

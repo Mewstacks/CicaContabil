@@ -46,9 +46,7 @@ REQUIRED_COLUMNS: dict[str, set[str]] = {
 
 
 class Command(BaseCommand):
-    help = (
-        "Valida consultas allowlisted e schema Domínio sem exibir nem persistir dados de origem."
-    )
+    help = "Valida consultas allowlisted e schema Domínio sem exibir nem persistir dados de origem."
 
     def add_arguments(self, parser) -> None:  # type: ignore[no-untyped-def]
         parser.add_argument("--organization", required=True, help="UUID ou slug do escritório")
@@ -62,7 +60,12 @@ class Command(BaseCommand):
         try:
             query_counts = {
                 query_name: len(adapter.execute(query_name))
-                for query_name in ("companies", "communications", "bank_entries", "guide_calculations")
+                for query_name in (
+                    "companies",
+                    "communications",
+                    "bank_entries",
+                    "guide_calculations",
+                )
             }
             missing_by_table: dict[str, int] = {}
             for table_name, required_columns in REQUIRED_COLUMNS.items():
@@ -88,7 +91,8 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 "Contrato ODBC validado: "
                 f"{len(query_counts)} consulta(s), {len(REQUIRED_COLUMNS)} objeto(s), "
-                f"{sum(query_counts.values())} linha(s) lida(s), {missing_total} coluna(s) ausente(s)."
+                f"{sum(query_counts.values())} linha(s) lida(s), "
+                f"{missing_total} coluna(s) ausente(s)."
             )
         )
         if missing_total:

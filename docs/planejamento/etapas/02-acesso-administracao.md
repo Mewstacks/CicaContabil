@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Concluída em 18/09/2026 no nível de implementação e validação local (V-007 a V-009). E-mail real, DNS e SMTP permanecem para homologação integrada da etapa 12, conforme D-77; não são alegados como homologados aqui.
 
 **Dependências:** 01.
 
@@ -10,16 +10,16 @@
 
 ## Escopo e checklist
 
-- [ ] Completar cadastro, confirmação de e-mail, recuperação, convites, MFA e fim do teste.
-- [ ] Conferir permissões por escritório, empresa, módulo e operação.
-- [ ] Validar empresas, certificados, equipe e primeiros passos.
-- [ ] Completar o console Mewstack para suporte, contratos, integrações e falhas.
-- [ ] Garantir que demonstrações não acessem dados ou serviços reais.
-- [ ] Homologar e-mail transacional e seus estados de falha.
+- [x] Cadastro, confirmação de e-mail, recuperação, convites, MFA e encerramento do teste implementados e testados localmente.
+- [x] Permissões por escritório, empresa, módulo e operação verificadas por rotas e APIs locais.
+- [x] Empresas, certificados, equipe e primeiros passos validados em jornadas e testes locais.
+- [x] Console Mewstack para suporte, contratos, integrações e falhas verificado localmente.
+- [x] Demonstração isolada de dados e operações reais coberta por testes locais.
+- [x] E-mails transacionais possuem HTML, texto de reserva e testes locais de falha; homologação Brevo/DNS é da etapa 12 (D-77/D-78).
 
 ## Bloqueios e responsabilidade
 
-Q-01 a Q-06 e Q-29: não inventar regras de acesso comercial nem SMTP.
+Não há bloqueio próprio da etapa. D-79 encerra regras de acesso comercial; a operação de cobrança fica para a etapa 10. D-77/D-78 transferem SMTP, DNS e entrega Brevo reais à etapa 12.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -31,7 +31,7 @@ Matriz de autorização por rota/API, isolamento, convite e recuperação expira
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-007: 83 testes de cadastro, convite, MFA, permissões, isolamento, contrato e acesso operacional passaram em 54,47 s. V-008: confirmação de cadastro, convite e recuperação passaram a ter HTML CICA e texto de reserva; 62 testes passaram. V-009 acrescenta 22 testes de APIs/permissões, 4 testes de demonstração isolada e inspeção Playwright autenticada: MFA, painel, equipe, empresas e configurações; em celular não houve overflow, foco foi visível e o console não teve erro. Uma semeadura local de demo foi corretamente recusada por existir escritório operacional com o slug; a barreira foi tratada como evidência, sem sobrescrever dados locais. D-77 transfere SMTP real, DNS e entrega para a etapa 12.
 
 ## Prompt de execução
 

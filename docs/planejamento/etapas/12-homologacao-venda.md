@@ -6,12 +6,16 @@
 
 **Dependências:** 01–11.
 
-**Decisões relacionadas:** D-03, D-46, D-51, D-56.
+**Decisões relacionadas:** D-03, D-46, D-51, D-56, D-77, D-81, D-86, D-87.
 
 ## Escopo e checklist
 
+- [ ] Configurar Brevo SMTP, remetente e autenticação de domínio/DNS da CICA; testar confirmação, convite e recuperação, incluindo falha de entrega (D-77/D-78).
+
 - [ ] Identificar ambiente de produção e capacidade necessária, sem presumir provedor ou contratar recursos.
+- [ ] Reunir toda dependência de site em produção preparada nas etapas 01–11: domínio/HTTPS/DNS, credenciais e consentimentos externos, serviços hospedados, chamadas reais a provedores, pilotos e homologação comercial (D-87).
 - [ ] Validar deploy, migrações, workers, agendador, storage e conectividade dos agentes.
+- [ ] Executar o piloto operacional do agente CICA: instalação limpa x64, DSN/driver, pareamento HTTPS/mTLS, revogação, atualização distribuída, queda/retomada de rede, backup `.dom` autorizado e escrita documental na raiz Windows real. Definir Q-22/Q-31 no contexto do piloto (D-86).
 - [ ] Executar restauração de banco e documentos, recuperação de falhas e retorno de versão.
 - [ ] Homologar retenção, exportação, exclusão, termos e contatos de suporte.
 - [ ] Executar piloto por módulo, com critérios e amostra aprovados.

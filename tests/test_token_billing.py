@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
+from threading import Barrier
 from unittest.mock import patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import close_old_connections, connection, connections
 from django.test import override_settings
 from django.utils import timezone
 
@@ -122,6 +125,38 @@ def test_automatic_overage_stops_before_accepted_global_cap() -> None:
             idempotency_key="dte-3", on_date=DAY,
         )
     assert TokenUsageEvent.objects.filter(organization=office).count() == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_token_reservations_share_one_idempotency_key() -> None:
+    if connection.vendor != "postgresql":
+        pytest.skip("A concorrência de locks é validada no PostgreSQL.")
+    office, _book_record = _book()
+    barrier = Barrier(4)
+
+    def reserve_from_another_connection() -> str:
+        close_old_connections()
+        try:
+            barrier.wait(timeout=10)
+            organization = Organization.objects.get(id=office.id)
+            event = reserve_tokens(
+                organization=organization,
+                module_code="integra",
+                action_code="dte.list",
+                idempotency_key="concurrent-reserve",
+                on_date=DAY,
+            )
+            return str(event.id)
+        finally:
+            connections.close_all()
+
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        event_ids = list(executor.map(lambda _: reserve_from_another_connection(), range(4)))
+
+    assert len(set(event_ids)) == 1
+    assert TokenUsageEvent.objects.filter(organization=office).count() == 1
+    meter = TokenMeter.objects.get(organization=office, module_code="integra")
+    assert meter.reserved_tokens == 8
 
 
 def test_draft_token_book_cannot_activate_without_operational_switch() -> None:

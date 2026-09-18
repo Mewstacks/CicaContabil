@@ -1,5 +1,7 @@
 # P0: execução da revisão de áreas de trabalho
 
+> Registro histórico de 15/09/2026. A sequência vigente está em [PLANO-MESTRE.md](../../PLANO-MESTRE.md), com decisões e validações na raiz. Esta página preserva evidências da revisão anterior e não é um segundo plano de execução nem amplia o escopo atual, limitado à etapa 00.
+
 O plano de demonstração e ativação gradual foi aprovado pelo responsável. Esta página distingue o que já foi corrigido do que ainda precisa ser provado antes de mostrar uma ação como operacional.
 
 | Tarefa da pessoa | Correção executada | Evidência local | Próximo impedimento |

@@ -462,8 +462,16 @@ class FinancialAccountSelect(forms.Select):
     operator from selecting a visibly incompatible account after changing company.
     """
 
-    def create_option(self, name: str, value: Any, label: str, selected: bool, index: int,
-                      subindex: int | None = None, attrs: dict[str, Any] | None = None) -> dict[str, Any]:
+    def create_option(
+        self,
+        name: str,
+        value: Any,
+        label: str,
+        selected: bool,
+        index: int,
+        subindex: int | None = None,
+        attrs: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         option = super().create_option(name, value, label, selected, index, subindex, attrs)
         instance = getattr(value, "instance", None)
         if isinstance(instance, FinancialAccount):
@@ -487,18 +495,23 @@ class ReconciliationUploadForm(forms.Form):
     )
     origin = forms.ChoiceField(label="Origem", choices=ReconciliationSourceFile.Origin.choices)
     period_start = forms.DateField(
-        label="Início do período", widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"})
+        label="Início do período",
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
     )
     period_end = forms.DateField(
-        label="Fim do período", widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"})
+        label="Fim do período",
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
     )
     physical_batch = forms.CharField(
-        label="Identificação do lote físico", max_length=120, required=False,
+        label="Identificação do lote físico",
+        max_length=120,
+        required=False,
         widget=forms.TextInput(attrs={"autocomplete": "off"}),
         help_text="Opcional; use para localizar a caixa ou malote original.",
     )
     files = MultipleFileField(
-        label="Arquivos", widget=MultipleFileInput(attrs={"accept": ".ofx,.qfx,.csv,.xlsx,.pdf", "multiple": True})
+        label="Arquivos",
+        widget=MultipleFileInput(attrs={"accept": ".ofx,.qfx,.csv,.xlsx,.pdf", "multiple": True}),
     )
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
@@ -512,9 +525,7 @@ class ReconciliationUploadForm(forms.Form):
         ).select_related("company")
         if company_id:
             accounts = accounts.filter(company_id=company_id)
-        financial_account_field = cast(
-            forms.ModelChoiceField, self.fields["financial_account"]
-        )
+        financial_account_field = cast(forms.ModelChoiceField, self.fields["financial_account"])
         financial_account_field.queryset = accounts.order_by("company__name", "name")
         financial_account_field.label_from_instance = lambda account: (
             f"{account.company.name} — {account.name} ({account.account_reference})"
@@ -533,7 +544,9 @@ class ReconciliationUploadForm(forms.Form):
             and isinstance(financial_account, FinancialAccount)
             and financial_account.company_id != company.id
         ):
-            self.add_error("financial_account", "Escolha uma conta financeira da empresa selecionada.")
+            self.add_error(
+                "financial_account", "Escolha uma conta financeira da empresa selecionada."
+            )
         if (
             cleaned.get("origin") == ReconciliationSourceFile.Origin.BANK_STATEMENT
             and isinstance(company, ClientCompany)
@@ -545,14 +558,53 @@ class ReconciliationUploadForm(forms.Form):
 
 
 class ReconciliationMovementForm(forms.Form):
-    occurred_on = forms.DateField(label="Data", required=False, widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}))
-    description = forms.CharField(label="Descrição", max_length=1000, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    document_number = forms.CharField(label="Documento", max_length=160, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    counterparty = forms.CharField(label="Contraparte", max_length=255, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    debit_account_code = forms.CharField(label="Conta de débito", max_length=64, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    credit_account_code = forms.CharField(label="Conta de crédito", max_length=64, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    cost_center_code = forms.CharField(label="Centro de custo", max_length=64, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
-    accounting_history = forms.CharField(label="Histórico contábil", max_length=500, required=False, widget=forms.TextInput(attrs={"autocomplete": "off"}))
+    occurred_on = forms.DateField(
+        label="Data",
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
+    )
+    description = forms.CharField(
+        label="Descrição",
+        max_length=1000,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    document_number = forms.CharField(
+        label="Documento",
+        max_length=160,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    counterparty = forms.CharField(
+        label="Contraparte",
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    debit_account_code = forms.CharField(
+        label="Conta de débito",
+        max_length=64,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    credit_account_code = forms.CharField(
+        label="Conta de crédito",
+        max_length=64,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    cost_center_code = forms.CharField(
+        label="Centro de custo",
+        max_length=64,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    accounting_history = forms.CharField(
+        label="Histórico contábil",
+        max_length=500,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
     expected_revision = forms.IntegerField(widget=forms.HiddenInput)
 
 
@@ -595,30 +647,38 @@ class FinancialAccountForm(_ReconciliationCompanyScopedForm):
         )
         if isinstance(selected_company_id, ClientCompany):
             selected_company_id = selected_company_id.id
-        accounts = LedgerAccount.objects.filter(
-            company_id=selected_company_id,
-            company__in=companies,
-            active=True,
-            accepts_entries=True,
-        ).order_by("code") if selected_company_id else LedgerAccount.objects.none()
+        accounts = (
+            LedgerAccount.objects.filter(
+                company_id=selected_company_id,
+                company__in=companies,
+                active=True,
+                accepts_entries=True,
+            ).order_by("code")
+            if selected_company_id
+            else LedgerAccount.objects.none()
+        )
         self.fields["ledger_code"].widget = forms.Select(
             choices=[("", "Sem vínculo contábil por enquanto")]
             + [(account.code, f"{account.code} — {account.name}") for account in accounts]
         )
-        self.fields["ledger_code"].help_text = (
-            "Escolha somente uma conta ativa que aceite lançamentos desta empresa."
-        )
+        self.fields[
+            "ledger_code"
+        ].help_text = "Escolha somente uma conta ativa que aceite lançamentos desta empresa."
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean()
         company = cleaned.get("company")
         ledger_code = str(cleaned.get("ledger_code") or "").strip()
-        if isinstance(company, ClientCompany) and ledger_code and not LedgerAccount.objects.filter(
-            company=company,
-            code=ledger_code,
-            active=True,
-            accepts_entries=True,
-        ).exists():
+        if (
+            isinstance(company, ClientCompany)
+            and ledger_code
+            and not LedgerAccount.objects.filter(
+                company=company,
+                code=ledger_code,
+                active=True,
+                accepts_entries=True,
+            ).exists()
+        ):
             self.add_error(
                 "ledger_code",
                 "Cadastre uma conta contábil ativa que aceite lançamentos antes de vinculá-la.",
@@ -805,7 +865,9 @@ class ReconciliationRuleForm(forms.Form):
         required=False,
         label="Enviar o resultado para revisão antes de lançar",
     )
-    ignore = forms.BooleanField(required=False, label="Marcar os movimentos compatíveis como ignorados")
+    ignore = forms.BooleanField(
+        required=False, label="Marcar os movimentos compatíveis como ignorados"
+    )
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -826,7 +888,9 @@ class ReconciliationRuleForm(forms.Form):
             if minimum is None or maximum is None:
                 self.add_error("minimum_brl", "Informe os dois limites da faixa.")
             elif maximum < minimum:
-                self.add_error("maximum_brl", "O valor máximo deve ser igual ou maior que o mínimo.")
+                self.add_error(
+                    "maximum_brl", "O valor máximo deve ser igual ou maior que o mínimo."
+                )
         elif not value:
             self.add_error("condition_value", "Informe o valor que a regra deve reconhecer.")
         elif operator == "regex":
@@ -842,7 +906,9 @@ class ReconciliationRuleForm(forms.Form):
         additional_value = str(cleaned.get("additional_condition_value") or "").strip()
         if additional_field or additional_operator or additional_value:
             if not additional_field:
-                self.add_error("additional_condition_field", "Escolha o campo da condição adicional.")
+                self.add_error(
+                    "additional_condition_field", "Escolha o campo da condição adicional."
+                )
             if not additional_operator:
                 self.add_error("additional_condition_operator", "Escolha o operador adicional.")
             if not additional_value:
@@ -851,7 +917,9 @@ class ReconciliationRuleForm(forms.Form):
                 try:
                     re.compile(additional_value)
                 except re.error:
-                    self.add_error("additional_condition_value", "A expressão regular adicional não é válida.")
+                    self.add_error(
+                        "additional_condition_value", "A expressão regular adicional não é válida."
+                    )
         if not any(
             cleaned.get(key)
             for key in (
@@ -868,15 +936,25 @@ class ReconciliationRuleForm(forms.Form):
         if isinstance(company, ClientCompany):
             for field_name in ("debit_account_code", "credit_account_code"):
                 code = str(cleaned.get(field_name) or "")
-                if code and not LedgerAccount.objects.filter(
-                    company=company, code=code, active=True, accepts_entries=True
-                ).exists():
-                    self.add_error(field_name, "Cadastre uma conta contábil ativa que aceite lançamentos.")
+                if (
+                    code
+                    and not LedgerAccount.objects.filter(
+                        company=company, code=code, active=True, accepts_entries=True
+                    ).exists()
+                ):
+                    self.add_error(
+                        field_name, "Cadastre uma conta contábil ativa que aceite lançamentos."
+                    )
             cost_center = str(cleaned.get("cost_center_code") or "")
-            if cost_center and not CostCenter.objects.filter(
-                company=company, code=cost_center, active=True
-            ).exists():
-                self.add_error("cost_center_code", "Cadastre um centro de custo ativo antes de usá-lo.")
+            if (
+                cost_center
+                and not CostCenter.objects.filter(
+                    company=company, code=cost_center, active=True
+                ).exists()
+            ):
+                self.add_error(
+                    "cost_center_code", "Cadastre um centro de custo ativo antes de usá-lo."
+                )
         return cleaned
 
     def condition_groups(self) -> tuple[list[dict[str, object]], list[dict[str, object]]]:

@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='productmodule',
             name='code',
-            field=models.CharField(choices=[('nfse', 'NFS-e Inteligente'), ('guides', 'Guias e DCTFWeb'), ('integra', 'Central Integra Contador'), ('reconciliation', 'Conciliação OFX x Domínio'), ('reform', 'Radar da Reforma Tributária'), ('journey', 'Jornada e Portal'), ('ai', 'IA Regaro')], max_length=32),
+            field=models.CharField(choices=[('nfse', 'NFS-e Inteligente'), ('guides', 'Guias e DCTFWeb'), ('integra', 'Central Integra Contador'), ('reconciliation', 'Conciliação OFX x Domínio'), ('reform', 'Radar da Reforma Tributária'), ('journey', 'Jornada e Portal'), ('ai', 'IA CICA')], max_length=32),
         ),
     ]

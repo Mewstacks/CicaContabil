@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import zipfile
 from datetime import timedelta
 
 import pytest
@@ -351,6 +353,71 @@ def test_demo_nfse_collection_progress_is_private_to_session() -> None:
     assert "Aguardando" in first.get(center, {"view": "collection"}).content.decode()
     assert "Não configurada" in second.get(center, {"view": "collection"}).content.decode()
     assert NfseSync.objects.count() == initial_sync_count
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+def test_demo_nfse_bulk_download_builds_the_selected_dominio_folder() -> None:
+    _seed()
+    document = (
+        NfseDocument.objects.filter(organization__is_demo=True).select_related("company").first()
+    )
+    assert document is not None
+    client = Client(REMOTE_ADDR="198.51.100.45")
+    assert client.post(reverse("hub:demo-entry")).status_code == 302
+
+    response = client.post(
+        reverse("hub:nfse-center"),
+        {"action": "demo_download_taken", "documents": [str(document.id)]},
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/zip"
+    body = b"".join(response.streaming_content)
+    with zipfile.ZipFile(io.BytesIO(body)) as archive:
+        xml_path = f"Tomadas/{document.company.dominio_code} -/NFS-e-{document.source_nsu}.xml"
+        assert archive.namelist() == [xml_path, "manifesto-classificacao.csv"]
+        assert archive.read(xml_path) == document.original_xml.encode()
+        manifest = archive.read("manifesto-classificacao.csv").decode("utf-8-sig")
+        assert "Transitória;0;Transitória sem acumulador" in manifest
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+def test_demo_nfse_bulk_download_includes_all_and_marks_manual_accumulator() -> None:
+    _seed()
+    documents = list(
+        NfseDocument.objects.filter(organization__is_demo=True).select_related("company")[:2]
+    )
+    assert len(documents) == 2
+    client = Client(REMOTE_ADDR="198.51.100.47")
+    assert client.post(reverse("hub:demo-entry")).status_code == 302
+
+    response = client.post(
+        reverse("hub:nfse-center"),
+        {
+            "action": "demo_download_issued",
+            "all_documents": "1",
+            f"accumulator_{documents[0].id}": "SERVICOS",
+        },
+    )
+
+    assert response.status_code == 200
+    with zipfile.ZipFile(io.BytesIO(b"".join(response.streaming_content))) as archive:
+        names = archive.namelist()
+        assert "manifesto-classificacao.csv" in names
+        assert any(name.startswith("Emitidas/") and name.endswith(".xml") for name in names)
+        manifest = archive.read("manifesto-classificacao.csv").decode("utf-8-sig")
+        assert "SERVICOS;100;Definida pelo contador" in manifest
+        assert "Transitória;0;Transitória sem acumulador" in manifest
 
 
 @override_settings(

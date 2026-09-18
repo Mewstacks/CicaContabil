@@ -32,7 +32,7 @@ CL-04 propõe destino exclusivo por escritório e não migrar automaticamente ar
 | AN-03 | `c-users-gege-downloads-reuni-o-iniciada-clever-kazoo.md` | Plano de reuniões e pipeline CRMew. A sessão Codex de 12/09 o citou; a crítica posterior do responsável levou ao plano específico de triagem, sem transferir o restante do CRMew para esta aplicação. |
 | AN-04 | `integrar-caixa-de-e-mail-snoopy-quiche.md` | Caixa Gmail para outro Hub, por usuário e em tempo real. Não representa a triagem por caixa de escritório e armazenamento documental da CICA. |
 | AN-05 | `para-a-ia-vamos-snuggly-pumpkin.md` | Ideia de servidor local Ollama/LiteLLM para outros sistemas; serve como contexto de infraestrutura futura, sem impor modelo ou implantação à CICA. |
-| AN-06 | `C:\Users\gege\Downloads\PLAN.md` | Plano de marca/landing “Regaro” de 12/09. Nome anterior substituído pela confirmação expressa de CICA em 13/09. |
+| AN-06 | `C:\Users\gege\Downloads\PLAN.md` | Plano de marca/landing “CICA” de 12/09. Nome anterior substituído pela confirmação expressa de CICA em 13/09. |
 
 ## Histórico Codex relevante
 
@@ -45,7 +45,7 @@ O Codex não mantém nesta máquina uma pasta única de `.md` para este projeto.
 | CX-03 | 10/09 `01a08c15-d4c5-7450-a7a8-d181948eb020` | DTE/Integra sem planilhas e cadastro de empresas Domínio. |
 | CX-04 | 10/09 `01a08ce0-7c85-7893-87bf-7a6d6082ff5c` | ODBC local somente leitura para testes, ingestão de cadastro e revisão da navegação entre empresas. |
 | CX-05 | 12/09 `01a095ad-a3fc-7aa2-9d3a-f1fd7db3a67b` | Central Integra Mewstack: franquia por escritório, excedente, fatura única; plano integral enviado pelo usuário especificou fechamento dia 1, vencimento dia 10 e Inter/Asaas como meios à época. |
-| CX-06 | 12/09 `01a096d1-f275-7573-a061-f8be34c1d385` | Configuração simples pelo escritório; Domínio Web por importação de backup com atualização manual; nome “Regaro” adotado temporariamente. |
+| CX-06 | 12/09 `01a096d1-f275-7573-a061-f8be34c1d385` | Configuração simples pelo escritório; Domínio Web por importação de backup com atualização manual; nome “CICA” adotado temporariamente. |
 | CX-07 | 13/09 `01a09dbd-cb92-7ec3-860d-498203d4ec3f` | Exigência de auditar todas as funções sem assumir requisitos; confirmação direta de que o nome oficial passou a CICA. |
 | CX-08 | 14/09 `01a0a0c2-7493-7c01-871d-a3d67365855e` | Reunião de triagem tratada como conversa ambígua; pedido de plano para aprovação e conexão a caixas populares, incluindo Microsoft e Google. |
 | CX-09 | 15/09 `01a0a538-458d-7182-96a8-be18eb933465` | Meta de módulos vendáveis e IA funcional por API até o PC local; respostas do responsável confirmam e-mail como única entrada v1, destino selecionado pelo escritório, Microsoft 365/Google/IMAP, Serpro central Mewstack, chave Claude no `.env`, Sonnet, configuração da conexão pelo próprio escritório e pasta de empresa com código Domínio obrigatório. |

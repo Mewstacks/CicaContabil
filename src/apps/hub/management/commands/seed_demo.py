@@ -223,17 +223,21 @@ class Command(BaseCommand):
             for sequence in range(4):
                 service_code = SERVICE_CODES[(index + sequence) % len(SERVICE_CODES)]
                 amount = round(480.50 + index * 137 + sequence * 61.25, 2)
+                issued_at = (now - dt.timedelta(days=sequence * 3)).replace(
+                    hour=12, minute=0, second=0, microsecond=0
+                )
                 create_document_and_artifact(
                     company=company,
                     original_xml=(
                         f"<nfse><id>{company.dominio_code}-{sequence}</id>"
+                        f"<dhEmi>{issued_at.isoformat()}</dhEmi>"
                         f"<servico>{service_code}</servico><valor>{amount}</valor></nfse>"
                     ),
                     normalized_data={
                         "service_code": service_code,
                         "counterparty_ref": f"CP{index}{sequence}",
                         "amount": amount,
-                        "issued_at": (now - dt.timedelta(days=sequence * 3)).isoformat(),
+                        "issued_at": issued_at.isoformat(),
                     },
                     source_nsu=f"{company.dominio_code}{sequence:04d}",
                 )

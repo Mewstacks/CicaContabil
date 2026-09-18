@@ -1,0 +1,9 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+  <PropertyGroup>
+    <OutputName>CicaAgent</OutputName>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+    <InstallerVersion Condition="'$(InstallerVersion)' == ''">1.0.0</InstallerVersion>
+    <DefineConstants>ServiceDir=$(ServiceDir);ConfiguratorDir=$(ConfiguratorDir);DiagnosticScript=$(DiagnosticScript);InstallerVersion=$(InstallerVersion)</DefineConstants>
+  </PropertyGroup>
+</Project>

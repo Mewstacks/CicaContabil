@@ -87,7 +87,9 @@ def test_upload_form_marks_each_financial_account_with_its_company() -> None:
         organization=organization, company=second, name="Banco 2", account_reference="002"
     )
 
-    form = ReconciliationUploadForm(companies=ClientCompany.objects.filter(organization=organization))
+    form = ReconciliationUploadForm(
+        companies=ClientCompany.objects.filter(organization=organization)
+    )
     rendered = form["financial_account"].as_widget()
 
     assert f'data-company-id="{first.id}"' in rendered
@@ -118,9 +120,7 @@ def test_csv_auto_maps_and_saved_layout_reuses_the_structure() -> None:
     layout = save_layout(
         source=source,
         name="Extrato padrao",
-        configuration={
-            "mapping": DEFAULT_MAPPING
-        },
+        configuration={"mapping": DEFAULT_MAPPING},
     )
     assert [item.id for item in prepare_run_for_layout(source=source, layout=layout)] == [run.id]
     assert process_run(str(run.id))["state"] == ReconciliationRun.State.REVIEW
@@ -153,10 +153,7 @@ def test_csv_auto_maps_and_saved_layout_reuses_the_structure() -> None:
         organization=organization,
         company=company,
         filename="movimentos-outubro.csv",
-        content=(
-            b"Data;Historico;Valor;Documento\n"
-            b"14/10/2026;Fornecedor novo;20,00;N-2\n"
-        ),
+        content=(b"Data;Historico;Valor;Documento\n14/10/2026;Fornecedor novo;20,00;N-2\n"),
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
 
@@ -256,7 +253,7 @@ def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     )
 
     assert response.status_code == 400
-    assert b'data-form-errors' in response.content
+    assert b"data-form-errors" in response.content
     assert b"fim do per" in response.content.lower()
     assert b"Selecione ao menos um arquivo" in response.content
 
@@ -459,12 +456,15 @@ def test_reconciliation_allocation_needs_independent_evidence_and_preserves_capa
     undo_reconciliation(reconciliation=second_reconciliation)
     second_reconciliation.refresh_from_db()
     assert second_reconciliation.state == "undone"
-    assert confirm_reconciliation(
-        movement=movement,
-        entry=third_entry,
-        amount_cents=1,
-        evidence={"document": "N-3"},
-    ).amount_cents == 1
+    assert (
+        confirm_reconciliation(
+            movement=movement,
+            entry=third_entry,
+            amount_cents=1,
+            evidence={"document": "N-3"},
+        ).amount_cents
+        == 1
+    )
 
 
 @pytest.mark.django_db
@@ -495,10 +495,18 @@ def test_reconciliation_detail_offers_a_partial_candidate_with_its_real_limit() 
     JournalLine.objects.bulk_create(
         [
             JournalLine(
-                organization=organization, entry=partial_entry, account_code="1", side="debit", amount_cents=60_000
+                organization=organization,
+                entry=partial_entry,
+                account_code="1",
+                side="debit",
+                amount_cents=60_000,
             ),
             JournalLine(
-                organization=organization, entry=partial_entry, account_code="2", side="credit", amount_cents=60_000
+                organization=organization,
+                entry=partial_entry,
+                account_code="2",
+                side="credit",
+                amount_cents=60_000,
             ),
         ]
     )
@@ -548,8 +556,20 @@ def test_exact_unique_documentary_match_is_auto_confirmed_and_ambiguity_is_not()
         )
         JournalLine.objects.bulk_create(
             [
-                JournalLine(organization=organization, entry=entry, account_code="1", side="debit", amount_cents=123456),
-                JournalLine(organization=organization, entry=entry, account_code="2", side="credit", amount_cents=123456),
+                JournalLine(
+                    organization=organization,
+                    entry=entry,
+                    account_code="1",
+                    side="debit",
+                    amount_cents=123456,
+                ),
+                JournalLine(
+                    organization=organization,
+                    entry=entry,
+                    account_code="2",
+                    side="credit",
+                    amount_cents=123456,
+                ),
             ]
         )
         return entry
@@ -561,7 +581,9 @@ def test_exact_unique_documentary_match_is_auto_confirmed_and_ambiguity_is_not()
     assert matched.entry_id == entry.id
     assert matched.evidence["method"] == "deterministic_exact_1to1"
     assert AuditEvent.objects.filter(
-        organization=organization, action="hub.reconciliation.auto_confirmed", target_id=str(matched.id)
+        organization=organization,
+        action="hub.reconciliation.auto_confirmed",
+        target_id=str(matched.id),
     ).exists()
 
     second_source, second_run, _ = create_source_file(
@@ -572,7 +594,9 @@ def test_exact_unique_documentary_match_is_auto_confirmed_and_ambiguity_is_not()
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
     _map_and_process(second_source, second_run)
-    ambiguous_movement = NormalizedMovement.objects.get(source_file=second_source, source_key="row:2")
+    ambiguous_movement = NormalizedMovement.objects.get(
+        source_file=second_source, source_key="row:2"
+    )
     ambiguous_movement.review_state = NormalizedMovement.ReviewState.READY
     ambiguous_movement.save(update_fields=["review_state", "updated_at"])
     approved_entry("Liquidação documento N-1 alternativa", ambiguous_movement.occurred_on)
@@ -727,6 +751,21 @@ def test_dominio_export_is_blocked_until_homologated() -> None:
 
 
 @pytest.mark.django_db
+def test_siescon_export_is_explicitly_blocked_without_a_reviewed_adapter() -> None:
+    organization = Organization.objects.create(name="Siescon", slug="siescon")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+
+    with pytest.raises(ReconciliationError, match="Siescon está bloqueada"):
+        create_export(
+            organization=organization,
+            company=company,
+            start=date(2026, 9, 1),
+            end=date(2026, 9, 30),
+            target="siescon",
+        )
+
+
+@pytest.mark.django_db
 def test_dominio_export_rejects_unhomologated_compound_pairing() -> None:
     organization = Organization.objects.create(name="Domínio", slug="dominio")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
@@ -801,10 +840,7 @@ def test_manual_correction_can_be_saved_as_a_company_rule() -> None:
         organization=organization,
         company=company,
         filename="movimentos-segundo-lote.csv",
-        content=(
-            b"Data;Historico;Valor;Documento\n"
-            b"14/09/2026;Fornecedor;75,00;N-2\n"
-        ),
+        content=(b"Data;Historico;Valor;Documento\n14/09/2026;Fornecedor;75,00;N-2\n"),
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
     process_run(str(next_run.id))
@@ -873,9 +909,7 @@ def test_rule_actions_keep_review_and_ignore_as_distinct_states() -> None:
                 company=company,
                 name="Revisar tarifa",
                 state=ReconciliationRule.State.ACTIVE,
-                all_conditions=[
-                    {"field": "description", "operator": "equals", "value": "Tarifa"}
-                ],
+                all_conditions=[{"field": "description", "operator": "equals", "value": "Tarifa"}],
                 actions={"review": True},
             ),
             ReconciliationRule(
@@ -883,9 +917,7 @@ def test_rule_actions_keep_review_and_ignore_as_distinct_states() -> None:
                 company=company,
                 name="Ignorar saldo",
                 state=ReconciliationRule.State.ACTIVE,
-                all_conditions=[
-                    {"field": "description", "operator": "equals", "value": "Saldo"}
-                ],
+                all_conditions=[{"field": "description", "operator": "equals", "value": "Saldo"}],
                 actions={"ignore": True},
             ),
         ]
@@ -964,9 +996,7 @@ def test_rule_can_match_only_the_configured_financial_account() -> None:
         company=company,
         name="Somente banco principal",
         state=ReconciliationRule.State.ACTIVE,
-        all_conditions=[
-            {"field": "financial_account", "operator": "equals", "value": "001:123"}
-        ],
+        all_conditions=[{"field": "financial_account", "operator": "equals", "value": "001:123"}],
         actions={"accounting_history": "Banco principal"},
     )
     source, run, _ = create_source_file(
@@ -1375,8 +1405,14 @@ def test_reconciliation_routes_do_not_cross_company_access_boundaries() -> None:
     assert client.get(reverse("hub:reconciliation")).status_code == 200
     assert client.get(reverse("hub:reconciliation-movement", args=[movement.id])).status_code == 404
     assert client.get(reverse("hub:reconciliation-run-status", args=[run.id])).status_code == 404
-    assert client.get(reverse("hub:reconciliation-source-download", args=[source.id])).status_code == 404
-    assert client.get(reverse("hub:reconciliation-source-preview", args=[source.id])).status_code == 404
+    assert (
+        client.get(reverse("hub:reconciliation-source-download", args=[source.id])).status_code
+        == 404
+    )
+    assert (
+        client.get(reverse("hub:reconciliation-source-preview", args=[source.id])).status_code
+        == 404
+    )
 
 
 @pytest.mark.django_db
@@ -1494,9 +1530,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
     )
     user = User.objects.create_user("owner@config.test", "safe-password-123")
-    Membership.objects.create(
-        organization=organization, user=user, role=Membership.Role.OWNER
-    )
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
     client = Client()
     client.force_login(user)
     session = client.session
@@ -1592,9 +1626,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         organization=organization,
         company=company,
         name="Banco principal",
-        all_conditions=[
-            {"field": "description", "operator": "contains", "value": "fornecedor"}
-        ],
+        all_conditions=[{"field": "description", "operator": "contains", "value": "fornecedor"}],
     ).exists()
     combined_rule_response = client.post(
         reverse("hub:reconciliation-configuration"),

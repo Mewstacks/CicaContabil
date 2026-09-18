@@ -1,14 +1,19 @@
-# Regaro Agent for Windows
+# Agente CICA para Windows
 
 Native .NET 8 Windows service and guided configurator. The MSI supports:
 
-- Domínio Web backup jobs uploaded manually in Regaro.
+- Trabalhos de backup Domínio Web enviados manualmente na CICA.
 - approved Triagem attachments copied to the office's Windows folder.
 
-The configurator discovers 32- and 64-bit system DSNs and can validate a Domínio Local connection.
-Local synchronization remains on the compatible Python agent until the native x86/x64 workers are
-finished; the native service in this version processes Domínio Web backup jobs and Triagem
-archive jobs. For Triagem, the configurator stores the approved root with DPAPI and the server
+Leia o fluxo de instalação e diagnóstico em [INSTALACAO.md](INSTALACAO.md).
+Os contratos técnicos Domínio confirmados por metadados estão em [CONTRATOS-DOMINIO.md](CONTRATOS-DOMINIO.md).
+
+The configurator lists only 64-bit system DSNs and SQL Anywhere drivers, because the installed
+native service is x64. It can validate a Domínio Local connection without exposing credentials
+in logs.
+The native CICA service is the installed and supported component for read-only Domínio Local
+synchronization, Domínio Web backups, and Triagem archiving. The Python agent is restricted to
+temporary diagnostics and migration. For Triagem, the configurator stores the approved root with DPAPI and the server
 sends only a relative company/document path. The service refuses path escape and reparse-point
 redirects, proves the configured root, writes a temporary file, validates SHA-256 and size, and
 renames atomically. CICA keeps the item in `Arquivando` until that proof returns.
@@ -21,7 +26,7 @@ Administrators and `LocalSystem`.
 Domínio Web `.dom` files are password-protected ZIP-compatible containers. The agent extracts the
 `contabil.db` file with the per-file Onvio key, then opens the database with an installed SQL
 Anywhere 16/17 ODBC driver. SAP/Thomson Reuters runtime files are proprietary and are deliberately
-not redistributed by Regaro.
+não redistribuídos pela CICA.
 
 Build the MSI on Windows:
 

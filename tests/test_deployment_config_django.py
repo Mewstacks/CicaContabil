@@ -41,6 +41,8 @@ class DeploymentConfigurationTests(SimpleTestCase):
             "docker build --file runtime/multimodal/Dockerfile --tag hubcontador-multimodal:test .",
             ci,
         )
+        self.assertIn("docker build --file runtime/trainer/Dockerfile", ci)
+        self.assertIn("LLAMAFACTORY_IMAGE=hiyouga/llamafactory@sha256:", ci)
 
     def test_cobalchini_compose_keeps_odbc_outside_containers_and_uses_immutable_image_variable(
         self,
@@ -73,12 +75,14 @@ class DeploymentConfigurationTests(SimpleTestCase):
 
     def test_training_runtime_requires_an_operator_pinned_llamafactory_image(self) -> None:
         trainer = (ROOT / "runtime" / "trainer" / "Dockerfile").read_text(encoding="utf-8")
+        image = (ROOT / "runtime" / "trainer" / "image.env").read_text(encoding="utf-8")
 
         self.assertIn("ARG LLAMAFACTORY_IMAGE", trainer)
         self.assertIn("FROM ${LLAMAFACTORY_IMAGE}", trainer)
         self.assertIn("LLAMAFACTORY_IMAGE precisa usar digest", trainer)
         self.assertIn('ENTRYPOINT ["python", "/opt/hubcontador/runner.py"]', trainer)
         self.assertNotIn("EXPOSE", trainer)
+        self.assertIn("LLAMAFACTORY_IMAGE=hiyouga/llamafactory@sha256:", image)
 
     def test_fly_release_command_and_readiness_check_remain_declared(self) -> None:
         fly = (ROOT / "fly.toml").read_text(encoding="utf-8")

@@ -34,7 +34,7 @@ para que a classificação não dependa do local físico do arquivo.
   contrato (`src/apps/hub/models.py`).
 - O agente Windows atual já trabalha com autenticação mTLS/HMAC e saída HTTPS, mas processa backup
   Domínio. Ele ainda não observa nem grava a árvore documental do escritório
-  (`agent-windows/src/Regaro.Agent.Service`).
+  (`agent-windows/src/CICA.Agent.Service`).
 
 ## Escopo funcional proposto para confirmação
 

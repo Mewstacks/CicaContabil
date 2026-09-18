@@ -27,7 +27,8 @@ from apps.audit.services import record_event
 from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_backup
 from apps.hub.models import ImportBatch
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
-from apps.intelligence.models import EdgeAgent
+from apps.intelligence.models import EdgeAgent, IntelligenceConnector
+from apps.intelligence.sync import sync_bank_entries, sync_companies
 from apps.triage.models import AgentFileJob, DestinationProfile, TriageEvent, TriageItem
 from apps.triage.services import open_verified_quarantine_for_agent
 from apps.triage.transitions import TriageStatus
@@ -169,6 +170,20 @@ def heartbeat(request: HttpRequest) -> JsonResponse:
             "installer_url": getattr(settings, "EDGE_AGENT_INSTALLER_URL", ""),
         }
     )
+
+
+@csrf_exempt
+@require_POST
+def next_configuration(request: HttpRequest) -> JsonResponse:
+    """Return only the office-scoped Windows archive root to its enrolled agent."""
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    profile = DestinationProfile.objects.filter(organization=agent.organization).first()
+    root = profile.windows_root if profile and profile.mode == DestinationProfile.Mode.WINDOWS else ""
+    response = JsonResponse({"windows_archive_root": root})
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 @csrf_exempt
@@ -479,6 +494,57 @@ def download_backup(request: HttpRequest, batch_id: str) -> HttpResponse:
     response["Cache-Control"] = "no-store"
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@csrf_exempt
+@require_POST
+def sync_local_companies(request: HttpRequest) -> JsonResponse:
+    """Accept one bounded, read-only Domínio Local page from the native agent."""
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request)
+    rows = payload.get("companies") if payload is not None else None
+    if (
+        not isinstance(rows, list)
+        or len(rows) > 500
+        or not all(isinstance(row, Mapping) for row in rows)
+    ):
+        return _error("Página de empresas Domínio inválida.", 400)
+    connector, _ = IntelligenceConnector.objects.get_or_create(
+        organization=agent.organization,
+        mode=IntelligenceConnector.Mode.EDGE_AGENT,
+        defaults={"status": "healthy"},
+    )
+    result = sync_companies(
+        organization=agent.organization,
+        connector=connector,
+        rows=[dict(row) for row in rows],
+        request=request,
+        full_snapshot=False,
+    )
+    return JsonResponse(
+        {"created": result.created, "updated": result.updated, "ignored": result.ignored}
+    )
+
+
+@csrf_exempt
+@require_POST
+def sync_local_bank_entries(request: HttpRequest) -> JsonResponse:
+    agent = _agent(request)
+    if agent is None:
+        return _error("Agente não autorizado.", 401)
+    payload = _payload(request)
+    rows = payload.get("rows") if payload is not None else None
+    if not isinstance(rows, list) or len(rows) > 500 or not all(isinstance(row, Mapping) for row in rows):
+        return _error("Página de extratos Domínio inválida.", 400)
+    connector, _ = IntelligenceConnector.objects.get_or_create(
+        organization=agent.organization, mode=IntelligenceConnector.Mode.EDGE_AGENT,
+        defaults={"status": "healthy"},
+    )
+    result = sync_bank_entries(organization=agent.organization, connector=connector,
+        rows=[dict(row) for row in rows], request=request)
+    return JsonResponse({"created": result.created, "updated": result.updated, "ignored": result.ignored})
 
 
 @csrf_exempt

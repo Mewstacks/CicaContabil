@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Documentação materializada; conferir aceite em VALIDACOES.md.
+**Estado:** Concluída em 17/09/2026 — somente consolidação documental. Evidência V-003 em VALIDACOES.md. Nenhuma etapa de implementação iniciada.
 
 **Dependências:** Nenhuma.
 
@@ -10,12 +10,12 @@
 
 ## Escopo e checklist
 
-- [ ] Gravar integralmente o plano e as decisões confirmadas.
-- [ ] Inventariar módulos, rotas, tarefas, APIs, serviços Windows e integrações.
-- [ ] Confrontar documentação antiga com o código e decisões posteriores.
-- [ ] Registrar cada pendência uma única vez, com etapa afetada e responsável pela resposta.
-- [ ] Preservar o trabalho local existente; não descartar nem sobrescrever alterações.
-- [ ] Agrupar as perguntas restantes por condições comerciais, regras documentais, dados autorizados para IA, ambientes de homologação e metas operacionais; perguntar somente o ainda não decidido.
+- [x] Gravar integralmente o plano e as decisões confirmadas.
+- [x] Inventariar módulos, rotas, tarefas, APIs, serviços Windows e integrações.
+- [x] Confrontar documentação antiga com o código e decisões posteriores.
+- [x] Registrar cada pendência uma única vez, com etapa afetada e responsável pela resposta.
+- [x] Preservar o trabalho local existente; não descartar nem sobrescrever alterações.
+- [x] Agrupar as perguntas restantes por condições comerciais, regras documentais, dados autorizados para IA, ambientes de homologação e metas operacionais; perguntar somente o ainda não decidido.
 
 ## Bloqueios e responsabilidade
 
@@ -31,7 +31,9 @@ Conferir links locais, IDs de decisões, cobertura de 00 a 13, inventário está
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+Conferência documental: 23 arquivos, 135 links locais, 14 etapas, 60 IDs de decisão e 36 IDs de perguntas; sem links locais ausentes ou IDs duplicados. As etapas contêm dependências, decisões, checklist, bloqueios, testes, aceite, evidências e prompt. `git diff --check -- '*.md'` passou. Ver V-003 na raiz.
+
+Nenhuma homologação externa foi executada. Os resultados V-001 são da análise anterior à edição documental. Próximo trabalho preparado: etapa 01; não executar sem nova solicitação, conforme D-60.
 
 ## Prompt de execução
 

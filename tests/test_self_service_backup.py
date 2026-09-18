@@ -41,7 +41,7 @@ def _post(client: Client, agent: EdgeAgent, path: str, payload: dict[str, object
 
 @override_settings(EDGE_AGENT_MTLS_REQUIRED=False)
 def test_agent_claims_downloads_and_completes_a_web_backup(tmp_path) -> None:
-    organization = Organization.objects.create(name="Regaro Teste", slug="regaro-teste")
+    organization = Organization.objects.create(name="CICA Teste", slug="cica-teste")
     source = DataSource.objects.create(
         organization=organization,
         kind=DataSource.Kind.DOMINIO_WEB_BACKUP,

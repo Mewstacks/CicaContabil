@@ -519,6 +519,148 @@ document.querySelectorAll('[data-modal]').forEach((modal) => {
   openModal(modal, trigger);
 });
 
+document.querySelectorAll('[data-nfse-download-form]').forEach((form) => {
+  const selectAll = form.querySelector('[data-nfse-download-select-all]');
+  const selectPortfolio = form.querySelector('[data-nfse-download-all]');
+  const targets = [...form.querySelectorAll('[data-nfse-download-target]')];
+  const count = form.querySelector('[data-nfse-download-selection-count]');
+  if (!(selectAll instanceof HTMLInputElement)) return;
+
+  const update = () => {
+    const selected = targets.filter((target) => target.checked).length;
+    selectAll.checked = selected === targets.length && targets.length > 0;
+    selectAll.indeterminate = selected > 0 && selected < targets.length;
+    if (selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked) {
+      count.textContent = 'Toda a carteira será incluída no ZIP.';
+      return;
+    }
+    if (count) count.textContent = selected
+      ? `${selected} NFS-e selecionada${selected === 1 ? '' : 's'}.`
+      : 'Nenhuma NFS-e selecionada.';
+  };
+
+  selectAll.addEventListener('change', () => {
+    targets.forEach((target) => { target.checked = selectAll.checked; });
+    update();
+  });
+  if (selectPortfolio instanceof HTMLInputElement) {
+    selectPortfolio.addEventListener('change', update);
+  }
+  targets.forEach((target) => target.addEventListener('change', update));
+  const accumulators = [...form.querySelectorAll('[data-nfse-download-accumulator]')];
+  accumulators.forEach((input, index) => {
+    const updateClassification = () => {
+      const row = input.closest('tr');
+      const status = row?.querySelector('[data-nfse-classification-status]');
+      const confidence = row?.querySelector('[data-nfse-classification-confidence]');
+      const hint = row?.querySelector('[data-nfse-accumulator-hint]');
+      const empty = input.value.trim().length === 0;
+      const defined = !empty && input.value !== input.defaultValue;
+      if (status instanceof HTMLElement) {
+        status.textContent = empty ? 'Em revisão' : defined ? 'Classificada' : status.dataset.defaultStatus || 'Recebida';
+        status.className = empty ? 'nfse-status nfse-status-attention' : defined
+          ? 'nfse-status nfse-status-success'
+          : `nfse-status nfse-status-${status.dataset.defaultStatusClass || 'muted'}`;
+      }
+      if (confidence instanceof HTMLElement) {
+        confidence.textContent = empty ? 'Transitória · 0%' : defined
+          ? 'Definida pelo contador · 100%'
+          : confidence.dataset.defaultConfidence || 'Transitória · 0%';
+      }
+      if (hint instanceof HTMLElement) {
+        hint.textContent = empty ? 'Sem acumulador: irá para Transitória' : defined
+          ? 'Definida pelo contador para este download'
+          : hint.dataset.defaultHint || 'Sem acumulador: irá para Transitória';
+      }
+      row?.classList.toggle('nfse-manual-classification', defined);
+    };
+    input.addEventListener('input', updateClassification);
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      const row = input.closest('tr');
+      const target = row?.querySelector('[data-nfse-download-target]');
+      if (target instanceof HTMLInputElement) target.checked = true;
+      update();
+      accumulators[index + 1]?.focus();
+    });
+    updateClassification();
+  });
+  form.addEventListener('submit', (event) => {
+    const downloadingPortfolio = selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked;
+    if (!downloadingPortfolio && !targets.some((target) => target.checked)) {
+      event.preventDefault();
+      if (count) count.textContent = 'Selecione ao menos uma NFS-e para baixar.';
+      selectAll.focus();
+    }
+  });
+  update();
+});
+
+document.querySelectorAll('[data-nfse-filter-mode]').forEach((fieldSet) => {
+  const control = fieldSet.querySelector('[data-nfse-filter-option]');
+  const form = fieldSet.closest('form');
+  if (!(control instanceof HTMLSelectElement) || !form) return;
+  const update = () => {
+    const active = control.value;
+    form.querySelectorAll('[data-nfse-filter-panel]').forEach((panel) => {
+      panel.hidden = panel.dataset.nfseFilterPanel !== active;
+      panel.querySelectorAll('input, select, button').forEach(input => { input.disabled = panel.hidden; });
+    });
+  };
+  control.addEventListener('change', update);
+  update();
+});
+
+document.querySelectorAll('.nfse-issued-range').forEach((range) => {
+  const inputs = [...range.querySelectorAll('[data-nfse-date]')];
+  const error = range.querySelector('.nfse-date-error');
+  const format = date => new Intl.DateTimeFormat('pt-BR').format(date);
+  const parse = value => {
+    if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;
+    const [day, month, year] = value.split('/').map(Number);
+    const date = new Date(year, month - 1, day);
+    return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day ? date : null;
+  };
+  const validate = () => {
+    let firstInvalid = null;
+    error.textContent = '';
+    inputs.forEach(input => {
+      const invalid = input.value && !parse(input.value);
+      input.setAttribute('aria-invalid', String(Boolean(invalid)));
+      if (invalid && !firstInvalid) firstInvalid = input;
+    });
+    if (firstInvalid) error.textContent = 'Informe uma data válida no formato DD/MM/AAAA.';
+    else if (inputs.every(input => input.value) && parse(inputs[0].value) > parse(inputs[1].value)) {
+      error.textContent = 'A data final deve ser igual ou posterior à inicial.';
+      firstInvalid = inputs[1];
+      firstInvalid.setAttribute('aria-invalid', 'true');
+    }
+    return firstInvalid;
+  };
+  inputs.forEach(input => {
+    input.addEventListener('input', () => {
+      // Format complete numeric entries without moving the caret during editing.
+      if (/^\d{8}$/.test(input.value)) input.value = input.value.replace(/^(\d{2})(\d{2})(\d{4})$/, '$1/$2/$3');
+      input.removeAttribute('aria-invalid');
+      error.textContent = '';
+    });
+    input.addEventListener('blur', validate);
+  });
+  range.querySelectorAll('[data-nfse-period]').forEach(button => button.addEventListener('click', () => {
+    const now = new Date();
+    const month = now.getMonth() - (button.dataset.nfsePeriod === 'previous' ? 1 : 0);
+    inputs[0].value = button.dataset.nfsePeriod === 'clear' ? '' : format(new Date(now.getFullYear(), month, 1));
+    inputs[1].value = button.dataset.nfsePeriod === 'clear' ? '' : format(new Date(now.getFullYear(), month + 1, 0));
+    validate();
+  }));
+  range.closest('form').addEventListener('submit', event => {
+    if (range.hidden) return;
+    const invalid = validate();
+    if (invalid) { event.preventDefault(); invalid.focus(); }
+  });
+});
+
 // Large permission lists keep selections when the visible search is narrowed.
 document.querySelectorAll('.scope-picker').forEach((picker, index) => {
   const labels = [...picker.querySelectorAll('.scope-options label')];
