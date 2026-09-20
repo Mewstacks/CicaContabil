@@ -2,7 +2,8 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento: inspeção local parcial registrada em V-039; não há
+auditoria integral de todas as superfícies nem homologação de jornadas reais.
 
 **Dependências:** Módulos implementados.
 
@@ -14,12 +15,13 @@
 - [ ] Corrigir ações sem saída, tabelas incompletas, estados confusos e ausência de evidência.
 - [ ] Validar desktop, celular, teclado, foco, erros, carregamento e estados vazios.
 - [ ] Aplicar ui-ux-pro-max, Watermelon, referências reais de produto e web-design-guidelines.
-- [ ] Inspecionar as jornadas com Playwright MCP; registrar exatamente os estados alcançados e fechar as sessões.
+- [x] Inspecionar localmente parte das jornadas com navegador Playwright, registrar os estados alcançados e fechar a sessão de QA.
 - [ ] Conferir que oferta comercial e demonstração refletem capacidades homologadas.
 
 ## Bloqueios e responsabilidade
 
-Q-30; estados inacessíveis devem ser registrados, nunca presumidos validados.
+As métricas de aceite estão decididas em D-73, mas os estados inacessíveis devem
+ser registrados, nunca presumidos validados.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -31,7 +33,16 @@ Por perfil e módulo: desktop/celular, navegação, foco, teclado, carregamento/
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-039 registra 14 caminhos em desktop/celular, uma jornada fictícia de Triagem,
+77 testes e a inspeção visual local. Em 20/09, a próxima auditoria de
+teclado/foco/erro/vazio parou antes de iniciar: o pacote Node `playwright` não
+está instalado e o navegador nativo aguarda Acessibilidade e Gravação de Tela
+no Codex. O registro de execução documenta o ambiente descartável encerrado e
+o ponto de retomada; nenhum resultado foi presumido. Nenhuma homologação nova é
+atribuída a esta etapa; os demais itens do checklist continuam abertos. A
+existência de código ou testes anteriores não prova conclusão. Registrar
+comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de
+execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

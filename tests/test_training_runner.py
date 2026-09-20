@@ -96,6 +96,17 @@ class TrainingRunnerTests(TestCase):
             with self.assertRaisesRegex(TrainingRunnerError, "identificador pessoal"):
                 load_manifest(manifest_path)
 
+    def test_runner_rejects_evaluation_examples_from_a_training_workspace(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            evaluation_item = self.manifest_line()
+            evaluation_item["dataset_split"] = "evaluation"
+            manifest_path = root / "evaluation.jsonl"
+            manifest_path.write_text(json.dumps(evaluation_item) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(TrainingRunnerError, "somente o conjunto de treino"):
+                load_manifest(manifest_path)
+
     def test_runner_rejects_invalid_job_and_manifest_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

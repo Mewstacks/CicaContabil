@@ -5,20 +5,25 @@ from datetime import timedelta
 from unittest.mock import patch
 from urllib.error import HTTPError
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.utils import timezone
 
+from apps.hub.models import ClientCompany
 from apps.intelligence.gateway import generate_claude_fallback_completion, select_provider
 from apps.intelligence.models import (
     AssistantSettings,
     ClaudeFallbackApproval,
+    IntelligenceArea,
     ModelVersion,
     TrainingExample,
 )
-from apps.intelligence.releases import publish_model
+from apps.intelligence.releases import publish_model, rollback_model
 from apps.intelligence.training import (
     claude_curation_batch_spec,
     compare_evaluation_runs,
+    evaluation_fingerprint,
+    evaluation_manifest,
     qlora_job_spec,
     record_evaluation,
     stable_hash,
@@ -56,6 +61,78 @@ class TrainingAndGatewayTests(TestCase):
 
         self.assertEqual(len(manifest), 1)
         self.assertEqual(manifest[0]["source_references"], ["Manual v1 § 2"])
+
+    def test_manifest_keeps_tenant_company_period_and_area_metadata(self) -> None:
+        company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa", dominio_code="001"
+        )
+        TrainingExample.objects.create(
+            organization=self.organization,
+            company=company,
+            area=IntelligenceArea.PAYROLL,
+            reference_period="2026-09",
+            category=TrainingExample.Category.OBLIGATION,
+            question="Qual obrigação da folha revisar?",
+            expected_answer="Revise a obrigação com a fonte aprovada.",
+            source_references=["Folha § 2"],
+            scenario_hash=stable_hash("manifest-scope"),
+            status=TrainingExample.Status.VALIDATED,
+        )
+
+        item = training_manifest(organization=self.organization)[0]
+
+        self.assertEqual(item["company_id"], str(company.id))
+        self.assertEqual(item["area"], IntelligenceArea.PAYROLL)
+        self.assertEqual(item["reference_period"], "2026-09")
+
+    def test_training_example_rejects_company_from_another_office(self) -> None:
+        other = Organization.objects.create(name="Outra", slug="outra")
+        foreign_company = ClientCompany.objects.create(
+            organization=other, name="Estrangeira", dominio_code="999"
+        )
+
+        with self.assertRaisesRegex(ValidationError, "mesmo escritório"):
+            TrainingExample.objects.create(
+                organization=self.organization,
+                company=foreign_company,
+                category=TrainingExample.Category.SAFETY,
+                question="Exemplo indevido",
+                expected_answer="Não deve persistir.",
+                source_references=["Teste"],
+                scenario_hash=stable_hash("foreign-company"),
+                status=TrainingExample.Status.VALIDATED,
+            )
+
+    def test_training_and_evaluation_manifests_are_disjoint(self) -> None:
+        common = {
+            "organization": self.organization,
+            "category": TrainingExample.Category.OBLIGATION,
+            "question": "Qual obrigação revisar?",
+            "expected_answer": "Consulte a fonte aprovada.",
+            "source_references": ["Manual § 1"],
+            "status": TrainingExample.Status.VALIDATED,
+        }
+        training = TrainingExample.objects.create(
+            **common,
+            scenario_hash=stable_hash("training-split"),
+            dataset_split=TrainingExample.DatasetSplit.TRAINING,
+        )
+        evaluation = TrainingExample.objects.create(
+            **common,
+            scenario_hash=stable_hash("evaluation-split"),
+            dataset_split=TrainingExample.DatasetSplit.EVALUATION,
+        )
+
+        train_manifest = training_manifest(organization=self.organization)
+        evaluation_set = evaluation_manifest(organization=self.organization)
+        _version, evaluation_hash, evaluation_count = evaluation_fingerprint(
+            organization=self.organization
+        )
+
+        self.assertEqual([item["id"] for item in train_manifest], [str(training.id)])
+        self.assertEqual([item["id"] for item in evaluation_set], [str(evaluation.id)])
+        self.assertEqual(evaluation_count, 1)
+        self.assertEqual(len(evaluation_hash), 64)
 
     def test_evaluation_gate_requires_quality_sources_and_security(self) -> None:
         _, failed = record_evaluation(
@@ -358,6 +435,86 @@ class TrainingAndGatewayTests(TestCase):
 
         version.refresh_from_db()
         self.assertTrue(version.is_active)
+
+    def test_model_publication_rejects_an_evaluation_for_a_different_adapter_artifact(self) -> None:
+        manifest_hash = "a" * 64
+        artifact_hash = "b" * 64
+        version = ModelVersion.objects.create(
+            organization=self.organization,
+            name="local-v3",
+            corpus_version="corpus-v3",
+            manifest_sha256=manifest_hash,
+            base_model="qwen3-14b",
+            adapter_version="acme-v3",
+            adapter_artifact_sha256=artifact_hash,
+        )
+        report = {
+            "corpus_version": "corpus-v3",
+            "manifest_sha256": manifest_hash,
+            "evaluation_manifest_sha256": "d" * 64,
+            "base_model": "qwen3-14b",
+            "adapter_version": "acme-v3",
+            "adapter_artifact_sha256": "c" * 64,
+            "total_cases": 100,
+            "correct_cases": 98,
+            "sourced_cases": 100,
+            "safety_regressions": 0,
+            "tenant_isolation_passed": True,
+            "masking_passed": True,
+            "tool_policy_passed": True,
+        }
+        mismatched, _ = record_evaluation(organization=self.organization, report=report)
+
+        with self.assertRaisesRegex(ValueError, "não corresponde"):
+            publish_model(
+                organization=self.organization,
+                version=version,
+                evaluation=mismatched,
+                actor=None,
+            )
+
+        report["adapter_artifact_sha256"] = artifact_hash
+        matching, _ = record_evaluation(organization=self.organization, report=report)
+        publish_model(
+            organization=self.organization, version=version, evaluation=matching, actor=None
+        )
+        version.refresh_from_db()
+        self.assertTrue(version.is_active)
+
+    def test_model_rollback_reactivates_a_previously_approved_version(self) -> None:
+        previous = ModelVersion.objects.create(
+            organization=self.organization,
+            name="local-v1",
+            corpus_version="corpus-v1",
+        )
+        evaluation, _ = record_evaluation(
+            organization=self.organization,
+            report={
+                "corpus_version": previous.corpus_version,
+                "total_cases": 100,
+                "correct_cases": 96,
+                "sourced_cases": 100,
+                "safety_regressions": 0,
+                "tenant_isolation_passed": True,
+                "masking_passed": True,
+                "tool_policy_passed": True,
+            },
+        )
+        current = ModelVersion.objects.create(
+            organization=self.organization,
+            name="local-v2",
+            corpus_version="corpus-v2",
+            is_active=True,
+        )
+
+        rollback_model(
+            organization=self.organization, version=previous, evaluation=evaluation, actor=None
+        )
+
+        previous.refresh_from_db()
+        current.refresh_from_db()
+        self.assertTrue(previous.is_active)
+        self.assertFalse(current.is_active)
 
     def test_model_publication_rejects_a_regression_against_the_active_model(self) -> None:
         active = ModelVersion.objects.create(

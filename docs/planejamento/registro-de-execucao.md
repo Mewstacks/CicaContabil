@@ -1,5 +1,121 @@
 # Registro de execução da meta operacional
 
+## 20/09/2026 — etapa 11: pausa da auditoria local de interação
+
+- A continuidade segura selecionada foi a auditoria local de teclado, foco e
+  estados de erro/vazio, em servidor descartável com SQLite e egressão externa
+  bloqueada. O servidor e a aba de demonstração foram encerrados ao parar.
+- A regressão automatizada existente não pôde ser executada porque o pacote
+  Node `playwright` não está instalado neste checkout. A inspeção com navegador
+  nativo também não iniciou: o aplicativo Codex aguarda a concessão única de
+  Acessibilidade e Gravação de Tela. Não foram inferidos resultados de UI.
+- Ponto de retomada: após essa permissão, executar as jornadas sintéticas de
+  teclado/foco/erro/vazio da etapa 11 e registrar apenas os estados de fato
+  observados. Não há alteração de código, configuração, dados ou provedor neste
+  registro.
+
+## 20/09/2026 — etapa 10: contrato local do cliente Asaas (V-040)
+
+- Implementado `apps.platform.asaas` com ambientes explícitos, chave e
+  transporte injetados, consulta por `externalReference`, criação de cliente e
+  cobrança avulsa sem dados de cartão. Falha ou retorno incerto não faz nova
+  tentativa automática de `POST`.
+- `uv run pytest tests/test_asaas_client.py tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q` fechou com 49 aprovados e um skip de concorrência exclusivo do PostgreSQL. Ruff, Django, dry-run de migrações e diff passaram.
+- A revalidação integral fechou com 759 aprovados, 3 ignorados e 8 subtestes em
+  28,99 s; os skips são Playwright Python opcional, OCR português ausente e a
+  concorrência de locks já coberta em PostgreSQL histórico.
+- O contrato foi conferido na documentação oficial Asaas e não fez conexão,
+  usou chave real, alterou configuração ou criou objeto no provedor. Ainda falta
+  orquestrar dados comerciais, cliente e `PaymentAttempt`, além da homologação
+  autorizada de Pix, boleto, cartão e eventos na etapa 12.
+
+## 19/09/2026 — etapa 11: inspeção local de jornadas e interfaces (V-039)
+
+- Em servidor isolado com banco, mídia e massa sintéticos, 14 caminhos da área
+  de trabalho foram verificados em desktop e 390 × 844: cada um exibiu um `h1`,
+  não apresentou overflow horizontal nem campo visível sem rótulo na checagem
+  DOM. A Triagem fictícia percorreu fila, revisão, preparo e arquivamento
+  privado na sessão; o console não reportou erro.
+- 77 testes de workspace, demonstração e autenticação passaram; um teste
+  Playwright Python opcional foi ignorado porque o navegador interativo local
+  foi usado nesta auditoria. Ruff, Django, migrações em dry-run e diff passaram.
+- A inspeção não cobre todas as áreas públicas, console, perfis, teclado/foco,
+  contraste, carga/erro/vazio nem tarefas externas. Etapa em andamento; não há
+  alegação de aceite integrado ou aderência comercial final.
+
+## 19/09/2026 — etapa 06: Triagem de Arquivos local (V-038)
+
+- Revalidados quarentena privada, idempotência por entrega, cursor/leitura
+  incremental simulados, bloqueio de binário não verificado, scan/formato,
+  revisão, cópia interna com hash e protocolo de agente Windows com escopo,
+  hash, falha recuperável e repetição. Nenhuma confirmação ocorre só pela
+  intenção de arquivar.
+- 72 testes de domínio e seis subtestes de protocolo Windows passaram; seis
+  testes de interface/demo cobriram escopo de empresa, fila, bloqueio de arquivo
+  não verificado, cópia privada e isolamento por sessão. Ruff, Django,
+  migrações em dry-run e diff passaram.
+- Nenhuma caixa, OAuth, ClamAV, agente Windows, arquivo de cliente ou pasta
+  real foi usada. Q-12–Q-25/Q-31, regras de catálogo/retenção/checklist e o
+  piloto com prova no destino seguem pendentes; a etapa fica em andamento.
+
+## 19/09/2026 — etapa 09: Conciliação e Radar locais (V-037)
+
+- Revalidado o processamento local de OFX/CSV/XLSX/PDF, hash e reimportação,
+  mapeamento, contas, movimentos, lançamentos equilibrados, evidência de
+  conciliação, exportação/reexportação auditável e retomada de execução. A
+  ambiguidade não é confirmada só por data e valor.
+- O Radar preserva fontes oficiais pré-definidas, origem, atualização
+  idempotente e falha isolada por fonte; a interface não mostra o erro bruto.
+  As fontes foram substituídas por respostas controladas nos testes, portanto
+  não há alegação de disponibilidade operacional.
+- 46 testes de domínio passaram; o cenário de OCR em português foi ignorado
+  porque Tesseract/modelo local não existe. Quatro testes de interface/demo,
+  Ruff, Django, dry-run de migrações e diff passaram. Sem dado de cliente,
+  arquivo real, ERP, HTTP externo, custo ou deploy.
+- Layouts aprovados, corpus/volume PostgreSQL, OCR, amostra de D-73, importação
+  conferida no destino e fontes reais do Radar continuam necessários. A etapa
+  fica em andamento.
+
+## 19/09/2026 — análise auditável de conclusão (V-036)
+
+- Criada a matriz de evidências que liga as 14 etapas ao maior nível provado, às validações e aos bloqueios concretos. O documento torna explícita a diferença entre implementação, validação local, homologação e venda.
+- A matriz foi vinculada ao plano mestre e ao índice de planejamento. A checagem de diff, Django e migrações passou; não houve acesso externo, alteração de ambiente ou custo.
+- A análise mantém Q-33 como primeiro bloqueio de sequência e não reclassifica nenhuma etapa incompleta como concluída.
+
+## 19/09/2026 — etapa 07: demonstração NFS-e local (V-035)
+
+- Reconciliado o checklist com o comportamento que já existia desde V-005: ZIP fictício por empresa, carteira inteira, manifesto de classificações, filtro exclusivo por competência/emissão e atualização visual de acumulador permanecem restritos à demonstração e não gravam decisão fiscal.
+- Reexecutados 4 testes focados de NFS-e e a inspeção interativa da demonstração criada em SQLite temporário. Datas DD/MM/AAAA foram normalizadas, o intervalo de setembro retornou os 24 itens da carteira, o acumulador manual transitou para 100% e a limpeza restaurou Transitória a 0%; console sem erros.
+- O banco e a conta temporários foram descartados após a inspeção. Nenhum certificado, ADN, XML real, dado de cliente, pasta Windows ou provedor externo foi utilizado. A coleta e a homologação fiscal seguem pendentes na etapa 07.
+
+## 19/09/2026 — etapa 08: Central Integra Contador local (V-034)
+
+- O checkout implementa DTE, DCTFWeb e PARCSN sob as decisões D-38–D-42, com seleção de empresas aptas, autorização específica de ciência, paginação, cotação/reserva/liquidação e documento persistido. O transporte incerto não é repetido automaticamente.
+- `uv run pytest tests/test_dte.py tests/test_dte_access.py tests/test_dte_dispatch.py tests/test_integra_client.py tests/test_integra_dctfweb.py tests/test_integra_parcelamento.py tests/test_parcelamento_operations.py -q`: 63 aprovados em 13,98 s. Ruff dos módulos e testes envolvidos passou.
+- Não houve configuração de segredo, credencial, certificado, representação, consulta, ciência DTE, declaração, guia ou DAS real. O piloto Serpro, contrato/ambiente Q-28 e autorização de custo continuam obrigatórios; Q-36 mantém PARCSN como recorte único.
+
+## 19/09/2026 — etapa 10: controles locais de contratação e cobrança (V-033)
+
+- Auditoria confirmou que D-76/D-79 resolveram as regras Q-01–Q-06. O checkout separa contrato manual e Asaas, mede tokens inteiros por módulo, reserva/liquida consumo de modo idempotente e fecha fatura por competência com preço congelado.
+- `uv run pytest tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q`: 44 aprovados e 1 skip de concorrência PostgreSQL coberta em evidência histórica. Ruff dos arquivos de plataforma passou.
+- Não houve conta, sandbox, credencial, cliente, cobrança, Pix, boleto, cartão ou webhook Asaas real. O cliente de criação/operação Asaas ainda não existe; Q-08 e o ambiente Q-28 continuam bloqueando a homologação.
+
+## 19/09/2026 — etapa 05: escopo de conhecimento e treinamento (V-032)
+
+- D-89 formalizou a estrutura técnica de área (`geral`, contábil, fiscal ou folha), empresa e período para fontes e exemplos. Registros existentes recebem o padrão geral; não houve reclassificação, exportação ou exposição de conteúdo.
+- Fontes de uma empresa só podem pertencer ao mesmo escritório. A recuperação por empresa recebe apenas suas fontes e as globais do escritório, priorizando as específicas; o contexto sem empresa exclui fontes de qualquer empresa. O manifesto QLoRA guarda esses metadados para manter sua proveniência auditável, mas o runner continua treinando somente com pergunta, resposta e fontes aprovadas.
+- D-90 acrescentou modelo base, versão e hashes de manifesto/artefato às avaliações e versões locais. Quando uma versão declara artefato, a publicação recusa qualquer avaliação com proveniência diferente; registros legados continuam legíveis sem alegar vínculo. Vinte testes focados passaram.
+- D-91 separou exemplos validados entre treino e avaliação. O exportador seleciona um conjunto por vez, o hash da avaliação é registrado junto da avaliação do adaptador e o runner QLoRA recusa o conjunto de avaliação. Trinta e quatro testes focados passaram.
+- D-92 adicionou retorno auditado de versão local: uma versão anterior só é reativada com avaliação aprovada e proveniência compatível, sem novo treino. Dezessete testes focados de publicação/retorno passaram.
+- `ruff` focado, migrações em dry-run e 26 testes de recuperação, treinamento e runner passaram; a revalidação integral fechou em 754 aprovados, 3 ignorados e 8 subtestes. Não houve chamada Claude, curadoria externa, modelo baixado, treino, GPU, publicação ou custo. Governança de egressão e curadoria continuam em Q-08/Q-09/Q-11/Q-34.
+
+## 19/09/2026 — análise integral e continuidade da etapa 04 (V-031)
+
+- Revisados plano mestre, decisões, validações, inventário, documentação de produto/técnica, etapas e checkout. A análise consolidada registra objetivo, arquitetura, capacidades e limites em [analise-projeto-2026-09-19.md](analise-projeto-2026-09-19.md).
+- A etapa 04 continua sendo o próximo trabalho habilitado, mas não pode receber adaptador Siescon sem o contrato Q-33. O material necessário é versão/banco/mecanismo de leitura, ambiente e revogação, schema/campos autorizados, identificador/cursor de empresa e layout de exportação/importação por canal seguro. Não houve conexão, solicitação de segredo, leitura de dados ou arquivo fictício Siescon.
+- A estação macOS recriou `.venv/` ignorado pelo Git com `uv sync --locked --all-extras`. A revalidação encontrou 16 E501 e os corrigiu apenas com quebras de linha nos fluxos já existentes do agente e destino Windows. A primeira suíte integral expôs que o modo de biblioteca interna apagava o padrão de pastas Windows; o formulário passou a preservá-lo. Ruff, Django, dry-run de migrações e a suíte integral passaram com 747 aprovados, 3 ignorados e 8 subtestes. V-031 contém os comandos e limites.
+- Corrigidos os ponteiros vigentes que ainda apresentavam o escopo histórico da etapa 00 ou a etapa 01 como próximo trabalho. Não foram alterados documentos históricos nem inferidas regras de produto.
+
 ## 18/09/2026 — etapa 02: auditoria inicial de acesso e administração
 
 Etapa iniciada após a conclusão técnica da etapa 01. Auditoria local localizou cadastro, recuperação, convite, MFA, escopo, contrato/teste, isolamento e console já implementados. A suíte específica fechou com 83 aprovados em 54,47 s (V-007). Não houve envio de e-mail, alteração de cobrança nem integração externa. Q-01–Q-06/Q-29 continuam condicionando as regras comerciais e a homologação de e-mail; etapa segue aberta.

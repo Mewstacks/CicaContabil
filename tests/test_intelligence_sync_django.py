@@ -11,9 +11,11 @@ from apps.intelligence.connectors import CatalogColumn, CatalogTable
 from apps.intelligence.models import (
     DataCatalogEntry,
     DominioSchemaObject,
+    IntelligenceArea,
     IntelligenceConnector,
     KnowledgeSource,
 )
+from apps.intelligence.retrieval import refresh_knowledge_chunks, retrieve_chunks
 from apps.intelligence.services import DominioMcp
 from apps.intelligence.sync import record_schema_snapshot, sync_bank_entries, sync_companies
 from apps.organizations.models import Organization
@@ -155,6 +157,51 @@ class SyncAndRagTests(TestCase):
 
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0].reference, "Procedimento interno § 2")
+
+    def test_rag_prioritizes_selected_company_without_exposing_other_company_sources(self) -> None:
+        selected = ClientCompany.objects.create(
+            organization=self.organization, name="Selecionada", dominio_code="001"
+        )
+        other = ClientCompany.objects.create(
+            organization=self.organization, name="Outra", dominio_code="002"
+        )
+        for title, content, company in (
+            ("Geral", "Procedimento fiscal geral aprovado.", None),
+            ("Selecionada", "Procedimento fiscal da empresa selecionada.", selected),
+            ("Outra", "Procedimento fiscal de outra empresa.", other),
+        ):
+            KnowledgeSource.objects.create(
+                organization=self.organization,
+                company=company,
+                area=IntelligenceArea.FISCAL,
+                reference_period="2026-09",
+                kind=KnowledgeSource.Kind.PROCEDURE,
+                title=title,
+                version="v1",
+                source_reference=f"Fonte {title}",
+                content=content,
+                content_hash=hashlib.sha256(content.encode()).hexdigest(),
+                status=KnowledgeSource.Status.APPROVED,
+                approved_at=timezone.now(),
+            )
+
+        refresh_knowledge_chunks(organization=self.organization)
+
+        selected_chunks = retrieve_chunks(
+            organization=self.organization,
+            company=selected,
+            query="procedimento fiscal",
+        )
+        general_chunks = retrieve_chunks(
+            organization=self.organization,
+            query="procedimento fiscal",
+        )
+
+        self.assertEqual(selected_chunks[0].source.title, "Selecionada")
+        self.assertEqual(
+            {chunk.source.title for chunk in selected_chunks}, {"Geral", "Selecionada"}
+        )
+        self.assertEqual([chunk.source.title for chunk in general_chunks], ["Geral"])
 
     def test_schema_discovery_stores_no_rows_and_reopens_review_when_structure_changes(
         self,

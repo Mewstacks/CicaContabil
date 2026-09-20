@@ -28,6 +28,7 @@ _CLAUDE_MODEL_RE = re.compile(r"claude-[a-z0-9._-]{1,72}")
 _LOCAL_MODEL_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,159}")
 _ADAPTER_NAME_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}")
 _CHAT_TEMPLATE_RE = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,79}")
+_SHA256_RE = re.compile(r"[a-f0-9]{64}")
 _PERSONAL_DATA_RE = re.compile(
     r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b|\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b|"
     r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",
@@ -43,6 +44,10 @@ CURATION_SYSTEM_PROMPT = (
 class TrainingManifestItem(TypedDict):
     id: str
     category: str
+    area: str
+    company_id: str
+    reference_period: str
+    dataset_split: str
     question: str
     expected_answer: str
     source_references: list[str]
@@ -53,15 +58,23 @@ def stable_hash(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
-def training_manifest(*, organization: Organization) -> list[TrainingManifestItem]:
-    """Return no content without a validated source reference; no tenant crossing."""
+def _dataset_manifest(
+    *, organization: Organization, dataset_split: TrainingExample.DatasetSplit
+) -> list[TrainingManifestItem]:
+    """Return one tenant-only, source-linked split without crossing into the other."""
     examples = TrainingExample.objects.filter(
-        organization=organization, status=TrainingExample.Status.VALIDATED
+        organization=organization,
+        status=TrainingExample.Status.VALIDATED,
+        dataset_split=dataset_split,
     ).order_by("created_at")
     return [
         {
             "id": str(example.id),
             "category": example.category,
+            "area": example.area,
+            "company_id": str(example.company_id or ""),
+            "reference_period": example.reference_period,
+            "dataset_split": example.dataset_split,
             "question": example.question,
             "expected_answer": example.expected_answer,
             "source_references": [str(reference) for reference in example.source_references],
@@ -72,12 +85,31 @@ def training_manifest(*, organization: Organization) -> list[TrainingManifestIte
     ]
 
 
+def training_manifest(*, organization: Organization) -> list[TrainingManifestItem]:
+    return _dataset_manifest(
+        organization=organization, dataset_split=TrainingExample.DatasetSplit.TRAINING
+    )
+
+
+def evaluation_manifest(*, organization: Organization) -> list[TrainingManifestItem]:
+    return _dataset_manifest(
+        organization=organization, dataset_split=TrainingExample.DatasetSplit.EVALUATION
+    )
+
+
 def corpus_fingerprint(*, organization: Organization) -> tuple[str, str, int]:
     """Return a stable, non-secret version for the validated tenant-only corpus."""
     manifest = training_manifest(organization=organization)
     canonical = json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     digest = hashlib.sha256(canonical.encode()).hexdigest()
     return f"corpus-{digest[:16]}", digest, len(manifest)
+
+
+def evaluation_fingerprint(*, organization: Organization) -> tuple[str, str, int]:
+    manifest = evaluation_manifest(organization=organization)
+    canonical = json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(canonical.encode()).hexdigest()
+    return f"evaluation-{digest[:16]}", digest, len(manifest)
 
 
 def qlora_job_spec(
@@ -231,6 +263,22 @@ def record_evaluation(
     assert isinstance(regressions, int)
     if total == 0 or correct > total or sourced > total:
         raise ValueError("O relatório de avaliação não possui uma base de casos válida.")
+    provenance = {
+        "manifest_sha256": str(report.get("manifest_sha256") or ""),
+        "evaluation_manifest_sha256": str(report.get("evaluation_manifest_sha256") or ""),
+        "base_model": str(report.get("base_model") or ""),
+        "adapter_version": str(report.get("adapter_version") or ""),
+        "adapter_artifact_sha256": str(report.get("adapter_artifact_sha256") or ""),
+    }
+    if any(provenance.values()) and not all(provenance.values()):
+        raise ValueError("A proveniência da avaliação precisa identificar corpus e adaptador.")
+    for field in (
+        "manifest_sha256",
+        "evaluation_manifest_sha256",
+        "adapter_artifact_sha256",
+    ):
+        if provenance[field] and not _SHA256_RE.fullmatch(provenance[field]):
+            raise ValueError("O hash de proveniência da avaliação é inválido.")
     accuracy = (correct / total) * 100
     coverage = (sourced / total) * 100
     passed = (
@@ -251,6 +299,11 @@ def record_evaluation(
         suite_name=str(report.get("suite_name", "unnamed"))[:100],
         model_name=str(report.get("model_name", "unknown"))[:100],
         corpus_version=str(report.get("corpus_version", "unknown"))[:80],
+        manifest_sha256=provenance["manifest_sha256"],
+        evaluation_manifest_sha256=provenance["evaluation_manifest_sha256"],
+        base_model=provenance["base_model"][:160],
+        adapter_version=provenance["adapter_version"][:80],
+        adapter_artifact_sha256=provenance["adapter_artifact_sha256"],
         total_cases=total,
         correct_cases=correct,
         sourced_cases=sourced,

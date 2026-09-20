@@ -2,7 +2,8 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento: funções e controles locais revalidados em V-037; não
+há homologação de arquivo, ERP, fonte oficial ou volume.
 
 **Dependências:** 03–05; exportação Siescon depende de 04.
 
@@ -11,27 +12,35 @@
 ## Escopo e checklist
 
 - [ ] Concluir OFX, CSV, XLSX e PDF/OCR com layouts e evidências.
-- [ ] Permitir corrigir mapeamento, classificar, revisar, conciliar e tratar ausência de correspondência.
-- [ ] Validar contas, direção, competência, saldos e lançamentos equilibrados.
+- [x] Permitir localmente corrigir mapeamento, classificar, revisar, conciliar e tratar ausência de correspondência.
+- [x] Validar localmente contas, direção, competência, saldos e lançamentos equilibrados.
 - [ ] Homologar exportações Domínio e Siescon sem apresentar exportação como importação concluída.
 - [ ] Validar volume com PostgreSQL e corpus representativo.
 - [ ] No Radar, comprovar coleta, atualização, origem e falhas, preservando a proposta de acompanhamento de publicações.
 
 ## Bloqueios e responsabilidade
 
-Q-28 e Q-30; layouts reais e amostra independente.
+Q-28; layouts reais e amostra independente. As métricas aplicáveis estão decididas
+em D-73 e ainda precisam de prova.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
 ## Testes e aceite
 
-Reimportação, layout alterado, OCR insuficiente, lançamento desequilibrado, ambiguidade, saldo insuficiente, partidas compostas, reexportação e fonte do Radar indisponível.
+Reimportação, layout alterado, OCR insuficiente, lançamento desequilibrado,
+ambiguidade, saldo insuficiente, partidas compostas, reexportação e fonte do
+Radar indisponível. V-037 reexecutou essas proteções localmente, exceto o OCR
+em português, que ficou explicitamente ignorado por ausência da dependência local.
 
 **Critério de aceite:** Processamento auditável, nenhuma conciliação sem evidência independente e exportações conferidas nos sistemas de destino.
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-037 registra 46 testes de domínio, um skip de OCR local e quatro testes de
+interface/demo, além de lint/Django/diff limpos. Nenhuma homologação nova é
+atribuída a esta etapa. A existência de código ou testes anteriores não prova
+conclusão. Registrar comandos, ambiente, data, resultado e limites em
+VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

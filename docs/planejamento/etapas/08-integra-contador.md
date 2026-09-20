@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento em 19/09/2026. V-034 validou localmente DTE, DCTFWeb, PARCSN, consumo e retorno incerto; não houve chamada Serpro, credencial ou documento real.
 
 **Dependências:** 02 e controles de consumo da 10.
 
@@ -10,16 +10,16 @@
 
 ## Escopo e checklist
 
-- [ ] DTE: consulta, paginação, teor, autorização específica de ciência e recuperação de retorno incerto.
-- [ ] DCTFWeb: declaração, recibo e guia; preservar o escopo registrado sem transmissão.
-- [ ] Parcelamentos: concluir PARCSN e consultar o responsável antes de ampliar modalidades.
+- [x] DTE: consulta, paginação, teor, autorização específica de ciência e recuperação de retorno incerto. Implementado e validado com transporte simulado; falta a prova Serpro.
+- [x] DCTFWeb: declaração, recibo e guia; preservar o escopo registrado sem transmissão. Implementado/testado localmente; falta o contrato e a chamada real.
+- [x] Parcelamentos: concluir PARCSN e consultar o responsável antes de ampliar modalidades. O recorte é PARCSN; Q-36 continua obrigatório antes de ampliar.
 - [ ] Homologar credenciais centrais, certificados, representação e serviços.
-- [ ] Validar estimativa, autorização, reserva, liquidação e persistência de documentos.
-- [ ] Impedir repetição automática de operações com resultado incerto.
+- [x] Validar estimativa, autorização, reserva, liquidação e persistência de documentos. Cobertura local de cotação, token, PDF e estado persistido.
+- [x] Impedir repetição automática de operações com resultado incerto. Transporte incerto preserva o estado e não repete chamada automaticamente.
 
 ## Bloqueios e responsabilidade
 
-Q-05, Q-28, Q-30 e Q-36; chamadas cobradas exigem autorização específica.
+Q-28 e Q-36; Q-05 e Q-30 foram resolvidas por D-76/D-79 e D-72/D-73. Chamadas cobradas exigem autorização específica.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -31,7 +31,7 @@ Permissão de ciência, paginação, autorização/custo, indisponibilidade, res
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-034 registra 63 testes locais para DTE, DCTFWeb, PARCSN, cliente, autorização, consumo e recuperação. O próximo passo depende de contrato, credenciais centrais, representação, ambiente e amostra Serpro autorizados por canal seguro; uma chamada cobrada requer confirmação específica imediatamente anterior. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

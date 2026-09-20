@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -359,7 +360,12 @@ class DominioMcp:
 
     def retrieve_knowledge(self, term: str) -> list[EvidenceCard]:
         """Bounded tenant RAG over approved sources without exposing the full document."""
-        tenant_chunks = retrieve_chunks(organization=self.organization, query=term, limit=3)
+        tenant_chunks = retrieve_chunks(
+            organization=self.organization,
+            query=term,
+            company=self.company,
+            limit=3,
+        )
         global_chunks = retrieve_shared_chunks(query=term, limit=max(0, 4 - len(tenant_chunks)))
         if tenant_chunks or global_chunks:
             tenant_cards = [
@@ -382,9 +388,17 @@ class DominioMcp:
         words = query_words(term)
         if not words:
             return []
-        sources = KnowledgeSource.objects.filter(
-            organization=self.organization, status=KnowledgeSource.Status.APPROVED
-        ).order_by("-approved_at", "-updated_at")[:50]
+        source_scope = Q(company__isnull=True)
+        if self.company is not None:
+            source_scope |= Q(company=self.company)
+        sources = (
+            KnowledgeSource.objects.filter(
+                organization=self.organization,
+                status=KnowledgeSource.Status.APPROVED,
+            )
+            .filter(source_scope)
+            .order_by("-approved_at", "-updated_at")[:50]
+        )
         cards: list[EvidenceCard] = []
         for source in sources:
             searchable = f"{source.title}\n{source.source_reference}\n{source.content}".casefold()

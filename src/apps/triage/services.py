@@ -224,14 +224,24 @@ def windows_relative_destination(item: TriageItem, profile: DestinationProfile) 
         raise ValidationError("Revise e confirme um nome final de arquivo válido.")
     company = _windows_component(item.company.name, fallback="Empresa")
     dominio = _windows_component(item.company.dominio_code, fallback="sem-codigo")
-    document_type = _windows_component(item.document_type.label if item.document_type else "Documentos", fallback="Documentos")
+    document_type = _windows_component(
+        item.document_type.label if item.document_type else "Documentos",
+        fallback="Documentos",
+    )
     period = _windows_component(item.period_label or "Sem período", fallback="Sem período")
     filename = _windows_component(item.final_name, fallback="documento")
     template = profile.folder_template or "{company_name} [Domínio {dominio_code}]"
     try:
-        folder = template.format(company_name=company, dominio_code=dominio, document_type=document_type, period=period)
+        folder = template.format(
+            company_name=company,
+            dominio_code=dominio,
+            document_type=document_type,
+            period=period,
+        )
     except (KeyError, ValueError) as exc:
-        raise ValidationError("O formato de pastas Windows precisa ser configurado novamente.") from exc
+        raise ValidationError(
+            "O formato de pastas Windows precisa ser configurado novamente."
+        ) from exc
     relative = PureWindowsPath(folder)
     if relative.is_absolute() or ".." in relative.parts or any(not part for part in relative.parts):
         raise ValidationError("O formato de pastas Windows gerou um destino inválido.")

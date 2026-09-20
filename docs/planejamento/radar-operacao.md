@@ -1,6 +1,6 @@
 # Operação do Radar da Reforma
 
-Atualizado em 15/09/2026. Este documento registra somente o que o Radar executa e prova localmente. Não transforma a coleta em consultoria tributária nem declara homologação de disponibilidade das fontes.
+Atualizado em 19/09/2026. Este documento registra somente o que o Radar executa e prova localmente. Não transforma a coleta em consultoria tributária nem declara homologação de disponibilidade das fontes.
 
 ## Função entregue no trabalho local
 
@@ -27,3 +27,12 @@ O catálogo Watermelon UI foi consultado para blocos de status de integração; 
 ## Limite para venda
 
 Ainda falta exercitar a tarefa Celery/beat e as três fontes em ambiente de homologação e registrar reexecução idempotente, indisponibilidade, recuperação e relevância das publicações. A fonte marcada como concluída no banco local não comprova disponibilidade futura. Ver também [estado operacional](estado-operacional.md) e [registro de execução](registro-de-execucao.md).
+
+## Revalidação de 19/09/2026
+
+V-037 executou os testes de coleta idempotente, relevância e falha isolada do
+Radar junto à suíte de Conciliação: 46 testes aprovados e um skip de OCR de
+outro fluxo, sem requisição HTTP real. Quatro testes adicionais confirmaram o
+filtro de fonte, a exibição segura de falha e a demonstração isolada por sessão.
+Ruff, Django, migrações em dry-run e diff passaram. Essa evidência valida os
+controles locais; agenda Celery/beat e fontes reais continuam pendentes.

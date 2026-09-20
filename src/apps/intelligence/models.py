@@ -3,11 +3,26 @@ from __future__ import annotations
 from typing import Any
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.common.encryption import EncryptedTextField
 from apps.common.knowledge_safety import validate_knowledge_source
 from apps.organizations.models import OrganizationScopedModel
+
+
+class IntelligenceArea(models.TextChoices):
+    GENERAL = "general", "Geral"
+    ACCOUNTING = "accounting", "Contábil"
+    FISCAL = "fiscal", "Fiscal"
+    PAYROLL = "payroll", "Folha"
+
+
+def _validate_company_scope(
+    *, organization_id: object, company: object | None
+) -> None:
+    if company is not None and getattr(company, "organization_id", None) != organization_id:
+        raise ValidationError({"company": "A empresa precisa pertencer ao mesmo escritório."})
 
 
 class AssistantSettings(OrganizationScopedModel):
@@ -183,6 +198,17 @@ class KnowledgeSource(OrganizationScopedModel):
     source_reference = models.CharField(max_length=300)
     content = EncryptedTextField()
     content_hash = models.CharField(max_length=64, db_index=True)
+    company = models.ForeignKey(
+        "hub.ClientCompany",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="intelligence_knowledge_sources",
+    )
+    reference_period = models.CharField(max_length=32, blank=True)
+    area = models.CharField(
+        max_length=16, choices=IntelligenceArea.choices, default=IntelligenceArea.GENERAL
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
@@ -199,6 +225,7 @@ class KnowledgeSource(OrganizationScopedModel):
 
     def clean(self) -> None:
         super().clean()
+        _validate_company_scope(organization_id=self.organization_id, company=self.company)
         validate_knowledge_source(
             source_reference=self.source_reference,
             version=self.version,
@@ -229,6 +256,10 @@ class KnowledgeChunk(OrganizationScopedModel):
 
 
 class TrainingExample(OrganizationScopedModel):
+    class DatasetSplit(models.TextChoices):
+        TRAINING = "training", "Treino"
+        EVALUATION = "evaluation", "Avaliação"
+
     class Category(models.TextChoices):
         RISK = "risk", "Risco"
         CLASSIFICATION = "classification", "Classificação"
@@ -245,6 +276,20 @@ class TrainingExample(OrganizationScopedModel):
     expected_answer = EncryptedTextField()
     source_references = models.JSONField(default=list)
     scenario_hash = models.CharField(max_length=64, db_index=True)
+    company = models.ForeignKey(
+        "hub.ClientCompany",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="intelligence_training_examples",
+    )
+    reference_period = models.CharField(max_length=32, blank=True)
+    area = models.CharField(
+        max_length=16, choices=IntelligenceArea.choices, default=IntelligenceArea.GENERAL
+    )
+    dataset_split = models.CharField(
+        max_length=16, choices=DatasetSplit.choices, default=DatasetSplit.TRAINING
+    )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DRAFT)
     validated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
@@ -258,11 +303,24 @@ class TrainingExample(OrganizationScopedModel):
             )
         ]
 
+    def clean(self) -> None:
+        super().clean()
+        _validate_company_scope(organization_id=self.organization_id, company=self.company)
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.clean()
+        super().save(*args, **kwargs)
+
 
 class EvaluationRun(OrganizationScopedModel):
     suite_name = models.CharField(max_length=100)
     model_name = models.CharField(max_length=100)
     corpus_version = models.CharField(max_length=80)
+    manifest_sha256 = models.CharField(max_length=64, blank=True)
+    evaluation_manifest_sha256 = models.CharField(max_length=64, blank=True)
+    base_model = models.CharField(max_length=160, blank=True)
+    adapter_version = models.CharField(max_length=80, blank=True)
+    adapter_artifact_sha256 = models.CharField(max_length=64, blank=True)
     total_cases = models.PositiveIntegerField(default=0)
     correct_cases = models.PositiveIntegerField(default=0)
     sourced_cases = models.PositiveIntegerField(default=0)
@@ -481,7 +539,10 @@ class LearningCandidate(OrganizationScopedModel):
 class ModelVersion(OrganizationScopedModel):
     name = models.CharField(max_length=80)
     corpus_version = models.CharField(max_length=80)
+    manifest_sha256 = models.CharField(max_length=64, blank=True)
+    base_model = models.CharField(max_length=160, blank=True)
     adapter_version = models.CharField(max_length=80, blank=True)
+    adapter_artifact_sha256 = models.CharField(max_length=64, blank=True)
     metrics = models.JSONField(default=dict)
     is_active = models.BooleanField(default=False)
     published_by = models.ForeignKey(

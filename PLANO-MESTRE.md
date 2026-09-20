@@ -1,8 +1,8 @@
 # CICA — plano mestre de conclusão e preparação para venda
 
-Atualizado em 17/09/2026. Plano aprovado pelo responsável nesta conversa; localização na raiz conforme D-59.
+Atualizado em 19/09/2026. Plano aprovado pelo responsável nesta conversa; localização na raiz conforme D-59.
 
-**Situação em 18/09/2026:** etapas 00, 01, 02 e 03 concluídas no nível de implementação e validação local. Por D-87, toda dependência de site em produção fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualização distribuída, backup Domínio Web e escrita Windows definitiva. A demonstração NFS-e foi ajustada separadamente e não conclui a etapa 07. Evidências em [VALIDACOES.md](VALIDACOES.md).
+**Situação em 20/09/2026:** etapas 00, 01, 02 e 03 concluídas no nível de implementação e validação local. A etapa 04 está em andamento e bloqueada pelo contrato técnico Siescon de Q-33; a base de exportação comum já recusa Siescon até existir adaptador/layout revisados. As etapas 05–10 confirmaram controles locais próprios; na 10, V-040 acrescentou o contrato de requisição do cliente Asaas sem conexão ou chave. A etapa 11 iniciou inspeção visual parcial; as homologações de caixas/antimalware/destino, ADN, Serpro, arquivos/ERPs/fontes do Radar e Asaas permanecem pendentes. Por D-87, toda dependência de site em produção fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualização distribuída, backup Domínio Web e escrita Windows definitiva. A demonstração NFS-e foi ajustada separadamente e não conclui a etapa 07. Evidências em [VALIDACOES.md](VALIDACOES.md).
 
 ## 1. Objetivo e ponto de partida
 
@@ -10,7 +10,7 @@ Concluir todos os módulos atuais, integrar Domínio e Siescon, entregar o insta
 
 **Pronto para venda:** o escritório consegue configurar, executar, conferir o resultado e recuperar falhas; permissões, cobrança, documentação e suporte correspondem ao comportamento real.
 
-Verificações da análise de 17/09/2026, anteriores à edição documental: 740 testes aprovados, 1 ignorado e 8 subtestes aprovados; Django check sem problemas; nenhuma migração faltante no dry-run; 66 violações Ruff. Há alterações locais anteriores não consolidadas. Estes resultados não homologam integrações externas, treinamento em GPU ou instalação no cliente. Evidências e limites em [VALIDACOES.md](VALIDACOES.md).
+As evidências são sempre datadas: V-031 registra a revalidação local de 19/09/2026 (lint, Django, migrações e testes focados); as provas anteriores de PostgreSQL, Redis, Windows e builds seguem registradas com seus limites. Nenhuma delas homologa integração externa, treinamento em GPU ou instalação no cliente. A análise consolidada está em [docs/planejamento/analise-projeto-2026-09-19.md](docs/planejamento/analise-projeto-2026-09-19.md).
 
 ## 2. Memória única
 
@@ -18,6 +18,7 @@ Verificações da análise de 17/09/2026, anteriores à edição documental: 740
 - [VALIDACOES.md](VALIDACOES.md): verificações efetivamente executadas, resultados, limites e estado desta entrega.
 - [Etapas e prompts](docs/planejamento/etapas/README.md): execução detalhada das etapas 00–13.
 - [Inventário de código, rotas, tarefas e APIs](docs/planejamento/inventario-conclusao.md): mapa estático, não prova de funcionamento.
+- [Matriz de evidências de conclusão](docs/planejamento/matriz-evidencias-2026-09-19.md): nível máximo provado, evidências e bloqueios de cada etapa.
 - [Limitações comerciais Domínio Web](docs/dominio-web-limitacoes-comerciais.md): linguagem de venda, capacidades verificadas e limites da API/backup.
 - [Dúvidas abertas](docs/planejamento/duvidas-abertas.md): registro único de perguntas, com etapa e dono.
 - [Estado operacional](docs/planejamento/estado-operacional.md) e [histórico de execução](docs/planejamento/registro-de-execucao.md): evidências anteriores, com data e ressalvas.
@@ -202,6 +203,10 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 
 **Depende de:** 03 e 05.
 
+**Estado local:** V-038 revalidou quarentena, leitura incremental simulada,
+scan/formato, revisão, cópia íntegra e protocolo de agente Windows. Isso não
+homologa OAuth, caixa, antimalware, catálogo, retenção ou destino Windows real.
+
 **Entregas**
 
 - Homologar Microsoft 365, Google Workspace, Gmail pessoal e IMAP conforme decisões registradas.
@@ -272,6 +277,11 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 
 **Depende de:** 03–05; exportação Siescon depende de 04.
 
+**Estado local:** V-037 revalidou ingestão limitada, mapeamento/revisão,
+conciliação com evidência, retomada, exportação auditável e coleta Radar
+simulada. Isso não homologa OCR, layout, volume, fontes oficiais ou importação
+em Domínio/Siescon.
+
 **Entregas**
 
 - Concluir OFX, CSV, XLSX e PDF/OCR com layouts e evidências.
@@ -281,7 +291,8 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 - Validar volume com PostgreSQL e corpus representativo.
 - No Radar, comprovar coleta, atualização, origem e falhas, preservando a proposta de acompanhamento de publicações.
 
-**Pendências / limites:** Q-28 e Q-30; layouts reais e amostra independente.
+**Pendências / limites:** Q-28; layouts reais e amostra independente. Aplicar as
+métricas já decididas em D-73 antes de qualquer aceite.
 
 **Aceite:** Processamento auditável, nenhuma conciliação sem evidência independente e exportações conferidas nos sistemas de destino.
 
@@ -298,7 +309,7 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 **Entregas**
 
 - Fechar com o responsável preços, franquias, pesos, tetos, carência e regras de mudança de contrato.
-- Concluir cliente Asaas; o webhook existente não cobre criação e operação integral da cobrança.
+- Concluir a orquestração Asaas entre dados comerciais autorizados, cliente, cobrança e `PaymentAttempt`; V-040 já cobre somente o contrato local do cliente.
 - Homologar Pix, boleto, cartão, atrasos, estornos e eventos fora de ordem.
 - Garantir fatura única, consumo auditável e proteção contra duplicidade.
 - Separar integralmente contratos manuais da automação Asaas.
@@ -318,6 +329,10 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 
 **Depende de:** Módulos implementados.
 
+**Estado local:** V-039 verificou parcialmente 14 caminhos e uma jornada
+fictícia de Triagem em servidor isolado. A auditoria completa de perfis, estados
+e oferta segue pendente.
+
 **Entregas**
 
 - Revisar site comercial, cadastro, aplicação do escritório, central de aprendizado e console Mewstack.
@@ -327,7 +342,8 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 - Inspecionar as jornadas com Playwright MCP; registrar exatamente os estados alcançados e fechar as sessões.
 - Conferir que oferta comercial e demonstração refletem capacidades homologadas.
 
-**Pendências / limites:** Q-30; estados inacessíveis devem ser registrados, nunca presumidos validados.
+**Pendências / limites:** Aplicar D-73; estados inacessíveis devem ser
+registrados, nunca presumidos validados.
 
 **Aceite:** O usuário conclui tarefas representativas sem intervenção interna não prevista.
 
@@ -396,4 +412,4 @@ Cada entrega deve registrar critérios atendidos e bloqueios, testes proporciona
 
 ## 5. Próximo trabalho
 
-[01 — estabilizar a base técnica](docs/planejamento/etapas/01-base-tecnica.md) permanece **aberta e bloqueada** em 18/09/2026. Ruff, dependências, PostgreSQL, Redis, migrations, worker real, concorrência de consumo, MSI do agente e imagens da aplicação/multimodal foram validados em V-004. **O responsável precisa informar a imagem LlamaFactory aprovada por digest imutável (Q-37)** para construir o runtime de treinamento. Não iniciar a etapa 02 antes de concluir e registrar esse item. D-61 proíbe encerrar etapas com pendências.
+[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. A preparação estrutural local e a análise estão registradas em V-029 a V-031; o contrato técnico Q-33 continua indispensável para escrever o adaptador, pois não se pode inventar versão, mecanismo de acesso, schema, identificador de empresa ou layout. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. A [análise de 19/09](docs/planejamento/analise-projeto-2026-09-19.md) lista o material mínimo a receber por canal seguro. Sem esse material, a etapa permanece bloqueada, não concluída.

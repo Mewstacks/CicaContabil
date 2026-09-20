@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Demonstração de download em lote autorizada em 18/09/2026 por D-62. A etapa permanece não iniciada para coleta e homologação reais.
+**Estado:** A demonstração local de carteira, filtro e download em lote foi implementada e revalidada em V-005/V-035. A etapa permanece em andamento para coleta e homologação reais.
 
 **Dependências:** 03 e 05.
 
@@ -10,13 +10,13 @@
 
 ## Escopo e checklist
 
-- [ ] Entregar demonstração de download em lote com ZIP fictício por empresa, `Tomadas/CÓDIGO -/` e `Emitidas/CÓDIGO -/` (D-62).
-- [ ] Permitir baixar toda a carteira e validar acumulador/confiança antes do ZIP: classificação acima de 95%; transitória em 0% (D-63).
-- [ ] Filtrar carteira por competência de emissão ou intervalo de emissão, mostrando emissão como referência da nota (D-64).
-- [ ] Permitir download demonstrativo sem bloqueio: transitória a 0%, decisão manual identificada e IA acima de 95% (D-65).
-- [ ] Oferecer uma escolha exclusiva entre filtro por competência e filtro por emissão na demonstração (D-66).
-- [ ] Atualizar visualmente a linha da demonstração ao definir acumulador, sem persistir decisão fictícia (D-68).
-  - Implementação e inspeção local registradas em V-005, incluindo revisão visual de 18/09. A etapa completa permanece aberta.
+- [x] Entregar demonstração de download em lote com ZIP fictício por empresa, `Tomadas/CÓDIGO -/` e `Emitidas/CÓDIGO -/` (D-62).
+- [x] Permitir baixar toda a carteira e validar acumulador/confiança antes do ZIP: classificação acima de 95%; transitória em 0% (D-63).
+- [x] Filtrar carteira por competência de emissão ou intervalo de emissão, mostrando emissão como referência da nota (D-64).
+- [x] Permitir download demonstrativo sem bloqueio: transitória a 0%, decisão manual identificada e IA acima de 95% (D-65).
+- [x] Oferecer uma escolha exclusiva entre filtro por competência e filtro por emissão na demonstração (D-66).
+- [x] Atualizar visualmente a linha da demonstração ao definir acumulador, sem persistir decisão fictícia (D-68).
+  - Implementação e inspeções locais registradas em V-005 e V-035. A etapa completa permanece aberta.
 - [ ] Homologar coleta ADN, certificados, NSU, retomada e deduplicação.
 - [ ] Apresentar nota legível, valores, participantes, competência e descrição dos serviços.
 - [ ] Validar acumuladores contra o catálogo da empresa.

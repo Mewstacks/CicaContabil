@@ -1,5 +1,196 @@
 # CICA — validações e evidências
 
+## V-040 — Etapa 10: contrato local do cliente Asaas
+
+Data: 20/09/2026. Ambiente: macOS local, chave de exemplo injetada somente
+nos testes e transporte substituído por dublês em memória. Não houve leitura de
+configuração, segredo real, conexão de rede, conta/sandbox Asaas, cliente,
+cobrança, dado de cliente, custo ou deploy.
+
+- O cliente local seleciona de modo explícito `sandbox` ou `production`, envia
+  `access_token`, `Content-Type` e `User-Agent`, e permite transportar a
+  requisição apenas por injeção. Ele não procura chave em `settings`, arquivos
+  locais ou variáveis de ambiente.
+- Antes de criar cliente, consulta `externalReference`; a criação de cliente e
+  de cobrança avulsa não tem retentativa automática após falha ou resultado
+  incerto. A cobrança aceita PIX, boleto ou cartão sem receber dados de cartão;
+  o retorno é validado antes de ser exposto ao chamador.
+- `uv run pytest tests/test_asaas_client.py tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q`: **49 aprovados e 1 ignorado em 13,54 s**. O skip cobre concorrência de locks exclusiva do PostgreSQL.
+- Ruff dos módulos/testes de Asaas e cobrança, `uv run python manage.py check`,
+  `uv run python manage.py makemigrations --check --dry-run` e `git diff --check`
+  passaram.
+- Revalidação integral: `uv run pytest -q` fechou com **759 aprovados, 3
+  ignorados e 8 subtestes aprovados em 28,99 s**; `uv run ruff check .`, Django,
+  dry-run de migrações e diff também passaram. Os skips permanecem: Playwright
+  Python opcional, OCR português indisponível e concorrência de locks coberta
+  na evidência PostgreSQL histórica.
+
+O contrato foi alinhado à [autenticação](https://docs.asaas.com/docs/authentication),
+ao [cliente](https://docs.asaas.com/reference/create-new-customer) e à
+[cobrança](https://docs.asaas.com/reference/create-new-payment) documentados
+pela Asaas. Limites: não há orquestração entre contrato comercial, cliente,
+`PaymentAttempt` e ambiente autorizado; também não há teste de Pix, boleto,
+cartão, atraso, estorno, webhook real ou evento fora de ordem. Q-08/Q-28 e a
+etapa 12 de D-87 continuam obrigatórios. A etapa 10 permanece em andamento.
+
+## V-039 — Etapa 11: jornadas e interfaces locais, inspeção parcial
+
+Data: 19/09/2026. Ambiente: servidor de QA descartável em `127.0.0.1:8011`,
+SQLite e mídia sob `.tmp/ui-review`, massa sintética e sockets externos
+bloqueados pelo próprio servidor de QA. A inspeção iniciou e fechou uma sessão
+de demonstração fictícia; não usou conta, dado ou serviço externo.
+
+- Navegação interativa em navegador local percorreu Visão geral, Empresas,
+  NFS-e, Guias, Central Integra/DTE/Parcelamentos, Conciliação, Radar, Triagem,
+  Caixas, Configuração, Equipe e Copiloto. Nos 14 caminhos, em desktop e em
+  390 × 844, a verificação DOM encontrou um único `h1`, nenhum campo visível
+  sem rótulo e nenhum overflow horizontal.
+- A inspeção visual do fluxo fictício de Triagem confirmou no celular e desktop
+  a fila, bloqueio explícito de item em quarentena, revisão, transição para
+  “Pronto para arquivar”, arquivamento fictício e link privado de download. O
+  progresso permaneceu na sessão e a tela declarou que nenhuma pasta real seria
+  alterada. O console do navegador não registrou erros.
+- `uv run pytest tests/test_hub_workspace_views_django.py tests/test_seed_demo_django.py tests/test_cica_auth_flow.py -q`: **77 aprovados e 1 ignorado em 21,08 s**. O skip é o Playwright Python opcional; a inspeção interativa acima não depende desse pacote.
+- Ruff dos módulos/testes envolvidos, `uv run python manage.py check`,
+  `uv run python manage.py makemigrations --check --dry-run` e `git diff --check`
+  passaram.
+
+Limites: a inspeção não conclui o site comercial, cadastro, central de
+aprendizado ou console Mewstack; também não cobre todos os perfis, estados de
+carga/erro/vazio, navegação exclusivamente por teclado, contraste por elemento
+ou tarefas reais autorizadas. É uma auditoria local parcial, não homologação e
+nem prova de que a oferta comercial corresponde a integrações ainda pendentes.
+A etapa 11 permanece em andamento.
+
+## V-038 — Etapa 06: Triagem de Arquivos local
+
+Data: 19/09/2026. Ambiente: macOS local, banco de testes, armazenamento
+temporário e provedores/antimalware/agente substituídos por dublês de teste. Sem
+OAuth, caixa de e-mail, ClamAV, agente Windows, arquivo de cliente, escrita em
+pasta real, chamada externa, custo ou deploy.
+
+- A entrada local mantém o binário em quarentena privada, normaliza nome,
+  preserva procedência por mensagem/parte e é idempotente apenas para a mesma
+  entrega. Pollers simulados exercitam cursor, corte e leitura sem marcar a
+  mensagem como lida; anexo grande ou caixa pausada não persiste binário.
+- Arquivo não verificado não pode ser revisado, baixado ou arquivado. Um scanner
+  limpo ainda exige formato permitido; detecção rejeita e indisponibilidade do
+  scanner conserva a quarentena. A cópia da biblioteca privada é relida e tem
+  SHA-256 conferido antes do estado final, que volta a falhar se adulterada.
+- O contrato local do agente Windows vincula escritório, raiz, caminho relativo,
+  tamanho e hash; só confirma o arquivamento após a prova correspondente. Outra
+  organização recebe 404, falha fica recuperável e nome/caminho inválido é
+  recusado. Isso é teste de protocolo, não escrita no Windows.
+- `uv run pytest tests/test_triage_domain.py tests/test_triage_oauth_django.py tests/test_triage_email_ingest_django.py tests/test_triage_gmail_poll_django.py tests/test_triage_graph_poll_django.py tests/test_triage_poll_retry_django.py tests/test_triage_windows_paths.py tests/test_triage_windows_agent.py -q`: **72 aprovados e 6 subtestes aprovados em 14,40 s**.
+- `uv run pytest tests/test_hub_workspace_views_django.py tests/test_seed_demo_django.py -k 'triage' -q`: **6 aprovados, 64 desmarcados em 14,04 s**. Cobre escopo por empresa, fila, bloqueio de não verificado, cópia privada e demo isolada por sessão.
+- Ruff dos módulos e testes envolvidos, `uv run python manage.py check`,
+  `uv run python manage.py makemigrations --check --dry-run` e `git diff --check`
+  passaram.
+
+Limites: não há consentimento/revogação, redirect ou leitura real em Microsoft,
+Google/Gmail/IMAP; não há ClamAV instalado/atualizado, catálogo/nomenclatura,
+retenção, árvore de destino, regra de checklist ou raiz/conta Windows aprovadas.
+Q-12 a Q-25 e Q-31 continuam abertas, e D-73 exige amostra e recuperação no
+destino autorizado. A etapa 06 permanece em andamento.
+
+## V-037 — Etapa 09: Conciliação e Radar locais
+
+Data: 19/09/2026. Ambiente: macOS local e banco de testes; entradas e respostas
+sintéticas controladas pelos testes. Não houve arquivo bancário, lançamento,
+exportação, acesso a Domínio/Siescon, coleta HTTP real, dado de cliente, custo,
+deploy ou configuração operacional.
+
+- A conciliação local aceita somente OFX, CSV, XLSX ou PDF com limites de
+  tamanho/linhas/páginas, identifica o tipo pelo conteúdo, guarda fonte privada
+  com hash e trata reenvio idempotente. Há mapeamento revisável, conta financeira,
+  regras, movimentos normalizados, partidas equilibradas, conciliação parcial ou
+  desfeita e evidência obrigatória para a confirmação. Ambiguidade permanece em
+  revisão; não há confirmação automática apenas por data e valor.
+- O processamento persiste execução, checkpoint, erros e retomada de trabalho
+  pendente/expirado. A exportação local mantém hash, reexportação ligada à origem
+  e estado explícito, mas não foi importada em qualquer ERP nesta execução.
+- O Radar limita a coleta a três páginas oficiais fixas, conserva URL/origem e
+  relevância, é idempotente e registra falha por fonte sem expor erro interno na
+  interface. As coletas foram simuladas pelos testes; a disponibilidade das
+  páginas oficiais não foi exercitada.
+- `uv run pytest tests/test_reconciliation.py tests/test_reconciliation_module.py tests/test_reform_radar.py -q`: **46 aprovados e 1 ignorado em 7,84 s**. O skip é o caso de OCR local em português, pois Tesseract/modelo `por` não está disponível nesta estação.
+- `uv run pytest tests/test_hub_workspace_views_django.py tests/test_seed_demo_django.py -k 'reform_radar or reconciliation_confirmation' -q`: **4 aprovados, 66 desmarcados em 14,29 s**. Cobre filtro/estado seguro de falha do Radar e confirmação de conciliação fictícia isolada por sessão.
+- Ruff dos módulos e testes envolvidos, `uv run python manage.py check`,
+  `uv run python manage.py makemigrations --check --dry-run` e `git diff --check`
+  passaram.
+
+Limites: não há layout bancário/contábil aprovado, OCR português disponível,
+amostra independente de 200 itens, volume em PostgreSQL, fonte Radar real
+exercitada, importação conferida no Domínio ou adaptador/layout Siescon. D-54
+proíbe escrita direta no Siescon; D-73 exige a conferência no destino antes de
+aprovar exportação. A etapa 09 permanece em andamento.
+
+## V-036 — Matriz auditável de evidências do plano
+
+Data: 19/09/2026. Ambiente: checkout local e documentação canônica. Sem execução de integração externa, dado de cliente, segredo, custo, deploy ou alteração de configuração operacional.
+
+- A matriz `docs/planejamento/matriz-evidencias-2026-09-19.md` confronta as 14 etapas, seus checklists, as evidências V-001 a V-035, o inventário e as decisões/dúvidas abertas. Para cada etapa, registra somente o maior nível demonstrado e o bloqueio que impede o nível seguinte.
+- A conclusão documental confirma que implementação ou teste local não basta para homologação nem liberação comercial. Q-33/Siescon é a primeira dependência técnica sequencial; governança da IA e contratos/autorização dos provedores continuam condicionando os demais pilotos.
+- `git diff --check`, `uv run python manage.py check` e `uv run python manage.py makemigrations --check --dry-run` passaram após a atualização documental.
+
+Limites: a matriz sintetiza evidências existentes e não executa qualquer piloto ou integrações. Ela não fecha etapas com checklist pendente nem substitui os aceites de D-73 e da etapa 12.
+
+## V-035 — Etapa 07: demonstração NFS-e local
+
+Data: 19/09/2026. Ambiente: banco SQLite temporário, migrado e semeado exclusivamente com dados fictícios, removido ao final da inspeção. Não houve certificado, chamada ADN, consulta fiscal, dado de cliente, escrita em pasta Windows, egressão, cobrança ou custo.
+
+- A verificação de servidor confirmou a geração de ZIP por empresa em `Tomadas/CÓDIGO -/` e `Emitidas/CÓDIGO -/`, a seleção da carteira inteira e o manifesto que separa sugestão acima de 95%, decisão manual e Transitória em 0%. `uv run pytest tests/test_seed_demo_django.py -k 'nfse' tests/test_hub_workspace_views_django.py -k 'nfse_center' -q`: **4 aprovados, 66 desmarcados em 13,45 s**. Ruff de `views.py` e dos testes: aprovado.
+- Inspeção interativa com navegador local na demonstração isolada: filtro exclusivo mudou de competência para emissão; `01092026` e `30092026` foram normalizados para `01/09/2026` e `30/09/2026`; a busca preservou os 24 itens no intervalo e refletiu os parâmetros na URL. Um acumulador digitado atualizou a linha para “Classificada”, “Definida pelo contador · 100%” e o rótulo manual; ao limpar, a linha retornou para “Em revisão”, “Transitória · 0%” e sem acumulador. Console sem erros.
+
+Limites: ZIP e notas são fictícios e não comprovam importação, classificação fiscal, catálogo de acumuladores, coleta ADN, certificado, NSU, retomada ou deduplicação real. Q-28 e a amostra/aceite do módulo continuam necessários; a etapa 07 permanece em andamento.
+
+## V-034 — Etapa 08: Central Integra Contador local
+
+Data: 19/09/2026. Ambiente: macOS local, banco de teste e transporte simulado. Sem credencial, certificado, representação, chamada Serpro, ciência DTE, emissão, guia, DAS, custo ou dado real.
+
+- DTE cobre preparação local sem despacho, empresas aptas, paginação com nova autorização, leitura de teor com permissão específica, auditoria e estado separado para resultado incerto. DCTFWeb preserva declaração, recibo e guia sem transmissão. PARCSN cobre carteira, seleção, cotação, autorização, pedido, parcelas e PDF validado.
+- Reserva/liquidação vinculam operações ao consumo; indisponibilidade ou retorno incerto mantêm uma evidência conservadora e bloqueiam repetição automática.
+- `uv run pytest tests/test_dte.py tests/test_dte_access.py tests/test_dte_dispatch.py tests/test_integra_client.py tests/test_integra_dctfweb.py tests/test_integra_parcelamento.py tests/test_parcelamento_operations.py -q`: **63 aprovados em 13,98 s**. Ruff dos módulos e testes envolvidos passou.
+
+Limites: mocks e documentos sintéticos não homologam contrato, credenciais centrais, certificado, representação, tarifas ou serviços Serpro. Q-28 e uma autorização de custo imediatamente anterior são necessários para o piloto; Q-36 impede ampliar PARCSN. A etapa 08 permanece em andamento.
+
+## V-033 — Etapa 10: contratação, tokens e cobrança local
+
+Data: 19/09/2026. Ambiente: macOS local e banco de teste. Sem conta, credencial, sandbox, cliente, cobrança, webhook ou custo Asaas real.
+
+- D-76/D-79 resolvem Q-01–Q-06 para implementação: 7 dias de carência, somente leitura, reativação após pagamento, retorno a somente leitura por estorno/disputa, teste de 14 dias, fechamento no dia 1, vencimento no dia 10 e contrato manual operado pela Mewstack com auditoria.
+- O código local contém livro de preços congelado por contrato, franquia/peso de token inteiro por módulo, teto mensal, reserva/liquidação idempotentes, fatura por competência e eventos de pagamento duplicados/fora de ordem. O webhook Asaas não altera contratos manuais.
+- `uv run pytest tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q`: **44 aprovados e 1 ignorado em 13,37 s**. O skip é o cenário de concorrência de locks, coberto na validação PostgreSQL histórica. `uv run ruff check src/apps/platform tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py`: aprovado.
+
+Limites: não há cliente Asaas para criar clientes/cobranças nem prova de Pix, boleto, cartão, atraso, estorno ou evento real. Q-08 ainda precisa fixar limites de IA/Triagem; sandbox/contrato e amostra autorizada estão em Q-28. A etapa 10 permanece em andamento.
+
+## V-032 — Etapa 05: proveniência e escopo do conhecimento
+
+Data: 19/09/2026. Ambiente: macOS local, CPython 3.12.13 e banco de teste. Sem dados de cliente, egressão Claude, credenciais, download de modelo, GPU, treinamento ou custo externo.
+
+- D-89 autoriza os metadados de área, empresa e período nas fontes de conhecimento e exemplos de treinamento, como implementação direta da cobertura contábil, fiscal e folha de D-52. A migração `intelligence.0027` preenche registros existentes com área geral; empresa e período permanecem opcionais.
+- A recuperação agora filtra fontes aprovadas para o escritório e, quando há empresa na conversa, aceita somente fontes globais ou dessa empresa, priorizando as específicas. Sem empresa, fontes específicas são excluídas. A validação impede relacionar fonte ou exemplo a empresa de outro escritório.
+- O manifesto QLoRA inclui os metadados de proveniência no hash do corpus. O runner os valida, mas não os coloca no texto enviado ao treinamento; apenas pergunta, resposta e referências aprovadas compõem o dataset.
+- `uv run ruff check src/apps/intelligence runtime/trainer tests/test_intelligence_sync_django.py tests/test_intelligence_training_django.py`: aprovado. `uv run python manage.py makemigrations --check --dry-run`: sem alterações. `uv run pytest tests/test_intelligence_sync_django.py tests/test_intelligence_training_django.py tests/test_training_runner.py -q`: **26 aprovados em 12,53 s**.
+- D-90 adicionou os hashes SHA-256 de manifesto e adaptador, o modelo base e a versão do adaptador a `EvaluationRun` e `ModelVersion`. A publicação exige correspondência integral se a versão declarar um artefato; uma avaliação de hash diferente é recusada. `uv run pytest tests/test_intelligence_training_django.py tests/test_training_runner.py -q`: **20 aprovados em 6,99 s**.
+- D-91 acrescentou `dataset_split` aos exemplos e `evaluation_manifest_sha256` à avaliação. O exportador seleciona `training` por padrão ou `evaluation` explicitamente; o runner QLoRA recusa qualquer linha fora de `training`. `uv run pytest tests/test_intelligence_training_django.py tests/test_intelligence_commands_django.py tests/test_training_runner.py -q`: **34 aprovados em 13,18 s**.
+- D-92 acrescentou `rollback_model`, que só reativa uma versão do mesmo escritório após validar sua avaliação e a proveniência declarada; a operação grava auditoria e nunca inicia treino. `uv run pytest tests/test_intelligence_training_django.py -q`: **17 aprovados em 7,01 s**.
+- Revalidação integral: `uv run ruff check .`, `uv run python manage.py check`, `uv run python manage.py makemigrations --check --dry-run` e `uv run pytest -q` passaram. A suíte fechou em **754 aprovados, 3 ignorados e 8 subtestes em 28,01 s**; os skips continuam sendo Playwright Python opcional, OCR português local indisponível e concorrência de locks coberta no PostgreSQL histórico.
+
+Limites: isto não comprova cobertura de corpus para as três áreas, curadoria humana, anonimização de todos os casos, conjunto independente de avaliação, artefato de adaptador treinado, publicação/rollback real ou egressão autorizada. Q-08, Q-09, Q-11 e Q-34 continuam abertos; a etapa 05 permanece em andamento.
+
+## V-031 — Análise consolidada e revalidação local
+
+Data: 19/09/2026. Ambiente: macOS local, CPython 3.12.13 criado por `uv sync --locked --all-extras`; checkout inicialmente limpo. Não houve deploy, conexão a fornecedor, leitura de dado de cliente, uso de credencial, cobrança ou custo externo.
+
+- A análise de documentação e código está em [docs/planejamento/analise-projeto-2026-09-19.md](docs/planejamento/analise-projeto-2026-09-19.md). Ela confirma que as etapas 00–03 encerraram somente a implementação/validação local e que a etapa 04 depende do contrato Siescon Q-33.
+- `uv run ruff check .` inicialmente reportou 16 E501 em `agent_v2.py`, `triage/forms.py`, `triage/services.py` e `urls_agent_v2.py`. Foram aplicadas quebras de linha sem mudança de regra. A primeira suíte completa revelou ainda que o modo de biblioteca interna apagava `folder_template`, embora o padrão deva ser preservado para a configuração futura de Windows. O formulário agora mantém o padrão; nenhuma rota, modelo ou decisão de produto foi alterado. A reexecução do Ruff retornou `All checks passed!`.
+- `uv run python manage.py check`: sem problemas (0 silenciados). `uv run python manage.py makemigrations --check --dry-run`: `No changes detected`.
+- `uv run pytest tests/test_edge_agent.py tests/test_triage_windows_paths.py tests/test_reconciliation_module.py -q`: **51 aprovados, 1 ignorado e 6 subtestes aprovados em 7,46 s**. O skip é o OCR em português indisponível nesta estação, não uma integração externa.
+- Reexecução integral: `uv run pytest -q`: **747 aprovados, 3 ignorados e 8 subtestes aprovados em 26,90 s**. Os skips são Playwright Python opcional, OCR português local indisponível e concorrência de locks, que possui validação PostgreSQL histórica própria.
+
+Limites: a revalidação macOS não repete as provas históricas com PostgreSQL, Redis, Docker/WSL ou instalador Windows. Testes locais não homologam Siescon nem substituem o piloto da etapa 12.
+
 ## V-008 — E-mail transacional CICA
 
 Data: 18/09/2026. Implementação local autorizada por D-76; nenhuma conexão SMTP ou envio externo foi realizado.

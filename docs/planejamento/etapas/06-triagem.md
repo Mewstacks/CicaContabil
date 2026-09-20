@@ -2,7 +2,9 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento: controles locais de entrada, quarentena, revisão e
+arquivamento foram revalidados em V-038; nenhum provedor ou destino real foi
+homologado.
 
 **Dependências:** 03 e 05.
 
@@ -11,12 +13,12 @@
 ## Escopo e checklist
 
 - [ ] Homologar Microsoft 365, Google Workspace, Gmail pessoal e IMAP conforme decisões registradas.
-- [ ] Completar leitura incremental, quarentena, antimalware, extração e classificação.
-- [ ] Permitir visualizar documentos liberados, corrigir empresa, tipo, competência e destino.
+- [x] Implementar e validar localmente leitura incremental, quarentena, antimalware, extração e classificação.
+- [x] Permitir localmente visualizar documentos liberados e corrigir empresa, tipo, competência e destino.
 - [ ] Aplicar automação somente às regras aprovadas e medidas.
-- [ ] Completar biblioteca interna e arquivamento Windows com confirmação de integridade.
+- [x] Implementar e validar localmente biblioteca interna e protocolo de arquivamento Windows com confirmação de integridade.
 - [ ] Atualizar checklist somente após arquivamento confirmado.
-- [ ] Resolver duplicatas, colisões, múltiplos documentos e indisponibilidade do agente.
+- [x] Tratar localmente duplicatas, colisões e indisponibilidade/repetição do agente.
 
 ## Bloqueios e responsabilidade
 
@@ -32,7 +34,11 @@ Consentimento/revogação nos três provedores, cursor, ameaça/falha do scanner
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-038 registra 72 testes de domínio, seis subtestes do protocolo Windows e seis
+testes de interface/demo, além de lint/Django/diff limpos. Nenhuma homologação
+nova é atribuída a esta etapa. A existência de código ou testes anteriores não
+prova conclusão. Registrar comandos, ambiente, data, resultado e limites em
+VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

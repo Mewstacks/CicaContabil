@@ -1,6 +1,6 @@
 # Operação Asaas — estado e roteiro de homologação
 
-Atualizado em 15/09/2026. O Asaas é o meio padrão de cobrança CICA para Pix, boleto e cartão. Contratos manuais continuam fora do fluxo do provedor: um evento Asaas não pode mudar sua cobrança, seu contrato ou seu acesso.
+Atualizado em 20/09/2026. O Asaas é o meio padrão de cobrança CICA para Pix, boleto e cartão. Contratos manuais continuam fora do fluxo do provedor: um evento Asaas não pode mudar sua cobrança, seu contrato ou seu acesso.
 
 ## O que o código já recebe
 
@@ -17,9 +17,9 @@ O desenho segue a documentação oficial: o Asaas usa o token no cabeçalho `asa
 ## Roteiro que falta homologar
 
 1. Definir `ASAAS_WEBHOOK_TOKEN` forte e exclusivo no ambiente, sem reutilizar a API key; cadastrar endpoint HTTPS público e apenas os eventos de pagamento necessários no Sandbox.
-2. Implementar e testar a criação idempotente de cliente, cobrança e `PaymentAttempt` para Pix, boleto e cartão. A CICA ainda não possui dados comerciais finais nem autorização para fazer chamadas externas.
+2. Integrar o contrato local de cliente/cobrança à criação idempotente de `PaymentAttempt`. O cliente em `apps.platform.asaas` recebe chave e transporte por injeção, consulta `externalReference` antes de criar cliente e não repete `POST` incerto; ele foi validado por V-040 sem rede. Ainda faltam os dados comerciais autorizados, o vínculo persistido e qualquer chamada externa.
 3. Exercitar no Sandbox: criado, confirmado, recebido, atraso, falha, reentrega, evento fora de ordem, estorno e chargeback; guardar IDs, resultado e evidência sem dados sensíveis.
 4. Confirmar as regras Q-01 a Q-06 de [dúvidas abertas](duvidas-abertas.md) antes de ligar carência, somente leitura, suspensão ou reativação a qualquer evento.
 5. Repetir o roteiro com uma cobrança autorizada em produção somente após custo, ambiente, chave e responsável terem confirmação explícita.
 
-O token do webhook, API key, cliente, cobrança e webhook externo não foram criados nesta máquina.
+O token do webhook, API key real, cliente, cobrança e webhook externo não foram criados nesta máquina.

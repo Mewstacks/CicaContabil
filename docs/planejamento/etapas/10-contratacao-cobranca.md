@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento em 20/09/2026. D-76/D-79 já resolveram Q-01–Q-06; V-033 confirmou contrato, tokens, fatura e eventos locais, e V-040 confirmou o contrato de requisição do cliente Asaas. Não houve criação de cobrança, configuração sandbox ou chamada Asaas.
 
 **Dependências:** 02; pode avançar antes das homologações fiscais.
 
@@ -10,16 +10,17 @@
 
 ## Escopo e checklist
 
-- [ ] Fechar com o responsável preços, franquias, pesos, tetos, carência e regras de mudança de contrato.
-- [ ] Concluir cliente Asaas; o webhook existente não cobre criação e operação integral da cobrança.
+- [-] Fechar com o responsável preços, franquias, pesos, tetos, carência e regras de mudança de contrato. Carência, somente leitura, teste e ciclo foram decididos; Q-08 ainda impede fixar os limites de IA/Triagem que dependem do orçamento.
+- [x] Implementar o contrato local do cliente Asaas: ambientes explícitos, chave injetada, localização por `externalReference`, criação sem dados de cartão e sem repetição automática de `POST` (V-040).
+- [ ] Concluir a orquestração Asaas: ligar dados comerciais autorizados, cliente, cobrança e `PaymentAttempt`; o webhook existente não cobre a criação e operação integral da cobrança.
 - [ ] Homologar Pix, boleto, cartão, atrasos, estornos e eventos fora de ordem.
-- [ ] Garantir fatura única, consumo auditável e proteção contra duplicidade.
-- [ ] Separar integralmente contratos manuais da automação Asaas.
-- [ ] Implementar somente leitura e reativação conforme regras expressamente aprovadas.
+- [x] Garantir fatura única, consumo auditável e proteção contra duplicidade. Livro de preços, reserva/liquidação, competência e eventos idempotentes foram validados localmente.
+- [x] Separar integralmente contratos manuais da automação Asaas. O webhook trata apenas tentativas Asaas e o fluxo manual é interno/auditável.
+- [x] Implementar somente leitura e reativação conforme regras expressamente aprovadas. As transições locais refletem D-79; a prova de pagamento/estorno real continua pendente.
 
 ## Bloqueios e responsabilidade
 
-Q-01 a Q-06 e Q-08; sandbox/contrato em Q-28.
+Q-08; sandbox/contrato em Q-28. Q-01 a Q-06 estão resolvidas por D-76/D-79, mas ainda exigem prova operacional nesta etapa.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -31,7 +32,7 @@ Cobrança repetida, webhook duplicado/fora de ordem, pagamento tardio, disputa, 
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-033 registra 44 testes locais para contrato, cobrança, tokens e acesso. V-040 acrescenta o contrato local de cliente/cobrança, com transporte substituível e nenhuma chave ou chamada real. Ainda falta ligar dados comerciais autorizados, cliente, cobrança e `PaymentAttempt`, além de tratar retornos de Pix, boleto e cartão em ambiente autorizado; o sandbox/contrato continua em Q-28 e a homologação fica na etapa 12 por D-87. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

@@ -180,7 +180,11 @@ def next_configuration(request: HttpRequest) -> JsonResponse:
     if agent is None:
         return _error("Agente não autorizado.", 401)
     profile = DestinationProfile.objects.filter(organization=agent.organization).first()
-    root = profile.windows_root if profile and profile.mode == DestinationProfile.Mode.WINDOWS else ""
+    root = (
+        profile.windows_root
+        if profile and profile.mode == DestinationProfile.Mode.WINDOWS
+        else ""
+    )
     response = JsonResponse({"windows_archive_root": root})
     response["Cache-Control"] = "no-store"
     return response
@@ -536,15 +540,26 @@ def sync_local_bank_entries(request: HttpRequest) -> JsonResponse:
         return _error("Agente não autorizado.", 401)
     payload = _payload(request)
     rows = payload.get("rows") if payload is not None else None
-    if not isinstance(rows, list) or len(rows) > 500 or not all(isinstance(row, Mapping) for row in rows):
+    if (
+        not isinstance(rows, list)
+        or len(rows) > 500
+        or not all(isinstance(row, Mapping) for row in rows)
+    ):
         return _error("Página de extratos Domínio inválida.", 400)
     connector, _ = IntelligenceConnector.objects.get_or_create(
-        organization=agent.organization, mode=IntelligenceConnector.Mode.EDGE_AGENT,
+        organization=agent.organization,
+        mode=IntelligenceConnector.Mode.EDGE_AGENT,
         defaults={"status": "healthy"},
     )
-    result = sync_bank_entries(organization=agent.organization, connector=connector,
-        rows=[dict(row) for row in rows], request=request)
-    return JsonResponse({"created": result.created, "updated": result.updated, "ignored": result.ignored})
+    result = sync_bank_entries(
+        organization=agent.organization,
+        connector=connector,
+        rows=[dict(row) for row in rows],
+        request=request,
+    )
+    return JsonResponse(
+        {"created": result.created, "updated": result.updated, "ignored": result.ignored}
+    )
 
 
 @csrf_exempt

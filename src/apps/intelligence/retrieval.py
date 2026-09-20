@@ -7,7 +7,9 @@ import re
 from dataclasses import dataclass
 
 from django.db import transaction
+from django.db.models import Case, IntegerField, Q, Value, When
 
+from apps.hub.models import ClientCompany
 from apps.intelligence.models import KnowledgeChunk, KnowledgeSource
 from apps.knowledge.models import SharedKnowledgeChunk, SharedKnowledgeSource
 from apps.organizations.models import Organization
@@ -107,15 +109,36 @@ def refresh_knowledge_chunks(*, organization: Organization) -> ChunkRefreshResul
 
 
 def retrieve_chunks(
-    *, organization: Organization, query: str, limit: int = 4
+    *,
+    organization: Organization,
+    query: str,
+    company: ClientCompany | None = None,
+    limit: int = 4,
 ) -> list[KnowledgeChunk]:
+    """Retrieve only office-global or selected-company evidence, preferring the latter."""
     words = query_words(query)
     if not words:
         return []
+    if company is not None and company.organization_id != organization.id:
+        raise ValueError("A empresa da consulta não pertence ao escritório.")
     matches: list[KnowledgeChunk] = []
     chunks = KnowledgeChunk.objects.filter(
         organization=organization, source__status=KnowledgeSource.Status.APPROVED
     ).select_related("source")
+    if company is None:
+        chunks = chunks.filter(source__company__isnull=True)
+    else:
+        chunks = chunks.filter(
+            Q(source__company__isnull=True) | Q(source__company=company)
+        ).order_by(
+            Case(
+                When(source__company=company, then=Value(0)),
+                default=Value(1),
+                output_field=IntegerField(),
+            ),
+            "source_id",
+            "ordinal",
+        )
     for chunk in chunks:
         searchable = chunk.content.casefold()
         if any(word in searchable for word in words):

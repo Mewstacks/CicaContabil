@@ -242,8 +242,17 @@ class DestinationProfileForm(forms.Form):
         required=False,
         initial="{company_name} [Domínio {dominio_code}]",
         max_length=200,
-        help_text="Use {company_name}, {dominio_code}, {document_type} e {period}. Separe subpastas com \\.",
-        widget=forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false", "placeholder": r"{company_name} [{dominio_code}]\{document_type}\{period}"}),
+        help_text=(
+            "Use {company_name}, {dominio_code}, {document_type} e {period}. "
+            "Separe subpastas com \\."
+        ),
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "off",
+                "spellcheck": "false",
+                "placeholder": r"{company_name} [{dominio_code}]\{document_type}\{period}",
+            }
+        ),
     )
 
     def __init__(
@@ -251,7 +260,13 @@ class DestinationProfileForm(forms.Form):
     ) -> None:
         super().__init__(*args, **kwargs)
         if profile is not None and not self.is_bound:
-            self.initial.update({"mode": profile.mode, "windows_root": profile.windows_root, "folder_template": profile.folder_template})
+            self.initial.update(
+                {
+                    "mode": profile.mode,
+                    "windows_root": profile.windows_root,
+                    "folder_template": profile.folder_template,
+                }
+            )
 
     def clean_windows_root(self) -> str:
         value = str(self.cleaned_data.get("windows_root", "")).strip()
@@ -262,24 +277,48 @@ class DestinationProfileForm(forms.Form):
     def clean(self) -> dict[str, object]:
         cleaned = super().clean()
         root = str(cleaned.get("windows_root") or "")
+        template = str(
+            cleaned.get("folder_template") or "{company_name} [Domínio {dominio_code}]"
+        ).strip()
         if cleaned.get("mode") == DestinationProfile.Mode.WINDOWS:
             path = PureWindowsPath(root)
-            if not root or not path.is_absolute() or root.startswith("\\\\") or ".." in path.parts:
+            if (
+                not root
+                or not path.is_absolute()
+                or root.startswith("\\\\")
+                or ".." in path.parts
+            ):
                 self.add_error(
                     "windows_root",
-                    r"Informe uma pasta local absoluta, por exemplo D:\Clientes\Documentos. Unidade de rede será liberada após homologação.",
+                    (
+                        r"Informe uma pasta local absoluta, por exemplo D:\Clientes\Documentos. "
+                        "Unidade de rede será liberada após homologação."
+                    ),
                 )
         else:
             cleaned["windows_root"] = ""
-            cleaned["folder_template"] = ""
-        template = str(cleaned.get("folder_template") or "{company_name} [Domínio {dominio_code}]").strip()
+        cleaned["folder_template"] = template
         if cleaned.get("mode") == DestinationProfile.Mode.WINDOWS:
-            cleaned["folder_template"] = template
             allowed = {"company_name", "dominio_code", "document_type", "period"}
             fields = set(re.findall(r"{([^{}]+)}", template))
             literal = re.sub(r"{[^{}]+}", "", template)
-            if not template or fields - allowed or "{" in literal or any(char in literal for char in ':*?"<>|'):
-                self.add_error("folder_template", "Use somente as variáveis informadas, sem chaves soltas.")
-            elif not ({"company_name", "dominio_code"} & fields) or ".." in PureWindowsPath(template).parts or PureWindowsPath(template).is_absolute():
-                self.add_error("folder_template", "Inclua empresa ou código Domínio e use apenas subpastas relativas.")
+            if (
+                not template
+                or fields - allowed
+                or "{" in literal
+                or any(char in literal for char in ':*?"<>|')
+            ):
+                self.add_error(
+                    "folder_template",
+                    "Use somente as variáveis informadas, sem chaves soltas.",
+                )
+            elif (
+                not ({"company_name", "dominio_code"} & fields)
+                or ".." in PureWindowsPath(template).parts
+                or PureWindowsPath(template).is_absolute()
+            ):
+                self.add_error(
+                    "folder_template",
+                    "Inclua empresa ou código Domínio e use apenas subpastas relativas.",
+                )
         return cleaned

@@ -161,3 +161,36 @@ Data: 18/09/2026. Origem: responsável pelo projeto. Toda atividade que dependa 
 ## D-88 — Contrato comum de exportação contábil
 
 Data: 18/09/2026. Origem: executor, autorizado como decisão de implementação por D-76. As exportações contábeis da CICA passam a escolher um destino registrado e versionado, em vez de presumir Domínio em toda a cadeia. O adaptador Domínio já existente é preservado. Siescon só poderá receber exportação após registrar seu layout revisado, adaptador e versão; até lá a solicitação é recusada de forma explícita, sem gerar arquivo, escrever no Siescon ou alegar compatibilidade. Isto implementa a generalização estrutural da etapa 04 sem inventar o contrato técnico de Q-33.
+
+## D-89 — Metadados de escopo para conhecimento e treinamento
+
+Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-52 e D-76. Fontes de conhecimento e exemplos de treinamento passam a registrar, quando aplicável, empresa, período de referência e uma das áreas `contábil`, `fiscal`, `folha` ou `geral`. Registros existentes recebem o escopo geral e não são reenviados, reclassificados ou expostos. Uma fonte ligada a empresa só pode pertencer ao mesmo escritório; na recuperação de uma conversa por empresa, evidência daquela empresa tem precedência e nunca é recuperada para outra. Esta decisão estrutura o pipeline local da etapa 05 sem aprovar egressão, curadoria, teto, treinamento real ou publicação de modelo; Q-08, Q-09, Q-11 e Q-34 continuam abertos.
+
+## D-90 — Proveniência de avaliação e adaptador local
+
+Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-48, D-51 e D-76. Quando uma versão local declarar um adaptador, ela deve registrar modelo base, versão do adaptador, hash SHA-256 do artefato e hash SHA-256 do manifesto/corpus. A avaliação correspondente deve registrar os mesmos valores, e a publicação recusa divergência. Registros históricos sem artefato continuam legíveis, mas não passam a alegar vínculo que não possuíam. A decisão cria somente o gate e a rastreabilidade local; não seleciona modelo, não inicia treino, não publica artefato nem substitui a aprovação humana de Q-34.
+
+## D-91 — Separação imutável entre treino e avaliação
+
+Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-48, D-51 e D-76. Cada exemplo validado passa a ser classificado como `treino` ou `avaliação`; um exemplo não integra ambos os manifestos. Os registros anteriores permanecem no conjunto de treino para preservar o comportamento já existente. O job QLoRA exporta apenas o manifesto de treino; a avaliação deve registrar o hash do manifesto de avaliação quando houver artefato local declarado. A escolha, revisão humana e quantidade de exemplos de cada conjunto continuam dependentes de Q-34 e das métricas de D-73. Nenhum exemplo é reenviado, usado em treino ou avaliado por esta decisão.
+
+## D-92 — Retorno controlado de adaptador local
+
+Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-50, D-51 e D-76. O retorno de versão ativa deve escolher uma versão anterior do mesmo escritório que tenha avaliação aprovada, corpus compatível e, quando declarar artefato, proveniência completa e idêntica. O retorno é auditado e não reexecuta treinamento, egressão ou download; a comparação de melhoria usada para publicação de uma versão nova não impede retornar a uma versão já aprovada. Esta decisão prepara o mecanismo local e não aprova a mudança de rota para IA local, que continua dependente da etapa 13, Q-30 e Q-34.
+
+## D-93 — Cliente Asaas local, sem configuração nem despacho
+
+Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por
+D-11, D-76 e D-87. O cliente técnico da Asaas usa explicitamente os ambientes
+`sandbox` e `production`, o cabeçalho `access_token`, `externalReference` para
+localizar clientes antes de criá-los e cobrança avulsa sem dados de cartão. A
+chave é sempre recebida por injeção explícita; não será lida de configuração
+local, impressa, criada ou usada nesta etapa. O transporte deve ser substituível
+nos testes e não repetir automaticamente `POST` de cliente ou cobrança após
+falha/resultado incerto. A ligação entre dados comerciais do escritório,
+cliente Asaas, `PaymentAttempt` e ambiente autorizado continua para a etapa 12,
+Q-08 e Q-28. Fontes: [autenticação Asaas](https://docs.asaas.com/docs/authentication),
+[criar cliente](https://docs.asaas.com/reference/create-new-customer) e
+[criar cobrança](https://docs.asaas.com/reference/create-new-payment), consultadas
+em 19/09/2026. Esta decisão não autoriza chamada, custo, sandbox, produção ou
+homologação.
