@@ -54,6 +54,12 @@ COMPANIES: list[tuple[str, str, str]] = [
 ]
 
 SERVICE_CODES = ["1401", "0702", "1701", "0910"]
+SERVICE_DESCRIPTIONS = {
+    "1401": "Escrituração contábil fictícia do período",
+    "0702": "Apoio técnico fictício para regularização cadastral",
+    "1701": "Assessoria fiscal fictícia do período",
+    "0910": "Serviço administrativo fictício de apoio operacional",
+}
 
 DTE_SUBJECTS = [
     "Comunicado de pendência - Malha Fiscal",
@@ -234,7 +240,9 @@ class Command(BaseCommand):
                         f"<servico>{service_code}</servico><valor>{amount}</valor></nfse>"
                     ),
                     normalized_data={
+                        "number": f"DEMO-{company.dominio_code}-{sequence + 1:03d}",
                         "service_code": service_code,
+                        "service_description": SERVICE_DESCRIPTIONS[service_code],
                         "counterparty_ref": f"CP{index}{sequence}",
                         "amount": amount,
                         "issued_at": issued_at.isoformat(),

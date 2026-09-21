@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -343,6 +343,36 @@ class GuidesViewTests(TestCase):
         )
         self.assertContains(no_result, "Nenhuma guia oficial corresponde aos filtros")
         self.assertNotContains(no_result, "Guias ainda sem fonte validada")
+
+    def test_guides_screen_paginates_the_portfolio_without_hiding_records(self) -> None:
+        for index in range(101):
+            FiscalGuide.objects.create(
+                organization=self.organization,
+                company=self.company,
+                kind=FiscalGuide.Kind.DCTFWEB,
+                reference=f"page-guide-{index:03d}",
+                competence="09/2026",
+                due_on=date(2026, 1, 1) + timedelta(days=index),
+                amount_cents=1_000,
+                integra_service_key="dctfweb.guia",
+            )
+
+        first_page = self.client.get(reverse("hub:guides"), {"q": "page-guide"})
+        second_page = self.client.get(
+            reverse("hub:guides"), {"q": "page-guide", "page": "2"}
+        )
+
+        self.assertContains(first_page, "101 resultados")
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "page-guide-000")
+        self.assertNotContains(first_page, "page-guide-100")
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, "page-guide-100")
+        self.assertContains(
+            second_page,
+            "?q=page-guide&amp;status=pending&amp;due=all&amp;page=1",
+            html=False,
+        )
 
     def test_odbc_cadastro_without_guide_source_does_not_claim_zero_debts(self) -> None:
         self.guide.delete()

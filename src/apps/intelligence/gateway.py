@@ -99,7 +99,7 @@ def claude_fallback_payload(
         "pergunta": _mask_cloud_text(question, limit=1_500),
         "evidencias": cards,
     }
-    payload = {
+    payload: dict[str, object] = {
         "model": model,
         "max_tokens": 900 if model == "claude-sonnet-5" else 420,
         "system": [

@@ -3,24 +3,25 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 
 class Command(BaseCommand):
     help = "Testa uma resposta real do Sonnet 5 com texto sintetico e ate 64 tokens."
 
-    def add_arguments(self, parser) -> None:
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--cost-approved",
             action="store_true",
             help="Exige aprovacao especifica do custo antes desta chamada cobrada.",
         )
 
-    def handle(self, *args, **options) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:
         if not options["cost_approved"]:
             raise CommandError("A chamada cobrada exige --cost-approved apos aprovacao de custo.")
         if not settings.CICA_CLAUDE_API_KEY:

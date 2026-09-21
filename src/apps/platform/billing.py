@@ -467,18 +467,18 @@ def close_competence(
                 organization=contract.organization, period_start=start
             ).order_by("action_code")
             overage_total = 0
-            for meter in meters:
-                if not meter.overage_units:
+            for legacy_meter in meters:
+                if not legacy_meter.overage_units:
                     continue
-                amount = meter.overage_units * meter.overage_unit_price_cents
+                amount = legacy_meter.overage_units * legacy_meter.overage_unit_price_cents
                 overage_total += amount
                 InvoiceLine.objects.create(
                     invoice=invoice,
                     kind=InvoiceLine.Kind.OVERAGE,
-                    action_code=meter.action_code,
-                    description=f"Excedente {meter.action_code}",
-                    quantity=meter.overage_units,
-                    unit_amount_cents=meter.overage_unit_price_cents,
+                    action_code=legacy_meter.action_code,
+                    description=f"Excedente {legacy_meter.action_code}",
+                    quantity=legacy_meter.overage_units,
+                    unit_amount_cents=legacy_meter.overage_unit_price_cents,
                     total_amount_cents=amount,
                 )
             invoice.overage_amount_cents = overage_total

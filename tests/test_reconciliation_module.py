@@ -17,6 +17,9 @@ from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.hub.forms import ReconciliationUploadForm
 from apps.hub.models import (
+    AccountingExport,
+    BankStatementImport,
+    BankTransaction,
     ClientCompany,
     CompanyAccessGrant,
     FinancialAccount,
@@ -26,6 +29,7 @@ from apps.hub.models import (
     MovementReconciliation,
     NormalizedMovement,
     ProductModule,
+    ReconciliationMatch,
     ReconciliationRule,
     ReconciliationRun,
     ReconciliationSourceFile,
@@ -225,6 +229,57 @@ def test_upload_view_creates_a_persisted_csv_run(
     assert AuditEvent.objects.filter(
         action="hub.reconciliation.source_uploaded", target_id=str(source.id)
     ).exists()
+
+
+@pytest.mark.django_db
+def test_upload_view_rejects_a_corrupted_xlsx_without_creating_a_source() -> None:
+    organization = Organization.objects.create(name="XLSX inválido", slug="xlsx-invalido")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user("owner@xlsx.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+
+    response = client.post(
+        reverse("hub:reconciliation-upload"),
+        {
+            "company": str(company.id),
+            "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT,
+            "period_start": "2026-09-01",
+            "period_end": "2026-09-30",
+            "files": SimpleUploadedFile(
+                "corrompido.xlsx", b"PK\x03\x04 sem uma planilha", content_type="application/zip"
+            ),
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert b"n\xc3\xa3o foi poss\xc3\xadvel abrir a planilha xlsx" in response.content.lower()
+    assert not ReconciliationSourceFile.objects.filter(organization=organization).exists()
+
+
+@pytest.mark.django_db
+def test_corrupted_xlsx_is_rejected_before_persistence() -> None:
+    organization = Organization.objects.create(name="Arquivo corrompido", slug="arquivo-corrompido")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+
+    with pytest.raises(ReconciliationError, match="Não foi possível abrir a planilha XLSX"):
+        create_source_file(
+            organization=organization,
+            company=company,
+            filename="corrompido.xlsx",
+            content=b"PK\x03\x04 sem uma planilha",
+            origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+        )
+
+    assert not ReconciliationSourceFile.objects.filter(organization=organization).exists()
 
 
 @pytest.mark.django_db
@@ -527,6 +582,81 @@ def test_reconciliation_detail_offers_a_partial_candidate_with_its_real_limit() 
     assert maximum, content
     assert allocation_limit.group(1) == "600.00"
     assert maximum.group(1) == "600.00"
+
+
+@pytest.mark.django_db
+def test_reconciliation_detail_pages_all_matching_candidates_without_a_silent_cutoff() -> None:
+    organization = Organization.objects.create(name="Candidatos", slug="candidatos-ui")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user("owner@candidatos.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    source, run, _ = create_source_file(
+        organization=organization,
+        company=company,
+        filename="movimentos.csv",
+        content=CSV,
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    _map_and_process(source, run)
+    movement = NormalizedMovement.objects.get(source_file=source, source_key="row:2")
+    entries = [
+        JournalEntry.objects.create(
+            organization=organization,
+            company=company,
+            occurred_on=movement.occurred_on,
+            history=f"Fornecedor N-1 candidato {index:02d}",
+            purpose="settlement",
+        )
+        for index in range(51)
+    ]
+    JournalLine.objects.bulk_create(
+        [
+            JournalLine(
+                organization=organization,
+                entry=entry,
+                account_code="1",
+                side=JournalLine.Side.DEBIT,
+                amount_cents=123_456,
+            )
+            for entry in entries
+        ]
+        + [
+            JournalLine(
+                organization=organization,
+                entry=entry,
+                account_code="2",
+                side=JournalLine.Side.CREDIT,
+                amount_cents=123_456,
+            )
+            for entry in entries
+        ]
+    )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+    url = reverse("hub:reconciliation-movement", args=[movement.id])
+
+    pages = [client.get(url, {"candidate_page": page}) for page in range(1, 4)]
+
+    assert all(page.status_code == 200 for page in pages)
+    assert pages[0].context["reconciliation_candidate_total"] == 51
+    assert pages[0].context["reconciliation_candidate_page"].number == 1
+    assert pages[2].context["reconciliation_candidate_page"].number == 3
+    assert [len(page.context["reconciliation_candidates"]) for page in pages] == [25, 25, 1]
+    presented_ids = {
+        suggestion["entry"].id
+        for page in pages
+        for suggestion in page.context["reconciliation_candidates"]
+    }
+    assert presented_ids == {entry.id for entry in entries}
+    assert "Página 1 de 3 · 51 lançamentos avaliados" in pages[0].content.decode()
+    assert "candidate_page=2" in pages[0].content.decode()
+    assert "candidate_page=3" in pages[1].content.decode()
 
 
 @pytest.mark.django_db
@@ -1164,6 +1294,200 @@ def test_reconciliation_overview_renders_ofx_source_reference() -> None:
     assert response.status_code == 200
     assert b"OFX fit-tela" in response.content
     assert b"Fornecedor OFX" in response.content
+
+
+@pytest.mark.django_db
+def test_reconciliation_overview_paginates_the_full_filtered_queue() -> None:
+    organization = Organization.objects.create(name="Fila OFX", slug="fila-ofx")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user("owner@fila-ofx.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    statement = BankStatementImport.objects.create(
+        organization=organization,
+        company=company,
+        original_filename="fila.ofx",
+        content_hash="f" * 64,
+        imported_by=user,
+    )
+    for index in range(101):
+        transaction = BankTransaction.objects.create(
+            organization=organization,
+            statement=statement,
+            external_id=f"queue-{index:03d}",
+            occurred_on=date(2026, 1, 1) + timedelta(days=index),
+            description=f"Fila paginada {index:03d}",
+            amount_cents=-1_000,
+        )
+        ReconciliationMatch.objects.create(
+            organization=organization,
+            transaction=transaction,
+            status=ReconciliationMatch.Status.UNMATCHED,
+        )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+
+    first_page = client.get(reverse("hub:reconciliation"), {"q": "Fila paginada"})
+    last_page = client.get(
+        reverse("hub:reconciliation"),
+        {
+            "q": "Fila paginada",
+            "processing_page": "2",
+            "export_page": "2",
+            "movement_page": "2",
+            "page": "3",
+        },
+    )
+
+    assert first_page.status_code == 200
+    assert b"101 resultados na fila atual" in first_page.content
+    assert b"P\xc3\xa1gina 1 de 3" in first_page.content
+    assert b"Fila paginada 100" in first_page.content
+    assert b"Fila paginada 000" not in first_page.content
+    assert b"P\xc3\xa1gina 3 de 3" in last_page.content
+    assert b"Fila paginada 000" in last_page.content
+    assert (
+        b"?q=Fila+paginada&amp;processing_page=2&amp;export_page=2&amp;movement_page=2"
+        b"&amp;status=attention&amp;page=2"
+        in last_page.content
+    )
+
+
+@pytest.mark.django_db
+def test_reconciliation_keeps_processing_and_export_histories_independent() -> None:
+    organization = Organization.objects.create(name="Históricos", slug="historicos-conciliacao")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user("owner@historicos.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    source, _run, _ = create_source_file(
+        organization=organization,
+        company=company,
+        filename="historico.csv",
+        content=CSV,
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    for index in range(20):
+        ReconciliationRun.objects.create(
+            organization=organization,
+            source_file=source,
+            state=ReconciliationRun.State.COMPLETED,
+            stage=f"completed-{index}",
+        )
+    for index in range(21):
+        AccountingExport.objects.create(
+            organization=organization,
+            company=company,
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 1, 31),
+            state=AccountingExport.State.READY,
+            content_hash=f"{index:064x}",
+        )
+    for index in range(51):
+        NormalizedMovement.objects.create(
+            organization=organization,
+            run=_run,
+            source_file=source,
+            company=company,
+            source_key=f"navigation-{index}",
+            occurred_on=date(2026, 1, 1),
+            amount_cents=100,
+            direction=NormalizedMovement.Direction.OUTFLOW,
+            description=f"Movimento {index}",
+        )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+
+    first_page = client.get(reverse("hub:reconciliation"), {"status": "all"})
+    processing_page = client.get(
+        reverse("hub:reconciliation"), {"status": "all", "processing_page": "2"}
+    )
+    export_page = client.get(
+        reverse("hub:reconciliation"), {"status": "all", "export_page": "2"}
+    )
+    movement_page = client.get(
+        reverse("hub:reconciliation"),
+        {"status": "all", "processing_page": "2", "export_page": "2", "movement_page": "2"},
+    )
+
+    assert first_page.status_code == 200
+    assert first_page.context["reconciliation_runs_total"] == 21
+    assert first_page.context["accounting_exports_total"] == 21
+    assert len(first_page.context["reconciliation_runs"]) == 20
+    assert len(first_page.context["accounting_exports"]) == 20
+    assert b"21 processamentos" in first_page.content
+    assert b"21 exporta\xc3\xa7\xc3\xb5es" in first_page.content
+    assert b"?status=all&amp;processing_page=2#processamentos" in first_page.content
+    assert b"?status=all&amp;export_page=2#exportacoes" in first_page.content
+    assert processing_page.context["reconciliation_runs_page"].number == 2
+    assert processing_page.context["accounting_exports_page"].number == 1
+    assert len(processing_page.context["reconciliation_runs"]) == 1
+    assert export_page.context["reconciliation_runs_page"].number == 1
+    assert export_page.context["accounting_exports_page"].number == 2
+    assert len(export_page.context["accounting_exports"]) == 1
+    assert movement_page.context["reconciliation_runs_page"].number == 2
+    assert movement_page.context["accounting_exports_page"].number == 2
+    assert movement_page.context["normalized_movement_page"].number == 2
+    assert len(movement_page.context["normalized_movements"]) == 1
+    assert (
+        b"?status=all&amp;processing_page=2&amp;export_page=2&amp;movement_page=1#movimentos"
+        in movement_page.content
+    )
+
+
+@pytest.mark.django_db
+def test_reconciliation_audit_paginates_the_full_filtered_history() -> None:
+    organization = Organization.objects.create(name="Auditoria paginada", slug="auditoria-paginada")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user("owner@auditoria-paginada.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    for index in range(201):
+        AuditEvent.objects.create(
+            organization=organization,
+            actor=user,
+            action="hub.reconciliation.audit_pagination",
+            target_type="test.event",
+            target_id=f"audit-{index:03d}",
+        )
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+
+    first_page = client.get(
+        reverse("hub:reconciliation-audit"), {"action": "hub.reconciliation.audit_pagination"}
+    )
+    last_page = client.get(
+        reverse("hub:reconciliation-audit"),
+        {"action": "hub.reconciliation.audit_pagination", "page": "3"},
+    )
+
+    assert first_page.status_code == 200
+    assert first_page.context["reconciliation_audit_total"] == 201
+    assert first_page.context["reconciliation_audit_page"].number == 1
+    assert len(first_page.context["reconciliation_audit_events"]) == 100
+    assert last_page.context["reconciliation_audit_page"].number == 3
+    assert [event.target_id for event in last_page.context["reconciliation_audit_events"]] == [
+        "audit-000"
+    ]
+    assert b"201 eventos" in first_page.content
+    assert "Página 3 de 3" in last_page.content.decode()
+    assert (
+        b"?action=hub.reconciliation.audit_pagination&amp;page=2" in last_page.content
+    )
 
 
 @pytest.mark.django_db

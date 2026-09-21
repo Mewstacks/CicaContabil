@@ -119,6 +119,43 @@ class IntelligenceCommandTests(TestCase):
         self.assertEqual(json.loads(lora_path.read_text(encoding="utf-8"))["method"], "qlora")
         self.assertIn("QLoRA", lora_output.getvalue())
 
+    def test_training_manifest_command_rejects_personal_data_without_writing_artifact(self) -> None:
+        TrainingExample.objects.create(
+            organization=self.organization,
+            category=TrainingExample.Category.SAFETY,
+            question="Revisar CPF 123.456.789-09",
+            expected_answer="Não exportar identificadores pessoais.",
+            source_references=["Política de revisão"],
+            scenario_hash="b" * 64,
+            status=TrainingExample.Status.VALIDATED,
+        )
+        manifest_path = self.temporary_path("blocked-manifest.jsonl")
+
+        with self.assertRaisesRegex(CommandError, "identificador pessoal"):
+            call_command(
+                "export_training_manifest",
+                organization=self.organization.slug,
+                output=str(manifest_path),
+            )
+
+        self.assertFalse(manifest_path.exists())
+
+    def test_training_manifest_command_never_overwrites_an_existing_artifact(self) -> None:
+        self.training_example()
+        manifest_path = self.temporary_path("existing-manifest.jsonl")
+        manifest_path.write_text("revisar antes de substituir", encoding="utf-8")
+
+        with self.assertRaisesRegex(CommandError, "já existe"):
+            call_command(
+                "export_training_manifest",
+                organization=self.organization.slug,
+                output=str(manifest_path),
+            )
+
+        self.assertEqual(
+            manifest_path.read_text(encoding="utf-8"), "revisar antes de substituir"
+        )
+
     def test_claude_curation_command_only_writes_the_prepared_batch(self) -> None:
         self.training_example()
         AssistantSettings.objects.create(

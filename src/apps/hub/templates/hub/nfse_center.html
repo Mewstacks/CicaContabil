@@ -62,6 +62,7 @@
         </tr>{% endfor %}</tbody>
       </table>
     </div>{% if office.is_demo %}</form>{% endif %}
+    {% if document_page.has_other_pages %}<nav class="triage-queue-pagination" aria-label="Páginas das NFS-e">{% if document_page.has_previous %}<a href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
   {% else %}
     {% if nfse_stats.received %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e corresponde aos filtros</strong><p>Altere a pesquisa ou a situação para voltar à carteira completa.</p><a class="button button-quiet" href="{% url 'hub:nfse-center' %}">Limpar filtros</a></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Configure a coleta automática para receber as notas das empresas.</p><a class="button button-quiet" href="?view=collection">Configurar coleta automática</a></div>{% endif %}
   {% endif %}

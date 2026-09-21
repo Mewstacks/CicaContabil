@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Iterable
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Protocol
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -19,7 +19,12 @@ def private_import_path(instance: ImportBatch, filename: str) -> str:
     return f"private/imports/{instance.organization_id}/{instance.id}.{suffix}"
 
 
-def private_reconciliation_path(instance: models.Model, filename: str) -> str:
+class ReconciliationUploadInstance(Protocol):
+    organization_id: object
+    pk: object | None
+
+
+def private_reconciliation_path(instance: ReconciliationUploadInstance, filename: str) -> str:
     """Keep financial evidence private and unguessable in the configured storage."""
     suffix = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
     return (

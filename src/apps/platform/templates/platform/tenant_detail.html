@@ -106,9 +106,10 @@
 
 {% if can_manage_billing %}
 <section class="panel access-panel" aria-labelledby="billing-title">
-  <header class="panel-header"><div><h2 id="billing-title">Cobrança interna</h2><p>Registro da cobrança tratada fora da CICA.</p></div></header>
+  <header class="panel-header"><div><h2 id="billing-title">Cobrança interna</h2><p>Registro da cobrança tratada fora da CICA.</p></div><span class="record-count">{{ invoice_total }} cobrança{{ invoice_total|pluralize }}</span></header>
   {% if recent_invoices %}
     <div class="data-table-wrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th>Total</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.period_start|date:"m/Y" }}</td><td>{{ invoice.due_on|date:"d/m/Y" }}</td><td>R$ {{ invoice.total_brl|floatformat:2 }}</td><td>{{ invoice.get_status_display }}</td><td><form method="post" class="invoice-status-form">{% csrf_token %}<input type="hidden" name="action" value="invoice-status"><input type="hidden" name="invoice_id" value="{{ invoice.id }}"><select id="invoice-status-{{ invoice.id }}" name="status" autocomplete="off" aria-label="Status da cobrança {{ invoice.period_start|date:"m/Y" }}">{% for value, label in invoice_status_choices %}<option value="{{ value }}"{% if invoice.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button button-quiet button-small" type="submit">Registrar</button></form></td></tr>{% endfor %}</tbody></table></div>
+    {% if invoice_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do histórico de cobrança">{% if invoice_page.has_previous %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ invoice_page.number }} de {{ invoice_page.paginator.num_pages }}</span>{% if invoice_page.has_next %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}<p class="settings-note">Sem registros de cobrança para este escritório.</p>{% endif %}
 </section>
 {% endif %}
@@ -156,14 +157,15 @@
 
 {% if can_inspect_egress %}
 <section class="panel access-panel" aria-labelledby="claude-attention-title">
-  <header class="panel-header"><div><h2 id="claude-attention-title">Tentativas Claude para verificar</h2><p>Chamadas sem conclusão confirmada. Confira o protocolo com o provedor antes de decidir sobre qualquer ajuste de consumo.</p></div></header>
+  <header class="panel-header"><div><h2 id="claude-attention-title">Tentativas Claude para verificar</h2><p>Chamadas sem conclusão confirmada. Confira o protocolo com o provedor antes de decidir sobre qualquer ajuste de consumo.</p></div><span class="record-count">{{ egress_attention_total }} tentativa{{ egress_attention_total|pluralize:"s" }}</span></header>
   {% if egress_attention %}
     <div class="data-table-wrap"><table><thead><tr><th scope="col">Quando</th><th scope="col">Tentativa CICA</th><th scope="col">Resposta da API</th><th scope="col">Estado</th><th scope="col">Reserva</th></tr></thead><tbody>
       {% for attempt in egress_attention %}
       <tr><td>{{ attempt.created_at|date:"d/m/Y H:i" }}</td><td><span class="egress-reference" translate="no">{{ attempt.id }}</span></td><td>{% if attempt.provider_request_id %}<span class="egress-reference" translate="no">{{ attempt.provider_request_id }}</span>{% if attempt.provider_http_status %} · HTTP {{ attempt.provider_http_status }}{% endif %}{% else %}Sem resposta HTTP registrada{% endif %}</td><td>{{ attempt.get_call_state_display }}</td><td>{% if attempt.usage_event %}{{ attempt.usage_event.get_status_display }}{% else %}Sem vínculo de consumo{% endif %}</td></tr>
       {% endfor %}
     </tbody></table></div>
-    <p class="settings-note">Mostrando as 20 tentativas mais recentes que precisam de verificação. O identificador da API permite pedir confirmação ao suporte da Anthropic.</p>
+    <p class="settings-note">Mostrando as tentativas que precisam de verificação. O identificador da API permite pedir confirmação ao suporte da Anthropic.</p>
+    {% if egress_attention_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das tentativas Claude para verificar">{% if egress_attention_page.has_previous %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.previous_page_number }}#claude-attention-title" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ egress_attention_page.number }} de {{ egress_attention_page.paginator.num_pages }}</span>{% if egress_attention_page.has_next %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.next_page_number }}#claude-attention-title" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}<p class="settings-note">Nenhuma tentativa Claude pendente de verificação neste escritório.</p>{% endif %}
 </section>
 {% endif %}

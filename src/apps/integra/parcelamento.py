@@ -86,7 +86,13 @@ def _money(value: Any, *, optional: bool = False) -> Decimal | None:
         amount = Decimal(str(value))
     except InvalidOperation as exc:
         raise ParcelamentoPayloadError("O Serpro devolveu um valor monetário inválido.") from exc
-    if not amount.is_finite() or amount < 0 or amount.as_tuple().exponent < -2:
+    exponent = amount.as_tuple().exponent
+    if (
+        not amount.is_finite()
+        or amount < 0
+        or not isinstance(exponent, int)
+        or exponent < -2
+    ):
         raise ParcelamentoPayloadError("O Serpro devolveu um valor monetário inválido.")
     return amount
 
@@ -94,7 +100,7 @@ def _money(value: Any, *, optional: bool = False) -> Decimal | None:
 def _positive_int(value: Any, label: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 1:
         raise ParcelamentoPayloadError(f"O Serpro devolveu {label} inválido.")
-    return value
+    return int(value)
 
 
 def _year_month(value: Any) -> int:

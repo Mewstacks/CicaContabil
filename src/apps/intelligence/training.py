@@ -58,6 +58,20 @@ def stable_hash(*parts: str) -> str:
     return hashlib.sha256("\x1f".join(parts).encode()).hexdigest()
 
 
+def _reject_personal_identifiers(manifest: list[TrainingManifestItem]) -> None:
+    """Keep reviewable source data out of any training/evaluation artifact.
+
+    The source record is intentionally left untouched: only a human reviewer can
+    decide whether redaction preserves the accounting meaning of an example.
+    """
+    for item in manifest:
+        serialized = json.dumps(item, ensure_ascii=False, separators=(",", ":"))
+        if _PERSONAL_DATA_RE.search(serialized):
+            raise ValueError(
+                "O exemplo contém identificador pessoal; anonimize-o em revisão antes de exportar."
+            )
+
+
 def _dataset_manifest(
     *, organization: Organization, dataset_split: TrainingExample.DatasetSplit
 ) -> list[TrainingManifestItem]:
@@ -67,7 +81,7 @@ def _dataset_manifest(
         status=TrainingExample.Status.VALIDATED,
         dataset_split=dataset_split,
     ).order_by("created_at")
-    return [
+    manifest: list[TrainingManifestItem] = [
         {
             "id": str(example.id),
             "category": example.category,
@@ -83,6 +97,8 @@ def _dataset_manifest(
         for example in examples
         if example.source_references
     ]
+    _reject_personal_identifiers(manifest)
+    return manifest
 
 
 def training_manifest(*, organization: Organization) -> list[TrainingManifestItem]:

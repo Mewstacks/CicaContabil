@@ -4,6 +4,7 @@ import re
 import uuid
 from datetime import date
 from pathlib import PureWindowsPath
+from typing import Any, cast
 
 from django import forms
 
@@ -19,12 +20,16 @@ class ManualIntakeForm(forms.Form):
     )
     file = forms.FileField(label="Arquivo")
 
-    def __init__(self, *args: object, organization: Organization, **kwargs: object) -> None:
+    def __init__(self, *args: Any, organization: Organization, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.fields["company"].queryset = ClientCompany.objects.filter(
+        company_field = cast(forms.ModelChoiceField[ClientCompany], self.fields["company"])
+        document_type_field = cast(
+            forms.ModelChoiceField[DocumentType], self.fields["document_type"]
+        )
+        company_field.queryset = ClientCompany.objects.filter(
             organization=organization, active=True
         ).order_by("name")
-        self.fields["document_type"].queryset = DocumentType.objects.filter(
+        document_type_field.queryset = DocumentType.objects.filter(
             organization=organization, active=True
         ).order_by("label")
         self.fields["company"].widget.attrs["autocomplete"] = "off"
@@ -49,8 +54,8 @@ class TriageReviewForm(forms.Form):
         label="Confirmo que o arquivo deve ser rejeitado",
     )
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         if cleaned.get("decision") == "reject" and not str(cleaned.get("reason") or "").strip():
             self.add_error("reason", "Informe o motivo da rejeição.")
         if cleaned.get("decision") == "reject" and not cleaned.get("confirm_rejection"):
@@ -72,7 +77,7 @@ class IMAPConnectionForm(forms.Form):
     )
     folder = forms.CharField(label="Pasta para testar", max_length=160, initial="INBOX")
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.fields["address"].widget.attrs.update(
             {"autocomplete": "email", "spellcheck": "false", "placeholder": "caixa@escritorio.com…"}
@@ -132,7 +137,7 @@ class OfficeOAuthAppForm(forms.Form):
         label="ID do diretório Microsoft (Tenant ID)", max_length=64, required=False
     )
 
-    def __init__(self, *args: object, provider: str, **kwargs: object) -> None:
+    def __init__(self, *args: Any, provider: str, **kwargs: Any) -> None:
         kwargs.setdefault("prefix", provider)
         super().__init__(*args, **kwargs)
         self.provider = provider
@@ -181,7 +186,7 @@ class MailboxOperationForm(forms.Form):
         label="Ativar leitura automática desta caixa", required=False
     )
 
-    def __init__(self, *args: object, mailbox: Mailbox, **kwargs: object) -> None:
+    def __init__(self, *args: Any, mailbox: Mailbox, **kwargs: Any) -> None:
         kwargs.setdefault("prefix", f"mailbox-{mailbox.id}")
         super().__init__(*args, **kwargs)
         self.mailbox = mailbox
@@ -208,12 +213,14 @@ class MailboxOperationForm(forms.Form):
 
     def clean_since(self) -> date:
         value = self.cleaned_data["since"]
+        if not isinstance(value, date):
+            raise forms.ValidationError("Informe uma data inicial válida.")
         if value > date.today():
             raise forms.ValidationError("A data inicial não pode estar no futuro.")
         return value
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         if cleaned.get("active") and (
             self.mailbox.status != Mailbox.Status.ACTIVE or not self.mailbox.credential
         ):
@@ -256,7 +263,7 @@ class DestinationProfileForm(forms.Form):
     )
 
     def __init__(
-        self, *args: object, profile: DestinationProfile | None, **kwargs: object
+        self, *args: Any, profile: DestinationProfile | None, **kwargs: Any
     ) -> None:
         super().__init__(*args, **kwargs)
         if profile is not None and not self.is_bound:
@@ -274,8 +281,8 @@ class DestinationProfileForm(forms.Form):
             raise forms.ValidationError("A pasta raiz contém caracteres inválidos.")
         return value
 
-    def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
         root = str(cleaned.get("windows_root") or "")
         template = str(
             cleaned.get("folder_template") or "{company_name} [Domínio {dominio_code}]"

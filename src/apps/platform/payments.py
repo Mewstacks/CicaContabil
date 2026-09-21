@@ -48,9 +48,12 @@ _ASAAS_DISPUTE_EVENTS = frozenset(
 
 
 def _payload_string(payload: object, key: str, *, limit: int) -> str:
-    if not isinstance(payload, dict) or not isinstance(payload.get(key), str):
+    if not isinstance(payload, dict):
         raise AsaasWebhookPayloadError("Evento Asaas sem identificador válido.")
-    value = payload[key].strip()
+    value = payload.get(key)
+    if not isinstance(value, str):
+        raise AsaasWebhookPayloadError("Evento Asaas sem identificador válido.")
+    value = value.strip()
     if not value or len(value) > limit:
         raise AsaasWebhookPayloadError("Evento Asaas com identificador inválido.")
     return value

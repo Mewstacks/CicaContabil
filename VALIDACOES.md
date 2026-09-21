@@ -1,5 +1,1300 @@
 # CICA — validações e evidências
 
+## V-097 — XLSX corrompido recusado antes da conciliação
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo
+real de cliente, OCR, ERP, exportação, integração, custo ou deploy.
+
+- A entrada XLSX agora abre a planilha antes de persistir a fonte. Uma extensão
+  válida com assinatura `PK`, mas arquivo corrompido, retorna uma mensagem
+  operacional clara e não cria fonte, lote ou processamento inválido.
+- A prévia CSV lê somente as 51 linhas necessárias, em vez de materializar o
+  arquivo inteiro para exibir suas primeiras linhas.
+- **41 testes** focados de Conciliação passaram, com um skip de OCR local. Ruff
+  e MyPy do serviço aprovaram a alteração. A regressão integral fechou com
+  **783 testes aprovados, 3 skips e 11 subtestes** em 29,13 s.
+
+Limites: a prova usa uma planilha sintética corrompida; não homologa layouts,
+arquivos, OCR, ERP ou exportação reais.
+
+## V-096 — Código operacional de Jornadas removido
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve oferta,
+contrato, cobrança, convite, arquivo, integração, custo, deploy ou dado de
+cliente.
+
+- Em complemento à V-095 e conforme D-43, foram removidos os formulários,
+  views e template operacionais órfãos de Jornadas. O enum, os modelos, tabelas
+  e migrações históricos continuam preservados; não houve migração destrutiva.
+- A busca de referências confirmou que não há rota, vínculo de navegação,
+  formulário, view ou template ativo de Jornadas; o teste segue cobrindo as
+  cinco rotas legadas como 404 em GET e POST e sua ausência do catálogo.
+- **73 testes** focados de acesso, workspace e operação passaram. Ruff, MyPy
+  global, Django e migrações aprovaram os **190 arquivos**. A regressão integral
+  fechou com **781 testes aprovados, 3 skips e 11 subtestes** em 29,43 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 102 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local; não comprova contrato comercial, uso histórico por
+cliente, migração já aplicada em produção ou homologação de venda.
+
+## V-095 — Jornadas removida do catálogo de produto
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve oferta,
+contrato, cobrança, convite, arquivo, integração, custo, deploy ou dado de
+cliente.
+
+- A definição de módulo Jornadas foi retirada do catálogo usado pelo produto,
+  alinhando-o à D-43. O enum, schema e migrações legados foram preservados para
+  compatibilidade histórica, mas Jornadas não tem rota, navegação ou oferta.
+- O teste confirmou que as cinco rotas legadas retornam 404 em GET e POST, que
+  a navegação não as expõe e que o código não está no catálogo.
+- **73 testes** focados de acesso, workspace e operação passaram. Ruff, MyPy
+  global, Django e migrações aprovaram os **190 arquivos**. A regressão integral
+  fechou com **781 testes aprovados, 3 skips e 11 subtestes** em 28,56 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 101 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local; não comprova contrato comercial, uso histórico por
+cliente, migração já aplicada em produção ou homologação de venda.
+
+## V-094 — Caixa DTE mantém mensagens e histórico independentes
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve consulta
+Serpro, credencial, consumo, cobrança, arquivo, dado de cliente ou deploy.
+
+- A paginação da Caixa Postal agora preserva a página do histórico de consultas
+  DTE, filtros e empresa selecionada; a paginação do histórico já preservava a
+  página de mensagens. As duas listas podem ser percorridas sem se reiniciarem.
+- O teste criou **31 resultados DTE e 26 mensagens** sintéticas, confirmou a
+  segunda página de cada lista e ambos os vínculos de retorno, sem preparar ou
+  enviar uma consulta.
+- **10 testes** focados de DTE passaram. Ruff, MyPy global, Django e migrações
+  aprovaram os **190 arquivos**. A regressão integral fechou com **781 testes
+  aprovados, 3 skips e 11 subtestes** em 28,67 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 99 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local e sintética; não comprova Serpro, certificado,
+representação, consumo, cobrança, PostgreSQL em volume ou homologação.
+
+## V-093 — Fila OFX sem perder o contexto da Conciliação
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo,
+importação, confirmação, reprocessamento, exportação, ERP, OCR, custo, deploy
+ou dado de cliente.
+
+- A paginação da fila OFX × Domínio agora mantém as páginas de Processamentos,
+  Movimentos e Exportações, além dos filtros da própria fila. Avançar ou voltar
+  na fila não reinicia as outras três áreas da Conciliação.
+- O teste percorreu a terceira página de 101 correspondências sintéticas com
+  as três páginas independentes selecionadas e confirmou o vínculo de retorno,
+  sem criar ou alterar uma conciliação.
+- **39 testes** focados de Conciliação passaram, com **1 skip** de OCR local.
+  Ruff, MyPy global, Django e migrações aprovaram os **190 arquivos**. A
+  regressão integral fechou com **781 testes aprovados, 3 skips e 11 subtestes**
+  em 28,11 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 99 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local e sintética; não comprova arquivo, OCR, layout real,
+ERP, PostgreSQL em volume, exportação ou homologação operacional.
+
+## V-092 — Páginas independentes na carteira de Conciliação
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo,
+importação, reprocessamento, confirmação, exportação, ERP, OCR, custo, deploy
+ou dado de cliente.
+
+- A paginação dos movimentos normalizados agora conserva as páginas já abertas
+  de Processamentos e Exportações, bem como filtros e contexto da Conciliação.
+  Trocar a carteira de movimentos não desloca mais as outras duas trilhas.
+- O teste criou **21 processamentos, 21 exportações e 51 movimentos** sintéticos
+  e confirmou a segunda página de cada área e o vínculo de retorno do movimento,
+  sem executar nenhuma ação operacional.
+- **39 testes** focados de Conciliação passaram, com **1 skip** de OCR local.
+  Ruff, MyPy global, Django e migrações aprovaram os **190 arquivos**. A
+  regressão integral fechou com **781 testes aprovados, 3 skips e 11 subtestes**
+  em 28,33 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 99 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local e sintética; não comprova arquivo, OCR, layout real,
+ERP, PostgreSQL em volume, exportação ou homologação operacional.
+
+## V-091 — Histórico da Triagem sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve caixa de
+e-mail, arquivo, antimalware, OCR, destino Windows, integração, custo, deploy
+ou dado de cliente.
+
+- O detalhe de um arquivo em Triagem agora percorre a trilha persistida de
+  eventos em páginas de 20, informa o total e preserva a ordem cronológica e
+  os parâmetros de retorno; não carrega a trilha inteira para exibi-la.
+- O teste criou **21 eventos** sintéticos e confirmou as duas páginas (20/1),
+  o total, as evidências inicial e final e os vínculos de ida e volta, sem
+  mudar o estado do item, aprovar arquivamento ou produzir arquivo.
+- A demonstração permanece isolada por sessão e não é usada como prova visual
+  do histórico persistido em volume. A inspeção autenticada no navegador não
+  foi automatizada para não inserir credenciais.
+- **57 testes** focados do espaço de trabalho passaram; Ruff, MyPy global,
+  Django e migrações aprovaram os **190 arquivos**. A regressão integral fechou
+  com **781 testes aprovados, 3 skips e 11 subtestes** em 28,86 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push. As 99 alterações
+  locais existentes foram preservadas.
+
+Limites: a prova é local e sintética; não comprova caixa, scanner, OCR,
+classificação, arquivo, agente Windows, PostgreSQL em volume ou homologação
+operacional.
+
+## V-090 — Candidatos de conciliação sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e demonstração
+fictícia. Não houve arquivo real, importação, exportação, ERP, OCR, integração,
+custo, deploy ou dado de cliente.
+
+- O detalhe do movimento agora percorre todos os lançamentos candidatos no
+  recorte já existente de seis dias: mostra 25 por página, informa o total de
+  lançamentos avaliados e conserva a confirmação humana com evidência.
+- O teste criou **51 candidatos** sintéticos, confirmou as três páginas
+  (25/25/1) e verificou que todos apareceram; não confirmou conciliação nem
+  gerou lançamento, arquivo ou exportação.
+- A demonstração temporária percorreu a segunda página e a superfície de 390
+  px sem overflow horizontal ou erro de console. Servidor, navegador e banco
+  temporário foram encerrados; o banco foi movido à Lixeira de forma
+  recuperável.
+- **39 testes** de Conciliação passaram, com **1 skip** de OCR local; Ruff,
+  MyPy global, Django e migrações aprovaram os **190 arquivos**. A regressão
+  integral fechou com **780 testes aprovados, 3 skips e 11 subtestes** em
+  29,92 s.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push.
+
+Limites: a prova é local e sintética; não comprova arquivo, OCR, ERP, Domínio,
+Siescon, importação no destino, PostgreSQL em volume ou homologação operacional.
+
+## V-089 — Acumulador NFS-e validado no catálogo da empresa
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve coleta,
+certificado, ADN, lançamento, integração, custo, deploy ou dado de cliente.
+
+- A decisão humana de uma revisão NFS-e agora só aceita acumulador presente em
+  regra ativa e vigente ou no histórico observado da mesma empresa; código
+  inexistente ou de outra empresa é recusado. A tela sugere o catálogo local.
+- **95 testes** de espaço de trabalho, fiscal e IA passaram; Ruff e MyPy global
+  aprovaram os **190 arquivos** de código. A regressão integral fechou com
+  **779 testes aprovados, 3 skips e 11 subtestes** em 28,73 s; Django e
+  migrações não apontaram drift.
+- A demonstração fictícia confirmou em desktop e em 390 px o campo da decisão,
+  sua lista nativa de acumuladores e a ausência de overflow horizontal ou erro
+  de console. A sessão e seu banco temporário foram encerrados; o banco foi
+  movido à Lixeira de forma recuperável.
+- Após `git fetch origin --prune`, `HEAD` permanece **0 commits à frente e 0
+  atrás de `origin/main`**; não houve pull, commit ou push.
+
+Limites: a prova é local e sintética; não comprova catálogo Domínio, regra
+fiscal, ADN, documento real ou homologação. A medida não cria regra nem
+lançamento.
+
+## V-088 — Atenção de egressão sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes, com auditorias de
+egressão exclusivamente sintéticas. Não houve pergunta enviada, chamada Claude,
+liberação ou liquidação de consumo, credencial externa, custo, deploy ou dado de
+cliente.
+
+- O detalhe do escritório no console da plataforma deixou de limitar as
+  tentativas Claude que exigem verificação às 20 mais recentes: agora pagina 20
+  itens, informa o total e mantém os parâmetros correntes do detalhe.
+- O teste criou 21 auditorias incertas sintéticas no mesmo escritório, alcançou
+  a segunda página e preservou o protocolo da ocorrência mais antiga sem
+  repetir chamada, liberar reserva ou alterar consumo.
+- **57 testes** de detalhe de escritório, IA e isolamento passaram; Ruff e MyPy
+  global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **778 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,40 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 96 alterações locais existentes foram
+  preservadas antes do registro desta entrega.
+
+Limites: a evidência usa somente auditorias sintéticas locais; não comprova
+provedor Claude, resposta real, confirmação externa, custo, concorrência
+PostgreSQL ou homologação operacional. A inspeção visual autenticada do console
+não foi automatizada porque exigiria inserir uma credencial no navegador; nenhum
+ambiente externo foi acessado.
+
+## V-087 — Fechamentos adiados sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes, com ocorrências de
+fechamento exclusivamente sintéticas. Não houve fechamento, reserva, cobrança,
+contato Asaas, credencial externa, custo, deploy ou dado de cliente.
+
+- O console da plataforma deixou de limitar a lista de fechamentos ainda
+  adiados às 30 ocorrências mais antigas: agora pagina 30 itens, informa o
+  total e conserva os parâmetros correntes da configuração.
+- O teste criou 31 escritórios e ocorrências sintéticas, alcançou a segunda
+  página e confirmou os vínculos de retorno sem executar operação de
+  faturamento, mudar contrato, preço ou status.
+- **65 testes** de configuração, console e cobrança passaram, com **1 skip**
+  de concorrência em PostgreSQL; Ruff e MyPy global aprovaram os **190
+  arquivos** de código.
+- A regressão integral fechou com **777 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 37,81 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 96 alterações locais existentes foram
+  preservadas antes do registro desta entrega.
+
+Limites: a evidência cobre somente ocorrências sintéticas locais; não comprova
+fechamento mensal, reserva em concorrência PostgreSQL, Pix, boleto, cartão,
+Asaas, contrato comercial ou homologação. A inspeção visual autenticada do
+console não foi automatizada porque ela exigiria inserir uma credencial no
+navegador; nenhum ambiente externo foi acessado.
+
+## V-086 — Histórico do Copiloto sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e demonstração
+fictícia. Não houve pergunta enviada, chamada de IA, curadoria, treinamento,
+upload, credencial externa, custo, deploy ou dado de cliente.
+
+- O Copiloto deixou de exibir somente as 12 conversas abertas mais recentes:
+  agora pagina 12 registros, informa o total e preserva tanto a conversa ativa
+  quanto a página do histórico ao navegar.
+- O teste com 13 conversas sintéticas confirmou a segunda página, a conversa
+  mais antiga selecionada e os vínculos de página, sem criar mensagem nem
+  acionar runtime, fallback ou egressão.
+- A demonstração local confirmou, em 390 px, a superfície móvel do Copiloto
+  sem overflow horizontal ou erro de console. Como ela não contém conversas,
+  não foi usada como prova visual de paginação em volume.
+- **49 testes** de IA passaram, com **3 subtestes** aprovados; Ruff e MyPy
+  global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **776 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 38,46 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 94 alterações locais existentes foram
+  preservadas antes do registro desta entrega.
+
+Limites: a evidência usa apenas conversas sintéticas locais; não comprova
+chamada Claude, runtime local definitivo, curadoria, treinamento, dados reais,
+PostgreSQL, latência ou homologação operacional. O banco, servidor, navegador e
+diretórios temporários de QA foram encerrados; os artefatos temporários foram
+movidos à Lixeira de forma recuperável.
+
+## V-085 — Trilhas de Conciliação sem cortes silenciosos
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e demonstração
+fictícia. Não houve importação, reprocessamento, geração, download ou
+confirmação de arquivo, conexão a ERP, custo, deploy ou dado de cliente.
+
+- As trilhas de processamentos e de exportações da Conciliação deixaram de
+  cortar os 12 e 8 registros mais recentes: cada uma agora pagina 20 itens,
+  informa seu total e mantém os parâmetros e a página da outra trilha.
+- O teste criou 21 execuções e 21 exportações sintéticas, chegou à página 2 de
+  cada histórico e confirmou que trocar uma página não desloca a outra nem
+  executa qualquer ação operacional.
+- A demonstração local confirmou, em 390 px, as áreas de Processamentos e
+  Exportações sem overflow horizontal ou erro de console. Ela não representa
+  21 registros nas trilhas e não foi usada como prova visual de volume.
+- **93 testes** de Conciliação e espaço de trabalho passaram, com **1 skip** de
+  OCR local, em 21,74 s; Ruff e MyPy global aprovaram os **190 arquivos** de
+  código.
+- A regressão integral fechou com **775 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,25 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 91 alterações locais foram preservadas antes do
+  registro desta entrega.
+
+Limites: a evidência usa somente execuções e exportações sintéticas locais; não
+comprova arquivos reais, OFX, OCR, Domínio, Siescon, importação no destino,
+PostgreSQL, latência ou homologação operacional. O banco, servidor, navegador e
+diretório temporários de QA foram encerrados; os artefatos temporários foram
+movidos à Lixeira de forma recuperável.
+
+## V-084 — Histórico de importações sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e demonstração
+fictícia. Não houve envio, confirmação ou processamento de arquivo, conexão
+Domínio, credencial externa, custo, deploy ou dado de cliente.
+
+- A seção de importações do onboarding deixou de exibir somente os oito lotes
+  mais recentes: agora pagina 20 registros, informa o total e preserva fonte e
+  prévia selecionadas na navegação.
+- O teste com 21 lotes sintéticos alcançou a página 2, conservou a fonte e
+  conferiu total, vínculos e página sem alterar lote ou dados importados.
+- A demonstração local contém zero importações; ela confirmou somente a seção
+  vazia em 390 px, sem overflow horizontal ou erros de console, e não foi usada
+  como prova visual da paginação em volume.
+- **57 testes** de espaço de trabalho e backup passaram em 19,20 s; Ruff e MyPy
+  global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **774 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,59 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 90 alterações locais foram preservadas antes do
+  registro desta entrega.
+
+Limites: a evidência usa apenas lotes sintéticos locais; não comprova upload,
+backup `.dom`, chave, extração, Domínio, agente Windows, volume em PostgreSQL,
+latência ou homologação operacional. O banco, servidor, navegador e diretório
+temporários de QA foram encerrados; os artefatos temporários foram movidos à
+Lixeira de forma recuperável.
+
+## V-083 — Histórico DTE sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e demonstração
+fictícia. Não houve preparação de consulta, acesso ao Serpro, certificado,
+credencial externa, consumo, custo, deploy ou dado de cliente.
+
+- O histórico de resultados DTE deixou de cortar os 30 registros mais recentes:
+  agora pagina 30 itens, informa o total e conserva a página atual da fila de
+  mensagens, filtros e empresa na navegação própria.
+- O teste com 31 itens e execuções DTE sintéticos alcançou a página 2, manteve a
+  fila de mensagens na página 1 e conferiu total, navegação e parâmetros sem
+  alterar resultado ou autorização.
+- Na demonstração local, a tela DTE vazia e a área de histórico renderizaram em
+  390 px sem overflow horizontal ou erros de console. Como ela contém zero
+  resultados preparados, não foi usada como prova visual de paginação em volume.
+- **75 testes** de DTE e espaço de trabalho passaram em 14,80 s; Ruff e MyPy
+  global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **773 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 36,37 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 89 alterações locais foram preservadas antes do
+  registro desta entrega.
+
+Limites: a evidência usa apenas estado DTE sintético e local; não comprova
+consulta, ciência, certificado, Serpro, consumo, retorno de produção,
+PostgreSQL, latência ou homologação fiscal. O banco, servidor, navegador e
+diretório temporários de QA foram encerrados; os artefatos temporários foram
+movidos à Lixeira de forma recuperável.
+
+## V-082 — Histórico de cobrança manual sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes, com faturas
+exclusivamente sintéticas. Não houve criação de cobrança, Asaas, chave,
+cartão, Pix, boleto, credencial externa, custo, deploy ou dado de cliente.
+
+- O console da plataforma deixou de limitar o histórico às 12 faturas mais
+  recentes: ele agora pagina 12 registros, informa o total e mantém os dados
+  restritos ao escritório aberto.
+- O teste com 25 faturas sintéticas alcançou a página 3, preservou o vínculo de
+  retorno e conferiu o total sem alterar fatura, contrato ou status.
+- **41 testes** de console, cobrança e contratos passaram em 12,67 s; Ruff e
+  MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **772 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,26 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 87 alterações locais foram preservadas.
+
+Limites: a evidência cobre registros locais sintéticos e não comprova cobrança
+real, Asaas, Pix, boleto, cartão, estorno, concorrência em PostgreSQL ou
+homologação comercial. A inspeção visual autenticada do console não foi
+automatizada porque ela exigiria inserir uma credencial; isso permanece aberto
+na etapa 11.
+
+## V-081 — Radar da Reforma sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e navegador interno,
+com alertas exclusivamente fictícios. Não houve coleta de fontes, navegação a
+URLs oficiais, credencial, custo, deploy ou dado de cliente.
+
+- A consulta local do Radar deixou de exibir apenas os primeiros 80 alertas:
+  agora pagina 50 registros, preservando termo, fonte e tema, e mantém o total
+  correspondente ao filtro.
+- O teste criou 101 alertas sintéticos, alcançou a página 3 e verificou os
+  totais e o vínculo de retorno com os três filtros preservados.
+- A demonstração deliberadamente contém somente três exemplos; sua busca por
+  IBS exibiu o aviso de conteúdo fictício e um resultado, sem erro de console
+  ou overflow horizontal em 390 px. Ela não foi usada para alegar inspeção
+  visual da paginação em volume.
+- **77 testes** de espaço de trabalho, Radar e demonstração passaram em 20,62
+  s; Ruff e MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **771 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,73 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 85 alterações locais foram preservadas.
+
+Limites: a prova contém somente alertas sintéticos e filtros locais; não
+comprova fonte oficial, atualização, classificação, disponibilidade, volume em
+PostgreSQL, latência ou homologação do Radar. O banco, servidor, navegador e
+diretório temporários de QA foram encerrados; o diretório foi movido para a
+Lixeira de forma recuperável.
+
+## V-080 — Auditoria de conciliação sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e navegador interno,
+com eventos de auditoria exclusivamente fictícios. Não houve OFX, Domínio,
+ERP, fonte externa, credencial, custo, deploy ou dado de cliente.
+
+- A trilha de auditoria da conciliação deixou de limitar a consulta aos
+  primeiros 200 eventos: ela agora pagina 100 registros, mantém a ação filtrada
+  na navegação e informa o total que corresponde ao filtro.
+- O teste criou 201 eventos sintéticos, alcançou a página 3 e confirmou tanto
+  o total quanto os vínculos que preservam a ação ao retornar de página.
+- A inspeção da demonstração temporária abriu a página 3 de 3 com o filtro
+  aplicado, voltou à página 2 e manteve os 201 eventos; não houve erro de
+  console ou overflow horizontal em 390 px.
+- **90 testes** de conciliação e espaço de trabalho passaram em 15,60 s; Ruff
+  e MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **770 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,37 s; Django e migrações não apontaram erro ou
+  drift.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 84 alterações locais foram preservadas.
+
+Limites: a prova contém somente auditoria sintética; não comprova importação
+OFX, OCR, fonte Domínio, ERP, volume em PostgreSQL, latência ou homologação de
+exportação. O banco, servidor, navegador e diretório temporários de QA foram
+encerrados; o diretório foi movido para a Lixeira de forma recuperável.
+
+## V-079 — Ficha da empresa sem cortes de histórico
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e navegador interno,
+com NFS-e, revisões e mensagens DTE exclusivamente fictícias. Não houve ADN,
+Serpro, certificado real, credencial externa, custo, deploy ou dado de cliente.
+
+- A ficha da empresa passou a paginar independentemente os documentos NFS-e,
+  revisões abertas e mensagens DTE, todos em páginas de 20 itens; parâmetros de
+  retorno e páginas das demais seções permanecem intactos.
+- O teste criou 21 itens em cada histórico, chegou à página 2 e verificou os
+  totais e os vínculos de navegação entre as seções.
+- A inspeção do escritório-demo temporário abriu a página 2 das três seções,
+  retornou a DTE à página 1 sem perder as demais, não registrou erro de console
+  e não apresentou overflow horizontal em 390 px.
+- **72 testes** de registro de empresas e espaço de trabalho passaram em 14,94
+  s; Ruff e MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **769 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 29,38 s.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 83 alterações locais foram preservadas.
+
+Limites: a prova usa apenas estado sintético; não comprova coleta ADN, acesso
+DTE/Serpro, certificados, protocolos, representação, PostgreSQL, latência ou
+homologação fiscal. O banco, servidor, navegador e diretório temporários de QA
+foram encerrados; o diretório foi movido para a Lixeira de forma recuperável.
+
+## V-078 — Cobertura de certificados paginada sem ocultar empresas
+
+Data: 21/09/2026. Ambiente: macOS local, SQLite temporário e navegador interno,
+com empresas e identificadores exclusivamente fictícios. Não houve certificado
+real, ADN, credencial externa, custo, deploy ou dado de cliente.
+
+- A cobertura de empresas sem certificado A1 válido deixou de cortar após 20
+  registros: a lista e o seletor da demonstração agora seguem páginas próprias,
+  separadas da carteira de certificados.
+- O teste criou 21 empresas sem A1, abriu a página 2 e comprovou a preservação
+  de busca e situação na volta para a página 1.
+- A inspeção visual no escritório-demo temporário alcançou a página 2 de 2 de
+  uma cobertura com 25 empresas, retornou à página 1, não registrou erro de
+  console e não apresentou overflow horizontal em 390 px.
+- **70 testes** de espaço de trabalho e fiscal passaram em 16,66 s; Ruff e
+  MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **768 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,57 s.
+- Após `git fetch origin --prune`, `HEAD` permaneceu **0 commits à frente e 0
+  atrás de `origin/main`**. As 81 alterações locais foram preservadas.
+
+Limites: a prova usa somente estado sintético; não comprova validade/custódia
+de A1, coleta ADN, NSU, mTLS, catálogo de acumuladores, PostgreSQL, latência ou
+homologação fiscal. O banco, servidor, navegador e diretório temporários de QA
+foram encerrados; o diretório foi movido para a Lixeira de forma recuperável.
+
+## V-077 — Histórico de Parcelamentos recuperável por página
+
+Data: 21/09/2026. Ambiente: macOS local, banco SQLite temporário e navegador
+interno, com operações PARCSN exclusivamente fictícias. Não houve Serpro,
+credencial externa, custo, deploy ou dado de cliente.
+
+- O histórico da empresa em Parcelamentos deixou de cortar silenciosamente após
+  20 operações: ele agora pagina o histórico sem interferir na paginação da
+  carteira.
+- A inspeção visual criou 21 operações sintéticas de resultado incerto, abriu a
+  página 2 e retornou à página 1 preservando a empresa em foco, sem erro de
+  console. O aviso de recuperação permaneceu visível em cada tentativa.
+- **77 testes** de Parcelamentos, espaço de trabalho e Guias passaram em 16,17
+  s; Ruff e MyPy global aprovaram os **190 arquivos** de código.
+- A regressão integral fechou com **767 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,64 s; Django e migrações não apontaram erro ou
+  drift.
+- A consulta remota após `git fetch origin --prune` confirmou **0 commits à
+  frente e 0 atrás de `origin/main`**. O diretório local permanece com 80
+  alterações de trabalho, preservadas nesta verificação.
+
+Limites: a prova usa apenas estado sintético; não comprova PARCSN/Serpro,
+protocolos reais, consumo, representação, volume em PostgreSQL, latência ou
+homologação fiscal. O banco e o servidor temporários foram encerrados, e o
+diretório de QA foi movido para a Lixeira de forma recuperável.
+
+## V-076 — Fila de conciliação paginada sem ocultar evidências
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve OFX de
+cliente, Domínio, OCR, fonte externa, credencial, custo ou deploy.
+
+- A fila OFX × Domínio deixou de cortar silenciosamente nos primeiros 100
+  resultados: ela agora pagina 50 linhas, preservando busca e situação.
+- A busca de candidatos e a composição das evidências continuam restritas aos
+  itens visíveis na página, sem ampliar consultas desnecessárias à carteira.
+- O teste de integração renderizou 101 correspondências sem par, alcançou a
+  página 3 e confirmou o retorno à página 2 com filtros preservados.
+- **95 testes** de conciliação, espaço de trabalho e Parcelamentos passaram,
+  com um skip esperado de OCR em português; Ruff e MyPy global aprovaram os
+  **190 arquivos** de código.
+- A regressão integral fechou com **766 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,14 s; Django e migrações não apontaram erro ou
+  drift.
+- `git fetch origin --prune` e `HEAD...origin/main` retornaram **0/0**: não há
+  commit do GitHub ausente localmente nem commit local à frente.
+
+Limites: a demonstração contém deliberadamente apenas duas conciliações e não
+permite provar visualmente a terceira página sem uma sessão não demonstrativa.
+O teste autenticado de integração cobre a renderização dessa página; isto não
+comprova volume em PostgreSQL, importação OFX real, OCR, fonte Domínio ou
+homologação de exportação. O checkout preserva 80 alterações locais ainda não
+commitadas.
+
+## V-075 — Carteira de Parcelamentos paginada por lote autorizado
+
+Data: 21/09/2026. Ambiente: macOS local, banco SQLite temporário e navegador
+interno, com empresas exclusivamente fictícias. Não houve Serpro, PARCSN real,
+Domínio, credencial externa, custo, deploy ou dado de cliente.
+
+- A carteira de Parcelamentos deixou de esconder empresas após os primeiros 100
+  registros: ela agora pagina 30 empresas por página e preserva a pesquisa.
+- O limite de 30 por página foi escolhido para coincidir com o máximo do lote
+  já imposto pelo backend; portanto, “Selecionar todas desta página” não monta
+  uma solicitação inválida por excesso de empresas.
+- A inspeção com 101 empresas sintéticas alcançou a página 4 de 4, exibiu o
+  último registro e retornou à página 3 mantendo a busca, sem erro de console.
+- **76 testes** de Parcelamentos, espaço de trabalho e Guias passaram em 15,11
+  s; Ruff e MyPy global aprovaram, este último nos **190 arquivos** de código.
+- A regressão integral fechou com **765 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,37 s; Django e migrações não apontaram erro ou
+  drift.
+- `git fetch origin --prune` e `HEAD...origin/main` retornaram **0/0**: não há
+  commit do GitHub ausente localmente nem commit local à frente.
+
+Limites: a prova usa empresas e sessão sintéticas; não comprova PARCSN/Serpro,
+protocolos, representação, consumo real, volume em PostgreSQL, latência ou
+homologação fiscal. O banco e o servidor temporários foram encerrados, e o
+diretório de QA foi movido para a Lixeira de forma recuperável. O checkout
+preserva 78 alterações locais ainda não commitadas.
+
+## V-074 — Carteira de guias sem corte silencioso
+
+Data: 21/09/2026. Ambiente: macOS local, banco SQLite temporário e navegador
+interno, com guias exclusivamente fictícias. Não houve Serpro, DCTFWeb real,
+Domínio, credencial externa, custo, deploy ou dado de cliente.
+
+- A lista de Guias e DCTFWeb agora pagina resultados acima de 100 itens e
+  preserva busca, situação e vencimento nos links de navegação.
+- O teste de interface criou 101 guias sintéticas: a página 2 de 2 exibiu a
+  guia final, e o retorno à página 1 manteve os filtros. Não houve erro no
+  console do navegador.
+- **88 testes** de guias, espaço de trabalho e demonstração passaram em 21,08
+  s; Ruff e MyPy global aprovaram, este último nos **190 arquivos** de código.
+- A regressão integral fechou com **764 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 29,19 s; Django e migrações não apontaram erro ou
+  drift.
+- `git fetch origin --prune` e `HEAD...origin/main` retornaram **0/0**: não há
+  commit do GitHub ausente localmente nem commit local à frente.
+
+Limites: a prova usa dados e sessão sintéticos; não comprova DCTFWeb/Serpro,
+protocolos, representação, catálogo real de acumuladores, volume em PostgreSQL,
+latência ou homologação fiscal. O banco e o servidor temporários foram
+encerrados, e o diretório de QA foi movido para a Lixeira de forma recuperável.
+O checkout preserva 76 alterações locais ainda não commitadas.
+
+## V-073 — Revisão NFS-e completa e carteira paginada localmente
+
+Data: 21/09/2026. Ambiente: macOS local, banco SQLite temporário e navegador
+interno, com documentos exclusivamente fictícios. Não houve ADN, certificado,
+Serpro, Domínio, credencial externa, custo, deploy ou dado de cliente.
+
+- O detalhe de revisão passou a exibir número, emissão/competência, código e
+  descrição do serviço, valor em moeda e referência pseudonimizada da
+  contraparte, além de sugestão, confiança, XML e decisão humana já existentes.
+- A semente de demonstração agora preenche número e descrição explicitamente
+  fictícios, sem representar coleta fiscal real.
+- A carteira NFS-e deixou de cortar silenciosamente nos primeiros 100 itens:
+  paginação preserva a busca e expõe a quantidade total. A inspeção no navegador
+  alcançou a página 2 de 2 e retornou à página 1 com o filtro preservado. O
+  detalhe de revisão não teve overflow em 390 px, nem houve erro de console.
+- **79 testes** fiscais/demonstração passaram em 21,63 s; Ruff e MyPy global
+  aprovaram, este último nos **190 arquivos** de código-fonte.
+- A regressão integral fechou com **763 testes aprovados, 3 skips e 11
+  subtestes aprovados** em 28,04 s; Django e migrações não apontaram erro ou
+  drift.
+- `git fetch origin --prune` e `HEAD...origin/main` retornaram **0/0**: não há
+  commit do GitHub ausente localmente nem commit local à frente.
+
+Limites: a prova usa XML e sessão sintéticos; não comprova coleta ADN,
+certificados, cobertura de fonte, catálogo real de acumuladores, volume em
+PostgreSQL, latência ou homologação fiscal. O banco e o servidor temporários
+foram encerrados, e o diretório de QA foi movido para a Lixeira. O checkout
+preserva 74 alterações locais ainda não commitadas.
+
+## V-072 — Runtime privado priorizado e fallback externo negado sem opt-in
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e respostas HTTP
+simuladas; não houve runtime de modelo, chamada Claude, credencial real, custo,
+deploy ou dado de cliente.
+
+- O contrato OpenAI-compatível do runtime privado recebeu pergunta e evidência
+  compacta; a resposta simulada foi usada pelo Copiloto.
+- Mesmo com fallback externo configurado e aprovado no cenário de teste, a
+  resposta local não chamou o provedor nem criou auditoria de egressão.
+- A suíte também mantém a prova complementar: sem opt-in do escritório, o
+  fallback é negado, não chama o provedor e registra a negação para auditoria.
+- `pytest` focado aprovou **73 testes e 3 subtestes** em 15,17 s; Ruff e MyPy
+  global aprovaram, este último nos **190 arquivos** de código-fonte.
+- `git fetch origin --prune` e `HEAD...origin/main` retornaram **0/0**: não há
+  commit do GitHub ausente localmente nem commit local à frente.
+
+Limites: a resposta HTTP foi simulada; não mede modelo, GPU, rede privada,
+latência, credenciais, custo, autorização real de egressão ou homologação. O
+checkout preserva 70 alterações locais ainda não commitadas.
+
+## V-071 — Módulos fictícios e Copiloto inspecionados ponta a ponta
+
+Data: 21/09/2026. Ambiente: navegador interno e base SQLite temporária com
+semente fictícia. Não houve API Claude, Serpro, e-mail, Domínio, arquivo ou
+dado de cliente.
+
+- Guias/DCTFWeb, Caixa DTE, Parcelamentos, Conciliação, Radar e Copiloto
+  renderizaram com título correto, aviso de demonstração e sem erro de console.
+- O Copiloto recusou o envio sem empresa; após escolher empresa fictícia e usar
+  uma pergunta sugerida, entregou resposta simulada com fontes expandíveis que
+  identificam carteira, DTE e Triagem como dados sintéticos.
+
+Limites: esta é uma jornada simulada por sessão; não prova egressão, modelo,
+autorização real, consumo, identidade de fonte externa, latência ou produção.
+
+## V-070 — Auditoria local de revisão fiscal e isolamento do console
+
+Data: 21/09/2026. Ambiente: navegador interno e base SQLite temporária, com
+sementes fictícias de demonstração e personas. Não houve conta, documento,
+credencial ou serviço externo.
+
+- A demonstração isolada abriu a fila de revisões NFS-e, exibiu empresa,
+  documento, hash, motivo, evidência, confiança, XML e a decisão explícita sem
+  prometer alteração no Domínio. O retorno à fila permaneceu disponível.
+- A tentativa da mesma sessão de abrir `/platform/` recebeu a página de acesso
+  restrito; assim, o ambiente de demonstração não ganhou acesso ao console
+  Mewstack. Não houve erro de console nas jornadas adicionais.
+
+Limites: a inspeção visual do console autenticado permanece pendente porque ela
+exigiria inserir credencial, e não foi automatizada. A evidência prova somente
+o bloqueio da persona fictícia, não todos os papéis de plataforma nem produção.
+
+## V-069 — Auditoria visual local de jornadas públicas e fictícias
+
+Data: 21/09/2026. Ambiente: navegador interno e base SQLite temporária migrada
+e sem dados reais. Não houve credencial externa, envio de e-mail, chamada a
+provedor, custo, deploy ou alteração em banco persistente.
+
+- A página comercial carregou com seus recursos estáticos em servidor local de
+  QA; a demonstração alternou abas por clique e teclado, atualizou a URL e
+  expandiu a FAQ. O cadastro público expôs rótulos e impedimento nativo para
+  campo obrigatório vazio.
+- Em viewport móvel de 390×844, a página não teve overflow horizontal, manteve
+  21 controles focáveis e preservou a aba/painel selecionados. Não houve erro
+  de console nas superfícies verificadas.
+- Com semente exclusivamente fictícia e isolamento de sessão habilitado no
+  servidor de QA, a entrada chegou ao dashboard, à navegação de Documentos e à
+  Triagem. Um anexo em quarentena informou de forma explícita que não pode ser
+  aberto ou baixado.
+
+Limites: o Mac estava bloqueado para automação nativa e a auditoria não cobre
+console Mewstack, todos os perfis, todos os estados de falha, leitor de tela
+nativo, integrações ou ambiente publicado. O servidor de QA usou `DEBUG` e
+arquivos estáticos servidos localmente; isto não é prova de produção.
+
+## V-068 — View Hub integralmente tipada e regressão local focada
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e dados sintéticos.
+Não houve Serpro, ADN, caixa de e-mail, Domínio, credencial, custo, deploy ou
+alteração operacional.
+
+- Os fluxos de conciliação, Triagem, certificados, setup e aceite de tokens
+  passaram a estreitar usuário autenticado, identificadores opcionais,
+  apresentações e respostas de arquivo de forma explícita. Não houve alteração
+  de regra de negócio, integração ou persistência adicional.
+- Ruff e MyPy passaram em `apps/hub/views.py`; **119 testes passaram** em
+  **14,93 s**, com **1 skip** esperado de OCR local em português. `mypy .`
+  passou nos **190 arquivos** verificados; `git diff --check` passou.
+- A regressão integral repetiu `manage.py check`, migrações sem alterações e
+  **762 testes aprovados, 3 skips e 11 subtestes aprovados em 27,70 s**.
+- `git fetch origin --prune` e a comparação `HEAD...origin/main` retornaram
+  **0/0**: não há commit remoto ausente localmente, nem commit local à frente.
+  O checkout preserva 68 alterações locais não commitadas desta execução.
+
+Limites: os skips permanecem Playwright Python opcional, OCR local em português
+indisponível e concorrência de locks exclusiva de PostgreSQL. O resultado é
+exclusivamente local e não homologa provedores de e-mail, ADN, Serpro, Domínio,
+layouts reais, fontes Radar ou conectores.
+
+## V-067 — NFS-e e DCTFWeb da view Hub refinados localmente
+
+Data: 21/09/2026. Ambiente: macOS local. Sem Serpro, ADN, Domínio, credencial,
+custo, deploy ou alteração operacional.
+
+- A view passou a explicitar coleções NFS-e, contexto do escritório, campos
+  numéricos heterogêneos, expoente decimal, UUID e cotações DCTFWeb.
+- Ruff passou; **20 testes** de NFS-e/DCTFWeb passaram em **13,49 s** e `git
+  diff --check` está limpo.
+
+Limites: as integrações fiscais seguem sem homologação externa.
+
+## V-066 — Primeira seção da view do Hub tipada e retestada
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes. Não houve conexão
+externa, credencial, custo, deploy ou alteração operacional.
+
+- As rotas de demonstração, dashboard, convites, permissões de módulo, despacho
+  NFS-e e filtros receberam contratos estáticos explícitos, sem mudar seus
+  fluxos de negócio.
+- Ruff e MyPy passaram na seção alterada; **86 testes** de workspace,
+  demonstração, convite e NFS-e passaram em **20,69 s**. `git diff --check`
+  passou. A dívida da view do Hub reduziu de 131 para **114 erros**.
+
+Limites: toda evidência é local e sintética; integrações e homologações externas
+das etapas 07–12 permanecem pendentes.
+
+## V-065 — Serviços, agente e interface de IA com contratos tipados
+
+Data: 21/09/2026. Ambiente: macOS local, banco e transportes sintéticos. Não
+houve Claude, Domínio, agente Windows, credencial, custo, deploy ou alteração
+operacional.
+
+- A reserva do Copiloto declara os livros token/legado e exige reserva antes do
+  fallback; a API do agente tipa chave da CA, respostas de arquivo e lote de
+  backup; e a tela do Copiloto conserva o estado transitório de entrega apenas
+  na apresentação, sem acrescentá-lo ao modelo persistido.
+- Ruff e MyPy passaram nos três módulos. As suítes de Copiloto, agente,
+  backup e interface fecharam com **68 aprovados em 28,13 s**. `git diff
+  --check` passou. MyPy global baixou para **131 erros em 1 arquivo**.
+
+Limites: nenhuma chave, saída Claude, agente, documento ou dado de cliente foi
+usado. Curadoria, egressão autorizada e homologações das etapas 05/12 continuam
+pendentes.
+
+## V-064 — Operações Integra e sincronização ADN com contratos tipados
+
+Data: 21/09/2026. Ambiente: macOS local, banco e transportes sintéticos. Não
+houve Serpro, ADN, Domínio, credencial, custo, deploy ou alteração operacional.
+
+- Os mapas de operação PARCSN/DCTFWeb aceitam chaves de entrada validadas; a
+  aprovação DTE separa cotação e reserva dos livros token/legado; tarefas
+  tipam sua queryset NFS-e, despacho pós-commit e resultados PARCSN; e a
+  validação NFS-e confirma explicitamente o expoente decimal.
+- Ruff e MyPy passaram nos três módulos. As suítes de DTE, guias, DCTFWeb,
+  PARCSN e NFS-e fecharam com **57 aprovados em 15,62 s**. `git diff --check`
+  passou. MyPy global baixou para **143 erros em 4 arquivos**.
+
+Limites: conexões, certificados, documentos e respostas eram sintéticos. As
+homologações Serpro, ADN e Domínio das etapas 07, 08, 09 e 12 continuam pendentes.
+
+## V-063 — Regressão integral após os lotes locais V-060 a V-062
+
+Data: 21/09/2026. Ambiente: macOS local. Não houve conexão externa,
+credencial, custo, deploy ou alteração operacional.
+
+- `manage.py check` e `makemigrations --check --dry-run` não encontraram
+  pendências. A suíte integral fechou com **762 aprovados, 3 skips e 11
+  subtestes aprovados em 27,52 s**; `git diff --check` passou. `git fetch
+  origin --prune` e a comparação `HEAD...origin/main` retornaram **0/0**:
+  não há commits remotos ausentes localmente nem commits locais à frente.
+
+Limites: os skips continuam limitados a Playwright Python opcional, OCR local
+em português indisponível e concorrência de locks exclusiva de PostgreSQL. A
+regressão local não homologa integrações externas.
+
+## V-062 — Segurança de anexos, Domínio multipart e acesso DTE tipados
+
+Data: 21/09/2026. Ambiente: macOS local, banco e transportes sintéticos. Não
+houve consulta Domínio, Serpro, caixa de e-mail, credencial, custo, deploy ou
+alteração de configuração operacional.
+
+- A leitura de `FieldFile` é convertida ao contrato binário do scanner e da
+  política; o multipart separa valores textuais de conteúdo binário; navegação
+  recebe a requisição tipada; e a reserva DTE aceita explicitamente os dois
+  livros locais de consumo.
+- Ruff e MyPy passaram nos quatro módulos. Os testes de segurança/ingestão,
+  política de arquivos, API Domínio local, navegação e DTE fecharam com **40
+  aprovados em 14,49 s**. `git diff --check` passou. MyPy global baixou para
+  **160 erros em 7 arquivos**.
+
+Limites: não houve antimalware, mensagem, conexão Domínio ou requisição Serpro
+real. As homologações das etapas 06, 08, 09 e 12 permanecem pendentes.
+
+## V-061 — Plataforma administrativa com contratos tipados
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e webhooks sintéticos.
+Não houve Asaas, cobrança, credencial, custo, deploy ou alteração de condições
+comerciais.
+
+- A tarefa de competência declara o mapa heterogêneo retornado; o snapshot de
+  contrato confirma o plano antes de congelar módulos; o webhook lida com
+  `Content-Type` ausente; e a página legal possui contrato HTTP explícito.
+- Ruff e MyPy passaram nos quatro módulos. As suítes de tarefas, pagamentos,
+  configuração e contratos fecharam com **69 aprovados em 8,04 s**. `git diff
+  --check` passou. MyPy global baixou para **168 erros em 11 arquivos**.
+
+Limites: eventos de pagamento e webhooks eram sintéticos. Nenhuma cobrança,
+evento Asaas ou mudança de preço/contrato foi criada; Q-08/Q-28 continuam
+pendentes para a etapa 10.
+
+## V-060 — Coletores e fila de Triagem com contratos tipados
+
+Data: 21/09/2026. Ambiente: macOS local, transportes sintéticos e banco de
+testes local. Não houve OAuth, caixa de e-mail, DNS, scanner, credencial,
+custo, deploy ou alteração de configuração operacional.
+
+- O cursor Graph materializa a data inicial e a continuidade validadas antes de
+  persistir; a leitura IMAP declara o conteúdo binário e a fábrica de conexão;
+  a fila declara sua queryset elegível e não mistura tipos de resultados de
+  provedores. Não houve mudança de protocolo ou de chamadas de rede.
+- Ruff e MyPy passaram em Graph, IMAP e tarefas. Os testes de Graph, IMAP,
+  retentativa, ingestão e fila fecharam com **22 aprovados em 14,40 s**.
+  `git diff --check` passou. MyPy global baixou para **172 erros em 15 arquivos**.
+
+Limites: todas as mensagens/conexões eram sintéticas. OAuth, provedores,
+antimalware e destinos reais continuam pendentes nas etapas 06 e 12.
+
+## V-059 — Relatórios e sincronização bancária com contratos estáticos
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes local. Não houve
+chamada a Domínio, Claude, provedores, credencial, custo, deploy ou alteração
+de configuração operacional.
+
+- A estrutura normalizada da sincronização bancária passou a declarar os tipos
+  de cada campo antes das escritas idempotentes em `DominioBankEntry` e
+  `AccountingEntry`. As bibliotecas de geração XLSX/PDF, já dependências do
+  projeto, receberam exceções locais e explícitas para a falta de stubs MyPy.
+- Ruff e MyPy passaram nos dois módulos. Os **7 testes** de sincronização
+  passaram em **13,26 s**. Não há teste dedicado de exportação de relatório no
+  repositório; isso é um limite de cobertura, não uma aprovação adicional.
+  `git diff --check` passou. MyPy global baixou para **185 erros em 18 arquivos**.
+
+Limites: não houve documento, lançamento bancário, planilha ou PDF de cliente
+real. Integração Domínio, curadoria e homologações da etapa 05/09 continuam
+pendentes.
+
+## V-058 — Regressão local integral após os lotes de contratos
+
+Data: 21/09/2026. Ambiente: macOS local. Não houve conexão externa,
+credencial, custo, deploy ou alteração operacional.
+
+- `manage.py check` não encontrou problemas e `makemigrations --check --dry-run`
+  não encontrou mudanças. A suíte integral fechou com **762 aprovados, 3 skips
+  e 11 subtestes aprovados em 27,46 s**; `git diff --check` passou.
+
+Limites: os skips permanecem limitados a Playwright Python opcional, OCR local
+em português indisponível e concorrência de locks exclusiva de PostgreSQL. A
+regressão local não homologa serviços externos.
+
+## V-057 — Gateway e comandos de IA com contratos tipados
+
+Data: 21/09/2026. Ambiente: macOS local, comandos e transporte Claude
+substituídos nos testes. Não houve chamada Anthropic, chave, dado de cliente,
+custo, deploy ou alteração de configuração operacional.
+
+- O payload do gateway foi declarado como mapa de objetos heterogêneos e os
+  comandos de configuração/verificação ganharam assinaturas de parser/opções
+  explícitas. O comando que exige custo continua exigindo `--cost-approved`;
+  a alteração não o executou.
+- Ruff e MyPy passaram nos quatro módulos. As suítes de comandos, escopo IA e
+  acesso operacional fecharam com **32 aprovados em 13,42 s**. `git diff
+  --check` passou. MyPy global baixou para **197 erros em 20 arquivos**.
+
+Limites: a evidência não valida egressão, modelo, custo, resposta Claude ou
+treinamento. Q-08/Q-09/Q-11/Q-34 permanecem exigências da etapa 05.
+
+## V-056 — Configuração de plataforma com contratos locais completos
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e transportes
+substituídos. Não houve Serpro, SMTP, Claude, Asaas, BrasilAPI, credencial, custo,
+deploy ou alteração de configuração operacional.
+
+- Os formulários de plataforma agora tipam seus limites dinâmicos de Django,
+  retornos de `clean`, persistência de `ModelForm` e usuário de auditoria. O
+  manipulador de plano não mistura manager e queryset com lock. Os módulos de
+  pagamento/notificação e aprovação de fallback também preservam valores
+  verificados antes de persistir ou notificar.
+- Ruff e MyPy passaram em `configuration.py`, `payments.py`, `notifications.py`
+  e `views.py`. As suítes de configuração, faturamento, pagamentos e tokens
+  fecharam com **55 aprovados, 1 skip de concorrência PostgreSQL e 8,02 s**.
+  `git diff --check` passou. MyPy global baixou para **205 erros em 24 arquivos**.
+
+Limites: os testes usam dados/transportes locais. Não houve validação SMTP,
+chamada Claude/Serpro/Asaas nem alteração de preço ou contrato comercial.
+
+## V-055 — Coletor Gmail e ingestão com pré-condições explícitas
+
+Data: 21/09/2026. Ambiente: macOS local, mensagens e respostas Gmail sintéticas.
+Não houve OAuth, caixa Google real, credencial, conexão externa, custo, deploy ou
+alteração de configuração operacional.
+
+- O cursor, checkpoint e leitura Gmail exigem explicitamente a data inicial da
+  caixa antes de comparar ou persistir datas. A decodificação base64 usa a
+  exceção do módulo padrão e o caminho do blob em quarentena é normalizado para
+  texto antes da limpeza após falha.
+- Ruff e MyPy passaram em `apps/triage/gmail_poll.py` e `apps/triage/ingest.py`.
+  Testes de ingestão e retentativa fecharam com **14 aprovados em 7,16 s**;
+  `git diff --check` passou. MyPy global baixou a **291 erros em 28 arquivos**.
+
+Limites: nenhuma caixa Google foi autenticada ou consultada. OAuth, scanner e
+destinos reais permanecem pendentes da etapa 06/12.
+
+## V-054 — Cliente IMAP local com respostas tipadas
+
+Data: 21/09/2026. Ambiente: macOS local, DNS e IMAP sintéticos. Não houve caixa
+real, credencial de provedor, conexão externa, custo, deploy ou alteração de
+configuração operacional.
+
+- O socket TLS é retornado com o tipo explícito; cada resposta IMAP recebe uma
+  variável própria, e a ausência de charset no `UID SEARCH` é preservada com
+  conversão de tipo sem mudar o argumento entregue ao protocolo.
+- Ruff e MyPy passaram em `apps/triage/imap.py`. Testes de conexão e
+  retentativa passaram com **12 aprovados em 14,07 s**; `git diff --check`
+  passou. MyPy global baixou para **296 erros em 30 arquivos**.
+
+Limites: nenhuma caixa IMAP foi conectada, lida ou alterada. OAuth, provedor,
+scanner e destino real seguem pendentes da etapa 06/12.
+
+## V-053 — Livros de tokens e faturamento tipados sem mudança comercial
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e sem transporte de
+pagamentos. Não houve Asaas, cobrança, preço novo, credencial, custo, deploy ou
+alteração de configuração operacional.
+
+- A competência de fechamento passa a usar variável distinta para o medidor
+  legado, preservando a separação de `UsageMeter` e `TokenMeter`. O medidor de
+  tokens materializa franquia/preço não nulos antes de criar o livro, e a
+  ativação recebe o usuário autenticado esperado pelo modelo.
+- Ruff e MyPy passaram em `apps/platform/billing.py` e
+  `apps/platform/token_billing.py`. A suíte de faturamento, pagamentos e tokens
+  fechou com **22 aprovados, 1 skip de concorrência PostgreSQL e 7,75 s**.
+  `git diff --check` passou. MyPy global baixou a **300 erros em 31 arquivos**.
+
+Limites: não houve fatura, cobrança ou pagamento real. A orquestração Asaas e
+homologação de meios de pagamento continuam abertas na etapa 10.
+
+## V-052 — Transporte de e-mail local com contrato tipado
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e backend SMTP
+substituído. Não houve conexão SMTP, DNS, Brevo, credencial, custo, deploy ou
+alteração de configuração operacional.
+
+- O backend de e-mail passou a declarar a configuração de plataforma, backend
+  SMTP e sequência de mensagens com as assinaturas esperadas pelo Django. O
+  carregamento do modelo permanece tardio para não afetar a inicialização do
+  registro de aplicações.
+- Ruff e MyPy passaram em `apps/common/database_email.py`. A suíte de
+  configuração fechou com **33 aprovados em 7,66 s**; `git diff --check`
+  passou. MyPy global baixou para **311 erros em 33 arquivos**.
+
+Limites: isto confirma somente o transporte local substituído. A configuração e
+entrega SMTP/DNS/Brevo reais continuam para a etapa 12 por D-77/D-78.
+
+## V-051 — PARCSN e operações agendadas com contratos de tipo explícitos
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e respostas sintéticas.
+Não houve chamada Serpro, credencial, certificado, documento real, custo, deploy
+ou alteração de configuração operacional.
+
+- O parser PARCSN agora valida que o expoente decimal é numérico antes de
+  comparar casas decimais e retorna inteiro explícito para campos positivos. O
+  registrador de tarefas agendadas reconhece as duas formas previstas de
+  resultado e expõe a assinatura completa do decorador.
+- Ruff e MyPy passaram em `apps/integra/parcelamento.py` e
+  `apps/platform/operations.py`. `test_integra_parcelamento.py`,
+  `test_parcelamento_operations.py` e `test_platform_tasks.py` fecharam com
+  **20 aprovados em 13,70 s**; `git diff --check` passou.
+- MyPy global caiu para **316 erros em 34 arquivos**. A redução não equivale à
+  homologação dos serviços ou ao fim da dívida técnica restante.
+
+Limites: PARCSN continua limitado ao transporte simulado; credenciais, custo,
+representação e prova Serpro permanecem dependências da etapa 08.
+
+## V-050 — Importação local: limites de entrada explícitos
+
+Data: 21/09/2026. Ambiente: macOS local e arquivos sintéticos. Não houve backup
+Domínio real, ERP, arquivo de cliente, credencial, custo, deploy ou alteração de
+configuração operacional.
+
+- A criação de prévia de importação agora exige nome de arquivo antes de
+  persistir metadados, reutiliza esse nome validado para salvar/identificar o
+  conteúdo e tipa o mapa de capacidades por tipo de importação. A leitura de
+  upload é declarada como bytes e o aviso de `defusedxml` fica restrito ao
+  import sem stubs.
+- Ruff passou em `apps/hub/imports.py`. A checagem direta reporta apenas erros
+  de módulos transitivamente importados; a tentativa de isolá-los com
+  `--follow-imports=skip` atingiu um erro interno do MyPy 1.19.1 em
+  `django-stubs`, portanto não é contada como aprovação. A auditoria global
+  ainda concluiu e baixou para **328 erros em 37 arquivos**.
+- `tests/test_hub.py`, `test_hub_api.py` e `test_hub_workspace_views_django.py`
+  fecharam com **57 aprovados em 14,41 s**; `git diff --check` passou.
+
+Limites: não houve teste de backup `.dom` real, layout autorizado, leitura de
+ERP, fonte externa ou homologação de importação. O erro interno do MyPy exige
+atualização/diagnóstico separado do verificador, não supressão global.
+
+## V-049 — Serviço de conciliação com contratos de tipo explícitos
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes, arquivos sintéticos e
+OCR local indisponível. Não houve acesso a ERP, fonte Radar, arquivo de cliente,
+credencial, custo, deploy ou alteração de configuração operacional.
+
+- O serviço agora declara o checkpoint heterogêneo de uma execução, o contrato
+  de dialeto CSV, bytes do armazenamento, chave TSV de OCR e relações opcionais
+  de conta/movimento. A regra de faixa somente tenta converter limites textuais
+  ou numéricos válidos e retorna não correspondência para forma inválida,
+  mantendo a regra restritiva.
+- `openpyxl` e `pypdfium2` continuam dependências de runtime sem stubs; as
+  exceções de tipo são locais aos imports e não alteram o uso das bibliotecas.
+  Ruff e MyPy passaram em `apps/hub/reconciliation_service.py`.
+- A suíte de conciliação fechou com **35 aprovados, 1 skip de OCR português e
+  7,91 s**. `manage.py check`, `makemigrations --check --dry-run` e `git diff
+  --check` passaram. MyPy global baixou para **334 erros em 38 arquivos**.
+
+Limites: layouts, OCR, volumes, fontes Radar e exportações para ERPs seguem
+sem homologação externa. A contagem global é diagnóstico, não aceite global.
+
+## V-048 — Formulários de contratação tipados e retestados
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e dublês de serviços.
+Não houve consulta CNPJ, Asaas, cobrança, credencial, custo, deploy ou alteração
+de configuração operacional.
+
+- `LeadForm` tipa o objeto salvo pelo `ModelForm`; os formulários de plano e
+  proposta de tokens tratam o retorno nulo previsto de `clean`; a remoção de
+  módulo IA usa variável própria, sem ambiguidade com a taxa criada no ramo
+  oposto. O comportamento de cobrança e a regra comercial permanecem iguais.
+- Ruff e MyPy passaram em `apps/platform/forms.py`. A suíte de CNPJ, cobrança,
+  pagamentos e tokens fechou com **26 aprovados, 1 skip de concorrência restrita
+  a PostgreSQL e 7,43 s**. `git diff --check` passou.
+- A auditoria MyPy global, executada de `src/`, baixou para **348 erros em 39
+  arquivos**. O número é dívida técnica remanescente, não aprovação global.
+
+Limites: esta rodada não criou cobrança, não acessou Asaas/BrasilAPI e não
+homologou pagamentos ou concorrência em PostgreSQL.
+
+## V-047 — Formulários do Hub e cache CNPJ tipados sem regressão
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e arquivos sintéticos.
+Não houve consulta externa ao cadastro CNPJ, ERP, arquivo de cliente,
+credencial, custo, deploy ou alteração de configuração operacional.
+
+- Foram corrigidas as interfaces de tipo dos formulários de acesso, importação
+  e conciliação: escolhas dinâmicas do Django, campos de modelo, widgets de
+  conta financeira, validações `clean` e o campo múltiplo de arquivos. As
+  conversões genéricas foram mantidas como referências adiadas, pois as classes
+  Django não são subscritáveis em runtime; a suíte de integração confirmou que
+  a página de conciliação continua sendo construída normalmente.
+- O cache de consulta de CNPJ agora só reutiliza um dicionário de textos; valor
+  inválido no cache é tratado como ausente, evitando confiar em um objeto de
+  tipo inesperado. Não houve chamada à BrasilAPI nesta validação.
+- Ruff e MyPy passaram em `apps/hub/forms.py` e `apps/common/cnpj.py`. A suíte
+  de conciliação fechou com **35 aprovados, 1 skip de OCR em português e 8,22
+  s**. `manage.py check`, `makemigrations --check --dry-run` e `git diff
+  --check` passaram.
+- A auditoria MyPy global, a partir de `src/`, baixou de 399 para **356 erros
+  em 40 arquivos**. Isso é progresso de dívida técnica, não aprovação global.
+
+Limites: não foram homologados OCR, layouts reais, ERP, Radar, exportação ou
+qualquer fonte externa. As 356 ocorrências restantes seguem visíveis para
+revisão modular.
+
+## V-046 — Pré-condições de serviço da Triagem explicitadas
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e anexos sintéticos.
+Não houve caixa real, arquivo de cliente, credencial, provedor, custo, deploy ou
+alteração de configuração operacional.
+
+- `apps.triage.services` agora materializa as pré-condições que o fluxo já
+  aplicava: empresa e tipo precisam existir antes da aprovação; upload precisa
+  ter nome e tamanho válido; caminho de destino precisa existir antes de abrir
+  a cópia; os retornos de armazenamento são streams binários. Isto não altera
+  os estados, a política de segurança, nem cria uma integração externa.
+- O lote removeu **9 ocorrências MyPy**. A nova auditoria global, executada a
+  partir de `src/`, encontrou **399 erros em 42 arquivos** (antes, 408 em 43);
+  o valor continua sendo diagnóstico de dívida técnica, não aprovação global.
+- Ruff e MyPy passaram em `apps/triage/services.py`. A suíte de domínio,
+  ingestão e agente Windows fechou com **35 aprovados em 7,47 s**. `manage.py
+  check`, `makemigrations --check --dry-run` e `git diff --check` passaram.
+
+Limites: esta evidência não homologa e-mail, scanner, agente instalado ou
+escrita Windows. As 399 ocorrências restantes permanecem para lotes revisáveis
+e não são suprimidas por configuração global.
+
+## V-045 — Formulários da Triagem tipados sem mudança funcional
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e transporte de e-mail
+sintético. Não houve caixa real, arquivo de cliente, credencial, provedor,
+custo, deploy ou alteração de configuração operacional.
+
+- A interface dos seis formulários de Triagem passou a aceitar os argumentos
+  dinâmicos do Django com `Any` restrito às fronteiras do framework. Os dois
+  campos de escolha foram convertidos explicitamente para seus respectivos
+  tipos de modelo e os métodos `clean` preservam um dicionário não nulo. A
+  validação de data agora também confirma o tipo antes da comparação.
+- Isto elimina **127 ocorrências MyPy** sistemáticas de `forms.py`, sem trocar
+  campo, rótulo, regra de validação, fluxo de tela, persistência ou migração.
+  Nova auditoria `uv run mypy .` resultou em **408 erros em 43 arquivos**;
+  portanto, ainda é diagnóstico de dívida técnica, não aprovação global.
+- Ruff e MyPy passaram nos três módulos de Triagem alterados. `manage.py
+  check` e `makemigrations --check --dry-run` passaram. A suíte consolidada de
+  política de arquivo, IMAP, domínio e ingestão fechou com **51 aprovados em
+  14,77 s**. `git diff --check` passou.
+
+Limites: a evidência não homologa OAuth, IMAP, antimalware, arquivamento ou
+qualquer destino Windows. Os 408 erros restantes exigem revisão em lotes; não
+devem ser ocultados por uma regra global de MyPy.
+
+## V-044 — Diagnóstico global e primeiro lote de tipagem da Triagem
+
+Data: 21/09/2026. Ambiente: macOS local, sem conexão externa, dado de cliente,
+credencial, custo, deploy ou alteração de configuração operacional.
+
+- `uv run mypy .`, executado a partir de `src/`, encontrou **535 erros em 46
+  arquivos**. A execução é um diagnóstico da dívida técnica existente, não uma
+  aprovação global; inclui anotações incompatíveis em formulários/views e duas
+  dependências sem stubs (`defusedxml` e `reportlab`).
+- Como primeiro lote sem alterar comportamento, `presentation.py` declara o
+  mapa de âncoras de provedores com o tipo de chave correto e `file_policy.py`
+  documenta a ausência de stubs de `defusedxml`. Assim, MyPy não confunde o
+  enum de provedor com a chave de texto do dicionário e a análise preserva a
+  validação XML existente em tempo de execução.
+- `uv run ruff check apps/triage/presentation.py apps/triage/file_policy.py` e
+  `uv run mypy apps/triage/presentation.py apps/triage/file_policy.py`
+  passaram. `uv run pytest ../tests/test_triage_file_policy.py
+  ../tests/test_triage_domain.py ../tests/test_triage_email_ingest_django.py
+  -q` fechou com **44 aprovados em 7,12 s**. `git diff --check` passou.
+
+Limites: ainda há 533 ou mais ocorrências globais a revisar, pois esta rodada
+somente removeu as duas ocorrências dos módulos citados. Não houve migração,
+mudança de regra de negócio, chamada de provedor ou homologação de caixa de
+e-mail/antimalware.
+
+## V-043 — Qualidade de tipos da base local
+
+Data: 21/09/2026. Ambiente: macOS local, sem conexão externa, dado de cliente,
+credencial, custo, deploy ou alteração de configuração operacional.
+
+- A execução MyPy de V-042 encontrou 21 erros em quatro módulos. Foram
+  corrigidas somente anotações e assinaturas compatíveis com Django: armazenamento
+  privado da Triagem, guarda nula do aplicativo OAuth, protocolo de caminho de
+  arquivo de conciliação e assinaturas de `save`/`delete` dos livros de tokens.
+  Não houve alteração de regra comercial, persistência, migração ou chamada de
+  provedor.
+- A partir de `src/`, `uv run mypy apps/triage/storage.py
+  apps/triage/models.py apps/hub/models.py apps/platform/models.py
+  apps/intelligence/training.py
+  apps/intelligence/management/commands/export_training_manifest.py` retornou
+  **Success: no issues found in 6 source files**. Ruff dos mesmos arquivos
+  passou.
+- `uv run python manage.py check`, `makemigrations --check --dry-run` e
+  `git diff --check` passaram. A suíte focada de Triagem, conciliação, cobrança
+  e IA fechou com **125 aprovados, 1 ignorado e 3 subtestes aprovados em
+  14,35 s**; o skip é OCR português indisponível.
+
+Limites: esta execução resolve os erros MyPy observados nesses módulos, mas não
+equivale a uma auditoria de tipos de todo o projeto, homologação externa ou
+liberação comercial. A suíte integral posterior foi iniciada, mas a captura de
+terminal não reteve seu resumo após exceder a janela interativa; ela não é
+contabilizada como aprovação nesta evidência. Não havia processo Pytest ativo e
+o cache `lastfailed` estava vazio após o término. As validações focadas acima
+são a evidência desta mudança.
+
+## V-042 — Etapa 05: gate local de privacidade antes do manifesto QLoRA
+
+Data: 21/09/2026. Ambiente: macOS local, banco de testes e artefatos
+temporários. Não houve dado de cliente, chamada Claude, egressão, credencial,
+download de modelo, treinamento, GPU, custo, deploy ou publicação.
+
+- Por D-94, `training_manifest` e `evaluation_manifest` agora recusam, antes de
+  retornar qualquer item, exemplo validado que contenha CPF, CNPJ ou e-mail em
+  pergunta, resposta ou referências. O padrão é o mesmo que o runner QLoRA já
+  recusava posteriormente; o controle agora impede que o artefato seja criado.
+- A recusa não edita nem mascara o exemplo original. A anonimização precisa ser
+  uma revisão humana no registro de origem, para não alterar silenciosamente
+  uma evidência contábil. O comando `export_training_manifest` converte a
+  recusa em erro controlado e não cria o arquivo de saída. Por D-95, ele também
+  usa criação exclusiva e recusa substituir um JSONL já existente.
+- `uv run ruff check src/apps/intelligence/training.py
+  src/apps/intelligence/management/commands/export_training_manifest.py
+  tests/test_intelligence_training_django.py
+  tests/test_intelligence_commands_django.py` passou. `manage.py check` e
+  `makemigrations --check --dry-run` passaram. A suíte focada de treinamento,
+  comandos e runner fechou com **39 aprovados e 3 subtestes aprovados em
+  13,03 s**.
+- Revalidação integral: `uv run pytest -q` fechou com **762 aprovados, 3
+  ignorados e 11 subtestes aprovados em 27,90 s**. Os skips são Playwright
+  Python opcional, OCR português indisponível e concorrência de locks coberta
+  na evidência PostgreSQL histórica.
+
+A checagem MyPy não constitui evidência verde: a partir de `src/`, ela alcançou
+os arquivos alterados, mas terminou com 21 erros preexistentes em
+`apps/triage/storage.py`, `apps/triage/models.py`, `apps/hub/models.py` e
+`apps/platform/models.py`; eles não foram alterados nesta entrega e permanecem
+como dívida da base técnica.
+
+Limites: os gates não constituem corpus revisado, anonimização de material real,
+curadoria, autorização de egressão, treinamento ou publicação de adaptador.
+Q-08, Q-09, Q-11 e Q-34 continuam necessários; a etapa 05 permanece em
+andamento.
+
+## V-041 — Análise integral, continuidade segura da etapa 04 e sincronização Git
+
+Data: 21/09/2026. Ambiente: macOS local, dependências travadas pelo projeto e
+checkout inicialmente limpo. A análise não usou credencial, dado de cliente,
+conexão Siescon, arquivo de ERP, chamada externa de provedor, custo, deploy ou
+alteração de configuração operacional.
+
+- Foram relidos os registros canônicos, o checklist da etapa 04, a matriz de
+  capacidades, o inventário e a análise anterior. O objetivo confirmado é um
+  SaaS multiempresa da Mewstack para escritórios contábeis, com agente Windows,
+  operação auditável e evidência recuperável; código ou teste local não é
+  homologação nem liberação de venda.
+- A leitura do código confirma o limite de D-54/D-88: `AccountingExport`
+  modela `siescon`, mas `ACCOUNTING_EXPORT_ADAPTERS` registra apenas Domínio.
+  `get_accounting_export_adapter("siescon")` recusa a solicitação antes de
+  consultar lançamentos ou gerar conteúdo. Não há adaptador, SQL, endpoint,
+  credencial ou layout Siescon inventado nesta execução.
+- `uv run ruff check .`, `uv run python manage.py check` e
+  `uv run python manage.py makemigrations --check --dry-run` passaram.
+  `uv run pytest tests/test_reconciliation_module.py -q` fechou com **35
+  aprovados e 1 ignorado em 7,67 s**; o skip é OCR local em português
+  indisponível. `uv run pytest -q` fechou com **759 aprovados, 3 ignorados e
+  8 subtestes aprovados em 27,82 s**. Os demais skips são Playwright Python
+  opcional e concorrência de locks coberta na evidência PostgreSQL histórica.
+- `git fetch origin --prune` concluiu e `git rev-list --left-right --count
+  HEAD...origin/main` retornou **0\t0**. Não havia commit remoto ausente,
+  commit local não enviado ou alteração no diretório de trabalho antes desta
+  documentação.
+
+Limites: a revalidação não torna Siescon conectado, não substitui o contrato
+técnico de Q-33 e não avança o aceite de importação conferida exigido por D-73.
+A etapa 04 permanece em andamento. Para implementar com segurança, o técnico
+Siescon deve disponibilizar por canal seguro versão, banco/driver e acesso de
+leitura; schema/campos permitidos; identificador de empresa e cursor; ambiente
+de homologação/revogação; e layout versionado com amostra sintética de
+exportação/importação. O próximo passo é revisar esse material e só então
+registrar um adaptador versionado, mantendo a escrita direta proibida.
+
 ## V-040 — Etapa 10: contrato local do cliente Asaas
 
 Data: 20/09/2026. Ambiente: macOS local, chave de exemplo injetada somente

@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
@@ -516,7 +517,7 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 approval.valid_until = (
                     fallback_form.cleaned_data["valid_until"] if fallback_enabled else None
                 )
-                approval.approved_by = request.user if fallback_enabled else None
+                approval.approved_by = user if fallback_enabled else None
                 approval.approved_at = timezone.now() if fallback_enabled else None
                 approval.save()
             record_event(
@@ -562,19 +563,26 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
             messages.success(request, "Retenção das conversas do Copiloto atualizada.")
             return redirect_back
 
-    recent_invoices = list(
-        Invoice.objects.filter(organization=organization).order_by("-period_start")[:12]
-    )
+    invoice_query_params = request.GET.copy()
+    invoice_query_params.pop("invoice_page", None)
+    invoice_page = Paginator(
+        Invoice.objects.filter(organization=organization).order_by("-period_start"), 12
+    ).get_page(request.GET.get("invoice_page"))
+    recent_invoices = list(invoice_page.object_list)
     for invoice in recent_invoices:
-        invoice.total_brl = Decimal(invoice.total_amount_cents) / 100  # type: ignore[attr-defined]
+        invoice.total_brl = Decimal(invoice.total_amount_cents) / 100
     can_inspect_egress = has_platform_role(
         request.user,
         PlatformAccess.Role.SUPPORT,
         PlatformAccess.Role.DEVELOPER,
         PlatformAccess.Role.ADMIN,
     )
-    egress_attention = (
-        list(
+    egress_attention_query_params = request.GET.copy()
+    egress_attention_query_params.pop("egress_page", None)
+    egress_attention_page = None
+    egress_attention: list[EgressAudit] = []
+    if can_inspect_egress:
+        egress_attention_page = Paginator(
             EgressAudit.objects.filter(organization=organization, provider="anthropic")
             .filter(
                 Q(call_state=EgressAudit.CallState.UNKNOWN)
@@ -588,11 +596,10 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
                 )
             )
             .select_related("usage_event", "user_message__conversation")
-            .order_by("-created_at", "-id")[:20]
-        )
-        if can_inspect_egress
-        else []
-    )
+            .order_by("-created_at", "-id"),
+            20,
+        ).get_page(request.GET.get("egress_page"))
+        egress_attention = list(egress_attention_page.object_list)
     ctx = context(request)
     ctx.update(
         {
@@ -606,8 +613,16 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
             "active_token_book": active_token_book,
             "contract": contract,
             "recent_invoices": recent_invoices,
+            "invoice_page": invoice_page,
+            "invoice_querystring": invoice_query_params.urlencode(),
+            "invoice_total": invoice_page.paginator.count,
             "can_inspect_egress": can_inspect_egress,
             "egress_attention": egress_attention,
+            "egress_attention_page": egress_attention_page,
+            "egress_attention_querystring": egress_attention_query_params.urlencode(),
+            "egress_attention_total": (
+                egress_attention_page.paginator.count if egress_attention_page else 0
+            ),
             "invoice_status_choices": Invoice.Status.choices,
             "lifecycle": lifecycle,
             "lifecycle_targets": [

@@ -9,14 +9,11 @@ from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import (
     AccountingPeriod,
     ClientCompany,
-    ClientJourney,
     CostCenter,
     DataSource,
     FinancialAccount,
     ImportBatch,
-    JourneyStep,
     LedgerAccount,
-    PortalRequest,
     ReconciliationRule,
     ReconciliationSourceFile,
 )
@@ -94,60 +91,6 @@ class CompanyForm(forms.ModelForm):  # type: ignore[type-arg]
         return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
 
 
-class JourneyForm(forms.ModelForm):  # type: ignore[type-arg]
-    class Meta:
-        model = ClientJourney
-        fields = ("company", "title", "due_on")
-        widgets = {
-            "company": forms.Select(attrs={"autocomplete": "organization"}),
-            "title": forms.TextInput(
-                attrs={"autocomplete": "off", "placeholder": "Ex.: Onboarding fiscal"}
-            ),
-            "due_on": forms.DateInput(attrs={"type": "date"}),
-        }
-        labels = {
-            "company": "Empresa",
-            "title": "Nome da jornada",
-            "due_on": "Prazo inicial",
-        }
-
-
-class JourneyStepForm(forms.ModelForm):  # type: ignore[type-arg]
-    class Meta:
-        model = JourneyStep
-        fields = ("title", "description", "due_on")
-        widgets = {
-            "title": forms.TextInput(
-                attrs={"autocomplete": "off", "placeholder": "Ex.: Conferir procurações"}
-            ),
-            "description": forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
-            "due_on": forms.DateInput(attrs={"type": "date"}),
-        }
-        labels = {
-            "title": "Etapa",
-            "description": "Orientação para o time",
-            "due_on": "Prazo",
-        }
-
-
-class PortalRequestForm(forms.ModelForm):  # type: ignore[type-arg]
-    class Meta:
-        model = PortalRequest
-        fields = ("title", "details", "due_on")
-        widgets = {
-            "title": forms.TextInput(
-                attrs={"autocomplete": "off", "placeholder": "Ex.: Enviar extrato de março"}
-            ),
-            "details": forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
-            "due_on": forms.DateInput(attrs={"type": "date"}),
-        }
-        labels = {
-            "title": "Solicitação",
-            "details": "Orienta\u00e7\u00e3o interna",
-            "due_on": "Prazo",
-        }
-
-
 class CollaboratorInvitationForm(forms.Form):
     """A workspace owner scopes a teammate before the invitation is sent."""
 
@@ -191,18 +134,23 @@ class CollaboratorInvitationForm(forms.Form):
     ) -> None:
         super().__init__(*args, **kwargs)
         available = module_codes if module_codes is not None else set(MODULES)
-        self.fields["modules"].choices = [
+        modules_field = cast(forms.MultipleChoiceField, self.fields["modules"])
+        companies_field = cast(forms.MultipleChoiceField, self.fields["companies"])
+        module_choices = [
             (code, MODULES[code].label) for code in MODULES if code in available
         ]
-        self.fields["companies"].choices = [
+        company_choices = [
             (str(company.id), company.name)
             for company in (companies or ClientCompany.objects.none())
         ]
+        modules_field.choices = module_choices
+        companies_field.choices = company_choices
+        self._allowed_module_codes = {code for code, _label in module_choices}
+        self._allowed_company_ids = {company_id for company_id, _label in company_choices}
 
     def clean_modules(self) -> list[str]:
         values = list(self.cleaned_data["modules"])
-        allowed = {str(code) for code, _label in self.fields["modules"].choices}
-        if not set(values).issubset(allowed):
+        if not set(values).issubset(self._allowed_module_codes):
             raise forms.ValidationError(
                 "Selecione apenas m\u00f3dulos dispon\u00edveis neste escrit\u00f3rio."
             )
@@ -210,8 +158,7 @@ class CollaboratorInvitationForm(forms.Form):
 
     def clean_companies(self) -> list[str]:
         values = list(self.cleaned_data["companies"])
-        allowed = {str(company_id) for company_id, _label in self.fields["companies"].choices}
-        if not set(values).issubset(allowed):
+        if not set(values).issubset(self._allowed_company_ids):
             raise forms.ValidationError("Selecione apenas empresas do seu escrit\u00f3rio.")
         return values
 
@@ -320,10 +267,17 @@ class DtePreparationForm(forms.Form):
             if companies is not None
             else ClientCompany.objects.none()
         )
-        company_field.label_from_instance = lambda company: (
-            company.name
-            + (f" · Domínio {company.dominio_code}" if company.dominio_code else "")
-            + (f" · {company.cnpj_masked}" if company.cnpj_masked else " · CNPJ ausente")
+        def display_company(company: ClientCompany) -> str:
+            return (
+                company.name
+                + (f" · Domínio {company.dominio_code}" if company.dominio_code else "")
+                + (f" · {company.cnpj_masked}" if company.cnpj_masked else " · CNPJ ausente")
+            )
+
+        setattr(  # noqa: B010 - Django deliberately lets a choice field customize this method.
+            company_field,
+            "label_from_instance",
+            display_company,
         )
 
 
@@ -418,9 +372,11 @@ class UnifiedImportForm(forms.Form):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
-        cast(forms.ModelChoiceField, self.fields["company"]).queryset = companies
+        company_field = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
+        company_field.queryset = companies
         if source_kind != DataSource.Kind.DOMINIO_WEB_BACKUP:
-            self.fields["kind"].choices = [
+            kind_field = cast(forms.ChoiceField, self.fields["kind"])
+            kind_field.choices = [
                 choice
                 for choice in ImportBatch.Kind.choices
                 if choice[0] != ImportBatch.Kind.DOMINIO_BACKUP
@@ -466,7 +422,7 @@ class FinancialAccountSelect(forms.Select):
         self,
         name: str,
         value: Any,
-        label: str,
+        label: int | str,
         selected: bool,
         index: int,
         subindex: int | None = None,
@@ -509,14 +465,14 @@ class ReconciliationUploadForm(forms.Form):
         widget=forms.TextInput(attrs={"autocomplete": "off"}),
         help_text="Opcional; use para localizar a caixa ou malote original.",
     )
-    files = MultipleFileField(
+    files = MultipleFileField(  # type: ignore[assignment]  # Django field name is intentional.
         label="Arquivos",
         widget=MultipleFileInput(attrs={"accept": ".ofx,.qfx,.csv,.xlsx,.pdf", "multiple": True}),
     )
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        company = cast(forms.ModelChoiceField, self.fields["company"])
+        company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         company_id = self.data.get("company") if self.is_bound else None
         accounts = FinancialAccount.objects.filter(
@@ -525,14 +481,21 @@ class ReconciliationUploadForm(forms.Form):
         ).select_related("company")
         if company_id:
             accounts = accounts.filter(company_id=company_id)
-        financial_account_field = cast(forms.ModelChoiceField, self.fields["financial_account"])
+        financial_account_field = cast(
+            "forms.ModelChoiceField[FinancialAccount]", self.fields["financial_account"]
+        )
         financial_account_field.queryset = accounts.order_by("company__name", "name")
-        financial_account_field.label_from_instance = lambda account: (
-            f"{account.company.name} — {account.name} ({account.account_reference})"
+        def display_account(account: FinancialAccount) -> str:
+            return f"{account.company.name} — {account.name} ({account.account_reference})"
+
+        setattr(  # noqa: B010 - Django deliberately lets a choice field customize this method.
+            financial_account_field,
+            "label_from_instance",
+            display_account,
         )
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         start = cleaned.get("period_start")
         end = cleaned.get("period_end")
         if start and end and end < start:
@@ -613,7 +576,7 @@ class _ReconciliationCompanyScopedForm(forms.ModelForm):  # type: ignore[type-ar
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        company = cast(forms.ModelChoiceField, self.fields["company"])
+        company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         # The configuration page owns one explicit company switcher. Keeping this
         # field in the submitted form, but not as a second visible selector, avoids
@@ -666,7 +629,7 @@ class FinancialAccountForm(_ReconciliationCompanyScopedForm):
         ].help_text = "Escolha somente uma conta ativa que aceite lançamentos desta empresa."
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         company = cleaned.get("company")
         ledger_code = str(cleaned.get("ledger_code") or "").strip()
         if (
@@ -735,7 +698,7 @@ class AccountingPeriodForm(_ReconciliationCompanyScopedForm):
         }
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if (
             cleaned.get("starts_on")
             and cleaned.get("ends_on")
@@ -871,12 +834,12 @@ class ReconciliationRuleForm(forms.Form):
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        company = cast(forms.ModelChoiceField, self.fields["company"])
+        company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         company.widget = forms.HiddenInput()
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         operator = cleaned.get("condition_operator")
         field = cleaned.get("condition_field")
         value = str(cleaned.get("condition_value") or "").strip()

@@ -194,3 +194,154 @@ Q-08 e Q-28. Fontes: [autenticação Asaas](https://docs.asaas.com/docs/authenti
 [criar cobrança](https://docs.asaas.com/reference/create-new-payment), consultadas
 em 19/09/2026. Esta decisão não autoriza chamada, custo, sandbox, produção ou
 homologação.
+
+## D-94 — Gate antecipado de identificadores pessoais no corpus local
+
+Data: 21/09/2026. Origem: executor, decisão de implementação autorizada por
+D-20, D-48, D-49, D-51 e D-76. Um exemplo de treino ou avaliação validado não
+pode entrar no manifesto local quando pergunta, resposta ou referências
+contiverem CPF, CNPJ ou e-mail reconhecíveis pelos mesmos padrões já recusados
+pelo runner QLoRA. A exportação deve falhar antes de criar o artefato; não deve
+alterar, mascarar ou reenviar o registro automaticamente, pois isso poderia
+corromper evidência contábil. A anonimização permanece uma revisão humana
+rastreável no registro de origem. A decisão antecipa um controle local de
+privacidade e não autoriza curadoria Claude, egressão, treinamento, download de
+modelo, publicação, dado de cliente ou custo. Q-08, Q-09, Q-11 e Q-34
+continuam abertos.
+
+## D-95 — Exportação de manifesto local sem sobrescrita
+
+Data: 21/09/2026. Origem: executor, decisão de implementação autorizada por
+D-48, D-51 e D-76. A exportação JSONL de treino ou avaliação deve recusar um
+caminho de saída já existente e criar o novo arquivo exclusivamente, evitando
+substituir silenciosamente um artefato que possa estar vinculado a uma avaliação
+ou revisão. A regra vale apenas para o artefato local; não executa treino,
+publicação, transferência de dados ou operação externa. Uma nova exportação usa
+outro caminho depois de revisão humana do corpus.
+
+## D-96 — Cobertura de certificados sem ocultação da carteira
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de recuperação de D-73. Quando a tela de
+certificados informar empresas ativas sem A1 válido, ela deve permitir percorrer
+toda a carteira em páginas de 20 registros, em vez de mostrar apenas as 20
+primeiras. A paginação da cobertura é independente da lista de certificados e
+preserva os parâmetros já presentes na consulta; o seletor de demonstração usa
+somente os itens visíveis nessa página. Esta decisão evita ocultação silenciosa
+e não aprova certificado, coleta ADN, uso de A1 real, conexão externa, custo ou
+homologação fiscal.
+
+## D-97 — Ficha da empresa com históricos paginados por seção
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de recuperação de D-73. A ficha de uma empresa deve
+permitir percorrer todos os documentos NFS-e, revisões abertas e mensagens DTE
+visíveis ao escritório. Cada seção usa sua própria página de 20 registros, sem
+alterar as demais seções ou o parâmetro de retorno à carteira. Esta decisão
+remove limites silenciosos de apresentação; não amplia permissões, não autoriza
+consulta DTE, coleta ADN, certificado real, conexão externa, custo ou
+homologação.
+
+## D-98 — Auditoria de conciliação sem limite silencioso
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. A auditoria de
+conciliação deve permitir percorrer todos os eventos visíveis ao perfil já
+autorizado em páginas de 100 registros, preservando o filtro de ação. A medida
+é somente de apresentação e consulta: não altera o conteúdo imutável do evento,
+permissões, arquivos financeiros, integrações, exportações, custo ou
+homologação.
+
+## D-99 — Radar da Reforma sem corte silencioso de alertas
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de recuperação de D-73. A consulta do Radar deve
+permitir percorrer todos os alertas de reforma e fiscal já visíveis ao
+escritório, em páginas de 50 registros, preservando busca, fonte e tema. A
+medida somente altera a apresentação da coleção local: não coleta fontes,
+não valida publicação, não muda sua relevância, não abre URLs, não autoriza
+integração, custo ou homologação.
+
+## D-100 — Histórico de cobrança manual recuperável no console
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O console da plataforma
+deve permitir percorrer todas as faturas já pertencentes ao escritório, em
+páginas de 12 registros, em vez de limitar a exibição às 12 mais recentes. A
+medida mantém o escopo de cada escritório e somente apresenta o histórico já
+registrado: não cria cobrança, não altera valores, contratos, status,
+integrações, credenciais, custo ou homologação Asaas.
+
+## D-101 — Histórico DTE recuperável por página própria
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O histórico de resultados
+das consultas DTE deve permitir percorrer todos os itens visíveis ao escritório
+em páginas de 30 registros, sem interferir na paginação das mensagens DTE e
+preservando os parâmetros correntes da tela. A medida somente apresenta o
+histórico local já registrado: não prepara consulta, não autoriza consumo, não
+chama Serpro, não altera resultado, permissão, cobrança, custo ou homologação.
+
+## D-102 — Histórico de importações recuperável no onboarding
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O onboarding deve permitir
+percorrer todos os lotes de importação já pertencentes ao escritório, em páginas
+de 20 registros, em vez de exibir somente os oito mais recentes. A medida
+preserva fonte e prévia selecionadas na navegação e somente apresenta histórico
+local já registrado: não envia arquivo, não confirma lote, não altera dados,
+permissão, integração, custo ou homologação Domínio.
+
+## D-103 — Trilhas de processamento e exportação recuperáveis na Conciliação
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. A Conciliação deve permitir
+percorrer todos os processamentos e exportações já visíveis ao escritório, em
+páginas independentes de 20 registros, em vez de limitar cada trilha aos 12 e 8
+mais recentes. Cada navegação preserva os parâmetros correntes da tela e não
+altera a outra trilha. A medida somente apresenta o histórico local existente:
+não importa, reprocessa, exporta, baixa arquivo, chama ERP, altera permissões,
+custo ou homologação.
+
+## D-104 — Histórico completo recuperável no Copiloto
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O histórico de conversas
+abertas do Copiloto deve permitir percorrer todos os itens já visíveis ao
+escritório em páginas de 12 registros, em vez de limitar a interface às 12
+conversas mais recentes. A seleção da conversa e a página do histórico devem
+ser preservadas entre as navegações. A medida somente apresenta histórico local
+já registrado: não cria cobrança, não altera valores, contratos, permissões,
+integrações, credenciais, custo ou homologação.
+
+## D-105 — Fechamentos adiados recuperáveis no console da plataforma
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O console da plataforma
+deve permitir percorrer todos os fechamentos ainda adiados, em páginas de 30
+registros, em vez de limitar a consulta às 30 ocorrências mais antigas. A
+navegação deve preservar os parâmetros correntes da configuração. A medida
+somente apresenta evidências locais já registradas: não executa fechamento, não
+altera fatura, contrato, reserva, preço, permissão, integração, custo ou
+homologação.
+
+## D-106 — Atenção de egressão recuperável no detalhe do escritório
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelas métricas de rastreabilidade de D-73. O detalhe do escritório
+no console da plataforma deve permitir percorrer todas as tentativas Claude que
+ainda exigem verificação, em páginas de 20 registros, em vez de limitar a
+consulta às 20 mais recentes. A navegação deve preservar os parâmetros correntes
+do detalhe. A medida somente apresenta auditorias locais já registradas: não
+repete chamada, libera ou liquida consumo, altera reserva, política, dado,
+permissão, integração, custo ou homologação.
+
+## D-107 — Decisão NFS-e restrita ao catálogo do escritório
+
+Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
+por D-55 e pelos critérios de rastreabilidade da etapa 07. Ao resolver uma
+revisão NFS-e, o acumulador deve existir no catálogo da mesma empresa: regra
+ativa e vigente para a data do documento ou código já observado no histórico
+local da empresa. A tela deve sugerir esses códigos e recusar código inexistente
+ou de outra empresa. A medida não infere tratamento fiscal, não cria regra,
+lançamento, integração, custo ou homologação.

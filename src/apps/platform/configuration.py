@@ -4,20 +4,23 @@ import re
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import Any, cast
 
 from cryptography.hazmat.primitives.serialization import pkcs12
 from django import forms
 from django.conf import settings as django_settings
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.core.paginator import Paginator
 from django.db import transaction
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts import mfa
+from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.common.cnpj import lookup_company, normalize_cnpj
 from apps.common.database_email import smtp_backend_for_configuration
@@ -34,7 +37,7 @@ from apps.platform.policies import platform_required
 from apps.platform.views import context
 
 
-class ConfigurationForm(forms.ModelForm):
+class ConfigurationForm(forms.ModelForm):  # type: ignore[type-arg]
     provider_cnpj = forms.CharField(
         max_length=18,
         label="CNPJ da fornecedora",
@@ -69,7 +72,7 @@ class ConfigurationForm(forms.ModelForm):
             "legal_address": forms.Textarea(attrs={"autocomplete": "street-address", "rows": 3}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         if not self.is_bound and self.instance._state.adding:
             self.fields["provider_cnpj"].initial = "68340160000113"
@@ -99,7 +102,7 @@ class IntegraCertificateForm(forms.Form):
     )
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         upload = cleaned.get("certificate")
         if upload is None:
             return cleaned
@@ -140,7 +143,7 @@ class IntegraCertificateForm(forms.Form):
         return configuration
 
 
-class IntegraCredentialsForm(forms.ModelForm):
+class IntegraCredentialsForm(forms.ModelForm):  # type: ignore[type-arg]
     """Write-only central Serpro credentials, protected by the platform MFA gate."""
 
     consumer_key = forms.CharField(
@@ -203,7 +206,7 @@ class IntegraCredentialsForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args: object, **kwargs: object) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         for name, field in self.fields.items():
             if field.help_text:
@@ -226,7 +229,7 @@ class IntegraCredentialsForm(forms.ModelForm):
         return value
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         key = str(cleaned.get("consumer_key") or "")
         secret = str(cleaned.get("consumer_secret") or "")
         if not key and not self.instance.integra_consumer_key:
@@ -255,7 +258,7 @@ class IntegraCredentialsForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit: bool = True) -> PlatformConfiguration:
-        configuration = super().save(commit=False)
+        configuration = cast(PlatformConfiguration, super().save(commit=False))
         key = str(self.cleaned_data.get("consumer_key") or "")
         secret = str(self.cleaned_data.get("consumer_secret") or "")
         if key:
@@ -267,7 +270,7 @@ class IntegraCredentialsForm(forms.ModelForm):
         return configuration
 
 
-class TrialConfigurationForm(forms.ModelForm):
+class TrialConfigurationForm(forms.ModelForm):  # type: ignore[type-arg]
     class Meta:
         model = PlatformConfiguration
         fields = ("trial_ai_included_requests",)
@@ -285,7 +288,7 @@ class TrialConfigurationForm(forms.ModelForm):
         return allowance
 
 
-class CopilotAvailabilityForm(forms.ModelForm):
+class CopilotAvailabilityForm(forms.ModelForm):  # type: ignore[type-arg]
     """Developer-only release gate for the prepared Copilot runtime."""
 
     class Meta:
@@ -302,7 +305,7 @@ class CopilotAvailabilityForm(forms.ModelForm):
         }
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if (
             cleaned.get("copilot_available_for_offices")
             and int(cleaned.get("trial_ai_included_requests") or 0) < 1
@@ -329,7 +332,7 @@ class CopilotAvailabilityForm(forms.ModelForm):
         return cleaned
 
 
-class LocalRuntimeForm(forms.ModelForm):
+class LocalRuntimeForm(forms.ModelForm):  # type: ignore[type-arg]
     """Developer-only local runtime setup; a blank token never clears the saved secret."""
 
     local_llm_api_key = forms.CharField(
@@ -376,12 +379,12 @@ class LocalRuntimeForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._saved_api_key = self.instance.local_llm_api_key if self.instance.pk else ""
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         endpoint = str(cleaned.get("local_llm_endpoint") or "").rstrip("/")
         model = str(cleaned.get("local_llm_model") or "").strip()
         multimodal_endpoint = str(cleaned.get("local_multimodal_endpoint") or "").rstrip("/")
@@ -396,7 +399,7 @@ class LocalRuntimeForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit: bool = True) -> PlatformConfiguration:
-        configuration = super().save(commit=False)
+        configuration = cast(PlatformConfiguration, super().save(commit=False))
         if not self.cleaned_data.get("local_llm_api_key"):
             configuration.local_llm_api_key = self._saved_api_key
         if commit:
@@ -407,7 +410,7 @@ class LocalRuntimeForm(forms.ModelForm):
 _CLOUD_MODEL_RE = re.compile(r"claude-[a-z0-9._-]{1,72}")
 
 
-class CloudFallbackForm(forms.ModelForm):
+class CloudFallbackForm(forms.ModelForm):  # type: ignore[type-arg]
     """Mewstack-owned, encrypted last-resort cloud route."""
 
     cloud_fallback_api_key = forms.CharField(
@@ -458,12 +461,12 @@ class CloudFallbackForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._saved_api_key = self.instance.cloud_fallback_api_key if self.instance.pk else ""
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if not cleaned.get("cloud_fallback_enabled"):
             return cleaned
         if not (
@@ -500,7 +503,7 @@ class CloudFallbackForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit: bool = True) -> PlatformConfiguration:
-        configuration = super().save(commit=False)
+        configuration = cast(PlatformConfiguration, super().save(commit=False))
         if not self.cleaned_data.get("cloud_fallback_api_key"):
             configuration.cloud_fallback_api_key = self._saved_api_key
         if commit:
@@ -508,7 +511,7 @@ class CloudFallbackForm(forms.ModelForm):
         return configuration
 
 
-class TransactionalEmailForm(forms.ModelForm):
+class TransactionalEmailForm(forms.ModelForm):  # type: ignore[type-arg]
     """Write-only SMTP configuration owned by Mewstack developers."""
 
     transactional_email_password = forms.CharField(
@@ -559,14 +562,14 @@ class TransactionalEmailForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._saved_password = (
             self.instance.transactional_email_password if self.instance.pk else ""
         )
 
     def clean(self) -> dict[str, object]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         host = str(cleaned.get("transactional_email_host") or "").strip()
         username = str(cleaned.get("transactional_email_username") or "").strip()
         password = str(cleaned.get("transactional_email_password") or "")
@@ -591,7 +594,7 @@ class TransactionalEmailForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit: bool = True) -> PlatformConfiguration:
-        configuration = super().save(commit=False)
+        configuration = cast(PlatformConfiguration, super().save(commit=False))
         if not self.cleaned_data.get("transactional_email_password"):
             configuration.transactional_email_password = self._saved_password
         if commit:
@@ -637,10 +640,11 @@ def _registry_address(registry: dict[str, str]) -> str:
 @never_cache
 @require_http_methods(["GET", "POST"])
 @transaction.atomic
-def configuration(request):
+def configuration(request: HttpRequest) -> HttpResponse:
+    current_user = cast(User, request.user)
     if not mfa.session_is_verified(request):
         return redirect(
-            "accounts:mfa-verify" if mfa.is_enrolled(request.user) else "accounts:mfa-setup"
+            "accounts:mfa-verify" if mfa.is_enrolled(current_user) else "accounts:mfa-setup"
         )
     action = request.POST.get("action", "provider")
     instance = PlatformConfiguration.objects.filter(key="default").first()
@@ -687,10 +691,10 @@ def configuration(request):
     )
     if selected_plan_id:
         try:
-            plans_query = Plan.objects
             if request.method == "POST" and action == "plan":
-                plans_query = plans_query.select_for_update()
-            plan_instance = plans_query.get(pk=selected_plan_id)
+                plan_instance = Plan.objects.select_for_update().get(pk=selected_plan_id)
+            else:
+                plan_instance = Plan.objects.get(pk=selected_plan_id)
         except (ValidationError, Plan.DoesNotExist):
             return HttpResponse(status=404)
         # Entitlements still depend on the referenced plan. Never rewrite a
@@ -705,7 +709,7 @@ def configuration(request):
     if request.method == "POST" and action in {"provider", "provider_sync"} and form.is_valid():
         with transaction.atomic():
             config = form.save(commit=False)
-            config.updated_by = request.user
+            config.updated_by = current_user
             if action == "provider_sync":
                 registry = lookup_company(config.provider_cnpj)
                 if registry.get("status") != "found":
@@ -738,7 +742,7 @@ def configuration(request):
                         if action == "provider_sync"
                         else "platform.configuration.updated"
                     ),
-                    actor=request.user,
+                    actor=current_user,
                     target=config,
                     request=request,
                 )
@@ -754,11 +758,11 @@ def configuration(request):
             return redirect("platform:configuration")
     if request.method == "POST" and action == "trial" and trial_form.is_valid():
         configuration = trial_form.save(commit=False)
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         configuration.save()
         record_event(
             action="platform.trial_configuration.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={"trial_ai_included_requests": configuration.trial_ai_included_requests},
@@ -771,11 +775,11 @@ def configuration(request):
         and integra_certificate_form.is_valid()
     ):
         configuration = instance or PlatformConfiguration(key="default")
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         integra_certificate_form.save(configuration)
         record_event(
             action="platform.integra_certificate.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={
@@ -795,11 +799,11 @@ def configuration(request):
         and integra_credentials_form.is_valid()
     ):
         configuration = integra_credentials_form.save(commit=False)
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         configuration.save()
         record_event(
             action="platform.integra_credentials.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={
@@ -813,11 +817,11 @@ def configuration(request):
         return redirect("platform:configuration")
     if request.method == "POST" and action == "copilot-availability" and copilot_form.is_valid():
         configuration = copilot_form.save(commit=False)
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         configuration.save()
         record_event(
             action="platform.copilot_availability.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={
@@ -829,11 +833,11 @@ def configuration(request):
         return redirect("platform:configuration")
     if request.method == "POST" and action == "local-runtime" and runtime_form.is_valid():
         configuration = runtime_form.save(commit=False)
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         configuration.save()
         record_event(
             action="platform.copilot_runtime.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={
@@ -846,11 +850,11 @@ def configuration(request):
         return redirect("platform:configuration")
     if request.method == "POST" and action == "cloud-fallback" and cloud_fallback_form.is_valid():
         configuration = cloud_fallback_form.save(commit=False)
-        configuration.updated_by = request.user
+        configuration.updated_by = current_user
         configuration.save()
         record_event(
             action="platform.cloud_fallback.updated",
-            actor=request.user,
+            actor=current_user,
             target=configuration,
             request=request,
             metadata={
@@ -887,11 +891,11 @@ def configuration(request):
                 messages.success(request, "Conexão SMTP validada. Nenhum e-mail foi enviado.")
                 return redirect("platform:configuration")
         else:
-            configuration.updated_by = request.user
+            configuration.updated_by = current_user
             configuration.save()
             record_event(
                 action="platform.transactional_email.updated",
-                actor=request.user,
+                actor=current_user,
                 target=configuration,
                 request=request,
                 metadata={
@@ -909,7 +913,7 @@ def configuration(request):
             plan = plan_form.save()
             record_event(
                 action="platform.plan_catalog.updated",
-                actor=request.user,
+                actor=current_user,
                 target=plan,
                 request=request,
                 metadata={"code": plan.code, "version": plan.version, "active": plan.is_active},
@@ -927,6 +931,14 @@ def configuration(request):
             (rate for rate in plan.service_rates.all() if rate.action_code == "ai.answer"), None
         )
         plan.monthly_price_brl = Decimal(plan.monthly_price_cents) / 100  # type: ignore[attr-defined]
+    billing_deferrals_query_params = request.GET.copy()
+    billing_deferrals_query_params.pop("billing_deferrals_page", None)
+    billing_close_deferrals_page = Paginator(
+        BillingCloseDeferral.objects.filter(resolved_at__isnull=True)
+        .select_related("organization")
+        .order_by("period_start", "organization__name"),
+        30,
+    ).get_page(request.GET.get("billing_deferrals_page"))
     ctx = context(request)
     integra_required = (
         "INTEGRA_CONSUMER_KEY",
@@ -966,11 +978,10 @@ def configuration(request):
         integra_certificate_form=integra_certificate_form,
         integra_credentials_form=integra_credentials_form,
         operation_rows=scheduled_operation_overview(),
-        billing_close_deferrals=list(
-            BillingCloseDeferral.objects.filter(resolved_at__isnull=True)
-            .select_related("organization")
-            .order_by("period_start", "organization__name")[:30]
-        ),
+        billing_close_deferrals=list(billing_close_deferrals_page.object_list),
+        billing_close_deferrals_page=billing_close_deferrals_page,
+        billing_close_deferrals_querystring=billing_deferrals_query_params.urlencode(),
+        billing_close_deferrals_total=billing_close_deferrals_page.paginator.count,
         copilot_available=bool(instance and instance.copilot_available_for_offices),
         plan_form=plan_form,
         editing_plan=bool(selected_plan_id),

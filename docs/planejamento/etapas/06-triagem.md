@@ -3,8 +3,12 @@
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
 **Estado:** Em andamento: controles locais de entrada, quarentena, revisão e
-arquivamento foram revalidados em V-038; nenhum provedor ou destino real foi
-homologado.
+arquivamento foram revalidados em V-038. V-045/V-046/V-054/V-055/V-060/V-062 reduziram a
+dívida de tipagem de formulários, serviços, IMAP, Gmail, Graph, tarefas e segurança sem alterar seu
+comportamento; V-068 completou a tipagem da view local e sua regressão focada.
+V-091 tornou recuperável por página a trilha persistida de auditoria do arquivo,
+sem alterar a demonstração isolada por sessão.
+Nenhum provedor ou destino real foi homologado.
 
 **Dependências:** 03 e 05.
 
@@ -35,9 +39,20 @@ Consentimento/revogação nos três provedores, cursor, ameaça/falha do scanner
 ## Evidências e próximo passo
 
 V-038 registra 72 testes de domínio, seis subtestes do protocolo Windows e seis
-testes de interface/demo, além de lint/Django/diff limpos. Nenhuma homologação
-nova é atribuída a esta etapa. A existência de código ou testes anteriores não
-prova conclusão. Registrar comandos, ambiente, data, resultado e limites em
+testes de interface/demo, além de lint/Django/diff limpos. V-045 tipou os seis
+formulários e serviços sem mudar a interface ou a regra de negócio; 51 testes
+de política/IMAP/domínio/ingestão e mais 35 de domínio/ingestão/agente Windows,
+Ruff e MyPy focado passaram. V-060 tipou os coletores Graph/IMAP e a fila, com
+22 testes de Graph, IMAP, retentativa, ingestão e tarefas aprovados; não houve
+OAuth ou caixa real. V-062 tipou o fluxo `FieldFile` de scanner/política e
+aprovou a segurança de anexos em testes locais, sem antimalware real. V-068
+retestou localmente os contratos de apresentação e configuração da Triagem
+dentro de 119 testes focados; nenhuma homologação nova é
+atribuída a esta etapa. A existência de código ou testes anteriores não prova
+conclusão. V-091 confirmou em teste 21 eventos sintéticos em duas páginas de
+histórico, preservando a ordem e os vínculos sem decidir ou arquivar o item; a
+demonstração não foi usada como prova visual de volume. Registrar comandos,
+ambiente, data, resultado e limites em
 VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução

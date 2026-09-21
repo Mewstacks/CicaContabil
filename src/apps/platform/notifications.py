@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from smtplib import SMTPException
+from typing import Any
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
@@ -13,7 +14,7 @@ class TransactionalEmailError(RuntimeError):
     """A delivery failure safe to surface as an operational form error."""
 
 
-def send_transactional_email(*args, **kwargs) -> None:
+def send_transactional_email(*args: Any, **kwargs: Any) -> None:
     try:
         delivered = send_mail(*args, fail_silently=False, **kwargs)
     except (ImproperlyConfigured, OSError, SMTPException) as exc:

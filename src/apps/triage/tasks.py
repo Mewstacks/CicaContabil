@@ -8,7 +8,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.triage.gmail_poll import GmailMailboxError, poll_gmail_mailbox
@@ -20,7 +20,7 @@ from apps.triage.oauth import MailboxOAuthError
 from apps.triage.poll_state import mark_failure
 
 
-def _eligible():  # type: ignore[no-untyped-def]
+def _eligible() -> QuerySet[Mailbox]:
     return Mailbox.objects.filter(
         active=True,
         status=Mailbox.Status.ACTIVE,
@@ -82,14 +82,11 @@ def poll_activated_mailbox(mailbox_id: str) -> dict[str, object]:
         ):
             return {"state": "inactive_or_busy"}
         if mailbox.provider == Mailbox.Provider.IMAP:
-            result = poll_imap_mailbox(mailbox=mailbox, max_messages=10)
-            count = result.attachments_created
+            count = poll_imap_mailbox(mailbox=mailbox, max_messages=10).attachments_created
         elif mailbox.provider == Mailbox.Provider.MS365_GRAPH:
-            result = poll_graph_mailbox(mailbox=mailbox, max_pages=3)
-            count = result.attachments_created
+            count = poll_graph_mailbox(mailbox=mailbox, max_pages=3).attachments_created
         elif mailbox.provider == Mailbox.Provider.GMAIL_API:
-            result = poll_gmail_mailbox(mailbox=mailbox, max_pages=3)
-            count = result.attachments_created
+            count = poll_gmail_mailbox(mailbox=mailbox, max_pages=3).attachments_created
         else:
             mailbox.status = Mailbox.Status.ERROR
             mailbox.last_error = "Provedor de caixa indisponível."

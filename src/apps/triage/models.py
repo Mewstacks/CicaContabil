@@ -96,9 +96,9 @@ class Mailbox(OrganizationScopedModel):
         return f"{self.address} ({self.get_provider_display()})"
 
     def clean(self) -> None:
-        if self.oauth_app_id and (
-            self.oauth_app.organization_id != self.organization_id
-            or self.oauth_app.provider != self.provider
+        oauth_app = self.oauth_app
+        if self.oauth_app_id and oauth_app is not None and (
+            oauth_app.organization_id != self.organization_id or oauth_app.provider != self.provider
         ):
             raise ValidationError(
                 {"oauth_app": "O aplicativo não pertence a esta caixa e escritório."}

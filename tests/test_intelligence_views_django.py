@@ -141,6 +141,35 @@ class IntelligenceViewsTests(TestCase):
             1,
         )
 
+    def test_assistant_history_is_paginated_without_losing_selected_conversation(self) -> None:
+        conversations = [
+            Conversation.objects.create(
+                organization=self.organization,
+                company=self.company,
+                title=f"Análise {index:02d}",
+            )
+            for index in range(13)
+        ]
+
+        first_page = self.client.get(reverse("intelligence:assistant"))
+        oldest_conversation = conversations[0]
+        second_page = self.client.get(
+            reverse("intelligence:assistant"),
+            {"conversation": str(oldest_conversation.id), "conversation_page": "2"},
+        )
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["conversation_history_total"], 13)
+        self.assertEqual(len(first_page.context["conversation_history"]), 12)
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "conversation_page=2")
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(second_page.context["conversation_history_page"].number, 2)
+        self.assertEqual(len(second_page.context["conversation_history"]), 1)
+        self.assertEqual(second_page.context["active_conversation"], oldest_conversation)
+        self.assertContains(second_page, 'aria-current="page"')
+        self.assertContains(second_page, "conversation_page=2")
+
     def test_uncertain_attempt_is_visible_beside_question_with_support_reference(self) -> None:
         PlatformConfiguration.objects.filter(key="default").update(
             support_email="suporte@example.test"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import hashlib
 import json
 from collections.abc import Callable
@@ -106,6 +107,9 @@ def _url(path: str, **params: object) -> str:
 
 
 def _cursor(mailbox: Mailbox) -> dict[str, object]:
+    since = mailbox.since
+    if since is None:
+        raise GmailMailboxError("Defina a data inicial antes de ler esta caixa Gmail.")
     if not mailbox.cursor:
         return {"mode": "new"}
     try:
@@ -117,7 +121,7 @@ def _cursor(mailbox: Mailbox) -> dict[str, object]:
         or data.get("version") != 1
         or data.get("provider") != Mailbox.Provider.GMAIL_API
         or data.get("folder") != mailbox.folder
-        or data.get("since") != mailbox.since.isoformat()
+        or data.get("since") != since.isoformat()
         or data.get("mode") not in {"full", "history"}
         or not isinstance(data.get("history_id"), str)
         or not data["history_id"].isdigit()
@@ -129,12 +133,15 @@ def _cursor(mailbox: Mailbox) -> dict[str, object]:
 
 
 def _checkpoint(mailbox: Mailbox, *, mode: str, history_id: str, page_token: str = "") -> None:
+    since = mailbox.since
+    if since is None:
+        raise GmailMailboxError("Defina a data inicial antes de salvar o cursor Gmail.")
     mailbox.cursor = json.dumps(
         {
             "version": 1,
             "provider": Mailbox.Provider.GMAIL_API,
             "folder": mailbox.folder,
-            "since": mailbox.since.isoformat(),
+            "since": since.isoformat(),
             "mode": mode,
             "history_id": history_id,
             "page_token": page_token,
@@ -207,7 +214,7 @@ def _payload(
         raise GmailMailboxError("Gmail não entregou os bytes do anexo.")
     try:
         raw = base64.b64decode(encoded + "=" * (-len(encoded) % 4), altchars=b"-_", validate=True)
-    except (ValueError, base64.binascii.Error) as exc:
+    except (ValueError, binascii.Error) as exc:
         raise GmailMailboxError("Anexo Gmail contém codificação inválida.") from exc
     if len(raw) != size:
         raise GmailMailboxError("O tamanho do anexo Gmail não confere; cursor preservado.")
@@ -251,7 +258,10 @@ def _message(
         received_at = datetime.fromtimestamp(int(timestamp) / 1_000, UTC)
     except (OverflowError, ValueError, OSError) as exc:
         raise GmailMailboxError("Gmail informou data fora do intervalo.") from exc
-    if received_at < mailbox.since:
+    since = mailbox.since
+    if since is None:
+        raise GmailMailboxError("Defina a data inicial antes de ler esta caixa Gmail.")
+    if received_at < since:
         return 0, 0, False
     payload = data.get("payload")
     if not isinstance(payload, dict):

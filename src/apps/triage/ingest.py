@@ -98,7 +98,7 @@ def receive_email_attachment(
                 triage_item=item,
             )
             blob.content.save("quarantine.bin", ContentFile(payload), save=False)
-            saved_path = blob.content.name
+            saved_path = str(blob.content.name or "")
             blob.save()
             item.transition_to(TriageStatus.QUARANTINED)
             item.save(update_fields=["status", "updated_at"])

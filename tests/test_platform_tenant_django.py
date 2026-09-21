@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -23,6 +23,7 @@ from apps.organizations.models import Membership, Organization
 from apps.platform.models import (
     DominioSupportTicket,
     Invitation,
+    Invoice,
     Plan,
     PlatformAccess,
     PlatformConfiguration,
@@ -68,6 +69,40 @@ class PlatformTenantViewTests(TestCase):
             organization=self.office, code=ProductModule.Code.INTEGRA
         )
         self.assertTrue(enabled.enabled)
+
+    def test_commercial_can_paginate_the_full_manual_billing_history(self):
+        PlatformAccess.objects.filter(user=self.developer).update(
+            role=PlatformAccess.Role.COMMERCIAL
+        )
+        plan = Plan.objects.create(code="billing-history", name="Histórico de cobrança")
+        contract = TenantContract.objects.create(
+            organization=self.office, plan=plan, status=TenantContract.Status.ACTIVE
+        )
+        for index in range(25):
+            year = 2025 + index // 12
+            month = index % 12 + 1
+            period_start = date(year, month, 1)
+            Invoice.objects.create(
+                organization=self.office,
+                contract=contract,
+                period_start=period_start,
+                period_end=period_start,
+                due_on=period_start,
+            )
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        first_page = self.client.get(detail_url)
+        last_page = self.client.get(detail_url, {"invoice_page": "3"})
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["invoice_total"], 25)
+        self.assertEqual(first_page.context["invoice_page"].number, 1)
+        self.assertEqual(len(first_page.context["recent_invoices"]), 12)
+        self.assertEqual(last_page.context["invoice_page"].number, 3)
+        self.assertContains(last_page, "01/2025")
+        self.assertContains(last_page, "25 cobranças")
+        self.assertContains(last_page, "Página 3 de 3")
+        self.assertContains(last_page, "?invoice_page=2", html=False)
 
     def test_commercial_proposes_tokens_and_owner_accepts_future_terms(self):
         commercial = User.objects.create_user(
@@ -649,6 +684,36 @@ class PlatformTenantViewTests(TestCase):
         response = self.client.get(detail_url)
         self.assertNotContains(response, "Tentativas Claude para verificar")
         self.assertNotContains(response, "req_abcdefgh12345678")
+
+    def test_support_paginates_all_uncertain_claude_attempts_for_the_office(self):
+        attempts = [
+            EgressAudit.objects.create(
+                organization=self.office,
+                provider="anthropic",
+                purpose="copilot",
+                payload_hash=f"{index:064x}",
+                role="owner",
+                call_state=EgressAudit.CallState.UNKNOWN,
+                provider_request_id=f"req_paginated_{index:02d}",
+            )
+            for index in range(21)
+        ]
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        first_page = self.client.get(detail_url)
+        second_page = self.client.get(detail_url, {"egress_page": "2"})
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["egress_attention_total"], 21)
+        self.assertEqual(first_page.context["egress_attention_page"].number, 1)
+        self.assertEqual(len(first_page.context["egress_attention"]), 20)
+        self.assertContains(first_page, "21 tentativas")
+        self.assertContains(first_page, "egress_page=2")
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(second_page.context["egress_attention_page"].number, 2)
+        self.assertEqual(len(second_page.context["egress_attention"]), 1)
+        self.assertContains(second_page, str(attempts[0].id))
+        self.assertContains(second_page, "egress_page=1")
 
     def test_commercial_plan_change_updates_the_explicit_contract_module_snapshot(self):
         commercial = User.objects.create_user(

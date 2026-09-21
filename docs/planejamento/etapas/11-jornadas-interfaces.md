@@ -2,8 +2,9 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento: inspeção local parcial registrada em V-039; não há
-auditoria integral de todas as superfícies nem homologação de jornadas reais.
+**Estado:** Em andamento: inspeções locais parciais registradas em V-039,
+V-069, V-070, V-071, V-073, V-074, V-075, V-076, V-077, V-078, V-079, V-080, V-081, V-082, V-083, V-084, V-085, V-086, V-087, V-088, V-089 e V-090; não há auditoria integral de todas as superfícies nem
+homologação de jornadas reais.
 
 **Dependências:** Módulos implementados.
 
@@ -34,15 +35,63 @@ Por perfil e módulo: desktop/celular, navegação, foco, teclado, carregamento/
 ## Evidências e próximo passo
 
 V-039 registra 14 caminhos em desktop/celular, uma jornada fictícia de Triagem,
-77 testes e a inspeção visual local. Em 20/09, a próxima auditoria de
-teclado/foco/erro/vazio parou antes de iniciar: o pacote Node `playwright` não
-está instalado e o navegador nativo aguarda Acessibilidade e Gravação de Tela
-no Codex. O registro de execução documenta o ambiente descartável encerrado e
-o ponto de retomada; nenhum resultado foi presumido. Nenhuma homologação nova é
-atribuída a esta etapa; os demais itens do checklist continuam abertos. A
-existência de código ou testes anteriores não prova conclusão. Registrar
-comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de
-execução. Não incluir segredos ou dados de clientes.
+77 testes e a inspeção visual local. V-069 retomou a verificação no navegador
+interno: home, cadastro, abas, FAQ, viewport móvel, dashboard e Triagem
+fictícia; a quarentena continuou bloqueando abertura/download e não houve erro
+de console nas superfícies percorridas. V-070 incluiu fila/detalhe de revisão
+NFS-e e confirmou que a demonstração recebe acesso restrito no console
+Mewstack. V-071 percorreu Guias, DTE, Parcelamentos, Conciliação, Radar e
+Copiloto, onde empresa obrigatória e fontes sintéticas ficaram explícitas. V-073
+também verificou a revisão NFS-e e sua paginação em viewport móvel. V-074
+percorreu a segunda página da carteira de guias com 101 registros fictícios e
+confirmou o retorno com filtros preservados, sem erro de console. V-075 fez o
+mesmo na carteira de Parcelamentos e confirmou que o seletor por página não
+excede o lote local de 30 empresas. V-076 acrescentou teste autenticado para a
+paginação da fila de conciliação; a demonstração de duas linhas não foi usada
+para alegar inspeção visual em volume. V-077 percorreu visualmente duas páginas
+do histórico sintético de Parcelamentos, preservando a empresa em foco. V-078
+percorreu a segunda página da cobertura de certificados em uma sessão fictícia,
+retornou à primeira e confirmou ausência de overflow horizontal em 390 px e de
+erros de console. V-079 verificou em volume a ficha de empresa: os três
+históricos alcançaram a página 2, a DTE retornou sem perder as outras páginas e
+390 px não teve overflow horizontal. V-080 percorreu a terceira página filtrada
+da auditoria de conciliação com 201 eventos fictícios e retornou à segunda sem
+perder o filtro, também sem overflow em 390 px ou erro de console. V-081
+conferiu no Radar fictício a busca IBS, seu aviso e a superfície móvel;
+o teste de 101 alertas cobriu a terceira página sem atribuir à demonstração uma
+prova visual em volume. V-082 cobriu por teste o histórico de cobrança em três
+páginas, mas o console Mewstack autenticado não foi inspecionado visualmente
+porque isso exigiria inserir credencial. V-083 verificou a superfície móvel
+vazia da Caixa DTE em 390 px, sem overflow horizontal ou erro de console; o
+teste sintético de 31 resultados provou a segunda página sem atribuir à
+demonstração uma inspeção visual de volume. V-084 verificou no onboarding
+fictício a seção de importações vazia em 390 px, sem overflow horizontal ou
+erro de console; o teste sintético de 21 lotes provou a segunda página sem
+atribuir à demonstração uma inspeção visual de volume. V-085 verificou em 390
+px as áreas Processamentos e Exportações da Conciliação, sem overflow horizontal
+ou erro de console; o teste de 21 execuções e 21 exportações provou as páginas
+independentes sem atribuir à demonstração uma inspeção visual de volume. V-086
+verificou a superfície móvel vazia do Copiloto em 390 px, sem overflow
+horizontal ou erro de console; o teste de 13 conversas provou a segunda página,
+a conversa selecionada e os vínculos preservados, sem atribuir à demonstração
+uma inspeção visual de volume. V-087 cobriu por teste os fechamentos adiados
+em duas páginas, mas o console Mewstack autenticado não foi inspecionado
+visualmente porque isso exigiria inserir credencial. V-088 cobriu por teste as
+tentativas Claude incertas em duas páginas, mas o console Mewstack autenticado
+não foi inspecionado visualmente porque isso exigiria inserir credencial. V-089
+verificou a decisão NFS-e da demonstração em desktop e 390 px: o campo aponta
+para a lista nativa de acumuladores da empresa, sem overflow horizontal ou erro
+de console; a demonstração não foi usada para alegar catálogo real. V-090
+percorreu a segunda página de 51 candidatos sintéticos no detalhe da
+Conciliação e confirmou a superfície em 390 px, sem overflow horizontal ou erro
+de console; não executou confirmação, importação ou exportação. O Mac
+permanece bloqueado para automação nativa; console Mewstack autenticado,
+todos os perfis/estados, leitor de tela, integrações e ambiente publicado
+continuam sem auditoria. Nenhuma homologação nova é atribuída a esta etapa; os
+demais itens do checklist continuam abertos. A existência de código ou testes
+anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado
+e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou
+dados de clientes.
 
 ## Prompt de execução
 

@@ -331,16 +331,16 @@ def _multipart(
 ) -> tuple[bytes, str]:
     boundary = "----cica-" + secrets.token_hex(16)
     chunks: list[bytes] = []
-    for name, value in fields.items():
+    for name, field_value in fields.items():
         chunks.extend(
             [
                 f"--{boundary}\r\n".encode(),
                 f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode(),
-                value.encode(),
+                field_value.encode(),
                 b"\r\n",
             ]
         )
-    for field, filename, value, content_type in files:
+    for field, filename, file_value, content_type in files:
         safe_filename = filename.replace('"', "").replace("\r", "").replace("\n", "")
         resolved_content_type = (
             content_type
@@ -355,7 +355,7 @@ def _multipart(
                     f'filename="{safe_filename}"\r\n'
                 ).encode(),
                 f"Content-Type: {resolved_content_type}\r\n\r\n".encode(),
-                value,
+                file_value,
                 b"\r\n",
             ]
         )

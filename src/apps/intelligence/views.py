@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -313,25 +314,24 @@ def assistant(request: HttpRequest) -> HttpResponse:
         attempts = EgressAudit.objects.filter(
             organization=office, user_message_id__in=pending_users
         ).order_by("-created_at")
-        latest_attempts = {}
-        for attempt in attempts:
-            latest_attempts.setdefault(attempt.user_message_id, attempt)
+        latest_attempts: dict[UUID, EgressAudit] = {}
+        for egress_attempt in attempts:
+            if egress_attempt.user_message_id is not None:
+                latest_attempts.setdefault(egress_attempt.user_message_id, egress_attempt)
         stale_before = timezone.now() - timedelta(minutes=10)
         for message_id, message in pending_users.items():
-            attempt = latest_attempts.get(message_id)
-            if attempt is not None:
-                message.delivery_reference = attempt.id
-                message.delivery_state = (
-                    "processing"
-                    if attempt.call_state == EgressAudit.CallState.RESERVED
-                    else "interrupted"
-                    if attempt.call_state == EgressAudit.CallState.SUCCEEDED
-                    else "unknown"
-                    if attempt.call_state == EgressAudit.CallState.UNKNOWN
-                    else "processing"
-                )
+            latest_attempt = latest_attempts.get(message_id)
+            if latest_attempt is not None:
+                message.__dict__["delivery_reference"] = latest_attempt.id
+                delivery_states: dict[str, str] = {
+                    EgressAudit.CallState.RESERVED: "processing",
+                    EgressAudit.CallState.SUCCEEDED: "interrupted",
+                    EgressAudit.CallState.UNKNOWN: "unknown",
+                }
+                delivery_state = delivery_states.get(str(latest_attempt.call_state), "processing")
+                message.__dict__["delivery_state"] = delivery_state
             else:
-                message.delivery_state = (
+                message.__dict__["delivery_state"] = (
                     "interrupted" if message.created_at < stale_before else "processing"
                 )
         draft = (
@@ -343,20 +343,29 @@ def assistant(request: HttpRequest) -> HttpResponse:
             .order_by("-created_at")
             .first()
         )
-    conversations = list(
+    conversation_history_params = request.GET.copy()
+    conversation_history_params.pop("conversation_page", None)
+    conversation_item_params = request.GET.copy()
+    conversation_item_params.pop("conversation", None)
+    conversation_history_page = Paginator(
         Conversation.objects.filter(
             organization=office, company_id__in=allowed_company_ids, closed_at__isnull=True
         )
         .select_related("company")
-        .order_by("-updated_at")[:12]
-    )
+        .order_by("-updated_at"),
+        12,
+    ).get_page(request.GET.get("conversation_page"))
     context.update(
         {
             "page_title": "Copiloto CICA",
             "form": form,
             "active_conversation": active_conversation,
             "conversation_messages": conversation_messages,
-            "conversation_history": conversations,
+            "conversation_history": list(conversation_history_page.object_list),
+            "conversation_history_page": conversation_history_page,
+            "conversation_history_total": conversation_history_page.paginator.count,
+            "conversation_history_querystring": conversation_history_params.urlencode(),
+            "conversation_history_item_querystring": conversation_item_params.urlencode(),
             "draft": draft,
             "request_id": submission_id,
             "selected_company_id": request.POST.get("company_id")

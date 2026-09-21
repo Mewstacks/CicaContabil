@@ -1,13 +1,15 @@
+from typing import cast
 from urllib.parse import urlsplit
 
 from django import template
+from django.http import HttpRequest
 from django.urls import reverse
 
 register = template.Library()
 
 
 @register.inclusion_tag("hub/workspace_navigation.html", takes_context=True)
-def workspace_menu(context: template.Context) -> dict:
+def workspace_menu(context: template.Context) -> dict[str, object]:
     from apps.hub.navigation import workspace_navigation
 
     return {
@@ -21,7 +23,7 @@ def workspace_menu(context: template.Context) -> dict:
 def back_url(context: template.Context, route: str, *alternate_routes: str) -> str:
     """Keep a list's filters without allowing another host or arbitrary destination."""
     fallback = reverse(route)
-    request = context["request"]
+    request = cast(HttpRequest, context["request"])
     candidate = request.GET.get("return_to", "")
     try:
         parts = urlsplit(candidate)

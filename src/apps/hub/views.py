@@ -12,10 +12,10 @@ import zipfile
 from collections.abc import Callable
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
-from functools import wraps
+from functools import partial, wraps
 from pathlib import PurePath
 from types import SimpleNamespace
-from typing import Concatenate, cast
+from typing import Any, Concatenate, cast
 from urllib.parse import quote, urlencode
 
 from django import forms
@@ -35,6 +35,7 @@ from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
+    HttpResponseBase,
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404, redirect, render
@@ -76,11 +77,8 @@ from apps.hub.forms import (
     DataSourceForm,
     DtePreparationForm,
     FinancialAccountForm,
-    JourneyForm,
-    JourneyStepForm,
     LedgerAccountForm,
     OfxImportForm,
-    PortalRequestForm,
     ReconciliationMovementForm,
     ReconciliationRuleForm,
     ReconciliationUploadForm,
@@ -91,10 +89,11 @@ from apps.hub.models import (
     AccountingEntry,
     AccountingExport,
     AccountingPeriod,
+    AccumulatorObservation,
+    AccumulatorRule,
     BankStatementImport,
     Certificate,
     ClientCompany,
-    ClientJourney,
     CompanyAccessGrant,
     Connector,
     ControlPlaneBinding,
@@ -112,7 +111,6 @@ from apps.hub.models import (
     IntegrationArtifact,
     JournalEntry,
     JournalLine,
-    JourneyStep,
     LedgerAccount,
     MovementReconciliation,
     NfseDocument,
@@ -120,7 +118,6 @@ from apps.hub.models import (
     NormalizedMovement,
     OfficeProfile,
     ParcelamentoOperation,
-    PortalRequest,
     ProductModule,
     ReconciliationLayout,
     ReconciliationMatch,
@@ -170,9 +167,9 @@ from apps.hub.services import (
     request_parcelamento_operation,
     store_certificate,
 )
-from apps.integra.client import IntegraConfigurationError, credentials_from_settings
+from apps.integra.client import credentials_from_settings
 from apps.integra.dctfweb import extract_pdf
-from apps.integra.errors import IntegraError
+from apps.integra.errors import IntegraConfigurationError, IntegraError
 from apps.integra.parcelamento import detalhe, parcelas_disponiveis, pdf_das, pedidos
 from apps.intelligence.agents import issue_enrollment
 from apps.intelligence.connectors import ReadOnlyDominoOdbc
@@ -224,7 +221,7 @@ from apps.triage.oauth import (
     probe_mailbox,
     redirect_uri,
 )
-from apps.triage.presentation import present_mailbox
+from apps.triage.presentation import MailboxPresentation, present_mailbox
 from apps.triage.services import (
     archive_internal,
     decide_item,
@@ -239,7 +236,9 @@ logger = logging.getLogger(__name__)
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     """Keep the one-use reset token out of every subsequent Referer header."""
 
-    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
+    def dispatch(
+        self, request: HttpRequest, *args: object, **kwargs: object
+    ) -> HttpResponseBase:
         response = super().dispatch(request, *args, **kwargs)
         # Django replaces the one-use token with "set-password" before rendering.
         # On that sanitized URL, preserve the same-origin POST context for CSRF;
@@ -266,6 +265,7 @@ def demo_entry(request: HttpRequest) -> HttpResponse:
         if request.session.get("demo_visit_id") and request.user.is_authenticated:
             request.session.set_expiry(0)
             return redirect("hub:dashboard")
+        assert office is not None
         cleanup_stale_demo_visitors(office)
         visitor_id = uuid.uuid4()
         user = User.objects.create_user(
@@ -728,18 +728,18 @@ def refuse(request: HttpRequest, reason: str) -> HttpResponse:
 def collaborator_can_use_module(context: dict[str, object], code: str) -> bool:
     """Keep module permission independent from menu visibility and URL guessing."""
     permitted = context.get("permitted_module_codes")
-    return permitted is None or code in permitted
+    return permitted is None or (isinstance(permitted, set) and code in permitted)
 
 
 def office_required[**ViewParams](
-    view: Callable[Concatenate[HttpRequest, ViewParams], HttpResponse],
-) -> Callable[Concatenate[HttpRequest, ViewParams], HttpResponse]:
+    view: Callable[Concatenate[HttpRequest, ViewParams], HttpResponseBase],
+) -> Callable[Concatenate[HttpRequest, ViewParams], HttpResponseBase]:
     @wraps(view)
     def wrapped(
         request: HttpRequest,
         *args: ViewParams.args,
         **kwargs: ViewParams.kwargs,
-    ) -> HttpResponse:
+    ) -> HttpResponseBase:
         if not request.user.is_authenticated:
             return redirect(f"{reverse('hub:login')}?next={request.path}")
         support = current_support(request)
@@ -941,7 +941,7 @@ def team(request: HttpRequest) -> HttpResponse:
                     modules=form.cleaned_data["modules"],
                     token_digest=digest,
                     expires_at=timezone.now() + timedelta(days=7),
-                    created_by=request.user,
+                    created_by=cast(User, request.user),
                 )
                 send_invitation_email(
                     invitation=invitation,
@@ -977,7 +977,7 @@ def team(request: HttpRequest) -> HttpResponse:
     )
     for item in collaborators:
         grants = list(item.company_grants.all())
-        item.role_label = {  # type: ignore[attr-defined]
+        role_labels: dict[str, str] = {
             Membership.Role.OWNER: "Dono",
             Membership.Role.ADMIN: "Administrador",
             Membership.Role.MANAGER: "Gestor",
@@ -985,7 +985,8 @@ def team(request: HttpRequest) -> HttpResponse:
             Membership.Role.AUDITOR: "Auditor",
             Membership.Role.BILLING: "Financeiro",
             Membership.Role.MEMBER: "Membro",
-        }.get(item.role, item.get_role_display())
+        }
+        item.role_label = role_labels.get(item.role, item.get_role_display())  # type: ignore[attr-defined]
         item.scope_modules = sorted(  # type: ignore[attr-defined]
             {str(code) for grant in grants for code in grant.modules if isinstance(code, str)}
         )
@@ -1176,28 +1177,53 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     company = get_object_or_404(companies, id=company_id)
 
-    documents = (
+    documents_query = (
         NfseDocument.objects.filter(organization=office, company=company)
         .select_related("review_case")
-        .order_by("-captured_at")[:20]
+        .order_by("-captured_at")
     )
+    document_page = Paginator(documents_query, 20).get_page(request.GET.get("documents_page"))
+    open_cases_query = (
+        ReviewCase.objects.filter(
+            organization=office, status=ReviewCase.Status.OPEN, document__company=company
+        )
+        .select_related("document")
+        .order_by("-created_at")
+    )
+    open_cases_page = Paginator(open_cases_query, 20).get_page(
+        request.GET.get("reviews_page")
+    )
+    dte_messages_query = DteMessage.objects.filter(
+        organization=office, company=company
+    ).order_by("-sent_at", "-first_seen_at")
+    dte_messages_page = Paginator(dte_messages_query, 20).get_page(
+        request.GET.get("dte_page")
+    )
+    company_detail_query_params = request.GET.copy()
+    company_detail_querystrings: dict[str, str] = {}
+    for page_parameter in ("documents_page", "reviews_page", "dte_page"):
+        page_query_params = company_detail_query_params.copy()
+        page_query_params.pop(page_parameter, None)
+        company_detail_querystrings[page_parameter] = page_query_params.urlencode()
     context.update(
         {
             "page_title": company.name,
             "company": company,
-            "documents": documents,
-            "open_cases": ReviewCase.objects.filter(
-                organization=office, status=ReviewCase.Status.OPEN, document__company=company
-            ).select_related("document")[:20],
+            "documents": list(document_page.object_list),
+            "document_page": document_page,
+            "document_querystring": company_detail_querystrings["documents_page"],
+            "open_cases": list(open_cases_page.object_list),
+            "open_cases_page": open_cases_page,
+            "open_cases_querystring": company_detail_querystrings["reviews_page"],
             "certificates": Certificate.objects.filter(
                 organization=office, company=company, revoked_at__isnull=True
             ).order_by("-valid_until"),
-            "dte_messages": DteMessage.objects.filter(
-                organization=office, company=company
-            ).order_by("-sent_at", "-first_seen_at")[:10],
-            "document_count": NfseDocument.objects.filter(
-                organization=office, company=company
-            ).count(),
+            "dte_messages": list(dte_messages_page.object_list),
+            "dte_messages_page": dte_messages_page,
+            "dte_messages_querystring": company_detail_querystrings["dte_page"],
+            "document_count": document_page.paginator.count,
+            "open_cases_count": open_cases_page.paginator.count,
+            "dte_messages_count": dte_messages_page.paginator.count,
             "today": timezone.now(),
         }
     )
@@ -1224,8 +1250,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             review for review in demo_open_cases if review.status == ReviewCase.Status.OPEN
         ][:8]
     else:
-        open_cases = open_cases_query[:8]
-    enabled_codes = {module.code for module in context["enabled_modules"]}
+        open_cases = list(open_cases_query[:8])
+    enabled_modules = cast(list[ProductModule], context["enabled_modules"])
+    enabled_codes = {module.code for module in enabled_modules}
     review_count = (
         len([review for review in demo_open_cases if review.status == ReviewCase.Status.OPEN])
         if is_demo_visitor(request, office)
@@ -1352,277 +1379,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
 
 @office_required
 @require_http_methods(["GET", "POST"])
-def journey(request: HttpRequest) -> HttpResponse:
-    """Internal operational workboard, deliberately scoped to the active office."""
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
-    if blocked:
-        return blocked
-    office = cast(Organization, context["office"])
-    membership = context["membership"]
-    can_manage = bool(
-        context["support_can_mutate"]
-        and isinstance(membership, Membership)
-        and membership.role
-        in {
-            Membership.Role.OWNER,
-            Membership.Role.ADMIN,
-            Membership.Role.MANAGER,
-            Membership.Role.OPERATOR,
-        }
-    )
-    allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
-    selected_journey: ClientJourney | None = None
-    selected_id = request.GET.get("j")
-    if selected_id:
-        selected_journey = get_object_or_404(
-            ClientJourney.objects.select_related("company", "owner").prefetch_related(
-                "steps", "requests"
-            ),
-            organization=office,
-            company__in=allowed_companies,
-            pk=selected_id,
-        )
-    if request.method == "POST":
-        if not can_manage:
-            return refuse(request, "Seu perfil pode acompanhar jornadas, mas não criar uma nova.")
-        form = JourneyForm(request.POST, instance=ClientJourney(organization=office))
-        cast(
-            "forms.ModelChoiceField[ClientCompany]", form.fields["company"]
-        ).queryset = allowed_companies
-        if form.is_valid():
-            created = form.save(commit=False)
-            created.organization = office
-            created.owner = request.user
-            created.save()
-            record_event(
-                action="hub.journey.created",
-                actor=request.user,
-                organization=office,
-                target=created,
-                request=request,
-                metadata={"company_id": str(created.company_id)},
-            )
-            messages.success(
-                request,
-                "Jornada criada. Agora você pode organizar as pendências internas.",
-            )
-            return redirect(f"{reverse('hub:journey')}?{urlencode({'j': created.id})}")
-    else:
-        form = JourneyForm(instance=ClientJourney(organization=office))
-        cast(
-            "forms.ModelChoiceField[ClientCompany]", form.fields["company"]
-        ).queryset = allowed_companies
-    journey_rows = list(
-        ClientJourney.objects.filter(organization=office, company__in=allowed_companies)
-        .select_related("company", "owner")
-        .prefetch_related("steps", "requests")[:12]
-    )
-    context.update(
-        {
-            "page_title": "Jornadas",
-            "journey_form": form,
-            "journey_step_form": JourneyStepForm(prefix="step"),
-            "portal_request_form": PortalRequestForm(prefix="request"),
-            "selected_journey": selected_journey,
-            "can_manage_journey": can_manage,
-            "journey_rows": journey_rows,
-            "journey_steps": (
-                ("Onboarding", "Defina responsáveis, empresas e o primeiro prazo.", "Pronto"),
-                (
-                    "Pendências",
-                    "Centralize o que precisa ser tratado pelo time.",
-                    "Pronto",
-                ),
-                (
-                    "Documentos",
-                    "Mantenha o histórico operacional por empresa.",
-                    "Pronto",
-                ),
-            ),
-        }
-    )
-    return render(request, "hub/journey.html", context)
-
-
-def _journey_can_manage(context: dict[str, object]) -> bool:
-    membership = context["membership"]
-    return bool(
-        context["support_can_mutate"]
-        and isinstance(membership, Membership)
-        and membership.role
-        in {
-            Membership.Role.OWNER,
-            Membership.Role.ADMIN,
-            Membership.Role.MANAGER,
-            Membership.Role.OPERATOR,
-        }
-    )
-
-
-def _journey_in_scope(
-    office: Organization, companies: QuerySet[ClientCompany], journey_id: str | None
-) -> ClientJourney:
-    return get_object_or_404(
-        ClientJourney.objects.select_related("company"),
-        organization=office,
-        company__in=companies,
-        pk=journey_id,
-    )
-
-
-def _journey_redirect(journey: ClientJourney) -> HttpResponse:
-    return redirect(f"{reverse('hub:journey')}?{urlencode({'j': journey.id})}")
-
-
-@office_required
-@require_http_methods(["POST"])
-def create_journey_step(request: HttpRequest) -> HttpResponse:
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
-    if blocked:
-        return blocked
-    if not _journey_can_manage(context):
-        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
-    office = cast(Organization, context["office"])
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
-    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
-    form = JourneyStepForm(request.POST, prefix="step")
-    if not form.is_valid():
-        messages.error(request, "Revise os campos da etapa e tente novamente.")
-        return _journey_redirect(journey)
-    with transaction.atomic():
-        locked_journey = ClientJourney.objects.select_for_update().get(pk=journey.pk)
-        last_position = (
-            JourneyStep.objects.filter(journey=locked_journey)
-            .order_by("-position")
-            .values_list("position", flat=True)
-            .first()
-            or 0
-        )
-        step = form.save(commit=False)
-        step.organization = office
-        step.journey = locked_journey
-        step.position = last_position + 1
-        step.full_clean()
-        step.save()
-    record_event(
-        action="hub.journey.step_created",
-        actor=request.user,
-        organization=office,
-        target=step,
-        request=request,
-        metadata={"journey_id": str(journey.id)},
-    )
-    messages.success(request, "Etapa criada.")
-    return _journey_redirect(journey)
-
-
-@office_required
-@require_http_methods(["POST"])
-def create_portal_request(request: HttpRequest) -> HttpResponse:
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
-    if blocked:
-        return blocked
-    if not _journey_can_manage(context):
-        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
-    office = cast(Organization, context["office"])
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
-    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
-    form = PortalRequestForm(request.POST, prefix="request")
-    if not form.is_valid():
-        messages.error(request, "Revise os campos da solicitação e tente novamente.")
-        return _journey_redirect(journey)
-    item = form.save(commit=False)
-    item.organization = office
-    item.journey = journey
-    item.full_clean()
-    item.save()
-    record_event(
-        action="hub.journey.request_created",
-        actor=request.user,
-        organization=office,
-        target=item,
-        request=request,
-        metadata={"journey_id": str(journey.id)},
-    )
-    messages.success(request, "Solicitação criada.")
-    return _journey_redirect(journey)
-
-
-@office_required
-@require_http_methods(["POST"])
-def complete_journey_step(request: HttpRequest) -> HttpResponse:
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
-    if blocked:
-        return blocked
-    if not _journey_can_manage(context):
-        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
-    office = cast(Organization, context["office"])
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
-    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
-    step = get_object_or_404(
-        JourneyStep, organization=office, journey=journey, pk=request.POST.get("item_id")
-    )
-    if step.completed_at is None:
-        step.completed_at = timezone.now()
-        step.save(update_fields=["completed_at", "updated_at"])
-        record_event(
-            action="hub.journey.step_completed",
-            actor=request.user,
-            organization=office,
-            target=step,
-            request=request,
-            metadata={"journey_id": str(journey.id)},
-        )
-        messages.success(request, "Etapa concluída.")
-    else:
-        messages.info(request, "Essa etapa já foi concluída.")
-    return _journey_redirect(journey)
-
-
-@office_required
-@require_http_methods(["POST"])
-def transition_portal_request(request: HttpRequest) -> HttpResponse:
-    context, blocked = _module_page_context(request, definition(ProductModule.Code.JOURNEY))
-    if blocked:
-        return blocked
-    if not _journey_can_manage(context):
-        return refuse(request, "Seu perfil pode acompanhar jornadas, mas não pode alterá-las.")
-    office = cast(Organization, context["office"])
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
-    journey = _journey_in_scope(office, companies, request.POST.get("journey_id"))
-    item = get_object_or_404(
-        PortalRequest, organization=office, journey=journey, pk=request.POST.get("item_id")
-    )
-    action = request.POST.get("action")
-    if action == "received":
-        item.status = PortalRequest.Status.RECEIVED
-        item.resolved_at = None
-        event_action, feedback = (
-            "hub.journey.request_received",
-            "Solicitação marcada como recebida.",
-        )
-    elif action == "resolve":
-        item.status = PortalRequest.Status.RESOLVED
-        item.resolved_at = timezone.now()
-        event_action, feedback = "hub.journey.request_resolved", "Solicitação concluída."
-    else:
-        return HttpResponseBadRequest("Ação de solicitação inválida.")
-    item.save(update_fields=["status", "resolved_at", "updated_at"])
-    record_event(
-        action=event_action,
-        actor=request.user,
-        organization=office,
-        target=item,
-        request=request,
-        metadata={"journey_id": str(journey.id)},
-    )
-    messages.success(request, feedback)
-    return _journey_redirect(journey)
-
-
-@office_required
-@require_http_methods(["GET", "POST"])
-def nfse_center(request: HttpRequest) -> HttpResponse:
+def nfse_center(request: HttpRequest) -> HttpResponseBase:
     """Show only the fiscal documents belonging to the active company context."""
 
     context = workspace_context(request)
@@ -1745,7 +1502,7 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
             if settings.NFSE_ADN_SYNC_ENABLED:
                 from apps.hub.tasks import poll_nfse_sync
 
-                transaction.on_commit(lambda sync_id=str(sync.id): poll_nfse_sync.delay(sync_id))
+                transaction.on_commit(partial(poll_nfse_sync.delay, str(sync.id)))
         record_event(
             action=f"hub.nfse.sync_{action}",
             actor=request.user,
@@ -1817,7 +1574,7 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
         document_competence = ""
     date_filter_error = ""
 
-    def parse_filter_date(value):
+    def parse_filter_date(value: str) -> date | None:
         nonlocal date_filter_error
         if not value:
             return None
@@ -1853,7 +1610,9 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
         documents = documents.filter(issued_at__date__lte=issued_to_date)
     documents = documents.distinct()
     document_total = documents.count()
-    ordered_documents = documents.order_by("-issued_at", "-captured_at")
+    ordered_documents: QuerySet[NfseDocument] | list[NfseDocument] = documents.order_by(
+        "-issued_at", "-captured_at"
+    )
     if office.is_demo:
         # Old demo fixtures keep their emission date in the normalized XML data.
         # Filter against the same date shown in the table, before limiting rows.
@@ -1877,8 +1636,11 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
             demo_documents.append(document)
         document_total = len(demo_documents)
         ordered_documents = demo_documents
+    document_page = Paginator(ordered_documents, 100).get_page(request.GET.get("page"))
+    document_query_params = request.GET.copy()
+    document_query_params.pop("page", None)
     document_rows: list[dict[str, object]] = []
-    for document in ordered_documents[:100]:
+    for document in document_page.object_list:
         artifact = next(iter(document.integration_artifacts.all()), None)
         review = getattr(document, "review_case", None)
         open_review = review if review and review.status == ReviewCase.Status.OPEN else None
@@ -1959,6 +1721,8 @@ def nfse_center(request: HttpRequest) -> HttpResponse:
             "page_title": "NFS-e",
             "nfse_view": "collection" if request.GET.get("view") == "collection" else "notes",
             "document_rows": document_rows,
+            "document_page": document_page,
+            "document_querystring": document_query_params.urlencode(),
             "document_filtered_total": document_total,
             "document_search": document_search,
             "document_status": document_status,
@@ -2126,16 +1890,16 @@ def _module_page_context(
     request: HttpRequest, module: ModuleDefinition
 ) -> tuple[dict[str, object], HttpResponse | None]:
     context = workspace_context(request)
+    office = context["office"]
+    assert isinstance(office, Organization)
     if (
         module.code == ProductModule.Code.AI
         and not copilot_is_available()
-        and not (context["office"] and context["office"].is_demo)
+        and not office.is_demo
     ):
         return context, HttpResponse(status=404)
     if not collaborator_can_use_module(context, module.code):
         return context, refuse(request, f"Seu acesso n\u00e3o inclui {module.label}.")
-    office = context["office"]
-    assert isinstance(office, Organization)
     enabled = ProductModule.objects.filter(
         organization=office, code=module.code, enabled=True
     ).exists()
@@ -2309,7 +2073,7 @@ def _demo_guide_for_view(request: HttpRequest, guide: FiscalGuide) -> FiscalGuid
     issued_at = parse_datetime(str(entry.get("issued_at", "")))
     guide.issued_at = issued_at if entry.get("issued") else None
     guide.issue_requested_at = guide.issued_at
-    guide.issue_requested_by = request.user if entry.get("issued") else None
+    guide.issue_requested_by = cast(User, request.user) if entry.get("issued") else None
     return guide
 
 
@@ -2359,7 +2123,7 @@ def guides(request: HttpRequest) -> HttpResponse:
         elif guide_status != "all":
             demo_guides = [guide for guide in demo_guides if guide.status == guide_status]
         guide_filtered_total = len(demo_guides)
-        guide_list = demo_guides[:100]
+        guide_items: QuerySet[FiscalGuide] | list[FiscalGuide] = demo_guides
     else:
         if guide_status == "pending":
             filtered_guides = filtered_guides.filter(
@@ -2368,31 +2132,36 @@ def guides(request: HttpRequest) -> HttpResponse:
         elif guide_status != "all":
             filtered_guides = filtered_guides.filter(status=guide_status)
         guide_filtered_total = filtered_guides.count()
-        guide_list = list(filtered_guides.order_by("due_on", "company__name")[:100])
+        guide_items = filtered_guides.order_by("due_on", "company__name")
+    guide_page = Paginator(guide_items, 100).get_page(request.GET.get("page"))
+    guide_list = list(guide_page.object_list)
+    guide_querystring = urlencode(
+        {"q": guide_search, "status": guide_status, "due": guide_due}
+    )
     for guide in guide_list:
-        guide.amount_brl = Decimal(guide.amount_cents) / 100  # type: ignore[attr-defined]
-        guide.usage_quote = None  # type: ignore[attr-defined]
-        guide.usage_error = ""  # type: ignore[attr-defined]
+        guide.amount_brl = Decimal(guide.amount_cents) / 100
+        guide.usage_quote = None
+        guide.usage_error = ""
         if guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
             if office.is_demo:
-                guide.usage_quote = SimpleNamespace(  # type: ignore[attr-defined]
+                guide.usage_quote = SimpleNamespace(
                     total_tokens=0,
                     additional_overage_cents=0,
                     additional_overage_tokens=0,
                 )
             else:
                 try:
-                    guide.usage_quote = quote_tokens(  # type: ignore[attr-defined]
+                    guide.usage_quote = quote_tokens(
                         organization=office,
                         module_code="integra",
                         action_code=guide.integra_service_key,
                     )
                 except BillingError as exc:
-                    guide.usage_error = str(exc)  # type: ignore[attr-defined]
-            if guide.usage_quote is not None:  # type: ignore[attr-defined]
-                guide.usage_overage_brl = (  # type: ignore[attr-defined]
-                    Decimal(guide.usage_quote.additional_overage_cents) / 100  # type: ignore[attr-defined]
-                )
+                    guide.usage_error = str(exc)
+        if guide.usage_quote is not None:
+            guide.usage_overage_brl = (
+                Decimal(guide.usage_quote.additional_overage_cents) / 100
+            )
     source_connector = (
         IntelligenceConnector.objects.filter(organization=office)
         .order_by("-last_sync_at", "-created_at")
@@ -2451,7 +2220,7 @@ def guides(request: HttpRequest) -> HttpResponse:
                     }
                     grouped_calculations[key] = item
                 item["amount_brl"] = cast(Decimal, item["amount_brl"]) + amount_brl
-                item["component_count"] = int(item["component_count"]) + 1
+                item["component_count"] = cast(int, item["component_count"]) + 1
                 item["due_on"] = min(cast(date, item["due_on"]), due_on)
                 item["due_on_end"] = max(cast(date, item["due_on_end"]), due_on)
                 cast(list[str], item["source_ids"]).append(str(row.get("source_id", "")))
@@ -2544,6 +2313,8 @@ def guides(request: HttpRequest) -> HttpResponse:
         {
             "page_title": "Guias e DCTFWeb",
             "guides": guide_list,
+            "guide_page": guide_page,
+            "guide_querystring": guide_querystring,
             "guide_data_available": guide_data_available,
             "guide_filtered_total": guide_filtered_total,
             "guide_search": guide_search,
@@ -2605,7 +2376,8 @@ def _dominio_dctfweb_calculation(
             component = Decimal(str(row.get("amount") or "0"))
         except InvalidOperation:
             return None
-        if component <= 0 or component.as_tuple().exponent < -2:
+        exponent = component.as_tuple().exponent
+        if component <= 0 or not isinstance(exponent, int) or exponent < -2:
             return None
         amount += component
         source_ids.append(str(row.get("source_id", "")))
@@ -2632,10 +2404,10 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
         return blocked
     office = cast(Organization, context["office"])
     allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
-    company_id = request.POST.get("company") or request.GET.get("company", "")
+    company_id_raw = request.POST.get("company") or request.GET.get("company", "")
     competence = (request.POST.get("competence") or request.GET.get("competence", "")).strip()
     try:
-        company_id = uuid.UUID(company_id)
+        company_id = uuid.UUID(company_id_raw)
     except (ValueError, TypeError):
         messages.error(request, "Escolha uma empresa e uma competência na carteira.")
         return redirect("hub:guides")
@@ -2676,7 +2448,7 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                         company=company,
                         competence=competence,
                         due_on=cast(date, dominio_calculation["due_on"]),
-                        amount_cents=int(dominio_calculation["amount_cents"]),
+                        amount_cents=cast(int, dominio_calculation["amount_cents"]),
                         source_reference=str(dominio_calculation["source_reference"]),
                         actor=request.user,
                         request=request,
@@ -2698,7 +2470,7 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
             service_key = DCTFWEB_DOCUMENT_SERVICE.get(kind)
             if service_key is None:
                 raise DctfWebDocumentTransitionError("Escolha declaração completa ou recibo.")
-            quote = (
+            request_quote = (
                 SimpleNamespace(additional_overage_cents=0)
                 if office.is_demo
                 else quote_tokens(
@@ -2708,11 +2480,11 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                 )
             )
             approved_cents = int(request.POST.get("approved_overage_cents", "0"))
-            if approved_cents != quote.additional_overage_cents:
+            if approved_cents != request_quote.additional_overage_cents:
                 raise DctfWebDocumentTransitionError(
                     "O custo mudou desde a abertura da tela. Revise e confirme novamente."
                 )
-            document = request_dctfweb_document(
+            request_dctfweb_document(
                 organization=office,
                 company=company,
                 competence=competence,
@@ -2732,10 +2504,10 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
 
     cards: list[dict[str, object]] = []
     for kind, service_key in DCTFWEB_DOCUMENT_SERVICE.items():
-        quote: TokenQuote | SimpleNamespace | None = None
+        card_quote: TokenQuote | SimpleNamespace | None = None
         error = ""
         if office.is_demo:
-            quote = SimpleNamespace(
+            card_quote = SimpleNamespace(
                 included_remaining=0,
                 tokens_per_operation=0,
                 total_tokens=0,
@@ -2745,14 +2517,14 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
             )
         else:
             try:
-                quote = quote_tokens(
+                card_quote = quote_tokens(
                     organization=office,
                     module_code="integra",
                     action_code=service_key,
                 )
             except BillingError as exc:
                 error = str(exc)
-        document = DctfWebDocument.objects.filter(
+        existing_document = DctfWebDocument.objects.filter(
             organization=office,
             company=company,
             competence=competence,
@@ -2763,13 +2535,15 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                 "kind": kind,
                 "label": DctfWebDocument.Kind(kind).label,
                 "service_key": service_key,
-                "quote": quote,
+                "quote": card_quote,
                 "additional_overage_brl": (
-                    Decimal(quote.additional_overage_cents) / 100 if quote else None
+                    Decimal(card_quote.additional_overage_cents) / 100 if card_quote else None
                 ),
-                "token_price_brl": (Decimal(quote.token_price_cents) / 100 if quote else None),
+                "token_price_brl": (
+                    Decimal(card_quote.token_price_cents) / 100 if card_quote else None
+                ),
                 "error": error,
-                "document": document,
+                "document": existing_document,
             }
         )
     context.update(
@@ -2783,7 +2557,7 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
             "dctfweb_documents_ready": all(
                 any(
                     card["kind"] == required_kind
-                    and card["document"] is not None
+                    and isinstance(card["document"], DctfWebDocument)
                     and card["document"].status == DctfWebDocument.Status.AVAILABLE
                     for card in cards
                 )
@@ -3030,8 +2804,8 @@ def demo_guide_pdf(request: HttpRequest, guide_id: str) -> HttpResponse:
 
     from io import BytesIO
 
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import A4  # type: ignore[import-untyped]
+    from reportlab.pdfgen import canvas  # type: ignore[import-untyped]
 
     context, blocked = _module_page_context(request, definition(ProductModule.Code.GUIDES))
     if blocked:
@@ -3280,12 +3054,12 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Consulte no máximo 30 empresas por lote.")
                 return redirect("hub:parcelamentos")
             try:
-                selected_ids = [uuid.UUID(value) for value in selected_ids]
+                selected_company_ids = [uuid.UUID(value) for value in selected_ids]
             except ValueError:
                 messages.error(request, "Selecione empresas válidas e tente novamente.")
                 return redirect("hub:parcelamentos")
-            selected = list(all_companies.filter(id__in=selected_ids).order_by("name"))
-            if len(selected) != len(selected_ids):
+            selected = list(all_companies.filter(id__in=selected_company_ids).order_by("name"))
+            if len(selected) != len(selected_company_ids):
                 return refuse(request, "Uma empresa selecionada não pertence ao seu escopo.")
             if visitor:
                 for selected_company in selected:
@@ -3426,19 +3200,19 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             messages.error(request, "Ação de parcelamento inválida.")
         return redirect(f"{reverse('hub:parcelamentos')}?company={company.id}")
 
-    agreements: list[SimpleNamespace] = []
+    agreements: list[Any] = []
     consultation = (
         get_progress(request, "parcelamento_consultations", company.id) if company else {}
     )
     if visitor and company and consultation:
         agreements = _demo_parcelamentos(company)
         guide_progress = get_section(request, "parcelamento_guides")
-        for agreement in agreements:
-            for installment in agreement.installments:
-                key = f"{company.id}:{agreement.number}:{installment.competence_key}"
-                issued = guide_progress.get(key, {})
-                installment.issued = bool(issued)
-                installment.protocol = str(issued.get("protocol", ""))
+        for demo_agreement in agreements:
+            for installment in demo_agreement.installments:
+                key = f"{company.id}:{demo_agreement.number}:{installment.competence_key}"
+                guide_state = guide_progress.get(key, {})
+                installment.issued = bool(guide_state)
+                installment.protocol = str(guide_state.get("protocol", ""))
 
     operations = ParcelamentoOperation.objects.filter(organization=office).select_related(
         "company", "token_usage_event"
@@ -3449,7 +3223,7 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     ):
         latest_by_company.setdefault(str(operation.company_id), operation)
 
-    available_installments: list[SimpleNamespace] = []
+    available_installments: list[Any] = []
     if not visitor and company:
         order_result = operations.filter(
             company=company,
@@ -3475,21 +3249,21 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 )
                 for item in summaries
             ]
-            for agreement in agreements:
-                agreement.detail = None
-                detail_operation = agreement.detail_operation
+            for parsed_agreement in agreements:
+                parsed_agreement.detail = None
+                detail_operation = parsed_agreement.detail_operation
                 if (
                     detail_operation
                     and detail_operation.status == ParcelamentoOperation.Status.AVAILABLE
                     and detail_operation.provider_payload
                 ):
                     try:
-                        agreement.detail = detalhe(
+                        parsed_agreement.detail = detalhe(
                             json.loads(detail_operation.provider_payload),
-                            numero_esperado=agreement.number,
+                            numero_esperado=parsed_agreement.number,
                         )
                     except (ValueError, TypeError, json.JSONDecodeError):
-                        agreement.detail = None
+                        parsed_agreement.detail = None
         installment_result = operations.filter(
             company=company,
             kind=ParcelamentoOperation.Kind.INSTALLMENTS,
@@ -3517,9 +3291,13 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                     )
                 )
 
-    portfolio = list(companies.order_by("name")[:100])
+    portfolio_page = Paginator(companies.order_by("name"), 30).get_page(
+        request.GET.get("page")
+    )
+    portfolio = list(portfolio_page.object_list)
+    portfolio_querystring = urlencode({"search": search}) if search else ""
     for portfolio_company in portfolio:
-        portfolio_company.parcelamento_operation = latest_by_company.get(  # type: ignore[attr-defined]
+        portfolio_company.parcelamento_operation = latest_by_company.get(
             str(portfolio_company.id)
         )
     orders_quote: TokenQuote | SimpleNamespace | None = None
@@ -3537,12 +3315,14 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             quote_error = str(exc)
     operation_quotes: dict[str, TokenQuote | SimpleNamespace] = {}
     if visitor:
-        for kind in PARCELAMENTO_SERVICE:
-            operation_quotes[kind] = SimpleNamespace(total_tokens=0, additional_overage_cents=0)
+        for operation_kind in PARCELAMENTO_SERVICE:
+            operation_quotes[str(operation_kind)] = SimpleNamespace(
+                total_tokens=0, additional_overage_cents=0
+            )
     else:
-        for kind, service_key in PARCELAMENTO_SERVICE.items():
+        for operation_kind, service_key in PARCELAMENTO_SERVICE.items():
             try:
-                operation_quotes[kind] = quote_tokens(
+                operation_quotes[str(operation_kind)] = quote_tokens(
                     organization=office,
                     module_code="integra",
                     action_code=service_key,
@@ -3550,11 +3330,26 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             except BillingError:
                 continue
 
+    parcelamento_operations: list[ParcelamentoOperation] = []
+    parcelamento_operations_page: object | None = None
+    parcelamento_operations_querystring = ""
+    if company:
+        parcelamento_operations_page = Paginator(
+            operations.filter(company=company), 20
+        ).get_page(request.GET.get("operation_page"))
+        parcelamento_operations = list(parcelamento_operations_page.object_list)
+        operation_query_params = request.GET.copy()
+        operation_query_params.pop("operation_page", None)
+        parcelamento_operations_querystring = operation_query_params.urlencode()
+
     context.update(
         {
             "page_title": "Parcelamentos",
             "parcelamento_companies": companies.order_by("name"),
             "parcelamento_portfolio": portfolio,
+            "parcelamento_portfolio_page": portfolio_page,
+            "parcelamento_portfolio_total": portfolio_page.paginator.count,
+            "parcelamento_portfolio_querystring": portfolio_querystring,
             "parcelamento_search": search,
             "parcelamento_company": company,
             "parcelamento_consultation": consultation,
@@ -3562,7 +3357,9 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             "parcelamento_demo": visitor,
             "parcelamento_orders_quote": orders_quote,
             "parcelamento_quote_error": quote_error,
-            "parcelamento_operations": operations.filter(company=company)[:20] if company else [],
+            "parcelamento_operations": parcelamento_operations,
+            "parcelamento_operations_page": parcelamento_operations_page,
+            "parcelamento_operations_querystring": parcelamento_operations_querystring,
             "parcelamento_available_installments": available_installments,
             "parcelamento_operation_quotes": operation_quotes,
             "parcelamento_detail_quote": operation_quotes.get(ParcelamentoOperation.Kind.DETAIL),
@@ -3577,7 +3374,7 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
 
 
 @office_required
-def parcelamento_das_pdf(request: HttpRequest, operation_id: uuid.UUID) -> HttpResponse:
+def parcelamento_das_pdf(request: HttpRequest, operation_id: uuid.UUID) -> HttpResponseBase:
     """Download a previously issued DAS without another paid provider call."""
 
     context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
@@ -3718,14 +3515,34 @@ def dte_center(request: HttpRequest) -> HttpResponse:
             )
             return redirect("hub:dte-center")
 
+    dte_history_query_params = request.GET.copy()
+    dte_history_query_params.pop("history_page", None)
+    pending_runs: list[Any]
+    dte_history_context: dict[str, object]
     if visitor:
-        pending_runs, items = _demo_dte_runs_for_view(request, companies, office)
+        pending_runs, demo_items = _demo_dte_runs_for_view(request, companies, office)
+        demo_dte_items_page = Paginator(demo_items, 30).get_page(
+            request.GET.get("history_page")
+        )
+        dte_history_context = {
+            "dte_items": list(demo_dte_items_page.object_list),
+            "dte_items_page": demo_dte_items_page,
+            "dte_items_querystring": dte_history_query_params.urlencode(),
+            "dte_items_total": demo_dte_items_page.paginator.count,
+        }
     else:
-        items = (
+        stored_dte_items_page = Paginator(
             DteRunItem.objects.filter(organization=office, company_id__in=allowed_company_ids)
             .select_related("company", "run", "run__requested_by", "continuation")
-            .order_by("-run__requested_at", "company__name")[:30]
-        )
+            .order_by("-run__requested_at", "company__name"),
+            30,
+        ).get_page(request.GET.get("history_page"))
+        dte_history_context = {
+            "dte_items": list(stored_dte_items_page.object_list),
+            "dte_items_page": stored_dte_items_page,
+            "dte_items_querystring": dte_history_query_params.urlencode(),
+            "dte_items_total": stored_dte_items_page.paginator.count,
+        }
     message_filter = request.GET.get("status", "all")
     if message_filter not in {"all", "unread", "read", "uncertain"}:
         message_filter = "all"
@@ -3745,6 +3562,11 @@ def dte_center(request: HttpRequest) -> HttpResponse:
         )
     )
     search_term = request.GET.get("q", "").strip()[:100]
+    dte_message_query_params = request.GET.copy()
+    dte_message_query_params.pop("page", None)
+    dte_message_query_params["status"] = message_filter
+    dte_message_query_params["company"] = str(selected_company.id) if selected_company else ""
+    dte_message_query_params["q"] = search_term
     if visitor:
         demo_messages = list(message_query.order_by("-sent_at", "-first_seen_at"))
         for message in demo_messages:
@@ -3836,7 +3658,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
         )
     for pending in pending_runs:
         if office.is_demo:
-            pending.usage_quote = SimpleNamespace(  # type: ignore[attr-defined]
+            pending.usage_quote = SimpleNamespace(
                 total_tokens=0,
                 included_remaining=0,
                 additional_overage_tokens=0,
@@ -3844,7 +3666,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
             )
         else:
             try:
-                pending.usage_quote = quote_tokens(  # type: ignore[attr-defined]
+                pending.usage_quote = quote_tokens(
                     organization=office,
                     module_code="integra",
                     action_code=DTE_ACTION_CODE,
@@ -3852,19 +3674,19 @@ def dte_center(request: HttpRequest) -> HttpResponse:
                 )
             except BillingError:
                 try:
-                    pending.usage_quote = quote_usage(  # type: ignore[attr-defined]
+                    pending.usage_quote = quote_usage(
                         organization=office,
                         action_code=DTE_ACTION_CODE,
                         units=pending.total_companies,
                     )
                 except BillingError:
-                    pending.usage_quote = None  # type: ignore[attr-defined]
+                    pending.usage_quote = None
         if pending.usage_quote is not None and not hasattr(pending.usage_quote, "total_tokens"):
-            pending.usage_quote.total_tokens = pending.total_companies  # type: ignore[attr-defined]
-            pending.usage_quote.additional_overage_tokens = (  # type: ignore[attr-defined]
+            pending.usage_quote.total_tokens = pending.total_companies
+            pending.usage_quote.additional_overage_tokens = (
                 pending.usage_quote.additional_overage_units
             )
-        pending.overage_brl = (  # type: ignore[attr-defined]
+        pending.overage_brl = (
             Decimal(pending.usage_quote.additional_overage_cents) / 100
             if pending.usage_quote is not None
             else None
@@ -3885,8 +3707,9 @@ def dte_center(request: HttpRequest) -> HttpResponse:
             "dte_companies_count": form.scope_count - form.ineligible_count,
             "dte_scope_count": form.scope_count,
             "dte_ineligible_count": form.ineligible_count,
-            "dte_items": items,
+            **dte_history_context,
             "dte_message_page": message_page,
+            "dte_message_querystring": dte_message_query_params.urlencode(),
             "dte_message_filter": message_filter,
             "dte_selected_company": selected_company,
             "dte_search_term": search_term,
@@ -4002,7 +3825,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
                 message=message,
                 status=DteMessageAccess.Status.OPENED,
                 attempt_count=1,
-                requested_by=request.user,
+                requested_by=cast(User, request.user),
                 opened_at=parse_datetime(str(entry.get("opened_at", ""))),
                 provider_request_id=str(entry.get("protocol", "")),
                 provider_payload=json.dumps(
@@ -4023,7 +3846,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
     current_state = getattr(message, "current_state", None)
     can_acknowledge = _can_acknowledge_dte(context)
     try:
-        detail_quote = (
+        detail_quote: TokenQuote | UsageQuote | SimpleNamespace | None = (
             SimpleNamespace(total_tokens=0, additional_overage_tokens=0, additional_overage_cents=0)
             if office.is_demo
             else quote_tokens(
@@ -4037,9 +3860,12 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
             detail_quote = quote_usage(organization=office, action_code="caixapostal.detalhe")
         except BillingError:
             detail_quote = None
-    if detail_quote is not None and not hasattr(detail_quote, "total_tokens"):
-        detail_quote.total_tokens = 1
-        detail_quote.additional_overage_tokens = detail_quote.additional_overage_units
+    if isinstance(detail_quote, UsageQuote):
+        detail_quote = SimpleNamespace(
+            total_tokens=1,
+            additional_overage_tokens=detail_quote.additional_overage_units,
+            additional_overage_cents=detail_quote.additional_overage_cents,
+        )
     can_authorize_overage = isinstance(context["membership"], Membership) and context[
         "membership"
     ].role in {Membership.Role.OWNER, Membership.Role.ADMIN}
@@ -4054,7 +3880,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
             messages.error(
                 request, "Confirme que esta abertura pode registrar ciência e iniciar prazo."
             )
-        elif detail_quote.additional_overage_cents and (
+        elif detail_quote is not None and detail_quote.additional_overage_cents and (
             not can_authorize_overage
             or request.POST.get("confirm_overage") != "on"
             or request.POST.get("approved_overage_cents")
@@ -4066,6 +3892,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
                 "ou administrador antes da abertura.",
             )
         else:
+            assert detail_quote is not None
             membership = context["membership"]
             approved_overage = (
                 bool(detail_quote.additional_overage_cents)
@@ -4095,7 +3922,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
                     defaults={
                         "status": DteMessageAccess.Status.OPENED,
                         "attempt_count": 1,
-                        "requested_by": request.user,
+                        "requested_by": cast(User, request.user),
                         "opened_at": timezone.now(),
                         "provider_request_id": f"DEMO-{message.id}",
                         "provider_payload": json.dumps(
@@ -4204,7 +4031,9 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
         if entry.get("status") != "prepared":
             raise Http404
         selected = entry.get("company_ids", [])
-        allowed = {str(company.id) for company in context["companies"]}
+        allowed = {
+            str(company.id) for company in cast(QuerySet[ClientCompany], context["companies"])
+        }
         if (
             not isinstance(selected, list)
             or not selected
@@ -4312,6 +4141,11 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
     match_status = request.GET.get("status", "attention")
     if match_status not in {"attention", "all", *ReconciliationMatch.Status.values}:
         match_status = "attention"
+    match_query_params = request.GET.copy()
+    match_query_params.pop("page", None)
+    match_query_params["q"] = match_search
+    match_query_params["status"] = match_status
+    match_querystring = match_query_params.urlencode()
     match_query = ReconciliationMatch.objects.filter(
         organization=office, transaction__statement__company__in=companies
     ).select_related(
@@ -4319,6 +4153,7 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         "dominio_entry",
         "accounting_entry__data_source",
     )
+    matches: list[Any]
     if visitor:
         matches = _demo_reconciliation_matches(request, list(companies.filter(active=True)[:2]))
         if match_search:
@@ -4345,6 +4180,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         elif match_status != "all":
             matches = [match for match in matches if match.status == match_status]
         match_total = len(matches)
+        match_page = Paginator(matches, 50).get_page(request.GET.get("page"))
+        matches = list(match_page.object_list)
         imports = [
             SimpleNamespace(company=match.transaction.statement.company) for match in matches
         ]
@@ -4354,6 +4191,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                 "form": form,
                 "imports": imports,
                 "matches": matches,
+                "match_page": match_page,
+                "match_querystring": match_querystring,
                 "match_total": match_total,
                 "match_search": match_search,
                 "match_status": match_status,
@@ -4399,7 +4238,10 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
     elif match_status != "all":
         match_query = match_query.filter(status=match_status)
     match_total = match_query.count()
-    matches = list(match_query.order_by("-transaction__occurred_on", "-created_at")[:100])
+    match_page = Paginator(
+        match_query.order_by("-transaction__occurred_on", "-created_at"), 50
+    ).get_page(request.GET.get("page"))
+    matches = list(match_page.object_list)
     review_keys = {
         (match.transaction.statement.company_id, match.transaction.occurred_on)
         for match in matches
@@ -4426,32 +4268,37 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             (entry.company_id, entry.occurred_on, entry.amount_cents), []
         ).append(entry)
     dominio_source_ids = {entry.source_id for entry in candidate_entries}
-    for entry in accounting_candidates:
+    for accounting_entry in accounting_candidates:
         # The direct ODBC sync mirrors the same row in both models. Present it
         # once, preferring the Domínio-specific record as operator evidence.
-        if entry.external_key in dominio_source_ids:
+        if accounting_entry.external_key in dominio_source_ids:
             continue
-        entry.amount_brl = Decimal(entry.amount_cents) / 100  # type: ignore[attr-defined]
-        entry.candidate_token = f"accounting:{entry.id}"  # type: ignore[attr-defined]
-        entry.source_label = entry.data_source.label  # type: ignore[attr-defined]
+        accounting_entry.amount_brl = Decimal(accounting_entry.amount_cents) / 100  # type: ignore[attr-defined]
+        accounting_entry.candidate_token = f"accounting:{accounting_entry.id}"  # type: ignore[attr-defined]
+        accounting_entry.source_label = accounting_entry.data_source.label  # type: ignore[attr-defined]
         candidates_by_key.setdefault(
-            (entry.company_id, entry.occurred_on, entry.amount_cents), []
-        ).append(entry)
+            (
+                accounting_entry.company_id,
+                accounting_entry.occurred_on,
+                accounting_entry.amount_cents,
+            ),
+            [],
+        ).append(accounting_entry)
     for match in matches:
-        match.display_entry = match.dominio_entry or match.accounting_entry  # type: ignore[attr-defined]
-        match.amount_brl = Decimal(abs(match.transaction.amount_cents)) / 100  # type: ignore[attr-defined]
-        match.source_label = (  # type: ignore[attr-defined]
+        match.display_entry = match.dominio_entry or match.accounting_entry
+        match.amount_brl = Decimal(abs(match.transaction.amount_cents)) / 100
+        match.source_label = (
             "Espelho Domínio"
             if match.dominio_entry_id
             else match.accounting_entry.data_source.label
             if match.accounting_entry_id
             else "Sem correspondência"
         )
-        match.display_reference = (  # type: ignore[attr-defined]
+        match.display_reference = (
             getattr(match.display_entry, "source_id", "")
             or getattr(match.display_entry, "external_key", "")
         )
-        match.candidates = candidates_by_key.get(  # type: ignore[attr-defined]
+        match.candidates = candidates_by_key.get(
             (
                 match.transaction.statement.company_id,
                 match.transaction.occurred_on,
@@ -4480,6 +4327,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                 organization=office, company__in=companies
             ).select_related("company")[:20],
             "matches": matches,
+            "match_page": match_page,
+            "match_querystring": match_querystring,
             "match_total": match_total,
             "match_search": match_search,
             "match_status": match_status,
@@ -4589,7 +4438,7 @@ def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
             "Conciliação fictícia confirmada nesta sessão; nenhum lançamento foi alterado.",
         )
         return redirect("hub:reconciliation")
-    match = get_object_or_404(
+    real_match = get_object_or_404(
         ReconciliationMatch.objects.select_related("transaction__statement"),
         id=match_id,
         organization=office,
@@ -4609,7 +4458,7 @@ def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
         return refuse(request, "A origem escolhida não é válida.")
     try:
         confirm_reconciliation_match(
-            match=match,
+            match=real_match,
             dominio_entry=dominio_entry,
             accounting_entry=accounting_entry,
             actor=request.user,
@@ -4635,9 +4484,24 @@ def _can_manage_reconciliation(context: dict[str, object]) -> bool:
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
-    runs = ReconciliationRun.objects.filter(
-        organization=office, source_file__company__in=companies
-    ).select_related("source_file", "source_file__company")[:12]
+    history_query_params = request.GET.copy() if request else None
+    processing_query_params = history_query_params.copy() if history_query_params else None
+    export_query_params = history_query_params.copy() if history_query_params else None
+    movement_query_params = history_query_params.copy() if history_query_params else None
+    if processing_query_params is not None:
+        processing_query_params.pop("processing_page", None)
+    if export_query_params is not None:
+        export_query_params.pop("export_page", None)
+    if movement_query_params is not None:
+        movement_query_params.pop("movement_page", None)
+    runs_page = Paginator(
+        ReconciliationRun.objects.filter(
+            organization=office, source_file__company__in=companies
+        )
+        .select_related("source_file", "source_file__company")
+        .order_by("-created_at"),
+        20,
+    ).get_page(request.GET.get("processing_page") if request else 1)
     all_movements = NormalizedMovement.objects.filter(organization=office, company__in=companies)
     movement_filters = {
         "company": request.GET.get("movement_company", "") if request else "",
@@ -4647,7 +4511,12 @@ def _reconciliation_v2_context(
     }
     filtered_movements = all_movements
     if movement_filters["company"]:
-        filtered_movements = filtered_movements.filter(company_id=movement_filters["company"])
+        try:
+            movement_company_id = uuid.UUID(movement_filters["company"])
+        except ValueError:
+            movement_company_id = None
+        if movement_company_id is not None:
+            filtered_movements = filtered_movements.filter(company_id=movement_company_id)
     if movement_filters["review"] in set(NormalizedMovement.ReviewState.values):
         filtered_movements = filtered_movements.filter(review_state=movement_filters["review"])
     if movement_filters["classification"] in set(NormalizedMovement.ClassificationSource.values):
@@ -4669,10 +4538,13 @@ def _reconciliation_v2_context(
     ).get_page(request.GET.get("movement_page") if request else 1)
     movements = list(movement_page.object_list)
     for movement in movements:
-        movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100  # type: ignore[attr-defined]
-    exports = AccountingExport.objects.filter(
-        organization=office, company__in=companies
-    ).select_related("company")[:8]
+        movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100
+    exports_page = Paginator(
+        AccountingExport.objects.filter(organization=office, company__in=companies)
+        .select_related("company")
+        .order_by("-created_at"),
+        20,
+    ).get_page(request.GET.get("export_page") if request else 1)
     allocation_stats = all_movements.annotate(
         confirmed_allocation=Coalesce(
             Sum(
@@ -4689,11 +4561,24 @@ def _reconciliation_v2_context(
     )
     return {
         "upload_form": ReconciliationUploadForm(companies=companies),
-        "reconciliation_runs": runs,
+        "reconciliation_runs": list(runs_page.object_list),
+        "reconciliation_runs_page": runs_page,
+        "reconciliation_runs_querystring": (
+            processing_query_params.urlencode() if processing_query_params else ""
+        ),
+        "reconciliation_runs_total": runs_page.paginator.count,
         "normalized_movements": movements,
         "normalized_movement_page": movement_page,
         "normalized_movement_filters": movement_filters,
-        "accounting_exports": exports,
+        "normalized_movement_querystring": (
+            movement_query_params.urlencode() if movement_query_params else ""
+        ),
+        "accounting_exports": list(exports_page.object_list),
+        "accounting_exports_page": exports_page,
+        "accounting_exports_querystring": (
+            export_query_params.urlencode() if export_query_params else ""
+        ),
+        "accounting_exports_total": exports_page.paginator.count,
         "reconciliation_v2_stats": {
             "imported": all_movements.count(),
             "classified": all_movements.exclude(
@@ -4772,6 +4657,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não alterar a configuração.")
+        configured: Any
         form = forms_by_action.get(action)
         if form is not None and form.is_valid():
             try:
@@ -4788,10 +4674,10 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                             all_conditions=all_conditions,
                             any_conditions=any_conditions,
                             actions=rule_form.actions(),
-                            created_by=request.user,
+                            created_by=cast(User, request.user),
                         )
                     else:
-                        configured = cast(forms.ModelForm, form).save(commit=False)
+                        configured = cast("forms.ModelForm[models.Model]", form).save(commit=False)
                         configured.organization = office
                         configured.save()
                 record_event(
@@ -4845,12 +4731,12 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             setup_model = setup_models.get(setup_kind)
             if setup_model is None:
                 return refuse(request, "Item de configuração inválido.")
-            configured = get_object_or_404(
+            configured = cast(Any, get_object_or_404(
                 setup_model,
                 id=request.POST.get("setup_id"),
                 organization=office,
                 company=selected_company,
-            )
+            ))
             configured.active = not configured.active
             configured.save(update_fields=["active", "updated_at"])
             record_event(
@@ -4880,7 +4766,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 messages.error(request, "Informe o motivo para bloquear ou reabrir o período.")
             elif action == "lock_period":
                 period.locked_at = timezone.now()
-                period.locked_by = request.user
+                period.locked_by = cast(User, request.user)
                 period.lock_reason = reason[:240]
                 period.save(update_fields=["locked_at", "locked_by", "lock_reason", "updated_at"])
                 record_event(
@@ -4996,10 +4882,18 @@ def reconciliation_audit(request: HttpRequest) -> HttpResponse:
     event_action = request.GET.get("action", "")
     if event_action:
         events = events.filter(action=event_action)
+    reconciliation_audit_page = Paginator(events.order_by("-occurred_at"), 100).get_page(
+        request.GET.get("page")
+    )
+    reconciliation_audit_query_params = request.GET.copy()
+    reconciliation_audit_query_params.pop("page", None)
     context.update(
         {
             "page_title": "Auditoria da conciliação",
-            "reconciliation_audit_events": events[:200],
+            "reconciliation_audit_events": list(reconciliation_audit_page.object_list),
+            "reconciliation_audit_page": reconciliation_audit_page,
+            "reconciliation_audit_querystring": reconciliation_audit_query_params.urlencode(),
+            "reconciliation_audit_total": reconciliation_audit_page.paginator.count,
             "reconciliation_audit_actions": AuditEvent.objects.filter(
                 organization=office, action__startswith=action_prefix
             )
@@ -5075,11 +4969,15 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
     duplicates = 0
     failures: list[str] = []
     for upload in files:
+        filename = upload.name
+        if not filename:
+            failures.append("Arquivo sem nome não pode ser processado.")
+            continue
         try:
             _source, run, was_created = create_source_file(
                 organization=office,
                 company=form.cleaned_data["company"],
-                filename=upload.name,
+                filename=filename,
                 content=upload.read(),
                 origin=form.cleaned_data["origin"],
                 actor=request.user,
@@ -5090,9 +4988,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
             if was_created:
                 from apps.hub.tasks import process_reconciliation_run
 
-                transaction.on_commit(
-                    lambda value=str(run.id): process_reconciliation_run.delay(value)
-                )
+                transaction.on_commit(partial(process_reconciliation_run.delay, str(run.id)))
                 created += 1
             else:
                 duplicates += 1
@@ -5173,11 +5069,11 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
             continued_from=run,
             layout_version=run.layout_version,
             checkpoint=run.checkpoint,
-            created_by=request.user,
+            created_by=cast(User, request.user),
         )
         from apps.hub.tasks import process_reconciliation_run
 
-        transaction.on_commit(lambda value=str(retry.id): process_reconciliation_run.delay(value))
+        transaction.on_commit(partial(process_reconciliation_run.delay, str(retry.id)))
         messages.success(request, "Novo processamento criado a partir do checkpoint anterior.")
     elif action == "reapply_rules":
         if run.state in {ReconciliationRun.State.WAITING, ReconciliationRun.State.PROCESSING}:
@@ -5191,7 +5087,7 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
             continued_from=run,
             layout_version=run.layout_version,
             checkpoint={"mode": "rules", "source_run_id": str(run.id)},
-            created_by=request.user,
+            created_by=cast(User, request.user),
         )
         record_event(
             action="hub.reconciliation.rules_reapplication_requested",
@@ -5203,9 +5099,7 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
         )
         from apps.hub.tasks import process_reconciliation_run
 
-        transaction.on_commit(
-            lambda value=str(reapplication.id): process_reconciliation_run.delay(value)
-        )
+        transaction.on_commit(partial(process_reconciliation_run.delay, str(reapplication.id)))
         messages.success(
             request,
             "Reaplicação criada. Revisões manuais, conciliações e lançamentos serão preservados.",
@@ -5271,9 +5165,7 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
                 for run in runnable_runs:
                     from apps.hub.tasks import process_reconciliation_run
 
-                    transaction.on_commit(
-                        lambda value=str(run.id): process_reconciliation_run.delay(value)
-                    )
+                    transaction.on_commit(partial(process_reconciliation_run.delay, str(run.id)))
                 messages.success(
                     request,
                     f"Layout {layout.name} v{layout.version} salvo e processamento iniciado.",
@@ -5414,7 +5306,7 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
         for movement in movements:
             movement.review_state = new_state
             movement.revision += 1
-            movement.edited_by = request.user
+            movement.edited_by = cast(User, request.user)
             movement.save(update_fields=["review_state", "revision", "edited_by", "updated_at"])
             invalidated_entries = movement.journal_entries.filter(
                 state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
@@ -5493,7 +5385,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 else NormalizedMovement.ReviewState.PENDING
             )
             movement.revision += 1
-            movement.edited_by = request.user
+            movement.edited_by = cast(User, request.user)
             movement.save(update_fields=["review_state", "revision", "edited_by", "updated_at"])
             invalidated_entries = movement.journal_entries.filter(
                 state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
@@ -5523,27 +5415,31 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             return redirect("hub:reconciliation-movement", movement_id=movement.id)
         if action == "generate_entry":
             try:
-                entry = create_journal_entry_from_movement(movement=movement, actor=request.user)
+                journal_entry = create_journal_entry_from_movement(
+                    movement=movement, actor=cast(User, request.user)
+                )
             except ReconciliationError as exc:
                 messages.error(request, str(exc))
             else:
-                messages.success(request, f"Lançamento {entry.id} gerado como rascunho.")
+                messages.success(request, f"Lançamento {journal_entry.id} gerado como rascunho.")
             return redirect("hub:reconciliation-movement", movement_id=movement.id)
         if action == "save_rule":
             try:
-                rule = save_rule_from_movement(movement=movement, actor=request.user)
+                rule = save_rule_from_movement(movement=movement, actor=cast(User, request.user))
             except ReconciliationError as exc:
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"Regra {rule.name} salva e ativada para esta empresa.")
             return redirect("hub:reconciliation-movement", movement_id=movement.id)
         if action == "approve_entry":
-            entry = movement.journal_entries.exclude(state=JournalEntry.State.INVALID).first()
-            if entry is None:
+            draft_entry = movement.journal_entries.exclude(state=JournalEntry.State.INVALID).first()
+            if draft_entry is None:
                 messages.error(request, "Gere o lançamento antes de aprová-lo.")
             else:
                 try:
-                    approve_journal_entry(entry=entry, actor=request.user, request=request)
+                    approve_journal_entry(
+                        entry=draft_entry, actor=cast(User, request.user), request=request
+                    )
                 except ReconciliationError as exc:
                     messages.error(request, str(exc))
                 else:
@@ -5551,8 +5447,11 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             return redirect("hub:reconciliation-movement", movement_id=movement.id)
         if action == "confirm_reconciliation":
             try:
-                entry = JournalEntry.objects.get(
-                    id=request.POST.get("entry_id"),
+                entry_id = request.POST.get("entry_id")
+                if not entry_id:
+                    raise ReconciliationError("Escolha um lançamento para confirmar a conciliação.")
+                confirmed_entry = JournalEntry.objects.get(
+                    id=entry_id,
                     organization=office,
                     company=movement.company,
                 )
@@ -5564,10 +5463,10 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     raise ReconciliationError("Descreva a evidência que justifica a conciliação.")
                 reconciliation = confirm_normalized_reconciliation(
                     movement=movement,
-                    entry=entry,
+                    entry=confirmed_entry,
                     amount_cents=amount_cents,
                     evidence={"note": evidence_note, "source": movement.source_reference},
-                    actor=request.user,
+                    actor=cast(User, request.user),
                 )
             except (
                 JournalEntry.DoesNotExist,
@@ -5605,7 +5504,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 movement=movement,
                 state=MovementReconciliation.State.CONFIRMED,
             )
-            undo_normalized_reconciliation(reconciliation=reconciliation, actor=request.user)
+            undo_normalized_reconciliation(
+                reconciliation=reconciliation, actor=cast(User, request.user)
+            )
             record_event(
                 action="hub.reconciliation.reconciliation_undone",
                 actor=request.user,
@@ -5676,7 +5577,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     setattr(movement, field, form.cleaned_data[field])
                 movement.classification_source = NormalizedMovement.ClassificationSource.MANUAL
                 movement.revision += 1
-                movement.edited_by = request.user
+                movement.edited_by = cast(User, request.user)
                 movement.save()
                 invalidated_entries = movement.journal_entries.filter(
                     state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
@@ -5713,19 +5614,28 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 movement.occurred_on + timedelta(days=3),
             )
         )
-    candidate_entries = list(candidate_query.order_by("-occurred_on", "-created_at")[:50])
+    candidate_query_params = request.GET.copy()
+    candidate_query_params.pop("candidate_page", None)
+    candidate_page = Paginator(
+        candidate_query.order_by("-occurred_on", "-created_at"), 25
+    ).get_page(request.GET.get("candidate_page"))
+    candidate_entries = list(candidate_page.object_list)
     movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100  # type: ignore[attr-defined]
     reconciliations = list(
         movement.reconciliations.filter(state=MovementReconciliation.State.CONFIRMED)
         .select_related("entry")
         .order_by("created_at")
     )
+    remaining_cents = abs(movement.amount_cents) - sum(
+        item.amount_cents for item in reconciliations
+    )
     for reconciliation in reconciliations:
         reconciliation.amount_brl = Decimal(reconciliation.amount_cents) / 100  # type: ignore[attr-defined]
-    movement.allocated_cents = sum(item.amount_cents for item in reconciliations)  # type: ignore[attr-defined]
-    movement.remaining_cents = abs(movement.amount_cents) - movement.allocated_cents  # type: ignore[attr-defined]
-    movement.allocated_brl = Decimal(movement.allocated_cents) / 100  # type: ignore[attr-defined]
-    movement.remaining_brl = Decimal(movement.remaining_cents) / 100  # type: ignore[attr-defined]
+    allocated_cents = sum(item.amount_cents for item in reconciliations)
+    movement.allocated_cents = allocated_cents  # type: ignore[attr-defined]
+    movement.remaining_cents = remaining_cents  # type: ignore[attr-defined]
+    movement.allocated_brl = Decimal(allocated_cents) / 100  # type: ignore[attr-defined]
+    movement.remaining_brl = Decimal(remaining_cents) / 100  # type: ignore[attr-defined]
     entry_used = {
         row["entry_id"]: row["allocated"]
         for row in MovementReconciliation.objects.filter(
@@ -5751,7 +5661,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             continue
         score = 0
         reasons: list[str] = []
-        if available == movement.remaining_cents:
+        if available == remaining_cents:
             score += 50
             reasons.append("valor disponível igual")
         if entry.occurred_on == movement.occurred_on:
@@ -5765,7 +5675,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             score += 15
             reasons.append("contraparte no histórico")
         if score:
-            allocation_limit_cents = min(available, movement.remaining_cents)
+            allocation_limit_cents = min(available, remaining_cents)
             allocation_limit_brl = Decimal(allocation_limit_cents) / 100
             suggestions.append(
                 {
@@ -5778,7 +5688,12 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     "allocation_limit_input": f"{allocation_limit_brl:.2f}",
                 }
             )
-    suggestions.sort(key=lambda item: (-int(item["score"]), str(item["entry"].id)))
+    suggestions.sort(
+        key=lambda item: (
+            -cast(int, item["score"]),
+            str(cast(JournalEntry, item["entry"]).id),
+        )
+    )
     context.update(
         {
             "page_title": "Revisar movimento",
@@ -5788,6 +5703,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 state=JournalEntry.State.INVALID
             ).first(),
             "reconciliation_candidates": suggestions,
+            "reconciliation_candidate_page": candidate_page,
+            "reconciliation_candidate_querystring": candidate_query_params.urlencode(),
+            "reconciliation_candidate_total": candidate_page.paginator.count,
             "movement_reconciliations": reconciliations,
             "reconciliation_suggestions": suggestions,
             "reconciliation_suggestion_state": (
@@ -5856,7 +5774,9 @@ def reconciliation_export_download(request: HttpRequest, export_id: str) -> File
         state=AccountingExport.State.READY,
     )
     response = FileResponse(
-        export.content.open("rb"), as_attachment=True, filename=PurePath(export.content.name).name
+        export.content.open("rb"),
+        as_attachment=True,
+        filename=PurePath(export.content.name or "exportacao-contabil").name,
     )
     response["X-Content-Type-Options"] = "nosniff"
     return response
@@ -5872,6 +5792,8 @@ def reform(request: HttpRequest) -> HttpResponse:
     relevance = request.GET.get("relevancia", "")
     valid_sources = set(ReformAlert.Source.values)
     valid_relevance = {ReformAlert.Relevance.REFORM, ReformAlert.Relevance.FISCAL}
+    radar_query_params = request.GET.copy()
+    radar_query_params.pop("page", None)
     office = cast(Organization, context["office"])
     if is_demo_visitor(request, office):
         demo_alerts = _demo_reform_alerts()
@@ -5890,6 +5812,7 @@ def reform(request: HttpRequest) -> HttpResponse:
                 for alert in demo_alerts
                 if needle in f"{alert.title} {alert.summary}".casefold()
             ]
+        demo_alert_page = Paginator(demo_alerts, 50).get_page(request.GET.get("page"))
         last_success = timezone.now() - timedelta(hours=3)
         demo_statuses = {
             value: SimpleNamespace(last_success_at=last_success, last_error="")
@@ -5898,8 +5821,10 @@ def reform(request: HttpRequest) -> HttpResponse:
         context.update(
             {
                 "page_title": "Radar da Reforma Tributária",
-                "alerts": demo_alerts,
-                "alert_total": len(demo_alerts),
+                "alerts": list(demo_alert_page.object_list),
+                "alert_page": demo_alert_page,
+                "alert_querystring": radar_query_params.urlencode(),
+                "alert_total": demo_alert_page.paginator.count,
                 "radar_search": search_term,
                 "selected_source": source,
                 "selected_relevance": relevance,
@@ -5927,13 +5852,15 @@ def reform(request: HttpRequest) -> HttpResponse:
         relevance = ""
     if search_term:
         alerts = alerts.filter(Q(title__icontains=search_term) | Q(summary__icontains=search_term))
-    alert_total = alerts.count()
+    reform_alert_page = Paginator(alerts, 50).get_page(request.GET.get("page"))
     statuses_by_source = {status.source: status for status in ReformSourceStatus.objects.all()}
     context.update(
         {
             "page_title": "Radar da Reforma Tributária",
-            "alerts": alerts[:80],
-            "alert_total": alert_total,
+            "alerts": list(reform_alert_page.object_list),
+            "alert_page": reform_alert_page,
+            "alert_querystring": radar_query_params.urlencode(),
+            "alert_total": reform_alert_page.paginator.count,
             "radar_search": search_term,
             "selected_source": source,
             "selected_relevance": relevance,
@@ -6049,7 +5976,7 @@ def _demo_triage_for_view(request: HttpRequest, item: TriageItem) -> TriageItem:
         else base_status
     )
     item.rejection_reason = str(entry.get("reason", ""))[:500]
-    item.reviewed_by = request.user if item.status != base_status else None
+    item.reviewed_by = cast(User, request.user) if item.status != base_status else None
     item.reviewed_at = parse_datetime(str(entry.get("reviewed_at", "")))
     item.archived_at = parse_datetime(str(entry.get("archived_at", "")))
     item.destination_kind = "internal" if item.status == TriageStatus.ARCHIVED else ""
@@ -6063,14 +5990,12 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
     office = context["office"]
     assert isinstance(office, Organization)
     mailboxes = Mailbox.objects.filter(organization=office).order_by("provider", "address")
-    mailbox_rows = [
+    mailbox_rows: list[MailboxPresentation] = [
         present_mailbox(mailbox, poll_enabled=settings.TRIAGE_EMAIL_POLL_ENABLED)
         for mailbox in mailboxes
     ]
     for mailbox in mailboxes:
-        mailbox.operation_form = MailboxOperationForm(  # type: ignore[attr-defined]
-            mailbox=mailbox
-        )
+        mailbox.operation_form = MailboxOperationForm(mailbox=mailbox)  # type: ignore[attr-defined]
     queue_scope = Q(company__in=context["companies"])
     if _can_manage_collaborators(context):
         queue_scope |= Q(company__isnull=True)
@@ -6083,6 +6008,7 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
     if selected_status not in TriageItem.Status.values:
         selected_status = ""
     queue_search = request.GET.get("q", "").strip()[:100]
+    filtered_queue: list[TriageItem] | QuerySet[TriageItem]
     if is_demo_visitor(request, office):
         visible = [
             _demo_triage_for_view(request, item)
@@ -6109,15 +6035,17 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
         queue_total = len(visible)
         queue_quarantined = sum(item.status == TriageStatus.QUARANTINED for item in visible)
     else:
-        filtered_queue = queue.filter(status=selected_status) if selected_status else queue
+        query_filtered_queue = (
+            queue.filter(status=selected_status) if selected_status else queue
+        )
         if queue_search:
-            filtered_queue = filtered_queue.filter(
+            query_filtered_queue = query_filtered_queue.filter(
                 Q(original_name__icontains=queue_search)
                 | Q(company__name__icontains=queue_search)
                 | Q(company__dominio_code__icontains=queue_search)
                 | Q(mailbox__address__icontains=queue_search)
             )
-        filtered_queue = filtered_queue.order_by("-created_at", "-pk")
+        filtered_queue = query_filtered_queue.order_by("-created_at", "-pk")
         queue_total = queue.count()
         queue_quarantined = queue.filter(status=TriageStatus.QUARANTINED).count()
     queue_page = Paginator(filtered_queue, 20).get_page(request.GET.get("page"))
@@ -6175,8 +6103,8 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
             "destination_profile": DestinationProfile.objects.filter(organization=office).first(),
         }
     )
-    context["destination_form"] = DestinationProfileForm(  # type: ignore[assignment]
-        profile=context["destination_profile"]
+    context["destination_form"] = DestinationProfileForm(
+        profile=cast(DestinationProfile | None, context["destination_profile"])
     )
     return context, None
 
@@ -6187,7 +6115,7 @@ def triage_oauth_app_save(request: HttpRequest, provider: str) -> HttpResponse:
     context, blocked = _triage_page_context(request)
     if blocked:
         return blocked
-    if context["office"].is_demo:
+    if cast(Organization, context["office"]).is_demo:
         return refuse(request, "A demonstração fictícia não aceita aplicativos ou caixas reais.")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador configura o aplicativo de e-mail.")
@@ -6247,7 +6175,7 @@ def triage_imap_connect(request: HttpRequest) -> HttpResponse:
     context, blocked = _triage_page_context(request)
     if blocked:
         return blocked
-    if context["office"].is_demo:
+    if cast(Organization, context["office"]).is_demo:
         return refuse(request, "A demonstração fictícia não testa servidores IMAP reais.")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
@@ -6307,7 +6235,7 @@ def triage_oauth_start(request: HttpRequest, provider: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
     if blocked:
         return blocked
-    if context["office"].is_demo:
+    if cast(Organization, context["office"]).is_demo:
         return refuse(request, "A demonstração fictícia não solicita autorização de e-mail real.")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
@@ -6463,7 +6391,7 @@ def triage_mailbox_configure(request: HttpRequest, mailbox_id: str) -> HttpRespo
     context, blocked = _triage_page_context(request)
     if blocked:
         return blocked
-    if context["office"].is_demo:
+    if cast(Organization, context["office"]).is_demo:
         return refuse(request, "A demonstração não configura caixas externas.")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador configura a leitura da caixa.")
@@ -6471,7 +6399,7 @@ def triage_mailbox_configure(request: HttpRequest, mailbox_id: str) -> HttpRespo
     mailbox = get_object_or_404(Mailbox, organization=office, id=mailbox_id)
     form = MailboxOperationForm(request.POST, mailbox=mailbox)
     if not form.is_valid():
-        for row in context["mailbox_rows"]:
+        for row in cast(list[MailboxPresentation], context["mailbox_rows"]):
             if row.mailbox.id == mailbox.id:
                 row.mailbox.operation_form = form  # type: ignore[attr-defined]
                 break
@@ -6487,7 +6415,7 @@ def triage_mailbox_configure(request: HttpRequest, mailbox_id: str) -> HttpRespo
         .exists()
     ):
         form.add_error("folder", "Esta caixa já usa essa pasta ou etiqueta.")
-        for row in context["mailbox_rows"]:
+        for row in cast(list[MailboxPresentation], context["mailbox_rows"]):
             if row.mailbox.id == mailbox.id:
                 row.mailbox.operation_form = form  # type: ignore[attr-defined]
                 break
@@ -6560,7 +6488,7 @@ def triage_destination_configure(request: HttpRequest) -> HttpResponse:
     context, blocked = _triage_page_context(request)
     if blocked:
         return blocked
-    if context["office"].is_demo:
+    if cast(Organization, context["office"]).is_demo:
         return refuse(request, "A demonstração não altera o destino do escritório.")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador define o destino dos arquivos.")
@@ -6642,7 +6570,6 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
         TriageItem.objects.select_related(
             "company", "document_type", "reviewed_by", "blob", "mailbox", "safety_scan"
         )
-        .prefetch_related("events__actor")
         .filter(item_scope),
         organization=office,
         id=item_id,
@@ -6734,6 +6661,11 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
             )
         return detail_redirect(request, "hub:triage-item", item_id=item.id)
     demo_history: list[dict[str, object]] = []
+    triage_history_events = []
+    triage_history_page = None
+    triage_history_total = 0
+    triage_history_query_params = request.GET.copy()
+    triage_history_query_params.pop("history_page", None)
     if visitor:
         demo_history = [
             {
@@ -6756,12 +6688,23 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
                     "note": str(step.get("note", ""))[:500],
                 }
             )
+        triage_history_total = len(demo_history)
+    else:
+        triage_history_page = Paginator(
+            item.events.select_related("actor").order_by("created_at"), 20
+        ).get_page(request.GET.get("history_page"))
+        triage_history_events = list(triage_history_page.object_list)
+        triage_history_total = triage_history_page.paginator.count
     context.update(
         {
             "page_title": "Arquivo em triagem",
             "item": item,
             "demo_history": demo_history,
             "demo_visitor": visitor,
+            "triage_history_events": triage_history_events,
+            "triage_history_page": triage_history_page,
+            "triage_history_querystring": triage_history_query_params.urlencode(),
+            "triage_history_total": triage_history_total,
             "triage_destination": DestinationProfile.objects.filter(organization=office).first(),
             "triage_agent_job": item.agent_jobs.order_by("-created_at").first(),
             "triage_agent_online": EdgeAgent.objects.filter(
@@ -6776,7 +6719,7 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
 
 @office_required
 @require_http_methods(["GET"])
-def triage_download(request: HttpRequest, item_id: str) -> HttpResponse:
+def triage_download(request: HttpRequest, item_id: str) -> HttpResponseBase:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
     if blocked:
         raise Http404
@@ -6974,7 +6917,9 @@ def _sees_every_company(context: dict[str, object]) -> bool:
         isinstance(office, Organization)
         and not ControlPlaneBinding.objects.filter(organization=office).exists()
         and not CompanyAccessGrant.objects.filter(
-            organization=office, membership=context.get("membership"), is_active=True
+            organization=office,
+            membership=cast(Membership | None, context.get("membership")),
+            is_active=True,
         ).exists()
     )
 
@@ -6998,9 +6943,12 @@ def certificates(request: HttpRequest) -> HttpResponse:
         ),
     )
     if request.method == "POST" and demo_certificate_mode:
-        demo_company = allowed_companies.filter(
-            id=request.POST.get("demo_company_id"), active=True
-        ).first()
+        demo_company_id = request.POST.get("demo_company_id")
+        demo_company = (
+            allowed_companies.filter(id=demo_company_id, active=True).first()
+            if demo_company_id
+            else None
+        )
         if demo_company is None:
             messages.error(request, "Escolha uma empresa válida para simular o certificado.")
         else:
@@ -7107,6 +7055,11 @@ def certificates(request: HttpRequest) -> HttpResponse:
     missing_companies = allowed_companies.filter(active=True).exclude(id__in=usable_company_ids)
     if simulated_company_ids:
         missing_companies = missing_companies.exclude(id__in=simulated_company_ids)
+    missing_certificate_page = Paginator(missing_companies.order_by("name"), 20).get_page(
+        request.GET.get("missing_page")
+    )
+    missing_certificate_query_params = request.GET.copy()
+    missing_certificate_query_params.pop("missing_page", None)
     simulated_companies = list(
         allowed_companies.filter(id__in=simulated_company_ids).order_by("name")
     )
@@ -7135,7 +7088,9 @@ def certificates(request: HttpRequest) -> HttpResponse:
                 ).count(),
                 "missing_companies": missing_companies.count(),
             },
-            "missing_certificate_companies": missing_companies.order_by("name")[:20],
+            "missing_certificate_companies": list(missing_certificate_page.object_list),
+            "missing_certificate_page": missing_certificate_page,
+            "missing_certificate_query_without_page": missing_certificate_query_params.urlencode(),
             "demo_certificate_mode": demo_certificate_mode,
             "demo_simulated_certificate_companies": simulated_companies,
             "form": form,
@@ -7220,6 +7175,72 @@ def _demo_review_for_view(request: HttpRequest, review: ReviewCase) -> ReviewCas
     return review
 
 
+def _nfse_review_text(value: object, *, limit: int = 500) -> str:
+    """Render bounded normalized evidence without treating arbitrary JSON as markup."""
+
+    if isinstance(value, str):
+        return value.strip()[:limit]
+    if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool):
+        return str(value)[:limit]
+    return ""
+
+
+def _nfse_review_amount(value: object) -> str:
+    """Format the normalized fiscal amount for a reviewer without changing its source."""
+
+    raw = _nfse_review_text(value, limit=80)
+    if not raw:
+        return ""
+    try:
+        amount = Decimal(raw)
+        if not amount.is_finite() or amount < 0:
+            return ""
+        formatted = f"{amount.quantize(Decimal('0.01')):,.2f}"
+    except (InvalidOperation, ValueError):
+        return ""
+    return f"R$ {formatted.replace(',', '_').replace('.', ',').replace('_', '.')}"
+
+
+def _nfse_review_issued_at(document: NfseDocument, evidence: dict[str, object]) -> str:
+    """Prefer the parsed issuance timestamp and retain a bounded source fallback."""
+
+    if document.issued_at is not None:
+        issued_at = document.issued_at
+        if timezone.is_aware(issued_at):
+            issued_at = timezone.localtime(issued_at)
+        return issued_at.strftime("%d/%m/%Y")
+    raw = _nfse_review_text(evidence.get("issued_at"), limit=40)
+    if not raw:
+        return ""
+    parsed_datetime = parse_datetime(raw)
+    if parsed_datetime is not None:
+        if timezone.is_aware(parsed_datetime):
+            parsed_datetime = timezone.localtime(parsed_datetime)
+        return parsed_datetime.strftime("%d/%m/%Y")
+    parsed_date = parse_date(raw)
+    return parsed_date.strftime("%d/%m/%Y") if parsed_date is not None else raw
+
+
+def _nfse_review_evidence(document: NfseDocument) -> list[tuple[str, str]]:
+    """Expose the normalized facts needed to review one NFS-e, not raw XML."""
+
+    evidence = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+    return [
+        ("Número da NFS-e", _nfse_review_text(evidence.get("number"), limit=80)),
+        ("Emissão / competência", _nfse_review_issued_at(document, evidence)),
+        ("Código de serviço", _nfse_review_text(evidence.get("service_code"), limit=80)),
+        (
+            "Descrição do serviço",
+            _nfse_review_text(evidence.get("service_description"), limit=500),
+        ),
+        ("Valor do serviço", _nfse_review_amount(evidence.get("amount"))),
+        (
+            "Referência da contraparte",
+            _nfse_review_text(evidence.get("counterparty_ref"), limit=80),
+        ),
+    ]
+
+
 @office_required
 def review_detail(request: HttpRequest, case_id: str) -> HttpResponse:
     context = workspace_context(request)
@@ -7244,22 +7265,38 @@ def review_detail(request: HttpRequest, case_id: str) -> HttpResponse:
         )
     )
     document = review.document
-    evidence = document.normalized_data if isinstance(document.normalized_data, dict) else {}
     context.update(
         {
             "page_title": "Conferir NFS-e",
             "review": review,
             "can_decide_review": can_decide,
-            "review_evidence": [
-                ("Código de serviço", evidence.get("service_code")),
-                ("Referência da contraparte", evidence.get("counterparty_ref")),
-            ],
+            "review_evidence": _nfse_review_evidence(document),
             "review_artifacts": IntegrationArtifact.objects.filter(
                 organization=office, document=document
             ).order_by("created_at"),
+            "review_accumulator_codes": _review_accumulator_codes(document),
         }
     )
     return render(request, "hub/review_detail.html", context)
+
+
+def _review_accumulator_codes(document: NfseDocument) -> list[str]:
+    """Return only company-scoped codes that an operator may select for a review."""
+
+    document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
+    configured_codes = AccumulatorRule.objects.filter(
+        organization=document.organization,
+        company=document.company,
+        active=True,
+    ).filter(
+        Q(valid_from__isnull=True) | Q(valid_from__lte=document_day),
+        Q(valid_until__isnull=True) | Q(valid_until__gte=document_day),
+    ).order_by("priority", "name").values_list("accumulator_code", flat=True)
+    observed_codes = AccumulatorObservation.objects.filter(
+        organization=document.organization,
+        company=document.company,
+    ).order_by("-last_used_at").values_list("accumulator_code", flat=True)
+    return list(dict.fromkeys([*configured_codes, *observed_codes]))
 
 
 @office_required
@@ -7324,6 +7361,12 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     if not accumulator:
         messages.error(request, "Informe o acumulador usado para registrar a decisão.")
         return detail_redirect(request, "hub:review-detail", case_id=review.id)
+    if not visitor and accumulator not in _review_accumulator_codes(review.document):
+        messages.error(
+            request,
+            "Escolha um acumulador cadastrado para esta empresa antes de registrar a decisão.",
+        )
+        return detail_redirect(request, "hub:review-detail", case_id=review.id)
     if visitor:
         put_progress(
             request,
@@ -7372,10 +7415,12 @@ def setup_center(request: HttpRequest) -> HttpResponse:
         and context["support_can_mutate"]
     )
     sources = DataSource.objects.filter(organization=office).order_by("created_at")
-    selected_source = sources.filter(id=request.GET.get("source")).first()
+    source_id = request.GET.get("source")
+    selected_source = sources.filter(id=source_id).first() if source_id else None
     if selected_source is None:
         selected_source = sources.first()
-    posted_source = sources.filter(id=request.POST.get("source_id")).first()
+    posted_source_id = request.POST.get("source_id")
+    posted_source = sources.filter(id=posted_source_id).first() if posted_source_id else None
     if posted_source is not None:
         selected_source = posted_source
     source_form = DataSourceForm(request.POST or None, prefix="source")
@@ -7476,12 +7521,25 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                 )
                 messages.success(request, "Nova tentativa colocada na fila.")
             return redirect(f"{reverse('hub:setup')}?source={batch.data_source_id}")
-    preview = ImportBatch.objects.filter(
-        id=request.GET.get("preview"), organization=office, status=ImportBatch.Status.PREVIEW
-    ).first()
+    preview_id = request.GET.get("preview")
+    preview = (
+        ImportBatch.objects.filter(
+            id=preview_id, organization=office, status=ImportBatch.Status.PREVIEW
+        ).first()
+        if preview_id
+        else None
+    )
+    import_history_query_params = request.GET.copy()
+    import_history_query_params.pop("imports_page", None)
+    recent_imports_page = Paginator(
+        ImportBatch.objects.filter(organization=office).select_related("data_source").order_by(
+            "-created_at"
+        ),
+        20,
+    ).get_page(request.GET.get("imports_page"))
     profile = OfficeProfile.objects.filter(organization=office).first()
     try:
-        mfa_complete = request.user.totp_device.is_confirmed
+        mfa_complete = cast(User, request.user).totp_device.is_confirmed
     except (AttributeError, ObjectDoesNotExist):
         mfa_complete = False
     context.update(
@@ -7492,7 +7550,10 @@ def setup_center(request: HttpRequest) -> HttpResponse:
             "data_sources": sources,
             "selected_source": selected_source,
             "preview_batch": preview,
-            "recent_imports": ImportBatch.objects.filter(organization=office)[:8],
+            "recent_imports": list(recent_imports_page.object_list),
+            "recent_imports_page": recent_imports_page,
+            "recent_imports_querystring": import_history_query_params.urlencode(),
+            "recent_imports_total": recent_imports_page.paginator.count,
             "can_manage_setup": can_manage,
             "agent_installer_url": getattr(settings, "EDGE_AGENT_INSTALLER_URL", ""),
             "setup_steps": [
@@ -7626,7 +7687,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             effective_from = date.fromisoformat(request.POST.get("effective_from", ""))
             activated = activate_token_book(
                 book=token_draft,
-                accepted_by=request.user,
+                accepted_by=cast(User, request.user),
                 effective_from=effective_from,
             )
         except (BillingError, ValueError) as exc:

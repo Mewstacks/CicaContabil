@@ -85,6 +85,31 @@ class TrainingAndGatewayTests(TestCase):
         self.assertEqual(item["area"], IntelligenceArea.PAYROLL)
         self.assertEqual(item["reference_period"], "2026-09")
 
+    def test_manifest_rejects_personal_identifiers_before_artifact_export(self) -> None:
+        for field, sensitive_value in (
+            ("question", "O CPF é 123.456.789-09?"),
+            ("expected_answer", "Use o CNPJ 12.345.678/0001-99 somente na origem."),
+            ("source_references", ["Contato: pessoa@example.test"]),
+        ):
+            with self.subTest(field=field):
+                organization = Organization.objects.create(
+                    name=f"Office {field}", slug=f"office-{field}"
+                )
+                payload: dict[str, object] = {
+                    "organization": organization,
+                    "category": TrainingExample.Category.SAFETY,
+                    "question": "Qual procedimento revisar?",
+                    "expected_answer": "Consulte a fonte aprovada.",
+                    "source_references": ["Manual § 1"],
+                    "scenario_hash": stable_hash("personal-data", field),
+                    "status": TrainingExample.Status.VALIDATED,
+                }
+                payload[field] = sensitive_value
+                TrainingExample.objects.create(**payload)
+
+                with self.assertRaisesRegex(ValueError, "identificador pessoal"):
+                    training_manifest(organization=organization)
+
     def test_training_example_rejects_company_from_another_office(self) -> None:
         other = Organization.objects.create(name="Outra", slug="outra")
         foreign_company = ClientCompany.objects.create(

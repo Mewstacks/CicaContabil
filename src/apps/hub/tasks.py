@@ -5,13 +5,14 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import timedelta
+from functools import partial
 from typing import Any
 
 from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.utils import timezone
 
 from apps.common.cnpj import normalize_cnpj
@@ -48,7 +49,7 @@ from apps.platform.operations import track_scheduled_operation
 from apps.platform.token_billing import settle_tokens
 
 
-def _eligible_nfse_syncs():  # type: ignore[no-untyped-def]
+def _eligible_nfse_syncs() -> QuerySet[NfseSync]:
     return NfseSync.objects.filter(
         enabled=True,
         status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY],
@@ -193,9 +194,7 @@ def recover_reconciliation_runs() -> int:
             lease_until=None,
         )
         for run_id in run_ids:
-            transaction.on_commit(
-                lambda value=str(run_id): process_reconciliation_run.delay(value)
-            )
+            transaction.on_commit(partial(process_reconciliation_run.delay, str(run_id)))
     return len(run_ids)
 
 
@@ -738,14 +737,12 @@ def dispatch_parcelamento_operation(operation_id: str) -> None:
 
     try:
         if operation.kind == ParcelamentoOperation.Kind.ORDERS:
-            parsed = pedidos(payload)
-            empty = not parsed
+            empty = not pedidos(payload)
         elif operation.kind == ParcelamentoOperation.Kind.DETAIL:
             detalhe(payload, numero_esperado=int(operation.agreement_number or 0))
             empty = False
         elif operation.kind == ParcelamentoOperation.Kind.INSTALLMENTS:
-            parsed = parcelas_disponiveis(payload)
-            empty = not parsed
+            empty = not parcelas_disponiveis(payload)
         else:
             pdf_das(payload)
             empty = False
@@ -798,15 +795,19 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         if guide is None or guide.status != FiscalGuide.Status.QUEUED:
             return
         if guide.organization.is_demo:
-            usage = TokenUsageEvent.objects.filter(
+            token_usage = TokenUsageEvent.objects.filter(
                 idempotency_key=f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
             ).first()
-            if usage is None:
-                usage = UsageEvent.objects.filter(
+            if token_usage is None:
+                legacy_usage = UsageEvent.objects.filter(
                     idempotency_key=f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
                 ).first()
-            if usage is not None:
-                _settle_provider_usage(event=usage, provider_http_status=200, billable=False)
+                if legacy_usage is not None:
+                    _settle_provider_usage(
+                        event=legacy_usage, provider_http_status=200, billable=False
+                    )
+            else:
+                _settle_provider_usage(event=token_usage, provider_http_status=200, billable=False)
             guide.status = FiscalGuide.Status.ISSUED
             guide.provider_request_id = f"DEMO-{str(guide.id)[:12]}"
             guide.provider_payload = json.dumps(
@@ -826,10 +827,11 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
             return
         guide.status = FiscalGuide.Status.ISSUING
         guide.save(update_fields=["status", "updated_at"])
-    usage = TokenUsageEvent.objects.filter(
+    token_usage = TokenUsageEvent.objects.filter(
         idempotency_key=f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
     ).first()
-    if usage is None:
+    usage: TokenUsageEvent | UsageEvent | None = token_usage
+    if token_usage is None:
         usage = UsageEvent.objects.filter(
             idempotency_key=f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
         ).first()

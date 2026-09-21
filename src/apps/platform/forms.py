@@ -58,7 +58,7 @@ class LeadForm(forms.ModelForm):  # type: ignore[type-arg]
         return normalize_cnpj(self.cleaned_data["cnpj"])
 
     def save(self, commit: bool = True) -> Lead:
-        lead = super().save(commit=False)
+        lead = cast(Lead, super().save(commit=False))
         registry = lookup_company(self.cleaned_data["cnpj"])
         lead.office_name = registry.get("razao_social") or f"CNPJ {lead.cnpj}"
         lead.registry_data = json.dumps(registry, ensure_ascii=False)
@@ -208,7 +208,7 @@ class PlanCatalogForm(forms.ModelForm):  # type: ignore[type-arg]
                 )
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         if "ai" in cleaned.get("modules", []) and not cleaned.get("ai_included_requests"):
             self.add_error(
                 "ai_included_requests",
@@ -448,7 +448,7 @@ class TokenOfferForm(forms.Form):
             self.fields["ai_answer_tokens"].initial = ai_weight.tokens if ai_weight else None
 
     def clean(self) -> dict[str, Any]:
-        cleaned = super().clean()
+        cleaned = super().clean() or {}
         ai_fields = ("ai_monthly_base_brl", "ai_included_tokens", "ai_answer_tokens")
         if cleaned.get("include_ai_module"):
             for field_name in ai_fields:
@@ -501,10 +501,10 @@ class TokenOfferForm(forms.Form):
                 defaults={"tokens": self.cleaned_data["ai_answer_tokens"]},
             )
         else:
-            ai_rate = book.module_rates.filter(module_code="ai").first()
-            if ai_rate is not None:
-                ai_rate.action_weights.all().delete()
-                ai_rate.delete()
+            existing_ai_rate = book.module_rates.filter(module_code="ai").first()
+            if existing_ai_rate is not None:
+                existing_ai_rate.action_weights.all().delete()
+                existing_ai_rate.delete()
         self.book = book
         return book
 

@@ -1,3 +1,5 @@
+from datetime import date
+
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -8,7 +10,9 @@ from django.test import Client
 from apps.accounts.mfa import SESSION_KEY
 from apps.hub.management.commands.seed_demo import _self_signed_pfx
 from apps.integra.client import credentials_from_settings
+from apps.organizations.models import Organization
 from apps.platform.models import (
+    BillingCloseDeferral,
     OperationalRun,
     Plan,
     PlanServiceRate,
@@ -18,6 +22,30 @@ from apps.platform.models import (
 )
 
 pytestmark = pytest.mark.django_db
+
+
+def test_developer_paginates_open_billing_close_deferrals(developer_client):
+    for index in range(31):
+        office = Organization.objects.create(
+            name=f"Escritório adiado {index:02d}", slug=f"adiado-{index:02d}"
+        )
+        BillingCloseDeferral.objects.create(organization=office, period_start=date(2026, 1, 1))
+
+    first_page = developer_client.get("/platform/configuracoes/")
+    second_page = developer_client.get(
+        "/platform/configuracoes/", {"billing_deferrals_page": "2"}
+    )
+
+    assert first_page.status_code == 200
+    assert first_page.context["billing_close_deferrals_total"] == 31
+    assert first_page.context["billing_close_deferrals_page"].number == 1
+    assert len(first_page.context["billing_close_deferrals"]) == 30
+    assert b"31 fechamentos adiados" in first_page.content
+    assert b"billing_deferrals_page=2" in first_page.content
+    assert second_page.status_code == 200
+    assert second_page.context["billing_close_deferrals_page"].number == 2
+    assert len(second_page.context["billing_close_deferrals"]) == 1
+    assert b"billing_deferrals_page=1" in second_page.content
 
 
 def test_developer_uploads_encrypted_central_integra_certificate(user, settings):

@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=5">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=6">{% endblock %}
 {% block workspace_content %}
 <section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Copiloto CICA">
   <aside class="assistant-history" aria-label="Conversas recentes">
@@ -8,13 +8,21 @@
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>Nova conversa
     </a>
     {% if conversation_history %}
+      <p class="conversation-history-count">{{ conversation_history_total }} conversa{{ conversation_history_total|pluralize:"s" }}</p>
       <nav class="conversation-history" aria-label="Histórico de conversas">
         {% for conversation in conversation_history %}
-          <a href="?conversation={{ conversation.id }}"{% if active_conversation and conversation.id == active_conversation.id %} aria-current="page"{% endif %}>
+          <a href="?{% if conversation_history_item_querystring %}{{ conversation_history_item_querystring }}&amp;{% endif %}conversation={{ conversation.id }}"{% if active_conversation and conversation.id == active_conversation.id %} aria-current="page"{% endif %}>
             <strong>{{ conversation.title }}</strong><span>{{ conversation.company.name }}</span>
           </a>
         {% endfor %}
       </nav>
+      {% if conversation_history_page.has_other_pages %}
+        <nav class="pagination conversation-history-pagination" aria-label="Paginação do histórico de conversas">
+          {% if conversation_history_page.has_previous %}<a href="?{% if conversation_history_querystring %}{{ conversation_history_querystring }}&amp;{% endif %}conversation_page={{ conversation_history_page.previous_page_number }}">Anterior</a>{% endif %}
+          <span>Página {{ conversation_history_page.number }} de {{ conversation_history_page.paginator.num_pages }}</span>
+          {% if conversation_history_page.has_next %}<a href="?{% if conversation_history_querystring %}{{ conversation_history_querystring }}&amp;{% endif %}conversation_page={{ conversation_history_page.next_page_number }}">Próxima</a>{% endif %}
+        </nav>
+      {% endif %}
     {% endif %}
   </aside>
 

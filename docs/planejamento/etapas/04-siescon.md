@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento em 18/09/2026. A inspeção local segura não encontrou instalação, DSN ou driver identificado como Siescon; portanto o servidor/banco disponibilizado em D-53 ainda não está acessível nesta estação. A implementação do adaptador permanece condicionada ao contrato técnico de Q-33.
+**Estado:** Em andamento em 21/09/2026. V-041 revalidou a preparação local: a fonte e o destino Siescon são modelados, mas não existe adaptador registrado e a exportação falha de modo explícito antes de ler lançamentos ou gerar arquivo. A inspeção local anterior não encontrou instalação, DSN ou driver identificado como Siescon; portanto o servidor/banco disponibilizado em D-53 ainda não está acessível nesta estação. A implementação do adaptador permanece condicionada ao contrato técnico de Q-33.
 
 **Dependências:** 02–03.
 
@@ -32,7 +32,7 @@ Leitura autorizada, escopo por empresa, cursor/repetição, revogação, exporta
 
 ## Evidências e próximo passo
 
-V-029 registra que esta estação possui 26 drivers ODBC e 5 DSNs, mas nenhum identificado como Siescon e nenhuma instalação Siescon nas pastas locais usuais. V-030 registra a base de destino/adaptador versionado: 36 testes focados passaram, a migração não tem drift e Siescon é recusado até receber layout revisado. V-031 registra a análise consolidada e a revalidação local de 19/09; ela não alterou o bloqueio. A [análise consolidada](../analise-projeto-2026-09-19.md) lista o material mínimo de Q-33 por canal seguro. Nenhuma homologação nova foi atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-029 registra que esta estação possui 26 drivers ODBC e 5 DSNs, mas nenhum identificado como Siescon e nenhuma instalação Siescon nas pastas locais usuais. V-030 registra a base de destino/adaptador versionado. V-041 revalidou em macOS local o código que recusa Siescon sem adaptador, 35 testes focados (um skip de OCR), a suíte integral, lint, Django e migrações; não alterou o bloqueio e não realizou conexão, leitura ou exportação Siescon. A [análise consolidada de 21/09](../analise-projeto-2026-09-21.md) lista o material mínimo de Q-33 por canal seguro. Nenhuma homologação nova foi atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

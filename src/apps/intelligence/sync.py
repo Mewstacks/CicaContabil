@@ -8,6 +8,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from typing import TypedDict
 
 from django.db import transaction
 from django.utils import timezone
@@ -49,6 +50,15 @@ class BankEntrySyncResult:
     updated: int
     ignored: int
     may_be_truncated: bool = False
+
+
+class NormalizedBankEntry(TypedDict):
+    company_code: str
+    occurred_on: date
+    description: str
+    amount_cents: int
+    direction: str
+    is_linked: bool
 
 
 @dataclass(frozen=True)
@@ -326,7 +336,7 @@ def sync_bank_entries(
         raise ValueError("Conector não pertence ao escritório informado.")
     created = updated = ignored = 0
     now = timezone.now()
-    normalized: dict[str, dict[str, object]] = {}
+    normalized: dict[str, NormalizedBankEntry] = {}
     company_codes: set[str] = set()
     for row in rows:
         source_id = _clean_text(row.get("source_id"), 160)

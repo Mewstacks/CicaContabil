@@ -9,11 +9,13 @@ from __future__ import annotations
 import imaplib
 import json
 import re
+from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from email import message_from_bytes, policy
 from email.message import Message
+from typing import cast
 
 from django.core.exceptions import ValidationError
 
@@ -113,7 +115,7 @@ def _named_attachments(message: Message) -> list[tuple[str, str, bytes, str]]:
         if part.is_multipart() or not part.get_filename():
             continue
         payload = part.get_payload(decode=True)
-        if payload is None or not payload:
+        if not isinstance(payload, bytes) or not payload:
             continue
         if len(payload) > MAX_EMAIL_ATTACHMENT_BYTES:
             raise MailboxIMAPError("Anexo acima de 25 MB; sincronização pausada para revisão.")
@@ -122,7 +124,10 @@ def _named_attachments(message: Message) -> list[tuple[str, str, bytes, str]]:
 
 
 def poll_imap_mailbox(
-    *, mailbox: Mailbox, max_messages: int = 10, connection_factory: object = _PinnedIMAP4SSL
+    *,
+    mailbox: Mailbox,
+    max_messages: int = 10,
+    connection_factory: Callable[[str, str], imaplib.IMAP4_SSL] = _PinnedIMAP4SSL,
 ) -> PollResult:
     """Advance the UID checkpoint after each fully processed message, never before."""
     if mailbox.provider != Mailbox.Provider.IMAP:
@@ -156,7 +161,7 @@ def poll_imap_mailbox(
         # INTERNALDATE below against the office's approved timezone-aware cutoff.
         since_date = (mailbox.since - timedelta(days=1)).strftime("%d-%b-%Y")
         criteria = (["UID", f"{last_uid + 1}:*"] if last_uid else []) + ["SINCE", since_date]
-        status, response = connection.uid("search", None, *criteria)
+        status, response = connection.uid("search", cast(str, None), *criteria)
         if status != "OK" or not response:
             raise MailboxIMAPError("O provedor não permitiu buscar mensagens da pasta.")
         ids = sorted({int(value) for value in response[0].split() if value.isdigit()})
@@ -207,13 +212,13 @@ def poll_imap_mailbox(
         mark_failure(mailbox, str(exc), transient=isinstance(exc, MailboxIMAPTemporaryError))
         raise
     except (OSError, TimeoutError) as exc:
-        message = "A conexão IMAP falhou; a caixa tentará novamente."
-        mark_failure(mailbox, message, transient=True)
-        raise MailboxIMAPTemporaryError(message) from exc
+        error_message = "A conexão IMAP falhou; a caixa tentará novamente."
+        mark_failure(mailbox, error_message, transient=True)
+        raise MailboxIMAPTemporaryError(error_message) from exc
     except imaplib.IMAP4.error as exc:
-        message = "O provedor IMAP recusou a leitura. Confira a configuração."
-        mark_failure(mailbox, message, transient=False)
-        raise MailboxIMAPError(message) from exc
+        error_message = "O provedor IMAP recusou a leitura. Confira a configuração."
+        mark_failure(mailbox, error_message, transient=False)
+        raise MailboxIMAPError(error_message) from exc
     finally:
         if connection is not None:
             with suppress(OSError, TimeoutError, imaplib.IMAP4.error):

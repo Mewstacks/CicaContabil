@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -161,9 +161,62 @@ class ParcelamentoWorkspaceTests(TestCase):
         response = self.client.get(reverse("hub:parcelamentos"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Selecionar todas as exibidas")
+        self.assertContains(response, "Selecionar todas desta página")
         self.assertContains(response, "Empresa, CNPJ ou código Domínio")
         self.assertContains(response, "3 token(s)")
+
+    def test_workspace_paginates_the_portfolio_without_hiding_companies(self) -> None:
+        for index in range(101):
+            ClientCompany.objects.create(
+                organization=self.organization,
+                name=f"Carteira de parcelamento {index:03d}",
+                cnpj_masked=f"11.222.333/{index:04d}-81",
+                dominio_code=f"P{index:03d}",
+            )
+
+        first_page = self.client.get(reverse("hub:parcelamentos"), {"search": "Carteira"})
+        last_page = self.client.get(
+            reverse("hub:parcelamentos"), {"search": "Carteira", "page": "4"}
+        )
+
+        self.assertContains(first_page, "101 encontradas")
+        self.assertContains(first_page, "Página 1 de 4")
+        self.assertContains(first_page, "Carteira de parcelamento 000")
+        self.assertNotContains(first_page, "Carteira de parcelamento 100")
+        self.assertContains(last_page, "Página 4 de 4")
+        self.assertContains(last_page, "Carteira de parcelamento 100")
+        self.assertContains(last_page, "?search=Carteira&amp;page=3", html=False)
+
+    def test_workspace_paginates_a_company_operation_history(self) -> None:
+        for index in range(21):
+            ParcelamentoOperation.objects.create(
+                organization=self.organization,
+                company=self.company,
+                kind=ParcelamentoOperation.Kind.ORDERS,
+                status=ParcelamentoOperation.Status.UNKNOWN,
+                service_key="parcelamento.parcsn.pedidos",
+                provider_request_id=f"history-{index:03d}",
+                requested_at=timezone.now() - timedelta(minutes=index),
+            )
+
+        first_page = self.client.get(
+            reverse("hub:parcelamentos"), {"company": str(self.company.id)}
+        )
+        second_page = self.client.get(
+            reverse("hub:parcelamentos"),
+            {"company": str(self.company.id), "operation_page": "2"},
+        )
+
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "history-000")
+        self.assertNotContains(first_page, "history-020")
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, "history-020")
+        self.assertContains(
+            second_page,
+            f"?company={self.company.id}&amp;operation_page=1",
+            html=False,
+        )
 
     def test_bulk_confirmation_reserves_every_selected_company(self) -> None:
         second = ClientCompany.objects.create(

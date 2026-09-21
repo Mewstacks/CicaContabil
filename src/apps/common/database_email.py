@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
+
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+from django.core.mail import EmailMessage
 from django.core.mail.backends.base import BaseEmailBackend
 from django.core.mail.backends.smtp import EmailBackend as SMTPEmailBackend
 
+if TYPE_CHECKING:
+    from apps.platform.models import PlatformConfiguration
 
-def smtp_backend_for_configuration(configuration, *, fail_silently: bool = False):
+
+def smtp_backend_for_configuration(
+    configuration: PlatformConfiguration, *, fail_silently: bool = False
+) -> SMTPEmailBackend:
     """Build an SMTP connection without ever returning the configured password."""
 
     required = {
@@ -35,13 +44,13 @@ def smtp_backend_for_configuration(configuration, *, fail_silently: bool = False
 class DatabaseEmailBackend(BaseEmailBackend):
     """Use the encrypted, developer-owned SMTP setup at message delivery time."""
 
-    def _configuration(self):
+    def _configuration(self) -> PlatformConfiguration | None:
         # Import lazily: Django imports mail backends while application registries start.
         from apps.platform.models import PlatformConfiguration
 
         return PlatformConfiguration.objects.filter(key="default").first()
 
-    def send_messages(self, email_messages):
+    def send_messages(self, email_messages: Sequence[EmailMessage]) -> int:
         if not email_messages:
             return 0
         configuration = self._configuration()

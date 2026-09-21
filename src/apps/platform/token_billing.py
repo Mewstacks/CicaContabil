@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
+from apps.accounts.models import User
 from apps.organizations.models import Organization
 from apps.platform.billing import BillingError, active_contract, month_bounds
 from apps.platform.models import (
@@ -76,6 +77,10 @@ def _meter(
     organization: Organization, book: TokenPriceBook, rate: TokenModuleRate, on_date: date
 ) -> TokenMeter:
     start, end = month_bounds(on_date)
+    included_tokens = rate.included_tokens
+    token_price_cents = book.token_price_cents
+    if included_tokens is None or token_price_cents is None:
+        raise BillingError("A franquia ou o valor do token não está definido no contrato.")
     try:
         with transaction.atomic():
             meter, _created = TokenMeter.objects.get_or_create(
@@ -86,8 +91,8 @@ def _meter(
                     "contract": book.contract,
                     "book": book,
                     "period_end": end,
-                    "included_tokens": rate.included_tokens,
-                    "token_price_cents": book.token_price_cents,
+                    "included_tokens": included_tokens,
+                    "token_price_cents": token_price_cents,
                 },
             )
     except IntegrityError:
@@ -248,7 +253,7 @@ def settle_tokens(
 
 
 def activate_token_book(
-    *, book: TokenPriceBook, accepted_by: object, effective_from: date,
+    *, book: TokenPriceBook, accepted_by: User, effective_from: date,
 ) -> TokenPriceBook:
     """Activate accepted terms only for a future clean competence."""
 
@@ -266,7 +271,7 @@ def activate_token_book(
             raise BillingError("A tabela de tokens deve começar em uma competência futura.")
         if effective_from.day != 1:
             raise BillingError("A tabela de tokens deve começar no primeiro dia do mês.")
-        if not getattr(accepted_by, "is_authenticated", False):
+        if not accepted_by.is_authenticated:
             raise BillingError("Um usuário do escritório precisa aceitar o preço e o teto.")
         if not accepted_by.organization_memberships.filter(
             organization=book.contract.organization,

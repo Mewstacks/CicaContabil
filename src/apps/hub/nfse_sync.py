@@ -19,7 +19,7 @@ from cryptography.hazmat.primitives.serialization import (
     PrivateFormat,
     pkcs12,
 )
-from defusedxml import ElementTree
+from defusedxml import ElementTree  # type: ignore[import-untyped]
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -104,7 +104,8 @@ def normalize_adn_document(document: AdnDocument) -> dict[str, Any]:
             parsed_amount = Decimal(amount)
         except InvalidOperation as exc:
             raise AdnPayloadError(f"O XML do NSU {document.nsu} traz valor inválido.") from exc
-        if parsed_amount < 0 or parsed_amount.as_tuple().exponent < -2:
+        exponent = parsed_amount.as_tuple().exponent
+        if parsed_amount < 0 or not isinstance(exponent, int) or exponent < -2:
             raise AdnPayloadError(f"O XML do NSU {document.nsu} traz valor inválido.")
         amount = format(parsed_amount, ".2f")
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -25,11 +26,12 @@ def present_mailbox(
 ) -> MailboxPresentation:
     """One truthful state and next step for each connected mailbox."""
     now = now or timezone.now()
-    provider_anchor = {
+    provider_anchors: Mapping[str, str] = {
         Mailbox.Provider.MS365_GRAPH: "triage-provider-ms",
         Mailbox.Provider.GMAIL_API: "triage-provider-google",
         Mailbox.Provider.IMAP: "triage-provider-imap",
-    }.get(mailbox.provider, "triage-connect-heading")
+    }
+    provider_anchor = provider_anchors.get(str(mailbox.provider), "triage-connect-heading")
     if mailbox.status == Mailbox.Status.DISABLED:
         return MailboxPresentation(
             mailbox,

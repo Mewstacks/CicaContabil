@@ -7,7 +7,7 @@ import mimetypes
 import re
 import uuid
 from pathlib import Path, PureWindowsPath
-from typing import BinaryIO
+from typing import BinaryIO, cast
 
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
@@ -50,23 +50,29 @@ def _require_verified_email_item(item: TriageItem) -> None:
         raise ValidationError(
             "Somente anexos de e-mail com antimalware e formato validados podem ser aprovados."
         )
-    if item.company_id is None or item.document_type_id is None:
+    company = item.company
+    document_type = item.document_type
+    if company is None or document_type is None:
         raise ValidationError("Identifique a empresa e o tipo de documento antes de aprovar.")
-    if item.company.organization_id != item.organization_id or (
-        item.document_type.organization_id != item.organization_id
+    if company.organization_id != item.organization_id or (
+        document_type.organization_id != item.organization_id
     ):
         raise ValidationError("Empresa ou tipo de documento não pertence a este escritório.")
 
 
-def _validate_upload(upload: UploadedFile) -> str:
-    suffix = Path(upload.name).suffix.casefold()
+def _validate_upload(upload: UploadedFile) -> tuple[str, int, str]:
+    name = upload.name
+    if not name:
+        raise ValidationError("O arquivo não possui nome.")
+    suffix = Path(name).suffix.casefold()
+    size = upload.size
     if suffix not in _ALLOWED_SUFFIXES:
         raise ValidationError("Envie PDF, CSV, XML, OFX ou XLSX.")
-    if upload.size <= 0:
+    if size is None or size <= 0:
         raise ValidationError("O arquivo está vazio.")
-    if upload.size > _MAX_BYTES:
+    if size > _MAX_BYTES:
         raise ValidationError("O arquivo excede o limite de 25 MB.")
-    return suffix
+    return suffix, size, name
 
 
 def intake_manual(
@@ -86,7 +92,7 @@ def intake_manual(
         raise ValidationError("A empresa não pertence a este escritório.")
     if document_type is not None and document_type.organization_id != organization.id:
         raise ValidationError("O tipo de documento não pertence a este escritório.")
-    suffix = _validate_upload(upload)
+    suffix, upload_size, upload_name = _validate_upload(upload)
     digest = hashlib.sha256()
     for chunk in upload.chunks():
         digest.update(chunk)
@@ -99,9 +105,9 @@ def intake_manual(
                 organization=organization,
                 company=company,
                 document_type=document_type,
-                original_name=Path(upload.name).name[:255],
+                original_name=Path(upload_name).name[:255],
                 content_hash=content_hash,
-                byte_size=upload.size,
+                byte_size=upload_size,
                 declared_type=upload.content_type or "",
                 detected_type=detected_type,
             )
@@ -407,10 +413,12 @@ def archive_internal(*, item: TriageItem, actor: User) -> TriageItem:
 def open_verified_internal_copy(*, item: TriageItem) -> BinaryIO:
     """Open only a proven library copy; never fall back to the quarantine blob."""
     _require_verified_email_item(item)
+    destination_path = item.destination_path
     if (
         item.status != TriageStatus.ARCHIVED
         or item.destination_kind != DestinationProfile.Mode.INTERNAL
-        or not item.destination_path.startswith(
+        or not destination_path
+        or not destination_path.startswith(
             f"private/triage/library/{item.organization_id}/{item.id}/"
         )
         or item.destination_hash != item.content_hash
@@ -418,15 +426,15 @@ def open_verified_internal_copy(*, item: TriageItem) -> BinaryIO:
     ):
         raise ValidationError("Este arquivo ainda não está disponível na biblioteca.")
     storage = PrivateTriageStorage()
-    if not storage.exists(item.destination_path):
+    if not storage.exists(destination_path):
         raise ValidationError("A cópia arquivada não está disponível. Solicite suporte.")
     digest = hashlib.sha256()
-    with storage.open(item.destination_path, "rb") as archived:
+    with storage.open(destination_path, "rb") as archived:
         while chunk := archived.read(64 * 1024):
             digest.update(chunk)
     if digest.hexdigest() != item.content_hash:
         raise ValidationError("A cópia arquivada não passou na conferência de integridade.")
-    return storage.open(item.destination_path, "rb")
+    return cast(BinaryIO, storage.open(destination_path, "rb"))
 
 
 def open_verified_quarantine_for_agent(*, item: TriageItem) -> BinaryIO:
@@ -444,4 +452,4 @@ def open_verified_quarantine_for_agent(*, item: TriageItem) -> BinaryIO:
             digest.update(chunk)
     if digest.hexdigest() != item.content_hash:
         raise ValidationError("O arquivo de origem mudou depois da verificação.")
-    return blob.content.open("rb")
+    return cast(BinaryIO, blob.content.open("rb"))

@@ -84,6 +84,49 @@ class DteCenterTests(TestCase):
         self.assertContains(response, "A empresa selecionada n\u00e3o est\u00e1 no seu escopo")
         self.assertFalse(DteRun.objects.filter(organization=self.organization).exists())
 
+    def test_dte_history_paginates_without_changing_the_message_page(self) -> None:
+        for index in range(31):
+            run = DteRun.objects.create(
+                organization=self.organization, status=DteRun.Status.COMPLETED
+            )
+            DteRunItem.objects.create(
+                organization=self.organization,
+                run=run,
+                company=self.company,
+                status=DteRunItem.Status.COMPLETED,
+                messages_found=index,
+            )
+        for index in range(26):
+            DteMessage.objects.create(
+                organization=self.organization,
+                company=self.company,
+                source_isn=f"message-{index}",
+                subject=f"Mensagem {index}",
+                sent_at=timezone.now(),
+            )
+
+        first_page = self.client.get(reverse("hub:dte-center"), {"history_page": "2"})
+        second_message_page = self.client.get(
+            reverse("hub:dte-center"), {"page": "2", "history_page": "2"}
+        )
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["dte_items_total"], 31)
+        self.assertEqual(first_page.context["dte_items_page"].number, 2)
+        self.assertEqual(first_page.context["dte_message_page"].number, 1)
+        self.assertEqual(len(first_page.context["dte_items"]), 1)
+        self.assertContains(first_page, "31 resultados")
+        self.assertContains(
+            first_page, "?history_page=2&amp;status=all&amp;company=&amp;q=&amp;page=2"
+        )
+        self.assertEqual(second_message_page.context["dte_items_page"].number, 2)
+        self.assertEqual(second_message_page.context["dte_message_page"].number, 2)
+        self.assertEqual(len(second_message_page.context["dte_message_page"].object_list), 1)
+        self.assertContains(second_message_page, "Página 2 de 2")
+        self.assertContains(
+            second_message_page, "?history_page=2&amp;status=all&amp;company=&amp;q=&amp;page=1"
+        )
+
     def test_operator_prepares_next_page_from_own_history_without_dispatch(self) -> None:
         first = DteRun.objects.create(
             organization=self.organization, status=DteRun.Status.COMPLETED

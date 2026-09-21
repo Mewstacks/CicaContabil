@@ -8,16 +8,17 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from pathlib import Path, PureWindowsPath
-from typing import Any
+from typing import Any, cast
 from urllib.parse import unquote
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric.types import CertificateIssuerPrivateKeyTypes
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.http import FileResponse, HttpRequest, HttpResponse, JsonResponse
+from django.http import FileResponse, HttpRequest, HttpResponseBase, JsonResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -95,7 +96,10 @@ def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
         if not csr.is_signature_valid:
             raise ValueError
         ca_cert = x509.load_pem_x509_certificate(cert_path.read_bytes())
-        ca_key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+        ca_key = cast(
+            CertificateIssuerPrivateKeyTypes,
+            serialization.load_pem_private_key(key_path.read_bytes(), password=None),
+        )
     except (TypeError, ValueError) as exc:
         raise ValueError("CSR inválida.") from exc
     now = timezone.now()
@@ -327,7 +331,7 @@ def next_file_job(request: HttpRequest) -> JsonResponse:
 
 @csrf_exempt
 @require_POST
-def download_file_job(request: HttpRequest, job_id: str) -> HttpResponse:
+def download_file_job(request: HttpRequest, job_id: str) -> HttpResponseBase:
     agent = _agent(request)
     if agent is None:
         return _error("Agente não autorizado.", 401)
@@ -475,7 +479,7 @@ def complete_file_job(request: HttpRequest, job_id: str) -> JsonResponse:
 
 @csrf_exempt
 @require_POST
-def download_backup(request: HttpRequest, batch_id: str) -> HttpResponse:
+def download_backup(request: HttpRequest, batch_id: str) -> HttpResponseBase:
     agent = _agent(request)
     if agent is None:
         return _error("Agente não autorizado.", 401)
@@ -571,8 +575,11 @@ def sync_capability(request: HttpRequest, capability: str) -> JsonResponse:
     payload = _payload(request)
     if payload is None:
         return _error("Página de sincronização inválida.", 400)
+    batch_id = payload.get("batch_id")
+    if not isinstance(batch_id, str):
+        return _error("Página de sincronização inválida.", 400)
     batch = ImportBatch.objects.filter(
-        id=payload.get("batch_id"),
+        id=batch_id,
         organization=agent.organization,
         kind=ImportBatch.Kind.DOMINIO_BACKUP,
         status=ImportBatch.Status.PROCESSING,

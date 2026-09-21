@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Concluída em 18/09/2026 no nível de implementação e validação local (V-007 a V-009). E-mail real, DNS e SMTP permanecem para homologação integrada da etapa 12, conforme D-77; não são alegados como homologados aqui.
+**Estado:** Concluída em 18/09/2026 no nível de implementação e validação local (V-007 a V-009, com suporte de transporte retestado em V-052). E-mail real, DNS e SMTP permanecem para homologação integrada da etapa 12, conforme D-77; não são alegados como homologados aqui.
 
 **Dependências:** 01.
 
@@ -31,7 +31,7 @@ Matriz de autorização por rota/API, isolamento, convite e recuperação expira
 
 ## Evidências e próximo passo
 
-V-007: 83 testes de cadastro, convite, MFA, permissões, isolamento, contrato e acesso operacional passaram em 54,47 s. V-008: confirmação de cadastro, convite e recuperação passaram a ter HTML CICA e texto de reserva; 62 testes passaram. V-009 acrescenta 22 testes de APIs/permissões, 4 testes de demonstração isolada e inspeção Playwright autenticada: MFA, painel, equipe, empresas e configurações; em celular não houve overflow, foco foi visível e o console não teve erro. Uma semeadura local de demo foi corretamente recusada por existir escritório operacional com o slug; a barreira foi tratada como evidência, sem sobrescrever dados locais. D-77 transfere SMTP real, DNS e entrega para a etapa 12.
+V-007: 83 testes de cadastro, convite, MFA, permissões, isolamento, contrato e acesso operacional passaram em 54,47 s. V-008: confirmação de cadastro, convite e recuperação passaram a ter HTML CICA e texto de reserva; 62 testes passaram. V-009 acrescenta 22 testes de APIs/permissões, 4 testes de demonstração isolada e inspeção Playwright autenticada: MFA, painel, equipe, empresas e configurações; em celular não houve overflow, foco foi visível e o console não teve erro. Uma semeadura local de demo foi corretamente recusada por existir escritório operacional com o slug; a barreira foi tratada como evidência, sem sobrescrever dados locais. V-079 revalidou a ficha de empresa em volume local, paginando seus históricos sem abrir escopo de permissões ou integração. D-77 transfere SMTP real, DNS e entrega para a etapa 12.
 
 ## Prompt de execução
 

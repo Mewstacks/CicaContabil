@@ -15,10 +15,13 @@ def snapshot_new_contract_pricing(
     if created and instance.plan_id:
         from apps.platform.billing import snapshot_contract_pricing
 
+        plan = instance.plan
+        if plan is None:
+            return
         # A contract is an agreement, not a live view of the catalogue.  Freeze
         # the enabled modules before any later plan edit can alter an office's
         # authorization boundary.
         if not instance.selected_modules:
-            instance.selected_modules = list(instance.plan.modules)
+            instance.selected_modules = list(plan.modules)
             instance.save(update_fields=["selected_modules", "updated_at"])
         snapshot_contract_pricing(instance, initialize_price=True)

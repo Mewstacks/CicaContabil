@@ -19,7 +19,7 @@
   </dl>
 </section>
 
-<section class="workspace-panel">
+<section id="documentos-nfse" class="workspace-panel">
   <header class="workspace-panel-head">
     <div><h2>Documentos NFS-e</h2></div>
     <span class="record-count">{{ document_count }} no total</span>
@@ -29,16 +29,16 @@
       <td><strong>{{ document.source_nsu|default:"Documento NFS-e" }}</strong><small>Hash {{ document.document_hash|slice:":12" }}</small></td>
       <td>{{ document.captured_at|date:"d/m/Y H:i" }}</td>
       <td>{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
-    </tr>{% endfor %}</tbody></table></div>
+    </tr>{% endfor %}</tbody></table></div>{% if document_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos documentos NFS-e">{% if document_page.has_previous %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.previous_page_number }}#documentos-nfse" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.next_page_number }}#documentos-nfse" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>Os documentos aparecerão aqui depois da conexão NFS-e desta empresa ser homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
   {% endif %}
 </section>
 
-<section class="workspace-panel">
+<section id="revisoes-abertas" class="workspace-panel">
   <header class="workspace-panel-head">
     <div><h2>Revisões abertas</h2></div>
-    <span class="record-count">{{ open_cases|length }}</span>
+    <span class="record-count">{{ open_cases_count }} no total</span>
   </header>
   {% if open_cases %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Documento</th><th>Motivo</th><th>Aberta em</th><th></th></tr></thead><tbody>{% for case in open_cases %}<tr>
@@ -46,7 +46,7 @@
       <td>{{ case.reason|default:"Sem motivo registrado" }}</td>
       <td>{{ case.created_at|date:"d/m/Y" }}</td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:review-detail' case.id %}">Conferir caso</a></td>
-    </tr>{% endfor %}</tbody></table></div>
+    </tr>{% endfor %}</tbody></table></div>{% if open_cases_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das revisões abertas">{% if open_cases_page.has_previous %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.previous_page_number }}#revisoes-abertas" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ open_cases_page.number }} de {{ open_cases_page.paginator.num_pages }}</span>{% if open_cases_page.has_next %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.next_page_number }}#revisoes-abertas" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Sem revisões abertas</strong><p>Nada desta empresa está parado esperando decisão.</p></div>
   {% endif %}
@@ -68,17 +68,17 @@
   {% endif %}
 </section>
 
-<section class="workspace-panel">
+<section id="caixa-dte" class="workspace-panel">
   <header class="workspace-panel-head">
     <div><h2>Caixa postal (DTE)</h2></div>
-    <span class="record-count">{{ dte_messages|length }}</span>
+    <span class="record-count">{{ dte_messages_count }} no total</span>
   </header>
   {% if dte_messages %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Assunto</th><th>Enviada</th><th>Leitura</th></tr></thead><tbody>{% for dte in dte_messages %}<tr>
       <td><strong>{{ dte.subject|default:"Mensagem sem assunto" }}</strong></td>
       <td>{% if dte.sent_at %}{{ dte.sent_at|date:"d/m/Y" }}{% else %}{{ dte.first_seen_at|date:"d/m/Y" }}{% endif %}</td>
       <td>{% if dte.read_at %}<span class="table-muted">Lida</span>{% else %}<span class="module-state is-warning">Não lida</span>{% endif %}</td>
-    </tr>{% endfor %}</tbody></table></div>
+    </tr>{% endfor %}</tbody></table></div>{% if dte_messages_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das mensagens DTE">{% if dte_messages_page.has_previous %}<a class="button button-quiet button-small" href="?{% if dte_messages_querystring %}{{ dte_messages_querystring }}&amp;{% endif %}dte_page={{ dte_messages_page.previous_page_number }}#caixa-dte" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ dte_messages_page.number }} de {{ dte_messages_page.paginator.num_pages }}</span>{% if dte_messages_page.has_next %}<a class="button button-quiet button-small" href="?{% if dte_messages_querystring %}{{ dte_messages_querystring }}&amp;{% endif %}dte_page={{ dte_messages_page.next_page_number }}#caixa-dte" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhuma mensagem</strong><p>As consultas ao DTE começam na central do Integra Contador.</p><a class="button button-small button-quiet" href="{% url 'hub:dte-center' %}">Abrir central DTE</a></div>
   {% endif %}

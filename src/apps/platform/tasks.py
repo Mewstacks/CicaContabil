@@ -14,7 +14,7 @@ from apps.platform.operations import track_scheduled_operation
 
 @shared_task(name="platform.close_previous_competence")  # type: ignore[untyped-decorator]
 @track_scheduled_operation(OperationalRun.Task.CLOSE_COMPETENCE)
-def close_previous_competence() -> dict[str, int | str]:
+def close_previous_competence() -> dict[str, object]:
     """Close the prior BRT competence; repeated beat delivery is safe."""
 
     current_month_start = timezone.localdate().replace(day=1)

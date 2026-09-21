@@ -16,12 +16,14 @@ import shutil
 import subprocess
 import tempfile
 import uuid
+import zipfile
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from itertools import islice
 from pathlib import Path, PurePath
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -84,6 +86,8 @@ def detect_kind(filename: str, content: bytes) -> str:
         raise ReconciliationError("O conteúdo não corresponde a um PDF.")
     if kind == "xlsx" and not content.startswith(b"PK"):
         raise ReconciliationError("O conteúdo não corresponde a uma planilha XLSX.")
+    if kind == "xlsx":
+        _load_xlsx_workbook(content)
     if kind == "ofx" and b"OFX" not in content[:4096].upper():
         raise ReconciliationError("O conteúdo não corresponde a um OFX.")
     if kind == "csv" and b"\x00" in content:
@@ -216,7 +220,7 @@ def create_source_file(
             )
         return existing, run, False
     layout = _compatible_layout_for_source(source)
-    checkpoint = {"physical_batch": physical_batch[:120]}
+    checkpoint: dict[str, Any] = {"physical_batch": physical_batch[:120]}
     if layout is not None:
         checkpoint["layout_selected_automatically"] = True
         checkpoint["layout_name"] = layout.name
@@ -302,7 +306,7 @@ def _auto_mapping(headers: list[str]) -> dict[str, str]:
     return result
 
 
-def _csv_dialect(text: str) -> csv.Dialect:
+def _csv_dialect(text: str) -> type[csv.Dialect]:
     """Detect a dialect, with a deterministic fallback for short bank exports."""
     sample = text[:8192]
     try:
@@ -322,9 +326,22 @@ def _source_bytes(source: ReconciliationSourceFile) -> bytes:
     source.content.open("rb")
     try:
         source.content.seek(0)
-        return source.content.read()
+        return cast(bytes, source.content.read())
     finally:
         source.content.close()
+
+
+def _load_xlsx_workbook(content: bytes) -> Any:
+    """Open a workbook without exposing archive/parser errors to an operator."""
+    from openpyxl import load_workbook  # type: ignore[import-untyped]
+    from openpyxl.utils.exceptions import InvalidFileException  # type: ignore[import-untyped]
+
+    try:
+        return load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    except (InvalidFileException, KeyError, OSError, ValueError, zipfile.BadZipFile) as exc:
+        raise ReconciliationError(
+            "Não foi possível abrir a planilha XLSX. Verifique se o arquivo não está corrompido."
+        ) from exc
 
 
 def preview_tabular(source: ReconciliationSourceFile) -> dict[str, Any]:
@@ -333,7 +350,7 @@ def preview_tabular(source: ReconciliationSourceFile) -> dict[str, Any]:
         text = _decode_csv(content)
         dialect = _csv_dialect(text)
         reader = csv.reader(io.StringIO(text), dialect)
-        rows = list(reader)[:51]
+        rows = list(islice(reader, 51))
         headers = [str(item).strip() for item in rows[0]] if rows else []
         return {
             "headers": headers,
@@ -342,9 +359,7 @@ def preview_tabular(source: ReconciliationSourceFile) -> dict[str, Any]:
             "signature": _signature(headers),
         }
     if source.kind == ReconciliationSourceFile.Kind.XLSX:
-        from openpyxl import load_workbook
-
-        workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        workbook = _load_xlsx_workbook(content)
         worksheet = workbook.active
         rows = list(worksheet.iter_rows(values_only=True, max_row=51))
         headers = [str(item or "").strip() for item in rows[0]] if rows else []
@@ -512,9 +527,7 @@ def _records_from_tabular(
         dialect = _csv_dialect(text)
         rows = csv.DictReader(io.StringIO(text), dialect=dialect)
     else:
-        from openpyxl import load_workbook
-
-        workbook = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+        workbook = _load_xlsx_workbook(content)
         sheet_name = str(
             (layout.configuration if layout else {}).get("sheet") or workbook.active.title
         )
@@ -666,7 +679,7 @@ def _records_from_scanned_pdf(content: bytes) -> list[ExtractedRecord]:
     if tesseract_path is None or not local_ocr_available():
         return []
     try:
-        import pypdfium2
+        import pypdfium2  # type: ignore[import-untyped]
 
         document = pypdfium2.PdfDocument(content)
         if len(document) > MAX_PAGES:
@@ -712,7 +725,8 @@ def _records_from_scanned_pdf(content: bytes) -> list[ExtractedRecord]:
                         left, top, width, height = (int(value) for value in parts[6:10])
                     except ValueError:
                         continue
-                    words.setdefault(tuple(parts[2:5]), []).append(
+                    line_key = (parts[2], parts[3], parts[4])
+                    words.setdefault(line_key, []).append(
                         (parts[11], confidence, left, top, width, height)
                     )
                 for line_number, values in enumerate(words.values(), start=1):
@@ -776,9 +790,12 @@ def _matches_condition(condition: dict[str, Any], movement: NormalizedMovement) 
     field = str(condition.get("field", ""))
     operator = str(condition.get("operator", ""))
     expected = condition.get("value", "")
+    financial_account = movement.financial_account
     values = {
         "financial_account": (
-            movement.financial_account.account_reference if movement.financial_account_id else ""
+            financial_account.account_reference
+            if financial_account is not None
+            else ""
         ),
         "description": movement.description,
         "counterparty": movement.counterparty,
@@ -792,11 +809,18 @@ def _matches_condition(condition: dict[str, Any], movement: NormalizedMovement) 
     if operator == "contains":
         return str(expected).casefold() in str(actual).casefold()
     if operator == "range" and isinstance(expected, dict):
-        return (
-            int(expected.get("min", -(10**18)))
-            <= int(actual or 0)
-            <= int(expected.get("max", 10**18))
-        )
+        minimum = expected.get("min", -(10**18))
+        maximum = expected.get("max", 10**18)
+        if (
+            not isinstance(minimum, (int, str))
+            or not isinstance(actual, (int, str))
+            or not isinstance(maximum, (int, str))
+        ):
+            return False
+        try:
+            return int(minimum) <= int(actual) <= int(maximum)
+        except ValueError:
+            return False
     if operator == "regex":
         pattern = str(expected)
         if len(pattern) > 160 or re.search(r"\(\?[:=!<].*[+*].*\)[+*]", pattern):
@@ -976,13 +1000,14 @@ def save_rule_from_movement(
         {"field": "description", "operator": "equals", "value": movement.description},
         {"field": "direction", "operator": "equals", "value": movement.direction},
     ]
-    if movement.financial_account_id and movement.financial_account.account_reference:
+    financial_account = movement.financial_account
+    if financial_account is not None and financial_account.account_reference:
         conditions.insert(
             0,
             {
                 "field": "financial_account",
                 "operator": "equals",
-                "value": movement.financial_account.account_reference,
+                "value": financial_account.account_reference,
             },
         )
     rule = ReconciliationRule.objects.create(
@@ -1115,13 +1140,14 @@ def process_run(run_id: str) -> dict[str, int | str]:
             return _reapply_rules_for_source(run, token)
         if source.kind == ReconciliationSourceFile.Kind.OFX:
             records = _records_from_ofx(source)
-            if source.financial_account_id:
+            financial_account = source.financial_account
+            if financial_account is not None:
                 reported_accounts = {
                     str(record.source_reference.get("account", "")).strip()
                     for record in records
                     if record.source_reference
                 }
-                selected_account = source.financial_account.account_reference.strip()
+                selected_account = financial_account.account_reference.strip()
                 if reported_accounts != {selected_account}:
                     _finish_run(
                         run,
@@ -1263,10 +1289,10 @@ def process_run(run_id: str) -> dict[str, int | str]:
         )
         return {"state": state, "created": created, "errors": len(errors)}
     except Exception as exc:
-        run = ReconciliationRun.objects.filter(id=parsed_id).first()
-        if run:
+        failed_run = ReconciliationRun.objects.filter(id=parsed_id).first()
+        if failed_run:
             _finish_run(
-                run,
+                failed_run,
                 token,
                 ReconciliationRun.State.FAILED,
                 "failed",
@@ -1433,7 +1459,7 @@ def validate_journal_entry(entry: JournalEntry) -> list[str]:
         movement = entry.movement
         if entry.source_movement_revision is None:
             errors.append("O lançamento não possui a revisão de origem para validação.")
-        elif movement.revision != entry.source_movement_revision:
+        elif movement is None or movement.revision != entry.source_movement_revision:
             errors.append("O movimento de origem mudou; gere e aprove um novo lançamento.")
     if not entry.history.strip():
         errors.append("Informe o histórico contábil.")

@@ -3,20 +3,21 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand, CommandError, CommandParser
 
 
 class Command(BaseCommand):
     help = "Valida a chave Claude sem gerar resposta nem enviar dados de cliente."
 
-    def add_arguments(self, parser) -> None:
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument("--model", default="claude-sonnet-5")
 
-    def handle(self, *args, **options) -> None:
+    def handle(self, *args: Any, **options: Any) -> None:
         if not settings.CICA_CLAUDE_API_KEY:
             raise CommandError("Defina CICA_CLAUDE_API_KEY no .env da Mewstack.")
 

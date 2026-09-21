@@ -9,8 +9,9 @@ import re
 import zipfile
 from datetime import datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from typing import cast
 
-from defusedxml import ElementTree
+from defusedxml import ElementTree  # type: ignore[import-untyped]
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.utils import timezone
@@ -45,7 +46,7 @@ def _read_upload(upload: UploadedFile, *, limit: int) -> bytes:
         raise ImportValidationError("O arquivo excede o limite permitido para este tipo.")
     if not content:
         raise ImportValidationError("O arquivo está vazio.")
-    return content
+    return cast(bytes, content)
 
 
 def _normalize_header(value: str) -> str:
@@ -161,6 +162,9 @@ def create_import_preview(
 ) -> tuple[ImportBatch, bool]:
     if data_source.organization_id != organization.id:
         raise ImportValidationError("A fonte não pertence a este escritório.")
+    filename = upload.name
+    if not filename:
+        raise ImportValidationError("O arquivo não possui nome.")
     digest = _sha256_upload(upload)
     existing = ImportBatch.objects.filter(
         organization=organization, data_source=data_source, kind=kind, content_hash=digest
@@ -194,7 +198,7 @@ def create_import_preview(
         organization=organization,
         data_source=data_source,
         kind=kind,
-        original_filename=upload.name[:255],
+        original_filename=filename[:255],
         content_hash=digest,
         source_snapshot_at=source_snapshot_at,
         backup_key=backup_key,
@@ -213,7 +217,7 @@ def create_import_preview(
         batch.mapping = {"bridge_required": True, "full_backup": True}
         batch.row_count = 1
         batch.save()
-        batch.source_file.save(upload.name, upload, save=True)
+        batch.source_file.save(filename, upload, save=True)
     else:
         content = _read_upload(upload, limit=MAX_TABULAR_BYTES)
         if kind in {
@@ -221,7 +225,7 @@ def create_import_preview(
             ImportBatch.Kind.OBLIGATIONS,
             ImportBatch.Kind.ACCOUNTING,
         }:
-            rows = _tabular_rows(upload.name, content)
+            rows = _tabular_rows(filename, content)
             if not rows:
                 raise ImportValidationError("O arquivo não possui linhas para importar.")
             payload = json.dumps(rows, ensure_ascii=False)
@@ -455,7 +459,7 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
         ]
     )
     capabilities = set(batch.data_source.capabilities)
-    capability_by_kind = {
+    capability_by_kind: dict[str, str] = {
         ImportBatch.Kind.COMPANIES: "companies",
         ImportBatch.Kind.OBLIGATIONS: "obligations",
         ImportBatch.Kind.ACCOUNTING: "accounting_entries",

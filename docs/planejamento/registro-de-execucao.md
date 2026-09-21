@@ -1,5 +1,659 @@
 # Registro de execução da meta operacional
 
+## 21/09/2026 — XLSX corrompido recusado antes da conciliação (V-097)
+
+- A validação de entrada passou a abrir XLSX antes de criar a fonte. Arquivo com
+  extensão e assinatura compatíveis, mas corrompido, é rejeitado com mensagem
+  clara, sem fonte, lote ou processamento persistido.
+- A prévia CSV passou a ler apenas as 51 linhas que exibe, sem materializar todo
+  o conteúdo somente para cortar a amostra visual.
+- Foram aprovados 41 testes focados (um skip de OCR), Ruff e MyPy do serviço; a
+  suíte integral fechou com 783 testes, três skips e 11 subtestes. Não houve
+  arquivo real, OCR, ERP, integração ou serviço externo.
+
+## 21/09/2026 — código operacional de Jornadas removido (V-096)
+
+- Em complemento à V-095 e conforme D-43, formulários, views e template
+  operacionais órfãos de Jornadas foram removidos. Enum, modelos, tabelas e
+  migrações históricos permaneceram intactos; não houve migração destrutiva.
+- A busca de referências confirmou que não há rota, vínculo de navegação,
+  formulário, view ou template ativo. O teste mantém as cinco rotas legadas
+  como 404 em GET e POST e confirma a ausência do módulo no catálogo.
+- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migrações; a
+  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
+  cobrança, integração ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 102 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — Jornadas removida do catálogo do produto (V-095)
+
+- A definição de Jornadas foi removida do catálogo efetivo da CICA em
+  conformidade com D-43. Enum, tabelas e migrações ficaram preservados para
+  histórico, sem rota, navegação ou oferta acessível.
+- Os testes confirmaram as cinco rotas legadas como 404 para GET e POST, a
+  ausência na navegação e a ausência no catálogo, sem alterar contrato ou dado.
+- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migrações; a
+  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
+  cobrança, integração ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 101 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — páginas independentes na Caixa DTE (V-094)
+
+- A paginação de mensagens passou a preservar a página do histórico DTE,
+  filtros e empresa; o histórico já preservava a página de mensagens. As duas
+  listas não se reiniciam mais ao navegar.
+- O teste com 31 resultados DTE e 26 mensagens sintéticas confirmou a segunda
+  página e os vínculos de ida e volta de ambas, sem preparar, enviar ou cobrar
+  consulta.
+- Foram aprovados 10 testes focados, Ruff, MyPy global, Django e migrações; a
+  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
+  Serpro, arquivo, consumo, cobrança ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — fila OFX preserva o contexto da Conciliação (V-093)
+
+- A fila OFX × Domínio passou a conservar páginas de Processamentos, Movimentos
+  e Exportações, além de seus próprios filtros; percorrê-la não reinicia as
+  outras três áreas.
+- O teste chegou à terceira página de 101 correspondências sintéticas com as
+  demais páginas selecionadas e validou o retorno, sem importar, conciliar,
+  reprocessar ou exportar arquivo.
+- Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
+  e migrações; a suíte integral fechou com 781 testes, três skips e 11
+  subtestes. Não houve ERP, arquivo, OCR real ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — páginas independentes na Conciliação (V-092)
+
+- A paginação dos movimentos normalizados agora preserva as páginas abertas de
+  Processamentos e Exportações e o contexto da Conciliação, sem deslocar uma
+  trilha quando a outra é percorrida.
+- O teste com 21 processamentos, 21 exportações e 51 movimentos sintéticos
+  confirmou a segunda página de cada área e o retorno do movimento, sem importar,
+  confirmar, reprocessar ou exportar arquivo.
+- Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
+  e migrações; a suíte integral fechou com 781 testes, três skips e 11
+  subtestes. Não houve ERP, arquivo, OCR real ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — histórico de Triagem recuperável por página (V-091)
+
+- O detalhe de arquivo passou a paginar 20 eventos persistidos por vez, mostrar
+  o total e manter ordem cronológica e parâmetros de retorno, sem ocultar
+  evidência antiga nem carregar toda a trilha no detalhe.
+- O teste com 21 eventos sintéticos confirmou as duas páginas, os vínculos de
+  navegação e os eventos dos extremos sem decidir, arquivar ou gerar arquivo.
+  A demonstração continua isolada por sessão e não foi usada como prova visual
+  de volume; não houve autenticação inserida no navegador.
+- Foram aprovados 57 testes focados, Ruff, MyPy global, Django e migrações; a
+  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
+  caixa, scanner, OCR, agente, serviço externo ou custo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — candidatos de conciliação recuperáveis por página (V-090)
+
+- O detalhe de movimento não limita mais a 50 os candidatos de conciliação:
+  percorre o recorte existente em páginas de 25 e informa o total avaliado,
+  mantendo confirmação humana e evidência obrigatória.
+- O teste com 51 candidatos sintéticos confirmou as três páginas; a sessão
+  fictícia percorreu a segunda em 390 px, sem overflow horizontal ou erro de
+  console. Não houve conciliação confirmada, arquivo, ERP ou serviço externo.
+- Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
+  e migrações; a suíte integral fechou com 780 testes, três skips e 11
+  subtestes. O banco temporário foi movido à Lixeira de forma recuperável.
+- O fetch final manteve `HEAD` e `origin/main` no mesmo commit (0/0), sem pull,
+  commit ou push; as 98 alterações locais foram preservadas.
+
+## 21/09/2026 — acumulador NFS-e validado por empresa (V-089)
+
+- A decisão da revisão NFS-e agora aceita somente código já cadastrado em regra
+  vigente ou histórico observado da mesma empresa; códigos inexistentes e de
+  outras empresas são recusados, sem criar regra ou lançamento.
+- Foram aprovados 95 testes focados, Ruff, MyPy global e a suíte integral com
+  779 testes, três skips e 11 subtestes. Não houve ADN, certificado, custo ou
+  serviço externo; o banco temporário foi movido à Lixeira de forma recuperável.
+- A demonstração fictícia confirmou a lista local de acumuladores na decisão
+  NFS-e em desktop e 390 px, sem overflow horizontal nem erro de console; ela
+  não foi usada como prova de catálogo real. O fetch final manteve `HEAD` e
+  `origin/main` no mesmo commit (0/0), sem pull, commit ou push.
+
+## 21/09/2026 — atenção de egressão recuperável por página (V-088)
+
+- O detalhe do escritório passou a paginar 20 tentativas Claude incertas e a
+  exibir seu total, no lugar de ocultar protocolos antigos; os parâmetros da
+  tela permanecem nos vínculos entre páginas.
+- O teste com 21 auditorias fictícias confirmou a segunda página e o protocolo
+  mais antigo sem chamar IA, liberar reserva ou alterar consumo. A inspeção
+  visual autenticada não foi automatizada para não inserir credenciais.
+- Foram aprovados 57 testes focados, Ruff, MyPy global e a suíte integral com
+  778 testes, três skips e 11 subtestes. Não houve provedor, custo ou serviço
+  externo; o banco temporário foi movido à Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 96 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — fechamentos adiados recuperáveis por página (V-087)
+
+- A configuração da plataforma passou a paginar 30 fechamentos ainda adiados
+  e a exibir seu total, no lugar de cortar a lista em 30 ocorrências; os
+  parâmetros da tela permanecem nos vínculos entre páginas.
+- O teste com 31 escritórios e ocorrências fictícias confirmou a segunda página
+  sem executar fechamento, reserva, faturamento ou mudar contratos. A inspeção
+  visual autenticada não foi automatizada para não inserir credenciais.
+- Foram aprovados 65 testes focados, com um skip de concorrência PostgreSQL,
+  Ruff, MyPy global e a suíte integral com 777 testes, três skips e 11
+  subtestes. Não houve Asaas, custo ou serviço externo; o banco temporário foi
+  movido à Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 96 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — histórico do Copiloto recuperável por página (V-086)
+
+- O histórico aberto do Copiloto passou a paginar 12 conversas e a exibir seu
+  total, no lugar de ocultar todas as conversas anteriores; a conversa em foco
+  e a página continuam presentes nos vínculos entre as navegações.
+- O teste com 13 conversas fictícias confirmou a segunda página e a seleção da
+  conversa mais antiga sem enviar pergunta, criar mensagem ou chamar IA. A
+  demonstração vazia confirmou a superfície móvel sem overflow ou erro de
+  console, sem alegar volume visual.
+- Foram aprovados 49 testes focados, Ruff, MyPy global e a suíte integral com
+  776 testes, três skips e 11 subtestes. Não houve runtime, fallback, egressão,
+  custo ou serviço externo; o ambiente temporário foi encerrado e movido à
+  Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 94 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — trilhas de Conciliação recuperáveis (V-085)
+
+- Processamentos e exportações passaram a paginar 20 registros de forma
+  independente, em vez dos cortes de 12 e 8, preservando os parâmetros da tela
+  e a outra trilha.
+- O teste com 21 execuções e 21 exportações fictícias confirmou a segunda página
+  de cada uma sem importar, reprocessar, exportar ou baixar arquivos. A
+  demonstração confirmou apenas as áreas móveis, sem overflow ou erro de console.
+- Foram aprovados 93 testes focados, com um skip de OCR local, Ruff, MyPy global
+  e a suíte integral com 775 testes, três skips e 11 subtestes. Não houve ERP,
+  arquivo real, custo ou serviço externo; o ambiente temporário foi encerrado e
+  movido à Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 91 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — histórico de importações recuperável no onboarding (V-084)
+
+- A área de onboarding passou a paginar 20 lotes de importação e a exibir o
+  total, no lugar do corte nos oito mais recentes; a fonte e a prévia continuam
+  presentes nos vínculos entre páginas.
+- O teste com 21 lotes fictícios confirmou a segunda página sem enviar,
+  confirmar ou alterar arquivo. A demonstração vazia confirmou a superfície
+  móvel sem overflow ou erro de console, sem alegar volume visual.
+- Foram aprovados 57 testes focados, Ruff, MyPy global e a suíte integral com
+  774 testes, três skips e 11 subtestes. Não houve arquivo real, Domínio,
+  agente, credencial, custo ou serviço externo; o ambiente temporário foi
+  encerrado e movido à Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 90 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — histórico DTE recuperável por página própria (V-083)
+
+- O histórico de resultados da Caixa DTE passou a paginar 30 itens, informar o
+  total e preservar a página independente da fila de mensagens e os parâmetros
+  correntes da tela.
+- O teste com 31 itens DTE fictícios confirmou a segunda página sem preparar
+  consulta, alterar resultado ou autorização. A demonstração vazia confirmou a
+  superfície móvel sem overflow ou erro de console, sem alegar volume visual.
+- Foram aprovados 75 testes focados, Ruff, MyPy global e a suíte integral com
+  773 testes, três skips e 11 subtestes. Não houve Serpro, certificado,
+  consumo, cobrança, custo ou serviço externo; o ambiente temporário foi
+  encerrado e movido à Lixeira de forma recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 89 alterações locais existentes foram preservadas
+  antes deste registro.
+
+## 21/09/2026 — histórico de cobrança manual recuperável (V-082)
+
+- O console da plataforma passou a paginar as faturas internas em páginas de
+  12, expondo o total sem ocultar competências antigas.
+- O teste com 25 faturas sintéticas confirmou a página 3 e o vínculo de retorno
+  sem alterar valores, contratos ou status.
+- Foram aprovados 41 testes focados, Ruff, MyPy global e a suíte integral com
+  772 testes, três skips e 11 subtestes. Não houve cobrança, Asaas, cartão,
+  Pix, boleto ou serviço externo. A inspeção visual autenticada permanece
+  pendente por não inserir credenciais no navegador.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 87 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — Radar da Reforma recuperável por página (V-081)
+
+- A lista de alertas do Radar passou a paginar 50 registros, no lugar do corte
+  nos 80 primeiros, mantendo termo, fonte e tema em cada retorno.
+- O teste com 101 alertas sintéticos confirmou a terceira página e os filtros.
+  A demonstração, que contém somente três exemplos, confirmou o filtro IBS e a
+  apresentação móvel, sem alegar visualização em volume.
+- Foram aprovados 77 testes focados, Ruff, MyPy global e a suíte integral com
+  771 testes, três skips e 11 subtestes. Não houve coleta, URL oficial, ERP ou
+  serviço externo; o ambiente temporário foi encerrado e movido à Lixeira.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 85 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — auditoria de conciliação recuperável por página (V-080)
+
+- A trilha de auditoria deixou de ocultar eventos depois dos primeiros 200:
+  agora apresenta 100 por página, total do filtro e navegação que conserva a
+  ação selecionada.
+- O teste com 201 eventos e a demonstração local temporária confirmaram a
+  terceira página e o retorno à segunda; em 390 px não houve overflow
+  horizontal ou erro de console.
+- Foram aprovados 90 testes focados, Ruff, MyPy global e a suíte integral com
+  770 testes, três skips e 11 subtestes. Não houve arquivo bancário, ERP,
+  Domínio ou serviço externo; o ambiente temporário foi encerrado e movido à
+  Lixeira de modo recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 84 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — ficha da empresa com históricos recuperáveis (V-079)
+
+- A ficha passou a paginar documentos NFS-e, revisões abertas e mensagens DTE
+  em seções independentes de 20 registros, preservando o retorno à carteira.
+- O teste com 21 itens de cada tipo e a demonstração temporária confirmaram a
+  página 2 das três seções; o retorno da DTE manteve as outras páginas. Em 390
+  px não houve overflow horizontal nem erro de console.
+- Foram aprovados 72 testes focados, Ruff, MyPy global e a suíte integral com
+  769 testes, três skips e 11 subtestes. Não houve ADN, Serpro, A1 ou serviço
+  externo; o ambiente temporário foi encerrado e movido à Lixeira.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 83 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — cobertura de certificados recuperável (V-078)
+
+- A lista de empresas sem certificado A1 válido passou a paginar 20 itens, sem
+  interferir na paginação da carteira de certificados; a navegação preserva os
+  parâmetros de busca e situação existentes.
+- O teste com 21 empresas e a demonstração temporária com 25 pendências
+  confirmaram a segunda página e o retorno à primeira. Em 390 px não houve
+  overflow horizontal ou erro de console.
+- Foram aprovados 70 testes focados, Ruff, MyPy global e a suíte integral com
+  768 testes, três skips e 11 subtestes. Não houve A1, ADN ou serviço externo;
+  o ambiente temporário foi encerrado e movido à Lixeira de modo recuperável.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 81 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — histórico de Parcelamentos recuperável (V-077)
+
+- O histórico por empresa passou a paginar as operações, em vez de cortar após
+  20 tentativas, preservando a empresa em foco na navegação.
+- A demonstração temporária com 21 operações fictícias percorreu as duas
+  páginas e preservou o aviso de recuperação para resultado incerto, sem erro
+  de console. Foram aprovados 77 testes focados, Ruff, MyPy global e a suíte
+  integral com 767 testes, três skips e 11 subtestes.
+- Não houve chamada PARCSN/Serpro; o ambiente temporário foi encerrado.
+- Após atualizar as referências remotas, `HEAD` permaneceu sincronizado com
+  `origin/main` (0 à frente, 0 atrás); as 80 alterações locais foram
+  preservadas.
+
+## 21/09/2026 — fila de conciliação sem corte silencioso (V-076)
+
+- A fila OFX × Domínio passou a paginar 50 resultados, mantendo busca e
+  situação; a montagem de candidatos continua limitada à página apresentada.
+- O teste autenticado criou 101 correspondências sem par, alcançou a página 3
+  e manteve os filtros no retorno. A demonstração possui somente duas linhas,
+  portanto não foi usada para alegar inspeção visual da paginação em volume.
+- Foram aprovados 95 testes focados, Ruff, MyPy global e a suíte integral com
+  766 testes, três skips e 11 subtestes, sem arquivo bancário ou serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 80 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — carteira de Parcelamentos por lote autorizado (V-075)
+
+- A carteira deixou de ocultar empresas acima de 100 registros e agora pagina
+  30 por página, preservando a pesquisa.
+- O seletor em massa passou a declarar o escopo da página e cada página respeita
+  o limite de 30 empresas já validado pelo backend. A jornada com 101 empresas
+  fictícias alcançou a página 4, retornou à 3 e não apresentou erro de console.
+- Foram aprovados 76 testes focados, Ruff, MyPy global e a suíte integral com
+  765 testes, três skips e 11 subtestes. Não houve Serpro, PARCSN, Domínio ou
+  outro serviço externo; o ambiente temporário foi encerrado.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 78 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — carteira de guias sem corte silencioso (V-074)
+
+- Guias/DCTFWeb passou a paginar listas maiores que 100 resultados, mantendo
+  busca, situação e vencimento ao navegar entre as páginas.
+- A demonstração temporária com 101 guias fictícias confirmou página 2, retorno
+  à página 1 e ausência de erros de console. Foram aprovados 88 testes focados,
+  Ruff, MyPy global e a suíte integral com 764 testes, três skips e 11
+  subtestes.
+- O banco e servidor locais de QA foram encerrados; o diretório temporário foi
+  movido de forma recuperável para a Lixeira. Não houve chamada Serpro,
+  DCTFWeb, Domínio ou outro serviço externo.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push; as 76 alterações locais existentes foram preservadas.
+
+## 21/09/2026 — revisão NFS-e e carteira sem corte silencioso (V-073)
+
+- O detalhe local passou a mostrar os fatos normalizados necessários à decisão;
+  a demonstração os preenche como fictícios e mantém a referência da contraparte
+  pseudonimizada.
+- A carteira agora pagina mais de 100 documentos sem perder o filtro. A página
+  2 e o retorno à página 1 foram confirmados em celular no navegador interno,
+  sem overflow ou erro de console. Foram aprovados 79 testes focados, Ruff,
+  MyPy e a suíte integral com 763 testes, três skips e 11 subtestes.
+- O banco e servidor locais de QA foram encerrados; o diretório temporário foi
+  movido de forma recuperável para a Lixeira.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
+  pull, commit ou push.
+
+## 21/09/2026 — contrato do runtime de IA e guarda de fallback verificados (V-072)
+
+- O runtime privado OpenAI-compatível respondeu em teste com evidência compacta;
+  uma resposta local não acionou fallback nem criou egressão, mesmo com a rota
+  externa configurada.
+- A ausência de opt-in continuou bloqueando o provedor e registrando a negação.
+  Foram aprovados 73 testes, 3 subtestes, Ruff e MyPy global; o ambiente foi
+  totalmente simulado, sem modelo ou provedor real.
+- O fetch final manteve `HEAD` e `origin/main` no mesmo commit (0/0), sem pull,
+  commit ou push; as alterações locais foram preservadas.
+
+## 21/09/2026 — módulos fictícios e Copiloto validados visualmente (V-071)
+
+- Guias, DTE, Parcelamentos, Conciliação, Radar e Copiloto renderizaram na
+  demonstração, com aviso explícito e sem erro de console.
+- O Copiloto exigiu empresa e apresentou resposta simulada com fontes marcadas
+  como sintéticas, sem egressão ou chamada externa.
+
+## 21/09/2026 — revisão fiscal e isolamento de console verificados (V-070)
+
+- A fila e o detalhe NFS-e fictícios apresentaram contexto, hash, evidência,
+  confiança, XML e decisão explícita com retorno à fila.
+- A sessão de demonstração recebeu acesso restrito ao abrir o console Mewstack;
+  nenhum erro de console foi observado. A inspeção do console autenticado segue
+  pendente por não inserir credenciais automaticamente.
+
+## 21/09/2026 — auditoria visual pública e demonstração fictícia (V-069)
+
+- A home, cadastro, abas/FAQ, viewport móvel e console foram verificados no
+  navegador interno com base temporária; não houve overflow nem erro de console.
+- A demonstração isolada alcançou dashboard e Triagem, onde o anexo em
+  quarentena permaneceu explicitamente bloqueado para abertura e download.
+- A auditoria é parcial: o Mac bloqueado impediu automação nativa e não houve
+  acesso a console, integrações, dados reais ou ambiente publicado.
+
+## 21/09/2026 — view Hub integralmente tipada e regressão focada (V-068)
+
+- Os contratos locais de conciliação, Triagem, certificados, setup e tokens
+  foram explicitados sem chamar serviços externos ou modificar fluxos.
+- Ruff, MyPy da view e MyPy global passaram; 119 testes locais passaram, com
+  um único skip esperado de OCR em português. A suíte integral repetiu 762
+  testes aprovados, 3 skips conhecidos e 11 subtestes aprovados.
+- O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0); as
+  alterações locais da execução foram preservadas, sem commit ou push.
+
+## 21/09/2026 — NFS-e e DCTFWeb da view Hub refinados (V-067)
+
+- Coleções, contexto, números, UUID e cotações receberam contratos explícitos;
+  20 testes NFS-e/DCTFWeb passaram sem integração externa.
+
+## 21/09/2026 — primeira seção da view do Hub tipada (V-066)
+
+- Demonstração, dashboard, convites, módulo, despacho NFS-e e filtros receberam
+  contratos explícitos; 86 testes locais passaram sem alteração de integração.
+- A dívida da view do Hub caiu a 114 erros; nenhuma homologação externa foi
+  realizada.
+
+## 21/09/2026 — serviços, agente e interface de IA tipados (V-065)
+
+- Reserva do Copiloto, API do agente e estado transitório de entrega da
+  interface receberam contratos explícitos, sem persistir novos campos nem
+  acionar fallback externo.
+- Ruff, MyPy e 68 testes passaram. A dívida global ficou em 131 erros de uma
+  única view do Hub; curadoria e egressão real continuam pendentes.
+
+## 21/09/2026 — operações Integra e NFS-e tipadas (V-064)
+
+- Serviços, tarefas, reserva entre livros, despacho pós-commit e validação
+  decimal NFS-e receberam contratos explícitos, mantendo as integrações sem
+  execução real.
+- Ruff, MyPy e 57 testes DTE/DCTFWeb/PARCSN/NFS-e passaram. A dívida global
+  caiu a 143 erros em 4 arquivos; Serpro, ADN e Domínio seguem não homologados.
+
+## 21/09/2026 — regressão integral atualizada (V-063)
+
+- Django, migrações, diff e suíte integral foram reexecutados após V-060–V-062:
+  762 testes, 3 skips conhecidos e 11 subtestes passaram em 27,52 s. O fetch
+  final confirmou `HEAD` e `origin/main` no mesmo commit (0/0).
+- Não houve integração externa. Os limites dos skips permanecem Playwright
+  Python opcional, OCR local e concorrência PostgreSQL.
+
+## 21/09/2026 — segurança, multipart e acesso DTE tipados (V-062)
+
+- Scanner/política receberam fluxo binário explícito; multipart separou campos e
+  bytes; e navegação/reserva DTE receberam contratos estáticos de requisição e
+  consumo.
+- Quarenta testes locais passaram com Ruff/MyPy; a dívida global caiu a 160
+  erros em 7 arquivos. Nenhum scanner, Domínio, Serpro ou dado real foi usado.
+
+## 21/09/2026 — plataforma administrativa tipada e retestada (V-061)
+
+- Tarefa de competência, snapshot contratual, validação de conteúdo de webhook
+  e contrato HTTP legal receberam tipos explícitos, preservando regras e dados
+  comerciais existentes.
+- Ruff, MyPy e 69 testes de plataforma passaram; a dívida global caiu a 168
+  erros em 11 arquivos. Nenhuma cobrança, evento Asaas ou alteração comercial
+  foi realizada.
+
+## 21/09/2026 — coletores e fila de Triagem tipados (V-060)
+
+- Cursor Graph, conteúdo IMAP, fábrica de conexão e consulta elegível da fila
+  receberam contratos explícitos, preservando as leituras e checkpoints locais.
+- Ruff, MyPy e 22 testes de Graph, IMAP, retentativa, ingestão e tarefas
+  passaram. A dívida global caiu a 172 erros em 15 arquivos, sem OAuth, DNS,
+  caixa, antimalware ou destino real.
+
+## 21/09/2026 — regressão integral e relatórios/sincronização tipados (V-058/V-059)
+
+- A verificação Django, migrações e suíte integral passaram: 762 testes, 3
+  skips e 11 subtestes. Os skips continuam sendo limitações conhecidas de
+  Playwright Python, OCR local e concorrência PostgreSQL.
+- Relatórios XLSX/PDF e a normalização da sincronização bancária receberam
+  contratos estáticos explícitos; 7 testes de sincronização passaram. Não há
+  teste específico de exportação no repositório. A dívida MyPy caiu para 185
+  erros em 18 arquivos, sem consulta Domínio ou geração com dados reais.
+
+## 21/09/2026 — gateway e comandos de IA tipados (V-057)
+
+- Payload do gateway e interfaces de comandos passaram a ter tipos explícitos.
+  Trinta e dois testes de comandos, escopo e acesso de IA passaram sem chamada
+  Anthropic; comandos de custo continuam bloqueados por aprovação específica.
+- Ruff, MyPy e diff passaram; a dívida global caiu a 197 erros em 20 arquivos.
+  Curadoria, egressão, treino e prova de artefato seguem pendentes.
+
+## 21/09/2026 — configuração de plataforma tipada e retestada (V-056)
+
+- Formulários, persistência, usuário de auditoria e seleção de plano passaram a
+  ter contratos estáticos explícitos. Pagamentos, notificações e aprovação de
+  fallback foram retestados sem chamar fornecedores.
+- Ruff, MyPy e 55 testes passaram, com um skip PostgreSQL; a dívida global caiu
+  para 205 erros em 24 arquivos. Nenhuma credencial, SMTP, Claude, Serpro ou
+  Asaas real foi utilizado.
+
+## 21/09/2026 — coletor Gmail e ingestão tipados (V-055)
+
+- Cursor, checkpoint, data inicial, base64 e caminho de blob receberam
+  pré-condições explícitas. Quatorze testes de ingestão/retentativa, Ruff e
+  MyPy passaram; a dívida global reduziu a 291 erros em 28 arquivos.
+- Nenhuma caixa Google, OAuth ou provedor foi acessado. A etapa 06 continua
+  aguardando homologações externas.
+
+## 21/09/2026 — cliente IMAP local tipado (V-054)
+
+- Socket e respostas IMAP receberam contratos explícitos, preservando busca
+  somente leitura sem charset. Doze testes de conexão/retentativa sintética,
+  Ruff e MyPy passaram; a dívida global caiu a 296 erros em 30 arquivos.
+- Nenhuma caixa, credencial ou provedor foi acessado. A homologação segue nas
+  etapas 06 e 12.
+
+## 21/09/2026 — livros de tokens e faturamento tipados (V-053)
+
+- Medidores legado e de tokens foram separados explicitamente no fechamento;
+  franquia/preço e usuário de aceite são materializados antes da persistência.
+  Vinte e dois testes passaram, com concorrência PostgreSQL mantida como skip.
+- Ruff, MyPy e diff passaram nos módulos; a dívida global reduziu a 300 erros em
+  31 arquivos. Não houve cobrança, Asaas, preço novo ou pagamento real.
+
+## 21/09/2026 — transporte de e-mail local tipado (V-052)
+
+- O backend passou a declarar configuração, SMTP e sequência de mensagens sem
+  alterar o carregamento tardio do modelo. Ruff, MyPy e 33 testes de
+  configuração passaram; a dívida global reduziu para 311 erros em 33 arquivos.
+- Não houve conexão SMTP/DNS/Brevo, segredo ou envio real. A homologação segue
+  exclusivamente na etapa 12 conforme D-77/D-78.
+
+## 21/09/2026 — PARCSN e tarefas agendadas tipados (V-051)
+
+- O parser local passou a validar explicitamente o expoente decimal e os
+  inteiros do payload; o decorador de tarefa tem contrato de retorno completo.
+  Vinte testes de PARCSN/operações passaram sem transporte Serpro.
+- Ruff, MyPy e diff passaram nos módulos; a dívida global chegou a 316 erros em
+  34 arquivos. Credenciais, representação, custo e prova Serpro seguem abertas.
+
+## 21/09/2026 — limites de entrada da importação explicitados (V-050)
+
+- A prévia local exige nome de arquivo antes de persistir e usa esse valor
+  validado nos fluxos tabular e de backup; o mapa de capacidades foi tipado.
+  Não houve arquivo ou backup real.
+- Ruff e 57 testes do Hub passaram; o MyPy global caiu a 328 ocorrências. A
+  tentativa de isolação de imports expôs erro interno do MyPy/django-stubs, não
+  mascarado como aprovação. A etapa 09 continua sem layout/ERP/OCR homologado.
+
+## 21/09/2026 — serviço de conciliação tipado e retestado (V-049)
+
+- Foram explicitados contratos locais de parser, checkpoint, armazenamento,
+  relações opcionais e regra de faixa, preservando a recusa de dados inválidos.
+  Bibliotecas de XLSX/PDF seguem sem stubs, com exceção limitada aos imports.
+- Ruff e MyPy do serviço, 35 testes de conciliação (um skip de OCR), Django,
+  migrações e diff passaram. MyPy global caiu para 334 erros em 38 arquivos.
+- Não houve ERP, arquivo real, OCR disponível, fonte Radar ou exportação
+  homologada; a etapa 09 continua aberta por esses requisitos.
+
+## 21/09/2026 — formulários de contratação retestados (V-048)
+
+- Ajustadas fronteiras de tipos de `LeadForm`, plano e proposta de tokens sem
+  mudar preço, contrato, consumo ou cobrança. A suíte focada aprovou 26 testes,
+  com um skip de concorrência reservado ao PostgreSQL.
+- Ruff, MyPy e diff passaram; MyPy global passou a 348 erros em 39 arquivos.
+  Não houve chamada CNPJ, Asaas, criação de cobrança ou qualquer custo.
+
+## 21/09/2026 — formulários do Hub e cache CNPJ tipados (V-047)
+
+- Formulários de escopo, importação e conciliação receberam tipos seguros para
+  escolhas dinâmicas, modelos, widgets e validações. Referências genéricas de
+  Django são adiadas para não tentar subscrever classes em execução.
+- A suíte de conciliação aprovou 35 testes, com um skip esperado por OCR local;
+  Ruff, MyPy, Django, migrações e diff passaram. O cache de CNPJ também só
+  reutiliza dicionário de textos e não chamou a fonte externa.
+- A dívida MyPy global reduziu para 356 ocorrências em 40 arquivos. OCR,
+  layouts, ERP, Radar, fontes e homologações continuam fora desta evidência.
+
+## 21/09/2026 — pré-condições de serviço da Triagem explicitadas (V-046)
+
+- As verificações já esperadas pelo serviço foram tornadas explícitas para os
+  tipos: relações de empresa/tipo, nome e tamanho do upload, caminho interno e
+  stream binário. Não houve mudança de fluxo, regra de segurança, banco,
+  provedor, arquivo real ou migração.
+- Ruff e MyPy passaram no serviço; 35 testes de domínio, ingestão e agente
+  Windows passaram em 7,47 s. Django, dry-run de migrações e diff passaram.
+  A linha de base global reduziu para 399 erros em 42 arquivos.
+
+## 21/09/2026 — formulários da Triagem tipados sem mudança funcional (V-045)
+
+- Foram eliminadas 127 ocorrências MyPy dos seis formulários. As fronteiras
+  dinâmicas do Django foram tipadas com precisão pragmática, os campos de
+  empresa/documento ganharam tipos de modelo explícitos e o tratamento de data
+  preserva a validação existente.
+- Ruff e MyPy passaram nos módulos alterados; 51 testes de política, IMAP,
+  domínio e ingestão sintética passaram em 14,77 s, e `git diff --check` ficou limpo. MyPy global
+  reduziu de 535 erros em 46 arquivos para 408 em 43 arquivos.
+- Não houve modificação de tela, fluxo, banco, provedor, caixa real, destino ou
+  migração. A etapa 06 continua aberta pelas dependências Q-12 a Q-25/Q-31 e
+  pela homologação externa.
+
+## 21/09/2026 — diagnóstico global e primeiro lote de tipos da Triagem (V-044)
+
+- A auditoria `uv run mypy .` achou 535 ocorrências em 46 arquivos. O número é
+  uma linha de base de dívida técnica, não uma validação verde nem um bloqueio
+  de funcionamento local.
+- O primeiro lote eliminou a divergência entre enum e chave de texto no mapa de
+  apresentação de caixas e tornou explícita a ausência de stubs de `defusedxml`.
+  Não houve mudança de fluxo, banco, provedor, dado operacional ou migração.
+- Ruff e MyPy passaram nos dois módulos; 44 testes de política, domínio e
+  ingestão de e-mail passaram em 7,12 s, e o diff não tem espaço inválido.
+  A retomada segura é reduzir a dívida em lotes revisáveis, preservando o
+  diagnóstico global até que cada módulo tenha evidência própria.
+
+## 21/09/2026 — qualidade de tipos local (V-043)
+
+- Corrigidas as 21 ocorrências MyPy encontradas durante V-042 em armazenamento
+  privado da Triagem, validação OAuth, caminho privado de conciliação e modelos
+  de livros de tokens. As alterações preservam as assinaturas Django e não
+  mudam regra de negócio, migração, provedor ou dado operacional.
+- MyPy e Ruff passaram nos seis módulos envolvidos. Django, dry-run de
+  migrações e diff também passaram; 125 testes focados (um skip de OCR) e três
+  subtestes cobriram Triagem, conciliação, cobrança e IA.
+- A suíte integral iniciada posteriormente excedeu a janela de captura da
+  sessão, sem resumo recuperável; ela não é apresentada como aprovação. Não
+  restou processo Pytest e `lastfailed` estava vazio. O ponto de retomada é
+  repetir a suíte integral em terminal com captura persistente antes de usar
+  esta alteração como revalidação global.
+
+## 21/09/2026 — etapa 05: gate de identificadores pessoais no manifesto (V-042)
+
+- D-94 formalizou o controle local: CPF, CNPJ ou e-mail reconhecível em
+  pergunta, resposta ou referência bloqueia o manifesto de treino e avaliação
+  antes de qualquer gravação. O registro não é mascarado automaticamente; a
+  anonimização exige revisão humana para preservar seu sentido contábil.
+- O comando de exportação transforma a recusa em erro controlado e não cria o
+  JSONL. D-95 acrescentou criação exclusiva: ele também recusa sobrescrever um
+  artefato existente. Testes cobrem os três locais possíveis do identificador,
+  a ausência de artefato após a falha e a preservação do arquivo já existente.
+- Ruff, Django, dry-run de migrações e 39 testes focados/3 subtestes passaram.
+  A suíte integral fechou com 762 aprovados, 3 skips esperados e 11 subtestes.
+  Não houve egressão, Claude, dado de cliente, modelo, treino, GPU, custo ou
+  deploy. A etapa 05 segue em andamento por curadoria, corpus e aprovações
+  Q-08/Q-09/Q-11/Q-34. MyPy não fechou: a execução a partir de `src/` reportou
+  21 erros em quatro módulos não alterados (`triage`, `hub` e `platform`), que
+  ficam registrados como dívida técnica separada.
+
+## 21/09/2026 — análise integral, etapa 04 e comparação com GitHub (V-041)
+
+- A documentação canônica, o inventário, a matriz de evidências e o código
+  atual foram confrontados. O produto permanece um SaaS multiempresa da
+  Mewstack com agente Windows e módulos operacionais; a condição de venda
+  continua sendo operação verificável e recuperável, não a existência de tela
+  ou teste isolado.
+- A próxima etapa do plano continua sendo Siescon. A preparação correta já
+  modela o destino, mas o registro de adaptadores contém apenas Domínio; pedir
+  Siescon é recusado antes de ler lançamentos ou criar arquivo. Não foi criado
+  SQL, endpoint, credencial ou layout especulativo. Q-33 continua exigindo
+  versão/banco/método de leitura, schema, chave empresarial/cursor, ambiente e
+  layout de importação por canal seguro.
+- Ruff, Django, dry-run de migrações, 35 testes focados (1 skip de OCR) e a
+  suíte completa (759 aprovados, 3 skips e 8 subtestes) passaram. Nenhuma
+  integração externa foi executada. `git fetch origin --prune` e a comparação
+  `HEAD...origin/main` retornaram 0 commits de cada lado; não havia mudança do
+  GitHub a trazer.
+- A etapa 04 fica em andamento e bloqueada, não concluída. Após receber o
+  contrato Q-33, revisar o material antes de escrever adaptador, então validar
+  leitura idempotente e exportação importada/conferida no ambiente autorizado.
+
 ## 20/09/2026 — etapa 11: pausa da auditoria local de interação
 
 - A continuidade segura selecionada foi a auditoria local de teclado, foco e

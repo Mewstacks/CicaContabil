@@ -29,16 +29,27 @@ class Command(BaseCommand):
         organization = resolve_organization(selector)
         if organization is None:
             raise CommandError("Escritório não encontrado.")
-        manifest = (
-            training_manifest(organization=organization)
-            if options["split"] == TrainingExample.DatasetSplit.TRAINING
-            else evaluation_manifest(organization=organization)
-        )
+        try:
+            manifest = (
+                training_manifest(organization=organization)
+                if options["split"] == TrainingExample.DatasetSplit.TRAINING
+                else evaluation_manifest(organization=organization)
+            )
+        except ValueError as exc:
+            raise CommandError(str(exc)) from exc
         if not manifest:
             raise CommandError("Não há exemplos validados com fonte para exportar.")
         output = Path(options["output"])
+        if output.exists():
+            raise CommandError("O arquivo de saída já existe; use um novo caminho de manifesto.")
         output.parent.mkdir(parents=True, exist_ok=True)
-        with output.open("w", encoding="utf-8") as stream:
+        try:
+            stream = output.open("x", encoding="utf-8")
+        except FileExistsError as exc:
+            raise CommandError(
+                "O arquivo de saída já existe; use um novo caminho de manifesto."
+            ) from exc
+        with stream:
             for item in manifest:
                 stream.write(json.dumps(item, ensure_ascii=False) + "\n")
         self.stdout.write(self.style.SUCCESS(f"{len(manifest)} exemplo(s) exportado(s)."))

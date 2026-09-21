@@ -11,7 +11,7 @@ import zipfile
 from pathlib import PurePath
 from typing import BinaryIO
 
-from defusedxml import ElementTree
+from defusedxml import ElementTree  # type: ignore[import-untyped]  # Package has no type stubs.
 
 
 class UnsupportedAttachment(ValueError):

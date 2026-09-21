@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** A demonstração local de carteira, filtro e download em lote foi implementada e revalidada em V-005/V-035. A etapa permanece em andamento para coleta e homologação reais.
+**Estado:** A demonstração local de carteira, filtro e download em lote foi implementada e revalidada em V-005/V-035; V-064 tipou a sincronização ADN local e V-068 retestou os contratos locais da view de certificados. V-073 completou a evidência mostrada na revisão e paginou a carteira sem corte silencioso; V-078 estendeu a proteção à cobertura de empresas sem A1 válido. A etapa permanece em andamento para coleta e homologação reais.
 
 **Dependências:** 03 e 05.
 
@@ -18,10 +18,11 @@
 - [x] Atualizar visualmente a linha da demonstração ao definir acumulador, sem persistir decisão fictícia (D-68).
   - Implementação e inspeções locais registradas em V-005 e V-035. A etapa completa permanece aberta.
 - [ ] Homologar coleta ADN, certificados, NSU, retomada e deduplicação.
-- [ ] Apresentar nota legível, valores, participantes, competência e descrição dos serviços.
-- [ ] Validar acumuladores contra o catálogo da empresa.
-- [ ] Exibir evidência da sugestão e permitir correção.
-- [ ] Garantir acesso a toda a carteira, sem cortes silenciosos nas filas.
+- [x] Apresentar localmente nota legível, valores, referência pseudonimizada da contraparte, emissão/competência e descrição dos serviços (V-073). A fonte real continua pendente.
+- [x] Validar acumuladores contra o catálogo da empresa. V-089 aceita na decisão humana somente regra ativa e vigente ou código já observado da mesma empresa, sem inferir tratamento fiscal.
+- [x] Exibir evidência da sugestão e permitir correção local, preservando XML e auditoria da decisão (V-073).
+- [x] Garantir acesso local à carteira sem cortes silenciosos: a lista pagina acima de 100 documentos e conserva os filtros (V-073).
+- [x] Garantir acesso local à cobertura de empresas sem A1 válido: a lista pagina acima de 20 empresas sem interferir na carteira de certificados (V-078).
 - [ ] Documentar cobertura e limitações efetivas da fonte de coleta.
 
 ## Bloqueios e responsabilidade
@@ -38,7 +39,20 @@ Certificado errado/expirado, retomada NSU, repetição, lote inválido, cobertur
 
 ## Evidências e próximo passo
 
-Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-068 incluiu a rota de certificados na regressão local de 119 testes, sem coleta
+ADN, certificado ou documento real. V-073 exercitou a revisão normalizada, a
+demonstração fictícia e a paginação da carteira em 79 testes e no navegador
+interno; a regressão integral fechou com 763 testes, 3 skips e 11 subtestes.
+V-078 acrescentou a paginação da cobertura de certificados, com 21 empresas
+sintéticas no teste e inspeção no navegador de 25 pendências, inclusive em
+390 px. V-079 paginou também o histórico NFS-e na ficha de cada empresa,
+preservando o retorno à carteira. V-089 confirmou que código inexistente ou de
+outra empresa não resolve uma revisão, enquanto regra vigente e histórico local
+da própria empresa continuam selecionáveis. Nenhum A1, ADN ou documento real foi usado.
+Nenhuma homologação nova é atribuída a esta etapa. A existência de
+código ou testes anteriores não prova conclusão.
+Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no
+registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

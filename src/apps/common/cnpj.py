@@ -29,7 +29,9 @@ def lookup_company(cnpj: str) -> dict[str, str]:
     cnpj = normalize_cnpj(cnpj)
     key = "company-registry:" + hashlib.sha256(cnpj.encode()).hexdigest()
     cached = cache.get(key)
-    if cached is not None:
+    if isinstance(cached, dict) and all(
+        isinstance(key, str) and isinstance(value, str) for key, value in cached.items()
+    ):
         return cached
     result = {"status": "unavailable"}
     request = Request(

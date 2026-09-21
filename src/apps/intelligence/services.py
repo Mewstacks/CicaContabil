@@ -605,7 +605,7 @@ def answer_question(
             raise ValueError("Acesso ao escritório não autorizado.")
         if not organization.is_demo:
             require_operation_access(organization, "ai")
-        usage = None
+        usage: TokenUsageEvent | UsageEvent | None = None
         if not organization.is_demo:
             usage_key = f"ai-answer:{submission_id}"
             try:
@@ -724,6 +724,7 @@ def answer_question(
     elif not organization.is_demo and PlatformConfiguration.objects.filter(
         key="default", cloud_fallback_enabled=True
     ).exists():
+        assert usage is not None
         cloud_completion = _attempt_cloud_after_reservation(
             organization=organization,
             actor=actor,

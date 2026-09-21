@@ -1,6 +1,6 @@
 """Versioned legal drafts. Publication requires commercial and legal review."""
 
-from django.http import Http404
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 
 from apps.platform.availability import copilot_is_available
@@ -186,7 +186,7 @@ DOCUMENTS = {
 }
 
 
-def legal_document(request, document):
+def legal_document(request: HttpRequest, document: str) -> HttpResponse:
     if document not in DOCUMENTS:
         raise Http404
     document_data = DOCUMENTS[document].copy()

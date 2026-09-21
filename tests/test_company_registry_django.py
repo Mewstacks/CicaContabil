@@ -7,7 +7,8 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.hub.models import ClientCompany, OfficeProfile, ProductModule
+from apps.hub.models import ClientCompany, DteMessage, OfficeProfile, ProductModule, ReviewCase
+from apps.hub.services import create_document_and_artifact
 from apps.intelligence.models import IntelligenceConnector
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import PlatformAccess, SupportSession
@@ -254,6 +255,70 @@ class CompanyDetailTests(TestCase):
         self.assertContains(response, "0101")
         self.assertContains(response, "Nenhuma NFS-e desta empresa")
         self.assertContains(response, "Sem certificado A1")
+
+    def test_the_company_page_paginates_each_history_without_losing_the_others(self) -> None:
+        for index in range(21):
+            document, _, review_case = create_document_and_artifact(
+                company=self.company,
+                original_xml=f"<nfse id='detail-{index:03d}' />",
+                normalized_data={},
+                source_nsu=f"document-{index:03d}",
+            )
+            if review_case is None:
+                ReviewCase.objects.create(
+                    organization=self.organization,
+                    document=document,
+                    reason="Revisão sintética para paginação",
+                    confidence=0,
+                )
+            DteMessage.objects.create(
+                organization=self.organization,
+                company=self.company,
+                source_isn=f"detail-dte-{index:03d}",
+                subject=f"Mensagem DTE {index:03d}",
+                sent_at=timezone.now() - timedelta(minutes=index),
+            )
+
+        first_page = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
+        second_page = self.client.get(
+            reverse("hub:company-detail", args=[self.company.id]),
+            {
+                "documents_page": "2",
+                "reviews_page": "2",
+                "dte_page": "2",
+                "return_to": "/app/empresas/?q=Detalhe",
+            },
+        )
+
+        self.assertEqual(first_page.context["document_count"], 21)
+        self.assertEqual(first_page.context["open_cases_count"], 21)
+        self.assertEqual(first_page.context["dte_messages_count"], 21)
+        self.assertEqual(first_page.context["document_page"].number, 1)
+        self.assertEqual(first_page.context["open_cases_page"].number, 1)
+        self.assertEqual(first_page.context["dte_messages_page"].number, 1)
+        self.assertEqual(second_page.context["document_page"].number, 2)
+        self.assertEqual(second_page.context["open_cases_page"].number, 2)
+        self.assertEqual(second_page.context["dte_messages_page"].number, 2)
+        self.assertEqual(
+            [document.source_nsu for document in second_page.context["documents"]],
+            ["document-000"],
+        )
+        self.assertEqual(
+            [message.subject for message in second_page.context["dte_messages"]],
+            ["Mensagem DTE 020"],
+        )
+        self.assertEqual(
+            second_page.context["document_querystring"],
+            "reviews_page=2&dte_page=2&return_to=%2Fapp%2Fempresas%2F%3Fq%3DDetalhe",
+        )
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(
+            second_page,
+            "documents_page=1#documentos-nfse",
+            html=False,
+        )
+        self.assertContains(second_page, "reviews_page=1#revisoes-abertas", html=False)
+        self.assertContains(second_page, "dte_page=1#caixa-dte", html=False)
 
     def test_a_company_from_another_office_is_not_found(self) -> None:
         other = Organization.objects.create(name="Outro", slug="outro-detalhe")

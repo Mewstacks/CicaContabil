@@ -12,6 +12,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -94,7 +95,7 @@ def _read(url: str, access_token: str, limit: int, *, accept: str) -> bytes:
         raise GraphTemporaryError("O Graph não respondeu; a caixa tentará novamente.") from exc
     if len(raw) > limit:
         raise GraphMailboxError("Resposta Graph acima do limite seguro; sincronização pausada.")
-    return raw
+    return cast(bytes, raw)
 
 
 def _get_json(url: str, access_token: str, limit: int) -> dict[str, object]:
@@ -147,6 +148,9 @@ def _initial_delta_url(mailbox: Mailbox) -> str:
 def _cursor(mailbox: Mailbox) -> str:
     if not mailbox.cursor:
         return _initial_delta_url(mailbox)
+    since = mailbox.since
+    if since is None:
+        raise GraphMailboxError("A data inicial da caixa Microsoft está ausente.")
     try:
         data = json.loads(mailbox.cursor)
         valid = (
@@ -154,7 +158,7 @@ def _cursor(mailbox: Mailbox) -> str:
             and data.get("version") == 1
             and data.get("provider") == Mailbox.Provider.MS365_GRAPH
             and data.get("folder") == mailbox.folder
-            and data.get("since") == mailbox.since.isoformat()
+            and data.get("since") == since.isoformat()
             and isinstance(data.get("url"), str)
         )
     except (TypeError, ValueError, json.JSONDecodeError):
@@ -321,10 +325,9 @@ def poll_graph_mailbox(
             delta_link = page.get("@odata.deltaLink")
             if isinstance(next_link, str) == isinstance(delta_link, str):
                 raise GraphMailboxError("O Graph não informou uma continuidade única da página.")
-            cursor_url = _validated_url(
-                next_link if isinstance(next_link, str) else delta_link,
-                _delta_path(mailbox),
-            )
+            continuation = next_link if isinstance(next_link, str) else delta_link
+            assert isinstance(continuation, str)
+            cursor_url = _validated_url(continuation, _delta_path(mailbox))
             complete = isinstance(delta_link, str)
             mailbox.cursor = json.dumps(
                 {

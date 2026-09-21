@@ -50,10 +50,8 @@ def run_scheduled_operation(
     summary: dict[str, object]
     if isinstance(result, int):
         summary = {"processed": result}
-    elif isinstance(result, dict):
-        summary = {str(key): value for key, value in result.items()}
     else:
-        summary = {}
+        summary = {str(key): value for key, value in result.items()}
     partial = bool(summary.get("escritorios_adiados", 0))
     OperationalRun.objects.filter(id=run.id).update(
         state=(OperationalRun.State.PARTIAL if partial else OperationalRun.State.SUCCEEDED),
@@ -63,7 +61,9 @@ def run_scheduled_operation(
     return result
 
 
-def track_scheduled_operation(task: str):
+def track_scheduled_operation(
+    task: str,
+) -> Callable[[Callable[[], OperationResult]], Callable[[], OperationResult]]:
     """Decorate a no-argument Celery task with an operational outcome record."""
 
     def decorate(callback: Callable[[], OperationResult]) -> Callable[[], OperationResult]:

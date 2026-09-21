@@ -709,6 +709,19 @@ class InternalMcpTests(TestCase):
     @patch("apps.intelligence.gateway.urlopen")
     def test_local_model_receives_only_compact_evidence_cards(self, mocked_urlopen) -> None:
         self.configure_local_runtime(api_key="local-only-token")
+        self.configure_mewstack_cloud_fallback()
+        AssistantSettings.objects.create(
+            organization=self.organization,
+            claude_fallback_enabled=True,
+            claude_allowed_roles=[Membership.Role.OWNER],
+            claude_max_request_cents=35,
+        )
+        ClaudeFallbackApproval.objects.create(
+            organization=self.organization,
+            status=ClaudeFallbackApproval.Status.APPROVED,
+            daily_limit_cents=100,
+            monthly_limit_cents=1_000,
+        )
         company = ClientCompany.objects.create(
             organization=self.organization, name="Modelo local", dominio_code="004"
         )
@@ -719,13 +732,14 @@ class InternalMcpTests(TestCase):
             }
         ).encode()
 
-        _, response, _ = answer_question(
-            organization=self.organization,
-            actor=self.user,
-            question="Quais riscos existem?",
-            company=company,
-            request=None,
-        )
+        with patch("apps.intelligence.services.generate_claude_fallback_completion") as cloud:
+            _, response, _ = answer_question(
+                organization=self.organization,
+                actor=self.user,
+                question="Quais riscos existem?",
+                company=company,
+                request=None,
+            )
 
         request = mocked_urlopen.call_args.args[0]
         payload = json.loads(request.data)
@@ -735,6 +749,8 @@ class InternalMcpTests(TestCase):
         self.assertNotIn("sql", payload["messages"][1]["content"].casefold())
         self.assertEqual(response.content, "Resposta baseada nas fontes.")
         self.assertEqual(response.model_version, "qwen-local-v2")
+        cloud.assert_not_called()
+        self.assertFalse(EgressAudit.objects.filter(organization=self.organization).exists())
 
     def test_approved_sources_are_refreshed_as_bounded_rag_chunks(self) -> None:
         source = KnowledgeSource.objects.create(

@@ -32,8 +32,8 @@ from apps.hub.models import (
     ParcelamentoOperation,
     ReviewCase,
 )
-from apps.platform.billing import BillingError, quote_usage, reserve_usage
-from apps.platform.token_billing import quote_tokens, reserve_tokens
+from apps.platform.billing import BillingError, UsageQuote, quote_usage, reserve_usage
+from apps.platform.token_billing import TokenQuote, quote_tokens, reserve_tokens
 
 
 @dataclass(frozen=True)
@@ -426,12 +426,12 @@ class ParcelamentoTransitionError(RuntimeError):
     """A PARCSN operation cannot be queued in its current state."""
 
 
-DCTFWEB_DOCUMENT_SERVICE = {
+DCTFWEB_DOCUMENT_SERVICE: dict[str, str] = {
     DctfWebDocument.Kind.DECLARATION: "dctfweb.declaracao_completa",
     DctfWebDocument.Kind.RECEIPT: "dctfweb.recibo",
 }
 
-PARCELAMENTO_SERVICE = {
+PARCELAMENTO_SERVICE: dict[str, str] = {
     ParcelamentoOperation.Kind.ORDERS: "parcelamento.parcsn.pedidos",
     ParcelamentoOperation.Kind.DETAIL: "parcelamento.parcsn.detalhe",
     ParcelamentoOperation.Kind.INSTALLMENTS: "parcelamento.parcsn.parcelas",
@@ -837,7 +837,7 @@ def approve_dte_run(
                 "revise o cadastro e prepare novamente antes de autorizar consumo."
             ) from exc
     if run.organization.is_demo:
-        quote = None
+        quote: TokenQuote | UsageQuote | None = None
     else:
         try:
             quote = quote_tokens(
@@ -856,31 +856,32 @@ def approve_dte_run(
             except BillingError:
                 raise DteRunTransitionError(str(exc)) from exc
     additional_overage_cents = quote.additional_overage_cents if quote is not None else 0
-    if additional_overage_cents and (
-        not approved_overage or approved_overage_total_cents != quote.additional_overage_cents
-    ):
-        raise DteRunTransitionError(
-            "O excedente desta consulta mudou ou não foi autorizado com o valor exato. "
-            "Revise a fila antes de enviar."
-        )
+    if additional_overage_cents:
+        assert quote is not None
+        if not approved_overage or approved_overage_total_cents != quote.additional_overage_cents:
+            raise DteRunTransitionError(
+                "O excedente desta consulta mudou ou não foi autorizado com o valor exato. "
+                "Revise a fila antes de enviar."
+            )
     # Reserve each outbound Caixa Postal call before it is queued. A failed reservation
     # means no provider request can escape the product and no unexpected overage occurs.
     for item in run.items.select_for_update().filter(status=DteRunItem.Status.PENDING):
         if run.organization.is_demo:
             continue
         try:
+            assert quote is not None
             key = f"dte-run-item:{item.id}:caixapostal"
-            if hasattr(quote, "total_tokens"):
-                usage = reserve_tokens(
+            if isinstance(quote, TokenQuote):
+                token_usage = reserve_tokens(
                     organization=run.organization,
                     module_code="integra",
                     action_code=DTE_ACTION_CODE,
                     idempotency_key=key,
                 )
-                item.token_usage_event = usage
+                item.token_usage_event = token_usage
                 item.save(update_fields=["token_usage_event", "updated_at"])
             else:
-                usage = reserve_usage(
+                legacy_usage = reserve_usage(
                     organization=run.organization,
                     action_code=DTE_ACTION_CODE,
                     idempotency_key=key,
@@ -890,7 +891,7 @@ def approve_dte_run(
                     ),
                     require_explicit_overage=True,
                 )
-                item.usage_event = usage
+                item.usage_event = legacy_usage
                 item.save(update_fields=["usage_event", "updated_at"])
         except BillingError as exc:
             raise DteRunTransitionError(str(exc)) from exc

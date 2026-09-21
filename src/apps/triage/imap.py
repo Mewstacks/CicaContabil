@@ -8,6 +8,7 @@ import json
 import socket
 import ssl
 from contextlib import suppress
+from typing import cast
 
 
 class MailboxIMAPError(ValueError):
@@ -58,7 +59,10 @@ class _PinnedIMAP4SSL(imaplib.IMAP4_SSL):
     def _create_socket(self, timeout: float | None) -> ssl.SSLSocket:
         sock = socket.create_connection((self._checked_address, self.port), timeout=timeout)
         try:
-            return self.ssl_context.wrap_socket(sock, server_hostname=self.host)
+            return cast(
+                ssl.SSLSocket,
+                self.ssl_context.wrap_socket(sock, server_hostname=self.host),
+            )
         except Exception:
             sock.close()
             raise
@@ -75,8 +79,8 @@ def probe_imap_mailbox(*, host: str, username: str, password: str, folder: str) 
         ) from exc
     try:
         try:
-            status, _ = connection.login(username, password)
-            if status != "OK":
+            login_status, _ = connection.login(username, password)
+            if login_status != "OK":
                 raise MailboxIMAPError(
                     "A autenticação falhou. Confira usuário e senha específica de aplicativo."
                 )
@@ -85,11 +89,11 @@ def probe_imap_mailbox(*, host: str, username: str, password: str, folder: str) 
                 "A autenticação falhou. Confira usuário e senha específica de aplicativo."
             ) from exc
         try:
-            status, _ = connection.select(folder, readonly=True)
-            if status != "OK":
+            select_status, _ = connection.select(folder, readonly=True)
+            if select_status != "OK":
                 raise MailboxIMAPError("Pasta não encontrada. Confira o nome no seu provedor.")
-            status, _ = connection.uid("search", None, "ALL")
-            if status != "OK":
+            search_status, _ = connection.uid("search", cast(str, None), "ALL")
+            if search_status != "OK":
                 raise MailboxIMAPError("O provedor não permitiu ler a pasta escolhida.")
         except imaplib.IMAP4.error as exc:
             raise MailboxIMAPError("O provedor não permitiu ler a pasta escolhida.") from exc

@@ -19,7 +19,7 @@ from apps.integra.errors import IntegraConfigurationError, IntegraError, Integra
 from apps.integra.parties import author_cnpj_for
 from apps.organizations.models import Membership
 from apps.platform.billing import BillingError, reserve_usage, settle_usage
-from apps.platform.models import TokenUsageEvent
+from apps.platform.models import TokenUsageEvent, UsageEvent
 from apps.platform.token_billing import reserve_tokens, settle_tokens
 
 DETAIL_ACTION_CODE = "caixapostal.detalhe"
@@ -89,6 +89,7 @@ def open_message(
             )
         attempt = (access.attempt_count if access else 0) + 1
         key = f"dte-message-detail:{message.id}:{attempt}"
+        usage: TokenUsageEvent | UsageEvent
         try:
             usage = reserve_tokens(
                 organization=message.organization,

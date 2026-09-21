@@ -25,7 +25,8 @@ def asaas(request: HttpRequest) -> JsonResponse | HttpResponseNotFound:
     observed_token = request.headers.get("asaas-access-token", "")
     if not hmac.compare_digest(observed_token, expected_token):
         return JsonResponse({"detail": "Unauthorized."}, status=401)
-    if not request.content_type.lower().startswith("application/json"):
+    content_type = request.content_type or ""
+    if not content_type.lower().startswith("application/json"):
         return JsonResponse({"detail": "Expected JSON."}, status=415)
     if len(request.body) > 64_000:
         return JsonResponse({"detail": "Payload too large."}, status=413)

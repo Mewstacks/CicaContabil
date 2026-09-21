@@ -1,8 +1,46 @@
 # CICA — plano mestre de conclusão e preparação para venda
 
-Atualizado em 19/09/2026. Plano aprovado pelo responsável nesta conversa; localização na raiz conforme D-59.
+Atualizado em 21/09/2026. Plano aprovado pelo responsável nesta conversa; localização na raiz conforme D-59.
 
-**Situação em 20/09/2026:** etapas 00, 01, 02 e 03 concluídas no nível de implementação e validação local. A etapa 04 está em andamento e bloqueada pelo contrato técnico Siescon de Q-33; a base de exportação comum já recusa Siescon até existir adaptador/layout revisados. As etapas 05–10 confirmaram controles locais próprios; na 10, V-040 acrescentou o contrato de requisição do cliente Asaas sem conexão ou chave. A etapa 11 iniciou inspeção visual parcial; as homologações de caixas/antimalware/destino, ADN, Serpro, arquivos/ERPs/fontes do Radar e Asaas permanecem pendentes. Por D-87, toda dependência de site em produção fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualização distribuída, backup Domínio Web e escrita Windows definitiva. A demonstração NFS-e foi ajustada separadamente e não conclui a etapa 07. Evidências em [VALIDACOES.md](VALIDACOES.md).
+**Situação em 21/09/2026:** etapas 00, 01, 02 e 03 concluídas no nível de implementação e validação local. A etapa 04 está em andamento e bloqueada pelo contrato técnico Siescon de Q-33; a base de exportação comum já recusa Siescon até existir adaptador/layout revisados. V-041 revalidou o checkout, o bloqueio explícito e a documentação, sem criar conexão ou arquivo Siescon; também confirmou que `main` e `origin/main` estavam no mesmo commit antes desta entrega. V-042 avançou localmente a etapa 05: o manifesto de treino/avaliação agora recusa identificadores pessoais antes de gravar artefato e não sobrescreve artefato existente, preservando revisão humana. V-043 eliminou a dívida de tipagem encontrada nos módulos envolvidos; V-044–V-068 reduziram a dívida global de 535 ocorrências para **zero nos 190 arquivos verificados por MyPy**, incluindo Triagem, Hub, contratação, PARCSN, transporte local, livros de consumo, coletores, configuração, gateway de IA, relatórios, sincronização bancária, segurança, acesso DTE, operações, NFS-e e IA, sem mudar regra de negócio. V-063 reexecutou a regressão integral local com 762 testes aprovados; V-073 a repetiu com 763 testes aprovados após completar a revisão e a carteira NFS-e; V-074 a atualizou para 764 após paginar a carteira de Guias/DCTFWeb; V-075 a atualizou para 765 após paginar a carteira de Parcelamentos por lote autorizado; V-076 a atualizou para 766 após paginar a fila OFX × Domínio; V-077 a atualizou para 767 após paginar o histórico operacional de Parcelamentos; V-078 a atualizou para 768 após paginar a cobertura de certificados. V-072 comprovou por teste o contrato do runtime OpenAI-compatível privado e que uma resposta local impede egressão, mesmo com fallback configurado; sem opt-in, o fallback permanece negado e auditado. V-073 completou o detalhe de revisão NFS-e, a demonstração fictícia e a paginação da carteira sem corte silencioso. V-074 estendeu essa proteção à carteira de Guias/DCTFWeb, V-075 à carteira de Parcelamentos, cuja página de 30 registros coincide com seu limite de consulta em lote, V-076 à fila de Conciliação, V-077 ao histórico de operações e V-078 à cobertura de empresas sem A1 válido. As etapas 05–10 confirmaram controles locais próprios; na 10, V-040 acrescentou o contrato de requisição do cliente Asaas sem conexão ou chave. V-069–V-071 ampliaram a inspeção visual local da etapa 11 para home, cadastro, demonstração isolada, Triagem, revisão NFS-e, módulos operacionais e Copiloto fictícios, sem homologar jornada real. As homologações de caixas/antimalware/destino, ADN, Serpro, arquivos/ERPs/fontes do Radar e Asaas permanecem pendentes. Por D-87, toda dependência de site em produção fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualização distribuída, backup Domínio Web e escrita Windows definitiva. A demonstração NFS-e foi ajustada separadamente e não conclui a etapa 07. Evidências em [VALIDACOES.md](VALIDACOES.md).
+
+**Atualização V-079:** a ficha da empresa passou a paginar seus históricos NFS-e, revisões e DTE em seções independentes, e a regressão integral local alcançou 769 testes aprovados. A evidência permanece exclusivamente sintética; não há homologação ADN ou Serpro.
+
+**Atualização V-080:** a auditoria de conciliação passou a paginar seus eventos sem limite silencioso, mantendo a ação filtrada entre páginas; a regressão integral local alcançou 770 testes aprovados. A evidência permanece exclusivamente sintética; não há homologação de ERP, OFX ou exportação.
+
+**Atualização V-081:** o Radar da Reforma passou a paginar alertas sem limite silencioso, mantendo termo, fonte e tema; a regressão integral local alcançou 771 testes aprovados. A evidência permanece exclusivamente sintética; não há homologação de fontes ou coleta.
+
+**Atualização V-082:** o console da plataforma passou a paginar o histórico manual de faturas sem limite silencioso; a regressão integral local alcançou 772 testes aprovados. A evidência permanece exclusivamente sintética; não há homologação de cobrança ou Asaas.
+
+**Atualização V-083:** a Caixa DTE passou a paginar seu histórico de resultados sem interferir na fila de mensagens; a regressão integral local alcançou 773 testes aprovados. A evidência permanece exclusivamente sintética; não há consulta, consumo ou homologação Serpro.
+
+**Atualização V-084:** o onboarding passou a paginar seu histórico de importações sem ocultar lotes antigos e sem interferir na fonte ou prévia selecionadas; a regressão integral local alcançou 774 testes aprovados. A evidência permanece exclusivamente sintética; não há upload, backup ou homologação Domínio.
+
+**Atualização V-085:** a Conciliação passou a paginar separadamente os históricos de processamentos e exportações, sem ocultar registros antigos; a regressão integral local alcançou 775 testes aprovados. A evidência permanece exclusivamente sintética; não há arquivo real, ERP ou homologação de exportação.
+
+**Atualização V-086:** o Copiloto passou a paginar o histórico de conversas abertas sem ocultar as antigas, preservando a conversa selecionada; a regressão integral local alcançou 776 testes aprovados. A evidência permanece exclusivamente sintética; não há chamada de IA, curadoria ou homologação operacional.
+
+**Atualização V-087:** o console da plataforma passou a paginar os fechamentos ainda adiados sem ocultar ocorrências antigas; a regressão integral local alcançou 777 testes aprovados. A evidência permanece exclusivamente sintética; não há fechamento, cobrança ou homologação Asaas.
+
+**Atualização V-088:** o console da plataforma passou a paginar as tentativas Claude incertas sem ocultar protocolos antigos; a regressão integral local alcançou 778 testes aprovados. A evidência permanece exclusivamente sintética; não há chamada de IA, custo ou homologação operacional.
+
+**Atualização V-089:** a revisão NFS-e passou a recusar acumulador ausente do catálogo da empresa; a regressão integral local alcançou 779 testes aprovados. A evidência permanece sintética; não há ADN ou homologação fiscal.
+
+**Atualização V-090:** o detalhe de conciliação passou a paginar todos os candidatos no recorte já existente, sem ocultar os posteriores ao quinquagésimo; a regressão integral local alcançou 780 testes aprovados. A evidência permanece sintética; não há ERP, arquivo ou exportação homologados.
+
+**Atualização V-091:** o detalhe da Triagem passou a paginar a trilha persistida de eventos sem ocultar evidência antiga; a regressão integral local alcançou 781 testes aprovados. A evidência permanece sintética; não há caixa, arquivo, agente ou destino homologados.
+
+**Atualização V-092:** a carteira de movimentos da Conciliação passou a preservar as páginas de Processamentos e Exportações ao navegar, mantendo as três trilhas independentes; a regressão integral local manteve 781 testes aprovados. A evidência permanece sintética; não há arquivo, ERP ou exportação homologados.
+
+**Atualização V-093:** a fila OFX × Domínio passou a preservar também o contexto das páginas de Processamentos, Movimentos e Exportações; a regressão integral local manteve 781 testes aprovados. A evidência permanece sintética; não há arquivo, ERP ou exportação homologados.
+
+**Atualização V-094:** a Caixa DTE passou a preservar simultaneamente a página das mensagens e a página do histórico de consultas; a regressão integral local manteve 781 testes aprovados. A evidência permanece sintética; não há consulta Serpro, consumo ou homologação.
+
+**Atualização V-095:** Jornadas foi removida do catálogo efetivo do produto conforme D-43, preservando apenas enum, schema e migrações históricos; a regressão integral local manteve 781 testes aprovados. A evidência é local; não há migração de produção ou homologação comercial.
+
+**Atualização V-096:** formulários, views e template operacionais órfãos de Jornadas foram removidos conforme D-43, preservando enum, modelos, tabelas e migrações históricas; a regressão integral local manteve 781 testes aprovados. A evidência é local; não há migração de produção ou homologação comercial.
+
+**Atualização V-097:** a Conciliação passou a rejeitar XLSX corrompido antes de persistir uma fonte, sem transformar falha de leitura em processamento incompleto; a prévia CSV também deixou de materializar todo o arquivo para exibir 50 linhas. A regressão integral local alcançou 783 testes aprovados; a evidência é local, sem arquivo, ERP ou OCR homologados.
 
 ## 1. Objetivo e ponto de partida
 
@@ -10,7 +48,7 @@ Concluir todos os módulos atuais, integrar Domínio e Siescon, entregar o insta
 
 **Pronto para venda:** o escritório consegue configurar, executar, conferir o resultado e recuperar falhas; permissões, cobrança, documentação e suporte correspondem ao comportamento real.
 
-As evidências são sempre datadas: V-031 registra a revalidação local de 19/09/2026 (lint, Django, migrações e testes focados); as provas anteriores de PostgreSQL, Redis, Windows e builds seguem registradas com seus limites. Nenhuma delas homologa integração externa, treinamento em GPU ou instalação no cliente. A análise consolidada está em [docs/planejamento/analise-projeto-2026-09-19.md](docs/planejamento/analise-projeto-2026-09-19.md).
+As evidências são sempre datadas: V-041 registra a revalidação local de 21/09/2026 (lint, Django, migrações, testes e comparação com GitHub); as provas anteriores de PostgreSQL, Redis, Windows e builds seguem registradas com seus limites. Nenhuma delas homologa integração externa, treinamento em GPU ou instalação no cliente. A análise consolidada mais recente está em [docs/planejamento/analise-projeto-2026-09-21.md](docs/planejamento/analise-projeto-2026-09-21.md).
 
 ## 2. Memória única
 
@@ -187,7 +225,7 @@ Os números identificam etapas; a ordem de execução deve respeitar dependênci
 - Separar conjuntos de treino e avaliação para evitar avaliação contaminada.
 - Vincular avaliação ao artefato exato do modelo/adaptador, corpus e versão.
 - Preparar publicação, seleção do adaptador por escritório e retorno à versão anterior.
-- Testar o contrato do runtime local e impedir fallback externo sem autorização.
+- [x] Testar o contrato do runtime local e impedir fallback externo sem autorização (V-072).
 
 **Pendências / limites:** Q-08, Q-09, Q-11, Q-30 e Q-34. Percentuais existentes no código não são aprovação comercial.
 
@@ -412,4 +450,4 @@ Cada entrega deve registrar critérios atendidos e bloqueios, testes proporciona
 
 ## 5. Próximo trabalho
 
-[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. A preparação estrutural local e a análise estão registradas em V-029 a V-031; o contrato técnico Q-33 continua indispensável para escrever o adaptador, pois não se pode inventar versão, mecanismo de acesso, schema, identificador de empresa ou layout. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. A [análise de 19/09](docs/planejamento/analise-projeto-2026-09-19.md) lista o material mínimo a receber por canal seguro. Sem esse material, a etapa permanece bloqueada, não concluída.
+[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. A preparação estrutural local e a análise estão registradas em V-029 a V-031 e V-041; o contrato técnico Q-33 continua indispensável para escrever o adaptador, pois não se pode inventar versão, mecanismo de acesso, schema, identificador de empresa ou layout. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. A [análise de 21/09](docs/planejamento/analise-projeto-2026-09-21.md) lista o material mínimo a receber por canal seguro. Sem esse material, a etapa permanece bloqueada, não concluída.

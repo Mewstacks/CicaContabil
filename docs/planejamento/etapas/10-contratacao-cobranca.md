@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento em 20/09/2026. D-76/D-79 já resolveram Q-01–Q-06; V-033 confirmou contrato, tokens, fatura e eventos locais, e V-040 confirmou o contrato de requisição do cliente Asaas. Não houve criação de cobrança, configuração sandbox ou chamada Asaas.
+**Estado:** Em andamento em 21/09/2026. D-76/D-79 já resolveram Q-01–Q-06; V-033 confirmou contrato, tokens, fatura e eventos locais, V-040 confirmou o contrato de requisição do cliente Asaas e V-048/V-053/V-056/V-061 retestaram formulários, livros, configuração e contratos locais. V-082 eliminou o corte silencioso do histórico manual de faturas e V-087 fez o mesmo para os fechamentos ainda adiados no console. Não houve criação de cobrança, configuração sandbox ou chamada Asaas.
 
 **Dependências:** 02; pode avançar antes das homologações fiscais.
 
@@ -32,7 +32,7 @@ Cobrança repetida, webhook duplicado/fora de ordem, pagamento tardio, disputa, 
 
 ## Evidências e próximo passo
 
-V-033 registra 44 testes locais para contrato, cobrança, tokens e acesso. V-040 acrescenta o contrato local de cliente/cobrança, com transporte substituível e nenhuma chave ou chamada real. Ainda falta ligar dados comerciais autorizados, cliente, cobrança e `PaymentAttempt`, além de tratar retornos de Pix, boleto e cartão em ambiente autorizado; o sandbox/contrato continua em Q-28 e a homologação fica na etapa 12 por D-87. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-033 registra 44 testes locais para contrato, cobrança, tokens e acesso. V-040 acrescenta o contrato local de cliente/cobrança, com transporte substituível e nenhuma chave ou chamada real; V-048 revalidou os formulários, V-053 os livros de consumo/faturamento, V-056 a configuração/controle local e V-061 tarefas, webhook, snapshots contratuais e páginas legais (69 testes). V-082 paginou o histórico manual em teste com 25 faturas sintéticas, sem tocar valores, contratos ou status. V-087 criou 31 ocorrências de fechamento adiadas sintéticas para confirmar a segunda página no console sem executar faturamento, reserva ou alteração de contrato; a inspeção visual autenticada não foi automatizada porque exigiria inserir credenciais. Ainda falta ligar dados comerciais autorizados, cliente, cobrança e `PaymentAttempt`, além de tratar retornos de Pix, boleto e cartão em ambiente autorizado; o sandbox/contrato continua em Q-28 e a homologação fica na etapa 12 por D-87. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 

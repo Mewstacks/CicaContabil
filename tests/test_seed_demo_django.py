@@ -43,7 +43,10 @@ def test_seed_populates_every_screen_with_data() -> None:
     organization = Organization.objects.get(slug="escritorio-demo")
     assert organization.is_demo
     assert ClientCompany.objects.filter(organization=organization).count() == 8
-    assert NfseDocument.objects.filter(organization=organization).exists()
+    document = NfseDocument.objects.filter(organization=organization).first()
+    assert document is not None
+    assert str(document.normalized_data["number"]).startswith("DEMO-")
+    assert "fictíci" in str(document.normalized_data["service_description"]).casefold()
     assert DteMessage.objects.filter(organization=organization, read_at=None).exists()
     assert (
         FiscalGuide.objects.filter(organization=organization, kind=FiscalGuide.Kind.DCTFWEB).count()

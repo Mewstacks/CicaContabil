@@ -11,7 +11,7 @@ import hashlib
 import socket
 import struct
 from dataclasses import dataclass
-from typing import BinaryIO, Protocol
+from typing import BinaryIO, Protocol, cast
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -119,7 +119,7 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
         try:
             scanner = scanner or ClamdScanner.from_settings()
             with item.blob.content.open("rb") as stream:
-                result = scanner.scan(stream)
+                result = scanner.scan(cast(BinaryIO, stream))
         except ScannerUnavailable as exc:
             result = ScanVerdict(TriageSafetyScan.Verdict.ERROR, "", str(exc)[:200])
         if result.verdict not in TriageSafetyScan.Verdict.values:
@@ -131,7 +131,7 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
             try:
                 with item.blob.content.open("rb") as stream:
                     detected_type = validate_supported_attachment(
-                        stream, filename=item.original_name
+                        cast(BinaryIO, stream), filename=item.original_name
                     )
                 format_verdict = TriageSafetyScan.FormatVerdict.VALID
             except UnsupportedAttachment as exc:

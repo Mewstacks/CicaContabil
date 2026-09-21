@@ -13,17 +13,22 @@ from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.hub.controlplane import company_queryset_for_membership, module_codes_for_membership
 from apps.hub.models import (
+    AccumulatorObservation,
+    AccumulatorRule,
     Certificate,
     ClientCompany,
     CompanyAccessGrant,
     Connector,
     ControlPlaneBinding,
+    DataSource,
+    ImportBatch,
     NfseSync,
     ProductModule,
     ReformAlert,
     ReformSourceStatus,
     ReviewCase,
 )
+from apps.hub.module_catalog import MODULES
 from apps.hub.services import create_document_and_artifact
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.organizations.models import Membership, Organization
@@ -43,6 +48,7 @@ from apps.triage.models import (
     DestinationProfile,
     DocumentType,
     Mailbox,
+    TriageEvent,
     TriageItem,
     TriageSafetyScan,
 )
@@ -120,6 +126,41 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(response, self.organization.name)
         self.assertContains(response, self.company.name)
 
+    def test_setup_history_paginates_without_losing_the_selected_source(self) -> None:
+        source = DataSource.objects.create(
+            organization=self.organization,
+            kind=DataSource.Kind.OTHER_MANUAL,
+            label="Importação manual",
+        )
+        for index in range(21):
+            ImportBatch.objects.create(
+                organization=self.organization,
+                data_source=source,
+                kind=ImportBatch.Kind.COMPANIES,
+                status=ImportBatch.Status.COMPLETED,
+                original_filename=f"empresas-{index}.csv",
+                content_hash=f"{index:064x}",
+            )
+
+        first_page = self.client.get(reverse("hub:setup"), {"source": source.id})
+        second_page = self.client.get(
+            reverse("hub:setup"), {"source": source.id, "imports_page": "2"}
+        )
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["recent_imports_total"], 21)
+        self.assertEqual(first_page.context["recent_imports_page"].number, 1)
+        self.assertEqual(len(first_page.context["recent_imports"]), 20)
+        self.assertContains(first_page, "21 importações")
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, f"?source={source.id}&amp;imports_page=2")
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(second_page.context["selected_source"], source)
+        self.assertEqual(second_page.context["recent_imports_page"].number, 2)
+        self.assertEqual(len(second_page.context["recent_imports"]), 1)
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, f"?source={source.id}&amp;imports_page=1")
+
     def test_nfse_empty_states_do_not_claim_that_a_certificate_activates_capture(self) -> None:
         """A stored A1 is not a substitute for an unimplemented external NFS-e connector."""
 
@@ -178,6 +219,41 @@ class HubWorkspaceViewTests(TestCase):
             [valid_company],
         )
         self.assertContains(searched, "1 resultado")
+
+    def test_certificate_workspace_paginates_missing_companies_without_hiding_them(self) -> None:
+        for index in range(20):
+            ClientCompany.objects.create(
+                organization=self.organization,
+                name=f"Empresa sem A1 {index:03d}",
+                dominio_code=f"A{index:03d}",
+            )
+
+        first_page = self.client.get(
+            reverse("hub:certificates"), {"q": "matriz", "status": "all"}
+        )
+        second_page = self.client.get(
+            reverse("hub:certificates"),
+            {"q": "matriz", "status": "all", "missing_page": "2"},
+        )
+
+        self.assertContains(first_page, "21 empresas")
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "Empresa sem A1 000")
+        self.assertNotIn(
+            "Empresa sem A1 019",
+            [company.name for company in first_page.context["missing_certificate_companies"]],
+        )
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, "Empresa sem A1 019")
+        self.assertEqual(
+            [company.name for company in second_page.context["missing_certificate_companies"]],
+            ["Empresa sem A1 019"],
+        )
+        self.assertContains(
+            second_page,
+            "?q=matriz&amp;status=all&amp;missing_page=1#empresas-sem-certificado",
+            html=False,
+        )
 
     def test_demo_certificate_action_is_session_only_and_never_stores_a_pfx(self) -> None:
         self.organization.is_demo = True
@@ -239,6 +315,42 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(searched, "Crédito tributário da CBS")
         self.assertNotContains(searched, "Cronograma IBS")
         self.assertContains(searched, "1 resultado")
+
+    def test_reform_radar_paginates_the_full_filtered_history(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.REFORM, enabled=True
+        )
+        for index in range(101):
+            ReformAlert.objects.create(
+                source=ReformAlert.Source.RFB,
+                external_key=f"radar-pagination-{index}",
+                title=f"Alerta Radar paginado {index:03d}",
+                source_url=f"https://www.gov.br/receitafederal/noticia-{index}",
+                relevance=ReformAlert.Relevance.REFORM,
+                content_hash=f"hash-radar-{index}",
+            )
+
+        first_page = self.client.get(
+            reverse("hub:reform"), {"fonte": "rfb", "relevancia": "reform"}
+        )
+        last_page = self.client.get(
+            reverse("hub:reform"),
+            {"fonte": "rfb", "relevancia": "reform", "page": "3"},
+        )
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(first_page.context["alert_total"], 101)
+        self.assertEqual(first_page.context["alert_page"].number, 1)
+        self.assertEqual(len(first_page.context["alerts"]), 50)
+        self.assertEqual(last_page.context["alert_page"].number, 3)
+        self.assertContains(last_page, "Alerta Radar paginado 000")
+        self.assertContains(last_page, "101 resultados")
+        self.assertContains(last_page, "Página 3 de 3")
+        self.assertContains(
+            last_page,
+            "?fonte=rfb&amp;relevancia=reform&amp;page=2",
+            html=False,
+        )
 
     def test_reform_radar_shows_a_source_collection_failure_without_raw_error(self) -> None:
         ProductModule.objects.create(
@@ -734,6 +846,47 @@ class HubWorkspaceViewTests(TestCase):
             404,
         )
 
+    def test_triage_item_history_pages_all_events_without_a_silent_cutoff(self) -> None:
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.TRIAGE, enabled=True
+        )
+        item = TriageItem.objects.create(
+            organization=self.organization,
+            company=self.company,
+            original_name="historico-completo.pdf",
+        )
+        for index in range(21):
+            TriageEvent.objects.create(
+                organization=self.organization,
+                triage_item=item,
+                actor=self.user,
+                from_status=TriageStatus.RECEIVED,
+                to_status=TriageStatus.QUARANTINED,
+                note=f"Evento de auditoria {index:02d}",
+            )
+
+        first_page = self.client.get(
+            reverse("hub:triage-item", args=[item.id]), {"return_to": "triagem"}
+        )
+        second_page = self.client.get(
+            reverse("hub:triage-item", args=[item.id]), {"history_page": 2}
+        )
+
+        self.assertEqual(first_page.status_code, 200)
+        self.assertEqual(second_page.status_code, 200)
+        self.assertEqual(first_page.context["triage_history_total"], 21)
+        self.assertEqual(first_page.context["triage_history_page"].number, 1)
+        self.assertEqual(second_page.context["triage_history_page"].number, 2)
+        self.assertEqual(len(first_page.context["triage_history_events"]), 20)
+        self.assertEqual(len(second_page.context["triage_history_events"]), 1)
+        self.assertContains(first_page, "Evento de auditoria 00")
+        self.assertNotContains(first_page, "Evento de auditoria 20")
+        self.assertContains(second_page, "Evento de auditoria 20")
+        self.assertContains(first_page, "Página 1 de 2 · 21 eventos")
+        self.assertContains(second_page, "Página 2 de 2 · 21 eventos")
+        self.assertContains(first_page, "return_to=triagem&amp;history_page=2")
+        self.assertContains(second_page, "history_page=1")
+
     def test_internal_library_download_uses_verified_copy_and_refuses_tampering(self) -> None:
         self.enterContext(override_settings(MEDIA_ROOT=self.enterContext(TemporaryDirectory())))
         ProductModule.objects.create(
@@ -829,6 +982,7 @@ class HubWorkspaceViewTests(TestCase):
         ):
             self.assertEqual(self.client.get(path).status_code, 404, path)
             self.assertEqual(self.client.post(path, {}).status_code, 404, path)
+        self.assertNotIn(ProductModule.Code.JOURNEY, MODULES)
         self.assertNotContains(self.client.get(reverse("hub:dashboard")), "/app/jornada/")
 
     def test_unavailable_external_connector_rejects_credentials(self) -> None:
@@ -1019,6 +1173,30 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(response, "owned")
         self.assertContains(response, "other")
 
+    def test_nfse_center_paginates_the_portfolio_without_hiding_documents(self) -> None:
+        now = timezone.now()
+        for index in range(101):
+            create_document_and_artifact(
+                company=self.company,
+                original_xml=f"<nfse id='page-{index}' />",
+                normalized_data={
+                    "service_code": "unmatched",
+                    "issued_at": (now - timedelta(days=index)).isoformat(),
+                },
+                source_nsu=f"PAGE-{index:03d}",
+            )
+
+        first_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE"})
+        second_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE", "page": "2"})
+
+        self.assertContains(first_page, "101 resultados")
+        self.assertContains(first_page, "Página 1 de 2")
+        self.assertContains(first_page, "PAGE-000")
+        self.assertNotContains(first_page, "PAGE-100")
+        self.assertContains(second_page, "Página 2 de 2")
+        self.assertContains(second_page, "PAGE-100")
+        self.assertContains(second_page, "?q=PAGE&amp;page=1", html=False)
+
     def test_nfse_center_searches_the_portfolio_and_links_the_exact_review(self) -> None:
         other_company = ClientCompany.objects.create(
             organization=self.organization, name="Empresa pesquisável", dominio_code="0888"
@@ -1110,6 +1288,13 @@ class HubWorkspaceViewTests(TestCase):
         )
         self.assertIsNotNone(document)
         assert review is not None
+        AccumulatorRule.objects.create(
+            organization=self.organization,
+            company=self.company,
+            name="Acumulador revisado",
+            accumulator_code="AC-200",
+            priority=1,
+        )
         url = reverse("hub:resolve-review", args=[review.id])
 
         missing = self.client.post(url, {})
@@ -1122,6 +1307,46 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(review.status, ReviewCase.Status.RESOLVED)
         self.assertEqual(review.resolved_accumulator, "AC-200")
         self.assertEqual(review.resolved_by, self.user)
+
+    def test_review_resolution_rejects_unknown_or_other_company_accumulator(self) -> None:
+        _document, _artifact, review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='catalog' />",
+            normalized_data={"service_code": "unmatched"},
+        )
+        assert review is not None
+        other_company = ClientCompany.objects.create(
+            organization=self.organization, name="Outra empresa", dominio_code="099"
+        )
+        AccumulatorRule.objects.create(
+            organization=self.organization,
+            company=other_company,
+            name="Somente outra empresa",
+            accumulator_code="AC-OUTRA",
+            priority=1,
+        )
+        AccumulatorObservation.objects.create(
+            organization=self.organization,
+            company=self.company,
+            accumulator_code="AC-HISTORICO",
+            last_used_at=timezone.now(),
+        )
+        url = reverse("hub:resolve-review", args=[review.id])
+
+        rejected = self.client.post(url, {"accumulator_code": "AC-OUTRA"})
+        review.refresh_from_db()
+        rejected_detail = self.client.get(reverse("hub:review-detail", args=[review.id]))
+        accepted = self.client.post(url, {"accumulator_code": "AC-HISTORICO"})
+
+        self.assertRedirects(rejected, reverse("hub:review-detail", args=[review.id]))
+        self.assertEqual(review.status, ReviewCase.Status.OPEN)
+        self.assertContains(
+            rejected_detail,
+            "Escolha um acumulador cadastrado para esta empresa",
+        )
+        self.assertRedirects(accepted, reverse("hub:review-detail", args=[review.id]))
+        review.refresh_from_db()
+        self.assertEqual(review.resolved_accumulator, "AC-HISTORICO")
 
     def test_review_queue_searches_the_portfolio_and_defaults_to_open_cases(self) -> None:
         _document, _artifact, open_review = create_document_and_artifact(
@@ -1181,7 +1406,14 @@ class HubWorkspaceViewTests(TestCase):
         _document, _artifact, review = create_document_and_artifact(
             company=self.company,
             original_xml=original,
-            normalized_data={"service_code": "1401"},
+            normalized_data={
+                "number": "NFS-2026-00042",
+                "issued_at": "2026-09-21T14:30:00-03:00",
+                "service_code": "1401",
+                "service_description": "Assessoria contábil mensal",
+                "amount": "1234.5",
+                "counterparty_ref": "contraparte-pseudonimizada",
+            },
         )
         assert review is not None
         detail_url = reverse("hub:review-detail", args=[review.id])
@@ -1194,6 +1426,16 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(dashboard, detail_url)
         self.assertContains(detail, "Código de serviço")
         self.assertContains(detail, "1401")
+        self.assertContains(detail, "Número da NFS-e")
+        self.assertContains(detail, "NFS-2026-00042")
+        self.assertContains(detail, "Emissão / competência")
+        self.assertContains(detail, "21/09/2026")
+        self.assertContains(detail, "Descrição do serviço")
+        self.assertContains(detail, "Assessoria contábil mensal")
+        self.assertContains(detail, "Valor do serviço")
+        self.assertContains(detail, "R$ 1.234,50")
+        self.assertContains(detail, "Referência da contraparte")
+        self.assertContains(detail, "contraparte-pseudonimizada")
         self.assertContains(detail, xml_url)
         self.assertEqual(downloaded.status_code, 200)
         self.assertEqual(downloaded.content.decode(), original)

@@ -65,15 +65,6 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="RT",
     ),
-    ProductModule.Code.JOURNEY: ModuleDefinition(
-        code=ProductModule.Code.JOURNEY,
-        label="Jornadas",
-        short_label="Jornadas",
-        description="Crie jornadas por empresa, responsável, prazo e visibilidade.",
-        route_name="hub:journey",
-        required_capabilities=(),
-        icon="JP",
-    ),
     ProductModule.Code.AI: ModuleDefinition(
         code=ProductModule.Code.AI,
         label="Copiloto CICA",

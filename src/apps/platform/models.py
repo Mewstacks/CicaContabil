@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import hashlib
 import secrets
+from collections.abc import Iterable
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import EmailValidator
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils import timezone
 
 from apps.common.encryption import EncryptedTextField
@@ -312,7 +314,14 @@ class TokenPriceBook(UUIDTimeStampedModel):
             ),
         ]
 
-    def save(self, *args: object, **kwargs: object) -> None:
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if self.pk:
             previous = type(self).objects.filter(pk=self.pk).first()
             if previous and previous.status in {self.Status.ACTIVE, self.Status.RETIRED}:
@@ -331,7 +340,12 @@ class TokenPriceBook(UUIDTimeStampedModel):
                     self.Status.ACTIVE, self.Status.RETIRED
                 }:
                     raise ValidationError("Uma tabela ativa só pode ser encerrada.")
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
 
 class TokenModuleRate(UUIDTimeStampedModel):
@@ -349,21 +363,35 @@ class TokenModuleRate(UUIDTimeStampedModel):
             )
         ]
 
-    def save(self, *args: object, **kwargs: object) -> None:
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not TokenPriceBook.objects.filter(
             id=self.book_id, status=TokenPriceBook.Status.DRAFT
         ).exists():
             raise ValidationError(
                 "Mensalidade e franquia estão congeladas. Crie outra versão da tabela."
             )
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def delete(self, *args: object, **kwargs: object) -> tuple[int, dict[str, int]]:
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         if not TokenPriceBook.objects.filter(
             id=self.book_id, status=TokenPriceBook.Status.DRAFT
         ).exists():
             raise ValidationError("Uma mensalidade aceita não pode ser excluída.")
-        return super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
 class TokenActionWeight(UUIDTimeStampedModel):
@@ -386,21 +414,35 @@ class TokenActionWeight(UUIDTimeStampedModel):
             ),
         ]
 
-    def save(self, *args: object, **kwargs: object) -> None:
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if not TokenPriceBook.objects.filter(
             module_rates__id=self.module_rate_id,
             status=TokenPriceBook.Status.DRAFT,
         ).exists():
             raise ValidationError("Peso aceito está congelado. Crie outra versão da tabela.")
-        super().save(*args, **kwargs)
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def delete(self, *args: object, **kwargs: object) -> tuple[int, dict[str, int]]:
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         if not TokenPriceBook.objects.filter(
             module_rates__id=self.module_rate_id,
             status=TokenPriceBook.Status.DRAFT,
         ).exists():
             raise ValidationError("Um peso aceito não pode ser excluído.")
-        return super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
 class TokenMeter(UUIDTimeStampedModel):
