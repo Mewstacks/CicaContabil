@@ -9,8 +9,9 @@
 - Em 1440 × 1000 e 390 × 844, a Conciliação não apresentou overflow horizontal
   ou erros/avisos de console. O modal de importação expôs empresa, conta,
   origem, período, lote e limites, sem enviar arquivo.
-- Servidor e aba temporários foram encerrados. A evidência não cobre todos os
-  perfis, teclado/foco completo, upload real, integrações ou homologação.
+- Servidor e aba temporários foram encerrados; a base e os artefatos fictícios
+  foram movidos para a Lixeira de forma recuperável. A evidência não cobre todos
+  os perfis, teclado/foco completo, upload real, integrações ou homologação.
 
 ## 21/09/2026 — PDF corrompido recusado antes da conciliação (V-098)
 

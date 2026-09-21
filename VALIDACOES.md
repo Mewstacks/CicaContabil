@@ -14,9 +14,8 @@ processamento, consulta externa, cobrança, arquivo de cliente ou deploy.
   horizontal nem erros/avisos no console. O modal de importação expôs empresa,
   conta financeira, origem, período, identificação de lote e os limites de 20
   arquivos / 25 MiB, sem enviar arquivo.
-- O servidor e a aba temporários foram encerrados ao fim da inspeção. A pasta
-  temporária do sistema contém apenas o banco fictício e seus artefatos de
-  auditoria.
+- O servidor e a aba temporários foram encerrados ao fim da inspeção. A base e
+  os artefatos fictícios foram movidos para a Lixeira de forma recuperável.
 
 Limites: não substitui inspeção de todos os perfis, teclado/foco completo,
 upload real, OCR, ERP, Serpro, Asaas ou homologação comercial.
