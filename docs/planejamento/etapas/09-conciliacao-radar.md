@@ -67,7 +67,9 @@ processamentos, 21 exportações e 51 movimentos sintéticos, sem executar açã
 operacional. V-093 confirmou que a terceira página de 101 correspondências
 sintéticas mantém as demais páginas abertas. V-097 passou a recusar XLSX
 corrompido antes da persistência e limitou a prévia CSV às 51 linhas exibidas;
-a prova continua sintética, sem layout ou arquivo real. A existência de código ou testes
+V-098 estendeu a recusa prévia a PDF malformado, sem retirar o OCR local de
+documentos digitalizados válidos. A prova continua sintética, sem layout ou
+arquivo real. A existência de código ou testes
 anteriores não prova conclusão.
 Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no
 registro de execução. Não incluir segredos ou dados de clientes.

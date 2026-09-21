@@ -1,5 +1,15 @@
 # Registro de execução da meta operacional
 
+## 21/09/2026 — PDF corrompido recusado antes da conciliação (V-098)
+
+- A validação passou a abrir PDF e a verificar o limite de 500 páginas antes de
+  persistir a fonte. Arquivo malformado retorna mensagem clara sem criar lote ou
+  processamento inválido; o caminho de OCR local continua disponível quando o
+  parser opcional não está instalado.
+- Foram aprovados 42 testes focados (um skip de OCR), Ruff e MyPy do serviço; a
+  suíte integral fechou com 784 testes, três skips e 11 subtestes. Não houve
+  OCR, arquivo real, ERP, integração ou serviço externo.
+
 ## 21/09/2026 — XLSX corrompido recusado antes da conciliação (V-097)
 
 - A validação de entrada passou a abrir XLSX antes de criar a fonte. Arquivo com

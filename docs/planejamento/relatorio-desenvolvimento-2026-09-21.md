@@ -68,6 +68,8 @@ históricos permanecem para evitar uma remoção destrutiva sem revisão explíc
   processamento inválido.
 - A prévia de CSV consome apenas as 51 linhas exibidas, evitando carregar todo o
   arquivo apenas para apresentar a amostra inicial.
+- PDF malformado também é recusado antes de persistir fonte, lote ou
+  processamento; PDF digitalizado válido mantém o caminho de OCR local.
 
 ## Evidências desta sequência
 
@@ -76,6 +78,7 @@ históricos permanecem para evitar uma remoção destrutiva sem revisão explíc
 | V-079 a V-094 | Paginação/contexto de históricos e carteiras em módulos operacionais | Evidência sintética; integrações e volumes reais pendentes |
 | V-095 e V-096 | Jornadas removida do produto e do código operacional | Schema/migrações preservados; não há migração de produção |
 | V-097 | XLSX corrompido rejeitado antes de persistência; prévia CSV limitada | Sem validação com layout/arquivo real ou OCR disponível |
+| V-098 | PDF malformado rejeitado antes de persistência | Sem OCR, arquivo real, ERP ou exportação homologados |
 
 Os comandos, contagens de testes e limites de cada versão estão em
 [VALIDACOES.md](../../VALIDACOES.md) e

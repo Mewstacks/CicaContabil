@@ -42,6 +42,8 @@ Atualizado em 21/09/2026. Plano aprovado pelo responsável nesta conversa; local
 
 **Atualização V-097:** a Conciliação passou a rejeitar XLSX corrompido antes de persistir uma fonte, sem transformar falha de leitura em processamento incompleto; a prévia CSV também deixou de materializar todo o arquivo para exibir 50 linhas. A regressão integral local alcançou 783 testes aprovados; a evidência é local, sem arquivo, ERP ou OCR homologados.
 
+**Atualização V-098:** a Conciliação passou a rejeitar PDF malformado antes de persistir fonte, lote ou processamento, preservando o caminho de OCR local para PDF digitalizado válido. A regressão integral local alcançou 784 testes aprovados; a evidência é local, sem OCR, arquivo, ERP ou exportação homologados.
+
 ## 1. Objetivo e ponto de partida
 
 Concluir todos os módulos atuais, integrar Domínio e Siescon, entregar o instalador do escritório e operar inicialmente com IA por API, deixando o fluxo de IA local preparado e testado.

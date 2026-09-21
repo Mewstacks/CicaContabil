@@ -84,6 +84,8 @@ def detect_kind(filename: str, content: bytes) -> str:
         raise ReconciliationError("Arquivo vazio ou maior que 25 MiB.")
     if kind == "pdf" and not content.startswith(b"%PDF-"):
         raise ReconciliationError("O conteúdo não corresponde a um PDF.")
+    if kind == "pdf":
+        _validate_pdf(content)
     if kind == "xlsx" and not content.startswith(b"PK"):
         raise ReconciliationError("O conteúdo não corresponde a uma planilha XLSX.")
     if kind == "xlsx":
@@ -341,6 +343,25 @@ def _load_xlsx_workbook(content: bytes) -> Any:
     except (InvalidFileException, KeyError, OSError, ValueError, zipfile.BadZipFile) as exc:
         raise ReconciliationError(
             "Não foi possível abrir a planilha XLSX. Verifique se o arquivo não está corrompido."
+        ) from exc
+
+
+def _validate_pdf(content: bytes) -> None:
+    """Reject a malformed or oversized PDF before it becomes a persisted run."""
+    try:
+        import pdfplumber
+    except ImportError:
+        # OCR-only installations still need to accept PDFs for their local worker.
+        return
+    try:
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            if len(pdf.pages) > MAX_PAGES:
+                raise ReconciliationError("PDF excede 500 páginas.")
+    except ReconciliationError:
+        raise
+    except Exception as exc:
+        raise ReconciliationError(
+            "Não foi possível abrir o PDF. Verifique se o arquivo não está corrompido."
         ) from exc
 
 

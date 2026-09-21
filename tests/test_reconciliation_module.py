@@ -283,6 +283,23 @@ def test_corrupted_xlsx_is_rejected_before_persistence() -> None:
 
 
 @pytest.mark.django_db
+def test_corrupted_pdf_is_rejected_before_persistence() -> None:
+    organization = Organization.objects.create(name="PDF corrompido", slug="pdf-corrompido")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+
+    with pytest.raises(ReconciliationError, match="Não foi possível abrir o PDF"):
+        create_source_file(
+            organization=organization,
+            company=company,
+            filename="corrompido.pdf",
+            content=b"%PDF-1.7 sem estrutura interna",
+            origin=ReconciliationSourceFile.Origin.DOCUMENT,
+        )
+
+    assert not ReconciliationSourceFile.objects.filter(organization=organization).exists()
+
+
+@pytest.mark.django_db
 def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     organization = Organization.objects.create(name="Erros de envio", slug="erros-envio")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")

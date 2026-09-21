@@ -49,6 +49,8 @@
 
 **Atualização V-097:** a Conciliação rejeita XLSX corrompido antes de persistir uma fonte e sua prévia CSV só lê as linhas exibidas; a regressão integral local alcançou 783 testes aprovados. A prova é local, sem arquivo, ERP ou OCR homologados.
 
+**Atualização V-098:** a Conciliação rejeita PDF malformado antes de persistir fonte, lote ou processamento e mantém PDF digitalizado válido no fluxo de OCR local; a regressão integral local alcançou 784 testes aprovados. A prova é local, sem OCR, arquivo, ERP ou exportação homologados.
+
 Atualizado em 15/09/2026. Esta pasta reúne as decisões e dúvidas extraídas dos planos antigos do Claude, do histórico local do Codex, dos documentos do repositório e das confirmações recentes do responsável. Ela é uma memória de produto e execução; não equivale a homologação, aprovação de preço, parecer jurídico ou autorização de gasto.
 
 ## Como ler

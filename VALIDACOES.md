@@ -1,5 +1,21 @@
 # CICA — validações e evidências
 
+## V-098 — PDF corrompido recusado antes da conciliação
+
+Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo
+real de cliente, OCR, ERP, exportação, integração, custo ou deploy.
+
+- A validação de PDF agora abre o documento e confirma o limite de 500 páginas
+  antes de persistir a fonte. Um PDF malformado é recusado com mensagem clara e
+  não cria lote ou processamento inválido; a ausência opcional de `pdfplumber`
+  mantém o caminho de OCR local.
+- **42 testes** focados de Conciliação passaram, com um skip de OCR local. Ruff
+  e MyPy do serviço aprovaram a alteração. A regressão integral fechou com
+  **784 testes aprovados, 3 skips e 11 subtestes** em 29,23 s.
+
+Limites: a prova usa um PDF sintético corrompido; não homologa OCR, arquivos,
+ERP ou exportação reais.
+
 ## V-097 — XLSX corrompido recusado antes da conciliação
 
 Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo
