@@ -70,6 +70,9 @@ históricos permanecem para evitar uma remoção destrutiva sem revisão explíc
   arquivo apenas para apresentar a amostra inicial.
 - PDF malformado também é recusado antes de persistir fonte, lote ou
   processamento; PDF digitalizado válido mantém o caminho de OCR local.
+- A demonstração isolada de Conciliação foi reaberta em banco temporário,
+  verificada em desktop e celular sem overflow horizontal ou erros de console,
+  sem enviar arquivo ou acessar serviço externo.
 
 ## Evidências desta sequência
 
@@ -79,6 +82,7 @@ históricos permanecem para evitar uma remoção destrutiva sem revisão explíc
 | V-095 e V-096 | Jornadas removida do produto e do código operacional | Schema/migrações preservados; não há migração de produção |
 | V-097 | XLSX corrompido rejeitado antes de persistência; prévia CSV limitada | Sem validação com layout/arquivo real ou OCR disponível |
 | V-098 | PDF malformado rejeitado antes de persistência | Sem OCR, arquivo real, ERP ou exportação homologados |
+| V-099 | Demonstração de Conciliação revisada em desktop e celular | Sem upload, integração ou homologação |
 
 Os comandos, contagens de testes e limites de cada versão estão em
 [VALIDACOES.md](../../VALIDACOES.md) e

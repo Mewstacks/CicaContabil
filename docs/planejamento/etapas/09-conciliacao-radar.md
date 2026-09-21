@@ -69,7 +69,9 @@ sintéticas mantém as demais páginas abertas. V-097 passou a recusar XLSX
 corrompido antes da persistência e limitou a prévia CSV às 51 linhas exibidas;
 V-098 estendeu a recusa prévia a PDF malformado, sem retirar o OCR local de
 documentos digitalizados válidos. A prova continua sintética, sem layout ou
-arquivo real. A existência de código ou testes
+arquivo real. V-099 abriu a demonstração isolada em banco temporário e revisou
+a Conciliação em desktop e celular, sem overflow horizontal ou erro de console,
+sem envio de arquivo ou integração. A existência de código ou testes
 anteriores não prova conclusão.
 Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no
 registro de execução. Não incluir segredos ou dados de clientes.

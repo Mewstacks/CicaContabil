@@ -1,5 +1,17 @@
 # Registro de execução da meta operacional
 
+## 21/09/2026 — demonstração isolada da Conciliação revisada no navegador (V-099)
+
+- Uma base SQLite temporária, migrada e semeada exclusivamente com dados
+  fictícios permitiu abrir `/demo/`, a Visão geral e a Conciliação sem tocar o
+  banco local de desenvolvimento. A sessão declarou ausência de consulta
+  externa e cobrança.
+- Em 1440 × 1000 e 390 × 844, a Conciliação não apresentou overflow horizontal
+  ou erros/avisos de console. O modal de importação expôs empresa, conta,
+  origem, período, lote e limites, sem enviar arquivo.
+- Servidor e aba temporários foram encerrados. A evidência não cobre todos os
+  perfis, teclado/foco completo, upload real, integrações ou homologação.
+
 ## 21/09/2026 — PDF corrompido recusado antes da conciliação (V-098)
 
 - A validação passou a abrir PDF e a verificar o limite de 500 páginas antes de

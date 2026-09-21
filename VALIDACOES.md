@@ -1,5 +1,26 @@
 # CICA — validações e evidências
 
+## V-099 — Demonstração isolada da Conciliação revisada no navegador
+
+Data: 21/09/2026. Ambiente: banco SQLite temporário, migrado e semeado somente
+com dados fictícios; navegador local. Não houve credencial real, upload,
+processamento, consulta externa, cobrança, arquivo de cliente ou deploy.
+
+- A entrada `/demo/` informou explicitamente que os dados são fictícios e que
+  não há consulta externa ou cobrança. A sessão abriu a Visão geral do
+  escritório demonstrativo e a Conciliação sem acessar o banco local de
+  desenvolvimento.
+- Em 1440 × 1000 e 390 × 844, a tela de Conciliação não teve overflow
+  horizontal nem erros/avisos no console. O modal de importação expôs empresa,
+  conta financeira, origem, período, identificação de lote e os limites de 20
+  arquivos / 25 MiB, sem enviar arquivo.
+- O servidor e a aba temporários foram encerrados ao fim da inspeção. A pasta
+  temporária do sistema contém apenas o banco fictício e seus artefatos de
+  auditoria.
+
+Limites: não substitui inspeção de todos os perfis, teclado/foco completo,
+upload real, OCR, ERP, Serpro, Asaas ou homologação comercial.
+
 ## V-098 — PDF corrompido recusado antes da conciliação
 
 Data: 21/09/2026. Ambiente: macOS local e banco de testes. Não houve arquivo
