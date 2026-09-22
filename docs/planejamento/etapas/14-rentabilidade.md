@@ -25,7 +25,7 @@ O custo/hora tem uma única conta, fixada após a auditoria de setembro de 2026 
 - [x] Portar as telas para templates por D-110, com o gráfico de D-113 como SVG próprio (V-107, V-108). Lista de clientes e tela de conectores não foram portadas: a CICA já as tem. Inspeção visual em navegador, responsividade e leitor de tela pertencem à etapa 11.
 - [x] Trazer o catálogo de consultas fixado por SHA-256 e o processamento por conjunto de dados para o protocolo de agente vigente, atrás de sinalizador desligado por padrão (V-106). O preflight por escritório não veio: o indicador de contrato validado segue vindo do manifesto.
 - [-] Unificar o conector Windows por D-111, com o alvo resolvido em D-116 (V-109). Entraram o catálogo fixado por hash, o processador que entrega as consultas e a ponte ODBC de 32 bits do Siescon; faltam o atualizador automático e a revisão do instalador WiX.
-- [-] Portar os testes do Lucrums. Feitos os do cálculo, do domínio, dos serviços e do casador: 65 aprovados, 89% de cobertura no app (V-105). As provas de recusa por módulo desligado, escopo do colaborador e sessão somente-leitura dependem das telas e ficam na fase 2.
+- [x] Portar os testes do Lucrums (V-105 a V-109): cálculo contra o contrato, domínio, serviços, casador, ingestão, protocolo de agente, telas e catálogo do conector. A recusa por módulo desligado, o escopo do colaborador, o isolamento entre inquilinos e a sessão somente-leitura estão cobertos.
 
 ## Bloqueios e responsabilidade
 

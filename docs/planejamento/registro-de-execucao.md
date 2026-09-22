@@ -1078,3 +1078,11 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - A ponte ODBC de 32 bits entrou, autorizada por D-117: o Pervasive do Siescon não tem driver de 64 bits. Fala por stdin/stdout, sem rede, e a credencial nunca vai pela linha de comando. A conversão de valores subiu para a biblioteca de contratos, porque na origem havia uma cópia de cada lado da ponte.
 - Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117, e a etapa 04 deixou de estar bloqueada por falta de contrato técnico.
 - 17 testes do agente, 955 na suíte Python. Nada foi executado contra Windows, ODBC ou ERP real.
+
+## 22/09/2026 — Etapa 14, fase 5: documentação e material Siescon
+
+- O material Siescon do Lucrums entrou em `docs/siescon/`, porque D-117 o tornou a base técnica do adaptador. O limite viaja junto e está no índice da pasta: o layout foi inferido, não documentado pelo fornecedor.
+- O README dos contratos contradizia o próprio manifesto — dizia que três contratos Siescon nasciam não validados, quando três dos quatro estão validados — e descrevia o ERP compilado no binário, que é do projeto de origem e não vale aqui por D-80. Os dois trechos foram corrigidos.
+- O README do agente ganhou as seções de contratos, ponte de 32 bits e atualização.
+- D-118 registra que o atualizador automático do conector de origem não é absorvido: V-022 diz que o agente da CICA não baixa nem instala MSI sozinho, e reverter isso num porte seria decidir pelo responsável.
+- Não foram copiados do projeto de origem: a SPA React, os apps de base do backend (conta, organização, auditoria, privacidade, comuns), o segredo local, o banco de desenvolvimento, o ambiente virtual de PDF e a pasta `tmp/pdfs`.
