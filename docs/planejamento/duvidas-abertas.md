@@ -75,6 +75,16 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-36 | O recorte inicial de Parcelamentos permanece PARCSN ordinário ou inclui outras modalidades? | Etapa 08: preservar implementação atual até resposta; o plano exige perguntar antes de ampliar modalidades. |
 | Q-37 | Resolvida em 18/09: manter LlamaFactory como ferramenta interna de treinamento; referência técnica fixada por digest. | D-71. A imagem foi construída e o binário validado localmente. Nenhum treino, modelo, GPU ou gasto foi autorizado por essa decisão. |
 
+## Rentabilidade por Cliente (etapa 14)
+
+| ID | Pergunta objetiva | Por que altera a implementação |
+| --- | --- | --- |
+| Q-39 | De qual fonte sai o honorário mensal por empresa? | Sem receita não há margem, e o levantamento do Lucrums (`docs/DESTRAVAR-DADOS.md`) registra que `efservicos` está vazio no próprio escritório e que os campos `PFT_*` do Siescon estão zerados desde 2018. As alternativas são um evento de Honorários a confirmar, lançamento manual por competência ou importação própria; cada uma muda modelo, tela e ingestão. Enquanto estiver aberta, o módulo calcula custo e horas, mas não margem. |
+| Q-40 | Qual cobertura mínima de horas lançadas autoriza apresentar margem como número, e o que a tela deve dizer abaixo disso? | Em 21/09/2026 a cobertura observada era de 11%: 30 de 47 pessoas nunca lançaram hora, o que faz a margem ler alto demais. A fórmula está certa e o dado não está lá. Pela regra de D-98 a D-106, nada pode aparecer silenciosamente incompleto; é preciso definir o limiar e a legenda antes de publicar a tela. |
+| Q-41 | Qual o mínimo mensal, o preço e o peso de token do módulo Rentabilidade? | O catálogo comercial e `TokenModuleRate` exigem valor aprovado. Sem resposta, o módulo entra com `TOKEN_BILLING_ENABLED` desligado e sem linha de preço, como os demais não homologados. |
+| Q-42 | O levantamento Siescon do Lucrums substitui o contrato técnico pedido em Q-33? | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
+| Q-43 | Qual o alvo .NET do conector unificado? | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
+
 ## Donos, etapas e estado das perguntas
 
 Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono e etapa. O responsável pelo projeto responde produto, política, ambiente e autorização; o executor levanta fatos técnicos primeiro. Pedir acesso em meio protegido, nunca conteúdo de credenciais.
@@ -99,6 +109,11 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Infraestrutura: Q-35 | Responsável pelo projeto, após inspeção dos recursos disponíveis | 01, 12, 13 | Aberto |
 | Parcelamentos: Q-36 | Responsável pelo projeto | 08 | Aberto antes de ampliar |
 | Imagem de treinamento: Q-37 | Já decidido | 01, 05, 13 | Resolvido por D-71; não bloqueia o build do runtime |
+| Rentabilidade — receita: Q-39 | Responsável pelo projeto / contador indicado | 14 | Aberto; bloqueia a margem, não o custo |
+| Rentabilidade — cobertura e cópia: Q-40 | Responsável pelo projeto | 14, 11 | Aberto antes de publicar a tela |
+| Rentabilidade — comercial: Q-41 | Responsável pelo projeto | 14, 10 | Aberto; módulo entra sem preço |
+| Rentabilidade — Siescon: Q-42 | Responsável pelo projeto | 04, 14 | Aberto; pode resolver Q-33 |
+| Rentabilidade — conector: Q-43 | Responsável pelo projeto, com levantamento técnico do executor | 03, 14 | Aberto antes de unificar o agente |
 
 Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário para a ação seguinte que não possa ser resolvido por inspeção nem pelas decisões existentes. Atualizar o ID original quando respondido, com referência ao novo registro D.
 | Q-38 | Onde estará o backup Domínio Web `.dom` autorizado para contingência e qual será o canal seguro da chave correspondente? | Etapa 12: D-82 transferiu a homologação do backup para a liberação final. Recomenda-se usar um único backup de teste em pasta temporária e chave por canal seguro; o agente nunca registra nem exibe a chave. |

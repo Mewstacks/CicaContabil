@@ -345,3 +345,66 @@ ativa e vigente para a data do documento ou código já observado no histórico
 local da empresa. A tela deve sugerir esses códigos e recusar código inexistente
 ou de outra empresa. A medida não infere tratamento fiscal, não cria regra,
 lançamento, integração, custo ou homologação.
+
+## D-108 — Lucrums incorporado como módulo Rentabilidade por Cliente
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. O projeto
+Lucrums (`github.com/Mewstacks/ProjetoARD`) deixa de ser sistema vizinho e passa
+a ser o oitavo módulo da CICA, com código `profitability` e rótulo comercial
+"Rentabilidade por Cliente". O corte de origem é o commit `d9d4ebb` de `main`,
+sincronizado localmente em 22/09/2026. O módulo responde quanto cada cliente dá
+de lucro a partir de honorários, horas lançadas e custo do colaborador. A
+incorporação não autoriza publicação, cobrança, homologação fiscal, chamada
+externa nem custo; a etapa 14 conduz o trabalho local.
+
+## D-109 — Carteira única em ClientCompany; Empresa do Lucrums não é portado
+
+Data: 22/09/2026. Origem: executor, por delegação explícita do responsável nesta
+conversa. O Lucrums mantém entidade própria `Empresa`; a CICA já ancora toda
+autorização em `hub.ClientCompany`, filtrada por `CompanyAccessGrant` e por
+`ControlPlaneBinding` em `controlplane.company_queryset_for_membership()`. Uma
+segunda carteira faria as telas de rentabilidade — que expõem honorários e margem
+por cliente — contornar esse filtro, o que é regressão de controle de acesso e
+não apenas duplicação. Portanto `ClientCompany` é a carteira única do hub e o
+módulo acrescenta `profitability.CompanyErpProfile` (relação um-para-um) com os
+campos que o cálculo exige e a carteira não tem: `codi_emp`, sistema de origem,
+papel, regime, índice cego do documento, raiz do documento para dobra de grupo
+econômico, margem-alvo, segmento e responsável. A resolução de identidade usa
+`dominio_code`, depois `external_key`, depois o índice cego, reaproveitando a
+constraint `hub_unique_dominio_company_code`. Não há migração de dados de
+produção: os dois lados estão em validação local.
+
+## D-110 — Telas do módulo em templates Django, sem build de front
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. As telas do
+Lucrums, hoje uma SPA React com Vite e Tailwind, são portadas para templates
+Django no padrão vigente da CICA, estendendo `hub/workspace.html`. A CICA não
+tem build de front, não usa Tailwind nem HTMX e aplica CSP `script-src 'self'`.
+Em consequência, as bibliotecas de gráfico do Lucrums (`recharts`, `apexcharts`)
+não são incorporadas: os gráficos são renderizados no servidor ou escritos como
+script próprio servido de `static/`. Nenhuma dependência de CDN é introduzida.
+
+## D-111 — Conector Windows único, com base no agente da CICA
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. Dois serviços
+.NET lendo o mesmo Domínio por ODBC no servidor do escritório não é aceitável em
+campo. Mantida a D-80, o pacote único continua sendo o `agent-windows` da CICA,
+que absorve do conector do Lucrums o catálogo de consultas fixado por SHA-256, o
+extrator ODBC, o atualizador e a ponte x86 para o driver de 32 bits usado pelo
+Siescon. O alvo de framework tem de ser unificado antes de mover arquivo: a CICA
+está em `net8.0-windows` e o Lucrums em `net10.0-windows`. Esta decisão não
+autoriza instalação real, assinatura de pacote nem homologação, que seguem na
+etapa 12 por D-86.
+
+## D-112 — Camadas de base do Lucrums descartadas na incorporação
+
+Data: 22/09/2026. Origem: executor, verificação local registrada nesta data. Os
+dois backends são forks do mesmo boilerplate `Mewstacks/_DjangoSetup`, conforme
+`_Backend/UPSTREAM.md` do Lucrums. Foi verificado que `OrganizationScopedModel`,
+`EncryptedTextField` e `blind_index` são equivalentes, com a CICA na posição de
+superset endurecido, e que Django, Python, Celery e cryptography estão nas mesmas
+versões. Portanto os apps `common`, `accounts`, `organizations`, `audit` e
+`privacy` do Lucrums não são portados: prevalecem os da CICA. Move-se apenas o
+produto — domínio, cálculo, ingestão e telas. Os índices cegos do Lucrums
+produzem os mesmos valores sob a função da CICA, então o dado atravessa sem
+reindexação.

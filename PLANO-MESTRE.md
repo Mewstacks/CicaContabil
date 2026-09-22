@@ -442,6 +442,29 @@ registrados, nunca presumidos validados.
 
 [Checklist, testes e continuidade da etapa 13](docs/planejamento/etapas/13-ia-local-definitiva.md).
 
+### Etapa 14 — Incorporar Rentabilidade por Cliente (Lucrums)
+
+**Depende de:** 01–03. A ingestão reaproveita o agente da etapa 03; o perfil Siescon depende da 04.
+
+**Entregas**
+
+- Declarar o módulo `profitability` no catálogo, na navegação e no controle de acesso por colaborador.
+- Portar o domínio e o motor de cálculo do Lucrums, mantendo os vetores de `contracts/calculations/v1.json` intactos.
+- Ligar o cálculo à carteira única `ClientCompany` por D-109, sem segunda entidade de empresa.
+- Portar as telas para templates no padrão da CICA por D-110, sem build de front nem biblioteca externa de gráfico.
+- Trazer o catálogo de consultas fixado por hash e o processamento por conjunto de dados para o protocolo de agente vigente.
+- Unificar o conector Windows por D-111, absorvendo extrator, atualizador e ponte x86 no `agent-windows`.
+
+**Pendências / limites:** Q-39 a Q-43. Sem Q-39 o módulo apresenta custo e horas, não margem. Sem Q-40 a margem não vai à tela como número. Q-41 mantém o módulo sem preço, com `TOKEN_BILLING_ENABLED` desligado. Q-42 decide se o perfil Siescon é habilitado. Q-43 precede qualquer mudança no conector. Instalação real, assinatura e piloto permanecem na etapa 12 por D-86.
+
+**Aceite:** Módulo ligado e desligado por escritório com recusa correta; colaborador sem o módulo no escopo recebe recusa; inquilino vizinho não enxerga nada; sessão de suporte somente-leitura não grava; motor de cálculo aprovado contra os vetores do contrato sem alterar um valor; ingestão simulada de ponta a ponta sem Windows; conector único construído pela integração contínua.
+
+**Prompt**
+
+> Execute a etapa 14 conforme D-108 a D-112. Porte o produto do Lucrums, não a sua base: os apps de conta, organização, auditoria e privacidade da CICA prevalecem. Não crie segunda carteira de empresas. Não invente fonte de receita, limiar de cobertura, preço ou aceite do material Siescon — esses são Q-39 a Q-42. Atualize checklist, validações e registro de execução ao terminar.
+
+[Checklist, testes e continuidade da etapa 14](docs/planejamento/etapas/14-rentabilidade.md).
+
 ## 4. Regras de conclusão e continuidade
 
 Todo prompt de etapa deve ser executado com as instruções comuns abaixo:
@@ -455,3 +478,5 @@ Cada entrega deve registrar critérios atendidos e bloqueios, testes proporciona
 ## 5. Próximo trabalho
 
 [04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. A preparação estrutural local e a análise estão registradas em V-029 a V-031 e V-041; o contrato técnico Q-33 continua indispensável para escrever o adaptador, pois não se pode inventar versão, mecanismo de acesso, schema, identificador de empresa ou layout. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. A [análise de 21/09](docs/planejamento/analise-projeto-2026-09-21.md) lista o material mínimo a receber por canal seguro. Sem esse material, a etapa permanece bloqueada, não concluída.
+
+A [etapa 14](docs/planejamento/etapas/14-rentabilidade.md) foi aberta em 22/09/2026 por D-108 e corre em paralelo: o domínio e o motor de cálculo do Lucrums não dependem de nenhuma dúvida aberta e podem avançar antes de Q-39 a Q-43. O que essas dúvidas bloqueiam é específico — margem na tela, preço, perfil Siescon e alvo do conector —, não a incorporação. Q-42 pode ainda resolver Q-33 e destravar a etapa 04, porque o levantamento Siescon já existe do lado do Lucrums.
