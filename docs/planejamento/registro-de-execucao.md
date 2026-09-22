@@ -1069,3 +1069,12 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - Gravar um parâmetro de custo reprojeta todas as competências na hora, senão esta tela e a ficha do cliente passariam a se contradizer até a importação seguinte.
 - D-115 foi ampliada: o módulo ficou fora também da demonstração, não só do cadastro, porque uma demonstração que o abre já o está anunciando. A lista passou a viver em um lugar só.
 - Suíte: 955 aprovados, 3 ignorados. Inspeção visual em navegador, responsividade e leitor de tela seguem pendentes e pertencem à etapa 11.
+
+## 22/09/2026 — Etapa 14, fase 4: conector Windows unificado (V-109)
+
+- Antes de qualquer porte, um achado: o agente Windows **não compilava**. `AgentClient` passava um `Uri` para um parâmetro `string` desde `0ac1038`, e nenhum fluxo de integração contínua construía esse projeto. Corrigido, e os quatro projetos do agente entraram no CI — que é o que teria apanhado isso.
+- O catálogo de consultas fixado por SHA-256 veio do conector do Lucrums e é o que a CICA não tinha: o SQL vivia solto no código-fonte. Agora a nuvem manda o código e o hash, o SQL sai do catálogo incorporado, e divergência derruba o serviço na subida em vez de falhar calado de madrugada.
+- Por D-116 tudo permanece em .NET 8; por D-80 o pacote continua único, com o ERP vindo da configuração em vez de compilado no binário.
+- A ponte ODBC de 32 bits entrou, autorizada por D-117: o Pervasive do Siescon não tem driver de 64 bits. Fala por stdin/stdout, sem rede, e a credencial nunca vai pela linha de comando. A conversão de valores subiu para a biblioteca de contratos, porque na origem havia uma cópia de cada lado da ponte.
+- Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117, e a etapa 04 deixou de estar bloqueada por falta de contrato técnico.
+- 17 testes do agente, 955 na suíte Python. Nada foi executado contra Windows, ODBC ou ERP real.

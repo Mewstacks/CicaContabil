@@ -2,11 +2,11 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento desde 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão em D-108 a D-112. As fases 1, 2 e 3 estão concluídas no nível local: domínio e motor de cálculo em V-105, ingestão e protocolo de agente em V-106, módulo declarado e telas em V-107 e V-108. Falta a unificação do conector Windows (fase 4), que depende de Q-43.
+**Estado:** Em andamento desde 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão em D-108 a D-112. As fases 1, 2 e 3 estão concluídas no nível local (V-105 a V-108) e a fase 4 avançou com o catálogo fixado por hash e a ponte de 32 bits (V-109). Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117; seguem abertas Q-39, Q-40 e Q-41.
 
 **Dependências:** 01–03. A ingestão usa o agente da etapa 03; o perfil Siescon depende da etapa 04 e de Q-42.
 
-**Decisões relacionadas:** D-80, D-86, D-108, D-109, D-110, D-111, D-112, D-113, D-114, D-115.
+**Decisões relacionadas:** D-80, D-86, D-108, D-109, D-110, D-111, D-112, D-113, D-114, D-115, D-116, D-117.
 
 ## O que é o módulo
 
@@ -24,7 +24,7 @@ O custo/hora tem uma única conta, fixada após a auditoria de setembro de 2026 
 - [x] Declarar o módulo: código no `ProductModule.Code`, migração de choices, entrada no catálogo, grupo "Gestão" na navegação e azulejo no painel (V-107). Por D-115 ele fica fora dos módulos padrão do cadastro enquanto Q-39 e Q-41 estiverem abertas.
 - [x] Portar as telas para templates por D-110, com o gráfico de D-113 como SVG próprio (V-107, V-108). Lista de clientes e tela de conectores não foram portadas: a CICA já as tem. Inspeção visual em navegador, responsividade e leitor de tela pertencem à etapa 11.
 - [x] Trazer o catálogo de consultas fixado por SHA-256 e o processamento por conjunto de dados para o protocolo de agente vigente, atrás de sinalizador desligado por padrão (V-106). O preflight por escritório não veio: o indicador de contrato validado segue vindo do manifesto.
-- [ ] Unificar o conector Windows por D-111, depois de resolvido o alvo de framework em Q-43.
+- [-] Unificar o conector Windows por D-111, com o alvo resolvido em D-116 (V-109). Entraram o catálogo fixado por hash, o processador que entrega as consultas e a ponte ODBC de 32 bits do Siescon; faltam o atualizador automático e a revisão do instalador WiX.
 - [-] Portar os testes do Lucrums. Feitos os do cálculo, do domínio, dos serviços e do casador: 65 aprovados, 89% de cobertura no app (V-105). As provas de recusa por módulo desligado, escopo do colaborador e sessão somente-leitura dependem das telas e ficam na fase 2.
 
 ## Bloqueios e responsabilidade
@@ -53,7 +53,7 @@ Provas específicas desta etapa:
 
 Verificação local de 22/09/2026, base das decisões D-108 a D-112: os dois backends são forks do mesmo boilerplate `Mewstacks/_DjangoSetup`, com Django 6.0, Python 3.12, Celery 5.6.3 e cryptography 50.0.0 nas duas árvores; `OrganizationScopedModel`, `EncryptedTextField` e `blind_index` são equivalentes, com a CICA como superset endurecido, o que permite descartar as camadas de base do Lucrums e mover só o produto — cerca de 10.300 linhas de Python, 10.100 de TypeScript a portar para templates e 2.591 de C# a consolidar no agente.
 
-Próximo passo: a fase 4 unifica o conector Windows e depende de Q-43, que escolhe o alvo de framework. Q-40 continua necessária antes de a margem ir à tela como número da carteira inteira, e Q-39 antes de o módulo poder ser oferecido.
+Próximo passo: fechar a fase 4 com o atualizador automático e a revisão do instalador, e escrever o adaptador Siescon da etapa 04, que D-117 destravou. Q-40 continua necessária antes de a margem ir à tela como número da carteira inteira, e Q-39 antes de o módulo poder ser oferecido.
 
 ## Prompt de execução
 

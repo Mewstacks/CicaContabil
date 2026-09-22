@@ -1,5 +1,54 @@
 # CICA — validações e evidências
 
+## V-109 — Conector Windows unificado, com catálogo fixado por hash
+
+Data: 22/09/2026. Ambiente: desenvolvimento local em macOS, com o SDK .NET 10 compilando
+os alvos `net8.0` e `net8.0-windows`. Nenhum Windows, nenhum ODBC, nenhum ERP, nenhuma
+rede e nenhum agente instalado. Escopo: fase 4 da etapa 14, conforme D-80, D-111, D-114,
+D-116 e D-117.
+
+- **Achado anterior ao porte, e o mais importante desta entrega:** o agente Windows **não
+  compilava**. `AgentClient` passava um `Uri` para um parâmetro `string` desde o commit
+  `0ac1038`, e nenhum fluxo de integração contínua construía esse projeto — por isso o erro
+  sobreviveu no ramo principal sem ninguém notar. Corrigido com uma sobrecarga, e os quatro
+  projetos do agente entraram no CI, que é o que teria apanhado isso. `EnableWindowsTargeting`
+  permite compilá-los em Linux; o pacote continua sendo gerado e assinado no Windows.
+- **O que veio do conector do Lucrums:** o catálogo de consultas incorporado no binário e
+  conferido por SHA-256. Até aqui o SQL do agente da CICA vivia solto no código-fonte e
+  nada garantia que a consulta executada na máquina do escritório fosse a que a nuvem
+  espera. Agora a nuvem manda o código do contrato e o hash que espera, o SQL sai do
+  catálogo, e os dois lados conferem antes de executar. Divergência derruba o serviço na
+  subida, com a razão no log, em vez de falhar calado num ciclo noturno.
+- **O catálogo ficou numa biblioteca separada** (`Cica.Agent.Contracts`), sem Windows e sem
+  identificador de runtime, para ser testável em qualquer máquina — inclusive num CI que
+  não seja Windows. O projeto do serviço é autocontido para `win-x64` e não podia ser
+  referenciado por um teste fora do Windows.
+- **Por D-116 tudo permanece em `net8.0-windows`:** `Convert.ToHexStringLower`, que é do
+  .NET 9, virou `ToHexString` com `ToLowerInvariant`.
+- **Por D-80 o pacote continua único:** o ERP vem da configuração em vez de compilado no
+  binário, como o conector de origem fazia com dois instaladores. Instalação antiga sem o
+  campo é do Domínio, que era o único perfil que existia.
+- **A ponte ODBC de 32 bits entrou, autorizada por D-117.** O serviço é x64 e continua
+  sendo; o Pervasive, que o Siescon usa, só publica driver de 32 bits. A ponte fala por
+  entrada e saída padrão, sem rede e sem arquivo temporário, e a credencial nunca vai pela
+  linha de comando. A conversão de valores é a mesma do serviço: na origem havia duas
+  cópias, uma de cada lado da ponte, e duas cópias de uma regra de conversão concordam até
+  alguém corrigir uma delas. Newtonsoft ficou de fora — `System.Text.Json` atende, e uma
+  dependência a menos é uma a menos para acompanhar num binário que roda dentro do cliente.
+- **As checagens de registro de 64 bits passaram a valer só para o perfil Domínio.**
+  Aplicá-las ao Siescon recusaria justamente a instalação que a ponte existe para atender.
+- **Testes:** 17 aprovados em `agent-windows/tests/Cica.Agent.Tests`, cobrindo a carga do
+  catálogo com os contratos reais, o recorte por ERP quando o código da consulta é o mesmo
+  nos dois, a recusa de consulta não validada e de modo fora do contrato, e a conversão de
+  valores, inclusive decimal em máquina com região em português. Os quatro projetos
+  compilam sem erro. A suíte Python seguiu em 955 aprovados.
+- **Limites desta validação:** nada foi executado contra Windows, ODBC, Domínio, Siescon ou
+  agente instalado. A ponte de 32 bits foi compilada, não exercitada — não há Pervasive
+  aqui. O envio de páginas ao servidor foi escrito contra os pontos de entrada validados em
+  V-106, mas não exercitado ponta a ponta com um agente real. Falta ainda o atualizador
+  automático do conector de origem e a revisão do instalador WiX. A instalação real, a
+  assinatura do pacote e o piloto permanecem na etapa 12 por D-86.
+
 ## V-108 — Telas do módulo Rentabilidade portadas para templates
 
 Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
