@@ -1,0 +1,58 @@
+"""Filtros de apresentação do módulo Rentabilidade."""
+
+from __future__ import annotations
+
+from decimal import Decimal, InvalidOperation
+from urllib.parse import urlencode
+
+from django import template
+from django.http import QueryDict
+
+register = template.Library()
+
+
+@register.filter
+def horas(minutos: object) -> str:
+    """Minutos em horas e minutos.
+
+    O fato é gravado em minutos inteiros porque somas em float derivam depois de
+    algumas centenas de milhares de linhas. Quem lê a tela, porém, pensa em horas:
+    `90 min` é aritmética, `1h30` é a jornada.
+    """
+
+    try:
+        total = int(minutos)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        return "—"
+    if total <= 0:
+        return "—"
+    return f"{total // 60}h{total % 60:02d}"
+
+
+@register.filter
+def percentual(valor: object, casas: int = 1) -> str:
+    """Uma fração exibida como percentual.
+
+    Os parâmetros são guardados como fração — 0,3500 — porque é assim que entram
+    na conta. Na tela isso lê como trinta e cinco centésimos de por cento, que é
+    cem vezes menor do que a pessoa configurou.
+    """
+
+    try:
+        numero = Decimal(str(valor)) * 100
+    except (TypeError, ValueError, InvalidOperation):
+        return "—"
+    return f"{numero:.{casas}f}".replace(".", ",") + "%"
+
+
+@register.filter
+def pagina_url(parametros: QueryDict, numero: int) -> str:
+    """Mantém os filtros correntes ao mudar de página.
+
+    Uma paginação que descarta o filtro devolve a pessoa à lista inteira sem
+    avisar, e ela costuma não perceber que mudou de pergunta.
+    """
+
+    itens = {chave: valor for chave, valor in parametros.items() if chave != "page"}
+    itens["page"] = str(numero)
+    return urlencode(itens)

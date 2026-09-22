@@ -108,7 +108,15 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                 "Rentabilidade",
                 "profitability:overview",
                 "Resultado e margem de cada cliente",
-            )
+            ),
+            link(
+                "Colaboradores",
+                "profitability:collaborators",
+                "Horas da equipe e vínculos com o ERP",
+                routes=("collaborator-detail",),
+            ),
+            link("Horas", "profitability:hours", "Conferir horas automáticas e F9"),
+            link("Análises", "profitability:analyses", "A carteira por segmento e regime"),
         ]
         if "profitability" in codes
         else [],
@@ -139,6 +147,14 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     ]
     if membership and membership.role in {"owner", "admin"}:
         settings.append(link("Equipe e acessos", "hub:team", "Pessoas e permissões"))
+    if "profitability" in codes:
+        settings.append(
+            link(
+                "Cálculo da rentabilidade",
+                "profitability:settings",
+                "Encargos, dias úteis e produtividade",
+            )
+        )
     settings.append(link("Primeiros passos", "hub:setup", "Preparar o escritório para operar"))
     group("settings", "Configurações", settings)
     return groups

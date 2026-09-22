@@ -1,0 +1,75 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="collaborator-heading">
+  <div>
+    <p class="section-kicker"><a href="{% url 'profitability:collaborators' %}?competencia={{ competencia|urlencode }}">Colaboradores</a></p>
+    <h2 id="collaborator-heading">{{ colaborador.nome }}</h2>
+    <p>{{ colaborador.get_contratacao_display }}{% if colaborador.cargo %} · {{ colaborador.cargo }}{% endif %}{% if colaborador.codigo %} · {{ colaborador.codigo }}{% endif %}{% if not colaborador.ativo %} · inativo{% endif %}</p>
+  </div>
+  {% include 'profitability/_periodo.html' %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="collaborator-month-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">COMPETÊNCIA {{ competencia }}</p><h2 id="collaborator-month-heading">O mês desta pessoa</h2></div></header>
+  {% if metrica %}
+  <dl class="profitability-totals">
+    <div><dt>Horas automáticas</dt><dd class="tnum">{{ metrica.horas_auto_minutos|horas }}</dd></div>
+    <div><dt>Horas F9</dt><dd class="tnum">{{ metrica.horas_f9_minutos|horas }}</dd></div>
+    <div><dt>Diferença</dt><dd class="tnum">{% if metrica.diferenca_minutos %}{{ metrica.diferenca_minutos|horas }}{% else %}—{% endif %}</dd></div>
+    <div><dt>Empresas atendidas</dt><dd class="tnum">{{ metrica.empresas_count }}</dd></div>
+    {% if is_admin %}<div><dt>Custo das horas</dt><dd class="tnum">{% if metrica.sem_salario %}—{% else %}{{ metrica.custo|floatformat:2 }}{% endif %}</dd></div>{% endif %}
+  </dl>
+  {% if metrica.sem_salario %}<p class="profitability-caveat">Sem salário vigente nesta competência, o custo desta pessoa não é apurado — e as horas dela aparecem como custo incompleto na ficha de cada cliente. Zero não serve de resposta aqui: leria "esta pessoa é de graça".</p>{% endif %}
+  {% else %}
+  <div class="module-clean-empty"><h3>Sem linha nesta competência</h3><p>Esta pessoa não tem métrica calculada para {{ competencia|default:"a competência selecionada" }}.</p></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="collaborator-logins-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">ORIGEM DAS HORAS</p><h2 id="collaborator-logins-heading">Logins do ERP</h2></div></header>
+  {% if logins %}
+  <ul class="profitability-logins">{% for login in logins %}<li><strong>{{ login.i_usuario }}</strong> <span class="profitability-code">{{ login.get_sistema_origem_display }}{% if login.vinculo_manual %} · vínculo manual{% endif %}</span></li>{% endfor %}</ul>
+  {% else %}
+  <p class="profitability-caveat">Nenhum login do ERP aponta para esta pessoa. Enquanto for assim, as horas que ela lança no sistema existem e não geram custo, e a margem dos clientes que ela atende lê mais alta do que é. O vínculo é decidido na <a href="{% url 'profitability:collaborators' %}?competencia={{ competencia|urlencode }}&amp;vinculos=todos">lista de colaboradores</a>.</p>
+  {% endif %}
+</section>
+
+{% if is_admin %}
+<section class="workspace-panel" aria-labelledby="collaborator-cost-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CUSTO</p><h2 id="collaborator-cost-heading">Custo anual e valor-hora</h2><p>Este valor-hora é o mesmo que precifica a carteira inteira: não existe uma segunda conta de custo horário.</p></div></header>
+
+  {% if custo_anual %}
+  <dl class="profitability-totals">
+    <div><dt>Custo anual total</dt><dd class="tnum">{{ custo_anual.custo_anual_total|floatformat:2 }}</dd></div>
+    <div><dt>Valor-hora</dt><dd class="tnum">{{ custo_anual.valor_hora|floatformat:2 }}</dd></div>
+    <div><dt>Valor-hora produtivo</dt><dd class="tnum">{{ custo_anual.valor_hora_produtivo|floatformat:2 }}</dd></div>
+    <div><dt>Horas produtivas no ano</dt><dd class="tnum">{{ custo_anual.horas_produtivas|floatformat:0 }}</dd></div>
+  </dl>
+
+  <table class="profitability-table profitability-breakdown">
+    <caption>Composição do custo anual, a partir de um salário de {{ salario|floatformat:2 }}</caption>
+    <tbody>
+      <tr><th scope="row">Salários e 13º</th><td class="tnum">{{ custo_anual.salarios_anuais|floatformat:2 }}</td><td>Doze salários mais o décimo terceiro</td></tr>
+      <tr><th scope="row">Terço de férias</th><td class="tnum">{{ custo_anual.terco_ferias|floatformat:2 }}</td><td>Terço constitucional</td></tr>
+      <tr><th scope="row">Encargos</th><td class="tnum">{{ custo_anual.encargos_anuais|floatformat:2 }}</td><td>{{ config.encargos_percentual|percentual }} sobre salários e 13º</td></tr>
+      {% if custo_anual.beneficios_anuais %}<tr><th scope="row">Benefícios</th><td class="tnum">{{ custo_anual.beneficios_anuais|floatformat:2 }}</td><td>Parcela mensal × 12</td></tr>{% endif %}
+      {% if custo_anual.vt_empresa_anual %}<tr><th scope="row">Vale-transporte da empresa</th><td class="tnum">{{ custo_anual.vt_empresa_anual|floatformat:2 }}</td><td>Só o que excede 6% do salário: {{ custo_anual.vt_excedente_mensal|floatformat:2 }} por mês</td></tr>{% endif %}
+      {% if custo_anual.outros_custos_anuais %}<tr><th scope="row">Outros custos</th><td class="tnum">{{ custo_anual.outros_custos_anuais|floatformat:2 }}</td><td>Parcela mensal × 12</td></tr>{% endif %}
+      <tr><th scope="row">Dias úteis efetivos</th><td class="tnum">{{ custo_anual.dias_uteis }}</td><td>{{ config.dias_uteis_ano }} do ano, menos {{ config.feriados_dias_ano }} feriados, {{ colaborador.dias_ferias }} de férias, {{ colaborador.folgas_dias }} de folga e {{ colaborador.ausencias_dias }} de ausência</td></tr>
+      <tr><th scope="row">Horas no ano</th><td class="tnum">{{ custo_anual.horas_anuais|floatformat:0 }}</td><td>{{ custo_anual.horas_produtivas|floatformat:0 }} produtivas, pelo índice de {{ config.indice_produtividade|percentual }}</td></tr>
+    </tbody>
+  </table>
+  <p class="profitability-caveat">A capacidade que o modelo espera desta pessoa é de {{ capacidade_mes|floatformat:1 }} horas por mês. É outro divisor: o custo por hora divide pelas horas que ela trabalha, porque a pergunta lá é quanto custa uma hora dela; a ocupação divide pelas produtivas, porque a pergunta aqui é quanto daquele tempo vira trabalho para cliente.</p>
+
+  {% elif colaborador.contratacao == 'pj' %}
+  <p class="profitability-caveat">Prestador PJ não tem custo anual composto: não há décimo terceiro, terço nem encargo numa nota. O custo por hora dele é doze notas divididas pelas horas do ano, e somar as demais parcelas inventaria custo que ninguém paga.</p>
+  {% else %}
+  <p class="profitability-caveat">Sem salário vigente até {{ competencia }}, não há custo anual a compor. A folha chega pela importação do ERP ou é lançada à mão.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

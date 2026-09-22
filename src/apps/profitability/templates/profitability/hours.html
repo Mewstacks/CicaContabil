@@ -1,0 +1,63 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="hours-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="hours-heading">O que o ERP registrou sozinho, contra o que a equipe apontou.</h2>
+  </div>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if not competencia %}Nenhuma competência importada{% elif minutos_diferenca %}Diferença de {{ minutos_diferenca|horas }} entre as fontes{% else %}Fontes conferem nesta competência{% endif %}</span>
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel"><header class="workspace-panel-head"><div><h2>Ainda não há competência</h2><p>Os registros de horas aparecem depois da primeira importação.</p></div></header></section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="hours-summary-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">COMPETÊNCIA {{ competencia }}</p><h2 id="hours-summary-heading">Horas da competência</h2><p>A hora automática é a sessão que o ERP registrou; a F9 é o apontamento manual da equipe. Uma diferença grande costuma ser importação faltando, não trabalho a mais.</p></div>
+    {% include 'profitability/_periodo.html' %}
+  </header>
+
+  <dl class="profitability-totals">
+    <div><dt>Automáticas</dt><dd class="tnum">{{ minutos_auto|horas }}</dd></div>
+    <div><dt>F9</dt><dd class="tnum">{{ minutos_f9|horas }}</dd></div>
+    <div><dt>Diferença</dt><dd class="tnum">{% if minutos_diferenca %}{{ minutos_diferenca|horas }}{% else %}—{% endif %}</dd></div>
+  </dl>
+</section>
+
+<section class="workspace-panel" aria-labelledby="hours-list-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">REGISTROS</p><h2 id="hours-list-heading">Lançamentos da competência</h2><p>Do mais recente para o mais antigo.</p></div>
+    <div class="profitability-segmented" role="group" aria-label="Filtrar registros">
+      {% for valor, rotulo in filtros %}<a class="{% if filtro == valor %}is-current{% endif %}" href="?competencia={{ competencia|urlencode }}&amp;filtro={{ valor }}"{% if filtro == valor %} aria-current="true"{% endif %}>{{ rotulo }}</a>{% endfor %}
+    </div>
+  </header>
+
+  {% if linhas.object_list %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Registros de horas na competência {{ competencia }}</caption>
+    <thead><tr><th scope="col">Data</th><th scope="col">Cliente</th><th scope="col">Colaborador</th><th scope="col">Origem</th><th scope="col" class="tnum">Duração</th><th scope="col">Situação</th></tr></thead>
+    <tbody>
+      {% for registro in linhas %}
+      <tr>
+        <th scope="row"><time datetime="{{ registro.data|date:'c' }}">{{ registro.data|date:'SHORT_DATE_FORMAT' }}</time>{% if registro.inicio %} <span class="profitability-code">{{ registro.inicio|time:'H:i' }}–{{ registro.fim|time:'H:i' }}</span>{% endif %}</th>
+        <td>{{ registro.empresa.name }}</td>
+        <td>{% if registro.colaborador %}{{ registro.colaborador.nome }}{% elif registro.usuario_erp %}<span title="Login sem colaborador: esta hora não gera custo">{{ registro.usuario_erp.i_usuario }} · sem vínculo</span>{% else %}—{% endif %}</td>
+        <td>{{ registro.get_origem_display }}</td>
+        <td class="tnum">{{ registro.duracao_minutos|horas }}</td>
+        <td>{% if registro.status == 'divergente' %}<span class="profitability-band is-atencao">Divergente</span>{% elif registro.status == 'pendente' %}<span class="profitability-band is-sem_dados">Pendente</span>{% else %}<span class="profitability-band">Conferido</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include 'profitability/_paginacao.html' with pagina=linhas %}
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum registro com este filtro</h3><p>Troque o filtro ou a competência para ver outros lançamentos.</p></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

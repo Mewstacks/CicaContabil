@@ -31,6 +31,7 @@ from django.db.models import Q, Sum
 from apps.hub.models import ClientCompany
 from apps.organizations.models import Organization
 from apps.profitability import calc
+from apps.profitability.matching import partes_do_nome, sugerir
 from apps.profitability.models import (
     ClienteCompetenciaMetrics,
     Colaborador,
@@ -42,8 +43,9 @@ from apps.profitability.models import (
     RegistroHoras,
     SalarioColaborador,
     SistemaOrigem,
+    UsuarioErp,
 )
-from apps.profitability.normalize import cnpj_ordem, only_digits
+from apps.profitability.normalize import cnpj_ordem, only_digits, strip_accents_upper
 
 
 def get_config(organization: Organization) -> ProfitabilityConfig:
@@ -844,3 +846,276 @@ def _rebuild_colaborador_metrics(
         organization=organization, competencia=competencia
     ).delete()
     ColaboradorCompetenciaMetrics.objects.bulk_create(linhas, batch_size=500)
+
+
+# ---------------------------------------------------------------------------
+# Consultas de tela. Ficam aqui, e não nas views, porque a carteira e a ficha
+# do cliente respondem às mesmas perguntas sobre recortes diferentes das mesmas
+# horas — e foi exatamente assim que, na origem, o custo por colaborador de um
+# cliente esqueceu que PJ não tem encargo enquanto a carteira cobrava certo.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HorasDoColaborador:
+    """O que a tela de colaboradores mostra por pessoa na competência."""
+
+    colaborador: Colaborador
+    auto_minutos: int
+    f9_minutos: int
+    diferenca_minutos: int
+    empresas: int
+    custo: Decimal
+    custo_hora: Decimal
+    sem_salario: bool
+    divergente: bool
+    f9_pendente: bool
+
+
+def colaboradores_da_competencia(
+    organization: Organization, competencia: str, *, busca: str = ""
+) -> list[HorasDoColaborador]:
+    """Colaboradores com linha de métrica na competência, do mais ocupado ao menos.
+
+    Quem está na competência pertence à competência: um colaborador desligado que
+    trabalhou no mês continua aqui, porque as horas dele entram no custo do cliente
+    e sem a linha as duas telas não fecham.
+    """
+
+    linhas = (
+        ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia
+        )
+        .select_related("colaborador")
+        .order_by("-horas_auto_minutos")
+    )
+    alvo = strip_accents_upper(busca)
+    resultado: list[HorasDoColaborador] = []
+    for linha in linhas:
+        pessoa = linha.colaborador
+        if alvo and alvo not in strip_accents_upper(f"{pessoa.nome} {pessoa.codigo}"):
+            continue
+        resultado.append(
+            HorasDoColaborador(
+                colaborador=pessoa,
+                auto_minutos=linha.horas_auto_minutos,
+                f9_minutos=linha.horas_f9_minutos,
+                diferenca_minutos=linha.diferenca_minutos,
+                empresas=linha.empresas_count,
+                custo=linha.custo,
+                custo_hora=linha.custo_hora,
+                sem_salario=linha.sem_salario,
+                divergente=linha.divergente,
+                f9_pendente=linha.f9_pendente,
+            )
+        )
+    return resultado
+
+
+def capacidade_produtiva_mensal(config: ProfitabilityConfig, colaborador: Colaborador) -> Decimal:
+    """Horas que o modelo espera de uma pessoa num mês.
+
+    Não é o divisor do custo/hora, e a diferença é deliberada: lá a pergunta é
+    quanto custa uma hora dela, e o divisor são as horas que ela trabalha; aqui a
+    pergunta é quanto daquele tempo vira trabalho para cliente, então o índice de
+    produtividade também entra. Ocupação de 100% significa que a pessoa entregou o
+    que o modelo esperava.
+    """
+
+    dias = calc.dias_uteis_efetivos(
+        config.dias_uteis_ano,
+        config.feriados_dias_ano,
+        colaborador.dias_ferias,
+        colaborador.folgas_dias,
+        colaborador.ausencias_dias,
+    )
+    anuais = calc.horas_anuais(dias, config.horas_dia)
+    return calc.horas_produtivas(anuais, config.indice_produtividade) / Decimal(12)
+
+
+@dataclass(frozen=True)
+class VinculoErp:
+    """Um login do ERP e o que se sabe sobre a pessoa por trás dele."""
+
+    usuario: UsuarioErp
+    minutos_sem_custo: int
+    sugestoes: list[Colaborador]
+    estado: str
+
+
+def vinculos_do_erp(organization: Organization, competencia: str) -> list[VinculoErp]:
+    """Os logins do ERP, com as horas que cada um deixa sem custo.
+
+    Ordenados pela maior pendência: sem o vínculo, a hora existe e não gera custo,
+    e a margem do cliente infla — é a maior causa isolada de margem irreal, então a
+    lista precisa pôr no topo quem custa mais caro deixar sem resolver.
+    """
+
+    usuarios = list(
+        UsuarioErp.objects.filter(organization=organization).select_related("colaborador")
+    )
+    if not usuarios:
+        return []
+
+    sem_custo: dict[str, int] = {}
+    for row in (
+        RegistroHoras.objects.filter(
+            organization=organization,
+            competencia=competencia,
+            colaborador__isnull=True,
+            usuario_erp__isnull=False,
+            deleted_at__isnull=True,
+        )
+        .values("usuario_erp_id")
+        .annotate(total=Sum("duracao_minutos"))
+    ):
+        sem_custo[str(row["usuario_erp_id"])] = int(row["total"] or 0)
+
+    candidatos = [
+        (colaborador, partes_do_nome(colaborador.nome))
+        for colaborador in Colaborador.objects.filter(organization=organization, ativo=True)
+    ]
+    pares = [(colaborador.id, partes) for colaborador, partes in candidatos]
+    por_id = {colaborador.id: colaborador for colaborador, _ in candidatos}
+
+    resultado: list[VinculoErp] = []
+    for usuario in usuarios:
+        if usuario.colaborador_id is not None:
+            estado = "manual" if usuario.vinculo_manual else "automatico"
+            sugestoes: list[Colaborador] = []
+        else:
+            achados = sugerir(partes_do_nome(usuario.nome), pares)
+            sugestoes = [por_id[chave] for chave in achados if chave in por_id]
+            estado = "empate" if len(sugestoes) > 1 else "sem_vinculo"
+        resultado.append(
+            VinculoErp(
+                usuario=usuario,
+                minutos_sem_custo=sem_custo.get(str(usuario.id), 0),
+                sugestoes=sugestoes,
+                estado=estado,
+            )
+        )
+    resultado.sort(key=lambda item: (-item.minutos_sem_custo, item.usuario.i_usuario))
+    return resultado
+
+
+@dataclass(frozen=True)
+class GrupoDaCarteira:
+    """Um recorte da carteira — segmento, regime ou responsável — já somado."""
+
+    rotulo: str
+    clientes: int
+    mensalidade: Decimal
+    custo: Decimal
+    resultado: Decimal
+    margem: Decimal
+
+
+def agrupar_carteira(
+    organization: Organization,
+    competencia: str,
+    *,
+    por: str,
+    empresas: Any = None,
+) -> list[GrupoDaCarteira]:
+    """Soma a carteira por segmento, regime ou responsável.
+
+    As três perguntas são a mesma sobre chaves diferentes, e por isso moram numa
+    função só: a margem de um grupo é o resultado dele dividido pela receita dele,
+    e não a média das margens dos clientes — média de margens pesa igual um cliente
+    de mil reais e um de cem mil.
+    """
+
+    metricas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).select_related("empresa")
+    if empresas is not None:
+        metricas = metricas.filter(empresa__in=empresas)
+
+    perfis = {
+        str(perfil.empresa_id): perfil
+        for perfil in CompanyErpProfile.objects.filter(organization=organization)
+        .select_related("segmento", "responsavel")
+        .order_by("-sistema_origem")
+    }
+
+    def chave(empresa_id: str) -> str:
+        perfil = perfis.get(empresa_id)
+        if perfil is None:
+            return "Sem classificação"
+        if por == "segmento":
+            segmento = perfil.segmento
+            return segmento.nome if segmento is not None else "Sem segmento"
+        if por == "responsavel":
+            responsavel = perfil.responsavel
+            return responsavel.nome if responsavel is not None else "Sem responsável"
+        return perfil.regime or "Sem regime"
+
+    acumulado: dict[str, list[Any]] = {}
+    for metrica in metricas:
+        rotulo = chave(str(metrica.empresa_id))
+        linha = acumulado.setdefault(rotulo, [0, Decimal(0), Decimal(0), Decimal(0)])
+        linha[0] += 1
+        linha[1] += metrica.mensalidade
+        linha[2] += metrica.custo
+        linha[3] += metrica.resultado
+
+    grupos = [
+        GrupoDaCarteira(
+            rotulo=rotulo,
+            clientes=int(dados[0]),
+            mensalidade=dados[1],
+            custo=dados[2],
+            resultado=dados[3],
+            margem=calc.margem(dados[3], dados[1]),
+        )
+        for rotulo, dados in acumulado.items()
+    ]
+    grupos.sort(key=lambda grupo: (-grupo.mensalidade, grupo.rotulo))
+    return grupos
+
+
+def evolucao_da_carteira(
+    organization: Organization, competencia: str, *, meses: int = 12, empresas: Any = None
+) -> list[dict[str, Any]]:
+    """Receita, custo e margem das últimas competências, da mais antiga para a atual.
+
+    Devolve a série inteira mesmo com meses vazios: um buraco omitido faria a linha
+    saltar de agosto para outubro como se setembro não tivesse existido.
+    """
+
+    if not competencia:
+        return []
+    chaves: list[str] = []
+    cursor = competencia
+    for _ in range(max(1, meses)):
+        chaves.append(cursor)
+        cursor = competencia_anterior(cursor)
+    chaves.reverse()
+
+    metricas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia__in=chaves
+    )
+    if empresas is not None:
+        metricas = metricas.filter(empresa__in=empresas)
+
+    somas: dict[str, dict[str, Decimal]] = {
+        chave: {"mensalidade": Decimal(0), "custo": Decimal(0), "resultado": Decimal(0)}
+        for chave in chaves
+    }
+    for metrica in metricas.values("competencia", "mensalidade", "custo", "resultado"):
+        alvo = somas[str(metrica["competencia"])]
+        alvo["mensalidade"] += metrica["mensalidade"]
+        alvo["custo"] += metrica["custo"]
+        alvo["resultado"] += metrica["resultado"]
+
+    return [
+        {
+            "competencia": chave,
+            "mensalidade": somas[chave]["mensalidade"],
+            "custo": somas[chave]["custo"],
+            "resultado": somas[chave]["resultado"],
+            "margem": calc.margem(somas[chave]["resultado"], somas[chave]["mensalidade"]),
+        }
+        for chave in chaves
+    ]
