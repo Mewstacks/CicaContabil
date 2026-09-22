@@ -135,9 +135,129 @@
     host.appendChild(svg);
   }
 
+  /* Treemap por divisão em faixas (squarified simplificado).
+   *
+   * O gráfico anterior era de dispersão, uma bolha por cliente — e como o custo
+   * subapurado empurra quase todos para margem alta, as bolhas se empilhavam numa
+   * faixa estreita e nenhuma era legível. Retângulo não sobrepõe: densidade vira
+   * área em vez de borrão.
+   *
+   * O nome é desenhado por cima do retângulo, e só quando cabe: um rótulo maior
+   * que a própria área transborda para os vizinhos e faz a pessoa ler o nome de
+   * um cliente sobre a área de outro.
+   */
+  function drawMapa(host) {
+    var dados = parseSeries(host).filter(function (item) {
+      return item && item.valor > 0;
+    });
+    if (!dados.length) {
+      return;
+    }
+    dados.sort(function (a, b) {
+      return b.valor - a.valor;
+    });
+
+    var largura = 720;
+    var altura = 320;
+    var total = dados.reduce(function (soma, item) {
+      return soma + item.valor;
+    }, 0);
+
+    var svg = el("svg", {
+      viewBox: "0 0 " + largura + " " + altura,
+      width: "100%",
+      "aria-hidden": "true",
+      focusable: "false",
+      class: "profitability-chart-svg",
+    });
+
+    var x = 0;
+    var y = 0;
+    var restanteLargura = largura;
+    var restanteAltura = altura;
+    var indice = 0;
+
+    while (indice < dados.length) {
+      var horizontal = restanteLargura >= restanteAltura;
+      var disponivel = horizontal ? restanteAltura : restanteLargura;
+      var restanteValor = dados.slice(indice).reduce(function (soma, item) {
+        return soma + item.valor;
+      }, 0);
+      if (restanteValor <= 0) {
+        break;
+      }
+
+      // Uma faixa por vez, com quantos itens couberem sem ficarem finos demais
+      // para o nome: retângulo de menos de 14px de lado não recebe rótulo, e uma
+      // faixa inteira deles vira uma listra ilegível.
+      var faixa = [];
+      var faixaValor = 0;
+      while (indice < dados.length) {
+        faixa.push(dados[indice]);
+        faixaValor += dados[indice].valor;
+        indice++;
+        var espessura = (faixaValor / restanteValor) * (horizontal ? restanteLargura : restanteAltura);
+        if (espessura >= 36 || indice >= dados.length) {
+          break;
+        }
+      }
+
+      var espessuraFaixa = (faixaValor / restanteValor) * (horizontal ? restanteLargura : restanteAltura);
+      var deslocamento = 0;
+      for (var i = 0; i < faixa.length; i++) {
+        var item = faixa[i];
+        var proporcao = faixaValor > 0 ? item.valor / faixaValor : 0;
+        var comprimento = proporcao * disponivel;
+        var rx = horizontal ? x : x + deslocamento;
+        var ry = horizontal ? y + deslocamento : y;
+        var rw = horizontal ? espessuraFaixa : comprimento;
+        var rh = horizontal ? comprimento : espessuraFaixa;
+
+        svg.appendChild(
+          el("rect", {
+            x: rx + 1,
+            y: ry + 1,
+            width: Math.max(0, rw - 2),
+            height: Math.max(0, rh - 2),
+            class: "chart-tile is-" + (item.faixa || "sem_dados"),
+          })
+        );
+        if (rw > 70 && rh > 22) {
+          var nome = el("text", {
+            x: rx + 8,
+            y: ry + 18,
+            class: "chart-tile-label",
+          });
+          nome.textContent = String(item.nome || "");
+          svg.appendChild(nome);
+        }
+        deslocamento += comprimento;
+      }
+
+      if (horizontal) {
+        x += espessuraFaixa;
+        restanteLargura -= espessuraFaixa;
+      } else {
+        y += espessuraFaixa;
+        restanteAltura -= espessuraFaixa;
+      }
+      if (restanteLargura <= 1 || restanteAltura <= 1) {
+        break;
+      }
+    }
+
+    host.appendChild(svg);
+    host.setAttribute(
+      "data-total",
+      String(total)
+    );
+  }
+
   function init() {
-    var hosts = document.querySelectorAll('[data-chart="evolucao"]');
-    Array.prototype.forEach.call(hosts, drawEvolucao);
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-chart="evolucao"]'), drawEvolucao);
+    Array.prototype.forEach.call(
+      document.querySelectorAll('[data-chart="mapa"]'), drawMapa);
   }
 
   if (document.readyState === "loading") {

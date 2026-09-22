@@ -388,6 +388,116 @@ class AnalisesTests(ScreenTestCase):
         assert invalido.context["por"] == "segmento"
 
 
+class VisaoGeralTests(ScreenTestCase):
+    def _carteira(self) -> None:
+        from apps.profitability.models import Mensalidade
+
+        pessoa = self._pessoa()
+        self._horas(pessoa, None, 600)
+        Mensalidade.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            competencia="2026-08",
+            valor=D("1500.00"),
+            fonte=Colaborador.Origem.DOMINIO,
+        )
+        recompute_competencia(self.office, COMPETENCIA)
+
+    def test_a_concentracao_de_receita_mostra_a_participacao(self) -> None:
+        """O bloco já ficou mudo por o template ler uma variável que não existia."""
+
+        self._carteira()
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        self.assertContains(resposta, "Concentração de receita")
+        self.assertContains(resposta, "maiores respondem por")
+        self.assertNotContains(resposta, "Sem honorário lançado")
+
+    def test_sem_mes_anterior_calculado_nenhuma_variacao_e_exibida(self) -> None:
+        """Zero afirma que o número ficou parado, o que não é o mesmo que não haver histórico."""
+
+        self._carteira()
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        assert resposta.context["tem_anterior"] is False
+        self.assertNotContains(resposta, "vs. mês anterior")
+
+    def test_com_mes_anterior_a_variacao_aparece_e_a_sem_denominador_nao(self) -> None:
+        """Variação exige denominador: contra zero não existe fração, e a linha some."""
+
+        from apps.profitability.models import Mensalidade
+
+        Competencia.objects.create(
+            organization=self.office,
+            competencia="2026-08",
+            inicio="2026-08-01",
+            fim="2026-08-31",
+        )
+        Mensalidade.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            competencia="2026-07",
+            valor=D("1000.00"),
+            fonte=Colaborador.Origem.DOMINIO,
+        )
+        self._carteira()
+        recompute_competencia(self.office, "2026-08")
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        assert resposta.context["tem_anterior"] is True
+        # Receita saiu de 1.000 para 1.500: há o que comparar.
+        assert resposta.context["variacoes"]["receita"] is not None
+        # O custo do mês anterior é zero, então não há denominador.
+        assert resposta.context["variacoes"]["custo"] is None
+        self.assertContains(resposta, "vs. mês anterior")
+
+    def test_a_margem_do_cabecalho_vem_com_a_media_comparavel_ao_lado(self) -> None:
+        """A agregada inclui quem tem honorário sem hora, e nesses casos lê alto demais."""
+
+        self._carteira()
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        self.assertContains(resposta, "Margem média comparável")
+        self.assertContains(resposta, "lê mais alta do que é")
+
+    def test_quem_nao_lancou_hora_aparece_na_contagem_e_nao_na_lista(self) -> None:
+        """A lista ordenada por ocupação nunca mostra quem tem zero: ele fica em último."""
+
+        self._carteira()
+        Colaborador.objects.create(organization=self.office, codigo="OCI", nome="Pessoa Sem Horas")
+        recompute_competencia(self.office, COMPETENCIA)
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        assert resposta.context["sem_horas"] == 1
+        self.assertContains(resposta, "não lançaram hora nenhuma")
+
+    def test_o_mapa_conta_quem_ficou_de_fora_em_vez_de_esconder(self) -> None:
+        """Ausência de dado não vira retângulo pequeno."""
+
+        self._carteira()
+        sem_dado = ClientCompany.objects.create(
+            organization=self.office, name="Sem Honorário", dominio_code="99"
+        )
+        CompanyErpProfile.objects.create(
+            organization=self.office,
+            empresa=sem_dado,
+            codi_emp=99,
+            documento="99.999.999/0001-99",
+            papel=["cliente"],
+        )
+        recompute_competencia(self.office, COMPETENCIA)
+
+        resposta = self.client.get(reverse("profitability:overview"))
+
+        assert resposta.context["fora_do_mapa"] == 1
+        self.assertContains(resposta, "ficou de fora")
+
+
 class ConfiguracaoTests(ScreenTestCase):
     def test_gravar_um_parametro_reprojeta_as_competencias(self) -> None:
         """Sem isso, esta tela e a ficha do cliente se contradizem até a próxima importação."""

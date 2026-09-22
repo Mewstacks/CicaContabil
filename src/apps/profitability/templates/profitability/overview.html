@@ -1,7 +1,8 @@
 {% extends 'hub/workspace.html' %}
-{% load static %}
+{% load static profitability_extras %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=2">
+<script src="{% static 'profitability/charts.js' %}?v=2" defer></script>{% endblock %}
 
 {% block workspace_content %}
 <section class="module-hero" aria-labelledby="profitability-heading">
@@ -9,7 +10,7 @@
     <p class="section-kicker">{{ office.name }}</p>
     <h2 id="profitability-heading">Quanto cada cliente dá de resultado, pela hora que ele consome.</h2>
   </div>
-  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if not competencia %}Nenhuma competência importada{% elif not connector_ready %}Conexão com o Domínio pendente{% elif cobertura_horas < 100 %}{{ cobertura_horas }}% da carteira com horas lançadas{% else %}Carteira com horas em toda a competência{% endif %}</span>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if not competencia %}Nenhuma competência importada{% elif not connector_ready %}Conexão com o Domínio pendente{% elif totais.sem_dados %}{{ totais.sem_dados }} cliente{{ totais.sem_dados|pluralize }} sem horas no mês{% else %}Carteira com horas em toda a competência{% endif %}</span>
 </section>
 
 {% if not competencia %}
@@ -18,63 +19,159 @@
 </section>
 {% else %}
 
-<section class="workspace-panel" aria-labelledby="profitability-summary-heading">
+{# 1. Indicadores, com a variação contra a competência anterior. #}
+<section class="workspace-panel" aria-labelledby="kpi-heading">
   <header class="workspace-panel-head">
-    <div>
-      <p class="section-kicker">COMPETÊNCIA {{ competencia }}</p>
-      <h2 id="profitability-summary-heading">Resultado da carteira</h2>
-      <p>{{ resumo.clientes }} cliente{{ resumo.clientes|pluralize }} na sua carteira. O resultado é o honorário do mês anterior menos o custo das horas lançadas neste mês.</p>
-    </div>
-    {% if competencias|length > 1 %}
-    <form class="profitability-period" method="get" action="{% url 'profitability:overview' %}">
-      <label for="profitability-competencia">Competência</label>
-      <select id="profitability-competencia" name="competencia" autocomplete="off">{% for item in competencias %}<option value="{{ item }}"{% if item == competencia %} selected{% endif %}>{{ item }}</option>{% endfor %}</select>
-      <button class="button button-secondary" type="submit">Ver</button>
-    </form>
-    {% endif %}
+    <div><p class="section-kicker">COMPETÊNCIA {{ competencia }}</p><h2 id="kpi-heading">Resultado da carteira</h2><p>O honorário é o do mês anterior, porque o escritório fatura em atraso; as horas e o custo são deste mês.</p></div>
+    {% include 'profitability/_periodo.html' %}
   </header>
 
-  <dl class="profitability-totals">
-    <div><dt>Honorários</dt><dd class="tnum">{{ resumo.mensalidade|floatformat:2 }}</dd></div>
-    <div><dt>Custo das horas</dt><dd class="tnum">{{ resumo.custo|floatformat:2 }}</dd></div>
-    <div><dt>Resultado</dt><dd class="tnum {% if resumo.resultado < 0 %}is-negative{% endif %}">{{ resumo.resultado|floatformat:2 }}</dd></div>
+  <dl class="profitability-kpis">
+    {% include 'profitability/_kpi.html' with rotulo="Receita" valor=totais.receita variacao=variacoes.receita sobe_e_bom=True %}
+    {% include 'profitability/_kpi.html' with rotulo="Custo" valor=totais.custo variacao=variacoes.custo sobe_e_bom=False %}
+    {% include 'profitability/_kpi.html' with rotulo="Resultado" valor=totais.resultado variacao=variacoes.resultado sobe_e_bom=True %}
+    <div class="profitability-kpi">
+      <dt>Margem</dt>
+      <dd class="tnum">{% if totais.receita %}{{ totais.margem|percentual }}{% else %}—{% endif %}</dd>
+      {% if tem_anterior and variacoes.margem_pp %}<p class="profitability-delta {% if variacoes.margem_pp > 0 %}is-good{% else %}is-bad{% endif %}">{{ variacoes.margem_pp|pontos }} vs. mês anterior</p>{% endif %}
+    </div>
+    {% include 'profitability/_kpi.html' with rotulo="Ticket médio" valor=totais.ticket_medio variacao=variacoes.ticket sobe_e_bom=True %}
+    <div class="profitability-kpi">
+      <dt>Ocupação da equipe</dt>
+      <dd class="tnum">{% if horas_disponiveis %}{{ ocupacao_geral|percentual }}{% else %}—{% endif %}</dd>
+      <p class="profitability-delta">{{ horas_lancadas|floatformat:0 }} de {{ horas_disponiveis|floatformat:0 }} h previstas</p>
+    </div>
   </dl>
+</section>
 
-  {% if clientes_sem_horas or resumo.incompletos %}
-  <p class="profitability-caveat">
-    {% if clientes_sem_horas %}{{ clientes_sem_horas }} cliente{{ clientes_sem_horas|pluralize }} sem nenhuma hora lançada nesta competência{% if resumo.incompletos %}; {% endif %}{% endif %}{% if resumo.incompletos %}{{ resumo.incompletos }} com custo incompleto{% endif %}.
-    Esses aparecem na lista com a própria situação, e não como margem. Sem hora não há custo apurado, e uma margem calculada sobre custo ausente leria alto por falta de dado, não por rentabilidade.
-  </p>
+{# 2. Evolução da carteira. #}
+<section class="workspace-panel" aria-labelledby="evolucao-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">DOZE COMPETÊNCIAS</p><h2 id="evolucao-heading">Evolução da carteira</h2><p>Receita e custo mês a mês, com a margem por cima. Mês sem dado aparece vazio em vez de ser omitido — um buraco escondido faria a linha saltar como se o mês não tivesse existido.</p></div></header>
+  <div class="profitability-chart" data-chart="evolucao" data-series="{{ evolucao_json }}"></div>
+  <details class="profitability-chart-details">
+    <summary>Ver os números da série</summary>
+    <table class="profitability-table">
+      <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+      <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{{ item.resultado|floatformat:2 }}</td><td class="tnum">{% if item.mensalidade %}{{ item.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+    </table>
+  </details>
+</section>
+
+{# 3. Confiabilidade dos dados. #}
+<section class="workspace-panel" aria-labelledby="confianca-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">ANTES DE DECIDIR</p><h2 id="confianca-heading">Confiabilidade dos dados</h2><p>Estes números dizem quanto do que está acima é apurado e quanto é ausência de dado. Um resultado de setembro calculado com folha de julho não está errado: está velho.</p></div></header>
+  <dl class="profitability-totals">
+    <div><dt>Carteira com custo completo</dt><dd class="tnum">{{ cobertura_custo }}%</dd></div>
+    <div><dt>Custo incompleto</dt><dd class="tnum">{{ totais.incompletos }}</dd></div>
+    <div><dt>Sem horas no mês</dt><dd class="tnum">{{ totais.sem_dados }}</dd></div>
+    <div><dt>Com divergência</dt><dd class="tnum">{{ totais.divergentes }}</dd></div>
+    <div><dt>F9 pendente</dt><dd class="tnum">{{ totais.f9_pendentes }}</dd></div>
+    <div><dt>Colaboradores divergentes</dt><dd class="tnum">{{ totais.colaboradores_divergentes }}</dd></div>
+    <div><dt>Margem média comparável</dt><dd class="tnum">{% if totais.incompletos < totais.clientes %}{{ totais.margem_media|percentual }}{% else %}—{% endif %}</dd></div>
+  </dl>
+  <p class="profitability-caveat">A margem do cabeçalho divide o resultado da carteira pela receita dela, e inclui quem tem honorário sem hora apurada — nesses casos ela lê mais alta do que é. A média comparável acima conta só quem tem custo completo e hora no mês, e é o número a usar quando a cobertura ainda não fechou.</p>
+  {% if datasets %}
+  <table class="profitability-table profitability-freshness">
+    <caption>Última importação concluída de cada contrato{% if ultima_importacao %} · mais recente em {{ ultima_importacao|date:"d/m/Y H:i" }}{% endif %}</caption>
+    <thead><tr><th scope="col">Contrato</th><th scope="col">Sistema</th><th scope="col">Concluída</th><th scope="col" class="tnum">Linhas</th><th scope="col" class="tnum">Rejeitadas</th></tr></thead>
+    <tbody>{% for item in datasets %}<tr><th scope="row">{{ item.dataset }}</th><td>{{ item.sistema }}</td><td>{% if item.concluido_em %}{{ item.concluido_em|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td><td class="tnum">{{ item.linhas }}</td><td class="tnum">{% if item.rejeitadas %}{{ item.rejeitadas }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}
+  <p class="profitability-caveat">Nenhuma importação concluída ainda. Os números acima vêm do que foi lançado à mão.</p>
   {% endif %}
 </section>
 
-<section class="workspace-panel" aria-labelledby="profitability-list-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">POR CLIENTE</p><h2 id="profitability-list-heading">Da menor margem para a maior</h2><p>{{ faixas.negativa }} com margem negativa · {{ faixas.atencao }} em atenção · {{ faixas.saudavel }} saudáve{{ faixas.saudavel|pluralize:"l,is" }} · {{ faixas.incompleta }} com custo incompleto · {{ faixas.sem_dados }} sem dados.</p></div></header>
+{# 4. Mapa da carteira. #}
+<section class="workspace-panel" aria-labelledby="mapa-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">MAPA</p><h2 id="mapa-heading">Onde está a receita, e como ela está indo</h2><p>Um retângulo por cliente: a área é o honorário, a cor é a faixa de margem.{% if fora_do_mapa %} {{ fora_do_mapa }} cliente{{ fora_do_mapa|pluralize }} ficou de fora por não ter honorário ou custo apurados — ausência de dado não vira retângulo pequeno.{% endif %}</p></div></header>
+  {% if mapa %}
+  <div class="profitability-chart" data-chart="mapa" data-series="{{ mapa_json }}"></div>
+  <details class="profitability-chart-details">
+    <summary>Ver os números do mapa</summary>
+    <table class="profitability-table">
+      <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Margem</th><th scope="col">Faixa</th></tr></thead>
+      <tbody>{% for linha in mapa %}<tr><th scope="row">{{ linha.empresa.name }}</th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.margem|percentual }}</td><td>{{ linha.get_faixa_display }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </details>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum cliente com honorário e custo apurados</h3><p>O mapa desenha só quem tem os dois. Sem eles não há área a comparar.</p></div>
+  {% endif %}
+</section>
 
-  {% if linhas.object_list %}
+{# 5. Concentração de receita. #}
+<section class="workspace-panel" aria-labelledby="concentracao-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">RISCO</p><h2 id="concentracao-heading">Concentração de receita</h2><p>{% if maiores %}Os {{ maiores|length }} maiores respondem por {{ participacao_maiores|percentual }} do honorário da carteira. Concentração é risco: uma carteira que depende de poucos perde muito numa conversa só.{% else %}Sem honorário lançado, não há concentração a medir.{% endif %}</p></div></header>
+  {% if maiores %}
+  <table class="profitability-table">
+    <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Participação</th></tr></thead>
+    <tbody>{% for linha in maiores %}<tr><th scope="row"><a href="{% url 'hub:company-detail' linha.empresa_id %}#rentabilidade">{{ linha.empresa.name }}</a></th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.mensalidade|participacao:totais.receita }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+
+{# 6. Rentabilidade por grupo. #}
+<section class="workspace-panel" aria-labelledby="grupos-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">POR RECORTE</p><h2 id="grupos-heading">Rentabilidade por grupo</h2><p>A margem de um grupo é o resultado dele dividido pela receita dele — e não a média das margens dos clientes, que pesaria igual um cliente de mil reais e um de cem mil.</p></div>
+    <div class="profitability-segmented" role="group" aria-label="Agrupar por">
+      {% for valor, rotulo in agrupamentos %}<a class="{% if por == valor %}is-current{% endif %}" href="?competencia={{ competencia|urlencode }}&amp;por={{ valor }}"{% if por == valor %} aria-current="true"{% endif %}>{{ rotulo }}</a>{% endfor %}
+    </div>
+  </header>
+  {% if grupos %}
+  <table class="profitability-table">
+    <thead><tr><th scope="col">Grupo</th><th scope="col" class="tnum">Clientes</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+    <tbody>{% for grupo in grupos %}<tr><th scope="row">{{ grupo.rotulo }}</th><td class="tnum">{{ grupo.clientes }}</td><td class="tnum">{{ grupo.mensalidade|floatformat:2 }}</td><td class="tnum">{{ grupo.custo|floatformat:2 }}</td><td class="tnum {% if grupo.resultado < 0 %}is-negative{% endif %}">{{ grupo.resultado|floatformat:2 }}</td><td class="tnum">{% if grupo.mensalidade %}{{ grupo.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+
+{# 7. Ocupação da equipe. #}
+<section class="workspace-panel" aria-labelledby="ocupacao-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">EQUIPE</p><h2 id="ocupacao-heading">Ocupação</h2><p>Horas lançadas contra a capacidade que o modelo espera de cada pessoa. Cem por cento significa que ela entregou o previsto, não que trabalhou o mês inteiro.</p></div></header>
+  {% if ocupacao %}
+  <table class="profitability-table">
+    <thead><tr><th scope="col">Colaborador</th><th scope="col" class="tnum">Horas</th><th scope="col" class="tnum">Capacidade</th><th scope="col" class="tnum">Ocupação</th></tr></thead>
+    <tbody>{% for item in ocupacao %}<tr><th scope="row"><a href="{% url 'profitability:collaborator-detail' item.colaborador.id %}?competencia={{ competencia|urlencode }}">{{ item.colaborador.nome }}</a></th><td class="tnum">{{ item.minutos|horas }}</td><td class="tnum">{{ item.capacidade_horas|floatformat:0 }} h</td><td class="tnum">{{ item.ocupacao|percentual }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+  {% if sem_horas %}
+  <p class="profitability-caveat profitability-alert"><strong>{{ sem_horas }} de {{ equipe }} pessoas não lançaram hora nenhuma nesta competência.</strong> Elas não aparecem na lista acima, que está ordenada da maior ocupação para a menor — quem tem zero fica em último e nunca entra no corte. Enquanto for assim, as horas delas não geram custo e a margem dos clientes que elas atendem lê mais alta do que é.</p>
+  {% endif %}
+</section>
+
+{# 8. Receita fora da meta. #}
+<section class="workspace-panel" aria-labelledby="reajuste-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">NA MESA</p><h2 id="reajuste-heading">Receita fora da meta</h2><p>{% if reajuste_quantidade %}{{ reajuste_quantidade }} cliente{{ reajuste_quantidade|pluralize }} abaixo da própria margem-alvo, somando {{ reajuste_total|floatformat:2 }} por mês. Só entram clientes com custo completo: custo parcial subestima a diferença, e um número que o operador vai ver mudar é pior que nenhum.{% else %}Nenhum cliente com custo completo está abaixo da margem-alvo.{% endif %}</p></div></header>
+  {% if reajustes %}
+  <table class="profitability-table">
+    <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Sugerido</th><th scope="col" class="tnum">Diferença</th><th scope="col" class="tnum">Margem</th><th scope="col" class="tnum">Meta</th></tr></thead>
+    <tbody>{% for item in reajustes %}<tr><th scope="row"><a href="{% url 'hub:company-detail' item.empresa.id %}#rentabilidade">{{ item.empresa.name }}</a></th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.sugerida|floatformat:2 }}</td><td class="tnum">{{ item.diferenca|floatformat:2 }}</td><td class="tnum">{{ item.margem|percentual }}</td><td class="tnum">{{ item.margem_alvo|percentual }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+
+{# 9. Saúde da carteira e a lista. #}
+<section class="workspace-panel" aria-labelledby="carteira-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">POR CLIENTE</p><h2 id="carteira-heading">Da menor margem para a maior</h2><p>{{ faixas.negativa }} com margem negativa · {{ faixas.atencao }} em atenção · {{ faixas.saudavel }} saudáve{{ faixas.saudavel|pluralize:"l,is" }} · {{ faixas.incompleta }} com custo incompleto · {{ faixas.sem_dados }} sem dados.</p></div></header>
+
+  {% if carteira.object_list %}
   <table class="profitability-table">
     <caption class="visually-hidden">Resultado por cliente na competência {{ competencia }}</caption>
     <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Horas</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Resultado</th><th scope="col">Situação</th></tr></thead>
     <tbody>
-      {% for linha in linhas %}
+      {% for linha in carteira %}
       <tr>
-        <th scope="row">{{ linha.empresa.name }}{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
-        <td class="tnum">{{ linha.horas_auto_minutos|floatformat:0 }} min</td>
-        <td class="tnum">{{ linha.custo|floatformat:2 }}</td>
+        <th scope="row"><a href="{% url 'hub:company-detail' linha.empresa_id %}#rentabilidade">{{ linha.empresa.name }}</a>{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
+        <td class="tnum">{{ linha.horas_auto_minutos|horas }}</td>
+        <td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td>
         <td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td>
-        <td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{{ linha.resultado|floatformat:2 }}</td>
+        <td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td>
         <td><span class="profitability-band is-{{ linha.faixa }}">{% if linha.faixa == 'sem_dados' %}Sem horas no mês{% elif linha.faixa == 'incompleta' %}Custo incompleto{% else %}{{ linha.get_faixa_display }}{% endif %}</span></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  {% if linhas.has_other_pages %}
-  <nav class="profitability-pagination" aria-label="Páginas da carteira">
-    {% if linhas.has_previous %}<a href="?competencia={{ competencia|urlencode }}&amp;page={{ linhas.previous_page_number }}">Anterior</a>{% endif %}
-    <span>Página {{ linhas.number }} de {{ linhas.paginator.num_pages }}</span>
-    {% if linhas.has_next %}<a href="?competencia={{ competencia|urlencode }}&amp;page={{ linhas.next_page_number }}">Próxima</a>{% endif %}
-  </nav>
-  {% endif %}
+  {% include 'profitability/_paginacao.html' with pagina=carteira %}
   {% else %}
   <div class="module-clean-empty"><h3>Nenhum cliente com linha nesta competência</h3><p>Quando a importação trouxer empresas para esta competência, cada uma aparece aqui com o próprio resultado.</p></div>
   {% endif %}

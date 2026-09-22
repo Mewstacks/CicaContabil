@@ -10,13 +10,12 @@ Nada aqui reimplementa autorização — o que decide quem vê o quê continua s
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, cast
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet, Sum
+from django.db.models import Count, Q, QuerySet, Sum
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -46,26 +45,28 @@ from apps.profitability.services import (
     agrupar_carteira,
     capacidade_produtiva_mensal,
     colaboradores_da_competencia,
+    competencia_anterior,
+    concentracao_de_receita,
     evolucao_da_carteira,
+    frescor_das_importacoes,
     get_config,
+    mapa_da_carteira,
+    ocupacao_da_equipe,
+    receita_fora_da_meta,
     recompute_competencia,
     salario_vigente_map,
+    totais_da_carteira,
+    variacao,
     vinculos_do_erp,
 )
 
 PAGINA = 20
 
-
-@dataclass
-class _Resumo:
-    """O agregado que o cabeçalho da tela mostra."""
-
-    clientes: int = 0
-    com_horas: int = 0
-    incompletos: int = 0
-    custo: Decimal = Decimal(0)
-    mensalidade: Decimal = Decimal(0)
-    resultado: Decimal = Decimal(0)
+AGRUPAMENTOS = (
+    ("segmento", "Segmento"),
+    ("regime", "Regime tributário"),
+    ("responsavel", "Responsável"),
+)
 
 
 def _competencias(office: Organization) -> list[str]:
@@ -94,6 +95,13 @@ def _competencia_selecionada(request: HttpRequest, office: Organization) -> str:
 @office_required
 @require_http_methods(["GET"])
 def overview(request: HttpRequest) -> HttpResponse:
+    """O painel executivo da competência.
+
+    Cada bloco responde a uma pergunta de negócio, e não a uma consulta de banco:
+    para onde o número foi, de que dado ele depende, onde a carteira concentra
+    receita, quem da equipe não apareceu, e quanto de reajuste está na mesa.
+    """
+
     context, blocked = _module_page_context(request, definition(ProductModule.Code.PROFITABILITY))
     if blocked:
         return blocked
@@ -102,51 +110,143 @@ def overview(request: HttpRequest) -> HttpResponse:
     # A carteira que o colaborador pode ver, não a do escritório inteiro: é o
     # filtro que a ficha de empresa já aplica, e a margem por cliente não pode
     # escapar dele.
-    empresas_visiveis = cast("QuerySet[ClientCompany]", context["companies"])
+    empresas = cast("QuerySet[ClientCompany]", context["companies"])
     competencia = _competencia_selecionada(request, office)
+    if not competencia:
+        context.update({"competencia": "", "competencias": [], "page_title": "Rentabilidade"})
+        return render(request, "profitability/overview.html", context)
 
-    linhas = (
-        ClienteCompetenciaMetrics.objects.filter(
-            organization=office, competencia=competencia, empresa__in=empresas_visiveis
-        )
-        .select_related("empresa")
-        .order_by("margem", "empresa__name")
-        if competencia
-        else ClienteCompetenciaMetrics.objects.none()
+    config = get_config(office)
+    totais = totais_da_carteira(office, competencia, empresas=empresas)
+    anterior = totais_da_carteira(office, competencia_anterior(competencia), empresas=empresas)
+    evolucao = evolucao_da_carteira(office, competencia, meses=12, empresas=empresas)
+    pessoas, horas_lancadas, horas_disponiveis, sem_horas = ocupacao_da_equipe(
+        office, competencia, config
     )
-
-    # Totais e cobertura sobre a carteira inteira que a pessoa vê, não sobre a
-    # página: somar a página responderia outra pergunta.
-    resumo = _Resumo()
-    faixas: dict[str, int] = {valor: 0 for valor, _ in FaixaMargem.choices}
-    for linha in linhas:
-        resumo.clientes += 1
-        resumo.custo += linha.custo
-        resumo.mensalidade += linha.mensalidade
-        resumo.resultado += linha.resultado
-        if linha.horas_auto_minutos > 0:
-            resumo.com_horas += 1
-        if not linha.custo_completo:
-            resumo.incompletos += 1
-        faixas[linha.faixa] = faixas.get(linha.faixa, 0) + 1
-
-    cobertura = round(resumo.com_horas * 100 / resumo.clientes) if resumo.clientes else 0
-
-    paginator = Paginator(linhas, PAGINA)
-    pagina = paginator.get_page(request.GET.get("page"))
+    reajustes, reajuste_total = receita_fora_da_meta(office, competencia, config, empresas=empresas)
+    maiores, soma_maiores, participacao = concentracao_de_receita(
+        office, competencia, empresas=empresas
+    )
+    mapa, fora_do_mapa = mapa_da_carteira(office, competencia, empresas=empresas)
+    ultima_importacao, datasets = frescor_das_importacoes(office)
+    por_faixa = _contagem_por_faixa(office, competencia, empresas)
+    ocupacao_geral = (horas_lancadas / horas_disponiveis) if horas_disponiveis > 0 else Decimal(0)
 
     context.update(
         {
             "competencia": competencia,
             "competencias": _competencias(office),
-            "linhas": pagina,
-            "resumo": resumo,
-            "faixas": faixas,
-            "cobertura_horas": cobertura,
-            "clientes_sem_horas": resumo.clientes - resumo.com_horas,
+            "totais": totais,
+            # Sem competência anterior a variação é omitida, nunca zerada: zero
+            # afirma que o número ficou parado, o que não é o mesmo que não haver
+            # com o que comparar.
+            "variacoes": {
+                "receita": variacao(totais.receita, anterior.receita),
+                "custo": variacao(totais.custo, anterior.custo),
+                "resultado": variacao(totais.resultado, anterior.resultado),
+                "ticket": variacao(totais.ticket_medio, anterior.ticket_medio),
+                # Margem anda em pontos percentuais, não em porcentagem de si
+                # mesma: "a margem subiu 20%" sobre 5% é ambíguo, "subiu 1 ponto"
+                # não é.
+                "margem_pp": totais.margem - anterior.margem,
+            },
+            "tem_anterior": anterior.clientes > 0,
+            "evolucao": evolucao,
+            "evolucao_json": _serie_json(evolucao),
+            "cobertura_custo": (
+                round((totais.clientes - totais.incompletos) * 100 / totais.clientes)
+                if totais.clientes
+                else 0
+            ),
+            "ultima_importacao": ultima_importacao,
+            "datasets": datasets,
+            "mapa": mapa,
+            "mapa_json": _mapa_json(mapa),
+            "fora_do_mapa": fora_do_mapa,
+            "maiores": maiores,
+            "soma_maiores": soma_maiores,
+            "participacao_maiores": participacao,
+            "grupos": agrupar_carteira(
+                office, competencia, por=_agrupamento(request), empresas=empresas
+            ),
+            "por": _agrupamento(request),
+            "agrupamentos": AGRUPAMENTOS,
+            "ocupacao": pessoas[:12],
+            "ocupacao_geral": ocupacao_geral,
+            "horas_lancadas": horas_lancadas,
+            "horas_disponiveis": horas_disponiveis,
+            "sem_horas": sem_horas,
+            "equipe": len(pessoas),
+            "reajustes": reajustes[:10],
+            "reajuste_total": reajuste_total,
+            "reajuste_quantidade": len(reajustes),
+            "faixas": por_faixa,
+            "carteira": _pagina(
+                request,
+                ClienteCompetenciaMetrics.objects.filter(
+                    organization=office, competencia=competencia, empresa__in=empresas
+                )
+                .select_related("empresa")
+                .order_by("margem", "empresa__name"),
+            ),
+            "page_title": "Rentabilidade",
         }
     )
     return render(request, "profitability/overview.html", context)
+
+
+def _contagem_por_faixa(office: Organization, competencia: str, empresas: Any) -> dict[str, int]:
+    contagem = {valor: 0 for valor, _ in FaixaMargem.choices}
+    for linha in (
+        ClienteCompetenciaMetrics.objects.filter(
+            organization=office, competencia=competencia, empresa__in=empresas
+        )
+        .values("faixa")
+        .annotate(total=Count("id"))
+    ):
+        contagem[str(linha["faixa"])] = int(linha["total"])
+    return contagem
+
+
+def _serie_json(evolucao: list[dict[str, Any]]) -> str:
+    return json.dumps(
+        [
+            {
+                "competencia": item["competencia"],
+                "mensalidade": float(item["mensalidade"]),
+                "custo": float(item["custo"]),
+                "margem": float(item["margem"]),
+            }
+            for item in evolucao
+        ]
+    )
+
+
+def _mapa_json(linhas: list[ClienteCompetenciaMetrics]) -> str:
+    """O mapa da carteira: um retângulo por cliente, área pela receita.
+
+    Área proporcional à receita e cor pela faixa. O gráfico anterior era de
+    dispersão, uma bolha por cliente — e como o custo subapurado empurra quase
+    todos para margem alta, as bolhas se empilhavam numa faixa estreita e nenhuma
+    era legível. Retângulo não sobrepõe: densidade vira área em vez de borrão.
+    """
+
+    return json.dumps(
+        [
+            {
+                "nome": linha.empresa.name,
+                "valor": float(linha.mensalidade),
+                "faixa": linha.faixa,
+                "margem": float(linha.margem),
+            }
+            for linha in linhas
+        ]
+    )
+
+
+def _agrupamento(request: HttpRequest) -> str:
+    pedido = request.GET.get("por", "segmento")
+    return pedido if pedido in {valor for valor, _ in AGRUPAMENTOS} else "segmento"
 
 
 def _e_admin(context: dict[str, Any]) -> bool:

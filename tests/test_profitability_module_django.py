@@ -192,7 +192,11 @@ class ModulePageTests(TestCase):
         resposta = self.client.get(URL)
 
         self.assertContains(resposta, "Sem horas no mês")
-        self.assertContains(resposta, "sem nenhuma hora lançada")
+        # A mesma ausência é dita duas vezes de propósito: na linha do cliente e
+        # no bloco de confiabilidade, que é onde quem lê o cabeçalho descobre
+        # quanto daquele número é apurado.
+        self.assertContains(resposta, "Confiabilidade dos dados")
+        self.assertContains(resposta, "lê mais alta do que é")
 
     def test_sem_competencia_a_tela_diz_que_nao_ha_o_que_calcular(self) -> None:
         self._ligar()

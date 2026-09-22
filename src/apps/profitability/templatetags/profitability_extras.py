@@ -46,6 +46,36 @@ def percentual(valor: object, casas: int = 1) -> str:
 
 
 @register.filter
+def pontos(valor: object) -> str:
+    """Uma diferença de margem lida em pontos percentuais.
+
+    "A margem subiu 20%" sobre uma margem de 5% é ambíguo: pode ser 6% ou 25%.
+    "Subiu 1 ponto" não é.
+    """
+
+    try:
+        numero = Decimal(str(valor)) * 100
+    except (TypeError, ValueError, InvalidOperation):
+        return "—"
+    sinal = "+" if numero > 0 else ""
+    return f"{sinal}{numero:.1f}".replace(".", ",") + " p.p."
+
+
+@register.filter
+def participacao(parte: object, total: object) -> str:
+    """Quanto uma parte pesa no total, em percentual."""
+
+    try:
+        numerador = Decimal(str(parte))
+        denominador = Decimal(str(total))
+    except (TypeError, ValueError, InvalidOperation):
+        return "—"
+    if denominador == 0:
+        return "—"
+    return percentual(numerador / denominador)
+
+
+@register.filter
 def pagina_url(parametros: QueryDict, numero: int) -> str:
     """Mantém os filtros correntes ao mudar de página.
 

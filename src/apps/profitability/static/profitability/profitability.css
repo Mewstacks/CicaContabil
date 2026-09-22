@@ -225,3 +225,57 @@
   font-size: 10px;
   fill: var(--text-muted, #5f635a);
 }
+
+/* Mapa da carteira. As faixas se distinguem por preenchimento além da cor: num
+   mapa de quatro categorias, cor sozinha exclui quem não separa os tons. */
+.chart-tile { stroke: var(--surface, #fcfcf9); stroke-width: 1; }
+.chart-tile.is-saudavel { fill: var(--primary, #5f7a61); }
+.chart-tile.is-atencao { fill: var(--primary, #5f7a61); opacity: 0.55; }
+.chart-tile.is-negativa { fill: var(--danger, #a4303f); }
+.chart-tile.is-incompleta,
+.chart-tile.is-sem_dados { fill: var(--line, #e4e4dc); }
+
+.chart-tile-label {
+  font-size: 11px;
+  fill: var(--surface, #fcfcf9);
+  pointer-events: none;
+}
+
+.chart-tile.is-incompleta + .chart-tile-label,
+.chart-tile.is-sem_dados + .chart-tile-label { fill: var(--ink-2, #5f635a); }
+
+.profitability-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.profitability-kpi { display: flex; flex-direction: column; gap: 0.125rem; }
+.profitability-kpi dt { font-size: 0.8125rem; color: var(--text-muted, #5f635a); }
+.profitability-kpi dd { margin: 0; font-size: 1.375rem; font-weight: 600; }
+
+.profitability-delta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-delta.is-good { color: var(--primary, #5f7a61); }
+.profitability-delta.is-bad { color: var(--danger, #a4303f); }
+
+.profitability-chart-details { margin-top: 0.75rem; }
+.profitability-chart-details summary { cursor: pointer; font-size: 0.875rem; }
+
+.profitability-freshness caption {
+  text-align: left;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-alert {
+  padding: 0.75rem;
+  border-left: 3px solid var(--warning, #b07d2b);
+  background: var(--surface-2, #efeee7);
+}

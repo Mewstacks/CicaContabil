@@ -37,6 +37,8 @@ from apps.profitability.models import (
     Colaborador,
     ColaboradorCompetenciaMetrics,
     CompanyErpProfile,
+    FaixaMargem,
+    IngestRun,
     Mensalidade,
     OrigemHoras,
     ProfitabilityConfig,
@@ -1119,3 +1121,298 @@ def evolucao_da_carteira(
         }
         for chave in chaves
     ]
+
+
+# ---------------------------------------------------------------------------
+# Os agregados da visão geral. Cada um responde a uma pergunta de negócio, e é
+# por isso que não são uma consulta genérica: a tela que a direção abre primeiro
+# não pergunta "quais são as linhas", pergunta "onde está o problema".
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class TotaisDaCarteira:
+    receita: Decimal
+    custo: Decimal
+    resultado: Decimal
+    margem: Decimal
+    margem_media: Decimal
+    ticket_medio: Decimal
+    clientes: int
+    com_receita: int
+    em_atencao: int
+    divergentes: int
+    f9_pendentes: int
+    sem_dados: int
+    incompletos: int
+    colaboradores_divergentes: int
+    minutos_auto: int
+    minutos_f9: int
+
+
+def totais_da_carteira(
+    organization: Organization, competencia: str, *, empresas: Any = None
+) -> TotaisDaCarteira:
+    """O cabeçalho da visão geral, numa consulta só.
+
+    A margem média conta apenas quem tem custo completo e hora apurada. Incluir
+    quem não tem puxaria a média para cima pelo motivo errado: sem custo a margem
+    lê cheia, e a carteira pareceria mais rentável quanto pior fosse o dado.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    )
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    agregados = linhas.aggregate(
+        receita=Sum("mensalidade"),
+        custo=Sum("custo"),
+        auto=Sum("horas_auto_minutos"),
+        f9=Sum("horas_f9_minutos"),
+    )
+    receita = agregados["receita"] or Decimal(0)
+    custo = agregados["custo"] or Decimal(0)
+    resultado = receita - custo
+
+    comparaveis = list(
+        linhas.filter(custo_completo=True)
+        .exclude(faixa=FaixaMargem.SEM_DADOS)
+        .values_list("margem", flat=True)
+    )
+    margem_media = (
+        sum(comparaveis, Decimal(0)) / Decimal(len(comparaveis)) if comparaveis else Decimal(0)
+    )
+    com_receita = linhas.filter(mensalidade__gt=0).count()
+
+    return TotaisDaCarteira(
+        receita=receita,
+        custo=custo,
+        resultado=resultado,
+        margem=calc.margem(resultado, receita),
+        margem_media=margem_media,
+        # Ticket médio sobre quem tem receita, não sobre a carteira inteira:
+        # dividir por quem ainda não tem honorário lançado achataria o valor e
+        # faria o indicador cair quando o que mudou foi a cobertura do dado.
+        ticket_medio=(receita / Decimal(com_receita)) if com_receita else Decimal(0),
+        clientes=linhas.count(),
+        com_receita=com_receita,
+        em_atencao=linhas.filter(faixa__in=(FaixaMargem.ATENCAO, FaixaMargem.NEGATIVA)).count(),
+        divergentes=linhas.filter(tem_divergencia=True).count(),
+        f9_pendentes=linhas.filter(f9_pendente=True).exclude(faixa=FaixaMargem.SEM_DADOS).count(),
+        sem_dados=linhas.filter(faixa=FaixaMargem.SEM_DADOS).count(),
+        incompletos=linhas.filter(custo_completo=False).count(),
+        colaboradores_divergentes=ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia, divergente=True
+        ).count(),
+        minutos_auto=int(agregados["auto"] or 0),
+        minutos_f9=int(agregados["f9"] or 0),
+    )
+
+
+def variacao(atual: Decimal, anterior: Decimal) -> Decimal | None:
+    """Quanto o número andou, em fração. `None` quando não há com o que comparar.
+
+    Sem competência anterior a variação é omitida, nunca zerada: zero afirma que
+    o número ficou parado, o que é diferente de não haver histórico.
+    """
+
+    if anterior == 0:
+        return None
+    return (atual - anterior) / abs(anterior)
+
+
+@dataclass(frozen=True)
+class OcupacaoDaEquipe:
+    colaborador: Colaborador
+    minutos: int
+    capacidade_horas: Decimal
+    ocupacao: Decimal
+
+
+def ocupacao_da_equipe(
+    organization: Organization, competencia: str, config: ProfitabilityConfig
+) -> tuple[list[OcupacaoDaEquipe], Decimal, Decimal, int]:
+    """Horas lançadas contra a capacidade produtiva de cada pessoa.
+
+    Devolve a lista ordenada da maior ocupação para a menor, os totais, e quantas
+    pessoas não lançaram hora nenhuma. Essa contagem final carrega a notícia: a
+    lista ordenada nunca mostra quem não apareceu, porque quem tem zero fica em
+    último e cai fora de qualquer corte — o gráfico era incapaz de mostrar o
+    próprio problema.
+    """
+
+    lancadas = {
+        str(linha["colaborador_id"]): int(linha["horas_auto_minutos"] or 0)
+        for linha in ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia
+        ).values("colaborador_id", "horas_auto_minutos")
+    }
+
+    pessoas: list[OcupacaoDaEquipe] = []
+    total_minutos = 0
+    total_capacidade = Decimal(0)
+    sem_horas = 0
+    for colaborador in Colaborador.objects.filter(organization=organization, ativo=True):
+        capacidade = capacidade_produtiva_mensal(config, colaborador)
+        minutos = lancadas.get(str(colaborador.id), 0)
+        if minutos == 0:
+            sem_horas += 1
+        total_minutos += minutos
+        total_capacidade += capacidade
+        horas_trabalhadas = Decimal(minutos) / Decimal(60)
+        pessoas.append(
+            OcupacaoDaEquipe(
+                colaborador=colaborador,
+                minutos=minutos,
+                capacidade_horas=capacidade,
+                ocupacao=(horas_trabalhadas / capacidade) if capacidade > 0 else Decimal(0),
+            )
+        )
+
+    pessoas.sort(key=lambda item: item.ocupacao, reverse=True)
+    total_horas = Decimal(total_minutos) / Decimal(60)
+    return pessoas, total_horas, total_capacidade, sem_horas
+
+
+@dataclass(frozen=True)
+class ReajusteSugerido:
+    empresa: ClientCompany
+    mensalidade: Decimal
+    sugerida: Decimal
+    diferenca: Decimal
+    margem: Decimal
+    margem_alvo: Decimal
+
+
+def receita_fora_da_meta(
+    organization: Organization,
+    competencia: str,
+    config: ProfitabilityConfig,
+    *,
+    empresas: Any = None,
+) -> tuple[list[ReajusteSugerido], Decimal]:
+    """Quanto faltaria em cada cliente para ele atingir a própria margem-alvo.
+
+    Só entram clientes com custo completo. Custo parcial subestima a diferença, e
+    apresentar um número que o operador vai ver mudar depois é pior do que não
+    apresentar número nenhum.
+    """
+
+    linhas = (
+        ClienteCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia, custo_completo=True
+        )
+        .exclude(faixa=FaixaMargem.SEM_DADOS)
+        .select_related("empresa")
+    )
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    alvos = {
+        str(perfil.empresa_id): perfil.margem_alvo
+        for perfil in CompanyErpProfile.objects.filter(
+            organization=organization, margem_alvo__isnull=False
+        )
+    }
+
+    candidatos: list[ReajusteSugerido] = []
+    total = Decimal(0)
+    for linha in linhas:
+        proprio = alvos.get(str(linha.empresa_id))
+        alvo = (
+            config.margem_alvo_padrao if config.margem_alvo_global or proprio is None else proprio
+        )
+        if linha.margem >= alvo:
+            continue
+        sugerida = calc.mensalidade_sugerida(linha.custo, alvo)
+        diferenca = sugerida - linha.mensalidade
+        if diferenca <= 0:
+            continue
+        total += diferenca
+        candidatos.append(
+            ReajusteSugerido(
+                empresa=linha.empresa,
+                mensalidade=linha.mensalidade,
+                sugerida=sugerida,
+                diferenca=diferenca,
+                margem=linha.margem,
+                margem_alvo=alvo,
+            )
+        )
+
+    candidatos.sort(key=lambda item: item.diferenca, reverse=True)
+    return candidatos, total
+
+
+def frescor_das_importacoes(organization: Organization) -> tuple[Any, list[dict[str, Any]]]:
+    """A última importação concluída de cada contrato, para o leitor pesar o resto.
+
+    Um número de setembro apurado com folha de julho não está errado; está velho,
+    e a diferença só aparece se a tela disser quando cada fonte chegou.
+    """
+
+    vistos: dict[str, dict[str, Any]] = {}
+    for run in IngestRun.objects.filter(
+        organization=organization, status=IngestRun.Status.SUCCEEDED
+    ).order_by("-completed_at"):
+        vistos.setdefault(
+            run.dataset_code,
+            {
+                "dataset": run.dataset_code,
+                "sistema": run.source_system,
+                "concluido_em": run.completed_at,
+                "linhas": run.row_count,
+                "rejeitadas": run.rejected_count,
+            },
+        )
+    datasets = sorted(vistos.values(), key=lambda item: str(item["dataset"]))
+    concluidos = [item["concluido_em"] for item in datasets if item["concluido_em"]]
+    return (max(concluidos) if concluidos else None), datasets
+
+
+def concentracao_de_receita(
+    organization: Organization, competencia: str, *, empresas: Any = None, quantos: int = 5
+) -> tuple[list[ClienteCompetenciaMetrics], Decimal, Decimal]:
+    """Os maiores clientes por receita, e quanto eles pesam no total.
+
+    Concentração é risco: uma carteira em que cinco clientes respondem por metade
+    da receita perde metade dela numa conversa.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia, mensalidade__gt=0
+    ).select_related("empresa")
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    maiores = list(linhas.order_by("-mensalidade")[:quantos])
+    total = linhas.aggregate(total=Sum("mensalidade"))["total"] or Decimal(0)
+    soma = sum((linha.mensalidade for linha in maiores), Decimal(0))
+    participacao = (soma / total) if total > 0 else Decimal(0)
+    return maiores, soma, participacao
+
+
+def mapa_da_carteira(
+    organization: Organization, competencia: str, *, empresas: Any = None
+) -> tuple[list[ClienteCompetenciaMetrics], int]:
+    """Os clientes que podem ocupar área no mapa, e quantos ficaram de fora.
+
+    Entra quem tem honorário e custo apurados. Quem não tem não é um retângulo
+    pequeno: é ausência de dado, e desenhá-lo faria o mapa afirmar uma
+    rentabilidade que ninguém calculou. Os excluídos são contados, não escondidos.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).select_related("empresa")
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    dentro = [
+        linha
+        for linha in linhas.order_by("-mensalidade")
+        if linha.mensalidade > 0 and linha.custo_completo and linha.faixa != FaixaMargem.SEM_DADOS
+    ]
+    return dentro, linhas.count() - len(dentro)
