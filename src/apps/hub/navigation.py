@@ -101,6 +101,19 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
         else [],
     )
     group(
+        "management",
+        "Gestão",
+        [
+            link(
+                "Rentabilidade",
+                "profitability:overview",
+                "Resultado e margem de cada cliente",
+            )
+        ]
+        if "profitability" in codes
+        else [],
+    )
+    group(
         "documents",
         "Documentos",
         [

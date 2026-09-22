@@ -1,0 +1,112 @@
+/* Rentabilidade por Cliente. Segue os tokens do workspace; nada de cor nova. */
+
+.profitability-period {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.profitability-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.profitability-totals div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profitability-totals dt {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-totals dd {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+/* Valores financeiros alinham por dígito: uma coluna de números que dança de
+   largura é difícil de comparar de cima a baixo, que é o que esta tela pede. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.is-negative {
+  color: var(--danger, #a4303f);
+}
+
+.profitability-caveat {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.profitability-table th,
+.profitability-table td {
+  padding: 0.625rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-table td.tnum,
+.profitability-table th.tnum {
+  text-align: right;
+}
+
+.profitability-table tbody th {
+  font-weight: 500;
+}
+
+.profitability-code {
+  display: inline-block;
+  margin-left: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-band {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-band.is-negativa { border-color: var(--danger, #a4303f); }
+.profitability-band.is-atencao { border-color: var(--warning, #b07d2b); }
+
+/* "Sem dados" e "custo incompleto" não são faixas de margem: são ausências de
+   dado, e pintá-las como as demais faria o olho lê-las como resultado. */
+.profitability-band.is-sem_dados,
+.profitability-band.is-incompleta {
+  color: var(--text-muted, #5f635a);
+  border-style: dashed;
+}
+
+.profitability-pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .profitability-table thead { display: none; }
+  .profitability-table tr { display: grid; gap: 0.25rem; padding: 0.75rem 0; border-bottom: 1px solid var(--line, #e4e4dc); }
+  .profitability-table th,
+  .profitability-table td { border: 0; padding: 0; text-align: left; }
+  .profitability-table td.tnum { text-align: left; }
+}

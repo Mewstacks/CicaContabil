@@ -74,6 +74,21 @@ MODULES: dict[str, ModuleDefinition] = {
         required_capabilities=(),
         icon="IA",
     ),
+    ProductModule.Code.PROFITABILITY: ModuleDefinition(
+        code=ProductModule.Code.PROFITABILITY,
+        label="Rentabilidade por Cliente",
+        short_label="Rentabilidade",
+        description=(
+            "Cruze honorários, horas lançadas e custo do colaborador para ver o "
+            "resultado de cada cliente."
+        ),
+        route_name="profitability:overview",
+        # A carteira é o que o módulo precisa da fonte. Cobertura de horas e de
+        # honorários é dado de competência, não capacidade estática da conexão:
+        # a própria tela informa quanto falta, mês a mês.
+        required_capabilities=("companies",),
+        icon="RC",
+    ),
     ProductModule.Code.TRIAGE: ModuleDefinition(
         code=ProductModule.Code.TRIAGE,
         label="Triagem de Arquivos",

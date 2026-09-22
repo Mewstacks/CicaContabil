@@ -1462,6 +1462,29 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "url": f"{reverse('hub:reconciliation')}?status=attention",
             }
         )
+    if ProductModule.Code.PROFITABILITY in enabled_codes:
+        from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
+
+        # Clientes cuja margem já é negativa ou está em atenção: é a fila de quem
+        # precisa de decisão de preço. Custo incompleto e sem dados ficam fora —
+        # aqueles são falta de dado, e misturá-los com prejuízo real inventaria
+        # uma urgência que o número não sustenta.
+        atencao_count = ClienteCompetenciaMetrics.objects.filter(
+            organization=office,
+            empresa__in=scope,
+            competencia__in=Competencia.objects.filter(
+                organization=office, is_atual=True
+            ).values_list("competencia", flat=True),
+            faixa__in=["negativa", "atencao"],
+        ).count()
+        work_areas.append(
+            {
+                "label": "Rentabilidade",
+                "count": atencao_count,
+                "note": "Clientes com margem negativa ou em atenção",
+                "url": reverse("profitability:overview"),
+            }
+        )
     context.update(
         {
             "page_title": "Visão geral",

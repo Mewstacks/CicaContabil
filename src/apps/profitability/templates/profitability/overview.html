@@ -1,0 +1,83 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="profitability-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="profitability-heading">Quanto cada cliente dá de resultado, pela hora que ele consome.</h2>
+  </div>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if not competencia %}Nenhuma competência importada{% elif not connector_ready %}Conexão com o Domínio pendente{% elif cobertura_horas < 100 %}{{ cobertura_horas }}% da carteira com horas lançadas{% else %}Carteira com horas em toda a competência{% endif %}</span>
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel" aria-labelledby="profitability-empty-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">ÁREA DE TRABALHO</p><h2 id="profitability-empty-heading">Ainda não há competência para calcular</h2><p>O resultado por cliente aparece depois que o agente do Domínio trouxer empresas, horas e honorários. Enquanto nada foi importado, esta tela não tem número a mostrar.</p></div></header>
+</section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="profitability-summary-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">COMPETÊNCIA {{ competencia }}</p>
+      <h2 id="profitability-summary-heading">Resultado da carteira</h2>
+      <p>{{ resumo.clientes }} cliente{{ resumo.clientes|pluralize }} na sua carteira. O resultado é o honorário do mês anterior menos o custo das horas lançadas neste mês.</p>
+    </div>
+    {% if competencias|length > 1 %}
+    <form class="profitability-period" method="get" action="{% url 'profitability:overview' %}">
+      <label for="profitability-competencia">Competência</label>
+      <select id="profitability-competencia" name="competencia" autocomplete="off">{% for item in competencias %}<option value="{{ item }}"{% if item == competencia %} selected{% endif %}>{{ item }}</option>{% endfor %}</select>
+      <button class="button button-secondary" type="submit">Ver</button>
+    </form>
+    {% endif %}
+  </header>
+
+  <dl class="profitability-totals">
+    <div><dt>Honorários</dt><dd class="tnum">{{ resumo.mensalidade|floatformat:2 }}</dd></div>
+    <div><dt>Custo das horas</dt><dd class="tnum">{{ resumo.custo|floatformat:2 }}</dd></div>
+    <div><dt>Resultado</dt><dd class="tnum {% if resumo.resultado < 0 %}is-negative{% endif %}">{{ resumo.resultado|floatformat:2 }}</dd></div>
+  </dl>
+
+  {% if clientes_sem_horas or resumo.incompletos %}
+  <p class="profitability-caveat">
+    {% if clientes_sem_horas %}{{ clientes_sem_horas }} cliente{{ clientes_sem_horas|pluralize }} sem nenhuma hora lançada nesta competência{% if resumo.incompletos %}; {% endif %}{% endif %}{% if resumo.incompletos %}{{ resumo.incompletos }} com custo incompleto{% endif %}.
+    Esses aparecem na lista com a própria situação, e não como margem. Sem hora não há custo apurado, e uma margem calculada sobre custo ausente leria alto por falta de dado, não por rentabilidade.
+  </p>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="profitability-list-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">POR CLIENTE</p><h2 id="profitability-list-heading">Da menor margem para a maior</h2><p>{{ faixas.negativa }} com margem negativa · {{ faixas.atencao }} em atenção · {{ faixas.saudavel }} saudáve{{ faixas.saudavel|pluralize:"l,is" }} · {{ faixas.incompleta }} com custo incompleto · {{ faixas.sem_dados }} sem dados.</p></div></header>
+
+  {% if linhas.object_list %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Resultado por cliente na competência {{ competencia }}</caption>
+    <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Horas</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Resultado</th><th scope="col">Situação</th></tr></thead>
+    <tbody>
+      {% for linha in linhas %}
+      <tr>
+        <th scope="row">{{ linha.empresa.name }}{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
+        <td class="tnum">{{ linha.horas_auto_minutos|floatformat:0 }} min</td>
+        <td class="tnum">{{ linha.custo|floatformat:2 }}</td>
+        <td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td>
+        <td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{{ linha.resultado|floatformat:2 }}</td>
+        <td><span class="profitability-band is-{{ linha.faixa }}">{% if linha.faixa == 'sem_dados' %}Sem horas no mês{% elif linha.faixa == 'incompleta' %}Custo incompleto{% else %}{{ linha.get_faixa_display }}{% endif %}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if linhas.has_other_pages %}
+  <nav class="profitability-pagination" aria-label="Páginas da carteira">
+    {% if linhas.has_previous %}<a href="?competencia={{ competencia|urlencode }}&amp;page={{ linhas.previous_page_number }}">Anterior</a>{% endif %}
+    <span>Página {{ linhas.number }} de {{ linhas.paginator.num_pages }}</span>
+    {% if linhas.has_next %}<a href="?competencia={{ competencia|urlencode }}&amp;page={{ linhas.next_page_number }}">Próxima</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum cliente com linha nesta competência</h3><p>Quando a importação trouxer empresas para esta competência, cada uma aparece aqui com o próprio resultado.</p></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
