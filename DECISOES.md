@@ -448,3 +448,31 @@ dúvidas seguirem abertas. A lista vive em um lugar só,
 `module_catalog.self_service_module_codes()`, para as duas superfícies não
 divergirem. O console da plataforma continua podendo habilitá-lo caso a caso, e a
 decisão se reverte assim que as duas dúvidas forem respondidas.
+
+## D-116 — Conector unificado permanece em .NET 8
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa, respondendo
+Q-43. O agente único da CICA continua em `net8.0-windows`. O código absorvido do
+conector do Lucrums, hoje em `net10.0-windows`, é portado para trás em vez de o
+contrário: os servidores de escritório que já receberam o agente não precisam de
+um runtime novo, e a matriz de build não muda. Recurso de linguagem ou biblioteca
+que não exista no alvo é reescrito, não contornado com dependência adicional.
+Q-43 fica resolvida por esta decisão.
+
+## D-117 — Levantamento Siescon do Lucrums aceito como base técnica
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa, respondendo
+Q-42. O material trazido do Lucrums — layouts Btrieve recuperados por perfilamento
+estrutural e os DDFs que habilitam SELECT por ODBC — passa a ser a base técnica do
+adaptador Siescon, no lugar do contrato do fornecedor que Q-33 esperava. Q-33 e
+Q-42 ficam resolvidas por esta decisão, e a etapa 04 deixa de estar bloqueada por
+falta de contrato.
+
+O limite fica registrado junto com a autorização: o layout foi **inferido**, não
+documentado pelo fornecedor. Isso significa que uma atualização do Siescon pode
+mudar a estrutura sem aviso, e que a leitura tem de falhar de forma visível em vez
+de devolver número errado em silêncio. As consultas Siescon entram no catálogo
+fixado por SHA-256 como as demais, e permanecem marcadas como não validadas até
+serem exercitadas contra uma base autorizada. A ponte ODBC de 32 bits entra no
+conector unificado, porque é o que o driver Pervasive exige e o configurador atual
+da CICA só lista DSN de 64 bits.

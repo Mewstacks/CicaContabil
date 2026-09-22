@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>Cica.Agent.Tests</AssemblyName>
+    <!-- O serviço tem alvo .NET 8 por D-116. O teste compila contra o mesmo alvo,
+         mas roda no runtime que a máquina tiver: exigir exatamente o 8 aqui
+         impediria rodar o teste em quem só instalou o mais novo. -->
+    <RollForward>LatestMajor</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Cica.Agent.Contracts/Cica.Agent.Contracts.csproj" />
+  </ItemGroup>
+</Project>

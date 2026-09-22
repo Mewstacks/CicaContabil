@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Cica.Agent.Contracts</AssemblyName>
+    <RootNamespace>Cica.Agent.Service</RootNamespace>
+  </PropertyGroup>
+  <!-- Os contratos de consulta viajam dentro do binário, e é o que permite conferir
+       o hash antes de executar. O caminho é relativo à raiz do repositório: o
+       manifesto que o servidor lê e o que o agente carrega são o mesmo arquivo. -->
+  <ItemGroup>
+    <EmbeddedResource Include="../../../contracts/datasets/manifest.json" LogicalName="Cica.Datasets.manifest.json" />
+    <EmbeddedResource Include="../../../contracts/datasets/*.sql">
+      <LogicalName>Cica.Datasets.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Cica.Agent.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Cica.Agent.Service</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+</Project>

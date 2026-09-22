@@ -69,7 +69,7 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | ID | Pergunta que ainda falta | Alcance |
 |---|---|---|
 | Q-32 | Resolvida por D-80: serviço nativo .NET único para sincronização local, backup Web e arquivamento; Python fica apenas como diagnóstico/migração. | Implementar e homologar na etapa 03; não há SQL remoto nem escrita no Domínio. |
-| Q-33 | Qual versão/banco Siescon, mecanismo de acesso autorizado e documentação/layout de exportação serão disponibilizados? Qual identificador de empresa substitui o código Domínio nos fluxos exclusivos de Siescon? | Etapa 04: banco disponível e leitura/exportação revisada já estão decididos em D-53/D-54. Não pedir segredos no chat. |
+| Q-33 | Qual versão/banco Siescon, mecanismo de acesso autorizado e documentação/layout de exportação serão disponibilizados? Qual identificador de empresa substitui o código Domínio nos fluxos exclusivos de Siescon? | Etapa 04: banco disponível e leitura/exportação revisada já estão decididos em D-53/D-54. Não pedir segredos no chat. **Resolvida em 22/09/2026 por D-117**, com o levantamento do Lucrums como base e o limite de layout inferido. |
 | Q-34 | Quem revisa e aprova exemplos, correções e publicações de modelos de cada escritório? | Etapas 05/13: isolamento já decidido em D-49; métricas em Q-30, egressão em Q-09. |
 | Q-35 | Qual ambiente já disponível recebe o SaaS/IA central e qual equipamento será usado para a IA definitiva? | Etapas 01/12/13: D-46 confirma centralização, mas não escolhe provedor, máquina, GPU ou modelo. Não contratar recursos por inferência. |
 | Q-36 | O recorte inicial de Parcelamentos permanece PARCSN ordinário ou inclui outras modalidades? | Etapa 08: preservar implementação atual até resposta; o plano exige perguntar antes de ampliar modalidades. |
@@ -82,8 +82,8 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-39 | De qual fonte sai o honorário mensal por empresa? | Sem receita não há margem, e o levantamento do Lucrums (`docs/DESTRAVAR-DADOS.md`) registra que `efservicos` está vazio no próprio escritório e que os campos `PFT_*` do Siescon estão zerados desde 2018. As alternativas são um evento de Honorários a confirmar, lançamento manual por competência ou importação própria; cada uma muda modelo, tela e ingestão. Enquanto estiver aberta, o módulo calcula custo e horas, mas não margem. |
 | Q-40 | Qual cobertura mínima de horas lançadas autoriza apresentar margem como número, e o que a tela deve dizer abaixo disso? | Em 21/09/2026 a cobertura observada era de 11%: 30 de 47 pessoas nunca lançaram hora, o que faz a margem ler alto demais. A fórmula está certa e o dado não está lá. Pela regra de D-98 a D-106, nada pode aparecer silenciosamente incompleto; é preciso definir o limiar e a legenda antes de publicar a tela. |
 | Q-41 | Qual o mínimo mensal, o preço e o peso de token do módulo Rentabilidade? | O catálogo comercial e `TokenModuleRate` exigem valor aprovado. Sem resposta, o módulo entra com `TOKEN_BILLING_ENABLED` desligado e sem linha de preço, como os demais não homologados. |
-| Q-42 | O levantamento Siescon do Lucrums substitui o contrato técnico pedido em Q-33? | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
-| Q-43 | Qual o alvo .NET do conector unificado? | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
+| Q-42 | Resolvida em 22/09/2026 por D-117: o levantamento Siescon do Lucrums é aceito como base técnica, com o limite de que o layout foi inferido e não documentado pelo fornecedor. | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
+| Q-43 | Resolvida em 22/09/2026 por D-116: o conector unificado permanece em `net8.0-windows`, e o código do Lucrums é portado para trás. | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
 
 ## Donos, etapas e estado das perguntas
 
@@ -104,7 +104,7 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Suporte, e-mail e termos: Q-29 | Responsável pelo projeto / profissional indicado | 02, 12 | Aberto |
 | Métricas e aceite: Q-30 | Proprietário do projeto | 01, 04–13 | Resolvido por D-72/D-73; exigir evidência da métrica aplicável antes de liberar |
 | Pacote Windows: Q-32 | Já decidido | 03 | Resolvido por D-80; validar implementação e homologação |
-| Contrato Siescon: Q-33 | Responsável pelo projeto / técnico do fornecedor indicado | 04 | Aberto |
+| Contrato Siescon: Q-33 | Já decidido | 04 | Resolvido por D-117, com o limite de layout inferido |
 | Curadoria: Q-34 | Responsável pelo projeto | 05, 13 | Aberto |
 | Infraestrutura: Q-35 | Responsável pelo projeto, após inspeção dos recursos disponíveis | 01, 12, 13 | Aberto |
 | Parcelamentos: Q-36 | Responsável pelo projeto | 08 | Aberto antes de ampliar |
@@ -112,8 +112,8 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Rentabilidade — receita: Q-39 | Responsável pelo projeto / contador indicado | 14 | Aberto; bloqueia a margem, não o custo |
 | Rentabilidade — cobertura e cópia: Q-40 | Responsável pelo projeto | 14, 11 | Aberto antes de publicar a tela |
 | Rentabilidade — comercial: Q-41 | Responsável pelo projeto | 14, 10 | Aberto; módulo entra sem preço |
-| Rentabilidade — Siescon: Q-42 | Responsável pelo projeto | 04, 14 | Aberto; pode resolver Q-33 |
-| Rentabilidade — conector: Q-43 | Responsável pelo projeto, com levantamento técnico do executor | 03, 14 | Aberto antes de unificar o agente |
+| Rentabilidade — Siescon: Q-42 | Já decidido | 04, 14 | Resolvido por D-117; resolve também Q-33 |
+| Rentabilidade — conector: Q-43 | Já decidido | 03, 14 | Resolvido por D-116 |
 
 Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário para a ação seguinte que não possa ser resolvido por inspeção nem pelas decisões existentes. Atualizar o ID original quando respondido, com referência ao novo registro D.
 | Q-38 | Onde estará o backup Domínio Web `.dom` autorizado para contingência e qual será o canal seguro da chave correspondente? | Etapa 12: D-82 transferiu a homologação do backup para a liberação final. Recomenda-se usar um único backup de teste em pasta temporária e chave por canal seguro; o agente nunca registra nem exibe a chave. |

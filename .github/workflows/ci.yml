@@ -10,6 +10,24 @@ permissions:
   contents: read
 
 jobs:
+  # O agente Windows não era construído por nenhum fluxo, e por isso um erro de
+  # compilação em `AgentClient` sobreviveu no ramo principal sem ninguém notar.
+  # A construção roda em Linux: o serviço tem alvo `net8.0-windows` e só compila,
+  # não executa, aqui — o que já basta para o erro aparecer. Os testes ficam na
+  # biblioteca de contratos, que não depende do Windows.
+  agent:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: "8.0.x"
+      - run: dotnet build agent-windows/src/Cica.Agent.Service/Cica.Agent.Service.csproj -c Release
+      - run: dotnet build agent-windows/src/Cica.Agent.Configurator/Cica.Agent.Configurator.csproj -c Release
+      - run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
+
   verify:
     runs-on: ubuntu-24.04
     steps:

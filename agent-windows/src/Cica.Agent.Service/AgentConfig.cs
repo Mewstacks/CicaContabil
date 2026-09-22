@@ -13,8 +13,16 @@ internal sealed record AgentConfig(
     string SqlAnywhereDriver,
     string DatabaseUser,
     string DatabasePassword,
-    string? WindowsArchiveRoot)
+    string? WindowsArchiveRoot,
+    // Qual ERP este conector lê. Por D-80 o pacote é único, então o sistema vem da
+    // configuração e não compilado no binário como fazia o conector de origem.
+    // Instalação antiga não tem o campo, e é do Domínio: era o único perfil que
+    // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
+    string? SourceSystem = null)
 {
+    internal string EffectiveSourceSystem =>
+        string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
+
     internal static readonly string DirectoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "CICA", "Agent");
     internal static readonly string FilePath = Path.Combine(DirectoryPath, "agent.config");
@@ -35,6 +43,17 @@ internal sealed record AgentConfig(
         if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
             || string.IsNullOrWhiteSpace(CertificatePfxBase64))
             throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
+        if (EffectiveSourceSystem is not ("dominio" or "siescon"))
+            throw new InvalidDataException("Sistema de origem desconhecido na configuração.");
+        // O Siescon depende do driver Pervasive, que só existe em 32 bits, e a
+        // ponte isolada que o executaria ainda não faz parte deste pacote. Recusar
+        // agora é melhor que aceitar um DSN que o serviço não conseguiria abrir e
+        // descobrir isso no primeiro ciclo noturno. Autorizado por D-117; o que
+        // falta é a ponte, não a permissão.
+        if (EffectiveSourceSystem == "siescon")
+            throw new InvalidDataException(
+                "O perfil Siescon exige a ponte ODBC de 32 bits, que ainda não faz parte "
+                + "deste pacote.");
         if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegistered64BitDsn(Dsn))
             throw new InvalidDataException(
                 "O DSN configurado não está disponível para o serviço CICA Agent 64 bits.");
