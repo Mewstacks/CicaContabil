@@ -1041,3 +1041,13 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - Por D-109 a carteira continua sendo `hub.ClientCompany` e a `Empresa` do Lucrums não veio: uma segunda entidade faria as telas de rentabilidade contornarem o filtro de `CompanyAccessGrant`, que é regressão de controle de acesso e não duplicação.
 - 65 testes do módulo, 89% de cobertura no app, 863 na suíte inteira sem regressão. Ruff, mypy, `manage.py check` e `makemigrations --check` limpos.
 - Nada de tela, ingestão ou conector ainda. A margem depende de Q-39, que segue aberta: o levantamento de origem não achou fonte de honorários em nenhum dos dois ERPs, então com dado real o módulo apura custo e horas, não rentabilidade.
+
+## 22/09/2026 — Etapa 14, fase 3: ingestão do ERP para Rentabilidade (V-106)
+
+- O catálogo de consultas fixado por SHA-256 veio do Lucrums e é o que o conector da CICA não tinha: contrato divergente não é despachado nem aplicado, e o hash da consulta fica gravado na execução para uma auditoria poder dizer qual SQL gerou um número.
+- Por D-114 a cifra de envelope da origem não veio. O agente já se autentica por mTLS com assinatura do corpo e a CICA já cifra em repouso; um segundo sistema de chaves cobriria trecho já coberto. A página fica cifrada em repouso pelo campo da CICA, com soma conferida antes de aplicar.
+- A ponte de D-109 virou comportamento: a linha do ERP acha a empresa que a carteira já tem antes de cadastrar outra, inclusive a gêmea do outro ERP pelo documento. Só o Domínio escreve `dominio_code`, e escritório que exige esse código recusa empresa só do Siescon em vez de furar a própria regra.
+- Dois defeitos próprios corrigidos com teste: o perfil de ERP era um-para-um, então duas gêmeas não cabiam na mesma empresa; e o `distinct` das métricas não valia por causa da ordenação padrão do modelo.
+- A autenticação do agente não foi reimplementada — as três funções do `agent_v2` ganharam nome público e são importadas, com teste provando que agente revogado também é recusado aqui.
+- `PROFITABILITY_SYNC_ENABLED` nasce desligada: catálogo vazio e nenhuma execução aberta. Suíte: 916 aprovados, 3 ignorados; 86% de cobertura no app.
+- Nada de tela ainda. Nenhum agente real, ODBC, ERP ou rede foi tocado.

@@ -1,5 +1,49 @@
 # CICA — validações e evidências
 
+## V-106 — Ingestão do ERP para Rentabilidade, no protocolo do agente vigente
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória, Celery síncrono). Nenhuma chamada externa, agente real, rede, cobrança ou dado
+de cliente. Escopo: fase 3 da etapa 14, conforme D-108, D-109, D-111 e D-114.
+
+- **O que entrou:** o catálogo de consultas fixado por SHA-256 vindo do Lucrums; o
+  processamento por conjunto de dados, com identidade de linha por hash mais ordinal,
+  reconciliação que marca em vez de apagar e orçamento de rejeição; os modelos de
+  execução e página; e quatro pontos de entrada no protocolo `api/agent/v2` — catálogo,
+  abertura, página e fechamento — mais a declaração de falha pelo agente.
+- **O que não entrou, e por quê (D-114):** a cifra de envelope da origem. O agente da
+  CICA já se autentica por mTLS com assinatura do corpo e a CICA já cifra em repouso com
+  chave rotacionável; um segundo sistema de chaves cobriria um trecho já coberto, ao
+  custo de ser operado, girado e auditado. A página fica cifrada em repouso pelo campo da
+  própria CICA, com soma de verificação do conteúdo em claro conferida antes de aplicar.
+  Também não entrou o preflight por escritório: o indicador de contrato validado continua
+  vindo do manifesto, o que mantém os três contratos ainda não validados fora de despacho.
+- **A ponte de D-109 verificada em comportamento:** a linha do ERP procura a empresa que a
+  carteira já tem — por documento, por `dominio_code` e por fim na gêmea do outro ERP —
+  antes de cadastrar uma nova. Só o Domínio escreve `dominio_code`; o Siescon numera o seu
+  próprio cadastro, e gravar esse número no campo que NFS-e, conciliação e DTE usam para
+  casar empresa faria uma delas achar a empresa errada. Quando o escritório exige código
+  Domínio, uma empresa existente apenas no Siescon é recusada em vez de entrar por um
+  caminho que o formulário não atravessa.
+- **Dois defeitos próprios encontrados e corrigidos, ambos com teste:** o perfil de ERP
+  era relação um-para-um, o que impedia duas gêmeas de apontarem para a mesma empresa; e o
+  `distinct` das métricas não valia, porque a ordenação padrão do modelo entra no SELECT e
+  a distinção passava a ser por empresa e código — duas linhas de métrica para a mesma
+  empresa violam a chave única.
+- **Autenticação:** não foi reimplementada. As três funções do `agent_v2` ganharam nome
+  público e são importadas; há teste provando que um agente revogado deixa de ser aceito
+  também por este caminho.
+- **Desligada por padrão:** `PROFITABILITY_SYNC_ENABLED=false`. Nesse estado o catálogo
+  volta vazio e nenhuma execução é aberta. O conector não é criado sob demanda.
+- **Testes:** 51 aprovados nos dois arquivos novos (`ingest` e `agent`), 118 no módulo,
+  916 na suíte inteira sem regressão, 86% de cobertura no app. `ruff check .` limpo,
+  `mypy src` sem apontamentos no app, `manage.py check` e `makemigrations --check` limpos.
+- **Limites desta validação:** nenhum agente real, nenhum ODBC, nenhum ERP, nenhuma rede.
+  O ciclo foi exercitado com páginas construídas no teste, não lidas do Domínio ou do
+  Siescon. Os três contratos não validados no manifesto seguem fora de despacho, e o perfil
+  Siescon do conector depende de Q-42. Nada de tela ainda: o módulo continua sem aparecer
+  no catálogo e na navegação.
+
 ## V-105 — Motor de cálculo do Lucrums portado e conferido contra o contrato
 
 Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
