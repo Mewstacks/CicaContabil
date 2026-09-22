@@ -28,6 +28,47 @@ Domínio Web `.dom` files are password-protected ZIP-compatible containers. The 
 Anywhere 16/17 ODBC driver. SAP/Thomson Reuters runtime files are proprietary and are deliberately
 não redistribuídos pela CICA.
 
+## Contratos de consulta
+
+Desde a incorporação do módulo Rentabilidade (D-108, D-111), as consultas que o
+agente executa **não vivem mais no código-fonte**. Elas ficam em
+`contracts/datasets/`, na raiz do repositório, com o manifesto que fixa o SHA-256
+de cada uma — o mesmo arquivo que o servidor lê. O manifesto e os arquivos SQL são
+incorporados no binário e conferidos quando o serviço sobe: hash divergente,
+consulta que não começa em `SELECT`, ponto-e-vírgula no meio ou contagem de
+parâmetros diferente da declarada derrubam o serviço com a razão no log, em vez de
+falhar calado num ciclo noturno.
+
+A nuvem manda o **código** do contrato e o hash que espera; o SQL sai do catálogo
+incorporado. Um conector apontado para o Domínio nunca executa consulta do Siescon,
+mesmo que o código exista nos dois — a chave do catálogo carrega o sistema de
+origem, e o sistema vem da configuração do conector.
+
+Alterar uma consulta significa alterar o arquivo em `contracts/datasets/` **e** o
+hash no manifesto. Sem os dois, nem o agente nem o servidor a aceitam.
+
+## Siescon e a ponte de 32 bits
+
+Por D-117, o levantamento Siescon trazido do Lucrums é a base técnica do adaptador.
+O Pervasive, que o Siescon usa, só publica driver ODBC de 32 bits, e um processo
+não carrega driver de outra arquitetura — então o serviço continua x64 e delega a
+leitura a `Cica.Agent.OdbcBridge`, publicada em `odbc-bridge/` dentro da pasta do
+serviço. A ponte fala por entrada e saída padrão, sem rede e sem arquivo
+temporário, e a credencial nunca vai pela linha de comando.
+
+O limite está registrado junto da autorização: o layout foi **inferido** por
+perfilamento estrutural, não documentado pelo fornecedor. Uma atualização do
+Siescon pode mudar a estrutura sem aviso, e por isso a leitura tem de falhar de
+forma visível em vez de devolver número errado em silêncio.
+
+## Atualização
+
+O agente compara a versão instalada com a que o servidor devolve e registra
+`update_available` no diagnóstico. Ele **não baixa, não executa e não instala** MSI
+automaticamente — ver V-022 e D-118. O conector de origem fazia isso; absorver esse
+comportamento reverteria uma escolha já validada, num binário assinado que roda
+dentro do servidor do cliente.
+
 Build the MSI on Windows:
 
 ```powershell

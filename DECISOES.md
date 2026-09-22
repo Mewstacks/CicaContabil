@@ -476,3 +476,15 @@ fixado por SHA-256 como as demais, e permanecem marcadas como não validadas at�
 serem exercitadas contra uma base autorizada. A ponte ODBC de 32 bits entra no
 conector unificado, porque é o que o driver Pervasive exige e o configurador atual
 da CICA só lista DSN de 64 bits.
+
+## D-118 — Atualizador automático do conector de origem não é absorvido
+
+Data: 22/09/2026. Origem: executor, sob D-111 e o registro de V-022. O conector do
+Lucrums baixa e instala a própria atualização. O agente da CICA compara versões,
+registra `update_available` no diagnóstico e para aí: V-022 diz, com todas as
+letras, que ele não baixa, não executa e não instala MSI automaticamente. Absorver
+o atualizador reverteria uma escolha já validada, num binário assinado que roda
+dentro do servidor do cliente — e isso é decisão do responsável, não consequência
+de um porte. Fica registrado como diferença deliberada, e não como pendência: se a
+atualização automática for desejada, ela volta como decisão própria, com a prova
+de rede, assinatura e recuperação que a etapa 12 exige.

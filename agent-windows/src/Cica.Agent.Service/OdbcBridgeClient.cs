@@ -12,8 +12,12 @@ internal sealed class OdbcBridgeClient(AgentConfig config)
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromMinutes(30);
 
+    /// Em subpasta, e não ao lado do serviço, porque os dois são autocontidos e
+    /// de arquiteturas diferentes: publicados na mesma pasta, o runtime x86 da
+    /// ponte sobrescreveria o x64 do serviço, arquivo por arquivo de mesmo nome.
     private static string ExecutablePath => Path.Combine(
         Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory,
+        "odbc-bridge",
         "Cica.Agent.OdbcBridge.exe");
 
     internal async IAsyncEnumerable<Dictionary<string, object?>> ReadAsync(

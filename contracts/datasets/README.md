@@ -9,18 +9,27 @@ real deve confirmar apenas nomes/tipos de colunas, contagens e duplicidade, sem 
 O manifesto está na versão **2**: cada dataset declara `sourceSystem`, e a chave do catálogo é
 `sourceSystem:code` — `dominio:companies` e `siescon:companies` são contratos diferentes, com SQL
 e hash próprios. Quem escolhe a origem é **o conector**, nunca o corpo da requisição: o agente
-grava o sistema na configuração local (e o traz compilado no binário), e o backend lê de
-`Connector.source_system`. Um conector do Domínio não alcança o contrato do Siescon nem quando a
-nuvem manda o código certo.
+grava o sistema na configuração local e o backend o registra na execução. Um conector do Domínio
+não alcança o contrato do Siescon nem quando a nuvem manda o código certo.
+
+Na CICA a origem vem da configuração, e não compilada no binário: por D-80 o pacote é único, e um
+só serviço atende os dois ERPs. O projeto de onde estes contratos vieram publicava um instalador
+por sistema.
 
 As consultas do Siescon devolvem **os mesmos nomes de coluna** das do Domínio de propósito: assim
 o processamento do backend é um código só para os dois ERPs.
 
-Os três contratos do Siescon nascem `validated: false` e assim vão continuar até rodarem de fato:
-eles dependem de DDFs (`FILE.DDF`/`FIELD.DDF`/`INDEX.DDF`) que **ainda não existem** em
-`S:\Dados` — sem eles o Pervasive não aceita `SELECT`. O DDL está em
-[`docs/siescon/layout-v0.sql`](../../docs/siescon/layout-v0.sql) e sua execução depende de
-autorização do escritório; ver [`docs/siescon/o-que-preciso.md`](../../docs/siescon/o-que-preciso.md).
+Estado atual dos quatro contratos do Siescon no manifesto: `companies`, `users` e `salaries` estão
+`validated: true`; `taxation` continua `false` e, por isso, não é despachado. Todos dependem de
+DDFs (`FILE.DDF`/`FIELD.DDF`/`INDEX.DDF`) publicados em `S:\Dados` — sem eles o Pervasive não
+aceita `SELECT`. O DDL está em [`docs/siescon/layout-v0.sql`](../../docs/siescon/layout-v0.sql) e
+sua execução depende de autorização do escritório; o material completo, incluindo o que precisa
+ser pedido ao escritório, está em [`docs/siescon/`](../../docs/siescon/).
+
+O limite que acompanha esses contratos está registrado em D-117: o layout foi **inferido** por
+perfilamento estrutural, não documentado pelo fornecedor. Uma atualização do Siescon pode mudar a
+estrutura sem aviso, e a leitura tem de falhar de forma visível em vez de devolver número errado
+em silêncio.
 
 Diferenças conhecidas dos contratos do Siescon em relação aos do Domínio, todas pendentes de
 confirmação na tela do sistema:
@@ -36,7 +45,7 @@ confirmação na tela do sistema:
   escritório não está no Domínio (a empresa 1 de lá tem zero empregados), então é do Siescon
   que sai o custo/hora do colaborador. Ver `colunas de contexto` abaixo.
 - Horas e honorários continuam sem contrato no Siescon: os módulos `GET_*` e `PFT_*` estão
-  zerados naquela base desde a instalação — ver `docs/ANALISE-SIESCON.md`.
+  zerados naquela base desde a instalação — ver [a análise do Siescon](../../docs/siescon/analise-siescon.md).
 
 ## Colunas de contexto
 

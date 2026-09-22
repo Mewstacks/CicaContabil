@@ -14,6 +14,11 @@ dotnet publish (Join-Path $root 'src\Cica.Agent.Service\Cica.Agent.Service.cspro
   -p:Version=$Version
 dotnet publish (Join-Path $root 'src\Cica.Agent.Configurator\Cica.Agent.Configurator.csproj') -c Release -o $configurator `
   -p:Version=$Version
+# A ponte ODBC vai numa subpasta do serviço. Os dois são autocontidos e de
+# arquiteturas diferentes: na mesma pasta, o runtime x86 da ponte sobrescreveria o
+# x64 do serviço arquivo por arquivo. O instalador recolhe a pasta inteira.
+dotnet publish (Join-Path $root 'src\Cica.Agent.OdbcBridge\Cica.Agent.OdbcBridge.csproj') -c Release `
+  -o (Join-Path $service 'odbc-bridge') -p:Version=$Version
 dotnet build (Join-Path $root 'installer\Cica.Agent.Installer.wixproj') -c Release `
   -p:ServiceDir=$service -p:ConfiguratorDir=$configurator -p:DiagnosticScript=$diagnosticScript `
   -p:InstallerVersion=$Version
