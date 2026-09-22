@@ -1,5 +1,45 @@
 # CICA — validações e evidências
 
+## V-105 — Motor de cálculo do Lucrums portado e conferido contra o contrato
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, cobrança, deploy ou dado de cliente. Escopo: fase 1
+da etapa 14, conforme D-108 a D-112 — domínio, motor e serviços, sem interface e sem
+ingestão.
+
+- **O que foi portado:** `calc.py` e `normalize.py` sem alteração de conta; onze modelos
+  de domínio e métrica; o casador de pessoas; e `recompute_competencia` com os serviços
+  de custo, agrupamento por raiz de CNPJ, deduplicação entre ERPs e códigos de ERP. Cerca
+  de 10.300 linhas de Python existiam na origem; entraram as que compõem essas partes.
+- **O que sustenta a fidelidade:** `contracts/calculations/v1.json` veio junto, com os
+  treze contratos de consulta cujos SHA-256 do manifesto foram conferidos um a um e não
+  divergiram. O teste de cálculo lê cada vetor do contrato e compara valor a valor, sem
+  editar nenhum. Um teste adicional ancora o custo horário vigente em 37,09/h para o
+  exemplo de referência e recusa a conta aposentada pela auditoria de setembro
+  (`salário × 1,40 ÷ 176`, que dá 23,86/h — 37% a menos), inclusive verificando que as
+  constantes não voltaram ao módulo.
+- **Diferenças deliberadas em relação à origem, todas registradas em D-109 e D-112:** a
+  entidade `Empresa` não foi portada e a carteira continua sendo `hub.ClientCompany`, com
+  `CompanyErpProfile` carregando os campos de ERP; a coluna cifrada de razão social não
+  veio, porque `ClientCompany.name` é coluna em claro por desenho anterior da CICA e
+  cifrar aqui deixaria o nome exposto lá do mesmo jeito; as duas colunas aposentadas pela
+  auditoria não foram criadas, já que a tabela nasce vazia; e `last_seen_run` está ausente
+  em todos os modelos porque depende do ciclo de ingestão, que é a fase 3.
+- **Consequência verificada:** a carteira deste módulo são as empresas com perfil de ERP.
+  Empresa cadastrada apenas no hub, sem perfil, não ganha linha de métrica — mesmo destino
+  que a origem dava à empresa sem documento.
+- **Testes:** 65 aprovados nos quatro arquivos `tests/test_profitability_*`, com 89% de
+  cobertura no app (piso de 85%). A suíte inteira ficou em 863 aprovados e 3 ignorados,
+  sem regressão. `ruff check .` limpo no repositório, `mypy src` sem apontamentos no app,
+  `manage.py check` sem problemas e `makemigrations --check --dry-run` sem alterações
+  pendentes.
+- **Limites desta validação:** nada foi executado contra ERP real, agente, rede ou
+  navegador. Não há tela, não há ingestão e o módulo ainda não aparece no catálogo nem na
+  navegação — isso é fase 2. A margem depende de Q-39, que segue aberta: o levantamento de
+  origem não encontrou fonte de honorários em nenhum dos dois ERPs, então com dado real o
+  módulo apura custo e horas, não rentabilidade. Q-40 permanece necessária antes de a
+  margem ir à tela como número.
+
 ## V-104 — Banco de desenvolvimento cifrado com a chave de teste
 
 Data: 22/09/2026. Ambiente: desenvolvimento local do responsável

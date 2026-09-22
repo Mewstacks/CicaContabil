@@ -1032,3 +1032,12 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - A massa fictícia de `db.sqlite3` estava cifrada com `test-v1` (settings de teste) e o desenvolvimento usa `local-v1`: a Visão geral quebrava ao ler NFS-e. `test-v1` entrou no mapa de chaves do `.env` local, com `local-v1` seguindo como ativa; nada foi apagado.
 - `config/settings/local.py` passou a usar `load_dotenv(override=True)`, para que o `.env` vença o ambiente herdado pelo autoreload — a mesma armadilha que escondeu a demonstração em V-103.
 - Verificado em processo novo: chaves carregadas, documento decifrado e `/app/` em 200. Suíte: 798 aprovados, 2 ignorados.
+
+## 22/09/2026 — Etapa 14 aberta e fase 1 do módulo Rentabilidade (V-105)
+
+- O Lucrums (`Mewstacks/ProjetoARD`) deixa de ser sistema vizinho e entra como oitavo módulo, código `profitability`. Os dois repositórios foram sincronizados localmente e o corte de origem é `d9d4ebb`; o branch de instalador do lado do Lucrums já estava mergeado em `main`.
+- A verificação que sustenta o resto: os dois backends são forks do mesmo boilerplate, com Django, Python, Celery e cryptography nas mesmas versões e com `OrganizationScopedModel`, `EncryptedTextField` e `blind_index` equivalentes. Logo a base do Lucrums é descartada e move-se só o produto. D-108 a D-112 registram isso e as quatro decisões de arquitetura; Q-39 a Q-43 ficam abertas.
+- Fase 1 entregue: `contracts/` na raiz com os treze SHA-256 do manifesto conferidos, motor de cálculo e normalização portados sem alterar uma conta, onze modelos de domínio e métrica, casador de pessoas e `recompute_competencia` com custo, agrupamento por raiz de CNPJ e deduplicação entre ERPs.
+- Por D-109 a carteira continua sendo `hub.ClientCompany` e a `Empresa` do Lucrums não veio: uma segunda entidade faria as telas de rentabilidade contornarem o filtro de `CompanyAccessGrant`, que é regressão de controle de acesso e não duplicação.
+- 65 testes do módulo, 89% de cobertura no app, 863 na suíte inteira sem regressão. Ruff, mypy, `manage.py check` e `makemigrations --check` limpos.
+- Nada de tela, ingestão ou conector ainda. A margem depende de Q-39, que segue aberta: o levantamento de origem não achou fonte de honorários em nenhum dos dois ERPs, então com dado real o módulo apura custo e horas, não rentabilidade.

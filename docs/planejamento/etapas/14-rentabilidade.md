@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Iniciada em 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão registradas em D-108 a D-112. Nenhum código de produto foi movido ainda.
+**Estado:** Em andamento desde 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão em D-108 a D-112. A fase 1 — domínio, motor de cálculo e serviços, sem interface e sem ingestão — está concluída no nível local e evidenciada em V-105.
 
 **Dependências:** 01–03. A ingestão usa o agente da etapa 03; o perfil Siescon depende da etapa 04 e de Q-42.
 
@@ -18,14 +18,14 @@ O custo/hora tem uma única conta, fixada após a auditoria de setembro de 2026 
 
 - [x] Sincronizar os dois repositórios localmente e fixar o commit de origem (22/09/2026).
 - [x] Registrar D-108 a D-112 e abrir Q-39 a Q-43 no registro único de dúvidas.
-- [ ] Criar `src/apps/profitability` e portar o domínio: competência, colaborador, usuário do ERP, salário, registro de horas, serviço faturado, evento de faturamento, mensalidade, segmento e configuração do módulo.
-- [ ] Substituir a entidade `Empresa` do Lucrums por `CompanyErpProfile` ligado a `hub.ClientCompany`, conforme D-109, e portar a resolução de identidade por código Domínio, chave externa e índice cego do documento.
-- [ ] Portar o motor de cálculo e os serviços de recomputação sem alterar os vetores do contrato.
+- [x] Criar `src/apps/profitability` e portar o domínio: competência, colaborador, usuário do ERP, salário, registro de horas, serviço faturado, evento de faturamento, mensalidade, segmento e configuração do módulo (V-105).
+- [x] Substituir a entidade `Empresa` do Lucrums por `CompanyErpProfile` ligado a `hub.ClientCompany`, conforme D-109. A resolução de identidade contra a carteira acompanha a ingestão e fica na fase 3; o casamento entre login do ERP e pessoa da folha já foi portado (V-105).
+- [x] Portar o motor de cálculo e os serviços de recomputação sem alterar os vetores do contrato (V-105).
 - [ ] Declarar o módulo: código no `ProductModule.Code`, migração de choices, entrada no catálogo e grupo "Gestão" na navegação.
 - [ ] Portar as telas para templates por D-110: visão geral, colaboradores e detalhe, horas, análises, configuração do módulo e as abas de rentabilidade na ficha de empresa já existente.
 - [ ] Trazer o catálogo de consultas fixado por SHA-256 e o processamento por conjunto de dados para o protocolo de agente vigente, atrás de sinalizador desligado por padrão.
 - [ ] Unificar o conector Windows por D-111, depois de resolvido o alvo de framework em Q-43.
-- [ ] Portar os testes do Lucrums, a começar pelo que lê os vetores do contrato, e cobrir recusa por módulo desligado, escopo do colaborador, isolamento entre inquilinos e sessão somente-leitura.
+- [-] Portar os testes do Lucrums. Feitos os do cálculo, do domínio, dos serviços e do casador: 65 aprovados, 89% de cobertura no app (V-105). As provas de recusa por módulo desligado, escopo do colaborador e sessão somente-leitura dependem das telas e ficam na fase 2.
 
 ## Bloqueios e responsabilidade
 
@@ -53,7 +53,7 @@ Provas específicas desta etapa:
 
 Verificação local de 22/09/2026, base das decisões D-108 a D-112: os dois backends são forks do mesmo boilerplate `Mewstacks/_DjangoSetup`, com Django 6.0, Python 3.12, Celery 5.6.3 e cryptography 50.0.0 nas duas árvores; `OrganizationScopedModel`, `EncryptedTextField` e `blind_index` são equivalentes, com a CICA como superset endurecido, o que permite descartar as camadas de base do Lucrums e mover só o produto — cerca de 10.300 linhas de Python, 10.100 de TypeScript a portar para templates e 2.591 de C# a consolidar no agente.
 
-Próximo passo: responder Q-43 e iniciar o domínio e o motor de cálculo, que não dependem de nenhuma das dúvidas abertas.
+Próximo passo: a fase 2 declara o módulo e porta as telas. Duas coisas precedem o código dela. A primeira é decidir como os gráficos são desenhados: a CICA não tem build de front, não usa Tailwind nem HTMX e aplica CSP `script-src 'self'`, então `recharts` e `apexcharts` não atravessam — ou se renderiza SVG no servidor, ou se escreve script próprio servido de `static/`. A segunda é Q-40, que define o que a tela pode afirmar enquanto a cobertura de horas for baixa. A fase 3, de ingestão, não depende de nenhuma das duas e pode correr em paralelo; ela também é onde entra a resolução de identidade da empresa contra a carteira.
 
 ## Prompt de execução
 
