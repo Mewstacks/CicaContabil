@@ -1,5 +1,43 @@
 # CICA — validações e evidências
 
+## V-107 — Módulo Rentabilidade declarado e visão geral da carteira
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, agente, cobrança ou dado de cliente. Escopo: primeira
+parte da fase 2 da etapa 14, conforme D-108, D-109, D-110 e D-115.
+
+- **Declaração:** código `profitability` no catálogo de módulos, migração de escolhas,
+  entrada em `module_catalog` apontando para `profitability:overview`, grupo "Gestão" na
+  navegação e azulejo no painel com os clientes de margem negativa ou em atenção. A rota
+  foi conferida por `reverse`, porque entrada de catálogo com rota que não reverte quebra
+  a navegação inteira.
+- **Tela:** visão geral por competência, com totais de honorário, custo e resultado da
+  carteira e a lista da menor margem para a maior, paginada de 20 em 20.
+- **O fecho de D-109 do lado da interface:** a tela lê `context["companies"]`, que é a
+  carteira filtrada por `CompanyAccessGrant`, e não a do escritório. Há teste provando que
+  um colaborador com acesso a uma empresa vê só a linha dela, e que o inquilino vizinho não
+  aparece. Era exatamente isso que a decisão de não criar uma segunda entidade de empresa
+  preservou.
+- **Falta de dado não vira margem:** cliente sem hora no mês aparece como "Sem horas no
+  mês", não como margem cheia, e o cabeçalho diz quantos estão nessa situação. Na lista,
+  "sem dados" e "custo incompleto" usam borda tracejada em vez da cor das faixas, para não
+  serem lidos como resultado. Isso atende a regra de D-98 a D-106 no que já é possível sem
+  Q-40, que segue necessária para o limiar de cobertura da carteira como um todo.
+- **Por D-115 o módulo fica fora dos módulos padrão do cadastro** enquanto Q-39 e Q-41
+  estiverem abertas. O teste de cadastro existente continua passando sem alteração.
+- **Restrições respeitadas:** nenhuma dependência de front foi introduzida — sem build,
+  sem Tailwind, sem HTMX, sem CDN e sem script inline, conforme D-110 e a CSP vigente. O
+  CSS do módulo usa os tokens do workspace.
+- **Testes:** 12 aprovados em `tests/test_profitability_module_django.py`, cobrindo módulo
+  desligado, colaborador fora do escopo, escopo de carteira, isolamento entre inquilinos,
+  acesso anônimo e a navegação. Suíte inteira em 928 aprovados e 3 ignorados, sem
+  regressão. `ruff check .`, `mypy src`, `manage.py check` e `makemigrations --check`
+  limpos.
+- **Limites desta validação:** a tela foi renderizada em teste com massa fictícia, não em
+  navegador contra ambiente real. Faltam as demais telas da fase 2 — ficha do cliente,
+  colaboradores, horas, análises e configuração do módulo — e os gráficos de D-113. A
+  margem exibida continua dependendo de Q-39 para ter honorário de verdade.
+
 ## V-106 — Ingestão do ERP para Rentabilidade, no protocolo do agente vigente
 
 Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em

@@ -1051,3 +1051,11 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - A autenticação do agente não foi reimplementada — as três funções do `agent_v2` ganharam nome público e são importadas, com teste provando que agente revogado também é recusado aqui.
 - `PROFITABILITY_SYNC_ENABLED` nasce desligada: catálogo vazio e nenhuma execução aberta. Suíte: 916 aprovados, 3 ignorados; 86% de cobertura no app.
 - Nada de tela ainda. Nenhum agente real, ODBC, ERP ou rede foi tocado.
+
+## 22/09/2026 — Etapa 14: módulo Rentabilidade declarado e visível (V-107)
+
+- Os quatro pontos de declaração estão feitos — código, migração, catálogo e o grupo "Gestão" na navegação —, mais o azulejo do painel com os clientes de margem negativa ou em atenção. A visão geral mostra totais da competência e a carteira da menor margem para a maior.
+- A tela lê a carteira filtrada por `CompanyAccessGrant`, não a do escritório: é o fecho de D-109 do lado da interface, com teste provando que a margem por cliente não escapa do filtro nem atravessa inquilinos.
+- Falta de dado não vira margem: cliente sem hora aparece como "Sem horas no mês" e as situações de ausência usam borda tracejada em vez da cor das faixas. Q-40 continua necessária para o limiar de cobertura da carteira inteira.
+- Por D-115 o módulo fica fora dos módulos padrão do cadastro enquanto Q-39 e Q-41 estiverem abertas: ligá-lo no teste gratuito daria a todo escritório novo uma tela sem como responder o que promete.
+- Nenhuma dependência de front foi introduzida — sem build, Tailwind, HTMX, CDN ou script inline. Suíte: 928 aprovados, 3 ignorados.

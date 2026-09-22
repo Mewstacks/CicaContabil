@@ -2,11 +2,11 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento desde 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão em D-108 a D-112. As fases 1 e 3 estão concluídas no nível local: domínio e motor de cálculo em V-105, ingestão e protocolo de agente em V-106. Faltam as telas (fase 2) e a unificação do conector Windows (fase 4).
+**Estado:** Em andamento desde 22/09/2026. Os dois repositórios foram sincronizados localmente e o corte de origem é o commit `d9d4ebb` de `Mewstacks/ProjetoARD@main`. As decisões de incorporação estão em D-108 a D-112. As fases 1 e 3 estão concluídas no nível local: domínio e motor de cálculo em V-105, ingestão e protocolo de agente em V-106. O módulo já está declarado e com a visão geral no ar (V-107). Faltam as demais telas da fase 2 e a unificação do conector Windows (fase 4).
 
 **Dependências:** 01–03. A ingestão usa o agente da etapa 03; o perfil Siescon depende da etapa 04 e de Q-42.
 
-**Decisões relacionadas:** D-80, D-86, D-108, D-109, D-110, D-111, D-112, D-113, D-114.
+**Decisões relacionadas:** D-80, D-86, D-108, D-109, D-110, D-111, D-112, D-113, D-114, D-115.
 
 ## O que é o módulo
 
@@ -21,8 +21,8 @@ O custo/hora tem uma única conta, fixada após a auditoria de setembro de 2026 
 - [x] Criar `src/apps/profitability` e portar o domínio: competência, colaborador, usuário do ERP, salário, registro de horas, serviço faturado, evento de faturamento, mensalidade, segmento e configuração do módulo (V-105).
 - [x] Substituir a entidade `Empresa` do Lucrums por `CompanyErpProfile` ligado a `hub.ClientCompany`, conforme D-109, com a resolução de identidade contra a carteira por documento, código Domínio e gêmea do outro ERP (V-105, V-106).
 - [x] Portar o motor de cálculo e os serviços de recomputação sem alterar os vetores do contrato (V-105).
-- [ ] Declarar o módulo: código no `ProductModule.Code`, migração de choices, entrada no catálogo e grupo "Gestão" na navegação.
-- [ ] Portar as telas para templates por D-110: visão geral, colaboradores e detalhe, horas, análises, configuração do módulo e as abas de rentabilidade na ficha de empresa já existente.
+- [x] Declarar o módulo: código no `ProductModule.Code`, migração de choices, entrada no catálogo, grupo "Gestão" na navegação e azulejo no painel (V-107). Por D-115 ele fica fora dos módulos padrão do cadastro enquanto Q-39 e Q-41 estiverem abertas.
+- [-] Portar as telas para templates por D-110. A visão geral está entregue (V-107). Faltam colaboradores e detalhe, horas, análises, configuração do módulo, as abas de rentabilidade na ficha de empresa e os gráficos de D-113.
 - [x] Trazer o catálogo de consultas fixado por SHA-256 e o processamento por conjunto de dados para o protocolo de agente vigente, atrás de sinalizador desligado por padrão (V-106). O preflight por escritório não veio: o indicador de contrato validado segue vindo do manifesto.
 - [ ] Unificar o conector Windows por D-111, depois de resolvido o alvo de framework em Q-43.
 - [-] Portar os testes do Lucrums. Feitos os do cálculo, do domínio, dos serviços e do casador: 65 aprovados, 89% de cobertura no app (V-105). As provas de recusa por módulo desligado, escopo do colaborador e sessão somente-leitura dependem das telas e ficam na fase 2.

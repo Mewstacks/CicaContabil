@@ -433,3 +433,14 @@ da própria CICA, com soma de verificação do conteúdo em claro conferida ante
 aplicar. O que veio do conector da origem e não existia aqui é o catálogo de
 consultas fixado por SHA-256: contrato divergente não é despachado nem aplicado.
 Esta decisão não autoriza publicação, instalação real nem homologação.
+
+## D-115 — Rentabilidade fora dos módulos padrão do cadastro
+
+Data: 22/09/2026. Origem: executor, decisão de implementação local sob D-108. O
+cadastro de um escritório novo liga, por padrão, todos os módulos ofertados. O
+módulo Rentabilidade fica de fora dessa lista enquanto Q-39 e Q-41 estiverem
+abertas: sem fonte de honorários definida ele apura custo e horas, não margem, e
+sem preço aprovado não há o que cobrar por ele. Ligá-lo no teste gratuito
+entregaria a todo escritório novo uma tela que não tem como responder a pergunta
+que o nome dela promete. O console da plataforma continua podendo habilitá-lo
+caso a caso, e a decisão se reverte assim que as duas dúvidas forem respondidas.
