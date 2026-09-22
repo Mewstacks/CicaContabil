@@ -20,5 +20,8 @@
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>Cica.Agent.Service</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>Cica.Agent.OdbcBridge</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>

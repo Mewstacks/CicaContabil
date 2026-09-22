@@ -26,6 +26,7 @@ jobs:
           dotnet-version: "8.0.x"
       - run: dotnet build agent-windows/src/Cica.Agent.Service/Cica.Agent.Service.csproj -c Release
       - run: dotnet build agent-windows/src/Cica.Agent.Configurator/Cica.Agent.Configurator.csproj -c Release
+      - run: dotnet build agent-windows/src/Cica.Agent.OdbcBridge/Cica.Agent.OdbcBridge.csproj -c Release
       - run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
 
   verify:

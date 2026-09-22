@@ -45,21 +45,20 @@ internal sealed record AgentConfig(
             throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
         if (EffectiveSourceSystem is not ("dominio" or "siescon"))
             throw new InvalidDataException("Sistema de origem desconhecido na configuração.");
-        // O Siescon depende do driver Pervasive, que só existe em 32 bits, e a
-        // ponte isolada que o executaria ainda não faz parte deste pacote. Recusar
-        // agora é melhor que aceitar um DSN que o serviço não conseguiria abrir e
-        // descobrir isso no primeiro ciclo noturno. Autorizado por D-117; o que
-        // falta é a ponte, não a permissão.
-        if (EffectiveSourceSystem == "siescon")
-            throw new InvalidDataException(
-                "O perfil Siescon exige a ponte ODBC de 32 bits, que ainda não faz parte "
-                + "deste pacote.");
-        if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegistered64BitDsn(Dsn))
-            throw new InvalidDataException(
-                "O DSN configurado não está disponível para o serviço CICA Agent 64 bits.");
-        if (!IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
-            throw new InvalidDataException(
-                "O driver SQL Anywhere configurado não está disponível em 64 bits.");
+        // O Siescon lê pelo Pervasive, que só publica driver ODBC de 32 bits, e por
+        // isso passa pela ponte isolada em vez do processo do serviço. As duas
+        // verificações abaixo perguntam pelo registro de 64 bits, então valem só
+        // para o Domínio: aplicá-las ao Siescon recusaria justamente a instalação
+        // que a ponte existe para atender.
+        if (EffectiveSourceSystem == "dominio")
+        {
+            if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegistered64BitDsn(Dsn))
+                throw new InvalidDataException(
+                    "O DSN configurado não está disponível para o serviço CICA Agent 64 bits.");
+            if (!IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
+                throw new InvalidDataException(
+                    "O driver SQL Anywhere configurado não está disponível em 64 bits.");
+        }
         if (!string.IsNullOrWhiteSpace(WindowsArchiveRoot) && (!Path.IsPathFullyQualified(WindowsArchiveRoot)
             || WindowsArchiveRoot.StartsWith("\\\\", StringComparison.Ordinal)))
             throw new InvalidDataException("A pasta de arquivos aprovada precisa ser um caminho absoluto do Windows.");

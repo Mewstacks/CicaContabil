@@ -141,6 +141,16 @@ internal sealed class ProfitabilityProcessor(AgentConfig config, AgentClient cli
         DatasetDefinition dataset,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken token)
     {
+        // O Siescon lê pela ponte de 32 bits: o driver Pervasive não existe em 64,
+        // e um processo não carrega driver de outra arquitetura.
+        if (config.EffectiveSourceSystem == "siescon")
+        {
+            await foreach (Dictionary<string, object?> row in
+                new OdbcBridgeClient(config).ReadAsync(dataset, token))
+                yield return row;
+            yield break;
+        }
+
         using var connection = new OdbcConnection(
             $"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
         connection.ConnectionTimeout = 20;
