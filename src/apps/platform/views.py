@@ -10,6 +10,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
@@ -119,6 +120,55 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             ),
         }
     )
+    # The console exists to catch exceptions, so offices that need a decision come before
+    # offices that are merely active.
+    stale = timezone.now() - timedelta(minutes=10)
+    uncertain_egress = (
+        EgressAudit.objects.filter(provider="anthropic")
+        .filter(
+            Q(call_state=EgressAudit.CallState.UNKNOWN)
+            | Q(call_state=EgressAudit.CallState.RESERVED, created_at__lt=stale)
+            | Q(usage_event__status=UsageEvent.Status.RESERVED, created_at__lt=stale)
+        )
+        .values("organization")
+        .distinct()
+        .count()
+    )
+    active_support = SupportSession.objects.filter(
+        status=SupportSession.Status.OPEN, expires_at__gt=timezone.now()
+    ).count()
+    ctx["exception_rows"] = [
+        {
+            "label": "Escritórios suspensos",
+            "note": "Operação bloqueada até revisão comercial.",
+            "count": ctx["suspended_count"],
+            "url": reverse("platform:tenants"),
+        },
+        {
+            "label": "Ativações pendentes",
+            "note": "Escritório criado e ainda sem liberação.",
+            "count": ctx["activation_count"],
+            "url": reverse("platform:tenants"),
+        },
+        {
+            "label": "Integração Domínio com falha",
+            "note": "Chamados abertos de sincronização.",
+            "count": len(list(ctx["dominio_tickets"])),
+            "url": "#chamados-dominio",
+        },
+        {
+            "label": "Egressão incerta",
+            "note": "Chamadas Claude sem conclusão confirmada.",
+            "count": uncertain_egress,
+            "url": reverse("platform:tenants"),
+        },
+        {
+            "label": "Suporte ativo agora",
+            "note": "Sessões de suporte delegado em andamento.",
+            "count": active_support,
+            "url": reverse("platform:tenants"),
+        },
+    ]
     return render(request, "platform/dashboard.html", ctx)
 
 

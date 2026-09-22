@@ -6,6 +6,12 @@
       "runtimeExecutable": "uv",
       "runtimeArgs": ["run", "python", "manage.py", "runserver", "127.0.0.1:8000"],
       "port": 8000
+    },
+    {
+      "name": "hubcontador-qa",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["scripts/qa_ui_server.py"],
+      "port": 8011
     }
   ]
 }

@@ -1,5 +1,5 @@
 {% extends 'hub/workspace.html' %}
-{% load static %}
+{% load static ui_navigation %}
 {% block workspace_content %}
 <section class="workspace-panel">
   <header class="workspace-panel-head">
@@ -8,7 +8,7 @@
       <h2>{{ movement.description|default:movement.original_description }}</h2>
       <p>{{ movement.company.name }} · origem {{ movement.source_file.original_filename }}</p>
     </div>
-    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#movimentos">Voltar</a>
+    <a class="button button-quiet" href="{% back_url 'hub:reconciliation' %}#movimentos">Voltar aos movimentos</a>
   </header>
   <div class="reconciliation-detail-grid">
     <article>

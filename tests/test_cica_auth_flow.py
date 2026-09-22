@@ -53,6 +53,17 @@ class CICAAuthFlowTests(TestCase):
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.SUPPORT)
         self.assertTrue(mfa.is_required(self.user))
 
+    def test_bookmarked_logout_url_answers_with_a_page_and_still_needs_a_post(self):
+        self.client.force_login(self.user)
+        visited = self.client.get(reverse("hub:logout"))
+        self.assertEqual(visited.status_code, 200)
+        self.assertContains(visited, "Sair da CICA?")
+        self.assertEqual(self.client.get(reverse("hub:dashboard")).status_code, 200)
+        self.assertEqual(self.client.post(reverse("hub:logout")).status_code, 302)
+        signed_out = self.client.get(reverse("hub:logout"))
+        self.assertEqual(signed_out.status_code, 200)
+        self.assertContains(signed_out, "Sessão encerrada")
+
     def test_demo_only_membership_skips_mfa_but_real_membership_requires_it(self):
         demo = Organization.objects.create(name="Escritório Demo", slug="auth-demo", is_demo=True)
         visitor = User.objects.create_user("demo-visitor@example.test", "test-password-123456")

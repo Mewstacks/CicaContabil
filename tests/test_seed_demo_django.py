@@ -386,7 +386,7 @@ def test_demo_nfse_bulk_download_builds_the_selected_dominio_folder() -> None:
         assert archive.namelist() == [xml_path, "manifesto-classificacao.csv"]
         assert archive.read(xml_path) == document.original_xml.encode()
         manifest = archive.read("manifesto-classificacao.csv").decode("utf-8-sig")
-        assert "Transitória;0;Transitória sem acumulador" in manifest
+        assert "Transitória;Transitória sem acumulador" in manifest
 
 
 @override_settings(
@@ -419,8 +419,8 @@ def test_demo_nfse_bulk_download_includes_all_and_marks_manual_accumulator() -> 
         assert "manifesto-classificacao.csv" in names
         assert any(name.startswith("Emitidas/") and name.endswith(".xml") for name in names)
         manifest = archive.read("manifesto-classificacao.csv").decode("utf-8-sig")
-        assert "SERVICOS;100;Definida pelo contador" in manifest
-        assert "Transitória;0;Transitória sem acumulador" in manifest
+        assert "SERVICOS;Definida pelo contador" in manifest
+        assert "Transitória;Transitória sem acumulador" in manifest
 
 
 @override_settings(
@@ -438,7 +438,7 @@ def test_demo_reconciliation_confirmation_is_private_to_session() -> None:
     center = reverse("hub:reconciliation")
     first_page = first.get(center)
     assert first_page.status_code == 200
-    assert "Demonstração sem dados bancários reais" in first_page.content.decode()
+    assert "Sem dados bancários reais" in first_page.content.decode()
     match = first_page.context["matches"][0]
     candidate = match.candidates[0]
 
@@ -469,11 +469,77 @@ def test_demo_reform_radar_uses_labeled_synthetic_alerts_without_persisting() ->
     assert page.status_code == 200
     assert page.context["radar_demo"] is True
     assert page.context["alert_total"] == 3
-    assert "Conteúdo fictício para demonstração" in page.content.decode()
+    assert "Alertas de exemplo" in page.content.decode()
     assert "Exemplo fictício" in page.content.decode()
     assert not ReformAlert.objects.exists()
     filtered = browser.get(reverse("hub:reform"), {"q": "IBS"})
     assert filtered.context["alert_total"] == 1
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="slug-que-nao-existe",
+)
+@pytest.mark.django_db
+def test_a_stale_configured_slug_still_finds_the_single_demonstration_office() -> None:
+    _seed()
+
+    home = Client().get(reverse("hub:home"))
+    entry = Client().get(reverse("hub:demo-entry"))
+
+    assert "Ver demonstração" in home.content.decode()
+    assert "Iniciar demonstração fictícia" in entry.content.decode()
+
+    visitor = Client(REMOTE_ADDR="198.51.100.41")
+    assert visitor.post(reverse("hub:demo-entry")).status_code == 302
+    assert (
+        Organization.objects.get(slug="escritorio-demo")
+        .memberships.filter(user_id=visitor.session["_auth_user_id"])
+        .exists()
+    )
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="slug-que-nao-existe",
+)
+@pytest.mark.django_db
+def test_two_demonstration_offices_close_the_entry_instead_of_guessing() -> None:
+    _seed()
+    Organization.objects.create(name="Segunda demo", slug="outra-demo", is_demo=True)
+
+    entry = Client().get(reverse("hub:demo-entry"))
+    blocked = Client().post(reverse("hub:demo-entry"))
+
+    assert "está sendo preparada" in entry.content.decode()
+    assert blocked.status_code == 400
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+@pytest.mark.django_db
+def test_demo_team_page_hides_the_accounts_of_other_visitors() -> None:
+    _seed()
+    first = Client(REMOTE_ADDR="198.51.100.31")
+    second = Client(REMOTE_ADDR="198.51.100.32")
+    assert first.post(reverse("hub:demo-entry")).status_code == 302
+    assert second.post(reverse("hub:demo-entry")).status_code == 302
+    first_email = User.objects.get(id=first.session["_auth_user_id"]).email
+
+    page = second.get(reverse("hub:team"))
+
+    body = page.content.decode()
+    assert page.status_code == 200
+    assert first_email not in body
+    assert User.objects.get(id=second.session["_auth_user_id"]).email in body
 
 
 @override_settings(

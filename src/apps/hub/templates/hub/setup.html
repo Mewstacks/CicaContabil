@@ -2,7 +2,7 @@
 {% load static %}
 {% block workspace_content %}
 <section class="setup-hero" aria-labelledby="setup-heading">
-  <div><p class="section-kicker">COMECE POR AQUI</p><h2 id="setup-heading">Deixe o CICA pronto para trabalhar.</h2><p>Siga a lista uma vez. Depois, volte apenas quando quiser atualizar dados ou configurações.</p></div>
+  <div><p class="section-kicker">COMECE POR AQUI</p><h2 id="setup-heading">Deixe o CICA pronto para trabalhar.</h2><p>Seis passos para o escritório operar.</p></div>
   <ol class="setup-checklist">{% for step in setup_steps %}<li class="{% if step.done %}is-done{% endif %}"><span aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>{{ step.label }}</li>{% endfor %}</ol>
 </section>
 

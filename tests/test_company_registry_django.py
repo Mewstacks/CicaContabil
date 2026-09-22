@@ -7,7 +7,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.hub.models import ClientCompany, DteMessage, OfficeProfile, ProductModule, ReviewCase
+from apps.hub.models import (
+    Certificate,
+    ClientCompany,
+    DteMessage,
+    OfficeProfile,
+    ProductModule,
+    ReviewCase,
+)
 from apps.hub.services import create_document_and_artifact
 from apps.intelligence.models import IntelligenceConnector
 from apps.organizations.models import Membership, Organization
@@ -73,6 +80,49 @@ class CompanyRegistryTests(TestCase):
         response = self.client.get(reverse("hub:companies"), {"situacao": "pausada"})
 
         self.assertEqual(self._names(response), {self.paused.name})
+
+    def test_the_registry_filters_by_certificate_and_open_review(self) -> None:
+        Certificate.objects.create(
+            organization=self.organization,
+            company=self.linked,
+            label="A1 vigente",
+            valid_until=timezone.now() + timedelta(days=200),
+            pfx_blob="x",
+            password="y",
+            fingerprint_sha256="a" * 64,
+        )
+        Certificate.objects.create(
+            organization=self.organization,
+            company=self.paused,
+            label="A1 a vencer",
+            valid_until=timezone.now() + timedelta(days=10),
+            pfx_blob="x",
+            password="y",
+            fingerprint_sha256="b" * 64,
+        )
+        document, _, review_case = create_document_and_artifact(
+            company=self.unlinked,
+            original_xml="<nfse id='registro-filtro' />",
+            normalized_data={},
+            source_nsu="registro-filtro",
+        )
+        if review_case is None:
+            ReviewCase.objects.create(
+                organization=self.organization,
+                document=document,
+                reason="Baixa confiança",
+                confidence=20,
+            )
+
+        valid = self.client.get(reverse("hub:companies"), {"certificado": "valido"})
+        expiring = self.client.get(reverse("hub:companies"), {"certificado": "vencendo"})
+        missing = self.client.get(reverse("hub:companies"), {"certificado": "ausente"})
+        pending = self.client.get(reverse("hub:companies"), {"pendencia": "com"})
+
+        self.assertEqual(self._names(valid), {self.linked.name})
+        self.assertEqual(self._names(expiring), {self.paused.name})
+        self.assertEqual(self._names(missing), {self.unlinked.name})
+        self.assertEqual(self._names(pending), {self.unlinked.name})
 
     def test_a_filter_with_no_result_offers_the_way_back(self) -> None:
         response = self.client.get(reverse("hub:companies"), {"q": "inexistente"})

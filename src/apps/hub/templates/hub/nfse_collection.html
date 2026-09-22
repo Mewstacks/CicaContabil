@@ -14,7 +14,7 @@
     <div class="bulk-toolbar" aria-label="Ações em lote da coleta NFS-e">
       <label class="checkbox-field"><input type="checkbox" data-nfse-select-all>Selecionar todas as empresas exibidas</label>
       <span role="status" aria-live="polite" data-nfse-selection-count>Nenhuma empresa selecionada.</span>
-      {% if can_manage_nfse_sync %}<button class="button button-small" type="submit" name="action" value="activate" data-nfse-bulk-submit>Ativar coleta</button><button class="button button-quiet button-small" type="submit" name="action" value="retry">Tentar novamente</button><button class="button button-quiet button-small" type="submit" name="action" value="pause">Pausar</button>{% endif %}
+      {% if can_manage_nfse_sync %}<div class="bulk-actions" data-nfse-bulk-actions hidden><button class="button button-small" type="submit" name="action" value="activate" data-nfse-bulk-submit>Ativar coleta</button><button class="button button-quiet button-small" type="submit" name="action" value="retry">Tentar novamente</button><button class="button button-quiet button-small" type="submit" name="action" value="pause">Pausar</button></div>{% endif %}
     </div>
     <div class="data-table-wrap"><table class="operational-table nfse-sync-table"><thead><tr><th scope="col"><span class="sr-only">Selecionar</span></th><th scope="col">Empresa</th><th scope="col">Certificado</th><th scope="col">Coleta</th><th scope="col">Último sucesso</th><th scope="col">Próxima tentativa</th><th scope="col">Checkpoint</th></tr></thead><tbody>
       {% for row in nfse_sync_rows %}<tr>

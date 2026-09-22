@@ -3,7 +3,7 @@
 {% block workspace_content %}
 <section class="workspace-panel registry-panel" aria-labelledby="radar-heading">
   <header class="workspace-panel-head"><div><p class="section-kicker">Fontes oficiais</p><h2 id="radar-heading">Radar da Reforma Tributária</h2><p>Pesquise publicações coletadas e confirme sempre a fonte oficial.</p></div><span class="record-count">{{ alert_total }} resultado{{ alert_total|pluralize }}</span></header>
-  {% if radar_demo %}<div class="inline-alert" role="status"><strong>Conteúdo fictício para demonstração.</strong><span>Os títulos e datas abaixo são exemplos. Os links abrem apenas a página inicial da fonte oficial e não comprovam que a publicação exista.</span></div>{% endif %}
+  {% if radar_demo %}<div class="inline-alert" role="status"><strong>Alertas de exemplo</strong><span>Os links abrem a página inicial da fonte e não comprovam a publicação.</span></div>{% endif %}
   <form class="workspace-filter-form" method="get" aria-label="Pesquisar e filtrar alertas">
     <div class="workspace-filter-search"><label for="radar-search">Assunto ou termo da publicação</label><input id="radar-search" type="search" name="q" maxlength="100" value="{{ radar_search }}" autocomplete="off" placeholder="Ex.: IBS, CBS ou crédito tributário…"></div>
     <div><label for="filtro-fonte">Fonte</label><select id="filtro-fonte" name="fonte" autocomplete="off">
@@ -11,8 +11,9 @@
       {% for value, label in sources %}<option value="{{ value }}"{% if selected_source == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
     </select></div>
     <div><label for="filtro-relevancia">Tema</label><select id="filtro-relevancia" name="relevancia" autocomplete="off"><option value="">Reforma e fiscal</option>{% for value, label in relevances %}<option value="{{ value }}"{% if selected_relevance == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+    <div><label for="filtro-periodo">Período</label><select id="filtro-periodo" name="periodo" autocomplete="off"><option value="">Qualquer data</option><option value="7"{% if selected_period == '7' %} selected{% endif %}>Últimos 7 dias</option><option value="30"{% if selected_period == '30' %} selected{% endif %}>Últimos 30 dias</option><option value="90"{% if selected_period == '90' %} selected{% endif %}>Últimos 90 dias</option></select></div>
     <button class="button button-small" type="submit">Pesquisar publicações</button>
-    {% if selected_source or selected_relevance or radar_search %}<a class="button button-quiet button-small" href="{% url 'hub:reform' %}">Limpar filtros</a>{% endif %}
+    {% if selected_source or selected_relevance or radar_search or selected_period %}<a class="button button-quiet button-small" href="{% url 'hub:reform' %}">Limpar filtros</a>{% endif %}
   </form>
   <section class="source-health" aria-labelledby="source-health-heading">
     <div class="source-health-heading"><h3 id="source-health-heading">Saúde das fontes</h3><p>Resultado da última coleta agendada.</p></div>
@@ -40,12 +41,12 @@
     </ul>
   </section>
   {% if alerts %}
-    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Atualização</th><th>Fonte</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
-      {% for alert in alerts %}<tr><td><strong>{{ alert.title }}</strong><small>{% if alert.published_at %}{{ alert.published_at|date:'d/m/Y' }}{% else %}Coletada em {{ alert.created_at|date:'d/m/Y' }}{% endif %}</small></td><td><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir<span class="sr-only">: {{ alert.title }}</span></a></td></tr>{% endfor %}
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Publicação</th><th>Fonte</th><th>Origem</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for alert in alerts %}<tr><td data-label="Publicação"><strong>{{ alert.title }}</strong>{% if alert.summary %}<small>{{ alert.summary|truncatechars:140 }}</small>{% endif %}<small>{% if alert.published_at %}Publicada em {{ alert.published_at|date:'d/m/Y' }} · {% endif %}Coletada em {{ alert.created_at|date:'d/m/Y' }}</small></td><td data-label="Fonte"><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td data-label="Origem"><span class="nfse-status nfse-status-muted">Publicação coletada</span><small>Sem interpretação fiscal validada</small></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir na fonte<span class="sr-only"> a publicação {{ alert.title }}</span></a></td></tr>{% endfor %}
     </tbody></table></div>
     {% if alert_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do Radar da Reforma Tributária">{% if alert_page.has_previous %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ alert_page.number }} de {{ alert_page.paginator.num_pages }}</span>{% if alert_page.has_next %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>{% if selected_source or selected_relevance or radar_search %}Nenhuma publicação corresponde aos filtros{% else %}Sem alertas ainda{% endif %}</strong><p>{% if selected_source or selected_relevance or radar_search %}Altere o termo, a fonte ou o tema para consultar as demais publicações.{% else %}A coleta diária consulta Receita Federal, Fazenda e Planalto.{% endif %}</p></div>
+    <div class="empty-block operational-empty"><strong>{% if selected_source or selected_relevance or radar_search or selected_period %}Nenhuma publicação corresponde aos filtros{% else %}Sem alertas ainda{% endif %}</strong><p>{% if selected_source or selected_relevance or radar_search or selected_period %}Altere o termo, a fonte, o tema ou o período para consultar as demais publicações.{% else %}A coleta diária consulta Receita Federal, Fazenda e Planalto.{% endif %}</p></div>
   {% endif %}
 </section>
 {% endblock %}

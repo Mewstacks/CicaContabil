@@ -11,7 +11,7 @@ class CICALandingTests(TestCase):
     def test_public_page_has_trial_but_no_calculator(self):
         response = self.client.get(reverse("hub:home"))
         self.assertContains(response, "Começar teste de 14 dias")
-        self.assertContains(response, "CICA significa Central de Inteligência Contábil Avançada")
+        self.assertContains(response, "A CICA reúne as quatro frentes por empresa e competência")
         self.assertContains(response, "data-cica-demo")
         for module in (
             "NFS-e Inteligente",

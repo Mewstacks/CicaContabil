@@ -424,7 +424,7 @@ class GuidesViewTests(TestCase):
 
         self.assertContains(response, "Apurações do Domínio")
         self.assertContains(response, "08/2026")
-        self.assertContains(response, "1335,00")
+        self.assertContains(response, "1.335,00")
         self.assertContains(response, "2 componentes")
         self.assertContains(response, "até 25/09/2026")
         self.assertContains(response, f'value="{self.company.id}|08/2026"', count=1)

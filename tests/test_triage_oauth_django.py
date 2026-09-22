@@ -11,8 +11,15 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.hub.models import ProductModule
+from apps.intelligence.models import EdgeAgent
 from apps.organizations.models import Membership, Organization
-from apps.triage.models import DestinationProfile, Mailbox, MailboxOAuthApp
+from apps.triage.models import (
+    AgentFileJob,
+    DestinationProfile,
+    Mailbox,
+    MailboxOAuthApp,
+    TriageItem,
+)
 from apps.triage.oauth import (
     MailboxOAuthError,
     encrypted_refresh_credential,
@@ -117,6 +124,44 @@ class TriageMailboxOAuthTests(TestCase):
         self.assertEqual(invalid.status_code, 400)
         profile.refresh_from_db()
         self.assertEqual(profile.windows_root, r"D:\Clientes")
+
+    def test_windows_destination_shows_agent_health_and_the_last_write(self) -> None:
+        self.client.post(
+            reverse("hub:triage-destination-configure"),
+            {"mode": DestinationProfile.Mode.WINDOWS, "windows_root": r"D:\Clientes"},
+        )
+
+        offline = self.client.get(reverse("hub:triage-connections"))
+        self.assertContains(offline, "Agente sem sinal")
+        self.assertContains(offline, "Nenhum agente pareado")
+        self.assertContains(offline, "Nenhuma gravação confirmada")
+
+        EdgeAgent.objects.create(
+            organization=self.office,
+            label="Servidor do escritório",
+            fingerprint="fp",
+            shared_secret="secret",
+            last_seen_at=timezone.now(),
+        )
+        item = TriageItem.objects.create(
+            organization=self.office,
+            original_name="nota.xml",
+            content_hash="c" * 64,
+            byte_size=10,
+            declared_type="text/xml",
+        )
+        AgentFileJob.objects.create(
+            organization=self.office,
+            triage_item=item,
+            destination_path="D:/Clientes/Empresa/nota.xml",
+            status=AgentFileJob.Status.DONE,
+            completed_at=timezone.now(),
+        )
+
+        online = self.client.get(reverse("hub:triage-connections"))
+        self.assertContains(online, "Agente conectado")
+        self.assertContains(online, "Servidor do escritório")
+        self.assertContains(online, "Última gravação confirmada")
 
     def test_central_demo_hides_and_blocks_real_mailbox_connections(self) -> None:
         self.office.is_demo = True

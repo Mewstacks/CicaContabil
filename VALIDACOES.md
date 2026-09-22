@@ -1,5 +1,269 @@
 # CICA — validações e evidências
 
+## V-104 — Banco de desenvolvimento cifrado com a chave de teste
+
+Data: 22/09/2026. Ambiente: desenvolvimento local do responsável
+(`config.settings.local`, `db.sqlite3` com massa fictícia). Nenhuma chamada externa,
+cobrança ou deploy. Nenhum dado de cliente envolvido.
+
+- **Sintoma:** `/app/` quebrava com `SuspiciousOperation: Encrypted field authentication
+  failed`, causado por `Field encryption key 'test-v1' is unavailable`.
+- **Causa:** a massa fictícia de `db.sqlite3` foi gravada por uma execução com
+  `config.settings.test`, cuja chave fixa é `test-v1`, enquanto o ambiente de
+  desenvolvimento usa `local-v1`. Levantamento por tabela: `hub_nfsedocument.original_xml`
+  24 linhas, `hub_certificate.password`/`pfx_blob` 3 + 3, `accounts_totpdevice.secret` 2,
+  `hub_officeprofile.cnpj` 1, `platform_signupintent.cnpj` 1 e
+  `intelligence_intelligenceconnector.odbc_dsn` 1 — todas em `test-v1`; apenas uma linha
+  de conector já estava em `local-v1`.
+- **Correção local:** `test-v1` entrou no mapa `FIELD_ENCRYPTION_KEYS` do `.env` de
+  desenvolvimento, com `local-v1` mantida como chave ativa: as leituras antigas voltam a
+  funcionar e toda gravação nova continua na chave local. Nada foi apagado e nenhum
+  registro foi reescrito. A chave `test-v1` é a constante pública de
+  `src/config/settings/test.py` e serve apenas a dados fictícios; produção valida as
+  chaves em `config/settings/production.py` e não lê este arquivo.
+- **Correção de raiz:** `config/settings/local.py` passou a chamar
+  `load_dotenv(..., override=True)`. Sem isso, o autoreload do Django reexecuta o servidor
+  herdando o ambiente do primeiro boot, e qualquer valor já presente em `os.environ`
+  sobrevive a toda edição do `.env` — foi o que escondeu a demonstração em V-103 e o que
+  manteria esta chave ausente.
+- **Verificação:** em processo novo com as settings de desenvolvimento,
+  `FIELD_ENCRYPTION_KEYS` traz `local-v1` e `test-v1`, um `NfseDocument` decifra e `/app/`
+  responde 200 com a pauta. Suíte completa: 798 aprovados, 2 ignorados, 11 subtestes.
+  Ruff aprovado em `src` e `tests`.
+
+Limites: a divergência de chave continua existindo no banco; consolidar tudo em
+`local-v1` exigiria reescrever os registros fictícios, o que não foi feito. Nada aqui se
+aplica a produção, que não compartilha banco, chave nem `.env` com o desenvolvimento.
+
+## V-103 — Entrada da demonstração deixa de depender do slug configurado
+
+Data: 22/09/2026. Ambiente: servidor de desenvolvimento local do responsável
+(`127.0.0.1:8000`, `config.settings.local`, banco `db.sqlite3` com massa fictícia) e
+suíte no `.venv`. Nenhuma chamada externa, cobrança ou deploy.
+
+- **Sintoma:** mesmo com `.env` corrigido para `escritorio-demo`, a home e `/demo/`
+  continuavam mostrando "A demonstração separada está sendo preparada".
+- **Causa:** `load_dotenv` não sobrescreve variável já presente em `os.environ`
+  (`override=False` é o padrão). O processo que subiu antes da correção fixou
+  `DEMO_ORGANIZATION_SLUG=cica-demo` no ambiente, e o autoreload do Django reexecuta o
+  servidor herdando esse ambiente — o código novo entrava (GET `/sair/` já respondia 200),
+  as settings não. Só um encerramento do processo raiz limparia o valor.
+- **Correção:** `demo_office()` passou a resolver a organização pelo que ela é. O slug
+  configurado continua tendo prioridade quando existe e está ativo; quando não existe, a
+  entrada usa a única organização ativa marcada `is_demo`. Com duas marcadas, nada é
+  devolvido: escolher uma seria adivinhação, e a entrada continua fechada.
+- **Verificação no servidor do responsável, sem reiniciar o processo:** `/demo/` passou a
+  responder "Iniciar demonstração fictícia" e a home voltou com "Ver demonstração",
+  "Explorar demo fictícia" e "Abrir demonstração fictícia".
+- **Regressão:** `tests/test_seed_demo_django.py` ganhou
+  `test_a_stale_configured_slug_still_finds_the_single_demonstration_office` e
+  `test_two_demonstration_offices_close_the_entry_instead_of_guessing`. Suíte completa:
+  798 aprovados, 2 ignorados, 11 subtestes. Ruff aprovado em `src` e `tests`.
+
+Limite: os gates `DEMO_ENTRY_ENABLED` e `DEMO_SESSION_ISOLATION_READY` continuam
+obrigatórios e não foram afrouxados; a entrada segue fechada em qualquer ambiente onde
+eles estejam desligados.
+
+## V-102 — Landing, ondas 5 a 7 e auditoria de interface da revisão total
+
+Data: 22/09/2026. Ambiente: servidor isolado `scripts/qa_ui_server.py` (porta 8011,
+`.tmp/ui-review`, conexões externas bloqueadas), navegador local em 1440 × 1000 e
+375 × 812. Nenhuma credencial real digitada, nenhuma chamada externa, cobrança, arquivo
+de cliente ou deploy.
+
+**Site público e acesso**
+
+- A seção "POR QUE CICA" era um parágrafo sobre o significado da sigla. Virou a seção de
+  problema que o plano pede, com uma frase concreta e link para os módulos.
+- "UMA PAUTA, CINCO FRENTES" anunciava cinco etapas e listava quatro. Passou a "UMA
+  PAUTA, QUATRO ETAPAS".
+- No celular, o cabeçalho escondia "Entrar": quem já é cliente não tinha caminho de login
+  a partir da home. O link voltou, com 44 px de altura.
+- Cinco links da landing tinham menos de 24 px de alvo (demo, módulos, termos,
+  privacidade, entrar). Todos passaram a 24 px, e 44 px no celular.
+- O consentimento do cadastro tinha nome acessível quebrado ("Li e aceito os , a e o .")
+  porque os links ficavam dentro do rótulo. O rótulo virou texto contínuo e os três
+  documentos ficaram em uma linha de links logo abaixo, todos alcançáveis por teclado.
+
+**Onda 5 — inteligência e conhecimento**
+
+- Radar: filtro de período (7, 30, 90 dias), coberto por
+  `tests/test_reform_radar.py::test_radar_period_filter_hides_older_publications`. Cada
+  linha passou a mostrar resumo, data de publicação e de coleta, e a marcar "Publicação
+  coletada · sem interpretação fiscal validada".
+- Copiloto: toda resposta recebeu a linha de limite ("Rascunho para conferência. A CICA
+  não altera o Domínio"), e uma resposta sem evidência passa a ser marcada como "Sem
+  fonte verificável" com aviso para conferir na área operacional.
+- Central de aprendizado: o vazio virou explicação com saída ("Abrir Copiloto"), e cada
+  candidato mostra resposta anterior, escopo do escritório, data e responsável pela
+  revisão.
+
+**Onda 6 — administração e console**
+
+- O console Mewstack autenticado foi inspecionado visualmente pela primeira vez, em base
+  fictícia isolada, criando a sessão de uma persona sintética direto no banco de revisão;
+  nenhuma senha foi digitada e nenhum controle de MFA foi contornado (a tela
+  `/platform/configuracoes/` continua exigindo segundo fator e não foi inspecionada).
+- O painel do console passou a ser orientado a exceção: suspensos, ativações pendentes,
+  integração Domínio com falha, egressão incerta e suporte ativo, cada um com link.
+- O detalhe do escritório abria com o título do navegador apenas "CICA"; agora nomeia o
+  escritório.
+- Equipe: a demonstração listava as contas descartáveis de todos os outros visitantes.
+  Passou a mostrar apenas as personas semeadas e quem está olhando, coberto por
+  `tests/test_seed_demo_django.py::test_demo_team_page_hides_the_accounts_of_other_visitors`.
+- Segredos do console usam `PasswordInput(render_value=False)` em todos os formulários:
+  nenhum valor existente é reexibido.
+
+**Onda 7 — tutorial guiado**
+
+- Catálogo declarativo em `src/apps/hub/onboarding.py`: boas-vindas mais nove orientações
+  por área, no máximo três passos cada, ancoradas ao nome da rota da tela principal —
+  detalhe, confirmação e formulário iniciado nunca abrem orientação.
+- Preferência versionada por pessoa em `hub.OnboardingProgress` (usuário, identificador,
+  versão, data). Nenhum conteúdo fiscal, empresa ou resposta é gravado. A demonstração
+  guarda o progresso apenas em `sessionStorage`.
+- Diálogo HTML nativo com foco contido, Pular, Voltar, Fechar e "Como usar" permanente;
+  ao fechar, o foco volta ao acionador. Sessão de suporte não abre orientação.
+- Seis testes em `tests/test_onboarding_tour.py` cobrem primeira abertura, conclusão,
+  nova versão, tela de detalhe, catálogo e recusa de identificador desconhecido.
+- Limite: o envio sintético de teclas não chega à página neste ambiente, então a
+  ativação por Enter/Espaço não foi confirmada por automação. A operação por teclado é
+  garantida pela estrutura (botões nativos, diálogo nativo, foco movido para o passo) e
+  foi verificada por ordem de foco; falta confirmação com teclado real e leitor de tela.
+
+**Onda 8 — auditoria de interface**
+
+- Vercel Web Interface Guidelines consultadas em 22/09/2026
+  (<https://vercel.com/design/guidelines>). Correções aplicadas nas superfícies alteradas:
+  alvos de 24 px (44 px no celular) em links de indicador, links de linha, links da fila
+  de Triagem e caixas de seleção; rótulo de texto em ícone; `aria-live` nos contadores de
+  seleção.
+- Varredura final em 375 px: Visão geral, Empresas, Certificados, NFS-e, Revisões, Guias,
+  Central Integra, Parcelamentos, Caixa DTE, Conciliação, Radar, Triagem, Caixas,
+  Integrações, Primeiros passos, Equipe, Copiloto e Aprendizado — nenhum overflow
+  horizontal. Console do navegador limpo em aba nova.
+- Suíte completa no `.venv`: 796 aprovados, 2 ignorados, 11 subtestes. Ruff aprovado em
+  `src` e `tests`. `makemigrations --check` sem alterações pendentes.
+
+Limites: a onda 8 do plano previa também regressão por perfil, leitor de tela e tema
+escuro comparados lado a lado, viewports 1024 e 768, e a tela de configuração do console
+sob MFA — nada disso foi feito. Nenhuma integração real, homologação ou deploy.
+
+## V-101 — Ondas 1 a 4 da revisão total de telas
+
+Data: 22/09/2026. Ambiente: servidor isolado `scripts/qa_ui_server.py` (porta 8011,
+`.tmp/ui-review`, conexões externas bloqueadas), navegador local em 1440 × 1000 e
+375 × 812. Nenhuma credencial real, chamada externa, cobrança, arquivo de cliente ou
+deploy.
+
+**Onda 1 — fundação compartilhada**
+
+- `.inline-alert` não tinha estilo algum: os 15 avisos em linha das telas de Guias,
+  NFS-e, Parcelamentos, Conciliação e Radar apareciam como texto solto, e as variantes
+  `-warning` e `-danger` eram indistinguíveis. Passaram a ter bloco, borda de acento e
+  título colorido, sempre com a palavra do estado junto da cor. Contrastes calculados
+  nos dois temas: azul 6,82:1 (claro) e 6,57:1 (escuro); âmbar 6,01 e 7,46; vermelho
+  6,13 e 7,61 — todos acima de 4,5:1.
+- Ações em lote passaram a aparecer só depois de existir seleção em Parcelamentos,
+  coleta NFS-e, download NFS-e da demonstração e fila de movimentos da Conciliação
+  (Guias já seguia esse contrato). Sem JavaScript, os botões continuam renderizados e o
+  servidor segue validando a seleção.
+- `USE_THOUSAND_SEPARATOR = True`: valores em pt-BR passaram a usar o ponto de milhar
+  (`R$ 1.943,24`). Duas asserções de teste foram ajustadas para o formato correto.
+- Texto repetido removido: os avisos de demonstração de Parcelamentos, Conciliação e
+  Radar deixaram de repetir a faixa global e ficaram com a consequência específica do
+  módulo; a fila da Triagem perdeu a linha "Consulte a etapa e a auditoria antes de
+  agir".
+
+**Onda 3 — núcleo diário**
+
+- Revisões de NFS-e: a tabela misturava caso pendente e caso decidido quando o filtro
+  era "Todas". Ganhou coluna **Situação** (aguardando decisão / decidida, com data e
+  responsável) e a coluna de acumulador passou a rotular a origem — "Sugestão da CICA"
+  ou "Decidido por pessoa". Os rótulos móveis (`::before`) foram corrigidos para a nova
+  ordem das colunas.
+- Empresas: filtros de **certificado** (válido, vence em 30 dias, sem certificado) e de
+  **pendência** (com/sem revisão aberta), com as duas colunas correspondentes. Coberto
+  por `tests/test_company_registry_django.py::CompanyRegistryTests::test_the_registry_filters_by_certificate_and_open_review`.
+- Caixa DTE: a fila mostra a idade da mensagem ("recebida há 6 dias"). O Serpro não
+  devolve prazo na listagem, então prazo continua ausente — idade é o que existe sem
+  inventar dado.
+- Visão geral: cada linha da fila de decisão mostra há quanto tempo o documento está
+  parado.
+
+**Onda 4 — processamento documental**
+
+- Conciliação: o detalhe do movimento perdia filtro e página ao voltar (era um link
+  fixo para `#movimentos`). Passou a usar `return_to` e `back_url`, como o resto do
+  sistema. Verificado no navegador: `?movement_state=ambiguous&movement_page=1`
+  sobrevive à ida e volta.
+- Conciliação: os indicadores passaram a mostrar os dois lados com valor — importados do
+  extrato e lançamentos no Domínio, além do valor pendente.
+- Triagem: o painel de destino Windows mostra saúde do agente (conectado / sem sinal,
+  último sinal) e prova da gravação (último caminho gravado e última falha), não só o
+  caminho configurado. Coberto por
+  `tests/test_triage_oauth_django.py::TriageMailboxOAuthTests::test_windows_destination_shows_agent_health_and_the_last_write`.
+
+**Verificação**
+
+- 20 telas autenticadas responderam 200; nenhuma das telas alteradas apresentou overflow
+  horizontal em 375 px e o console ficou limpo em aba nova.
+- Suíte completa no `.venv`: 788 aprovados, 2 ignorados, 11 subtestes. Ruff aprovado em
+  `src` e `tests`.
+
+Limites: ondas 5 a 8 continuam abertas (Radar/Copiloto/aprendizado, administração e
+console Mewstack, tutorial guiado e auditoria final). Não houve inspeção de todos os
+perfis, leitor de tela, tema escuro comparado lado a lado, viewports 1024/768, console
+Mewstack autenticado, integração real nem homologação externa.
+
+## V-100 — Ondas 0 a 2 da revisão total de telas: matriz, contrato de recusa e demonstração restaurada
+
+Data: 22/09/2026. Ambiente: servidor de revisão isolado `scripts/qa_ui_server.py`
+(porta 8011, banco e mídia em `.tmp/ui-review`, conexões externas bloqueadas) e
+navegador local. Nenhuma credencial real, chamada externa, cobrança, arquivo de
+cliente ou deploy.
+
+- **Matriz (onda 0).** O URLconf foi inventariado: 89 rotas de interface — 49
+  telas/estados e 40 ações ou downloads —, registradas em
+  [`docs/planejamento/matriz-telas-2026-09-22.md`](docs/planejamento/matriz-telas-2026-09-22.md).
+  Rotas de API REST, webhooks e agente ficam fora da matriz.
+- **Varredura GET autenticada** (owner do escritório fictício) das 31 telas sem
+  parâmetro: todas responderam 200 ou redirecionaram para o destino esperado; as
+  três telas do console Mewstack responderam 403 por perfil, como previsto. As
+  telas de detalhe com id semeado (empresa, guia, revisão, mensagem DTE, item de
+  Triagem, movimento da conciliação, documentos legais) responderam 200.
+- **Mobile 375 x 812:** 20 telas autenticadas percorridas sem overflow
+  horizontal (`scrollWidth == clientWidth` em todas) e sem erro de console.
+- **Demonstração (onda 2).** O ambiente local apontava para `cica-demo` enquanto
+  a organização fictícia é `escritorio-demo`: o `.env` local foi corrigido e
+  "Ver demonstração", "Explorar demo fictícia" e "Abrir demonstração fictícia"
+  voltaram à home. A faixa de demonstração da área de trabalho ganhou saída
+  explícita ("Sair da demonstração"), que encerra a sessão e descarta o progresso
+  do visitante. Os 21 testes de isolamento da demonstração e os 2 da landing
+  continuam passando.
+- **Recusa que não é permissão (onda 1).** `refuse()` passou a aceitar
+  `kind="unavailable"`: 24 recusas de estado ou validação (formato sem
+  mapeamento, ação inválida, limite de lote, caso já decidido, bloqueios da
+  demonstração) deixaram de ser apresentadas como "ACESSO RESTRITO / Sem
+  permissão". O status HTTP continua 403.
+- **Estado vazio (onda 1).** Criado o parcial único
+  `hub/partials/empty_state.html` (título, uma frase, saída). Os dois estados
+  vazios fora do contrato — filtro sem resultado em Empresas e em Parcelamentos —
+  passaram a usá-lo e agora oferecem "Ver todas".
+- **Ação quebrada corrigida.** `GET /sair/` respondia 405 sem corpo: o Django 5.0
+  removeu logout por GET ([release notes](https://docs.djangoproject.com/en/5.0/releases/5.0/))
+  e o projeto usa Django 6.0.8. `hub:logout` passou a ser `SignOutView`, que
+  responde GET com a confirmação ("Sair da CICA?" ou "Sessão encerrada") e mantém
+  o logout em POST. Regressão em `tests/test_cica_auth_flow.py`
+  (`test_bookmarked_logout_url_answers_with_a_page_and_still_needs_a_post`).
+- Suíte completa executada no interpretador do projeto (`.venv`): 781 aprovados,
+  2 ignorados, 11 subtestes. Ruff aprovado nos arquivos alterados.
+
+Limites: as ondas 3 a 8 do plano não foram executadas. Não houve inspeção de
+todos os perfis, leitor de tela, teclado completo, tema escuro, viewports 1440 /
+1024 / 768, console Mewstack autenticado, integração real nem homologação
+externa. Nenhuma simulação local é registrada como homologação.
+
 ## V-099 — Demonstração isolada da Conciliação revisada no navegador
 
 Data: 21/09/2026. Ambiente: banco SQLite temporário, migrado e semeado somente

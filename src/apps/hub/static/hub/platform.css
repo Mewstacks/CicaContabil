@@ -9,3 +9,11 @@
 .fallback-form>fieldset{grid-row:span 3}
 .egress-reference{overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .platform-list-table tbody tr{position:relative;cursor:pointer}.platform-list-table tbody tr:has(.platform-row-link:focus-visible){outline:3px solid var(--focus);outline-offset:-3px}.platform-row-link{color:var(--cica-forest);font-weight:750;text-decoration:none}.platform-row-link::after{position:absolute;inset:0;content:""}.platform-row-link:hover{text-decoration:underline}@media(max-width:560px){.platform-list-wrap{overflow:visible}.platform-list-table{display:block;width:100%;min-width:0}.platform-list-table thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.platform-list-table tbody{display:grid;width:100%}.platform-list-table tbody tr{display:grid;width:100%;gap:9px;padding:16px;border-top:1px solid var(--line);content-visibility:visible;contain-intrinsic-size:none}.platform-list-table td{display:grid;width:100%;grid-template-columns:minmax(90px,.38fr) minmax(0,1fr);align-items:start;gap:10px;max-width:none;padding:0;border:0;overflow:visible;white-space:normal}.platform-list-table td::before{content:attr(data-label);color:var(--muted);font-size:11px;font-weight:700}.platform-list-table .status-badge{justify-self:start;margin-left:0}}
+.platform-exception-list{display:grid;gap:0;margin:0;padding:0;list-style:none}
+.platform-exception-list li{border-top:1px solid var(--line)}
+.platform-exception-list a{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:56px;padding:12px 19px;color:var(--ink);text-decoration:none}
+.platform-exception-list a:hover{background:var(--surface-subtle)}
+.platform-exception-list strong{display:block;font-size:14px}
+.platform-exception-list small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
+.platform-exception-count{min-width:32px;color:var(--muted);font-size:20px;font-weight:800;text-align:right}
+.platform-exception-count.has-work{color:var(--amber)}

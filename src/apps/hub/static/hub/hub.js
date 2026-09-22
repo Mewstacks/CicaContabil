@@ -426,10 +426,12 @@ document.querySelectorAll('[data-nfse-bulk-form]').forEach((form) => {
   const selectAll = form.querySelector('[data-nfse-select-all]');
   const targets = [...form.querySelectorAll('[data-nfse-target]')];
   const count = form.querySelector('[data-nfse-selection-count]');
+  const actions = form.querySelector('[data-nfse-bulk-actions]');
   if (!(selectAll instanceof HTMLInputElement)) return;
 
   const update = () => {
     const selected = targets.filter((target) => target.checked).length;
+    if (actions) actions.hidden = selected === 0;
     selectAll.checked = selected === targets.length && targets.length > 0;
     selectAll.indeterminate = selected > 0 && selected < targets.length;
     if (count) count.textContent = selected
@@ -476,6 +478,7 @@ document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
   const summary = form.querySelector('#parcelamento-selection-summary');
   const submit = form.querySelector('#parcelamento-submit');
   const approved = form.querySelector('#parcelamento-approved-overage');
+  const actions = form.querySelector('[data-parcelamento-bulk-actions]');
   if (!(selectAll instanceof HTMLInputElement)
       || !(submit instanceof HTMLButtonElement)
       || !(approved instanceof HTMLInputElement)) return;
@@ -484,13 +487,14 @@ document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
   const price = Number(form.dataset.tokenPriceCents || 0);
   const update = () => {
     const count = targets.filter((target) => target.checked).length;
+    if (actions) actions.hidden = count === 0;
     const tokens = count * weight;
     const overage = Math.max(0, tokens - included) * price;
     approved.value = String(overage);
     if (summary) {
       const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
       summary.textContent = count
-        ? `${count} empresa(s) · ${tokens} tokens · excedente ${currency.format(overage / 100)}`
+        ? `${count} empresa${count === 1 ? '' : 's'} · ${tokens} token${tokens === 1 ? '' : 's'} · excedente ${currency.format(overage / 100)}`
         : 'Nenhuma empresa selecionada';
     }
     selectAll.checked = count > 0 && count === targets.length;
@@ -524,10 +528,13 @@ document.querySelectorAll('[data-nfse-download-form]').forEach((form) => {
   const selectPortfolio = form.querySelector('[data-nfse-download-all]');
   const targets = [...form.querySelectorAll('[data-nfse-download-target]')];
   const count = form.querySelector('[data-nfse-download-selection-count]');
+  const actions = form.querySelector('[data-nfse-download-actions]');
   if (!(selectAll instanceof HTMLInputElement)) return;
 
   const update = () => {
     const selected = targets.filter((target) => target.checked).length;
+    const portfolio = selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked;
+    if (actions) actions.hidden = selected === 0 && !portfolio;
     selectAll.checked = selected === targets.length && targets.length > 0;
     selectAll.indeterminate = selected > 0 && selected < targets.length;
     if (selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked) {
@@ -551,21 +558,13 @@ document.querySelectorAll('[data-nfse-download-form]').forEach((form) => {
   accumulators.forEach((input, index) => {
     const updateClassification = () => {
       const row = input.closest('tr');
-      const status = row?.querySelector('[data-nfse-classification-status]');
-      const confidence = row?.querySelector('[data-nfse-classification-confidence]');
+      const flag = row?.querySelector('[data-nfse-classification-flag]');
       const hint = row?.querySelector('[data-nfse-accumulator-hint]');
       const empty = input.value.trim().length === 0;
       const defined = !empty && input.value !== input.defaultValue;
-      if (status instanceof HTMLElement) {
-        status.textContent = empty ? 'Em revisão' : defined ? 'Classificada' : status.dataset.defaultStatus || 'Recebida';
-        status.className = empty ? 'nfse-status nfse-status-attention' : defined
-          ? 'nfse-status nfse-status-success'
-          : `nfse-status nfse-status-${status.dataset.defaultStatusClass || 'muted'}`;
-      }
-      if (confidence instanceof HTMLElement) {
-        confidence.textContent = empty ? 'Transitória · 0%' : defined
-          ? 'Definida pelo contador · 100%'
-          : confidence.dataset.defaultConfidence || 'Transitória · 0%';
+      if (flag instanceof HTMLElement) {
+        flag.textContent = empty ? 'Não classificada' : 'Classificada';
+        flag.className = `nfse-status nfse-status-${empty ? 'muted' : 'success'}`;
       }
       if (hint instanceof HTMLElement) {
         hint.textContent = empty ? 'Sem acumulador: irá para Transitória' : defined
@@ -706,4 +705,24 @@ window.addEventListener('beforeunload', event => {
   if (!dirtyForms.size) return;
   event.preventDefault();
   event.returnValue = '';
+});
+
+// Bulk actions on the reconciliation queue only appear once something is selected:
+// a destructive-looking "Aplicar aos selecionados" with an empty selection is noise.
+document.querySelectorAll('[data-movement-bulk-form]').forEach((form) => {
+  const targets = [...form.querySelectorAll('[data-movement-target]')];
+  const actions = form.querySelector('[data-movement-bulk-actions]');
+  const count = form.querySelector('[data-movement-selection-count]');
+  if (!targets.length) return;
+  const update = () => {
+    const selected = targets.filter((target) => target.checked).length;
+    if (actions) actions.hidden = selected === 0;
+    if (count) {
+      count.textContent = selected
+        ? `${selected} movimento${selected === 1 ? '' : 's'} selecionado${selected === 1 ? '' : 's'}`
+        : 'Nenhum movimento selecionado';
+    }
+  };
+  targets.forEach((target) => target.addEventListener('change', update));
+  update();
 });

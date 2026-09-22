@@ -1108,6 +1108,23 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(scoped, "owned")
         self.assertNotContains(scoped, "other")
 
+    def test_nfse_center_states_classification_instead_of_a_score(self) -> None:
+        create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='classificacao' />",
+            normalized_data={},
+            source_nsu="classificacao",
+        )
+
+        response = self.client.get(reverse("hub:nfse-center"))
+
+        self.assertContains(response, "<th scope=\"col\">Classificação</th>", html=True)
+        self.assertNotContains(response, "Confiança")
+        self.assertNotContains(response, "Transitória · 0%")
+        body = response.content.decode()
+        self.assertIn("Classificação", body.split("Acumulador para baixar")[0])
+        self.assertTrue("Não classificada" in body or ">Classificada<" in body)
+
     def test_nfse_center_is_an_operational_bulk_sync_workspace(self) -> None:
         response = self.client.get(reverse("hub:nfse-center"), {"view": "collection"})
 

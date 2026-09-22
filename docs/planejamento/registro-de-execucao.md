@@ -996,3 +996,39 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 
 - `AccountingExport` agora registra destino e versão do adaptador. O layout Domínio continua preservado; Siescon é recusado explicitamente até a revisão de contrato/layout, sem gerar arquivo ou escrever no sistema de origem.
 - A fonte Siescon foi modelada e a matriz de capacidades foi registrada. A suíte focada aprovou 36 testes; migrações e Ruff passaram. Não houve conexão ou exportação Siescon.
+
+## 22/09/2026 — Etapa 11, ondas 0 a 2 da revisão total de telas (V-100)
+
+- Matriz das 89 rotas de interface (49 telas, 40 ações/downloads) registrada em `docs/planejamento/matriz-telas-2026-09-22.md`; varredura GET autenticada e passagem por 20 telas em 375 px sem overflow horizontal ou erro de console.
+- Demonstração voltou à home: o `.env` local apontava `cica-demo` e a organização fictícia é `escritorio-demo`. A faixa de demonstração ganhou "Sair da demonstração", que encerra a sessão e descarta o progresso do visitante.
+- `GET /sair/` respondia 405 sem corpo (Django 5.0 removeu logout por GET; o projeto usa 6.0.8). Passou a responder com página de confirmação; o logout continua em POST, com teste de regressão.
+- `refuse()` ganhou `kind="unavailable"`: 24 recusas de estado deixaram de ser rotuladas como falta de permissão. Estado vazio ganhou parcial único e os dois casos fora do contrato foram convertidos.
+- Suíte completa no `.venv`: 781 aprovados, 2 ignorados. Ondas 3 a 8 continuam abertas; nada foi homologado.
+
+## 22/09/2026 — Etapa 11, ondas 1 a 4 da revisão total de telas (V-101)
+
+- Fundação: `.inline-alert` ganhou estilo real (era texto sem forma) com contraste AA calculado nos dois temas; ações em lote só aparecem após seleção em quatro filas; separador de milhar pt-BR ligado; avisos de demonstração deixaram de repetir a faixa global.
+- Núcleo diário: revisões de NFS-e ganharam situação e origem do acumulador; Empresas ganhou filtro e coluna de certificado e de revisão aberta; Caixa DTE e Visão geral passaram a mostrar a idade da pendência.
+- Processamento: o detalhe do movimento da Conciliação parou de perder filtro e página; os indicadores mostram valor dos dois lados; o destino Windows da Triagem mostra saúde do agente e prova da última gravação.
+- Suíte completa no `.venv`: 788 aprovados, 2 ignorados. Ruff aprovado. Ondas 5 a 8 continuam abertas; nada foi homologado.
+
+## 22/09/2026 — Etapa 11, landing e ondas 5 a 8 da revisão total (V-102)
+
+- Landing: seção de marca virou seção de problema, contagem errada de etapas corrigida, "Entrar" voltou ao cabeçalho no celular e cinco links passaram ao alvo mínimo de 24 px. O consentimento do cadastro ganhou nome acessível completo.
+- Onda 5: Radar com filtro de período, resumo e marca de "publicação coletada"; Copiloto com limite explícito de rascunho e aviso de resposta sem fonte; aprendizado com vazio útil e ficha de escopo, diferença e responsável.
+- Onda 6: console Mewstack inspecionado visualmente pela primeira vez (base fictícia, sem senha digitada e sem contornar MFA), painel reorganizado por exceção, título do detalhe corrigido e Equipe deixou de expor as contas de outros visitantes da demonstração.
+- Onda 7: tutorial guiado implementado — catálogo declarativo, preferência versionada por pessoa, diálogo nativo com Pular/Voltar/Fechar, botão "Como usar" e progresso só em sessão na demonstração.
+- Onda 8: auditoria contra as Vercel Web Interface Guidelines nas superfícies alteradas, varredura em 375 px sem overflow e console limpo. Suíte no `.venv`: 796 aprovados, 2 ignorados; Ruff e `makemigrations --check` limpos.
+- Continuam abertos: regressão por perfil, leitor de tela, temas lado a lado, viewports 1024/768 e a configuração do console sob MFA. Nada foi homologado.
+
+## 22/09/2026 — Entrada da demonstração resolvida pela organização, não pelo slug (V-103)
+
+- O `.env` corrigido não bastava: `load_dotenv` não sobrescreve variável já no ambiente, então o servidor em execução manteve `cica-demo` mesmo depois do autoreload trazer o código novo.
+- `demo_office()` passou a usar o slug configurado quando ele existe e, caso contrário, a única organização ativa com `is_demo=True`; duas marcadas mantêm a entrada fechada.
+- Verificado no servidor do responsável sem reiniciar o processo; dois testes de regressão adicionados. Suíte: 798 aprovados, 2 ignorados.
+
+## 22/09/2026 — Chave de criptografia do banco de desenvolvimento (V-104)
+
+- A massa fictícia de `db.sqlite3` estava cifrada com `test-v1` (settings de teste) e o desenvolvimento usa `local-v1`: a Visão geral quebrava ao ler NFS-e. `test-v1` entrou no mapa de chaves do `.env` local, com `local-v1` seguindo como ativa; nada foi apagado.
+- `config/settings/local.py` passou a usar `load_dotenv(override=True)`, para que o `.env` vença o ambiente herdado pelo autoreload — a mesma armadilha que escondeu a demonstração em V-103.
+- Verificado em processo novo: chaves carregadas, documento decifrado e `/app/` em 200. Suíte: 798 aprovados, 2 ignorados.

@@ -2,7 +2,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+# override=True: Django's autoreloader re-executes the server with the environment the
+# first boot left behind, so a value already in os.environ would outlive every edit to
+# .env and only a full kill would clear it. In development the file is the source.
+load_dotenv(Path(__file__).resolve().parents[3] / ".env", override=True)
 
 from config.settings.base import *  # noqa: E402
 from config.settings.env import env_bool  # noqa: E402

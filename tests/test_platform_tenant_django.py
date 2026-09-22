@@ -207,7 +207,7 @@ class PlatformTenantViewTests(TestCase):
         scheduled = self.client.get(reverse("hub:settings"))
         self.assertContains(scheduled, "Tokens programados para")
         self.assertContains(scheduled, "Até a vigência")
-        self.assertContains(scheduled, "1200 tokens incluídos")
+        self.assertContains(scheduled, "1.200 tokens incluídos")
         self.assertNotContains(scheduled, "Tokens vigentes desde")
 
     def test_token_offer_cannot_hide_incomplete_copilot_terms(self):

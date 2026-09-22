@@ -41,7 +41,6 @@
 .nfse-workspace .nfse-download-field:hover { border-color: var(--blue); }
 .nfse-workspace .nfse-download-field:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .nfse-workspace .nfse-accumulator-editor small { margin: 0; font-size: 11px; line-height: 1.4; }
-.nfse-workspace [data-nfse-classification-confidence] { display: block; max-width: 150px; white-space: normal; font-variant-numeric: tabular-nums; line-height: 1.5; }
 .nfse-workspace .nfse-manual-classification .nfse-download-field { border-color: var(--green); }
 .nfse-workspace .nfse-status { white-space: nowrap; }
 @media (max-width: 760px) {

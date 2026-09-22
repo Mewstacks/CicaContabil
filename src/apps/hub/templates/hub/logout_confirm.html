@@ -1,0 +1,19 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Sair — CICA{% endblock %}
+{% block body %}
+<main class="auth-page" id="conteudo">
+  <section class="auth-card" aria-labelledby="logout-title">
+    <p class="eyebrow">ACESSO</p>
+    {% if user.is_authenticated %}
+    <h1 id="logout-title">Sair da CICA?</h1>
+    <p class="form-intro">A sessão deste navegador será encerrada.</p>
+    <form method="post" class="form-stack">{% csrf_token %}<button class="button" type="submit">Sair</button></form>
+    <p class="auth-alt"><a href="{% url 'hub:dashboard' %}">Voltar ao escritório</a></p>
+    {% else %}
+    <h1 id="logout-title">Sessão encerrada</h1>
+    <p class="form-intro">Nenhuma sessão ativa neste navegador.</p>
+    <p class="auth-alt"><a href="{% url 'hub:login' %}">Entrar</a></p>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

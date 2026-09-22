@@ -1,0 +1,40 @@
+{% comment %}
+Orientação guiada de primeiro uso. O diálogo nativo cuida de foco contido e Escape;
+o script apenas troca o passo, registra a conclusão e devolve o foco ao acionador.
+{% endcomment %}
+{% if onboarding_tour %}
+<div class="onboarding-help">
+  <button class="button button-quiet button-small" type="button" data-onboarding-open aria-haspopup="dialog">Como usar</button>
+</div>
+<dialog class="onboarding-dialog"
+        id="onboarding-{{ onboarding_tour.identifier }}"
+        data-onboarding
+        data-onboarding-id="{{ onboarding_tour.identifier }}"
+        data-onboarding-version="{{ onboarding_tour.version }}"
+        data-onboarding-auto="{% if onboarding_tour_done %}false{% else %}true{% endif %}"
+        data-onboarding-session-only="{% if onboarding_session_only %}true{% else %}false{% endif %}"
+        data-onboarding-url="{% url 'hub:onboarding-complete' onboarding_tour.identifier %}"
+        aria-labelledby="onboarding-title-{{ onboarding_tour.identifier }}">
+  <form method="dialog" class="onboarding-card">
+    {% csrf_token %}
+    <p class="section-kicker">ORIENTAÇÃO</p>
+    <h2 id="onboarding-title-{{ onboarding_tour.identifier }}">{{ onboarding_tour.title }}</h2>
+    <ol class="onboarding-steps" aria-live="polite">
+      {% for step in onboarding_tour.steps %}
+      <li data-onboarding-step="{{ forloop.counter0 }}"{% if not forloop.first %} hidden{% endif %}>
+        <p class="onboarding-counter">Passo {{ forloop.counter }} de {{ onboarding_tour.steps|length }}</p>
+        <h3>{{ step.title }}</h3>
+        <p>{{ step.body }}</p>
+      </li>
+      {% endfor %}
+    </ol>
+    <div class="onboarding-actions">
+      <button class="button button-quiet button-small" type="button" data-onboarding-skip>Pular</button>
+      <button class="button button-quiet button-small" type="button" data-onboarding-back hidden>Voltar</button>
+      <button class="button button-small" type="button" data-onboarding-next autofocus>Avançar</button>
+      <button class="button button-small" type="button" data-onboarding-done hidden>Entendi</button>
+      <button class="icon-control onboarding-close" type="button" data-onboarding-close aria-label="Fechar orientação">×</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}

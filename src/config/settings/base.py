@@ -263,6 +263,8 @@ LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
 USE_TZ = True
+# Accounting screens show values in the thousands; pt-BR needs the dot separator.
+USE_THOUSAND_SEPARATOR = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = PROJECT_ROOT / "staticfiles"

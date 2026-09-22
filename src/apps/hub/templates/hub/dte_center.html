@@ -50,7 +50,7 @@
     <ul class="dte-message-list">
       {% for message in dte_message_page %}
       <li class="dte-message-row">
-        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3><a href="{% url 'hub:dte-message-detail' message.id %}?return_to={{ request.get_full_path|urlencode }}">{{ message.subject|default:'Assunto não informado' }}</a></h3><p>{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }}{% else %}Data não informada{% endif %}</p></div>
+        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3><a href="{% url 'hub:dte-message-detail' message.id %}?return_to={{ request.get_full_path|urlencode }}">{{ message.subject|default:'Assunto não informado' }}</a></h3><p>{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }} · recebida há {{ message.sent_at|timesince }}{% else %}Data não informada{% endif %}</p></div>
         <div class="dte-message-state">
           {% if message.access_receipt.status == 'unknown' %}<span class="dte-status dte-status-failed">Ciência a conferir</span>
           {% elif message.access_receipt.status == 'reading' %}<span class="dte-status dte-status-pending">Abertura em andamento</span>

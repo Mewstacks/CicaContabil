@@ -89,3 +89,49 @@ def test_refresh_withdraws_an_old_false_positive_without_deleting_it(mocked_urlo
     alert.refresh_from_db()
     assert alert.relevance == ReformAlert.Relevance.GENERAL
     assert ReformAlert.objects.filter(pk=alert.pk).exists()
+
+
+@pytest.mark.django_db
+def test_radar_period_filter_hides_older_publications(client) -> None:
+    from datetime import timedelta
+
+    from django.urls import reverse
+    from django.utils import timezone
+
+    from apps.accounts.models import User
+    from apps.hub.models import ProductModule
+    from apps.organizations.models import Membership, Organization
+
+    office = Organization.objects.create(name="Radar", slug="radar-periodo")
+    ProductModule.objects.create(organization=office, code=ProductModule.Code.REFORM, enabled=True)
+    user = User.objects.create_user("radar@example.test", "safe-password-123")
+    Membership.objects.create(organization=office, user=user, role=Membership.Role.OWNER)
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(office.id)
+    session.save()
+
+    recent = ReformAlert.objects.create(
+        source=ReformAlert.Source.RFB,
+        external_key="recente",
+        title="Nota recente sobre CBS",
+        source_url="https://www.gov.br/receitafederal/",
+        relevance=ReformAlert.Relevance.REFORM,
+        published_at=timezone.now() - timedelta(days=3),
+        content_hash="a" * 64,
+    )
+    ReformAlert.objects.create(
+        source=ReformAlert.Source.RFB,
+        external_key="antiga",
+        title="Nota antiga sobre IBS",
+        source_url="https://www.gov.br/receitafederal/",
+        relevance=ReformAlert.Relevance.REFORM,
+        published_at=timezone.now() - timedelta(days=200),
+        content_hash="b" * 64,
+    )
+
+    page = client.get(reverse("hub:reform"), {"periodo": "7"})
+
+    titles = [alert.title for alert in page.context["alerts"]]
+    assert titles == [recent.title]
+    assert "Nota antiga sobre IBS" not in page.content.decode()

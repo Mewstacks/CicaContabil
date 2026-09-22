@@ -32,6 +32,19 @@
       <option value="">Domínio: todos</option>
       <option value="com"{% if filters.vinculo == 'com' %} selected{% endif %}>Com código</option>
     </select>
+    <label class="sr-only" for="filtro-certificado">Certificado</label>
+    <select id="filtro-certificado" name="certificado" autocomplete="off">
+      <option value="">Certificado: todos</option>
+      <option value="valido"{% if filters.certificado == 'valido' %} selected{% endif %}>Válido</option>
+      <option value="vencendo"{% if filters.certificado == 'vencendo' %} selected{% endif %}>Vence em 30 dias</option>
+      <option value="ausente"{% if filters.certificado == 'ausente' %} selected{% endif %}>Sem certificado</option>
+    </select>
+    <label class="sr-only" for="filtro-pendencia">Pendência</label>
+    <select id="filtro-pendencia" name="pendencia" autocomplete="off">
+      <option value="">Pendência: todas</option>
+      <option value="com"{% if filters.pendencia == 'com' %} selected{% endif %}>Com revisão aberta</option>
+      <option value="sem"{% if filters.pendencia == 'sem' %} selected{% endif %}>Sem revisão aberta</option>
+    </select>
     <div class="toolbar-actions">
       {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'hub:companies' %}" data-filter-clear>Limpar</a>{% endif %}
     </div>
@@ -40,11 +53,13 @@
   {% if companies %}
     <div class="data-table-wrap">
       <table class="operational-table company-table">
-        <thead><tr><th>Empresa</th><th>CNPJ</th><th>Código Domínio</th><th><span class="sr-only">Ações</span></th></tr></thead>
+        <thead><tr><th>Empresa</th><th>CNPJ</th><th>Código Domínio</th><th>Certificado</th><th>Revisões abertas</th><th><span class="sr-only">Ações</span></th></tr></thead>
         <tbody>{% for company in companies %}<tr>
           <td data-label="Empresa"><strong>{{ company.name }}</strong></td>
           <td data-label="CNPJ">{% if company.cnpj_masked %}<span class="source-code">{{ company.cnpj_masked }}</span>{% else %}<span class="table-muted">Não informado</span>{% endif %}</td>
           <td data-label="Código Domínio">{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
+          <td data-label="Certificado">{% if company.certificate_expiring %}<span class="nfse-status nfse-status-attention">Vence em 30 dias</span>{% elif company.has_certificate %}<span class="nfse-status nfse-status-success">Válido</span>{% else %}<span class="nfse-status nfse-status-muted">Sem certificado</span>{% endif %}</td>
+          <td data-label="Revisões abertas">{% if company.open_review_total %}<a href="{% url 'hub:reviews' %}?q={{ company.name|urlencode }}">{{ company.open_review_total }}</a>{% else %}<span class="table-muted">0</span>{% endif %}</td>
           <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:company-detail' company.id %}?return_to={{ request.get_full_path|urlencode }}">Abrir<span class="sr-only"> {{ company.name }}</span></a></td>
         </tr>{% endfor %}</tbody>
       </table>
@@ -57,7 +72,7 @@
       </nav>
     {% endif %}
   {% elif filters_applied %}
-    <div class="empty-block operational-empty"><strong>Nenhuma empresa encontrada</strong><a class="button button-small" href="{% url 'hub:companies' %}">Ver todas</a></div>
+    {% url 'hub:companies' as companies_clear_url %}{% include 'hub/partials/empty_state.html' with title="Nenhuma empresa encontrada" description="Revise a pesquisa ou os filtros aplicados." action_url=companies_clear_url action_label="Ver todas" %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Sua base ainda está vazia</strong>{% if dominio_manages_companies %}<p>Sincronize o Domínio para importar empresas.</p>{% elif can_manage_companies %}<button class="button button-small" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}</div>
   {% endif %}

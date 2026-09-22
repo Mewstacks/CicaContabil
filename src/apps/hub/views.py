@@ -27,7 +27,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, IntegerField, Q, QuerySet, Sum, When
+from django.db.models import Case, Count, Exists, F, IntegerField, OuterRef, Q, QuerySet, Sum, When
 from django.db.models.functions import Coalesce
 from django.http import (
     FileResponse,
@@ -117,6 +117,7 @@ from apps.hub.models import (
     NfseSync,
     NormalizedMovement,
     OfficeProfile,
+    OnboardingProgress,
     ParcelamentoOperation,
     ProductModule,
     ReconciliationLayout,
@@ -130,6 +131,7 @@ from apps.hub.models import (
     UsageAllowance,
 )
 from apps.hub.module_catalog import MODULES, OFFERED_MODULE_CODES, ModuleDefinition, definition
+from apps.hub.onboarding import TOURS_BY_ID, tour_for_url_name
 from apps.hub.reconciliation import OfxParseError, confirm_reconciliation_match, import_ofx
 from apps.hub.reconciliation_service import (
     ReconciliationError,
@@ -212,7 +214,13 @@ from apps.triage.forms import (
     OfficeOAuthAppForm,
 )
 from apps.triage.imap import MailboxIMAPError, encrypted_imap_credential, probe_imap_mailbox
-from apps.triage.models import DestinationProfile, Mailbox, MailboxOAuthApp, TriageItem
+from apps.triage.models import (
+    AgentFileJob,
+    DestinationProfile,
+    Mailbox,
+    MailboxOAuthApp,
+    TriageItem,
+)
 from apps.triage.oauth import (
     MailboxOAuthError,
     encrypted_refresh_credential,
@@ -233,6 +241,19 @@ from apps.triage.transitions import InvalidTransition, TriageStatus
 logger = logging.getLogger(__name__)
 
 
+class SignOutView(auth_views.LogoutView):
+    """Answer a bookmarked GET /sair/ with a page instead of a bare 405.
+
+    Django 5.0 removed logout over GET (release notes, "Features removed in 5.0"), so the
+    stock view replies 405 with no body: whoever typed or bookmarked the URL lands on an
+    empty page with no way back. GET now renders the confirmation; the logout itself
+    stays a POST.
+    """
+
+    http_method_names = ["get", "post", "options"]
+    template_name = "hub/logout_confirm.html"
+
+
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     """Keep the one-use reset token out of every subsequent Referer header."""
 
@@ -249,11 +270,29 @@ class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
         return response
 
 
+def demo_office() -> Organization | None:
+    """Resolve the demonstration office by what it is, not by a string that can drift.
+
+    The configured slug stays authoritative when it matches. When it does not -- a stale
+    value in the environment, a renamed organization -- the entry falls back to the single
+    active organization flagged ``is_demo``. Two of them is a configuration problem, not a
+    guess to make, so nothing is returned in that case.
+    """
+
+    configured = Organization.objects.filter(
+        slug=settings.DEMO_ORGANIZATION_SLUG, is_demo=True, is_active=True
+    ).first()
+    if configured is not None:
+        return configured
+    flagged = list(Organization.objects.filter(is_demo=True, is_active=True)[:2])
+    return flagged[0] if len(flagged) == 1 else None
+
+
 @require_http_methods(["GET", "POST"])
 def demo_entry(request: HttpRequest) -> HttpResponse:
     """Dedicated demonstration entry; public access stays gated until session isolation."""
 
-    office = Organization.objects.filter(slug=settings.DEMO_ORGANIZATION_SLUG, is_demo=True).first()
+    office = demo_office()
     available = bool(
         settings.DEMO_ENTRY_ENABLED and settings.DEMO_SESSION_ISOLATION_READY and office
     )
@@ -288,9 +327,7 @@ def home(request: HttpRequest) -> HttpResponse:
     demo_available = bool(
         settings.DEMO_ENTRY_ENABLED
         and settings.DEMO_SESSION_ISOLATION_READY
-        and Organization.objects.filter(
-            slug=settings.DEMO_ORGANIZATION_SLUG, is_demo=True, is_active=True
-        ).exists()
+        and demo_office() is not None
     )
     return render(
         request,
@@ -710,19 +747,75 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         "copilot_enabled": copilot_enabled,
         "active_module_code": active_module_code,
         "permitted_module_codes": permitted_module_codes,
+        **_onboarding_context(request, office, membership, support_session),
     }
 
 
-def refuse(request: HttpRequest, reason: str) -> HttpResponse:
+def _onboarding_context(
+    request: HttpRequest,
+    office: Organization | None,
+    membership: Membership | None,
+    support_session: SupportSession | None,
+) -> dict[str, object]:
+    """Pick the orientation for this screen and say whether it still has to open.
+
+    A support visit is somebody else's workspace, so it never opens a tour. Only the
+    identifier, version, role and completion state cross into the template.
+    """
+
+    url_name = request.resolver_match.url_name if request.resolver_match else None
+    tour = tour_for_url_name(url_name)
+    role = membership.role if isinstance(membership, Membership) else None
+    if tour is None or support_session is not None or not tour.visible_for(role):
+        return {"onboarding_tour": None, "onboarding_tour_done": True}
+    demo = bool(office and office.is_demo)
+    done = False
+    if not demo and getattr(request.user, "is_authenticated", False):
+        done = OnboardingProgress.objects.filter(
+            user=request.user, tour_id=tour.identifier, version__gte=tour.version
+        ).exists()
+    return {
+        "onboarding_tour": tour,
+        "onboarding_tour_done": done,
+        "onboarding_session_only": demo,
+    }
+
+
+@login_required
+@require_http_methods(["POST"])
+def onboarding_complete(request: HttpRequest, tour_id: str) -> HttpResponse:
+    """Record that this person finished one orientation, at the version they saw."""
+
+    tour = TOURS_BY_ID.get(tour_id)
+    if tour is None:
+        return HttpResponseBadRequest("Orientação desconhecida.")
+    OnboardingProgress.objects.update_or_create(
+        user=request.user,
+        tour_id=tour.identifier,
+        defaults={"version": tour.version, "completed_at": timezone.now()},
+    )
+    return HttpResponse(status=204)
+
+
+def refuse(request: HttpRequest, reason: str, *, kind: str = "permission") -> HttpResponse:
     """Refuse with a page the person can leave, not a bare sentence.
 
     ``HttpResponseForbidden`` renders unstyled text with no navigation: whoever just
     clicked a menu item or submitted a form lands on a blank page whose only way out is
     the browser's back button. The status stays 403; only the body becomes a page that
     says what happened and where to go.
+
+    ``kind="unavailable"`` keeps the status but stops labelling "sem permissão" a refusal
+    that has nothing to do with the person's role, which sends them hunting for an access
+    problem that does not exist.
     """
 
-    return render(request, "hub/forbidden.html", {"reason": reason}, status=403)
+    return render(
+        request,
+        "hub/forbidden.html",
+        {"reason": reason, "refusal_kind": kind},
+        status=403,
+    )
 
 
 def collaborator_can_use_module(context: dict[str, object], code: str) -> bool:
@@ -794,6 +887,7 @@ def office_required[**ViewParams](
                 request,
                 "Esta área pode ser vista na demonstração, mas não altera a configuração "
                 "ou os dados do escritório-demo central.",
+                kind="unavailable",
             )
         lifecycle = TenantLifecycle.objects.filter(organization=office).first()
         if support is None and lifecycle is not None:
@@ -969,12 +1063,20 @@ def team(request: HttpRequest) -> HttpResponse:
             messages.success(request, f"Convite enviado para {invitation.email}.")
             return redirect("hub:team")
 
-    collaborators = list(
+    collaborator_rows = (
         Membership.objects.filter(organization=office, is_active=True)
         .select_related("user")
         .prefetch_related("company_grants__company")
         .order_by("user__full_name", "user__email")
     )
+    if office.is_demo:
+        # One visitor must not see the throwaway accounts of every other visitor: the
+        # demonstration office keeps its seeded personas, plus whoever is looking.
+        collaborator_rows = collaborator_rows.exclude(
+            Q(user__email__startswith="demo-", user__email__endswith="@example.test")
+            & ~Q(user=request.user)
+        )
+    collaborators = list(collaborator_rows)
     for item in collaborators:
         grants = list(item.company_grants.all())
         role_labels: dict[str, str] = {
@@ -1146,7 +1248,11 @@ def deactivate_collaborator(request: HttpRequest, membership_id: str) -> HttpRes
         Membership.Role.OWNER,
         Membership.Role.ADMIN,
     }:
-        return refuse(request, "Este acesso n\u00e3o pode ser removido por esta tela.")
+        return refuse(
+            request,
+            "Este acesso n\u00e3o pode ser removido por esta tela.",
+            kind="unavailable",
+        )
     target.is_active = False
     target.save(update_fields=["is_active", "updated_at"])
     CompanyAccessGrant.objects.filter(organization=office, membership=target).update(
@@ -1645,28 +1751,19 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         review = getattr(document, "review_case", None)
         open_review = review if review and review.status == ReviewCase.Status.OPEN else None
         issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
-        confidence = (
-            97
-            if office.is_demo and artifact and artifact.confidence <= 95
-            else artifact.confidence
-            if artifact
-            else open_review.confidence
-            if open_review
-            else None
-        )
+        # A note is classified or it is not: the accumulator either came from the catalogue
+        # or nobody chose one yet. No percentage is shown, because none of them describes a
+        # state an accountant can act on.
+        classified = bool(artifact and artifact.accumulator_code)
         document_rows.append(
             {
                 "document": document,
                 "issued_at": issued_at,
                 "review": open_review,
-                "status": (
-                    "Em revisão" if open_review else "Classificada" if artifact else "Recebida"
-                ),
-                "status_class": (
-                    "attention" if open_review else "success" if artifact else "muted"
-                ),
+                "status": "Em revisão" if open_review else "Recebida",
+                "status_class": "attention" if open_review else "muted",
                 "accumulator": artifact.accumulator_code if artifact else "—",
-                "confidence": confidence,
+                "classified": classified,
                 "artifact": artifact,
             }
         )
@@ -1795,28 +1892,20 @@ def _demo_nfse_download_classifications(
     for document in documents:
         accumulator = request.POST.get(f"accumulator_{document.id}", "").strip()[:80]
         artifact = artifacts.get(str(document.id))
-        confidence = int(artifact.confidence) if artifact and artifact.confidence is not None else 0
-        if artifact and confidence <= 95:
-            confidence = 97
-        is_ai_classification = bool(
-            artifact and artifact.accumulator_code == accumulator and confidence > 95
-        )
+        is_ai_classification = bool(artifact and artifact.accumulator_code == accumulator)
         if is_ai_classification:
             classifications[str(document.id)] = {
                 "accumulator": accumulator,
-                "confidence": confidence,
                 "status": "Classificada pela IA",
             }
         elif accumulator:
             classifications[str(document.id)] = {
                 "accumulator": accumulator,
-                "confidence": 100,
                 "status": "Definida pelo contador",
             }
         else:
             classifications[str(document.id)] = {
                 "accumulator": "Transitória",
-                "confidence": 0,
                 "status": "Transitória sem acumulador",
             }
     return classifications
@@ -1851,7 +1940,6 @@ def _demo_nfse_bulk_download(
                 "Código Domínio",
                 "Pasta",
                 "Acumulador",
-                "Confiança",
                 "Situação",
             ]
         )
@@ -1870,7 +1958,6 @@ def _demo_nfse_bulk_download(
                     document.company.dominio_code or "",
                     f"{folder}/{code} -",
                     classification["accumulator"],
-                    classification["confidence"],
                     classification["status"],
                 ]
             )
@@ -3772,7 +3859,11 @@ def prepare_dte_continuation(request: HttpRequest, item_id: str) -> HttpResponse
         return refuse(request, "Seu perfil não pode preparar consultas DTE.")
     office = cast(Organization, context["office"])
     if is_demo_visitor(request, office):
-        return refuse(request, "A consulta fictícia não tem paginação externa para continuar.")
+        return refuse(
+            request,
+            "A consulta fictícia não tem paginação externa para continuar.",
+            kind="unavailable",
+        )
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     source = DteRunItem.objects.filter(
         id=item_id, organization=office, company_id__in=companies.values("id")
@@ -4426,7 +4517,11 @@ def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
         match = matches.get(str(match_id))
         candidate_id = request.POST.get("dominio_entry_id", "")
         if match is None or candidate_id not in {str(item.id) for item in match.candidates}:
-            return refuse(request, "A correspondência fictícia não está disponível nesta sessão.")
+            return refuse(
+                request,
+                "A correspondência fictícia não está disponível nesta sessão.",
+                kind="unavailable",
+            )
         put_progress(
             request,
             "reconciliation",
@@ -4455,7 +4550,7 @@ def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
     elif source_kind == "accounting":
         accounting_entry = get_object_or_404(AccountingEntry, id=source_id, organization=office)
     else:
-        return refuse(request, "A origem escolhida não é válida.")
+        return refuse(request, "A origem escolhida não é válida.", kind="unavailable")
     try:
         confirm_reconciliation_match(
             match=real_match,
@@ -4559,6 +4654,21 @@ def _reconciliation_v2_context(
             output_field=IntegerField(),
         ),
     )
+    absolute_amount = Case(
+        When(amount_cents__lt=0, then=-F("amount_cents")),
+        default=F("amount_cents"),
+        output_field=IntegerField(),
+    )
+
+    def _total_brl(queryset: object) -> Decimal:
+        total = queryset.aggregate(  # type: ignore[attr-defined]
+            total=Coalesce(Sum(absolute_amount), 0)
+        )["total"]
+        return Decimal(total) / 100
+
+    dominio_entries = DominioBankEntry.objects.filter(
+        organization=office, company__in=companies
+    )
     return {
         "upload_form": ReconciliationUploadForm(companies=companies),
         "reconciliation_runs": list(runs_page.object_list),
@@ -4598,6 +4708,17 @@ def _reconciliation_v2_context(
             "exported": JournalEntry.objects.filter(
                 organization=office, company__in=companies, state=JournalEntry.State.EXPORTED
             ).count(),
+            "imported_amount": _total_brl(all_movements),
+            "pending_amount": _total_brl(
+                all_movements.filter(
+                    review_state__in=[
+                        NormalizedMovement.ReviewState.PENDING,
+                        NormalizedMovement.ReviewState.CONFLICT,
+                    ]
+                )
+            ),
+            "dominio_entries": dominio_entries.count(),
+            "dominio_amount": _total_brl(dominio_entries),
         },
         "reconciliation_local_ocr_available": local_ocr_available(),
         "reconciliation_dominio_export_homologated": (
@@ -4730,7 +4851,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             setup_kind = request.POST.get("setup_kind", "")
             setup_model = setup_models.get(setup_kind)
             if setup_model is None:
-                return refuse(request, "Item de configuração inválido.")
+                return refuse(request, "Item de configuração inválido.", kind="unavailable")
             configured = cast(Any, get_object_or_404(
                 setup_model,
                 id=request.POST.get("setup_id"),
@@ -4799,7 +4920,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                     f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}"
                 )
             else:
-                return refuse(request, "Ação de configuração inválida.")
+                return refuse(request, "Ação de configuração inválida.", kind="unavailable")
 
     context.update(
         {
@@ -5105,7 +5226,7 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
             "Reaplicação criada. Revisões manuais, conciliações e lançamentos serão preservados.",
         )
     else:
-        return refuse(request, "Ação de processamento inválida.")
+        return refuse(request, "Ação de processamento inválida.", kind="unavailable")
     return redirect("hub:reconciliation")
 
 
@@ -5121,11 +5242,11 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
         ReconciliationSourceFile, id=source_id, organization=office, company__in=companies
     )
     if source.kind not in {ReconciliationSourceFile.Kind.CSV, ReconciliationSourceFile.Kind.XLSX}:
-        return refuse(request, "Este formato não usa mapeamento de colunas.")
+        return refuse(request, "Este formato não usa mapeamento de colunas.", kind="unavailable")
     try:
         preview = preview_tabular(source)
     except ReconciliationError as exc:
-        return refuse(request, str(exc))
+        return refuse(request, str(exc), kind="unavailable")
     if request.method == "POST":
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não salvar layouts.")
@@ -5275,10 +5396,14 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
         messages.error(request, "Selecione ao menos um movimento desta página.")
         return redirect(f"{reverse('hub:reconciliation')}#movimentos")
     if len(movement_ids) > 50:
-        return refuse(request, "Ações em lote aceitam até 50 movimentos por vez.")
+        return refuse(
+            request,
+            "Ações em lote aceitam até 50 movimentos por vez.",
+            kind="unavailable",
+        )
     action = request.POST.get("action", "")
     if action not in {"ignore", "review"}:
-        return refuse(request, "Escolha uma ação em lote válida.")
+        return refuse(request, "Escolha uma ação em lote válida.", kind="unavailable")
     reason = request.POST.get("reason", "").strip()
     if not reason:
         messages.error(request, "Informe o motivo da alteração em lote.")
@@ -5292,12 +5417,20 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
             .order_by("id")
         )
         if len(movements) != len(movement_ids):
-            return refuse(request, "Um ou mais movimentos não estão mais disponíveis para você.")
+            return refuse(
+                request,
+                "Um ou mais movimentos não estão mais disponíveis para você.",
+                kind="unavailable",
+            )
         if any(
             movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists()
             for movement in movements
         ):
-            return refuse(request, "Movimentos exportados exigem retificação auditada.")
+            return refuse(
+                request,
+                "Movimentos exportados exigem retificação auditada.",
+                kind="unavailable",
+            )
         new_state = (
             NormalizedMovement.ReviewState.IGNORED
             if action == "ignore"
@@ -5790,6 +5923,11 @@ def reform(request: HttpRequest) -> HttpResponse:
     source = request.GET.get("fonte", "")
     search_term = request.GET.get("q", "").strip()[:100]
     relevance = request.GET.get("relevancia", "")
+    period = request.GET.get("periodo", "")
+    valid_periods = {"7": 7, "30": 30, "90": 90}
+    if period not in valid_periods:
+        period = ""
+    period_start = timezone.now() - timedelta(days=valid_periods[period]) if period else None
     valid_sources = set(ReformAlert.Source.values)
     valid_relevance = {ReformAlert.Relevance.REFORM, ReformAlert.Relevance.FISCAL}
     radar_query_params = request.GET.copy()
@@ -5812,6 +5950,12 @@ def reform(request: HttpRequest) -> HttpResponse:
                 for alert in demo_alerts
                 if needle in f"{alert.title} {alert.summary}".casefold()
             ]
+        if period_start is not None:
+            demo_alerts = [
+                alert
+                for alert in demo_alerts
+                if alert.published_at and alert.published_at >= period_start
+            ]
         demo_alert_page = Paginator(demo_alerts, 50).get_page(request.GET.get("page"))
         last_success = timezone.now() - timedelta(hours=3)
         demo_statuses = {
@@ -5828,6 +5972,7 @@ def reform(request: HttpRequest) -> HttpResponse:
                 "radar_search": search_term,
                 "selected_source": source,
                 "selected_relevance": relevance,
+                "selected_period": period,
                 "sources": ReformAlert.Source.choices,
                 "relevances": [
                     (ReformAlert.Relevance.REFORM, ReformAlert.Relevance.REFORM.label),
@@ -5852,6 +5997,8 @@ def reform(request: HttpRequest) -> HttpResponse:
         relevance = ""
     if search_term:
         alerts = alerts.filter(Q(title__icontains=search_term) | Q(summary__icontains=search_term))
+    if period_start is not None:
+        alerts = alerts.filter(published_at__gte=period_start)
     reform_alert_page = Paginator(alerts, 50).get_page(request.GET.get("page"))
     statuses_by_source = {status.source: status for status in ReformSourceStatus.objects.all()}
     context.update(
@@ -5864,6 +6011,7 @@ def reform(request: HttpRequest) -> HttpResponse:
             "radar_search": search_term,
             "selected_source": source,
             "selected_relevance": relevance,
+            "selected_period": period,
             "sources": ReformAlert.Source.choices,
             "relevances": [
                 (ReformAlert.Relevance.REFORM, ReformAlert.Relevance.REFORM.label),
@@ -6106,6 +6254,28 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
     context["destination_form"] = DestinationProfileForm(
         profile=cast(DestinationProfile | None, context["destination_profile"])
     )
+    # A Windows root is only trustworthy with the agent behind it: show the last signal
+    # and the last confirmed write, not just the path someone typed.
+    context["destination_agent"] = (
+        EdgeAgent.objects.filter(organization=office, status=EdgeAgent.Status.ACTIVE)
+        .order_by("-last_seen_at")
+        .first()
+    )
+    context["destination_agent_online"] = EdgeAgent.objects.filter(
+        organization=office,
+        status=EdgeAgent.Status.ACTIVE,
+        last_seen_at__gte=timezone.now() - timedelta(minutes=5),
+    ).exists()
+    context["destination_last_write"] = (
+        AgentFileJob.objects.filter(organization=office, status=AgentFileJob.Status.DONE)
+        .order_by("-completed_at")
+        .first()
+    )
+    context["destination_failed_write"] = (
+        AgentFileJob.objects.filter(organization=office, status=AgentFileJob.Status.FAILED)
+        .order_by("-completed_at", "-created_at")
+        .first()
+    )
     return context, None
 
 
@@ -6116,7 +6286,11 @@ def triage_oauth_app_save(request: HttpRequest, provider: str) -> HttpResponse:
     if blocked:
         return blocked
     if cast(Organization, context["office"]).is_demo:
-        return refuse(request, "A demonstração fictícia não aceita aplicativos ou caixas reais.")
+        return refuse(
+            request,
+            "A demonstração fictícia não aceita aplicativos ou caixas reais.",
+            kind="unavailable",
+        )
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador configura o aplicativo de e-mail.")
     if provider not in (Mailbox.Provider.MS365_GRAPH, Mailbox.Provider.GMAIL_API):
@@ -6176,7 +6350,11 @@ def triage_imap_connect(request: HttpRequest) -> HttpResponse:
     if blocked:
         return blocked
     if cast(Organization, context["office"]).is_demo:
-        return refuse(request, "A demonstração fictícia não testa servidores IMAP reais.")
+        return refuse(
+            request,
+            "A demonstração fictícia não testa servidores IMAP reais.",
+            kind="unavailable",
+        )
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
     form = IMAPConnectionForm(request.POST)
@@ -6236,7 +6414,11 @@ def triage_oauth_start(request: HttpRequest, provider: str) -> HttpResponse:
     if blocked:
         return blocked
     if cast(Organization, context["office"]).is_demo:
-        return refuse(request, "A demonstração fictícia não solicita autorização de e-mail real.")
+        return refuse(
+            request,
+            "A demonstração fictícia não solicita autorização de e-mail real.",
+            kind="unavailable",
+        )
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador do escritório conecta caixas de e-mail.")
     office = context["office"]
@@ -6392,7 +6574,7 @@ def triage_mailbox_configure(request: HttpRequest, mailbox_id: str) -> HttpRespo
     if blocked:
         return blocked
     if cast(Organization, context["office"]).is_demo:
-        return refuse(request, "A demonstração não configura caixas externas.")
+        return refuse(request, "A demonstração não configura caixas externas.", kind="unavailable")
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador configura a leitura da caixa.")
     office = cast(Organization, context["office"])
@@ -6489,7 +6671,11 @@ def triage_destination_configure(request: HttpRequest) -> HttpResponse:
     if blocked:
         return blocked
     if cast(Organization, context["office"]).is_demo:
-        return refuse(request, "A demonstração não altera o destino do escritório.")
+        return refuse(
+            request,
+            "A demonstração não altera o destino do escritório.",
+            kind="unavailable",
+        )
     if not _can_manage_collaborators(context):
         return refuse(request, "Somente o administrador define o destino dos arquivos.")
     office = cast(Organization, context["office"])
@@ -6821,7 +7007,11 @@ def companies(request: HttpRequest) -> HttpResponse:
     if request.method == "POST" and not can_manage_companies:
         return refuse(request, "Esta sessão é somente leitura.")
     if request.method == "POST" and dominio_manages_companies:
-        return refuse(request, "As empresas deste escritório são sincronizadas pelo Domínio.")
+        return refuse(
+            request,
+            "As empresas deste escritório são sincronizadas pelo Domínio.",
+            kind="unavailable",
+        )
     if (
         request.method == "POST"
         and ControlPlaneBinding.objects.filter(organization=office).exists()
@@ -6861,6 +7051,8 @@ def companies(request: HttpRequest) -> HttpResponse:
     query = request.GET.get("q", "").strip()
     situation = request.GET.get("situacao", "")
     link = request.GET.get("vinculo", "")
+    certificate_filter = request.GET.get("certificado", "")
+    pending_filter = request.GET.get("pendencia", "")
 
     rows = ClientCompany.objects.filter(organization=office)
     if not _sees_every_company(context):
@@ -6881,9 +7073,44 @@ def companies(request: HttpRequest) -> HttpResponse:
     if link == "com":
         rows = rows.exclude(dominio_code="")
 
+    now = timezone.now()
+    expiring_until = now + timedelta(days=30)
+    valid_certificates = Certificate.objects.filter(
+        company_id=OuterRef("pk"), revoked_at__isnull=True, valid_until__gt=now
+    )
+    expiring_certificates = valid_certificates.filter(valid_until__lte=expiring_until)
+    open_reviews = ReviewCase.objects.filter(
+        organization=office, status=ReviewCase.Status.OPEN, document__company_id=OuterRef("pk")
+    )
+    rows = rows.annotate(
+        has_certificate=Exists(valid_certificates),
+        certificate_expiring=Exists(expiring_certificates),
+        open_review_total=Count(
+            "nfse_documents__review_case",
+            filter=Q(nfse_documents__review_case__status=ReviewCase.Status.OPEN),
+            distinct=True,
+        ),
+    )
+    if certificate_filter == "valido":
+        rows = rows.filter(has_certificate=True, certificate_expiring=False)
+    elif certificate_filter == "vencendo":
+        rows = rows.filter(certificate_expiring=True)
+    elif certificate_filter == "ausente":
+        rows = rows.filter(has_certificate=False)
+    if pending_filter == "com":
+        rows = rows.filter(Exists(open_reviews))
+    elif pending_filter == "sem":
+        rows = rows.filter(~Exists(open_reviews))
+
     paginator = Paginator(rows.order_by("name"), COMPANIES_PER_PAGE)
     page = paginator.get_page(request.GET.get("pagina"))
-    filters = {"q": query, "situacao": situation, "vinculo": link}
+    filters = {
+        "q": query,
+        "situacao": situation,
+        "vinculo": link,
+        "certificado": certificate_filter,
+        "pendencia": pending_filter,
+    }
     context.update(
         {
             "page_title": "Empresas",
@@ -7112,9 +7339,6 @@ def reviews(request: HttpRequest) -> HttpResponse:
     review_status = request.GET.get("status", ReviewCase.Status.OPEN)
     if review_status not in {"all", *ReviewCase.Status.values}:
         review_status = ReviewCase.Status.OPEN
-    confidence = request.GET.get("confidence", "all")
-    if confidence not in {"all", "low", "high"}:
-        confidence = "all"
     cases = ReviewCase.objects.filter(
         organization=office,
         document__company__in=scope,
@@ -7127,14 +7351,10 @@ def reviews(request: HttpRequest) -> HttpResponse:
             | Q(reason__icontains=review_search)
             | Q(suggested_accumulator__icontains=review_search)
         )
-    if confidence == "low":
-        cases = cases.filter(confidence__lt=80)
-    elif confidence == "high":
-        cases = cases.filter(confidence__gte=80)
     if is_demo_visitor(request, office):
         demo_cases = [
             _demo_review_for_view(request, review)
-            for review in cases.order_by("status", "confidence", "-created_at")
+            for review in cases.order_by("status", "created_at")
         ]
         if review_status != "all":
             demo_cases = [review for review in demo_cases if review.status == review_status]
@@ -7144,7 +7364,7 @@ def reviews(request: HttpRequest) -> HttpResponse:
         if review_status != "all":
             cases = cases.filter(status=review_status)
         filtered_total = cases.count()
-        page = Paginator(cases.order_by("status", "confidence", "-created_at"), 50).get_page(
+        page = Paginator(cases.order_by("status", "created_at"), 50).get_page(
             request.GET.get("page")
         )
     context.update(
@@ -7155,7 +7375,6 @@ def reviews(request: HttpRequest) -> HttpResponse:
             "review_filtered_total": filtered_total,
             "review_search": review_search,
             "review_status": review_status,
-            "review_confidence": confidence,
         }
     )
     return render(request, "hub/reviews.html", context)
@@ -7356,7 +7575,7 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
         messages.info(request, "Esta decisão fictícia já foi registrada nesta sessão.")
         return detail_redirect(request, "hub:review-detail", case_id=review.id)
     if not visitor and review.status != ReviewCase.Status.OPEN:
-        return refuse(request, "Este caso já recebeu uma decisão.")
+        return refuse(request, "Este caso já recebeu uma decisão.", kind="unavailable")
     accumulator = request.POST.get("accumulator_code", "").strip()
     if not accumulator:
         messages.error(request, "Informe o acumulador usado para registrar a decisão.")
@@ -7679,7 +7898,11 @@ def settings_view(request: HttpRequest) -> HttpResponse:
                 "Somente o dono ou administrador do escritório pode aceitar estes termos.",
             )
         if token_draft is None:
-            return refuse(request, "Não existe uma proposta de tokens aguardando aceite.")
+            return refuse(
+                request,
+                "Não existe uma proposta de tokens aguardando aceite.",
+                kind="unavailable",
+            )
         if request.POST.get("accept_token_terms") != "on":
             messages.error(request, "Confirme o valor, a franquia, os pesos e o teto mensal.")
             return redirect("hub:settings")
@@ -7737,7 +7960,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         if not can_manage_dominio_agent:
             return refuse(request, "Somente owners e administradores podem atualizar o Domínio.")
         if dominio_connector is None or dominio_connector.status not in {"healthy", "error"}:
-            return refuse(request, "O Domínio não está conectado.")
+            return refuse(request, "O Domínio não está conectado.", kind="unavailable")
         if dominio_connector.mode == IntelligenceConnector.Mode.DIRECT_ODBC:
             if not dominio_connector.odbc_dsn:
                 return refuse(
@@ -7804,7 +8027,11 @@ def settings_view(request: HttpRequest) -> HttpResponse:
         if not can_manage_dominio_agent:
             return refuse(request, "Somente owners e administradores podem abrir um chamado.")
         if dominio_connector is None or dominio_sync_state != "failed":
-            return refuse(request, "Não há uma falha de sincronização para encaminhar.")
+            return refuse(
+                request,
+                "Não há uma falha de sincronização para encaminhar.",
+                kind="unavailable",
+            )
         ticket, created = DominioSupportTicket.objects.get_or_create(
             organization=office,
             connector=dominio_connector,

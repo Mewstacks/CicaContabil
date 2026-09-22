@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=6">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'intelligence/assistant.css' %}?v=7">{% endblock %}
 {% block workspace_content %}
 <section class="assistant-workspace{% if draft %} has-artifact{% endif %}" aria-label="Conversa com o Copiloto CICA">
   <aside class="assistant-history" aria-label="Conversas recentes">
@@ -74,9 +74,10 @@
             <article class="chat-message chat-message-assistant">
               <div class="message-heading">
                 <p class="message-label">CICA IA</p>
-                {% if message.evidence %}<span class="model-mark">Com fontes</span>{% endif %}
+                {% if message.evidence %}<span class="model-mark">Com fontes</span>{% else %}<span class="model-mark model-mark-unsourced">Sem fonte verificável</span>{% endif %}
               </div>
               <p>{{ message.content }}</p>
+              {% if not message.evidence %}<p class="answer-limit" role="note">Sem evidência vinculada: confira na área operacional antes de usar esta resposta.</p>{% endif %}
               {% if message.evidence %}
                 <details class="answer-trace">
                   <summary><span>Ver análise</span><span>{{ message.evidence|length }} fonte{{ message.evidence|length|pluralize:"s" }}</span></summary>
@@ -94,6 +95,7 @@
                   </div>
                 </details>
               {% endif %}
+              <p class="answer-limit">Rascunho para conferência. A CICA não altera o Domínio; a decisão é da sua equipe.</p>
               {% if not demo_copilot %}<div class="answer-exports" aria-label="Exportar esta análise">
                 <span>Exportar</span>
                 <a href="{% url 'intelligence:export' message.id 'pdf' %}">PDF</a>

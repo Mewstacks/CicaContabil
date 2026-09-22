@@ -1,0 +1,6 @@
+{% comment %}
+Contrato único de estado vazio: título curto, uma frase de causa e a saída.
+Parâmetros: title (obrigatório), description, action_url, action_label,
+secondary_url, secondary_label. Sem descrição, o bloco fica só com título e ação —
+nunca com um segundo parágrafo consolando quem chegou aqui.
+{% endcomment %}<div class="empty-block operational-empty"><strong>{{ title }}</strong>{% if description %}<p>{{ description }}</p>{% endif %}{% if action_url and action_label %}<a class="button button-quiet button-small" href="{{ action_url }}">{{ action_label }}</a>{% endif %}{% if secondary_url and secondary_label %}<a class="button button-quiet button-small" href="{{ secondary_url }}">{{ secondary_label }}</a>{% endif %}</div>

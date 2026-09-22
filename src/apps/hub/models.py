@@ -1607,3 +1607,30 @@ class OperationalTask(OrganizationScopedModel):
     class Meta:
         ordering = ("status", "due_on", "-created_at")
         indexes = [models.Index(fields=["organization", "status", "due_on"])]
+
+
+class OnboardingProgress(UUIDTimeStampedModel):
+    """One person's completion of one guided orientation, tied to its version.
+
+    The row holds no fiscal content, no company and no answer: only which orientation
+    the person finished and which version it was, so a materially changed flow can show
+    the new version once. Demonstration visitors never reach this table; their progress
+    stays in the browser session.
+    """
+
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="onboarding_progress"
+    )
+    tour_id = models.CharField(max_length=40)
+    version = models.PositiveSmallIntegerField()
+    completed_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "tour_id"), name="hub_unique_onboarding_progress"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.tour_id}@{self.version}"

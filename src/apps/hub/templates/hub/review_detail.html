@@ -17,7 +17,7 @@
   <dl class="identity-grid">
     {% for label, value in review_evidence %}<div><dt>{{ label }}</dt><dd>{{ value|default:"Não informado na captura" }}</dd></div>{% endfor %}
     <div><dt>Acumulador sugerido</dt><dd>{{ review.suggested_accumulator|default:"Nenhum" }}</dd></div>
-    <div><dt>Confiança da regra</dt><dd>{{ review.confidence }}%</dd></div>
+    
   </dl>
   <p class="operation-context">Confira a nota e o acumulador antes de confirmar. A confiança da regra não substitui sua conferência.</p>
   <p><a class="button button-quiet" href="{% url 'hub:review-original-xml' review.id %}">Baixar XML original desta NFS-e</a></p>

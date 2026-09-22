@@ -15,7 +15,7 @@
       {% for field in form %}
         <div class="field" data-field-name="{{ field.name }}">
           {% if field.field.widget.input_type == 'checkbox' and field.name == 'accept_terms' %}
-            <label for="{{ field.id_for_label }}">{{ field }} Li e aceito os <a href="{% url 'hub:legal' 'termos' %}" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="{% url 'hub:legal' 'privacidade' %}" target="_blank" rel="noopener">Política de Privacidade</a> e o <a href="{% url 'hub:legal' 'tratamento-de-dados' %}" target="_blank" rel="noopener">Anexo de Tratamento de Dados</a>.</label>
+            <label for="{{ field.id_for_label }}">{{ field }} Li e aceito os termos de uso, a política de privacidade e o anexo de tratamento de dados.</label><small class="field-help"><a href="{% url 'hub:legal' 'termos' %}" target="_blank" rel="noopener">Termos de Uso</a> · <a href="{% url 'hub:legal' 'privacidade' %}" target="_blank" rel="noopener">Política de Privacidade</a> · <a href="{% url 'hub:legal' 'tratamento-de-dados' %}" target="_blank" rel="noopener">Anexo de Tratamento de Dados</a></small>
           {% elif field.field.widget.input_type == 'checkbox' %}
             <label for="{{ field.id_for_label }}">{{ field }} {{ field.label }}</label>
           {% else %}

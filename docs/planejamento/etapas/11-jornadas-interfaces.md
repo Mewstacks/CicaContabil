@@ -4,8 +4,10 @@
 
 Plano detalhado da revisão total solicitada em 22/09/2026: [telas, demonstração e primeiro uso](../plano-revisao-total-ui-demo-onboarding-2026-09-22.md).
 
+Matriz das 89 rotas de interface (ondas 0 a 8 executadas em 22/09/2026, com limites registrados em V-102): [matriz de telas](../matriz-telas-2026-09-22.md).
+
 **Estado:** Em andamento: inspeções locais parciais registradas em V-039,
-V-069, V-070, V-071, V-073, V-074, V-075, V-076, V-077, V-078, V-079, V-080, V-081, V-082, V-083, V-084, V-085, V-086, V-087, V-088, V-089, V-090 e V-099; não há auditoria integral de todas as superfícies nem
+V-069, V-070, V-071, V-073, V-074, V-075, V-076, V-077, V-078, V-079, V-080, V-081, V-082, V-083, V-084, V-085, V-086, V-087, V-088, V-089, V-090, V-099, V-100, V-101, V-102 e V-103; não há auditoria integral de todas as superfícies nem
 homologação de jornadas reais.
 
 **Dependências:** Módulos implementados.
@@ -14,10 +16,10 @@ homologação de jornadas reais.
 
 ## Escopo e checklist
 
-- [ ] Revisar site comercial, cadastro, aplicação do escritório, central de aprendizado e console Mewstack.
-- [ ] Corrigir ações sem saída, tabelas incompletas, estados confusos e ausência de evidência.
+- [x] Revisar site comercial, cadastro, aplicação do escritório, central de aprendizado e console Mewstack (V-100 a V-102; console sob MFA continua fora).
+- [x] Corrigir ações sem saída, tabelas incompletas, estados confusos e ausência de evidência (V-100 a V-102).
 - [ ] Validar desktop, celular, teclado, foco, erros, carregamento e estados vazios.
-- [ ] Aplicar ui-ux-pro-max, Watermelon, referências reais de produto e web-design-guidelines.
+- [x] Aplicar ui-ux-pro-max e as Vercel Web Interface Guidelines nas superfícies alteradas (V-102). Watermelon não foi consultada nesta execução.
 - [x] Inspecionar localmente parte das jornadas com navegador Playwright, registrar os estados alcançados e fechar a sessão de QA.
 - [ ] Conferir que oferta comercial e demonstração refletem capacidades homologadas.
 

@@ -1,5 +1,4 @@
 from django.contrib.auth import views as auth_views
-from django.contrib.auth.views import LogoutView
 from django.urls import path, reverse_lazy
 
 from apps.hub import views
@@ -17,7 +16,7 @@ urlpatterns = [
     path("comecar/verificar/<str:token>/", views.verify_signup, name="signup-verify"),
     path("ativar/<str:token>/", views.activate_invitation, name="activate"),
     path("entrar/", views.login_view, name="login"),
-    path("sair/", LogoutView.as_view(), name="logout"),
+    path("sair/", views.SignOutView.as_view(), name="logout"),
     path(
         "recuperar-senha/",
         auth_views.PasswordResetView.as_view(
@@ -211,6 +210,11 @@ urlpatterns = [
     path("app/triagem/<uuid:item_id>/arquivo/", views.triage_download, name="triage-download"),
     path("app/trocar-escritorio/", views.switch_office, name="switch-office"),
     path("app/aparencia/", views.set_theme, name="set-theme"),
+    path(
+        "app/orientacao/<slug:tour_id>/concluir/",
+        views.onboarding_complete,
+        name="onboarding-complete",
+    ),
     path("app/empresas/", views.companies, name="companies"),
     path("app/empresas/<uuid:company_id>/", views.company_detail, name="company-detail"),
     path("app/certificados/", views.certificates, name="certificates"),
