@@ -408,3 +408,14 @@ versões. Portanto os apps `common`, `accounts`, `organizations`, `audit` e
 produto — domínio, cálculo, ingestão e telas. Os índices cegos do Lucrums
 produzem os mesmos valores sob a função da CICA, então o dado atravessa sem
 reindexação.
+
+## D-113 — Gráficos do módulo Rentabilidade reproduzem os do Lucrums
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. As telas de
+rentabilidade devem entregar os mesmos gráficos do Lucrums, com a mesma leitura e
+a mesma interação. Como D-110 mantém a interface servida pelo servidor e a CICA
+aplica CSP `script-src 'self'`, sem build de front e sem CDN, as bibliotecas de
+gráfico da origem não podem ser carregadas: a paridade é obtida escrevendo os
+gráficos como script próprio servido de `static/`, no precedente que a landing já
+usa. A decisão é sobre o resultado na tela, não sobre a biblioteca — nenhuma
+dependência externa de front é introduzida.
