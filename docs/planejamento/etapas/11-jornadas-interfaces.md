@@ -2,6 +2,8 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
+Plano detalhado da revisão total solicitada em 22/09/2026: [telas, demonstração e primeiro uso](../plano-revisao-total-ui-demo-onboarding-2026-09-22.md).
+
 **Estado:** Em andamento: inspeções locais parciais registradas em V-039,
 V-069, V-070, V-071, V-073, V-074, V-075, V-076, V-077, V-078, V-079, V-080, V-081, V-082, V-083, V-084, V-085, V-086, V-087, V-088, V-089, V-090 e V-099; não há auditoria integral de todas as superfícies nem
 homologação de jornadas reais.
