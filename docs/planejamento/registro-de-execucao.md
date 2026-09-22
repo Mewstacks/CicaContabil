@@ -1059,3 +1059,13 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - Falta de dado não vira margem: cliente sem hora aparece como "Sem horas no mês" e as situações de ausência usam borda tracejada em vez da cor das faixas. Q-40 continua necessária para o limiar de cobertura da carteira inteira.
 - Por D-115 o módulo fica fora dos módulos padrão do cadastro enquanto Q-39 e Q-41 estiverem abertas: ligá-lo no teste gratuito daria a todo escritório novo uma tela sem como responder o que promete.
 - Nenhuma dependência de front foi introduzida — sem build, Tailwind, HTMX, CDN ou script inline. Suíte: 928 aprovados, 3 ignorados.
+
+## 22/09/2026 — Etapa 14, fase 2: telas do módulo Rentabilidade (V-108)
+
+- Colaboradores com os vínculos do ERP, ficha da pessoa com a composição do custo anual, horas, análises por recorte, configuração do cálculo e a seção de rentabilidade dentro da ficha de empresa que o hub já tinha. A lista de clientes e a tela de conectores não foram portadas: a CICA já as tem.
+- A ficha do colaborador exibe os mesmos valores do vetor do contrato — R$ 64.690,00 de custo anual, R$ 37,09 por hora —, agora conferidos pela interface e não só pelo serviço.
+- Por D-113 o gráfico é SVG desenhado por script próprio servido de `static/`, sem biblioteca externa, build, CDN ou script inline. A mesma série sai como tabela ao lado, que é o que leitor de tela percorre, e por isso o SVG é `aria-hidden`.
+- Falta de dado não vira número em nenhuma tela: sem horas, custo, resultado, margem e honorário sugerido saem como travessão com a explicação ao lado; sem salário vigente o custo do colaborador também é travessão, e não zero.
+- Gravar um parâmetro de custo reprojeta todas as competências na hora, senão esta tela e a ficha do cliente passariam a se contradizer até a importação seguinte.
+- D-115 foi ampliada: o módulo ficou fora também da demonstração, não só do cadastro, porque uma demonstração que o abre já o está anunciando. A lista passou a viver em um lugar só.
+- Suíte: 955 aprovados, 3 ignorados. Inspeção visual em navegador, responsividade e leitor de tela seguem pendentes e pertencem à etapa 11.

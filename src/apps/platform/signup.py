@@ -16,7 +16,7 @@ from apps.audit.services import record_event
 from apps.common.cnpj import lookup_company
 from apps.common.encryption import blind_index
 from apps.hub.models import OfficeProfile, ProductModule
-from apps.hub.module_catalog import OFFERED_MODULE_CODES
+from apps.hub.module_catalog import OFFERED_MODULE_CODES, self_service_module_codes
 from apps.organizations.models import Membership, Organization
 from apps.platform.availability import copilot_is_available
 from apps.platform.legal_versions import LEGAL_VERSION
@@ -85,15 +85,10 @@ def issue_signup(
     if registry.get("status") == "not_found":
         raise SignupError("Não encontramos este CNPJ. Confira o número e tente novamente.")
     resolved_office_name = (office_name or registry.get("razao_social") or f"CNPJ {cnpj}").strip()
-    # Rentabilidade fica fora do teste por padrão enquanto não tiver preço (Q-41)
-    # nem fonte de honorários definida (Q-39): ligá-la no cadastro entregaria a
-    # todo escritório novo uma tela que não tem como responder a pergunta que ela
-    # promete. O console da plataforma continua podendo habilitá-la caso a caso.
     default_modules = [
         code
-        for code in OFFERED_MODULE_CODES
-        if (copilot_is_available() or code != ProductModule.Code.AI)
-        and code != ProductModule.Code.PROFITABILITY
+        for code in self_service_module_codes()
+        if copilot_is_available() or code != ProductModule.Code.AI
     ]
     requested_modules = module_codes or default_modules
     resolved_modules = [

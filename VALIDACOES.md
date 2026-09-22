@@ -1,5 +1,50 @@
 # CICA — validações e evidências
 
+## V-108 — Telas do módulo Rentabilidade portadas para templates
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, agente, navegador, cobrança ou dado de cliente.
+Escopo: fase 2 da etapa 14, conforme D-108, D-109, D-110, D-113 e D-115.
+
+- **Telas entregues:** visão geral da carteira (V-107), colaboradores com a seção de
+  vínculos do ERP, ficha da pessoa com a composição do custo anual, horas, análises por
+  recorte, configuração do cálculo e a seção de rentabilidade dentro da ficha de empresa
+  que o hub já tinha. As telas de lista de clientes e de conectores do projeto de origem
+  não foram portadas: a CICA já as tem em `hub:companies` e `hub:settings`.
+- **Fidelidade ao cálculo, verificada na tela:** a ficha do colaborador exibe R$ 64.690,00
+  de custo anual, R$ 37,09 de valor-hora e R$ 46,37 de valor-hora produtivo para o
+  exemplo de referência — os mesmos valores do vetor de `contracts/calculations/v1.json`,
+  agora conferidos pela interface e não só pelo serviço.
+- **Por D-113 o gráfico de evolução é SVG desenhado por script próprio** servido de
+  `static/`, sem biblioteca externa, sem build, sem CDN e sem script inline, respeitando a
+  CSP vigente. A mesma série sai como tabela ao lado — é ela que leitor de tela percorre e
+  que sobrevive à impressão —, e por isso o SVG é `aria-hidden`. Mês sem dado é desenhado
+  vazio em vez de omitido.
+- **Falta de dado não vira número em nenhuma tela:** sem horas suficientes, custo,
+  resultado, margem e honorário sugerido saem como travessão, com a explicação ao lado;
+  sem salário vigente o custo do colaborador também é travessão, e não zero.
+- **Restrições de papel:** salário e custo aparecem somente para administrador, e somente
+  administrador decide um vínculo do ERP ou altera um parâmetro de custo. Sessão de
+  suporte somente-leitura não grava. Há teste para cada uma.
+- **Gravar um parâmetro reprojeta todas as competências na hora.** Sem esse passo, a
+  carteira só mudaria na importação seguinte enquanto a ficha do cliente, que recalcula a
+  cada pedido, mudaria na hora, e as duas telas passariam a se contradizer.
+- **Por D-115, ampliado nesta entrega:** o módulo ficou fora também da demonstração, não
+  só do cadastro. Uma demonstração que abre o módulo já o está anunciando, e
+  `docs/cica-module-truth.md` não autoriza texto público sobre ele enquanto Q-39 e Q-40
+  seguirem abertas. A lista passou a viver em um lugar só,
+  `module_catalog.self_service_module_codes()`.
+- **Testes:** 25 em `tests/test_profitability_screens_django.py` e 14 em
+  `tests/test_profitability_module_django.py`. Suíte inteira em 955 aprovados e 3
+  ignorados, sem regressão. `ruff check .`, `mypy src`, `manage.py check` e
+  `makemigrations --check` limpos.
+- **Limites desta validação:** as telas foram exercitadas por requisição em teste, com
+  massa fictícia, e não em navegador contra ambiente publicado — inspeção visual,
+  responsividade real, leitor de tela e temas lado a lado continuam pendentes e pertencem
+  à etapa 11. O gráfico foi verificado pelo dado que a página emite, não pelo desenho
+  renderizado. A margem exibida continua dependendo de Q-39 para ter honorário de verdade,
+  e Q-40 segue necessária para o limiar de cobertura da carteira.
+
 ## V-107 — Módulo Rentabilidade declarado e visão geral da carteira
 
 Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em

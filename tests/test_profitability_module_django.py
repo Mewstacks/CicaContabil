@@ -41,6 +41,33 @@ class CatalogoTests(TestCase):
         assert reverse(definition(ProductModule.Code.PROFITABILITY).route_name) == URL
 
 
+class OfertaTests(TestCase):
+    def test_o_modulo_nao_entra_no_que_se_liga_sem_alguem_decidir(self) -> None:
+        """Por D-115: sem fonte de honorários e sem preço, não se oferece sozinho."""
+
+        from apps.hub.module_catalog import self_service_module_codes
+
+        automaticos = self_service_module_codes()
+
+        assert ProductModule.Code.PROFITABILITY in OFFERED_MODULE_CODES
+        assert ProductModule.Code.PROFITABILITY not in automaticos
+        assert ProductModule.Code.NFSE in automaticos
+
+    def test_a_demonstracao_nao_abre_o_modulo(self) -> None:
+        """Uma demonstração que abre o módulo já o está anunciando."""
+
+        from apps.hub.seeding import ensure_office
+
+        office = ensure_office(name="Demo", slug="demo-rentabilidade", enable_modules=True)
+
+        assert not ProductModule.objects.filter(
+            organization=office, code=ProductModule.Code.PROFITABILITY
+        ).exists()
+        assert ProductModule.objects.filter(
+            organization=office, code=ProductModule.Code.NFSE, enabled=True
+        ).exists()
+
+
 class ModulePageTests(TestCase):
     def setUp(self) -> None:
         self.office = Organization.objects.create(name="Escritório", slug="escritorio")

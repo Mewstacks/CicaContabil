@@ -25,7 +25,7 @@ from apps.hub.models import (
     OfficeProfile,
     ProductModule,
 )
-from apps.hub.module_catalog import OFFERED_MODULE_CODES
+from apps.hub.module_catalog import OFFERED_MODULE_CODES, self_service_module_codes
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import (
     Invitation,
@@ -108,7 +108,10 @@ def ensure_office(
         },
     )
     if enable_modules:
-        for code in OFFERED_MODULE_CODES:
+        # A demonstração abre só o que pode ser anunciado. Um módulo que a
+        # `cica-module-truth.md` marca como sem texto público permitido não pode
+        # aparecer na tela que existe justamente para mostrar o produto.
+        for code in self_service_module_codes():
             ProductModule.objects.get_or_create(
                 organization=organization,
                 code=code,
@@ -129,7 +132,7 @@ def ensure_membership(
             membership=membership,
             company=company,
             defaults={
-                "modules": list(OFFERED_MODULE_CODES),
+                "modules": list(self_service_module_codes()),
                 "capabilities": ["read", "write", "dispatch"],
             },
         )
