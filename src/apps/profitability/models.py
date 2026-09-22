@@ -25,9 +25,10 @@ Três diferenças em relação à origem, todas deliberadas:
    aqui e não código portado, e `UsuarioDominio`, que virou `UsuarioErp` porque
    carrega `sistema_origem` e vale igualmente para o Siescon — o nome antigo
    afirmava um ERP só.
-3. Falta `last_seen_run` em todos os modelos. Na origem é a chave para o ciclo de
-   ingestão, que chega na fase 3 desta etapa junto com o modelo de execução.
-   As colunas `deleted_at` já estão aqui porque não dependem dele.
+3. `IngestRun` e `IngestBatch` são desta árvore, não da origem: lá o ciclo de
+   ingestão trazia junto o seu próprio transporte — inscrição, token e cifra de
+   envelope. Por D-111 o transporte é o do agente da CICA, então ficaram só o
+   contrato executado, a janela reconciliada e o orçamento de rejeição.
 """
 
 from __future__ import annotations
@@ -189,6 +190,13 @@ class Colaborador(OrganizationScopedModel):
     dias_ferias = models.PositiveSmallIntegerField(default=22)
     folgas_dias = models.PositiveSmallIntegerField(default=0)
     ausencias_dias = models.PositiveSmallIntegerField(default=0)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="colaboradores_vistos",
+    )
 
     class Meta:
         ordering = ("codigo",)
@@ -256,8 +264,12 @@ class CompanyErpProfile(OrganizationScopedModel):
         DOMINIO = "dominio", "Domínio"
         MANUAL = "manual", "Manual"
 
-    empresa = models.OneToOneField(
-        "hub.ClientCompany", on_delete=models.CASCADE, related_name="erp_profile"
+    # Chave estrangeira, não um-para-um: o mesmo cliente é cadastrado nos dois
+    # ERPs do escritório, e as duas linhas apontam para a mesma empresa da
+    # carteira. É essa a diferença entre unificar a carteira e esconder uma
+    # duplicata depois.
+    empresa = models.ForeignKey(
+        "hub.ClientCompany", on_delete=models.CASCADE, related_name="erp_profiles"
     )
     codi_emp = models.IntegerField(null=True, blank=True)
     origem = models.CharField(max_length=8, choices=Origem.choices, default=Origem.DOMINIO)
@@ -296,6 +308,13 @@ class CompanyErpProfile(OrganizationScopedModel):
         default=StatusCorrespondencia.NAO_ENCONTRADO,
     )
     deleted_at = models.DateTimeField(null=True, blank=True)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="empresas_vistas",
+    )
 
     class Meta:
         ordering = ("codi_emp",)
@@ -304,7 +323,11 @@ class CompanyErpProfile(OrganizationScopedModel):
                 fields=("organization", "sistema_origem", "codi_emp"),
                 condition=models.Q(codi_emp__isnull=False),
                 name="profitability_unique_empresa_codi_emp",
-            )
+            ),
+            models.UniqueConstraint(
+                fields=("empresa", "sistema_origem"),
+                name="profitability_unique_empresa_por_erp",
+            ),
         ]
         indexes = [
             models.Index(fields=("organization", "documento_bi")),
@@ -415,6 +438,13 @@ class UsuarioErp(OrganizationScopedModel):
     # manuais, e é isso que faz a correção do operador sobreviver ao ciclo do dia
     # seguinte — sem esta marca o casamento automático desfaria a decisão dele.
     vinculo_manual = models.BooleanField(default=False)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="usuarios_vistos",
+    )
 
     class Meta:
         ordering = ("i_usuario",)
@@ -466,6 +496,13 @@ class SalarioColaborador(OrganizationScopedModel):
     competencia = models.CharField(max_length=7, validators=[competencia_validator])
     salario = models.DecimalField(max_digits=12, decimal_places=2)
     fonte = models.CharField(max_length=8, choices=Colaborador.Origem.choices)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="salarios_vistos",
+    )
 
     class Meta:
         ordering = ("-competencia",)
@@ -523,6 +560,13 @@ class RegistroHoras(OrganizationScopedModel):
         max_length=12, choices=StatusRegistro.choices, default=StatusRegistro.OK
     )
     deleted_at = models.DateTimeField(null=True, blank=True)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="horas_vistas",
+    )
 
     class Meta:
         ordering = ("data", "inicio")
@@ -584,6 +628,13 @@ class ServicoFaturado(OrganizationScopedModel):
     competencia = models.CharField(max_length=7, validators=[competencia_validator], db_index=True)
     forma_localizacao = models.CharField(max_length=16, choices=StatusCorrespondencia.choices)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="servicos_vistos",
+    )
 
     class Meta:
         ordering = ("competencia", "codi_cli")
@@ -622,6 +673,13 @@ class EventoFaturamento(OrganizationScopedModel):
     competencia = models.CharField(max_length=7, validators=[competencia_validator], db_index=True)
     lancamentos = models.PositiveIntegerField(default=0)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    last_seen_run = models.ForeignKey(
+        "IngestRun",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="eventos_vistos",
+    )
 
     class Meta:
         ordering = ("-competencia", "-total")
@@ -835,3 +893,95 @@ class ColaboradorCompetenciaMetrics(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.colaborador_id} {self.competencia}"
+
+
+class IngestRun(OrganizationScopedModel):
+    """Uma execução de um contrato de consulta contra o ERP do escritório.
+
+    É a âncora de tudo que a ingestão grava: cada linha de cadastro aponta para o
+    run que a viu por último, e é isso que permite a reconciliação marcar como
+    removido o que a fonte deixou de trazer, sem apagar nada de verdade.
+
+    O transporte não vive aqui. O agente da CICA já se autentica por mTLS com
+    assinatura do corpo (D-111), então este modelo cuida do que o conector da
+    origem trazia de novo: o contrato executado, o hash da consulta que o
+    produziu, a janela reconciliada e o orçamento de rejeição.
+    """
+
+    class Status(models.TextChoices):
+        RECEIVING = "receiving", "Recebendo"
+        PROCESSING = "processing", "Processando"
+        SUCCEEDED = "succeeded", "Concluído"
+        FAILED = "failed", "Falhou"
+
+    class RunKind(models.TextChoices):
+        FULL = "full", "Completa"
+        INCREMENTAL = "incremental", "Incremental"
+
+    connector = models.ForeignKey(
+        "hub.Connector", on_delete=models.PROTECT, related_name="profitability_runs"
+    )
+    source_system = models.CharField(max_length=16, choices=SistemaOrigem.choices)
+    dataset_code = models.CharField(max_length=64)
+    schema_version = models.PositiveSmallIntegerField()
+    # O hash da consulta que produziu estas linhas. Guardado na execução, e não
+    # só no manifesto, para uma auditoria poder dizer qual SQL gerou um número
+    # mesmo depois de o contrato ser revisado.
+    query_sha256 = models.CharField(max_length=64)
+    manifest_sha256 = models.CharField(max_length=64, blank=True)
+    run_kind = models.CharField(max_length=12, choices=RunKind.choices)
+    parameters = models.JSONField(default=list)
+    idempotency_key = models.CharField(max_length=160)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.RECEIVING)
+    row_count = models.PositiveIntegerField(default=0)
+    batch_count = models.PositiveIntegerField(default=0)
+    error_code = models.CharField(max_length=80, blank=True)
+    # Linhas que a fonte trouxe mas o cadastro não soube aplicar. Um run pode
+    # concluir com rejeições — só a amostra sai daqui para a tela, e ela carrega
+    # coordenadas e motivo, nunca o valor de origem.
+    rejected_count = models.PositiveIntegerField(default=0)
+    rejection_sample = models.JSONField(default=list, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "connector", "idempotency_key"),
+                name="profitability_unique_run_idempotency",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "status", "created_at"))]
+
+    def __str__(self) -> str:
+        return f"{self.dataset_code} {self.run_kind}"
+
+
+class IngestBatch(OrganizationScopedModel):
+    """Uma página de linhas do ERP, guardada cifrada até ser processada.
+
+    A origem embrulhava cada página num JWE por cima do TLS. Aqui o canal já é
+    mTLS com assinatura do corpo (D-111 e D-114), então o que resta a proteger é
+    a página em repouso, entre chegar e ser aplicada — e isso o `EncryptedTextField`
+    da CICA faz, com a mesma chave rotacionável do resto da aplicação.
+
+    A soma de verificação é da página em claro: se o que foi decifrado não bate
+    com o que o agente disse ter enviado, a página não é aplicada.
+    """
+
+    run = models.ForeignKey(IngestRun, on_delete=models.CASCADE, related_name="batches")
+    sequence = models.PositiveIntegerField()
+    row_count = models.PositiveSmallIntegerField()
+    checksum_sha256 = models.CharField(max_length=64)
+    payload = EncryptedTextField()
+
+    class Meta:
+        ordering = ("sequence",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("run", "sequence"), name="profitability_unique_batch_sequence"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.run_id} #{self.sequence}"

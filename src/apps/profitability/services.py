@@ -354,6 +354,7 @@ def grupos_por_raiz_de_cnpj(organization: Organization) -> dict[str, str]:
     """
 
     ocultas = _empresas_ocultas_por_duplicidade(organization)
+    vistas: set[str] = set()
     porRaiz: dict[str, list[tuple[str, str]]] = {}
     for empresa_id, raiz, documento in (
         CompanyErpProfile.objects.filter(
@@ -363,8 +364,9 @@ def grupos_por_raiz_de_cnpj(organization: Organization) -> dict[str, str]:
         .values_list("empresa_id", "documento_raiz_bi", "documento")
     ):
         chave = str(empresa_id)
-        if chave in ocultas:
+        if chave in ocultas or chave in vistas:
             continue
+        vistas.add(chave)
         porRaiz.setdefault(raiz, []).append((chave, cnpj_ordem(only_digits(documento))))
 
     matriz_de: dict[str, str] = {}
@@ -423,9 +425,11 @@ def unidades_do_grupo(
 
     perfis = {
         str(perfil.empresa_id): perfil
-        for perfil in CompanyErpProfile.objects.select_related("empresa").filter(
-            organization=organization, empresa_id__in=sorted(ids), deleted_at__isnull=True
-        )
+        for perfil in CompanyErpProfile.objects.select_related("empresa")
+        .filter(organization=organization, empresa_id__in=sorted(ids), deleted_at__isnull=True)
+        # Domínio por último para vencer a gêmea do Siescon no dicionário: é o
+        # código que o escritório abre ao lado para conferir a linha.
+        .order_by("-sistema_origem")
     }
     if not perfis:
         return []
@@ -596,15 +600,24 @@ def _duplicidade(organization: Organization) -> tuple[set[str], dict[str, str]]:
         if ativo and PAPEIS_DE_FONTE & papeis:
             fontes.add(str(empresa_id))
 
-    sem_documento = {
+    ativas = {
         str(empresa_id)
         for empresa_id in CompanyErpProfile.objects.filter(
-            organization=organization,
-            empresa__active=True,
-            deleted_at__isnull=True,
-            documento_bi="",
+            organization=organization, empresa__active=True, deleted_at__isnull=True
         ).values_list("empresa_id", flat=True)
     }
+    # Sem documento é a empresa que NENHUM dos seus perfis documentou. Olhar
+    # perfil a perfil esconderia uma empresa documentada no Domínio só porque a
+    # gêmea do Siescon veio sem o campo.
+    com_documento = {
+        str(empresa_id)
+        for empresa_id in CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        )
+        .exclude(documento_bi="")
+        .values_list("empresa_id", flat=True)
+    }
+    sem_documento = ativas - com_documento
     if not faturamento:
         # Sem fonte de faturamento armada não há critério para escolher entre as
         # gêmeas, e esconder pela errada é pior que mostrar duplicado. As sem
@@ -688,9 +701,18 @@ def _rebuild_cliente_metrics(
     # Every active company gets a row, including those with no hours: the
     # portfolio screens have to be able to show "sem dados" as a state rather
     # than as an absence.
-    for empresa_id in CompanyErpProfile.objects.filter(
-        organization=organization, empresa__active=True, deleted_at__isnull=True
-    ).values_list("empresa_id", flat=True):
+    for empresa_id in (
+        CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        )
+        # `order_by()` vazio antes do `distinct()`: a ordenação padrão do modelo
+        # entraria no SELECT e a distinção passaria a ser por (empresa, codi_emp),
+        # devolvendo a mesma empresa uma vez por ERP — e duas linhas de métrica
+        # para uma empresa violam a chave única, que foi como isto apareceu.
+        .order_by()
+        .values_list("empresa_id", flat=True)
+        .distinct()
+    ):
         chave = str(empresa_id)
         if chave in ocultas:
             continue

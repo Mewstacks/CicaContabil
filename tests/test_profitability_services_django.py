@@ -23,6 +23,7 @@ from apps.profitability.models import (
     ProfitabilityConfig,
     RegistroHoras,
     SalarioColaborador,
+    SistemaOrigem,
 )
 from apps.profitability.services import (
     codigos_erp,
@@ -324,6 +325,42 @@ class RecomputeTests(TestCase):
 
         codigos = codigos_erp(self.office)
         assert codigos[str(self.company.id)] == ("dominio", 1)
+
+    def test_empresa_com_perfil_nos_dois_erps_ocupa_uma_linha_so(self) -> None:
+        """A gêmea do outro ERP não é um segundo cliente: é a mesma empresa vista duas vezes."""
+
+        CompanyErpProfile.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            codi_emp=711,
+            sistema_origem=SistemaOrigem.SIESCON,
+            documento="12.345.678/0001-99",
+            papel=["cliente"],
+        )
+        pessoa = self._pessoa("Ana Woltmann", "3000")
+        self._horas(self.company, pessoa, 600)
+        self._mensalidade(self.company, "1500.00")
+
+        recompute_competencia(self.office, COMPETENCIA)
+
+        assert ClienteCompetenciaMetrics.objects.filter(empresa=self.company).count() == 1
+        assert self.company.erp_profiles.count() == 2
+
+    def test_documento_em_um_erp_basta_para_a_empresa_entrar_na_carteira(self) -> None:
+        """Olhar perfil a perfil esconderia empresa documentada só porque a gêmea veio sem."""
+
+        CompanyErpProfile.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            codi_emp=711,
+            sistema_origem=SistemaOrigem.SIESCON,
+            documento="",
+            papel=["cliente"],
+        )
+
+        recompute_competencia(self.office, COMPETENCIA)
+
+        assert ClienteCompetenciaMetrics.objects.filter(empresa=self.company).exists()
 
     def test_isolamento_entre_escritorios(self) -> None:
         vizinho = Organization.objects.create(name="Vizinho", slug="vizinho")

@@ -80,6 +80,11 @@ LOCAL_APPS = [
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
+# Onde vivem os contratos de consulta do módulo Rentabilidade. O padrão é
+# `contracts/datasets/` na raiz do repositório; a variável existe para a imagem
+# de container, que copia os contratos para outro caminho.
+DATASET_CATALOG_ROOT = env_str("DATASET_CATALOG_ROOT", "")
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",

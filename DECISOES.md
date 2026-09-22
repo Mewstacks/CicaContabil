@@ -419,3 +419,17 @@ gráfico da origem não podem ser carregadas: a paridade é obtida escrevendo os
 gráficos como script próprio servido de `static/`, no precedente que a landing já
 usa. A decisão é sobre o resultado na tela, não sobre a biblioteca — nenhuma
 dependência externa de front é introduzida.
+
+## D-114 — Transporte do agente da CICA, sem segunda camada de cifra
+
+Data: 22/09/2026. Origem: executor, decisão de implementação local sob D-111. O
+conector do Lucrums embrulhava cada página de dados num envelope JWE por cima do
+TLS, com um par de chaves e um esquema de token próprios. O agente da CICA já se
+autentica por mTLS com assinatura do corpo, e a CICA já cifra em repouso com
+chave rotacionável. Manter os dois seria um segundo sistema de chaves para
+operar, girar e auditar, cobrindo um trecho que o primeiro já cobre. Então a
+página chega em claro pelo canal autenticado e fica cifrada em repouso pelo campo
+da própria CICA, com soma de verificação do conteúdo em claro conferida antes de
+aplicar. O que veio do conector da origem e não existia aqui é o catálogo de
+consultas fixado por SHA-256: contrato divergente não é despachado nem aplicado.
+Esta decisão não autoriza publicação, instalação real nem homologação.
