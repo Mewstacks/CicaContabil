@@ -75,6 +75,7 @@ internal sealed class OdbcBridgeClient(AgentConfig config)
             Sql = dataset?.Sql ?? "",
             Parameters = Array.Empty<object>(),
             MaxRows = dataset?.MaxRowsPerRun ?? 0,
+            ExpectedColumns = dataset?.ResultColumns ?? [],
         };
         await process.StandardInput.WriteLineAsync(
             JsonSerializer.Serialize(pedido).AsMemory(), token);

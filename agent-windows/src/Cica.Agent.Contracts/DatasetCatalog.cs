@@ -39,9 +39,31 @@ internal sealed record DatasetDefinition(
     bool Validated,
     IReadOnlyList<DatasetParameter> Parameters,
     IReadOnlyList<DatasetColumn> Columns,
+    IReadOnlyList<string> ContextColumns,
     IReadOnlyList<string> IdentityColumns,
     IReadOnlyList<string> AllowedRunKinds,
-    int MaxRowsPerRun);
+    int MaxRowsPerRun)
+{
+    internal string[] ResultColumns => Columns
+        .Select(column => column.Name)
+        .Where(name => !ContextColumns.Contains(name, StringComparer.OrdinalIgnoreCase))
+        .ToArray();
+}
+
+internal static class DatasetResultContract
+{
+    internal static void ValidateColumns(
+        IReadOnlyList<string> expected, IReadOnlyList<string> actual)
+    {
+        if (expected.Count != actual.Count
+            || expected.Distinct(StringComparer.OrdinalIgnoreCase).Count() != expected.Count
+            || actual.Distinct(StringComparer.OrdinalIgnoreCase).Count() != actual.Count
+            || expected.Where((column, index) =>
+                !string.Equals(column, actual[index], StringComparison.OrdinalIgnoreCase)).Any())
+            throw new InvalidOperationException(
+                "As colunas retornadas pelo ERP divergem do contrato do dataset.");
+    }
+}
 
 internal static class DatasetCatalog
 {
@@ -117,6 +139,7 @@ internal static class DatasetCatalog
                 item.Validated,
                 item.Parameters,
                 item.Columns,
+                item.ContextColumns ?? [],
                 item.IdentityColumns,
                 item.AllowedRunKinds,
                 item.MaxRowsPerRun);
@@ -155,6 +178,7 @@ internal static class DatasetCatalog
         [property: JsonPropertyName("validated")] bool Validated,
         [property: JsonPropertyName("parameters")] DatasetParameter[] Parameters,
         [property: JsonPropertyName("columns")] DatasetColumn[] Columns,
+        [property: JsonPropertyName("contextColumns")] string[]? ContextColumns,
         [property: JsonPropertyName("identityColumns")] string[] IdentityColumns,
         [property: JsonPropertyName("allowedRunKinds")] string[] AllowedRunKinds,
         [property: JsonPropertyName("maxRowsPerRun")] int MaxRowsPerRun);

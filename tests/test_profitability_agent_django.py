@@ -143,6 +143,9 @@ class AgentApiTests(TestCase):
 
     @LIGADO
     def test_cada_erp_ve_o_proprio_catalogo(self) -> None:
+        Connector.objects.create(
+            organization=self.office, kind=Connector.Kind.SIESCON, enabled=True
+        )
         dominio = {d["code"] for d in self._datasets().json()["datasets"]}
         siescon = {
             d["code"]
@@ -151,6 +154,40 @@ class AgentApiTests(TestCase):
 
         assert "automatic_hours" in dominio
         assert "automatic_hours" not in siescon
+        assert "users" not in siescon
+
+    @LIGADO
+    def test_usuario_siescon_sem_semantica_de_atividade_nao_abre_execucao(self) -> None:
+        Connector.objects.create(
+            organization=self.office, kind=Connector.Kind.SIESCON, enabled=True
+        )
+        resposta = self._abrir(
+            source_system=SistemaOrigem.SIESCON,
+            dataset_code="users",
+            schema_version=1,
+        )
+
+        assert resposta.status_code == 400
+        assert IngestRun.objects.count() == 0
+
+    @LIGADO
+    def test_conector_dominio_nao_habilita_siescon(self) -> None:
+        assert self._datasets(source_system=SistemaOrigem.SIESCON).status_code == 409
+        assert self._abrir(source_system=SistemaOrigem.SIESCON).status_code == 409
+        assert IngestRun.objects.count() == 0
+
+    @LIGADO
+    def test_conector_siescon_habilita_apenas_a_propria_origem(self) -> None:
+        self.connector.enabled = False
+        self.connector.save(update_fields=["enabled"])
+        Connector.objects.create(
+            organization=self.office, kind=Connector.Kind.SIESCON, enabled=True
+        )
+
+        assert self._datasets().status_code == 409
+        resposta = self._datasets(source_system=SistemaOrigem.SIESCON)
+        assert resposta.status_code == 200
+        assert {item["code"] for item in resposta.json()["datasets"]} == {"companies"}
 
     # --- abertura de execução ----------------------------------------------------
 

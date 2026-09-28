@@ -40,15 +40,21 @@ MAX_ROWS_PER_BATCH = 2_000
 MAX_BATCHES_PER_RUN = 1_000
 
 
-def _connector(agent: EdgeAgent) -> Connector | None:
-    """O conector Domínio que o escritório configurou, ou nada.
+def _connector(agent: EdgeAgent, source_system: str) -> Connector | None:
+    """O conector habilitado para esta origem, ou nada.
 
     Não é criado sob demanda: um conector que nasce sozinho no primeiro ciclo é
     configuração aparecendo sem ninguém ter configurado nada.
     """
 
+    if source_system == SistemaOrigem.DOMINIO:
+        kind = Connector.Kind.DOMINIO_AGENT
+    elif source_system == SistemaOrigem.SIESCON:
+        kind = Connector.Kind.SIESCON
+    else:
+        return None
     return Connector.objects.filter(
-        organization=agent.organization, kind=Connector.Kind.DOMINIO_AGENT, enabled=True
+        organization=agent.organization, kind=kind, enabled=True
     ).first()
 
 
@@ -80,8 +86,8 @@ def datasets(request: HttpRequest) -> JsonResponse:
     source_system = str(payload.get("source_system") or SistemaOrigem.DOMINIO)
     if source_system not in SistemaOrigem.values:
         return agent_error("Sistema de origem desconhecido.", 400)
-    if _connector(agent) is None:
-        return agent_error("O escritório não tem conector Domínio habilitado.", 409)
+    if _connector(agent, source_system) is None:
+        return agent_error("O escritório não tem conector desta origem habilitado.", 409)
 
     catalog = load_catalog()
     armados = _papeis_armados(agent, source_system)
@@ -124,11 +130,10 @@ def open_run(request: HttpRequest) -> JsonResponse:
     payload = agent_payload(request)
     if payload is None:
         return agent_error("Pedido inválido.", 400)
-    connector = _connector(agent)
-    if connector is None:
-        return agent_error("O escritório não tem conector Domínio habilitado.", 409)
-
     source_system = str(payload.get("source_system") or SistemaOrigem.DOMINIO)
+    connector = _connector(agent, source_system)
+    if connector is None:
+        return agent_error("O escritório não tem conector desta origem habilitado.", 409)
     dataset_code = str(payload.get("dataset_code") or "")
     run_kind = str(payload.get("run_kind") or "")
     idempotency_key = str(payload.get("idempotency_key") or "")

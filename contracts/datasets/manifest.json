@@ -499,7 +499,7 @@
       "schemaVersion": 1,
       "sqlFile": "users.siescon.v1.sql",
       "querySha256": "1efaea8e20ad807b026f0f6c806d75e45c7cac941ef603ea5f0d3de114e572be",
-      "validated": true,
+      "validated": false,
       "parameters": [],
       "columns": [
         {
