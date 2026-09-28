@@ -166,6 +166,7 @@ internal sealed class ProfitabilityProcessor(AgentConfig config, AgentClient cli
         using DbDataReader reader = await command.ExecuteReaderAsync(
             CommandBehavior.SequentialAccess | CommandBehavior.SingleResult, token);
         string[] names = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
+        DatasetResultContract.ValidateColumns(dataset.ResultColumns, names);
         DatasetValueKind[] kinds = ValueKinds(reader);
 
         while (await reader.ReadAsync(token))

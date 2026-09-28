@@ -1,5 +1,17 @@
 # Registro de execução da meta operacional
 
+## 28/09/2026 — proteção do adaptador Siescon (V-116)
+
+- D-121 registrou a branch `codex/siescon-adapter` sobre `codex/lucrums`.
+  O agente confere colunas do SQL antes de transmitir linhas e o backend exige
+  o conector da origem. Usuários Siescon ficam fora de despacho até confirmar
+  o campo de atividade, evitando marcar todos como ativos por suposição.
+- Testes .NET, Python focados e regressão integral passaram; MyPy, Ruff,
+  Django, migrações e builds Windows .NET 8 também. Ver números e ambiente em
+  V-116. Nenhum script DDF, ODBC, ERP ou dado real foi acessado.
+- Faltam layout de importação contábil, schema de contas/lançamentos e prova
+  no Siescon autorizado. Exportação permanece bloqueada; etapa 04 aberta.
+
 ## 28/09/2026 — vínculo Domínio e margem sem honorário corrigidos (V-115)
 
 - O código Domínio da carteira agora prevalece sobre documento coincidente de

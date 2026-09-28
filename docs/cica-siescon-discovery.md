@@ -1,5 +1,7 @@
 # CICA — descoberta de integração Siescon
 
+> **Atualização de 28/09/2026:** D-117 aceitou a [base técnica inferida do Lucrums](siescon/README.md), resolvendo Q-33 para desenvolvimento local. O agente unificado já tem ponte ODBC x86 e contratos de empresas/folha; D-121 exige conector Siescon próprio e conferência de colunas. Usuários e tributação não são despachados; exportação contábil segue bloqueada sem layout de importação. Nenhum teste com o ERP autorizado da CICA foi feito nesta estação. Os registros históricos abaixo descrevem o estado anterior.
+
 > **Atualização de 17/09/2026:** D-53 confirma servidor/banco disponível; D-54 define **leitura + exportação revisada**, sem gravação direta. O responsável ainda precisa disponibilizar versão, mecanismo autorizado e layout (Q-33). Não existe adaptador homologado. A pesquisa pública abaixo é histórica, não foi refeita nesta etapa. Próximo trabalho em [etapa 04](planejamento/etapas/04-siescon.md); decisões vigentes em [DECISOES.md](../DECISOES.md).
 
 > **Inspeção local de 18/09/2026 (V-029):** esta estação tem drivers ODBC SQL Anywhere 16/17 em 32 e 64 bits, mas não possui DSN, driver ou diretório de instalação identificado como Siescon. Foram inspecionados somente metadados; não houve conexão, leitura de banco ou exposição de segredos. O contrato de Q-33 precisa ser fornecido pelo responsável técnico por canal seguro.

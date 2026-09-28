@@ -521,3 +521,19 @@ não commitadas, continua em `codex/lucrums`, separadamente da `main`. Esta deci
 autoriza concluir e verificar a implementação local da etapa 14; não substitui
 Q-39 a Q-41, não presume homologação com ERP/Windows real e não autoriza oferta,
 deploy, custo ou integração automática na `main`.
+
+## D-121 — Conferência do contrato Siescon antes da transmissão
+
+Data: 28/09/2026. Origem: executor, decisão de implementação local sob D-54 e
+D-117, após solicitação do responsável para prosseguir na etapa 04. A branch
+`codex/siescon-adapter` parte de `codex/lucrums` e acrescenta a conferência das
+colunas de resultado contra o manifesto antes da primeira linha enviada. Um
+desvio interrompe a execução com falha visível. O cadastro de usuários Siescon
+permanece fora de despacho enquanto o significado dos campos de atividade
+@1485/@1604 não for confirmado: devolver `situacao=1` para todos os usuários
+seria classificar como ativos registros cuja situação é desconhecida. Empresas e
+folha conservam os contratos já exercitados na origem e ainda exigem a prova
+no ambiente autorizado da CICA. Nenhum layout de importação de lançamentos foi
+obtido; a exportação Siescon permanece bloqueada, sem arquivo presumido nem
+gravação direta. O despacho de cada origem exige o `Connector` habilitado da
+própria origem; um conector Domínio não habilita o Siescon.

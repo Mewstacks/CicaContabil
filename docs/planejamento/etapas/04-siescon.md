@@ -2,25 +2,25 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento em 21/09/2026. V-041 revalidou a preparação local: a fonte e o destino Siescon são modelados, mas não existe adaptador registrado e a exportação falha de modo explícito antes de ler lançamentos ou gerar arquivo. A inspeção local anterior não encontrou instalação, DSN ou driver identificado como Siescon; portanto o servidor/banco disponibilizado em D-53 ainda não está acessível nesta estação. A implementação do adaptador permanece condicionada ao contrato técnico de Q-33.
+**Estado:** Em andamento em 28/09/2026. D-117 resolveu Q-33 para a implementação local usando o layout Btrieve inferido no Lucrums. O agente unificado já inclui leitura Siescon via ponte ODBC x86 e contratos de empresas e folha; V-116 confere as colunas do resultado antes de transmitir linhas e exige conector Siescon próprio. Não houve acesso ao ERP nesta estação. Exportação de lançamentos continua bloqueada por falta do layout de importação e a etapa não está homologada.
 
 **Dependências:** 02–03.
 
-**Decisões relacionadas:** D-53, D-54.
+**Decisões relacionadas:** D-53, D-54, D-117, D-121.
 
 ## Escopo e checklist
 
-- [ ] Identificar versão, banco, mecanismo permitido de acesso e ambiente disponibilizado.
-- [ ] Obter schema e arquivos de referência por acesso autorizado.
-- [-] Preparar leitura, sincronização e diagnóstico. O espelho idempotente existente pode receber um adaptador revisado, mas não há contrato Siescon para implementar leitura específica (Q-33).
-- [ ] Mapear empresas, contas, lançamentos e demais dados necessários aos fluxos contratados.
-- [-] Preparar exportação revisada no layout efetivamente suportado. D-88 separou destino e adaptador; Siescon é recusado até existir layout revisado, sem gerar arquivo fictício.
+- [-] Identificar versão, banco, mecanismo permitido de acesso e ambiente disponibilizado. O levantamento Lucrums identifica Pervasive PSQL v10/Btrieve e ODBC x86 na origem; falta conferir o ambiente autorizado CICA.
+- [-] Obter schema e arquivos de referência por acesso autorizado. D-117 aceitou o layout inferido e os DDFs como base técnica, sujeitos a ensaio em cópia e conferência no ERP.
+- [-] Preparar leitura, sincronização e diagnóstico. Empresas e folha têm contratos no catálogo e ponte x86; o conector próprio, o limite de linhas, o hash e a conferência de colunas falham visivelmente. Usuários ficam fora de despacho por semântica de atividade desconhecida; tributação segue não validada. Não há prova ODBC real CICA.
+- [-] Mapear empresas, contas, lançamentos e demais dados necessários aos fluxos contratados. O levantamento cobre cadastro e folha; não fornece schema confiável de contas e lançamentos.
+- [-] Preparar exportação revisada no layout efetivamente suportado. D-88 separou destino e adaptador; Siescon é recusado até existir layout de importação revisado, sem gerar arquivo fictício.
 - [x] Generalizar vínculos hoje dependentes exclusivamente do código Domínio. `AccountingExport` passou a registrar destino/versionamento e a fonte Siescon existe no modelo; a compatibilidade permanece bloqueada até a revisão do adaptador.
 - [x] Registrar [matriz de capacidades](../../siescon-matriz-capacidades.md): o que funciona com Domínio, Siescon ou ambos.
 
 ## Bloqueios e responsabilidade
 
-Q-28 e Q-33. Banco disponível foi confirmado; versão, meio de acesso e layout não foram fornecidos. A inspeção de 18/09 verificou somente metadados locais e não encontrou instalação, DSN ou driver Siescon nesta estação; não houve tentativa de conexão nem leitura de dados.
+Q-28 permanece para o escopo operacional. Q-33 foi resolvida por D-117 quanto à base técnica; faltam confirmação semântica dos campos de usuários/tributação, layout de importação de lançamentos e acesso autorizado à instalação CICA. A inspeção local não encontrou DSN ou driver Siescon nesta estação; nenhum script de DDF deve ser aplicado ao share de produção sem autorização específica.
 
 Regras e autorização externa: responsável pelo projeto. Código, inventário e verificação local: executor da etapa. Os IDs Q apontam ao [registro único de dúvidas](../duvidas-abertas.md); não criar a mesma pergunta em outro documento.
 
@@ -32,7 +32,7 @@ Leitura autorizada, escopo por empresa, cursor/repetição, revogação, exporta
 
 ## Evidências e próximo passo
 
-V-029 registra que esta estação possui 26 drivers ODBC e 5 DSNs, mas nenhum identificado como Siescon e nenhuma instalação Siescon nas pastas locais usuais. V-030 registra a base de destino/adaptador versionado. V-041 revalidou em macOS local o código que recusa Siescon sem adaptador, 35 testes focados (um skip de OCR), a suíte integral, lint, Django e migrações; não alterou o bloqueio e não realizou conexão, leitura ou exportação Siescon. A [análise consolidada de 21/09](../analise-projeto-2026-09-21.md) lista o material mínimo de Q-33 por canal seguro. Nenhuma homologação nova foi atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
+V-029 registra a ausência de DSN local; V-030, a base de destino/adaptador versionado; V-041, o bloqueio anterior; V-116, as proteções de leitura nesta branch. A [base técnica inferida](../../siescon/README.md) permite desenvolver o caminho local, mas não prova compatibilidade no ambiente CICA. Próximos passos: ensaiar DDFs em cópia autorizada, confirmar campos de atividade e regime na tela, obter layout de importação contábil e conferir leitura, identificação de empresas e arquivo importado no Siescon. Nenhuma homologação nova foi atribuída a esta etapa.
 
 ## Prompt de execução
 

@@ -33,6 +33,38 @@ public sealed class SourceSystemTests
     }
 
     [Fact]
+    public void Usuario_siescon_fica_bloqueado_ate_confirmar_campo_de_atividade()
+    {
+        Assert.Throws<InvalidOperationException>(
+            () => DatasetCatalog.GetForRun("siescon", "users", "full"));
+    }
+
+    [Fact]
+    public void Colunas_de_contexto_nao_sao_exigidas_do_select_da_folha()
+    {
+        var folha = DatasetCatalog.GetForRun("siescon", "salaries", "full");
+
+        Assert.Equal(
+            ["i_empregados", "nome", "salario_mais_recente"],
+            folha.ResultColumns);
+    }
+
+    [Fact]
+    public void Desvio_de_colunas_falha_antes_de_transmitir_linhas()
+    {
+        string[] esperadas = ["codi_emp", "razao_emp", "cgce_emp", "situacao"];
+        DatasetResultContract.ValidateColumns(
+            esperadas, ["CODI_EMP", "RAZAO_EMP", "CGCE_EMP", "SITUACAO"]);
+
+        Assert.Throws<InvalidOperationException>(() => DatasetResultContract.ValidateColumns(
+            esperadas, ["codi_emp", "razao_emp", "cgce_emp"]));
+        Assert.Throws<InvalidOperationException>(() => DatasetResultContract.ValidateColumns(
+            esperadas, ["codi_emp", "razao_emp", "documento", "situacao"]));
+        Assert.Throws<InvalidOperationException>(() => DatasetResultContract.ValidateColumns(
+            esperadas, ["codi_emp", "razao_emp", "cgce_emp", "cgce_emp"]));
+    }
+
+    [Fact]
     public void Contrato_com_parametro_declara_a_ordem_que_o_sql_usa()
     {
         // Os parâmetros são posicionais: a ordem declarada tem de bater com a

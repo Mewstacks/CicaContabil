@@ -25,7 +25,10 @@ existem para isso — em vez de devolver número errado em silêncio.
 
 As consultas Siescon entram no catálogo como as demais e permanecem marcadas como não
 validadas até serem exercitadas contra uma base autorizada. `taxation` continua nesse
-estado; `companies`, `users` e `salaries` já foram exercitadas do lado da origem.
+estado; `companies`, `users` e `salaries` já tiveram consultas exercitadas do lado
+da origem. `users` continua fora de despacho na CICA porque a consulta devolve
+`situacao=1` para todos sem que @1485/@1604 tenham semântica confirmada.
+`companies` e `salaries` seguem sujeitos à conferência no ERP autorizado da CICA.
 
 ## Como o conector lê
 

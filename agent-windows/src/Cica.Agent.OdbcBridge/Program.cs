@@ -50,7 +50,7 @@ internal static class Program
             using OdbcCommand command = BuildCommand(connection, request);
             using OdbcDataReader reader = command.ExecuteReader(
                 CommandBehavior.SequentialAccess | CommandBehavior.SingleResult);
-            WriteRows(reader, request.MaxRows);
+            WriteRows(reader, request.MaxRows, request.ExpectedColumns);
             return 0;
         }
         catch (Exception error)
@@ -94,9 +94,11 @@ internal static class Program
         _ => throw new InvalidOperationException("Tipo de parâmetro não suportado."),
     };
 
-    private static void WriteRows(OdbcDataReader reader, int maxRows)
+    private static void WriteRows(
+        OdbcDataReader reader, int maxRows, IReadOnlyList<string> expectedColumns)
     {
         string[] names = Enumerable.Range(0, reader.FieldCount).Select(reader.GetName).ToArray();
+        DatasetResultContract.ValidateColumns(expectedColumns, names);
         DatasetValueKind[] kinds = ValueKinds(reader);
         int linhas = 0;
         while (reader.Read())
@@ -151,4 +153,5 @@ internal sealed class BridgeRequest
     public string Sql { get; set; } = "";
     public List<BridgeParameter> Parameters { get; set; } = [];
     public int MaxRows { get; set; }
+    public string[] ExpectedColumns { get; set; } = [];
 }

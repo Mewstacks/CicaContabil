@@ -1,5 +1,35 @@
 # CICA — validações e evidências
 
+## V-116 — Contrato de leitura Siescon e isolamento do conector
+
+Data: 28/09/2026. Ambiente: macOS local, branch `codex/siescon-adapter`
+partindo de `codex/lucrums`; testes Python com SQLite de teste e compilação
+.NET 8 dos alvos Windows. Nenhuma conexão a ERP/ODBC, DSN, share, dado de
+cliente ou script DDF foi executada.
+
+- O agente agora compara as colunas retornadas com o manifesto antes de emitir
+  a primeira linha. A comparação inclui a ponte x86 Siescon e o caminho x64
+  Domínio; colunas preenchidas pelo contexto, como empresa e competência da
+  folha, ficam fora da expectativa SQL. Divergência produz falha visível.
+- A API só despacha uma origem com seu próprio `Connector` habilitado. Um
+  conector Domínio não habilita Siescon nem abre execução dessa origem.
+- `siescon/users` foi marcado não validado: seu SQL devolvia `situacao=1` para
+  todos os usuários, sem confirmação dos campos @1485/@1604. `taxation`
+  permanece não validado. `companies` e `salaries` seguem como contratos
+  exercitados na origem, ainda sem prova no ambiente autorizado da CICA.
+- Suíte Python integral: **975 aprovados, 3 ignorados e 11 subtestes** antes
+  da inclusão de um teste adicional de isolamento; a suíte focada de ingestão
+  e API passou com 58 testes, e a API foi reexecutada após esse teste.
+  Os **23 testes .NET** do catálogo/contrato passaram, e serviço e ponte compilaram
+  sem avisos. MyPy do arquivo alterado, Ruff, Django, migrações sem alterações,
+  `dotnet format` e `git diff --check` passaram.
+
+**Limites:** o layout Btrieve é inferido; estrutura de colunas não prova
+semântica ou tamanho de registro. Faltam ensaio dos DDFs em cópia autorizada,
+conferência com a tela do Siescon, fonte de contas/lançamentos e layout de
+importação contábil. A exportação Siescon continua recusada. A etapa 04 segue
+em andamento; não há homologação, deploy ou liberação comercial.
+
 ## V-115 — Prioridade do código Domínio e receita ausente na Rentabilidade
 
 Data: 28/09/2026. Ambiente: branch `codex/lucrums`, dados fictícios em SQLite.
