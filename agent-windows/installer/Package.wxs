@@ -71,7 +71,7 @@
                   Target="[CONFIGURATORFOLDER]Cica.Agent.Configurator.exe"
                   WorkingDirectory="CONFIGURATORFOLDER" />
         <RemoveFolder Id="RemoveCicaProgramsFolder" On="uninstall" />
-        <RegistryValue Root="HKLM" Key="Software\Mewstack\CICA Agent"
+        <RegistryValue Root="HKCU" Key="Software\Mewstack\CICA Agent"
                        Name="ConfiguratorShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </DirectoryRef>
