@@ -442,6 +442,29 @@ registrados, nunca presumidos validados.
 
 [Checklist, testes e continuidade da etapa 13](docs/planejamento/etapas/13-ia-local-definitiva.md).
 
+### Etapa 14 — Incorporar Rentabilidade por Cliente (Lucrums)
+
+**Depende de:** 01–03. A ingestão reaproveita o agente da etapa 03; o perfil Siescon depende da 04.
+
+**Entregas**
+
+- Declarar o módulo `profitability` no catálogo, na navegação e no controle de acesso por colaborador.
+- Portar o domínio e o motor de cálculo do Lucrums, mantendo os vetores de `contracts/calculations/v1.json` intactos.
+- Ligar o cálculo à carteira única `ClientCompany` por D-109, sem segunda entidade de empresa.
+- Portar as telas para templates no padrão da CICA por D-110, sem build de front nem biblioteca externa de gráfico.
+- Trazer o catálogo de consultas fixado por hash e o processamento por conjunto de dados para o protocolo de agente vigente.
+- Unificar o conector Windows por D-111, absorvendo extrator e ponte x86 no `agent-windows`; por D-118, atualização de pacote continua controlada pela CICA e não pelo autoatualizador do projeto de origem.
+
+**Pendências / limites:** Q-39 a Q-41. Sem Q-39 o módulo apresenta custo e horas, não margem confiável. Q-40 ainda define o limiar de cobertura que autoriza publicar margem; Q-41 mantém o módulo sem preço, com `TOKEN_BILLING_ENABLED` desligado. Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117. Instalação real, assinatura e piloto permanecem na etapa 12 por D-86.
+
+**Aceite:** Módulo ligado e desligado por escritório com recusa correta; colaborador sem o módulo no escopo recebe recusa; inquilino vizinho não enxerga nada; sessão de suporte somente-leitura não grava; motor de cálculo aprovado contra os vetores do contrato sem alterar um valor; ingestão simulada de ponta a ponta sem Windows; conector único construído pela integração contínua.
+
+**Prompt**
+
+> Execute a etapa 14 conforme D-108 a D-112. Porte o produto do Lucrums, não a sua base: os apps de conta, organização, auditoria e privacidade da CICA prevalecem. Não crie segunda carteira de empresas. Não invente fonte de receita, limiar de cobertura, preço ou aceite do material Siescon — esses são Q-39 a Q-42. Atualize checklist, validações e registro de execução ao terminar.
+
+[Checklist, testes e continuidade da etapa 14](docs/planejamento/etapas/14-rentabilidade.md).
+
 ## 4. Regras de conclusão e continuidade
 
 Todo prompt de etapa deve ser executado com as instruções comuns abaixo:
@@ -454,4 +477,6 @@ Cada entrega deve registrar critérios atendidos e bloqueios, testes proporciona
 
 ## 5. Próximo trabalho
 
-[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. A preparação estrutural local e a análise estão registradas em V-029 a V-031 e V-041; o contrato técnico Q-33 continua indispensável para escrever o adaptador, pois não se pode inventar versão, mecanismo de acesso, schema, identificador de empresa ou layout. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. A [análise de 21/09](docs/planejamento/analise-projeto-2026-09-21.md) lista o material mínimo a receber por canal seguro. Sem esse material, a etapa permanece bloqueada, não concluída.
+[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. D-117 resolveu Q-33 e Q-42 ao aceitar como base técnica o levantamento trazido do Lucrums, com o limite explícito de que o layout foi inferido; a ponte ODBC de 32 bits já está no conector e falta escrever o adaptador. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. Homologação contra ERP real continua obrigatória antes de liberar.
+
+A [etapa 14](docs/planejamento/etapas/14-rentabilidade.md) foi aberta em 22/09/2026 por D-108 e segue em paralelo na branch `codex/lucrums` por D-120. Domínio, cálculo, ingestão simulada, telas e ficha analítica do cliente já estão incorporados localmente (V-105 a V-110). O conector recebeu catálogo por hash, ponte x86, seleção de Siescon no configurador e WiX do pacote único, com MSI construído e manifesto conferido no CI Windows (V-111/V-114). V-112 corrigiu a herança visual; V-113/V-115 corrigiram conflitos de identidade e a exibição de margem sem honorário. A regressão V-115 confirmou 973 testes Python e 20 .NET já aprovados, mas encontrou cobertura global de 80,09% diante do piso documental de 85%. Restam a validação acessível integral na etapa 11 e a homologação operacional da etapa 12. Q-39 a Q-41 impedem oferta e publicação de margem como afirmação comercial, não o avanço técnico independente.

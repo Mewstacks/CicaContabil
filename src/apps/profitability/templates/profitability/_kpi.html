@@ -1,0 +1,16 @@
+{% load profitability_extras %}
+<div class="profitability-kpi">
+  <dt>{{ rotulo }}</dt>
+  <dd class="tnum {% if valor < 0 %}is-negative{% endif %}">{{ valor|floatformat:2 }}</dd>
+  {% comment %}
+  A seta diz para onde o número foi; a cor, se isso é bom. Custo que sobe é seta
+  para cima em vermelho, porque a direção do número e a direção do interesse não
+  são a mesma coisa.
+  {% endcomment %}
+  {% if tem_anterior and variacao is not None %}
+  <p class="profitability-delta {% if variacao > 0 and sobe_e_bom or variacao < 0 and not sobe_e_bom %}is-good{% elif variacao %}is-bad{% endif %}">
+    <span aria-hidden="true">{% if variacao > 0 %}↑{% elif variacao < 0 %}↓{% else %}→{% endif %}</span>
+    {{ variacao|percentual }} vs. mês anterior
+  </p>
+  {% endif %}
+</div>

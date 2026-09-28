@@ -98,6 +98,15 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         PlatformAccess.Role.DEVELOPER,
         PlatformAccess.Role.ADMIN,
     }
+    dominio_tickets = (
+        list(
+            DominioSupportTicket.objects.filter(status=DominioSupportTicket.Status.OPEN)
+            .select_related("organization")
+            .order_by("created_at")[:8]
+        )
+        if can_review_dominio_tickets
+        else []
+    )
     ctx.update(
         {
             "page_title": "Console da plataforma",
@@ -111,13 +120,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "tenants": Organization.objects.filter(is_active=True)
             .select_related("lifecycle")
             .order_by("-created_at", "-id")[:8],
-            "dominio_tickets": (
-                DominioSupportTicket.objects.filter(status=DominioSupportTicket.Status.OPEN)
-                .select_related("organization")
-                .order_by("created_at")[:8]
-                if can_review_dominio_tickets
-                else []
-            ),
+            "dominio_tickets": dominio_tickets,
         }
     )
     # The console exists to catch exceptions, so offices that need a decision come before
@@ -153,7 +156,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "label": "Integração Domínio com falha",
             "note": "Chamados abertos de sincronização.",
-            "count": len(list(ctx["dominio_tickets"])),
+            "count": len(dominio_tickets),
             "url": "#chamados-dominio",
         },
         {

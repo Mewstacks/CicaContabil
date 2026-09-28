@@ -23,7 +23,13 @@ internal sealed class AgentClient : IDisposable
         http.Timeout = TimeSpan.FromMinutes(10);
     }
 
-    private HttpRequestMessage Signed(HttpMethod method, string path, byte[] body)
+    private HttpRequestMessage Signed(HttpMethod method, string path, byte[] body) =>
+        Signed(method, new Uri(path, UriKind.Relative), body);
+
+    // O download recebe a URL absoluta que o servidor devolveu, já conferida por
+    // `TrustedDownloadUri`. Sem esta sobrecarga a chamada não compilava, e como o
+    // agente Windows não é construído pela integração contínua isso passou.
+    private HttpRequestMessage Signed(HttpMethod method, Uri uri, byte[] body)
     {
         long timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         byte[] prefix = Encoding.UTF8.GetBytes(timestamp + ".");
@@ -32,7 +38,7 @@ internal sealed class AgentClient : IDisposable
         Buffer.BlockCopy(body, 0, signed, prefix.Length, body.Length);
         string signature = Convert.ToHexString(HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(config.SharedSecret), signed)).ToLowerInvariant();
-        var request = new HttpRequestMessage(method, path);
+        var request = new HttpRequestMessage(method, uri);
         request.Headers.Add("X-Hub-Agent-ID", config.AgentId);
         request.Headers.Add("X-Hub-Agent-Timestamp", timestamp.ToString());
         request.Headers.Add("X-Hub-Agent-Signature", signature);

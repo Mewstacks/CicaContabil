@@ -345,3 +345,179 @@ ativa e vigente para a data do documento ou código já observado no histórico
 local da empresa. A tela deve sugerir esses códigos e recusar código inexistente
 ou de outra empresa. A medida não infere tratamento fiscal, não cria regra,
 lançamento, integração, custo ou homologação.
+
+## D-108 — Lucrums incorporado como módulo Rentabilidade por Cliente
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. O projeto
+Lucrums (`github.com/Mewstacks/ProjetoARD`) deixa de ser sistema vizinho e passa
+a ser o oitavo módulo da CICA, com código `profitability` e rótulo comercial
+"Rentabilidade por Cliente". O corte de origem é o commit `d9d4ebb` de `main`,
+sincronizado localmente em 22/09/2026. O módulo responde quanto cada cliente dá
+de lucro a partir de honorários, horas lançadas e custo do colaborador. A
+incorporação não autoriza publicação, cobrança, homologação fiscal, chamada
+externa nem custo; a etapa 14 conduz o trabalho local.
+
+## D-109 — Carteira única em ClientCompany; Empresa do Lucrums não é portado
+
+Data: 22/09/2026. Origem: executor, por delegação explícita do responsável nesta
+conversa. O Lucrums mantém entidade própria `Empresa`; a CICA já ancora toda
+autorização em `hub.ClientCompany`, filtrada por `CompanyAccessGrant` e por
+`ControlPlaneBinding` em `controlplane.company_queryset_for_membership()`. Uma
+segunda carteira faria as telas de rentabilidade — que expõem honorários e margem
+por cliente — contornar esse filtro, o que é regressão de controle de acesso e
+não apenas duplicação. Portanto `ClientCompany` é a carteira única do hub e o
+módulo acrescenta `profitability.CompanyErpProfile` (relação um-para-um) com os
+campos que o cálculo exige e a carteira não tem: `codi_emp`, sistema de origem,
+papel, regime, índice cego do documento, raiz do documento para dobra de grupo
+econômico, margem-alvo, segmento e responsável. A resolução de identidade usa
+`dominio_code`, depois `external_key`, depois o índice cego, reaproveitando a
+constraint `hub_unique_dominio_company_code`. Não há migração de dados de
+produção: os dois lados estão em validação local.
+
+## D-110 — Telas do módulo em templates Django, sem build de front
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. As telas do
+Lucrums, hoje uma SPA React com Vite e Tailwind, são portadas para templates
+Django no padrão vigente da CICA, estendendo `hub/workspace.html`. A CICA não
+tem build de front, não usa Tailwind nem HTMX e aplica CSP `script-src 'self'`.
+Em consequência, as bibliotecas de gráfico do Lucrums (`recharts`, `apexcharts`)
+não são incorporadas: os gráficos são renderizados no servidor ou escritos como
+script próprio servido de `static/`. Nenhuma dependência de CDN é introduzida.
+
+## D-111 — Conector Windows único, com base no agente da CICA
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. Dois serviços
+.NET lendo o mesmo Domínio por ODBC no servidor do escritório não é aceitável em
+campo. Mantida a D-80, o pacote único continua sendo o `agent-windows` da CICA,
+que absorve do conector do Lucrums o catálogo de consultas fixado por SHA-256, o
+extrator ODBC, o atualizador e a ponte x86 para o driver de 32 bits usado pelo
+Siescon. O alvo de framework tem de ser unificado antes de mover arquivo: a CICA
+está em `net8.0-windows` e o Lucrums em `net10.0-windows`. Esta decisão não
+autoriza instalação real, assinatura de pacote nem homologação, que seguem na
+etapa 12 por D-86.
+
+## D-112 — Camadas de base do Lucrums descartadas na incorporação
+
+Data: 22/09/2026. Origem: executor, verificação local registrada nesta data. Os
+dois backends são forks do mesmo boilerplate `Mewstacks/_DjangoSetup`, conforme
+`_Backend/UPSTREAM.md` do Lucrums. Foi verificado que `OrganizationScopedModel`,
+`EncryptedTextField` e `blind_index` são equivalentes, com a CICA na posição de
+superset endurecido, e que Django, Python, Celery e cryptography estão nas mesmas
+versões. Portanto os apps `common`, `accounts`, `organizations`, `audit` e
+`privacy` do Lucrums não são portados: prevalecem os da CICA. Move-se apenas o
+produto — domínio, cálculo, ingestão e telas. Os índices cegos do Lucrums
+produzem os mesmos valores sob a função da CICA, então o dado atravessa sem
+reindexação.
+
+## D-113 — Gráficos do módulo Rentabilidade reproduzem os do Lucrums
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa. As telas de
+rentabilidade devem entregar os mesmos gráficos do Lucrums, com a mesma leitura e
+a mesma interação. Como D-110 mantém a interface servida pelo servidor e a CICA
+aplica CSP `script-src 'self'`, sem build de front e sem CDN, as bibliotecas de
+gráfico da origem não podem ser carregadas: a paridade é obtida escrevendo os
+gráficos como script próprio servido de `static/`, no precedente que a landing já
+usa. A decisão é sobre o resultado na tela, não sobre a biblioteca — nenhuma
+dependência externa de front é introduzida.
+
+## D-114 — Transporte do agente da CICA, sem segunda camada de cifra
+
+Data: 22/09/2026. Origem: executor, decisão de implementação local sob D-111. O
+conector do Lucrums embrulhava cada página de dados num envelope JWE por cima do
+TLS, com um par de chaves e um esquema de token próprios. O agente da CICA já se
+autentica por mTLS com assinatura do corpo, e a CICA já cifra em repouso com
+chave rotacionável. Manter os dois seria um segundo sistema de chaves para
+operar, girar e auditar, cobrindo um trecho que o primeiro já cobre. Então a
+página chega em claro pelo canal autenticado e fica cifrada em repouso pelo campo
+da própria CICA, com soma de verificação do conteúdo em claro conferida antes de
+aplicar. O que veio do conector da origem e não existia aqui é o catálogo de
+consultas fixado por SHA-256: contrato divergente não é despachado nem aplicado.
+Esta decisão não autoriza publicação, instalação real nem homologação.
+
+## D-115 — Rentabilidade fora do que se liga sem alguém decidir
+
+Data: 22/09/2026. Origem: executor, decisão de implementação local sob D-108. O
+cadastro de um escritório novo e a demonstração ligam, por padrão, todos os
+módulos ofertados. O módulo Rentabilidade fica fora dessa lista enquanto Q-39 e
+Q-41 estiverem abertas: sem fonte de honorários definida ele apura custo e horas,
+não margem, e sem preço aprovado não há o que cobrar por ele. Ligá-lo no teste
+gratuito entregaria a todo escritório novo uma tela que não tem como responder a
+pergunta que o nome dela promete; abri-lo na demonstração seria anunciá-lo, e
+`docs/cica-module-truth.md` não autoriza texto público sobre ele enquanto as duas
+dúvidas seguirem abertas. A lista vive em um lugar só,
+`module_catalog.self_service_module_codes()`, para as duas superfícies não
+divergirem. O console da plataforma continua podendo habilitá-lo caso a caso, e a
+decisão se reverte assim que as duas dúvidas forem respondidas.
+
+## D-116 — Conector unificado permanece em .NET 8
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa, respondendo
+Q-43. O agente único da CICA continua em `net8.0-windows`. O código absorvido do
+conector do Lucrums, hoje em `net10.0-windows`, é portado para trás em vez de o
+contrário: os servidores de escritório que já receberam o agente não precisam de
+um runtime novo, e a matriz de build não muda. Recurso de linguagem ou biblioteca
+que não exista no alvo é reescrito, não contornado com dependência adicional.
+Q-43 fica resolvida por esta decisão.
+
+## D-117 — Levantamento Siescon do Lucrums aceito como base técnica
+
+Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa, respondendo
+Q-42. O material trazido do Lucrums — layouts Btrieve recuperados por perfilamento
+estrutural e os DDFs que habilitam SELECT por ODBC — passa a ser a base técnica do
+adaptador Siescon, no lugar do contrato do fornecedor que Q-33 esperava. Q-33 e
+Q-42 ficam resolvidas por esta decisão, e a etapa 04 deixa de estar bloqueada por
+falta de contrato.
+
+O limite fica registrado junto com a autorização: o layout foi **inferido**, não
+documentado pelo fornecedor. Isso significa que uma atualização do Siescon pode
+mudar a estrutura sem aviso, e que a leitura tem de falhar de forma visível em vez
+de devolver número errado em silêncio. As consultas Siescon entram no catálogo
+fixado por SHA-256 como as demais, e permanecem marcadas como não validadas até
+serem exercitadas contra uma base autorizada. A ponte ODBC de 32 bits entra no
+conector unificado, porque é o que o driver Pervasive exige e o configurador atual
+da CICA só lista DSN de 64 bits.
+
+## D-118 — Atualizador automático do conector de origem não é absorvido
+
+Data: 22/09/2026. Origem: executor, sob D-111 e o registro de V-022. O conector do
+Lucrums baixa e instala a própria atualização. O agente da CICA compara versões,
+registra `update_available` no diagnóstico e para aí: V-022 diz, com todas as
+letras, que ele não baixa, não executa e não instala MSI automaticamente. Absorver
+o atualizador reverteria uma escolha já validada, num binário assinado que roda
+dentro do servidor do cliente — e isso é decisão do responsável, não consequência
+de um porte. Fica registrado como diferença deliberada, e não como pendência: se a
+atualização automática for desejada, ela volta como decisão própria, com a prova
+de rede, assinatura e recuperação que a etapa 12 exige.
+
+## D-119 — Exposição temporária do ambiente local por túnel Cloudflare
+
+Data: 24/09/2026. Origem: pedido direto do responsável — "monte um tunnel na cloud
+flare para envio do projeto a uma colega". O acesso externo não decorre de
+inferência: ele foi autorizado nesta mensagem e vale só para esta sessão. O que
+saiu para a internet é o `runserver` local em `127.0.0.1:8010`, com
+`config.settings.local`, banco SQLite recém-migrado e apenas os dados de
+`seed_demo` e `seed_personas` — nenhum dado de cliente, nenhuma credencial de
+fornecedor, nenhuma integração externa ativa. O túnel é do tipo *quick tunnel*:
+hostname aleatório em `*.trycloudflare.com`, sem conta Cloudflare, sem DNS e sem
+custo, e morre junto com o processo `cloudflared`. `ALLOWED_HOSTS` e
+`CSRF_TRUSTED_ORIGINS` já previam esse sufixo em `base.py`, então nada foi
+afrouxado para o túnel funcionar.
+
+O limite fica junto da autorização: a URL é pública para quem tiver o link, o
+ambiente roda com `DEBUG=True` — uma exceção mostra traceback e configuração a
+quem estiver na página — e as senhas de demonstração são de conhecimento público
+no repositório. Isso é aceitável para mostrar telas a uma colega e não é, em
+nenhuma hipótese, hospedagem, piloto ou homologação: a etapa 12 continua sendo o
+único lugar onde site publicado, credencial de produção e domínio próprio são
+tratados. Um túnel nomeado, em domínio da Mewstack e com Cloudflare Access na
+frente, seria outra decisão, com login na conta Cloudflare, e não foi tomada aqui.
+
+## D-120 — Branch dedicada à incorporação do Lucrums
+
+Data: 28/09/2026. Origem: pedido direto do responsável nesta conversa: criar uma
+branch apenas relacionada ao Lucrums dentro da CICA e terminar sua inserção.
+O trabalho já iniciado em `etapa-14-rentabilidade`, inclusive alterações locais
+não commitadas, continua em `codex/lucrums`, separadamente da `main`. Esta decisão
+autoriza concluir e verificar a implementação local da etapa 14; não substitui
+Q-39 a Q-41, não presume homologação com ERP/Windows real e não autoriza oferta,
+deploy, custo ou integração automática na `main`.

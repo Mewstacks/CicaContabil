@@ -13,8 +13,16 @@ internal sealed record AgentConfig(
     string SqlAnywhereDriver,
     string DatabaseUser,
     string DatabasePassword,
-    string? WindowsArchiveRoot)
+    string? WindowsArchiveRoot,
+    // Qual ERP este conector lê. Por D-80 o pacote é único, então o sistema vem da
+    // configuração e não compilado no binário como fazia o conector de origem.
+    // Instalação antiga não tem o campo, e é do Domínio: era o único perfil que
+    // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
+    string? SourceSystem = null)
 {
+    internal string EffectiveSourceSystem =>
+        string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
+
     internal static readonly string DirectoryPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "CICA", "Agent");
     internal static readonly string FilePath = Path.Combine(DirectoryPath, "agent.config");
@@ -35,10 +43,18 @@ internal sealed record AgentConfig(
         if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
             || string.IsNullOrWhiteSpace(CertificatePfxBase64))
             throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
-        if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegistered64BitDsn(Dsn))
+        SourceSystemProfile profile;
+        try { profile = SourceSystemProfiles.Get(EffectiveSourceSystem); }
+        catch (ArgumentOutOfRangeException error)
+        {
+            throw new InvalidDataException("Sistema de origem desconhecido na configuração.", error);
+        }
+        if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegisteredSystemDsn(Dsn, profile))
             throw new InvalidDataException(
-                "O DSN configurado não está disponível para o serviço CICA Agent 64 bits.");
-        if (!IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
+                $"O DSN configurado não está disponível para {profile.DisplayName} "
+                + $"na arquitetura de {(profile.Uses32BitOdbcBridge ? 32 : 64)} bits.");
+        if (profile.RequiresSqlAnywhereDriver
+            && !IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
             throw new InvalidDataException(
                 "O driver SQL Anywhere configurado não está disponível em 64 bits.");
         if (!string.IsNullOrWhiteSpace(WindowsArchiveRoot) && (!Path.IsPathFullyQualified(WindowsArchiveRoot)
@@ -46,12 +62,17 @@ internal sealed record AgentConfig(
             throw new InvalidDataException("A pasta de arquivos aprovada precisa ser um caminho absoluto do Windows.");
     }
 
-    private static bool IsRegistered64BitDsn(string dsn)
+    private static bool IsRegisteredSystemDsn(string dsn, SourceSystemProfile profile)
     {
         const string path = @"SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources";
-        using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        RegistryView view = profile.Uses32BitOdbcBridge
+            ? RegistryView.Registry32
+            : RegistryView.Registry64;
+        using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         using RegistryKey? key = baseKey.OpenSubKey(path);
-        return key?.GetValueNames().Contains(dsn, StringComparer.OrdinalIgnoreCase) is true;
+        string registeredDriver = key?.GetValue(dsn)?.ToString() ?? "";
+        return profile.DsnDriverMarkers.Any(marker => registeredDriver.Contains(
+            marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsRegistered64BitSqlAnywhereDriver(string driver)

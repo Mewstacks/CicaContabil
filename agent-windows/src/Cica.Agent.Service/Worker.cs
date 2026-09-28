@@ -13,6 +13,21 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // O catálogo de consultas é conferido na subida, e não na primeira leitura:
+        // um hash divergente tem de derrubar o serviço com a razão no log, em vez de
+        // falhar calado no meio de um ciclo noturno.
+        try
+        {
+            DatasetCatalog.SelfVerify();
+        }
+        catch (InvalidOperationException error)
+        {
+            logger.LogCritical("CICA agent dataset catalog is invalid: {Reason}", error.Message);
+            AgentRuntimeStatus.Write("catalog_error",
+                "O catálogo de consultas do agente não confere. Reinstale o pacote.");
+            throw;
+        }
+
         TimeSpan retryDelay = TimeSpan.FromMinutes(1);
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -41,6 +56,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     AgentRuntimeStatus.Write("synchronizing", "Configuração de destino atualizada pela CICA.");
                 }
                 await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
+                await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
                 await new BackupProcessor(config, client).RunOnce(stoppingToken);
                 await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
                 await RenewCertificateIfNeeded(config, client, stoppingToken);

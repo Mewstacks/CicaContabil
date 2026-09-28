@@ -1,0 +1,1729 @@
+"""Rebuild the materialised metrics for one organisation x period.
+
+Deliberately a full delete-and-insert per organisation and period rather than an
+incremental diff. The cardinality is small (companies x 24 periods at worst), the
+inputs change in bulk after every sync, and a wholesale rebuild is the only shape
+that is trivially idempotent — re-running it after a partial failure converges,
+which an incremental update does not.
+
+Portado do Lucrums por D-108. A diferenca estrutural e D-109: onde a origem lia
+`Empresa`, aqui se le `CompanyErpProfile` e a chave devolvida e a da carteira do
+hub, `hub.ClientCompany` -- e por isso que a ligacao um-para-um se chama
+`empresa`, e `values_list("empresa_id")` ja devolve o id que as metricas usam.
+
+Uma consequencia vale registrar: a carteira deste modulo sao as empresas com
+perfil de ERP. Uma empresa cadastrada so no hub, sem perfil, nao ganha linha de
+metrica -- que e o mesmo destino que a origem dava a empresa sem documento, por
+nao haver como um honorario encontra-la.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from decimal import Decimal
+from typing import Any, cast
+from uuid import UUID
+
+from django.db import transaction
+from django.db.models import Q, Sum
+
+from apps.hub.models import ClientCompany
+from apps.organizations.models import Organization
+from apps.profitability import calc
+from apps.profitability.matching import partes_do_nome, sugerir
+from apps.profitability.models import (
+    ClienteCompetenciaMetrics,
+    Colaborador,
+    ColaboradorCompetenciaMetrics,
+    CompanyErpProfile,
+    FaixaMargem,
+    IngestRun,
+    Mensalidade,
+    OrigemHoras,
+    ProfitabilityConfig,
+    RegistroHoras,
+    SalarioColaborador,
+    SistemaOrigem,
+    UsuarioErp,
+)
+from apps.profitability.normalize import cnpj_ordem, only_digits, strip_accents_upper
+
+
+def get_config(organization: Organization) -> ProfitabilityConfig:
+    config, _ = ProfitabilityConfig.objects.get_or_create(organization=organization)
+    return config
+
+
+def salario_vigente_map(
+    organization: Organization, competencia: str
+) -> dict[str, tuple[str, Decimal]]:
+    """O salário em vigor de cada colaborador, e em que competência foi gravado.
+
+    "Em vigor" é a observação mais recente **até** a competência, não a mais
+    recente de todas: recalcular maio não pode precificar o trabalho de maio com
+    o salário de julho, senão toda margem histórica se move quando a folha
+    sincroniza.
+
+    Fica sozinha aqui porque a consulta já existiu em dois módulos, palavra por
+    palavra. Duas cópias de uma regra concordam até o dia em que alguém mexe numa
+    -- foi assim que o custo do PJ passou meses divergindo entre duas telas.
+    """
+
+    vigentes: dict[str, tuple[str, Decimal]] = {}
+    linhas = (
+        SalarioColaborador.objects.filter(organization=organization, competencia__lte=competencia)
+        .order_by("colaborador_id", "-competencia")
+        .values_list("colaborador_id", "competencia", "salario")
+    )
+    for colaborador_id, gravada, salario in linhas:
+        vigentes.setdefault(str(colaborador_id), (gravada, salario))
+    return vigentes
+
+
+def custo_hora_map(
+    organization: Organization, competencia: str, config: ProfitabilityConfig
+) -> dict[str, Decimal]:
+    """Quanto uma hora de cada pessoa custa À EMPRESA, pelo salário vigente.
+
+    "Vigente" é a observação mais recente até a competência, não a mais recente
+    de todas: recalcular maio não pode precificar o trabalho de maio com o
+    salário de julho, senão toda margem histórica se move quando a folha
+    sincroniza.
+
+    A conta é a do custo anual, dividida pelas horas que a pessoa realmente
+    trabalha. Antes era `salario vezes fator_encargos, dividido por 176`, que é outra pergunta:
+    176 h é o mês-referência da CLT, usado para achar o valor da hora extra --
+    ou seja, o valor/hora DO FUNCIONÁRIO, não o custo que a empresa tem por
+    hora dele. Ela errava nas duas pontas: o fator de 1,40 cobre doze salários,
+    não os treze mais o terço de férias; e 176 h/mês cobra por 368 horas ao ano
+    que a empresa paga e não recebe trabalho -- férias e feriados. Juntos,
+    28,9% a menos.
+
+    Manter as duas contas em paralelo era manter duas descrições da mesma
+    realidade, com dois conjuntos de parâmetros para o escritório conciliar à
+    mão. Agora existe uma, e os campos por pessoa (férias, folgas, ausências,
+    benefícios, VT) finalmente pesam: quem tira sessenta dias de licença deixa
+    de custar por hora o mesmo que o colega de mesmo salário que não tirou.
+    """
+
+    salarios = {
+        chave: salario
+        for chave, (_competencia, salario) in salario_vigente_map(organization, competencia).items()
+    }
+    pessoas = {
+        str(colaborador.id): colaborador
+        for colaborador in Colaborador.objects.filter(
+            organization=organization, id__in=sorted(salarios)
+        )
+    }
+    return {
+        chave: custo_hora_do_colaborador(pessoas[chave], salario, config)
+        for chave, salario in salarios.items()
+        if chave in pessoas
+    }
+
+
+def custo_hora_do_colaborador(
+    colaborador: Colaborador, salario: Decimal, config: ProfitabilityConfig
+) -> Decimal:
+    """O custo horário de uma pessoa: o que sai do caixa por ano ÷ horas do ano.
+
+    CLT e PJ diferem só no numerador. O CLT custa treze salários, mais o terço
+    constitucional, mais os encargos, mais benefícios e VT -- é o que
+    `custo_anual_colaborador` monta. O PJ custa as doze notas e nada mais: não
+    há décimo terceiro, terço nem encargo numa nota de prestador, e somá-los
+    inventaria um custo que ninguém paga.
+
+    O denominador é o mesmo para os dois, e é o que respeita as férias, folgas e
+    ausências de cada um: a empresa paga o ano inteiro e recebe trabalho nos
+    dias em que a pessoa está lá.
+    """
+
+    if colaborador.contratacao == Colaborador.Contratacao.PJ:
+        dias = calc.dias_uteis_efetivos(
+            config.dias_uteis_ano,
+            config.feriados_dias_ano,
+            colaborador.dias_ferias,
+            colaborador.folgas_dias,
+            colaborador.ausencias_dias,
+        )
+        return calc.valor_hora(salario * 12, calc.horas_anuais(dias, config.horas_dia))
+
+    return calc.custo_anual_colaborador(
+        salario,
+        beneficios_mensais=colaborador.beneficios_mensais,
+        vt_mensal=colaborador.vt_mensal,
+        outros_custos_mensais=colaborador.outros_custos_mensais,
+        dias_ferias=colaborador.dias_ferias,
+        folgas_dias=colaborador.folgas_dias,
+        ausencias_dias=colaborador.ausencias_dias,
+        encargos_percentual=config.encargos_percentual,
+        dias_uteis_ano=config.dias_uteis_ano,
+        feriados_dias_ano=config.feriados_dias_ano,
+        horas_dia=config.horas_dia,
+        indice_produtividade=config.indice_produtividade,
+    ).valor_hora
+
+
+@dataclass
+class _EmpresaAcc:
+    auto_minutos: int = 0
+    f9_minutos: int = 0
+    custo: Decimal = field(default_factory=lambda: Decimal(0))
+    tem_registros: bool = False
+    minutos_sem_custo: int = 0
+    motivos_incompletude: set[str] = field(default_factory=set)
+
+
+@dataclass
+class _ColaboradorAcc:
+    auto_minutos: int = 0
+    f9_minutos: int = 0
+    auto_comparavel: int = 0
+    f9_comparavel: int = 0
+    empresas: set[str] = field(default_factory=set)
+    f9_pendente: bool = False
+
+
+def acumular_registro(
+    acc: _EmpresaAcc,
+    *,
+    origem: str,
+    colaborador_id: UUID | None,
+    minutos: int,
+    custo_hora: Mapping[str, Decimal],
+) -> None:
+    """A regra de custo de uma linha do fato. Existe uma so, e e esta.
+
+    Esta fora do laco que a criou porque a carteira e a abertura por unidade
+    precisam da MESMA conta sobre recortes diferentes das mesmas horas. Duas
+    copias divergem -- e ja divergiram: o custo por colaborador do cliente
+    esqueceu que PJ nao tem encargo e vem cobrando encargo a mais numa tela
+    enquanto a carteira cobra certo na outra.
+
+    De quem e a hora fica de fora de proposito: o acumulador que chega ja e o da
+    unidade certa, dobrado na matriz ou nao.
+    """
+
+    acc.tem_registros = True
+    if origem == OrigemHoras.AUTOMATICA:
+        acc.auto_minutos += minutos
+        if colaborador_id is None:
+            acc.minutos_sem_custo += minutos
+            acc.motivos_incompletude.add("colaborador_nao_mapeado")
+        elif str(colaborador_id) not in custo_hora:
+            acc.minutos_sem_custo += minutos
+            acc.motivos_incompletude.add("salario_nao_disponivel")
+        else:
+            acc.custo += calc.custo_de_minutos(minutos, custo_hora[str(colaborador_id)])
+    else:
+        acc.f9_minutos += minutos
+
+
+def _empresas_com_f9_pendente(organization: Organization, competencia: str) -> set[str]:
+    """Companies with automatic hours but no F9 at all in the period.
+
+    Derived rather than stored: a flag would go stale the moment the missing
+    import arrives, and the whole point of the pendente state is that it clears
+    itself.
+    """
+
+    rows = (
+        RegistroHoras.objects.filter(
+            organization=organization, competencia=competencia, deleted_at__isnull=True
+        )
+        .values("empresa_id", "origem")
+        .annotate(minutos=Sum("duracao_minutos"))
+    )
+    por_empresa: dict[str, dict[str, int]] = {}
+    for raw_row in rows:
+        row = cast(dict[str, Any], raw_row)
+        empresa_id = str(row["empresa_id"])
+        totais = por_empresa.setdefault(empresa_id, {"auto": 0, "f9": 0})
+        chave = "auto" if row["origem"] == OrigemHoras.AUTOMATICA else "f9"
+        totais[chave] = int(row["minutos"] or 0)
+    return {
+        empresa_id
+        for empresa_id, totais in por_empresa.items()
+        if totais["auto"] > 0 and totais["f9"] == 0
+    }
+
+
+@transaction.atomic
+def recompute_competencia(organization: Organization, competencia: str) -> None:
+    config = get_config(organization)
+    custo_hora = custo_hora_map(organization, competencia, config)
+    f9_pendentes = _empresas_com_f9_pendente(organization, competencia)
+    matriz_de = grupos_por_raiz_de_cnpj(organization)
+
+    empresas: dict[str, _EmpresaAcc] = {}
+    colaboradores: dict[str, _ColaboradorAcc] = {}
+
+    # The database reduces the fact table to company x collaborator x source.
+    # Python only combines this bounded aggregate into the two read models.
+    registros = (
+        RegistroHoras.objects.filter(
+            organization=organization, competencia=competencia, deleted_at__isnull=True
+        )
+        .values("empresa_id", "colaborador_id", "origem")
+        .annotate(minutos=Sum("duracao_minutos"))
+    )
+
+    for raw_row in registros:
+        row = cast(dict[str, Any], raw_row)
+        # A hora da filial é custo do grupo. Dobrar aqui, no acumulador, é o que
+        # faz a matriz carregar o custo que ela de fato gera; esconder a linha
+        # da filial mais adiante, sem isto, apenas jogaria essas horas fora.
+        empresa_key = str(row["empresa_id"])
+        empresa_key = matriz_de.get(empresa_key, empresa_key)
+        colaborador_id = row["colaborador_id"]
+        origem = row["origem"]
+        minutos = int(row["minutos"] or 0)
+        empresa = empresas.setdefault(empresa_key, _EmpresaAcc())
+        pendente = empresa_key in f9_pendentes
+        acumular_registro(
+            empresa,
+            origem=origem,
+            colaborador_id=colaborador_id,
+            minutos=minutos,
+            custo_hora=custo_hora,
+        )
+
+        if colaborador_id is None:
+            # An unmapped Domínio user still counts towards the company's hours,
+            # but it has no person to attribute cost or divergence to.
+            continue
+
+        colaborador = colaboradores.setdefault(str(colaborador_id), _ColaboradorAcc())
+        colaborador.empresas.add(empresa_key)
+        if pendente:
+            colaborador.f9_pendente = True
+        if origem == OrigemHoras.AUTOMATICA:
+            colaborador.auto_minutos += minutos
+            if not pendente:
+                colaborador.auto_comparavel += minutos
+        else:
+            colaborador.f9_minutos += minutos
+            if not pendente:
+                colaborador.f9_comparavel += minutos
+
+    _rebuild_cliente_metrics(organization, competencia, config, empresas, f9_pendentes, matriz_de)
+    _rebuild_colaborador_metrics(organization, competencia, config, colaboradores, custo_hora)
+
+
+def competencia_anterior(competencia: str) -> str:
+    """Mês anterior a `competencia`, no formato AAAA-MM."""
+
+    ano, _, mes = competencia.partition("-")
+    numero = int(ano) * 12 + int(mes) - 2
+    return f"{numero // 12:04d}-{numero % 12 + 1:02d}"
+
+
+def competencia_seguinte(competencia: str) -> str:
+    """Mês seguinte a `competencia`, no formato AAAA-MM."""
+
+    ano, _, mes = competencia.partition("-")
+    numero = int(ano) * 12 + int(mes)
+    return f"{numero // 12:04d}-{numero % 12 + 1:02d}"
+
+
+def mapa_de_substituicao(organization: Organization) -> dict[str, str]:
+    """Empresa oculta -> a que ficou no lugar dela na carteira.
+
+    Existe para a ficha de uma empresa oculta não responder "não encontrado".
+    Ela está no cadastro, só não tem linha de métrica; sem este mapa a tela diz
+    que o cliente não existe neste tenant, que é falso e assusta.
+    """
+
+    return _duplicidade(organization)[1]
+
+
+def grupos_por_raiz_de_cnpj(organization: Organization) -> dict[str, str]:
+    """Filial -> matriz, para as unidades do mesmo CNPJ raiz.
+
+    Um grupo econômico costuma ter o honorário cobrado só na matriz, enquanto as
+    horas são lançadas em cada unidade. Sem juntar, as duas linhas mentem: a
+    filial aparece sem receita e sem margem, e a matriz aparece rentável demais
+    porque cobra por um trabalho cujo custo está na linha ao lado.
+
+    O CNPJ resolve o vínculo sozinho — mesma raiz de oito dígitos é o mesmo
+    grupo, e a ordem `0001` é a matriz. Quando nenhuma unidade `0001` está na
+    carteira, manda a de menor ordem: é arbitrário, mas é estável entre
+    execuções, e o que importa é existir uma linha só para o grupo.
+
+    Roda sobre quem sobrou da deduplicação entre ERPs, nunca sobre o cadastro
+    cru: eleger como matriz uma gêmea que está escondida deixaria o grupo
+    apontando para uma linha que a carteira não mostra.
+    """
+
+    ocultas = _empresas_ocultas_por_duplicidade(organization)
+    vistas: set[str] = set()
+    porRaiz: dict[str, list[tuple[str, str]]] = {}
+    for empresa_id, raiz, documento in (
+        CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        )
+        .exclude(documento_raiz_bi="")
+        .values_list("empresa_id", "documento_raiz_bi", "documento")
+    ):
+        chave = str(empresa_id)
+        if chave in ocultas or chave in vistas:
+            continue
+        vistas.add(chave)
+        porRaiz.setdefault(raiz, []).append((chave, cnpj_ordem(only_digits(documento))))
+
+    matriz_de: dict[str, str] = {}
+    for unidades in porRaiz.values():
+        if len(unidades) < 2:
+            continue
+        # `0001` primeiro; empatando, a menor ordem. A chave entra no desempate
+        # para a escolha não depender da ordem que o banco devolveu.
+        matriz, _ = min(unidades, key=lambda par: (par[1] != "0001", par[1], par[0]))
+        for chave, _ordem in unidades:
+            if chave != matriz:
+                matriz_de[chave] = matriz
+    return matriz_de
+
+
+@dataclass(frozen=True)
+class UnidadeDoGrupo:
+    """Os numeros de UMA unidade, sem a dobra que a carteira aplica."""
+
+    empresa: ClientCompany
+    documento: str
+    eh_matriz: bool
+    auto_minutos: int
+    f9_minutos: int
+    custo: Decimal
+    custo_completo: bool
+    minutos_sem_custo: int
+    motivos_incompletude: list[str]
+    divergencia_minutos: int
+    tem_divergencia: bool
+    sem_base_de_custo: bool
+
+
+def unidades_do_grupo(
+    organization: Organization, competencia: str, empresa_id: str
+) -> list[UnidadeDoGrupo]:
+    """Abre o grupo economico de `empresa_id` unidade por unidade.
+
+    A carteira mostra o grupo somado numa linha so, e para decidir preco e o
+    certo: o honorario e um so. Para conferir uma importacao e o contrario -- a
+    pergunta e de qual unidade veio cada hora, e a linha somada nao responde.
+
+    Aceita o id da matriz ou o de qualquer filial porque quem audita chega pela
+    ficha que tem na mao, e a da filial nem linha de metrica possui.
+
+    Nao devolve mensalidade nem margem de proposito. O honorario e cobrado numa
+    unidade so, entao receita por unidade nao existe, e uma margem por unidade
+    leria -100% em toda filial -- exatamente a mentira que o agrupamento foi
+    escrito para tirar da tela.
+    """
+
+    matriz_de = grupos_por_raiz_de_cnpj(organization)
+    chave_pedida = str(empresa_id)
+    matriz = matriz_de.get(chave_pedida, chave_pedida)
+    ids = {matriz} | {filial for filial, alvo in matriz_de.items() if alvo == matriz}
+
+    perfis = {
+        str(perfil.empresa_id): perfil
+        for perfil in CompanyErpProfile.objects.select_related("empresa")
+        .filter(organization=organization, empresa_id__in=sorted(ids), deleted_at__isnull=True)
+        # Domínio por último para vencer a gêmea do Siescon no dicionário: é o
+        # código que o escritório abre ao lado para conferir a linha.
+        .order_by("-sistema_origem")
+    }
+    if not perfis:
+        return []
+
+    config = get_config(organization)
+    custo_hora = custo_hora_map(organization, competencia, config)
+    f9_pendentes = _empresas_com_f9_pendente(organization, competencia)
+    limiar = config.limiar_divergencia_horas * 60
+    piso = max(1, config.minutos_minimos_custo)
+
+    acumuladores: dict[str, _EmpresaAcc] = {}
+    registros = (
+        RegistroHoras.objects.filter(
+            organization=organization,
+            competencia=competencia,
+            deleted_at__isnull=True,
+            empresa_id__in=sorted(perfis),
+        )
+        .values("empresa_id", "colaborador_id", "origem")
+        .annotate(minutos=Sum("duracao_minutos"))
+    )
+    for raw_row in registros:
+        row = cast(dict[str, Any], raw_row)
+        acumular_registro(
+            acumuladores.setdefault(str(row["empresa_id"]), _EmpresaAcc()),
+            origem=row["origem"],
+            colaborador_id=row["colaborador_id"],
+            minutos=int(row["minutos"] or 0),
+            custo_hora=custo_hora,
+        )
+
+    unidades: list[UnidadeDoGrupo] = []
+    for chave, perfil in perfis.items():
+        acc = acumuladores.get(chave, _EmpresaAcc())
+        pendente = chave in f9_pendentes
+        divergencia = (
+            0 if pendente or not acc.tem_registros else abs(acc.auto_minutos - acc.f9_minutos)
+        )
+        unidades.append(
+            UnidadeDoGrupo(
+                empresa=perfil.empresa,
+                documento=perfil.documento,
+                eh_matriz=chave == matriz,
+                auto_minutos=acc.auto_minutos,
+                f9_minutos=acc.f9_minutos,
+                custo=acc.custo.quantize(Decimal("0.01")),
+                # A incompletude aqui e so sobre a hora. A mensalidade nao falta
+                # a unidade: ela e do grupo, e quem cobra e a matriz.
+                custo_completo=not acc.motivos_incompletude,
+                minutos_sem_custo=acc.minutos_sem_custo,
+                motivos_incompletude=sorted(acc.motivos_incompletude),
+                divergencia_minutos=divergencia,
+                tem_divergencia=divergencia > limiar,
+                sem_base_de_custo=acc.auto_minutos < piso,
+            )
+        )
+    # Matriz primeiro, filiais por documento -- a mesma ordem da lista `filiais`
+    # da ficha, para as duas telas nao se contradizerem.
+    unidades.sort(key=lambda unidade: (not unidade.eh_matriz, unidade.documento))
+    return unidades
+
+
+def _empresas_ocultas_por_duplicidade(organization: Organization) -> set[str]:
+    """Empresas que não podem ocupar uma linha própria na carteira.
+
+    São três casos, e nenhum deles é cliente de verdade a mais.
+
+    O primeiro é a duplicata entre ERPs: os dois cadastram o mesmo cliente e
+    sobram duas linhas — no Fedrizzi são 506 CNPJs em duas linhas cada. Só uma
+    carrega alguma coisa, porque honorários e horas caem na do sistema que
+    fatura. A que fica é essa, e não é desempate arbitrário: é de onde vêm
+    receita e hora, e portanto a única linha que tem o que mostrar.
+
+    A gêmea é procurada **pelo documento e, depois, pela razão social**. Só o
+    documento não basta: o cadastro do Siescon guarda no mesmo campo CNPJ, CPF e
+    inscrição estadual, e às vezes um CNPJ que o cliente já trocou. Medido na
+    base do Fedrizzi em 22/09/2026, das 27 linhas do Siescon que sobravam na
+    carteira, 4 eram a mesma empresa que já estava lá pelo Domínio — `ANDRE LUIS
+    RECH` com inscrição estadual de um lado e CNPJ do outro, `K M BOGADO
+    FERREIRA` com dois CNPJs diferentes. Razão social idêntica depois de
+    normalizada, vinda de dois ERPs, é a mesma empresa.
+
+    O segundo é a empresa sem documento. Cliente de escritório contábil tem
+    CNPJ ou CPF, sempre; sem documento é registro de estrutura do próprio ERP —
+    `EXEMPLO PLANO CONTAS` no Domínio, `MODELO PLANO` e `ZZZ EMPRESA MODELO
+    SIESCON` no Siescon. Além de não serem clientes, não há como um honorário
+    achá-las, porque a correspondência é pelo documento.
+
+    O terceiro é o próprio escritório. A empresa armada como fonte de
+    honorários ou de folha é de onde os dados saem, não para quem eles apontam;
+    no Fedrizzi ela aparecia na carteira com horas internas, nenhuma
+    mensalidade e margem de -100%. Uma contabilidade não é cliente dela mesma.
+
+    Nada é apagado: as empresas continuam no cadastro e acessíveis pela ficha;
+    apenas não viram linha da carteira.
+    """
+
+    return _duplicidade(organization)[0]
+
+
+def codigos_erp(organization: Organization) -> dict[str, tuple[str, int]]:
+    """Empresa -> (sistema, codi_emp) que a tela deve exibir como código.
+
+    A tela mostra um código só, e o do Domínio é o que o escritório usa: é lá que
+    ficam horas e honorários, e é a tela do Domínio que a pessoa abre ao lado para
+    conferir a linha. Só que a empresa que sobrevive na carteira é a do sistema
+    que fatura, e ela pode ser a do Siescon — nesse caso a linha visível é a
+    Siescon e o código útil está na gêmea, do outro lado do documento.
+
+    Então a preferência é pelo documento, não pela linha: existindo qualquer
+    cadastro no Domínio com o mesmo CPF/CNPJ, vale o código dele. Quem não tem
+    cadastro no Domínio exibe o próprio, e aí o sistema devolvido é `siescon` —
+    é o que faz a tela poder escrever "Siescon · 711" em vez de mentir um número
+    do Domínio que não existe.
+
+    `codi_emp` só é único dentro de um sistema, por isso o par sempre viaja junto.
+    """
+
+    proprio: dict[str, tuple[str, int]] = {}
+    documento_de: dict[str, str] = {}
+    melhor_do_documento: dict[str, tuple[str, int]] = {}
+
+    for empresa_id, documento, sistema, codi_emp in CompanyErpProfile.objects.filter(
+        organization=organization, empresa__active=True, deleted_at__isnull=True
+    ).values_list("empresa_id", "documento_bi", "sistema_origem", "codi_emp"):
+        if codi_emp is None:
+            continue
+        chave = str(empresa_id)
+        proprio[chave] = (sistema, codi_emp)
+        if not documento:
+            continue
+        documento_de[chave] = documento
+        atual = melhor_do_documento.get(documento)
+        # Domínio primeiro; entre dois do mesmo sistema, o menor código, só para a
+        # escolha não depender da ordem em que o banco devolveu as linhas.
+        if atual is None or _ordem_do_codigo(sistema, codi_emp) < _ordem_do_codigo(*atual):
+            melhor_do_documento[documento] = (sistema, codi_emp)
+
+    return {
+        chave: melhor_do_documento.get(documento_de.get(chave, ""), valor)
+        for chave, valor in proprio.items()
+    }
+
+
+# Papéis que marcam a empresa-fonte de um contrato: é de onde o dado vem.
+PAPEIS_DE_FONTE = {"billing_source", "payroll_source"}
+
+
+def _ordem_do_codigo(sistema: str, codi_emp: int) -> tuple[int, int]:
+    return (0 if sistema == SistemaOrigem.DOMINIO else 1, codi_emp)
+
+
+def _duplicidade(organization: Organization) -> tuple[set[str], dict[str, str]]:
+    """Calcula de uma vez as ocultas e para quem cada uma aponta."""
+
+    # O papel é filtrado em Python porque `papel__contains` exige suporte a JSON
+    # do banco, que o SQLite dos testes não tem.
+    faturamento: set[str] = set()
+    fontes: set[str] = set()
+    for empresa_id, sistema, papel, ativo in CompanyErpProfile.objects.filter(
+        organization=organization, deleted_at__isnull=True
+    ).values_list("empresa_id", "sistema_origem", "papel", "empresa__active"):
+        papeis = set(papel or [])
+        if "billing_source" in papeis:
+            faturamento.add(sistema)
+        # O escritório não é cliente do escritório: a empresa armada como fonte
+        # de honorários ou de folha é de onde o dado vem.
+        if ativo and PAPEIS_DE_FONTE & papeis:
+            fontes.add(str(empresa_id))
+
+    ativas = {
+        str(empresa_id)
+        for empresa_id in CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        ).values_list("empresa_id", flat=True)
+    }
+    # Sem documento é a empresa que NENHUM dos seus perfis documentou. Olhar
+    # perfil a perfil esconderia uma empresa documentada no Domínio só porque a
+    # gêmea do Siescon veio sem o campo.
+    com_documento = {
+        str(empresa_id)
+        for empresa_id in CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        )
+        .exclude(documento_bi="")
+        .values_list("empresa_id", flat=True)
+    }
+    sem_documento = ativas - com_documento
+    if not faturamento:
+        # Sem fonte de faturamento armada não há critério para escolher entre as
+        # gêmeas, e esconder pela errada é pior que mostrar duplicado. As sem
+        # documento e as fontes continuam fora: para elas o critério não depende
+        # de saber quem fatura.
+        return sem_documento | fontes, {}
+
+    por_documento: dict[str, set[tuple[str, str]]] = {}
+    por_razao: dict[str, set[tuple[str, str]]] = {}
+    for empresa_id, documento, razao, sistema in CompanyErpProfile.objects.filter(
+        organization=organization, empresa__active=True, deleted_at__isnull=True
+    ).values_list("empresa_id", "documento_bi", "razao_normalizada_bi", "sistema_origem"):
+        linha = (str(empresa_id), sistema)
+        if documento:
+            por_documento.setdefault(documento, set()).add(linha)
+        if razao:
+            por_razao.setdefault(razao, set()).add(linha)
+
+    ocultas: set[str] = set()
+    substituta: dict[str, str] = {}
+
+    def esconder_gemeas(grupos: dict[str, set[tuple[str, str]]]) -> None:
+        for linhas in grupos.values():
+            # O que a passada anterior já escondeu não volta a contar: uma
+            # gêmea escondida pelo documento não pode ressuscitar como segunda
+            # unidade de um grupo de razão social e fazer o grupo parecer maior
+            # do que é.
+            vivas = {(chave, sistema) for chave, sistema in linhas if chave not in ocultas}
+            if len(vivas) < 2:
+                continue
+            preferidas = sorted(chave for chave, sistema in vivas if sistema in faturamento)
+            # Todas do mesmo lado não é duplicata entre ERPs: são duas empresas
+            # do mesmo sistema, e esconder uma delas apagaria cliente.
+            if not preferidas or len(preferidas) == len(vivas):
+                continue
+            escondidas = {chave for chave, _ in vivas} - set(preferidas)
+            ocultas.update(escondidas)
+            for chave in escondidas:
+                substituta[chave] = preferidas[0]
+
+    # O documento primeiro: é o casamento forte, e é ele que decide para quem a
+    # razão social vai apontar quando as duas regras alcançarem a mesma empresa.
+    esconder_gemeas(por_documento)
+    esconder_gemeas(por_razao)
+
+    # Sem documento não há cliente e não há como um honorário achá-la; a fonte
+    # não é cliente por definição.
+    ocultas |= sem_documento | fontes
+    return ocultas, substituta
+
+
+def _rebuild_cliente_metrics(
+    organization: Organization,
+    competencia: str,
+    config: ProfitabilityConfig,
+    empresas: dict[str, _EmpresaAcc],
+    f9_pendentes: set[str],
+    matriz_de: dict[str, str],
+) -> None:
+    # A mensalidade do mês que se olha é a lançada no mês anterior: o escritório
+    # fatura em atraso, então setembro exibe o honorário de agosto enquanto
+    # horas e custo continuam sendo de setembro. Sem o deslocamento, todo mês
+    # corrente aparece com receita zero até o faturamento ser lançado.
+    mensalidades: dict[str, Decimal] = {}
+    for empresa_id, valor, override in Mensalidade.objects.filter(
+        organization=organization, competencia=competencia_anterior(competencia)
+    ).values_list("empresa_id", "valor", "manual_override"):
+        # Soma na matriz: uma filial com honorário próprio é receita do mesmo
+        # grupo, e a linha do grupo tem de mostrar o que ele paga ao todo.
+        chave = str(empresa_id)
+        chave = matriz_de.get(chave, chave)
+        mensalidades[chave] = mensalidades.get(chave, Decimal(0)) + (
+            override if override is not None else valor
+        )
+
+    # A filial não ocupa linha: horas, custo e receita dela já estão na matriz.
+    ocultas = _empresas_ocultas_por_duplicidade(organization) | set(matriz_de)
+
+    limiar = config.limiar_divergencia_horas * 60
+    linhas = []
+    # Every active company gets a row, including those with no hours: the
+    # portfolio screens have to be able to show "sem dados" as a state rather
+    # than as an absence.
+    for empresa_id in (
+        CompanyErpProfile.objects.filter(
+            organization=organization, empresa__active=True, deleted_at__isnull=True
+        )
+        # `order_by()` vazio antes do `distinct()`: a ordenação padrão do modelo
+        # entraria no SELECT e a distinção passaria a ser por (empresa, codi_emp),
+        # devolvendo a mesma empresa uma vez por ERP — e duas linhas de métrica
+        # para uma empresa violam a chave única, que foi como isto apareceu.
+        .order_by()
+        .values_list("empresa_id", flat=True)
+        .distinct()
+    ):
+        chave = str(empresa_id)
+        if chave in ocultas:
+            continue
+        acc = empresas.get(chave, _EmpresaAcc())
+        pendente = chave in f9_pendentes
+
+        custo = acc.custo.quantize(Decimal("0.01"))
+        tem_mensalidade = chave in mensalidades
+        mensalidade = mensalidades.get(chave, Decimal(0))
+        motivos = set(acc.motivos_incompletude)
+        if acc.tem_registros and not tem_mensalidade:
+            motivos.add("mensalidade_nao_disponivel")
+        custo_completo = not motivos
+        resultado = calc.resultado(mensalidade, custo)
+        margem = calc.margem(resultado, mensalidade)
+        divergencia = (
+            0 if pendente or not acc.tem_registros else abs(acc.auto_minutos - acc.f9_minutos)
+        )
+
+        linhas.append(
+            ClienteCompetenciaMetrics(
+                organization=organization,
+                empresa_id=empresa_id,
+                competencia=competencia,
+                horas_auto_minutos=acc.auto_minutos,
+                horas_f9_minutos=acc.f9_minutos,
+                custo=custo,
+                mensalidade=mensalidade,
+                resultado=resultado,
+                margem=margem.quantize(Decimal("0.000001")),
+                faixa=(
+                    "incompleta"
+                    if not custo_completo
+                    else calc.faixa_margem(
+                        margem,
+                        # Minuto que gera custo, não "existe uma linha de hora".
+                        # `tem_registros` é verdadeiro para um apontamento de
+                        # duração zero e para quem só tem F9 — e nos dois casos o
+                        # custo é zero, a margem lê 100% e a empresa sobe ao topo
+                        # da carteira como a mais rentável que existe. Foi o que
+                        # aconteceu: seis clientes sem um minuto sequer apareciam
+                        # como saudáveis com margem cheia. Sem hora automática não
+                        # há base de custo, e a resposta certa é "sem dados".
+                        #
+                        # O piso generaliza isso: meia dúzia de minutos num mês
+                        # inteiro não é custo do mês, é um pedaço dele, e a
+                        # mensalidade cheia dividida por esse pedaço devolve
+                        # margem quase plena pelo mesmo motivo errado. Medido na
+                        # base do Fedrizzi em 18/09/2026, competência 2026-09:
+                        # das 175 linhas que a carteira dava como "saudáveis",
+                        # 70 tinham menos de 10 minutos apontados -- e todas liam
+                        # margem acima de 90%, algumas com um único minuto no mês.
+                        # Eram 40% da carteira saudável. O piso de 20 minutos pegaria
+                        # 99 das 175; o escritório escolheu o corte mais conservador.
+                        # Quanto basta é do escritório, não do código — por isso vem da
+                        # configuração, e em 0 o comportamento anterior volta
+                        # inteiro -- daí o `max(1, ...)`: piso zero ainda exige um
+                        # minuto, senão quem não tem hora nenhuma passaria no teste.
+                        tem_horas=acc.auto_minutos >= max(1, config.minutos_minimos_custo),
+                        margem_atencao=config.margem_atencao,
+                    )
+                ),
+                custo_completo=custo_completo,
+                minutos_sem_custo=acc.minutos_sem_custo,
+                motivos_incompletude=sorted(motivos),
+                divergencia_minutos=divergencia,
+                tem_divergencia=divergencia > limiar,
+                f9_pendente=pendente,
+            )
+        )
+
+    ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).delete()
+    ClienteCompetenciaMetrics.objects.bulk_create(linhas, batch_size=500)
+
+
+def _rebuild_colaborador_metrics(
+    organization: Organization,
+    competencia: str,
+    config: ProfitabilityConfig,
+    colaboradores: dict[str, _ColaboradorAcc],
+    custo_hora: dict[str, Decimal],
+) -> None:
+    limiar = config.limiar_divergencia_colaborador * 60
+    linhas = []
+    # Ativo, ou inativo que trabalhou neste mes. Filtrar so por `ativo` deixava
+    # de fora quem saiu depois de ter trabalhado -- mas as horas dele continuam
+    # entrando no custo do cliente, entao as duas telas nao fechavam. Quem esta
+    # na competencia pertence a competencia.
+    elegiveis = set(
+        Colaborador.objects.filter(Q(organization=organization) & Q(ativo=True)).values_list(
+            "id", flat=True
+        )
+    )
+    elegiveis |= {
+        colaborador_id
+        for colaborador_id in Colaborador.objects.filter(
+            organization=organization, id__in=[chave for chave in colaboradores]
+        ).values_list("id", flat=True)
+    }
+    for colaborador_id in elegiveis:
+        chave = str(colaborador_id)
+        acc = colaboradores.get(chave, _ColaboradorAcc())
+        hora = custo_hora.get(chave, Decimal(0))
+        diferenca = acc.auto_comparavel - acc.f9_comparavel
+
+        linhas.append(
+            ColaboradorCompetenciaMetrics(
+                organization=organization,
+                colaborador_id=colaborador_id,
+                competencia=competencia,
+                horas_auto_minutos=acc.auto_minutos,
+                horas_f9_minutos=acc.f9_minutos,
+                diferenca_minutos=diferenca,
+                custo=calc.custo_de_minutos(acc.auto_minutos, hora).quantize(Decimal("0.01")),
+                custo_hora=hora.quantize(Decimal("0.0001")),
+                # So e "sem salario" quem tem hora para custear: quem nao
+                # trabalhou no mes nao tem custo a apurar, e marca-lo seria
+                # apontar um problema que nao existe.
+                sem_salario=acc.auto_minutos > 0 and chave not in custo_hora,
+                empresas_count=len(acc.empresas),
+                f9_pendente=acc.f9_pendente,
+                divergente=abs(diferenca) > limiar,
+            )
+        )
+
+    ColaboradorCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).delete()
+    ColaboradorCompetenciaMetrics.objects.bulk_create(linhas, batch_size=500)
+
+
+# ---------------------------------------------------------------------------
+# Consultas de tela. Ficam aqui, e não nas views, porque a carteira e a ficha
+# do cliente respondem às mesmas perguntas sobre recortes diferentes das mesmas
+# horas — e foi exatamente assim que, na origem, o custo por colaborador de um
+# cliente esqueceu que PJ não tem encargo enquanto a carteira cobrava certo.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HorasDoColaborador:
+    """O que a tela de colaboradores mostra por pessoa na competência."""
+
+    colaborador: Colaborador
+    auto_minutos: int
+    f9_minutos: int
+    diferenca_minutos: int
+    empresas: int
+    custo: Decimal
+    custo_hora: Decimal
+    sem_salario: bool
+    divergente: bool
+    f9_pendente: bool
+
+
+def colaboradores_da_competencia(
+    organization: Organization, competencia: str, *, busca: str = ""
+) -> list[HorasDoColaborador]:
+    """Colaboradores com linha de métrica na competência, do mais ocupado ao menos.
+
+    Quem está na competência pertence à competência: um colaborador desligado que
+    trabalhou no mês continua aqui, porque as horas dele entram no custo do cliente
+    e sem a linha as duas telas não fecham.
+    """
+
+    linhas = (
+        ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia
+        )
+        .select_related("colaborador")
+        .order_by("-horas_auto_minutos")
+    )
+    alvo = strip_accents_upper(busca)
+    resultado: list[HorasDoColaborador] = []
+    for linha in linhas:
+        pessoa = linha.colaborador
+        if alvo and alvo not in strip_accents_upper(f"{pessoa.nome} {pessoa.codigo}"):
+            continue
+        resultado.append(
+            HorasDoColaborador(
+                colaborador=pessoa,
+                auto_minutos=linha.horas_auto_minutos,
+                f9_minutos=linha.horas_f9_minutos,
+                diferenca_minutos=linha.diferenca_minutos,
+                empresas=linha.empresas_count,
+                custo=linha.custo,
+                custo_hora=linha.custo_hora,
+                sem_salario=linha.sem_salario,
+                divergente=linha.divergente,
+                f9_pendente=linha.f9_pendente,
+            )
+        )
+    return resultado
+
+
+def capacidade_produtiva_mensal(config: ProfitabilityConfig, colaborador: Colaborador) -> Decimal:
+    """Horas que o modelo espera de uma pessoa num mês.
+
+    Não é o divisor do custo/hora, e a diferença é deliberada: lá a pergunta é
+    quanto custa uma hora dela, e o divisor são as horas que ela trabalha; aqui a
+    pergunta é quanto daquele tempo vira trabalho para cliente, então o índice de
+    produtividade também entra. Ocupação de 100% significa que a pessoa entregou o
+    que o modelo esperava.
+    """
+
+    dias = calc.dias_uteis_efetivos(
+        config.dias_uteis_ano,
+        config.feriados_dias_ano,
+        colaborador.dias_ferias,
+        colaborador.folgas_dias,
+        colaborador.ausencias_dias,
+    )
+    anuais = calc.horas_anuais(dias, config.horas_dia)
+    return calc.horas_produtivas(anuais, config.indice_produtividade) / Decimal(12)
+
+
+@dataclass(frozen=True)
+class VinculoErp:
+    """Um login do ERP e o que se sabe sobre a pessoa por trás dele."""
+
+    usuario: UsuarioErp
+    minutos_sem_custo: int
+    sugestoes: list[Colaborador]
+    estado: str
+
+
+def vinculos_do_erp(organization: Organization, competencia: str) -> list[VinculoErp]:
+    """Os logins do ERP, com as horas que cada um deixa sem custo.
+
+    Ordenados pela maior pendência: sem o vínculo, a hora existe e não gera custo,
+    e a margem do cliente infla — é a maior causa isolada de margem irreal, então a
+    lista precisa pôr no topo quem custa mais caro deixar sem resolver.
+    """
+
+    usuarios = list(
+        UsuarioErp.objects.filter(organization=organization).select_related("colaborador")
+    )
+    if not usuarios:
+        return []
+
+    sem_custo: dict[str, int] = {}
+    for row in (
+        RegistroHoras.objects.filter(
+            organization=organization,
+            competencia=competencia,
+            colaborador__isnull=True,
+            usuario_erp__isnull=False,
+            deleted_at__isnull=True,
+        )
+        .values("usuario_erp_id")
+        .annotate(total=Sum("duracao_minutos"))
+    ):
+        sem_custo[str(row["usuario_erp_id"])] = int(row["total"] or 0)
+
+    candidatos = [
+        (colaborador, partes_do_nome(colaborador.nome))
+        for colaborador in Colaborador.objects.filter(organization=organization, ativo=True)
+    ]
+    pares = [(colaborador.id, partes) for colaborador, partes in candidatos]
+    por_id = {colaborador.id: colaborador for colaborador, _ in candidatos}
+
+    resultado: list[VinculoErp] = []
+    for usuario in usuarios:
+        if usuario.colaborador_id is not None:
+            estado = "manual" if usuario.vinculo_manual else "automatico"
+            sugestoes: list[Colaborador] = []
+        else:
+            achados = sugerir(partes_do_nome(usuario.nome), pares)
+            sugestoes = [por_id[chave] for chave in achados if chave in por_id]
+            estado = "empate" if len(sugestoes) > 1 else "sem_vinculo"
+        resultado.append(
+            VinculoErp(
+                usuario=usuario,
+                minutos_sem_custo=sem_custo.get(str(usuario.id), 0),
+                sugestoes=sugestoes,
+                estado=estado,
+            )
+        )
+    resultado.sort(key=lambda item: (-item.minutos_sem_custo, item.usuario.i_usuario))
+    return resultado
+
+
+@dataclass(frozen=True)
+class GrupoDaCarteira:
+    """Um recorte da carteira — segmento, regime ou responsável — já somado."""
+
+    rotulo: str
+    clientes: int
+    mensalidade: Decimal
+    custo: Decimal
+    resultado: Decimal
+    margem: Decimal
+
+
+def agrupar_carteira(
+    organization: Organization,
+    competencia: str,
+    *,
+    por: str,
+    empresas: Any = None,
+) -> list[GrupoDaCarteira]:
+    """Soma a carteira por segmento, regime ou responsável.
+
+    As três perguntas são a mesma sobre chaves diferentes, e por isso moram numa
+    função só: a margem de um grupo é o resultado dele dividido pela receita dele,
+    e não a média das margens dos clientes — média de margens pesa igual um cliente
+    de mil reais e um de cem mil.
+    """
+
+    metricas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).select_related("empresa")
+    if empresas is not None:
+        metricas = metricas.filter(empresa__in=empresas)
+
+    perfis = {
+        str(perfil.empresa_id): perfil
+        for perfil in CompanyErpProfile.objects.filter(organization=organization)
+        .select_related("segmento", "responsavel")
+        .order_by("-sistema_origem")
+    }
+
+    def chave(empresa_id: str) -> str:
+        perfil = perfis.get(empresa_id)
+        if perfil is None:
+            return "Sem classificação"
+        if por == "segmento":
+            segmento = perfil.segmento
+            return segmento.nome if segmento is not None else "Sem segmento"
+        if por == "responsavel":
+            responsavel = perfil.responsavel
+            return responsavel.nome if responsavel is not None else "Sem responsável"
+        return perfil.regime or "Sem regime"
+
+    acumulado: dict[str, list[Any]] = {}
+    for metrica in metricas:
+        rotulo = chave(str(metrica.empresa_id))
+        linha = acumulado.setdefault(rotulo, [0, Decimal(0), Decimal(0), Decimal(0)])
+        linha[0] += 1
+        linha[1] += metrica.mensalidade
+        linha[2] += metrica.custo
+        linha[3] += metrica.resultado
+
+    grupos = [
+        GrupoDaCarteira(
+            rotulo=rotulo,
+            clientes=int(dados[0]),
+            mensalidade=dados[1],
+            custo=dados[2],
+            resultado=dados[3],
+            margem=calc.margem(dados[3], dados[1]),
+        )
+        for rotulo, dados in acumulado.items()
+    ]
+    grupos.sort(key=lambda grupo: (-grupo.mensalidade, grupo.rotulo))
+    return grupos
+
+
+def evolucao_da_carteira(
+    organization: Organization, competencia: str, *, meses: int = 12, empresas: Any = None
+) -> list[dict[str, Any]]:
+    """Receita, custo e margem das últimas competências, da mais antiga para a atual.
+
+    Devolve a série inteira mesmo com meses vazios: um buraco omitido faria a linha
+    saltar de agosto para outubro como se setembro não tivesse existido.
+    """
+
+    if not competencia:
+        return []
+    chaves: list[str] = []
+    cursor = competencia
+    for _ in range(max(1, meses)):
+        chaves.append(cursor)
+        cursor = competencia_anterior(cursor)
+    chaves.reverse()
+
+    metricas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia__in=chaves
+    )
+    if empresas is not None:
+        metricas = metricas.filter(empresa__in=empresas)
+
+    somas: dict[str, dict[str, Decimal]] = {
+        chave: {"mensalidade": Decimal(0), "custo": Decimal(0), "resultado": Decimal(0)}
+        for chave in chaves
+    }
+    for metrica in metricas.values("competencia", "mensalidade", "custo", "resultado"):
+        alvo = somas[str(metrica["competencia"])]
+        alvo["mensalidade"] += metrica["mensalidade"]
+        alvo["custo"] += metrica["custo"]
+        alvo["resultado"] += metrica["resultado"]
+
+    return [
+        {
+            "competencia": chave,
+            "mensalidade": somas[chave]["mensalidade"],
+            "custo": somas[chave]["custo"],
+            "resultado": somas[chave]["resultado"],
+            "margem": calc.margem(somas[chave]["resultado"], somas[chave]["mensalidade"]),
+        }
+        for chave in chaves
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Os agregados da visão geral. Cada um responde a uma pergunta de negócio, e é
+# por isso que não são uma consulta genérica: a tela que a direção abre primeiro
+# não pergunta "quais são as linhas", pergunta "onde está o problema".
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class TotaisDaCarteira:
+    receita: Decimal
+    custo: Decimal
+    resultado: Decimal
+    margem: Decimal
+    margem_media: Decimal
+    ticket_medio: Decimal
+    clientes: int
+    com_receita: int
+    em_atencao: int
+    divergentes: int
+    f9_pendentes: int
+    sem_dados: int
+    incompletos: int
+    colaboradores_divergentes: int
+    minutos_auto: int
+    minutos_f9: int
+
+
+def totais_da_carteira(
+    organization: Organization, competencia: str, *, empresas: Any = None
+) -> TotaisDaCarteira:
+    """O cabeçalho da visão geral, numa consulta só.
+
+    A margem média conta apenas quem tem custo completo e hora apurada. Incluir
+    quem não tem puxaria a média para cima pelo motivo errado: sem custo a margem
+    lê cheia, e a carteira pareceria mais rentável quanto pior fosse o dado.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    )
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    agregados = linhas.aggregate(
+        receita=Sum("mensalidade"),
+        custo=Sum("custo"),
+        auto=Sum("horas_auto_minutos"),
+        f9=Sum("horas_f9_minutos"),
+    )
+    receita = agregados["receita"] or Decimal(0)
+    custo = agregados["custo"] or Decimal(0)
+    resultado = receita - custo
+
+    comparaveis = list(
+        linhas.filter(custo_completo=True)
+        .exclude(faixa=FaixaMargem.SEM_DADOS)
+        .values_list("margem", flat=True)
+    )
+    margem_media = (
+        sum(comparaveis, Decimal(0)) / Decimal(len(comparaveis)) if comparaveis else Decimal(0)
+    )
+    com_receita = linhas.filter(mensalidade__gt=0).count()
+
+    return TotaisDaCarteira(
+        receita=receita,
+        custo=custo,
+        resultado=resultado,
+        margem=calc.margem(resultado, receita),
+        margem_media=margem_media,
+        # Ticket médio sobre quem tem receita, não sobre a carteira inteira:
+        # dividir por quem ainda não tem honorário lançado achataria o valor e
+        # faria o indicador cair quando o que mudou foi a cobertura do dado.
+        ticket_medio=(receita / Decimal(com_receita)) if com_receita else Decimal(0),
+        clientes=linhas.count(),
+        com_receita=com_receita,
+        em_atencao=linhas.filter(faixa__in=(FaixaMargem.ATENCAO, FaixaMargem.NEGATIVA)).count(),
+        divergentes=linhas.filter(tem_divergencia=True).count(),
+        f9_pendentes=linhas.filter(f9_pendente=True).exclude(faixa=FaixaMargem.SEM_DADOS).count(),
+        sem_dados=linhas.filter(faixa=FaixaMargem.SEM_DADOS).count(),
+        incompletos=linhas.filter(custo_completo=False).count(),
+        colaboradores_divergentes=ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia, divergente=True
+        ).count(),
+        minutos_auto=int(agregados["auto"] or 0),
+        minutos_f9=int(agregados["f9"] or 0),
+    )
+
+
+def variacao(atual: Decimal, anterior: Decimal) -> Decimal | None:
+    """Quanto o número andou, em fração. `None` quando não há com o que comparar.
+
+    Sem competência anterior a variação é omitida, nunca zerada: zero afirma que
+    o número ficou parado, o que é diferente de não haver histórico.
+    """
+
+    if anterior == 0:
+        return None
+    return (atual - anterior) / abs(anterior)
+
+
+@dataclass(frozen=True)
+class OcupacaoDaEquipe:
+    colaborador: Colaborador
+    minutos: int
+    capacidade_horas: Decimal
+    ocupacao: Decimal
+
+
+def ocupacao_da_equipe(
+    organization: Organization, competencia: str, config: ProfitabilityConfig
+) -> tuple[list[OcupacaoDaEquipe], Decimal, Decimal, int]:
+    """Horas lançadas contra a capacidade produtiva de cada pessoa.
+
+    Devolve a lista ordenada da maior ocupação para a menor, os totais, e quantas
+    pessoas não lançaram hora nenhuma. Essa contagem final carrega a notícia: a
+    lista ordenada nunca mostra quem não apareceu, porque quem tem zero fica em
+    último e cai fora de qualquer corte — o gráfico era incapaz de mostrar o
+    próprio problema.
+    """
+
+    lancadas = {
+        str(linha["colaborador_id"]): int(linha["horas_auto_minutos"] or 0)
+        for linha in ColaboradorCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia
+        ).values("colaborador_id", "horas_auto_minutos")
+    }
+
+    pessoas: list[OcupacaoDaEquipe] = []
+    total_minutos = 0
+    total_capacidade = Decimal(0)
+    sem_horas = 0
+    for colaborador in Colaborador.objects.filter(organization=organization, ativo=True):
+        capacidade = capacidade_produtiva_mensal(config, colaborador)
+        minutos = lancadas.get(str(colaborador.id), 0)
+        if minutos == 0:
+            sem_horas += 1
+        total_minutos += minutos
+        total_capacidade += capacidade
+        horas_trabalhadas = Decimal(minutos) / Decimal(60)
+        pessoas.append(
+            OcupacaoDaEquipe(
+                colaborador=colaborador,
+                minutos=minutos,
+                capacidade_horas=capacidade,
+                ocupacao=(horas_trabalhadas / capacidade) if capacidade > 0 else Decimal(0),
+            )
+        )
+
+    pessoas.sort(key=lambda item: item.ocupacao, reverse=True)
+    total_horas = Decimal(total_minutos) / Decimal(60)
+    return pessoas, total_horas, total_capacidade, sem_horas
+
+
+@dataclass(frozen=True)
+class ReajusteSugerido:
+    empresa: ClientCompany
+    mensalidade: Decimal
+    sugerida: Decimal
+    diferenca: Decimal
+    margem: Decimal
+    margem_alvo: Decimal
+
+
+def receita_fora_da_meta(
+    organization: Organization,
+    competencia: str,
+    config: ProfitabilityConfig,
+    *,
+    empresas: Any = None,
+) -> tuple[list[ReajusteSugerido], Decimal]:
+    """Quanto faltaria em cada cliente para ele atingir a própria margem-alvo.
+
+    Só entram clientes com custo completo. Custo parcial subestima a diferença, e
+    apresentar um número que o operador vai ver mudar depois é pior do que não
+    apresentar número nenhum.
+    """
+
+    linhas = (
+        ClienteCompetenciaMetrics.objects.filter(
+            organization=organization, competencia=competencia, custo_completo=True
+        )
+        .exclude(faixa=FaixaMargem.SEM_DADOS)
+        .select_related("empresa")
+    )
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    alvos = {
+        str(perfil.empresa_id): perfil.margem_alvo
+        for perfil in CompanyErpProfile.objects.filter(
+            organization=organization, margem_alvo__isnull=False
+        )
+    }
+
+    candidatos: list[ReajusteSugerido] = []
+    total = Decimal(0)
+    for linha in linhas:
+        proprio = alvos.get(str(linha.empresa_id))
+        alvo = (
+            config.margem_alvo_padrao if config.margem_alvo_global or proprio is None else proprio
+        )
+        if linha.margem >= alvo:
+            continue
+        sugerida = calc.mensalidade_sugerida(linha.custo, alvo)
+        diferenca = sugerida - linha.mensalidade
+        if diferenca <= 0:
+            continue
+        total += diferenca
+        candidatos.append(
+            ReajusteSugerido(
+                empresa=linha.empresa,
+                mensalidade=linha.mensalidade,
+                sugerida=sugerida,
+                diferenca=diferenca,
+                margem=linha.margem,
+                margem_alvo=alvo,
+            )
+        )
+
+    candidatos.sort(key=lambda item: item.diferenca, reverse=True)
+    return candidatos, total
+
+
+def frescor_das_importacoes(organization: Organization) -> tuple[Any, list[dict[str, Any]]]:
+    """A última importação concluída de cada contrato, para o leitor pesar o resto.
+
+    Um número de setembro apurado com folha de julho não está errado; está velho,
+    e a diferença só aparece se a tela disser quando cada fonte chegou.
+    """
+
+    vistos: dict[str, dict[str, Any]] = {}
+    for run in IngestRun.objects.filter(
+        organization=organization, status=IngestRun.Status.SUCCEEDED
+    ).order_by("-completed_at"):
+        vistos.setdefault(
+            run.dataset_code,
+            {
+                "dataset": run.dataset_code,
+                "sistema": run.source_system,
+                "concluido_em": run.completed_at,
+                "linhas": run.row_count,
+                "rejeitadas": run.rejected_count,
+            },
+        )
+    datasets = sorted(vistos.values(), key=lambda item: str(item["dataset"]))
+    concluidos = [item["concluido_em"] for item in datasets if item["concluido_em"]]
+    return (max(concluidos) if concluidos else None), datasets
+
+
+def concentracao_de_receita(
+    organization: Organization, competencia: str, *, empresas: Any = None, quantos: int = 5
+) -> tuple[list[ClienteCompetenciaMetrics], Decimal, Decimal]:
+    """Os maiores clientes por receita, e quanto eles pesam no total.
+
+    Concentração é risco: uma carteira em que cinco clientes respondem por metade
+    da receita perde metade dela numa conversa.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia, mensalidade__gt=0
+    ).select_related("empresa")
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    maiores = list(linhas.order_by("-mensalidade")[:quantos])
+    total = linhas.aggregate(total=Sum("mensalidade"))["total"] or Decimal(0)
+    soma = sum((linha.mensalidade for linha in maiores), Decimal(0))
+    participacao = (soma / total) if total > 0 else Decimal(0)
+    return maiores, soma, participacao
+
+
+def mapa_da_carteira(
+    organization: Organization, competencia: str, *, empresas: Any = None
+) -> tuple[list[ClienteCompetenciaMetrics], int]:
+    """Os clientes que podem ocupar área no mapa, e quantos ficaram de fora.
+
+    Entra quem tem honorário e custo apurados. Quem não tem não é um retângulo
+    pequeno: é ausência de dado, e desenhá-lo faria o mapa afirmar uma
+    rentabilidade que ninguém calculou. Os excluídos são contados, não escondidos.
+    """
+
+    linhas = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia
+    ).select_related("empresa")
+    if empresas is not None:
+        linhas = linhas.filter(empresa__in=empresas)
+
+    dentro = [
+        linha
+        for linha in linhas.order_by("-mensalidade")
+        if linha.mensalidade > 0 and linha.custo_completo and linha.faixa != FaixaMargem.SEM_DADOS
+    ]
+    return dentro, linhas.count() - len(dentro)
+
+
+# ---------------------------------------------------------------------------
+# A ficha de um cliente. Cada seção responde a uma pergunta diferente sobre as
+# mesmas horas, e por isso todas partem do mesmo registro materializado: duas
+# contas de custo sobre recortes diferentes divergem, e já divergiram.
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class HorasPorColaborador:
+    colaborador: Colaborador | None
+    usuario: UsuarioErp | None
+    auto_minutos: int
+    f9_minutos: int
+    diferenca_minutos: int
+    custo: Decimal
+    sem_salario: bool
+
+
+def colaboradores_do_cliente(
+    organization: Organization,
+    empresa: ClientCompany,
+    competencia: str,
+    *,
+    empresas_visiveis: Any = None,
+) -> list[HorasPorColaborador]:
+    """Quem trabalhou neste cliente no mês, com quanto cada um custou.
+
+    Sem salário vigente o custo sai marcado, e não zerado: zero é um número, e
+    leria "esta pessoa é de graça" enquanto a mesma hora aparece como custo
+    incompleto no topo da ficha.
+    """
+
+    config = get_config(organization)
+    custo_hora = custo_hora_map(organization, competencia, config)
+
+    empresas_do_recorte = _empresas_do_grupo_visiveis(
+        organization, empresa, empresas_visiveis=empresas_visiveis
+    )
+    acumulado: dict[str, dict[str, Any]] = {}
+    linhas = (
+        RegistroHoras.objects.filter(
+            organization=organization,
+            empresa_id__in=empresas_do_recorte,
+            competencia=competencia,
+            deleted_at__isnull=True,
+        )
+        .values("colaborador_id", "usuario_erp_id", "origem")
+        .annotate(minutos=Sum("duracao_minutos"))
+    )
+    for row in linhas:
+        chave = str(row["colaborador_id"] or f"erp:{row['usuario_erp_id']}")
+        item = acumulado.setdefault(
+            chave,
+            {
+                "colaborador_id": row["colaborador_id"],
+                "usuario_id": row["usuario_erp_id"],
+                "auto": 0,
+                "f9": 0,
+            },
+        )
+        if row["origem"] == OrigemHoras.AUTOMATICA:
+            item["auto"] += int(row["minutos"] or 0)
+        else:
+            item["f9"] += int(row["minutos"] or 0)
+
+    pessoas = {
+        str(pessoa.id): pessoa
+        for pessoa in Colaborador.objects.filter(
+            organization=organization,
+            id__in=[
+                item["colaborador_id"] for item in acumulado.values() if item["colaborador_id"]
+            ],
+        )
+    }
+    usuarios = {
+        str(usuario.id): usuario
+        for usuario in UsuarioErp.objects.filter(
+            organization=organization,
+            id__in=[item["usuario_id"] for item in acumulado.values() if item["usuario_id"]],
+        )
+    }
+
+    resultado: list[HorasPorColaborador] = []
+    for item in acumulado.values():
+        colaborador = pessoas.get(str(item["colaborador_id"])) if item["colaborador_id"] else None
+        hora = custo_hora.get(str(item["colaborador_id"])) if colaborador else None
+        resultado.append(
+            HorasPorColaborador(
+                colaborador=colaborador,
+                usuario=usuarios.get(str(item["usuario_id"])) if item["usuario_id"] else None,
+                auto_minutos=item["auto"],
+                f9_minutos=item["f9"],
+                diferenca_minutos=item["auto"] - item["f9"],
+                custo=(
+                    calc.custo_de_minutos(item["auto"], hora).quantize(Decimal("0.01"))
+                    if hora is not None
+                    else Decimal(0)
+                ),
+                sem_salario=colaborador is not None and hora is None,
+            )
+        )
+    resultado.sort(key=lambda item: item.auto_minutos, reverse=True)
+    return resultado
+
+
+def horas_por_dia(
+    organization: Organization,
+    empresa: ClientCompany,
+    competencia: str,
+    *,
+    empresas_visiveis: Any = None,
+) -> list[dict[str, Any]]:
+    """Automáticas e F9 lado a lado, dia a dia.
+
+    É a forma de ver onde a divergência do mês nasceu: um total que não fecha
+    costuma ser um dia inteiro que não foi apontado, e não uma diferença
+    espalhada.
+    """
+
+    empresas_do_recorte = _empresas_do_grupo_visiveis(
+        organization, empresa, empresas_visiveis=empresas_visiveis
+    )
+    por_dia: dict[Any, dict[str, int]] = {}
+    for row in (
+        RegistroHoras.objects.filter(
+            organization=organization,
+            empresa_id__in=empresas_do_recorte,
+            competencia=competencia,
+            deleted_at__isnull=True,
+        )
+        .values("data", "origem")
+        .annotate(minutos=Sum("duracao_minutos"))
+        .order_by("data")
+    ):
+        dia = por_dia.setdefault(row["data"], {"auto": 0, "f9": 0})
+        chave = "auto" if row["origem"] == OrigemHoras.AUTOMATICA else "f9"
+        dia[chave] += int(row["minutos"] or 0)
+    return [
+        {
+            "data": data,
+            "auto": valores["auto"],
+            "f9": valores["f9"],
+            "diferenca": valores["auto"] - valores["f9"],
+        }
+        for data, valores in sorted(por_dia.items())
+    ]
+
+
+def atividades_f9(
+    organization: Organization,
+    empresa: ClientCompany,
+    competencia: str,
+    *,
+    empresas_visiveis: Any = None,
+    quantas: int = 20,
+) -> list[RegistroHoras]:
+    """Os apontamentos manuais, que são os únicos que trazem descrição."""
+
+    empresas_do_recorte = _empresas_do_grupo_visiveis(
+        organization, empresa, empresas_visiveis=empresas_visiveis
+    )
+    return list(
+        RegistroHoras.objects.filter(
+            organization=organization,
+            empresa_id__in=empresas_do_recorte,
+            competencia=competencia,
+            origem=OrigemHoras.F9,
+            deleted_at__isnull=True,
+        )
+        .select_related("colaborador")
+        .order_by("-data", "-inicio")[:quantas]
+    )
+
+
+def historico_do_cliente(
+    organization: Organization, empresa: ClientCompany, *, quantas: int = 12
+) -> list[ClienteCompetenciaMetrics]:
+    """As competências deste cliente que têm algum valor.
+
+    Competência zerada é ruído: antes do primeiro dado real a base tem linhas
+    vazias, e exibi-las empurrava o mês com número para fora da primeira página.
+    """
+
+    return list(
+        ClienteCompetenciaMetrics.objects.filter(organization=organization, empresa=empresa)
+        .exclude(mensalidade=0, custo=0, horas_auto_minutos=0)
+        .order_by("-competencia")[:quantas]
+    )
+
+
+@dataclass(frozen=True)
+class Comparacao:
+    """Um número do cliente ao lado da referência com que ele se compara."""
+
+    rotulo: str
+    cliente: Decimal
+    referencia: Decimal
+    referencia_rotulo: str
+
+
+def comparacoes_do_cliente(
+    organization: Organization,
+    empresa: ClientCompany,
+    competencia: str,
+    *,
+    empresas_visiveis: Any = None,
+) -> list[Comparacao]:
+    """O cliente contra a carteira, o segmento, o regime e o mês anterior.
+
+    O custo por real de mensalidade entra junto porque é o número que sobrevive à
+    diferença de tamanho: um cliente de mil reais e um de cem mil não se comparam
+    por custo absoluto, mas se comparam por quanto de custo cada real de
+    honorário carrega.
+    """
+
+    atual = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, empresa=empresa, competencia=competencia
+    ).first()
+    if atual is None or not atual.custo_completo or atual.faixa == FaixaMargem.SEM_DADOS:
+        return []
+
+    perfil = empresa.erp_profiles.order_by("-sistema_origem").first()
+    carteira = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, competencia=competencia, custo_completo=True
+    ).exclude(faixa=FaixaMargem.SEM_DADOS)
+    if empresas_visiveis is not None:
+        carteira = carteira.filter(empresa__in=empresas_visiveis)
+
+    def media(linhas: Any, campo: str) -> Decimal:
+        valores = list(linhas.values_list(campo, flat=True))
+        return sum(valores, Decimal(0)) / Decimal(len(valores)) if valores else Decimal(0)
+
+    def custo_por_real(linha: ClienteCompetenciaMetrics) -> Decimal:
+        return (linha.custo / linha.mensalidade) if linha.mensalidade else Decimal(0)
+
+    comparacoes = [
+        Comparacao("Margem", atual.margem, media(carteira, "margem"), "média da carteira"),
+        Comparacao(
+            "Horas no mês",
+            Decimal(atual.horas_auto_minutos) / Decimal(60),
+            media(carteira, "horas_auto_minutos") / Decimal(60),
+            "média da carteira",
+        ),
+        Comparacao(
+            "Custo por real de honorário",
+            custo_por_real(atual),
+            (
+                sum((custo_por_real(linha) for linha in carteira), Decimal(0))
+                / Decimal(carteira.count())
+                if carteira.exists()
+                else Decimal(0)
+            ),
+            "média da carteira",
+        ),
+    ]
+
+    if perfil is not None and perfil.segmento_id:
+        do_segmento = carteira.filter(
+            empresa__erp_profiles__segmento_id=perfil.segmento_id
+        ).distinct()
+        if do_segmento.exists():
+            comparacoes.append(
+                Comparacao(
+                    "Margem",
+                    atual.margem,
+                    media(do_segmento, "margem"),
+                    f"média de {perfil.segmento.nome if perfil.segmento else 'segmento'}",
+                )
+            )
+
+    if perfil is not None and perfil.regime:
+        do_regime = carteira.filter(empresa__erp_profiles__regime=perfil.regime).distinct()
+        if do_regime.exists():
+            comparacoes.append(
+                Comparacao(
+                    "Margem",
+                    atual.margem,
+                    media(do_regime, "margem"),
+                    f"média de {perfil.regime}",
+                )
+            )
+
+    anterior = ClienteCompetenciaMetrics.objects.filter(
+        organization=organization, empresa=empresa, competencia=competencia_anterior(competencia)
+    ).first()
+    if anterior is not None:
+        comparacoes.append(Comparacao("Margem", atual.margem, anterior.margem, "mês anterior"))
+    return comparacoes
+
+
+def _empresas_do_grupo_visiveis(
+    organization: Organization, empresa: ClientCompany, *, empresas_visiveis: Any = None
+) -> set[UUID]:
+    """IDs do grupo econômico que a sessão atual pode detalhar.
+
+    A métrica da matriz soma suas unidades, mas isso não amplia um
+    `CompanyAccessGrant`. A ficha pode explicar o total já autorizado da matriz;
+    nomes, horas e atividades das unidades continuam limitados à carteira que o
+    contexto do Hub entregou para aquela pessoa.
+    """
+
+    matriz_de = grupos_por_raiz_de_cnpj(organization)
+    pedida = str(empresa.id)
+    matriz = matriz_de.get(pedida, pedida)
+    ids = {UUID(matriz)} | {UUID(filial) for filial, alvo in matriz_de.items() if alvo == matriz}
+    if empresas_visiveis is None:
+        return ids
+    permitidas = set(empresas_visiveis.filter(id__in=ids).values_list("id", flat=True))
+    return permitidas or {empresa.id}

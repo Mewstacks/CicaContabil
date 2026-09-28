@@ -7,6 +7,12 @@
     <PublishSingleFile>false</PublishSingleFile>
     <AssemblyName>Cica.Agent.Service</AssemblyName>
   </PropertyGroup>
+  <!-- Os contratos de consulta viajam dentro do binário, e é o que permite conferir
+       o hash antes de executar. O caminho é relativo à raiz do repositório: o
+       manifesto que o servidor lê e o que o agente carrega são o mesmo arquivo. -->
+  <ItemGroup>
+    <ProjectReference Include="../Cica.Agent.Contracts/Cica.Agent.Contracts.csproj" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1" />
     <PackageReference Include="SharpCompress" Version="0.48.0" />

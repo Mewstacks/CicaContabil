@@ -9,6 +9,7 @@ Set-StrictMode -Version Latest
 $dataRoot = Join-Path $env:ProgramData 'CICA\Agent'
 $statusPath = Join-Path $dataRoot 'agent-status.json'
 $servicePath = Join-Path $env:ProgramFiles 'CICA Agent\Service\Cica.Agent.Service.exe'
+$bridgePath = Join-Path $env:ProgramFiles 'CICA Agent\Service\odbc-bridge\Cica.Agent.OdbcBridge.exe'
 $configuratorPath = Join-Path $env:ProgramFiles 'CICA Agent\Configurator\Cica.Agent.Configurator.exe'
 
 function Get-SystemOdbcCount {
@@ -58,6 +59,7 @@ $result = [ordered]@{
     service_installed = $null -ne $service
     service_status = if ($null -ne $service) { $service.Status.ToString() } else { 'NotInstalled' }
     service_binary_present = Test-Path -LiteralPath $servicePath
+    odbc_bridge_present = Test-Path -LiteralPath $bridgePath
     configurator_present = Test-Path -LiteralPath $configuratorPath
     configuration_present = Test-Path -LiteralPath (Join-Path $dataRoot 'agent.config')
     runtime_state = if ($null -ne $status) { [string]$status.state } else { 'not_available' }
@@ -74,7 +76,8 @@ else {
     $result.GetEnumerator() | ForEach-Object { '{0}: {1}' -f $_.Key, $_.Value }
 }
 
-if (-not $result.service_installed -or -not $result.service_binary_present -or -not $result.configurator_present) {
+if (-not $result.service_installed -or -not $result.service_binary_present `
+    -or -not $result.odbc_bridge_present -or -not $result.configurator_present) {
     exit 2
 }
 if ($result.runtime_state -in @('configuration_error', 'authorization_error', 'invalid_status_file')) {

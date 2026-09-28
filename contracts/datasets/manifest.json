@@ -1,0 +1,600 @@
+{
+  "manifestVersion": 2,
+  "datasets": [
+    {
+      "code": "companies",
+      "sourceSystem": "dominio",
+      "schemaVersion": 2,
+      "sqlFile": "companies.v1.sql",
+      "querySha256": "f27ab6f03f0bd49c7b76d89b34132b6115047ff5fef9e7ff8e06c3190b0c8eb9",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "razao_emp",
+          "type": "string"
+        },
+        {
+          "name": "cgce_emp",
+          "type": "string"
+        },
+        {
+          "name": "situacao",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "users",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "users.v1.sql",
+      "querySha256": "6664c5ae504511c217e8c3836892d40aafc0cec2e004ce0235fdc1f9ead73468",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "i_usuario",
+          "type": "string"
+        },
+        {
+          "name": "situacao",
+          "type": "integer"
+        },
+        {
+          "name": "nome",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [
+        "i_usuario"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "taxation",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "taxation.v1.sql",
+      "querySha256": "7ea4ab35d0961ae856738a4b19c87a91c93002fb32248453f1714ae47fb3b446",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "vigencia_par",
+          "type": "date"
+        },
+        {
+          "name": "rfed_par",
+          "type": "integer"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "salaries",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "salaries.v1.sql",
+      "querySha256": "4627218fb4b94d58fc84250198a76d7321f9c28d6ff9d40a52aa47715533ccac",
+      "validated": false,
+      "parameters": [
+        {
+          "name": "codi_emp",
+          "type": "integer",
+          "odbcType": "Int"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "i_empregados",
+          "type": "integer"
+        },
+        {
+          "name": "nome",
+          "type": "string"
+        },
+        {
+          "name": "ultima_competencia",
+          "type": "string"
+        },
+        {
+          "name": "salario_mais_recente",
+          "type": "decimal"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp",
+        "i_empregados",
+        "ultima_competencia"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "requiresSourceRole": "payroll_source",
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "automatic_hours",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "automatic_hours.v1.sql",
+      "querySha256": "3f30d772f2285b803f27a60761baf7dafc4d0525a7caae92d419c2055ebeb71b",
+      "validated": true,
+      "parameters": [
+        {
+          "name": "start_date",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "usua_log",
+          "type": "string"
+        },
+        {
+          "name": "data_log",
+          "type": "date"
+        },
+        {
+          "name": "tini_log",
+          "type": "time"
+        },
+        {
+          "name": "tfim_log",
+          "type": "time"
+        },
+        {
+          "name": "dfim_log",
+          "type": "date"
+        }
+      ],
+      "identityColumns": [],
+      "allowedRunKinds": [
+        "incremental",
+        "full"
+      ],
+      "maxRowsPerRun": 500000
+    },
+    {
+      "code": "f9_hours",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "f9_hours.v1.sql",
+      "querySha256": "a2a80d912d0ebc2ad6963b7caf80df4d3fb825a855c501860a404e50075698df",
+      "validated": true,
+      "parameters": [
+        {
+          "name": "start_date",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "razao_emp",
+          "type": "string"
+        },
+        {
+          "name": "cgce_emp",
+          "type": "string"
+        },
+        {
+          "name": "codi_usu",
+          "type": "string"
+        },
+        {
+          "name": "data_atv",
+          "type": "date"
+        },
+        {
+          "name": "hori_atv",
+          "type": "time"
+        },
+        {
+          "name": "horf_atv",
+          "type": "time"
+        },
+        {
+          "name": "desc_atv",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [],
+      "allowedRunKinds": [
+        "incremental",
+        "full"
+      ],
+      "maxRowsPerRun": 500000
+    },
+    {
+      "code": "billing_services",
+      "sourceSystem": "dominio",
+      "schemaVersion": 2,
+      "sqlFile": "billing_services.v2.sql",
+      "querySha256": "b33c1f2a3315a592f3879d7150219dbace1160f20891336925810daa112259d5",
+      "validated": false,
+      "parameters": [
+        {
+          "name": "codi_emp",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp_origem",
+          "type": "integer"
+        },
+        {
+          "name": "codi_cli",
+          "type": "integer"
+        },
+        {
+          "name": "nome_cli",
+          "type": "string"
+        },
+        {
+          "name": "documento_cli",
+          "type": "string"
+        },
+        {
+          "name": "ano_servico",
+          "type": "integer"
+        },
+        {
+          "name": "mes_servico",
+          "type": "integer"
+        },
+        {
+          "name": "valor",
+          "type": "decimal"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp_origem",
+        "codi_cli",
+        "ano_servico",
+        "mes_servico"
+      ],
+      "identityMode": "aggregate",
+      "allowedRunKinds": [
+        "incremental",
+        "full"
+      ],
+      "requiresSourceRole": "billing_source",
+      "maxRowsPerRun": 250000
+    },
+    {
+      "code": "billing_events",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "billing_events.v1.sql",
+      "querySha256": "beecdd02a03a8206bd560866c83a12b56d5ccfcf5941c3ec740c3bd3b5ae3c86",
+      "validated": true,
+      "parameters": [
+        {
+          "name": "codi_emp",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp_origem",
+          "type": "integer"
+        },
+        {
+          "name": "i_evento",
+          "type": "integer"
+        },
+        {
+          "name": "ano_servico",
+          "type": "integer"
+        },
+        {
+          "name": "mes_servico",
+          "type": "integer"
+        },
+        {
+          "name": "lancamentos",
+          "type": "integer"
+        },
+        {
+          "name": "total",
+          "type": "decimal"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp_origem",
+        "i_evento",
+        "ano_servico",
+        "mes_servico"
+      ],
+      "identityMode": "aggregate",
+      "allowedRunKinds": [
+        "incremental",
+        "full"
+      ],
+      "requiresSourceRole": "billing_source",
+      "maxRowsPerRun": 50000
+    },
+    {
+      "code": "billing_honorarios",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "billing_honorarios.v1.sql",
+      "querySha256": "c03d8c396b1ead64b0790d24bb4e200774372a79eef8c20fdbdad66f40cecb7f",
+      "validated": true,
+      "parameters": [
+        {
+          "name": "codi_emp",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "i_evento",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "codi_emp_origem",
+          "type": "integer"
+        },
+        {
+          "name": "codi_cli",
+          "type": "integer"
+        },
+        {
+          "name": "nome_cli",
+          "type": "string"
+        },
+        {
+          "name": "documento_cli",
+          "type": "string"
+        },
+        {
+          "name": "ano_servico",
+          "type": "integer"
+        },
+        {
+          "name": "mes_servico",
+          "type": "integer"
+        },
+        {
+          "name": "valor",
+          "type": "decimal"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp_origem",
+        "codi_cli",
+        "ano_servico",
+        "mes_servico"
+      ],
+      "identityMode": "aggregate",
+      "allowedRunKinds": [
+        "incremental",
+        "full"
+      ],
+      "requiresSourceRole": "billing_source",
+      "maxRowsPerRun": 250000
+    },
+    {
+      "code": "companies",
+      "sourceSystem": "siescon",
+      "schemaVersion": 2,
+      "sqlFile": "companies.siescon.v1.sql",
+      "querySha256": "73d935691ed15a8f220a5ec36f31d08d72cbf506f06c326d1a19bf2576d492cd",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "razao_emp",
+          "type": "string"
+        },
+        {
+          "name": "cgce_emp",
+          "type": "string"
+        },
+        {
+          "name": "situacao",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "users",
+      "sourceSystem": "siescon",
+      "schemaVersion": 1,
+      "sqlFile": "users.siescon.v1.sql",
+      "querySha256": "1efaea8e20ad807b026f0f6c806d75e45c7cac941ef603ea5f0d3de114e572be",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "i_usuario",
+          "type": "string"
+        },
+        {
+          "name": "situacao",
+          "type": "integer"
+        },
+        {
+          "name": "nome",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [
+        "i_usuario"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "taxation",
+      "sourceSystem": "siescon",
+      "schemaVersion": 1,
+      "sqlFile": "taxation.siescon.v1.sql",
+      "querySha256": "a0d2c3911852632c9f2dd6b8fb3759ed22d4b0ba58bca6cff0a4ace00b15d1d9",
+      "validated": false,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "vigencia_par",
+          "type": "string"
+        },
+        {
+          "name": "rfed_par",
+          "type": "integer"
+        }
+      ],
+      "identityColumns": [
+        "codi_emp"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 100000
+    },
+    {
+      "code": "salaries",
+      "sourceSystem": "siescon",
+      "schemaVersion": 1,
+      "sqlFile": "salaries.siescon.v1.sql",
+      "querySha256": "4976969c9ad129472f26dd6fa39fccf4d8ae62d2fdbaebd7ef55972b0abbe083",
+      "validated": true,
+      "parameters": [],
+      "columns": [
+        {
+          "name": "codi_emp",
+          "type": "integer"
+        },
+        {
+          "name": "i_empregados",
+          "type": "integer"
+        },
+        {
+          "name": "nome",
+          "type": "string"
+        },
+        {
+          "name": "ultima_competencia",
+          "type": "string"
+        },
+        {
+          "name": "salario_mais_recente",
+          "type": "decimal"
+        }
+      ],
+      "contextColumns": [
+        "codi_emp",
+        "ultima_competencia"
+      ],
+      "identityColumns": [
+        "i_empregados"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "requiresSourceRole": "payroll_source",
+      "maxRowsPerRun": 100000
+    }
+  ]
+}

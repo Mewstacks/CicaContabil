@@ -69,6 +69,7 @@ class ProductModule(OrganizationScopedModel):
         JOURNEY = "journey", "Jornadas"
         AI = "ai", "Copiloto CICA"
         TRIAGE = "triage", "Triagem de Arquivos"
+        PROFITABILITY = "profitability", "Rentabilidade por Cliente"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)

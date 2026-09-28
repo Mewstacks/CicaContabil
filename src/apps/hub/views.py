@@ -257,9 +257,7 @@ class SignOutView(auth_views.LogoutView):
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     """Keep the one-use reset token out of every subsequent Referer header."""
 
-    def dispatch(
-        self, request: HttpRequest, *args: object, **kwargs: object
-    ) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         response = super().dispatch(request, *args, **kwargs)
         # Django replaces the one-use token with "set-password" before rendering.
         # On that sanitized URL, preserve the same-origin POST context for CSRF;
@@ -771,8 +769,9 @@ def _onboarding_context(
     demo = bool(office and office.is_demo)
     done = False
     if not demo and getattr(request.user, "is_authenticated", False):
+        user = cast(User, request.user)
         done = OnboardingProgress.objects.filter(
-            user=request.user, tour_id=tour.identifier, version__gte=tour.version
+            user=user, tour_id=tour.identifier, version__gte=tour.version
         ).exists()
     return {
         "onboarding_tour": tour,
@@ -789,8 +788,9 @@ def onboarding_complete(request: HttpRequest, tour_id: str) -> HttpResponse:
     tour = TOURS_BY_ID.get(tour_id)
     if tour is None:
         return HttpResponseBadRequest("Orientação desconhecida.")
+    user = cast(User, request.user)
     OnboardingProgress.objects.update_or_create(
-        user=request.user,
+        user=user,
         tour_id=tour.identifier,
         defaults={"version": tour.version, "completed_at": timezone.now()},
     )
@@ -1296,15 +1296,11 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         .select_related("document")
         .order_by("-created_at")
     )
-    open_cases_page = Paginator(open_cases_query, 20).get_page(
-        request.GET.get("reviews_page")
+    open_cases_page = Paginator(open_cases_query, 20).get_page(request.GET.get("reviews_page"))
+    dte_messages_query = DteMessage.objects.filter(organization=office, company=company).order_by(
+        "-sent_at", "-first_seen_at"
     )
-    dte_messages_query = DteMessage.objects.filter(
-        organization=office, company=company
-    ).order_by("-sent_at", "-first_seen_at")
-    dte_messages_page = Paginator(dte_messages_query, 20).get_page(
-        request.GET.get("dte_page")
-    )
+    dte_messages_page = Paginator(dte_messages_query, 20).get_page(request.GET.get("dte_page"))
     company_detail_query_params = request.GET.copy()
     company_detail_querystrings: dict[str, str] = {}
     for page_parameter in ("documents_page", "reviews_page", "dte_page"):
@@ -1333,7 +1329,66 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "today": timezone.now(),
         }
     )
+    context.update(_company_profitability(office, company, context))
     return render(request, "hub/company_detail.html", context)
+
+
+def _company_profitability(
+    office: Organization, company: ClientCompany, context: dict[str, object]
+) -> dict[str, object]:
+    """O que o módulo Rentabilidade sabe desta empresa, se o escritório o tiver.
+
+    A ficha transversal do Hub mantém o resumo junto dos demais fatos da empresa;
+    o módulo oferece uma análise própria para abrir horas, equipe, comparações e
+    histórico sem duplicar a entidade que D-109 consolidou.
+    """
+
+    if not any(
+        module.code == ProductModule.Code.PROFITABILITY
+        for module in cast("list[ModuleDefinition]", context["enabled_modules"])
+    ):
+        return {}
+
+    from apps.profitability.calc import mensalidade_sugerida
+    from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
+    from apps.profitability.services import get_config, unidades_do_grupo
+
+    competencia = (
+        Competencia.objects.filter(organization=office, is_atual=True)
+        .values_list("competencia", flat=True)
+        .first()
+        or Competencia.objects.filter(organization=office)
+        .values_list("competencia", flat=True)
+        .first()
+        or ""
+    )
+    if not competencia:
+        return {"profitability_enabled": True, "profitability_competencia": ""}
+
+    metrica = ClienteCompetenciaMetrics.objects.filter(
+        organization=office, empresa=company, competencia=competencia
+    ).first()
+    config = get_config(office)
+    perfil = company.erp_profiles.order_by("-sistema_origem").first()
+    alvo = (perfil.margem_alvo if perfil else None) or config.margem_alvo_padrao
+
+    # Sem base de custo nada é sugerido. O custo de alguns minutos dividido numa
+    # mensalidade cheia devolve margem quase plena e uma sugerida miudíssima, e o
+    # cliente sobe ao topo da carteira por falta de dado.
+    sugerida = (
+        mensalidade_sugerida(metrica.custo, alvo)
+        if metrica is not None and metrica.faixa not in {"sem_dados", "incompleta"}
+        else None
+    )
+    unidades = unidades_do_grupo(office, competencia, str(company.id))
+    return {
+        "profitability_enabled": True,
+        "profitability_competencia": competencia,
+        "profitability_metrics": metrica,
+        "profitability_margem_alvo": alvo,
+        "profitability_sugerida": sugerida,
+        "profitability_unidades": unidades if len(unidades) > 1 else [],
+    }
 
 
 @office_required
@@ -1460,6 +1515,29 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "count": reconciliation_count,
                 "note": "Lançamentos ambíguos ou sem correspondência",
                 "url": f"{reverse('hub:reconciliation')}?status=attention",
+            }
+        )
+    if ProductModule.Code.PROFITABILITY in enabled_codes:
+        from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
+
+        # Clientes cuja margem já é negativa ou está em atenção: é a fila de quem
+        # precisa de decisão de preço. Custo incompleto e sem dados ficam fora —
+        # aqueles são falta de dado, e misturá-los com prejuízo real inventaria
+        # uma urgência que o número não sustenta.
+        atencao_count = ClienteCompetenciaMetrics.objects.filter(
+            organization=office,
+            empresa__in=scope,
+            competencia__in=Competencia.objects.filter(
+                organization=office, is_atual=True
+            ).values_list("competencia", flat=True),
+            faixa__in=["negativa", "atencao"],
+        ).count()
+        work_areas.append(
+            {
+                "label": "Rentabilidade",
+                "count": atencao_count,
+                "note": "Clientes com margem negativa ou em atenção",
+                "url": reverse("profitability:overview"),
             }
         )
     context.update(
@@ -1979,11 +2057,7 @@ def _module_page_context(
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    if (
-        module.code == ProductModule.Code.AI
-        and not copilot_is_available()
-        and not office.is_demo
-    ):
+    if module.code == ProductModule.Code.AI and not copilot_is_available() and not office.is_demo:
         return context, HttpResponse(status=404)
     if not collaborator_can_use_module(context, module.code):
         return context, refuse(request, f"Seu acesso n\u00e3o inclui {module.label}.")
@@ -2222,9 +2296,7 @@ def guides(request: HttpRequest) -> HttpResponse:
         guide_items = filtered_guides.order_by("due_on", "company__name")
     guide_page = Paginator(guide_items, 100).get_page(request.GET.get("page"))
     guide_list = list(guide_page.object_list)
-    guide_querystring = urlencode(
-        {"q": guide_search, "status": guide_status, "due": guide_due}
-    )
+    guide_querystring = urlencode({"q": guide_search, "status": guide_status, "due": guide_due})
     for guide in guide_list:
         guide.amount_brl = Decimal(guide.amount_cents) / 100
         guide.usage_quote = None
@@ -2246,9 +2318,7 @@ def guides(request: HttpRequest) -> HttpResponse:
                 except BillingError as exc:
                     guide.usage_error = str(exc)
         if guide.usage_quote is not None:
-            guide.usage_overage_brl = (
-                Decimal(guide.usage_quote.additional_overage_cents) / 100
-            )
+            guide.usage_overage_brl = Decimal(guide.usage_quote.additional_overage_cents) / 100
     source_connector = (
         IntelligenceConnector.objects.filter(organization=office)
         .order_by("-last_sync_at", "-created_at")
@@ -3378,15 +3448,11 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                     )
                 )
 
-    portfolio_page = Paginator(companies.order_by("name"), 30).get_page(
-        request.GET.get("page")
-    )
+    portfolio_page = Paginator(companies.order_by("name"), 30).get_page(request.GET.get("page"))
     portfolio = list(portfolio_page.object_list)
     portfolio_querystring = urlencode({"search": search}) if search else ""
     for portfolio_company in portfolio:
-        portfolio_company.parcelamento_operation = latest_by_company.get(
-            str(portfolio_company.id)
-        )
+        portfolio_company.parcelamento_operation = latest_by_company.get(str(portfolio_company.id))
     orders_quote: TokenQuote | SimpleNamespace | None = None
     quote_error = ""
     if visitor:
@@ -3421,9 +3487,9 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     parcelamento_operations_page: object | None = None
     parcelamento_operations_querystring = ""
     if company:
-        parcelamento_operations_page = Paginator(
-            operations.filter(company=company), 20
-        ).get_page(request.GET.get("operation_page"))
+        parcelamento_operations_page = Paginator(operations.filter(company=company), 20).get_page(
+            request.GET.get("operation_page")
+        )
         parcelamento_operations = list(parcelamento_operations_page.object_list)
         operation_query_params = request.GET.copy()
         operation_query_params.pop("operation_page", None)
@@ -3608,9 +3674,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
     dte_history_context: dict[str, object]
     if visitor:
         pending_runs, demo_items = _demo_dte_runs_for_view(request, companies, office)
-        demo_dte_items_page = Paginator(demo_items, 30).get_page(
-            request.GET.get("history_page")
-        )
+        demo_dte_items_page = Paginator(demo_items, 30).get_page(request.GET.get("history_page"))
         dte_history_context = {
             "dte_items": list(demo_dte_items_page.object_list),
             "dte_items_page": demo_dte_items_page,
@@ -3971,11 +4035,15 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
             messages.error(
                 request, "Confirme que esta abertura pode registrar ciência e iniciar prazo."
             )
-        elif detail_quote is not None and detail_quote.additional_overage_cents and (
-            not can_authorize_overage
-            or request.POST.get("confirm_overage") != "on"
-            or request.POST.get("approved_overage_cents")
-            != str(detail_quote.additional_overage_cents)
+        elif (
+            detail_quote is not None
+            and detail_quote.additional_overage_cents
+            and (
+                not can_authorize_overage
+                or request.POST.get("confirm_overage") != "on"
+                or request.POST.get("approved_overage_cents")
+                != str(detail_quote.additional_overage_cents)
+            )
         ):
             messages.error(
                 request,
@@ -4385,9 +4453,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             if match.accounting_entry_id
             else "Sem correspondência"
         )
-        match.display_reference = (
-            getattr(match.display_entry, "source_id", "")
-            or getattr(match.display_entry, "external_key", "")
+        match.display_reference = getattr(match.display_entry, "source_id", "") or getattr(
+            match.display_entry, "external_key", ""
         )
         match.candidates = candidates_by_key.get(
             (
@@ -4590,9 +4657,7 @@ def _reconciliation_v2_context(
     if movement_query_params is not None:
         movement_query_params.pop("movement_page", None)
     runs_page = Paginator(
-        ReconciliationRun.objects.filter(
-            organization=office, source_file__company__in=companies
-        )
+        ReconciliationRun.objects.filter(organization=office, source_file__company__in=companies)
         .select_related("source_file", "source_file__company")
         .order_by("-created_at"),
         20,
@@ -4666,9 +4731,7 @@ def _reconciliation_v2_context(
         )["total"]
         return Decimal(total) / 100
 
-    dominio_entries = DominioBankEntry.objects.filter(
-        organization=office, company__in=companies
-    )
+    dominio_entries = DominioBankEntry.objects.filter(organization=office, company__in=companies)
     return {
         "upload_form": ReconciliationUploadForm(companies=companies),
         "reconciliation_runs": list(runs_page.object_list),
@@ -4852,12 +4915,15 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             setup_model = setup_models.get(setup_kind)
             if setup_model is None:
                 return refuse(request, "Item de configuração inválido.", kind="unavailable")
-            configured = cast(Any, get_object_or_404(
-                setup_model,
-                id=request.POST.get("setup_id"),
-                organization=office,
-                company=selected_company,
-            ))
+            configured = cast(
+                Any,
+                get_object_or_404(
+                    setup_model,
+                    id=request.POST.get("setup_id"),
+                    organization=office,
+                    company=selected_company,
+                ),
+            )
             configured.active = not configured.active
             configured.save(update_fields=["active", "updated_at"])
             record_event(
@@ -6183,9 +6249,7 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
         queue_total = len(visible)
         queue_quarantined = sum(item.status == TriageStatus.QUARANTINED for item in visible)
     else:
-        query_filtered_queue = (
-            queue.filter(status=selected_status) if selected_status else queue
-        )
+        query_filtered_queue = queue.filter(status=selected_status) if selected_status else queue
         if queue_search:
             query_filtered_queue = query_filtered_queue.filter(
                 Q(original_name__icontains=queue_search)
@@ -6755,8 +6819,7 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
     item = get_object_or_404(
         TriageItem.objects.select_related(
             "company", "document_type", "reviewed_by", "blob", "mailbox", "safety_scan"
-        )
-        .filter(item_scope),
+        ).filter(item_scope),
         organization=office,
         id=item_id,
     )
@@ -7503,18 +7566,27 @@ def _review_accumulator_codes(document: NfseDocument) -> list[str]:
     """Return only company-scoped codes that an operator may select for a review."""
 
     document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
-    configured_codes = AccumulatorRule.objects.filter(
-        organization=document.organization,
-        company=document.company,
-        active=True,
-    ).filter(
-        Q(valid_from__isnull=True) | Q(valid_from__lte=document_day),
-        Q(valid_until__isnull=True) | Q(valid_until__gte=document_day),
-    ).order_by("priority", "name").values_list("accumulator_code", flat=True)
-    observed_codes = AccumulatorObservation.objects.filter(
-        organization=document.organization,
-        company=document.company,
-    ).order_by("-last_used_at").values_list("accumulator_code", flat=True)
+    configured_codes = (
+        AccumulatorRule.objects.filter(
+            organization=document.organization,
+            company=document.company,
+            active=True,
+        )
+        .filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=document_day),
+            Q(valid_until__isnull=True) | Q(valid_until__gte=document_day),
+        )
+        .order_by("priority", "name")
+        .values_list("accumulator_code", flat=True)
+    )
+    observed_codes = (
+        AccumulatorObservation.objects.filter(
+            organization=document.organization,
+            company=document.company,
+        )
+        .order_by("-last_used_at")
+        .values_list("accumulator_code", flat=True)
+    )
     return list(dict.fromkeys([*configured_codes, *observed_codes]))
 
 
@@ -7751,9 +7823,9 @@ def setup_center(request: HttpRequest) -> HttpResponse:
     import_history_query_params = request.GET.copy()
     import_history_query_params.pop("imports_page", None)
     recent_imports_page = Paginator(
-        ImportBatch.objects.filter(organization=office).select_related("data_source").order_by(
-            "-created_at"
-        ),
+        ImportBatch.objects.filter(organization=office)
+        .select_related("data_source")
+        .order_by("-created_at"),
         20,
     ).get_page(request.GET.get("imports_page"))
     profile = OfficeProfile.objects.filter(organization=office).first()

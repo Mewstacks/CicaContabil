@@ -1,8 +1,9 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="CICA Agent" Manufacturer="Mewstack" Version="$(var.InstallerVersion)"
            UpgradeCode="8D0CF3A2-CB09-4F78-A90B-23042EA1CE32" Scope="perMachine">
-    <MajorUpgrade DowngradeErrorMessage="Já existe uma versão mais nova do CICA Agent." />
-    <MediaTemplate EmbedCab="yes" />
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="Já existe uma versão mais nova do CICA Agent." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="CICA Agent">
         <Directory Id="SERVICEFOLDER" Name="Service" />
@@ -14,18 +15,23 @@
         <Directory Id="AgentData" Name="Agent" />
       </Directory>
     </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="CicaProgramsFolder" Name="CICA" />
+    </StandardDirectory>
     <Feature Id="Main" Title="CICA Agent" Level="1">
       <ComponentGroupRef Id="ServiceFiles" />
       <ComponentGroupRef Id="ConfiguratorFiles" />
       <ComponentRef Id="ServiceRegistration" />
       <ComponentRef Id="DataPermissions" />
       <ComponentRef Id="DiagnosticScript" />
+      <ComponentRef Id="ConfiguratorShortcut" />
     </Feature>
     <CustomAction Id="LaunchConfigurator" Directory="CONFIGURATORFOLDER"
                   ExeCommand="Cica.Agent.Configurator.exe"
                   Execute="immediate" Return="asyncNoWait" Impersonate="yes" />
     <InstallExecuteSequence>
-      <Custom Action="LaunchConfigurator" After="InstallFinalize" Condition="NOT Installed" />
+      <Custom Action="LaunchConfigurator" After="InstallFinalize"
+              Condition="NOT Installed AND UILevel &gt;= 4" />
     </InstallExecuteSequence>
   </Package>
   <Fragment>
@@ -41,7 +47,7 @@
       <Component Id="ServiceRegistration" Guid="507A8F88-251B-4FE1-BE99-2A692A17EC33" Bitness="always64">
         <File Id="ServiceExe" Source="$(ServiceDir)\Cica.Agent.Service.exe" KeyPath="yes" />
         <ServiceInstall Id="CicaService" Name="CicaAgent" DisplayName="CICA Agent"
-                        Description="Sincronização segura do Domínio com a CICA"
+                        Description="Integração segura dos sistemas locais com a CICA"
                         Start="auto" Type="ownProcess" ErrorControl="normal" Account="LocalSystem" />
         <ServiceControl Id="CicaServiceControl" Name="CicaAgent" Start="install"
                         Stop="both" Remove="uninstall" Wait="yes" />
@@ -55,6 +61,18 @@
     <DirectoryRef Id="AgentData">
       <Component Id="DataPermissions" Guid="1A43F804-91BB-40E2-8056-BEF51DE432D2">
         <CreateFolder />
+      </Component>
+    </DirectoryRef>
+    <DirectoryRef Id="CicaProgramsFolder">
+      <Component Id="ConfiguratorShortcut" Guid="5D86CC5B-ADF7-4530-A70A-63DC91588FD0"
+                 Bitness="always64">
+        <Shortcut Id="OpenConfigurator" Name="Configurar CICA Agent"
+                  Description="Configurar a integração local da CICA"
+                  Target="[CONFIGURATORFOLDER]Cica.Agent.Configurator.exe"
+                  WorkingDirectory="CONFIGURATORFOLDER" />
+        <RemoveFolder Id="RemoveCicaProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\Mewstack\CICA Agent"
+                       Name="ConfiguratorShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </DirectoryRef>
   </Fragment>

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from apps.intelligence import agent_v2
+from apps.profitability import agent_api as profitability_agent
 
 urlpatterns = [
     path("enroll", agent_v2.enroll, name="agent-v2-enroll"),
@@ -39,4 +40,29 @@ urlpatterns = [
     ),
     path("sync/<str:capability>", agent_v2.sync_capability, name="agent-v2-sync"),
     path("certificate/renew", agent_v2.renew_certificate, name="agent-v2-renew"),
+    path(
+        "profitability/datasets",
+        profitability_agent.datasets,
+        name="agent-v2-profitability-datasets",
+    ),
+    path(
+        "profitability/runs",
+        profitability_agent.open_run,
+        name="agent-v2-profitability-run-open",
+    ),
+    path(
+        "profitability/runs/<uuid:run_id>/batches",
+        profitability_agent.append_batch,
+        name="agent-v2-profitability-run-batch",
+    ),
+    path(
+        "profitability/runs/<uuid:run_id>/complete",
+        profitability_agent.complete_run,
+        name="agent-v2-profitability-run-complete",
+    ),
+    path(
+        "profitability/runs/<uuid:run_id>/failure",
+        profitability_agent.fail_run,
+        name="agent-v2-profitability-run-failure",
+    ),
 ]

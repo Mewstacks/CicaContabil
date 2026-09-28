@@ -44,7 +44,7 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
         catch (Exception error) when (error is not OperationCanceledException)
         {
             await client.PostAsync("api/agent/v2/sync/failed", new
-                { batch_id = id, code = "backup_processing", detail = Friendly(error) }, token);
+            { batch_id = id, code = "backup_processing", detail = Friendly(error) }, token);
         }
         finally
         {
@@ -71,8 +71,13 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
         var page = new List<object>(PageSize);
         while (reader.Read())
         {
-            page.Add(new { external_key = Convert.ToString(reader[0]), name = Convert.ToString(reader[1]),
-                cnpj = Convert.ToString(reader[2]), active = Convert.ToString(reader[3]) == "A" });
+            page.Add(new
+            {
+                external_key = Convert.ToString(reader[0]),
+                name = Convert.ToString(reader[1]),
+                cnpj = Convert.ToString(reader[2]),
+                active = Convert.ToString(reader[3]) == "A"
+            });
             if (page.Count == PageSize) { await SendPage("companies", batch, page, token); page.Clear(); }
         }
         if (page.Count > 0) await SendPage("companies", batch, page, token);
@@ -90,10 +95,15 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
         var page = new List<object>(PageSize);
         while (reader.Read())
         {
-            page.Add(new { external_key = Convert.ToString(reader[0]), company_key = Convert.ToString(reader[1]),
+            page.Add(new
+            {
+                external_key = Convert.ToString(reader[0]),
+                company_key = Convert.ToString(reader[1]),
                 occurred_on = Convert.ToDateTime(reader[2]).ToString("yyyy-MM-dd"),
-                description = Convert.ToString(reader[3]), amount = Convert.ToDecimal(reader[4]),
-                direction = Convert.ToString(reader[5]) });
+                description = Convert.ToString(reader[3]),
+                amount = Convert.ToDecimal(reader[4]),
+                direction = Convert.ToString(reader[5])
+            });
             if (page.Count == PageSize) { await SendPage("accounting_entries", batch, page, token); page.Clear(); }
         }
         if (page.Count > 0) await SendPage("accounting_entries", batch, page, token);
@@ -115,7 +125,7 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
 
         foreach (IArchiveEntry entry in entries)
         {
-            string entryPath = entry.Key.Replace('/', Path.DirectorySeparatorChar);
+            string entryPath = (entry.Key ?? "").Replace('/', Path.DirectorySeparatorChar);
             if (string.IsNullOrWhiteSpace(entryPath)
                 || entryPath.IndexOf('\0') >= 0
                 || Path.IsPathRooted(entryPath))
@@ -127,7 +137,7 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
 
         foreach (IArchiveEntry entry in entries)
             entry.WriteToDirectory(extractionRoot, new ExtractionOptions
-                { ExtractFullPath = true, Overwrite = true, PreserveFileTime = true });
+            { ExtractFullPath = true, Overwrite = true, PreserveFileTime = true });
     }
 
     private static string Friendly(Exception error) => error switch

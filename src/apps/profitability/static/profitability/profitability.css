@@ -1,0 +1,368 @@
+/* Rentabilidade por Cliente. Segue os tokens do workspace; nada de cor nova. */
+
+.profitability-period {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.profitability-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.profitability-totals div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profitability-totals dt {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-totals dd {
+  margin: 0;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+/* Valores financeiros alinham por dígito: uma coluna de números que dança de
+   largura é difícil de comparar de cima a baixo, que é o que esta tela pede. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.is-negative {
+  color: var(--danger, #a4303f);
+}
+
+.profitability-caveat {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.profitability-table th,
+.profitability-table td {
+  padding: 0.625rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-table td.tnum,
+.profitability-table th.tnum {
+  text-align: right;
+}
+
+.profitability-table tbody th {
+  font-weight: 500;
+}
+
+.profitability-code {
+  display: inline-block;
+  margin-left: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-band {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-band.is-negativa { border-color: var(--danger, #a4303f); }
+.profitability-band.is-atencao { border-color: var(--warning, #b07d2b); }
+
+/* "Sem dados" e "custo incompleto" não são faixas de margem: são ausências de
+   dado, e pintá-las como as demais faria o olho lê-las como resultado. */
+.profitability-band.is-sem_dados,
+.profitability-band.is-incompleta {
+  color: var(--text-muted, #5f635a);
+  border-style: dashed;
+}
+
+.profitability-pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .profitability-table thead { display: none; }
+  .profitability-table tr { display: grid; gap: 0.25rem; padding: 0.75rem 0; border-bottom: 1px solid var(--line, #e4e4dc); }
+  .profitability-table th,
+  .profitability-table td { border: 0; padding: 0; text-align: left; }
+  .profitability-table td.tnum { text-align: left; }
+}
+
+.profitability-search {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: 0.75rem 0;
+}
+
+.profitability-segmented {
+  display: inline-flex;
+  border: 1px solid var(--line, #e4e4dc);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.profitability-segmented a {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.profitability-segmented a.is-current {
+  background: var(--surface-2, #efeee7);
+  font-weight: 600;
+}
+
+.profitability-link-form {
+  display: flex;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.profitability-logins {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+
+.profitability-breakdown caption {
+  text-align: left;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-breakdown td:last-child {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.profitability-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.profitability-help {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--danger, #a4303f);
+}
+
+/* A tabela abaixo de um gráfico não é redundância: é o mesmo dado numa forma que
+   leitor de tela percorre e que sobrevive à impressão. */
+.profitability-chart-data {
+  margin-top: 1rem;
+}
+
+.profitability-chart {
+  margin-top: 1rem;
+}
+
+.profitability-chart-svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.chart-axis {
+  stroke: var(--line, #e4e4dc);
+  stroke-width: 1;
+}
+
+/* Receita e custo se distinguem por preenchimento, não só por cor: num gráfico
+   de duas séries, cor sozinha exclui quem não separa os dois tons. */
+.chart-bar.is-revenue { fill: var(--primary, #5f7a61); }
+.chart-bar.is-cost { fill: var(--primary, #5f7a61); opacity: 0.35; }
+
+.chart-line {
+  fill: none;
+  stroke: var(--ink, #1e211c);
+  stroke-width: 1.5;
+}
+
+.chart-point { fill: var(--ink, #1e211c); }
+
+.chart-label {
+  font-size: 10px;
+  fill: var(--text-muted, #5f635a);
+}
+
+/* Mapa da carteira. As faixas se distinguem por preenchimento além da cor: num
+   mapa de quatro categorias, cor sozinha exclui quem não separa os tons. */
+.chart-tile { stroke: var(--surface, #fcfcf9); stroke-width: 1; }
+.chart-tile.is-saudavel { fill: var(--primary, #5f7a61); }
+.chart-tile.is-atencao { fill: var(--primary, #5f7a61); opacity: 0.55; }
+.chart-tile.is-negativa { fill: var(--danger, #a4303f); }
+.chart-tile.is-incompleta,
+.chart-tile.is-sem_dados { fill: var(--line, #e4e4dc); }
+
+.chart-tile-label {
+  font-size: 11px;
+  fill: var(--surface, #fcfcf9);
+  pointer-events: none;
+}
+
+.chart-tile.is-incompleta + .chart-tile-label,
+.chart-tile.is-sem_dados + .chart-tile-label { fill: var(--ink-2, #5f635a); }
+
+.profitability-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.profitability-kpi { display: flex; flex-direction: column; gap: 0.125rem; }
+.profitability-kpi dt { font-size: 0.8125rem; color: var(--text-muted, #5f635a); }
+.profitability-kpi dd { margin: 0; font-size: 1.375rem; font-weight: 600; }
+
+.profitability-delta {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-delta.is-good { color: var(--primary, #5f7a61); }
+.profitability-delta.is-bad { color: var(--danger, #a4303f); }
+
+.profitability-chart-details { margin-top: 0.75rem; }
+.profitability-chart-details summary { cursor: pointer; font-size: 0.875rem; }
+
+.profitability-freshness caption {
+  text-align: left;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-muted, #5f635a);
+}
+
+.profitability-alert {
+  padding: 0.75rem;
+  border-left: 3px solid var(--warning, #b07d2b);
+  background: var(--surface-2, #efeee7);
+}
+
+/* A ficha funciona como um razão analítico: índice curto, seções na mesma
+   coluna e linhas que podem ser conferidas de cima a baixo. Não vira uma grade
+   de cartões, porque o trabalho aqui é reconciliar o mesmo fato em recortes
+   diferentes. */
+.profitability-client-heading .profitability-period {
+  margin-top: 1rem;
+}
+
+.profitability-client-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.profitability-index {
+  display: flex;
+  gap: 0.25rem 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  padding: 0 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-index a {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted, #5f635a);
+  font-size: 0.875rem;
+  text-underline-offset: 0.2rem;
+}
+
+.profitability-index a:hover,
+.profitability-index a:focus-visible {
+  color: var(--ink, #1e211c);
+}
+
+.profitability-anchored {
+  scroll-margin-top: 1rem;
+}
+
+.profitability-subheading {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.profitability-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profitability-timeline li {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.75fr) minmax(16rem, 2fr) auto;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-timeline li:last-child {
+  border-bottom: 0;
+}
+
+.profitability-timeline p {
+  margin: 0;
+  color: var(--text-muted, #5f635a);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .profitability-index a {
+    min-height: 2.75rem;
+  }
+
+  .profitability-timeline li {
+    grid-template-columns: 1fr;
+    gap: 0.375rem;
+  }
+
+  .profitability-timeline .profitability-band {
+    justify-self: start;
+  }
+}

@@ -5,5 +5,10 @@
     <Deterministic>true</Deterministic>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Permite compilar os projetos de alvo Windows numa máquina que não é
+         Windows. Só a compilação: o pacote continua sendo gerado e assinado no
+         Windows. Sem isto a integração contínua não teria como conferir o agente,
+         que foi como um erro de compilação sobreviveu no ramo principal. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 </Project>
