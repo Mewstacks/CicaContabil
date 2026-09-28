@@ -1,5 +1,21 @@
 # CICA — validações e evidências
 
+## V-114 — Primeiro MSI único construído no CI Windows
+
+Data: 28/09/2026. Branch `codex/lucrums`, PR em rascunho #1. O primeiro job
+`agent-package` encontrou ICE38/ICE43/ICE57 no atalho do configurador:
+o componente usava chave HKLM para um atalho não anunciado no menu de programas.
+O KeyPath foi corrigido para HKCU conforme a regra do Windows Installer. Na
+execução [36450694685](https://github.com/Mewstacks/CicaContabil/actions/runs/36450694685),
+o job Windows **passou**: publicou serviço x64, configurador x64 e ponte ODBC x86,
+gerou `CicaAgent.msi` e conferiu no `release.json` a versão e o SHA-256 do MSI.
+O job `agent` no Linux também passou. O WiX emitiu WIX1076 (upgrade da mesma
+versão permitido por configuração); foi aviso, sem falha de construção.
+
+**Limite:** isto comprova construção e consistência do pacote no CI, não
+instalação, execução do serviço, conexão ODBC/ERP, assinatura ou piloto. O job
+geral `verify` ainda estava nos builds Docker no momento deste registro.
+
 ## V-113 — Branch Lucrums e identidade de empresas com documento repetido
 
 Data: 28/09/2026. Ambiente: branch local `codex/lucrums`, derivada da etapa 14;

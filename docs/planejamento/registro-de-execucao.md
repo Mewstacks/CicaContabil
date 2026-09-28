@@ -1,5 +1,13 @@
 # Registro de execução da meta operacional
 
+## 28/09/2026 — MSI único construído no CI Windows (V-114)
+
+- O PR em rascunho #1 executou o novo job Windows. A primeira tentativa expôs
+  ICE38/ICE43/ICE57 no atalho; a chave HKCU corrigiu o componente. A execução
+  36450694685 gerou `CicaAgent.msi` e validou versão e SHA-256 do manifesto.
+- Construção não substitui instalação ou homologação com ERP real. O job geral
+  ainda concluía builds Docker quando esta evidência foi registrada.
+
 ## 28/09/2026 — branch dedicada e correção da identidade do Lucrums (V-113)
 
 - D-120 moveu o trabalho da etapa 14 para `codex/lucrums`, preservando a
