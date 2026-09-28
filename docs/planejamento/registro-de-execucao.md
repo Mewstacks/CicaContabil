@@ -1,5 +1,16 @@
 # Registro de execução da meta operacional
 
+## 28/09/2026 — branch dedicada e correção da identidade do Lucrums (V-113)
+
+- D-120 moveu o trabalho da etapa 14 para `codex/lucrums`, preservando a
+  `main` como linha principal. A revisão do ProjetoARD encontrou o risco de
+  matriz e filial com documento repetido; a CICA agora conserva os códigos e
+  exige correspondência inequívoca para gêmeas de ERP e honorários.
+- 971 testes Python, 36 testes de ingestão e 20 testes .NET passaram. Ruff,
+  MyPy, Django e migrações passaram. Cobertura global de 80,09% ficou abaixo
+  dos 85% exigidos.
+- Faltam prova do MSI no CI Windows, decisões Q-39 a Q-41 e homologação real.
+
 ## 21/09/2026 — demonstração isolada da Conciliação revisada no navegador (V-099)
 
 - Uma base SQLite temporária, migrada e semeada exclusivamente com dados
@@ -1086,3 +1097,26 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - O README do agente ganhou as seções de contratos, ponte de 32 bits e atualização.
 - D-118 registra que o atualizador automático do conector de origem não é absorvido: V-022 diz que o agente da CICA não baixa nem instala MSI sozinho, e reverter isso num porte seria decidir pelo responsável.
 - Não foram copiados do projeto de origem: a SPA React, os apps de base do backend (conta, organização, auditoria, privacidade, comuns), o segredo local, o banco de desenvolvimento, o ambiente virtual de PDF e a pasta `tmp/pdfs`.
+
+## 22/09/2026 — Etapa 14, continuidade da fase 2: ficha analítica do cliente (V-110)
+
+- A carteira e a ficha transversal da empresa agora levam a uma análise própria do módulo, sem criar outra entidade de empresa: evolução, conciliação diária de horas automáticas × F9, atividades, equipe, unidades do grupo, referências e histórico ficam na mesma rota por competência.
+- A ficha preserva a semântica dos dados ausentes: sem horas não há custo, margem nem honorário sugerido; custo parcial continua identificado. O gráfico próprio de D-113 foi reutilizado e a série também sai como tabela auditável.
+- `CompanyAccessGrant` passou a recortar não só a empresa aberta, mas também horas, atividades, unidades e médias de comparação. O custo individual por pessoa continua reservado a dono e administrador.
+- O plano da etapa foi consolidado em sete fases, do congelamento da origem à liberação, marcando o que já está concluído, o que depende das etapas 11 e 12 e o que Q-39 a Q-41 ainda bloqueiam. A documentação deixou de chamar o autoatualizador de pendência, em conformidade com D-118.
+- Provas locais: 37 testes de tela do módulo; suíte integral com 967 aprovados, 3 ignorados e 11 subtestes aprovados; `ruff`, `mypy`, checks do Django, ausência de migração pendente e `git diff --check` limpos. Não houve navegador, Windows, ODBC, ERP, rede externa, cobrança ou dado real.
+
+## 22/09/2026 — Etapa 14, continuidade da fase 4: configurador e MSI único (V-111)
+
+- A revisão encontrou uma integração pela metade: a ponte Pervasive x86 já entrava no diretório do serviço, mas o configurador só conseguia gravar Domínio. Ele agora seleciona Domínio Web, Domínio Local ou Siescon, filtra a arquitetura correta do registro e testa Siescon pela ponte sem credencial em argumento de processo.
+- Domínio e Siescon passaram a compartilhar um contrato de perfil usado pelo configurador e pelo serviço. A configuração protegida grava `SourceSystem`; instalações antigas sem o campo continuam Domínio.
+- O WiX continua sendo um único produto e ganhou descrição neutra, reparo de mesma versão, atalho no menu Iniciar e supressão da abertura do configurador em instalação silenciosa. O diagnóstico recusa pacote sem a ponte x86.
+- `build.ps1` agora limpa somente suas saídas próprias, verifica todos os executáveis e falha diante de retorno não zero. O CI recebeu um job Windows que gera o MSI e reconcilia seu SHA-256 com `release.json`; D-118 foi preservada e nenhum autoatualizador entrou.
+- Serviço, configurador e ponte compilaram sem avisos; 20 testes .NET passaram; WiX/XML e workflow YAML passaram em validação estática. A suíte Python manteve 967 aprovados, 3 ignorados e 11 subtestes. O MSI não foi gerado localmente porque WiX não suporta macOS; a primeira execução do job Windows, instalação, assinatura e ERP real seguem pendentes.
+
+## 28/09/2026 — Etapa 14 revalidada após pull; herança visual corrigida (V-112)
+
+- `git pull --ff-only` confirmou CICA `main` em `d501fbe` e ProjetoARD `main` em `d9d4ebb`, sem novos commits remotos. O trabalho da etapa 14 permanece na worktree local separada, 20 commits além da `main`, com alterações não commitadas preservadas.
+- Contrato de cálculo idêntico ao ProjetoARD. Lint, MyPy, Django, migrações, compilação dos três projetos .NET e 20 testes .NET passaram. A suíte Python aprovou 967 testes, 3 ignorados e 11 subtestes, mas a cobertura global ficou em 80,11%, abaixo do piso documental de 85%; o módulo Rentabilidade isolado ficou em 87%.
+- A inspeção em navegador com SQLite e dados fictícios revelou que oito templates descartavam os estilos herdados do workspace. Corrigida a herança; visão geral e ficha analítica foram vistas em desktop e celular, sem overflow ou erro de console. Quatro telas adicionais abriram em ambos os tamanhos, também sem overflow. Os 169 testes específicos passaram após a correção. A formatação .NET dos dois arquivos apontados pelo verificador foi normalizada; o verificador voltou a passar.
+- Não se marcou a etapa como concluída: o MSI exige execução do job Windows, o adaptador Siescon e as consultas não validadas precisam de base autorizada, Q-39 a Q-41 seguem abertas e a homologação real permanece na etapa 12. Nenhum código foi integrado à `main` ou enviado ao GitHub nesta entrega.

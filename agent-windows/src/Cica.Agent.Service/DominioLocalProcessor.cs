@@ -41,7 +41,8 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
         const string sql = "SELECT TOP 500 CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || CAST(i.I_ITEM AS VARCHAR(64)), i.CODI_EMP, i.DATA_ITEM, i.HISTORICO, i.VALOR, i.TIPO FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM i WHERE CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || CAST(i.I_ITEM AS VARCHAR(64)) > ? ORDER BY 1";
         using var connection = new OdbcConnection($"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
         await connection.OpenAsync(token); string cursor = "";
-        while (!token.IsCancellationRequested) {
+        while (!token.IsCancellationRequested)
+        {
             using var command = new OdbcCommand(sql, connection); command.Parameters.AddWithValue("@after", cursor);
             using var reader = await command.ExecuteReaderAsync(token); var page = new List<object>(PageSize);
             while (await reader.ReadAsync(token)) { cursor = Convert.ToString(reader[0]) ?? ""; page.Add(new { source_id = cursor, company_code = Convert.ToString(reader[1]) ?? "", occurred_on = Convert.ToDateTime(reader[2]).ToString("yyyy-MM-dd"), description = Convert.ToString(reader[3]) ?? "", amount = Convert.ToDecimal(reader[4]), direction = Convert.ToString(reader[5]) ?? "", is_linked = false }); }

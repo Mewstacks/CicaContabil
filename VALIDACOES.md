@@ -1,5 +1,146 @@
 # CICA — validações e evidências
 
+## V-113 — Branch Lucrums e identidade de empresas com documento repetido
+
+Data: 28/09/2026. Ambiente: branch local `codex/lucrums`, derivada da etapa 14;
+`main` da CICA permanece separada em `d501fbe`. A revisão do ramo de laboratório
+do ProjetoARD identificou um caso que a incorporação ainda não protegia:
+matriz e filial podem chegar com o mesmo documento. A correção foi implementada
+na CICA, sem substituir o corte de origem `d9d4ebb` fixado por D-108.
+
+- Três testes de regressão cobrem códigos distintos do Domínio com documento
+  repetido, correspondência das duas gêmeas no Siescon e lançamento de honorário
+  à empresa certa. Um quarto garante que, quando documento e razão são ambíguos,
+  o honorário fica sem empresa em vez de ser atribuído arbitrariamente.
+- A ingestão conserva todos os perfis de um mesmo documento/razão no contexto.
+  Um perfil com código ERP já ocupado não é reaproveitado para outro código;
+  gêmeas de outro ERP são escolhidas por razão quando há mais de uma candidata.
+- `pytest -q` com cobertura: 971 aprovados, 3 ignorados, 11 subtestes; os 36
+  testes focados da ingestão também passaram. `ruff check`,
+  formatação dos arquivos Python alterados e MyPy em 207 arquivos passaram.
+  `manage.py check` e `makemigrations --check --dry-run` passaram. Os 20 testes
+  .NET passaram. A última execução global com cobertura marcou **80,09%**, ainda
+  abaixo do piso de 85%; o pacote Rentabilidade marcou **87,10%**. A cobertura
+  global mede toda a CICA, inclusive módulos de outras etapas.
+
+**Limites:** o MSI ainda precisa de execução observada no CI Windows. Os
+contratos de dados pendentes, ERP/ODBC real, instalação, piloto e aceite da etapa
+12 não foram exercitados. Q-39 a Q-41 continuam abertas; portanto, não há
+afirmação validada de margem ou oferta comercial do Lucrums.
+
+## V-112 — Revalidação local da etapa 14 e correção da herança visual
+
+Data: 28/09/2026. Ambiente: macOS, branch local `etapa-14-rentabilidade`, servidor
+de revisão isolado com SQLite e dados fictícios. Os `pull --ff-only` de CICA e
+ProjetoARD confirmaram `main == origin/main`, respectivamente em `d501fbe` e
+`d9d4ebb`; não havia commit remoto novo. A branch da etapa 14 segue com 20 commits
+à frente da `main` da CICA e alterações locais preservadas.
+
+- O contrato `contracts/calculations/v1.json` é idêntico ao do ProjetoARD
+  (`e37dc1e14ab7281fa8a3dff0a752edcbefb8dca73152368a9635da5241e1972f`).
+  `ruff check .`, MyPy (207 arquivos), `manage.py check`, conferência de migrações
+  e `git diff --check` passaram. Serviço, configurador e ponte x86 compilaram em
+  Release sem avisos; os 20 testes .NET passaram. A checagem de formatação .NET
+  revelou e corrigiu somente espaços e quebras de linha em dois arquivos do serviço.
+- A suíte Python aprovou 967 testes, ignorou 3 e aprovou 11 subtestes. **O portão
+  documental de cobertura global de 85% falhou:** 80,11%; o pacote
+  `src/apps/profitability` atingiu 87%. `ruff format --check` nos sete arquivos
+  Python alterados passou; a checagem de todo o repositório encontra 92 arquivos
+  antigos fora do formato tanto nesta worktree quanto na `main` atual.
+- A revisão em navegador encontrou que todos os templates de Rentabilidade
+  substituíam `extra_head` e omitiam os estilos herdados de `hub/workspace.html`.
+  A ficha do Hub tinha a mesma omissão. Foi acrescentado `{{ block.super }}` aos
+  oito templates afetados. Após a correção, visão geral e ficha do cliente foram
+  inspecionadas visualmente em 1280 px e 390 px, sem overflow horizontal nem erro
+  de console; Colaboradores, Horas, Análises e Configuração também foram abertas
+  nos dois tamanhos, com estilo do workspace e sem overflow. Os 169 testes
+  específicos de Rentabilidade passaram após a correção. Não houve teste com
+  leitor de tela nem homologação de toda a jornada da etapa 11.
+- O catálogo ainda marca como não validados `dominio/salaries`,
+  `dominio/billing_services` e `siescon/taxation`. A sincronização de Rentabilidade
+  segue desligada por padrão. O MSI não pôde ser construído em macOS e o job
+  Windows continua sem execução observada; não houve ODBC, ERP, agente instalado,
+  assinatura, piloto, publicação nem dados reais. Q-39 a Q-41 seguem abertas.
+
+**Resultado:** a implementação local avançou e a regressão funcional passou, mas
+a etapa 14 não está concluída nem pronta para uso operacional ou oferta. Permanecem
+o portão de cobertura global, a prova do MSI em Windows, o adaptador Siescon da
+etapa 04, a validação visual/acessível integral da etapa 11 e a homologação da
+etapa 12, além das decisões Q-39 a Q-41.
+
+## V-111 — Configurador Domínio/Siescon e revisão do MSI único
+
+Data: 22/09/2026. Ambiente: desenvolvimento local em macOS, com SDK .NET 10
+compilando alvos .NET 8 e validação estática do WiX/YAML. Nenhum Windows, driver ODBC,
+ERP, rede, pacote assinado ou instalação foi exercitado. Escopo: continuidade da fase 4
+da etapa 14, conforme D-80, D-111, D-116, D-117 e D-118.
+
+- **A ponte x86 deixou de ser um arquivo sem caminho de configuração.** O configurador
+  único agora oferece Domínio Web, Domínio Local e Siescon Local. Domínio lê apenas DSN
+  SQL Anywhere na visão de 64 bits; Siescon lê apenas DSN Pervasive/PSQL na visão de
+  32 bits e testa a conexão executando a ponte instalada. Usuário e senha viajam no JSON
+  pela entrada padrão da ponte, não pela linha de comando nem pelo log.
+- **O perfil de fonte virou contrato compartilhado** entre serviço e configurador:
+  `dominio` exige SQL Anywhere de 64 bits; `siescon` exige ponte de 32 bits e dispensa
+  esse driver. Fonte desconhecida continua recusada. A configuração DPAPI passa a gravar
+  explicitamente `SourceSystem`, mantendo Domínio como compatibilidade para configuração
+  antiga que não tenha o campo.
+- **O WiX permanece um único produto e foi revisto:** descrição genérica para os sistemas
+  locais, reparo da mesma versão permitido, compressão alta, atalho permanente
+  **CICA → Configurar CICA Agent** e abertura automática do configurador somente em
+  instalação interativa — instalação silenciosa não abre interface. O diagnóstico agora
+  considera a ponte x86 parte obrigatória do pacote.
+- **O build ficou falha-fechada:** limpa somente suas pastas controladas de publicação,
+  confere serviço, configurador, ponte e script antes do WiX e verifica cada retorno do
+  `dotnet`. Um job `windows-latest` passou a gerar o MSI e comparar o SHA-256 real com
+  `release.json`; o autoatualizador do ProjetoARD não foi portado, em conformidade com
+  D-118.
+- **Provas locais:** serviço, configurador e ponte compilaram em Release com zero aviso e
+  zero erro; 20 testes .NET passaram, incluindo os dois perfis e a recusa de fonte
+  desconhecida. `dotnet format --verify-no-changes` passou nos arquivos/projetos tocados,
+  o XML do WiX e dos projetos passou em `xmllint`, e o workflow passou no parser YAML.
+  A regressão Python permaneceu em 967 aprovados, 3 ignorados e 11 subtestes aprovados.
+- **Limite decisivo:** o WiX informa que só suporta Windows. A tentativa deliberada de
+  gerar o MSI em macOS parou nesse limite e não é contada como falha do pacote nem como
+  prova de construção. O novo job Windows ainda precisa executar; instalação, assinatura,
+  DSN, ponte real e sincronização com ERP continuam para a etapa 12. O layout Siescon
+  permanece inferido e requer o adaptador/homologação da etapa 04.
+
+## V-110 — Ficha analítica do cliente no módulo Rentabilidade
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória) em macOS. Nenhuma chamada externa, agente, ERP, cobrança ou dado real de cliente.
+Escopo: continuidade da fase 2 da etapa 14, conforme D-108 a D-115.
+
+- **A linha da carteira agora abre uma análise própria do cliente**, preservando
+  `hub.ClientCompany` como entidade única. A ficha reúne competência, honorário, horas,
+  custo, resultado, margem e honorário sugerido; depois abre o mesmo fato em evolução,
+  horas automáticas × F9 por dia, atividades manuais, equipe, unidades do grupo,
+  comparações e histórico. O resumo transversal continua na ficha da empresa do Hub.
+- **A ausência de dado permanece explícita:** sem base de custo não são calculados margem
+  nem honorário sugerido; custo incompleto mostra a quantidade de horas sem custo. O
+  histórico remove apenas competências totalmente vazias e mantém até doze meses úteis.
+- **A autorização foi aplicada também aos dados derivados.** A empresa da rota precisa
+  pertencer a `context["companies"]`; horas, atividades, unidades e médias usam somente a
+  carteira permitida por `CompanyAccessGrant`. Um cliente fora desse recorte responde 404,
+  e sua métrica não entra na média mostrada. Custo individual da equipe permanece visível
+  apenas a dono ou administrador, como nas telas de colaboradores já validadas em V-108.
+- **A interface segue D-110 e D-113:** template Django, CSS e o mesmo gráfico SVG próprio,
+  sem SPA, build, CDN ou biblioteca externa. A série visual também sai como tabela, e as
+  diferenças de horas preservam sinal positivo, negativo ou zero.
+- **Testes específicos:** 37 aprovados em
+  `tests/test_profitability_screens_django.py`, incluindo detalhe completo, navegação da
+  carteira, recusa por empresa, média limitada ao acesso, ausência de sugestão sem custo e
+  ocultação de custo individual para operador. A suíte integral ficou em 967 aprovados,
+  3 ignorados e 11 subtestes aprovados. `ruff check`, `ruff format --check` no recorte,
+  `mypy`, `manage.py check`, `makemigrations --check --dry-run` e `git diff --check`
+  ficaram limpos.
+- **Limites:** o caminho foi renderizado por requisição com massa fictícia, não inspecionado
+  em navegador ou leitor de tela; essa prova continua na etapa 11. A margem ainda depende
+  da fonte de honorários de Q-39 e do limiar de cobertura de Q-40, e o módulo permanece
+  fora do cadastro e da demonstração por D-115. Nenhum Windows, ODBC ou ERP real foi
+  exercitado; a homologação operacional continua na etapa 12.
+
 ## V-109 — Conector Windows unificado, com catálogo fixado por hash
 
 Data: 22/09/2026. Ambiente: desenvolvimento local em macOS, com o SDK .NET 10 compilando
@@ -35,8 +176,9 @@ D-116 e D-117.
   cópias, uma de cada lado da ponte, e duas cópias de uma regra de conversão concordam até
   alguém corrigir uma delas. Newtonsoft ficou de fora — `System.Text.Json` atende, e uma
   dependência a menos é uma a menos para acompanhar num binário que roda dentro do cliente.
-- **As checagens de registro de 64 bits passaram a valer só para o perfil Domínio.**
-  Aplicá-las ao Siescon recusaria justamente a instalação que a ponte existe para atender.
+- **Nesta entrega, as checagens de registro de 64 bits passaram a valer só para o perfil
+  Domínio.** Aplicá-las ao Siescon recusaria justamente a instalação que a ponte existe
+  para atender. V-111 completou esse ponto ao validar o DSN Siescon na visão de 32 bits.
 - **Testes:** 17 aprovados em `agent-windows/tests/Cica.Agent.Tests`, cobrindo a carga do
   catálogo com os contratos reais, o recorte por ERP quando o código da consulta é o mesmo
   nos dois, a recusa de consulta não validada e de modo fora do contrato, e a conversão de
@@ -45,8 +187,9 @@ D-116 e D-117.
 - **Limites desta validação:** nada foi executado contra Windows, ODBC, Domínio, Siescon ou
   agente instalado. A ponte de 32 bits foi compilada, não exercitada — não há Pervasive
   aqui. O envio de páginas ao servidor foi escrito contra os pontos de entrada validados em
-  V-106, mas não exercitado ponta a ponta com um agente real. Falta ainda o atualizador
-  automático do conector de origem e a revisão do instalador WiX. A instalação real, a
+  V-106, mas não exercitado ponta a ponta com um agente real. A revisão do instalador WiX
+  que faltava nesta entrega foi feita em V-111; o atualizador automático do conector de
+  origem foi excluído por D-118 e não é pendência deste porte. A instalação real, a
   assinatura do pacote e o piloto permanecem na etapa 12 por D-86.
 
 ## V-108 — Telas do módulo Rentabilidade portadas para templates

@@ -203,8 +203,8 @@ class _RunContext:
 
     run: IngestRun
     perfis_por_codi: dict[int, CompanyErpProfile] = field(default_factory=dict)
-    perfis_por_documento: dict[str, CompanyErpProfile] = field(default_factory=dict)
-    perfis_por_razao: dict[str, CompanyErpProfile] = field(default_factory=dict)
+    perfis_por_documento: dict[str, list[CompanyErpProfile]] = field(default_factory=dict)
+    perfis_por_razao: dict[str, list[CompanyErpProfile]] = field(default_factory=dict)
     usuarios: dict[str, UsuarioErp] = field(default_factory=dict)
     competencias: set[str] = field(default_factory=set)
     horas_pendentes: list[RegistroHoras] = field(default_factory=list)
@@ -218,9 +218,13 @@ class _RunContext:
         if perfil.codi_emp is not None:
             self.perfis_por_codi[perfil.codi_emp] = perfil
         if perfil.documento_bi:
-            self.perfis_por_documento[perfil.documento_bi] = perfil
+            perfis = self.perfis_por_documento.setdefault(perfil.documento_bi, [])
+            if all(existente.pk != perfil.pk for existente in perfis):
+                perfis.append(perfil)
         if perfil.razao_normalizada_bi:
-            self.perfis_por_razao[perfil.razao_normalizada_bi] = perfil
+            perfis = self.perfis_por_razao.setdefault(perfil.razao_normalizada_bi, [])
+            if all(existente.pk != perfil.pk for existente in perfis):
+                perfis.append(perfil)
 
     def company_by_codi(
         self, codi_emp: int, *, active_only: bool = False
@@ -339,24 +343,53 @@ def _resolver_carteira(
     codigo = str(codi_emp)
 
     if documento_bi:
-        perfil = context.perfis_por_documento.get(documento_bi)
-        if perfil is not None:
-            return perfil.empresa
+        # Documento não é uma chave única do cadastro do ERP: matriz e filial
+        # podem vir com o mesmo valor. Só um perfil ainda sem código pode ser
+        # associado a uma linha nova por esse identificador.
+        sem_codigo = [
+            perfil
+            for perfil in context.perfis_por_documento.get(documento_bi, [])
+            if perfil.codi_emp is None
+        ]
+        if len(sem_codigo) == 1:
+            return sem_codigo[0].empresa
+        if len(sem_codigo) > 1:
+            raise ValueError("Documento pertence a mais de uma empresa sem código ERP.")
         # O contexto do ciclo só carrega o ERP que ele lê, porque `codi_emp` e
         # login só são únicos dentro de um sistema. A gêmea do outro ERP, porém,
         # é justamente o que se procura aqui: os dois cadastram o mesmo cliente,
         # e o documento é o que os une. Sem esta consulta a empresa entraria duas
         # vezes na carteira e a deduplicação teria de esconder uma depois.
-        gemea = (
+        gemeas = list(
             CompanyErpProfile.objects.filter(
                 organization=context.organization, documento_bi=documento_bi
             )
             .exclude(sistema_origem=context.run.source_system)
             .select_related("empresa")
-            .first()
         )
-        if gemea is not None:
-            return gemea.empresa
+        if gemeas:
+            empresas_ocupadas = set(
+                CompanyErpProfile.objects.filter(
+                    organization=context.organization,
+                    sistema_origem=context.run.source_system,
+                    empresa_id__in=[gemea.empresa_id for gemea in gemeas],
+                ).values_list("empresa_id", flat=True)
+            )
+            elegiveis = [g for g in gemeas if g.empresa_id not in empresas_ocupadas]
+            nome_normalizado = strip_accents_upper(name)
+            por_nome = [
+                gemea
+                for gemea in elegiveis
+                if strip_accents_upper(gemea.empresa.name) == nome_normalizado
+            ]
+            if len(por_nome) == 1:
+                return por_nome[0].empresa
+            if len(elegiveis) == 1:
+                return elegiveis[0].empresa
+            if len(elegiveis) > 1:
+                raise ValueError(
+                    "Documento compartilhado por várias empresas sem gêmea inequívoca."
+                )
 
     if do_dominio:
         existente = ClientCompany.objects.filter(
@@ -391,7 +424,15 @@ def _upsert_company(context: _RunContext, row: dict[str, Any]) -> CompanyErpProf
     )
     perfil = context.company_by_codi(codi_emp)
     if perfil is None and document_bi:
-        perfil = context.perfis_por_documento.get(document_bi)
+        sem_codigo = [
+            candidato
+            for candidato in context.perfis_por_documento.get(document_bi, [])
+            if candidato.codi_emp is None
+        ]
+        if len(sem_codigo) == 1:
+            perfil = sem_codigo[0]
+        elif len(sem_codigo) > 1:
+            raise ValueError("Documento pertence a mais de um perfil sem código ERP.")
 
     if perfil is None:
         empresa = _resolver_carteira(
@@ -635,19 +676,37 @@ def _upsert_billing(context: _RunContext, row: dict[str, Any]) -> str:
     empresa: ClientCompany | None = None
     correspondence = StatusCorrespondencia.NAO_ENCONTRADO
     if document_digits:
-        perfil = context.perfis_por_documento.get(
-            blind_index(document_digits, namespace="profitability.empresa.documento")
+        perfis = (
+            context.perfis_por_documento.get(
+                blind_index(document_digits, namespace="profitability.empresa.documento")
+            )
+            or []
         )
-        if perfil is not None:
-            empresa = perfil.empresa
+        empresas = {perfil.empresa_id: perfil.empresa for perfil in perfis}
+        if len(empresas) == 1:
+            empresa = next(iter(empresas.values()))
             correspondence = StatusCorrespondencia.CPF_CNPJ
+        elif len(empresas) > 1 and row.get("nome_cli"):
+            nome_normalizado = strip_accents_upper(str(row["nome_cli"]))
+            por_nome = [
+                candidata
+                for candidata in empresas.values()
+                if strip_accents_upper(candidata.name) == nome_normalizado
+            ]
+            if len(por_nome) == 1:
+                empresa = por_nome[0]
+                correspondence = StatusCorrespondencia.CPF_CNPJ
     name = str(row.get("nome_cli") or "")
     if empresa is None and name:
-        perfil = context.perfis_por_razao.get(
-            blind_index(strip_accents_upper(name), namespace="profitability.empresa.razao")
+        perfis = (
+            context.perfis_por_razao.get(
+                blind_index(strip_accents_upper(name), namespace="profitability.empresa.razao")
+            )
+            or []
         )
-        if perfil is not None:
-            empresa = perfil.empresa
+        empresas = {perfil.empresa_id: perfil.empresa for perfil in perfis}
+        if len(empresas) == 1:
+            empresa = next(iter(empresas.values()))
             correspondence = StatusCorrespondencia.RAZAO_SOCIAL
 
     identity = {

@@ -488,3 +488,36 @@ dentro do servidor do cliente — e isso é decisão do responsável, não conse
 de um porte. Fica registrado como diferença deliberada, e não como pendência: se a
 atualização automática for desejada, ela volta como decisão própria, com a prova
 de rede, assinatura e recuperação que a etapa 12 exige.
+
+## D-119 — Exposição temporária do ambiente local por túnel Cloudflare
+
+Data: 24/09/2026. Origem: pedido direto do responsável — "monte um tunnel na cloud
+flare para envio do projeto a uma colega". O acesso externo não decorre de
+inferência: ele foi autorizado nesta mensagem e vale só para esta sessão. O que
+saiu para a internet é o `runserver` local em `127.0.0.1:8010`, com
+`config.settings.local`, banco SQLite recém-migrado e apenas os dados de
+`seed_demo` e `seed_personas` — nenhum dado de cliente, nenhuma credencial de
+fornecedor, nenhuma integração externa ativa. O túnel é do tipo *quick tunnel*:
+hostname aleatório em `*.trycloudflare.com`, sem conta Cloudflare, sem DNS e sem
+custo, e morre junto com o processo `cloudflared`. `ALLOWED_HOSTS` e
+`CSRF_TRUSTED_ORIGINS` já previam esse sufixo em `base.py`, então nada foi
+afrouxado para o túnel funcionar.
+
+O limite fica junto da autorização: a URL é pública para quem tiver o link, o
+ambiente roda com `DEBUG=True` — uma exceção mostra traceback e configuração a
+quem estiver na página — e as senhas de demonstração são de conhecimento público
+no repositório. Isso é aceitável para mostrar telas a uma colega e não é, em
+nenhuma hipótese, hospedagem, piloto ou homologação: a etapa 12 continua sendo o
+único lugar onde site publicado, credencial de produção e domínio próprio são
+tratados. Um túnel nomeado, em domínio da Mewstack e com Cloudflare Access na
+frente, seria outra decisão, com login na conta Cloudflare, e não foi tomada aqui.
+
+## D-120 — Branch dedicada à incorporação do Lucrums
+
+Data: 28/09/2026. Origem: pedido direto do responsável nesta conversa: criar uma
+branch apenas relacionada ao Lucrums dentro da CICA e terminar sua inserção.
+O trabalho já iniciado em `etapa-14-rentabilidade`, inclusive alterações locais
+não commitadas, continua em `codex/lucrums`, separadamente da `main`. Esta decisão
+autoriza concluir e verificar a implementação local da etapa 14; não substitui
+Q-39 a Q-41, não presume homologação com ERP/Windows real e não autoriza oferta,
+deploy, custo ou integração automática na `main`.

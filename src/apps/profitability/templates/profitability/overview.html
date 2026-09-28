@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static profitability_extras %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=2">
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=2">
 <script src="{% static 'profitability/charts.js' %}?v=2" defer></script>{% endblock %}
 
 {% block workspace_content %}
@@ -90,7 +90,7 @@
     <summary>Ver os números do mapa</summary>
     <table class="profitability-table">
       <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Margem</th><th scope="col">Faixa</th></tr></thead>
-      <tbody>{% for linha in mapa %}<tr><th scope="row">{{ linha.empresa.name }}</th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.margem|percentual }}</td><td>{{ linha.get_faixa_display }}</td></tr>{% endfor %}</tbody>
+      <tbody>{% for linha in mapa %}<tr><th scope="row"><a href="{% url 'profitability:client-detail' linha.empresa_id %}?competencia={{ competencia|urlencode }}">{{ linha.empresa.name }}</a></th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.margem|percentual }}</td><td>{{ linha.get_faixa_display }}</td></tr>{% endfor %}</tbody>
     </table>
   </details>
   {% else %}
@@ -104,7 +104,7 @@
   {% if maiores %}
   <table class="profitability-table">
     <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Participação</th></tr></thead>
-    <tbody>{% for linha in maiores %}<tr><th scope="row"><a href="{% url 'hub:company-detail' linha.empresa_id %}#rentabilidade">{{ linha.empresa.name }}</a></th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.mensalidade|participacao:totais.receita }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for linha in maiores %}<tr><th scope="row"><a href="{% url 'profitability:client-detail' linha.empresa_id %}?competencia={{ competencia|urlencode }}">{{ linha.empresa.name }}</a></th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{{ linha.mensalidade|participacao:totais.receita }}</td></tr>{% endfor %}</tbody>
   </table>
   {% endif %}
 </section>
@@ -145,7 +145,7 @@
   {% if reajustes %}
   <table class="profitability-table">
     <thead><tr><th scope="col">Cliente</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Sugerido</th><th scope="col" class="tnum">Diferença</th><th scope="col" class="tnum">Margem</th><th scope="col" class="tnum">Meta</th></tr></thead>
-    <tbody>{% for item in reajustes %}<tr><th scope="row"><a href="{% url 'hub:company-detail' item.empresa.id %}#rentabilidade">{{ item.empresa.name }}</a></th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.sugerida|floatformat:2 }}</td><td class="tnum">{{ item.diferenca|floatformat:2 }}</td><td class="tnum">{{ item.margem|percentual }}</td><td class="tnum">{{ item.margem_alvo|percentual }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for item in reajustes %}<tr><th scope="row"><a href="{% url 'profitability:client-detail' item.empresa.id %}?competencia={{ competencia|urlencode }}">{{ item.empresa.name }}</a></th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.sugerida|floatformat:2 }}</td><td class="tnum">{{ item.diferenca|floatformat:2 }}</td><td class="tnum">{{ item.margem|percentual }}</td><td class="tnum">{{ item.margem_alvo|percentual }}</td></tr>{% endfor %}</tbody>
   </table>
   {% endif %}
 </section>
@@ -161,7 +161,7 @@
     <tbody>
       {% for linha in carteira %}
       <tr>
-        <th scope="row"><a href="{% url 'hub:company-detail' linha.empresa_id %}#rentabilidade">{{ linha.empresa.name }}</a>{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
+        <th scope="row"><a href="{% url 'profitability:client-detail' linha.empresa_id %}?competencia={{ competencia|urlencode }}">{{ linha.empresa.name }}</a>{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
         <td class="tnum">{{ linha.horas_auto_minutos|horas }}</td>
         <td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td>
         <td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td>

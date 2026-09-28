@@ -1,0 +1,135 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=3">
+<script src="{% static 'profitability/charts.js' %}?v=2" defer></script>{% endblock %}
+
+{% block page_action %}
+  <a class="button button-quiet" href="{% url 'profitability:overview' %}?competencia={{ competencia|urlencode }}">Voltar à carteira</a>
+{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel profitability-client-heading" aria-labelledby="client-result-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">CLIENTE · COMPETÊNCIA {{ competencia|default:"SEM DADO" }}</p>
+      <h2 id="client-result-heading">De onde vem o resultado deste cliente</h2>
+      <p>
+        {% if empresa.dominio_code %}Domínio {{ empresa.dominio_code }} · {% endif %}
+        {{ empresa.cnpj_masked|default:"Documento não informado" }}
+        {% if perfil and perfil.regime %} · {{ perfil.regime }}{% endif %}
+        {% if perfil and perfil.segmento %} · {{ perfil.segmento.nome }}{% endif %}
+      </p>
+    </div>
+    {% if metrica %}<span class="profitability-band is-{{ metrica.faixa }}">{% if metrica.faixa == 'sem_dados' %}Sem horas no mês{% elif metrica.faixa == 'incompleta' %}Custo incompleto{% else %}{{ metrica.get_faixa_display }}{% endif %}</span>{% endif %}
+  </header>
+  {% include 'profitability/_periodo.html' %}
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel">
+  <div class="module-clean-empty"><h2>Nenhuma competência importada</h2><p>A ficha analítica aparece depois que o agente trouxer horas e honorários.</p></div>
+</section>
+{% elif not metrica %}
+<section class="workspace-panel">
+  <div class="module-clean-empty"><h2>Sem linha nesta competência</h2><p>Esta empresa não entrou no cálculo de {{ competencia }}. Ela pode ser uma unidade consolidada em outra linha ou ainda não ter dados suficientes para a carteira.</p></div>
+</section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="client-kpis-heading">
+  <h2 id="client-kpis-heading" class="visually-hidden">Indicadores do cliente</h2>
+  <dl class="profitability-kpis profitability-client-kpis">
+    <div class="profitability-kpi"><dt>Honorário</dt><dd class="tnum">{{ metrica.mensalidade|floatformat:2 }}</dd></div>
+    <div class="profitability-kpi"><dt>Horas automáticas</dt><dd class="tnum">{{ metrica.horas_auto_minutos|horas }}</dd></div>
+    <div class="profitability-kpi"><dt>Custo estimado</dt><dd class="tnum">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.custo|floatformat:2 }}{% endif %}</dd></div>
+    <div class="profitability-kpi"><dt>Resultado</dt><dd class="tnum {% if metrica.resultado < 0 %}is-negative{% endif %}">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.resultado|floatformat:2 }}{% endif %}</dd></div>
+    <div class="profitability-kpi"><dt>Margem</dt><dd class="tnum">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.margem|percentual }}{% endif %}</dd></div>
+    <div class="profitability-kpi"><dt>Honorário sugerido</dt><dd class="tnum">{% if mensalidade_sugerida is not None %}{{ mensalidade_sugerida|floatformat:2 }}{% else %}—{% endif %}</dd><p class="profitability-delta">Meta de {{ margem_alvo|percentual }}</p></div>
+  </dl>
+  {% if metrica.faixa == 'sem_dados' %}
+    <p class="profitability-caveat profitability-alert"><strong>Sem base de custo.</strong> Sem horas suficientes, custo, resultado, margem e honorário sugerido ficam em aberto — ausência de dado não vira margem cheia.</p>
+  {% elif not metrica.custo_completo %}
+    <p class="profitability-caveat profitability-alert"><strong>Custo parcial.</strong> {{ metrica.minutos_sem_custo|horas }} ainda não têm custo apurado. Enquanto isso, a margem acima lê mais alta do que é.</p>
+  {% else %}
+    <p class="profitability-caveat">O honorário sugerido divide o custo atual por um menos a margem-alvo. Ele é referência de decisão, não alteração automática de contrato.</p>
+  {% endif %}
+</section>
+
+<nav class="profitability-index" aria-label="Seções da ficha do cliente">
+  <a href="#evolucao-cliente">Evolução</a>
+  <a href="#horas-cliente">Horas</a>
+  <a href="#equipe-cliente">Equipe</a>
+  <a href="#comparacoes-cliente">Comparações</a>
+  <a href="#historico-cliente">Histórico</a>
+</nav>
+
+<section id="evolucao-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-evolution-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">ATÉ DOZE COMPETÊNCIAS</p><h2 id="client-evolution-heading">Evolução</h2><p>Receita e custo por mês, com a margem sobreposta. A tabela abaixo é a mesma série em formato auditável.</p></div></header>
+  {% if historico %}
+    <div class="profitability-chart" data-chart="evolucao" data-series="{{ historico_json }}"></div>
+    <div class="data-table-wrap"><table class="profitability-table profitability-chart-data">
+      <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+      <tbody>{% for linha in historico reversed %}<tr><th scope="row">{{ linha.competencia }}</th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td><td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td><td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.margem|percentual }}{% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  {% else %}
+    <div class="module-clean-empty"><h3>Sem histórico com valor</h3><p>Competências inteiramente vazias não são exibidas, para não empurrar o primeiro mês útil para fora da ficha.</p></div>
+  {% endif %}
+</section>
+
+<section id="horas-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-hours-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA</p><h2 id="client-hours-heading">Horas automáticas × F9</h2><p>O recorte diário mostra onde uma divergência mensal nasceu. Um dia inteiro ausente costuma explicar mais do que o total isolado.</p></div></header>
+  {% if horas_por_dia %}
+    <div class="data-table-wrap"><table class="profitability-table">
+      <thead><tr><th scope="col">Dia</th><th scope="col" class="tnum">Automáticas</th><th scope="col" class="tnum">F9</th><th scope="col" class="tnum">Diferença</th></tr></thead>
+      <tbody>{% for linha in horas_por_dia %}<tr><th scope="row">{{ linha.data|date:"d/m/Y" }}</th><td class="tnum">{{ linha.auto|horas }}</td><td class="tnum">{{ linha.f9|horas }}</td><td class="tnum">{{ linha.diferenca|horas_assinadas }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  {% else %}
+    <div class="module-clean-empty"><h3>Nenhuma hora nesta competência</h3><p>Não há registro diário para decompor.</p></div>
+  {% endif %}
+  {% if atividades %}
+    <h3 class="profitability-subheading">Atividades recentes do F9</h3>
+    <div class="data-table-wrap"><table class="profitability-table">
+      <thead><tr><th scope="col">Data</th><th scope="col">Colaborador</th><th scope="col">Atividade</th><th scope="col" class="tnum">Horas</th></tr></thead>
+      <tbody>{% for atividade in atividades %}<tr><td>{{ atividade.data|date:"d/m/Y" }}</td><td>{% if atividade.colaborador %}{{ atividade.colaborador.nome }}{% else %}<span class="table-muted">Sem vínculo</span>{% endif %}</td><td>{{ atividade.descricao|default:"Sem descrição" }}</td><td class="tnum">{{ atividade.duracao_minutos|horas }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  {% endif %}
+</section>
+
+<section id="equipe-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-team-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">QUEM ATENDEU</p><h2 id="client-team-heading">Equipe dedicada ao cliente</h2><p>Horas e custo usam a mesma conta da carteira. Pessoa sem salário vigente aparece como pendência, nunca como custo zero.</p></div></header>
+  {% if colaboradores %}
+    <div class="data-table-wrap"><table class="profitability-table">
+      <thead><tr><th scope="col">Colaborador</th><th scope="col" class="tnum">Automáticas</th><th scope="col" class="tnum">F9</th><th scope="col" class="tnum">Diferença</th>{% if is_admin %}<th scope="col" class="tnum">Custo estimado</th>{% endif %}</tr></thead>
+      <tbody>{% for item in colaboradores %}<tr><th scope="row">{% if item.colaborador %}<a href="{% url 'profitability:collaborator-detail' item.colaborador.id %}?competencia={{ competencia|urlencode }}">{{ item.colaborador.nome }}</a>{% elif item.usuario %}{{ item.usuario.nome|default:item.usuario.i_usuario }} <span class="profitability-band is-incompleta">Sem vínculo</span>{% else %}Login sem identificação{% endif %}</th><td class="tnum">{{ item.auto_minutos|horas }}</td><td class="tnum">{{ item.f9_minutos|horas }}</td><td class="tnum">{{ item.diferenca_minutos|horas_assinadas }}</td>{% if is_admin %}<td class="tnum">{% if item.sem_salario %}— <span class="table-muted">sem salário</span>{% else %}{{ item.custo|floatformat:2 }}{% endif %}</td>{% endif %}</tr>{% endfor %}</tbody>
+    </table></div>
+  {% else %}
+    <div class="module-clean-empty"><h3>Nenhum colaborador localizado</h3><p>A competência não tem horas associadas a este cliente dentro do seu escopo de empresas.</p></div>
+  {% endif %}
+</section>
+
+{% if unidades %}
+<section class="workspace-panel" aria-labelledby="client-units-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">GRUPO ECONÔMICO</p><h2 id="client-units-heading">Unidades que compõem a linha</h2><p>Horas e custo são abertos por unidade; honorário e margem permanecem na matriz porque a cobrança é uma só.</p></div></header>
+  <div class="data-table-wrap"><table class="profitability-table"><thead><tr><th scope="col">Unidade</th><th scope="col" class="tnum">Automáticas</th><th scope="col" class="tnum">F9</th><th scope="col" class="tnum">Custo</th></tr></thead><tbody>{% for unidade in unidades %}<tr><th scope="row">{{ unidade.empresa.name }}{% if unidade.eh_matriz %} <span class="profitability-band is-saudavel">Matriz</span>{% endif %}</th><td class="tnum">{{ unidade.auto_minutos|horas }}</td><td class="tnum">{{ unidade.f9_minutos|horas }}</td><td class="tnum">{% if unidade.sem_base_de_custo %}—{% else %}{{ unidade.custo|floatformat:2 }}{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+
+<section id="comparacoes-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-comparisons-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">REFERÊNCIAS</p><h2 id="client-comparisons-heading">Comparações</h2><p>A referência usa somente a carteira que este acesso já pode consultar. Ela não amplia o escopo do colaborador para compor uma média.</p></div></header>
+  {% if comparacoes %}
+    <div class="data-table-wrap"><table class="profitability-table"><thead><tr><th scope="col">Métrica</th><th scope="col" class="tnum">Cliente</th><th scope="col" class="tnum">Referência</th><th scope="col">Comparado com</th></tr></thead><tbody>{% for item in comparacoes %}<tr><th scope="row">{{ item.rotulo }}</th><td class="tnum">{% if item.rotulo == 'Margem' %}{{ item.cliente|percentual }}{% elif item.rotulo == 'Horas no mês' %}{{ item.cliente|floatformat:1 }} h{% else %}{{ item.cliente|floatformat:2 }}{% endif %}</td><td class="tnum">{% if item.rotulo == 'Margem' %}{{ item.referencia|percentual }}{% elif item.rotulo == 'Horas no mês' %}{{ item.referencia|floatformat:1 }} h{% else %}{{ item.referencia|floatformat:2 }}{% endif %}</td><td>{{ item.referencia_rotulo }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}
+    <div class="module-clean-empty"><h3>Sem base comparável</h3><p>Este cliente ou a carteira autorizada ainda não têm custo e horas suficientes para comparação.</p></div>
+  {% endif %}
+</section>
+
+<section id="historico-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-history-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">TRILHA</p><h2 id="client-history-heading">Histórico do cliente</h2><p>Os meses aparecem do mais recente para o mais antigo, preservando o estado calculado em cada competência.</p></div></header>
+  {% if historico %}
+    <ol class="profitability-timeline">{% for linha in historico %}<li><div><strong>{{ linha.competencia }}</strong>{% if linha.competencia == competencia %}<span class="profitability-code">competência aberta</span>{% endif %}</div><p class="tnum">Honorário {{ linha.mensalidade|floatformat:2 }} · {{ linha.horas_auto_minutos|horas }} · {% if linha.faixa == 'sem_dados' %}sem base de custo{% else %}resultado {{ linha.resultado|floatformat:2 }} · {{ linha.margem|percentual }}{% endif %}</p><span class="profitability-band is-{{ linha.faixa }}">{{ linha.get_faixa_display }}</span></li>{% endfor %}</ol>
+  {% else %}
+    <div class="module-clean-empty"><h3>Nenhuma competência com valor</h3><p>O histórico passa a existir quando honorário, custo ou horas forem materializados.</p></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

@@ -2,16 +2,19 @@
 
 Native .NET 8 Windows service and guided configurator. The MSI supports:
 
+- Sincronização de leitura do Domínio Local por SQL Anywhere de 64 bits.
+- Sincronização de leitura do Siescon por Pervasive/PSQL de 32 bits, isolada na ponte x86.
 - Trabalhos de backup Domínio Web enviados manualmente na CICA.
 - approved Triagem attachments copied to the office's Windows folder.
 
 Leia o fluxo de instalação e diagnóstico em [INSTALACAO.md](INSTALACAO.md).
 Os contratos técnicos Domínio confirmados por metadados estão em [CONTRATOS-DOMINIO.md](CONTRATOS-DOMINIO.md).
 
-The configurator lists only 64-bit system DSNs and SQL Anywhere drivers, because the installed
-native service is x64. It can validate a Domínio Local connection without exposing credentials
-in logs.
-The native CICA service is the installed and supported component for read-only Domínio Local
+O pacote é único. No configurador, o escritório escolhe Domínio Web, Domínio Local ou Siescon.
+Para Domínio Local ele lista somente DSNs de sistema e drivers SQL Anywhere de 64 bits; para
+Siescon, somente DSNs Pervasive/PSQL da visão de 32 bits, testados pela ponte x86. A credencial
+vai à ponte por entrada padrão, nunca por argumento de processo ou log.
+The native CICA service is the installed and supported component for read-only Domínio/Siescon
 synchronization, Domínio Web backups, and Triagem archiving. The Python agent is restricted to
 temporary diagnostics and migration. For Triagem, the configurator stores the approved root with DPAPI and the server
 sends only a relative company/document path. The service refuses path escape and reparse-point
@@ -76,5 +79,6 @@ Build the MSI on Windows:
 ```
 
 The deterministic outputs are written to `artifacts/`, including a SHA-256 checksum and dependency
-inventory. Publish the checksum alongside the stable MSI download URL. Existing Python agents keep
+inventory. O build recusa o pacote se serviço, configurador, ponte x86 ou diagnóstico estiverem
+ausentes, e o CI repete a geração completa em `windows-latest`. Publish the checksum alongside the stable MSI download URL. Existing Python agents keep
 using `/api/v1/intelligence/agent/*` during migration.

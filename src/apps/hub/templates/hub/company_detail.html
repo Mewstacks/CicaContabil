@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static ui_navigation profitability_extras %}
 
-{% block extra_head %}{% if profitability_enabled %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endif %}{% endblock %}
+{% block extra_head %}{{ block.super }}{% if profitability_enabled %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endif %}{% endblock %}
 
 {% block page_action %}
   <a class="button button-quiet" href="{% back_url 'hub:companies' %}">Voltar às empresas</a>
@@ -93,7 +93,7 @@
       <h2 id="company-profitability-heading">Rentabilidade</h2>
       {% if profitability_competencia %}<p>Competência {{ profitability_competencia }}. O honorário é o do mês anterior, porque o escritório fatura em atraso; as horas e o custo são deste mês.</p>{% endif %}
     </div>
-    <a class="button button-quiet" href="{% url 'profitability:overview' %}">Ver a carteira</a>
+    <a class="button button-quiet" href="{% url 'profitability:client-detail' company.id %}?competencia={{ profitability_competencia|urlencode }}">Abrir análise</a>
   </header>
 
   {% if not profitability_competencia %}

@@ -154,6 +154,44 @@ class CarteiraUnicaTests(IngestTestCase):
         assert CompanyErpProfile.objects.count() == 2
         assert {p.sistema_origem for p in CompanyErpProfile.objects.all()} == {"dominio", "siescon"}
 
+    def test_matriz_e_filial_com_mesmo_documento_preservam_codigos_distintos(self) -> None:
+        """O documento repetido no ERP não pode transformar a matriz na filial."""
+
+        documento = "12.345.678/0001-99"
+        self._ingest(
+            "companies",
+            [
+                self._company_row(25, "PADARIA MATRIZ", documento),
+                self._company_row(26, "PADARIA FILIAL", documento),
+            ],
+        )
+
+        assert ClientCompany.objects.count() == 2
+        assert CompanyErpProfile.objects.count() == 2
+        assert set(CompanyErpProfile.objects.values_list("codi_emp", flat=True)) == {25, 26}
+        assert set(ClientCompany.objects.values_list("dominio_code", flat=True)) == {"25", "26"}
+
+    def test_gemeas_com_documento_repetido_casam_pela_razao(self) -> None:
+        documento = "12.345.678/0001-99"
+        linhas_dominio = [
+            self._company_row(25, "PADARIA MATRIZ", documento),
+            self._company_row(26, "PADARIA FILIAL", documento),
+        ]
+        linhas_siescon = [
+            self._company_row(711, "PADARIA MATRIZ", documento),
+            self._company_row(712, "PADARIA FILIAL", documento),
+        ]
+        self._ingest("companies", linhas_dominio)
+        self._ingest("companies", linhas_siescon, source_system=SistemaOrigem.SIESCON)
+
+        assert ClientCompany.objects.count() == 2
+        assert CompanyErpProfile.objects.count() == 4
+        for empresa in ClientCompany.objects.all():
+            assert set(empresa.erp_profiles.values_list("sistema_origem", flat=True)) == {
+                "dominio",
+                "siescon",
+            }
+
     def test_escritorio_que_exige_codigo_dominio_recusa_empresa_so_do_siescon(self) -> None:
         """A regra do escritório não pode ser furada por um caminho que o formulário não vê."""
 
@@ -442,6 +480,65 @@ class FolhaEReceitaTests(IngestTestCase):
         mensalidade = Mensalidade.objects.get()
         assert mensalidade.valor == D("1500.00")
         assert mensalidade.competencia == "2026-08"
+
+    def test_honorario_com_documento_compartilhado_usa_razao_social(self) -> None:
+        self._armar("billing_source")
+        self._ingest(
+            "companies",
+            [self._company_row(26, "PADARIA FILIAL", "12.345.678/0001-99")],
+        )
+        filial = CompanyErpProfile.objects.get(codi_emp=26).empresa
+
+        self._ingest(
+            "billing_honorarios",
+            [
+                {
+                    "codi_emp_origem": 1,
+                    "codi_cli": 3,
+                    "nome_cli": "PADARIA FILIAL",
+                    "documento_cli": "12.345.678/0001-99",
+                    "ano_servico": 2026,
+                    "mes_servico": 8,
+                    "valor": "1500.00",
+                }
+            ],
+            parameters=[
+                {"name": "start_date", "value": "2026-08-01"},
+                {"name": "end_date", "value": "2026-08-31"},
+            ],
+        )
+
+        servico = ServicoFaturado.objects.get()
+        assert servico.empresa_id == filial.id
+        assert servico.forma_localizacao == StatusCorrespondencia.CPF_CNPJ
+        assert Mensalidade.objects.get().empresa_id == filial.id
+
+    def test_honorario_ambiguo_nao_e_atribuido_a_empresa_arbitraria(self) -> None:
+        self._armar("billing_source")
+        self._ingest("companies", [self._company_row(26, "PADARIA", "12.345.678/0001-99")])
+
+        self._ingest(
+            "billing_honorarios",
+            [
+                {
+                    "codi_emp_origem": 1,
+                    "codi_cli": 4,
+                    "nome_cli": "PADARIA",
+                    "documento_cli": "12.345.678/0001-99",
+                    "ano_servico": 2026,
+                    "mes_servico": 8,
+                    "valor": "1500.00",
+                }
+            ],
+            parameters=[
+                {"name": "start_date", "value": "2026-08-01"},
+                {"name": "end_date", "value": "2026-08-31"},
+            ],
+        )
+
+        servico = ServicoFaturado.objects.get()
+        assert servico.empresa_id is None
+        assert servico.forma_localizacao == StatusCorrespondencia.NAO_ENCONTRADO
 
     def test_honorario_sem_documento_casa_pela_razao_social(self) -> None:
         self._armar("billing_source")

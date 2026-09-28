@@ -26,7 +26,7 @@ from apps.hub.models import ClientCompany, ProductModule
 from apps.hub.module_catalog import definition
 from apps.hub.views import _module_page_context, office_required, refuse
 from apps.organizations.models import Membership, Organization
-from apps.profitability.calc import custo_anual_colaborador
+from apps.profitability.calc import custo_anual_colaborador, mensalidade_sugerida
 from apps.profitability.forms import ProfitabilityConfigForm
 from apps.profitability.matching import aplicar_vinculo
 from apps.profitability.models import (
@@ -43,19 +43,25 @@ from apps.profitability.models import (
 )
 from apps.profitability.services import (
     agrupar_carteira,
+    atividades_f9,
     capacidade_produtiva_mensal,
     colaboradores_da_competencia,
+    colaboradores_do_cliente,
+    comparacoes_do_cliente,
     competencia_anterior,
     concentracao_de_receita,
     evolucao_da_carteira,
     frescor_das_importacoes,
     get_config,
+    historico_do_cliente,
+    horas_por_dia,
     mapa_da_carteira,
     ocupacao_da_equipe,
     receita_fora_da_meta,
     recompute_competencia,
     salario_vigente_map,
     totais_da_carteira,
+    unidades_do_grupo,
     variacao,
     vinculos_do_erp,
 )
@@ -256,6 +262,112 @@ def _e_admin(context: dict[str, Any]) -> bool:
 
 def _pagina(request: HttpRequest, itens: Any, por_pagina: int = PAGINA) -> Any:
     return Paginator(itens, por_pagina).get_page(request.GET.get("page"))
+
+
+@office_required
+@require_http_methods(["GET"])
+def client_detail(request: HttpRequest, company_id: str) -> HttpResponse:
+    """A memória analítica de um cliente dentro da carteira autorizada.
+
+    A ficha do Hub continua sendo o cadastro transversal da empresa. Esta rota
+    responde à pergunta específica do módulo — de onde vieram custo, horas,
+    margem e comparação — sem recriar a entidade `ClientCompany` que D-109
+    descartou.
+    """
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.PROFITABILITY))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    empresas_visiveis = cast("QuerySet[ClientCompany]", context["companies"])
+    empresa = get_object_or_404(empresas_visiveis, pk=company_id)
+    competencia = _competencia_selecionada(request, office)
+    metrica = ClienteCompetenciaMetrics.objects.filter(
+        organization=office, empresa=empresa, competencia=competencia
+    ).first()
+    config = get_config(office)
+    perfil = empresa.erp_profiles.order_by("-sistema_origem").first()
+    margem_alvo = (
+        config.margem_alvo_padrao
+        if config.margem_alvo_global or perfil is None or perfil.margem_alvo is None
+        else perfil.margem_alvo
+    )
+    sugerida = (
+        mensalidade_sugerida(metrica.custo, margem_alvo)
+        if metrica is not None and metrica.custo_completo and metrica.faixa != FaixaMargem.SEM_DADOS
+        else None
+    )
+    historico = historico_do_cliente(office, empresa)
+    ids_visiveis = set(empresas_visiveis.values_list("id", flat=True))
+    unidades = (
+        [
+            unidade
+            for unidade in unidades_do_grupo(office, competencia, str(empresa.id))
+            if unidade.empresa.id in ids_visiveis
+        ]
+        if competencia
+        else []
+    )
+
+    context.update(
+        {
+            "empresa": empresa,
+            "perfil": perfil,
+            "is_admin": _e_admin(context),
+            "competencia": competencia,
+            "competencias": _competencias(office),
+            "metrica": metrica,
+            "margem_alvo": margem_alvo,
+            "mensalidade_sugerida": sugerida,
+            "colaboradores": colaboradores_do_cliente(
+                office,
+                empresa,
+                competencia,
+                empresas_visiveis=empresas_visiveis,
+            )
+            if competencia
+            else [],
+            "horas_por_dia": horas_por_dia(
+                office,
+                empresa,
+                competencia,
+                empresas_visiveis=empresas_visiveis,
+            )
+            if competencia
+            else [],
+            "atividades": atividades_f9(
+                office,
+                empresa,
+                competencia,
+                empresas_visiveis=empresas_visiveis,
+            )
+            if competencia
+            else [],
+            "comparacoes": comparacoes_do_cliente(
+                office,
+                empresa,
+                competencia,
+                empresas_visiveis=empresas_visiveis,
+            )
+            if competencia
+            else [],
+            "historico": historico,
+            "historico_json": json.dumps(
+                [
+                    {
+                        "competencia": linha.competencia,
+                        "mensalidade": float(linha.mensalidade),
+                        "custo": float(linha.custo),
+                        "margem": float(linha.margem),
+                    }
+                    for linha in reversed(historico)
+                ]
+            ),
+            "unidades": unidades if len(unidades) > 1 else [],
+            "page_title": empresa.name,
+        }
+    )
+    return render(request, "profitability/client_detail.html", context)
 
 
 @office_required

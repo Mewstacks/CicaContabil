@@ -43,33 +43,36 @@ internal sealed record AgentConfig(
         if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
             || string.IsNullOrWhiteSpace(CertificatePfxBase64))
             throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
-        if (EffectiveSourceSystem is not ("dominio" or "siescon"))
-            throw new InvalidDataException("Sistema de origem desconhecido na configuração.");
-        // O Siescon lê pelo Pervasive, que só publica driver ODBC de 32 bits, e por
-        // isso passa pela ponte isolada em vez do processo do serviço. As duas
-        // verificações abaixo perguntam pelo registro de 64 bits, então valem só
-        // para o Domínio: aplicá-las ao Siescon recusaria justamente a instalação
-        // que a ponte existe para atender.
-        if (EffectiveSourceSystem == "dominio")
+        SourceSystemProfile profile;
+        try { profile = SourceSystemProfiles.Get(EffectiveSourceSystem); }
+        catch (ArgumentOutOfRangeException error)
         {
-            if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegistered64BitDsn(Dsn))
-                throw new InvalidDataException(
-                    "O DSN configurado não está disponível para o serviço CICA Agent 64 bits.");
-            if (!IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
-                throw new InvalidDataException(
-                    "O driver SQL Anywhere configurado não está disponível em 64 bits.");
+            throw new InvalidDataException("Sistema de origem desconhecido na configuração.", error);
         }
+        if (!string.IsNullOrWhiteSpace(Dsn) && !IsRegisteredSystemDsn(Dsn, profile))
+            throw new InvalidDataException(
+                $"O DSN configurado não está disponível para {profile.DisplayName} "
+                + $"na arquitetura de {(profile.Uses32BitOdbcBridge ? 32 : 64)} bits.");
+        if (profile.RequiresSqlAnywhereDriver
+            && !IsRegistered64BitSqlAnywhereDriver(SqlAnywhereDriver))
+            throw new InvalidDataException(
+                "O driver SQL Anywhere configurado não está disponível em 64 bits.");
         if (!string.IsNullOrWhiteSpace(WindowsArchiveRoot) && (!Path.IsPathFullyQualified(WindowsArchiveRoot)
             || WindowsArchiveRoot.StartsWith("\\\\", StringComparison.Ordinal)))
             throw new InvalidDataException("A pasta de arquivos aprovada precisa ser um caminho absoluto do Windows.");
     }
 
-    private static bool IsRegistered64BitDsn(string dsn)
+    private static bool IsRegisteredSystemDsn(string dsn, SourceSystemProfile profile)
     {
         const string path = @"SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources";
-        using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        RegistryView view = profile.Uses32BitOdbcBridge
+            ? RegistryView.Registry32
+            : RegistryView.Registry64;
+        using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, view);
         using RegistryKey? key = baseKey.OpenSubKey(path);
-        return key?.GetValueNames().Contains(dsn, StringComparer.OrdinalIgnoreCase) is true;
+        string registeredDriver = key?.GetValue(dsn)?.ToString() ?? "";
+        return profile.DsnDriverMarkers.Any(marker => registeredDriver.Contains(
+            marker, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool IsRegistered64BitSqlAnywhereDriver(string driver)

@@ -30,6 +30,24 @@ def horas(minutos: object) -> str:
 
 
 @register.filter
+def horas_assinadas(minutos: object) -> str:
+    """Diferença de minutos preservando o sinal e o zero.
+
+    O filtro `horas` usa travessão para zero porque zero hora numa carteira é
+    ausência de trabalho. Numa conciliação, porém, zero é justamente a resposta:
+    as duas fontes fecharam.
+    """
+
+    try:
+        total = int(minutos)  # type: ignore[call-overload]
+    except (TypeError, ValueError):
+        return "—"
+    sinal = "-" if total < 0 else "+" if total > 0 else ""
+    absoluto = abs(total)
+    return f"{sinal}{absoluto // 60}h{absoluto % 60:02d}"
+
+
+@register.filter
 def percentual(valor: object, casas: int = 1) -> str:
     """Uma fração exibida como percentual.
 

@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static profitability_extras %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">
 <script src="{% static 'profitability/charts.js' %}?v=1" defer></script>{% endblock %}
 
 {% block workspace_content %}

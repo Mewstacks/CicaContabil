@@ -29,6 +29,27 @@ jobs:
       - run: dotnet build agent-windows/src/Cica.Agent.OdbcBridge/Cica.Agent.OdbcBridge.csproj -c Release
       - run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
 
+  agent-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build unified Windows package
+        shell: pwsh
+        run: ./agent-windows/build.ps1 -Version 1.0.0
+      - name: Verify package manifest
+        shell: pwsh
+        run: |
+          $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
+          $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
+          $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
+          if ($release.version -ne '1.0.0') { throw 'Unexpected package version.' }
+          if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
+
   verify:
     runs-on: ubuntu-24.04
     steps:

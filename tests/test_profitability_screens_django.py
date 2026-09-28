@@ -582,6 +582,154 @@ class ConfiguracaoTests(ScreenTestCase):
         self.assertContains(resposta, "maior que zero")
 
 
+class FichaAnaliticaDoClienteTests(ScreenTestCase):
+    def _carteira(self) -> Colaborador:
+        from apps.profitability.models import Mensalidade
+
+        pessoa = self._pessoa()
+        self._horas(pessoa, None, 600, marca="a")
+        RegistroHoras.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            colaborador=pessoa,
+            competencia=COMPETENCIA,
+            data="2026-09-10",
+            origem=OrigemHoras.F9,
+            duracao_minutos=570,
+            descricao="Fechamento fiscal",
+            source_content_hash="b" * 64,
+        )
+        Mensalidade.objects.create(
+            organization=self.office,
+            empresa=self.company,
+            competencia="2026-08",
+            valor=D("1500.00"),
+            fonte=Colaborador.Origem.DOMINIO,
+        )
+        recompute_competencia(self.office, COMPETENCIA)
+        return pessoa
+
+    def test_a_ficha_explica_horas_e_resultado_sem_outra_entidade_de_empresa(self) -> None:
+        pessoa = self._carteira()
+
+        resposta = self.client.get(reverse("profitability:client-detail", args=[self.company.id]))
+
+        assert resposta.status_code == 200
+        assert resposta.context["empresa"] == self.company
+        self.assertContains(resposta, "De onde vem o resultado deste cliente")
+        self.assertContains(resposta, "Fechamento fiscal")
+        self.assertContains(resposta, pessoa.nome)
+        self.assertContains(resposta, "+0h30")
+        self.assertContains(resposta, "Histórico do cliente")
+
+    def test_a_carteira_leva_a_ficha_analitica_na_competencia_aberta(self) -> None:
+        self._carteira()
+
+        resposta = self.client.get(reverse("profitability:overview"))
+        destino = reverse("profitability:client-detail", args=[self.company.id])
+
+        self.assertContains(resposta, f"{destino}?competencia={COMPETENCIA}")
+
+    def test_colaborador_nao_abre_cliente_fora_do_seu_escopo(self) -> None:
+        from apps.hub.models import CompanyAccessGrant
+
+        operador, cliente = self._operador()
+        membership = Membership.objects.get(organization=self.office, user=operador)
+        CompanyAccessGrant.objects.create(
+            organization=self.office,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.PROFITABILITY],
+        )
+        fora = ClientCompany.objects.create(
+            organization=self.office, name="Cliente fora do escopo", dominio_code="999"
+        )
+
+        resposta = cliente.get(reverse("profitability:client-detail", args=[fora.id]))
+
+        assert resposta.status_code == 404
+
+    def test_operador_nao_ve_custo_individual_da_equipe(self) -> None:
+        from apps.hub.models import CompanyAccessGrant
+
+        self._carteira()
+        operador, cliente = self._operador()
+        membership = Membership.objects.get(organization=self.office, user=operador)
+        CompanyAccessGrant.objects.create(
+            organization=self.office,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.PROFITABILITY],
+        )
+
+        resposta = cliente.get(reverse("profitability:client-detail", args=[self.company.id]))
+
+        assert resposta.status_code == 200
+        self.assertNotContains(resposta, "Custo estimado</th>")
+
+    def test_a_media_nao_usa_empresa_fora_da_carteira_autorizada(self) -> None:
+        from apps.hub.models import CompanyAccessGrant
+        from apps.profitability.models import Mensalidade
+
+        self._carteira()
+        fora = ClientCompany.objects.create(
+            organization=self.office, name="Cliente fora do escopo", dominio_code="999"
+        )
+        CompanyErpProfile.objects.create(
+            organization=self.office,
+            empresa=fora,
+            codi_emp=999,
+            documento="99.999.999/0001-99",
+            papel=["cliente"],
+        )
+        pessoa = self._pessoa(nome="Outra pessoa", salario="8000")
+        RegistroHoras.objects.create(
+            organization=self.office,
+            empresa=fora,
+            colaborador=pessoa,
+            competencia=COMPETENCIA,
+            data="2026-09-10",
+            origem=OrigemHoras.AUTOMATICA,
+            duracao_minutos=1200,
+            source_content_hash="c" * 64,
+        )
+        Mensalidade.objects.create(
+            organization=self.office,
+            empresa=fora,
+            competencia="2026-08",
+            valor=D("9000.00"),
+            fonte=Colaborador.Origem.DOMINIO,
+        )
+        recompute_competencia(self.office, COMPETENCIA)
+
+        operador, cliente = self._operador()
+        membership = Membership.objects.get(organization=self.office, user=operador)
+        CompanyAccessGrant.objects.create(
+            organization=self.office,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.PROFITABILITY],
+        )
+
+        resposta = cliente.get(reverse("profitability:client-detail", args=[self.company.id]))
+
+        comparacao = next(
+            item
+            for item in resposta.context["comparacoes"]
+            if item.rotulo == "Margem" and item.referencia_rotulo == "média da carteira"
+        )
+        assert comparacao.referencia == resposta.context["metrica"].margem
+
+    def test_sem_horas_nao_inventa_honorario_sugerido(self) -> None:
+        recompute_competencia(self.office, COMPETENCIA)
+
+        resposta = self.client.get(reverse("profitability:client-detail", args=[self.company.id]))
+
+        assert resposta.status_code == 200
+        assert resposta.context["mensalidade_sugerida"] is None
+        self.assertContains(resposta, "Sem base de custo")
+
+
 class FichaDaEmpresaTests(ScreenTestCase):
     def test_a_ficha_do_cliente_mostra_o_resultado(self) -> None:
         from apps.profitability.models import Mensalidade

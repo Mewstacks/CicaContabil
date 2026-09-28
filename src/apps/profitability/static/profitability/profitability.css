@@ -279,3 +279,88 @@
   border-left: 3px solid var(--warning, #b07d2b);
   background: var(--surface-2, #efeee7);
 }
+
+/* A ficha funciona como um razão analítico: índice curto, seções na mesma
+   coluna e linhas que podem ser conferidas de cima a baixo. Não vira uma grade
+   de cartões, porque o trabalho aqui é reconciliar o mesmo fato em recortes
+   diferentes. */
+.profitability-client-heading .profitability-period {
+  margin-top: 1rem;
+}
+
+.profitability-client-kpis {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.profitability-index {
+  display: flex;
+  gap: 0.25rem 1.25rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  padding: 0 0.25rem 0.75rem;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-index a {
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-muted, #5f635a);
+  font-size: 0.875rem;
+  text-underline-offset: 0.2rem;
+}
+
+.profitability-index a:hover,
+.profitability-index a:focus-visible {
+  color: var(--ink, #1e211c);
+}
+
+.profitability-anchored {
+  scroll-margin-top: 1rem;
+}
+
+.profitability-subheading {
+  margin: 1.5rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.profitability-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profitability-timeline li {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.75fr) minmax(16rem, 2fr) auto;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--line, #e4e4dc);
+}
+
+.profitability-timeline li:last-child {
+  border-bottom: 0;
+}
+
+.profitability-timeline p {
+  margin: 0;
+  color: var(--text-muted, #5f635a);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 640px) {
+  .profitability-index a {
+    min-height: 2.75rem;
+  }
+
+  .profitability-timeline li {
+    grid-template-columns: 1fr;
+    gap: 0.375rem;
+  }
+
+  .profitability-timeline .profitability-band {
+    justify-self: start;
+  }
+}

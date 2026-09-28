@@ -769,8 +769,9 @@ def _onboarding_context(
     demo = bool(office and office.is_demo)
     done = False
     if not demo and getattr(request.user, "is_authenticated", False):
+        user = cast(User, request.user)
         done = OnboardingProgress.objects.filter(
-            user=request.user, tour_id=tour.identifier, version__gte=tour.version
+            user=user, tour_id=tour.identifier, version__gte=tour.version
         ).exists()
     return {
         "onboarding_tour": tour,
@@ -787,8 +788,9 @@ def onboarding_complete(request: HttpRequest, tour_id: str) -> HttpResponse:
     tour = TOURS_BY_ID.get(tour_id)
     if tour is None:
         return HttpResponseBadRequest("Orientação desconhecida.")
+    user = cast(User, request.user)
     OnboardingProgress.objects.update_or_create(
-        user=request.user,
+        user=user,
         tour_id=tour.identifier,
         defaults={"version": tour.version, "completed_at": timezone.now()},
     )
@@ -1336,14 +1338,14 @@ def _company_profitability(
 ) -> dict[str, object]:
     """O que o módulo Rentabilidade sabe desta empresa, se o escritório o tiver.
 
-    Vive na ficha que já existe em vez de numa tela própria: a pergunta "quanto
-    este cliente dá de resultado" é sobre o cliente, e abrir outra tela para
-    respondê-la separaria de novo o que a carteira única juntou.
+    A ficha transversal do Hub mantém o resumo junto dos demais fatos da empresa;
+    o módulo oferece uma análise própria para abrir horas, equipe, comparações e
+    histórico sem duplicar a entidade que D-109 consolidou.
     """
 
     if not any(
         module.code == ProductModule.Code.PROFITABILITY
-        for module in cast("list[object]", context["enabled_modules"])
+        for module in cast("list[ModuleDefinition]", context["enabled_modules"])
     ):
         return {}
 
