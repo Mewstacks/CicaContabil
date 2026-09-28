@@ -342,6 +342,13 @@ def _resolver_carteira(
     do_dominio = context.run.source_system == SistemaOrigem.DOMINIO
     codigo = str(codi_emp)
 
+    if do_dominio:
+        existente = ClientCompany.objects.filter(
+            organization=context.organization, dominio_code=codigo
+        ).first()
+        if existente is not None:
+            return existente
+
     if documento_bi:
         # Documento não é uma chave única do cadastro do ERP: matriz e filial
         # podem vir com o mesmo valor. Só um perfil ainda sem código pode ser
@@ -390,13 +397,6 @@ def _resolver_carteira(
                 raise ValueError(
                     "Documento compartilhado por várias empresas sem gêmea inequívoca."
                 )
-
-    if do_dominio:
-        existente = ClientCompany.objects.filter(
-            organization=context.organization, dominio_code=codigo
-        ).first()
-        if existente is not None:
-            return existente
 
     if not do_dominio and context.exige_dominio_code:
         # O escritório exige código Domínio em toda empresa da carteira. Criar

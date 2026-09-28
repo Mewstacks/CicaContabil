@@ -221,6 +221,8 @@
   stroke-width: 1.5;
 }
 
+.chart-point { fill: var(--ink, #1e211c); }
+
 .chart-label {
   font-size: 10px;
   fill: var(--text-muted, #5f635a);

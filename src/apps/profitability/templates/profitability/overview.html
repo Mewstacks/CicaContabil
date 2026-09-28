@@ -1,8 +1,8 @@
 {% extends 'hub/workspace.html' %}
 {% load static profitability_extras %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=2">
-<script src="{% static 'profitability/charts.js' %}?v=2" defer></script>{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=4">
+<script src="{% static 'profitability/charts.js' %}?v=3" defer></script>{% endblock %}
 
 {% block workspace_content %}
 <section class="module-hero" aria-labelledby="profitability-heading">
@@ -27,15 +27,15 @@
   </header>
 
   <dl class="profitability-kpis">
-    {% include 'profitability/_kpi.html' with rotulo="Receita" valor=totais.receita variacao=variacoes.receita sobe_e_bom=True %}
+    {% if totais.com_receita %}{% include 'profitability/_kpi.html' with rotulo="Receita" valor=totais.receita variacao=variacoes.receita sobe_e_bom=True %}{% else %}<div class="profitability-kpi"><dt>Receita</dt><dd class="tnum">—</dd></div>{% endif %}
     {% include 'profitability/_kpi.html' with rotulo="Custo" valor=totais.custo variacao=variacoes.custo sobe_e_bom=False %}
-    {% include 'profitability/_kpi.html' with rotulo="Resultado" valor=totais.resultado variacao=variacoes.resultado sobe_e_bom=True %}
+    {% if totais.com_receita %}{% include 'profitability/_kpi.html' with rotulo="Resultado" valor=totais.resultado variacao=variacoes.resultado sobe_e_bom=True %}{% else %}<div class="profitability-kpi"><dt>Resultado</dt><dd class="tnum">—</dd></div>{% endif %}
     <div class="profitability-kpi">
       <dt>Margem</dt>
       <dd class="tnum">{% if totais.receita %}{{ totais.margem|percentual }}{% else %}—{% endif %}</dd>
       {% if tem_anterior and variacoes.margem_pp %}<p class="profitability-delta {% if variacoes.margem_pp > 0 %}is-good{% else %}is-bad{% endif %}">{{ variacoes.margem_pp|pontos }} vs. mês anterior</p>{% endif %}
     </div>
-    {% include 'profitability/_kpi.html' with rotulo="Ticket médio" valor=totais.ticket_medio variacao=variacoes.ticket sobe_e_bom=True %}
+    {% if totais.com_receita %}{% include 'profitability/_kpi.html' with rotulo="Ticket médio" valor=totais.ticket_medio variacao=variacoes.ticket sobe_e_bom=True %}{% else %}<div class="profitability-kpi"><dt>Ticket médio</dt><dd class="tnum">—</dd></div>{% endif %}
     <div class="profitability-kpi">
       <dt>Ocupação da equipe</dt>
       <dd class="tnum">{% if horas_disponiveis %}{{ ocupacao_geral|percentual }}{% else %}—{% endif %}</dd>
@@ -52,7 +52,7 @@
     <summary>Ver os números da série</summary>
     <table class="profitability-table">
       <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
-      <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{{ item.resultado|floatformat:2 }}</td><td class="tnum">{% if item.mensalidade %}{{ item.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+      <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{% if item.mensalidade %}{{ item.mensalidade|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{% if item.mensalidade %}{{ item.resultado|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{% if item.mensalidade %}{{ item.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
     </table>
   </details>
 </section>
@@ -61,8 +61,8 @@
 <section class="workspace-panel" aria-labelledby="confianca-heading">
   <header class="workspace-panel-head"><div><p class="section-kicker">ANTES DE DECIDIR</p><h2 id="confianca-heading">Confiabilidade dos dados</h2><p>Estes números dizem quanto do que está acima é apurado e quanto é ausência de dado. Um resultado de setembro calculado com folha de julho não está errado: está velho.</p></div></header>
   <dl class="profitability-totals">
-    <div><dt>Carteira com custo completo</dt><dd class="tnum">{{ cobertura_custo }}%</dd></div>
-    <div><dt>Custo incompleto</dt><dd class="tnum">{{ totais.incompletos }}</dd></div>
+    <div><dt>Carteira com dados completos</dt><dd class="tnum">{{ cobertura_custo }}%</dd></div>
+    <div><dt>Dados incompletos</dt><dd class="tnum">{{ totais.incompletos }}</dd></div>
     <div><dt>Sem horas no mês</dt><dd class="tnum">{{ totais.sem_dados }}</dd></div>
     <div><dt>Com divergência</dt><dd class="tnum">{{ totais.divergentes }}</dd></div>
     <div><dt>F9 pendente</dt><dd class="tnum">{{ totais.f9_pendentes }}</dd></div>
@@ -152,7 +152,7 @@
 
 {# 9. Saúde da carteira e a lista. #}
 <section class="workspace-panel" aria-labelledby="carteira-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">POR CLIENTE</p><h2 id="carteira-heading">Da menor margem para a maior</h2><p>{{ faixas.negativa }} com margem negativa · {{ faixas.atencao }} em atenção · {{ faixas.saudavel }} saudáve{{ faixas.saudavel|pluralize:"l,is" }} · {{ faixas.incompleta }} com custo incompleto · {{ faixas.sem_dados }} sem dados.</p></div></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">POR CLIENTE</p><h2 id="carteira-heading">Da menor margem para a maior</h2><p>{{ faixas.negativa }} com margem negativa · {{ faixas.atencao }} em atenção · {{ faixas.saudavel }} saudáve{{ faixas.saudavel|pluralize:"l,is" }} · {{ faixas.incompleta }} com dados incompletos · {{ faixas.sem_dados }} sem dados.</p></div></header>
 
   {% if carteira.object_list %}
   <table class="profitability-table">
@@ -164,9 +164,9 @@
         <th scope="row"><a href="{% url 'profitability:client-detail' linha.empresa_id %}?competencia={{ competencia|urlencode }}">{{ linha.empresa.name }}</a>{% if linha.empresa.dominio_code %} <span class="profitability-code">Domínio {{ linha.empresa.dominio_code }}</span>{% endif %}</th>
         <td class="tnum">{{ linha.horas_auto_minutos|horas }}</td>
         <td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td>
-        <td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td>
-        <td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td>
-        <td><span class="profitability-band is-{{ linha.faixa }}">{% if linha.faixa == 'sem_dados' %}Sem horas no mês{% elif linha.faixa == 'incompleta' %}Custo incompleto{% else %}{{ linha.get_faixa_display }}{% endif %}</span></td>
+        <td class="tnum">{% if linha.honorario_disponivel %}{{ linha.mensalidade|floatformat:2 }}{% else %}—{% endif %}</td>
+        <td class="tnum {% if linha.honorario_disponivel and linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' or not linha.honorario_disponivel %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td>
+        <td><span class="profitability-band is-{{ linha.faixa }}">{% if not linha.honorario_disponivel %}Honorário não disponível{% elif linha.faixa == 'sem_dados' %}Sem horas no mês{% elif linha.faixa == 'incompleta' %}Dados incompletos{% else %}{{ linha.get_faixa_display }}{% endif %}</span></td>
       </tr>
       {% endfor %}
     </tbody>

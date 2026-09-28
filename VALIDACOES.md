@@ -1,5 +1,34 @@
 # CICA — validações e evidências
 
+## V-115 — Prioridade do código Domínio e receita ausente na Rentabilidade
+
+Data: 28/09/2026. Ambiente: branch `codex/lucrums`, dados fictícios em SQLite.
+O teste de regressão mostrou que a ingestão contrariava a prioridade declarada
+em D-109: ao encontrar o mesmo documento num perfil Siescon, ligava a linha
+Domínio a ele antes de consultar o `dominio_code` já existente no Hub. A busca
+foi reordenada; o cadastro com código Domínio prevalece sem mover o perfil do
+outro ERP. Essa divergência entre os cadastros ainda requer reconciliação humana.
+
+A ficha do cliente também apresentava resultado negativo e margem de 0% quando
+as horas tinham custo, mas o honorário mensal não havia chegado. O campo
+`mensalidade_nao_disponivel` agora impede que a interface trate ausência como
+valor zero confirmado: ficha, histórico e carteira mostram traço e explicação;
+custos e horas continuam disponíveis. A série JSON usa `null` para margem sem
+receita e o SVG interrompe a linha nesses meses, sem conectar pontos vizinhos.
+
+- Testes focados: 37 de ingestão e 38 de telas; regressão integral: **973
+  aprovados, 3 ignorados e 11 subtestes**. Ruff, MyPy em 207 arquivos, Django,
+  migrações, `git diff --check` e sintaxe JavaScript passaram. Um ensaio Node
+  confirmou dois segmentos separados por um mês sem honorário. Cobertura global
+  **80,09%** (piso 85%); pacote Rentabilidade **87,11%**.
+- D-109 ainda descreve a relação de perfil ERP como um-para-um, enquanto a
+  implementação e os testes permitem um perfil por ERP no mesmo cliente. Foi
+  pedido esclarecimento ao responsável antes de alterar essa decisão.
+
+**Limites:** não houve nova inspeção visual em navegador, leitor de tela,
+instalação/ERP real ou dado autorizado. Q-39 a Q-41 e o aceite das etapas 11/12
+continuam pendentes.
+
 ## V-114 — Primeiro MSI único construído no CI Windows
 
 Data: 28/09/2026. Branch `codex/lucrums`, PR em rascunho #1. O primeiro job

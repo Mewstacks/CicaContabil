@@ -1,8 +1,8 @@
 {% extends 'hub/workspace.html' %}
 {% load static profitability_extras %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">
-<script src="{% static 'profitability/charts.js' %}?v=1" defer></script>{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=4">
+<script src="{% static 'profitability/charts.js' %}?v=3" defer></script>{% endblock %}
 
 {% block workspace_content %}
 <section class="module-hero" aria-labelledby="analyses-heading">
@@ -23,7 +23,7 @@
   <table class="profitability-table profitability-chart-data">
     <caption class="visually-hidden">Dados da evolução da carteira</caption>
     <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
-    <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{{ item.mensalidade|floatformat:2 }}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{{ item.resultado|floatformat:2 }}</td><td class="tnum">{{ item.margem|percentual }}</td></tr>{% endfor %}</tbody>
+      <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{% if item.mensalidade %}{{ item.mensalidade|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{% if item.mensalidade %}{{ item.resultado|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{% if item.mensalidade %}{{ item.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
   </table>
 </section>
 

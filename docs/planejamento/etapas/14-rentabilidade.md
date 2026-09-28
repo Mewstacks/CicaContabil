@@ -2,7 +2,7 @@
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Em andamento desde 22/09/2026 na branch dedicada `codex/lucrums` (D-120). O corte de origem continua `Mewstacks/ProjetoARD@main` em `d9d4ebb`; os pulls de 28/09/2026 não trouxeram commits novos (V-112). As fases 1, 2 e 3 estão concluídas no nível local (V-105 a V-108 e V-110). A fase 4 tem catálogo fixado por hash, ponte de 32 bits, configurador único para os dois ERPs e MSI gerado pelo CI Windows (V-109/V-111/V-114). V-112 corrigiu a herança visual e verificou seis telas; V-113 corrigiu a identidade de matriz/filial com documento repetido. O portão de cobertura global está em 80,09% ante 85% exigidos. Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117; seguem abertas Q-39, Q-40 e Q-41.
+**Estado:** Em andamento desde 22/09/2026 na branch dedicada `codex/lucrums` (D-120). O corte de origem continua `Mewstacks/ProjetoARD@main` em `d9d4ebb`; os pulls de 28/09/2026 não trouxeram commits novos (V-112). As fases 1, 2 e 3 estão concluídas no nível local (V-105 a V-108 e V-110). A fase 4 tem catálogo fixado por hash, ponte de 32 bits, configurador único para os dois ERPs e MSI gerado pelo CI Windows (V-109/V-111/V-114). V-112 corrigiu a herança visual e verificou seis telas; V-113/V-115 corrigiram conflitos de identidade e a exibição de margem sem honorário. O portão de cobertura global está em 80,09% ante 85% exigidos. Q-33, Q-42 e Q-43 foram resolvidas por D-116 e D-117; seguem abertas Q-39, Q-40 e Q-41.
 
 **Dependências:** 01–03. A ingestão usa o agente da etapa 03; a operação do perfil Siescon depende do adaptador e da homologação da etapa 04.
 
@@ -27,7 +27,7 @@ O custo/hora tem uma única conta, fixada após a auditoria de setembro de 2026 
 - [x] Trazer o catálogo de consultas fixado por SHA-256 e o processamento por conjunto de dados para o protocolo de agente vigente, atrás de sinalizador desligado por padrão (V-106). O preflight por escritório não veio: o indicador de contrato validado segue vindo do manifesto.
 - [x] Unificar o conector Windows por D-111, com o alvo resolvido em D-116 (V-109/V-111/V-114). Entraram catálogo fixado por hash, processador, ponte ODBC de 32 bits, seleção/teste do Siescon no configurador, atalho persistente e revisão do WiX. O job Windows gerou e conferiu o MSI único. Instalação e ERP real seguem para a etapa 12. O atualizador automático da origem foi deliberadamente excluído por D-118.
 - [x] Portar e ampliar os testes do Lucrums (V-105 a V-110): cálculo contra o contrato, domínio, serviços, casador, ingestão, protocolo de agente, telas, ficha analítica e catálogo do conector. A recusa por módulo desligado, o escopo do colaborador e da empresa, o isolamento entre inquilinos e a sessão somente-leitura estão cobertos.
-- [-] Revalidar a etapa após a atualização local (V-112 a V-114): 971 testes Python e 20 .NET passaram; seis telas foram abertas em navegador em desktop e celular, a herança dos estilos foi corrigida, documento repetido entre matriz/filial não funde mais cadastros e o MSI foi construído no CI Windows. Faltam cobertura global de 85%, validação acessível integral e homologação operacional.
+- [-] Revalidar a etapa após a atualização local (V-112 a V-115): 973 testes Python e 20 .NET passaram; seis telas foram abertas em navegador em desktop e celular em V-112, a herança dos estilos foi corrigida, conflitos de identidade não desviam o código Domínio, meses sem honorário não exibem margem e o MSI foi construído no CI Windows. Faltam cobertura global de 85%, nova revisão visual/acessível integral e homologação operacional.
 
 ## Plano de análise e inserção
 
@@ -41,7 +41,7 @@ Este é o plano vigente da incorporação; ele continua as fases já executadas 
 | D — inserir no hub | Declarar catálogo, acesso, navegação e estados ligado/desligado sem ativar oferta | Concluída localmente; V-107 e D-115 |
 | E — migrar experiência | Reescrever a SPA como templates CICA, reaproveitar carteira/conectores e completar a ficha do cliente | Concluída por requisição; V-108 e V-110. V-112 corrigiu estilos herdados e inspecionou seis telas em dois tamanhos; leitor de tela e jornada integral seguem na etapa 11 |
 | F — consolidar integração | Usar um agente, catálogo por hash e ponte x86; revisar o MSI único | Concluída no nível de construção: V-109/V-111/V-114. MSI e manifesto passaram no CI Windows; instalação real pertence à etapa 12. Autoatualizador excluído por D-118 |
-| G — validar e liberar | Rodar portões locais, validar Windows/ERP real, piloto e regras comerciais | V-113: testes funcionais limpos, cobertura global 80,09% abaixo do piso de 85%; Windows/ERP/piloto ficam na etapa 12 e Q-39 a Q-41 bloqueiam oferta |
+| G — validar e liberar | Rodar portões locais, validar Windows/ERP real, piloto e regras comerciais | V-115: testes funcionais limpos, cobertura global 80,09% abaixo do piso de 85%; Windows/ERP/piloto ficam na etapa 12 e Q-39 a Q-41 bloqueiam oferta |
 
 ## Bloqueios e responsabilidade
 

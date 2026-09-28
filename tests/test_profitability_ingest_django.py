@@ -120,6 +120,24 @@ class CarteiraUnicaTests(IngestTestCase):
         existente.refresh_from_db()
         assert existente.name == "PADARIA CENTRAL LTDA"
 
+    def test_codigo_dominio_do_hub_prevalece_sobre_documento_de_outro_erp(self) -> None:
+        """A chave da carteira não pode ser desviada por uma gêmea Siescon conflitante."""
+
+        self._ingest(
+            "companies",
+            [self._company_row(711, "PADARIA SIESCON", "12.345.678/0001-99")],
+            source_system=SistemaOrigem.SIESCON,
+        )
+        existente = ClientCompany.objects.create(
+            organization=self.office, name="Padaria no Hub", dominio_code="25"
+        )
+
+        self._ingest("companies", [self._company_row(25, "PADARIA DOMINIO", "12.345.678/0001-99")])
+
+        perfil = CompanyErpProfile.objects.get(sistema_origem=SistemaOrigem.DOMINIO)
+        assert perfil.empresa_id == existente.id
+        assert ClientCompany.objects.count() == 2
+
     def test_empresa_desconhecida_entra_na_carteira_com_o_codigo_dominio(self) -> None:
         self._ingest("companies", [self._company_row(25, "PADARIA LTDA", "12.345.678/0001-99")])
 

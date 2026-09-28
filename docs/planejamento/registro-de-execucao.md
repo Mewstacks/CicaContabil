@@ -1,5 +1,15 @@
 # Registro de execução da meta operacional
 
+## 28/09/2026 — vínculo Domínio e margem sem honorário corrigidos (V-115)
+
+- O código Domínio da carteira agora prevalece sobre documento coincidente de
+  outro ERP, como D-109 já determinava. Ficha, carteira e gráfico não apresentam
+  resultado ou margem como zero confirmado quando falta honorário.
+- 973 testes Python passaram; Ruff, MyPy, Django, migrações e sintaxe do
+  gráfico passaram. Cobertura global de 80,09% segue abaixo dos 85% exigidos.
+- A cardinalidade escrita em D-109 diverge do modelo de dois perfis ERP;
+  esclarecimento solicitado. Q-39 a Q-41 e homologação real seguem abertas.
+
 ## 28/09/2026 — MSI único construído no CI Windows (V-114)
 
 - O PR em rascunho #1 executou o novo job Windows. A primeira tentativa expôs

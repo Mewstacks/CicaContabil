@@ -221,7 +221,7 @@ def _serie_json(evolucao: list[dict[str, Any]]) -> str:
                 "competencia": item["competencia"],
                 "mensalidade": float(item["mensalidade"]),
                 "custo": float(item["custo"]),
-                "margem": float(item["margem"]),
+                "margem": float(item["margem"]) if item["mensalidade"] else None,
             }
             for item in evolucao
         ]
@@ -358,7 +358,11 @@ def client_detail(request: HttpRequest, company_id: str) -> HttpResponse:
                         "competencia": linha.competencia,
                         "mensalidade": float(linha.mensalidade),
                         "custo": float(linha.custo),
-                        "margem": float(linha.margem),
+                        "margem": (
+                            float(linha.margem)
+                            if linha.honorario_disponivel and linha.faixa != FaixaMargem.SEM_DADOS
+                            else None
+                        ),
                     }
                     for linha in reversed(historico)
                 ]

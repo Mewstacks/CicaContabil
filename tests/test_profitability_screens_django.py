@@ -729,6 +729,30 @@ class FichaAnaliticaDoClienteTests(ScreenTestCase):
         assert resposta.context["mensalidade_sugerida"] is None
         self.assertContains(resposta, "Sem base de custo")
 
+    def test_sem_honorario_nao_exibe_resultado_ou_margem_como_zero(self) -> None:
+        """Receita ausente não é um contrato de valor zero nem prejuízo confirmado."""
+
+        import json
+        import re
+
+        pessoa = self._pessoa()
+        self._horas(pessoa, None, 600)
+        recompute_competencia(self.office, COMPETENCIA)
+
+        ficha = self.client.get(reverse("profitability:client-detail", args=[self.company.id]))
+        geral = self.client.get(reverse("profitability:overview"))
+        corpo_ficha = ficha.content.decode()
+        corpo_geral = geral.content.decode()
+
+        assert "mensalidade_nao_disponivel" in ficha.context["metrica"].motivos_incompletude
+        self.assertContains(ficha, "Honorário não disponível")
+        self.assertContains(geral, "Honorário não disponível")
+        assert re.search(r"<dt>Resultado</dt><dd[^>]*>—</dd>", corpo_ficha)
+        assert re.search(r"<dt>Margem</dt><dd[^>]*>—</dd>", corpo_ficha)
+        assert re.search(r"<td[^>]*>—</td>\s*<td><span[^>]*>Honorário não disponível", corpo_geral)
+        assert json.loads(ficha.context["historico_json"])[-1]["margem"] is None
+        assert json.loads(geral.context["evolucao_json"])[-1]["margem"] is None
+
 
 class FichaDaEmpresaTests(ScreenTestCase):
     def test_a_ficha_do_cliente_mostra_o_resultado(self) -> None:

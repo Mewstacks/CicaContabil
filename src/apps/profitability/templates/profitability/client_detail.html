@@ -1,8 +1,8 @@
 {% extends 'hub/workspace.html' %}
 {% load static profitability_extras %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=3">
-<script src="{% static 'profitability/charts.js' %}?v=2" defer></script>{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=4">
+<script src="{% static 'profitability/charts.js' %}?v=3" defer></script>{% endblock %}
 
 {% block page_action %}
   <a class="button button-quiet" href="{% url 'profitability:overview' %}?competencia={{ competencia|urlencode }}">Voltar à carteira</a>
@@ -39,18 +39,21 @@
 <section class="workspace-panel" aria-labelledby="client-kpis-heading">
   <h2 id="client-kpis-heading" class="visually-hidden">Indicadores do cliente</h2>
   <dl class="profitability-kpis profitability-client-kpis">
-    <div class="profitability-kpi"><dt>Honorário</dt><dd class="tnum">{{ metrica.mensalidade|floatformat:2 }}</dd></div>
+    <div class="profitability-kpi"><dt>Honorário</dt><dd class="tnum">{% if metrica.honorario_disponivel %}{{ metrica.mensalidade|floatformat:2 }}{% else %}—{% endif %}</dd></div>
     <div class="profitability-kpi"><dt>Horas automáticas</dt><dd class="tnum">{{ metrica.horas_auto_minutos|horas }}</dd></div>
     <div class="profitability-kpi"><dt>Custo estimado</dt><dd class="tnum">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.custo|floatformat:2 }}{% endif %}</dd></div>
-    <div class="profitability-kpi"><dt>Resultado</dt><dd class="tnum {% if metrica.resultado < 0 %}is-negative{% endif %}">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.resultado|floatformat:2 }}{% endif %}</dd></div>
-    <div class="profitability-kpi"><dt>Margem</dt><dd class="tnum">{% if metrica.faixa == 'sem_dados' %}—{% else %}{{ metrica.margem|percentual }}{% endif %}</dd></div>
+    <div class="profitability-kpi"><dt>Resultado</dt><dd class="tnum {% if metrica.honorario_disponivel and metrica.resultado < 0 %}is-negative{% endif %}">{% if metrica.faixa == 'sem_dados' or not metrica.honorario_disponivel %}—{% else %}{{ metrica.resultado|floatformat:2 }}{% endif %}</dd></div>
+    <div class="profitability-kpi"><dt>Margem</dt><dd class="tnum">{% if metrica.faixa == 'sem_dados' or not metrica.honorario_disponivel %}—{% else %}{{ metrica.margem|percentual }}{% endif %}</dd></div>
     <div class="profitability-kpi"><dt>Honorário sugerido</dt><dd class="tnum">{% if mensalidade_sugerida is not None %}{{ mensalidade_sugerida|floatformat:2 }}{% else %}—{% endif %}</dd><p class="profitability-delta">Meta de {{ margem_alvo|percentual }}</p></div>
   </dl>
+  {% if not metrica.honorario_disponivel %}
+    <p class="profitability-caveat profitability-alert"><strong>Honorário não disponível.</strong> Horas e custo estão apurados, mas resultado e margem aguardam o valor de receita desta competência.</p>
+  {% endif %}
   {% if metrica.faixa == 'sem_dados' %}
     <p class="profitability-caveat profitability-alert"><strong>Sem base de custo.</strong> Sem horas suficientes, custo, resultado, margem e honorário sugerido ficam em aberto — ausência de dado não vira margem cheia.</p>
-  {% elif not metrica.custo_completo %}
+  {% elif metrica.minutos_sem_custo %}
     <p class="profitability-caveat profitability-alert"><strong>Custo parcial.</strong> {{ metrica.minutos_sem_custo|horas }} ainda não têm custo apurado. Enquanto isso, a margem acima lê mais alta do que é.</p>
-  {% else %}
+  {% elif metrica.honorario_disponivel and metrica.custo_completo %}
     <p class="profitability-caveat">O honorário sugerido divide o custo atual por um menos a margem-alvo. Ele é referência de decisão, não alteração automática de contrato.</p>
   {% endif %}
 </section>
@@ -69,7 +72,7 @@
     <div class="profitability-chart" data-chart="evolucao" data-series="{{ historico_json }}"></div>
     <div class="data-table-wrap"><table class="profitability-table profitability-chart-data">
       <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Honorário</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
-      <tbody>{% for linha in historico reversed %}<tr><th scope="row">{{ linha.competencia }}</th><td class="tnum">{{ linha.mensalidade|floatformat:2 }}</td><td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td><td class="tnum {% if linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td><td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.margem|percentual }}{% endif %}</td></tr>{% endfor %}</tbody>
+      <tbody>{% for linha in historico reversed %}<tr><th scope="row">{{ linha.competencia }}</th><td class="tnum">{% if linha.honorario_disponivel %}{{ linha.mensalidade|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{% if linha.faixa == 'sem_dados' %}—{% else %}{{ linha.custo|floatformat:2 }}{% endif %}</td><td class="tnum {% if linha.honorario_disponivel and linha.resultado < 0 %}is-negative{% endif %}">{% if linha.faixa == 'sem_dados' or not linha.honorario_disponivel %}—{% else %}{{ linha.resultado|floatformat:2 }}{% endif %}</td><td class="tnum">{% if linha.faixa == 'sem_dados' or not linha.honorario_disponivel %}—{% else %}{{ linha.margem|percentual }}{% endif %}</td></tr>{% endfor %}</tbody>
     </table></div>
   {% else %}
     <div class="module-clean-empty"><h3>Sem histórico com valor</h3><p>Competências inteiramente vazias não são exibidas, para não empurrar o primeiro mês útil para fora da ficha.</p></div>
@@ -126,7 +129,7 @@
 <section id="historico-cliente" class="workspace-panel profitability-anchored" aria-labelledby="client-history-heading">
   <header class="workspace-panel-head"><div><p class="section-kicker">TRILHA</p><h2 id="client-history-heading">Histórico do cliente</h2><p>Os meses aparecem do mais recente para o mais antigo, preservando o estado calculado em cada competência.</p></div></header>
   {% if historico %}
-    <ol class="profitability-timeline">{% for linha in historico %}<li><div><strong>{{ linha.competencia }}</strong>{% if linha.competencia == competencia %}<span class="profitability-code">competência aberta</span>{% endif %}</div><p class="tnum">Honorário {{ linha.mensalidade|floatformat:2 }} · {{ linha.horas_auto_minutos|horas }} · {% if linha.faixa == 'sem_dados' %}sem base de custo{% else %}resultado {{ linha.resultado|floatformat:2 }} · {{ linha.margem|percentual }}{% endif %}</p><span class="profitability-band is-{{ linha.faixa }}">{{ linha.get_faixa_display }}</span></li>{% endfor %}</ol>
+    <ol class="profitability-timeline">{% for linha in historico %}<li><div><strong>{{ linha.competencia }}</strong>{% if linha.competencia == competencia %}<span class="profitability-code">competência aberta</span>{% endif %}</div><p class="tnum">Honorário {% if linha.honorario_disponivel %}{{ linha.mensalidade|floatformat:2 }}{% else %}indisponível{% endif %} · {{ linha.horas_auto_minutos|horas }} · {% if not linha.honorario_disponivel %}resultado e margem indisponíveis{% elif linha.faixa == 'sem_dados' %}sem base de custo{% else %}resultado {{ linha.resultado|floatformat:2 }} · {{ linha.margem|percentual }}{% endif %}</p><span class="profitability-band is-{{ linha.faixa }}">{% if not linha.honorario_disponivel %}Honorário não disponível{% else %}{{ linha.get_faixa_display }}{% endif %}</span></li>{% endfor %}</ol>
   {% else %}
     <div class="module-clean-empty"><h3>Nenhuma competência com valor</h3><p>O histórico passa a existir quando honorário, custo ou horas forem materializados.</p></div>
   {% endif %}

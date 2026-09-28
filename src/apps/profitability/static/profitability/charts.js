@@ -79,7 +79,8 @@
       })
     );
 
-    var pontosMargem = [];
+    var segmentosMargem = [];
+    var segmentoMargem = [];
     dados.forEach(function (ponto, indice) {
       var base = margem.esquerda + indice * passo + 3;
       var receita = (ponto.mensalidade || 0) * escala;
@@ -104,10 +105,16 @@
         })
       );
 
-      // A margem é fração; -1 a 1 cobre prejuízo total até margem plena.
-      var limitada = Math.max(-1, Math.min(1, ponto.margem || 0));
-      var y = margem.topo + area.altura / 2 - (limitada * area.altura) / 2;
-      pontosMargem.push([base + larguraBarra + 1, y]);
+      // Sem honorário, zero não é margem: a linha precisa ter um intervalo
+      // vazio, sem ligar os meses vizinhos por cima da lacuna.
+      if (typeof ponto.margem === "number" && Number.isFinite(ponto.margem)) {
+        var limitada = Math.max(-1, Math.min(1, ponto.margem));
+        var y = margem.topo + area.altura / 2 - (limitada * area.altura) / 2;
+        segmentoMargem.push([base + larguraBarra + 1, y]);
+      } else if (segmentoMargem.length) {
+        segmentosMargem.push(segmentoMargem);
+        segmentoMargem = [];
+      }
 
       if (indice % 2 === 0) {
         var rotulo = el("text", {
@@ -121,16 +128,32 @@
       }
     });
 
-    svg.appendChild(
-      el("polyline", {
-        points: pontosMargem
-          .map(function (par) {
-            return par[0] + "," + par[1];
+    if (segmentoMargem.length) {
+      segmentosMargem.push(segmentoMargem);
+    }
+    segmentosMargem.forEach(function (segmento) {
+      if (segmento.length === 1) {
+        svg.appendChild(
+          el("circle", {
+            cx: segmento[0][0],
+            cy: segmento[0][1],
+            r: 2.5,
+            class: "chart-point",
           })
-          .join(" "),
-        class: "chart-line",
-      })
-    );
+        );
+        return;
+      }
+      svg.appendChild(
+        el("polyline", {
+          points: segmento
+            .map(function (par) {
+              return par[0] + "," + par[1];
+            })
+            .join(" "),
+          class: "chart-line",
+        })
+      );
+    });
 
     host.appendChild(svg);
   }

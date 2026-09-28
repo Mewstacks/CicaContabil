@@ -857,6 +857,14 @@ class ClienteCompetenciaMetrics(OrganizationScopedModel):
     def __str__(self) -> str:
         return f"{self.empresa_id} {self.competencia}"
 
+    @property
+    def honorario_disponivel(self) -> bool:
+        """Valor zero com trabalho apurado é diferente de ausência de mensalidade."""
+
+        return "mensalidade_nao_disponivel" not in self.motivos_incompletude and (
+            self.mensalidade != 0 or self.faixa != FaixaMargem.SEM_DADOS
+        )
+
 
 class ColaboradorCompetenciaMetrics(OrganizationScopedModel):
     colaborador = models.ForeignKey(Colaborador, on_delete=models.CASCADE, related_name="metricas")
