@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NoReturn
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -446,6 +446,44 @@ class Message(OrganizationScopedModel):
     class Meta:
         ordering = ("created_at",)
         indexes = [models.Index(fields=("organization", "conversation", "created_at"))]
+
+
+class ReportExportRecord(OrganizationScopedModel):
+    """Append-only, encrypted evidence of one report export."""
+
+    class Format(models.TextChoices):
+        PDF = "pdf", "PDF"
+        XLSX = "xlsx", "XLSX"
+
+    message = models.ForeignKey(Message, on_delete=models.PROTECT, related_name="report_exports")
+    company = models.ForeignKey("hub.ClientCompany", on_delete=models.PROTECT)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    export_format = models.CharField(max_length=8, choices=Format.choices)
+    template_version = models.CharField(max_length=80)
+    snapshot = EncryptedTextField()
+    snapshot_sha256 = models.CharField(max_length=64, db_index=True)
+    output_sha256 = models.CharField(max_length=64)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=("organization", "company", "created_at")),
+            models.Index(fields=("message", "created_at")),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        _validate_company_scope(organization_id=self.organization_id, company=self.company)
+        if self.message.organization_id != self.organization_id:
+            raise ValidationError({"message": "A resposta precisa pertencer ao mesmo escritório."})
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self._state.adding:
+            raise ValidationError("Registros de exportação são imutáveis.")
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> NoReturn:
+        raise ValidationError("Registros de exportação não podem ser removidos.")
 
 
 class ChatAttachment(OrganizationScopedModel):

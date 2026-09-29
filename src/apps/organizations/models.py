@@ -20,6 +20,9 @@ class Organization(UUIDTimeStampedModel):
     slug = models.CharField(max_length=63, unique=True, validators=[slug_validator])
     is_active = models.BooleanField(default=True)
     is_demo = models.BooleanField(default=False)
+    # An internal partner is a real office used to validate CICA workflows. It is
+    # deliberately distinct from a public demo and never creates commercial terms.
+    is_internal_test_partner = models.BooleanField(default=False)
 
     class Meta:
         ordering = ("name",)

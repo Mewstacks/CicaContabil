@@ -1,5 +1,5 @@
 <nav class="workspace-navigation" id="workspace-navigation" aria-label="Navegação principal">
-  <a class="topnav-link" href="{% url 'hub:dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' %} aria-current="page"{% endif %}>Visão geral</a>
+  {% if not is_nfse_only_subscription %}<a class="topnav-link" href="{% url 'hub:dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' %} aria-current="page"{% endif %}>Visão geral</a>{% endif %}
   {% for group in groups %}
   <details class="topnav-group{% if group.active %} is-current{% endif %}" data-workspace-menu>
     <summary>{{ group.label }}<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>

@@ -70,3 +70,7 @@ Reprovar qualquer versão que possa ser confundida com: dashboard com chat de IA
 - Pesquisa marcária formal no INPI e confirmação de titularidade do domínio escolhido.
 - Prova social verificável, dados de implantação e contato de suporte — não inventar.
 - Homologação Siescon antes de apresentá-lo como conectado.
+
+## Atualização de 24/09/2026
+
+A revisão solicitada pelo proprietário em D-163 substitui a direção de cena espacial/animada desta versão histórica por pauta estática, promessa sobre pendências e responsáveis, recursos compactos e FAQ antes do CTA. Preserva marca e limites das integrações. Implementação e fontes atuais em [revisão de 24/09](cica-landing-review-2026-09-24.md); evidência em V-188, VALIDACOES.md. O conteúdo acima permanece como histórico, não como obrigação de reintroduzir a cena.

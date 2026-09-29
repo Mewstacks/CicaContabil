@@ -38,6 +38,29 @@ Instalação integrada, carga aprovada, queda de serviços, restauração verifi
 
 Nenhuma homologação nova atribuída a esta etapa. A existência de código ou testes anteriores não prova conclusão. Registrar comandos, ambiente, data, resultado e limites em VALIDACOES.md e no registro de execução. Não incluir segredos ou dados de clientes.
 
+### V-202 — Preparação da publicação no Fly.io
+
+- [x] Criar a organização `cica` e reservar o app `cica-contabil`, ainda sem deploy ou recurso faturável provisionado.
+- [x] Validar a configuração local do Fly e o check do Django.
+- [x] Aprovar especificamente a arquitetura e o custo recorrente antes de criar Postgres, Redis, storage e máquinas (D-177).
+- [x] Configurar segredos, executar migrações, publicar web/worker/agendador e validar filas, storage e HTTPS.
+- [ ] Validar restauração e rollback em produção.
+
+### V-203/V-204 — Publicação e revalidação operacional
+
+- [x] Aprovar e provisionar a arquitetura de D-177.
+- [x] Configurar segredos, executar migrações e publicar web e worker/agendador.
+- [x] Validar página pública, HTTPS, health de banco/cache, fila e ciclo temporário no storage privado.
+- [x] Revalidar DNS, TCP/443, TLS, redirecionamento e estabilidade de vinte requisições após `ERR_CONNECTION_RESET` não reproduzido.
+- [ ] Homologar restauração, rollback e recuperação cronometrada; a disponibilidade atual não substitui essas provas.
+
+### V-205 — Domínio próprio
+
+- [x] Registrar `cicacontabil.com.br` e `www.cicacontabil.com.br` no Fly.
+- [x] Configurar os hostnames em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS` e revalidar o health após o restart.
+- [x] Remover da zona HostGator o A legado `162.240.81.81`, preservando os destinos Fly.
+- [x] Verificar a emissão TLS e validar apex e `www` após a correção autoritativa e a limpeza do cache DNS local.
+
 ## Prompt de execução
 
 > Execute a etapa 12. Faça a homologação integrada da CICA e reúna evidências por módulo, incluindo restauração, filas, integrações, instalação e suporte. Confirme com o responsável ambiente, metas e critérios ainda pendentes. Não libere venda nem contrate infraestrutura por inferência.

@@ -29,11 +29,11 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
                 cursor = code;
                 page.Add(new { codigo = code, nome = Convert.ToString(reader[1]) ?? "", cnpj_masked = FormatCnpj(Convert.ToString(reader[2])) });
             }
-            if (page.Count == 0) return;
+            if (page.Count == 0) break;
             using JsonDocument _ = await client.PostAsync("api/agent/v2/dominio/companies", new { companies = page }, token);
-            if (page.Count < PageSize) return;
+            if (page.Count < PageSize) break;
         }
-        await SendBankEntries(token);
+        if (!token.IsCancellationRequested) await SendBankEntries(token);
     }
 
     private async Task SendBankEntries(CancellationToken token)

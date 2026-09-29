@@ -10,13 +10,14 @@ import secrets
 import uuid
 import zipfile
 from collections.abc import Callable
+from contextlib import suppress
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 from functools import partial, wraps
 from pathlib import PurePath
 from types import SimpleNamespace
 from typing import Any, Concatenate, cast
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlparse
 
 from django import forms
 from django.conf import settings
@@ -24,7 +25,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, models, transaction
 from django.db.models import Case, Count, Exists, F, IntegerField, OuterRef, Q, QuerySet, Sum, When
@@ -52,9 +53,11 @@ from apps.common.cnpj import lookup_company, normalize_cnpj
 from apps.common.network import client_ip
 from apps.common.ratelimit import rate_limited
 from apps.common.redirects import detail_redirect, safe_next
+from apps.hub.closing_dashboard import closing_dashboard_context
 from apps.hub.controlplane import (
     authorization_is_fresh,
     company_queryset_for_membership,
+    company_queryset_for_module,
     module_codes_for_membership,
 )
 from apps.hub.demo_session import (
@@ -69,29 +72,48 @@ from apps.hub.dte_payload import body_text
 from apps.hub.forms import (
     AccountingPeriodForm,
     ActivationForm,
+    ActivityGenerationForm,
+    ActivityTemplateAssignmentForm,
+    ActivityTemplateForm,
     CertificateUploadForm,
     CollaboratorAccessForm,
     CollaboratorInvitationForm,
     CompanyForm,
     CostCenterForm,
     DataSourceForm,
+    DreMappingFormSet,
     DtePreparationForm,
     FinancialAccountForm,
     LedgerAccountForm,
-    OfxImportForm,
+    OfficeIdentityForm,
+    OperationalAssignmentForm,
+    OperationalBlockForm,
+    OperationalEvidenceForm,
+    PayrollComparisonForm,
     ReconciliationMovementForm,
     ReconciliationRuleForm,
     ReconciliationUploadForm,
     UnifiedImportForm,
 )
-from apps.hub.imports import ImportValidationError, confirm_import, create_import_preview
+from apps.hub.imports import (
+    ImportValidationError,
+    confirm_import,
+    create_import_preview,
+    payroll_preview_rows,
+)
 from apps.hub.models import (
+    AccountingBalanceSnapshot,
     AccountingEntry,
     AccountingExport,
     AccountingPeriod,
+    AccumulatorCatalogEntry,
+    AccumulatorHistoryEntry,
     AccumulatorObservation,
     AccumulatorRule,
+    ActivityTemplate,
+    ActivityTemplateAssignment,
     BankStatementImport,
+    CashScenario,
     Certificate,
     ClientCompany,
     CompanyAccessGrant,
@@ -101,11 +123,14 @@ from apps.hub.models import (
     DataSource,
     DctfWebDocument,
     DominioBankEntry,
+    DreAccountMapping,
+    DreMappingSet,
     DteMessage,
     DteMessageAccess,
     DteRun,
     DteRunItem,
     FinancialAccount,
+    FinancialReportExport,
     FiscalGuide,
     ImportBatch,
     IntegrationArtifact,
@@ -114,12 +139,16 @@ from apps.hub.models import (
     LedgerAccount,
     MovementReconciliation,
     NfseDocument,
+    NfseExport,
     NfseSync,
     NormalizedMovement,
     OfficeProfile,
     OnboardingProgress,
+    OperationalActivity,
     ParcelamentoOperation,
+    PayrollPeriodSnapshot,
     ProductModule,
+    ReconciliationDecision,
     ReconciliationLayout,
     ReconciliationMatch,
     ReconciliationRule,
@@ -130,9 +159,21 @@ from apps.hub.models import (
     ReviewCase,
     UsageAllowance,
 )
+from apps.hub.module_activities import nfse_resolution_reference, sync_nfse_review_activity
 from apps.hub.module_catalog import MODULES, OFFERED_MODULE_CODES, ModuleDefinition, definition
 from apps.hub.onboarding import TOURS_BY_ID, tour_for_url_name
+from apps.hub.operations import (
+    activity_is_overdue,
+    add_human_evidence,
+    assign_activity,
+    block_activity,
+    can_operate_activity,
+    complete_activity,
+    generate_monthly_activities,
+)
+from apps.hub.payroll import compare_payroll_snapshots
 from apps.hub.reconciliation import OfxParseError, confirm_reconciliation_match, import_ofx
+from apps.hub.reconciliation_activities import sync_reconciliation_activity
 from apps.hub.reconciliation_service import (
     ReconciliationError,
     approve_journal_entry,
@@ -151,6 +192,7 @@ from apps.hub.reconciliation_service import (
 from apps.hub.reconciliation_service import (
     undo_reconciliation as undo_normalized_reconciliation,
 )
+from apps.hub.reporting_exports import FinancialReportExportError, prepare_export
 from apps.hub.services import (
     DCTFWEB_DOCUMENT_SERVICE,
     DTE_ACTION_CODE,
@@ -161,10 +203,12 @@ from apps.hub.services import (
     ParcelamentoTransitionError,
     approve_dte_run,
     cancel_dte_run,
+    create_nfse_export,
     issue_fiscal_guide,
     prepare_dctfweb_guide_from_documents,
     prepare_dte_next_page,
     prepare_dte_run,
+    release_uncertain_parcelamento_operation,
     request_dctfweb_document,
     request_parcelamento_operation,
     store_certificate,
@@ -257,9 +301,7 @@ class SignOutView(auth_views.LogoutView):
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     """Keep the one-use reset token out of every subsequent Referer header."""
 
-    def dispatch(
-        self, request: HttpRequest, *args: object, **kwargs: object
-    ) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         response = super().dispatch(request, *args, **kwargs)
         # Django replaces the one-use token with "set-password" before rendering.
         # On that sanitized URL, preserve the same-origin POST context for CSRF;
@@ -677,15 +719,23 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         if support_session is not None
         else membership is not None and membership.role != Membership.Role.AUDITOR
     )
-    module_rows = (
-        ProductModule.objects.filter(organization=office, enabled=True).order_by("code")
+    module_records = list(
+        ProductModule.objects.filter(organization=office).order_by("code")
         if office
         else ProductModule.objects.none()
     )
+    module_rows = [row for row in module_records if row.enabled]
+    explicit_enabled_module_codes = {
+        row.code for row in module_rows if row.code in MODULES and row.code in OFFERED_MODULE_CODES
+    }
+    explicit_module_codes = {row.code for row in module_records if row.code in OFFERED_MODULE_CODES}
+    # Legacy offices can have only the historic NFS-e row. Treat the reduced surface
+    # as a commercial choice only after the control plane recorded every offered module.
+    is_nfse_only_subscription = explicit_enabled_module_codes == {
+        ProductModule.Code.NFSE
+    } and explicit_module_codes == set(OFFERED_MODULE_CODES)
     enabled_modules = [
-        MODULES[row.code]
-        for row in module_rows
-        if row.code in MODULES and row.code in OFFERED_MODULE_CODES
+        MODULES[row.code] for row in module_rows if row.code in explicit_enabled_module_codes
     ]
     if not copilot_is_available() and not (office and office.is_demo):
         enabled_modules = [item for item in enabled_modules if item.code != ProductModule.Code.AI]
@@ -744,6 +794,7 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         if office
         else 0,
         "enabled_modules": enabled_modules,
+        "is_nfse_only_subscription": is_nfse_only_subscription,
         "copilot_enabled": copilot_enabled,
         "active_module_code": active_module_code,
         "permitted_module_codes": permitted_module_codes,
@@ -771,12 +822,16 @@ def _onboarding_context(
     demo = bool(office and office.is_demo)
     done = False
     if not demo and getattr(request.user, "is_authenticated", False):
+        actor = cast(User, request.user)
         done = OnboardingProgress.objects.filter(
-            user=request.user, tour_id=tour.identifier, version__gte=tour.version
+            user=actor, tour_id=tour.identifier, version__gte=tour.version
         ).exists()
     return {
         "onboarding_tour": tour,
         "onboarding_tour_done": done,
+        # The overview must be visible before optional guidance. Other narrowly
+        # scoped tours may still open once when they introduce a new workflow.
+        "onboarding_auto_open": not done and tour.identifier != "welcome",
         "onboarding_session_only": demo,
     }
 
@@ -790,7 +845,7 @@ def onboarding_complete(request: HttpRequest, tour_id: str) -> HttpResponse:
     if tour is None:
         return HttpResponseBadRequest("Orientação desconhecida.")
     OnboardingProgress.objects.update_or_create(
-        user=request.user,
+        user=cast(User, request.user),
         tour_id=tour.identifier,
         defaults={"version": tour.version, "completed_at": timezone.now()},
     )
@@ -822,6 +877,11 @@ def collaborator_can_use_module(context: dict[str, object], code: str) -> bool:
     """Keep module permission independent from menu visibility and URL guessing."""
     permitted = context.get("permitted_module_codes")
     return permitted is None or (isinstance(permitted, set) and code in permitted)
+
+
+def is_nfse_only_subscription(context: dict[str, object]) -> bool:
+    """Identify an explicit NFS-e-only subscription, never a legacy implicit scope."""
+    return context.get("is_nfse_only_subscription") is True
 
 
 def office_required[**ViewParams](
@@ -1296,18 +1356,129 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         .select_related("document")
         .order_by("-created_at")
     )
-    open_cases_page = Paginator(open_cases_query, 20).get_page(
-        request.GET.get("reviews_page")
+    open_cases_page = Paginator(open_cases_query, 20).get_page(request.GET.get("reviews_page"))
+    dte_messages_query = DteMessage.objects.filter(organization=office, company=company).order_by(
+        "-sent_at", "-first_seen_at"
     )
-    dte_messages_query = DteMessage.objects.filter(
+    dte_messages_page = Paginator(dte_messages_query, 20).get_page(request.GET.get("dte_page"))
+    activities_query = (
+        OperationalActivity.objects.filter(organization=office, company=company)
+        .select_related("assigned_to")
+        .order_by(
+            Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True),
+            "-created_at",
+            "pk",
+        )
+    )
+    activities_page = Paginator(activities_query, 20).get_page(request.GET.get("activities_page"))
+    payroll_snapshots_query = PayrollPeriodSnapshot.objects.filter(
         organization=office, company=company
-    ).order_by("-sent_at", "-first_seen_at")
-    dte_messages_page = Paginator(dte_messages_query, 20).get_page(
-        request.GET.get("dte_page")
+    ).order_by("-competence", "-observed_at")
+    payroll_period = None
+    if request.GET.get("payroll_competence"):
+        try:
+            payroll_period = date.fromisoformat(request.GET["payroll_competence"])
+        except ValueError:
+            raise Http404("Competência da folha inválida.") from None
+        if payroll_period.day != 1:
+            raise Http404("Competência da folha inválida.")
+        payroll_snapshots_query = payroll_snapshots_query.filter(competence=payroll_period)
+    payroll_review_activity = (
+        activities_query.filter(
+            competence=payroll_period,
+            source_payroll_snapshot__isnull=False,
+        ).first()
+        if payroll_period
+        else None
     )
+    payroll_snapshots_page = Paginator(payroll_snapshots_query, 20).get_page(
+        request.GET.get("payroll_page")
+    )
+    payroll_comparison: Any | None = None
+    payroll_comparison_variances: list[dict[str, Any]] = []
+    payroll_comparison_missing: list[str] = []
+    payroll_comparison_competence: date | None = None
+    payroll_comparison_form = PayrollComparisonForm(
+        request.GET if "left_snapshot" in request.GET else None,
+        snapshots=payroll_snapshots_query,
+    )
+    if payroll_comparison_form.is_bound and payroll_comparison_form.is_valid():
+        payroll_comparison = compare_payroll_snapshots(
+            left=payroll_comparison_form.cleaned_data["left_snapshot"],
+            right=payroll_comparison_form.cleaned_data["right_snapshot"],
+            money_tolerance_cents=payroll_comparison_form.tolerance_cents(),
+        )
+        payroll_comparison_competence = payroll_comparison_form.cleaned_data[
+            "left_snapshot"
+        ].competence
+        metric_labels = {
+            "workforce_count": "Quadro de pessoas",
+            "gross_pay_cents": "Total bruto",
+            "deductions_cents": "Descontos",
+            "employer_charges_cents": "Encargos do empregador",
+            "net_pay_cents": "Total líquido",
+        }
+        payroll_comparison_variances = [
+            {
+                "label": metric_labels[variance.metric],
+                "left_value": variance.left_value
+                if variance.metric == "workforce_count"
+                else Decimal(variance.left_value) / 100,
+                "right_value": variance.right_value
+                if variance.metric == "workforce_count"
+                else Decimal(variance.right_value) / 100,
+                "difference": variance.difference
+                if variance.metric == "workforce_count"
+                else Decimal(variance.difference) / 100,
+                "is_money": variance.metric != "workforce_count",
+            }
+            for variance in payroll_comparison.variances
+        ]
+        payroll_comparison_missing = [
+            metric_labels[metric] for metric in payroll_comparison.missing_metrics
+        ]
+    accounting_snapshots = list(
+        AccountingBalanceSnapshot.objects.filter(organization=office, company=company).order_by(
+            "-competence", "-observed_at"
+        )[:5]
+    )
+    active_dre_mapping = (
+        DreMappingSet.objects.filter(organization=office, is_active=True)
+        .order_by("-version")
+        .first()
+    )
+    cash_scenarios = list(
+        CashScenario.objects.filter(organization=office, company=company).order_by(
+            "-reference_date", "-created_at"
+        )[:5]
+    )
+    financial_report_exports = list(
+        FinancialReportExport.objects.filter(organization=office, company=company)
+        .select_related("requested_by")
+        .order_by("-created_at")[:10]
+    )
+    triage_available = bool(
+        collaborator_can_use_module(context, ProductModule.Code.TRIAGE)
+        and ProductModule.objects.filter(
+            organization=office, code=ProductModule.Code.TRIAGE, enabled=True
+        ).exists()
+    )
+    triage_items_query = TriageItem.objects.none()
+    if triage_available:
+        triage_items_query = TriageItem.objects.filter(
+            organization=office, company=company
+        ).select_related("document_type")
+    triage_items_page = Paginator(triage_items_query, 20).get_page(request.GET.get("triage_page"))
     company_detail_query_params = request.GET.copy()
     company_detail_querystrings: dict[str, str] = {}
-    for page_parameter in ("documents_page", "reviews_page", "dte_page"):
+    for page_parameter in (
+        "documents_page",
+        "reviews_page",
+        "dte_page",
+        "activities_page",
+        "payroll_page",
+        "triage_page",
+    ):
         page_query_params = company_detail_query_params.copy()
         page_query_params.pop(page_parameter, None)
         company_detail_querystrings[page_parameter] = page_query_params.urlencode()
@@ -1327,6 +1498,32 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "dte_messages": list(dte_messages_page.object_list),
             "dte_messages_page": dte_messages_page,
             "dte_messages_querystring": company_detail_querystrings["dte_page"],
+            "activities": list(activities_page.object_list),
+            "activities_page": activities_page,
+            "activities_querystring": company_detail_querystrings["activities_page"],
+            "activities_count": activities_page.paginator.count,
+            "payroll_snapshots": list(payroll_snapshots_page.object_list),
+            "payroll_period": payroll_period,
+            "payroll_review_activity": payroll_review_activity,
+            "payroll_snapshots_page": payroll_snapshots_page,
+            "payroll_querystring": company_detail_querystrings["payroll_page"],
+            "payroll_snapshots_count": payroll_snapshots_page.paginator.count,
+            "payroll_comparison_form": payroll_comparison_form,
+            "payroll_comparison": payroll_comparison,
+            "payroll_comparison_variances": payroll_comparison_variances,
+            "payroll_comparison_missing": payroll_comparison_missing,
+            "payroll_comparison_competence": payroll_comparison_competence,
+            "accounting_snapshots": accounting_snapshots,
+            "accounting_snapshots_count": len(accounting_snapshots),
+            "active_dre_mapping": active_dre_mapping,
+            "cash_scenarios": cash_scenarios,
+            "cash_scenarios_count": len(cash_scenarios),
+            "financial_report_exports": financial_report_exports,
+            "triage_available": triage_available,
+            "triage_items": list(triage_items_page.object_list),
+            "triage_items_page": triage_items_page,
+            "triage_items_querystring": company_detail_querystrings["triage_page"],
+            "triage_items_count": triage_items_page.paginator.count,
             "document_count": document_page.paginator.count,
             "open_cases_count": open_cases_page.paginator.count,
             "dte_messages_count": dte_messages_page.paginator.count,
@@ -1337,8 +1534,97 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
 
 
 @office_required
+@require_http_methods(["POST"])
+def company_financial_report(
+    request: HttpRequest, company_id: str, resource: str, resource_id: uuid.UUID, export_format: str
+) -> HttpResponse:
+    """Queue a private report from a fixed authorized photograph.
+
+    Rendering never blocks the web request.
+    """
+
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    company = get_object_or_404(companies, id=company_id)
+    if resource not in set(FinancialReportExport.Resource.values):
+        return HttpResponseBadRequest("Recurso de relatorio invalido.")
+    if export_format not in set(FinancialReportExport.Format.values):
+        return HttpResponseBadRequest("Formato de relatorio invalido.")
+    if (
+        resource == FinancialReportExport.Resource.DRE
+        and not DreMappingSet.objects.filter(organization=office, is_active=True).exists()
+    ):
+        return HttpResponse("Nenhum mapa DRE ativo esta configurado.", status=409)
+    if not settings.CICA_REPORTING_URL or not settings.CICA_REPORTING_SHARED_SECRET:
+        return HttpResponse("Servico interno de relatorios nao esta configurado.", status=503)
+    try:
+        export = prepare_export(
+            organization=office,
+            company_id=company.id,
+            resource=resource,
+            resource_id=resource_id,
+            export_format=export_format,
+            actor=cast(User, request.user),
+            request=request,
+        )
+    except (FinancialReportExportError, ValueError) as exc:
+        message = str(exc)
+        if "mapa DRE" in message:
+            return HttpResponse(message, status=409)
+        return HttpResponseBadRequest(message)
+
+    from apps.hub.tasks import process_financial_report_export
+
+    transaction.on_commit(partial(process_financial_report_export.delay, str(export.id)))
+    messages.success(
+        request, "Relatorio solicitado. O arquivo aparecera nesta empresa quando estiver pronto."
+    )
+    return redirect(f"{reverse('hub:company-detail', args=[company.id])}#relatorios-financeiros")
+
+
+@office_required
+@require_http_methods(["GET"])
+def download_financial_report_export(request: HttpRequest, export_id: str) -> HttpResponseBase:
+    """Revalidate current company access before exposing a private rendered file."""
+
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    export = get_object_or_404(
+        FinancialReportExport,
+        id=export_id,
+        organization=office,
+        company__in=companies,
+        state=FinancialReportExport.State.READY,
+    )
+    content_name = export.content.name if export.content else ""
+    if not content_name or not export.content.storage.exists(content_name):
+        FinancialReportExport.objects.filter(id=export.id).update(
+            state=FinancialReportExport.State.FAILED,
+            failure_code="artifact_missing",
+        )
+        messages.error(
+            request, "O arquivo privado deste relatorio nao esta mais disponivel. Solicite outro."
+        )
+        detail_url = reverse("hub:company-detail", args=[export.company_id])
+        return redirect(f"{detail_url}#relatorios-financeiros")
+    response = FileResponse(
+        export.content.open("rb"),
+        as_attachment=True,
+        filename=PurePath(content_name).name,
+        content_type=export.content_type or None,
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@office_required
 def dashboard(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
+    if is_nfse_only_subscription(context):
+        return redirect("hub:nfse-center")
     office = context["office"]
     assert isinstance(office, Organization)
     companies = cast("QuerySet[ClientCompany]", context["companies"])
@@ -1364,6 +1650,171 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         if is_demo_visitor(request, office)
         else open_cases_query.count()
     )
+    activity_query = OperationalActivity.objects.filter(organization=office, company__in=scope)
+    dashboard_membership = context["membership"]
+    is_dashboard_administrator = isinstance(dashboard_membership, Membership) and (
+        dashboard_membership.role
+        in {
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+        }
+    )
+    dashboard_view = request.GET.get("view", "mine")
+    if dashboard_view not in {"mine", "portfolio", "management"}:
+        dashboard_view = "mine"
+    if dashboard_view == "management" and not is_dashboard_administrator:
+        return refuse(request, "A gestão da operação exige perfil de administrador.")
+    if dashboard_view == "mine":
+        activity_query = activity_query.filter(assigned_to=cast(User, request.user))
+    today = timezone.localdate()
+    context.update(
+        closing_dashboard_context(
+            companies=scope,
+            month=request.GET.get("closing_month", ""),
+            page=request.GET.get("closing_page", "1"),
+            today=today,
+        )
+    )
+    open_activity_query = activity_query.exclude(
+        work_status__in=[
+            OperationalActivity.WorkStatus.COMPLETED,
+            OperationalActivity.WorkStatus.WAIVED,
+        ]
+    )
+    due_today = Q(internal_due_on=today) | Q(internal_due_on__isnull=True, legal_due_on=today)
+    due_next_seven_days = Q(
+        internal_due_on__gt=today, internal_due_on__lte=today + timedelta(days=7)
+    ) | Q(
+        internal_due_on__isnull=True,
+        legal_due_on__gt=today,
+        legal_due_on__lte=today + timedelta(days=7),
+    )
+    overdue_activities = open_activity_query.filter(
+        Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
+    )
+    activity_attention = [
+        {
+            "label": "Em atraso",
+            "count": overdue_activities.count(),
+            "note": "Prazo interno ou legal ja passou",
+            "url": f"{reverse('hub:activities')}?overdue=1",
+            "tone": "attention",
+        },
+        {
+            "label": "Para hoje",
+            "count": open_activity_query.filter(due_today).count(),
+            "note": "Vencimento interno prevalece sobre o legal",
+            "url": f"{reverse('hub:activities')}?due=today",
+            "tone": "attention",
+        },
+        {
+            "label": "Proximos 7 dias",
+            "count": open_activity_query.filter(due_next_seven_days).count(),
+            "note": "Atividades com data determinada",
+            "url": f"{reverse('hub:activities')}?due=next_7_days",
+            "tone": "",
+        },
+        {
+            "label": "Impedidas",
+            "count": open_activity_query.filter(
+                work_status=OperationalActivity.WorkStatus.BLOCKED
+            ).count(),
+            "note": "Dependencia ou justificativa registrada",
+            "url": f"{reverse('hub:activities')}?status=blocked",
+            "tone": "attention",
+        },
+        {
+            "label": "Fonte indisponivel",
+            "count": open_activity_query.filter(
+                freshness=OperationalActivity.Freshness.UNAVAILABLE
+            ).count(),
+            "note": "Ultimo estado conhecido permanece visivel",
+            "url": f"{reverse('hub:activities')}?freshness=unavailable",
+            "tone": "attention",
+        },
+    ]
+    agenda_filters = {
+        "overdue": Q(internal_due_on__lt=today)
+        | Q(internal_due_on__isnull=True, legal_due_on__lt=today),
+        "today": due_today,
+        "next_7_days": due_next_seven_days,
+        "blocked": Q(work_status=OperationalActivity.WorkStatus.BLOCKED),
+        "unavailable": Q(freshness=OperationalActivity.Freshness.UNAVAILABLE),
+    }
+    for item, key in zip(activity_attention, agenda_filters, strict=True):
+        item["url"] = f"{reverse('hub:dashboard')}?view={dashboard_view}&filter={key}"
+    selected_agenda_filter = request.GET.get("filter", "")
+    agenda_query = open_activity_query
+    if selected_agenda_filter in agenda_filters:
+        agenda_query = agenda_query.filter(agenda_filters[selected_agenda_filter])
+    else:
+        selected_agenda_filter = ""
+    for item, key in zip(activity_attention, agenda_filters, strict=True):
+        item["selected"] = key == selected_agenda_filter
+    agenda_page = Paginator(
+        agenda_query.select_related("company", "assigned_to").order_by(
+            Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True),
+            "-created_at",
+            "pk",
+        ),
+        30,
+    ).get_page(request.GET.get("page"))
+    dashboard_activities = cast(list[OperationalActivity], list(agenda_page.object_list))
+    for activity in dashboard_activities:
+        activity.is_overdue = activity_is_overdue(activity, today=today)  # type: ignore[attr-defined]
+        due_on = activity.internal_due_on or activity.legal_due_on
+        if due_on is None:
+            group = "Sem prazo"
+        elif due_on < today:
+            group = "Em atraso"
+        elif due_on == today:
+            group = "Para hoje"
+        elif due_on <= today + timedelta(days=7):
+            group = "Próximos 7 dias"
+        else:
+            group = "Mais adiante"
+        activity.agenda_group = group  # type: ignore[attr-defined]
+    dashboard_overdue_count = activity_attention[0]["count"]
+    admin_workload: list[Membership] = []
+    unassigned_activity_count = 0
+    if dashboard_view == "management":
+        active_activity_filter = Q(
+            user__assigned_operational_activities__organization=office,
+            user__assigned_operational_activities__company__in=scope,
+        ) & ~Q(
+            user__assigned_operational_activities__work_status__in=[
+                OperationalActivity.WorkStatus.COMPLETED,
+                OperationalActivity.WorkStatus.WAIVED,
+            ]
+        )
+        overdue_activity_filter = active_activity_filter & (
+            Q(user__assigned_operational_activities__internal_due_on__lt=today)
+            | Q(
+                user__assigned_operational_activities__internal_due_on__isnull=True,
+                user__assigned_operational_activities__legal_due_on__lt=today,
+            )
+        )
+        admin_workload = list(
+            Membership.objects.filter(organization=office, is_active=True)
+            .select_related("user")
+            .annotate(
+                open_activity_count=Count(
+                    "user__assigned_operational_activities", filter=active_activity_filter
+                ),
+                overdue_activity_count=Count(
+                    "user__assigned_operational_activities", filter=overdue_activity_filter
+                ),
+                blocked_activity_count=Count(
+                    "user__assigned_operational_activities",
+                    filter=active_activity_filter
+                    & Q(
+                        user__assigned_operational_activities__work_status=OperationalActivity.WorkStatus.BLOCKED
+                    ),
+                ),
+            )
+            .order_by("-open_activity_count", "user__full_name", "user__email")
+        )
+        unassigned_activity_count = open_activity_query.filter(assigned_to__isnull=True).count()
     work_areas = []
     if ProductModule.Code.NFSE in enabled_codes:
         work_areas.append(
@@ -1466,6 +1917,16 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "page_title": "Visão geral",
             "open_cases": open_cases,
+            "dashboard_activities": dashboard_activities,
+            "dashboard_view": dashboard_view,
+            "agenda_page": agenda_page,
+            "selected_agenda_filter": selected_agenda_filter,
+            "agenda_today": today,
+            "dashboard_overdue_count": dashboard_overdue_count,
+            "activity_attention": activity_attention,
+            "is_dashboard_administrator": is_dashboard_administrator,
+            "admin_workload": admin_workload,
+            "unassigned_activity_count": unassigned_activity_count,
             "work_areas": work_areas,
             "stats": {
                 "companies": companies.count(),
@@ -1481,6 +1942,584 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         }
     )
     return render(request, "hub/dashboard.html", context)
+
+
+def _can_configure_activity_models(membership: object) -> bool:
+    return isinstance(membership, Membership) and membership.role in {
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    }
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def activity_models(request: HttpRequest) -> HttpResponse:
+    """Admin-only configuration for versioned templates and company assignments."""
+
+    context = workspace_context(request)
+    if is_nfse_only_subscription(context):
+        return refuse(request, "Este contrato disponibiliza somente o fluxo NFS-e.")
+    office = context["office"]
+    membership = context["membership"]
+    assert isinstance(office, Organization)
+    if not _can_configure_activity_models(membership):
+        raise PermissionDenied("Somente a administração configura modelos de atividades.")
+
+    template_form = ActivityTemplateForm(prefix="template")
+    assignment_form = ActivityTemplateAssignmentForm(organization=office, prefix="assignment")
+    generation_form = ActivityGenerationForm(
+        initial={"competence": timezone.localdate()}, prefix="generation"
+    )
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "template":
+            template_form = ActivityTemplateForm(request.POST, prefix="template")
+            if template_form.is_valid():
+                template = template_form.save(commit=False)
+                template.organization = office
+                template.version = (
+                    ActivityTemplate.objects.filter(
+                        organization=office, code=template.code
+                    ).aggregate(latest=models.Max("version"))["latest"]
+                    or 0
+                ) + 1
+                template.full_clean()
+                template.save()
+                record_event(
+                    action="hub.activity_template.created",
+                    actor=cast(User, request.user),
+                    organization=office,
+                    target=template,
+                    request=request,
+                    metadata={"code": template.code, "version": template.version},
+                )
+                messages.success(request, f"Modelo {template.code} v{template.version} criado.")
+                return redirect("hub:activity-models")
+            messages.error(request, "Revise os dados do modelo.")
+        elif action == "assignment":
+            assignment_form = ActivityTemplateAssignmentForm(
+                request.POST, organization=office, prefix="assignment"
+            )
+            if assignment_form.is_valid():
+                assignment = assignment_form.save(commit=False)
+                assignment.organization = office
+                assignment.full_clean()
+                assignment.save()
+                record_event(
+                    action="hub.activity_template.assigned",
+                    actor=cast(User, request.user),
+                    organization=office,
+                    target=assignment,
+                    request=request,
+                    metadata={
+                        "template_id": str(assignment.template_id),
+                        "company_id": str(assignment.company_id),
+                    },
+                )
+                messages.success(request, "Modelo atribuído à empresa.")
+                return redirect("hub:activity-models")
+            messages.error(request, "Revise a atribuição do modelo.")
+        elif action == "assignment-toggle":
+            assignment = get_object_or_404(
+                ActivityTemplateAssignment,
+                id=request.POST.get("assignment_id"),
+                organization=office,
+            )
+            assignment.active = not assignment.active
+            assignment.next_generation_competence = timezone.localdate().replace(day=1)
+            assignment.save(update_fields=["active", "next_generation_competence", "updated_at"])
+            record_event(
+                action="hub.activity_template.assignment_toggled",
+                actor=cast(User, request.user),
+                organization=office,
+                target=assignment,
+                request=request,
+                metadata={
+                    "template_id": str(assignment.template_id),
+                    "company_id": str(assignment.company_id),
+                    "active": assignment.active,
+                },
+            )
+            state = "reativada" if assignment.active else "pausada"
+            messages.success(request, f"A atribuição foi {state}.")
+            return redirect("hub:activity-models")
+        elif action == "generate":
+            generation_form = ActivityGenerationForm(request.POST, prefix="generation")
+            if generation_form.is_valid():
+                assignments = list(
+                    ActivityTemplateAssignment.objects.filter(
+                        organization=office, active=True, template__active=True
+                    ).select_related("template", "company", "assigned_to")
+                )
+                generated, ignored = generate_monthly_activities(
+                    assignments=assignments,
+                    competence=generation_form.cleaned_data["competence"],
+                    actor=cast(User, request.user),
+                    request=request,
+                )
+                messages.success(
+                    request,
+                    (
+                        f"{len(generated)} atividade(s) gerada(s); {ignored} ocorrência(s) "
+                        "já existente(s) ou inativa(s)."
+                    ),
+                )
+                return redirect("hub:activity-models")
+            messages.error(request, "Informe uma competência válida.")
+        else:
+            raise Http404
+
+    templates = ActivityTemplate.objects.filter(organization=office).prefetch_related(
+        "company_assignments__company", "company_assignments__assigned_to"
+    )
+    context.update(
+        {
+            "page_title": "Modelos de atividades",
+            "template_form": template_form,
+            "assignment_form": assignment_form,
+            "generation_form": generation_form,
+            "activity_templates": templates,
+        }
+    )
+    return render(request, "hub/activity_models.html", context)
+
+
+@office_required
+def activities(request: HttpRequest) -> HttpResponse:
+    """The personal operational queue, sourced only from explicit expected activities."""
+
+    context = workspace_context(request)
+    if is_nfse_only_subscription(context):
+        return refuse(request, "Este contrato disponibiliza somente o fluxo NFS-e.")
+    office = context["office"]
+    assert isinstance(office, Organization)
+    membership = context["membership"]
+    active_membership_row = membership if isinstance(membership, Membership) else None
+    if active_membership_row is None:
+        raise Http404
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    queue = OperationalActivity.objects.filter(
+        organization=office, company__in=scope
+    ).select_related("company", "assigned_to")
+    is_administrator = active_membership_row.role in {
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    }
+    if not is_administrator:
+        queue = queue.filter(Q(assigned_to=request.user) | Q(assigned_to__isnull=True))
+    area = request.GET.get("area", "")
+    status = request.GET.get("status", "")
+    freshness = request.GET.get("freshness", "")
+    due = request.GET.get("due", "")
+    overdue = request.GET.get("overdue", "")
+    company_id = request.GET.get("company", "")
+    assignee_id = request.GET.get("assignee", "")
+    competence_value = request.GET.get("competence", "").strip()
+    selected_competence = ""
+    invalid_competence = False
+    selected_assignee = ""
+    selected_unassigned = request.GET.get("unassigned", "") == "1"
+    if area in ActivityTemplate.Area.values:
+        queue = queue.filter(area=area)
+    if status in OperationalActivity.WorkStatus.values:
+        queue = queue.filter(work_status=status)
+    if freshness in OperationalActivity.Freshness.values:
+        queue = queue.filter(freshness=freshness)
+    if company_id:
+        try:
+            selected_company_id = uuid.UUID(company_id)
+        except ValueError:
+            selected_company_id = None
+        if selected_company_id is not None:
+            queue = queue.filter(company_id=selected_company_id)
+    activity_assignees = User.objects.none()
+    if is_administrator:
+        activity_assignees = User.objects.filter(
+            organization_memberships__organization=office,
+            organization_memberships__is_active=True,
+        ).distinct()
+        try:
+            selected_assignee_id = uuid.UUID(assignee_id)
+        except ValueError:
+            selected_assignee_id = None
+        if (
+            selected_assignee_id is not None
+            and activity_assignees.filter(id=selected_assignee_id).exists()
+        ):
+            queue = queue.filter(assigned_to_id=selected_assignee_id)
+            selected_assignee = str(selected_assignee_id)
+        if selected_unassigned:
+            queue = queue.filter(assigned_to__isnull=True)
+    if re.fullmatch(r"\d{4}-\d{2}", competence_value):
+        try:
+            selected_competence_date = parse_date(f"{competence_value}-01")
+        except ValueError:
+            selected_competence_date = None
+        if selected_competence_date is not None:
+            queue = queue.filter(competence=selected_competence_date)
+            selected_competence = competence_value
+        else:
+            invalid_competence = True
+    elif competence_value:
+        invalid_competence = True
+    today = timezone.localdate()
+    due_today = Q(internal_due_on=today) | Q(internal_due_on__isnull=True, legal_due_on=today)
+    due_next_seven_days = Q(
+        internal_due_on__gt=today, internal_due_on__lte=today + timedelta(days=7)
+    ) | Q(
+        internal_due_on__isnull=True,
+        legal_due_on__gt=today,
+        legal_due_on__lte=today + timedelta(days=7),
+    )
+    if due == "today":
+        queue = queue.filter(due_today)
+    elif due == "next_7_days":
+        queue = queue.filter(due_next_seven_days)
+    elif overdue == "1":
+        queue = queue.filter(
+            Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
+        )
+    overdue_count = (
+        queue.filter(
+            Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
+        )
+        .exclude(
+            work_status__in=[
+                OperationalActivity.WorkStatus.COMPLETED,
+                OperationalActivity.WorkStatus.WAIVED,
+            ]
+        )
+        .count()
+    )
+    page = Paginator(
+        queue.order_by(
+            Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True), "-created_at", "pk"
+        ),
+        30,
+    ).get_page(request.GET.get("page"))
+    page_items = list(page.object_list)
+    for item in page_items:
+        item.is_overdue = activity_is_overdue(item, today=today)
+    context.update(
+        {
+            "page_title": ("Atividades do escritório" if is_administrator else "Minhas atividades"),
+            "activities": page_items,
+            "activities_page": page,
+            "overdue_count": overdue_count,
+            "activity_areas": ActivityTemplate.Area.choices,
+            "activity_statuses": OperationalActivity.WorkStatus.choices,
+            "selected_area": area,
+            "selected_status": status,
+            "selected_freshness": freshness,
+            "selected_due": due,
+            "selected_overdue": overdue,
+            "activity_freshnesses": OperationalActivity.Freshness.choices,
+            "selected_company": company_id,
+            "activity_assignees": activity_assignees,
+            "selected_assignee": selected_assignee,
+            "selected_unassigned": selected_unassigned,
+            "selected_competence": selected_competence,
+            "invalid_competence": invalid_competence,
+            "is_activity_administrator": is_administrator,
+        }
+    )
+    return render(request, "hub/activities.html", context)
+
+
+def _activity_in_scope_or_404(
+    *, context: dict[str, object], activity_id: uuid.UUID
+) -> tuple[OperationalActivity, Membership]:
+    if is_nfse_only_subscription(context):
+        raise Http404
+    membership = context["membership"]
+    if not isinstance(membership, Membership):
+        raise Http404
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    activity = get_object_or_404(
+        OperationalActivity.objects.select_related(
+            "company",
+            "assigned_to",
+            "source_fiscal_guide",
+            "source_dctfweb_document",
+            "source_parcelamento_operation",
+        ),
+        pk=activity_id,
+        organization=context["office"],
+        company__in=scope,
+    )
+    return activity, membership
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+    context = workspace_context(request)
+    activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
+    can_assign = (
+        bool(context["support_can_mutate"])
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+        and can_operate_activity(membership=membership, activity=activity)
+        and activity.work_status not in {"completed", "waived"}
+    )
+    assignment_form = OperationalAssignmentForm(
+        request.POST if request.method == "POST" else None,
+        initial={
+            "assignee": str(activity.assigned_to_id or ""),
+            "expected_assignee": str(activity.assigned_to_id or ""),
+        },
+        prefix="assignment",
+    )
+    choices = [("", "Sem responsável")]
+    if can_assign:
+        for candidate in (
+            Membership.objects.filter(
+                organization_id=membership.organization_id,
+                is_active=True,
+                user__is_active=True,
+            )
+            .select_related("user", "organization")
+            .order_by("user__email")
+        ):
+            if can_operate_activity(membership=candidate, activity=activity):
+                choices.append(
+                    (str(candidate.user_id), candidate.user.full_name or candidate.user.email)
+                )
+    assignment_form.fields["assignee"].choices = choices  # type: ignore[attr-defined]
+    if request.method == "POST":
+        if not can_assign or request.POST.get("action") != "assign":
+            return refuse(request, "Este perfil ou estado não permite redistribuir a atividade.")
+        if assignment_form.is_valid():
+            try:
+                assign_activity(
+                    activity=activity,
+                    membership=membership,
+                    actor=cast(User, request.user),
+                    assignee_id=assignment_form.cleaned_data["assignee"],
+                    expected_assignee_id=assignment_form.cleaned_data["expected_assignee"],
+                    reason=assignment_form.cleaned_data["reason"],
+                    request=request,
+                )
+            except (PermissionDenied, ValidationError) as exc:
+                assignment_form.add_error(None, str(exc))
+            else:
+                messages.success(
+                    request, "Responsável atualizado e alteração registrada no histórico."
+                )
+                return redirect("hub:activity-detail", activity_id=activity.pk)
+    origin = None
+    if activity.source_nfse_review_id:
+        review = activity.source_nfse_review
+        if (
+            review
+            and review.organization_id == activity.organization_id
+            and review.document.company_id == activity.company_id
+        ):
+            origin = {
+                "label": "Abrir revisão de NFS-e",
+                "status": review.get_status_display(),
+                "url": reverse("hub:review-detail", args=[review.pk]),
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.NFSE),
+            }
+    elif activity.source_triage_item_id:
+        item = activity.source_triage_item
+        if (
+            item
+            and item.organization_id == activity.organization_id
+            and item.company_id == activity.company_id
+        ):
+            origin = {
+                "label": "Abrir arquivo na Triagem",
+                "status": item.get_status_display(),
+                "url": reverse("hub:triage-item", args=[item.pk]),
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.TRIAGE),
+            }
+    elif activity.source_reconciliation_file_id:
+        source = activity.source_reconciliation_file
+        if (
+            source
+            and source.organization_id == activity.organization_id
+            and source.company_id == activity.company_id
+        ):
+            run = source.runs.order_by("-created_at", "-pk").first()
+            origin = {
+                "label": "Abrir arquivo na Conciliação",
+                "status": run.get_state_display() if run else "Aguardando processamento",
+                "url": f"{reverse('hub:reconciliation')}?source_file={source.pk}#processamentos",
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.RECONCILIATION)
+                and ProductModule.objects.filter(
+                    organization_id=activity.organization_id,
+                    code=ProductModule.Code.RECONCILIATION,
+                    enabled=True,
+                ).exists(),
+            }
+    elif activity.source_fiscal_guide_id:
+        guide = activity.source_fiscal_guide
+        if (
+            guide
+            and guide.organization_id == activity.organization_id
+            and guide.company_id == activity.company_id
+        ):
+            origin = {
+                "label": "Abrir guia",
+                "status": guide.get_status_display(),
+                "url": reverse("hub:guide-detail", args=[guide.pk]),
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.GUIDES),
+            }
+    elif activity.source_dctfweb_document_id:
+        document = activity.source_dctfweb_document
+        if (
+            document
+            and document.organization_id == activity.organization_id
+            and document.company_id == activity.company_id
+        ):
+            origin = {
+                "label": "Abrir central de Guias e DCTFWeb",
+                "status": document.get_status_display(),
+                "url": reverse("hub:guides"),
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.GUIDES),
+            }
+    elif activity.source_parcelamento_operation_id:
+        operation = activity.source_parcelamento_operation
+        if (
+            operation
+            and operation.organization_id == activity.organization_id
+            and operation.company_id == activity.company_id
+        ):
+            origin = {
+                "label": "Abrir parcelamentos",
+                "status": operation.get_status_display(),
+                "url": reverse("hub:parcelamentos"),
+                "allowed": collaborator_can_use_module(context, ProductModule.Code.INTEGRA),
+            }
+    dte_summary_url = None
+    dte_source = activity.source_dte_message
+    if (
+        dte_source
+        and dte_source.organization_id == activity.organization_id
+        and dte_source.company_id == activity.company_id
+        and collaborator_can_use_module(context, ProductModule.Code.INTEGRA)
+        and ProductModule.objects.filter(
+            organization_id=activity.organization_id,
+            code=ProductModule.Code.INTEGRA,
+            enabled=True,
+        ).exists()
+    ):
+        dte_summary_url = reverse("hub:dte-message-detail", args=[dte_source.pk])
+    payroll_review_url = None
+    payroll_source = activity.source_payroll_snapshot
+    if payroll_source is not None and (
+        payroll_source.organization_id == activity.organization_id
+        and payroll_source.company_id == activity.company_id
+        and payroll_source.competence == activity.competence
+    ):
+        payroll_review_url = (
+            f"{reverse('hub:company-detail', args=[activity.company_id])}"
+            f"?payroll_competence={payroll_source.competence.isoformat()}#folha"
+        )
+    context.update(
+        {
+            "page_title": activity.title,
+            "payroll_review_url": payroll_review_url,
+            "dte_summary_url": dte_summary_url,
+            "activity_origin": origin,
+            "assignment_form": assignment_form,
+            "can_assign_activity": can_assign,
+            "activity": activity,
+            "activity_evidence": activity.evidence_items.select_related("recorded_by").all(),
+            "activity_source_observations": activity.source_observations.select_related(
+                "data_source"
+            ).all(),
+            "activity_events": activity.events.select_related("actor").all(),
+            "evidence_form": OperationalEvidenceForm(),
+            "block_form": OperationalBlockForm(),
+            "can_manage_activity": bool(context["support_can_mutate"])
+            and can_operate_activity(
+                membership=membership,
+                activity=activity,
+            ),
+            "is_overdue": activity_is_overdue(activity),
+        }
+    )
+    return render(
+        request,
+        "hub/activity_detail.html",
+        context,
+        status=400 if assignment_form.errors else 200,
+    )
+
+
+@office_required
+@require_http_methods(["POST"])
+def activity_add_evidence(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+    context = workspace_context(request)
+    activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
+    if not context["support_can_mutate"]:
+        return refuse(request, "Esta sessão permite somente consulta.")
+    form = OperationalEvidenceForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Revise a evidência antes de registrar.")
+        return redirect("hub:activity-detail", activity_id=activity.id)
+    try:
+        add_human_evidence(
+            activity=activity,
+            membership=membership,
+            actor=cast(User, request.user),
+            request=request,
+            reference=form.cleaned_data["reference"],
+            summary=form.cleaned_data["summary"],
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Evidência registrada na trilha da atividade.")
+    return redirect("hub:activity-detail", activity_id=activity.id)
+
+
+@office_required
+@require_http_methods(["POST"])
+def activity_block(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+    context = workspace_context(request)
+    activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
+    if not context["support_can_mutate"]:
+        return refuse(request, "Esta sessão permite somente consulta.")
+    form = OperationalBlockForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Descreva o impedimento para registrá-lo.")
+        return redirect("hub:activity-detail", activity_id=activity.id)
+    try:
+        block_activity(
+            activity=activity,
+            membership=membership,
+            actor=cast(User, request.user),
+            request=request,
+            reason=form.cleaned_data["reason"],
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Impedimento registrado e visível para o escritório.")
+    return redirect("hub:activity-detail", activity_id=activity.id)
+
+
+@office_required
+@require_http_methods(["POST"])
+def activity_complete(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+    context = workspace_context(request)
+    activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
+    if not context["support_can_mutate"]:
+        return refuse(request, "Esta sessão permite somente consulta.")
+    try:
+        complete_activity(
+            activity=activity,
+            membership=membership,
+            actor=cast(User, request.user),
+            request=request,
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, str(exc))
+    else:
+        messages.success(request, "Atividade concluída com a evidência registrada.")
+    return redirect("hub:activity-detail", activity_id=activity.id)
 
 
 @office_required
@@ -1502,6 +2541,17 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             and isinstance(membership, Membership)
             and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
         )
+    )
+    can_export_nfse = bool(
+        context["support_can_mutate"]
+        and isinstance(membership, Membership)
+        and membership.role
+        in {
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.OPERATOR,
+        }
     )
 
     if request.method == "POST":
@@ -1528,6 +2578,103 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 folder=folder,
                 classifications=_demo_nfse_download_classifications(request, selected_documents),
             )
+
+        if action == "export_dominio_xml":
+            if is_demo_visitor(request, office) or not can_export_nfse:
+                return refuse(request, "Seu perfil não pode gerar o pacote NFS-e desta carteira.")
+            selected_query = (
+                NfseDocument.objects.filter(
+                    organization=office, company__in=scope, integration_artifacts__isnull=False
+                )
+                .select_related("company")
+                .distinct()
+            )
+            if request.POST.get("all_classified") == "1":
+                selected_documents = list(selected_query.order_by("-issued_at", "-captured_at"))
+            else:
+                document_ids = list(dict.fromkeys(request.POST.getlist("documents")))
+                selected_documents = list(selected_query.filter(id__in=document_ids))
+            if not selected_documents:
+                messages.error(request, "Selecione ao menos uma NFS-e classificada para exportar.")
+                return redirect(reverse("hub:nfse-center"))
+            try:
+                export = create_nfse_export(
+                    organization=office,
+                    documents=selected_documents,
+                    actor=cast(User, request.user),
+                )
+            except ValueError as exc:
+                messages.error(request, str(exc))
+            else:
+                record_event(
+                    action="hub.nfse.export_created",
+                    actor=request.user,
+                    organization=office,
+                    target=export,
+                    request=request,
+                    metadata={
+                        "document_count": export.document_count,
+                        "hash": export.content_hash[:12],
+                    },
+                )
+                messages.success(
+                    request,
+                    (
+                        f"Pacote gerado com {export.document_count} NFS-e "
+                        f"e hash {export.content_hash[:12]}."
+                    ),
+                )
+            return redirect(reverse("hub:nfse-center") + "?view=exports")
+
+        if action == "add_accumulator_rule":
+            if is_demo_visitor(request, office) or not can_export_nfse:
+                return refuse(request, "Seu perfil n?o pode cadastrar acumuladores nesta carteira.")
+            company_id = request.POST.get("company_id")
+            company = (
+                scope.filter(id=company_id).filter(active=True).first() if company_id else None
+            )
+            accumulator = request.POST.get("accumulator_code", "").strip()
+            name = request.POST.get("name", "").strip()
+            if company is None or not accumulator or len(accumulator) > 80 or len(name) > 160:
+                messages.error(
+                    request, "Informe empresa e um acumulador valido de ate 80 caracteres."
+                )
+            elif AccumulatorRule.objects.filter(
+                organization=office, company=company, accumulator_code=accumulator, active=True
+            ).exists():
+                messages.info(request, "Esse acumulador j? est? ativo para a empresa selecionada.")
+            else:
+                rule = AccumulatorRule.objects.create(
+                    organization=office,
+                    company=company,
+                    name=name or f"Acumulador inclu?do em {timezone.localdate():%d/%m/%Y}",
+                    accumulator_code=accumulator,
+                    priority=100,
+                    match={},
+                )
+                AccumulatorHistoryEntry.objects.create(
+                    organization=office,
+                    company=company,
+                    accumulator_code=accumulator,
+                    name=rule.name,
+                    source=AccumulatorHistoryEntry.Source.MANUAL,
+                    source_reference=str(rule.id),
+                    occurred_at=timezone.now(),
+                    created_by=cast(User, request.user),
+                    metadata={"rule_id": str(rule.id)},
+                )
+                record_event(
+                    action="hub.nfse.accumulator_rule_created",
+                    actor=request.user,
+                    organization=office,
+                    target=rule,
+                    request=request,
+                    metadata={"company_id": str(company.id), "has_accumulator": True},
+                )
+                messages.success(
+                    request, "Acumulador incluido para uso nas proximas classificacoes."
+                )
+            return redirect(reverse("hub:nfse-center") + "?view=catalog")
 
         if not can_manage_sync:
             return refuse(request, "Somente dono ou administrador configura a coleta NFS-e.")
@@ -1813,10 +2960,76 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         if len(sync_rows) >= 100:
             break
 
+    catalog_entries = list(
+        AccumulatorCatalogEntry.objects.filter(organization=office, company__in=scope)
+        .select_related("company", "data_source", "source_batch")
+        .order_by("-source_snapshot_at", "company__name", "accumulator_code")
+    )
+    history_entries = list(
+        AccumulatorHistoryEntry.objects.filter(organization=office, company__in=scope)
+        .select_related("company", "created_by")
+        .order_by("-occurred_at", "-created_at")
+    )
+    source_labels = dict(AccumulatorHistoryEntry.Source.choices)
+    history_rows: list[dict[str, object]] = [
+        {
+            "company": entry.company,
+            "accumulator_code": entry.accumulator_code,
+            "name": entry.name,
+            "occurred_at": entry.occurred_at,
+            "source_label": source_labels[entry.source],
+            "state_label": "Registro historico",
+            "state_class": (
+                "success" if entry.source == AccumulatorHistoryEntry.Source.BACKUP else "muted"
+            ),
+            "detail": (
+                entry.metadata.get("source_batch_id", "")
+                if isinstance(entry.metadata, dict)
+                else ""
+            ),
+        }
+        for entry in history_entries
+    ]
+    represented_backup_references = {
+        entry.source_reference
+        for entry in history_entries
+        if entry.source == AccumulatorHistoryEntry.Source.BACKUP
+    }
+    for entry in catalog_entries:
+        if str(entry.id) in represented_backup_references:
+            continue
+        history_rows.append(
+            {
+                "company": entry.company,
+                "accumulator_code": entry.accumulator_code,
+                "name": entry.name,
+                "occurred_at": entry.source_snapshot_at,
+                "source_label": "Fotografia do Dominio Web",
+                "state_label": "Ativo na fotografia" if entry.active else "Inativo na fotografia",
+                "state_class": "success" if entry.active else "muted",
+                "detail": entry.source_batch.original_filename,
+            }
+        )
+    history_rows.sort(key=lambda row: cast(datetime, row["occurred_at"]), reverse=True)
+    catalog_page = Paginator(history_rows, 100).get_page(request.GET.get("catalog_page"))
+    catalog_query_params = request.GET.copy()
+    catalog_query_params.pop("catalog_page", None)
+    requested_nfse_view = request.GET.get("view")
+    nfse_view = (
+        requested_nfse_view
+        if requested_nfse_view in {"collection", "catalog", "exports"}
+        else "notes"
+    )
+    exports_page = Paginator(
+        NfseExport.objects.filter(organization=office).order_by("-created_at"), 100
+    ).get_page(request.GET.get("exports_page"))
+    exports_query_params = request.GET.copy()
+    exports_query_params.pop("exports_page", None)
+
     context.update(
         {
             "page_title": "NFS-e",
-            "nfse_view": "collection" if request.GET.get("view") == "collection" else "notes",
+            "nfse_view": nfse_view,
             "document_rows": document_rows,
             "document_page": document_page,
             "document_querystring": document_query_params.urlencode(),
@@ -1860,6 +3073,12 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 .count(),
             },
             "nfse_sync_rows": sync_rows,
+            "nfse_exports": exports_page,
+            "exports_querystring": exports_query_params.urlencode(),
+            "can_export_nfse": can_export_nfse,
+            "accumulator_catalog_page": catalog_page,
+            "accumulator_catalog_querystring": catalog_query_params.urlencode(),
+            "catalog_companies": scope.filter(active=True).order_by("name"),
             "nfse_sync_enabled": settings.NFSE_ADN_SYNC_ENABLED or office.is_demo,
             "nfse_sync_environment": settings.NFSE_ADN_ENVIRONMENT,
             "nfse_sync_environment_label": (
@@ -1877,6 +3096,86 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         }
     )
     return render(request, "hub/nfse_center.html", context)
+
+
+def _nfse_export_context(
+    request: HttpRequest, export_id: str
+) -> tuple[dict[str, object], NfseExport, list[NfseDocument]]:
+    context = workspace_context(request)
+    if not collaborator_can_use_module(context, ProductModule.Code.NFSE):
+        raise Http404
+    office = context["office"]
+    assert isinstance(office, Organization)
+    export = get_object_or_404(NfseExport, id=export_id, organization=office)
+    document_ids = [
+        item.get("document_id")
+        for item in export.snapshot.get("documents", [])
+        if isinstance(item, dict) and isinstance(item.get("document_id"), str)
+    ]
+    if len(document_ids) != export.document_count:
+        raise Http404
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    documents = list(
+        NfseDocument.objects.filter(
+            organization=office, company__in=scope, id__in=document_ids
+        ).select_related("company")
+    )
+    if len(documents) != len(document_ids):
+        raise Http404
+    return context, export, documents
+
+
+@office_required
+@require_http_methods(["POST"])
+def download_nfse_export(request: HttpRequest, export_id: str) -> HttpResponseBase:
+    context, export, _documents = _nfse_export_context(request, export_id)
+    office = cast(Organization, context["office"])
+    content_name = export.content.name if export.content else ""
+    if not content_name or not export.content.storage.exists(content_name):
+        messages.error(
+            request,
+            "O arquivo deste pacote nao esta disponivel. Gere outro pacote antes de baixar.",
+        )
+        return redirect(reverse("hub:nfse-center") + "?view=exports")
+    with transaction.atomic():
+        export = NfseExport.objects.select_for_update().get(id=export.id)
+        if export.state == NfseExport.State.READY:
+            export.state = NfseExport.State.DOWNLOADED
+            export.downloaded_at = timezone.now()
+            export.downloaded_by = cast(User, request.user)
+            export.save(update_fields=["state", "downloaded_at", "downloaded_by", "updated_at"])
+            record_event(
+                action="hub.nfse.export_downloaded",
+                actor=request.user,
+                organization=office,
+                target=export,
+                request=request,
+                metadata={
+                    "document_count": export.document_count,
+                    "hash": export.content_hash[:12],
+                },
+            )
+    response = FileResponse(
+        export.content.open("rb"),
+        as_attachment=True,
+        filename=PurePath(export.content.name or "pacote-nfse.zip").name,
+        content_type="application/zip",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@office_required
+@require_http_methods(["POST"])
+def confirm_nfse_export_import(request: HttpRequest, export_id: str) -> HttpResponse:
+    # Resolve the package first, so a caller never learns whether an out-of-scope ID exists.
+    _nfse_export_context(request, export_id)
+    return refuse(
+        request,
+        "A importacao esta bloqueada ate o layout e o retorno da rotina Dominio serem homologados.",
+        kind="unavailable",
+    )
 
 
 def _demo_nfse_download_classifications(
@@ -1979,11 +3278,7 @@ def _module_page_context(
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    if (
-        module.code == ProductModule.Code.AI
-        and not copilot_is_available()
-        and not office.is_demo
-    ):
+    if module.code == ProductModule.Code.AI and not copilot_is_available() and not office.is_demo:
         return context, HttpResponse(status=404)
     if not collaborator_can_use_module(context, module.code):
         return context, refuse(request, f"Seu acesso n\u00e3o inclui {module.label}.")
@@ -1997,6 +3292,11 @@ def _module_page_context(
             {**context, "page_title": module.label, "module": module},
             status=403,
         )
+    membership = context.get("membership")
+    if module.code in {ProductModule.Code.GUIDES, ProductModule.Code.INTEGRA} and isinstance(
+        membership, Membership
+    ):
+        context["companies"] = company_queryset_for_module(membership, module.code)
     if module.code == ProductModule.Code.INTEGRA:
         # The platform is the sole Serpro contractor.  A tenant never configures
         # credentials, certificate, endpoint, or a duplicate connector record.
@@ -2177,7 +3477,7 @@ def guides(request: HttpRequest) -> HttpResponse:
     ).select_related("company")
     guide_search = request.GET.get("q", "").strip()[:100]
     guide_status = request.GET.get("status", "pending")
-    if guide_status not in {"all", "pending", "issued", "failed"}:
+    if guide_status not in {"all", "pending", "issued", "failed", "unknown"}:
         guide_status = "pending"
     guide_due = request.GET.get("due", "all")
     if guide_due not in {"all", "7", "overdue"}:
@@ -2205,7 +3505,12 @@ def guides(request: HttpRequest) -> HttpResponse:
             demo_guides = [
                 guide
                 for guide in demo_guides
-                if guide.status in [FiscalGuide.Status.READY, FiscalGuide.Status.FAILED]
+                if guide.status
+                in [
+                    FiscalGuide.Status.READY,
+                    FiscalGuide.Status.FAILED,
+                    FiscalGuide.Status.UNKNOWN,
+                ]
             ]
         elif guide_status != "all":
             demo_guides = [guide for guide in demo_guides if guide.status == guide_status]
@@ -2214,7 +3519,11 @@ def guides(request: HttpRequest) -> HttpResponse:
     else:
         if guide_status == "pending":
             filtered_guides = filtered_guides.filter(
-                status__in=[FiscalGuide.Status.READY, FiscalGuide.Status.FAILED]
+                status__in=[
+                    FiscalGuide.Status.READY,
+                    FiscalGuide.Status.FAILED,
+                    FiscalGuide.Status.UNKNOWN,
+                ]
             )
         elif guide_status != "all":
             filtered_guides = filtered_guides.filter(status=guide_status)
@@ -2222,14 +3531,22 @@ def guides(request: HttpRequest) -> HttpResponse:
         guide_items = filtered_guides.order_by("due_on", "company__name")
     guide_page = Paginator(guide_items, 100).get_page(request.GET.get("page"))
     guide_list = list(guide_page.object_list)
-    guide_querystring = urlencode(
-        {"q": guide_search, "status": guide_status, "due": guide_due}
+    guide_querystring = urlencode({"q": guide_search, "status": guide_status, "due": guide_due})
+    uncertain_periods = set(
+        guide_query.filter(status=FiscalGuide.Status.UNKNOWN).values_list(
+            "company_id",
+            "kind",
+            "competence",
+        )
     )
     for guide in guide_list:
         guide.amount_brl = Decimal(guide.amount_cents) / 100
         guide.usage_quote = None
         guide.usage_error = ""
         if guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
+            if (guide.company_id, guide.kind, guide.competence) in uncertain_periods:
+                guide.usage_error = "Há emissão anterior a confirmar nesta competência."
+                continue
             if office.is_demo:
                 guide.usage_quote = SimpleNamespace(
                     total_tokens=0,
@@ -2246,9 +3563,7 @@ def guides(request: HttpRequest) -> HttpResponse:
                 except BillingError as exc:
                     guide.usage_error = str(exc)
         if guide.usage_quote is not None:
-            guide.usage_overage_brl = (
-                Decimal(guide.usage_quote.additional_overage_cents) / 100
-            )
+            guide.usage_overage_brl = Decimal(guide.usage_quote.additional_overage_cents) / 100
     source_connector = (
         IntelligenceConnector.objects.filter(organization=office)
         .order_by("-last_sync_at", "-created_at")
@@ -2372,7 +3687,11 @@ def guides(request: HttpRequest) -> HttpResponse:
             dominio_calculation_error = (
                 "O Domínio não respondeu à consulta de apurações. Tente novamente."
             )
-    pending_statuses = [FiscalGuide.Status.READY, FiscalGuide.Status.FAILED]
+    pending_statuses = [
+        FiscalGuide.Status.READY,
+        FiscalGuide.Status.FAILED,
+        FiscalGuide.Status.UNKNOWN,
+    ]
     guide_data_available = guide_query.exists()
     if is_demo_visitor(request, office):
         metric_guides = list(guide_query)
@@ -2664,6 +3983,7 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                     FiscalGuide.Status.ISSUING,
                     FiscalGuide.Status.ISSUED,
                     FiscalGuide.Status.FAILED,
+                    FiscalGuide.Status.UNKNOWN,
                 ],
             ).first(),
         }
@@ -2874,10 +4194,36 @@ def guide_detail(request: HttpRequest, guide_id: str) -> HttpResponse:
         company__in=context["companies"],
     )
     _demo_guide_for_view(request, guide)
+    history_page = Paginator(
+        guide.attempt_events.filter(organization=office)
+        .defer("provider_payload")
+        .order_by("-attempt", "-observed_at", "-created_at", "-pk"),
+        20,
+    ).get_page(request.GET.get("history_page"))
+    requester_ids = []
+    for event in history_page:
+        with suppress(ValueError, AttributeError):
+            requester_ids.append(uuid.UUID(event.requested_by_reference))
+    requester_names = {
+        str(member.user_id): member.user.full_name or member.user.email
+        for member in Membership.objects.filter(
+            organization=office,
+            user_id__in=requester_ids,
+        ).select_related("user")
+    }
+    history_rows = [
+        {"event": event, "requester": requester_names.get(event.requested_by_reference, "")}
+        for event in history_page
+    ]
+    history_query = request.GET.copy()
+    history_query.pop("history_page", None)
     context.update(
         {
             "page_title": "Resultado da guia",
             "guide": guide,
+            "guide_history_page": history_page,
+            "guide_history_rows": history_rows,
+            "guide_history_query": history_query.urlencode(),
             "guide_amount_brl": Decimal(guide.amount_cents) / 100,
         }
     )
@@ -2981,6 +4327,51 @@ def guide_pdf(request: HttpRequest, guide_id: str) -> HttpResponse:
 
 
 @office_required
+@require_http_methods(["GET"])
+def guide_attempt_pdf(request: HttpRequest, guide_id: str, event_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.GUIDES))
+    if blocked:
+        raise Http404
+    office = cast(Organization, context["office"])
+    if office.is_demo:
+        raise Http404
+    guide = get_object_or_404(
+        FiscalGuide,
+        pk=guide_id,
+        organization=office,
+        company__in=context["companies"],
+    )
+    event = get_object_or_404(
+        guide.attempt_events,
+        pk=event_id,
+        organization=office,
+        status=FiscalGuide.Status.ISSUED,
+    )
+    if event.request_snapshot.get("simulated"):
+        raise Http404
+    try:
+        payload = json.loads(event.provider_payload)
+        if not isinstance(payload, dict):
+            raise ValueError
+        document = extract_pdf(payload)
+    except (TypeError, ValueError, IntegraError) as exc:
+        raise Http404 from exc
+    response = HttpResponse(document, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="guia-tentativa-{event.attempt}.pdf"'
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    record_event(
+        action="hub.guide.attempt_pdf_downloaded",
+        actor=cast(User, request.user),
+        organization=office,
+        target=event,
+        request=request,
+        metadata={"guide_id": str(guide.pk), "attempt": event.attempt},
+    )
+    return response
+
+
+@office_required
 @require_http_methods(["POST"])
 def issue_guide(request: HttpRequest, guide_id: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.GUIDES))
@@ -3058,8 +4449,13 @@ def integra(request: HttpRequest) -> HttpResponse:
                 )
                 if is_demo_visitor(request, office)
                 else DteRun.objects.filter(
-                    organization=office, status=DteRun.Status.AWAITING_APPROVAL
-                ).count()
+                    organization=office,
+                    status=DteRun.Status.AWAITING_APPROVAL,
+                    items__organization=office,
+                    items__company_id__in=allowed_company_ids,
+                )
+                .distinct()
+                .count()
             ),
             "integra_guides_enabled": ProductModule.objects.filter(
                 organization=office, code=ProductModule.Code.GUIDES, enabled=True
@@ -3157,6 +4553,10 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                         {"consulted_at": timezone.now().isoformat()},
                     )
                 messages.success(request, f"{len(selected)} consulta(s) fictícia(s) concluída(s).")
+                if len(selected) == 1:
+                    return redirect(
+                        f"{reverse('hub:parcelamentos')}?company={selected[0].id}#company-heading"
+                    )
                 return redirect("hub:parcelamentos")
             if not _can_prepare_dte(context):
                 return refuse(
@@ -3194,6 +4594,10 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"{len(selected)} consulta(s) adicionada(s) à fila.")
+                if len(selected) == 1:
+                    return redirect(
+                        f"{reverse('hub:parcelamentos')}?company={selected[0].id}#company-heading"
+                    )
             return redirect("hub:parcelamentos")
 
         if company is None:
@@ -3237,6 +4641,29 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                     request,
                     "DAS fictício emitido para a demonstração, sem chamada externa ou cobrança.",
                 )
+        elif not visitor and action == "release_uncertain":
+            if not _can_prepare_dte(context):
+                return refuse(
+                    request, "Seu perfil pode consultar resultados, mas não autorizar consumo."
+                )
+            try:
+                operation_uuid = uuid.UUID(request.POST.get("operation", ""))
+                release_uncertain_parcelamento_operation(
+                    organization=office,
+                    company=company,
+                    operation_id=operation_uuid,
+                    actor=request.user,
+                    request=request,
+                )
+            except (ParcelamentoTransitionError, ValueError) as exc:
+                messages.error(
+                    request,
+                    str(exc)
+                    if isinstance(exc, ParcelamentoTransitionError)
+                    else "Operação inválida.",
+                )
+            else:
+                messages.success(request, "Conferência registrada. Nova tentativa liberada.")
         elif not visitor and action in {"consult", "detail", "installments", "issue"}:
             if not _can_prepare_dte(context):
                 return refuse(
@@ -3285,22 +4712,11 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 messages.success(request, "Operação autorizada e adicionada à fila da central.")
         else:
             messages.error(request, "Ação de parcelamento inválida.")
-        return redirect(f"{reverse('hub:parcelamentos')}?company={company.id}")
+        return redirect(f"{reverse('hub:parcelamentos')}?company={company.id}#company-heading")
 
-    agreements: list[Any] = []
     consultation = (
         get_progress(request, "parcelamento_consultations", company.id) if company else {}
     )
-    if visitor and company and consultation:
-        agreements = _demo_parcelamentos(company)
-        guide_progress = get_section(request, "parcelamento_guides")
-        for demo_agreement in agreements:
-            for installment in demo_agreement.installments:
-                key = f"{company.id}:{demo_agreement.number}:{installment.competence_key}"
-                guide_state = guide_progress.get(key, {})
-                installment.issued = bool(guide_state)
-                installment.protocol = str(guide_state.get("protocol", ""))
-
     operations = ParcelamentoOperation.objects.filter(organization=office).select_related(
         "company", "token_usage_event"
     )
@@ -3310,52 +4726,147 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     ):
         latest_by_company.setdefault(str(operation.company_id), operation)
 
+    current_year_month = int(timezone.localdate().strftime("%Y%m"))
+
+    def installment_timing(year_month: int) -> str:
+        if year_month < current_year_month:
+            return "overdue"
+        return "current" if year_month == current_year_month else "future"
+
+    agreements: list[Any] = []
     available_installments: list[Any] = []
+    orders_result: ParcelamentoOperation | None = None
+    if visitor and company and consultation:
+        guide_progress = get_section(request, "parcelamento_guides")
+        for demo_agreement in _demo_parcelamentos(company):
+            payments = []
+            for installment in demo_agreement.installments:
+                key = f"{company.id}:{demo_agreement.number}:{installment.competence_key}"
+                guide_state = guide_progress.get(key, {})
+                if installment.paid:
+                    payments.append(
+                        SimpleNamespace(
+                            label=installment.competence,
+                            due_on=installment.due_on,
+                            paid_on=installment.due_on - timedelta(days=2),
+                            amount=installment.amount_brl,
+                        )
+                    )
+                    continue
+                available_installments.append(
+                    SimpleNamespace(
+                        agreement=demo_agreement.number,
+                        competence=installment.competence_key,
+                        competence_label=installment.competence,
+                        due_on=installment.due_on,
+                        amount=installment.amount_brl,
+                        timing=(
+                            "overdue"
+                            if installment.due_on < timezone.localdate()
+                            else installment_timing(int(installment.competence_key))
+                        ),
+                        operation=None,
+                        demo_protocol=str(guide_state.get("protocol", "")),
+                    )
+                )
+            agreements.append(
+                SimpleNamespace(
+                    number=demo_agreement.number,
+                    status=demo_agreement.status,
+                    requested_on=demo_agreement.consolidated_on,
+                    status_on=demo_agreement.consolidated_on,
+                    detail_operation=None,
+                    detail=SimpleNamespace(
+                        consolidated=demo_agreement.consolidated_brl,
+                        installments_count=60,
+                        basic_installment=demo_agreement.installments[0].amount_brl,
+                        payments=payments,
+                    ),
+                )
+            )
+
     if not visitor and company:
-        order_result = operations.filter(
-            company=company,
-            kind=ParcelamentoOperation.Kind.ORDERS,
-            status=ParcelamentoOperation.Status.AVAILABLE,
-        ).first()
-        if order_result and order_result.provider_payload:
+        orders_result = (
+            operations.filter(
+                company=company,
+                kind=ParcelamentoOperation.Kind.ORDERS,
+                status__in=[
+                    ParcelamentoOperation.Status.AVAILABLE,
+                    ParcelamentoOperation.Status.EMPTY,
+                ],
+            )
+            .order_by("-requested_at")
+            .first()
+        )
+        if (
+            orders_result
+            and orders_result.status == ParcelamentoOperation.Status.AVAILABLE
+            and orders_result.provider_payload
+        ):
             try:
-                summaries = pedidos(json.loads(order_result.provider_payload))
+                summaries = pedidos(json.loads(orders_result.provider_payload))
             except (ValueError, TypeError, json.JSONDecodeError):
                 summaries = []
-            agreements = [
-                SimpleNamespace(
-                    number=item.numero,
-                    status=item.situacao,
-                    requested_on=item.data_pedido,
-                    status_on=item.data_situacao,
-                    detail_operation=operations.filter(
+            for item in summaries:
+                detail_operation = (
+                    operations.filter(
                         company=company,
                         kind=ParcelamentoOperation.Kind.DETAIL,
                         agreement_number=item.numero,
-                    ).first(),
+                    )
+                    .order_by("-requested_at")
+                    .first()
                 )
-                for item in summaries
-            ]
-            for parsed_agreement in agreements:
-                parsed_agreement.detail = None
-                detail_operation = parsed_agreement.detail_operation
+                detail = None
                 if (
                     detail_operation
                     and detail_operation.status == ParcelamentoOperation.Status.AVAILABLE
                     and detail_operation.provider_payload
                 ):
                     try:
-                        parsed_agreement.detail = detalhe(
+                        parsed = detalhe(
                             json.loads(detail_operation.provider_payload),
-                            numero_esperado=parsed_agreement.number,
+                            numero_esperado=item.numero,
                         )
                     except (ValueError, TypeError, json.JSONDecodeError):
-                        parsed_agreement.detail = None
-        installment_result = operations.filter(
-            company=company,
-            kind=ParcelamentoOperation.Kind.INSTALLMENTS,
-            status=ParcelamentoOperation.Status.AVAILABLE,
-        ).first()
+                        parsed = None
+                    if parsed is not None:
+                        detail = SimpleNamespace(
+                            consolidated=parsed.valor_consolidado,
+                            installments_count=parsed.quantidade_parcelas,
+                            basic_installment=parsed.parcela_basica,
+                            payments=[
+                                SimpleNamespace(
+                                    label=(
+                                        f"{str(payment.mes_parcela)[4:]}/"
+                                        f"{str(payment.mes_parcela)[:4]}"
+                                    ),
+                                    due_on=payment.vencimento,
+                                    paid_on=payment.arrecadado_em,
+                                    amount=payment.valor_pago,
+                                )
+                                for payment in parsed.pagamentos
+                            ],
+                        )
+                agreements.append(
+                    SimpleNamespace(
+                        number=item.numero,
+                        status=item.situacao,
+                        requested_on=item.data_pedido,
+                        status_on=item.data_situacao,
+                        detail_operation=detail_operation,
+                        detail=detail,
+                    )
+                )
+        installment_result = (
+            operations.filter(
+                company=company,
+                kind=ParcelamentoOperation.Kind.INSTALLMENTS,
+                status=ParcelamentoOperation.Status.AVAILABLE,
+            )
+            .order_by("-requested_at")
+            .first()
+        )
         if installment_result and installment_result.provider_payload:
             try:
                 parsed_installments = parcelas_disponiveis(
@@ -3363,30 +4874,58 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 )
             except (ValueError, TypeError, json.JSONDecodeError):
                 parsed_installments = []
-            for item in parsed_installments:
-                das_operation = operations.filter(
-                    company=company,
-                    kind=ParcelamentoOperation.Kind.DAS,
-                    competence=str(item.ano_mes),
-                ).first()
+            for parcel in parsed_installments:
+                das_operation = (
+                    operations.filter(
+                        company=company,
+                        kind=ParcelamentoOperation.Kind.DAS,
+                        competence=str(parcel.ano_mes),
+                    )
+                    .order_by("-requested_at")
+                    .first()
+                )
                 available_installments.append(
                     SimpleNamespace(
-                        competence=str(item.ano_mes),
-                        competence_label=f"{str(item.ano_mes)[4:]}/{str(item.ano_mes)[:4]}",
-                        amount=item.valor,
+                        agreement=None,
+                        competence=str(parcel.ano_mes),
+                        competence_label=f"{str(parcel.ano_mes)[4:]}/{str(parcel.ano_mes)[:4]}",
+                        due_on=None,
+                        amount=parcel.valor,
+                        timing=installment_timing(parcel.ano_mes),
                         operation=das_operation,
+                        demo_protocol="",
                     )
                 )
+        available_installments.sort(key=lambda parcel: parcel.competence)
 
-    portfolio_page = Paginator(companies.order_by("name"), 30).get_page(
-        request.GET.get("page")
+    pending_statuses = {
+        ParcelamentoOperation.Status.QUEUED,
+        ParcelamentoOperation.Status.FETCHING,
+    }
+    company_pending = bool(
+        company
+        and not visitor
+        and operations.filter(company=company, status__in=pending_statuses).exists()
     )
+    company_orders_operation = (
+        latest_by_company.get(str(company.id)) if company and not visitor else None
+    )
+
+    portfolio_page = Paginator(companies.order_by("name"), 30).get_page(request.GET.get("page"))
     portfolio = list(portfolio_page.object_list)
     portfolio_querystring = urlencode({"search": search}) if search else ""
     for portfolio_company in portfolio:
-        portfolio_company.parcelamento_operation = latest_by_company.get(
-            str(portfolio_company.id)
-        )
+        portfolio_company.parcelamento_operation = latest_by_company.get(str(portfolio_company.id))
+        portfolio_company.parcelamento_demo_consulted_at = None
+        if visitor:
+            demo_state = get_progress(request, "parcelamento_consultations", portfolio_company.id)
+            if demo_state.get("consulted_at"):
+                portfolio_company.parcelamento_demo_consulted_at = parse_datetime(
+                    str(demo_state["consulted_at"])
+                )
+    portfolio_pending = any(
+        getattr(item.parcelamento_operation, "status", "") in pending_statuses for item in portfolio
+    )
     orders_quote: TokenQuote | SimpleNamespace | None = None
     quote_error = ""
     if visitor:
@@ -3421,9 +4960,9 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     parcelamento_operations_page: object | None = None
     parcelamento_operations_querystring = ""
     if company:
-        parcelamento_operations_page = Paginator(
-            operations.filter(company=company), 20
-        ).get_page(request.GET.get("operation_page"))
+        parcelamento_operations_page = Paginator(operations.filter(company=company), 20).get_page(
+            request.GET.get("operation_page")
+        )
         parcelamento_operations = list(parcelamento_operations_page.object_list)
         operation_query_params = request.GET.copy()
         operation_query_params.pop("operation_page", None)
@@ -3454,6 +4993,10 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 ParcelamentoOperation.Kind.INSTALLMENTS
             ),
             "parcelamento_das_quote": operation_quotes.get(ParcelamentoOperation.Kind.DAS),
+            "parcelamento_consult_quote": operation_quotes.get(ParcelamentoOperation.Kind.ORDERS),
+            "parcelamento_orders_result": orders_result,
+            "parcelamento_company_orders_operation": company_orders_operation,
+            "parcelamento_pending": company_pending or portfolio_pending,
             "can_authorize": _can_prepare_dte(context),
         }
     )
@@ -3608,9 +5151,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
     dte_history_context: dict[str, object]
     if visitor:
         pending_runs, demo_items = _demo_dte_runs_for_view(request, companies, office)
-        demo_dte_items_page = Paginator(demo_items, 30).get_page(
-            request.GET.get("history_page")
-        )
+        demo_dte_items_page = Paginator(demo_items, 30).get_page(request.GET.get("history_page"))
         dte_history_context = {
             "dte_items": list(demo_dte_items_page.object_list),
             "dte_items_page": demo_dte_items_page,
@@ -3881,13 +5422,24 @@ def prepare_dte_continuation(request: HttpRequest, item_id: str) -> HttpResponse
     return redirect("hub:dte-center")
 
 
-def _can_acknowledge_dte(context: dict[str, object]) -> bool:
+def _can_acknowledge_dte(context: dict[str, object], *, company: ClientCompany) -> bool:
     if not context["support_can_mutate"] or context["support_session"] is not None:
         return False
     membership = context["membership"]
-    return isinstance(membership, Membership) and (
-        membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
-        or (membership.role == Membership.Role.OPERATOR and membership.can_acknowledge_dte)
+    if not isinstance(membership, Membership):
+        return False
+    if membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
+        return True
+    if membership.role == Membership.Role.OPERATOR and membership.can_acknowledge_dte:
+        return True
+    return (
+        membership.role not in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+        and CompanyAccessGrant.objects.filter(
+            organization=membership.organization,
+            membership=membership,
+            company=company,
+            is_active=True,
+        ).exists()
     )
 
 
@@ -3935,7 +5487,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
     else:
         access = DteMessageAccess.objects.filter(organization=office, message=message).first()
     current_state = getattr(message, "current_state", None)
-    can_acknowledge = _can_acknowledge_dte(context)
+    can_acknowledge = _can_acknowledge_dte(context, company=message.company)
     try:
         detail_quote: TokenQuote | UsageQuote | SimpleNamespace | None = (
             SimpleNamespace(total_tokens=0, additional_overage_tokens=0, additional_overage_cents=0)
@@ -3971,11 +5523,15 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
             messages.error(
                 request, "Confirme que esta abertura pode registrar ciência e iniciar prazo."
             )
-        elif detail_quote is not None and detail_quote.additional_overage_cents and (
-            not can_authorize_overage
-            or request.POST.get("confirm_overage") != "on"
-            or request.POST.get("approved_overage_cents")
-            != str(detail_quote.additional_overage_cents)
+        elif (
+            detail_quote is not None
+            and detail_quote.additional_overage_cents
+            and (
+                not can_authorize_overage
+                or request.POST.get("confirm_overage") != "on"
+                or request.POST.get("approved_overage_cents")
+                != str(detail_quote.additional_overage_cents)
+            )
         ):
             messages.error(
                 request,
@@ -4066,6 +5622,11 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
     context.update(
         {
             "page_title": "Mensagem da Caixa Postal",
+            "dte_analysis_activity": OperationalActivity.objects.filter(
+                organization=office,
+                company=message.company,
+                source_dte_message=message,
+            ).first(),
             "dte_message": message,
             "dte_access": access,
             "dte_body_text": content,
@@ -4196,7 +5757,7 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
 
 
 @office_required
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def reconciliation(request: HttpRequest) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
@@ -4204,30 +5765,6 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     visitor = is_demo_visitor(request, office)
-    form = OfxImportForm(request.POST or None, request.FILES or None, companies=companies)
-    if request.method == "POST" and not context["support_can_mutate"]:
-        return refuse(request, "Esta sessão é somente leitura.")
-    if request.method == "POST" and form.is_valid():
-        upload = form.cleaned_data["ofx_file"]
-        if upload.size > 5_000_000:
-            form.add_error("ofx_file", "O arquivo deve ter no máximo 5 MB.")
-        else:
-            try:
-                _statement, created = import_ofx(
-                    organization=office,
-                    company=form.cleaned_data["company"],
-                    filename=upload.name,
-                    content=upload.read(),
-                    actor=request.user,
-                    request=request,
-                )
-            except OfxParseError as exc:
-                form.add_error("ofx_file", str(exc))
-            else:
-                messages.success(
-                    request, "OFX importado." if created else "Este OFX já foi importado."
-                )
-                return redirect("hub:reconciliation")
     match_search = request.GET.get("q", "").strip()[:100]
     match_status = request.GET.get("status", "attention")
     if match_status not in {"attention", "all", *ReconciliationMatch.Status.values}:
@@ -4247,6 +5784,7 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
     matches: list[Any]
     if visitor:
         matches = _demo_reconciliation_matches(request, list(companies.filter(active=True)[:2]))
+        all_demo_matches = list(matches)
         if match_search:
             needle = match_search.casefold()
             matches = [
@@ -4279,7 +5817,6 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         context.update(
             {
                 "page_title": "Conciliação OFX x Domínio",
-                "form": form,
                 "imports": imports,
                 "matches": matches,
                 "match_page": match_page,
@@ -4287,7 +5824,6 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                 "match_total": match_total,
                 "match_search": match_search,
                 "match_status": match_status,
-                "can_import_ofx": False,
                 "can_confirm_matches": True,
                 "reconciliation_demo": True,
                 "reconciliation_stats": {
@@ -4297,16 +5833,18 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                             ReconciliationMatch.Status.AMBIGUOUS,
                             ReconciliationMatch.Status.UNMATCHED,
                         }
-                        for match in matches
+                        for match in all_demo_matches
                     ),
                     "ambiguous": sum(
-                        match.status == ReconciliationMatch.Status.AMBIGUOUS for match in matches
+                        match.status == ReconciliationMatch.Status.AMBIGUOUS
+                        for match in all_demo_matches
                     ),
                     "matched": sum(
-                        match.status == ReconciliationMatch.Status.MATCHED for match in matches
+                        match.status == ReconciliationMatch.Status.MATCHED
+                        for match in all_demo_matches
                     ),
                 },
-                "open_import_modal": False,
+                "can_upload_reconciliation": False,
                 **_reconciliation_v2_context(office, companies, request),
             }
         )
@@ -4385,9 +5923,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             if match.accounting_entry_id
             else "Sem correspondência"
         )
-        match.display_reference = (
-            getattr(match.display_entry, "source_id", "")
-            or getattr(match.display_entry, "external_key", "")
+        match.display_reference = getattr(match.display_entry, "source_id", "") or getattr(
+            match.display_entry, "external_key", ""
         )
         match.candidates = candidates_by_key.get(
             (
@@ -4413,7 +5950,6 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
     context.update(
         {
             "page_title": "Conciliação OFX x Domínio",
-            "form": form,
             "imports": BankStatementImport.objects.filter(
                 organization=office, company__in=companies
             ).select_related("company")[:20],
@@ -4423,11 +5959,12 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             "match_total": match_total,
             "match_search": match_search,
             "match_status": match_status,
-            "can_import_ofx": _can_prepare_dte(context),
             "can_confirm_matches": _can_prepare_dte(context),
             "reconciliation_demo": False,
             "reconciliation_stats": reconciliation_stats,
-            "open_import_modal": request.method == "POST" and bool(form.errors),
+            "can_upload_reconciliation": bool(
+                context["support_can_mutate"] and _can_manage_reconciliation(context)
+            ),
             **_reconciliation_v2_context(office, companies, request),
         }
     )
@@ -4579,6 +6116,19 @@ def _can_manage_reconciliation(context: dict[str, object]) -> bool:
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
+    selected_source = None
+    source_id = request.GET.get("source_file", "") if request else ""
+    if source_id:
+        try:
+            source_uuid = uuid.UUID(source_id)
+        except ValueError:
+            raise Http404("Arquivo indisponível.") from None
+        selected_source = get_object_or_404(
+            ReconciliationSourceFile.objects.select_related("company"),
+            pk=source_uuid,
+            organization=office,
+            company__in=companies,
+        )
     history_query_params = request.GET.copy() if request else None
     processing_query_params = history_query_params.copy() if history_query_params else None
     export_query_params = history_query_params.copy() if history_query_params else None
@@ -4589,12 +6139,11 @@ def _reconciliation_v2_context(
         export_query_params.pop("export_page", None)
     if movement_query_params is not None:
         movement_query_params.pop("movement_page", None)
+    runs = ReconciliationRun.objects.filter(organization=office, source_file__company__in=companies)
+    if selected_source:
+        runs = runs.filter(source_file=selected_source)
     runs_page = Paginator(
-        ReconciliationRun.objects.filter(
-            organization=office, source_file__company__in=companies
-        )
-        .select_related("source_file", "source_file__company")
-        .order_by("-created_at"),
+        runs.select_related("source_file", "source_file__company").order_by("-created_at"),
         20,
     ).get_page(request.GET.get("processing_page") if request else 1)
     all_movements = NormalizedMovement.objects.filter(organization=office, company__in=companies)
@@ -4605,6 +6154,8 @@ def _reconciliation_v2_context(
         "query": (request.GET.get("movement_q", "").strip() if request else "")[:100],
     }
     filtered_movements = all_movements
+    if selected_source:
+        filtered_movements = filtered_movements.filter(source_file=selected_source)
     if movement_filters["company"]:
         try:
             movement_company_id = uuid.UUID(movement_filters["company"])
@@ -4666,10 +6217,18 @@ def _reconciliation_v2_context(
         )["total"]
         return Decimal(total) / 100
 
-    dominio_entries = DominioBankEntry.objects.filter(
-        organization=office, company__in=companies
-    )
+    dominio_entries = DominioBankEntry.objects.filter(organization=office, company__in=companies)
     return {
+        "selected_reconciliation_source": selected_source,
+        "selected_reconciliation_activity": (
+            OperationalActivity.objects.filter(
+                source_reconciliation_file=selected_source,
+                organization=office,
+                company=selected_source.company,
+            ).first()
+            if selected_source
+            else None
+        ),
         "upload_form": ReconciliationUploadForm(companies=companies),
         "reconciliation_runs": list(runs_page.object_list),
         "reconciliation_runs_page": runs_page,
@@ -4852,12 +6411,15 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             setup_model = setup_models.get(setup_kind)
             if setup_model is None:
                 return refuse(request, "Item de configuração inválido.", kind="unavailable")
-            configured = cast(Any, get_object_or_404(
-                setup_model,
-                id=request.POST.get("setup_id"),
-                organization=office,
-                company=selected_company,
-            ))
+            configured = cast(
+                Any,
+                get_object_or_404(
+                    setup_model,
+                    id=request.POST.get("setup_id"),
+                    organization=office,
+                    company=selected_company,
+                ),
+            )
             configured.active = not configured.active
             configured.save(update_fields=["active", "updated_at"])
             record_event(
@@ -5036,6 +6598,8 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
     if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
         return refuse(request, "Seu perfil pode consultar, mas não importar arquivos.")
     office = cast(Organization, context["office"])
+    if is_demo_visitor(request, office):
+        return refuse(request, "A demonstração não recebe arquivos.")
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     form = ReconciliationUploadForm(request.POST, request.FILES, companies=companies)
     files = request.FILES.getlist("files")
@@ -5048,7 +6612,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                 "page_title": "Conciliação OFX x Domínio",
                 "upload_form": form,
                 "upload_error": True,
-                "form": OfxImportForm(companies=companies),
+                "can_upload_reconciliation": True,
                 "imports": BankStatementImport.objects.filter(
                     organization=office, company__in=companies
                 ).select_related("company")[:20],
@@ -5056,7 +6620,6 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                 "match_total": 0,
                 "match_search": "",
                 "match_status": "attention",
-                "can_import_ofx": False,
                 "can_confirm_matches": False,
                 "reconciliation_demo": False,
                 "reconciliation_stats": {"attention": 0, "ambiguous": 0, "matched": 0},
@@ -5071,7 +6634,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                 "page_title": "Conciliação OFX x Domínio",
                 "upload_form": form,
                 "upload_error": True,
-                "form": OfxImportForm(companies=companies),
+                "can_upload_reconciliation": True,
                 "imports": BankStatementImport.objects.filter(
                     organization=office, company__in=companies
                 ).select_related("company")[:20],
@@ -5079,7 +6642,6 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                 "match_total": 0,
                 "match_search": "",
                 "match_status": "attention",
-                "can_import_ofx": False,
                 "can_confirm_matches": False,
                 "reconciliation_demo": False,
                 "reconciliation_stats": {"attention": 0, "ambiguous": 0, "matched": 0},
@@ -5095,17 +6657,34 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
             failures.append("Arquivo sem nome não pode ser processado.")
             continue
         try:
-            _source, run, was_created = create_source_file(
+            content = upload.read()
+            source, run, was_created = create_source_file(
                 organization=office,
                 company=form.cleaned_data["company"],
                 filename=filename,
-                content=upload.read(),
+                content=content,
                 origin=form.cleaned_data["origin"],
                 actor=request.user,
                 physical_batch=form.cleaned_data.get("physical_batch", ""),
                 financial_account=form.cleaned_data.get("financial_account"),
                 request=request,
             )
+            if (
+                source.kind == ReconciliationSourceFile.Kind.OFX
+                and source.origin == ReconciliationSourceFile.Origin.BANK_STATEMENT
+            ):
+                # The OFX x Domínio queue reads bank statements; one upload feeds both
+                # views. import_ofx is idempotent by content hash, and a parse failure
+                # here is already reported by the processing run of the same file.
+                with suppress(OfxParseError):
+                    import_ofx(
+                        organization=office,
+                        company=form.cleaned_data["company"],
+                        filename=filename,
+                        content=content,
+                        actor=request.user,
+                        request=request,
+                    )
             if was_created:
                 from apps.hub.tasks import process_reconciliation_run
 
@@ -5123,6 +6702,8 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
         )
     for failure in failures:
         messages.error(request, failure)
+    if created or duplicates:
+        return redirect(f"{reverse('hub:reconciliation')}#processamentos")
     return redirect("hub:reconciliation")
 
 
@@ -5227,6 +6808,7 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
         )
     else:
         return refuse(request, "Ação de processamento inválida.", kind="unavailable")
+    sync_reconciliation_activity(run.source_file_id)
     return redirect("hub:reconciliation")
 
 
@@ -5444,6 +7026,7 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
             invalidated_entries = movement.journal_entries.filter(
                 state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
             ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
+            sync_reconciliation_activity(movement.source_file_id)
             record_event(
                 action=(
                     "hub.reconciliation.movements_ignored"
@@ -5523,6 +7106,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             invalidated_entries = movement.journal_entries.filter(
                 state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
             ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
+            sync_reconciliation_activity(movement.source_file_id)
             record_event(
                 action=(
                     "hub.reconciliation.movement_ignored"
@@ -5715,6 +7299,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 invalidated_entries = movement.journal_entries.filter(
                     state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
                 ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
+                sync_reconciliation_activity(movement.source_file_id)
                 record_event(
                     action="hub.reconciliation.movement_edited",
                     actor=request.user,
@@ -5754,6 +7339,25 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     ).get_page(request.GET.get("candidate_page"))
     candidate_entries = list(candidate_page.object_list)
     movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100  # type: ignore[attr-defined]
+    decision_params = request.GET.copy()
+    decision_params.pop("decision_page", None)
+    decision_page = Paginator(
+        ReconciliationDecision.objects.filter(
+            organization=office,
+            reconciliation__movement=movement,
+            reconciliation__organization=office,
+            reconciliation__entry__organization=office,
+            reconciliation__entry__company=movement.company,
+        )
+        .select_related("actor", "reconciliation__entry")
+        .order_by("-created_at", "-pk"),
+        20,
+    ).get_page(request.GET.get("decision_page"))
+    for decision in decision_page:
+        decision.amount_brl = Decimal(decision.amount_cents) / 100  # type: ignore[attr-defined]
+        decision.evidence_text = json.dumps(  # type: ignore[attr-defined]
+            decision.evidence, ensure_ascii=False, indent=2
+        )
     reconciliations = list(
         movement.reconciliations.filter(state=MovementReconciliation.State.CONFIRMED)
         .select_related("entry")
@@ -5830,6 +7434,8 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     context.update(
         {
             "page_title": "Revisar movimento",
+            "can_review_movement": bool(context["support_can_mutate"])
+            and _can_manage_reconciliation(context),
             "movement": movement,
             "movement_form": form,
             "journal_entry": movement.journal_entries.exclude(
@@ -5840,6 +7446,8 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "reconciliation_candidate_querystring": candidate_query_params.urlencode(),
             "reconciliation_candidate_total": candidate_page.paginator.count,
             "movement_reconciliations": reconciliations,
+            "reconciliation_decision_page": decision_page,
+            "reconciliation_decision_querystring": decision_params.urlencode(),
             "reconciliation_suggestions": suggestions,
             "reconciliation_suggestion_state": (
                 "unique" if len(suggestions) == 1 else "ambiguous" if suggestions else "none"
@@ -6027,6 +7635,86 @@ def reform(request: HttpRequest) -> HttpResponse:
     return render(request, "hub/reform.html", context)
 
 
+@office_required
+@require_http_methods(["GET", "POST"])
+def reform_analysis(request: HttpRequest, alert_id: uuid.UUID) -> HttpResponse:
+    from apps.hub.forms import ReformAnalysisForm
+    from apps.hub.reform_activities import request_reform_analysis
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.REFORM))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    membership = context["membership"]
+    if office.is_demo or is_nfse_only_subscription(context):
+        raise Http404
+    alert = get_object_or_404(ReformAlert, pk=alert_id)
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    can_request = (
+        isinstance(membership, Membership)
+        and membership.role not in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+        and bool(context["support_can_mutate"])
+    )
+    if isinstance(membership, Membership) and membership.role not in {
+        Membership.Role.OWNER,
+        Membership.Role.ADMIN,
+    }:
+        ids = [
+            grant.company_id
+            for grant in CompanyAccessGrant.objects.filter(
+                organization=office,
+                membership=membership,
+                is_active=True,
+            )
+            if ProductModule.Code.REFORM in grant.modules
+        ]
+        companies = companies.filter(pk__in=ids)
+    form = ReformAnalysisForm(request.POST if request.method == "POST" else None)
+    form.fields["company"].queryset = companies  # type: ignore[attr-defined]
+    if request.method == "POST":
+        if not can_request:
+            return refuse(request, "Este perfil permite apenas consulta do Radar.")
+        if form.is_valid():
+            assert isinstance(membership, Membership)
+            try:
+                activity = request_reform_analysis(
+                    alert_id=alert.pk,
+                    company_id=form.cleaned_data["company"].pk,
+                    membership=membership,
+                    actor=cast(User, request.user),
+                    reason=form.cleaned_data["reason"],
+                )
+            except (PermissionDenied, ValidationError) as exc:
+                form.add_error(None, str(exc))
+            else:
+                return redirect("hub:activity-detail", activity_id=activity.pk)
+    context.update(
+        {
+            "page_title": "Analisar publicação do Radar",
+            "radar_alert": alert,
+            "analysis_form": form,
+            "can_request_analysis": can_request,
+            "radar_source_url": alert.source_url
+            if (
+                urlparse(alert.source_url).scheme == "https"
+                and urlparse(alert.source_url).netloc == "www.gov.br"
+            )
+            else "",
+            "radar_activity_page": Paginator(
+                OperationalActivity.objects.filter(
+                    organization=office,
+                    company__in=companies,
+                    source_reform_alert=alert,
+                )
+                .select_related("company")
+                .order_by("company__name", "pk"),
+                20,
+            ).get_page(request.GET.get("page")),
+        }
+    )
+    return render(request, "hub/reform_analysis.html", context, status=400 if form.errors else 200)
+
+
 def _demo_reform_alerts() -> list[SimpleNamespace]:
     """Synthetic headlines linked only to official source landing pages."""
 
@@ -6183,9 +7871,7 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
         queue_total = len(visible)
         queue_quarantined = sum(item.status == TriageStatus.QUARANTINED for item in visible)
     else:
-        query_filtered_queue = (
-            queue.filter(status=selected_status) if selected_status else queue
-        )
+        query_filtered_queue = queue.filter(status=selected_status) if selected_status else queue
         if queue_search:
             query_filtered_queue = query_filtered_queue.filter(
                 Q(original_name__icontains=queue_search)
@@ -6755,8 +8441,7 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
     item = get_object_or_404(
         TriageItem.objects.select_related(
             "company", "document_type", "reviewed_by", "blob", "mailbox", "safety_scan"
-        )
-        .filter(item_scope),
+        ).filter(item_scope),
         organization=office,
         id=item_id,
     )
@@ -7503,19 +9188,37 @@ def _review_accumulator_codes(document: NfseDocument) -> list[str]:
     """Return only company-scoped codes that an operator may select for a review."""
 
     document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
-    configured_codes = AccumulatorRule.objects.filter(
-        organization=document.organization,
-        company=document.company,
-        active=True,
-    ).filter(
-        Q(valid_from__isnull=True) | Q(valid_from__lte=document_day),
-        Q(valid_until__isnull=True) | Q(valid_until__gte=document_day),
-    ).order_by("priority", "name").values_list("accumulator_code", flat=True)
-    observed_codes = AccumulatorObservation.objects.filter(
-        organization=document.organization,
-        company=document.company,
-    ).order_by("-last_used_at").values_list("accumulator_code", flat=True)
-    return list(dict.fromkeys([*configured_codes, *observed_codes]))
+    configured_codes = (
+        AccumulatorRule.objects.filter(
+            organization=document.organization,
+            company=document.company,
+            active=True,
+        )
+        .filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=document_day),
+            Q(valid_until__isnull=True) | Q(valid_until__gte=document_day),
+        )
+        .order_by("priority", "name")
+        .values_list("accumulator_code", flat=True)
+    )
+    observed_codes = (
+        AccumulatorObservation.objects.filter(
+            organization=document.organization,
+            company=document.company,
+        )
+        .order_by("-last_used_at")
+        .values_list("accumulator_code", flat=True)
+    )
+    catalog_codes = (
+        AccumulatorCatalogEntry.objects.filter(
+            organization=document.organization,
+            company=document.company,
+            active=True,
+        )
+        .order_by("-source_snapshot_at", "accumulator_code")
+        .values_list("accumulator_code", flat=True)
+    )
+    return list(dict.fromkeys([*configured_codes, *catalog_codes, *observed_codes]))
 
 
 @office_required
@@ -7547,6 +9250,7 @@ def review_original_xml(request: HttpRequest, case_id: str) -> HttpResponse:
 
 @office_required
 @require_http_methods(["POST"])
+@transaction.atomic
 def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
@@ -7566,7 +9270,7 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     ):
         return refuse(request, "Seu perfil pode consultar, mas não classificar documentos.")
     review = get_object_or_404(
-        ReviewCase,
+        ReviewCase.objects.select_for_update(),
         id=case_id,
         organization=office,
         document__company__in=scope,
@@ -7609,6 +9313,42 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     review.save(
         update_fields=["status", "resolved_accumulator", "resolved_by", "resolved_at", "updated_at"]
     )
+    observed_at = review.resolved_at or timezone.now()
+    observation, created = AccumulatorObservation.objects.get_or_create(
+        organization=office,
+        company=review.document.company,
+        accumulator_code=accumulator,
+        defaults={
+            "service_code": str(review.document.normalized_data.get("service_code", ""))[:60],
+            "counterparty_ref": str(review.document.normalized_data.get("counterparty_ref", ""))[
+                :80
+            ],
+            "last_used_at": observed_at,
+        },
+    )
+    if not created:
+        observation.frequency = F("frequency") + 1
+        observation.last_used_at = observed_at
+        observation.save(update_fields=["frequency", "last_used_at", "updated_at"])
+    AccumulatorHistoryEntry.objects.create(
+        organization=office,
+        company=review.document.company,
+        accumulator_code=accumulator,
+        source=AccumulatorHistoryEntry.Source.HUMAN_REVIEW,
+        source_reference=nfse_resolution_reference(review),
+        occurred_at=observed_at,
+        created_by=cast(User, request.user),
+        metadata={"review_id": str(review.id), "document_id": str(review.document_id)},
+    )
+    IntegrationArtifact.objects.create(
+        organization=office,
+        document=review.document,
+        accumulator_code=accumulator,
+        applied_rule="Decisão humana",
+        confidence=100,
+        evidence={"source": "human_review", "review_id": str(review.id)},
+        payload={"review_id": str(review.id), "resolved_at": review.resolved_at.isoformat()},
+    )
     record_event(
         action="hub.nfse.review_resolved",
         actor=request.user,
@@ -7617,8 +9357,100 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
         request=request,
         metadata={"has_accumulator": True},
     )
+    sync_nfse_review_activity(review.pk)
     messages.success(request, "Decisão registrada e preservada na auditoria.")
     return detail_redirect(request, "hub:review-detail", case_id=review.id)
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def dre_mapping_editor(request: HttpRequest) -> HttpResponse:
+    """Save complete DRE mappings as immutable office versions."""
+
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    membership = context["membership"]
+    can_manage = bool(
+        context["support_session"] is None
+        and isinstance(membership, Membership)
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+        and context["support_can_mutate"]
+    )
+    active_mapping = (
+        DreMappingSet.objects.filter(organization=office, is_active=True)
+        .prefetch_related("mappings")
+        .order_by("-version")
+        .first()
+    )
+    initial = (
+        [
+            {"account_code": row.account_code, "group": row.group, "sign": row.sign}
+            for row in active_mapping.mappings.all()
+        ]
+        if active_mapping is not None
+        else []
+    )
+    formset = DreMappingFormSet(request.POST or None, prefix="mapping", initial=initial)
+    if request.method == "POST":
+        if not can_manage:
+            return refuse(request, "Somente owners e administradores alteram o mapa DRE.")
+        if formset.is_valid():
+            rows = [
+                (
+                    str(form.cleaned_data["account_code"]),
+                    str(form.cleaned_data["group"]),
+                    int(form.cleaned_data["sign"]),
+                )
+                for form in formset.forms
+                if form.cleaned_data.get("account_code")
+            ]
+            with transaction.atomic():
+                Organization.objects.select_for_update().get(pk=office.id)
+                mappings = DreMappingSet.objects.select_for_update().filter(organization=office)
+                current_version = (
+                    mappings.order_by("-version").values_list("version", flat=True).first() or 0
+                )
+                next_version = current_version + 1
+                mappings.filter(is_active=True).update(is_active=False)
+                mapping_set = DreMappingSet.objects.create(
+                    organization=office,
+                    version=next_version,
+                    label=f"Configurado no CICA v{next_version}",
+                    is_active=True,
+                    created_by=cast(User, request.user),
+                )
+                DreAccountMapping.objects.bulk_create(
+                    [
+                        DreAccountMapping(
+                            mapping_set=mapping_set,
+                            account_code=code,
+                            group=group,
+                            sign=sign,
+                        )
+                        for code, group, sign in rows
+                    ]
+                )
+            record_event(
+                action="hub.dre_mapping.version_created",
+                actor=request.user,
+                organization=office,
+                target=mapping_set,
+                request=request,
+                metadata={"version": mapping_set.version, "mapping_count": len(rows)},
+            )
+            messages.success(request, f"Mapa DRE v{mapping_set.version} salvo e ativado.")
+            return redirect("hub:dre-mapping-editor")
+    versions = DreMappingSet.objects.filter(organization=office).order_by("-version")[:12]
+    context.update(
+        {
+            "page_title": "Mapa DRE",
+            "can_manage_dre_mapping": can_manage,
+            "active_dre_mapping": active_mapping,
+            "dre_mapping_formset": formset,
+            "dre_mapping_versions": versions,
+        }
+    )
+    return render(request, "hub/dre_mapping_editor.html", context)
 
 
 @office_required
@@ -7643,6 +9475,8 @@ def setup_center(request: HttpRequest) -> HttpResponse:
     if posted_source is not None:
         selected_source = posted_source
     source_form = DataSourceForm(request.POST or None, prefix="source")
+    profile, _ = OfficeProfile.objects.get_or_create(organization=office)
+    identity_form = OfficeIdentityForm(request.POST or None, instance=profile, prefix="office")
     import_form = UnifiedImportForm(
         request.POST or None,
         request.FILES or None,
@@ -7654,6 +9488,19 @@ def setup_center(request: HttpRequest) -> HttpResponse:
         if not can_manage:
             return refuse(request, "Somente owners e administradores alteram a configuração.")
         action = request.POST.get("action")
+        if action == "save-office" and identity_form.is_valid():
+            profile = identity_form.save(commit=False)
+            profile.cnpj_hash = identity_form.cnpj_hash
+            profile.save(update_fields=["legal_name", "cnpj", "cnpj_hash"])
+            record_event(
+                action="hub.office.identity_confirmed",
+                actor=request.user,
+                organization=office,
+                target=profile,
+                request=request,
+            )
+            messages.success(request, "Dados do escritório confirmados.")
+            return redirect(f"{reverse('hub:setup')}#office-heading")
         if action == "choose-source" and source_form.is_valid():
             kind = source_form.cleaned_data["kind"]
             labels = dict(DataSource.Kind.choices)
@@ -7668,6 +9515,44 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                 request=request,
                 metadata={"kind": kind},
             )
+            return redirect(f"{reverse('hub:setup')}?source={selected_source.id}")
+        if action == "reactivate-source":
+            selected_source = get_object_or_404(
+                DataSource,
+                id=request.POST.get("source_id"),
+                organization=office,
+                status=DataSource.Status.DISABLED,
+            )
+            if request.POST.get("confirm_reactivate") != "yes":
+                messages.error(request, "Confirme a reativação antes de alterar a fonte.")
+            else:
+                previous_status = selected_source.status
+                selected_source.status = DataSource.Status.NOT_CONFIGURED
+                selected_source.last_error_code = ""
+                selected_source.last_error_message = ""
+                selected_source.save(
+                    update_fields=[
+                        "status",
+                        "last_error_code",
+                        "last_error_message",
+                        "updated_at",
+                    ]
+                )
+                record_event(
+                    action="hub.data_source.reactivated",
+                    actor=request.user,
+                    organization=office,
+                    target=selected_source,
+                    request=request,
+                    metadata={
+                        "previous_status": previous_status,
+                        "current_status": selected_source.status,
+                    },
+                )
+                messages.success(
+                    request,
+                    "Fonte reativada. Execute uma nova sincronização antes de confiar nos dados.",
+                )
             return redirect(f"{reverse('hub:setup')}?source={selected_source.id}")
         if action == "upload" and import_form.is_valid():
             selected_source = get_object_or_404(
@@ -7749,14 +9634,26 @@ def setup_center(request: HttpRequest) -> HttpResponse:
         else None
     )
     import_history_query_params = request.GET.copy()
+    payroll_preview_page = None
+    payroll_preview = []
+    if can_manage and preview and preview.kind == ImportBatch.Kind.PAYROLL_TOTALS:
+        payroll_preview_page = Paginator(json.loads(preview.encrypted_payload), 20).get_page(
+            request.GET.get("preview_page")
+        )
+        payroll_preview = payroll_preview_rows(
+            batch=preview,
+            rows=list(payroll_preview_page.object_list),
+            first_line=payroll_preview_page.start_index() + 1,
+        )
+    preview_params = request.GET.copy()
+    preview_params.pop("preview_page", None)
     import_history_query_params.pop("imports_page", None)
     recent_imports_page = Paginator(
-        ImportBatch.objects.filter(organization=office).select_related("data_source").order_by(
-            "-created_at"
-        ),
+        ImportBatch.objects.filter(organization=office)
+        .select_related("data_source")
+        .order_by("-created_at"),
         20,
     ).get_page(request.GET.get("imports_page"))
-    profile = OfficeProfile.objects.filter(organization=office).first()
     try:
         mfa_complete = cast(User, request.user).totp_device.is_confirmed
     except (AttributeError, ObjectDoesNotExist):
@@ -7765,35 +9662,128 @@ def setup_center(request: HttpRequest) -> HttpResponse:
         {
             "page_title": "Primeiros passos",
             "source_form": source_form,
+            "identity_form": identity_form,
             "import_form": import_form,
             "data_sources": sources,
             "selected_source": selected_source,
             "preview_batch": preview,
+            "payroll_preview_page": payroll_preview_page,
+            "payroll_preview_rows": payroll_preview,
+            "payroll_preview_querystring": preview_params.urlencode(),
             "recent_imports": list(recent_imports_page.object_list),
             "recent_imports_page": recent_imports_page,
             "recent_imports_querystring": import_history_query_params.urlencode(),
             "recent_imports_total": recent_imports_page.paginator.count,
             "can_manage_setup": can_manage,
             "agent_installer_url": getattr(settings, "EDGE_AGENT_INSTALLER_URL", ""),
-            "setup_steps": [
-                {"label": "Confirmar escritório", "done": bool(profile and profile.cnpj_hash)},
-                {"label": "Escolher fonte de dados", "done": sources.exists()},
+            "setup_diagnostics": [
                 {
-                    "label": "Cadastrar ou importar empresas",
-                    "done": ClientCompany.objects.filter(organization=office, active=True).exists(),
-                },
-                {
-                    "label": "Configurar os módulos",
-                    "done": ProductModule.objects.filter(
-                        organization=office, enabled=True
+                    "label": "Operação independente",
+                    "detail": "Empresas e atividades podem operar sem ERP conectado.",
+                    "ready": ClientCompany.objects.filter(
+                        organization=office, active=True
                     ).exists(),
                 },
                 {
-                    "label": "Convidar sua equipe",
-                    "done": Membership.objects.filter(organization=office, is_active=True).count()
+                    "label": "Modelos de atividades",
+                    "detail": (
+                        "Defina responsáveis, prazos e evidências antes de gerar competências."
+                    ),
+                    "ready": ActivityTemplate.objects.filter(
+                        organization=office, active=True
+                    ).exists(),
+                },
+                {
+                    "label": "Fonte de dados",
+                    "detail": (
+                        "Uma fonte pronta permite atualizar estados observados; fonte pendente "
+                        "não bloqueia o restante."
+                    ),
+                    "ready": sources.filter(status=DataSource.Status.READY).exists(),
+                },
+                {
+                    "label": "Equipe atribuída",
+                    "detail": (
+                        "Convide colaboradores e atribua empresas para limitar a carteira "
+                        "operacional."
+                    ),
+                    "ready": Membership.objects.filter(organization=office, is_active=True).count()
                     > 1,
                 },
-                {"label": "Ativar MFA", "done": mfa_complete},
+                {
+                    "label": "Limites contratados",
+                    "detail": (
+                        "Configure franquias e tetos aprovados antes de ativar consumo cobrado."
+                    ),
+                    "ready": UsageAllowance.objects.filter(organization=office).exists(),
+                },
+            ],
+            "setup_steps": [
+                {
+                    "label": "Confirmar escritório",
+                    "detail": "Revise as condições cadastradas antes de liberar o consumo.",
+                    "done": bool(profile and profile.cnpj_hash),
+                    "action_label": "Ver condições",
+                    "url": f"{reverse('hub:settings')}#meu-plano",
+                },
+                {
+                    "label": "Escolher fonte de dados",
+                    "detail": "Domínio, Siescon quando homologado, ou operação independente.",
+                    "done": sources.exists(),
+                    "action_label": "Escolher fonte",
+                    "url": f"{reverse('hub:setup')}#source-heading",
+                },
+                {
+                    "label": "Cadastrar ou importar empresas",
+                    "detail": "Crie a carteira manualmente ou importe uma prévia conferível.",
+                    "done": ClientCompany.objects.filter(organization=office, active=True).exists(),
+                    "action_label": "Abrir empresas",
+                    "url": reverse("hub:companies"),
+                },
+                {
+                    "label": "Aplicar modelos de atividades",
+                    "detail": (
+                        "Defina prazos, responsáveis e evidências antes de gerar competências."
+                    ),
+                    "done": ActivityTemplate.objects.filter(
+                        organization=office, active=True
+                    ).exists(),
+                    "action_label": "Configurar modelos",
+                    "url": reverse("hub:activity-models"),
+                },
+                {
+                    "label": "Configurar os serviços desejados",
+                    "detail": (
+                        "Confira módulos e termos; nada é ativado ou cobrado automaticamente."
+                    ),
+                    "done": ProductModule.objects.filter(
+                        organization=office, enabled=True
+                    ).exists(),
+                    "action_label": "Ver módulos",
+                    "url": f"{reverse('hub:settings')}#meu-plano",
+                },
+                {
+                    "label": "Convidar sua equipe",
+                    "detail": "Atribua empresas e módulos no convite de cada pessoa.",
+                    "done": Membership.objects.filter(organization=office, is_active=True).count()
+                    > 1,
+                    "action_label": "Gerenciar equipe",
+                    "url": reverse("hub:team"),
+                },
+                {
+                    "label": "Definir franquias e limites",
+                    "detail": "Revise franquias, saldo e teto mensal aprovados para o escritório.",
+                    "done": UsageAllowance.objects.filter(organization=office).exists(),
+                    "action_label": "Ver consumo",
+                    "url": f"{reverse('hub:settings')}#consumo",
+                },
+                {
+                    "label": "Ativar MFA",
+                    "detail": "Proteja esta conta com o aplicativo autenticador.",
+                    "done": mfa_complete,
+                    "action_label": "Configurar MFA",
+                    "url": f"{reverse('accounts:mfa-setup')}?next={reverse('hub:setup')}",
+                },
             ],
         }
     )

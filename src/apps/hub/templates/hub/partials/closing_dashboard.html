@@ -1,0 +1,54 @@
+<section class="workspace-panel closing-panel" aria-labelledby="closing-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">FECHAMENTOS DA CARTEIRA</p><h2 id="closing-heading">Requisitos por empresa e área</h2>
+      <p>Inclui todos os responsáveis das empresas autorizadas. A cobertura depende dos modelos cadastrados; pagamento é acompanhado separadamente.</p></div>
+  </header>
+  <form method="get" class="closing-filter">
+    <input type="hidden" name="view" value="{{ dashboard_view }}">
+    <input type="hidden" name="page" value="{{ agenda_page.number }}">
+    <input type="hidden" name="filter" value="{{ selected_agenda_filter }}">
+    <label for="closing-month">Competência</label>
+    <input type="month" id="closing-month" name="closing_month" value="{{ closing_month }}" required autocomplete="off"{% if closing_error %} aria-invalid="true" aria-describedby="closing-error"{% endif %}>
+    <button type="submit" class="button">Consultar competência</button>
+    {% if closing_error %}<p id="closing-error" role="alert">{{ closing_error }}</p>{% endif %}
+  </form>
+  <p class="closing-scope">{{ closing_competence|date:'F/Y' }} · {{ closing_page.paginator.count }} empresa{{ closing_page.paginator.count|pluralize }} autorizada{{ closing_page.paginator.count|pluralize }}</p>
+  {% for row in closing_configured_rows %}
+    <details class="closing-row">
+      <summary><span><strong>{{ row.company.name }}</strong> · {{ row.area_label }}</span><span>{{ row.label }} · {{ row.assessment.completed_activities }}/{{ row.assessment.total_activities }}</span></summary>
+      <div class="closing-content">
+        {% for item in row.items %}
+        <article>
+          <h3><a href="{% url 'hub:activity-detail' item.activity.pk %}">{{ item.activity.title }}</a></h3>
+          <p>{{ item.activity.get_work_status_display }} · {% if item.activity.assigned_to %}{{ item.activity.assigned_to.full_name|default:item.activity.assigned_to.email }}{% else %}Sem responsável{% endif %} · Prazo: {{ item.activity.internal_due_on|default:item.activity.legal_due_on|date:'d/m/Y'|default:'Sem prazo' }}</p>
+          <p>{{ item.activity.get_freshness_display }} · {{ item.evidence_count }} evidência{{ item.evidence_count|pluralize }} no histórico</p>
+          {% if item.activity.blocked_reason %}<p>Impedimento: {{ item.activity.blocked_reason }}</p>{% endif %}
+          {% if item.activity.waived_reason %}<p>Dispensa: {{ item.activity.waived_reason }}</p>{% endif %}
+          {% if item.missing %}<ul>{% for reason in item.missing %}<li>{{ reason }}</li>{% endfor %}</ul>{% endif %}
+        </article>
+        {% endfor %}
+        <a class="text-action" href="{% url 'hub:company-detail' row.company.pk %}">Abrir ficha de {{ row.company.name }}</a>
+      </div>
+    </details>
+  {% empty %}
+    {% if not closing_unconfigured_rows %}<div class="table-empty-state"><p>Nenhuma empresa autorizada. Solicite ao administrador a atribuição da carteira.</p></div>{% endif %}
+  {% endfor %}
+  {% if closing_unconfigured_rows %}
+    <details class="closing-row closing-coverage-gap">
+      <summary><span><strong>Cobertura a configurar</strong></span><span>{{ closing_unconfigured_rows|length }} {% if closing_unconfigured_rows|length == 1 %}combinação{% else %}combinações{% endif %} de empresa e área</span></summary>
+      <div class="closing-content">
+        <p>Essas áreas ainda não têm requisitos cadastrados para a competência. Isso não comprova dispensa nem conclusão.</p>
+        <ul class="closing-gap-list">
+          {% for row in closing_unconfigured_rows %}<li><a href="{% url 'hub:company-detail' row.company.pk %}">{{ row.company.name }}</a> · {{ row.area_label }}</li>{% endfor %}
+        </ul>
+      </div>
+    </details>
+  {% endif %}
+  {% if closing_page.has_other_pages %}
+  <nav class="agenda-navigation" aria-label="Páginas dos fechamentos">
+    {% if closing_page.has_previous %}<a href="?view={{ dashboard_view }}&amp;filter={{ selected_agenda_filter }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.previous_page_number }}&amp;page={{ agenda_page.number }}#closing-heading">Empresas anteriores</a>{% endif %}
+    <span>Página {{ closing_page.number }} de {{ closing_page.paginator.num_pages }}</span>
+    {% if closing_page.has_next %}<a href="?view={{ dashboard_view }}&amp;filter={{ selected_agenda_filter }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.next_page_number }}&amp;page={{ agenda_page.number }}#closing-heading">Próximas empresas</a>{% endif %}
+  </nav>
+  {% endif %}
+</section>

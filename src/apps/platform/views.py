@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from decimal import Decimal
+from typing import cast
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -153,7 +154,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "label": "Integração Domínio com falha",
             "note": "Chamados abertos de sincronização.",
-            "count": len(list(ctx["dominio_tickets"])),
+            "count": len(cast("list[DominioSupportTicket]", ctx["dominio_tickets"])),
             "url": "#chamados-dominio",
         },
         {
@@ -317,10 +318,14 @@ def _move_lifecycle(request: HttpRequest, user: User, lifecycle: TenantLifecycle
                     .order_by("-created_at", "-id")
                     .first()
                 )
-                if contract is None or contract.status in {
-                    TenantContract.Status.DRAFT,
-                    TenantContract.Status.ARCHIVED,
-                }:
+                if not lifecycle.organization.is_internal_test_partner and (
+                    contract is None
+                    or contract.status
+                    in {
+                        TenantContract.Status.DRAFT,
+                        TenantContract.Status.ARCHIVED,
+                    }
+                ):
                     messages.error(
                         request,
                         "Defina um contrato vigente antes de liberar o acesso operacional.",
@@ -365,6 +370,68 @@ def _move_lifecycle(request: HttpRequest, user: User, lifecycle: TenantLifecycle
     messages.success(request, f"Escritório em {lifecycle.get_state_display().lower()}.")
 
 
+def _save_internal_test_partner(
+    request: HttpRequest, user: User, organization: Organization
+) -> None:
+    """Configure a non-commercial operating state for a real test partner."""
+
+    enabled = request.POST.get("internal_test_partner") == "on"
+    if not enabled and request.POST.get("confirm_internal_test_partner") != "on":
+        messages.error(request, "Confirme o encerramento do acesso interno.")
+        return
+    with transaction.atomic():
+        organization = Organization.objects.select_for_update().get(pk=organization.pk)
+        lifecycle, _ = TenantLifecycle.objects.select_for_update().get_or_create(
+            organization=organization
+        )
+        previous_partner = organization.is_internal_test_partner
+        previous_state = lifecycle.state
+        if enabled:
+            if lifecycle.state == TenantLifecycle.State.ARCHIVED:
+                messages.error(request, "Um escritório arquivado não pode receber acesso interno.")
+                return
+            organization.is_internal_test_partner = True
+            organization.save(update_fields=["is_internal_test_partner", "updated_at"])
+            if lifecycle.state == TenantLifecycle.State.PROVISIONING:
+                lifecycle.state = TenantLifecycle.State.ACTIVATION_PENDING
+            if lifecycle.state in {
+                TenantLifecycle.State.ACTIVATION_PENDING,
+                TenantLifecycle.State.SUSPENDED,
+                TenantLifecycle.State.GRACE,
+            }:
+                lifecycle.state = TenantLifecycle.State.ACTIVE
+            lifecycle.reason = "Parceiro interno de homologação sem cobrança."
+            lifecycle.changed_by = user
+            lifecycle.save(update_fields=["state", "reason", "changed_by", "updated_at"])
+        else:
+            organization.is_internal_test_partner = False
+            organization.save(update_fields=["is_internal_test_partner", "updated_at"])
+            if lifecycle.state != TenantLifecycle.State.ARCHIVED:
+                lifecycle.state = TenantLifecycle.State.ACTIVATION_PENDING
+                lifecycle.reason = "Acesso interno encerrado; aguardando contrato comercial."
+                lifecycle.changed_by = user
+                lifecycle.save(update_fields=["state", "reason", "changed_by", "updated_at"])
+    record_event(
+        action="platform.tenant.internal_test_partner_updated",
+        actor=user,
+        organization=organization,
+        target=lifecycle,
+        request=request,
+        metadata={
+            "enabled": enabled,
+            "previous_enabled": previous_partner,
+            "previous_lifecycle": previous_state,
+            "lifecycle": lifecycle.state,
+        },
+    )
+    messages.success(
+        request,
+        "Acesso interno de homologação ativado sem cobrança."
+        if enabled
+        else "Acesso interno encerrado; o escritório aguarda contrato comercial.",
+    )
+
+
 # Every POST on this page names its action, and the roles sit next to the branch instead
 # of in a chain of ifs, so adding one cannot quietly widen who may run it.
 _TENANT_ACTION_ROLES: dict[str, tuple[str, ...]] = {
@@ -373,6 +440,7 @@ _TENANT_ACTION_ROLES: dict[str, tuple[str, ...]] = {
         PlatformAccess.Role.DEVELOPER,
         PlatformAccess.Role.ADMIN,
     ),
+    "internal-test-partner": (PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN),
     # An activation link is a bearer credential for the tenant it opens.
     "invite": (PlatformAccess.Role.SUPPORT, PlatformAccess.Role.DEVELOPER),
     # Money is commercial's call; support reads contracts but does not write them.
@@ -450,6 +518,9 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
         redirect_back = redirect("platform:tenant-detail", organization_id=organization.id)
         if action == "modules":
             _save_modules(request, user, organization)
+            return redirect_back
+        if action == "internal-test-partner":
+            _save_internal_test_partner(request, user, organization)
             return redirect_back
         if action == "lifecycle":
             _move_lifecycle(request, user, lifecycle)
@@ -682,6 +753,10 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
             "can_edit_contract": has_platform_role(
                 request.user, PlatformAccess.Role.COMMERCIAL, PlatformAccess.Role.ADMIN
             ),
+            "can_manage_internal_test_partner": has_platform_role(
+                request.user, PlatformAccess.Role.DEVELOPER, PlatformAccess.Role.ADMIN
+            )
+            and not ControlPlaneBinding.objects.filter(organization=organization).exists(),
             "can_move_lifecycle": has_platform_role(
                 request.user,
                 PlatformAccess.Role.SUPPORT,

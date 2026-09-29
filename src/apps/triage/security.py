@@ -60,7 +60,12 @@ class ClamdScanner:
     def _connect(self) -> socket.socket:
         try:
             if self.local_socket:
-                connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                family = getattr(socket, "AF_UNIX", None)
+                if family is None:
+                    raise ScannerUnavailable(
+                        "Socket Unix indisponível nesta plataforma. Configure a porta local."
+                    )
+                connection = socket.socket(family, socket.SOCK_STREAM)
                 connection.settimeout(10)
                 connection.connect(self.local_socket)
                 return connection
@@ -103,7 +108,7 @@ class ClamdScanner:
 def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -> TriageSafetyScan:
     """Save a durable verdict for the exact bytes, rejecting confirmed malware."""
     with transaction.atomic():
-        item = TriageItem.objects.select_for_update().select_related("blob").get(
+        item = TriageItem.objects.select_for_update(of=("self",)).select_related("blob").get(
             id=item.id, organization=item.organization
         )
         if item.status != TriageStatus.QUARANTINED:
@@ -189,6 +194,9 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
                     else "Varredura falhou; anexo permanece em quarentena"
                 ),
             )
+        from apps.hub.module_activities import sync_triage_activity
+
+        sync_triage_activity(item.pk)
     record_event(
         action="triage.item.antimalware_scan",
         actor=None,

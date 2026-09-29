@@ -1,0 +1,9 @@
+{% if selected_reconciliation_source %}
+<section class="workspace-panel reconciliation-source-context" aria-labelledby="selected-source-heading">
+  <h2 id="selected-source-heading">Arquivo da atividade</h2>
+  <p>{{ selected_reconciliation_source.company.name }} · {{ selected_reconciliation_source.original_filename }}</p>
+  <p>Processamentos e movimentos estão filtrados por este arquivo. O resumo geral, as exportações e a área OFX continuam mostrando a carteira autorizada.</p>
+  {% if selected_reconciliation_activity %}<a class="button button-quiet" href="{% url 'hub:activity-detail' selected_reconciliation_activity.pk %}">Voltar à atividade</a>{% endif %}
+  <a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Ver todos os arquivos</a>
+</section>
+{% endif %}

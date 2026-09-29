@@ -38,6 +38,8 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
             string database = Directory.EnumerateFiles(extracted, "contabil.db", SearchOption.AllDirectories)
                 .FirstOrDefault() ?? throw new InvalidDataException("O backup não contém contabil.db.");
             await SendCompanies(id, database, token);
+            await SendAccumulatorCatalog(id, database, token);
+            await SendAccumulatorObservations(id, database, token);
             await SendAccounting(id, database, token);
             await client.PostAsync("api/agent/v2/sync/complete", new { batch_id = id }, token);
         }
@@ -78,6 +80,36 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
         if (page.Count > 0) await SendPage("companies", batch, page, token);
     }
 
+    private async Task SendAccumulatorCatalog(string batch, string database,
+        CancellationToken token)
+    {
+        const string sql = "SELECT CODI_EMP, CODI_ACU, NOME_ACU, " +
+            "CASE WHEN DATA_INATIVACAO_ACU IS NULL THEN 1 ELSE 0 END, " +
+            "CAST(CODI_EMP AS VARCHAR(64)) || '|' || CAST(CODI_ACU AS VARCHAR(64)) " +
+            "FROM bethadba.EFACUMULADOR ORDER BY CODI_EMP, CODI_ACU";
+        using OdbcConnection connection = Open(database);
+        using OdbcCommand command = new(sql, connection) { CommandTimeout = 120 };
+        using OdbcDataReader reader = command.ExecuteReader();
+        var page = new List<object>(PageSize);
+        while (reader.Read())
+        {
+            page.Add(new
+            {
+                company_key = Convert.ToString(reader[0]),
+                accumulator_code = Convert.ToString(reader[1]),
+                name = Convert.ToString(reader[2]),
+                active = Convert.ToInt32(reader[3]) == 1,
+                source_identifier = Convert.ToString(reader[4]),
+            });
+            if (page.Count == PageSize)
+            {
+                await SendPage("accumulator_catalog", batch, page, token);
+                page.Clear();
+            }
+        }
+        if (page.Count > 0) await SendPage("accumulator_catalog", batch, page, token);
+    }
+
     private async Task SendAccounting(string batch, string database, CancellationToken token)
     {
         const string sql = "SELECT CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || " +
@@ -99,6 +131,65 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
         if (page.Count > 0) await SendPage("accounting_entries", batch, page, token);
     }
 
+    private async Task SendAccumulatorObservations(string batch, string database,
+        CancellationToken token)
+    {
+        const string issuedSql = "SELECT s.codi_emp, s.codi_acu, s.RN_CODIGO_TRIBUTACAO, " +
+            "c.cgce_cli, COUNT(*), MAX(COALESCE(s.DATA_SERVICO, s.dser_ser, s.ddoc_ser)) " +
+            "FROM bethadba.efservicos s JOIN bethadba.efclientes c " +
+            "ON c.codi_emp = s.codi_emp AND c.codi_cli = s.codi_cli " +
+            "WHERE s.codi_acu IS NOT NULL GROUP BY s.codi_emp, s.codi_acu, " +
+            "s.RN_CODIGO_TRIBUTACAO, c.cgce_cli";
+        const string takenSql = "SELECT e.codi_emp, e.codi_acu, NULL, f.cgce_for, COUNT(*), " +
+            "MAX(COALESCE(e.DATA_ENTRADA, e.dent_ent, e.ddoc_ent)) " +
+            "FROM bethadba.efentradas e JOIN bethadba.effornece f " +
+            "ON f.codi_emp = e.codi_emp AND f.codi_for = e.codi_for " +
+            "WHERE e.codi_acu IS NOT NULL AND ((e.CHAVE_NFSE_ENT IS NOT NULL " +
+            "AND TRIM(e.CHAVE_NFSE_ENT) <> '') OR e.TIPO_SERVICO IS NOT NULL) " +
+            "GROUP BY e.codi_emp, e.codi_acu, f.cgce_for";
+        using OdbcConnection connection = Open(database);
+        await SendObservationQuery(batch, connection, issuedSql, token);
+        await SendObservationQuery(batch, connection, takenSql, token);
+    }
+
+    private async Task SendObservationQuery(string batch, OdbcConnection connection,
+        string sql, CancellationToken token)
+    {
+        using OdbcCommand command = new(sql, connection) { CommandTimeout = 180 };
+        using OdbcDataReader reader = command.ExecuteReader();
+        var page = new List<object>(PageSize);
+        while (reader.Read())
+        {
+            string serviceCode = Convert.ToString(reader[2])?.Trim() ?? string.Empty;
+            string counterpartyRef = HashCounterparty(Convert.ToString(reader[3]));
+            if (serviceCode.Length == 0 && counterpartyRef.Length == 0) continue;
+            page.Add(new
+            {
+                company_key = Convert.ToString(reader[0]),
+                accumulator_code = Convert.ToString(reader[1]),
+                service_code = serviceCode,
+                counterparty_ref = counterpartyRef,
+                frequency = Convert.ToInt32(reader[4]),
+                last_used_at = Convert.ToDateTime(reader[5]).ToUniversalTime().ToString("O"),
+            });
+            if (page.Count == PageSize)
+            {
+                await SendPage("accumulator_observations", batch, page, token);
+                page.Clear();
+            }
+        }
+        if (page.Count > 0)
+            await SendPage("accumulator_observations", batch, page, token);
+    }
+
+    private static string HashCounterparty(string? value)
+    {
+        string digits = new((value ?? string.Empty).Where(char.IsDigit).ToArray());
+        if (digits.Length is not (11 or 14)) return string.Empty;
+        byte[] digest = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(digits));
+        return Convert.ToHexString(digest).ToLowerInvariant()[..24];
+    }
+
     private async Task SendPage(string capability, string batch, List<object> rows,
         CancellationToken token) => await client.PostAsync($"api/agent/v2/sync/{capability}",
             new { batch_id = batch, rows }, token);
@@ -115,7 +206,7 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
 
         foreach (IArchiveEntry entry in entries)
         {
-            string entryPath = entry.Key.Replace('/', Path.DirectorySeparatorChar);
+            string entryPath = (entry.Key ?? string.Empty).Replace('/', Path.DirectorySeparatorChar);
             if (string.IsNullOrWhiteSpace(entryPath)
                 || entryPath.IndexOf('\0') >= 0
                 || Path.IsPathRooted(entryPath))

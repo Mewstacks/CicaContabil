@@ -36,6 +36,7 @@ Essa definição vem de D-02, D-03, D-46, D-47, D-49 e D-58 e é detalhada na
 
 | Etapa | Maior nível demonstrado | Evidência canônica | O que ainda impede o próximo nível |
 | --- | --- | --- | --- |
+| Extensão transversal — central operacional | Fundação local validada | D-109 a D-121, V-109 a V-140; atividade, evidência, eventos, acesso por empresa, modelos, geração idempotente, observações, reabertura, fechamento, prioridade por prazo/bloqueio/fonte, distribuicao administrativa contextualizada, capacidade, folha agregada com comparação explicável e caminho de tratamento, caixa/DRE persistidos e importáveis, editor DRE versionado, ficha operacional e relatórios Node PDF/XLSX com fotografia, fila, recuperação, segredo rotacionável e auditoria locais | Adaptadores homologados, dados reais autorizados, vínculos dos demais módulos existentes e operação publicada do renderizador interno. |
 | 00 — documentação | Validado localmente e concluído | V-003; plano, decisões, inventário, dúvidas e 14 etapas verificados | Nada para o escopo documental; não prova comportamento de módulo. |
 | 01 — base técnica | Validado localmente e concluído | V-004, V-006 e V-031; CI local, migrações, PostgreSQL/Redis históricos, builds e runtime | Homologação de cada provedor pertence à sua etapa; não há atalho de infraestrutura para declarar produto pronto. |
 | 02 — acesso e administração | Validado localmente e concluído | V-007 a V-009; permissões, MFA, isolamento, APIs, demo e e-mails locais | Entrega real por Brevo/DNS e suporte operacional estão na etapa 12. |

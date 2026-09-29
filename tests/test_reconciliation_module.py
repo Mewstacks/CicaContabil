@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from contextlib import nullcontext
 from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -8,7 +9,9 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -34,6 +37,8 @@ from apps.hub.models import (
     ReconciliationRun,
     ReconciliationSourceFile,
 )
+from apps.hub.operations import completion_requirements
+from apps.hub.reconciliation_activities import sync_reconciliation_activity
 from apps.hub.reconciliation_service import (
     ReconciliationError,
     apply_rules,
@@ -66,6 +71,122 @@ DEFAULT_MAPPING = {
     "amount": "Valor",
     "document": "Documento",
 }
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("legacy", [False, True])
+def test_activity_follows_processing_confirmation_and_undo_without_duplicate_proof(
+    legacy: bool,
+) -> None:
+    organization = Organization.objects.create(name="Central", slug="central-conciliacao")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    source, run, _ = create_source_file(
+        organization=organization,
+        company=company,
+        filename="single.csv",
+        content=b"Data;Historico;Valor;Documento\n12/09/2026;Fornecedor;100,00;N-1\n",
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    activity = source.operational_activity
+    assert activity.work_status == "pending"
+    _map_and_process(source, run)
+    activity.refresh_from_db()
+    assert activity.work_status == "pending"
+    assert activity.processing_status == "processed"
+    movement = source.movements.get()
+    LedgerAccount.objects.bulk_create(
+        [
+            LedgerAccount(organization=organization, company=company, code="1", name="Banco"),
+            LedgerAccount(organization=organization, company=company, code="2", name="Despesa"),
+        ]
+    )
+    entry = JournalEntry.objects.create(
+        organization=organization,
+        company=company,
+        occurred_on=date(2026, 9, 12),
+        history="Obrigação independente",
+        purpose="settlement",
+    )
+    JournalLine.objects.bulk_create(
+        [
+            JournalLine(
+                organization=organization,
+                entry=entry,
+                account_code="1",
+                side="debit",
+                amount_cents=10000,
+            ),
+            JournalLine(
+                organization=organization,
+                entry=entry,
+                account_code="2",
+                side="credit",
+                amount_cents=10000,
+            ),
+        ]
+    )
+    # Simulate a pre-migration relation without inventing a historical decision.
+    with (
+        patch("apps.hub.reconciliation_service._record_reconciliation_decision")
+        if legacy
+        else nullcontext()
+    ):
+        confirmation = confirm_reconciliation(
+            movement=movement,
+            entry=entry,
+            amount_cents=10000,
+            evidence={"document": "N-1"},
+        )
+    activity.refresh_from_db()
+    assert activity.work_status == "completed"
+    assert activity.obligation_status == "not_applicable"
+    assert completion_requirements(activity) == ()
+    assert activity.evidence_items.count() == 1
+    events = activity.events.count()
+    call_command("sync_reconciliation_activities", organization=organization.pk)
+    assert activity.events.count() == events
+    assert activity.evidence_items.count() == 1
+    undo_reconciliation(reconciliation=confirmation)
+    activity.refresh_from_db()
+    assert activity.work_status == "pending"
+    assert activity.completed_at is None
+    assert completion_requirements(activity)
+    assert activity.evidence_items.count() == 1
+    assert confirmation.decisions.count() == 2
+    undo_reconciliation(reconciliation=confirmation)
+    assert confirmation.decisions.count() == 2
+    with pytest.raises(ReconciliationError):
+        confirm_reconciliation(
+            movement=movement, entry=entry, amount_cents=10001, evidence={"document": "too much"}
+        )
+    assert confirmation.decisions.count() == 2
+    renewed = confirm_reconciliation(
+        movement=movement,
+        entry=entry,
+        amount_cents=10000,
+        evidence={"document": "N-1 reviewed"},
+    )
+    assert renewed.pk == confirmation.pk
+    assert list(renewed.decisions.order_by("created_at").values_list("state", flat=True)) == [
+        "confirmed",
+        "undone",
+        "confirmed",
+    ]
+    assert renewed.decisions.order_by("created_at").first().evidence == {"document": "N-1"}
+    activity.refresh_from_db()
+    assert activity.work_status == "completed"
+    assert activity.evidence_items.count() == 2
+    with pytest.raises(ReconciliationError):
+        confirm_reconciliation(
+            movement=movement, entry=entry, amount_cents=10000, evidence={"document": "duplicate"}
+        )
+    assert renewed.decisions.count() == 3
+    first_decision = renewed.decisions.order_by("created_at").first()
+    assert first_decision.is_legacy_snapshot is legacy
+    with pytest.raises(ValidationError):
+        renewed.decisions.update(evidence={})
+    with pytest.raises(ValidationError):
+        first_decision.delete()
 
 
 def _map_and_process(source: ReconciliationSourceFile, run: ReconciliationRun) -> None:
@@ -302,7 +423,7 @@ def test_corrupted_pdf_is_rejected_before_persistence() -> None:
 @pytest.mark.django_db
 def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     organization = Organization.objects.create(name="Erros de envio", slug="erros-envio")
-    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    ClientCompany.objects.create(organization=organization, name="Empresa")
     ProductModule.objects.create(
         organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
     )
@@ -317,17 +438,16 @@ def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     response = client.post(
         reverse("hub:reconciliation-upload"),
         {
-            "company": str(company.id),
             "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT,
-            "period_start": "2026-10-01",
-            "period_end": "2026-09-01",
         },
     )
 
     assert response.status_code == 400
     assert b"data-form-errors" in response.content
-    assert b"fim do per" in response.content.lower()
     assert b"Selecione ao menos um arquivo" in response.content
+    content = response.content.decode()
+    assert 'id="reconciliation-upload-dialog" class="modal-backdrop" data-modal>' in content
+    assert 'id="id_company-error"' in content
 
 
 @pytest.mark.django_db
@@ -847,6 +967,20 @@ def test_classified_movement_creates_a_balanced_draft_entry() -> None:
         line.amount_cents for line in entry.lines.filter(side="credit")
     )
     assert approve_journal_entry(entry=entry).state == JournalEntry.State.APPROVED
+    activity = source.operational_activity
+    assert activity.work_status == "pending"  # The second movement still needs treatment.
+    reviewer = User.objects.create_user(email="reviewer@example.com")
+    source.movements.exclude(pk=movement.pk).update(review_state="ignored", edited_by=reviewer)
+    sync_reconciliation_activity(source.pk)
+    activity.refresh_from_db()
+    assert activity.work_status == "completed"
+    assert activity.evidence_items.count() == 1
+    movement.revision += 1
+    movement.save(update_fields=["revision", "updated_at"])
+    sync_reconciliation_activity(source.pk)
+    activity.refresh_from_db()
+    assert activity.work_status == "pending"
+    assert activity.evidence_items.count() == 1
 
 
 @pytest.mark.django_db
@@ -1370,8 +1504,7 @@ def test_reconciliation_overview_paginates_the_full_filtered_queue() -> None:
     assert b"Fila paginada 000" in last_page.content
     assert (
         b"?q=Fila+paginada&amp;processing_page=2&amp;export_page=2&amp;movement_page=2"
-        b"&amp;status=attention&amp;page=2"
-        in last_page.content
+        b"&amp;status=attention&amp;page=2" in last_page.content
     )
 
 
@@ -1429,9 +1562,7 @@ def test_reconciliation_keeps_processing_and_export_histories_independent() -> N
     processing_page = client.get(
         reverse("hub:reconciliation"), {"status": "all", "processing_page": "2"}
     )
-    export_page = client.get(
-        reverse("hub:reconciliation"), {"status": "all", "export_page": "2"}
-    )
+    export_page = client.get(reverse("hub:reconciliation"), {"status": "all", "export_page": "2"})
     movement_page = client.get(
         reverse("hub:reconciliation"),
         {"status": "all", "processing_page": "2", "export_page": "2", "movement_page": "2"},
@@ -1502,9 +1633,7 @@ def test_reconciliation_audit_paginates_the_full_filtered_history() -> None:
     ]
     assert b"201 eventos" in first_page.content
     assert "Página 3 de 3" in last_page.content.decode()
-    assert (
-        b"?action=hub.reconciliation.audit_pagination&amp;page=2" in last_page.content
-    )
+    assert b"?action=hub.reconciliation.audit_pagination&amp;page=2" in last_page.content
 
 
 @pytest.mark.django_db
@@ -2237,3 +2366,80 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     audit = client.get(reverse("hub:reconciliation-audit"))
     assert audit.status_code == 200
     assert b"hub.reconciliation.financial_account.created" in audit.content
+
+
+_BRIDGE_OFX = b"""OFXHEADER:100
+<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS><BANKACCTFROM><BANKID>001<ACCTID>123</BANKACCTFROM>
+<BANKTRANLIST><STMTTRN><TRNTYPE>DEBIT<DTPOSTED>20260912<TRNAMT>-12.34<FITID>fit-1<NAME>Fornecedor
+</STMTTRN></BANKTRANLIST></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>"""
+
+
+def _upload_client(slug: str) -> tuple[Organization, ClientCompany, Client]:
+    organization = Organization.objects.create(name=slug, slug=slug)
+    company = ClientCompany.objects.create(organization=organization, name="Empresa OFX")
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    user = User.objects.create_user(f"owner@{slug}.test", "safe-password-123")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    client = Client()
+    client.force_login(user)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+    return organization, company, client
+
+
+@pytest.mark.django_db
+def test_single_upload_feeds_the_ofx_domain_queue_and_opens_processing() -> None:
+    organization, company, client = _upload_client("ponte-ofx")
+
+    with patch("apps.hub.tasks.process_reconciliation_run.delay"):
+        response = client.post(
+            reverse("hub:reconciliation-upload"),
+            {
+                "company": str(company.id),
+                "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT,
+                "files": SimpleUploadedFile("extrato.ofx", _BRIDGE_OFX),
+            },
+        )
+        repeated = client.post(
+            reverse("hub:reconciliation-upload"),
+            {
+                "company": str(company.id),
+                "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT,
+                "files": SimpleUploadedFile("extrato.ofx", _BRIDGE_OFX),
+            },
+        )
+
+    assert response.status_code == 302
+    assert response["Location"].endswith("#processamentos")
+    assert repeated.status_code == 302
+    assert ReconciliationSourceFile.objects.filter(organization=organization).count() == 1
+    assert BankStatementImport.objects.filter(organization=organization).count() == 1
+    assert BankTransaction.objects.filter(statement__organization=organization).count() == 1
+
+
+@pytest.mark.django_db
+def test_reconciliation_page_has_one_importer_and_no_legacy_post() -> None:
+    _organization, _company, client = _upload_client("importador-unico")
+
+    page = client.get(reverse("hub:reconciliation")).content.decode()
+
+    assert page.count('data-modal-open="reconciliation-upload-dialog"') >= 1
+    assert 'id="import-ofx"' not in page
+    assert 'name="period_start"' not in page
+    assert client.post(reverse("hub:reconciliation"), {}).status_code == 405
+
+
+@pytest.mark.django_db
+def test_upload_form_no_longer_requires_a_period() -> None:
+    organization = Organization.objects.create(name="Sem período", slug="sem-periodo")
+    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    form = ReconciliationUploadForm(
+        {"company": str(company.id), "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT},
+        {"files": [SimpleUploadedFile("a.csv", CSV)]},
+        companies=ClientCompany.objects.filter(organization=organization),
+    )
+    assert "period_start" not in form.fields
+    assert form.is_valid(), form.errors

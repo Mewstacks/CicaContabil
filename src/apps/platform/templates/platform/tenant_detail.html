@@ -40,6 +40,25 @@
   {% endif %}
 </section>
 
+{% if can_manage_internal_test_partner %}
+<section class="panel access-panel internal-test-panel" aria-labelledby="internal-test-partner-title">
+  <header class="panel-header"><div><h2 id="internal-test-partner-title">Parceiro interno de homologação</h2><p>{% if tenant.is_internal_test_partner %}Acesso operacional ativo sem contrato comercial.{% else %}Ainda segue o fluxo comercial normal.{% endif %}</p></div><span class="status-badge {% if tenant.is_internal_test_partner %}is-active{% else %}is-muted{% endif %}">{% if tenant.is_internal_test_partner %}Interno ativo{% else %}Não configurado{% endif %}</span></header>
+  <p class="settings-note">Esta condição não cria contrato, cobrança, assinatura, franquia paga, credencial ou chamada externa.</p>
+  {% if tenant.is_internal_test_partner %}
+    <form method="post" class="internal-test-action">
+      {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner">
+      <label class="checkbox-field" for="confirm-internal-test-partner"><input id="confirm-internal-test-partner" name="confirm_internal_test_partner" type="checkbox" required><span>Confirmo o encerramento do acesso interno e o retorno à ativação comercial pendente.</span></label>
+      <button class="button button-quiet button-small" type="submit">Encerrar acesso interno</button>
+    </form>
+  {% else %}
+    <form method="post" class="internal-test-action">
+      {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner"><input type="hidden" name="internal_test_partner" value="on">
+      <button class="button button-small" type="submit">Ativar acesso interno</button>
+    </form>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="panel access-panel">
   <header class="panel-header"><div><h2>Acessos</h2><p>Convide pessoas para este escritório.</p></div><button class="button button-small" type="button" data-modal-open="invite-dialog">Adicionar acesso</button></header>
 </section>

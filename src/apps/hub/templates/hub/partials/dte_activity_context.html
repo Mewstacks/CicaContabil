@@ -1,0 +1,11 @@
+{% if activity.source_dte_message_id %}
+<section class="workspace-panel activity-origin" aria-labelledby="dte-analysis-heading">
+  <h2 id="dte-analysis-heading">Comunicação da Caixa Postal</h2>
+  {% if dte_summary_url %}
+  <p>Consulte o resumo e os registros disponíveis. Depois, registre a análise nesta atividade. A abertura oficial do teor exige confirmação própria na Caixa Postal.</p>
+  <a class="button button-quiet" href="{{ dte_summary_url }}">Consultar resumo da mensagem</a>
+  {% else %}
+  <p>O resumo não está disponível para este acesso. Peça ao administrador que confira o módulo Integra, sua carteira e o vínculo da mensagem.</p>
+  {% endif %}
+</section>
+{% endif %}

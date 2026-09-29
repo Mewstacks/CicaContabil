@@ -43,6 +43,9 @@
 .nfse-workspace .nfse-accumulator-editor small { margin: 0; font-size: 11px; line-height: 1.4; }
 .nfse-workspace .nfse-manual-classification .nfse-download-field { border-color: var(--green); }
 .nfse-workspace .nfse-status { white-space: nowrap; }
+.nfse-workspace .accumulator-catalog-table td small { display: block; margin-top: 4px; overflow-wrap: anywhere; }
+.nfse-workspace .nfse-export-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.nfse-workspace .nfse-export-actions form { margin: 0; }
 @media (max-width: 760px) {
   .nfse-workspace .nfse-download-table tbody tr { content-visibility: visible; contain-intrinsic-size: none; }
   .nfse-workspace .nfse-filter-form { padding: 16px; gap: 12px; }
@@ -73,37 +76,58 @@
 .nfse-issued-range input { font-variant-numeric: tabular-nums; }
 .nfse-issued-range input[aria-invalid="true"] { border-color: var(--red, #dc4545); }
 
-/* Two clear levels: find documents, then choose a period and apply. */
+/* One filter row: search grows, every other control keeps its natural width, and the
+   results below follow each change without a button. */
 .nfse-workspace .nfse-filter-form {
-  display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 20px;
-  padding: 24px;
+  display: flex; flex-wrap: wrap; align-items: end; gap: 12px 14px;
+  padding: 16px 24px; grid-template-columns: none;
 }
 .nfse-workspace .nfse-filter-form label { font-size: 12px; font-weight: 600; color: var(--muted); }
 .nfse-workspace .nfse-filter-form input,
-.nfse-workspace .nfse-filter-form select { min-height: 44px; background-color: var(--surface-raised); color: var(--ink); }
+.nfse-workspace .nfse-filter-form select { min-height: 40px; background-color: var(--surface-raised); color: var(--ink); }
 .nfse-workspace .nfse-filter-form input:focus-visible,
 .nfse-workspace .nfse-filter-form select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.nfse-workspace .nfse-filter-form .nfse-period-bar {
-  grid-column: 1 / -1; display: grid; grid-template-columns: 200px minmax(280px, 380px) minmax(150px, 1fr);
-  gap: 20px; align-items: start; padding: 20px;
-  border: 1px solid color-mix(in srgb, var(--line) 35%, transparent);
-  border-radius: 12px; background: color-mix(in srgb, var(--canvas) 50%, var(--surface));
+.nfse-workspace .nfse-filter-form > div { display: grid; gap: 6px; min-width: 0; flex: 0 1 172px; }
+.nfse-workspace .nfse-filter-form .workspace-filter-search { flex: 1 1 240px; }
+.nfse-workspace .nfse-filter-form .nfse-filter-mode { flex: 0 1 164px; }
+.nfse-workspace .nfse-filter-form .nfse-competence-picker {
+  display: flex; gap: 10px; flex: 0 1 auto; grid-template-columns: none;
 }
-.nfse-period-bar .nfse-filter-mode { display: grid; gap: 6px; min-width: 0; }
-.nfse-workspace .nfse-filter-form .nfse-period-bar > div { grid-column: auto; grid-row: auto; min-width: 0; }
-.nfse-workspace .nfse-period-bar .nfse-filter-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; padding-top: 24px; }
-.nfse-workspace .nfse-filter-form .nfse-filter-actions .button { margin: 0; min-height: 44px; border-radius: 8px; }
-.nfse-workspace .nfse-issued-range .nfse-date-shortcuts { gap: 8px; }
-.nfse-date-shortcuts button { border-color: transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 4px 8px; min-height: 32px; }
+.nfse-competence-picker > div:first-child { flex: 0 1 168px; }
+.nfse-competence-picker > div:last-child { flex: 0 0 84px; }
+.nfse-workspace .nfse-filter-form .nfse-issued-range {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 10px; flex: 1 1 520px;
+  grid-template-columns: none;
+}
+.nfse-workspace .nfse-issued-range > div { flex: 0 1 132px; }
+.nfse-workspace .nfse-issued-range .nfse-date-shortcuts { flex: 1 0 auto; display: flex; gap: 6px; }
+.nfse-date-shortcuts button { border-color: transparent; border-radius: 6px; background: transparent; color: var(--muted); padding: 6px 8px; min-height: 32px; }
 .nfse-date-shortcuts button:hover { background: var(--surface-raised); color: var(--blue); border-color: transparent; }
-.nfse-workspace .workspace-filter-search input { padding-left: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23838d9a' stroke-width='1.6'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E"); background-position: 12px center; background-repeat: no-repeat; }
-@media (max-width: 1000px) {
-  .nfse-workspace .nfse-filter-form .nfse-period-bar { grid-template-columns: 180px minmax(0, 1fr); }
-  .nfse-workspace .nfse-period-bar .nfse-filter-actions { grid-column: 1 / -1; padding-top: 0; }
+.nfse-date-help, .nfse-date-error { flex-basis: 100%; }
+.nfse-workspace .nfse-filter-form .nfse-filter-actions {
+  display: flex; gap: 8px; flex: 0 0 auto; margin-left: auto; align-items: end;
 }
+.nfse-workspace .nfse-filter-form .nfse-filter-actions .button { margin: 0; min-height: 40px; border-radius: 8px; }
+.nfse-workspace .workspace-filter-search input { padding-left: 38px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23838d9a' stroke-width='1.6'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='m16 16 4 4'/%3E%3C/svg%3E"); background-position: 12px center; background-repeat: no-repeat; }
+.nfse-workspace [data-nfse-filter-panel][hidden] { display: none; }
+#nfse-results[aria-busy="true"] { opacity: .6; }
 @media (max-width: 760px) {
-  .nfse-workspace .nfse-filter-form { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; }
-  .nfse-workspace .nfse-filter-form .nfse-period-bar { grid-template-columns: minmax(0, 1fr); padding: 16px; gap: 16px; }
-  .nfse-workspace .nfse-period-bar .nfse-filter-actions { display: grid; }
+  .nfse-workspace .nfse-filter-form { padding: 16px; }
+  .nfse-workspace .nfse-filter-form > div,
+  .nfse-workspace .nfse-filter-form .nfse-competence-picker,
+  .nfse-workspace .nfse-filter-form .nfse-issued-range { flex: 1 1 100%; }
+  .nfse-workspace .nfse-filter-form .nfse-filter-actions { margin-left: 0; }
   .nfse-date-shortcuts button { min-height: 44px; }
+}
+
+.nfse-workspace .nfse-accumulator-form {
+  display: grid;
+  grid-template-columns: minmax(12rem, 2fr) minmax(10rem, 1fr) minmax(12rem, 2fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 18px 0;
+}
+.nfse-workspace .nfse-accumulator-form .field { margin: 0; }
+@media (max-width: 720px) {
+  .nfse-workspace .nfse-accumulator-form { grid-template-columns: 1fr; align-items: stretch; }
 }

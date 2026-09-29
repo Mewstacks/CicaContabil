@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import timedelta
 from functools import partial
@@ -27,11 +28,14 @@ from apps.hub.models import (
     FiscalGuide,
     NfseSync,
     ParcelamentoOperation,
+    ProductModule,
 )
 from apps.hub.nfse_adn import AdnClient, AdnError
 from apps.hub.nfse_sync import certificate_ssl_context, process_sync_pages
 from apps.hub.reconciliation_service import process_run
+from apps.hub.recurrence import generate_due_assignments
 from apps.hub.reform import refresh_reform_sources
+from apps.hub.reporting_exports import process_export
 from apps.integra.client import IntegraClient
 from apps.integra.dctfweb import extract_pdf, monthly_request_data
 from apps.integra.errors import IntegraError, IntegraServiceError
@@ -47,6 +51,14 @@ from apps.platform.billing import settle_usage
 from apps.platform.models import OperationalRun, TokenUsageEvent
 from apps.platform.operations import track_scheduled_operation
 from apps.platform.token_billing import settle_tokens
+
+logger = logging.getLogger(__name__)
+
+
+@shared_task(name="hub.generate_recurring_activities")  # type: ignore[untyped-decorator]
+def generate_recurring_activities() -> dict[str, int]:
+    """Materialize expected work locally; never call providers or approve an operation."""
+    return generate_due_assignments()
 
 
 def _eligible_nfse_syncs() -> QuerySet[NfseSync]:
@@ -175,6 +187,52 @@ def dispatch_waiting_reconciliation_runs() -> int:
     return len(run_ids)
 
 
+@shared_task(name="hub.process_financial_report_export")  # type: ignore[untyped-decorator]
+def process_financial_report_export(export_id: str) -> str:
+    """Render one immutable report request; lease ownership makes redelivery safe."""
+
+    return process_export(export_id)
+
+
+@shared_task(name="hub.dispatch_waiting_financial_report_exports")  # type: ignore[untyped-decorator]
+def dispatch_waiting_financial_report_exports() -> int:
+    """Recover committed requests when broker delivery happened after the DB transaction."""
+
+    from apps.hub.models import FinancialReportExport
+
+    export_ids = list(
+        FinancialReportExport.objects.filter(state=FinancialReportExport.State.WAITING)
+        .order_by("created_at")
+        .values_list("id", flat=True)[:100]
+    )
+    for export_id in export_ids:
+        process_financial_report_export.delay(str(export_id))
+    return len(export_ids)
+
+
+@shared_task(name="hub.recover_financial_report_exports")  # type: ignore[untyped-decorator]
+def recover_financial_report_exports() -> int:
+    """Return abandoned renderer leases to the durable waiting queue."""
+
+    from apps.hub.models import FinancialReportExport
+
+    now = timezone.now()
+    with transaction.atomic():
+        export_ids = list(
+            FinancialReportExport.objects.filter(
+                state=FinancialReportExport.State.RENDERING, lease_until__lt=now
+            ).values_list("id", flat=True)
+        )
+        FinancialReportExport.objects.filter(id__in=export_ids).update(
+            state=FinancialReportExport.State.WAITING,
+            lease_token=None,
+            lease_until=None,
+        )
+        for export_id in export_ids:
+            transaction.on_commit(partial(process_financial_report_export.delay, str(export_id)))
+    return len(export_ids)
+
+
 @shared_task(name="hub.recover_reconciliation_runs")  # type: ignore[untyped-decorator]
 def recover_reconciliation_runs() -> int:
     """Requeue expired work after a worker restart without mutating completed work."""
@@ -202,7 +260,10 @@ def _value(row: dict[str, Any], *keys: str) -> str:
     return value(row, *keys)
 
 
+@transaction.atomic
 def _save_messages(*, item: DteRunItem, payload: dict[str, Any]) -> int:
+    from apps.hub.dte_activities import sync_dte_activity
+
     saved = 0
     rows, _more_available = list_rows(payload)
     for row in rows:
@@ -251,6 +312,7 @@ def _save_messages(*, item: DteRunItem, payload: dict[str, Any]) -> int:
             state.last_observation = observation
             state.last_seen_at = observation.observed_at
             state.save(update_fields=["read_at", "science_at", "last_observation", "last_seen_at"])
+        sync_dte_activity(message.pk)
         saved += 1
     return saved
 
@@ -501,11 +563,13 @@ def _complete_demo_dte_run(run: DteRun) -> None:
 def _fail_fiscal_guide(
     *, guide: FiscalGuide, usage: Any, code: str, message: str, http_status: int
 ) -> None:
+    from apps.hub.guide_history import save_guide_attempt
+
     _settle_provider_usage(event=usage, provider_http_status=http_status, billable=False)
     guide.status = FiscalGuide.Status.FAILED
     guide.error_code = code[:80]
     guide.error_message = message[:240]
-    guide.save(update_fields=["status", "error_code", "error_message", "updated_at"])
+    save_guide_attempt(guide, update_fields=["status", "error_code", "error_message", "updated_at"])
 
 
 def _settle_provider_usage(
@@ -529,13 +593,14 @@ def _settle_provider_usage(
         )
 
 
-@shared_task(name="hub.dispatch_dctfweb_document")  # type: ignore[untyped-decorator]
-def dispatch_dctfweb_document(document_id: str) -> None:
+def _dispatch_dctfweb_document(document_id: str) -> None:
     """Collect one approved DCTFWeb PDF and keep uncertain calls reconcilable."""
+
+    from apps.hub.integra_access import can_consult_dctfweb
 
     with transaction.atomic():
         document = (
-            DctfWebDocument.objects.select_for_update()
+            DctfWebDocument.objects.select_for_update(of=("self",))
             .select_related("company", "usage_event", "token_usage_event")
             .filter(id=document_id)
             .first()
@@ -576,6 +641,28 @@ def dispatch_dctfweb_document(document_id: str) -> None:
         document.error_code = "usage_missing"
         document.error_message = "A reserva de consumo não foi encontrada."
         document.save(update_fields=["status", "error_code", "error_message", "updated_at"])
+        return
+    if not can_consult_dctfweb(
+        organization_id=document.organization_id,
+        company_id=document.company_id,
+        actor_id=document.requested_by_id,
+    ):
+        _settle_provider_usage(event=usage, provider_http_status=403, billable=False)
+        document.status = DctfWebDocument.Status.FAILED
+        document.error_code = "authorization_revoked"
+        document.error_message = (
+            "Acesso do solicitante revogado ou ausente; nenhuma consulta enviada."
+        )
+        document.completed_at = timezone.now()
+        document.save(
+            update_fields=[
+                "status",
+                "error_code",
+                "error_message",
+                "completed_at",
+                "updated_at",
+            ]
+        )
         return
     try:
         cnpj = normalize_cnpj(document.company.cnpj_masked)
@@ -666,13 +753,14 @@ def dispatch_dctfweb_document(document_id: str) -> None:
     )
 
 
-@shared_task(name="hub.dispatch_parcelamento_operation")  # type: ignore[untyped-decorator]
-def dispatch_parcelamento_operation(operation_id: str) -> None:
+def _dispatch_parcelamento_operation(operation_id: str) -> None:
     """Execute one approved PARCSN request without unsafe automatic replay."""
+
+    from apps.hub.integra_access import can_execute_company_operation
 
     with transaction.atomic():
         operation = (
-            ParcelamentoOperation.objects.select_for_update()
+            ParcelamentoOperation.objects.select_for_update(of=("self",))
             .select_related("company", "token_usage_event", "organization")
             .filter(id=operation_id)
             .first()
@@ -699,6 +787,27 @@ def dispatch_parcelamento_operation(operation_id: str) -> None:
         operation.save()
         return
 
+    if not can_execute_company_operation(
+        organization_id=operation.organization_id,
+        company_id=operation.company_id,
+        actor_id=operation.requested_by_id,
+        module_code=ProductModule.Code.INTEGRA,
+    ):
+        _settle_provider_usage(event=usage, provider_http_status=403, billable=False)
+        operation.status = ParcelamentoOperation.Status.FAILED
+        operation.error_code = "authorization_revoked"
+        operation.error_message = "Acesso revogado ou ausente; nenhuma consulta enviada."
+        operation.completed_at = timezone.now()
+        operation.save(
+            update_fields=[
+                "status",
+                "error_code",
+                "error_message",
+                "completed_at",
+                "updated_at",
+            ]
+        )
+        return
     if operation.kind == ParcelamentoOperation.Kind.DETAIL:
         dados: dict[str, Any] = {"numeroParcelamento": operation.agreement_number}
     elif operation.kind == ParcelamentoOperation.Kind.DAS:
@@ -779,10 +888,11 @@ def dispatch_parcelamento_operation(operation_id: str) -> None:
     operation.save()
 
 
-@shared_task(name="hub.dispatch_fiscal_guide")  # type: ignore[untyped-decorator]
-def dispatch_fiscal_guide(guide_id: str) -> None:
+def _dispatch_fiscal_guide(guide_id: str) -> None:
     """Issue one ready Domínio obligation with central Serpro credentials."""
 
+    from apps.hub.guide_history import save_guide_attempt
+    from apps.hub.integra_access import can_execute_company_operation
     from apps.platform.models import TokenUsageEvent, UsageEvent
 
     with transaction.atomic():
@@ -815,18 +925,19 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
                 ensure_ascii=False,
             )
             guide.issued_at = timezone.now()
-            guide.save(
+            save_guide_attempt(
+                guide,
                 update_fields=[
                     "status",
                     "provider_request_id",
                     "provider_payload",
                     "issued_at",
                     "updated_at",
-                ]
+                ],
             )
             return
         guide.status = FiscalGuide.Status.ISSUING
-        guide.save(update_fields=["status", "updated_at"])
+        save_guide_attempt(guide, update_fields=["status", "updated_at"])
     token_usage = TokenUsageEvent.objects.filter(
         idempotency_key=f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
     ).first()
@@ -839,7 +950,23 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         guide.status = FiscalGuide.Status.FAILED
         guide.error_code = "usage_missing"
         guide.error_message = "A reserva de consumo não foi encontrada."
-        guide.save(update_fields=["status", "error_code", "error_message", "updated_at"])
+        save_guide_attempt(
+            guide, update_fields=["status", "error_code", "error_message", "updated_at"]
+        )
+        return
+    if not can_execute_company_operation(
+        organization_id=guide.organization_id,
+        company_id=guide.company_id,
+        actor_id=guide.issue_requested_by_id,
+        module_code=ProductModule.Code.GUIDES,
+    ):
+        _fail_fiscal_guide(
+            guide=guide,
+            usage=usage,
+            code="authorization_revoked",
+            message="Acesso revogado ou ausente; nenhuma emissão enviada.",
+            http_status=403,
+        )
         return
     try:
         cnpj = normalize_cnpj(guide.company.cnpj_masked)
@@ -852,6 +979,7 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
             http_status=400,
         )
         return
+    payload = None
     try:
         client = IntegraClient()
         payload = client.call(
@@ -871,12 +999,22 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         )
         return
     except IntegraError as exc:
-        _fail_fiscal_guide(
-            guide=guide,
-            usage=usage,
-            code="integration",
-            message=str(exc),
-            http_status=503,
+        guide.status = FiscalGuide.Status.UNKNOWN
+        guide.error_code = "uncertain_result"
+        guide.error_message = str(exc)[:240]
+        if payload is not None:
+            guide.provider_request_id = _value(payload, "idRequisicao", "requestId")[:160]
+            guide.provider_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+        save_guide_attempt(
+            guide,
+            update_fields=[
+                "status",
+                "error_code",
+                "error_message",
+                "provider_request_id",
+                "provider_payload",
+                "updated_at",
+            ],
         )
         return
     _settle_provider_usage(
@@ -889,12 +1027,58 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
     guide.provider_request_id = _value(payload, "idRequisicao", "requestId")[:160]
     guide.provider_payload = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     guide.issued_at = timezone.now()
-    guide.save(
+    save_guide_attempt(
+        guide,
         update_fields=[
             "status",
             "provider_request_id",
             "provider_payload",
             "issued_at",
             "updated_at",
-        ]
+        ],
     )
+
+
+def _sync_after_provider_work(kind: str, object_id: str) -> None:
+    """A failed local projection must never cause a charged provider operation to repeat."""
+    try:
+        from apps.hub.module_activities import (
+            sync_dctfweb_document_activity,
+            sync_fiscal_guide_activity,
+            sync_parcelamento_operation_activity,
+        )
+
+        sync = {
+            "dctfweb": sync_dctfweb_document_activity,
+            "parcelamento": sync_parcelamento_operation_activity,
+            "guide": sync_fiscal_guide_activity,
+        }[kind]
+        sync(uuid.UUID(object_id))
+    except Exception:
+        logger.exception(
+            "Could not project persisted %s result %s into activity centre", kind, object_id
+        )
+
+
+@shared_task(name="hub.dispatch_dctfweb_document")  # type: ignore[untyped-decorator]
+def dispatch_dctfweb_document(document_id: str) -> None:
+    try:
+        _dispatch_dctfweb_document(document_id)
+    finally:
+        _sync_after_provider_work("dctfweb", document_id)
+
+
+@shared_task(name="hub.dispatch_parcelamento_operation")  # type: ignore[untyped-decorator]
+def dispatch_parcelamento_operation(operation_id: str) -> None:
+    try:
+        _dispatch_parcelamento_operation(operation_id)
+    finally:
+        _sync_after_provider_work("parcelamento", operation_id)
+
+
+@shared_task(name="hub.dispatch_fiscal_guide")  # type: ignore[untyped-decorator]
+def dispatch_fiscal_guide(guide_id: str) -> None:
+    try:
+        _dispatch_fiscal_guide(guide_id)
+    finally:
+        _sync_after_provider_work("guide", guide_id)

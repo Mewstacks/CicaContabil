@@ -14,6 +14,15 @@ htmlcov
 db.sqlite3
 media
 staticfiles
+agent-windows
+reporting
+.playwright-mcp
+.tmp
+tests
+runtime
+deploy
+scripts
+compose*.yml
 infra
 docs
 

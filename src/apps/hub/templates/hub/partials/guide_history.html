@@ -1,0 +1,31 @@
+<section class="workspace-panel guide-history" id="historico" aria-labelledby="guide-history-heading">
+  <h2 id="guide-history-heading">Histórico das tentativas</h2>
+  <p>Estados preservados, dos mais recentes aos mais antigos. Emissão não comprova pagamento. Consultar este histórico não gera nova chamada.</p>
+  {% if guide_history_rows %}
+  <ol>
+    {% for row in guide_history_rows %}{% with event=row.event %}
+    <li>
+      <h3>Tentativa {{ event.attempt }} · {{ event.get_status_display }}</h3>
+      <p>Registrado em <time datetime="{{ event.observed_at|date:'c' }}">{{ event.observed_at|date:'SHORT_DATETIME_FORMAT' }}</time></p>
+      {% if event.request_snapshot.simulated %}<p><strong>Resultado fictício, sem validade fiscal.</strong></p>{% endif %}
+      {% if event.request_snapshot.snapshot_source == 'current_record' %}<p>Registro anterior preservado. As etapas anteriores desta tentativa não foram reconstruídas.</p>{% endif %}
+      <dl>
+        <div><dt>Solicitante</dt><dd>{% if row.requester %}{{ row.requester }}{% elif event.requested_by_reference %}Usuário não disponível no escritório{% else %}Não registrado{% endif %}</dd></div>
+        {% if event.requested_at %}<div><dt>Solicitada em</dt><dd><time datetime="{{ event.requested_at|date:'c' }}">{{ event.requested_at|date:'SHORT_DATETIME_FORMAT' }}</time></dd></div>{% endif %}
+        {% if event.provider_request_id %}<div><dt>Protocolo</dt><dd translate="no">{{ event.provider_request_id }}</dd></div>{% endif %}
+        {% if event.issued_at %}<div><dt>Emitida em</dt><dd><time datetime="{{ event.issued_at|date:'c' }}">{{ event.issued_at|date:'SHORT_DATETIME_FORMAT' }}</time></dd></div>{% endif %}
+      </dl>
+      {% if event.error_message %}<p>{{ event.error_message }}</p>{% endif %}
+      {% if event.status == 'issued' and not event.request_snapshot.simulated and not office.is_demo %}<a class="button button-quiet" href="{% url 'hub:guide-attempt-pdf' guide.id event.id %}">Baixar PDF da tentativa {{ event.attempt }}</a>{% endif %}
+    </li>
+    {% endwith %}{% endfor %}
+  </ol>
+  {% if guide_history_page.has_other_pages %}
+  <nav class="pagination" aria-label="Páginas do histórico de tentativas">
+    {% if guide_history_page.has_previous %}<a class="button button-quiet" href="?{% if guide_history_query %}{{ guide_history_query }}&amp;{% endif %}history_page={{ guide_history_page.previous_page_number }}#historico">Estados mais recentes</a>{% endif %}
+    <span>Página {{ guide_history_page.number }} de {{ guide_history_page.paginator.num_pages }}</span>
+    {% if guide_history_page.has_next %}<a class="button button-quiet" href="?{% if guide_history_query %}{{ guide_history_query }}&amp;{% endif %}history_page={{ guide_history_page.next_page_number }}#historico">Estados anteriores</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}<p>Nenhuma tentativa preservada neste histórico. Registros antigos podem não ter uma trilha completa; isso não comprova ausência de emissões anteriores.</p>{% endif %}
+</section>

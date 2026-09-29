@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from io import BytesIO
+from hashlib import sha256
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.test.utils import override_settings
 from django.urls import reverse
 from django.utils import timezone
-from openpyxl import load_workbook
 
 from apps.accounts.models import User
 from apps.hub.models import ClientCompany, OfficeProfile, ProductModule
@@ -17,7 +19,9 @@ from apps.intelligence.models import (
     EgressAudit,
     LearningCandidate,
     Message,
+    ReportExportRecord,
 )
+from apps.intelligence.reports import report_snapshot
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import (
     Plan,
@@ -225,7 +229,7 @@ class IntelligenceViewsTests(TestCase):
         for url, method in (
             (reverse("intelligence:assistant"), "get"),
             (reverse("intelligence:feedback", args=[message.id]), "post"),
-            (reverse("intelligence:export", args=[message.id, "pdf"]), "get"),
+            (reverse("intelligence:export", args=[message.id, "pdf"]), "post"),
             (reverse("intelligence:learning"), "get"),
             (reverse("intelligence:review", args=[candidate.id, "approve"]), "post"),
         ):
@@ -249,7 +253,7 @@ class IntelligenceViewsTests(TestCase):
 
         home = self.client.get(reverse("hub:home"))
         assistant = self.client.get(reverse("intelligence:assistant"))
-        export = self.client.get(reverse("intelligence:export", args=[message.id, "pdf"]))
+        export = self.client.post(reverse("intelligence:export", args=[message.id, "pdf"]))
 
         self.assertNotContains(home, "Copiloto CICA")
         self.assertEqual(assistant.status_code, 404)
@@ -287,29 +291,54 @@ class IntelligenceViewsTests(TestCase):
         forbidden = self.client.get(reverse("intelligence:learning"))
         self.assertEqual(forbidden.status_code, 403)
 
-    def test_answer_exports_are_scoped_and_generate_real_pdf_and_xlsx(self) -> None:
+    @patch("apps.intelligence.views.render_snapshot")
+    def test_answer_exports_are_scoped_and_rendered_by_the_internal_service(
+        self, renderer: MagicMock
+    ) -> None:
+        renderer.side_effect = [b"%PDF-node-renderer", b"PK-node-renderer", b"PK-protected"]
         message = self.assistant_message()
-        pdf = self.client.get(reverse("intelligence:export", args=[message.id, "pdf"]))
-        xlsx = self.client.get(reverse("intelligence:export", args=[message.id, "xlsx"]))
+        page = self.client.get(
+            reverse("intelligence:assistant"), {"conversation": str(message.conversation_id)}
+        )
+        self.assertContains(page, 'method="post"')
+        self.assertContains(
+            page, reverse("intelligence:export", args=[message.id, "pdf"])
+        )
+        prefetch = self.client.get(reverse("intelligence:export", args=[message.id, "pdf"]))
+        self.assertEqual(prefetch.status_code, 405)
+        self.assertFalse(ReportExportRecord.objects.exists())
+        pdf = self.client.post(reverse("intelligence:export", args=[message.id, "pdf"]))
+        xlsx = self.client.post(reverse("intelligence:export", args=[message.id, "xlsx"]))
 
         self.assertEqual(pdf.status_code, 200)
         self.assertEqual(pdf["Content-Type"], "application/pdf")
-        self.assertTrue(pdf.content.startswith(b"%PDF"))
+        self.assertEqual(pdf.content, b"%PDF-node-renderer")
         self.assertEqual(xlsx.status_code, 200)
         self.assertEqual(
             xlsx["Content-Type"],
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        sheet = load_workbook(BytesIO(xlsx.content)).active
-        self.assertEqual(sheet["B2"].value, self.company.name)
-        self.assertEqual(sheet["A10"].value, "Manual")
+        self.assertEqual(xlsx.content, b"PK-node-renderer")
+        exports = list(ReportExportRecord.objects.order_by("created_at"))
+        self.assertEqual([item.export_format for item in exports], ["pdf", "xlsx"])
+        self.assertTrue(all(item.company_id == self.company.id for item in exports))
+        self.assertTrue(all(item.requested_by_id == self.owner.id for item in exports))
+        self.assertTrue(all(len(item.snapshot_sha256) == 64 for item in exports))
+        self.assertTrue(all(len(item.output_sha256) == 64 for item in exports))
+        self.assertIn('"templateVersion":"copilot-answer-v1"', exports[0].snapshot)
+        self.assertEqual(
+            sha256(exports[0].snapshot.encode("utf-8")).hexdigest(),
+            exports[0].snapshot_sha256,
+        )
+        exports[0].template_version = "altered"
+        with self.assertRaisesMessage(ValidationError, "imutáveis"):
+            exports[0].save()
 
         message.content = "=SOMETHING()"
         message.save(update_fields=["content", "updated_at"])
-        protected_xlsx = self.client.get(reverse("intelligence:export", args=[message.id, "xlsx"]))
-        protected_sheet = load_workbook(BytesIO(protected_xlsx.content)).active
-        self.assertEqual(protected_sheet["A7"].value, "'=SOMETHING()")
-
+        protected_xlsx = self.client.post(reverse("intelligence:export", args=[message.id, "xlsx"]))
+        self.assertEqual(protected_xlsx.content, b"PK-protected")
+        self.assertEqual(renderer.call_args.kwargs["snapshot"]["narrative"], "=SOMETHING()")
         other = Organization.objects.create(name="Outro", slug="outro")
         other_company = ClientCompany.objects.create(organization=other, name="Segredo")
         other_conversation = Conversation.objects.create(organization=other, company=other_company)
@@ -319,5 +348,45 @@ class IntelligenceViewsTests(TestCase):
             role=Message.Role.ASSISTANT,
             content="Não exportar.",
         )
-        blocked = self.client.get(reverse("intelligence:export", args=[other_message.id, "pdf"]))
+        blocked = self.client.post(reverse("intelligence:export", args=[other_message.id, "pdf"]))
         self.assertEqual(blocked.status_code, 404)
+
+    def test_report_snapshot_remains_immutable_after_the_message_changes(self) -> None:
+        message = self.assistant_message()
+        snapshot = report_snapshot(message)
+        message.content = "Conteudo alterado depois da fotografia."
+        message.save(update_fields=["content", "updated_at"])
+
+        self.assertEqual(snapshot["narrative"], "Resposta rastreável.")
+    @override_settings(
+        CICA_REPORTING_URL="http://127.0.0.1:3080", CICA_REPORTING_SHARED_SECRET="test-secret"
+    )
+    @patch("apps.intelligence.views.render_snapshot")
+    def test_answer_export_uses_configured_js_renderer(self, renderer: MagicMock) -> None:
+        renderer.return_value = b"%PDF-node-renderer"
+        message = self.assistant_message()
+
+        response = self.client.post(reverse("intelligence:export", args=[message.id, "pdf"]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"%PDF-node-renderer")
+        snapshot = renderer.call_args.kwargs["snapshot"]
+        self.assertEqual(snapshot["organizationId"], str(self.organization.id))
+        self.assertEqual(snapshot["narrative"], message.content)
+        self.assertEqual(snapshot["evidence"][0]["label"], "Manual")
+
+    @override_settings(
+        CICA_REPORTING_URL="http://127.0.0.1:3080", CICA_REPORTING_SHARED_SECRET="test-secret"
+    )
+    @patch("apps.intelligence.views.render_snapshot")
+    def test_answer_export_surfaces_configured_renderer_failure(self, renderer: MagicMock) -> None:
+        from apps.intelligence.reporting_client import ReportingServiceUnavailable
+
+        renderer.side_effect = ReportingServiceUnavailable("offline")
+        response = self.client.post(
+            reverse("intelligence:export", args=[self.assistant_message().id, "xlsx"])
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertContains(response, "Serviço interno de relatórios indisponível", status_code=503)
+        self.assertFalse(ReportExportRecord.objects.exists())

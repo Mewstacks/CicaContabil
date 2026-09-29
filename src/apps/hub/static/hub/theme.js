@@ -6,7 +6,8 @@
     const dark = explicit === 'dark' || (explicit !== 'light' && preference.matches);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      const canvas = getComputedStyle(document.documentElement).getPropertyValue('--canvas').trim();
+      const canvasSource = document.body || document.documentElement;
+      const canvas = getComputedStyle(canvasSource).getPropertyValue('--canvas').trim();
       meta.content = canvas || (dark ? '#101915' : '#f7f3e8');
     }
   };

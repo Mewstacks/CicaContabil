@@ -1,0 +1,8 @@
+.radar-analysis { min-width: 0; overflow-wrap: anywhere; }
+.radar-analysis h2, .radar-analysis h3 { text-wrap: balance; }
+.radar-analysis form { max-width: 48rem; }
+.radar-analysis .field { margin-block: 16px; }
+.radar-analysis :where(input,select,textarea) { max-width: 100%; }
+.radar-analysis li a { display: inline-flex; align-items: center; min-height: 44px; padding-block: 8px; }
+.radar-analysis a:hover { text-decoration: underline; }
+.radar-analysis [id] { scroll-margin-top: 100px; }

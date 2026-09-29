@@ -2,9 +2,18 @@
 {% load static %}
 {% block workspace_content %}
 <section class="setup-hero" aria-labelledby="setup-heading">
-  <div><p class="section-kicker">COMECE POR AQUI</p><h2 id="setup-heading">Deixe o CICA pronto para trabalhar.</h2><p>Seis passos para o escritório operar.</p></div>
-  <ol class="setup-checklist">{% for step in setup_steps %}<li class="{% if step.done %}is-done{% endif %}"><span aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>{{ step.label }}</li>{% endfor %}</ol>
+  <div><p class="section-kicker">COMECE POR AQUI</p><h2 id="setup-heading">Deixe o CICA pronto para trabalhar.</h2><p>{{ setup_steps|length }} passos para o escritório operar.</p></div>
+  <ol class="setup-checklist">{% for step in setup_steps %}<li class="{% if step.done %}is-done{% endif %}"><span aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span><div><strong>{{ step.label }}</strong><small>{{ step.detail }}</small>{% if can_manage_setup and not step.done %}<a class="text-action" href="{{ step.url }}">{{ step.action_label }} <span aria-hidden="true">→</span></a>{% endif %}</div></li>{% endfor %}</ol>
 </section>
+
+{% if can_manage_setup %}<section class="workspace-panel" id="office-heading" aria-labelledby="office-title"><header class="workspace-panel-head"><div><p class="section-kicker">DADOS DO ESCRITÓRIO</p><h2 id="office-title">Confirme a identificação</h2><p>Esta confirmação não altera contrato, módulos ou limites.</p></div></header><form method="post" class="setup-source-form">{% csrf_token %}<input type="hidden" name="action" value="save-office">{% for field in identity_form %}<div class="field">{{ field.label_tag }}{{ field }}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endfor %}<button class="button" type="submit">Confirmar dados</button></form></section>{% endif %}
+
+<section class="workspace-panel" aria-labelledby="diagnostic-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">DIAGNÓSTICO</p><h2 id="diagnostic-heading">O que já pode funcionar</h2><p>Conexões pendentes não impedem as partes independentes do CICA. Cada item mostra a próxima condição necessária.</p></div></header>
+  <ul class="setup-checklist" aria-label="Diagnóstico da configuração">{% for item in setup_diagnostics %}<li class="{% if item.ready %}is-done{% endif %}"><span aria-hidden="true">{% if item.ready %}✓{% else %}!{% endif %}</span><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div></li>{% endfor %}</ul>
+</section>
+
+{% if can_manage_setup %}<p><a class="text-action" href="{% url 'hub:dre-mapping-editor' %}">Configurar mapa DRE <span aria-hidden="true">&rarr;</span></a></p>{% endif %}
 
 <section class="workspace-panel" aria-labelledby="source-heading">
   <header class="workspace-panel-head"><div><p class="section-kicker">1 · FONTE DE DADOS</p><h2 id="source-heading">Como você usa o sistema contábil?</h2><p>Escolha o caminho mais simples para o seu escritório. Você pode manter fontes diferentes sem misturar registros.</p></div></header>
@@ -23,17 +32,39 @@
     <p class="setup-note">Esta é uma integração paliativa e manual. Será substituída pelo adaptador da API oficial quando a Domínio disponibilizar leitura compatível. <a href="https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=10957" rel="noreferrer">Abrir instrução oficial</a>.</p>
   {% else %}<p class="setup-note">Use os modelos CSV/XLSX, XML e OFX. Cada envio mostra uma prévia antes de alterar seus dados.</p>{% endif %}
 
+  {% if can_manage_setup and selected_source.status == 'disabled' %}
+  <aside class="setup-note setup-source-reactivation" aria-labelledby="reactivate-source-title">
+    <h3 id="reactivate-source-title">Fonte desativada</h3>
+    <p>Reative apenas se esta fonte voltar a ser usada. A reativação não consulta sistemas, não agenda sincronização e não torna os dados atuais.</p>
+    <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reactivate-source"><input type="hidden" name="source_id" value="{{ selected_source.id }}"><label><input type="checkbox" name="confirm_reactivate" value="yes" autocomplete="off" required> Entendo que preciso executar uma nova sincronização antes de usar estes dados.</label><button class="button button-quiet" type="submit">Reativar fonte</button></form>
+  </aside>
+  {% endif %}
+
+  <details class="setup-financial-layouts">
+    <summary>Ver formatos para DRE e caixa</summary>
+    <div>
+      <h3>Saldos para DRE</h3>
+      <p>CSV/XLSX com <code>codigo_empresa</code>, <code>competencia</code> (AAAA-MM-DD), <code>referencia</code>, <code>conta</code>, <code>nome_conta</code> e <code>saldo</code>. Linhas com a mesma empresa, competência e referência formam uma fotografia.</p>
+      <h3>Cenário de caixa</h3>
+      <p>CSV/XLSX com <code>codigo_empresa</code>, <code>cenario</code>, <code>visao</code>, <code>data_referencia</code>, <code>saldo_inicial</code>, <code>data</code>, <code>descricao</code> e <code>referencia</code>. Valores opcionais: <code>recebimento_bruto</code>, <code>pagamento</code>, <code>retencao</code>, <code>provisao</code> e <code>retencao_ja_provisionada</code>.</p>
+      <p>Use <code>simulation</code>, <code>projection</code> ou <code>realized</code> em <code>visao</code>. O CICA não preenche retenções, contas ou valores ausentes.</p>
+      <h3>Mapa DRE</h3>
+      <p>CSV/XLSX com <code>conta</code>, <code>grupo</code> e <code>sinal</code> (<code>-1</code> ou <code>1</code>). Cada arquivo validado cria uma versão do mapa e preserva as versões anteriores para auditoria.</p>
+    </div>
+  </details>
+
   {% if can_manage_setup and selected_source.kind != 'dominio_local_agent' %}
   <form method="post" enctype="multipart/form-data" class="import-form" data-import-form>{% csrf_token %}<input type="hidden" name="action" value="upload"><input type="hidden" name="source_id" value="{{ selected_source.id }}">
     {% if import_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Revise o arquivo e os campos indicados.</strong>{{ import_form.non_field_errors }}</div>{% endif %}
     {% for field in import_form %}<div class="field" data-import-field="{{ field.name }}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <p class="field-help">Para totais da folha, <a href="{% static 'hub/modelo-totais-folha.csv' %}" download>baixe o modelo CSV</a> e substitua os dados de exemplo. Use o código da empresa nesta fonte e competência no formato AAAA-MM-01. Valores vazios ficam ausentes. O arquivo será identificado como documento informado.</p>
     <button class="button" type="submit">Analisar arquivo</button>
   </form>
   {% endif %}
 </section>
 {% endif %}
 
-{% if preview_batch %}<section class="workspace-panel import-preview" aria-labelledby="preview-heading"><header class="workspace-panel-head"><div><p class="section-kicker">PRÉVIA</p><h2 id="preview-heading">Confirme antes de importar</h2></div><span class="status-badge is-muted">{{ preview_batch.row_count }} registro{{ preview_batch.row_count|pluralize }}</span></header><dl><div><dt>Arquivo</dt><dd>{{ preview_batch.original_filename }}</dd></div><div><dt>Tipo</dt><dd>{{ preview_batch.get_kind_display }}</dd></div>{% if preview_batch.source_snapshot_at %}<div><dt>Data-base</dt><dd>{{ preview_batch.source_snapshot_at|date:"d/m/Y H:i" }}</dd></div>{% endif %}</dl><form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm-import"><input type="hidden" name="batch_id" value="{{ preview_batch.id }}"><button class="button" type="submit">Confirmar importação</button></form></section>{% endif %}
+{% if preview_batch %}<section class="workspace-panel import-preview" aria-labelledby="preview-heading"><header class="workspace-panel-head"><div><p class="section-kicker">PRÉVIA</p><h2 id="preview-heading">Confirme antes de importar</h2></div><span class="status-badge is-muted">{{ preview_batch.row_count }} registro{{ preview_batch.row_count|pluralize }}</span></header><dl><div><dt>Arquivo</dt><dd>{{ preview_batch.original_filename }}</dd></div><div><dt>Tipo</dt><dd>{{ preview_batch.get_kind_display }}</dd></div>{% if preview_batch.source_snapshot_at %}<div><dt>Data-base</dt><dd>{{ preview_batch.source_snapshot_at|date:"d/m/Y H:i" }}</dd></div>{% endif %}</dl>{% include 'hub/partials/payroll_import_preview.html' %}{% if can_manage_setup %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm-import"><input type="hidden" name="batch_id" value="{{ preview_batch.id }}"><button class="button" type="submit">Confirmar importação</button></form>{% endif %}</section>{% endif %}
 
 <section class="workspace-panel" aria-labelledby="history-heading"><header class="workspace-panel-head"><div><p class="section-kicker">HISTÓRICO</p><h2 id="history-heading">Importações</h2></div><span class="record-count">{{ recent_imports_total }} {% if recent_imports_total == 1 %}importação{% else %}importações{% endif %}</span></header>{% if recent_imports %}<div class="data-table-wrap"><table><thead><tr><th>Arquivo</th><th>Tipo</th><th>Estado</th><th>Resultado</th><th>Enviado</th><th><span class="sr-only">Ações</span></th></tr></thead><tbody>{% for batch in recent_imports %}<tr><td>{{ batch.original_filename }}{% if batch.errors %}<details class="import-errors"><summary>Ver diagnóstico</summary><ul>{% for error in batch.errors|slice:":5" %}<li>{% if error.row %}Linha {{ error.row }}: {% endif %}{{ error.message }}</li>{% endfor %}</ul></details>{% endif %}</td><td>{{ batch.get_kind_display }}</td><td><span class="status-badge {% if batch.status == 'completed' %}is-active{% elif batch.status == 'failed' %}is-warning{% else %}is-muted{% endif %}">{{ batch.get_status_display }}</span></td><td>{{ batch.created_count }} novos · {{ batch.updated_count }} atualizados · {{ batch.ignored_count }} ignorados</td><td>{{ batch.created_at|date:"d/m/Y H:i" }}</td><td>{% if can_manage_setup and batch.kind == 'dominio_backup' and batch.status == 'failed' %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="retry-backup"><input type="hidden" name="batch_id" value="{{ batch.id }}"><button class="button button-quiet" type="submit">Tentar novamente</button></form>{% endif %}</td></tr>{% endfor %}</tbody></table></div>{% if recent_imports_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do histórico de importações">{% if recent_imports_page.has_previous %}<a class="button button-quiet button-small" href="?{% if recent_imports_querystring %}{{ recent_imports_querystring }}&amp;{% endif %}imports_page={{ recent_imports_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ recent_imports_page.number }} de {{ recent_imports_page.paginator.num_pages }}</span>{% if recent_imports_page.has_next %}<a class="button button-quiet button-small" href="?{% if recent_imports_querystring %}{{ recent_imports_querystring }}&amp;{% endif %}imports_page={{ recent_imports_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}{% else %}<div class="compact-empty">Nenhum arquivo enviado ainda.</div>{% endif %}</section>
 <script src="{% static 'hub/cica-setup.js' %}" defer></script>

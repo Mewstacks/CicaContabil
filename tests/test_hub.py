@@ -53,6 +53,79 @@ def test_history_creates_a_confident_derived_artifact() -> None:
 
 
 @pytest.mark.django_db
+def test_history_keeps_an_ambiguous_match_in_human_review() -> None:
+    office = Organization.objects.create(name="Escritório B2", slug="escritorio-b2")
+    company = ClientCompany.objects.create(organization=office, name="Cliente B2")
+    for accumulator_code in ("501", "502"):
+        AccumulatorObservation.objects.create(
+            organization=office,
+            company=company,
+            accumulator_code=accumulator_code,
+            service_code="123",
+            frequency=18,
+            last_used_at=timezone.now() - timedelta(days=1),
+        )
+
+    _document, artifact, review = create_document_and_artifact(
+        company=company,
+        original_xml="<nfse id='ambiguous' />",
+        normalized_data={"service_code": "123"},
+    )
+
+    assert artifact is None
+    assert review is not None
+
+
+@pytest.mark.django_db
+def test_history_does_not_suggest_an_unrelated_accumulator() -> None:
+    office = Organization.objects.create(name="Escritório B3", slug="escritorio-b3")
+    company = ClientCompany.objects.create(organization=office, name="Cliente B3")
+    AccumulatorObservation.objects.create(
+        organization=office,
+        company=company,
+        accumulator_code="501",
+        service_code="123",
+        counterparty_ref="known-counterparty",
+        frequency=100,
+        last_used_at=timezone.now(),
+    )
+
+    _document, artifact, review = create_document_and_artifact(
+        company=company,
+        original_xml="<nfse id='unrelated' />",
+        normalized_data={"service_code": "999", "counterparty_ref": "another-counterparty"},
+    )
+
+    assert artifact is None
+    assert review is not None
+    assert review.suggested_accumulator == ""
+
+
+@pytest.mark.django_db
+def test_recent_counterparty_history_can_classify_the_next_month() -> None:
+    office = Organization.objects.create(name="Escritório B4", slug="escritorio-b4")
+    company = ClientCompany.objects.create(organization=office, name="Cliente B4")
+    AccumulatorObservation.objects.create(
+        organization=office,
+        company=company,
+        accumulator_code="701",
+        counterparty_ref="same-counterparty",
+        frequency=8,
+        last_used_at=timezone.now() - timedelta(days=31),
+    )
+
+    _document, artifact, review = create_document_and_artifact(
+        company=company,
+        original_xml="<nfse id='next-month' />",
+        normalized_data={"counterparty_ref": "same-counterparty"},
+    )
+
+    assert review is None
+    assert artifact is not None
+    assert artifact.accumulator_code == "701"
+
+
+@pytest.mark.django_db
 def test_document_hash_is_isolated_by_office_but_cannot_repeat_inside_it() -> None:
     office = Organization.objects.create(name="Escritório C", slug="escritorio-c")
     company = ClientCompany.objects.create(organization=office, name="Cliente C")

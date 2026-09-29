@@ -7,24 +7,33 @@ import io
 import json
 import re
 import zipfile
-from datetime import datetime
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import cast
 
 from defusedxml import ElementTree  # type: ignore[import-untyped]
+from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.hub.financial import AccountingBalanceInput, record_accounting_balance_snapshot
 from apps.hub.models import (
+    AccountingBalanceSnapshot,
     AccountingEntry,
+    CashScenario,
+    CashScenarioMovement,
     ClientCompany,
     DataSource,
+    DreAccountMapping,
+    DreMappingSet,
     FiscalGuide,
     ImportBatch,
+    PayrollPeriodSnapshot,
 )
+from apps.hub.payroll import record_payroll_snapshot
 from apps.hub.reconciliation import import_ofx, rebuild_reconciliation_matches
 from apps.hub.services import create_document_and_artifact
 from apps.organizations.models import Organization
@@ -166,6 +175,18 @@ def create_import_preview(
     if not filename:
         raise ImportValidationError("O arquivo não possui nome.")
     digest = _sha256_upload(upload)
+    if (
+        kind == ImportBatch.Kind.DOMINIO_BACKUP
+        and ImportBatch.objects.filter(
+            organization=organization,
+            data_source=data_source,
+            kind=ImportBatch.Kind.DOMINIO_BACKUP,
+            status=ImportBatch.Status.COMPLETED,
+        ).exists()
+    ):
+        raise ImportValidationError(
+            "A fotografia inicial deste Dominio Web ja foi concluida e preservada."
+        )
     existing = ImportBatch.objects.filter(
         organization=organization, data_source=data_source, kind=kind, content_hash=digest
     ).first()
@@ -224,6 +245,10 @@ def create_import_preview(
             ImportBatch.Kind.COMPANIES,
             ImportBatch.Kind.OBLIGATIONS,
             ImportBatch.Kind.ACCOUNTING,
+            ImportBatch.Kind.ACCOUNTING_BALANCES,
+            ImportBatch.Kind.PAYROLL_TOTALS,
+            ImportBatch.Kind.CASH_SCENARIO,
+            ImportBatch.Kind.DRE_MAPPING,
         }:
             rows = _tabular_rows(filename, content)
             if not rows:
@@ -264,9 +289,7 @@ def _company_for_row(
         if found:
             return found
     if len(cnpj) == 14:
-        matches = [
-            company for company in query if re.sub(r"\D", "", company.cnpj_masked) == cnpj
-        ]
+        matches = [company for company in query if re.sub(r"\D", "", company.cnpj_masked) == cnpj]
         same_source = next(
             (company for company in matches if company.data_source_id == data_source.id), None
         )
@@ -289,6 +312,353 @@ def _cents(value: str) -> int:
         raise ValueError from exc
 
 
+def payroll_preview_rows(
+    *, batch: ImportBatch, rows: list[dict[str, str]], first_line: int
+) -> list[dict[str, object]]:
+    result: list[dict[str, object]] = []
+    for number, row in enumerate(rows, first_line):
+        try:
+            company = _company_for_row(batch.organization, batch.data_source, row)
+        except ValueError:
+            company = None
+        result.append(
+            {
+                "line": number,
+                "company": company.name if company else "Empresa não localizada",
+                "company_found": company is not None,
+                "code": _pick(
+                    row, "codigo", "codigo_empresa", "external_key", "cnpj", "cnpj_empresa"
+                ),
+                "competence": _pick(row, "competencia"),
+                "reference": _pick(row, "referencia"),
+                "values": [
+                    row.get(column, "").strip()
+                    for column in (
+                        "pessoas",
+                        "bruto",
+                        "descontos",
+                        "encargos",
+                        "liquido",
+                    )
+                ],
+            }
+        )
+    return result
+
+
+def _import_payroll_totals(
+    *, batch: ImportBatch, rows: list[dict[str, str]], actor: User, request: object
+) -> tuple[int, int, int, list[dict[str, object]]]:
+    number = 1
+    created = ignored = 0
+    try:
+        with transaction.atomic():
+            for number, row in enumerate(rows, 2):  # noqa: B007 - error reports the failed row
+                company = _company_for_row(batch.organization, batch.data_source, row)
+                competence = datetime.strptime(_pick(row, "competencia"), "%Y-%m-%d").date()
+                reference = _pick(row, "referencia")
+                if company is None or not reference or competence.day != 1:
+                    raise ValueError("Informe empresa, competência no primeiro dia e referência.")
+                totals: dict[str, int | None] = {}
+                for column, field in {
+                    "bruto": "gross_pay_cents",
+                    "descontos": "deductions_cents",
+                    "encargos": "employer_charges_cents",
+                    "liquido": "net_pay_cents",
+                }.items():
+                    raw = _pick(row, column)
+                    totals[field] = _cents(raw) if raw else None
+                workforce = _pick(row, "pessoas")
+                totals["workforce_count"] = int(workforce) if workforce else None
+                if all(value is None for value in totals.values()):
+                    raise ValueError("Informe pelo menos um total.")
+                _, was_created = record_payroll_snapshot(
+                    snapshot=PayrollPeriodSnapshot(
+                        organization=batch.organization,
+                        company=company,
+                        competence=competence,
+                        source_kind=PayrollPeriodSnapshot.SourceKind.DOCUMENT,
+                        source_reference=reference,
+                        data_source=batch.data_source,
+                        observed_at=batch.source_snapshot_at or timezone.now(),
+                        **totals,
+                    ),
+                    actor=actor,
+                    request=request,
+                )
+                created += int(was_created)
+                ignored += int(not was_created)
+    except (ValueError, TypeError, OverflowError, ValidationError):
+        return (
+            0,
+            0,
+            len(rows),
+            [
+                {
+                    "row": number,
+                    "message": "Revise empresa, competência, referência e totais não negativos. "
+                    "Uma referência existente não pode receber dados diferentes.",
+                }
+            ],
+        )
+    return created, 0, ignored, []
+
+
+def _import_accounting_balances(
+    *, batch: ImportBatch, rows: list[dict[str, str]], actor: User, request: object
+) -> tuple[int, int, int, list[dict[str, object]]]:
+    """Store complete balance observations only after every supplied row validates."""
+
+    grouped: dict[tuple[ClientCompany, date, str], list[AccountingBalanceInput]] = {}
+    errors: list[dict[str, object]] = []
+    for number, row in enumerate(rows, 2):
+        try:
+            company = _company_for_row(batch.organization, batch.data_source, row)
+            competence = datetime.strptime(
+                _pick(row, "competencia", "competence"), "%Y-%m-%d"
+            ).date()
+            reference = _pick(row, "referencia", "reference")
+            account_code = _pick(row, "conta", "conta_codigo", "account_code")
+            if company is None or not reference or not account_code:
+                raise ValueError("Informe empresa, competencia, referencia e conta.")
+            key = (company, competence, reference)
+            inputs = grouped.setdefault(key, [])
+            if any(item.account_code == account_code for item in inputs):
+                raise ValueError("A mesma conta foi repetida na fotografia.")
+            inputs.append(
+                AccountingBalanceInput(
+                    account_code=account_code,
+                    account_name=_pick(row, "nome_conta", "account_name"),
+                    balance_cents=_cents(_pick(row, "saldo", "balance", "valor", "amount")),
+                )
+            )
+        except (ValueError, TypeError):
+            if len(errors) < 200:
+                errors.append({"row": number, "message": "Linha de saldo contabil invalida."})
+    if errors:
+        return 0, 0, len(rows), errors
+    created = ignored = 0
+    for (company, competence, reference), lines in grouped.items():
+        _snapshot, was_created = record_accounting_balance_snapshot(
+            snapshot=AccountingBalanceSnapshot(
+                organization=batch.organization,
+                company=company,
+                competence=competence,
+                source_kind=AccountingBalanceSnapshot.SourceKind.IMPORT,
+                source_reference=reference,
+                observed_at=batch.source_snapshot_at or timezone.now(),
+            ),
+            lines=lines,
+            actor=actor,
+            request=request,
+        )
+        created += int(was_created)
+        ignored += int(not was_created)
+    return created, 0, ignored, []
+
+
+def _cash_cents(value: str) -> int:
+    return 0 if not value.strip() else _cents(value)
+
+
+def _as_bool(value: str) -> bool:
+    normalized = value.strip().casefold()
+    if normalized in {"", "0", "false", "nao", "no"}:
+        return False
+    if normalized in {"1", "true", "sim", "yes"}:
+        return True
+    raise ValueError
+
+
+def _import_cash_scenario(
+    *, batch: ImportBatch, rows: list[dict[str, str]], actor: User
+) -> tuple[int, int, int, list[dict[str, object]]]:
+    """Import explicit cash facts; every movement needs a durable source reference."""
+
+    parsed: list[
+        tuple[ClientCompany, str, str, date, int, date, str, int, int, int, int, bool, str]
+    ] = []
+    errors: list[dict[str, object]] = []
+    seen: set[tuple[ClientCompany, str, str, date, str]] = set()
+    valid_views = {choice for choice, _label in CashScenario.View.choices}
+    for number, row in enumerate(rows, 2):
+        try:
+            company = _company_for_row(batch.organization, batch.data_source, row)
+            label = _pick(row, "cenario", "scenario", "nome")
+            view = _pick(row, "visao", "view").casefold()
+            reference_date = datetime.strptime(
+                _pick(row, "data_referencia", "reference_date"), "%Y-%m-%d"
+            ).date()
+            opening_balance = _pick(row, "saldo_inicial", "opening_balance")
+            occurred_on = datetime.strptime(_pick(row, "data", "occurred_on"), "%Y-%m-%d").date()
+            description = _pick(row, "descricao", "description")
+            source_reference = _pick(row, "referencia", "reference")
+            if (
+                company is None
+                or not label
+                or view not in valid_views
+                or not opening_balance
+                or not description
+                or not source_reference
+            ):
+                raise ValueError
+            key = (company, label, view, reference_date, source_reference)
+            if key in seen:
+                raise ValueError
+            seen.add(key)
+            gross_receipt_cents = _cash_cents(
+                _pick(row, "recebimento_bruto", "gross_receipt", "gross_receipt_cents")
+            )
+            payment_cents = _cash_cents(_pick(row, "pagamento", "payment", "payment_cents"))
+            opening_balance_cents = _cents(opening_balance)
+            retention_cents = _cash_cents(_pick(row, "retencao", "retention", "retention_cents"))
+            provision_cents = _cash_cents(_pick(row, "provisao", "provision", "provision_cents"))
+            retention_already_provisioned = _as_bool(
+                _pick(row, "retencao_ja_provisionada", "retention_already_provisioned")
+            )
+            if min(gross_receipt_cents, payment_cents, retention_cents, provision_cents) < 0:
+                raise ValueError
+            if retention_already_provisioned and retention_cents and provision_cents:
+                raise ValueError
+            parsed.append(
+                (
+                    company,
+                    label,
+                    view,
+                    reference_date,
+                    opening_balance_cents,
+                    occurred_on,
+                    description,
+                    gross_receipt_cents,
+                    payment_cents,
+                    retention_cents,
+                    provision_cents,
+                    retention_already_provisioned,
+                    source_reference,
+                )
+            )
+        except (ValueError, TypeError):
+            if len(errors) < 200:
+                errors.append({"row": number, "message": "Linha de cenario de caixa invalida."})
+    if errors:
+        return 0, 0, len(rows), errors
+    for values in parsed:
+        company, label, view, reference_date, opening_balance_cents, *_rest = values
+        existing = (
+            CashScenario.objects.filter(
+                organization=batch.organization,
+                company=company,
+                label=label,
+                view=view,
+                reference_date=reference_date,
+            )
+            .only("opening_balance_cents")
+            .first()
+        )
+        if existing is not None and existing.opening_balance_cents != opening_balance_cents:
+            return (
+                0,
+                0,
+                len(rows),
+                [
+                    {
+                        "row": 0,
+                        "message": "O saldo inicial diverge do cenário já registrado.",
+                    }
+                ],
+            )
+    created = ignored = 0
+    for values in parsed:
+        (
+            company,
+            label,
+            view,
+            reference_date,
+            opening_balance_cents,
+            occurred_on,
+            description,
+            gross_receipt_cents,
+            payment_cents,
+            retention_cents,
+            provision_cents,
+            retention_already_provisioned,
+            source_reference,
+        ) = values
+        scenario, scenario_created = CashScenario.objects.get_or_create(
+            organization=batch.organization,
+            company=company,
+            label=label,
+            view=view,
+            reference_date=reference_date,
+            defaults={"opening_balance_cents": opening_balance_cents, "created_by": actor},
+        )
+        _movement, movement_created = CashScenarioMovement.objects.get_or_create(
+            scenario=scenario,
+            source_reference=source_reference,
+            defaults={
+                "occurred_on": occurred_on,
+                "description": description,
+                "gross_receipt_cents": gross_receipt_cents,
+                "payment_cents": payment_cents,
+                "retention_cents": retention_cents,
+                "provision_cents": provision_cents,
+                "retention_already_provisioned": retention_already_provisioned,
+            },
+        )
+        created += int(scenario_created or movement_created)
+        ignored += int(not scenario_created and not movement_created)
+    return created, 0, ignored, []
+
+
+def _import_dre_mapping(
+    *, batch: ImportBatch, rows: list[dict[str, str]], actor: User
+) -> tuple[int, int, int, list[dict[str, object]]]:
+    """Create a complete new mapping version; never change the prior version's rows."""
+
+    mappings: list[tuple[str, str, int]] = []
+    errors: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for number, row in enumerate(rows, 2):
+        account_code = _pick(row, "conta", "account_code")
+        group = _pick(row, "grupo", "group")
+        try:
+            sign = int(_pick(row, "sinal", "sign"))
+            if not account_code or not group or sign not in {-1, 1} or account_code in seen:
+                raise ValueError
+        except ValueError:
+            errors.append({"row": number, "message": "Linha de mapa DRE invalida."})
+            continue
+        seen.add(account_code)
+        mappings.append((account_code, group, sign))
+    if errors:
+        return 0, 0, len(rows), errors
+    # Lock the organization itself too. Locking only mapping rows leaves a race
+    # when two first imports find no prior version to lock.
+    Organization.objects.select_for_update().get(pk=batch.organization_id)
+    locked_mappings = DreMappingSet.objects.select_for_update().filter(
+        organization=batch.organization
+    )
+    current_version = (
+        locked_mappings.order_by("-version").values_list("version", flat=True).first() or 0
+    )
+    version = current_version + 1
+    locked_mappings.filter(is_active=True).update(is_active=False)
+    mapping_set = DreMappingSet.objects.create(
+        organization=batch.organization,
+        version=version,
+        label=f"Importado: {batch.original_filename}"[:160],
+        is_active=True,
+        created_by=actor,
+    )
+    DreAccountMapping.objects.bulk_create(
+        [
+            DreAccountMapping(mapping_set=mapping_set, account_code=code, group=group, sign=sign)
+            for code, group, sign in mappings
+        ]
+    )
+    return 1, 0, 0, []
+
+
 @transaction.atomic
 def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -> ImportBatch:
     batch = ImportBatch.objects.select_for_update().select_related("data_source").get(id=batch.id)
@@ -303,114 +673,145 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
     errors: list[dict[str, object]] = []
     created = updated = ignored = 0
     company_id = str(batch.mapping.get("company_id", ""))
-    company = ClientCompany.objects.filter(id=company_id, organization=batch.organization).first()
+    company = (
+        ClientCompany.objects.filter(id=company_id, organization=batch.organization).first()
+        if company_id
+        else None
+    )
     if batch.kind in {
         ImportBatch.Kind.COMPANIES,
         ImportBatch.Kind.OBLIGATIONS,
         ImportBatch.Kind.ACCOUNTING,
+        ImportBatch.Kind.ACCOUNTING_BALANCES,
+        ImportBatch.Kind.PAYROLL_TOTALS,
+        ImportBatch.Kind.CASH_SCENARIO,
+        ImportBatch.Kind.DRE_MAPPING,
     }:
         rows = json.loads(batch.encrypted_payload)
     else:
         content = base64.b64decode(batch.encrypted_payload)
         rows = []
-    for number, row in enumerate(rows, 2):
-        try:
-            if batch.kind == ImportBatch.Kind.COMPANIES:
-                name = _pick(row, "nome", "razao_social", "empresa")
-                external = _pick(row, "codigo", "codigo_empresa", "external_key")
-                cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
-                if not name or (cnpj and len(cnpj) != 14):
-                    raise ValueError("Informe nome e um CNPJ válido quando presente.")
-                defaults = {
-                    "name": name[:180],
-                    "cnpj_masked": cnpj if cnpj else "",
-                    "active": True,
-                    "source_updated_at": batch.source_snapshot_at,
-                }
-                if cnpj and any(
-                    re.sub(r"\D", "", existing.cnpj_masked) == cnpj
-                    for existing in ClientCompany.objects.filter(organization=batch.organization)
-                    .exclude(data_source=batch.data_source)
-                    .iterator()
-                ):
-                    raise ValueError(
-                        "O CNPJ já existe em outra fonte; nenhum registro foi mesclado."
+    if batch.kind == ImportBatch.Kind.ACCOUNTING_BALANCES:
+        created, updated, ignored, errors = _import_accounting_balances(
+            batch=batch, rows=rows, actor=actor, request=request
+        )
+    elif batch.kind == ImportBatch.Kind.PAYROLL_TOTALS:
+        created, updated, ignored, errors = _import_payroll_totals(
+            batch=batch, rows=rows, actor=actor, request=request
+        )
+    elif batch.kind == ImportBatch.Kind.CASH_SCENARIO:
+        created, updated, ignored, errors = _import_cash_scenario(
+            batch=batch, rows=rows, actor=actor
+        )
+    elif batch.kind == ImportBatch.Kind.DRE_MAPPING:
+        created, updated, ignored, errors = _import_dre_mapping(batch=batch, rows=rows, actor=actor)
+    else:
+        for number, row in enumerate(rows, 2):
+            try:
+                if batch.kind == ImportBatch.Kind.COMPANIES:
+                    name = _pick(row, "nome", "razao_social", "empresa")
+                    external = _pick(row, "codigo", "codigo_empresa", "external_key")
+                    cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
+                    if not name or (cnpj and len(cnpj) != 14):
+                        raise ValueError("Informe nome e um CNPJ válido quando presente.")
+                    defaults = {
+                        "name": name[:180],
+                        "cnpj_masked": cnpj if cnpj else "",
+                        "active": True,
+                        "source_updated_at": batch.source_snapshot_at,
+                    }
+                    if cnpj and any(
+                        re.sub(r"\D", "", existing.cnpj_masked) == cnpj
+                        for existing in ClientCompany.objects.filter(
+                            organization=batch.organization
+                        )
+                        .exclude(data_source=batch.data_source)
+                        .iterator()
+                    ):
+                        raise ValueError(
+                            "O CNPJ já existe em outra fonte; nenhum registro foi mesclado."
+                        )
+                    if external:
+                        _, was_created = ClientCompany.objects.update_or_create(
+                            data_source=batch.data_source,
+                            external_key=external[:160],
+                            defaults={"organization": batch.organization, **defaults},
+                        )
+                    else:
+                        ClientCompany.objects.create(
+                            organization=batch.organization,
+                            data_source=batch.data_source,
+                            **defaults,
+                        )
+                        was_created = True
+                    created += int(was_created)
+                    updated += int(not was_created)
+                elif batch.kind == ImportBatch.Kind.OBLIGATIONS:
+                    row_company = _company_for_row(batch.organization, batch.data_source, row)
+                    reference = _pick(row, "referencia", "reference")
+                    kind = _pick(row, "tipo", "kind").casefold()
+                    aliases = {
+                        "dctfweb": FiscalGuide.Kind.DCTFWEB,
+                        "das": FiscalGuide.Kind.DAS,
+                        "mei": FiscalGuide.Kind.MEI,
+                        "das_mei": FiscalGuide.Kind.MEI,
+                    }
+                    if row_company is None or not reference or kind not in aliases:
+                        raise ValueError("Empresa, referência ou tipo de guia inválido.")
+                    due_on = datetime.strptime(
+                        _pick(row, "vencimento", "due_on"), "%Y-%m-%d"
+                    ).date()
+                    defaults = {
+                        "kind": aliases[kind],
+                        "competence": _pick(row, "competencia", "competence"),
+                        "due_on": due_on,
+                        "amount_cents": _cents(_pick(row, "valor", "amount")),
+                        "integra_service_key": {
+                            FiscalGuide.Kind.DCTFWEB: "dctfweb.guia",
+                            FiscalGuide.Kind.DAS: "pgdasd.das",
+                            FiscalGuide.Kind.MEI: "pgmei.das",
+                        }[aliases[kind]],
+                        "data_source": batch.data_source,
+                        "source_batch": batch,
+                        "external_key": reference[:160],
+                        "source_updated_at": batch.source_snapshot_at,
+                    }
+                    _, was_created = FiscalGuide.objects.update_or_create(
+                        organization=batch.organization,
+                        company=row_company,
+                        reference=reference[:120],
+                        defaults=defaults,
                     )
-                if external:
-                    _, was_created = ClientCompany.objects.update_or_create(
+                    created += int(was_created)
+                    updated += int(not was_created)
+                elif batch.kind == ImportBatch.Kind.ACCOUNTING:
+                    row_company = _company_for_row(batch.organization, batch.data_source, row)
+                    external = _pick(row, "id", "codigo", "external_key")
+                    if row_company is None or not external:
+                        raise ValueError("Informe a empresa e um identificador externo.")
+                    defaults = {
+                        "organization": batch.organization,
+                        "source_batch": batch,
+                        "company": row_company,
+                        "occurred_on": datetime.strptime(
+                            _pick(row, "data", "occurred_on"), "%Y-%m-%d"
+                        ).date(),
+                        "description": _pick(row, "descricao", "historico", "description")[:500],
+                        "amount_cents": abs(_cents(_pick(row, "valor", "amount"))),
+                        "direction": _pick(row, "natureza", "direction")[:8],
+                        "source_updated_at": batch.source_snapshot_at,
+                    }
+                    _, was_created = AccountingEntry.objects.update_or_create(
                         data_source=batch.data_source,
                         external_key=external[:160],
-                        defaults={"organization": batch.organization, **defaults},
+                        defaults=defaults,
                     )
-                else:
-                    ClientCompany.objects.create(
-                        organization=batch.organization, data_source=batch.data_source, **defaults
-                    )
-                    was_created = True
-                created += int(was_created)
-                updated += int(not was_created)
-            elif batch.kind == ImportBatch.Kind.OBLIGATIONS:
-                row_company = _company_for_row(batch.organization, batch.data_source, row)
-                reference = _pick(row, "referencia", "reference")
-                kind = _pick(row, "tipo", "kind").casefold()
-                aliases = {
-                    "dctfweb": FiscalGuide.Kind.DCTFWEB,
-                    "das": FiscalGuide.Kind.DAS,
-                    "mei": FiscalGuide.Kind.MEI,
-                    "das_mei": FiscalGuide.Kind.MEI,
-                }
-                if row_company is None or not reference or kind not in aliases:
-                    raise ValueError("Empresa, referência ou tipo de guia inválido.")
-                due_on = datetime.strptime(_pick(row, "vencimento", "due_on"), "%Y-%m-%d").date()
-                defaults = {
-                    "kind": aliases[kind],
-                    "competence": _pick(row, "competencia", "competence"),
-                    "due_on": due_on,
-                    "amount_cents": _cents(_pick(row, "valor", "amount")),
-                    "integra_service_key": {
-                        FiscalGuide.Kind.DCTFWEB: "dctfweb.guia",
-                        FiscalGuide.Kind.DAS: "pgdasd.das",
-                        FiscalGuide.Kind.MEI: "pgmei.das",
-                    }[aliases[kind]],
-                    "data_source": batch.data_source,
-                    "source_batch": batch,
-                    "external_key": reference[:160],
-                    "source_updated_at": batch.source_snapshot_at,
-                }
-                _, was_created = FiscalGuide.objects.update_or_create(
-                    organization=batch.organization,
-                    company=row_company,
-                    reference=reference[:120],
-                    defaults=defaults,
-                )
-                created += int(was_created)
-                updated += int(not was_created)
-            elif batch.kind == ImportBatch.Kind.ACCOUNTING:
-                row_company = _company_for_row(batch.organization, batch.data_source, row)
-                external = _pick(row, "id", "codigo", "external_key")
-                if row_company is None or not external:
-                    raise ValueError("Informe a empresa e um identificador externo.")
-                defaults = {
-                    "organization": batch.organization,
-                    "source_batch": batch,
-                    "company": row_company,
-                    "occurred_on": datetime.strptime(
-                        _pick(row, "data", "occurred_on"), "%Y-%m-%d"
-                    ).date(),
-                    "description": _pick(row, "descricao", "historico", "description")[:500],
-                    "amount_cents": abs(_cents(_pick(row, "valor", "amount"))),
-                    "direction": _pick(row, "natureza", "direction")[:8],
-                    "source_updated_at": batch.source_snapshot_at,
-                }
-                _, was_created = AccountingEntry.objects.update_or_create(
-                    data_source=batch.data_source, external_key=external[:160], defaults=defaults
-                )
-                created += int(was_created)
-                updated += int(not was_created)
-        except (ValueError, TypeError) as exc:
-            ignored += 1
-            if len(errors) < 200:
-                errors.append({"row": number, "message": str(exc) or "Linha inválida."})
+                    created += int(was_created)
+                    updated += int(not was_created)
+            except (ValueError, TypeError) as exc:
+                ignored += 1
+                if len(errors) < 200:
+                    errors.append({"row": number, "message": str(exc) or "Linha inválida."})
     if batch.kind == ImportBatch.Kind.FISCAL_XML:
         assert company is not None
         text = content.decode("utf-8", errors="strict")
@@ -463,6 +864,10 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
         ImportBatch.Kind.COMPANIES: "companies",
         ImportBatch.Kind.OBLIGATIONS: "obligations",
         ImportBatch.Kind.ACCOUNTING: "accounting_entries",
+        ImportBatch.Kind.ACCOUNTING_BALANCES: "accounting_balances",
+        ImportBatch.Kind.PAYROLL_TOTALS: "payroll_totals",
+        ImportBatch.Kind.CASH_SCENARIO: "cash_scenarios",
+        ImportBatch.Kind.DRE_MAPPING: "dre_mapping",
         ImportBatch.Kind.FISCAL_XML: "fiscal_documents",
         ImportBatch.Kind.BANK_OFX: "bank_statements",
     }

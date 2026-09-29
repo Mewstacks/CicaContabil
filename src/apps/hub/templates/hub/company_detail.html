@@ -19,6 +19,134 @@
   </dl>
 </section>
 
+<section id="atividades" class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Atividades e fechamento</h2><p>Trabalho esperado desta empresa, com prazo, responsável e estado da fonte.</p></div>
+    <span class="record-count">{{ activities_count }} no total</span>
+  </header>
+  {% if activities %}
+    <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Atividade</th><th scope="col">Prazo</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody>{% for activity in activities %}<tr>
+      <td data-label="Atividade"><strong>{{ activity.title }}</strong><small>{{ activity.get_area_display }}{% if activity.competence %} · {{ activity.competence|date:"m/Y" }}{% endif %}{% if activity.assigned_to %} · {{ activity.assigned_to.get_full_name|default:activity.assigned_to.email }}{% endif %}</small></td>
+      <td data-label="Prazo">{% if activity.internal_due_on %}<strong>{{ activity.internal_due_on|date:"d/m/Y" }}</strong><small>Prazo interno{% if activity.legal_due_on %} · legal {{ activity.legal_due_on|date:"d/m/Y" }}{% endif %}</small>{% elif activity.legal_due_on %}<strong>{{ activity.legal_due_on|date:"d/m/Y" }}</strong><small>Prazo legal</small>{% else %}<span class="table-muted">Sem prazo</span>{% endif %}</td>
+      <td data-label="Situação"><span class="module-state {% if activity.work_status == 'completed' or activity.work_status == 'waived' %}is-active{% elif activity.work_status == 'blocked' %}is-danger{% else %}is-warning{% endif %}">{{ activity.get_work_status_display }}</span><small>{{ activity.get_processing_status_display }} · {{ activity.get_obligation_status_display }} · {{ activity.get_freshness_display }}</small></td>
+      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:activity-detail' activity.id %}">Abrir<span class="sr-only"> {{ activity.title }}</span></a></td>
+    </tr>{% endfor %}</tbody></table></div>
+    {% if activities_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das atividades">{% if activities_page.has_previous %}<a class="button button-quiet button-small" href="?{% if activities_querystring %}{{ activities_querystring }}&amp;{% endif %}activities_page={{ activities_page.previous_page_number }}#atividades" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ activities_page.number }} de {{ activities_page.paginator.num_pages }}</span>{% if activities_page.has_next %}<a class="button button-quiet button-small" href="?{% if activities_querystring %}{{ activities_querystring }}&amp;{% endif %}activities_page={{ activities_page.next_page_number }}#atividades" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma atividade desta empresa</strong><p>Os modelos aprovados geram o trabalho esperado por competência. Atividades sob demanda também aparecem aqui.</p><a class="button button-small button-quiet" href="{% url 'hub:activities' %}?company={{ company.id }}">Abrir a central operacional</a></div>
+  {% endif %}
+</section>
+
+<section id="folha" class="workspace-panel">
+  {% if payroll_period %}
+  <div class="payroll-period-context">
+    <p><strong>Competência selecionada: {{ payroll_period|date:'m/Y' }}</strong></p>
+    {% if payroll_review_activity %}<a class="button button-quiet" href="{% url 'hub:activity-detail' payroll_review_activity.pk %}">Voltar à atividade da folha</a>{% endif %}
+    <a class="button button-quiet" href="{% url 'hub:company-detail' company.pk %}#folha">Ver todas as competências</a>
+  </div>
+  {% endif %}
+  <header class="workspace-panel-head">
+    <div><h2>Conferências de folha</h2><p>Totais agregados por fonte e competência. Dados informados não equivalem a consulta oficial.</p></div>
+    <span class="record-count">{{ payroll_snapshots_count }} no total</span>
+  </header>
+  {% if payroll_snapshots %}
+    <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Competência</th><th scope="col">Fonte</th><th scope="col">Totais informados</th><th scope="col">Referência</th></tr></thead><tbody>{% for snapshot in payroll_snapshots %}<tr>
+      <td data-label="Competência"><strong>{{ snapshot.competence|date:"m/Y" }}</strong><small>Observado {{ snapshot.observed_at|date:"d/m/Y H:i" }}</small></td>
+      <td data-label="Fonte"><span class="module-state {% if snapshot.source_kind == 'official' %}is-active{% elif snapshot.source_kind == 'manual' %}is-warning{% else %}is-muted{% endif %}">{{ snapshot.get_source_kind_display }}</span></td>
+      <td data-label="Totais informados"><strong>{% if snapshot.workforce_count != None %}{{ snapshot.workforce_count }} pessoas{% else %}Quadro não informado{% endif %}</strong><small>{% if snapshot.gross_pay_amount != None %}Bruto R$ {{ snapshot.gross_pay_amount|floatformat:2 }}{% else %}Bruto não informado{% endif %} · {% if snapshot.net_pay_amount != None %}Líquido R$ {{ snapshot.net_pay_amount|floatformat:2 }}{% else %}Líquido não informado{% endif %}</small></td>
+      <td data-label="Referência"><strong>{{ snapshot.source_reference }}</strong>{% if snapshot.notes %}<small>{{ snapshot.notes }}</small>{% endif %}</td>
+    </tr>{% endfor %}</tbody></table></div>
+    {% if payroll_snapshots_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das conferências de folha">{% if payroll_snapshots_page.has_previous %}<a class="button button-quiet button-small" href="?{% if payroll_querystring %}{{ payroll_querystring }}&amp;{% endif %}payroll_page={{ payroll_snapshots_page.previous_page_number }}#folha" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ payroll_snapshots_page.number }} de {{ payroll_snapshots_page.paginator.num_pages }}</span>{% if payroll_snapshots_page.has_next %}<a class="button button-quiet button-small" href="?{% if payroll_querystring %}{{ payroll_querystring }}&amp;{% endif %}payroll_page={{ payroll_snapshots_page.next_page_number }}#folha" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhuma fotografia de folha</strong><p>Quando houver importação ou conferência humana, o CICA mostrará a origem e os totais sem alegar consulta oficial.</p></div>
+  {% endif %}
+</section>
+
+{% if payroll_snapshots_count >= 2 %}
+<section id="comparar-folha" class="workspace-panel" aria-labelledby="payroll-comparison-title">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONFER&Ecirc;NCIA</p><h2 id="payroll-comparison-title">Comparar fontes da folha</h2><p>Escolha duas fotografias da mesma compet&ecirc;ncia. A diferen&ccedil;a mostra os totais informados; n&atilde;o calcula folha nem consulta uma fonte externa.</p></div></header>
+  <form method="get" class="form-stack" data-payroll-comparison-form>
+    {% if payroll_period %}<input type="hidden" name="payroll_competence" value="{{ payroll_period|date:'Y-m-d' }}">{% endif %}
+    {% if payroll_comparison_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise as fotografias escolhidas.</strong>{% for field in payroll_comparison_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
+    {% for field in payroll_comparison_form %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <button class="button" type="submit">Comparar fotografias</button>
+  </form>
+  {% if payroll_comparison %}
+    {% if payroll_comparison.matches %}<div class="setup-note"><strong>Sem diferen&ccedil;a acima da toler&acirc;ncia.</strong> As m&eacute;tricas dispon&iacute;veis coincidem nas duas fontes.</div>{% else %}
+      {% if payroll_comparison_variances %}<div class="data-table-wrap"><table class="operational-table company-context-table payroll-comparison-table"><caption>Diferen&ccedil;as acima da toler&acirc;ncia</caption><thead><tr><th scope="col">M&eacute;trica</th><th scope="col">Refer&ecirc;ncia</th><th scope="col">Comparada</th><th scope="col">Diferen&ccedil;a</th></tr></thead><tbody>{% for variance in payroll_comparison_variances %}<tr><td data-label="M&eacute;trica">{{ variance.label }}</td><td data-label="Refer&ecirc;ncia">{% if variance.is_money %}R$ {{ variance.left_value|floatformat:2 }}{% else %}{{ variance.left_value }} pessoas{% endif %}</td><td data-label="Comparada">{% if variance.is_money %}R$ {{ variance.right_value|floatformat:2 }}{% else %}{{ variance.right_value }} pessoas{% endif %}</td><td data-label="Diferen&ccedil;a"><strong>{% if variance.is_money %}R$ {{ variance.difference|floatformat:2 }}{% else %}{{ variance.difference }} pessoas{% endif %}</strong></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+      {% if payroll_comparison_missing %}<p class="setup-note"><strong>M&eacute;tricas n&atilde;o informadas:</strong> {{ payroll_comparison_missing|join:", " }}. Inclua-as em uma fotografia para compar&aacute;-las.</p>{% endif %}
+      <p class="setup-note"><a class="text-action" href="{% url 'hub:activities' %}?company={{ company.id }}&amp;area=payroll&amp;competence={{ payroll_comparison_competence|date:'Y-m' }}">Ver atividades de folha desta compet&ecirc;ncia</a><br>Escolha a atividade respons&aacute;vel para registrar o tratamento; a compara&ccedil;&atilde;o n&atilde;o altera seu estado.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+
+<section id="relatorios-financeiros" class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Relatórios financeiros</h2><p>DRE e caixa usam uma fotografia identificada. A fonte e eventuais pendências acompanham a exportação.</p></div>
+    <span class="record-count">{{ accounting_snapshots_count|add:cash_scenarios_count }} disponíveis</span>
+  </header>
+  {% if financial_report_exports %}
+    <section class="financial-report-group" aria-labelledby="financial-report-exports-title">
+      <div class="financial-report-group-head"><div><h3 id="financial-report-exports-title">Solicitacoes recentes</h3><p>Cada arquivo preserva a fotografia e a situacao da geracao. Atualize a pagina para acompanhar uma solicitacao em andamento.</p></div></div>
+      <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Relatorio</th><th scope="col">Solicitado</th><th scope="col">Situacao</th><th scope="col"><span class="sr-only">Arquivo</span></th></tr></thead><tbody>{% for export in financial_report_exports %}<tr>
+        <td data-label="Relatorio"><strong>{{ export.get_resource_display }} / {{ export.get_export_format_display }}</strong><small>Fotografia {{ export.snapshot_sha256|slice:":12" }}</small></td>
+        <td data-label="Solicitado">{{ export.created_at|date:"d/m/Y H:i" }}<small>{{ export.requested_by.email }}</small></td>
+        <td data-label="Situacao"><span class="module-state {% if export.state == 'ready' %}is-active{% elif export.state == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ export.get_state_display }}</span>{% if export.state == 'failed' %}<small>Solicite novamente.</small>{% endif %}</td>
+        <td class="table-action-cell">{% if export.state == 'ready' %}<a class="row-action-button" href="{% url 'hub:financial-report-export-download' export.id %}">Baixar {{ export.get_export_format_display }}<span class="sr-only"> {{ export.get_resource_display }}</span></a>{% else %}<span class="table-muted">{% if export.state == 'failed' %}Arquivo indisponivel{% else %}Preparando arquivo{% endif %}</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody></table></div>
+    </section>
+  {% endif %}
+  <div class="financial-report-grid">
+    <section class="financial-report-group" aria-labelledby="dre-title">
+      <div class="financial-report-group-head">
+        <div><h3 id="dre-title">DRE gerencial</h3><p>{% if active_dre_mapping %}Mapa ativo: {{ active_dre_mapping.label }} · v{{ active_dre_mapping.version }}{% else %}Um mapa DRE ativo é necessário para exportar.{% endif %}</p></div>
+      </div>
+      {% if accounting_snapshots %}
+        <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Competência</th><th scope="col">Fonte</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for snapshot in accounting_snapshots %}<tr>
+          <td data-label="Competência"><strong>{{ snapshot.competence|date:"m/Y" }}</strong><small>Observado {{ snapshot.observed_at|date:"d/m/Y H:i" }}</small></td>
+          <td data-label="Fonte"><span class="module-state {% if snapshot.source_kind == 'erp' %}is-active{% elif snapshot.source_kind == 'manual' %}is-warning{% else %}is-muted{% endif %}">{{ snapshot.get_source_kind_display }}</span></td>
+          <td data-label="Referência"><strong>{{ snapshot.source_reference }}</strong></td>
+          <td class="table-action-cell"><div class="financial-report-actions">{% if active_dre_mapping %}<form method="post" action="{% url 'hub:company-financial-report' company.id 'dre' snapshot.id 'pdf' %}">{% csrf_token %}<button class="row-action-button" type="submit">PDF<span class="sr-only"> da DRE {{ snapshot.competence|date:"m/Y" }}</span></button></form><form method="post" action="{% url 'hub:company-financial-report' company.id 'dre' snapshot.id 'xlsx' %}">{% csrf_token %}<button class="row-action-button" type="submit">XLSX<span class="sr-only"> da DRE {{ snapshot.competence|date:"m/Y" }}</span></button></form>{% else %}<span class="table-muted">Mapa pendente</span>{% endif %}</div></td>
+        </tr>{% endfor %}</tbody></table></div>
+      {% else %}
+        <p class="financial-report-empty">Ainda não há fotografia contábil desta empresa. Importar ou conectar uma fonte não transforma dados insuficientes em DRE.</p>
+      {% endif %}
+    </section>
+    <section class="financial-report-group" aria-labelledby="cash-title">
+      <div class="financial-report-group-head"><div><h3 id="cash-title">Caixa gerencial</h3><p>Simulação, projeção e realizado continuam separados; não é uma consulta bancária automática.</p></div></div>
+      {% if cash_scenarios %}
+        <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Cenário</th><th scope="col">Visão</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for scenario in cash_scenarios %}<tr>
+          <td data-label="Cenário"><strong>{{ scenario.label }}</strong></td>
+          <td data-label="Visão"><span class="module-state {% if scenario.view == 'realized' %}is-active{% elif scenario.view == 'simulation' %}is-warning{% else %}is-muted{% endif %}">{{ scenario.get_view_display }}</span></td>
+          <td data-label="Referência">{{ scenario.reference_date|date:"d/m/Y" }}</td>
+          <td class="table-action-cell"><div class="financial-report-actions"><form method="post" action="{% url 'hub:company-financial-report' company.id 'cash' scenario.id 'pdf' %}">{% csrf_token %}<button class="row-action-button" type="submit">PDF<span class="sr-only"> do cenário {{ scenario.label }}</span></button></form><form method="post" action="{% url 'hub:company-financial-report' company.id 'cash' scenario.id 'xlsx' %}">{% csrf_token %}<button class="row-action-button" type="submit">XLSX<span class="sr-only"> do cenário {{ scenario.label }}</span></button></form></div></td>
+        </tr>{% endfor %}</tbody></table></div>
+      {% else %}
+        <p class="financial-report-empty">Nenhum cenário foi registrado. O caixa começa com recebimentos, pagamentos e retenções identificados.</p>
+      {% endif %}
+    </section>
+  </div>
+</section>
+
+{% if triage_available %}<section id="triagem" class="workspace-panel">
+  <header class="workspace-panel-head">
+    <div><h2>Documentos em triagem</h2><p>Anexos associados a esta empresa, com a etapa real de tratamento.</p></div>
+    <span class="record-count">{{ triage_items_count }} no total</span>
+  </header>
+  {% if triage_items %}
+    <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Arquivo</th><th scope="col">Período</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody>{% for item in triage_items %}<tr>
+      <td data-label="Arquivo"><strong>{{ item.final_name|default:item.original_name }}</strong><small>{% if item.document_type %}{{ item.document_type.label }}{% else %}Tipo ainda não definido{% endif %}</small></td>
+      <td data-label="Período">{% if item.period_label %}{{ item.period_label }}{% elif item.received_at %}Recebido {{ item.received_at|date:"d/m/Y" }}{% else %}<span class="table-muted">Sem período</span>{% endif %}</td>
+      <td data-label="Situação"><span class="module-state {% if item.status == 'arquivado' %}is-active{% elif item.status == 'rejeitado' %}is-danger{% else %}is-warning{% endif %}">{{ item.get_status_display }}</span></td>
+      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:triage-item' item.id %}">Abrir<span class="sr-only"> {{ item.original_name }}</span></a></td>
+    </tr>{% endfor %}</tbody></table></div>
+    {% if triage_items_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos documentos em triagem">{% if triage_items_page.has_previous %}<a class="button button-quiet button-small" href="?{% if triage_items_querystring %}{{ triage_items_querystring }}&amp;{% endif %}triage_page={{ triage_items_page.previous_page_number }}#triagem" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ triage_items_page.number }} de {{ triage_items_page.paginator.num_pages }}</span>{% if triage_items_page.has_next %}<a class="button button-quiet button-small" href="?{% if triage_items_querystring %}{{ triage_items_querystring }}&amp;{% endif %}triage_page={{ triage_items_page.next_page_number }}#triagem" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  {% else %}
+    <div class="empty-block operational-empty"><strong>Nenhum documento em triagem</strong><p>Os anexos aparecem aqui depois da entrada por e-mail e da associação à empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:triage' %}">Abrir triagem</a></div>
+  {% endif %}
+</section>{% endif %}
+
 <section id="documentos-nfse" class="workspace-panel">
   <header class="workspace-panel-head">
     <div><h2>Documentos NFS-e</h2></div>

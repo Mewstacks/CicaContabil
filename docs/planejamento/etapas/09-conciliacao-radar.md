@@ -78,6 +78,26 @@ registro de execução. Não incluir segredos ou dados de clientes.
 
 ## Prompt de execução
 
+### Radar ligado à central (D-145)
+
+- [x] Escolha explícita de publicação/empresa, justificativa, atribuição ao solicitante e tarefa idempotente.
+- [x] Versão e URL preservadas; coleta atualiza somente vínculos existentes. Mudança/reclassificação reabre análise concluída sem presumir obrigação.
+- [x] Recuperação local por escritório, sem coleta; confirmação humana posterior à versão atual.
+- [x] Percurso Radar → seleção → atividade → publicação/análises da carteira, com recusa de perfis consultivos.
+- [ ] Validar navegador, concorrência PostgreSQL, volume de publicações/vínculos e coleta real autorizada.
+- [x] Saúde das fontes prioriza erro da coleta atual, preservando data do último sucesso.
+
+### Extensão operacional D-134 / V-153 (24/09/2026)
+
+- [x] Projetar arquivo na central, distinguindo processamento, tratamento comprovado e importação não confirmada.
+- [x] Reavaliar após confirmação, desfazimento, aprovação, revisão e retomada; comando de recuperação por escritório.
+- [x] Testar confirmação → conclusão → desfazimento e aprovação → revisão de origem, preservando evidência.
+- [x] Reconfirmar relação desfeita com preservação histórica (D-135); revalidar saldo e manter decisões anteriores.
+- [x] Navegação contextual por arquivo autorizada com filtros persistidos (D-136).
+- [x] Expor histórico detalhado de decisões com paginação e acesso consultivo (D-137).
+- [ ] Validar interface no navegador, concorrência e volume.
+- [ ] Homologar concorrência, documentos/layouts autorizados e volume. V-153 comprova apenas ambiente local sintético.
+
 > Execute a etapa 09. Complete conciliação, lançamentos revisados e exportações homologadas para os conectores aprovados. Valide documentos reais autorizados e volume. Complete também a operação do Radar, sem ampliar sua promessa para cálculo tributário individual não decidido.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.

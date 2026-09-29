@@ -29,10 +29,10 @@
               <small>Aguardando a primeira coleta.</small>
             {% endif %}
           </div>
-          {% if status and status.last_success_at %}
-            <span class="module-state is-active">Coleta concluída</span>
-          {% elif status and status.last_error %}
+          {% if status and status.last_error %}
             <span class="module-state is-danger">Falha na coleta</span>
+          {% elif status and status.last_success_at %}
+            <span class="module-state is-active">Coleta concluída</span>
           {% else %}
             <span class="module-state is-muted">Ainda não coletada</span>
           {% endif %}
@@ -42,7 +42,7 @@
   </section>
   {% if alerts %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Publicação</th><th>Fonte</th><th>Origem</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
-      {% for alert in alerts %}<tr><td data-label="Publicação"><strong>{{ alert.title }}</strong>{% if alert.summary %}<small>{{ alert.summary|truncatechars:140 }}</small>{% endif %}<small>{% if alert.published_at %}Publicada em {{ alert.published_at|date:'d/m/Y' }} · {% endif %}Coletada em {{ alert.created_at|date:'d/m/Y' }}</small></td><td data-label="Fonte"><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td data-label="Origem"><span class="nfse-status nfse-status-muted">Publicação coletada</span><small>Sem interpretação fiscal validada</small></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir na fonte<span class="sr-only"> a publicação {{ alert.title }}</span></a></td></tr>{% endfor %}
+      {% for alert in alerts %}<tr><td data-label="Publicação"><strong>{{ alert.title }}</strong>{% if alert.summary %}<small>{{ alert.summary|truncatechars:140 }}</small>{% endif %}<small>{% if alert.published_at %}Publicada em {{ alert.published_at|date:'d/m/Y' }} · {% endif %}Coletada em {{ alert.created_at|date:'d/m/Y' }}</small></td><td data-label="Fonte"><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span></td><td data-label="Origem"><span class="nfse-status nfse-status-muted">Publicação coletada</span><small>Sem interpretação fiscal validada</small></td><td class="table-action-cell"><a class="row-action-button" href="{{ alert.source_url }}" target="_blank" rel="noopener noreferrer">Abrir na fonte<span class="sr-only"> a publicação {{ alert.title }}</span></a>{% if not radar_demo %}<a class="row-action-button" href="{% url 'hub:reform-analysis' alert.id %}">Analisar por empresa<span class="sr-only"> a publicação {{ alert.title }}</span></a>{% endif %}</td></tr>{% endfor %}
     </tbody></table></div>
     {% if alert_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do Radar da Reforma Tributária">{% if alert_page.has_previous %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ alert_page.number }} de {{ alert_page.paginator.num_pages }}</span>{% if alert_page.has_next %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}

@@ -28,6 +28,27 @@ def test_nfse_routes_share_one_task_menu(route):
     assert reverse("hub:reconciliation") not in urls
 
 
+def test_nfse_only_subscription_hides_the_central_activity_queue():
+    request = RequestFactory().get(reverse("hub:nfse-center"))
+    request.resolver_match = resolve(request.path)
+
+    groups = workspace_navigation(
+        {
+            "request": request,
+            "enabled_modules": [SimpleNamespace(code="nfse")],
+            "is_nfse_only_subscription": True,
+            "membership": SimpleNamespace(role="owner"),
+        }
+    )
+
+    keys = {group["key"] for group in groups}
+    urls = [item["url"] for group in groups for item in group["links"]]
+    assert "operations" not in keys
+    assert reverse("hub:activities") not in urls
+    assert reverse("hub:activity-models") not in urls
+    assert reverse("hub:nfse-center") in urls
+
+
 def test_navigation_omits_unavailable_module_groups():
     request = RequestFactory().get(reverse("hub:dashboard"))
     request.resolver_match = resolve(request.path)

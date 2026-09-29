@@ -13,7 +13,8 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-QA_ROOT = ROOT / ".tmp" / "ui-review"
+CENTRAL_REVIEW = os.environ.get("QA_REVIEW_SUITE") == "central"
+QA_ROOT = ROOT / ".tmp" / ("central-review" if CENTRAL_REVIEW else "ui-review")
 QA_ROOT.mkdir(parents=True, exist_ok=True)
 sys.path.insert(0, str(ROOT / "src"))
 os.environ.update(
@@ -125,5 +126,10 @@ def synthetic_odbc(self: ReadOnlyDominoOdbc, query_name: str) -> list[dict[str, 
 
 
 ReadOnlyDominoOdbc.execute = synthetic_odbc
-print("Isolated UI review: http://127.0.0.1:8011/ (outbound connections blocked)", flush=True)
-call_command("runserver", "127.0.0.1:8011", use_reloader=False)
+if CENTRAL_REVIEW:
+    from qa_central_fixture import seed_central
+
+    seed_central(QA_ROOT)
+port = 8012 if CENTRAL_REVIEW else 8011
+print(f"Isolated UI review: http://127.0.0.1:{port}/ (outbound connections blocked)", flush=True)
+call_command("runserver", f"127.0.0.1:{port}", use_reloader=False)

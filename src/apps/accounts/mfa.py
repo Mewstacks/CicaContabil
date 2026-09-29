@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import secrets
 from datetime import timedelta
 
 from django.db import transaction
@@ -12,12 +10,7 @@ from apps.accounts import totp
 from apps.accounts.models import RecoveryCode, TotpDevice, User
 
 SESSION_KEY = "mfa_verified_device"
-RECOVERY_CODE_COUNT = 8
 ISSUER = "CICA"
-
-
-def _hash(code: str) -> str:
-    return hashlib.sha256(code.strip().replace("-", "").casefold().encode()).hexdigest()
 
 
 def is_required(user: User) -> bool:
@@ -102,34 +95,24 @@ def provisioning_uri(device: TotpDevice) -> str:
     return totp.provisioning_uri(device.secret, account=device.user.email, issuer=ISSUER)
 
 
-def confirm_enrollment(device: TotpDevice, code: str) -> list[str] | None:
-    """Confirm the device and hand back the recovery codes, shown exactly once."""
+def confirm_enrollment(device: TotpDevice, code: str) -> bool:
+    """Confirm the authenticator without issuing a second set of credentials."""
 
     counter = totp.verify(device.secret, code)
     if counter is None:
-        return None
+        return False
     with transaction.atomic():
         device.confirmed_at = timezone.now()
         device.last_counter = counter
         device.save(update_fields=["confirmed_at", "last_counter", "updated_at"])
-        return _issue_recovery_codes(device.user)
-
-
-def _issue_recovery_codes(user: User) -> list[str]:
-    RecoveryCode.objects.filter(user=user).delete()
-    codes = [f"{secrets.token_hex(2)}-{secrets.token_hex(3)}" for _ in range(RECOVERY_CODE_COUNT)]
-    RecoveryCode.objects.bulk_create(
-        [RecoveryCode(user=user, code_hash=_hash(code)) for code in codes]
-    )
-    return codes
-
-
-def reissue_recovery_codes(user: User) -> list[str]:
-    return _issue_recovery_codes(user)
+        # Recovery codes were removed from the product. Clear any historical
+        # rows when an authenticator is enrolled again.
+        RecoveryCode.objects.filter(user=device.user).delete()
+    return True
 
 
 def check_code(user: User, code: str) -> bool:
-    """Accept a fresh authenticator code, or spend one recovery code."""
+    """Accept only a fresh authenticator code."""
 
     device = device_for(user)
     if device is None or not device.is_confirmed:
@@ -142,10 +125,7 @@ def check_code(user: User, code: str) -> bool:
         device.last_counter = counter
         device.save(update_fields=["last_counter", "updated_at"])
         return True
-    spent = RecoveryCode.objects.filter(
-        user=user, code_hash=_hash(code), used_at__isnull=True
-    ).update(used_at=timezone.now())
-    return bool(spent)
+    return False
 
 
 def mark_verified(request: HttpRequest) -> None:

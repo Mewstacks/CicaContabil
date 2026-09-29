@@ -11,7 +11,7 @@ o script apenas troca o passo, registra a conclusão e devolve o foco ao acionad
         data-onboarding
         data-onboarding-id="{{ onboarding_tour.identifier }}"
         data-onboarding-version="{{ onboarding_tour.version }}"
-        data-onboarding-auto="{% if onboarding_tour_done %}false{% else %}true{% endif %}"
+        data-onboarding-auto="{% if onboarding_auto_open %}true{% else %}false{% endif %}"
         data-onboarding-session-only="{% if onboarding_session_only %}true{% else %}false{% endif %}"
         data-onboarding-url="{% url 'hub:onboarding-complete' onboarding_tour.identifier %}"
         aria-labelledby="onboarding-title-{{ onboarding_tour.identifier }}">

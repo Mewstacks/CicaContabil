@@ -11,6 +11,7 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     request = context["request"]
     route = request.resolver_match.url_name if request.resolver_match else ""
     codes = {module.code for module in context.get("enabled_modules", [])}
+    nfse_only = context.get("is_nfse_only_subscription") is True
     membership = context.get("membership")
 
     def link(
@@ -40,6 +41,21 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
                     "active": any(item["active"] for item in links),
                 }
             )
+
+    group(
+        "operations",
+        "Operação",
+        [
+            link(
+                "Atividades",
+                "hub:activities",
+                "Prazos, evidências e fechamentos da sua carteira",
+                routes=("activity-detail",),
+            )
+        ]
+        if codes and not nfse_only
+        else [],
+    )
 
     group(
         "registry",
@@ -126,6 +142,14 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     ]
     if membership and membership.role in {"owner", "admin"}:
         settings.append(link("Equipe e acessos", "hub:team", "Pessoas e permissões"))
+        if codes and not nfse_only:
+            settings.append(
+                link(
+                    "Modelos de atividades",
+                    "hub:activity-models",
+                    "Regras, responsáveis e prazos da central operacional",
+                )
+            )
     settings.append(link("Primeiros passos", "hub:setup", "Preparar o escritório para operar"))
     group("settings", "Configurações", settings)
     return groups

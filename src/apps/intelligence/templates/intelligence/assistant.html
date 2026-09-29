@@ -98,8 +98,8 @@
               <p class="answer-limit">Rascunho para conferência. A CICA não altera o Domínio; a decisão é da sua equipe.</p>
               {% if not demo_copilot %}<div class="answer-exports" aria-label="Exportar esta análise">
                 <span>Exportar</span>
-                <a href="{% url 'intelligence:export' message.id 'pdf' %}">PDF</a>
-                <a href="{% url 'intelligence:export' message.id 'xlsx' %}">XLSX</a>
+                <form method="post" action="{% url 'intelligence:export' message.id 'pdf' %}">{% csrf_token %}<button type="submit">PDF</button></form>
+                <form method="post" action="{% url 'intelligence:export' message.id 'xlsx' %}">{% csrf_token %}<button type="submit">XLSX</button></form>
               </div>{% endif %}
               {% if not demo_copilot %}<div class="feedback-row" aria-label="Avaliar resposta">
                 <span>Foi útil?</span>

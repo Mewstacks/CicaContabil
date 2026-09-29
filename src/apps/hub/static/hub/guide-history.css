@@ -1,0 +1,12 @@
+.guide-history { padding: 20px; min-width: 0; overflow-wrap: anywhere; scroll-margin-top: 100px; }
+.guide-history h2, .guide-history h3 { text-wrap: balance; }
+.guide-history ol { padding-left: 22px; }
+.guide-history li { border-top: 1px solid var(--line); padding: 16px 0; }
+.guide-history dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.guide-history dd { margin: 4px 0; }
+.guide-history :is(time, h3) { font-variant-numeric: tabular-nums; }
+.guide-history .button { min-height: 44px; white-space: normal; }
+.guide-history a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.guide-history a:hover { text-decoration: underline; }
+.guide-history .pagination { flex-wrap: wrap; gap: 12px; }
+@media (max-width: 600px) { .guide-history dl { grid-template-columns: 1fr; } }

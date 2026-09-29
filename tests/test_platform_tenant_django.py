@@ -70,6 +70,36 @@ class PlatformTenantViewTests(TestCase):
         )
         self.assertTrue(enabled.enabled)
 
+    def test_developer_can_activate_and_end_internal_partner_without_a_contract(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        activated = self.client.post(
+            detail_url,
+            {"action": "internal-test-partner", "internal_test_partner": "on"},
+        )
+
+        self.assertRedirects(activated, detail_url)
+        self.office.refresh_from_db()
+        self.assertTrue(self.office.is_internal_test_partner)
+        lifecycle = TenantLifecycle.objects.get(organization=self.office)
+        self.assertEqual(lifecycle.state, TenantLifecycle.State.ACTIVE)
+        self.assertFalse(TenantContract.objects.filter(organization=self.office).exists())
+
+        denied = self.client.post(detail_url, {"action": "internal-test-partner"})
+        self.assertRedirects(denied, detail_url)
+        self.office.refresh_from_db()
+        self.assertTrue(self.office.is_internal_test_partner)
+
+        ended = self.client.post(
+            detail_url,
+            {"action": "internal-test-partner", "confirm_internal_test_partner": "on"},
+        )
+        self.assertRedirects(ended, detail_url)
+        self.office.refresh_from_db()
+        lifecycle.refresh_from_db()
+        self.assertFalse(self.office.is_internal_test_partner)
+        self.assertEqual(lifecycle.state, TenantLifecycle.State.ACTIVATION_PENDING)
+
     def test_commercial_can_paginate_the_full_manual_billing_history(self):
         PlatformAccess.objects.filter(user=self.developer).update(
             role=PlatformAccess.Role.COMMERCIAL

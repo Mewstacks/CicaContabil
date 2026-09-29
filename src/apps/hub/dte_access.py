@@ -12,8 +12,10 @@ from django.utils import timezone
 
 from apps.audit.services import record_event
 from apps.common.cnpj import normalize_cnpj
+from apps.hub.controlplane import company_queryset_for_membership
+from apps.hub.dte_activities import sync_dte_activity
 from apps.hub.dte_payload import DtePayloadError, detail_row, source_date, value
-from apps.hub.models import DteMessage, DteMessageAccess
+from apps.hub.models import CompanyAccessGrant, DteMessage, DteMessageAccess
 from apps.integra.client import IntegraClient
 from apps.integra.errors import IntegraConfigurationError, IntegraError, IntegraServiceError
 from apps.integra.parties import author_cnpj_for
@@ -48,6 +50,12 @@ def _finish(
             locked.opened_at = timezone.now()
             locked.provider_request_id = request_id[:160]
         locked.save()
+        message_id = locked.message_id
+
+        def update_analysis_activity() -> None:
+            sync_dte_activity(message_id)
+
+        transaction.on_commit(update_analysis_activity, robust=True)
         return locked
 
 
@@ -64,10 +72,29 @@ def open_message(
     membership = Membership.objects.filter(
         organization=message.organization, user=actor, is_active=True
     ).first()
-    if membership is None or not (
-        membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
-        or (membership.role == Membership.Role.OPERATOR and membership.can_acknowledge_dte)
-    ):
+    has_company_access = bool(
+        membership
+        and CompanyAccessGrant.objects.filter(
+            organization=message.organization,
+            membership=membership,
+            company=message.company,
+            is_active=True,
+        ).exists()
+    )
+    can_acknowledge = bool(
+        membership
+        and getattr(actor, "is_active", False)
+        and company_queryset_for_membership(membership).filter(pk=message.company_id).exists()
+        and (
+            membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+            or (membership.role == Membership.Role.OPERATOR and membership.can_acknowledge_dte)
+            or (
+                has_company_access
+                and membership.role not in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+            )
+        )
+    )
+    if not can_acknowledge:
         raise DteAccessError("Seu perfil não pode confirmar ciência da Caixa Postal.")
     try:
         cnpj = normalize_cnpj(message.company.cnpj_masked)

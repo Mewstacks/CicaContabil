@@ -14,6 +14,7 @@ from apps.accounts.mfa import SESSION_KEY
 from apps.accounts.models import User
 from apps.hub.models import (
     ClientCompany,
+    CompanyAccessGrant,
     DctfWebDocument,
     FiscalGuide,
     OfficeProfile,
@@ -49,6 +50,11 @@ def _case() -> tuple[Organization, ClientCompany]:
         name="Empresa DCTF",
         cnpj_masked="12.345.678/0001-95",
         dominio_code="323",
+    )
+    ProductModule.objects.create(
+        organization=organization,
+        code=ProductModule.Code.GUIDES,
+        enabled=True,
     )
     plan = Plan.objects.create(code="dctf-docs", name="DCTF documentos")
     contract = TenantContract.objects.create(
@@ -90,6 +96,7 @@ def test_document_request_reserves_the_specific_service_and_is_idempotent() -> N
         document = request_dctfweb_document(
             organization=organization,
             company=company,
+            actor=Membership.objects.get(organization=organization).user,
             competence="09/2026",
             kind=DctfWebDocument.Kind.RECEIPT,
         )
@@ -103,6 +110,82 @@ def test_document_request_reserves_the_specific_service_and_is_idempotent() -> N
     delay.assert_called_once_with(str(document.id))
 
 
+def test_document_request_without_current_actor_is_refused_before_reservation() -> None:
+    organization, company = _case()
+    with patch("apps.hub.services.reserve_tokens") as reserve:
+        with pytest.raises(DctfWebDocumentTransitionError, match="solicitante"):
+            request_dctfweb_document(
+                organization=organization,
+                company=company,
+                competence="09/2026",
+                kind=DctfWebDocument.Kind.RECEIPT,
+            )
+        reserve.assert_not_called()
+    assert not DctfWebDocument.objects.exists()
+
+
+@pytest.mark.parametrize(
+    "revocation",
+    [
+        "user",
+        "membership",
+        "company",
+        "module",
+        "missing_actor",
+        "grant",
+        "role",
+    ],
+)
+def test_queued_document_revalidates_access_and_releases_only_unexecuted_usage(revocation):
+    organization, company = _case()
+    member = Membership.objects.get(organization=organization)
+    actor = member.user
+    if revocation == "grant":
+        member.role = Membership.Role.OPERATOR
+        member.save()
+        CompanyAccessGrant.objects.create(
+            organization=organization,
+            company=company,
+            membership=member,
+            modules=[ProductModule.Code.GUIDES],
+            capabilities=["*"],
+        )
+    with patch("apps.hub.services.transaction.on_commit"):
+        document = request_dctfweb_document(
+            organization=organization,
+            company=company,
+            actor=actor,
+            competence="09/2026",
+            kind=DctfWebDocument.Kind.RECEIPT,
+        )
+    if revocation == "user":
+        User.objects.filter(pk=actor.pk).update(is_active=False)
+    elif revocation == "membership":
+        Membership.objects.filter(pk=member.pk).update(is_active=False)
+    elif revocation == "company":
+        ClientCompany.objects.filter(pk=company.pk).update(active=False)
+    elif revocation == "module":
+        ProductModule.objects.filter(organization=organization).update(enabled=False)
+    elif revocation == "missing_actor":
+        DctfWebDocument.objects.filter(pk=document.pk).update(requested_by=None)
+    elif revocation == "grant":
+        CompanyAccessGrant.objects.filter(membership=member).update(is_active=False)
+    else:
+        Membership.objects.filter(pk=member.pk).update(role=Membership.Role.AUDITOR)
+    with patch("apps.hub.tasks.IntegraClient") as provider:
+        dispatch_dctfweb_document.run(str(document.pk))
+        dispatch_dctfweb_document.run(str(document.pk))
+        provider.assert_not_called()
+    document.refresh_from_db()
+    assert document.status == DctfWebDocument.Status.FAILED
+    assert document.error_code == "authorization_revoked"
+    assert document.completed_at is not None
+    assert (
+        TokenUsageEvent.objects.get(pk=document.token_usage_event_id).status
+        == TokenUsageEvent.Status.RELEASED
+    )
+
+
 @patch("apps.hub.tasks.IntegraClient")
 def test_document_worker_persists_a_valid_pdf_without_a_second_call(
     client: MagicMock,
@@ -112,6 +195,7 @@ def test_document_worker_persists_a_valid_pdf_without_a_second_call(
         document = request_dctfweb_document(
             organization=organization,
             company=company,
+            actor=Membership.objects.get(organization=organization).user,
             competence="09/2026",
             kind=DctfWebDocument.Kind.DECLARATION,
         )
@@ -144,6 +228,7 @@ def test_transport_uncertainty_is_not_retried_or_released(client: MagicMock) -> 
         document = request_dctfweb_document(
             organization=organization,
             company=company,
+            actor=Membership.objects.get(organization=organization).user,
             competence="09/2026",
             kind=DctfWebDocument.Kind.RECEIPT,
         )
@@ -191,9 +276,6 @@ class DctfWebDocumentViewTests(TestCase):
         self.user = User.objects.create_user("dctf-owner@example.test", "safe-password-123")
         Membership.objects.create(
             organization=self.organization, user=self.user, role=Membership.Role.OWNER
-        )
-        ProductModule.objects.create(
-            organization=self.organization, code=ProductModule.Code.GUIDES, enabled=True
         )
         self.client.force_login(self.user)
         session = self.client.session

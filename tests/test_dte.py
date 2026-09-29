@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.hub.models import (
     ClientCompany,
+    CompanyAccessGrant,
     Connector,
     DteMessage,
     DteMessageAccess,
@@ -20,6 +21,40 @@ from apps.organizations.models import Membership, Organization
 class DteCenterTests(TestCase):
     databases = {"default", "knowledge"}
 
+    def test_activity_links_to_local_message_and_back_without_opening_or_consuming(self):
+        from apps.hub.dte_activities import sync_dte_activity
+        from apps.platform.models import UsageEvent
+
+        message = DteMessage.objects.create(
+            organization=self.organization, company=self.company,
+            source_isn="CONTEXT-1", subject="Comunicação contextual",
+        )
+        activity = sync_dte_activity(message.pk)
+        activity_url = reverse("hub:activity-detail", args=[activity.pk])
+        message_url = reverse("hub:dte-message-detail", args=[message.pk])
+        with patch("apps.hub.views.open_message") as provider:
+            response = self.client.get(activity_url)
+            self.assertContains(response, message_url)
+            self.assertContains(response, "Registrar evidência")
+            summary = self.client.get(message_url)
+            self.assertContains(summary, activity_url)
+            self.assertContains(summary, "Voltar à atividade de análise")
+            self.assertEqual(self.client.get(activity_url).status_code, 200)
+            provider.assert_not_called()
+        activity.refresh_from_db()
+        self.assertEqual(activity.work_status, "pending")
+        self.assertFalse(DteMessageAccess.objects.exists())
+        self.assertFalse(UsageEvent.objects.exists())
+        ProductModule.objects.filter(organization=self.organization).update(enabled=False)
+        unavailable = self.client.get(activity_url)
+        self.assertNotContains(unavailable, message_url)
+        self.assertContains(unavailable, "O resumo não está disponível")
+        CompanyAccessGrant.objects.filter(membership=self.membership).delete()
+        self.assertEqual(self.client.get(activity_url).status_code, 404)
+        denied = self.client.get(message_url)
+        self.assertEqual(denied.status_code, 403)
+        self.assertNotContains(denied, message.subject, status_code=403)
+
     def setUp(self) -> None:
         self.user = User.objects.create_user("dte@example.test", "safe-password-123")
         self.organization = Organization.objects.create(
@@ -30,6 +65,13 @@ class DteCenterTests(TestCase):
         )
         self.company = ClientCompany.objects.create(
             organization=self.organization, name="Empresa DTE", cnpj_masked="12.345.678/0001-95"
+        )
+        CompanyAccessGrant.objects.create(
+            organization=self.organization,
+            membership=self.membership,
+            company=self.company,
+            modules=[ProductModule.Code.INTEGRA],
+            capabilities=["*"],
         )
         ProductModule.objects.create(
             organization=self.organization, code=ProductModule.Code.INTEGRA, enabled=True
@@ -132,8 +174,11 @@ class DteCenterTests(TestCase):
             organization=self.organization, status=DteRun.Status.COMPLETED
         )
         source = DteRunItem.objects.create(
-            organization=self.organization, run=first, company=self.company,
-            status=DteRunItem.Status.COMPLETED, more_available=True,
+            organization=self.organization,
+            run=first,
+            company=self.company,
+            status=DteRunItem.Status.COMPLETED,
+            more_available=True,
             next_page_pointer="20260912093015",
         )
         screen = self.client.get(reverse("hub:dte-center"))
@@ -150,6 +195,13 @@ class DteCenterTests(TestCase):
     def test_company_without_valid_cnpj_is_excluded_before_paid_preparation(self) -> None:
         missing = ClientCompany.objects.create(
             organization=self.organization, name="Empresa sem CNPJ", cnpj_masked=""
+        )
+        CompanyAccessGrant.objects.create(
+            organization=self.organization,
+            membership=self.membership,
+            company=missing,
+            modules=[ProductModule.Code.INTEGRA],
+            capabilities=["*"],
         )
 
         screen = self.client.get(reverse("hub:dte-center"))
@@ -171,9 +223,11 @@ class DteCenterTests(TestCase):
         self.assertContains(screen, "Nenhuma empresa deste escopo tem CNPJ")
         self.assertContains(screen, "Revisar empresas")
 
-    def test_message_summary_never_calls_provider_and_operator_cannot_acknowledge_by_default(
+    def test_message_summary_never_calls_provider_and_auditor_cannot_acknowledge(
         self,
     ) -> None:
+        self.membership.role = Membership.Role.AUDITOR
+        self.membership.save(update_fields=["role"])
         message = DteMessage.objects.create(
             organization=self.organization,
             company=self.company,
@@ -189,7 +243,7 @@ class DteCenterTests(TestCase):
 
         self.assertEqual(summary.status_code, 200)
         self.assertContains(summary, "Teor ainda não consultado")
-        self.assertNotContains(summary, "<form class=\"dte-legal-form\"")
+        self.assertNotContains(summary, '<form class="dte-legal-form"')
         self.assertEqual(refused.status_code, 403)
 
     def test_demo_opens_fictitious_dte_detail_without_provider_or_usage(self) -> None:
@@ -204,9 +258,10 @@ class DteCenterTests(TestCase):
             subject="Aviso fictício",
         )
         url = reverse("hub:dte-message-detail", args=[message.id])
-        with patch("apps.hub.views.open_message") as provider, patch(
-            "apps.hub.views.quote_usage"
-        ) as usage:
+        with (
+            patch("apps.hub.views.open_message") as provider,
+            patch("apps.hub.views.quote_usage") as usage,
+        ):
             before = self.client.get(url)
             opened = self.client.post(url, {"confirm_legal_notice": "on"}, follow=True)
         self.assertContains(before, "Abrir teor fictício")
@@ -303,7 +358,7 @@ class DteCenterTests(TestCase):
         self.assertRedirects(response, reverse("hub:dte-message-detail", args=[message.id]))
         self.assertContains(response, "A conexão central Serpro ainda não está configurada")
 
-        self.membership.role = Membership.Role.MANAGER
+        self.membership.role = Membership.Role.AUDITOR
         self.membership.save(update_fields=["role"])
         refused = self.client.post(
             reverse("hub:dte-message-detail", args=[message.id]),

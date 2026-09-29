@@ -1,0 +1,9 @@
+<div class="activity-origin">
+  <p><strong>Estado na origem: {{ activity_origin.status }}</strong></p>
+  <p>Execute a próxima etapa no módulo de origem. O resultado atualizará esta atividade e preservará as evidências.</p>
+  {% if activity_origin.allowed %}
+    <a class="button" href="{{ activity_origin.url }}">{{ activity_origin.label }}</a>
+  {% else %}
+    <p>Seu acesso ao módulo não está liberado. Solicite ao administrador a revisão da permissão.</p>
+  {% endif %}
+</div>

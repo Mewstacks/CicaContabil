@@ -41,11 +41,13 @@ from apps.hub.models import (
     LedgerAccount,
     MovementReconciliation,
     NormalizedMovement,
+    ReconciliationDecision,
     ReconciliationLayout,
     ReconciliationRule,
     ReconciliationRun,
     ReconciliationSourceFile,
 )
+from apps.hub.reconciliation_activities import sync_reconciliation_activity
 from apps.organizations.models import Organization
 
 MAX_BYTES = 25 * 1024 * 1024
@@ -178,6 +180,7 @@ def create_source_file(
                 source_file=existing,
                 created_by=actor if isinstance(actor, User) else None,
             )
+        sync_reconciliation_activity(existing.pk)
         return existing, run, False
     source = ReconciliationSourceFile(
         organization=organization,
@@ -220,6 +223,7 @@ def create_source_file(
                 source_file=existing,
                 created_by=actor if isinstance(actor, User) else None,
             )
+        sync_reconciliation_activity(existing.pk)
         return existing, run, False
     layout = _compatible_layout_for_source(source)
     checkpoint: dict[str, Any] = {"physical_batch": physical_batch[:120]}
@@ -242,6 +246,7 @@ def create_source_file(
         request=request,
         metadata={"kind": kind, "origin": origin, "size_bytes": len(content)},
     )
+    sync_reconciliation_activity(source.pk)
     return source, run, True
 
 
@@ -814,9 +819,7 @@ def _matches_condition(condition: dict[str, Any], movement: NormalizedMovement) 
     financial_account = movement.financial_account
     values = {
         "financial_account": (
-            financial_account.account_reference
-            if financial_account is not None
-            else ""
+            financial_account.account_reference if financial_account is not None else ""
         ),
         "description": movement.description,
         "counterparty": movement.counterparty,
@@ -1108,22 +1111,74 @@ def confirm_reconciliation(
             "confirmed_by": actor,
         },
     )
-    if not created:
+    if not created and reconciliation.state == MovementReconciliation.State.CONFIRMED:
         raise ReconciliationError("Essa relação já existe; desfaça-a antes de alterar a alocação.")
+    if not created:
+        _preserve_legacy_reconciliation(reconciliation)
+        reconciliation.amount_cents = amount_cents
+        reconciliation.evidence = evidence
+        reconciliation.state = MovementReconciliation.State.CONFIRMED
+        reconciliation.confirmed_at = timezone.now()
+        reconciliation.confirmed_by = actor
+        reconciliation.save(
+            update_fields=[
+                "amount_cents",
+                "evidence",
+                "state",
+                "confirmed_at",
+                "confirmed_by",
+                "updated_at",
+            ]
+        )
+    _record_reconciliation_decision(reconciliation, actor=actor)
+    sync_reconciliation_activity(movement.source_file_id)
     return reconciliation
+
+
+def _preserve_legacy_reconciliation(reconciliation: MovementReconciliation) -> None:
+    if not reconciliation.decisions.exists():
+        ReconciliationDecision.objects.create(
+            organization_id=reconciliation.organization_id,
+            reconciliation=reconciliation,
+            state=reconciliation.state,
+            amount_cents=reconciliation.amount_cents,
+            evidence=reconciliation.evidence,
+            actor=reconciliation.confirmed_by,
+            occurred_at=reconciliation.confirmed_at,
+            is_legacy_snapshot=True,
+        )
+
+
+def _record_reconciliation_decision(
+    reconciliation: MovementReconciliation, *, actor: User | None
+) -> None:
+    ReconciliationDecision.objects.create(
+        organization_id=reconciliation.organization_id,
+        reconciliation=reconciliation,
+        state=reconciliation.state,
+        amount_cents=reconciliation.amount_cents,
+        evidence=reconciliation.evidence,
+        actor=actor,
+        occurred_at=timezone.now(),
+    )
 
 
 @transaction.atomic
 def undo_reconciliation(
     *, reconciliation: MovementReconciliation, actor: User | None = None
 ) -> None:
+    NormalizedMovement.objects.select_for_update().get(pk=reconciliation.movement_id)
+    JournalEntry.objects.select_for_update().get(pk=reconciliation.entry_id)
     locked = MovementReconciliation.objects.select_for_update().get(pk=reconciliation.pk)
     if locked.state != MovementReconciliation.State.CONFIRMED:
         return
+    _preserve_legacy_reconciliation(locked)
     locked.state = MovementReconciliation.State.UNDONE
     locked.confirmed_at = None
     locked.confirmed_by = actor
     locked.save(update_fields=["state", "confirmed_at", "confirmed_by", "updated_at"])
+    _record_reconciliation_decision(locked, actor=actor)
+    sync_reconciliation_activity(locked.movement.source_file_id)
 
 
 def process_run(run_id: str) -> dict[str, int | str]:
@@ -1445,6 +1500,7 @@ def models_Q_lease(now: Any) -> Any:
     return Q(lease_until__isnull=True) | Q(lease_until__lt=now)
 
 
+@transaction.atomic
 def _finish_run(
     run: ReconciliationRun,
     token: uuid.UUID,
@@ -1458,7 +1514,7 @@ def _finish_run(
     errors: list[dict[str, str]] | None = None,
 ) -> None:
     errors = errors or []
-    ReconciliationRun.objects.filter(id=run.id, lease_token=token).update(
+    updated_rows = ReconciliationRun.objects.filter(id=run.id, lease_token=token).update(
         state=state,
         stage=stage,
         processed_count=processed,
@@ -1472,6 +1528,8 @@ def _finish_run(
         lease_token=None,
         lease_until=None,
     )
+    if updated_rows:
+        sync_reconciliation_activity(run.source_file_id)
 
 
 def validate_journal_entry(entry: JournalEntry) -> list[str]:
@@ -1600,6 +1658,9 @@ def approve_journal_entry(
                 request=request,
                 metadata={"line_count": locked.lines.count()},
             )
+        linked_movement = locked.movement
+        if linked_movement is not None:
+            sync_reconciliation_activity(linked_movement.source_file_id)
     if failure:
         raise ReconciliationError(failure)
     return locked

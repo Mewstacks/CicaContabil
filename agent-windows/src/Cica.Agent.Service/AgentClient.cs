@@ -68,7 +68,7 @@ internal sealed class AgentClient : IDisposable
         byte[] body = "{}"u8.ToArray();
         try
         {
-            using var response = await http.SendAsync(Signed(HttpMethod.Post, requested, body),
+            using var response = await http.SendAsync(Signed(HttpMethod.Post, requested.PathAndQuery, body),
                 HttpCompletionOption.ResponseHeadersRead, token);
             response.EnsureSuccessStatusCode();
             await using var source = await response.Content.ReadAsStreamAsync(token);

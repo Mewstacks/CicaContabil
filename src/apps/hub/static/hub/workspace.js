@@ -79,3 +79,18 @@
   const summary = document.querySelector('[data-form-errors]');
   if (summary instanceof HTMLElement) summary.focus();
 })();
+
+/* Keep a server-rendered comparison responsive while its new page is loading. */
+(() => {
+  document.querySelectorAll('[data-payroll-comparison-form]').forEach(form => {
+    form.addEventListener('submit', () => {
+      if (!form.checkValidity()) return;
+      const button = form.querySelector('button[type="submit"]');
+      if (button instanceof HTMLButtonElement) {
+        button.disabled = true;
+        button.textContent = 'Comparando…';
+        form.setAttribute('aria-busy', 'true');
+      }
+    });
+  });
+})();

@@ -1,5 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load ui_navigation %}
+{% block extra_head %}{{ block.super }}{% load static %}<link rel="stylesheet" href="{% static 'hub/guide-history.css' %}">{% endblock %}
 {% block page_action %}<a class="button button-quiet" href="{% back_url 'hub:guides' %}">Voltar às guias</a>{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel" aria-labelledby="guide-result-heading">
@@ -16,6 +17,8 @@
   </dl>
   {% if office.is_demo %}<p class="triage-decision-note">Nenhuma declaração foi consultada ou guia oficial emitida. Este resultado foi criado localmente para mostrar o fluxo de trabalho.</p>{% if guide.status == 'issued' %}<a class="button" href="{% url 'hub:demo-guide-pdf' guide.id %}">Baixar PDF fictício sem validade</a>{% endif %}
   {% elif guide.status == 'issued' %}<p class="triage-decision-note">A emissão foi confirmada com um PDF válido devolvido pelo Serpro. A soma exibida acima permanece identificada como cálculo do Domínio; confira o valor oficial no DARF. Baixar o documento salvo não gera outra consulta.</p><a class="button" href="{% url 'hub:guide-pdf' guide.id %}">Baixar DARF oficial</a>
+  {% elif guide.status == 'unknown' %}<div class="triage-decision-note" role="alert"><strong>Resultado da emissão a confirmar</strong><p>Não emita novamente. A chamada pode ter sido executada e cobrada. Peça à Mewstack que confira o retorno do fornecedor e o consumo antes de liberar qualquer nova ação.</p>{% if guide.error_message %}<p>{{ guide.error_message }}</p>{% endif %}</div>
   {% elif guide.error_message %}<p class="triage-decision-note" role="alert">{{ guide.error_message }} Confira o registro antes de tentar novamente.</p>{% endif %}
 </section>
+{% include 'hub/partials/guide_history.html' %}
 {% endblock %}

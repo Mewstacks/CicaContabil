@@ -349,6 +349,11 @@ def test_repeated_list_refreshes_provider_read_and_science_state() -> None:
     assert state.science_at is not None
     assert DteMessageObservation.objects.filter(message=message).count() == 2
     assert DteMessage.objects.filter(organization=organization).count() == 1
+    activity = message.analysis_activity
+    assert activity.work_status == "pending"
+    assert activity.events.count() == 1
+    assert activity.evidence_items.count() == 0
+    assert activity.legal_due_on is None
 
 
 def test_approval_reserves_central_usage_and_cancellation_keeps_the_request_local() -> None:

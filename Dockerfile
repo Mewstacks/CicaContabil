@@ -30,7 +30,10 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --chown=app:app manage.py ./
 COPY --chown=app:app src ./src
 
-RUN DJANGO_SETTINGS_MODULE=config.settings.test python manage.py collectstatic --noinput
+RUN DJANGO_SETTINGS_MODULE=config.settings.build \
+    DJANGO_SECRET_KEY=build-only-static-collection-key-never-used-at-runtime \
+    python manage.py collectstatic --noinput \
+    && chown -R app:app /app/staticfiles
 
 USER 10001:10001
 EXPOSE 8000

@@ -1,961 +1,1247 @@
-# Registro de execução da meta operacional
+﻿## V-140 - Visao administrativa de distribuicao de atividades
 
-## 21/09/2026 — demonstração isolada da Conciliação revisada no navegador (V-099)
+Proprietario e administrador passaram a ver atribuicoes abertas por membro ativo, com atrasos
+e impedimentos separados, e podem abrir a fila exata de cada pessoa ou as atividades sem
+responsavel. A interface deixa claro que isso nao e metrica de produtividade. Validacao: 81
+testes focados em 52,78 s, Ruff, MyPy, Django, migracoes e regressao integral com 863
+aprovados, 2 ignorados e 11 subtestes em 79,33 s. Inspiracao: dashboards de recursos do
+Karbon e navegacao de atribuicoes do Asana; Watermelon sem resultado pertinente. Web Interface
+Guidelines sem violacao material. Playwright MCP indisponivel por `Transport closed`, sem
+inspecao visual alegada.
 
-- Uma base SQLite temporária, migrada e semeada exclusivamente com dados
-  fictícios permitiu abrir `/demo/`, a Visão geral e a Conciliação sem tocar o
-  banco local de desenvolvimento. A sessão declarou ausência de consulta
-  externa e cobrança.
-- Em 1440 × 1000 e 390 × 844, a Conciliação não apresentou overflow horizontal
-  ou erros/avisos de console. O modal de importação expôs empresa, conta,
-  origem, período, lote e limites, sem enviar arquivo.
-- Servidor e aba temporários foram encerrados; a base e os artefatos fictícios
-  foram movidos para a Lixeira de forma recuperável. A evidência não cobre todos
-  os perfis, teclado/foco completo, upload real, integrações ou homologação.
+## V-139 - Prioridade operacional por prazo, bloqueio e fonte
 
-## 21/09/2026 — PDF corrompido recusado antes da conciliação (V-098)
+A area de trabalho agora conta todas as atividades abertas no escopo permitido e mostra atraso,
+hoje, proximos sete dias, impedidas e fonte indisponivel como dimensoes independentes. Cada
+indicador abre a fila filtrada; a fila ganhou filtro de atualizacao da fonte e a tabela mostra
+as quatro situacoes operacionais. Validacao: 80 testes focados em 53,80 s, Ruff, MyPy, Django,
+migracoes e regressao integral com 862 aprovados, 2 ignorados e 11 subtestes em 81,47 s.
+Inspiracao: filtros contextuais de prazo do Karbon e resumo agregado de folha do Xero;
+Watermelon sem resultado pertinente. Web Interface Guidelines sem violacao material.
+Playwright MCP indisponivel por `Transport closed`, sem inspecao visual alegada.
 
-- A validação passou a abrir PDF e a verificar o limite de 500 páginas antes de
+## V-138 - Tratamento de divergencia no mesmo contexto operacional
+
+A comparacao de folha agora abre a fila filtrada pela empresa, competencia e area de folha;
+o link nao encerra, reatribui ou presume causa da atividade. A fila ganhou filtro mensal
+com URL preservada na paginacao e erro para competencia invalida. Validacao: 79 testes
+focados em 57,78 s, Ruff, MyPy, Django, migracoes e regressao integral com 861 aprovados,
+2 ignorados e 11 subtestes em 92,53 s. Inspiracao: filtros de prazo/trabalho do Karbon e
+relatorios de folha filtraveis do Xero, adaptados ao CICA; Watermelon sem resultado
+pertinente. Web Interface Guidelines sem violacao material. Playwright MCP indisponivel por
+`Transport closed`, sem inspecao visual alegada.
+
+## V-137 - Comparacao de fontes agregadas da folha
+
+A ficha de empresa agora permite comparar duas fotografias de folha da mesma competencia,
+com fonte, totais, metricas ausentes e diferencas acima da tolerancia. A implementacao
+mantem dados agregados, nao calcula folha nem chama fonte externa; o botao sinaliza
+`Comparando...` enquanto a pagina e recarregada e a tabela usa a composicao responsiva ja
+existente na ficha. Validacao: 72 testes focados em 53,27 s, Ruff, MyPy, Django,
+migracoes e regressao integral com 861 aprovados, 2 ignorados e 11 subtestes em 80,06 s.
+Web Interface Guidelines: sem violacao material. Inspiracao: Xero Payroll Activity Summary
+para totais agregados e reconciliacao, adaptada ao CICA; Watermelon sem resultado
+pertinente. Playwright MCP indisponivel por `Transport closed`, sem inspecao visual alegada.
+
+## V-136 - Exportacao do Copiloto pelo renderizador JavaScript
+
+Removida a geracao de PDF/XLSX do Copiloto por ReportLab/OpenPyXL. A exportacao usa somente
+o contrato Node/TypeScript, preserva fotografia, permissao, hash e auditoria. Ausencia de URL
+interna ou segredo devolve indisponibilidade explicita, sem arquivo alternativo. Validacao: 21
+testes Django em 51,84 s, 8 testes Node, Ruff, MyPy, Django, migracoes e regressao integral
+com 860 aprovados, 2 ignorados e 11 subtestes em 82,24 s. Nenhum servico interno ou externo
+foi configurado ou chamado; a homologacao publicada continua na etapa 12.
+
+## V-135 - Editor visual versionado do mapa DRE
+
+O mapa DRE agora e editavel por proprietario ou administrador: cada linha informa conta,
+grupo e sinal, e salvar valida o conjunto inteiro antes de criar uma versao nova e imutavel.
+A versao anterior continua consultavel, somente a nova fica ativa e a alteracao gera auditoria.
+O formulario oferece erro em linha, foco no primeiro erro retornado e aviso de edicao nao
+salva. Validacao: 70 testes focados em 55,95 s, Ruff, MyPy, Django, migracoes e regressao
+integral com 860 aprovados, 2 ignorados e 11 subtestes em 82,86 s. Revisao Web Interface
+Guidelines sem achado material. Playwright MCP indisponivel por `Transport closed`; nao houve
+inspecao visual desktop/mobile nesta entrega.
+
+## V-134 - Fila duravel de relatorios financeiros
+
+Data: 23/09/2026. DRE e caixa agora enfileiram uma solicitacao persistida antes de
+chamar o renderizador Node. A fotografia criptografada e seu hash ficam fixados no
+pedido; Celery usa lease, retoma trabalho abandonado e revalida a associacao ativa do
+solicitante e o acesso atual a empresa. O PDF/XLSX e salvo em armazenamento privado, e
+o download revalida a permissao; arquivo ausente muda o pedido para falha em vez de
+expor erro interno.
+
+Validacao: 5 testes focados cobriram enfileiramento, renderizacao, revogacao de acesso,
+download privado e indisponibilidade; Ruff, MyPy, `manage.py check` e migracoes limpas
+passaram. A regressao integral aprovou 858 testes, ignorou 2 e executou 11 subtestes em
+86,79 s. UI/UX Pro Max orientou retorno explicito apos envio e estados contextuais; a
+busca Watermelon nao encontrou referencia verificavel. A estrutura de estados e
+fotografia foi inspirada na administracao de relatorios do Google Analytics
+(https://support.google.com/analytics/answer/13722168?hl=pt-BR), adaptada ao CICA.
+A auditoria Web Interface Guidelines nao encontrou violacao material no template:
+formularios mantem CSRF e botoes semanticos, o download e link e a tabela tem cabecalhos.
+O Playwright MCP retornou `Transport closed`; desktop, mobile, teclado e console nao
+foram inspecionados nesta entrega. Nenhuma URL interna, segredo, navegador ou chamada
+real foi configurado ou acionado.
+
+## V-133 - Rota??o do segredo de relat?rios
+
+O renderizador Node aceita o segredo ativo e o anterior durante uma janela controlada; Django envia apenas o ativo. README documenta a sequ?ncia de rota??o e remo??o. Valida??o: TypeScript, 8 testes Node, 6 testes Django, Ruff e MyPy aprovados; regress?o integral com 855 aprovados e 2 ignorados em 82,28 s. Celery continua pendente; nenhum segredo ou chamada real foi usado.
+
+## V-132 - Produto NFS-e exclusivo
+
+A assinatura explicitamente limitada a NFS-e abre a central do m?dulo, remove a fila/modelos da navega??o e nega suas URLs diretas. Empresas, certificados, equipe e configura??o inicial permanecem porque s?o necess?rios ao pr?prio NFS-e. Valida??o: Ruff, MyPy e 80 testes de workspace/navega??o aprovados; regress?o integral com 854 aprovados e 2 ignorados em 79,79 s. Watermelon n?o encontrou refer?ncia equivalente; a dire??o usou navega??o por fun??o e superf?cies m?nimas. Playwright MCP indispon?vel, portanto a inspe??o visual desktop/mobile continua pendente.
+
+## V-131 - Regra manual NFS-e sem efeito curinga
+
+O cadastro manual de acumulador agora preserva cat?logo e hist?rico sem classificar NFS-e por aus?ncia de crit?rio. A classifica??o autom?tica s? ocorre com correspond?ncia expl?cita; a nota sem regra continua em revis?o humana. A prova cria o cadastro pela tela e confirma esse comportamento. Valida??o: Ruff, MyPy e 94 testes focados aprovados; regress?o integral com 852 aprovados e 2 ignorados em 76,03 s. Inspe??o visual pendente por indisponibilidade do Playwright MCP.
+
+## V-130 - Historico completo de pacotes NFS-e
+
+A carteira de pacotes NFS-e agora pagina acima de 100 registros, preservando a aba e exibindo navegacao por URL. A prova criou 101 pacotes e confirmou as duas paginas. Validacao focal: 69 testes, Ruff e MyPy.
+
+## V-129 - Contrato tecnico NFS-e/Dominio para Q-39
+
+Foi adicionado `docs/planejamento/nfse-dominio-import-contract.md`, com o material tecnico necessario, contrato do extrator allowlisted, requisitos do futuro exportador e roteiro de homologacao. O documento nao define layout nem consulta fontes; prepara o trabalho do desenvolvedor sem transferir backup, credencial ou dado de cliente.
+
+## V-128 - Pacote NFS-e classificado como conferencia
+
+A pesquisa oficial nao forneceu layout do backup nem contrato de XML/acumulador para a rotina DomÃ­nio. Por D-112/Q-39, o ZIP NFS-e agora e pacote de conferencia privado; a confirmacao de importacao esta bloqueada e nao ha alegacao de importacao. Validacao focal: 68 testes, Ruff e MyPy. Resta obter layout autorizado, amostra descartavel e retorno verificavel pela etapa 12.
+
+## V-127 - Historico unico de acumuladores NFS-e
+
+Implementado historico imutavel que unifica fotografia DomÃ­nio Web, cadastro manual e decisao humana, exibido por empresa com origem e instante e paginado. Validacao focal: 70 testes, Ruff, MyPy e migracoes limpas. Falta repetir a inspecao visual desktop/mobile quando o Playwright MCP estiver disponivel; nenhuma fonte real foi acessada.
+
+## V-126 - NFS-e Dom?nio Web: catalogo, historico e pacote auditavel
+
+Implementado localmente o catalogo de acumuladores extraido pelo agente controlado, inclusao de acumuladores pela tela, historico de uso por decisao humana e pacote ZIP privado de NFS-e com manifesto/hash. O pacote separa geracao, download e confirmacao humana de importacao; ausencia de arquivo privado e recuperavel sem avancar estado. Validacao focal: 68 testes focados e regressao integral com 851 aprovados e 2 ignorados; Ruff, MyPy e migracoes limpas. Resta repetir a validacao visual mobile e do download apos a interrupcao do transporte Playwright, alem da homologacao do layout e da rotina Dom?nio.
+
+## 23/09/2026 - V-125 - Catalogo NFS-e do backup Dominio Web
+
+- Criada evidencia imutavel de acumulador por empresa, fonte, lote e fotografia. O agente so pode enviar a capacidade allowlisted `accumulator_catalog`; a revisao NFS-e aceita esse catalogo apenas para a propria empresa.
+- Uma fotografia concluida impede novo backup para a fonte. Arquivo e chave continuam removidos ao termino, preservando metadados e catalogo normalizado.
+- A aba Acumuladores exibe esse historico por carteira, com paginaÃ§Ã£o e estado vazio explicito.
+- Validacao: 65 testes focados, regressao integral anterior com 845 aprovados e 2 ignorados, Ruff, MyPy, checks Django e migracoes aprovados. Playwright validou desktop e 375 px sem overflow ou erros e encerrou o ambiente de QA.
+- Limite: extrator real, layout da rotina automatica e retorno de importacao aguardam arquivo autorizado e homologacao DomÃ­nio.
+
+## 23/09/2026 - V-124 - Versionamento do mapa DRE
+
+- Adicionado tipo de importacao de mapa DRE: valida contas, grupos e sinais, bloqueia a organizacao e o conjunto anterior na transacao, cria uma versao e a torna ativa sem apagar linhas antigas.
+- Validacao: quatro testes financeiros, Ruff e MyPy aprovados.
+- O assistente passou a explicar o layout do mapa DRE junto aos layouts de saldos e caixa. A validacao visual em desktop e 375 px confirmou abertura por teclado, foco visivel, ausencia de overflow e console sem erros; a revisao pelas Web Interface Guidelines nao encontrou violacao material no trecho alterado.
+- Regressao final: 845 testes Python aprovados e 2 ignorados; TypeScript, seis testes Node e auditoria de dependencias do servico de relatorios aprovados.
+- Limite: configuracao atual por arquivo; editor visual de mapeamento permanece pendente.
+
+## 23/09/2026 - V-123 - Importacao de saldos e caixa
+
+- Acrescentados dois tipos de importacao CSV/XLSX no assistente: saldos para DRE e cenarios de caixa. A pagina explica o layout antes do envio.
+- O importador valida o arquivo inteiro antes de gravar dados financeiros, agrupa saldos por fotografia e impede duplicacao por referencia; caixa exige saldo inicial e referencia de movimento, e bloqueia dupla deducao ou divergencia de saldo inicial.
+- Validacao: 67 testes focados, Ruff, MyPy, checks Django e migracoes aprovados. Playwright desktop/celular validou o detalhamento de layout, sem overflow nem erros de console; navegador e QA encerrados.
+- Limite: os layouts sao manuais documentados, sem alegar compatibilidade de Dom?nio/Siescon antes de contrato e homologacao.
+
+## 23/09/2026 - V-122 - DRE e caixa na ficha da empresa
+
+- A ficha unica ganhou bloco financeiro com fotografias DRE e cenarios de caixa, sem alegar consulta bancaria e sem criar DRE quando faltam dados ou mapa ativo.
+- Adicionada rota POST de exportacao que reaplica escopo por empresa, exige renderizador Node, devolve PDF/XLSX com `no-store` e audita hashes sem valores.
+- Validacao: 62 testes de telas Hub; regressao completa `uv run pytest` com 841 aprovados e 2 ignorados em 73,95 s; Playwright desktop e celular em servidor isolado. Controles com altura minima de 44 px, sem overflow em 375 px e sem erros de console ao abrir a ficha. Browser e servidor de QA encerrados.
+- Pesquisa e direcao: ui-ux-pro-max, Watermelon (nenhum catalogo relevante verificado), Checkout.com e June no SaaSFrame; adotados tabelas de relatorio compactas, acoes contextuais e estados vazios sem copiar interfaces. Auditoria Web Interface Guidelines concluida sem achados materiais.
+- Limite: renderer Node ainda precisa de configuracao interna para gerar arquivo real; sem ele a rota retorna 503 explicitamente e nao cai para bibliotecas Python.
+
+## 23/09/2026 - V-121 - Contratos Node para DRE e caixa
+
+- Implementado adaptador que traduz DRE e caixa persistidos para a fotografia restrita consumida pelo servico Node/TypeScript.
+- A fotografia DRE preserva fonte, versao de mapeamento, valores decimais exatos e contas sem mapa; a de caixa deixa clara a visao selecionada e a ausencia de consulta bancaria automatica.
+- Validacao: 17 testes focados, regressao completa com 839 aprovados e 2 ignorados em 73,11 s, `ruff`, `mypy`, verificacoes Django e os seis testes Node aprovados; o contrato TypeScript tambem foi validado diretamente com uma fotografia DRE representativa.
+- Proximo: definir e implementar os pontos autorizados de consulta/exportacao, com isolamento por empresa e validacao integral de UX.
+
+## 23/09/2026 - V-120 - Persistencia financeira para DRE e caixa
+
+- Criados modelos e migracao aditiva para fotografias de saldos, linhas, versoes de mapeamento da DRE e cenarios/movimentos de caixa, isolados por escritorio e empresa.
+- Criado servico financeiro idempotente para registrar saldos com proveniencia, auditar sem registrar valores, calcular DRE pelo mapeamento do escritorio e projetar caixa com as regras deterministicas ja validadas.
+- Validacao: 16 testes focados aprovados; regressao completa `uv run pytest`: 838 aprovados, 2 ignorados em 72,46 s. `ruff`, `mypy`, `check` e conferencia de migracoes aprovados.
+- Proximo: transformar estas fotografias em contratos do servico Node de relatorios e, depois, construir importacao e interface seguindo o fluxo obrigatorio de UX.
+
+## 23/09/2026 â€” dependÃªncias XLSX sem vulnerabilidades conhecidas (V-119)
+
+- O lockfile do renderizador fixa uuid 11.1.1 por `overrides`, mantendo a entrada
+  CommonJS requerida pelo ExcelJS 4.4.0.
+- `npm ls`, `npm audit --omit=dev`, TypeScript e seis testes Node passaram; a auditoria
+  retornou zero vulnerabilidades. Celery e rotaÃ§Ã£o/revogaÃ§Ã£o do segredo continuam
+  pendentes para produÃ§Ã£o.
+
+## 23/09/2026 â€” exportaÃ§Ã£o confirmada por POST (V-118)
+
+- PDF e XLSX deixaram de usar `GET`; os botÃµes agora enviam `POST` com CSRF e um
+  `GET` devolve 405 sem criar fotografia, arquivo ou auditoria.
+- Os 17 testes dirigidos de exportaÃ§Ã£o e canal interno passaram. A revisÃ£o aplicou
+  UI/UX Pro Max, Watermelon, referÃªncia Asana e Web Interface Guidelines.
+- Playwright usou conta nÃ£o-demo e resposta sintÃ©tica: desktop e 375 px sem overflow,
+  foco visÃ­vel, botÃµes com pelo menos 44Ã—44 px e download PDF com fotografia/hash
+  persistidos. Navegador e servidor isolado foram encerrados.
+
+## 23/09/2026 â€” fotografia persistida de exportaÃ§Ã£o (V-117)
+
+- PDF e XLSX do Copiloto agora preservam uma fotografia criptografada e imutÃ¡vel do
+  contrato enviado ao renderizador, junto de hashes do insumo e do arquivo.
+- O registro carrega autor, empresa, resposta, formato e versÃ£o; evento de auditoria
+  armazena somente hashes e contagem de evidÃªncias.
+- As 17 provas dirigidas de exportaÃ§Ã£o e cliente interno passaram, assim como Ruff,
+  MyPy, Django e verificaÃ§Ã£o de migraÃ§Ãµes. Ainda faltam Celery, rotaÃ§Ã£o do segredo e
+  atualizaÃ§Ã£o compatÃ­vel da cadeia ExcelJS para produÃ§Ã£o. A regressÃ£o integral fechou
+  com **836 aprovados e 2 ignorados** em 70,38 s.
+
+# Registro de execuÃ§Ã£o da meta operacional
+
+## 23/09/2026 â€” base agregada de folha (V-116)
+
+- Fotografias de folha agora registram totais por empresa, competÃªncia e fonte,
+  preservando o carÃ¡ter informado, documental, ERP ou oficial sem guardar PII de
+  trabalhador.
+- O comparador recusa empresa/competÃªncia incompatÃ­vel e torna lacunas explÃ­citas;
+  testes, migraÃ§Ã£o e verificaÃ§Ãµes estÃ¡ticas passaram.
+- A ficha de empresa passou a exibir as fotografias. A prova em desktop e celular
+  usou dados sintÃ©ticos, sem overflow ou erros de console; navegador e servidor foram
+  encerrados.
+- A regressÃ£o completa fechou com **834 aprovados e 2 ignorados** em 71,10 s.
+- A entrada local de fotografia passou a ser idempotente e auditÃ¡vel sem incluir
+  valores de folha na trilha de eventos.
+- ImportaÃ§Ã£o, interface, vÃ­nculo com atividades e fontes homologadas continuam
+  pendentes.
+
+## 23/09/2026 â€” autenticaÃ§Ã£o local Django â†’ renderizador (V-115)
+
+- Django e Node exigem segredo compartilhado configurado; URL sem segredo, hash ou
+  MIME invÃ¡lido e resposta indisponÃ­vel sÃ£o recusados sem fallback silencioso.
+- O caminho completo local gerou XLSX com segredo fictÃ­cio em loopback. ServiÃ§o e
+  listener foram encerrados ao fim da validaÃ§Ã£o.
+- Ainda faltam evidÃªncia persistida, execuÃ§Ã£o Celery, rotaÃ§Ã£o de segredo e a correÃ§Ã£o
+  compatÃ­vel da cadeia do ExcelJS antes de produÃ§Ã£o.
+
+## 23/09/2026 â€” renderizaÃ§Ã£o local PDF/XLSX em JavaScript (V-114)
+
+- O componente Node/TypeScript passou a separar a API loopback do motor que valida
+  fotografias e gera SVG, PDF e XLSX. Filtros, versÃ£o, atualizaÃ§Ã£o, pendÃªncias e hash
+  acompanham o resultado; o navegador do PDF nÃ£o tem acesso a rede e o XLSX trata
+  texto iniciado por fÃ³rmula como texto.
+- TypeScript, cinco testes do serviÃ§o, quatro testes do cliente interno e 11 testes de
+  exportaÃ§Ã£o do Copiloto passaram.
+  O Django sÃ³ usa o novo motor quando a URL interna for configurada; se essa operaÃ§Ã£o
+  falhar, responde 503 em vez de alternar silenciosamente entre geradores. PDF e XLSX fictÃ­cios foram gerados e
+  inspecionados localmente usando navegador jÃ¡ instalado, sem download de binÃ¡rios ou
+  qualquer chamada externa.
+- AutenticaÃ§Ã£o entre serviÃ§os, auditoria persistida e fila Celery ainda sÃ£o
+  obrigatÃ³rias antes de ativar a URL interna em produÃ§Ã£o. A dependÃªncia transitiva vulnerÃ¡vel de ExcelJS
+  impede liberar PDF/XLSX para produÃ§Ã£o nesta etapa.
+- A regressÃ£o local completa fechou com **830 aprovados e 2 ignorados** em 70,51 s.
+
+## 23/09/2026 â€” ficha da empresa com central operacional e Triagem (V-113)
+
+- A ficha Ãºnica passou a reunir atividades e anexos de Triagem por empresa, sem
+  contornar a autorizaÃ§Ã£o do mÃ³dulo nem modificar o resultado de nenhum fluxo.
+- Em celular, as novas tabelas passam a cartÃµes com rÃ³tulos e aÃ§Ã£o contextual;
+  desktop preserva a tabela compacta para leitura comparativa.
+- 59 testes dirigidos passaram; a inspeÃ§Ã£o Playwright local em desktop/celular nÃ£o
+  encontrou overflow horizontal, perda de foco ou erro de console.
+
+## 23/09/2026 â€” fundamentos de fechamento, comercial, caixa e DRE (V-112)
+
+- A conclusÃ£o pode exigir processamento fechado; a agregaÃ§Ã£o do fechamento mantÃ©m
+  bloqueio, reabertura e indisponibilidade como situaÃ§Ãµes distintas.
+- Raiz de CNPJ vÃ¡lida passou a identificar capacidade comercial; membros ativos e
+  raÃ­zes ativas alimentam somente os limites jÃ¡ configurados.
+- Caixa e DRE ganharam motores determinÃ­sticos, com dupla retenÃ§Ã£o bloqueada e contas
+  nÃ£o mapeadas explÃ­citas. O serviÃ§o de relatÃ³rio JS compilou e gerou SVG local.
+- O assistente de configuraÃ§Ã£o ganhou diagnÃ³stico que deixa explÃ­cito o que opera sem
+  ERP e o que ainda depende de fonte, equipe ou limites. A inspeÃ§Ã£o visual ocorreu
+  em desktop e celular, com foco visÃ­vel, sem overflow e console limpo.
+- A regressÃ£o integral fechou com **823 aprovados e 2 ignorados** em 69,25 s; a prova
+  dirigida das views do espaÃ§o de trabalho fechou com **58 aprovados** em 43,58 s.
+- Nenhuma integraÃ§Ã£o externa, cobranÃ§a ou geraÃ§Ã£o PDF/XLSX produtiva foi ativada.
+
+## 23/09/2026 â€” observaÃ§Ãµes e reabertura por fonte (V-111)
+
+- Leitura de fonte passou a manter sucesso, falha, referÃªncia, versÃ£o, momento e
+  estados retornados sem registrar conteÃºdo bruto desnecessÃ¡rio.
+- RetificaÃ§Ã£o ou reabertura devolve uma atividade concluÃ­da para pendente, preservando
+  a conclusÃ£o na trilha. Indisponibilidade mantÃ©m o Ãºltimo processamento conhecido.
+- A tela de detalhe mostra a origem e atualizaÃ§Ã£o. A prova foi local, com dados
+  fictÃ­cios; nenhuma integraÃ§Ã£o real foi acionada.
+
+## 23/09/2026 â€” modelos e geraÃ§Ã£o mensal da central (V-110)
+
+- Modelos de atividade passaram a ter periodicidade, prazo legal e interno explÃ­citos,
+  tipo de comprovaÃ§Ã£o e versÃ£o. A atribuiÃ§Ã£o Ã© por empresa e responsÃ¡vel padrÃ£o, sem
+  inferir que todas as filiais usam a mesma regra.
+- A geraÃ§Ã£o mensal Ã© idempotente e armazena a versÃ£o aplicada na ocorrÃªncia. Uma
+  revisÃ£o nÃ£o muda competÃªncias anteriores nem ativa uma nova empresa por efeito
+  colateral. A administraÃ§Ã£o pode pausar e retomar atribuiÃ§Ãµes, com auditoria.
+- ValidaÃ§Ã£o local: fluxo administrativo completo em desktop e celular, foco e tema
+  escuro; 814 testes aprovados, 2 ignorados. Nenhum ERP, Serpro, e-mail, IA, cobranÃ§a
+  ou transmissÃ£o real foi acionado. Limites e prova detalhada estÃ£o em V-110.
+
+## 23/09/2026 â€” base da central operacional (V-109)
+
+- Foram adicionados, sem reaproveitar Jornadas, modelos de atividade, evidÃªncia e evento imutÃ¡vel; a conclusÃ£o valida evidÃªncia e aceitaÃ§Ã£o de obrigaÃ§Ã£o quando aplicÃ¡vel.
+- A central lista a carteira autorizada, tem filtros por empresa/Ã¡rea/situaÃ§Ã£o e um detalhe que permite comprovar, impedir ou concluir com trilha auditÃ¡vel. O acesso Ã© novamente conferido na API de cada operaÃ§Ã£o.
+- A prova local cobriu o fluxo completo em 1440 px e 375 px, teclado inicial, tema escuro e console sem erros. NÃ£o houve fonte externa, custo, transmissÃ£o, documento real ou homologaÃ§Ã£o; os limites completos estÃ£o em V-109.
+
+## 21/09/2026 â€” demonstraÃ§Ã£o isolada da ConciliaÃ§Ã£o revisada no navegador (V-099)
+
+- Uma base SQLite temporÃ¡ria, migrada e semeada exclusivamente com dados
+  fictÃ­cios permitiu abrir `/demo/`, a VisÃ£o geral e a ConciliaÃ§Ã£o sem tocar o
+  banco local de desenvolvimento. A sessÃ£o declarou ausÃªncia de consulta
+  externa e cobranÃ§a.
+- Em 1440 Ã— 1000 e 390 Ã— 844, a ConciliaÃ§Ã£o nÃ£o apresentou overflow horizontal
+  ou erros/avisos de console. O modal de importaÃ§Ã£o expÃ´s empresa, conta,
+  origem, perÃ­odo, lote e limites, sem enviar arquivo.
+- Servidor e aba temporÃ¡rios foram encerrados; a base e os artefatos fictÃ­cios
+  foram movidos para a Lixeira de forma recuperÃ¡vel. A evidÃªncia nÃ£o cobre todos
+  os perfis, teclado/foco completo, upload real, integraÃ§Ãµes ou homologaÃ§Ã£o.
+
+## 21/09/2026 â€” PDF corrompido recusado antes da conciliaÃ§Ã£o (V-098)
+
+- A validaÃ§Ã£o passou a abrir PDF e a verificar o limite de 500 pÃ¡ginas antes de
   persistir a fonte. Arquivo malformado retorna mensagem clara sem criar lote ou
-  processamento inválido; o caminho de OCR local continua disponível quando o
-  parser opcional não está instalado.
-- Foram aprovados 42 testes focados (um skip de OCR), Ruff e MyPy do serviço; a
-  suíte integral fechou com 784 testes, três skips e 11 subtestes. Não houve
-  OCR, arquivo real, ERP, integração ou serviço externo.
+  processamento invÃ¡lido; o caminho de OCR local continua disponÃ­vel quando o
+  parser opcional nÃ£o estÃ¡ instalado.
+- Foram aprovados 42 testes focados (um skip de OCR), Ruff e MyPy do serviÃ§o; a
+  suÃ­te integral fechou com 784 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  OCR, arquivo real, ERP, integraÃ§Ã£o ou serviÃ§o externo.
 
-## 21/09/2026 — XLSX corrompido recusado antes da conciliação (V-097)
+## 21/09/2026 â€” XLSX corrompido recusado antes da conciliaÃ§Ã£o (V-097)
 
-- A validação de entrada passou a abrir XLSX antes de criar a fonte. Arquivo com
-  extensão e assinatura compatíveis, mas corrompido, é rejeitado com mensagem
+- A validaÃ§Ã£o de entrada passou a abrir XLSX antes de criar a fonte. Arquivo com
+  extensÃ£o e assinatura compatÃ­veis, mas corrompido, Ã© rejeitado com mensagem
   clara, sem fonte, lote ou processamento persistido.
-- A prévia CSV passou a ler apenas as 51 linhas que exibe, sem materializar todo
-  o conteúdo somente para cortar a amostra visual.
-- Foram aprovados 41 testes focados (um skip de OCR), Ruff e MyPy do serviço; a
-  suíte integral fechou com 783 testes, três skips e 11 subtestes. Não houve
-  arquivo real, OCR, ERP, integração ou serviço externo.
+- A prÃ©via CSV passou a ler apenas as 51 linhas que exibe, sem materializar todo
+  o conteÃºdo somente para cortar a amostra visual.
+- Foram aprovados 41 testes focados (um skip de OCR), Ruff e MyPy do serviÃ§o; a
+  suÃ­te integral fechou com 783 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  arquivo real, OCR, ERP, integraÃ§Ã£o ou serviÃ§o externo.
 
-## 21/09/2026 — código operacional de Jornadas removido (V-096)
+## 21/09/2026 â€” cÃ³digo operacional de Jornadas removido (V-096)
 
-- Em complemento à V-095 e conforme D-43, formulários, views e template
-  operacionais órfãos de Jornadas foram removidos. Enum, modelos, tabelas e
-  migrações históricos permaneceram intactos; não houve migração destrutiva.
-- A busca de referências confirmou que não há rota, vínculo de navegação,
-  formulário, view ou template ativo. O teste mantém as cinco rotas legadas
-  como 404 em GET e POST e confirma a ausência do módulo no catálogo.
-- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migrações; a
-  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
-  cobrança, integração ou serviço externo.
+- Em complemento Ã  V-095 e conforme D-43, formulÃ¡rios, views e template
+  operacionais Ã³rfÃ£os de Jornadas foram removidos. Enum, modelos, tabelas e
+  migraÃ§Ãµes histÃ³ricos permaneceram intactos; nÃ£o houve migraÃ§Ã£o destrutiva.
+- A busca de referÃªncias confirmou que nÃ£o hÃ¡ rota, vÃ­nculo de navegaÃ§Ã£o,
+  formulÃ¡rio, view ou template ativo. O teste mantÃ©m as cinco rotas legadas
+  como 404 em GET e POST e confirma a ausÃªncia do mÃ³dulo no catÃ¡logo.
+- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migraÃ§Ãµes; a
+  suÃ­te integral fechou com 781 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  cobranÃ§a, integraÃ§Ã£o ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 102 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 102 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — Jornadas removida do catálogo do produto (V-095)
+## 21/09/2026 â€” Jornadas removida do catÃ¡logo do produto (V-095)
 
-- A definição de Jornadas foi removida do catálogo efetivo da CICA em
-  conformidade com D-43. Enum, tabelas e migrações ficaram preservados para
-  histórico, sem rota, navegação ou oferta acessível.
+- A definiÃ§Ã£o de Jornadas foi removida do catÃ¡logo efetivo da CICA em
+  conformidade com D-43. Enum, tabelas e migraÃ§Ãµes ficaram preservados para
+  histÃ³rico, sem rota, navegaÃ§Ã£o ou oferta acessÃ­vel.
 - Os testes confirmaram as cinco rotas legadas como 404 para GET e POST, a
-  ausência na navegação e a ausência no catálogo, sem alterar contrato ou dado.
-- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migrações; a
-  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
-  cobrança, integração ou serviço externo.
+  ausÃªncia na navegaÃ§Ã£o e a ausÃªncia no catÃ¡logo, sem alterar contrato ou dado.
+- Foram aprovados 73 testes focados, Ruff, MyPy global, Django e migraÃ§Ãµes; a
+  suÃ­te integral fechou com 781 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  cobranÃ§a, integraÃ§Ã£o ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 101 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 101 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — páginas independentes na Caixa DTE (V-094)
+## 21/09/2026 â€” pÃ¡ginas independentes na Caixa DTE (V-094)
 
-- A paginação de mensagens passou a preservar a página do histórico DTE,
-  filtros e empresa; o histórico já preservava a página de mensagens. As duas
-  listas não se reiniciam mais ao navegar.
-- O teste com 31 resultados DTE e 26 mensagens sintéticas confirmou a segunda
-  página e os vínculos de ida e volta de ambas, sem preparar, enviar ou cobrar
+- A paginaÃ§Ã£o de mensagens passou a preservar a pÃ¡gina do histÃ³rico DTE,
+  filtros e empresa; o histÃ³rico jÃ¡ preservava a pÃ¡gina de mensagens. As duas
+  listas nÃ£o se reiniciam mais ao navegar.
+- O teste com 31 resultados DTE e 26 mensagens sintÃ©ticas confirmou a segunda
+  pÃ¡gina e os vÃ­nculos de ida e volta de ambas, sem preparar, enviar ou cobrar
   consulta.
-- Foram aprovados 10 testes focados, Ruff, MyPy global, Django e migrações; a
-  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
-  Serpro, arquivo, consumo, cobrança ou serviço externo.
+- Foram aprovados 10 testes focados, Ruff, MyPy global, Django e migraÃ§Ãµes; a
+  suÃ­te integral fechou com 781 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  Serpro, arquivo, consumo, cobranÃ§a ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 99 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — fila OFX preserva o contexto da Conciliação (V-093)
+## 21/09/2026 â€” fila OFX preserva o contexto da ConciliaÃ§Ã£o (V-093)
 
-- A fila OFX × Domínio passou a conservar páginas de Processamentos, Movimentos
-  e Exportações, além de seus próprios filtros; percorrê-la não reinicia as
-  outras três áreas.
-- O teste chegou à terceira página de 101 correspondências sintéticas com as
-  demais páginas selecionadas e validou o retorno, sem importar, conciliar,
+- A fila OFX Ã— DomÃ­nio passou a conservar pÃ¡ginas de Processamentos, Movimentos
+  e ExportaÃ§Ãµes, alÃ©m de seus prÃ³prios filtros; percorrÃª-la nÃ£o reinicia as
+  outras trÃªs Ã¡reas.
+- O teste chegou Ã  terceira pÃ¡gina de 101 correspondÃªncias sintÃ©ticas com as
+  demais pÃ¡ginas selecionadas e validou o retorno, sem importar, conciliar,
   reprocessar ou exportar arquivo.
 - Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
-  e migrações; a suíte integral fechou com 781 testes, três skips e 11
-  subtestes. Não houve ERP, arquivo, OCR real ou serviço externo.
+  e migraÃ§Ãµes; a suÃ­te integral fechou com 781 testes, trÃªs skips e 11
+  subtestes. NÃ£o houve ERP, arquivo, OCR real ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 99 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — páginas independentes na Conciliação (V-092)
+## 21/09/2026 â€” pÃ¡ginas independentes na ConciliaÃ§Ã£o (V-092)
 
-- A paginação dos movimentos normalizados agora preserva as páginas abertas de
-  Processamentos e Exportações e o contexto da Conciliação, sem deslocar uma
-  trilha quando a outra é percorrida.
-- O teste com 21 processamentos, 21 exportações e 51 movimentos sintéticos
-  confirmou a segunda página de cada área e o retorno do movimento, sem importar,
+- A paginaÃ§Ã£o dos movimentos normalizados agora preserva as pÃ¡ginas abertas de
+  Processamentos e ExportaÃ§Ãµes e o contexto da ConciliaÃ§Ã£o, sem deslocar uma
+  trilha quando a outra Ã© percorrida.
+- O teste com 21 processamentos, 21 exportaÃ§Ãµes e 51 movimentos sintÃ©ticos
+  confirmou a segunda pÃ¡gina de cada Ã¡rea e o retorno do movimento, sem importar,
   confirmar, reprocessar ou exportar arquivo.
 - Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
-  e migrações; a suíte integral fechou com 781 testes, três skips e 11
-  subtestes. Não houve ERP, arquivo, OCR real ou serviço externo.
+  e migraÃ§Ãµes; a suÃ­te integral fechou com 781 testes, trÃªs skips e 11
+  subtestes. NÃ£o houve ERP, arquivo, OCR real ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 99 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — histórico de Triagem recuperável por página (V-091)
+## 21/09/2026 â€” histÃ³rico de Triagem recuperÃ¡vel por pÃ¡gina (V-091)
 
 - O detalhe de arquivo passou a paginar 20 eventos persistidos por vez, mostrar
-  o total e manter ordem cronológica e parâmetros de retorno, sem ocultar
-  evidência antiga nem carregar toda a trilha no detalhe.
-- O teste com 21 eventos sintéticos confirmou as duas páginas, os vínculos de
-  navegação e os eventos dos extremos sem decidir, arquivar ou gerar arquivo.
-  A demonstração continua isolada por sessão e não foi usada como prova visual
-  de volume; não houve autenticação inserida no navegador.
-- Foram aprovados 57 testes focados, Ruff, MyPy global, Django e migrações; a
-  suíte integral fechou com 781 testes, três skips e 11 subtestes. Não houve
-  caixa, scanner, OCR, agente, serviço externo ou custo.
+  o total e manter ordem cronolÃ³gica e parÃ¢metros de retorno, sem ocultar
+  evidÃªncia antiga nem carregar toda a trilha no detalhe.
+- O teste com 21 eventos sintÃ©ticos confirmou as duas pÃ¡ginas, os vÃ­nculos de
+  navegaÃ§Ã£o e os eventos dos extremos sem decidir, arquivar ou gerar arquivo.
+  A demonstraÃ§Ã£o continua isolada por sessÃ£o e nÃ£o foi usada como prova visual
+  de volume; nÃ£o houve autenticaÃ§Ã£o inserida no navegador.
+- Foram aprovados 57 testes focados, Ruff, MyPy global, Django e migraÃ§Ãµes; a
+  suÃ­te integral fechou com 781 testes, trÃªs skips e 11 subtestes. NÃ£o houve
+  caixa, scanner, OCR, agente, serviÃ§o externo ou custo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 99 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 99 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — candidatos de conciliação recuperáveis por página (V-090)
+## 21/09/2026 â€” candidatos de conciliaÃ§Ã£o recuperÃ¡veis por pÃ¡gina (V-090)
 
-- O detalhe de movimento não limita mais a 50 os candidatos de conciliação:
-  percorre o recorte existente em páginas de 25 e informa o total avaliado,
-  mantendo confirmação humana e evidência obrigatória.
-- O teste com 51 candidatos sintéticos confirmou as três páginas; a sessão
-  fictícia percorreu a segunda em 390 px, sem overflow horizontal ou erro de
-  console. Não houve conciliação confirmada, arquivo, ERP ou serviço externo.
+- O detalhe de movimento nÃ£o limita mais a 50 os candidatos de conciliaÃ§Ã£o:
+  percorre o recorte existente em pÃ¡ginas de 25 e informa o total avaliado,
+  mantendo confirmaÃ§Ã£o humana e evidÃªncia obrigatÃ³ria.
+- O teste com 51 candidatos sintÃ©ticos confirmou as trÃªs pÃ¡ginas; a sessÃ£o
+  fictÃ­cia percorreu a segunda em 390 px, sem overflow horizontal ou erro de
+  console. NÃ£o houve conciliaÃ§Ã£o confirmada, arquivo, ERP ou serviÃ§o externo.
 - Foram aprovados 39 testes focados (um skip de OCR), Ruff, MyPy global, Django
-  e migrações; a suíte integral fechou com 780 testes, três skips e 11
-  subtestes. O banco temporário foi movido à Lixeira de forma recuperável.
+  e migraÃ§Ãµes; a suÃ­te integral fechou com 780 testes, trÃªs skips e 11
+  subtestes. O banco temporÃ¡rio foi movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final manteve `HEAD` e `origin/main` no mesmo commit (0/0), sem pull,
-  commit ou push; as 98 alterações locais foram preservadas.
+  commit ou push; as 98 alteraÃ§Ãµes locais foram preservadas.
 
-## 21/09/2026 — acumulador NFS-e validado por empresa (V-089)
+## 21/09/2026 â€” acumulador NFS-e validado por empresa (V-089)
 
-- A decisão da revisão NFS-e agora aceita somente código já cadastrado em regra
-  vigente ou histórico observado da mesma empresa; códigos inexistentes e de
-  outras empresas são recusados, sem criar regra ou lançamento.
-- Foram aprovados 95 testes focados, Ruff, MyPy global e a suíte integral com
-  779 testes, três skips e 11 subtestes. Não houve ADN, certificado, custo ou
-  serviço externo; o banco temporário foi movido à Lixeira de forma recuperável.
-- A demonstração fictícia confirmou a lista local de acumuladores na decisão
+- A decisÃ£o da revisÃ£o NFS-e agora aceita somente cÃ³digo jÃ¡ cadastrado em regra
+  vigente ou histÃ³rico observado da mesma empresa; cÃ³digos inexistentes e de
+  outras empresas sÃ£o recusados, sem criar regra ou lanÃ§amento.
+- Foram aprovados 95 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  779 testes, trÃªs skips e 11 subtestes. NÃ£o houve ADN, certificado, custo ou
+  serviÃ§o externo; o banco temporÃ¡rio foi movido Ã  Lixeira de forma recuperÃ¡vel.
+- A demonstraÃ§Ã£o fictÃ­cia confirmou a lista local de acumuladores na decisÃ£o
   NFS-e em desktop e 390 px, sem overflow horizontal nem erro de console; ela
-  não foi usada como prova de catálogo real. O fetch final manteve `HEAD` e
+  nÃ£o foi usada como prova de catÃ¡logo real. O fetch final manteve `HEAD` e
   `origin/main` no mesmo commit (0/0), sem pull, commit ou push.
 
-## 21/09/2026 — atenção de egressão recuperável por página (V-088)
+## 21/09/2026 â€” atenÃ§Ã£o de egressÃ£o recuperÃ¡vel por pÃ¡gina (V-088)
 
-- O detalhe do escritório passou a paginar 20 tentativas Claude incertas e a
-  exibir seu total, no lugar de ocultar protocolos antigos; os parâmetros da
-  tela permanecem nos vínculos entre páginas.
-- O teste com 21 auditorias fictícias confirmou a segunda página e o protocolo
-  mais antigo sem chamar IA, liberar reserva ou alterar consumo. A inspeção
-  visual autenticada não foi automatizada para não inserir credenciais.
-- Foram aprovados 57 testes focados, Ruff, MyPy global e a suíte integral com
-  778 testes, três skips e 11 subtestes. Não houve provedor, custo ou serviço
-  externo; o banco temporário foi movido à Lixeira de forma recuperável.
+- O detalhe do escritÃ³rio passou a paginar 20 tentativas Claude incertas e a
+  exibir seu total, no lugar de ocultar protocolos antigos; os parÃ¢metros da
+  tela permanecem nos vÃ­nculos entre pÃ¡ginas.
+- O teste com 21 auditorias fictÃ­cias confirmou a segunda pÃ¡gina e o protocolo
+  mais antigo sem chamar IA, liberar reserva ou alterar consumo. A inspeÃ§Ã£o
+  visual autenticada nÃ£o foi automatizada para nÃ£o inserir credenciais.
+- Foram aprovados 57 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  778 testes, trÃªs skips e 11 subtestes. NÃ£o houve provedor, custo ou serviÃ§o
+  externo; o banco temporÃ¡rio foi movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 96 alterações locais existentes foram preservadas
+  pull, commit ou push; as 96 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — fechamentos adiados recuperáveis por página (V-087)
+## 21/09/2026 â€” fechamentos adiados recuperÃ¡veis por pÃ¡gina (V-087)
 
-- A configuração da plataforma passou a paginar 30 fechamentos ainda adiados
-  e a exibir seu total, no lugar de cortar a lista em 30 ocorrências; os
-  parâmetros da tela permanecem nos vínculos entre páginas.
-- O teste com 31 escritórios e ocorrências fictícias confirmou a segunda página
-  sem executar fechamento, reserva, faturamento ou mudar contratos. A inspeção
-  visual autenticada não foi automatizada para não inserir credenciais.
-- Foram aprovados 65 testes focados, com um skip de concorrência PostgreSQL,
-  Ruff, MyPy global e a suíte integral com 777 testes, três skips e 11
-  subtestes. Não houve Asaas, custo ou serviço externo; o banco temporário foi
-  movido à Lixeira de forma recuperável.
+- A configuraÃ§Ã£o da plataforma passou a paginar 30 fechamentos ainda adiados
+  e a exibir seu total, no lugar de cortar a lista em 30 ocorrÃªncias; os
+  parÃ¢metros da tela permanecem nos vÃ­nculos entre pÃ¡ginas.
+- O teste com 31 escritÃ³rios e ocorrÃªncias fictÃ­cias confirmou a segunda pÃ¡gina
+  sem executar fechamento, reserva, faturamento ou mudar contratos. A inspeÃ§Ã£o
+  visual autenticada nÃ£o foi automatizada para nÃ£o inserir credenciais.
+- Foram aprovados 65 testes focados, com um skip de concorrÃªncia PostgreSQL,
+  Ruff, MyPy global e a suÃ­te integral com 777 testes, trÃªs skips e 11
+  subtestes. NÃ£o houve Asaas, custo ou serviÃ§o externo; o banco temporÃ¡rio foi
+  movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 96 alterações locais existentes foram preservadas
+  pull, commit ou push; as 96 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — histórico do Copiloto recuperável por página (V-086)
+## 21/09/2026 â€” histÃ³rico do Copiloto recuperÃ¡vel por pÃ¡gina (V-086)
 
-- O histórico aberto do Copiloto passou a paginar 12 conversas e a exibir seu
+- O histÃ³rico aberto do Copiloto passou a paginar 12 conversas e a exibir seu
   total, no lugar de ocultar todas as conversas anteriores; a conversa em foco
-  e a página continuam presentes nos vínculos entre as navegações.
-- O teste com 13 conversas fictícias confirmou a segunda página e a seleção da
+  e a pÃ¡gina continuam presentes nos vÃ­nculos entre as navegaÃ§Ãµes.
+- O teste com 13 conversas fictÃ­cias confirmou a segunda pÃ¡gina e a seleÃ§Ã£o da
   conversa mais antiga sem enviar pergunta, criar mensagem ou chamar IA. A
-  demonstração vazia confirmou a superfície móvel sem overflow ou erro de
+  demonstraÃ§Ã£o vazia confirmou a superfÃ­cie mÃ³vel sem overflow ou erro de
   console, sem alegar volume visual.
-- Foram aprovados 49 testes focados, Ruff, MyPy global e a suíte integral com
-  776 testes, três skips e 11 subtestes. Não houve runtime, fallback, egressão,
-  custo ou serviço externo; o ambiente temporário foi encerrado e movido à
-  Lixeira de forma recuperável.
+- Foram aprovados 49 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  776 testes, trÃªs skips e 11 subtestes. NÃ£o houve runtime, fallback, egressÃ£o,
+  custo ou serviÃ§o externo; o ambiente temporÃ¡rio foi encerrado e movido Ã 
+  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 94 alterações locais existentes foram preservadas
+  pull, commit ou push; as 94 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — trilhas de Conciliação recuperáveis (V-085)
+## 21/09/2026 â€” trilhas de ConciliaÃ§Ã£o recuperÃ¡veis (V-085)
 
-- Processamentos e exportações passaram a paginar 20 registros de forma
-  independente, em vez dos cortes de 12 e 8, preservando os parâmetros da tela
+- Processamentos e exportaÃ§Ãµes passaram a paginar 20 registros de forma
+  independente, em vez dos cortes de 12 e 8, preservando os parÃ¢metros da tela
   e a outra trilha.
-- O teste com 21 execuções e 21 exportações fictícias confirmou a segunda página
+- O teste com 21 execuÃ§Ãµes e 21 exportaÃ§Ãµes fictÃ­cias confirmou a segunda pÃ¡gina
   de cada uma sem importar, reprocessar, exportar ou baixar arquivos. A
-  demonstração confirmou apenas as áreas móveis, sem overflow ou erro de console.
+  demonstraÃ§Ã£o confirmou apenas as Ã¡reas mÃ³veis, sem overflow ou erro de console.
 - Foram aprovados 93 testes focados, com um skip de OCR local, Ruff, MyPy global
-  e a suíte integral com 775 testes, três skips e 11 subtestes. Não houve ERP,
-  arquivo real, custo ou serviço externo; o ambiente temporário foi encerrado e
-  movido à Lixeira de forma recuperável.
+  e a suÃ­te integral com 775 testes, trÃªs skips e 11 subtestes. NÃ£o houve ERP,
+  arquivo real, custo ou serviÃ§o externo; o ambiente temporÃ¡rio foi encerrado e
+  movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 91 alterações locais existentes foram preservadas
+  pull, commit ou push; as 91 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — histórico de importações recuperável no onboarding (V-084)
+## 21/09/2026 â€” histÃ³rico de importaÃ§Ãµes recuperÃ¡vel no onboarding (V-084)
 
-- A área de onboarding passou a paginar 20 lotes de importação e a exibir o
-  total, no lugar do corte nos oito mais recentes; a fonte e a prévia continuam
-  presentes nos vínculos entre páginas.
-- O teste com 21 lotes fictícios confirmou a segunda página sem enviar,
-  confirmar ou alterar arquivo. A demonstração vazia confirmou a superfície
-  móvel sem overflow ou erro de console, sem alegar volume visual.
-- Foram aprovados 57 testes focados, Ruff, MyPy global e a suíte integral com
-  774 testes, três skips e 11 subtestes. Não houve arquivo real, Domínio,
-  agente, credencial, custo ou serviço externo; o ambiente temporário foi
-  encerrado e movido à Lixeira de forma recuperável.
+- A Ã¡rea de onboarding passou a paginar 20 lotes de importaÃ§Ã£o e a exibir o
+  total, no lugar do corte nos oito mais recentes; a fonte e a prÃ©via continuam
+  presentes nos vÃ­nculos entre pÃ¡ginas.
+- O teste com 21 lotes fictÃ­cios confirmou a segunda pÃ¡gina sem enviar,
+  confirmar ou alterar arquivo. A demonstraÃ§Ã£o vazia confirmou a superfÃ­cie
+  mÃ³vel sem overflow ou erro de console, sem alegar volume visual.
+- Foram aprovados 57 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  774 testes, trÃªs skips e 11 subtestes. NÃ£o houve arquivo real, DomÃ­nio,
+  agente, credencial, custo ou serviÃ§o externo; o ambiente temporÃ¡rio foi
+  encerrado e movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 90 alterações locais existentes foram preservadas
+  pull, commit ou push; as 90 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — histórico DTE recuperável por página própria (V-083)
+## 21/09/2026 â€” histÃ³rico DTE recuperÃ¡vel por pÃ¡gina prÃ³pria (V-083)
 
-- O histórico de resultados da Caixa DTE passou a paginar 30 itens, informar o
-  total e preservar a página independente da fila de mensagens e os parâmetros
+- O histÃ³rico de resultados da Caixa DTE passou a paginar 30 itens, informar o
+  total e preservar a pÃ¡gina independente da fila de mensagens e os parÃ¢metros
   correntes da tela.
-- O teste com 31 itens DTE fictícios confirmou a segunda página sem preparar
-  consulta, alterar resultado ou autorização. A demonstração vazia confirmou a
-  superfície móvel sem overflow ou erro de console, sem alegar volume visual.
-- Foram aprovados 75 testes focados, Ruff, MyPy global e a suíte integral com
-  773 testes, três skips e 11 subtestes. Não houve Serpro, certificado,
-  consumo, cobrança, custo ou serviço externo; o ambiente temporário foi
-  encerrado e movido à Lixeira de forma recuperável.
+- O teste com 31 itens DTE fictÃ­cios confirmou a segunda pÃ¡gina sem preparar
+  consulta, alterar resultado ou autorizaÃ§Ã£o. A demonstraÃ§Ã£o vazia confirmou a
+  superfÃ­cie mÃ³vel sem overflow ou erro de console, sem alegar volume visual.
+- Foram aprovados 75 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  773 testes, trÃªs skips e 11 subtestes. NÃ£o houve Serpro, certificado,
+  consumo, cobranÃ§a, custo ou serviÃ§o externo; o ambiente temporÃ¡rio foi
+  encerrado e movido Ã  Lixeira de forma recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 89 alterações locais existentes foram preservadas
+  pull, commit ou push; as 89 alteraÃ§Ãµes locais existentes foram preservadas
   antes deste registro.
 
-## 21/09/2026 — histórico de cobrança manual recuperável (V-082)
+## 21/09/2026 â€” histÃ³rico de cobranÃ§a manual recuperÃ¡vel (V-082)
 
-- O console da plataforma passou a paginar as faturas internas em páginas de
-  12, expondo o total sem ocultar competências antigas.
-- O teste com 25 faturas sintéticas confirmou a página 3 e o vínculo de retorno
+- O console da plataforma passou a paginar as faturas internas em pÃ¡ginas de
+  12, expondo o total sem ocultar competÃªncias antigas.
+- O teste com 25 faturas sintÃ©ticas confirmou a pÃ¡gina 3 e o vÃ­nculo de retorno
   sem alterar valores, contratos ou status.
-- Foram aprovados 41 testes focados, Ruff, MyPy global e a suíte integral com
-  772 testes, três skips e 11 subtestes. Não houve cobrança, Asaas, cartão,
-  Pix, boleto ou serviço externo. A inspeção visual autenticada permanece
-  pendente por não inserir credenciais no navegador.
+- Foram aprovados 41 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  772 testes, trÃªs skips e 11 subtestes. NÃ£o houve cobranÃ§a, Asaas, cartÃ£o,
+  Pix, boleto ou serviÃ§o externo. A inspeÃ§Ã£o visual autenticada permanece
+  pendente por nÃ£o inserir credenciais no navegador.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 87 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 87 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — Radar da Reforma recuperável por página (V-081)
+## 21/09/2026 â€” Radar da Reforma recuperÃ¡vel por pÃ¡gina (V-081)
 
 - A lista de alertas do Radar passou a paginar 50 registros, no lugar do corte
   nos 80 primeiros, mantendo termo, fonte e tema em cada retorno.
-- O teste com 101 alertas sintéticos confirmou a terceira página e os filtros.
-  A demonstração, que contém somente três exemplos, confirmou o filtro IBS e a
-  apresentação móvel, sem alegar visualização em volume.
-- Foram aprovados 77 testes focados, Ruff, MyPy global e a suíte integral com
-  771 testes, três skips e 11 subtestes. Não houve coleta, URL oficial, ERP ou
-  serviço externo; o ambiente temporário foi encerrado e movido à Lixeira.
+- O teste com 101 alertas sintÃ©ticos confirmou a terceira pÃ¡gina e os filtros.
+  A demonstraÃ§Ã£o, que contÃ©m somente trÃªs exemplos, confirmou o filtro IBS e a
+  apresentaÃ§Ã£o mÃ³vel, sem alegar visualizaÃ§Ã£o em volume.
+- Foram aprovados 77 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  771 testes, trÃªs skips e 11 subtestes. NÃ£o houve coleta, URL oficial, ERP ou
+  serviÃ§o externo; o ambiente temporÃ¡rio foi encerrado e movido Ã  Lixeira.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 85 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 85 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — auditoria de conciliação recuperável por página (V-080)
+## 21/09/2026 â€” auditoria de conciliaÃ§Ã£o recuperÃ¡vel por pÃ¡gina (V-080)
 
 - A trilha de auditoria deixou de ocultar eventos depois dos primeiros 200:
-  agora apresenta 100 por página, total do filtro e navegação que conserva a
-  ação selecionada.
-- O teste com 201 eventos e a demonstração local temporária confirmaram a
-  terceira página e o retorno à segunda; em 390 px não houve overflow
+  agora apresenta 100 por pÃ¡gina, total do filtro e navegaÃ§Ã£o que conserva a
+  aÃ§Ã£o selecionada.
+- O teste com 201 eventos e a demonstraÃ§Ã£o local temporÃ¡ria confirmaram a
+  terceira pÃ¡gina e o retorno Ã  segunda; em 390 px nÃ£o houve overflow
   horizontal ou erro de console.
-- Foram aprovados 90 testes focados, Ruff, MyPy global e a suíte integral com
-  770 testes, três skips e 11 subtestes. Não houve arquivo bancário, ERP,
-  Domínio ou serviço externo; o ambiente temporário foi encerrado e movido à
-  Lixeira de modo recuperável.
+- Foram aprovados 90 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  770 testes, trÃªs skips e 11 subtestes. NÃ£o houve arquivo bancÃ¡rio, ERP,
+  DomÃ­nio ou serviÃ§o externo; o ambiente temporÃ¡rio foi encerrado e movido Ã 
+  Lixeira de modo recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 84 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 84 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — ficha da empresa com históricos recuperáveis (V-079)
+## 21/09/2026 â€” ficha da empresa com histÃ³ricos recuperÃ¡veis (V-079)
 
-- A ficha passou a paginar documentos NFS-e, revisões abertas e mensagens DTE
-  em seções independentes de 20 registros, preservando o retorno à carteira.
-- O teste com 21 itens de cada tipo e a demonstração temporária confirmaram a
-  página 2 das três seções; o retorno da DTE manteve as outras páginas. Em 390
-  px não houve overflow horizontal nem erro de console.
-- Foram aprovados 72 testes focados, Ruff, MyPy global e a suíte integral com
-  769 testes, três skips e 11 subtestes. Não houve ADN, Serpro, A1 ou serviço
-  externo; o ambiente temporário foi encerrado e movido à Lixeira.
+- A ficha passou a paginar documentos NFS-e, revisÃµes abertas e mensagens DTE
+  em seÃ§Ãµes independentes de 20 registros, preservando o retorno Ã  carteira.
+- O teste com 21 itens de cada tipo e a demonstraÃ§Ã£o temporÃ¡ria confirmaram a
+  pÃ¡gina 2 das trÃªs seÃ§Ãµes; o retorno da DTE manteve as outras pÃ¡ginas. Em 390
+  px nÃ£o houve overflow horizontal nem erro de console.
+- Foram aprovados 72 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  769 testes, trÃªs skips e 11 subtestes. NÃ£o houve ADN, Serpro, A1 ou serviÃ§o
+  externo; o ambiente temporÃ¡rio foi encerrado e movido Ã  Lixeira.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 83 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 83 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — cobertura de certificados recuperável (V-078)
+## 21/09/2026 â€” cobertura de certificados recuperÃ¡vel (V-078)
 
-- A lista de empresas sem certificado A1 válido passou a paginar 20 itens, sem
-  interferir na paginação da carteira de certificados; a navegação preserva os
-  parâmetros de busca e situação existentes.
-- O teste com 21 empresas e a demonstração temporária com 25 pendências
-  confirmaram a segunda página e o retorno à primeira. Em 390 px não houve
+- A lista de empresas sem certificado A1 vÃ¡lido passou a paginar 20 itens, sem
+  interferir na paginaÃ§Ã£o da carteira de certificados; a navegaÃ§Ã£o preserva os
+  parÃ¢metros de busca e situaÃ§Ã£o existentes.
+- O teste com 21 empresas e a demonstraÃ§Ã£o temporÃ¡ria com 25 pendÃªncias
+  confirmaram a segunda pÃ¡gina e o retorno Ã  primeira. Em 390 px nÃ£o houve
   overflow horizontal ou erro de console.
-- Foram aprovados 70 testes focados, Ruff, MyPy global e a suíte integral com
-  768 testes, três skips e 11 subtestes. Não houve A1, ADN ou serviço externo;
-  o ambiente temporário foi encerrado e movido à Lixeira de modo recuperável.
+- Foram aprovados 70 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  768 testes, trÃªs skips e 11 subtestes. NÃ£o houve A1, ADN ou serviÃ§o externo;
+  o ambiente temporÃ¡rio foi encerrado e movido Ã  Lixeira de modo recuperÃ¡vel.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 81 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 81 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — histórico de Parcelamentos recuperável (V-077)
+## 21/09/2026 â€” histÃ³rico de Parcelamentos recuperÃ¡vel (V-077)
 
-- O histórico por empresa passou a paginar as operações, em vez de cortar após
-  20 tentativas, preservando a empresa em foco na navegação.
-- A demonstração temporária com 21 operações fictícias percorreu as duas
-  páginas e preservou o aviso de recuperação para resultado incerto, sem erro
-  de console. Foram aprovados 77 testes focados, Ruff, MyPy global e a suíte
-  integral com 767 testes, três skips e 11 subtestes.
-- Não houve chamada PARCSN/Serpro; o ambiente temporário foi encerrado.
-- Após atualizar as referências remotas, `HEAD` permaneceu sincronizado com
-  `origin/main` (0 à frente, 0 atrás); as 80 alterações locais foram
+- O histÃ³rico por empresa passou a paginar as operaÃ§Ãµes, em vez de cortar apÃ³s
+  20 tentativas, preservando a empresa em foco na navegaÃ§Ã£o.
+- A demonstraÃ§Ã£o temporÃ¡ria com 21 operaÃ§Ãµes fictÃ­cias percorreu as duas
+  pÃ¡ginas e preservou o aviso de recuperaÃ§Ã£o para resultado incerto, sem erro
+  de console. Foram aprovados 77 testes focados, Ruff, MyPy global e a suÃ­te
+  integral com 767 testes, trÃªs skips e 11 subtestes.
+- NÃ£o houve chamada PARCSN/Serpro; o ambiente temporÃ¡rio foi encerrado.
+- ApÃ³s atualizar as referÃªncias remotas, `HEAD` permaneceu sincronizado com
+  `origin/main` (0 Ã  frente, 0 atrÃ¡s); as 80 alteraÃ§Ãµes locais foram
   preservadas.
 
-## 21/09/2026 — fila de conciliação sem corte silencioso (V-076)
+## 21/09/2026 â€” fila de conciliaÃ§Ã£o sem corte silencioso (V-076)
 
-- A fila OFX × Domínio passou a paginar 50 resultados, mantendo busca e
-  situação; a montagem de candidatos continua limitada à página apresentada.
-- O teste autenticado criou 101 correspondências sem par, alcançou a página 3
-  e manteve os filtros no retorno. A demonstração possui somente duas linhas,
-  portanto não foi usada para alegar inspeção visual da paginação em volume.
-- Foram aprovados 95 testes focados, Ruff, MyPy global e a suíte integral com
-  766 testes, três skips e 11 subtestes, sem arquivo bancário ou serviço externo.
+- A fila OFX Ã— DomÃ­nio passou a paginar 50 resultados, mantendo busca e
+  situaÃ§Ã£o; a montagem de candidatos continua limitada Ã  pÃ¡gina apresentada.
+- O teste autenticado criou 101 correspondÃªncias sem par, alcanÃ§ou a pÃ¡gina 3
+  e manteve os filtros no retorno. A demonstraÃ§Ã£o possui somente duas linhas,
+  portanto nÃ£o foi usada para alegar inspeÃ§Ã£o visual da paginaÃ§Ã£o em volume.
+- Foram aprovados 95 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  766 testes, trÃªs skips e 11 subtestes, sem arquivo bancÃ¡rio ou serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 80 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 80 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — carteira de Parcelamentos por lote autorizado (V-075)
+## 21/09/2026 â€” carteira de Parcelamentos por lote autorizado (V-075)
 
 - A carteira deixou de ocultar empresas acima de 100 registros e agora pagina
-  30 por página, preservando a pesquisa.
-- O seletor em massa passou a declarar o escopo da página e cada página respeita
-  o limite de 30 empresas já validado pelo backend. A jornada com 101 empresas
-  fictícias alcançou a página 4, retornou à 3 e não apresentou erro de console.
-- Foram aprovados 76 testes focados, Ruff, MyPy global e a suíte integral com
-  765 testes, três skips e 11 subtestes. Não houve Serpro, PARCSN, Domínio ou
-  outro serviço externo; o ambiente temporário foi encerrado.
+  30 por pÃ¡gina, preservando a pesquisa.
+- O seletor em massa passou a declarar o escopo da pÃ¡gina e cada pÃ¡gina respeita
+  o limite de 30 empresas jÃ¡ validado pelo backend. A jornada com 101 empresas
+  fictÃ­cias alcanÃ§ou a pÃ¡gina 4, retornou Ã  3 e nÃ£o apresentou erro de console.
+- Foram aprovados 76 testes focados, Ruff, MyPy global e a suÃ­te integral com
+  765 testes, trÃªs skips e 11 subtestes. NÃ£o houve Serpro, PARCSN, DomÃ­nio ou
+  outro serviÃ§o externo; o ambiente temporÃ¡rio foi encerrado.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 78 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 78 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — carteira de guias sem corte silencioso (V-074)
+## 21/09/2026 â€” carteira de guias sem corte silencioso (V-074)
 
 - Guias/DCTFWeb passou a paginar listas maiores que 100 resultados, mantendo
-  busca, situação e vencimento ao navegar entre as páginas.
-- A demonstração temporária com 101 guias fictícias confirmou página 2, retorno
-  à página 1 e ausência de erros de console. Foram aprovados 88 testes focados,
-  Ruff, MyPy global e a suíte integral com 764 testes, três skips e 11
+  busca, situaÃ§Ã£o e vencimento ao navegar entre as pÃ¡ginas.
+- A demonstraÃ§Ã£o temporÃ¡ria com 101 guias fictÃ­cias confirmou pÃ¡gina 2, retorno
+  Ã  pÃ¡gina 1 e ausÃªncia de erros de console. Foram aprovados 88 testes focados,
+  Ruff, MyPy global e a suÃ­te integral com 764 testes, trÃªs skips e 11
   subtestes.
-- O banco e servidor locais de QA foram encerrados; o diretório temporário foi
-  movido de forma recuperável para a Lixeira. Não houve chamada Serpro,
-  DCTFWeb, Domínio ou outro serviço externo.
+- O banco e servidor locais de QA foram encerrados; o diretÃ³rio temporÃ¡rio foi
+  movido de forma recuperÃ¡vel para a Lixeira. NÃ£o houve chamada Serpro,
+  DCTFWeb, DomÃ­nio ou outro serviÃ§o externo.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
-  pull, commit ou push; as 76 alterações locais existentes foram preservadas.
+  pull, commit ou push; as 76 alteraÃ§Ãµes locais existentes foram preservadas.
 
-## 21/09/2026 — revisão NFS-e e carteira sem corte silencioso (V-073)
+## 21/09/2026 â€” revisÃ£o NFS-e e carteira sem corte silencioso (V-073)
 
-- O detalhe local passou a mostrar os fatos normalizados necessários à decisão;
-  a demonstração os preenche como fictícios e mantém a referência da contraparte
+- O detalhe local passou a mostrar os fatos normalizados necessÃ¡rios Ã  decisÃ£o;
+  a demonstraÃ§Ã£o os preenche como fictÃ­cios e mantÃ©m a referÃªncia da contraparte
   pseudonimizada.
-- A carteira agora pagina mais de 100 documentos sem perder o filtro. A página
-  2 e o retorno à página 1 foram confirmados em celular no navegador interno,
+- A carteira agora pagina mais de 100 documentos sem perder o filtro. A pÃ¡gina
+  2 e o retorno Ã  pÃ¡gina 1 foram confirmados em celular no navegador interno,
   sem overflow ou erro de console. Foram aprovados 79 testes focados, Ruff,
-  MyPy e a suíte integral com 763 testes, três skips e 11 subtestes.
-- O banco e servidor locais de QA foram encerrados; o diretório temporário foi
-  movido de forma recuperável para a Lixeira.
+  MyPy e a suÃ­te integral com 763 testes, trÃªs skips e 11 subtestes.
+- O banco e servidor locais de QA foram encerrados; o diretÃ³rio temporÃ¡rio foi
+  movido de forma recuperÃ¡vel para a Lixeira.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0), sem
   pull, commit ou push.
 
-## 21/09/2026 — contrato do runtime de IA e guarda de fallback verificados (V-072)
+## 21/09/2026 â€” contrato do runtime de IA e guarda de fallback verificados (V-072)
 
-- O runtime privado OpenAI-compatível respondeu em teste com evidência compacta;
-  uma resposta local não acionou fallback nem criou egressão, mesmo com a rota
+- O runtime privado OpenAI-compatÃ­vel respondeu em teste com evidÃªncia compacta;
+  uma resposta local nÃ£o acionou fallback nem criou egressÃ£o, mesmo com a rota
   externa configurada.
-- A ausência de opt-in continuou bloqueando o provedor e registrando a negação.
+- A ausÃªncia de opt-in continuou bloqueando o provedor e registrando a negaÃ§Ã£o.
   Foram aprovados 73 testes, 3 subtestes, Ruff e MyPy global; o ambiente foi
   totalmente simulado, sem modelo ou provedor real.
 - O fetch final manteve `HEAD` e `origin/main` no mesmo commit (0/0), sem pull,
-  commit ou push; as alterações locais foram preservadas.
+  commit ou push; as alteraÃ§Ãµes locais foram preservadas.
 
-## 21/09/2026 — módulos fictícios e Copiloto validados visualmente (V-071)
+## 21/09/2026 â€” mÃ³dulos fictÃ­cios e Copiloto validados visualmente (V-071)
 
-- Guias, DTE, Parcelamentos, Conciliação, Radar e Copiloto renderizaram na
-  demonstração, com aviso explícito e sem erro de console.
+- Guias, DTE, Parcelamentos, ConciliaÃ§Ã£o, Radar e Copiloto renderizaram na
+  demonstraÃ§Ã£o, com aviso explÃ­cito e sem erro de console.
 - O Copiloto exigiu empresa e apresentou resposta simulada com fontes marcadas
-  como sintéticas, sem egressão ou chamada externa.
+  como sintÃ©ticas, sem egressÃ£o ou chamada externa.
 
-## 21/09/2026 — revisão fiscal e isolamento de console verificados (V-070)
+## 21/09/2026 â€” revisÃ£o fiscal e isolamento de console verificados (V-070)
 
-- A fila e o detalhe NFS-e fictícios apresentaram contexto, hash, evidência,
-  confiança, XML e decisão explícita com retorno à fila.
-- A sessão de demonstração recebeu acesso restrito ao abrir o console Mewstack;
-  nenhum erro de console foi observado. A inspeção do console autenticado segue
-  pendente por não inserir credenciais automaticamente.
+- A fila e o detalhe NFS-e fictÃ­cios apresentaram contexto, hash, evidÃªncia,
+  confianÃ§a, XML e decisÃ£o explÃ­cita com retorno Ã  fila.
+- A sessÃ£o de demonstraÃ§Ã£o recebeu acesso restrito ao abrir o console Mewstack;
+  nenhum erro de console foi observado. A inspeÃ§Ã£o do console autenticado segue
+  pendente por nÃ£o inserir credenciais automaticamente.
 
-## 21/09/2026 — auditoria visual pública e demonstração fictícia (V-069)
+## 21/09/2026 â€” auditoria visual pÃºblica e demonstraÃ§Ã£o fictÃ­cia (V-069)
 
-- A home, cadastro, abas/FAQ, viewport móvel e console foram verificados no
-  navegador interno com base temporária; não houve overflow nem erro de console.
-- A demonstração isolada alcançou dashboard e Triagem, onde o anexo em
+- A home, cadastro, abas/FAQ, viewport mÃ³vel e console foram verificados no
+  navegador interno com base temporÃ¡ria; nÃ£o houve overflow nem erro de console.
+- A demonstraÃ§Ã£o isolada alcanÃ§ou dashboard e Triagem, onde o anexo em
   quarentena permaneceu explicitamente bloqueado para abertura e download.
-- A auditoria é parcial: o Mac bloqueado impediu automação nativa e não houve
-  acesso a console, integrações, dados reais ou ambiente publicado.
+- A auditoria Ã© parcial: o Mac bloqueado impediu automaÃ§Ã£o nativa e nÃ£o houve
+  acesso a console, integraÃ§Ãµes, dados reais ou ambiente publicado.
 
-## 21/09/2026 — view Hub integralmente tipada e regressão focada (V-068)
+## 21/09/2026 â€” view Hub integralmente tipada e regressÃ£o focada (V-068)
 
-- Os contratos locais de conciliação, Triagem, certificados, setup e tokens
-  foram explicitados sem chamar serviços externos ou modificar fluxos.
+- Os contratos locais de conciliaÃ§Ã£o, Triagem, certificados, setup e tokens
+  foram explicitados sem chamar serviÃ§os externos ou modificar fluxos.
 - Ruff, MyPy da view e MyPy global passaram; 119 testes locais passaram, com
-  um único skip esperado de OCR em português. A suíte integral repetiu 762
+  um Ãºnico skip esperado de OCR em portuguÃªs. A suÃ­te integral repetiu 762
   testes aprovados, 3 skips conhecidos e 11 subtestes aprovados.
 - O fetch final confirmou `HEAD` e `origin/main` no mesmo commit (0/0); as
-  alterações locais da execução foram preservadas, sem commit ou push.
+  alteraÃ§Ãµes locais da execuÃ§Ã£o foram preservadas, sem commit ou push.
 
-## 21/09/2026 — NFS-e e DCTFWeb da view Hub refinados (V-067)
+## 21/09/2026 â€” NFS-e e DCTFWeb da view Hub refinados (V-067)
 
-- Coleções, contexto, números, UUID e cotações receberam contratos explícitos;
-  20 testes NFS-e/DCTFWeb passaram sem integração externa.
+- ColeÃ§Ãµes, contexto, nÃºmeros, UUID e cotaÃ§Ãµes receberam contratos explÃ­citos;
+  20 testes NFS-e/DCTFWeb passaram sem integraÃ§Ã£o externa.
 
-## 21/09/2026 — primeira seção da view do Hub tipada (V-066)
+## 21/09/2026 â€” primeira seÃ§Ã£o da view do Hub tipada (V-066)
 
-- Demonstração, dashboard, convites, módulo, despacho NFS-e e filtros receberam
-  contratos explícitos; 86 testes locais passaram sem alteração de integração.
-- A dívida da view do Hub caiu a 114 erros; nenhuma homologação externa foi
+- DemonstraÃ§Ã£o, dashboard, convites, mÃ³dulo, despacho NFS-e e filtros receberam
+  contratos explÃ­citos; 86 testes locais passaram sem alteraÃ§Ã£o de integraÃ§Ã£o.
+- A dÃ­vida da view do Hub caiu a 114 erros; nenhuma homologaÃ§Ã£o externa foi
   realizada.
 
-## 21/09/2026 — serviços, agente e interface de IA tipados (V-065)
+## 21/09/2026 â€” serviÃ§os, agente e interface de IA tipados (V-065)
 
-- Reserva do Copiloto, API do agente e estado transitório de entrega da
-  interface receberam contratos explícitos, sem persistir novos campos nem
+- Reserva do Copiloto, API do agente e estado transitÃ³rio de entrega da
+  interface receberam contratos explÃ­citos, sem persistir novos campos nem
   acionar fallback externo.
-- Ruff, MyPy e 68 testes passaram. A dívida global ficou em 131 erros de uma
-  única view do Hub; curadoria e egressão real continuam pendentes.
+- Ruff, MyPy e 68 testes passaram. A dÃ­vida global ficou em 131 erros de uma
+  Ãºnica view do Hub; curadoria e egressÃ£o real continuam pendentes.
 
-## 21/09/2026 — operações Integra e NFS-e tipadas (V-064)
+## 21/09/2026 â€” operaÃ§Ãµes Integra e NFS-e tipadas (V-064)
 
-- Serviços, tarefas, reserva entre livros, despacho pós-commit e validação
-  decimal NFS-e receberam contratos explícitos, mantendo as integrações sem
-  execução real.
-- Ruff, MyPy e 57 testes DTE/DCTFWeb/PARCSN/NFS-e passaram. A dívida global
-  caiu a 143 erros em 4 arquivos; Serpro, ADN e Domínio seguem não homologados.
+- ServiÃ§os, tarefas, reserva entre livros, despacho pÃ³s-commit e validaÃ§Ã£o
+  decimal NFS-e receberam contratos explÃ­citos, mantendo as integraÃ§Ãµes sem
+  execuÃ§Ã£o real.
+- Ruff, MyPy e 57 testes DTE/DCTFWeb/PARCSN/NFS-e passaram. A dÃ­vida global
+  caiu a 143 erros em 4 arquivos; Serpro, ADN e DomÃ­nio seguem nÃ£o homologados.
 
-## 21/09/2026 — regressão integral atualizada (V-063)
+## 21/09/2026 â€” regressÃ£o integral atualizada (V-063)
 
-- Django, migrações, diff e suíte integral foram reexecutados após V-060–V-062:
+- Django, migraÃ§Ãµes, diff e suÃ­te integral foram reexecutados apÃ³s V-060â€“V-062:
   762 testes, 3 skips conhecidos e 11 subtestes passaram em 27,52 s. O fetch
   final confirmou `HEAD` e `origin/main` no mesmo commit (0/0).
-- Não houve integração externa. Os limites dos skips permanecem Playwright
-  Python opcional, OCR local e concorrência PostgreSQL.
+- NÃ£o houve integraÃ§Ã£o externa. Os limites dos skips permanecem Playwright
+  Python opcional, OCR local e concorrÃªncia PostgreSQL.
 
-## 21/09/2026 — segurança, multipart e acesso DTE tipados (V-062)
+## 21/09/2026 â€” seguranÃ§a, multipart e acesso DTE tipados (V-062)
 
-- Scanner/política receberam fluxo binário explícito; multipart separou campos e
-  bytes; e navegação/reserva DTE receberam contratos estáticos de requisição e
+- Scanner/polÃ­tica receberam fluxo binÃ¡rio explÃ­cito; multipart separou campos e
+  bytes; e navegaÃ§Ã£o/reserva DTE receberam contratos estÃ¡ticos de requisiÃ§Ã£o e
   consumo.
-- Quarenta testes locais passaram com Ruff/MyPy; a dívida global caiu a 160
-  erros em 7 arquivos. Nenhum scanner, Domínio, Serpro ou dado real foi usado.
+- Quarenta testes locais passaram com Ruff/MyPy; a dÃ­vida global caiu a 160
+  erros em 7 arquivos. Nenhum scanner, DomÃ­nio, Serpro ou dado real foi usado.
 
-## 21/09/2026 — plataforma administrativa tipada e retestada (V-061)
+## 21/09/2026 â€” plataforma administrativa tipada e retestada (V-061)
 
-- Tarefa de competência, snapshot contratual, validação de conteúdo de webhook
-  e contrato HTTP legal receberam tipos explícitos, preservando regras e dados
+- Tarefa de competÃªncia, snapshot contratual, validaÃ§Ã£o de conteÃºdo de webhook
+  e contrato HTTP legal receberam tipos explÃ­citos, preservando regras e dados
   comerciais existentes.
-- Ruff, MyPy e 69 testes de plataforma passaram; a dívida global caiu a 168
-  erros em 11 arquivos. Nenhuma cobrança, evento Asaas ou alteração comercial
+- Ruff, MyPy e 69 testes de plataforma passaram; a dÃ­vida global caiu a 168
+  erros em 11 arquivos. Nenhuma cobranÃ§a, evento Asaas ou alteraÃ§Ã£o comercial
   foi realizada.
 
-## 21/09/2026 — coletores e fila de Triagem tipados (V-060)
+## 21/09/2026 â€” coletores e fila de Triagem tipados (V-060)
 
-- Cursor Graph, conteúdo IMAP, fábrica de conexão e consulta elegível da fila
-  receberam contratos explícitos, preservando as leituras e checkpoints locais.
-- Ruff, MyPy e 22 testes de Graph, IMAP, retentativa, ingestão e tarefas
-  passaram. A dívida global caiu a 172 erros em 15 arquivos, sem OAuth, DNS,
+- Cursor Graph, conteÃºdo IMAP, fÃ¡brica de conexÃ£o e consulta elegÃ­vel da fila
+  receberam contratos explÃ­citos, preservando as leituras e checkpoints locais.
+- Ruff, MyPy e 22 testes de Graph, IMAP, retentativa, ingestÃ£o e tarefas
+  passaram. A dÃ­vida global caiu a 172 erros em 15 arquivos, sem OAuth, DNS,
   caixa, antimalware ou destino real.
 
-## 21/09/2026 — regressão integral e relatórios/sincronização tipados (V-058/V-059)
+## 21/09/2026 â€” regressÃ£o integral e relatÃ³rios/sincronizaÃ§Ã£o tipados (V-058/V-059)
 
-- A verificação Django, migrações e suíte integral passaram: 762 testes, 3
-  skips e 11 subtestes. Os skips continuam sendo limitações conhecidas de
-  Playwright Python, OCR local e concorrência PostgreSQL.
-- Relatórios XLSX/PDF e a normalização da sincronização bancária receberam
-  contratos estáticos explícitos; 7 testes de sincronização passaram. Não há
-  teste específico de exportação no repositório. A dívida MyPy caiu para 185
-  erros em 18 arquivos, sem consulta Domínio ou geração com dados reais.
+- A verificaÃ§Ã£o Django, migraÃ§Ãµes e suÃ­te integral passaram: 762 testes, 3
+  skips e 11 subtestes. Os skips continuam sendo limitaÃ§Ãµes conhecidas de
+  Playwright Python, OCR local e concorrÃªncia PostgreSQL.
+- RelatÃ³rios XLSX/PDF e a normalizaÃ§Ã£o da sincronizaÃ§Ã£o bancÃ¡ria receberam
+  contratos estÃ¡ticos explÃ­citos; 7 testes de sincronizaÃ§Ã£o passaram. NÃ£o hÃ¡
+  teste especÃ­fico de exportaÃ§Ã£o no repositÃ³rio. A dÃ­vida MyPy caiu para 185
+  erros em 18 arquivos, sem consulta DomÃ­nio ou geraÃ§Ã£o com dados reais.
 
-## 21/09/2026 — gateway e comandos de IA tipados (V-057)
+## 21/09/2026 â€” gateway e comandos de IA tipados (V-057)
 
-- Payload do gateway e interfaces de comandos passaram a ter tipos explícitos.
+- Payload do gateway e interfaces de comandos passaram a ter tipos explÃ­citos.
   Trinta e dois testes de comandos, escopo e acesso de IA passaram sem chamada
-  Anthropic; comandos de custo continuam bloqueados por aprovação específica.
-- Ruff, MyPy e diff passaram; a dívida global caiu a 197 erros em 20 arquivos.
-  Curadoria, egressão, treino e prova de artefato seguem pendentes.
+  Anthropic; comandos de custo continuam bloqueados por aprovaÃ§Ã£o especÃ­fica.
+- Ruff, MyPy e diff passaram; a dÃ­vida global caiu a 197 erros em 20 arquivos.
+  Curadoria, egressÃ£o, treino e prova de artefato seguem pendentes.
 
-## 21/09/2026 — configuração de plataforma tipada e retestada (V-056)
+## 21/09/2026 â€” configuraÃ§Ã£o de plataforma tipada e retestada (V-056)
 
-- Formulários, persistência, usuário de auditoria e seleção de plano passaram a
-  ter contratos estáticos explícitos. Pagamentos, notificações e aprovação de
+- FormulÃ¡rios, persistÃªncia, usuÃ¡rio de auditoria e seleÃ§Ã£o de plano passaram a
+  ter contratos estÃ¡ticos explÃ­citos. Pagamentos, notificaÃ§Ãµes e aprovaÃ§Ã£o de
   fallback foram retestados sem chamar fornecedores.
-- Ruff, MyPy e 55 testes passaram, com um skip PostgreSQL; a dívida global caiu
+- Ruff, MyPy e 55 testes passaram, com um skip PostgreSQL; a dÃ­vida global caiu
   para 205 erros em 24 arquivos. Nenhuma credencial, SMTP, Claude, Serpro ou
   Asaas real foi utilizado.
 
-## 21/09/2026 — coletor Gmail e ingestão tipados (V-055)
+## 21/09/2026 â€” coletor Gmail e ingestÃ£o tipados (V-055)
 
 - Cursor, checkpoint, data inicial, base64 e caminho de blob receberam
-  pré-condições explícitas. Quatorze testes de ingestão/retentativa, Ruff e
-  MyPy passaram; a dívida global reduziu a 291 erros em 28 arquivos.
+  prÃ©-condiÃ§Ãµes explÃ­citas. Quatorze testes de ingestÃ£o/retentativa, Ruff e
+  MyPy passaram; a dÃ­vida global reduziu a 291 erros em 28 arquivos.
 - Nenhuma caixa Google, OAuth ou provedor foi acessado. A etapa 06 continua
-  aguardando homologações externas.
+  aguardando homologaÃ§Ãµes externas.
 
-## 21/09/2026 — cliente IMAP local tipado (V-054)
+## 21/09/2026 â€” cliente IMAP local tipado (V-054)
 
-- Socket e respostas IMAP receberam contratos explícitos, preservando busca
-  somente leitura sem charset. Doze testes de conexão/retentativa sintética,
-  Ruff e MyPy passaram; a dívida global caiu a 296 erros em 30 arquivos.
-- Nenhuma caixa, credencial ou provedor foi acessado. A homologação segue nas
+- Socket e respostas IMAP receberam contratos explÃ­citos, preservando busca
+  somente leitura sem charset. Doze testes de conexÃ£o/retentativa sintÃ©tica,
+  Ruff e MyPy passaram; a dÃ­vida global caiu a 296 erros em 30 arquivos.
+- Nenhuma caixa, credencial ou provedor foi acessado. A homologaÃ§Ã£o segue nas
   etapas 06 e 12.
 
-## 21/09/2026 — livros de tokens e faturamento tipados (V-053)
+## 21/09/2026 â€” livros de tokens e faturamento tipados (V-053)
 
 - Medidores legado e de tokens foram separados explicitamente no fechamento;
-  franquia/preço e usuário de aceite são materializados antes da persistência.
-  Vinte e dois testes passaram, com concorrência PostgreSQL mantida como skip.
-- Ruff, MyPy e diff passaram nos módulos; a dívida global reduziu a 300 erros em
-  31 arquivos. Não houve cobrança, Asaas, preço novo ou pagamento real.
+  franquia/preÃ§o e usuÃ¡rio de aceite sÃ£o materializados antes da persistÃªncia.
+  Vinte e dois testes passaram, com concorrÃªncia PostgreSQL mantida como skip.
+- Ruff, MyPy e diff passaram nos mÃ³dulos; a dÃ­vida global reduziu a 300 erros em
+  31 arquivos. NÃ£o houve cobranÃ§a, Asaas, preÃ§o novo ou pagamento real.
 
-## 21/09/2026 — transporte de e-mail local tipado (V-052)
+## 21/09/2026 â€” transporte de e-mail local tipado (V-052)
 
-- O backend passou a declarar configuração, SMTP e sequência de mensagens sem
+- O backend passou a declarar configuraÃ§Ã£o, SMTP e sequÃªncia de mensagens sem
   alterar o carregamento tardio do modelo. Ruff, MyPy e 33 testes de
-  configuração passaram; a dívida global reduziu para 311 erros em 33 arquivos.
-- Não houve conexão SMTP/DNS/Brevo, segredo ou envio real. A homologação segue
+  configuraÃ§Ã£o passaram; a dÃ­vida global reduziu para 311 erros em 33 arquivos.
+- NÃ£o houve conexÃ£o SMTP/DNS/Brevo, segredo ou envio real. A homologaÃ§Ã£o segue
   exclusivamente na etapa 12 conforme D-77/D-78.
 
-## 21/09/2026 — PARCSN e tarefas agendadas tipados (V-051)
+## 21/09/2026 â€” PARCSN e tarefas agendadas tipados (V-051)
 
 - O parser local passou a validar explicitamente o expoente decimal e os
   inteiros do payload; o decorador de tarefa tem contrato de retorno completo.
-  Vinte testes de PARCSN/operações passaram sem transporte Serpro.
-- Ruff, MyPy e diff passaram nos módulos; a dívida global chegou a 316 erros em
-  34 arquivos. Credenciais, representação, custo e prova Serpro seguem abertas.
+  Vinte testes de PARCSN/operaÃ§Ãµes passaram sem transporte Serpro.
+- Ruff, MyPy e diff passaram nos mÃ³dulos; a dÃ­vida global chegou a 316 erros em
+  34 arquivos. Credenciais, representaÃ§Ã£o, custo e prova Serpro seguem abertas.
 
-## 21/09/2026 — limites de entrada da importação explicitados (V-050)
+## 21/09/2026 â€” limites de entrada da importaÃ§Ã£o explicitados (V-050)
 
-- A prévia local exige nome de arquivo antes de persistir e usa esse valor
+- A prÃ©via local exige nome de arquivo antes de persistir e usa esse valor
   validado nos fluxos tabular e de backup; o mapa de capacidades foi tipado.
-  Não houve arquivo ou backup real.
-- Ruff e 57 testes do Hub passaram; o MyPy global caiu a 328 ocorrências. A
-  tentativa de isolação de imports expôs erro interno do MyPy/django-stubs, não
-  mascarado como aprovação. A etapa 09 continua sem layout/ERP/OCR homologado.
+  NÃ£o houve arquivo ou backup real.
+- Ruff e 57 testes do Hub passaram; o MyPy global caiu a 328 ocorrÃªncias. A
+  tentativa de isolaÃ§Ã£o de imports expÃ´s erro interno do MyPy/django-stubs, nÃ£o
+  mascarado como aprovaÃ§Ã£o. A etapa 09 continua sem layout/ERP/OCR homologado.
 
-## 21/09/2026 — serviço de conciliação tipado e retestado (V-049)
+## 21/09/2026 â€” serviÃ§o de conciliaÃ§Ã£o tipado e retestado (V-049)
 
 - Foram explicitados contratos locais de parser, checkpoint, armazenamento,
-  relações opcionais e regra de faixa, preservando a recusa de dados inválidos.
-  Bibliotecas de XLSX/PDF seguem sem stubs, com exceção limitada aos imports.
-- Ruff e MyPy do serviço, 35 testes de conciliação (um skip de OCR), Django,
-  migrações e diff passaram. MyPy global caiu para 334 erros em 38 arquivos.
-- Não houve ERP, arquivo real, OCR disponível, fonte Radar ou exportação
+  relaÃ§Ãµes opcionais e regra de faixa, preservando a recusa de dados invÃ¡lidos.
+  Bibliotecas de XLSX/PDF seguem sem stubs, com exceÃ§Ã£o limitada aos imports.
+- Ruff e MyPy do serviÃ§o, 35 testes de conciliaÃ§Ã£o (um skip de OCR), Django,
+  migraÃ§Ãµes e diff passaram. MyPy global caiu para 334 erros em 38 arquivos.
+- NÃ£o houve ERP, arquivo real, OCR disponÃ­vel, fonte Radar ou exportaÃ§Ã£o
   homologada; a etapa 09 continua aberta por esses requisitos.
 
-## 21/09/2026 — formulários de contratação retestados (V-048)
+## 21/09/2026 â€” formulÃ¡rios de contrataÃ§Ã£o retestados (V-048)
 
 - Ajustadas fronteiras de tipos de `LeadForm`, plano e proposta de tokens sem
-  mudar preço, contrato, consumo ou cobrança. A suíte focada aprovou 26 testes,
-  com um skip de concorrência reservado ao PostgreSQL.
+  mudar preÃ§o, contrato, consumo ou cobranÃ§a. A suÃ­te focada aprovou 26 testes,
+  com um skip de concorrÃªncia reservado ao PostgreSQL.
 - Ruff, MyPy e diff passaram; MyPy global passou a 348 erros em 39 arquivos.
-  Não houve chamada CNPJ, Asaas, criação de cobrança ou qualquer custo.
+  NÃ£o houve chamada CNPJ, Asaas, criaÃ§Ã£o de cobranÃ§a ou qualquer custo.
 
-## 21/09/2026 — formulários do Hub e cache CNPJ tipados (V-047)
+## 21/09/2026 â€” formulÃ¡rios do Hub e cache CNPJ tipados (V-047)
 
-- Formulários de escopo, importação e conciliação receberam tipos seguros para
-  escolhas dinâmicas, modelos, widgets e validações. Referências genéricas de
-  Django são adiadas para não tentar subscrever classes em execução.
-- A suíte de conciliação aprovou 35 testes, com um skip esperado por OCR local;
-  Ruff, MyPy, Django, migrações e diff passaram. O cache de CNPJ também só
-  reutiliza dicionário de textos e não chamou a fonte externa.
-- A dívida MyPy global reduziu para 356 ocorrências em 40 arquivos. OCR,
-  layouts, ERP, Radar, fontes e homologações continuam fora desta evidência.
+- FormulÃ¡rios de escopo, importaÃ§Ã£o e conciliaÃ§Ã£o receberam tipos seguros para
+  escolhas dinÃ¢micas, modelos, widgets e validaÃ§Ãµes. ReferÃªncias genÃ©ricas de
+  Django sÃ£o adiadas para nÃ£o tentar subscrever classes em execuÃ§Ã£o.
+- A suÃ­te de conciliaÃ§Ã£o aprovou 35 testes, com um skip esperado por OCR local;
+  Ruff, MyPy, Django, migraÃ§Ãµes e diff passaram. O cache de CNPJ tambÃ©m sÃ³
+  reutiliza dicionÃ¡rio de textos e nÃ£o chamou a fonte externa.
+- A dÃ­vida MyPy global reduziu para 356 ocorrÃªncias em 40 arquivos. OCR,
+  layouts, ERP, Radar, fontes e homologaÃ§Ãµes continuam fora desta evidÃªncia.
 
-## 21/09/2026 — pré-condições de serviço da Triagem explicitadas (V-046)
+## 21/09/2026 â€” prÃ©-condiÃ§Ãµes de serviÃ§o da Triagem explicitadas (V-046)
 
-- As verificações já esperadas pelo serviço foram tornadas explícitas para os
-  tipos: relações de empresa/tipo, nome e tamanho do upload, caminho interno e
-  stream binário. Não houve mudança de fluxo, regra de segurança, banco,
-  provedor, arquivo real ou migração.
-- Ruff e MyPy passaram no serviço; 35 testes de domínio, ingestão e agente
-  Windows passaram em 7,47 s. Django, dry-run de migrações e diff passaram.
+- As verificaÃ§Ãµes jÃ¡ esperadas pelo serviÃ§o foram tornadas explÃ­citas para os
+  tipos: relaÃ§Ãµes de empresa/tipo, nome e tamanho do upload, caminho interno e
+  stream binÃ¡rio. NÃ£o houve mudanÃ§a de fluxo, regra de seguranÃ§a, banco,
+  provedor, arquivo real ou migraÃ§Ã£o.
+- Ruff e MyPy passaram no serviÃ§o; 35 testes de domÃ­nio, ingestÃ£o e agente
+  Windows passaram em 7,47 s. Django, dry-run de migraÃ§Ãµes e diff passaram.
   A linha de base global reduziu para 399 erros em 42 arquivos.
 
-## 21/09/2026 — formulários da Triagem tipados sem mudança funcional (V-045)
+## 21/09/2026 â€” formulÃ¡rios da Triagem tipados sem mudanÃ§a funcional (V-045)
 
-- Foram eliminadas 127 ocorrências MyPy dos seis formulários. As fronteiras
-  dinâmicas do Django foram tipadas com precisão pragmática, os campos de
-  empresa/documento ganharam tipos de modelo explícitos e o tratamento de data
-  preserva a validação existente.
-- Ruff e MyPy passaram nos módulos alterados; 51 testes de política, IMAP,
-  domínio e ingestão sintética passaram em 14,77 s, e `git diff --check` ficou limpo. MyPy global
+- Foram eliminadas 127 ocorrÃªncias MyPy dos seis formulÃ¡rios. As fronteiras
+  dinÃ¢micas do Django foram tipadas com precisÃ£o pragmÃ¡tica, os campos de
+  empresa/documento ganharam tipos de modelo explÃ­citos e o tratamento de data
+  preserva a validaÃ§Ã£o existente.
+- Ruff e MyPy passaram nos mÃ³dulos alterados; 51 testes de polÃ­tica, IMAP,
+  domÃ­nio e ingestÃ£o sintÃ©tica passaram em 14,77 s, e `git diff --check` ficou limpo. MyPy global
   reduziu de 535 erros em 46 arquivos para 408 em 43 arquivos.
-- Não houve modificação de tela, fluxo, banco, provedor, caixa real, destino ou
-  migração. A etapa 06 continua aberta pelas dependências Q-12 a Q-25/Q-31 e
-  pela homologação externa.
+- NÃ£o houve modificaÃ§Ã£o de tela, fluxo, banco, provedor, caixa real, destino ou
+  migraÃ§Ã£o. A etapa 06 continua aberta pelas dependÃªncias Q-12 a Q-25/Q-31 e
+  pela homologaÃ§Ã£o externa.
 
-## 21/09/2026 — diagnóstico global e primeiro lote de tipos da Triagem (V-044)
+## 21/09/2026 â€” diagnÃ³stico global e primeiro lote de tipos da Triagem (V-044)
 
-- A auditoria `uv run mypy .` achou 535 ocorrências em 46 arquivos. O número é
-  uma linha de base de dívida técnica, não uma validação verde nem um bloqueio
+- A auditoria `uv run mypy .` achou 535 ocorrÃªncias em 46 arquivos. O nÃºmero Ã©
+  uma linha de base de dÃ­vida tÃ©cnica, nÃ£o uma validaÃ§Ã£o verde nem um bloqueio
   de funcionamento local.
-- O primeiro lote eliminou a divergência entre enum e chave de texto no mapa de
-  apresentação de caixas e tornou explícita a ausência de stubs de `defusedxml`.
-  Não houve mudança de fluxo, banco, provedor, dado operacional ou migração.
-- Ruff e MyPy passaram nos dois módulos; 44 testes de política, domínio e
-  ingestão de e-mail passaram em 7,12 s, e o diff não tem espaço inválido.
-  A retomada segura é reduzir a dívida em lotes revisáveis, preservando o
-  diagnóstico global até que cada módulo tenha evidência própria.
+- O primeiro lote eliminou a divergÃªncia entre enum e chave de texto no mapa de
+  apresentaÃ§Ã£o de caixas e tornou explÃ­cita a ausÃªncia de stubs de `defusedxml`.
+  NÃ£o houve mudanÃ§a de fluxo, banco, provedor, dado operacional ou migraÃ§Ã£o.
+- Ruff e MyPy passaram nos dois mÃ³dulos; 44 testes de polÃ­tica, domÃ­nio e
+  ingestÃ£o de e-mail passaram em 7,12 s, e o diff nÃ£o tem espaÃ§o invÃ¡lido.
+  A retomada segura Ã© reduzir a dÃ­vida em lotes revisÃ¡veis, preservando o
+  diagnÃ³stico global atÃ© que cada mÃ³dulo tenha evidÃªncia prÃ³pria.
 
-## 21/09/2026 — qualidade de tipos local (V-043)
+## 21/09/2026 â€” qualidade de tipos local (V-043)
 
-- Corrigidas as 21 ocorrências MyPy encontradas durante V-042 em armazenamento
-  privado da Triagem, validação OAuth, caminho privado de conciliação e modelos
-  de livros de tokens. As alterações preservam as assinaturas Django e não
-  mudam regra de negócio, migração, provedor ou dado operacional.
-- MyPy e Ruff passaram nos seis módulos envolvidos. Django, dry-run de
-  migrações e diff também passaram; 125 testes focados (um skip de OCR) e três
-  subtestes cobriram Triagem, conciliação, cobrança e IA.
-- A suíte integral iniciada posteriormente excedeu a janela de captura da
-  sessão, sem resumo recuperável; ela não é apresentada como aprovação. Não
-  restou processo Pytest e `lastfailed` estava vazio. O ponto de retomada é
-  repetir a suíte integral em terminal com captura persistente antes de usar
-  esta alteração como revalidação global.
+- Corrigidas as 21 ocorrÃªncias MyPy encontradas durante V-042 em armazenamento
+  privado da Triagem, validaÃ§Ã£o OAuth, caminho privado de conciliaÃ§Ã£o e modelos
+  de livros de tokens. As alteraÃ§Ãµes preservam as assinaturas Django e nÃ£o
+  mudam regra de negÃ³cio, migraÃ§Ã£o, provedor ou dado operacional.
+- MyPy e Ruff passaram nos seis mÃ³dulos envolvidos. Django, dry-run de
+  migraÃ§Ãµes e diff tambÃ©m passaram; 125 testes focados (um skip de OCR) e trÃªs
+  subtestes cobriram Triagem, conciliaÃ§Ã£o, cobranÃ§a e IA.
+- A suÃ­te integral iniciada posteriormente excedeu a janela de captura da
+  sessÃ£o, sem resumo recuperÃ¡vel; ela nÃ£o Ã© apresentada como aprovaÃ§Ã£o. NÃ£o
+  restou processo Pytest e `lastfailed` estava vazio. O ponto de retomada Ã©
+  repetir a suÃ­te integral em terminal com captura persistente antes de usar
+  esta alteraÃ§Ã£o como revalidaÃ§Ã£o global.
 
-## 21/09/2026 — etapa 05: gate de identificadores pessoais no manifesto (V-042)
+## 21/09/2026 â€” etapa 05: gate de identificadores pessoais no manifesto (V-042)
 
-- D-94 formalizou o controle local: CPF, CNPJ ou e-mail reconhecível em
-  pergunta, resposta ou referência bloqueia o manifesto de treino e avaliação
-  antes de qualquer gravação. O registro não é mascarado automaticamente; a
-  anonimização exige revisão humana para preservar seu sentido contábil.
-- O comando de exportação transforma a recusa em erro controlado e não cria o
-  JSONL. D-95 acrescentou criação exclusiva: ele também recusa sobrescrever um
-  artefato existente. Testes cobrem os três locais possíveis do identificador,
-  a ausência de artefato após a falha e a preservação do arquivo já existente.
-- Ruff, Django, dry-run de migrações e 39 testes focados/3 subtestes passaram.
-  A suíte integral fechou com 762 aprovados, 3 skips esperados e 11 subtestes.
-  Não houve egressão, Claude, dado de cliente, modelo, treino, GPU, custo ou
-  deploy. A etapa 05 segue em andamento por curadoria, corpus e aprovações
-  Q-08/Q-09/Q-11/Q-34. MyPy não fechou: a execução a partir de `src/` reportou
-  21 erros em quatro módulos não alterados (`triage`, `hub` e `platform`), que
-  ficam registrados como dívida técnica separada.
+- D-94 formalizou o controle local: CPF, CNPJ ou e-mail reconhecÃ­vel em
+  pergunta, resposta ou referÃªncia bloqueia o manifesto de treino e avaliaÃ§Ã£o
+  antes de qualquer gravaÃ§Ã£o. O registro nÃ£o Ã© mascarado automaticamente; a
+  anonimizaÃ§Ã£o exige revisÃ£o humana para preservar seu sentido contÃ¡bil.
+- O comando de exportaÃ§Ã£o transforma a recusa em erro controlado e nÃ£o cria o
+  JSONL. D-95 acrescentou criaÃ§Ã£o exclusiva: ele tambÃ©m recusa sobrescrever um
+  artefato existente. Testes cobrem os trÃªs locais possÃ­veis do identificador,
+  a ausÃªncia de artefato apÃ³s a falha e a preservaÃ§Ã£o do arquivo jÃ¡ existente.
+- Ruff, Django, dry-run de migraÃ§Ãµes e 39 testes focados/3 subtestes passaram.
+  A suÃ­te integral fechou com 762 aprovados, 3 skips esperados e 11 subtestes.
+  NÃ£o houve egressÃ£o, Claude, dado de cliente, modelo, treino, GPU, custo ou
+  deploy. A etapa 05 segue em andamento por curadoria, corpus e aprovaÃ§Ãµes
+  Q-08/Q-09/Q-11/Q-34. MyPy nÃ£o fechou: a execuÃ§Ã£o a partir de `src/` reportou
+  21 erros em quatro mÃ³dulos nÃ£o alterados (`triage`, `hub` e `platform`), que
+  ficam registrados como dÃ­vida tÃ©cnica separada.
 
-## 21/09/2026 — análise integral, etapa 04 e comparação com GitHub (V-041)
+## 21/09/2026 â€” anÃ¡lise integral, etapa 04 e comparaÃ§Ã£o com GitHub (V-041)
 
-- A documentação canônica, o inventário, a matriz de evidências e o código
+- A documentaÃ§Ã£o canÃ´nica, o inventÃ¡rio, a matriz de evidÃªncias e o cÃ³digo
   atual foram confrontados. O produto permanece um SaaS multiempresa da
-  Mewstack com agente Windows e módulos operacionais; a condição de venda
-  continua sendo operação verificável e recuperável, não a existência de tela
+  Mewstack com agente Windows e mÃ³dulos operacionais; a condiÃ§Ã£o de venda
+  continua sendo operaÃ§Ã£o verificÃ¡vel e recuperÃ¡vel, nÃ£o a existÃªncia de tela
   ou teste isolado.
-- A próxima etapa do plano continua sendo Siescon. A preparação correta já
-  modela o destino, mas o registro de adaptadores contém apenas Domínio; pedir
-  Siescon é recusado antes de ler lançamentos ou criar arquivo. Não foi criado
+- A prÃ³xima etapa do plano continua sendo Siescon. A preparaÃ§Ã£o correta jÃ¡
+  modela o destino, mas o registro de adaptadores contÃ©m apenas DomÃ­nio; pedir
+  Siescon Ã© recusado antes de ler lanÃ§amentos ou criar arquivo. NÃ£o foi criado
   SQL, endpoint, credencial ou layout especulativo. Q-33 continua exigindo
-  versão/banco/método de leitura, schema, chave empresarial/cursor, ambiente e
-  layout de importação por canal seguro.
-- Ruff, Django, dry-run de migrações, 35 testes focados (1 skip de OCR) e a
-  suíte completa (759 aprovados, 3 skips e 8 subtestes) passaram. Nenhuma
-  integração externa foi executada. `git fetch origin --prune` e a comparação
-  `HEAD...origin/main` retornaram 0 commits de cada lado; não havia mudança do
+  versÃ£o/banco/mÃ©todo de leitura, schema, chave empresarial/cursor, ambiente e
+  layout de importaÃ§Ã£o por canal seguro.
+- Ruff, Django, dry-run de migraÃ§Ãµes, 35 testes focados (1 skip de OCR) e a
+  suÃ­te completa (759 aprovados, 3 skips e 8 subtestes) passaram. Nenhuma
+  integraÃ§Ã£o externa foi executada. `git fetch origin --prune` e a comparaÃ§Ã£o
+  `HEAD...origin/main` retornaram 0 commits de cada lado; nÃ£o havia mudanÃ§a do
   GitHub a trazer.
-- A etapa 04 fica em andamento e bloqueada, não concluída. Após receber o
-  contrato Q-33, revisar o material antes de escrever adaptador, então validar
-  leitura idempotente e exportação importada/conferida no ambiente autorizado.
+- A etapa 04 fica em andamento e bloqueada, nÃ£o concluÃ­da. ApÃ³s receber o
+  contrato Q-33, revisar o material antes de escrever adaptador, entÃ£o validar
+  leitura idempotente e exportaÃ§Ã£o importada/conferida no ambiente autorizado.
 
-## 20/09/2026 — etapa 11: pausa da auditoria local de interação
+## 20/09/2026 â€” etapa 11: pausa da auditoria local de interaÃ§Ã£o
 
 - A continuidade segura selecionada foi a auditoria local de teclado, foco e
-  estados de erro/vazio, em servidor descartável com SQLite e egressão externa
-  bloqueada. O servidor e a aba de demonstração foram encerrados ao parar.
-- A regressão automatizada existente não pôde ser executada porque o pacote
-  Node `playwright` não está instalado neste checkout. A inspeção com navegador
-  nativo também não iniciou: o aplicativo Codex aguarda a concessão única de
-  Acessibilidade e Gravação de Tela. Não foram inferidos resultados de UI.
-- Ponto de retomada: após essa permissão, executar as jornadas sintéticas de
+  estados de erro/vazio, em servidor descartÃ¡vel com SQLite e egressÃ£o externa
+  bloqueada. O servidor e a aba de demonstraÃ§Ã£o foram encerrados ao parar.
+- A regressÃ£o automatizada existente nÃ£o pÃ´de ser executada porque o pacote
+  Node `playwright` nÃ£o estÃ¡ instalado neste checkout. A inspeÃ§Ã£o com navegador
+  nativo tambÃ©m nÃ£o iniciou: o aplicativo Codex aguarda a concessÃ£o Ãºnica de
+  Acessibilidade e GravaÃ§Ã£o de Tela. NÃ£o foram inferidos resultados de UI.
+- Ponto de retomada: apÃ³s essa permissÃ£o, executar as jornadas sintÃ©ticas de
   teclado/foco/erro/vazio da etapa 11 e registrar apenas os estados de fato
-  observados. Não há alteração de código, configuração, dados ou provedor neste
+  observados. NÃ£o hÃ¡ alteraÃ§Ã£o de cÃ³digo, configuraÃ§Ã£o, dados ou provedor neste
   registro.
 
-## 20/09/2026 — etapa 10: contrato local do cliente Asaas (V-040)
+## 20/09/2026 â€” etapa 10: contrato local do cliente Asaas (V-040)
 
-- Implementado `apps.platform.asaas` com ambientes explícitos, chave e
-  transporte injetados, consulta por `externalReference`, criação de cliente e
-  cobrança avulsa sem dados de cartão. Falha ou retorno incerto não faz nova
-  tentativa automática de `POST`.
-- `uv run pytest tests/test_asaas_client.py tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q` fechou com 49 aprovados e um skip de concorrência exclusivo do PostgreSQL. Ruff, Django, dry-run de migrações e diff passaram.
-- A revalidação integral fechou com 759 aprovados, 3 ignorados e 8 subtestes em
-  28,99 s; os skips são Playwright Python opcional, OCR português ausente e a
-  concorrência de locks já coberta em PostgreSQL histórico.
-- O contrato foi conferido na documentação oficial Asaas e não fez conexão,
-  usou chave real, alterou configuração ou criou objeto no provedor. Ainda falta
-  orquestrar dados comerciais, cliente e `PaymentAttempt`, além da homologação
-  autorizada de Pix, boleto, cartão e eventos na etapa 12.
+- Implementado `apps.platform.asaas` com ambientes explÃ­citos, chave e
+  transporte injetados, consulta por `externalReference`, criaÃ§Ã£o de cliente e
+  cobranÃ§a avulsa sem dados de cartÃ£o. Falha ou retorno incerto nÃ£o faz nova
+  tentativa automÃ¡tica de `POST`.
+- `uv run pytest tests/test_asaas_client.py tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q` fechou com 49 aprovados e um skip de concorrÃªncia exclusivo do PostgreSQL. Ruff, Django, dry-run de migraÃ§Ãµes e diff passaram.
+- A revalidaÃ§Ã£o integral fechou com 759 aprovados, 3 ignorados e 8 subtestes em
+  28,99 s; os skips sÃ£o Playwright Python opcional, OCR portuguÃªs ausente e a
+  concorrÃªncia de locks jÃ¡ coberta em PostgreSQL histÃ³rico.
+- O contrato foi conferido na documentaÃ§Ã£o oficial Asaas e nÃ£o fez conexÃ£o,
+  usou chave real, alterou configuraÃ§Ã£o ou criou objeto no provedor. Ainda falta
+  orquestrar dados comerciais, cliente e `PaymentAttempt`, alÃ©m da homologaÃ§Ã£o
+  autorizada de Pix, boleto, cartÃ£o e eventos na etapa 12.
 
-## 19/09/2026 — etapa 11: inspeção local de jornadas e interfaces (V-039)
+## 19/09/2026 â€” etapa 11: inspeÃ§Ã£o local de jornadas e interfaces (V-039)
 
-- Em servidor isolado com banco, mídia e massa sintéticos, 14 caminhos da área
-  de trabalho foram verificados em desktop e 390 × 844: cada um exibiu um `h1`,
-  não apresentou overflow horizontal nem campo visível sem rótulo na checagem
-  DOM. A Triagem fictícia percorreu fila, revisão, preparo e arquivamento
-  privado na sessão; o console não reportou erro.
-- 77 testes de workspace, demonstração e autenticação passaram; um teste
+- Em servidor isolado com banco, mÃ­dia e massa sintÃ©ticos, 14 caminhos da Ã¡rea
+  de trabalho foram verificados em desktop e 390 Ã— 844: cada um exibiu um `h1`,
+  nÃ£o apresentou overflow horizontal nem campo visÃ­vel sem rÃ³tulo na checagem
+  DOM. A Triagem fictÃ­cia percorreu fila, revisÃ£o, preparo e arquivamento
+  privado na sessÃ£o; o console nÃ£o reportou erro.
+- 77 testes de workspace, demonstraÃ§Ã£o e autenticaÃ§Ã£o passaram; um teste
   Playwright Python opcional foi ignorado porque o navegador interativo local
-  foi usado nesta auditoria. Ruff, Django, migrações em dry-run e diff passaram.
-- A inspeção não cobre todas as áreas públicas, console, perfis, teclado/foco,
-  contraste, carga/erro/vazio nem tarefas externas. Etapa em andamento; não há
-  alegação de aceite integrado ou aderência comercial final.
+  foi usado nesta auditoria. Ruff, Django, migraÃ§Ãµes em dry-run e diff passaram.
+- A inspeÃ§Ã£o nÃ£o cobre todas as Ã¡reas pÃºblicas, console, perfis, teclado/foco,
+  contraste, carga/erro/vazio nem tarefas externas. Etapa em andamento; nÃ£o hÃ¡
+  alegaÃ§Ã£o de aceite integrado ou aderÃªncia comercial final.
 
-## 19/09/2026 — etapa 06: Triagem de Arquivos local (V-038)
+## 19/09/2026 â€” etapa 06: Triagem de Arquivos local (V-038)
 
-- Revalidados quarentena privada, idempotência por entrega, cursor/leitura
-  incremental simulados, bloqueio de binário não verificado, scan/formato,
-  revisão, cópia interna com hash e protocolo de agente Windows com escopo,
-  hash, falha recuperável e repetição. Nenhuma confirmação ocorre só pela
-  intenção de arquivar.
-- 72 testes de domínio e seis subtestes de protocolo Windows passaram; seis
+- Revalidados quarentena privada, idempotÃªncia por entrega, cursor/leitura
+  incremental simulados, bloqueio de binÃ¡rio nÃ£o verificado, scan/formato,
+  revisÃ£o, cÃ³pia interna com hash e protocolo de agente Windows com escopo,
+  hash, falha recuperÃ¡vel e repetiÃ§Ã£o. Nenhuma confirmaÃ§Ã£o ocorre sÃ³ pela
+  intenÃ§Ã£o de arquivar.
+- 72 testes de domÃ­nio e seis subtestes de protocolo Windows passaram; seis
   testes de interface/demo cobriram escopo de empresa, fila, bloqueio de arquivo
-  não verificado, cópia privada e isolamento por sessão. Ruff, Django,
-  migrações em dry-run e diff passaram.
+  nÃ£o verificado, cÃ³pia privada e isolamento por sessÃ£o. Ruff, Django,
+  migraÃ§Ãµes em dry-run e diff passaram.
 - Nenhuma caixa, OAuth, ClamAV, agente Windows, arquivo de cliente ou pasta
-  real foi usada. Q-12–Q-25/Q-31, regras de catálogo/retenção/checklist e o
+  real foi usada. Q-12â€“Q-25/Q-31, regras de catÃ¡logo/retenÃ§Ã£o/checklist e o
   piloto com prova no destino seguem pendentes; a etapa fica em andamento.
 
-## 19/09/2026 — etapa 09: Conciliação e Radar locais (V-037)
+## 19/09/2026 â€” etapa 09: ConciliaÃ§Ã£o e Radar locais (V-037)
 
-- Revalidado o processamento local de OFX/CSV/XLSX/PDF, hash e reimportação,
-  mapeamento, contas, movimentos, lançamentos equilibrados, evidência de
-  conciliação, exportação/reexportação auditável e retomada de execução. A
-  ambiguidade não é confirmada só por data e valor.
-- O Radar preserva fontes oficiais pré-definidas, origem, atualização
-  idempotente e falha isolada por fonte; a interface não mostra o erro bruto.
-  As fontes foram substituídas por respostas controladas nos testes, portanto
-  não há alegação de disponibilidade operacional.
-- 46 testes de domínio passaram; o cenário de OCR em português foi ignorado
-  porque Tesseract/modelo local não existe. Quatro testes de interface/demo,
-  Ruff, Django, dry-run de migrações e diff passaram. Sem dado de cliente,
+- Revalidado o processamento local de OFX/CSV/XLSX/PDF, hash e reimportaÃ§Ã£o,
+  mapeamento, contas, movimentos, lanÃ§amentos equilibrados, evidÃªncia de
+  conciliaÃ§Ã£o, exportaÃ§Ã£o/reexportaÃ§Ã£o auditÃ¡vel e retomada de execuÃ§Ã£o. A
+  ambiguidade nÃ£o Ã© confirmada sÃ³ por data e valor.
+- O Radar preserva fontes oficiais prÃ©-definidas, origem, atualizaÃ§Ã£o
+  idempotente e falha isolada por fonte; a interface nÃ£o mostra o erro bruto.
+  As fontes foram substituÃ­das por respostas controladas nos testes, portanto
+  nÃ£o hÃ¡ alegaÃ§Ã£o de disponibilidade operacional.
+- 46 testes de domÃ­nio passaram; o cenÃ¡rio de OCR em portuguÃªs foi ignorado
+  porque Tesseract/modelo local nÃ£o existe. Quatro testes de interface/demo,
+  Ruff, Django, dry-run de migraÃ§Ãµes e diff passaram. Sem dado de cliente,
   arquivo real, ERP, HTTP externo, custo ou deploy.
-- Layouts aprovados, corpus/volume PostgreSQL, OCR, amostra de D-73, importação
-  conferida no destino e fontes reais do Radar continuam necessários. A etapa
+- Layouts aprovados, corpus/volume PostgreSQL, OCR, amostra de D-73, importaÃ§Ã£o
+  conferida no destino e fontes reais do Radar continuam necessÃ¡rios. A etapa
   fica em andamento.
 
-## 19/09/2026 — análise auditável de conclusão (V-036)
+## 19/09/2026 â€” anÃ¡lise auditÃ¡vel de conclusÃ£o (V-036)
 
-- Criada a matriz de evidências que liga as 14 etapas ao maior nível provado, às validações e aos bloqueios concretos. O documento torna explícita a diferença entre implementação, validação local, homologação e venda.
-- A matriz foi vinculada ao plano mestre e ao índice de planejamento. A checagem de diff, Django e migrações passou; não houve acesso externo, alteração de ambiente ou custo.
-- A análise mantém Q-33 como primeiro bloqueio de sequência e não reclassifica nenhuma etapa incompleta como concluída.
+- Criada a matriz de evidÃªncias que liga as 14 etapas ao maior nÃ­vel provado, Ã s validaÃ§Ãµes e aos bloqueios concretos. O documento torna explÃ­cita a diferenÃ§a entre implementaÃ§Ã£o, validaÃ§Ã£o local, homologaÃ§Ã£o e venda.
+- A matriz foi vinculada ao plano mestre e ao Ã­ndice de planejamento. A checagem de diff, Django e migraÃ§Ãµes passou; nÃ£o houve acesso externo, alteraÃ§Ã£o de ambiente ou custo.
+- A anÃ¡lise mantÃ©m Q-33 como primeiro bloqueio de sequÃªncia e nÃ£o reclassifica nenhuma etapa incompleta como concluÃ­da.
 
-## 19/09/2026 — etapa 07: demonstração NFS-e local (V-035)
+## 19/09/2026 â€” etapa 07: demonstraÃ§Ã£o NFS-e local (V-035)
 
-- Reconciliado o checklist com o comportamento que já existia desde V-005: ZIP fictício por empresa, carteira inteira, manifesto de classificações, filtro exclusivo por competência/emissão e atualização visual de acumulador permanecem restritos à demonstração e não gravam decisão fiscal.
-- Reexecutados 4 testes focados de NFS-e e a inspeção interativa da demonstração criada em SQLite temporário. Datas DD/MM/AAAA foram normalizadas, o intervalo de setembro retornou os 24 itens da carteira, o acumulador manual transitou para 100% e a limpeza restaurou Transitória a 0%; console sem erros.
-- O banco e a conta temporários foram descartados após a inspeção. Nenhum certificado, ADN, XML real, dado de cliente, pasta Windows ou provedor externo foi utilizado. A coleta e a homologação fiscal seguem pendentes na etapa 07.
+- Reconciliado o checklist com o comportamento que jÃ¡ existia desde V-005: ZIP fictÃ­cio por empresa, carteira inteira, manifesto de classificaÃ§Ãµes, filtro exclusivo por competÃªncia/emissÃ£o e atualizaÃ§Ã£o visual de acumulador permanecem restritos Ã  demonstraÃ§Ã£o e nÃ£o gravam decisÃ£o fiscal.
+- Reexecutados 4 testes focados de NFS-e e a inspeÃ§Ã£o interativa da demonstraÃ§Ã£o criada em SQLite temporÃ¡rio. Datas DD/MM/AAAA foram normalizadas, o intervalo de setembro retornou os 24 itens da carteira, o acumulador manual transitou para 100% e a limpeza restaurou TransitÃ³ria a 0%; console sem erros.
+- O banco e a conta temporÃ¡rios foram descartados apÃ³s a inspeÃ§Ã£o. Nenhum certificado, ADN, XML real, dado de cliente, pasta Windows ou provedor externo foi utilizado. A coleta e a homologaÃ§Ã£o fiscal seguem pendentes na etapa 07.
 
-## 19/09/2026 — etapa 08: Central Integra Contador local (V-034)
+## 19/09/2026 â€” etapa 08: Central Integra Contador local (V-034)
 
-- O checkout implementa DTE, DCTFWeb e PARCSN sob as decisões D-38–D-42, com seleção de empresas aptas, autorização específica de ciência, paginação, cotação/reserva/liquidação e documento persistido. O transporte incerto não é repetido automaticamente.
-- `uv run pytest tests/test_dte.py tests/test_dte_access.py tests/test_dte_dispatch.py tests/test_integra_client.py tests/test_integra_dctfweb.py tests/test_integra_parcelamento.py tests/test_parcelamento_operations.py -q`: 63 aprovados em 13,98 s. Ruff dos módulos e testes envolvidos passou.
-- Não houve configuração de segredo, credencial, certificado, representação, consulta, ciência DTE, declaração, guia ou DAS real. O piloto Serpro, contrato/ambiente Q-28 e autorização de custo continuam obrigatórios; Q-36 mantém PARCSN como recorte único.
+- O checkout implementa DTE, DCTFWeb e PARCSN sob as decisÃµes D-38â€“D-42, com seleÃ§Ã£o de empresas aptas, autorizaÃ§Ã£o especÃ­fica de ciÃªncia, paginaÃ§Ã£o, cotaÃ§Ã£o/reserva/liquidaÃ§Ã£o e documento persistido. O transporte incerto nÃ£o Ã© repetido automaticamente.
+- `uv run pytest tests/test_dte.py tests/test_dte_access.py tests/test_dte_dispatch.py tests/test_integra_client.py tests/test_integra_dctfweb.py tests/test_integra_parcelamento.py tests/test_parcelamento_operations.py -q`: 63 aprovados em 13,98 s. Ruff dos mÃ³dulos e testes envolvidos passou.
+- NÃ£o houve configuraÃ§Ã£o de segredo, credencial, certificado, representaÃ§Ã£o, consulta, ciÃªncia DTE, declaraÃ§Ã£o, guia ou DAS real. O piloto Serpro, contrato/ambiente Q-28 e autorizaÃ§Ã£o de custo continuam obrigatÃ³rios; Q-36 mantÃ©m PARCSN como recorte Ãºnico.
 
-## 19/09/2026 — etapa 10: controles locais de contratação e cobrança (V-033)
+## 19/09/2026 â€” etapa 10: controles locais de contrataÃ§Ã£o e cobranÃ§a (V-033)
 
-- Auditoria confirmou que D-76/D-79 resolveram as regras Q-01–Q-06. O checkout separa contrato manual e Asaas, mede tokens inteiros por módulo, reserva/liquida consumo de modo idempotente e fecha fatura por competência com preço congelado.
-- `uv run pytest tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q`: 44 aprovados e 1 skip de concorrência PostgreSQL coberta em evidência histórica. Ruff dos arquivos de plataforma passou.
-- Não houve conta, sandbox, credencial, cliente, cobrança, Pix, boleto, cartão ou webhook Asaas real. O cliente de criação/operação Asaas ainda não existe; Q-08 e o ambiente Q-28 continuam bloqueando a homologação.
+- Auditoria confirmou que D-76/D-79 resolveram as regras Q-01â€“Q-06. O checkout separa contrato manual e Asaas, mede tokens inteiros por mÃ³dulo, reserva/liquida consumo de modo idempotente e fecha fatura por competÃªncia com preÃ§o congelado.
+- `uv run pytest tests/test_platform_billing.py tests/test_platform_payments.py tests/test_token_billing.py tests/test_cica_contract_mfa.py tests/test_cica_operation_access.py -q`: 44 aprovados e 1 skip de concorrÃªncia PostgreSQL coberta em evidÃªncia histÃ³rica. Ruff dos arquivos de plataforma passou.
+- NÃ£o houve conta, sandbox, credencial, cliente, cobranÃ§a, Pix, boleto, cartÃ£o ou webhook Asaas real. O cliente de criaÃ§Ã£o/operaÃ§Ã£o Asaas ainda nÃ£o existe; Q-08 e o ambiente Q-28 continuam bloqueando a homologaÃ§Ã£o.
 
-## 19/09/2026 — etapa 05: escopo de conhecimento e treinamento (V-032)
+## 19/09/2026 â€” etapa 05: escopo de conhecimento e treinamento (V-032)
 
-- D-89 formalizou a estrutura técnica de área (`geral`, contábil, fiscal ou folha), empresa e período para fontes e exemplos. Registros existentes recebem o padrão geral; não houve reclassificação, exportação ou exposição de conteúdo.
-- Fontes de uma empresa só podem pertencer ao mesmo escritório. A recuperação por empresa recebe apenas suas fontes e as globais do escritório, priorizando as específicas; o contexto sem empresa exclui fontes de qualquer empresa. O manifesto QLoRA guarda esses metadados para manter sua proveniência auditável, mas o runner continua treinando somente com pergunta, resposta e fontes aprovadas.
-- D-90 acrescentou modelo base, versão e hashes de manifesto/artefato às avaliações e versões locais. Quando uma versão declara artefato, a publicação recusa qualquer avaliação com proveniência diferente; registros legados continuam legíveis sem alegar vínculo. Vinte testes focados passaram.
-- D-91 separou exemplos validados entre treino e avaliação. O exportador seleciona um conjunto por vez, o hash da avaliação é registrado junto da avaliação do adaptador e o runner QLoRA recusa o conjunto de avaliação. Trinta e quatro testes focados passaram.
-- D-92 adicionou retorno auditado de versão local: uma versão anterior só é reativada com avaliação aprovada e proveniência compatível, sem novo treino. Dezessete testes focados de publicação/retorno passaram.
-- `ruff` focado, migrações em dry-run e 26 testes de recuperação, treinamento e runner passaram; a revalidação integral fechou em 754 aprovados, 3 ignorados e 8 subtestes. Não houve chamada Claude, curadoria externa, modelo baixado, treino, GPU, publicação ou custo. Governança de egressão e curadoria continuam em Q-08/Q-09/Q-11/Q-34.
+- D-89 formalizou a estrutura tÃ©cnica de Ã¡rea (`geral`, contÃ¡bil, fiscal ou folha), empresa e perÃ­odo para fontes e exemplos. Registros existentes recebem o padrÃ£o geral; nÃ£o houve reclassificaÃ§Ã£o, exportaÃ§Ã£o ou exposiÃ§Ã£o de conteÃºdo.
+- Fontes de uma empresa sÃ³ podem pertencer ao mesmo escritÃ³rio. A recuperaÃ§Ã£o por empresa recebe apenas suas fontes e as globais do escritÃ³rio, priorizando as especÃ­ficas; o contexto sem empresa exclui fontes de qualquer empresa. O manifesto QLoRA guarda esses metadados para manter sua proveniÃªncia auditÃ¡vel, mas o runner continua treinando somente com pergunta, resposta e fontes aprovadas.
+- D-90 acrescentou modelo base, versÃ£o e hashes de manifesto/artefato Ã s avaliaÃ§Ãµes e versÃµes locais. Quando uma versÃ£o declara artefato, a publicaÃ§Ã£o recusa qualquer avaliaÃ§Ã£o com proveniÃªncia diferente; registros legados continuam legÃ­veis sem alegar vÃ­nculo. Vinte testes focados passaram.
+- D-91 separou exemplos validados entre treino e avaliaÃ§Ã£o. O exportador seleciona um conjunto por vez, o hash da avaliaÃ§Ã£o Ã© registrado junto da avaliaÃ§Ã£o do adaptador e o runner QLoRA recusa o conjunto de avaliaÃ§Ã£o. Trinta e quatro testes focados passaram.
+- D-92 adicionou retorno auditado de versÃ£o local: uma versÃ£o anterior sÃ³ Ã© reativada com avaliaÃ§Ã£o aprovada e proveniÃªncia compatÃ­vel, sem novo treino. Dezessete testes focados de publicaÃ§Ã£o/retorno passaram.
+- `ruff` focado, migraÃ§Ãµes em dry-run e 26 testes de recuperaÃ§Ã£o, treinamento e runner passaram; a revalidaÃ§Ã£o integral fechou em 754 aprovados, 3 ignorados e 8 subtestes. NÃ£o houve chamada Claude, curadoria externa, modelo baixado, treino, GPU, publicaÃ§Ã£o ou custo. GovernanÃ§a de egressÃ£o e curadoria continuam em Q-08/Q-09/Q-11/Q-34.
 
-## 19/09/2026 — análise integral e continuidade da etapa 04 (V-031)
+## 19/09/2026 â€” anÃ¡lise integral e continuidade da etapa 04 (V-031)
 
-- Revisados plano mestre, decisões, validações, inventário, documentação de produto/técnica, etapas e checkout. A análise consolidada registra objetivo, arquitetura, capacidades e limites em [analise-projeto-2026-09-19.md](analise-projeto-2026-09-19.md).
-- A etapa 04 continua sendo o próximo trabalho habilitado, mas não pode receber adaptador Siescon sem o contrato Q-33. O material necessário é versão/banco/mecanismo de leitura, ambiente e revogação, schema/campos autorizados, identificador/cursor de empresa e layout de exportação/importação por canal seguro. Não houve conexão, solicitação de segredo, leitura de dados ou arquivo fictício Siescon.
-- A estação macOS recriou `.venv/` ignorado pelo Git com `uv sync --locked --all-extras`. A revalidação encontrou 16 E501 e os corrigiu apenas com quebras de linha nos fluxos já existentes do agente e destino Windows. A primeira suíte integral expôs que o modo de biblioteca interna apagava o padrão de pastas Windows; o formulário passou a preservá-lo. Ruff, Django, dry-run de migrações e a suíte integral passaram com 747 aprovados, 3 ignorados e 8 subtestes. V-031 contém os comandos e limites.
-- Corrigidos os ponteiros vigentes que ainda apresentavam o escopo histórico da etapa 00 ou a etapa 01 como próximo trabalho. Não foram alterados documentos históricos nem inferidas regras de produto.
+- Revisados plano mestre, decisÃµes, validaÃ§Ãµes, inventÃ¡rio, documentaÃ§Ã£o de produto/tÃ©cnica, etapas e checkout. A anÃ¡lise consolidada registra objetivo, arquitetura, capacidades e limites em [analise-projeto-2026-09-19.md](analise-projeto-2026-09-19.md).
+- A etapa 04 continua sendo o prÃ³ximo trabalho habilitado, mas nÃ£o pode receber adaptador Siescon sem o contrato Q-33. O material necessÃ¡rio Ã© versÃ£o/banco/mecanismo de leitura, ambiente e revogaÃ§Ã£o, schema/campos autorizados, identificador/cursor de empresa e layout de exportaÃ§Ã£o/importaÃ§Ã£o por canal seguro. NÃ£o houve conexÃ£o, solicitaÃ§Ã£o de segredo, leitura de dados ou arquivo fictÃ­cio Siescon.
+- A estaÃ§Ã£o macOS recriou `.venv/` ignorado pelo Git com `uv sync --locked --all-extras`. A revalidaÃ§Ã£o encontrou 16 E501 e os corrigiu apenas com quebras de linha nos fluxos jÃ¡ existentes do agente e destino Windows. A primeira suÃ­te integral expÃ´s que o modo de biblioteca interna apagava o padrÃ£o de pastas Windows; o formulÃ¡rio passou a preservÃ¡-lo. Ruff, Django, dry-run de migraÃ§Ãµes e a suÃ­te integral passaram com 747 aprovados, 3 ignorados e 8 subtestes. V-031 contÃ©m os comandos e limites.
+- Corrigidos os ponteiros vigentes que ainda apresentavam o escopo histÃ³rico da etapa 00 ou a etapa 01 como prÃ³ximo trabalho. NÃ£o foram alterados documentos histÃ³ricos nem inferidas regras de produto.
 
-## 18/09/2026 — etapa 02: auditoria inicial de acesso e administração
+## 18/09/2026 â€” etapa 02: auditoria inicial de acesso e administraÃ§Ã£o
 
-Etapa iniciada após a conclusão técnica da etapa 01. Auditoria local localizou cadastro, recuperação, convite, MFA, escopo, contrato/teste, isolamento e console já implementados. A suíte específica fechou com 83 aprovados em 54,47 s (V-007). Não houve envio de e-mail, alteração de cobrança nem integração externa. Q-01–Q-06/Q-29 continuam condicionando as regras comerciais e a homologação de e-mail; etapa segue aberta.
+Etapa iniciada apÃ³s a conclusÃ£o tÃ©cnica da etapa 01. Auditoria local localizou cadastro, recuperaÃ§Ã£o, convite, MFA, escopo, contrato/teste, isolamento e console jÃ¡ implementados. A suÃ­te especÃ­fica fechou com 83 aprovados em 54,47 s (V-007). NÃ£o houve envio de e-mail, alteraÃ§Ã£o de cobranÃ§a nem integraÃ§Ã£o externa. Q-01â€“Q-06/Q-29 continuam condicionando as regras comerciais e a homologaÃ§Ã£o de e-mail; etapa segue aberta.
 
-Cadastro inspecionado por Playwright em desktop e móvel: sem overflow, foco visível e console limpo; sessões fechadas. UI/UX Pro Max, Watermelon, referências SaaSFrame e Web Interface Guidelines aplicados conforme V-007. Sem mudança de UI nesta auditoria.
+Cadastro inspecionado por Playwright em desktop e mÃ³vel: sem overflow, foco visÃ­vel e console limpo; sessÃµes fechadas. UI/UX Pro Max, Watermelon, referÃªncias SaaSFrame e Web Interface Guidelines aplicados conforme V-007. Sem mudanÃ§a de UI nesta auditoria.
 
-D-76 aprovou as regras documentadas para implementação e definiu `suporte@mewstack.com.br`. Implementados e-mails HTML de confirmação, convite e recuperação com texto de reserva; 62 testes e Ruff passaram (V-008). D-77 transferiu SMTP real, DNS e homologação de entrega para a etapa 12; nenhum envio foi feito nesta fase.
+D-76 aprovou as regras documentadas para implementaÃ§Ã£o e definiu `suporte@mewstack.com.br`. Implementados e-mails HTML de confirmaÃ§Ã£o, convite e recuperaÃ§Ã£o com texto de reserva; 62 testes e Ruff passaram (V-008). D-77 transferiu SMTP real, DNS e homologaÃ§Ã£o de entrega para a etapa 12; nenhum envio foi feito nesta fase.
 
-Brevo definido como provedor SMTP transacional (D-78). A decisão não configura conta, crédito, credenciais, domínio nem envio; tudo isso fica para a etapa 12.
+Brevo definido como provedor SMTP transacional (D-78). A decisÃ£o nÃ£o configura conta, crÃ©dito, credenciais, domÃ­nio nem envio; tudo isso fica para a etapa 12.
 
-## 18/09/2026 — retomada do plano (D-70)
+## 18/09/2026 â€” retomada do plano (D-70)
 
-Identificado o primeiro item pendente: build de treinamento na etapa 01. Corrigido o resumo desatualizado do plano mestre. D-71 manteve LlamaFactory como ferramenta interna e fixou a imagem oficial por digest. Corrigida a cópia inválida do executor no Dockerfile; `cica-trainer:stage01` foi construído e o CLI iniciou (V-006). O digest também foi centralizado em `runtime/trainer/image.env` e incluído no CI; seu rebuild local passou. Sem modelo, treino ou GPU. Etapa segue aberta por Q-28/Q-30 e D-61.
+Identificado o primeiro item pendente: build de treinamento na etapa 01. Corrigido o resumo desatualizado do plano mestre. D-71 manteve LlamaFactory como ferramenta interna e fixou a imagem oficial por digest. Corrigida a cÃ³pia invÃ¡lida do executor no Dockerfile; `cica-trainer:stage01` foi construÃ­do e o CLI iniciou (V-006). O digest tambÃ©m foi centralizado em `runtime/trainer/image.env` e incluÃ­do no CI; seu rebuild local passou. Sem modelo, treino ou GPU. Etapa segue aberta por Q-28/Q-30 e D-61.
 
-Fedrizzi Contabilidade confirmado como ambiente disponível para homologação e proprietário definido como aprovador de cada módulo (D-72). Faltam apenas acessos/amostras concretos por integração e metas mensuráveis de aceite; etapa 01 continua aberta.
+Fedrizzi Contabilidade confirmado como ambiente disponÃ­vel para homologaÃ§Ã£o e proprietÃ¡rio definido como aprovador de cada mÃ³dulo (D-72). Faltam apenas acessos/amostras concretos por integraÃ§Ã£o e metas mensurÃ¡veis de aceite; etapa 01 continua aberta.
 
-Critérios recomendados foram aprovados e registrados em D-73. Metas de aceite deixam de ser bloqueio; primeira homologação Fedrizzi ainda depende da amostra e do acesso seguro da integração que será exercitada. Etapa 01 segue aberta por D-61.
+CritÃ©rios recomendados foram aprovados e registrados em D-73. Metas de aceite deixam de ser bloqueio; primeira homologaÃ§Ã£o Fedrizzi ainda depende da amostra e do acesso seguro da integraÃ§Ã£o que serÃ¡ exercitada. Etapa 01 segue aberta por D-61.
 
-Validação integral posterior: 742 testes aprovados, 2 ignorados e 8 subtestes em 85,31 s; Django check, migrations dry-run e Ruff aprovados. Correção D-74: inspeção segura do banco confirmou conector Fedrizzi `direct_odbc` e fonte Domínio local `ready`; nenhuma credencial, DSN ou dado empresarial foi exposto. A etapa 01 está concluída como validação técnica local; conexões externas restantes pertencem às próximas etapas. Evidência V-006.
+ValidaÃ§Ã£o integral posterior: 742 testes aprovados, 2 ignorados e 8 subtestes em 85,31 s; Django check, migrations dry-run e Ruff aprovados. CorreÃ§Ã£o D-74: inspeÃ§Ã£o segura do banco confirmou conector Fedrizzi `direct_odbc` e fonte DomÃ­nio local `ready`; nenhuma credencial, DSN ou dado empresarial foi exposto. A etapa 01 estÃ¡ concluÃ­da como validaÃ§Ã£o tÃ©cnica local; conexÃµes externas restantes pertencem Ã s prÃ³ximas etapas. EvidÃªncia V-006.
 
-## 18/09/2026 — demonstração NFS-e em ajuste
+## 18/09/2026 â€” demonstraÃ§Ã£o NFS-e em ajuste
 
-Pedido “mais bonito”: refinado agrupamento, hierarquia, espaçamento e estados visuais do filtro, mantendo D-69. Inspeção desktop/mobile e evidências no complemento V-005. Sem nova regra de negócio.
+Pedido â€œmais bonitoâ€: refinado agrupamento, hierarquia, espaÃ§amento e estados visuais do filtro, mantendo D-69. InspeÃ§Ã£o desktop/mobile e evidÃªncias no complemento V-005. Sem nova regra de negÃ³cio.
 
-Complemento D-69: substituído calendário nativo de emissão por digitação brasileira e atalhos mensais. Validação cliente/servidor e filtragem dos dados antigos da demo corrigidas. Evidências e pesquisa no complemento V-005 de VALIDACOES.md. Etapa 07 continua aberta.
+Complemento D-69: substituÃ­do calendÃ¡rio nativo de emissÃ£o por digitaÃ§Ã£o brasileira e atalhos mensais. ValidaÃ§Ã£o cliente/servidor e filtragem dos dados antigos da demo corrigidas. EvidÃªncias e pesquisa no complemento V-005 de VALIDACOES.md. Etapa 07 continua aberta.
 
-- Revisão visual posterior: CSS específico da carteira, filtros em linha, acumulador com ícone de edição e foco, seleção destacada, adaptação móvel e cache do JS atualizado. Playwright verificou claro/escuro, desktop/mobile, digitar/limpar/Enter e troca exclusiva do período. Evidência detalhada em V-005; nenhuma etapa homologada por esta revisão.
+- RevisÃ£o visual posterior: CSS especÃ­fico da carteira, filtros em linha, acumulador com Ã­cone de ediÃ§Ã£o e foco, seleÃ§Ã£o destacada, adaptaÃ§Ã£o mÃ³vel e cache do JS atualizado. Playwright verificou claro/escuro, desktop/mobile, digitar/limpar/Enter e troca exclusiva do perÃ­odo. EvidÃªncia detalhada em V-005; nenhuma etapa homologada por esta revisÃ£o.
 
-- Carteira demonstrativa passou a usar a emissão da NFS-e, com escolha exclusiva entre competência e intervalo de emissão.
-- Download em lote separado em `Emitidas/CÓDIGO -/` ou `Tomadas/CÓDIGO -/`, com manifesto de classificação; acumulador manual, Transitória a 0% e classificadas da demonstração a 97%.
-- Corrigido Enter no acumulador: seleciona a nota e avança o foco, sem tentar baixar uma seleção vazia.
-- Evidência local, limites e inspeção Playwright em [V-005](../../VALIDACOES.md). Etapa 07 continua aberta.
+- Carteira demonstrativa passou a usar a emissÃ£o da NFS-e, com escolha exclusiva entre competÃªncia e intervalo de emissÃ£o.
+- Download em lote separado em `Emitidas/CÃ“DIGO -/` ou `Tomadas/CÃ“DIGO -/`, com manifesto de classificaÃ§Ã£o; acumulador manual, TransitÃ³ria a 0% e classificadas da demonstraÃ§Ã£o a 97%.
+- Corrigido Enter no acumulador: seleciona a nota e avanÃ§a o foco, sem tentar baixar uma seleÃ§Ã£o vazia.
+- EvidÃªncia local, limites e inspeÃ§Ã£o Playwright em [V-005](../../VALIDACOES.md). Etapa 07 continua aberta.
 
-## 17/09/2026 — etapa 01: estabilização técnica parcial
+## 17/09/2026 â€” etapa 01: estabilizaÃ§Ã£o tÃ©cnica parcial
 
-- Ruff: 66 achados eliminados com formatação mecânica e ordenação de imports nas nove unidades apontadas.
-- Segurança de dependência: pypdf passou de 6.9.2 para 6.16.1; lockfile e requisitos foram atualizados. pip check e pip_audit aprovados; o pacote local é ignorado pelo auditor por não estar no PyPI.
-- Base Django: check e dry-run de migrations aprovados; suíte completa: **740 aprovados, 1 ignorado e 8 subtestes** em 70,07 s. Testes focados de token/faturamento/IA/fila/conciliação: 66 aprovados.
+- Ruff: 66 achados eliminados com formataÃ§Ã£o mecÃ¢nica e ordenaÃ§Ã£o de imports nas nove unidades apontadas.
+- SeguranÃ§a de dependÃªncia: pypdf passou de 6.9.2 para 6.16.1; lockfile e requisitos foram atualizados. pip check e pip_audit aprovados; o pacote local Ã© ignorado pelo auditor por nÃ£o estar no PyPI.
+- Base Django: check e dry-run de migrations aprovados; suÃ­te completa: **740 aprovados, 1 ignorado e 8 subtestes** em 70,07 s. Testes focados de token/faturamento/IA/fila/conciliaÃ§Ã£o: 66 aprovados.
 - Agente Windows: service, configurador e MSI compilados; MSI de 79.285.770 bytes e checksum SHA-256 6ed0a1592fc3f0b5c5277e9dfc3ce8f27c000c6ca493cb3f5c245ac94c23f9b9 gerados em agent-windows/artifacts/.
-- Ambiente atualizado em 18/09: Docker Desktop 4.91.0 e WSL 2.7.1 operacionais; PostgreSQL 17 e Redis 7.4 saudáveis por Compose. Migrations dos bancos principal e de conhecimento sem operações pendentes. Worker Celery com pool `solo` consumiu tarefa via Redis; o pool `prefork` apresentou `WinError 5` no Windows, limitação que não representa o worker Linux de produção.
-- Correção PostgreSQL: aprovação e exportação de lançamentos usavam `FOR UPDATE` sobre joins opcionais; PostgreSQL rejeitava a consulta. Os locks foram restringidos ao `JournalEntry` principal, e 35 testes de conciliação passaram no banco real. A suíte crítica PostgreSQL fechou com 95 aprovados; uma regressão de quatro chamadas concorrentes com mesma chave confirmou um único evento de consumo.
-- Builds: `cica-backend:stage01` e `cica-multimodal:stage01` foram construídas. O MSI do agente continua validado pelo checksum já registrado. A etapa 01 permanece aberta e bloqueada apenas por Q-37: referência LlamaFactory aprovada por digest para construir o runtime de treinamento. D-61 impede o encerramento antes disso. Ver [V-004](../../VALIDACOES.md) e [checklist](etapas/01-base-tecnica.md).
+- Ambiente atualizado em 18/09: Docker Desktop 4.91.0 e WSL 2.7.1 operacionais; PostgreSQL 17 e Redis 7.4 saudÃ¡veis por Compose. Migrations dos bancos principal e de conhecimento sem operaÃ§Ãµes pendentes. Worker Celery com pool `solo` consumiu tarefa via Redis; o pool `prefork` apresentou `WinError 5` no Windows, limitaÃ§Ã£o que nÃ£o representa o worker Linux de produÃ§Ã£o.
+- CorreÃ§Ã£o PostgreSQL: aprovaÃ§Ã£o e exportaÃ§Ã£o de lanÃ§amentos usavam `FOR UPDATE` sobre joins opcionais; PostgreSQL rejeitava a consulta. Os locks foram restringidos ao `JournalEntry` principal, e 35 testes de conciliaÃ§Ã£o passaram no banco real. A suÃ­te crÃ­tica PostgreSQL fechou com 95 aprovados; uma regressÃ£o de quatro chamadas concorrentes com mesma chave confirmou um Ãºnico evento de consumo.
+- Builds: `cica-backend:stage01` e `cica-multimodal:stage01` foram construÃ­das. O MSI do agente continua validado pelo checksum jÃ¡ registrado. A etapa 01 permanece aberta e bloqueada apenas por Q-37: referÃªncia LlamaFactory aprovada por digest para construir o runtime de treinamento. D-61 impede o encerramento antes disso. Ver [V-004](../../VALIDACOES.md) e [checklist](etapas/01-base-tecnica.md).
 
-## 17/09/2026 — etapa 00: documentação única na raiz
+## 17/09/2026 â€” etapa 00: documentaÃ§Ã£o Ãºnica na raiz
 
-Escopo limitado pelo responsável a **somente a primeira etapa (00)**. Não iniciadas correções de código ou demais etapas.
+Escopo limitado pelo responsÃ¡vel a **somente a primeira etapa (00)**. NÃ£o iniciadas correÃ§Ãµes de cÃ³digo ou demais etapas.
 
 - Materializados [PLANO-MESTRE.md](../../PLANO-MESTRE.md), [DECISOES.md](../../DECISOES.md) e [VALIDACOES.md](../../VALIDACOES.md) na raiz, conforme solicitado.
-- Registro D-01–D-45 preservado, inclusive distinção entre confirmado e apenas registrado; adicionados D-46–D-60 com fonte e alcance.
-- Criados [14 arquivos de etapa com prompts](etapas/README.md), dependências, checklist, testes, aceite e limites; [inventário estático](inventario-conclusao.md) cobre módulos, modelos, rotas/API, tarefas e serviços.
-- Q-10 encerrada por D-50/D-51; demais perguntas agrupadas por dono/etapa e vinculadas sem duplicar decisões. Nenhuma decisão comercial nova foi presumida.
-- Corrigidas referências concorrentes e contradições documentais: titularidade Serpro, coleta ADN, OAuth por escritório, escopo da Conciliação, disponibilidade Siescon e preparo da IA local.
-- Resultados técnicos anteriores à edição: 740 testes aprovados, 1 ignorado, 8 subtestes; Django e migrations dry-run sem pendências; 66 violações Ruff ainda presentes. Ver V-001; não são novos testes de implementação desta etapa.
-- Conferência de documentos e conclusão: ver V-003 em VALIDACOES.md. Sem chamada paga, deploy, conexão a ERP, alteração de banco ou treinamento real.
+- Registro D-01â€“D-45 preservado, inclusive distinÃ§Ã£o entre confirmado e apenas registrado; adicionados D-46â€“D-60 com fonte e alcance.
+- Criados [14 arquivos de etapa com prompts](etapas/README.md), dependÃªncias, checklist, testes, aceite e limites; [inventÃ¡rio estÃ¡tico](inventario-conclusao.md) cobre mÃ³dulos, modelos, rotas/API, tarefas e serviÃ§os.
+- Q-10 encerrada por D-50/D-51; demais perguntas agrupadas por dono/etapa e vinculadas sem duplicar decisÃµes. Nenhuma decisÃ£o comercial nova foi presumida.
+- Corrigidas referÃªncias concorrentes e contradiÃ§Ãµes documentais: titularidade Serpro, coleta ADN, OAuth por escritÃ³rio, escopo da ConciliaÃ§Ã£o, disponibilidade Siescon e preparo da IA local.
+- Resultados tÃ©cnicos anteriores Ã  ediÃ§Ã£o: 740 testes aprovados, 1 ignorado, 8 subtestes; Django e migrations dry-run sem pendÃªncias; 66 violaÃ§Ãµes Ruff ainda presentes. Ver V-001; nÃ£o sÃ£o novos testes de implementaÃ§Ã£o desta etapa.
+- ConferÃªncia de documentos e conclusÃ£o: ver V-003 em VALIDACOES.md. Sem chamada paga, deploy, conexÃ£o a ERP, alteraÃ§Ã£o de banco ou treinamento real.
 
-## Histórico anterior — preservar data e limites de cada entrada
+## HistÃ³rico anterior â€” preservar data e limites de cada entrada
 
-Atualizado em 15/09/2026. A meta é concluir cada módulo da CICA pela tarefa real do escritório, homologar dependências externas e só então liberar a oferta. Esta página distingue trabalho local, teste simulado, validação com fornecedor e aceite comercial. Cada linha descreve o estado **naquele marco**; resultados posteriores na mesma data substituem limites antigos. Para a fotografia atual, leia [estado operacional](estado-operacional.md), [decisões](decisoes.md) e [dúvidas](duvidas-abertas.md).
+Atualizado em 15/09/2026. A meta Ã© concluir cada mÃ³dulo da CICA pela tarefa real do escritÃ³rio, homologar dependÃªncias externas e sÃ³ entÃ£o liberar a oferta. Esta pÃ¡gina distingue trabalho local, teste simulado, validaÃ§Ã£o com fornecedor e aceite comercial. Cada linha descreve o estado **naquele marco**; resultados posteriores na mesma data substituem limites antigos. Para a fotografia atual, leia [estado operacional](estado-operacional.md), [decisÃµes](decisoes.md) e [dÃºvidas](duvidas-abertas.md).
 
-| Data | Área | Mudança ou prova local | Resultado e limite |
+| Data | Ãrea | MudanÃ§a ou prova local | Resultado e limite |
 | --- | --- | --- | --- |
-| 15/09 | Copiloto | Chave central `CICA_CLAUDE_API_KEY` lida do `.env`; política global e por escritório; rota Claude disponível antes do PC local e runtime local configurável para depois | 125 testes focados aprovados; transporte Claude ainda simulado. Chave não estava configurada na última inspeção e nenhuma chamada cobrada foi executada. Modelo completo, cotas, consentimento e egressão permanecem abertos. |
-| 15/09 | Triagem | Entrada vendável definida como e-mail; rota principal mostra estado vazio, sem upload manual; provedor Gmail reconhecido no schema; cursor longo cifrado; revisão/download filtrados pelas empresas autorizadas do colaborador | 23 testes de domínio e 3 testes focados de rota aprovados. O serviço manual presente na árvore de trabalho não é o fluxo aprovado; leitores Graph/Gmail/IMAP, quarentena antimalware, classificação, destino Windows e checklist ainda faltam. |
-| 15/09 | Oferta | Preço de Triagem removido do catálogo automático enquanto ela não executa a entrada por e-mail e o arquivamento | As três regressões comerciais do primeiro teste completo foram resolvidas. Preço final e franquias continuam decisão do responsável. |
-| 15/09 | Suíte completa | `uv run pytest -q` após schema Gmail, escopo de revisão/download e textos de interface | **469 aprovados, 1 ignorado, 1 falha** em 29,45 s. Falta `.github/workflows/deploy-cobalchini.yml`; os testes dependem também de `.github/workflows/ci.yml`. |
-| 15/09 | Lint e migrations | Ruff nos arquivos Python alterados; `manage.py check`; `makemigrations --check --dry-run`; `manage.py migrate triage` | Ruff, check e detecção de migrations passaram; a migration 0003 de provedor Gmail/cursor cifrado foi aplicada no banco local. |
-| 15/09 | Segurança da Triagem | POST de aprovação e download do protótipo manual bloqueados nas rotas; detalhe informa que o anexo depende de e-mail e verificação de segurança | Testes focados 4/4; nenhum binário não verificado pode ser servido por essas rotas. O serviço interno manual ainda existe em trabalho local e não deve ser tratado como fluxo aprovado. |
-| 15/09 | Interface | Estado vazio de e-mail, política Claude e detalhe de arquivo revisados pelas diretrizes web; inspeção Playwright em desktop/mobile, teclado, foco, erro e overflow | [Auditoria de interface](auditoria-ui-2026-09-15.md) registra telas e limites. Nome de arquivo longo e alvos móveis foram corrigidos; OAuth/conexão em carga não pôde ser alcançado. |
-| 15/09 | Suíte completa após bloquear o protótipo | `uv run pytest -q`; `manage.py check`; `makemigrations --check --dry-run`; Ruff focado; `git diff --check` | **470 aprovados, 1 ignorado, 1 falha** em 29,22 s. A única falha continua sendo o workflow `.github/workflows/deploy-cobalchini.yml` ausente. Check, migrations, Ruff e whitespace passaram. |
-| 15/09 | Contrato HTTP Sonnet | Teste com `urlopen` inteiramente simulado para `/v1/messages`, cabeçalhos Anthropic, `claude-sonnet-5`, limite de saída, esforço baixo e ausência de `temperature` | 1 teste focado aprovado, Ruff passou. Nenhuma chamada externa cobrada foi feita; a chave real, resposta do fornecedor, uso e custo ainda dependem de um piloto autorizado. |
-| 15/09 | Suíte completa após contrato Sonnet | `uv run pytest -q` | **471 aprovados, 1 ignorado, 1 falha** em 29,91 s. Permanece somente o workflow Cobalchini ausente. |
-| 15/09 | Entrega Cobalchini preparada | Workflows CI e deploy manual protegido; imagem por digest, verificação Cosign, Compose com arquivo de ambiente externo, migration, readiness, rollback e confirmação ao CRMew | `tests/test_deployment_config_django.py`: 7 aprovados. Não houve deploy; Docker não está instalado neste PC, portanto o Compose não foi executado localmente. O host, as variáveis protegidas, a chave pública e a aprovação de ambiente ainda precisam de validação operacional. |
-| 15/09 | Suíte completa após automação de entrega | `uv run pytest -q` | **472 aprovados, 1 ignorado, 2 subtests aprovados** em 36,72 s. A ausência do workflow Cobalchini deixou de falhar; o teste de navegador Python é opcional porque a inspeção visual usa Playwright MCP. |
-| 15/09 | Webhook Asaas | Endpoint sem CSRF, oculto sem token, valida `asaas-access-token`, JSON e identificador do evento; deduplica pelo ID do Asaas e não altera contrato manual ou ciclo de acesso | 13 testes focados de cobrança passaram; migration 0026 foi aplicada no banco local. Nenhum cliente, cobrança, webhook ou chamada ao Asaas foi criado externamente. |
-| 15/09 | Suíte completa após receptor Asaas | `uv run pytest -q` | **475 aprovados, 1 ignorado, 2 subtests aprovados** em 36,96 s. O teste de navegador Python permanece opcional; as telas alteradas foram exercitadas pelo Playwright MCP conforme auditoria registrada. |
-| 15/09 | Claude, chave real sem geração | `configure_claude_local_key` e novo `verify_claude_token_endpoint` com texto sintético e endpoint **gratuito** `/v1/messages/count_tokens` | Ambos passaram: chave aceita para `claude-sonnet-5`, 16 tokens contados. Não houve resposta da IA, uso de dado de cliente ou chamada cobrada. Configuração global e cotas ainda precisam de ativação/validação. |
-| 15/09 | Claude, teste pago preparado | `verify_claude_messages` usa uma mensagem sintética, 64 tokens de saída no máximo e exige `--cost-approved`; transporte e bloqueio sem aprovação têm teste simulado | Comando sem flag foi recusado antes de qualquer acesso à API. Ainda **não foi executado com a chave real**; estimativa e condição de aprovação constam em [operação da IA](ia-operacao.md). |
-| 15/09 | Conexão das caixas | Pesquisa de documentação oficial Microsoft, Google e Exchange; [jornada simples](conexao-caixas-email.md) documentada | A hipótese inicial de app OAuth central foi substituída pelo esclarecimento D-23: cada escritório configura seu próprio aplicativo e consente sua caixa. IMAP genérico usa assistente TLS. Google pessoal requer decisão de verificação do escopo restrito. |
-| 15/09 | Suíte completa após a validação da chave | `uv run pytest -q`, Ruff focado, `manage.py check` e `makemigrations --check --dry-run` | **478 aprovados, 1 ignorado, 2 subtests aprovados** em 30,83 s; check/migrations passaram. Esse marco antecede a chamada paga autorizada e o OAuth local registrados abaixo. |
-| 15/09 | Claude, geração autorizada | **Uma** chamada sintética a `/v1/messages` com `claude-sonnet-5`, esforço baixo e até 64 tokens de saída, após aprovação específica de custo do responsável | A Anthropic retornou texto, 16 tokens de entrada e 64 de saída; custo calculado US$ 0,000672 antes de câmbio/impostos. Nenhum dado de cliente foi enviado; políticas de cotas e uso do Copiloto por escritório ainda não foram homologados. Não repetir sem nova aprovação específica de custo. |
-| 15/09 | OAuth da Triagem, trabalho local | Botões Microsoft/Google, callback com `state`/PKCE, prova de leitura, credential cifrada por escritório e desconexão; fluxo mantém sincronização desligada | 5 testes de OAuth passaram. Sem aplicativos de provedor registrados e sem caixas reais de teste; IMAP e leitura incremental ainda faltam. A autorização da caixa não é a prova de processamento dos anexos. |
-| 15/09 | Suíte e interface após OAuth | `uv run pytest -q`, Ruff focado, `manage.py check`, `makemigrations --check --dry-run`, `git diff --check`; Playwright MCP em 1689 × 1005 e 390 × 844 | **483 aprovados, 1 ignorado, 2 subtests aprovados** em 29,61 s; checagens passaram. Estado vazio, caixa autorizada e desconectada, guia, confirmação, teclado, foco, overflow e console foram inspecionados. [Revisão crítica](auditoria-triagem-oauth-2026-09-15.md) delimita estados externos não alcançados. |
-| 15/09 | Correção do estado de erro | Um erro da caixa aparecia como “Caixa autorizada” na faixa de status; agora indica erro/recebimento indisponível e passo de reconexão/suporte | Estado reinspecionado em desktop/celular; 6 testes OAuth passaram, incluindo a regressão de status. Suíte completa final: **484 aprovados, 1 ignorado, 2 subtests aprovados** em 31,61 s. |
-| 15/09 | Conexão IMAP local | Formulário guiado, DNS público com IP fixado, TLS com certificado/hostname verificados, `select(readonly=True)`/UID, credencial cifrada, throttling e recebimento desligado após conectar | 7 testes IMAP focados passaram, incluindo DNS misto/privado e pinagem do socket. Formulário vazio/erro e espera sintética inspecionados em desktop/mobile; sem servidor real nem anexos. [Revisão crítica](auditoria-triagem-oauth-2026-09-15.md). |
-| 15/09 | Suíte após assistente IMAP | `uv run pytest -q`, Ruff focado, format dos arquivos novos, `node --check`, Django check e migrations | **490 aprovados, 1 ignorado, 2 subtests aprovados** em 29,49 s. A suíte antecede somente um novo teste de pinagem de socket, que passou nos 7 testes IMAP focados; não houve alteração do código de produção depois. |
-| 15/09 | Renovação OAuth preparatória | Refresh Microsoft/Google com segredo cifrado por escritório e rotação quando o provedor devolve novo refresh token; credencial desconectada/incompatível bloqueada antes do transporte | 8 testes OAuth focados passaram com transporte simulado. Sem app registrado, token real, polling ou persistência de rotação pelo leitor. Fontes oficiais registradas em [conexão de caixas](conexao-caixas-email.md). |
-| 15/09 | Suíte após renovação OAuth | `uv run pytest -q`, Ruff/format focados, Django check e migrations | **493 aprovados, 1 ignorado, 2 subtests aprovados** em 33,73 s; nenhum arquivo de migration novo. |
-| 15/09 | Padrão Windows por empresa | Função pura `Nome [Domínio código]`, sem escrita, com código exato obrigatório, limpeza de caracteres inválidos no nome e limite de 160 unidades UTF-16 | 5 testes focados e 6 subtests passaram. Falta confirmar fonte do nome/renomeação, raiz no agente, árvore abaixo da empresa, caminho absoluto, colisões case-insensitive, links/junctions e hash. [Padrão](padrao-pastas-windows.md). |
-| 15/09 | Suíte e confirmação da desconexão | `uv run pytest -q` após o padrão Windows; confirmação da caixa passou a modal com consequência e ação de manter conexão em primeiro foco. Playwright MCP em desktop/mobile e teclado | **498 aprovados, 1 ignorado, 8 subtestes aprovados** em 42,71 s. Modal, Tab/Enter/Escape, foco de retorno, POST real local, flash, largura móvel e console sem erro foram vistos em caixa sintética. QA removido, aba e servidor fechados. Sem revogação no provedor ou caixa real. [Auditoria](auditoria-triagem-oauth-2026-09-15.md). |
+| 15/09 | Copiloto | Chave central `CICA_CLAUDE_API_KEY` lida do `.env`; polÃ­tica global e por escritÃ³rio; rota Claude disponÃ­vel antes do PC local e runtime local configurÃ¡vel para depois | 125 testes focados aprovados; transporte Claude ainda simulado. Chave nÃ£o estava configurada na Ãºltima inspeÃ§Ã£o e nenhuma chamada cobrada foi executada. Modelo completo, cotas, consentimento e egressÃ£o permanecem abertos. |
+| 15/09 | Triagem | Entrada vendÃ¡vel definida como e-mail; rota principal mostra estado vazio, sem upload manual; provedor Gmail reconhecido no schema; cursor longo cifrado; revisÃ£o/download filtrados pelas empresas autorizadas do colaborador | 23 testes de domÃ­nio e 3 testes focados de rota aprovados. O serviÃ§o manual presente na Ã¡rvore de trabalho nÃ£o Ã© o fluxo aprovado; leitores Graph/Gmail/IMAP, quarentena antimalware, classificaÃ§Ã£o, destino Windows e checklist ainda faltam. |
+| 15/09 | Oferta | PreÃ§o de Triagem removido do catÃ¡logo automÃ¡tico enquanto ela nÃ£o executa a entrada por e-mail e o arquivamento | As trÃªs regressÃµes comerciais do primeiro teste completo foram resolvidas. PreÃ§o final e franquias continuam decisÃ£o do responsÃ¡vel. |
+| 15/09 | SuÃ­te completa | `uv run pytest -q` apÃ³s schema Gmail, escopo de revisÃ£o/download e textos de interface | **469 aprovados, 1 ignorado, 1 falha** em 29,45 s. Falta `.github/workflows/deploy-cobalchini.yml`; os testes dependem tambÃ©m de `.github/workflows/ci.yml`. |
+| 15/09 | Lint e migrations | Ruff nos arquivos Python alterados; `manage.py check`; `makemigrations --check --dry-run`; `manage.py migrate triage` | Ruff, check e detecÃ§Ã£o de migrations passaram; a migration 0003 de provedor Gmail/cursor cifrado foi aplicada no banco local. |
+| 15/09 | SeguranÃ§a da Triagem | POST de aprovaÃ§Ã£o e download do protÃ³tipo manual bloqueados nas rotas; detalhe informa que o anexo depende de e-mail e verificaÃ§Ã£o de seguranÃ§a | Testes focados 4/4; nenhum binÃ¡rio nÃ£o verificado pode ser servido por essas rotas. O serviÃ§o interno manual ainda existe em trabalho local e nÃ£o deve ser tratado como fluxo aprovado. |
+| 15/09 | Interface | Estado vazio de e-mail, polÃ­tica Claude e detalhe de arquivo revisados pelas diretrizes web; inspeÃ§Ã£o Playwright em desktop/mobile, teclado, foco, erro e overflow | [Auditoria de interface](auditoria-ui-2026-09-15.md) registra telas e limites. Nome de arquivo longo e alvos mÃ³veis foram corrigidos; OAuth/conexÃ£o em carga nÃ£o pÃ´de ser alcanÃ§ado. |
+| 15/09 | SuÃ­te completa apÃ³s bloquear o protÃ³tipo | `uv run pytest -q`; `manage.py check`; `makemigrations --check --dry-run`; Ruff focado; `git diff --check` | **470 aprovados, 1 ignorado, 1 falha** em 29,22 s. A Ãºnica falha continua sendo o workflow `.github/workflows/deploy-cobalchini.yml` ausente. Check, migrations, Ruff e whitespace passaram. |
+| 15/09 | Contrato HTTP Sonnet | Teste com `urlopen` inteiramente simulado para `/v1/messages`, cabeÃ§alhos Anthropic, `claude-sonnet-5`, limite de saÃ­da, esforÃ§o baixo e ausÃªncia de `temperature` | 1 teste focado aprovado, Ruff passou. Nenhuma chamada externa cobrada foi feita; a chave real, resposta do fornecedor, uso e custo ainda dependem de um piloto autorizado. |
+| 15/09 | SuÃ­te completa apÃ³s contrato Sonnet | `uv run pytest -q` | **471 aprovados, 1 ignorado, 1 falha** em 29,91 s. Permanece somente o workflow Cobalchini ausente. |
+| 15/09 | Entrega Cobalchini preparada | Workflows CI e deploy manual protegido; imagem por digest, verificaÃ§Ã£o Cosign, Compose com arquivo de ambiente externo, migration, readiness, rollback e confirmaÃ§Ã£o ao CRMew | `tests/test_deployment_config_django.py`: 7 aprovados. NÃ£o houve deploy; Docker nÃ£o estÃ¡ instalado neste PC, portanto o Compose nÃ£o foi executado localmente. O host, as variÃ¡veis protegidas, a chave pÃºblica e a aprovaÃ§Ã£o de ambiente ainda precisam de validaÃ§Ã£o operacional. |
+| 15/09 | SuÃ­te completa apÃ³s automaÃ§Ã£o de entrega | `uv run pytest -q` | **472 aprovados, 1 ignorado, 2 subtests aprovados** em 36,72 s. A ausÃªncia do workflow Cobalchini deixou de falhar; o teste de navegador Python Ã© opcional porque a inspeÃ§Ã£o visual usa Playwright MCP. |
+| 15/09 | Webhook Asaas | Endpoint sem CSRF, oculto sem token, valida `asaas-access-token`, JSON e identificador do evento; deduplica pelo ID do Asaas e nÃ£o altera contrato manual ou ciclo de acesso | 13 testes focados de cobranÃ§a passaram; migration 0026 foi aplicada no banco local. Nenhum cliente, cobranÃ§a, webhook ou chamada ao Asaas foi criado externamente. |
+| 15/09 | SuÃ­te completa apÃ³s receptor Asaas | `uv run pytest -q` | **475 aprovados, 1 ignorado, 2 subtests aprovados** em 36,96 s. O teste de navegador Python permanece opcional; as telas alteradas foram exercitadas pelo Playwright MCP conforme auditoria registrada. |
+| 15/09 | Claude, chave real sem geraÃ§Ã£o | `configure_claude_local_key` e novo `verify_claude_token_endpoint` com texto sintÃ©tico e endpoint **gratuito** `/v1/messages/count_tokens` | Ambos passaram: chave aceita para `claude-sonnet-5`, 16 tokens contados. NÃ£o houve resposta da IA, uso de dado de cliente ou chamada cobrada. ConfiguraÃ§Ã£o global e cotas ainda precisam de ativaÃ§Ã£o/validaÃ§Ã£o. |
+| 15/09 | Claude, teste pago preparado | `verify_claude_messages` usa uma mensagem sintÃ©tica, 64 tokens de saÃ­da no mÃ¡ximo e exige `--cost-approved`; transporte e bloqueio sem aprovaÃ§Ã£o tÃªm teste simulado | Comando sem flag foi recusado antes de qualquer acesso Ã  API. Ainda **nÃ£o foi executado com a chave real**; estimativa e condiÃ§Ã£o de aprovaÃ§Ã£o constam em [operaÃ§Ã£o da IA](ia-operacao.md). |
+| 15/09 | ConexÃ£o das caixas | Pesquisa de documentaÃ§Ã£o oficial Microsoft, Google e Exchange; [jornada simples](conexao-caixas-email.md) documentada | A hipÃ³tese inicial de app OAuth central foi substituÃ­da pelo esclarecimento D-23: cada escritÃ³rio configura seu prÃ³prio aplicativo e consente sua caixa. IMAP genÃ©rico usa assistente TLS. Google pessoal requer decisÃ£o de verificaÃ§Ã£o do escopo restrito. |
+| 15/09 | SuÃ­te completa apÃ³s a validaÃ§Ã£o da chave | `uv run pytest -q`, Ruff focado, `manage.py check` e `makemigrations --check --dry-run` | **478 aprovados, 1 ignorado, 2 subtests aprovados** em 30,83 s; check/migrations passaram. Esse marco antecede a chamada paga autorizada e o OAuth local registrados abaixo. |
+| 15/09 | Claude, geraÃ§Ã£o autorizada | **Uma** chamada sintÃ©tica a `/v1/messages` com `claude-sonnet-5`, esforÃ§o baixo e atÃ© 64 tokens de saÃ­da, apÃ³s aprovaÃ§Ã£o especÃ­fica de custo do responsÃ¡vel | A Anthropic retornou texto, 16 tokens de entrada e 64 de saÃ­da; custo calculado US$ 0,000672 antes de cÃ¢mbio/impostos. Nenhum dado de cliente foi enviado; polÃ­ticas de cotas e uso do Copiloto por escritÃ³rio ainda nÃ£o foram homologados. NÃ£o repetir sem nova aprovaÃ§Ã£o especÃ­fica de custo. |
+| 15/09 | OAuth da Triagem, trabalho local | BotÃµes Microsoft/Google, callback com `state`/PKCE, prova de leitura, credential cifrada por escritÃ³rio e desconexÃ£o; fluxo mantÃ©m sincronizaÃ§Ã£o desligada | 5 testes de OAuth passaram. Sem aplicativos de provedor registrados e sem caixas reais de teste; IMAP e leitura incremental ainda faltam. A autorizaÃ§Ã£o da caixa nÃ£o Ã© a prova de processamento dos anexos. |
+| 15/09 | SuÃ­te e interface apÃ³s OAuth | `uv run pytest -q`, Ruff focado, `manage.py check`, `makemigrations --check --dry-run`, `git diff --check`; Playwright MCP em 1689 Ã— 1005 e 390 Ã— 844 | **483 aprovados, 1 ignorado, 2 subtests aprovados** em 29,61 s; checagens passaram. Estado vazio, caixa autorizada e desconectada, guia, confirmaÃ§Ã£o, teclado, foco, overflow e console foram inspecionados. [RevisÃ£o crÃ­tica](auditoria-triagem-oauth-2026-09-15.md) delimita estados externos nÃ£o alcanÃ§ados. |
+| 15/09 | CorreÃ§Ã£o do estado de erro | Um erro da caixa aparecia como â€œCaixa autorizadaâ€ na faixa de status; agora indica erro/recebimento indisponÃ­vel e passo de reconexÃ£o/suporte | Estado reinspecionado em desktop/celular; 6 testes OAuth passaram, incluindo a regressÃ£o de status. SuÃ­te completa final: **484 aprovados, 1 ignorado, 2 subtests aprovados** em 31,61 s. |
+| 15/09 | ConexÃ£o IMAP local | FormulÃ¡rio guiado, DNS pÃºblico com IP fixado, TLS com certificado/hostname verificados, `select(readonly=True)`/UID, credencial cifrada, throttling e recebimento desligado apÃ³s conectar | 7 testes IMAP focados passaram, incluindo DNS misto/privado e pinagem do socket. FormulÃ¡rio vazio/erro e espera sintÃ©tica inspecionados em desktop/mobile; sem servidor real nem anexos. [RevisÃ£o crÃ­tica](auditoria-triagem-oauth-2026-09-15.md). |
+| 15/09 | SuÃ­te apÃ³s assistente IMAP | `uv run pytest -q`, Ruff focado, format dos arquivos novos, `node --check`, Django check e migrations | **490 aprovados, 1 ignorado, 2 subtests aprovados** em 29,49 s. A suÃ­te antecede somente um novo teste de pinagem de socket, que passou nos 7 testes IMAP focados; nÃ£o houve alteraÃ§Ã£o do cÃ³digo de produÃ§Ã£o depois. |
+| 15/09 | RenovaÃ§Ã£o OAuth preparatÃ³ria | Refresh Microsoft/Google com segredo cifrado por escritÃ³rio e rotaÃ§Ã£o quando o provedor devolve novo refresh token; credencial desconectada/incompatÃ­vel bloqueada antes do transporte | 8 testes OAuth focados passaram com transporte simulado. Sem app registrado, token real, polling ou persistÃªncia de rotaÃ§Ã£o pelo leitor. Fontes oficiais registradas em [conexÃ£o de caixas](conexao-caixas-email.md). |
+| 15/09 | SuÃ­te apÃ³s renovaÃ§Ã£o OAuth | `uv run pytest -q`, Ruff/format focados, Django check e migrations | **493 aprovados, 1 ignorado, 2 subtests aprovados** em 33,73 s; nenhum arquivo de migration novo. |
+| 15/09 | PadrÃ£o Windows por empresa | FunÃ§Ã£o pura `Nome [DomÃ­nio cÃ³digo]`, sem escrita, com cÃ³digo exato obrigatÃ³rio, limpeza de caracteres invÃ¡lidos no nome e limite de 160 unidades UTF-16 | 5 testes focados e 6 subtests passaram. Falta confirmar fonte do nome/renomeaÃ§Ã£o, raiz no agente, Ã¡rvore abaixo da empresa, caminho absoluto, colisÃµes case-insensitive, links/junctions e hash. [PadrÃ£o](padrao-pastas-windows.md). |
+| 15/09 | SuÃ­te e confirmaÃ§Ã£o da desconexÃ£o | `uv run pytest -q` apÃ³s o padrÃ£o Windows; confirmaÃ§Ã£o da caixa passou a modal com consequÃªncia e aÃ§Ã£o de manter conexÃ£o em primeiro foco. Playwright MCP em desktop/mobile e teclado | **498 aprovados, 1 ignorado, 8 subtestes aprovados** em 42,71 s. Modal, Tab/Enter/Escape, foco de retorno, POST real local, flash, largura mÃ³vel e console sem erro foram vistos em caixa sintÃ©tica. QA removido, aba e servidor fechados. Sem revogaÃ§Ã£o no provedor ou caixa real. [Auditoria](auditoria-triagem-oauth-2026-09-15.md). |
 
-| 15/09 | Fedrizzi e console | Consulta local da organização `fedrizzi-contabilidade`, ordenação dos 8 recentes e Playwright no painel/detalhe | Fedrizzi permanecia ativa; a ordenação alfabética a excluía após QA. Recentes agora ordena por criação. Só a organização QA sintética `qa-operacional-20260915` foi desativada; os dados fiscais protegidos foram preservados. |
-| 15/09 | Segundo fator e configuração | Testes de saída com e sem `next`; Playwright em conta sintética: confirmação MFA, saída dos códigos e abertura de `/platform/configuracoes/` | Link de continuar passa a ser rota resolvida; cenário com destino explícito chegou às configurações. A configuração mostra quais quatro variáveis Serpro centrais faltam. Códigos/segredos MFA não foram registrados em evidência. |
-| 15/09 | Central Integra e caixa DTE | Escolha DTE/Parcelamentos/DCTFWeb, busca por Domínio e seleção em carteira Fedrizzi de 562 empresas; Playwright desktop/mobile e testes locais | A primeira iteração selecionava as 562. A inspeção de dados revelou 8 sem CNPJ; a versão atual marca só as **554 aptas** com 20 linhas visíveis e mostra a exclusão/cadastro. Busca `Domínio 323` mostrou 1 resultado. O preparo não chamou Serpro. Parcelamentos e consulta DCTFWeb seguem sem implementação externa. |
-| 15/09 | Guias/DCTFWeb primeiro uso | Playwright com sessão de suporte Fedrizzi em desktop e 390 × 844, Tab/foco, link da conexão | Estado vazio corrigido aparece com caminho `/app/configuracoes/#dominio`, que abriu no navegador; sem overflow. Dados são obrigações locais Domínio, não declaração Serpro. NFS-e e Conciliação vazias também ganharam próximos passos; estados corrigidos precisam de reinspeção separada. |
-| 16/09 | Carteiras operacionais de Guias, NFS-e e Radar | Pesquisa global, filtros de pendência/situação, atalhos para filas e links ao caso exato; formulário compartilhado refeito para largura útil e celular | **611 testes aprovados, 1 ignorado e 8 subtestes aprovados**. Playwright confirmou controles de 44 px e reorganização responsiva em Guias, NFS-e e Radar, sem erros de console nos estados fictícios alcançados. Integrações externas continuam dependendo de homologação real. |
-| 16/09 | Certificados e cadastro móvel de empresas | Fila de vencimento/cobertura da carteira, pesquisa por empresa e Domínio, empresa exata como próximo passo; tabelas viram cartões no celular | A demo passou a simular cobertura somente na sessão, sem aceitar PFX/senha nem gravar na organização central. Playwright confirmou desktop, 390 × 844, modal, foco, recarga da sessão, controles de 44 px e zero erro de console. **613 testes aprovados, 1 ignorado e 8 subtestes aprovados** antes do último ajuste apenas estrutural de cartões. |
-| 15/09 | Suíte após Central, MFA e estados vazios | `uv run pytest -q`; Ruff Python focado; `manage.py check` | **512 aprovados, 1 ignorado, 8 subtestes aprovados** em 38,15 s; Ruff e Django check passaram. Testes simulados e telas vazias não homologam Serpro, ADN ou escritórios reais. |
-| 15/09 | Triagem substitui Jornadas no catálogo e contratos de teste | Migração local; `uv run pytest -q`, `manage.py check`, `makemigrations --check --dry-run`; consulta read-only do banco local | **515 aprovados, 1 ignorado, 8 subtestes aprovados** em 32,16 s; check/migrações passaram. Banco local: 0 jornadas, 0 habilitações Jornadas, 6 habilitações Triagem, 0 contratos/planos com Jornadas. O simulador legado foi removido. Ruff focado passou; Ruff global ainda aponta 9 problemas preexistentes fora desta troca. Sem homologação de caixa real. |
-| 15/09 | Tarifação oficial Integra Contador | Playwright no [produto da Loja Serpro](https://loja.serpro.gov.br/integra-contador/product/integracontador), aba “Preço”, e leitura do [catálogo oficial de serviços](https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/catalogo_de_servicos/) | A faixa 1 vigente exibiu R$ 0,24/consulta, R$ 0,32/emissão e R$ 0,40/declaração; faixas 2–8 diminuem. O catálogo classifica lista/detalhe da Caixa, recibo/declaração completa DCTFWeb e consultas de Parcelamentos como **Consultar**, e as guias DCTFWeb/Parcelamentos como **Emitir**. A fatura Mewstack ainda precisa confirmar que o **Tipo** do catálogo determina a categoria faturada, sobretudo para o indicador **Monitorar**. O responsável decidiu usar faixa 1 para pesos. Nenhuma contratação ou chamada paga foi feita. |
-| 15/09 | OAuth configurado pelo escritório | Migração `triage.0004` aplicada localmente; Microsoft/Workspace usam app OAuth por escritório com segredo cifrado e vínculo da caixa; Gmail pessoal usa caminho central Mewstack separado, gated por `TRIAGE_GOOGLE_PERSONAL_VERIFIED` | 14 testes OAuth locais passaram, incluindo escolha central quando há app Workspace, rejeição de endereço Workspace no caminho pessoal e rejeição de Gmail pessoal no caminho Workspace. Sem app externo registrado, retorno HTTPS de produção ou caixa real. O guia foi inspecionado em desktop/mobile e o formulário positivo/erro com QA sintético. |
-| 15/09 | Suíte após OAuth por escritório e UI de conexão | `uv run pytest -q`, Ruff focado, `manage.py check`, verificações de sintaxe JavaScript | **520 aprovados, 1 ignorado, 8 subtestes aprovados** em 41,92 s. Os fornecedores externos foram simulados; [auditoria renderizada](auditoria-triagem-aplicativos-2026-09-15.md) delimita os estados vistos. |
-| 15/09 | Demonstração pública sob controle do usuário | Removido ciclo automático de módulos; corrigido bloco numérico da Triagem; abas acessíveis com seleção por seta/Home/End e URL `?demo=...` | Playwright desktop 1366 × 900 e celular 390 × 844: tab/painel permaneceram iguais após 6 segundos, foco visível, rolagem horizontal ausente e console sem erros na página normal. A demonstração é ilustrativa e não prova operações externas. |
-| 15/09 | Verificação final desta rodada | `uv run pytest -q`, Ruff nos arquivos Python alterados, `makemigrations --check --dry-run`, `node --check` dos dois scripts e `git diff --check`; [diretrizes Vercel atuais](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md) reaplicadas aos arquivos de interface alterados | **521 aprovados, 1 ignorado e 8 subtestes aprovados** em 40,47 s. Nenhuma nova migração detectada, scripts válidos e sem erros materiais na revisão estática da interface. Playwright desta rodada inspecionou guia OAuth e demonstração em desktop/mobile; estados externos não foram alcançados. Abas Playwright fechadas. Conta/aplicativo/ativação de módulo QA desta rodada removidos; conta de plataforma QA desativada, senha inutilizada e 2 sessões de suporte abertas fechadas. Fedrizzi permaneceu ativa e intocada. |
-| 15/09 | Entrada de anexos e leitor IMAP incremental | `triage.0005` aplicada localmente; teste com IMAP sintético, MIME com anexo, data interna antes/depois do marco, SELECT readonly, `BODY.PEEK[]`, UIDVALIDITY/cursor, reenvio e isolamento de dois escritórios | **525 aprovados, 1 ignorado e 8 subtestes aprovados** em 34,73 s. O mesmo arquivo em mensagens distintas gera duas entregas em quarentena até a política Q-20; repetir a mesma mensagem+parte não duplica. Caminho físico `.bin` não usa extensão recebida. Sem caixa real, ativação pelo escritório, agenda, scanner antimalware ou leitores Graph/Gmail; nenhum e-mail externo foi acessado. |
-| 15/09 | Veredito antimalware em quarentena | `triage.0006` aplicada localmente; adaptador candidato ClamAV [INSTREAM oficial](https://docs.clamav.net/manual/Usage/ClamdProtocol.html) somente por socket Unix local ou TCP loopback; teste com socket sintético limpo, resposta incompleta, scanner ausente e detecção de ameaça | **528 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,47 s. Ameaça confirmada rejeita o anexo; falha fica em quarentena com veredito persistente; resultado limpo também fica em quarentena até aprovação da política de formatos/assinaturas. Nenhum daemon ClamAV está instalado neste PC, nenhuma varredura real foi homologada e nenhum recurso externo ou custo foi criado. |
-| 15/09 | Leitor Microsoft Graph incremental | [Delta e anexos oficiais](https://learn.microsoft.com/en-us/graph/api/message-delta?view=graph-rest-1.0) lidos; `poll_graph_mailbox` exercitado com duas páginas, arquivo inline, link de outro domínio, reenvio e arquivo acima de 25 MB em transporte sintético | **531 aprovados, 1 ignorado e 8 subtestes aprovados** em 37,55 s. O cursor avançou apenas após a página completa; link externo e anexo grande não avançaram o checkpoint. IDs imutáveis são pedidos em cada chamada. O leitor lista anexos mesmo quando `hasAttachments=false`, conforme a [semântica oficial da mensagem](https://learn.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0). Sem app registrado/consentimento/caixa real, projeção `$select` e limites de um tenant real ainda requerem piloto; nenhuma chamada Graph externa foi feita. |
-| 15/09 | Leitor Gmail/Workspace incremental | [Sincronização e expiração oficiais](https://developers.google.com/workspace/gmail/api/guides/sync), [histórico](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.history/list) e [anexos](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages.attachments/get) pesquisados; `poll_gmail_mailbox` testado com snapshot `historyId`, listagem paginada, eventos `messagesAdded`/`labelsAdded`, 404, replay no meio da página e anexo grande com transporte sintético | **535 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,73 s. Checkpoint após todos os anexos da página; 404 reinicia full sync pelo novo snapshot sem perder entregas já recebidas. Nenhuma chamada Gmail externa foi feita; app central pessoal ainda depende de registro/verificação Google e caixas reais de consentimento/piloto. |
-| 15/09 | Execução periódica da Triagem | `triage.dispatch_active_mailboxes` incluída no Celery Beat a cada 5 minutos; fila apenas caixas com escritório ativo, caixa ativa/status ativo e data inicial; worker usa lease com token e prazo para impedir sobreposição e permitir recuperação de crash; flag `TRIAGE_EMAIL_POLL_ENABLED=false` é o padrão | **539 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,55 s. Testes cobrem rotina desligada sem chamada ao provedor, seleção de caixas, execução simultânea bloqueada e falha saneada com lease liberada. Não há caixa real ativada nem autorização de custo para ligar a flag. A cadência de 5 min é técnica e configurável antes do piloto; SLA comercial, monitoramento e política de retentativa ainda não foram aprovados. |
-| 15/09 | Falhas e retentativas da Triagem | Conforme [Graph](https://learn.microsoft.com/en-us/graph/errors) e [Gmail](https://developers.google.com/workspace/gmail/api/guides/handle-errors), 429/5xx e indisponibilidade de rede recebem estado transitório com backoff exponencial (5 min até 6 h, respeitando `Retry-After` até 24 h); scheduler pula caixa antes de `poll_retry_after`; credencial/contrato/dados inválidos deixam caixa em erro para intervenção. IMAP separa socket/timeout de recusa do provedor. Migration `triage.0008` aplicada localmente | **544 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,97 s. Cursor não avançou em falhas sintéticas e lease foi liberada. A tela então ainda mostrava “recebimento indisponível” para caixa ativa com falha transitória e “precisa reconectar” para qualquer erro permanente, mesmo quando a causa podia ser outra; ver revisão posterior da lista. Nenhuma consulta externa foi feita. |
-| 15/09 | Lista operacional das caixas da Triagem | `present_mailbox` separa configuração, leitura, retentativa, erro e desconexão; `triage.html` mostra última/próxima consulta, remédio e estado vazio correto. `ui-ux-pro-max`, `watermelon-ui`, referências SaaSFrame, fonte atual Vercel e Playwright MCP foram consultados; [auditoria dos estados](auditoria-triagem-estados-caixas-2026-09-15.md) registra evidência e limites. | `uv run pytest -q`: **545 aprovados, 1 ignorado, 8 subtestes aprovados** em 36,60 s; Ruff e `manage.py check` passaram. Playwright desktop/mobile/escuro inspecionou somente caixas sintéticas, com console limpo; abas e servidor de QA fechados. Ativação pelo escritório, provedores reais e fila de anexos ainda não foram validados. |
-| 15/09 | Fila operacional da Triagem | Lista de anexos recebidos acima da conexão dos provedores, com etapa, segurança, origem, filtro por GET e paginação de 20; administrador vê itens ainda sem empresa e operador apenas suas empresas. Detalhe segue a mesma regra; download não verificado continua bloqueado. [Auditoria das caixas e fila](auditoria-triagem-estados-caixas-2026-09-15.md) registra referências e inspeção. | `uv run pytest -q`: **546 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,36 s; `manage.py check`, Ruff e `diff --check` passaram. Playwright desktop/mobile/claro/escuro testou três anexos sintéticos, filtro, vazio, foco e console sem erros/avisos; aba/servidor de QA fechados. Não houve anexo nem scanner real; classificação, revisão e arquivamento permanecem pendentes. |
-| 15/09 | Caixa DTE: separar abertura incerta da fila a abrir | Filtros/contadores excluem `reading`/`unknown` e ciência já observada de “A abrir”; a fila pendente mostra estados específicos, links de acesso, filtro vazio correto e selects/indicadores legíveis no escuro. “Selecionar todas” foi inspecionado sem envio. [Auditoria DTE](auditoria-dte-fila-incerta-2026-09-15.md) registra pesquisa Serpro, referências SaaS e limites. | `uv run pytest -q`: **547 aprovados, 1 ignorado, 8 subtestes aprovados** em 37,35 s; 11 testes focados DTE/ciência, Ruff e `manage.py check` passaram. Playwright desktop/mobile/claro/escuro: quatro mensagens sintéticas, fila, filtro, aviso jurídico, foco, selecionador local; console final 0 erros/avisos, aba/servidor fechados. Contrato e ciência Serpro reais não foram testados. |
+| 15/09 | Fedrizzi e console | Consulta local da organizaÃ§Ã£o `fedrizzi-contabilidade`, ordenaÃ§Ã£o dos 8 recentes e Playwright no painel/detalhe | Fedrizzi permanecia ativa; a ordenaÃ§Ã£o alfabÃ©tica a excluÃ­a apÃ³s QA. Recentes agora ordena por criaÃ§Ã£o. SÃ³ a organizaÃ§Ã£o QA sintÃ©tica `qa-operacional-20260915` foi desativada; os dados fiscais protegidos foram preservados. |
+| 15/09 | Segundo fator e configuraÃ§Ã£o | Testes de saÃ­da com e sem `next`; Playwright em conta sintÃ©tica: confirmaÃ§Ã£o MFA, saÃ­da dos cÃ³digos e abertura de `/platform/configuracoes/` | Link de continuar passa a ser rota resolvida; cenÃ¡rio com destino explÃ­cito chegou Ã s configuraÃ§Ãµes. A configuraÃ§Ã£o mostra quais quatro variÃ¡veis Serpro centrais faltam. CÃ³digos/segredos MFA nÃ£o foram registrados em evidÃªncia. |
+| 15/09 | Central Integra e caixa DTE | Escolha DTE/Parcelamentos/DCTFWeb, busca por DomÃ­nio e seleÃ§Ã£o em carteira Fedrizzi de 562 empresas; Playwright desktop/mobile e testes locais | A primeira iteraÃ§Ã£o selecionava as 562. A inspeÃ§Ã£o de dados revelou 8 sem CNPJ; a versÃ£o atual marca sÃ³ as **554 aptas** com 20 linhas visÃ­veis e mostra a exclusÃ£o/cadastro. Busca `DomÃ­nio 323` mostrou 1 resultado. O preparo nÃ£o chamou Serpro. Parcelamentos e consulta DCTFWeb seguem sem implementaÃ§Ã£o externa. |
+| 15/09 | Guias/DCTFWeb primeiro uso | Playwright com sessÃ£o de suporte Fedrizzi em desktop e 390 Ã— 844, Tab/foco, link da conexÃ£o | Estado vazio corrigido aparece com caminho `/app/configuracoes/#dominio`, que abriu no navegador; sem overflow. Dados sÃ£o obrigaÃ§Ãµes locais DomÃ­nio, nÃ£o declaraÃ§Ã£o Serpro. NFS-e e ConciliaÃ§Ã£o vazias tambÃ©m ganharam prÃ³ximos passos; estados corrigidos precisam de reinspeÃ§Ã£o separada. |
+| 16/09 | Carteiras operacionais de Guias, NFS-e e Radar | Pesquisa global, filtros de pendÃªncia/situaÃ§Ã£o, atalhos para filas e links ao caso exato; formulÃ¡rio compartilhado refeito para largura Ãºtil e celular | **611 testes aprovados, 1 ignorado e 8 subtestes aprovados**. Playwright confirmou controles de 44 px e reorganizaÃ§Ã£o responsiva em Guias, NFS-e e Radar, sem erros de console nos estados fictÃ­cios alcanÃ§ados. IntegraÃ§Ãµes externas continuam dependendo de homologaÃ§Ã£o real. |
+| 16/09 | Certificados e cadastro mÃ³vel de empresas | Fila de vencimento/cobertura da carteira, pesquisa por empresa e DomÃ­nio, empresa exata como prÃ³ximo passo; tabelas viram cartÃµes no celular | A demo passou a simular cobertura somente na sessÃ£o, sem aceitar PFX/senha nem gravar na organizaÃ§Ã£o central. Playwright confirmou desktop, 390 Ã— 844, modal, foco, recarga da sessÃ£o, controles de 44 px e zero erro de console. **613 testes aprovados, 1 ignorado e 8 subtestes aprovados** antes do Ãºltimo ajuste apenas estrutural de cartÃµes. |
+| 15/09 | SuÃ­te apÃ³s Central, MFA e estados vazios | `uv run pytest -q`; Ruff Python focado; `manage.py check` | **512 aprovados, 1 ignorado, 8 subtestes aprovados** em 38,15 s; Ruff e Django check passaram. Testes simulados e telas vazias nÃ£o homologam Serpro, ADN ou escritÃ³rios reais. |
+| 15/09 | Triagem substitui Jornadas no catÃ¡logo e contratos de teste | MigraÃ§Ã£o local; `uv run pytest -q`, `manage.py check`, `makemigrations --check --dry-run`; consulta read-only do banco local | **515 aprovados, 1 ignorado, 8 subtestes aprovados** em 32,16 s; check/migraÃ§Ãµes passaram. Banco local: 0 jornadas, 0 habilitaÃ§Ãµes Jornadas, 6 habilitaÃ§Ãµes Triagem, 0 contratos/planos com Jornadas. O simulador legado foi removido. Ruff focado passou; Ruff global ainda aponta 9 problemas preexistentes fora desta troca. Sem homologaÃ§Ã£o de caixa real. |
+| 15/09 | TarifaÃ§Ã£o oficial Integra Contador | Playwright no [produto da Loja Serpro](https://loja.serpro.gov.br/integra-contador/product/integracontador), aba â€œPreÃ§oâ€, e leitura do [catÃ¡logo oficial de serviÃ§os](https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/catalogo_de_servicos/) | A faixa 1 vigente exibiu R$ 0,24/consulta, R$ 0,32/emissÃ£o e R$ 0,40/declaraÃ§Ã£o; faixas 2â€“8 diminuem. O catÃ¡logo classifica lista/detalhe da Caixa, recibo/declaraÃ§Ã£o completa DCTFWeb e consultas de Parcelamentos como **Consultar**, e as guias DCTFWeb/Parcelamentos como **Emitir**. A fatura Mewstack ainda precisa confirmar que o **Tipo** do catÃ¡logo determina a categoria faturada, sobretudo para o indicador **Monitorar**. O responsÃ¡vel decidiu usar faixa 1 para pesos. Nenhuma contrataÃ§Ã£o ou chamada paga foi feita. |
+| 15/09 | OAuth configurado pelo escritÃ³rio | MigraÃ§Ã£o `triage.0004` aplicada localmente; Microsoft/Workspace usam app OAuth por escritÃ³rio com segredo cifrado e vÃ­nculo da caixa; Gmail pessoal usa caminho central Mewstack separado, gated por `TRIAGE_GOOGLE_PERSONAL_VERIFIED` | 14 testes OAuth locais passaram, incluindo escolha central quando hÃ¡ app Workspace, rejeiÃ§Ã£o de endereÃ§o Workspace no caminho pessoal e rejeiÃ§Ã£o de Gmail pessoal no caminho Workspace. Sem app externo registrado, retorno HTTPS de produÃ§Ã£o ou caixa real. O guia foi inspecionado em desktop/mobile e o formulÃ¡rio positivo/erro com QA sintÃ©tico. |
+| 15/09 | SuÃ­te apÃ³s OAuth por escritÃ³rio e UI de conexÃ£o | `uv run pytest -q`, Ruff focado, `manage.py check`, verificaÃ§Ãµes de sintaxe JavaScript | **520 aprovados, 1 ignorado, 8 subtestes aprovados** em 41,92 s. Os fornecedores externos foram simulados; [auditoria renderizada](auditoria-triagem-aplicativos-2026-09-15.md) delimita os estados vistos. |
+| 15/09 | DemonstraÃ§Ã£o pÃºblica sob controle do usuÃ¡rio | Removido ciclo automÃ¡tico de mÃ³dulos; corrigido bloco numÃ©rico da Triagem; abas acessÃ­veis com seleÃ§Ã£o por seta/Home/End e URL `?demo=...` | Playwright desktop 1366 Ã— 900 e celular 390 Ã— 844: tab/painel permaneceram iguais apÃ³s 6 segundos, foco visÃ­vel, rolagem horizontal ausente e console sem erros na pÃ¡gina normal. A demonstraÃ§Ã£o Ã© ilustrativa e nÃ£o prova operaÃ§Ãµes externas. |
+| 15/09 | VerificaÃ§Ã£o final desta rodada | `uv run pytest -q`, Ruff nos arquivos Python alterados, `makemigrations --check --dry-run`, `node --check` dos dois scripts e `git diff --check`; [diretrizes Vercel atuais](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md) reaplicadas aos arquivos de interface alterados | **521 aprovados, 1 ignorado e 8 subtestes aprovados** em 40,47 s. Nenhuma nova migraÃ§Ã£o detectada, scripts vÃ¡lidos e sem erros materiais na revisÃ£o estÃ¡tica da interface. Playwright desta rodada inspecionou guia OAuth e demonstraÃ§Ã£o em desktop/mobile; estados externos nÃ£o foram alcanÃ§ados. Abas Playwright fechadas. Conta/aplicativo/ativaÃ§Ã£o de mÃ³dulo QA desta rodada removidos; conta de plataforma QA desativada, senha inutilizada e 2 sessÃµes de suporte abertas fechadas. Fedrizzi permaneceu ativa e intocada. |
+| 15/09 | Entrada de anexos e leitor IMAP incremental | `triage.0005` aplicada localmente; teste com IMAP sintÃ©tico, MIME com anexo, data interna antes/depois do marco, SELECT readonly, `BODY.PEEK[]`, UIDVALIDITY/cursor, reenvio e isolamento de dois escritÃ³rios | **525 aprovados, 1 ignorado e 8 subtestes aprovados** em 34,73 s. O mesmo arquivo em mensagens distintas gera duas entregas em quarentena atÃ© a polÃ­tica Q-20; repetir a mesma mensagem+parte nÃ£o duplica. Caminho fÃ­sico `.bin` nÃ£o usa extensÃ£o recebida. Sem caixa real, ativaÃ§Ã£o pelo escritÃ³rio, agenda, scanner antimalware ou leitores Graph/Gmail; nenhum e-mail externo foi acessado. |
+| 15/09 | Veredito antimalware em quarentena | `triage.0006` aplicada localmente; adaptador candidato ClamAV [INSTREAM oficial](https://docs.clamav.net/manual/Usage/ClamdProtocol.html) somente por socket Unix local ou TCP loopback; teste com socket sintÃ©tico limpo, resposta incompleta, scanner ausente e detecÃ§Ã£o de ameaÃ§a | **528 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,47 s. AmeaÃ§a confirmada rejeita o anexo; falha fica em quarentena com veredito persistente; resultado limpo tambÃ©m fica em quarentena atÃ© aprovaÃ§Ã£o da polÃ­tica de formatos/assinaturas. Nenhum daemon ClamAV estÃ¡ instalado neste PC, nenhuma varredura real foi homologada e nenhum recurso externo ou custo foi criado. |
+| 15/09 | Leitor Microsoft Graph incremental | [Delta e anexos oficiais](https://learn.microsoft.com/en-us/graph/api/message-delta?view=graph-rest-1.0) lidos; `poll_graph_mailbox` exercitado com duas pÃ¡ginas, arquivo inline, link de outro domÃ­nio, reenvio e arquivo acima de 25 MB em transporte sintÃ©tico | **531 aprovados, 1 ignorado e 8 subtestes aprovados** em 37,55 s. O cursor avanÃ§ou apenas apÃ³s a pÃ¡gina completa; link externo e anexo grande nÃ£o avanÃ§aram o checkpoint. IDs imutÃ¡veis sÃ£o pedidos em cada chamada. O leitor lista anexos mesmo quando `hasAttachments=false`, conforme a [semÃ¢ntica oficial da mensagem](https://learn.microsoft.com/en-us/graph/api/resources/message?view=graph-rest-1.0). Sem app registrado/consentimento/caixa real, projeÃ§Ã£o `$select` e limites de um tenant real ainda requerem piloto; nenhuma chamada Graph externa foi feita. |
+| 15/09 | Leitor Gmail/Workspace incremental | [SincronizaÃ§Ã£o e expiraÃ§Ã£o oficiais](https://developers.google.com/workspace/gmail/api/guides/sync), [histÃ³rico](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.history/list) e [anexos](https://developers.google.com/workspace/gmail/api/reference/rest/v1/users.messages.attachments/get) pesquisados; `poll_gmail_mailbox` testado com snapshot `historyId`, listagem paginada, eventos `messagesAdded`/`labelsAdded`, 404, replay no meio da pÃ¡gina e anexo grande com transporte sintÃ©tico | **535 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,73 s. Checkpoint apÃ³s todos os anexos da pÃ¡gina; 404 reinicia full sync pelo novo snapshot sem perder entregas jÃ¡ recebidas. Nenhuma chamada Gmail externa foi feita; app central pessoal ainda depende de registro/verificaÃ§Ã£o Google e caixas reais de consentimento/piloto. |
+| 15/09 | ExecuÃ§Ã£o periÃ³dica da Triagem | `triage.dispatch_active_mailboxes` incluÃ­da no Celery Beat a cada 5 minutos; fila apenas caixas com escritÃ³rio ativo, caixa ativa/status ativo e data inicial; worker usa lease com token e prazo para impedir sobreposiÃ§Ã£o e permitir recuperaÃ§Ã£o de crash; flag `TRIAGE_EMAIL_POLL_ENABLED=false` Ã© o padrÃ£o | **539 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,55 s. Testes cobrem rotina desligada sem chamada ao provedor, seleÃ§Ã£o de caixas, execuÃ§Ã£o simultÃ¢nea bloqueada e falha saneada com lease liberada. NÃ£o hÃ¡ caixa real ativada nem autorizaÃ§Ã£o de custo para ligar a flag. A cadÃªncia de 5 min Ã© tÃ©cnica e configurÃ¡vel antes do piloto; SLA comercial, monitoramento e polÃ­tica de retentativa ainda nÃ£o foram aprovados. |
+| 15/09 | Falhas e retentativas da Triagem | Conforme [Graph](https://learn.microsoft.com/en-us/graph/errors) e [Gmail](https://developers.google.com/workspace/gmail/api/guides/handle-errors), 429/5xx e indisponibilidade de rede recebem estado transitÃ³rio com backoff exponencial (5 min atÃ© 6 h, respeitando `Retry-After` atÃ© 24 h); scheduler pula caixa antes de `poll_retry_after`; credencial/contrato/dados invÃ¡lidos deixam caixa em erro para intervenÃ§Ã£o. IMAP separa socket/timeout de recusa do provedor. Migration `triage.0008` aplicada localmente | **544 aprovados, 1 ignorado e 8 subtestes aprovados** em 36,97 s. Cursor nÃ£o avanÃ§ou em falhas sintÃ©ticas e lease foi liberada. A tela entÃ£o ainda mostrava â€œrecebimento indisponÃ­velâ€ para caixa ativa com falha transitÃ³ria e â€œprecisa reconectarâ€ para qualquer erro permanente, mesmo quando a causa podia ser outra; ver revisÃ£o posterior da lista. Nenhuma consulta externa foi feita. |
+| 15/09 | Lista operacional das caixas da Triagem | `present_mailbox` separa configuraÃ§Ã£o, leitura, retentativa, erro e desconexÃ£o; `triage.html` mostra Ãºltima/prÃ³xima consulta, remÃ©dio e estado vazio correto. `ui-ux-pro-max`, `watermelon-ui`, referÃªncias SaaSFrame, fonte atual Vercel e Playwright MCP foram consultados; [auditoria dos estados](auditoria-triagem-estados-caixas-2026-09-15.md) registra evidÃªncia e limites. | `uv run pytest -q`: **545 aprovados, 1 ignorado, 8 subtestes aprovados** em 36,60 s; Ruff e `manage.py check` passaram. Playwright desktop/mobile/escuro inspecionou somente caixas sintÃ©ticas, com console limpo; abas e servidor de QA fechados. AtivaÃ§Ã£o pelo escritÃ³rio, provedores reais e fila de anexos ainda nÃ£o foram validados. |
+| 15/09 | Fila operacional da Triagem | Lista de anexos recebidos acima da conexÃ£o dos provedores, com etapa, seguranÃ§a, origem, filtro por GET e paginaÃ§Ã£o de 20; administrador vÃª itens ainda sem empresa e operador apenas suas empresas. Detalhe segue a mesma regra; download nÃ£o verificado continua bloqueado. [Auditoria das caixas e fila](auditoria-triagem-estados-caixas-2026-09-15.md) registra referÃªncias e inspeÃ§Ã£o. | `uv run pytest -q`: **546 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,36 s; `manage.py check`, Ruff e `diff --check` passaram. Playwright desktop/mobile/claro/escuro testou trÃªs anexos sintÃ©ticos, filtro, vazio, foco e console sem erros/avisos; aba/servidor de QA fechados. NÃ£o houve anexo nem scanner real; classificaÃ§Ã£o, revisÃ£o e arquivamento permanecem pendentes. |
+| 15/09 | Caixa DTE: separar abertura incerta da fila a abrir | Filtros/contadores excluem `reading`/`unknown` e ciÃªncia jÃ¡ observada de â€œA abrirâ€; a fila pendente mostra estados especÃ­ficos, links de acesso, filtro vazio correto e selects/indicadores legÃ­veis no escuro. â€œSelecionar todasâ€ foi inspecionado sem envio. [Auditoria DTE](auditoria-dte-fila-incerta-2026-09-15.md) registra pesquisa Serpro, referÃªncias SaaS e limites. | `uv run pytest -q`: **547 aprovados, 1 ignorado, 8 subtestes aprovados** em 37,35 s; 11 testes focados DTE/ciÃªncia, Ruff e `manage.py check` passaram. Playwright desktop/mobile/claro/escuro: quatro mensagens sintÃ©ticas, fila, filtro, aviso jurÃ­dico, foco, selecionador local; console final 0 erros/avisos, aba/servidor fechados. Contrato e ciÃªncia Serpro reais nÃ£o foram testados. |
 
-| 15/09 | Caixa DTE: continuar páginas por empresa | Ponteiro Serpro salvo por item; operador prepara uma única continuação na própria tabela, que entra na fila para cotação/autorização de consumo individual. Formato de até 24 dígitos pesquisado na documentação oficial; [auditoria da paginação](auditoria-dte-paginacao-2026-09-15.md). | `uv run pytest -q`: **550 aprovados, 1 ignorado, 8 subtestes aprovados** em 36,34 s. Playwright desktop/mobile: ação/foco/estado após POST, sem overflow do documento nem erros/avisos no console; cenário SQLite, aba e servidor encerrados. Nenhuma chamada paga ou resposta Serpro real foi feita. |
+| 15/09 | Caixa DTE: continuar pÃ¡ginas por empresa | Ponteiro Serpro salvo por item; operador prepara uma Ãºnica continuaÃ§Ã£o na prÃ³pria tabela, que entra na fila para cotaÃ§Ã£o/autorizaÃ§Ã£o de consumo individual. Formato de atÃ© 24 dÃ­gitos pesquisado na documentaÃ§Ã£o oficial; [auditoria da paginaÃ§Ã£o](auditoria-dte-paginacao-2026-09-15.md). | `uv run pytest -q`: **550 aprovados, 1 ignorado, 8 subtestes aprovados** em 36,34 s. Playwright desktop/mobile: aÃ§Ã£o/foco/estado apÃ³s POST, sem overflow do documento nem erros/avisos no console; cenÃ¡rio SQLite, aba e servidor encerrados. Nenhuma chamada paga ou resposta Serpro real foi feita. |
 
-| 15/09 | Pesquisa e leitores de Parcelamentos | Cinco serviços PARCSN ordinário pesquisados nas páginas oficiais e registrados no catálogo; parsers locais de pedidos, detalhe, pagamentos, parcelas disponíveis e DAS base64 limitam tamanho, conferem acordo e formato. [Pesquisa Parcelamentos](pesquisa-parcelamentos-integra-2026-09-15.md). | `uv run pytest -q tests/test_integra_parcelamento.py tests/test_integra_client.py`: **23 aprovados**; Ruff passou. Apenas payloads sintéticos: sem fila, autorização, armazenamento, UI, chamada Serpro ou emissão real. Modalidades da versão vendável aguardam escolha do responsável. |
+| 15/09 | Pesquisa e leitores de Parcelamentos | Cinco serviÃ§os PARCSN ordinÃ¡rio pesquisados nas pÃ¡ginas oficiais e registrados no catÃ¡logo; parsers locais de pedidos, detalhe, pagamentos, parcelas disponÃ­veis e DAS base64 limitam tamanho, conferem acordo e formato. [Pesquisa Parcelamentos](pesquisa-parcelamentos-integra-2026-09-15.md). | `uv run pytest -q tests/test_integra_parcelamento.py tests/test_integra_client.py`: **23 aprovados**; Ruff passou. Apenas payloads sintÃ©ticos: sem fila, autorizaÃ§Ã£o, armazenamento, UI, chamada Serpro ou emissÃ£o real. Modalidades da versÃ£o vendÃ¡vel aguardam escolha do responsÃ¡vel. |
 
-| 15/09 | Carteira técnica de tokens por módulo | `TokenPriceBook`/rates/pesos/medidores/eventos e `token_billing.py` adicionados; reserva local com preço comum, franquia própria, teto global e idempotência. `close_competence` cria uma fatura com linhas por módulo só após flag e tabela ativa; recusa medidor legado misturado. Gravações normais congelam preço, franquia e pesos após aceite. Flag `TOKEN_BILLING_ENABLED=false` no padrão. | `uv run pytest -q`: **559 aprovados, 1 ignorado, 8 subtestes aprovados** em 38,57 s; 5 testes focados de tokens, Ruff e migration check passaram após a mudança final de proteção. Valores e escritórios sintéticos, sem cobrança externa. Ainda não há preços aprovados nem módulos migrados para essa carteira; testar concorrência, QuerySet.update, retry/estorno, UX e fatura real antes de habilitar. |
+| 15/09 | Carteira tÃ©cnica de tokens por mÃ³dulo | `TokenPriceBook`/rates/pesos/medidores/eventos e `token_billing.py` adicionados; reserva local com preÃ§o comum, franquia prÃ³pria, teto global e idempotÃªncia. `close_competence` cria uma fatura com linhas por mÃ³dulo sÃ³ apÃ³s flag e tabela ativa; recusa medidor legado misturado. GravaÃ§Ãµes normais congelam preÃ§o, franquia e pesos apÃ³s aceite. Flag `TOKEN_BILLING_ENABLED=false` no padrÃ£o. | `uv run pytest -q`: **559 aprovados, 1 ignorado, 8 subtestes aprovados** em 38,57 s; 5 testes focados de tokens, Ruff e migration check passaram apÃ³s a mudanÃ§a final de proteÃ§Ã£o. Valores e escritÃ³rios sintÃ©ticos, sem cobranÃ§a externa. Ainda nÃ£o hÃ¡ preÃ§os aprovados nem mÃ³dulos migrados para essa carteira; testar concorrÃªncia, QuerySet.update, retry/estorno, UX e fatura real antes de habilitar. |
 
-| 15/09 | Fechamento mensal seguro | Beat diário às 00:05 agora fecha sempre o último mês completo; chamada manual ao mês atual/futuro é recusada. Fatura aguarda eventos/saldos reservados, e cotação/reserva novas são bloqueadas após faturar a competência. Locks por organização alinham reserva, liquidação e fechamento. [Auditoria do fechamento](auditoria-fechamento-competencia-2026-09-15.md). | `uv run pytest -q`: **563 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,51 s; 18 testes focados de billing/token/tasks e Ruff passaram. Sem cobrança externa. Uma reserva pendente ainda interrompe a rodada dos escritórios seguintes; console individual e prova concorrente PostgreSQL faltam. |
-| 15/09 | Fechamento parcial por escritório | Rodada diária segue após reserva pendente, registra estado Parcial e quantidade adiada. Adiamento persistido e exibido no console com competência/link do escritório; retentativa resolve registro sem duplicar fatura. [Auditoria atualizada](auditoria-fechamento-competencia-2026-09-15.md). | **565 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,10 s; Ruff, checks Django/schema e Playwright desktop/mobile com escritório sintético passaram. Console final sem erro; servidor/aba fechados. Diagnóstico da reserva, retentativa pelo console e concorrência PostgreSQL faltam. Sem cobrança externa. |
-| 15/09 | Triagem: saída da quarentena e biblioteca interna | Verificação de formato após antimalware limpo vinculado ao hash; aprovação humana termina em pronto para arquivar; cópia privada distinta e hash conferido antes de marcar arquivado. Protótipo manual e destino Windows sem agente não são tratados como arquivo entregue. [Auditoria](auditoria-triagem-formato-biblioteca-2026-09-15.md). | **579 aprovados, 1 ignorado, 8 subtestes aprovados** em 45,03 s; Ruff e migrações passaram. Testes usam scanner/arquivo/escritório sintéticos. Classificação, revisão, download e homologação real ainda faltam. |
-| 15/09 | Triagem: detalhe e download conferido | Detalhe exibe origem/vereditos/estado, histórico com rótulos legíveis e link somente para biblioteca interna arquivada. Download com empresa permitida, hash da cópia, resposta privada e auditoria; adulteração é recusada. [Auditoria da tela](auditoria-triagem-detalhe-download-2026-09-15.md). | **580 aprovados, 1 ignorado, 8 subtestes aprovados** em 40,97 s; Playwright desktop/mobile com teclado, foco, arquivo baixado, quarentena e console sem erro; abas/servidor fechados. Revisão e classificação na tela ainda faltam. |
-| 15/09 | Copiloto: uso Sonnet e auditoria de tentativa | Resposta simulada registra tokens de entrada/saída e cache; auditoria marca respondida/incerta/bloqueada, preservando reserva em timeout. Migração marca permissões antigas sem prova como incertas. [Auditoria](auditoria-copiloto-egress-2026-09-15.md). | **581 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,50 s; Ruff/checks/schema passaram. Nenhuma chamada paga. |
-| 15/09 | Copiloto: reserva durável antes da chamada | Mensagem/reserva de uso são confirmadas antes do I/O local; cota, auditoria e hash do payload Claude são confirmados antes da chamada externa, executada sem transação aberta. Resultado e resposta são persistidos depois. Teste transacional inspecionou a reserva dentro do mock do fornecedor. [Auditoria atualizada](auditoria-copiloto-egress-2026-09-15.md). | **582 aprovados, 1 ignorado, 8 subtestes aprovados** em 40,39 s; Ruff, Django e schema passaram. Nenhuma chamada paga. Falta reconciliação de tentativa reservada após morte do worker e retry seguro. |
-| 15/09 | Copiloto: identificar tentativa perdida | Auditoria vinculada à mensagem e à reserva; tarefa agendada identifica tentativas Claude antigas e marca resultado incerto sem liberar a cota nem repetir chamada. Teste cobre tentativa perdida, reconciliação idempotente e resposta comprovada tardia. [Auditoria atualizada](auditoria-copiloto-egress-2026-09-15.md). | **582 aprovados, 1 ignorado, 8 subtestes aprovados** em 42,08 s; Ruff, Django e schema passaram. Nenhuma chamada paga. Falta estado de interrupção na conversa, dedupe de POST, decisão de suporte e observabilidade da rotina. |
-| 15/09 | Copiloto: envio e recuperação pela conversa | Playwright encontrou POST com empresa vazia em conversa existente; corrigido. Nova conversa ganhou busca/seleção de empresa; mesma chave de envio não duplica resposta/reserva; pergunta sem resposta mostra andamento/incerteza/interrupção e protocolo. [Auditoria da conversa](auditoria-copiloto-conversa-recuperacao-2026-09-15.md). | **585 aprovados, 1 ignorado, 8 subtestes aprovados** em 41,34 s; Ruff, Django e schema passaram. Playwright local isolado desktop/mobile/claro/escuro conferiu erro, vazio, busca, foco, envio e resposta; console dos estados finais 0 erros. Sem API paga. Falta decisão de suporte da reserva e piloto externo. |
+| 15/09 | Fechamento mensal seguro | Beat diÃ¡rio Ã s 00:05 agora fecha sempre o Ãºltimo mÃªs completo; chamada manual ao mÃªs atual/futuro Ã© recusada. Fatura aguarda eventos/saldos reservados, e cotaÃ§Ã£o/reserva novas sÃ£o bloqueadas apÃ³s faturar a competÃªncia. Locks por organizaÃ§Ã£o alinham reserva, liquidaÃ§Ã£o e fechamento. [Auditoria do fechamento](auditoria-fechamento-competencia-2026-09-15.md). | `uv run pytest -q`: **563 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,51 s; 18 testes focados de billing/token/tasks e Ruff passaram. Sem cobranÃ§a externa. Uma reserva pendente ainda interrompe a rodada dos escritÃ³rios seguintes; console individual e prova concorrente PostgreSQL faltam. |
+| 15/09 | Fechamento parcial por escritÃ³rio | Rodada diÃ¡ria segue apÃ³s reserva pendente, registra estado Parcial e quantidade adiada. Adiamento persistido e exibido no console com competÃªncia/link do escritÃ³rio; retentativa resolve registro sem duplicar fatura. [Auditoria atualizada](auditoria-fechamento-competencia-2026-09-15.md). | **565 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,10 s; Ruff, checks Django/schema e Playwright desktop/mobile com escritÃ³rio sintÃ©tico passaram. Console final sem erro; servidor/aba fechados. DiagnÃ³stico da reserva, retentativa pelo console e concorrÃªncia PostgreSQL faltam. Sem cobranÃ§a externa. |
+| 15/09 | Triagem: saÃ­da da quarentena e biblioteca interna | VerificaÃ§Ã£o de formato apÃ³s antimalware limpo vinculado ao hash; aprovaÃ§Ã£o humana termina em pronto para arquivar; cÃ³pia privada distinta e hash conferido antes de marcar arquivado. ProtÃ³tipo manual e destino Windows sem agente nÃ£o sÃ£o tratados como arquivo entregue. [Auditoria](auditoria-triagem-formato-biblioteca-2026-09-15.md). | **579 aprovados, 1 ignorado, 8 subtestes aprovados** em 45,03 s; Ruff e migraÃ§Ãµes passaram. Testes usam scanner/arquivo/escritÃ³rio sintÃ©ticos. ClassificaÃ§Ã£o, revisÃ£o, download e homologaÃ§Ã£o real ainda faltam. |
+| 15/09 | Triagem: detalhe e download conferido | Detalhe exibe origem/vereditos/estado, histÃ³rico com rÃ³tulos legÃ­veis e link somente para biblioteca interna arquivada. Download com empresa permitida, hash da cÃ³pia, resposta privada e auditoria; adulteraÃ§Ã£o Ã© recusada. [Auditoria da tela](auditoria-triagem-detalhe-download-2026-09-15.md). | **580 aprovados, 1 ignorado, 8 subtestes aprovados** em 40,97 s; Playwright desktop/mobile com teclado, foco, arquivo baixado, quarentena e console sem erro; abas/servidor fechados. RevisÃ£o e classificaÃ§Ã£o na tela ainda faltam. |
+| 15/09 | Copiloto: uso Sonnet e auditoria de tentativa | Resposta simulada registra tokens de entrada/saÃ­da e cache; auditoria marca respondida/incerta/bloqueada, preservando reserva em timeout. MigraÃ§Ã£o marca permissÃµes antigas sem prova como incertas. [Auditoria](auditoria-copiloto-egress-2026-09-15.md). | **581 aprovados, 1 ignorado, 8 subtestes aprovados** em 39,50 s; Ruff/checks/schema passaram. Nenhuma chamada paga. |
+| 15/09 | Copiloto: reserva durÃ¡vel antes da chamada | Mensagem/reserva de uso sÃ£o confirmadas antes do I/O local; cota, auditoria e hash do payload Claude sÃ£o confirmados antes da chamada externa, executada sem transaÃ§Ã£o aberta. Resultado e resposta sÃ£o persistidos depois. Teste transacional inspecionou a reserva dentro do mock do fornecedor. [Auditoria atualizada](auditoria-copiloto-egress-2026-09-15.md). | **582 aprovados, 1 ignorado, 8 subtestes aprovados** em 40,39 s; Ruff, Django e schema passaram. Nenhuma chamada paga. Falta reconciliaÃ§Ã£o de tentativa reservada apÃ³s morte do worker e retry seguro. |
+| 15/09 | Copiloto: identificar tentativa perdida | Auditoria vinculada Ã  mensagem e Ã  reserva; tarefa agendada identifica tentativas Claude antigas e marca resultado incerto sem liberar a cota nem repetir chamada. Teste cobre tentativa perdida, reconciliaÃ§Ã£o idempotente e resposta comprovada tardia. [Auditoria atualizada](auditoria-copiloto-egress-2026-09-15.md). | **582 aprovados, 1 ignorado, 8 subtestes aprovados** em 42,08 s; Ruff, Django e schema passaram. Nenhuma chamada paga. Falta estado de interrupÃ§Ã£o na conversa, dedupe de POST, decisÃ£o de suporte e observabilidade da rotina. |
+| 15/09 | Copiloto: envio e recuperaÃ§Ã£o pela conversa | Playwright encontrou POST com empresa vazia em conversa existente; corrigido. Nova conversa ganhou busca/seleÃ§Ã£o de empresa; mesma chave de envio nÃ£o duplica resposta/reserva; pergunta sem resposta mostra andamento/incerteza/interrupÃ§Ã£o e protocolo. [Auditoria da conversa](auditoria-copiloto-conversa-recuperacao-2026-09-15.md). | **585 aprovados, 1 ignorado, 8 subtestes aprovados** em 41,34 s; Ruff, Django e schema passaram. Playwright local isolado desktop/mobile/claro/escuro conferiu erro, vazio, busca, foco, envio e resposta; console dos estados finais 0 erros. Sem API paga. Falta decisÃ£o de suporte da reserva e piloto externo. |
 
-| 15/09 | P0: revisão de caso NFS-e e configuração de Triagem | Painel/empresa/fila abrem o caso exato; detalhe exibe evidência, XML original auditado e resultado da decisão. Fila de anexos separada de “Gerenciar caixas”; erro IMAP foi inspecionado em navegador sintético. [Prova e limites](execucao-p0-area-de-trabalho-2026-09-15.md). | `uv run pytest -q`: **588 aprovados, 1 ignorado e 8 subtestes aprovados**; Ruff focado e Django check passaram. Playwright desktop/celular/foco/erro/vazio sem overflow nem erro de console nos estados alcançados; aba/servidor encerrados. Fedrizzi não foi alterada. Sem Serpro, e-mail ou outra chamada paga. Demo isolada e homologação real ainda pendentes. |
-| 15/09 | P0: base da demo central e decisões da Triagem | `Organization.is_demo`, MFA dispensado só para membro exclusivo da demo; DTE/guia/Copiloto e caixa de exemplo sem fornecedor; mensagem DTE fictícia aberta com confirmação, protocolo local e sem ciência oficial; anexos fictícios percorridos até aprovação, arquivo íntegro e download. A revisão da Triagem agora ocorre no detalhe com motivo e confirmação para rejeição. [Isolamento e riscos restantes](auditoria-demo-isolamento-2026-09-15.md). | **597 aprovados, 1 ignorado e 8 subtestes aprovados**; Django check passou. Navegador sintético desktop/celular, foco, abertura DTE e arquivamento Triagem, 0 erros de console nos estados alcançados. Ruff foi corrigido após a suíte; repetir na próxima rodada. Ainda faltam isolamento de progresso dos visitantes, travas transversais, Parcelamentos e homologação real; demo não está pública. |
-| 16/09 | P0: filas por carteira e painel de próxima ação | Guias, Revisões, Triagem e Conciliação ganharam pesquisa e filtros operacionais; a Visão Geral separa pendências por módulo e abre cada fila já filtrada. Revisões viram cartões no celular, mantendo ação e evidência do caso exato. Referências: `ui-ux-pro-max` (seleção em lote e feedback), Watermelon Astrix (pipeline de revisão), Vercel Web Interface Guidelines e produto existente. | **610 aprovados, 1 ignorado e 8 subtestes aprovados** em 56,17 s; Ruff focado, Django check e migrations passaram. Playwright desktop/mobile confirmou dashboard, filtros, foco, contagem, cartões móveis, ausência de overflow e console limpo. Nenhum fornecedor externo foi chamado. Seleção em lote de emissão continua bloqueada até existir cotação, autorização e atomicidade reais. |
+| 15/09 | P0: revisÃ£o de caso NFS-e e configuraÃ§Ã£o de Triagem | Painel/empresa/fila abrem o caso exato; detalhe exibe evidÃªncia, XML original auditado e resultado da decisÃ£o. Fila de anexos separada de â€œGerenciar caixasâ€; erro IMAP foi inspecionado em navegador sintÃ©tico. [Prova e limites](execucao-p0-area-de-trabalho-2026-09-15.md). | `uv run pytest -q`: **588 aprovados, 1 ignorado e 8 subtestes aprovados**; Ruff focado e Django check passaram. Playwright desktop/celular/foco/erro/vazio sem overflow nem erro de console nos estados alcanÃ§ados; aba/servidor encerrados. Fedrizzi nÃ£o foi alterada. Sem Serpro, e-mail ou outra chamada paga. Demo isolada e homologaÃ§Ã£o real ainda pendentes. |
+| 15/09 | P0: base da demo central e decisÃµes da Triagem | `Organization.is_demo`, MFA dispensado sÃ³ para membro exclusivo da demo; DTE/guia/Copiloto e caixa de exemplo sem fornecedor; mensagem DTE fictÃ­cia aberta com confirmaÃ§Ã£o, protocolo local e sem ciÃªncia oficial; anexos fictÃ­cios percorridos atÃ© aprovaÃ§Ã£o, arquivo Ã­ntegro e download. A revisÃ£o da Triagem agora ocorre no detalhe com motivo e confirmaÃ§Ã£o para rejeiÃ§Ã£o. [Isolamento e riscos restantes](auditoria-demo-isolamento-2026-09-15.md). | **597 aprovados, 1 ignorado e 8 subtestes aprovados**; Django check passou. Navegador sintÃ©tico desktop/celular, foco, abertura DTE e arquivamento Triagem, 0 erros de console nos estados alcanÃ§ados. Ruff foi corrigido apÃ³s a suÃ­te; repetir na prÃ³xima rodada. Ainda faltam isolamento de progresso dos visitantes, travas transversais, Parcelamentos e homologaÃ§Ã£o real; demo nÃ£o estÃ¡ pÃºblica. |
+| 16/09 | P0: filas por carteira e painel de prÃ³xima aÃ§Ã£o | Guias, RevisÃµes, Triagem e ConciliaÃ§Ã£o ganharam pesquisa e filtros operacionais; a VisÃ£o Geral separa pendÃªncias por mÃ³dulo e abre cada fila jÃ¡ filtrada. RevisÃµes viram cartÃµes no celular, mantendo aÃ§Ã£o e evidÃªncia do caso exato. ReferÃªncias: `ui-ux-pro-max` (seleÃ§Ã£o em lote e feedback), Watermelon Astrix (pipeline de revisÃ£o), Vercel Web Interface Guidelines e produto existente. | **610 aprovados, 1 ignorado e 8 subtestes aprovados** em 56,17 s; Ruff focado, Django check e migrations passaram. Playwright desktop/mobile confirmou dashboard, filtros, foco, contagem, cartÃµes mÃ³veis, ausÃªncia de overflow e console limpo. Nenhum fornecedor externo foi chamado. SeleÃ§Ã£o em lote de emissÃ£o continua bloqueada atÃ© existir cotaÃ§Ã£o, autorizaÃ§Ã£o e atomicidade reais. |
 
-## Próxima prova exigida por área
+## PrÃ³xima prova exigida por Ã¡rea
 
-- **IA:** chave e modelo Sonnet 5 já passaram pela contagem gratuita. Faltam limites globais/por escritório, consentimento e cenário autorizado de teste cobrado. Verificar resposta, erro recuperável, uso, custo e ausência de segredo no navegador/log. O PC local exigirá teste de preferência do runtime e virada controlada.
-- **Triagem:** escritório conecta cada tipo de caixa pelo guia interno; primeiro poll respeita corte/cursor; cada anexo passa por proteção, identificação, revisão e destino escolhido; hash de destino e checklist são comprovados. Decisões de taxonomia, formatos, padrão Windows e retenção estão em [dúvidas abertas](duvidas-abertas.md).
-- **Serpro, ADN/NFS-e, Domínio e Siescon:** piloto com contrato, credenciais, certificados e amostras autorizados; verificar repetição, falha, cota, escopo e resultado persistido. Não chamar um mock de homologação externa.
-- **Asaas e contrato manual:** uma fatura, pagamento e eventos idempotentes; contrato manual imune ao webhook; carência, somente leitura e reativação pela regra confirmada.
-- **Produção:** resolver workflow/ambiente de deploy, SMTP/DNS, contatos e termos finais, saúde Celery, backup e restauração. Recursos e APIs cobrados requerem confirmação específica de custo imediatamente antes da ação.
-- **Telas:** repetir a auditoria para cada nova tela ou mudança material; para os estados já alcançados, consultar a [prova registrada](auditoria-ui-2026-09-15.md). Conexão OAuth, anexos recebidos por e-mail e seus estados de carga/erro aguardam implementação.
+- **IA:** chave e modelo Sonnet 5 jÃ¡ passaram pela contagem gratuita. Faltam limites globais/por escritÃ³rio, consentimento e cenÃ¡rio autorizado de teste cobrado. Verificar resposta, erro recuperÃ¡vel, uso, custo e ausÃªncia de segredo no navegador/log. O PC local exigirÃ¡ teste de preferÃªncia do runtime e virada controlada.
+- **Triagem:** escritÃ³rio conecta cada tipo de caixa pelo guia interno; primeiro poll respeita corte/cursor; cada anexo passa por proteÃ§Ã£o, identificaÃ§Ã£o, revisÃ£o e destino escolhido; hash de destino e checklist sÃ£o comprovados. DecisÃµes de taxonomia, formatos, padrÃ£o Windows e retenÃ§Ã£o estÃ£o em [dÃºvidas abertas](duvidas-abertas.md).
+- **Serpro, ADN/NFS-e, DomÃ­nio e Siescon:** piloto com contrato, credenciais, certificados e amostras autorizados; verificar repetiÃ§Ã£o, falha, cota, escopo e resultado persistido. NÃ£o chamar um mock de homologaÃ§Ã£o externa.
+- **Asaas e contrato manual:** uma fatura, pagamento e eventos idempotentes; contrato manual imune ao webhook; carÃªncia, somente leitura e reativaÃ§Ã£o pela regra confirmada.
+- **ProduÃ§Ã£o:** resolver workflow/ambiente de deploy, SMTP/DNS, contatos e termos finais, saÃºde Celery, backup e restauraÃ§Ã£o. Recursos e APIs cobrados requerem confirmaÃ§Ã£o especÃ­fica de custo imediatamente antes da aÃ§Ã£o.
+- **Telas:** repetir a auditoria para cada nova tela ou mudanÃ§a material; para os estados jÃ¡ alcanÃ§ados, consultar a [prova registrada](auditoria-ui-2026-09-15.md). ConexÃ£o OAuth, anexos recebidos por e-mail e seus estados de carga/erro aguardam implementaÃ§Ã£o.
 
-Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e limitação. Números de teste não devem ficar como promessa permanente no README.
-| 16/09 | Guias: carteira real de apurações Domínio | `FOVGUIAINSS` entrou na allowlist ODBC somente leitura, com recorte de 18 meses, valor positivo e projeção mínima. A tela separa 3.022 apurações locais de 241 empresas das guias oficiais, pesquisa a carteira e mostra empresa, competência, vencimento e valor reais sem declarar dívida ou pagamento. [Auditoria Fedrizzi](auditoria-guias-dctfweb-fedrizzi-2026-09-15.md). | 17 testes focados e a suíte completa com **615 aprovados, 1 ignorado e 8 subtestes** passaram; Playwright autenticado na Fedrizzi em desktop/celular validou busca, 30 resultados por página visual, cartões móveis, ação 309 × 44 px, zero overflow e console limpo. Nenhuma linha Domínio e nenhum fornecedor externo foram alterados/chamados. Serpro ainda precisa reconciliar declaração, recibo, saldo e guia oficial. |
-| 16/09 | DCTFWeb: contrato correto e prova do PDF | `GERARGUIA31` agora recebe categoria/ano/mês conforme o Serpro; HTTP 200 só conclui após validar o PDF base64. Download oficial reutiliza a evidência cifrada e não cria nova chamada. Apurações importadas entram como `discovered` e não podem ser emitidas antes da reconciliação. | 47 testes focados e a su?te completa com **626 aprovados, 1 ignorado e 8 subtestes** passaram, incluindo payload oficial, competência inválida, resposta sem PDF, documento corrompido, liberação de uso e download sem fornecedor. `CONSDECCOMPLETA33` e `CONSRECIBO32` ainda precisam do fluxo pago de consulta e aceite. |
-| 16/09 | DCTFWeb: declaração completa e recibo | A apuração abre cotação separada de `CONSDECCOMPLETA33` e `CONSRECIBO32`; cada confirmação reserva consumo, persiste estado/PDF e impede retentativa em resultado incerto. Downloads reutilizam a evidência cifrada. Demo gera resultado fictício sem fornecedor. | **633 aprovados, 1 ignorado e 8 subtestes**; 21 focados. Nenhuma chamada paga foi feita. Falta configurar as tarifas no contrato Fedrizzi, homologar chamada autorizada e reconciliar a declaração com a apuração antes de promover guia para emissão. Playwright indisponível nesta passagem por transporte MCP encerrado. |
-| 16/09 | DCTFWeb: consumo migrado para tokens | Declaração completa, recibo e emissão de DARF reservam e liquidam `TokenUsageEvent` no módulo `integra`. A confirmação mostra peso inteiro, franquia e excedente; tabela/peso ausente bloqueia a operação. O worker ainda concilia eventos legados já enfileirados. | 28 testes focados e suíte completa com **633 aprovados, 1 ignorado e 8 subtestes**. Migration `hub.0030` aplicada. Nenhum peso ou preço foi inventado para a Fedrizzi e nenhuma chamada paga foi feita. Falta a área de proposta/aceite da tabela de tokens para uso sem administração de banco. |
-| 16/09 | Tokens: proposta comercial e aceite do escritório | Comercial/Admin da Mewstack monta uma proposta em rascunho com valor único do token, mensalidade/franquia da Central Integra, pesos inteiros DCTFWeb e teto mensal. Dono/Admin revisa todos os termos em Configurações, confirma explicitamente e escolhe vigência futura. Termos aceitos congelam; mudanças exigem nova versão. O consumo ativo substitui a apresentação legada por chamada. | **634 aprovados, 1 ignorado e 8 subtestes**. Configuração local recebeu `TOKEN_BILLING_ENABLED=true`; o padrão seguro do código continua desligado e o `.env.example` documenta a ativação. Nenhuma cobrança ou API externa foi acionada. Playwright continuou indisponível por transporte MCP encerrado. |
-| 16/09 | Parcelamentos: área de trabalho da demonstração | A escolha antes indisponível na Central agora abre uma jornada por empresa: consulta fictícia, acordo PARCSN, consolidação, parcelas paga/disponível e emissão fictícia de DAS. O estado fica isolado por sessão e a tela real recusa chamada enquanto tarifa e homologação não existem. | **13 testes de demo aprovados**, incluindo isolamento entre dois navegadores e ausência de mutação compartilhada. Ruff e `manage.py check` passaram. O MCP Playwright permaneceu indisponível (`Transport closed`), portanto esta rodada não declara inspeção visual. Nenhuma chamada Serpro ou cobrança ocorreu. |
-| 16/09 | Demo: Conciliação segura por sessão | A tela apresenta OFX e candidatos Domínio sintéticos, permite resolver uma ambiguidade e mantém o resultado apenas na sessão. Upload real fica oculto na demo e o texto afirma que não há escrita no Domínio. | **637 testes aprovados, 1 ignorado e 8 subtestes**; isolamento entre dois visitantes e ausência de `ReconciliationMatch` compartilhado cobertos. Playwright MCP seguiu indisponível (`Transport closed`). |
-| 16/09 | Landing: promessa alinhada e acesso à demo | A página pública agora oferece a demo fictícia quando o ambiente está realmente pronto, afirma 14 dias sem cartão e sem cobrança automática e explica ativação gradual. Textos de NFS-e, DCTFWeb, Central e recebimento deixaram de prometer integração antes da configuração/homologação. | **639 testes aprovados, 1 ignorado e 8 subtestes**. `ui-ux-pro-max`, Watermelon e as diretrizes Vercel foram consultados; Watermelon não retornou referência próxima. Playwright MCP permaneceu indisponível (`Transport closed`). |
+Qualquer nova execuÃ§Ã£o acrescenta uma linha com comando/ambiente, resultado e limitaÃ§Ã£o. NÃºmeros de teste nÃ£o devem ficar como promessa permanente no README.
+| 16/09 | Guias: carteira real de apuraÃ§Ãµes DomÃ­nio | `FOVGUIAINSS` entrou na allowlist ODBC somente leitura, com recorte de 18 meses, valor positivo e projeÃ§Ã£o mÃ­nima. A tela separa 3.022 apuraÃ§Ãµes locais de 241 empresas das guias oficiais, pesquisa a carteira e mostra empresa, competÃªncia, vencimento e valor reais sem declarar dÃ­vida ou pagamento. [Auditoria Fedrizzi](auditoria-guias-dctfweb-fedrizzi-2026-09-15.md). | 17 testes focados e a suÃ­te completa com **615 aprovados, 1 ignorado e 8 subtestes** passaram; Playwright autenticado na Fedrizzi em desktop/celular validou busca, 30 resultados por pÃ¡gina visual, cartÃµes mÃ³veis, aÃ§Ã£o 309 Ã— 44 px, zero overflow e console limpo. Nenhuma linha DomÃ­nio e nenhum fornecedor externo foram alterados/chamados. Serpro ainda precisa reconciliar declaraÃ§Ã£o, recibo, saldo e guia oficial. |
+| 16/09 | DCTFWeb: contrato correto e prova do PDF | `GERARGUIA31` agora recebe categoria/ano/mÃªs conforme o Serpro; HTTP 200 sÃ³ conclui apÃ³s validar o PDF base64. Download oficial reutiliza a evidÃªncia cifrada e nÃ£o cria nova chamada. ApuraÃ§Ãµes importadas entram como `discovered` e nÃ£o podem ser emitidas antes da reconciliaÃ§Ã£o. | 47 testes focados e a su?te completa com **626 aprovados, 1 ignorado e 8 subtestes** passaram, incluindo payload oficial, competÃªncia invÃ¡lida, resposta sem PDF, documento corrompido, liberaÃ§Ã£o de uso e download sem fornecedor. `CONSDECCOMPLETA33` e `CONSRECIBO32` ainda precisam do fluxo pago de consulta e aceite. |
+| 16/09 | DCTFWeb: declaraÃ§Ã£o completa e recibo | A apuraÃ§Ã£o abre cotaÃ§Ã£o separada de `CONSDECCOMPLETA33` e `CONSRECIBO32`; cada confirmaÃ§Ã£o reserva consumo, persiste estado/PDF e impede retentativa em resultado incerto. Downloads reutilizam a evidÃªncia cifrada. Demo gera resultado fictÃ­cio sem fornecedor. | **633 aprovados, 1 ignorado e 8 subtestes**; 21 focados. Nenhuma chamada paga foi feita. Falta configurar as tarifas no contrato Fedrizzi, homologar chamada autorizada e reconciliar a declaraÃ§Ã£o com a apuraÃ§Ã£o antes de promover guia para emissÃ£o. Playwright indisponÃ­vel nesta passagem por transporte MCP encerrado. |
+| 16/09 | DCTFWeb: consumo migrado para tokens | DeclaraÃ§Ã£o completa, recibo e emissÃ£o de DARF reservam e liquidam `TokenUsageEvent` no mÃ³dulo `integra`. A confirmaÃ§Ã£o mostra peso inteiro, franquia e excedente; tabela/peso ausente bloqueia a operaÃ§Ã£o. O worker ainda concilia eventos legados jÃ¡ enfileirados. | 28 testes focados e suÃ­te completa com **633 aprovados, 1 ignorado e 8 subtestes**. Migration `hub.0030` aplicada. Nenhum peso ou preÃ§o foi inventado para a Fedrizzi e nenhuma chamada paga foi feita. Falta a Ã¡rea de proposta/aceite da tabela de tokens para uso sem administraÃ§Ã£o de banco. |
+| 16/09 | Tokens: proposta comercial e aceite do escritÃ³rio | Comercial/Admin da Mewstack monta uma proposta em rascunho com valor Ãºnico do token, mensalidade/franquia da Central Integra, pesos inteiros DCTFWeb e teto mensal. Dono/Admin revisa todos os termos em ConfiguraÃ§Ãµes, confirma explicitamente e escolhe vigÃªncia futura. Termos aceitos congelam; mudanÃ§as exigem nova versÃ£o. O consumo ativo substitui a apresentaÃ§Ã£o legada por chamada. | **634 aprovados, 1 ignorado e 8 subtestes**. ConfiguraÃ§Ã£o local recebeu `TOKEN_BILLING_ENABLED=true`; o padrÃ£o seguro do cÃ³digo continua desligado e o `.env.example` documenta a ativaÃ§Ã£o. Nenhuma cobranÃ§a ou API externa foi acionada. Playwright continuou indisponÃ­vel por transporte MCP encerrado. |
+| 16/09 | Parcelamentos: Ã¡rea de trabalho da demonstraÃ§Ã£o | A escolha antes indisponÃ­vel na Central agora abre uma jornada por empresa: consulta fictÃ­cia, acordo PARCSN, consolidaÃ§Ã£o, parcelas paga/disponÃ­vel e emissÃ£o fictÃ­cia de DAS. O estado fica isolado por sessÃ£o e a tela real recusa chamada enquanto tarifa e homologaÃ§Ã£o nÃ£o existem. | **13 testes de demo aprovados**, incluindo isolamento entre dois navegadores e ausÃªncia de mutaÃ§Ã£o compartilhada. Ruff e `manage.py check` passaram. O MCP Playwright permaneceu indisponÃ­vel (`Transport closed`), portanto esta rodada nÃ£o declara inspeÃ§Ã£o visual. Nenhuma chamada Serpro ou cobranÃ§a ocorreu. |
+| 16/09 | Demo: ConciliaÃ§Ã£o segura por sessÃ£o | A tela apresenta OFX e candidatos DomÃ­nio sintÃ©ticos, permite resolver uma ambiguidade e mantÃ©m o resultado apenas na sessÃ£o. Upload real fica oculto na demo e o texto afirma que nÃ£o hÃ¡ escrita no DomÃ­nio. | **637 testes aprovados, 1 ignorado e 8 subtestes**; isolamento entre dois visitantes e ausÃªncia de `ReconciliationMatch` compartilhado cobertos. Playwright MCP seguiu indisponÃ­vel (`Transport closed`). |
+| 16/09 | Landing: promessa alinhada e acesso Ã  demo | A pÃ¡gina pÃºblica agora oferece a demo fictÃ­cia quando o ambiente estÃ¡ realmente pronto, afirma 14 dias sem cartÃ£o e sem cobranÃ§a automÃ¡tica e explica ativaÃ§Ã£o gradual. Textos de NFS-e, DCTFWeb, Central e recebimento deixaram de prometer integraÃ§Ã£o antes da configuraÃ§Ã£o/homologaÃ§Ã£o. | **639 testes aprovados, 1 ignorado e 8 subtestes**. `ui-ux-pro-max`, Watermelon e as diretrizes Vercel foram consultados; Watermelon nÃ£o retornou referÃªncia prÃ³xima. Playwright MCP permaneceu indisponÃ­vel (`Transport closed`). |
 | 16/09 | Caixa DTE migrada para tokens | Consulta da caixa por empresa e abertura de teor/poss?vel ci?ncia receberam pesos pr?prios na proposta da Central Integra. A autoriza??o mostra tokens, franquia e excedente em reais; cada item persiste o evento que permitiu a chamada. Tabela ativa usa `TokenUsageEvent`; trabalhos antigos ainda liquidam `UsageEvent` sem criar uma segunda cobran?a. | Migration `hub.0031` aplicada; **640 testes aprovados, 1 ignorado e 8 subtestes**, Ruff, Django check e schema limpos. Demo respondeu HTTP 200. Nenhuma chamada Serpro ou cobran?a externa foi feita. Watermelon n?o encontrou refer?ncia pr?xima; Playwright MCP permaneceu indispon?vel (`Transport closed`). |
 | 16/09 | Guias Fedrizzi: carteira acess?vel e DCTFWeb em lote | O ciclo local da Fedrizzi saiu de `provisioning` para `active` como piloto interno autorizado, sem contrato, pre?o ou cobran?a. A tela autenticada leu 3.145 linhas ODBC e exibiu 3.022 apura??es de 241 empresas ativas; 30 linhas carregadas podem ser selecionadas de uma vez, com pr?via agregada de tokens e autoriza??o at?mica de declara??o ou recibo. A demo grava o lote somente na sess?o. | Valida??o autenticada retornou HTTP 200, 3.022 itens, 30 seletores e nenhum estado vazio antigo. **642 testes aprovados, 1 ignorado e 8 subtestes**; Ruff, Django check, schema e sintaxe JS limpos. Nenhuma consulta Serpro nem cobran?a foi executada. Playwright MCP permaneceu indispon?vel (`Transport closed`) e Watermelon n?o encontrou bloco semelhante. |
-| 16/09 | Triagem: configuração operacional de caixa e destino | Dono ou administrador configura na própria tela a pasta/etiqueta, data inicial, filtros de remetente e assunto e a ativação da leitura. Os três coletores aplicam os filtros antes de baixar anexos. O escritório também escolhe biblioteca interna ou raiz Windows; o padrão da pasta mantém nome da empresa e código Domínio. Enquanto o agente local não validar a raiz Windows, o arquivamento é bloqueado com recuperação explícita, sem gravar no destino errado. | **646 testes aprovados, 1 ignorado e 8 subtestes**; 47 testes focados de Triagem, Ruff, Django check e schema limpos. Render autenticado da Fedrizzi respondeu HTTP 200. Nenhuma caixa real, scanner, agente Windows ou API externa foi acionada. Watermelon não encontrou referência próxima; Playwright MCP permaneceu indisponível (`Transport closed`). |
-| 16/09 | Configurações: cobrança apresentada somente em tokens | A área do escritório deixou de exibir franquia e excedente por chamada. Agora mostra somente proposta, valor do token, franquia por módulo, pesos, teto, vigência e consumo. Uma tabela aceita para competência futura aparece como programada e não como vigente; o endpoint legado de política por chamada recusa novas alterações. | **646 testes aprovados, 1 ignorado e 8 subtestes**; 70 testes focados de workspace/contratos, Ruff, Django check e render autenticado da Fedrizzi limpos. Watermelon não encontrou referência próxima. A auditoria Vercel foi aplicada; Playwright MCP permaneceu indisponível (`Transport closed`). |
-| 16/09 | Copiloto migrado para a carteira de tokens | O Comercial pode incluir o módulo de IA numa proposta com mensalidade, franquia e peso inteiro por resposta. O dono vê termos de todos os módulos antes do aceite e também após a vigência. Com tabela ativa, `ai.answer` reserva e liquida `TokenUsageEvent`; a auditoria Claude referencia o mesmo evento. Sem termos de IA numa tabela vigente, a operação fica bloqueada pela proteção contra mistura de medidores. | Migration `intelligence.0026` aplicada. **648 testes aprovados, 1 ignorado e 8 subtestes**; testes cobrem proposta incompleta, aceite transparente, resposta Sonnet simulada, liquidação e vínculo de auditoria. Nenhum preço foi inventado e nenhuma chamada Anthropic foi feita. |
-| 16/09 | Triagem: arquivamento Windows comprovado pelo agente | A aprovação cria trabalho isolado por escritório. O agente compara a raiz local com a raiz escolhida, recusa escape e reparse points, baixa só o anexo validado, grava temporário, confere tamanho/SHA-256 e renomeia atomicamente. A tela separa fila, cópia, falha recuperável e destino confirmado; `Arquivado` só ocorre após a prova. | **651 testes aprovados, 1 ignorado e 8 subtestes** em 59,34 s; 100 testes focados de Triagem/workspace, Ruff, Django e os dois projetos .NET passaram. Nenhuma pasta real foi alterada. A homologação no PC e compartilhamento Windows do primeiro escritório ainda é obrigatória. Watermelon não encontrou referência próxima; Playwright MCP permaneceu indisponível (`Transport closed`). |
+| 16/09 | Triagem: configuraÃ§Ã£o operacional de caixa e destino | Dono ou administrador configura na prÃ³pria tela a pasta/etiqueta, data inicial, filtros de remetente e assunto e a ativaÃ§Ã£o da leitura. Os trÃªs coletores aplicam os filtros antes de baixar anexos. O escritÃ³rio tambÃ©m escolhe biblioteca interna ou raiz Windows; o padrÃ£o da pasta mantÃ©m nome da empresa e cÃ³digo DomÃ­nio. Enquanto o agente local nÃ£o validar a raiz Windows, o arquivamento Ã© bloqueado com recuperaÃ§Ã£o explÃ­cita, sem gravar no destino errado. | **646 testes aprovados, 1 ignorado e 8 subtestes**; 47 testes focados de Triagem, Ruff, Django check e schema limpos. Render autenticado da Fedrizzi respondeu HTTP 200. Nenhuma caixa real, scanner, agente Windows ou API externa foi acionada. Watermelon nÃ£o encontrou referÃªncia prÃ³xima; Playwright MCP permaneceu indisponÃ­vel (`Transport closed`). |
+| 16/09 | ConfiguraÃ§Ãµes: cobranÃ§a apresentada somente em tokens | A Ã¡rea do escritÃ³rio deixou de exibir franquia e excedente por chamada. Agora mostra somente proposta, valor do token, franquia por mÃ³dulo, pesos, teto, vigÃªncia e consumo. Uma tabela aceita para competÃªncia futura aparece como programada e nÃ£o como vigente; o endpoint legado de polÃ­tica por chamada recusa novas alteraÃ§Ãµes. | **646 testes aprovados, 1 ignorado e 8 subtestes**; 70 testes focados de workspace/contratos, Ruff, Django check e render autenticado da Fedrizzi limpos. Watermelon nÃ£o encontrou referÃªncia prÃ³xima. A auditoria Vercel foi aplicada; Playwright MCP permaneceu indisponÃ­vel (`Transport closed`). |
+| 16/09 | Copiloto migrado para a carteira de tokens | O Comercial pode incluir o mÃ³dulo de IA numa proposta com mensalidade, franquia e peso inteiro por resposta. O dono vÃª termos de todos os mÃ³dulos antes do aceite e tambÃ©m apÃ³s a vigÃªncia. Com tabela ativa, `ai.answer` reserva e liquida `TokenUsageEvent`; a auditoria Claude referencia o mesmo evento. Sem termos de IA numa tabela vigente, a operaÃ§Ã£o fica bloqueada pela proteÃ§Ã£o contra mistura de medidores. | Migration `intelligence.0026` aplicada. **648 testes aprovados, 1 ignorado e 8 subtestes**; testes cobrem proposta incompleta, aceite transparente, resposta Sonnet simulada, liquidaÃ§Ã£o e vÃ­nculo de auditoria. Nenhum preÃ§o foi inventado e nenhuma chamada Anthropic foi feita. |
+| 16/09 | Triagem: arquivamento Windows comprovado pelo agente | A aprovaÃ§Ã£o cria trabalho isolado por escritÃ³rio. O agente compara a raiz local com a raiz escolhida, recusa escape e reparse points, baixa sÃ³ o anexo validado, grava temporÃ¡rio, confere tamanho/SHA-256 e renomeia atomicamente. A tela separa fila, cÃ³pia, falha recuperÃ¡vel e destino confirmado; `Arquivado` sÃ³ ocorre apÃ³s a prova. | **651 testes aprovados, 1 ignorado e 8 subtestes** em 59,34 s; 100 testes focados de Triagem/workspace, Ruff, Django e os dois projetos .NET passaram. Nenhuma pasta real foi alterada. A homologaÃ§Ã£o no PC e compartilhamento Windows do primeiro escritÃ³rio ainda Ã© obrigatÃ³ria. Watermelon nÃ£o encontrou referÃªncia prÃ³xima; Playwright MCP permaneceu indisponÃ­vel (`Transport closed`). |
 
-| 16/09 | Parcelamentos PARCSN: operação real preparada | A área de trabalho pesquisa empresa/CNPJ/código Domínio, permite selecionar todas as linhas exibidas ou um lote de até 30, calcula tokens/excedente antes da autorização, persiste cada tentativa e protocolo, consulta pedidos/detalhe/parcelas e emite DAS. O PDF validado é baixado do resultado salvo sem nova chamada. Falha de transporte fica em resultado incerto e não é repetida automaticamente. | **656 testes aprovados, 1 ignorado e 8 subtestes**; 14 testes focados de parser/operação passaram. Django, migrations e Ruff passaram. A migration 0032 foi aplicada no banco local. Nenhuma chamada Serpro ocorreu. O piloto real continua obrigatório e depende de tabela de tokens aceita; Playwright permaneceu indisponível (Transport closed) e os navegadores CUA não estavam disponíveis. |
+| 16/09 | Parcelamentos PARCSN: operaÃ§Ã£o real preparada | A Ã¡rea de trabalho pesquisa empresa/CNPJ/cÃ³digo DomÃ­nio, permite selecionar todas as linhas exibidas ou um lote de atÃ© 30, calcula tokens/excedente antes da autorizaÃ§Ã£o, persiste cada tentativa e protocolo, consulta pedidos/detalhe/parcelas e emite DAS. O PDF validado Ã© baixado do resultado salvo sem nova chamada. Falha de transporte fica em resultado incerto e nÃ£o Ã© repetida automaticamente. | **656 testes aprovados, 1 ignorado e 8 subtestes**; 14 testes focados de parser/operaÃ§Ã£o passaram. Django, migrations e Ruff passaram. A migration 0032 foi aplicada no banco local. Nenhuma chamada Serpro ocorreu. O piloto real continua obrigatÃ³rio e depende de tabela de tokens aceita; Playwright permaneceu indisponÃ­vel (Transport closed) e os navegadores CUA nÃ£o estavam disponÃ­veis. |
 
-| 16/09 | Guias/DCTFWeb: agrupamento operacional validado na Fedrizzi | O DSN real retornou 3.145 componentes no recorte; 3.022 pertencem às 562 empresas ativas. A fila agora agrupa duplicidades por empresa/competência em **2.943 competências para 241 empresas**, mostra quantidade de componentes, soma local e intervalo de vencimentos e gera uma única seleção DCTFWeb por competência. | GET autenticado real retornou 200, 30 competências visíveis e nenhum texto antigo de fonte ausente. 15 testes focados passaram. Nenhuma linha ODBC foi alterada e nenhuma chamada Serpro ocorreu. Watermelon não encontrou referência próxima; Playwright permaneceu indisponível (Transport closed). |
+| 16/09 | Guias/DCTFWeb: agrupamento operacional validado na Fedrizzi | O DSN real retornou 3.145 componentes no recorte; 3.022 pertencem Ã s 562 empresas ativas. A fila agora agrupa duplicidades por empresa/competÃªncia em **2.943 competÃªncias para 241 empresas**, mostra quantidade de componentes, soma local e intervalo de vencimentos e gera uma Ãºnica seleÃ§Ã£o DCTFWeb por competÃªncia. | GET autenticado real retornou 200, 30 competÃªncias visÃ­veis e nenhum texto antigo de fonte ausente. 15 testes focados passaram. Nenhuma linha ODBC foi alterada e nenhuma chamada Serpro ocorreu. Watermelon nÃ£o encontrou referÃªncia prÃ³xima; Playwright permaneceu indisponÃ­vel (Transport closed). |
 
-| 16/09 | DCTFWeb: reconciliação entre documentos, Domínio e emissão | Depois que declaração completa e recibo ficam disponíveis, a confirmação relê a empresa/competência no ODBC, agrega componentes e cria ou atualiza a guia `ready` com referência técnica hash. Valores do navegador são ignorados; ausência de qualquer PDF ou desaparecimento da apuração bloqueia a promoção. A tela mantém a soma como cálculo Domínio e manda conferir o valor oficial no DARF. | **658 testes aprovados, 1 ignorado e 8 subtestes**. Ruff, Django e migrations passaram. Nenhuma chamada Serpro ocorreu. Playwright continuou indisponível (Transport closed). |
-| 16/09 | NFS-e ADN: cliente, checkpoint e área de trabalho | Implementado `GET /contribuintes/DFe/{NSU}` com mTLS A1, CNPJ raiz, limite de 50 documentos, base64/gzip, XML seguro, lote transacional, dedupe por empresa, lease, backoff e espera de uma hora ao alcançar o maior NSU. A tela mostra cobertura, status, erros, frescor e permite ativar/pausar/repetir até 100 empresas exibidas. `NFSE_ADN_SYNC_ENABLED` fica falso até o piloto restrito autorizado. | **670 testes aprovados, 1 ignorado e 8 subtestes** em 61,78 s. Ruff, Django, migrations e `git diff --check` passaram. A Fedrizzi renderizou 100 empresas na carteira. A demo provou progresso isolado por sessão sem alterar o escritório central. Nenhuma chamada ADN ocorreu; Playwright permaneceu indisponível (`Transport closed`). |
+| 16/09 | DCTFWeb: reconciliaÃ§Ã£o entre documentos, DomÃ­nio e emissÃ£o | Depois que declaraÃ§Ã£o completa e recibo ficam disponÃ­veis, a confirmaÃ§Ã£o relÃª a empresa/competÃªncia no ODBC, agrega componentes e cria ou atualiza a guia `ready` com referÃªncia tÃ©cnica hash. Valores do navegador sÃ£o ignorados; ausÃªncia de qualquer PDF ou desaparecimento da apuraÃ§Ã£o bloqueia a promoÃ§Ã£o. A tela mantÃ©m a soma como cÃ¡lculo DomÃ­nio e manda conferir o valor oficial no DARF. | **658 testes aprovados, 1 ignorado e 8 subtestes**. Ruff, Django e migrations passaram. Nenhuma chamada Serpro ocorreu. Playwright continuou indisponÃ­vel (Transport closed). |
+| 16/09 | NFS-e ADN: cliente, checkpoint e Ã¡rea de trabalho | Implementado `GET /contribuintes/DFe/{NSU}` com mTLS A1, CNPJ raiz, limite de 50 documentos, base64/gzip, XML seguro, lote transacional, dedupe por empresa, lease, backoff e espera de uma hora ao alcanÃ§ar o maior NSU. A tela mostra cobertura, status, erros, frescor e permite ativar/pausar/repetir atÃ© 100 empresas exibidas. `NFSE_ADN_SYNC_ENABLED` fica falso atÃ© o piloto restrito autorizado. | **670 testes aprovados, 1 ignorado e 8 subtestes** em 61,78 s. Ruff, Django, migrations e `git diff --check` passaram. A Fedrizzi renderizou 100 empresas na carteira. A demo provou progresso isolado por sessÃ£o sem alterar o escritÃ³rio central. Nenhuma chamada ADN ocorreu; Playwright permaneceu indisponÃ­vel (`Transport closed`). |
 
 ## 16/09/2026 ? console de escrit?rios e Concilia??o
 
@@ -970,65 +1256,391 @@ Qualquer nova execução acrescenta uma linha com comando/ambiente, resultado e 
 - PKCS#12 e senha ficam cifrados com AES-256-GCM no banco; a tela mostra somente nome, sujeito, validade e os 12 ?ltimos caracteres do SHA-256. N?o existe rota de download.
 - O cliente Integra usa primeiro o certificado armazenado; `INTEGRA_CERTIFICATE_PATH` permanece apenas como fallback legado.
 - Migration `platform.0032` aplicada localmente; 44 testes focados aprovados.
-## 18/09/2026 — Etapa 02 concluída localmente (V-009)
+## 18/09/2026 â€” Etapa 02 concluÃ­da localmente (V-009)
 
-- Fechada a etapa de cadastro, acesso e administração no nível de implementação/teste local. As regras comerciais D-79 estão documentadas; a integração de cobrança pertence à etapa 10.
-- APIs, isolamento e demonstração foram executados em banco de testes; 22 testes de autorização/API e 4 testes de isolamento da demo passaram. O browser confirmou MFA, painel autenticado, equipe, empresas, configurações, foco, responsividade e console limpo.
-- A massa demo não foi regravada: o comando recusou corretamente usar um slug operacional existente. SMTP/DNS/Brevo ficam para homologação integrada na etapa 12 por D-77/D-78.
-## 18/09/2026 — Etapa 03 iniciada: contrato Domínio Fedrizzi (V-010)
+- Fechada a etapa de cadastro, acesso e administraÃ§Ã£o no nÃ­vel de implementaÃ§Ã£o/teste local. As regras comerciais D-79 estÃ£o documentadas; a integraÃ§Ã£o de cobranÃ§a pertence Ã  etapa 10.
+- APIs, isolamento e demonstraÃ§Ã£o foram executados em banco de testes; 22 testes de autorizaÃ§Ã£o/API e 4 testes de isolamento da demo passaram. O browser confirmou MFA, painel autenticado, equipe, empresas, configuraÃ§Ãµes, foco, responsividade e console limpo.
+- A massa demo nÃ£o foi regravada: o comando recusou corretamente usar um slug operacional existente. SMTP/DNS/Brevo ficam para homologaÃ§Ã£o integrada na etapa 12 por D-77/D-78.
+## 18/09/2026 â€” Etapa 03 iniciada: contrato DomÃ­nio Fedrizzi (V-010)
 
-- A leitura autorizada do conector existente passou: 4 consultas fixas, 5 objetos, 13.875 linhas e nenhuma coluna obrigatória ausente. A descoberta de 500 objetos/4.733 colunas só confirmou metadados já registrados; não imprimiu ou gravou dados Domínio.
-- D-80 fixa o serviço nativo CICA como pacote único. O Python fica somente para diagnóstico/migração até a sincronização nativa v2 estar homologada.
-- Implementada a primeira projeção nativa: empresas Domínio em páginas de 500 via API v2 autenticada. O teste do agente passou e o serviço .NET compilou em Release sem aviso; uma página interrompida não desativa empresas ausentes.
-- A estação Fedrizzi tem DSN `contabil` SQL Anywhere 17 e permissões/ferramentas para instalação. O MSI foi gerado, mas não instalado: não existe endpoint HTTPS CICA nem CA de agente configurada, portanto instalar agora criaria serviço falho. V-011 registra o procedimento e a dependência sem expor DSN ou dados.
+- A leitura autorizada do conector existente passou: 4 consultas fixas, 5 objetos, 13.875 linhas e nenhuma coluna obrigatÃ³ria ausente. A descoberta de 500 objetos/4.733 colunas sÃ³ confirmou metadados jÃ¡ registrados; nÃ£o imprimiu ou gravou dados DomÃ­nio.
+- D-80 fixa o serviÃ§o nativo CICA como pacote Ãºnico. O Python fica somente para diagnÃ³stico/migraÃ§Ã£o atÃ© a sincronizaÃ§Ã£o nativa v2 estar homologada.
+- Implementada a primeira projeÃ§Ã£o nativa: empresas DomÃ­nio em pÃ¡ginas de 500 via API v2 autenticada. O teste do agente passou e o serviÃ§o .NET compilou em Release sem aviso; uma pÃ¡gina interrompida nÃ£o desativa empresas ausentes.
+- A estaÃ§Ã£o Fedrizzi tem DSN `contabil` SQL Anywhere 17 e permissÃµes/ferramentas para instalaÃ§Ã£o. O MSI foi gerado, mas nÃ£o instalado: nÃ£o existe endpoint HTTPS CICA nem CA de agente configurada, portanto instalar agora criaria serviÃ§o falho. V-011 registra o procedimento e a dependÃªncia sem expor DSN ou dados.
 
-## 18/09/2026 — Dependências de produção centralizadas na etapa 12 (D-87)
+## 18/09/2026 â€” DependÃªncias de produÃ§Ã£o centralizadas na etapa 12 (D-87)
 
-- O responsável definiu que toda atividade dependente do site em produção será feita somente na etapa 12.
-- As etapas 01–11 permanecem responsáveis por implementação, configuração sem segredos, testes locais/isolados e documentação. Nenhum deploy, credencial externa de produção, chamada real, piloto ou custo foi acionado por este registro.
+- O responsÃ¡vel definiu que toda atividade dependente do site em produÃ§Ã£o serÃ¡ feita somente na etapa 12.
+- As etapas 01â€“11 permanecem responsÃ¡veis por implementaÃ§Ã£o, configuraÃ§Ã£o sem segredos, testes locais/isolados e documentaÃ§Ã£o. Nenhum deploy, credencial externa de produÃ§Ã£o, chamada real, piloto ou custo foi acionado por este registro.
 
-## 18/09/2026 — Etapa 04 iniciada: descoberta Siescon (V-029)
+## 18/09/2026 â€” Etapa 04 iniciada: descoberta Siescon (V-029)
 
-- A inspeção local de metadados encontrou drivers SQL Anywhere 16/17, mas nenhum DSN, driver ou instalação identificada como Siescon. Não foram lidos dados nem expostos segredos.
-- O próximo passo exige o contrato técnico de Q-33 por canal seguro: versão do Siescon, mecanismo de leitura autorizado, acesso de homologação e layout de exportação/importação. Sem isso, um adaptador seria especulativo e não será implementado.
+- A inspeÃ§Ã£o local de metadados encontrou drivers SQL Anywhere 16/17, mas nenhum DSN, driver ou instalaÃ§Ã£o identificada como Siescon. NÃ£o foram lidos dados nem expostos segredos.
+- O prÃ³ximo passo exige o contrato tÃ©cnico de Q-33 por canal seguro: versÃ£o do Siescon, mecanismo de leitura autorizado, acesso de homologaÃ§Ã£o e layout de exportaÃ§Ã£o/importaÃ§Ã£o. Sem isso, um adaptador seria especulativo e nÃ£o serÃ¡ implementado.
 
-## 18/09/2026 — Etapa 04: base de exportação neutra (V-030)
+## 18/09/2026 â€” Etapa 04: base de exportaÃ§Ã£o neutra (V-030)
 
-- `AccountingExport` agora registra destino e versão do adaptador. O layout Domínio continua preservado; Siescon é recusado explicitamente até a revisão de contrato/layout, sem gerar arquivo ou escrever no sistema de origem.
-- A fonte Siescon foi modelada e a matriz de capacidades foi registrada. A suíte focada aprovou 36 testes; migrações e Ruff passaram. Não houve conexão ou exportação Siescon.
+- `AccountingExport` agora registra destino e versÃ£o do adaptador. O layout DomÃ­nio continua preservado; Siescon Ã© recusado explicitamente atÃ© a revisÃ£o de contrato/layout, sem gerar arquivo ou escrever no sistema de origem.
+- A fonte Siescon foi modelada e a matriz de capacidades foi registrada. A suÃ­te focada aprovou 36 testes; migraÃ§Ãµes e Ruff passaram. NÃ£o houve conexÃ£o ou exportaÃ§Ã£o Siescon.
 
-## 22/09/2026 — Etapa 11, ondas 0 a 2 da revisão total de telas (V-100)
+## 22/09/2026 â€” Etapa 11, ondas 0 a 2 da revisÃ£o total de telas (V-100)
 
-- Matriz das 89 rotas de interface (49 telas, 40 ações/downloads) registrada em `docs/planejamento/matriz-telas-2026-09-22.md`; varredura GET autenticada e passagem por 20 telas em 375 px sem overflow horizontal ou erro de console.
-- Demonstração voltou à home: o `.env` local apontava `cica-demo` e a organização fictícia é `escritorio-demo`. A faixa de demonstração ganhou "Sair da demonstração", que encerra a sessão e descarta o progresso do visitante.
-- `GET /sair/` respondia 405 sem corpo (Django 5.0 removeu logout por GET; o projeto usa 6.0.8). Passou a responder com página de confirmação; o logout continua em POST, com teste de regressão.
-- `refuse()` ganhou `kind="unavailable"`: 24 recusas de estado deixaram de ser rotuladas como falta de permissão. Estado vazio ganhou parcial único e os dois casos fora do contrato foram convertidos.
-- Suíte completa no `.venv`: 781 aprovados, 2 ignorados. Ondas 3 a 8 continuam abertas; nada foi homologado.
+- Matriz das 89 rotas de interface (49 telas, 40 aÃ§Ãµes/downloads) registrada em `docs/planejamento/matriz-telas-2026-09-22.md`; varredura GET autenticada e passagem por 20 telas em 375 px sem overflow horizontal ou erro de console.
+- DemonstraÃ§Ã£o voltou Ã  home: o `.env` local apontava `cica-demo` e a organizaÃ§Ã£o fictÃ­cia Ã© `escritorio-demo`. A faixa de demonstraÃ§Ã£o ganhou "Sair da demonstraÃ§Ã£o", que encerra a sessÃ£o e descarta o progresso do visitante.
+- `GET /sair/` respondia 405 sem corpo (Django 5.0 removeu logout por GET; o projeto usa 6.0.8). Passou a responder com pÃ¡gina de confirmaÃ§Ã£o; o logout continua em POST, com teste de regressÃ£o.
+- `refuse()` ganhou `kind="unavailable"`: 24 recusas de estado deixaram de ser rotuladas como falta de permissÃ£o. Estado vazio ganhou parcial Ãºnico e os dois casos fora do contrato foram convertidos.
+- SuÃ­te completa no `.venv`: 781 aprovados, 2 ignorados. Ondas 3 a 8 continuam abertas; nada foi homologado.
 
-## 22/09/2026 — Etapa 11, ondas 1 a 4 da revisão total de telas (V-101)
+## 22/09/2026 â€” Etapa 11, ondas 1 a 4 da revisÃ£o total de telas (V-101)
 
-- Fundação: `.inline-alert` ganhou estilo real (era texto sem forma) com contraste AA calculado nos dois temas; ações em lote só aparecem após seleção em quatro filas; separador de milhar pt-BR ligado; avisos de demonstração deixaram de repetir a faixa global.
-- Núcleo diário: revisões de NFS-e ganharam situação e origem do acumulador; Empresas ganhou filtro e coluna de certificado e de revisão aberta; Caixa DTE e Visão geral passaram a mostrar a idade da pendência.
-- Processamento: o detalhe do movimento da Conciliação parou de perder filtro e página; os indicadores mostram valor dos dois lados; o destino Windows da Triagem mostra saúde do agente e prova da última gravação.
-- Suíte completa no `.venv`: 788 aprovados, 2 ignorados. Ruff aprovado. Ondas 5 a 8 continuam abertas; nada foi homologado.
+- FundaÃ§Ã£o: `.inline-alert` ganhou estilo real (era texto sem forma) com contraste AA calculado nos dois temas; aÃ§Ãµes em lote sÃ³ aparecem apÃ³s seleÃ§Ã£o em quatro filas; separador de milhar pt-BR ligado; avisos de demonstraÃ§Ã£o deixaram de repetir a faixa global.
+- NÃºcleo diÃ¡rio: revisÃµes de NFS-e ganharam situaÃ§Ã£o e origem do acumulador; Empresas ganhou filtro e coluna de certificado e de revisÃ£o aberta; Caixa DTE e VisÃ£o geral passaram a mostrar a idade da pendÃªncia.
+- Processamento: o detalhe do movimento da ConciliaÃ§Ã£o parou de perder filtro e pÃ¡gina; os indicadores mostram valor dos dois lados; o destino Windows da Triagem mostra saÃºde do agente e prova da Ãºltima gravaÃ§Ã£o.
+- SuÃ­te completa no `.venv`: 788 aprovados, 2 ignorados. Ruff aprovado. Ondas 5 a 8 continuam abertas; nada foi homologado.
 
-## 22/09/2026 — Etapa 11, landing e ondas 5 a 8 da revisão total (V-102)
+## 22/09/2026 â€” Etapa 11, landing e ondas 5 a 8 da revisÃ£o total (V-102)
 
-- Landing: seção de marca virou seção de problema, contagem errada de etapas corrigida, "Entrar" voltou ao cabeçalho no celular e cinco links passaram ao alvo mínimo de 24 px. O consentimento do cadastro ganhou nome acessível completo.
-- Onda 5: Radar com filtro de período, resumo e marca de "publicação coletada"; Copiloto com limite explícito de rascunho e aviso de resposta sem fonte; aprendizado com vazio útil e ficha de escopo, diferença e responsável.
-- Onda 6: console Mewstack inspecionado visualmente pela primeira vez (base fictícia, sem senha digitada e sem contornar MFA), painel reorganizado por exceção, título do detalhe corrigido e Equipe deixou de expor as contas de outros visitantes da demonstração.
-- Onda 7: tutorial guiado implementado — catálogo declarativo, preferência versionada por pessoa, diálogo nativo com Pular/Voltar/Fechar, botão "Como usar" e progresso só em sessão na demonstração.
-- Onda 8: auditoria contra as Vercel Web Interface Guidelines nas superfícies alteradas, varredura em 375 px sem overflow e console limpo. Suíte no `.venv`: 796 aprovados, 2 ignorados; Ruff e `makemigrations --check` limpos.
-- Continuam abertos: regressão por perfil, leitor de tela, temas lado a lado, viewports 1024/768 e a configuração do console sob MFA. Nada foi homologado.
+- Landing: seÃ§Ã£o de marca virou seÃ§Ã£o de problema, contagem errada de etapas corrigida, "Entrar" voltou ao cabeÃ§alho no celular e cinco links passaram ao alvo mÃ­nimo de 24 px. O consentimento do cadastro ganhou nome acessÃ­vel completo.
+- Onda 5: Radar com filtro de perÃ­odo, resumo e marca de "publicaÃ§Ã£o coletada"; Copiloto com limite explÃ­cito de rascunho e aviso de resposta sem fonte; aprendizado com vazio Ãºtil e ficha de escopo, diferenÃ§a e responsÃ¡vel.
+- Onda 6: console Mewstack inspecionado visualmente pela primeira vez (base fictÃ­cia, sem senha digitada e sem contornar MFA), painel reorganizado por exceÃ§Ã£o, tÃ­tulo do detalhe corrigido e Equipe deixou de expor as contas de outros visitantes da demonstraÃ§Ã£o.
+- Onda 7: tutorial guiado implementado â€” catÃ¡logo declarativo, preferÃªncia versionada por pessoa, diÃ¡logo nativo com Pular/Voltar/Fechar, botÃ£o "Como usar" e progresso sÃ³ em sessÃ£o na demonstraÃ§Ã£o.
+- Onda 8: auditoria contra as Vercel Web Interface Guidelines nas superfÃ­cies alteradas, varredura em 375 px sem overflow e console limpo. SuÃ­te no `.venv`: 796 aprovados, 2 ignorados; Ruff e `makemigrations --check` limpos.
+- Continuam abertos: regressÃ£o por perfil, leitor de tela, temas lado a lado, viewports 1024/768 e a configuraÃ§Ã£o do console sob MFA. Nada foi homologado.
 
-## 22/09/2026 — Entrada da demonstração resolvida pela organização, não pelo slug (V-103)
+## 22/09/2026 â€” Entrada da demonstraÃ§Ã£o resolvida pela organizaÃ§Ã£o, nÃ£o pelo slug (V-103)
 
-- O `.env` corrigido não bastava: `load_dotenv` não sobrescreve variável já no ambiente, então o servidor em execução manteve `cica-demo` mesmo depois do autoreload trazer o código novo.
-- `demo_office()` passou a usar o slug configurado quando ele existe e, caso contrário, a única organização ativa com `is_demo=True`; duas marcadas mantêm a entrada fechada.
-- Verificado no servidor do responsável sem reiniciar o processo; dois testes de regressão adicionados. Suíte: 798 aprovados, 2 ignorados.
+- O `.env` corrigido nÃ£o bastava: `load_dotenv` nÃ£o sobrescreve variÃ¡vel jÃ¡ no ambiente, entÃ£o o servidor em execuÃ§Ã£o manteve `cica-demo` mesmo depois do autoreload trazer o cÃ³digo novo.
+- `demo_office()` passou a usar o slug configurado quando ele existe e, caso contrÃ¡rio, a Ãºnica organizaÃ§Ã£o ativa com `is_demo=True`; duas marcadas mantÃªm a entrada fechada.
+- Verificado no servidor do responsÃ¡vel sem reiniciar o processo; dois testes de regressÃ£o adicionados. SuÃ­te: 798 aprovados, 2 ignorados.
 
-## 22/09/2026 — Chave de criptografia do banco de desenvolvimento (V-104)
+## 22/09/2026 â€” Chave de criptografia do banco de desenvolvimento (V-104)
 
-- A massa fictícia de `db.sqlite3` estava cifrada com `test-v1` (settings de teste) e o desenvolvimento usa `local-v1`: a Visão geral quebrava ao ler NFS-e. `test-v1` entrou no mapa de chaves do `.env` local, com `local-v1` seguindo como ativa; nada foi apagado.
-- `config/settings/local.py` passou a usar `load_dotenv(override=True)`, para que o `.env` vença o ambiente herdado pelo autoreload — a mesma armadilha que escondeu a demonstração em V-103.
-- Verificado em processo novo: chaves carregadas, documento decifrado e `/app/` em 200. Suíte: 798 aprovados, 2 ignorados.
+- A massa fictÃ­cia de `db.sqlite3` estava cifrada com `test-v1` (settings de teste) e o desenvolvimento usa `local-v1`: a VisÃ£o geral quebrava ao ler NFS-e. `test-v1` entrou no mapa de chaves do `.env` local, com `local-v1` seguindo como ativa; nada foi apagado.
+- `config/settings/local.py` passou a usar `load_dotenv(override=True)`, para que o `.env` venÃ§a o ambiente herdado pelo autoreload â€” a mesma armadilha que escondeu a demonstraÃ§Ã£o em V-103.
+- Verificado em processo novo: chaves carregadas, documento decifrado e `/app/` em 200. SuÃ­te: 798 aprovados, 2 ignorados.
+
+## 22/09/2026 â€” NFS-e: classificaÃ§Ã£o e barra de filtros (V-105)
+
+- OrientaÃ§Ã£o guiada nÃ£o foca mais o texto do passo: o anel de foco aparecia em toda tela aberta porque `:focus-visible` casa com foco programÃ¡tico em `tabindex="-1"`. Passo anunciado por regiÃ£o viva, foco inicial em â€œAvanÃ§arâ€.
+- A porcentagem de confianÃ§a saiu da NFS-e, da fila de revisÃµes, da VisÃ£o geral, do detalhe da revisÃ£o e do manifesto da demonstraÃ§Ã£o. Nova coluna **ClassificaÃ§Ã£o** (Classificada / NÃ£o classificada) antes do acumulador.
+- A barra de filtros da carteira virou uma linha sÃ³ e aplica a cada mudanÃ§a, trocando apenas a regiÃ£o de resultados (atualizaÃ§Ã£o local, WCAG 3.2.2); o botÃ£o de envio permanece para quem estÃ¡ sem JavaScript.
+- Verificado no servidor isolado de revisÃ£o em 1440 px e 375 px. SuÃ­te: 799 aprovados, 2 ignorados.
+
+## 22/09/2026 â€” Parcelamentos funcional e revisÃ£o da importaÃ§Ã£o da ConciliaÃ§Ã£o (V-106)
+
+- Parcelamentos: consulta direta na empresa em foco, detalhe do acordo renderizado (antes era buscado e pago, mas nunca exibido), carteira da demonstraÃ§Ã£o marca a consulta, parcela em atraso/mÃªs atual, reemissÃ£o de DAS falho, liberaÃ§Ã£o auditada de "resultado a confirmar" (antes bloqueava para sempre), atualizaÃ§Ã£o automÃ¡tica enquanto hÃ¡ fila e botÃµes com estado de envio.
+- ConciliaÃ§Ã£o: importador OFX paralelo removido da tela; o envio Ãºnico alimenta as duas filas; perÃ­odo descartado removido; campo Empresa desalinhado corrigido; validaÃ§Ã£o de formato, tamanho e quantidade antes do envio; progresso ao vivo; etapa com nome legÃ­vel; demonstraÃ§Ã£o sem upload compartilhado; contadores da demonstraÃ§Ã£o sem depender do filtro.
+- Verificado no servidor isolado em 1366 px e 375 px. Detalhes e limites em V-106.
+
+## V-141 ? Assistente de configuracao retomavel
+
+Implementado em 23/09/2026 sob D-122. Cada etapa pendente mantem seu estado e encaminha o administrador para a acao correspondente, sem ativar modulos, integracoes ou consumo. Validacao focalizada: 72 testes aprovados; regressao completa: 864 aprovados, 2 ignorados e 11 subtestes.
+
+
+## V-142 â€” Roteiro do responsÃ¡vel para liberaÃ§Ã£o
+
+23/09/2026. Criado `roteiro-do-responsavel-para-liberacao.md`, com as cinco aÃ§Ãµes iniciais e instruÃ§Ãµes objetivas por frente: o que o responsÃ¡vel providencia/decide, o que fornecedor e desenvolvimento fazem, como validar e que evidÃªncia encerra cada etapa. O documento aponta Q-33 e Q-39 como contratos tÃ©cnicos indispensÃ¡veis, preserva a leitura Ãºnica do backup DomÃ­nio Web, exige polÃ­tica/valores aprovados antes de IA ou cobranÃ§a e nÃ£o transforma documentaÃ§Ã£o em homologaÃ§Ã£o. Nenhum ambiente, segredo, chamada, dado real, contrataÃ§Ã£o ou custo foi acionado.
+
+## V-143 â€” Primeiras correÃ§Ãµes da central operacional
+
+24/09/2026. Carteira de colaborador agora exige atribuiÃ§Ã£o ativa e revogar a Ãºltima nÃ£o amplia acesso. Administrador local mantÃ©m visÃ£o total. PrÃ©via/fila ordenam pelo prazo efetivo, deixando sem prazo ao final. D-123/D-124 registrados antes das mudanÃ§as; testes de DTE/Parcelamentos atualizados para atribuiÃ§Ã£o explÃ­cita. RegressÃ£o integral: 869 aprovados, 2 ignorados e 15 subtestes em 77,61 s; Ruff, MyPy, Django e migraÃ§Ãµes sem pendÃªncias. Playwright MCP indisponÃ­vel (Transport closed). PrÃ³xima execuÃ§Ã£o: transformar a VisÃ£o geral na agenda pessoal e agregar fechamentos, mantendo separados escopo de leitura, responsabilidade pela tarefa e gestÃ£o administrativa. O checklist aberto estÃ¡ na etapa 11; estas correÃ§Ãµes nÃ£o encerram a meta.
+
+## V-144 â€” Agenda pessoal como entrada da VisÃ£o geral
+
+24/09/2026. D-125 separa Meu trabalho, Carteira e GestÃ£o. PaginaÃ§Ã£o de 30, agrupamento por prazo, filtro no recorte e responsÃ¡vel visÃ­vel substituem a prÃ©via de seis atividades. Testes de fronteira, perfil, filtro e segunda pÃ¡gina; 89 focados e regressÃ£o integral de 871 aprovados/2 ignorados/15 subtestes. Ruff, MyPy, Django e migraÃ§Ãµes passaram. UI/UX Pro Max, Watermelon e guidelines consultados; fontes e limites na etapa 11. Playwright indisponÃ­vel por Transport closed; nenhuma aba aberta. PrÃ³ximo passo: agregar fechamentos por empresa/competÃªncia/Ã¡rea, evidÃªncias e impedimentos sem presumir que uma lista vazia significa fechamento.
+
+## V-145 â€” RecorrÃªncia mensal recuperÃ¡vel
+
+24/09/2026. D-126, cursor por atribuiÃ§Ã£o (migration 0054), rotina transacional e tarefa Beat horÃ¡ria implementados; responsÃ¡veis invÃ¡lidos ficam sem atribuiÃ§Ã£o, com histÃ³rico. Primeira geraÃ§Ã£o e retomada/pause respeitam mÃªs corrente e limite por lote sem perder cursor. DocumentaÃ§Ã£o de falha/retomada no manual de homologaÃ§Ã£o. 878 testes aprovados, 2 ignorados, 19 subtestes; Ruff, MyPy, Django e migraÃ§Ãµes passaram. NÃ£o aplicado ao banco operacional nem ativado em produÃ§Ã£o. PrÃ³ximo passo: fechamentos agregados na agenda e integraÃ§Ã£o das pendÃªncias/retornos dos mÃ³dulos; concorrÃªncia PostgreSQL e operaÃ§Ã£o publicada permanecem sem prova.
+
+## V-146 â€” Regra compartilhada de conclusÃ£o comprovada
+
+24/09/2026. Identificada e corrigida conclusÃ£o falsa em assess_closing, que antes contava somente work_status. D-127 exige requisitos atuais e retorna causas; conclusÃ£o manual usa a mesma funÃ§Ã£o, inclusive para repetir uma aÃ§Ã£o jÃ¡ marcada concluÃ­da. Testes preservam pagamento separado e modo humano sem ERP. RegressÃ£o: 881 aprovados, 2 ignorados, 21 subtestes; Ruff, MyPy, Django e migraÃ§Ãµes sem pendÃªncia. Checklist e manual externo atualizados. PrÃ³xima execuÃ§Ã£o: implementar apresentaÃ§Ã£o de fechamentos por empresa/Ã¡rea/competÃªncia considerando todo o conjunto autorizado, com causas e navegaÃ§Ã£o, sem reduzir fechamento Ã s tarefas pessoais. Depois ligar mÃ³dulos/observaÃ§Ãµes e validar jornadas e fontes. NÃ£o houve mudanÃ§a de interface nem publicaÃ§Ã£o nesta entrega.
+
+## V-147 â€” Fechamentos na VisÃ£o geral
+
+24/09/2026. D-128 registrado antes da implementaÃ§Ã£o. ServiÃ§o de apresentaÃ§Ã£o, partial e estilos integram requisitos de fechamento na agenda sem confundir responsabilidade pessoal com conjunto da empresa. CompetÃªncia e paginaÃ§Ã£o preservadas nos links; sem requisitos Ã© ausÃªncia de cobertura. 884 testes aprovados/2 ignorados/21 subtestes; checagens tÃ©cnicas passaram. UI/UX Pro Max, Watermelon e guidelines utilizados; Playwright segue indisponÃ­vel por Transport closed. PrÃ³ximo passo: ligar pendÃªncias e resultados dos mÃ³dulos Ã s atividades/observaÃ§Ãµes de fonte de forma idempotente, com evidÃªncias e recuperaÃ§Ã£o, sem promover estados nÃ£o homologados. Checklist/manual atualizados; objetivo segue ativo.
+
+## V-148 â€” Ponte da revisÃ£o NFS-e para a central
+
+24/09/2026. D-129 e migration 0055; serviÃ§o idempotente ligado Ã  captura e decisÃ£o humana. Resolve_review passou a bloquear o caso em transaÃ§Ã£o e inclui artefato, histÃ³rico e atividade no mesmo commit. EvidÃªncia preserva autor/data, sem afirmar ERP fechado/importado. RecuperaÃ§Ã£o local por escritÃ³rio documentada. 889 testes aprovados/2 ignorados/21 subtestes; Ruff/MyPy/Django/migraÃ§Ãµes passaram. PrÃ³ximas aÃ§Ãµes: ligaÃ§Ã£o visual ao caso de origem e integraÃ§Ã£o dos demais mÃ³dulos com estados/evidÃªncias prÃ³prias; nÃ£o substituir aceitaÃ§Ã£o oficial por conclusÃ£o local. Meta continua ativa; nenhum ambiente publicado foi alterado.
+
+## V-149 â€” Triagem conectada Ã  atividade de arquivamento
+
+24/09/2026. D-130 e migration 0056; transiÃ§Ãµes humanas, seguranÃ§a e agente atualizam vÃ­nculo Ãºnico por arquivo identificado. AprovaÃ§Ã£o fica pendente, falha/rejeiÃ§Ã£o impedem, arquivamento com destino/data/hash conclui somente o trabalho local. Itens sem empresa ficam na fila prÃ³pria. RecuperaÃ§Ã£o explÃ­cita por escritÃ³rio documentada. RegressÃ£o de 891 aprovados, 2 ignorados e 21 subtestes; correÃ§Ã£o posterior de compatibilidade AF_UNIX revalidada separadamente conforme VALIDACOES. Nenhuma chamada externa ou cÃ³pia operacional realizada. PrÃ³ximas aÃ§Ãµes: navegaÃ§Ã£o atividade/origem; conectar ConciliaÃ§Ã£o/Serpro/folha/Radar; finalizar identificaÃ§Ã£o de documentos e validar jornadas reais. Meta permanece ativa.
+
+## V-150 â€” AÃ§Ã£o contextual e proteÃ§Ã£o de escrita
+
+24/09/2026. D-131 registrado e implementado: origem da atividade acessÃ­vel por link, permissÃµes separadas de consulta/escrita e bloqueio efetivo ao auditor/financeiro nos serviÃ§os. Detalhe preserva tokens e layout; fontes e auditoria de UI na etapa 11. RegressÃ£o de 893 aprovados/2 ignorados/23 subtestes; checagens tÃ©cnicas passaram. Playwright segue sem transporte, sem aba aberta. PrÃ³ximo passo: atribuiÃ§Ã£o explÃ­cita de tarefas de mÃ³dulo/avulsas e histÃ³rico de redistribuiÃ§Ã£o, seguida das demais pontes e fonte-observaÃ§Ã£o; testes atuais nÃ£o comprovam jornada externa nem produto completo.
+
+## V-151 â€” ResponsÃ¡vel explÃ­cito alimenta a agenda pessoal
+
+24/09/2026. D-132 e assign_activity: formulÃ¡rio no detalhe, destinatÃ¡rios autorizados, motivo/histÃ³rico, detecÃ§Ã£o de alteraÃ§Ã£o concorrente e recusa em tarefa encerrada. Corrigida renderizaÃ§Ã£o de atividade sem responsÃ¡vel. 895 testes aprovados/2 ignorados/23 subtestes; checagens tÃ©cnicas passaram. Guia de atribuiÃ§Ã£o/recuperaÃ§Ã£o e checklist atualizados; UI sem validaÃ§Ã£o renderizada pelo transporte Playwright indisponÃ­vel. PrÃ³ximas aÃ§Ãµes: conectar ConciliaÃ§Ã£o/Serpro/folha/Radar e tratar observaÃ§Ãµes de fontes, mantendo distinÃ§Ãµes de aceitaÃ§Ã£o/importaÃ§Ã£o real; concluir testes integrados e homologaÃ§Ã£o. Objetivo segue ativo.
+
+## V-152 â€” ObservaÃ§Ãµes ordenadas e repetÃ­veis
+
+24/09/2026. D-133: aplicada ordem por dimensÃ£o, repetiÃ§Ã£o exata, preservaÃ§Ã£o de fotografia/estados, tratamento de conflitos e evidÃªncia da observaÃ§Ã£o aplicada. Falha da primeira execuÃ§Ã£o era fixture que sobrescrevia o estado com instÃ¢ncia antiga; corrigida e regressÃ£o repetida atÃ© 897 aprovados/2 ignorados/23 subtestes. Checagens tÃ©cnicas passaram; checklist e manual atualizados. PrÃ³ximas aÃ§Ãµes: conectar resultados persistidos de ConciliaÃ§Ã£o/Serpro/folha/Radar e adaptadores comprovados, com semÃ¢ntica explÃ­cita; nÃ£o representar guia/PDF disponÃ­vel como obrigaÃ§Ã£o aceita. Meta permanece ativa.
+
+## V-153 â€” ConciliaÃ§Ã£o ligada Ã  atividade local
+
+24/09/2026. D-134 e migration 0057: projeÃ§Ã£o Ãºnica por arquivo, comprovaÃ§Ã£o por movimento, reabertura e recuperaÃ§Ã£o explÃ­cita. ValidaÃ§Ã£o final com 898 aprovados/2 ignorados/23 subtestes; checagens tÃ©cnicas passaram. Sem integraÃ§Ã£o externa ou mudanÃ§a de template. Checklist e manual registram limites e comando de recomposiÃ§Ã£o. PrÃ³xima execuÃ§Ã£o: corrigir reconfirmaÃ§Ã£o apÃ³s desfazimento preservando histÃ³rico, completar navegaÃ§Ã£o Ã  origem seguindo workflow UI obrigatÃ³rio, ligar demais mÃ³dulos/fontes e validar jornada integrada. NÃ£o considerar essa ponte como prova de importaÃ§Ã£o ERP nem conclusÃ£o do objetivo.
+
+## V-154 â€” Ciclo de desfazimento e reconfirmaÃ§Ã£o
+
+24/09/2026. D-135 e migration 0058: decisÃµes preservadas, legado identificado, reconfirmaÃ§Ã£o revalida capacidade e atualiza atividade na mesma transaÃ§Ã£o. 899 aprovados/2 ignorados/23 subtestes; 8 testes de pontes repetidos apÃ³s ajuste de tipagem; checagens tÃ©cnicas passaram. Nenhuma integraÃ§Ã£o real ou alteraÃ§Ã£o de template. PrÃ³ximo passo: navegaÃ§Ã£o da atividade ao arquivo e apresentaÃ§Ã£o das decisÃµes com workflow UI obrigatÃ³rio, seguida das pontes Serpro/folha/Radar e adaptadores comprovados. Validar PostgreSQL/volume e jornada externa; objetivo permanece ativo.
+
+## V-155 â€” Contexto do arquivo acessÃ­vel pela atividade
+
+24/09/2026. D-136: link protegido, filtro explÃ­cito no destino, busca/paginaÃ§Ã£o sem perder arquivo e retorno Ã  atividade. CenÃ¡rio inicialmente sem mÃ³dulo habilitado corrigido; 57 testes passaram e 9 foram repetidos apÃ³s reforÃ§ar recorte de movimentos. Auditoria UI registrada, Playwright sem transporte; nenhuma sessÃ£o aberta. PrÃ³ximo passo: apresentar histÃ³rico de decisÃµes no movimento, seguir integraÃ§Ãµes Serpro/folha/Radar e fontes comprovadas; validar jornada renderizada e ambiente externo. Meta ativa.
+
+## V-156 â€” DecisÃµes consultÃ¡veis no fluxo da ConciliaÃ§Ã£o
+
+24/09/2026. D-137 implementado; corrigida apresentaÃ§Ã£o de aÃ§Ãµes para perfil consultivo. 57 testes focados passaram apÃ³s verificaÃ§Ãµes de histÃ³rico/escape/paginaÃ§Ã£o/auditor; checagens tÃ©cnicas passaram. Manual e checklists atualizados; navegador indisponÃ­vel, sem prova visual. PrÃ³xima execuÃ§Ã£o: conectar resultados persistidos dos mÃ³dulos restantes (Serpro, folha, Radar) Ã s atividades e observaÃ§Ãµes, seguindo capacidades reais e sem transformar guia/documento em aceite oficial. Continuar revisÃ£o integrada, PostgreSQL/volume e homologaÃ§Ã£o externa. Meta ativa.
+
+## V-157 â€” Fotografias de folha acessÃ­veis pela importaÃ§Ã£o
+
+24/09/2026. D-138 e migration 0059 ligam rotina antes sem chamador Ã  entrada existente. GravaÃ§Ã£o atÃ´mica de lote, conflito de referÃªncia recusado e documento informado disponÃ­vel na ficha. Teste web completo e regressÃ£o 902/2/23 conforme VALIDACOES; checagens tÃ©cnicas passaram. Manual/modelo CSV entregues. PrÃ³ximo passo: prÃ©via detalhada e atividade de conferÃªncia por empresa/competÃªncia, com reabertura diante de dados novos e comprovaÃ§Ã£o humana vigente; seguir Serpro/Radar e fontes comprovadas. NÃ£o considerar importaÃ§Ã£o local como homologaÃ§Ã£o ERP ou conclusÃ£o da meta.
+
+## V-158 â€” ConferÃªncia da folha acompanha novos recebimentos
+
+24/09/2026. D-139 e migration 0060 implementados: atividade Ãºnica, reabertura, evidÃªncia humana posterior e recuperaÃ§Ã£o explÃ­cita. RegressÃ£o 903/2/23 e checagens tÃ©cnicas passaram. Sem novo template ou alegaÃ§Ã£o visual/externa. PrÃ³xima execuÃ§Ã£o: atalho contextual atividade â†’ comparaÃ§Ã£o e prÃ©via de folha antes de confirmar; continuar Serpro/Radar e observaÃ§Ãµes de fontes homologadas, testes de concorrÃªncia/volume e validaÃ§Ã£o de jornada. Meta permanece ativa.
+
+## V-159 â€” Atividade da folha mantÃ©m contexto da competÃªncia
+
+24/09/2026. D-140 implementado com links de ida/retorno, filtro persistente e escopo revalidado. 106 testes focados/8 subtestes e checagens tÃ©cnicas passaram. Auditoria UI documentada; Playwright indisponÃ­vel sem prova visual. PrÃ³xima execuÃ§Ã£o: prÃ©via detalhada antes da importaÃ§Ã£o, seguida das pontes Serpro/Radar e fontes comprovadas; continuar validaÃ§Ã£o integrada e homologaÃ§Ãµes. Meta ativa.
+
+## V-160 â€” Conferir linhas antes de importar folha
+
+24/09/2026. D-141 implementado com prÃ©via paginada, empresa/valores explÃ­citos, isolamento consultivo e nenhuma gravaÃ§Ã£o em GET. 80 testes focados e checagens tÃ©cnicas passaram. Playwright sem transporte e CUA sem navegador habilitado; nenhum resultado visual presumido. PrÃ³xima execuÃ§Ã£o: integrar resultados persistidos de Serpro/Radar Ã  central, respeitando efeitos/estados comprovados; avanÃ§ar observaÃ§Ãµes de fontes e homologaÃ§Ã£o, concorrÃªncia/volume e validaÃ§Ã£o visual quando disponÃ­vel. Meta ativa.
+
+## V-161 â€” ComunicaÃ§Ã£o DTE alimenta anÃ¡lise humana
+
+24/09/2026. D-142 e migration 0061: mensagem persistida gera atividade Ãºnica, abertura comprovada fornece evidÃªncia de consulta e resultado incerto impede conclusÃ£o. PermissÃ£o de ciÃªncia agora exige carteira vigente no serviÃ§o antes de consumo/provedor. AtualizaÃ§Ã£o da central ocorre apÃ³s commit do recibo, com recuperaÃ§Ã£o local por sync_dte_activities. Teste de falha encontrou incompatibilidade do callback parcial com o tratamento de erros do Django; substituÃ­do por funÃ§Ã£o nomeada, mantendo o recibo recuperÃ¡vel. Resultados finais em VALIDACOES.md.
+
+PrÃ³xima execuÃ§Ã£o: navegaÃ§Ã£o contextual ao resumo seguro DTE, demais resultados Serpro/Radar e integraÃ§Ã£o das observaÃ§Ãµes Ã s fontes comprovadas. Continuar validaÃ§Ã£o visual, concorrÃªncia PostgreSQL, volume e homologaÃ§Ã£o externa. Nenhuma chamada real, custo ou publicaÃ§Ã£o nesta entrega; meta ativa.
+
+## V-162 â€” AnÃ¡lise DTE precisa corresponder ao teor disponÃ­vel
+
+24/09/2026. RevisÃ£o encontrou confirmaÃ§Ã£o anterior satisfazendo conclusÃ£o apÃ³s abertura. D-143 implementado com verificaÃ§Ã£o direta do recibo, reabertura auditada e preservaÃ§Ã£o da confirmaÃ§Ã£o posterior na recuperaÃ§Ã£o. 48 testes/8 subtestes e checagens tÃ©cnicas passaram; detalhes em VALIDACOES.md. Manual/checklist atualizados. Sem mudanÃ§a visual ou validaÃ§Ã£o externa. PrÃ³ximo passo continua sendo navegaÃ§Ã£o contextual segura, demais pontes Serpro/Radar e fontes comprovadas, seguido de validaÃ§Ã£o integrada/visual/PostgreSQL. Meta ativa.
+
+## V-163 â€” Resumo DTE acessÃ­vel no contexto da atividade
+
+24/09/2026. D-144 implementado com navegaÃ§Ã£o local de ida/volta, restriÃ§Ã£o de mÃ³dulo e conservaÃ§Ã£o do formulÃ¡rio humano. Teste do percurso confirma ausÃªncia de abertura/consumo/conclusÃ£o e recusa apÃ³s revogaÃ§Ã£o. Resultados e limitaÃ§Ã£o visual em VALIDACOES.md; manual/checklists atualizados. PrÃ³xima execuÃ§Ã£o: demais resultados Serpro/Radar alimentando a central e observaÃ§Ãµes ligadas Ã s fontes comprovadas, mantendo revisÃ£o de permissÃµes/recuperaÃ§Ã£o. Validar navegador e PostgreSQL quando disponÃ­veis; nÃ£o confundir testes locais com homologaÃ§Ã£o real. Meta ativa.
+
+## V-164 â€” AnÃ¡lises do Radar entram na carteira
+
+24/09/2026. D-145 implementado com seleÃ§Ã£o humana, serviÃ§o protegido, versionamento, prova, reabertura e recuperaÃ§Ã£o local. Coletor respeita apenas vÃ­nculos existentes; pÃ¡gina devolve anÃ¡lise Ã  central. Corrigida falha atual escondida por sucesso antigo na saÃºde da fonte. RegressÃ£o 915/2/23 e verificaÃ§Ã£o focada final conforme VALIDACOES.md. Manual/checklists/auditoria atualizados; nenhuma homologaÃ§Ã£o externa ou visual presumida.
+
+PrÃ³xima execuÃ§Ã£o: revisar demais resultados Serpro (obrigaÃ§Ãµes/guias/parcelamentos) e ligaÃ§Ã£o das observaÃ§Ãµes Ã s fontes comprovadas, incluindo reavaliaÃ§Ã£o de fechamento. Continuar revisÃ£o integrada, volume/concorrÃªncia PostgreSQL, navegador e homologaÃ§Ã£o real autorizada. Meta permanece ativa.
+
+## V-165 â€” AutorizaÃ§Ã£o DCTFWeb sobrevive Ã  fila
+
+24/09/2026. RevisÃ£o encontrou ausÃªncia de revalidaÃ§Ã£o do solicitante no worker. D-146 implementado no serviÃ§o e na execuÃ§Ã£o, com falha recuperÃ¡vel e liberaÃ§Ã£o de reserva nÃ£o enviada. 29 testes finais e checagens tÃ©cnicas passaram; fixture comum/tela corrigido apÃ³s duplicaÃ§Ã£o detectada. Manual/checklist atualizados. Sem UI, migration, provedor real ou homologaÃ§Ã£o externa.
+
+PrÃ³ximo passo: estender verificaÃ§Ã£o a emissÃ£o de guias e parcelamentos, entÃ£o integrar documentos/resultados Ã  central preservando distinÃ§Ã£o entre consulta, aceite, guia e pagamento. Continuar observaÃ§Ãµes de fontes comprovadas, concorrÃªncia/volume e validaÃ§Ã£o visual. Meta ativa.
+
+## V-166 â€” RevogaÃ§Ã£o respeitada por guias e PARCSN
+
+24/09/2026. D-147 implementado nos dois serviÃ§os/workers. RegressÃ£o 929/2/23 e checagens tÃ©cnicas passaram; fixtures passaram a declarar autorizaÃ§Ãµes reais do cenÃ¡rio. Manual/checklist atualizados. Sem migration/UI ou chamada externa.
+
+PrÃ³xima execuÃ§Ã£o: corrigir emissÃ£o de guias apÃ³s transporte incerto/retorno sem PDF, preservando reserva e evitando reemissÃ£o cega; revisar estados e recuperaÃ§Ã£o na interface, seguindo workflow UI obrigatÃ³rio. O checklist genÃ©rico anterior foi corrigido, pois nÃ£o comprovava esse caso. Depois, ligar resultados Ã s atividades/fechamentos e continuar fontes, concorrÃªncia/volume, navegador e homologaÃ§Ã£o. Objetivo ativo.
+
+## V-167 â€” Regra de reemissÃ£o corrigida pelo proprietÃ¡rio
+
+24/09/2026. ImplementaÃ§Ã£o provisÃ³ria de incerteza testada (932/2/23 e 23 focados finais), mas bloqueio de reemissÃ£o foi rejeitado pelo proprietÃ¡rio. D-149 substitui essa inferÃªncia: permitir reemissÃ£o cobrada por guia; modalidade do adicional perguntada, ainda pendente. Preservar incerteza/evidÃªncias e revisar serviÃ§o, UI e testes para a regra efetiva. NÃ£o liberar o estÃ¡gio provisÃ³rio nem considerar testes como aprovaÃ§Ã£o de produto. Nenhuma migration aplicada fora de testes. Objetivo ativo; continuar trabalhos independentes enquanto aguarda definiÃ§Ã£o comercial.
+
+## V-168 â€” PreservaÃ§Ã£o de tentativas enquanto aguarda definiÃ§Ã£o comercial
+
+24/09/2026. D-150 implementado em FiscalGuideAttemptEvent/guide_history, serviÃ§o e worker. Migration 0064 aditiva, somente em testes. HistÃ³rico preserva estado legado conhecido e identifica sua limitaÃ§Ã£o, solicitaÃ§Ã£o, protocolos, retorno criptografado e referÃªncia de consumo. Nova tentativa limpa resultado anterior somente apÃ³s preservÃ¡-lo. Testes focados 26 aprovados; regressÃ£o final 935/2/23 em 92,03 s; Ruff/MyPy/check/migrations aprovados. Nenhuma mudanÃ§a de UI nem chamada externa.
+
+PrÃ³xima execuÃ§Ã£o: disponibilizar histÃ³rico com escopo autorizado e workflow de interface obrigatÃ³rio; implementar reemissÃ£o com confirmaÃ§Ã£o de custo apÃ³s resposta de D-149, sem inventar tarifa. Integrar resultados Ã s atividades/fechamentos respeitando consulta, emissÃ£o, aceite e pagamento distintos; continuar recuperaÃ§Ã£o, fontes comprovadas e validaÃ§Ãµes visual/PostgreSQL/externa. Manual e checklist atualizados. Objetivo permanece ativo; esta entrega nÃ£o conclui reemissÃ£o nem a central.
+
+## V-169 â€” Consulta de tentativas preservadas
+
+24/09/2026. D-151 implementado em guide_detail, partial/CSS especÃ­ficos, rota de PDF por evento e testes de tela/acesso. PaginaÃ§Ã£o de 20 eventos; dados brutos nÃ£o exibidos; PDF anterior mantÃ©m referÃªncia Ã  tentativa e revalida acesso. Rodada conjunta 100 aprovados/1 falha de fixture; corrigido perfil inexistente, rodada final 28 aprovados em 58,62 s. Ruff/MyPy/check/migrations passaram. Sem migration nova, provedor real ou consumo.
+
+PrÃ³xima execuÃ§Ã£o: validar visualmente quando transporte Playwright estiver disponÃ­vel; implementar reemissÃ£o apÃ³s modalidade de adicional respondida em D-149. Prosseguir nas pontes de resultados com atividades/fechamentos, sem transformar consulta/guia em aceite/pagamento. Pendentes recuperaÃ§Ã£o estruturada, fontes homologadas, PostgreSQL e piloto. Meta permanece ativa.
+
+## V-170 â€” Escopo de leitura por mÃ³dulo e empresa
+
+24/09/2026. D-152 implementado na consulta de carteira dos mÃ³dulos Guias/Integra, preservando regras de administraÃ§Ã£o e suporte existentes. Corrigido contador DTE que abrangia todo o escritÃ³rio. Testes finais 939 aprovados, 2 ignorados, 25 subtestes; Ruff/MyPy/check/migrations passaram. Sem migration nova, mudanÃ§a visual ou chamada externa. Manual/checklist atualizados.
+
+PrÃ³xima execuÃ§Ã£o: auditar a cobertura efetiva da central contra o objetivo e consolidar pendÃªncias atuais, pois checklists de entregas histÃ³ricas ainda contÃªm itens depois tratados. Inspecionar os pontos de chamada das pontes e as observaÃ§Ãµes: record_source_observation hoje sÃ³ Ã© chamado nos testes. Implementar ligaÃ§Ãµes sustentadas por dados persistidos/contratos comprovados; nÃ£o inventar aceite oficial, fechamento de ERP, aplicaÃ§Ã£o por empresa ou cobranÃ§a. D-149 segue aguardando resposta; navegador, PostgreSQL, recuperaÃ§Ã£o e fontes reais permanecem pendentes. Objetivo ativo.
+
+## V-171 â€” Cobertura consolidada e correÃ§Ã£o de resoluÃ§Ã£o NFS-e
+
+24/09/2026. Matriz na etapa 11 confronta cada requisito com os pontos de chamada presentes. Pontes existentes confirmadas; ausÃªncia de ligaÃ§Ã£o dos demais resultados Serpro e de adaptadores Ã  rotina de observaÃ§Ãµes registrada expressamente. Corrigido reaproveitamento de prova NFS-e e conflito da segunda resoluÃ§Ã£o no histÃ³rico de acumuladores, encontrado no teste de percurso. 85 testes finais passaram; Ruff/MyPy/check/migrations passaram. Sem migration/UI nova nem chamadas reais.
+
+PrÃ³xima execuÃ§Ã£o: priorizar integraÃ§Ã£o dos resultados Serpro persistidos ainda ausentes da central. Definir qualquer fluxo de negÃ³cio nÃ£o coberto com o proprietÃ¡rio, preservando distinÃ§Ã£o entre emissÃ£o, consulta, aceite e pagamento; nÃ£o inferir fechamento oficial. Para fontes ERP, descobrir contrato/dado comprovado antes de alimentar record_source_observation. D-149 segue pendente. Continuar homologaÃ§Ã£o e validaÃ§Ã£o visual/concorrÃªncia quando os ambientes estiverem disponÃ­veis; nÃ£o marcar completo.
+
+## V-172 â€” PostgreSQL local e concorrÃªncia real entre conexÃµes
+
+24/09/2026. Encontrada imagem PostgreSQL 17 existente no Docker local; executada validaÃ§Ã£o isolada com tmpfs/loopback, sem usar o banco existente. ConfiguraÃ§Ã£o test_postgresql adicionada e procedimento no manual. Primeira suÃ­te identificou falhas reais de locks em relaÃ§Ãµes opcionais; corrigidas conforme D-154. Testes streaming corrigidos para usar fechamento do cliente Django. Resultado final: 942 aprovados, 1 ignorado, 25 subtestes em 177,22 s; checagens estÃ¡ticas/migrations aprovadas. ContÃªiner encerrado e remoÃ§Ã£o confirmada; nenhuma publicaÃ§Ã£o/custo ou chamada Serpro.
+
+Q-40 enviada ao proprietÃ¡rio: separar emissÃ£o, conferÃªncia e pagamento ou exigir conferÃªncia dentro da atividade de emissÃ£o. NÃ£o implementar a conclusÃ£o dependente sem resposta. D-149 permanece pendente. PrÃ³xima execuÃ§Ã£o: ligaÃ§Ãµes Serpro/central apÃ³s decisÃµes aplicÃ¡veis, contrato de observaÃ§Ãµes das fontes e validaÃ§Ã£o visual. Playwright MCP vinha sem transporte; Puppeteer estÃ¡ instalado no reporting, mas seu Chrome esperado nÃ£o estÃ¡ no cache. Isso nÃ£o comprova ausÃªncia de outros navegadores locais; verificar alternativas sem perfil pessoal se necessÃ¡rio. Manter limites de D-73, sem confundir teste PostgreSQL com homologaÃ§Ã£o completa.
+
+
+**AtualizaÃ§Ã£o V-173 (24/09/2026):** Playwright local com Edge disponÃ­vel, apesar do MCP sem transporte. Central validada em 52 combinaÃ§Ãµes de pÃ¡gina/perfil/tema/viewport, 17 verificaÃ§Ãµes, sem overflow ou erro de console. Capturas desktop/mobile inspecionadas; carteira e leitura do auditor verificadas. NÃ£o foram validados todos os fluxos de alteraÃ§Ã£o, carregamento ou fontes reais. Scripts repetÃ­veis: qa_ui_server.py (QA_REVIEW_SUITE=central), qa_central_fixture.py e qa_central_browser.cjs. Contextos/navegador e servidor encerrados. D-149/Q-40 seguem pendentes; meta ativa.
+
+**AtualizaÃ§Ã£o V-174 (24/09/2026):** D-155 projeta resultados Serpro persistidos em atividades Ãºnicas, com evidÃªncia, impedimento e retorno Ã  origem. Guia/DAS disponÃ­vel nÃ£o conclui pagamento, aceite ou fechamento; DCTFWeb conclui sÃ³ obtenÃ§Ã£o; PARCSN conclui sÃ³ consulta. Migration 0065 e sync_serpro_activities recompÃµem estado sem fornecedor. Corrigida atribuiÃ§Ã£o tardia ao solicitante sem substituir responsÃ¡vel manual. RegressÃ£o: 944 aprovados, 3 ignorados, 25 subtestes; navegador local: 64 combinaÃ§Ãµes/21 verificaÃ§Ãµes sem erro/overflow. D-149/Q-40, recuperaÃ§Ã£o externa e fontes reais continuam pendentes.
+
+**V-177 (24/09/2026):** corrected the invalid visible action after completion: evidence remains permitted and auditable, but block and second-completion controls no longer appear. The synthetic journey covered evidence, completion, trail, agenda return, and mobile: 64 screens/23 checks without console errors or overflow. Focused tests 45/8, Ruff, Django, migrations, and script syntax passed. No real source, cost, transmission, reissue, or commercial change; D-149 remains pending.
+
+**V-178 (24/09/2026):** full local regression passed with 948 tests, 3 known skips, and 25 subtests in 81.08 s. It validates local module integration after the central review, without claiming external sources, costed reissue, transmission, recovery timing, volume, or pilot acceptance.
+
+**V-179 (24/09/2026):** D-157 requires an exact declared capability under source lock before an observation can alter processing or obligation state. Missing-capability, stale-source, and disabled-source tests preserve activity state and create no observation. Focused tests 32/8 plus Ruff, MyPy, Django and migrations passed; no external call, cost, migration, or source homologation. Full local regression after the change: 949 passed, 3 skipped, 25 subtests in 80.61 s.
+
+**V-180 (24/09/2026):** expanded unified recovery validation to persisted NFS-e, guide, DCTFWeb, and PARCSN records in one command, with idempotent replay. Focused recovery tests: 17 passed; Ruff, MyPy command, Django, and migrations passed. No external provider, issuance, transmission, consumption, or cost.
+
+**V-181 (24/09/2026):** registrada D-158: nao inferir qualquer custo, tarifa ou repasse; D-149 autoriza reemissao com custo adicional, mas seus parametros continuam dependentes do proprietario. Ampliado o teste de `recover_operational_center`: NFS-e, Triagem, Conciliacao, folha, DTE, guia, DCTFWeb e PARCSN persistidos recompõem uma atividade cada e o segundo replay nao duplica. 17 testes focados, Ruff, check e migrations passaram. Sem chamada externa, custo ou migration. Proxima lacuna local: Radar e falhas por dominio; permanecem fontes reais, D-73, volume, piloto e D-149.
+
+**V-182 (24/09/2026):** teste de recuperacao do Radar acrescentado: uma publicacao previamente vinculada por pessoa e reprojetada com `radar=1`; nao ha coleta, vinculacao inferida, atividade ou evento duplicado. Suite focada das pontes: 18 aprovados; Ruff, check, migrations e diff-check passaram. Proxima lacuna: observacoes ERP sem adaptador homologado e validacoes externas D-73/piloto; D-149 continua pendente de parametros comerciais.
+
+**V-183 (24/09/2026):** D-159 impede que um retorno tardio de fonte desativada a reative ou altere a atividade; o registro fica em historico e falhas podem indicar indisponibilidade preservando `disabled`. 51 testes das pontes/central e 8 subtestes passaram, com Ruff, MyPy da operacao, check, migrations e diff-check. Proxima lacuna implementavel: percurso administrativo de reativacao com permissao e UI; adaptadores ERP e homologacao externa continuam pendentes. Nenhuma chamada externa ou custo.
+
+**V-184 (24/09/2026):** D-160 implementada na configuracao: reativacao de fonte exige owner/admin, sem suporte, checkbox explicito, preserva capacidades/fotografia e retorna a `not_configured`; auditoria registra transicao e nao ha chamada externa. Testes owner/auditor passaram isoladamente. UI revisada com UI/UX Pro Max, Watermelon Agndex, Refero Basedash, SaaSFrame Prelude e Karbon; WIG revisada. Playwright Edge local: 66 telas/24 verificacoes, desktop/mobile, foco, sem overflow/console; servidor e navegador encerrados. Proxima lacuna: contratos e adaptadores ERP homologados; D-149 ainda aguarda parametros de cobranca.
+
+**V-185 (24/09/2026):** D-161 implementada: geracao recorrente exige relacoes do mesmo escritorio e responsavel operacional com carteira atual; atribuicao invalida vira atividade sem responsavel com evento, e formulario recusa novo vinculo invalido. Central: 36/8; recorrencia: 7 aprovados, 1 skip PostgreSQL, 4 subtestes. Checagens tecnicas passaram. Playwright Edge local: 70 telas/28 verificacoes, modelos desktop/mobile, sem overflow/console; QA encerrado. Proxima lacuna: homologar contrato ERP/control plane e validar em PostgreSQL/carga; D-149 segue pendente de parametros comerciais.
+
+## V-186 — Ficha da empresa segue o prazo efetivo da central
+
+24/09/2026. Corrigida a ordenacao local da lista de atividades na ficha de empresa. Ela agora replica D-124, ja aplicado em agenda e fila: usa prazo interno quando houver; senao usa legal; itens sem data ficam por ultimo, com desempate estavel. O teste de view cobre um prazo legal vencido, um prazo interno futuro com legal anterior e uma atividade sem prazo.
+
+Validacao: teste focado 1 aprovado/75 desmarcados; Ruff, MyPy, Django check, migrations e diff-check sem erro. A revisao Playwright/Edge sintetica passou com 82 telas e 40 verificacoes, incluindo ficha em 1440/390 px para owner, operator e auditor, sem overflow ou console error. Captura desktop revisada. Nenhuma fonte, custo, reemissao, transmissao ou homologacao externa foi acionada. Proximo trabalho permanece contrato ERP/adaptador, validacao com fontes reais, recuperacao D-73, carga e piloto; D-149 continua pendente de parametros comerciais.
+
+## V-187 — Escrita da central revalida vínculo atual
+
+24/09/2026. D-162 elimina confiança em objeto de membro antigo nas operações de atividade. Antes de registrar evidência, impedir, concluir ou redistribuir, o serviço busca o vínculo atual no escritório e exige usuário ativo, perfil operacional, carteira da empresa e, para redistribuir, papel atual de owner/admin. Um autor diferente do membro também é recusado. O teste cobre rebaixamento após carregar o membro, ator externo e administrador rebaixado que ainda teria concessão de empresa; estado, eventos e evidências permanecem intactos.
+
+Validação: `tests/test_operational_center.py` 38 aprovados/12 subtestes em 30,68 s; Ruff, MyPy, Django check, migrations e diff-check passaram. Sem alteração visual, fonte, custo, emissão, transmissão ou publicação. Controle externo, concorrência PostgreSQL, fontes reais, recuperação D-73, volume, piloto e parâmetros D-149 continuam pendentes.
+
+**Complemento V-187 (24/09/2026):** regressão HTTP da área do escritório: `tests/test_hub_workspace_views_django.py` aprovou 76 testes em 59,27 s, cobrindo carteira, detalhes e POSTs das atividades após a revalidação de vínculo.
+
+**Regressao integral V-187 (24/09/2026):** `pytest -q` passou com 962 aprovados, 3 skips conhecidos e 29 subtestes em 91,62 s. Os skips permanecem Playwright Python opcional e cenarios de locks PostgreSQL cobertos no ambiente proprio; o resultado nao homologa fontes externas, recuperacao cronometrada, volume, piloto ou D-149.
+
+## 24/09/2026 â€” RevisÃ£o integral da landing (D-163 / V-188)
+
+Pedido: simplificar a landing, pesquisar referÃªncias online e reforÃ§ar clareza e identidade. Entregues nova narrativa, pauta ilustrativa estÃ¡tica, recursos por tarefa, FAQ/CTAs e CSS exclusivo com tokens da marca. Mantidos gates de demo/Copiloto e limites comerciais. Aplicados ui-ux-pro-max, Watermelon e auditoria atual das Web Interface Guidelines. Pesquisa e diagnÃ³stico em [relatÃ³rio](../cica-landing-review-2026-09-24.md).
+
+27 testes focados passaram; Django check, Ruff e diff-check limpos. Playwright MCP: 12 combinaÃ§Ãµes 320â€“1440 px/claro-escuro, teclado/foco, links, FAQ, tema e contexto sem JS. Zero overflow/console; contraste renderizado mÃ­nimo 5,45:1. Capturas inspecionadas e contextos, aba e servidor encerrados. Sem acesso a dados reais, chamadas pagas, mensagens, rastreamento ou publicaÃ§Ã£o. V-188 registra os estados e limites exatos; nenhuma promessa quantitativa de venda. PrÃ³ximo trabalho comercial depende de mediÃ§Ã£o e homologaÃ§Ã£o jÃ¡ previstas, sem iniciar outra etapa por inferÃªncia.
+
+## 24/09/2026 â€” V-189: sequÃªncia efetiva do agente DomÃ­nio Local
+
+Corrigido um retorno prematuro no processador .NET: a sincronizaÃ§Ã£o de empresas encerrava `RunOnce` antes de a fase jÃ¡ allowlisted de extratos bancÃ¡rios comeÃ§ar. Agora a paginaÃ§Ã£o de empresas apenas encerra sua prÃ³pria fase, e a de extratos Ã© executada se o serviÃ§o nÃ£o tiver sido cancelado. TambÃ©m foi corrigido o argumento da URL autenticada em `AgentClient.DownloadAsync`, eliminando a falha de build do projeto. Build Release concluÃ­da; 43 testes Python relacionados ao agente/central passaram, junto de Ruff, MyPy, Django check e migraÃ§Ãµes. NÃ£o houve ODBC real, envio, custo, MSI ou homologaÃ§Ã£o externa. A prova de paginaÃ§Ã£o, cancelamento, retomada e idempotÃªncia continua no piloto da etapa 12.
+
+
+## 24/09/2026 — V-190: checklist da central reconciliado
+
+A matriz da etapa 11 foi comparada às entregas V-125 a V-189. Itens locais concluídos deixaram de aparecer como pendentes; continuaram abertos apenas contratos e provas externas que ainda não existem. Não houve mudança de código, fonte, custo, publicação ou alegação de homologação.
+
+## 24/09/2026 — V-191: recuperação local e recorrência revisadas
+
+Auditados o replay unificado e a recorrência da central. O Radar mantém a seleção humana como condição de projeção; portanto, a recuperação não cria análise para empresa que nunca a pediu. As demais pontes recuperam fatos locais persistidos e o segundo replay não duplica atividades. Suite central: 63 aprovados, 1 skip PostgreSQL, 16 subtestes; Ruff, check e migrations passaram. Nenhuma chamada externa, custo, transmissão ou homologação. Permanecem pendentes contrato de estados ERP, recuperação medida, volume, piloto e D-149.
+
+## 24/09/2026 — V-192: UI da central revisada em jornada sintética
+
+Revisadas agenda, fechamentos e estilos relacionados sob ui-ux-pro-max e Web Interface Guidelines atualizadas. Playwright/Edge local percorreu 82 telas/40 verificações, três perfis, temas claro/escuro e 1440/390 px; cenário adicional em 844×390 com movimento reduzido confirmou foco visível, ausência de overflow e console limpo. Inspeção visual de agenda móvel e gestão desktop aprovada. Watermelon não estava exposto nesta sessão. Servidor, contextos e navegador foram encerrados. Nenhuma fonte, custo, envio ou homologação foi acionado; fontes reais, carga, leitor de tela, recuperação medida e piloto seguem pendentes.
+
+## 24/09/2026 — V-193: contrato de observações das fontes pesquisado
+
+Pesquisa oficial reforçou que Domínio tem estados internos e eSocial distintos, enquanto o Siescon público descreve seu Gerenciador de tarefas sem expor contrato de API/layout. Atualizado manual de homologação com requisitos objetivos para o fornecedor antes de adaptar ou declarar capacidades. Sem leitura de fonte, credencial, custo ou mudança de código de integração.
+
+## 24/09/2026 — V-194: regressão integrada após auditoria de integridade
+
+Revisados modelo e serviço de observações quanto a replay, conflito temporal, indisponibilidade, reabertura e retorno tardio. A regressão integral passou: 962 aprovados, 3 skips conhecidos e 29 subtestes em 101,79 s. Não houve chamada externa, custo, envio, publicação ou homologação; pendências externas preservadas.
+
+## 24/09/2026 — V-195: correção visual no endereço efetivo
+
+As capturas do proprietário revelaram HTML antigo com CSS novo na porta 8000, fora da instância isolada usada em V-188. Dois listeners foram identificados por netstat; o processo antigo foi encerrado após confirmação e a instância atual preservada. Cache de templates locais removido sem mudar produção. Após os pedidos de design e ai-design-skills, instalada/aplicada landing-page-design: Manrope local com OFL, escala e espaçamento, botões sem flechas, FAQ com seis perguntas fixas. A regra global foi atualizada para exigir essa skill em toda landing. Auditoria completa atualizada dos arquivos e Playwright MCP em 12 combinações; 4 testes aprovados, check/Ruff/diff-check sem falhas. Abas/contextos fechados, servidor do usuário ativo. Sem publicação, custo ou medição de venda; detalhes e limites em V-195.
+
+## 24/09/2026 — V-196: landing reconstruída do zero
+
+O retorno do proprietário substituiu a restauração da tela anterior por uma reconstrução integral. Foram refeitos HTML, copy, hierarquia, prova visual e CSS. A paleta agora é neutra, com papel quente, grafite e terracota; verde aparece somente como estado positivo. A nova central de fechamento mostra fila, responsáveis, progresso e próxima decisão com dados declaradamente fictícios. O teste de 14 dias permanece como ação principal, enquanto demo, Copiloto e integrações respeitam seus gates e limites reais.
+
+Aplicadas as skills relevantes de landing, conversão, marca, design system, UI e UX; consultados Watermelon, Front, Karbon e Pennylane. A auditoria das guidelines corrigiu contrastes e `theme-color`. Playwright MCP verificou 320–1440 px, claro/escuro, teclado, foco, FAQ, links, sem JavaScript, console e rede, sem overflow ou falha de contraste após a correção. 27 testes focados, Django check, Ruff e diff-check passaram. Capturas foram inspecionadas, abas encerradas e servidor 8000 preservado. Sem publicação, custo, rastreamento ou alegação de aumento de vendas; detalhes em V-196 e no relatório da landing.
+
+## 24/09/2026 — V-197: rotina e integrações sem aparência de template
+
+Atendido o ajuste pontual do proprietário: a sequência de três benefícios foi substituída por uma atividade operacional completa, e os três cards de status das integrações viraram uma faixa única com Domínio, Integra Contador, e-mail e Siescon. Removidas da landing as ressalvas de configuração, validação e preparação; recursos e FAQ foram alinhados à apresentação de produto pronto definida em D-169.
+
+UI/UX Pro Max e guidelines atuais foram reconsultados; Watermelon não retornou composição correspondente, e cards/bento foram deliberadamente evitados. Após corrigir contraste residual, Playwright MCP aprovou 12 combinações de largura/tema, os recortes desktop/mobile, FAQ por teclado, contexto sem JavaScript e console limpo. 4 testes, Django check, Ruff e diff-check passaram. Abas fechadas e servidor 8000 mantido.
+
+## 25/09/2026 — V-198: Fedrizzi sincronizada e gate de ativação confirmado
+
+Executadas leituras allowlisted no DSN Fedrizzi `contabil`: 576 empresas foram identificadas; a sincronização local espelhou 576 empresas e 10.000 registros normalizados sem escrever no Domínio. A consulta de guias retornou 3.335 registros, mas o contrato atual não disponibiliza vencimento. O console de desenvolvimento recebeu vínculo local e auditado de owner, sem convite/e-mail, e habilitou os sete módulos pelo próprio formulário. Nenhuma chamada cobrada, emissão, transmissão ou integração externa foi feita.
+
+A inspeção do console em Edge confirmou seleção dos módulos sem erro de console. A área da Fedrizzi, em desktop e celular, recusou corretamente a operação com “Ativação pendente”: não há contrato vigente. O fluxo não foi burlado. Para prosseguir com agenda, modelos e testes operacionais reais, o responsável precisa definir no Console o contrato de homologação sem cobrança ou o contrato real, incluindo prazo/status; não foi presumido preço, prazo ou cobrança.
+
+## 25/09/2026 — V-199: Fedrizzi como parceiro interno de homologação
+
+Registrada D-170 e implementada uma condição explícita de parceiro interno, distinta de demo e de contrato. O Console permite a Developer/Admin ativar a operação sem contrato comercial e sem cobranças; o encerramento requer confirmação e devolve acesso pendente. Aplicada na Fedrizzi pelo formulário do Console: `active`, 0 contrato comercial, 7 módulos e 576 empresas. Nenhuma chamada externa, emissão, transmissão, ciência ou consumo foi executado.
+
+Corrigido também o texto de Integrações, que ainda dizia “teste de 14 dias”; ele agora descreve corretamente a homologação interna sem cobrança. Playwright/Edge aprovou Console, Integrações e área de trabalho no ambiente Fedrizzi em desktop, celular e paisagem reduzida, sem overflow ou console error. Regressão Console/área: 103 aprovados em 60,13 s; Ruff, MyPy, check e migrations passaram. Ainda faltam modelos/prioridades aprovados para materializar a pauta real, pois os dados atuais não fornecem vencimentos de guia e eles não serão inferidos.
+
+## V-200 — Prévia navegável das áreas da landing
+
+25/09/2026. D-171 tornou a prova de produto da landing uma demonstração navegável. `home.html` agora apresenta tabs nativas para Central, Meu trabalho, Empresas, Documentos, Fiscal e Conciliação; cada uma exibe um recorte de trabalho consistente, inteiramente fictício. `cica-product-demo.js` controla o estado acessível, as setas Home/End/esquerda/direita, a âncora compartilhável `#demonstracao-*` e o retorno pelo histórico do navegador. Sem JavaScript, Meu trabalho continua renderizado como a tela inicial. A demonstração não autentica, não consulta a Fedrizzi nem qualquer outra fonte, e não tem ações que escrevem ou geram consumo.
+
+UI/UX Pro Max foi aplicado para estado ativo, URL refletindo a tela e foco de teclado. Watermelon MCP não estava exposto nesta sessão. A pesquisa de referências usou [Karbon](https://karbonhq.com/solution/project-management) para a pauta por responsável, cliente e prazo, [SaaSFrame](https://www.saasframe.io/examples/latitude-project-dashboard) para a hierarquia de navegação lateral, e [Asana](https://help.asana.com/s/article/reporting-with-dashboards) para a leitura de tarefas e estados. Foram adaptados somente hierarquia, densidade e feedback; nenhuma interface, texto proprietário ou dado externo foi copiado.
+
+A fonte atual das Web Interface Guidelines foi relida e a auditoria de `home.html`, `cica-landing.css` e `cica-product-demo.js` não encontrou violação material: buttons nativos, `tablist`/`tabpanel`, foco visível de 3 px, hover, movimento reduzido, texto com quebra e URL do estado. O MCP Playwright não estava disponível; a validação equivalente local em Edge percorreu as seis telas em 1440 e 390 px, clique, teclado, deep-link, retorno do histórico, contexto sem JavaScript e console. Não houve overflow horizontal nem erro de console. Capturas inspecionadas: `.playwright-mcp/landing-review/demo-desktop.png` e `demo-mobile.png`; contextos e browser foram fechados.
+
+`pytest tests/test_cica_landing_django.py -q`: 4 aprovados em 65,30 s. `manage.py check --settings=config.settings.local`, sintaxe Node e `git diff --check` dos arquivos de escopo passaram. Limites: isto valida uma apresentação fictícia, não permissões, dados, operações ou resultados dos módulos autenticados.
+
+## V-201 — Camada visual autenticada alinhada à landing
+
+25/09/2026. D-172 substituiu a linguagem visual compartilhada das telas autenticadas sem tocar seus comportamentos. `cica-auth.css` e `cica-brand.css` agora aplicam Manrope local, papel quente, grafite, terracota, campos, botões, foco e feedback coerentes em login, cadastro, convites, recuperação e MFA. `workspace.css` aplica os mesmos tokens a todo o shell autenticado: cabeçalho, navegação, formulários, painéis, tabs, mensagens, setup e módulos que herdavam o tema anterior. Verde segue restrito a estados positivos. As URLs, forms, permissões, dados, integrações e gates operacionais foram preservados.
+
+UI/UX Pro Max orientou hierarquia de onboarding, foco e configuração responsiva. Watermelon MCP não estava disponível. Referências: [Karbon](https://karbonhq.com/resources/videos/karbon-practice-management-best-practices-how-other-firms-are-using-karbon/) para setup de prática, [Asana](https://asana.com/resources/collections/getting-started-with-asana) para onboarding guiado e [SaaSFrame](https://www.saasframe.io/examples/latitude-project-dashboard) para hierarquia de workspace. Foram adaptados apenas padrões de densidade, orientação e estados, dentro da identidade CICA.
+
+A validação local em Edge abriu login, cadastro, visão geral e configuração da Fedrizzi em 1440 e 390 px. Em todas as oito combinações: sem overflow horizontal, foco visível de 3 px e console sem erros. A configuração e a área de trabalho usaram o escritório parceiro interno Fedrizzi e não chamaram fonte, IA, Serpro ou cobrança. Capturas: `.playwright-mcp/d172-login-final.png`, `d172-final-signup-desktop.png`, `d172-final-workspace-desktop.png` e `d172-final-setup-mobile.png`. A fonte atual das Web Interface Guidelines foi aplicada: controles nativos, foco, responsividade, texto longo, movimento reduzido e estado de navegação na URL permanecem cobertos. O MCP Playwright não estava exposto; os contextos equivalentes locais foram fechados.
+
+Validação automatizada em andamento nesta entrada: `test_cica_auth_flow.py`, `test_cica_signup_flow.py` e `test_hub_workspace_views_django.py`; `manage.py check --settings=config.settings.local` e `git diff --check` passaram. Limite: a camada compartilhada transforma a aparência de todas as telas que a consomem; refinamentos de estrutura específica continuam necessários se uma tela especializada revelar um problema em uso real.
+
+## 28/09/2026 — V-202: NFS-e isolado, backup 07129 e Fly.io preparado
+
+Corrigido o menu da assinatura exclusivamente NFS-e para refletir o bloqueio que as views já aplicavam. Em cenário sintético, Playwright confirmou redirecionamento ao Fiscal, ausência de Visão geral/Atividades e 403 nas rotas não contratadas em desktop e celular. Foram aplicados UI/UX Pro Max, consulta ao Watermelon sem resultado correspondente, referências de permissões SaaS e auditoria atual das Web Interface Guidelines. Treze testes focados, Ruff, MyPy, Django check e diff-check passaram.
+
+O backup autorizado 07129 foi validado, extraído em área temporária e iniciado no SQL Anywhere, sem alterar o original. A autenticação interna recusou as credenciais disponíveis; é necessária a credencial de “Usuário Externo” criada nesse escritório para ler os registros. O agente recebeu o contrato allowlisted de `EFACUMULADOR`, em lotes de 500, e o build Release e os dois testes do endpoint passaram. O servidor e a extração temporários foram eliminados; nenhum dado identificável foi registrado.
+
+No Fly.io foram criados a organização `cica` e o app vazio `cica-contabil`; configuração validada, sem deploy ou infraestrutura faturável. O próximo passo é a aprovação específica do custo recorrente para Postgres, Redis, storage e máquinas, seguida pelos segredos, migrações e homologação operacional. Detalhes e limites estão em D-175/V-202.
+
+## 28/09/2026 — V-203: produção Fly.io e credencial do backup 07129
+
+Após a aprovação explícita da arquitetura de aproximadamente US$ 11,28/mês, foram publicados web, worker/beat, Postgres não gerenciado, Valkey autogerenciado e Tigris privado em `gru`. Migrações principal/knowledge, check de produção, health de banco/cache, página pública, estáticos versionados, ping Celery e ciclo criar/ler/apagar no storage passaram. DNS Fly: `cica-contabil.fly.dev`, `66.241.125.197` e `2a09:8280:1::19f:191b:0`. O hostname próprio ainda precisa ser informado para certificado e configuração Django. Limitações de HA, WAL, Sentry e mTLS estão registradas em D-177/V-203.
+
+A cópia temporária do backup 07129 foi reaberta. O contêiner usa a chave separada do Domínio Web; o login/senha informado para gerar o backup foi recusado pelo SQL Anywhere, com e sem a barra escrita antes de `@`. Nenhuma empresa ou acumulador real foi extraído/importado. Falta a credencial interna de “Usuário Externo” do banco Domínio.
+
+## 28/09/2026 — V-204: Bianchi & Rizzotto preparado para carga NFS-e
+
+O proprietário confirmou que o backup 07129 pertence à Bianchi & Rizzotto. O tenant `bianchi-rizzotto` foi criado em produção com somente NFS-e habilitado e fonte de backup preparada; demais módulos ficaram explicitamente desabilitados. Não foi criado contrato, preço, usuário nem dado fiscal fictício. A produção confirma zero empresas e zero acumuladores até a leitura real.
+
+A tentativa adicional com o usuário padrão `Externo` também foi recusada. A cópia extraída foi preservada sob ACL restrita e o servidor local encerrado. O único bloqueio para executar a carga é a senha do Usuário Externo existente no snapshot do Domínio.
+
+## 28/09/2026 — V-204: conexão pública revalidada
+
+Após a captura de `ERR_CONNECTION_RESET`, a produção foi diagnosticada sem alteração. Web e worker estavam iniciados, o check Fly passava, banco e cache estavam `ok`, DNS A/AAAA e TCP/443 funcionavam, o TLS era válido e HTTP redirecionava para HTTPS. A página inicial respondeu 200 em vinte tentativas consecutivas, entre 62 e 196 ms, sem erro, reinício ou OOM nos logs disponíveis.
+
+A falha transitória não foi reproduzida; por isso não houve restart nem redeploy. O histórico mostra uma primeira release falha durante a publicação e as cinco seguintes concluídas, mas não há telemetria retida suficiente para afirmar que essa foi a causa da captura. A validação visual não foi repetida porque o MCP não ofereceu browser nesta sessão. Detalhes e limites estão em V-204.
+
+## 28/09/2026 — V-205: domínio próprio preparado, correção DNS pendente
+
+Registrada D-179 para `cicacontabil.com.br` e `www`. Os certificados foram criados no Fly e os dois hostnames foram incluídos explicitamente em `ALLOWED_HOSTS` e nas origens CSRF. Web e worker reiniciaram normalmente e o health de banco/cache voltou a passar.
+
+A zona HostGator ainda publica dois registros A: o Fly `66.241.125.197` e o legado `162.240.81.81`. O segundo distribui conexões para fora da aplicação e impede a verificação dos certificados. Falta removê-lo no painel DNS; A/AAAA do Fly e CNAME de `www` devem permanecer. Sem acesso ao painel ou browser nesta sessão, essa alteração externa não foi simulada nem marcada como concluída.
+
+O proprietário removeu posteriormente o A legado. Nameservers autoritativos, Cloudflare e Google passaram a retornar somente o Fly, e os certificados Let's Encrypt de apex e `www` ficaram ativos. A falha restante era o cache DNS local do Windows ainda contendo `162.240.81.81`. Após limpar esse cache, cinco requisições ao domínio raiz e três ao `www` retornaram 200 pelo IP correto, com TLS válido. O domínio próprio ficou operacional nos testes executados.
+
+O Edge já aberto ainda conservou o estado anterior e mostrou timeout. Uma instância isolada do próprio Edge, com perfil temporário novo, abriu o HTML completo do domínio; proxy, IPv4, TLS e health continuavam normais. A pendência ficou limitada ao cache/socket da sessão antiga do navegador. As abas do usuário foram preservadas, sem encerramento forçado.
+
+## 28/09/2026 — V-209: carga real do backup 07129 concluída
+
+O Domínio local foi alinhado ao ajuste oficial 10.6A-08.10, com checksum e assinatura do instalador validados. `GERENTE`/`lua` abriu a cópia restaurada e o fluxo suportado do produto criou um usuário externo somente leitura. A origem confirmou 208 empresas e 15.701 acumuladores, sem órfãos, duplicidades de chave ou nomes vazios.
+
+O lote `d4578c99-7258-490e-aa99-c992cf5d9703` foi importado exclusivamente no tenant `bianchi-rizzotto` e terminou com 15.909 registros criados, zero atualizados, zero ignorados e zero erros. O destino contém 208 empresas, 15.701 acumuladores e 15.701 históricos; a fonte está pronta e somente NFS-e permanece habilitado. Uma saturação transitória do Postgres legado foi contornada por retomada idempotente em páginas menores, sem ampliar o custo; health final de banco/cache e todos os checks do Postgres passaram.
+
+## 28/09/2026 — V-210: histórico compacto por contraparte e serviço
+
+A cópia temporária revelou as tabelas fiscais `efservicos` e `efentradas`, relacionadas a clientes/fornecedores e ao acumulador da própria empresa. A extração agregou os registros antes da saída e pseudonimizou CNPJ/CPF com o mesmo SHA-256 truncado usado pela coleta NFS-e. Não foram enviados nomes, notas, valores, descrições ou XMLs históricos.
+
+Produção recebeu 49.199 observações únicas de 188 empresas no lote `b4551285-7f15-4c20-9a13-7bbba68ba3ff`, sem atualização, descarte, órfão ou critério vazio. A fonte ganhou a capacidade `accumulator_observations`; 9.379 chaves historicamente ambíguas foram identificadas para revisão, nunca para escolha arbitrária. O agente e a ponte de backup foram preparados para repetir a agregação. Build Release: zero avisos/erros. Testes focados: 9 aprovados. Ruff: aprovado. A coleta ADN segue desabilitada e a proteção local de ambiguidade precisa ser publicada antes de ativá-la.

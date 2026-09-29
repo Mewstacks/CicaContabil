@@ -1,12 +1,12 @@
 {% extends 'hub/base.html' %}
 {% load static ui_navigation %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-30"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=6">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-35"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=20260925-1">{% endblock %}
 {% block body %}
 <div class="product-shell workspace-shell">
   <section class="app-stage">
     <header class="workspace-header">
       <div class="app-bar workspace-identity">
-        <a class="workspace-brand" href="{% url 'hub:dashboard' %}" aria-label="CICA, visão geral"><span aria-hidden="true">C</span><b translate="no">CICA</b></a>
+        <a class="workspace-brand" href="{% if is_nfse_only_subscription %}{% url 'hub:nfse-center' %}{% else %}{% url 'hub:dashboard' %}{% endif %}" aria-label="{% if is_nfse_only_subscription %}CICA, NFS-e{% else %}CICA, visão geral{% endif %}">{% include 'hub/partials/brand_mark.html' %}<span class="sr-only">CICA</span></a>
         <span class="workspace-divider" aria-hidden="true"></span>
       {% if office %}
         {% if support_session %}
@@ -41,5 +41,5 @@
     </header>
     <main tabindex="-1" id="conteudo" class="work-area">{% if support_session %}<aside class="support-banner" aria-label="Sessão de suporte"><span><strong>Suporte · {{ office.name }}</strong> · {% if support_can_mutate %}Alterações autorizadas{% else %}Somente leitura{% endif %}</span><form method="post" action="{% url 'platform:end-support' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Encerrar suporte</button></form></aside>{% endif %}<div class="page-header"><div><h1>{{ page_title }}</h1></div>{% block page_action %}{% endblock %}</div>{% if office.is_demo %}<aside class="demo-office-banner" aria-label="Ambiente de demonstração"><strong>Demonstração fictícia</strong><span>Dados fictícios. Sem consultas externas ou cobranças.</span>{% if request.session.demo_visit_id %}<form class="demo-office-exit" action="{% url 'hub:logout' %}" method="post">{% csrf_token %}<button class="button button-quiet" type="submit">Sair da demonstração</button></form>{% endif %}</aside>{% endif %}{% include 'hub/partials/onboarding_tour.html' %}{% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash flash-{{ message.tags|default:'info' }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v6h-2V7Zm0 8h2v2h-2v-2Z"/></svg><span>{{ message }}</span></div>{% endfor %}</div>{% endif %}{% block workspace_subnav %}{% endblock %}{% block workspace_content %}{% endblock %}</main>
   </section>
-</div><script src="{% static 'hub/workspace.js' %}?v=3" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% static 'hub/hub.js' %}?v=cica-nfse-13" defer></script>
+</div><script src="{% static 'hub/workspace.js' %}?v=4" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% static 'hub/hub.js' %}?v=cica-nfse-16" defer></script>
 {% endblock %}

@@ -7,6 +7,9 @@
 {% block page_action %}<a class="button button-quiet" href="{% back_url 'hub:dte-center' %}">Voltar à Caixa Postal</a>{% endblock %}
 
 {% block workspace_content %}
+{% if dte_analysis_activity %}
+<nav class="section-links" aria-label="Análise da comunicação"><a href="{% url 'hub:activity-detail' dte_analysis_activity.id %}">Voltar à atividade de análise</a></nav>
+{% endif %}
 <section class="dte-detail-heading" aria-labelledby="dte-detail-title">
   <p class="section-kicker">{{ dte_message.company.name }} · Caixa Postal</p>
   <h2 id="dte-detail-title">{{ dte_message.subject|default:'Assunto não informado' }}</h2>

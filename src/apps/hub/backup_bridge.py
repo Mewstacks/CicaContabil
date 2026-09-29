@@ -3,15 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from datetime import date
+from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from django.db import transaction
 from django.utils import timezone
-from django.utils.dateparse import parse_date
+from django.utils.dateparse import parse_date, parse_datetime
 
 from apps.audit.services import record_event
-from apps.hub.models import AccountingEntry, ClientCompany, DataSource, FiscalGuide, ImportBatch
+from apps.hub.models import (
+    AccountingEntry,
+    AccumulatorCatalogEntry,
+    AccumulatorHistoryEntry,
+    AccumulatorObservation,
+    ClientCompany,
+    DataSource,
+    FiscalGuide,
+    ImportBatch,
+)
 from apps.intelligence.models import EdgeAgent
 
 
@@ -24,6 +33,13 @@ def _date(row: Mapping[str, object], name: str) -> date:
     if parsed is None:
         raise ValueError(f"Data inválida no campo {name}.")
     return parsed
+
+
+def _datetime(row: Mapping[str, object], name: str) -> datetime:
+    parsed = parse_datetime(_text(row, name, 40))
+    if parsed is None:
+        raise ValueError(f"Data e hora inválidas no campo {name}.")
+    return timezone.make_aware(parsed) if timezone.is_naive(parsed) else parsed
 
 
 def _cents(value: object) -> int:
@@ -109,6 +125,75 @@ def apply_backup_page(
                         "direction": _text(row, "direction", 8),
                         "is_linked": bool(row.get("is_linked", False)),
                         "source_updated_at": batch.source_snapshot_at,
+                    },
+                )
+            elif capability == "accumulator_catalog":
+                company = _company(batch, _text(row, "company_key", 160))
+                accumulator_code = _text(row, "accumulator_code", 80)
+                if not accumulator_code or batch.source_snapshot_at is None:
+                    raise ValueError("Acumulador sem codigo ou fotografia de origem.")
+                catalog_entry, was_created = AccumulatorCatalogEntry.objects.get_or_create(
+                    organization=batch.organization,
+                    company=company,
+                    data_source=batch.data_source,
+                    source_batch=batch,
+                    accumulator_code=accumulator_code,
+                    defaults={
+                        "name": _text(row, "name", 180),
+                        "active": bool(row.get("active", True)),
+                        "source_identifier": _text(row, "source_identifier", 160),
+                        "source_snapshot_at": batch.source_snapshot_at,
+                    },
+                )
+                AccumulatorHistoryEntry.objects.get_or_create(
+                    organization=batch.organization,
+                    source=AccumulatorHistoryEntry.Source.BACKUP,
+                    source_reference=str(catalog_entry.id),
+                    defaults={
+                        "company": company,
+                        "accumulator_code": accumulator_code,
+                        "name": catalog_entry.name,
+                        "occurred_at": batch.source_snapshot_at,
+                        "metadata": {
+                            "data_source_id": str(batch.data_source_id),
+                            "source_batch_id": str(batch.id),
+                            "active": catalog_entry.active,
+                        },
+                    },
+                )
+            elif capability == "accumulator_observations":
+                company = _company(batch, _text(row, "company_key", 160))
+                accumulator_code = _text(row, "accumulator_code", 80)
+                service_code = _text(row, "service_code", 60)
+                counterparty_ref = _text(row, "counterparty_ref", 80)
+                if not accumulator_code or not (service_code or counterparty_ref):
+                    raise ValueError("Observação sem acumulador ou critério de correspondência.")
+                if not AccumulatorCatalogEntry.objects.filter(
+                    organization=batch.organization,
+                    company=company,
+                    accumulator_code=accumulator_code,
+                ).exists():
+                    raise ValueError("Acumulador não pertence ao catálogo da empresa.")
+                raw_frequency = row.get("frequency", 0)
+                if not isinstance(raw_frequency, (str, int)) or isinstance(
+                    raw_frequency, bool
+                ):
+                    raise ValueError("Frequência da observação inválida.")
+                try:
+                    frequency = int(raw_frequency)
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("Frequência da observação inválida.") from exc
+                if frequency < 1:
+                    raise ValueError("Frequência da observação inválida.")
+                _, was_created = AccumulatorObservation.objects.update_or_create(
+                    organization=batch.organization,
+                    company=company,
+                    accumulator_code=accumulator_code,
+                    service_code=service_code,
+                    counterparty_ref=counterparty_ref,
+                    defaults={
+                        "frequency": frequency,
+                        "last_used_at": _datetime(row, "last_used_at"),
                     },
                 )
             else:

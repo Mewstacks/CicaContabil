@@ -183,6 +183,11 @@ def test_windows_job_is_scoped_downloaded_and_completed_only_after_hash_proof(tm
         assert item.destination_path == rf"D:\Clientes\{job.destination_path}"
         assert item.destination_hash == item.content_hash
         assert job.status == AgentFileJob.Status.DONE
+        activity = item.operational_activity
+        assert activity.work_status == "completed"
+        assert activity.processing_status == "processed"
+        assert activity.obligation_status == "not_applicable"
+        assert activity.evidence_items.count() == 1
         completed_html = render_to_string(
             "hub/triage_item.html",
             {

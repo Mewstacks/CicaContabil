@@ -122,6 +122,8 @@ def _fetch_source(source: str, page_url: str) -> list[CollectedAlert]:
 def refresh_reform_source(source: str) -> tuple[int, int]:
     """Refresh one fixed official page. Repeated collections are idempotent."""
 
+    from apps.hub.reform_activities import sync_reform_activities
+
     page_url = _SOURCES.get(source)
     if page_url is None:
         raise ValueError("Fonte do Radar não permitida.")
@@ -144,12 +146,19 @@ def refresh_reform_source(source: str) -> tuple[int, int]:
             if relevance == ReformAlert.Relevance.GENERAL:
                 # An older broad rule may have marked this same official link as
                 # fiscal. Preserve its evidence, but withdraw it from the radar.
-                if (
-                    ReformAlert.objects.filter(source=source, external_key=key)
-                    .exclude(relevance=ReformAlert.Relevance.GENERAL)
-                    .update(relevance=ReformAlert.Relevance.GENERAL)
-                ):
-                    updated += 1
+                previous = ReformAlert.objects.select_for_update().filter(
+                    source=source, external_key=key,
+                ).first()
+                if previous is not None:
+                    if previous.title != item.title or previous.relevance != relevance:
+                        previous.title = item.title
+                        previous.relevance = relevance
+                        previous.content_hash = hashlib.sha256(item.title.encode()).hexdigest()
+                        previous.save(update_fields=[
+                            "title", "relevance", "content_hash", "updated_at",
+                        ])
+                        updated += 1
+                    sync_reform_activities(previous.pk)
                 continue
             relevant_items += 1
             content_hash = hashlib.sha256(item.title.encode()).hexdigest()
@@ -171,6 +180,7 @@ def refresh_reform_source(source: str) -> tuple[int, int]:
                 alert.content_hash = content_hash
                 alert.save(update_fields=["title", "relevance", "content_hash", "updated_at"])
                 updated += 1
+            sync_reform_activities(alert.pk)
         status.last_collected_at = now
         status.last_success_at = now
         status.last_error = ""

@@ -18,6 +18,7 @@ SECRET_KEY = env_str("DJANGO_SECRET_KEY", INSECURE_FALLBACK_SECRET_KEY)
 if SECRET_KEY == INSECURE_FALLBACK_SECRET_KEY and env_str("DJANGO_SETTINGS_MODULE") not in {
     "config.settings.local",
     "config.settings.test",
+    "config.settings.test_postgresql",
 }:
     # Only the local and test modules may boot on a key everyone in the repository knows.
     raise ImproperlyConfigured(
@@ -38,6 +39,12 @@ if cloudflare_quick_tunnel_origin not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(cloudflare_quick_tunnel_origin)
 
 INTELLIGENCE_ATTACHMENT_RETRY_LIMIT = env_int("INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)
+CICA_REPORTING_URL = env_str("CICA_REPORTING_URL")
+CICA_REPORTING_SHARED_SECRET = env_str("CICA_REPORTING_SHARED_SECRET")
+# Accepted only by the internal Node renderer during a controlled secret rotation.
+# Django always sends the active secret above.
+CICA_REPORTING_PREVIOUS_SHARED_SECRET = env_str("CICA_REPORTING_PREVIOUS_SHARED_SECRET")
+CICA_REPORTING_TIMEOUT_SECONDS = env_int("CICA_REPORTING_TIMEOUT_SECONDS", 30)
 ASAAS_WEBHOOK_TOKEN = env_str("ASAAS_WEBHOOK_TOKEN")
 TOKEN_BILLING_ENABLED = env_bool("TOKEN_BILLING_ENABLED", False)
 RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = env_bool(
@@ -481,6 +488,10 @@ CELERY_TASK_SOFT_TIME_LIMIT = env_int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", 270
 CELERY_TASK_TIME_LIMIT = env_int("CELERY_TASK_TIME_LIMIT_SECONDS", 300)
 CELERY_WORKER_MAX_TASKS_PER_CHILD = env_int("CELERY_WORKER_MAX_TASKS_PER_CHILD", 500)
 CELERY_BEAT_SCHEDULE = {
+    "generate-recurring-activities": {
+        "task": "hub.generate_recurring_activities",
+        "schedule": timedelta(hours=1),
+    },
     "advance-tenant-lifecycles": {
         "task": "platform.advance_tenant_lifecycles",
         "schedule": crontab(hour=0, minute=1),
@@ -527,6 +538,14 @@ CELERY_BEAT_SCHEDULE = {
     },
     "dispatch-waiting-reconciliation-runs": {
         "task": "hub.dispatch_waiting_reconciliation_runs",
+        "schedule": timedelta(minutes=1),
+    },
+    "recover-financial-report-exports": {
+        "task": "hub.recover_financial_report_exports",
+        "schedule": timedelta(minutes=5),
+    },
+    "dispatch-waiting-financial-report-exports": {
+        "task": "hub.dispatch_waiting_financial_report_exports",
         "schedule": timedelta(minutes=1),
     },
 }

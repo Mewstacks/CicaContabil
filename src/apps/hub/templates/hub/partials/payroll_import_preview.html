@@ -1,0 +1,31 @@
+{% if payroll_preview_page %}
+<div class="payroll-import-preview" id="payroll-preview">
+  <h3>Conferir linhas da folha</h3>
+  <p>Valores originais do arquivo, em reais. A confirmação valida o lote inteiro; esta prévia não grava dados. Corrija o arquivo e envie novamente se encontrar uma diferença.</p>
+  <ol start="{{ payroll_preview_page.start_index }}">
+    {% for row in payroll_preview_rows %}
+    <li>
+      <h4>Linha {{ row.line }} · {{ row.company }}</h4>
+      {% if not row.company_found %}<p><strong>Confira o código/CNPJ e a fonte da empresa antes de confirmar.</strong></p>{% endif %}
+      <dl>
+        <div><dt>Código/CNPJ informado</dt><dd>{{ row.code|default:'Não informado' }}</dd></div>
+        <div><dt>Competência</dt><dd>{{ row.competence|default:'Não informada' }}</dd></div>
+        <div><dt>Referência</dt><dd>{{ row.reference|default:'Não informada' }}</dd></div>
+        <div><dt>Pessoas</dt><dd>{{ row.values.0|default:'Não informado' }}</dd></div>
+        <div><dt>Bruto (R$)</dt><dd>{{ row.values.1|default:'Não informado' }}</dd></div>
+        <div><dt>Descontos (R$)</dt><dd>{{ row.values.2|default:'Não informado' }}</dd></div>
+        <div><dt>Encargos (R$)</dt><dd>{{ row.values.3|default:'Não informado' }}</dd></div>
+        <div><dt>Líquido (R$)</dt><dd>{{ row.values.4|default:'Não informado' }}</dd></div>
+      </dl>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if payroll_preview_page.has_other_pages %}
+  <nav class="pagination" aria-label="Páginas da prévia da folha">
+    {% if payroll_preview_page.has_previous %}<a class="button button-quiet" href="?{{ payroll_preview_querystring }}&amp;preview_page={{ payroll_preview_page.previous_page_number }}#payroll-preview">Linhas anteriores</a>{% endif %}
+    <span>Página {{ payroll_preview_page.number }} de {{ payroll_preview_page.paginator.num_pages }}</span>
+    {% if payroll_preview_page.has_next %}<a class="button button-quiet" href="?{{ payroll_preview_querystring }}&amp;preview_page={{ payroll_preview_page.next_page_number }}#payroll-preview">Próximas linhas</a>{% endif %}
+  </nav>
+  {% endif %}
+</div>
+{% endif %}

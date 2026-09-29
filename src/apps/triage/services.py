@@ -18,6 +18,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.models import ClientCompany
+from apps.hub.module_activities import sync_triage_activity
 from apps.organizations.models import Organization
 from apps.triage.models import (
     AgentFileJob,
@@ -161,6 +162,7 @@ def _move(*, item: TriageItem, target: str, actor: User, note: str = "") -> None
         to_status=target,
         note=note[:500],
     )
+    sync_triage_activity(item.pk)
 
 
 def decide_item(
@@ -260,7 +262,7 @@ def queue_windows_archive(
     """Queue one verified copy and wait until the agent proves the final hash."""
     with transaction.atomic():
         item = (
-            TriageItem.objects.select_for_update()
+            TriageItem.objects.select_for_update(of=("self",))
             .select_related("company", "document_type", "blob")
             .get(pk=item.pk, organization=item.organization)
         )
@@ -331,7 +333,7 @@ def archive_internal(*, item: TriageItem, actor: User) -> TriageItem:
     saved_path = ""
     try:
         with transaction.atomic():
-            item = TriageItem.objects.select_for_update().select_related(
+            item = TriageItem.objects.select_for_update(of=("self",)).select_related(
                 "company", "document_type", "blob"
             ).get(pk=item.pk, organization=item.organization)
             if item.status == TriageStatus.ARCHIVED:

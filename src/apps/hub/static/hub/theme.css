@@ -1,30 +1,34 @@
 /* Shared palette: page styles consume these tokens and never redefine them. */
 :root {
   color-scheme: light;
-  --canvas: #f7f3e8;
-  --surface: #fffdf7;
-  --surface-raised: #ffffff;
-  --surface-subtle: #eeeede;
-  --ink: #192d24;
-  --muted: #536158;
-  --line: #7d8b7f;
-  --blue: #205943;
-  --blue-soft: #e6edde;
-  --green: #21603d;
-  --green-soft: #e7f2e9;
-  --amber: #825019;
-  --amber-soft: #fff0d6;
-  --red: #a32929;
-  --red-soft: #fce8e5;
-  --focus: #466d30;
-  --strong: #153e32;
-  --strong-hover: #0c2d23;
-  --on-strong: #fffdf7;
-  --rail-bg: #153e32;
-  --rail-ink: #edf5ef;
-  --rail-muted: #b9cec1;
-  --rail-selected: #e6edde;
-  --rail-selected-ink: #153e32;
+  --brand-green: #93452f;
+  --brand-cream: #f3efe7;
+  --canvas: #f3efe7;
+  --surface: #fbfaf6;
+  --surface-raised: #fffdf7;
+  --surface-subtle: #e9e3da;
+  --ink: #201e1b;
+  --muted: #6d6861;
+  --line: #c9c1b6;
+  --blue: #93452f;
+  --blue-soft: #ead9d0;
+  --green: #58705e;
+  --green-soft: #dce4dc;
+  --amber: #8b6329;
+  --amber-soft: #eee0c8;
+  --red: #9f4038;
+  --red-soft: #edd7d3;
+  --info: #245e78;
+  --info-soft: #d9e8ee;
+  --focus: #93452f;
+  --strong: #25221f;
+  --strong-hover: #0f0e0d;
+  --on-strong: #fbf8f2;
+  --rail-bg: #25221f;
+  --rail-ink: #fbf8f2;
+  --rail-muted: #c8c0b5;
+  --rail-selected: #f3efe7;
+  --rail-selected-ink: #201e1b;
   --faint: var(--muted);
   --navy: var(--strong);
   --cica-ivory: var(--on-strong);
@@ -62,58 +66,62 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-  --canvas: #101915;
-  --surface: #18251e;
-  --surface-raised: #223329;
-  --surface-subtle: #1e2f25;
-  --ink: #edf5ef;
-  --muted: #b5c5ba;
-  --line: #667d6d;
-  --blue: #a5dbb7;
-  --blue-soft: #284735;
-  --green: #a3dcaf;
-  --green-soft: #233e2b;
-  --amber: #efc58d;
-  --amber-soft: #423423;
-  --red: #ffb5ad;
-  --red-soft: #482a29;
-  --focus: #b8e59c;
-  --strong: #24583e;
-  --strong-hover: #30694c;
-  --on-strong: #fffdf7;
-  --rail-bg: #122019;
-  --rail-ink: #edf5ef;
-  --rail-muted: #b9cec1;
-  --rail-selected: #284735;
-  --rail-selected-ink: #d6f2df;
+  --canvas: #181715;
+  --surface: #211f1c;
+  --surface-raised: #282521;
+  --surface-subtle: #302c27;
+  --ink: #f2eee7;
+  --muted: #b8b0a6;
+  --line: #575048;
+  --blue: #df8b6f;
+  --blue-soft: #3e2b24;
+  --green: #91ad98;
+  --green-soft: #29362d;
+  --amber: #d4ab70;
+  --amber-soft: #3c3122;
+  --red: #e9958c;
+  --red-soft: #422926;
+  --info: #94c8dc;
+  --info-soft: #243b44;
+  --focus: #f0a082;
+  --strong: #eee8de;
+  --strong-hover: #ffffff;
+  --on-strong: #1b1917;
+  --rail-bg: #211f1c;
+  --rail-ink: #f2eee7;
+  --rail-muted: #b8b0a6;
+  --rail-selected: #3e2b24;
+  --rail-selected-ink: #f2eee7;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #101915;
-  --surface: #18251e;
-  --surface-raised: #223329;
-  --surface-subtle: #1e2f25;
-  --ink: #edf5ef;
-  --muted: #b5c5ba;
-  --line: #667d6d;
-  --blue: #a5dbb7;
-  --blue-soft: #284735;
-  --green: #a3dcaf;
-  --green-soft: #233e2b;
-  --amber: #efc58d;
-  --amber-soft: #423423;
-  --red: #ffb5ad;
-  --red-soft: #482a29;
-  --focus: #b8e59c;
-  --strong: #24583e;
-  --strong-hover: #30694c;
-  --on-strong: #fffdf7;
-  --rail-bg: #122019;
-  --rail-ink: #edf5ef;
-  --rail-muted: #b9cec1;
-  --rail-selected: #284735;
-  --rail-selected-ink: #d6f2df;
+  --canvas: #181715;
+  --surface: #211f1c;
+  --surface-raised: #282521;
+  --surface-subtle: #302c27;
+  --ink: #f2eee7;
+  --muted: #b8b0a6;
+  --line: #575048;
+  --blue: #df8b6f;
+  --blue-soft: #3e2b24;
+  --green: #91ad98;
+  --green-soft: #29362d;
+  --amber: #d4ab70;
+  --amber-soft: #3c3122;
+  --red: #e9958c;
+  --red-soft: #422926;
+  --info: #94c8dc;
+  --info-soft: #243b44;
+  --focus: #f0a082;
+  --strong: #eee8de;
+  --strong-hover: #ffffff;
+  --on-strong: #1b1917;
+  --rail-bg: #211f1c;
+  --rail-ink: #f2eee7;
+  --rail-muted: #b8b0a6;
+  --rail-selected: #3e2b24;
+  --rail-selected-ink: #f2eee7;
 }
 
 /* Shared controls and surfaces, applied after page styles. */
@@ -184,7 +192,7 @@ html :where(input,select,textarea):focus-visible { outline: 3px solid var(--focu
 input::placeholder,textarea::placeholder { color: var(--muted); opacity: 1; }
 .mobile-trigger { display: none; }
 .work-area { min-width: 0; }
-.work-area:focus { outline: none; }
+.work-area:focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
 .section-links { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
 .section-links a { min-height: 44px; display: inline-flex; align-items: center; padding: 8px 12px; color: var(--blue); border: 1px solid var(--line); border-radius: 6px; text-decoration: none; }
 .section-links a:hover { background: var(--blue-soft); }
@@ -209,3 +217,22 @@ input::placeholder,textarea::placeholder { color: var(--muted); opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* D-184 official-kit overrides after legacy page layers. */
+.workspace-brand{min-width:44px;color:var(--blue)}
+.workspace-brand>.cica-brand-mark{display:inline-grid;width:34px;height:auto;background:transparent!important;color:inherit!important}
+.wordmark>.cica-brand-lockup{background:transparent!important;color:inherit!important}
+.workspace-shell .topnav-link[aria-current],.workspace-shell .topnav-group.is-current>summary,.workspace-shell .topnav-copilot{color:var(--blue)}
+.workspace-shell .topnav-link[aria-current]::after,.workspace-shell .topnav-group.is-current>summary::after{background:var(--blue)}
+.workspace-shell .topnav-panel a[aria-current]{background:var(--blue-soft);color:var(--blue);box-shadow:inset 3px 0 var(--blue)}
+.workspace-shell .demo-office-banner{border-left-color:var(--blue);background:var(--blue-soft)}
+.workspace-shell .workspace-tabs>a[aria-current]{border-bottom-color:var(--blue);color:var(--blue)}
+.workspace-shell input:focus,.workspace-shell select:focus,.workspace-shell textarea:focus{border-color:var(--focus);outline:3px solid color-mix(in srgb,var(--focus) 28%,transparent)}
+.closing-coverage-gap{border-left:3px solid var(--blue);background:var(--surface-subtle)}.closing-gap-list{columns:2 260px;margin:16px 0 0;padding-left:20px;color:var(--muted)}.closing-gap-list a{color:var(--blue)}
+
+:root,:root:has(.workspace-shell){--brand-green:#114d44;--brand-cream:#e3ddca;--canvas:#e3ddca;--surface:#f7f4eb;--surface-raised:#fffdf7;--surface-subtle:#ebe6d8;--ink:#17211f;--muted:#56635f;--line:#b8b2a3;--control-border:#8e978f;--blue:#114d44;--blue-soft:#d7e4df;--green:#246547;--green-soft:#d8e7da;--amber:#74510d;--amber-soft:#f1e3bd;--red:#92352f;--red-soft:#f3d9d5;--info:#245e78;--info-soft:#d9e8ee;--focus:#1c6a5e;--strong:#114d44;--strong-hover:#0b3b34;--on-strong:#fff;--brand:#114d44;--rail-bg:#202522;--rail-ink:#f5f0e3;--rail-muted:#c8c3b5;--rail-selected:#e3ddca;--rail-selected-ink:#17211f}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]),:root:not([data-theme="light"]):has(.workspace-shell){--canvas:#121816;--surface:#18201d;--surface-raised:#202925;--surface-subtle:#27312d;--ink:#f5f0e3;--muted:#c4bdad;--line:#4b554f;--control-border:#617069;--blue:#a8d0c4;--blue-soft:#263c36;--green:#9bcea9;--green-soft:#253b2c;--amber:#e2bd75;--amber-soft:#41351f;--red:#f0a39d;--red-soft:#492a28;--info:#94c8dc;--info-soft:#243b44;--focus:#b8ddd2;--strong:#a8d0c4;--strong-hover:#c2e2d9;--on-strong:#10221d;--brand:#a8d0c4;--rail-bg:#111614;--rail-ink:#f5f0e3;--rail-muted:#c4bdad;--rail-selected:#2b3833;--rail-selected-ink:#f5f0e3}}
+:root[data-theme="dark"],:root[data-theme="dark"]:has(.workspace-shell){--canvas:#121816;--surface:#18201d;--surface-raised:#202925;--surface-subtle:#27312d;--ink:#f5f0e3;--muted:#c4bdad;--line:#4b554f;--control-border:#617069;--blue:#a8d0c4;--blue-soft:#263c36;--green:#9bcea9;--green-soft:#253b2c;--amber:#e2bd75;--amber-soft:#41351f;--red:#f0a39d;--red-soft:#492a28;--info:#94c8dc;--info-soft:#243b44;--focus:#b8ddd2;--strong:#a8d0c4;--strong-hover:#c2e2d9;--on-strong:#10221d;--brand:#a8d0c4;--rail-bg:#111614;--rail-ink:#f5f0e3;--rail-muted:#c4bdad;--rail-selected:#2b3833;--rail-selected-ink:#f5f0e3}
+
+.cica-brand-asset{display:inline-grid;align-items:center;flex:0 0 auto;line-height:0}.cica-brand-asset>img{display:block;grid-area:1/1;width:100%;height:auto}.cica-brand-dark{visibility:hidden}.cica-brand-lockup{width:132px}.cica-brand-mark{width:32px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .cica-brand-light{visibility:hidden}:root:not([data-theme="light"]) .cica-brand-dark{visibility:visible}}:root[data-theme="dark"] .cica-brand-light{visibility:hidden}:root[data-theme="dark"] .cica-brand-dark{visibility:visible}:root[data-theme="light"] .cica-brand-light{visibility:visible}:root[data-theme="light"] .cica-brand-dark{visibility:hidden}

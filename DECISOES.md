@@ -1,347 +1,781 @@
-# CICA — decisões e limites de confirmação
+﻿# CICA â€” decisÃµes e limites de confirmaÃ§Ã£o
 
-> Registro canônico na raiz desde 17/09/2026, por D-59. Ler com [plano mestre](PLANO-MESTRE.md) e [validações técnicas](VALIDACOES.md). Decisão aprovada não é função implementada. As classificações históricas abaixo foram preservadas: “Registrada” não foi promovida a “Confirmada”. Não repetir perguntas já resolvidas.
+> Registro canÃ´nico na raiz desde 17/09/2026, por D-59. Ler com [plano mestre](PLANO-MESTRE.md) e [validaÃ§Ãµes tÃ©cnicas](VALIDACOES.md). DecisÃ£o aprovada nÃ£o Ã© funÃ§Ã£o implementada. As classificaÃ§Ãµes histÃ³ricas abaixo foram preservadas: â€œRegistradaâ€ nÃ£o foi promovida a â€œConfirmadaâ€. NÃ£o repetir perguntas jÃ¡ resolvidas.
 
-O bloco D-01–D-45 e a lista “Decisões que não foram tomadas” são o registro histórico de 15/09. Atualizações D-46–D-60 ao final prevalecem somente no escopo explícito; por exemplo, Q-10 foi resolvida.
+O bloco D-01â€“D-45 e a lista â€œDecisÃµes que nÃ£o foram tomadasâ€ sÃ£o o registro histÃ³rico de 15/09. AtualizaÃ§Ãµes D-46â€“D-60 ao final prevalecem somente no escopo explÃ­cito; por exemplo, Q-10 foi resolvida.
 
-Atualizado em 15/09/2026. **Confirmada** significa resposta direta do responsável, registrada na sessão indicada em [fontes e histórico](docs/planejamento/fontes-e-historico.md) ou nesta conversa. **Registrada** significa que um plano/documento a apresenta como decisão anterior, mas o detalhe ainda não foi reconfirmado nesta rodada. **Proposta** não autoriza implementação comercial, publicação ou gasto. Os estados técnicos estão em [estado operacional](docs/planejamento/estado-operacional.md).
+Atualizado em 15/09/2026. **Confirmada** significa resposta direta do responsÃ¡vel, registrada na sessÃ£o indicada em [fontes e histÃ³rico](docs/planejamento/fontes-e-historico.md) ou nesta conversa. **Registrada** significa que um plano/documento a apresenta como decisÃ£o anterior, mas o detalhe ainda nÃ£o foi reconfirmado nesta rodada. **Proposta** nÃ£o autoriza implementaÃ§Ã£o comercial, publicaÃ§Ã£o ou gasto. Os estados tÃ©cnicos estÃ£o em [estado operacional](docs/planejamento/estado-operacional.md).
 
 ## Produto, marca e venda
 
-| ID | Estado | Decisão / limite exato | Fonte | Consequência |
+| ID | Estado | DecisÃ£o / limite exato | Fonte | ConsequÃªncia |
 | --- | --- | --- | --- | --- |
-| D-01 | Confirmada | Nome oficial **CICA**, Central de Inteligência Contábil Avançada. “HubContador” e “CICA” são nomes históricos/técnicos. | CX-07; `docs/cica-implementation.md` | Texto público e documentação de produto usam CICA; renomear identificadores técnicos é assunto separado. |
-| D-02 | Confirmada | Produto centralizado SaaS para escritórios, com liberação de ferramentas e funções conforme contratação. | CX-01; CX-07 | Contrato, módulos, isolamento por escritório e permissões precisam ser fontes consistentes de acesso. |
-| D-03 | Confirmada | Todos os módulos e a IA devem funcionar de ponta a ponta pela visão operacional antes de serem vendidos; dúvidas de produto devem ser trazidas ao responsável. | CX-07; CX-09; CX-10 | “Há modelo/tela/teste” não basta para declarar função pronta. |
-| D-04 | Registrada | Teste de 14 dias com suíte completa, sem cartão; MFA obrigatório após teste/contratação e dispensado no teste. | `docs/cica-implementation.md`; `docs/cica-mfa-contract-review.md` | A regra atual precisa de validação de ponta a ponta com o fluxo Asaas decidido agora; condições comerciais finais ainda não foram reconfirmadas. |
-| D-05 | Registrada | Marca visual marfim e verde escuro, domínio escolhido `cicacontabil.com.br`, fornecedora Mewstack. | `docs/cica-implementation.md`; `docs/cica-landing-direction.md` | Landing e documentos legais seguem esse contexto; marca, prova social e publicação ainda exigem fechamento. |
-| D-06 | Confirmada | Configuração deve ser simples para o próprio escritório; conexão Domínio local por ODBC/agente e Domínio Web por backup importado com atualização manual. | CX-02; CX-06 | Assistentes e instruções precisam cobrir ambos sem alegar sincronização automática do Domínio Web. |
-| D-07 | Confirmada | As telas devem ser revisadas pela tarefa real do usuário e por padrões de produtos, com funcionamento em desktop e mobile. | CX-07; CX-09; CL-02 | Critérios de aceite incluem próximo passo, estado, erro, permissão e navegação, além da aparência. |
+| D-01 | Confirmada | Nome oficial **CICA**, Central de InteligÃªncia ContÃ¡bil AvanÃ§ada. â€œHubContadorâ€ e â€œCICAâ€ sÃ£o nomes histÃ³ricos/tÃ©cnicos. | CX-07; `docs/cica-implementation.md` | Texto pÃºblico e documentaÃ§Ã£o de produto usam CICA; renomear identificadores tÃ©cnicos Ã© assunto separado. |
+| D-02 | Confirmada | Produto centralizado SaaS para escritÃ³rios, com liberaÃ§Ã£o de ferramentas e funÃ§Ãµes conforme contrataÃ§Ã£o. | CX-01; CX-07 | Contrato, mÃ³dulos, isolamento por escritÃ³rio e permissÃµes precisam ser fontes consistentes de acesso. |
+| D-03 | Confirmada | Todos os mÃ³dulos e a IA devem funcionar de ponta a ponta pela visÃ£o operacional antes de serem vendidos; dÃºvidas de produto devem ser trazidas ao responsÃ¡vel. | CX-07; CX-09; CX-10 | â€œHÃ¡ modelo/tela/testeâ€ nÃ£o basta para declarar funÃ§Ã£o pronta. |
+| D-04 | Registrada | Teste de 14 dias com suÃ­te completa, sem cartÃ£o; MFA obrigatÃ³rio apÃ³s teste/contrataÃ§Ã£o e dispensado no teste. | `docs/cica-implementation.md`; `docs/cica-mfa-contract-review.md` | A regra atual precisa de validaÃ§Ã£o de ponta a ponta com o fluxo Asaas decidido agora; condiÃ§Ãµes comerciais finais ainda nÃ£o foram reconfirmadas. |
+| D-05 | Registrada | Marca visual marfim e verde escuro, domÃ­nio escolhido `cicacontabil.com.br`, fornecedora Mewstack. | `docs/cica-implementation.md`; `docs/cica-landing-direction.md` | Landing e documentos legais seguem esse contexto; marca, prova social e publicaÃ§Ã£o ainda exigem fechamento. |
+| D-06 | Confirmada | ConfiguraÃ§Ã£o deve ser simples para o prÃ³prio escritÃ³rio; conexÃ£o DomÃ­nio local por ODBC/agente e DomÃ­nio Web por backup importado com atualizaÃ§Ã£o manual. | CX-02; CX-06 | Assistentes e instruÃ§Ãµes precisam cobrir ambos sem alegar sincronizaÃ§Ã£o automÃ¡tica do DomÃ­nio Web. |
+| D-07 | Confirmada | As telas devem ser revisadas pela tarefa real do usuÃ¡rio e por padrÃµes de produtos, com funcionamento em desktop e mobile. | CX-07; CX-09; CL-02 | CritÃ©rios de aceite incluem prÃ³ximo passo, estado, erro, permissÃ£o e navegaÃ§Ã£o, alÃ©m da aparÃªncia. |
 
-## Integra Contador, franquia e cobrança
+## Integra Contador, franquia e cobranÃ§a
 
-| ID | Estado | Decisão / limite exato | Fonte | Consequência |
+| ID | Estado | DecisÃ£o / limite exato | Fonte | ConsequÃªncia |
 | --- | --- | --- | --- | --- |
-| D-08 | Confirmada | As credenciais/contrato Serpro pertencem à **Mewstack**, centralmente; o escritório usa cotas e não cadastra sua própria chave Serpro. | CX-05; resposta em CX-09 | Segredos e certificados da central não entram no workspace do escritório; consumo é medido por organização e serviço. |
-| D-09 | Confirmada | Existe franquia contratada por escritório e excedente; o plano Codex enviado pelo responsável especificou uma fatura mensal única, com mensalidade e excedentes, sem cobrança avulsa por ação. | CX-05 | Reserva, liquidação, ajuste e faturamento precisam ser idempotentes e auditáveis. |
-| D-10 | Registrada | O plano CX-05 indicou fechamento da competência em `America/Sao_Paulo` no dia 1, vencimento dia 10, preços congelados em lançamentos e política `bloquear`/`exigir aprovação`/`autorizar excedente` dentro do teto contratado. | CX-05 | Validar calendário, política e condições na revisão comercial antes de publicar ou migrar contratos. |
-| D-11 | Confirmada em 15/09 | **Asaas é o padrão** de cobrança e atende Pix, boleto e cartão. Banco Inter para Pix/boleto é desenho anterior, substituído neste escopo. | respostas do responsável nesta conversa; CL-03 e CX-05 como histórico | Uma fatura deve evitar tentativas simultâneas/duplicadas ao trocar o meio de pagamento. Integração Asaas ainda não está homologada. |
-| D-12 | Confirmada em 15/09 | É possível cadastrar escritório/empresa manualmente, cobrar manualmente e definir preço individual diferente do catálogo. | resposta do responsável nesta conversa | O contrato deve distinguir cobrança Asaas de cobrança manual, registrar valores específicos e preservar o histórico. |
-| D-13 | Confirmada em 15/09 | Contratos de cobrança manual ficam fora dos webhooks e da suspensão dirigida pelo Asaas, inclusive instalação Windows dedicada. | resposta do responsável nesta conversa | Um evento Asaas jamais altera contrato manual; método e estado de acesso manual dependem da regra comercial ainda aberta. |
-| D-14 | Registrada | Nenhuma ação do usuário deve gerar cobrança avulsa do Serpro; cotas, aprovação ou bloqueio precedem a chamada e apenas chamadas efetivamente faturáveis são liquidadas. | CX-05; `docs/cica-operation-access-review.md` | Homologação deve conferir projeção, reserva, resposta, retry, excedente e reconciliação. |
-| D-15 | Confirmada em 15/09 | **Asaas suspende automaticamente por inadimplência após um prazo de carência ainda a definir, em modo somente leitura, sem apagar dados; contratos manuais têm suspensão decidida por operador.** A documentação CICA anterior separava registro financeiro e decisão de acesso para todos. | respostas do responsável nesta conversa; `docs/cica-mfa-contract-review.md`; CL-03 | Confirmar duração e marco inicial da carência, quais GETs/downloads permanecem disponíveis, recuperação após pagamento e tratamento de estornos. |
+| D-08 | Confirmada | As credenciais/contrato Serpro pertencem Ã  **Mewstack**, centralmente; o escritÃ³rio usa cotas e nÃ£o cadastra sua prÃ³pria chave Serpro. | CX-05; resposta em CX-09 | Segredos e certificados da central nÃ£o entram no workspace do escritÃ³rio; consumo Ã© medido por organizaÃ§Ã£o e serviÃ§o. |
+| D-09 | Confirmada | Existe franquia contratada por escritÃ³rio e excedente; o plano Codex enviado pelo responsÃ¡vel especificou uma fatura mensal Ãºnica, com mensalidade e excedentes, sem cobranÃ§a avulsa por aÃ§Ã£o. | CX-05 | Reserva, liquidaÃ§Ã£o, ajuste e faturamento precisam ser idempotentes e auditÃ¡veis. |
+| D-10 | Registrada | O plano CX-05 indicou fechamento da competÃªncia em `America/Sao_Paulo` no dia 1, vencimento dia 10, preÃ§os congelados em lanÃ§amentos e polÃ­tica `bloquear`/`exigir aprovaÃ§Ã£o`/`autorizar excedente` dentro do teto contratado. | CX-05 | Validar calendÃ¡rio, polÃ­tica e condiÃ§Ãµes na revisÃ£o comercial antes de publicar ou migrar contratos. |
+| D-11 | Confirmada em 15/09 | **Asaas Ã© o padrÃ£o** de cobranÃ§a e atende Pix, boleto e cartÃ£o. Banco Inter para Pix/boleto Ã© desenho anterior, substituÃ­do neste escopo. | respostas do responsÃ¡vel nesta conversa; CL-03 e CX-05 como histÃ³rico | Uma fatura deve evitar tentativas simultÃ¢neas/duplicadas ao trocar o meio de pagamento. IntegraÃ§Ã£o Asaas ainda nÃ£o estÃ¡ homologada. |
+| D-12 | Confirmada em 15/09 | Ã‰ possÃ­vel cadastrar escritÃ³rio/empresa manualmente, cobrar manualmente e definir preÃ§o individual diferente do catÃ¡logo. | resposta do responsÃ¡vel nesta conversa | O contrato deve distinguir cobranÃ§a Asaas de cobranÃ§a manual, registrar valores especÃ­ficos e preservar o histÃ³rico. |
+| D-13 | Confirmada em 15/09 | Contratos de cobranÃ§a manual ficam fora dos webhooks e da suspensÃ£o dirigida pelo Asaas, inclusive instalaÃ§Ã£o Windows dedicada. | resposta do responsÃ¡vel nesta conversa | Um evento Asaas jamais altera contrato manual; mÃ©todo e estado de acesso manual dependem da regra comercial ainda aberta. |
+| D-14 | Registrada | Nenhuma aÃ§Ã£o do usuÃ¡rio deve gerar cobranÃ§a avulsa do Serpro; cotas, aprovaÃ§Ã£o ou bloqueio precedem a chamada e apenas chamadas efetivamente faturÃ¡veis sÃ£o liquidadas. | CX-05; `docs/cica-operation-access-review.md` | HomologaÃ§Ã£o deve conferir projeÃ§Ã£o, reserva, resposta, retry, excedente e reconciliaÃ§Ã£o. |
+| D-15 | Confirmada em 15/09 | **Asaas suspende automaticamente por inadimplÃªncia apÃ³s um prazo de carÃªncia ainda a definir, em modo somente leitura, sem apagar dados; contratos manuais tÃªm suspensÃ£o decidida por operador.** A documentaÃ§Ã£o CICA anterior separava registro financeiro e decisÃ£o de acesso para todos. | respostas do responsÃ¡vel nesta conversa; `docs/cica-mfa-contract-review.md`; CL-03 | Confirmar duraÃ§Ã£o e marco inicial da carÃªncia, quais GETs/downloads permanecem disponÃ­veis, recuperaÃ§Ã£o apÃ³s pagamento e tratamento de estornos. |
 
 ## IA, conhecimento e dados
 
-| ID | Estado | Decisão / limite exato | Fonte | Consequência |
+| ID | Estado | DecisÃ£o / limite exato | Fonte | ConsequÃªncia |
 | --- | --- | --- | --- | --- |
-| D-16 | Confirmada | **Claude Sonnet por API KEY no `.env` agora**, deixando o produto preparado para o PC/modelo local futuro. A decisão cobre Copiloto e, por confirmação nesta conversa, também análise de anexos da Triagem. | CX-09; resposta nesta conversa | O plano CL-04 “somente modelo local” foi substituído para a etapa provisória. Arquitetura de migração e limites devem ser explícitos. |
-| D-17 | Confirmada | Serpro e IA terão cotas por escritório. O responsável pediu pesquisa de limites ideais e preços, mas **não definiu** teto Claude por requisição/dia/mês nem franquia final. | CX-09; `docs/cica-operation-access-review.md` | Não escrever número comercial como aprovado nem realizar chamada paga sem confirmação específica de custo. |
-| D-18 | Registrada | Consulta ao Domínio é somente leitura, por ODBC local ou agente no escritório; respostas de IA precisam de evidência e curadoria, com ação humana para alteração. | CX-02; [MCP interno](docs/intelligence-mcp.md) | Escopo por organização/empresa e recusa de SQL, DSN e credenciais no argumento da ferramenta. |
-| D-19 | Registrada | O Copiloto ficou oculto e indisponível para escritórios até infraestrutura local na configuração antiga. | `docs/cica-implementation.md`; `platform.PlatformConfiguration` | A decisão D-16 pede novo caminho temporário; ativação, política de custo e publicação comercial ainda não estão concluídas. |
-| D-20 | Registrada | Dados de documento/cliente não viram instruções da IA; revisões, fontes e correções precisam de trilha. | `docs/intelligence-mcp.md`; `docs/plano-triagem-documental.md` | Integridade e privacidade precisam ser testadas com anexos não confiáveis e casos ambíguos. |
+| D-16 | Confirmada | **Claude Sonnet por API KEY no `.env` agora**, deixando o produto preparado para o PC/modelo local futuro. A decisÃ£o cobre Copiloto e, por confirmaÃ§Ã£o nesta conversa, tambÃ©m anÃ¡lise de anexos da Triagem. | CX-09; resposta nesta conversa | O plano CL-04 â€œsomente modelo localâ€ foi substituÃ­do para a etapa provisÃ³ria. Arquitetura de migraÃ§Ã£o e limites devem ser explÃ­citos. |
+| D-17 | Confirmada | Serpro e IA terÃ£o cotas por escritÃ³rio. O responsÃ¡vel pediu pesquisa de limites ideais e preÃ§os, mas **nÃ£o definiu** teto Claude por requisiÃ§Ã£o/dia/mÃªs nem franquia final. | CX-09; `docs/cica-operation-access-review.md` | NÃ£o escrever nÃºmero comercial como aprovado nem realizar chamada paga sem confirmaÃ§Ã£o especÃ­fica de custo. |
+| D-18 | Registrada | Consulta ao DomÃ­nio Ã© somente leitura, por ODBC local ou agente no escritÃ³rio; respostas de IA precisam de evidÃªncia e curadoria, com aÃ§Ã£o humana para alteraÃ§Ã£o. | CX-02; [MCP interno](docs/intelligence-mcp.md) | Escopo por organizaÃ§Ã£o/empresa e recusa de SQL, DSN e credenciais no argumento da ferramenta. |
+| D-19 | Registrada | O Copiloto ficou oculto e indisponÃ­vel para escritÃ³rios atÃ© infraestrutura local na configuraÃ§Ã£o antiga. | `docs/cica-implementation.md`; `platform.PlatformConfiguration` | A decisÃ£o D-16 pede novo caminho temporÃ¡rio; ativaÃ§Ã£o, polÃ­tica de custo e publicaÃ§Ã£o comercial ainda nÃ£o estÃ£o concluÃ­das. |
+| D-20 | Registrada | Dados de documento/cliente nÃ£o viram instruÃ§Ãµes da IA; revisÃµes, fontes e correÃ§Ãµes precisam de trilha. | `docs/intelligence-mcp.md`; `docs/plano-triagem-documental.md` | Integridade e privacidade precisam ser testadas com anexos nÃ£o confiÃ¡veis e casos ambÃ­guos. |
 
 ## Triagem de Arquivos
 
-| ID | Estado | Decisão / limite exato | Fonte | Consequência |
+| ID | Estado | DecisÃ£o / limite exato | Fonte | ConsequÃªncia |
 | --- | --- | --- | --- | --- |
-| D-21 | Confirmada | Primeira versão vendável recebe documentos **somente de caixa de e-mail**, sem upload de tela nem pasta monitorada como entrada. | CX-09; CL-04 | É preciso conectar caixa, ler anexos com cursor/idempotência e oferecer estado de conexão/erro. |
-| D-22 | Confirmada | Suportar **Microsoft 365, Google/Gmail e IMAP genérico**, os três. | CX-09 | O plano CL-04 listava Graph e Gmail via IMAP como alternativa; a forma técnica e OAuth ainda exigem pesquisa/homologação. |
-| D-23 | Confirmada; esclarecida em 15/09 | Cada escritório conecta **a própria caixa** em um fluxo guiado. Para Microsoft 365 e Google Workspace, configura **seu aplicativo OAuth** no sistema, com manual passo a passo; IMAP genérico usa assistente TLS. Para **Gmail pessoal**, a Mewstack manterá um aplicativo Google verificado e cada escritório autorizará apenas sua conta. | CX-09; resposta direta “cada escritório deve configurar o seu”; escolha específica do responsável para Gmail pessoal; [pesquisa oficial](docs/planejamento/conexao-caixas-email.md) | Homologar apps e consentimento reais. A Mewstack precisa fornecer redirect HTTPS e registrar/verificar seu app Gmail pessoal antes da venda dessa opção. |
-| D-24 | Confirmada | Cada escritório escolhe **biblioteca interna** ou **árvore de pastas Windows da empresa** como destino. | CX-09; CL-04 | Ambas as opções fazem parte do objetivo; forma da troca e coexistência de arquivos antigos precisam ser definidas. |
-| D-25 | Confirmada | Para Windows, o próprio escritório configura a raiz; o padrão de pastas será definido pela CICA e a pasta de empresa deverá conter nome e **código Domínio obrigatório**. | CX-09 | Caminho real, nomenclatura completa, validação de escape e permissões do agente seguem pendentes. |
-| D-26 | Registrada em CL-04 | `0000` no nome do arquivo é `ClientCompany.dominio_code`; nome mensal `MMYYYY`, anual `YYYY`; colisão com mesmo hash é duplicata, conteúdo diferente recebe `_02`, `_03`. | CL-04 | O padrão completo das 19 nomenclaturas e árvore final ainda precisa de confirmação do responsável. |
-| D-27 | Registrada em CL-04 | Automático só com CNPJ único no documento, regra determinística válida e confiança ≥98% em cada campo obrigatório; PDF com múltiplos documentos vai sempre para revisão. | CL-04 | Meta e amostra de aceite precisam ser aprovadas; confiança numérica da IA não equivale a precisão medida. |
-| D-28 | Registrada em CL-04 | Limite proposto de 50 MB por anexo, PDF até 100 páginas; PDF/JPG/PNG/WebP/XLSX/CSV/TXT; protegido por senha rejeitado. | CL-04 | Confirmar limites/formato por operação e dimensionar extração/antimalware antes de publicar. |
-| D-29 | Registrada | Checklist de recebidos só muda após arquivamento confirmado; WhatsApp de pendências é frente posterior, sem provedor, consentimento, modelo ou custo definidos. | CL-04; [plano inicial](docs/plano-triagem-documental.md) | Mensageria não integra o primeiro recorte vendável sem decisão separada. |
-| D-30 | Confirmada como método | A reunião de 11/09 é material de conversa, não especificação; itens “Confirme antes de mudar” devem ser respondidos pelo responsável, sem inventar arquivo, versão, prazo ou card. | CX-08 | Taxonomia, árvore, canais auxiliares e políticas permanecem perguntas quando a fonte não basta. |
+| D-21 | Confirmada | Primeira versÃ£o vendÃ¡vel recebe documentos **somente de caixa de e-mail**, sem upload de tela nem pasta monitorada como entrada. | CX-09; CL-04 | Ã‰ preciso conectar caixa, ler anexos com cursor/idempotÃªncia e oferecer estado de conexÃ£o/erro. |
+| D-22 | Confirmada | Suportar **Microsoft 365, Google/Gmail e IMAP genÃ©rico**, os trÃªs. | CX-09 | O plano CL-04 listava Graph e Gmail via IMAP como alternativa; a forma tÃ©cnica e OAuth ainda exigem pesquisa/homologaÃ§Ã£o. |
+| D-23 | Confirmada; esclarecida em 15/09 | Cada escritÃ³rio conecta **a prÃ³pria caixa** em um fluxo guiado. Para Microsoft 365 e Google Workspace, configura **seu aplicativo OAuth** no sistema, com manual passo a passo; IMAP genÃ©rico usa assistente TLS. Para **Gmail pessoal**, a Mewstack manterÃ¡ um aplicativo Google verificado e cada escritÃ³rio autorizarÃ¡ apenas sua conta. | CX-09; resposta direta â€œcada escritÃ³rio deve configurar o seuâ€; escolha especÃ­fica do responsÃ¡vel para Gmail pessoal; [pesquisa oficial](docs/planejamento/conexao-caixas-email.md) | Homologar apps e consentimento reais. A Mewstack precisa fornecer redirect HTTPS e registrar/verificar seu app Gmail pessoal antes da venda dessa opÃ§Ã£o. |
+| D-24 | Confirmada | Cada escritÃ³rio escolhe **biblioteca interna** ou **Ã¡rvore de pastas Windows da empresa** como destino. | CX-09; CL-04 | Ambas as opÃ§Ãµes fazem parte do objetivo; forma da troca e coexistÃªncia de arquivos antigos precisam ser definidas. |
+| D-25 | Confirmada | Para Windows, o prÃ³prio escritÃ³rio configura a raiz; o padrÃ£o de pastas serÃ¡ definido pela CICA e a pasta de empresa deverÃ¡ conter nome e **cÃ³digo DomÃ­nio obrigatÃ³rio**. | CX-09 | Caminho real, nomenclatura completa, validaÃ§Ã£o de escape e permissÃµes do agente seguem pendentes. |
+| D-26 | Registrada em CL-04 | `0000` no nome do arquivo Ã© `ClientCompany.dominio_code`; nome mensal `MMYYYY`, anual `YYYY`; colisÃ£o com mesmo hash Ã© duplicata, conteÃºdo diferente recebe `_02`, `_03`. | CL-04 | O padrÃ£o completo das 19 nomenclaturas e Ã¡rvore final ainda precisa de confirmaÃ§Ã£o do responsÃ¡vel. |
+| D-27 | Registrada em CL-04 | AutomÃ¡tico sÃ³ com CNPJ Ãºnico no documento, regra determinÃ­stica vÃ¡lida e confianÃ§a â‰¥98% em cada campo obrigatÃ³rio; PDF com mÃºltiplos documentos vai sempre para revisÃ£o. | CL-04 | Meta e amostra de aceite precisam ser aprovadas; confianÃ§a numÃ©rica da IA nÃ£o equivale a precisÃ£o medida. |
+| D-28 | Registrada em CL-04 | Limite proposto de 50 MB por anexo, PDF atÃ© 100 pÃ¡ginas; PDF/JPG/PNG/WebP/XLSX/CSV/TXT; protegido por senha rejeitado. | CL-04 | Confirmar limites/formato por operaÃ§Ã£o e dimensionar extraÃ§Ã£o/antimalware antes de publicar. |
+| D-29 | Registrada | Checklist de recebidos sÃ³ muda apÃ³s arquivamento confirmado; WhatsApp de pendÃªncias Ã© frente posterior, sem provedor, consentimento, modelo ou custo definidos. | CL-04; [plano inicial](docs/plano-triagem-documental.md) | Mensageria nÃ£o integra o primeiro recorte vendÃ¡vel sem decisÃ£o separada. |
+| D-30 | Confirmada como mÃ©todo | A reuniÃ£o de 11/09 Ã© material de conversa, nÃ£o especificaÃ§Ã£o; itens â€œConfirme antes de mudarâ€ devem ser respondidos pelo responsÃ¡vel, sem inventar arquivo, versÃ£o, prazo ou card. | CX-08 | Taxonomia, Ã¡rvore, canais auxiliares e polÃ­ticas permanecem perguntas quando a fonte nÃ£o basta. |
 
-## Integrações e operações adjacentes
+## IntegraÃ§Ãµes e operaÃ§Ãµes adjacentes
 
-| ID | Estado | Decisão / limite exato | Fonte | Consequência |
+| ID | Estado | DecisÃ£o / limite exato | Fonte | ConsequÃªncia |
 | --- | --- | --- | --- | --- |
-| D-31 | Registrada | NFS-e Nacional (ADN) deve ser fonte de coleta para NFS-e, além de telas de custódia/classificação. | CL-03; `docs/cica-module-truth.md` | Não anunciar captura externa como pronta até existir cliente e homologação com certificado autorizado. |
-| D-32 | Registrada | DTE e guias/DCTFWeb devem fazer chamadas reais à central Integra, com autorização de consumo, estados e resultado persistido, sem depender de planilha. | CX-03; CX-05 | Testes de cliente com transporte simulado não substituem piloto Serpro. |
-| D-33 | Registrada | Siescon não tem adaptador homologado nem mecanismo público de leitura confirmado; não pedir segredo nem anunciar conexão ativa. | [descoberta Siescon](docs/cica-siescon-discovery.md) | Obter documentação e homologação pelo fornecedor antes de liberar. |
-| D-34 | Substituída por D-43 em 15/09 | A avaliação anterior cogitava tirar Jornadas da oferta paga e ainda discutia se manteria o quadro. | conversa anterior; [avaliação](docs/planejamento/avaliacao-jornadas.md) | A ordem posterior é mais específica: Triagem substitui Jornadas no produto. |
-| D-35 | Registrada | Conciliação OFX × Domínio cruza empresa/data/valor e pede confirmação humana da ambiguidade; Radar reúne publicações oficiais, sem cálculo de impacto por cliente. | [verdade dos módulos](docs/cica-module-truth.md) | Aceite operacional precisa verificar fontes, falhas e carteira real. |
-| D-36 | Confirmada em 15/09 | O responsável pediu arquivos `.md` atualizados com todas as decisões tomadas nesta conversa e revisão completa do README principal. | Pedido direto nesta conversa | A memória em `docs/planejamento/`, o README e o registro de execução devem evoluir junto com a implementação, separando confirmação, proposta e evidência. |
-| D-37 | Padrão técnico local; origem do nome pendente | A CICA definiu o componente de empresa `Nome [Domínio código]` para cumprir a delegação D-25; o código é obrigatório e preservado. A função ainda não grava no Windows. | D-25; [padrão e fonte Microsoft](docs/planejamento/padrao-pastas-windows.md) | Confirmar se o nome vem da CICA ou do Domínio e o comportamento ao renomear; validar raiz e agente antes de ativar. |
-| D-38 | Confirmada em 15/09 | A Central Integra Contador deve ser uma área de trabalho real, começando pela Caixa Postal DTE: localizar por empresa/estado, acompanhar consultas, abrir o teor e registrar a consequência jurídica com evidência na própria tela. A mesma revisão crítica deve seguir nas demais ferramentas. | pedidos diretos do responsável nesta conversa | Caixa de trabalho, resumo sem efeito jurídico, confirmação explícita da abertura, histórico, falha e próximo passo; não declarar os outros serviços da Central como prontos por terem apenas código de integração. |
-| D-39 | Confirmada em 15/09 | A ciência oficial por abertura do DTE é permitida a dono/administrador e a colaborador no perfil **Operador** com permissão específica. | resposta direta do responsável nesta conversa | Gestor, auditor, financeiro e suporte não recebem ciência por permissão genérica; a equipe precisa exibir e auditar o privilégio específico. |
-| D-40 | Confirmada em 15/09 | A entrada da **Central Integra Contador** deve oferecer exatamente três ferramentas iniciais para escolha do operador: **Caixa DTE, Parcelamentos e DCTFWeb**. O responsável escolheu DCTFWeb como terceira, substituindo a proposta SITFIS. | respostas diretas do responsável nesta conversa | Navegação pela Central; nenhuma ferramenta pode aparentar consulta Serpro homologada por ter apenas tela ou dados locais. |
-| D-41 | Confirmada em 15/09 | Na preparação de consultas DTE, o operador precisa poder selecionar todas as empresas **aptas** do escopo, selecionar os resultados da busca e limpar a seleção, vendo a quantidade exata de chamadas Serpro antes de autorizar o envio. | pedido direto do responsável e revisão da tela com 562 empresas | Seleção deve incluir aptas além das 20 linhas inicialmente exibidas; empresas sem CNPJ válido não podem ser cobradas nem enviadas. Na carteira Fedrizzi são 554 aptas e 8 sem CNPJ. O preparo é local e a cobrança só pode seguir a autorização explícita. |
-| D-42 | Confirmada em 15/09 | A terceira ferramenta inicial, **DCTFWeb**, deve permitir consultar a declaração, obter o recibo e emitir guia. | resposta direta do responsável nesta conversa | Transmissão não faz parte do escopo inicial; `CONSDECCOMPLETA33`, `CONSRECIBO32` e `GERARGUIA31` exigem fluxo operacional e homologação Serpro. |
-| D-43 | Confirmada em 15/09 | **Triagem de Arquivos substitui Jornadas em todo o produto.** Não existem contratos comerciais antigos de Jornadas. | ordem e esclarecimento direto do responsável nesta conversa | Tirar Jornadas de oferta, navegação, catálogo e rotas do escritório; preservar o schema legado sem anunciar ou abrir o quadro. Mensalidade da Triagem precisa de pesquisa e aprovação. |
-| D-44 | Confirmada em 15/09 | A cobrança desejada é **mensalidade mínima por módulo + franquia de tokens própria + excedente automático até teto mensal aceito**. Um token CICA terá o **mesmo preço em todos os módulos**, com **consumo apenas em números inteiros**; cada operação queimará um peso diferente conforme custo/trabalho. O responsável rejeitou R$ 0,01 e indicou **R$ 0,05 como referência a pesquisar**, sem fechar tarifa. | respostas diretas do responsável nesta conversa; [pesquisa](docs/planejamento/precificacao-tokens-modulos.md) | Separar token comercial de token do Claude/Gmail; congelar preço/pesos/franquia/teto no contrato, reservar e liquidar por resultado, mostrar saldo e fatura por módulo. Valor final em R$ e pesos ainda não aprovados. |
-| D-45 | Confirmada em 15/09 | Os pesos das operações **Integra Contador** devem sempre partir da **faixa mais cara vigente do Serpro** para cada serviço. Faixas mais baratas alcançadas depois pela Mewstack ampliam sua margem, sem redução automática do peso vendido ao escritório. | resposta direta do responsável nesta conversa; [tabela oficial](https://loja.serpro.gov.br/integra-contador/product/integracontador), aba “Preço” | A tabela oficial lida em 15/09 mostra **faixa 1: consulta R$ 0,24, emissão R$ 0,32 e declaração R$ 0,40**. Confirmar a categoria de cada código DTE/Parcelamentos/DCTFWeb antes de fixar peso por ação. |
+| D-31 | Registrada | NFS-e Nacional (ADN) deve ser fonte de coleta para NFS-e, alÃ©m de telas de custÃ³dia/classificaÃ§Ã£o. | CL-03; `docs/cica-module-truth.md` | NÃ£o anunciar captura externa como pronta atÃ© existir cliente e homologaÃ§Ã£o com certificado autorizado. |
+| D-32 | Registrada | DTE e guias/DCTFWeb devem fazer chamadas reais Ã  central Integra, com autorizaÃ§Ã£o de consumo, estados e resultado persistido, sem depender de planilha. | CX-03; CX-05 | Testes de cliente com transporte simulado nÃ£o substituem piloto Serpro. |
+| D-33 | Registrada | Siescon nÃ£o tem adaptador homologado nem mecanismo pÃºblico de leitura confirmado; nÃ£o pedir segredo nem anunciar conexÃ£o ativa. | [descoberta Siescon](docs/cica-siescon-discovery.md) | Obter documentaÃ§Ã£o e homologaÃ§Ã£o pelo fornecedor antes de liberar. |
+| D-34 | SubstituÃ­da por D-43 em 15/09 | A avaliaÃ§Ã£o anterior cogitava tirar Jornadas da oferta paga e ainda discutia se manteria o quadro. | conversa anterior; [avaliaÃ§Ã£o](docs/planejamento/avaliacao-jornadas.md) | A ordem posterior Ã© mais especÃ­fica: Triagem substitui Jornadas no produto. |
+| D-35 | Registrada | ConciliaÃ§Ã£o OFX Ã— DomÃ­nio cruza empresa/data/valor e pede confirmaÃ§Ã£o humana da ambiguidade; Radar reÃºne publicaÃ§Ãµes oficiais, sem cÃ¡lculo de impacto por cliente. | [verdade dos mÃ³dulos](docs/cica-module-truth.md) | Aceite operacional precisa verificar fontes, falhas e carteira real. |
+| D-36 | Confirmada em 15/09 | O responsÃ¡vel pediu arquivos `.md` atualizados com todas as decisÃµes tomadas nesta conversa e revisÃ£o completa do README principal. | Pedido direto nesta conversa | A memÃ³ria em `docs/planejamento/`, o README e o registro de execuÃ§Ã£o devem evoluir junto com a implementaÃ§Ã£o, separando confirmaÃ§Ã£o, proposta e evidÃªncia. |
+| D-37 | PadrÃ£o tÃ©cnico local; origem do nome pendente | A CICA definiu o componente de empresa `Nome [DomÃ­nio cÃ³digo]` para cumprir a delegaÃ§Ã£o D-25; o cÃ³digo Ã© obrigatÃ³rio e preservado. A funÃ§Ã£o ainda nÃ£o grava no Windows. | D-25; [padrÃ£o e fonte Microsoft](docs/planejamento/padrao-pastas-windows.md) | Confirmar se o nome vem da CICA ou do DomÃ­nio e o comportamento ao renomear; validar raiz e agente antes de ativar. |
+| D-38 | Confirmada em 15/09 | A Central Integra Contador deve ser uma Ã¡rea de trabalho real, comeÃ§ando pela Caixa Postal DTE: localizar por empresa/estado, acompanhar consultas, abrir o teor e registrar a consequÃªncia jurÃ­dica com evidÃªncia na prÃ³pria tela. A mesma revisÃ£o crÃ­tica deve seguir nas demais ferramentas. | pedidos diretos do responsÃ¡vel nesta conversa | Caixa de trabalho, resumo sem efeito jurÃ­dico, confirmaÃ§Ã£o explÃ­cita da abertura, histÃ³rico, falha e prÃ³ximo passo; nÃ£o declarar os outros serviÃ§os da Central como prontos por terem apenas cÃ³digo de integraÃ§Ã£o. |
+| D-39 | Confirmada em 15/09 | A ciÃªncia oficial por abertura do DTE Ã© permitida a dono/administrador e a colaborador no perfil **Operador** com permissÃ£o especÃ­fica. | resposta direta do responsÃ¡vel nesta conversa | Gestor, auditor, financeiro e suporte nÃ£o recebem ciÃªncia por permissÃ£o genÃ©rica; a equipe precisa exibir e auditar o privilÃ©gio especÃ­fico. |
+| D-40 | Confirmada em 15/09 | A entrada da **Central Integra Contador** deve oferecer exatamente trÃªs ferramentas iniciais para escolha do operador: **Caixa DTE, Parcelamentos e DCTFWeb**. O responsÃ¡vel escolheu DCTFWeb como terceira, substituindo a proposta SITFIS. | respostas diretas do responsÃ¡vel nesta conversa | NavegaÃ§Ã£o pela Central; nenhuma ferramenta pode aparentar consulta Serpro homologada por ter apenas tela ou dados locais. |
+| D-41 | Confirmada em 15/09 | Na preparaÃ§Ã£o de consultas DTE, o operador precisa poder selecionar todas as empresas **aptas** do escopo, selecionar os resultados da busca e limpar a seleÃ§Ã£o, vendo a quantidade exata de chamadas Serpro antes de autorizar o envio. | pedido direto do responsÃ¡vel e revisÃ£o da tela com 562 empresas | SeleÃ§Ã£o deve incluir aptas alÃ©m das 20 linhas inicialmente exibidas; empresas sem CNPJ vÃ¡lido nÃ£o podem ser cobradas nem enviadas. Na carteira Fedrizzi sÃ£o 554 aptas e 8 sem CNPJ. O preparo Ã© local e a cobranÃ§a sÃ³ pode seguir a autorizaÃ§Ã£o explÃ­cita. |
+| D-42 | Confirmada em 15/09 | A terceira ferramenta inicial, **DCTFWeb**, deve permitir consultar a declaraÃ§Ã£o, obter o recibo e emitir guia. | resposta direta do responsÃ¡vel nesta conversa | TransmissÃ£o nÃ£o faz parte do escopo inicial; `CONSDECCOMPLETA33`, `CONSRECIBO32` e `GERARGUIA31` exigem fluxo operacional e homologaÃ§Ã£o Serpro. |
+| D-43 | Confirmada em 15/09 | **Triagem de Arquivos substitui Jornadas em todo o produto.** NÃ£o existem contratos comerciais antigos de Jornadas. | ordem e esclarecimento direto do responsÃ¡vel nesta conversa | Tirar Jornadas de oferta, navegaÃ§Ã£o, catÃ¡logo e rotas do escritÃ³rio; preservar o schema legado sem anunciar ou abrir o quadro. Mensalidade da Triagem precisa de pesquisa e aprovaÃ§Ã£o. |
+| D-44 | Confirmada em 15/09 | A cobranÃ§a desejada Ã© **mensalidade mÃ­nima por mÃ³dulo + franquia de tokens prÃ³pria + excedente automÃ¡tico atÃ© teto mensal aceito**. Um token CICA terÃ¡ o **mesmo preÃ§o em todos os mÃ³dulos**, com **consumo apenas em nÃºmeros inteiros**; cada operaÃ§Ã£o queimarÃ¡ um peso diferente conforme custo/trabalho. O responsÃ¡vel rejeitou R$ 0,01 e indicou **R$ 0,05 como referÃªncia a pesquisar**, sem fechar tarifa. | respostas diretas do responsÃ¡vel nesta conversa; [pesquisa](docs/planejamento/precificacao-tokens-modulos.md) | Separar token comercial de token do Claude/Gmail; congelar preÃ§o/pesos/franquia/teto no contrato, reservar e liquidar por resultado, mostrar saldo e fatura por mÃ³dulo. Valor final em R$ e pesos ainda nÃ£o aprovados. |
+| D-45 | Confirmada em 15/09 | Os pesos das operaÃ§Ãµes **Integra Contador** devem sempre partir da **faixa mais cara vigente do Serpro** para cada serviÃ§o. Faixas mais baratas alcanÃ§adas depois pela Mewstack ampliam sua margem, sem reduÃ§Ã£o automÃ¡tica do peso vendido ao escritÃ³rio. | resposta direta do responsÃ¡vel nesta conversa; [tabela oficial](https://loja.serpro.gov.br/integra-contador/product/integracontador), aba â€œPreÃ§oâ€ | A tabela oficial lida em 15/09 mostra **faixa 1: consulta R$ 0,24, emissÃ£o R$ 0,32 e declaraÃ§Ã£o R$ 0,40**. Confirmar a categoria de cada cÃ³digo DTE/Parcelamentos/DCTFWeb antes de fixar peso por aÃ§Ã£o. |
 
-## Decisões que não foram tomadas
+## DecisÃµes que nÃ£o foram tomadas
 
-Este registro não aprova **valor monetário do token, preços mínimos, pesos, franquias e teto padrão por módulo**, gasto de API, provedor SMTP, DNS de envio, retenção/exportação pós-contrato, termos finais, **custos e contratação da verificação Gmail pessoal**, catálogo documental de 19 tipos, caminhos Windows concretos, antimalware/OCR, provedor WhatsApp, integração automática BCB/RFB ou módulo “Open Files” do Domínio. Ver [dúvidas abertas](docs/planejamento/duvidas-abertas.md).
+Este registro nÃ£o aprova **valor monetÃ¡rio do token, preÃ§os mÃ­nimos, pesos, franquias e teto padrÃ£o por mÃ³dulo**, gasto de API, provedor SMTP, DNS de envio, retenÃ§Ã£o/exportaÃ§Ã£o pÃ³s-contrato, termos finais, **custos e contrataÃ§Ã£o da verificaÃ§Ã£o Gmail pessoal**, catÃ¡logo documental de 19 tipos, caminhos Windows concretos, antimalware/OCR, provedor WhatsApp, integraÃ§Ã£o automÃ¡tica BCB/RFB ou mÃ³dulo â€œOpen Filesâ€ do DomÃ­nio. Ver [dÃºvidas abertas](docs/planejamento/duvidas-abertas.md).
 
 
-## Decisões confirmadas em 17/09/2026
+## DecisÃµes confirmadas em 17/09/2026
 
-Responsável: proprietário do projeto nesta conversa. Fonte: respostas e instruções diretas, seguidas da aprovação do plano e da restrição à etapa 00.
+ResponsÃ¡vel: proprietÃ¡rio do projeto nesta conversa. Fonte: respostas e instruÃ§Ãµes diretas, seguidas da aprovaÃ§Ã£o do plano e da restriÃ§Ã£o Ã  etapa 00.
 
-| ID | Assunto | Decisão | Fonte | Alcance / efeito |
+| ID | Assunto | DecisÃ£o | Fonte | Alcance / efeito |
 |---|---|---|---|---|
-| D-46 | Arquitetura | SaaS e IA centralizados na Mewstack; agente instalado no escritório. | Resposta “SaaS + IA central”. | Instalação completa no cliente não integra este plano; documentos Cobalchini não escolhem produção. |
-| D-47 | IA inicial | Uso por API KEY agora; preservar Claude conforme D-16. | Pedido inicial e plano aprovado. | Aprovação de arquitetura não autoriza gasto nem fixa modelo comercial disponível. |
-| D-48 | IA local | Consulta aos dados + ajuste do modelo com exemplos revisados. | Resposta “Consulta + ajuste do modelo”. | Não é treinamento de modelo do zero; preparar corpus, avaliação e publicação. |
-| D-49 | Isolamento do aprendizado | Conhecimento, exemplos, correções e ajustes derivados dos clientes ficam restritos ao respectivo escritório; conhecimento geral pode ser compartilhado. | Resposta “Restrito por escritório”. | Não alimentar modelo comum com exemplos privados sem nova decisão explícita. |
-| D-50 | API após migração | IA local como padrão após homologação; API como reserva autorizada, sujeita à política de dados e orçamento. | Resposta “Reserva autorizada”. | Resolve a escolha de rota da Q-10; critérios de virada ficam em Q-30. |
-| D-51 | Aceite local para venda inicial | Pipeline local preparado e testado; treinamento e desempenho na máquina definitiva ficam para etapa posterior explícita. | Resposta “Pipeline pronto e testado”. | Etapa 13 não bloqueia venda por API; etapa 05 continua obrigatória e não equivale a treino real. |
-| D-52 | Áreas do Domínio | Contábil, fiscal e folha na preparação da IA. | Resposta “Contábil + fiscal + folha”. | Não reduzir cobertura aos quatro grupos hoje consultados; não autoriza escrita no ERP. |
-| D-53 | Disponibilidade Siescon | Responsável confirmou servidor/banco disponível para viabilizar descoberta autorizada. | Resposta “Servidor/banco disponível”. | Não prova acesso já concedido, schema, versão, credenciais recebidas ou homologação. |
-| D-54 | Operações Siescon | Leitura + exportação revisada; gravação direta não aprovada. | Resposta “Leitura + exportação revisada”. | Homologar leitura e importação do arquivo no Siescon; não inventar layout/API. |
-| D-55 | Autonomia | Automação por regras aprovadas e qualidade medida; exceções seguem para revisão. | Resposta “Automação por regras aprovadas”. | Não aprova limiares específicos, autoaprovação irrestrita ou ciência DTE automática. |
-| D-56 | Sem presunções | “nunca assume nada, o que for preciso tu me pergunta aqui”. | Mensagem direta do responsável. | Consultar evidência existente; perguntar apenas decisão ausente/conflito concreto. |
-| D-57 | Memória e execução | Documentar tudo que for decidido; criar etapas para terminar o projeto e um prompt por etapa. | Mensagem direta e aprovação integral do plano. | Registro único; atualizar documentação junto da implementação; não reabrir decisões sem motivo. |
-| D-58 | Plano aprovado | Plano de conclusão composto pelas etapas 00–13, com dependências e aceites registrados em PLANO-MESTRE.md. | Mensagem “PLEASE IMPLEMENT THIS PLAN” com plano integral. | Preservar todas as etapas, sem declarar o conjunto implementado. |
-| D-59 | Localização da memória | Plano mestre e tudo que for validado devem ficar na raiz do repositório. | Mensagem “cola na raiz do repo”. | PLANO-MESTRE.md, DECISOES.md e VALIDACOES.md são os pontos de entrada; caminhos antigos apontam para eles. |
-| D-60 | Escopo desta execução | “quero que tu faça apenas a primeira etapa agora”. | Última instrução do responsável em 17/09/2026. | Executar somente 00, primeira etapa do plano; não corrigir Ruff nem iniciar 01–13 nesta entrega. |
-| D-61 | Fechamento de etapas | “nunca finaliza uma etapa se tiver algo pendente, me pede que eu faço”. | Mensagem direta do responsável em 17/09/2026. | Etapa com qualquer checklist, validação ou dependência pendente fica aberta e bloqueada; comunicar a ação concreta exigida do responsável antes de encerrá-la. |
-| D-62 | Demonstração de download NFS-e | A área NFS-e deve oferecer download em lote para demonstração, separado por empresa no padrão de pastas Domínio: `Tomadas/CÓDIGO -/` e `Emitidas/CÓDIGO -/`. | Pedido direto do responsável em 18/09/2026, com correção posterior de “recebidas” para “emitidas”. | Implementar primeiro somente demonstração com dados fictícios e ZIP gerado sob demanda; não alegar escrita real nas pastas Windows, coleta ADN nem homologação do layout final. |
-| D-63 | Classificação antes do download NFS-e | A demonstração deve permitir baixar todas as notas, editar ou definir acumulador antes do ZIP e tratar transitória com confiança zero. Toda nota classificada exige confiança superior a 95%. | Pedido direto do responsável em 18/09/2026. | Aplicar as regras no servidor para o ZIP de demonstração; usar manifesto no arquivo baixado e não gravar decisão fictícia no banco nem alegar classificação fiscal homologada. |
+| D-46 | Arquitetura | SaaS e IA centralizados na Mewstack; agente instalado no escritÃ³rio. | Resposta â€œSaaS + IA centralâ€. | InstalaÃ§Ã£o completa no cliente nÃ£o integra este plano; documentos Cobalchini nÃ£o escolhem produÃ§Ã£o. |
+| D-47 | IA inicial | Uso por API KEY agora; preservar Claude conforme D-16. | Pedido inicial e plano aprovado. | AprovaÃ§Ã£o de arquitetura nÃ£o autoriza gasto nem fixa modelo comercial disponÃ­vel. |
+| D-48 | IA local | Consulta aos dados + ajuste do modelo com exemplos revisados. | Resposta â€œConsulta + ajuste do modeloâ€. | NÃ£o Ã© treinamento de modelo do zero; preparar corpus, avaliaÃ§Ã£o e publicaÃ§Ã£o. |
+| D-49 | Isolamento do aprendizado | Conhecimento, exemplos, correÃ§Ãµes e ajustes derivados dos clientes ficam restritos ao respectivo escritÃ³rio; conhecimento geral pode ser compartilhado. | Resposta â€œRestrito por escritÃ³rioâ€. | NÃ£o alimentar modelo comum com exemplos privados sem nova decisÃ£o explÃ­cita. |
+| D-50 | API apÃ³s migraÃ§Ã£o | IA local como padrÃ£o apÃ³s homologaÃ§Ã£o; API como reserva autorizada, sujeita Ã  polÃ­tica de dados e orÃ§amento. | Resposta â€œReserva autorizadaâ€. | Resolve a escolha de rota da Q-10; critÃ©rios de virada ficam em Q-30. |
+| D-51 | Aceite local para venda inicial | Pipeline local preparado e testado; treinamento e desempenho na mÃ¡quina definitiva ficam para etapa posterior explÃ­cita. | Resposta â€œPipeline pronto e testadoâ€. | Etapa 13 nÃ£o bloqueia venda por API; etapa 05 continua obrigatÃ³ria e nÃ£o equivale a treino real. |
+| D-52 | Ãreas do DomÃ­nio | ContÃ¡bil, fiscal e folha na preparaÃ§Ã£o da IA. | Resposta â€œContÃ¡bil + fiscal + folhaâ€. | NÃ£o reduzir cobertura aos quatro grupos hoje consultados; nÃ£o autoriza escrita no ERP. |
+| D-53 | Disponibilidade Siescon | ResponsÃ¡vel confirmou servidor/banco disponÃ­vel para viabilizar descoberta autorizada. | Resposta â€œServidor/banco disponÃ­velâ€. | NÃ£o prova acesso jÃ¡ concedido, schema, versÃ£o, credenciais recebidas ou homologaÃ§Ã£o. |
+| D-54 | OperaÃ§Ãµes Siescon | Leitura + exportaÃ§Ã£o revisada; gravaÃ§Ã£o direta nÃ£o aprovada. | Resposta â€œLeitura + exportaÃ§Ã£o revisadaâ€. | Homologar leitura e importaÃ§Ã£o do arquivo no Siescon; nÃ£o inventar layout/API. |
+| D-55 | Autonomia | AutomaÃ§Ã£o por regras aprovadas e qualidade medida; exceÃ§Ãµes seguem para revisÃ£o. | Resposta â€œAutomaÃ§Ã£o por regras aprovadasâ€. | NÃ£o aprova limiares especÃ­ficos, autoaprovaÃ§Ã£o irrestrita ou ciÃªncia DTE automÃ¡tica. |
+| D-56 | Sem presunÃ§Ãµes | â€œnunca assume nada, o que for preciso tu me pergunta aquiâ€. | Mensagem direta do responsÃ¡vel. | Consultar evidÃªncia existente; perguntar apenas decisÃ£o ausente/conflito concreto. |
+| D-57 | MemÃ³ria e execuÃ§Ã£o | Documentar tudo que for decidido; criar etapas para terminar o projeto e um prompt por etapa. | Mensagem direta e aprovaÃ§Ã£o integral do plano. | Registro Ãºnico; atualizar documentaÃ§Ã£o junto da implementaÃ§Ã£o; nÃ£o reabrir decisÃµes sem motivo. |
+| D-58 | Plano aprovado | Plano de conclusÃ£o composto pelas etapas 00â€“13, com dependÃªncias e aceites registrados em PLANO-MESTRE.md. | Mensagem â€œPLEASE IMPLEMENT THIS PLANâ€ com plano integral. | Preservar todas as etapas, sem declarar o conjunto implementado. |
+| D-59 | LocalizaÃ§Ã£o da memÃ³ria | Plano mestre e tudo que for validado devem ficar na raiz do repositÃ³rio. | Mensagem â€œcola na raiz do repoâ€. | PLANO-MESTRE.md, DECISOES.md e VALIDACOES.md sÃ£o os pontos de entrada; caminhos antigos apontam para eles. |
+| D-60 | Escopo desta execuÃ§Ã£o | â€œquero que tu faÃ§a apenas a primeira etapa agoraâ€. | Ãšltima instruÃ§Ã£o do responsÃ¡vel em 17/09/2026. | Executar somente 00, primeira etapa do plano; nÃ£o corrigir Ruff nem iniciar 01â€“13 nesta entrega. |
+| D-61 | Fechamento de etapas | â€œnunca finaliza uma etapa se tiver algo pendente, me pede que eu faÃ§oâ€. | Mensagem direta do responsÃ¡vel em 17/09/2026. | Etapa com qualquer checklist, validaÃ§Ã£o ou dependÃªncia pendente fica aberta e bloqueada; comunicar a aÃ§Ã£o concreta exigida do responsÃ¡vel antes de encerrÃ¡-la. |
+| D-62 | DemonstraÃ§Ã£o de download NFS-e | A Ã¡rea NFS-e deve oferecer download em lote para demonstraÃ§Ã£o, separado por empresa no padrÃ£o de pastas DomÃ­nio: `Tomadas/CÃ“DIGO -/` e `Emitidas/CÃ“DIGO -/`. | Pedido direto do responsÃ¡vel em 18/09/2026, com correÃ§Ã£o posterior de â€œrecebidasâ€ para â€œemitidasâ€. | Implementar primeiro somente demonstraÃ§Ã£o com dados fictÃ­cios e ZIP gerado sob demanda; nÃ£o alegar escrita real nas pastas Windows, coleta ADN nem homologaÃ§Ã£o do layout final. |
+| D-63 | ClassificaÃ§Ã£o antes do download NFS-e | A demonstraÃ§Ã£o deve permitir baixar todas as notas, editar ou definir acumulador antes do ZIP e tratar transitÃ³ria com confianÃ§a zero. Toda nota classificada exige confianÃ§a superior a 95%. | Pedido direto do responsÃ¡vel em 18/09/2026. | Aplicar as regras no servidor para o ZIP de demonstraÃ§Ã£o; usar manifesto no arquivo baixado e nÃ£o gravar decisÃ£o fictÃ­cia no banco nem alegar classificaÃ§Ã£o fiscal homologada. |
 
-## Como registrar a próxima decisão
+## Como registrar a prÃ³xima decisÃ£o
 
-18/09/2026 — D-70: responsável solicitou “faz o próximo passo do plano” após os ajustes da demo. Retomar o primeiro item pendente do plano (etapa 01), preservando D-61: não encerrar com pendências. A restrição temporária de D-67 deixa de impedir essa retomada. O questionamento anterior sobre LlamaFactory não autoriza sua substituição nem confirma sua adoção; esclarecer Q-37 antes do build dependente.
+18/09/2026 â€” D-70: responsÃ¡vel solicitou â€œfaz o prÃ³ximo passo do planoâ€ apÃ³s os ajustes da demo. Retomar o primeiro item pendente do plano (etapa 01), preservando D-61: nÃ£o encerrar com pendÃªncias. A restriÃ§Ã£o temporÃ¡ria de D-67 deixa de impedir essa retomada. O questionamento anterior sobre LlamaFactory nÃ£o autoriza sua substituiÃ§Ã£o nem confirma sua adoÃ§Ã£o; esclarecer Q-37 antes do build dependente.
 
-18/09/2026 — D-71: diante de “faz o que for melhor pra ti”, manter LlamaFactory como ferramenta interna do runtime de ajuste local. A seleção técnica é `hiyouga/llamafactory@sha256:46b6969e444681829294ed1fce2c4e8848613e654b682dc0359ba94357a0267b`, imagem oficial fixada por digest. O runtime é somente de treinamento, sem porta exposta, credenciais, modelo baixado ou treino executado. Isso resolve Q-37 e não altera a IA inicial por API nem autoriza GPU, API paga ou egressão de dados.
+18/09/2026 â€” D-71: diante de â€œfaz o que for melhor pra tiâ€, manter LlamaFactory como ferramenta interna do runtime de ajuste local. A seleÃ§Ã£o tÃ©cnica Ã© `hiyouga/llamafactory@sha256:46b6969e444681829294ed1fce2c4e8848613e654b682dc0359ba94357a0267b`, imagem oficial fixada por digest. O runtime Ã© somente de treinamento, sem porta exposta, credenciais, modelo baixado ou treino executado. Isso resolve Q-37 e nÃ£o altera a IA inicial por API nem autoriza GPU, API paga ou egressÃ£o de dados.
 
-18/09/2026 — D-72: Fedrizzi Contabilidade é o ambiente disponível para homologação; tudo nele está disponível para esse fim. O proprietário do projeto aprova cada módulo. Os acessos e amostras concretos serão solicitados e usados somente na etapa correspondente, por meio seguro, sem credenciais no chat. Isto resolve a disponibilidade de ambiente em Q-28 e o responsável pelo aceite em Q-30; não define métricas, tamanho de amostra, janelas de operação nem autoriza chamadas cobradas.
+18/09/2026 â€” D-72: Fedrizzi Contabilidade Ã© o ambiente disponÃ­vel para homologaÃ§Ã£o; tudo nele estÃ¡ disponÃ­vel para esse fim. O proprietÃ¡rio do projeto aprova cada mÃ³dulo. Os acessos e amostras concretos serÃ£o solicitados e usados somente na etapa correspondente, por meio seguro, sem credenciais no chat. Isto resolve a disponibilidade de ambiente em Q-28 e o responsÃ¡vel pelo aceite em Q-30; nÃ£o define mÃ©tricas, tamanho de amostra, janelas de operaÃ§Ã£o nem autoriza chamadas cobradas.
 
-18/09/2026 — D-73: aprovados os critérios recomendados de liberação por módulo. Cada fluxo automatizado terá amostra de 200 itens revisados pelo proprietário; classificação automática exige precisão medida mínima de 95%; sincronização e dados exigem zero duplicidade, associação à empresa errada ou vazamento entre escritórios; após queda de rede, worker ou agente, retomada sem perda em até 15 minutos; restauração de banco e documentos conferida em até 4 horas; consultas/processamentos por empresa em até 5 minutos, salvo dependência externa registrada; exportação só é aprovada após importação e conferência no sistema de destino. A disponibilidade Fedrizzi permanece em D-72; cada chamada cobrada requer autorização específica imediatamente antes.
+18/09/2026 â€” D-73: aprovados os critÃ©rios recomendados de liberaÃ§Ã£o por mÃ³dulo. Cada fluxo automatizado terÃ¡ amostra de 200 itens revisados pelo proprietÃ¡rio; classificaÃ§Ã£o automÃ¡tica exige precisÃ£o medida mÃ­nima de 95%; sincronizaÃ§Ã£o e dados exigem zero duplicidade, associaÃ§Ã£o Ã  empresa errada ou vazamento entre escritÃ³rios; apÃ³s queda de rede, worker ou agente, retomada sem perda em atÃ© 15 minutos; restauraÃ§Ã£o de banco e documentos conferida em atÃ© 4 horas; consultas/processamentos por empresa em atÃ© 5 minutos, salvo dependÃªncia externa registrada; exportaÃ§Ã£o sÃ³ Ã© aprovada apÃ³s importaÃ§Ã£o e conferÃªncia no sistema de destino. A disponibilidade Fedrizzi permanece em D-72; cada chamada cobrada requer autorizaÃ§Ã£o especÃ­fica imediatamente antes.
 
-18/09/2026 — D-74: confirmado no ambiente local que Fedrizzi já possui conector Domínio `direct_odbc` e fonte Domínio local em estado `ready`; a sincronização já está configurada. Não solicitar novamente DSN, driver, servidor ou acesso para esse conector. A etapa 03 deve usar essa conexão existente para sua homologação, sem expor o DSN ou seus dados. A disponibilidade de outros conectores em Q-28 será tratada somente nas respectivas etapas.
+18/09/2026 â€” D-74: confirmado no ambiente local que Fedrizzi jÃ¡ possui conector DomÃ­nio `direct_odbc` e fonte DomÃ­nio local em estado `ready`; a sincronizaÃ§Ã£o jÃ¡ estÃ¡ configurada. NÃ£o solicitar novamente DSN, driver, servidor ou acesso para esse conector. A etapa 03 deve usar essa conexÃ£o existente para sua homologaÃ§Ã£o, sem expor o DSN ou seus dados. A disponibilidade de outros conectores em Q-28 serÃ¡ tratada somente nas respectivas etapas.
 
-18/09/2026 — D-75: diante de qualquer pendência, o executor deve apresentar proativamente o que precisa ser decidido ou disponibilizado, o impacto, uma recomendação objetiva e como o responsável pode executar ou fornecer o necessário. Não encerrar a comunicação apenas informando o bloqueio. Registrar a resposta recebida antes de implementar o comportamento dependente.
+18/09/2026 â€” D-75: diante de qualquer pendÃªncia, o executor deve apresentar proativamente o que precisa ser decidido ou disponibilizado, o impacto, uma recomendaÃ§Ã£o objetiva e como o responsÃ¡vel pode executar ou fornecer o necessÃ¡rio. NÃ£o encerrar a comunicaÃ§Ã£o apenas informando o bloqueio. Registrar a resposta recebida antes de implementar o comportamento dependente.
 
-18/09/2026 — D-76: todas as regras, recomendações e propostas já documentadas no repositório passam a ser aprovadas para implementação; não reabrir itens apenas por estarem identificados como pendentes ou propostos. Quando um documento contiver somente uma pergunta sem valor, regra ou alternativa definida, levantar o fato técnico e trazer recomendação conforme D-75. Esta decisão não autoriza gasto, contratação, chamada cobrada ou publicação externa, que continuam exigindo confirmação específica. O e-mail de suporte oficial é `suporte@mewstack.com.br`.
+18/09/2026 â€” D-76: todas as regras, recomendaÃ§Ãµes e propostas jÃ¡ documentadas no repositÃ³rio passam a ser aprovadas para implementaÃ§Ã£o; nÃ£o reabrir itens apenas por estarem identificados como pendentes ou propostos. Quando um documento contiver somente uma pergunta sem valor, regra ou alternativa definida, levantar o fato tÃ©cnico e trazer recomendaÃ§Ã£o conforme D-75. Esta decisÃ£o nÃ£o autoriza gasto, contrataÃ§Ã£o, chamada cobrada ou publicaÃ§Ã£o externa, que continuam exigindo confirmaÃ§Ã£o especÃ­fica. O e-mail de suporte oficial Ã© `suporte@mewstack.com.br`.
 
-18/09/2026 — D-77: configuração de SMTP, domínio/DNS de envio e homologação de entrega transacional ficam para a etapa 12, depois de existir ambiente de produção. Nesta fase, concluir somente templates, transporte configurável, testes locais e estados de falha; não pedir configuração SMTP nem antecipar envio externo.
+18/09/2026 â€” D-77: configuraÃ§Ã£o de SMTP, domÃ­nio/DNS de envio e homologaÃ§Ã£o de entrega transacional ficam para a etapa 12, depois de existir ambiente de produÃ§Ã£o. Nesta fase, concluir somente templates, transporte configurÃ¡vel, testes locais e estados de falha; nÃ£o pedir configuraÃ§Ã£o SMTP nem antecipar envio externo.
 
-18/09/2026 — D-78: Brevo será o provedor de e-mail transacional da CICA via SMTP. Configurar host, porta, credencial SMTP, remetente e autenticações do domínio somente na etapa 12, conforme D-77. Não criar conta, plano, crédito, campanha ou envio por esta decisão.
+18/09/2026 â€” D-78: Brevo serÃ¡ o provedor de e-mail transacional da CICA via SMTP. Configurar host, porta, credencial SMTP, remetente e autenticaÃ§Ãµes do domÃ­nio somente na etapa 12, conforme D-77. NÃ£o criar conta, plano, crÃ©dito, campanha ou envio por esta decisÃ£o.
 
-18/09/2026 — D-79: regras comerciais de acesso aprovadas conforme recomendações apresentadas e D-76. Após atraso confirmado, há 7 dias de carência; depois, somente leitura. Pagamento confirmado reativa acesso automaticamente; estorno ou disputa retorna a somente leitura. Somente leitura mantém consulta, documentos já arquivados, auditoria e exportação de dados próprios, bloqueando novas sincronizações, IA, downloads em lote novos, Serpro e consumo de tokens. Contrato manual é operado por Comercial ou Administrador Mewstack, com motivo e comprovante auditáveis. Competência fecha no dia 1, vencimento no dia 10; primeiro mês é proporcional e mudança de plano vale no próximo ciclo. Teste é de 14 dias, sem cartão e sem reinício por convite; contrato manual também pode usar o mesmo teste. Preços, franquias, pesos e tetos usam a tabela documental aprovada por D-76 e serão operacionalizados na etapa 10.
+18/09/2026 â€” D-79: regras comerciais de acesso aprovadas conforme recomendaÃ§Ãµes apresentadas e D-76. ApÃ³s atraso confirmado, hÃ¡ 7 dias de carÃªncia; depois, somente leitura. Pagamento confirmado reativa acesso automaticamente; estorno ou disputa retorna a somente leitura. Somente leitura mantÃ©m consulta, documentos jÃ¡ arquivados, auditoria e exportaÃ§Ã£o de dados prÃ³prios, bloqueando novas sincronizaÃ§Ãµes, IA, downloads em lote novos, Serpro e consumo de tokens. Contrato manual Ã© operado por Comercial ou Administrador Mewstack, com motivo e comprovante auditÃ¡veis. CompetÃªncia fecha no dia 1, vencimento no dia 10; primeiro mÃªs Ã© proporcional e mudanÃ§a de plano vale no prÃ³ximo ciclo. Teste Ã© de 14 dias, sem cartÃ£o e sem reinÃ­cio por convite; contrato manual tambÃ©m pode usar o mesmo teste. PreÃ§os, franquias, pesos e tetos usam a tabela documental aprovada por D-76 e serÃ£o operacionalizados na etapa 10.
 
-18/09/2026 — D-80: arquitetura definitiva recomendada e aprovada para o pacote Windows, conforme D-76. O serviço nativo .NET passa a ser o único serviço instalado e suportado: ele executará sincronização Domínio Local somente leitura, processamento de backup Domínio Web e arquivamento Windows. O agente Python permanece apenas como ferramenta de diagnóstico/migração temporária, sem nova instalação de produção. O pacote e as telas deixam a marca CICA e passam a CICA. A sincronização local deve usar consultas allowlisted, paginação/chave incremental e a API v2 autenticada por mTLS/HMAC; nunca SQL recebido remotamente ou escrita no banco Domínio. A decisão substitui a indecisão Q-32; a execução e homologação continuam na etapa 03.
+18/09/2026 â€” D-80: arquitetura definitiva recomendada e aprovada para o pacote Windows, conforme D-76. O serviÃ§o nativo .NET passa a ser o Ãºnico serviÃ§o instalado e suportado: ele executarÃ¡ sincronizaÃ§Ã£o DomÃ­nio Local somente leitura, processamento de backup DomÃ­nio Web e arquivamento Windows. O agente Python permanece apenas como ferramenta de diagnÃ³stico/migraÃ§Ã£o temporÃ¡ria, sem nova instalaÃ§Ã£o de produÃ§Ã£o. O pacote e as telas deixam a marca CICA e passam a CICA. A sincronizaÃ§Ã£o local deve usar consultas allowlisted, paginaÃ§Ã£o/chave incremental e a API v2 autenticada por mTLS/HMAC; nunca SQL recebido remotamente ou escrita no banco DomÃ­nio. A decisÃ£o substitui a indecisÃ£o Q-32; a execuÃ§Ã£o e homologaÃ§Ã£o continuam na etapa 03.
 
-18/09/2026 — D-69: responsável pediu pesquisar e simplificar a seleção de datas na demo. Solução de interface: digitação brasileira DD/MM/AAAA e atalhos de mês, preservando D-66 (competência ou emissão). Trata-se de escolha de implementação, não de nova regra fiscal.
+18/09/2026 â€” D-69: responsÃ¡vel pediu pesquisar e simplificar a seleÃ§Ã£o de datas na demo. SoluÃ§Ã£o de interface: digitaÃ§Ã£o brasileira DD/MM/AAAA e atalhos de mÃªs, preservando D-66 (competÃªncia ou emissÃ£o). Trata-se de escolha de implementaÃ§Ã£o, nÃ£o de nova regra fiscal.
 
-| D-64 | Filtros da carteira NFS-e | A carteira deve filtrar por competência de emissão ou por intervalo de data de emissão; data de captura não é o filtro de trabalho nem a data principal da lista. O aviso técnico sobre XML fictício e pasta Windows deve sair da tela. | Pedido direto do responsável em 18/09/2026. | A competência é derivada da data de emissão enquanto não existir campo fiscal próprio homologado; não usar data de captura para filtrar. |
-| D-65 | Download sem bloqueio na demonstração | O download de demonstração não deve bloquear o usuário. Nota sem acumulador entra como Transitória com confiança 0%; acumulador definido pelo contador entra no manifesto como decisão manual. Somente sugestão da IA com confiança acima de 95% aparece como classificação da IA. | Esclarecimento direto do responsável em 18/09/2026. | O manifesto distingue origem e confiança sem gravar a decisão fictícia no banco. |
-| D-66 | Escolha do filtro NFS-e | Na demonstração, o usuário escolhe um único critério de período: competência de emissão ou intervalo de data de emissão. | Pedido direto do responsável em 18/09/2026. | A interface não combina os dois filtros; o critério inativo não restringe a carteira. |
-| D-67 | Prioridade atual | A entrega atual fica limitada à demonstração NFS-e; os demais trabalhos serão retomados depois. | Pedido direto do responsável em 18/09/2026. | Não avançar etapas ou integrações fora da demonstração enquanto esta estiver sendo ajustada. |
-| D-68 | Edição de acumulador na demonstração | Preencher o acumulador deve mudar imediatamente a linha para Classificada e identificar a decisão manual com confiança de 100%; limpar o campo restaura o estado exibido antes da edição. | Pedido direto do responsável em 18/09/2026. | O efeito é visual e entra no manifesto do ZIP; não persiste classificação fiscal fictícia. |
+| D-64 | Filtros da carteira NFS-e | A carteira deve filtrar por competÃªncia de emissÃ£o ou por intervalo de data de emissÃ£o; data de captura nÃ£o Ã© o filtro de trabalho nem a data principal da lista. O aviso tÃ©cnico sobre XML fictÃ­cio e pasta Windows deve sair da tela. | Pedido direto do responsÃ¡vel em 18/09/2026. | A competÃªncia Ã© derivada da data de emissÃ£o enquanto nÃ£o existir campo fiscal prÃ³prio homologado; nÃ£o usar data de captura para filtrar. |
+| D-65 | Download sem bloqueio na demonstraÃ§Ã£o | O download de demonstraÃ§Ã£o nÃ£o deve bloquear o usuÃ¡rio. Nota sem acumulador entra como TransitÃ³ria com confianÃ§a 0%; acumulador definido pelo contador entra no manifesto como decisÃ£o manual. Somente sugestÃ£o da IA com confianÃ§a acima de 95% aparece como classificaÃ§Ã£o da IA. | Esclarecimento direto do responsÃ¡vel em 18/09/2026. | O manifesto distingue origem e confianÃ§a sem gravar a decisÃ£o fictÃ­cia no banco. |
+| D-66 | Escolha do filtro NFS-e | Na demonstraÃ§Ã£o, o usuÃ¡rio escolhe um Ãºnico critÃ©rio de perÃ­odo: competÃªncia de emissÃ£o ou intervalo de data de emissÃ£o. | Pedido direto do responsÃ¡vel em 18/09/2026. | A interface nÃ£o combina os dois filtros; o critÃ©rio inativo nÃ£o restringe a carteira. |
+| D-67 | Prioridade atual | A entrega atual fica limitada Ã  demonstraÃ§Ã£o NFS-e; os demais trabalhos serÃ£o retomados depois. | Pedido direto do responsÃ¡vel em 18/09/2026. | NÃ£o avanÃ§ar etapas ou integraÃ§Ãµes fora da demonstraÃ§Ã£o enquanto esta estiver sendo ajustada. |
+| D-68 | EdiÃ§Ã£o de acumulador na demonstraÃ§Ã£o | Preencher o acumulador deve mudar imediatamente a linha para Classificada e identificar a decisÃ£o manual com confianÃ§a de 100%; limpar o campo restaura o estado exibido antes da ediÃ§Ã£o. | Pedido direto do responsÃ¡vel em 18/09/2026. | O efeito Ã© visual e entra no manifesto do ZIP; nÃ£o persiste classificaÃ§Ã£o fiscal fictÃ­cia. |
 
-Acrescentar ID único, data, texto da escolha, responsável, fonte, etapa afetada, decisões substituídas e pendências restantes. Registrar antes de executar o comportamento dependente. Nunca copiar credenciais, certificados, dados de clientes ou conteúdo integral de conversas. Uma mudança de escopo posterior não reescreve silenciosamente o histórico. Custos exigem autorização específica imediatamente antes da ação.
-18/09/2026 — D-81: toda dependência de site hospedado fica para a etapa 12: domínio público, HTTPS, certificado/CA do agente, DNS, SMTP real, pareamento externo e homologação contra produção. Antes disso, executar somente implementação, builds e validações locais, sem solicitar hospedagem antecipada.
-18/09/2026 — D-82: a API oficial Domínio/Onvio passa a ser o caminho preferencial de integração. O backup Domínio Web permanece como contingência e sua homologação fica na etapa 12, junto do ambiente hospedado. A CICA implementará somente endpoints e escopos documentados e concedidos pela Thomson Reuters; não simulará leitura de contabilidade, fiscal ou folha como se fosse disponível na API pública. Enquanto a API oficial não conceder esses recursos, a leitura local autorizada do agente ODBC permanece necessária para essas áreas.
+Acrescentar ID Ãºnico, data, texto da escolha, responsÃ¡vel, fonte, etapa afetada, decisÃµes substituÃ­das e pendÃªncias restantes. Registrar antes de executar o comportamento dependente. Nunca copiar credenciais, certificados, dados de clientes ou conteÃºdo integral de conversas. Uma mudanÃ§a de escopo posterior nÃ£o reescreve silenciosamente o histÃ³rico. Custos exigem autorizaÃ§Ã£o especÃ­fica imediatamente antes da aÃ§Ã£o.
+18/09/2026 â€” D-81: toda dependÃªncia de site hospedado fica para a etapa 12: domÃ­nio pÃºblico, HTTPS, certificado/CA do agente, DNS, SMTP real, pareamento externo e homologaÃ§Ã£o contra produÃ§Ã£o. Antes disso, executar somente implementaÃ§Ã£o, builds e validaÃ§Ãµes locais, sem solicitar hospedagem antecipada.
+18/09/2026 â€” D-82: a API oficial DomÃ­nio/Onvio passa a ser o caminho preferencial de integraÃ§Ã£o. O backup DomÃ­nio Web permanece como contingÃªncia e sua homologaÃ§Ã£o fica na etapa 12, junto do ambiente hospedado. A CICA implementarÃ¡ somente endpoints e escopos documentados e concedidos pela Thomson Reuters; nÃ£o simularÃ¡ leitura de contabilidade, fiscal ou folha como se fosse disponÃ­vel na API pÃºblica. Enquanto a API oficial nÃ£o conceder esses recursos, a leitura local autorizada do agente ODBC permanece necessÃ¡ria para essas Ã¡reas.
 
-18/09/2026 — D-83: as limitações e capacidades da integração Domínio Web devem permanecer consolidadas em `docs/dominio-web-limitacoes-comerciais.md`, como fonte para a oferta e o site. A comunicação comercial deve distinguir API oficial, agente local e backup de contingência, sem prometer leitura completa ou sincronização automática do Domínio Web onde a documentação e a homologação não comprovarem isso. Esta decisão não altera D-82 nem libera publicação externa antes da etapa 12.
-## D-84 — Destino Windows configurável por escritório
+18/09/2026 â€” D-83: as limitaÃ§Ãµes e capacidades da integraÃ§Ã£o DomÃ­nio Web devem permanecer consolidadas em `docs/dominio-web-limitacoes-comerciais.md`, como fonte para a oferta e o site. A comunicaÃ§Ã£o comercial deve distinguir API oficial, agente local e backup de contingÃªncia, sem prometer leitura completa ou sincronizaÃ§Ã£o automÃ¡tica do DomÃ­nio Web onde a documentaÃ§Ã£o e a homologaÃ§Ã£o nÃ£o comprovarem isso. Esta decisÃ£o nÃ£o altera D-82 nem libera publicaÃ§Ã£o externa antes da etapa 12.
+## D-84 â€” Destino Windows configurÃ¡vel por escritÃ³rio
 
-Data: 18/09/2026. Origem: responsável pelo projeto. Cada escritório define dentro da CICA a raiz Windows e seu formato de pastas para documentos aprovados. O formato usa somente variáveis controladas e pode conter subpastas. O serviço não usa unidades mapeadas; nesta fase a raiz deve ser um caminho local absoluto. UNC depende de conta de serviço e homologação específica antes de ser liberado. Cada trabalho guarda o destino relativo já resolvido, preservando a fila quando a configuração futura mudar.
-## D-85 — Site como fonte de verdade do destino Windows
+Data: 18/09/2026. Origem: responsÃ¡vel pelo projeto. Cada escritÃ³rio define dentro da CICA a raiz Windows e seu formato de pastas para documentos aprovados. O formato usa somente variÃ¡veis controladas e pode conter subpastas. O serviÃ§o nÃ£o usa unidades mapeadas; nesta fase a raiz deve ser um caminho local absoluto. UNC depende de conta de serviÃ§o e homologaÃ§Ã£o especÃ­fica antes de ser liberado. Cada trabalho guarda o destino relativo jÃ¡ resolvido, preservando a fila quando a configuraÃ§Ã£o futura mudar.
+## D-85 â€” Site como fonte de verdade do destino Windows
 
-Data: 18/09/2026. Origem: responsável pelo projeto, ao exigir configuração por escritório dentro do site. A raiz e o formato de pastas são definidos pelo administrador no perfil do escritório. O agente pareado consulta somente essa configuração do seu escritório e atualiza a cópia DPAPI local. Nesta fase, aceitar somente caminhos locais absolutos; suporte a UNC fica para homologação posterior com conta de serviço e permissões explícitas.
+Data: 18/09/2026. Origem: responsÃ¡vel pelo projeto, ao exigir configuraÃ§Ã£o por escritÃ³rio dentro do site. A raiz e o formato de pastas sÃ£o definidos pelo administrador no perfil do escritÃ³rio. O agente pareado consulta somente essa configuraÃ§Ã£o do seu escritÃ³rio e atualiza a cÃ³pia DPAPI local. Nesta fase, aceitar somente caminhos locais absolutos; suporte a UNC fica para homologaÃ§Ã£o posterior com conta de serviÃ§o e permissÃµes explÃ­citas.
 
-## D-86 — Homologação operacional do agente no final
+## D-86 â€” HomologaÃ§Ã£o operacional do agente no final
 
-Data: 18/09/2026. Origem: responsável pelo projeto. A etapa 03 encerra a implementação e as validações locais do agente Windows e da integração Domínio. A execução no destino definitivo — instalação limpa com DSN/driver x64, pareamento HTTPS/mTLS, revogação, atualização distribuída, queda e retomada de rede, backup `.dom` autorizado e escrita documental na raiz Windows real — fica reunida na etapa 12, depois do deploy do site. Q-22 e Q-31 serão respondidas no contexto desse piloto; não antecipar caminho, conta de serviço, política de nome ou renomeação de pastas. Esta decisão complementa D-81/D-82 e não libera publicação, infraestrutura paga ou homologação comercial.
+Data: 18/09/2026. Origem: responsÃ¡vel pelo projeto. A etapa 03 encerra a implementaÃ§Ã£o e as validaÃ§Ãµes locais do agente Windows e da integraÃ§Ã£o DomÃ­nio. A execuÃ§Ã£o no destino definitivo â€” instalaÃ§Ã£o limpa com DSN/driver x64, pareamento HTTPS/mTLS, revogaÃ§Ã£o, atualizaÃ§Ã£o distribuÃ­da, queda e retomada de rede, backup `.dom` autorizado e escrita documental na raiz Windows real â€” fica reunida na etapa 12, depois do deploy do site. Q-22 e Q-31 serÃ£o respondidas no contexto desse piloto; nÃ£o antecipar caminho, conta de serviÃ§o, polÃ­tica de nome ou renomeaÃ§Ã£o de pastas. Esta decisÃ£o complementa D-81/D-82 e nÃ£o libera publicaÃ§Ã£o, infraestrutura paga ou homologaÃ§Ã£o comercial.
 
-## D-87 — Dependências de produção concentradas na etapa final
+## D-87 â€” DependÃªncias de produÃ§Ã£o concentradas na etapa final
 
-Data: 18/09/2026. Origem: responsável pelo projeto. Toda atividade que dependa do site em produção fica para a etapa 12: deploy, domínio público, HTTPS/DNS, credenciais e consentimentos externos de produção, serviços hospedados, filas e storage implantados, pareamento de agentes, chamadas reais a provedores, pilotos com dados reais e homologação comercial. As etapas 01–11 devem concluir código, configuração sem segredos, testes locais/isolados, documentação e preparação dos fluxos. A transferência não autoriza criar infraestrutura, fazer chamadas cobradas, usar dados reais ou publicar o site; cada custo continua a exigir confirmação específica imediatamente antes.
+Data: 18/09/2026. Origem: responsÃ¡vel pelo projeto. Toda atividade que dependa do site em produÃ§Ã£o fica para a etapa 12: deploy, domÃ­nio pÃºblico, HTTPS/DNS, credenciais e consentimentos externos de produÃ§Ã£o, serviÃ§os hospedados, filas e storage implantados, pareamento de agentes, chamadas reais a provedores, pilotos com dados reais e homologaÃ§Ã£o comercial. As etapas 01â€“11 devem concluir cÃ³digo, configuraÃ§Ã£o sem segredos, testes locais/isolados, documentaÃ§Ã£o e preparaÃ§Ã£o dos fluxos. A transferÃªncia nÃ£o autoriza criar infraestrutura, fazer chamadas cobradas, usar dados reais ou publicar o site; cada custo continua a exigir confirmaÃ§Ã£o especÃ­fica imediatamente antes.
 
-## D-88 — Contrato comum de exportação contábil
+## D-88 â€” Contrato comum de exportaÃ§Ã£o contÃ¡bil
 
-Data: 18/09/2026. Origem: executor, autorizado como decisão de implementação por D-76. As exportações contábeis da CICA passam a escolher um destino registrado e versionado, em vez de presumir Domínio em toda a cadeia. O adaptador Domínio já existente é preservado. Siescon só poderá receber exportação após registrar seu layout revisado, adaptador e versão; até lá a solicitação é recusada de forma explícita, sem gerar arquivo, escrever no Siescon ou alegar compatibilidade. Isto implementa a generalização estrutural da etapa 04 sem inventar o contrato técnico de Q-33.
+Data: 18/09/2026. Origem: executor, autorizado como decisÃ£o de implementaÃ§Ã£o por D-76. As exportaÃ§Ãµes contÃ¡beis da CICA passam a escolher um destino registrado e versionado, em vez de presumir DomÃ­nio em toda a cadeia. O adaptador DomÃ­nio jÃ¡ existente Ã© preservado. Siescon sÃ³ poderÃ¡ receber exportaÃ§Ã£o apÃ³s registrar seu layout revisado, adaptador e versÃ£o; atÃ© lÃ¡ a solicitaÃ§Ã£o Ã© recusada de forma explÃ­cita, sem gerar arquivo, escrever no Siescon ou alegar compatibilidade. Isto implementa a generalizaÃ§Ã£o estrutural da etapa 04 sem inventar o contrato tÃ©cnico de Q-33.
 
-## D-89 — Metadados de escopo para conhecimento e treinamento
+## D-89 â€” Metadados de escopo para conhecimento e treinamento
 
-Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-52 e D-76. Fontes de conhecimento e exemplos de treinamento passam a registrar, quando aplicável, empresa, período de referência e uma das áreas `contábil`, `fiscal`, `folha` ou `geral`. Registros existentes recebem o escopo geral e não são reenviados, reclassificados ou expostos. Uma fonte ligada a empresa só pode pertencer ao mesmo escritório; na recuperação de uma conversa por empresa, evidência daquela empresa tem precedência e nunca é recuperada para outra. Esta decisão estrutura o pipeline local da etapa 05 sem aprovar egressão, curadoria, teto, treinamento real ou publicação de modelo; Q-08, Q-09, Q-11 e Q-34 continuam abertos.
+Data: 19/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por D-52 e D-76. Fontes de conhecimento e exemplos de treinamento passam a registrar, quando aplicÃ¡vel, empresa, perÃ­odo de referÃªncia e uma das Ã¡reas `contÃ¡bil`, `fiscal`, `folha` ou `geral`. Registros existentes recebem o escopo geral e nÃ£o sÃ£o reenviados, reclassificados ou expostos. Uma fonte ligada a empresa sÃ³ pode pertencer ao mesmo escritÃ³rio; na recuperaÃ§Ã£o de uma conversa por empresa, evidÃªncia daquela empresa tem precedÃªncia e nunca Ã© recuperada para outra. Esta decisÃ£o estrutura o pipeline local da etapa 05 sem aprovar egressÃ£o, curadoria, teto, treinamento real ou publicaÃ§Ã£o de modelo; Q-08, Q-09, Q-11 e Q-34 continuam abertos.
 
-## D-90 — Proveniência de avaliação e adaptador local
+## D-90 â€” ProveniÃªncia de avaliaÃ§Ã£o e adaptador local
 
-Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-48, D-51 e D-76. Quando uma versão local declarar um adaptador, ela deve registrar modelo base, versão do adaptador, hash SHA-256 do artefato e hash SHA-256 do manifesto/corpus. A avaliação correspondente deve registrar os mesmos valores, e a publicação recusa divergência. Registros históricos sem artefato continuam legíveis, mas não passam a alegar vínculo que não possuíam. A decisão cria somente o gate e a rastreabilidade local; não seleciona modelo, não inicia treino, não publica artefato nem substitui a aprovação humana de Q-34.
+Data: 19/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por D-48, D-51 e D-76. Quando uma versÃ£o local declarar um adaptador, ela deve registrar modelo base, versÃ£o do adaptador, hash SHA-256 do artefato e hash SHA-256 do manifesto/corpus. A avaliaÃ§Ã£o correspondente deve registrar os mesmos valores, e a publicaÃ§Ã£o recusa divergÃªncia. Registros histÃ³ricos sem artefato continuam legÃ­veis, mas nÃ£o passam a alegar vÃ­nculo que nÃ£o possuÃ­am. A decisÃ£o cria somente o gate e a rastreabilidade local; nÃ£o seleciona modelo, nÃ£o inicia treino, nÃ£o publica artefato nem substitui a aprovaÃ§Ã£o humana de Q-34.
 
-## D-91 — Separação imutável entre treino e avaliação
+## D-91 â€” SeparaÃ§Ã£o imutÃ¡vel entre treino e avaliaÃ§Ã£o
 
-Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-48, D-51 e D-76. Cada exemplo validado passa a ser classificado como `treino` ou `avaliação`; um exemplo não integra ambos os manifestos. Os registros anteriores permanecem no conjunto de treino para preservar o comportamento já existente. O job QLoRA exporta apenas o manifesto de treino; a avaliação deve registrar o hash do manifesto de avaliação quando houver artefato local declarado. A escolha, revisão humana e quantidade de exemplos de cada conjunto continuam dependentes de Q-34 e das métricas de D-73. Nenhum exemplo é reenviado, usado em treino ou avaliado por esta decisão.
+Data: 19/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por D-48, D-51 e D-76. Cada exemplo validado passa a ser classificado como `treino` ou `avaliaÃ§Ã£o`; um exemplo nÃ£o integra ambos os manifestos. Os registros anteriores permanecem no conjunto de treino para preservar o comportamento jÃ¡ existente. O job QLoRA exporta apenas o manifesto de treino; a avaliaÃ§Ã£o deve registrar o hash do manifesto de avaliaÃ§Ã£o quando houver artefato local declarado. A escolha, revisÃ£o humana e quantidade de exemplos de cada conjunto continuam dependentes de Q-34 e das mÃ©tricas de D-73. Nenhum exemplo Ã© reenviado, usado em treino ou avaliado por esta decisÃ£o.
 
-## D-92 — Retorno controlado de adaptador local
+## D-92 â€” Retorno controlado de adaptador local
 
-Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por D-50, D-51 e D-76. O retorno de versão ativa deve escolher uma versão anterior do mesmo escritório que tenha avaliação aprovada, corpus compatível e, quando declarar artefato, proveniência completa e idêntica. O retorno é auditado e não reexecuta treinamento, egressão ou download; a comparação de melhoria usada para publicação de uma versão nova não impede retornar a uma versão já aprovada. Esta decisão prepara o mecanismo local e não aprova a mudança de rota para IA local, que continua dependente da etapa 13, Q-30 e Q-34.
+Data: 19/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por D-50, D-51 e D-76. O retorno de versÃ£o ativa deve escolher uma versÃ£o anterior do mesmo escritÃ³rio que tenha avaliaÃ§Ã£o aprovada, corpus compatÃ­vel e, quando declarar artefato, proveniÃªncia completa e idÃªntica. O retorno Ã© auditado e nÃ£o reexecuta treinamento, egressÃ£o ou download; a comparaÃ§Ã£o de melhoria usada para publicaÃ§Ã£o de uma versÃ£o nova nÃ£o impede retornar a uma versÃ£o jÃ¡ aprovada. Esta decisÃ£o prepara o mecanismo local e nÃ£o aprova a mudanÃ§a de rota para IA local, que continua dependente da etapa 13, Q-30 e Q-34.
 
-## D-93 — Cliente Asaas local, sem configuração nem despacho
+## D-93 â€” Cliente Asaas local, sem configuraÃ§Ã£o nem despacho
 
-Data: 19/09/2026. Origem: executor, decisão de implementação autorizada por
-D-11, D-76 e D-87. O cliente técnico da Asaas usa explicitamente os ambientes
-`sandbox` e `production`, o cabeçalho `access_token`, `externalReference` para
-localizar clientes antes de criá-los e cobrança avulsa sem dados de cartão. A
-chave é sempre recebida por injeção explícita; não será lida de configuração
-local, impressa, criada ou usada nesta etapa. O transporte deve ser substituível
-nos testes e não repetir automaticamente `POST` de cliente ou cobrança após
-falha/resultado incerto. A ligação entre dados comerciais do escritório,
+Data: 19/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por
+D-11, D-76 e D-87. O cliente tÃ©cnico da Asaas usa explicitamente os ambientes
+`sandbox` e `production`, o cabeÃ§alho `access_token`, `externalReference` para
+localizar clientes antes de criÃ¡-los e cobranÃ§a avulsa sem dados de cartÃ£o. A
+chave Ã© sempre recebida por injeÃ§Ã£o explÃ­cita; nÃ£o serÃ¡ lida de configuraÃ§Ã£o
+local, impressa, criada ou usada nesta etapa. O transporte deve ser substituÃ­vel
+nos testes e nÃ£o repetir automaticamente `POST` de cliente ou cobranÃ§a apÃ³s
+falha/resultado incerto. A ligaÃ§Ã£o entre dados comerciais do escritÃ³rio,
 cliente Asaas, `PaymentAttempt` e ambiente autorizado continua para a etapa 12,
-Q-08 e Q-28. Fontes: [autenticação Asaas](https://docs.asaas.com/docs/authentication),
+Q-08 e Q-28. Fontes: [autenticaÃ§Ã£o Asaas](https://docs.asaas.com/docs/authentication),
 [criar cliente](https://docs.asaas.com/reference/create-new-customer) e
-[criar cobrança](https://docs.asaas.com/reference/create-new-payment), consultadas
-em 19/09/2026. Esta decisão não autoriza chamada, custo, sandbox, produção ou
-homologação.
+[criar cobranÃ§a](https://docs.asaas.com/reference/create-new-payment), consultadas
+em 19/09/2026. Esta decisÃ£o nÃ£o autoriza chamada, custo, sandbox, produÃ§Ã£o ou
+homologaÃ§Ã£o.
 
-## D-94 — Gate antecipado de identificadores pessoais no corpus local
+## D-94 â€” Gate antecipado de identificadores pessoais no corpus local
 
-Data: 21/09/2026. Origem: executor, decisão de implementação autorizada por
-D-20, D-48, D-49, D-51 e D-76. Um exemplo de treino ou avaliação validado não
-pode entrar no manifesto local quando pergunta, resposta ou referências
-contiverem CPF, CNPJ ou e-mail reconhecíveis pelos mesmos padrões já recusados
-pelo runner QLoRA. A exportação deve falhar antes de criar o artefato; não deve
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por
+D-20, D-48, D-49, D-51 e D-76. Um exemplo de treino ou avaliaÃ§Ã£o validado nÃ£o
+pode entrar no manifesto local quando pergunta, resposta ou referÃªncias
+contiverem CPF, CNPJ ou e-mail reconhecÃ­veis pelos mesmos padrÃµes jÃ¡ recusados
+pelo runner QLoRA. A exportaÃ§Ã£o deve falhar antes de criar o artefato; nÃ£o deve
 alterar, mascarar ou reenviar o registro automaticamente, pois isso poderia
-corromper evidência contábil. A anonimização permanece uma revisão humana
-rastreável no registro de origem. A decisão antecipa um controle local de
-privacidade e não autoriza curadoria Claude, egressão, treinamento, download de
-modelo, publicação, dado de cliente ou custo. Q-08, Q-09, Q-11 e Q-34
+corromper evidÃªncia contÃ¡bil. A anonimizaÃ§Ã£o permanece uma revisÃ£o humana
+rastreÃ¡vel no registro de origem. A decisÃ£o antecipa um controle local de
+privacidade e nÃ£o autoriza curadoria Claude, egressÃ£o, treinamento, download de
+modelo, publicaÃ§Ã£o, dado de cliente ou custo. Q-08, Q-09, Q-11 e Q-34
 continuam abertos.
 
-## D-95 — Exportação de manifesto local sem sobrescrita
+## D-95 â€” ExportaÃ§Ã£o de manifesto local sem sobrescrita
 
-Data: 21/09/2026. Origem: executor, decisão de implementação autorizada por
-D-48, D-51 e D-76. A exportação JSONL de treino ou avaliação deve recusar um
-caminho de saída já existente e criar o novo arquivo exclusivamente, evitando
-substituir silenciosamente um artefato que possa estar vinculado a uma avaliação
-ou revisão. A regra vale apenas para o artefato local; não executa treino,
-publicação, transferência de dados ou operação externa. Uma nova exportação usa
-outro caminho depois de revisão humana do corpus.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o autorizada por
+D-48, D-51 e D-76. A exportaÃ§Ã£o JSONL de treino ou avaliaÃ§Ã£o deve recusar um
+caminho de saÃ­da jÃ¡ existente e criar o novo arquivo exclusivamente, evitando
+substituir silenciosamente um artefato que possa estar vinculado a uma avaliaÃ§Ã£o
+ou revisÃ£o. A regra vale apenas para o artefato local; nÃ£o executa treino,
+publicaÃ§Ã£o, transferÃªncia de dados ou operaÃ§Ã£o externa. Uma nova exportaÃ§Ã£o usa
+outro caminho depois de revisÃ£o humana do corpus.
 
-## D-96 — Cobertura de certificados sem ocultação da carteira
+## D-96 â€” Cobertura de certificados sem ocultaÃ§Ã£o da carteira
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de recuperação de D-73. Quando a tela de
-certificados informar empresas ativas sem A1 válido, ela deve permitir percorrer
-toda a carteira em páginas de 20 registros, em vez de mostrar apenas as 20
-primeiras. A paginação da cobertura é independente da lista de certificados e
-preserva os parâmetros já presentes na consulta; o seletor de demonstração usa
-somente os itens visíveis nessa página. Esta decisão evita ocultação silenciosa
-e não aprova certificado, coleta ADN, uso de A1 real, conexão externa, custo ou
-homologação fiscal.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de recuperaÃ§Ã£o de D-73. Quando a tela de
+certificados informar empresas ativas sem A1 vÃ¡lido, ela deve permitir percorrer
+toda a carteira em pÃ¡ginas de 20 registros, em vez de mostrar apenas as 20
+primeiras. A paginaÃ§Ã£o da cobertura Ã© independente da lista de certificados e
+preserva os parÃ¢metros jÃ¡ presentes na consulta; o seletor de demonstraÃ§Ã£o usa
+somente os itens visÃ­veis nessa pÃ¡gina. Esta decisÃ£o evita ocultaÃ§Ã£o silenciosa
+e nÃ£o aprova certificado, coleta ADN, uso de A1 real, conexÃ£o externa, custo ou
+homologaÃ§Ã£o fiscal.
 
-## D-97 — Ficha da empresa com históricos paginados por seção
+## D-97 â€” Ficha da empresa com histÃ³ricos paginados por seÃ§Ã£o
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de recuperação de D-73. A ficha de uma empresa deve
-permitir percorrer todos os documentos NFS-e, revisões abertas e mensagens DTE
-visíveis ao escritório. Cada seção usa sua própria página de 20 registros, sem
-alterar as demais seções ou o parâmetro de retorno à carteira. Esta decisão
-remove limites silenciosos de apresentação; não amplia permissões, não autoriza
-consulta DTE, coleta ADN, certificado real, conexão externa, custo ou
-homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de recuperaÃ§Ã£o de D-73. A ficha de uma empresa deve
+permitir percorrer todos os documentos NFS-e, revisÃµes abertas e mensagens DTE
+visÃ­veis ao escritÃ³rio. Cada seÃ§Ã£o usa sua prÃ³pria pÃ¡gina de 20 registros, sem
+alterar as demais seÃ§Ãµes ou o parÃ¢metro de retorno Ã  carteira. Esta decisÃ£o
+remove limites silenciosos de apresentaÃ§Ã£o; nÃ£o amplia permissÃµes, nÃ£o autoriza
+consulta DTE, coleta ADN, certificado real, conexÃ£o externa, custo ou
+homologaÃ§Ã£o.
 
-## D-98 — Auditoria de conciliação sem limite silencioso
+## D-98 â€” Auditoria de conciliaÃ§Ã£o sem limite silencioso
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. A auditoria de
-conciliação deve permitir percorrer todos os eventos visíveis ao perfil já
-autorizado em páginas de 100 registros, preservando o filtro de ação. A medida
-é somente de apresentação e consulta: não altera o conteúdo imutável do evento,
-permissões, arquivos financeiros, integrações, exportações, custo ou
-homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. A auditoria de
+conciliaÃ§Ã£o deve permitir percorrer todos os eventos visÃ­veis ao perfil jÃ¡
+autorizado em pÃ¡ginas de 100 registros, preservando o filtro de aÃ§Ã£o. A medida
+Ã© somente de apresentaÃ§Ã£o e consulta: nÃ£o altera o conteÃºdo imutÃ¡vel do evento,
+permissÃµes, arquivos financeiros, integraÃ§Ãµes, exportaÃ§Ãµes, custo ou
+homologaÃ§Ã£o.
 
-## D-99 — Radar da Reforma sem corte silencioso de alertas
+## D-99 â€” Radar da Reforma sem corte silencioso de alertas
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de recuperação de D-73. A consulta do Radar deve
-permitir percorrer todos os alertas de reforma e fiscal já visíveis ao
-escritório, em páginas de 50 registros, preservando busca, fonte e tema. A
-medida somente altera a apresentação da coleção local: não coleta fontes,
-não valida publicação, não muda sua relevância, não abre URLs, não autoriza
-integração, custo ou homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de recuperaÃ§Ã£o de D-73. A consulta do Radar deve
+permitir percorrer todos os alertas de reforma e fiscal jÃ¡ visÃ­veis ao
+escritÃ³rio, em pÃ¡ginas de 50 registros, preservando busca, fonte e tema. A
+medida somente altera a apresentaÃ§Ã£o da coleÃ§Ã£o local: nÃ£o coleta fontes,
+nÃ£o valida publicaÃ§Ã£o, nÃ£o muda sua relevÃ¢ncia, nÃ£o abre URLs, nÃ£o autoriza
+integraÃ§Ã£o, custo ou homologaÃ§Ã£o.
 
-## D-100 — Histórico de cobrança manual recuperável no console
+## D-100 â€” HistÃ³rico de cobranÃ§a manual recuperÃ¡vel no console
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O console da plataforma
-deve permitir percorrer todas as faturas já pertencentes ao escritório, em
-páginas de 12 registros, em vez de limitar a exibição às 12 mais recentes. A
-medida mantém o escopo de cada escritório e somente apresenta o histórico já
-registrado: não cria cobrança, não altera valores, contratos, status,
-integrações, credenciais, custo ou homologação Asaas.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O console da plataforma
+deve permitir percorrer todas as faturas jÃ¡ pertencentes ao escritÃ³rio, em
+pÃ¡ginas de 12 registros, em vez de limitar a exibiÃ§Ã£o Ã s 12 mais recentes. A
+medida mantÃ©m o escopo de cada escritÃ³rio e somente apresenta o histÃ³rico jÃ¡
+registrado: nÃ£o cria cobranÃ§a, nÃ£o altera valores, contratos, status,
+integraÃ§Ãµes, credenciais, custo ou homologaÃ§Ã£o Asaas.
 
-## D-101 — Histórico DTE recuperável por página própria
+## D-101 â€” HistÃ³rico DTE recuperÃ¡vel por pÃ¡gina prÃ³pria
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O histórico de resultados
-das consultas DTE deve permitir percorrer todos os itens visíveis ao escritório
-em páginas de 30 registros, sem interferir na paginação das mensagens DTE e
-preservando os parâmetros correntes da tela. A medida somente apresenta o
-histórico local já registrado: não prepara consulta, não autoriza consumo, não
-chama Serpro, não altera resultado, permissão, cobrança, custo ou homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O histÃ³rico de resultados
+das consultas DTE deve permitir percorrer todos os itens visÃ­veis ao escritÃ³rio
+em pÃ¡ginas de 30 registros, sem interferir na paginaÃ§Ã£o das mensagens DTE e
+preservando os parÃ¢metros correntes da tela. A medida somente apresenta o
+histÃ³rico local jÃ¡ registrado: nÃ£o prepara consulta, nÃ£o autoriza consumo, nÃ£o
+chama Serpro, nÃ£o altera resultado, permissÃ£o, cobranÃ§a, custo ou homologaÃ§Ã£o.
 
-## D-102 — Histórico de importações recuperável no onboarding
+## D-102 â€” HistÃ³rico de importaÃ§Ãµes recuperÃ¡vel no onboarding
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O onboarding deve permitir
-percorrer todos os lotes de importação já pertencentes ao escritório, em páginas
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O onboarding deve permitir
+percorrer todos os lotes de importaÃ§Ã£o jÃ¡ pertencentes ao escritÃ³rio, em pÃ¡ginas
 de 20 registros, em vez de exibir somente os oito mais recentes. A medida
-preserva fonte e prévia selecionadas na navegação e somente apresenta histórico
-local já registrado: não envia arquivo, não confirma lote, não altera dados,
-permissão, integração, custo ou homologação Domínio.
+preserva fonte e prÃ©via selecionadas na navegaÃ§Ã£o e somente apresenta histÃ³rico
+local jÃ¡ registrado: nÃ£o envia arquivo, nÃ£o confirma lote, nÃ£o altera dados,
+permissÃ£o, integraÃ§Ã£o, custo ou homologaÃ§Ã£o DomÃ­nio.
 
-## D-103 — Trilhas de processamento e exportação recuperáveis na Conciliação
+## D-103 â€” Trilhas de processamento e exportaÃ§Ã£o recuperÃ¡veis na ConciliaÃ§Ã£o
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. A Conciliação deve permitir
-percorrer todos os processamentos e exportações já visíveis ao escritório, em
-páginas independentes de 20 registros, em vez de limitar cada trilha aos 12 e 8
-mais recentes. Cada navegação preserva os parâmetros correntes da tela e não
-altera a outra trilha. A medida somente apresenta o histórico local existente:
-não importa, reprocessa, exporta, baixa arquivo, chama ERP, altera permissões,
-custo ou homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. A ConciliaÃ§Ã£o deve permitir
+percorrer todos os processamentos e exportaÃ§Ãµes jÃ¡ visÃ­veis ao escritÃ³rio, em
+pÃ¡ginas independentes de 20 registros, em vez de limitar cada trilha aos 12 e 8
+mais recentes. Cada navegaÃ§Ã£o preserva os parÃ¢metros correntes da tela e nÃ£o
+altera a outra trilha. A medida somente apresenta o histÃ³rico local existente:
+nÃ£o importa, reprocessa, exporta, baixa arquivo, chama ERP, altera permissÃµes,
+custo ou homologaÃ§Ã£o.
 
-## D-104 — Histórico completo recuperável no Copiloto
+## D-104 â€” HistÃ³rico completo recuperÃ¡vel no Copiloto
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O histórico de conversas
-abertas do Copiloto deve permitir percorrer todos os itens já visíveis ao
-escritório em páginas de 12 registros, em vez de limitar a interface às 12
-conversas mais recentes. A seleção da conversa e a página do histórico devem
-ser preservadas entre as navegações. A medida somente apresenta histórico local
-já registrado: não cria cobrança, não altera valores, contratos, permissões,
-integrações, credenciais, custo ou homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O histÃ³rico de conversas
+abertas do Copiloto deve permitir percorrer todos os itens jÃ¡ visÃ­veis ao
+escritÃ³rio em pÃ¡ginas de 12 registros, em vez de limitar a interface Ã s 12
+conversas mais recentes. A seleÃ§Ã£o da conversa e a pÃ¡gina do histÃ³rico devem
+ser preservadas entre as navegaÃ§Ãµes. A medida somente apresenta histÃ³rico local
+jÃ¡ registrado: nÃ£o cria cobranÃ§a, nÃ£o altera valores, contratos, permissÃµes,
+integraÃ§Ãµes, credenciais, custo ou homologaÃ§Ã£o.
 
-## D-105 — Fechamentos adiados recuperáveis no console da plataforma
+## D-105 â€” Fechamentos adiados recuperÃ¡veis no console da plataforma
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O console da plataforma
-deve permitir percorrer todos os fechamentos ainda adiados, em páginas de 30
-registros, em vez de limitar a consulta às 30 ocorrências mais antigas. A
-navegação deve preservar os parâmetros correntes da configuração. A medida
-somente apresenta evidências locais já registradas: não executa fechamento, não
-altera fatura, contrato, reserva, preço, permissão, integração, custo ou
-homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O console da plataforma
+deve permitir percorrer todos os fechamentos ainda adiados, em pÃ¡ginas de 30
+registros, em vez de limitar a consulta Ã s 30 ocorrÃªncias mais antigas. A
+navegaÃ§Ã£o deve preservar os parÃ¢metros correntes da configuraÃ§Ã£o. A medida
+somente apresenta evidÃªncias locais jÃ¡ registradas: nÃ£o executa fechamento, nÃ£o
+altera fatura, contrato, reserva, preÃ§o, permissÃ£o, integraÃ§Ã£o, custo ou
+homologaÃ§Ã£o.
 
-## D-106 — Atenção de egressão recuperável no detalhe do escritório
+## D-106 â€” AtenÃ§Ã£o de egressÃ£o recuperÃ¡vel no detalhe do escritÃ³rio
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelas métricas de rastreabilidade de D-73. O detalhe do escritório
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelas mÃ©tricas de rastreabilidade de D-73. O detalhe do escritÃ³rio
 no console da plataforma deve permitir percorrer todas as tentativas Claude que
-ainda exigem verificação, em páginas de 20 registros, em vez de limitar a
-consulta às 20 mais recentes. A navegação deve preservar os parâmetros correntes
-do detalhe. A medida somente apresenta auditorias locais já registradas: não
-repete chamada, libera ou liquida consumo, altera reserva, política, dado,
-permissão, integração, custo ou homologação.
+ainda exigem verificaÃ§Ã£o, em pÃ¡ginas de 20 registros, em vez de limitar a
+consulta Ã s 20 mais recentes. A navegaÃ§Ã£o deve preservar os parÃ¢metros correntes
+do detalhe. A medida somente apresenta auditorias locais jÃ¡ registradas: nÃ£o
+repete chamada, libera ou liquida consumo, altera reserva, polÃ­tica, dado,
+permissÃ£o, integraÃ§Ã£o, custo ou homologaÃ§Ã£o.
 
-## D-107 — Decisão NFS-e restrita ao catálogo do escritório
+## D-107 â€” DecisÃ£o NFS-e restrita ao catÃ¡logo do escritÃ³rio
 
-Data: 21/09/2026. Origem: executor, decisão de implementação local autorizada
-por D-55 e pelos critérios de rastreabilidade da etapa 07. Ao resolver uma
-revisão NFS-e, o acumulador deve existir no catálogo da mesma empresa: regra
-ativa e vigente para a data do documento ou código já observado no histórico
-local da empresa. A tela deve sugerir esses códigos e recusar código inexistente
-ou de outra empresa. A medida não infere tratamento fiscal, não cria regra,
-lançamento, integração, custo ou homologação.
+Data: 21/09/2026. Origem: executor, decisÃ£o de implementaÃ§Ã£o local autorizada
+por D-55 e pelos critÃ©rios de rastreabilidade da etapa 07. Ao resolver uma
+revisÃ£o NFS-e, o acumulador deve existir no catÃ¡logo da mesma empresa: regra
+ativa e vigente para a data do documento ou cÃ³digo jÃ¡ observado no histÃ³rico
+local da empresa. A tela deve sugerir esses cÃ³digos e recusar cÃ³digo inexistente
+ou de outra empresa. A medida nÃ£o infere tratamento fiscal, nÃ£o cria regra,
+lanÃ§amento, integraÃ§Ã£o, custo ou homologaÃ§Ã£o.
+
+## D-108 â€” Parcelamentos operÃ¡vel de ponta a ponta e entrada Ãºnica na ConciliaÃ§Ã£o
+
+Data: 22/09/2026. Origem: responsÃ¡vel ("tela de parcelamentos nÃ£o estÃ¡ funcional";
+"importaÃ§Ã£o para conciliaÃ§Ã£o precisa ser revisada"). Parcelamentos: a empresa em foco
+oferece a consulta de pedidos com o custo cotado; o detalhe jÃ¡ pago Ã© exibido
+(consolidaÃ§Ã£o, parcelas pagas, parcela bÃ¡sica); parcelas mostram atraso e mÃªs atual; DAS
+nÃ£o concluÃ­do pode ser emitido de novo com nova cotaÃ§Ã£o; "resultado a confirmar" sÃ³ Ã©
+liberado por perfil que autoriza consumo, com trilha de auditoria, sem liquidar nem
+estornar a reserva de tokens. ConciliaÃ§Ã£o: um Ãºnico envio (`reconciliation-upload`)
+recebe todos os formatos; extrato OFX enviado tambÃ©m alimenta a fila OFX Ã— DomÃ­nio
+(importaÃ§Ã£o idempotente por hash); o campo de perÃ­odo, coletado e nunca gravado, saiu do
+envio; a demonstraÃ§Ã£o nÃ£o recebe arquivos. NÃ£o altera custo, preÃ§o, integraÃ§Ã£o externa
+nem homologaÃ§Ã£o.
+
+## D-109 â€” EvoluÃ§Ã£o do CICA como central operacional
+
+Data: 23/09/2026. Origem: responsÃ¡vel, por pedido explÃ­cito de implementaÃ§Ã£o do
+plano completo de evoluÃ§Ã£o. O CICA passa a ter uma central de atividades e
+fechamentos prÃ³pria, independente de ERP: DomÃ­nio e Siescon podem alimentar dados
+por adaptadores autorizados, mas um escritÃ³rio tambÃ©m pode trabalhar com cadastro,
+documentos, confirmaÃ§Ãµes humanas e importaÃ§Ãµes no CICA. Nenhum novo conector de
+banco, adquirente, agregador financeiro ou ERP de terceiro serÃ¡ incluÃ­do nesta
+evoluÃ§Ã£o; a arquitetura preserva adaptadores futuros sem depender deles.
+
+Cada colaborador tem acesso operacional completo Ã s empresas que lhe forem
+atribuÃ­das, inclusive confirmaÃ§Ã£o humana de transmissÃ£o e ciÃªncia oficial, desde
+que a operaÃ§Ã£o pertenÃ§a Ã  sua empresa e fique registrada. AdministraÃ§Ã£o de equipe,
+contrato, limites e configuraÃ§Ã£o global permanece com proprietÃ¡rio/administrador.
+Esta decisÃ£o substitui a restriÃ§Ã£o de D-39 para empresas explicitamente atribuÃ­das.
+
+Fechamento concluÃ­do exige processamento comprovado na fonte, quando ela existir,
+ou documento mais confirmaÃ§Ã£o humana no modo independente; exige tambÃ©m as
+obrigaÃ§Ãµes aplicÃ¡veis aceitas. Pagamento de guia Ã© atividade separada. Prazos
+legais e internos sÃ£o distintos, e modelos de atividade tÃªm exceÃ§Ãµes aprovadas por
+empresa e Ã¡rea. A auditoria preserva aÃ§Ãµes, resultados, impedimentos, atribuiÃ§Ãµes,
+alteraÃ§Ãµes de prazo e atividades esperadas que venceram sem conclusÃ£o.
+
+Os pacotes usam capacidade de usuÃ¡rios internos ativos e raÃ­zes de CNPJ ativas.
+Matriz e filiais continuam entidades operacionais independentes. A franquia de IA
+Ã© apresentada em reais de uso CICA, com teto mensal definido pelo administrador;
+dados enviados Ã  IA externa sÃ£o minimizados e mascarados por padrÃ£o. O Integra
+Contador repassa o custo efetivo auditÃ¡vel, incluindo distribuiÃ§Ã£o determinÃ­stica
+de descontos e ajustes, sem margem. Esta decisÃ£o substitui a estrutura comercial
+por mÃ³dulos/tokens incompatÃ­vel com essas regras, sem aprovar preÃ§os ou limites
+numÃ©ricos.
+
+RelatÃ³rios e grÃ¡ficos novos serÃ£o gerados por bibliotecas JavaScript, usando um
+serviÃ§o Node/TypeScript interno para PDF, XLSX e grÃ¡ficos. Modelos de relatÃ³rio
+sÃ£o configurÃ¡veis; usuÃ¡rios autorizados podem exportar a qualquer momento, com a
+data da fotografia dos dados e pendÃªncias visÃ­veis. A conexÃ£o de e-mail evolui
+para aplicaÃ§Ã£o central Mewstack com consentimento do escritÃ³rio, preservando o
+aplicativo prÃ³prio como alternativa; ativaÃ§Ã£o real continua dependente de
+homologaÃ§Ã£o e custos aprovados.
+
+## D-110 â€” Meta de completude e validaÃ§Ã£o verificÃ¡vel
+
+Data: 23/09/2026. Origem: responsÃ¡vel. A evoluÃ§Ã£o autorizada deve ser conduzida atÃ© a completude verificÃ¡vel do escopo aprovado: cada fluxo precisa ter comportamento, testes pertinentes, inspeÃ§Ã£o de interface quando houver tela, recuperaÃ§Ã£o de falha, documentaÃ§Ã£o operacional e limite externo explicitamente registrados. Lacunas devem ser pesquisadas em fontes oficiais ou apresentadas ao responsÃ¡vel como pergunta objetiva; nenhuma resposta, integraÃ§Ã£o, preÃ§o, polÃ­tica de dados ou homologaÃ§Ã£o pode ser presumida.
+
+â€œPerfeitoâ€ nÃ£o autoriza declarar venda, produÃ§Ã£o ou integraÃ§Ã£o externa prontos sem a evidÃªncia exigida por D-73 e etapa 12. O objetivo inclui corrigir falhas locais encontradas na revisÃ£o, mantendo dados existentes e sem criar custo, publicar, contratar ou realizar chamadas externas reais sem autorizaÃ§Ã£o especÃ­fica.
+
+## D-111 â€” NFS-e independente com fotografia Ãºnica do DomÃ­nio Web
+
+Data: 23/09/2026. Origem: responsÃ¡vel. Um escritÃ³rio poderÃ¡ contratar e usar somente o mÃ³dulo NFS-e, com acesso e navegaÃ§Ã£o limitados Ã s superfÃ­cies desse mÃ³dulo. Isso nÃ£o libera os demais mÃ³dulos nem cria preÃ§o, cobranÃ§a ou contrato automaticamente.
+
+Quando a fonte for DomÃ­nio Web, o escritÃ³rio envia um backup completo uma Ãºnica vez para formar a fotografia inicial dos acumuladores. A extraÃ§Ã£o ocorre no agente controlado, com leituras permitidas e versionadas; o CICA recebe apenas os registros normalizados necessÃ¡rios, nunca acesso livre ao banco nem o backup para processamento humano pelo desenvolvedor. O arquivo e a chave sÃ£o descartados apÃ³s a extraÃ§Ã£o concluÃ­da ou a falha terminal, preservando lote, hash, versÃ£o do extrator, hora da fotografia, empresas vinculadas, contagens e erros auditÃ¡veis.
+
+Cada acumulador descoberto serÃ¡ vinculado Ã  empresa de origem e persistido como observaÃ§Ã£o de catÃ¡logo. Novas regras, acumuladores e decisÃµes adicionados nas telas serÃ£o registrados como novos eventos e passarÃ£o a compor o histÃ³rico, sem apagar a fotografia inicial. A exportaÃ§Ã£o para as rotinas automÃ¡ticas do DomÃ­nio serÃ¡ gerada no formato homologado, por empresa e competÃªncia, com prÃ©via, hash, evidÃªncia e estado separado de â€œarquivo geradoâ€, â€œdisponibilizadoâ€ e â€œimportado confirmadoâ€. O CICA nÃ£o alegarÃ¡ baixa ou importaÃ§Ã£o concluÃ­da sem retorno verificÃ¡vel da rotina.
+
+A primeira leitura nÃ£o prova um layout de backup nem autoriza extraÃ§Ã£o real: o contrato tÃ©cnico do backup DomÃ­nio Web, um arquivo de teste autorizado e a homologaÃ§Ã£o do extrator continuam requisitos da etapa 12. A pesquisa oficial confirma que rotinas automÃ¡ticas usam os acumuladores configurados e podem ler arquivos de pasta por empresa/competÃªncia; o produto deve separar configuraÃ§Ã£o, geraÃ§Ã£o do arquivo e confirmaÃ§Ã£o da rotina. [DomÃ­nio: rotinas automÃ¡ticas](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=12051), [DomÃ­nio: acumuladores em NFS-e](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=10162).
+
+## D-112 ? Pacote NFS-e permanece de conferencia ate homologacao
+
+Data: 23/09/2026. Origem: pesquisa oficial e D-111. A documentacao publica do DomÃ­nio confirma que rotinas automaticas exigem configuracao por empresa, competencia e importador, mas nao publica o schema do backup `.dom` nem um contrato que vincule XML NFS-e, acumulador e rotina de importacao. Assim, o ZIP atual e um pacote privado de conferencia e evidencia: nao pode ser chamado de arquivo importavel nem habilitar confirmacao de importacao.
+
+A liberacao dependera do layout tecnico autorizado, de uma amostra descartavel, da configuracao da rotina no ambiente autorizado e de retorno verificavel. Q-39 consolida esses requisitos. Referencias: [rotina de importacao via API](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=7247), [rotinas automaticas da Escrita](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=4364).
+
+## D-113 ? Cadastro manual de acumulador exige crit?rio expl?cito
+
+Data: 23/09/2026. Origem: solicita??o do respons?vel para manter hist?rico perfeito de acumuladores adicionados pela tela. Um acumulador criado manualmente ? um registro de cat?logo e hist?rico para a empresa; sem campos de correspond?ncia aprovados, ele n?o classifica NFS-e automaticamente. A classifica??o autom?tica exige uma regra n?o vazia, expl?cita e audit?vel. Caso contr?rio, a NFS-e segue para revis?o humana.
+
+## D-114 ? Superf?cie exclusiva do produto NFS-e
+
+Data: 23/09/2026. Origem: D-111 e solicita??o do respons?vel. Quando um escrit?rio tiver NFS-e como ?nico m?dulo habilitado de forma expl?cita, a entrada da ?rea autenticada deve levar ? central NFS-e e a navega??o n?o mostrar? a central de atividades nem os modelos operacionais. Cadastro de empresas, certificados, equipe e configura??o inicial permanecem como superf?cies auxiliares necess?rias ao pr?prio NFS-e. As rotas de atividades devem recusar esse recorte, inclusive por URL direta.
+
+## D-115 - Exportacao financeira duravel
+
+Data: 23/09/2026. Origem: D-109 e D-110. A exportacao PDF/XLSX de DRE ou caixa
+cria uma solicitacao persistida com fotografia criptografada, hash, empresa, solicitante
+e formato antes de ser entregue ao Celery. O worker deve revalidar a associacao ativa
+do solicitante e seu acesso atual a empresa antes de renderizar. O arquivo gerado e
+privado; o download tambem revalida o escopo atual. Reentrega, queda de worker e
+artefato ausente devem permanecer visiveis como estados recuperaveis, sem gerar
+resultado duplicado ou expor arquivo de outro escritorio.
+
+A exportacao continua livre para usuario autorizado: nao ha aprovacao adicional. A
+retencao definitiva dos artefatos e a operacao em producao continuam dependentes das
+politicas e da homologacao da etapa 12.
+
+## D-116 - Edicao versionada do mapa DRE
+
+Data: 23/09/2026. Origem: D-109 e D-110. O escritorio administra o mapa DRE
+pela interface, com conta, grupo e sinal. Salvar nunca altera um mapa ja usado: o CICA
+valida o conjunto inteiro, cria uma nova versao completa, torna somente ela ativa e
+preserva todas as versoes e linhas anteriores. Contas duplicadas, grupo ausente ou sinal
+fora de -1/1 impedem o salvamento. A acao fica restrita a administrador/proprietario e
+registra a versao, quantidade de contas e autor na auditoria.
+
+## D-117 - Relatorios do Copiloto usam somente o renderizador JavaScript
+
+Data: 23/09/2026. Origem: D-109 e D-110. PDF e XLSX exportados pelo Copiloto
+usam a mesma fotografia restrita e o servico Node/TypeScript de relatorios usado
+pelas entregas financeiras. ReportLab e OpenPyXL deixam de gerar esses artefatos;
+as bibliotecas Python de leitura/importacao permanecem fora desta decisao. Sem URL
+interna e segredo configurados, a exportacao responde indisponivel de forma explicita
+e nao produz versao alternativa. A fotografia, a verificacao de permissao, o hash e a
+auditoria continuam obrigatorios antes da resposta ao usuario.
+
+## D-118 - Conferencia de folha por fotografias agregadas
+
+Data: 23/09/2026. Origem: D-109 e D-110. A ficha da empresa permite comparar duas
+fotografias de folha da mesma competencia, mostrando a fonte, os totais agregados, as
+metricas ausentes e cada diferenca acima da tolerancia configurada no pedido. A tela nao
+calcula folha, nao mostra dado individual de trabalhador e nao chama fonte externa. Apenas
+fotografias da empresa que o usuario ja pode acessar podem ser escolhidas; fontes manuais
+ou documentais continuam identificadas como tais. A conferencia e leitura explicavel, e o
+tratamento de uma diferenca permanece vinculado a atividade operacional responsavel.
+
+## D-119 - Tratamento da divergencia de folha abre a fila no mesmo contexto
+
+Data: 23/09/2026. Origem: D-118 e D-110. A conferencia de fotografias da folha deve
+levar diretamente para as atividades de folha da mesma empresa e competencia, sem marcar
+qualquer atividade como concluida ou presumir causa da divergencia. A central de atividades
+aceita competencia mensal como filtro explicito na URL, combinado com empresa e area.
+Competencia malformada nao altera a fila nem e convertida silenciosamente para outro mes.
+
+## D-120 - Prioridade operacional deterministica e estados de fonte visiveis
+
+Data: 23/09/2026. Origem: plano aprovado, secoes 3.1 e 4.2. A area de trabalho resume
+todas as atividades abertas do escopo autorizado por atraso, vencimento no dia, proximos
+sete dias, impedimento e fonte indisponivel. Cada numero abre a central com o filtro
+correspondente na URL. Esses grupos se sobrepoem porque representam dimensoes independentes;
+nenhum total deve ser apresentado como soma dos outros. A fila aceita a situacao de
+atualizacao como filtro separado do estado de trabalho. A ordenacao permanece deterministica
+por prazo, sem IA ocultar, reordenar ou dispensar atividade.
+
+## D-121 - Gestao de carteira mostra distribuicao, nao produtividade presumida
+
+Data: 23/09/2026. Origem: plano aprovado, secao 3.2. Apenas proprietario e administrador
+veem na area de trabalho a distribuicao de atividades abertas por membro ativo do escritorio,
+com atrasadas e impedidas separadas. Cada linha abre a fila daquele responsavel; tambem existe
+o recorte de atividades sem responsavel. Os numeros descrevem atribuicao e estado atual do
+trabalho no escopo autorizado, nao avaliam produtividade, disponibilidade individual ou
+qualidade do profissional. Membros sem atividade seguem visiveis para distinguir capacidade
+sem trabalho atribuido de ausencia da equipe.
+
+## D-122 - Configuracao inicial retomavel conduz para a proxima acao concreta
+
+Data: 23/09/2026. Origem: plano aprovado, secao 3.4, e revisao da superficie existente. O assistente de configuracao deve usar exclusivamente o estado persistido do escritorio para indicar cada etapa concluida ou pendente e levar o owner/administrador para a tela exata que resolve a pendencia: identificacao do escritorio, fonte de dados, empresas, modelos de atividades, modulos e contrato, equipe, limites e MFA. Ele pode ser interrompido e retomado sem perder estado; nao cria empresas, modelos, modulos, franquias, integracoes ou operacoes tarifadas automaticamente. Configuracao pendente de uma fonte ou servico continua sem bloquear recursos independentes.
+
+
+## D-123 â€” Carteira explÃ­cita e revogaÃ§Ã£o sem acesso legado
+
+Data: 24/09/2026. Origem: meta aprovada de conclusÃ£o da central operacional e D-109. Colaboradores precisam de atribuiÃ§Ã£o ativa para consultar uma empresa, inclusive em escritÃ³rios sem CRMew. A ausÃªncia ou revogaÃ§Ã£o da Ãºltima atribuiÃ§Ã£o nunca concede acesso ao escritÃ³rio inteiro. ProprietÃ¡rio/administrador mantÃ©m visÃ£o total local; quando existe controle externo, sua validade e seus limites continuam obrigatÃ³rios. Membro ou escritÃ³rio inativo nÃ£o recebe carteira nem capacidades. A mesma fronteira deve valer para consulta, capacidade por empresa e capacidade agregada. NÃ£o criar atribuiÃ§Ãµes para preservar silenciosamente o acesso legado.
+
+## D-124 â€” OrdenaÃ§Ã£o pelo prazo efetivo da atividade
+
+Data: 24/09/2026. Origem: correÃ§Ã£o aprovada na meta da central operacional. A prÃ©via e a fila ordenam pelo mesmo prazo usado nos indicadores: prazo interno quando preenchido; caso contrÃ¡rio, prazo legal. Atividades sem qualquer prazo ficam apÃ³s as datadas, com desempate estÃ¡vel. Uma atividade futura com prazo interno nÃ£o precede uma atividade atrasada apenas porque esta tem somente prazo legal.
+
+## D-125 â€” VisÃ£o geral comeÃ§a no trabalho pessoal
+
+Data: 24/09/2026. Origem: meta aprovada e diagnÃ³stico da VisÃ£o geral. A entrada padrÃ£o Ã© Meu trabalho, filtrada pelo responsÃ¡vel atual inclusive para administradores. Carteira mostra atividades das empresas autorizadas, sem atribuir tarefas sem responsÃ¡vel Ã  pessoa. GestÃ£o Ã© exclusiva de proprietÃ¡rio/administrador. Os recortes, filtros e pÃ¡ginas sÃ£o explÃ­citos na URL; links de indicadores mantÃªm o mesmo recorte e mostram somente trabalho aberto. A agenda exibe atraso, hoje, prÃ³ximos sete dias, posteriores e sem prazo, sem limite silencioso de seis itens. MÃ©tricas genÃ©ricas, filas de mÃ³dulos e gestÃ£o de equipe ficam fora da agenda pessoal. A visualizaÃ§Ã£o da carteira nÃ£o amplia permissÃ£o de empresa. Suporte permanece limitado ao escopo autorizado; NFS-e exclusivo preserva sua entrada prÃ³pria.
+
+## D-126 â€” RecorrÃªncia mensal recuperÃ¡vel por atribuiÃ§Ã£o
+
+Data: 24/09/2026. Origem: meta de geraÃ§Ã£o recorrente aprovada. Modelos mensais ativos atribuÃ­dos pelo administrador passam a ter cursor de prÃ³xima competÃªncia. A primeira execuÃ§Ã£o automÃ¡tica comeÃ§a no mÃªs corrente, sem inventar obrigaÃ§Ãµes retroativas; depois retoma competÃªncias nÃ£o executadas. Cada atribuiÃ§Ã£o Ã© bloqueada em transaÃ§Ã£o e o cursor avanÃ§a junto das atividades e auditoria. A execuÃ§Ã£o processa atÃ© 12 competÃªncias por atribuiÃ§Ã£o e retoma o restante no ciclo seguinte. Pausar/reativar pela aÃ§Ã£o administrativa reinicia a referÃªncia automÃ¡tica no mÃªs corrente, sem apagar atividades antigas nem gerar meses da pausa. HistÃ³rico manual continua explÃ­cito.
+
+EscritÃ³rios inativos, demonstraÃ§Ãµes, empresas inativas, modelos pausados e contratos NFS-e exclusivos nÃ£o geram atividades automÃ¡ticas. Limites externos vencidos e ciclo suspenso/arquivado/provisionando impedem geraÃ§Ã£o. ResponsÃ¡vel sem vÃ­nculo e carteira ativos nÃ£o recebe nova tarefa: a atividade fica sem responsÃ¡vel com evento explicativo, sem ampliar acesso. Erro em uma atribuiÃ§Ã£o mantÃ©m o cursor e registra falha auditÃ¡vel sem dados sensÃ­veis; nÃ£o bloqueia as demais. A execuÃ§Ã£o automÃ¡tica tem autor de sistema, sem simular aprovaÃ§Ã£o humana ou concluir trabalho. O agendador roda a cada hora; sua operaÃ§Ã£o publicada e concorrÃªncia real PostgreSQL exigem homologaÃ§Ã£o.
+
+## D-127 â€” Fechamento exige requisitos atuais, alÃ©m do estado da tarefa
+
+Data: 24/09/2026. Origem: implementaÃ§Ã£o da regra aprovada em D-109. A avaliaÃ§Ã£o de fechamento deve revalidar evidÃªncia, processamento obrigatÃ³rio fechado e obrigaÃ§Ã£o obrigatÃ³ria aceita; marcar a tarefa como concluÃ­da nÃ£o substitui esses requisitos. A conclusÃ£o manual e a avaliaÃ§Ã£o agregada compartilham a mesma regra. Fonte indisponÃ­vel ou desatualizada impede comprovar conclusÃ£o; exigÃªncia de fonte integrada tambÃ©m nÃ£o Ã© satisfeita por integraÃ§Ã£o nÃ£o configurada. No modo documental/humano, integraÃ§Ã£o nÃ£o configurada nÃ£o bloqueia por si sÃ³. A exigÃªncia source_or_human pede uma dessas duas comprovaÃ§Ãµes: um documento isolado nÃ£o simula confirmaÃ§Ã£o humana. Dispensa exige motivo, responsÃ¡vel, data e evidÃªncia, preservando o histÃ³rico; nÃ£o exige processamento ou transmissÃ£o do item dispensado. Pagamento permanece independente. A avaliaÃ§Ã£o nÃ£o altera nem apaga conclusÃµes anteriores; informa requisitos ausentes. Esta correÃ§Ã£o de domÃ­nio antecede sua exposiÃ§Ã£o no painel e nÃ£o homologa fontes externas.
+
+## D-128 â€” Fechamentos da carteira com cobertura explÃ­cita
+
+24/09/2026. A VisÃ£o geral apresenta os requisitos cadastrados de fechamento por empresa autorizada, competÃªncia selecionada e Ã¡rea contÃ¡bil/fiscal/folha. A competÃªncia inicial Ã© o mÃªs corrente explicitamente exibido, ajustÃ¡vel na URL. O resumo sempre considera todos os responsÃ¡veis daquela empresa, mesmo na agenda pessoal. Requisitos sÃ£o as atividades que exigem processamento fechado ou obrigaÃ§Ã£o aceita; uma tarefa de pagamento isolada nÃ£o integra esse conjunto. AusÃªncia de requisitos significa cobertura nÃ£o configurada, nunca empresa fechada. O rÃ³tulo positivo serÃ¡ Requisitos comprovados, acompanhado do aviso de que a cobertura depende dos modelos cadastrados. Cada requisito mostra prazo, responsÃ¡vel, atualizaÃ§Ã£o, causa e acesso ao histÃ³rico/evidÃªncias. PaginaÃ§Ã£o Ã© por empresas, sem cortar silenciosamente a carteira. Isso nÃ£o presume completude de obrigaÃ§Ãµes legais nem capacidades ainda nÃ£o homologadas.
+
+## D-129 â€” RevisÃ£o NFS-e alimenta a central pelo resultado local
+
+24/09/2026. Casos de revisÃ£o NFS-e terÃ£o vÃ­nculo Ãºnico com atividade fiscal. Captura cria atividade sem prazo ou responsÃ¡vel inventados, usando a competÃªncia de emissÃ£o quando disponÃ­vel. A decisÃ£o humana no mÃ³dulo conclui a atividade e registra evidÃªncia com autor e data, na mesma transaÃ§Ã£o do caso, histÃ³rico de acumuladores e artefato. A atividade nÃ£o pode ser concluÃ­da separadamente enquanto a revisÃ£o estiver aberta. Processamento local revisado nÃ£o Ã© fechamento/importaÃ§Ã£o no DomÃ­nio, pagamento ou aceitaÃ§Ã£o oficial. Repetir sincronizaÃ§Ã£o nÃ£o duplica atividade/evidÃªncia/eventos; o vÃ­nculo permite recompor registros anteriores explicitamente. DemonstraÃ§Ãµes nÃ£o geram atividade persistida por essa ponte; a entrada NFS-e exclusiva permanece a mesma.
+
+## D-130 â€” Atividade de Triagem acompanha arquivamento comprovado
+
+24/09/2026. Itens com empresa identificada geram atividade geral vinculada, sem prazo ou responsÃ¡vel inventados. Itens sem empresa continuam na fila prÃ³pria da Triagem. AprovaÃ§Ã£o para arquivar nÃ£o conclui trabalho; falha/rejeiÃ§Ã£o gera impedimento. Somente estado arquivado com data, destino e hash coincidente com o conteÃºdo cria evidÃªncia de conclusÃ£o local, sem fechamento de ERP ou obrigaÃ§Ã£o oficial. TransiÃ§Ãµes humanas e retornos do agente atualizam a atividade na transaÃ§Ã£o existente. RepetiÃ§Ã£o preserva evidÃªncias e nÃ£o duplica tarefas. VÃ­nculo com empresa diferente Ã© recusado, sem transferir histÃ³rico silenciosamente. RejeiÃ§Ã£o permanece impedimento documental, nÃ£o dispensa automÃ¡tica. DemonstraÃ§Ãµes nÃ£o geram projeÃ§Ãµes persistidas.
+
+## D-131 â€” AÃ§Ã£o na origem e permissÃ£o consistente da atividade
+
+24/09/2026. Atividades vinculadas Ã  NFS-e/Triagem orientam a prÃ³xima aÃ§Ã£o para o registro de origem, com estado local visÃ­vel. FormulÃ¡rios genÃ©ricos nÃ£o substituem essa decisÃ£o. O acesso ao mÃ³dulo permanece condicionado Ã s permissÃµes existentes; vÃ­nculo divergente de escritÃ³rio/empresa nÃ£o produz link. Consulta da atividade e alteraÃ§Ã£o sÃ£o permissÃµes distintas: auditor/financeiro consultam a carteira autorizada, mas nÃ£o registram evidÃªncia, impedimento ou conclusÃ£o. ServiÃ§os revalidam carteira vigente e perfil; telas tambÃ©m respeitam suporte somente leitura. Nenhum link executa decisÃ£o ou ciÃªncia automaticamente.
+
+## D-132 â€” AtribuiÃ§Ã£o explÃ­cita e histÃ³rico de redistribuiÃ§Ã£o
+
+24/09/2026. ProprietÃ¡rio/administrador atribui ou remove responsÃ¡vel de atividade aberta no detalhe, com motivo obrigatÃ³rio. DestinatÃ¡rio deve ser usuÃ¡rio e membro ativos, com perfil operacional e carteira vigente da empresa; a aÃ§Ã£o nunca concede acesso. Atividade encerrada preserva sua atribuiÃ§Ã£o histÃ³rica. AlteraÃ§Ãµes concorrentes detectam o responsÃ¡vel anterior esperado e recusam sobrescrita silenciosa. Evento e auditoria guardam responsÃ¡veis anterior/novo, autor e motivo. Remover responsÃ¡vel recoloca trabalho na carteira compartilhada. Aplica-se Ã s atividades avulsas, recorrentes e de mÃ³dulos, sem modificar o responsÃ¡vel padrÃ£o dos modelos ou inventar prazo.
+
+## D-133 â€” Ordem temporal e repetiÃ§Ã£o das observaÃ§Ãµes
+
+24/09/2026. ObservaÃ§Ãµes de fontes usam instante explÃ­cito com fuso quando informado. RepetiÃ§Ã£o exata de conteÃºdo, fonte, atividade e instante retorna o registro existente. Retorno antigo permanece no histÃ³rico sem sobrescrever valor mais recente; processamento e obrigaÃ§Ã£o sÃ£o avaliados separadamente. Empate conflitante numa dimensÃ£o nÃ£o escolhe vencedor pela ordem de chegada: conserva valor e marca desatualizaÃ§Ã£o para conferÃªncia. Falha de consulta nÃ£o altera processamento/obrigaÃ§Ã£o. AtualizaÃ§Ã£o da fonte nÃ£o recua sua Ãºltima fotografia. Somente estados efetivamente aplicados podem reabrir uma atividade concluÃ­da. Adaptadores devem reutilizar o instante original para reconhecer repetiÃ§Ã£o; chamadas sem instante representam novas observaÃ§Ãµes. Isso prepara a integraÃ§Ã£o e nÃ£o constitui homologaÃ§Ã£o de uma fonte.
+
+Complemento D-133: observaÃ§Ã£o bem-sucedida que efetivamente aplica processamento ou obrigaÃ§Ã£o registra evidÃªncia vinculada ao ID da observaÃ§Ã£o e Ã  data original. NÃ£o conclui automaticamente o trabalho. Retorno histÃ³rico sem aplicaÃ§Ã£o, falha e conflito sem dado aplicado nÃ£o criam comprovaÃ§Ã£o nova.
+
+## D-134 â€” Tratamento de arquivo da ConciliaÃ§Ã£o na central
+
+24/09/2026. Uma atividade por arquivo acompanha leitura, revisÃ£o e tratamento local dos movimentos. Leitura ou sugestÃµes nÃ£o concluem a atividade. Cada movimento deve estar integralmente conciliado com evidÃªncia, ter lanÃ§amento aprovado/exportado da revisÃ£o vigente, ou estar explicitamente ignorado por decisÃ£o/regra registrada. Arquivo sem movimentos ou com erros nÃ£o comprova conclusÃ£o. Nova revisÃ£o ou desfazimento reavalia a atividade e preserva as evidÃªncias anteriores. ConclusÃ£o local nÃ£o confirma exportaÃ§Ã£o/importaÃ§Ã£o no ERP. RepetiÃ§Ãµes e reprocessamentos do mesmo arquivo usam a mesma atividade; responsÃ¡vel/prazo nÃ£o sÃ£o presumidos. Acesso permanece limitado Ã  empresa.
+
+## D-135 â€” Reconfirmar conciliaÃ§Ã£o preservando decisÃµes
+
+24/09/2026. RelaÃ§Ã£o desfeita pode ser confirmada novamente, apÃ³s revalidar empresa, evidÃªncia, equilÃ­brio e saldo disponÃ­vel dos dois lados. Preservar cada confirmaÃ§Ã£o e desfazimento em histÃ³rico prÃ³prio com valor, evidÃªncia, estado, autor e data; conteÃºdo documental nÃ£o vai para logs genÃ©ricos. RelaÃ§Ã£o jÃ¡ confirmada continua recusando nova alocaÃ§Ã£o. Desfazimento repetido nÃ£o cria outra decisÃ£o. Registros anteriores sem histÃ³rico recebem fotografia identificada como legado antes da alteraÃ§Ã£o; nÃ£o inventar autor/data de confirmaÃ§Ã£o perdidos. ProjeÃ§Ã£o da atividade e histÃ³rico integram a mesma transaÃ§Ã£o.
+
+## D-136 â€” Abrir o arquivo da atividade na ConciliaÃ§Ã£o
+
+24/09/2026. A atividade de ConciliaÃ§Ã£o abre a tela existente com processamentos e movimentos restritos ao arquivo autorizado. Filtro fica na URL, persiste na paginaÃ§Ã£o e busca; arquivo invÃ¡lido ou fora da carteira retorna 404, sem abrir uma fila ampla por engano. Identificar arquivo/empresa, permitir voltar Ã  atividade e remover o filtro explicitamente. Indicadores gerais e exportaÃ§Ãµes continuam identificados como visÃ£o da carteira. NavegaÃ§Ã£o nÃ£o executa processamento nem confirmaÃ§Ã£o. PermissÃµes do mÃ³dulo e empresa sÃ£o revalidadas no destino; a atividade nÃ£o oferece conclusÃ£o genÃ©rica para substituir o fluxo de origem.
+
+## D-137 â€” HistÃ³rico consultÃ¡vel da conciliaÃ§Ã£o no movimento
+
+24/09/2026. Detalhe do movimento apresenta decisÃµes preservadas, mais recentes primeiro, com paginaÃ§Ã£o independente, estado, valor, lanÃ§amento, autor e data disponÃ­veis. Fotografia legada Ã© identificada, nÃ£o datada artificialmente; ausÃªncia de autor nÃ£o implica decisÃ£o humana nem automÃ¡tica. EvidÃªncia Ã© texto escapado, nunca HTML executÃ¡vel. Consulta exige a mesma empresa e mÃ³dulo do movimento e nÃ£o cria decisÃµes ou altera conciliaÃ§Ãµes.
+
+## D-138 â€” Entrada de totais de folha por arquivo
+
+24/09/2026. Fluxo existente de prÃ©via/confirmaÃ§Ã£o aceita CSV/XLSX de totais agregados da folha, uma empresa/competÃªncia/referÃªncia por linha, sem dados pessoais de trabalhadores. CompetÃªncia usa primeiro dia do mÃªs; valores vazios permanecem ausentes, nÃ£o zero. Entrada Ã© documento informado, jamais retorno oficial. Empresa deve corresponder Ã  fonte autorizada. Lote invÃ¡lido nÃ£o grava fotografias parciais. RepetiÃ§Ã£o da referÃªncia com os mesmos dados nÃ£o duplica; conteÃºdo diferente exige referÃªncia nova, preservando o anterior. A comparaÃ§Ã£o existente passa a ter entrada operacional; sua ligaÃ§Ã£o com atividades e homologaÃ§Ã£o ERP permanecem entregas distintas.
+
+## D-139 â€” ConferÃªncia da folha na central
+
+24/09/2026. Receber fotografias da folha gera uma atividade de conferÃªncia por empresa/competÃªncia, sem atribuir pessoa ou prazo presumidos. Nova fotografia recebida reabre conferÃªncia concluÃ­da/dispensada, preserva responsÃ¡vel e evidÃªncias, e exige confirmaÃ§Ã£o humana posterior ao novo recebimento. Igualdade de totais ou simples importaÃ§Ã£o nÃ£o conclui trabalho. Reenvio idÃªntico nÃ£o reabre. A referÃªncia da fotografia mais recentemente cadastrada identifica a revisÃ£o, mesmo se sua observaÃ§Ã£o de origem for antiga. Esta atividade nÃ£o representa fechamento de ERP ou obrigaÃ§Ã£o governamental; comparaÃ§Ãµes continuam na ficha da empresa. RecomposiÃ§Ã£o de registros legados Ã© explÃ­cita por escritÃ³rio.
+
+## D-140 â€” Contexto da conferÃªncia por competÃªncia
+
+24/09/2026. Atividade da folha abre a ficha da empresa com fotografias e seletores de comparaÃ§Ã£o limitados Ã  sua competÃªncia. Filtro explÃ­cito na URL persiste na paginaÃ§Ã£o e envio da comparaÃ§Ã£o; data invÃ¡lida Ã© recusada. Retorno Ã  atividade serve para registrar evidÃªncia/conclusÃ£o humana. Consultar ou comparar nÃ£o conclui atividade. PermissÃµes da empresa sÃ£o revalidadas e nenhum prazo/obrigaÃ§Ã£o Ã© inferido pelo filtro.
+
+## D-141 â€” PrÃ©via dos totais antes da importaÃ§Ã£o
+
+24/09/2026. ProprietÃ¡rio/administrador vÃª linhas paginadas do arquivo da folha antes de confirmar: empresa identificada na fonte, competÃªncia, referÃªncia, pessoas e valores originais. Campos vazios sÃ£o identificados; empresa nÃ£o localizada nÃ£o Ã© associada por aproximaÃ§Ã£o. PrÃ©via nÃ£o grava fotografias, nÃ£o valida conclusÃ£o nem dispensa a validaÃ§Ã£o integral na confirmaÃ§Ã£o. Apenas usuÃ¡rios autorizados a administrar a importaÃ§Ã£o acessam o conteÃºdo do lote.
+
+## D-142 â€” AnÃ¡lise de comunicaÃ§Ã£o DTE na central
+
+24/09/2026. Mensagem persistida da Caixa Postal gera atividade de anÃ¡lise por mensagem, sem prazo/competÃªncia legal presumidos. Monitoramento nÃ£o provoca ciÃªncia. Abertura comprovada registra evidÃªncia de consulta, mas somente anÃ¡lise humana conclui o trabalho local; isso nÃ£o comprova cumprimento da demanda. Abertura com resultado incerto impede conclusÃ£o atÃ© esclarecimento pela rotina existente, sem repetir chamada automaticamente. RepetiÃ§Ã£o de observaÃ§Ãµes nÃ£o duplica atividade/prova. ServiÃ§o de abertura revalida carteira vigente, alÃ©m de permissÃ£o de ciÃªncia, antes de reservar consumo ou chamar o provedor.
+
+## D-143 â€” ConfirmaÃ§Ã£o DTE posterior ao teor disponÃ­vel
+
+24/09/2026. Quando existe abertura comprovada, a anÃ¡lise exige confirmaÃ§Ã£o humana identificada, registrada e observada apÃ³s a abertura. O requisito consulta o recibo mesmo se a projeÃ§Ã£o da central falhar. Novo comprovante reabre conclusÃ£o ou dispensa anterior quando nÃ£o hÃ¡ confirmaÃ§Ã£o humana posterior vÃ¡lida; recomposiÃ§Ã£o nÃ£o reabre anÃ¡lise jÃ¡ comprovada apÃ³s aquele recibo. Resultado aberto sem data ou conteÃºdo Ã© insuficiente. EvidÃªncias e eventos anteriores permanecem no histÃ³rico.
+
+## D-144 â€” Contexto entre anÃ¡lise e mensagem DTE
+
+24/09/2026. A atividade oferece link ao resumo local da mensagem correspondente quando empresa, escritÃ³rio e acesso ao Integra forem vÃ¡lidos. O resumo oferece retorno Ã  atividade vinculada, com escopo novamente conferido. GET nÃ£o abre teor no provedor nem conclui anÃ¡lise; a confirmaÃ§Ã£o legal permanece no fluxo explÃ­cito existente. Sem acesso ao mÃ³dulo, a atividade informa a restriÃ§Ã£o e preserva o registro de evidÃªncia humana autorizado.
+
+## D-145 â€” AnÃ¡lise do Radar vinculada por escolha humana
+
+24/09/2026. PublicaÃ§Ã£o pÃºblica nÃ£o gera tarefas para todas as empresas. UsuÃ¡rio operacional vincula uma publicaÃ§Ã£o Ã  empresa autorizada com justificativa de anÃ¡lise; atividade Ãºnica por publicaÃ§Ã£o/empresa, inicialmente atribuÃ­da ao prÃ³prio usuÃ¡rio. NÃ£o presume competÃªncia, prazo legal, aplicabilidade tributÃ¡ria nem aceite oficial. VersÃ£o observada preserva tÃ­tulo, URL e classificaÃ§Ã£o; mudanÃ§a nesses dados reabre conclusÃ£o/dispensa e exige confirmaÃ§Ã£o humana posterior. Recoleta idÃªntica nÃ£o duplica nem reabre; reclassificaÃ§Ã£o como geral preserva o vÃ­nculo para revisÃ£o humana, sem cancelar silenciosamente o trabalho. Coleta apenas atualiza vÃ­nculos jÃ¡ escolhidos e nÃ£o faz novas atribuiÃ§Ãµes.
+
+## D-146 â€” Acesso DCTFWeb revalidado antes do consumo e da execuÃ§Ã£o
+
+24/09/2026. Consulta de documento DCTFWeb exige solicitante identificado, usuÃ¡rio e vÃ­nculo ativos, perfil operacional, empresa autorizada e mÃ³dulo Guias vigente. ServiÃ§o verifica antes de reservar consumo; worker verifica novamente antes da chamada. SolicitaÃ§Ã£o sem responsÃ¡vel ou com acesso revogado falha sem chamar provedor e libera a reserva ainda nÃ£o consumida. Resultado incerto de chamada jÃ¡ iniciada mantÃ©m o tratamento anterior, sem liberar nem repetir por inferÃªncia. A verificaÃ§Ã£o nÃ£o constitui homologaÃ§Ã£o da declaraÃ§Ã£o ou aceite oficial.
+
+## D-147 â€” Guias e PARCSN exigem autorizaÃ§Ã£o vigente na execuÃ§Ã£o
+
+24/09/2026. Aplicar a verificaÃ§Ã£o de D-146 tambÃ©m Ã  emissÃ£o de guias (mÃ³dulo Guias) e operaÃ§Ãµes PARCSN (mÃ³dulo Integra). Exigir solicitante identificado antes da reserva e revalidar usuÃ¡rio, vÃ­nculo, perfil, empresa, mÃ³dulo e carteira antes da chamada. Recusa anterior Ã  chamada libera apenas reserva nÃ£o executada e registra falha. Nenhuma autorizaÃ§Ã£o antiga ou ausÃªncia de ator concede acesso por compatibilidade. Resultados de chamadas jÃ¡ iniciadas exigem tratamento separado da revogaÃ§Ã£o prÃ©via.
+
+## D-148 â€” EmissÃ£o de guia com resultado incerto
+
+24/09/2026. Erro de transporte apÃ³s iniciar a chamada ou retorno sem PDF vÃ¡lido deixa a guia em Resultado a confirmar; preserva reserva, protocolo e retorno disponÃ­vel, sem declarar emissÃ£o, pagamento ou gratuidade. Estado impede reemissÃ£o, reprocessamento do worker e promoÃ§Ã£o por nova apuraÃ§Ã£o/documentos. Falhas anteriores com cÃ³digo integration serÃ£o reclassificadas para conferÃªncia, sem alterar retroativamente consumo. Carteira oferece filtro prÃ³prio e inclui esses casos nas pendÃªncias; detalhe orienta conferir fornecedor/consumo antes de qualquer nova aÃ§Ã£o. RecuperaÃ§Ã£o financeira exige evidÃªncia, sem liberaÃ§Ã£o automÃ¡tica por timeout.
+
+## D-149 â€” CorreÃ§Ã£o do proprietÃ¡rio: reemissÃ£o permitida com custo adicional
+
+24/09/2026. O proprietÃ¡rio corrigiu explicitamente D-148: pode haver reemissÃ£o, com custo adicional por guia. A proibiÃ§Ã£o de reemitir foi uma inferÃªncia do implementador e nÃ£o representa o comportamento aprovado. Consultar o proprietÃ¡rio antes de definir novas regras de fluxo ou cobranÃ§a; nÃ£o presumir valores. EstÃ¡ pendente a resposta sobre adicional como repasse do custo efetivo Serpro sem margem ou tarifa prÃ³pria CICA. Preservar evidÃªncias, resultados incertos e consumo de tentativas anteriores; a possibilidade de nova emissÃ£o nÃ£o comprova que a anterior falhou ou foi gratuita. CÃ³digo provisÃ³rio de bloqueio nÃ£o estÃ¡ entregue como soluÃ§Ã£o final e precisa ser substituÃ­do pelo fluxo autorizado de reemissÃ£o cobrada.
+
+## D-150 â€” PreservaÃ§Ã£o tÃ©cnica das tentativas de guia
+
+24/09/2026. Detalhamento tÃ©cnico da preservaÃ§Ã£o jÃ¡ exigida por D-149 e pela auditoria do plano: cada tentativa mantÃ©m fotografias imutÃ¡veis da solicitaÃ§Ã£o e dos estados observados, com referÃªncia ao consumo, solicitante, dados da guia, protocolo e retorno criptografado. Antes de iniciar outra tentativa, preservar o resultado existente e limpar os campos de retorno da nova tentativa, impedindo associaÃ§Ã£o de protocolo antigo a resposta nova. HistÃ³rico legado preserva apenas o estado disponÃ­vel, sem fabricar eventos anteriores. Este trabalho nÃ£o define tarifa, liberaÃ§Ã£o de reemissÃ£o ou nova regra comercial; essas mudanÃ§as continuam dependentes da resposta de D-149.
+
+## D-151 â€” Consulta do histÃ³rico de guias
+
+24/09/2026. ExposiÃ§Ã£o da auditoria jÃ¡ prevista: ficha da guia apresenta estados preservados por tentativa, dos mais recentes aos mais antigos, com data, responsÃ¡vel disponÃ­vel no escritÃ³rio, protocolo e distinÃ§Ã£o de registro legado/fictÃ­cio. PaginaÃ§Ã£o de 20 eventos segue os histÃ³ricos existentes. Download de PDF salvo de tentativa emitida revalida escritÃ³rio, carteira e mÃ³dulo, sem chamada ao fornecedor. NÃ£o exibir retorno bruto na pÃ¡gina nem inferir custo ou pagamento a partir do estado. Sem alteraÃ§Ã£o da decisÃ£o comercial pendente de D-149.
+
+## D-152 â€” CorreÃ§Ã£o do escopo de consulta das integraÃ§Ãµes
+
+24/09/2026. CorreÃ§Ã£o tÃ©cnica do isolamento jÃ¡ exigido pelo plano e pelas concessÃµes por empresa: consulta de Guias/Integra deve intersectar carteira e mÃ³dulo na mesma concessÃ£o. Uma concessÃ£o de Guias na empresa A nÃ£o autoriza Guias na empresa B cuja concessÃ£o contÃ©m somente outro mÃ³dulo. Aplicar Ã s pÃ¡ginas e downloads que usam o contexto desses mÃ³dulos, preservando administradores dentro da carteira autorizada e suporte dentro da sessÃ£o prÃ³pria. Perfil consultivo continua consultivo; nenhuma nova autorizaÃ§Ã£o de execuÃ§Ã£o ou regra comercial Ã© concedida.
+
+## D-153 â€” EvidÃªncia de cada resoluÃ§Ã£o NFS-e
+
+24/09/2026. CorreÃ§Ã£o da preservaÃ§Ã£o de histÃ³rico jÃ¡ exigida: a evidÃªncia operacional e a entrada no histÃ³rico de acumuladores identificam revisÃ£o, instante, responsÃ¡vel e acumulador escolhido. Reabertura seguida de nova resoluÃ§Ã£o mantÃ©m a prova anterior e acrescenta outra, sem reutilizar a referÃªncia apenas pelo ID da revisÃ£o. Reprocessar a mesma resoluÃ§Ã£o Ã© idempotente. NÃ£o cria um novo fluxo de reabertura nem comprova importaÃ§Ã£o no DomÃ­nio; corrige somente a projeÃ§Ã£o dos estados existentes.
+
+## D-154 â€” ValidaÃ§Ã£o PostgreSQL e locks de registros opcionais
+
+24/09/2026. CorreÃ§Ã£o tÃ©cnica de compatibilidade encontrada em testes com PostgreSQL 17 local descartÃ¡vel. Workers DCTFWeb/PARCSN e rotinas de Triagem devem bloquear explicitamente a linha principal que controla a transiÃ§Ã£o, sem solicitar FOR UPDATE de relaÃ§Ãµes opcionais carregadas por outer join. Preservar transaÃ§Ãµes e verificaÃ§Ãµes; nÃ£o remover locks para fazer testes passarem. Reserva/liquidaÃ§Ã£o mantÃªm seus prÃ³prios controles. NÃ£o altera fluxo comercial, ciÃªncia, transmissÃ£o ou autorizaÃ§Ã£o. ReferÃªncia tÃ©cnica: documentaÃ§Ã£o Django 6.0 de select_for_update(of=("self",)).
+
+## D-155 â€” ProjeÃ§Ã£o conservadora dos resultados Serpro na central
+
+24/09/2026. Cada guia, consulta DCTFWeb e operaÃ§Ã£o PARCSN persistida pode originar uma atividade exclusiva da mesma empresa, para apresentar pedido, resultado, evidÃªncia e impedimento na central. A projeÃ§Ã£o nÃ£o presume aceite de obrigaÃ§Ã£o, fechamento de ERP, pagamento, ciÃªncia oficial ou gratuidade. PDF de guia disponÃ­vel atualiza somente o estado de pagamento para â€œGuia disponÃ­velâ€ e deixa o trabalho aberto para a conferÃªncia definida em Q-40. Consulta DCTFWeb disponÃ­vel pode encerrar somente a atividade de obtenÃ§Ã£o do documento, com prova da fonte, sem declarar transmissÃ£o ou aceite. Consultas PARCSN concluÃ­das podem encerrar a atividade de consulta; DAS disponÃ­vel permanece aberto e separado de pagamento. Falhas e resultados incertos geram impedimento explicÃ¡vel; dispensa informada pela fonte requer confirmaÃ§Ã£o humana, nÃ£o Ã© dispensada automaticamente. Esta decisÃ£o implementa o escopo jÃ¡ aprovado de centralizar pendÃªncias e resultados, sem definir a regra comercial de reemissÃ£o D-149 nem substituir Q-40.
+
+## D-156 â€” RecuperaÃ§Ã£o unificada das projeÃ§Ãµes locais da central
+
+24/09/2026. Uma falha entre a persistÃªncia de um mÃ³dulo e sua projeÃ§Ã£o na central poderÃ¡ ser reparada por comando administrativo com escritÃ³rio explÃ­cito, que percorre somente dados jÃ¡ persistidos de NFS-e, Triagem, ConciliaÃ§Ã£o, folha, DTE, Radar e resultados Serpro. A execuÃ§Ã£o nÃ£o consulta fontes, nÃ£o emite/reemite/transmite, nÃ£o abre ciÃªncia oficial, nÃ£o reserva consumo e nÃ£o cria vÃ­nculos de Radar que nÃ£o tenham sido escolhidos por pessoa. Cada ponte conserva suas prÃ³prias condiÃ§Ãµes de idempotÃªncia, estados, provas e responsÃ¡veis; o comando apenas as invoca em sequÃªncia e informa quantidades por domÃ­nio. A execuÃ§Ã£o registra auditoria do resultado consolidado, sem atribuir autor humano inexistente. EscritÃ³rio de demonstraÃ§Ã£o ou inexistente Ã© recusado. Esta recuperaÃ§Ã£o nÃ£o alimenta estados de ERP ainda sem contrato comprovado e nÃ£o resolve D-149 ou Q-40.
+
+## D-157 - Estado operacional exige capacidade declarada da fonte
+
+24/09/2026. Uma observacao so pode alterar processamento quando a fonte bloqueada declarar `activity_processing_status`, ou obrigacao quando declarar `activity_obligation_status`. A declaracao e verificada dentro da transacao, depois de obter lock da fonte; uma capacidade removida nao pode ser usada por objeto em memoria desatualizado. Fonte em estado `disabled` nao pode alterar processamento ou obrigacao, mesmo que preserve capacidade declarada; falhas de leitura sem estado continuam registraveis para preservar indisponibilidade, mas nao autorizam inferencia de processamento ou obrigacao. A capacidade e somente um contrato tecnico: ela nao mapeia codigo do fornecedor, nao homologa Dominio/Siescon e nao transforma guia, envio ou consulta em aceite/pagamento.
+
+## D-158 - Regra de custo exige definicao expressa do proprietario
+
+24/09/2026. Sempre que um fluxo puder criar cobranca, alterar valor, escolher entre tarifa propria e repasse de fornecedor, ou atribuir custo a escritorio/empresa, o CICA deve solicitar definicao expressa do proprietario antes de implementar o comportamento. A autorizacao de reemissao com custo adicional por guia em D-149 nao autoriza inferir valor, base de calculo, moeda, impostos, momento de cobranca, reembolso ou modelo de repasse. Enquanto esses parametros nao existirem, preservar as tentativas e o estado incerto, sem habilitar emissao cobrada nem criar lancamento financeiro.
+
+## D-159 - Desativacao explicita nao e revertida por retorno tardio
+
+24/09/2026. Desativar uma fonte e uma decisao administrativa persistente. Uma observacao que chegar depois da desativacao pode ser mantida apenas como historico/auditoria, mas nao pode reativar a fonte, atualizar sua fotografia, tornar a atividade atual nem alterar processamento ou obrigacao. Uma falha tardia pode registrar indisponibilidade da atividade, sem substituir o estado `disabled` da fonte. A reativacao exige acao administrativa explicita; este comportamento nao cria contrato para Domínio ou Siescon.
+
+## D-160 - Reativacao administrativa conservadora de fonte
+
+24/09/2026. Owner ou administrador do escritorio, fora de sessao de suporte, pode reativar uma fonte explicitamente desativada na configuracao inicial mediante confirmacao visivel. Reativar muda somente o ciclo da fonte para `not_configured`, conserva capacidades, ultima fotografia e historico para auditoria e nao torna dados atuais, nao processa arquivo, nao agenda consulta, nao aciona agente nem concede novo acesso. O proximo retorno autorizado e capaz de atualizar o estado segundo seu contrato tecnico. Registrar ator, fonte e estados anterior/posterior em auditoria. A acao nao tem custo nem chama fornecedor.
+
+## D-161 - Atribuicao recorrente exige carteira no momento da materializacao
+
+24/09/2026. A atividade recorrente nunca pode receber responsavel apenas por ele ser membro do escritorio. Ao criar manualmente ou pelo worker, validar que modelo, atribuicao e empresa pertencem ao mesmo escritorio e que o responsavel ativo possui perfil operacional e carteira vigente para a empresa. Se uma atribuicao existente ficar invalida, gerar a atividade sem responsavel e registrar impedimento/auditoria explicavel; nao alterar o historico da atribuicao por uma geracao manual. Formularios administrativos devem recusar nova atribuicao incompatível. Isto fecha isolamento local e nao altera a regra de templates versionados.
+
+## D-162 — Autor, vínculo atual e carteira na escrita de atividade
+
+24/09/2026. Toda alteração de atividade (evidência humana, impedimento, conclusão e atribuição) deve confirmar no serviço que o autor autenticado corresponde ao membro atual do escritório, que ambos estão ativos, que o perfil atual é operacional e que a empresa continua na carteira vigente. Um objeto de membro carregado antes de revogação ou troca de perfil não autoriza a escrita. Esta revalidação complementa D-131 e não concede acesso, não altera atribuições nem reabre atividades.
+
+## D-163 â€” RevisÃ£o integral da landing com foco na rotina do escritÃ³rio
+
+24/09/2026. Origem: pedido explÃ­cito do proprietÃ¡rio para revisar e implementar uma landing simples, convincente, com pesquisa online e identidade prÃ³pria. Escopo: pÃ¡gina pÃºblica inicial, apresentaÃ§Ã£o e navegaÃ§Ã£o; nÃ£o inclui publicaÃ§Ã£o, mudanÃ§a comercial ou novas integraÃ§Ãµes. A direÃ§Ã£o preserva marfim/verde e tipografia editorial, apresenta primeiro pendÃªncias, responsÃ¡veis e prÃ³ximos passos, usa pauta ilustrativa identificada como exemplo e organiza recursos por tarefa. O teste de 14 dias sem cartÃ£o e sem cobranÃ§a automÃ¡tica continua conforme D-79; demo e Copiloto permanecem condicionados Ã  disponibilidade. NÃ£o publicar preÃ§os/limites numÃ©ricos substituÃ­dos por D-109, inventar prova social, retorno financeiro ou homologaÃ§Ã£o. DependÃªncias de integraÃ§Ãµes ficam em contexto prÃ³prio. Substituir cena animada e catÃ¡logo extenso inicial por conteÃºdo legÃ­vel sem JavaScript, controles nativos e CTA consistente. ReferÃªncias, auditoria e estados realmente inspecionados serÃ£o registrados na etapa 11 e em VALIDACOES.md.
+
+## D-164 â€” Corrigir a landing servida e remover flechas
+
+24/09/2026. Origem: correÃ§Ã£o explÃ­cita do proprietÃ¡rio apÃ³s capturas da pÃ¡gina desorganizada. O servidor local ativo continuou servindo HTML antigo em memÃ³ria com o CSS jÃ¡ atualizado; a revisÃ£o anterior validou uma instÃ¢ncia de QA e nÃ£o detectou essa divergÃªncia. Corrigir a instÃ¢ncia local efetivamente usada, desativar cache de templates apenas na configuraÃ§Ã£o de desenvolvimento para que ediÃ§Ãµes sejam visÃ­veis mesmo com --noreload, retirar flechas decorativas e organizar as aÃ§Ãµes de teste/demonstraÃ§Ã£o. Manter marca, condiÃ§Ãµes e limites de D-163; sem publicaÃ§Ã£o, mudanÃ§a de preÃ§o ou acesso externo. Validar o resultado no endereÃ§o 127.0.0.1:8000 e preservar os demais processos/dados do usuÃ¡rio.
+
+## D-165 â€” SincronizaÃ§Ã£o local conclui todas as leituras allowlisted
+
+24/09/2026. Ao terminar a paginaÃ§Ã£o de empresas DomÃ­nio Local, o agente deve continuar para a leitura de extratos bancÃ¡rios jÃ¡ allowlisted, salvo cancelamento explÃ­cito. Uma pÃ¡gina vazia ou final encerra somente a fase de empresas; nÃ£o encerra a execuÃ§Ã£o inteira. O download autenticado do agente deve usar o caminho e a consulta da URL previamente verificada contra o servidor configurado, mantendo a mesma origem protegida. Esta correÃ§Ã£o nÃ£o acrescenta SQL, capacidades, estados de fechamento, obrigaÃ§Ã£o, pagamento, integraÃ§Ã£o externa ou custo. A execuÃ§Ã£o real continua dependente do piloto autorizado da etapa 12.
+
+## D-166 — Aplicar ai-design-skills à revisão da landing
+
+24/09/2026. Origem: pedido explícito de instalar e usar ai-design-skills do GitHub. Instalada landing-page-design de elayadesign/ai-design-skills pelo instalador local. Aplicar fonte única Manrope com arquivo e licença locais, sem itálicos, escala tipográfica e espaçamento consistentes, botões com hierarquia e feedback e FAQ objetiva. Manter marfim/verde e tokens compartilhados de D-163, sem reproduzir navbar de vidro, gradientes e revelações que ocultem conteúdo: a simplicidade solicitada e a continuidade do produto prevalecem sobre esses padrões genéricos da skill. Não inventar depoimentos, métricas, preços ou disponibilidade. O fluxo principal permanece teste de 14 dias; demonstração secundária condicionada. Sem custo, implantação ou alteração de conta.
+
+## D-167 — A demonstração visual é a prova principal da landing
+
+24/09/2026. Origem: retorno explícito do proprietário de que a revisão retirou a tela que tornava o produto concreto e alterou pouco a composição percebida. Restaurar `cica_motion.html` como a principal demonstração do produto, imediatamente após a promessa e ocupando a largura útil da página. Reorganizar o hero para uma composição editorial própria, com uma única ação comercial dominante; a entrada na demo real continua secundária e condicionada. Manter os dados da tela identificados como ilustrativos, os seis módulos navegáveis, teclado, URL, movimento reduzido e conteúdo útil sem JavaScript. A pauta genérica deixa de ser o visual principal. Não criar métricas, depoimentos, preços, integrações homologadas ou promessa de conversão.
+
+## D-168 — Refazer a landing do zero com linguagem visual neutra
+
+24/09/2026. Origem: correção explícita posterior do proprietário, que rejeitou a restauração da composição anterior e o uso excessivo de verde. Esta decisão substitui a direção visual de D-163, D-166 e D-167, preservando apenas os limites comerciais e de disponibilidade já registrados. Refazer a página pública inicial sem reaproveitar `cica_motion.html`, com estrutura, composição e demonstração visual novas. Usar papel quente, grafite e terracota como base; reservar verde somente para estados positivos reais. A prova principal continua sendo uma representação do produto, criada do zero e identificada como ilustrativa, com dados fictícios. Manter um único CTA comercial dominante para o teste de 14 dias, demonstração secundária apenas quando disponível, integrações descritas com seus limites reais e ausência de preços, métricas, depoimentos, homologações ou ganhos inventados. A mudança não publica a página, não cria custo e não autoriza acesso externo.
+
+## D-169 — Apresentar a landing como produto completo
+
+24/09/2026. Origem: orientação explícita do proprietário após revisar a reconstrução D-168. Substituir a seção de três benefícios numerados, percebida como padrão de conteúdo gerado, por uma demonstração contínua e concreta da rotina. Substituir os três cards de disponibilidade das integrações por uma apresentação unificada de Domínio, Integra Contador, e-mail e Siescon como parte do produto pronto, removendo linguagem de roadmap, preparação, configuração e validação da landing. Ajustar as FAQs e os textos adjacentes para manter essa apresentação consistente. Permanecem a paleta neutra, o CTA de teste, a identificação de dados fictícios e a proibição de inventar preços, clientes, métricas ou depoimentos. Esta decisão altera a comunicação pública solicitada; não executa integração, acesso externo, custo ou publicação.
+
+**Complemento D-166 (24/09/2026):** por pedido explícito posterior, tornar landing-page-design obrigatória globalmente para toda landing page. Regra adicionada em C:/Users/gege/.codex/AGENTS.md sem substituir as obrigações anteriores. A instalação é local e não implica custo ou publicação.
+
+## D-170 — Fedrizzi é parceiro interno de homologação sem cobrança
+
+25/09/2026. Origem: confirmação explícita do proprietário. A Fedrizzi Contabilidade é escritório parceiro interno de testes. Sua ativação operacional não cria contrato comercial, fatura, assinatura Asaas, consumo cobrado, preço, franquia paga ou obrigação de cobrança. O Console de desenvolvimento deve permitir marcar e desmarcar essa condição de modo explícito e auditado; ao marcar, pode liberar o ciclo operacional sem contrato comercial, mas não habilita automaticamente serviços externos, IA, emissão, transmissão ou ciência oficial. Ao desmarcar, sem contrato comercial vigente, o acesso operacional deve voltar ao estado pendente. O escritório continua sujeito a isolamento, permissões, auditoria e confirmações humanas. Esta decisão é exclusiva da Fedrizzi enquanto a condição estiver marcada; não altera a oferta comercial dos demais escritórios.
+
+## D-171 — Prévia navegável da landing
+
+25/09/2026. Origem: pedido explícito do proprietário para que a prévia visual da landing permita clicar nas áreas apresentadas. A janela ilustrativa pública passa a oferecer uma tela por área — Central, Meu trabalho, Empresas, Documentos, Fiscal e Conciliação — usando somente conteúdo fictício, sem autenticação, leitura de dados, escrita, integração, consumo ou efeito operacional. O estado selecionado deve ser perceptível, acessível por teclado e refletido na âncora da URL para permitir abrir a tela demonstrada; “Meu trabalho” é a visão inicial. A prévia não substitui as telas autenticadas, suas permissões nem suas situações reais.
+
+## D-172 — Interface autenticada segue a linguagem da landing
+
+25/09/2026. Origem: pedido explícito do proprietário para refazer as telas antigas de cadastro e operação seguindo a landing atual. A experiência autenticada deve usar o mesmo papel quente, grafite, terracota, Manrope, contraste e hierarquia da landing, preservando formulários, rotas, permissões, estados, mensagens, dados e fluxos existentes. A entrada, o cadastro, a configuração inicial e a navegação operacional receberão primeiro a camada compartilhada; telas especializadas passam a herdá-la e serão refinadas progressivamente sem substituir comportamentos por maquetes. Verde continua reservado a estados positivos. Não há alteração comercial, de integração ou de dados.
+
+## D-173 — Copy da faixa de problema da landing
+
+25/09/2026. O proprietário escolheu substituir a frase da faixa ?O problema real? por ?Atraso não é falta de esforço. É falta de contexto.?. A alteração é somente editorial e preserva a estrutura, os limites comerciais e a identificação da landing.
+
+## D-174 — Faixa de problema sem rótulo
+
+25/09/2026. O proprietário pediu remover o rótulo ?O problema real? da faixa da landing. A seção passa a exibir somente a frase escolhida em D-173.
+
+## D-175 — Venda isolada de NFS-e, backup 07129 e publicação no Fly.io
+
+28/09/2026. Origem: pedido explícito do proprietário. A oferta deve permitir contratar um escritório com somente o módulo NFS-e, mantendo empresas, certificados, equipe e integrações estritamente necessárias ao módulo e recusando os demais módulos e a Central de Atividades inclusive por URL direta. O preço, a vigência, a cobrança e o responsável do escritório não foram informados e não podem ser inventados; a liberação comercial concreta depende desses dados, mas o isolamento técnico pode ser validado agora.
+
+O arquivo autorizado `07129_20260923_2000C.dom`, já baixado na máquina do proprietário, pode ser aberto localmente em cópia temporária somente leitura para descobrir empresas, acumuladores e o contrato real do extrator. O original deve permanecer inalterado; dados identificáveis não devem ser impressos em logs ou incorporados ao repositório. Resultados normalizados somente entram no CICA depois de vinculados ao escritório correto e conferidos contra a fonte.
+
+Foi solicitada a publicação no Fly.io e autorizada a criação da organização/aplicação. Recursos faturáveis continuam sujeitos ao limite global de custo: antes de provisionar máquinas, banco, Redis ou storage cujo total estimado seja de US$ 1,00 ou mais, apresentar a arquitetura, o custo incremental e obter confirmação específica. A publicação não transforma coleta ADN, importação Domínio ou qualquer integração pendente em homologada.
+
+## D-176 — Fly Postgres não gerenciado e infraestrutura enxuta
+
+28/09/2026. Origem: correção explícita do proprietário. Não usar Fly Managed Postgres. A publicação deve partir do Fly Postgres não gerenciado (legacy/unmanaged), dimensionado no menor piso operacional razoável e com caminho documentado para ampliar memória, adicionar réplica e separar processos sem trocar a aplicação. Banco transacional e base de conhecimento podem ocupar bancos lógicos distintos no mesmo cluster para evitar duplicar infraestrutura. Redis/Valkey também deve começar autogerenciado e isolado, evitando o custo fixo do Upstash; a operação, os backups e a recuperação passam a ser responsabilidade do projeto. A escolha reduz custo, mas não pode ser descrita como alta disponibilidade enquanto existir uma única instância. Qualquer provisionamento faturável continua dependendo da aprovação específica do novo total estimado.
+
+## D-177 — Publicação Fly.io aprovada na arquitetura de US$ 11,28/mês
+
+28/09/2026. Origem: autorização explícita do proprietário para provisionar a arquitetura previamente estimada em aproximadamente US$ 11,28/mês. A produção usa uma máquina web de 512 MB, uma máquina worker/agendador de 512 MB, Fly Postgres não gerenciado de 256 MB com volume criptografado de 3 GB, Valkey autogerenciado de 256 MB com volume criptografado de 1 GB e bucket Tigris privado. Banco principal e base de conhecimento são bancos lógicos distintos no mesmo Postgres. Esta topologia possui caminho de escala, mas, com uma instância de cada serviço de dados, não é alta disponibilidade. Snapshots de volume não equivalem a restauração homologada nem a backup contínuo de WAL. Domínio próprio e certificado dependem do hostname exato fornecido pelo proprietário.
+
+## D-178 — Backup 07129 pertence à Bianchi & Rizzotto e o tenant é somente NFS-e
+
+28/09/2026. Origem: confirmação explícita do proprietário. O backup `07129_20260923_2000C.dom` pertence ao escritório Bianchi & Rizzotto. Seus dados normalizados devem ser vinculados exclusivamente ao tenant `bianchi-rizzotto`, cuja oferta contém somente NFS-e; os outros módulos devem possuir registros explícitos desabilitados. Empresas e acumuladores não podem ser inventados ou copiados de outro escritório. A credencial do portal/geração do backup não substitui a credencial interna de Usuário Externo do SQL Anywhere.
+
+## D-179 — Domínio público definitivo da CICA
+
+28/09/2026. Origem: confirmação explícita do proprietário. O domínio público da aplicação é `cicacontabil.com.br`, com `www.cicacontabil.com.br` como hostname adicional. Ambos devem apontar para `cica-contabil` no Fly.io, possuir certificado válido e constar explicitamente em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS`. O registro A legado `162.240.81.81` da HostGator deve ser removido; manter dois destinos concorrentes não constitui redundância e distribui conexões para um servidor que não hospeda a aplicação.
+
+## D-180 — Acesso local ao backup 07129 com Gerente/gerente
+
+28/09/2026. Origem: orientação explícita do proprietário. `Gerente/gerente` deve ser usado somente na tela de login do aplicativo Domínio Contábil; não é credencial ODBC e não deve ser repetido como usuário do SQL Anywhere. A cópia temporária do backup permanece isolada do banco original. Para evitar alterar a conexão instalada do escritório, usar o DSN de usuário `CICA07129`, apontado ao servidor local em `127.0.0.1:2638`, e manter o perfil do Domínio do usuário selecionando esse DSN durante a leitura. O DSN e o perfil temporário devem ser removidos ou revertidos ao concluir a extração. Nenhuma linha será enviada à produção antes da leitura completa, normalização, contagem e vínculo exclusivo ao tenant `bianchi-rizzotto`.
+
+## D-181 — Senha Gerente do backup restaurado não será presumida
+
+28/09/2026. Origem: falha observada pelo proprietário ao tentar `Gerente/gerente` na cópia restaurada e verificação da documentação oficial. A credencial `Gerente/gerente` documentada aplica-se à base criada por uma instalação demonstrativa nova; ela não redefine a senha contida em um backup existente. No backup 07129, usar somente a senha de Gerente vigente no escritório na data da cópia ou o procedimento oficial de recuperação. Não testar listas de senhas, não alterar hashes e não contornar a autenticação. A alternativa suportada é a pergunta/resposta pelo botão `?`; se não estiver configurada ou não funcionar para GERENTE, a Thomson Reuters orienta contatar o suporte para recuperação ou troca da senha do banco.
+
+## D-182 — Bootstrap do primeiro administrador da produção
+
+28/09/2026. Origem: relato explícito do proprietário de que o login administrativo `suporte@mewstack.com.br` era recusado. A inspeção do banco principal de produção confirmou que não existia nenhum usuário, superusuário ou acesso de plataforma. Criar esse endereço como primeiro usuário ativo, com papel `admin` da plataforma, MFA obrigatório e senha inicial aleatória; limpar somente as tentativas de autenticação desse identificador. Não vincular o administrador a tenant, não criar contrato e não reutilizar credencial do Domínio. O bootstrap deve gerar evento de auditoria e a senha inicial deve ser entregue uma única vez ao proprietário.
+
+## D-183 — Remover códigos de recuperação e o verde dominante
+
+28/09/2026. Origem: correção visual e de fluxo explicitamente solicitada pelo proprietário após o primeiro acesso em produção. O cadastro e a verificação do segundo fator continuam usando TOTP, mas o produto deixa de gerar, aceitar, regenerar ou exibir códigos de recuperação. Depois de confirmar o autenticador, encaminhar diretamente ao destino autorizado. Códigos existentes devem ser invalidados; se o autenticador for perdido, a recuperação passa pelo administrador. A remoção reduz a alternativa de contingência e é uma escolha explícita do produto.
+
+A linguagem visual compartilhada de autenticação, console e área do escritório deve abandonar o verde como superfície, navegação e ação dominante. Usar papel quente/grafite no tema claro, carvão/neutros quentes no escuro e terracota somente como acento e foco; verde fica reservado a estados positivos reais. Corrigir tokens na origem e referências legadas que sobrescrevem os tokens de autenticação, em vez de aplicar exceção apenas à tela observada.
+
+## D-184 — Kit oficial e correção integral de UX/UI
+
+28/09/2026. Origem: plano de implementação explicitamente aprovado pelo proprietário. Esta decisão substitui somente a direção cromática do segundo parágrafo da D-183; a remoção dos códigos de recuperação, o fluxo TOTP e os limites funcionais daquela decisão permanecem válidos. Os oito SVGs de `CICA.zip` passam a ser os ativos oficiais, sem alteração de geometria ou proporção: lockup CICA verde ou preto em superfícies claras, creme ou branco em superfícies escuras, e símbolo CA equivalente em espaços compactos. O monograma “C” improvisado deixa de representar a marca.
+
+A base visual compartilhada usa `#114d44` como cor de marca, ação primária e seleção controlada, `#e3ddca` como base institucional e preto/branco para contraste; informação, atenção, erro e sucesso mantêm cores semânticas distintas e acessíveis. Terracota deixa de ser assinatura principal, e verde não deve ocupar grandes superfícies de navegação ou painéis: a estrutura permanece neutra, densa e adequada à rotina contábil. Manrope local, temas claro/escuro/sistema e movimento discreto permanecem. A revisão abrange site público, demonstração, cadastro, autenticação/MFA, área dos escritórios, módulos operacionais, Copiloto, aprendizado e Console Mewstack; Django Admin e e-mails transacionais ficam fora. Preservar URLs, APIs, permissões, regras fiscais, integrações e contratos existentes, sem migração de banco, deploy, chamadas reais, mensagens ou custos externos.
+
+## D-185 — Leitura suportada e carga integral do backup 07129
+
+28/09/2026. Origem: credencial `GERENTE`/`lua` confirmada pelo proprietário e pedido explícito de concluir a carga. A cópia isolada foi atualizada com o pacote oficial Thomson Reuters `C106A0810.exe`, validado pelo checksum publicado e por assinatura digital válida. Pelo próprio cadastro de usuários do Domínio foi criado um acesso externo somente leitura exclusivo para a extração; essa credencial não será registrada no repositório nem reutilizada como acesso de aplicação.
+
+A importação usa exclusivamente `bethadba.geempre` e `bethadba.EFACUMULADOR`, vinculada ao tenant `bianchi-rizzotto` e à fotografia de 23/09/2026 20:00 America/Sao_Paulo. A carga deve ser idempotente pelo hash já validado do `.dom`, conservar o lote e o histórico de acumuladores para auditoria e somente concluir se as contagens de origem e destino coincidirem sem erros. O usuário externo, o DSN, a extração e os arquivos intermediários devem ser eliminados após a validação; o `.dom` original permanece intacto.
+
+## D-186 — Histórico compacto para sugerir acumulador por contraparte e serviço
+
+28/09/2026. Origem: pedido explícito do proprietário para que cada empresa preserve os dados necessários para reencontrar o acumulador quando chegar a nota do mês seguinte. Além do catálogo de D-185, a cópia autorizada pode ler o histórico de NFS-e prestadas e tomadas somente para produzir observações agregadas por empresa, acumulador, código de serviço e contraparte pseudonimizada. Cada combinação conserva apenas frequência e último uso; número da nota, valor, descrição, nome e XML históricos não entram nessa carga.
+
+A contraparte deve usar a mesma normalização da coleta NFS-e atual: CNPJ/CPF somente em memória, reduzido a SHA-256 truncado antes da transmissão ou persistência. A carga rejeita observação sem serviço e sem contraparte, acumulador fora do catálogo da própria empresa, frequência inválida e data ausente. Regras explícitas continuam prioritárias; histórico serve para sugestão explicável e nunca autoriza tratamento fiscal. Ambiguidade, dado novo ou evidência insuficiente permanece em revisão humana. A extração deve agregar na origem, paginar a resposta, ser idempotente pela chave agregada e não registrar conteúdo identificável em logs ou no repositório.

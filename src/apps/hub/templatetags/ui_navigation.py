@@ -16,6 +16,7 @@ def workspace_menu(context: template.Context) -> dict[str, object]:
         "groups": workspace_navigation(context),
         "request": context["request"],
         "copilot_enabled": context.get("copilot_enabled", False),
+        "is_nfse_only_subscription": context.get("is_nfse_only_subscription", False),
     }
 
 

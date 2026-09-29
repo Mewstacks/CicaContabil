@@ -1,0 +1,18 @@
+app = "cica-contabil-valkey"
+primary_region = "gru"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  image = "valkey/valkey:8.1.10-alpine"
+
+[processes]
+  app = "sh -c 'exec valkey-server --bind 0.0.0.0 :: --port 6379 --appendonly yes --appendfsync everysec --dir /data --requirepass $VALKEY_PASSWORD --maxmemory 192mb --maxmemory-policy noeviction'"
+
+[[mounts]]
+  source = "valkey_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

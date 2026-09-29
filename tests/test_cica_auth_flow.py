@@ -92,9 +92,8 @@ class CICAAuthFlowTests(TestCase):
             reverse("accounts:mfa-setup"),
             {"code": totp.code_for(secret, totp.counter_at()), "next": target},
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Guarde estes códigos")
-        self.assertContains(response, f'href="{target}"')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], target)
         device.refresh_from_db()
         self.assertEqual(device.secret, secret)
         self.assertTrue(device.is_confirmed)
@@ -102,7 +101,7 @@ class CICAAuthFlowTests(TestCase):
         self.assertEqual(follow_up.status_code, 200)
         self.assertNotIn(reverse("accounts:mfa-verify"), follow_up.get("Location", ""))
 
-    def test_platform_operator_can_leave_recovery_screen_for_console(self):
+    def test_platform_operator_goes_directly_to_console_after_enrollment(self):
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.DEVELOPER)
         self.client.force_login(self.user)
         self.client.get(reverse("accounts:mfa-setup"), {"next": reverse("hub:dashboard")})
@@ -114,12 +113,11 @@ class CICAAuthFlowTests(TestCase):
                 "next": reverse("hub:dashboard"),
             },
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f'href="{reverse("platform:dashboard")}"')
-        self.assertContains(response, "Ir às configurações da Mewstack")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], reverse("platform:dashboard"))
         self.assertEqual(self.client.get(reverse("platform:dashboard")).status_code, 200)
 
-    def test_recovery_continue_has_navigable_url_when_setup_has_no_next(self):
+    def test_platform_enrollment_without_next_redirects_to_console(self):
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.DEVELOPER)
         self.client.force_login(self.user)
         self.client.get(reverse("accounts:mfa-setup"))
@@ -128,9 +126,8 @@ class CICAAuthFlowTests(TestCase):
             reverse("accounts:mfa-setup"),
             {"code": totp.code_for(device.secret, totp.counter_at())},
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f'href="{reverse("platform:dashboard")}"')
-        self.assertNotContains(response, 'href="platform:dashboard"')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], reverse("platform:dashboard"))
         self.assertEqual(self.client.get(reverse("platform:configuration")).status_code, 200)
 
     def test_invitation_activation_starts_trial_once(self):
@@ -211,9 +208,6 @@ class CICAAuthFlowTests(TestCase):
         pages["mfa-error"] = self.client.post(
             reverse("accounts:mfa-verify"), {"code": "invalid"}
         ).content
-        pages["recovery"] = render_to_string(
-            "accounts/mfa_recovery.html", {"codes": ["test-only-01", "test-only-02"]}
-        ).encode()
         pages["no-office"] = render_to_string("hub/no_office.html").encode()
         pages["forbidden"] = render_to_string("hub/forbidden.html").encode()
         pages["locked"] = render_to_string("hub/login_locked.html", {"retry_minutes": 30}).encode()

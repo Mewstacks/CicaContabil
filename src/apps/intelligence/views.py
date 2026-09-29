@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import timedelta
 from types import SimpleNamespace
 from typing import cast
@@ -27,8 +28,15 @@ from apps.intelligence.models import (
     EgressAudit,
     LearningCandidate,
     Message,
+    ReportExportRecord,
 )
-from apps.intelligence.reports import build_pdf_report, build_xlsx_report, export_filename
+from apps.intelligence.reporting_client import ReportingServiceUnavailable, render_snapshot
+from apps.intelligence.reports import (
+    export_filename,
+    report_snapshot,
+    snapshot_json,
+    snapshot_sha256,
+)
 from apps.intelligence.services import (
     QuestionAlreadySubmitted,
     accessible_company,
@@ -413,7 +421,7 @@ def submit_feedback(request: HttpRequest, message_id: str) -> HttpResponse:
 
 
 @office_required
-@require_http_methods(["GET"])
+@require_http_methods(["POST"])
 def export_answer(request: HttpRequest, message_id: str, export_format: str) -> HttpResponse:
     context, blocked = _assistant_context_or_blocked(request)
     if blocked:
@@ -431,21 +439,43 @@ def export_answer(request: HttpRequest, message_id: str, export_format: str) -> 
     )
     if message.conversation.company_id not in allowed_company_ids:
         return refuse(request, "Esta resposta não está disponível para a empresa atual.")
-    if export_format == "pdf":
-        payload = build_pdf_report(message=message)
-        content_type = "application/pdf"
-    elif export_format == "xlsx":
-        payload = build_xlsx_report(message=message)
-        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    else:
-        return HttpResponseBadRequest("Formato de relatório inválido.")
+    company = message.conversation.company
+    assert company is not None
+    snapshot = report_snapshot(message)
+    try:
+        if export_format not in {"pdf", "xlsx"}:
+            return HttpResponseBadRequest("Formato de relatorio invalido.")
+        payload = render_snapshot(snapshot=snapshot, export_format=export_format)
+        content_type = (
+            "application/pdf"
+            if export_format == "pdf"
+            else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except ReportingServiceUnavailable:
+        return HttpResponse("Serviço interno de relatórios indisponível.", status=503)
+    export_record = ReportExportRecord.objects.create(
+        organization=office,
+        message=message,
+        company=company,
+        requested_by=cast(User, request.user),
+        export_format=export_format,
+        template_version=str(snapshot["templateVersion"]),
+        snapshot=snapshot_json(snapshot),
+        snapshot_sha256=snapshot_sha256(snapshot),
+        output_sha256=hashlib.sha256(payload).hexdigest(),
+    )
     record_event(
         action="intelligence.answer.exported",
         actor=cast(User, request.user),
         organization=office,
-        target=message,
+        target=export_record,
         request=request,
-        metadata={"format": export_format, "evidence_count": len(message.evidence)},
+        metadata={
+            "format": export_format,
+            "evidence_count": len(message.evidence),
+            "snapshot_sha256": export_record.snapshot_sha256,
+            "output_sha256": export_record.output_sha256,
+        },
     )
     response = HttpResponse(payload, content_type=content_type)
     response["Content-Disposition"] = (

@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import base64
+import csv
 import hashlib
+import io
 import json
 import re
+import zipfile
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any
 
 from cryptography.hazmat.primitives.serialization import pkcs12
 from django.core.exceptions import ValidationError
+from django.core.files.base import ContentFile
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
+from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import (
@@ -29,9 +35,12 @@ from apps.hub.models import (
     FiscalGuide,
     IntegrationArtifact,
     NfseDocument,
+    NfseExport,
     ParcelamentoOperation,
+    ProductModule,
     ReviewCase,
 )
+from apps.hub.module_activities import sync_nfse_review_activity
 from apps.platform.billing import BillingError, UsageQuote, quote_usage, reserve_usage
 from apps.platform.token_billing import TokenQuote, quote_tokens, reserve_tokens
 
@@ -53,7 +62,10 @@ class FiscalGuideSyncResult:
 
 
 def _matches(rule: AccumulatorRule, data: dict[str, Any]) -> bool:
-    return all(str(data.get(key, "")) == str(expected) for key, expected in rule.match.items())
+    # An empty rule is a catalog entry for human review, never a catch-all classifier.
+    return bool(rule.match) and all(
+        str(data.get(key, "")) == str(expected) for key, expected in rule.match.items()
+    )
 
 
 def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> ClassificationResult:
@@ -78,8 +90,18 @@ def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> Cla
 
     service_code = str(data.get("service_code", ""))
     counterparty_ref = str(data.get("counterparty_ref", ""))
-    candidates = AccumulatorObservation.objects.filter(
-        organization=document.organization, company=document.company
+    match_filter = Q()
+    if service_code:
+        match_filter |= Q(service_code=service_code)
+    if counterparty_ref:
+        match_filter |= Q(counterparty_ref=counterparty_ref)
+    candidates = (
+        AccumulatorObservation.objects.filter(
+            organization=document.organization,
+            company=document.company,
+        ).filter(match_filter)
+        if match_filter
+        else AccumulatorObservation.objects.none()
     )
     scored: list[tuple[int, AccumulatorObservation]] = []
     for candidate in candidates:
@@ -87,18 +109,33 @@ def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> Cla
         if service_code and candidate.service_code == service_code:
             score += 45
         if counterparty_ref and candidate.counterparty_ref == counterparty_ref:
-            score += 25
+            score += 45
         age_days = (timezone.now() - candidate.last_used_at).days
-        score += max(0, 20 - min(age_days, 20))
+        score += max(0, 20 - min(max(age_days, 0) // 30, 20))
         scored.append((score, candidate))
     if scored:
-        score, winner = max(scored, key=lambda item: item[0])
+        scored.sort(key=lambda item: item[0], reverse=True)
+        score, winner = scored[0]
+        runner_up = next(
+            (
+                candidate_score
+                for candidate_score, candidate in scored[1:]
+                if candidate.accumulator_code != winner.accumulator_code
+            ),
+            None,
+        )
+        ambiguous = runner_up is not None and runner_up >= score - 5
         return ClassificationResult(
             accumulator_code=winner.accumulator_code,
             confidence=min(score, 90),
             rule_name="histórico Domínio",
-            evidence={"source": "dominio_history", "frequency": winner.frequency, "score": score},
-            needs_review=score < 70,
+            evidence={
+                "source": "dominio_history",
+                "frequency": winner.frequency,
+                "score": score,
+                "ambiguous": ambiguous,
+            },
+            needs_review=ambiguous or score < 70,
         )
     return ClassificationResult("", 0, "sem correspondência", {"source": "none"}, True)
 
@@ -127,6 +164,9 @@ def create_document_and_artifact(
         },
     )
     if not created:
+        existing_review = ReviewCase.objects.filter(document=document).first()
+        if existing_review is not None:
+            sync_nfse_review_activity(existing_review.pk)
         return document, None, None
     result = classify_nfse(document)
     review_case = None
@@ -139,6 +179,7 @@ def create_document_and_artifact(
             suggested_accumulator=result.accumulator_code,
             confidence=result.confidence,
         )
+        sync_nfse_review_activity(review_case.pk)
     elif result.accumulator_code:
         artifact = IntegrationArtifact.objects.create(
             organization=company.organization,
@@ -226,6 +267,79 @@ def store_certificate(
 def integration_artifact_export(artifact: IntegrationArtifact) -> str:
     """Contract v1: a derived artifact only. The immutable original XML is never altered."""
     return json.dumps(artifact.payload, ensure_ascii=False, sort_keys=True)
+
+
+@transaction.atomic
+def create_nfse_export(
+    *, organization: Any, documents: list[NfseDocument], actor: User
+) -> NfseExport:
+    """Freeze classified XML and evidence in a private conference package.
+
+    This is deliberately not an import layout until Domínio supplies and validates one.
+    """
+
+    ordered_documents = sorted(documents, key=lambda document: str(document.id))
+    artifacts = {
+        str(artifact.document_id): artifact
+        for artifact in IntegrationArtifact.objects.filter(
+            organization=organization, document__in=ordered_documents
+        ).order_by("document_id", "-created_at")
+    }
+    missing = [document for document in ordered_documents if str(document.id) not in artifacts]
+    if missing:
+        raise ValueError("Toda NFS-e do pacote precisa ter acumulador confirmado.")
+
+    archive = io.BytesIO()
+    snapshot_documents: list[dict[str, str]] = []
+    with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
+        manifest = io.StringIO(newline="")
+        writer = csv.writer(manifest, delimiter=";")
+        writer.writerow(
+            ["Documento", "Empresa", "Codigo Dominio", "Competencia", "Acumulador", "Hash"]
+        )
+        for document in ordered_documents:
+            artifact = artifacts[str(document.id)]
+            code = re.sub(r"[^A-Za-z0-9._-]", "_", document.company.dominio_code or "SEM-CODIGO")
+            source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
+            issued_at = document.issued_at or _issued_at_from_normalized_data(
+                document.normalized_data
+            )
+            competence = issued_at.strftime("%Y%m") if issued_at else "SEM-COMPETENCIA"
+            path = f"NFS-e/{code} -/{competence}/NFS-e-{source}.xml"
+            bundle.writestr(path, document.original_xml)
+            writer.writerow(
+                [
+                    document.source_nsu or str(document.id),
+                    document.company.name,
+                    document.company.dominio_code or "",
+                    competence,
+                    artifact.accumulator_code,
+                    document.document_hash,
+                ]
+            )
+            snapshot_documents.append(
+                {
+                    "document_id": str(document.id),
+                    "document_hash": document.document_hash,
+                    "artifact_id": str(artifact.id),
+                    "accumulator_code": artifact.accumulator_code,
+                    "path": path,
+                }
+            )
+        bundle.writestr("manifesto-classificacao.csv", manifest.getvalue().encode("utf-8-sig"))
+    content = archive.getvalue()
+    digest = hashlib.sha256(content).hexdigest()
+    export = NfseExport.objects.create(
+        organization=organization,
+        target="conference_only_pending_dominio_layout",
+        adapter_version="nfse-conference-v1",
+        content_hash=digest,
+        document_count=len(ordered_documents),
+        snapshot={"documents": snapshot_documents, "layout": "nfse-conference-v1"},
+        created_by=actor,
+    )
+    export.content.save(f"nfse-dominio-{export.id}.zip", ContentFile(content), save=True)
+    return export
 
 
 @transaction.atomic
@@ -347,6 +461,17 @@ def prepare_dctfweb_guide_from_documents(
 ) -> FiscalGuide:
     """Promote one governed Domínio calculation after both official PDFs exist."""
 
+    if FiscalGuide.objects.filter(
+        organization=organization,
+        company=company,
+        competence=competence,
+        kind=FiscalGuide.Kind.DCTFWEB,
+        status=FiscalGuide.Status.UNKNOWN,
+    ).exists():
+        raise DctfWebDocumentTransitionError(
+            "Confirme o resultado da emissão anterior antes de preparar outra guia."
+        )
+
     if company.organization_id != organization.id or not company.active:
         raise DctfWebDocumentTransitionError("A empresa não pertence à carteira ativa.")
     if re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None:
@@ -393,6 +518,7 @@ def prepare_dctfweb_guide_from_documents(
             FiscalGuide.Status.QUEUED,
             FiscalGuide.Status.ISSUING,
             FiscalGuide.Status.ISSUED,
+            FiscalGuide.Status.UNKNOWN,
         }:
             return guide
         guide.kind = FiscalGuide.Kind.DCTFWEB
@@ -440,6 +566,51 @@ PARCELAMENTO_SERVICE: dict[str, str] = {
 
 
 @transaction.atomic
+def release_uncertain_parcelamento_operation(
+    *,
+    organization: Any,
+    company: ClientCompany,
+    operation_id: Any,
+    actor: Any = None,
+    request: Any = None,
+) -> ParcelamentoOperation:
+    """Record a human check of an uncertain PARCSN result and allow one new attempt.
+
+    The token reservation stays untouched: whether Serpro billed the uncertain
+    call is settled by the usage reconciliation, never by this button.
+    """
+
+    operation = (
+        ParcelamentoOperation.objects.select_for_update()
+        .filter(organization=organization, company=company, id=operation_id)
+        .first()
+    )
+    if operation is None:
+        raise ParcelamentoTransitionError("Operação não encontrada nesta empresa.")
+    if operation.status != ParcelamentoOperation.Status.UNKNOWN:
+        raise ParcelamentoTransitionError("Somente resultado a confirmar pode ser liberado.")
+    actor_label = getattr(actor, "email", "") or "usuário"
+    operation.status = ParcelamentoOperation.Status.FAILED
+    operation.error_code = "manual_review"
+    operation.error_message = (
+        f"Conferido por {actor_label} em {timezone.localtime():%d/%m/%Y %H:%M}."
+    )[:240]
+    operation.completed_at = timezone.now()
+    operation.save(
+        update_fields=["status", "error_code", "error_message", "completed_at", "updated_at"]
+    )
+    record_event(
+        action="hub.parcelamento.uncertain_released",
+        actor=actor,
+        organization=organization,
+        target=operation,
+        request=request,
+        metadata={"kind": operation.kind, "service": operation.service_key},
+    )
+    return operation
+
+
+@transaction.atomic
 def request_parcelamento_operation(
     *,
     organization: Any,
@@ -452,6 +623,18 @@ def request_parcelamento_operation(
     approved_overage_cents: int = 0,
 ) -> ParcelamentoOperation:
     """Reserve the quoted PARCSN action before dispatching it once."""
+
+    from apps.hub.integra_access import can_execute_company_operation
+
+    if not can_execute_company_operation(
+        organization_id=organization.pk,
+        company_id=company.pk,
+        actor_id=getattr(actor, "pk", None),
+        module_code=ProductModule.Code.INTEGRA,
+    ):
+        raise ParcelamentoTransitionError(
+            "O solicitante precisa de acesso operacional vigente à empresa e ao módulo Integra."
+        )
 
     if company.organization_id != organization.id or not company.active:
         raise ParcelamentoTransitionError("A empresa não pertence à carteira ativa.")
@@ -539,6 +722,10 @@ def request_parcelamento_operation(
     operation.error_message = ""
     operation.save()
 
+    from apps.hub.module_activities import sync_parcelamento_operation_activity
+
+    sync_parcelamento_operation_activity(operation.pk)
+
     from apps.hub.tasks import dispatch_parcelamento_operation
 
     if organization.is_demo:
@@ -573,6 +760,17 @@ def request_dctfweb_document(
     approved_overage_cents: int = 0,
 ) -> DctfWebDocument:
     """Reserve exactly the quoted consultation before it reaches the worker."""
+
+    from apps.hub.integra_access import can_consult_dctfweb
+
+    if not can_consult_dctfweb(
+        organization_id=organization.pk,
+        company_id=company.pk,
+        actor_id=getattr(actor, "pk", None),
+    ):
+        raise DctfWebDocumentTransitionError(
+            "O solicitante precisa de acesso operacional vigente à empresa e ao módulo Guias."
+        )
 
     if company.organization_id != organization.id or not company.active:
         raise DctfWebDocumentTransitionError("A empresa não pertence à carteira ativa.")
@@ -640,6 +838,10 @@ def request_dctfweb_document(
     document.error_message = ""
     document.save()
 
+    from apps.hub.module_activities import sync_dctfweb_document_activity
+
+    sync_dctfweb_document_activity(document.pk)
+
     from apps.hub.tasks import dispatch_dctfweb_document
 
     if organization.is_demo:
@@ -667,15 +869,36 @@ def issue_fiscal_guide(
 ) -> FiscalGuide:
     """Reserve one central issuance before queueing a Domínio obligation."""
 
+    from apps.hub.guide_history import record_guide_attempt, save_guide_attempt
+    from apps.hub.integra_access import can_execute_company_operation
+
     guide = FiscalGuide.objects.select_for_update().get(id=guide.id)
+    if not can_execute_company_operation(
+        organization_id=guide.organization_id,
+        company_id=guide.company_id,
+        actor_id=getattr(actor, "pk", None),
+        module_code=ProductModule.Code.GUIDES,
+    ):
+        raise FiscalGuideTransitionError(
+            "O solicitante precisa de acesso operacional vigente à empresa e ao módulo Guias."
+        )
     if guide.status not in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
         raise FiscalGuideTransitionError("Essa obrigação já está em emissão ou foi concluída.")
+    if FiscalGuide.objects.filter(
+        organization_id=guide.organization_id,
+        company_id=guide.company_id,
+        kind=guide.kind,
+        competence=guide.competence,
+        status=FiscalGuide.Status.UNKNOWN,
+    ).exists():
+        raise FiscalGuideTransitionError("Confirme a emissão anterior desta competência.")
     try:
         normalize_cnpj(guide.company.cnpj_masked)
     except ValidationError as exc:
         raise FiscalGuideTransitionError(
             "Confira o CNPJ da empresa antes de autorizar a emissão."
         ) from exc
+    record_guide_attempt(guide)
     guide.issue_attempt += 1
     idempotency_key = f"fiscal-guide:{guide.id}:{guide.issue_attempt}"
     if not guide.organization.is_demo:
@@ -700,19 +923,29 @@ def issue_fiscal_guide(
     guide.status = FiscalGuide.Status.QUEUED
     guide.issue_requested_by = actor if getattr(actor, "is_authenticated", False) else None
     guide.issue_requested_at = timezone.now()
+    guide.provider_request_id = ""
+    guide.provider_payload = ""
+    guide.issued_at = None
     guide.error_code = ""
     guide.error_message = ""
-    guide.save(
+    save_guide_attempt(
+        guide,
         update_fields=[
             "status",
             "issue_attempt",
             "issue_requested_by",
             "issue_requested_at",
+            "provider_request_id",
+            "provider_payload",
+            "issued_at",
             "error_code",
             "error_message",
             "updated_at",
-        ]
+        ],
     )
+    from apps.hub.module_activities import sync_fiscal_guide_activity
+
+    sync_fiscal_guide_activity(guide.pk)
     from apps.hub.tasks import dispatch_fiscal_guide
 
     if guide.organization.is_demo:
@@ -788,6 +1021,9 @@ def sync_fiscal_guides(
         )
         if was_created:
             created += 1
+            from apps.hub.module_activities import sync_fiscal_guide_activity
+
+            sync_fiscal_guide_activity(guide.pk)
             continue
         if guide.status not in {FiscalGuide.Status.DISCOVERED, FiscalGuide.Status.FAILED}:
             ignored += 1
@@ -808,6 +1044,9 @@ def sync_fiscal_guides(
             ]
         )
         updated += 1
+        from apps.hub.module_activities import sync_fiscal_guide_activity
+
+        sync_fiscal_guide_activity(guide.pk)
     return FiscalGuideSyncResult(created=created, updated=updated, ignored=ignored)
 
 

@@ -31,11 +31,12 @@ class OnboardingTourTests(TestCase):
         session["hub_organization_id"] = str(self.office.id)
         session.save()
 
-    def test_the_welcome_tour_opens_on_the_first_visit_and_not_after_completion(self) -> None:
+    def test_the_welcome_tour_is_available_without_covering_the_first_visit(self) -> None:
         first = self.client.get(reverse("hub:dashboard"))
 
         self.assertContains(first, 'data-onboarding-id="welcome"')
-        self.assertContains(first, 'data-onboarding-auto="true"')
+        self.assertContains(first, 'data-onboarding-auto="false"')
+        self.assertContains(first, "Como usar")
 
         recorded = self.client.post(reverse("hub:onboarding-complete", args=["welcome"]))
         self.assertEqual(recorded.status_code, 204)
@@ -45,7 +46,7 @@ class OnboardingTourTests(TestCase):
         self.assertContains(second, 'data-onboarding-auto="false"')
         self.assertContains(second, "Como usar")
 
-    def test_a_new_version_of_a_tour_opens_again(self) -> None:
+    def test_a_new_welcome_version_remains_manual(self) -> None:
         OnboardingProgress.objects.create(user=self.user, tour_id="welcome", version=1)
         self.assertContains(
             self.client.get(reverse("hub:dashboard")), 'data-onboarding-auto="false"'
@@ -54,7 +55,7 @@ class OnboardingTourTests(TestCase):
         OnboardingProgress.objects.filter(user=self.user, tour_id="welcome").update(version=0)
 
         self.assertContains(
-            self.client.get(reverse("hub:dashboard")), 'data-onboarding-auto="true"'
+            self.client.get(reverse("hub:dashboard")), 'data-onboarding-auto="false"'
         )
 
     def test_a_detail_screen_never_opens_an_orientation(self) -> None:

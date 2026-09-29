@@ -19,6 +19,23 @@ CSRF_COOKIE_SECURE = False
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 AXES_HANDLER = "axes.handlers.database.AxesDatabaseHandler"
 
+# Read templates from disk on each request, including when runserver uses --noreload.
+# Keep the shared settings untouched so production retains its cached template loader.
+TEMPLATES = [
+    {
+        **template_backend,
+        "APP_DIRS": False,
+        "OPTIONS": {
+            **template_backend["OPTIONS"],
+            "loaders": [
+                "django.template.loaders.filesystem.Loader",
+                "django.template.loaders.app_directories.Loader",
+            ],
+        },
+    }
+    for template_backend in TEMPLATES
+]
+
 # Development must not depend on a running Redis. base.py builds a RedisCache whenever
 # REDIS_URL is set, with IGNORE_EXCEPTIONS off — so with Redis down every throttled API
 # call and the public proposal form (rate limited through the cache) return a 500 that

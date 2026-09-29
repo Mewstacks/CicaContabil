@@ -11,24 +11,46 @@ class CICALandingTests(TestCase):
     def test_public_page_has_trial_but_no_calculator(self):
         response = self.client.get(reverse("hub:home"))
         self.assertContains(response, "Começar teste de 14 dias")
-        self.assertContains(response, "A CICA reúne as quatro frentes por empresa e competência")
-        self.assertContains(response, "data-cica-demo")
+        self.assertContains(response, "Feche o mês sem caçar informação.")
+        self.assertContains(response, "O trabalho aparece antes de virar urgência.")
+        self.assertContains(
+            response,
+            "Exemplo ilustrativo com empresas, pessoas e atividades fictícias.",
+        )
+        self.assertContains(response, "Nenhum dado real é consultado nesta tela.")
+        self.assertContains(response, "A equipe entra e já sabe onde continuar.")
+        self.assertContains(response, "As fontes já trabalham dentro da mesma rotina.")
+        self.assertContains(response, "Domínio, Integra Contador, e-mail e Siescon")
+        self.assertNotContains(response, "Cada pessoa começa pelo que é dela.")
+        self.assertNotContains(response, "Disponível por configuração")
+        self.assertNotContains(response, "Em preparação")
+        self.assertNotContains(response, reverse("hub:demo-entry"))
+        self.assertNotContains(response, "A demonstração consulta dados reais?")
         for module in (
             "NFS-e Inteligente",
             "Guias e DCTFWeb",
             "Central Integra Contador",
-            "Conciliação OFX x Domínio",
+            "Conciliação entre extrato OFX e registros do Domínio.",
             "Radar da Reforma",
-            "Triagem de Arquivos",
+            "Triagem por empresa, competência e origem do anexo.",
         ):
             self.assertContains(response, module)
         self.assertNotContains(response, "Copiloto CICA")
         self.assertNotContains(response, "Franquia do Copiloto")
         self.assertNotContains(response, "quote-total")
+        self.assertNotContains(response, "cica-scene.js")
         self.assertNotContains(response, "data-motion-toggle")
         self.assertNotContains(response, "3 escritórios")
         self.assertContains(response, "sem cobrança automática")
         self.assertNotContains(response, "NFS-e, extratos e guias chegam")
+        self.assertContains(response, 'data-product-demo')
+        self.assertContains(response, 'data-demo-target="central"')
+        self.assertContains(response, 'data-demo-target="trabalho"')
+        self.assertContains(response, 'data-demo-target="empresas"')
+        self.assertContains(response, 'data-demo-target="documentos"')
+        self.assertContains(response, 'data-demo-target="fiscal"')
+        self.assertContains(response, 'data-demo-target="conciliacao"')
+        self.assertContains(response, 'cica-product-demo.js')
 
     @override_settings(
         DEMO_ENTRY_ENABLED=True,
@@ -41,8 +63,9 @@ class CICALandingTests(TestCase):
         response = self.client.get(reverse("hub:home"))
 
         self.assertContains(response, reverse("hub:demo-entry"))
-        self.assertContains(response, "Explorar demo fictícia")
+        self.assertContains(response, "Explorar a demonstração completa")
         self.assertContains(response, "A demonstração consulta dados reais?")
+        self.assertContains(response, "não realiza operações em fontes externas.")
 
     def test_plan_simulator_requires_authenticated_workspace(self):
         response = self.client.get(reverse("hub:settings"))

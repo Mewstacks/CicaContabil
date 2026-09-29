@@ -1,0 +1,26 @@
+<section class="workspace-panel reconciliation-decisions" id="decisoes" aria-labelledby="decision-heading">
+  <h2 id="decision-heading">Histórico das decisões</h2>
+  <p>Confirmações e desfazimentos preservados, dos mais recentes aos mais antigos. Não comprovam importação no ERP.</p>
+  {% if reconciliation_decision_page %}
+  <ol>
+    {% for decision in reconciliation_decision_page %}
+    <li>
+      <h3>{{ decision.get_state_display }} · R$ {{ decision.amount_brl|floatformat:2 }}</h3>
+      {% if decision.is_legacy_snapshot %}<p><strong>Registro legado preservado</strong></p>{% endif %}
+      <p>{% if decision.occurred_at %}<time datetime="{{ decision.occurred_at|date:'c' }}">{{ decision.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}Data da decisão não registrada{% endif %} · {% if decision.actor %}{{ decision.actor.get_full_name|default:decision.actor.email }}{% else %}Autor não registrado{% endif %}</p>
+      <p>Lançamento: {{ decision.reconciliation.entry.history }}</p>
+      {% if decision.evidence.note %}<p>{{ decision.evidence.note }}</p>{% endif %}
+      {% if decision.evidence.method == 'deterministic_exact_1to1' %}<p>Correspondência automática única de documento, data e valor.</p>{% endif %}
+      <details><summary>Consultar evidência preservada</summary><pre>{{ decision.evidence_text }}</pre></details>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if reconciliation_decision_page.has_other_pages %}
+  <nav class="pagination" aria-label="Páginas do histórico de decisões">
+    {% if reconciliation_decision_page.has_previous %}<a class="button button-quiet" href="?{% if reconciliation_decision_querystring %}{{ reconciliation_decision_querystring }}&amp;{% endif %}decision_page={{ reconciliation_decision_page.previous_page_number }}#decisoes">Decisões mais recentes</a>{% endif %}
+    <span>Página {{ reconciliation_decision_page.number }} de {{ reconciliation_decision_page.paginator.num_pages }}</span>
+    {% if reconciliation_decision_page.has_next %}<a class="button button-quiet" href="?{% if reconciliation_decision_querystring %}{{ reconciliation_decision_querystring }}&amp;{% endif %}decision_page={{ reconciliation_decision_page.next_page_number }}#decisoes">Decisões anteriores</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}<p>Nenhuma decisão preservada nesta trilha. Relações anteriores à implantação do histórico aparecem aqui quando forem alteradas.</p>{% endif %}
+</section>

@@ -1,12 +1,12 @@
-/* CICA temporary brand. Semantic tokens are the replacement boundary for the final kit. */
+/* Official CICA brand assets and semantic compatibility layer. */
 
-html body { background-color:var(--canvas); background-image:none; }
+html body { background-color:var(--auth-paper,var(--canvas)); background-image:none; }
 .brand-symbol, .wordmark>span { background:var(--cica-forest); color:var(--cica-ivory); font-family:Arial, sans-serif; }
 .auth-brand .auth-brand-mark { width:36px; height:36px; flex:0 0 auto; fill:none; stroke:var(--cica-forest); stroke-width:3.2; stroke-linecap:round; stroke-linejoin:round; }
 .auth-brand > span { display:grid; place-items:initial; align-content:center; gap:1px; width:auto; height:auto; border-radius:0; background:transparent; color:inherit; font-family:inherit; line-height:1; }
 .auth-brand > span b { color:var(--cica-forest); font-size:24px; letter-spacing:-.06em; }
 .auth-brand > span small { color:var(--cica-muted); font-family:Consolas, monospace; font-size:7px; letter-spacing:.04em; text-transform:uppercase; }
-.auth-card { background:var(--surface); }
+.auth-card { background:var(--auth-card-bg,var(--surface)); }
 .auth-card .button, .button { background:var(--cica-forest); color:var(--cica-ivory); }
 .auth-card .button:hover, .button:hover { background:var(--cica-forest-hover); }
 .auth-card .button-quiet, .button-quiet { background:transparent; color:var(--ink); border-color:var(--line); }
@@ -18,11 +18,11 @@ html body { background-color:var(--canvas); background-image:none; }
 .activation-office-name { overflow-wrap:anywhere; }
 .art-sheet { background:linear-gradient(135deg, var(--surface), var(--green-soft)); border-color:var(--line); }
 .art-sheet>span { background:var(--blue); }
-.art-core { background:linear-gradient(135deg, var(--strong), var(--strong)); border-color:var(--line); box-shadow:0 5px 0 #0c2d23, 0 25px 35px -15px #153e3260; }
+.art-core { background:linear-gradient(135deg, var(--strong), var(--strong)); border-color:var(--line); box-shadow:0 5px 0 #0f0e0d, 0 25px 35px -15px rgb(41 36 31 / 38%); }
 .art-answer { background:var(--surface); border-color:var(--cica-line); }
-.password-toggle { background:var(--green-soft); color:var(--blue); }
-.password-toggle:hover { background:var(--green-soft); }
-.registry-result, .signup-quote { background:var(--green-soft); border-color:var(--line); }
+.password-toggle { background:transparent; color:var(--auth-blue); }
+.password-toggle:hover { background:var(--auth-blue-soft); }
+.registry-result, .signup-quote { background:var(--auth-blue-soft); border-color:var(--auth-line); }
 .registry-result #registry-status { color:var(--blue); }
 .signup-form [data-field-name="accept_terms"] label { display:block; line-height:1.5; }
 .signup-form [data-field-name="accept_terms"] input { float:left; width:20px; min-height:20px; margin:2px 12px 0 0; }
@@ -47,3 +47,25 @@ body:has(.product-shell) .skip-link:focus-visible { pointer-events:none; }
 @media(max-width:560px){.team-intro{display:block}.team-form{padding:18px 16px}.scope-options{grid-template-columns:1fr}.team-row{grid-template-columns:1fr;padding:16px}.team-scope-summary{order:2;flex-wrap:wrap}.team-edit,.team-protected{justify-self:start}.team-pending li{display:grid;padding:15px 16px}}
 @media (max-width: 760px) { .auth-footer span:last-child { display:inline; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation:none !important; scroll-behavior:auto !important; } }
+
+
+/* Brand bridge for auth and shared controls: warm neutral CICA. */
+:root{--cica-forest:#25221f;--cica-forest-hover:#0f0e0d;--cica-ivory:#fbf8f2;--cica-muted:#6d6861;--cica-line:#c9c1b6}.auth-brand .auth-brand-mark{stroke:#a34f35}.auth-brand>span b{color:#201e1b}.auth-brand>span small{color:#6d6861;font-family:Manrope,Arial,sans-serif;letter-spacing:.02em}.auth-card .button,.button{background:#25221f;color:#fbf8f2}.auth-card .button:hover,.button:hover{background:#0f0e0d}.text-action{color:#93452f}@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--cica-forest:#eee8de;--cica-forest-hover:#fff;--cica-ivory:#1b1917;--cica-muted:#b8b0a6;--cica-line:#575048}:root:not([data-theme="light"]) .auth-brand>span b{color:#f2eee7}:root:not([data-theme="light"]) .auth-brand>span small{color:#b8b0a6}}:root[data-theme="dark"]{--cica-forest:#eee8de;--cica-forest-hover:#fff;--cica-ivory:#1b1917;--cica-muted:#b8b0a6;--cica-line:#575048}:root[data-theme="dark"] .auth-brand>span b{color:#f2eee7}:root[data-theme="dark"] .auth-brand>span small{color:#b8b0a6}
+
+/* D-184 official SVG lockups. Both variants occupy the same grid cell so
+   theme changes never cause layout shift. */
+.cica-brand-asset{display:inline-grid;align-items:center;flex:0 0 auto;line-height:0}
+.cica-brand-asset>img{display:block;grid-area:1/1;width:100%;height:auto}
+.cica-brand-dark{visibility:hidden}.cica-brand-lockup{width:132px}.cica-brand-mark{width:32px}
+.auth-brand .cica-brand-lockup{width:142px}.wordmark .cica-brand-lockup{width:112px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .cica-brand-light{visibility:hidden}:root:not([data-theme="light"]) .cica-brand-dark{visibility:visible}}
+:root[data-theme="dark"] .cica-brand-light{visibility:hidden}:root[data-theme="dark"] .cica-brand-dark{visibility:visible}
+:root[data-theme="light"] .cica-brand-light{visibility:visible}:root[data-theme="light"] .cica-brand-dark{visibility:hidden}
+
+:root{--cica-forest:#114d44;--cica-forest-hover:#0b3b34;--cica-ivory:#fff;--cica-muted:#56635f;--cica-line:#b8b2a3}
+.auth-card .button,.button{background:var(--cica-forest);color:var(--cica-ivory);border-color:var(--cica-forest)}
+.auth-card .button:hover,.button:hover{background:var(--cica-forest-hover)}
+.auth-card .button-quiet,.button-quiet{background:transparent;color:#114d44;border-color:var(--cica-line)}
+.text-action{color:#114d44}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--cica-forest:#a8d0c4;--cica-forest-hover:#c2e2d9;--cica-ivory:#10221d;--cica-muted:#c4bdad;--cica-line:#4b554f}}
+:root[data-theme="dark"]{--cica-forest:#a8d0c4;--cica-forest-hover:#c2e2d9;--cica-ivory:#10221d;--cica-muted:#c4bdad;--cica-line:#4b554f}

@@ -489,7 +489,7 @@ def test_a_stale_configured_slug_still_finds_the_single_demonstration_office() -
     home = Client().get(reverse("hub:home"))
     entry = Client().get(reverse("hub:demo-entry"))
 
-    assert "Ver demonstração" in home.content.decode()
+    assert "Explorar a demonstração completa" in home.content.decode()
     assert "Iniciar demonstração fictícia" in entry.content.decode()
 
     visitor = Client(REMOTE_ADDR="198.51.100.41")
@@ -593,3 +593,36 @@ def test_demo_copilot_conversation_is_private_to_browser_session() -> None:
     assert "Demonstração fictícia para" not in second.get(assistant).content.decode()
     assert Conversation.objects.count() == conversations_before
     assert Message.objects.count() == messages_before
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+def test_demo_reconciliation_never_receives_shared_files() -> None:
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from apps.hub.models import ReconciliationSourceFile
+
+    _seed()
+    company = ClientCompany.objects.filter(organization__is_demo=True, active=True).first()
+    assert company is not None
+    browser = Client(REMOTE_ADDR="198.51.100.28")
+    assert browser.post(reverse("hub:demo-entry")).status_code == 302
+    before = ReconciliationSourceFile.objects.filter(organization__is_demo=True).count()
+
+    page = browser.get(reverse("hub:reconciliation")).content.decode()
+    refused = browser.post(
+        reverse("hub:reconciliation-upload"),
+        {
+            "company": str(company.id),
+            "origin": ReconciliationSourceFile.Origin.BANK_STATEMENT,
+            "files": SimpleUploadedFile("extrato.csv", b"data;valor\n01/09/2026;10,00\n"),
+        },
+    )
+
+    assert 'id="reconciliation-upload-dialog"' not in page
+    assert refused.status_code == 403
+    assert ReconciliationSourceFile.objects.filter(organization__is_demo=True).count() == before

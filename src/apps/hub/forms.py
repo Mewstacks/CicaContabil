@@ -4,22 +4,41 @@ from typing import Any, cast
 
 from django import forms
 from django.db.models import QuerySet
+from django.forms import BaseFormSet, formset_factory
 
+from apps.accounts.models import User
 from apps.common.cnpj import normalize_cnpj
+from apps.common.encryption import blind_index
+from apps.hub.controlplane import company_queryset_for_membership
 from apps.hub.models import (
     AccountingPeriod,
+    ActivityTemplate,
+    ActivityTemplateAssignment,
     ClientCompany,
     CostCenter,
     DataSource,
     FinancialAccount,
     ImportBatch,
     LedgerAccount,
+    OfficeProfile,
+    PayrollPeriodSnapshot,
     ReconciliationRule,
     ReconciliationSourceFile,
 )
 from apps.hub.module_catalog import MODULES
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import TenantUsagePolicy
+
+
+class ReformAnalysisForm(forms.Form):
+    company = forms.ModelChoiceField(
+        queryset=ClientCompany.objects.none(), label="Empresa para análise",
+        widget=forms.Select(attrs={"autocomplete": "off"}),
+    )
+    reason = forms.CharField(
+        label="Por que esta empresa precisa de análise?", max_length=500,
+        widget=forms.Textarea(attrs={"rows": 4, "autocomplete": "off"}),
+    )
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -91,6 +110,23 @@ class CompanyForm(forms.ModelForm):  # type: ignore[type-arg]
         return f"{cnpj[:2]}.{cnpj[2:5]}.{cnpj[5:8]}/{cnpj[8:12]}-{cnpj[12:]}"
 
 
+class OfficeIdentityForm(forms.ModelForm):  # type: ignore[type-arg]
+    class Meta:
+        model = OfficeProfile
+        fields = ("legal_name", "cnpj")
+
+    def clean_cnpj(self) -> str:
+        cnpj = normalize_cnpj(str(self.cleaned_data.get("cnpj") or ""))
+        self.cnpj_hash = blind_index(cnpj, namespace="office-cnpj")
+        if (
+            OfficeProfile.objects.filter(cnpj_hash=self.cnpj_hash)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Este CNPJ já está vinculado a outro escritório.")
+        return cnpj
+
+
 class CollaboratorInvitationForm(forms.Form):
     """A workspace owner scopes a teammate before the invitation is sent."""
 
@@ -136,9 +172,7 @@ class CollaboratorInvitationForm(forms.Form):
         available = module_codes if module_codes is not None else set(MODULES)
         modules_field = cast(forms.MultipleChoiceField, self.fields["modules"])
         companies_field = cast(forms.MultipleChoiceField, self.fields["companies"])
-        module_choices = [
-            (code, MODULES[code].label) for code in MODULES if code in available
-        ]
+        module_choices = [(code, MODULES[code].label) for code in MODULES if code in available]
         company_choices = [
             (str(company.id), company.name)
             for company in (companies or ClientCompany.objects.none())
@@ -186,7 +220,7 @@ class CertificateUploadForm(forms.Form):
     label = forms.CharField(
         max_length=120,
         label="Identificação",
-        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+        widget=forms.TextInput(attrs={"autocomplete": "off", "aria-label": "Conta contábil"}),
     )
     pfx_file = forms.FileField(label="Arquivo A1/PFX")
     password = forms.CharField(
@@ -231,6 +265,157 @@ class ActivationForm(forms.Form):
         return cleaned
 
 
+class OperationalEvidenceForm(forms.Form):
+    reference = forms.CharField(
+        required=False,
+        max_length=180,
+        label="Referência",
+        help_text="Ex.: número do recibo ou nome do documento, sem dados pessoais desnecessários.",
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    summary = forms.CharField(
+        max_length=500,
+        label="O que foi confirmado",
+        widget=forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
+    )
+
+
+class OperationalBlockForm(forms.Form):
+    reason = forms.CharField(
+        max_length=500,
+        label="Impedimento",
+        widget=forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
+    )
+
+
+class OperationalAssignmentForm(forms.Form):
+    assignee = forms.ChoiceField(label="Responsável", required=False)
+    expected_assignee = forms.CharField(required=False, widget=forms.HiddenInput)
+    reason = forms.CharField(
+        label="Motivo da atribuição ou redistribuição", max_length=500,
+        widget=forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
+    )
+
+
+class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
+    class Meta:
+        model = ActivityTemplate
+        fields = (
+            "code",
+            "title",
+            "area",
+            "description",
+            "frequency",
+            "legal_due_day",
+            "internal_due_day",
+            "evidence_requirement",
+            "requires_processing_closed",
+            "requires_accepted_obligation",
+        )
+        widgets = {
+            "code": forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false"}),
+            "title": forms.TextInput(attrs={"autocomplete": "off"}),
+            "description": forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
+            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 28, "autocomplete": "off"}),
+            "internal_due_day": forms.NumberInput(
+                attrs={"min": 1, "max": 28, "autocomplete": "off"}
+            ),
+        }
+        labels = {
+            "code": "Código do modelo",
+            "title": "Atividade esperada",
+            "area": "Área",
+            "description": "Orientação para a equipe",
+            "frequency": "Periodicidade",
+            "legal_due_day": "Dia do prazo legal",
+            "internal_due_day": "Dia do prazo interno",
+            "evidence_requirement": "Comprovação necessária",
+            "requires_processing_closed": "Exige processamento fechado para concluir",
+            "requires_accepted_obligation": "Exige obrigação aceita para concluir",
+        }
+
+
+class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
+    class Meta:
+        model = ActivityTemplateAssignment
+        fields = ("template", "company", "assigned_to", "legal_due_day", "internal_due_day")
+        widgets = {
+            "template": forms.Select(attrs={"autocomplete": "off"}),
+            "company": forms.Select(attrs={"autocomplete": "off"}),
+            "assigned_to": forms.Select(attrs={"autocomplete": "off"}),
+            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 28, "autocomplete": "off"}),
+            "internal_due_day": forms.NumberInput(
+                attrs={"min": 1, "max": 28, "autocomplete": "off"}
+            ),
+        }
+        labels = {
+            "template": "Modelo",
+            "company": "Empresa",
+            "assigned_to": "Responsável padrão",
+            "legal_due_day": "Sobrescrever prazo legal",
+            "internal_due_day": "Sobrescrever prazo interno",
+        }
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization | None = None,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if organization is None:
+            return
+        self.instance.organization = organization
+        template_field = cast("forms.ModelChoiceField[ActivityTemplate]", self.fields["template"])
+        company_field = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
+        assignee_field = cast("forms.ModelChoiceField[User]", self.fields["assigned_to"])
+        template_field.queryset = ActivityTemplate.objects.filter(
+            organization=organization, active=True
+        )
+        company_field.queryset = ClientCompany.objects.filter(
+            organization=organization, active=True
+        )
+        assignee_field.queryset = User.objects.filter(
+            organization_memberships__organization=organization,
+            organization_memberships__is_active=True,
+        ).distinct()
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        company = cleaned.get("company")
+        assignee = cleaned.get("assigned_to")
+        if company is None or assignee is None:
+            return cleaned
+        membership = Membership.objects.filter(
+            organization_id=self.instance.organization_id,
+            user=assignee,
+            is_active=True,
+            user__is_active=True,
+        ).first()
+        if (
+            membership is None
+            or membership.role in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+            or not company_queryset_for_membership(membership).filter(pk=company.pk).exists()
+        ):
+            self.add_error(
+                "assigned_to",
+                "O responsavel precisa ter perfil operacional e carteira ativa para esta empresa.",
+            )
+        return cleaned
+
+
+class ActivityGenerationForm(forms.Form):
+    competence = forms.DateField(
+        label="Competência",
+        input_formats=("%Y-%m",),
+        widget=forms.DateInput(attrs={"type": "month", "autocomplete": "off"}, format="%Y-%m"),
+    )
+
+    def clean_competence(self) -> Any:
+        competence = self.cleaned_data["competence"]
+        return competence.replace(day=1)
+
+
 class DtePreparationForm(forms.Form):
     companies = forms.ModelMultipleChoiceField(
         queryset=ClientCompany.objects.none(),
@@ -267,6 +452,7 @@ class DtePreparationForm(forms.Form):
             if companies is not None
             else ClientCompany.objects.none()
         )
+
         def display_company(company: ClientCompany) -> str:
             return (
                 company.name
@@ -393,6 +579,10 @@ class UnifiedImportForm(forms.Form):
             ImportBatch.Kind.COMPANIES: {"csv", "xlsx"},
             ImportBatch.Kind.OBLIGATIONS: {"csv", "xlsx"},
             ImportBatch.Kind.ACCOUNTING: {"csv", "xlsx"},
+            ImportBatch.Kind.ACCOUNTING_BALANCES: {"csv", "xlsx"},
+            ImportBatch.Kind.PAYROLL_TOTALS: {"csv", "xlsx"},
+            ImportBatch.Kind.CASH_SCENARIO: {"csv", "xlsx"},
+            ImportBatch.Kind.DRE_MAPPING: {"csv", "xlsx"},
             ImportBatch.Kind.FISCAL_XML: {"xml"},
             ImportBatch.Kind.BANK_OFX: {"ofx", "qfx"},
             ImportBatch.Kind.DOMINIO_BACKUP: {"dom", "zip"},
@@ -446,24 +636,14 @@ class ReconciliationUploadForm(forms.Form):
         required=False,
         label="Conta financeira",
         empty_label="Selecione a conta",
-        help_text="Obrigatória para extrato bancário quando a empresa tiver contas ativas.",
         widget=FinancialAccountSelect(attrs={"data-financial-account-select": ""}),
     )
     origin = forms.ChoiceField(label="Origem", choices=ReconciliationSourceFile.Origin.choices)
-    period_start = forms.DateField(
-        label="Início do período",
-        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
-    )
-    period_end = forms.DateField(
-        label="Fim do período",
-        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
-    )
     physical_batch = forms.CharField(
-        label="Identificação do lote físico",
+        label="Lote físico",
         max_length=120,
         required=False,
-        widget=forms.TextInput(attrs={"autocomplete": "off"}),
-        help_text="Opcional; use para localizar a caixa ou malote original.",
+        widget=forms.TextInput(attrs={"autocomplete": "off", "placeholder": "Caixa 12, malote 3"}),
     )
     files = MultipleFileField(  # type: ignore[assignment]  # Django field name is intentional.
         label="Arquivos",
@@ -485,6 +665,7 @@ class ReconciliationUploadForm(forms.Form):
             "forms.ModelChoiceField[FinancialAccount]", self.fields["financial_account"]
         )
         financial_account_field.queryset = accounts.order_by("company__name", "name")
+
         def display_account(account: FinancialAccount) -> str:
             return f"{account.company.name} — {account.name} ({account.account_reference})"
 
@@ -496,10 +677,6 @@ class ReconciliationUploadForm(forms.Form):
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
-        start = cleaned.get("period_start")
-        end = cleaned.get("period_end")
-        if start and end and end < start:
-            self.add_error("period_end", "O fim do período deve ser igual ou posterior ao início.")
         company = cleaned.get("company")
         financial_account = cleaned.get("financial_account")
         if (
@@ -960,3 +1137,122 @@ class ReconciliationRuleForm(forms.Form):
         if self.cleaned_data.get("require_review"):
             actions["review"] = True
         return actions
+
+
+class PayrollComparisonForm(forms.Form):
+    left_snapshot = forms.ModelChoiceField(
+        queryset=PayrollPeriodSnapshot.objects.none(),
+        label="Fonte de referência",
+        widget=forms.Select(attrs={"autocomplete": "off"}),
+    )
+    right_snapshot = forms.ModelChoiceField(
+        queryset=PayrollPeriodSnapshot.objects.none(),
+        label="Fonte para comparar",
+        widget=forms.Select(attrs={"autocomplete": "off"}),
+    )
+    money_tolerance = forms.DecimalField(
+        label="Tolerância monetária (R$)",
+        min_value=Decimal("0"),
+        max_digits=14,
+        decimal_places=2,
+        required=False,
+        initial=Decimal("0"),
+        widget=forms.NumberInput(
+            attrs={"autocomplete": "off", "inputmode": "decimal", "step": "0.01", "min": "0"}
+        ),
+    )
+
+    def __init__(
+        self, *args: Any, snapshots: QuerySet[PayrollPeriodSnapshot], **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        queryset = snapshots.order_by("-competence", "-observed_at")
+        for field_name in ("left_snapshot", "right_snapshot"):
+            field = cast("forms.ModelChoiceField[PayrollPeriodSnapshot]", self.fields[field_name])
+            field.queryset = queryset
+            cast(Any, field).label_from_instance = lambda snapshot: (
+                f"{snapshot.competence:%m/%Y} | {snapshot.get_source_kind_display()} | "
+                f"{snapshot.source_reference}"
+            )
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        left = cleaned.get("left_snapshot")
+        right = cleaned.get("right_snapshot")
+        if left is not None and right is not None:
+            if left.pk == right.pk:
+                self.add_error("right_snapshot", "Escolha uma segunda fotografia para comparar.")
+            elif left.company_id != right.company_id or left.competence != right.competence:
+                self.add_error(
+                    "right_snapshot",
+                    "Escolha fotografias da mesma empresa e competência.",
+                )
+        return cleaned
+
+    def tolerance_cents(self) -> int:
+        value = self.cleaned_data.get("money_tolerance") or Decimal("0")
+        return int((value * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+class DreMappingRowForm(forms.Form):
+    account_code = forms.CharField(
+        label="Conta",
+        max_length=80,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    group = forms.CharField(
+        label="Grupo DRE",
+        max_length=160,
+        required=False,
+        widget=forms.TextInput(attrs={"autocomplete": "off"}),
+    )
+    sign = forms.TypedChoiceField(
+        label="Sinal",
+        choices=(("-1", "Inverter (-1)"), ("1", "Manter (1)")),
+        coerce=int,
+        required=False,
+        empty_value=None,
+        widget=forms.Select(attrs={"aria-label": "Sinal da conta"}),
+    )
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        account_code = str(cleaned.get("account_code") or "").strip()
+        group = str(cleaned.get("group") or "").strip()
+        sign = cleaned.get("sign")
+        if not account_code and not group and sign is None:
+            return cleaned
+        if not account_code:
+            self.add_error("account_code", "Informe a conta.")
+        if not group:
+            self.add_error("group", "Informe o grupo DRE.")
+        if sign not in {-1, 1}:
+            self.add_error("sign", "Escolha como o saldo entra no grupo.")
+        cleaned["account_code"] = account_code
+        cleaned["group"] = group
+        return cleaned
+
+
+class BaseDreMappingFormSet(BaseFormSet):  # type: ignore[type-arg]
+    def clean(self) -> None:
+        super().clean()
+        seen: set[str] = set()
+        mapped = 0
+        for form in self.forms:
+            if not hasattr(form, "cleaned_data"):
+                continue
+            account_code = str(form.cleaned_data.get("account_code") or "").strip()
+            if not account_code:
+                continue
+            mapped += 1
+            if account_code in seen:
+                form.add_error("account_code", "Esta conta aparece mais de uma vez.")
+            seen.add(account_code)
+        if mapped == 0:
+            raise forms.ValidationError("Inclua ao menos uma conta no mapa DRE.")
+
+
+DreMappingFormSet = formset_factory(
+    DreMappingRowForm, formset=BaseDreMappingFormSet, extra=5, max_num=250, validate_max=True
+)

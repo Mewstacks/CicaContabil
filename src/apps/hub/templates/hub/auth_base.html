@@ -3,20 +3,20 @@
 <html lang="pt-BR"{% if request.COOKIES.hub_theme == 'dark' %} data-theme="dark"{% elif request.COOKIES.hub_theme == 'light' %} data-theme="light"{% endif %}>
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark"><meta name="theme-color" content="#f6f1e5">
+  <meta name="color-scheme" content="light dark"><meta name="theme-color" content="#e3ddca">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Acesso — CICA{% endblock %}</title>
-  <link rel="icon" href="{% static 'hub/favicon.svg' %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'hub/cica-auth.css' %}?v=5">
-  <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=cica-4">
+  <link rel="icon" href="{% static 'hub/brand/cica-mark-green.svg' %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=20260928-2">
+  <link rel="stylesheet" href="{% static 'hub/cica-auth.css' %}?v=20260928-2">
+  <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=20260928-2">
   <script src="{% static 'hub/cica-auth.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
-  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=ui-review-1">
   <script src="{% static 'hub/theme.js' %}" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
-  <header class="auth-header"><a class="auth-brand" href="{% url 'hub:home' %}" translate="no" aria-label="CICA, início"><svg class="auth-brand-mark" viewBox="0 0 42 42" aria-hidden="true"><path d="M31 12.3a14 14 0 1 0 0 17.4"/><path d="M34.7 16.8H20.8v8.4H34.7"/></svg><span><b>CICA</b><small>Central de Inteligência Contábil Avançada</small></span></a><a href="{% url 'hub:home' %}">Voltar ao site <span aria-hidden="true">↗</span></a></header>
+  <header class="auth-header"><a class="auth-brand" href="{% url 'hub:home' %}" translate="no" aria-label="CICA, início">{% include 'hub/partials/brand_lockup.html' %}</a><a href="{% url 'hub:home' %}">Voltar ao site <span aria-hidden="true">↗</span></a></header>
   <div class="auth-layout">
     <aside class="auth-story" aria-label="CICA"><p class="eyebrow">SUA OPERAÇÃO, CONECTADA.</p><h2>Menos pontas soltas.<br>Mais <span>controle.</span></h2></aside>
     {% block body %}{% endblock %}

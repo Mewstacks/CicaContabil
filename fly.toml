@@ -1,5 +1,5 @@
 # Change this with: python scripts/configure_fly.py your-unique-app-name
-app = "replace-with-your-app-name"
+app = "cica-contabil"
 primary_region = "gru"
 kill_signal = "SIGTERM"
 kill_timeout = "30s"
@@ -18,17 +18,19 @@ kill_timeout = "30s"
   API_DOCS_ENABLED = "false"
   DJANGO_SETTINGS_MODULE = "config.settings.production"
   DB_SSL_REQUIRE = "true"
+  DB_TLS_ENFORCED_BY_NETWORK = "true"
+  EDGE_AGENT_MTLS_REQUIRED = "false"
   LOG_LEVEL = "INFO"
   OBJECT_STORAGE_REQUIRED = "true"
   PORT = "8000"
   PRIMARY_REGION = "gru"
-  SENTRY_ENABLED = "true"
+  SENTRY_ENABLED = "false"
   SENTRY_ENVIRONMENT = "production"
   SENTRY_TRACES_SAMPLE_RATE = "0.05"
 
 [processes]
   web = "gunicorn config.asgi:application --bind 0.0.0.0:8000 --worker-class uvicorn_worker.UvicornWorker --workers 2 --timeout 30 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile -"
-  worker = "celery -A config worker --loglevel=INFO --concurrency=1"
+  worker = "celery -A config worker --beat --schedule=/tmp/celerybeat-schedule --loglevel=INFO --concurrency=1"
 
 [http_service]
   internal_port = 8000
@@ -49,6 +51,7 @@ kill_timeout = "30s"
     grace_period = "20s"
     method = "GET"
     path = "/api/v1/health/ready/"
+    headers = { Host = "cica-contabil.fly.dev", X-Forwarded-Proto = "https" }
 
 [[vm]]
   processes = ["web"]

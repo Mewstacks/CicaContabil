@@ -17,7 +17,6 @@ EXEMPT_URL_NAMES = frozenset(
         "accounts:mfa-setup",
         "accounts:mfa-verify",
         "accounts:mfa-qr",
-        "accounts:mfa-recovery-codes",
         "hub:login",
         "hub:logout",
         "hub:home",

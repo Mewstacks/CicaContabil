@@ -2,12 +2,12 @@
 
 {% load static %}
 
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=11"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/platform.css' %}?v=20260928-2"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}">{% endblock %}
 
 {% block body %}
 <div class="product-shell platform-shell">
   <aside class="rail" aria-label="Navegação da plataforma">
-    <a class="wordmark" href="{% url 'platform:dashboard' %}" translate="no"><span aria-hidden="true">C</span><b>CICA</b></a>
+    <a class="wordmark" href="{% url 'platform:dashboard' %}" translate="no" aria-label="CICA, Console Mewstack">{% include 'hub/partials/brand_lockup.html' %}</a>
     <p class="rail-label">Controle</p>
     <nav class="rail-nav">
       {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a>{% endif %}

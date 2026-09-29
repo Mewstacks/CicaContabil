@@ -7,6 +7,7 @@ from apps.platform.legal import legal_document
 app_name = "hub"
 
 urlpatterns = [
+    path("app/radar/<uuid:alert_id>/analisar/", views.reform_analysis, name="reform-analysis"),
     path("legal/<slug:document>/", legal_document, name="legal"),
     path("", views.home, name="home"),
     path("demo/", views.demo_entry, name="demo-entry"),
@@ -49,6 +50,29 @@ urlpatterns = [
         name="password-reset-complete",
     ),
     path("app/", views.dashboard, name="dashboard"),
+    path(
+        "app/relatorios-financeiros/<uuid:export_id>/baixar/",
+        views.download_financial_report_export,
+        name="financial-report-export-download",
+    ),
+    path("app/atividades/", views.activities, name="activities"),
+    path("app/atividades/modelos/", views.activity_models, name="activity-models"),
+    path("app/atividades/<uuid:activity_id>/", views.activity_detail, name="activity-detail"),
+    path(
+        "app/atividades/<uuid:activity_id>/evidencias/",
+        views.activity_add_evidence,
+        name="activity-add-evidence",
+    ),
+    path(
+        "app/atividades/<uuid:activity_id>/impedir/",
+        views.activity_block,
+        name="activity-block",
+    ),
+    path(
+        "app/atividades/<uuid:activity_id>/concluir/",
+        views.activity_complete,
+        name="activity-complete",
+    ),
     path("app/equipe/", views.team, name="team"),
     path(
         "app/equipe/convites/<uuid:invitation_id>/reenviar/",
@@ -71,6 +95,16 @@ urlpatterns = [
         name="collaborator-deactivate",
     ),
     path("app/nfse/", views.nfse_center, name="nfse-center"),
+    path(
+        "app/nfse/exportacoes/<uuid:export_id>/baixar/",
+        views.download_nfse_export,
+        name="nfse-export-download",
+    ),
+    path(
+        "app/nfse/exportacoes/<uuid:export_id>/confirmar-importacao/",
+        views.confirm_nfse_export_import,
+        name="nfse-export-confirm-import",
+    ),
     path("app/guias/", views.guides, name="guides"),
     path("app/guias/dctfweb/consultar/", views.dctfweb_consult, name="dctfweb-consult"),
     path(
@@ -85,6 +119,10 @@ urlpatterns = [
     ),
     path("app/guias/<uuid:guide_id>/", views.guide_detail, name="guide-detail"),
     path("app/guias/<uuid:guide_id>/documento.pdf", views.guide_pdf, name="guide-pdf"),
+    path(
+        "app/guias/<uuid:guide_id>/historico/<uuid:event_id>/documento.pdf",
+        views.guide_attempt_pdf, name="guide-attempt-pdf",
+    ),
     path("app/guias/<uuid:guide_id>/exemplo.pdf", views.demo_guide_pdf, name="demo-guide-pdf"),
     path("app/guias/<uuid:guide_id>/emitir/", views.issue_guide, name="issue-guide"),
     path("app/integra-contador/", views.integra, name="integra"),
@@ -217,6 +255,11 @@ urlpatterns = [
     ),
     path("app/empresas/", views.companies, name="companies"),
     path("app/empresas/<uuid:company_id>/", views.company_detail, name="company-detail"),
+    path(
+        "app/empresas/<uuid:company_id>/relatorios/<slug:resource>/<uuid:resource_id>/<slug:export_format>/",
+        views.company_financial_report,
+        name="company-financial-report",
+    ),
     path("app/certificados/", views.certificates, name="certificates"),
     path("app/revisoes/", views.reviews, name="reviews"),
     path("app/revisoes/<uuid:case_id>/", views.review_detail, name="review-detail"),
@@ -227,6 +270,7 @@ urlpatterns = [
     ),
     path("app/revisoes/<uuid:case_id>/resolver/", views.resolve_review, name="resolve-review"),
     path("app/configuracoes/", views.settings_view, name="settings"),
+    path("app/configuracao/mapa-dre/", views.dre_mapping_editor, name="dre-mapping-editor"),
     path("app/configuracao/", views.setup_center, name="setup"),
     path(
         "app/configuracoes/dominio/parear/",

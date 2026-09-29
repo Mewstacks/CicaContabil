@@ -167,26 +167,17 @@ def authorization_is_fresh(organization: Organization) -> bool:
 def company_queryset_for_membership(
     membership: Membership | None,
 ) -> QuerySet[ClientCompany]:
-    if membership is None:
+    if membership is None or not membership.is_active or not membership.organization.is_active:
         return ClientCompany.objects.none()
     organization = membership.organization
     companies = ClientCompany.objects.filter(organization=organization, active=True)
     binding_exists = ControlPlaneBinding.objects.filter(organization=organization).exists()
-    has_workspace_grants = CompanyAccessGrant.objects.filter(
-        organization=organization, membership=membership, is_active=True
-    ).exists()
-    if not binding_exists:
-        # CICA collaborators can be scoped without a CRMew control-plane binding.
-        # Existing memberships without an explicit grant retain their historical scope.
-        if has_workspace_grants:
-            return companies.filter(
-                access_grants__membership=membership,
-                access_grants__is_active=True,
-            ).distinct()
+    if not binding_exists and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
         return companies
     if not authorization_is_fresh(organization):
         return ClientCompany.objects.none()
     return companies.filter(
+        access_grants__organization=organization,
         access_grants__membership=membership,
         access_grants__is_active=True,
     ).distinct()
@@ -194,6 +185,25 @@ def company_queryset_for_membership(
 
 def companies_for_membership(membership: Membership | None) -> list[ClientCompany]:
     return list(company_queryset_for_membership(membership))
+
+
+def company_queryset_for_module(
+    membership: Membership | None, module_code: str,
+) -> QuerySet[ClientCompany]:
+    """Intersect portfolio and module in the same grant, not across different companies."""
+    companies = company_queryset_for_membership(membership)
+    if membership is None:
+        return companies.none()
+    if membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
+        return companies
+    company_ids = [
+        grant.company_id
+        for grant in CompanyAccessGrant.objects.filter(
+            organization=membership.organization, membership=membership, is_active=True,
+        ).only("company_id", "modules")
+        if isinstance(grant.modules, list) and module_code in grant.modules
+    ]
+    return companies.filter(pk__in=company_ids)
 
 
 def module_codes_for_membership(membership: Membership | None) -> set[str] | None:
@@ -221,14 +231,17 @@ def company_has_capability(
     *, membership: Membership | None, company: ClientCompany, capability: str
 ) -> bool:
     """Apply CRMew capabilities at the company boundary, with no implicit write privilege."""
-    if membership is None or membership.organization_id != company.organization_id:
+    if (
+        membership is None
+        or not membership.is_active
+        or not membership.organization.is_active
+        or not company.active
+        or membership.organization_id != company.organization_id
+    ):
         return False
     organization = membership.organization
     binding_exists = ControlPlaneBinding.objects.filter(organization=organization).exists()
-    has_workspace_grants = CompanyAccessGrant.objects.filter(
-        organization=organization, membership=membership, is_active=True
-    ).exists()
-    if not binding_exists and not has_workspace_grants:
+    if not binding_exists and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}:
         return True
     if not authorization_is_fresh(organization):
         return False
@@ -250,13 +263,11 @@ def company_has_capability(
 
 def membership_has_capability(*, membership: Membership | None, capability: str) -> bool:
     """Check an office-level action through any currently allowed company grant."""
-    if membership is None:
+    if membership is None or not membership.is_active or not membership.organization.is_active:
         return False
     if (
         not ControlPlaneBinding.objects.filter(organization=membership.organization).exists()
-        and not CompanyAccessGrant.objects.filter(
-            organization=membership.organization, membership=membership, is_active=True
-        ).exists()
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
     ):
         return True
     return any(

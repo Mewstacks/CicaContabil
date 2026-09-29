@@ -364,6 +364,8 @@ def download_file_job(request: HttpRequest, job_id: str) -> HttpResponseBase:
 
 
 def _agent_item_transition(*, item: TriageItem, target: str, note: str) -> None:
+    from apps.hub.module_activities import sync_triage_activity
+
     previous = item.status
     item.transition_to(target)
     item.save(update_fields=["status", "updated_at"])
@@ -375,6 +377,7 @@ def _agent_item_transition(*, item: TriageItem, target: str, note: str) -> None:
         to_status=target,
         note=note[:500],
     )
+    sync_triage_activity(item.pk)
 
 
 @csrf_exempt
@@ -600,7 +603,14 @@ def sync_capability(request: HttpRequest, capability: str) -> JsonResponse:
         return JsonResponse({"status": "failed"})
     rows = payload.get("rows")
     if (
-        capability not in {"companies", "obligations", "accounting_entries"}
+        capability
+        not in {
+            "companies",
+            "obligations",
+            "accounting_entries",
+            "accumulator_catalog",
+            "accumulator_observations",
+        }
         or not isinstance(rows, list)
         or len(rows) > 2_000
         or not all(isinstance(row, Mapping) for row in rows)

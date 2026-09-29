@@ -90,15 +90,33 @@ def test_a_code_cannot_be_replayed_within_its_own_window() -> None:
     assert not mfa.session_is_verified(replay.request().wsgi_request)
 
 
-def test_a_recovery_code_works_once() -> None:
+def test_enrollment_does_not_issue_recovery_codes() -> None:
     operator = _operator()
     device = mfa.start_enrollment(operator)
-    codes = mfa.confirm_enrollment(device, totp.code_for(device.secret, totp.counter_at()))
-    assert codes is not None
+    confirmed = mfa.confirm_enrollment(device, totp.code_for(device.secret, totp.counter_at()))
 
-    assert mfa.check_code(operator, codes[0])
-    assert not mfa.check_code(operator, codes[0])
-    assert RecoveryCode.objects.filter(user=operator, used_at__isnull=False).count() == 1
+    assert confirmed
+    assert not RecoveryCode.objects.filter(user=operator).exists()
+    assert not mfa.check_code(operator, "a910-b46b16")
+
+
+def test_confirming_enrollment_redirects_without_a_recovery_screen() -> None:
+    operator = _operator()
+    device = mfa.start_enrollment(operator)
+    client = Client()
+    client.force_login(operator)
+
+    response = client.post(
+        reverse("accounts:mfa-setup"),
+        {
+            "code": totp.code_for(device.secret, totp.counter_at()),
+            "next": reverse("platform:dashboard"),
+        },
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"] == reverse("platform:dashboard")
+    assert not RecoveryCode.objects.filter(user=operator).exists()
 
 
 def test_an_office_can_require_a_second_factor_from_its_own_members() -> None:

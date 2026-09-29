@@ -523,7 +523,7 @@ document.querySelectorAll('[data-modal]').forEach((modal) => {
   openModal(modal, trigger);
 });
 
-document.querySelectorAll('[data-nfse-download-form]').forEach((form) => {
+const initNfseDownloadForm = (form) => {
   const selectAll = form.querySelector('[data-nfse-download-select-all]');
   const selectPortfolio = form.querySelector('[data-nfse-download-all]');
   const targets = [...form.querySelectorAll('[data-nfse-download-target]')];
@@ -594,7 +594,75 @@ document.querySelectorAll('[data-nfse-download-form]').forEach((form) => {
     }
   });
   update();
-});
+};
+
+document.querySelectorAll('[data-nfse-download-form]').forEach(initNfseDownloadForm);
+
+// Filters apply as they change, and only the results region is replaced. Swapping a part
+// of the page is a local update, not a change of context, so the form keeps its controls,
+// its focus and its caret while the table underneath follows the query (WCAG 3.2.2).
+const enhanceLiveFilter = (form) => {
+  const results = document.querySelector(form.dataset.liveFilter);
+  const count = document.querySelector(form.dataset.liveFilterCount);
+  if (!results) return;
+  form.querySelector('[data-live-filter-submit]')?.setAttribute('hidden', '');
+  let controller = null;
+  let timer = 0;
+  let request = 0;
+  const clear = form.querySelector('[data-live-filter-clear]');
+  const value = (name) => String(new FormData(form).get(name) || '').trim();
+  const filtering = () => Boolean(
+    value('q') || value('competence_month') || value('issued_from') || value('issued_to')
+    || (value('status') && value('status') !== 'all'),
+  );
+  const apply = async () => {
+    // A half-typed date would send the whole carteira back; wait for a valid one.
+    if (form.querySelector('[aria-invalid="true"]')) return;
+    if (clear) clear.hidden = !filtering();
+    const url = new URL(window.location.href);
+    url.search = new URLSearchParams(
+      [...new FormData(form)]
+        .filter(([, value]) => String(value) !== '')
+        .map(([key, value]) => [key, String(value)]),
+    ).toString();
+    controller?.abort();
+    controller = new AbortController();
+    const current = ++request;
+    results.setAttribute('aria-busy', 'true');
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error('filter request failed');
+      const parsed = new DOMParser().parseFromString(await response.text(), 'text/html');
+      if (current !== request || !results.isConnected) return;
+      const next = parsed.querySelector(form.dataset.liveFilter);
+      if (!next) throw new Error('results region missing');
+      results.innerHTML = next.innerHTML;
+      const nextCount = count && parsed.querySelector(form.dataset.liveFilterCount);
+      if (count && nextCount) count.textContent = nextCount.textContent;
+      if (String(url) !== window.location.href) history.replaceState({}, '', url);
+      results.querySelectorAll('[data-nfse-download-form]').forEach(initNfseDownloadForm);
+    } catch (error) {
+      if (error.name !== 'AbortError' && current === request) window.location.assign(url);
+    } finally {
+      results.removeAttribute('aria-busy');
+    }
+  };
+  const schedule = (delay) => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(apply, delay);
+  };
+  form.addEventListener('submit', (event) => { event.preventDefault(); schedule(0); });
+  form.addEventListener('change', () => schedule(0));
+  form.addEventListener('input', (event) => {
+    if (event.target instanceof HTMLSelectElement) return;
+    schedule(350);
+  });
+  form.addEventListener('click', (event) => {
+    if (event.target.closest('[data-nfse-period]')) schedule(0);
+  });
+};
+
+document.querySelectorAll('[data-live-filter]').forEach(enhanceLiveFilter);
 
 document.querySelectorAll('[data-nfse-filter-mode]').forEach((fieldSet) => {
   const control = fieldSet.querySelector('[data-nfse-filter-option]');
@@ -725,4 +793,35 @@ document.querySelectorAll('[data-movement-bulk-form]').forEach((form) => {
   };
   targets.forEach((target) => target.addEventListener('change', update));
   update();
+});
+
+// Busy state for single-action forms: stop double submission of paid or long requests.
+document.querySelectorAll('button[data-busy-label]').forEach((button) => {
+  const form = button.closest('form');
+  if (!(button instanceof HTMLButtonElement) || !form) return;
+  form.addEventListener('submit', (event) => {
+    if (event.defaultPrevented) return;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    button.textContent = button.dataset.busyLabel || 'Enviando…';
+  });
+});
+
+// Queued provider work refreshes the page on its own, but never while someone is
+// typing or has an open dialog, so no half-filled form is lost.
+document.querySelectorAll('[data-auto-refresh]').forEach((marker) => {
+  const seconds = Math.max(5, Number(marker.getAttribute('data-auto-refresh')) || 8);
+  const tick = () => {
+    const active = document.activeElement;
+    const typing = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+      || active instanceof HTMLSelectElement;
+    const dialogOpen = [...document.querySelectorAll('[data-modal]')].some((modal) => !modal.hidden);
+    const checked = document.querySelector('input[type="checkbox"]:checked');
+    if (document.hidden || typing || dialogOpen || checked) {
+      window.setTimeout(tick, seconds * 1000);
+      return;
+    }
+    window.location.reload();
+  };
+  window.setTimeout(tick, seconds * 1000);
 });
