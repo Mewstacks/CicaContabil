@@ -66,6 +66,6 @@ body:has(.product-shell) .skip-link:focus-visible { pointer-events:none; }
 .auth-card .button,.button{background:var(--cica-forest);color:var(--cica-ivory);border-color:var(--cica-forest)}
 .auth-card .button:hover,.button:hover{background:var(--cica-forest-hover)}
 .auth-card .button-quiet,.button-quiet{background:transparent;color:#114d44;border-color:var(--cica-line)}
-.text-action{color:#114d44}
+.text-action{color:var(--blue)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--cica-forest:#a8d0c4;--cica-forest-hover:#c2e2d9;--cica-ivory:#10221d;--cica-muted:#c4bdad;--cica-line:#4b554f}}
 :root[data-theme="dark"]{--cica-forest:#a8d0c4;--cica-forest-hover:#c2e2d9;--cica-ivory:#10221d;--cica-muted:#c4bdad;--cica-line:#4b554f}

@@ -1,23 +1,87 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=1">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=2">{% endblock %}
 {% block workspace_content %}
 <nav class="section-links" aria-label="Navegação da atividade"><a href="{% url 'hub:activities' %}">Voltar às atividades</a></nav>
-<section class="workspace-panel activity-detail-head">
-  <div><p class="section-kicker">{{ activity.get_area_display }} · {{ activity.company.name }}</p><h2>{{ activity.title }}</h2><p>{% if activity.competence %}Competência {{ activity.competence|date:'m/Y' }} · {% endif %}{{ activity.code }}</p></div>
-  <div><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% if is_overdue %}<span class="activity-warning">Prazo vencido</span>{% endif %}</div>
+
+<header class="workspace-panel activity-detail-head">
+  <div class="activity-title-copy">
+    <p class="section-kicker">{{ activity.get_area_display }} · {{ activity.company.name }}</p>
+    <dl class="activity-key-facts">
+      {% if activity.competence %}<div><dt>Competência</dt><dd>{{ activity.competence|date:'m/Y' }}</dd></div>{% endif %}
+      <div><dt>Prazo interno</dt><dd>{% if activity.internal_due_on %}{{ activity.internal_due_on|date:'d/m/Y' }}{% else %}Não definido{% endif %}</dd></div>
+      <div><dt>Responsável</dt><dd>{% if activity.assigned_to %}{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}{% else %}Não atribuído{% endif %}</dd></div>
+    </dl>
+  </div>
+  <div class="activity-head-state"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% if is_overdue %}<span class="activity-warning">Prazo vencido</span>{% endif %}</div>
+</header>
+
+<section class="workspace-panel activity-next-step activity-next-step-{{ activity_next_action.state }}" aria-labelledby="activity-next-heading">
+  <div><p class="section-kicker">PRÓXIMO PASSO</p><h2 id="activity-next-heading">{{ activity_next_action.title }}</h2><p>{{ activity_next_action.description }}</p></div>
+  {% if activity_origin %}{% include 'hub/partials/activity_origin.html' %}{% endif %}
 </section>
-<section class="activity-state-grid" aria-label="Situação da atividade"><article><span>Processamento</span><strong>{{ activity.get_processing_status_display }}</strong></article><article><span>Obrigação</span><strong>{{ activity.get_obligation_status_display }}</strong></article><article><span>Pagamento</span><strong>{{ activity.get_payment_status_display }}</strong></article><article><span>Atualização</span><strong>{{ activity.get_freshness_display }}</strong></article></section>
+
+{% include 'hub/partials/payroll_activity_context.html' %}
+{% include 'hub/partials/dte_activity_context.html' %}
+{% if activity.source_reform_alert_id %}<section class="workspace-panel activity-origin"><h2>Publicação do Radar</h2><p>{{ activity.source_reform_alert.title }}</p><p>Confira a fonte e registre sua análise nesta atividade. A classificação da notícia não comprova aplicabilidade à empresa.</p><a class="button button-quiet" href="{% url 'hub:reform-analysis' activity.source_reform_alert_id %}">Consultar publicação vinculada</a></section>{% endif %}
+
 <section class="activity-detail-grid">
-  {% include 'hub/partials/payroll_activity_context.html' %}
-  {% include 'hub/partials/dte_activity_context.html' %}
-  {% if activity.source_reform_alert_id %}<section class="workspace-panel activity-origin"><h2>Publicação do Radar</h2><p>{{ activity.source_reform_alert.title }}</p><p>Confira a fonte e registre sua análise nesta atividade. A classificação da notícia não comprova aplicabilidade à empresa.</p><a class="button button-quiet" href="{% url 'hub:reform-analysis' activity.source_reform_alert_id %}">Consultar publicação vinculada</a></section>{% endif %}
-  {% include 'hub/partials/activity_assignment.html' %}
-  <section class="workspace-panel"><header class="workspace-panel-head"><div><p class="section-kicker">EVIDÊNCIAS</p><h2>O que comprova este trabalho</h2></div></header>
-  {% if activity_evidence %}<ol class="activity-timeline">{% for item in activity_evidence %}<li><strong>{{ item.get_kind_display }}</strong><span>{{ item.summary }}</span>{% if item.reference %}<small>Referência: {{ item.reference }}</small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma evidência registrada</strong><p>Registre a confirmação ou aguarde a fonte integrada antes de concluir.</p></div>{% endif %}
+  <section class="workspace-panel activity-readiness" aria-labelledby="readiness-heading">
+    <header class="workspace-panel-head"><div><p class="section-kicker">ANTES DE CONCLUIR</p><h2 id="readiness-heading">Condições da atividade</h2></div></header>
+    {% if activity_completion_missing %}<ul class="activity-requirements">{% for requirement in activity_completion_missing %}<li><span aria-hidden="true">!</span><div><strong>Pendente</strong><p>{{ requirement }}</p></div></li>{% endfor %}</ul>{% else %}<div class="activity-ready"><span aria-hidden="true">✓</span><div><strong>Condições atendidas</strong><p>Revise as evidências abaixo antes de concluir.</p></div></div>{% endif %}
   </section>
-  <aside class="workspace-panel activity-actions"><header><p class="section-kicker">PRÓXIMA AÇÃO</p><h2>Registrar andamento</h2></header>{% if activity_origin %}{% include 'hub/partials/activity_origin.html' %}{% elif activity.source_nfse_review_id or activity.source_triage_item_id or activity.source_reconciliation_file_id %}<p>O vínculo de origem precisa ser conferido pelo administrador.</p>{% elif can_manage_activity %}<form method="post" action="{% url 'hub:activity-add-evidence' activity.id %}">{% csrf_token %}{% for field in evidence_form %}<p>{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</p>{% endfor %}<button class="button" type="submit">Registrar evidência</button></form>{% if activity.work_status == 'completed' or activity.work_status == 'waived' %}<p class="activity-closed-note"><strong>Atividade encerrada.</strong><span>A conclusão e suas evidências permanecem na trilha. Uma reabertura precisa vir de uma revisão ou da fonte aplicável.</span></p>{% else %}<form method="post" action="{% url 'hub:activity-block' activity.id %}">{% csrf_token %}{% for field in block_form %}<p>{{ field.label_tag }}{{ field }}</p>{% endfor %}<button class="button button-quiet" type="submit">Registrar impedimento</button></form><form method="post" action="{% url 'hub:activity-complete' activity.id %}">{% csrf_token %}<button class="button" type="submit">Concluir atividade</button></form>{% endif %}{% else %}<p>Seu perfil pode consultar esta atividade, mas não alterar sua situação.</p>{% endif %}</aside>
+
+  {% include 'hub/partials/activity_assignment.html' %}
+
+  <section class="workspace-panel activity-evidence-panel" aria-labelledby="evidence-heading">
+    <header class="workspace-panel-head"><div><p class="section-kicker">EVIDÊNCIAS</p><h2 id="evidence-heading">O que comprova este trabalho</h2><p>Registros imutáveis usados para sustentar a conclusão.</p></div><span class="record-count">{{ activity_evidence|length }}</span></header>
+    {% if activity_evidence %}<ol class="activity-timeline">{% for item in activity_evidence %}<li><strong>{{ item.get_kind_display }}</strong><span>{{ item.summary }}</span>{% if item.reference %}<small>Referência: <span translate="no">{{ item.reference }}</span></small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma evidência registrada</strong><p>Registre a confirmação ou aguarde a fonte integrada antes de concluir.</p></div>{% endif %}
+  </section>
+
+  <aside class="workspace-panel activity-actions" id="activity-actions" aria-labelledby="activity-actions-heading">
+    <header><p class="section-kicker">ATUALIZAR ATIVIDADE</p><h2 id="activity-actions-heading">Registre o que aconteceu</h2><p>Escolha somente a ação que representa o trabalho feito agora.</p></header>
+    {% if activity_action_error %}<div class="form-errors" role="alert" tabindex="-1" data-activity-errors><strong>{{ activity_action_error }}</strong></div>{% endif %}
+    {% if office.is_demo %}<p>Atividade fictícia para consulta. Explore estados, evidências e histórico; este cenário não altera dados nem executa operações externas.</p>
+    {% elif can_manage_activity %}
+      <details class="activity-action-disclosure"{% if activity_active_action == 'evidence' %} open{% endif %}>
+        <summary>Registrar evidência</summary>
+        <form method="post" action="{% url 'hub:activity-add-evidence' activity.id %}" novalidate>{% csrf_token %}
+          {{ evidence_form.non_field_errors }}
+          {% for field in evidence_form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}</div>{% endfor %}
+          <button class="button" type="submit" data-busy-label="Registrando…">Registrar evidência</button>
+        </form>
+      </details>
+      {% if activity_is_closed %}<p class="activity-closed-note"><strong>Atividade encerrada.</strong><span>A conclusão e suas evidências permanecem na trilha. Uma reabertura precisa vir de uma revisão ou da fonte aplicável.</span></p>
+      {% else %}
+        <details class="activity-action-disclosure"{% if activity_active_action == 'block' %} open{% endif %}>
+          <summary>Registrar impedimento</summary>
+          <form method="post" action="{% url 'hub:activity-block' activity.id %}" novalidate>{% csrf_token %}
+            {{ block_form.non_field_errors }}
+            {% for field in block_form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+            <button class="button button-quiet" type="submit" data-busy-label="Registrando…">Registrar impedimento</button>
+          </form>
+        </details>
+        {% if not activity_completion_missing %}<button class="button activity-complete-trigger" type="button" data-modal-open="activity-complete-review">{% if activity.work_status == 'blocked' %}Revisar resolução e conclusão{% else %}Revisar conclusão{% endif %}</button>{% endif %}
+      {% endif %}
+    {% else %}<p>Seu perfil pode consultar esta atividade, mas não alterar sua situação.</p>{% endif %}
+  </aside>
 </section>
-<section class="workspace-panel"><header class="workspace-panel-head"><div><p class="section-kicker">ÚLTIMAS OBSERVAÇÕES DA FONTE</p><h2>Leitura e disponibilidade</h2></div></header>{% if activity_source_observations %}<ol class="activity-timeline">{% for item in activity_source_observations %}<li><strong>{% if item.successful %}Leitura confirmada{% else %}Fonte indisponível{% endif %}</strong><span>{{ item.data_source.label }} · {{ item.summary }}</span>{% if item.external_reference %}<small>Referência: {{ item.external_reference }}{% if item.source_version %} · versão {{ item.source_version }}{% endif %}</small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma leitura registrada</strong><p>Sem observações externas nesta trilha. Consulte as evidências e, quando houver, o módulo de origem.</p></div>{% endif %}</section>
-<section class="workspace-panel"><header class="workspace-panel-head"><div><p class="section-kicker">TRILHA OPERACIONAL</p><h2>Histórico</h2></div></header>{% if activity_events %}<ol class="activity-timeline">{% for event in activity_events %}<li><strong>{{ event.event_type }}</strong><span>{{ event.summary }}</span><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Ainda não há eventos</strong><p>As próximas ações serão preservadas nesta trilha.</p></div>{% endif %}</section>
+
+<details class="workspace-panel activity-technical-state">
+  <summary>Ver estados e referência técnica</summary>
+  <dl class="activity-state-grid" aria-label="Situação detalhada da atividade"><div><dt>Processamento</dt><dd>{{ activity.get_processing_status_display }}</dd></div><div><dt>Obrigação</dt><dd>{{ activity.get_obligation_status_display }}</dd></div><div><dt>Pagamento</dt><dd>{{ activity.get_payment_status_display }}</dd></div><div><dt>Atualização</dt><dd>{{ activity.get_freshness_display }}</dd></div></dl>
+  <p><strong>Registro CICA:</strong> <span translate="no">{{ activity.code }}</span></p>
+</details>
+
+<details class="workspace-panel activity-history-group">
+  <summary>Leituras da fonte <span class="record-count">{{ activity_source_observations|length }}</span></summary>
+  {% if activity_source_observations %}<ol class="activity-timeline">{% for item in activity_source_observations %}<li><strong>{% if item.successful %}Leitura confirmada{% else %}Fonte indisponível{% endif %}</strong><span>{{ item.data_source.label }} · {{ item.summary }}</span>{% if item.external_reference %}<small>Referência: <span translate="no">{{ item.external_reference }}</span>{% if item.source_version %} · versão {{ item.source_version }}{% endif %}</small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma leitura registrada</strong><p>Consulte as evidências e, quando houver, o módulo de origem.</p></div>{% endif %}
+</details>
+
+<details class="workspace-panel activity-history-group">
+  <summary>Histórico da atividade <span class="record-count">{{ activity_events|length }}</span></summary>
+  {% if activity_events %}<ol class="activity-timeline">{% for event in activity_events %}<li><strong>{{ event.display_label }}</strong><span>{{ event.summary }}</span>{% if event.actor %}<small>Por {{ event.actor.full_name|default:event.actor.email }}</small>{% endif %}<time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Ainda não há eventos</strong><p>As próximas ações serão preservadas nesta trilha.</p></div>{% endif %}
+</details>
+
+{% if can_manage_activity and not activity_is_closed and not activity_completion_missing %}<div id="activity-complete-review" class="modal-backdrop" data-modal hidden><section class="modal-card activity-complete-modal" role="dialog" aria-modal="true" aria-labelledby="activity-complete-title"><header class="modal-head"><div><p class="section-kicker">{% if activity.work_status == 'blocked' %}REVISAR RESOLUÇÃO{% else %}REVISAR CONCLUSÃO{% endif %}</p><h2 id="activity-complete-title">{% if activity.work_status == 'blocked' %}Resolver o impedimento e concluir?{% else %}Concluir esta atividade?{% endif %}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>{% if activity.work_status == 'blocked' %}Confirme que o impedimento foi resolvido e que as evidências comprovam o trabalho. A conclusão remove o impedimento atual e preserva a trilha operacional.{% else %}Confirme que as evidências registradas comprovam o trabalho. A conclusão fica preservada na trilha operacional.{% endif %}</p><dl class="activity-complete-summary"><div><dt>Empresa</dt><dd>{{ activity.company.name }}</dd></div><div><dt>Atividade</dt><dd>{{ activity.title }}</dd></div><div><dt>Evidências</dt><dd>{{ activity_evidence|length }}</dd></div></dl><form method="post" action="{% url 'hub:activity-complete' activity.id %}" class="modal-actions">{% csrf_token %}<button class="button" type="submit" data-busy-label="Concluindo…">{% if activity.work_status == 'blocked' %}Confirmar resolução e conclusão{% else %}Confirmar conclusão{% endif %}</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}
 {% endblock %}

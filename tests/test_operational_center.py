@@ -99,6 +99,89 @@ class OperationalCenterTests(TestCase):
             self.client.get(reverse("hub:activity-detail", args=[restricted.id])).status_code, 404
         )
 
+    def test_activity_queue_defaults_to_open_work_and_invalid_filters_never_expand(self) -> None:
+        completed = OperationalActivity.objects.create(
+            organization=self.organization,
+            company=self.company,
+            code="completed-work",
+            title="Atividade concluída antiga",
+            area="fiscal",
+            assigned_to=self.operator,
+            work_status=OperationalActivity.WorkStatus.COMPLETED,
+        )
+        self._login(self.operator)
+        url = reverse("hub:activities")
+
+        default = self.client.get(url)
+        all_states = self.client.get(url, {"status": "all"})
+        invalid = self.client.get(url, {"status": "unknown"})
+        invalid_competence = self.client.get(url, {"competence": "2030-13"})
+        conflicting_due = self.client.get(url, {"due": "today", "overdue": "1"})
+
+        self.assertContains(default, self.activity.title)
+        self.assertNotContains(default, completed.title)
+        self.assertContains(all_states, completed.title)
+        self.assertContains(all_states, "Situação: Todas, inclusive encerradas")
+        self.assertEqual(invalid.context["activities_page"].paginator.count, 0)
+        self.assertContains(invalid, "A situação informada não existe")
+        self.assertContains(invalid, "Nenhuma atividade corresponde a este recorte")
+        self.assertEqual(invalid_competence.context["activities_page"].paginator.count, 0)
+        self.assertContains(
+            invalid_competence, "Informe uma competência válida no formato mês/ano."
+        )
+        self.assertEqual(conflicting_due.context["activities_page"].paginator.count, 0)
+        self.assertContains(conflicting_due, "Escolha apenas um recorte de prazo por vez")
+
+    def test_activity_queue_exposes_priority_context_and_one_filter_form(self) -> None:
+        self.activity.blocked_reason = "Aguardando confirmação do cliente."
+        self.activity.work_status = OperationalActivity.WorkStatus.BLOCKED
+        self.activity.save(update_fields=["blocked_reason", "work_status", "updated_at"])
+        self._login(self.owner)
+
+        response = self.client.get(
+            reverse("hub:activities"),
+            {
+                "status": "blocked",
+                "area": "payroll",
+                "company": self.company.id,
+                "assignee": self.operator.id,
+            },
+        )
+
+        self.assertContains(response, "Prioridades das atividades", html=False)
+        self.assertContains(response, "Impedidas")
+        self.assertContains(response, "Filtros ativos")
+        self.assertContains(response, "Área: Folha")
+        self.assertContains(response, f"Empresa: {self.company.name}")
+        self.assertContains(response, "Responsável: operator@example.test")
+        self.assertContains(response, "Aguardando confirmação do cliente.")
+        self.assertContains(response, "1 dia em atraso")
+        self.assertContains(response, 'aria-label="Refinar atividades"')
+        self.assertNotContains(response, 'aria-label="Filtrar responsáveis"')
+        self.assertContains(response, "Conferir fechamento da folha")
+
+    def test_activity_queue_pagination_preserves_the_active_scope(self) -> None:
+        for index in range(31):
+            OperationalActivity.objects.create(
+                organization=self.organization,
+                company=self.company,
+                code=f"payroll-page-{index}",
+                title=f"Conferência de folha {index}",
+                area="payroll",
+                assigned_to=self.operator,
+                internal_due_on=timezone.localdate() + timedelta(days=index + 1),
+            )
+        self._login(self.operator)
+
+        response = self.client.get(
+            reverse("hub:activities"),
+            {"area": "payroll", "status": "pending"},
+        )
+
+        self.assertEqual(response.context["activities_page"].paginator.count, 32)
+        self.assertContains(response, "Página 1 de 2")
+        self.assertContains(response, "?area=payroll&amp;status=pending&amp;page=2")
+
     def test_readonly_profiles_cannot_mutate_activities_through_direct_posts(self) -> None:
         for role in (Membership.Role.AUDITOR, Membership.Role.BILLING):
             with self.subTest(role=role):
@@ -126,6 +209,77 @@ class OperationalCenterTests(TestCase):
                 self.assertEqual(self.activity.work_status, "pending")
                 self.assertEqual(self.activity.events.count(), 0)
                 self.assertEqual(self.activity.evidence_items.count(), 0)
+
+    def test_activity_detail_leads_with_next_step_and_only_offers_valid_completion(self) -> None:
+        self._login(self.operator)
+        url = reverse("hub:activity-detail", args=[self.activity.pk])
+
+        pending = self.client.get(url)
+
+        self.assertContains(pending, "PRÓXIMO PASSO")
+        self.assertContains(pending, "Cumpra a condição para concluir")
+        self.assertContains(pending, "confirmação humana registrada")
+        self.assertNotContains(pending, "Revisar conclusão")
+        self.client.post(
+            reverse("hub:activity-add-evidence", args=[self.activity.pk]),
+            {"reference": "REC-2026-09", "summary": "Fechamento conferido."},
+        )
+
+        ready = self.client.get(url)
+
+        self.assertContains(ready, "Revise e conclua a atividade")
+        self.assertContains(ready, "Revisar conclusão")
+        self.assertContains(ready, "Confirmar conclusão")
+        self.assertContains(ready, "REC-2026-09")
+        self.assertNotContains(ready, "evidence_recorded")
+
+    def test_invalid_activity_forms_preserve_input_and_focusable_error_context(self) -> None:
+        self._login(self.operator)
+
+        evidence = self.client.post(
+            reverse("hub:activity-add-evidence", args=[self.activity.pk]),
+            {"reference": "REC-PRESERVADO", "summary": ""},
+        )
+        blocked = self.client.post(
+            reverse("hub:activity-block", args=[self.activity.pk]),
+            {"reason": ""},
+        )
+
+        self.assertEqual(evidence.status_code, 400)
+        self.assertContains(evidence, "REC-PRESERVADO", status_code=400)
+        self.assertContains(evidence, "data-activity-errors", status_code=400)
+        self.assertContains(evidence, "activity-action-disclosure\" open", status_code=400)
+        self.assertEqual(blocked.status_code, 400)
+        self.assertContains(blocked, "Descreva o impedimento", status_code=400)
+        self.assertContains(blocked, "data-activity-errors", status_code=400)
+
+    def test_blocked_activity_makes_resolution_explicit_before_completion(self) -> None:
+        OperationalEvidence.objects.create(
+            organization=self.organization,
+            activity=self.activity,
+            kind=OperationalActivity.EvidenceKind.HUMAN,
+            summary="Fechamento conferido.",
+            recorded_by=self.operator,
+        )
+        self.activity.work_status = OperationalActivity.WorkStatus.BLOCKED
+        self.activity.blocked_reason = "Aguardando documento do cliente."
+        self.activity.save(update_fields=["work_status", "blocked_reason", "updated_at"])
+        self._login(self.operator)
+
+        detail = self.client.get(reverse("hub:activity-detail", args=[self.activity.pk]))
+
+        self.assertContains(detail, "Resolva o impedimento registrado")
+        self.assertContains(detail, "Revisar resolução e conclusão")
+        self.assertContains(detail, "Resolver o impedimento e concluir?")
+        complete_activity(
+            activity=self.activity,
+            membership=self.operator_membership,
+            actor=self.operator,
+            request=RequestFactory().post("/"),
+        )
+        self.activity.refresh_from_db()
+        self.assertEqual(self.activity.work_status, OperationalActivity.WorkStatus.COMPLETED)
+        self.assertEqual(self.activity.blocked_reason, "")
 
     def test_activity_writes_revalidate_live_membership_and_actor(self) -> None:
         request = RequestFactory().post("/")
@@ -283,6 +437,13 @@ class OperationalCenterTests(TestCase):
         self.assertEqual(len(response.context["closing_rows"]), 3)
         self.assertContains(response, "Aguardando documentos da folha")
         self.assertContains(response, "Impedido")
+        self.assertEqual(response.context["closing_status_counts"]["attention"], 1)
+        self.assertEqual(
+            response.context["closing_attention_rows"][0]["next_step"],
+            "Resolva o impedimento registrado para o fechamento avançar.",
+        )
+        self.assertContains(response, "Comece pelos fechamentos que exigem decisão")
+        self.assertContains(response, "Conferir atividade")
         self.assertNotContains(response, "Fechamento restrito")
         self.assertEqual(len(response.context["dashboard_activities"]), 0)
         self.assertContains(response, "Cobertura a configurar")
@@ -321,6 +482,13 @@ class OperationalCenterTests(TestCase):
         )
         invalid = self.client.get(reverse("hub:dashboard"), {"closing_month": "invalid"})
         self.assertContains(invalid, "Competência inválida")
+        self.assertFalse(invalid.context["closing_filter_valid"])
+        self.assertEqual(invalid.context["closing_rows"], [])
+        self.assertContains(invalid, "O CICA não trocou seu filtro por outro mês")
+        self.assertContains(invalid, 'class="closing-filter-field"')
+        self.assertContains(invalid, "Ver competência")
+        self.assertContains(invalid, 'data-busy-label="Atualizando…"')
+        self.assertContains(invalid, 'aria-describedby="closing-error"')
 
     def test_dashboard_closing_paginates_companies_without_granting_access(self) -> None:
         ClientCompany.objects.bulk_create(
@@ -374,6 +542,32 @@ class OperationalCenterTests(TestCase):
         self.assertContains(management, self.activity.title)
         self.assertContains(management, "Distribuição de atividades")
 
+    def test_dashboard_explains_the_next_action_without_repeating_audit_states(self) -> None:
+        self._login(self.operator)
+
+        response = self.client.get(reverse("hub:dashboard"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Comece por 1 atividade em atraso")
+        self.assertContains(response, "1 dia em atraso")
+        self.assertContains(response, "Prazo interno")
+        self.assertContains(response, "Só o que está atribuído a você")
+        self.assertContains(response, "Conferir fechamento por empresa")
+        self.assertNotContains(response, "Não verificado · Não aplicável · Atualizado")
+        self.assertNotContains(response, 'class="dashboard-task-owner"')
+        self.assertFalse(response.context["closing_expanded"])
+
+        portfolio = self.client.get(reverse("hub:dashboard"), {"view": "portfolio"})
+        self.assertContains(portfolio, 'class="dashboard-task-owner"')
+        filtered = self.client.get(
+            reverse("hub:dashboard"), {"view": "mine", "filter": "overdue"}
+        )
+        self.assertContains(filtered, "Atividades em atraso")
+        self.assertContains(filtered, "Limpar filtro")
+        closing = self.client.get(reverse("hub:dashboard"), {"closing_open": "1"})
+        self.assertTrue(closing.context["closing_expanded"])
+        self.assertContains(closing, "closing-panel closing-disclosure\" open")
+
     def test_agenda_today_filter_and_pagination_keep_the_personal_scope(self) -> None:
         today = timezone.localdate()
         for i in range(31):
@@ -401,9 +595,13 @@ class OperationalCenterTests(TestCase):
         second = self.client.get(
             reverse("hub:dashboard"), {"view": "mine", "filter": "today", "page": 2}
         )
+        last = self.client.get(
+            reverse("hub:dashboard"), {"view": "mine", "filter": "today", "page": 4}
+        )
         self.assertEqual(first.context["agenda_page"].paginator.count, 31)
-        self.assertEqual(len(first.context["dashboard_activities"]), 30)
-        self.assertEqual(len(second.context["dashboard_activities"]), 1)
+        self.assertEqual(len(first.context["dashboard_activities"]), 10)
+        self.assertEqual(len(second.context["dashboard_activities"]), 10)
+        self.assertEqual(len(last.context["dashboard_activities"]), 1)
         self.assertContains(first, "?view=mine&amp;filter=today&amp;page=2")
         self.assertNotContains(first, self.activity.title)
         self.assertNotContains(first, "Tarefa já concluída")
@@ -501,6 +699,7 @@ class OperationalCenterTests(TestCase):
 
         refused = self.client.post(complete_url, follow=True)
         self.assertContains(refused, "exige confirmação humana")
+        self.assertNotContains(refused, "['Esta atividade")
         self.activity.refresh_from_db()
         self.assertEqual(self.activity.work_status, OperationalActivity.WorkStatus.PENDING)
 
@@ -1248,11 +1447,81 @@ class OperationalCenterTests(TestCase):
             },
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "perfil operacional e carteira ativa")
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "perfil operacional e carteira ativa", status_code=400)
         self.assertFalse(
             ActivityTemplateAssignment.objects.filter(
                 template=template, company=self.company
+            ).exists()
+        )
+
+    def test_activity_model_duplicate_assignment_is_recoverable(self) -> None:
+        template = ActivityTemplate.objects.create(
+            organization=self.organization,
+            code="duplicate-assignment",
+            title="Conferir rotina duplicada",
+            area=ActivityTemplate.Area.FISCAL,
+        )
+        ActivityTemplateAssignment.objects.create(
+            organization=self.organization,
+            template=template,
+            company=self.company,
+            assigned_to=self.operator,
+        )
+        self._login(self.owner)
+
+        response = self.client.post(
+            reverse("hub:activity-models"),
+            {
+                "action": "assignment",
+                "assignment-template": str(template.id),
+                "assignment-company": str(self.company.id),
+                "assignment-assigned_to": str(self.operator.id),
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "já está atribuído", status_code=400)
+        self.assertContains(response, 'id="assignment-step" open', status_code=400)
+        self.assertEqual(
+            ActivityTemplateAssignment.objects.filter(
+                template=template, company=self.company
+            ).count(),
+            1,
+        )
+
+    def test_activity_model_overview_and_template_pause(self) -> None:
+        template = ActivityTemplate.objects.create(
+            organization=self.organization,
+            code="pause-template",
+            title="Conferir modelo pausável",
+            area=ActivityTemplate.Area.ACCOUNTING,
+        )
+        ActivityTemplateAssignment.objects.create(
+            organization=self.organization,
+            template=template,
+            company=self.company,
+            assigned_to=self.operator,
+        )
+        self._login(self.owner)
+
+        overview = self.client.get(reverse("hub:activity-models"))
+        self.assertContains(overview, "Rotinas que alimentam a agenda")
+        self.assertContains(overview, "Empresas cobertas")
+        self.assertContains(overview, "Conferir modelo pausável")
+
+        paused = self.client.post(
+            reverse("hub:activity-models"),
+            {"action": "template-toggle", "template_id": str(template.id)},
+            follow=True,
+        )
+        self.assertContains(paused, "pause-template v1 pausado")
+        template.refresh_from_db()
+        self.assertFalse(template.active)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action="hub.activity_template.toggled",
+                organization=self.organization,
             ).exists()
         )
 

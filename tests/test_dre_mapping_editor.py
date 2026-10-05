@@ -73,3 +73,14 @@ class DreMappingEditorTests(TestCase):
         self.assertTrue(current.is_active)
         self.assertEqual(DreMappingSet.objects.filter(organization=self.organization).count(), 1)
         self.assertContains(response, "aparece mais de uma vez")
+
+    def test_editor_labels_every_row_and_uses_only_external_csp_safe_script(self) -> None:
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        for row in range(1, 6):
+            self.assertContains(response, f"Conta da linha {row}")
+            self.assertContains(response, f"Grupo DRE da linha {row}")
+            self.assertContains(response, f"Sinal da linha {row}")
+        self.assertContains(response, '<option value="" selected>Escolha</option>', count=5)
+        self.assertNotContains(response, "window.addEventListener('beforeunload'")

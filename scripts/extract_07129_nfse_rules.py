@@ -54,6 +54,16 @@ SOURCES = (
 )
 
 
+DIRECTIONS = {
+    "nfse_taken": "taken",
+    "nfse_national_taken": "taken",
+    "nfse_issued": "provided",
+    "nfse_national_issued": "provided",
+    "issued_history": "provided",
+    "taken_history": "taken",
+}
+
+
 def _counterparty_ref(value: object) -> str:
     digits = re.sub(r"\D", "", str(value or ""))
     if len(digits) not in {11, 14}:
@@ -116,12 +126,14 @@ try:
             if (company_key, accumulator_code) not in catalog_keys:
                 missing_catalog += 1
                 continue
-            key = (company_key, accumulator_code, service_code, counterparty_ref)
+            direction = DIRECTIONS[source]
+            key = (company_key, accumulator_code, service_code, counterparty_ref, direction)
             observations[key] = {
                 "company_key": company_key,
                 "accumulator_code": accumulator_code,
                 "service_code": service_code,
                 "counterparty_ref": counterparty_ref,
+                "direction": direction,
                 "frequency": 20,
                 "last_used_at": SNAPSHOT_AT,
             }
@@ -169,7 +181,8 @@ try:
             if (company_key, accumulator_code) not in catalog_keys:
                 missing_catalog += 1
                 continue
-            key = (company_key, accumulator_code, service_code, counterparty_ref)
+            direction = DIRECTIONS[source]
+            key = (company_key, accumulator_code, service_code, counterparty_ref, direction)
             existing = observations.get(key)
             normalized_frequency = max(1, int(frequency or 1))
             normalized_last_used = _observed_at(last_used)
@@ -182,14 +195,15 @@ try:
                     "accumulator_code": accumulator_code,
                     "service_code": service_code,
                     "counterparty_ref": counterparty_ref,
+                    "direction": direction,
                     "frequency": normalized_frequency,
                     "last_used_at": normalized_last_used,
                 }
             source_counts[source] += 1
 
     mapping = defaultdict(set)
-    for company, accumulator, service, counterparty in observations:
-        mapping[(company, service, counterparty)].add(accumulator)
+    for company, accumulator, service, counterparty, direction in observations:
+        mapping[(company, service, counterparty, direction)].add(accumulator)
     conflicts = sum(len(accumulators) > 1 for accumulators in mapping.values())
     rows = sorted(
         observations.values(),
@@ -198,6 +212,7 @@ try:
             str(row["accumulator_code"]),
             str(row["service_code"]),
             str(row["counterparty_ref"]),
+            str(row["direction"]),
         ),
     )
     payload = {

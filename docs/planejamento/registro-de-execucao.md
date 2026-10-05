@@ -1644,3 +1644,610 @@ O lote `d4578c99-7258-490e-aa99-c992cf5d9703` foi importado exclusivamente no te
 A cópia temporária revelou as tabelas fiscais `efservicos` e `efentradas`, relacionadas a clientes/fornecedores e ao acumulador da própria empresa. A extração agregou os registros antes da saída e pseudonimizou CNPJ/CPF com o mesmo SHA-256 truncado usado pela coleta NFS-e. Não foram enviados nomes, notas, valores, descrições ou XMLs históricos.
 
 Produção recebeu 49.199 observações únicas de 188 empresas no lote `b4551285-7f15-4c20-9a13-7bbba68ba3ff`, sem atualização, descarte, órfão ou critério vazio. A fonte ganhou a capacidade `accumulator_observations`; 9.379 chaves historicamente ambíguas foram identificadas para revisão, nunca para escolha arbitrária. O agente e a ponte de backup foram preparados para repetir a agregação. Build Release: zero avisos/erros. Testes focados: 9 aprovados. Ruff: aprovado. A coleta ADN segue desabilitada e a proteção local de ambiguidade precisa ser publicada antes de ativá-la.
+
+## 29/09/2026 — V-211: exceção temporária de MFA do administrador
+
+Por instrução explícita do proprietário, somente `suporte@mewstack.com.br` deixou de exigir MFA temporariamente. O vínculo TOTP inválido foi removido, não havia códigos de recuperação e o evento `accounts.mfa.temporarily_disabled` registrou a alteração. Senha, papel `admin`, demais contas e política global permaneceram inalterados.
+
+O Playwright autenticou pelo formulário público e chegou diretamente ao Console em `/platform/`, sem tela de segundo fator. A aba de validação foi fechada. A reativação futura depende de novo pareamento e nova instrução do proprietário.
+
+## 29/09/2026 — V-212: Console do escritório e convites
+
+D-188 simplificou o detalhe do escritório em duas decisões principais e um bloco avançado recolhido. O convite deixou de pressupor proprietário e passou a oferecer proprietário, administrador, gestor, operador, financeiro e auditor. O resumo de erro agora preserva a falha operacional e aponta campos inválidos; a transação continua impedindo convite sem entrega.
+
+Produção foi consultada sem mutação: SMTP e remetente não estão configurados e não existe convite para o endereço observado. Localmente, 29 testes, Ruff, Django check e diff check passaram. Playwright local cobriu desktop, tablet e celular em claro, escuro e sistema, incluindo movimento reduzido, foco, Escape, erro de campo, overflow, nomes acessíveis e console; todas as instâncias foram encerradas. O conector MCP de navegador não disponibilizou browser. Não houve deploy nem envio externo.
+
+## 29/09/2026 — V-213: correção do fluxo de login/MFA do administrador
+
+A dispensa temporária de D-187 passou a valer em todo o Console. O gate duplicado de Configurações foi removido e as rotas diretas de cadastro, verificação e QR agora retornam ao Console ou 404 sem criar TOTP para a conta dispensada. O dispositivo não confirmado associado ao segredo exposto foi eliminado; a conta terminou com zero dispositivos e zero códigos de recuperação.
+
+Foram aprovados 973 testes, 29 subtestes, Ruff, MyPy, Django check e migrations check. Snapshots de PostgreSQL e Valkey precederam a publicação. O backup contínuo da Fly foi revertido após pressão de I/O e a topologia voltou ao custo/tamanho anterior. A release 12 deixou web e worker saudáveis na mesma imagem; health de banco/cache e checks do PostgreSQL passaram. O código publicado confirmou Console e Configurações 200, cadastro MFA redirecionando para `/platform/` e QR 404. O browser Playwright não estava disponível, portanto não há alegação de inspeção visual nova em produção.
+
+## 29/09/2026 — V-214: corretor removido do nome no convite
+
+O campo de nome do modal de convite recebeu `spellcheck=false`, eliminando a marcação vermelha e o indicador do corretor sem alterar foco ou validação. Vinte e nove testes e Ruff passaram; o rolling deploy terminou com web e worker saudáveis. Playwright não estava disponível na sessão.
+
+## 29/09/2026 — V-215: importação simples e em lote de certificados
+
+D-192 substituiu o cadastro manual por uma única superfície de arraste/seleção para `.pfx` e `.p12`. O CNPJ é lido da extensão oficial ICP-Brasil e correlacionado exatamente a uma empresa acessível; o nome comum do certificado fornece o rótulo. O lote aceita senha comum ou convenções explícitas no nome do arquivo por regras locais e limitadas. Não há IA nem transmissão externa. Falha de abertura, duplicidade, ambiguidade, tamanho excessivo ou empresa ausente produz resultado não reconhecido sem persistir o arquivo ou expor nome e senha.
+
+Cinco testes novos e 76 regressões do workspace passaram com Ruff, MyPy, Django check, migrations check e diff check. A execução integral teve 977 aprovados, 2 ignorados e 2 falhas alheias que passaram isoladamente. Playwright cobriu desktop e celular, claro/escuro, movimento reduzido, foco, Escape, lote misto, responsividade e console; abas e servidor local foram encerrados. A pesquisa externa supriu a ausência de resultado pertinente no Watermelon. Não houve deploy, certificado real ou ativação da coleta.
+
+## 29/09/2026 — V-216: fila de certificados e senha por arquivo
+
+D-193 removeu o teto funcional de 50 itens por meio de uma fila sequencial no navegador. Nomes no padrão usado pelo escritório (`Empresa - SENHA.pfx`) e o sufixo numérico separado por espaço são interpretados localmente. Quando a senha não abre o A1, somente o item corrente pausa e a tela oferece digitação, nova tentativa ou pular, preservando o restante do lote. O servidor continua sem devolver ou registrar nome bruto e senha.
+
+A validação visual local percorreu o fluxo completo em celular com dois arquivos, duas pausas e resumo final, sem erro de console. A versão de assets foi incrementada para impedir cache do fluxo antigo. A homologação com A1 real continua condicionada ao certificado autorizado e não foi simulada como concluída.
+
+Snapshots de PostgreSQL e Valkey foram agendados antes do deploy. A release 15 terminou com migration job, canário, web e worker aprovados. O health externo retornou 200 com banco/cache `ok`; o Celery reconectou ao Valkey e ficou `ready`. A regressão focada final somou 114 aprovados e 1 ignorado opcional, com Ruff, MyPy, Django check, migrations check, sintaxe Node e diff check aprovados.
+
+## 29/09/2026 — V-217: central de certificados recuperável
+
+D-195 reorganizou a central para mostrar primeiro as empresas sem A1 e depois todos os certificados cadastrados, com contagens separadas de cobertura, vencimento e pendências. O filtro inicial deixou de esconder certificados válidos. O modal nasce fechado e só abre por ação explícita; fechar, Escape ou “Cancelar fila” interrompem a requisição corrente. Nome e senha continuam somente no navegador. Respostas HTML/500 agora viram uma etapa curta de tentar novamente ou pular, sem erro técnico bruto e sem interromper os próximos arquivos.
+
+O upload de A1 vigente prepara a sincronização da empresa e, quando o gate ADN estiver habilitado, agenda a primeira tarefa após o commit. Certificado vencido não habilita coleta; o dispatcher também exclui vencidos e revogados, mantendo cada empresa isolada. A mensagem de ativação informa que empresas inválidas foram ignoradas e que as válidas continuam normalmente. O gate real de D-189 permanece fechado até o piloto autorizado.
+## 29/09/2026 — V-218: fila oficial sequencial e notas classificadas na lista
+
+D-201 a D-203 foram publicados na release 21. A coleta processa uma empresa por vez, persiste último e maior NSU por página, continua a mesma empresa enquanto houver páginas e só então libera a próxima. A Bianchi passou de 1.327 para 1.746 documentos observados; uma retomada pós-deploy concluiu 50 documentos com NSU 50/50, sem erro ou retry. Health de banco/cache e máquinas web/worker passaram.
+
+A lista principal agora agrupa por empresa, usa apenas Todas/Classificadas/Não classificadas, abre por padrão a competência anterior e permite classificar e baixar o ZIP sem mudar de tela. A antiga área Revisões foi removida da navegação. Noventa e cinco testes focados e as verificações estáticas passaram; Playwright local cobriu desktop e celular e foi encerrado. A inspeção visual adicional em produção ficou indisponível por ausência de browser no MCP. O pacote permanece de conferência, não importação automática no Domínio, até resolver Q-39.
+
+## 29/09/2026 — V-219: acumulador sem botão salvar e lote por filtro
+
+D-204 foi implementada na central de NFS-e. O operador vê o número fiscal da nota, corrige o acumulador por um campo com catálogo e recebe feedback `Salvando…`/`Salvo` sem recarregar. Cada correção acrescenta artefato, histórico e auditoria, e a exportação resolve a ponta da cadeia imutável. A seleção aceita nota, empresa, página ou todos os classificados do filtro e informa a abrangência antes do download.
+
+Ruff, sintaxe Node, Django check e migrations check passaram; a regressão focal fechou em 19 aprovados. Playwright MCP verificou desktop e celular, salvamento real `23` → `24`, seleção global, teclado, foco, movimento reduzido, ausência de overflow e console limpo; a aba e o servidor foram encerrados. A suíte integral teve 991 aprovados e duas falhas em asserções legadas que ainda exigem a tela de revisões retirada por D-202. Não houve deploy nem homologação do importador Domínio; Q-39 continua aberta.
+
+## 30/09/2026 — V-220: Neon em produção, exportação ACU e detalhe de empresa
+
+Os bancos principal e knowledge foram migrados ao Neon somente depois de contagem e hash de conteúdo idênticos. O Fly permaneceu com web, worker e Valkey; a release 27 concluiu e o Postgres Fly antigo foi mantido intacto para rollback. O pacote percorre o XML inteiro por nome local `ACU`, e a prova com XML real confirmou uma tag com o código vigente sem alterar o original. O smoke autenticado da Bianchi confirmou HTTP 200 nas telas centrais e corrigiu o 404 de empresas pausadas. A coleta chegou a 14.452 documentos, com sucesso registrado nas 56 sincronizações e retentativa do 404 legado. Q-39 continua sendo o limite para declarar importação Domínio homologada.
+
+## 30/09/2026 — V-221: PostgreSQL Fly parado
+
+Por D-208, a máquina do banco legado `cica-contabil-db` foi parada depois de reconfirmar os quatro URLs de banco no Neon. O site, o health, web, worker e consultas reais pelos dois aliases permaneceram saudáveis; o acervo continuou crescendo no Neon e chegou a 14.552 NFS-e. A máquina e seu volume foram preservados para rollback e não foram destruídos.
+
+## 30/09/2026 — V-223: reauditoria de facilidade de uso
+
+V-227: links Empresas → NFS-e agora usam ID autorizado, com contexto explícito, persistência entre filtros/atalhos e download limitado à empresa. Três testes e sete subtestes passaram; Playwright desktop/celular percorreu teclado, seleção e saída para carteira. Ruff/MyPy/JS aprovados. Browser e servidor encerrados; sem publicação.
+
+V-226: Empresas passou pela nova revisão com pesquisa prévia. Corrigidos busca de CNPJ sem pontuação, contador filtrado, identificação de pausada e nomes dos filtros de certificados. A validação de cadastro já recusava CNPJ inválido; agora o modal mantém erro visível e foco correto. Vinte e dois testes e dois subtestes passaram, além de Ruff/MyPy/diff check e Playwright desktop/celular. Browser e servidor encerrados; sem publicação.
+
+V-225 acrescentou histórico de downloads com nomes claros, identificação técnica recolhida e caminho direto para novo pacote. A falha de abertura do arquivo passa a ser tratada antes de marcar download. Browser desktop/celular validado e encerrado; checks estáticos passaram. Regressão integral iniciada para a barreira de publicação; produção segue na versão 31.
+
+Resultado final V-225: 1.002 testes e 36 subtestes aprovados, três skips conhecidos; corrigidos o título legado no teste e a emissão fictícia do proprietário demo por sessão. MyPy passou em 221 arquivos após explicitar duas variáveis de texto no validador do runner, cujos seis testes também passaram. Ruff src/runtime/tests aprovado. Publicação continua pendente.
+
+Continuação V-224: validado o lote de 165 notas em duas páginas no tenant sintético comum; corrigidos estado parcial da seleção, rótulo da ação por página e recusa de filtros/seleções inválidos. Regressão final: 23 testes e sete subtestes aprovados, além de Ruff, MyPy e sintaxe JS. Navegador e servidores QA encerrados. Sem deploy.
+
+D-211 e o goal ativo exigem reauditoria inclusive de telas anteriores, com pesquisa prévia por tela. NFS-e recebeu acesso explícito ao lote, instrução contextual, nomenclatura clara, aba ativa única e seleção coerente. Corrigida a pasta mensal do ZIP na virada UTC/local. V-223 registra referências, 29 testes aprovados, verificações estáticas e Playwright desktop/celular com downloads fictícios. Implementação local; publicação e revisão das demais jornadas continuam abertas.
+
+## 30/09/2026 — V-222: Neon suspende sem interromper trabalho
+
+Continuação 01/10/2026, V-231: preparado serviço PostgreSQL com digest validado e suíte integral antes dos builds no CI existente. Sete testes de segurança da configuração passaram; YAML/ordem/porta/ausência de continue-on-error verificados localmente. Nenhuma execução GitHub ou publicação foi acionada; enforcement remoto permanece pendente.
+
+Continuação 01/10/2026, V-230: regressão PostgreSQL local expôs locks inválidos nas projeções de Guias, DCTFWeb e Parcelamentos e falhas do harness (fechamento direto de streaming/data variável). Correções realizadas conforme D-154; repetição integral aprovou 1.012 testes/39 subtestes, com somente um skip opcional de browser. Migração 0067 validada com 1.001 notas históricas e reversão. Sem produção ou fornecedor acionado.
+
+V-230 encerrada: três testes adicionais de projeção com quatro conexões simultâneas passaram. Contêiner exclusivo encerrado/removido automaticamente e ausência confirmada; somente dados sintéticos descartados. Pendências externas e publicação continuam abertas.
+
+Continuação local V-229/D-212: corrigida exposição de metadados de pacotes fora da carteira na lista de downloads. Novo vínculo pacote/notas permite autorização integral no SQL antes de paginar. Migração/backfill local e testes de autorização passaram; Playwright confirmou lista restrita, download e vazio após mudança de carteira em desktop/celular. Publicação e validação PostgreSQL continuam pendentes, com gate de troca dos escritores documentado em VALIDACOES.md.
+
+Regressão V-229 encerrada: 1.009 testes/39 subtestes aprovados, três skips explícitos; Ruff global e MyPy em 221 arquivos passaram. Nenhuma publicação foi realizada.
+
+Continuação local V-228: histórico NFS-e de empresa pausada passou a respeitar o mesmo acesso do cadastro, sem entrar na carteira ativa nem reativar coleta. Mensagem de pausa, retorno ao cadastro, edição oculta e limpeza de filtros com empresa preservada. 61 testes/nove subtestes passaram e o teste específico passou novamente após o ajuste final; Playwright desktop/mobile baixou 83 documentos e recuperou o ZIP pelo histórico. Limites e referências em VALIDACOES.md. QA encerrado; sem publicação.
+
+D-210 separou liveness de readiness no Fly, alinhou em 15 minutos somente as varreduras de recuperação e retirou da agenda integrações desativadas. Enfileiramento normal, coleta NFS-e, leases, checkpoints e retentativas permanecem imediatos. O endpoint Neon mantém 0,25–1 CU e agora suspende após cinco minutos ociosos.
+
+As releases 30 e 31 publicaram a mudança diretamente pelo Fly. Um erro de autenticação do builder e um panic posterior do `flyctl` foram observados na segunda publicação; a imagem já havia sido aplicada, e o worker principal foi iniciado e validado explicitamente. Estado final verificado: web e worker versão 31, liveness e readiness 200, banco/cache `ok`, Celery `pong`, dois aliases PostgreSQL acessíveis e 59 sincronizações NFS-e preservadas. A primeira hora tranquila medida consumiu 387 CU-segundos contra aproximadamente 900 antes da otimização.
+
+## 01/10/2026 — V-232: reauditoria das simulações Integra
+
+Parcelamentos/lote DCTFWeb isolados por sessão também para membro demo autorizado. Corrigido separador de milhar no identificador do formulário, encontrado pelo clique real; teste extrai valor renderizado. 64 testes focados e quatro repetidos após ajuste passaram; Ruff/MyPy aprovados. Desktop/mobile e teclado nos limites de V-232. Navegador encerrado; sem publicação. Consulta individual e descoberta do lote permanecem pendentes.
+
+## 01/10/2026 — V-233: consulta individual encontrável e isolada
+
+Consulta DCTFWeb demo não aciona mais serviço persistente; conclusão fica por sessão e o texto distingue simulação de documento oficial. Atalho por guia torna a consulta acessível na carteira. Cinquenta testes passaram; Ruff/MyPy aprovados. Playwright percorreu o caminho da carteira ao resultado em desktop/mobile e teclado, e a recuperação de competência inválida. Auditoria de guidelines concluída nos templates; referências/limites em V-233. Browser e QA encerrados, sem publicação. Lote e estados reais continuam pendentes.
+
+## 01/10/2026 — V-234: lote descoberto antes da seleção
+
+Ação de revisão de lote visível, instrução página/limite, seleção ausente para consulta somente; centavos sem localização, UUID canonicalizado e competência inválida recusada. Playwright percorreu carteira QA extensa, seleção e prévia bloqueada sem contrato em desktop/mobile. Sobreposição mobile encontrada e corrigida. 110 testes/11 subtestes, Ruff/MyPy/JS aprovados. Browser/QA encerrados; sem publicação nem Serpro. Evidências e limites em V-234.
+
+## 01/10/2026 — V-235: acompanhamento e estados DCTFWeb
+
+Fixture local dos cinco estados criada; atualização de resultado via GET e identificação de registro incerto adicionadas, sem repetição de consulta. Dez combinações estado/largura percorridas, PDF sintético baixado e fila escura conferida. Regressão completa: 1.025 aprovados/43 subtestes, seis skips explícitos; depois 23 DCTFWeb/quatro subtestes passaram com o ajuste final. Ruff/MyPy aprovados; QA/browser encerrados. Limites em V-235; sem publicação nem fornecedor.
+
+## 01/10/2026 — V-245: recuperação do seletor de aparência
+
+Logs de produção confirmaram token CSRF incorreto, não domínio/origem. O seletor passa a
+renovar o token antes do POST sem relaxar a proteção, e rejeições HTML recebem página CICA
+com retorno seguro; APIs continuam JSON. Playwright reproduziu um campo deliberadamente velho,
+confirmou refresh 200 → POST 302 → tema aplicado e inspecionou o fallback 403 responsivo.
+Dezoito testes passaram; JS, Ruff, MyPy e diff check foram aprovados. Release Fly 34 publicada;
+o mesmo cenário passou em `cicacontabil.com.br`, web/worker/check saudáveis e liveness/readiness
+200 com banco/cache `ok`. Pesquisa, auditoria e limites estão em V-245.
+
+## 01/10/2026 — V-244: filtro mensal dos fechamentos
+
+O filtro criticado na Visão geral foi recomposto como campo vertical com contorno completo e
+ação curta: compacto no desktop, largura integral no celular, erro junto ao mês e feedback após
+submit. Playwright validou claro/escuro, 1440 e 375 px, teclado, foco, competência inválida,
+URL/resultado e console sem erros. 38 testes/12 subtestes passaram; o teste específico passou
+novamente após a asserção final. Auditoria e limites em V-244; sem publicação.
+
+## 01/10/2026 — V-243: descoberta e busca na Conciliação
+
+A central passou a apresentar importar → processar → revisar → exportar e mantém a importação
+visível. Quatro seletores de empresa ganharam combobox pesquisável por nome/código, confirmação
+explícita, contagem/limite, teclado e fallback nativo. A auditoria atual manteve o submit
+acionável e focou o arquivo ausente. Playwright percorreu desktop/mobile, claro/escuro,
+movimento reduzido, URL, erros e modo sem JavaScript com 240 empresas; correções de `Esc`,
+seleção implícita e validação foram rechecadas. 51 testes/24 subtestes, JS, Ruff, MyPy e diff
+check aprovados. Browser/QA encerrados; sem upload real, Q-39, carga, publicação ou homologação.
+Fontes e limites em V-243.
+
+## 01/10/2026 — V-242: seleção segura na configuração da Conciliação
+
+Empresa explícita inválida, fora da carteira ou ambígua não cai mais na primeira empresa;
+POST exige empresa no corpo e ações/UUIDs inválidos são recusados antes de qualquer mutação.
+Erros ganharam resumo navegável, associação ao campo, conteúdo preservado e recuperação pelo
+próprio seletor. Playwright validou desktop/mobile, tema escuro, movimento reduzido, teclado,
+foco, erro e fallback sem JavaScript com carteira sintética de 240 empresas; o overflow mobile
+encontrado foi corrigido. 96 testes/96 subtestes e repetição final de quatro testes/24 subtestes
+passaram; Ruff, MyPy e diff check aprovados. Fontes, auditoria e limites em V-242; sem publicação
+ou homologação externa. Regressão SQLite completa: 1.039 testes/139 subtestes aprovados,
+seis skips explícitos, em 108,81 s; provas PostgreSQL não foram repetidas.
+
+## 01/10/2026 — V-241: limite das rotas avançadas da demo
+
+D-211 registrado antes do guard. Doze rotas avançadas de Conciliação demo recusadas antes do acesso operacional; central fictícia preservada, recusa com retorno contextual. 94 testes e 72 subtestes aprovados; Ruff/MyPy/diff check aprovados. Playwright desktop/mobile/landscape validou recusa, teclado, foco, temas e retorno; configuração não-demo continua 200. Console somente com os HTTP 403 esperados. QA/browser encerrados. Regressão integral e limites detalhados em V-241; sem publicação/homologação.
+
+Regressão completa SQLite final: 1.037 testes e 115 subtestes aprovados, seis skips explícitos, 115,01 s. Não substitui prova de concorrência PostgreSQL.
+
+## 01/10/2026 — V-240: comparação demo de Conciliação
+
+Membro demo usa a mesma simulação privada que visitante; auditor bloqueado, upload recusado. Demo mostra diretamente a comparação, sem painéis compartilhados, e busca vazia orienta filtros. 91 testes focados e cinco repetidos após ajuste final aprovados; Ruff/MyPy/diff check aprovados. Navegador desktop/mobile verificou confirmação, cancelamento/foco, evidência, isolamento e preservação da navegação não-demo. QA/browser encerrados. V-240 detalha limites; endpoints avançados permanecem em revisão, sem publicação/homologação.
+
+## 01/10/2026 — V-239: contador DTE por carteira e sessão
+
+Resultado final da repetição SQLite: 1.031 testes e 43 subtestes aprovados, seis skips, 108,98 s; sem falha. PostgreSQL não repetido nesta rodada.
+
+Central Integra alinhada à fila: escopo integral para lote real e progresso privado para qualquer entrada demo. Dados de sessão inválidos não produzem lote parcial. Cobertura de carteira, revogação e sessões ampliada; Playwright verificou contador 0→1→0 e isolamento 1/0 em dois contextos. Primeira regressão completa revelou fixture com total divergente; corrigida sem relaxar bloqueio, repetição registrada em V-239. Ruff/MyPy passaram; QA/browser encerrados. Sem publicação/fornecedor.
+
+## 01/10/2026 — V-238: acesso direto ao preparo e revisão DTE
+
+Preparação deixa de ficar recolhida, ganha atalho principal no topo e revisão tem atalho secundário. Links preservam filtros/seleção e funcionam sem JS; texto demo corrigido, seleção por teclado verificada, busca dependente de JS escondida no fallback. Fluxo local desktop/mobile, erro vazio, foco e modo escuro conferidos. 13 testes DTE aprovados após corrigir asserção ampla; limites do teste de busy state em V-238. Sem publicação/Serpro; browser/QA encerrados.
+
+## 01/10/2026 — V-237: escopo integral da fila DTE
+
+Lista, contador e POST de decisão agora exigem acesso atual a todos os itens da consulta pendente. Complemento registrado em D-212 antes da implementação. 12 testes DTE aprovados, Ruff e MyPy da view aprovados. Playwright desktop/mobile validou filtros, foco e estados vazios/bloqueados; carteira restrita coberta por integração, não por navegador. Sem layout novo, fornecedor ou publicação. Sessão e servidor QA encerrados; próximos itens e limites em V-237/etapa 08.
+
+## 01/10/2026 — V-236: isolamento DTE e confirmação explícita
+
+Membro demo usa sessão como visitante; removida abertura persistente compartilhada, preservados confirmação/permissões e bloqueio de paginação externa. Histórico vazio corrigido e centavos preservados nos formulários. 65 testes focados passaram; Playwright confirmou fluxo local e isolamento entre dois contextos da mesma conta. Ruff/MyPy aprovados. Navegador/QA encerrados; limites em V-236, sem publicação ou consulta fiscal real.
+
+## 01/10/2026 — D-213 / V-246: popular a demo em produção
+
+Confirmada a ausência de atividades no tenant demo publicado. Implementado populador transacional e repetível, com guarda is_demo, seis modelos, duas competências e três personas sem senha utilizável. Corrigida a agenda pessoal de visitantes/administradores demo; detalhes de consulta e recusa de POST preservam registros compartilhados. Full suite final: 1.046 aprovados, cinco skips PostgreSQL e 139 subtestes. Publicada imagem derivada da release 32 com somente seis arquivos; release 33 executou o seed sem falha. Inventário final: 84 atividades, 42 atribuições, 60 evidências, 168 eventos; replay criou zero. Playwright verificou telas reais desktop/mobile, teclado, foco, filtros, detalhe, evidência, vazio/erro e console; capturas inspecionadas. Web/worker/health saudáveis; browser e QA exclusivo encerrados. Nenhuma fonte externa, cobrança, mensagem, senha redefinida ou escrita em tenant operacional. Não conclui homologações pendentes; rotina de atualização mensal é manual pelo comando documentado.
+## 01/10/2026 — D-215 / V-247: página inicial orientada à próxima ação
+
+Visão geral recomposta após pesquisa: resumo contextual, próxima ação, escopos autoexplicativos,
+quatro filtros acionáveis e agenda de dez cartões com prazo relativo/exato e exceções úteis.
+Responsável não se repete na visão pessoal; fechamento fica recolhido com estado preservado na
+URL. Playwright percorreu desktop/mobile, claro/escuro, teclado, foco, filtros, paginação, vazio
+e erro; sem overflow ou console errors. Full suite final: 1.047 testes/139 subtestes, seis skips;
+repetição focada pós-isolamento do CSS: 137/19. Ruff, MyPy, Django e migrações aprovados. Fontes,
+auditoria e limites em V-247; sem mutação de tenant real ou homologação externa.
+
+Publicada release Fly 37 por imagem mínima derivada da release 34, com somente quatro arquivos da
+dashboard. Release command, web, worker e health passaram; readiness informou banco/cache `ok`.
+Entrada demo real confirmou POST 302, `/app/` 200, CSS 200 e a nova hierarquia no HTML. Browser
+indisponível na retomada impediu repetir a inspeção visual no domínio; a inspeção local anterior
+permanece a evidência visual desta entrega.
+
+## 01/10/2026 — D-216 / V-248: NFS-e em lote legível e pacote por empresa
+
+Reauditoria funcional iniciada na produção: a ação em lote já estava encontrável e operacional,
+mas o ZIP omitia o nome da empresa nos diretórios. O gerador demo e o pacote não-demo passaram a
+usar caminho seguro `código - empresa`, também no manifesto/fotografia. A central NFS-e ganhou
+tipografia mobile legível, inputs de 16 px e ações principais de 44 px, sem alterar regra fiscal.
+
+Pesquisa prévia: UI/UX Pro Max; Watermelon sem resultado em duas buscas; padrões públicos de
+Linear, Google Drive, Carbon e MUI; Web Interface Guidelines atuais lidas e arquivos finais
+auditados. Playwright local e publicado cobriu desktop/mobile/paisagem, claro/escuro, teclado,
+foco, filtros, vazio, loading, falha de rede, seleção e downloads emitidas/tomadas. Os ZIPs da
+produção confirmaram pasta e manifesto com nome da empresa; console limpo e sem overflow.
+
+147 testes/82 subtestes focados e regressão integral com 1.048 testes/139 subtestes passaram;
+seis skips explícitos. Ruff, MyPy, Django e migrações passaram. Release Fly 38 publicada por
+overlay de quatro arquivos sobre a release 37; web/worker/health, liveness e readiness saudáveis.
+Q-39 e a homologação Domínio continuam abertos; nenhuma fonte fiscal ou tenant operacional foi
+alterado. Browser Playwright e QA local encerrados.
+
+## 01/10/2026 — D-217 / V-249: coleta NFS-e orientada à ação
+
+Reauditoria da coleta com UI/UX Pro Max, Watermelon (sem correspondência em duas buscas), padrões
+de GitHub Actions, Power Platform e AWS Step Functions e Web Interface Guidelines atuais. A tela
+agora explicita simulação, situação, próximo passo e exceções; configuração fica recolhida. Ações
+demo são privadas à sessão, repetição não despacha task real e empresa sem A1 válido não ativa.
+
+Onze testes focados, Ruff, MyPy, Node, Django e migrações passaram. Playwright local validou
+desktop/mobile, temas, movimento reduzido, teclado, foco, erro/recuperação e overflow. Release 43
+publicada com build completa após rollback imediato da tentativa de manifesto incompleto; health,
+readiness, dashboard, NFS-e, assets e endpoint da fila responderam 200. O browser automatizado não
+estava disponível para repetir a inspeção visual publicada; a produção foi conferida por sessão
+demo HTTP e conteúdo. Q-39, carteira real, carga e piloto continuam pendentes.
+
+## 01/10/2026 — D-219 a D-222 / V-251 e V-252: senha e conferência NFS-e
+
+O mínimo de senha foi alinhado a oito caracteres em cadastro, ativação e redefinição, com prova
+de sete inválida e oito válida. Na NFS-e, a comparação autorizada com o HubCobalchini levou para
+a lista os papéis prestador/tomador, entrada/saída, contraparte, competência, valores e retenções
+explícitas. O download da demo virou uma ação única que separa Emitidas/Tomadas e usa apenas
+`CÓDIGO-` por empresa.
+
+Depois da correção direta do proprietário, o contrato errado `ACU` foi removido do adaptador: a
+cópia derivada agora lê/escreve `infNFSe/valores/acum`, preserva namespace e bloqueia XML sem
+`infNFSe`; o original não muda. A coleta normaliza `acum`, prioriza `dhProc` e só classifica o
+movimento por coincidência inequívoca do CNPJ. O pacote continua privado e não homologado (Q-39).
+
+Playwright local verificou NFS-e em desktop/mobile, escuro, redução de movimento, teclado, foco,
+filtros, retenções, seleção e vazio, sem overflow/console. Regressão integral final: 1.066 testes,
+139 subtestes, seis skips; Ruff, MyPy, Django, migrações e diff passaram. Browser e QA encerrados;
+nenhum deploy, tenant real ou provedor foi alterado.
+
+## 01/10/2026 — D-223 e D-224 / V-253 e V-254: histórico e retenções NFS-e
+
+Acumuladores e Exportações foram reauditorados para descoberta e recuperação: busca no banco,
+filtros, paginação, contexto de origem, escopo, período, responsável, estado e código do pacote.
+Depois, a Central NFS-e recebeu relatórios PDF e XLSX do recorte atual com entrada/saída, detalhes
+da nota e ISS, PIS, COFINS, CSLL, IRRF e INSS separados. O total ignora agregados inconsistentes
+e soma apenas valores retidos explícitos; texto fiscal não pode virar fórmula no Excel.
+
+UI/UX Pro Max, Watermelon (sem correspondência em duas buscas), documentação oficial da NFS-e,
+HubCobalchini autorizado e Web Interface Guidelines atuais foram aplicados. Playwright validou
+desktop/mobile, tema, movimento reduzido, foco, alvos e overflow. PDF foi renderizado página a
+página; XLSX foi reaberto e conferido estruturalmente, pois artifact-tool/LibreOffice não estavam
+disponíveis. Validação focada: 41 testes e sete subtestes; a regressão integral concluiu com 1.068
+testes, 139 subtestes e seis skips, além de Ruff, MyPy, Django e migrações. Nenhuma fonte, tenant
+real, publicação ou cobrança foi acionada; Q-39 e amostra real permanecem.
+
+## 02/10/2026 — D-225 / V-255: histórico NFS-e de empresa pausada
+
+A reauditoria confirmou o acesso histórico explícito para proprietário sem carteira restrita e a
+recusa para operador com carteira definida. A tela ganhou contexto de consulta, manteve downloads e
+relatórios e deixou de oferecer semanticamente classificação bloqueada. Também foi corrigida a
+contagem contraditória de revisão aberta quando a nota já possuía acumulador. UI/UX Pro Max,
+Watermelon, GitHub, Slack, Jira, QuickBooks e as Web Interface Guidelines atuais orientaram a
+decisão. Playwright cobriu desktop/mobile, escuro, movimento reduzido, teclado, vazio, seleção,
+download, overflow e console; browser/QA encerrados. Foram aprovados 27 testes e sete subtestes
+focados e a regressão integral com 1.068 testes, 139 subtestes e seis skips; Ruff, MyPy, Django e
+migrações também passaram. Sem fonte fiscal, tenant real ou deploy.
+
+## 02/10/2026 — D-226 / V-256: recuperação global de erros
+
+Foram registrados handlers CICA para 400, 403, 404 e 500 com status real, resposta neutra para não
+enumerar recursos protegidos, ação de recuperação e JSON preservado em `/api/`. As respostas não
+ficam em cache e bloqueiam sniffing. O 500 não consulta banco para escolher destino e possui um
+fallback final sem template, reversão de URL ou reflexão da exceção.
+
+UI/UX Pro Max, Watermelon (sete blocos encontrados no retry), GitHub Docs, MDN, Slack, Atlassian e
+as Web Interface Guidelines atuais orientaram a composição. Playwright MCP validou desktop/mobile,
+claro/escuro, movimento reduzido, teclado, foco de 3 px, alvos de 49 px, ausência de overflow,
+assets 200 e retorno ao início 200. Somente o status esperado do documento de erro apareceu no
+console; sem falha de JavaScript/asset. Browser, servidor e scripts temporários foram encerrados.
+
+Sete testes focados passaram em 32,01 s. A regressão integral aprovou 1.075 testes e 139 subtestes,
+com seis skips explícitos, em 149,97 s. Ruff, MyPy, Django check e migrações passaram. Nenhum dado
+real, tenant, publicação, serviço externo ou cobrança foi acionado.
+
+## 02/10/2026 — D-227 / V-257: Conciliação por exceção recuperável
+
+A reauditoria não-demo encontrou duas promessas incorretas: falhas de importação podiam ficar atrás
+das métricas sem próximo passo e um layout salvo para arquivo já concluído afirmava processamento
+iniciado. A próxima ação agora prioriza mapeamento, conta, OCR ou falha; cada linha mostra orientação
+segura e ação específica, sem renderizar a exceção bruta. Reaplicação de regras só aparece quando
+existem movimentos e o resultado do salvamento do layout informa se algo realmente entrou na fila.
+
+UI/UX Pro Max, Xero, QuickBooks, BlackLine e SaaSFrame orientaram a sequência e a recuperação;
+Watermelon não encontrou bloco em duas buscas. A inspeção Playwright revelou campos de 40 px, links
+de erro de 32 px e a tabela ilegível em 390 px. O estado final usa alvos de 44 px, cartões rotulados,
+foco de 3 px, largura 356 px, zero overflow, erro focado com escolhas preservadas e nenhum segredo ou
+erro de console. Browser e servidor QA foram encerrados. As Web Interface Guidelines atuais foram
+reaplicadas sem achado material final.
+
+64 testes e 24 subtestes focados passaram em 37,05 s; a regressão integral aprovou 1.077 testes e
+139 subtestes, com seis skips explícitos, em 146,27 s. Ruff, MyPy, Django check, Node, migrações e
+diff-check passaram. Nenhum arquivo bancário, tenant, integração, publicação ou cobrança real foi
+acionado; revisão/exportação completa e destino Domínio real continuam dependentes de Q-39.
+
+## 02/10/2026 — D-228 / V-258: revisão individual e entrega verificável
+
+A revisão individual da Conciliação passou a mostrar um próximo passo derivado do estado, preservar a
+data no campo nativo, focar erros e impedir geração de lançamento antes de os dados estarem completos.
+Ações secundárias foram recolhidas. No histórico de exportações, downloads e confirmações revalidam o
+SHA-256; confirmação exige aceite explícito, hash, permissão e gate Q-39, registra ator/instante, é
+idempotente e não impede baixar o arquivo depois. Conteúdo adulterado não avança o estado.
+
+UI/UX Pro Max, QuickBooks, Xero e Ramp orientaram a separação entre revisão, decisão e sincronização;
+Watermelon não encontrou resultado em duas buscas. A auditoria atual das Web Interface Guidelines
+levou ao bloqueio de envio duplicado. Playwright MCP percorreu desktop e 390 px, tema escuro, movimento
+reduzido, teclado, foco, erro e confirmação sintética; corrigiu data vazia, ação precoce, hash quebrado,
+painel esticado e alvo de 39 px. Estado final sem overflow ou aviso/erro no console. Browser e QA foram
+encerrados ao fim da rodada.
+
+60 testes e 24 subtestes focados passaram em 33,36 s; a regressão integral aprovou 1.080 testes e 145
+subtestes, com seis skips explícitos, em 132,86 s. Ruff, MyPy, Django check, Node, migrações e auditoria
+de interface passaram. Nenhum dado real, integração, publicação ou cobrança foi acionado; Q-39 segue
+bloqueando o destino Domínio real.
+
+## 03/10/2026 — D-229 / V-259: configuração contábil sem falso requisito
+
+A configuração da Conciliação dizia “pronto” com zero contas e apresentava período/automação como
+pré-requisitos. O serviço, porém, exige conta contábil para partidas, usa conta financeira quando um
+extrato precisa identificar a origem e somente bloqueia datas cobertas por período explicitamente
+fechado. A interface agora declara essas diferenças, oferece uma próxima ação e mantém opcionais como
+opcionais.
+
+Os cinco formulários simultâneos viraram painéis sob demanda; só o essencial faltante abre no início.
+Deep-link, aviso de edição não salva, resumo de erro focado, valores preservados, loading e retorno à
+seção foram verificados. As seis listas têm paginação de 25 registros e cartões em 390 px. Período
+exige motivo dentro de confirmação progressiva. Auditor autorizado consulta sem controles e não
+consegue executar POST.
+
+UI/UX Pro Max, QuickBooks, Xero e SAP orientaram preparação, plano de contas e proteção de períodos;
+Watermelon não encontrou resultado em duas buscas. A fonte atual das Web Interface Guidelines foi
+aplicada. Playwright MCP validou desktop/mobile, escuro, movimento reduzido, teclado, foco de 3 px,
+alvos de 44 px, deep-link, erro, prevenção de saída, ausência de overflow e console limpo. Browser e
+servidor QA foram encerrados ao final.
+
+62 testes e 24 subtestes focados passaram em 36,75 s; a regressão integral aprovou 1.082 testes e 145
+subtestes, com seis skips explícitos, em 136,66 s. Ruff, MyPy, Django check, Node e migrações passaram.
+Nenhum dado real, integração, publicação ou cobrança foi acionado; Q-39 permanece aberta.
+
+## 03/10/2026 — D-230 / V-260: auditoria legível e segura da Conciliação
+
+A trilha deixou de usar código técnico e UUID como hierarquia principal. Cada evento agora explica a
+atividade, categoria, responsável, instante, registro afetado e resultado; apenas metadados de uma
+lista segura ganham rótulo de negócio. Código e referências permanecem disponíveis sob detalhe
+técnico, sem JSON bruto, hash de IP, request id, hash de arquivo ou payload financeiro.
+
+Busca, atividade, sucesso/falha e intervalo são combináveis e ficam na URL. Filtro inválido retorna
+zero com próximo passo, datas usam limites indexáveis e a página contém 50 eventos. O resumo distingue
+histórico, resultado atual e falhas. Permissões e escopo de escritório não mudaram.
+
+UI/UX Pro Max e as referências GitHub, Microsoft Purview, Cloudflare, Atlassian e GitLab orientaram
+hierarquia e filtros; Watermelon não encontrou resultado em duas buscas. A fonte atual das Web
+Interface Guidelines foi reaplicada. Playwright MCP validou desktop e 390 px, escuro, movimento
+reduzido, teclado, foco, erro, detalhe, filtros, 44 px, overflow e console; a sobreposição do alerta
+mobile encontrada na primeira rodada foi corrigida. Browser e servidor QA foram encerrados ao final.
+
+63 testes e 24 subtestes focados passaram em 35,11 s; a regressão integral aprovou 1.083 testes e 145
+subtestes, com seis skips explícitos, em 137,47 s. Ruff, MyPy, Django check, migrações e diff-check
+passaram. Nenhum dado real, integração, publicação ou cobrança foi acionado; Q-39 permanece aberta.
+
+## 03/10/2026 — V-261: importação e prévia operacional da folha
+
+Aplicada D-231 no setup: fluxo em três passos, ajuda contextual, pré-validação sem escrita, diagnóstico por linha, confirmação bloqueada com pendências, duplicata concluída direcionada ao histórico e isolamento dos formulários por ação. O histórico foi adaptado para cartão no celular.
+
+Dez testes focados passaram em 24,41 s. A regressão integral aprovou 568 testes em 8,77 s, com um skip explícito, em quatro processos e bancos SQLite isolados. Ruff, MyPy (221 arquivos), Django check, migrações e diff-check passaram. Playwright validou desktop e mobile escuro, movimento reduzido, teclado/foco, erro/vazio, 44 px, overflow e console. Nenhum sistema externo foi acionado; homologação CSV/XLSX real continua aberta.
+
+## 03/10/2026 — D-232 / V-262: conferência da folha por competência
+
+A ficha da empresa passou a exibir pessoas, bruto, descontos, encargos e líquido de cada fonte e a abrir a conferência pelo mês. Os seletores ficam limitados à competência, duas fontes são pré-selecionadas sem execução automática e existe uma única ação por mês comparável. O resultado explica quanto a fonte conferida ficou a mais ou a menos, separa totais ausentes e aponta a atividade como próximo passo sem mudar seu estado.
+
+UI/UX Pro Max orientou período, reflow e recuperação contextual; Watermelon não encontrou composição em duas buscas. Materiais públicos de QuickBooks, Rippling, Gusto e ADP foram usados como referência de relatórios agregados, e as Web Interface Guidelines atuais foram reaplicadas. Playwright validou 1440 × 900 e 390 × 844, claro/escuro, movimento reduzido, descoberta, comparação, erro focado, ajuda associada, 44 px, overflow e console. Foram corrigidos corte horizontal mobile, coluna redundante, ação duplicada e foco tardio. Browser e servidor QA foram encerrados ao final.
+
+Dezesseis testes focados passaram em 54,09 s. A regressão integral aprovou 568 testes em 8,338 s, com um skip explícito, em quatro processos e bancos SQLite isolados. Ruff, MyPy dos módulos alterados, Django check, migrações, sintaxe JavaScript e diff-check passaram. Nenhum dado real, integração, publicação ou cobrança foi acionado; a homologação com duas fontes reais autorizadas permanece aberta.
+
+## 03/10/2026 — D-233 / V-263: Caixa Postal DTE orientada à leitura segura
+
+A Caixa Postal passou a funcionar como uma caixa de trabalho: assunto, empresa, origem, datas e situação formam o contexto; cada mensagem tem uma única ação “Abrir resumo”. O histórico vira cartões no celular. O resumo local continua separado da abertura do teor, que exige confirmação própria por poder registrar ciência no ambiente real. Na demo, abertura e protocolo ficam isolados na sessão e não chamam o Serpro.
+
+UI/UX Pro Max e as referências públicas da Receita Federal, DET, Microsoft 365 Message Center e Outlook orientaram ordem recente, lido/não lido, filtros e separação da ação sensível; Watermelon não encontrou composição em duas buscas. A fonte atual das Web Interface Guidelines foi reaplicada. Playwright MCP validou central e detalhe em 1440 × 900 e 390 × 844, claro/escuro, movimento reduzido, teclado, foco de 3 px, vazio, erro focado, preparo, simulação local, abertura fictícia, alvos de 44 px, ausência de overflow e console limpo.
+
+Treze testes focados passaram em 54,79 s; a regressão integral aprovou 568 testes em 8,394 s, com um skip explícito, em quatro processos e bancos SQLite isolados. Ruff, Django check, sintaxe JavaScript, migrações e diff-check passaram. Nenhum dado real, consulta Serpro, publicação ou cobrança foi acionado; credenciais, contrato e piloto DTE autorizado continuam dependências externas.
+
+## 03/10/2026 — D-234 / V-264: Radar como fila de triagem fiscal
+
+A tabela do Radar escondia as ações em 390 px dentro de 650 px roláveis. Ela foi substituída por uma fila recente em cartões: fonte, tema, data, resumo e limite fiscal ficam juntos; “Analisar impacto” e “Abrir fonte oficial” permanecem visíveis. A saúde das fontes foi compactada e abre na falha. Vazio, filtros e paginação oferecem recuperação e URL canônica.
+
+O detalhe separa leitura de decisão. O filtro local encontrou 1 e 0 resultados dentro de 240 empresas sem remover o `select` nativo. Erro de servidor focou o resumo, loading desabilitou o botão com texto de andamento, retorno preservou filtros e o filtro local não disparou alerta falso de edição. Owner criou/retomou uma atividade; Auditor recebeu “Ver análises”, não formulário, e continuou sem POST.
+
+UI/UX Pro Max, Feedly, PolicyNote, Thomson Reuters Checkpoint Edge, Lexis+ e Google Alerts orientaram fila, filtros e triagem; Watermelon não encontrou composição em duas buscas. As Web Interface Guidelines atuais foram reaplicadas. Playwright MCP validou desktop/mobile, temas, movimento reduzido, teclado/foco, vazio, falha, loading, permissão, 44 px, ausência de overflow e console limpo.
+
+Doze testes focados passaram em 53,55 s. A regressão integral aprovou 568 testes em 8,714 s, com um skip explícito, em quatro processos e bancos SQLite isolados. Ruff, Django check, JavaScript, migrações e diff-check passaram. Nenhuma fonte externa, publicação ou cobrança foi acionada; completude da coleta e aplicabilidade fiscal real permanecem dependências externas.
+
+## 03/10/2026 — D-235 / V-265: fechamento dos relatórios de retenções NFS-e
+
+O relatório foi revalidado contra o HubCobalchini e a documentação atual da NFS-e Nacional. A lista
+expõe total e tributos retidos por nota; PDF e Excel `.xlsx` preservam filtros, movimento e seis
+tributos separados. O detalhamento ganhou alvo de 44 px e texto maior, e o botão identifica `.xlsx`.
+
+Playwright baixou os dois formatos, percorreu desktop/mobile, escuro, movimento reduzido, teclado,
+foco, vazio, overflow e console. As três páginas do PDF foram renderizadas e inspecionadas; a
+estrutura, fórmulas e tipos da planilha foram reabertos. Quarenta e um testes e sete subtestes focados
+passaram em 55,92 s; a regressão integral aprovou 568 testes em 8,762 s, com um skip explícito. Ruff,
+Django check, migrações e diff-check passaram. Browser e servidor QA foram encerrados. Sem publicação
+ou dado real; amostra fiscal autorizada e retorno Domínio Q-39 permanecem dependências externas.
+
+## 03/10/2026 — D-236 / V-266: Guias e DCTFWeb orientadas ao próximo passo
+
+A carteira agora distingue apuração local, documentos DCTFWeb e guia oficial; o próximo passo vem
+antes da carteira extensa e cada estado tem uma ação principal. Consulta individual e lote mostram
+escopo, progresso e custo/bloqueio antes de qualquer autorização. Erros brutos e chaves de serviço
+foram retirados da superfície, mantendo referência recolhida para suporte. Incerto não oferece retry.
+
+UI/UX Pro Max, Manual DCTFWeb 2025, QuickBooks Tax Center e Stripe orientaram hierarquia, período,
+lote e recuperação; Watermelon não encontrou composição em duas buscas. As Web Interface
+Guidelines atuais foram reaplicadas. Playwright validou desktop/mobile/landscape, temas, movimento
+reduzido, lote, filtros/vazio, modal/teclado/foco, falha/incerto, PDF demo, 44 px, overflow e console.
+
+Vinte e seis testes focados passaram; a regressão integral aprovou **569 testes em 8,589 s, com um
+skip explícito**. Ruff,
+MyPy, Django check, migrações e diff-check passaram. Browser/QA encerrados. Sem Serpro, custo,
+publicação ou dado real; contrato/credenciais, D-149/Q-40 e transições reais continuam abertas.
+## 03/10/2026 — V-268: fechamento técnico das retenções NFS-e
+
+Confirmada a entrega de retenções explícitas (ISS, PIS, COFINS, CSLL, IRRF e INSS), movimento de
+entrada/saída e relatórios PDF/XLSX sob os filtros da Central NFS-e. A suíte focada aprovou 111
+testes/7 subtestes e a regressão integral 1.087 testes/145 subtestes, com 6 skips documentados.
+Ruff, MyPy, Django check, migrations e diff check passaram. O MCP visual estava indisponível;
+nenhuma nova validação de navegador foi alegada e as evidências renderizadas de V-265 permanecem.
+Sem deploy, amostra fiscal real ou chamada externa.
+## 03/10/2026 — V-267: Parcelamentos úteis para o contador
+
+A tela passou a seguir empresa → acordo → parcela → DAS, mantendo a carteira como escolha secundária. Consultas, emissões e lotes ganharam revisão de escopo/consumo; falhas e incertezas mostram orientação segura sem mensagem bruta; nova tentativa após estado incerto exige conferência humana no e-CAC. A demo emite PDF privado à sessão, marcado como fictício e sem validade fiscal. Playwright validou desktop, mobile escuro/reduced-motion, landscape, lote, busca vazia, modal, Tab/Escape, retorno de foco, download, overflow e console. Dezenove testes focados e verificações estáticas passaram; a regressão integral final aprovou 1.088 testes e 145 subtestes, com 5 skips PostgreSQL explícitos. Também foram eliminadas duas fontes de instabilidade da suíte: renderização do seletor de tema sem `request` e testes que presumiam resolução/ordenação temporal do Windows. Watermelon não encontrou composição pertinente; Receita, Stripe, QuickBooks e Xero orientaram a hierarquia e os estados. Sem Serpro, custo, dado real ou publicação.
+
+## 03/10/2026 — D-268 / V-269: ficha de atividade orientada à decisão
+
+A ficha agora responde primeiro onde, quando, com quem e qual é o próximo passo. Condições de
+conclusão, responsável e evidências precedem estados técnicos; códigos ficam recolhidos e eventos
+ganham rótulos humanos. Evidência, impedimento e conclusão são intenções separadas. Formulários
+inválidos preservam dados e foco. A revisão de conclusão torna explícita a resolução de impedimento
+quando as demais condições já foram atendidas. Auditor permaneceu estritamente consultivo.
+
+UI/UX Pro Max e referências de Asana, Linear e ClickUp orientaram a hierarquia; Watermelon não
+encontrou analogia em duas buscas. A fonte atual das Web Interface Guidelines foi reaplicada.
+Playwright MCP percorreu desktop, mobile escuro e landscape, movimento reduzido, estados pendente,
+vazio, pronto, impedido e inválido, permissões Owner/Auditor, teclado/modal/foco, histórico, overflow
+e console. Setenta e sete testes e 12 subtestes focados passaram; Ruff, MyPy, Django, migrações,
+JavaScript e diff-check passaram. Sem integração, dado real, custo ou publicação.
+Regressão integral final: 1.090 testes e 145 subtestes aprovados; seis skips explícitos dependem do
+Playwright Python opcional ou de locks reais no PostgreSQL.
+
+## 03/10/2026 — D-271 / V-272: fechamentos por competência como fila contábil
+
+O painel embutido na visão geral passou a informar atenção, comprovação, lacunas e empresas da página
+antes dos detalhes. Exceções aparecem primeiro; cada empresa/área mostra progresso, próximo passo e
+ação para a atividade. Concluídos ficam separados e ausência de requisitos permanece lacuna explícita.
+Competência inválida não volta ao mês corrente: o recorte fica vazio e o erro recebe foco.
+
+UI/UX Pro Max orientou feedback e cartões responsivos; Watermelon não encontrou analogia em duas
+buscas. FloQast, Financial Cents e QuickBooks Books Review orientaram progresso, exceções e revisão por
+período. A fonte atual das Web Interface Guidelines foi reaplicada. Playwright MCP validou desktop e
+mobile escuro/reduced-motion, teclado, foco, detalhe, navegação, erro, overflow e console limpo; as
+capturas finais estão em `artifacts/closing-v272-desktop-final.png` e
+`artifacts/closing-v272-mobile-dark-final.png`. A regressão aprovou 1.095 testes e 145 subtestes, com
+seis skips explícitos; Ruff, MyPy, Django, migrações e diff-check passaram. Browser e servidor foram
+encerrados. Sem integração externa, dado real, custo ou publicação.
+
+## 03/10/2026 — D-269 / V-270: central de atividades como fila de decisão
+
+A central deixou de misturar trabalho atual e encerrado no recorte inicial. Prioridades aparecem
+antes do refinamento; área, situação, fonte, empresa, competência e responsabilidade usam um único
+formulário; filtros ativos são removíveis e a URL não conserva campos vazios. Parâmetro inválido,
+escopo alheio ou prazo conflitante retorna zero registros, mensagem recuperável e foco.
+
+Cada item mostra próximo passo, prazo relativo/exato, responsável e situação. No celular, a tabela
+vira cartão sem esconder coluna; o conflito inicial com a largura mínima compartilhada foi detectado
+visualmente e corrigido. UI/UX Pro Max confirmou reflow; Watermelon não encontrou analogia em duas
+buscas. Linear, ClickUp, Asana e Microsoft Planner orientaram filtros, URL e dimensões de leitura.
+As Web Interface Guidelines atuais foram reaplicadas sem achado material restante.
+
+Playwright validou desktop, mobile escuro e landscape, movimento reduzido, filtros, chips, vazio,
+erro focado, teclado, Owner/Auditor, URL limpa, retorno do navegador, 44 px, overflow e console.
+Foram aprovados 135 testes/19 subtestes focados e 1.093 testes/145 subtestes integrais; seis skips
+explícitos dependem do Playwright Python opcional ou de locks PostgreSQL. Ruff, MyPy, JavaScript,
+Django, migrações e diff-check passaram. Sem dado real, fonte externa, custo ou publicação.
+
+## 03/10/2026 — D-272 / V-273: cadastro de empresas como carteira de ação
+
+A lista deixou de exigir leitura de cinco colunas técnicas para descobrir trabalho. Prioridades da
+carteira aparecem antes da busca; filtros secundários ficam em refinamento e cada empresa mostra o
+próximo passo com destino direto. Empresas pausadas não geram falso alerta. O filtro “sem código”
+foi incluído e parâmetros inválidos agora retornam recorte vazio e erro focado, nunca a carteira
+inteira. Cadastro duplicado preserva os campos e recebe resumo de erro no modal.
+
+UI/UX Pro Max reforçou feedback, reflow e legibilidade. Watermelon não encontrou analogia em duas
+buscas. Foram adaptados padrões de QuickBooks Accountant, TaxDome, Karbon e Financial Cents. As Web
+Interface Guidelines atuais foram reaplicadas e corrigiram foco, alvos, tipografia e links de A1.
+Playwright MCP percorreu desktop, mobile escuro/reduced-motion e landscape, prioridades, busca,
+refinamento, vazio, erro, modal, Escape, 44 px, overflow e console final limpo. Capturas finais:
+`artifacts/companies-v273-desktop-final.png` e
+`artifacts/companies-v273-mobile-dark-final.png`.
+
+Foram aprovados 24 testes e 2 subtestes focados e 1.097 testes/145 subtestes integrais; seis skips
+explícitos dependem do Playwright Python opcional ou de locks PostgreSQL. Ruff, MyPy, Django,
+migrações e diff-check passaram. Browser e servidor foram encerrados. Sem dado real, chamada
+externa, custo ou publicação.
+
+## 05/10/2026 — D-274 / V-274: reclassificação NFS-e pelo backup em produção
+
+Os leiautes Krek confirmaram `infNFSe/valores/acum`. Foi criada rotina de prévia/aplicação com
+fotografia pai/filho, streaming, evidência append-only, origem de resolução `backup`, proteção de
+decisões humanas e auditoria. A ramificação Neon prévia permite restauração até 12/10.
+
+A release Fly 45 aplicou a migração e permaneceu saudável. A prévia percorreu 29.042 notas; a
+aplicação criou 16 artefatos, 39 revisões, atualizou 666 sugestões e resolveu 16 casos. 24.386 notas
+ficaram em revisão por não possuírem correspondência única segura. Reexecução: zero mudanças. Os 16
+XMLs derivados foram analisados com um único `acum` diretamente em `valores` e nenhum `ACU`. A
+memória web foi elevada temporariamente para a operação e devolvida a 512 MB.
+
+Regressão: 1.106 testes, 145 subtestes, seis skips explícitos; Ruff, MyPy, Django, migrações e
+diff-check aprovados. Playwright desktop/mobile e a auditoria atual das Web Interface Guidelines
+aprovaram a ficha tocada; browser e QA foram encerrados. Q-39 permanece aberta.
+## 05/10/2026 — D-275 / V-275: auditoria integral e plano de conclusão
+
+Solicitação: avaliar todo o CICA como produto, pesquisar sistemas similares online e criar plano.
+Entregues diagnóstico funcional, matriz de telas/tarefas, pontos fortes, 14 achados principais,
+referências de mercado, oportunidades fora do escopo atual, linguagem e roteiro de teste com usuários.
+O plano mestre recebeu estado reconciliado das etapas 00–13, 31 pacotes, seis ondas, dependências,
+responsáveis, aceites e próximo prompt. Sem implementação dos pacotes ou publicação.
+
+Pesquisa pública e inspeção de código distinguiram trabalho faltante de homologação e de hipótese.
+Playwright MCP percorreu 54 combinações em ambiente isolado atual, mais cenários sintéticos por
+perfil. Detalhes, capturas, recusas esperadas e limites em V-275. Navegador e servidores abertos
+nesta tarefa encerrados; alterações preexistentes preservadas. Documentação segue como memória
+única, sem novo plano concorrente. Próximo passo recomendado: PC-01/02 e material de Q-39.
+## 05/10/2026 — D-276 / V-276: revisão integral da classificação NFS-e (Bianchi & Rizzotto)
+
+Solicitação: entender por que poucas notas eram classificadas e por que uma recebeu acumulador
+indevido. Auditoria em produção mostrou 29.069 notas, 4.716 classificadas e 24.392 em revisão;
+99,9% das notas foram normalizadas antes da chave de direção e guardavam como contraparte o
+primeiro CNPJ do XML (a própria empresa em serviço prestado). As 49.199 observações do backup
+são só por cliente/fornecedor, sem código de serviço e sem direção. Casos concretos: notas de
+serviço prestado da empresa 57 classificadas como "COMPRA DE MERCADORIA A PRAZO".
+
+Correções: direção e contraparte derivadas do XML imutável (`nfse_match_data`, com raiz do CNPJ
+para filial); histórico do lado oposto não concorre; acumulador fora do catálogo ativo (ou do
+cadastro manual) não é escolhido nem exportado; histórico unânime do fornecedor classifica e
+conflito vai para revisão; código de serviço `cTribNac` comparado ao item LC 116; decisão humana
+grava a chave completa (corrige `MultipleObjectsReturned`); XML exportado preserva bytes,
+prefixos e declaração, inserindo só `infNFSe/valores/acum`; reclassificação pagina por pk
+(PgBouncer sem cursor de servidor) e carrega uma empresa por vez, cabendo em 512 MB sem custo
+adicional; agente e extrator passam a enviar a direção das observações (migração 0069).
+
+Fontes: documentação Domínio "Como configurar importação NFS-e Padrão Nacional" (acumuladores
+separados em Serviços e Entradas, por item de serviço e cliente/fornecedor) —
+https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=10162 ; formato
+`cTribNac` de seis dígitos (item, subitem, desdobro) — https://buscadorncm.com.br/nfse/ctribnac .
+
+Publicado como releases Fly 47 e 48. Prévia em produção: 29.076 notas, 24.566 classificáveis,
+19.909 artefatos novos, 20 trocas (empresa 57), nenhuma decisão humana alterada. Pendência: as
+observações do backup continuam sem direção até nova extração do `.dom` (chave e usuário externo).
+As três notas nº 453 do CICA estavam sem acumulador e trazem município IBGE 4305108; o "4012"
+exibido pelo Domínio não vem do XML do CICA.
+
+Aplicação em produção (run `c0390284`): 29.076 notas lidas, 19.909 artefatos novos, 19.910
+revisões resolvidas pelo backup, 1.556 sugestões atualizadas, 23 revisões novas, nenhuma decisão
+humana alterada. Estado final: 24.610 de 29.079 notas com acumulador e 4.510 revisões abertas
+(antes: 4.716 e 24.392). Validação só leitura em 400 notas sorteadas: zero acumulador fora do
+catálogo ativo, zero incoerência nome × direção, XML derivado com um único `acum` em
+`infNFSe/valores` e idêntico ao original fora dele. Empresa 57 conferida (notas 864, 866, 870,
+874 em "PRESTAÇÃO DE SERVIÇO A PRAZO OFICINA"). Health 200, sem erro nos logs, VMs inalteradas.
+Regressão local: 1.131 testes; duas falhas preexistentes no trabalho não versionado (texto
+"Código de serviço" no detalhe da revisão e download por auditor).
+
+Releases 49–50: `acum` inserido logo após `infNFSe/valores/vLiq`; pacote separado em
+`NFS-e/Emitidas|Tomadas|Tipo-a-confirmar/<código>-/<competência>/` e manifesto com movimento e
+importador Domínio (Serviços/Entradas). Teste externo de importação da nota 453 (ADRIANO →
+GGBPLAST) confirmou leitura sem erro; a nota é saída da empresa 109 (ADRIANO) e o CICA aplica o
+acumulador 1, usado 60 vezes para esse cliente no histórico — o teste a importara como entrada.
+Pacote real gerado em produção dentro de transação desfeita: pasta `Emitidas/109-`, manifesto
+"Serviços", XML idêntico ao original fora do `acum`.
+
+Release 51: filtros e contadores Entradas/Saídas não funcionavam porque liam
+`normalized_data.direction`, ausente em 99,9% das notas (normalização antiga e imutável). Criado
+`NfseDocumentSide` (migração 0070) com lado, contraparte e nome derivados do XML; a captura grava
+o lado e `backfill_nfse_sides` preencheu as 29.088 notas da Bianchi & Rizzotto em produção.
+Filtros, contadores, relatório de retenções e nome da contraparte leem o lado gravado. Resultado
+em produção: 21.139 saídas, 7.450 entradas, 499 a confirmar; nota 453 como saída com tomador
+GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.

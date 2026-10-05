@@ -173,7 +173,12 @@ def test_radar_web_selection_returns_to_activity_and_does_not_collect(client, re
         assert "Falha na coleta" in radar_html
         assert "Coleta concluída" not in radar_html
         assert "Última atualização" in radar_html
-        assert client.get(url).status_code == 200
+        detail = client.get(url)
+        assert detail.status_code == 200
+        assert b"data-company-filter" in detail.content
+        assert b"Criar ou retomar atividade de an" in detail.content
+        assert b"Nenhuma an" in detail.content
+        assert b"n\xc3\xa3o conclua que a norma se aplica" in detail.content
         assert not OperationalActivity.objects.exists()
         invalid = client.post(url, {"company": company.pk, "reason": ""})
         assert invalid.status_code == 400

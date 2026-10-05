@@ -51,7 +51,7 @@
 
 ## Escopo e checklist
 
-- [x] Entregar demonstração de download em lote com ZIP fictício por empresa, `Tomadas/CÓDIGO -/` e `Emitidas/CÓDIGO -/` (D-62).
+- [x] Entregar download em lote com ZIP por empresa no padrão Domínio corrigido: `Tomadas/CÓDIGO-/` e `Emitidas/CÓDIGO-/`, sem espaço ou nome após o hífen (D-220, substitui esse trecho de D-62/D-216).
 - [x] Permitir baixar toda a carteira e validar acumulador/confiança antes do ZIP: classificação acima de 95%; transitória em 0% (D-63).
 - [x] Filtrar carteira por competência de emissão ou intervalo de emissão, mostrando emissão como referência da nota (D-64).
 - [x] Permitir download demonstrativo sem bloqueio: transitória a 0%, decisão manual identificada e IA acima de 95% (D-65).
@@ -116,4 +116,64 @@ registro de execução. Não incluir segredos ou dados de clientes.
 - [x] Abrir tecnicamente o contêiner autorizado 07129, preservar o original e eliminar a extração temporária após o diagnóstico.
 - [x] Ler e importar os acumuladores do escritório 07129 por usuário externo somente leitura criado pelo fluxo suportado do Domínio; V-209 confirma 208 empresas e 15.701 acumuladores em produção, sem erros ou duplicação.
 - [x] Agregar e importar o histórico mínimo para reconhecer acumuladores por empresa, serviço e contraparte; V-210 confirma 49.199 observações únicas, pseudonimização na origem e zero órfãos.
+- [x] Simplificar o cadastro de certificados com seleção/arraste individual ou em lote, correlação exata pelo CNPJ do certificado e resultado não reconhecido sem retenção em caso de falha; V-215 cobre a implementação e a validação local.
+- [x] Preparar automaticamente a sincronização ao importar A1 vigente e isolar certificado vencido por empresa, sem travar as coletas válidas; D-195/V-217.
 - [ ] Homologar os acumuladores e o percurso fiscal com o responsável; V-202 não infere tratamento tributário nem declara o módulo fiscalmente homologado.
+### Evidência V-218 — fila e checkpoint oficiais
+
+Em 29/09/2026, a release 21 colocou em produção a fila global de uma empresa por vez e a persistência de `checkpoint_nsu`/`max_nsu`. A Bianchi alcançou 1.746 NFS-e; a retomada observada terminou em NSU 50/50, sem erro ou retry. Isso comprova coleta e retomada reais, mas não encerra a homologação do importador Domínio pendente em Q-39.
+
+### Evidência V-219 — operação por número, correção e lote
+
+- [x] V-229/D-212: filtrar histórico de pacotes pela autorização integral antes de paginar; testar pacote misto, revogação e reconstrução de vínculos antigos.
+- [ ] Aplicar migração 0067 na publicação coordenada com os escritores de pacotes e verificar o histórico autorizado em PostgreSQL.
+- [x] V-230: verificar migração e reversão do vínculo em PostgreSQL local com 1.001 documentos legados, preservando manifesto/hash/referência do arquivo. Produção continua pendente.
+
+- [x] V-228: alinhar consulta/download de empresa pausada ao cadastro, preservar restrições e impedir reativação implícita; validar desktop/celular, teclado e download com dados sintéticos.
+- [x] Publicar e verificar a experiência de lote existente e a correção de pastas por empresa em produção (V-248, release 38); não equivale a homologação Domínio.
+
+- [x] Mostrar o número fiscal normalizado e manter NSU/hash fora da identificação operacional.
+- [x] Corrigir acumulador na lista com salvamento automático, sem recarregar e sem apagar a decisão anterior.
+- [x] Fazer os próximos pacotes usarem a correção imutável mais recente.
+- [x] Selecionar notas classificadas por nota, empresa, página ou todos os resultados do filtro.
+- [x] Validar o fluxo renderizado em desktop e celular, teclado, foco, movimento reduzido, overflow e console.
+- [ ] Homologar layout e retorno importável no Domínio conforme Q-39; até lá o ZIP é pacote de conferência.
+
+### V-249 — Situação e continuidade da coleta
+
+- [x] Consolidar prontas, em operação e exceções, com próximo passo contextual.
+- [x] Distinguir fila, coleta, pausa, falha e certificado necessário sem estados contraditórios.
+- [x] Isolar ativação/pausa/repetição da demo por sessão e impedir ativação sem A1 válido.
+- [x] Publicar e verificar HTML, assets e endpoint da fila na release 43.
+- [ ] Homologar coleta e retomada com carteira real autorizada, carga e o retorno Domínio Q-39.
+
+### V-252 — Conferência contábil e caminho real do acumulador
+
+- [x] Separar saída/prestado, entrada/tomado e tipo a confirmar sem inferência ambígua.
+- [x] Mostrar contraparte, emissão, competência, serviço, valor e retenções explícitas na lista.
+- [x] Filtrar por movimento e separar o lote demo em Emitidas/Tomadas com pasta `CÓDIGO-`.
+- [x] Ler e escrever somente `infNFSe/valores/acum`; remover o contrato incorreto `ACU` do XML derivado.
+- [x] Validar desktop/mobile, teclado, foco, escuro, movimento reduzido, vazio, lote e console.
+- [ ] Homologar amostra fiscal e o importador/retorno Domínio de Q-39 com o responsável.
+
+### V-253 e V-254 — Histórico útil e relatório de retenções
+
+- [x] Pesquisar acumuladores por empresa, código, descrição e origem, sem carregar o histórico inteiro.
+- [x] Tornar os pacotes recuperáveis por busca, estado, escopo, período, responsável e código de conferência.
+- [x] Gerar PDF e XLSX das notas do filtro atual, com entrada/saída e ISS, PIS, COFINS, CSLL, IRRF e INSS separados.
+- [x] Recalcular o total somente dos valores retidos explícitos e neutralizar fórmulas vindas do XML no Excel.
+- [x] Validar binários, páginas do PDF, fórmulas/estrutura do XLSX e interface desktop/mobile.
+- [x] V-265: revalidar os dois downloads pelo navegador, ampliar o detalhamento de retenções para 44 px/14 px e identificar explicitamente o arquivo `.xlsx`.
+- [ ] Homologar os valores contra amostra fiscal real autorizada e concluir o retorno Domínio de Q-39.
+
+### V-274 — Reclassificação integral pela fotografia do backup
+
+- [x] Confirmar nos conjuntos Krek o contrato `infNFSe/valores/acum` e manter o XML oficial imutável.
+- [x] Aceitar catálogo e observações no mesmo lote ou em lotes pai/filho da mesma fotografia.
+- [x] Reavaliar em produção as 29.042 NFS-e, preservar decisões humanas e registrar evidência
+  append-only somente quando a correspondência for segura.
+- [x] Aplicar 16 novas classificações, criar/atualizar a fila ambígua e comprovar idempotência.
+- [x] Validar os 16 XMLs derivados, auditoria, release, web, worker, banco e cache.
+- [ ] Tratar as 24.386 notas sem correspondência única por regra adicional homologada ou revisão
+  contábil; a rotina não pode inventar acumulador.
+- [ ] Homologar a importação e o retorno no Domínio conforme Q-39.

@@ -177,7 +177,9 @@ def test_draft_token_book_cannot_activate_without_operational_switch() -> None:
     TokenActionWeight.objects.create(module_rate=rate, action_code="dte.list", tokens=8)
     with pytest.raises(BillingError, match="migração operacional"):
         activate_token_book(book=book, accepted_by=owner, effective_from=date(2026, 10, 1))
-    with override_settings(TOKEN_BILLING_ENABLED=True):
+    with override_settings(TOKEN_BILLING_ENABLED=True), patch(
+        "apps.platform.token_billing.timezone.localdate", return_value=date(2026, 9, 1)
+    ):
         activated = activate_token_book(
             book=book, accepted_by=owner, effective_from=date(2026, 10, 1)
         )

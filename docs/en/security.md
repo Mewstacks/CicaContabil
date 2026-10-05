@@ -6,7 +6,7 @@
 
 - HTTPS redirect, secure/HTTP-only/SameSite cookies, HSTS, strict hosts/origins, CSRF, XSS
   escaping, clickjacking protection, MIME sniffing protection, referrer policy, and CSP.
-- Argon2 passwords, 12-character minimum, lockout after repeated failures, generic credential
+- Argon2 passwords, 8-character minimum, lockout after repeated failures, generic credential
   errors, and shared Redis-backed authentication throttles.
 - django-axes normalizes the attacked account and receives the original request. IP throttles
   ignore caller-provided `X-Forwarded-For` and use only the backend-validated address.

@@ -12,7 +12,8 @@ senha informada → Argon2 → comparação com hash salvo
 ```
 
 Se o banco vazar, cada tentativa de adivinhar uma senha continua cara. O projeto exige mínimo de
-12 caracteres, mas MFA e bloqueio de login ainda são necessários para contas importantes.
+8 caracteres, mas recomenda senhas mais longas; MFA e bloqueio de login continuam necessários
+para contas importantes.
 
 ## Criptografia de campo: AES-256-GCM
 

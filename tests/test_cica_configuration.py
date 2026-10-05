@@ -166,14 +166,11 @@ def test_non_developers_cannot_change_configuration(user, role):
     assert list(PlatformConfiguration.objects.values()) == before
 
 
-def test_developer_configures_public_contact_and_mfa_is_required(user):
+def test_exempt_developer_configures_public_contact_without_a_second_mfa_gate(user):
     PlatformAccess.objects.create(user=user, role="developer", mfa_required=False)
     client = Client()
     client.force_login(user)
-    assert client.get("/platform/configuracoes/").status_code == 302
-    session = client.session
-    session[SESSION_KEY] = True
-    session.save()
+    assert client.get("/platform/configuracoes/").status_code == 200
     response = client.post(
         "/platform/configuracoes/",
         {

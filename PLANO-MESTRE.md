@@ -1,5 +1,247 @@
+# CICA — plano de conclusão revisado em 05/10/2026
+
+**Ponto de entrada vigente:** esta revisão organiza a conclusão do sistema a partir da auditoria
+solicitada em D-275. Preserva as etapas 00–13 e decisões anteriores aplicáveis. O conteúdo histórico
+abaixo continua como memória, mas seus estados datados não substituem este resumo reconciliado.
+Esta entrega é planejamento: não implementa as propostas nem autoriza nova publicação ou consumo.
+
+**Diagnóstico e fontes:** [auditoria completa de produto, telas e mercado](docs/planejamento/auditoria-produto-2026-10-05.md).
+**Evidência desta análise:** V-275 em [VALIDACOES.md](VALIDACOES.md).
+**Decisões/regras:** [DECISOES.md](DECISOES.md).
+**Perguntas únicas:** [duvidas-abertas.md](docs/planejamento/duvidas-abertas.md).
+
+## Resultado que se pretende entregar
+
+Um escritório deve conseguir cadastrar sua carteira, preparar as fontes necessárias, distribuir
+o trabalho, receber/coletar dados, conferir exceções, concluir com evidência, entregar o resultado
+e recuperar falhas. Dono, gestor, operador, auditor, financeiro e suporte precisam compreender seu
+próximo passo e seus limites sem depender de intervenção do desenvolvedor.
+
+O CICA já tem boa parte da base e várias jornadas refinadas. O esforço agora se concentra em
+completar encadeamentos, corrigir inconsistências de uso, homologar integrações e operar com prova.
+Não há justificativa para refazer todas as telas nem para trocar a identidade visual do produto.
+
+**Duas liberações distintas, sem reduzir o objetivo final:**
+
+1. **Produto NFS-e completo**, conforme prioridade já decidida em D-189: coleta, classificação,
+   revisão, pacote, importação conferida no Domínio, acesso, suporte e recuperação.
+2. **Suíte CICA completa:** todas as capacidades assumidas nas etapas 00–12 e na evolução D-109,
+   com integrações e percursos reais homologados. IA local definitiva continua na etapa 13 e não
+   bloqueia a venda inicial por API, conforme D-50/51.
+
+Portal do cliente, novos canais, novos ERPs, Open Finance, app móvel, CRM amplo e outras expansões
+não viram exigência retroativa para o produto NFS-e. As oportunidades novas têm prioridade e
+decisão próprias, explicitadas abaixo.
+
+## Definição objetiva de “100% concluído”
+
+Uma capacidade só estará concluída quando todos os itens aplicáveis tiverem evidência:
+
+- [ ] Regra e escopo aprovados, sem conflito D/Q pendente que altere o comportamento.
+- [ ] Implementação cobre o percurso inteiro, incluindo retorno e evidência final.
+- [ ] Usuário autorizado encontra, entende e termina a tarefa; perfil consultivo não altera.
+- [ ] Estados inicial, vazio, carregando, parcial, erro, incerto, indisponível e concluído são honestos.
+- [ ] Testes locais e concorrência pertinente passam na versão exata da entrega.
+- [ ] Desktop, celular, teclado, foco, temas e recuperação foram inspecionados na jornada afetada.
+- [ ] A capacidade foi publicada com manifesto, migrações, rollback e compatibilidade verificados.
+- [ ] Integração e dado real autorizados foram homologados, quando necessários.
+- [ ] Desempenho, retomada, restauração, custo e consumo cumprem seus critérios aplicáveis.
+- [ ] Ajuda, contrato, suporte e oferta correspondem ao comportamento liberado.
+- [ ] O proprietário registrou o aceite; nenhum impedimento crítico foi convertido em “concluído”.
+
+Usar uma matriz por capacidade com colunas **implementado / validado localmente / publicado /
+homologado / liberado**, cada uma com data, release e V correspondente. Não calcular conclusão
+pela quantidade de telas ou testes. Uma etapa bloqueada continua aberta; documentar o bloqueio
+não atende seu aceite.
+
+Critérios já aprovados D-73: 200 itens por fluxo automatizado, precisão mínima de 95% onde
+aplicável, zero duplicidade/associação errada/vazamento, retomada sem perda até 15 minutos,
+restauração de banco e documentos até quatro horas e processamento por empresa até cinco minutos
+salvo dependência externa registrada. Exportação exige importação e conferência no destino.
+Definir RPO e janela de medição sem presumir novos números. Cobertura e precisão são métricas distintas.
+
+## Estado atual das etapas, reconciliado
+
+| Etapa | Situação em 05/10/2026 | Condição restante principal |
+|---|---|---|
+| 00 | Base documental existente; revisão integral de planejamento entregue em V-275 | Manter matriz corrente e corrigir contradições de checklists nas entregas dependentes |
+| 01 | Base local sólida; V-274 registra 1.106 testes/145 subtestes, seis skips | Release atual, CI remoto, carga, concorrência pertinente, recuperação e dependências |
+| 02 | Acesso, equipe, MFA e administração implementados | E-mail/recuperação reais, escala da carteira, clareza de papéis e aceite por perfil |
+| 03 | Agente .NET e Domínio local/backup implementados; leituras reais documentadas | Instalação/upgrade/revogação/rede/pastas e piloto integral |
+| 04 | Estrutura e recusa segura existentes; Siescon sem adaptador homologado | Contrato Q-33, implementação, leitura e importação conferidas |
+| 05 | Copiloto e pipeline de IA presentes | Curadoria utilizável, dados/custos/governança, avaliação real e relatórios publicados |
+| 06 | Componentes da Triagem presentes | Encadear processamento, corrigir revisão, checklist e homologar caixas/destinos |
+| 07 | NFS-e opera em produção; V-274 registra 29.042 notas avaliadas | Indicadores/contexto, qualidade do piloto, Q-39 e operação recuperável |
+| 08 | DTE/DCTFWeb/PARCSN e controles locais implementados | Serviço Serpro real, custo/retorno, D-149/Q-40 e aceite por operação |
+| 09 | Conciliação/Radar implementados em grande parte | Corpus/layouts/OCR, destino ERP, fontes/cobertura e carga |
+| 10 | Contratos/livros/faturas presentes | Modelo D-109, Asaas completo, pagamento→acesso e casos comerciais |
+| 11 | Muitas telas e pontes já revisadas; auditoria abrangente atual entregue | Correções localizadas, calendário/modelos reais e testes com usuários |
+| 12 | Produção Fly+Neon e NFS-e real já iniciados | Homologação por módulo, restore medido, alarmes, suporte, privacidade e liberação |
+| 13 | Pipeline/runtime preparados, sem conclusão de IA definitiva | Equipamento/modelo, treino/avaliação/capacidade e virada aprovados |
+
+V-274 é evidência histórica, não teste repetido nesta análise. Publicação de uma release maior
+não demonstra que todas as modificações locais foram incluídas. A matriz deve conferir artefatos
+por capacidade, principalmente as revisões V-254–273 que registram entregas locais.
+
+## Ordem de execução e entregas verificáveis
+
+Os pacotes PC abaixo desdobram as etapas existentes. São unidades de acompanhamento, não novas
+etapas concorrentes. **Crítico** bloqueia a liberação indicada; **alto** afeta a operação diária;
+**médio** melhora fluidez. Novas capacidades permanecem propostas. Não há estimativa de calendário
+sem dimensionar equipe, acesso e disponibilidade do piloto.
+
+| Pacote | Prioridade / etapas | Entrega concreta | Dependência e responsável | Aceite específico |
+|---|---|---|---|---|
+| PC-01 | Alto · 00/11/12 | Matriz única por capacidade/release; reconciliar D-109, oferta, Q atuais e checklists | Desenvolvimento + proprietário; base V-275 | Nenhum falso “pronto”/“não iniciado”; cada bloqueio tem próximo passo e dono |
+| PC-02 | Alto · 07/11 | Corrigir indicadores NFS-e e links para usar o mesmo recorte de empresa/pesquisa/período da lista | Desenvolvimento; A-14 | Dois meses/empresas, filtros, paginação, relatório e classificação demo concordam; clique preserva contexto |
+| PC-03 | Crítico NFS-e · 07/12 | Homologar pacote/importador/retorno Domínio, incluindo `infNFSe/valores/acum` | Q-39; proprietário + contador piloto + técnico Domínio | Amostra importada e conferida no ERP; protocolo/quantidades/rejeições vinculados ao pacote |
+| PC-04 | Crítico NFS-e · 07/12 | Piloto fiscal independente; medir precisão, cobertura e esforço da revisão | PC-02/03; D-73/D-189; contador + proprietário | 200 itens revisados, integridade e precisão aprovadas; ambiguidades com tratamento e decisão humana preservada |
+| PC-05 | Crítico NFS-e · 07/12 | Provar ciclo A1/coleta/paginação/NSU/pausa/renovação/rede/worker | Ambiente autorizado existente; desenvolvimento + operações | Sem perda/duplicidade/empresa errada; cobertura declarada e retomada D-73 medida |
+| PC-06 | Crítico comercial · 02/12 | E-mail de cadastro/convite/recuperação e recuperação administrativa MFA | Brevo já decidido; Q-29 remanescente; operações | Entrega real autorizada, expiração/reuso/falha, recuperação segura; preservar D-183/192 |
+| PC-07 | Crítico comercial · 10 | Contrato/medidor/fatura/telas conforme capacidade e custos de D-109 | Proprietário define somente valores ausentes; desenvolvimento reconcilia | Snapshot explicável, usuários/raízes/IA/Integra corretos; manual e automático separados |
+| PC-08 | Crítico comercial · 10/12 | Orquestração Asaas e ponte de pagamento para acesso | PC-07, sandbox/acesso seguro; regras D-79 aplicáveis | Emissão única, prorata, carência, reativação, estorno, disputa, eventos repetidos/fora de ordem sem regressão |
+| PC-09 | Crítico operacional · 01/12 | Runbook atual e exercício de restauração/rollback completo | Neon, objetos, chaves e bancos default/knowledge; operações | Restore conferido até 4h, RPO registrado, rollback ensaiado, procedimentos por operador/substituto |
+| PC-10 | Alto · 01/12 | Saúde de fontes/filas/worker/Beat, alarmes e ensaio de volume | Desenvolvimento + operações; orçamento antes de escalar | Backlog e falha detectados, alerta acionável, tempo D-73; testar cold start e consumo sem wake-up artificial |
+| PC-11 | Alto · 02/11 | Onboarding por contratação/papel até primeiro resultado, com predicados verdadeiros | A-05; desenvolvimento + responsável operacional | Vazio/independente/NFS-e/local/Web alcançam resultado sem falso passo concluído ou link proibido |
+| PC-12 | Alto · 11 | Biblioteca real de modelos e cobertura empresa/área/competência | Proprietário/contador define rotina, prazo e prova; código já existe | Toda rotina do piloto tem dono, aplicabilidade e requisito; ausência de configuração nunca parece fechamento |
+| PC-13 | Alto · 11 | Ampliar recorrência: competência×vencimento, calendário, exceção e prazo auditável | Proposta a fechar com rotinas de PC-12; desenvolvimento | Mensal/sob demanda preservados; casos reais fora de 1–28/mesmo mês cobertos; mudança mantém trilha |
+| PC-14 | Alto · 11 | Handoffs, revisão/devolução e ausência do responsável onde necessários | Proposta; gestor define casos e poderes | Trabalho mantém responsável atual, histórico e condições de conclusão; sem ampliação de carteira |
+| PC-15 | Crítico Triagem · 06/05 | Encadear e-mail→scan→extração/classificação→revisão→arquivo→checklist | A-02; Q-12–25/31 remanescentes; desenvolvimento + contador | E-mail chega ao resultado sem manipulação técnica; falhas, ambiguidades e duplicatas recuperáveis |
+| PC-16 | Crítico Triagem · 06/11 | Prévia segura, correção de empresa/tipo/período/nome e destino verificável | A-01; desenvolvimento | Operador confere e corrige antes de aprovar; sem empresa tem saída; quarentena continua protegida |
+| PC-17 | Crítico integração · 03/12 | Piloto de instalação .NET/Domínio/backup/arquivo em máquina limpa | Recursos existentes e escopo de máquina/dados confirmado em Q-28/Q-31; técnico + desenvolvimento | Instala, pareia, lê, atualiza, revoga e retoma; arquivo final e hash conferidos; sem escrita no ERP |
+| PC-18 | Crítico Integra · 08/10/12 | Inventariar operações/transmissões já assumidas na etapa 08, implementar lacunas autorizadas e homologar DTE/DCTFWeb/PARCSN | Contrato/documentação por operação, aprovação ligada ao conteúdo, Serpro/representação/consumo; D-149/Q-40; não ampliar Q-36 | Protocolo/documento/custo coerentes; ciência e transmissão separadas; consulta não prova transmissão; incerto não repete cegamente |
+| PC-19 | Crítico Contábil · 09/12 | Conciliação com corpus/layouts/OCR reais e exportação conferida | Q-39 ou Q-33; contador + desenvolvimento | Importar→mapear→revisar→conciliar→exportar→conferir destino; erro e reversão preservam prova |
+| PC-20 | Alto · 09/11/12 | Folha/DRE/caixa: importação guiada, mapas, fotografia e resultado real | Amostras ERP/arquivos autorizadas; contador | Totais reconciliados; diferença explicável; cenário separado do realizado; fonte/período visíveis |
+| PC-21 | Crítico relatórios · 05/09/12 | Renderer Node em operação, fila/download/retry e histórico recuperável | PC-20 conforme relatório; ambiente/segredo/rotação | PDF/XLSX publicados, íntegros, vinculados à fotografia; revogação e job interrompido seguros |
+| PC-22 | Crítico IA · 05/12 | Corpus/egressão/custo, avaliação independente, fontes e resposta insuficiente | Q-08/09/11/34; proprietário + curador + desenvolvimento | Amostra/qualidade aprovadas; custo/isolamento; sem fonte não inventa; anexo não instrui execução indevida |
+| PC-23 | Crítico aprendizado · 05/11 | Curadoria com correção, fonte, revisão, fila/histórico e entrada visível | A-03; curador definido em Q-34 | Feedback chega a exemplo editável; incompleto não aprova; exemplo/treino/avaliação/publicação separados |
+| PC-24 | Alto · 09/12 | Radar com cobertura declarada, coleta/frescor/alteração de fonte e análise humana | Fonte oficial + contador; sem cálculo novo | Publicações esperadas detectadas; falha não parece ausência de mudança; empresa/motivo vinculados |
+| PC-25 | Crítico Siescon · 04/12 | Contrato, adaptador e capacidades reais de leitura/exportação | Q-33; técnico do fornecedor + desenvolvimento | Empresas/contas/dados conferem; exportação importada; matriz Domínio/Siescon explícita |
+| PC-26 | Alto · 02/11 | Equipe em carteira extensa, papéis explicados, console e erros recuperáveis | A-07/A-09; desenvolvimento | Atribuir/revogar sem seleção ambígua; contexto preservado no erro; busca/paginação e suporte auditado |
+| PC-27 | Alto · 11 | Linguagem, ajuda contextual e descoberta de relatórios/aprendizado | A-08/A-10; produto + desenvolvimento | Ajuda ensina ação real; termos explicados no ponto; tarefa concluída sem orientação externa |
+| PC-28 | Crítico privacidade · 02/12 | Política e execução de retenção/portabilidade/exclusão por artefato | Q-24/29; proprietário + profissional responsável + desenvolvimento | Pedido chega à execução rastreável; objetos/backups/chaves tratados sem apagar obrigação de guarda por inferência |
+| PC-29 | Alto · 11/12 | Rodadas de usabilidade com contadores e regressão por papel/estado | Cenários da auditoria, amostra autorizada | Sucesso/tempo/dúvida/erro registrados; corrigir bloqueios e repetir só percursos afetados |
+| PC-30 | Crítico liberação · 12 | Dossiê por módulo, oferta coerente, manual/suporte e aceite | Todos os pacotes aplicáveis à liberação | Nenhuma promessa sem prova; proprietário assina matriz de capacidades e limitações |
+| PC-31 | Posterior · 13 | Treino/avaliação/capacidade da IA na máquina definitiva | Hardware/modelo/curadoria; D-50/51 | Qualidade e isolamento medidos; migração aprovada com rollback; API só como reserva autorizada |
+
+### Ondas e caminho crítico
+
+**Onda 1 — verdade do produto e correções imediatas:** PC-01/02; especificar PC-11/16/23/26.
+Saída: lista de capacidades confiável e defeitos delimitados. Pesquisa atual A-14 já justifica
+corrigir métricas NFS-e; não esperar outro redesenho para fazê-lo.
+
+**Onda 2 — primeira liberação NFS-e:** PC-03/04/05, com PC-06/09/10 e condições contratuais
+aplicáveis de PC-07/08/28/30. Caminho crítico: contrato de importação Q-39 → pacote de prova →
+importação/retorno no Domínio → amostra independente → aceite. Correções locais e preparação
+operacional podem seguir em paralelo ao recebimento do material.
+
+**Onda 3 — central e experiência diária:** PC-11/12/13/14/26/27/29. Começar pela operação
+independente com provas humanas, depois ligar fontes homologadas. Calendário e handoffs novos
+precisam ser especificados a partir das rotinas reais, não de regras fiscais supostas.
+
+**Onda 4 — completar módulos:** Triagem PC-15/16/17; Contábil PC-19/20/21; Integra PC-18;
+IA PC-22/23; Radar PC-24. Trilhas independentes podem ser paralelas. PC-25 avança quando Q-33
+for atendida, sem bloquear correções de outros módulos.
+
+**Onda 5 — homologação integrada e suíte:** repetir PC-09/10/28/29 nos módulos efetivamente
+incluídos, concluir PC-30 para a suíte. Executar competência representativa de ponta a ponta,
+inclusive novos documentos após conclusão, revogação e fonte indisponível. Não fechar etapas
+com pendências nem substituir amostra real por demonstração.
+
+**Onda 6 — IA definitiva e expansões aprovadas:** PC-31 e oportunidades escolhidas abaixo.
+Não colocar treinamento local como bloqueio da liberação por API já decidida.
+
+## Evoluções propostas, separadas da dívida de conclusão
+
+| Proposta | Valor para o usuário | Prioridade recomendada / decisão necessária |
+|---|---|---|
+| Notificações internas de prazo, atribuição e falha | Perceber trabalho novo sem percorrer módulos | Alta após central estável; definir eventos/preferências/deduplicação; canal externo separado |
+| Documento esperado e pendência com responsável | Saber exatamente o que falta e quem acompanha | Parte do fechamento/Triagem; concluir checklist existente antes de abrir novo canal |
+| Visões salvas e busca global | Reencontrar empresa, tarefa, nota e protocolo | Média; primeiro preservar filtros atuais e isolamento em todos os resultados |
+| Portal de solicitação/entrega do cliente | Reduzir troca dispersa e confirmar recebimento | Validar demanda/canal/identidade/retenção; nova proposta, sem reativar Jornadas automaticamente |
+| Colaboração com comentário/menção | Passar contexto e devolver trabalho | Implementar somente o mínimo comprovado por PC-14/29; comentário não substitui evidência |
+| Indicadores de operação do escritório | Medir atraso, tempo de ciclo e gargalos | Medir processo e qualidade; não transformar tarefas atribuídas em ranking de pessoas |
+
+Decisões de expansão serão registradas em DECISOES.md antes de comportamento dependente. Nenhum
+envio de e-mail/WhatsApp ou ação oficial é autorizado pela existência destas propostas.
+
+## Dependências do responsável: pedir somente o que destrava a próxima entrega
+
+| ID existente | O que ainda é necessário | Recomendação e como fornecer | Trabalho que pode seguir |
+|---|---|---|---|
+| Q-39 / D-274 | Importador/versão e retorno de importação efetiva; o contrato `acum` já tem evidência | Técnico/contador executa amostra descartável em ambiente autorizado e fornece retorno pelo canal seguro | PC-02, preparo do pacote, critérios de conferência e recuperação |
+| Q-33 | Versão/schema/mecanismo Siescon, identificadores e layout suportado | Sessão técnica e amostras autorizadas; nunca credenciais no chat | Outras integrações e recusa segura atual |
+| D-109 / Q-08 / D-149 | Valores ausentes do modelo vigente, limites IA e adicional de reemissão | Apresentar tabela concreta de operação/preço/limite, com custo auditável; registrar escolha antes de cobrar | Orquestração local/sandbox e testes das regras já decididas |
+| Q-40 | Efeito de PDF válido na atividade de emissão | Recomenda-se emissão, conferência e pagamento separados; solicitar resposta antes da transição dependente | Consulta/armazenamento/trilha sem conclusão automática presumida |
+| Q-12–25 / Q-31 | Somente políticas documentais ainda sem definição após D-76/D-109 e amostras/destinos reais | Levar catálogo e cenários concretos para conferência; não repetir perguntas já aprovadas genericamente | Encadeamento local, prévia/editor e diagnóstico com dados sintéticos |
+| Q-09/11/34 | Política de dados externos, governança de chave e curador | Matriz de dados/mascaramento/retenção e papel de aprovação; canal protegido | Curadoria local e avaliação sem egressão |
+| Q-28/29 | Acessos específicos, remetente/entrega, termos/privacidade aplicáveis | Reusar ambientes existentes; pedir apenas acesso/amostra do conector em execução | Templates, runbooks e testes locais |
+| Q-35 | Equipamento/modelo da IA definitiva | Inspecionar equipamento quando disponível; SaaS Fly+Neon não deve ser perguntado de novo | Operação por API e pipeline já aprovado |
+| D-169 + D-03 + Q-33 | Reconciliação de promessa Siescon com ausência de homologação | Homologar ou delimitar disponibilidade na oferta/contrato por decisão explícita | Auditoria de capacidades; não alterar copy comercial por inferência |
+
+Custos incrementais seguem a autorização global vigente: abaixo de US$ 1,00 estão preautorizados
+no escopo; a partir do limite ou sem estimativa razoável, confirmação específica imediatamente
+antes. Pesquisa, documentação e testes locais não precisam dessa confirmação. Autorizações
+anteriores de dados/custo/publicação não são ampliadas pelo novo plano.
+
+## Matriz de validação da conclusão
+
+Cada pacote deve anexar casos de tarefa, estado, permissão, resultado e recuperação. Para UI,
+seguir ui-ux-pro-max, Watermelon, referências reais, Web Interface Guidelines atuais e Playwright
+MCP; fechar todas as sessões abertas. Reaproveitar evidência válida sem presumir que uma alteração
+posterior mantém todos os aceites. Testes de implementação não substituem observação do usuário.
+
+| Dimensão | Cobertura obrigatória na liberação afetada |
+|---|---|
+| Papéis | Dono/admin, gestor, operador, auditor, financeiro, suporte leitura/escrita autorizada |
+| Carteira | Vazia, pequena, extensa, homônimos, matriz/filial, pausada, vínculo revogado e outro escritório |
+| Ciclo | Primeiro uso, operação normal, competência seguinte, reabertura, alteração de fonte e saída do cliente |
+| Falhas | Entrada inválida, lote parcial, rede/worker/agente indisponível, timeout, resultado incerto, duplicata e retry |
+| Interface | Desktop/mobile/paisagem, teclado, foco, zoom, temas, movimento reduzido, loading/erro/vazio e console |
+| Segurança | Autorização revalidada em job/download, arquivo inseguro bloqueado, segredos protegidos, IA isolada |
+| Operação | Banco e objetos restaurados, readiness monitorada, backlog/certificado/fonte alertados, rollback e suporte |
+| Comercial | Contrato/consumo/fatura/acesso coerentes, manual separado, mudanças no ciclo correto e custo transparente |
+
+Proposta de teste de usabilidade: rodada exploratória de 5–8 participantes cobrindo papéis, com
+cenários objetivos e sem instrução de clique. Medir sucesso, tempo, erro e pedido de ajuda.
+Metas iniciais propostas, a calibrar: 90% das tarefas prioritárias sem ajuda, próxima ação em até
+um minuto, zero confusão observada entre download/importação, emissão/pagamento e resumo/ciência.
+Não são resultados já obtidos nem substituem D-73. Roteiro completo na auditoria vinculada.
+
+## Próxima execução preparada
+
+**Recomendação:** executar PC-01/02 primeiro, concluir especificação do ciclo Q-39 em paralelo
+e manter a primeira liberação NFS-e como prioridade. Não iniciar implementação nesta entrega
+de planejamento. O prompt abaixo fica preparado para a próxima autorização:
+
+> Leia a revisão vigente de PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e a auditoria de
+> 05/10/2026. Execute PC-01 e PC-02 nas etapas 00/07/11: reconcilie a matriz de capacidades e
+> corrija o escopo dos indicadores/links NFS-e para concordar com a lista e seus filtros,
+> preservando decisões da sessão demo. Não altere regras fiscais ou comerciais. Teste dois
+> meses, duas empresas, classificação, relatórios, links e paginação; aplique o fluxo UI obrigatório,
+> registre evidências e bloqueios, feche o navegador e preserve as alterações locais existentes.
+> Prepare o material mínimo para Q-39 sem presumir importação homologada ou autorização de deploy.
+
+## Histórico do plano e das entregas anteriores
+
+Os registros a seguir preservam datas, decisões e evidências anteriores. Para prioridade e estado
+atual, usar a revisão acima e as decisões posteriores aplicáveis, não um cabeçalho histórico isolado.
+
 ﻿
 **Atualizacao V-205:** `cicacontabil.com.br` e `www.cicacontabil.com.br` foram registrados como hostnames definitivos em D-179. O A legado da HostGator foi removido; os nameservers autoritativos e os resolvedores 1.1.1.1/8.8.8.8 passaram a retornar somente o Fly. Certificados RSA/ECDSA foram emitidos para os dois hostnames, Django recebeu `ALLOWED_HOSTS` e origens CSRF explicitos, e o health permaneceu passing. O Windows ainda conservava o IP antigo pelo TTL anterior; apos limpar o cache DNS, apex e `www` responderam 200 pelo IP correto, com TLS valido, em todas as tentativas.
+**Atualização V-245:** o 403 técnico ao trocar aparência foi confirmado nos logs como token CSRF antigo após renovação de login, não falha de domínio. O seletor atualiza o token antes do POST sem relaxar cookie `HttpOnly` ou middleware; rejeições residuais recebem recuperação CICA com retorno seguro e APIs preservam JSON. Release Fly 34 publicada e validada no domínio real com token adulterado: refresh 200, POST 302, tema aplicado; fallback 403 responsivo, liveness/readiness 200 e banco/cache `ok`.
+
+**Atualização V-247:** a página inicial foi recomposta como superfície de decisão: contexto e próxima ação no topo, escopos explicados, filtros de prioridade acionáveis, agenda de dez itens com prazo relativo/exato e somente exceções úteis. Responsável deixa de se repetir em Meu trabalho; fechamentos ficam recolhidos e preservam estado na URL. Pesquisa em padrões de Linear, Asana, Karbon e Process Street, auditoria integral das Web Interface Guidelines e Playwright desktop/mobile/escuro cobriram os estados principais. Regressão integral: 1.047 testes e 139 subtestes aprovados, seis skips explícitos. Release Fly 37 publicada por overlay de quatro arquivos; web/worker/health saudáveis e demo real confirmou a nova estrutura. Detalhes e limites em V-247.
+
+**Atualização V-248:** a reauditoria da NFS-e confirmou em produção a descoberta, seleção e os downloads em lote e corrigiu o defeito real do pacote: pastas agora incluem código e nome seguro da empresa, refletidos também no manifesto. A legibilidade mobile foi elevada sem mudar regras fiscais. Playwright local/publicado cobriu seleção, filtros, vazio, loading, erro de rede, temas, responsividade e ZIPs emitidas/tomadas. Regressão integral: 1.048 testes e 139 subtestes aprovados, seis skips. Release Fly 38 publicada por overlay de quatro arquivos; web/worker/health e readiness saudáveis. Q-39 e a homologação Domínio permanecem abertos. Detalhes em V-248.
+
+**Atualização V-254:** a Central NFS-e agora gera PDF e XLSX do recorte filtrado com entrada/saída, dados de conferência e ISS, PIS, COFINS, CSLL, IRRF e INSS separados. O total usa somente retenções explícitas, o Excel neutraliza fórmula injetada e ambos respeitam carteira/permissão com limite de 5.000 notas. PDF, XLSX, filtros e interface desktop/mobile foram validados localmente. A publicação, amostra fiscal real e homologação Domínio Q-39 continuam pendentes.
+
+**Atualização V-265:** a entrega de retenções foi revalidada ponta a ponta contra o HubCobalchini: impostos ficam visíveis por nota, PDF e Excel `.xlsx` usam o filtro atual e os seis tributos permanecem separados. O detalhamento ganhou alvo de 44 px e texto maior. Downloads reais, três páginas do PDF, estrutura/fórmulas da planilha, desktop/mobile, vazio, teclado, tema escuro, movimento reduzido, overflow e console foram conferidos localmente. A suíte integral aprovou 568 testes, com um skip explícito. Restam somente amostra fiscal real autorizada e Q-39; não houve publicação.
+
+**Atualização V-266:** Guias e DCTFWeb foram reorganizadas como uma fila contábil orientada ao próximo passo. Apurações locais levam à consulta individual ou em lote, guias oficiais mostram uma ação principal por estado e documentos exibem progresso por nome, sem chaves de serviço. Erros brutos do Domínio/Serpro ficam nos logs; a interface oferece orientação segura e referência recolhida para suporte. Resultado incerto continua sem repetição. Desktop/mobile, lote, vazio, falha, incerteza, teclado, modal, PDF fictício, tema, overflow e console foram validados localmente; não houve Serpro, custo ou publicação. D-149/Q-40 e homologação real permanecem abertos.
+
+**Atualização V-255:** a empresa pausada preserva o histórico NFS-e para proprietários/administradores sem carteira restrita, mas permanece fora da carteira operacional e sem coleta ou classificação. A tela agora identifica o modo de consulta, mantém downloads/relatórios, remove a falsa promessa “Classificar” e não conta revisão aberta legada como pendência quando a nota já possui acumulador. Perfis com carteira explícita continuam sem acesso; validação local desktop/mobile e permissões concluída, sem publicação ou fonte fiscal.
 
 **Atualizacao V-204:** apos uma captura com `ERR_CONNECTION_RESET`, a producao Fly.io foi revalidada sem mutacao. Web e worker permaneciam iniciados; o health check estava passing; pagina inicial e prontidao responderam 200; banco e cache estavam ok; DNS, TCP/443, TLS e redirecionamento HTTP para HTTPS passaram. Vinte requisicoes consecutivas a pagina inicial retornaram 200 em 62–196 ms, sem reinicio, OOM ou erro da aplicacao nos logs disponiveis. A falha observada foi transitoria e nao foi reproduzida; nenhum restart ou redeploy foi executado. A inspecao visual por navegador ficou indisponivel porque a sessao nao ofereceu browser.
 
@@ -33,6 +275,49 @@
 # CICA â€” plano mestre de conclusÃ£o e preparaÃ§Ã£o para venda
 
 Atualizado em 21/09/2026. Plano aprovado pelo responsÃ¡vel nesta conversa; localizaÃ§Ã£o na raiz conforme D-59.
+
+**Atualização V-256:** o CICA agora tem recuperação global própria para 400, 403, 404 e 500,
+com status HTTP real, próximo passo, resposta neutra que não enumera recursos protegidos e JSON
+preservado em `/api/`. Erros não ficam em cache nem expõem detalhes internos; o 500 possui fallback
+independente de template, banco e reversão de URL. Playwright validou desktop/mobile, temas,
+teclado, foco e retorno ao início; a regressão integral aprovou 1.075 testes e 139 subtestes, com
+seis skips explícitos. Implementação local, sem publicação.
+
+**Atualização V-257:** a Conciliação não-demo agora coloca importações interrompidas antes das
+métricas, explica o próximo passo sem refletir exceções e oferece somente ações aplicáveis ao
+estado. Salvar layout sem execução elegível deixou de prometer processamento iniciado. Mapeamento e
+processamentos ganharam alvos de 44 px e cartões legíveis no celular. Playwright validou falha,
+mapeamento, erro, desktop/mobile, temas, teclado, foco e console; a regressão integral aprovou 1.077
+testes e 139 subtestes, com seis skips. Exportação Domínio continua bloqueada por Q-39.
+
+**Atualização V-258:** a revisão individual da Conciliação agora informa o próximo passo pelo estado,
+preserva a data no campo nativo, foca e vincula erros e só oferece gerar lançamento quando os dados
+estão completos. Exportações prontas podem ser baixadas com integridade revalidada e, após Q-39 ser
+habilitada, confirmadas explicitamente por hash, pessoa e instante; confirmação repetida é idempotente
+e arquivo adulterado é recusado. O histórico ficou legível no celular e protege envios duplicados.
+Playwright validou desktop/mobile, escuro, movimento reduzido, erro, foco, confirmação e console; a
+regressão integral aprovou 1.080 testes e 145 subtestes, com seis skips. Sem deploy; Q-39 continua
+bloqueando geração e confirmação reais no Domínio.
+
+**Atualização V-259:** a configuração da Conciliação deixou de afirmar que uma empresa sem contas
+estava pronta e passou a separar conta contábil essencial, conta financeira para extratos, proteção
+opcional de períodos e automação opcional. Há uma próxima ação única, formulários sob demanda,
+deep-link, proteção contra perda de edição, retorno à seção afetada e seis listas paginadas. Erros
+permanecem abertos e focados; auditor com carteira autorizada consulta sem controles de escrita.
+Playwright validou desktop/mobile, escuro, movimento reduzido, teclado, foco, erro, URL, alvos e
+console. Regressão integral: 1.082 testes e 145 subtestes aprovados, seis skips. Implementação local,
+sem publicação e sem alterar Q-39.
+
+**Atualização V-260:** a auditoria da Conciliação deixou de expor códigos como conteúdo principal e
+passou a apresentar atividade, contexto, responsável, instante, registro afetado e resultado em uma
+linha do tempo investigável. Busca, atividade, resultado e período são combináveis e persistidos na
+URL; filtro inválido não amplia a consulta. Metadados usam lista segura, referências técnicas ficam
+recolhidas e a paginação caiu para 50 eventos. Playwright validou desktop/mobile escuro, movimento
+reduzido, teclado, foco de erro, detalhe, filtros, alvos, overflow e console. Regressão integral:
+1.083 testes e 145 subtestes aprovados, seis skips. Implementação local, sem ampliar permissão,
+retenção, exportação ou Q-39.
+
+**Atualização V-215:** a central de certificados agora aceita arrastar ou selecionar um ou vários arquivos `.pfx`/`.p12`, identifica o CNPJ pela extensão oficial ICP-Brasil do certificado e correlaciona exatamente a empresa acessível. A importação em lote admite senha comum ou convenções explícitas no nome do arquivo, sem IA nem envio externo; falhas e ambiguidades ficam como não reconhecidas e não são persistidas. A entrega foi validada localmente e não ativa coleta ADN nem constitui homologação fiscal.
 
 **SituaÃ§Ã£o em 21/09/2026:** etapas 00, 01, 02 e 03 concluÃ­das no nÃ­vel de implementaÃ§Ã£o e validaÃ§Ã£o local. A etapa 04 estÃ¡ em andamento e bloqueada pelo contrato tÃ©cnico Siescon de Q-33; a base de exportaÃ§Ã£o comum jÃ¡ recusa Siescon atÃ© existir adaptador/layout revisados. V-041 revalidou o checkout, o bloqueio explÃ­cito e a documentaÃ§Ã£o, sem criar conexÃ£o ou arquivo Siescon; tambÃ©m confirmou que `main` e `origin/main` estavam no mesmo commit antes desta entrega. V-042 avanÃ§ou localmente a etapa 05: o manifesto de treino/avaliaÃ§Ã£o agora recusa identificadores pessoais antes de gravar artefato e nÃ£o sobrescreve artefato existente, preservando revisÃ£o humana. V-043 eliminou a dÃ­vida de tipagem encontrada nos mÃ³dulos envolvidos; V-044â€“V-068 reduziram a dÃ­vida global de 535 ocorrÃªncias para **zero nos 190 arquivos verificados por MyPy**, incluindo Triagem, Hub, contrataÃ§Ã£o, PARCSN, transporte local, livros de consumo, coletores, configuraÃ§Ã£o, gateway de IA, relatÃ³rios, sincronizaÃ§Ã£o bancÃ¡ria, seguranÃ§a, acesso DTE, operaÃ§Ãµes, NFS-e e IA, sem mudar regra de negÃ³cio. V-063 reexecutou a regressÃ£o integral local com 762 testes aprovados; V-073 a repetiu com 763 testes aprovados apÃ³s completar a revisÃ£o e a carteira NFS-e; V-074 a atualizou para 764 apÃ³s paginar a carteira de Guias/DCTFWeb; V-075 a atualizou para 765 apÃ³s paginar a carteira de Parcelamentos por lote autorizado; V-076 a atualizou para 766 apÃ³s paginar a fila OFX Ã— DomÃ­nio; V-077 a atualizou para 767 apÃ³s paginar o histÃ³rico operacional de Parcelamentos; V-078 a atualizou para 768 apÃ³s paginar a cobertura de certificados. V-072 comprovou por teste o contrato do runtime OpenAI-compatÃ­vel privado e que uma resposta local impede egressÃ£o, mesmo com fallback configurado; sem opt-in, o fallback permanece negado e auditado. V-073 completou o detalhe de revisÃ£o NFS-e, a demonstraÃ§Ã£o fictÃ­cia e a paginaÃ§Ã£o da carteira sem corte silencioso. V-074 estendeu essa proteÃ§Ã£o Ã  carteira de Guias/DCTFWeb, V-075 Ã  carteira de Parcelamentos, cuja pÃ¡gina de 30 registros coincide com seu limite de consulta em lote, V-076 Ã  fila de ConciliaÃ§Ã£o, V-077 ao histÃ³rico de operaÃ§Ãµes e V-078 Ã  cobertura de empresas sem A1 vÃ¡lido. As etapas 05â€“10 confirmaram controles locais prÃ³prios; na 10, V-040 acrescentou o contrato de requisiÃ§Ã£o do cliente Asaas sem conexÃ£o ou chave. V-069â€“V-071 ampliaram a inspeÃ§Ã£o visual local da etapa 11 para home, cadastro, demonstraÃ§Ã£o isolada, Triagem, revisÃ£o NFS-e, mÃ³dulos operacionais e Copiloto fictÃ­cios, sem homologar jornada real. As homologaÃ§Ãµes de caixas/antimalware/destino, ADN, Serpro, arquivos/ERPs/fontes do Radar e Asaas permanecem pendentes. Por D-87, toda dependÃªncia de site em produÃ§Ã£o fica concentrada na etapa 12; isso inclui SMTP/DNS, pareamento HTTPS/mTLS, rede, atualizaÃ§Ã£o distribuÃ­da, backup DomÃ­nio Web e escrita Windows definitiva. A demonstraÃ§Ã£o NFS-e foi ajustada separadamente e nÃ£o conclui a etapa 07. EvidÃªncias em [VALIDACOES.md](VALIDACOES.md).
 
@@ -93,6 +378,18 @@ Atualizado em 21/09/2026. Plano aprovado pelo responsÃ¡vel nesta conversa; loc
 **AtualizaÃ§Ã£o V-118:** a exportaÃ§Ã£o do Copiloto exige `POST` com CSRF; `GET` nÃ£o gera download, fotografia ou auditoria. A inspeÃ§Ã£o visual dos controles no perfil nÃ£o-demo permanece obrigatÃ³ria antes de liberaÃ§Ã£o.
 
 **AtualizaÃ§Ã£o V-119:** o lockfile do renderizador fixa uuid 11.1.1 compatÃ­vel com ExcelJS 4.4.0; `npm audit --omit=dev` passou sem vulnerabilidades. Para produÃ§Ã£o, restam Celery e rotaÃ§Ã£o/revogaÃ§Ã£o do segredo.
+
+## Reauditoria de facilidade de uso — D-211 / V-223
+
+V-227: atalhos Empresas → NFS-e usam empresa exata e preservam o recorte até o lote, com teste de homônimos e isolamento. Revalidar histórico de empresas pausadas no escopo operacional; publicação continua pendente.
+
+V-226: Empresas reauditada; busca CNPJ tolerante, contagem filtrada, estado pausado e recuperação do modal corrigidos. Vinte e dois testes e dois subtestes aprovados, Playwright desktop/celular e checks estáticos. Publicação ainda pendente.
+
+V-224: fluxo comum NFS-e percorrido com 165 notas sintéticas, seleção por empresa/página/filtro e ZIP iniciado na segunda página. Corrigida recusa de filtros inválidos e seleções parcialmente indisponíveis; publicação, rede interrompida e carteira real continuam pendentes.
+
+V-225: histórico de downloads simplificado e falhas de abertura tratadas antes de registrar solicitação. A regressão ampla também corrigiu emissão fictícia do proprietário demo para progresso por sessão. A barreira de publicação está sendo reexecutada; versão de produção consultada continua 31.
+
+Objetivo ativo reforçado: revisar novamente todas as telas, inclusive as já validadas, pesquisar padrões e ideias de layout antes de cada decisão e priorizar encontrar, entender e concluir tarefas. Primeira correção local: descoberta do download NFS-e em lote, orientação contextual, navegação e seleção coerentes; 29 testes aprovados e Playwright desktop/celular. Publicação e demais jornadas permanecem pendentes.
 
 ## 1. Objetivo e ponto de partida
 
@@ -663,3 +960,64 @@ UI/UX Pro Max orientou hierarquia de onboarding, foco e configuração responsiv
 A validação local em Edge abriu login, cadastro, visão geral e configuração da Fedrizzi em 1440 e 390 px. Em todas as oito combinações: sem overflow horizontal, foco visível de 3 px e console sem erros. A configuração e a área de trabalho usaram o escritório parceiro interno Fedrizzi e não chamaram fonte, IA, Serpro ou cobrança. Capturas: `.playwright-mcp/d172-login-final.png`, `d172-final-signup-desktop.png`, `d172-final-workspace-desktop.png` e `d172-final-setup-mobile.png`. A fonte atual das Web Interface Guidelines foi aplicada: controles nativos, foco, responsividade, texto longo, movimento reduzido e estado de navegação na URL permanecem cobertos. O MCP Playwright não estava exposto; os contextos equivalentes locais foram fechados.
 
 Validação automatizada em andamento nesta entrada: `test_cica_auth_flow.py`, `test_cica_signup_flow.py` e `test_hub_workspace_views_django.py`; `manage.py check --settings=config.settings.local` e `git diff --check` passaram. Limite: a camada compartilhada transforma a aparência de todas as telas que a consomem; refinamentos de estrutura específica continuam necessários se uma tela especializada revelar um problema em uso real.
+**Atualização V-218 (29/09/2026):** release 21 publicou fila NFS-e de uma empresa por vez, checkpoints NSU por página e classificação diretamente na lista agrupada por empresa. A Bianchi chegou a 1.746 documentos; a retomada verificada terminou em NSU 50/50 sem erro/retry. A tela usa competência anterior e apenas Classificadas/Não classificadas. O ZIP continua como conferência até o layout Domínio de Q-39 ser homologado.
+
+**Atualização V-219 (29/09/2026):** a lista NFS-e passou a mostrar o número fiscal, corrigir acumulador com salvamento automático e preservar cada decisão em cadeia imutável. O lote seleciona nota, empresa, página ou todos os classificados do filtro e informa a abrangência antes do download. A validação focal teve 19 testes aprovados e Playwright cobriu desktop/celular, teclado, foco, movimento reduzido, overflow e console. Q-39 permanece aberta: o ZIP é pacote de conferência, não importação Domínio homologada.
+
+**Atualização V-220 (30/09/2026):** produção está na release Fly 27 usando Neon para os bancos principal e knowledge, com Fly responsável por web, worker e Valkey e o banco antigo preservado para rollback. A Bianchi tem 14.452 NFS-e persistidas e as 56 sincronizações já registraram sucesso. A tag `ACU` em qualquer profundidade foi validada com XML real sem alterar o original; o detalhe de empresa pausada também foi corrigido. Q-39 continua bloqueando somente a declaração de importação Domínio homologada.
+
+**Atualização V-221 (30/09/2026):** a máquina do PostgreSQL legado do Fly foi parada. Produção usa somente Neon para os bancos principal e knowledge; health, web, worker e consultas pelos dois aliases permaneceram saudáveis após o desligamento. A máquina e o volume antigos não foram destruídos e continuam como rollback recuperável.
+
+**Atualização V-222 (30/09/2026):** D-210 removeu wake-ups artificiais do Neon sem alterar processamento normal. O Fly usa liveness no balanceador, readiness continua disponível para dependências, recuperações ficam alinhadas a cada 15 minutos e integrações desativadas não recebem agenda. O endpoint Neon suspende após 300 segundos ociosos e preserva autoscaling 0,25–1 CU. A release 31 terminou com web, worker, Celery, banco principal, knowledge e cache saudáveis.
+
+**Atualização V-246 (01/10/2026):** D-213 publicou a release 33 e povoou somente a demo com 84 atividades, seis modelos, três personas, 60 evidências e 168 eventos fictícios. Meu trabalho mostra nove tarefas; Carteira/Gestão mostram 33 abertas. Replay criou zero duplicatas. Regressão local: 1.046 aprovados e 139 subtestes, cinco skips PostgreSQL; Playwright conferiu produção desktop/mobile, teclado, estados e console. Não constitui homologação fiscal nem conclusão das demais pendências. [Detalhes](docs/cica-demo-population-2026-10-01.md).
+
+**Atualização V-249 (01/10/2026):** D-217 simplificou a coleta NFS-e para situação, próximo passo e fila por empresa, com demo declaradamente simulada e ações isoladas por sessão. Empresa sem A1 válido não ativa; configuração virou detalhe secundário. Onze testes focados e verificações estáticas passaram; Playwright local cobriu desktop/mobile e estados. A release 43 foi publicada saudável após rollback seguro de uma tentativa com manifesto incompleto. A sessão demo publicada confirmou dashboard com nove abertas, assets novos e fila 200. Q-39, fonte real, carga e piloto seguem abertos.
+
+**Atualização V-272 (03/10/2026):** D-271 transformou os fechamentos por competência em uma fila de conferência: resumo da página, exceções antes de pendências comuns, próximo passo e ação direta por empresa/área, concluídos separados e lacunas de cobertura sem falso positivo. Competência inválida agora retorna recorte vazio e foco no erro, sem trocar silenciosamente de mês. Playwright MCP validou desktop/mobile, tema escuro, movimento reduzido, teclado, detalhe, navegação, erro, overflow e console; 1.095 testes e 145 subtestes passaram, com seis skips explícitos. Fontes e critérios reais do escritório piloto continuam pendentes.
+
+**Atualização V-261 (03/10/2026):** D-231 transformou a importação manual e a prévia da folha em uma jornada explícita de escolha, envio e confirmação. O lote inteiro é pré-validado sem escrita, linhas problemáticas recebem diagnóstico acionável e não oferecem confirmação, duplicatas concluídas voltam ao histórico e somente o formulário efetivamente enviado é validado. A homologação de layouts reais CSV/XLSX continua sendo dependência externa e não foi presumida.
+
+**Atualização V-262 (03/10/2026):** D-232 transformou a conferência agregada da folha em uma jornada iniciada pela competência. A ficha mostra pessoas, bruto, descontos, encargos e líquido de cada fonte, oferece uma única ação por mês comparável, limita os seletores à competência aberta e expressa cada divergência como valor a mais ou a menos. A comparação permanece somente leitura, sem cálculo, dados de trabalhador ou conclusão automática da atividade. Layouts reais e critérios operacionais do escritório piloto continuam dependendo de homologação externa.
+
+**Atualização V-263 (03/10/2026):** D-233 reaudita a Caixa Postal DTE como uma caixa de trabalho contábil: assunto sem ação duplicada, um único “Abrir resumo”, filtros e ações legíveis, histórico em cartões no celular e separação explícita entre resumo local e abertura que pode produzir ciência. A demo continua isolada por sessão e não consulta o Serpro. Credenciais, contrato e fluxo DTE real autorizado permanecem dependências externas antes de qualquer homologação.
+
+**Atualização V-264 (03/10/2026):** D-234 transforma o Radar de uma tabela horizontal em uma fila de triagem. Fonte, tema, data, resumo e limite fiscal ficam juntos; “Analisar impacto” conduz à escolha humana de empresa e motivo, enquanto perfis consultivos recebem “Ver análises”. A carteira extensa ganhou filtro local sem perder o `select` nativo e a tela preserva o retorno aos filtros. Coleta real, completude das fontes e validação de aplicabilidade continuam dependências externas.
+## Atualização V-267 — Parcelamentos orientados ao trabalho contábil (03/10/2026)
+
+D-267 reorganiza Parcelamentos pela tarefa empresa → acordo → parcela → DAS. A empresa em foco e o próximo passo vêm antes da carteira; consultas, emissões e lotes têm revisão explícita de escopo/consumo; estados do fornecedor recebem orientação segura; resultado incerto exige conferência humana no e-CAC; e a demo gera PDF inequivocamente fictício, privado à sessão. Desktop, mobile, landscape, tema escuro, movimento reduzido, lote, vazio, teclado, foco, overflow e console foram validados localmente. Homologação Serpro real, contrato, credenciais e regras fiscais/comerciais continuam externas.
+
+## Atualização V-269 — Ficha de atividade orientada à decisão (03/10/2026)
+
+D-268 reorganiza o detalhe da atividade por contexto, próximo passo, condições de conclusão,
+responsável, evidências e trilha. Ações concorrentes foram separadas, entradas inválidas permanecem
+na tela e a conclusão exige revisão. No estado impedido, a revisão explica que concluir com as
+condições atendidas resolve o impedimento e preserva a trilha. Perfis consultivos não recebem
+controles de escrita. A homologação de fluxos originados por integrações reais permanece externa.
+
+## Atualização V-270 — Central de atividades como fila de decisão (03/10/2026)
+
+D-269 transforma a lista em fila de trabalho em aberto: prioridades visíveis, um único refinamento,
+filtros removíveis e URL canônica. Cada item apresenta próximo passo, prazo relativo/exato,
+responsável e situação; encerradas exigem filtro explícito. Filtro inválido retorna recorte vazio e
+orientação, nunca amplia a consulta. Desktop, mobile, landscape, temas, teclado, foco, erro, vazio,
+Owner/Auditor, histórico do navegador, overflow e console foram validados localmente. Fontes reais
+e critérios do escritório piloto continuam dependências externas, não pendências desta interface.
+**Atualização V-271 (03/10/2026):** Modelos de atividades passaram a funcionar como biblioteca operacional com cobertura agregada, configuração progressiva, paginação e erro recuperável para atribuição repetida. Pausa/retomada preserva histórico; geração manual usa apenas rotinas mensais ativas. Validação focada aprovou 144 testes e 23 subtestes; regressão integral aprovou 1.095 testes e 145 subtestes, com seis skips explícitos. Playwright MCP percorreu o fluxo completo em desktop/mobile/paisagem, tema escuro e movimento reduzido, após corrigir compressão desktop e altura mobile. A definição dos modelos, prazos, responsáveis e critérios reais continua dependente de homologação do escritório; nenhuma publicação foi feita.
+
+**Atualização V-273 (03/10/2026):** D-272 transforma o cadastro de empresas em carteira de ação:
+prioridades visíveis, filtros progressivos, próximo passo e destino direto por empresa. Ausência de
+código Domínio pode ser isolada e qualquer filtro inválido retorna zero resultados com erro focado,
+sem ampliar a carteira. Cadastro inválido preserva os campos. Playwright MCP validou
+desktop/mobile/paisagem, temas, movimento reduzido, teclado, modal, erro, vazio, alvos, overflow e
+console final limpo. Regressão integral: 1.097 testes e 145 subtestes aprovados, com seis skips
+explícitos. Edição/sincronização do cadastro com Domínio real permanece dependência de homologação;
+nenhum deploy foi feito.
+
+**Atualização V-274 (05/10/2026):** D-274 publicou a rotina idempotente que reavalia todas as NFS-e
+pela fotografia real do backup e escreve somente evidência derivada. Em produção, 29.042 notas foram
+percorridas: 4.656 possuem correspondência segura, 16 receberam nova classificação, 4.640 já estavam
+corretas e 24.386 permaneceram explicitamente em revisão. Foram criadas 39 revisões, atualizadas 666
+sugestões e resolvidas 16 com origem `backup`; nenhuma decisão humana foi substituída. Os 16 XMLs
+derivados respeitam `infNFSe/valores/acum`, sem `ACU`, e a segunda passagem criou zero registros.
+Release 45 e dependências terminaram saudáveis. Q-39 e os casos ambíguos continuam externos.

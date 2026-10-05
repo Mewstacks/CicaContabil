@@ -1,8 +1,62 @@
 {% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-audit.css' %}?v=1">{% endblock %}
 {% block workspace_content %}
-<section class="workspace-panel reconciliation-v2-panel">
-  <header class="workspace-panel-head"><div><p class="section-kicker">AUDITORIA</p><h2>Decisões e rastreabilidade</h2><p>Esta trilha é somente leitura. Ela não exibe arquivos, documentos financeiros nem segredos.</p></div><div class="reconciliation-header-actions"><span class="record-count">{{ reconciliation_audit_total }} evento{{ reconciliation_audit_total|pluralize }}</span><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a></div></header>
-  <form method="get" class="reconciliation-company-select" aria-label="Filtrar eventos de auditoria"><label for="audit-action">Ação</label><select id="audit-action" name="action" autocomplete="off"><option value="">Todas as ações</option>{% for action in reconciliation_audit_actions %}<option value="{{ action }}"{% if action == reconciliation_audit_action %} selected{% endif %}>{{ action }}</option>{% endfor %}</select><button class="button button-small" type="submit">Filtrar eventos</button>{% if reconciliation_audit_action %}<a class="button button-quiet button-small" href="{% url 'hub:reconciliation-audit' %}">Limpar filtro</a>{% endif %}</form>
-  <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Quando</th><th>Ação</th><th>Responsável</th><th>Alvo</th><th>Resultado</th></tr></thead><tbody>{% for event in reconciliation_audit_events %}<tr><td><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time></td><td class="source-code" translate="no">{{ event.action }}</td><td>{% if event.actor %}{{ event.actor.full_name|default:event.actor.email }}{% else %}Sistema{% endif %}</td><td><span translate="no">{{ event.target_type|default:'—' }}</span>{% if event.target_id %}<small class="source-code" translate="no">{{ event.target_id }}</small>{% endif %}</td><td><span class="status-badge {% if event.success %}is-active{% else %}is-danger{% endif %}">{% if event.success %}Registrada{% else %}Falhou{% endif %}</span></td></tr>{% empty %}<tr><td colspan="5">Nenhum evento de conciliação corresponde ao filtro.</td></tr>{% endfor %}</tbody></table></div>{% if reconciliation_audit_page.has_other_pages %}<nav class="pagination" aria-label="Páginas da auditoria de conciliação">{% if reconciliation_audit_page.has_previous %}<a class="button button-quiet button-small" href="?{% if reconciliation_audit_querystring %}{{ reconciliation_audit_querystring }}&amp;{% endif %}page={{ reconciliation_audit_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ reconciliation_audit_page.number }} de {{ reconciliation_audit_page.paginator.num_pages }}</span>{% if reconciliation_audit_page.has_next %}<a class="button button-quiet button-small" href="?{% if reconciliation_audit_querystring %}{{ reconciliation_audit_querystring }}&amp;{% endif %}page={{ reconciliation_audit_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+<section class="workspace-panel reconciliation-v2-panel reconciliation-audit-intro">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">AUDITORIA · SOMENTE LEITURA</p>
+      <h2>Histórico de decisões da conciliação</h2>
+      <p>Investigue alterações, aprovações e exportações. A trilha informa quem fez o quê e quando, sem expor arquivos, documentos financeiros ou segredos.</p>
+    </div>
+    <div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a></div>
+  </header>
+  <dl class="audit-summary" aria-label="Resumo da trilha">
+    <div><dt>Histórico do escritório</dt><dd>{{ reconciliation_audit_all_total }}</dd><small>evento{{ reconciliation_audit_all_total|pluralize }} registrado{{ reconciliation_audit_all_total|pluralize }}</small></div>
+    <div><dt>Resultado da busca</dt><dd>{{ reconciliation_audit_total }}</dd><small>evento{{ reconciliation_audit_total|pluralize }} encontrado{{ reconciliation_audit_total|pluralize }}</small></div>
+    <div><dt>Falhas registradas</dt><dd>{{ reconciliation_audit_failure_total }}</dd><small>para investigação</small></div>
+  </dl>
+</section>
+
+<section class="workspace-panel reconciliation-v2-panel audit-results" aria-labelledby="audit-results-title">
+  <header class="workspace-panel-head audit-results-head">
+    <div><p class="section-kicker">LOCALIZAR EVENTO</p><h2 id="audit-results-title">Atividades registradas</h2><p>Combine os filtros para conferir uma decisão ou investigar uma falha específica.</p></div>
+  </header>
+  {% if reconciliation_audit_filter_errors %}<div class="form-errors audit-filter-errors" tabindex="-1" role="alert" data-form-errors><strong>Confira os filtros.</strong>{% for error in reconciliation_audit_filter_errors %}<a href="#audit-filters">{{ error }}</a>{% endfor %}</div>{% endif %}
+  <form method="get" class="audit-filters" id="audit-filters" aria-label="Filtrar eventos de auditoria">
+    <div class="field audit-search-field"><label for="audit-query">Pessoa ou referência</label><input id="audit-query" name="q" type="search" value="{{ reconciliation_audit_search }}" maxlength="100" autocomplete="off" spellcheck="false" placeholder="Nome, e-mail, código ou referência…"></div>
+    <div class="field"><label for="audit-action">Atividade</label><select id="audit-action" name="action" autocomplete="off"><option value="">Todas as atividades</option>{% for action in reconciliation_audit_actions %}<option value="{{ action.value }}"{% if action.value == reconciliation_audit_action %} selected{% endif %}>{{ action.label }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="audit-result">Resultado</label><select id="audit-result" name="result" autocomplete="off"><option value="all"{% if reconciliation_audit_result == 'all' %} selected{% endif %}>Todos</option><option value="success"{% if reconciliation_audit_result == 'success' %} selected{% endif %}>Concluídos</option><option value="failure"{% if reconciliation_audit_result == 'failure' %} selected{% endif %}>Com falha</option></select></div>
+    <div class="field"><label for="audit-date-from">De</label><input id="audit-date-from" name="date_from" type="date" value="{{ reconciliation_audit_date_from }}"></div>
+    <div class="field"><label for="audit-date-to">Até</label><input id="audit-date-to" name="date_to" type="date" value="{{ reconciliation_audit_date_to }}"></div>
+    <div class="audit-filter-actions"><button class="button" type="submit">Aplicar filtros</button>{% if reconciliation_audit_has_filters %}<a class="button button-quiet" href="{% url 'hub:reconciliation-audit' %}">Limpar filtros</a>{% endif %}</div>
+  </form>
+
+  {% if reconciliation_audit_events %}
+  <ol class="audit-timeline" aria-label="Eventos da auditoria">
+    {% for event in reconciliation_audit_events %}
+    <li class="audit-event{% if not event.success %} is-failure{% endif %}">
+      <div class="audit-event-marker" aria-hidden="true"></div>
+      <article>
+        <header class="audit-event-head">
+          <div><span class="audit-category">{{ event.display_category }}</span><h3>{{ event.display_title }}</h3></div>
+          <span class="status-badge {% if event.success %}is-active{% else %}is-danger{% endif %}">{% if event.success %}Concluído{% else %}Falhou{% endif %}</span>
+        </header>
+        <p class="audit-event-description">{{ event.display_description }}</p>
+        <dl class="audit-event-facts">
+          <div><dt>Quando</dt><dd><time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time></dd></div>
+          <div><dt>Responsável</dt><dd>{% if event.actor %}{{ event.actor.full_name|default:event.actor.email }}{% else %}Sistema{% endif %}</dd></div>
+          <div><dt>Registro afetado</dt><dd>{{ event.display_target }}</dd></div>
+        </dl>
+        {% if event.display_metadata %}<dl class="audit-business-details" aria-label="Contexto do evento">{% for item in event.display_metadata %}<div><dt>{{ item.label }}</dt><dd>{{ item.value }}</dd></div>{% endfor %}</dl>{% endif %}
+        <details class="audit-technical-details"><summary>Detalhes técnicos</summary><dl><div><dt>Código da atividade</dt><dd class="source-code" translate="no">{{ event.action }}</dd></div><div><dt>Referência do evento</dt><dd class="source-code" translate="no">{{ event.id }}</dd></div>{% if event.target_id %}<div><dt>Referência do registro</dt><dd class="source-code" translate="no">{{ event.target_id }}</dd></div>{% endif %}</dl></details>
+      </article>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <div class="empty-block operational-empty audit-empty"><strong>{% if reconciliation_audit_has_filters or reconciliation_audit_filter_errors %}Nenhum evento corresponde aos filtros{% else %}A trilha ainda está vazia{% endif %}</strong><span>{% if reconciliation_audit_has_filters or reconciliation_audit_filter_errors %}Revise o período e os termos ou limpe os filtros para ver todo o histórico.{% else %}As decisões da conciliação aparecerão aqui conforme o trabalho avançar.{% endif %}</span>{% if reconciliation_audit_has_filters or reconciliation_audit_filter_errors %}<a class="button button-quiet" href="{% url 'hub:reconciliation-audit' %}">Ver todo o histórico</a>{% endif %}</div>
+  {% endif %}
+  {% if reconciliation_audit_page.has_other_pages %}<nav class="pagination audit-pagination" aria-label="Páginas da auditoria de conciliação">{% if reconciliation_audit_page.has_previous %}<a class="button button-quiet" href="?{% if reconciliation_audit_querystring %}{{ reconciliation_audit_querystring }}&amp;{% endif %}page={{ reconciliation_audit_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ reconciliation_audit_page.number }} de {{ reconciliation_audit_page.paginator.num_pages }}</span>{% if reconciliation_audit_page.has_next %}<a class="button button-quiet" href="?{% if reconciliation_audit_querystring %}{{ reconciliation_audit_querystring }}&amp;{% endif %}page={{ reconciliation_audit_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
 </section>
 {% endblock %}

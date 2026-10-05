@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+from unittest.mock import patch
 
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -36,6 +37,7 @@ from apps.platform.models import (
     TokenModuleRate,
     TokenPriceBook,
 )
+from apps.platform.notifications import TransactionalEmailError
 from conftest import complete_mfa
 
 
@@ -742,7 +744,18 @@ class PlatformTenantViewTests(TestCase):
         self.assertEqual(second_page.status_code, 200)
         self.assertEqual(second_page.context["egress_attention_page"].number, 2)
         self.assertEqual(len(second_page.context["egress_attention"]), 1)
-        self.assertContains(second_page, str(attempts[0].id))
+        paginated_ids = {
+            attempt.id
+            for attempt in (
+                *first_page.context["egress_attention"],
+                *second_page.context["egress_attention"],
+            )
+        }
+        self.assertSetEqual(paginated_ids, {attempt.id for attempt in attempts})
+        self.assertContains(
+            second_page,
+            str(second_page.context["egress_attention"][0].id),
+        )
         self.assertContains(second_page, "egress_page=1")
 
     def test_commercial_plan_change_updates_the_explicit_contract_module_snapshot(self):
@@ -828,6 +841,64 @@ class PlatformTenantViewTests(TestCase):
         self.assertEqual(mail.outbox[0].to, ["owner@new.test"])
         self.assertIn("/ativar/", mail.outbox[0].body)
         self.assertNotIn("/ativar/", response.content.decode())
+
+    def test_support_can_choose_each_current_office_role_when_inviting(self):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        page = self.client.get(detail_url)
+
+        self.assertContains(page, 'name="invite-full_name"')
+        self.assertContains(page, 'spellcheck="false"')
+        for role in (
+            Membership.Role.OWNER,
+            Membership.Role.ADMIN,
+            Membership.Role.MANAGER,
+            Membership.Role.OPERATOR,
+            Membership.Role.BILLING,
+            Membership.Role.AUDITOR,
+        ):
+            self.assertContains(page, f'value="{role}"')
+        self.assertNotContains(page, f'value="{Membership.Role.MEMBER}"')
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "invite",
+                "invite-email": "operator@new.test",
+                "invite-full_name": "Operadora Nova",
+                "invite-role": Membership.Role.OPERATOR,
+            },
+        )
+
+        self.assertRedirects(response, detail_url)
+        self.assertEqual(
+            Invitation.objects.get(email="operator@new.test").role,
+            Membership.Role.OPERATOR,
+        )
+
+    @patch(
+        "apps.platform.views.send_invitation_email",
+        side_effect=TransactionalEmailError(
+            "E-mail transacional não está configurado: informe servidor SMTP, remetente."
+        ),
+    )
+    def test_support_sees_the_actual_invitation_delivery_error(self, _send_email):
+        detail_url = reverse("platform:tenant-detail", args=[self.office.id])
+
+        response = self.client.post(
+            detail_url,
+            {
+                "action": "invite",
+                "invite-email": "owner@new.test",
+                "invite-full_name": "Owner New",
+                "invite-role": Membership.Role.OWNER,
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Não foi possível enviar o convite.")
+        self.assertContains(response, "informe servidor SMTP, remetente")
+        self.assertFalse(Invitation.objects.filter(email="owner@new.test").exists())
 
     def test_crmew_managed_support_needs_a_temporary_controller_grant(self):
         ControlPlaneBinding.objects.create(

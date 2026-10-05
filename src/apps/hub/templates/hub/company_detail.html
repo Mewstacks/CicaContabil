@@ -2,28 +2,60 @@
 {% load ui_navigation %}
 
 {% block page_action %}
-  <a class="button button-quiet" href="{% back_url 'hub:companies' %}">Voltar às empresas</a>
+  <div class="company-detail-page-actions">
+    <a class="button button-quiet" href="{% back_url 'hub:companies' %}">Voltar às empresas</a>
+    {% if can_edit_company %}<button class="button" type="button" data-modal-open="company-edit-dialog">Editar cadastro</button>{% endif %}
+  </div>
 {% endblock %}
 
 {% block workspace_content %}
-<section class="workspace-panel">
-  <header class="workspace-panel-head">
-    <div><h2>Identificação</h2></div>
-    {% if company.active %}<span class="module-state is-active">Ativa</span>{% else %}<span class="module-state is-danger">Inativa</span>{% endif %}
+<section class="workspace-panel company-overview" aria-labelledby="company-overview-title">
+  <header class="company-overview-head">
+    <div>
+      <p class="section-kicker">ESPAÇO DE TRABALHO DO CLIENTE</p>
+      <h2 id="company-overview-title">O que precisa acontecer agora</h2>
+      <p>Confira a prioridade e entre direto na área certa, sem procurar pela página inteira.</p>
+    </div>
+    <div class="company-overview-state">
+      {% if company.active %}<span class="module-state is-active">Empresa ativa</span>{% else %}<span class="module-state is-danger">Empresa pausada</span>{% endif %}
+      <span class="company-source-label">{{ company_source_label }}</span>
+    </div>
   </header>
-  <dl class="identity-grid">
-    <div><dt>CNPJ</dt><dd>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
-    <div><dt>Código no Domínio</dt><dd>{% if company.dominio_code %}<span class="dominio-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
-    <div><dt>Última sincronização</dt><dd>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Nunca</span>{% endif %}</dd></div>
-    <div><dt>NFS-e recebidas</dt><dd>{{ document_count }}</dd></div>
-  </dl>
+  <div class="company-overview-grid">
+    <article class="company-next-action is-{{ next_action.tone }}">
+      <span class="company-next-action-eyebrow">{{ next_action.eyebrow }}</span>
+      <h3>{{ next_action.title }}</h3>
+      <p>{{ next_action.description }}</p>
+      {% if next_action.opens_modal %}
+        <button class="button" type="button" data-modal-open="company-edit-dialog">{{ next_action.label }}</button>
+      {% else %}
+        <a class="button" href="{{ next_action.url }}"{% if next_action.opens_details %} data-open-details{% endif %}>{{ next_action.label }}</a>
+      {% endif %}
+    </article>
+    <dl class="company-identity-summary">
+      <div><dt>CNPJ</dt><dd>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
+      <div><dt>Código Domínio</dt><dd>{% if company.dominio_code %}<span class="dominio-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
+      <div><dt>Última sincronização</dt><dd>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Nunca sincronizada</span>{% endif %}</dd></div>
+      <div><dt>Cadastro</dt><dd>{% if can_edit_company %}<button class="text-action" type="button" data-modal-open="company-edit-dialog">Editar dados</button>{% elif company_managed_externally %}<span>Corrigir na origem</span>{% else %}<span>Somente leitura</span>{% endif %}</dd></div>
+    </dl>
+  </div>
 </section>
 
-<section id="atividades" class="workspace-panel">
-  <header class="workspace-panel-head">
-    <div><h2>Atividades e fechamento</h2><p>Trabalho esperado desta empresa, com prazo, responsável e estado da fonte.</p></div>
-    <span class="record-count">{{ activities_count }} no total</span>
-  </header>
+<nav class="company-area-nav" aria-label="Áreas desta empresa">
+  <a href="#atividades" data-open-details><span>Trabalho</span><strong>{{ open_activity_count }}</strong><small>em aberto</small></a>
+  <a href="#documentos-nfse" data-open-details><span>NFS-e</span><strong>{{ document_count }}</strong><small>{{ open_cases_count }} em revisão</small></a>
+  <a href="#folha" data-open-details><span>Folha</span><strong>{{ payroll_snapshots_total }}</strong><small>fontes</small></a>
+  <a href="#relatorios-financeiros" data-open-details><span>Financeiro</span><strong>{{ accounting_snapshots_count|add:cash_scenarios_count }}</strong><small>fotografias</small></a>
+  {% if triage_available %}<a href="#triagem" data-open-details><span>Triagem</span><strong>{{ triage_items_count }}</strong><small>documentos</small></a>{% endif %}
+  <a href="#caixa-dte" data-open-details><span>DTE</span><strong>{{ dte_messages_count }}</strong><small>mensagens</small></a>
+</nav>
+
+<details id="atividades" class="workspace-panel company-detail-section" open>
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Trabalho e fechamento</span><small>Prioridades, prazos e responsáveis desta empresa.</small></span>
+    <span class="company-detail-section-count">{{ open_activity_count }} em aberto · {{ activities_count }} no total</span>
+  </summary>
+  <div class="company-detail-section-body">
   {% if activities %}
     <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Atividade</th><th scope="col">Prazo</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody>{% for activity in activities %}<tr>
       <td data-label="Atividade"><strong>{{ activity.title }}</strong><small>{{ activity.get_area_display }}{% if activity.competence %} · {{ activity.competence|date:"m/Y" }}{% endif %}{% if activity.assigned_to %} · {{ activity.assigned_to.get_full_name|default:activity.assigned_to.email }}{% endif %}</small></td>
@@ -31,61 +63,65 @@
       <td data-label="Situação"><span class="module-state {% if activity.work_status == 'completed' or activity.work_status == 'waived' %}is-active{% elif activity.work_status == 'blocked' %}is-danger{% else %}is-warning{% endif %}">{{ activity.get_work_status_display }}</span><small>{{ activity.get_processing_status_display }} · {{ activity.get_obligation_status_display }} · {{ activity.get_freshness_display }}</small></td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:activity-detail' activity.id %}">Abrir<span class="sr-only"> {{ activity.title }}</span></a></td>
     </tr>{% endfor %}</tbody></table></div>
+    <div class="company-section-footer"><a class="button button-quiet button-small" href="{% url 'hub:activities' %}?company={{ company.id }}">Ver todas as atividades</a></div>
     {% if activities_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das atividades">{% if activities_page.has_previous %}<a class="button button-quiet button-small" href="?{% if activities_querystring %}{{ activities_querystring }}&amp;{% endif %}activities_page={{ activities_page.previous_page_number }}#atividades" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ activities_page.number }} de {{ activities_page.paginator.num_pages }}</span>{% if activities_page.has_next %}<a class="button button-quiet button-small" href="?{% if activities_querystring %}{{ activities_querystring }}&amp;{% endif %}activities_page={{ activities_page.next_page_number }}#atividades" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhuma atividade desta empresa</strong><p>Os modelos aprovados geram o trabalho esperado por competência. Atividades sob demanda também aparecem aqui.</p><a class="button button-small button-quiet" href="{% url 'hub:activities' %}?company={{ company.id }}">Abrir a central operacional</a></div>
   {% endif %}
-</section>
+</div></details>
 
-<section id="folha" class="workspace-panel">
+<details id="folha" class="workspace-panel company-detail-section"{% if payroll_period %} open{% endif %}>
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Conferência da folha</span><small>Compare os totais recebidos antes de registrar o tratamento.</small></span>
+    <span class="company-detail-section-count">{{ payroll_snapshots_total }} fonte{{ payroll_snapshots_total|pluralize }}</span>
+  </summary>
+  <div class="company-detail-section-body">
   {% if payroll_period %}
   <div class="payroll-period-context">
-    <p><strong>Competência selecionada: {{ payroll_period|date:'m/Y' }}</strong></p>
+    <div><span class="section-kicker">COMPETÊNCIA EM CONFERÊNCIA</span><strong>{{ payroll_period|date:'m/Y' }}</strong><small>{% if payroll_snapshots_count == 1 %}1 fonte disponível{% else %}{{ payroll_snapshots_count }} fontes disponíveis{% endif %}</small></div>
     {% if payroll_review_activity %}<a class="button button-quiet" href="{% url 'hub:activity-detail' payroll_review_activity.pk %}">Voltar à atividade da folha</a>{% endif %}
     <a class="button button-quiet" href="{% url 'hub:company-detail' company.pk %}#folha">Ver todas as competências</a>
   </div>
   {% endif %}
-  <header class="workspace-panel-head">
-    <div><h2>Conferências de folha</h2><p>Totais agregados por fonte e competência. Dados informados não equivalem a consulta oficial.</p></div>
-    <span class="record-count">{{ payroll_snapshots_count }} no total</span>
-  </header>
   {% if payroll_snapshots %}
-    <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Competência</th><th scope="col">Fonte</th><th scope="col">Totais informados</th><th scope="col">Referência</th></tr></thead><tbody>{% for snapshot in payroll_snapshots %}<tr>
-      <td data-label="Competência"><strong>{{ snapshot.competence|date:"m/Y" }}</strong><small>Observado {{ snapshot.observed_at|date:"d/m/Y H:i" }}</small></td>
-      <td data-label="Fonte"><span class="module-state {% if snapshot.source_kind == 'official' %}is-active{% elif snapshot.source_kind == 'manual' %}is-warning{% else %}is-muted{% endif %}">{{ snapshot.get_source_kind_display }}</span></td>
-      <td data-label="Totais informados"><strong>{% if snapshot.workforce_count != None %}{{ snapshot.workforce_count }} pessoas{% else %}Quadro não informado{% endif %}</strong><small>{% if snapshot.gross_pay_amount != None %}Bruto R$ {{ snapshot.gross_pay_amount|floatformat:2 }}{% else %}Bruto não informado{% endif %} · {% if snapshot.net_pay_amount != None %}Líquido R$ {{ snapshot.net_pay_amount|floatformat:2 }}{% else %}Líquido não informado{% endif %}</small></td>
+    <div class="data-table-wrap"><table class="operational-table company-context-table payroll-source-table"><thead><tr><th scope="col">Competência e origem</th><th scope="col">Totais informados</th><th scope="col">Referência</th>{% if not payroll_period %}<th scope="col"><span class="sr-only">Ação</span></th>{% endif %}</tr></thead><tbody>{% for row in payroll_snapshot_rows %}{% with snapshot=row.snapshot %}<tr>
+      <td data-label="Competência e origem"><strong>{{ snapshot.competence|date:"m/Y" }}</strong><span class="module-state {% if snapshot.source_kind == 'official' %}is-active{% elif snapshot.source_kind == 'manual' %}is-warning{% else %}is-muted{% endif %}">{{ snapshot.get_source_kind_display }}</span><small>Recebido em {{ snapshot.observed_at|date:"d/m/Y H:i" }}</small></td>
+      <td data-label="Totais informados"><dl class="payroll-totals"><div><dt>Pessoas</dt><dd>{% if snapshot.workforce_count != None %}{{ snapshot.workforce_count }}{% else %}<span>Não informado</span>{% endif %}</dd></div><div><dt>Bruto</dt><dd>{% if snapshot.gross_pay_amount != None %}R$ {{ snapshot.gross_pay_amount|floatformat:2 }}{% else %}<span>Não informado</span>{% endif %}</dd></div><div><dt>Descontos</dt><dd>{% if snapshot.deductions_amount != None %}R$ {{ snapshot.deductions_amount|floatformat:2 }}{% else %}<span>Não informado</span>{% endif %}</dd></div><div><dt>Encargos</dt><dd>{% if snapshot.employer_charges_amount != None %}R$ {{ snapshot.employer_charges_amount|floatformat:2 }}{% else %}<span>Não informado</span>{% endif %}</dd></div><div><dt>Líquido</dt><dd>{% if snapshot.net_pay_amount != None %}R$ {{ snapshot.net_pay_amount|floatformat:2 }}{% else %}<span>Não informado</span>{% endif %}</dd></div></dl></td>
       <td data-label="Referência"><strong>{{ snapshot.source_reference }}</strong>{% if snapshot.notes %}<small>{{ snapshot.notes }}</small>{% endif %}</td>
-    </tr>{% endfor %}</tbody></table></div>
+      {% if not payroll_period %}<td class="table-action-cell">{% if row.can_compare %}<a class="row-action-button" href="{{ row.compare_url }}">Conferir competência<span class="sr-only"> {{ snapshot.competence|date:'m/Y' }}</span></a>{% elif row.is_comparable %}<span class="table-muted">Mesma competência acima</span>{% else %}<span class="table-muted">Só uma fonte neste mês</span>{% endif %}</td>{% endif %}
+    </tr>{% endwith %}{% endfor %}</tbody></table></div>
     {% if payroll_snapshots_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das conferências de folha">{% if payroll_snapshots_page.has_previous %}<a class="button button-quiet button-small" href="?{% if payroll_querystring %}{{ payroll_querystring }}&amp;{% endif %}payroll_page={{ payroll_snapshots_page.previous_page_number }}#folha" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ payroll_snapshots_page.number }} de {{ payroll_snapshots_page.paginator.num_pages }}</span>{% if payroll_snapshots_page.has_next %}<a class="button button-quiet button-small" href="?{% if payroll_querystring %}{{ payroll_querystring }}&amp;{% endif %}payroll_page={{ payroll_snapshots_page.next_page_number }}#folha" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+    {% if payroll_period and payroll_snapshots_count < 2 %}<div class="payroll-single-source"><strong>Falta uma segunda fonte para conferir {{ payroll_period|date:'m/Y' }}.</strong><span>Importe outro resumo da mesma competência; o CICA não inventa valores ausentes.</span><a class="button button-quiet button-small" href="{% url 'hub:setup' %}#importacao">Importar outra fonte</a></div>{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma fotografia de folha</strong><p>Quando houver importação ou conferência humana, o CICA mostrará a origem e os totais sem alegar consulta oficial.</p></div>
+    <div class="empty-block operational-empty"><strong>{% if payroll_period %}Nenhuma fonte para {{ payroll_period|date:'m/Y' }}{% else %}Nenhum resumo de folha recebido{% endif %}</strong><p>Importe um resumo para conferir pessoas, bruto, descontos, encargos e líquido. Nenhum valor será calculado pelo CICA.</p><a class="button button-small button-quiet" href="{% url 'hub:setup' %}#importacao">Importar resumo da folha</a></div>
   {% endif %}
-</section>
+</div></details>
 
-{% if payroll_snapshots_count >= 2 %}
+{% if payroll_period and payroll_snapshots_count >= 2 %}
 <section id="comparar-folha" class="workspace-panel" aria-labelledby="payroll-comparison-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">CONFER&Ecirc;NCIA</p><h2 id="payroll-comparison-title">Comparar fontes da folha</h2><p>Escolha duas fotografias da mesma compet&ecirc;ncia. A diferen&ccedil;a mostra os totais informados; n&atilde;o calcula folha nem consulta uma fonte externa.</p></div></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA · {{ payroll_period|date:'m/Y' }}</p><h2 id="payroll-comparison-title">Conferir diferenças entre fontes</h2><p>Escolha a fonte principal e aquela que você quer conferir. O CICA compara somente os totais informados e não calcula a folha.</p></div></header>
   <form method="get" class="form-stack" data-payroll-comparison-form>
     {% if payroll_period %}<input type="hidden" name="payroll_competence" value="{{ payroll_period|date:'Y-m-d' }}">{% endif %}
-    {% if payroll_comparison_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise as fotografias escolhidas.</strong>{% for field in payroll_comparison_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
-    {% for field in payroll_comparison_form %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
-    <button class="button" type="submit">Comparar fotografias</button>
+    {% if payroll_comparison_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise as fontes escolhidas.</strong>{% for field in payroll_comparison_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
+    {% for field in payroll_comparison_form %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<p class="field-error" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+    <button class="button" type="submit">Conferir diferenças</button>
   </form>
   {% if payroll_comparison %}
-    {% if payroll_comparison.matches %}<div class="setup-note"><strong>Sem diferen&ccedil;a acima da toler&acirc;ncia.</strong> As m&eacute;tricas dispon&iacute;veis coincidem nas duas fontes.</div>{% else %}
-      {% if payroll_comparison_variances %}<div class="data-table-wrap"><table class="operational-table company-context-table payroll-comparison-table"><caption>Diferen&ccedil;as acima da toler&acirc;ncia</caption><thead><tr><th scope="col">M&eacute;trica</th><th scope="col">Refer&ecirc;ncia</th><th scope="col">Comparada</th><th scope="col">Diferen&ccedil;a</th></tr></thead><tbody>{% for variance in payroll_comparison_variances %}<tr><td data-label="M&eacute;trica">{{ variance.label }}</td><td data-label="Refer&ecirc;ncia">{% if variance.is_money %}R$ {{ variance.left_value|floatformat:2 }}{% else %}{{ variance.left_value }} pessoas{% endif %}</td><td data-label="Comparada">{% if variance.is_money %}R$ {{ variance.right_value|floatformat:2 }}{% else %}{{ variance.right_value }} pessoas{% endif %}</td><td data-label="Diferen&ccedil;a"><strong>{% if variance.is_money %}R$ {{ variance.difference|floatformat:2 }}{% else %}{{ variance.difference }} pessoas{% endif %}</strong></td></tr>{% endfor %}</tbody></table></div>{% endif %}
-      {% if payroll_comparison_missing %}<p class="setup-note"><strong>M&eacute;tricas n&atilde;o informadas:</strong> {{ payroll_comparison_missing|join:", " }}. Inclua-as em uma fotografia para compar&aacute;-las.</p>{% endif %}
-      <p class="setup-note"><a class="text-action" href="{% url 'hub:activities' %}?company={{ company.id }}&amp;area=payroll&amp;competence={{ payroll_comparison_competence|date:'Y-m' }}">Ver atividades de folha desta compet&ecirc;ncia</a><br>Escolha a atividade respons&aacute;vel para registrar o tratamento; a compara&ccedil;&atilde;o n&atilde;o altera seu estado.</p>
+    {% if payroll_comparison.matches %}<div class="payroll-comparison-result is-match" role="status"><strong>Nenhuma diferença acima da tolerância.</strong><span>Todos os totais disponíveis coincidem entre as duas fontes.</span></div>{% else %}
+      {% if payroll_comparison_variances %}<div class="data-table-wrap"><table class="operational-table company-context-table payroll-comparison-table"><caption>Diferenças da fonte conferida em relação à principal</caption><thead><tr><th scope="col">Total conferido</th><th scope="col">Fonte principal</th><th scope="col">Fonte conferida</th><th scope="col">Resultado</th></tr></thead><tbody>{% for variance in payroll_comparison_variances %}<tr><td data-label="Total conferido"><strong>{{ variance.label }}</strong></td><td data-label="Fonte principal">{% if variance.is_money %}R$ {{ variance.left_value|floatformat:2 }}{% else %}{{ variance.left_value }} pessoas{% endif %}</td><td data-label="Fonte conferida">{% if variance.is_money %}R$ {{ variance.right_value|floatformat:2 }}{% else %}{{ variance.right_value }} pessoas{% endif %}</td><td data-label="Resultado"><strong class="payroll-variance {{ variance.direction_class }}">{% if variance.is_money %}R$ {{ variance.difference_abs|floatformat:2 }}{% else %}{{ variance.difference_abs }} pessoa{{ variance.difference_abs|pluralize }}{% endif %} {{ variance.direction_label }}</strong></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+      {% if payroll_comparison_missing %}<div class="payroll-comparison-result is-incomplete"><strong>Não foi possível conferir todos os totais.</strong><span>Sem valor nas duas fontes: {{ payroll_comparison_missing|join:", " }}. Importe uma fonte completa para comparar.</span></div>{% endif %}
+      <div class="payroll-comparison-next"><div><strong>Encontrou uma diferença?</strong><span>Abra a atividade da competência para registrar a análise e a evidência. Esta tela não conclui o trabalho automaticamente.</span></div><a class="button button-quiet" href="{% url 'hub:activities' %}?company={{ company.id }}&amp;area=payroll&amp;competence={{ payroll_comparison_competence|date:'Y-m' }}">Abrir atividades de {{ payroll_comparison_competence|date:'m/Y' }}</a></div>
     {% endif %}
   {% endif %}
 </section>
 {% endif %}
 
-<section id="relatorios-financeiros" class="workspace-panel">
-  <header class="workspace-panel-head">
-    <div><h2>Relatórios financeiros</h2><p>DRE e caixa usam uma fotografia identificada. A fonte e eventuais pendências acompanham a exportação.</p></div>
-    <span class="record-count">{{ accounting_snapshots_count|add:cash_scenarios_count }} disponíveis</span>
-  </header>
+<details id="relatorios-financeiros" class="workspace-panel company-detail-section">
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Relatórios financeiros</span><small>DRE e caixa por fotografia identificada.</small></span>
+    {% with total=accounting_snapshots_count|add:cash_scenarios_count %}<span class="company-detail-section-count">{{ total }} {% if total == 1 %}fotografia disponível{% else %}fotografias disponíveis{% endif %}</span>{% endwith %}
+  </summary>
+  <div class="company-detail-section-body">
   {% if financial_report_exports %}
     <section class="financial-report-group" aria-labelledby="financial-report-exports-title">
       <div class="financial-report-group-head"><div><h3 id="financial-report-exports-title">Solicitacoes recentes</h3><p>Cada arquivo preserva a fotografia e a situacao da geracao. Atualize a pagina para acompanhar uma solicitacao em andamento.</p></div></div>
@@ -127,13 +163,14 @@
       {% endif %}
     </section>
   </div>
-</section>
+</div></details>
 
-{% if triage_available %}<section id="triagem" class="workspace-panel">
-  <header class="workspace-panel-head">
-    <div><h2>Documentos em triagem</h2><p>Anexos associados a esta empresa, com a etapa real de tratamento.</p></div>
-    <span class="record-count">{{ triage_items_count }} no total</span>
-  </header>
+{% if triage_available %}<details id="triagem" class="workspace-panel company-detail-section">
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Documentos em triagem</span><small>Anexos associados e etapa real de tratamento.</small></span>
+    <span class="company-detail-section-count">{{ triage_items_count }} no total</span>
+  </summary>
+  <div class="company-detail-section-body">
   {% if triage_items %}
     <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Arquivo</th><th scope="col">Período</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody>{% for item in triage_items %}<tr>
       <td data-label="Arquivo"><strong>{{ item.final_name|default:item.original_name }}</strong><small>{% if item.document_type %}{{ item.document_type.label }}{% else %}Tipo ainda não definido{% endif %}</small></td>
@@ -145,9 +182,15 @@
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhum documento em triagem</strong><p>Os anexos aparecem aqui depois da entrada por e-mail e da associação à empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:triage' %}">Abrir triagem</a></div>
   {% endif %}
-</section>{% endif %}
+</div></details>{% endif %}
 
-<section id="documentos-nfse" class="workspace-panel">
+<details id="documentos-nfse" class="workspace-panel company-detail-section"{% if open_cases_count %} open{% endif %}>
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">NFS-e e certificado</span><small>Documentos fiscais, revisões e cobertura A1.</small></span>
+    <span class="company-detail-section-count">{{ document_count }} notas · {{ open_cases_count }} em revisão</span>
+  </summary>
+  <div class="company-detail-section-body company-fiscal-sections">
+<section class="company-detail-subsection">
   <header class="workspace-panel-head">
     <div><h2>Documentos NFS-e</h2></div>
     <span class="record-count">{{ document_count }} no total</span>
@@ -163,7 +206,7 @@
   {% endif %}
 </section>
 
-<section id="revisoes-abertas" class="workspace-panel">
+<section id="revisoes-abertas" class="company-detail-subsection">
   <header class="workspace-panel-head">
     <div><h2>Revisões abertas</h2></div>
     <span class="record-count">{{ open_cases_count }} no total</span>
@@ -173,14 +216,14 @@
       <td><strong>{{ case.document.source_nsu|default:"Documento NFS-e" }}</strong></td>
       <td>{{ case.reason|default:"Sem motivo registrado" }}</td>
       <td>{{ case.created_at|date:"d/m/Y" }}</td>
-      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:review-detail' case.id %}">Conferir caso</a></td>
+      <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:nfse-center' %}?status=unclassified&amp;company={{ company.id }}">Classificar na lista</a></td>
     </tr>{% endfor %}</tbody></table></div>{% if open_cases_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das revisões abertas">{% if open_cases_page.has_previous %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.previous_page_number }}#revisoes-abertas" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ open_cases_page.number }} de {{ open_cases_page.paginator.num_pages }}</span>{% if open_cases_page.has_next %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.next_page_number }}#revisoes-abertas" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Sem revisões abertas</strong><p>Nada desta empresa está parado esperando decisão.</p></div>
   {% endif %}
 </section>
 
-<section class="workspace-panel">
+<section class="company-detail-subsection">
   <header class="workspace-panel-head">
     <div><h2>Certificados</h2></div>
     <span class="record-count">{{ certificates|length }}</span>
@@ -192,15 +235,17 @@
       <td>{% if certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>O certificado fica disponível para uso depois da conexão homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
+    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>Envie um A1 válido para iniciar a coleta automática desta empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
   {% endif %}
 </section>
+</div></details>
 
-<section id="caixa-dte" class="workspace-panel">
-  <header class="workspace-panel-head">
-    <div><h2>Caixa postal (DTE)</h2></div>
-    <span class="record-count">{{ dte_messages_count }} no total</span>
-  </header>
+<details id="caixa-dte" class="workspace-panel company-detail-section">
+  <summary class="company-detail-section-summary">
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Caixa postal (DTE)</span><small>Comunicados e situação de leitura.</small></span>
+    <span class="company-detail-section-count">{{ dte_messages_count }} no total</span>
+  </summary>
+  <div class="company-detail-section-body">
   {% if dte_messages %}
     <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Assunto</th><th>Enviada</th><th>Leitura</th></tr></thead><tbody>{% for dte in dte_messages %}<tr>
       <td><strong>{{ dte.subject|default:"Mensagem sem assunto" }}</strong></td>
@@ -210,5 +255,17 @@
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhuma mensagem</strong><p>As consultas ao DTE começam na central do Integra Contador.</p><a class="button button-small button-quiet" href="{% url 'hub:dte-center' %}">Abrir central DTE</a></div>
   {% endif %}
-</section>
+</div></details>
+
+{% if can_edit_company %}<div id="company-edit-dialog" class="modal-backdrop" data-modal{% if company_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-edit-title">
+    <header class="modal-head"><div><p class="section-kicker">CADASTRO LOCAL</p><h2 id="company-edit-title">Editar empresa</h2><p>Esta alteração não muda documentos, atividades nem permissões.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="update_company">
+      {% if company_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.{% if company_form.non_field_errors %} {{ company_form.non_field_errors|striptags }}{% endif %}</div>{% endif %}
+      {% for field in company_form %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% for error in field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}_error">{{ error }}</p>{% endfor %}</div>{% endfor %}
+      <div class="modal-actions"><button class="button" type="submit" data-busy-label="Salvando…">Salvar alterações</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>{% endif %}
 {% endblock %}

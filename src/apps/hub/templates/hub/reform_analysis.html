@@ -1,22 +1,36 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reform-analysis.css' %}">{% endblock %}
+{% load ui_navigation %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reform.css' %}?v=cica-3"><link rel="stylesheet" href="{% static 'hub/reform-analysis.css' %}?v=cica-2">{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% back_url 'hub:reform' %}">Voltar às publicações</a>{% endblock %}
+
 {% block workspace_content %}
-<nav class="section-links" aria-label="Navegação do Radar"><a href="{% url 'hub:reform' %}">Voltar ao Radar</a></nav>
-<section class="workspace-panel registry-panel radar-analysis" aria-labelledby="analysis-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">{{ radar_alert.get_source_display }}</p><h2 id="analysis-heading">Analisar publicação por empresa</h2><p>{{ radar_alert.title }}</p></div></header>
-  <p>Escolha uma empresa da sua carteira e explique o que precisa ser conferido. A atividade ficará atribuída a você, sem prazo legal presumido. Uma atividade existente será retomada, sem duplicação.</p>
-  <p>A publicação não comprova aplicabilidade à empresa nem cumprimento de obrigação.</p>
-  {% if radar_source_url %}<p><a class="button button-quiet" href="{{ radar_source_url }}" target="_blank" rel="noopener noreferrer">Abrir publicação na fonte oficial (nova aba)</a></p>{% endif %}
-  {% if radar_activity_page %}<section aria-labelledby="existing-analysis-heading"><h3 id="existing-analysis-heading">Análises da sua carteira</h3><ul>{% for item in radar_activity_page %}<li><a href="{% url 'hub:activity-detail' item.pk %}">{{ item.company.name }} · {{ item.get_work_status_display }}</a></li>{% endfor %}</ul>{% if radar_activity_page.has_other_pages %}<nav class="section-links" aria-label="Páginas de análises">{% if radar_activity_page.has_previous %}<a href="?page={{ radar_activity_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ radar_activity_page.number }} de {{ radar_activity_page.paginator.num_pages }}</span>{% if radar_activity_page.has_next %}<a href="?page={{ radar_activity_page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}</section>{% endif %}
+<section class="workspace-panel radar-publication" aria-labelledby="analysis-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">{{ radar_alert.get_source_display }} · {{ radar_alert.get_relevance_display }}</p><h2 id="analysis-heading">{{ radar_alert.title }}</h2>{% if radar_alert.published_at %}<p>Publicada em <time datetime="{{ radar_alert.published_at|date:'c' }}">{{ radar_alert.published_at|date:'d/m/Y' }}</time></p>{% endif %}</div></header>
+  {% if radar_alert.summary %}<p class="radar-publication-summary">{{ radar_alert.summary }}</p>{% endif %}
+  <div class="inline-alert"><strong>Antes de criar trabalho</strong><span>Esta publicação não comprova impacto para nenhuma empresa. Confira a origem e registre por que a empresa escolhida precisa de análise.</span></div>
+  {% if radar_source_url %}<a class="button button-quiet" href="{{ radar_source_url }}" target="_blank" rel="noopener noreferrer">Abrir fonte oficial em nova aba</a>{% endif %}
+</section>
+
+<section class="workspace-panel registry-panel radar-analysis" aria-labelledby="analysis-form-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">Decisão humana</p><h2 id="analysis-form-heading">Criar análise para uma empresa</h2><p>A atividade ficará atribuída a você, sem prazo ou obrigação presumidos.</p></div></header>
   {% if can_request_analysis %}
   <form method="post" autocomplete="off" data-radar-analysis-form>
     {% csrf_token %}
-    {% if analysis_form.errors %}<div role="alert" tabindex="-1" data-form-errors><h3>Confira os dados da análise</h3>{{ analysis_form.non_field_errors }}<ul>{% for field in analysis_form %}{% for error in field.errors %}<li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>{% endfor %}{% endfor %}</ul></div>{% endif %}
-    {% for field in analysis_form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
-    <button class="button" type="submit">Criar ou retomar análise</button>
+    {% if analysis_form.errors %}<div class="form-error-summary" role="alert" tabindex="-1" data-form-errors><h3>Confira os dados da análise</h3>{{ analysis_form.non_field_errors }}<ul>{% for field in analysis_form %}{% for error in field.errors %}<li><a href="#{{ field.id_for_label }}">{{ field.label }}: {{ error }}</a></li>{% endfor %}{% endfor %}</ul></div>{% endif %}
+    {% for field in analysis_form %}<div class="field{% if field.errors %} field-invalid{% endif %}">
+      {% if field.name == 'company' %}<label for="radar-company-filter">Localizar empresa na carteira</label><input id="radar-company-filter" type="search" autocomplete="off" placeholder="Digite o nome ou código…" aria-describedby="radar-company-filter-help" data-company-filter><small id="radar-company-filter-help">Filtra somente a lista abaixo; nenhuma empresa é vinculada até você confirmar.</small><p class="radar-company-count" role="status" aria-live="polite" data-company-count></p>{% endif %}
+      {{ field.label_tag }}{{ field }}{% if field.help_text %}<small id="{{ field.id_for_label }}_help">{{ field.help_text }}</small>{% endif %}{{ field.errors }}
+    </div>{% endfor %}
+    <button class="button" type="submit" data-busy-label="Criando atividade…">Criar ou retomar atividade de análise</button>
   </form>
-  {% else %}<div class="empty-block"><strong>Consulta permitida</strong><p>Seu perfil não permite criar uma análise. Peça a um responsável operacional com acesso à empresa.</p></div>{% endif %}
+  {% else %}<div class="empty-block"><strong>Acesso somente para consulta</strong><p>Seu perfil pode ler a publicação e as análises existentes, mas não criar trabalho. Peça a um responsável operacional com acesso à empresa.</p></div>{% endif %}
 </section>
-<script src="{% static 'hub/reform-analysis.js' %}" defer></script>
+
+<section class="workspace-panel radar-existing" aria-labelledby="existing-analysis-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">Trabalho já vinculado</p><h2 id="existing-analysis-heading">Análises desta publicação</h2><p>Abra a atividade existente para continuar a conferência sem duplicar trabalho.</p></div><span class="record-count">{{ radar_activity_page.paginator.count }}</span></header>
+  {% if radar_activity_page %}<ul class="radar-analysis-list">{% for item in radar_activity_page %}<li><div><strong>{{ item.company.name }}</strong><span class="module-state {% if item.work_status == 'blocked' %}is-danger{% elif item.work_status == 'done' %}is-active{% else %}is-warning{% endif %}">{{ item.get_work_status_display }}</span></div><a class="button button-quiet button-small" href="{% url 'hub:activity-detail' item.pk %}">Abrir atividade<span class="sr-only"> de {{ item.company.name }}</span></a></li>{% endfor %}</ul>{% if radar_activity_page.has_other_pages %}<nav class="pagination" aria-label="Páginas de análises">{% if radar_activity_page.has_previous %}<a class="button button-quiet button-small" href="?page={{ radar_activity_page.previous_page_number }}{% if request.GET.return_to %}&amp;return_to={{ request.GET.return_to|urlencode }}{% endif %}">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span>Página {{ radar_activity_page.number }} de {{ radar_activity_page.paginator.num_pages }}</span>{% if radar_activity_page.has_next %}<a class="button button-quiet button-small" href="?page={{ radar_activity_page.next_page_number }}{% if request.GET.return_to %}&amp;return_to={{ request.GET.return_to|urlencode }}{% endif %}">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}{% else %}<div class="empty-block"><strong>Nenhuma análise criada</strong><p>Quando alguém vincular esta publicação a uma empresa, a atividade aparecerá aqui.</p></div>{% endif %}
+</section>
+<script src="{% static 'hub/reform-analysis.js' %}?v=cica-4" defer></script>
 {% endblock %}

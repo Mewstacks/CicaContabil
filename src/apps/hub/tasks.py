@@ -54,6 +54,9 @@ from apps.platform.token_billing import settle_tokens
 
 logger = logging.getLogger(__name__)
 
+NFSE_SYNC_PAGES_PER_SLICE = 1
+NFSE_SYNC_QUEUE_DELAY_SECONDS = 30
+
 
 @shared_task(name="hub.generate_recurring_activities")  # type: ignore[untyped-decorator]
 def generate_recurring_activities() -> dict[str, int]:
@@ -64,11 +67,12 @@ def generate_recurring_activities() -> dict[str, int]:
 def _eligible_nfse_syncs() -> QuerySet[NfseSync]:
     return NfseSync.objects.filter(
         enabled=True,
-        status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY],
         organization__is_active=True,
         organization__is_demo=False,
         company__active=True,
         certificate__isnull=False,
+        certificate__revoked_at__isnull=True,
+        certificate__valid_until__gt=timezone.now(),
     )
 
 
@@ -79,21 +83,68 @@ def dispatch_active_nfse_syncs() -> int:
     if not settings.NFSE_ADN_SYNC_ENABLED:
         return 0
     now = timezone.now()
-    ids = (
+    NfseSync.objects.filter(
+        enabled=True,
+        status=NfseSync.Status.RUNNING,
+    ).filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now)).update(
+        status=NfseSync.Status.RETRY,
+        lease_token=None,
+        lease_until=None,
+        next_run_at=now,
+        last_error_code="stale_lease",
+        last_error_message="A coleta foi retomada automaticamente após uma interrupção.",
+        last_error_at=now,
+    )
+    NfseSync.objects.filter(
+        enabled=True,
+        status=NfseSync.Status.QUEUED,
+        updated_at__lt=now - timedelta(minutes=5),
+    ).update(
+        status=NfseSync.Status.RETRY,
+        next_run_at=now,
+        last_error_code="stale_queue",
+        last_error_message="A empresa voltou para a fila após uma interrupção.",
+        last_error_at=now,
+        updated_at=now,
+    )
+    if _eligible_nfse_syncs().filter(
+        status__in=[NfseSync.Status.QUEUED, NfseSync.Status.RUNNING]
+    ).exists():
+        return 0
+    sync_id = (
         _eligible_nfse_syncs()
+        .filter(status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY])
         .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
         .filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now))
         .order_by("next_run_at", "last_success_at", "pk")
-        .values_list("pk", flat=True)[:500]
+        .values_list("pk", flat=True)
+        .first()
     )
-    queued = 0
-    for sync_id in ids:
+    if sync_id is None:
+        return 0
+    reserved = NfseSync.objects.filter(
+        pk=sync_id,
+        status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY],
+    ).update(status=NfseSync.Status.QUEUED, updated_at=now)
+    if not reserved:
+        return 0
+    try:
         poll_nfse_sync.delay(str(sync_id))
-        queued += 1
-    return queued
+    except Exception:
+        logger.exception("Could not enqueue NFS-e sync %s", sync_id)
+        NfseSync.objects.filter(pk=sync_id, status=NfseSync.Status.QUEUED).update(
+            status=NfseSync.Status.RETRY,
+            next_run_at=now + timedelta(minutes=1),
+            last_error_code="queue_delivery",
+            last_error_message="A fila ficou indisponível; uma nova tentativa foi agendada.",
+            last_error_at=now,
+            updated_at=now,
+        )
+        return 0
+    return 1
 
 
-@shared_task(name="hub.poll_nfse_sync")  # type: ignore[untyped-decorator]
+@shared_task(name="hub.poll_nfse_sync", rate_limit="6/m")  # type: ignore[untyped-decorator]
 def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
     if not settings.NFSE_ADN_SYNC_ENABLED:
         return {"state": "disabled"}
@@ -103,10 +154,14 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
         return {"state": "invalid_id"}
     now = timezone.now()
     token = uuid.uuid4()
+    continue_same_company = False
     lease_seconds = max(600, int(settings.CELERY_TASK_TIME_LIMIT) + 60)
     acquired = (
         _eligible_nfse_syncs()
         .filter(pk=parsed_id)
+        .filter(
+            status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY, NfseSync.Status.QUEUED]
+        )
         .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
         .filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now))
         .update(
@@ -126,7 +181,43 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
             raise ValidationError("A sincronização não possui certificado A1.")
         context = certificate_ssl_context(sync.certificate)
         client = AdnClient(environment=settings.NFSE_ADN_ENVIRONMENT, ssl_context=context)
-        return process_sync_pages(sync=sync, client=client)
+        # Keep provider downloads moving without turning an ADN backlog into a
+        # sustained PostgreSQL write burst. A page is at most 50 documents;
+        # the durable NSU checkpoint makes every slice resumable.
+        result = process_sync_pages(
+            sync=sync,
+            client=client,
+            max_pages=NFSE_SYNC_PAGES_PER_SLICE,
+        )
+        continue_same_company = bool(
+            NfseSync.objects.filter(
+                pk=parsed_id,
+                enabled=True,
+                status=NfseSync.Status.IDLE,
+                next_run_at__lte=timezone.now(),
+            ).update(status=NfseSync.Status.QUEUED, updated_at=timezone.now())
+        )
+        if continue_same_company:
+            try:
+                poll_nfse_sync.apply_async(
+                    args=[sync_id], countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
+                )
+            except Exception:
+                logger.exception("Could not continue NFS-e sync %s", sync_id)
+                continue_same_company = False
+                NfseSync.objects.filter(
+                    pk=parsed_id, status=NfseSync.Status.QUEUED
+                ).update(
+                    status=NfseSync.Status.RETRY,
+                    next_run_at=timezone.now() + timedelta(minutes=1),
+                    last_error_code="queue_delivery",
+                    last_error_message=(
+                        "A fila ficou indisponível; a mesma empresa será retomada."
+                    ),
+                    last_error_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+        return result
     except (AdnError, ValidationError, ValueError) as exc:
         transient = isinstance(exc, AdnError) and exc.transient
         current = NfseSync.objects.filter(pk=parsed_id).first()
@@ -154,6 +245,10 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
         NfseSync.objects.filter(pk=parsed_id, lease_token=token).update(
             lease_token=None, lease_until=None
         )
+        if settings.NFSE_ADN_SYNC_ENABLED and not continue_same_company:
+            dispatch_active_nfse_syncs.apply_async(
+                countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
+            )
 
 
 @shared_task(name="hub.refresh_reform_sources")  # type: ignore[untyped-decorator]

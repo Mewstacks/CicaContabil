@@ -128,9 +128,9 @@ class SelfServiceSignupForm(forms.Form):
 
 class SignupPasswordForm(forms.Form):
     password = forms.CharField(
-        min_length=12,
+        min_length=8,
         label="Crie uma senha",
-        help_text="Use pelo menos 12 caracteres. Colar do gerenciador de senhas é permitido.",
+        help_text="Use pelo menos 8 caracteres. Colar do gerenciador de senhas é permitido.",
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
 
@@ -657,13 +657,23 @@ class AssistantRetentionForm(forms.Form):
 
 class InvitationForm(forms.Form):
     email = forms.EmailField(
-        label="E-mail do proprietário",
+        label="E-mail da pessoa",
         widget=forms.EmailInput(attrs={"autocomplete": "email", "spellcheck": "false"}),
     )
     full_name = forms.CharField(
         label="Nome",
         max_length=150,
         required=False,
-        widget=forms.TextInput(attrs={"autocomplete": "name"}),
+        widget=forms.TextInput(attrs={"autocomplete": "name", "spellcheck": "false"}),
     )
-    role = forms.ChoiceField(label="Papel", choices=[(Membership.Role.OWNER, "Proprietário")])
+    role = forms.ChoiceField(
+        label="Papel",
+        choices=(
+            (Membership.Role.OWNER, "Proprietário"),
+            (Membership.Role.ADMIN, "Administrador"),
+            (Membership.Role.MANAGER, "Gestor"),
+            (Membership.Role.OPERATOR, "Operador"),
+            (Membership.Role.BILLING, "Financeiro"),
+            (Membership.Role.AUDITOR, "Auditor"),
+        ),
+    )

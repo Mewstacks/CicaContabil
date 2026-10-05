@@ -1,3 +1,10 @@
+> **Estado vigente em 05/10/2026 — D-275/V-275:** consultar a revisão no topo do
+> [PLANO-MESTRE.md](../../../PLANO-MESTRE.md) e a
+> [auditoria de produto](../auditoria-produto-2026-10-05.md). Há produção Fly+Neon e NFS-e real;
+> a etapa 12 já foi iniciada. A tabela datada abaixo preserva a execução antiga e não deve ser
+> usada para afirmar que a NFS-e só existe na demo ou que a homologação já foi concluída.
+> As etapas 00–13 permanecem canônicas; os pacotes PC-01–31 são seu desdobramento vigente.
+
 # Etapas e prompts da CICA
 
 [Plano mestre na raiz](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)

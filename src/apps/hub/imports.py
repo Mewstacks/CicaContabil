@@ -256,6 +256,14 @@ def create_import_preview(
             payload = json.dumps(rows, ensure_ascii=False)
             row_count = len(rows)
             mapping["headers"] = list(rows[0])
+            if kind == ImportBatch.Kind.PAYROLL_TOTALS:
+                preview_errors, preview_issue_count = validate_payroll_preview(
+                    organization=organization,
+                    data_source=data_source,
+                    rows=rows,
+                )
+                batch.errors = preview_errors
+                mapping["preview_issue_count"] = preview_issue_count
         else:
             payload = base64.b64encode(content).decode("ascii")
             row_count = 1
@@ -315,6 +323,11 @@ def _cents(value: str) -> int:
 def payroll_preview_rows(
     *, batch: ImportBatch, rows: list[dict[str, str]], first_line: int
 ) -> list[dict[str, object]]:
+    issues_by_line = {
+        int(error["row"]): str(error["message"])
+        for error in batch.errors
+        if isinstance(error, dict) and str(error.get("row", "")).isdigit()
+    }
     result: list[dict[str, object]] = []
     for number, row in enumerate(rows, first_line):
         try:
@@ -331,6 +344,7 @@ def payroll_preview_rows(
                 ),
                 "competence": _pick(row, "competencia"),
                 "reference": _pick(row, "referencia"),
+                "issue": issues_by_line.get(number, ""),
                 "values": [
                     row.get(column, "").strip()
                     for column in (
@@ -344,6 +358,74 @@ def payroll_preview_rows(
             }
         )
     return result
+
+
+def validate_payroll_preview(
+    *, organization: Organization, data_source: DataSource, rows: list[dict[str, str]]
+) -> tuple[list[dict[str, object]], int]:
+    """Validate the whole payroll file without writing operational records.
+
+    Keep at most 200 diagnostics in the batch, while retaining the exact issue count
+    separately. Company lookups are cached because one file normally repeats a small
+    set of company identifiers across many rows.
+    """
+
+    errors: list[dict[str, object]] = []
+    issue_count = 0
+    company_cache: dict[tuple[str, str], ClientCompany | ValueError | None] = {}
+    for number, row in enumerate(rows, 2):
+        messages_for_row: list[str] = []
+        external = _pick(row, "codigo", "codigo_empresa", "external_key")
+        cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
+        cache_key = (external, cnpj)
+        cached = company_cache.get(cache_key)
+        if cache_key not in company_cache:
+            try:
+                cached = _company_for_row(organization, data_source, row)
+            except ValueError as exc:
+                cached = exc
+            company_cache[cache_key] = cached
+        if isinstance(cached, ValueError):
+            messages_for_row.append(str(cached))
+        elif cached is None:
+            messages_for_row.append("Empresa não localizada por código ou CNPJ nesta fonte.")
+
+        raw_competence = _pick(row, "competencia")
+        try:
+            competence = datetime.strptime(raw_competence, "%Y-%m-%d").date()
+            if competence.day != 1:
+                raise ValueError
+        except ValueError:
+            messages_for_row.append("Competência deve usar AAAA-MM-01.")
+        if not _pick(row, "referencia"):
+            messages_for_row.append("Referência é obrigatória.")
+
+        supplied_total = False
+        for column in ("bruto", "descontos", "encargos", "liquido"):
+            raw = _pick(row, column)
+            if not raw:
+                continue
+            supplied_total = True
+            try:
+                if _cents(raw) < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                messages_for_row.append(f"{column.capitalize()} deve ser um valor não negativo.")
+        workforce = _pick(row, "pessoas")
+        if workforce:
+            try:
+                if int(workforce) < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                messages_for_row.append("Pessoas deve ser um número inteiro não negativo.")
+        if not supplied_total and not workforce:
+            messages_for_row.append("Informe pessoas ou pelo menos um total da folha.")
+
+        if messages_for_row:
+            issue_count += 1
+            if len(errors) < 200:
+                errors.append({"row": number, "message": " ".join(messages_for_row)})
+    return errors, issue_count
 
 
 def _import_payroll_totals(

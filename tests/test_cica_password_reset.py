@@ -52,8 +52,8 @@ def test_sanitized_reset_page_keeps_same_origin_csrf_and_accepts_new_password():
     result = client.post(
         sanitized_url,
         {
-            "new_password1": "new-synthetic-password-123",
-            "new_password2": "new-synthetic-password-123",
+            "new_password1": "V7!qZ2#p",
+            "new_password2": "V7!qZ2#p",
         },
         HTTP_X_CSRFTOKEN=client.cookies["csrftoken"].value,
         HTTP_ORIGIN="http://testserver",
@@ -61,4 +61,25 @@ def test_sanitized_reset_page_keeps_same_origin_csrf_and_accepts_new_password():
     assert result.status_code == 302
     assert result.url == reverse("hub:password-reset-complete")
     user.refresh_from_db()
-    assert user.check_password("new-synthetic-password-123")
+    assert user.check_password("V7!qZ2#p")
+
+
+def test_password_reset_rejects_seven_characters():
+    user = User.objects.create_user("short-reset@example.test", "previous-password-123")
+    token = default_token_generator.make_token(user)
+    client = Client()
+    response = client.get(
+        reverse(
+            "hub:password-reset-confirm", args=[urlsafe_base64_encode(force_bytes(user.pk)), token]
+        )
+    )
+    page = client.get(response.url)
+    result = client.post(
+        response.url,
+        {"new_password1": "V7!qZ#p", "new_password2": "V7!qZ#p"},
+    )
+
+    assert page.status_code == 200
+    assert 'minlength="8"' in page.content.decode()
+    assert result.status_code == 200
+    assert "pelo menos 8 caracteres" in result.content.decode()

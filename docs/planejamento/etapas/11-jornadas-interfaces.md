@@ -1,3 +1,17 @@
+## Revisão de produto em 05/10/2026 — D-275/V-275
+
+A [auditoria de produto](../auditoria-produto-2026-10-05.md) revisa funcionalidades, propósito
+das telas e comparação online. O plano mestre contém os pacotes PC correspondentes. Nenhum gap
+foi implementado nesta entrega de análise; a etapa 11 continua aberta.
+
+- [x] Auditar transversalmente as famílias de telas e referências reais de produto.
+- [x] Inspecionar 27 URLs/recortes em desktop/mobile com Playwright MCP e registrar recusas/limites.
+- [x] Identificar inconsistência de escopo dos indicadores NFS-e e lacunas de revisão/curadoria/setup.
+- [x] Preparar cenários por perfil e métricas propostas de usabilidade com contadores.
+- [ ] Corrigir e validar PC-02/11/13/14/16/23/26/27 nas jornadas afetadas.
+- [ ] Executar PC-29 com usuários; inspeção técnica não equivale a aceite de usabilidade real.
+- [ ] Reconciliar oferta e capacidade homologada conforme PC-30, D-169/D-03/Q-33.
+
 ﻿# Etapa 11 â€” Validar todas as jornadas e interfaces
 
 [Plano mestre](../../../PLANO-MESTRE.md) Â· [DecisÃµes](../../../DECISOES.md) Â· [ValidaÃ§Ãµes](../../../VALIDACOES.md)
@@ -174,10 +188,11 @@ A avaliação agregada está exposta na agenda desde D-128. O adaptador ERP que 
 - [x] Expor requisitos por empresa autorizada, competÃªncia selecionÃ¡vel e Ã¡rea, considerando todos os responsÃ¡veis inclusive na visÃ£o pessoal.
 - [x] Mostrar causa, responsÃ¡vel, prazo, atualizaÃ§Ã£o, contagem de evidÃªncias e acesso ao histÃ³rico; ausÃªncia de requisitos nÃ£o comprova fechamento.
 - [x] Paginar empresas e preservar competÃªncia/filtros ao navegar na agenda.
+- [x] Recompor o filtro mensal com rótulo acima do controle, ação compacta no desktop e largura integral no celular; revalidar claro/escuro, teclado, erro e URL (V-244).
 - [ ] Homologar cobertura dos modelos de fechamento e conectar observaÃ§Ãµes reais dos mÃ³dulos.
 - [x] Inspecionar localmente desktop/mobile, teclado e estados no navegador (V-173 a V-186); não substitui fonte ou piloto externo.
 
-ComposiÃ§Ã£o preserva tokens, painÃ©is e hierarquia da agenda existente. UI/UX Pro Max consultado para divulgaÃ§Ã£o de detalhes e tratamento responsivo; recomendaÃ§Ã£o Tailwind nÃ£o foi transplantada para o CSS existente. Watermelon portfolio-dashboard orientou hierarquia por tarefa. Refero novamente nÃ£o expÃ´s conteÃºdo; SaaSFrame somente catÃ¡logo pÃºblico; Karbon retornou 403 nesta consulta (referÃªncia anterior registrada em V-144, sem nova inspeÃ§Ã£o alegada). Web Interface Guidelines atuais auditadas em dashboard.html, partial closing_dashboard.html e acrÃ©scimos de operations.css: controles nativos, rÃ³tulo/erro, foco, alvos, quebra de conteÃºdo, paginaÃ§Ã£o, links reais, estados vazios e cores existentes. RenderizaÃ§Ã£o continua sem comprovaÃ§Ã£o visual.
+ComposiÃ§Ã£o preserva tokens, painÃ©is e hierarquia da agenda existente. UI/UX Pro Max consultado para divulgaÃ§Ã£o de detalhes e tratamento responsivo; recomendaÃ§Ã£o Tailwind nÃ£o foi transplantada para o CSS existente. Watermelon portfolio-dashboard orientou hierarquia por tarefa. Refero novamente nÃ£o expÃ´s conteÃºdo; SaaSFrame somente catÃ¡logo pÃºblico; Karbon retornou 403 nesta consulta (referÃªncia anterior registrada em V-144, sem nova inspeÃ§Ã£o alegada). Web Interface Guidelines atuais auditadas em dashboard.html, partial closing_dashboard.html e acrÃ©scimos de operations.css: controles nativos, rÃ³tulo/erro, foco, alvos, quebra de conteÃºdo, paginaÃ§Ã£o, links reais, estados vazios e cores existentes. V-244 comprovou visualmente o filtro mensal em desktop/mobile, claro/escuro, teclado e erro; a jornada completa de fechamento continua sujeita às provas externas registradas.
 
 ## Ponte NFS-e â†’ atividades â€” D-129 (24/09/2026)
 
@@ -286,7 +301,7 @@ UI/UX Pro Max recomendou composiÃ§Ã£o em cartÃµes para evitar tabela larga
 
 - [x] Atividade aponta resumo local autorizado e mantÃ©m formulÃ¡rios prÃ³prios de evidÃªncia/anÃ¡lise.
 - [x] Resumo retorna Ã  atividade vinculada; GET nÃ£o abre teor nem conclui trabalho.
-- [ ] InspeÃ§Ã£o desktop/mobile, teclado e console: Playwright sem transporte em listagem e fechamento; nenhuma sessÃ£o aberta.
+- [x] Inspeção desktop/mobile, teclado e console concluída em V-263; nenhuma sessão permaneceu aberta.
 
 UI/UX Pro Max consultado para retorno previsÃ­vel e foco; Watermelon portfolio-dashboard consultado para manter tarefa/contexto prÃ³ximos. ReferÃªncias pÃºblicas: [Karbon](https://karbonhq.com/solution/project-management), organizaÃ§Ã£o do trabalho com contexto; [SaaSFrame](https://www.saasframe.io/categories/dashboard), composiÃ§Ã£o de painÃ©is. [Refero](https://refero.design) retornou sem conteÃºdo inspecionÃ¡vel; nenhum fluxo autenticado alegado. Mantida composiÃ§Ã£o existente, sem novo sistema visual.
 
@@ -296,7 +311,7 @@ Auditoria das [Web Interface Guidelines atuais](https://raw.githubusercontent.co
 
 - [x] FormulÃ¡rio de seleÃ§Ã£o e justificativa com erros focÃ¡veis, links de campo, labels e valores mantidos apÃ³s falha.
 - [x] Links de origem e anÃ¡lises por carteira paginadas; envio indica processamento e protege alteraÃ§Ãµes nÃ£o enviadas.
-- [ ] InspeÃ§Ã£o desktop/mobile, teclado, estados e console: Playwright sem transporte; nenhuma sessÃ£o aberta.
+- [x] Inspeção desktop/mobile, teclado, estados e console concluída em V-264; nenhuma sessão permaneceu aberta.
 
 UI/UX Pro Max: produto de produtividade, resumo de erros e foco no stack HTML; mantida identidade CICA. Watermelon consultado (form/contact form): resultados announcement/footer sem correspondÃªncia verificada; nÃ£o usados como formulÃ¡rio. Reutilizada inspiraÃ§Ã£o portfolio-dashboard jÃ¡ consultada e referÃªncias pÃºblicas Karbon/SaaSFrame/Refero descritas acima, sem alegar fluxo autenticado.
 
@@ -489,3 +504,242 @@ UI/UX Pro Max orientou hierarquia de onboarding, foco e configuração responsiv
 A validação local em Edge abriu login, cadastro, visão geral e configuração da Fedrizzi em 1440 e 390 px. Em todas as oito combinações: sem overflow horizontal, foco visível de 3 px e console sem erros. A configuração e a área de trabalho usaram o escritório parceiro interno Fedrizzi e não chamaram fonte, IA, Serpro ou cobrança. Capturas: `.playwright-mcp/d172-login-final.png`, `d172-final-signup-desktop.png`, `d172-final-workspace-desktop.png` e `d172-final-setup-mobile.png`. A fonte atual das Web Interface Guidelines foi aplicada: controles nativos, foco, responsividade, texto longo, movimento reduzido e estado de navegação na URL permanecem cobertos. O MCP Playwright não estava exposto; os contextos equivalentes locais foram fechados.
 
 Validação automatizada em andamento nesta entrada: `test_cica_auth_flow.py`, `test_cica_signup_flow.py` e `test_hub_workspace_views_django.py`; `manage.py check --settings=config.settings.local` e `git diff --check` passaram. Limite: a camada compartilhada transforma a aparência de todas as telas que a consomem; refinamentos de estrutura específica continuam necessários se uma tela especializada revelar um problema em uso real.
+
+## Reauditoria de facilidade de uso — D-211 / V-223
+
+- [x] Pesquisar e melhorar descoberta do download em lote NFS-e; validar localmente desktop/celular e downloads fictícios.
+- [x] Publicar e conferir as melhorias em produção (V-248: seleção, emitidas/tomadas, manifesto e legibilidade mobile).
+- [ ] Repercorrer demais telas, inclusive as já auditadas, com pesquisa prévia e critérios de descoberta, clareza, esforço e recuperação.
+- [x] Reauditar Acumuladores e Exportações NFS-e com busca, contexto, paginação e recuperação (V-253).
+- [x] Tornar o relatório de retenções encontrável no próprio recorte da NFS-e, com ações explícitas PDF/Excel e contexto do conteúdo (V-254).
+- [x] Validar seleção por empresa e entre páginas no fluxo comum com 165 notas sintéticas (V-224).
+- [x] Reauditar histórico de downloads, recuperação de abertura de arquivo, identificação técnica recolhida e caminho para novo pacote (V-225).
+- [x] Reauditar Empresas: busca numérica/alfanumérica, contagem filtrada, vazio, retorno do detalhe e recuperação de erro no cadastro (V-226).
+- [x] Conectar revisões da empresa à NFS-e por ID autorizado, preservando contexto e lote entre empresas homônimas (V-227).
+- [x] Revalidar histórico NFS-e de empresa pausada fora do escopo operacional (V-255): consulta/download preservados, escrita/coleta recusadas e carteira restrita sem ampliação.
+- [x] Dar recuperação global segura a 400/403/404/500 (V-256): status real, texto neutro, ação clara, API em JSON e fallback 500 independente de template/banco.
+- [x] Reauditar mapeamento e falha de processamento da Conciliação não-demo (V-257): próxima ação por exceção, mensagens verdadeiras, segredo não refletido e cartões mobile legíveis.
+- [x] Completar erro de rede e validação publicada da carteira demo na nova passagem NFS-e (V-248); carteira operacional real continua dependente de autorização/homologação.
+
+## Detalhe do escritório — D-188 / V-212
+
+- [x] Consolidar sistemas, equipe, comercial e operação sem painéis repetidos.
+- [x] Recolher homologção e Copiloto/retencão; ocultar seções operacionais vazias.
+- [x] Oferecer os seis papéis vigentes no convite e excluir o papel legado.
+- [x] Exibir a falha real de entrega, manter rollback e apontar erros aos campos.
+- [x] Aplicar UI/UX Pro Max, Watermelon, referências SaaS e as Web Interface Guidelines atuais.
+- [x] Validar desktop/tablet/celular, temas, movimento reduzido, teclado, foco, overflow, nomes acessíveis e console pelo Playwright local; browser encerrado.
+- [ ] Configurar e homologar SMTP real antes de considerar convites operacionais em produção.
+- [x] Publicar a alteração junto da correção de login/MFA na release 12, com snapshots prévios e health final aprovado (V-213).
+- [x] Revisar a central de certificados em desktop/celular: modal fechado por padrão, cobertura com/sem A1, fila compacta, nome local, cancelamento e recuperação de erro por arquivo (V-217).
+### Evidência V-218 — classificação na lista de notas
+
+- [x] V-240: listagem/confirmar correspondência demo isoladas por sessão também para membro; auditor sem ação; upload demo recusado. Comparação disponível diretamente e filtro vazio orientado, sem carregar painéis compartilhados.
+- [x] V-241: recusar as 12 rotas avançadas de Conciliação demo antes do acesso operacional, inclusive GET/POST de membro/visitante/auditor; retorno direto à comparação, testado desktop/mobile/teclado.
+- [x] V-242: seleção de empresa explícita e segura na configuração não-demo; recuperação de empresa/filtro/identificador inválido, erros vinculados aos campos e responsividade com carteira sintética extensa.
+- [x] V-243: tornar escolhas de empresa pesquisáveis e explícitas, apresentar importar → processar → revisar → exportar e manter a importação encontrável em carteiras extensas, com fallback nativo.
+- [ ] Continuar Conciliação não-demo: reauditar mapeamento, processamento, revisão e estados de falha da exportação com dados operacionais autorizados, sem confundir testes sintéticos com homologação Q-39.
+
+Em 29/09/2026, a classificação foi incorporada à tela principal, agrupada por empresa, com estados binários, competência anterior por padrão e download direto. Playwright local validou desktop e celular, teclado, foco, movimento reduzido, responsividade e ausência de erros; a release 21 publicou os mesmos assets. A área Revisões não aparece mais na navegação.
+
+### Evidência V-219 — edição automática e ação em lote
+
+Em 29/09/2026, a operação diária passou a usar o número fiscal da nota, edição do acumulador com salvamento automático e seleção por nota, empresa, página ou todos os resultados classificados do filtro. A barra contextual informa notas e empresas antes de habilitar o único download primário; NSU e hash não aparecem na interface. UI/UX Pro Max orientou seleção explícita e feedback imediato. Watermelon não retornou composição pertinente em duas buscas; foram adaptados padrões públicos de Linear, Shopify, Jira e Google Drive para seleção em massa, preservando a linguagem CICA. A auditoria das Web Interface Guidelines confirmou labels, controles nativos, `aria-live`, foco, alvos, estados desabilitados, quebra responsiva e movimento reduzido. Playwright MCP validou desktop e 390 px sem overflow ou erro de console; browser encerrado. O texto mantém Q-39 visível e não promete importação homologada no Domínio.
+
+### V-248 — reauditoria publicada da NFS-e em lote
+
+- [x] Confirmar em produção descoberta, filtros, escopo selecionado e downloads emitidas/tomadas.
+- [x] Corrigir a identificação de empresa dentro do ZIP e manter manifesto/fotografia coerentes.
+- [x] Elevar a legibilidade mobile e repetir desktop, celular, paisagem, temas, teclado, foco, vazio, loading, erro de rede, overflow e console.
+- [ ] Repetir a jornada com carteira operacional real somente em ambiente e escopo autorizados; a demo e os testes não homologam o layout Domínio (Q-39).
+
+### V-246 — Rotina fictícia completa na demo
+
+- [x] Preencher agenda, carteira, gestão, modelos, fechamentos, evidências e histórico com um cenário sintético consistente.
+- [x] Corrigir a agenda pessoal de visitantes e ocultar identidades temporárias alheias da gestão/filtros.
+- [x] Auditar os dois templates alterados pelas guidelines atuais e verificar desktop/mobile, teclado, estados vazio/erro e console, localmente e em produção.
+
+A demo possui 84 atividades; nove abertas na persona pessoal e 33 na carteira. Atividades são cenários de consulta, sem mutação compartilhada. Detalhes e fontes em [relatório](../../cica-demo-population-2026-10-01.md); homologações externas permanecem abertas.
+
+### V-249 — Reauditoria da coleta NFS-e
+
+- [x] Trocar texto técnico disperso por situação, próximo passo e exceções operacionais.
+- [x] Revalidar desktop/mobile, temas, teclado, foco, redução de movimento, falha e recuperação.
+- [x] Publicar a interface e confirmar sessão demo, assets e fila em produção.
+- [ ] Continuar a reauditoria das demais telas, inclusive as já revisadas, com pesquisa prévia.
+
+O Playwright local passou; o navegador automatizado não estava disponível depois do deploy, então
+a produção foi validada por HTTP autenticado na demo e não foi declarada como inspeção visual.
+
+### V-252 — Lista NFS-e orientada à conferência
+
+- [x] Dar contexto na linha: movimento, contraparte, datas, serviço, valor, retenções, situação e acumulador.
+- [x] Tornar entrada/saída um filtro explícito e preservar seleção/lote com feedback contextual.
+- [x] Revalidar desktop 1440/1280 e mobile 375, teclado/foco, escuro, movimento reduzido, vazio e console.
+- [ ] Medir o percurso com contadores em carteira operacional autorizada; a inspeção sintética não substitui piloto fiscal.
+
+### V-255 — Histórico NFS-e de empresa pausada
+
+- [x] Identificar no topo o modo histórico somente para consulta e explicar o que continua disponível.
+- [x] Manter XML/ZIP e relatórios do acervo, sem coleta, classificação ou ampliação de carteira.
+- [x] Trocar a ação impossível “Classificar” por “Ver pendências” e remover falso total pendente de nota já classificada.
+- [x] Validar desktop/mobile, escuro, movimento reduzido, teclado/foco, estado vazio, seleção/download, overflow e console pelo Playwright MCP; browser e QA encerrados.
+- [ ] Repetir com empresa operacional real somente em ambiente autorizado; a prova sintética não homologa fonte, layout ou política fiscal.
+
+### V-256 — Erros globais recuperáveis
+
+- [x] Registrar e testar handlers próprios para 400, 403, 404 e 500 com status HTTP correto.
+- [x] Manter respostas de API em JSON e impedir enumeração de recurso protegido no 404.
+- [x] Remover cache, bloquear sniffing e garantir fallback 500 sem template, banco ou detalhes internos.
+- [x] Validar desktop/mobile, temas, movimento reduzido, teclado, foco, overflow, assets, console e retorno ao início pelo Playwright MCP; browser e QA encerrados.
+- [ ] Repetir no ambiente publicado após autorização de deploy; esta entrega é validação local.
+
+### V-257 — Mapeamento e falha de processamento da Conciliação
+
+- [x] Priorizar mapeamento, conta, OCR ou falha antes de métricas e movimentos já normalizados.
+- [x] Expor orientação segura e ação aplicável sem renderizar a exceção técnica persistida.
+- [x] Diferenciar layout que iniciou processamento de layout salvo apenas para arquivos futuros.
+- [x] Remover “Reaplicar regras” quando a execução não produziu movimentos.
+- [x] Corrigir controles e links de erro para 44 px e converter processamentos em cartões no celular.
+- [x] Validar desktop/mobile, escuro, movimento reduzido, teclado, foco, erro, escolhas preservadas, overflow e console pelo Playwright MCP; browser e QA encerrados.
+- [x] Revisar localmente a tela individual e os estados sintéticos de exportação, inclusive confirmação, integridade, responsividade e erro.
+- [ ] Repetir geração, download, importação e confirmação no Domínio autorizado após homologar Q-39; a prova sintética não valida o destino real.
+
+### V-258 — Revisão individual e estados de exportação da Conciliação
+
+- [x] Expor próximo passo único conforme movimento incompleto, revisado, rascunho, aprovado, exportado ou ignorado.
+- [x] Preservar data no controle nativo, focar o resumo de erros e ocultar geração enquanto faltarem dados contábeis.
+- [x] Revalidar SHA-256 no download e na confirmação; registrar ator/instante e manter confirmação idempotente.
+- [x] Recusar arquivo adulterado sem alterar o estado e manter download de exportação confirmada.
+- [x] Corrigir ações secundárias, alvos de 44 px, cartões mobile, overflow, hash longo e envio duplicado.
+- [x] Validar desktop/mobile, escuro, movimento reduzido, teclado, foco, erro, confirmação e console pelo Playwright MCP.
+- [ ] Homologar o layout e o retorno real no Domínio conforme Q-39 antes de habilitar geração/confirmação fora do QA.
+
+### V-259 — Configuração da Conciliação
+
+- [x] Corrigir o falso estado “pronto” com zero contas e distinguir requisito, recomendação e controles opcionais.
+- [x] Expor uma próxima ação única e recolher formulários até pedido explícito, mantendo erro aberto e focado.
+- [x] Preservar edição com aviso de saída, deep-link do painel e retorno à seção depois de cada escrita.
+- [x] Paginar separadamente contas financeiras, plano de contas, centros de custo, períodos, layouts e regras.
+- [x] Exigir motivo e confirmação progressiva para bloquear ou reabrir período.
+- [x] Validar leitura sem mutação do Auditor autorizado e recusa 403 de POST.
+- [x] Validar desktop/mobile, escuro, movimento reduzido, teclado, foco, erro, URL, alvos, overflow e console pelo Playwright MCP.
+- [ ] Repetir a configuração com referências contábeis de uma empresa operacional autorizada; a prova sintética não homologa plano, banco ou Domínio.
+
+### V-260 — Auditoria investigável da Conciliação
+
+- [x] Substituir códigos internos na leitura principal por atividade, categoria e explicação legíveis.
+- [x] Mostrar responsável, instante, registro afetado e resultado sem renderizar JSON, hash de IP ou metadado não permitido.
+- [x] Combinar busca, atividade, resultado e intervalo na URL; recusar filtro inválido sem ampliar resultados.
+- [x] Recolher UUIDs e código bruto em detalhe técnico, mantendo a referência disponível para suporte.
+- [x] Paginar 50 eventos e distinguir trilha vazia de filtro sem correspondência.
+- [x] Validar desktop/mobile escuro, movimento reduzido, teclado, foco de erro, detalhe, filtros, alvos, overflow e console pelo Playwright MCP.
+- [ ] Definir retenção e eventual exportação somente quando a política operacional/comercial for aprovada; V-260 não cria essas regras.
+
+### V-261 — Importação e prévia operacional da folha
+
+- [x] Fluxo em três passos: escolher conteúdo, enviar arquivo e revisar antes de gravar.
+- [x] Orientação contextual, modelo da folha, nome/tamanho do arquivo e impacto da confirmação explícitos.
+- [x] Pré-validação integral da folha sem escrita, com diagnóstico por linha e confirmação oculta quando há pendência.
+- [x] Arquivo idêntico já processado retorna ao histórico; formulários não enviados não recebem erros espúrios.
+- [x] Histórico responsivo sem rolagem horizontal; paginação, escopo, permissões e transação preservados.
+- [x] Playwright em desktop e 390 px, tema escuro, movimento reduzido, teclado/foco, erro/vazio e console.
+- [ ] Homologar layouts reais CSV/XLSX com escritórios piloto; a validação local não substitui homologação externa.
+
+### V-262 — Conferência agregada da folha por competência
+
+- [x] Mostrar pessoas, bruto, descontos, encargos e líquido de cada fonte, sem inferir valores ausentes.
+- [x] Iniciar pela competência e limitar os dois seletores ao mesmo mês, com pré-seleção sem execução automática.
+- [x] Oferecer uma única ação por competência comparável e paginar o histórico sem consulta irrestrita no formulário.
+- [x] Expressar diferenças como “a mais”/“a menos”, separar totais indisponíveis e apontar a atividade como próximo passo.
+- [x] Corrigir foco e descrição do erro, alvos de 44 px, corte mobile, coluna redundante e ação duplicada.
+- [x] Validar desktop/mobile, claro/escuro, movimento reduzido, erro, teclado/foco, URL, overflow e console pelo Playwright MCP.
+- [ ] Homologar a conferência com pelo menos duas fontes reais autorizadas da mesma competência; a prova sintética não valida layout, origem nem rotina do escritório piloto.
+
+### V-263 — Caixa Postal DTE orientada à leitura segura
+
+- [x] Remover ação duplicada do assunto e manter um único “Abrir resumo” por mensagem.
+- [x] Separar resumo local da abertura de teor que pode registrar ciência, com confirmação explícita.
+- [x] Elevar filtros, metadados e ações para leitura confortável e alvos mínimos de 44 px.
+- [x] Converter o histórico em cartões rotulados no celular, sem rolagem horizontal.
+- [x] Preservar demo isolada por sessão, sem Serpro, ciência oficial ou consumo.
+- [x] Validar desktop/mobile, claro/escuro, movimento reduzido, teclado/foco, vazio, erro, preparo, simulação, detalhe, overflow e console pelo Playwright MCP.
+- [ ] Homologar consulta e abertura com credenciais, contrato e escopo DTE reais autorizados; a demo não prova ciência, paginação ou retorno do Serpro.
+
+### V-264 — Radar como fila de triagem fiscal
+
+- [x] Substituir a tabela horizontal por fila recente com fonte, tema, data, resumo e limite de interpretação.
+- [x] Deixar “Analisar impacto” e “Abrir fonte oficial” visíveis sem rolagem; usar “Ver análises” no perfil consultivo.
+- [x] Separar publicação de decisão humana e filtrar carteira extensa sem substituir o `select` nativo.
+- [x] Preservar retorno aos filtros, vazio recuperável, falha de fonte sem erro bruto e aviso de saída somente para edição real.
+- [x] Validar desktop/mobile, claro/escuro, movimento reduzido, teclado/foco, vazio, falha, loading, criação, Owner/Auditor, 44 px, overflow e console pelo Playwright MCP.
+- [ ] Homologar coleta/completude das fontes e aplicabilidade em uma carteira fiscal real autorizada; a prova sintética não valida interpretação tributária.
+
+### V-266 — Guias e DCTFWeb orientadas ao próximo passo
+
+- [x] Colocar o caminho de consulta/emissão antes da carteira local extensa e manter as guias oficiais como fila prioritária quando existirem.
+- [x] Expor uma ação principal por estado: emitir/repetir falha confirmada, acompanhar fila, baixar DARF ou aguardar conciliação.
+- [x] Separar apuração Domínio, declaração, recibo e guia, sem apresentar chave interna como nome de documento.
+- [x] Ocultar mensagem bruta do conector/provedor; manter apenas orientação segura e referência técnica recolhida.
+- [x] Adaptar carteira, confirmação em lote, consulta e detalhe para celular, alvos de 44 px e zero rolagem horizontal.
+- [x] Validar desktop/mobile/landscape, claro/escuro, movimento reduzido, filtros, vazio, lote, modal, teclado, falha, incerto, PDF demo, overflow e console pelo Playwright MCP.
+- [ ] Homologar Serpro/contrato/credenciais e resolver D-149/Q-40 antes de declarar reemissão, custo e conclusão de atividade prontos para produção.
+### V-267 — Parcelamentos orientados ao próximo passo
+
+- [x] Colocar empresa selecionada, próximo passo, acordos e parcelas antes da carteira extensa.
+- [x] Mostrar uma ação principal por estado, com revisão anterior a consulta, emissão ou lote.
+- [x] Transformar tabelas em cartões legíveis no celular, com alvos de 44 px e sem overflow horizontal.
+- [x] Ocultar erro bruto do provedor, preservar referência técnica recolhida e exigir confirmação para liberar operação incerta.
+- [x] Validar desktop/mobile/landscape, escuro, movimento reduzido, lote, vazio, modal, teclado, foco, PDF demo e console.
+- [ ] Homologar transporte, regras e documento oficial com ambiente Serpro autorizado.
+
+### V-269 — Ficha de atividade orientada ao próximo passo
+
+- [x] Colocar empresa, área, prazo, responsável, situação e próximo passo antes dos estados técnicos.
+- [x] Traduzir requisitos de conclusão, recolher códigos e substituir tipos brutos do histórico por rótulos humanos.
+- [x] Separar evidência, impedimento e conclusão; preservar dados/erros e focar o contexto inválido.
+- [x] Tornar explícita a resolução do impedimento quando a conclusão válida limpa o motivo e preserva a trilha.
+- [x] Validar perfil operacional e auditor, pendência, vazio, pronta, impedida, erro, modal, teclado, foco, desktop/mobile/landscape, tema escuro, movimento reduzido, overflow e console.
+- [ ] Homologar atividades originadas por fontes reais autorizadas; a prova local não valida o retorno de Domínio, Serpro, caixa postal ou outra integração.
+
+### V-270 — Central de atividades como fila de decisão
+
+- [x] Mostrar trabalho em aberto por padrão e manter concluídas/dispensadas em filtro explícito.
+- [x] Expor atraso, hoje, próximos sete dias, impedimento e fonte indisponível antes dos filtros detalhados, com contagens no escopo preservado.
+- [x] Unificar área, situação, fonte, empresa, competência e responsabilidade em um formulário; tornar filtros ativos removíveis e a URL canônica/compartilhável.
+- [x] Recusar filtro inválido ou combinação de prazo incompatível sem ampliar silenciosamente o resultado.
+- [x] Mostrar próximo passo, prazo relativo/exato, responsável e situação; converter a tabela inteira em cartões rotulados no celular.
+- [x] Validar desktop/mobile/landscape, claro/escuro, movimento reduzido, teclado/foco, erro/vazio, Owner/Auditor, back-forward cache, alvos, overflow e console pelo Playwright MCP.
+- [ ] Medir o uso da fila com contadores em carteira operacional autorizada; a validação sintética não define modelos, prazos ou critérios reais do escritório.
+
+### V-271 — Modelos de atividades como biblioteca operacional
+
+- [x] Expor cobertura, modelos ativos, atribuições e próxima ação antes da configuração detalhada.
+- [x] Separar definição, aplicação à empresa e geração de competência em etapas progressivas.
+- [x] Paginar modelos/atribuições e substituir a lista irrestrita de empresas por contagens agregadas.
+- [x] Recusar atribuição duplicada com erro recuperável e preservar pausa/retomada com trilha de auditoria.
+- [x] Gerar a competência somente a partir de modelos mensais ativos, sem duplicar atividades.
+- [x] Validar desktop/mobile/landscape, escuro, movimento reduzido, teclado/foco, erro, fluxo completo, alvos, overflow e console pelo Playwright MCP.
+- [ ] Definir e homologar com o escritório piloto os modelos, responsáveis, prazos legais/internos e critérios de comprovação reais; a configuração sintética não decide essas regras.
+
+### V-272 — Fechamentos por competência como fila de conferência
+
+- [x] Resumir atenção, comprovação, lacunas e empresas sem sugerir total fora da página.
+- [x] Priorizar exceções e mostrar empresa, área, progresso, próximo passo e uma ação direta.
+- [x] Separar comprovados e manter atividades, evidências e requisitos em detalhe acessível.
+- [x] Tratar ausência de requisitos como lacuna de cobertura, com destino adequado por perfil.
+- [x] Recusar competência inválida sem ampliar ou substituir silenciosamente o recorte.
+- [x] Validar desktop/mobile, claro/escuro, movimento reduzido, teclado/foco, detalhe, erro, navegação, overflow e console pelo Playwright MCP.
+- [ ] Homologar os requisitos de fechamento e evidências com um escritório piloto e fontes reais autorizadas; a prova sintética não decide critérios contábeis.
+
+### V-273 — Cadastro de empresas como carteira de ação
+
+- [x] Expor prioridades da carteira antes dos filtros detalhados, respeitando o escopo autorizado.
+- [x] Mostrar identidade, integrações, próximo passo e uma ação direta por empresa.
+- [x] Manter busca visível e mover situação, vínculo, certificado e revisão para refinamento.
+- [x] Isolar empresas sem código Domínio e recusar filtro inválido sem ampliar resultados.
+- [x] Preservar dados e foco no cadastro inválido; manter paginação e cartões mobile.
+- [x] Validar desktop/mobile/landscape, temas, movimento reduzido, teclado/foco, vazio, erro, modal,
+  alvos, overflow e console pelo Playwright MCP.
+- [ ] Homologar sincronização e edição do cadastro com a fonte Domínio real autorizada; a prova local
+  não decide quem pode alterar dados sincronizados nem substitui o piloto.

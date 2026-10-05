@@ -638,6 +638,8 @@ Complemento D-133: observaÃ§Ã£o bem-sucedida que efetivamente aplica process
 
 24/09/2026. CorreÃ§Ã£o tÃ©cnica de compatibilidade encontrada em testes com PostgreSQL 17 local descartÃ¡vel. Workers DCTFWeb/PARCSN e rotinas de Triagem devem bloquear explicitamente a linha principal que controla a transiÃ§Ã£o, sem solicitar FOR UPDATE de relaÃ§Ãµes opcionais carregadas por outer join. Preservar transaÃ§Ãµes e verificaÃ§Ãµes; nÃ£o remover locks para fazer testes passarem. Reserva/liquidaÃ§Ã£o mantÃªm seus prÃ³prios controles. NÃ£o altera fluxo comercial, ciÃªncia, transmissÃ£o ou autorizaÃ§Ã£o. ReferÃªncia tÃ©cnica: documentaÃ§Ã£o Django 6.0 de select_for_update(of=("self",)).
 
+Complemento de D-154 (01/10/2026): a regressão PostgreSQL atual encontrou a mesma incompatibilidade nas projeções de Guias, DCTFWeb e Parcelamentos para atividades. Aplicar `select_for_update(of=("self",))` à linha fiscal que controla cada projeção, preservando o lock separado da atividade e a transação. Não alterar resultado fiscal, permissão ou acionamento de fornecedor.
+
 ## D-155 â€” ProjeÃ§Ã£o conservadora dos resultados Serpro na central
 
 24/09/2026. Cada guia, consulta DCTFWeb e operaÃ§Ã£o PARCSN persistida pode originar uma atividade exclusiva da mesma empresa, para apresentar pedido, resultado, evidÃªncia e impedimento na central. A projeÃ§Ã£o nÃ£o presume aceite de obrigaÃ§Ã£o, fechamento de ERP, pagamento, ciÃªncia oficial ou gratuidade. PDF de guia disponÃ­vel atualiza somente o estado de pagamento para â€œGuia disponÃ­velâ€ e deixa o trabalho aberto para a conferÃªncia definida em Q-40. Consulta DCTFWeb disponÃ­vel pode encerrar somente a atividade de obtenÃ§Ã£o do documento, com prova da fonte, sem declarar transmissÃ£o ou aceite. Consultas PARCSN concluÃ­das podem encerrar a atividade de consulta; DAS disponÃ­vel permanece aberto e separado de pagamento. Falhas e resultados incertos geram impedimento explicÃ¡vel; dispensa informada pela fonte requer confirmaÃ§Ã£o humana, nÃ£o Ã© dispensada automaticamente. Esta decisÃ£o implementa o escopo jÃ¡ aprovado de centralizar pendÃªncias e resultados, sem definir a regra comercial de reemissÃ£o D-149 nem substituir Q-40.
@@ -779,3 +781,729 @@ A importação usa exclusivamente `bethadba.geempre` e `bethadba.EFACUMULADOR`, 
 28/09/2026. Origem: pedido explícito do proprietário para que cada empresa preserve os dados necessários para reencontrar o acumulador quando chegar a nota do mês seguinte. Além do catálogo de D-185, a cópia autorizada pode ler o histórico de NFS-e prestadas e tomadas somente para produzir observações agregadas por empresa, acumulador, código de serviço e contraparte pseudonimizada. Cada combinação conserva apenas frequência e último uso; número da nota, valor, descrição, nome e XML históricos não entram nessa carga.
 
 A contraparte deve usar a mesma normalização da coleta NFS-e atual: CNPJ/CPF somente em memória, reduzido a SHA-256 truncado antes da transmissão ou persistência. A carga rejeita observação sem serviço e sem contraparte, acumulador fora do catálogo da própria empresa, frequência inválida e data ausente. Regras explícitas continuam prioritárias; histórico serve para sugestão explicável e nunca autoriza tratamento fiscal. Ambiguidade, dado novo ou evidência insuficiente permanece em revisão humana. A extração deve agregar na origem, paginar a resposta, ser idempotente pela chave agregada e não registrar conteúdo identificável em logs ou no repositório.
+
+## D-187 — Exceção temporária de MFA do administrador da plataforma
+
+29/09/2026. Origem: instrução explícita do proprietário após o autenticador vinculado recusar o código apresentado. Desabilitar temporariamente a exigência de MFA somente para `suporte@mewstack.com.br` e remover o dispositivo TOTP inválido dessa conta, sem alterar senha, papel `admin`, outras contas ou a política geral de segundo fator. A mudança deve ser auditada e o login real precisa ser validado até o Console. A reativação futura exigirá novo pareamento do autenticador e nova instrução do proprietário.
+
+## D-188 — Console de escritório orientado a decisões e convites com papéis reais
+
+29/09/2026. Origem: rejeição explícita da tela extensa e do convite restrito a proprietário. O detalhe do escritório no Console passa a priorizar sistemas e administração, condensar equipe, comercial e operação no mesmo contexto e recolher homologção e configurações avançadas. Seções vazias de cobrança e tentativas Claude não ocupam a tela; aparecem somente quando houver registro. O convite deve oferecer os papéis vigentes de proprietário, administrador, gestor, operador, financeiro e auditor, preservando as permissões existentes e sem ressuscitar o papel legado genérico.
+
+Falhas de entrega deixam de ser ocultadas por um resumo genérico: erro de campo aponta ao controle e erro operacional informa a próxima correção segura. A produção foi encontrada sem servidor SMTP e remetente configurados; nenhuma credencial será inventada e nenhum convite deve persistir quando o envio falhar. Esta decisão implementa a tela localmente dentro de D-184 e não altera contrato, ciclo operacional, cobrança, API externa nem autoriza deploy.
+
+## D-189 — Bianchi & Rizzotto é o piloto real da primeira liberação NFS-e
+
+29/09/2026. Origem: plano de conclusão aprovado explicitamente pelo proprietário. A primeira liberação comercial completa será o produto exclusivo NFS-e do tenant `bianchi-rizzotto`; os demais módulos permanecem desabilitados e não podem ser apresentados como homologados. A liberação exige piloto real com certificado A1 e autorização fornecidos por canal seguro, coleta em ambiente de prova e oficial, amostra de 200 documentos conforme D-73, zero duplicidade, associação incorreta ou vazamento, precisão mínima de 95% nas sugestões automáticas e revisão humana dos casos ambíguos. O pacote somente será tratado como importável depois de homologar o contrato Q-39 e conferir a importação no Domínio.
+
+Até backup e restauração serem comprovados e o certificado autorizado ser validado, `NFSE_ADN_SYNC_ENABLED` permanece desabilitado. Mudanças de produção podem usar janela controlada de até 30 minutos, sempre com backup e retorno preparados; restauração completa conserva o RTO de quatro horas de D-73. Credenciais SMTP, certificado, senha e artefatos fiscais nunca entram no repositório, documentação ou chat. Se uma dependência externa não estiver disponível, os trabalhos independentes continuam, mas o módulo permanece bloqueado e não recebe declaração de homologação.
+
+## D-190 — A dispensa temporária de MFA do administrador cobre todo o Console
+
+29/09/2026. Origem: correção explícita do proprietário após a conta dispensada alcançar novamente a tela de cadastro TOTP. A exceção de D-187 vale para todo o fluxo da conta `suporte@mewstack.com.br`, inclusive Configurações do Console; uma view não pode impor um segundo gate divergente do `mfa_required=False` vigente. Enquanto a exceção estiver ativa, acesso direto às rotas de cadastro, verificação e QR de MFA deve retornar ao Console sem criar dispositivo. O segredo TOTP exibido na captura é considerado comprometido; o dispositivo não confirmado correspondente deve ser eliminado e o fato registrado em auditoria, sem persistir a chave. Nenhuma outra conta ou política de MFA é dispensada por esta decisão.
+
+## D-191 — Nomes de convidados não usam corretor ortográfico
+
+29/09/2026. Origem: solicitação explícita do proprietário após o navegador sublinhar um nome curto e exibir o indicador do corretor no modal de convite. O campo de nome próprio mantém autocomplete e foco acessível, mas usa `spellcheck=false`; e-mail já seguia a mesma proteção. A mudança não altera validação, dados ou permissões.
+
+## D-192 — MFA opcional e altamente recomendado para clientes
+
+29/09/2026. Origem: instrução explícita do proprietário. Contas que acessam somente um ou mais escritórios clientes não são bloqueadas por ausência de MFA, independentemente de contrato, fim do teste ou preferência histórica do escritório. A configuração permanece disponível e deve ser apresentada como proteção altamente recomendada, com estado e ação claros no primeiro acesso. Depois que o cliente ativa TOTP voluntariamente, o segundo fator passa a proteger os logins seguintes; “opcional” significa escolher ativar, não cadastrar um fator que seria ignorado. Contas internas com acesso ao Console da plataforma continuam obrigadas quando `PlatformAccess.mfa_required=True`; a exceção temporária de D-187/D-190 continua restrita ao administrador indicado.
+
+## D-192 — Certificados por metadados e lote sem seleção manual de empresa
+
+29/09/2026. Origem: pedido explícito do proprietário. O cadastro de A1 passa a aceitar um ou vários arquivos `.pfx`/`.p12` na mesma ação. O servidor abre cada arquivo localmente, extrai o CNPJ do campo ICP-Brasil `Subject Alternative Name` OID `2.16.76.1.3.3`, com compatibilidade restrita ao assunto legado, e vincula somente por CNPJ completo e válido a uma empresa acessível do mesmo escritório. Empresa e identificação deixam de ser exigidas do usuário; a identificação deriva do nome comum do certificado, sem copiar o nome do arquivo.
+
+A senha pode ser comum ao lote ou inferida localmente por convenções explícitas no nome (`senha=VALOR`, sufixo `__VALOR` ou `[VALOR]`). Não usar IA nem enviar nome, senha ou certificado a serviço externo. O nome bruto do arquivo, que pode conter a senha, não entra em banco, auditoria, mensagens ou documentação. Arquivo ilegível, senha não encontrada, CNPJ ausente/inválido, empresa sem correspondência, duplicidade ou limite excedido fica como “não reconhecido” no resultado da própria importação; nesse caso o arquivo e a senha não são guardados. A importação não ativa coleta ADN nem constitui homologação do certificado em ambiente externo.
+
+## D-193 — Fila de certificados com senha por arquivo
+
+29/09/2026. Origem: correção explícita do proprietário sobre o fluxo real do lote. Além das convenções anteriores, a senha pode ser inferida localmente de `Empresa - SENHA.pfx` e do último termo numérico em `Empresa SENHA.pfx`. Não existe limite funcional artificial de 50 certificados: o navegador envia um arquivo por vez, em sequência. Se a abertura falhar, a fila pausa no arquivo atual, solicita a senha em campo normal e permite tentar novamente ou pular; depois continua sem perder os resultados anteriores. Arquivos rejeitados e suas senhas não são guardados. Nome bruto, senha e conteúdo continuam proibidos em sessão, mensagens, auditoria e logs.
+
+## D-194 — Nome do arquivo visível somente na fila local
+
+29/09/2026. Origem: correção explícita do proprietário. Durante a importação, a fila e o pedido de senha exibem o nome real do arquivo para o operador identificar qual A1 precisa de atenção. Essa exibição usa exclusivamente o objeto `File` já presente no navegador; o servidor continua sem devolver, persistir ou registrar o nome, que pode conter senha. O painel de tentativa fica compacto: posição, nome, campo de senha, tentar e pular.
+
+## D-195 — Certificado prepara a coleta sem bloquear outras empresas
+
+29/09/2026. Origem: instrução explícita do proprietário. Esta decisão substitui a última frase de D-192 que impedia o upload de preparar a coleta. Um A1 vigente e correlacionado passa a criar ou atualizar automaticamente a sincronização NFS-e da própria empresa; quando o runtime ADN estiver habilitado, a primeira coleta entra na fila após o commit. Enquanto o gate de D-189 estiver fechado, a sincronização fica pronta e auditada, sem chamada externa.
+
+Certificado vencido, revogado, incompatível ou ausente nunca bloqueia a carteira: a empresa correspondente é ignorada e sinalizada, enquanto cada empresa com A1 vigente segue em tarefa isolada. Um A1 já vencido pode permanecer cadastrado como evidência, mas não habilita nem agenda coleta. A página de certificados abre com todos os registros visíveis, distingue empresas com e sem A1 válido e o modal de importação só abre por ação explícita. A fila pode ser cancelada ou fechada, preserva resultados já confirmados e converte resposta HTML/erro transitório em recuperação por arquivo, sem exibir erro técnico bruto.
+## D-196 — Coleta NFS-e liberada globalmente após cadastro de A1 válido (29/09/2026)
+
+O proprietário autorizou explicitamente a coleta NFS-e para todos os clientes. A flag de produção `NFSE_ADN_SYNC_ENABLED` deve permanecer ativa. O cadastro de um A1 válido habilita e enfileira a coleta da empresa correspondente; certificado vencido, revogado, incompatível ou ausente pausa somente aquela empresa e nunca bloqueia as demais. A interface não deve exibir aviso de liberação pendente da Mewstack. Esta decisão substitui o gate operacional de D-189 e D-195 para a ativação global, sem dispensar isolamento por tenant, auditoria ou tratamento conservador de falhas.
+## D-197 — Fila NFS-e visível e atualizada automaticamente (29/09/2026)
+
+A tela de coleta exibirá um painel operacional por empresa, atualizado em intervalos curtos sem recarregar a página, com os estados na fila, coletando, concluída, nova tentativa, ignorada e falhou. O painel deve mostrar totais, empresa, explicação curta e horário da atualização; empresas sem A1 válido aparecem como ignoradas e não contaminam o estado das demais. A tabela detalhada e as ações administrativas permanecem como fonte complementar.
+## D-198 — Bianchi usa o ADN oficial para documentos reais (29/09/2026)
+
+O proprietário solicitou e autorizou a baixa real de todas as empresas elegíveis da Bianchi & Rizzotto. O ambiente `trial` respondeu HTTP 404 para a carteira real e não serve como origem dos documentos oficiais; produção passa a usar `NFSE_ADN_ENVIRONMENT=production`. A troca não permite repetir indiscriminadamente resultados incertos: apenas sincronizações sem sucesso ou com erro são reenfileiradas, mantendo checkpoint, deduplicação, isolamento por empresa e auditoria.
+## D-199 — Retentativa NFS-e sem recarregar ou perder posição (29/09/2026)
+
+Falhas individuais da coleta terão retentativa explícita por empresa e retentativa conjunta apenas das falhas, executadas por requisição assíncrona com CSRF, escopo da carteira e permissão administrativa. A ação não reinicia empresas concluídas ou em processamento e não recarrega a tela. Retentativas automáticas continuam usando backoff para falhas transitórias; falhas definitivas exigem ação humana depois da correção da causa.
+## D-200 — Coleta NFS-e cadenciada para proteger produção (29/09/2026)
+
+A coleta real será processada em ritmo limitado por worker, preservando isolamento e evitando que uma importação grande degrade PostgreSQL e a navegação. O dispatcher recupera automaticamente leases vencidos como nova tentativa. A fila pode conter muitas empresas, mas a execução é cadenciada; velocidade não tem prioridade sobre disponibilidade e integridade.
+
+## D-201 — Uma empresa conclui todos os NSUs antes da próxima (29/09/2026)
+
+A unidade visível da fila é a empresa, não o lote técnico do ADN. O worker consulta internamente lotes oficiais de até 50 documentos e continua a mesma empresa até `ultNSU` alcançar `maxNSU`; somente então libera a próxima empresa. `checkpoint_nsu`, `max_nsu` e o NSU de cada documento ficam persistidos para retomada e deduplicação. Uma tarefa pode ceder após dez páginas para proteger banco e worker, mas deve reenfileirar a mesma empresa antes de acionar o dispatcher global. Certificados inválidos são ignorados por empresa e não bloqueiam a fila.
+
+## D-202 — Classificação fiscal na própria lista de notas (29/09/2026)
+
+A tela separada de revisões deixa de integrar a navegação e sua URL antiga redireciona para `Notas` filtrada pelas pendências. Cada nota pendente oferece acumulador e ação `Classificar` na própria linha; evidência e XML ficam em detalhe recolhido, sem navegação obrigatória. A primeira abertura de `Notas` usa a competência imediatamente anterior ao mês atual, inclusive dezembro do ano anterior quando o mês atual for janeiro; filtros escolhidos explicitamente pelo usuário prevalecem.
+
+## D-203 — Notas agrupadas por empresa e estado binário (29/09/2026)
+
+A tela principal agrupa as notas por empresa em seções expansíveis e usa somente os estados operacionais `Classificada` e `Não classificada`; o filtro oferece `Todas`, `Classificadas` e `Não classificadas`. Cada nota classificada e cada grupo de empresa podem gerar e baixar diretamente o ZIP auditável vigente, sem abrir a aba de exportações. O pacote continua identificado tecnicamente como conferência enquanto Q-39 não fornecer e homologar o layout da rotina automática do Domínio; a interface não pode prometer importação automática antes desse aceite.
+
+## D-204 — Operação NFS-e por número da nota, correção e seleção em lote (29/09/2026)
+
+Origem: correção explícita do proprietário sobre o fluxo diário. A lista de NFS-e passa a mostrar o número/código fiscal normalizado da nota, sem expor hash ou NSU como identificação operacional. Hash e NSU permanecem apenas na rastreabilidade interna e nos artefatos auditáveis. Quando a fonte não fornecer o número, a tela declara a ausência em vez de substituir silenciosamente pelo NSU.
+
+Proprietário, administrador, gestor e operador podem corrigir o acumulador de uma nota classificada diretamente na lista, escolhendo somente um código vigente ou observado da mesma empresa. A correção não altera nem apaga a classificação anterior: cria novo artefato e nova entrada no histórico, identifica responsável e instante e faz os próximos downloads usarem a decisão mais recente. A tela oferece seleção por nota, por empresa exibida, por página e por todos os resultados classificados do filtro atual, inclusive entre páginas e empresas; a ação informa a quantidade antes do download. Enquanto Q-39 continuar aberto, o resultado permanece denominado pacote de conferência com XMLs e manifesto, sem promessa de layout importável ou importação concluída no Domínio.
+
+## D-205 — PostgreSQL no Neon e processamento no Fly (29/09/2026)
+
+Origem: instrução explícita do proprietário para separar definitivamente banco e processamento. O Fly permanece responsável por web, worker, fila e balanceamento; os bancos lógicos `cica_main` e `cica_knowledge` migram para o projeto Neon `raspy-river-46466568`, branch `production`, região São Paulo. A aplicação usa endpoint pooled e releases/migrations usam endpoints diretos. O Postgres legado do Fly permanece intacto durante a janela de rollback e só pode ser removido em decisão posterior.
+
+O corte de produção exige dump consistente dos dois bancos com checksum, restauração sem erro, schema normalizado idêntico, contagem e hash de conteúdo idênticos para todas as tabelas, migrations limpas e leitura real pelos dois aliases Django. Enquanto essa barreira não estiver verde, a produção continua no Fly Postgres. A credencial Neon exposta por diagnóstico foi rotacionada antes de qualquer uso em produção.
+
+## D-206 — Acumulador Domínio identificado pela tag ACU em qualquer profundidade (29/09/2026)
+
+Origem: esclarecimento explícito do proprietário sobre o conjunto de dados do Domínio. A integração identifica acumulador pelo nome local da tag XML `ACU`, percorrendo o documento inteiro e ignorando qual seja seu pai ou namespace. O XML derivado para conferência deve conter `ACU` com o código da decisão mais recente; quando existir `prod`, a tag pode ficar dentro dele, e XMLs NFS-e sem `prod` recebem a tag na raiz. Uma `ACU` já existente é atualizada, não tratada como caminho fixo. O XML fiscal original persistido permanece imutável.
+
+## D-207 — Empresa pausada continua acessível pelo cadastro (30/09/2026)
+
+Origem: falha encontrada no smoke test real da Bianchi após a migração. Uma empresa pausada aparecia corretamente no cadastro, mas o detalhe usava o escopo operacional restrito a empresas ativas e devolvia 404 para o link gerado pela própria lista. O detalhe passa a aceitar empresas ativas ou pausadas do mesmo escritório, preservando integralmente os limites de carteira, tenant e sessão de suporte. Pausar uma empresa impede operações automáticas aplicáveis; não apaga nem torna inacessível seu histórico cadastral.
+
+## D-208 — PostgreSQL legado do Fly desligado após corte para o Neon (30/09/2026)
+
+Origem: instrução explícita do proprietário. Depois de confirmar que os aliases de produção usam exclusivamente o Neon e que a release, o worker e o health estão saudáveis, a máquina do PostgreSQL legado `cica-contabil-db` deve ser parada. A máquina e seu volume não serão destruídos nesta ação, preservando um rollback recuperável; qualquer remoção definitiva continua exigindo instrução específica.
+
+## D-209 — Fechar tudo que for tecnicamente executável e auditar as promessas das telas (30/09/2026)
+
+Origem: instrução explícita do proprietário. O trabalho atual pode avançar em todas as etapas e módulos para corrigir defeitos, fechar pendências locais, endurecer a operação, executar testes e revisar em navegador se cada tela e interação cumpre o comportamento prometido. A revisão deve confrontar interface, permissão, estado persistido, efeitos colaterais, falhas, estados vazios e responsividade; texto ou botão existente não constitui prova funcional.
+
+Continuam fora da autorização implícita decisões comerciais, fiscais, jurídicas ou de retenção ainda abertas; uso de credenciais, certificados ou dados que não estejam disponíveis por canal seguro; chamadas pagas, novas despesas, mensagens externas e homologações que dependam de fornecedor ou aceite humano. O executor deve resolver primeiro tudo que independe dessas entradas e, ao final, entregar uma lista objetiva do que somente o proprietário ou terceiros podem fornecer, decidir ou homologar. Nenhuma pendência externa pode ser marcada como concluída por simulação.
+
+## D-211 — Reauditoria por facilidade de uso e descoberta das ações (30/09/2026)
+
+Complemento seleção na configuração de Conciliação (01/10/2026): empresa explicitamente inválida, inacessível ou ambígua não pode ser substituída pela primeira da carteira. POST exige uma empresa explícita no corpo, sem herdar query string. Mostrar recuperação no próprio seletor, sem cadastros de outra empresa e sem executar alterações. Somente o GET inicial sem filtro mantém a seleção inicial existente. IDs de ações e ações desconhecidas devem ser recusados antes de consultar ou alterar registros; preservadas permissões, carteira e dados já persistidos.
+
+Complemento descoberta e carteiras extensas na Conciliação (01/10/2026): os seletores de empresa da configuração, importação, filtro de movimentos e futura exportação devem aceitar busca progressiva por nome ou código sem trocar silenciosamente o contexto. Digitar não escolhe a primeira correspondência; a empresa só muda após seleção explícita. O controle nativo continua disponível sem JavaScript e a busca informa quantidade e ausência de resultados. A central deve apresentar a sequência real como 1. importar, 2. processar, 3. revisar e 4. exportar, mantendo a importação encontrável mesmo quando já existem dados. Perfis somente de consulta não recebem ação de escrita e o bloqueio de exportação Domínio continua explícito até Q-39 ser homologada.
+
+Complemento Conciliação avançada (01/10/2026): no escritório demo, recusar leitura e escrita dos endpoints `reconciliation_*` de configuração, auditoria, arquivos, execução, movimentos e exportação antes de consultar esses dados. Preservar somente a central e a confirmação fictícia já isoladas por sessão. Aplicar a visitante, membro e suporte, sem alterar escritórios não-demo. Explicar o limite e oferecer retorno direto à comparação fictícia, sem sugerir problema de permissão ou tentativa posterior. Não representa homologação dos fluxos reais.
+
+Complemento Conciliação (01/10/2026): listagem e confirmação do cenário fictício dependem do escritório demo, não do método de entrada. Membro autorizado e visitante usam progresso de sessão; auditor continua sem confirmação. Upload de arquivos não é permitido nesse escritório, inclusive via POST direto. Não ampliar funcionalidades contábeis nem considerar essa simulação homologação de importação/exportação.
+
+Na demo, apresentar diretamente a comparação fictícia disponível, sem carregar painéis compartilhados de processamentos/movimentos/exportações. Informar esse limite; a navegação completa permanece no escritório não-demo. A revisão dos endpoints de configuração e ações avançadas continua separada, sem declarar isolamento integral antes dos respectivos testes.
+
+Complemento DTE (01/10/2026): preparação deixa de ficar recolhida; atalho explícito no topo leva à seleção de empresas por âncora nativa, sem requisição, perda de filtros/seleção ou dependência de JavaScript. Consultas preparadas têm atalho secundário quando existem. Preservar preparo local, revisão e autorização separados, permissões e indicação de simulação; seleção demo não deve anunciar consumo Serpro. Referências: GOV.UK Details, GitHub execução manual e Shopify Polaris Page, adaptadas ao layout existente.
+
+Complemento DTE demo (01/10/2026): preparação, autorização, cancelamento e abertura do teor ficam na sessão de qualquer usuário autorizado do escritório is_demo, não só do visitante público. Registros de referência permanecem imutáveis e a demo não prepara paginação externa. Permissão específica e confirmação da abertura continuam obrigatórias; não registrar ciência oficial nem liberar perfis de leitura.
+
+Complemento de acompanhamento (01/10/2026): explicitar atualização de resultado como navegação GET sem nova consulta Serpro, reserva ou repetição automática. Preservar bloqueio de retorno incerto; exibir identificador local para conciliação, sem inventar resolução ou autorizar nova tentativa.
+
+Complemento de lote (01/10/2026): manter a revisão de seleção/custo visível junto à tabela, explicar limite de 30 e seleção somente da página, sem executar antes da confirmação. Perfis somente de consulta não recebem seleção ou envio. Normalizar identificadores UUID antes de deduplicar e transmitir centavos sem localização; o backend continua revalidando escopo/custo.
+
+Complemento DCTFWeb individual (01/10/2026): aplicar o mesmo progresso isolado por sessão do lote à consulta individual demo, sem serviços persistentes, cobrança ou documento oficial. Identificar explicitamente o resultado como simulação e não prometer PDF inexistente. Validar competência antes de qualquer efeito e preservar autorização/carteira. Não altera a consulta real nem substitui sua homologação.
+
+Complemento de isolamento (01/10/2026): nos fluxos já simulados de Parcelamentos e lote DCTFWeb, a natureza fictícia depende do escritório `is_demo`, não do método de entrada. Visitante e membro autorizado do escritório de demonstração usam estado exclusivo da sessão, sem consultas, reservas ou registros fiscais compartilhados. Perfis de consulta e suporte não ganham autorização de execução. Não amplia serviços Serpro ou escopo fiscal homologado.
+
+Origem: instrução explícita do proprietário. Reabrir a revisão de todas as telas, inclusive as já verificadas, priorizando encontrar, entender e concluir tarefas sem orientação externa. Pesquisar padrões e ideias de layout online antes das decisões de cada tela, além de UI/UX Pro Max e Watermelon. Iniciar pela descoberta do download em lote de NFS-e; usar nomes de tarefas claros, seleção com abrangência explícita e orientação quando faltarem dados ou classificação. Preservar permissões e o limite de homologação Q-39. O objetivo ativo inclui esta reauditoria; validação técnica anterior não constitui aceite de usabilidade.
+
+Complemento de execução: aplicar o mesmo limite de acesso do cadastro ao atalho explícito de NFS-e de empresa pausada e à recuperação dos pacotes existentes. Identificar a pausa na tela; não incluir pausadas automaticamente na carteira operacional, reativar coletas ou ampliar acesso de colaboradores/CRMew/suporte restrito. Isso estende a consistência de D-207 ao histórico fiscal já disponível no cadastro.
+
+## D-212 — Histórico de pacotes restrito à carteira atual (30/09/2026)
+
+Complemento Central Integra (01/10/2026): o indicador de consultas DTE pendentes usa o mesmo escopo integral da fila, inclusive progresso da sessão para membros demo. Preparações demo com empresas removidas do escopo não são apresentadas como lotes parciais que o usuário não pode confirmar; histórico concluído continua restrito às empresas visíveis. Não alterar execução externa ou permissões.
+
+Complemento D-209/D-211 (01/10/2026): aplicar também à fila DTE o escopo integral atual da carteira. Consultas preparadas mistas, vazias ou inconsistentes não aparecem nem podem ser autorizadas/retiradas por quem não tem acesso a todos os itens. Lista, contador e POST usam a mesma restrição; revogação vale na próxima requisição. Sem mudar layout, contrato ou executar chamadas externas.
+
+Complemento de execução D-209/D-154 (01/10/2026): preparar no workflow existente a regressão PostgreSQL completa, após SQLite e antes de gerar imagens, usando serviço descartável sem credenciais de produção. Não usar `continue-on-error` nem seleção que deixe os testes concorrentes de fora. A edição local não dispara pipeline; aprovação remota do CI e eventual custo de execução permanecem sujeitos à validação antes de publicação.
+
+Origem: revisão de segurança autorizada em D-209/D-211. A lista de downloads NFS-e só pode revelar pacotes cujas notas estejam integralmente no escopo atual do usuário, assim como o download. Pacote misto não é parcialmente exposto. Registrar vínculo relacional pacote/notas para aplicar a restrição no banco antes da paginação; reconstruir vínculos legados somente a partir de IDs válidos do manifesto e do mesmo tenant, sem alterar XML, ZIP ou snapshot. Registros incompletos ficam indisponíveis, sem inferir autorização. Revogação de acesso deve ter efeito na próxima consulta. Mudança local, sem autorização adicional de publicação/homologação.
+
+## D-210 — Neon suspende somente em ociosidade real (30/09/2026)
+
+Origem: instrução explícita do proprietário para reduzir o custo do Neon sem degradar funções, filas ou crescimento. O Fly Proxy verifica somente `/api/v1/health/live/`; `/api/v1/health/ready/` continua verificando banco e cache para releases e operação, mas deixa de consultar o Postgres a cada 15 segundos. O compute Neon mantém autoscaling de 0,25 a 1 CU e passa a suspender após 300 segundos sem atividade.
+
+Trabalho normal continua imediato por Celery. Varreduras que existem apenas para recuperar uma entrega excepcional são alinhadas em janelas de 15 minutos, e integrações desabilitadas por configuração não entram na agenda até o próximo restart que as habilitar. A coleta NFS-e ativa, suas continuações de 30 segundos, checkpoints, leases e retentativas não são atrasados. O banco deve permanecer acordado sempre que existir coleta ou tráfego real; economia nunca tem prioridade sobre concluir trabalho autorizado.
+
+Complemento D-211 — mapeamento de arquivos da Conciliação (01/10/2026): a etapa deve
+mostrar arquivo, empresa, formato e posição na jornada antes dos controles; distinguir os
+campos obrigatórios, a escolha alternativa entre valor com sinal e débito/crédito e os campos
+opcionais. Sugestões automáticas permanecem revisáveis e nunca justificam processamento
+silencioso. Erro preserva nome e escolhas, aparece em resumo focável e junto ao campo. Perfis
+de consulta recebem apenas contexto e prévia. Salvar uma nova versão informa se realmente
+iniciou processamento ou se servirá somente a arquivos futuros; nenhum processamento será
+prometido quando não houver execução elegível. A prévia continua limitada e identificada como
+amostra, sem modificar o arquivo original ou constituir homologação de formato bancário.
+
+Complemento D-211 — filtro de competência dos fechamentos (01/10/2026): agrupar rótulo,
+controle mensal e erro como um único campo, com o rótulo acima do input. A ação fica alinhada
+à base do controle, usa texto curto e específico e não ocupa largura desnecessária no desktop;
+no celular, campo e ação usam a largura disponível em uma coluna. Preservar o `input type=month`,
+o valor na URL, o foco visível e a altura mínima de 44 px.
+
+## D-213 — Demonstração operacional povoada em produção (01/10/2026)
+
+Pedido explícito: popular melhor a demo em produção, incluindo atividades e uma rotina representativa. Autoriza atualizar exclusivamente o escritório marcado `is_demo` e publicar o código necessário para apresentar o cenário. Usar empresas e pessoas fictícias, atividades das quatro áreas, prazos relativos à data da preparação, modelos, responsáveis, impedimentos, evidências e histórico identificados como simulados. A entrada pessoal do visitante representa uma persona sintética estável, sem atribuir registros compartilhados à conta temporária. Preservar isolamento por sessão e bloqueios de escrita da demonstração; não consultar provedores, enviar mensagens, cobrar ou alterar escritórios reais. Seed transacional, repetível, com recusa explícita de tenant operacional; nenhum reset de senha. Aplicar em infraestrutura existente, com incremento estimado abaixo de US$ 1,00 e sem recurso recorrente novo. Validar o cenário publicado em desktop e celular e registrar contagens e limites reais.
+
+## D-214 — Recuperação segura para token de formulário renovado (01/10/2026)
+
+Origem: falha real apresentada pelo proprietário em `cicacontabil.com.br/app/aparencia/` e confirmada nos logs como `CSRF token from POST incorrect`. O Django renova o token após login; abas anteriores podem conservar um campo escondido inválido. Antes de enviar a preferência de aparência, o cliente deve obter um token atual do endpoint já existente, mantendo cookie `HttpOnly`, verificação CSRF e POST. Qualquer rejeição residual em tela HTML deve conservar status 403, não expor a página técnica padrão nem detalhes internos, informar que nada foi aplicado e oferecer retorno seguro à origem do mesmo host. APIs mantêm resposta JSON. Referências externas nunca podem virar destino de recuperação.
+
+## D-215 — Página inicial orientada à próxima ação (01/10/2026)
+
+Origem: avaliação explícita do proprietário e reauditoria de D-211. A página inicial não deve
+apresentar estados técnicos repetidos como se fossem orientação de trabalho. Ela passa a abrir
+com um resumo contextual do recorte atual, filtros de prioridade inteiramente acionáveis e uma
+fila legível que responda: qual atividade, de qual empresa, quando vence e por que exige atenção.
+Na visão pessoal, o responsável repetido é omitido; na Carteira e na Gestão, permanece visível.
+Estado de processamento, obrigação e atualização continua preservado no detalhe, mas só aparece
+na fila inicial quando representa exceção útil, como impedimento ou fonte indisponível. Prazo
+relativo complementa a data exata sem substituir o prazo interno/legal. Nenhuma atividade é
+reordenada ou encerrada automaticamente.
+
+Referências adotadas: Linear My Issues (agrupamento por foco e propriedades exibidas sob demanda),
+Asana My Tasks (Hoje, Próximas e Mais tarde), Karbon My Week (cartão resumido e detalhe sob demanda)
+e Pageflows/Process Street (fila, filtro e detalhe como etapas separadas). Refero confirmou o uso
+de telas reais de dashboard e SaaSFrame foi consultado para composição B2B, mas não expôs um fluxo
+de tarefas verificável sem acesso pago. Watermelon não retornou correspondência após a busca focada
+e a tentativa estreita. As referências foram adaptadas ao design e às permissões já existentes.
+
+## D-216 — Pastas do pacote NFS-e identificam a empresa com segurança (01/10/2026)
+
+Origem: reauditoria funcional de D-211 na produção. O download em lote estava operacional, mas
+gerava diretórios como `Emitidas/0106 -/`: o código Domínio permanecia, enquanto o nome da empresa
+prometido pela separação visual desaparecia. O pacote de demonstração e o pacote de conferência
+não-demo passam a usar `código - nome da empresa`, com remoção de separadores de caminho,
+caracteres de controle e nomes vazios. O manifesto e a fotografia auditável devem registrar o
+mesmo caminho efetivamente gravado. O XML original, acumulador, escopo, permissões e o bloqueio de
+homologação Q-39 permanecem inalterados.
+
+## D-217 — Coleta NFS-e mostra uma verdade operacional e separa simulação (01/10/2026)
+
+Origem: reauditoria funcional da tela “Coleta automática” após V-248. A demonstração não pode
+apresentar “Produção” ou “acompanhamento ao vivo” quando nenhum provedor é consultado. Seu resumo,
+fila e configuração devem usar o mesmo estado privado da sessão e afirmar explicitamente que a
+execução é simulada. No escritório operacional, a tela continua refletindo somente dados
+persistidos e autorizados.
+
+A hierarquia passa a responder, nessa ordem: se existe algo que requer ação, o que está sendo
+processado ou aguardando, e onde alterar a configuração por empresa. Certificado ausente,
+falha/retry e pausa são estados distintos; “ignorada” não serve como rótulo genérico. A lista de
+acompanhamento é a leitura principal e a tabela técnica/configuração fica secundária e expansível,
+sem esconder a recuperação de falhas. Ações em lote preservam permissões, seleção explícita,
+CSRF, escopo de carteira e confirmação de resultado. Nenhuma ativação simulada pode aparentar
+sucesso para empresa sem A1 válido. Esta decisão não muda ADN, ordem global, checkpoint, regra
+fiscal, custo, certificado real nem a homologação pendente Q-39.
+
+## D-218 — Conciliação conduz pela exceção e preserva o trabalho inválido (01/10/2026)
+
+Origem: continuação da reauditoria D-211 sobre a jornada não-demo. A entrada da Conciliação deve
+mostrar uma próxima ação operacional, priorizando conflito e pendência antes de volume total. A
+sequência Importar → Processar → Revisar → Exportar permanece, mas cada etapa informa seu estado e
+leva diretamente ao trabalho correspondente; métricas descritivas não competem com a ação.
+
+O mapeamento de CSV/XLSX deve explicar origem e destino, marcar os campos essenciais, preservar
+nome e escolhas quando houver erro e devolver um resumo focável com links para os campos. Data e
+Histórico são obrigatórios; o valor exige exatamente uma estratégia válida: Valor com sinal ou o
+par Débito/Crédito. Coluna ausente ou reutilizada continua recusada pelo serviço. Filtros explícitos
+inválidos não podem ampliar silenciosamente a carteira: devem resultar em erro recuperável e zero
+movimentos exibidos.
+
+Referências adotadas: Xero para revisão humana apenas quando a automação não tem confiança,
+QuickBooks para conferir diferenças antes de concluir e BlackLine para filas orientadas a exceção,
+evidência e workflow por papel. Watermelon não retornou correspondência após busca focada e retry;
+UI/UX Pro Max reforçou resumo de erros focável, erro em linha, recuperação concreta e alvos web.
+Permissões, trilha imutável, regras contábeis, exportação bloqueada e homologação Q-39 permanecem
+inalteradas.
+
+## D-219 — Senhas passam a aceitar o mínimo de 8 caracteres (01/10/2026)
+
+Origem: pedido explícito do proprietário. Cadastro, ativação por convite e redefinição de senha
+devem aceitar senhas a partir de 8 caracteres e rejeitar as de 7 ou menos, com a mesma regra na
+validação do servidor, nos atributos do navegador, nas mensagens de ajuda e na documentação.
+Continuam ativos Argon2, bloqueio e limitação de tentativas, erros de autenticação neutros e, nos
+fluxos que já usam a validação global do Django, os bloqueios de senha comum, exclusivamente
+numérica e semelhante aos dados da conta. A mudança não reduz senhas existentes, não exige troca
+periódica e não cria regra de composição. Senhas mais longas e gerenciadores continuam
+recomendados. O mínimo de 8 é uma decisão explícita de produto; a referência NIST SP 800-63B-4
+exige 15 quando a senha é o único fator e admite 8 quando ela integra autenticação multifator,
+portanto MFA permanece necessária para contas importantes e privilegiadas.
+
+## D-220 — Pasta NFS-e usa somente `código-` no padrão Domínio (01/10/2026)
+
+Origem: correção explícita do proprietário, que substitui a parte de D-62/D-216 sobre o nome da
+pasta. Dentro de `Emitidas/`, `Tomadas/` ou `NFS-e/`, cada empresa deve ser identificada por
+`CÓDIGO-`, sem espaço e sem nome depois do hífen. O manual oficial de Rotinas Automáticas da
+Domínio confirma que a pasta precisa iniciar com o código da empresa seguido de hífen e que o
+texto posterior ao hífen é indiferente; logo, deixar esse trecho vazio é compatível e evita
+divergência por razão social. Código vazio continua usando `SEM-CODIGO-`, e separadores, segmentos
+de caminho e caracteres de controle continuam neutralizados. ZIP, manifesto e fotografia
+auditável devem registrar exatamente o mesmo caminho. XML, competência, acumulador, seleção,
+permissões e o bloqueio de homologação Q-39 permanecem inalterados.
+
+## D-221 — Central NFS-e explicita entrada/saída e contexto fiscal (01/10/2026)
+
+Origem: crítica explícita do proprietário durante a reauditoria D-211. A lista de notas deve
+responder sem abrir detalhes: se é **Saída · serviço prestado** ou **Entrada · serviço tomado**,
+qual a contraparte quando disponível, número, emissão, competência, valor, situação da revisão e
+acumulador. Tipo desconhecido nunca é adivinhado: aparece como **Tipo a confirmar**, separado nos
+resumos e filtrável. O filtro de movimento usa `Todos`, `Saídas / prestados`, `Entradas / tomados`
+e `A confirmar`, preserva os demais filtros na URL e não pode ampliar resultados inválidos.
+
+Para novas coletas ADN, o tipo é derivado somente quando o CNPJ da empresa coincide de forma
+inequívoca com o grupo `prest`/Prestador ou `toma`/Tomador do XML; documentos antigos ou leiautes
+sem papéis verificáveis permanecem desconhecidos. A demonstração recebe os dois tipos e
+contrapartes fictícias. O resumo deixa de chamar todas as notas genericamente de “Recebidas” e
+passa a mostrar total, saídas, entradas e pendências de classificação. Downloads, seleção,
+permissões, XML original, acumulador e Q-39 não mudam nesta decisão.
+
+Referências adotadas: Domínio separa NFS-e de Serviços Prestados e Serviços Tomados; o leiaute
+oficial da NFS-e Nacional identifica `prest` e `toma`; Xero separa invoices de vendas e bills de
+compras e mantém estado e valor visíveis na lista. UI/UX Pro Max reforçou moeda consistente,
+trilha auditável e um único status contextual; Watermelon não retornou composição pertinente na
+busca focada nem no retry estreito. As referências foram adaptadas à linguagem fiscal brasileira
+e ao design existente, sem copiar marcas ou telas.
+
+Referência interna adicional: a implementação existente em `HubCobalchini` confirmou que a
+extração precisa procurar CNPJ/CPF e nome dentro das seções próprias de prestador e tomador, que
+`dhProc` representa melhor a emissão efetiva da NFS-e do que a emissão da DPS (`dhEmi`) e que,
+para a conferência de serviços tomados, retenções de ISS, PIS, COFINS, CSLL, IRRF e INSS são
+informação operacional de primeira linha. O CICA adota esses campos quando vierem explicitamente
+no XML, sem calcular tributo ausente e sem copiar o fallback daquele projeto que infere o tipo
+mesmo quando o CNPJ da empresa não coincide com nenhuma das partes.
+
+## D-222 — Acumulador NFS-e usa `infNFSe/valores/acum`, não `ACU` (01/10/2026)
+
+Origem: correção explícita do proprietário, substituindo integralmente D-206 e a parte de V-220
+que tratava `ACU` como contrato. No XML derivado do pacote de conferência, o código do acumulador
+deve ser lido ou escrito na tag local minúscula `acum`, como filha de `valores` dentro de
+`infNFSe`, preservando o namespace do documento. A integração não procura `ACU` em qualquer
+profundidade, não a cria em `prod` nem na raiz e não mantém uma tag `ACU` legada no XML derivado.
+Ausência de `valores` pode ser suprida dentro de `infNFSe`; ausência de `infNFSe` torna o XML
+incompatível com este adaptador e bloqueia o pacote, em vez de inventar uma posição. O XML fiscal
+original persistido continua imutável e Q-39 continua impedindo chamar o pacote de importação
+homologada no Domínio.
+
+## D-223 — Acumuladores pesquisáveis e pacotes NFS-e recuperáveis (01/10/2026)
+
+Origem: reauditoria funcional e de usabilidade solicitada pelo proprietário. A aba Acumuladores
+deve permitir ao contador localizar empresa, código, descrição e origem sem carregar o catálogo
+inteiro na memória. O cadastro manual continua sendo apenas disponibilização do acumulador para
+classificações futuras, conforme D-113; não cria regra automática. A demonstração não exibirá
+um formulário cujo envio é recusado, e explicará que o catálogo ali é somente para consulta.
+
+A aba Exportações deve responder, no próprio histórico, quantas notas e empresas compõem cada
+pacote, qual período ele cobre, quem o gerou, se e quando foi baixado e qual é seu código de
+conferência. Busca e filtro de situação devem operar no banco e a paginação deve continuar
+preservando pacotes antigos. Rebaixar um pacote continua autorizado dentro do escopo atual; arquivo
+ausente orienta a gerar outro. `Importação confirmada` permanece bloqueada por D-112/Q-39.
+
+Padrões adotados: trilha filtrável por data, usuário e evento do Xero e QuickBooks; artefato
+rebaixável com retenção/indisponibilidade explícita do GitHub Actions; tabela responsiva que vira
+cartão no mobile e mensagens de erro com próximo passo conforme a pesquisa UI/UX local. Watermelon
+não retornou composição pertinente na busca focada nem no retry estreito, por isso as referências
+oficiais acima complementam o design system existente.
+
+## D-224 — Relatórios de retenções NFS-e seguem o recorte visível (01/10/2026)
+
+Origem: pedido explícito do proprietário para expor os impostos retidos e reproduzir no CICA as
+funções úteis de relatório PDF e XLSX do HubCobalchini. A Central NFS-e deve oferecer os dois
+formatos diretamente na área de notas e aplicar exatamente a empresa, pesquisa, movimento e
+período escolhidos pelo contador. O relatório inclui empresa, número, entrada/saída, emissão,
+competência, contraparte, serviço, valor da nota, ISS, PIS, COFINS, CSLL, IRRF, INSS e total
+retido. PDF prioriza resumo e conferência; XLSX inclui resumo e detalhe filtrável, com datas e
+valores tipados. Fórmulas vindas de texto fiscal são neutralizadas na planilha.
+
+Somente valores de retenção explicitamente normalizados do XML podem entrar nos totais. Não se
+repete o comportamento legado do HubCobalchini que tratava `vRetCSLL` como todo o CRF: PIS,
+COFINS e CSLL permanecem separados, e o total é a soma dos seis campos disponíveis. Direção não
+identificada aparece como `A confirmar`; cancelamento ou ausência de dado não autoriza cálculo
+fiscal implícito. A consulta é limitada à organização, à carteira autorizada e a 5.000 notas por
+arquivo; acima disso, o usuário deve refinar empresa ou período. Geração é local, síncrona,
+auditada, sem persistir outro arquivo e sem chamar provedor. A demonstração usa somente dados
+fictícios e marca o relatório como demonstração.
+
+Referências adotadas: a documentação de produção da NFS-e Nacional para os campos e esquemas
+vigentes; a NT SE/CGNFS-e 007 para distinguir valores devidos de valores retidos e não decompor
+indevidamente a retenção agregada; o Guia do Emissor Público para ISS, IRRF, CSLL e contribuição
+previdenciária; e o HubCobalchini apenas como referência funcional de seleção, resumo, detalhe e
+proteção contra fórmulas. Watermelon não encontrou bloco ou dashboard pertinente após busca
+focada e tentativa contábil refinada. A interface segue o design system do CICA, com escopo
+visível antes das ações e rótulos explícitos `Baixar PDF` e `Baixar Excel`.
+
+## D-225 — Empresa pausada preserva histórico NFS-e em modo de consulta (02/10/2026)
+
+Origem: reauditoria D-211 e pendência explícita da etapa 11. Pausar uma empresa deve removê-la da
+carteira operacional comum e impedir nova coleta ou classificação, mas não apagar nem esconder o
+histórico fiscal de proprietários/administradores sem carteira restrita. Ao abrir a NFS-e pelo
+cadastro da empresa, a página deve declarar no topo que o recorte é histórico e somente leitura,
+explicar o que continua disponível e apontar para o cadastro onde um perfil autorizado pode
+reativar a empresa. Downloads de XML/ZIP e relatórios do acervo continuam disponíveis dentro das
+permissões atuais; ações que alterariam a classificação ou iniciariam coleta permanecem ausentes.
+Perfis com carteira explícita não ganham acesso a empresa pausada por esta exceção histórica.
+
+A interface não deve chamar pendências de “Classificar” quando a classificação estiver bloqueada;
+nesse contexto, o indicador abre somente a consulta. GitHub, Slack e Jira orientaram o padrão de
+conteúdo arquivado legível, pesquisável e sem novas alterações; a documentação do QuickBooks
+confirmou que registros inativos continuam aparecendo em relatórios. UI/UX Pro Max reforçou estado
+textual além de cor, semântica e texto curto. Watermelon não encontrou dashboard ou bloco pertinente
+após busca focada e retry, portanto esses padrões públicos foram adaptados ao design existente.
+
+## D-226 — Erros web recuperáveis sem revelar existência de recursos (02/10/2026)
+
+Origem: reauditoria de estados de erro do goal ativo. O CICA deve responder 400, 403, 404 e 500
+com páginas próprias, status HTTP correto e próximo passo explícito. A resposta 404 continua sendo
+usada também quando um registro existe fora da organização ou carteira do usuário: o texto não pode
+confirmar existência, dono, permissão faltante nem causa interna. A página deve explicar apenas que
+o endereço, conteúdo ou acesso pode ter mudado e oferecer retorno seguro ao CICA. O erro 500 não
+mostra exceção, stack trace, configuração, identificador de banco ou dado do pedido; oferece nova
+tentativa por GET e retorno ao início. Respostas de caminhos `/api/` continuam JSON, sem HTML.
+
+Todas as respostas recebem `Cache-Control: private, no-store` e `X-Content-Type-Options: nosniff`.
+O handler 500 não depende de consulta ao banco para escolher destino. UI/UX Pro Max orientou erro
+com recuperação e foco visível; Watermelon ofereceu sua família de blocos de erro após o retry.
+Foram adaptados o padrão de não enumeração do GitHub (404 no lugar de confirmar recurso privado),
+a orientação do MDN de manter o status 404 real e não confundir o usuário, a mensagem curta de
+falha temporária do Slack e a ação direta usada pela Atlassian quando o endereço está incorreto.
+
+## D-227 — Conciliação expõe falha e não promete processamento inexistente (02/10/2026)
+
+Origem: continuação da reauditoria D-211/D-218 na jornada não-demo. Uma importação parada em
+mapeamento, conta financeira, OCR ou falha deve aparecer antes das métricas de volume como próxima
+ação operacional. Cada linha de processamento apresenta orientação segura derivada do estado e da
+etapa, nunca a exceção técnica bruta. O destino deve ser específico quando existe: mapear colunas,
+configurar a conta da empresa, abrir os movimentos do arquivo ou reprocessar.
+
+Salvar uma nova versão de layout só pode afirmar “processamento iniciado” quando existe execução
+elegível efetivamente recolocada na fila. Se o arquivo já não possui execução pendente, o sistema
+informa que o layout foi salvo para arquivos futuros e que nada foi iniciado. A mudança não altera
+o arquivo original, decisões contábeis, permissões, idempotência, fila, exportação nem o bloqueio de
+homologação Q-39.
+
+## D-228 — Revisão e entrega contábil têm próximo passo e confirmação explícitos (02/10/2026)
+
+Origem: continuação da reauditoria não-demo da Conciliação. O detalhe do movimento deve apresentar
+uma única próxima ação derivada do estado: completar dados, gerar rascunho, aprovar, aguardar
+exportação, restaurar item ignorado ou reconhecer item já exportado. Ações secundárias, como criar
+regra e ignorar, permanecem disponíveis, mas não competem visualmente com o passo principal.
+
+Uma exportação contábil pronta pode continuar sendo baixada depois da confirmação. Cada download é
+auditado. A confirmação de importação é um POST separado, exige permissão, layout Domínio
+homologado, confirmação humana do hash exibido e revalidação do arquivo armazenado contra o hash
+persistido. Ela registra ator e instante e nunca ocorre automaticamente pelo download. Arquivo
+ausente ou divergente não avança o estado. Q-39 continua bloqueando geração e confirmação reais;
+testes com a configuração explicitamente habilitada provam apenas o contrato local.
+
+UI/UX Pro Max orientou estado e feedback de carregamento; o catálogo Watermelon não encontrou bloco
+em uma busca focada nem na tentativa mais estreita. Foram adotados os padrões observados em
+QuickBooks (revisão antes de contabilizar), Xero (revisão individual e lote separados) e Ramp
+(estado de sincronização distinto da conclusão financeira, com recuperação explícita).
+
+UI/UX Pro Max orientou resumo de erro focável, estado estável e próximo passo; Watermelon não
+encontrou bloco pertinente após busca focada e retry. Xero e QuickBooks fundamentaram as etapas
+explícitas de mapeamento, revisão de resultado e correção; BlackLine, o tratamento por exceção; e
+SaaSFrame, o uso de progresso e resumo final em importações. Os padrões foram adaptados ao fluxo e
+ao design system já existentes.
+
+## D-229 — Configuração da Conciliação distingue requisito, recomendação e controle opcional (03/10/2026)
+
+Origem: reauditoria de facilidade de uso da Conciliação prevista em D-211. A configuração por empresa
+não pode afirmar “pronto” quando faltam contas, nem apresentar período aberto e automação como se
+fossem pré-requisitos universais. Conta contábil ativa que aceite lançamentos é requisito para gerar e
+validar partidas; conta financeira é recomendada e passa a ser exigida na importação de extrato
+bancário somente quando a empresa já possui esse cadastro; período serve para bloquear intervalos e a
+ausência dele não bloqueia; centro de custo e regras/layouts são controles opcionais conforme a
+operação. A tela deve nomear essas diferenças, indicar uma única próxima ação e recolher formulários
+de criação até pedido explícito, mantendo erro aberto e focado. Listas devem paginar sem corte
+silencioso e ações devem retornar à seção afetada. Nenhum cadastro é criado, ativado ou inferido
+automaticamente, e permissões, auditoria, Q-39 e as validações contábeis existentes permanecem.
+
+## D-230 — Auditoria da Conciliação prioriza investigação humana, sem expor payload bruto (03/10/2026)
+
+Origem: reauditoria de facilidade de uso da trilha prevista em D-211. A listagem deve responder, na
+primeira leitura, o que aconteceu, quando, por quem, sobre qual tipo de registro e se a operação teve
+êxito. Códigos de ação, UUIDs e demais referências internas ficam recolhidos em “Detalhes técnicos”;
+metadados só aparecem quando a chave está em uma lista segura e com rótulo de negócio. A interface
+não renderiza JSON bruto, hash de IP, request id, arquivo, documento financeiro ou segredo.
+
+A busca pode combinar atividade, pessoa/referência, resultado e intervalo de datas. Parâmetro
+inválido ou intervalo invertido deve produzir orientação visível e nenhum resultado, nunca ampliar
+silenciosamente a consulta. Filtros e página permanecem na URL, a paginação usa 50 eventos e a tela
+explica tanto a ausência total de histórico quanto uma busca sem correspondência. O escopo continua
+restrito ao escritório atual e aos perfis Owner, Admin e Manager; esta revisão não amplia permissões,
+retenção, exportação, mutação nem acesso aos objetos apontados pela trilha.
+
+## D-231 — Importação manual usa escolha, análise e confirmação separadas (03/10/2026)
+
+Origem: reauditoria da entrada operacional e da prévia da folha previstas em D-138 e D-141. O
+operador deve primeiro escolher o conteúdo, depois enviar um arquivo e só então revisar uma prévia
+antes de qualquer gravação. A orientação de formato aparece junto ao tipo escolhido; para folha, o
+modelo, código/CNPJ, competência `AAAA-MM-01`, referência e regra de campos ausentes ficam explícitos.
+
+O arquivo inteiro da folha é pré-validado sem criar fotografias ou atividades. A prévia sinaliza por
+linha empresa não localizada, competência, referência e totais/pessoas inválidos e não oferece a ação
+de confirmação enquanto houver pendências. A confirmação continua revalidando tudo dentro da
+transação e mantém rollback integral. Arquivo idêntico já processado retorna ao histórico, em vez de
+abrir uma prévia vazia. Nenhum valor ausente é inferido e nenhuma permissão foi ampliada.
+
+UI/UX Pro Max orientou resumo de erros focável, ajuda contextual e reflow; Watermelon não encontrou
+resultado para upload/importação após a busca focada e o retry. Foram adaptados os padrões de
+HubSpot (preparação, prévia e erro por linha), Salesforce (escolher, enviar/mapear, revisar),
+QuickBooks (instruções e formatos antes do envio) e Google Workspace (modelo e diagnóstico
+acionável), preservando o design system e a linguagem contábil do CICA.
+## D-232 — Conferência de folha começa pela competência e mostra todos os totais (03/10/2026)
+
+Origem: continuidade da reauditoria de telas solicitada pelo proprietário. A ficha da empresa não
+deve carregar um seletor irrestrito com todo o histórico nem pedir que o contador descubra por erro
+quais registros pertencem ao mesmo mês. A lista de folha passa a mostrar pessoas, bruto, descontos,
+encargos do empregador e líquido, preservando ausências explícitas. Quando uma competência tiver ao
+menos duas fontes, a ação local abre somente aquele mês; com exatamente duas fontes, ambas ficam
+pré-selecionadas sem executar ou concluir a conferência automaticamente. O resultado identifica a
+diferença como valor a mais ou a menos da fonte conferida em relação à fonte de referência. A
+tolerância monetária continua opcional e não se aplica ao quadro de pessoas.
+
+A comparação permanece agregada, somente leitura e sem dados de trabalhador, cálculo de folha,
+aceite oficial ou mudança de estado da atividade. Pesquisa prévia consultou UI/UX Pro Max; Watermelon
+não encontrou composição após busca e refinamento. QuickBooks, Rippling, Gusto e ADP foram
+inspecionados como referências de relatórios de folha e reforçaram período explícito, origem,
+resumo de bruto/descontos/encargos/líquido e exceção antes do detalhe; o desenho final permanece
+adaptado ao fluxo contábil e ao design system da CICA.
+
+## D-233 — Caixa DTE prioriza leitura e separa resumo de ciência (03/10/2026)
+
+Origem: reauditoria da jornada DTE solicitada pelo proprietário. A Caixa Postal continua começando
+pelas mensagens já recebidas, com empresa, assunto, origem, data e situação. Cada mensagem terá uma
+única ação textual “Abrir resumo”; o assunto deixa de repetir o mesmo link, reduzindo paradas de foco
+e tornando a próxima ação inequívoca. Filtros, navegação do serviço, métricas acionáveis e botões da
+jornada terão alvo mínimo de 44 px, e metadados/ações deixam de usar texto de 11 px como conteúdo
+operacional principal.
+
+Abrir o resumo continua sendo somente leitura e não registra ciência. O teor permanece separado e
+exige confirmação explícita do risco jurídico e, quando aplicável, do consumo/excedente. Estados de
+retorno incerto não oferecem repetição automática. A demonstração permanece isolada na sessão, sem
+Serpro, cobrança ou ciência oficial. No celular, o histórico de consultas usa cartões rotulados em
+vez de exigir rolagem horizontal de uma tabela larga.
+
+Pesquisa prévia: UI/UX Pro Max reforçou feedback contextual e anúncio significativo de contagens;
+o catálogo Watermelon não encontrou dashboard nem bloco para caixa de entrada após busca e retry.
+Foram adaptados padrões da Caixa Postal da Receita Federal, Caixa de Mensagens do DET, Microsoft 365
+Message Center e Outlook: mensagens recentes primeiro, situação lida/não lida, filtros explícitos,
+origem/data e detalhe separado. Nenhuma interface, marca ou texto foi copiado.
+
+## D-234 — Radar é uma fila de triagem, não uma tabela técnica (03/10/2026)
+
+Origem: reauditoria da jornada do Radar dentro da meta de tornar todas as telas descobríveis e úteis
+ao escritório contábil. A página principal apresenta publicações oficiais como uma fila de leitura
+em ordem recente, com título, resumo, fonte, data, estado da coleta e ações visíveis sem rolagem
+horizontal. “Abrir fonte oficial” apenas consulta a origem; “Analisar impacto” abre a decisão humana
+por empresa. Nenhuma publicação cria atividade, aplicabilidade, prazo ou obrigação por si só.
+
+A tela de análise prioriza primeiro a publicação e depois a ação: empresa autorizada, motivo concreto
+e botão que explica que criará ou retomará uma atividade. Carteiras longas recebem filtro local
+progressivo sem substituir o `select` nativo nem tornar JavaScript obrigatório. Análises existentes
+aparecem depois do formulário e levam à atividade já criada. Filtros e retorno à fila preservam a
+URL, estados vazios orientam recuperação e controles mantêm alvo mínimo de 44 px. A demonstração
+continua sem criar análise e links fictícios não são tratados como prova da publicação.
+
+## D-235 — Retenções NFS-e ficam legíveis e os formatos de relatório são explícitos (03/10/2026)
+
+Origem: revalidação final do pedido D-224 contra o HubCobalchini e uso renderizado em celular. A
+lista continua mostrando somente tributos retidos explicitamente presentes no XML e mantém ISS,
+PIS, COFINS, CSLL, IRRF e INSS separados. O controle que abre o detalhamento passa a ter alvo mínimo
+de 44 px e texto operacional legível; a ação de planilha identifica também a extensão `.xlsx`, sem
+alterar filtros, cálculos, permissões ou o limite de 5.000 notas. PDF prioriza conferência e XLSX
+preserva dados tipados, resumo e detalhe filtrável. A homologação dos valores com amostra fiscal real
+e o retorno Domínio de Q-39 continuam externos e não podem ser concluídos por dados fictícios.
+
+## D-236 — Guias e DCTFWeb priorizam a próxima ação sem expor falha técnica (03/10/2026)
+
+Origem: continuação da reauditoria integral de telas do objetivo ativo. A carteira deve apresentar
+primeiro as guias oficiais quando elas existirem e manter a apuração do Domínio como fila de
+descoberta separada. Cada guia terá uma ação principal coerente com o estado: emitir ou repetir uma
+falha confirmada, acompanhar processamento, baixar o DARF já obtido ou aguardar conciliação quando o
+resultado for incerto. “Ver resultado” não será usado antes de existir resultado; detalhes e
+documentos permanecem ações secundárias.
+
+Chaves de serviço, exceções do conector/fornecedor e mensagens brutas persistidas deixam de aparecer
+como conteúdo operacional. A interface usa orientação segura derivada do estado e do código de erro;
+referências necessárias ao suporte ficam recolhidas como detalhe técnico, sem renderizar payload. Na
+consulta DCTFWeb, os dois documentos são apresentados por nome e progresso, não pela chave interna.
+Resultado incerto continua sem repetição: D-149 e Q-40 permanecem bloqueados até existir regra de
+conciliação e custo adicional aprovada pelo proprietário. A revisão não muda preço, consumo,
+permissões, integração Serpro, valores fiscais ou homologação externa.
+
+UI/UX Pro Max reforçou feedback após envio e atualização contextual sem deslocar foco. Watermelon não
+encontrou dashboard tributário nem bloco de histórico de pagamentos após busca focada e refinamento.
+Foram adaptados os padrões da Receita Federal/DCTFWeb (período, situação, saldo e ação de emitir), do
+QuickBooks Tax Center (obrigação atual e pagamentos recentes) e do Stripe (estado operacional e
+recuperação de falha), preservando a identidade e as regras fiscais do CICA.
+## D-267 — Parcelamentos orientados por empresa, acordo, parcela e DAS (03/10/2026)
+
+- Ao abrir uma empresa, seu contexto e próximo passo aparecem antes da carteira; a carteira fica
+  abaixo como troca de contexto, busca e seleção em lote.
+- A hierarquia usa a terminologia oficial da Receita: consultar pedidos, conferir situação e
+  consolidação, consultar parcelas disponíveis e emitir/baixar o DAS. Situação, valor consolidado,
+  parcela básica, quantidade, pagamentos e parcelas em atraso/mês atual ficam no contexto.
+- Ações que podem consumir tokens exigem uma revisão de escopo e custo antes do POST. Na demo a
+  revisão declara ausência de consumo e o DAS fictício baixável é inequivocamente sem validade.
+- Cada estado apresenta uma orientação segura e uma ação principal. Resultado incerto bloqueia
+  repetição; liberar nova tentativa exige confirmação explícita de conferência no e-CAC.
+- Mensagem bruta do provedor não aparece na leitura principal. Registro CICA, protocolo e código de
+  falha ficam recolhidos em detalhes para suporte, sem apagar a evidência persistida.
+- A decisão adapta Receita Federal/Portal do Simples (consulta → detalhe → emissão), Stripe
+  (estado define ações permitidas), QuickBooks Tax Center (obrigação atual antes do histórico) e
+  Xero Tax Manager (cliente, referência, prazo e situação). UI/UX Pro Max reforçou feedback de
+  envio e atualização contextual. Watermelon não encontrou analogia em duas buscas focadas.
+- Nada aqui define regra fiscal, tarifa, pagamento, quitação, reemissão ou homologação PARCSN;
+  contrato, credenciais, representação e retorno real continuam dependências externas.
+## D-268 — Ficha de atividade orientada ao próximo passo (03/10/2026)
+
+- A leitura principal segue: contexto da empresa e prazo → próximo passo → condições para concluir → responsável → evidências e histórico.
+- Estados técnicos permanecem disponíveis, mas são traduzidos como condições de conclusão; código interno e referências ficam recolhidos para suporte.
+- Registrar evidência, registrar impedimento e concluir são intenções separadas. Só uma ação principal fica aberta por vez; conclusão exige revisão explícita e não é apresentada quando há requisito pendente conhecido.
+- Formulários inválidos preservam dados, exibem erros junto aos campos e retornam foco à seção afetada.
+- Evidência e histórico permanecem imutáveis; esta decisão não cria reabertura manual, dispensa, exclusão nem nova regra de conclusão.
+- Quando a atividade está impedida e as evidências já atendem às condições, a revisão explicita que concluir também resolve o impedimento atual; isso torna visível a regra preexistente que limpa o motivo e preserva o evento na trilha.
+- A interface preserva carteira, papéis e permissões vigentes. Perfis somente leitura recebem o mesmo contexto sem controles de escrita.
+- Pesquisa: Asana orientou campos essenciais e conclusão no detalhe; Linear orientou propriedades e responsabilidade; ClickUp orientou atividade cronológica junto da tarefa. UI/UX Pro Max reforçou feedback de sucesso e confirmação; Watermelon não retornou composição pertinente após duas buscas.
+
+## D-269 — Central de atividades como fila de decisão (03/10/2026)
+
+- O recorte padrão mostra trabalho em aberto; atividades concluídas e dispensadas continuam acessíveis por filtro explícito, sem disputar atenção com o trabalho atual.
+- Prioridades recorrentes ficam visíveis antes dos filtros detalhados: em aberto, atraso, hoje, próximos sete dias, impedidas e fonte indisponível. Trocar prioridade preserva área, empresa, competência e responsável quando aplicável.
+- Área, situação, atualização, empresa, competência e responsabilidade formam um único formulário avançado. Filtros ativos aparecem como elementos removíveis, a URL continua compartilhável e existe uma ação inequívoca para limpar o recorte.
+- Valor de filtro inválido ou combinação incompatível nunca amplia silenciosamente a consulta: a tela mostra o erro e nenhum registro até a correção ou limpeza.
+- Cada item expõe atividade/empresa, próximo passo, prazo relativo e exato, responsável, situação e uma única ação “Conferir”. No celular, a mesma informação vira cartão rotulado; nenhuma coluna essencial é simplesmente escondida.
+- A decisão não cria busca irrestrita, edição em lote, mudança automática de responsável ou nova regra de estado. Carteira e permissões permanecem as vigentes.
+- Referências: Linear orientou filtros refletidos na URL e foco no recorte; ClickUp orientou situação, prazo e responsável; Asana orientou lista ordenável por prazo/responsável; Microsoft Planner orientou separar filtro temporário de mudança nos dados e usar grade para escaneamento. UI/UX Pro Max confirmou reflow dos filtros; não encontrou regra de stack após retry. Watermelon não retornou dashboard nem bloco pertinente após duas buscas.
+## D-270 — Modelos de atividades como biblioteca e fluxo progressivo (03/10/2026)
+
+- A tela administrativa deve começar pelo estado operacional: quantidade de modelos ativos, atribuições ativas, empresas cobertas e atribuições aptas à geração.
+- Definir modelo, aplicar a uma empresa e gerar uma competência são etapas distintas e progressivas; os três formulários não devem disputar atenção ao mesmo tempo.
+- A biblioteca de modelos e a revisão de atribuições devem ser paginadas e mostrar cobertura agregada, sem renderizar toda a carteira em uma única resposta.
+- Repetir a atribuição do mesmo modelo à mesma empresa deve retornar erro recuperável no próprio formulário, nunca erro interno nem ampliação silenciosa.
+- Pausar um modelo interrompe novas atribuições e novas gerações daquela versão, preservando atividades e histórico já criados. Pausar uma atribuição afeta somente a empresa correspondente.
+- A geração manual deve declarar previamente quantas atribuições ativas serão consideradas, preservar idempotência e nunca inventar prazo ausente.
+
+## D-271 — Fechamentos por competência como fila de conferência (03/10/2026)
+
+- O painel deve responder primeiro quantos fechamentos da página exigem atenção, quantos estão
+  comprovados e quantas combinações de empresa/área ainda não têm requisitos; os totais não podem
+  aparentar representar empresas fora da página paginada.
+- Estados com ação vêm antes dos concluídos. Cada combinação configurada mostra empresa, área,
+  progresso, situação, próximo passo e uma ação direta; atividades, evidências e requisitos ficam
+  disponíveis em detalhe sem dominar a leitura inicial.
+- Fechamentos comprovados formam um grupo secundário recolhível. Ausência de requisitos é tratada
+  como lacuna de cobertura, nunca como conclusão ou dispensa; administradores recebem atalho para
+  modelos e demais perfis recebem orientação para acionar o administrador.
+- Competência inválida não substitui silenciosamente o recorte pelo mês atual: nenhum fechamento é
+  apresentado até o usuário corrigir ou limpar o filtro. Carteira, paginação, requisitos e regras de
+  comprovação existentes permanecem inalterados.
+- Foram adaptados os padrões de visibilidade de progresso e exceções do
+  [FloQast Close](https://get.floqast.com/hubfs/Assets/FloQast_Guide_Buyers%20Guide%20to%20Selecting%20a%20Financial%20Close%20Management%20Solution_January%202023.pdf),
+  de situação, responsável e próxima tarefa do
+  [Financial Cents](https://help.financial-cents.com/en/articles/5390143-tracking-work-deadlines-in-your-workflow-dashboard),
+  e de revisão por etapas e pendências do
+  [QuickBooks Books Review](https://quickbooks.intuit.com/learn-support/en-us/help-article/manage-client/month-end-reviews-finish-clients-open-tasks/L4GubaqKy_US_en_US).
+  UI/UX Pro Max reforçou feedback contextual e cartões responsivos; Watermelon não retornou
+  composição pertinente após busca ampla e refinada.
+
+## D-272 — Cadastro de empresas como carteira de ação (03/10/2026)
+
+- A lista de empresas deve responder antes da busca quais cadastros ativos exigem atenção por
+  revisão NFS-e, certificado A1 ou ausência de código no Domínio. As contagens respeitam a carteira
+  autorizada e cada prioridade é um filtro explícito; empresas pausadas permanecem consultáveis,
+  mas não entram como pendência operacional.
+- Busca e prioridades ficam sempre visíveis. Situação, vínculo, certificado e revisão aberta são
+  refinamentos progressivos, para não fazer cinco controles disputarem atenção na entrada da tela.
+- Cada empresa expõe identidade, contexto de integração e um único próximo passo. Revisão NFS-e
+  leva diretamente à fila da empresa; certificado leva à central de A1; ausência de código leva à
+  ficha para conferência. Cadastro pronto ou pausado não recebe alerta falso.
+- Filtro inválido nunca amplia silenciosamente a carteira: o resultado fica vazio, o erro é
+  anunciado e focado e a pessoa pode limpar o recorte. O filtro de vínculo passa a aceitar também
+  empresas sem código, necessidade que antes não podia ser isolada.
+- Foram adaptados os padrões de visão de cliente e tarefas abertas do
+  [QuickBooks Accountant](https://quickbooks.intuit.com/learn-support/en-ie/help-article/manage-client/learn-clients-overview-bookkeeping-tabs-quickbooks/L5p3u06h5_IE_en_IE),
+  de filtros e recortes da
+  [TaxDome](https://sv.help.taxdome.com/article/123-accounts-list-overview-filters-export),
+  de contexto e acompanhamento do
+  [Karbon](https://karbonhq.com/en-GB/solution/client-management/) e de grupos operacionais do
+  [Financial Cents](https://help.financial-cents.com/en/articles/5386247-organize-your-clients-into-groups).
+  UI/UX Pro Max orientou reflow e feedback. Watermelon não retornou composição pertinente após
+  busca ampla e refinada.
+
+## D-273 — Ficha da empresa como espaço de trabalho do cliente (05/10/2026)
+
+- A ficha deve responder primeiro quem é a empresa, qual é a próxima ação e quais áreas possuem
+  conteúdo ou atenção. Identificação, trabalho, fiscal, folha, financeiro, documentos e DTE ficam
+  acessíveis por navegação local com contagens; o conteúdo detalhado permanece disponível em
+  seções progressivas, sem exigir uma rolagem integral para descobrir o que existe.
+- Trabalho impedido ou vencido precede revisão NFS-e, certificado ausente/vencendo e demais
+  atividades abertas na escolha da próxima ação. Empresa pausada permanece somente histórica e
+  não recebe chamada operacional enganosa.
+- O cadastro só pode ser alterado nesta ficha quando for local, a sessão puder administrar toda a
+  carteira e o escritório não estiver sob Domínio, fonte importada ou controle central. Dados com
+  origem externa são somente leitura e indicam que a correção deve ocorrer na fonte; a interface
+  não oferece pausa manual que a próxima sincronização reverteria.
+- Edição inválida preserva os dados, retorna HTTP 400, reabre o diálogo e move o foco ao resumo de
+  erros. Toda alteração válida mantém a empresa e seu histórico, registra auditoria e não muda
+  atividade, certificado, documento ou autorização.
+- Foram adaptados o resumo por cliente, abas com contagens e limite de itens ativos do
+  [TaxDome](https://help.taxdome.com/article/client-account-overview-page), o registro único com
+  próximos trabalhos, documentos e histórico do
+  [Financial Cents](https://help.financial-cents.com/en/articles/4213253-client-profile), a visão
+  conjunta de trabalho, comunicação e prazos do
+  [Karbon](https://karbonhq.com/en-GB/solution/client-management/) e a priorização de tarefas do
+  [QuickBooks Accountant](https://quickbooks.intuit.com/learn-support/en-ca/help-article/manage-client/learn-clients-overview-bookkeeping-tabs-quickbooks/L5p3u06h5_CA_en_CA).
+  UI/UX Pro Max orientou estado ativo, hierarquia de títulos e navegação por seção; não encontrou
+  correspondência específica para “próxima ação” após retry. Watermelon não retornou composição
+  pertinente após busca ampla e refinada.
+
+## D-275 — Auditoria integral e plano de conclusão do produto (05/10/2026)
+
+Origem: pedido do proprietário para analisar todo o CICA, suas funcionalidades, sentido das telas,
+usabilidade e gaps, pesquisar sistemas similares online e criar um plano. Esta entrega autoriza
+pesquisa pública, inspeção do repositório, navegação local com dados fictícios e atualização da
+documentação. O resultado complementa o plano mestre e as etapas 00–13; não cria plano concorrente.
+As recomendações novas serão identificadas como propostas, com prioridade, dependência e aceite.
+Não há nesta solicitação implementação das propostas, publicação, envio de mensagens, consumo de
+APIs comerciais ou nova autorização sobre dados reais. Evidência histórica, inspeção atual,
+hipótese de usabilidade e homologação serão diferenciadas. Preservar alterações locais existentes.
+
+## D-274 — Reclassificação NFS-e pelo backup e contrato `infNFSe/valores/acum` (05/10/2026)
+
+- Os arquivos Krek fornecidos são conjuntos do importador Domínio, não notas fiscais. Eles
+  confirmam o contrato de saída para NFS-e tomadas: uma única tag minúscula `<acum>` como filha
+  direta de `infNFSe/valores`; `<ACU>` pertence ao leiaute de NF-e e é legado inválido em NFS-e.
+- O XML fiscal original permanece imutável. A tag é escrita e validada somente na cópia derivada
+  do pacote de exportação, removendo qualquer `<ACU>` legado; isso preserva hash/evidência e evita
+  representar que o documento oficial recebido já continha uma extensão privada do Domínio.
+- Uma rotina administrativa idempotente reaplica regras e observações do backup a todas as NFS-e
+  do escritório escolhido. Ela exige fotografia concluída com catálogo e observações, aceitando
+  tanto um lote único quanto o par catálogo/lote-filho de observações da mesma fotografia, oferece
+  prévia por padrão e só grava com `--apply`.
+- Classificação automática confiante cria nova evidência append-only apenas quando o acumulador
+  efetivo mudou ou ainda não existia. Revisão aberta sem correspondência segura recebe sugestão e
+  confiança atualizadas; quando a evidência é segura, ela é encerrada com origem explícita
+  `backup`, nunca como decisão humana. Decisões humanas existentes nunca são substituídas.
+- Cada nova evidência aponta para a anterior, registra a fotografia de backup usada e pode ser
+  revertida logicamente pelo encadeamento, sem apagar história. A execução registra totais e evento
+  de auditoria, sem incluir conteúdo fiscal no log.
+
+## D-276 — Correção emergencial da tela e downloads NFS-e (05/10/2026)
+
+Pedido explícito: revisar criticamente a tela publicada, corrigir e fazer deploy rápido, verificando produção. Escopo: NFS-e, seus filtros, botões, seleção e downloads; preservar modificações locais alheias.
+- Atualização dos filtros deve sincronizar lista, indicadores, relatório e campos enviados ao servidor. Filtro vazio deve oferecer recuperação, não instrução falsa de configurar coleta.
+- Disponibilizar download dos XMLs originais do filtro para os mesmos perfis já autorizados a baixar NFS-e, inclusive antes da classificação. Não inserir acumulador, não modificar classificação e não representar esse arquivo como pacote Domínio. Pacote classificado existente conserva suas regras.
+- Separar claramente XML original, ZIP classificado e relatórios; priorizar notas e controles operacionais, com relatórios em seção recolhível. Preservar identidade, teclado, foco e mobile.
+- Publicar patch isolado sobre a imagem atual, sem migração, sem novo recurso ou mudança de capacidade. Build local e substituição nas máquinas existentes: incremento estimado inferior a US$ 0,10, sem aumento mensal; rollback pela imagem anterior.
+- UI/UX Pro Max consultado (SaaS, estados desabilitados; stack HTML sem correspondência após retry). Watermelon sem resultado em `bulk selection` e `table`. Refero/SaaSFrame consultados; TaxDome (https://help.taxdome.com/article/233-how-to-edit-download-print-filter-documents) orienta separar download original de ações de classificação, e Helios (https://helios.hashicorp.design/patterns/table-multi-select) orienta escopo explícito da seleção. Correção localizada, sem redesenho genérico.
+- Evidência adicional da captura: sessão de suporte vigente é `read_only`. Download original/relatórios são leitura do mesmo acervo já autorizado, não alteração fiscal. Desacoplar essas leituras de `support_can_mutate`, preservando o escopo de empresas e a recusa de classificação/exportação derivada nessa sessão. Suporte `full` deve respeitar a autorização já existente, sem exigir vínculo de colaborador ausente por definição.
+- A primeira coluna sem checkbox estava recebendo largura de 48 px, comprimindo identificação e selos. Usar classe semântica exclusiva na célula de seleção; abrir a conferência na ficha existente em vez de expandir centenas de pixels dentro da tabela.
+- Solicitação subsequente: após publicação da correção de tela, auditar classificação, acumuladores por empresa e erros de importação apresentados no Domínio. Inspecionar os dados existentes primeiro, sem presumir regras fiscais novas ou sobrescrever decisões humanas.

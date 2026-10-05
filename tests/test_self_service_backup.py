@@ -130,6 +130,7 @@ def test_agent_claims_downloads_and_completes_a_web_backup(tmp_path) -> None:
                         "accumulator_code": "SERV-001",
                         "service_code": "1401",
                         "counterparty_ref": "9f86d081884c7d659a2feaa0",
+                        "direction": "provided",
                         "frequency": 7,
                         "last_used_at": "2026-09-23T20:00:00-03:00",
                     }
@@ -176,6 +177,7 @@ def test_agent_claims_downloads_and_completes_a_web_backup(tmp_path) -> None:
         accumulator_code="SERV-001",
         service_code="1401",
         counterparty_ref="9f86d081884c7d659a2feaa0",
+        direction=AccumulatorObservation.Direction.PROVIDED,
         frequency=7,
     ).exists()
 

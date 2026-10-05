@@ -7,6 +7,7 @@ const focusables = (root) =>
 
 const closeModal = (modal) => {
   if (!modal) return;
+  modal.dispatchEvent(new CustomEvent('cica:modal-closing'));
   modal.hidden = true;
   modal.querySelectorAll('form').forEach(form => dirtyForms.delete(form));
   document.querySelectorAll('[data-modal-inert]').forEach((item) => {
@@ -70,6 +71,261 @@ document.querySelectorAll('[data-modal]').forEach((modal) => {
   });
 });
 
+document.querySelectorAll('[data-modal-invalid]').forEach((modal) => {
+  const trigger = document.querySelector(`[data-modal-open="${modal.id}"]`);
+  openModal(modal, trigger);
+});
+
+document.querySelectorAll('[data-certificate-files]').forEach((input) => {
+  const zone = input.closest('.certificate-drop-zone');
+  const form = input.closest('[data-certificate-import-form]');
+  if (form) form.dataset.certificateQueueReady = 'true';
+  const status = form?.querySelector('[data-certificate-file-count]');
+  const updateCount = () => {
+    if (!status) return;
+    const count = input.files?.length || 0;
+    status.textContent = count
+      ? `${count} arquivo${count === 1 ? '' : 's'} selecionado${count === 1 ? '' : 's'} para validação.`
+      : 'Nenhum arquivo selecionado.';
+  };
+  input.addEventListener('change', updateCount);
+  ['dragenter', 'dragover'].forEach(type => input.addEventListener(type, () => zone?.classList.add('is-dragging')));
+  ['dragleave', 'drop'].forEach(type => input.addEventListener(type, () => zone?.classList.remove('is-dragging')));
+  let activeController = null;
+  let cancelPendingChoice = null;
+  let cancelled = false;
+
+  const queue = form?.querySelector('[data-certificate-queue]');
+  const queueStatus = form?.querySelector('[data-certificate-queue-status]');
+  const queueCancel = form?.querySelector('[data-certificate-queue-cancel]');
+  const retry = form?.querySelector('[data-certificate-queue-retry]');
+  const stopQueue = (message = 'Importação cancelada.') => {
+    if (!form?.dataset.queueRunning) return;
+    cancelled = true;
+    activeController?.abort();
+    cancelPendingChoice?.();
+    cancelPendingChoice = null;
+    if (retry) retry.hidden = true;
+    if (queueStatus) queueStatus.textContent = message;
+    form.removeAttribute('aria-busy');
+    delete form.dataset.queueRunning;
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit instanceof HTMLButtonElement) {
+      submit.disabled = false;
+      submit.textContent = 'Importar e vincular';
+    }
+  };
+  queueCancel?.addEventListener('click', () => stopQueue());
+  form?.closest('[data-modal]')?.addEventListener('cica:modal-closing', () => stopQueue());
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    if (form.dataset.queueRunning) return;
+    const files = [...(input.files || [])];
+    if (!files.length) return;
+    cancelled = false;
+    form.dataset.queueRunning = 'true';
+    form.setAttribute('aria-busy', 'true');
+    const submit = form.querySelector('button[type="submit"]');
+    if (submit instanceof HTMLButtonElement) {
+      submit.disabled = true;
+      submit.textContent = 'Importando fila…';
+    }
+
+    const queueProgress = form.querySelector('[data-certificate-queue-progress]');
+    const queueResults = form.querySelector('[data-certificate-queue-results]');
+    const retryTitle = form.querySelector('[data-certificate-retry-title]');
+    const retryPosition = form.querySelector('[data-certificate-retry-position]');
+    const retryMessage = form.querySelector('[data-certificate-retry-message]');
+    const retryPasswordFields = form.querySelector('[data-certificate-retry-password-fields]');
+    const retryPassword = form.querySelector('[data-certificate-retry-password]');
+    const retryError = form.querySelector('[data-certificate-retry-error]');
+    const retrySubmit = form.querySelector('[data-certificate-retry-submit]');
+    const retrySkip = form.querySelector('[data-certificate-retry-skip]');
+    const commonPassword = form.querySelector('[name="common_password"]')?.value || '';
+    const csrf = form.querySelector('[name="csrfmiddlewaretoken"]')?.value || '';
+    if (queue) queue.hidden = false;
+    if (queueProgress) queueProgress.max = files.length;
+
+    const upload = async (file, password, position) => {
+      const payload = new FormData();
+      payload.append('csrfmiddlewaretoken', csrf);
+      payload.append('pfx_files', file);
+      payload.append('common_password', password);
+      payload.append('queue_upload', '1');
+      payload.append('queue_position', String(position));
+      activeController = new AbortController();
+      const response = await fetch(form.action || window.location.href, {
+        method: 'POST',
+        body: payload,
+        headers: { 'X-CICA-CERTIFICATE-QUEUE': '1' },
+        signal: activeController.signal,
+      });
+      const responseText = await response.text();
+      let body;
+      try {
+        body = JSON.parse(responseText);
+      } catch {
+        throw new Error(response.status >= 500
+          ? 'O serviço oscilou. Tente este arquivo novamente.'
+          : 'Sua sessão expirou. Atualize a página e entre novamente.');
+      } finally {
+        activeController = null;
+      }
+      if (!response.ok) throw new Error(body.error || 'Não foi possível enviar o certificado.');
+      return body.result;
+    };
+    const askPassword = (position, file) => new Promise(resolve => {
+      retry.hidden = false;
+      retry.scrollIntoView({ block: 'nearest' });
+      retryMessage.textContent = 'Informe a senha para continuar.';
+      retryPasswordFields.hidden = false;
+      retryError.hidden = true;
+      retryPosition.textContent = `${position} de ${files.length}`;
+      retryTitle.textContent = file.name;
+      retryPassword.value = '';
+      retryPassword.focus();
+      const finish = value => {
+        retrySubmit.removeEventListener('click', submitPassword);
+        retrySkip.removeEventListener('click', skipFile);
+        retryPassword.removeEventListener('keydown', submitOnEnter);
+        cancelPendingChoice = null;
+        resolve(value);
+      };
+      const submitPassword = () => {
+        if (!retryPassword.value) {
+          retryError.textContent = 'Digite a senha para tentar novamente.';
+          retryError.hidden = false;
+          retryPassword.focus();
+          return;
+        }
+        finish(retryPassword.value);
+      };
+      const skipFile = () => finish(null);
+      const submitOnEnter = keyEvent => {
+        if (keyEvent.key !== 'Enter') return;
+        keyEvent.preventDefault();
+        submitPassword();
+      };
+      retrySubmit.addEventListener('click', submitPassword);
+      retrySkip.addEventListener('click', skipFile);
+      retryPassword.addEventListener('keydown', submitOnEnter);
+      cancelPendingChoice = skipFile;
+    });
+    const askUploadRetry = (position, file, message) => new Promise(resolve => {
+      retry.hidden = false;
+      retry.scrollIntoView({ block: 'nearest' });
+      retryPosition.textContent = `${position} de ${files.length}`;
+      retryTitle.textContent = file.name;
+      retryMessage.textContent = message;
+      retryPasswordFields.hidden = true;
+      retryError.hidden = true;
+      retrySubmit.textContent = 'Tentar novamente';
+      const finish = value => {
+        retrySubmit.removeEventListener('click', tryAgain);
+        retrySkip.removeEventListener('click', skipFile);
+        cancelPendingChoice = null;
+        resolve(value);
+      };
+      const tryAgain = () => finish(true);
+      const skipFile = () => finish(false);
+      retrySubmit.addEventListener('click', tryAgain);
+      retrySkip.addEventListener('click', skipFile);
+      retrySubmit.focus();
+      cancelPendingChoice = skipFile;
+    });
+    const showResult = (position, file, result) => {
+      let row = queueResults.querySelector(`[data-queue-position="${position}"]`);
+      if (!row) {
+        row = document.createElement('li');
+        row.dataset.queuePosition = String(position);
+        const filename = document.createElement('span');
+        const status = document.createElement('strong');
+        row.append(filename, status);
+        queueResults.append(row);
+      }
+      row.querySelector('span').textContent = file.name;
+      row.className = `is-${result.status}`;
+      row.querySelector('strong').textContent = result.status === 'recognized'
+        ? 'Importado'
+        : result.reason === 'open_failed' ? 'Precisa de senha' : 'Conferir';
+    };
+
+    try {
+      for (let index = 0; index < files.length; index += 1) {
+        if (cancelled) break;
+        const position = index + 1;
+        queueStatus.textContent = `Conferindo arquivo ${position} de ${files.length}…`;
+        let result = null;
+        while (!cancelled && result === null) {
+          try {
+            result = await upload(files[index], commonPassword, position);
+          } catch (error) {
+            if (cancelled || error.name === 'AbortError') break;
+            const retryUpload = await askUploadRetry(
+              position,
+              files[index],
+              error.message || 'Não foi possível enviar este arquivo.',
+            );
+            if (!retryUpload) result = { status: 'unrecognized', reason: 'skipped' };
+          }
+        }
+        if (cancelled || result === null) break;
+        showResult(position, files[index], result);
+        while (!cancelled && result.reason === 'open_failed') {
+          const password = await askPassword(position, files[index]);
+          if (password === null) break;
+          try {
+            result = await upload(files[index], password, position);
+          } catch (error) {
+            if (cancelled || error.name === 'AbortError') break;
+            const retryUpload = await askUploadRetry(
+              position,
+              files[index],
+              error.message || 'Não foi possível enviar este arquivo.',
+            );
+            if (!retryUpload) break;
+            continue;
+          }
+          showResult(position, files[index], result);
+          retryError.textContent = 'Senha incorreta. Confira e tente novamente.';
+          retryError.hidden = result.reason !== 'open_failed';
+        }
+        retry.hidden = true;
+        queueProgress.value = position;
+      }
+      if (cancelled) return;
+      queueStatus.textContent = 'Fila concluída. Atualizando o resultado…';
+      window.location.reload();
+    } catch (error) {
+      if (cancelled || error.name === 'AbortError') return;
+      queueStatus.textContent = 'A fila foi pausada. Você pode tentar novamente ou fechar.';
+      form.removeAttribute('aria-busy');
+      delete form.dataset.queueRunning;
+      if (submit instanceof HTMLButtonElement) {
+        submit.disabled = false;
+        submit.textContent = 'Tentar novamente';
+      }
+    }
+  });
+});
+
+document.querySelectorAll('[data-password-toggle]').forEach((button) => {
+  const input = document.getElementById(button.dataset.passwordToggle);
+  if (!(input instanceof HTMLInputElement)) return;
+  button.addEventListener('click', () => {
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    button.textContent = reveal ? 'Ocultar' : 'Mostrar';
+    button.setAttribute('aria-pressed', String(reveal));
+    input.focus();
+  });
+});
+
 const closePopover = (trigger, panel) => {
   trigger.setAttribute('aria-expanded', 'false');
   panel.hidden = true;
@@ -127,7 +383,7 @@ if (menuButton && mobileNav) {
   });
 }
 
-const firstError = document.querySelector('[data-form-errors]');
+const firstError = document.querySelector('[data-form-errors], [data-activity-errors]');
 if (firstError) firstError.focus();
 
 const openIntegrationDetails = (target) => {
@@ -225,24 +481,43 @@ window.addEventListener('popstate', () => {
   window.location.reload();
 });
 
-document.querySelectorAll('[data-company-picker]').forEach((picker) => {
+document.querySelectorAll('[data-company-picker]').forEach((picker, pickerIndex) => {
   const select = picker.querySelector('select');
   const search = picker.querySelector('[data-company-search]');
   const options = picker.querySelector('[data-company-options]');
   if (!(select instanceof HTMLSelectElement) || !(search instanceof HTMLInputElement) || !options) return;
   const companies = [...select.options]
     .filter((option) => option.value)
-    .map((option) => ({ label: option.text, value: option.value }));
+    .map((option) => ({
+      label: option.text,
+      search: option.dataset.search || option.text,
+      value: option.value,
+    }));
+  const status = picker.querySelector('[data-company-status]');
+  let visibleCompanies = [];
+  let activeIndex = -1;
+  const controlId = select.id || `company-picker-${pickerIndex}`;
   select.hidden = true;
   search.required = select.required;
   select.required = false;
   search.hidden = false;
-  search.id = `${select.id}-search`;
-  picker.querySelector('label')?.setAttribute('for', search.id);
-  options.id = `${select.id}-options`;
+  select.id = `${controlId}-native`;
+  search.id = controlId;
+  picker.querySelector('[data-company-label]')?.setAttribute('for', search.id);
+  options.id = `${controlId}-options`;
   search.setAttribute('role', 'combobox');
   search.setAttribute('aria-autocomplete', 'list');
   search.setAttribute('aria-controls', options.id);
+  search.setAttribute('aria-expanded', 'false');
+  ['aria-describedby', 'aria-invalid'].forEach((attribute) => {
+    const value = select.getAttribute(attribute);
+    if (value) search.setAttribute(attribute, value);
+  });
+  if (status) {
+    status.id = `${controlId}-status`;
+    const descriptions = [search.getAttribute('aria-describedby'), status.id].filter(Boolean);
+    search.setAttribute('aria-describedby', descriptions.join(' '));
+  }
   const validate = () => search.setCustomValidity(
     search.required && !select.value ? 'Escolha uma empresa da lista.' : '',
   );
@@ -250,58 +525,83 @@ document.querySelectorAll('[data-company-picker]').forEach((picker) => {
   const close = () => {
     options.hidden = true;
     search.setAttribute('aria-expanded', 'false');
+    search.removeAttribute('aria-activedescendant');
+    activeIndex = -1;
   };
   const choose = (company) => {
     select.value = company.value;
     search.value = company.label;
+    search.removeAttribute('aria-invalid');
     validate();
     close();
+    select.dispatchEvent(new Event('change', { bubbles: true }));
     search.focus();
   };
   const selected = companies.find((company) => company.value === select.value);
   if (selected) search.value = selected.label;
+  const activate = (index) => {
+    if (!visibleCompanies.length) return;
+    activeIndex = (index + visibleCompanies.length) % visibleCompanies.length;
+    const items = [...options.querySelectorAll('[role="option"]')];
+    items.forEach((item, itemIndex) => item.setAttribute('aria-selected', String(itemIndex === activeIndex)));
+    const active = items[activeIndex];
+    if (!active) return;
+    search.setAttribute('aria-activedescendant', active.id);
+    active.scrollIntoView({ block: 'nearest' });
+  };
   const render = () => {
     const query = search.value.trim().toLocaleLowerCase('pt-BR');
-    const results = companies.filter((company) => company.label.toLocaleLowerCase('pt-BR').includes(query)).slice(0, 8);
+    const matches = companies.filter((company) => company.search.toLocaleLowerCase('pt-BR').includes(query));
+    visibleCompanies = matches.slice(0, 8);
+    activeIndex = -1;
+    search.removeAttribute('aria-activedescendant');
     options.replaceChildren();
-    results.forEach((company) => {
-      const item = document.createElement('button');
-      item.type = 'button';
+    visibleCompanies.forEach((company, index) => {
+      const item = document.createElement('li');
+      item.id = `${options.id}-${index}`;
       item.role = 'option';
-      item.setAttribute('aria-selected', String(company.value === select.value));
+      item.setAttribute('aria-selected', 'false');
       item.textContent = company.label;
+      item.addEventListener('pointerdown', (event) => event.preventDefault());
       item.addEventListener('click', () => choose(company));
       options.append(item);
     });
-    options.hidden = !results.length;
-    search.setAttribute('aria-expanded', String(Boolean(results.length)));
+    options.hidden = !visibleCompanies.length;
+    search.setAttribute('aria-expanded', String(Boolean(visibleCompanies.length)));
+    if (status) {
+      const shownCount = visibleCompanies.length;
+      const resultLabel = `${matches.length} empresa${matches.length === 1 ? '' : 's'} encontrada${matches.length === 1 ? '' : 's'}.`;
+      status.textContent = matches.length > shownCount
+        ? `${resultLabel} Mostrando ${shownCount}; continue digitando para refinar.`
+        : matches.length
+          ? resultLabel
+          : 'Nenhuma empresa encontrada. Revise o nome ou o código.';
+    }
   };
   search.addEventListener('input', () => {
     select.value = '';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
     validate();
     render();
   });
-  search.addEventListener('focus', render);
-  search.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') close();
-    if (event.key === 'ArrowDown' && !options.hidden) {
-      event.preventDefault();
-      options.querySelector('button')?.focus();
-    }
+  search.addEventListener('focus', () => {
+    if (select.value) search.select();
+    render();
   });
-  options.addEventListener('keydown', (event) => {
-    const items = [...options.querySelectorAll('button')];
-    const index = items.indexOf(document.activeElement);
+  search.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      event.stopPropagation();
-      search.focus();
+      if (!options.hidden) event.stopPropagation();
       close();
-    } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    } else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !options.hidden) {
       event.preventDefault();
-      items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus();
+      activate(activeIndex + (event.key === 'ArrowDown' ? 1 : -1));
+    } else if (event.key === 'Enter' && activeIndex >= 0) {
+      event.preventDefault();
+      choose(visibleCompanies[activeIndex]);
     }
   });
+  search.addEventListener('blur', () => window.setTimeout(close, 0));
   document.addEventListener('click', (event) => {
     if (!picker.contains(event.target)) close();
   });
@@ -388,18 +688,16 @@ document.querySelectorAll('[data-guide-bulk-form]').forEach((form) => {
   const targets = [...form.querySelectorAll('[data-guide-target]')];
   const count = form.querySelector('[data-guide-selection-count]');
   const submit = form.querySelector('[data-guide-bulk-submit]');
-  const actions = form.querySelector('[data-guide-bulk-actions]');
   if (!(selectAll instanceof HTMLInputElement) || !(submit instanceof HTMLButtonElement)) return;
 
   const update = () => {
     const selected = targets.filter((target) => target.checked).length;
-    if (actions) actions.hidden = selected === 0;
     selectAll.checked = selected === targets.length && targets.length > 0;
     selectAll.indeterminate = selected > 0 && selected < targets.length;
     if (count) {
       count.textContent = selected
         ? `${selected} selecionada${selected === 1 ? '' : 's'}`
-        : '0 selecionadas';
+        : 'Nenhuma selecionada. Marque as linhas abaixo.';
     }
   };
 
@@ -472,10 +770,204 @@ document.querySelectorAll('[data-nfse-bulk-form]').forEach((form) => {
   update();
 });
 
+document.querySelectorAll('[data-nfse-live-queue]').forEach((panel) => {
+  const endpoint = panel.dataset.endpoint;
+  const retryEndpoint = panel.dataset.retryEndpoint;
+  const certificatesEndpoint = panel.dataset.certificatesEndpoint;
+  const settingsEndpoint = panel.dataset.settingsEndpoint;
+  const canManage = panel.dataset.canManage === 'true';
+  const csrfToken = panel.dataset.csrfToken;
+  const list = panel.querySelector('[data-nfse-queue-list]');
+  const updated = panel.querySelector('[data-nfse-queue-updated]');
+  const feedback = panel.querySelector('[data-nfse-queue-feedback]');
+  const refreshButton = panel.querySelector('[data-nfse-queue-refresh]');
+  const retryAllButton = panel.querySelector('[data-nfse-queue-retry-all]');
+  if (!endpoint || !list) return;
+
+  let timer = null;
+  let loading = false;
+  let lastFingerprint = '';
+  let hadLoadError = false;
+
+  const formatTime = (value) => {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+    }).format(date);
+  };
+
+  const render = (payload) => {
+    const items = payload.items || [];
+    const fingerprint = JSON.stringify({ counts: payload.counts || {}, items });
+    const pageScroll = { x: window.scrollX, y: window.scrollY };
+    const queueScroll = list.scrollTop;
+    if (fingerprint !== lastFingerprint) {
+      Object.entries(payload.counts || {}).forEach(([name, value]) => {
+        const target = panel.querySelector(`[data-nfse-queue-count="${name}"]`);
+        if (target) target.textContent = String(value);
+      });
+      if (retryAllButton) retryAllButton.hidden = !canManage || !(payload.counts?.attention > 0);
+      const existing = new Map(
+        [...list.querySelectorAll('[data-nfse-queue-key]')]
+          .map((row) => [row.dataset.nfseQueueKey, row]),
+      );
+      const retained = new Set();
+      list.querySelector('.nfse-queue-loading')?.remove();
+      items.forEach((item) => {
+        const key = String(item.company_id || item.company);
+        let row = existing.get(key);
+        if (!row) {
+          row = document.createElement('article');
+          row.dataset.nfseQueueKey = key;
+          row.innerHTML = '<span class="nfse-queue-marker" aria-hidden="true"></span><div><strong></strong><small></small></div><div class="nfse-queue-state"><span class="nfse-status"></span><time></time><a class="nfse-queue-action" hidden>Adicionar A1</a><button class="nfse-queue-retry" type="button" data-nfse-queue-retry hidden>Tentar novamente</button></div>';
+        }
+        row.className = `nfse-queue-item is-${item.state}`;
+        const company = row.querySelector('strong');
+        const detail = row.querySelector('small');
+        const badge = row.querySelector('.nfse-status');
+        const time = row.querySelector('time');
+        const actionLink = row.querySelector('.nfse-queue-action');
+        const retryButton = row.querySelector('[data-nfse-queue-retry]');
+        if (company) company.textContent = item.company;
+        if (detail) detail.textContent = item.detail;
+        if (badge) {
+          badge.className = `nfse-status nfse-status-${item.state}`;
+          badge.textContent = item.label;
+        }
+        const formattedTime = formatTime(item.updated_at);
+        if (time) {
+          time.hidden = !formattedTime;
+          time.dateTime = item.updated_at || '';
+          time.textContent = formattedTime;
+        }
+        if (retryButton) {
+          retryButton.hidden = !canManage || item.state !== 'failed';
+          retryButton.dataset.companyId = item.company_id || '';
+        }
+        if (actionLink instanceof HTMLAnchorElement) {
+          const actionEndpoint = item.state === 'blocked'
+            ? certificatesEndpoint
+            : item.state === 'ready' ? settingsEndpoint : '';
+          actionLink.hidden = !actionEndpoint;
+          actionLink.href = actionEndpoint || '#';
+          actionLink.textContent = item.state === 'blocked' ? 'Adicionar A1' : 'Configurar';
+        }
+        retained.add(key);
+        list.append(row);
+      });
+      existing.forEach((row, key) => { if (!retained.has(key)) row.remove(); });
+      if (!items.length) {
+        const empty = document.createElement('p');
+        empty.className = 'nfse-queue-loading';
+        empty.textContent = 'Nenhuma empresa disponível para coleta.';
+        list.append(empty);
+      }
+      lastFingerprint = fingerprint;
+      list.scrollTop = queueScroll;
+      window.requestAnimationFrame(() => {
+        list.scrollTop = queueScroll;
+        window.scrollTo(pageScroll.x, pageScroll.y);
+      });
+    }
+    list.setAttribute('aria-busy', 'false');
+    if (updated) updated.textContent = `Atualizada às ${formatTime(payload.updated_at).split(' ')[1] || 'agora'}`;
+    if (hadLoadError && feedback) feedback.textContent = 'A atualização da fila foi restabelecida.';
+    hadLoadError = false;
+  };
+
+  const schedule = () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(load, 5000);
+  };
+
+  const load = async () => {
+    if (loading || document.hidden) {
+      schedule();
+      return;
+    }
+    loading = true;
+    if (refreshButton) {
+      refreshButton.disabled = true;
+      refreshButton.setAttribute('aria-busy', 'true');
+    }
+    try {
+      const response = await fetch(endpoint, {
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) throw new Error('queue_unavailable');
+      render(await response.json());
+    } catch (_error) {
+      list.setAttribute('aria-busy', 'false');
+      if (updated) updated.textContent = 'Não foi possível atualizar. Tentando novamente…';
+      if (!hadLoadError && feedback) feedback.textContent = 'A fila não pôde ser atualizada. Os últimos dados continuam visíveis.';
+      hadLoadError = true;
+    } finally {
+      loading = false;
+      if (refreshButton) {
+        refreshButton.disabled = false;
+        refreshButton.removeAttribute('aria-busy');
+      }
+      schedule();
+    }
+  };
+
+  const retry = async (button, companyId = '') => {
+    if (!retryEndpoint || !csrfToken || button.disabled) return;
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'true');
+    const payload = new URLSearchParams({ csrfmiddlewaretoken: csrfToken });
+    if (companyId) payload.set('company_id', companyId);
+    else payload.set('all_failed', '1');
+    try {
+      const response = await fetch(retryEndpoint, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+          'X-CSRFToken': csrfToken,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: payload,
+      });
+      if (!response.ok) throw new Error('retry_unavailable');
+      const result = await response.json();
+      const resultMessage = result.changed
+        ? `${result.changed} coleta${result.changed === 1 ? '' : 's'} reenfileirada${result.changed === 1 ? '' : 's'}.`
+        : 'Nenhuma falha pendente para repetir.';
+      await load();
+      if (updated) updated.textContent = resultMessage;
+      if (feedback) feedback.textContent = resultMessage;
+    } catch (_error) {
+      if (updated) updated.textContent = 'Não foi possível repetir agora. Tente novamente.';
+      if (feedback) feedback.textContent = 'Não foi possível repetir a coleta agora.';
+    } finally {
+      button.disabled = false;
+      button.removeAttribute('aria-busy');
+    }
+  };
+
+  refreshButton?.addEventListener('click', load);
+  retryAllButton?.addEventListener('click', () => retry(retryAllButton));
+  list.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-nfse-queue-retry]');
+    if (button instanceof HTMLButtonElement) retry(button, button.dataset.companyId || '');
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) load();
+  });
+  load();
+});
+
 document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
   const targets = [...form.querySelectorAll('.parcelamento-company-check')];
   const selectAll = form.querySelector('#parcelamento-select-all');
   const summary = form.querySelector('#parcelamento-selection-summary');
+  const review = form.querySelector('#parcelamento-selection-review');
   const submit = form.querySelector('#parcelamento-submit');
   const approved = form.querySelector('#parcelamento-approved-overage');
   const actions = form.querySelector('[data-parcelamento-bulk-actions]');
@@ -485,18 +977,21 @@ document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
   const weight = Number(form.dataset.tokensPerOperation || 0);
   const included = Number(form.dataset.includedRemaining || 0);
   const price = Number(form.dataset.tokenPriceCents || 0);
+  const demo = form.dataset.parcelamentoDemo === 'true';
   const update = () => {
     const count = targets.filter((target) => target.checked).length;
     if (actions) actions.hidden = count === 0;
     const tokens = count * weight;
     const overage = Math.max(0, tokens - included) * price;
     approved.value = String(overage);
-    if (summary) {
-      const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-      summary.textContent = count
-        ? `${count} empresa${count === 1 ? '' : 's'} · ${tokens} token${tokens === 1 ? '' : 's'} · excedente ${currency.format(overage / 100)}`
-        : 'Nenhuma empresa selecionada';
-    }
+    const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+    const selectionText = count
+      ? demo
+        ? `${count} empresa${count === 1 ? '' : 's'} · simulação sem consumo`
+        : `${count} empresa${count === 1 ? '' : 's'} · ${tokens} token${tokens === 1 ? '' : 's'} · excedente ${currency.format(overage / 100)}`
+      : 'Nenhuma empresa selecionada';
+    if (summary) summary.textContent = selectionText;
+    if (review) review.textContent = selectionText;
     selectAll.checked = count > 0 && count === targets.length;
     selectAll.indeterminate = count > 0 && count < targets.length;
   };
@@ -515,45 +1010,65 @@ document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
 });
 
 
-// Restore the submitted dialog after server validation, keeping its entered values.
-document.querySelectorAll('[data-modal]').forEach((modal) => {
-  if (modal.hidden && !modal.querySelector('.field-error, [data-form-errors], .errorlist')) return;
-  const trigger = [...document.querySelectorAll('[data-modal-open]')]
-    .find(item => item.dataset.modalOpen === modal.id);
-  openModal(modal, trigger);
-});
-
 const initNfseDownloadForm = (form) => {
   const selectAll = form.querySelector('[data-nfse-download-select-all]');
   const selectPortfolio = form.querySelector('[data-nfse-download-all]');
   const targets = [...form.querySelectorAll('[data-nfse-download-target]')];
+  const companySelectors = [...form.querySelectorAll('[data-nfse-company-select]')];
   const count = form.querySelector('[data-nfse-download-selection-count]');
   const actions = form.querySelector('[data-nfse-download-actions]');
+  const actionButtons = [...(actions?.querySelectorAll('button') || [])];
   if (!(selectAll instanceof HTMLInputElement)) return;
 
   const update = () => {
-    const selected = targets.filter((target) => target.checked).length;
+    const selectedTargets = targets.filter((target) => target.checked);
+    const selected = selectedTargets.length;
+    const selectedCompanies = new Set(selectedTargets.map((target) => target.dataset.companyId));
     const portfolio = selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked;
-    if (actions) actions.hidden = selected === 0 && !portfolio;
+    actionButtons.forEach((button) => { button.disabled = selected === 0 && !portfolio; });
     selectAll.checked = selected === targets.length && targets.length > 0;
     selectAll.indeterminate = selected > 0 && selected < targets.length;
+    companySelectors.forEach((selector) => {
+      const companyTargets = targets.filter((target) => target.dataset.companyId === selector.dataset.nfseCompanySelect);
+      const checked = companyTargets.filter((target) => target.checked).length;
+      selector.checked = !portfolio && checked > 0 && checked === companyTargets.length;
+      selector.indeterminate = !portfolio && checked > 0 && checked < companyTargets.length;
+    });
     if (selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked) {
-      count.textContent = 'Toda a carteira será incluída no ZIP.';
+      const total = Number(selectPortfolio.dataset.total || 0);
+      const companies = Number(selectPortfolio.dataset.companies || 0);
+      count.textContent = total
+        ? `${total} nota${total === 1 ? '' : 's'} classificada${total === 1 ? '' : 's'} de ${companies} empresa${companies === 1 ? '' : 's'} ${total === 1 ? 'será incluída' : 'serão incluídas'}.`
+        : selectPortfolio.dataset.scopeLabel || 'Toda a carteira será incluída no pacote.';
       return;
     }
     if (count) count.textContent = selected
-      ? `${selected} NFS-e selecionada${selected === 1 ? '' : 's'}.`
-      : 'Nenhuma NFS-e selecionada.';
+      ? `${selected} nota${selected === 1 ? '' : 's'} de ${selectedCompanies.size} empresa${selectedCompanies.size === 1 ? '' : 's'} selecionada${selected === 1 ? '' : 's'}.`
+      : 'Nenhuma nota selecionada.';
   };
 
   selectAll.addEventListener('change', () => {
+    if (selectPortfolio instanceof HTMLInputElement) selectPortfolio.checked = false;
     targets.forEach((target) => { target.checked = selectAll.checked; });
     update();
   });
   if (selectPortfolio instanceof HTMLInputElement) {
-    selectPortfolio.addEventListener('change', update);
+    selectPortfolio.addEventListener('change', () => {
+      if (selectPortfolio.checked) targets.forEach((target) => { target.checked = false; });
+      update();
+    });
   }
-  targets.forEach((target) => target.addEventListener('change', update));
+  companySelectors.forEach((selector) => selector.addEventListener('change', () => {
+    if (selectPortfolio instanceof HTMLInputElement) selectPortfolio.checked = false;
+    targets
+      .filter((target) => target.dataset.companyId === selector.dataset.nfseCompanySelect)
+      .forEach((target) => { target.checked = selector.checked; });
+    update();
+  }));
+  targets.forEach((target) => target.addEventListener('change', () => {
+    if (selectPortfolio instanceof HTMLInputElement) selectPortfolio.checked = false;
+    update();
+  }));
   const accumulators = [...form.querySelectorAll('[data-nfse-download-accumulator]')];
   accumulators.forEach((input, index) => {
     const updateClassification = () => {
@@ -593,6 +1108,61 @@ const initNfseDownloadForm = (form) => {
       selectAll.focus();
     }
   });
+  form.querySelectorAll('[data-nfse-accumulator-edit]').forEach((editor) => {
+    const input = editor.querySelector('[data-nfse-accumulator-input]');
+    const status = editor.querySelector('[data-nfse-accumulator-status]');
+    if (!(input instanceof HTMLInputElement) || !(input.form instanceof HTMLFormElement)) return;
+    let timer = 0;
+    let saving = false;
+    const allowedValues = () => new Set(
+      [...(input.list?.options || [])].map((option) => option.value.trim()),
+    );
+    const persist = async () => {
+      window.clearTimeout(timer);
+      const value = input.value.trim();
+      if (!value || value === input.defaultValue.trim() || saving) return;
+      if (!allowedValues().has(value)) {
+        if (status) status.textContent = 'Escolha um acumulador da lista.';
+        return;
+      }
+      saving = true;
+      input.setAttribute('aria-busy', 'true');
+      if (status) status.textContent = 'Salvando…';
+      try {
+        const response = await fetch(input.form.action, {
+          method: 'POST',
+          body: new FormData(input.form),
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.message || 'Não foi possível salvar.');
+        input.defaultValue = payload.accumulator;
+        if (status) status.textContent = 'Salvo';
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Não foi possível salvar.';
+      } finally {
+        saving = false;
+        input.removeAttribute('aria-busy');
+      }
+    };
+    input.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      if (input.value.trim() === input.defaultValue.trim()) {
+        if (status) status.textContent = 'Salvamento automático';
+        return;
+      }
+      if (status) status.textContent = 'Aguardando um acumulador válido…';
+      if (allowedValues().has(input.value.trim())) timer = window.setTimeout(persist, 500);
+    });
+    input.addEventListener('change', persist);
+    input.addEventListener('blur', persist);
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      persist();
+    });
+  });
   update();
 };
 
@@ -613,7 +1183,8 @@ const enhanceLiveFilter = (form) => {
   const value = (name) => String(new FormData(form).get(name) || '').trim();
   const filtering = () => Boolean(
     value('q') || value('competence_month') || value('issued_from') || value('issued_to')
-    || (value('status') && value('status') !== 'all'),
+    || (value('status') && value('status') !== 'all')
+    || (value('direction') && value('direction') !== 'all'),
   );
   const apply = async () => {
     // A half-typed date would send the whole carteira back; wait for a valid one.
@@ -637,6 +1208,12 @@ const enhanceLiveFilter = (form) => {
       const next = parsed.querySelector(form.dataset.liveFilter);
       if (!next) throw new Error('results region missing');
       results.innerHTML = next.innerHTML;
+      if (form.dataset.liveFilterRelated) {
+        document.querySelectorAll(form.dataset.liveFilterRelated).forEach((region) => {
+          const replacement = parsed.getElementById(region.id);
+          if (replacement) region.replaceWith(replacement);
+        });
+      }
       const nextCount = count && parsed.querySelector(form.dataset.liveFilterCount);
       if (count && nextCount) count.textContent = nextCount.textContent;
       if (String(url) !== window.location.href) history.replaceState({}, '', url);
@@ -763,12 +1340,33 @@ document.querySelectorAll('.scope-picker').forEach((picker, index) => {
   update();
 });
 
-document.querySelectorAll('[data-modal] form, .team-form, .review-detail-panel form').forEach(form => {
+document.querySelectorAll('[data-modal] form, .team-form, .review-detail-panel form, [data-dre-mapping-form], .activity-actions form, .activity-assignment-panel form').forEach(form => {
   form.addEventListener('input', event => {
     if (event.target.type !== 'search') dirtyForms.add(form);
   });
   form.addEventListener('submit', () => dirtyForms.delete(form));
 });
+
+// Keep shareable GET URLs readable by omitting controls that carry no filter.
+document.querySelectorAll('form[data-clean-query]').forEach((form) => {
+  form.addEventListener('submit', () => {
+    const emptyControls = [];
+    form.querySelectorAll('input[name], select[name], textarea[name]').forEach((control) => {
+      if (control.value === '') {
+        control.disabled = true;
+        emptyControls.push(control);
+      }
+    });
+    window.setTimeout(() => emptyControls.forEach((control) => { control.disabled = false; }), 0);
+  });
+  form.addEventListener('formdata', (event) => {
+    [...event.formData.entries()].forEach(([key, value]) => {
+      if (typeof value === 'string' && value === '') event.formData.delete(key);
+    });
+  });
+});
+
+document.querySelector('[data-dre-mapping-form] [aria-invalid="true"]')?.focus();
 window.addEventListener('beforeunload', event => {
   if (!dirtyForms.size) return;
   event.preventDefault();
@@ -796,7 +1394,9 @@ document.querySelectorAll('[data-movement-bulk-form]').forEach((form) => {
 });
 
 // Busy state for single-action forms: stop double submission of paid or long requests.
-document.querySelectorAll('button[data-busy-label]').forEach((button) => {
+document.querySelectorAll(
+  'button[data-busy-label], .reconciliation-export-form button[type="submit"], .reconciliation-export-confirm button[type="submit"]',
+).forEach((button) => {
   const form = button.closest('form');
   if (!(button instanceof HTMLButtonElement) || !form) return;
   form.addEventListener('submit', (event) => {

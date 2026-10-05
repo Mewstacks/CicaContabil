@@ -77,7 +77,10 @@
    summary once, after the new document has loaded; inline field errors remain in place. */
 (() => {
   const summary = document.querySelector('[data-form-errors]');
-  if (summary instanceof HTMLElement) summary.focus();
+  if (!(summary instanceof HTMLElement)) return;
+  const focusSummary = () => requestAnimationFrame(() => summary.focus());
+  if (document.readyState === 'complete') focusSummary();
+  else window.addEventListener('load', focusSummary, { once: true });
 })();
 
 /* Keep a server-rendered comparison responsive while its new page is loading. */
@@ -88,7 +91,7 @@
       const button = form.querySelector('button[type="submit"]');
       if (button instanceof HTMLButtonElement) {
         button.disabled = true;
-        button.textContent = 'Comparando…';
+        button.textContent = 'Conferindo…';
         form.setAttribute('aria-busy', 'true');
       }
     });

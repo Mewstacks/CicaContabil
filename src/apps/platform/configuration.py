@@ -642,7 +642,7 @@ def _registry_address(registry: dict[str, str]) -> str:
 @transaction.atomic
 def configuration(request: HttpRequest) -> HttpResponse:
     current_user = cast(User, request.user)
-    if not mfa.session_is_verified(request):
+    if mfa.is_required(current_user) and not mfa.session_is_verified(request):
         return redirect(
             "accounts:mfa-verify" if mfa.is_enrolled(current_user) else "accounts:mfa-setup"
         )

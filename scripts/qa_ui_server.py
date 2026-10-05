@@ -14,7 +14,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CENTRAL_REVIEW = os.environ.get("QA_REVIEW_SUITE") == "central"
-QA_ROOT = ROOT / ".tmp" / ("central-review" if CENTRAL_REVIEW else "ui-review")
+QA_ROOT = Path(
+    os.environ.get(
+        "QA_ROOT",
+        ROOT / ".tmp" / ("central-review" if CENTRAL_REVIEW else "ui-review"),
+    )
+).resolve()
+if ROOT.resolve() not in QA_ROOT.parents:
+    raise RuntimeError("QA_ROOT must stay inside the project workspace")
 QA_ROOT.mkdir(parents=True, exist_ok=True)
 sys.path.insert(0, str(ROOT / "src"))
 os.environ.update(

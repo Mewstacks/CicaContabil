@@ -7,12 +7,12 @@
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Acesso — CICA{% endblock %}</title>
   <link rel="icon" href="{% static 'hub/brand/cica-mark-green.svg' %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=20260928-2">
-  <link rel="stylesheet" href="{% static 'hub/cica-auth.css' %}?v=20260928-2">
-  <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=20260928-2">
+  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=20260929-1">
+  <link rel="stylesheet" href="{% static 'hub/cica-auth.css' %}?v=20261002-1">
+  <link rel="stylesheet" href="{% static 'hub/cica-brand.css' %}?v=20260929-1">
   <script src="{% static 'hub/cica-auth.js' %}" defer></script>
   {% block extra_head %}{% endblock %}
-  <script src="{% static 'hub/theme.js' %}" defer></script>
+  <script src="{% static 'hub/theme.js' %}?v=csrf-1" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>

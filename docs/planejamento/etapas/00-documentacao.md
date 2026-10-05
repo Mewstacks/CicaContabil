@@ -1,3 +1,18 @@
+## Revisão de planejamento em 05/10/2026 — D-275/V-275
+
+- [x] Confrontar estado histórico, código atual e decisões posteriores sem apagar memória.
+- [x] Pesquisar sistemas similares online e registrar fontes e limites de acesso.
+- [x] Avaliar funcionalidades, sentido das telas, usabilidade e gaps de ponta a ponta.
+- [x] Incorporar 31 pacotes de conclusão ao plano mestre, preservando etapas 00–13.
+- [x] Separar defeitos, homologação, propostas novas e hipóteses para teste com usuários.
+- [x] Registrar cobertura renderizada atual e seus limites em V-275.
+
+A execução dos pacotes pertence às respectivas etapas funcionais e à próxima solicitação; não é
+um item documental tratado como implementado nesta entrega.
+
+Diagnóstico: [auditoria de produto](../auditoria-produto-2026-10-05.md). Esta atualização conclui
+o planejamento solicitado e não muda o aceite funcional de nenhuma outra etapa.
+
 # Etapa 00 — Consolidar decisões, inventário e pendências
 
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)

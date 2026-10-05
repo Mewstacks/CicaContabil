@@ -28,8 +28,23 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, Count, Exists, F, IntegerField, OuterRef, Q, QuerySet, Sum, When
-from django.db.models.functions import Coalesce
+from django.db.models import (
+    Case,
+    Count,
+    Exists,
+    F,
+    IntegerField,
+    Max,
+    Min,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce, Replace
 from django.http import (
     FileResponse,
     Http404,
@@ -45,6 +60,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.http import require_http_methods
 
+from apps.accounts import mfa
 from apps.accounts.forms import IdentifierAuthenticationForm
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -83,6 +99,7 @@ from apps.hub.forms import (
     DataSourceForm,
     DreMappingFormSet,
     DtePreparationForm,
+    EightCharacterSetPasswordForm,
     FinancialAccountForm,
     LedgerAccountForm,
     OfficeIdentityForm,
@@ -139,6 +156,7 @@ from apps.hub.models import (
     LedgerAccount,
     MovementReconciliation,
     NfseDocument,
+    NfseDocumentSide,
     NfseExport,
     NfseSync,
     NormalizedMovement,
@@ -161,6 +179,11 @@ from apps.hub.models import (
 )
 from apps.hub.module_activities import nfse_resolution_reference, sync_nfse_review_activity
 from apps.hub.module_catalog import MODULES, OFFERED_MODULE_CODES, ModuleDefinition, definition
+from apps.hub.nfse_reports import (
+    build_retention_report_rows,
+    generate_retention_pdf,
+    generate_retention_xlsx,
+)
 from apps.hub.onboarding import TOURS_BY_ID, tour_for_url_name
 from apps.hub.operations import (
     activity_is_overdue,
@@ -169,6 +192,7 @@ from apps.hub.operations import (
     block_activity,
     can_operate_activity,
     complete_activity,
+    completion_requirements,
     generate_monthly_activities,
 )
 from apps.hub.payroll import compare_payroll_snapshots
@@ -201,17 +225,21 @@ from apps.hub.services import (
     DteRunTransitionError,
     FiscalGuideTransitionError,
     ParcelamentoTransitionError,
+    _xml_with_dominio_accumulator,
+    active_catalog_codes,
     approve_dte_run,
     cancel_dte_run,
     create_nfse_export,
+    import_certificate_upload,
     issue_fiscal_guide,
+    nfse_company_archive_folder,
     prepare_dctfweb_guide_from_documents,
     prepare_dte_next_page,
     prepare_dte_run,
+    record_human_observation,
     release_uncertain_parcelamento_operation,
     request_dctfweb_document,
     request_parcelamento_operation,
-    store_certificate,
 )
 from apps.integra.client import credentials_from_settings
 from apps.integra.dctfweb import extract_pdf
@@ -300,6 +328,8 @@ class SignOutView(auth_views.LogoutView):
 
 class PasswordResetConfirmView(auth_views.PasswordResetConfirmView):
     """Keep the one-use reset token out of every subsequent Referer header."""
+
+    form_class = EightCharacterSetPasswordForm
 
     def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         response = super().dispatch(request, *args, **kwargs)
@@ -788,6 +818,8 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
             PlatformAccess.Role.SUPPORT,
             PlatformAccess.Role.COMMERCIAL,
         ),
+        "mfa_enrolled": mfa.is_enrolled(user),
+        "mfa_recommendation_available": not PlatformAccess.objects.filter(user=user).exists(),
         "open_reviews_count": ReviewCase.objects.filter(
             organization=office, status=ReviewCase.Status.OPEN, document__company__in=companies
         ).count()
@@ -808,10 +840,11 @@ def _onboarding_context(
     membership: Membership | None,
     support_session: SupportSession | None,
 ) -> dict[str, object]:
-    """Pick the orientation for this screen and say whether it still has to open.
+    """Pick the optional orientation for this screen.
 
-    A support visit is somebody else's workspace, so it never opens a tour. Only the
-    identifier, version, role and completion state cross into the template.
+    Guidance never covers the task automatically. A support visit is somebody else's
+    workspace, so it does not expose the tour at all. Only the identifier, version,
+    role and completion state cross into the template.
     """
 
     url_name = request.resolver_match.url_name if request.resolver_match else None
@@ -829,9 +862,7 @@ def _onboarding_context(
     return {
         "onboarding_tour": tour,
         "onboarding_tour_done": done,
-        # The overview must be visible before optional guidance. Other narrowly
-        # scoped tours may still open once when they introduce a new workflow.
-        "onboarding_auto_open": not done and tour.identifier != "welcome",
+        "onboarding_auto_open": False,
         "onboarding_session_only": demo,
     }
 
@@ -871,6 +902,14 @@ def refuse(request: HttpRequest, reason: str, *, kind: str = "permission") -> Ht
         {"reason": reason, "refusal_kind": kind},
         status=403,
     )
+
+
+def _user_error_message(exc: Exception) -> str:
+    """Render Django validation errors as human text, never Python list syntax."""
+
+    if isinstance(exc, ValidationError):
+        return " ".join(str(message) for message in exc.messages)
+    return str(exc)
 
 
 def collaborator_can_use_module(context: dict[str, object], code: str) -> bool:
@@ -924,6 +963,22 @@ def office_required[**ViewParams](
                 {"reason": "A permissão precisa ser renovada pelo controle central da Mewstack."},
                 status=403,
             )
+        # The advanced reconciliation route family has no session-backed demo.
+        # Deny reads as well as writes before entering a view: hiding the tabs
+        # alone must not expose shared files, settings or operational records.
+        if office.is_demo and view.__name__.startswith("reconciliation_"):
+            return render(
+                request,
+                "hub/forbidden.html",
+                {
+                    "reason": "A demonstração oferece somente a comparação fictícia. "
+                    "Configurações, arquivos, processamentos, movimentos e exportações "
+                    "não estão disponíveis neste escritório demo.",
+                    "refusal_kind": "unavailable",
+                    "reconciliation_demo_unavailable": True,
+                },
+                status=403,
+            )
         if (
             is_demo_visitor(request, office)
             and request.method not in {"GET", "HEAD", "OPTIONS"}
@@ -934,9 +989,11 @@ def office_required[**ViewParams](
                 "decide_dte_run",
                 "dte_message_detail",
                 "dctfweb_bulk_consult",
+                "dctfweb_consult",
                 "issue_guide",
                 "parcelamentos",
                 "nfse_center",
+                "nfse_queue_retry",
                 "confirm_reconciliation",
                 "resolve_review",
                 "triage_item_detail",
@@ -947,6 +1004,23 @@ def office_required[**ViewParams](
                 request,
                 "Esta área pode ser vista na demonstração, mas não altera a configuração "
                 "ou os dados do escritório-demo central.",
+                kind="unavailable",
+            )
+        if (
+            office.is_demo
+            and request.method not in {"GET", "HEAD", "OPTIONS"}
+            and view.__name__
+            in {
+                "activity_detail",
+                "activity_add_evidence",
+                "activity_block",
+                "activity_complete",
+                "activity_models",
+            }
+        ):
+            return refuse(
+                request,
+                "As atividades da demonstração são cenários fictícios de consulta.",
                 kind="unavailable",
             )
         lifecycle = TenantLifecycle.objects.filter(organization=office).first()
@@ -1330,6 +1404,7 @@ def deactivate_collaborator(request: HttpRequest, membership_id: str) -> HttpRes
 
 
 @office_required
+@require_http_methods(["GET", "POST"])
 def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
     """Everything the office holds about one client, on one page.
 
@@ -1340,8 +1415,65 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
 
     context = workspace_context(request)
     office = cast(Organization, context["office"])
-    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    companies = _company_history_scope(context)
     company = get_object_or_404(companies, id=company_id)
+    original_company_values = {
+        "name": company.name,
+        "cnpj_masked": company.cnpj_masked,
+        "dominio_code": company.dominio_code,
+    }
+
+    can_manage_companies = _can_manage_companies(context)
+    require_dominio_code = OfficeProfile.objects.filter(
+        organization=office, require_dominio_code=True
+    ).exists()
+    dominio_manages_companies = (
+        IntelligenceConnector.objects.filter(organization=office)
+        .exclude(status="not_configured")
+        .exists()
+    )
+    centrally_managed = ControlPlaneBinding.objects.filter(organization=office).exists()
+    company_has_external_source = bool(company.data_source_id or company.external_key)
+    can_edit_company = bool(
+        can_manage_companies
+        and not dominio_manages_companies
+        and not centrally_managed
+        and not company_has_external_source
+    )
+    company_form = CompanyForm(
+        request.POST or None,
+        instance=company,
+        organization=office,
+        require_dominio_code=require_dominio_code,
+    )
+    if request.method == "POST":
+        if request.POST.get("action") != "update_company":
+            return HttpResponseBadRequest("Ação de cadastro inválida.")
+        if not can_manage_companies:
+            return refuse(request, "Esta sessão é somente leitura.")
+        if not can_edit_company:
+            return refuse(
+                request,
+                "Este cadastro é controlado pela origem e deve ser corrigido nela.",
+                kind="unavailable",
+            )
+        if company_form.is_valid():
+            updated_company = company_form.save()
+            changed_fields = [
+                field
+                for field, value in original_company_values.items()
+                if value != getattr(updated_company, field)
+            ]
+            record_event(
+                action="hub.company.updated",
+                actor=request.user,
+                organization=office,
+                target=updated_company,
+                request=request,
+                metadata={"changed_fields": changed_fields},
+            )
+            messages.success(request, "Cadastro da empresa atualizado.")
+            return redirect("hub:company-detail", company_id=company.id)
 
     documents_query = (
         NfseDocument.objects.filter(organization=office, company=company)
@@ -1370,10 +1502,46 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "pk",
         )
     )
-    activities_page = Paginator(activities_query, 20).get_page(request.GET.get("activities_page"))
-    payroll_snapshots_query = PayrollPeriodSnapshot.objects.filter(
+    closed_activity_states = [
+        OperationalActivity.WorkStatus.COMPLETED,
+        OperationalActivity.WorkStatus.WAIVED,
+    ]
+    today = timezone.localdate()
+    overdue_condition = Q(internal_due_on__lt=today) | Q(
+        internal_due_on__isnull=True, legal_due_on__lt=today
+    )
+    activity_stats = activities_query.aggregate(
+        total=Count("pk"),
+        open=Count("pk", filter=~Q(work_status__in=closed_activity_states)),
+        blocked=Count("pk", filter=Q(work_status=OperationalActivity.WorkStatus.BLOCKED)),
+        overdue=Count(
+            "pk",
+            filter=~Q(work_status__in=closed_activity_states) & overdue_condition,
+        ),
+    )
+    priority_activity = (
+        activities_query.exclude(work_status__in=closed_activity_states)
+        .annotate(
+            attention_order=Case(
+                When(work_status=OperationalActivity.WorkStatus.BLOCKED, then=Value(0)),
+                When(overdue_condition, then=Value(1)),
+                default=Value(2),
+                output_field=IntegerField(),
+            )
+        )
+        .order_by(
+            "attention_order",
+            Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True),
+            "created_at",
+        )
+        .first()
+    )
+    activities_page = Paginator(activities_query, 5).get_page(request.GET.get("activities_page"))
+    payroll_snapshots_base = PayrollPeriodSnapshot.objects.filter(
         organization=office, company=company
     ).order_by("-competence", "-observed_at")
+    payroll_snapshots_total = payroll_snapshots_base.count()
+    payroll_snapshots_query = payroll_snapshots_base
     payroll_period = None
     if request.GET.get("payroll_competence"):
         try:
@@ -1383,6 +1551,20 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         if payroll_period.day != 1:
             raise Http404("Competência da folha inválida.")
         payroll_snapshots_query = payroll_snapshots_query.filter(competence=payroll_period)
+    elif request.GET.get("left_snapshot"):
+        try:
+            left_snapshot_id = uuid.UUID(request.GET["left_snapshot"])
+        except (ValueError, AttributeError):
+            left_snapshot_id = None
+        payroll_period = (
+            payroll_snapshots_base.filter(pk=left_snapshot_id)
+            .values_list("competence", flat=True)
+            .first()
+            if left_snapshot_id
+            else None
+        )
+        if payroll_period is not None:
+            payroll_snapshots_query = payroll_snapshots_query.filter(competence=payroll_period)
     payroll_review_activity = (
         activities_query.filter(
             competence=payroll_period,
@@ -1394,13 +1576,53 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
     payroll_snapshots_page = Paginator(payroll_snapshots_query, 20).get_page(
         request.GET.get("payroll_page")
     )
+    payroll_snapshots = list(payroll_snapshots_page.object_list)
+    visible_payroll_competences = {snapshot.competence for snapshot in payroll_snapshots}
+    payroll_comparable_competences = set(
+        payroll_snapshots_base.filter(competence__in=visible_payroll_competences)
+        .order_by()
+        .values("competence")
+        .annotate(source_count=Count("pk"))
+        .filter(source_count__gte=2)
+        .values_list("competence", flat=True)
+    )
+    return_to = request.GET.get("return_to", "")
+    payroll_snapshot_rows = []
+    linked_payroll_competences: set[date] = set()
+    for snapshot in payroll_snapshots:
+        is_comparable = snapshot.competence in payroll_comparable_competences
+        can_compare = is_comparable and snapshot.competence not in linked_payroll_competences
+        if can_compare:
+            linked_payroll_competences.add(snapshot.competence)
+        compare_params = {"payroll_competence": snapshot.competence.isoformat()}
+        if return_to:
+            compare_params["return_to"] = return_to
+        payroll_snapshot_rows.append(
+            {
+                "snapshot": snapshot,
+                "can_compare": can_compare,
+                "is_comparable": is_comparable,
+                "compare_url": (
+                    f"{reverse('hub:company-detail', args=[company.pk])}?"
+                    f"{urlencode(compare_params)}#folha"
+                ),
+            }
+        )
     payroll_comparison: Any | None = None
     payroll_comparison_variances: list[dict[str, Any]] = []
     payroll_comparison_missing: list[str] = []
     payroll_comparison_competence: date | None = None
+    payroll_comparison_initial: dict[str, object] = {}
+    if payroll_period and payroll_snapshots_page.paginator.count == 2:
+        payroll_comparison_initial = {
+            "left_snapshot": payroll_snapshots[1],
+            "right_snapshot": payroll_snapshots[0],
+            "money_tolerance": Decimal("0"),
+        }
     payroll_comparison_form = PayrollComparisonForm(
         request.GET if "left_snapshot" in request.GET else None,
         snapshots=payroll_snapshots_query,
+        initial=payroll_comparison_initial,
     )
     if payroll_comparison_form.is_bound and payroll_comparison_form.is_valid():
         payroll_comparison = compare_payroll_snapshots(
@@ -1430,6 +1652,11 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
                 "difference": variance.difference
                 if variance.metric == "workforce_count"
                 else Decimal(variance.difference) / 100,
+                "difference_abs": abs(variance.difference)
+                if variance.metric == "workforce_count"
+                else Decimal(abs(variance.difference)) / 100,
+                "direction_label": "a mais" if variance.difference > 0 else "a menos",
+                "direction_class": "is-more" if variance.difference > 0 else "is-less",
                 "is_money": variance.metric != "workforce_count",
             }
             for variance in payroll_comparison.variances
@@ -1482,6 +1709,114 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         page_query_params = company_detail_query_params.copy()
         page_query_params.pop(page_parameter, None)
         company_detail_querystrings[page_parameter] = page_query_params.urlencode()
+
+    certificates = list(
+        Certificate.objects.filter(
+            organization=office, company=company, revoked_at__isnull=True
+        ).order_by("-valid_until")
+    )
+    now = timezone.now()
+    valid_certificates = [
+        certificate
+        for certificate in certificates
+        if certificate.valid_until is not None and certificate.valid_until > now
+    ]
+    certificate_expiring = any(
+        certificate.valid_until is not None
+        and certificate.valid_until <= now + timedelta(days=30)
+        for certificate in valid_certificates
+    )
+    company_source_label = "Cadastro local"
+    if centrally_managed:
+        company_source_label = "Controle central Mewstack"
+    elif dominio_manages_companies or company_has_external_source:
+        company_source_label = (
+            company.data_source.label
+            if company.data_source_id and company.data_source is not None
+            else "Domínio"
+        )
+
+    next_action: dict[str, object]
+    if not company.active:
+        next_action = {
+            "tone": "muted",
+            "eyebrow": "Somente histórico",
+            "title": "Empresa pausada na origem",
+            "description": (
+                "Documentos e histórico continuam disponíveis, sem novas ações operacionais."
+            ),
+            "label": "Ver documentos NFS-e",
+            "url": "#documentos-nfse",
+            "opens_details": True,
+        }
+    elif priority_activity is not None and (
+        priority_activity.work_status == OperationalActivity.WorkStatus.BLOCKED
+        or activity_is_overdue(priority_activity, today=today)
+    ):
+        is_blocked = priority_activity.work_status == OperationalActivity.WorkStatus.BLOCKED
+        next_action = {
+            "tone": "danger",
+            "eyebrow": "Precisa de atenção",
+            "title": priority_activity.title,
+            "description": (
+                "Resolva o impedimento registrado para o trabalho voltar a avançar."
+                if is_blocked
+                else "O prazo desta atividade passou; confira a situação e registre o tratamento."
+            ),
+            "label": "Conferir atividade",
+            "url": reverse("hub:activity-detail", args=[priority_activity.pk]),
+        }
+    elif open_cases_page.paginator.count:
+        next_action = {
+            "tone": "warning",
+            "eyebrow": "Revisão fiscal",
+            "title": f"{open_cases_page.paginator.count} NFS-e aguardando classificação",
+            "description": "Revise o acumulador antes de usar as notas no fechamento.",
+            "label": "Classificar NFS-e",
+            "url": f"{reverse('hub:nfse-center')}?status=unclassified&company={company.id}",
+        }
+    elif not valid_certificates or certificate_expiring:
+        next_action = {
+            "tone": "warning",
+            "eyebrow": "Certificado A1",
+            "title": "Enviar certificado" if not valid_certificates else "Renovar certificado",
+            "description": (
+                "A coleta automática depende de um A1 válido vinculado à empresa."
+                if not valid_certificates
+                else "Há um certificado válido que vence nos próximos 30 dias."
+            ),
+            "label": "Abrir certificados",
+            "url": f"{reverse('hub:certificates')}?company={company.id}",
+        }
+    elif priority_activity is not None:
+        next_action = {
+            "tone": "active",
+            "eyebrow": "Próximo trabalho",
+            "title": priority_activity.title,
+            "description": "Abra a atividade para conferir requisitos, responsável e evidências.",
+            "label": "Conferir atividade",
+            "url": reverse("hub:activity-detail", args=[priority_activity.pk]),
+        }
+    elif not company.dominio_code and can_edit_company:
+        next_action = {
+            "tone": "warning",
+            "eyebrow": "Cadastro incompleto",
+            "title": "Informar o código no Domínio",
+            "description": "O código exato evita associação ambígua nas importações do escritório.",
+            "label": "Editar cadastro",
+            "url": "#company-edit-dialog",
+            "opens_modal": True,
+        }
+    else:
+        next_action = {
+            "tone": "active",
+            "eyebrow": "Sem pendência prioritária",
+            "title": "Cadastro pronto para consulta",
+            "description": "Use as áreas abaixo para consultar trabalho, documentos e histórico.",
+            "label": "Ver atividades",
+            "url": "#atividades",
+            "opens_details": True,
+        }
     context.update(
         {
             "page_title": company.name,
@@ -1492,22 +1827,25 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "open_cases": list(open_cases_page.object_list),
             "open_cases_page": open_cases_page,
             "open_cases_querystring": company_detail_querystrings["reviews_page"],
-            "certificates": Certificate.objects.filter(
-                organization=office, company=company, revoked_at__isnull=True
-            ).order_by("-valid_until"),
+            "certificates": certificates,
             "dte_messages": list(dte_messages_page.object_list),
             "dte_messages_page": dte_messages_page,
             "dte_messages_querystring": company_detail_querystrings["dte_page"],
             "activities": list(activities_page.object_list),
             "activities_page": activities_page,
             "activities_querystring": company_detail_querystrings["activities_page"],
-            "activities_count": activities_page.paginator.count,
-            "payroll_snapshots": list(payroll_snapshots_page.object_list),
+            "activities_count": activity_stats["total"],
+            "open_activity_count": activity_stats["open"],
+            "blocked_activity_count": activity_stats["blocked"],
+            "overdue_activity_count": activity_stats["overdue"],
+            "payroll_snapshots": payroll_snapshots,
+            "payroll_snapshot_rows": payroll_snapshot_rows,
             "payroll_period": payroll_period,
             "payroll_review_activity": payroll_review_activity,
             "payroll_snapshots_page": payroll_snapshots_page,
             "payroll_querystring": company_detail_querystrings["payroll_page"],
             "payroll_snapshots_count": payroll_snapshots_page.paginator.count,
+            "payroll_snapshots_total": payroll_snapshots_total,
             "payroll_comparison_form": payroll_comparison_form,
             "payroll_comparison": payroll_comparison,
             "payroll_comparison_variances": payroll_comparison_variances,
@@ -1527,10 +1865,23 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "document_count": document_page.paginator.count,
             "open_cases_count": open_cases_page.paginator.count,
             "dte_messages_count": dte_messages_page.paginator.count,
-            "today": timezone.now(),
+            "today": now,
+            "company_form": company_form,
+            "can_edit_company": can_edit_company,
+            "company_source_label": company_source_label,
+            "company_managed_externally": not can_edit_company and (
+                dominio_manages_companies or centrally_managed or company_has_external_source
+            ),
+            "next_action": next_action,
+            "certificate_attention": not valid_certificates or certificate_expiring,
         }
     )
-    return render(request, "hub/company_detail.html", context)
+    return render(
+        request,
+        "hub/company_detail.html",
+        context,
+        status=400 if request.method == "POST" and company_form.errors else 200,
+    )
 
 
 @office_required
@@ -1665,7 +2016,13 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     if dashboard_view == "management" and not is_dashboard_administrator:
         return refuse(request, "A gestão da operação exige perfil de administrador.")
     if dashboard_view == "mine":
-        activity_query = activity_query.filter(assigned_to=cast(User, request.user))
+        if office.is_demo and (is_demo_visitor(request, office) or is_dashboard_administrator):
+            from apps.hub.demo_scenario import persona_email
+
+            activity_query = activity_query.filter(assigned_to__email=persona_email(office))
+            context["demo_persona_name"] = "Ana Martins"
+        else:
+            activity_query = activity_query.filter(assigned_to=cast(User, request.user))
     today = timezone.localdate()
     context.update(
         closing_dashboard_context(
@@ -1696,21 +2053,21 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         {
             "label": "Em atraso",
             "count": overdue_activities.count(),
-            "note": "Prazo interno ou legal ja passou",
+            "note": "Revisar atrasadas",
             "url": f"{reverse('hub:activities')}?overdue=1",
             "tone": "attention",
         },
         {
             "label": "Para hoje",
             "count": open_activity_query.filter(due_today).count(),
-            "note": "Vencimento interno prevalece sobre o legal",
+            "note": "Abrir agenda de hoje",
             "url": f"{reverse('hub:activities')}?due=today",
             "tone": "attention",
         },
         {
-            "label": "Proximos 7 dias",
+            "label": "Próximos 7 dias",
             "count": open_activity_query.filter(due_next_seven_days).count(),
-            "note": "Atividades com data determinada",
+            "note": "Planejar a semana",
             "url": f"{reverse('hub:activities')}?due=next_7_days",
             "tone": "",
         },
@@ -1719,16 +2076,16 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "count": open_activity_query.filter(
                 work_status=OperationalActivity.WorkStatus.BLOCKED
             ).count(),
-            "note": "Dependencia ou justificativa registrada",
+            "note": "Resolver impedimentos",
             "url": f"{reverse('hub:activities')}?status=blocked",
             "tone": "attention",
         },
         {
-            "label": "Fonte indisponivel",
+            "label": "Fonte indisponível",
             "count": open_activity_query.filter(
                 freshness=OperationalActivity.Freshness.UNAVAILABLE
             ).count(),
-            "note": "Ultimo estado conhecido permanece visivel",
+            "note": "Ver falhas de origem",
             "url": f"{reverse('hub:activities')}?freshness=unavailable",
             "tone": "attention",
         },
@@ -1757,24 +2114,102 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "-created_at",
             "pk",
         ),
-        30,
+        10,
     ).get_page(request.GET.get("page"))
     dashboard_activities = cast(list[OperationalActivity], list(agenda_page.object_list))
     for activity in dashboard_activities:
         activity.is_overdue = activity_is_overdue(activity, today=today)  # type: ignore[attr-defined]
         due_on = activity.internal_due_on or activity.legal_due_on
+        activity.dashboard_due_on = due_on  # type: ignore[attr-defined]
+        activity.dashboard_due_kind = (  # type: ignore[attr-defined]
+            "Prazo interno" if activity.internal_due_on else "Prazo legal"
+        )
         if due_on is None:
             group = "Sem prazo"
+            due_label = "Sem prazo definido"
         elif due_on < today:
             group = "Em atraso"
+            overdue_days = (today - due_on).days
+            due_label = "1 dia em atraso" if overdue_days == 1 else f"{overdue_days} dias em atraso"
         elif due_on == today:
             group = "Para hoje"
+            due_label = "Vence hoje"
+        elif due_on == today + timedelta(days=1):
+            group = "Próximos 7 dias"
+            due_label = "Vence amanhã"
         elif due_on <= today + timedelta(days=7):
             group = "Próximos 7 dias"
+            due_label = f"Vence em {(due_on - today).days} dias"
         else:
             group = "Mais adiante"
+            due_label = "Prazo futuro"
         activity.agenda_group = group  # type: ignore[attr-defined]
+        activity.dashboard_due_label = due_label  # type: ignore[attr-defined]
     dashboard_overdue_count = activity_attention[0]["count"]
+    dashboard_today_count = activity_attention[1]["count"]
+    dashboard_open_count = agenda_query.count()
+    if selected_agenda_filter:
+        filter_copy = {
+            "overdue": ("Atividades em atraso", "Priorize as tarefas cujo prazo já passou."),
+            "today": ("Atividades para hoje", "Conclua ou encaminhe o que vence hoje."),
+            "next_7_days": (
+                "Próximos 7 dias",
+                "Antecipe as tarefas com prazo nesta semana.",
+            ),
+            "blocked": ("Atividades impedidas", "Veja o motivo antes de decidir o próximo passo."),
+            "unavailable": (
+                "Fontes indisponíveis",
+                "Confira as tarefas cujo dado de origem não está disponível.",
+            ),
+        }
+        agenda_heading, agenda_description = filter_copy[selected_agenda_filter]
+    else:
+        agenda_heading = "Próximas atividades"
+        agenda_description = "Ordenadas pelo prazo para você começar pelo que exige atenção."
+    if dashboard_overdue_count:
+        dashboard_summary_title = (
+            f"Comece por {dashboard_overdue_count} atividade em atraso"
+            if dashboard_overdue_count == 1
+            else f"Comece por {dashboard_overdue_count} atividades em atraso"
+        )
+        dashboard_summary_text = "Depois, avance para o que vence hoje e planeje os próximos dias."
+        dashboard_summary_url = f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=overdue"
+        dashboard_summary_action = "Revisar atrasadas"
+    elif dashboard_today_count:
+        dashboard_summary_title = (
+            "Há 1 atividade para hoje"
+            if dashboard_today_count == 1
+            else f"Há {dashboard_today_count} atividades para hoje"
+        )
+        dashboard_summary_text = "Sua fila abaixo já está ordenada para facilitar a decisão."
+        dashboard_summary_url = f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=today"
+        dashboard_summary_action = "Ver agenda de hoje"
+    elif dashboard_open_count:
+        dashboard_summary_title = (
+            "Sua fila está sob controle"
+            if dashboard_view == "mine"
+            else "A carteira está sem prazos críticos"
+        )
+        dashboard_summary_text = "Confira a próxima atividade e antecipe o trabalho da semana."
+        dashboard_summary_url = (
+            f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=next_7_days"
+        )
+        dashboard_summary_action = "Planejar a semana"
+    else:
+        dashboard_summary_title = "Nenhuma atividade aberta neste recorte"
+        dashboard_summary_text = (
+            "Consulte a Carteira para verificar trabalho compartilhado."
+            if dashboard_view == "mine"
+            else "Quando uma rotina gerar trabalho, ele aparecerá aqui com prazo e responsável."
+        )
+        dashboard_summary_url = (
+            f"{reverse('hub:dashboard')}?view=portfolio"
+            if dashboard_view == "mine"
+            else reverse("hub:activities")
+        )
+        dashboard_summary_action = (
+            "Ver carteira" if dashboard_view == "mine" else "Abrir central de atividades"
+        )
     admin_workload: list[Membership] = []
     unassigned_activity_count = 0
     if dashboard_view == "management":
@@ -1796,6 +2231,11 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         )
         admin_workload = list(
             Membership.objects.filter(organization=office, is_active=True)
+            .exclude(
+                Q(user__email__startswith="demo-", user__email__endswith="@example.test")
+                if office.is_demo
+                else Q(pk__isnull=True)
+            )
             .select_related("user")
             .annotate(
                 open_activity_count=Count(
@@ -1822,7 +2262,7 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "label": "Revisões de NFS-e",
                 "count": review_count,
                 "note": "Decisões de classificação pendentes",
-                "url": reverse("hub:reviews"),
+                "url": reverse("hub:nfse-center") + "?status=unclassified",
             }
         )
     if ProductModule.Code.INTEGRA in enabled_codes:
@@ -1915,14 +2355,25 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         )
     context.update(
         {
-            "page_title": "Visão geral",
+            "page_title": {
+                "mine": "Meu trabalho",
+                "portfolio": "Carteira de trabalho",
+                "management": "Gestão da operação",
+            }[dashboard_view],
             "open_cases": open_cases,
             "dashboard_activities": dashboard_activities,
             "dashboard_view": dashboard_view,
             "agenda_page": agenda_page,
             "selected_agenda_filter": selected_agenda_filter,
+            "agenda_heading": agenda_heading,
+            "agenda_description": agenda_description,
             "agenda_today": today,
             "dashboard_overdue_count": dashboard_overdue_count,
+            "dashboard_summary_title": dashboard_summary_title,
+            "dashboard_summary_text": dashboard_summary_text,
+            "dashboard_summary_url": dashboard_summary_url,
+            "dashboard_summary_action": dashboard_summary_action,
+            "closing_expanded": request.GET.get("closing_open") == "1",
             "activity_attention": activity_attention,
             "is_dashboard_administrator": is_dashboard_administrator,
             "admin_workload": admin_workload,
@@ -1970,6 +2421,8 @@ def activity_models(request: HttpRequest) -> HttpResponse:
     generation_form = ActivityGenerationForm(
         initial={"competence": timezone.localdate()}, prefix="generation"
     )
+    invalid_action = ""
+    response_status = 200
     if request.method == "POST":
         action = request.POST.get("action")
         if action == "template":
@@ -1994,7 +2447,9 @@ def activity_models(request: HttpRequest) -> HttpResponse:
                     metadata={"code": template.code, "version": template.version},
                 )
                 messages.success(request, f"Modelo {template.code} v{template.version} criado.")
-                return redirect("hub:activity-models")
+                return redirect(f"{reverse('hub:activity-models')}#model-library")
+            invalid_action = "template"
+            response_status = 400
             messages.error(request, "Revise os dados do modelo.")
         elif action == "assignment":
             assignment_form = ActivityTemplateAssignmentForm(
@@ -2017,8 +2472,33 @@ def activity_models(request: HttpRequest) -> HttpResponse:
                     },
                 )
                 messages.success(request, "Modelo atribuído à empresa.")
-                return redirect("hub:activity-models")
+                return redirect(f"{reverse('hub:activity-models')}#assignment-library")
+            invalid_action = "assignment"
+            response_status = 400
             messages.error(request, "Revise a atribuição do modelo.")
+        elif action == "template-toggle":
+            template = get_object_or_404(
+                ActivityTemplate,
+                id=request.POST.get("template_id"),
+                organization=office,
+            )
+            template.active = not template.active
+            template.save(update_fields=["active", "updated_at"])
+            record_event(
+                action="hub.activity_template.toggled",
+                actor=cast(User, request.user),
+                organization=office,
+                target=template,
+                request=request,
+                metadata={
+                    "code": template.code,
+                    "version": template.version,
+                    "active": template.active,
+                },
+            )
+            state = "retomado" if template.active else "pausado"
+            messages.success(request, f"Modelo {template.code} v{template.version} {state}.")
+            return redirect(f"{reverse('hub:activity-models')}#model-library")
         elif action == "assignment-toggle":
             assignment = get_object_or_404(
                 ActivityTemplateAssignment,
@@ -2042,13 +2522,16 @@ def activity_models(request: HttpRequest) -> HttpResponse:
             )
             state = "reativada" if assignment.active else "pausada"
             messages.success(request, f"A atribuição foi {state}.")
-            return redirect("hub:activity-models")
+            return redirect(f"{reverse('hub:activity-models')}#assignment-library")
         elif action == "generate":
             generation_form = ActivityGenerationForm(request.POST, prefix="generation")
             if generation_form.is_valid():
                 assignments = list(
                     ActivityTemplateAssignment.objects.filter(
-                        organization=office, active=True, template__active=True
+                        organization=office,
+                        active=True,
+                        template__active=True,
+                        template__frequency=ActivityTemplate.Frequency.MONTHLY,
                     ).select_related("template", "company", "assigned_to")
                 )
                 generated, ignored = generate_monthly_activities(
@@ -2064,24 +2547,65 @@ def activity_models(request: HttpRequest) -> HttpResponse:
                         "já existente(s) ou inativa(s)."
                     ),
                 )
-                return redirect("hub:activity-models")
+                return redirect(f"{reverse('hub:activity-models')}#generation-step")
+            invalid_action = "generate"
+            response_status = 400
             messages.error(request, "Informe uma competência válida.")
         else:
             raise Http404
 
-    templates = ActivityTemplate.objects.filter(organization=office).prefetch_related(
-        "company_assignments__company", "company_assignments__assigned_to"
+    template_query = ActivityTemplate.objects.filter(organization=office).annotate(
+        assignment_count=Count("company_assignments"),
+        active_assignment_count=Count(
+            "company_assignments",
+            filter=Q(company_assignments__active=True),
+        ),
+        company_count=Count("company_assignments__company", distinct=True),
+    ).order_by("area", "code", "-version")
+    assignment_query = ActivityTemplateAssignment.objects.filter(
+        organization=office
+    ).select_related("template", "company", "assigned_to")
+    template_page = Paginator(template_query, 20).get_page(request.GET.get("templates_page"))
+    assignment_page = Paginator(assignment_query, 30).get_page(
+        request.GET.get("assignments_page")
     )
+    template_params = request.GET.copy()
+    template_params.pop("templates_page", None)
+    assignment_params = request.GET.copy()
+    assignment_params.pop("assignments_page", None)
+    active_assignments = assignment_query.filter(active=True, template__active=True)
+    active_template_count = template_query.filter(active=True).count()
+    active_assignment_count = active_assignments.count()
+    covered_company_count = active_assignments.values("company_id").distinct().count()
+    ready_generation_count = active_assignments.filter(
+        template__frequency=ActivityTemplate.Frequency.MONTHLY
+    ).count()
+    if active_template_count == 0:
+        recommended_step = "template"
+    elif active_assignment_count == 0:
+        recommended_step = "assignment"
+    else:
+        recommended_step = "generate"
     context.update(
         {
             "page_title": "Modelos de atividades",
             "template_form": template_form,
             "assignment_form": assignment_form,
             "generation_form": generation_form,
-            "activity_templates": templates,
+            "activity_templates": template_page.object_list,
+            "activity_template_page": template_page,
+            "activity_assignment_page": assignment_page,
+            "template_querystring": template_params.urlencode(),
+            "assignment_querystring": assignment_params.urlencode(),
+            "active_template_count": active_template_count,
+            "active_assignment_count": active_assignment_count,
+            "covered_company_count": covered_company_count,
+            "ready_generation_count": ready_generation_count,
+            "recommended_step": recommended_step,
+            "invalid_action": invalid_action,
         }
     )
-    return render(request, "hub/activity_models.html", context)
+    return render(request, "hub/activity_models.html", context, status=response_status)
 
 
 @office_required
@@ -2107,6 +2631,13 @@ def activities(request: HttpRequest) -> HttpResponse:
     }
     if not is_administrator:
         queue = queue.filter(Q(assigned_to=request.user) | Q(assigned_to__isnull=True))
+    base_queue = queue
+    open_queue = base_queue.exclude(
+        work_status__in=[
+            OperationalActivity.WorkStatus.COMPLETED,
+            OperationalActivity.WorkStatus.WAIVED,
+        ]
+    )
     area = request.GET.get("area", "")
     status = request.GET.get("status", "")
     freshness = request.GET.get("freshness", "")
@@ -2115,29 +2646,72 @@ def activities(request: HttpRequest) -> HttpResponse:
     company_id = request.GET.get("company", "")
     assignee_id = request.GET.get("assignee", "")
     competence_value = request.GET.get("competence", "").strip()
-    selected_competence = ""
+    selected_area = ""
+    selected_status = ""
+    selected_freshness = ""
+    selected_company = ""
+    selected_company_label = ""
+    selected_competence = competence_value
+    selected_competence_date: date | None = None
     invalid_competence = False
     selected_assignee = ""
-    selected_unassigned = request.GET.get("unassigned", "") == "1"
-    if area in ActivityTemplate.Area.values:
-        queue = queue.filter(area=area)
-    if status in OperationalActivity.WorkStatus.values:
-        queue = queue.filter(work_status=status)
-    if freshness in OperationalActivity.Freshness.values:
-        queue = queue.filter(freshness=freshness)
+    selected_assignee_label = ""
+    unassigned_value = request.GET.get("unassigned", "")
+    selected_unassigned = unassigned_value == "1"
+    invalid_filter_messages: list[str] = []
+    if area:
+        if area in ActivityTemplate.Area.values:
+            queue = queue.filter(area=area)
+            selected_area = area
+        else:
+            invalid_filter_messages.append("A área informada não existe.")
+    if status:
+        if status in OperationalActivity.WorkStatus.values:
+            queue = queue.filter(work_status=status)
+            selected_status = status
+        elif status == "all":
+            selected_status = status
+        else:
+            invalid_filter_messages.append("A situação informada não existe.")
+    else:
+        queue = queue.exclude(
+            work_status__in=[
+                OperationalActivity.WorkStatus.COMPLETED,
+                OperationalActivity.WorkStatus.WAIVED,
+            ]
+        )
+    if freshness:
+        if freshness in OperationalActivity.Freshness.values:
+            queue = queue.filter(freshness=freshness)
+            selected_freshness = freshness
+        else:
+            invalid_filter_messages.append("A atualização informada não existe.")
     if company_id:
         try:
             selected_company_id = uuid.UUID(company_id)
         except ValueError:
             selected_company_id = None
-        if selected_company_id is not None:
+        selected_company_row = (
+            scope.filter(pk=selected_company_id).only("id", "name").first()
+            if selected_company_id is not None
+            else None
+        )
+        if selected_company_row is not None:
             queue = queue.filter(company_id=selected_company_id)
+            selected_company = str(selected_company_id)
+            selected_company_label = selected_company_row.name
+        else:
+            invalid_filter_messages.append("A empresa informada não pertence à sua carteira.")
     activity_assignees = User.objects.none()
     if is_administrator:
         activity_assignees = User.objects.filter(
             organization_memberships__organization=office,
             organization_memberships__is_active=True,
         ).distinct()
+        if office.is_demo:
+            activity_assignees = activity_assignees.exclude(
+                email__startswith="demo-", email__endswith="@example.test"
+            )
         try:
             selected_assignee_id = uuid.UUID(assignee_id)
         except ValueError:
@@ -2148,8 +2722,20 @@ def activities(request: HttpRequest) -> HttpResponse:
         ):
             queue = queue.filter(assigned_to_id=selected_assignee_id)
             selected_assignee = str(selected_assignee_id)
+            selected_assignee_row = activity_assignees.get(id=selected_assignee_id)
+            selected_assignee_label = selected_assignee_row.full_name or selected_assignee_row.email
+        elif assignee_id:
+            invalid_filter_messages.append("O responsável informado não pertence a esta equipe.")
         if selected_unassigned:
             queue = queue.filter(assigned_to__isnull=True)
+        elif unassigned_value:
+            invalid_filter_messages.append("O filtro de responsabilidade é inválido.")
+        if selected_assignee and selected_unassigned:
+            invalid_filter_messages.append(
+                "Escolha um responsável ou atividades sem responsável, não os dois."
+            )
+    elif assignee_id or unassigned_value:
+        invalid_filter_messages.append("Seu perfil não pode filtrar a operação por responsável.")
     if re.fullmatch(r"\d{4}-\d{2}", competence_value):
         try:
             selected_competence_date = parse_date(f"{competence_value}-01")
@@ -2175,10 +2761,153 @@ def activities(request: HttpRequest) -> HttpResponse:
         queue = queue.filter(due_today)
     elif due == "next_7_days":
         queue = queue.filter(due_next_seven_days)
-    elif overdue == "1":
+    elif due:
+        invalid_filter_messages.append("O período de prazo informado não existe.")
+    if overdue == "1":
         queue = queue.filter(
             Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
         )
+    elif overdue:
+        invalid_filter_messages.append("O filtro de atraso é inválido.")
+    if due and overdue:
+        invalid_filter_messages.append("Escolha apenas um recorte de prazo por vez.")
+    if invalid_competence:
+        invalid_filter_messages.append("Informe uma competência válida no formato mês/ano.")
+    if invalid_filter_messages:
+        queue = queue.none()
+
+    def activity_filter_url(**updates: str | None) -> str:
+        query = request.GET.copy()
+        query.pop("page", None)
+        for key in list(query):
+            if not query.get(key):
+                query.pop(key, None)
+        for key, value in updates.items():
+            if value:
+                query[key] = value
+            else:
+                query.pop(key, None)
+        encoded = query.urlencode()
+        base = reverse("hub:activities")
+        return f"{base}?{encoded}" if encoded else base
+
+    priority_queue = open_queue
+    if selected_area:
+        priority_queue = priority_queue.filter(area=selected_area)
+    if selected_company:
+        priority_queue = priority_queue.filter(company_id=uuid.UUID(selected_company))
+    if selected_competence_date is not None:
+        priority_queue = priority_queue.filter(competence=selected_competence_date)
+    if selected_assignee:
+        priority_queue = priority_queue.filter(assigned_to_id=uuid.UUID(selected_assignee))
+    if selected_unassigned:
+        priority_queue = priority_queue.filter(assigned_to__isnull=True)
+    if invalid_filter_messages:
+        priority_queue = priority_queue.none()
+    priority_counts = priority_queue.aggregate(
+        total=Count("pk"),
+        overdue=Count(
+            "pk",
+            filter=Q(internal_due_on__lt=today)
+            | Q(internal_due_on__isnull=True, legal_due_on__lt=today),
+        ),
+        today=Count("pk", filter=due_today),
+        next_seven=Count("pk", filter=due_next_seven_days),
+        blocked=Count(
+            "pk", filter=Q(work_status=OperationalActivity.WorkStatus.BLOCKED)
+        ),
+        unavailable=Count(
+            "pk", filter=Q(freshness=OperationalActivity.Freshness.UNAVAILABLE)
+        ),
+    )
+    priority_filters = [
+        {
+            "label": "Em aberto",
+            "count": priority_counts["total"],
+            "url": activity_filter_url(status=None, freshness=None, due=None, overdue=None),
+            "selected": not status and not freshness and not due and not overdue,
+        },
+        {
+            "label": "Em atraso",
+            "count": priority_counts["overdue"],
+            "url": activity_filter_url(status=None, freshness=None, due=None, overdue="1"),
+            "selected": overdue == "1" and not due,
+        },
+        {
+            "label": "Para hoje",
+            "count": priority_counts["today"],
+            "url": activity_filter_url(status=None, freshness=None, due="today", overdue=None),
+            "selected": due == "today" and not overdue,
+        },
+        {
+            "label": "Próximos 7 dias",
+            "count": priority_counts["next_seven"],
+            "url": activity_filter_url(
+                status=None, freshness=None, due="next_7_days", overdue=None
+            ),
+            "selected": due == "next_7_days" and not overdue,
+        },
+        {
+            "label": "Impedidas",
+            "count": priority_counts["blocked"],
+            "url": activity_filter_url(
+                status=OperationalActivity.WorkStatus.BLOCKED,
+                freshness=None,
+                due=None,
+                overdue=None,
+            ),
+            "selected": status == OperationalActivity.WorkStatus.BLOCKED,
+        },
+        {
+            "label": "Fonte indisponível",
+            "count": priority_counts["unavailable"],
+            "url": activity_filter_url(
+                status=None,
+                freshness=OperationalActivity.Freshness.UNAVAILABLE,
+                due=None,
+                overdue=None,
+            ),
+            "selected": freshness == OperationalActivity.Freshness.UNAVAILABLE,
+        },
+    ]
+
+    area_labels = dict(ActivityTemplate.Area.choices)
+    status_labels = dict(OperationalActivity.WorkStatus.choices)
+    freshness_labels = dict(OperationalActivity.Freshness.choices)
+    active_filters: list[dict[str, str]] = []
+
+    def add_active_filter(label: str, key: str) -> None:
+        active_filters.append({"label": label, "url": activity_filter_url(**{key: None})})
+
+    if selected_area:
+        add_active_filter(f"Área: {area_labels[selected_area]}", "area")
+    if selected_status:
+        add_active_filter(
+            "Situação: "
+            + (
+                "Todas, inclusive encerradas"
+                if selected_status == "all"
+                else status_labels[selected_status]
+            ),
+            "status",
+        )
+    if selected_freshness:
+        add_active_filter(f"Atualização: {freshness_labels[selected_freshness]}", "freshness")
+    if selected_company:
+        add_active_filter(f"Empresa: {selected_company_label}", "company")
+    if selected_competence_date is not None and not invalid_competence:
+        add_active_filter(f"Competência: {selected_competence_date:%m/%Y}", "competence")
+    if selected_assignee:
+        add_active_filter(f"Responsável: {selected_assignee_label}", "assignee")
+    if selected_unassigned:
+        add_active_filter("Sem responsável", "unassigned")
+    if due == "today":
+        add_active_filter("Prazo: hoje", "due")
+    elif due == "next_7_days":
+        add_active_filter("Prazo: próximos 7 dias", "due")
+    if overdue == "1":
+        add_active_filter("Prazo: em atraso", "overdue")
+
     overdue_count = (
         queue.filter(
             Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
@@ -2200,6 +2929,36 @@ def activities(request: HttpRequest) -> HttpResponse:
     page_items = list(page.object_list)
     for item in page_items:
         item.is_overdue = activity_is_overdue(item, today=today)
+        due_on = item.internal_due_on or item.legal_due_on
+        item.queue_due_on = due_on
+        item.queue_due_kind = (
+            "Prazo interno" if item.internal_due_on else "Prazo legal"
+        )
+        if due_on is None:
+            item.queue_due_label = "Sem prazo definido"
+        elif due_on < today:
+            overdue_days = (today - due_on).days
+            item.queue_due_label = (
+                "1 dia em atraso" if overdue_days == 1 else f"{overdue_days} dias em atraso"
+            )
+        elif due_on == today:
+            item.queue_due_label = "Vence hoje"
+        elif due_on == today + timedelta(days=1):
+            item.queue_due_label = "Vence amanhã"
+        elif due_on <= today + timedelta(days=7):
+            item.queue_due_label = f"Vence em {(due_on - today).days} dias"
+        else:
+            item.queue_due_label = "Prazo futuro"
+        if item.work_status == OperationalActivity.WorkStatus.BLOCKED:
+            item.queue_next_step = item.blocked_reason or "Confira o impedimento registrado."
+        elif item.freshness == OperationalActivity.Freshness.UNAVAILABLE:
+            item.queue_next_step = "Confira a fonte indisponível antes de continuar."
+        elif item.assigned_to_id is None:
+            item.queue_next_step = "Defina quem vai assumir esta atividade."
+        else:
+            item.queue_next_step = "Abra a atividade e confira as condições de conclusão."
+    pagination_query = request.GET.copy()
+    pagination_query.pop("page", None)
     context.update(
         {
             "page_title": ("Atividades do escritório" if is_administrator else "Minhas atividades"),
@@ -2208,19 +2967,36 @@ def activities(request: HttpRequest) -> HttpResponse:
             "overdue_count": overdue_count,
             "activity_areas": ActivityTemplate.Area.choices,
             "activity_statuses": OperationalActivity.WorkStatus.choices,
-            "selected_area": area,
-            "selected_status": status,
-            "selected_freshness": freshness,
+            "selected_area": selected_area,
+            "selected_status": selected_status,
+            "selected_freshness": selected_freshness,
             "selected_due": due,
             "selected_overdue": overdue,
             "activity_freshnesses": OperationalActivity.Freshness.choices,
-            "selected_company": company_id,
+            "selected_company": selected_company,
             "activity_assignees": activity_assignees,
             "selected_assignee": selected_assignee,
             "selected_unassigned": selected_unassigned,
             "selected_competence": selected_competence,
             "invalid_competence": invalid_competence,
+            "invalid_filter_messages": invalid_filter_messages,
             "is_activity_administrator": is_administrator,
+            "priority_filters": priority_filters,
+            "active_filters": active_filters,
+            "filters_expanded": bool(
+                invalid_filter_messages
+                or selected_area
+                or selected_status
+                or selected_freshness
+                or selected_company
+                or competence_value
+                or selected_assignee
+                or selected_unassigned
+            ),
+            "is_activity_filtered": bool(active_filters or invalid_filter_messages),
+            "clear_activity_filters_url": reverse("hub:activities"),
+            "activities_querystring": pagination_query.urlencode(),
+            "open_activity_count": priority_counts["total"],
         }
     )
     return render(request, "hub/activities.html", context)
@@ -2257,12 +3033,14 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
     activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
     can_assign = (
         bool(context["support_can_mutate"])
+        and not activity.organization.is_demo
         and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
         and can_operate_activity(membership=membership, activity=activity)
         and activity.work_status not in {"completed", "waived"}
     )
+    inline_rerender = bool(getattr(request, "_activity_inline_rerender", False))
     assignment_form = OperationalAssignmentForm(
-        request.POST if request.method == "POST" else None,
+        request.POST if request.method == "POST" and not inline_rerender else None,
         initial={
             "assignee": str(activity.assigned_to_id or ""),
             "expected_assignee": str(activity.assigned_to_id or ""),
@@ -2285,7 +3063,7 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
                     (str(candidate.user_id), candidate.user.full_name or candidate.user.email)
                 )
     assignment_form.fields["assignee"].choices = choices  # type: ignore[attr-defined]
-    if request.method == "POST":
+    if request.method == "POST" and not inline_rerender:
         if not can_assign or request.POST.get("action") != "assign":
             return refuse(request, "Este perfil ou estado não permite redistribuir a atividade.")
         if assignment_form.is_valid():
@@ -2315,9 +3093,11 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
             and review.document.company_id == activity.company_id
         ):
             origin = {
-                "label": "Abrir revisão de NFS-e",
+                "label": "Classificar NFS-e na lista",
                 "status": review.get_status_display(),
-                "url": reverse("hub:review-detail", args=[review.pk]),
+                "url": reverse("hub:nfse-center")
+                + "?status=unclassified&q="
+                + quote(review.document.company.name),
                 "allowed": collaborator_can_use_module(context, ProductModule.Code.NFSE),
             }
     elif activity.source_triage_item_id:
@@ -2416,6 +3196,70 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
             f"{reverse('hub:company-detail', args=[activity.company_id])}"
             f"?payroll_competence={payroll_source.competence.isoformat()}#folha"
         )
+    completion_missing = completion_requirements(activity)
+    event_labels = {
+        "assigned": "Responsável atualizado",
+        "blocked": "Impedimento registrado",
+        "completed": "Atividade concluída",
+        "evidence_recorded": "Evidência registrada",
+        "reopened_from_source": "Reaberta pela fonte",
+        "dte_received": "Comunicação recebida",
+        "dte_result_uncertain": "Resultado a confirmar",
+        "dte_result_confirmed": "Resultado confirmado",
+        "dte_analysis_reopened": "Análise reaberta",
+        "reform_received": "Publicação recebida",
+        "payroll_received": "Folha recebida",
+    }
+    activity_events = list(activity.events.select_related("actor").all())
+    for event in activity_events:
+        event.display_label = event_labels.get(  # type: ignore[attr-defined]
+            event.event_type,
+            "Atualização registrada",
+        )
+    is_closed = activity.work_status in {
+        OperationalActivity.WorkStatus.COMPLETED,
+        OperationalActivity.WorkStatus.WAIVED,
+    }
+    if is_closed:
+        next_action = {
+            "title": "Atividade encerrada",
+            "description": (
+                "Consulte as evidências e a trilha preservada. Uma nova pendência precisa "
+                "vir da fonte ou de uma revisão aplicável."
+            ),
+            "state": "done",
+        }
+    elif origin:
+        next_action = {
+            "title": "Continue no módulo de origem",
+            "description": (
+                "Resolva a etapa indicada na origem; o resultado volta para esta atividade "
+                "sem perder o histórico."
+            ),
+            "state": "attention",
+        }
+    elif activity.work_status == OperationalActivity.WorkStatus.BLOCKED:
+        next_action = {
+            "title": "Resolva o impedimento registrado",
+            "description": activity.blocked_reason
+            or "Confira o impedimento e registre nova evidência quando o trabalho puder continuar.",
+            "state": "attention",
+        }
+    elif completion_missing:
+        next_action = {
+            "title": "Cumpra a condição para concluir",
+            "description": completion_missing[0],
+            "state": "attention",
+        }
+    else:
+        next_action = {
+            "title": "Revise e conclua a atividade",
+            "description": (
+                "As condições conhecidas estão atendidas. Confira a evidência antes de "
+                "confirmar a conclusão."
+            ),
+            "state": "ready",
+        }
     context.update(
         {
             "page_title": activity.title,
@@ -2429,10 +3273,24 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
             "activity_source_observations": activity.source_observations.select_related(
                 "data_source"
             ).all(),
-            "activity_events": activity.events.select_related("actor").all(),
-            "evidence_form": OperationalEvidenceForm(),
-            "block_form": OperationalBlockForm(),
+            "activity_events": activity_events,
+            "evidence_form": getattr(
+                request,
+                "_activity_evidence_form",
+                OperationalEvidenceForm(),
+            ),
+            "block_form": getattr(
+                request,
+                "_activity_block_form",
+                OperationalBlockForm(),
+            ),
+            "activity_active_action": getattr(request, "_activity_active_action", ""),
+            "activity_action_error": getattr(request, "_activity_action_error", ""),
+            "activity_completion_missing": completion_missing,
+            "activity_next_action": next_action,
+            "activity_is_closed": is_closed,
             "can_manage_activity": bool(context["support_can_mutate"])
+            and not activity.organization.is_demo
             and can_operate_activity(
                 membership=membership,
                 activity=activity,
@@ -2444,21 +3302,29 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
         request,
         "hub/activity_detail.html",
         context,
-        status=400 if assignment_form.errors else 200,
+        status=(
+            400
+            if bool(assignment_form.errors)
+            or bool(getattr(request, "_activity_action_error", ""))
+            else 200
+        ),
     )
 
 
 @office_required
 @require_http_methods(["POST"])
-def activity_add_evidence(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+def activity_add_evidence(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponseBase:
     context = workspace_context(request)
     activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
     if not context["support_can_mutate"]:
         return refuse(request, "Esta sessão permite somente consulta.")
     form = OperationalEvidenceForm(request.POST)
     if not form.is_valid():
-        messages.error(request, "Revise a evidência antes de registrar.")
-        return redirect("hub:activity-detail", activity_id=activity.id)
+        request._activity_inline_rerender = True  # type: ignore[attr-defined]
+        request._activity_evidence_form = form  # type: ignore[attr-defined]
+        request._activity_active_action = "evidence"  # type: ignore[attr-defined]
+        request._activity_action_error = "Revise a evidência antes de registrar."  # type: ignore[attr-defined]
+        return activity_detail(request, activity.id)
     try:
         add_human_evidence(
             activity=activity,
@@ -2469,7 +3335,12 @@ def activity_add_evidence(request: HttpRequest, activity_id: uuid.UUID) -> HttpR
             summary=form.cleaned_data["summary"],
         )
     except (PermissionDenied, ValidationError) as exc:
-        messages.error(request, str(exc))
+        form.add_error(None, _user_error_message(exc))
+        request._activity_inline_rerender = True  # type: ignore[attr-defined]
+        request._activity_evidence_form = form  # type: ignore[attr-defined]
+        request._activity_active_action = "evidence"  # type: ignore[attr-defined]
+        request._activity_action_error = "Não foi possível registrar a evidência."  # type: ignore[attr-defined]
+        return activity_detail(request, activity.id)
     else:
         messages.success(request, "Evidência registrada na trilha da atividade.")
     return redirect("hub:activity-detail", activity_id=activity.id)
@@ -2477,15 +3348,18 @@ def activity_add_evidence(request: HttpRequest, activity_id: uuid.UUID) -> HttpR
 
 @office_required
 @require_http_methods(["POST"])
-def activity_block(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse:
+def activity_block(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponseBase:
     context = workspace_context(request)
     activity, membership = _activity_in_scope_or_404(context=context, activity_id=activity_id)
     if not context["support_can_mutate"]:
         return refuse(request, "Esta sessão permite somente consulta.")
     form = OperationalBlockForm(request.POST)
     if not form.is_valid():
-        messages.error(request, "Descreva o impedimento para registrá-lo.")
-        return redirect("hub:activity-detail", activity_id=activity.id)
+        request._activity_inline_rerender = True  # type: ignore[attr-defined]
+        request._activity_block_form = form  # type: ignore[attr-defined]
+        request._activity_active_action = "block"  # type: ignore[attr-defined]
+        request._activity_action_error = "Descreva o impedimento para registrá-lo."  # type: ignore[attr-defined]
+        return activity_detail(request, activity.id)
     try:
         block_activity(
             activity=activity,
@@ -2495,7 +3369,12 @@ def activity_block(request: HttpRequest, activity_id: uuid.UUID) -> HttpResponse
             reason=form.cleaned_data["reason"],
         )
     except (PermissionDenied, ValidationError) as exc:
-        messages.error(request, str(exc))
+        form.add_error(None, _user_error_message(exc))
+        request._activity_inline_rerender = True  # type: ignore[attr-defined]
+        request._activity_block_form = form  # type: ignore[attr-defined]
+        request._activity_active_action = "block"  # type: ignore[attr-defined]
+        request._activity_action_error = "Não foi possível registrar o impedimento."  # type: ignore[attr-defined]
+        return activity_detail(request, activity.id)
     else:
         messages.success(request, "Impedimento registrado e visível para o escritório.")
     return redirect("hub:activity-detail", activity_id=activity.id)
@@ -2516,7 +3395,7 @@ def activity_complete(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespo
             request=request,
         )
     except (PermissionDenied, ValidationError) as exc:
-        messages.error(request, str(exc))
+        messages.error(request, _user_error_message(exc))
     else:
         messages.success(request, "Atividade concluída com a evidência registrada.")
     return redirect("hub:activity-detail", activity_id=activity.id)
@@ -2533,6 +3412,16 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
     office = context["office"]
     assert isinstance(office, Organization)
     scope = cast("QuerySet[ClientCompany]", context["companies"])
+    selected_company = None
+    company_filter = request.GET.get("company", "")
+    if company_filter:
+        try:
+            company_uuid = uuid.UUID(company_filter)
+        except ValueError as exc:
+            raise Http404 from exc
+        history_scope = _company_history_scope(context)
+        selected_company = get_object_or_404(history_scope, pk=company_uuid)
+        scope = history_scope.filter(pk=selected_company.pk)
     membership = context["membership"]
     can_manage_sync = bool(
         is_demo_visitor(request, office)
@@ -2544,20 +3433,112 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
     )
     can_export_nfse = bool(
         context["support_can_mutate"]
-        and isinstance(membership, Membership)
-        and membership.role
-        in {
-            Membership.Role.OWNER,
-            Membership.Role.ADMIN,
-            Membership.Role.MANAGER,
-            Membership.Role.OPERATOR,
-        }
+        and (
+            context["support_session"] is not None
+            or (
+                isinstance(membership, Membership)
+                and membership.role in {
+                    Membership.Role.OWNER, Membership.Role.ADMIN,
+                    Membership.Role.MANAGER, Membership.Role.OPERATOR,
+                }
+            )
+        )
+    )
+    can_classify_nfse = bool(is_demo_visitor(request, office) or can_export_nfse)
+    if selected_company is not None and not selected_company.active:
+        can_classify_nfse = False
+    can_demo_download_nfse = bool(
+        office.is_demo and (is_demo_visitor(request, office) or can_export_nfse)
+    )
+    can_download_nfse = bool(
+        can_demo_download_nfse
+        or (not office.is_demo and (
+            can_export_nfse or context["support_session"] is not None
+            or (isinstance(membership, Membership) and membership.role == Membership.Role.AUDITOR)
+        ))
     )
 
     if request.method == "POST":
         action = request.POST.get("action", "")
-        if action in {"demo_download_issued", "demo_download_taken"}:
-            if not is_demo_visitor(request, office):
+        if action in {"retention_report_pdf", "retention_report_xlsx", "download_original_xmls"}:
+            if not can_download_nfse:
+                return refuse(request, "Seu perfil não pode baixar relatórios desta carteira.")
+            report_query = (
+                NfseDocument.objects.filter(organization=office, company__in=scope)
+                .select_related("company", "review_case", "side")
+                .prefetch_related("integration_artifacts")
+            )
+            try:
+                report_documents = _filter_nfse_retention_report_documents(
+                    report_query, request.POST, demo=office.is_demo
+                )
+            except ValueError as exc:
+                messages.error(request, str(exc))
+                return redirect(request.get_full_path())
+            if not report_documents:
+                messages.error(request, "Nenhuma NFS-e corresponde ao recorte do relatório.")
+                return redirect(request.get_full_path())
+            if action == "download_original_xmls":
+                archive = io.BytesIO()
+                with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
+                    for document in report_documents:
+                        direction = _nfse_document_direction(document, demo=office.is_demo)
+                        folder = nfse_company_archive_folder(
+                            root={"provided": "Emitidas", "taken": "Tomadas"}.get(
+                                direction, "Tipo-a-confirmar"
+                            ),
+                            dominio_code=document.company.dominio_code,
+                        )
+                        bundle.writestr(
+                            f"{folder}/NFS-e-{document.id}.xml",
+                            document.original_xml.encode("utf-8"),
+                        )
+                response = HttpResponse(archive.getvalue(), content_type="application/zip")
+                response["Content-Disposition"] = 'attachment; filename="nfse-xmls-originais.zip"'
+                response["Cache-Control"] = "private, no-store"
+                response["X-Content-Type-Options"] = "nosniff"
+                record_event(
+                    action="hub.nfse.original_xmls_downloaded",
+                    actor=cast(User, request.user), organization=office, target=office,
+                    request=request, metadata={"document_count": len(report_documents)},
+                )
+                return response
+            report_rows = build_retention_report_rows(report_documents, demo=office.is_demo)
+            report_format = "pdf" if action == "retention_report_pdf" else "xlsx"
+            report_bytes = (
+                generate_retention_pdf(report_rows, demo=office.is_demo)
+                if report_format == "pdf"
+                else generate_retention_xlsx(report_rows, demo=office.is_demo)
+            )
+            generated_on = timezone.localdate().isoformat()
+            response = HttpResponse(
+                report_bytes,
+                content_type=(
+                    "application/pdf"
+                    if report_format == "pdf"
+                    else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="retencoes-nfse-{generated_on}.{report_format}"'
+            )
+            response["Cache-Control"] = "private, no-store"
+            response["X-Content-Type-Options"] = "nosniff"
+            record_event(
+                action=f"hub.nfse.retention_report_{report_format}_downloaded",
+                actor=cast(User, request.user),
+                organization=office,
+                target=office,
+                request=request,
+                metadata={
+                    "document_count": len(report_documents),
+                    "demo": office.is_demo,
+                    "direction": str(request.POST.get("report_direction", "all")),
+                },
+            )
+            return response
+        if action in {"demo_download_issued", "demo_download_taken", "demo_download_selected"}:
+            if not can_demo_download_nfse:
                 return refuse(
                     request, "O download em lote está disponível somente na demonstração."
                 )
@@ -2572,7 +3553,13 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             if not selected_documents:
                 messages.error(request, "Selecione ao menos uma NFS-e para a demonstração.")
                 return redirect(reverse("hub:nfse-center"))
-            folder = "Tomadas" if action == "demo_download_taken" else "Emitidas"
+            folder = (
+                "Tomadas"
+                if action == "demo_download_taken"
+                else "Emitidas"
+                if action == "demo_download_issued"
+                else ""
+            )
             return _demo_nfse_bulk_download(
                 selected_documents,
                 folder=folder,
@@ -2589,11 +3576,29 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 .select_related("company")
                 .distinct()
             )
-            if request.POST.get("all_classified") == "1":
-                selected_documents = list(selected_query.order_by("-issued_at", "-captured_at"))
-            else:
-                document_ids = list(dict.fromkeys(request.POST.getlist("documents")))
-                selected_documents = list(selected_query.filter(id__in=document_ids))
+            try:
+                if request.POST.get("all_filtered_classified") == "1":
+                    selected_documents = list(
+                        _filter_nfse_export_documents(selected_query, request.POST).order_by(
+                            "company__name", "-issued_at", "-captured_at"
+                        )
+                    )
+                else:
+                    document_ids = list(
+                        dict.fromkeys(
+                            str(uuid.UUID(value)) for value in request.POST.getlist("documents")
+                        )
+                    )
+                    selected_documents = list(selected_query.filter(id__in=document_ids))
+                    if len(selected_documents) != len(document_ids):
+                        raise ValueError("Seleção desatualizada. Selecione as notas novamente.")
+            except (ValueError, ValidationError):
+                messages.error(
+                    request,
+                    "Não foi possível preparar o lote. Confira o período "
+                    "e selecione novamente as notas disponíveis.",
+                )
+                return redirect(request.get_full_path())
             if not selected_documents:
                 messages.error(request, "Selecione ao menos uma NFS-e classificada para exportar.")
                 return redirect(reverse("hub:nfse-center"))
@@ -2624,11 +3629,12 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                         f"e hash {export.content_hash[:12]}."
                     ),
                 )
-            return redirect(reverse("hub:nfse-center") + "?view=exports")
+                return download_nfse_export(request, str(export.id))
+            return redirect(request.get_full_path())
 
         if action == "add_accumulator_rule":
             if is_demo_visitor(request, office) or not can_export_nfse:
-                return refuse(request, "Seu perfil n?o pode cadastrar acumuladores nesta carteira.")
+                return refuse(request, "Seu perfil não pode cadastrar acumuladores nesta carteira.")
             company_id = request.POST.get("company_id")
             company = (
                 scope.filter(id=company_id).filter(active=True).first() if company_id else None
@@ -2637,17 +3643,17 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             name = request.POST.get("name", "").strip()
             if company is None or not accumulator or len(accumulator) > 80 or len(name) > 160:
                 messages.error(
-                    request, "Informe empresa e um acumulador valido de ate 80 caracteres."
+                    request, "Informe a empresa e um acumulador válido de até 80 caracteres."
                 )
             elif AccumulatorRule.objects.filter(
                 organization=office, company=company, accumulator_code=accumulator, active=True
             ).exists():
-                messages.info(request, "Esse acumulador j? est? ativo para a empresa selecionada.")
+                messages.info(request, "Esse acumulador já está ativo para a empresa selecionada.")
             else:
                 rule = AccumulatorRule.objects.create(
                     organization=office,
                     company=company,
-                    name=name or f"Acumulador inclu?do em {timezone.localdate():%d/%m/%Y}",
+                    name=name or f"Acumulador incluído em {timezone.localdate():%d/%m/%Y}",
                     accumulator_code=accumulator,
                     priority=100,
                     match={},
@@ -2672,7 +3678,9 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                     metadata={"company_id": str(company.id), "has_accumulator": True},
                 )
                 messages.success(
-                    request, "Acumulador incluido para uso nas proximas classificacoes."
+                    request,
+                    "Acumulador incluído. Ele já pode ser escolhido nas próximas "
+                    "classificações, mas não classifica notas automaticamente.",
                 )
             return redirect(reverse("hub:nfse-center") + "?view=catalog")
 
@@ -2684,27 +3692,58 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             messages.error(request, "Selecione ao menos uma empresa da sua carteira.")
             return redirect(
                 reverse("hub:nfse-center")
-                + ("?view=collection" if request.GET.get("view") == "collection" else "")
+                + (
+                    "?view=collection&configure=1#nfse-sync-settings"
+                    if request.GET.get("view") == "collection"
+                    else ""
+                )
             )
+        if action not in {"activate", "pause", "retry"}:
+            return HttpResponseBadRequest("Ação de sincronização inválida.")
         if is_demo_visitor(request, office):
+            valid_certificate_company_ids = set(
+                Certificate.objects.filter(
+                    organization=office,
+                    company__in=selected_companies,
+                    revoked_at__isnull=True,
+                    valid_until__gt=timezone.now(),
+                ).values_list("company_id", flat=True)
+            )
+            changed = 0
+            blocked = 0
             for company in selected_companies:
+                if action != "pause" and company.id not in valid_certificate_company_ids:
+                    blocked += 1
+                    continue
                 put_progress(
                     request,
                     "nfse_syncs",
                     company.id,
                     {"status": "paused" if action == "pause" else "idle"},
                 )
-            messages.success(
-                request,
-                "Cenário fictício atualizado nesta sessão. Nenhum certificado ou ADN foi acionado.",
-            )
+                changed += 1
+            if changed:
+                messages.success(
+                    request,
+                    f"Cenário fictício atualizado para {changed} empresa"
+                    f"{'s' if changed != 1 else ''} nesta sessão. Nenhum certificado ou ADN "
+                    "foi acionado.",
+                )
+            if blocked:
+                messages.warning(
+                    request,
+                    f"{blocked} empresa{'s' if blocked != 1 else ''} precisa"
+                    f"{'m' if blocked != 1 else ''} de A1 válido antes de ativar a coleta.",
+                )
             return redirect(
                 reverse("hub:nfse-center")
-                + ("?view=collection" if request.GET.get("view") == "collection" else "")
+                + (
+                    "?view=collection&configure=1#nfse-sync-settings"
+                    if request.GET.get("view") == "collection"
+                    else ""
+                )
             )
 
-        if action not in {"activate", "pause", "retry"}:
-            return HttpResponseBadRequest("Ação de sincronização inválida.")
         changed = 0
         blocked = 0
         for company in selected_companies:
@@ -2753,9 +3792,9 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             )
             changed += 1
             if settings.NFSE_ADN_SYNC_ENABLED:
-                from apps.hub.tasks import poll_nfse_sync
+                from apps.hub.tasks import dispatch_active_nfse_syncs
 
-                transaction.on_commit(partial(poll_nfse_sync.delay, str(sync.id)))
+                transaction.on_commit(dispatch_active_nfse_syncs.delay)
         record_event(
             action=f"hub.nfse.sync_{action}",
             actor=request.user,
@@ -2771,56 +3810,67 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 f"atualizada{'s' if changed != 1 else ''}.",
             )
         if blocked:
-            messages.error(
+            messages.warning(
                 request,
-                f"{blocked} empresa{'s' if blocked != 1 else ''} sem e-CNPJ válido e compatível.",
+                f"{blocked} empresa{'s' if blocked != 1 else ''} ignorada"
+                f"{'s' if blocked != 1 else ''} por não ter e-CNPJ válido. "
+                "As empresas com certificado válido continuam normalmente.",
             )
         return redirect(
             reverse("hub:nfse-center")
-            + ("?view=collection" if request.GET.get("view") == "collection" else "")
+            + (
+                "?view=collection&configure=1#nfse-sync-settings"
+                if request.GET.get("view") == "collection"
+                else ""
+            )
         )
 
     document_query = (
         NfseDocument.objects.filter(organization=office, company__in=scope)
         .select_related("review_case", "company")
-        .prefetch_related("integration_artifacts")
+        .prefetch_related(
+            Prefetch(
+                "integration_artifacts",
+                queryset=IntegrationArtifact.objects.order_by("-created_at"),
+            )
+        )
     )
     document_search = request.GET.get("q", "").strip()[:100]
     document_status = request.GET.get("status", "all")
+    document_direction = request.GET.get("direction", "all")
     document_date_filter = request.GET.get("date_filter", "competence")
     document_competence = request.GET.get("competence", "").strip()[:7]
+    if not request.GET:
+        current_month = timezone.localdate().replace(day=1)
+        previous_month = current_month - timedelta(days=1)
+        document_competence = previous_month.strftime("%Y-%m")
     if "competence_month" in request.GET:
         month = request.GET.get("competence_month", "")
         year = request.GET.get("competence_year", "")
         document_competence = f"{year}-{month}" if month and year else ""
     issued_from = request.GET.get("issued_from", "").strip()[:10]
     issued_to = request.GET.get("issued_to", "").strip()[:10]
-    if document_status not in {"all", "review", "classified", "received"}:
+    if document_status in {"review", "received"}:
+        document_status = "unclassified"
+    if document_status not in {"all", "classified", "unclassified"}:
         document_status = "all"
+    if document_direction not in {"all", "provided", "taken", "unknown"}:
+        document_direction = "all"
     if document_date_filter not in {"competence", "issued"}:
         document_date_filter = "competence"
-    documents = document_query
+    scoped_documents = document_query
     if document_search:
-        documents = documents.filter(
+        scoped_documents = scoped_documents.filter(
             Q(company__name__icontains=document_search)
             | Q(company__dominio_code__icontains=document_search)
-            | Q(source_nsu__icontains=document_search)
-            | Q(document_hash__icontains=document_search)
-        )
-    if document_status == "review":
-        documents = documents.filter(review_case__status=ReviewCase.Status.OPEN)
-    elif document_status == "classified":
-        documents = documents.filter(integration_artifacts__isnull=False)
-    elif document_status == "received":
-        documents = documents.filter(integration_artifacts__isnull=True).exclude(
-            review_case__status=ReviewCase.Status.OPEN
+            | Q(normalized_data__number__icontains=document_search)
         )
     if document_date_filter == "competence" and re.fullmatch(
         r"\d{4}-(0[1-9]|1[0-2])", document_competence
     ):
         competence_year, competence_month = document_competence.split("-")
         if not office.is_demo:
-            documents = documents.filter(
+            scoped_documents = scoped_documents.filter(
                 issued_at__year=int(competence_year), issued_at__month=int(competence_month)
             )
     elif document_date_filter == "competence":
@@ -2856,21 +3906,57 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
     ):
         date_filter_error = "A data final deve ser igual ou posterior à inicial."
     if date_filter_error:
-        documents = documents.none()
+        scoped_documents = scoped_documents.none()
     if not office.is_demo and document_date_filter == "issued" and issued_from_date:
-        documents = documents.filter(issued_at__date__gte=issued_from_date)
+        scoped_documents = scoped_documents.filter(issued_at__date__gte=issued_from_date)
     if not office.is_demo and document_date_filter == "issued" and issued_to_date:
-        documents = documents.filter(issued_at__date__lte=issued_to_date)
-    documents = documents.distinct()
+        scoped_documents = scoped_documents.filter(issued_at__date__lte=issued_to_date)
+    scoped_documents = scoped_documents.distinct()
+
+    def filter_nfse_status(
+        query: QuerySet[NfseDocument], status: str
+    ) -> QuerySet[NfseDocument]:
+        if status == "classified":
+            return query.filter(integration_artifacts__isnull=False).distinct()
+        if status == "unclassified":
+            return query.filter(integration_artifacts__isnull=True).distinct()
+        return query
+
+    def filter_nfse_direction(
+        query: QuerySet[NfseDocument], direction: str
+    ) -> QuerySet[NfseDocument]:
+        return _filter_nfse_side(query, direction)
+
+    documents = filter_nfse_direction(
+        filter_nfse_status(scoped_documents, document_status), document_direction
+    ).distinct()
     document_total = documents.count()
-    ordered_documents: QuerySet[NfseDocument] | list[NfseDocument] = documents.order_by(
-        "-issued_at", "-captured_at"
-    )
+    exportable_documents = documents.filter(integration_artifacts__isnull=False).distinct()
+    document_exportable_total = exportable_documents.count()
+    document_exportable_company_total = exportable_documents.values("company_id").distinct().count()
+    ordered_documents: QuerySet[NfseDocument] | list[NfseDocument] = documents.select_related(
+        "side"
+    ).order_by("company__name", "-issued_at", "-captured_at")
+    demo_accumulators: dict[object, str] = {}
+    direction_stats: dict[str, int]
+    pending_stat: int
+    classified_stat: int
     if office.is_demo:
         # Old demo fixtures keep their emission date in the normalized XML data.
-        # Filter against the same date shown in the table, before limiting rows.
-        demo_documents = []
-        for document in ordered_documents:
+        # Filter against the same date shown in the table, before applying facets or limiting rows.
+        demo_scope: list[tuple[NfseDocument, bool, str, str]] = []
+        for document in scoped_documents.order_by("company__name", "-issued_at", "-captured_at"):
+            artifact = _latest_nfse_artifact(list(document.integration_artifacts.all()))
+            review = getattr(document, "review_case", None)
+            if review is not None:
+                _demo_review_for_view(request, review)
+            demo_accumulator = (
+                review.resolved_accumulator
+                if review is not None and review.status == ReviewCase.Status.RESOLVED
+                else ""
+            )
+            classified = bool((artifact and artifact.accumulator_code) or demo_accumulator)
+            effective_direction = _nfse_document_direction(document, demo=True)
             issued = document.issued_at or _nfse_issued_at_from_normalized_data(document)
             if issued and timezone.is_aware(issued):
                 issued = timezone.localtime(issued)
@@ -2886,34 +3972,183 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                     continue
                 if issued_to_date and (not issued_date or issued_date > issued_to_date):
                     continue
-            demo_documents.append(document)
-        document_total = len(demo_documents)
-        ordered_documents = demo_documents
+            demo_scope.append(
+                (document, classified, effective_direction, demo_accumulator or "")
+            )
+            if demo_accumulator:
+                demo_accumulators[document.pk] = demo_accumulator
+
+        def demo_status_matches(classified: bool, status: str) -> bool:
+            return (
+                status == "all"
+                or (status == "classified" and classified)
+                or (status == "unclassified" and not classified)
+            )
+
+        def demo_direction_matches(effective_direction: str, direction: str) -> bool:
+            return direction == "all" or effective_direction == direction
+
+        direction_stats = {
+            direction: sum(
+                demo_status_matches(classified, document_status)
+                and effective_direction == direction
+                for _document, classified, effective_direction, _accumulator in demo_scope
+            )
+            for direction in ("provided", "taken", "unknown")
+        }
+        status_scope = [
+            item
+            for item in demo_scope
+            if demo_direction_matches(item[2], document_direction)
+        ]
+        pending_stat = sum(not item[1] for item in status_scope)
+        classified_stat = sum(item[1] for item in status_scope)
+        filtered_demo_scope = [
+            item
+            for item in status_scope
+            if demo_status_matches(item[1], document_status)
+        ]
+        document_total = len(filtered_demo_scope)
+        ordered_documents = [item[0] for item in filtered_demo_scope]
+    else:
+        direction_scope = filter_nfse_status(scoped_documents, document_status)
+        direction_stats = {
+            "provided": filter_nfse_direction(direction_scope, "provided").count(),
+            "taken": filter_nfse_direction(direction_scope, "taken").count(),
+            "unknown": filter_nfse_direction(direction_scope, "unknown").count(),
+        }
+        status_scope = filter_nfse_direction(scoped_documents, document_direction)
+        pending_stat = filter_nfse_status(status_scope, "unclassified").count()
+        classified_stat = filter_nfse_status(status_scope, "classified").count()
+
+    def nfse_filter_url(*, status: str, direction: str) -> str:
+        params: dict[str, object] = {
+            "status": status,
+            "direction": direction,
+            "date_filter": document_date_filter,
+        }
+        if selected_company is not None:
+            params["company"] = selected_company.id
+        if document_search:
+            params["q"] = document_search
+        if document_date_filter == "competence" and document_competence:
+            params["competence_month"] = document_competence[5:7]
+            params["competence_year"] = document_competence[:4]
+        elif document_date_filter == "issued":
+            if issued_from:
+                params["issued_from"] = issued_from
+            if issued_to:
+                params["issued_to"] = issued_to
+        return f"{reverse('hub:nfse-center')}?{urlencode(params)}#nfse-results"
+
+    nfse_stat_urls = {
+        "received": nfse_filter_url(status=document_status, direction=document_direction),
+        "provided": nfse_filter_url(status=document_status, direction="provided"),
+        "taken": nfse_filter_url(status=document_status, direction="taken"),
+        "pending": nfse_filter_url(status="unclassified", direction=document_direction),
+    }
     document_page = Paginator(ordered_documents, 100).get_page(request.GET.get("page"))
     document_query_params = request.GET.copy()
     document_query_params.pop("page", None)
     document_rows: list[dict[str, object]] = []
+    accumulator_codes_cache: dict[tuple[object, date], list[tuple[str, str]]] = {}
     for document in document_page.object_list:
-        artifact = next(iter(document.integration_artifacts.all()), None)
+        artifact = _latest_nfse_artifact(list(document.integration_artifacts.all()))
         review = getattr(document, "review_case", None)
         open_review = review if review and review.status == ReviewCase.Status.OPEN else None
         issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
         # A note is classified or it is not: the accumulator either came from the catalogue
         # or nobody chose one yet. No percentage is shown, because none of them describes a
         # state an accountant can act on.
-        classified = bool(artifact and artifact.accumulator_code)
+        demo_accumulator = demo_accumulators.get(document.pk, "")
+        classified = bool((artifact and artifact.accumulator_code) or demo_accumulator)
+        direction = _nfse_document_direction(document, demo=office.is_demo)
+        direction_labels = {
+            "provided": ("Saída", "Serviço prestado", "provided", "Tomador"),
+            "taken": ("Entrada", "Serviço tomado", "taken", "Prestador"),
+            "unknown": ("A confirmar", "Tipo não identificado", "unknown", "Contraparte"),
+        }
+        direction_label, direction_detail, direction_class, counterparty_role = direction_labels[
+            direction
+        ]
+        normalized_data = (
+            document.normalized_data if isinstance(document.normalized_data, dict) else {}
+        )
+        side = _nfse_side(document)
+        counterparty_name = str(
+            normalized_data.get("counterparty_name") or (side.counterparty_name if side else "")
+        ).strip()[:160]
+        if office.is_demo and not counterparty_name:
+            counterparty_name = (
+                "Cliente fictício"
+                if direction == "provided"
+                else "Fornecedor fictício"
+                if direction == "taken"
+                else "Não identificada"
+            )
+        competence = _nfse_review_text(normalized_data.get("competence"), limit=40)
+        if not competence and issued_at:
+            competence = issued_at.strftime("%m/%Y")
+        elif re.fullmatch(r"\d{4}-\d{2}(?:-\d{2})?", competence):
+            competence = f"{competence[5:7]}/{competence[:4]}"
+        retention_items, retained_total = _nfse_retention_summary(normalized_data)
+        accumulator_options: list[tuple[str, str]] = []
+        if can_classify_nfse and (open_review or classified):
+            document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
+            cache_key = (document.company_id, document_day)
+            if cache_key not in accumulator_codes_cache:
+                accumulator_codes_cache[cache_key] = _review_accumulator_options(document)
+            accumulator_options = accumulator_codes_cache[cache_key]
+        accumulator_codes = [code for code, _name in accumulator_options]
         document_rows.append(
             {
                 "document": document,
+                "number": _nfse_document_number(document),
                 "issued_at": issued_at,
+                "competence": competence or "—",
+                "direction": direction,
+                "direction_label": direction_label,
+                "direction_detail": direction_detail,
+                "direction_class": direction_class,
+                "counterparty_role": counterparty_role,
+                "counterparty_name": counterparty_name or "Não identificada",
+                "service_code": str(normalized_data.get("service_code") or "").strip()[:80],
+                "service_description": str(
+                    normalized_data.get("service_description") or ""
+                ).strip()[:240],
+                "amount": _nfse_review_amount(normalized_data.get("amount")),
+                "retention_items": retention_items,
+                "retained_total": retained_total,
                 "review": open_review,
-                "status": "Em revisão" if open_review else "Recebida",
+                "status": "Não classificada",
                 "status_class": "attention" if open_review else "muted",
-                "accumulator": artifact.accumulator_code if artifact else "—",
+                "accumulator": (artifact.accumulator_code if artifact else demo_accumulator or "—"),
                 "classified": classified,
                 "artifact": artifact,
+                "accumulator_codes": accumulator_codes,
+                "accumulator_options": accumulator_options,
+                "review_evidence": _nfse_review_evidence(document) if open_review else [],
             }
         )
+    document_groups: list[dict[str, object]] = []
+    for row in document_rows:
+        document = cast(NfseDocument, row["document"])
+        if not document_groups or document_groups[-1]["company_id"] != document.company_id:
+            document_groups.append(
+                {
+                    "company": document.company,
+                    "company_id": document.company_id,
+                    "rows": [],
+                    "classified_count": 0,
+                    "pending_count": 0,
+                }
+            )
+        group = document_groups[-1]
+        cast(list[dict[str, object]], group["rows"]).append(row)
+        if row["classified"]:
+            group["classified_count"] = cast(int, group["classified_count"]) + 1
+        if row["review"] and not row["classified"]:
+            group["pending_count"] = cast(int, group["pending_count"]) + 1
 
     now = timezone.now()
     certificates_by_company: dict[str, Certificate] = {}
@@ -2945,73 +4180,194 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         sync = sync_by_company.get(str(company.id))
         demo_state = demo_syncs.get(str(company.id), {})
         effective_status = str(demo_state.get("status", "")) or (sync.status if sync else "")
+        if sync is not None and not sync.enabled and not demo_state:
+            effective_status = NfseSync.Status.PAUSED
+        display_status = effective_status if certificate is not None else "blocked"
+        display_enabled = bool(
+            certificate is not None
+            and (
+                effective_status != NfseSync.Status.PAUSED if demo_state else sync and sync.enabled
+            )
+        )
         sync_rows.append(
             {
                 "company": company,
                 "certificate": certificate,
                 "sync": sync,
-                "status": effective_status,
-                "status_label": dict(NfseSync.Status.choices).get(
-                    effective_status, "Não configurada"
+                "status": display_status,
+                "enabled": display_enabled,
+                "status_label": (
+                    "Certificado necessário"
+                    if certificate is None
+                    else dict(NfseSync.Status.choices).get(effective_status, "Não configurada")
                 ),
-                "attention": effective_status in {NfseSync.Status.ERROR, NfseSync.Status.RETRY},
+                "attention": certificate is not None
+                and effective_status in {NfseSync.Status.ERROR, NfseSync.Status.RETRY},
             }
         )
         if len(sync_rows) >= 100:
             break
 
-    catalog_entries = list(
-        AccumulatorCatalogEntry.objects.filter(organization=office, company__in=scope)
-        .select_related("company", "data_source", "source_batch")
-        .order_by("-source_snapshot_at", "company__name", "accumulator_code")
-    )
-    history_entries = list(
-        AccumulatorHistoryEntry.objects.filter(organization=office, company__in=scope)
-        .select_related("company", "created_by")
-        .order_by("-occurred_at", "-created_at")
-    )
-    source_labels = dict(AccumulatorHistoryEntry.Source.choices)
-    history_rows: list[dict[str, object]] = [
-        {
-            "company": entry.company,
-            "accumulator_code": entry.accumulator_code,
-            "name": entry.name,
-            "occurred_at": entry.occurred_at,
-            "source_label": source_labels[entry.source],
-            "state_label": "Registro historico",
-            "state_class": (
-                "success" if entry.source == AccumulatorHistoryEntry.Source.BACKUP else "muted"
-            ),
-            "detail": (
-                entry.metadata.get("source_batch_id", "")
-                if isinstance(entry.metadata, dict)
-                else ""
-            ),
+    catalog_search = request.GET.get("catalog_q", "").strip()[:100]
+    catalog_source = request.GET.get("catalog_source", "all")
+    valid_catalog_sources = {value for value, _label in AccumulatorHistoryEntry.Source.choices}
+    if catalog_source not in {*valid_catalog_sources, "all"}:
+        catalog_source = "all"
+    history_query = AccumulatorHistoryEntry.objects.filter(
+        organization=office, company__in=scope
+    ).select_related("company", "created_by")
+    catalog_snapshot_query = AccumulatorCatalogEntry.objects.filter(
+        organization=office, company__in=scope
+    ).select_related("company", "data_source", "source_batch")
+    legacy_rule_query = AccumulatorRule.objects.filter(
+        organization=office, company__in=scope, active=True
+    ).select_related("company")
+    if catalog_search:
+        history_query = history_query.filter(
+            Q(company__name__icontains=catalog_search)
+            | Q(company__dominio_code__icontains=catalog_search)
+            | Q(accumulator_code__icontains=catalog_search)
+            | Q(name__icontains=catalog_search)
+        )
+        catalog_snapshot_query = catalog_snapshot_query.filter(
+            Q(company__name__icontains=catalog_search)
+            | Q(company__dominio_code__icontains=catalog_search)
+            | Q(accumulator_code__icontains=catalog_search)
+            | Q(name__icontains=catalog_search)
+        )
+        legacy_rule_query = legacy_rule_query.filter(
+            Q(company__name__icontains=catalog_search)
+            | Q(company__dominio_code__icontains=catalog_search)
+            | Q(accumulator_code__icontains=catalog_search)
+            | Q(name__icontains=catalog_search)
+        )
+    if catalog_source != "all":
+        history_query = history_query.filter(source=catalog_source)
+        if catalog_source != AccumulatorHistoryEntry.Source.BACKUP:
+            catalog_snapshot_query = catalog_snapshot_query.none()
+
+    history_count = history_query.count()
+    catalog_snapshot_count = catalog_snapshot_query.count()
+    # Imports create history and catalog together. The snapshot fallback keeps old databases
+    # readable without rebuilding both complete datasets in Python on every request.
+    catalog_uses_snapshot_fallback = (
+        history_count == 0
+        and catalog_snapshot_count > 0
+        and catalog_source
+        in {
+            "all",
+            AccumulatorHistoryEntry.Source.BACKUP,
         }
-        for entry in history_entries
-    ]
-    represented_backup_references = {
-        entry.source_reference
-        for entry in history_entries
-        if entry.source == AccumulatorHistoryEntry.Source.BACKUP
+    )
+    catalog_uses_rule_fallback = (
+        history_count == 0
+        and catalog_snapshot_count == 0
+        and catalog_source
+        in {
+            "all",
+            AccumulatorHistoryEntry.Source.MANUAL,
+        }
+    )
+    source_labels = {
+        AccumulatorHistoryEntry.Source.BACKUP: "Fotografia do Domínio Web",
+        AccumulatorHistoryEntry.Source.MANUAL: "Cadastro manual",
+        AccumulatorHistoryEntry.Source.HUMAN_REVIEW: "Decisão humana",
     }
-    for entry in catalog_entries:
-        if str(entry.id) in represented_backup_references:
-            continue
-        history_rows.append(
+    catalog_source_options = [
+        ("all", "Todas as origens"),
+        (AccumulatorHistoryEntry.Source.BACKUP, "Fotografia do Domínio Web"),
+        (AccumulatorHistoryEntry.Source.MANUAL, "Cadastro manual"),
+        (AccumulatorHistoryEntry.Source.HUMAN_REVIEW, "Decisão humana"),
+    ]
+    raw_catalog_page: Any
+    if catalog_uses_snapshot_fallback:
+        raw_catalog_page = Paginator(
+            catalog_snapshot_query.order_by(
+                "-source_snapshot_at", "company__name", "accumulator_code"
+            ),
+            50,
+        ).get_page(request.GET.get("catalog_page"))
+        history_rows = [
             {
                 "company": entry.company,
                 "accumulator_code": entry.accumulator_code,
                 "name": entry.name,
                 "occurred_at": entry.source_snapshot_at,
-                "source_label": "Fotografia do Dominio Web",
-                "state_label": "Ativo na fotografia" if entry.active else "Inativo na fotografia",
+                "source_label": "Fotografia do Domínio Web",
+                "state_label": "Disponível" if entry.active else "Inativo na fotografia",
                 "state_class": "success" if entry.active else "muted",
                 "detail": entry.source_batch.original_filename,
             }
-        )
-    history_rows.sort(key=lambda row: cast(datetime, row["occurred_at"]), reverse=True)
-    catalog_page = Paginator(history_rows, 100).get_page(request.GET.get("catalog_page"))
+            for entry in raw_catalog_page.object_list
+        ]
+    elif catalog_uses_rule_fallback:
+        raw_catalog_page = Paginator(
+            legacy_rule_query.order_by("company__name", "priority", "accumulator_code"), 50
+        ).get_page(request.GET.get("catalog_page"))
+        history_rows = [
+            {
+                "company": entry.company,
+                "accumulator_code": entry.accumulator_code,
+                "name": entry.name,
+                "occurred_at": entry.created_at,
+                "source_label": "Cadastro existente",
+                "state_label": "Disponível para classificar",
+                "state_class": "success",
+                "detail": "Regra cadastrada antes da trilha auditável",
+            }
+            for entry in raw_catalog_page.object_list
+        ]
+    else:
+        raw_catalog_page = Paginator(
+            history_query.order_by("-occurred_at", "-created_at"), 50
+        ).get_page(request.GET.get("catalog_page"))
+        history_rows = [
+            {
+                "company": entry.company,
+                "accumulator_code": entry.accumulator_code,
+                "name": entry.name,
+                "occurred_at": entry.occurred_at,
+                "source_label": source_labels[entry.source],
+                "state_label": "Disponível para classificar",
+                "state_class": "success",
+                "detail": (
+                    entry.metadata.get("source_batch_id", "")
+                    if isinstance(entry.metadata, dict)
+                    else ""
+                ),
+            }
+            for entry in raw_catalog_page.object_list
+        ]
+    raw_catalog_page.object_list = history_rows
+    catalog_page = raw_catalog_page
+    unfiltered_history = AccumulatorHistoryEntry.objects.filter(
+        organization=office, company__in=scope
+    )
+    history_total = unfiltered_history.count()
+    snapshot_total = AccumulatorCatalogEntry.objects.filter(
+        organization=office, company__in=scope
+    ).count()
+    legacy_rule_total = AccumulatorRule.objects.filter(
+        organization=office, company__in=scope, active=True
+    ).count()
+    catalog_stats = {
+        "total": history_total or snapshot_total or legacy_rule_total,
+        "backup": (
+            unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.BACKUP).count()
+            if history_total
+            else snapshot_total
+        ),
+        "manual": (
+            unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.MANUAL).count()
+            if history_total
+            else legacy_rule_total
+            if not snapshot_total
+            else 0
+        ),
+        "human": unfiltered_history.filter(
+            source=AccumulatorHistoryEntry.Source.HUMAN_REVIEW
+        ).count(),
+    }
     catalog_query_params = request.GET.copy()
     catalog_query_params.pop("catalog_page", None)
     requested_nfse_view = request.GET.get("view")
@@ -3020,12 +4376,53 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         if requested_nfse_view in {"collection", "catalog", "exports"}
         else "notes"
     )
+    export_search = request.GET.get("export_q", "").strip()[:100]
+    export_state = request.GET.get("export_state", "all")
+    if export_state not in {"all", NfseExport.State.READY, NfseExport.State.DOWNLOADED}:
+        export_state = "all"
+    visible_exports = _visible_nfse_exports(context)
+    export_stats = {
+        "total": visible_exports.count(),
+        "ready": visible_exports.filter(state=NfseExport.State.READY).count(),
+        "downloaded": visible_exports.filter(state=NfseExport.State.DOWNLOADED).count(),
+    }
+    export_query = visible_exports
+    if export_search:
+        matching_export_documents = NfseDocument.objects.filter(
+            exports=OuterRef("pk"), organization=office
+        ).filter(
+            Q(company__name__icontains=export_search)
+            | Q(company__dominio_code__icontains=export_search)
+        )
+        export_query = export_query.filter(
+            Q(content_hash__icontains=export_search)
+            | Q(created_by__full_name__icontains=export_search)
+            | Q(created_by__email__icontains=export_search)
+            | Exists(matching_export_documents)
+        )
+    if export_state != "all":
+        export_query = export_query.filter(state=export_state)
     exports_page = Paginator(
-        NfseExport.objects.filter(organization=office).order_by("-created_at"), 100
+        export_query.select_related("created_by", "downloaded_by")
+        .annotate(
+            company_count=Count("documents__company", distinct=True),
+            issued_from=Min("documents__issued_at"),
+            issued_to=Max("documents__issued_at"),
+        )
+        .defer("snapshot")
+        .order_by("-created_at", "-id"),
+        50,
     ).get_page(request.GET.get("exports_page"))
     exports_query_params = request.GET.copy()
     exports_query_params.pop("exports_page", None)
 
+    effective_sync_configured = sum(bool(row["enabled"]) for row in sync_rows)
+    effective_sync_attention = sum(bool(row["attention"]) for row in sync_rows)
+    missing_certificate_count = sum(row["certificate"] is None for row in sync_rows)
+    ready_to_activate_count = sum(
+        row["certificate"] is not None and not row["enabled"] and not row["status"]
+        for row in sync_rows
+    )
     context.update(
         {
             "page_title": "NFS-e",
@@ -3034,8 +4431,13 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             "document_page": document_page,
             "document_querystring": document_query_params.urlencode(),
             "document_filtered_total": document_total,
+            "retention_report_too_large": document_total > 5000,
+            "document_exportable_total": document_exportable_total,
+            "document_exportable_company_total": document_exportable_company_total,
             "document_search": document_search,
+            "nfse_selected_company": selected_company,
             "document_status": document_status,
+            "document_direction": document_direction,
             "document_date_filter": document_date_filter,
             "document_competence": document_competence,
             "competence_months": list(
@@ -3062,23 +4464,31 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             "issued_from": issued_from,
             "issued_to": issued_to,
             "nfse_stats": {
-                "received": document_query.count(),
-                "pending": ReviewCase.objects.filter(
-                    organization=office,
-                    status=ReviewCase.Status.OPEN,
-                    document__company__in=scope,
-                ).count(),
-                "classified": document_query.filter(integration_artifacts__isnull=False)
-                .distinct()
-                .count(),
+                "received": document_total,
+                **direction_stats,
+                "pending": pending_stat,
+                "classified": classified_stat,
             },
+            "nfse_stat_urls": nfse_stat_urls,
             "nfse_sync_rows": sync_rows,
             "nfse_exports": exports_page,
             "exports_querystring": exports_query_params.urlencode(),
+            "export_search": export_search,
+            "export_state": export_state,
+            "nfse_export_stats": export_stats,
             "can_export_nfse": can_export_nfse,
+            "can_classify_nfse": can_classify_nfse,
+            "can_demo_download_nfse": can_demo_download_nfse,
+            "can_download_nfse": can_download_nfse,
+            "document_groups": document_groups,
             "accumulator_catalog_page": catalog_page,
             "accumulator_catalog_querystring": catalog_query_params.urlencode(),
+            "accumulator_catalog_search": catalog_search,
+            "accumulator_catalog_source": catalog_source,
+            "accumulator_catalog_sources": catalog_source_options,
+            "accumulator_catalog_stats": catalog_stats,
             "catalog_companies": scope.filter(active=True).order_by("name"),
+            "can_add_nfse_accumulator": can_export_nfse and not office.is_demo,
             "nfse_sync_enabled": settings.NFSE_ADN_SYNC_ENABLED or office.is_demo,
             "nfse_sync_environment": settings.NFSE_ADN_ENVIRONMENT,
             "nfse_sync_environment_label": (
@@ -3086,16 +4496,295 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 if settings.NFSE_ADN_ENVIRONMENT == "production"
                 else "Produção restrita (homologação)"
             ),
-            "nfse_sync_configured": sum(bool(sync.enabled) for sync in sync_by_company.values()),
-            "nfse_sync_attention": sum(
-                sync.status in {NfseSync.Status.ERROR, NfseSync.Status.RETRY}
-                for sync in sync_by_company.values()
+            "nfse_sync_configured": effective_sync_configured,
+            "nfse_sync_attention": effective_sync_attention,
+            "nfse_sync_missing_certificate": missing_certificate_count,
+            "nfse_sync_ready_to_activate": ready_to_activate_count,
+            "nfse_sync_requires_action": (
+                effective_sync_attention + missing_certificate_count + ready_to_activate_count
             ),
+            "nfse_sync_settings_open": request.GET.get("configure") == "1",
             "nfse_certificate_coverage": len(certificates_by_company),
             "can_manage_nfse_sync": can_manage_sync,
         }
     )
     return render(request, "hub/nfse_center.html", context)
+
+
+@office_required
+@require_http_methods(["GET"])
+def nfse_queue_status(request: HttpRequest) -> JsonResponse:
+    """Return a tenant-scoped, non-sensitive snapshot for the live collection queue."""
+
+    context = workspace_context(request)
+    if not collaborator_can_use_module(context, ProductModule.Code.NFSE):
+        return JsonResponse({"detail": "Acesso negado."}, status=403)
+    office = cast(Organization, context["office"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    now = timezone.now()
+    companies = list(scope.filter(active=True).order_by("name"))
+    company_ids = [company.id for company in companies]
+    valid_certificate_company_ids = set(
+        Certificate.objects.filter(
+            organization=office,
+            company_id__in=company_ids,
+            revoked_at__isnull=True,
+            valid_until__gt=now,
+        ).values_list("company_id", flat=True)
+    )
+    sync_by_company = {
+        sync.company_id: sync
+        for sync in NfseSync.objects.filter(
+            organization=office, company_id__in=company_ids
+        ).select_related("company")
+    }
+
+    demo_syncs = get_section(request, "nfse_syncs") if is_demo_visitor(request, office) else {}
+    items: list[dict[str, object]] = []
+    counts = {
+        "queued": 0,
+        "running": 0,
+        "done": 0,
+        "attention": 0,
+        "skipped": 0,
+        "requires_action": 0,
+    }
+    priority = {
+        "running": 0,
+        "failed": 1,
+        "retry": 2,
+        "queued": 3,
+        "blocked": 4,
+        "ready": 5,
+        "paused": 6,
+        "done": 7,
+    }
+    for company in companies:
+        sync = sync_by_company.get(company.id)
+        demo_state = demo_syncs.get(str(company.id), {})
+        effective_status = str(demo_state.get("status", "")) or (sync.status if sync else "")
+        if sync is not None and not sync.enabled and not demo_state:
+            effective_status = NfseSync.Status.PAUSED
+        has_valid_certificate = company.id in valid_certificate_company_ids
+        state = "queued"
+        label = "Na fila"
+        detail = "Primeira coleta aguardando processamento."
+        changed_at = sync.updated_at if sync else None
+        if not has_valid_certificate:
+            state = "blocked"
+            label = "Certificado necessário"
+            detail = "Adicione um A1 válido para esta empresa começar a receber notas."
+            counts["skipped"] += 1
+            counts["requires_action"] += 1
+        elif sync is None:
+            if effective_status == NfseSync.Status.PAUSED:
+                state = "paused"
+                label = "Pausada"
+                detail = "A coleta está pausada somente para esta empresa."
+                counts["skipped"] += 1
+            elif effective_status in {NfseSync.Status.IDLE, NfseSync.Status.QUEUED}:
+                state = "queued"
+                label = "Na fila"
+                detail = "Aguardando a empresa anterior terminar."
+                counts["queued"] += 1
+            else:
+                state = "ready"
+                label = "Pronta para ativar"
+                detail = "O certificado está válido; ative a coleta na configuração."
+                counts["requires_action"] += 1
+        elif effective_status == NfseSync.Status.RUNNING:
+            state = "running"
+            label = "Coletando agora"
+            detail = (
+                f"NSU {sync.checkpoint_nsu} de {sync.max_nsu}."
+                if sync.checkpoint_nsu and sync.max_nsu
+                else "Consultando novas NFS-e desta empresa."
+            )
+            counts["running"] += 1
+            changed_at = sync.last_run_at or sync.updated_at
+        elif effective_status in {NfseSync.Status.IDLE, NfseSync.Status.QUEUED}:
+            state = "queued"
+            label = "Na fila"
+            detail = "Aguardando a empresa anterior terminar."
+            counts["queued"] += 1
+        elif effective_status == NfseSync.Status.RETRY:
+            state = "retry"
+            label = "Nova tentativa"
+            detail = "Falha temporária; nova tentativa já agendada."
+            counts["attention"] += 1
+            counts["requires_action"] += 1
+            changed_at = sync.last_error_at or sync.updated_at
+        elif effective_status == NfseSync.Status.ERROR:
+            state = "failed"
+            label = "Falhou"
+            detail = sync.last_error_message or "Revise a configuração desta empresa."
+            counts["attention"] += 1
+            counts["requires_action"] += 1
+            changed_at = sync.last_error_at or sync.updated_at
+        elif effective_status == NfseSync.Status.PAUSED or not sync.enabled:
+            state = "paused"
+            label = "Pausada"
+            detail = "Coleta pausada somente para esta empresa."
+            counts["skipped"] += 1
+        elif sync.last_success_at:
+            state = "done"
+            label = "Concluída"
+            detail = (
+                f"Atualizada até o NSU {sync.checkpoint_nsu} de {sync.max_nsu}."
+                if sync.checkpoint_nsu and sync.max_nsu
+                else (
+                    f"{sync.last_batch_count} documento"
+                    f"{'s' if sync.last_batch_count != 1 else ''} na última coleta."
+                )
+            )
+            counts["done"] += 1
+            changed_at = sync.last_success_at
+        else:
+            counts["queued"] += 1
+
+        items.append(
+            {
+                "company_id": str(company.id),
+                "company": company.name,
+                "state": state,
+                "label": label,
+                "detail": detail,
+                "updated_at": changed_at.isoformat() if changed_at else None,
+                "priority": priority[state],
+            }
+        )
+
+    items.sort(key=lambda item: (cast(int, item["priority"]), cast(str, item["company"])))
+    for item in items:
+        item.pop("priority", None)
+    response = JsonResponse(
+        {
+            "counts": counts,
+            "items": items,
+            "updated_at": now.isoformat(),
+            "simulated": office.is_demo,
+        }
+    )
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@office_required
+@require_http_methods(["POST"])
+def nfse_queue_retry(request: HttpRequest) -> JsonResponse:
+    """Retry failed company feeds without reloading or restarting successful work."""
+
+    context = workspace_context(request)
+    if not collaborator_can_use_module(context, ProductModule.Code.NFSE):
+        return JsonResponse({"detail": "Acesso negado."}, status=403)
+    office = cast(Organization, context["office"])
+    membership = context.get("membership")
+    demo_visitor = is_demo_visitor(request, office)
+    can_manage = bool(
+        demo_visitor
+        or (
+            context["support_can_mutate"]
+            and isinstance(membership, Membership)
+            and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+        )
+    )
+    if not can_manage:
+        return JsonResponse(
+            {"detail": "Somente dono ou administrador pode repetir coletas."}, status=403
+        )
+    scope = cast("QuerySet[ClientCompany]", context["companies"]).filter(active=True)
+    company_id = request.POST.get("company_id", "").strip()
+    if company_id:
+        try:
+            company_uuid = uuid.UUID(company_id)
+        except ValueError:
+            return JsonResponse({"detail": "Empresa inválida."}, status=400)
+        scope = scope.filter(id=company_uuid)
+    elif request.POST.get("all_failed") != "1":
+        return JsonResponse(
+            {"detail": "Informe a empresa ou escolha repetir as falhas."}, status=400
+        )
+
+    if demo_visitor:
+        demo_syncs = get_section(request, "nfse_syncs")
+        persisted_syncs = {
+            sync.company_id: sync
+            for sync in NfseSync.objects.filter(organization=office, company__in=scope)
+        }
+        valid_certificate_company_ids = set(
+            Certificate.objects.filter(
+                organization=office,
+                company__in=scope,
+                revoked_at__isnull=True,
+                valid_until__gt=timezone.now(),
+            ).values_list("company_id", flat=True)
+        )
+        changed = 0
+        for company in scope:
+            sync = persisted_syncs.get(company.id)
+            demo_state = demo_syncs.get(str(company.id), {})
+            effective_status = str(demo_state.get("status", "")) or (sync.status if sync else "")
+            if company.id in valid_certificate_company_ids and effective_status in {
+                NfseSync.Status.ERROR,
+                NfseSync.Status.RETRY,
+            }:
+                put_progress(request, "nfse_syncs", company.id, {"status": "idle"})
+                changed += 1
+        return JsonResponse({"changed": changed})
+
+    now = timezone.now()
+    syncs = list(
+        NfseSync.objects.filter(
+            organization=office,
+            company__in=scope,
+            enabled=True,
+            status__in=[NfseSync.Status.ERROR, NfseSync.Status.RETRY],
+            certificate__revoked_at__isnull=True,
+            certificate__valid_until__gt=now,
+        ).values_list("id", flat=True)
+    )
+    if syncs:
+        NfseSync.objects.filter(id__in=syncs).update(
+            status=NfseSync.Status.RETRY,
+            next_run_at=now,
+            failure_count=0,
+            last_error_code="",
+            last_error_message="",
+            last_error_at=None,
+            lease_token=None,
+            lease_until=None,
+        )
+        from apps.hub.tasks import dispatch_active_nfse_syncs
+
+        transaction.on_commit(dispatch_active_nfse_syncs.delay)
+    record_event(
+        action="hub.nfse.queue_retry_requested",
+        actor=request.user,
+        organization=office,
+        target=office,
+        request=request,
+        metadata={"changed": len(syncs), "company_id": company_id or None},
+    )
+    return JsonResponse({"changed": len(syncs)})
+
+
+def _visible_nfse_exports(context: dict[str, object]) -> QuerySet[NfseExport]:
+    office = cast(Organization, context["office"])
+    return (
+        NfseExport.objects.filter(organization=office, document_count__gt=0)
+        .annotate(
+            accessible_documents=Count(
+                "documents",
+                filter=Q(
+                    documents__organization=office,
+                    documents__company__in=_company_history_scope(context),
+                ),
+                distinct=True,
+            ),
+            linked_documents=Count("documents", distinct=True),
+        )
+        .filter(accessible_documents=F("document_count"), linked_documents=F("document_count"))
+    )
 
 
 def _nfse_export_context(
@@ -3106,15 +4795,14 @@ def _nfse_export_context(
         raise Http404
     office = context["office"]
     assert isinstance(office, Organization)
-    export = get_object_or_404(NfseExport, id=export_id, organization=office)
-    document_ids = [
-        item.get("document_id")
-        for item in export.snapshot.get("documents", [])
-        if isinstance(item, dict) and isinstance(item.get("document_id"), str)
-    ]
-    if len(document_ids) != export.document_count:
+    export = get_object_or_404(_visible_nfse_exports(context), id=export_id)
+    try:
+        document_ids = [uuid.UUID(item["document_id"]) for item in export.snapshot["documents"]]
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise Http404 from exc
+    if len(document_ids) != export.document_count or len(set(document_ids)) != len(document_ids):
         raise Http404
-    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    scope = _company_history_scope(context)
     documents = list(
         NfseDocument.objects.filter(
             organization=office, company__in=scope, id__in=document_ids
@@ -3131,10 +4819,15 @@ def download_nfse_export(request: HttpRequest, export_id: str) -> HttpResponseBa
     context, export, _documents = _nfse_export_context(request, export_id)
     office = cast(Organization, context["office"])
     content_name = export.content.name if export.content else ""
-    if not content_name or not export.content.storage.exists(content_name):
+    try:
+        if not content_name:
+            raise FileNotFoundError
+        archive = export.content.open("rb")
+    except OSError:
         messages.error(
             request,
-            "O arquivo deste pacote nao esta disponivel. Gere outro pacote antes de baixar.",
+            "Não foi possível abrir este arquivo. Tente baixar novamente. "
+            "Se o problema continuar, use Preparar novo download para gerar outro pacote.",
         )
         return redirect(reverse("hub:nfse-center") + "?view=exports")
     with transaction.atomic():
@@ -3156,7 +4849,7 @@ def download_nfse_export(request: HttpRequest, export_id: str) -> HttpResponseBa
                 },
             )
     response = FileResponse(
-        export.content.open("rb"),
+        archive,
         as_attachment=True,
         filename=PurePath(export.content.name or "pacote-nfse.zip").name,
         content_type="application/zip",
@@ -3223,6 +4916,233 @@ def _nfse_issued_at_from_normalized_data(document: NfseDocument) -> datetime | N
     return datetime.combine(parsed_date, time.min) if parsed_date else None
 
 
+def _nfse_document_number(document: NfseDocument) -> str:
+    """Return the fiscal number an operator recognizes, never the transport NSU."""
+
+    normalized = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+    value = normalized.get("number")
+    return str(value).strip()[:80] if value not in (None, "") else ""
+
+
+def _nfse_side(document: NfseDocument) -> NfseDocumentSide | None:
+    try:
+        return document.side
+    except NfseDocumentSide.DoesNotExist:
+        return None
+
+
+def _filter_nfse_side(query: QuerySet[NfseDocument], direction: str) -> QuerySet[NfseDocument]:
+    """Filter by the persisted side; notes without one fall back to their normalization."""
+
+    sides = ["provided", "taken"]
+    if direction in sides:
+        return query.filter(
+            Q(side__direction=direction)
+            | Q(side__isnull=True, normalized_data__direction=direction)
+        )
+    if direction == "unknown":
+        return query.exclude(
+            Q(side__direction__in=sides)
+            | Q(side__isnull=True, normalized_data__direction__in=sides)
+        )
+    return query
+
+
+def _nfse_document_direction(document: NfseDocument, *, demo: bool = False) -> str:
+    """Present only persisted fiscal direction; demo legacy rows get a stable synthetic split."""
+
+    side = _nfse_side(document)
+    if side is not None and side.direction in {"provided", "taken"}:
+        return side.direction
+    normalized = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+    direction = str(normalized.get("direction") or "")
+    if direction in {"provided", "taken"}:
+        return direction
+    if demo:
+        digits = re.sub(r"\D", "", document.source_nsu)
+        if digits:
+            return "provided" if int(digits[-1]) % 2 == 0 else "taken"
+    return "unknown"
+
+
+def _nfse_retention_summary(
+    normalized_data: dict[str, object],
+) -> tuple[list[tuple[str, str]], str]:
+    """Format only explicit retained amounts without inventing tax calculations."""
+
+    raw = normalized_data.get("retentions")
+    if not isinstance(raw, dict):
+        return [], ""
+    labels = {
+        "iss": "ISS",
+        "pis": "PIS",
+        "cofins": "COFINS",
+        "csll": "CSLL",
+        "irrf": "IRRF",
+        "inss": "INSS",
+    }
+    items = [
+        (label, formatted)
+        for key, label in labels.items()
+        if (formatted := _nfse_review_amount(raw.get(key)))
+    ]
+    total = _nfse_review_amount(normalized_data.get("retained_total"))
+    return items, total
+
+
+def _latest_nfse_artifact(
+    artifacts: list[IntegrationArtifact],
+) -> IntegrationArtifact | None:
+    """Return the terminal immutable decision in a correction chain."""
+
+    superseded_ids = {
+        str(artifact.payload.get("previous_artifact_id"))
+        for artifact in artifacts
+        if isinstance(artifact.payload, dict) and artifact.payload.get("previous_artifact_id")
+    }
+    return next(
+        (artifact for artifact in artifacts if str(artifact.id) not in superseded_ids),
+        None,
+    )
+
+
+def _filter_nfse_export_documents(
+    documents: QuerySet[NfseDocument], data: Any
+) -> QuerySet[NfseDocument]:
+    """Rebuild the visible production filter for a cross-page classified export."""
+
+    query = str(data.get("export_q", "")).strip()[:100]
+    if query:
+        documents = documents.filter(
+            Q(company__name__icontains=query)
+            | Q(company__dominio_code__icontains=query)
+            | Q(normalized_data__number__icontains=query)
+        )
+    direction = str(data.get("export_direction", "all"))
+    if direction not in {"all", "provided", "taken", "unknown"}:
+        raise ValueError("Tipo de movimento inválido.")
+    documents = _filter_nfse_side(documents, direction)
+    date_filter = str(data.get("export_date_filter", "competence"))
+    competence = str(data.get("export_competence", ""))[:7]
+    if date_filter not in {"competence", "issued"}:
+        raise ValueError("Filtro de período inválido.")
+    if (
+        date_filter == "competence"
+        and competence
+        and not re.fullmatch(r"[1-9]\d{3}-(0[1-9]|1[0-2])", competence)
+    ):
+        raise ValueError("Competência inválida.")
+    if date_filter == "competence" and re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", competence):
+        year, month = competence.split("-")
+        documents = documents.filter(issued_at__year=int(year), issued_at__month=int(month))
+    elif date_filter == "issued":
+        parsed_dates = []
+        for field, lookup in (
+            ("export_issued_from", "issued_at__date__gte"),
+            ("export_issued_to", "issued_at__date__lte"),
+        ):
+            raw = str(data.get(field, ""))[:10]
+            try:
+                parsed = datetime.strptime(raw, "%d/%m/%Y").date() if raw else None
+            except ValueError as exc:
+                raise ValueError("Data inválida no filtro do lote.") from exc
+            parsed_dates.append(parsed)
+            if parsed is not None:
+                documents = documents.filter(**{lookup: parsed})
+        start, end = parsed_dates
+        if start is not None and end is not None and start > end:
+            raise ValueError("O período final deve ser posterior ao inicial.")
+    return documents.distinct()
+
+
+def _filter_nfse_retention_report_documents(
+    documents: QuerySet[NfseDocument], data: Any, *, demo: bool
+) -> list[NfseDocument]:
+    """Apply the visible note filters without allowing a broader report scope."""
+
+    query = str(data.get("report_q", "")).strip()[:100]
+    if query:
+        documents = documents.filter(
+            Q(company__name__icontains=query)
+            | Q(company__dominio_code__icontains=query)
+            | Q(normalized_data__number__icontains=query)
+        )
+    status = str(data.get("report_status", "all"))
+    direction = str(data.get("report_direction", "all"))
+    date_filter = str(data.get("report_date_filter", "competence"))
+    competence = str(data.get("report_competence", ""))[:7]
+    if status not in {"all", "classified", "unclassified"}:
+        raise ValueError("Situação inválida no filtro do relatório.")
+    if direction not in {"all", "provided", "taken", "unknown"}:
+        raise ValueError("Movimento inválido no filtro do relatório.")
+    if date_filter not in {"competence", "issued"}:
+        raise ValueError("Período inválido no filtro do relatório.")
+    if competence and not re.fullmatch(r"[1-9]\d{3}-(0[1-9]|1[0-2])", competence):
+        raise ValueError("Competência inválida no filtro do relatório.")
+    parsed_dates: list[date | None] = []
+    for field in ("report_issued_from", "report_issued_to"):
+        raw = str(data.get(field, ""))[:10]
+        try:
+            parsed_dates.append(datetime.strptime(raw, "%d/%m/%Y").date() if raw else None)
+        except ValueError as exc:
+            raise ValueError("Data inválida no filtro do relatório.") from exc
+    issued_from, issued_to = parsed_dates
+    if issued_from and issued_to and issued_from > issued_to:
+        raise ValueError("A data final do relatório deve ser igual ou posterior à inicial.")
+
+    if not demo:
+        if status == "classified":
+            documents = documents.filter(integration_artifacts__isnull=False)
+        elif status == "unclassified":
+            documents = documents.filter(integration_artifacts__isnull=True)
+        documents = _filter_nfse_side(documents, direction)
+        if date_filter == "competence" and competence:
+            year, month = competence.split("-")
+            documents = documents.filter(issued_at__year=int(year), issued_at__month=int(month))
+        elif date_filter == "issued":
+            if issued_from:
+                documents = documents.filter(issued_at__date__gte=issued_from)
+            if issued_to:
+                documents = documents.filter(issued_at__date__lte=issued_to)
+        selected = list(
+            documents.distinct().order_by("company__name", "-issued_at", "-captured_at")[:5001]
+        )
+    else:
+        selected = []
+        candidates = documents.distinct().order_by("company__name", "-issued_at", "-captured_at")
+        for document in candidates:
+            artifacts = list(document.integration_artifacts.all())
+            review = getattr(document, "review_case", None)
+            classified = bool(
+                _latest_nfse_artifact(artifacts)
+                or (review and review.status == ReviewCase.Status.RESOLVED)
+            )
+            if status == "classified" and not classified:
+                continue
+            if status == "unclassified" and classified:
+                continue
+            if direction != "all" and _nfse_document_direction(document, demo=True) != direction:
+                continue
+            issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
+            issued_date = issued_at.date() if issued_at else None
+            if date_filter == "competence" and competence:
+                if not issued_date or issued_date.strftime("%Y-%m") != competence:
+                    continue
+            elif date_filter == "issued":
+                if issued_from and (not issued_date or issued_date < issued_from):
+                    continue
+                if issued_to and (not issued_date or issued_date > issued_to):
+                    continue
+            selected.append(document)
+            if len(selected) > 5000:
+                break
+    if len(selected) > 5000:
+        raise ValueError(
+            "O download aceita até 5.000 notas. Refine por empresa, movimento ou período."
+        )
+    return selected
+
+
 def _demo_nfse_bulk_download(
     documents: list[NfseDocument], *, folder: str, classifications: dict[str, dict[str, object]]
 ) -> FileResponse:
@@ -3243,11 +5163,19 @@ def _demo_nfse_bulk_download(
             ]
         )
         for document in documents:
-            code = re.sub(r"[^A-Za-z0-9._-]", "_", document.company.dominio_code or "SEM-CODIGO")
             source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
             classification = classifications[str(document.id)]
+            document_folder = folder or (
+                "Tomadas"
+                if _nfse_document_direction(document, demo=True) == "taken"
+                else "Emitidas"
+            )
+            company_folder = nfse_company_archive_folder(
+                root=document_folder,
+                dominio_code=document.company.dominio_code,
+            )
             bundle.writestr(
-                f"{folder}/{code} -/NFS-e-{source}.xml",
+                f"{company_folder}/NFS-e-{source}.xml",
                 document.original_xml,
             )
             writer.writerow(
@@ -3255,7 +5183,7 @@ def _demo_nfse_bulk_download(
                     document.source_nsu or str(document.id),
                     document.company.name,
                     document.company.dominio_code or "",
-                    f"{folder}/{code} -",
+                    company_folder,
                     classification["accumulator"],
                     classification["status"],
                 ]
@@ -3265,7 +5193,7 @@ def _demo_nfse_bulk_download(
     response = FileResponse(
         archive,
         as_attachment=True,
-        filename=f"nfse-demonstracao-{folder.casefold()}.zip",
+        filename=f"nfse-demonstracao-{folder.casefold() if folder else 'separadas'}.zip",
         content_type="application/zip",
     )
     response["X-Content-Type-Options"] = "nosniff"
@@ -3452,7 +5380,7 @@ def _operational_module(request: HttpRequest, code: str) -> HttpResponse:
 def _demo_guide_for_view(request: HttpRequest, guide: FiscalGuide) -> FiscalGuide:
     """Overlay each visitor's fictitious issuance without modifying seed data."""
 
-    if not is_demo_visitor(request, guide.organization):
+    if not guide.organization.is_demo:
         return guide
     entry = get_progress(request, "guides", guide.id)
     guide.status = FiscalGuide.Status.ISSUED if entry.get("issued") else FiscalGuide.Status.READY
@@ -3462,6 +5390,51 @@ def _demo_guide_for_view(request: HttpRequest, guide: FiscalGuide) -> FiscalGuid
     guide.issue_requested_at = guide.issued_at
     guide.issue_requested_by = cast(User, request.user) if entry.get("issued") else None
     return guide
+
+
+def _guide_state_guidance(status: str, error_code: str = "") -> str:
+    """Return an operator-safe next step without reflecting provider exceptions."""
+
+    if status == FiscalGuide.Status.READY:
+        return "Confira o valor, o vencimento e o consumo antes de emitir."
+    if status == FiscalGuide.Status.QUEUED:
+        return "Emissão autorizada e aguardando processamento."
+    if status == FiscalGuide.Status.ISSUING:
+        return "O Serpro está processando a emissão. Atualize para acompanhar."
+    if status == FiscalGuide.Status.ISSUED:
+        return "DARF disponível para baixar sem gerar uma nova consulta."
+    if status == FiscalGuide.Status.UNKNOWN:
+        return "O provedor não confirmou o resultado. Aguarde a conciliação antes de repetir."
+    if status == FiscalGuide.Status.SKIPPED:
+        return (
+            "A obrigação foi marcada como dispensada. "
+            "Consulte o histórico antes de alterar a decisão."
+        )
+    if status == FiscalGuide.Status.DISCOVERED:
+        return "Confira as provas da DCTFWeb antes de preparar a emissão."
+    if error_code == "invalid_cnpj":
+        return "Corrija o CNPJ da empresa e tente novamente. Nenhuma emissão foi concluída."
+    if error_code == "authorization_revoked":
+        return "O acesso operacional foi revogado. Revise a carteira antes de tentar novamente."
+    if error_code == "usage_missing":
+        return "A reserva de consumo não foi localizada. Revise o custo antes de tentar novamente."
+    return "A emissão não foi concluída. Revise os dados e o custo antes de tentar novamente."
+
+
+def _document_state_guidance(status: str, error_code: str = "") -> str:
+    if status == DctfWebDocument.Status.AVAILABLE:
+        return "Documento disponível para baixar sem gerar uma nova consulta."
+    if status == DctfWebDocument.Status.QUEUED:
+        return "Consulta autorizada e aguardando processamento."
+    if status == DctfWebDocument.Status.FETCHING:
+        return "Consulta em processamento. Atualize para acompanhar."
+    if status == DctfWebDocument.Status.UNKNOWN:
+        return "O provedor não confirmou o resultado. Não repita até a conciliação."
+    if error_code == "authorization_revoked":
+        return "O acesso operacional foi revogado. Revise a carteira antes de tentar novamente."
+    if error_code == "invalid_cnpj":
+        return "Corrija o CNPJ da empresa antes de tentar novamente."
+    return "A consulta não foi concluída. Revise o acesso e o custo antes de tentar novamente."
 
 
 @office_required
@@ -3497,7 +5470,7 @@ def guides(request: HttpRequest) -> HttpResponse:
         )
     elif guide_due == "overdue":
         filtered_guides = filtered_guides.filter(due_on__lt=today)
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         demo_guides = list(filtered_guides.order_by("due_on", "company__name"))
         for guide in demo_guides:
             _demo_guide_for_view(request, guide)
@@ -3539,10 +5512,33 @@ def guides(request: HttpRequest) -> HttpResponse:
             "competence",
         )
     )
+    can_issue_guides = _can_prepare_dte(context)
     for guide in guide_list:
         guide.amount_brl = Decimal(guide.amount_cents) / 100
         guide.usage_quote = None
         guide.usage_error = ""
+        guide.ui_guidance = _guide_state_guidance(guide.status, guide.error_code)
+        days_until_due = (guide.due_on - today).days
+        if guide.status in {FiscalGuide.Status.ISSUED, FiscalGuide.Status.SKIPPED}:
+            guide.due_context = ""
+            guide.due_tone = ""
+        elif days_until_due < 0:
+            guide.due_context = f"Prazo passou há {abs(days_until_due)} dia" + (
+                "" if days_until_due == -1 else "s"
+            )
+            guide.due_tone = "is-danger"
+        elif days_until_due == 0:
+            guide.due_context = "Vence hoje"
+            guide.due_tone = "is-warning"
+        elif days_until_due == 1:
+            guide.due_context = "Vence amanhã"
+            guide.due_tone = "is-warning"
+        elif days_until_due <= 7:
+            guide.due_context = f"Vence em {days_until_due} dias"
+            guide.due_tone = "is-warning"
+        else:
+            guide.due_context = ""
+            guide.due_tone = ""
         if guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
             if (guide.company_id, guide.kind, guide.competence) in uncertain_periods:
                 guide.usage_error = "Há emissão anterior a confirmar nesta competência."
@@ -3564,6 +5560,11 @@ def guides(request: HttpRequest) -> HttpResponse:
                     guide.usage_error = str(exc)
         if guide.usage_quote is not None:
             guide.usage_overage_brl = Decimal(guide.usage_quote.additional_overage_cents) / 100
+        guide.can_issue_now = bool(
+            can_issue_guides
+            and guide.usage_quote is not None
+            and guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}
+        )
     source_connector = (
         IntelligenceConnector.objects.filter(organization=office)
         .order_by("-last_sync_at", "-created_at")
@@ -3576,7 +5577,7 @@ def guides(request: HttpRequest) -> HttpResponse:
     dominio_calculation_amount = Decimal("0")
     calculation_page = None
     if (
-        not is_demo_visitor(request, office)
+        not office.is_demo
         and source_connector
         and source_connector.mode == IntelligenceConnector.Mode.DIRECT_ODBC
         and source_connector.odbc_dsn
@@ -3680,8 +5681,15 @@ def guides(request: HttpRequest) -> HttpResponse:
                     request.GET.get("apuracao_pagina")
                 )
                 dominio_calculations = list(calculation_page.object_list)
-        except (RuntimeError, ValueError) as exc:
-            dominio_calculation_error = str(exc)
+        except (RuntimeError, ValueError):
+            logger.warning(
+                "The governed Domínio guide snapshot could not be read",
+                exc_info=True,
+                extra={"organization_id": str(office.id)},
+            )
+            dominio_calculation_error = (
+                "A origem não respondeu à leitura. Verifique a conexão e tente novamente."
+            )
         except Exception:
             logger.exception("Failed to read the governed Domínio guide calculation snapshot")
             dominio_calculation_error = (
@@ -3693,7 +5701,7 @@ def guides(request: HttpRequest) -> HttpResponse:
         FiscalGuide.Status.UNKNOWN,
     ]
     guide_data_available = guide_query.exists()
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         metric_guides = list(guide_query)
         for metric_guide in metric_guides:
             _demo_guide_for_view(request, metric_guide)
@@ -3727,6 +5735,11 @@ def guides(request: HttpRequest) -> HttpResponse:
             "guide_status": guide_status,
             "guide_due": guide_due,
             "guide_source_connector": source_connector,
+            "guide_source_read_attempted": bool(
+                source_connector
+                and source_connector.mode == IntelligenceConnector.Mode.DIRECT_ODBC
+                and source_connector.odbc_dsn
+            ),
             "dominio_calculations": dominio_calculations,
             "calculation_page": calculation_page,
             "calculation_query": urlencode(
@@ -3738,7 +5751,7 @@ def guides(request: HttpRequest) -> HttpResponse:
             "dominio_calculation_amount": dominio_calculation_amount,
             "guide_source_company_count": len(allowed_companies),
             "guide_stats": guide_stats,
-            "can_issue_guides": _can_prepare_dte(context),
+            "can_issue_guides": can_issue_guides,
         }
     )
     return render(request, "hub/guides_center.html", context)
@@ -3812,6 +5825,9 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
     allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
     company_id_raw = request.POST.get("company") or request.GET.get("company", "")
     competence = (request.POST.get("competence") or request.GET.get("competence", "")).strip()
+    if re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None or competence.endswith("/0000"):
+        messages.error(request, "Escolha uma competência válida (MM/AAAA) na carteira.")
+        return redirect("hub:guides")
     try:
         company_id = uuid.UUID(company_id_raw)
     except (ValueError, TypeError):
@@ -3823,6 +5839,7 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
         organization=office,
         active=True,
     )
+    dominio_calculation_unavailable = False
     try:
         dominio_calculation = (
             None
@@ -3834,7 +5851,13 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
             )
         )
     except (RuntimeError, ValueError):
+        logger.warning(
+            "The governed Domínio calculation could not be reloaded",
+            exc_info=True,
+            extra={"organization_id": str(office.id), "company_id": str(company.id)},
+        )
         dominio_calculation = None
+        dominio_calculation_unavailable = True
     if request.method == "POST":
         if not _can_prepare_dte(context):
             return refuse(
@@ -3890,26 +5913,39 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                 raise DctfWebDocumentTransitionError(
                     "O custo mudou desde a abertura da tela. Revise e confirme novamente."
                 )
-            request_dctfweb_document(
-                organization=office,
-                company=company,
-                competence=competence,
-                kind=kind,
-                actor=request.user,
-                request=request,
-                approved_overage_cents=approved_cents,
-            )
+            if office.is_demo:
+                put_progress(
+                    request,
+                    "dctfweb_bulk",
+                    f"{kind}:{company.id}:{competence}",
+                    {"completed": True, "completed_at": timezone.now().isoformat()},
+                )
+            else:
+                request_dctfweb_document(
+                    organization=office,
+                    company=company,
+                    competence=competence,
+                    kind=kind,
+                    actor=request.user,
+                    request=request,
+                    approved_overage_cents=approved_cents,
+                )
         except (BillingError, DctfWebDocumentTransitionError, ValueError) as exc:
             messages.error(request, str(exc))
         else:
-            messages.success(request, "Consulta autorizada e adicionada à fila da central.")
+            messages.success(
+                request,
+                "Simulação concluída somente nesta sessão, sem cobrança ou documento oficial."
+                if office.is_demo
+                else "Consulta autorizada e adicionada à fila da central.",
+            )
             target = reverse("hub:dctfweb-consult")
             return redirect(
                 f"{target}?{urlencode({'company': company.id, 'competence': competence})}"
             )
 
     cards: list[dict[str, object]] = []
-    for kind, service_key in DCTFWEB_DOCUMENT_SERVICE.items():
+    for position, (kind, service_key) in enumerate(DCTFWEB_DOCUMENT_SERVICE.items(), start=1):
         card_quote: TokenQuote | SimpleNamespace | None = None
         error = ""
         if office.is_demo:
@@ -3930,17 +5966,26 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                 )
             except BillingError as exc:
                 error = str(exc)
-        existing_document = DctfWebDocument.objects.filter(
-            organization=office,
-            company=company,
-            competence=competence,
-            kind=kind,
-        ).first()
+        existing_document = (
+            None
+            if office.is_demo
+            else DctfWebDocument.objects.filter(
+                organization=office,
+                company=company,
+                competence=competence,
+                kind=kind,
+            ).first()
+        )
+        demo_completed = office.is_demo and bool(
+            get_progress(request, "dctfweb_bulk", f"{kind}:{company.id}:{competence}").get(
+                "completed"
+            )
+        )
         cards.append(
             {
                 "kind": kind,
                 "label": DctfWebDocument.Kind(kind).label,
-                "service_key": service_key,
+                "position": position,
                 "quote": card_quote,
                 "additional_overage_brl": (
                     Decimal(card_quote.additional_overage_cents) / 100 if card_quote else None
@@ -3950,16 +5995,35 @@ def dctfweb_consult(request: HttpRequest) -> HttpResponse:
                 ),
                 "error": error,
                 "document": existing_document,
+                "status_guidance": (
+                    _document_state_guidance(
+                        existing_document.status,
+                        existing_document.error_code,
+                    )
+                    if existing_document
+                    else "Consulte este documento para conferir a competência."
+                ),
+                "demo_completed": demo_completed,
             }
         )
+    documents_completed = sum(
+        bool(card["demo_completed"])
+        or (
+            isinstance(card["document"], DctfWebDocument)
+            and card["document"].status == DctfWebDocument.Status.AVAILABLE
+        )
+        for card in cards
+    )
     context.update(
         {
             "page_title": "Consultar DCTFWeb",
             "consult_company": company,
             "consult_competence": competence,
             "consult_cards": cards,
+            "documents_completed": documents_completed,
             "can_authorize": _can_prepare_dte(context),
             "dominio_calculation": dominio_calculation,
+            "dominio_calculation_unavailable": dominio_calculation_unavailable,
             "dctfweb_documents_ready": all(
                 any(
                     card["kind"] == required_kind
@@ -4006,13 +6070,17 @@ def _dctfweb_bulk_targets(
     seen: set[tuple[str, str]] = set()
     for raw in raw_targets:
         company_id, separator, competence = raw.partition("|")
-        key = (company_id, competence)
         try:
-            uuid.UUID(company_id)
+            company_id = str(uuid.UUID(company_id))
         except ValueError as exc:
             raise DctfWebDocumentTransitionError("Uma seleção da carteira ficou inválida.") from exc
-        if not separator or re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None:
+        if (
+            not separator
+            or re.fullmatch(r"(0[1-9]|1[0-2])/\d{4}", competence) is None
+            or competence.endswith("/0000")
+        ):
             raise DctfWebDocumentTransitionError("Uma seleção da carteira ficou inválida.")
+        key = (company_id, competence)
         if key not in seen:
             seen.add(key)
             parsed.append(key)
@@ -4082,7 +6150,7 @@ def dctfweb_bulk_consult(request: HttpRequest) -> HttpResponse:
             submitted_cents = -1
         if submitted_cents != quote.additional_overage_cents:
             messages.error(request, "O consumo mudou. Revise a seleção e confirme novamente.")
-        elif is_demo_visitor(request, office):
+        elif office.is_demo:
             for company, competence in targets:
                 put_progress(
                     request,
@@ -4180,6 +6248,13 @@ def dctfweb_document_pdf(request: HttpRequest, document_id: str) -> HttpResponse
     return response
 
 
+def _review_result_redirect(request: HttpRequest, case_id: object) -> HttpResponseBase:
+    return_to = request.POST.get("return_to") or request.GET.get("return_to")
+    if return_to:
+        return redirect(safe_next(request, return_to, fallback=reverse("hub:nfse-center")))
+    return detail_redirect(request, "hub:review-detail", case_id=case_id)
+
+
 @office_required
 @require_http_methods(["GET"])
 def guide_detail(request: HttpRequest, guide_id: str) -> HttpResponse:
@@ -4194,6 +6269,46 @@ def guide_detail(request: HttpRequest, guide_id: str) -> HttpResponse:
         company__in=context["companies"],
     )
     _demo_guide_for_view(request, guide)
+    can_issue = _can_prepare_dte(context)
+    guide_view = cast(Any, guide)
+    guide_view.amount_brl = Decimal(guide.amount_cents) / 100
+    guide_view.ui_guidance = _guide_state_guidance(guide.status, guide.error_code)
+    guide_view.usage_quote = None
+    guide_view.usage_error = ""
+    has_uncertain_attempt = FiscalGuide.objects.filter(
+        organization=office,
+        company_id=guide.company_id,
+        kind=guide.kind,
+        competence=guide.competence,
+        status=FiscalGuide.Status.UNKNOWN,
+    ).exclude(pk=guide.pk).exists()
+    if guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}:
+        if has_uncertain_attempt:
+            guide_view.usage_error = "Há uma emissão anterior a confirmar nesta competência."
+        elif office.is_demo:
+            guide_view.usage_quote = SimpleNamespace(
+                total_tokens=0,
+                additional_overage_cents=0,
+                additional_overage_tokens=0,
+            )
+        else:
+            try:
+                guide_view.usage_quote = quote_tokens(
+                    organization=office,
+                    module_code="integra",
+                    action_code=guide.integra_service_key,
+                )
+            except BillingError as exc:
+                guide_view.usage_error = str(exc)
+    if guide_view.usage_quote is not None:
+        guide_view.usage_overage_brl = (
+            Decimal(guide_view.usage_quote.additional_overage_cents) / 100
+        )
+    guide_view.can_issue_now = bool(
+        can_issue
+        and guide_view.usage_quote is not None
+        and guide.status in {FiscalGuide.Status.READY, FiscalGuide.Status.FAILED}
+    )
     history_page = Paginator(
         guide.attempt_events.filter(organization=office)
         .defer("provider_payload")
@@ -4212,19 +6327,24 @@ def guide_detail(request: HttpRequest, guide_id: str) -> HttpResponse:
         ).select_related("user")
     }
     history_rows = [
-        {"event": event, "requester": requester_names.get(event.requested_by_reference, "")}
+        {
+            "event": event,
+            "requester": requester_names.get(event.requested_by_reference, ""),
+            "guidance": _guide_state_guidance(event.status, event.error_code),
+        }
         for event in history_page
     ]
     history_query = request.GET.copy()
     history_query.pop("history_page", None)
     context.update(
         {
-            "page_title": "Resultado da guia",
+            "page_title": "Detalhes da guia",
             "guide": guide,
             "guide_history_page": history_page,
             "guide_history_rows": history_rows,
             "guide_history_query": history_query.urlencode(),
-            "guide_amount_brl": Decimal(guide.amount_cents) / 100,
+            "guide_amount_brl": guide_view.amount_brl,
+            "can_issue_guides": can_issue,
         }
     )
     return render(request, "hub/guide_detail.html", context)
@@ -4387,7 +6507,7 @@ def issue_guide(request: HttpRequest, guide_id: str) -> HttpResponse:
         organization=office,
         company__in=allowed_companies,
     )
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         if not guide.reference.startswith("DEMO-"):
             raise Http404
         if get_progress(request, "guides", guide.id).get("issued"):
@@ -4443,19 +6563,16 @@ def integra(request: HttpRequest) -> HttpResponse:
                 organization=office, company_id__in=allowed_company_ids
             ).count(),
             "integra_pending_count": (
-                sum(
-                    entry.get("status") == "prepared"
-                    for entry in get_section(request, "dte_runs").values()
+                len(
+                    _demo_dte_runs_for_view(
+                        request,
+                        allowed_companies.filter(active=True),
+                        office,
+                        include_results=False,
+                    )[0]
                 )
-                if is_demo_visitor(request, office)
-                else DteRun.objects.filter(
-                    organization=office,
-                    status=DteRun.Status.AWAITING_APPROVAL,
-                    items__organization=office,
-                    items__company_id__in=allowed_company_ids,
-                )
-                .distinct()
-                .count()
+                if office.is_demo
+                else _visible_pending_dte_runs(context).count()
             ),
             "integra_guides_enabled": ProductModule.objects.filter(
                 organization=office, code=ProductModule.Code.GUIDES, enabled=True
@@ -4500,6 +6617,47 @@ def _demo_parcelamentos(company: ClientCompany) -> list[SimpleNamespace]:
     ]
 
 
+def _parcelamento_state_guidance(
+    status: str, *, error_code: str = "", kind: str = ""
+) -> str:
+    """Return safe, actionable copy without reflecting provider messages."""
+
+    if status == ParcelamentoOperation.Status.QUEUED:
+        return "A solicitação entrou na fila. Acompanhe sem enviar outra vez."
+    if status == ParcelamentoOperation.Status.FETCHING:
+        return "A central está consultando o fornecedor. Acompanhe sem repetir."
+    if status == ParcelamentoOperation.Status.AVAILABLE:
+        return (
+            "O DAS está pronto para baixar."
+            if kind == ParcelamentoOperation.Kind.DAS
+            else "O resultado está disponível para conferência."
+        )
+    if status == ParcelamentoOperation.Status.EMPTY:
+        return "A consulta terminou sem parcelamentos para esta empresa."
+    if status == ParcelamentoOperation.Status.UNKNOWN:
+        return "O fornecedor não confirmou o resultado. Confira no e-CAC antes de prosseguir."
+    if status == ParcelamentoOperation.Status.FAILED:
+        if error_code == "authorization_revoked":
+            return "O acesso mudou antes da consulta. Revise permissões e responsável."
+        if error_code == "manual_review":
+            return "A conferência no e-CAC foi registrada. Uma nova tentativa pode ser revisada."
+        return "A operação não foi concluída. Revise acesso e custo antes de tentar novamente."
+    return "Confira a situação antes de escolher o próximo passo."
+
+
+def _prepare_parcelamento_operation_for_view(
+    operation: ParcelamentoOperation | None,
+) -> ParcelamentoOperation | None:
+    if operation is not None:
+        operation_view = cast(Any, operation)
+        operation_view.ui_guidance = _parcelamento_state_guidance(
+            operation.status,
+            error_code=operation.error_code,
+            kind=operation.kind,
+        )
+    return operation
+
+
 @office_required
 @require_http_methods(["GET", "POST"])
 def parcelamentos(request: HttpRequest) -> HttpResponse:
@@ -4524,9 +6682,11 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     except ValueError:
         messages.error(request, "Selecione uma empresa válida.")
         return redirect("hub:parcelamentos")
-    visitor = is_demo_visitor(request, office)
+    visitor = office.is_demo
 
     if request.method == "POST":
+        if not _can_prepare_dte(context):
+            return refuse(request, "Seu perfil pode consultar resultados, mas não executar ações.")
         action = request.POST.get("action", "")
         if action == "consult_selected":
             selected_ids = list(dict.fromkeys(request.POST.getlist("selected_company")))
@@ -4646,6 +6806,14 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 return refuse(
                     request, "Seu perfil pode consultar resultados, mas não autorizar consumo."
                 )
+            if request.POST.get("confirmed") != "yes":
+                messages.error(
+                    request,
+                    "Confirme que o resultado foi conferido no e-CAC antes de liberar a tentativa.",
+                )
+                return redirect(
+                    f"{reverse('hub:parcelamentos')}?company={company.id}#history-heading"
+                )
             try:
                 operation_uuid = uuid.UUID(request.POST.get("operation", ""))
                 release_uncertain_parcelamento_operation(
@@ -4717,9 +6885,11 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     consultation = (
         get_progress(request, "parcelamento_consultations", company.id) if company else {}
     )
-    operations = ParcelamentoOperation.objects.filter(organization=office).select_related(
-        "company", "token_usage_event"
-    )
+    operations = ParcelamentoOperation.objects.filter(
+        organization=office, company__in=all_companies
+    ).select_related("company", "token_usage_event")
+    if visitor:
+        operations = operations.none()
     latest_by_company: dict[str, ParcelamentoOperation] = {}
     for operation in operations.filter(kind=ParcelamentoOperation.Kind.ORDERS).order_by(
         "company_id", "-requested_at"
@@ -4817,6 +6987,7 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                     .order_by("-requested_at")
                     .first()
                 )
+                _prepare_parcelamento_operation_for_view(detail_operation)
                 detail = None
                 if (
                     detail_operation
@@ -4884,6 +7055,7 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                     .order_by("-requested_at")
                     .first()
                 )
+                _prepare_parcelamento_operation_for_view(das_operation)
                 available_installments.append(
                     SimpleNamespace(
                         agreement=None,
@@ -4910,12 +7082,13 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
     company_orders_operation = (
         latest_by_company.get(str(company.id)) if company and not visitor else None
     )
-
+    _prepare_parcelamento_operation_for_view(company_orders_operation)
     portfolio_page = Paginator(companies.order_by("name"), 30).get_page(request.GET.get("page"))
     portfolio = list(portfolio_page.object_list)
     portfolio_querystring = urlencode({"search": search}) if search else ""
     for portfolio_company in portfolio:
         portfolio_company.parcelamento_operation = latest_by_company.get(str(portfolio_company.id))
+        _prepare_parcelamento_operation_for_view(portfolio_company.parcelamento_operation)
         portfolio_company.parcelamento_demo_consulted_at = None
         if visitor:
             demo_state = get_progress(request, "parcelamento_consultations", portfolio_company.id)
@@ -4955,7 +7128,6 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
                 )
             except BillingError:
                 continue
-
     parcelamento_operations: list[ParcelamentoOperation] = []
     parcelamento_operations_page: object | None = None
     parcelamento_operations_querystring = ""
@@ -4964,6 +7136,8 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             request.GET.get("operation_page")
         )
         parcelamento_operations = list(parcelamento_operations_page.object_list)
+        for operation in parcelamento_operations:
+            _prepare_parcelamento_operation_for_view(operation)
         operation_query_params = request.GET.copy()
         operation_query_params.pop("operation_page", None)
         parcelamento_operations_querystring = operation_query_params.urlencode()
@@ -4994,6 +7168,34 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
             ),
             "parcelamento_das_quote": operation_quotes.get(ParcelamentoOperation.Kind.DAS),
             "parcelamento_consult_quote": operation_quotes.get(ParcelamentoOperation.Kind.ORDERS),
+            "parcelamento_detail_overage_brl": (
+                Decimal(operation_quotes[ParcelamentoOperation.Kind.DETAIL].additional_overage_cents)
+                / 100
+                if ParcelamentoOperation.Kind.DETAIL in operation_quotes
+                else None
+            ),
+            "parcelamento_installments_overage_brl": (
+                Decimal(
+                    operation_quotes[
+                        ParcelamentoOperation.Kind.INSTALLMENTS
+                    ].additional_overage_cents
+                )
+                / 100
+                if ParcelamentoOperation.Kind.INSTALLMENTS in operation_quotes
+                else None
+            ),
+            "parcelamento_das_overage_brl": (
+                Decimal(operation_quotes[ParcelamentoOperation.Kind.DAS].additional_overage_cents)
+                / 100
+                if ParcelamentoOperation.Kind.DAS in operation_quotes
+                else None
+            ),
+            "parcelamento_consult_overage_brl": (
+                Decimal(operation_quotes[ParcelamentoOperation.Kind.ORDERS].additional_overage_cents)
+                / 100
+                if ParcelamentoOperation.Kind.ORDERS in operation_quotes
+                else None
+            ),
             "parcelamento_orders_result": orders_result,
             "parcelamento_company_orders_operation": company_orders_operation,
             "parcelamento_pending": company_pending or portfolio_pending,
@@ -5001,6 +7203,76 @@ def parcelamentos(request: HttpRequest) -> HttpResponse:
         }
     )
     return render(request, "hub/parcelamentos.html", context)
+
+
+@office_required
+@require_http_methods(["GET"])
+def demo_parcelamento_das_pdf(
+    request: HttpRequest,
+    company_id: uuid.UUID,
+    agreement: int,
+    competence: str,
+) -> HttpResponse:
+    """Download a session-owned and unmistakably fictitious DAS."""
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.INTEGRA))
+    if blocked:
+        raise Http404
+    office = cast(Organization, context["office"])
+    if not office.is_demo or not re.fullmatch(r"\d{6}", competence):
+        raise Http404
+    company = get_object_or_404(
+        cast("QuerySet[ClientCompany]", context["companies"]).filter(active=True),
+        id=company_id,
+    )
+    installments = {
+        (item.number, installment.competence_key): installment
+        for item in _demo_parcelamentos(company)
+        for installment in item.installments
+        if not installment.paid
+    }
+    installment = installments.get((agreement, competence))
+    key = f"{company.id}:{agreement}:{competence}"
+    protocol = str(get_progress(request, "parcelamento_guides", key).get("protocol", ""))
+    if installment is None or not protocol:
+        raise Http404
+
+    amount = f"{installment.amount_brl:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    buffer = io.BytesIO()
+    page = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    page.setTitle("DAS ficticio - demonstracao CICA")
+    page.setFont("Helvetica-Bold", 18)
+    page.drawString(48, height - 64, "DAS FICTICIO - SEM VALIDADE FISCAL")
+    page.setFont("Helvetica", 11)
+    lines = [
+        "Documento gerado somente para demonstrar a jornada do CICA.",
+        f"Empresa: {company.name}",
+        f"CNPJ: {company.cnpj_masked or '-'}",
+        f"Acordo: {agreement}",
+        f"Competencia: {installment.competence}",
+        f"Vencimento demonstrativo: {installment.due_on:%d/%m/%Y}",
+        f"Valor demonstrativo: R$ {amount}",
+        f"Protocolo ficticio: {protocol}",
+        "Nao pague, contabilize ou use este arquivo como comprovante oficial.",
+    ]
+    y = height - 104
+    for line in lines:
+        page.drawString(48, y, line)
+        y -= 24
+    page.setStrokeColorRGB(0.72, 0.2, 0.16)
+    page.rect(36, 36, width - 72, height - 72)
+    page.save()
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="DAS-FICTICIO-{company.dominio_code or "empresa"}-{competence}.pdf"'
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @office_required
@@ -5048,7 +7320,11 @@ class _DemoDteItems:
 
 
 def _demo_dte_runs_for_view(
-    request: HttpRequest, companies: QuerySet[ClientCompany], office: Organization
+    request: HttpRequest,
+    companies: QuerySet[ClientCompany],
+    office: Organization,
+    *,
+    include_results: bool = True,
 ) -> tuple[list[SimpleNamespace], list[SimpleNamespace]]:
     """Build the DTE work queue from session progress, never from shared seed runs."""
 
@@ -5056,7 +7332,19 @@ def _demo_dte_runs_for_view(
     pending: list[SimpleNamespace] = []
     results: list[SimpleNamespace] = []
     for run_id, entry in get_section(request, "dte_runs").items():
-        selected = [allowed[code] for code in entry.get("company_ids", []) if code in allowed]
+        if not include_results and entry.get("status") != "prepared":
+            continue
+        selected_ids = entry.get("company_ids", [])
+        if not isinstance(selected_ids, list) or any(
+            not isinstance(code, str) for code in selected_ids
+        ):
+            continue
+        if entry.get("status") == "prepared" and (
+            len(set(selected_ids)) != len(selected_ids)
+            or any(code not in allowed for code in selected_ids)
+        ):
+            continue
+        selected = [allowed[code] for code in selected_ids if code in allowed]
         if not selected:
             continue
         run = SimpleNamespace(
@@ -5090,6 +7378,32 @@ def _demo_dte_runs_for_view(
     return pending, results
 
 
+def _visible_pending_dte_runs(context: dict[str, object]) -> QuerySet[DteRun]:
+    """A prepared batch is visible/actionable only within its complete current scope."""
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    return (
+        DteRun.objects.filter(organization=office, status=DteRun.Status.AWAITING_APPROVAL)
+        .annotate(
+            scoped_items=Count(
+                "items",
+                filter=Q(
+                    items__organization=office,
+                    items__company__organization=office,
+                    items__company__in=companies,
+                ),
+                distinct=True,
+            ),
+            actual_items=Count("items", distinct=True),
+        )
+        .filter(
+            actual_items__gt=0,
+            actual_items=F("total_companies"),
+            scoped_items=F("actual_items"),
+        )
+    )
+
+
 @office_required
 @require_http_methods(["GET", "POST"])
 def dte_center(request: HttpRequest) -> HttpResponse:
@@ -5104,7 +7418,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
     companies = ClientCompany.objects.filter(id__in=allowed_company_ids, active=True)
     connector = cast(Connector | None, context["connector"])
     form = DtePreparationForm(request.POST or None, companies=companies)
-    visitor = is_demo_visitor(request, office)
+    visitor = office.is_demo
 
     if request.method == "POST":
         if not context["support_can_mutate"]:
@@ -5279,7 +7593,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
         )
     if not visitor:
         pending_runs = list(
-            DteRun.objects.filter(organization=office, status=DteRun.Status.AWAITING_APPROVAL)
+            _visible_pending_dte_runs(context)
             .select_related("requested_by")
             .prefetch_related("items__company")
             .order_by("-requested_at")
@@ -5343,13 +7657,7 @@ def dte_center(request: HttpRequest) -> HttpResponse:
             "dte_search_term": search_term,
             "dte_companies": companies.order_by("name"),
             "dte_stats": {
-                "awaiting": (
-                    len(pending_runs)
-                    if visitor
-                    else DteRun.objects.filter(
-                        organization=office, status=DteRun.Status.AWAITING_APPROVAL
-                    ).count()
-                ),
+                "awaiting": len(pending_runs),
                 "unread": visitor_unread
                 if visitor
                 else DteMessage.objects.filter(
@@ -5399,7 +7707,7 @@ def prepare_dte_continuation(request: HttpRequest, item_id: str) -> HttpResponse
     if not _can_prepare_dte(context):
         return refuse(request, "Seu perfil não pode preparar consultas DTE.")
     office = cast(Organization, context["office"])
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         return refuse(
             request,
             "A consulta fictícia não tem paginação externa para continuar.",
@@ -5459,7 +7767,7 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
         organization=office,
         company__in=allowed_companies,
     )
-    visitor = is_demo_visitor(request, office)
+    visitor = office.is_demo
     if visitor:
         entry = get_progress(request, "dte_messages", message.id)
         access = (
@@ -5562,37 +7870,6 @@ def dte_message_detail(request: HttpRequest, message_id: str) -> HttpResponse:
                     request,
                     "Teor fictício aberto nesta sessão; nenhuma ciência oficial foi registrada.",
                 )
-            elif office.is_demo:
-                access, _ = DteMessageAccess.objects.update_or_create(
-                    organization=office,
-                    message=message,
-                    defaults={
-                        "status": DteMessageAccess.Status.OPENED,
-                        "attempt_count": 1,
-                        "requested_by": cast(User, request.user),
-                        "opened_at": timezone.now(),
-                        "provider_request_id": f"DEMO-{message.id}",
-                        "provider_payload": json.dumps(
-                            {
-                                "corpoModelo": (
-                                    f"Mensagem fictícia para {message.company.name}. "
-                                    "A abertura nesta demonstração não registra ciência "
-                                    "oficial nem inicia prazo jurídico."
-                                )
-                            }
-                        ),
-                    },
-                )
-                record_event(
-                    action="hub.dte.demo_message_opened",
-                    actor=request.user,
-                    organization=office,
-                    target=message,
-                    request=request,
-                )
-                messages.success(
-                    request, "Teor fictício aberto; nenhuma ciência oficial foi registrada."
-                )
             else:
                 try:
                     access = open_message(
@@ -5678,7 +7955,7 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
     if not _can_prepare_dte(context):
         return refuse(request, "Seu perfil pode consultar, mas não autorizar consultas DTE.")
     office = cast(Organization, context["office"])
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         entry = get_progress(request, "dte_runs", run_id)
         if entry.get("status") != "prepared":
             raise Http404
@@ -5709,9 +7986,7 @@ def decide_dte_run(request: HttpRequest, run_id: str) -> HttpResponse:
             return redirect("hub:dte-center")
         put_progress(request, "dte_runs", run_id, entry)
         return redirect("hub:dte-center")
-    run = get_object_or_404(
-        DteRun, id=run_id, organization=office, status=DteRun.Status.AWAITING_APPROVAL
-    )
+    run = get_object_or_404(_visible_pending_dte_runs(context), id=run_id)
     decision = request.POST.get("decision", "")
     try:
         if decision == "approve":
@@ -5764,7 +8039,7 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         return blocked
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
-    visitor = is_demo_visitor(request, office)
+    visitor = office.is_demo
     match_search = request.GET.get("q", "").strip()[:100]
     match_status = request.GET.get("status", "attention")
     if match_status not in {"attention", "all", *ReconciliationMatch.Status.values}:
@@ -5812,7 +8087,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         match_page = Paginator(matches, 50).get_page(request.GET.get("page"))
         matches = list(match_page.object_list)
         imports = [
-            SimpleNamespace(company=match.transaction.statement.company) for match in matches
+            SimpleNamespace(company=match.transaction.statement.company)
+            for match in all_demo_matches
         ]
         context.update(
             {
@@ -5824,7 +8100,7 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                 "match_total": match_total,
                 "match_search": match_search,
                 "match_status": match_status,
-                "can_confirm_matches": True,
+                "can_confirm_matches": _can_prepare_dte(context),
                 "reconciliation_demo": True,
                 "reconciliation_stats": {
                     "attention": sum(
@@ -5845,7 +8121,6 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                     ),
                 },
                 "can_upload_reconciliation": False,
-                **_reconciliation_v2_context(office, companies, request),
             }
         )
         return render(request, "hub/reconciliation.html", context)
@@ -6044,7 +8319,7 @@ def confirm_reconciliation(request: HttpRequest, match_id: str) -> HttpResponse:
         return refuse(request, "Seu perfil pode consultar, mas não confirmar conciliações.")
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         matches = {
             str(item.id): item
             for item in _demo_reconciliation_matches(
@@ -6113,6 +8388,57 @@ def _can_manage_reconciliation(context: dict[str, object]) -> bool:
     }
 
 
+def _reconciliation_run_guidance(
+    run: ReconciliationRun, *, local_ocr_available: bool
+) -> dict[str, str]:
+    """Return safe, actionable copy without reflecting raw processing exceptions."""
+
+    if run.stage == "mapping":
+        return {
+            "summary": "O arquivo aguarda a associação das colunas antes de ser processado.",
+            "label": "Mapear colunas",
+            "href": reverse("hub:reconciliation-mapping", args=[run.source_file_id]),
+        }
+    if run.stage == "financial_account_review":
+        return {
+            "summary": "A conta do arquivo não corresponde à conta financeira selecionada.",
+            "label": "Configurar conta",
+            "href": (
+                f"{reverse('hub:reconciliation-configuration')}"
+                f"?company={run.source_file.company_id}"
+            ),
+        }
+    if run.stage == "ocr_review":
+        detail = (
+            "A leitura local não encontrou texto. Confira o PDF ou envie OFX, CSV ou XLSX."
+            if local_ocr_available
+            else "A leitura local de PDF não está disponível. Envie OFX, CSV ou XLSX."
+        )
+        return {"summary": detail, "label": "Ver importações", "href": "#processamentos"}
+    if run.state == ReconciliationRun.State.FAILED:
+        return {
+            "summary": (
+                "O arquivo não pôde ser processado. Confira o formato e reprocesse; "
+                "se a falha continuar, informe o nome do arquivo ao suporte."
+            ),
+            "label": "Ver falha e reprocessar",
+            "href": "#processamentos",
+        }
+    if run.state == ReconciliationRun.State.COMPLETED_ALERTS:
+        return {
+            "summary": f"{run.error_count} linha(s) precisam de conferência antes de continuar.",
+            "label": "Abrir movimentos do arquivo",
+            "href": f"?source_file={run.source_file_id}#movimentos",
+        }
+    if run.state == ReconciliationRun.State.REVIEW:
+        return {
+            "summary": "Os movimentos estão prontos para a conferência humana.",
+            "label": "Abrir movimentos do arquivo",
+            "href": f"?source_file={run.source_file_id}#movimentos",
+        }
+    return {"summary": "", "label": "", "href": ""}
+
+
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
@@ -6146,7 +8472,13 @@ def _reconciliation_v2_context(
         runs.select_related("source_file", "source_file__company").order_by("-created_at"),
         20,
     ).get_page(request.GET.get("processing_page") if request else 1)
+    local_ocr_is_available = local_ocr_available()
+    visible_runs = list(runs_page.object_list)
+    for run in visible_runs:
+        run.guidance = _reconciliation_run_guidance(run, local_ocr_available=local_ocr_is_available)
     all_movements = NormalizedMovement.objects.filter(organization=office, company__in=companies)
+    if selected_source:
+        all_movements = all_movements.filter(source_file=selected_source)
     movement_filters = {
         "company": request.GET.get("movement_company", "") if request else "",
         "review": request.GET.get("movement_review", "") if request else "",
@@ -6154,18 +8486,42 @@ def _reconciliation_v2_context(
         "query": (request.GET.get("movement_q", "").strip() if request else "")[:100],
     }
     filtered_movements = all_movements
-    if selected_source:
-        filtered_movements = filtered_movements.filter(source_file=selected_source)
+    movement_filter_error = ""
     if movement_filters["company"]:
         try:
             movement_company_id = uuid.UUID(movement_filters["company"])
         except ValueError:
             movement_company_id = None
-        if movement_company_id is not None:
+        if movement_company_id is None:
+            movement_filter_error = (
+                "A empresa informada no filtro não é válida. Nenhum movimento foi exibido."
+            )
+            filtered_movements = filtered_movements.none()
+        elif not companies.filter(id=movement_company_id).exists():
+            movement_filter_error = (
+                "A empresa informada não está disponível na sua carteira. "
+                "Nenhum movimento foi exibido."
+            )
+            filtered_movements = filtered_movements.none()
+        else:
             filtered_movements = filtered_movements.filter(company_id=movement_company_id)
-    if movement_filters["review"] in set(NormalizedMovement.ReviewState.values):
+    if movement_filters["review"] and movement_filters["review"] not in set(
+        NormalizedMovement.ReviewState.values
+    ):
+        movement_filter_error = (
+            "A situação de revisão informada não é válida. Nenhum movimento foi exibido."
+        )
+        filtered_movements = filtered_movements.none()
+    elif movement_filters["review"]:
         filtered_movements = filtered_movements.filter(review_state=movement_filters["review"])
-    if movement_filters["classification"] in set(NormalizedMovement.ClassificationSource.values):
+    if movement_filters["classification"] and movement_filters["classification"] not in set(
+        NormalizedMovement.ClassificationSource.values
+    ):
+        movement_filter_error = (
+            "A classificação informada não é válida. Nenhum movimento foi exibido."
+        )
+        filtered_movements = filtered_movements.none()
+    elif movement_filters["classification"]:
         filtered_movements = filtered_movements.filter(
             classification_source=movement_filters["classification"]
         )
@@ -6187,7 +8543,7 @@ def _reconciliation_v2_context(
         movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100
     exports_page = Paginator(
         AccountingExport.objects.filter(organization=office, company__in=companies)
-        .select_related("company")
+        .select_related("company", "confirmed_by")
         .order_by("-created_at"),
         20,
     ).get_page(request.GET.get("export_page") if request else 1)
@@ -6218,6 +8574,121 @@ def _reconciliation_v2_context(
         return Decimal(total) / 100
 
     dominio_entries = DominioBankEntry.objects.filter(organization=office, company__in=companies)
+    stats = {
+        "imported": all_movements.count(),
+        "classified": all_movements.exclude(
+            classification_source=NormalizedMovement.ClassificationSource.NONE
+        ).count(),
+        "pending": all_movements.filter(
+            review_state=NormalizedMovement.ReviewState.PENDING
+        ).count(),
+        "conflicts": all_movements.filter(
+            review_state=NormalizedMovement.ReviewState.CONFLICT
+        ).count(),
+        "reconciled": allocation_stats.filter(confirmed_allocation__gt=0).count(),
+        "partially_reconciled": allocation_stats.filter(
+            confirmed_allocation__gt=0,
+            confirmed_allocation__lt=F("required_allocation"),
+        ).count(),
+        "exported": JournalEntry.objects.filter(
+            organization=office, company__in=companies, state=JournalEntry.State.EXPORTED
+        ).count(),
+        "imported_amount": _total_brl(all_movements),
+        "pending_amount": _total_brl(
+            all_movements.filter(
+                review_state__in=[
+                    NormalizedMovement.ReviewState.PENDING,
+                    NormalizedMovement.ReviewState.CONFLICT,
+                ]
+            )
+        ),
+        "dominio_entries": dominio_entries.count(),
+        "dominio_amount": _total_brl(dominio_entries),
+    }
+    active_run_count = runs.filter(
+        state__in=[ReconciliationRun.State.WAITING, ReconciliationRun.State.PROCESSING]
+    ).count()
+    blocked_run = (
+        runs.filter(
+            Q(state=ReconciliationRun.State.FAILED)
+            | Q(
+                state=ReconciliationRun.State.REVIEW,
+                stage__in={"mapping", "financial_account_review", "ocr_review"},
+            )
+        )
+        .select_related("source_file", "source_file__company")
+        .order_by("created_at")
+        .first()
+    )
+    if blocked_run:
+        guidance = _reconciliation_run_guidance(
+            blocked_run, local_ocr_available=local_ocr_is_available
+        )
+        next_action = {
+            "kind": "link",
+            "eyebrow": "IMPORTAÇÃO INTERROMPIDA",
+            "title": f"Corrigir {blocked_run.source_file.original_filename}",
+            "description": guidance["summary"],
+            "label": guidance["label"],
+            "href": guidance["href"],
+        }
+    elif stats["conflicts"]:
+        next_action = {
+            "kind": "link",
+            "eyebrow": "COMECE PELOS CONFLITOS",
+            "title": f"Resolver {stats['conflicts']} conflito(s) de classificação",
+            "description": (
+                "Há regras ou evidências incompatíveis. Confira esses movimentos antes dos "
+                "demais para não levar divergências adiante."
+            ),
+            "label": "Revisar conflitos",
+            "href": "?movement_review=conflict#movimentos",
+        }
+    elif stats["pending"]:
+        next_action = {
+            "kind": "link",
+            "eyebrow": "PRÓXIMA AÇÃO",
+            "title": f"Revisar {stats['pending']} movimento(s) pendente(s)",
+            "description": (
+                "Comece pelo que a automação não concluiu. Cada movimento mantém a origem e "
+                "as evidências para a decisão humana."
+            ),
+            "label": "Abrir pendências",
+            "href": "?movement_review=pending#movimentos",
+        }
+    elif active_run_count:
+        next_action = {
+            "kind": "link",
+            "eyebrow": "PROCESSAMENTO EM CURSO",
+            "title": f"Acompanhar {active_run_count} importação(ões)",
+            "description": "O resultado aparecerá na revisão quando cada arquivo terminar.",
+            "label": "Ver processamentos",
+            "href": "#processamentos",
+        }
+    elif not stats["imported"]:
+        next_action = {
+            "kind": "upload",
+            "eyebrow": "PRIMEIRO PASSO",
+            "title": "Importar o primeiro extrato ou documento",
+            "description": (
+                "Escolha a empresa e envie OFX, CSV, XLSX ou PDF. Nada é lançado no Domínio "
+                "durante a importação."
+            ),
+            "label": "Selecionar arquivos",
+            "href": "",
+        }
+    else:
+        next_action = {
+            "kind": "upload",
+            "eyebrow": "CARTEIRA EM DIA",
+            "title": "Nenhuma exceção exige revisão agora",
+            "description": (
+                "Você pode trazer novos arquivos. A exportação continua bloqueada até a "
+                "homologação real do layout Domínio."
+            ),
+            "label": "Nova importação",
+            "href": "",
+        }
     return {
         "selected_reconciliation_source": selected_source,
         "selected_reconciliation_activity": (
@@ -6230,7 +8701,7 @@ def _reconciliation_v2_context(
             else None
         ),
         "upload_form": ReconciliationUploadForm(companies=companies),
-        "reconciliation_runs": list(runs_page.object_list),
+        "reconciliation_runs": visible_runs,
         "reconciliation_runs_page": runs_page,
         "reconciliation_runs_querystring": (
             processing_query_params.urlencode() if processing_query_params else ""
@@ -6239,6 +8710,7 @@ def _reconciliation_v2_context(
         "normalized_movements": movements,
         "normalized_movement_page": movement_page,
         "normalized_movement_filters": movement_filters,
+        "reconciliation_movement_filter_error": movement_filter_error,
         "normalized_movement_querystring": (
             movement_query_params.urlencode() if movement_query_params else ""
         ),
@@ -6248,38 +8720,10 @@ def _reconciliation_v2_context(
             export_query_params.urlencode() if export_query_params else ""
         ),
         "accounting_exports_total": exports_page.paginator.count,
-        "reconciliation_v2_stats": {
-            "imported": all_movements.count(),
-            "classified": all_movements.exclude(
-                classification_source=NormalizedMovement.ClassificationSource.NONE
-            ).count(),
-            "pending": all_movements.filter(
-                review_state=NormalizedMovement.ReviewState.PENDING
-            ).count(),
-            "conflicts": all_movements.filter(
-                review_state=NormalizedMovement.ReviewState.CONFLICT
-            ).count(),
-            "reconciled": allocation_stats.filter(confirmed_allocation__gt=0).count(),
-            "partially_reconciled": allocation_stats.filter(
-                confirmed_allocation__gt=0,
-                confirmed_allocation__lt=F("required_allocation"),
-            ).count(),
-            "exported": JournalEntry.objects.filter(
-                organization=office, company__in=companies, state=JournalEntry.State.EXPORTED
-            ).count(),
-            "imported_amount": _total_brl(all_movements),
-            "pending_amount": _total_brl(
-                all_movements.filter(
-                    review_state__in=[
-                        NormalizedMovement.ReviewState.PENDING,
-                        NormalizedMovement.ReviewState.CONFLICT,
-                    ]
-                )
-            ),
-            "dominio_entries": dominio_entries.count(),
-            "dominio_amount": _total_brl(dominio_entries),
-        },
-        "reconciliation_local_ocr_available": local_ocr_available(),
+        "reconciliation_v2_stats": stats,
+        "reconciliation_active_run_count": active_run_count,
+        "reconciliation_next_action": next_action,
+        "reconciliation_local_ocr_available": local_ocr_is_available,
         "reconciliation_dominio_export_homologated": (
             settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
         ),
@@ -6295,15 +8739,40 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         return blocked
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
-    selected_company_id = request.POST.get("company") or request.GET.get("company")
-    selected_company = (
-        companies.filter(id=selected_company_id).first() if selected_company_id else None
-    )
-    if selected_company is None:
+    if request.method == "POST" and (
+        not context["support_can_mutate"] or not _can_manage_reconciliation(context)
+    ):
+        return refuse(request, "Seu perfil pode consultar, mas não alterar a configuração.")
+    selection = request.POST if request.method == "POST" else request.GET
+    company_ids = selection.getlist("company")
+    selected_company = None
+    if request.method == "GET" and not company_ids:
         selected_company = companies.order_by("name").first()
+    elif len(company_ids) == 1:
+        try:
+            selected_company = companies.filter(id=uuid.UUID(company_ids[0])).first()
+        except ValueError:
+            selected_company = None
     if selected_company is None:
-        return refuse(
-            request, "Cadastre ou habilite uma empresa antes de configurar a conciliação."
+        if not companies.exists():
+            return refuse(
+                request, "Cadastre ou habilite uma empresa antes de configurar a conciliação."
+            )
+        context.update(
+            {
+                "page_title": "Confira a empresa — Configuração da conciliação",
+                "reconciliation_configuration_company": None,
+                "reconciliation_company_error": (
+                    "Não foi possível abrir a empresa solicitada. Escolha uma empresa "
+                    "disponível abaixo. Nenhuma configuração foi alterada."
+                ),
+            }
+        )
+        return render(request, "hub/reconciliation_configuration.html", context, status=400)
+
+    def configuration_redirect(section: str) -> HttpResponse:
+        return redirect(
+            f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}#{section}"
         )
 
     action = request.POST.get("action", "")
@@ -6312,31 +8781,55 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             request.POST if action == "financial_account" else None,
             companies=companies,
             initial={"company": selected_company},
+            auto_id="id_financial_account_%s",
         ),
         "ledger_account": LedgerAccountForm(
             request.POST if action == "ledger_account" else None,
             companies=companies,
             initial={"company": selected_company},
+            auto_id="id_ledger_account_%s",
         ),
         "cost_center": CostCenterForm(
             request.POST if action == "cost_center" else None,
             companies=companies,
             initial={"company": selected_company},
+            auto_id="id_cost_center_%s",
         ),
         "accounting_period": AccountingPeriodForm(
             request.POST if action == "accounting_period" else None,
             companies=companies,
             initial={"company": selected_company},
+            auto_id="id_accounting_period_%s",
         ),
         "reconciliation_rule": ReconciliationRuleForm(
             request.POST if action == "reconciliation_rule" else None,
             companies=companies,
             initial={"company": selected_company},
+            auto_id="id_reconciliation_rule_%s",
         ),
     }
     if request.method == "POST":
-        if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
-            return refuse(request, "Seu perfil pode consultar, mas não alterar a configuração.")
+        identifier_fields = {
+            "toggle_rule": "rule_id",
+            "toggle_setup": "setup_id",
+            "lock_period": "period_id",
+            "unlock_period": "period_id",
+        }
+        if action not in forms_by_action and action not in identifier_fields:
+            return refuse(request, "Ação de configuração inválida.", kind="unavailable")
+        if identifier_field := identifier_fields.get(action):
+            identifiers = request.POST.getlist(identifier_field)
+            try:
+                if len(identifiers) != 1:
+                    raise ValueError
+                uuid.UUID(identifiers[0])
+            except ValueError:
+                return refuse(
+                    request,
+                    "O item de configuração não é válido. Reabra a configuração da empresa "
+                    "antes de tentar novamente. Nenhuma alteração foi salva.",
+                    kind="unavailable",
+                )
         configured: Any
         form = forms_by_action.get(action)
         if form is not None and form.is_valid():
@@ -6372,9 +8865,14 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 form.add_error(None, "Já existe um cadastro com estes dados para esta empresa.")
             else:
                 messages.success(request, "Configuração salva.")
-                return redirect(
-                    f"{reverse('hub:reconciliation-configuration')}?company={configured.company_id}"
-                )
+                section_by_action = {
+                    "financial_account": "contas-financeiras",
+                    "ledger_account": "plano-contas",
+                    "cost_center": "centros-custo",
+                    "accounting_period": "periodos",
+                    "reconciliation_rule": "regras-layouts",
+                }
+                return configuration_redirect(section_by_action[action])
         elif action == "toggle_rule":
             rule = get_object_or_404(
                 ReconciliationRule,
@@ -6397,9 +8895,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 metadata={"state": rule.state},
             )
             messages.success(request, "Situação da regra atualizada.")
-            return redirect(
-                f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}"
-            )
+            return configuration_redirect("regras-layouts")
         elif action == "toggle_setup":
             setup_models: dict[str, type[models.Model]] = {
                 "financial_account": FinancialAccount,
@@ -6434,9 +8930,13 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 request,
                 "Item ativado." if configured.active else "Item desativado para novos usos.",
             )
-            return redirect(
-                f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}"
-            )
+            section_by_kind = {
+                "financial_account": "contas-financeiras",
+                "ledger_account": "plano-contas",
+                "cost_center": "centros-custo",
+                "layout": "regras-layouts",
+            }
+            return configuration_redirect(section_by_kind[setup_kind])
         elif action not in forms_by_action:
             period = get_object_or_404(
                 AccountingPeriod,
@@ -6461,9 +8961,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                     metadata={"reason": period.lock_reason},
                 )
                 messages.success(request, "Período bloqueado.")
-                return redirect(
-                    f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}"
-                )
+                return configuration_redirect("periodos")
             elif action == "unlock_period":
                 period.locked_at = None
                 period.locked_by = None
@@ -6478,11 +8976,95 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                     metadata={"reason": reason[:240]},
                 )
                 messages.success(request, "Período reaberto.")
-                return redirect(
-                    f"{reverse('hub:reconciliation-configuration')}?company={selected_company.id}"
-                )
+                return configuration_redirect("periodos")
             else:
                 return refuse(request, "Ação de configuração inválida.", kind="unavailable")
+
+    financial_accounts_query = FinancialAccount.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("name")
+    ledger_accounts_query = LedgerAccount.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("code")
+    cost_centers_query = CostCenter.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("code")
+    accounting_periods_query = AccountingPeriod.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("-starts_on")
+    reconciliation_layouts_query = ReconciliationLayout.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("kind", "name", "-version")
+    reconciliation_rules_query = ReconciliationRule.objects.filter(
+        organization=office, company=selected_company
+    ).order_by("priority", "name")
+
+    list_definitions = {
+        "financial_accounts": (financial_accounts_query, "financial_page"),
+        "ledger_accounts": (ledger_accounts_query, "ledger_page"),
+        "cost_centers": (cost_centers_query, "cost_center_page"),
+        "accounting_periods": (accounting_periods_query, "period_page"),
+        "reconciliation_layouts": (reconciliation_layouts_query, "layout_page"),
+        "reconciliation_rules": (reconciliation_rules_query, "rule_page"),
+    }
+    paginated_lists: dict[str, object] = {}
+    for key, (queryset, parameter) in list_definitions.items():
+        page = Paginator(queryset, 25).get_page(request.GET.get(parameter))
+        params = request.GET.copy()
+        params.pop(parameter, None)
+        params["company"] = str(selected_company.id)
+        paginated_lists[key] = list(page.object_list)
+        paginated_lists[f"{key}_page"] = page
+        paginated_lists[f"{key}_querystring"] = params.urlencode()
+
+    ledger_account_count = ledger_accounts_query.filter(active=True, accepts_entries=True).count()
+    financial_account_count = financial_accounts_query.filter(active=True).count()
+    accounting_period_count = accounting_periods_query.count()
+    locked_period_count = accounting_periods_query.filter(locked_at__isnull=False).count()
+    active_rule_count = reconciliation_rules_query.filter(
+        state=ReconciliationRule.State.ACTIVE
+    ).count()
+    active_layout_count = reconciliation_layouts_query.filter(active=True).count()
+    if not ledger_account_count:
+        setup_next_action = {
+            "state": "blocked",
+            "eyebrow": "COMECE PELO ESSENCIAL",
+            "title": "Cadastre a primeira conta contábil",
+            "description": (
+                "Sem uma conta ativa que aceite lançamentos, a CICA não pode validar débitos "
+                "e créditos desta empresa."
+            ),
+            "label": "Cadastrar conta contábil",
+            "href": "#plano-contas-form",
+            "section": "plano-contas",
+        }
+    elif not financial_account_count:
+        setup_next_action = {
+            "state": "recommended",
+            "eyebrow": "PRÓXIMO PASSO RECOMENDADO",
+            "title": "Vincule o banco antes de importar extratos",
+            "description": (
+                "CSV, XLSX e documentos gerais já podem ser revisados. Para OFX e extratos "
+                "bancários, cadastre a conta que identifica a origem dos movimentos."
+            ),
+            "label": "Cadastrar conta financeira",
+            "href": "#contas-financeiras-form",
+            "section": "contas-financeiras",
+        }
+    else:
+        setup_next_action = {
+            "state": "ready",
+            "eyebrow": "BASE ESSENCIAL PRONTA",
+            "title": "A empresa pode iniciar uma importação",
+            "description": (
+                "Plano de contas e origem bancária estão disponíveis. Períodos, centros de "
+                "custo e automações continuam opcionais e podem ser configurados quando "
+                "necessários."
+            ),
+            "label": "Voltar e importar arquivos",
+            "href": f"{reverse('hub:reconciliation')}#visao-geral",
+            "section": "",
+        }
 
     context.update(
         {
@@ -6496,48 +9078,18 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             "cost_center_form": forms_by_action["cost_center"],
             "accounting_period_form": forms_by_action["accounting_period"],
             "reconciliation_rule_form": forms_by_action["reconciliation_rule"],
-            "financial_accounts": FinancialAccount.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("name"),
-            "ledger_accounts": LedgerAccount.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("code"),
-            "cost_centers": CostCenter.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("code"),
-            "accounting_periods": AccountingPeriod.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("-starts_on"),
-            "reconciliation_layouts": ReconciliationLayout.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("kind", "name", "-version"),
-            "reconciliation_rules": ReconciliationRule.objects.filter(
-                organization=office, company=selected_company
-            ).order_by("priority", "name"),
+            **paginated_lists,
+            "reconciliation_setup_next_action": setup_next_action,
             "reconciliation_setup_status": {
-                "financial_accounts": FinancialAccount.objects.filter(
-                    organization=office, company=selected_company, active=True
-                ).count(),
-                "ledger_accounts": LedgerAccount.objects.filter(
-                    organization=office,
-                    company=selected_company,
-                    active=True,
-                    accepts_entries=True,
-                ).count(),
+                "financial_accounts": financial_account_count,
+                "ledger_accounts": ledger_account_count,
                 "cost_centers_required": CostCenter.objects.filter(
                     organization=office, company=selected_company, active=True, required=True
                 ).exists(),
-                "open_periods": AccountingPeriod.objects.filter(
-                    organization=office, company=selected_company, locked_at__isnull=True
-                ).count(),
-                "active_rules": ReconciliationRule.objects.filter(
-                    organization=office,
-                    company=selected_company,
-                    state=ReconciliationRule.State.ACTIVE,
-                ).count(),
-                "active_layouts": ReconciliationLayout.objects.filter(
-                    organization=office, company=selected_company, active=True
-                ).count(),
+                "periods": accounting_period_count,
+                "locked_periods": locked_period_count,
+                "active_rules": active_rule_count,
+                "active_layouts": active_layout_count,
             },
         }
     )
@@ -6559,31 +9111,338 @@ def reconciliation_audit(request: HttpRequest) -> HttpResponse:
         return refuse(request, "Seu perfil não pode consultar a auditoria da conciliação.")
     office = cast(Organization, context["office"])
     action_prefix = "hub.reconciliation."
-    events = AuditEvent.objects.filter(
+    base_events = AuditEvent.objects.filter(
         organization=office, action__startswith=action_prefix
     ).select_related("actor")
-    event_action = request.GET.get("action", "")
+    action_details = {
+        "hub.reconciliation.source_uploaded": (
+            "Arquivo recebido",
+            "Importação",
+            "Um arquivo entrou na fila de conciliação.",
+        ),
+        "hub.reconciliation.source_downloaded": (
+            "Arquivo original baixado",
+            "Consulta",
+            "Uma cópia do arquivo de origem foi baixada.",
+        ),
+        "hub.reconciliation.source_previewed": (
+            "Arquivo original visualizado",
+            "Consulta",
+            "A evidência de origem foi aberta para conferência.",
+        ),
+        "hub.reconciliation.ofx_imported": (
+            "Extrato OFX importado",
+            "Importação",
+            "As transações do extrato foram registradas.",
+        ),
+        "hub.reconciliation.financial_account.created": (
+            "Conta financeira cadastrada",
+            "Configuração",
+            "Uma conta financeira foi adicionada à empresa.",
+        ),
+        "hub.reconciliation.financial_account.state_changed": (
+            "Situação da conta financeira alterada",
+            "Configuração",
+            "A disponibilidade da conta financeira mudou.",
+        ),
+        "hub.reconciliation.ledger_account.created": (
+            "Conta contábil cadastrada",
+            "Configuração",
+            "Uma conta do plano contábil foi adicionada.",
+        ),
+        "hub.reconciliation.ledger_account.state_changed": (
+            "Situação da conta contábil alterada",
+            "Configuração",
+            "A disponibilidade da conta contábil mudou.",
+        ),
+        "hub.reconciliation.cost_center.created": (
+            "Centro de custo cadastrado",
+            "Configuração",
+            "Um centro de custo foi adicionado.",
+        ),
+        "hub.reconciliation.cost_center.state_changed": (
+            "Situação do centro de custo alterada",
+            "Configuração",
+            "A disponibilidade do centro de custo mudou.",
+        ),
+        "hub.reconciliation.accounting_period.created": (
+            "Período contábil cadastrado",
+            "Configuração",
+            "Um intervalo de controle foi adicionado.",
+        ),
+        "hub.reconciliation.period.locked": (
+            "Período contábil bloqueado",
+            "Configuração",
+            "Alterações no intervalo passaram a ser impedidas.",
+        ),
+        "hub.reconciliation.period.unlocked": (
+            "Período contábil reaberto",
+            "Configuração",
+            "O intervalo voltou a aceitar alterações.",
+        ),
+        "hub.reconciliation.reconciliation_rule.created": (
+            "Regra de conciliação criada",
+            "Automação",
+            "Uma nova regra foi salva para a empresa.",
+        ),
+        "hub.reconciliation.rule.state_changed": (
+            "Situação da regra alterada",
+            "Automação",
+            "A regra foi ativada ou desativada.",
+        ),
+        "hub.reconciliation.layout.state_changed": (
+            "Situação do layout alterada",
+            "Automação",
+            "O layout foi ativado ou desativado.",
+        ),
+        "hub.reconciliation.rules_reapplication_requested": (
+            "Reaplicação de regras solicitada",
+            "Automação",
+            "Os movimentos elegíveis voltaram à fila de regras.",
+        ),
+        "hub.reconciliation.movement_edited": (
+            "Movimento revisado",
+            "Revisão",
+            "A classificação contábil do movimento foi alterada.",
+        ),
+        "hub.reconciliation.movement_ignored": (
+            "Movimento ignorado",
+            "Revisão",
+            "O movimento saiu da fila de revisão.",
+        ),
+        "hub.reconciliation.movement_restored": (
+            "Movimento restaurado",
+            "Revisão",
+            "O movimento voltou para a fila de revisão.",
+        ),
+        "hub.reconciliation.movements_ignored": (
+            "Movimentos ignorados em lote",
+            "Revisão",
+            "Um conjunto de movimentos saiu da fila de revisão.",
+        ),
+        "hub.reconciliation.movements_returned_to_review": (
+            "Movimentos devolvidos à revisão",
+            "Revisão",
+            "Um conjunto de movimentos voltou para revisão.",
+        ),
+        "hub.reconciliation.match_confirmed": (
+            "Correspondência confirmada",
+            "Conciliação",
+            "Uma correspondência foi confirmada manualmente.",
+        ),
+        "hub.reconciliation.auto_confirmed": (
+            "Correspondência automática confirmada",
+            "Conciliação",
+            "Uma correspondência segura foi confirmada pelo sistema.",
+        ),
+        "hub.reconciliation.reconciliation_confirmed": (
+            "Conciliação confirmada",
+            "Conciliação",
+            "Movimento e lançamento foram vinculados.",
+        ),
+        "hub.reconciliation.reconciliation_undone": (
+            "Conciliação desfeita",
+            "Conciliação",
+            "O vínculo foi removido e o valor liberado.",
+        ),
+        "hub.reconciliation.journal_approved": (
+            "Lançamento aprovado",
+            "Aprovação",
+            "O lançamento ficou disponível para exportação.",
+        ),
+        "hub.reconciliation.export_created": (
+            "Exportação contábil criada",
+            "Exportação",
+            "Um arquivo contábil foi preparado.",
+        ),
+        "hub.reconciliation.export_downloaded": (
+            "Exportação contábil baixada",
+            "Exportação",
+            "O arquivo contábil foi baixado.",
+        ),
+        "hub.reconciliation.export_import_confirmed": (
+            "Importação no Domínio confirmada",
+            "Exportação",
+            "A importação externa foi confirmada por uma pessoa.",
+        ),
+        "hub.reconciliation.export_integrity_failed": (
+            "Integridade da exportação falhou",
+            "Segurança",
+            "O arquivo armazenado não correspondeu ao registro original.",
+        ),
+    }
+    target_labels = {
+        "hub.reconciliationsourcefile": "Arquivo de origem",
+        "hub.bankstatementimport": "Extrato bancário",
+        "hub.financialaccount": "Conta financeira",
+        "hub.ledgeraccount": "Conta contábil",
+        "hub.costcenter": "Centro de custo",
+        "hub.accountingperiod": "Período contábil",
+        "hub.reconciliationrule": "Regra",
+        "hub.reconciliationlayout": "Layout",
+        "hub.normalizedmovement": "Movimento",
+        "hub.movementreconciliation": "Conciliação",
+        "hub.journalentry": "Lançamento",
+        "hub.accountingexport": "Exportação",
+    }
+    available_actions = list(
+        base_events.order_by("action").values_list("action", flat=True).distinct()
+    )
+    events = base_events
+    filter_errors: list[str] = []
+    event_action = request.GET.get("action", "").strip()
+    result_filter = request.GET.get("result", "all").strip()
+    audit_query = request.GET.get("q", "").strip()
+    date_from_raw = request.GET.get("date_from", "").strip()
+    date_to_raw = request.GET.get("date_to", "").strip()
+    date_from = parse_date(date_from_raw) if date_from_raw else None
+    date_to = parse_date(date_to_raw) if date_to_raw else None
     if event_action:
-        events = events.filter(action=event_action)
-    reconciliation_audit_page = Paginator(events.order_by("-occurred_at"), 100).get_page(
+        if event_action in available_actions:
+            events = events.filter(action=event_action)
+        else:
+            filter_errors.append("A atividade escolhida não existe nesta trilha.")
+    if result_filter == "success":
+        events = events.filter(success=True)
+    elif result_filter == "failure":
+        events = events.filter(success=False)
+    elif result_filter != "all":
+        filter_errors.append("O resultado escolhido não é válido.")
+    if len(audit_query) > 100:
+        filter_errors.append("A busca deve ter no máximo 100 caracteres.")
+    elif audit_query:
+        matching_actions = [
+            action
+            for action, (title, category, _description) in action_details.items()
+            if audit_query.casefold() in f"{title} {category}".casefold()
+        ]
+        events = events.filter(
+            Q(actor__full_name__icontains=audit_query)
+            | Q(actor__email__icontains=audit_query)
+            | Q(target_id__icontains=audit_query)
+            | Q(action__icontains=audit_query)
+            | Q(action__in=matching_actions)
+        )
+    if date_from_raw and date_from is None:
+        filter_errors.append("A data inicial não é válida.")
+    if date_to_raw and date_to is None:
+        filter_errors.append("A data final não é válida.")
+    current_timezone = timezone.get_current_timezone()
+    if date_from and date_to and date_from > date_to:
+        filter_errors.append("A data inicial deve ser anterior ou igual à data final.")
+    elif date_from and date_to:
+        events = events.filter(
+            occurred_at__gte=timezone.make_aware(
+                datetime.combine(date_from, time.min), current_timezone
+            ),
+            occurred_at__lte=timezone.make_aware(
+                datetime.combine(date_to, time.max), current_timezone
+            ),
+        )
+    elif date_from:
+        events = events.filter(
+            occurred_at__gte=timezone.make_aware(
+                datetime.combine(date_from, time.min), current_timezone
+            )
+        )
+    elif date_to:
+        events = events.filter(
+            occurred_at__lte=timezone.make_aware(
+                datetime.combine(date_to, time.max), current_timezone
+            )
+        )
+    if filter_errors:
+        events = events.none()
+    reconciliation_audit_page = Paginator(events.order_by("-occurred_at"), 50).get_page(
         request.GET.get("page")
+    )
+    displayed_events = list(reconciliation_audit_page.object_list)
+    metadata_labels = {
+        "reason": "Motivo",
+        "state": "Nova situação",
+        "active": "Ativo",
+        "transactions": "Transações",
+        "entries": "Lançamentos",
+        "entry_count": "Lançamentos",
+        "line_count": "Linhas",
+        "bulk_size": "Movimentos no lote",
+        "revision": "Revisão",
+        "invalidated_entries": "Lançamentos invalidados",
+        "origin": "Origem",
+        "kind": "Tipo de arquivo",
+        "size_bytes": "Tamanho",
+        "amount_cents": "Valor conciliado",
+    }
+
+    def present_metadata(event: AuditEvent) -> list[SimpleNamespace]:
+        presented: list[SimpleNamespace] = []
+        for key, label in metadata_labels.items():
+            if key not in event.metadata:
+                continue
+            value = event.metadata[key]
+            if key == "amount_cents" and isinstance(value, int):
+                amount = (
+                    f"{Decimal(value) / 100:,.2f}".replace(",", "X")
+                    .replace(".", ",")
+                    .replace("X", ".")
+                )
+                value = f"R$ {amount}"
+            elif key == "size_bytes" and isinstance(value, int):
+                value = f"{value / 1024:.1f} KB" if value >= 1024 else f"{value} bytes"
+            elif isinstance(value, bool):
+                value = "Sim" if value else "Não"
+            presented.append(SimpleNamespace(label=label, value=value))
+        return presented
+
+    for event in displayed_events:
+        title, category, description = action_details.get(
+            event.action,
+            ("Evento de conciliação", "Outros", "Uma atividade foi registrada nesta trilha."),
+        )
+        event.display_title = title
+        event.display_category = category
+        event.display_description = description
+        event.display_target = target_labels.get(event.target_type, "Registro relacionado")
+        event.display_metadata = present_metadata(event)
+    audit_totals = base_events.aggregate(
+        total=Count("id"), failures=Count("id", filter=Q(success=False))
     )
     reconciliation_audit_query_params = request.GET.copy()
     reconciliation_audit_query_params.pop("page", None)
     context.update(
         {
             "page_title": "Auditoria da conciliação",
-            "reconciliation_audit_events": list(reconciliation_audit_page.object_list),
+            "reconciliation_audit_events": displayed_events,
             "reconciliation_audit_page": reconciliation_audit_page,
             "reconciliation_audit_querystring": reconciliation_audit_query_params.urlencode(),
             "reconciliation_audit_total": reconciliation_audit_page.paginator.count,
-            "reconciliation_audit_actions": AuditEvent.objects.filter(
-                organization=office, action__startswith=action_prefix
-            )
-            .order_by("action")
-            .values_list("action", flat=True)
-            .distinct(),
+            "reconciliation_audit_all_total": audit_totals["total"],
+            "reconciliation_audit_failure_total": audit_totals["failures"],
+            "reconciliation_audit_actions": [
+                SimpleNamespace(
+                    value=action,
+                    label=action_details.get(action, ("Evento de conciliação", "Outros", ""))[0],
+                )
+                for action in sorted(
+                    available_actions,
+                    key=lambda item: action_details.get(
+                        item, ("Evento de conciliação", "Outros", "")
+                    )[0],
+                )
+            ],
             "reconciliation_audit_action": event_action,
+            "reconciliation_audit_result": result_filter,
+            "reconciliation_audit_search": audit_query,
+            "reconciliation_audit_date_from": date_from_raw,
+            "reconciliation_audit_date_to": date_to_raw,
+            "reconciliation_audit_filter_errors": filter_errors,
+            "reconciliation_audit_has_filters": bool(
+                event_action
+                or audit_query
+                or date_from_raw
+                or date_to_raw
+                or result_filter != "all"
+            ),
         }
     )
     return render(request, "hub/reconciliation_audit.html", context)
@@ -6598,7 +9457,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
     if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
         return refuse(request, "Seu perfil pode consultar, mas não importar arquivos.")
     office = cast(Organization, context["office"])
-    if is_demo_visitor(request, office):
+    if office.is_demo:
         return refuse(request, "A demonstração não recebe arquivos.")
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     form = ReconciliationUploadForm(request.POST, request.FILES, companies=companies)
@@ -6829,68 +9688,129 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
         preview = preview_tabular(source)
     except ReconciliationError as exc:
         return refuse(request, str(exc), kind="unavailable")
+    mapping_field_definitions = (
+        ("date", "Data", True),
+        ("amount", "Valor com sinal", False),
+        ("debit", "Débito / saída", False),
+        ("credit", "Crédito / entrada", False),
+        ("description", "Histórico", True),
+        ("document", "Documento", False),
+        ("counterparty", "Contraparte", False),
+    )
+    mapping_values = {
+        field: str(preview["mapping"].get(field, ""))
+        for field, _label, _required in mapping_field_definitions
+    }
+    mapping_name = source.original_filename.rsplit(".", 1)[0][:120]
+    mapping_errors: list[tuple[str, str]] = []
     if request.method == "POST":
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não salvar layouts.")
-        mapping_fields = (
-            "date",
-            "amount",
-            "debit",
-            "credit",
-            "description",
-            "document",
-            "counterparty",
-        )
-        submitted_mapping = {
+        mapping_name = request.POST.get("name", "").strip()[:120]
+        mapping_values = {
             field: request.POST.get(f"map_{field}", "").strip()
-            for field in mapping_fields
-            if request.POST.get(f"map_{field}", "").strip()
+            for field, _label, _required in mapping_field_definitions
         }
+        submitted_mapping = {field: value for field, value in mapping_values.items() if value}
+        if not mapping_name:
+            mapping_errors.append(("layout-name", "Dê um nome para reconhecer este layout."))
+        if not mapping_values["date"]:
+            mapping_errors.append(("map-date", "Escolha a coluna que contém a data."))
+        if not mapping_values["description"]:
+            mapping_errors.append(("map-description", "Escolha a coluna que contém o histórico."))
+        has_signed_amount = bool(mapping_values["amount"])
+        has_split_amount = bool(mapping_values["debit"] or mapping_values["credit"])
+        if not has_signed_amount and not has_split_amount:
+            mapping_errors.append(
+                (
+                    "map-amount",
+                    "Escolha Valor com sinal ou pelo menos uma coluna de débito/crédito.",
+                )
+            )
+        elif has_signed_amount and has_split_amount:
+            mapping_errors.append(
+                (
+                    "map-amount",
+                    "Use uma única estratégia: Valor com sinal ou Débito/Crédito.",
+                )
+            )
+        duplicate_columns = {
+            value
+            for value in submitted_mapping.values()
+            if list(submitted_mapping.values()).count(value) > 1
+        }
+        if duplicate_columns:
+            for field, value in submitted_mapping.items():
+                if value in duplicate_columns:
+                    mapping_errors.append(
+                        (f"map-{field}", f"A coluna “{value}” foi escolhida mais de uma vez.")
+                    )
         try:
             mapping = submitted_mapping or json.loads(request.POST.get("mapping", "{}"))
             if not isinstance(mapping, dict):
                 raise ValueError
         except (ValueError, json.JSONDecodeError):
-            messages.error(request, "O mapeamento enviado não é válido.")
+            mapping_errors.append(("mapping-error-summary", "O mapeamento enviado não é válido."))
         else:
-            name = request.POST.get("name", "Layout importado").strip() or "Layout importado"
+            if mapping_errors:
+                mapping = {}
             try:
-                layout = save_layout(
-                    source=source,
-                    name=name,
-                    configuration={"mapping": mapping, "sheet": preview.get("sheet", "")},
-                    actor=request.user,
-                )
-                runnable_runs = prepare_run_for_layout(source=source, layout=layout)
+                if mapping:
+                    layout = save_layout(
+                        source=source,
+                        name=mapping_name,
+                        configuration={"mapping": mapping, "sheet": preview.get("sheet", "")},
+                        actor=request.user,
+                    )
+                    runnable_runs = prepare_run_for_layout(source=source, layout=layout)
             except ReconciliationError as exc:
-                messages.error(request, str(exc))
+                mapping_errors.append(("mapping-error-summary", str(exc)))
             else:
+                if not mapping:
+                    runnable_runs = []
                 for run in runnable_runs:
                     from apps.hub.tasks import process_reconciliation_run
 
                     transaction.on_commit(partial(process_reconciliation_run.delay, str(run.id)))
-                messages.success(
-                    request,
-                    f"Layout {layout.name} v{layout.version} salvo e processamento iniciado.",
-                )
-                return redirect("hub:reconciliation")
+                if mapping:
+                    if runnable_runs:
+                        messages.success(
+                            request,
+                            (
+                                f"Layout {layout.name} v{layout.version} salvo e "
+                                "processamento iniciado."
+                            ),
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            (
+                                f"Layout {layout.name} v{layout.version} salvo para arquivos "
+                                "futuros. Nenhum processamento foi iniciado agora."
+                            ),
+                        )
+                    return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    field_errors: dict[str, list[str]] = {}
+    for target, message in mapping_errors:
+        field_errors.setdefault(target, []).append(message)
     context.update(
         {
             "page_title": "Mapear arquivo",
             "mapping_source": source,
             "mapping_preview": preview,
+            "mapping_name": mapping_name,
+            "mapping_errors": mapping_errors,
             "mapping_fields": tuple(
-                (field, label, preview["mapping"].get(field, ""))
-                for field, label in (
-                    ("date", "Data"),
-                    ("amount", "Valor com sinal"),
-                    ("debit", "Débito / saída"),
-                    ("credit", "Crédito / entrada"),
-                    ("description", "Histórico"),
-                    ("document", "Documento"),
-                    ("counterparty", "Contraparte"),
+                (
+                    field,
+                    label,
+                    required,
+                    mapping_values.get(field, ""),
+                    field_errors.get(f"map-{field}", []),
                 )
+                for field, label, required in mapping_field_definitions
             ),
+            "mapping_name_errors": field_errors.get("layout-name", []),
         }
     )
     return render(request, "hub/reconciliation_mapping.html", context)
@@ -7431,6 +10351,72 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             str(cast(JournalEntry, item["entry"]).id),
         )
     )
+    current_journal_entry = movement.journal_entries.exclude(
+        state=JournalEntry.State.INVALID
+    ).first()
+    missing_entry_fields = []
+    if movement.occurred_on is None:
+        missing_entry_fields.append("data")
+    if not movement.debit_account_code:
+        missing_entry_fields.append("conta de débito")
+    if not movement.credit_account_code:
+        missing_entry_fields.append("conta de crédito")
+    if movement.amount_cents == 0:
+        missing_entry_fields.append("valor diferente de zero")
+    if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+        movement_workflow = {
+            "state": "ignored",
+            "eyebrow": "MOVIMENTO IGNORADO",
+            "title": "Restaurar para voltar à revisão",
+            "description": "O movimento não gera lançamento enquanto estiver ignorado.",
+            "label": "Ver opção de restauração",
+            "href": "#movement-secondary-actions",
+        }
+    elif current_journal_entry and current_journal_entry.state == JournalEntry.State.EXPORTED:
+        movement_workflow = {
+            "state": "exported",
+            "eyebrow": "CONCLUÍDO",
+            "title": "Lançamento já incluído em uma exportação",
+            "description": "Alterações posteriores exigem retificação auditada.",
+            "label": "Voltar aos movimentos",
+            "href": f"{reverse('hub:reconciliation')}#movimentos",
+        }
+    elif current_journal_entry and current_journal_entry.state == JournalEntry.State.APPROVED:
+        movement_workflow = {
+            "state": "approved",
+            "eyebrow": "PRONTO PARA EXPORTAR",
+            "title": "Revisão e lançamento aprovados",
+            "description": "O lançamento entrará no próximo arquivo desta empresa e período.",
+            "label": "Ver exportações",
+            "href": f"{reverse('hub:reconciliation')}#exportacoes",
+        }
+    elif current_journal_entry and current_journal_entry.state == JournalEntry.State.DRAFT:
+        movement_workflow = {
+            "state": "draft",
+            "eyebrow": "PRÓXIMO PASSO",
+            "title": "Validar e aprovar o lançamento",
+            "description": "Confira as contas e o histórico antes de liberar para exportação.",
+            "label": "Ir para aprovação",
+            "href": "#movement-entry-action",
+        }
+    elif missing_entry_fields:
+        movement_workflow = {
+            "state": "incomplete",
+            "eyebrow": "PRÓXIMO PASSO",
+            "title": "Completar os dados obrigatórios",
+            "description": "Falta informar " + ", ".join(missing_entry_fields) + ".",
+            "label": "Completar revisão",
+            "href": "#movement-review-form",
+        }
+    else:
+        movement_workflow = {
+            "state": "reviewed",
+            "eyebrow": "PRÓXIMO PASSO",
+            "title": "Gerar o lançamento rascunho",
+            "description": "Os dados mínimos estão preenchidos; gere e confira o lançamento.",
+            "label": "Gerar lançamento",
+            "href": "#movement-entry-action",
+        }
     context.update(
         {
             "page_title": "Revisar movimento",
@@ -7438,9 +10424,8 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             and _can_manage_reconciliation(context),
             "movement": movement,
             "movement_form": form,
-            "journal_entry": movement.journal_entries.exclude(
-                state=JournalEntry.State.INVALID
-            ).first(),
+            "journal_entry": current_journal_entry,
+            "movement_workflow": movement_workflow,
             "reconciliation_candidates": suggestions,
             "reconciliation_candidate_page": candidate_page,
             "reconciliation_candidate_querystring": candidate_query_params.urlencode(),
@@ -7512,7 +10497,33 @@ def reconciliation_export_download(request: HttpRequest, export_id: str) -> File
         id=export_id,
         organization=office,
         company__in=companies,
-        state=AccountingExport.State.READY,
+        state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+    )
+    content_name = export.content.name if export.content else ""
+    if not content_name or not export.content.storage.exists(content_name):
+        raise Http404("Arquivo de exportação indisponível.")
+    digest = hashlib.sha256()
+    export.content.open("rb")
+    for chunk in export.content.chunks():
+        digest.update(chunk)
+    export.content.close()
+    if not secrets.compare_digest(digest.hexdigest(), export.content_hash):
+        record_event(
+            action="hub.reconciliation.export_integrity_failed",
+            actor=request.user,
+            organization=office,
+            target=export,
+            request=request,
+            metadata={"expected_hash": export.content_hash[:12]},
+        )
+        raise Http404("Arquivo de exportação indisponível.")
+    record_event(
+        action="hub.reconciliation.export_downloaded",
+        actor=request.user,
+        organization=office,
+        target=export,
+        request=request,
+        metadata={"hash": export.content_hash[:12]},
     )
     response = FileResponse(
         export.content.open("rb"),
@@ -7521,6 +10532,77 @@ def reconciliation_export_download(request: HttpRequest, export_id: str) -> File
     )
     response["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@office_required
+@require_http_methods(["POST"])
+def reconciliation_export_confirm(request: HttpRequest, export_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
+        return refuse(request, "Seu perfil pode consultar, mas não confirmar importações.")
+    if not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED:
+        return refuse(
+            request,
+            "A confirmação continua bloqueada até a homologação real do layout Domínio.",
+            kind="unavailable",
+        )
+    office = cast(Organization, context["office"])
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    with transaction.atomic():
+        export = get_object_or_404(
+            AccountingExport.objects.select_for_update(),
+            id=export_id,
+            organization=office,
+            company__in=companies,
+            state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+        )
+        if export.state == AccountingExport.State.CONFIRMED:
+            messages.info(request, "Esta importação já estava confirmada.")
+            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
+        posted_hash = request.POST.get("content_hash", "")
+        if (
+            request.POST.get("confirm_import") != "yes"
+            or not posted_hash
+            or not secrets.compare_digest(posted_hash, export.content_hash)
+        ):
+            messages.error(request, "Confirme a importação do arquivo e o hash exibido.")
+            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
+        content_name = export.content.name if export.content else ""
+        if not content_name or not export.content.storage.exists(content_name):
+            messages.error(request, "O arquivo original não está disponível; nada foi confirmado.")
+            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
+        digest = hashlib.sha256()
+        export.content.open("rb")
+        for chunk in export.content.chunks():
+            digest.update(chunk)
+        export.content.close()
+        if not secrets.compare_digest(digest.hexdigest(), export.content_hash):
+            record_event(
+                action="hub.reconciliation.export_integrity_failed",
+                actor=request.user,
+                organization=office,
+                target=export,
+                request=request,
+                metadata={"expected_hash": export.content_hash[:12]},
+            )
+            messages.error(request, "O arquivo armazenado diverge do hash; nada foi confirmado.")
+            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
+        export.state = AccountingExport.State.CONFIRMED
+        export.confirmed_at = timezone.now()
+        export.confirmed_by = cast(User, request.user)
+        export.save(update_fields=["state", "confirmed_at", "confirmed_by", "updated_at"])
+        record_event(
+            action="hub.reconciliation.export_import_confirmed",
+            actor=request.user,
+            organization=office,
+            target=export,
+            request=request,
+            metadata={"hash": export.content_hash[:12], "entry_count": len(export.entry_ids)},
+        )
+    messages.success(request, "Importação no Domínio confirmada e registrada na auditoria.")
+    return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
 
 
 @office_required
@@ -7538,9 +10620,27 @@ def reform(request: HttpRequest) -> HttpResponse:
     period_start = timezone.now() - timedelta(days=valid_periods[period]) if period else None
     valid_sources = set(ReformAlert.Source.values)
     valid_relevance = {ReformAlert.Relevance.REFORM, ReformAlert.Relevance.FISCAL}
+    if source not in valid_sources:
+        source = ""
+    if relevance not in valid_relevance:
+        relevance = ""
     radar_query_params = request.GET.copy()
-    radar_query_params.pop("page", None)
+    radar_query_params.clear()
+    if search_term:
+        radar_query_params["q"] = search_term
+    if source:
+        radar_query_params["fonte"] = source
+    if relevance:
+        radar_query_params["relevancia"] = relevance
+    if period:
+        radar_query_params["periodo"] = period
     office = cast(Organization, context["office"])
+    membership = context["membership"]
+    can_request_analysis = (
+        isinstance(membership, Membership)
+        and membership.role not in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+        and bool(context["support_can_mutate"])
+    )
     if is_demo_visitor(request, office):
         demo_alerts = _demo_reform_alerts()
         if source in valid_sources:
@@ -7590,6 +10690,8 @@ def reform(request: HttpRequest) -> HttpResponse:
                     (value, label, demo_statuses[value])
                     for value, label in ReformAlert.Source.choices
                 ],
+                "radar_source_has_error": False,
+                "radar_can_request_analysis": False,
                 "radar_demo": True,
             }
         )
@@ -7629,6 +10731,10 @@ def reform(request: HttpRequest) -> HttpResponse:
                 (value, label, statuses_by_source.get(value))
                 for value, label in ReformAlert.Source.choices
             ],
+            "radar_source_has_error": any(
+                bool(status.last_error) for status in statuses_by_source.values()
+            ),
+            "radar_can_request_analysis": can_request_analysis,
             "radar_demo": False,
         }
     )
@@ -8660,20 +11766,7 @@ def companies(request: HttpRequest) -> HttpResponse:
     office = context["office"]
     assert isinstance(office, Organization)
     membership = context["membership"]
-    can_manage_companies = bool(
-        context["support_can_mutate"]
-        and (
-            (context["support_session"] is not None and _sees_every_company(context))
-            or (
-                isinstance(membership, Membership)
-                and membership.role != Membership.Role.BILLING
-                and (
-                    membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
-                    or _sees_every_company(context)
-                )
-            )
-        )
-    )
+    can_manage_companies = _can_manage_companies(context)
     require_dominio_code = OfficeProfile.objects.filter(
         organization=office, require_dominio_code=True
     ).exists()
@@ -8732,31 +11825,31 @@ def companies(request: HttpRequest) -> HttpResponse:
         )
         messages.success(request, "Empresa adicionada à operação.")
         return redirect("hub:companies")
-    scope = cast("QuerySet[ClientCompany]", context["companies"])
-    query = request.GET.get("q", "").strip()
+    query = request.GET.get("q", "").strip()[:100]
+    priority = request.GET.get("prioridade", "")
     situation = request.GET.get("situacao", "")
     link = request.GET.get("vinculo", "")
     certificate_filter = request.GET.get("certificado", "")
     pending_filter = request.GET.get("pendencia", "")
 
-    rows = ClientCompany.objects.filter(organization=office)
-    if not _sees_every_company(context):
-        # The workspace scope already applied the CRMew company boundary; the registry
-        # must not widen it just because it queries the office directly.
-        rows = rows.filter(id__in=scope.values_list("id", flat=True))
-    scope_total = rows.count()
-    if query:
-        rows = rows.filter(
-            Q(name__icontains=query)
-            | Q(cnpj_masked__icontains=query)
-            | Q(dominio_code__icontains=query)
-        )
-    if situation == "pausada":
-        rows = rows.filter(active=False)
-    elif situation == "ativa":
-        rows = rows.filter(active=True)
-    if link == "com":
-        rows = rows.exclude(dominio_code="")
+    valid_filters = {
+        "prioridade": {"", "atencao", "revisao", "certificado", "sem_codigo"},
+        "situacao": {"", "ativa", "pausada"},
+        "vinculo": {"", "com", "sem"},
+        "certificado": {"", "valido", "vencendo", "ausente"},
+        "pendencia": {"", "com", "sem"},
+    }
+    filter_values = {
+        "prioridade": priority,
+        "situacao": situation,
+        "vinculo": link,
+        "certificado": certificate_filter,
+        "pendencia": pending_filter,
+    }
+    invalid_filter = next(
+        (name for name, value in filter_values.items() if value not in valid_filters[name]),
+        "",
+    )
 
     now = timezone.now()
     expiring_until = now + timedelta(days=30)
@@ -8767,9 +11860,98 @@ def companies(request: HttpRequest) -> HttpResponse:
     open_reviews = ReviewCase.objects.filter(
         organization=office, status=ReviewCase.Status.OPEN, document__company_id=OuterRef("pk")
     )
-    rows = rows.annotate(
+    scoped_rows = _company_history_scope(context).annotate(
         has_certificate=Exists(valid_certificates),
         certificate_expiring=Exists(expiring_certificates),
+        has_open_review=Exists(open_reviews),
+    )
+    scope_total = scoped_rows.count()
+    active_rows = scoped_rows.filter(active=True)
+    attention_condition = (
+        Q(has_open_review=True)
+        | Q(has_certificate=False)
+        | Q(certificate_expiring=True)
+        | Q(dominio_code="")
+    )
+    priority_counts = {
+        "": scope_total,
+        "atencao": active_rows.filter(attention_condition).count(),
+        "revisao": active_rows.filter(has_open_review=True).count(),
+        "certificado": active_rows.filter(
+            Q(has_certificate=False) | Q(certificate_expiring=True)
+        ).count(),
+        "sem_codigo": active_rows.filter(dominio_code="").count(),
+    }
+    priority_filters = [
+        {"value": "", "label": "Todas", "count": priority_counts[""]},
+        {
+            "value": "atencao",
+            "label": "Precisam de atenção",
+            "count": priority_counts["atencao"],
+        },
+        {
+            "value": "revisao",
+            "label": "Revisões NFS-e",
+            "count": priority_counts["revisao"],
+        },
+        {
+            "value": "certificado",
+            "label": "Certificado A1",
+            "count": priority_counts["certificado"],
+        },
+        {
+            "value": "sem_codigo",
+            "label": "Sem código Domínio",
+            "count": priority_counts["sem_codigo"],
+        },
+    ]
+    for item in priority_filters:
+        item["selected"] = item["value"] == priority
+        item["url"] = (
+            reverse("hub:companies")
+            + (f"?prioridade={item['value']}" if item["value"] else "")
+        )
+
+    rows = scoped_rows
+    if invalid_filter:
+        rows = rows.none()
+    elif priority == "atencao":
+        rows = rows.filter(active=True).filter(attention_condition)
+    elif priority == "revisao":
+        rows = rows.filter(active=True, has_open_review=True)
+    elif priority == "certificado":
+        rows = rows.filter(active=True).filter(
+            Q(has_certificate=False) | Q(certificate_expiring=True)
+        )
+    elif priority == "sem_codigo":
+        rows = rows.filter(active=True, dominio_code="")
+    if query:
+        search = (
+            Q(name__icontains=query)
+            | Q(cnpj_masked__icontains=query)
+            | Q(dominio_code__icontains=query)
+        )
+        identifier = re.sub(r"[./\s-]", "", query).upper()
+        if re.fullmatch(r"\d+|[A-Z0-9]{12}\d{2}", identifier):
+            rows = rows.annotate(
+                searchable_cnpj=Replace(
+                    Replace(Replace("cnpj_masked", Value("."), Value("")), Value("/"), Value("")),
+                    Value("-"),
+                    Value(""),
+                )
+            )
+            search |= Q(searchable_cnpj__icontains=identifier)
+        rows = rows.filter(search)
+    if situation == "pausada":
+        rows = rows.filter(active=False)
+    elif situation == "ativa":
+        rows = rows.filter(active=True)
+    if link == "com":
+        rows = rows.exclude(dominio_code="")
+    elif link == "sem":
+        rows = rows.filter(dominio_code="")
+
+    rows = rows.annotate(
         open_review_total=Count(
             "nfse_documents__review_case",
             filter=Q(nfse_documents__review_case__status=ReviewCase.Status.OPEN),
@@ -8791,6 +11973,7 @@ def companies(request: HttpRequest) -> HttpResponse:
     page = paginator.get_page(request.GET.get("pagina"))
     filters = {
         "q": query,
+        "prioridade": priority,
         "situacao": situation,
         "vinculo": link,
         "certificado": certificate_filter,
@@ -8805,6 +11988,12 @@ def companies(request: HttpRequest) -> HttpResponse:
             "total_companies": paginator.count,
             "filters": filters,
             "filters_applied": any(filters.values()),
+            "filter_error": (
+                "Um dos filtros não é válido. Limpe o recorte e escolha uma opção disponível."
+                if invalid_filter
+                else ""
+            ),
+            "priority_filters": priority_filters,
             "query_without_page": urlencode(
                 {key: value for key, value in filters.items() if value}
             ),
@@ -8815,7 +12004,40 @@ def companies(request: HttpRequest) -> HttpResponse:
             "form": form,
         }
     )
-    return render(request, "hub/companies.html", context)
+    return render(
+        request,
+        "hub/companies.html",
+        context,
+        status=400 if request.method == "POST" and form.errors else 200,
+    )
+
+
+def _company_history_scope(context: dict[str, object]) -> QuerySet[ClientCompany]:
+    """Match registry visibility without widening restricted operational scopes."""
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    if _sees_every_company(context):
+        return ClientCompany.objects.filter(organization=cast(Organization, context["office"]))
+    return scope
+
+
+def _can_manage_companies(context: dict[str, object]) -> bool:
+    """Keep company mutations behind the same full-portfolio boundary everywhere."""
+
+    membership = context.get("membership")
+    return bool(
+        context.get("support_can_mutate")
+        and (
+            (context.get("support_session") is not None and _sees_every_company(context))
+            or (
+                isinstance(membership, Membership)
+                and membership.role != Membership.Role.BILLING
+                and (
+                    membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
+                    or _sees_every_company(context)
+                )
+            )
+        )
+    )
 
 
 def _sees_every_company(context: dict[str, object]) -> bool:
@@ -8825,12 +12047,15 @@ def _sees_every_company(context: dict[str, object]) -> bool:
     support = context.get("support_session")
     if isinstance(support, SupportSession):
         return not support.company_ids
+    membership = context.get("membership")
     return (
         isinstance(office, Organization)
+        and isinstance(membership, Membership)
+        and membership.role in {Membership.Role.OWNER, Membership.Role.ADMIN}
         and not ControlPlaneBinding.objects.filter(organization=office).exists()
         and not CompanyAccessGrant.objects.filter(
             organization=office,
-            membership=cast(Membership | None, context.get("membership")),
+            membership=membership,
             is_active=True,
         ).exists()
     )
@@ -8846,14 +12071,11 @@ def certificates(request: HttpRequest) -> HttpResponse:
         return refuse(request, "Esta sessão é somente leitura.")
     allowed_companies = cast("QuerySet[ClientCompany]", context["companies"])
     demo_certificate_mode = is_demo_visitor(request, office)
-    form = CertificateUploadForm(
-        request.POST or None,
-        request.FILES or None,
-        organization=office,
-        companies=ClientCompany.objects.filter(
-            id__in=[company.id for company in allowed_companies]
-        ),
+    is_queue_upload = (
+        request.headers.get("X-CICA-CERTIFICATE-QUEUE") == "1"
+        or request.POST.get("queue_upload") == "1"
     )
+    form = CertificateUploadForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and demo_certificate_mode:
         demo_company_id = request.POST.get("demo_company_id")
         demo_company = (
@@ -8876,31 +12098,67 @@ def certificates(request: HttpRequest) -> HttpResponse:
             )
         return redirect("hub:certificates")
     if request.method == "POST" and form.is_valid():
-        upload = form.cleaned_data["pfx_file"]
-        if upload.size > 2_000_000:
-            form.add_error("pfx_file", "O arquivo deve ter no máximo 2 MB.")
-        else:
+        scoped_companies = list(allowed_companies.filter(active=True))
+        results = []
+        for index, upload in enumerate(form.cleaned_data["pfx_files"], start=1):
+            result = import_certificate_upload(
+                filename=upload.name,
+                pfx_bytes=upload.read(),
+                common_password=form.cleaned_data["common_password"],
+                companies=scoped_companies,
+                actor=request.user,
+                request=request,
+            )
+            results.append(
+                {
+                    "position": index,
+                    "status": result.status,
+                    "title": result.title,
+                    "detail": result.detail,
+                    "company_name": result.company_name,
+                    "reason": result.reason,
+                }
+            )
+        if is_queue_upload:
             try:
-                store_certificate(
-                    company=form.cleaned_data["company"],
-                    pfx_bytes=upload.read(),
-                    password=form.cleaned_data["password"],
-                    label=form.cleaned_data["label"],
-                    actor=request.user,
-                    request=request,
-                )
-            except ValueError as exc:
-                form.add_error(None, str(exc))
-            else:
-                messages.success(
-                    request,
-                    "Certificado cifrado; o arquivo original não será exibido novamente.",
-                )
-                return redirect("hub:certificates")
+                queue_position = max(1, int(request.POST.get("queue_position", "1")))
+            except ValueError:
+                queue_position = 1
+            queued_results = (
+                {}
+                if queue_position == 1
+                else dict(request.session.get("certificate_import_queue", {}))
+            )
+            queued_results[str(queue_position)] = results[0]
+            request.session["certificate_import_queue"] = queued_results
+            request.session["certificate_import_results"] = [
+                queued_results[key] for key in sorted(queued_results, key=int)
+            ]
+            return JsonResponse({"result": results[0]})
+        request.session["certificate_import_results"] = results
+        recognized = sum(result["status"] == "recognized" for result in results)
+        unrecognized = len(results) - recognized
+        if recognized:
+            messages.success(
+                request,
+                f"{recognized} certificado{'s' if recognized != 1 else ''} vinculado"
+                f"{'s' if recognized != 1 else ''} automaticamente.",
+            )
+        if unrecognized:
+            messages.warning(
+                request,
+                f"{unrecognized} arquivo{'s' if unrecognized != 1 else ''} ficou"
+                f"{'ram' if unrecognized != 1 else ''} como não reconhecido.",
+            )
+        return redirect("hub:certificates")
+    if request.method == "POST" and is_queue_upload:
+        return JsonResponse(
+            {"error": "Selecione um arquivo .pfx ou .p12 válido para continuar."}, status=400
+        )
     now = timezone.now()
     expires_soon_at = now + timedelta(days=30)
     certificate_search = request.GET.get("q", "").strip()[:100]
-    certificate_status = request.GET.get("status", "attention")
+    certificate_status = request.GET.get("status", "all")
     valid_certificate_statuses = {
         "attention",
         "valid",
@@ -8911,7 +12169,7 @@ def certificates(request: HttpRequest) -> HttpResponse:
         "all",
     }
     if certificate_status not in valid_certificate_statuses:
-        certificate_status = "attention"
+        certificate_status = "all"
     certificate_base = Certificate.objects.filter(
         organization=office, company__in=allowed_companies
     ).select_related("company")
@@ -8976,6 +12234,23 @@ def certificates(request: HttpRequest) -> HttpResponse:
         allowed_companies.filter(id__in=simulated_company_ids).order_by("name")
     )
     certificate_filters = {"q": certificate_search, "status": certificate_status}
+    certificate_import_results = request.session.pop("certificate_import_results", [])
+    request.session.pop("certificate_import_queue", None)
+    certificate_import_summary = {
+        "total": len(certificate_import_results),
+        "recognized": sum(
+            result.get("status") == "recognized" for result in certificate_import_results
+        ),
+        "open_failed": sum(
+            result.get("reason") == "open_failed" for result in certificate_import_results
+        ),
+        "duplicate": sum(
+            result.get("reason") == "duplicate" for result in certificate_import_results
+        ),
+    }
+    certificate_import_summary["unrecognized"] = (
+        certificate_import_summary["total"] - certificate_import_summary["recognized"]
+    )
     context.update(
         {
             "page_title": "Certificados",
@@ -8986,6 +12261,13 @@ def certificates(request: HttpRequest) -> HttpResponse:
             "certificate_status": certificate_status,
             "certificate_query_without_page": urlencode(certificate_filters),
             "certificate_stats": {
+                "covered_companies": certificate_base.filter(
+                    revoked_at__isnull=True, valid_until__gte=now
+                )
+                .values("company_id")
+                .distinct()
+                .count()
+                + len(simulated_companies),
                 "valid": certificate_base.filter(
                     revoked_at__isnull=True, valid_until__gte=expires_soon_at
                 ).count()
@@ -9005,6 +12287,9 @@ def certificates(request: HttpRequest) -> HttpResponse:
             "missing_certificate_query_without_page": missing_certificate_query_params.urlencode(),
             "demo_certificate_mode": demo_certificate_mode,
             "demo_simulated_certificate_companies": simulated_companies,
+            "certificate_import_results": certificate_import_results,
+            "certificate_import_summary": certificate_import_summary,
+            "nfse_sync_runtime_enabled": settings.NFSE_ADN_SYNC_ENABLED,
             "form": form,
             "support_can_mutate": context["support_can_mutate"],
             "today": now,
@@ -9016,6 +12301,16 @@ def certificates(request: HttpRequest) -> HttpResponse:
 
 @office_required
 def reviews(request: HttpRequest) -> HttpResponse:
+    """Redirect old review bookmarks to the unified NFS-e document list."""
+
+    query = request.GET.copy()
+    query["status"] = "unclassified"
+    query.pop("page", None)
+    return redirect(f"{reverse('hub:nfse-center')}?{query.urlencode()}")
+
+
+@office_required
+def legacy_reviews(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
@@ -9074,6 +12369,7 @@ def _demo_review_for_view(request: HttpRequest, review: ReviewCase) -> ReviewCas
     if entry.get("resolved"):
         review.status = ReviewCase.Status.RESOLVED
         review.resolved_accumulator = str(entry.get("accumulator", ""))[:80]
+        review.resolution_source = ReviewCase.ResolutionSource.HUMAN
         review.resolved_by = cast(User, request.user)
         review.resolved_at = parse_datetime(str(entry.get("resolved_at", "")))
     return review
@@ -9179,12 +12475,58 @@ def review_detail(request: HttpRequest, case_id: str) -> HttpResponse:
                 organization=office, document=document
             ).order_by("created_at"),
             "review_accumulator_codes": _review_accumulator_codes(document),
+            "review_accumulator_options": _review_accumulator_options(document),
+            "review_dominio_accumulator": _effective_nfse_accumulator(document),
         }
     )
     return render(request, "hub/review_detail.html", context)
 
 
+def _effective_nfse_accumulator(document: NfseDocument) -> str:
+    from apps.hub.nfse_reclassification import _effective_artifact
+
+    artifact = _effective_artifact(
+        list(IntegrationArtifact.objects.filter(document=document).order_by("created_at"))
+    )
+    return artifact.accumulator_code if artifact is not None else ""
+
+
+def _review_accumulator_options(document: NfseDocument) -> list[tuple[str, str]]:
+    """Codes an operator may choose, with the Domínio name so nobody picks a number blind.
+
+    When the company has a Domínio catalog, only its active accumulators (and ones registered
+    by hand) are offered: anything else would be refused by the export and by Domínio.
+    """
+
+    codes = _review_accumulator_candidates(document)
+    allowed = active_catalog_codes([document.company]).get(document.company_id)
+    if allowed is not None:
+        codes = [code for code in codes if code in allowed]
+    names: dict[str, str] = {}
+    for code, name in (
+        AccumulatorCatalogEntry.objects.filter(
+            organization=document.organization, company=document.company, accumulator_code__in=codes
+        )
+        .order_by("-source_snapshot_at")
+        .values_list("accumulator_code", "name")
+    ):
+        names.setdefault(code, name)
+    for code, name in AccumulatorRule.objects.filter(
+        organization=document.organization, company=document.company, accumulator_code__in=codes
+    ).values_list("accumulator_code", "name"):
+        names.setdefault(code, name)
+
+    def order(code: str) -> tuple[int, str]:
+        return (int(code), "") if code.isdigit() else (10**9, code)
+
+    return [(code, names.get(code, "")) for code in sorted(codes, key=order)]
+
+
 def _review_accumulator_codes(document: NfseDocument) -> list[str]:
+    return [code for code, _name in _review_accumulator_options(document)]
+
+
+def _review_accumulator_candidates(document: NfseDocument) -> list[str]:
     """Return only company-scoped codes that an operator may select for a review."""
 
     document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
@@ -9222,6 +12564,43 @@ def _review_accumulator_codes(document: NfseDocument) -> list[str]:
 
 
 @office_required
+def review_dominio_xml(request: HttpRequest, case_id: str) -> HttpResponse:
+    """The note's XML as Domínio imports it: original bytes plus ``infNFSe/valores/acum``."""
+
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    review = get_object_or_404(
+        ReviewCase.objects.select_related("document"),
+        pk=case_id,
+        organization=office,
+        document__company__in=scope,
+    )
+    accumulator = _effective_nfse_accumulator(review.document)
+    if not accumulator:
+        return refuse(
+            request, "Classifique a nota antes de baixar o XML para a Domínio.", kind="unavailable"
+        )
+    try:
+        xml = _xml_with_dominio_accumulator(review.document.original_xml, accumulator)
+    except ValueError as exc:
+        return refuse(request, str(exc), kind="unavailable")
+    response = HttpResponse(xml, content_type="application/xml; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="nfse-{review.id}-dominio.xml"'
+    response["X-Content-Type-Options"] = "nosniff"
+    response["Cache-Control"] = "private, no-store"
+    record_event(
+        action="hub.nfse.review_dominio_xml_downloaded",
+        actor=request.user,
+        organization=office,
+        target=review,
+        request=request,
+        metadata={"accumulator": accumulator},
+    )
+    return response
+
+
+@office_required
 def review_original_xml(request: HttpRequest, case_id: str) -> HttpResponse:
     context = workspace_context(request)
     office = cast(Organization, context["office"])
@@ -9251,7 +12630,134 @@ def review_original_xml(request: HttpRequest, case_id: str) -> HttpResponse:
 @office_required
 @require_http_methods(["POST"])
 @transaction.atomic
-def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
+def update_nfse_accumulator(request: HttpRequest, document_id: str) -> HttpResponse:
+    """Append a corrected accumulator without rewriting prior fiscal evidence."""
+
+    context = workspace_context(request)
+    office = cast(Organization, context["office"])
+    scope = cast("QuerySet[ClientCompany]", context["companies"])
+    membership = context["membership"]
+    can_classify = bool(
+        context["support_can_mutate"]
+        and (
+            context["support_session"] is not None
+            or (
+                isinstance(membership, Membership)
+                and membership.role in {
+                    Membership.Role.OWNER, Membership.Role.ADMIN,
+                    Membership.Role.MANAGER, Membership.Role.OPERATOR,
+                }
+            )
+        )
+    )
+    if not can_classify:
+        return refuse(request, "Seu perfil pode consultar, mas não corrigir acumuladores.")
+    document = get_object_or_404(
+        NfseDocument.objects.select_for_update().select_related("company"),
+        id=document_id,
+        organization=office,
+        company__in=scope,
+    )
+    accumulator = request.POST.get("accumulator_code", "").strip()
+    return_to = safe_next(
+        request, request.POST.get("return_to"), fallback=reverse("hub:nfse-center")
+    )
+    asynchronous = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
+    def finish(ok: bool, message: str, *, status: int = 200) -> HttpResponse:
+        if asynchronous:
+            return JsonResponse(
+                {"ok": ok, "message": message, "accumulator": accumulator if ok else ""},
+                status=status,
+            )
+        (messages.success if ok else messages.error)(request, message)
+        return redirect(return_to)
+
+    if not accumulator:
+        return finish(False, "Escolha o acumulador antes de salvar.", status=400)
+    if accumulator not in _review_accumulator_codes(document):
+        return finish(
+            False,
+            "Escolha um acumulador cadastrado para esta empresa antes de salvar.",
+            status=400,
+        )
+    previous = (
+        IntegrationArtifact.objects.filter(organization=office, document=document)
+        .order_by("-created_at")
+        .first()
+    )
+    if previous is None:
+        return finish(False, "Classifique esta nota antes de corrigir o acumulador.", status=409)
+    if previous.accumulator_code == accumulator:
+        return finish(True, "O acumulador desta nota já está atualizado.")
+
+    changed_at = timezone.now()
+    artifact = IntegrationArtifact.objects.create(
+        organization=office,
+        document=document,
+        accumulator_code=accumulator,
+        applied_rule="Correção humana",
+        confidence=100,
+        evidence={
+            "source": "human_correction",
+            "previous_artifact_id": str(previous.id),
+        },
+        payload={
+            "corrected_at": changed_at.isoformat(),
+            "previous_artifact_id": str(previous.id),
+        },
+    )
+    review = ReviewCase.objects.select_for_update().filter(document=document).first()
+    if review is not None:
+        review.status = ReviewCase.Status.RESOLVED
+        review.resolved_accumulator = accumulator
+        review.resolution_source = ReviewCase.ResolutionSource.HUMAN
+        review.resolved_by = cast(User, request.user)
+        review.resolved_at = changed_at
+        review.save(
+            update_fields=[
+                "status",
+                "resolved_accumulator",
+                "resolution_source",
+                "resolved_by",
+                "resolved_at",
+                "updated_at",
+            ]
+        )
+    record_human_observation(
+        document=document, accumulator_code=accumulator, observed_at=changed_at
+    )
+    AccumulatorHistoryEntry.objects.create(
+        organization=office,
+        company=document.company,
+        accumulator_code=accumulator,
+        source=AccumulatorHistoryEntry.Source.HUMAN_REVIEW,
+        source_reference=f"nfse-artifact:{artifact.id}",
+        occurred_at=changed_at,
+        created_by=cast(User, request.user),
+        metadata={
+            "document_id": str(document.id),
+            "artifact_id": str(artifact.id),
+            "previous_artifact_id": str(previous.id),
+        },
+    )
+    record_event(
+        action="hub.nfse.accumulator_corrected",
+        actor=request.user,
+        organization=office,
+        target=document,
+        request=request,
+        metadata={"artifact_id": str(artifact.id), "changed": True},
+    )
+    if review is not None:
+        sync_nfse_review_activity(review.pk)
+    return finish(True, "Acumulador atualizado. A decisão anterior foi preservada.")
+
+
+@office_required
+@require_http_methods(["POST"])
+@transaction.atomic
+def resolve_review(request: HttpRequest, case_id: str) -> HttpResponseBase:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
@@ -9277,19 +12783,19 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     )
     if visitor and get_progress(request, "nfse_reviews", review.id).get("resolved"):
         messages.info(request, "Esta decisão fictícia já foi registrada nesta sessão.")
-        return detail_redirect(request, "hub:review-detail", case_id=review.id)
+        return _review_result_redirect(request, review.id)
     if not visitor and review.status != ReviewCase.Status.OPEN:
         return refuse(request, "Este caso já recebeu uma decisão.", kind="unavailable")
     accumulator = request.POST.get("accumulator_code", "").strip()
     if not accumulator:
         messages.error(request, "Informe o acumulador usado para registrar a decisão.")
-        return detail_redirect(request, "hub:review-detail", case_id=review.id)
+        return _review_result_redirect(request, review.id)
     if not visitor and accumulator not in _review_accumulator_codes(review.document):
         messages.error(
             request,
             "Escolha um acumulador cadastrado para esta empresa antes de registrar a decisão.",
         )
-        return detail_redirect(request, "hub:review-detail", case_id=review.id)
+        return _review_result_redirect(request, review.id)
     if visitor:
         put_progress(
             request,
@@ -9305,31 +12811,26 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
             request,
             "Decisão fictícia registrada nesta sessão; nenhum lançamento foi alterado.",
         )
-        return detail_redirect(request, "hub:review-detail", case_id=review.id)
+        return _review_result_redirect(request, review.id)
     review.status = ReviewCase.Status.RESOLVED
     review.resolved_accumulator = accumulator
+    review.resolution_source = ReviewCase.ResolutionSource.HUMAN
     review.resolved_by = cast(User, request.user)
     review.resolved_at = timezone.now()
     review.save(
-        update_fields=["status", "resolved_accumulator", "resolved_by", "resolved_at", "updated_at"]
+        update_fields=[
+            "status",
+            "resolved_accumulator",
+            "resolution_source",
+            "resolved_by",
+            "resolved_at",
+            "updated_at",
+        ]
     )
     observed_at = review.resolved_at or timezone.now()
-    observation, created = AccumulatorObservation.objects.get_or_create(
-        organization=office,
-        company=review.document.company,
-        accumulator_code=accumulator,
-        defaults={
-            "service_code": str(review.document.normalized_data.get("service_code", ""))[:60],
-            "counterparty_ref": str(review.document.normalized_data.get("counterparty_ref", ""))[
-                :80
-            ],
-            "last_used_at": observed_at,
-        },
+    record_human_observation(
+        document=review.document, accumulator_code=accumulator, observed_at=observed_at
     )
-    if not created:
-        observation.frequency = F("frequency") + 1
-        observation.last_used_at = observed_at
-        observation.save(update_fields=["frequency", "last_used_at", "updated_at"])
     AccumulatorHistoryEntry.objects.create(
         organization=office,
         company=review.document.company,
@@ -9359,7 +12860,7 @@ def resolve_review(request: HttpRequest, case_id: str) -> HttpResponse:
     )
     sync_nfse_review_activity(review.pk)
     messages.success(request, "Decisão registrada e preservada na auditoria.")
-    return detail_redirect(request, "hub:review-detail", case_id=review.id)
+    return _review_result_redirect(request, review.id)
 
 
 @office_required
@@ -9474,12 +12975,20 @@ def setup_center(request: HttpRequest) -> HttpResponse:
     posted_source = sources.filter(id=posted_source_id).first() if posted_source_id else None
     if posted_source is not None:
         selected_source = posted_source
-    source_form = DataSourceForm(request.POST or None, prefix="source")
+    action = request.POST.get("action", "") if request.method == "POST" else ""
+    source_form = DataSourceForm(
+        request.POST if action == "choose-source" else None,
+        prefix="source",
+    )
     profile, _ = OfficeProfile.objects.get_or_create(organization=office)
-    identity_form = OfficeIdentityForm(request.POST or None, instance=profile, prefix="office")
+    identity_form = OfficeIdentityForm(
+        request.POST if action == "save-office" else None,
+        instance=profile,
+        prefix="office",
+    )
     import_form = UnifiedImportForm(
-        request.POST or None,
-        request.FILES or None,
+        request.POST if action == "upload" else None,
+        request.FILES if action == "upload" else None,
         prefix="import",
         companies=cast("QuerySet[ClientCompany]", context["companies"]),
         source_kind=selected_source.kind if selected_source else "",
@@ -9487,7 +12996,6 @@ def setup_center(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         if not can_manage:
             return refuse(request, "Somente owners e administradores alteram a configuração.")
-        action = request.POST.get("action")
         if action == "save-office" and identity_form.is_valid():
             profile = identity_form.save(commit=False)
             profile.cnpj_hash = identity_form.cnpj_hash
@@ -9573,6 +13081,14 @@ def setup_center(request: HttpRequest) -> HttpResponse:
             except ImportValidationError as exc:
                 import_form.add_error("upload", str(exc))
             else:
+                if not created and batch.status != ImportBatch.Status.PREVIEW:
+                    messages.info(
+                        request,
+                        "Este arquivo já foi processado. Consulte o resultado no histórico abaixo.",
+                    )
+                    return redirect(
+                        f"{reverse('hub:setup')}?source={selected_source.id}#history-heading"
+                    )
                 messages.info(
                     request,
                     "Arquivo analisado. Confira e confirme a importação."
@@ -9669,6 +13185,11 @@ def setup_center(request: HttpRequest) -> HttpResponse:
             "preview_batch": preview,
             "payroll_preview_page": payroll_preview_page,
             "payroll_preview_rows": payroll_preview,
+            "payroll_preview_issue_count": (
+                int(preview.mapping.get("preview_issue_count", 0))
+                if preview and preview.kind == ImportBatch.Kind.PAYROLL_TOTALS
+                else 0
+            ),
             "payroll_preview_querystring": preview_params.urlencode(),
             "recent_imports": list(recent_imports_page.object_list),
             "recent_imports_page": recent_imports_page,
@@ -9778,10 +13299,19 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                     "url": f"{reverse('hub:settings')}#consumo",
                 },
                 {
-                    "label": "Ativar MFA",
-                    "detail": "Proteja esta conta com o aplicativo autenticador.",
+                    "label": "Proteger sua conta",
+                    "detail": (
+                        "MFA ativo: os próximos logins também pedem o código do aplicativo."
+                        if mfa_complete
+                        else (
+                            "Recomendado: ative o aplicativo autenticador para impedir acesso "
+                            "só com a senha."
+                        )
+                    ),
                     "done": mfa_complete,
-                    "action_label": "Configurar MFA",
+                    "recommended": True,
+                    "personal_action": True,
+                    "action_label": "Ativar MFA recomendado",
                     "url": f"{reverse('accounts:mfa-setup')}?next={reverse('hub:setup')}",
                 },
             ],

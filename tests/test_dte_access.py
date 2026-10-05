@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from contextlib import nullcontext
+from datetime import timedelta
 from io import StringIO
+from time import sleep
 from unittest.mock import patch
 
 import pytest
@@ -150,6 +152,9 @@ def test_new_dte_receipt_requires_later_human_review_even_before_projection(prev
         recorded_by=user,
         summary="Análise anterior",
     )
+    # Windows can expose a coarse wall-clock resolution; keep the temporal
+    # contract deterministic instead of letting both facts share one instant.
+    sleep(0.05)
     activity.work_status = previous_status
     activity.completed_at = timezone.now()
     activity.completed_by = user
@@ -171,6 +176,7 @@ def test_new_dte_receipt_requires_later_human_review_even_before_projection(prev
     assert activity.waived_reason == ""
     assert activity.events.filter(event_type="dte_analysis_reopened").count() == 1
     assert activity.evidence_items.count() == 2
+    sleep(0.05)
     OperationalEvidence.objects.create(
         organization=message.organization,
         activity=activity,
@@ -191,7 +197,7 @@ def test_dte_recovery_preserves_review_after_receipt_and_rejects_missing_body():
         organization=message.organization,
         message=message,
         status="opened",
-        opened_at=timezone.now(),
+        opened_at=timezone.now() - timedelta(seconds=1),
         provider_payload='{"conteudo":"Teste"}',
     )
     OperationalEvidence.objects.create(

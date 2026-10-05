@@ -109,10 +109,11 @@
 .dte-pagination { display:flex; justify-content:flex-end; gap:16px; padding:14px 20px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
 .dte-pagination a { color:var(--blue); font-weight:800; }
 .dte-work-actions { margin-top:18px; }
-.dte-preparation summary { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 20px; cursor:pointer; list-style-position:inside; }
-.dte-preparation summary:focus-visible { outline:3px solid var(--focus); outline-offset:-3px; }
-.dte-preparation summary > span:first-child { display:grid; gap:4px; }
-.dte-preparation summary strong { font-size:14px; }
+.dte-task-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.dte-company-tools[hidden] { display:none; }
+.dte-task-actions .button { min-height:44px; white-space:normal; text-align:center; }
+#dte-preparation, #dte-approval { scroll-margin-top:88px; }
+#dte-preparation:focus-visible, #dte-approval:focus-visible { outline:3px solid var(--focus); outline-offset:3px; }
 .dte-panel-explainer { max-width:65ch; margin:0; padding:0 20px; color:var(--muted); font-size:12px; line-height:1.55; }
 .dte-detail-heading { margin:0 0 18px; }
 .dte-detail-heading h2 { max-width:32ch; margin:3px 0 8px; font-size:clamp(22px, 3vw, 30px); overflow-wrap:anywhere; }
@@ -152,3 +153,25 @@
 .dte-status-failed{background:var(--red-soft);color:var(--red)}
 .dte-legal-warning,.dte-permission-note,.dte-legal-form,.dte-blocker{background:var(--amber-soft);border-color:color-mix(in srgb,var(--amber) 40%,var(--line));color:var(--ink)}
 .dte-legal-form p,.dte-overage-consent,.dte-approval-actions p{color:var(--ink)}
+
+/* V-263: accountant-facing inbox actions stay readable and easy to target. */
+.dte-service-nav a{display:inline-flex;align-items:center;min-height:44px;padding:9px 12px}
+.dte-service-nav a,.dte-metrics a,.dte-message-state a,.dte-pagination a{touch-action:manipulation;-webkit-tap-highlight-color:color-mix(in srgb,var(--blue) 18%,transparent)}
+.dte-metrics a{min-height:44px;margin-top:4px;font-size:12px}
+.dte-metrics strong,.dte-history td:last-child{font-variant-numeric:tabular-nums}
+.dte-filter-form label{font-size:12px}
+.dte-filter-form select,.dte-filter-form input,.dte-filter-form>.button{min-height:44px;font-size:13px}
+.dte-message-main h3{font-size:15px;text-wrap:pretty}
+.dte-message-main p{font-size:12px;line-height:1.5}
+.dte-message-state a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;text-decoration:none}
+.dte-message-state a:hover{background:var(--blue-soft);border-color:var(--blue)}
+.dte-pagination a{display:inline-flex;align-items:center;min-height:44px}
+.dte-inbox .button,.dte-form-footer .button,.dte-approval-actions .button,.dte-history .button{min-height:44px}
+.dte-company-tools input{min-height:44px;font-size:13px}
+.dte-company-actions button{min-height:44px;font-size:12px}
+.dte-company-option strong{font-size:13px}.dte-company-option small,.dte-company-tools span,.dte-company-search-status{font-size:12px}
+.dte-legal-form label,.dte-overage-consent{align-items:center;min-height:44px}.dte-legal-form label{font-size:13px}.dte-legal-form input{margin-top:0}.dte-legal-form p{font-size:12px}
+.dte-legal-form .button,.dte-detail-heading~.dte-detail-grid .button,.page-header .button,.demo-office-exit .button,.onboarding-help .button{min-height:44px}
+.dte-detail-heading h2{text-wrap:balance}.dte-detail-evidence dt,.dte-evidence-note{font-size:12px}.dte-detail-evidence dd{font-size:13px}
+@media(max-width:680px){.dte-message-state{justify-content:space-between;width:100%}.dte-message-state a{min-width:116px}.dte-filter-form>.button{flex:1 1 100%;width:100%;min-width:0}}
+@media(max-width:680px){.dte-history .data-table-wrap{overflow:visible}.dte-history table.operational-table{display:block;width:100%;min-width:0}.dte-history .operational-table thead{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}.dte-history .operational-table tbody{display:grid;width:100%}.dte-history .operational-table tbody tr{display:grid;width:100%;gap:12px;padding:16px;border-top:1px solid var(--line);content-visibility:visible;contain-intrinsic-size:none}.dte-history .operational-table td{display:block;width:100%;max-width:none;padding:0;border:0;overflow-wrap:anywhere;white-space:normal}.dte-history .operational-table td::before{display:block;margin-bottom:4px;color:var(--muted);content:attr(data-label);font-size:11px;font-weight:800}.dte-history .operational-table td strong,.dte-history .operational-table td small{display:block}.dte-history .operational-table td small{margin-top:3px}.dte-history .operational-table form{margin-top:10px}.dte-history .operational-table .button{width:100%;white-space:normal}}

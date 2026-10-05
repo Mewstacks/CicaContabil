@@ -63,6 +63,8 @@ class CodeForm(forms.Form):
 def setup(request: HttpRequest) -> HttpResponse:
     user = request.user
     assert isinstance(user, User)
+    if mfa.has_platform_exemption(user) and not mfa.is_required(user):
+        return redirect(_mfa_landing(user))
     if mfa.is_enrolled(user):
         return redirect("accounts:mfa-verify")
 
@@ -96,6 +98,8 @@ def setup(request: HttpRequest) -> HttpResponse:
 def verify(request: HttpRequest) -> HttpResponse:
     user = request.user
     assert isinstance(user, User)
+    if mfa.has_platform_exemption(user) and not mfa.is_required(user):
+        return redirect(_mfa_landing(user))
     if not mfa.is_enrolled(user):
         return redirect("accounts:mfa-setup")
     if mfa.session_is_verified(request):
@@ -136,6 +140,8 @@ def enrollment_qr(request: HttpRequest) -> HttpResponse:
 
     user = request.user
     assert isinstance(user, User)
+    if mfa.has_platform_exemption(user) and not mfa.is_required(user):
+        raise Http404
     device = mfa.device_for(user)
     if device is None or device.is_confirmed:
         raise Http404

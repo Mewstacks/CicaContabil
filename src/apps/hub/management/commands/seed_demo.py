@@ -99,6 +99,9 @@ class Command(BaseCommand):
             self._dte(organization, companies, owner)
             self._guides(organization, companies)
             self._triage(organization, companies)
+            from apps.hub.demo_scenario import populate_operations
+
+            populate_operations(organization)
 
         self.stdout.write(self.style.SUCCESS(f"Escritório: {organization.name}"))
         self.stdout.write(f"Login:      {owner.email}")
@@ -241,10 +244,23 @@ class Command(BaseCommand):
                     ),
                     normalized_data={
                         "number": f"DEMO-{company.dominio_code}-{sequence + 1:03d}",
+                        "direction": "provided" if sequence % 2 == 0 else "taken",
+                        "counterparty_name": (
+                            f"Cliente fictício {sequence + 1}"
+                            if sequence % 2 == 0
+                            else f"Fornecedor fictício {sequence + 1}"
+                        ),
                         "service_code": service_code,
                         "service_description": SERVICE_DESCRIPTIONS[service_code],
                         "counterparty_ref": f"CP{index}{sequence}",
                         "amount": amount,
+                        "competence": issued_at.date().isoformat(),
+                        "retentions": (
+                            {"iss": "24.03", "irrf": "7.20", "inss": "52.87"}
+                            if sequence % 2 == 1
+                            else {}
+                        ),
+                        "retained_total": "84.10" if sequence % 2 == 1 else "",
                         "issued_at": issued_at.isoformat(),
                     },
                     source_nsu=f"{company.dominio_code}{sequence:04d}",

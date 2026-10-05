@@ -17,8 +17,14 @@ class TransactionalEmailError(RuntimeError):
 def send_transactional_email(*args: Any, **kwargs: Any) -> None:
     try:
         delivered = send_mail(*args, fail_silently=False, **kwargs)
-    except (ImproperlyConfigured, OSError, SMTPException) as exc:
-        raise TransactionalEmailError("E-mail transacional indisponível.") from exc
+    except ImproperlyConfigured as exc:
+        # Configuration errors are safe and actionable for the platform team.
+        # Do not collapse them into a generic delivery failure.
+        raise TransactionalEmailError(str(exc)) from exc
+    except (OSError, SMTPException) as exc:
+        raise TransactionalEmailError(
+            "O servidor de e-mail não respondeu. Confira a configuração e tente novamente."
+        ) from exc
     if delivered != 1:
         raise TransactionalEmailError("E-mail transacional indisponível.")
 

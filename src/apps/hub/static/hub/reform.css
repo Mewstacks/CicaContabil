@@ -1,0 +1,96 @@
+.radar-center,
+.radar-publication,
+.radar-analysis,
+.radar-existing { min-width: 0; overflow-wrap: anywhere; }
+
+.radar-heading h2,
+.radar-results-heading h3,
+.radar-card h3,
+.radar-publication h2,
+.radar-analysis h2,
+.radar-existing h2 { text-wrap: balance; }
+
+.radar-heading p,
+.radar-card p,
+.radar-publication-summary,
+.radar-analysis p,
+.radar-existing p { text-wrap: pretty; }
+
+.radar-filters { align-items: end; }
+.radar-filters :where(input, select, button, a) { min-height: 44px; }
+.radar-filters label { font-size: 12px; }
+
+.radar-results-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 22px 12px;
+  border-top: 1px solid var(--line);
+}
+.radar-results-heading h3 { margin: 3px 0 0; font-size: 18px; }
+.radar-results-heading > span { color: var(--muted); font-size: 12px; font-weight: 800; }
+
+.radar-feed { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.radar-feed > li { border-top: 1px solid var(--line); }
+.radar-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 24px; padding: 22px; }
+.radar-card-main { min-width: 0; }
+.radar-card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.radar-card h3 { margin: 10px 0 6px; max-width: 62rem; font-size: 16px; line-height: 1.35; }
+.radar-card p { margin: 0; max-width: 70rem; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.radar-card .radar-card-note { margin-top: 8px; font-size: 12px; }
+.radar-card-actions { display: flex; flex-direction: column; gap: 8px; min-width: 12rem; }
+.radar-card-actions .button { justify-content: center; min-height: 44px; text-align: center; }
+.radar-center .operational-empty .button { min-height: 44px; }
+
+.radar-health { border-top: 1px solid var(--line); }
+.radar-health summary { min-height: 60px; padding: 14px 22px; cursor: pointer; list-style-position: outside; }
+.radar-health summary span { display: inline-grid; gap: 3px; margin-left: 6px; vertical-align: middle; }
+.radar-health summary small { color: var(--muted); font-size: 12px; font-weight: 500; }
+.radar-health .source-health-list { padding: 0 22px 22px; }
+
+.radar-publication { padding-bottom: 22px; }
+.radar-publication > :not(header) { margin-inline: 22px; }
+.radar-publication-summary { max-width: 70rem; font-size: 14px; line-height: 1.6; }
+.radar-publication .inline-alert { margin-block: 18px; }
+.radar-publication > .button { min-height: 44px; }
+
+.radar-analysis form { max-width: 52rem; padding: 4px 22px 24px; }
+.radar-analysis .field { display: grid; gap: 7px; margin-block: 18px; }
+.radar-analysis .field > label { font-size: 13px; font-weight: 800; }
+.radar-analysis .field small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.radar-analysis :where(input, select, textarea) { width: 100%; max-width: 100%; }
+.radar-analysis :where(input, select) { height: 44px; min-height: 44px; }
+.radar-analysis textarea { min-height: 116px; resize: vertical; }
+.radar-analysis form > .button { min-height: 44px; }
+.radar-company-count { min-height: 18px; margin: 0; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.radar-analysis .errorlist { margin: 0; color: var(--red); }
+.radar-analysis [id] { scroll-margin-top: 100px; }
+.radar-analysis :where(input, select, textarea):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.radar-analysis-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.radar-analysis-list li { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 22px; border-top: 1px solid var(--line); }
+.radar-analysis-list li > div { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+.radar-analysis-list .button { min-height: 44px; flex: 0 0 auto; }
+
+.radar-card a,
+.radar-health summary,
+.radar-analysis a,
+.radar-existing a { touch-action: manipulation; -webkit-tap-highlight-color: color-mix(in srgb, var(--accent) 18%, transparent); }
+
+@media (max-width: 760px) {
+  .radar-filters { display: grid; grid-template-columns: 1fr; }
+  .radar-filters > * { width: 100%; }
+  .radar-results-heading { align-items: start; padding-inline: 16px; }
+  .radar-card { grid-template-columns: 1fr; gap: 16px; padding: 18px 16px; }
+  .radar-card-actions { display: grid; grid-template-columns: 1fr; width: 100%; min-width: 0; }
+  .radar-health summary { padding-inline: 16px; }
+  .radar-health .source-health-list { padding-inline: 16px; }
+  .radar-publication > :not(header) { margin-inline: 16px; }
+  .radar-analysis form { padding-inline: 16px; }
+  .radar-analysis-list li { align-items: stretch; flex-direction: column; padding-inline: 16px; }
+  .radar-analysis-list .button { width: 100%; justify-content: center; }
+}

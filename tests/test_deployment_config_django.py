@@ -84,13 +84,21 @@ class DeploymentConfigurationTests(SimpleTestCase):
         self.assertNotIn("EXPOSE", trainer)
         self.assertIn("LLAMAFACTORY_IMAGE=hiyouga/llamafactory@sha256:", image)
 
-    def test_fly_release_command_and_readiness_check_remain_declared(self) -> None:
+    def test_fly_release_command_and_cost_safe_health_check_remain_declared(self) -> None:
         fly = (ROOT / "fly.toml").read_text(encoding="utf-8")
 
-        self.assertIn('release_command = "python manage.py migrate --noinput"', fly)
-        self.assertIn('path = "/api/v1/health/ready/"', fly)
+        self.assertIn('release_command = "python -m config.release"', fly)
+        release = (ROOT / "src" / "config" / "release.py").read_text(encoding="utf-8")
+        self.assertIn('os.environ.get("DATABASE_URL_UNPOOLED")', release)
+        self.assertIn('os.environ.get("KNOWLEDGE_DATABASE_URL_UNPOOLED")', release)
+        self.assertIn('call_command("migrate", database="default"', release)
+        self.assertIn('call_command("migrate", database="knowledge"', release)
+        self.assertIn('path = "/api/v1/health/live/"', fly)
+        self.assertNotIn('path = "/api/v1/health/ready/"', fly)
         self.assertIn('strategy = "canary"', fly)
         self.assertIn('wait_timeout = "10m"', fly)
+        self.assertIn('DEMO_ENTRY_ENABLED = "true"', fly)
+        self.assertIn('DEMO_SESSION_ISOLATION_READY = "true"', fly)
 
     def test_edge_agent_mtls_proxy_keeps_the_web_service_private(self) -> None:
         compose = (ROOT / "compose.cobalchini.yml").read_text(encoding="utf-8")
@@ -118,3 +126,11 @@ class DeploymentConfigurationTests(SimpleTestCase):
 
         fly = (ROOT / "fly.toml").read_text(encoding="utf-8")
         self.assertIn('DB_SSL_REQUIRE = "true"', fly)
+
+    def test_disabled_integrations_do_not_receive_periodic_wakeups(self) -> None:
+        from django.conf import settings
+
+        self.assertFalse(settings.TRIAGE_EMAIL_POLL_ENABLED)
+        self.assertFalse(settings.CICA_CLAUDE_API_KEY)
+        self.assertNotIn("dispatch-active-triage-mailboxes", settings.CELERY_BEAT_SCHEDULE)
+        self.assertNotIn("reconcile-stale-claude-attempts", settings.CELERY_BEAT_SCHEDULE)

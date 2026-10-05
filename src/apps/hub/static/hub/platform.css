@@ -30,3 +30,46 @@
 .platform-exception-list small{display:block;margin-top:2px;color:var(--muted);font-size:12px}
 .platform-exception-count{min-width:32px;color:var(--muted);font-size:20px;font-weight:800;text-align:right}
 .platform-exception-count.has-work{color:var(--amber)}
+
+/* Tenant detail: decisions first, infrequent controls disclosed on demand. */
+.tenant-status-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;color:var(--muted);font-size:12px}
+.tenant-overview h1,.tenant-admin-panel h2,.tenant-setting-disclosure summary strong,.tenant-advanced summary strong{text-wrap:balance}
+.tenant-status-line>span:not(.status-badge){display:inline-flex;align-items:center;gap:8px}
+.tenant-status-line>span:not(.status-badge)+span:not(.status-badge)::before{content:"·";color:var(--line)}
+.tenant-settings-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,380px);align-items:start;gap:16px}
+.tenant-settings-grid .systems-panel{min-width:0;margin:0}
+.tenant-settings-grid .systems-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 18px 18px}
+.tenant-settings-grid .system-choice{min-height:52px;padding:11px 12px}
+.tenant-settings-grid .tenant-admin-panel{min-width:0}
+.tenant-setting-list{display:grid}
+.tenant-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:68px;padding:12px 18px;border-top:1px solid var(--line)}
+.tenant-setting-row>div:first-child{display:grid;min-width:0;gap:3px}
+.tenant-setting-row strong{color:var(--ink);font-size:13px}
+.tenant-setting-row span{overflow-wrap:anywhere;color:var(--muted);font-size:12px;line-height:1.4}
+.tenant-setting-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+.tenant-setting-disclosure{border-top:1px solid var(--line)}
+.tenant-setting-disclosure>summary,.tenant-advanced>summary{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:62px;padding:10px 18px;color:var(--ink);cursor:pointer;list-style:none}
+.tenant-setting-disclosure>summary:hover,.tenant-advanced>summary:hover{background:var(--surface-subtle)}
+.tenant-setting-disclosure>summary::-webkit-details-marker,.tenant-advanced>summary::-webkit-details-marker{display:none}
+.tenant-setting-disclosure>summary>span:first-child,.tenant-advanced>summary>span:first-child{display:grid;gap:3px}
+.tenant-setting-disclosure summary strong,.tenant-advanced summary strong{font-size:13px}
+.tenant-setting-disclosure summary small,.tenant-advanced summary small{color:var(--muted);font-size:12px;font-weight:500}
+.tenant-setting-disclosure>summary>span:last-child{color:var(--muted);transition:transform .16s ease}
+.tenant-setting-disclosure[open]>summary>span:last-child{transform:rotate(180deg)}
+.tenant-setting-disclosure-body{padding:0 18px 18px}
+.tenant-setting-disclosure-body>p{margin:0 0 12px;color:var(--muted);font-size:12px;line-height:1.5}
+.tenant-setting-disclosure .internal-test-action{align-items:flex-start;padding:0}
+.tenant-advanced{margin-top:16px}
+.tenant-advanced>summary{min-height:70px}
+.tenant-advanced-state{color:var(--muted);font-size:12px;font-weight:650;text-align:right}
+.tenant-advanced[open]>summary{border-bottom:1px solid var(--line)}
+.tenant-setting-disclosure>summary:focus-visible,.tenant-advanced>summary:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
+.tenant-setting-disclosure>summary,.tenant-advanced>summary,.tenant-setting-row .button{touch-action:manipulation}
+.modal-card{overscroll-behavior:contain}
+.modal-card .form-errors strong,.modal-card .form-errors p{display:block;margin:0}
+.modal-card .form-errors p,.modal-card .form-errors a{margin-top:4px}
+.modal-card .form-errors a{display:block;color:inherit;text-underline-offset:2px}
+.modal-card .form-errors a:hover{text-decoration-thickness:2px}
+@media(max-width:980px){.tenant-settings-grid{grid-template-columns:1fr}.tenant-settings-grid .tenant-admin-panel{order:-1}}
+@media(max-width:640px){.tenant-status-line{align-items:flex-start}.tenant-settings-grid .systems-grid{grid-template-columns:1fr;padding-inline:14px}.tenant-setting-row{align-items:flex-start;flex-direction:column;padding:14px}.tenant-setting-row>.button,.tenant-setting-actions{width:100%}.tenant-setting-actions>.button{flex:1}.tenant-setting-disclosure>summary,.tenant-advanced>summary{align-items:flex-start;padding-inline:14px}.tenant-setting-disclosure-body{padding-inline:14px}.tenant-advanced-state{max-width:16ch}.tenant-advanced .tenant-setting-row>.button{width:100%}}
+@media(prefers-reduced-motion:reduce){.tenant-setting-disclosure>summary>span:last-child{transition:none}}

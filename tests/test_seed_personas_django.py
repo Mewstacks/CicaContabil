@@ -50,7 +50,10 @@ def test_operator_sees_a_slice_of_the_office_not_all_of_it() -> None:
     _seed()
 
     demo = Organization.objects.get(slug="escritorio-demo")
-    operator = Membership.objects.get(organization=demo, role=Membership.Role.OPERATOR)
+    operator = Membership.objects.get(
+        organization=demo, role=Membership.Role.OPERATOR,
+        user__email="operador@hubcontador.local",
+    )
     owner = Membership.objects.get(organization=demo, role=Membership.Role.OWNER)
 
     operator_scope = CompanyAccessGrant.objects.filter(membership=operator).count()

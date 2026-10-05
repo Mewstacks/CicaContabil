@@ -1,12 +1,12 @@
 {% if payroll_preview_page %}
 <div class="payroll-import-preview" id="payroll-preview">
-  <h3>Conferir linhas da folha</h3>
-  <p>Valores originais do arquivo, em reais. A confirmação valida o lote inteiro; esta prévia não grava dados. Corrija o arquivo e envie novamente se encontrar uma diferença.</p>
+  <h3>Totais da folha por empresa e competência</h3>
+  <p>Confira principalmente a empresa localizada, a competência e os totais. Valores vazios continuarão ausentes; o CICA não os completa.</p>
   <ol start="{{ payroll_preview_page.start_index }}">
     {% for row in payroll_preview_rows %}
-    <li>
-      <h4>Linha {{ row.line }} · {{ row.company }}</h4>
-      {% if not row.company_found %}<p><strong>Confira o código/CNPJ e a fonte da empresa antes de confirmar.</strong></p>{% endif %}
+    <li class="{% if row.issue %}has-issue{% endif %}">
+      <div class="payroll-preview-row-head"><h4>Linha {{ row.line }} · {{ row.company }}</h4>{% if row.issue %}<span class="status-badge is-warning">Corrigir</span>{% else %}<span class="status-badge is-active">Validada</span>{% endif %}</div>
+      {% if row.issue %}<p class="payroll-preview-issue"><strong>O que corrigir:</strong> {{ row.issue }}</p>{% endif %}
       <dl>
         <div><dt>Código/CNPJ informado</dt><dd>{{ row.code|default:'Não informado' }}</dd></div>
         <div><dt>Competência</dt><dd>{{ row.competence|default:'Não informada' }}</dd></div>

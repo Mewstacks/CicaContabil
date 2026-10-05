@@ -34,20 +34,18 @@ class CICAAuthFlowTests(TestCase):
             organization=self.office, trial_started_at=timezone.now(), require_mfa=True
         )
 
-    def test_trial_exemption_expires_and_cannot_override_platform(self):
+    def test_customer_mfa_is_optional_but_platform_policy_still_wins(self):
         self.assertFalse(mfa.is_required(self.user))
         self.client.force_login(self.user)
         self.assertEqual(self.client.get(reverse("hub:dashboard")).status_code, 200)
         self.profile.trial_started_at = timezone.now() - timedelta(days=14)
         self.profile.save()
-        self.assertTrue(mfa.is_required(self.user))
-        self.assertIn(
-            reverse("accounts:mfa-setup"), self.client.get(reverse("hub:dashboard"))["Location"]
-        )
+        self.assertFalse(mfa.is_required(self.user))
+        self.assertEqual(self.client.get(reverse("hub:dashboard")).status_code, 200)
         self.profile.trial_started_at = timezone.now()
         self.profile.contract_status = OfficeProfile.ContractStatus.ACTIVE
         self.profile.save()
-        self.assertTrue(mfa.is_required(self.user))
+        self.assertFalse(mfa.is_required(self.user))
         self.profile.contract_status = OfficeProfile.ContractStatus.TRIAL
         self.profile.save()
         PlatformAccess.objects.create(user=self.user, role=PlatformAccess.Role.SUPPORT)
@@ -64,7 +62,7 @@ class CICAAuthFlowTests(TestCase):
         self.assertEqual(signed_out.status_code, 200)
         self.assertContains(signed_out, "Sessão encerrada")
 
-    def test_demo_only_membership_skips_mfa_but_real_membership_requires_it(self):
+    def test_demo_and_real_customer_memberships_both_keep_enrollment_optional(self):
         demo = Organization.objects.create(name="Escritório Demo", slug="auth-demo", is_demo=True)
         visitor = User.objects.create_user("demo-visitor@example.test", "test-password-123456")
         Membership.objects.create(user=visitor, organization=demo, role=Membership.Role.OWNER)
@@ -80,7 +78,7 @@ class CICAAuthFlowTests(TestCase):
         )
         self.profile.contract_status = OfficeProfile.ContractStatus.ACTIVE
         self.profile.save(update_fields=["contract_status"])
-        self.assertTrue(mfa.is_required(visitor))
+        self.assertFalse(mfa.is_required(visitor))
 
     def test_mfa_setup_preserves_secret_on_post_and_destination(self):
         self.client.force_login(self.user)
@@ -142,7 +140,7 @@ class CICAAuthFlowTests(TestCase):
         )
         response = self.client.post(
             reverse("hub:activate", args=[token]),
-            {"password": "a-safe-password-12345", "password_confirm": "a-safe-password-12345"},
+            {"password": "V7!qZ2#p", "password_confirm": "V7!qZ2#p"},
         )
         self.assertEqual(response.status_code, 302)
         profile = OfficeProfile.objects.get(organization=office)
@@ -159,6 +157,16 @@ class CICAAuthFlowTests(TestCase):
         self.assertContains(response, "CICA", status_code=429)
         response = axes_lockout_response(RequestFactory().post("/api/v1/auth/login/"), None, {})
         self.assertIn("application/json", response["Content-Type"])
+
+    def test_login_error_matches_email_or_name_without_revealing_account_existence(self):
+        response = self.client.post(
+            reverse("hub:login"),
+            {"username": "missing@example.test", "password": "wrong-password"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Confira o e-mail ou nome cadastrado e a senha.")
+        self.assertNotContains(response, "entre com um email")
 
     @skipUnless(
         find_spec("playwright") is not None,

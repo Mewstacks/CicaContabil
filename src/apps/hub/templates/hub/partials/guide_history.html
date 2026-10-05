@@ -7,15 +7,15 @@
     <li>
       <h3>Tentativa {{ event.attempt }} · {{ event.get_status_display }}</h3>
       <p>Registrado em <time datetime="{{ event.observed_at|date:'c' }}">{{ event.observed_at|date:'SHORT_DATETIME_FORMAT' }}</time></p>
+      <p>{{ row.guidance }}</p>
       {% if event.request_snapshot.simulated %}<p><strong>Resultado fictício, sem validade fiscal.</strong></p>{% endif %}
       {% if event.request_snapshot.snapshot_source == 'current_record' %}<p>Registro anterior preservado. As etapas anteriores desta tentativa não foram reconstruídas.</p>{% endif %}
       <dl>
         <div><dt>Solicitante</dt><dd>{% if row.requester %}{{ row.requester }}{% elif event.requested_by_reference %}Usuário não disponível no escritório{% else %}Não registrado{% endif %}</dd></div>
         {% if event.requested_at %}<div><dt>Solicitada em</dt><dd><time datetime="{{ event.requested_at|date:'c' }}">{{ event.requested_at|date:'SHORT_DATETIME_FORMAT' }}</time></dd></div>{% endif %}
-        {% if event.provider_request_id %}<div><dt>Protocolo</dt><dd translate="no">{{ event.provider_request_id }}</dd></div>{% endif %}
         {% if event.issued_at %}<div><dt>Emitida em</dt><dd><time datetime="{{ event.issued_at|date:'c' }}">{{ event.issued_at|date:'SHORT_DATETIME_FORMAT' }}</time></dd></div>{% endif %}
       </dl>
-      {% if event.error_message %}<p>{{ event.error_message }}</p>{% endif %}
+      {% if event.provider_request_id or event.error_code %}<details class="guide-attempt-technical"><summary>Referências para suporte</summary><dl>{% if event.provider_request_id %}<div><dt>Identificador do fornecedor</dt><dd translate="no">{{ event.provider_request_id }}</dd></div>{% endif %}{% if event.error_code %}<div><dt>Código da falha</dt><dd translate="no">{{ event.error_code }}</dd></div>{% endif %}</dl></details>{% endif %}
       {% if event.status == 'issued' and not event.request_snapshot.simulated and not office.is_demo %}<a class="button button-quiet" href="{% url 'hub:guide-attempt-pdf' guide.id event.id %}">Baixar PDF da tentativa {{ event.attempt }}</a>{% endif %}
     </li>
     {% endwith %}{% endfor %}

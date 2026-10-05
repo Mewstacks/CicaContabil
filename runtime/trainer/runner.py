@@ -106,12 +106,14 @@ def load_manifest(path: Path) -> list[dict[str, object]]:
             raise TrainingRunnerError("Corpus contém JSON inválido.") from exc
         if not isinstance(item, dict):
             raise TrainingRunnerError("Corpus contém um exemplo inválido.")
+        company_id = str(item.get("company_id") or "")
+        reference_period = str(item.get("reference_period") or "")
         validated = {
             "id": _required_string(item, "id", 64),
             "category": _required_string(item, "category", 20),
             "area": str(item.get("area") or "general"),
-            "company_id": str(item.get("company_id") or ""),
-            "reference_period": str(item.get("reference_period") or ""),
+            "company_id": company_id,
+            "reference_period": reference_period,
             "dataset_split": str(item.get("dataset_split") or "training"),
             "question": _required_string(item, "question", 2_000),
             "expected_answer": _required_string(item, "expected_answer", 4_000),
@@ -122,7 +124,7 @@ def load_manifest(path: Path) -> list[dict[str, object]]:
             raise TrainingRunnerError("Área de conhecimento inválida.")
         if validated["dataset_split"] != "training":
             raise TrainingRunnerError("O runner QLoRA aceita somente o conjunto de treino.")
-        if len(validated["company_id"]) > 64 or len(validated["reference_period"]) > 32:
+        if len(company_id) > 64 or len(reference_period) > 32:
             raise TrainingRunnerError("Escopo de exemplo inválido.")
         references = validated["source_references"]
         if (

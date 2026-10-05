@@ -1,34 +1,115 @@
-<section class="workspace-panel" aria-labelledby="nfse-sync-heading">
+<section class="workspace-panel nfse-workspace" aria-labelledby="nfse-sync-heading">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">COLETA AUTOMÁTICA · {{ nfse_sync_environment_label|upper }}</p><h2 id="nfse-sync-heading">Coleta por empresa</h2><p>Ative a coleta com e-CNPJ válido. Acompanhe o resultado por empresa.</p></div>
-    <span class="record-count">{{ nfse_sync_configured }} ativa{{ nfse_sync_configured|pluralize }}</span>
-  </header>
-  <div class="metric-strip metric-strip-compact" aria-label="Cobertura da coleta NFS-e">
-    <article><span>Com certificado válido</span><strong>{{ nfse_certificate_coverage }}</strong></article>
-    <article><span>Coletas ativas</span><strong>{{ nfse_sync_configured }}</strong></article>
-    <article class="{% if nfse_sync_attention %}metric-needs-attention{% endif %}"><span>Requerem atenção</span><strong>{{ nfse_sync_attention }}</strong></article>
-  </div>
-  {% if not nfse_sync_enabled %}<div class="inline-alert inline-alert-warning" role="status"><strong>Coleta externa ainda desligada neste ambiente.</strong><span>As escolhas ficam preparadas até a Mewstack concluir a liberação. Entre em contato com o suporte para acompanhar.</span></div>{% endif %}
-  {% if nfse_sync_rows %}
-  <form method="post" action="?view=collection" data-nfse-bulk-form>{% csrf_token %}
-    <div class="bulk-toolbar" aria-label="Ações em lote da coleta NFS-e">
-      <label class="checkbox-field"><input type="checkbox" data-nfse-select-all>Selecionar todas as empresas exibidas</label>
-      <span role="status" aria-live="polite" data-nfse-selection-count>Nenhuma empresa selecionada.</span>
-      {% if can_manage_nfse_sync %}<div class="bulk-actions" data-nfse-bulk-actions hidden><button class="button button-small" type="submit" name="action" value="activate" data-nfse-bulk-submit>Ativar coleta</button><button class="button button-quiet button-small" type="submit" name="action" value="retry">Tentar novamente</button><button class="button button-quiet button-small" type="submit" name="action" value="pause">Pausar</button></div>{% endif %}
+    <div>
+      <p class="section-kicker">{% if office.is_demo %}SIMULAÇÃO DE COLETA{% else %}COLETA AUTOMÁTICA · {{ nfse_sync_environment_label|upper }}{% endif %}</p>
+      <h2 id="nfse-sync-heading">Situação da coleta</h2>
+      <p>{% if office.is_demo %}Explore a fila e a configuração com dados fictícios. Nenhum certificado ou provedor é acionado.{% else %}Acompanhe o recebimento automático das NFS-e e corrija somente as empresas que precisam de ação.{% endif %}</p>
     </div>
-    <div class="data-table-wrap"><table class="operational-table nfse-sync-table"><thead><tr><th scope="col"><span class="sr-only">Selecionar</span></th><th scope="col">Empresa</th><th scope="col">Certificado</th><th scope="col">Coleta</th><th scope="col">Último sucesso</th><th scope="col">Próxima tentativa</th><th scope="col">Checkpoint</th></tr></thead><tbody>
-      {% for row in nfse_sync_rows %}<tr>
-        <td data-label="Selecionar"><label class="table-checkbox"><input type="checkbox" name="companies" value="{{ row.company.id }}" data-nfse-target><span class="sr-only">Selecionar {{ row.company.name }}</span></label></td>
-        <td data-label="Empresa"><strong>{{ row.company.name }}</strong><small>Domínio {{ row.company.dominio_code|default:"não informado" }} · {{ row.company.cnpj_masked }}</small></td>
-        <td data-label="Certificado">{% if row.certificate %}<span class="module-state is-active">Válido</span><small>Até {{ row.certificate.valid_until|date:"d/m/Y" }}</small>{% else %}<span class="module-state is-danger">Ausente ou vencido</span><small><a href="{% url 'hub:certificates' %}">Adicionar A1</a></small>{% endif %}</td>
-        <td data-label="Coleta"><span class="module-state {% if row.attention %}is-danger{% elif row.status == 'idle' or row.status == 'running' %}is-active{% else %}is-muted{% endif %}">{{ row.status_label }}</span>{% if row.sync.last_error_message %}<small>{{ row.sync.last_error_message }}</small>{% endif %}</td>
-        <td data-label="Último sucesso">{% if row.sync.last_success_at %}{{ row.sync.last_success_at|date:"d/m/Y H:i" }}<small>{{ row.sync.last_batch_count }} documento{{ row.sync.last_batch_count|pluralize }}</small>{% else %}—{% endif %}</td>
-        <td data-label="Próxima tentativa">{% if row.sync.next_run_at %}{{ row.sync.next_run_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
-        <td data-label="Checkpoint">{% if row.sync.checkpoint_nsu %}NSU {{ row.sync.checkpoint_nsu }}{% else %}Primeira coleta{% endif %}</td>
-      </tr>{% endfor %}
-    </tbody></table></div>
-  </form>
+    <span class="record-count">{% if office.is_demo %}Simulação{% else %}{{ nfse_sync_configured }} em operação{% endif %}</span>
+  </header>
+
+  <div class="metric-strip metric-strip-compact" aria-label="Cobertura da coleta NFS-e">
+    <article><span>Prontas para coletar</span><strong>{{ nfse_certificate_coverage }}</strong></article>
+    <article><span>Em operação</span><strong>{{ nfse_sync_configured }}</strong></article>
+    <article class="{% if nfse_sync_requires_action %}metric-needs-attention{% endif %}"><span>Precisam de ação</span><strong>{{ nfse_sync_requires_action }}</strong></article>
+  </div>
+
+  <aside class="nfse-next-action{% if nfse_sync_requires_action %} needs-action{% endif %}" aria-labelledby="nfse-next-action-title">
+    <div>
+      {% if nfse_sync_attention %}
+        <p class="section-kicker">PRÓXIMA AÇÃO</p>
+        <h3 id="nfse-next-action-title">{{ nfse_sync_attention }} coleta{{ nfse_sync_attention|pluralize }} com falha ou nova tentativa</h3>
+        <p>Abra o acompanhamento abaixo para repetir somente o que não concluiu.</p>
+      {% elif nfse_sync_ready_to_activate %}
+        <p class="section-kicker">PRÓXIMA AÇÃO</p>
+        <h3 id="nfse-next-action-title">{{ nfse_sync_ready_to_activate }} empresa{{ nfse_sync_ready_to_activate|pluralize }} pronta{{ nfse_sync_ready_to_activate|pluralize }} para ativar</h3>
+        <p>Os certificados já estão válidos. Confirme quais empresas devem entrar na coleta.</p>
+      {% elif nfse_sync_missing_certificate %}
+        <p class="section-kicker">PRÓXIMA AÇÃO</p>
+        <h3 id="nfse-next-action-title">{{ nfse_sync_missing_certificate }} empresa{{ nfse_sync_missing_certificate|pluralize }} ainda não recebe{{ nfse_sync_missing_certificate|pluralize:"m" }} notas</h3>
+        <p>Adicione um A1 válido; as empresas prontas continuam sem esperar por elas.</p>
+      {% elif nfse_sync_configured %}
+        <p class="section-kicker">SITUAÇÃO ATUAL</p>
+        <h3 id="nfse-next-action-title">A coleta está configurada</h3>
+        <p>Acompanhe abaixo o que está processando, aguardando ou já terminou.</p>
+      {% else %}
+        <p class="section-kicker">PRIMEIRO PASSO</p>
+        <h3 id="nfse-next-action-title">Prepare a primeira empresa</h3>
+        <p>Adicione um A1 válido e depois ative a coleta na configuração.</p>
+      {% endif %}
+    </div>
+    {% if nfse_sync_attention %}
+      <a class="button button-small" href="#nfse-live-queue">Ver falhas</a>
+    {% elif nfse_sync_ready_to_activate %}
+      <a class="button button-small" href="?view=collection&amp;configure=1#nfse-sync-settings">Configurar empresas</a>
+    {% elif nfse_sync_missing_certificate or not nfse_sync_configured %}
+      <a class="button button-small" href="{% url 'hub:certificates' %}">Adicionar certificados</a>
+    {% else %}
+      <a class="button button-quiet button-small" href="#nfse-live-queue">Ver andamento</a>
+    {% endif %}
+  </aside>
+
+  <section class="nfse-live-queue" id="nfse-live-queue" data-nfse-live-queue data-endpoint="{% url 'hub:nfse-queue-status' %}" data-retry-endpoint="{% url 'hub:nfse-queue-retry' %}" data-certificates-endpoint="{% url 'hub:certificates' %}" data-settings-endpoint="?view=collection&amp;configure=1#nfse-sync-settings" data-can-manage="{{ can_manage_nfse_sync|yesno:'true,false' }}" data-csrf-token="{{ csrf_token }}" aria-labelledby="nfse-live-queue-title">
+    <header class="nfse-live-queue-head">
+      <div>
+        <p class="section-kicker">{% if office.is_demo %}SIMULAÇÃO ATUAL{% else %}ATUALIZAÇÃO AUTOMÁTICA{% endif %}</p>
+        <h3 id="nfse-live-queue-title">Andamento por empresa</h3>
+        <p>Falhas aparecem primeiro e podem ser repetidas sem reiniciar o que já concluiu.</p>
+      </div>
+      <div class="nfse-live-queue-actions">
+        <span data-nfse-queue-updated>Atualizando…</span>
+        <span class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-nfse-queue-feedback></span>
+        <button class="button button-quiet button-small" type="button" data-nfse-queue-retry-all hidden>Repetir falhas</button>
+        <button class="button button-quiet button-small" type="button" data-nfse-queue-refresh>Atualizar</button>
+      </div>
+    </header>
+    <div class="nfse-queue-summary" aria-label="Resumo da fila">
+      <div><span>Coletando</span><strong data-nfse-queue-count="running">—</strong></div>
+      <div><span>Aguardando</span><strong data-nfse-queue-count="queued">—</strong></div>
+      <div><span>Precisam de ação</span><strong data-nfse-queue-count="requires_action">—</strong></div>
+    </div>
+    <div class="nfse-queue-list" data-nfse-queue-list aria-busy="true"><p class="nfse-queue-loading">Carregando a fila…</p></div>
+  </section>
+
+  {% if nfse_sync_rows %}
+    <details class="nfse-sync-settings" id="nfse-sync-settings"{% if nfse_sync_settings_open %} open{% endif %}>
+      <summary>
+        <span><strong>{% if can_manage_nfse_sync %}Configurar empresas{% else %}Detalhes por empresa{% endif %}</strong><small>{% if can_manage_nfse_sync %}Ative, repita ou pause a coleta sem alterar as demais.{% else %}Consulte certificado, estado e último processamento de cada empresa.{% endif %}</small></span>
+        <span>{{ nfse_sync_rows|length }} empresa{{ nfse_sync_rows|length|pluralize }}</span>
+      </summary>
+      {% if can_manage_nfse_sync %}
+        <form method="post" action="?view=collection" data-nfse-bulk-form>{% csrf_token %}
+          <div class="bulk-toolbar" aria-label="Ações em lote da coleta NFS-e">
+            <label class="checkbox-field"><input type="checkbox" data-nfse-select-all>Selecionar todas as empresas exibidas</label>
+            <span role="status" aria-live="polite" data-nfse-selection-count>Nenhuma empresa selecionada.</span>
+            <div class="bulk-actions" data-nfse-bulk-actions hidden>
+              <button class="button button-small" type="submit" name="action" value="activate" data-nfse-bulk-submit>Ativar coleta</button>
+              <button class="button button-quiet button-small" type="submit" name="action" value="retry">Tentar novamente</button>
+              <button class="button button-quiet button-small" type="submit" name="action" value="pause">Pausar</button>
+            </div>
+          </div>
+      {% endif %}
+      <div class="data-table-wrap">
+        <table class="operational-table nfse-sync-table">
+          <thead><tr>{% if can_manage_nfse_sync %}<th scope="col"><span class="sr-only">Selecionar</span></th>{% endif %}<th scope="col">Empresa</th><th scope="col">Certificado</th><th scope="col">Coleta</th><th scope="col">Último sucesso</th><th scope="col">Próxima tentativa</th><th scope="col">Checkpoint</th></tr></thead>
+          <tbody>
+            {% for row in nfse_sync_rows %}
+              <tr>
+                {% if can_manage_nfse_sync %}<td data-label="Selecionar"><label class="table-checkbox"><input type="checkbox" name="companies" value="{{ row.company.id }}" data-nfse-target><span class="sr-only">Selecionar {{ row.company.name }}</span></label></td>{% endif %}
+                <td data-label="Empresa"><strong>{{ row.company.name }}</strong><small>Domínio {{ row.company.dominio_code|default:"não informado" }} · {{ row.company.cnpj_masked }}</small></td>
+                <td data-label="Certificado">{% if row.certificate %}<span class="module-state is-active">Válido</span><small>Até {{ row.certificate.valid_until|date:"d/m/Y" }}</small>{% else %}<span class="module-state is-danger">Ausente ou vencido</span><small><a href="{% url 'hub:certificates' %}">Adicionar A1</a></small>{% endif %}</td>
+                <td data-label="Coleta"><span class="module-state {% if row.attention or row.status == 'blocked' %}is-danger{% elif row.status == 'idle' or row.status == 'queued' or row.status == 'running' %}is-active{% else %}is-muted{% endif %}">{{ row.status_label }}</span>{% if row.attention and row.sync.last_error_message %}<small>{{ row.sync.last_error_message }}</small>{% endif %}</td>
+                <td data-label="Último sucesso">{% if row.sync.last_success_at %}{{ row.sync.last_success_at|date:"d/m/Y H:i" }}<small>{{ row.sync.last_batch_count }} documento{{ row.sync.last_batch_count|pluralize }}</small>{% else %}—{% endif %}</td>
+                <td data-label="Próxima tentativa">{% if row.sync.next_run_at %}{{ row.sync.next_run_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</td>
+                <td data-label="Checkpoint">{% if row.sync.checkpoint_nsu %}NSU {{ row.sync.checkpoint_nsu }}{% else %}Primeira coleta{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if can_manage_nfse_sync %}</form>{% endif %}
+    </details>
   {% else %}
-  <div class="empty-block operational-empty"><strong>Nenhuma empresa disponível para coleta</strong><p>Cadastre uma empresa ou peça acesso ao responsável pelo escritório.</p><a class="button button-quiet" href="{% url 'hub:companies' %}">Ver empresas</a></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma empresa disponível para coleta</strong><p>Cadastre uma empresa ou peça acesso ao responsável pelo escritório.</p><a class="button button-quiet" href="{% url 'hub:companies' %}">Ver empresas</a></div>
   {% endif %}
 </section>

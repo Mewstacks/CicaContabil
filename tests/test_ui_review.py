@@ -26,7 +26,37 @@ def test_public_theme_persists_and_rejects_external_redirects():
 
 def test_public_theme_requires_csrf():
     client = Client(enforce_csrf_checks=True)
-    assert client.post(reverse("hub:set-theme"), {"theme": "dark"}).status_code == 403
+    response = client.post(
+        reverse("hub:set-theme"),
+        {"theme": "dark"},
+        HTTP_REFERER="http://testserver/entrar/",
+    )
+    assert response.status_code == 403
+    assert "Esta página ficou desatualizada" in response.content.decode()
+    assert "Nenhuma alteração foi aplicada" in response.content.decode()
+    assert 'href="http://testserver/entrar/"' in response.content.decode()
+    assert 'name="next" value="http://testserver/entrar/"' in response.content.decode()
+    assert "DEBUG=True" not in response.content.decode()
+
+
+def test_csrf_failure_does_not_reuse_an_external_referer():
+    client = Client(enforce_csrf_checks=True)
+    response = client.post(
+        reverse("hub:set-theme"),
+        {"theme": "dark"},
+        HTTP_REFERER="https://example.org/phishing",
+    )
+    assert response.status_code == 403
+    assert 'href="/"' in response.content.decode()
+    assert "example.org" not in response.content.decode()
+
+
+def test_csrf_failure_keeps_api_response_machine_readable():
+    client = Client(enforce_csrf_checks=True)
+    response = client.post("/api/v1/auth/login/", {"identifier": "x", "password": "y"})
+    assert response.status_code == 403
+    assert response.headers["Content-Type"].startswith("application/json")
+    assert response.json() == {"detail": "Envio não confirmado."}
 
 
 @pytest.mark.django_db

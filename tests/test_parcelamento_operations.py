@@ -224,9 +224,10 @@ class ParcelamentoWorkspaceTests(TestCase):
         response = self.client.get(reverse("hub:parcelamentos"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Selecionar todas desta página")
+        self.assertContains(response, "Selecionar esta página")
         self.assertContains(response, "Empresa, CNPJ ou código Domínio")
-        self.assertContains(response, "3 token(s)")
+        self.assertContains(response, "Revisar seleção e custo")
+        self.assertContains(response, 'data-tokens-per-operation="3"', html=False)
 
     def test_workspace_paginates_the_portfolio_without_hiding_companies(self) -> None:
         for index in range(101):
@@ -307,7 +308,7 @@ class ParcelamentoWorkspaceTests(TestCase):
             role=Membership.Role.AUDITOR
         )
         response = self.client.get(reverse("hub:parcelamentos"))
-        self.assertContains(response, "Somente leitura")
+        self.assertContains(response, "somente consulta")
         self.assertContains(response, "Abrir empresa")
         self.assertNotContains(response, 'id="parcelamento-submit"')
         self.assertNotContains(response, 'name="selected_company"')
@@ -355,8 +356,10 @@ class ParcelamentoJourneyTests(TestCase):
 
     def test_company_panel_offers_a_direct_quoted_consultation(self) -> None:
         response = self.client.get(self.url)
-        self.assertContains(response, "Consultar pedidos · 3 tokens")
-        self.assertContains(response, "Nenhuma consulta executada")
+        self.assertContains(response, "Consultar pedidos")
+        self.assertContains(response, "REVISAR CONSULTA")
+        self.assertContains(response, "3 tokens")
+        self.assertContains(response, "Comece consultando os pedidos")
 
     def test_single_company_bulk_consultation_opens_that_company(self) -> None:
         with patch("apps.hub.services.transaction.on_commit"):
@@ -437,8 +440,10 @@ class ParcelamentoJourneyTests(TestCase):
         self.assertContains(response, "02/2025")
         self.assertContains(response, "Em atraso")
         self.assertContains(response, "Mês atual")
-        self.assertContains(response, "Emitir · 7 tokens")
-        self.assertContains(response, "Consultar de novo · 3 tokens")
+        self.assertContains(response, "Emitir DAS")
+        self.assertContains(response, "7 tokens")
+        self.assertContains(response, "Atualizar pedidos")
+        self.assertContains(response, "3 tokens")
 
     def test_failed_das_can_be_issued_again(self) -> None:
         _stored(
@@ -457,8 +462,10 @@ class ParcelamentoJourneyTests(TestCase):
             error_message="Serpro recusou a parcela.",
         )
         response = self.client.get(self.url)
-        self.assertContains(response, "Emitir de novo · 7 tokens")
-        self.assertContains(response, "Serpro recusou a parcela.")
+        self.assertContains(response, "Revisar nova emissão")
+        self.assertContains(response, "7 tokens")
+        self.assertContains(response, "A operação não foi concluída")
+        self.assertNotContains(response, "Serpro recusou a parcela.")
 
     def test_uncertain_result_is_released_only_after_human_check(self) -> None:
         operation = ParcelamentoOperation.objects.create(
@@ -469,8 +476,8 @@ class ParcelamentoJourneyTests(TestCase):
             service_key="parcelamento.parcsn.pedidos",
         )
         page = self.client.get(self.url)
-        self.assertContains(page, "Conferido no e-CAC")
-        self.assertNotContains(page, "Consultar pedidos · 3 tokens")
+        self.assertContains(page, "Registrar conferência")
+        self.assertNotContains(page, "Atualizar pedidos")
 
         response = self.client.post(
             reverse("hub:parcelamentos"),
@@ -481,11 +488,29 @@ class ParcelamentoJourneyTests(TestCase):
             },
         )
 
+        self.assertRedirects(
+            response,
+            f"{self.url}#history-heading",
+            fetch_redirect_response=False,
+        )
+        operation.refresh_from_db()
+        self.assertEqual(operation.status, ParcelamentoOperation.Status.UNKNOWN)
+
+        response = self.client.post(
+            reverse("hub:parcelamentos"),
+            {
+                "company": str(self.company.id),
+                "operation": str(operation.id),
+                "action": "release_uncertain",
+                "confirmed": "yes",
+            },
+        )
+
         self.assertRedirects(response, f"{self.url}#company-heading", fetch_redirect_response=False)
         operation.refresh_from_db()
         self.assertEqual(operation.status, ParcelamentoOperation.Status.FAILED)
         self.assertEqual(operation.error_code, "manual_review")
-        self.assertContains(self.client.get(self.url), "Consultar pedidos · 3 tokens")
+        self.assertContains(self.client.get(self.url), "Consultar pedidos")
 
     def test_auditor_cannot_release_an_uncertain_result(self) -> None:
         operation = ParcelamentoOperation.objects.create(

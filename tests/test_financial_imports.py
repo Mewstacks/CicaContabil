@@ -96,7 +96,7 @@ class FinancialImportTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(PayrollPeriodSnapshot.objects.exists())
         batch = ImportBatch.objects.get(kind="payroll_totals")
-        self.assertContains(self.client.get(response.url), "Confirme antes de importar")
+        self.assertContains(self.client.get(response.url), "Revise antes de gravar")
         response = self.client.post(
             reverse("hub:setup"),
             {
@@ -205,6 +205,90 @@ class FinancialImportTests(TestCase):
         restricted = self.client.get(url, {"preview": batch.pk, "preview_page": "2"})
         self.assertNotContains(restricted, "private-marker")
         self.assertNotContains(restricted, 'value="confirm-import"')
+
+    def test_payroll_preview_blocks_invalid_rows_before_confirmation(self) -> None:
+        Membership.objects.create(organization=self.organization, user=self.user, role="owner")
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.pk)
+        session.save()
+
+        response = self.client.post(
+            reverse("hub:setup"),
+            {
+                "action": "upload",
+                "source_id": self.source.pk,
+                "import-kind": "payroll_totals",
+                "import-upload": self._upload(
+                    "folha-invalida.csv",
+                    "codigo_empresa;competencia;referencia;bruto\ninexistente;2026-09-15;;-10,00\n",
+                ),
+            },
+        )
+        batch = ImportBatch.objects.get(original_filename="folha-invalida.csv")
+        self.assertEqual(batch.mapping["preview_issue_count"], 1)
+        preview = self.client.get(response.url)
+        self.assertContains(preview, "Este arquivo ainda não pode ser importado")
+        self.assertContains(preview, "Empresa não localizada")
+        self.assertContains(preview, "Competência deve usar AAAA-MM-01")
+        self.assertNotContains(preview, 'value="confirm-import"')
+        confirmed = confirm_import(batch=batch, actor=self.user, request=self.request)
+        self.assertEqual(confirmed.status, ImportBatch.Status.FAILED)
+        self.assertFalse(PayrollPeriodSnapshot.objects.exists())
+
+    def test_completed_duplicate_returns_to_history_instead_of_empty_preview(self) -> None:
+        Membership.objects.create(organization=self.organization, user=self.user, role="owner")
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.pk)
+        session.save()
+        payload = "codigo_empresa;competencia;referencia;bruto\n001;2026-09-01;folha-09;1000,00\n"
+        batch, _ = create_import_preview(
+            organization=self.organization,
+            data_source=self.source,
+            kind=ImportBatch.Kind.PAYROLL_TOTALS,
+            upload=self._upload("folha.csv", payload),
+            actor=self.user,
+            request=self.request,
+        )
+        confirm_import(batch=batch, actor=self.user, request=self.request)
+
+        response = self.client.post(
+            reverse("hub:setup"),
+            {
+                "action": "upload",
+                "source_id": self.source.pk,
+                "import-kind": "payroll_totals",
+                "import-upload": self._upload("folha-repetida.csv", payload),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.url.endswith("#history-heading"))
+        page = self.client.get(response.url)
+        self.assertContains(page, "Este arquivo já foi processado")
+        self.assertNotContains(page, "Revise antes de gravar")
+
+    def test_upload_errors_do_not_bind_unrelated_setup_forms(self) -> None:
+        Membership.objects.create(organization=self.organization, user=self.user, role="owner")
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.pk)
+        session.save()
+
+        response = self.client.post(
+            reverse("hub:setup"),
+            {
+                "action": "upload",
+                "source_id": self.source.pk,
+                "import-kind": "fiscal_xml",
+                "import-upload": self._upload("arquivo.csv", "invalido"),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["import_form"].errors)
+        self.assertFalse(response.context["identity_form"].is_bound)
+        self.assertFalse(response.context["source_form"].is_bound)
+        self.assertContains(response, "Corrija 2 campos para continuar")
 
     def test_balance_import_is_previewed_grouped_and_idempotent_by_source_reference(self) -> None:
         content = (

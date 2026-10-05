@@ -166,8 +166,11 @@ def apply_backup_page(
                 accumulator_code = _text(row, "accumulator_code", 80)
                 service_code = _text(row, "service_code", 60)
                 counterparty_ref = _text(row, "counterparty_ref", 80)
+                direction = _text(row, "direction", 16).casefold()
                 if not accumulator_code or not (service_code or counterparty_ref):
                     raise ValueError("Observação sem acumulador ou critério de correspondência.")
+                if direction not in AccumulatorObservation.Direction.values:
+                    raise ValueError("Direção da observação inválida.")
                 if not AccumulatorCatalogEntry.objects.filter(
                     organization=batch.organization,
                     company=company,
@@ -191,11 +194,22 @@ def apply_backup_page(
                     accumulator_code=accumulator_code,
                     service_code=service_code,
                     counterparty_ref=counterparty_ref,
+                    direction=direction,
                     defaults={
                         "frequency": frequency,
                         "last_used_at": _datetime(row, "last_used_at"),
                     },
                 )
+                if direction:
+                    # The same evidence imported before observations carried a side.
+                    AccumulatorObservation.objects.filter(
+                        organization=batch.organization,
+                        company=company,
+                        accumulator_code=accumulator_code,
+                        service_code=service_code,
+                        counterparty_ref=counterparty_ref,
+                        direction="",
+                    ).delete()
             else:
                 external_key = _text(row, "external_key", 160)
                 company = _company(batch, _text(row, "company_key", 160))

@@ -1,51 +1,45 @@
 {% extends 'hub/workspace.html' %}
 
-{% block page_action %}{% if can_manage_companies and not dominio_manages_companies %}<button class="button" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}{% endblock %}
+{% block page_action %}{% if can_manage_companies and not dominio_manages_companies %}<button class="button company-add-button" type="button" data-modal-open="company-dialog">Adicionar empresa</button>{% endif %}{% endblock %}
 
 {% block workspace_content %}
 <section class="workspace-panel registry-panel">
   <header class="workspace-panel-head">
     <div>
+      <p class="section-kicker">CARTEIRA DO ESCRITÓRIO</p>
       <h2>Empresas</h2>
-      <p>{{ office.name }}</p>
+      <p>Encontre a empresa e entre direto no trabalho que precisa de atenção.</p>
     </div>
     <div class="company-heading-meta">
-      <span class="record-count">{{ office_company_total }} empresa{{ office_company_total|pluralize:"s" }}</span>
+      <span class="record-count" role="status" aria-atomic="true">{% if filters_applied %}{{ total_companies }} de {{ office_company_total }} empresas{% else %}{{ office_company_total }} empresa{{ office_company_total|pluralize:"s" }}{% endif %}</span>
       {% if dominio_manages_companies %}<span class="status-badge is-active"><span aria-hidden="true">✓ </span> Domínio</span>{% endif %}
     </div>
   </header>
 
-  <form method="get" class="toolbar" role="search" data-auto-filter>
+  {% if filter_error %}<div class="form-errors company-filter-error" role="alert" tabindex="-1" data-form-errors>{{ filter_error }} <a href="{% url 'hub:companies' %}">Limpar filtros</a></div>{% endif %}
+
+  <nav class="company-priority-nav" aria-label="Filtrar empresas por prioridade">
+    {% for item in priority_filters %}<a href="{{ item.url }}"{% if item.selected %} aria-current="page"{% endif %}><span>{{ item.label }}</span><strong>{{ item.count }}</strong></a>{% endfor %}
+  </nav>
+
+  <form method="get" class="toolbar company-toolbar" role="search" data-auto-filter>
+    {% if filters.prioridade %}<input type="hidden" name="prioridade" value="{{ filters.prioridade }}">{% endif %}
     <div class="toolbar-search">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
       <label class="sr-only" for="filtro-busca">Buscar empresa</label>
-      <input id="filtro-busca" type="search" name="q" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código…" autocomplete="off" spellcheck="false">
+      <input id="filtro-busca" type="search" name="q" maxlength="100" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código…" autocomplete="off" spellcheck="false">
     </div>
-    <label class="sr-only" for="filtro-situacao">Situação</label>
-    <select id="filtro-situacao" name="situacao" autocomplete="off">
-      <option value="">Situação: todas</option>
-      <option value="ativa"{% if filters.situacao == 'ativa' %} selected{% endif %}>Em operação</option>
-      <option value="pausada"{% if filters.situacao == 'pausada' %} selected{% endif %}>Pausada</option>
-    </select>
-    <label class="sr-only" for="filtro-vinculo">Código Domínio</label>
-    <select id="filtro-vinculo" name="vinculo" autocomplete="off">
-      <option value="">Domínio: todos</option>
-      <option value="com"{% if filters.vinculo == 'com' %} selected{% endif %}>Com código</option>
-    </select>
-    <label class="sr-only" for="filtro-certificado">Certificado</label>
-    <select id="filtro-certificado" name="certificado" autocomplete="off">
-      <option value="">Certificado: todos</option>
-      <option value="valido"{% if filters.certificado == 'valido' %} selected{% endif %}>Válido</option>
-      <option value="vencendo"{% if filters.certificado == 'vencendo' %} selected{% endif %}>Vence em 30 dias</option>
-      <option value="ausente"{% if filters.certificado == 'ausente' %} selected{% endif %}>Sem certificado</option>
-    </select>
-    <label class="sr-only" for="filtro-pendencia">Pendência</label>
-    <select id="filtro-pendencia" name="pendencia" autocomplete="off">
-      <option value="">Pendência: todas</option>
-      <option value="com"{% if filters.pendencia == 'com' %} selected{% endif %}>Com revisão aberta</option>
-      <option value="sem"{% if filters.pendencia == 'sem' %} selected{% endif %}>Sem revisão aberta</option>
-    </select>
+    <details class="company-refinement"{% if filters.situacao or filters.vinculo or filters.certificado or filters.pendencia %} open{% endif %}>
+      <summary>Refinar{% if filters.situacao or filters.vinculo or filters.certificado or filters.pendencia %} <span>filtros ativos</span>{% endif %}</summary>
+      <div class="company-refinement-fields">
+        <div><label for="filtro-situacao">Situação</label><select id="filtro-situacao" name="situacao" autocomplete="off"><option value="">Todas</option><option value="ativa"{% if filters.situacao == 'ativa' %} selected{% endif %}>Em operação</option><option value="pausada"{% if filters.situacao == 'pausada' %} selected{% endif %}>Pausada</option></select></div>
+        <div><label for="filtro-vinculo">Código Domínio</label><select id="filtro-vinculo" name="vinculo" autocomplete="off"><option value="">Todos</option><option value="com"{% if filters.vinculo == 'com' %} selected{% endif %}>Com código</option><option value="sem"{% if filters.vinculo == 'sem' %} selected{% endif %}>Sem código</option></select></div>
+        <div><label for="filtro-certificado">Certificado</label><select id="filtro-certificado" name="certificado" autocomplete="off"><option value="">Todos</option><option value="valido"{% if filters.certificado == 'valido' %} selected{% endif %}>Válido por mais de 30 dias</option><option value="vencendo"{% if filters.certificado == 'vencendo' %} selected{% endif %}>Vence em 30 dias</option><option value="ausente"{% if filters.certificado == 'ausente' %} selected{% endif %}>Sem A1 válido</option></select></div>
+        <div><label for="filtro-pendencia">Revisão NFS-e</label><select id="filtro-pendencia" name="pendencia" autocomplete="off"><option value="">Todas</option><option value="com"{% if filters.pendencia == 'com' %} selected{% endif %}>Com revisão aberta</option><option value="sem"{% if filters.pendencia == 'sem' %} selected{% endif %}>Sem revisão aberta</option></select></div>
+      </div>
+    </details>
     <div class="toolbar-actions">
+      <button class="button button-small" type="submit">Pesquisar</button>
       {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'hub:companies' %}" data-filter-clear>Limpar</a>{% endif %}
     </div>
   </form>
@@ -53,14 +47,19 @@
   {% if companies %}
     <div class="data-table-wrap">
       <table class="operational-table company-table">
-        <thead><tr><th>Empresa</th><th>CNPJ</th><th>Código Domínio</th><th>Certificado</th><th>Revisões abertas</th><th><span class="sr-only">Ações</span></th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Integrações</th><th>Próximo passo</th><th><span class="sr-only">Ação</span></th></tr></thead>
         <tbody>{% for company in companies %}<tr>
-          <td data-label="Empresa"><strong>{{ company.name }}</strong></td>
-          <td data-label="CNPJ">{% if company.cnpj_masked %}<span class="source-code">{{ company.cnpj_masked }}</span>{% else %}<span class="table-muted">Não informado</span>{% endif %}</td>
-          <td data-label="Código Domínio">{% if company.dominio_code %}<span class="source-code">{{ company.dominio_code }}</span>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
-          <td data-label="Certificado">{% if company.certificate_expiring %}<span class="nfse-status nfse-status-attention">Vence em 30 dias</span>{% elif company.has_certificate %}<span class="nfse-status nfse-status-success">Válido</span>{% else %}<span class="nfse-status nfse-status-muted">Sem certificado</span>{% endif %}</td>
-          <td data-label="Revisões abertas">{% if company.open_review_total %}<a href="{% url 'hub:reviews' %}?q={{ company.name|urlencode }}">{{ company.open_review_total }}</a>{% else %}<span class="table-muted">0</span>{% endif %}</td>
-          <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:company-detail' company.id %}?return_to={{ request.get_full_path|urlencode }}">Abrir<span class="sr-only"> {{ company.name }}</span></a></td>
+          <td data-label="Empresa"><strong><a class="text-action" href="{% url 'hub:company-detail' company.id %}?return_to={{ request.get_full_path|urlencode }}">{{ company.name }}</a></strong><small>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}CNPJ não informado{% endif %}{% if not company.active %} · Pausada{% endif %}</small></td>
+          <td data-label="Integrações"><span class="company-integration-line">{% if company.dominio_code %}Domínio <b>{{ company.dominio_code }}</b>{% else %}<span class="table-warning">Sem código Domínio</span>{% endif %}</span><small>{% if company.certificate_expiring %}A1 vence em até 30 dias{% elif company.has_certificate %}A1 válido{% else %}Sem A1 válido{% endif %}</small></td>
+          <td data-label="Próximo passo" class="company-next-step">
+            {% if not company.active %}<strong>Cadastro pausado</strong><small>Abra a ficha para consultar o histórico.</small>
+            {% elif company.open_review_total %}<strong>Classificar {{ company.open_review_total }} NFS-e</strong><small>Há nota aguardando decisão contábil.</small>
+            {% elif company.certificate_expiring %}<strong>Renovar certificado A1</strong><small>Evite interromper a coleta automática.</small>
+            {% elif not company.has_certificate %}<strong>Enviar certificado A1</strong><small>A coleta automática ainda não está pronta.</small>
+            {% elif not company.dominio_code %}<strong>Conferir vínculo no Domínio</strong><small>A empresa ainda não tem código associado.</small>
+            {% else %}<strong>Cadastro pronto</strong><small>Nenhuma pendência cadastral encontrada.</small>{% endif %}
+          </td>
+          <td class="table-action-cell">{% if company.active and company.open_review_total %}<a class="row-action-button" href="{% url 'hub:nfse-center' %}?status=unclassified&amp;company={{ company.id }}">Revisar NFS-e<span class="sr-only"> de {{ company.name }}</span></a>{% elif company.active and company.certificate_expiring %}<a class="row-action-button" href="{% url 'hub:certificates' %}?status=expiring#certificados-cadastrados">Ver vencimento<span class="sr-only"> de {{ company.name }}</span></a>{% elif company.active and not company.has_certificate %}<a class="row-action-button" href="{% url 'hub:certificates' %}#empresas-sem-certificado">Ver certificados<span class="sr-only"> de {{ company.name }}</span></a>{% else %}<a class="row-action-button" href="{% url 'hub:company-detail' company.id %}?return_to={{ request.get_full_path|urlencode }}">Abrir ficha<span class="sr-only"> de {{ company.name }}</span></a>{% endif %}</td>
         </tr>{% endfor %}</tbody>
       </table>
     </div>
@@ -78,10 +77,10 @@
   {% endif %}
 </section>
 
-{% if can_manage_companies and not dominio_manages_companies %}<div id="company-dialog" class="modal-backdrop" data-modal hidden>
+{% if can_manage_companies and not dominio_manages_companies %}<div id="company-dialog" class="modal-backdrop" data-modal{% if form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-title">
     <header class="modal-head"><div><p class="section-kicker">Novo cadastro</p><h2 id="company-title">Adicionar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
-    <form method="post" class="form-stack">{% csrf_token %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}-erro">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>
+    <form method="post" class="form-stack">{% csrf_token %}{% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.{% if form.non_field_errors %} {{ form.non_field_errors|striptags }}{% endif %}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}_error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>
   </section>
 </div>{% endif %}
 {% endblock %}

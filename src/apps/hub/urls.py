@@ -95,6 +95,13 @@ urlpatterns = [
         name="collaborator-deactivate",
     ),
     path("app/nfse/", views.nfse_center, name="nfse-center"),
+    path("app/nfse/fila/", views.nfse_queue_status, name="nfse-queue-status"),
+    path("app/nfse/fila/repetir/", views.nfse_queue_retry, name="nfse-queue-retry"),
+    path(
+        "app/nfse/notas/<uuid:document_id>/acumulador/",
+        views.update_nfse_accumulator,
+        name="nfse-update-accumulator",
+    ),
     path(
         "app/nfse/exportacoes/<uuid:export_id>/baixar/",
         views.download_nfse_export,
@@ -135,6 +142,12 @@ urlpatterns = [
         "app/integra-contador/parcelamentos/das/<uuid:operation_id>.pdf",
         views.parcelamento_das_pdf,
         name="parcelamento-das-pdf",
+    ),
+    path(
+        "app/integra-contador/parcelamentos/demo/"
+        "<uuid:company_id>/<int:agreement>/<str:competence>.pdf",
+        views.demo_parcelamento_das_pdf,
+        name="demo-parcelamento-das-pdf",
     ),
     path("app/integra-contador/dte/", views.dte_center, name="dte-center"),
     path(
@@ -206,6 +219,11 @@ urlpatterns = [
         name="reconciliation-export-download",
     ),
     path(
+        "app/conciliacao/exportacoes/<uuid:export_id>/confirmar-importacao/",
+        views.reconciliation_export_confirm,
+        name="reconciliation-export-confirm",
+    ),
+    path(
         "app/conciliacao/<uuid:match_id>/confirmar/",
         views.confirm_reconciliation,
         name="confirm-reconciliation",
@@ -267,6 +285,11 @@ urlpatterns = [
         "app/revisoes/<uuid:case_id>/original.xml",
         views.review_original_xml,
         name="review-original-xml",
+    ),
+    path(
+        "app/revisoes/<uuid:case_id>/dominio.xml",
+        views.review_dominio_xml,
+        name="review-dominio-xml",
     ),
     path("app/revisoes/<uuid:case_id>/resolver/", views.resolve_review, name="resolve-review"),
     path("app/configuracoes/", views.settings_view, name="settings"),

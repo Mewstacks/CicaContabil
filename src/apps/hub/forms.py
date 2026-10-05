@@ -3,6 +3,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
 
 from django import forms
+from django.contrib.auth.forms import SetPasswordForm
 from django.db.models import QuerySet
 from django.forms import BaseFormSet, formset_factory
 
@@ -32,12 +33,31 @@ from apps.platform.models import TenantUsagePolicy
 
 class ReformAnalysisForm(forms.Form):
     company = forms.ModelChoiceField(
-        queryset=ClientCompany.objects.none(), label="Empresa para análise",
-        widget=forms.Select(attrs={"autocomplete": "off"}),
+        queryset=ClientCompany.objects.none(),
+        label="Empresa para análise",
+        help_text="Escolha somente a empresa cujo possível impacto será conferido.",
+        widget=forms.Select(
+            attrs={"autocomplete": "off", "aria-describedby": "id_company_help"}
+        ),
     )
     reason = forms.CharField(
-        label="Por que esta empresa precisa de análise?", max_length=500,
-        widget=forms.Textarea(attrs={"rows": 4, "autocomplete": "off"}),
+        label="O que precisa ser conferido para esta empresa?",
+        help_text=(
+            "Registre o indício e a verificação necessária; "
+            "não conclua que a norma se aplica."
+        ),
+        max_length=500,
+        widget=forms.Textarea(
+            attrs={
+                "rows": 4,
+                "autocomplete": "off",
+                "aria-describedby": "id_reason_help",
+                "placeholder": (
+                    "Ex.: confirmar se o serviço prestado entra na nova regra "
+                    "antes de orientar o cliente…"
+                ),
+            }
+        ),
     )
 
 
@@ -114,6 +134,19 @@ class OfficeIdentityForm(forms.ModelForm):  # type: ignore[type-arg]
     class Meta:
         model = OfficeProfile
         fields = ("legal_name", "cnpj")
+        labels = {"legal_name": "Razão social", "cnpj": "CNPJ"}
+        widgets = {
+            "legal_name": forms.TextInput(
+                attrs={"autocomplete": "organization", "placeholder": "Ex.: Escritório Contábil…"}
+            ),
+            "cnpj": forms.TextInput(
+                attrs={
+                    "autocomplete": "off",
+                    "inputmode": "numeric",
+                    "placeholder": "00.000.000/0000-00",
+                }
+            ),
+        }
 
     def clean_cnpj(self) -> str:
         cnpj = normalize_cnpj(str(self.cleaned_data.get("cnpj") or ""))
@@ -211,50 +244,60 @@ class CollaboratorAccessForm(CollaboratorInvitationForm):
         self.fields.pop("email")
 
 
-class CertificateUploadForm(forms.Form):
-    company = forms.ModelChoiceField(
-        queryset=ClientCompany.objects.none(),
-        label="Empresa",
-        widget=forms.Select(attrs={"autocomplete": "off"}),
-    )
-    label = forms.CharField(
-        max_length=120,
-        label="Identificação",
-        widget=forms.TextInput(attrs={"autocomplete": "off", "aria-label": "Conta contábil"}),
-    )
-    pfx_file = forms.FileField(label="Arquivo A1/PFX")
-    password = forms.CharField(
-        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "off"}),
-        label="Senha do certificado",
-    )
+class MultipleCertificateInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
 
-    def __init__(
-        self,
-        *args: Any,
-        organization: Organization | None = None,
-        companies: QuerySet[ClientCompany] | None = None,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(*args, **kwargs)
-        queryset = ClientCompany.objects.none()
-        if companies is not None:
-            queryset = companies
-        elif organization is not None:
-            queryset = ClientCompany.objects.filter(organization=organization, active=True)
-        company_field = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
-        company_field.queryset = queryset
+
+class MultipleCertificateField(forms.FileField):
+    def clean(self, data: Any, initial: Any = None) -> list[Any]:
+        clean_one = super().clean
+        if isinstance(data, (list, tuple)):
+            result = [clean_one(item, initial) for item in data]
+        else:
+            result = [clean_one(data, initial)]
+        return result
+
+
+class CertificateUploadForm(forms.Form):
+    pfx_files = MultipleCertificateField(
+        label="Certificados A1",
+        widget=MultipleCertificateInput(
+            attrs={
+                "accept": ".pfx,.p12,application/x-pkcs12",
+                "aria-describedby": "certificate-file-count",
+                "data-certificate-files": "",
+            }
+        ),
+    )
+    common_password = forms.CharField(
+        required=False,
+        max_length=256,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={
+                "aria-describedby": "certificate-common-password-help",
+                "autocomplete": "off",
+                "spellcheck": "false",
+            },
+        ),
+        label="Senha para abrir os certificados",
+        help_text=(
+            "Preencha se os arquivos selecionados usam a mesma senha. "
+            "Deixe em branco somente para certificados sem senha ou com a senha no nome."
+        ),
+    )
 
 
 class ActivationForm(forms.Form):
     password = forms.CharField(
-        min_length=12,
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "minlength": 12}),
+        min_length=8,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "minlength": 8}),
         label="Criar senha",
-        help_text="Use pelo menos 12 caracteres. Você pode colar uma senha do seu gerenciador.",
+        help_text="Use pelo menos 8 caracteres. Você pode colar uma senha do seu gerenciador.",
     )
     password_confirm = forms.CharField(
-        min_length=12,
-        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "minlength": 12}),
+        min_length=8,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "minlength": 8}),
         label="Confirmar senha",
     )
 
@@ -292,7 +335,8 @@ class OperationalAssignmentForm(forms.Form):
     assignee = forms.ChoiceField(label="Responsável", required=False)
     expected_assignee = forms.CharField(required=False, widget=forms.HiddenInput)
     reason = forms.CharField(
-        label="Motivo da atribuição ou redistribuição", max_length=500,
+        label="Motivo da atribuição ou redistribuição",
+        max_length=500,
         widget=forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
     )
 
@@ -333,6 +377,30 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "requires_processing_closed": "Exige processamento fechado para concluir",
             "requires_accepted_obligation": "Exige obrigação aceita para concluir",
         }
+
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        help_texts = {
+            "code": (
+                "Identificador estável, por exemplo fechamento-fiscal. "
+                "Novas regras usam o mesmo código em uma nova versão."
+            ),
+            "title": "Comece com um verbo e descreva o resultado esperado pela equipe.",
+            "description": "Inclua o critério de conferência e o que a pessoa precisa entregar.",
+            "legal_due_day": "Opcional. Use somente quando houver vencimento legal confirmado.",
+            "internal_due_day": "Opcional. Prazo do escritório para concluir antes do vencimento.",
+        }
+        for field_name, help_text in help_texts.items():
+            self.fields[field_name].help_text = help_text
+
+    def clean_code(self) -> str:
+        code = str(self.cleaned_data["code"]).strip().lower()
+        if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", code):
+            raise forms.ValidationError(
+                "Use letras minúsculas, números e hífens, sem espaços."
+            )
+        return code
 
 
 class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
@@ -379,11 +447,35 @@ class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
             organization_memberships__organization=organization,
             organization_memberships__is_active=True,
         ).distinct()
+        self.fields["assigned_to"].help_text = (
+            "Somente pessoas com perfil operacional e acesso vigente à empresa."
+        )
+        self.fields["legal_due_day"].help_text = (
+            "Deixe vazio para usar o prazo legal do modelo."
+        )
+        self.fields["internal_due_day"].help_text = (
+            "Deixe vazio para usar o prazo interno do modelo."
+        )
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
+        template = cleaned.get("template")
         company = cleaned.get("company")
         assignee = cleaned.get("assigned_to")
+        if template is not None and company is not None:
+            duplicate = ActivityTemplateAssignment.objects.filter(
+                organization_id=self.instance.organization_id,
+                template=template,
+                company=company,
+            )
+            if self.instance.pk:
+                duplicate = duplicate.exclude(pk=self.instance.pk)
+            if duplicate.exists():
+                self.add_error(
+                    "company",
+                    "Este modelo já está atribuído a esta empresa. "
+                    "Revise a atribuição existente abaixo.",
+                )
         if company is None or assignee is None:
             return cleaned
         membership = Membership.objects.filter(
@@ -402,6 +494,15 @@ class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
                 "O responsavel precisa ter perfil operacional e carteira ativa para esta empresa.",
             )
         return cleaned
+
+
+class EightCharacterSetPasswordForm(SetPasswordForm[User]):
+    """Expose the server-side minimum to browsers in the reset flow."""
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        for field_name in ("new_password1", "new_password2"):
+            self.fields[field_name].widget.attrs["minlength"] = 8
 
 
 class ActivityGenerationForm(forms.Form):
@@ -567,6 +668,10 @@ class UnifiedImportForm(forms.Form):
                 for choice in ImportBatch.Kind.choices
                 if choice[0] != ImportBatch.Kind.DOMINIO_BACKUP
             ]
+        for name, field in self.fields.items():
+            field.widget.attrs["aria-describedby"] = f"id_import-{name}-help"
+            if self.is_bound and self.errors.get(name):
+                field.widget.attrs["aria-invalid"] = "true"
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
@@ -654,6 +759,13 @@ class ReconciliationUploadForm(forms.Form):
         super().__init__(*args, **kwargs)
         company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
+        setattr(  # noqa: B010 - ModelChoiceField deliberately customizes visible labels.
+            company,
+            "label_from_instance",
+            lambda item: (
+                f"{item.name} · Domínio {item.dominio_code}" if item.dominio_code else item.name
+            ),
+        )
         company_id = self.data.get("company") if self.is_bound else None
         accounts = FinancialAccount.objects.filter(
             company__in=companies,
@@ -701,7 +813,7 @@ class ReconciliationMovementForm(forms.Form):
     occurred_on = forms.DateField(
         label="Data",
         required=False,
-        widget=forms.DateInput(attrs={"type": "date", "autocomplete": "off"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"type": "date", "autocomplete": "off"}),
     )
     description = forms.CharField(
         label="Descrição",
@@ -1142,16 +1254,21 @@ class ReconciliationRuleForm(forms.Form):
 class PayrollComparisonForm(forms.Form):
     left_snapshot = forms.ModelChoiceField(
         queryset=PayrollPeriodSnapshot.objects.none(),
-        label="Fonte de referência",
+        label="Fonte principal",
+        help_text="Use como base o ERP ou a fonte que o escritório considera principal.",
+        empty_label="Escolha a fonte principal",
         widget=forms.Select(attrs={"autocomplete": "off"}),
     )
     right_snapshot = forms.ModelChoiceField(
         queryset=PayrollPeriodSnapshot.objects.none(),
-        label="Fonte para comparar",
+        label="Fonte para conferir",
+        help_text="O CICA mostrará quanto esta fonte ficou acima ou abaixo da principal.",
+        empty_label="Escolha a fonte para conferir",
         widget=forms.Select(attrs={"autocomplete": "off"}),
     )
     money_tolerance = forms.DecimalField(
         label="Tolerância monetária (R$)",
+        help_text="Diferenças iguais ou menores a este valor ficam fora do resultado.",
         min_value=Decimal("0"),
         max_digits=14,
         decimal_places=2,
@@ -1181,11 +1298,11 @@ class PayrollComparisonForm(forms.Form):
         right = cleaned.get("right_snapshot")
         if left is not None and right is not None:
             if left.pk == right.pk:
-                self.add_error("right_snapshot", "Escolha uma segunda fotografia para comparar.")
+                self.add_error("right_snapshot", "Escolha uma segunda fonte para comparar.")
             elif left.company_id != right.company_id or left.competence != right.competence:
                 self.add_error(
                     "right_snapshot",
-                    "Escolha fotografias da mesma empresa e competência.",
+                    "Escolha fontes da mesma empresa e competência.",
                 )
         return cleaned
 
@@ -1209,7 +1326,7 @@ class DreMappingRowForm(forms.Form):
     )
     sign = forms.TypedChoiceField(
         label="Sinal",
-        choices=(("-1", "Inverter (-1)"), ("1", "Manter (1)")),
+        choices=(("", "Escolha"), ("-1", "Inverter (-1)"), ("1", "Manter (1)")),
         coerce=int,
         required=False,
         empty_value=None,

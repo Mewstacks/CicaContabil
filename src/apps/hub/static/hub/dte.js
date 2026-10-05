@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const results = document.querySelector("#dte-select-results");
   const clear = document.querySelector("#dte-clear-selection");
   if (!search || !list || !options.length || !status || !selected || !more || !all || !results || !clear) return;
+  search.closest(".dte-company-tools").hidden = false;
 
   const normalize = (value) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
   const announce = (node, value) => { if (node.textContent !== value) node.textContent = value; };
@@ -32,8 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (visible) shown += 1;
     }
     const count = options.filter((option) => checkbox(option)?.checked).length;
+    const scopeLabel = `${count} empresa${count === 1 ? "" : "s"} selecionada${count === 1 ? "" : "s"}`;
     announce(selected, count
-      ? `${count} empresa${count === 1 ? "" : "s"} selecionada${count === 1 ? "" : "s"} · ${count} consulta${count === 1 ? "" : "s"} Serpro quando o envio for autorizado. Nenhuma chamada ocorre no preparo.`
+      ? (list.dataset.demo === "true"
+        ? `${scopeLabel} para simulação. Sem Serpro, consumo ou cobrança.`
+        : `${scopeLabel} · ${count} consulta${count === 1 ? "" : "s"} Serpro quando o envio for autorizado. Nenhuma chamada ocorre no preparo.`)
       : "Nenhuma empresa selecionada.");
     announce(status, matches.length === 0
       ? "Nenhuma empresa encontrada. Revise nome, código Domínio ou CNPJ."

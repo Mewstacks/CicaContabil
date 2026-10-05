@@ -77,13 +77,13 @@ MODULE_TOURS: tuple[Tour, ...] = (
             ),
             TourStep(
                 "Onde está o trabalho",
-                "A aba Revisões lista o que espera decisão. A situação de cada linha separa "
-                "sugestão da CICA de decisão tomada por pessoa.",
+                "A aba Notas agrupa a carteira por empresa e mostra na própria linha o que "
+                "ainda precisa de classificação.",
             ),
             TourStep(
                 "Como concluir",
-                "Abra “Conferir e decidir”, escolha o acumulador do catálogo da empresa e "
-                "registre a decisão. Ela passa a valer como decisão humana.",
+                "Expanda a empresa, escolha o acumulador na nota e use “Classificar”. "
+                "Depois, baixe o ZIP da nota ou da empresa na mesma tela.",
             ),
         ),
         url_names=frozenset({"nfse-center", "reviews"}),

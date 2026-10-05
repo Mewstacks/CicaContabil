@@ -18,12 +18,12 @@
     {% if collaborator_form.non_field_errors %}<div class="form-errors" role="alert" data-form-errors tabindex="-1">{{ collaborator_form.non_field_errors }}</div>{% endif %}
     <div class="team-form-basics">
       {% for field in collaborator_form %}{% if field.name == 'full_name' or field.name == 'email' or field.name == 'role' %}
-        <div class="field{% if field.errors %} has-error" data-focus-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        <div class="field{% if field.errors %} has-error{% endif %}"{% if field.errors %} data-focus-error{% endif %}><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
       {% endif %}{% endfor %}
     </div>
     <div class="team-form-scopes">
       {% for field in collaborator_form %}{% if field.name == 'modules' or field.name == 'companies' %}
-        <fieldset class="scope-picker{% if field.errors %} has-error" data-focus-error{% endif %}"><legend>{{ field.label }}</legend><div class="scope-options">{{ field }}</div>{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</fieldset>
+        <fieldset class="scope-picker{% if field.errors %} has-error{% endif %}"{% if field.errors %} data-focus-error{% endif %}><legend>{{ field.label }}</legend><div class="scope-options">{{ field }}</div>{% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</fieldset>
       {% endif %}{% endfor %}
     </div>
     <button class="button" type="submit">Enviar convite</button>

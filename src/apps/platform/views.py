@@ -528,10 +528,10 @@ def tenant_detail(request: HttpRequest, organization_id: str) -> HttpResponse:
         if action == "invite" and invite_form.is_valid():
             try:
                 _issue_invitation(request, user, organization, invite_form)
-            except TransactionalEmailError:
+            except TransactionalEmailError as exc:
                 invite_form.add_error(
                     None,
-                    "Não foi possível enviar o convite agora. Tente novamente em alguns minutos.",
+                    str(exc),
                 )
             else:
                 return redirect_back

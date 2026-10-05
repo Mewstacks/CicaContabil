@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.core.management import call_command
@@ -14,17 +16,21 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.hub.demo_session import cleanup_stale_demo_visitors
 from apps.hub.models import (
+    Certificate,
     ClientCompany,
+    DctfWebDocument,
     DteMessage,
     DteMessageAccess,
     DteRun,
     FiscalGuide,
     NfseDocument,
     NfseSync,
+    ParcelamentoOperation,
     ReconciliationMatch,
     ReformAlert,
     ReviewCase,
 )
+from apps.hub.services import nfse_company_archive_folder
 from apps.intelligence.models import Conversation, Message
 from apps.organizations.models import Membership, Organization
 from apps.triage.models import TriageItem, TriageSafetyScan
@@ -154,7 +160,7 @@ def test_demo_guide_issuance_is_private_to_each_browser_session() -> None:
     assert "Pronta" in first.get(detail).content.decode()
     assert "Pronta" in second.get(detail).content.decode()
     assert first.post(reverse("hub:issue-guide", args=[guide.id])).status_code == 302
-    assert "Baixar PDF fictício" in first.get(detail).content.decode()
+    assert "Baixar DARF fictício" in first.get(detail).content.decode()
     assert first.get(pdf).status_code == 200
     assert "Pronta" in second.get(detail).content.decode()
     assert second.get(pdf).status_code == 404
@@ -199,19 +205,45 @@ def test_demo_triage_review_and_download_do_not_change_other_visitors() -> None:
     DEMO_SESSION_ISOLATION_READY=True,
     DEMO_ORGANIZATION_SLUG="escritorio-demo",
 )
-def test_demo_dte_message_opening_is_private_to_browser_session() -> None:
+@pytest.mark.parametrize("entry_mode", ["public", "member", "auditor"])
+def test_demo_dte_message_opening_is_private_to_browser_session(entry_mode) -> None:
     _seed()
     message = DteMessage.objects.filter(read_at=None).first()
     assert message is not None
     first, second = Client(REMOTE_ADDR="198.51.100.15"), Client(REMOTE_ADDR="198.51.100.16")
-    entry = reverse("hub:demo-entry")
-    assert first.post(entry).status_code == 302
-    assert second.post(entry).status_code == 302
+    if entry_mode == "public":
+        for client in (first, second):
+            assert client.post(reverse("hub:demo-entry")).status_code == 302
+    else:
+        member = Membership.objects.get(organization=message.organization, role="owner")
+        if entry_mode == "auditor":
+            member.role = "auditor"
+            member.save(update_fields=["role"])
+        for client in (first, second):
+            client.force_login(member.user)
+            session = client.session
+            session["hub_organization_id"] = str(message.organization_id)
+            session.save()
     detail = reverse("hub:dte-message-detail", args=[message.id])
 
     assert "Teor ainda não consultado" in first.get(detail).content.decode()
     assert "Teor ainda não consultado" in second.get(detail).content.decode()
-    assert first.post(detail, {"confirm_legal_notice": "on"}).status_code == 302
+    if entry_mode == "auditor":
+        assert first.post(detail, {"confirm_legal_notice": "on"}).status_code == 403
+        assert (
+            first.post(
+                reverse("hub:dte-center"), {"companies": [str(message.company_id)]}
+            ).status_code
+            == 403
+        )
+        assert "Abrir teor fictício" not in first.get(detail).content.decode()
+        assert not DteMessageAccess.objects.filter(message=message).exists()
+        return
+    with patch("apps.hub.views.open_message") as external_open:
+        assert first.post(detail, {}).status_code == 302
+        assert "Teor ainda não consultado" in first.get(detail).content.decode()
+        assert first.post(detail, {"confirm_legal_notice": "on"}).status_code == 302
+        external_open.assert_not_called()
     assert "Mensagem fictícia para" in first.get(detail).content.decode()
     assert "Teor ainda não consultado" in second.get(detail).content.decode()
     assert not DteMessageAccess.objects.filter(message=message).exists()
@@ -223,15 +255,23 @@ def test_demo_dte_message_opening_is_private_to_browser_session() -> None:
     DEMO_SESSION_ISOLATION_READY=True,
     DEMO_ORGANIZATION_SLUG="escritorio-demo",
 )
-def test_demo_dte_preparation_and_result_are_private_to_browser_session() -> None:
+@pytest.mark.parametrize("entry_mode", ["public", "member"])
+def test_demo_dte_preparation_and_result_are_private_to_browser_session(entry_mode) -> None:
     _seed()
     company = ClientCompany.objects.filter(organization__is_demo=True, active=True).first()
     assert company is not None
     shared_run_count = DteRun.objects.count()
     first, second = Client(REMOTE_ADDR="198.51.100.17"), Client(REMOTE_ADDR="198.51.100.18")
-    entry = reverse("hub:demo-entry")
-    assert first.post(entry).status_code == 302
-    assert second.post(entry).status_code == 302
+    if entry_mode == "public":
+        for client in (first, second):
+            assert client.post(reverse("hub:demo-entry")).status_code == 302
+    else:
+        member = Membership.objects.get(organization=company.organization, role="owner")
+        for client in (first, second):
+            client.force_login(member.user)
+            session = client.session
+            session["hub_organization_id"] = str(company.organization_id)
+            session.save()
     center = reverse("hub:dte-center")
     assert first.get(center).status_code == 200
     assert second.get(center).status_code == 200
@@ -242,10 +282,39 @@ def test_demo_dte_preparation_and_result_are_private_to_browser_session() -> Non
     assert "1 na fila" in first_page
     assert "1 na fila" not in second_page
     run_id = next(iter(first.session["demo_progress"]["dte_runs"]))
+    assert first.get(reverse("hub:integra")).context["integra_pending_count"] == 1
+    assert second.get(reverse("hub:integra")).context["integra_pending_count"] == 0
+    # A stale/malformed session batch must not turn into a misleading partial batch.
+    for selected_ids in (
+        [str(company.id), "00000000-0000-0000-0000-000000000001"],
+        [str(company.id), str(company.id)],
+        {"invalid": str(company.id)},
+        [None],
+        [],
+    ):
+        session = first.session
+        progress = session["demo_progress"]
+        progress["dte_runs"][run_id]["company_ids"] = selected_ids
+        session["demo_progress"] = progress
+        session.save()
+        assert first.get(center).context["dte_stats"]["awaiting"] == 0
+        assert first.get(reverse("hub:integra")).context["integra_pending_count"] == 0
+    session = first.session
+    progress = session["demo_progress"]
+    progress["dte_runs"][run_id]["company_ids"] = [str(company.id)]
+    session["demo_progress"] = progress
+    session.save()
+    assert (
+        second.post(
+            reverse("hub:decide-dte-run", args=[run_id]), {"decision": "approve"}
+        ).status_code
+        == 404
+    )
     approved = first.post(reverse("hub:decide-dte-run", args=[run_id]), {"decision": "approve"})
     assert approved.status_code == 302
     assert "Consulta fictícia concluída" in first.get(center).content.decode()
     assert "Consulta fictícia concluída" not in second.get(center).content.decode()
+    assert first.get(reverse("hub:integra")).context["integra_pending_count"] == 0
     assert DteRun.objects.count() == shared_run_count
 
 
@@ -255,26 +324,38 @@ def test_demo_dte_preparation_and_result_are_private_to_browser_session() -> Non
     DEMO_SESSION_ISOLATION_READY=True,
     DEMO_ORGANIZATION_SLUG="escritorio-demo",
 )
-def test_demo_parcelamento_consultation_and_issue_are_private_to_session() -> None:
+@pytest.mark.parametrize("entry_mode", ["public", "member"])
+def test_demo_parcelamento_consultation_and_issue_are_private_to_session(entry_mode) -> None:
     _seed()
     company = ClientCompany.objects.filter(organization__is_demo=True, active=True).first()
     assert company is not None
     first, second = Client(REMOTE_ADDR="198.51.100.21"), Client(REMOTE_ADDR="198.51.100.22")
     entry = reverse("hub:demo-entry")
-    assert first.post(entry).status_code == 302
-    assert second.post(entry).status_code == 302
+    if entry_mode == "public":
+        assert first.post(entry).status_code == 302
+        assert second.post(entry).status_code == 302
+    else:
+        member = Membership.objects.get(organization=company.organization, role="owner")
+        for client in (first, second):
+            client.force_login(member.user)
+            session = client.session
+            session["hub_organization_id"] = str(company.organization_id)
+            session.save()
+    operation_count = ParcelamentoOperation.objects.count()
     center = reverse("hub:parcelamentos")
     company_url = f"{center}?company={company.id}"
 
     initial = first.get(company_url).content.decode()
-    assert "Nenhuma consulta executada" in initial
-    assert "Acordos encontrados" not in initial
-    consulted = first.post(center, {"company": company.id, "action": "consult"})
+    assert "Comece consultando os pedidos" in initial
+    assert "Situação dos parcelamentos" not in initial
+    with patch("apps.hub.views.request_parcelamento_operation") as real_operation:
+        consulted = first.post(center, {"company": company.id, "action": "consult"})
+        real_operation.assert_not_called()
     assert consulted.status_code == 302
     first_page = first.get(company_url).content.decode()
     second_page = second.get(company_url).content.decode()
-    assert "Acordos encontrados" in first_page
-    assert "Acordos encontrados" not in second_page
+    assert "Situação dos parcelamentos" in first_page
+    assert "Situação dos parcelamentos" not in second_page
 
     agreement = next(iter(first.session["demo_progress"]["parcelamento_consultations"]))
     assert agreement == str(company.id)
@@ -282,18 +363,126 @@ def test_demo_parcelamento_consultation_and_issue_are_private_to_session() -> No
 
     synthetic = _demo_parcelamentos(company)[0]
     available = next(item for item in synthetic.installments if not item.paid)
+    rendered_agreements = re.findall(r'name="agreement" value="([^"]+)"', first_page)
+    assert str(synthetic.number) in rendered_agreements
+    rendered_agreement = rendered_agreements[0]
     issued = first.post(
         center,
         {
             "company": company.id,
             "action": "issue",
-            "agreement": synthetic.number,
+            "agreement": rendered_agreement,
             "competence": available.competence_key,
         },
     )
     assert issued.status_code == 302
-    assert "DAS fictício emitido" in first.get(company_url).content.decode()
-    assert "DAS fictício emitido" not in second.get(company_url).content.decode()
+    issued_page = first.get(company_url).content.decode()
+    assert "DAS fictício pronto" in issued_page
+    assert "Baixar DAS fictício" in issued_page
+    assert "DAS fictício pronto" not in second.get(company_url).content.decode()
+    demo_pdf = reverse(
+        "hub:demo-parcelamento-das-pdf",
+        args=[company.id, synthetic.number, available.competence_key],
+    )
+    pdf_response = first.get(demo_pdf)
+    assert pdf_response.status_code == 200
+    assert pdf_response["Content-Type"] == "application/pdf"
+    assert pdf_response.content.startswith(b"%PDF")
+    assert pdf_response["Cache-Control"] == "private, no-store"
+    assert second.get(demo_pdf).status_code == 404
+    assert ParcelamentoOperation.objects.count() == operation_count
+
+
+@override_settings(DEBUG=True)
+@pytest.mark.parametrize("role", ["owner", "auditor"])
+def test_demo_member_bulk_actions_preserve_permissions_and_shared_data(role):
+    _seed()
+    member = Membership.objects.get(organization__slug="escritorio-demo", role="owner")
+    member.role = role
+    member.save(update_fields=["role"])
+    company = ClientCompany.objects.filter(organization=member.organization, active=True).first()
+    assert company is not None
+    client = Client()
+    client.force_login(member.user)
+    session = client.session
+    session["hub_organization_id"] = str(member.organization_id)
+    session.save()
+    before = (ParcelamentoOperation.objects.count(), DctfWebDocument.objects.count())
+    with (
+        patch("apps.hub.views.request_parcelamento_operation") as parcels,
+        patch("apps.hub.views.request_dctfweb_document") as documents,
+    ):
+        result = client.post(
+            reverse("hub:parcelamentos"),
+            {"action": "consult_selected", "selected_company": [str(company.pk)]},
+        )
+        bulk = client.post(
+            reverse("hub:dctfweb-bulk-consult"),
+            {
+                "step": "confirm",
+                "kind": DctfWebDocument.Kind.RECEIPT,
+                "targets": [f"{company.pk}|09/2026"],
+                "approved_overage_cents": "0",
+            },
+        )
+        assert result.status_code == (302 if role == "owner" else 403)
+        assert bulk.status_code == (302 if role == "owner" else 403)
+        parcels.assert_not_called()
+        documents.assert_not_called()
+    assert before == (ParcelamentoOperation.objects.count(), DctfWebDocument.objects.count())
+    progress = client.session.get("demo_progress", {})
+    if role == "owner":
+        assert str(company.pk) in progress["parcelamento_consultations"]
+        assert f"receipt:{company.pk}:09/2026" in progress["dctfweb_bulk"]
+    else:
+        assert not progress
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+@pytest.mark.parametrize("entry_mode", ["public", "member", "auditor"])
+def test_demo_individual_dctfweb_is_session_local(entry_mode):
+    _seed()
+    member = Membership.objects.get(organization__slug="escritorio-demo", role="owner")
+    company = ClientCompany.objects.filter(organization=member.organization, active=True).first()
+    assert company is not None
+    clients = [Client(REMOTE_ADDR=f"198.51.100.{value}") for value in (41, 42)]
+    if entry_mode == "public":
+        for client in clients:
+            assert client.post(reverse("hub:demo-entry")).status_code == 302
+    else:
+        if entry_mode == "auditor":
+            member.role = "auditor"
+            member.save(update_fields=["role"])
+        for client in clients:
+            client.force_login(member.user)
+            session = client.session
+            session["hub_organization_id"] = str(member.organization_id)
+            session.save()
+    first, second = clients
+    assert "Emita uma guia fictícia" in first.get(reverse("hub:guides")).content.decode()
+    url = reverse("hub:dctfweb-consult")
+    params = {"company": str(company.pk), "competence": "09/2026"}
+    before = DctfWebDocument.objects.count()
+    assert "Resultado fictício pronto." not in first.get(url, params).content.decode()
+    with patch("apps.hub.views.request_dctfweb_document") as service:
+        result = first.post(url, {**params, "kind": "receipt", "approved_overage_cents": "0"})
+        assert result.status_code == (403 if entry_mode == "auditor" else 302)
+        service.assert_not_called()
+        for invalid in ("13/2026", "09/0000", "2026-09", ""):
+            response = first.post(url, {**params, "competence": invalid, "kind": "receipt"})
+            assert response.status_code == 302
+        service.assert_not_called()
+    assert DctfWebDocument.objects.count() == before
+    page = first.get(url, params).content.decode()
+    assert ("Resultado fictício pronto." in page) == (entry_mode != "auditor")
+    assert "Resultado fictício pronto." not in second.get(url, params).content.decode()
+    if entry_mode == "auditor":
+        assert "Simular declaração completa" not in page
 
 
 @override_settings(
@@ -320,8 +509,14 @@ def test_demo_nfse_review_decision_is_private_to_session() -> None:
     assert decided.status_code == 302
     assert "DEMO-1042" in first.get(detail).content.decode()
     assert "Registrar acumulador conferido" in second.get(detail).content.decode()
-    assert review.id not in {item.id for item in first.get(reverse("hub:reviews")).context["cases"]}
-    assert review.id in {item.id for item in second.get(reverse("hub:reviews")).context["cases"]}
+    first_rows = first.get(reverse("hub:nfse-center"), {"status": "unclassified"}).context[
+        "document_rows"
+    ]
+    second_rows = second.get(reverse("hub:nfse-center"), {"status": "unclassified"}).context[
+        "document_rows"
+    ]
+    assert review.id not in {row["review"].id for row in first_rows if row["review"] is not None}
+    assert review.id in {row["review"].id for row in second_rows if row["review"] is not None}
     first_pending = first.get(reverse("hub:dashboard")).context["stats"]["pending"]
     second_pending = second.get(reverse("hub:dashboard")).context["stats"]["pending"]
     assert first_pending == second_pending - 1
@@ -338,7 +533,13 @@ def test_demo_nfse_review_decision_is_private_to_session() -> None:
 )
 def test_demo_nfse_collection_progress_is_private_to_session() -> None:
     _seed()
-    company = ClientCompany.objects.filter(organization__is_demo=True, active=True).first()
+    certificate = Certificate.objects.filter(
+        organization__is_demo=True,
+        revoked_at__isnull=True,
+        valid_until__gt=timezone.now(),
+    ).select_related("company").first()
+    assert certificate is not None
+    company = certificate.company
     assert company is not None
     initial_sync_count = NfseSync.objects.count()
     first, second = Client(REMOTE_ADDR="198.51.100.41"), Client(REMOTE_ADDR="198.51.100.42")
@@ -354,8 +555,112 @@ def test_demo_nfse_collection_progress_is_private_to_session() -> None:
 
     assert activated.status_code == 302
     assert "Aguardando" in first.get(center, {"view": "collection"}).content.decode()
-    assert "Não configurada" in second.get(center, {"view": "collection"}).content.decode()
+    assert "SIMULAÇÃO DE COLETA" in second.get(
+        center, {"view": "collection"}
+    ).content.decode()
+    first_page = first.get(center, {"view": "collection"}).content.decode()
+    assert "SIMULAÇÃO DE COLETA" in first_page
+    assert "COLETA AUTOMÁTICA · PRODUÇÃO" not in first_page
+
+    assert first.post(
+        center + "?view=collection",
+        {"action": "pause", "companies": [str(company.id)]},
+    ).status_code == 302
+    first_queue = first.get(reverse("hub:nfse-queue-status")).json()
+    second_queue = second.get(reverse("hub:nfse-queue-status")).json()
+    first_states = {item["company_id"]: item["state"] for item in first_queue["items"]}
+    second_states = {item["company_id"]: item["state"] for item in second_queue["items"]}
+    assert first_states[str(company.id)] == "paused"
+    assert second_states[str(company.id)] != "paused"
+    assert first_queue["simulated"] is True
     assert NfseSync.objects.count() == initial_sync_count
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+def test_demo_nfse_collection_does_not_activate_a_company_without_a_valid_a1() -> None:
+    _seed()
+    company = (
+        ClientCompany.objects.filter(organization__is_demo=True, active=True)
+        .exclude(
+            id__in=Certificate.objects.filter(
+                organization__is_demo=True,
+                revoked_at__isnull=True,
+                valid_until__gt=timezone.now(),
+            ).values("company_id")
+        )
+        .first()
+    )
+    assert company is not None
+    client = Client(REMOTE_ADDR="198.51.100.43")
+    assert client.post(reverse("hub:demo-entry")).status_code == 302
+
+    response = client.post(
+        reverse("hub:nfse-center") + "?view=collection",
+        {"action": "activate", "companies": [str(company.id)]},
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert "precisa de A1 válido antes de ativar a coleta" in response.content.decode()
+    session_state = client.session.get("demo_progress", {}).get("nfse_syncs", {})
+    assert str(company.id) not in session_state
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+def test_demo_nfse_retry_is_session_local_and_never_dispatches_the_real_sync() -> None:
+    _seed()
+    certificate = Certificate.objects.filter(
+        organization__is_demo=True,
+        revoked_at__isnull=True,
+        valid_until__gt=timezone.now(),
+    ).select_related("organization", "company").first()
+    assert certificate is not None
+    sync, _created = NfseSync.objects.update_or_create(
+        organization=certificate.organization,
+        company=certificate.company,
+        defaults={
+            "certificate": certificate,
+            "enabled": True,
+            "status": NfseSync.Status.ERROR,
+            "last_error_message": "Falha fictícia",
+        },
+    )
+    first, second = Client(REMOTE_ADDR="198.51.100.44"), Client(REMOTE_ADDR="198.51.100.45")
+    entry = reverse("hub:demo-entry")
+    assert first.post(entry).status_code == 302
+    assert second.post(entry).status_code == 302
+
+    with patch("apps.hub.tasks.dispatch_active_nfse_syncs.delay") as dispatch:
+        retried = first.post(
+            reverse("hub:nfse-queue-retry"),
+            {"company_id": str(certificate.company_id)},
+        )
+
+    assert retried.status_code == 200
+    assert retried.json() == {"changed": 1}
+    dispatch.assert_not_called()
+    sync.refresh_from_db()
+    assert sync.status == NfseSync.Status.ERROR
+    first_states = {
+        item["company_id"]: item["state"]
+        for item in first.get(reverse("hub:nfse-queue-status")).json()["items"]
+    }
+    second_states = {
+        item["company_id"]: item["state"]
+        for item in second.get(reverse("hub:nfse-queue-status")).json()["items"]
+    }
+    assert first_states[str(certificate.company_id)] == "queued"
+    assert second_states[str(certificate.company_id)] == "failed"
 
 
 @override_settings(
@@ -382,11 +687,39 @@ def test_demo_nfse_bulk_download_builds_the_selected_dominio_folder() -> None:
     assert response["Content-Type"] == "application/zip"
     body = b"".join(response.streaming_content)
     with zipfile.ZipFile(io.BytesIO(body)) as archive:
-        xml_path = f"Tomadas/{document.company.dominio_code} -/NFS-e-{document.source_nsu}.xml"
+        company_folder = nfse_company_archive_folder(
+            root="Tomadas",
+            dominio_code=document.company.dominio_code,
+        )
+        xml_path = f"{company_folder}/NFS-e-{document.source_nsu}.xml"
         assert archive.namelist() == [xml_path, "manifesto-classificacao.csv"]
         assert archive.read(xml_path) == document.original_xml.encode()
         manifest = archive.read("manifesto-classificacao.csv").decode("utf-8-sig")
         assert "Transitória;Transitória sem acumulador" in manifest
+
+
+@override_settings(DEBUG=True, DEMO_ORGANIZATION_SLUG="escritorio-demo")
+def test_demo_office_owner_can_use_the_download_shown_by_the_interface() -> None:
+    _seed()
+    organization = Organization.objects.get(slug="escritorio-demo")
+    owner = User.objects.get(email="demo@hubcontador.local")
+    document = NfseDocument.objects.filter(organization=organization).first()
+    assert document is not None
+    client = Client()
+    client.force_login(owner)
+    session = client.session
+    session["hub_organization_id"] = str(organization.id)
+    session.save()
+
+    page = client.get(reverse("hub:nfse-center"), {"status": "all"})
+    response = client.post(
+        reverse("hub:nfse-center"),
+        {"action": "demo_download_selected", "documents": [str(document.id)]},
+    )
+
+    assert "Baixar selecionadas (ZIP)" in page.content.decode()
+    assert response.status_code == 200
+    assert response["Content-Type"] == "application/zip"
 
 
 @override_settings(
@@ -429,23 +762,48 @@ def test_demo_nfse_bulk_download_includes_all_and_marks_manual_accumulator() -> 
     DEMO_SESSION_ISOLATION_READY=True,
     DEMO_ORGANIZATION_SLUG="escritorio-demo",
 )
-def test_demo_reconciliation_confirmation_is_private_to_session() -> None:
+@pytest.mark.parametrize("entry_mode", ["public", "member", "auditor"])
+def test_demo_reconciliation_confirmation_is_private_to_session(entry_mode) -> None:
     _seed()
     first, second = Client(REMOTE_ADDR="198.51.100.25"), Client(REMOTE_ADDR="198.51.100.26")
     entry = reverse("hub:demo-entry")
-    assert first.post(entry).status_code == 302
-    assert second.post(entry).status_code == 302
+    if entry_mode == "public":
+        assert first.post(entry).status_code == 302
+        assert second.post(entry).status_code == 302
+    else:
+        member = Membership.objects.get(organization__is_demo=True, role="owner")
+        if entry_mode == "auditor":
+            member.role = Membership.Role.AUDITOR
+            member.save(update_fields=["role"])
+        for browser in (first, second):
+            browser.force_login(member.user)
+            session = browser.session
+            session["hub_organization_id"] = str(member.organization_id)
+            session.save()
     center = reverse("hub:reconciliation")
     first_page = first.get(center)
     assert first_page.status_code == 200
     assert "Sem dados bancários reais" in first_page.content.decode()
+    assert 'id="visao-geral"' not in first_page.content.decode()
+    assert "normalized_movements" not in first_page.context
+    empty = first.get(center, {"q": "nenhum-correspondente-qa"})
+    assert "Nenhum lançamento corresponde aos filtros" in empty.content.decode()
+    assert "Sem extratos OFX" not in empty.content.decode()
     match = first_page.context["matches"][0]
     candidate = match.candidates[0]
 
-    confirmed = first.post(
-        reverse("hub:confirm-reconciliation", args=[match.id]),
-        {"dominio_entry_id": candidate.id},
-    )
+    with patch("apps.hub.views.confirm_reconciliation_match") as shared_write:
+        confirmed = first.post(
+            reverse("hub:confirm-reconciliation", args=[match.id]),
+            {"dominio_entry_id": candidate.id},
+        )
+        shared_write.assert_not_called()
+    if entry_mode == "auditor":
+        assert confirmed.status_code == 403
+        assert "Comparar candidatos" not in first_page.content.decode()
+        assert "Apenas consulta" in first_page.content.decode()
+        assert not first.session.get("demo_progress", {}).get("reconciliation")
+        return
     assert confirmed.status_code == 302
     first_matches = first.get(f"{center}?status=all").context["matches"]
     second_matches = second.get(f"{center}?status=all").context["matches"]
@@ -469,7 +827,7 @@ def test_demo_reform_radar_uses_labeled_synthetic_alerts_without_persisting() ->
     assert page.status_code == 200
     assert page.context["radar_demo"] is True
     assert page.context["alert_total"] == 3
-    assert "Alertas de exemplo" in page.content.decode()
+    assert "Cenário demonstrativo" in page.content.decode()
     assert "Exemplo fictício" in page.content.decode()
     assert not ReformAlert.objects.exists()
     filtered = browser.get(reverse("hub:reform"), {"q": "IBS"})
@@ -601,7 +959,8 @@ def test_demo_copilot_conversation_is_private_to_browser_session() -> None:
     DEMO_SESSION_ISOLATION_READY=True,
     DEMO_ORGANIZATION_SLUG="escritorio-demo",
 )
-def test_demo_reconciliation_never_receives_shared_files() -> None:
+@pytest.mark.parametrize("entry_mode", ["public", "member"])
+def test_demo_reconciliation_never_receives_shared_files(entry_mode) -> None:
     from django.core.files.uploadedfile import SimpleUploadedFile
 
     from apps.hub.models import ReconciliationSourceFile
@@ -610,7 +969,14 @@ def test_demo_reconciliation_never_receives_shared_files() -> None:
     company = ClientCompany.objects.filter(organization__is_demo=True, active=True).first()
     assert company is not None
     browser = Client(REMOTE_ADDR="198.51.100.28")
-    assert browser.post(reverse("hub:demo-entry")).status_code == 302
+    if entry_mode == "public":
+        assert browser.post(reverse("hub:demo-entry")).status_code == 302
+    else:
+        member = Membership.objects.get(organization=company.organization, role="owner")
+        browser.force_login(member.user)
+        session = browser.session
+        session["hub_organization_id"] = str(company.organization_id)
+        session.save()
     before = ReconciliationSourceFile.objects.filter(organization__is_demo=True).count()
 
     page = browser.get(reverse("hub:reconciliation")).content.decode()
@@ -626,3 +992,51 @@ def test_demo_reconciliation_never_receives_shared_files() -> None:
     assert 'id="reconciliation-upload-dialog"' not in page
     assert refused.status_code == 403
     assert ReconciliationSourceFile.objects.filter(organization__is_demo=True).count() == before
+
+
+@override_settings(
+    DEBUG=True,
+    DEMO_ENTRY_ENABLED=True,
+    DEMO_SESSION_ISOLATION_READY=True,
+    DEMO_ORGANIZATION_SLUG="escritorio-demo",
+)
+@pytest.mark.parametrize("entry_mode", ["public", "member", "auditor"])
+def test_demo_reconciliation_advanced_routes_are_closed_before_data_access(entry_mode, subtests):
+    from apps.hub.urls import urlpatterns
+
+    _seed()
+    office = Organization.objects.get(slug="escritorio-demo")
+    browser = Client(REMOTE_ADDR="198.51.100.29")
+    if entry_mode == "public":
+        assert browser.post(reverse("hub:demo-entry")).status_code == 302
+    else:
+        member = Membership.objects.get(organization=office, role="owner")
+        if entry_mode == "auditor":
+            member.role = "auditor"
+            member.save(update_fields=["role"])
+        browser.force_login(member.user)
+        session = browser.session
+        session["hub_organization_id"] = str(office.id)
+        session.save()
+
+    # Discover the entire advanced route family so newly added endpoints cannot
+    # silently escape the same boundary. The two session-backed routes are separate.
+    routes = [
+        route for route in urlpatterns if route.callback.__name__.startswith("reconciliation_")
+    ]
+    assert len(routes) >= 12
+    for route in routes:
+        kwargs = {name: "00000000-0000-4000-8000-000000000001" for name in route.pattern.converters}
+        url = reverse(f"hub:{route.name}", kwargs=kwargs)
+        for method in ("get", "post"):
+            with subtests.test(route=route.name, method=method):
+                with patch("apps.hub.views._module_page_context") as module_context:
+                    response = getattr(browser, method)(url)
+                module_context.assert_not_called()
+                assert response.status_code == 403
+                body = response.content.decode()
+                assert "somente a comparação fictícia" in body
+                assert "Voltar à conciliação demo" in body
+                assert f'href="{reverse("hub:reconciliation")}"' in body
+                assert "Abrir integrações" not in body
+    assert browser.get(reverse("hub:reconciliation")).status_code == 200

@@ -3,7 +3,15 @@
 
 {% block platform_content %}
 <section class="tenant-overview">
-  <div><p class="breadcrumb"><a href="{% url 'platform:tenants' %}">Escritórios</a></p><h1>{{ tenant.name }}</h1></div>
+  <div>
+    <p class="breadcrumb"><a href="{% url 'platform:tenants' %}">Escritórios</a></p>
+    <h1>{{ tenant.name }}</h1>
+    <div class="tenant-status-line" aria-label="Resumo do escritório">
+      <span class="status-badge {% if lifecycle.state == 'active' %}is-active{% elif lifecycle.state == 'suspended' or lifecycle.state == 'archived' %}is-danger{% else %}is-warning{% endif %}">{{ lifecycle.get_state_display }}</span>
+      {% if tenant.is_internal_test_partner %}<span>Parceiro interno</span>{% endif %}
+      <span>{% if contract %}{{ contract.get_status_display }}{% else %}Sem contrato{% endif %}</span>
+    </div>
+  </div>
   {% if can_start_support %}
     <form method="post" action="{% url 'platform:start-support' tenant.id %}">
       {% csrf_token %}
@@ -13,6 +21,7 @@
   {% endif %}
 </section>
 
+<div class="tenant-settings-grid">
 <section class="panel systems-panel">
   {% if managed_by_crmew %}
     <header class="panel-header"><div><h2>Sistemas</h2><p>Definidos pelo controle central da Mewstack para este escritório.</p></div></header>
@@ -38,36 +47,53 @@
       </fieldset>
     </form>
   {% endif %}
-</section>
+  </section>
 
-{% if can_manage_internal_test_partner %}
-<section class="panel access-panel internal-test-panel" aria-labelledby="internal-test-partner-title">
-  <header class="panel-header"><div><h2 id="internal-test-partner-title">Parceiro interno de homologação</h2><p>{% if tenant.is_internal_test_partner %}Acesso operacional ativo sem contrato comercial.{% else %}Ainda segue o fluxo comercial normal.{% endif %}</p></div><span class="status-badge {% if tenant.is_internal_test_partner %}is-active{% else %}is-muted{% endif %}">{% if tenant.is_internal_test_partner %}Interno ativo{% else %}Não configurado{% endif %}</span></header>
-  <p class="settings-note">Esta condição não cria contrato, cobrança, assinatura, franquia paga, credencial ou chamada externa.</p>
-  {% if tenant.is_internal_test_partner %}
-    <form method="post" class="internal-test-action">
-      {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner">
-      <label class="checkbox-field" for="confirm-internal-test-partner"><input id="confirm-internal-test-partner" name="confirm_internal_test_partner" type="checkbox" required><span>Confirmo o encerramento do acesso interno e o retorno à ativação comercial pendente.</span></label>
-      <button class="button button-quiet button-small" type="submit">Encerrar acesso interno</button>
-    </form>
-  {% else %}
-    <form method="post" class="internal-test-action">
-      {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner"><input type="hidden" name="internal_test_partner" value="on">
-      <button class="button button-small" type="submit">Ativar acesso interno</button>
-    </form>
-  {% endif %}
-</section>
-{% endif %}
+  <section class="panel tenant-admin-panel" aria-labelledby="tenant-admin-title">
+    <header class="panel-header"><div><h2 id="tenant-admin-title">Administração</h2><p>Acesso, contrato e operação.</p></div></header>
+    <div class="tenant-setting-list">
+      <div class="tenant-setting-row">
+        <div><strong>Equipe</strong><span>Convites e permissões</span></div>
+        <button class="button button-small" type="button" data-modal-open="invite-dialog">Adicionar pessoa</button>
+      </div>
+      {% if can_edit_contract %}
+      <div class="tenant-setting-row">
+        <div><strong>Comercial</strong><span>{% if contract %}{{ contract.get_status_display }}{% else %}Sem contrato{% endif %}{% if can_manage_billing %} · {{ invoice_total }} cobrança{{ invoice_total|pluralize }}{% endif %}</span></div>
+        <div class="tenant-setting-actions"><button class="button button-quiet button-small" type="button" data-modal-open="contract-dialog">Contrato</button>{% if contract %}<button class="button button-quiet button-small" type="button" data-modal-open="rate-dialog">Consumo</button>{% endif %}</div>
+      </div>
+      {% endif %}
+      {% if can_move_lifecycle %}
+      <div class="tenant-setting-row">
+        <div><strong>Operação</strong><span>{{ lifecycle.get_state_display }}</span></div>
+        {% if lifecycle_targets %}<button class="button button-quiet button-small" type="button" data-modal-open="lifecycle-dialog">Alterar</button>{% endif %}
+      </div>
+      {% endif %}
+    </div>
 
-<section class="panel access-panel">
-  <header class="panel-header"><div><h2>Acessos</h2><p>Convide pessoas para este escritório.</p></div><button class="button button-small" type="button" data-modal-open="invite-dialog">Adicionar acesso</button></header>
-</section>
+    {% if can_manage_internal_test_partner %}
+    <details class="tenant-setting-disclosure"{% if tenant.is_internal_test_partner %} open{% endif %}>
+      <summary><span><strong>Homologação interna</strong><small>{% if tenant.is_internal_test_partner %}Ativa, sem cobrança{% else %}Desativada{% endif %}</small></span><span aria-hidden="true">⌄</span></summary>
+      <div class="tenant-setting-disclosure-body">
+        <p>Libera a operação sem criar contrato, cobrança ou chamada externa.</p>
+        {% if tenant.is_internal_test_partner %}
+          <form method="post" class="internal-test-action">
+            {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner">
+            <label class="checkbox-field" for="confirm-internal-test-partner"><input id="confirm-internal-test-partner" name="confirm_internal_test_partner" type="checkbox" required><span>Confirmo que o acesso voltará à ativação pendente.</span></label>
+            <button class="button button-quiet button-small" type="submit">Encerrar acesso interno</button>
+          </form>
+        {% else %}
+          <form method="post" class="internal-test-action">
+            {% csrf_token %}<input type="hidden" name="action" value="internal-test-partner"><input type="hidden" name="internal_test_partner" value="on">
+            <button class="button button-small" type="submit">Ativar acesso interno</button>
+          </form>
+        {% endif %}
+      </div>
+    </details>
+    {% endif %}
+  </section>
+</div>
 
 {% if can_edit_contract %}
-<section class="panel access-panel">
-  <header class="panel-header"><div><h2>Contrato</h2><p>{% if contract %}{{ contract.get_status_display }}{% else %}Ainda não definido{% endif %}</p></div><button class="button button-small" type="button" data-modal-open="contract-dialog">Editar</button></header>
-  {% if contract %}<p><button class="button button-quiet button-small" type="button" data-modal-open="rate-dialog">Consumo</button></p>{% endif %}
-</section>
 
 {% if contract %}<div id="rate-dialog" class="modal-backdrop" data-modal {% if not rate_form.errors %}hidden{% endif %}><section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="rate-title"><header class="modal-head"><h2 id="rate-title">Consumo</h2><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><form method="post" class="form-stack">{% csrf_token %}<input type="hidden" name="action" value="service-rate">{% for field in rate_form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar consumo</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form></section></div>{% endif %}
 
@@ -102,13 +128,7 @@
 </div>
 {% endif %}
 
-{% if can_move_lifecycle %}
-<section class="panel access-panel lifecycle-panel" aria-labelledby="lifecycle-heading">
-  <header class="panel-header"><div><h2 id="lifecycle-heading">Acesso operacional</h2><p><strong>{{ lifecycle.get_state_display }}</strong>{% if lifecycle.reason %} · {{ lifecycle.reason }}{% endif %}</p></div>{% if lifecycle_targets %}<button class="button button-small" type="button" data-modal-open="lifecycle-dialog">Alterar acesso</button>{% endif %}</header>
-  <p class="settings-note">A cobrança interna não altera este estado. Registre o pagamento e libere o acesso separadamente, quando cabível.</p>
-</section>
-
-{% if lifecycle_targets %}
+{% if can_move_lifecycle and lifecycle_targets %}
 <div id="lifecycle-dialog" class="modal-backdrop" data-modal hidden>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="lifecycle-title">
     <header class="modal-head"><div><h2 id="lifecycle-title">Alterar acesso operacional</h2><p>Esta mudança fica registrada na trilha de auditoria.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
@@ -122,26 +142,32 @@
   </section>
 </div>
 {% endif %}
-{% endif %}
 
-{% if can_manage_billing %}
+{% if can_manage_billing and recent_invoices %}
 <section class="panel access-panel" aria-labelledby="billing-title">
   <header class="panel-header"><div><h2 id="billing-title">Cobrança interna</h2><p>Registro da cobrança tratada fora da CICA.</p></div><span class="record-count">{{ invoice_total }} cobrança{{ invoice_total|pluralize }}</span></header>
-  {% if recent_invoices %}
-    <div class="data-table-wrap"><table><thead><tr><th>Competência</th><th>Vencimento</th><th>Total</th><th>Status</th><th>Atualizar</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.period_start|date:"m/Y" }}</td><td>{{ invoice.due_on|date:"d/m/Y" }}</td><td>R$ {{ invoice.total_brl|floatformat:2 }}</td><td>{{ invoice.get_status_display }}</td><td><form method="post" class="invoice-status-form">{% csrf_token %}<input type="hidden" name="action" value="invoice-status"><input type="hidden" name="invoice_id" value="{{ invoice.id }}"><select id="invoice-status-{{ invoice.id }}" name="status" autocomplete="off" aria-label="Status da cobrança {{ invoice.period_start|date:"m/Y" }}">{% for value, label in invoice_status_choices %}<option value="{{ value }}"{% if invoice.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button button-quiet button-small" type="submit">Registrar</button></form></td></tr>{% endfor %}</tbody></table></div>
-    {% if invoice_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do histórico de cobrança">{% if invoice_page.has_previous %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ invoice_page.number }} de {{ invoice_page.paginator.num_pages }}</span>{% if invoice_page.has_next %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
-  {% else %}<p class="settings-note">Sem registros de cobrança para este escritório.</p>{% endif %}
+  <div class="data-table-wrap"><table><thead><tr><th scope="col">Competência</th><th scope="col">Vencimento</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Atualizar</th></tr></thead><tbody>{% for invoice in recent_invoices %}<tr><td>{{ invoice.period_start|date:"m/Y" }}</td><td>{{ invoice.due_on|date:"d/m/Y" }}</td><td>R$ {{ invoice.total_brl|floatformat:2 }}</td><td>{{ invoice.get_status_display }}</td><td><form method="post" class="invoice-status-form">{% csrf_token %}<input type="hidden" name="action" value="invoice-status"><input type="hidden" name="invoice_id" value="{{ invoice.id }}"><select id="invoice-status-{{ invoice.id }}" name="status" autocomplete="off" aria-label="Status da cobrança {{ invoice.period_start|date:"m/Y" }}">{% for value, label in invoice_status_choices %}<option value="{{ value }}"{% if invoice.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="button button-quiet button-small" type="submit">Registrar</button></form></td></tr>{% endfor %}</tbody></table></div>
+  {% if invoice_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do histórico de cobrança">{% if invoice_page.has_previous %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ invoice_page.number }} de {{ invoice_page.paginator.num_pages }}</span>{% if invoice_page.has_next %}<a class="button button-quiet button-small" href="?{% if invoice_querystring %}{{ invoice_querystring }}&amp;{% endif %}invoice_page={{ invoice_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
 </section>
 {% endif %}
 
 {% if can_edit_fallback %}
-<section class="panel access-panel">
-  <header class="panel-header"><div><h2>Uso Claude do Copiloto</h2><p>{% if managed_by_crmew %}Política definida pelo controle central da Mewstack.{% elif fallback_settings and fallback_settings.claude_fallback_enabled %}Permitido com limites e perfis deste escritório.{% else %}Desabilitado.{% endif %}</p></div><div class="panel-actions">{% if not managed_by_crmew %}<button class="button button-small" type="button" data-modal-open="fallback-dialog">Configurar</button>{% endif %}</div></header>
-</section>
-
-<section class="panel access-panel">
-  <header class="panel-header"><div><h2>Retenção do Copiloto</h2><p>{{ retention_form.initial.retention_days }} dias para conversas elegíveis.</p></div><button class="button button-quiet button-small" type="button" data-modal-open="retention-dialog">Editar</button></header>
-</section>
+<details class="panel tenant-advanced"{% if fallback_form.errors or retention_form.errors %} open{% endif %}>
+  <summary>
+    <span><strong>Configurações avançadas</strong><small>Copiloto e retenção de dados</small></span>
+    <span class="tenant-advanced-state">{% if fallback_settings and fallback_settings.claude_fallback_enabled %}Claude ativo{% else %}Claude desativado{% endif %} · {{ retention_form.initial.retention_days }} dias</span>
+  </summary>
+  <div class="tenant-setting-list">
+    <div class="tenant-setting-row">
+      <div><strong>Uso externo pelo Copiloto</strong><span>{% if managed_by_crmew %}Definido pelo controle central{% elif fallback_settings and fallback_settings.claude_fallback_enabled %}Permitido com limites{% else %}Desativado{% endif %}</span></div>
+      {% if not managed_by_crmew %}<button class="button button-quiet button-small" type="button" data-modal-open="fallback-dialog">Configurar</button>{% endif %}
+    </div>
+    <div class="tenant-setting-row">
+      <div><strong>Retenção de conversas</strong><span>{{ retention_form.initial.retention_days }} dias</span></div>
+      <button class="button button-quiet button-small" type="button" data-modal-open="retention-dialog">Alterar</button>
+    </div>
+  </div>
+</details>
 
 <div id="retention-dialog" class="modal-backdrop" data-modal {% if not retention_form.errors %}hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="retention-title">
@@ -175,18 +201,16 @@
 {% endif %}
 
 
-{% if can_inspect_egress %}
+{% if can_inspect_egress and egress_attention_total %}
 <section class="panel access-panel" aria-labelledby="claude-attention-title">
   <header class="panel-header"><div><h2 id="claude-attention-title">Tentativas Claude para verificar</h2><p>Chamadas sem conclusão confirmada. Confira o protocolo com o provedor antes de decidir sobre qualquer ajuste de consumo.</p></div><span class="record-count">{{ egress_attention_total }} tentativa{{ egress_attention_total|pluralize:"s" }}</span></header>
-  {% if egress_attention %}
-    <div class="data-table-wrap"><table><thead><tr><th scope="col">Quando</th><th scope="col">Tentativa CICA</th><th scope="col">Resposta da API</th><th scope="col">Estado</th><th scope="col">Reserva</th></tr></thead><tbody>
+  <div class="data-table-wrap"><table><thead><tr><th scope="col">Quando</th><th scope="col">Tentativa CICA</th><th scope="col">Resposta da API</th><th scope="col">Estado</th><th scope="col">Reserva</th></tr></thead><tbody>
       {% for attempt in egress_attention %}
       <tr><td>{{ attempt.created_at|date:"d/m/Y H:i" }}</td><td><span class="egress-reference" translate="no">{{ attempt.id }}</span></td><td>{% if attempt.provider_request_id %}<span class="egress-reference" translate="no">{{ attempt.provider_request_id }}</span>{% if attempt.provider_http_status %} · HTTP {{ attempt.provider_http_status }}{% endif %}{% else %}Sem resposta HTTP registrada{% endif %}</td><td>{{ attempt.get_call_state_display }}</td><td>{% if attempt.usage_event %}{{ attempt.usage_event.get_status_display }}{% else %}Sem vínculo de consumo{% endif %}</td></tr>
       {% endfor %}
     </tbody></table></div>
     <p class="settings-note">Mostrando as tentativas que precisam de verificação. O identificador da API permite pedir confirmação ao suporte da Anthropic.</p>
-    {% if egress_attention_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das tentativas Claude para verificar">{% if egress_attention_page.has_previous %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.previous_page_number }}#claude-attention-title" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ egress_attention_page.number }} de {{ egress_attention_page.paginator.num_pages }}</span>{% if egress_attention_page.has_next %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.next_page_number }}#claude-attention-title" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
-  {% else %}<p class="settings-note">Nenhuma tentativa Claude pendente de verificação neste escritório.</p>{% endif %}
+  {% if egress_attention_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das tentativas Claude para verificar">{% if egress_attention_page.has_previous %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.previous_page_number }}#claude-attention-title" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ egress_attention_page.number }} de {{ egress_attention_page.paginator.num_pages }}</span>{% if egress_attention_page.has_next %}<a class="button button-quiet button-small" href="?{% if egress_attention_querystring %}{{ egress_attention_querystring }}&amp;{% endif %}egress_page={{ egress_attention_page.next_page_number }}#claude-attention-title" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
 </section>
 {% endif %}
 
@@ -196,15 +220,23 @@
     <form method="post" class="form-stack">
       {% csrf_token %}
       <input type="hidden" name="action" value="invite">
-      {% if invite_form.errors %}<div class="form-errors" data-form-errors role="alert" tabindex="-1">Revise os campos destacados.</div>{% endif %}
+      {% if invite_form.errors %}
+      <div class="form-errors" data-form-errors role="alert" tabindex="-1" aria-labelledby="invite-errors-title">
+        <strong id="invite-errors-title">Não foi possível enviar o convite.</strong>
+        {% for error in invite_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        {% for field in invite_form %}
+          {% if field.errors %}<a href="#{{ field.id_for_label }}">Confira {{ field.label|lower }}.</a>{% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
       {% for field in invite_form %}
         <div class="field">
           <label for="{{ field.id_for_label }}">{{ field.label }}</label>
           {{ field }}
-          {% if field.errors %}<p class="field-error">{{ field.errors|striptags }}</p>{% endif %}
+          {% if field.errors %}<p class="field-error" id="{{ field.id_for_label }}-error">{{ field.errors|striptags }}</p>{% endif %}
         </div>
       {% endfor %}
-      <div class="modal-actions"><button class="button" type="submit">Gerar convite</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+      <div class="modal-actions"><button class="button" type="submit">Enviar convite</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
     </form>
   </section>
 </div>

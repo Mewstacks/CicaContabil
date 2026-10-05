@@ -6,7 +6,7 @@
 
 - Redirecionamento HTTPS, cookies Secure/HTTP-only/SameSite, HSTS, hosts/origens restritos, CSRF,
   escaping XSS, proteção contra clickjacking, MIME sniffing, referrer policy e CSP.
-- Senhas Argon2 com mínimo de 12 caracteres, bloqueio de tentativas, erros genéricos e throttling
+- Senhas Argon2 com mínimo de 8 caracteres, bloqueio de tentativas, erros genéricos e throttling
   compartilhado no Redis.
 - django-axes normaliza a conta atacada e recebe o request original. Throttles por IP ignoram
   `X-Forwarded-For` informado pelo cliente e usam somente o IP validado pelo backend.

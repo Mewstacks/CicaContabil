@@ -9,7 +9,7 @@ from apps.intelligence.models import ChatAttachment, Conversation, Message
 from apps.intelligence.services import prior_attachment_cards
 from apps.intelligence.tasks import analyze_attachment_task, retry_pending_attachments_task
 from apps.organizations.models import Organization
-from apps.platform.models import PlatformConfiguration
+from apps.platform.models import OperationalRun, PlatformConfiguration
 
 
 class AttachmentAnalysisTaskTests(TestCase):
@@ -99,3 +99,11 @@ class AttachmentAnalysisTaskTests(TestCase):
 
         self.assertEqual(result, {"scheduled": 1})
         mocked_delay.assert_called_once_with(str(attachment.id))
+
+    def test_disabled_periodic_retry_does_not_write_an_operational_run(self) -> None:
+        result = retry_pending_attachments_task.run()
+
+        self.assertEqual(result, {"scheduled": 0})
+        self.assertFalse(
+            OperationalRun.objects.filter(task=OperationalRun.Task.RETRY_ATTACHMENTS).exists()
+        )

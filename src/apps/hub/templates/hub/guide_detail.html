@@ -1,24 +1,77 @@
 {% extends 'hub/workspace.html' %}
 {% load ui_navigation %}
-{% block extra_head %}{{ block.super }}{% load static %}<link rel="stylesheet" href="{% static 'hub/guide-history.css' %}">{% endblock %}
+{% block extra_head %}{{ block.super }}{% load static %}<link rel="stylesheet" href="{% static 'hub/guide-history.css' %}?v=2">{% endblock %}
 {% block page_action %}<a class="button button-quiet" href="{% back_url 'hub:guides' %}">Voltar às guias</a>{% endblock %}
 {% block workspace_content %}
-<section class="workspace-panel" aria-labelledby="guide-result-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">{% if office.is_demo %}RESULTADO FICTÍCIO{% else %}REGISTRO OPERACIONAL{% endif %}</p><h2 id="guide-result-heading">{{ guide.get_kind_display }} · {{ guide.company.name }}</h2><p>Competência {{ guide.competence }} · vencimento {{ guide.due_on|date:'d/m/Y' }}</p></div><span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% else %}is-warning{% endif %}">{{ guide.get_status_display }}{% if office.is_demo %} (fictícia){% endif %}</span></header>
-  <dl class="triage-details">
+<section class="workspace-panel guide-detail-panel" aria-labelledby="guide-result-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">{% if office.is_demo %}DEMONSTRAÇÃO FICTÍCIA{% else %}GUIA E EMISSÃO{% endif %}</p>
+      <h2 id="guide-result-heading">{{ guide.get_kind_display }} · {{ guide.company.name }}</h2>
+      <p>Competência {{ guide.competence }} · vencimento {{ guide.due_on|date:'d/m/Y' }}</p>
+    </div>
+    <span class="module-state {% if guide.status == 'issued' %}is-active{% elif guide.status == 'failed' %}is-danger{% elif guide.status == 'ready' or guide.status == 'unknown' %}is-warning{% else %}is-muted{% endif %}">{{ guide.get_status_display }}{% if office.is_demo %} · demonstração{% endif %}</span>
+  </header>
+
+  <section class="guide-next-action" aria-labelledby="guide-next-action-heading">
+    <div>
+      <p class="section-kicker">PRÓXIMO PASSO</p>
+      <h3 id="guide-next-action-heading">
+        {% if guide.status == 'issued' %}Baixar o DARF
+        {% elif guide.status == 'ready' %}Revisar e emitir
+        {% elif guide.status == 'failed' %}Revisar antes de tentar novamente
+        {% elif guide.status == 'queued' or guide.status == 'issuing' %}Acompanhar o processamento
+        {% elif guide.status == 'unknown' %}Aguardar a conciliação
+        {% elif guide.status == 'discovered' %}Conferir a DCTFWeb
+        {% else %}Consultar o registro{% endif %}
+      </h3>
+      <p>{{ guide.ui_guidance }}</p>
+      {% if guide.usage_error %}<p>{{ guide.usage_error }}</p>{% endif %}
+      {% if guide.usage_quote and not office.is_demo %}<p><strong>{{ guide.usage_quote.total_tokens }} token{{ guide.usage_quote.total_tokens|pluralize }}</strong>{% if guide.usage_quote.additional_overage_cents %} · R$ {{ guide.usage_overage_brl|floatformat:2 }} de excedente{% else %} · dentro da franquia{% endif %}.</p>{% endif %}
+    </div>
+    <div class="guide-next-actions">
+      {% if guide.status == 'issued' %}
+        <a class="button" href="{% if office.is_demo %}{% url 'hub:demo-guide-pdf' guide.id %}{% else %}{% url 'hub:guide-pdf' guide.id %}{% endif %}">Baixar DARF{% if office.is_demo %} fictício{% endif %}</a>
+      {% elif guide.can_issue_now %}
+        <form method="post" action="{% url 'hub:issue-guide' guide.id %}">
+          {% csrf_token %}<input type="hidden" name="approved_overage_cents" value="{{ guide.usage_quote.additional_overage_cents }}">
+          <button class="button" type="submit" data-busy-label="Enviando…">{% if office.is_demo %}Gerar resultado fictício{% elif guide.status == 'failed' %}Confirmar nova tentativa{% else %}Confirmar emissão{% endif %}</button>
+        </form>
+      {% elif guide.status == 'queued' or guide.status == 'issuing' %}
+        <a class="button button-quiet" href="{% url 'hub:guide-detail' guide.id %}">Atualizar situação</a>
+      {% elif guide.kind == 'dctfweb' and guide.status == 'discovered' %}
+        <a class="button" href="{% url 'hub:dctfweb-consult' %}?company={{ guide.company.id }}&amp;competence={{ guide.competence|urlencode }}">Conferir documentos</a>
+      {% endif %}
+      {% if guide.kind == 'dctfweb' and guide.status != 'unknown' %}
+        <a class="button button-quiet" href="{% url 'hub:dctfweb-consult' %}?company={{ guide.company.id }}&amp;competence={{ guide.competence|urlencode }}">Abrir documentos</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <dl class="triage-details guide-summary-details">
     <div><dt>Empresa</dt><dd>{{ guide.company.name }} · {{ guide.company.cnpj_masked }}</dd></div>
     <div><dt>Competência</dt><dd>{{ guide.competence }}</dd></div>
-    <div><dt>{% if office.is_demo %}Valor de exemplo{% else %}Soma calculada no Domínio{% endif %}</dt><dd>R$ {{ guide_amount_brl|floatformat:2 }}</dd></div>
-    <div><dt>Referência{% if office.is_demo %} fictícia{% endif %}</dt><dd>{{ guide.reference }}</dd></div>
+    <div><dt>{% if office.is_demo %}Valor fictício{% else %}Valor calculado no Domínio{% endif %}</dt><dd>R$ {{ guide_amount_brl|floatformat:2 }}</dd></div>
+    <div><dt>Vencimento</dt><dd>{{ guide.due_on|date:'d/m/Y' }}</dd></div>
     {% if guide.issue_requested_at %}<div><dt>Solicitada em</dt><dd>{{ guide.issue_requested_at|date:'d/m/Y H:i' }}</dd></div>{% endif %}
     {% if guide.issue_requested_by %}<div><dt>Responsável</dt><dd>{{ guide.issue_requested_by.full_name|default:guide.issue_requested_by.email }}</dd></div>{% endif %}
     {% if guide.issued_at %}<div><dt>Resultado em</dt><dd>{{ guide.issued_at|date:'d/m/Y H:i' }}</dd></div>{% endif %}
-    {% if guide.provider_request_id %}<div><dt>{% if office.is_demo %}Registro local fictício{% else %}Identificador do fornecedor{% endif %}</dt><dd>{{ guide.provider_request_id }}</dd></div>{% endif %}
   </dl>
-  {% if office.is_demo %}<p class="triage-decision-note">Nenhuma declaração foi consultada ou guia oficial emitida. Este resultado foi criado localmente para mostrar o fluxo de trabalho.</p>{% if guide.status == 'issued' %}<a class="button" href="{% url 'hub:demo-guide-pdf' guide.id %}">Baixar PDF fictício sem validade</a>{% endif %}
-  {% elif guide.status == 'issued' %}<p class="triage-decision-note">A emissão foi confirmada com um PDF válido devolvido pelo Serpro. A soma exibida acima permanece identificada como cálculo do Domínio; confira o valor oficial no DARF. Baixar o documento salvo não gera outra consulta.</p><a class="button" href="{% url 'hub:guide-pdf' guide.id %}">Baixar DARF oficial</a>
-  {% elif guide.status == 'unknown' %}<div class="triage-decision-note" role="alert"><strong>Resultado da emissão a confirmar</strong><p>Não emita novamente. A chamada pode ter sido executada e cobrada. Peça à Mewstack que confira o retorno do fornecedor e o consumo antes de liberar qualquer nova ação.</p>{% if guide.error_message %}<p>{{ guide.error_message }}</p>{% endif %}</div>
-  {% elif guide.error_message %}<p class="triage-decision-note" role="alert">{{ guide.error_message }} Confira o registro antes de tentar novamente.</p>{% endif %}
+
+  {% if office.is_demo %}<p class="triage-decision-note">Nenhuma declaração foi consultada e nenhuma guia oficial foi emitida. O resultado existe somente nesta sessão.</p>
+  {% elif guide.status == 'issued' %}<p class="triage-decision-note">O PDF foi devolvido pelo Serpro e preservado pelo CICA. O valor acima continua identificado como cálculo do Domínio; confira o valor oficial no DARF.</p>
+  {% elif guide.status == 'unknown' %}<div class="triage-decision-note" role="alert"><strong>Não emita novamente</strong><p>O retorno e o consumo precisam ser conciliados antes de liberar outra tentativa. Nenhuma repetição automática será feita.</p></div>
+  {% endif %}
+
+  <details class="guide-technical-details">
+    <summary>Referências para suporte</summary>
+    <dl>
+      <div><dt>Registro CICA</dt><dd translate="no">{{ guide.id }}</dd></div>
+      <div><dt>Referência da obrigação</dt><dd translate="no">{{ guide.reference }}</dd></div>
+      {% if guide.provider_request_id %}<div><dt>Identificador do fornecedor</dt><dd translate="no">{{ guide.provider_request_id }}</dd></div>{% endif %}
+      {% if guide.error_code %}<div><dt>Código da falha</dt><dd translate="no">{{ guide.error_code }}</dd></div>{% endif %}
+    </dl>
+  </details>
 </section>
 {% include 'hub/partials/guide_history.html' %}
 {% endblock %}

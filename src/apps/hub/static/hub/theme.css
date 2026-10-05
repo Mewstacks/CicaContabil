@@ -227,7 +227,9 @@ input::placeholder,textarea::placeholder { color: var(--muted); opacity: 1; }
 .workspace-shell .topnav-panel a[aria-current]{background:var(--blue-soft);color:var(--blue);box-shadow:inset 3px 0 var(--blue)}
 .workspace-shell .demo-office-banner{border-left-color:var(--blue);background:var(--blue-soft)}
 .workspace-shell .workspace-tabs>a[aria-current]{border-bottom-color:var(--blue);color:var(--blue)}
-.workspace-shell input:focus,.workspace-shell select:focus,.workspace-shell textarea:focus{border-color:var(--focus);outline:3px solid color-mix(in srgb,var(--focus) 28%,transparent)}
+.workspace-shell input:focus-visible,.workspace-shell select:focus-visible,.workspace-shell textarea:focus-visible{border-color:var(--focus);outline:3px solid color-mix(in srgb,var(--focus) 28%,transparent)}
+.workspace-shell input:focus:not(:focus-visible),.workspace-shell select:focus:not(:focus-visible),.workspace-shell textarea:focus:not(:focus-visible){border-color:var(--control-border);outline:none}
+html[data-input-modality="pointer"] .workspace-shell input:focus-visible,html[data-input-modality="pointer"] .workspace-shell select:focus-visible,html[data-input-modality="pointer"] .workspace-shell textarea:focus-visible{border-color:var(--control-border);outline:none}
 .closing-coverage-gap{border-left:3px solid var(--blue);background:var(--surface-subtle)}.closing-gap-list{columns:2 260px;margin:16px 0 0;padding-left:20px;color:var(--muted)}.closing-gap-list a{color:var(--blue)}
 
 :root,:root:has(.workspace-shell){--brand-green:#114d44;--brand-cream:#e3ddca;--canvas:#e3ddca;--surface:#f7f4eb;--surface-raised:#fffdf7;--surface-subtle:#ebe6d8;--ink:#17211f;--muted:#56635f;--line:#b8b2a3;--control-border:#8e978f;--blue:#114d44;--blue-soft:#d7e4df;--green:#246547;--green-soft:#d8e7da;--amber:#74510d;--amber-soft:#f1e3bd;--red:#92352f;--red-soft:#f3d9d5;--info:#245e78;--info-soft:#d9e8ee;--focus:#1c6a5e;--strong:#114d44;--strong-hover:#0b3b34;--on-strong:#fff;--brand:#114d44;--rail-bg:#202522;--rail-ink:#f5f0e3;--rail-muted:#c8c3b5;--rail-selected:#e3ddca;--rail-selected-ink:#17211f}

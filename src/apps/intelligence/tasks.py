@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 from datetime import timedelta
+from typing import cast
 
 from celery import shared_task
 from django.conf import settings
@@ -136,12 +137,9 @@ def analyze_attachment_task(attachment_id: str) -> dict[str, object]:
         return {"status": attachment.status, "attachment_id": str(attachment.id)}
 
 
-@shared_task(name="intelligence.retry_pending_attachments")  # type: ignore[untyped-decorator]
 @track_scheduled_operation(OperationalRun.Task.RETRY_ATTACHMENTS)
-def retry_pending_attachments_task() -> dict[str, int]:
+def _retry_pending_attachments() -> dict[str, int]:
     """Schedule a bounded batch; only identifiers pass through Celery."""
-    if not local_multimodal_endpoint():
-        return {"scheduled": 0}
     limit = max(1, int(getattr(settings, "INTELLIGENCE_ATTACHMENT_RETRY_LIMIT", 6)))
     stale_before = timezone.now() - timedelta(minutes=10)
     ChatAttachment.objects.filter(
@@ -159,3 +157,12 @@ def retry_pending_attachments_task() -> dict[str, int]:
     for attachment_id in identifiers:
         analyze_attachment_task.delay(str(attachment_id))
     return {"scheduled": len(identifiers)}
+
+
+@shared_task(name="intelligence.retry_pending_attachments")  # type: ignore[untyped-decorator]
+def retry_pending_attachments_task() -> dict[str, int]:
+    """Avoid touching Postgres while the optional local analyzer is disabled."""
+
+    if not local_multimodal_endpoint():
+        return {"scheduled": 0}
+    return cast(dict[str, int], _retry_pending_attachments())

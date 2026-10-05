@@ -342,6 +342,7 @@ class NfseSync(OrganizationScopedModel):
     class Status(models.TextChoices):
         PAUSED = "paused", "Pausada"
         IDLE = "idle", "Aguardando"
+        QUEUED = "queued", "Na fila"
         RUNNING = "running", "Sincronizando"
         RETRY = "retry", "Nova tentativa agendada"
         ERROR = "error", "Requer atenção"
@@ -350,6 +351,7 @@ class NfseSync(OrganizationScopedModel):
     certificate = models.ForeignKey(Certificate, null=True, blank=True, on_delete=models.SET_NULL)
     enabled = models.BooleanField(default=False)
     checkpoint_nsu = models.CharField(max_length=80, blank=True)
+    max_nsu = models.CharField(max_length=80, blank=True)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.PAUSED)
     last_error_code = models.CharField(max_length=80, blank=True)
     last_error_message = models.CharField(max_length=500, blank=True)
@@ -425,6 +427,22 @@ class NfseDocument(ImmutableOrganizationModel):
         ]
 
 
+class NfseDocumentSide(OrganizationScopedModel):
+    """Side of the note for the company, derived from its immutable XML.
+
+    Notes captured before the normalization stored a direction keep that gap in the immutable
+    evidence; filters, counters and the export read the side from here instead.
+    """
+
+    document = models.OneToOneField(NfseDocument, on_delete=models.CASCADE, related_name="side")
+    direction = models.CharField(max_length=16, db_index=True)
+    counterparty_ref = models.CharField(max_length=80, blank=True)
+    counterparty_name = models.CharField(max_length=160, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "direction"))]
+
+
 class AccumulatorRule(OrganizationScopedModel):
     company = models.ForeignKey(
         ClientCompany, on_delete=models.CASCADE, related_name="accumulator_rules"
@@ -443,12 +461,21 @@ class AccumulatorRule(OrganizationScopedModel):
 
 
 class AccumulatorObservation(OrganizationScopedModel):
+    class Direction(models.TextChoices):
+        # Same vocabulary as ``normalized_data["direction"]`` produced by the ADN sync.
+        UNKNOWN = "", "Sem direção"
+        TAKEN = "taken", "Tomada (entrada)"
+        PROVIDED = "provided", "Prestada (serviço)"
+
     company = models.ForeignKey(
         ClientCompany, on_delete=models.CASCADE, related_name="accumulator_observations"
     )
     accumulator_code = models.CharField(max_length=80)
     service_code = models.CharField(max_length=60, blank=True)
     counterparty_ref = models.CharField(max_length=80, blank=True)
+    direction = models.CharField(
+        max_length=16, choices=Direction.choices, blank=True, default=Direction.UNKNOWN
+    )
     frequency = models.PositiveIntegerField(default=1)
     last_used_at = models.DateTimeField(db_index=True)
 
@@ -517,6 +544,10 @@ class ReviewCase(OrganizationScopedModel):
         OPEN = "open", "Aberta"
         RESOLVED = "resolved", "Resolvida"
 
+    class ResolutionSource(models.TextChoices):
+        HUMAN = "human", "Decisão humana"
+        BACKUP = "backup", "Reclassificação pelo backup"
+
     document = models.OneToOneField(
         NfseDocument, on_delete=models.PROTECT, related_name="review_case"
     )
@@ -525,6 +556,9 @@ class ReviewCase(OrganizationScopedModel):
     suggested_accumulator = models.CharField(max_length=80, blank=True)
     confidence = models.PositiveSmallIntegerField(default=0)
     resolved_accumulator = models.CharField(max_length=80, blank=True)
+    resolution_source = models.CharField(
+        max_length=16, choices=ResolutionSource.choices, blank=True
+    )
     resolved_by = models.ForeignKey(
         "accounts.User",
         null=True,
@@ -548,6 +582,10 @@ class IntegrationArtifact(ImmutableOrganizationModel):
 
 
 class NfseExport(OrganizationScopedModel):
+    documents: models.ManyToManyField[NfseDocument, Any] = models.ManyToManyField(
+        "NfseDocument", related_name="exports", editable=False
+    )
+
     class State(models.TextChoices):
         READY = "ready", "Arquivo gerado"
         DOWNLOADED = "downloaded", "Arquivo baixado"
@@ -1904,6 +1942,18 @@ class PayrollPeriodSnapshot(OrganizationScopedModel):
     @property
     def gross_pay_amount(self) -> Decimal | None:
         return None if self.gross_pay_cents is None else Decimal(self.gross_pay_cents) / 100
+
+    @property
+    def deductions_amount(self) -> Decimal | None:
+        return None if self.deductions_cents is None else Decimal(self.deductions_cents) / 100
+
+    @property
+    def employer_charges_amount(self) -> Decimal | None:
+        return (
+            None
+            if self.employer_charges_cents is None
+            else Decimal(self.employer_charges_cents) / 100
+        )
 
     @property
     def net_pay_amount(self) -> Decimal | None:

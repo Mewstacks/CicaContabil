@@ -27,6 +27,7 @@ if SECRET_KEY == INSECURE_FALLBACK_SECRET_KEY and env_str("DJANGO_SETTINGS_MODUL
 DEBUG = False
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ("localhost", "127.0.0.1"))
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
+CSRF_FAILURE_VIEW = "apps.common.views.csrf_failure"
 
 # Cloudflare Quick Tunnels generate a different hostname for each session. Keep the
 # suffix rule in settings (rather than only in .env) so a pre-existing process
@@ -260,7 +261,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 12},
+        "OPTIONS": {"min_length": 8},
     },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
@@ -487,6 +488,19 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_TASK_SOFT_TIME_LIMIT = env_int("CELERY_TASK_SOFT_TIME_LIMIT_SECONDS", 270)
 CELERY_TASK_TIME_LIMIT = env_int("CELERY_TASK_TIME_LIMIT_SECONDS", 300)
 CELERY_WORKER_MAX_TASKS_PER_CHILD = env_int("CELERY_WORKER_MAX_TASKS_PER_CHILD", 500)
+BACKGROUND_RECOVERY_INTERVAL_MINUTES = max(
+    10, env_int("BACKGROUND_RECOVERY_INTERVAL_MINUTES", 15)
+)
+
+
+def aligned_periodic_minutes(minutes: int) -> crontab | timedelta:
+    """Coalesce periodic database work into shared wake-up windows when possible."""
+
+    if minutes <= 60 and 60 % minutes == 0:
+        return crontab(minute=f"*/{minutes}")
+    return timedelta(minutes=minutes)
+
+
 CELERY_BEAT_SCHEDULE = {
     "generate-recurring-activities": {
         "task": "hub.generate_recurring_activities",
@@ -514,19 +528,11 @@ CELERY_BEAT_SCHEDULE = {
     },
     "retry-pending-intelligence-attachments": {
         "task": "intelligence.retry_pending_attachments",
-        "schedule": timedelta(minutes=5),
-    },
-    "reconcile-stale-claude-attempts": {
-        "task": "intelligence.reconcile_claude_attempts",
-        "schedule": timedelta(minutes=5),
-    },
-    "dispatch-active-triage-mailboxes": {
-        "task": "triage.dispatch_active_mailboxes",
-        "schedule": timedelta(minutes=TRIAGE_EMAIL_POLL_INTERVAL_MINUTES),
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
     "dispatch-active-nfse-syncs": {
         "task": "hub.dispatch_active_nfse_syncs",
-        "schedule": timedelta(minutes=NFSE_ADN_POLL_INTERVAL_MINUTES),
+        "schedule": aligned_periodic_minutes(NFSE_ADN_POLL_INTERVAL_MINUTES),
     },
     "refresh-reform-radar": {
         "task": "hub.refresh_reform_sources",
@@ -534,21 +540,33 @@ CELERY_BEAT_SCHEDULE = {
     },
     "recover-reconciliation-runs": {
         "task": "hub.recover_reconciliation_runs",
-        "schedule": timedelta(minutes=5),
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
     "dispatch-waiting-reconciliation-runs": {
         "task": "hub.dispatch_waiting_reconciliation_runs",
-        "schedule": timedelta(minutes=1),
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
     "recover-financial-report-exports": {
         "task": "hub.recover_financial_report_exports",
-        "schedule": timedelta(minutes=5),
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
     "dispatch-waiting-financial-report-exports": {
         "task": "hub.dispatch_waiting_financial_report_exports",
-        "schedule": timedelta(minutes=1),
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
 }
+
+if CICA_CLAUDE_API_KEY:
+    CELERY_BEAT_SCHEDULE["reconcile-stale-claude-attempts"] = {
+        "task": "intelligence.reconcile_claude_attempts",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    }
+
+if TRIAGE_EMAIL_POLL_ENABLED:
+    CELERY_BEAT_SCHEDULE["dispatch-active-triage-mailboxes"] = {
+        "task": "triage.dispatch_active_mailboxes",
+        "schedule": aligned_periodic_minutes(TRIAGE_EMAIL_POLL_INTERVAL_MINUTES),
+    }
 
 LOGGING = {
     "version": 1,

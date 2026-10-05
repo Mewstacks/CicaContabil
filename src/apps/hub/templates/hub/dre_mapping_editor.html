@@ -8,29 +8,13 @@
       {{ dre_mapping_formset.management_form }}
       {% if dre_mapping_formset.non_form_errors %}<div class="form-errors" role="alert" tabindex="-1"><strong>Revise o mapa DRE.</strong>{{ dre_mapping_formset.non_form_errors }}</div>{% endif %}
       <div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Conta</th><th scope="col">Grupo DRE</th><th scope="col">Sinal</th></tr></thead><tbody>{% for form in dre_mapping_formset %}<tr>
-        <td data-label="Conta">{{ form.account_code }}{% for error in form.account_code.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
-        <td data-label="Grupo DRE">{{ form.group }}{% for error in form.group.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
-        <td data-label="Sinal">{{ form.sign }}{% for error in form.sign.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
+        <td data-label="Conta"><label class="sr-only" for="{{ form.account_code.id_for_label }}">Conta da linha {{ forloop.counter }}</label>{{ form.account_code }}{% for error in form.account_code.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
+        <td data-label="Grupo DRE"><label class="sr-only" for="{{ form.group.id_for_label }}">Grupo DRE da linha {{ forloop.counter }}</label>{{ form.group }}{% for error in form.group.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
+        <td data-label="Sinal"><label class="sr-only" for="{{ form.sign.id_for_label }}">Sinal da linha {{ forloop.counter }}</label>{{ form.sign }}{% for error in form.sign.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</td>
       </tr>{% endfor %}</tbody></table></div>
       <p class="setup-note">Use 1 para manter o saldo e -1 para inverter sua apresenta&ccedil;&atilde;o. Contas repetidas n&atilde;o podem ser salvas.</p>
       <button class="button" type="submit">Salvar nova vers&atilde;o</button>
     </form>
-    <script>
-      (() => {
-        const form = document.querySelector('[data-dre-mapping-form]');
-        if (!form) return;
-        let dirty = false;
-        form.addEventListener('input', () => { dirty = true; });
-        form.addEventListener('change', () => { dirty = true; });
-        form.addEventListener('submit', () => { dirty = false; });
-        window.addEventListener('beforeunload', (event) => {
-          if (!dirty) return;
-          event.preventDefault();
-          event.returnValue = '';
-        });
-        form.querySelector('[aria-invalid="true"]')?.focus();
-      })();
-    </script>
   {% else %}<div class="compact-empty">Somente propriet&aacute;rios e administradores podem alterar este mapa.</div>{% endif %}
 </section>
 <section class="workspace-panel" aria-labelledby="dre-map-history"><header class="workspace-panel-head"><div><h2 id="dre-map-history">Vers&otilde;es preservadas</h2><p>Relat&oacute;rios antigos continuam ligados a sua fotografia e vers&atilde;o original.</p></div></header>

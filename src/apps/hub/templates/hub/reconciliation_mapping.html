@@ -1,31 +1,70 @@
 {% extends 'hub/workspace.html' %}
+{% load static %}
 {% block workspace_content %}
-<section class="workspace-panel">
+<section class="workspace-panel reconciliation-mapping-page">
   <header class="workspace-panel-head">
     <div>
-      <p class="section-kicker">MAPEAR</p>
-      <h2>{{ mapping_source.original_filename }}</h2>
-      <p>Confirme a leitura antes de normalizar. O layout é versionado por empresa e formato.</p>
+      <p class="section-kicker">2. PREPARAR ARQUIVO</p>
+      <h2>Indique o que existe em cada coluna</h2>
+      <p>{{ mapping_source.company.name }} · {{ mapping_source.original_filename }} · {{ mapping_source.get_kind_display }}</p>
     </div>
-    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#processamentos">Voltar</a>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#processamentos">Voltar às importações</a>
   </header>
-  <form method="post" class="form-stack reconciliation-mapping-form">
+
+  <div class="reconciliation-mapping-intro" aria-label="Como funciona o mapeamento">
+    <div><span>1</span><strong>Associe</strong><small>Escolha a coluna original para cada informação.</small></div>
+    <div><span>2</span><strong>Confira</strong><small>Use a prévia do arquivo antes de continuar.</small></div>
+    <div><span>3</span><strong>Processe</strong><small>O layout fica salvo para arquivos iguais desta empresa.</small></div>
+  </div>
+
+  <form method="post" class="form-stack reconciliation-mapping-form" data-reconciliation-mapping-form>
     {% csrf_token %}
-    <div class="field"><label for="layout-name">Nome do layout</label><input id="layout-name" name="name" maxlength="120" autocomplete="off" value="{{ mapping_source.original_filename|cut:'.csv'|cut:'.xlsx' }}"></div>
-    <div class="mapping-grid">
-      {% for field, label, current in mapping_fields %}
-        <div class="field">
-          <label for="map-{{ field }}">{{ label }}</label>
-          <select id="map-{{ field }}" name="map_{{ field }}" autocomplete="off">
-            <option value="">Não mapear</option>
-            {% for header in mapping_preview.headers %}<option value="{{ header }}"{% if current == header %} selected{% endif %}>{{ header }}</option>{% endfor %}
-          </select>
-        </div>
-      {% endfor %}
+    {% if mapping_errors %}
+      <div id="mapping-error-summary" class="form-errors reconciliation-mapping-errors" role="alert" tabindex="-1" aria-labelledby="mapping-error-title" data-error-summary>
+        <h3 id="mapping-error-title">Revise o mapeamento</h3>
+        <ul>{% for target, error in mapping_errors %}<li><a href="#{{ target }}">{{ error }}</a></li>{% endfor %}</ul>
+      </div>
+    {% endif %}
+
+    <div class="field">
+      <label for="layout-name">Nome do layout <span aria-hidden="true">*</span></label>
+      <input id="layout-name" name="name" maxlength="120" autocomplete="off" value="{{ mapping_name }}" required{% if mapping_name_errors %} aria-invalid="true" aria-describedby="layout-name-errors"{% endif %}>
+      <p class="field-help">Use um nome que você reconhecerá no próximo arquivo com estas colunas.</p>
+      {% if mapping_name_errors %}<div id="layout-name-errors">{% for error in mapping_name_errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endif %}
     </div>
-    <p class="field-help">Data e histórico são obrigatórios. Escolha valor com sinal ou as colunas separadas de débito e crédito.</p>
-    <button class="button" type="submit">Salvar layout e processar</button>
+
+    <fieldset class="reconciliation-mapping-fields">
+      <legend>Colunas do arquivo</legend>
+      <p class="field-help">Data e Histórico são obrigatórios. Para o valor, escolha “Valor com sinal” ou use Débito/Crédito.</p>
+      <div class="mapping-grid">
+        {% for field, label, required, current, errors in mapping_fields %}
+          <div class="field{% if errors %} has-error{% endif %}">
+            <label for="map-{{ field }}">{{ label }}{% if required %} <span class="required-label">Obrigatório</span>{% endif %}</label>
+            <select id="map-{{ field }}" name="map_{{ field }}" autocomplete="off" data-mapping-field="{{ field }}"{% if required %} required{% endif %}{% if errors %} aria-invalid="true" aria-describedby="map-{{ field }}-errors"{% endif %}>
+              <option value="">Não mapear</option>
+              {% for header in mapping_preview.headers %}<option value="{{ header }}"{% if current == header %} selected{% endif %}>{{ header }}</option>{% endfor %}
+            </select>
+            {% if errors %}<div id="map-{{ field }}-errors">{% for error in errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      <p class="field-error" data-mapping-strategy-error role="alert" hidden></p>
+    </fieldset>
+
+    <div class="reconciliation-mapping-submit">
+      <div><strong>Nenhum lançamento será criado agora.</strong><small>Primeiro o arquivo será normalizado e levado para sua fila de revisão.</small></div>
+      <button class="button" type="submit" data-busy-label="Salvando e processando…">Salvar layout e processar</button>
+    </div>
   </form>
-  <div class="data-table-wrap"><table class="operational-table"><thead><tr>{% for header in mapping_preview.headers %}<th>{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in mapping_preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+
+  <section class="reconciliation-mapping-preview" aria-labelledby="mapping-preview-title">
+    <header><div><p class="section-kicker">PRÉVIA DO ARQUIVO</p><h3 id="mapping-preview-title">Confira as primeiras linhas</h3></div><span class="record-count">{{ mapping_preview.rows|length }} linha{{ mapping_preview.rows|length|pluralize }}</span></header>
+    {% if mapping_preview.rows %}
+      <div class="data-table-wrap"><table class="operational-table"><caption class="sr-only">Prévia de {{ mapping_source.original_filename }}</caption><thead><tr>{% for header in mapping_preview.headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in mapping_preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+    {% else %}
+      <div class="empty-block operational-empty"><strong>O arquivo não contém linhas para processar</strong><p>Volte às importações e envie um arquivo com cabeçalho e ao menos um movimento.</p></div>
+    {% endif %}
+  </section>
 </section>
+<script src="{% static 'hub/reconciliation_ui.js' %}?v=6" defer></script>
 {% endblock %}

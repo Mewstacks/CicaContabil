@@ -1,3 +1,15 @@
+> **Leitura vigente após auditoria de 05/10/2026 (D-275/V-275):** os IDs abaixo permanecem
+> únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
+> D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
+> efetivo Integra: Q-01–06/D-79 não devem ser reabertas como escolhas nunca respondidas.
+> Q-35 tem o ambiente SaaS resolvido (Fly+Neon); a máquina definitiva de IA continua separada.
+> Q-38 já tem backup Bianchi usado; pedir somente material adicional necessário.
+> Q-13/Q-29 têm domínio do site definido, sem que isso prove OAuth/SMTP/entrega.
+> Q-39 já tem evidência de `infNFSe/valores/acum` em D-274; falta a importação conferida e seu
+> retorno. Q-30 permanece resolvida por D-73: aplicar métricas, não perguntar de novo.
+> Próximos pedidos concretos e trabalho independente estão no [plano mestre](../../PLANO-MESTRE.md).
+> Esta nota reconcilia referências; não escolhe valores, políticas ou capacidades ainda ausentes.
+
 # Dúvidas que exigem resposta do responsável
 
 > Registro único de perguntas. Atualização de 18/09/2026: decisões vigentes em [DECISOES.md](../../DECISOES.md), etapas em [PLANO-MESTRE.md](../../PLANO-MESTRE.md). Q-07, Q-10 e Q-37 estão resolvidas; não perguntar novamente. A tabela de responsabilidade ao final indica quem responde e onde cada pendência bloqueia trabalho.

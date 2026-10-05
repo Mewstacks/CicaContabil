@@ -7,15 +7,22 @@ import io
 import json
 import re
 import zipfile
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
+from functools import lru_cache
 from typing import Any
 
+from cryptography import x509
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives.serialization import pkcs12
+from cryptography.x509.oid import ExtensionOID, NameOID, ObjectIdentifier
+from defusedxml import ElementTree  # type: ignore[import-untyped]
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 
@@ -23,6 +30,7 @@ from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import (
+    AccumulatorCatalogEntry,
     AccumulatorObservation,
     AccumulatorRule,
     Certificate,
@@ -36,6 +44,7 @@ from apps.hub.models import (
     IntegrationArtifact,
     NfseDocument,
     NfseExport,
+    NfseSync,
     ParcelamentoOperation,
     ProductModule,
     ReviewCase,
@@ -61,6 +70,15 @@ class FiscalGuideSyncResult:
     ignored: int
 
 
+@dataclass(frozen=True)
+class CertificateImportResult:
+    status: str
+    title: str
+    detail: str
+    company_name: str = ""
+    reason: str = ""
+
+
 def _matches(rule: AccumulatorRule, data: dict[str, Any]) -> bool:
     # An empty rule is a catalog entry for human review, never a catch-all classifier.
     return bool(rule.match) and all(
@@ -68,13 +86,107 @@ def _matches(rule: AccumulatorRule, data: dict[str, Any]) -> bool:
     )
 
 
+_LC116_ITEM = re.compile(r"^(\d{1,2})\.(\d{1,2})(?:\.\d+)?$")
+NFSE_DIRECTIONS = frozenset(
+    {AccumulatorObservation.Direction.TAKEN, AccumulatorObservation.Direction.PROVIDED}
+)
+
+
+@lru_cache(maxsize=65536)
+def _normalized_service_code(text: str) -> str:
+    item = _LC116_ITEM.fullmatch(text)
+    if item:
+        return f"{int(item.group(1)):02d}{int(item.group(2)):02d}"
+    if len(text) == 6 and text.isdigit():
+        return text[:4]
+    return text
+
+
+def normalize_service_code(value: object) -> str:
+    """Reduce both sides of the match to the LC 116 item + subitem (``1701``).
+
+    The national NFS-e carries ``cTribNac`` with six digits (item, subitem, desdobramento:
+    ``170101``) while Domínio configures accumulators by the LC 116 list item (``17.01``).
+    Comparing the raw strings made those two never meet, so only the counterparty was left
+    to decide and most notes fell into review.
+    """
+
+    return _normalized_service_code(str(value or "").strip())
+
+
+def active_catalog_codes(companies: Sequence[ClientCompany]) -> dict[Any, frozenset[str]]:
+    """Active accumulators of each company's latest Domínio snapshot, plus manual ones.
+
+    Companies without any backup catalog are absent from the result: there is no evidence
+    to validate against, so callers keep their previous behaviour for them.
+    """
+
+    latest: dict[Any, Any] = {}
+    codes: dict[Any, set[str]] = {}
+    for company_id, snapshot_at, code, active in (
+        AccumulatorCatalogEntry.objects.filter(company__in=companies)
+        .order_by("company_id", "-source_snapshot_at")
+        .values_list("company_id", "source_snapshot_at", "accumulator_code", "active")
+        .iterator(chunk_size=2000)
+    ):
+        if latest.setdefault(company_id, snapshot_at) != snapshot_at:
+            continue
+        bucket = codes.setdefault(company_id, set())
+        if active:
+            bucket.add(code)
+    # An accumulator the office registered by hand (created in Domínio after the backup) is as
+    # valid as the backup catalog; only companies that have a catalog are validated at all.
+    for company_id, code in AccumulatorRule.objects.filter(
+        company_id__in=list(codes), active=True
+    ).values_list("company_id", "accumulator_code"):
+        codes[company_id].add(code)
+    return {company_id: frozenset(values) for company_id, values in codes.items()}
+
+
 def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> ClassificationResult:
     """Deterministic, explainable classification. It never decides a tax treatment by AI."""
 
-    data = document.normalized_data
+    from apps.hub.nfse_sync import nfse_match_data
+
+    return classify_nfse_from_candidates(
+        document,
+        rules=list(document.company.accumulator_rules.filter(active=True).order_by("priority")),
+        observations=list(
+            AccumulatorObservation.objects.filter(
+                organization=document.organization,
+                company=document.company,
+            )
+        ),
+        catalog_codes=active_catalog_codes([document.company]).get(document.company_id),
+        match_data=nfse_match_data(document),
+        on_date=on_date,
+    )
+
+
+def classify_nfse_from_candidates(
+    document: NfseDocument,
+    *,
+    rules: Sequence[AccumulatorRule],
+    observations: Sequence[AccumulatorObservation],
+    catalog_codes: frozenset[str] | None = None,
+    match_data: dict[str, Any] | None = None,
+    on_date: date | None = None,
+) -> ClassificationResult:
+    """Classify with already-scoped candidates so portfolio replays do not issue N+1 queries.
+
+    ``catalog_codes`` is the company's active Domínio catalog; when present, no accumulator
+    outside it can be chosen, because Domínio rejects it as "Acumulador não definido".
+    ``match_data`` replaces the stored normalization when the caller derived missing keys.
+    """
+
+    def allowed(code: str) -> bool:
+        return catalog_codes is None or code in catalog_codes
+
+    data = match_data if match_data is not None else document.normalized_data
     current_day = on_date or timezone.localdate()
-    rules = document.company.accumulator_rules.filter(active=True).order_by("priority")
     for rule in rules:
+        if not rule.active or not allowed(rule.accumulator_code):
+            continue
         if rule.valid_from and rule.valid_from > current_day:
             continue
         if rule.valid_until and rule.valid_until < current_day:
@@ -88,27 +200,29 @@ def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> Cla
                 needs_review=rule.is_transitory,
             )
 
-    service_code = str(data.get("service_code", ""))
+    # Entrada and serviço prestado use different accumulators in Domínio: history recorded for
+    # the other side never competes, and a note whose side could not be read from the XML is
+    # not decided by history that has a side. Rows without a side are legacy evidence.
+    direction = str(data.get("direction", ""))
+    known_direction = direction in NFSE_DIRECTIONS
+    service_code = normalize_service_code(data.get("service_code", ""))
     counterparty_ref = str(data.get("counterparty_ref", ""))
-    match_filter = Q()
-    if service_code:
-        match_filter |= Q(service_code=service_code)
-    if counterparty_ref:
-        match_filter |= Q(counterparty_ref=counterparty_ref)
-    candidates = (
-        AccumulatorObservation.objects.filter(
-            organization=document.organization,
-            company=document.company,
-        ).filter(match_filter)
-        if match_filter
-        else AccumulatorObservation.objects.none()
-    )
     scored: list[tuple[int, AccumulatorObservation]] = []
-    for candidate in candidates:
+    for candidate in observations:
+        if not allowed(candidate.accumulator_code):
+            continue
+        if candidate.direction and known_direction and candidate.direction != direction:
+            continue
+        service_hit = bool(service_code) and (
+            normalize_service_code(candidate.service_code) == service_code
+        )
+        counterparty_hit = bool(counterparty_ref) and candidate.counterparty_ref == counterparty_ref
+        if not service_hit and not counterparty_hit:
+            continue
         score = min(candidate.frequency, 20)
-        if service_code and candidate.service_code == service_code:
+        if service_hit:
             score += 45
-        if counterparty_ref and candidate.counterparty_ref == counterparty_ref:
+        if counterparty_hit:
             score += 45
         age_days = (timezone.now() - candidate.last_used_at).days
         score += max(0, 20 - min(max(age_days, 0) // 30, 20))
@@ -125,19 +239,68 @@ def classify_nfse(document: NfseDocument, *, on_date: date | None = None) -> Cla
             None,
         )
         ambiguous = runner_up is not None and runner_up >= score - 5
+        # The counterparty is the strongest signal the office has: when every past note of this
+        # supplier/client went to one accumulator, a low frequency or an old date does not make
+        # it uncertain. When it points somewhere else than the winner, the evidence conflicts.
+        counterparty_codes = {
+            candidate.accumulator_code
+            for _score, candidate in scored
+            if counterparty_ref and candidate.counterparty_ref == counterparty_ref
+        }
+        conflict = bool(counterparty_codes) and winner.accumulator_code not in counterparty_codes
+        unanimous = counterparty_codes == {winner.accumulator_code}
+        sideless_note = not known_direction and any(c.direction for _s, c in scored)
         return ClassificationResult(
             accumulator_code=winner.accumulator_code,
-            confidence=min(score, 90),
+            confidence=min(max(score, 80 if unanimous else 0), 90),
             rule_name="histórico Domínio",
             evidence={
                 "source": "dominio_history",
                 "frequency": winner.frequency,
                 "score": score,
                 "ambiguous": ambiguous,
+                "conflict": conflict,
+                "unanimous_counterparty": unanimous,
+                "direction": winner.direction,
+                "unknown_note_direction": sideless_note,
             },
-            needs_review=ambiguous or score < 70,
+            needs_review=ambiguous
+            or conflict
+            or sideless_note
+            or (score < 70 and not unanimous),
         )
     return ClassificationResult("", 0, "sem correspondência", {"source": "none"}, True)
+
+
+def record_human_observation(
+    *, document: NfseDocument, accumulator_code: str, observed_at: datetime
+) -> AccumulatorObservation:
+    """Teach the classifier one human decision under the note's own match key.
+
+    The key must carry service, counterparty and direction: keyed by accumulator alone, the
+    first decision fixed the evidence forever and a backup with several rows for the same
+    accumulator made ``get_or_create`` fail.
+    """
+
+    from apps.hub.nfse_sync import nfse_match_data
+
+    data = nfse_match_data(document)
+    direction = str(data.get("direction", ""))
+    lookup = {
+        "organization": document.organization,
+        "company": document.company,
+        "accumulator_code": accumulator_code,
+        "service_code": str(data.get("service_code", ""))[:60],
+        "counterparty_ref": str(data.get("counterparty_ref", ""))[:80],
+        "direction": direction if direction in NFSE_DIRECTIONS else "",
+    }
+    observation = AccumulatorObservation.objects.filter(**lookup).order_by("pk").first()
+    if observation is None:
+        return AccumulatorObservation.objects.create(**lookup, last_used_at=observed_at)
+    observation.frequency = F("frequency") + 1
+    observation.last_used_at = observed_at
+    observation.save(update_fields=["frequency", "last_used_at", "updated_at"])
+    return observation
 
 
 @transaction.atomic
@@ -163,6 +326,10 @@ def create_document_and_artifact(
             "issued_at": issued_at,
         },
     )
+    if created:
+        from apps.hub.nfse_sync import sync_nfse_side
+
+        sync_nfse_side(document)
     if not created:
         existing_review = ReviewCase.objects.filter(document=document).first()
         if existing_review is not None:
@@ -222,6 +389,214 @@ def _issued_at_from_normalized_data(normalized_data: dict[str, Any]) -> datetime
     return timezone.make_aware(datetime.combine(parsed_date, datetime.min.time()))
 
 
+ICP_BRASIL_CNPJ_OID = ObjectIdentifier("2.16.76.1.3.3")
+
+
+def _decode_der_text(value: bytes) -> str:
+    """Decode the simple string encodings permitted for ICP-Brasil otherName fields."""
+
+    if len(value) < 2:
+        return ""
+    tag = value[0]
+    first_length = value[1]
+    offset = 2
+    if first_length & 0x80:
+        length_octets = first_length & 0x7F
+        if not 1 <= length_octets <= 4 or len(value) < offset + length_octets:
+            return ""
+        length = int.from_bytes(value[offset : offset + length_octets], "big")
+        offset += length_octets
+    else:
+        length = first_length
+    if length != len(value) - offset:
+        return ""
+    payload = value[offset:]
+    encoding = "ascii" if tag in {0x04, 0x13, 0x16} else "utf-8" if tag == 0x0C else ""
+    if not encoding:
+        return ""
+    try:
+        return payload.decode(encoding)
+    except UnicodeDecodeError:
+        return ""
+
+
+def certificate_cnpjs(parsed_certificate: x509.Certificate) -> set[str]:
+    """Return valid CNPJs, preferring the official ICP-Brasil SAN otherName."""
+
+    candidates: set[str] = set()
+    try:
+        alternative_names = parsed_certificate.extensions.get_extension_for_oid(
+            ExtensionOID.SUBJECT_ALTERNATIVE_NAME
+        ).value
+    except x509.ExtensionNotFound:
+        alternative_names = None
+    if isinstance(alternative_names, x509.SubjectAlternativeName):
+        for other_name in alternative_names.get_values_for_type(x509.OtherName):
+            if other_name.type_id == ICP_BRASIL_CNPJ_OID:
+                value = _decode_der_text(other_name.value)
+                digits = re.sub(r"\D", "", value)
+                if len(digits) == 14:
+                    candidates.add(digits)
+
+    if not candidates:
+        for attribute in parsed_certificate.subject:
+            raw_value = str(attribute.value)
+            digits = re.sub(r"\D", "", raw_value)
+            if len(digits) == 14:
+                candidates.add(digits)
+            else:
+                candidates.update(re.findall(r"(?<!\d)\d{14}(?!\d)", raw_value))
+
+    valid: set[str] = set()
+    for candidate in candidates:
+        try:
+            valid.add(normalize_cnpj(candidate))
+        except ValidationError:
+            continue
+    return valid
+
+
+def infer_certificate_passwords(filename: str, common_password: str = "") -> tuple[str | None, ...]:
+    """Build a small local candidate set without logging or returning the filename."""
+
+    stem = filename.rsplit(".", 1)[0]
+    inferred: list[str | None] = []
+    if common_password:
+        inferred.append(common_password)
+    marker = re.search(r"(?:^|[\s_-])(?:senha|password|pwd)\s*[=-]\s*(.{1,256})$", stem, re.I)
+    if marker:
+        inferred.append(marker.group(1).strip())
+    if "__" in stem:
+        inferred.append(stem.rsplit("__", 1)[1].strip())
+    bracketed = re.search(r"\[([^\[\]]{1,256})\]\s*$", stem)
+    if bracketed:
+        inferred.append(bracketed.group(1).strip())
+    # Common accounting-office convention: ``Empresa - SENHA.pfx``.  The
+    # separator is deliberately strict so words in a normal company name are
+    # not treated as credentials.
+    dashed = re.search(r"\s+-\s+(.{1,256})$", stem)
+    if dashed:
+        inferred.append(dashed.group(1).strip())
+    elif not marker and "__" not in stem and not bracketed and (
+        trailing := re.search(r"\s+(\S*\d\S*)$", stem)
+    ):
+        # Covers established names such as ``Bianchi 1234.pfx`` while only
+        # attempting a final token that contains a digit.
+        inferred.append(trailing.group(1).strip())
+    inferred.append(None)
+    return tuple(
+        dict.fromkeys(candidate for candidate in inferred if candidate is None or candidate)
+    )
+
+
+def _certificate_label(parsed_certificate: x509.Certificate) -> str:
+    common_names = parsed_certificate.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    if common_names:
+        return str(common_names[0].value)[:120]
+    return "Certificado A1"
+
+
+def import_certificate_upload(
+    *,
+    filename: str,
+    pfx_bytes: bytes,
+    common_password: str,
+    companies: list[ClientCompany],
+    actor: Any = None,
+    request: Any = None,
+) -> CertificateImportResult:
+    """Recognize, correlate and store one A1 without retaining failed material."""
+
+    if len(pfx_bytes) > 2_000_000:
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "O arquivo ultrapassa o limite de 2 MB.",
+            reason="too_large",
+        )
+    if not filename.lower().endswith((".pfx", ".p12")):
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "Use um arquivo .pfx ou .p12.",
+            reason="wrong_type",
+        )
+
+    parsed_key: object | None = None
+    parsed_certificate: x509.Certificate | None = None
+    selected_password = ""
+    for candidate in infer_certificate_passwords(filename, common_password):
+        try:
+            parsed_key, parsed_certificate, _ = pkcs12.load_key_and_certificates(
+                pfx_bytes, candidate.encode() if candidate is not None else None
+            )
+        except (TypeError, ValueError, UnsupportedAlgorithm):
+            continue
+        if parsed_key is not None and parsed_certificate is not None:
+            selected_password = candidate or ""
+            break
+    if parsed_key is None or parsed_certificate is None:
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "Não foi possível abrir o A1. Confira a senha e tente selecionar o arquivo novamente.",
+            reason="open_failed",
+        )
+
+    cnpjs = certificate_cnpjs(parsed_certificate)
+    if len(cnpjs) != 1:
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "O certificado não informa um único CNPJ válido da ICP-Brasil.",
+            reason="invalid_cnpj",
+        )
+    certificate_cnpj = next(iter(cnpjs))
+    matches: list[ClientCompany] = []
+    for company in companies:
+        try:
+            if normalize_cnpj(company.cnpj_masked) == certificate_cnpj:
+                matches.append(company)
+        except ValidationError:
+            continue
+    if len(matches) != 1:
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "O CNPJ do certificado não corresponde a uma empresa acessível deste escritório.",
+            reason="unmatched_cnpj",
+        )
+
+    fingerprint = hashlib.sha256(pfx_bytes).hexdigest()
+    company = matches[0]
+    if Certificate.objects.filter(
+        organization=company.organization, fingerprint_sha256=fingerprint
+    ).exists():
+        return CertificateImportResult(
+            "unrecognized",
+            "Não reconhecido",
+            "Este certificado já está cadastrado no escritório.",
+            company.name,
+            "duplicate",
+        )
+    store_certificate(
+        company=company,
+        pfx_bytes=pfx_bytes,
+        password=selected_password,
+        label=_certificate_label(parsed_certificate),
+        actor=actor,
+        request=request,
+    )
+    return CertificateImportResult(
+        "recognized",
+        "Vinculado automaticamente",
+        "CNPJ identificado nos metadados do certificado.",
+        company.name,
+        "imported",
+    )
+
+
+@transaction.atomic
 def store_certificate(
     *,
     company: ClientCompany,
@@ -233,11 +608,13 @@ def store_certificate(
 ) -> Certificate:
     """Stores PFX once, encrypted; no view/form exposes its source bytes after upload."""
     try:
-        _, parsed_certificate, _ = pkcs12.load_key_and_certificates(pfx_bytes, password.encode())
-    except ValueError as exc:
+        parsed_key, parsed_certificate, _ = pkcs12.load_key_and_certificates(
+            pfx_bytes, password.encode() or None
+        )
+    except (TypeError, ValueError, UnsupportedAlgorithm) as exc:
         raise ValueError("Não foi possível abrir o A1/PFX com esta senha.") from exc
-    if parsed_certificate is None:
-        raise ValueError("O arquivo não contém um certificado A1 válido.")
+    if parsed_key is None or parsed_certificate is None:
+        raise ValueError("O arquivo não contém um certificado A1 com chave privada.")
     fingerprint = hashlib.sha256(pfx_bytes).hexdigest()
     valid_from = parsed_certificate.not_valid_before_utc
     valid_until = parsed_certificate.not_valid_after_utc
@@ -261,12 +638,209 @@ def store_certificate(
         request=request,
         metadata={"fingerprint_prefix": fingerprint[:12]},
     )
+    certificate_is_current = valid_until > timezone.now()
+    sync, _created = NfseSync.objects.update_or_create(
+        organization=company.organization,
+        company=company,
+        defaults={
+            "certificate": certificate,
+            "enabled": certificate_is_current,
+            "status": NfseSync.Status.IDLE if certificate_is_current else NfseSync.Status.PAUSED,
+            "last_error_code": "",
+            "last_error_message": "",
+            "last_error_at": None,
+            "failure_count": 0,
+            "next_run_at": timezone.now() if certificate_is_current else None,
+        },
+    )
+    record_event(
+        action="hub.nfse.sync_prepared_from_certificate",
+        actor=actor,
+        organization=company.organization,
+        target=sync,
+        request=request,
+        metadata={
+            "company_id": str(company.id),
+            "certificate_current": certificate_is_current,
+            "runtime_enabled": settings.NFSE_ADN_SYNC_ENABLED,
+        },
+    )
+    if certificate_is_current and settings.NFSE_ADN_SYNC_ENABLED:
+        from apps.hub.tasks import dispatch_active_nfse_syncs
+
+        transaction.on_commit(dispatch_active_nfse_syncs.delay)
     return certificate
 
 
 def integration_artifact_export(artifact: IntegrationArtifact) -> str:
     """Contract v1: a derived artifact only. The immutable original XML is never altered."""
     return json.dumps(artifact.payload, ensure_ascii=False, sort_keys=True)
+
+
+_XML_MARKUP = re.compile(
+    r"<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|<!DOCTYPE[^>]*>"
+    r"|<(?P<closing>/?)(?P<name>(?:[\w.-]+:)?[\w.-]+)"
+    r"(?:\s+[^\s=/>]+\s*=\s*(?:\"[^\"]*\"|'[^']*'))*\s*(?P<empty>/?)>",
+    re.DOTALL,
+)
+
+
+def _local(name: str) -> str:
+    return name.rsplit(":", 1)[-1]
+
+
+def _xml_with_dominio_accumulator(original_xml: str, accumulator_code: str) -> str:
+    """Write the confirmed accumulator at ``infNFSe/valores/acum`` in a derived XML.
+
+    Only that tag is touched: the rest of the document keeps the original bytes, prefixes
+    and declaration. Re-serializing through ElementTree used to rename the namespace to
+    ``ns0:`` and drop ``<?xml ...?>``, which is not what the Domínio importer was fed when
+    the layout was validated.
+    """
+
+    try:
+        ElementTree.fromstring(original_xml)
+    except (ElementTree.ParseError, ValueError) as exc:
+        raise ValueError("O XML original da nota é inválido.") from exc
+
+    # A versão anterior do adaptador gerava ACU fora do contrato. Ela nunca deve vazar para o
+    # XML derivado novo, mesmo se um arquivo de entrada já vier contaminado por esse formato.
+    xml = re.sub(
+        r"<((?:[\w.-]+:)?)ACU\b[^>]*/>|<((?:[\w.-]+:)?)ACU\b[^>]*>.*?</\2ACU\s*>",
+        "",
+        original_xml,
+        flags=re.DOTALL,
+    )
+
+    stack: list[str] = []
+    info_count = 0
+    values: list[tuple[str, int, int, int]] = []  # name, open start, open end, close start
+    accumulators: list[tuple[int, int]] = []  # whole element span inside infNFSe/valores
+    acum_open: int | None = None
+    net_value_end: int | None = None  # right after infNFSe/valores/vLiq, where Domínio reads it
+    for token in _XML_MARKUP.finditer(xml):
+        name = token.group("name")
+        if name is None:
+            continue
+        parent_path = [_local(item) for item in stack[-2:]]
+        if token.group("closing"):
+            closed = stack.pop() if stack else ""
+            if _local(closed) == "acum" and acum_open is not None and len(stack) >= 2:
+                if [_local(item) for item in stack[-2:]] == ["infNFSe", "valores"]:
+                    accumulators.append((acum_open, token.end()))
+                acum_open = None
+            if _local(closed) == "vLiq" and [_local(item) for item in stack[-2:]] == [
+                "infNFSe",
+                "valores",
+            ]:
+                net_value_end = token.end()
+            if _local(closed) == "valores" and stack and _local(stack[-1]) == "infNFSe":
+                values[-1] = (*values[-1][:3], token.start())
+            continue
+        local = _local(name)
+        if local == "infNFSe":
+            info_count += 1
+        if local == "valores" and stack and _local(stack[-1]) == "infNFSe":
+            values.append((name, token.start(), token.end(), -1))
+        if local == "acum" and parent_path == ["infNFSe", "valores"]:
+            if token.group("empty"):
+                accumulators.append((token.start(), token.end()))
+            else:
+                acum_open = token.start()
+        if not token.group("empty"):
+            stack.append(name)
+
+    if info_count != 1:
+        raise ValueError("O XML da NFS-e precisa conter um único grupo infNFSe.")
+    if len(values) > 1:
+        raise ValueError("O XML da NFS-e contém mais de um grupo infNFSe/valores.")
+    if len(accumulators) > 1:
+        raise ValueError("O XML da NFS-e contém mais de uma tag infNFSe/valores/acum.")
+
+    escaped = accumulator_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    if values:
+        values_name, _open_start, open_end, close_start = values[0]
+        prefix = values_name[: -len("valores")]
+        element = f"<{prefix}acum>{escaped}</{prefix}acum>"
+        if accumulators:
+            acum_start, acum_end = accumulators[0]
+            rendered = xml[:acum_start] + element + xml[acum_end:]
+        elif close_start == -1:
+            # Self-closing <valores/>: open it to hold the accumulator.
+            empty = xml[_open_start:open_end]
+            rendered = (
+                xml[:_open_start]
+                + empty[:-2].rstrip()
+                + ">"
+                + element
+                + f"</{values_name}>"
+                + xml[open_end:]
+            )
+        else:
+            insert_at = net_value_end if net_value_end is not None else close_start
+            rendered = xml[:insert_at] + element + xml[insert_at:]
+    else:
+        info_close = None
+        depth_names: list[tuple[str, int]] = []
+        for token in _XML_MARKUP.finditer(xml):
+            name = token.group("name")
+            if name is None:
+                continue
+            if token.group("closing"):
+                closed, _ = depth_names.pop() if depth_names else ("", 0)
+                if _local(closed) == "infNFSe":
+                    info_close = (closed, token.start())
+                continue
+            if not token.group("empty"):
+                depth_names.append((name, token.start()))
+        if info_close is None:
+            raise ValueError("O XML da NFS-e precisa conter um único grupo infNFSe.")
+        info_name, close_at = info_close
+        prefix = info_name[: -len("infNFSe")]
+        rendered = (
+            xml[:close_at]
+            + f"<{prefix}valores><{prefix}acum>{escaped}</{prefix}acum></{prefix}valores>"
+            + xml[close_at:]
+        )
+
+    rendered_root = ElementTree.fromstring(rendered)
+    detected_paths: list[str] = []
+    for rendered_info in rendered_root.iter():
+        if not isinstance(rendered_info.tag, str):
+            continue
+        if rendered_info.tag.rsplit("}", 1)[-1] != "infNFSe":
+            continue
+        for rendered_values in rendered_info:
+            if rendered_values.tag.rsplit("}", 1)[-1] != "valores":
+                continue
+            detected_paths.extend(
+                (child.text or "").strip()
+                for child in rendered_values
+                if child.tag.rsplit("}", 1)[-1] == "acum"
+            )
+    if detected_paths != [accumulator_code]:
+        raise ValueError("A tag infNFSe/valores/acum não pôde ser validada no XML exportado.")
+    return rendered
+
+
+_NFSE_EXPORT_SIDES = {
+    "provided": ("Saída · serviço prestado", "Serviços", "Emitidas"),
+    "taken": ("Entrada · serviço tomado", "Entradas", "Tomadas"),
+}
+
+
+def _document_label(document: NfseDocument) -> str:
+    data = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+    return str(data.get("number") or document.source_nsu or document.id)[:40]
+
+
+def nfse_company_archive_folder(*, root: str, dominio_code: str | None) -> str:
+    """Build the Domínio ``code-`` ZIP folder without allowing nested paths."""
+
+    safe_code = re.sub(r"[^A-Za-z0-9_-]+", "_", dominio_code or "").strip("_-.")
+    if not safe_code:
+        safe_code = "SEM-CODIGO"
+    return f"{root}/{safe_code[:40]}-"
 
 
 @transaction.atomic
@@ -278,16 +852,46 @@ def create_nfse_export(
     This is deliberately not an import layout until Domínio supplies and validates one.
     """
 
+    from apps.hub.nfse_sync import nfse_match_data
+
     ordered_documents = sorted(documents, key=lambda document: str(document.id))
-    artifacts = {
-        str(artifact.document_id): artifact
-        for artifact in IntegrationArtifact.objects.filter(
-            organization=organization, document__in=ordered_documents
+    if not ordered_documents or any(
+        document.organization_id != organization.id for document in ordered_documents
+    ):
+        raise ValueError("Selecione notas do mesmo escritório para gerar o pacote.")
+    if len({document.id for document in ordered_documents}) != len(ordered_documents):
+        raise ValueError("A seleção contém notas repetidas.")
+    artifact_rows = list(
+        IntegrationArtifact.objects.filter(
+        organization=organization, document__in=ordered_documents
         ).order_by("document_id", "-created_at")
+    )
+    superseded_ids = {
+        str(artifact.payload.get("previous_artifact_id"))
+        for artifact in artifact_rows
+        if isinstance(artifact.payload, dict) and artifact.payload.get("previous_artifact_id")
     }
+    artifacts: dict[str, IntegrationArtifact] = {}
+    for artifact in artifact_rows:
+        if str(artifact.id) not in superseded_ids:
+            artifacts.setdefault(str(artifact.document_id), artifact)
     missing = [document for document in ordered_documents if str(document.id) not in artifacts]
     if missing:
         raise ValueError("Toda NFS-e do pacote precisa ter acumulador confirmado.")
+    catalogs = active_catalog_codes(list({document.company for document in ordered_documents}))
+    outside_catalog = [
+        document
+        for document in ordered_documents
+        if document.company_id in catalogs
+        and artifacts[str(document.id)].accumulator_code not in catalogs[document.company_id]
+    ]
+    if outside_catalog:
+        sample = outside_catalog[0]
+        raise ValueError(
+            f"{len(outside_catalog)} NFS-e do pacote usam acumulador que não está ativo "
+            f"no Domínio da empresa (ex.: nº {_document_label(sample)}, acumulador "
+            f"{artifacts[str(sample.id)].accumulator_code})."
+        )
 
     archive = io.BytesIO()
     snapshot_documents: list[dict[str, str]] = []
@@ -295,23 +899,49 @@ def create_nfse_export(
         manifest = io.StringIO(newline="")
         writer = csv.writer(manifest, delimiter=";")
         writer.writerow(
-            ["Documento", "Empresa", "Codigo Dominio", "Competencia", "Acumulador", "Hash"]
+            [
+                "Documento",
+                "Empresa",
+                "Codigo Dominio",
+                "Movimento",
+                "Importador Dominio",
+                "Competencia",
+                "Acumulador",
+                "Hash",
+            ]
         )
         for document in ordered_documents:
             artifact = artifacts[str(document.id)]
-            code = re.sub(r"[^A-Za-z0-9._-]", "_", document.company.dominio_code or "SEM-CODIGO")
             source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
             issued_at = document.issued_at or _issued_at_from_normalized_data(
                 document.normalized_data
             )
+            if issued_at and timezone.is_aware(issued_at):
+                issued_at = timezone.localtime(issued_at)
             competence = issued_at.strftime("%Y%m") if issued_at else "SEM-COMPETENCIA"
-            path = f"NFS-e/{code} -/{competence}/NFS-e-{source}.xml"
-            bundle.writestr(path, document.original_xml)
+            # The accumulator belongs to one side of the note: an issued note must go through
+            # Domínio's Serviços importer of the issuing company, a taken one through Entradas.
+            direction = str(nfse_match_data(document).get("direction", ""))
+            movement, importer, side_folder = _NFSE_EXPORT_SIDES.get(
+                direction, ("A confirmar", "Conferir", "Tipo-a-confirmar")
+            )
+            company_folder = nfse_company_archive_folder(
+                root=f"NFS-e/{side_folder}",
+                dominio_code=document.company.dominio_code,
+            )
+            path = f"{company_folder}/{competence}/NFS-e-{source}.xml"
+            dominio_xml = _xml_with_dominio_accumulator(
+                document.original_xml,
+                artifact.accumulator_code,
+            )
+            bundle.writestr(path, dominio_xml)
             writer.writerow(
                 [
                     document.source_nsu or str(document.id),
                     document.company.name,
                     document.company.dominio_code or "",
+                    movement,
+                    importer,
                     competence,
                     artifact.accumulator_code,
                     document.document_hash,
@@ -332,13 +962,14 @@ def create_nfse_export(
     export = NfseExport.objects.create(
         organization=organization,
         target="conference_only_pending_dominio_layout",
-        adapter_version="nfse-conference-v1",
+        adapter_version="nfse-conference-acum-v3",
         content_hash=digest,
         document_count=len(ordered_documents),
-        snapshot={"documents": snapshot_documents, "layout": "nfse-conference-v1"},
+        snapshot={"documents": snapshot_documents, "layout": "nfse-conference-acum-v3"},
         created_by=actor,
     )
     export.content.save(f"nfse-dominio-{export.id}.zip", ContentFile(content), save=True)
+    export.documents.add(*ordered_documents)
     return export
 
 

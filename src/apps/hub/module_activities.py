@@ -132,7 +132,7 @@ def _assign_source_requester(
 def sync_fiscal_guide_activity(guide_id: UUID) -> OperationalActivity | None:
     """Project one guide state without treating issuance as payment or acceptance."""
     guide = (
-        FiscalGuide.objects.select_for_update()
+        FiscalGuide.objects.select_for_update(of=("self",))
         .select_related("organization", "company", "issue_requested_by")
         .filter(pk=guide_id)
         .first()
@@ -256,7 +256,7 @@ def sync_fiscal_guide_activity(guide_id: UUID) -> OperationalActivity | None:
 def sync_dctfweb_document_activity(document_id: UUID) -> OperationalActivity | None:
     """Project document retrieval only; a retrieved receipt is not a declared acceptance."""
     document = (
-        DctfWebDocument.objects.select_for_update()
+        DctfWebDocument.objects.select_for_update(of=("self",))
         .select_related("organization", "company", "requested_by")
         .filter(pk=document_id)
         .first()
@@ -358,7 +358,7 @@ def sync_dctfweb_document_activity(document_id: UUID) -> OperationalActivity | N
 def sync_parcelamento_operation_activity(operation_id: UUID) -> OperationalActivity | None:
     """Project PARCSN work without equating a DAS file with payment."""
     operation = (
-        ParcelamentoOperation.objects.select_for_update()
+        ParcelamentoOperation.objects.select_for_update(of=("self",))
         .select_related("organization", "company", "requested_by")
         .filter(pk=operation_id)
         .first()
@@ -475,13 +475,19 @@ def sync_parcelamento_operation_activity(operation_id: UUID) -> OperationalActiv
 
 
 def nfse_resolution_reference(review: ReviewCase) -> str:
-    """Stable identity for the exact human resolution, including subsequent corrections."""
-    if not review.resolved_by_id or not review.resolved_at or not review.resolved_accumulator:
-        raise ValidationError("A revisão resolvida precisa de autor, data e acumulador.")
+    """Stable identity for an exact human or backup-backed resolution."""
+    backup_resolution = review.resolution_source == ReviewCase.ResolutionSource.BACKUP
+    if (
+        not review.resolved_at
+        or not review.resolved_accumulator
+        or (not backup_resolution and not review.resolved_by_id)
+    ):
+        raise ValidationError("A revisão resolvida precisa de origem, data e acumulador.")
     resolution = json.dumps(
         {
             "review": str(review.pk),
-            "actor": str(review.resolved_by_id),
+            "actor": str(review.resolved_by_id) if review.resolved_by_id else "backup",
+            "source": review.resolution_source or ReviewCase.ResolutionSource.HUMAN,
             "at": review.resolved_at.isoformat(),
             "accumulator": review.resolved_accumulator,
         },
@@ -556,19 +562,29 @@ def sync_nfse_review_activity(review_id: UUID) -> OperationalActivity | None:
             summary="O caso NFS-e está aberto; conclusão reavaliada.",
         )
     if review.status == ReviewCase.Status.RESOLVED:
-        if not review.resolved_by_id or not review.resolved_at or not review.resolved_accumulator:
-            raise ValidationError("A revisão resolvida precisa de autor, data e acumulador.")
+        backup_resolution = review.resolution_source == ReviewCase.ResolutionSource.BACKUP
+        if (
+            not review.resolved_at
+            or not review.resolved_accumulator
+            or (not backup_resolution and not review.resolved_by_id)
+        ):
+            raise ValidationError("A revisão resolvida precisa de origem, data e acumulador.")
         _, evidence_created = OperationalEvidence.objects.get_or_create(
             organization_id=review.organization_id,
             activity=activity,
-            kind=OperationalActivity.EvidenceKind.HUMAN,
+            kind=(
+                OperationalActivity.EvidenceKind.SOURCE
+                if backup_resolution
+                else OperationalActivity.EvidenceKind.HUMAN
+            ),
             reference=nfse_resolution_reference(review),
             defaults={
                 "recorded_by_id": review.resolved_by_id,
                 "observed_at": review.resolved_at,
                 "summary": (
-                    f"Classificação revisada no CICA: acumulador {review.resolved_accumulator}. "
-                    "Não comprova importação no ERP."
+                    "Classificação "
+                    f"{'reaplicada pelo backup' if backup_resolution else 'revisada no CICA'}: "
+                    f"acumulador {review.resolved_accumulator}. Não comprova importação no ERP."
                 )[:500],
             },
         )
@@ -593,7 +609,12 @@ def sync_nfse_review_activity(review_id: UUID) -> OperationalActivity | None:
                 activity=activity,
                 event_type="module_completed",
                 actor_id=review.resolved_by_id,
-                summary="Revisão humana concluída no módulo NFS-e; importação no ERP é separada.",
+                summary=(
+                    "Classificação reaplicada pelo backup no módulo NFS-e; "
+                    "importação no ERP é separada."
+                    if backup_resolution
+                    else "Revisão humana concluída no módulo NFS-e; importação no ERP é separada."
+                ),
             )
     return activity
 

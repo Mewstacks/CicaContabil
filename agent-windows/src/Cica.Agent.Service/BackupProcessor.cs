@@ -148,12 +148,14 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
             "AND TRIM(e.CHAVE_NFSE_ENT) <> '') OR e.TIPO_SERVICO IS NOT NULL) " +
             "GROUP BY e.codi_emp, e.codi_acu, f.cgce_for";
         using OdbcConnection connection = Open(database);
-        await SendObservationQuery(batch, connection, issuedSql, token);
-        await SendObservationQuery(batch, connection, takenSql, token);
+        // Domínio keeps separate accumulators for serviço prestado and entrada; the CICA only
+        // compares a note with history from its own side.
+        await SendObservationQuery(batch, connection, issuedSql, "provided", token);
+        await SendObservationQuery(batch, connection, takenSql, "taken", token);
     }
 
     private async Task SendObservationQuery(string batch, OdbcConnection connection,
-        string sql, CancellationToken token)
+        string sql, string direction, CancellationToken token)
     {
         using OdbcCommand command = new(sql, connection) { CommandTimeout = 180 };
         using OdbcDataReader reader = command.ExecuteReader();
@@ -169,6 +171,7 @@ internal sealed class BackupProcessor(AgentConfig config, AgentClient client)
                 accumulator_code = Convert.ToString(reader[1]),
                 service_code = serviceCode,
                 counterparty_ref = counterpartyRef,
+                direction,
                 frequency = Convert.ToInt32(reader[4]),
                 last_used_at = Convert.ToDateTime(reader[5]).ToUniversalTime().ToString("O"),
             });

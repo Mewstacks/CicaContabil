@@ -1,0 +1,16 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}{{ status_code }} · {{ heading }} · CICA{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page">
+  <section class="auth-card error-page-card" aria-labelledby="error-page-title">
+    <p class="eyebrow">{{ eyebrow }}</p>
+    <h1 id="error-page-title">{{ heading }}</h1>
+    <p class="form-intro">{{ message }}</p>
+    <div class="error-page-actions">
+      <a class="button" href="{{ primary_url }}">{{ primary_label }}</a>
+      {% if secondary_url %}<a class="button button-quiet" href="{{ secondary_url }}">{{ secondary_label }}</a>{% endif %}
+    </div>
+    <p class="error-page-code">Código {{ status_code }}</p>
+  </section>
+</main>
+{% endblock %}

@@ -47,6 +47,61 @@ def test_a_platform_operator_cannot_reach_the_console_on_a_password_alone() -> N
     assert reverse("accounts:mfa-setup") in response.headers["Location"]
 
 
+def test_an_explicitly_exempt_platform_admin_cannot_start_a_totp_enrollment() -> None:
+    admin = User.objects.create_user(email="admin@example.test", password=PASSWORD)
+    PlatformAccess.objects.create(
+        user=admin,
+        role=PlatformAccess.Role.ADMIN,
+        mfa_required=False,
+    )
+    client = Client()
+    client.force_login(admin)
+
+    setup = client.get(reverse("accounts:mfa-setup"))
+    verify = client.get(reverse("accounts:mfa-verify"))
+    qr = client.get(reverse("accounts:mfa-qr"))
+
+    assert setup.status_code == 302
+    assert setup.headers["Location"] == reverse("platform:dashboard")
+    assert verify.status_code == 302
+    assert verify.headers["Location"] == reverse("platform:dashboard")
+    assert qr.status_code == 404
+    assert not TotpDevice.objects.filter(user=admin).exists()
+
+
+def test_an_exempt_platform_admin_logs_in_with_password_and_reaches_configuration() -> None:
+    admin = User.objects.create_user(email="admin-login@example.test", password=PASSWORD)
+    PlatformAccess.objects.create(
+        user=admin,
+        role=PlatformAccess.Role.ADMIN,
+        mfa_required=False,
+    )
+    client = Client()
+
+    signed_in = client.post(
+        reverse("hub:login"),
+        {"username": admin.email, "password": PASSWORD},
+    )
+
+    assert signed_in.status_code == 302
+    assert signed_in.headers["Location"] == reverse("platform:dashboard")
+    assert client.get(reverse("platform:dashboard")).status_code == 200
+    assert client.get(reverse("platform:configuration")).status_code == 200
+    assert not TotpDevice.objects.filter(user=admin).exists()
+
+
+def test_an_explicit_platform_exemption_wins_over_a_historical_totp_device() -> None:
+    admin = User.objects.create_user(email="admin-old-mfa@example.test", password=PASSWORD)
+    _enrol(admin)
+    PlatformAccess.objects.create(
+        user=admin,
+        role=PlatformAccess.Role.ADMIN,
+        mfa_required=False,
+    )
+
+    assert not mfa.is_required(admin)
+
+
 def test_an_enrolled_operator_is_sent_to_the_code_prompt() -> None:
     operator = _operator()
     _enrol(operator)
@@ -119,7 +174,7 @@ def test_confirming_enrollment_redirects_without_a_recovery_screen() -> None:
     assert not RecoveryCode.objects.filter(user=operator).exists()
 
 
-def test_an_office_can_require_a_second_factor_from_its_own_members() -> None:
+def test_an_office_preference_only_recommends_mfa_to_its_members() -> None:
     member = User.objects.create_user(email="member@example.test", password=PASSWORD)
     office = Organization.objects.create(name="Escritório", slug="escritorio")
     Membership.objects.create(user=member, organization=office, role=Membership.Role.OWNER)
@@ -132,7 +187,22 @@ def test_an_office_can_require_a_second_factor_from_its_own_members() -> None:
     profile.require_mfa = True
     profile.save(update_fields=["require_mfa"])
 
-    assert client.get(reverse("hub:dashboard")).status_code == 302
+    assert client.get(reverse("hub:dashboard")).status_code == 200
+
+
+def test_a_customer_who_enrolls_mfa_must_verify_the_next_session() -> None:
+    member = User.objects.create_user(email="secured-member@example.test", password=PASSWORD)
+    office = Organization.objects.create(name="Escritório protegido", slug="escritorio-protegido")
+    Membership.objects.create(user=member, organization=office, role=Membership.Role.OPERATOR)
+    OfficeProfile.objects.create(organization=office)
+    _enrol(member)
+    client = Client()
+    client.force_login(member)
+
+    response = client.get(reverse("hub:dashboard"))
+
+    assert response.status_code == 302
+    assert reverse("accounts:mfa-verify") in response.headers["Location"]
 
 
 def test_signing_out_stays_reachable_without_a_second_factor() -> None:

@@ -13,10 +13,10 @@
   <meta property="og:locale" content="pt_BR">
   <title>CICA — Central de trabalho para escritórios contábeis</title>
   <link rel="icon" href="{% static 'hub/brand/cica-mark-green.svg' %}" type="image/svg+xml">
-  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=20260928-1">
+  <link rel="stylesheet" href="{% static 'hub/theme.css' %}?v=20260929-1">
   <link rel="preload" href="{% static 'hub/fonts/manrope-latin-variable.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'hub/cica-landing.css' %}?v=20260925-1">
-  <script src="{% static 'hub/theme.js' %}?v=20260924-2" defer></script>
+  <script src="{% static 'hub/theme.js' %}?v=csrf-1" defer></script>
   <script src="{% static 'hub/cica-product-demo.js' %}?v=20260925-1" defer></script>
 </head>
 <body class="cica-landing">
@@ -85,7 +85,7 @@
           </div>
         </div>
       </div>
-      <footer class="product-proof-footer"><span>Uma amostra do fluxo. Nenhum dado real é consultado nesta tela.</span>{% if demo_available %}<a href="{% url 'hub:demo-entry' %}">Explorar a demonstração completa</a>{% endif %}</footer>
+      <footer class="product-proof-footer"><span>Exemplo ilustrativo com empresas, pessoas e atividades fictícias. Nenhum dado real é consultado nesta tela.</span>{% if demo_available %}<a href="{% url 'hub:demo-entry' %}">Explorar a demonstração completa</a>{% endif %}</footer>
     </section>
 
     <section class="cica-statement" aria-labelledby="statement-title"><div class="cica-shell"><h2 id="statement-title">Atraso não é falta de esforço.<br><span>É falta de contexto.</span></h2></div></section>

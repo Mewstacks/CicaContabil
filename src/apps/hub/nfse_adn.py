@@ -115,7 +115,11 @@ class AdnClient:
             raise AdnAuthenticationError(
                 "O ADN recusou o certificado para este CNPJ. Confira titularidade e validade."
             )
-        if status == 429 or status >= 500:
+        # The contributor distribution service can answer 404 at the moving
+        # edge of a company's NSU stream.  It must not permanently block that
+        # company (or the durable queue); retry it with the same backoff used
+        # for throttling and provider outages.
+        if status in {404, 429} or status >= 500:
             raise AdnTransportError(f"O ADN está temporariamente indisponível (HTTP {status}).")
         if status >= 400:
             raise AdnError(f"O ADN recusou a consulta (HTTP {status}).")

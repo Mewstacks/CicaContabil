@@ -30,6 +30,10 @@ Regras e autorização externa: responsável pelo projeto. Código, inventário 
 
 ## Testes e aceite
 
+- [x] V-230: repetir regressão local em PostgreSQL 17 isolado; corrigir locks incompatíveis nas projeções fiscais; 1.012 testes/39 subtestes aprovados, incluindo recorrência e tokens concorrentes.
+- [x] V-231: preparar regressão PostgreSQL integral no workflow local, antes dos builds e sem tolerância a falhas; testar isolamento da configuração.
+- [ ] Publicar o workflow e confirmar sua primeira execução no GitHub Actions; proteger a publicação contra bypass do CI. A configuração local não prova enforcement remoto.
+
 Instalação integrada, carga aprovada, queda de serviços, restauração verificável, rollback compatível com migrations, retenção e piloto por módulo.
 
 **Critério de aceite:** Todos os módulos da oferta possuem evidência de funcionamento e operação sustentável; nenhuma pendência crítica é escondida como concluída.
@@ -60,9 +64,19 @@ Nenhuma homologação nova atribuída a esta etapa. A existência de código ou 
 - [x] Configurar os hostnames em `ALLOWED_HOSTS` e `CSRF_TRUSTED_ORIGINS` e revalidar o health após o restart.
 - [x] Remover da zona HostGator o A legado `162.240.81.81`, preservando os destinos Fly.
 - [x] Verificar a emissão TLS e validar apex e `www` após a correção autoritativa e a limpeza do cache DNS local.
+- [x] Tratar token CSRF renovado no seletor de aparência e substituir a página técnica 403 por recuperação segura, preservando JSON nas APIs (V-245).
 
 ## Prompt de execução
 
 > Execute a etapa 12. Faça a homologação integrada da CICA e reúna evidências por módulo, incluindo restauração, filas, integrações, instalação e suporte. Confirme com o responsável ambiente, metas e critérios ainda pendentes. Não libere venda nem contrate infraestrutura por inferência.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+### V-246 — População autorizada da demo publicada
+
+- [x] Publicar somente os seis arquivos necessários sobre a release existente, sem migração ou infraestrutura nova.
+- [x] Popular exclusivamente o tenant demo com 84 atividades e conferir replay sem duplicação.
+- [x] Verificar health/web/worker e as telas publicadas em desktop/celular por Playwright MCP.
+- [x] Encerrar os contextos do navegador e o QA local desta tarefa.
+
+Release 33, 01/10/2026. V-246 registra as contagens e os limites; dados, prazos, pessoas e evidências são fictícios. Isso não encerra a etapa 12 nem comprova fontes fiscais, cobrança, recuperação ou piloto reais.

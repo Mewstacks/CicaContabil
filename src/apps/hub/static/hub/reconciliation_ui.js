@@ -1,4 +1,7 @@
 (() => {
+  const serverErrorSummary = document.querySelector('[data-error-summary]');
+  if (serverErrorSummary instanceof HTMLElement) serverErrorSummary.focus();
+
   const tabs = [...document.querySelectorAll('[data-reconciliation-tab]')];
   const panels = [...document.querySelectorAll('[data-reconciliation-panel]')];
 
@@ -37,6 +40,7 @@
     if (!(input instanceof HTMLInputElement)) return;
     const list = document.getElementById(`${input.id}-files`);
     const form = dropzone.closest('form');
+    const company = form?.querySelector('select[name="company"]');
     const error = form?.querySelector('[data-file-error]');
     const submit = form?.querySelector('[data-upload-submit]');
     if (!list || !form) return;
@@ -76,11 +80,11 @@
       }
       input.setCustomValidity(problems.join(' '));
       if (submit instanceof HTMLButtonElement) {
-        submit.disabled = files.length === 0 || problems.length > 0;
         submit.textContent = files.length > 1 ? `Importar ${files.length} arquivos` : 'Importar arquivos';
       }
     };
     input.addEventListener('change', update);
+    company?.addEventListener('change', update);
     ['dragenter', 'dragover'].forEach(eventName => dropzone.addEventListener(eventName, event => {
       event.preventDefault();
       dropzone.classList.add('is-dragging');
@@ -99,12 +103,30 @@
       if (company instanceof HTMLSelectElement && !company.value) {
         event.preventDefault();
         company.setAttribute('aria-invalid', 'true');
-        company.focus();
+        const companySearch = form.querySelector('[data-company-search]');
+        if (companySearch instanceof HTMLInputElement && !companySearch.hidden) {
+          companySearch.setAttribute('aria-invalid', 'true');
+          companySearch.focus();
+        } else {
+          company.focus();
+        }
         return;
       }
-      if (!input.files?.length || problemsFor([...input.files]).length) {
+      if (!input.files?.length) {
+        event.preventDefault();
+        const message = 'Selecione ao menos um arquivo OFX, CSV, XLSX ou PDF.';
+        input.setCustomValidity(message);
+        if (error) {
+          error.textContent = message;
+          error.hidden = false;
+        }
+        input.focus();
+        return;
+      }
+      if (problemsFor([...input.files]).length) {
         event.preventDefault();
         update();
+        input.focus();
         return;
       }
       if (submit instanceof HTMLButtonElement) {
@@ -123,7 +145,10 @@
     const help = form.querySelector('[data-financial-account-help]');
     const updateAccounts = () => {
       const companyId = company.value;
-      if (companyId) company.removeAttribute('aria-invalid');
+      if (companyId) {
+        company.removeAttribute('aria-invalid');
+        form.querySelector('[data-company-search]')?.removeAttribute('aria-invalid');
+      }
       let available = 0;
       [...account.options].forEach(option => {
         const ownerId = option.dataset.companyId;
@@ -190,5 +215,42 @@
     };
     entry.addEventListener('change', updateLimit);
     updateLimit();
+  });
+
+  document.querySelectorAll('[data-reconciliation-mapping-form]').forEach(form => {
+    const selects = Object.fromEntries(
+      [...form.querySelectorAll('[data-mapping-field]')].map(select => [select.dataset.mappingField, select]),
+    );
+    const signedAmount = selects.amount;
+    const debit = selects.debit;
+    const credit = selects.credit;
+    const feedback = form.querySelector('[data-mapping-strategy-error]');
+    if (!(signedAmount instanceof HTMLSelectElement)
+      || !(debit instanceof HTMLSelectElement)
+      || !(credit instanceof HTMLSelectElement)) return;
+
+    const validateStrategy = () => {
+      const hasSignedAmount = Boolean(signedAmount.value);
+      const hasSplitAmount = Boolean(debit.value || credit.value);
+      const message = !hasSignedAmount && !hasSplitAmount
+        ? 'Escolha Valor com sinal ou pelo menos uma coluna de débito/crédito.'
+        : hasSignedAmount && hasSplitAmount
+          ? 'Use uma única estratégia: Valor com sinal ou Débito/Crédito.'
+          : '';
+      signedAmount.setCustomValidity(message);
+      signedAmount.toggleAttribute('aria-invalid', Boolean(message));
+      if (feedback instanceof HTMLElement) {
+        feedback.textContent = message;
+        feedback.hidden = !message;
+      }
+      return !message;
+    };
+    [signedAmount, debit, credit].forEach(select => select.addEventListener('change', validateStrategy));
+    form.addEventListener('submit', event => {
+      if (validateStrategy()) return;
+      event.preventDefault();
+      signedAmount.focus();
+      signedAmount.reportValidity();
+    });
   });
 })();

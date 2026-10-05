@@ -12,6 +12,21 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        # Same PostgreSQL 17 image validated locally; no production database access.
+        image: postgres:17-bookworm@sha256:051f7b7b3abdd564d5d1bd1e8c4b9c1b6e77087d1dd22020ede611c096a272e0
+        env:
+          POSTGRES_USER: cica_test
+          POSTGRES_PASSWORD: local-test-only
+          POSTGRES_DB: cica_test
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U cica_test -d cica_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -25,6 +40,11 @@ jobs:
       - run: uv run python manage.py check
       - run: uv run python manage.py makemigrations --check --dry-run
       - run: uv run pytest -q
+      - name: PostgreSQL regression, migrations and concurrency
+        env:
+          CICA_TEST_POSTGRES_PORT: "55432"
+          TEST_USE_EXTERNAL_SERVICES: "false"
+        run: uv run pytest --ds=config.settings.test_postgresql --tb=short -q
       - run: docker build --tag saas-backend:test .
       - run: docker build --file runtime/multimodal/Dockerfile --tag hubcontador-multimodal:test .
       - run: >-

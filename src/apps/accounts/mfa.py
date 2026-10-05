@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import timedelta
-
 from django.db import transaction
 from django.http import HttpRequest
 from django.utils import timezone
@@ -13,62 +11,32 @@ SESSION_KEY = "mfa_verified_device"
 ISSUER = "CICA"
 
 
+def has_platform_exemption(user: User) -> bool:
+    """Return whether the platform account explicitly bypasses MFA.
+
+    The flag is an explicit administrative exception and therefore wins over a
+    historical TOTP device or any tenant preference.
+    """
+
+    from apps.platform.models import PlatformAccess
+
+    return PlatformAccess.objects.filter(user=user, mfa_required=False).exists()
+
+
 def is_required(user: User) -> bool:
     """Who must present a second factor.
 
-    The platform console reaches across every tenant, so its operators always do.
-    Trial offices have a bounded 14-day exemption, never shared with paid offices.
+    Platform access follows its explicit policy. Customer accounts are never
+    forced to enroll, but once a customer voluntarily confirms a TOTP device it
+    protects subsequent sessions.
     """
 
-    from apps.hub.models import OfficeProfile
-    from apps.platform.models import PlatformAccess, TenantContract
+    from apps.platform.models import PlatformAccess
 
-    if PlatformAccess.objects.filter(user=user, mfa_required=True).exists():
-        return True
-    now = timezone.now()
-    today = timezone.localdate(now)
-    # The commercial contract is authoritative even when the older office
-    # preference is disabled or its cached status still says trial.
-    contracts = TenantContract.objects.filter(
-        organization__memberships__user=user,
-        organization__memberships__is_active=True,
-        organization__is_demo=False,
-    ).order_by("organization_id", "-created_at", "-id")
-    seen = set()
-    for contract in contracts:
-        if contract.organization_id in seen:
-            continue
-        seen.add(contract.organization_id)
-        if contract.status != TenantContract.Status.TRIAL:
-            return True
-        if (
-            contract.starts_on is None
-            or contract.trial_ends_on is None
-            or not contract.starts_on <= today <= contract.trial_ends_on
-        ):
-            return True
-        profile = OfficeProfile.objects.filter(organization_id=contract.organization_id).first()
-        if (
-            profile is None
-            or profile.trial_started_at is None
-            or not profile.trial_started_at <= now < profile.trial_started_at + timedelta(days=14)
-        ):
-            return True
-    profiles = OfficeProfile.objects.filter(
-        require_mfa=True,
-        organization__memberships__user=user,
-        organization__memberships__is_active=True,
-        organization__is_demo=False,
-    )
-    for profile in profiles:
-        if profile.trial_started_at is None:
-            return True
-        if profile.contract_status != OfficeProfile.ContractStatus.TRIAL:
-            return True
-        start = profile.trial_started_at or profile.created_at
-        if not start <= now < start + timedelta(days=14):
-            return True
-    return False
+    access = PlatformAccess.objects.filter(user=user).only("mfa_required").first()
+    if access is not None:
+        return access.mfa_required
+    return is_enrolled(user)
 
 
 def device_for(user: User) -> TotpDevice | None:

@@ -6,6 +6,11 @@ from django.urls import include, path
 from django.urls.resolvers import URLPattern, URLResolver
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+handler400 = "apps.common.views.bad_request"
+handler403 = "apps.common.views.permission_denied"
+handler404 = "apps.common.views.page_not_found"
+handler500 = "apps.common.views.server_error"
+
 urlpatterns: list[URLPattern | URLResolver] = [
     path("", include("apps.hub.urls")),
     path("app/ia/", include("apps.intelligence.urls")),

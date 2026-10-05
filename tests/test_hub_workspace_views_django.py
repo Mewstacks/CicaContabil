@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+from io import BytesIO
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
@@ -8,6 +9,8 @@ from django.db import connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from openpyxl import load_workbook
+from pypdf import PdfReader
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -94,7 +97,6 @@ class HubWorkspaceViewTests(TestCase):
             "hub:nfse-center",
             "hub:companies",
             "hub:certificates",
-            "hub:reviews",
             "hub:settings",
         ]
 
@@ -102,6 +104,8 @@ class HubWorkspaceViewTests(TestCase):
             response = self.client.get(reverse(endpoint))
             self.assertEqual(response.status_code, 200, endpoint)
             self.assertNotIn("active_company", response.context, endpoint)
+        reviews = self.client.get(reverse("hub:reviews"))
+        self.assertRedirects(reviews, reverse("hub:nfse-center") + "?status=unclassified")
 
     def test_nfse_only_subscription_starts_in_nfse_and_blocks_activity_surfaces(self) -> None:
         ProductModule.objects.create(
@@ -224,7 +228,20 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(steps[7]["url"], expected_mfa_url)
         self.assertContains(response, "Escolher fonte")
         self.assertContains(response, "Gerenciar equipe")
-        self.assertContains(response, "Configurar MFA")
+        self.assertContains(response, "Ativar MFA recomendado")
+        self.assertContains(response, "Recomendado")
+
+    def test_mfa_recommendation_is_available_to_an_operator(self) -> None:
+        Membership.objects.filter(user=self.user, organization=self.organization).update(
+            role=Membership.Role.OPERATOR
+        )
+
+        response = self.client.get(reverse("hub:setup"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["can_manage_setup"])
+        self.assertContains(response, "Ativar MFA recomendado")
+        self.assertContains(response, reverse("accounts:mfa-setup"))
 
     def test_owner_confirms_office_identity_from_setup(self) -> None:
         response = self.client.post(
@@ -315,7 +332,9 @@ class HubWorkspaceViewTests(TestCase):
         certificates = self.client.get(reverse("hub:certificates"))
         company = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
 
-        self.assertContains(certificates, "conexão homologada")
+        self.assertContains(
+            certificates, "a primeira coleta da empresa entra na fila automaticamente"
+        )
         self.assertNotContains(certificates, "ativar a consulta de NFS-e")
         self.assertContains(company, "conexão NFS-e desta empresa ser homologada")
         self.assertNotContains(company, "certificado não há consulta de NFS-e nem DTE")
@@ -343,7 +362,7 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(without_triage.status_code, 200)
         self.assertContains(without_triage, activity.title)
-        self.assertContains(without_triage, "Atividades e fechamento")
+        self.assertContains(without_triage, "Trabalho e fechamento")
         self.assertNotContains(without_triage, "Documentos em triagem")
 
         ProductModule.objects.create(
@@ -390,6 +409,7 @@ class HubWorkspaceViewTests(TestCase):
             [item.id for item in response.context["activities"]],
             [legal_overdue.id, internal_future.id, without_due_date.id],
         )
+
     def test_company_detail_shows_aggregate_payroll_source_without_claiming_official_query(
         self,
     ) -> None:
@@ -406,10 +426,18 @@ class HubWorkspaceViewTests(TestCase):
 
         response = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
 
-        self.assertContains(response, "Conferências de folha")
+        self.assertContains(response, "Conferência da folha")
         self.assertContains(response, "resumo-folha-setembro")
         self.assertContains(response, "R$ 1.234,50")
-        self.assertContains(response, "não equivalem a consulta oficial")
+        self.assertContains(response, "Descontos")
+        self.assertContains(response, "Encargos")
+        self.assertContains(
+            response, "<dt>Descontos</dt><dd><span>Não informado</span>", html=True
+        )
+        self.assertContains(
+            response, "<dt>Encargos</dt><dd><span>Não informado</span>", html=True
+        )
+        self.assertNotContains(response, "Nenhum valor será calculado")
 
     def test_company_detail_compares_payroll_sources_for_one_competence(self) -> None:
         competence = timezone.localdate().replace(day=1)
@@ -439,6 +467,18 @@ class HubWorkspaceViewTests(TestCase):
             workforce_count=12,
             gross_pay_cents=101_500,
         )
+        PayrollPeriodSnapshot.objects.create(
+            organization=self.organization,
+            company=self.company,
+            competence=(competence - timedelta(days=1)).replace(day=1),
+            source_kind=PayrollPeriodSnapshot.SourceKind.MANUAL,
+            source_reference="outra-competencia",
+            workforce_count=9,
+        )
+
+        overview = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
+        self.assertContains(overview, "Conferir competência")
+        self.assertNotContains(overview, 'name="left_snapshot"')
 
         response = self.client.get(
             reverse("hub:company-detail", args=[self.company.id]),
@@ -450,11 +490,17 @@ class HubWorkspaceViewTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Comparar fontes da folha")
+        self.assertContains(response, "Conferir diferenças entre fontes")
         self.assertContains(response, "Quadro de pessoas")
         self.assertContains(response, "Total bruto")
         self.assertContains(response, "R$ 15,00")
-        self.assertContains(response, "n&atilde;o calcula folha", html=False)
+        self.assertContains(response, "a mais")
+        self.assertContains(response, "não calcula a folha")
+        self.assertNotContains(response, "outra-competencia")
+        comparison_sources = response.context["payroll_comparison_form"].fields[
+            "left_snapshot"
+        ].queryset
+        self.assertEqual(comparison_sources.count(), 2)
         self.assertContains(
             response,
             f"company={self.company.id}&amp;area=payroll&amp;competence={competence:%Y-%m}",
@@ -504,9 +550,10 @@ class HubWorkspaceViewTests(TestCase):
         attention = self.client.get(reverse("hub:certificates"))
 
         self.assertContains(attention, "Empresa vencendo logo")
-        self.assertNotContains(attention, "A1 matriz")
+        self.assertContains(attention, "A1 matriz")
+        self.assertEqual(attention.context["certificate_status"], "all")
         self.assertContains(attention, "Vence em breve")
-        self.assertContains(attention, "Empresas sem certificado A1 válido")
+        self.assertContains(attention, "Empresas sem A1 válido")
         self.assertContains(attention, self.company.name)
 
         searched = self.client.get(reverse("hub:certificates"), {"q": "090", "status": "all"})
@@ -594,18 +641,29 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertContains(response, "Cronograma IBS")
         self.assertNotContains(response, "Crédito tributário da CBS")
-        self.assertContains(response, "Pesquisar publicações")
-        self.assertContains(response, "Saúde das fontes")
+        self.assertContains(response, "Aplicar filtros")
+        self.assertContains(response, "Situação das fontes oficiais")
         self.assertContains(response, "Aguardando a primeira coleta")
 
         unfiltered = self.client.get(reverse("hub:reform"))
         self.assertContains(unfiltered, "Cronograma IBS")
         self.assertContains(unfiltered, "Crédito tributário da CBS")
+        self.assertNotContains(unfiltered, 'class="operational-table"')
+        self.assertContains(unfiltered, "Analisar impacto", count=2)
+        self.assertContains(unfiltered, "Abrir fonte oficial", count=2)
+        self.assertContains(unfiltered, "?return_to=", count=2)
 
         searched = self.client.get(reverse("hub:reform"), {"q": "crédito", "relevancia": "fiscal"})
         self.assertContains(searched, "Crédito tributário da CBS")
         self.assertNotContains(searched, "Cronograma IBS")
-        self.assertContains(searched, "1 resultado")
+        self.assertContains(searched, "1 publicação")
+
+        membership = Membership.objects.get(organization=self.organization, user=self.user)
+        membership.role = Membership.Role.AUDITOR
+        membership.save(update_fields=["role"])
+        readonly = self.client.get(reverse("hub:reform"))
+        self.assertContains(readonly, "Ver análises", count=2)
+        self.assertNotContains(readonly, "Analisar impacto")
 
     def test_reform_radar_paginates_the_full_filtered_history(self) -> None:
         ProductModule.objects.create(
@@ -635,7 +693,7 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(len(first_page.context["alerts"]), 50)
         self.assertEqual(last_page.context["alert_page"].number, 3)
         self.assertContains(last_page, "Alerta Radar paginado 000")
-        self.assertContains(last_page, "101 resultados")
+        self.assertContains(last_page, "101 publicações")
         self.assertContains(last_page, "Página 3 de 3")
         self.assertContains(
             last_page,
@@ -697,6 +755,13 @@ class HubWorkspaceViewTests(TestCase):
             set(invitation.modules), {ProductModule.Code.NFSE, ProductModule.Code.TRIAGE}
         )
         send_email.assert_called_once()
+
+    def test_invitation_validation_marks_a_real_focus_target(self) -> None:
+        response = self.client.post(reverse("hub:team"), {"role": Membership.Role.MANAGER})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "data-focus-error", count=4)
+        self.assertNotContains(response, 'data-focus-error"=""')
 
     @patch(
         "apps.hub.views.send_invitation_email",
@@ -1386,17 +1451,19 @@ class HubWorkspaceViewTests(TestCase):
         create_document_and_artifact(
             company=self.company,
             original_xml="<nfse id='owned' />",
-            normalized_data={},
+            normalized_data={"number": "owned"},
             source_nsu="owned",
         )
         create_document_and_artifact(
             company=other_company,
             original_xml="<nfse id='other' />",
-            normalized_data={},
+            normalized_data={"number": "other"},
             source_nsu="other",
         )
 
-        response = self.client.get(reverse("hub:nfse-center"))
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
+        )
 
         self.assertContains(response, "<h1>NFS-e</h1>", html=True)
         self.assertContains(response, "owned")
@@ -1415,23 +1482,482 @@ class HubWorkspaceViewTests(TestCase):
             source_nsu="classificacao",
         )
 
-        response = self.client.get(reverse("hub:nfse-center"))
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
+        )
 
-        self.assertContains(response, '<th scope="col">Classificação</th>', html=True)
+        self.assertContains(response, '<th scope="col">Acumulador</th>', html=True)
         self.assertNotContains(response, "Confiança")
         self.assertNotContains(response, "Transitória · 0%")
         body = response.content.decode()
-        self.assertIn("Classificação", body.split("Acumulador para baixar")[0])
-        self.assertTrue("Não classificada" in body or ">Classificada<" in body)
+        self.assertIn("Classificar", body)
+        self.assertIn("Ver dados da nota", body)
+
+    def test_nfse_center_shows_note_number_and_not_transport_identifiers(self) -> None:
+        document, _artifact, _review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='visible-number' />",
+            normalized_data={"number": "NF-1042"},
+            source_nsu="NSU-TECHNICAL-99",
+        )
+
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
+        )
+
+        self.assertContains(response, "NF-1042")
+        self.assertNotContains(response, "NSU-TECHNICAL-99")
+        self.assertNotContains(response, document.document_hash[:12])
+
+    def test_nfse_retention_reports_follow_filters_and_export_explicit_taxes(self) -> None:
+        common = {
+            "competence": "2026-09-01",
+            "service_code": "1401",
+            "service_description": "Assessoria contábil mensal",
+            "amount": "1000.00",
+            "issued_at": "2026-09-10T12:00:00-03:00",
+        }
+        create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='provided-report' />",
+            normalized_data={
+                **common,
+                "number": "SAIDA-1",
+                "direction": "provided",
+                "counterparty_name": "Cliente sem retenção",
+            },
+            source_nsu="provided-report",
+        )
+        create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='taken-report' />",
+            normalized_data={
+                **common,
+                "number": "ENTRADA-1",
+                "direction": "taken",
+                "counterparty_name": "=FORNECEDOR",
+                "retentions": {
+                    "iss": "20.00",
+                    "pis": "6.50",
+                    "cofins": "30.00",
+                    "csll": "10.00",
+                    "irrf": "15.00",
+                    "inss": "110.00",
+                },
+                "retained_total": "9999.99",
+            },
+            source_nsu="taken-report",
+        )
+        filters = {
+            "report_status": "all",
+            "report_direction": "taken",
+            "report_date_filter": "competence",
+            "report_competence": "2026-09",
+        }
+
+        xlsx = self.client.post(
+            reverse("hub:nfse-center") + "?status=all",
+            {"action": "retention_report_xlsx", **filters},
+        )
+
+        self.assertEqual(xlsx.status_code, 200)
+        self.assertEqual(
+            xlsx["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        workbook = load_workbook(BytesIO(xlsx.content), data_only=False)
+        self.assertEqual(workbook.sheetnames, ["Resumo", "Notas"])
+        notes = workbook["Notas"]
+        self.assertEqual(notes.max_row, 2)
+        self.assertEqual(notes["C2"].value, "ENTRADA-1")
+        self.assertEqual(notes["D2"].value, "Entrada · serviço tomado")
+        self.assertEqual(notes["G2"].value, "'=FORNECEDOR")
+        self.assertEqual(notes["K2"].value, 20)
+        self.assertEqual(notes["Q2"].value, "=SUM(K2:P2)")
+        self.assertEqual(workbook["Resumo"]["B11"].value, "=SUM(Notas!Q2:Q2)")
+
+        pdf = self.client.post(
+            reverse("hub:nfse-center") + "?status=all",
+            {"action": "retention_report_pdf", **filters},
+        )
+        self.assertEqual(pdf.status_code, 200)
+        self.assertEqual(pdf["Content-Type"], "application/pdf")
+        self.assertTrue(pdf.content.startswith(b"%PDF"))
+        pdf_text = "\n".join(
+            page.extract_text() or "" for page in PdfReader(BytesIO(pdf.content)).pages
+        )
+        self.assertIn("ENTRADA-1", pdf_text)
+        self.assertNotIn("SAIDA-1", pdf_text)
+        self.assertIn("R$ 191,50", pdf_text)
+        self.assertEqual(
+            AuditEvent.objects.filter(
+                organization=self.organization,
+                action__in={
+                    "hub.nfse.retention_report_pdf_downloaded",
+                    "hub.nfse.retention_report_xlsx_downloaded",
+                },
+            ).count(),
+            2,
+        )
+
+    def test_classified_nfse_accumulator_can_be_corrected_without_rewriting_history(self) -> None:
+        document, _artifact, review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='correct-accumulator' />",
+            normalized_data={"number": "NF-204", "service_code": "1401"},
+            source_nsu="204",
+        )
+        assert review is not None
+        previous = IntegrationArtifact.objects.create(
+            organization=self.organization,
+            document=document,
+            accumulator_code="AC-ANTIGO",
+            applied_rule="Decisão anterior",
+            confidence=100,
+        )
+        AccumulatorRule.objects.create(
+            organization=self.organization,
+            company=self.company,
+            name="Novo acumulador",
+            accumulator_code="AC-NOVO",
+            priority=10,
+            match={"service_code": "1401"},
+        )
+
+        response = self.client.post(
+            reverse("hub:nfse-update-accumulator", args=[document.id]),
+            {"accumulator_code": "AC-NOVO", "return_to": reverse("hub:nfse-center")},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["accumulator"], "AC-NOVO")
+        artifacts = list(
+            IntegrationArtifact.objects.filter(document=document).order_by("created_at")
+        )
+        self.assertEqual(len(artifacts), 2)
+        self.assertEqual(artifacts[0].id, previous.id)
+        self.assertEqual(artifacts[-1].accumulator_code, "AC-NOVO")
+        review.refresh_from_db()
+        self.assertEqual(review.status, ReviewCase.Status.RESOLVED)
+        self.assertEqual(review.resolved_accumulator, "AC-NOVO")
+        self.assertTrue(
+            AccumulatorHistoryEntry.objects.filter(
+                organization=self.organization,
+                company=self.company,
+                accumulator_code="AC-NOVO",
+            ).exists()
+        )
+
+    def test_nfse_bulk_export_selects_all_classified_results_from_the_current_filter(self) -> None:
+        other_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa incluída", dominio_code="002"
+        )
+        excluded_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa fora do filtro", dominio_code="003"
+        )
+        included, _, _ = create_document_and_artifact(
+            company=other_company,
+            original_xml=(
+                "<NFSe><infNFSe><numero>included</numero>"
+                "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+            ),
+            normalized_data={"number": "NF-INCLUIDA"},
+            source_nsu="included",
+        )
+        excluded, _, _ = create_document_and_artifact(
+            company=excluded_company,
+            original_xml=(
+                "<NFSe><infNFSe><numero>excluded</numero>"
+                "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+            ),
+            normalized_data={"number": "NF-EXCLUIDA"},
+            source_nsu="excluded",
+        )
+        for document, accumulator in ((included, "AC-2"), (excluded, "AC-3")):
+            IntegrationArtifact.objects.create(
+                organization=self.organization,
+                document=document,
+                accumulator_code=accumulator,
+                applied_rule="Teste",
+                confidence=100,
+            )
+
+        response = self.client.post(
+            reverse("hub:nfse-center"),
+            {
+                "action": "export_dominio_xml",
+                "all_filtered_classified": "1",
+                "export_q": "Empresa incluída",
+                "export_date_filter": "competence",
+                "export_competence": "",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/zip")
+        export = NfseExport.objects.get(organization=self.organization)
+        self.assertEqual(export.document_count, 1)
+        self.assertEqual(export.snapshot["documents"][0]["document_id"], str(included.id))
+
+    def test_nfse_company_link_and_bulk_export_use_exact_company_not_its_name(self) -> None:
+        other = ClientCompany.objects.create(
+            organization=self.organization, name=self.company.name, dominio_code="OTHER"
+        )
+        for company in (self.company, other):
+            document, _, _ = create_document_and_artifact(
+                company=company,
+                original_xml=(
+                    f"<NFSe company='{company.pk}'><infNFSe>"
+                    "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+                ),
+                normalized_data={"number": str(company.pk)},
+                source_nsu=str(company.pk),
+            )
+            IntegrationArtifact.objects.create(
+                organization=self.organization,
+                document=document,
+                accumulator_code="A1",
+                applied_rule="Test",
+                confidence=100,
+            )
+        url = reverse("hub:nfse-center") + f"?company={self.company.pk}&status=all"
+        page = self.client.get(url)
+        self.assertEqual(page.context["document_filtered_total"], 1)
+        self.assertEqual(page.context["nfse_selected_company"], self.company)
+        response = self.client.post(
+            url, {"action": "export_dominio_xml", "all_filtered_classified": "1"}
+        )
+        self.assertEqual(response.status_code, 200)
+        export = NfseExport.objects.get(organization=self.organization)
+        self.assertEqual(export.document_count, 1)
+        self.assertEqual(
+            self.client.get(reverse("hub:nfse-center"), {"company": "invalid"}).status_code,
+            404,
+        )
+        foreign = Organization.objects.create(name="Foreign", slug="foreign-nfse-filter")
+        forbidden = ClientCompany.objects.create(organization=foreign, name=self.company.name)
+        self.assertEqual(
+            self.client.get(reverse("hub:nfse-center"), {"company": forbidden.pk}).status_code,
+            404,
+        )
+
+    def test_paused_company_nfse_history_and_download_preserve_access_boundaries(self) -> None:
+        document, _, _ = create_document_and_artifact(
+            company=self.company,
+            original_xml=(
+                "<NFSe id='paused-history'><infNFSe>"
+                "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+            ),
+            normalized_data={"number": "PAUSED-1"},
+            source_nsu="paused-history",
+        )
+        IntegrationArtifact.objects.create(
+            organization=self.organization,
+            document=document,
+            accumulator_code="A1",
+            applied_rule="Test",
+            confidence=100,
+        )
+        export = create_nfse_export(
+            organization=self.organization, documents=[document], actor=self.user
+        )
+        self.company.active = False
+        self.company.save(update_fields=["active"])
+        url = reverse("hub:nfse-center") + f"?company={self.company.pk}&status=all"
+        page = self.client.get(url)
+        self.assertContains(page, "HISTÓRICO SOMENTE PARA CONSULTA")
+        self.assertContains(page, f"{self.company.name} está pausada")
+        self.assertContains(page, "Nenhuma nota nova será coletada")
+        self.assertContains(page, "Ver situação no cadastro")
+        self.assertContains(page, "Ver pendências")
+        self.assertContains(page, "Consulte o movimento")
+        self.assertContains(page, "Inclui 1 nota do filtro atual")
+        self.assertNotContains(page, "1 para classificar")
+        self.assertFalse(page.context["can_classify_nfse"])
+        self.assertNotContains(page, "data-nfse-accumulator-input")
+        self.assertEqual(page.context["document_filtered_total"], 1)
+        portfolio = self.client.get(reverse("hub:nfse-center"), {"status": "all"})
+        self.assertEqual(portfolio.context["document_filtered_total"], 0)
+        download_url = reverse("hub:nfse-export-download", args=[export.id])
+        response = self.client.post(download_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(b"".join(response.streaming_content).startswith(b"PK"))
+        generated = self.client.post(
+            url, {"action": "export_dominio_xml", "all_filtered_classified": "1"}
+        )
+        self.assertEqual(generated.status_code, 200)
+        self.assertTrue(b"".join(generated.streaming_content).startswith(b"PK"))
+        self.client.post(url, {"action": "activate", "companies": [str(self.company.pk)]})
+        self.company.refresh_from_db()
+        self.assertFalse(self.company.active)
+        self.assertFalse(NfseSync.objects.filter(company=self.company).exists())
+
+        membership = Membership.objects.get(organization=self.organization, user=self.user)
+        membership.role = Membership.Role.OPERATOR
+        membership.save(update_fields=["role"])
+        CompanyAccessGrant.objects.create(
+            organization=self.organization,
+            membership=membership,
+            company=self.company,
+            modules=[ProductModule.Code.NFSE],
+            is_active=True,
+        )
+        self.assertEqual(self.client.get(url).status_code, 404)
+        self.assertEqual(self.client.post(download_url).status_code, 404)
+
+    def test_nfse_bulk_export_rejects_invalid_filters_without_broadening_selection(self) -> None:
+        document, _, _ = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='strict-export' />",
+            normalized_data={"number": "STRICT-1"},
+            source_nsu="strict-export",
+        )
+        IntegrationArtifact.objects.create(
+            organization=self.organization,
+            document=document,
+            accumulator_code="AC-1",
+            applied_rule="Teste",
+            confidence=100,
+        )
+        cases = [
+            {"export_date_filter": "issued", "export_issued_from": "31/02/2026"},
+            {"export_date_filter": "issued", "export_issued_to": "invalid"},
+            {
+                "export_date_filter": "issued",
+                "export_issued_from": "30/09/2026",
+                "export_issued_to": "01/09/2026",
+            },
+            {"export_date_filter": "competence", "export_competence": "2026-13"},
+            {"export_date_filter": "unknown"},
+        ]
+        for filters in cases:
+            with self.subTest(filters=filters):
+                response = self.client.post(
+                    reverse("hub:nfse-center") + "?status=classified",
+                    {"action": "export_dominio_xml", "all_filtered_classified": "1", **filters},
+                )
+                self.assertRedirects(
+                    response,
+                    reverse("hub:nfse-center") + "?status=classified",
+                    fetch_redirect_response=False,
+                )
+                self.assertFalse(NfseExport.objects.filter(organization=self.organization).exists())
+        for invalid_id in ("not-a-uuid", "00000000-0000-0000-0000-000000000001"):
+            with self.subTest(invalid_id=invalid_id):
+                response = self.client.post(
+                    reverse("hub:nfse-center"),
+                    {"action": "export_dominio_xml", "documents": [str(document.id), invalid_id]},
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertFalse(NfseExport.objects.filter(organization=self.organization).exists())
+
+    @patch("apps.hub.views.timezone.localdate", return_value=date(2026, 9, 29))
+    def test_nfse_center_defaults_to_previous_competence(self, _localdate: object) -> None:
+        _august, _artifact, _review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='august' />",
+            normalized_data={"number": "august", "issued_at": "2026-08-15T12:00:00-03:00"},
+            source_nsu="august",
+        )
+        _september, _artifact, _review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='september' />",
+            normalized_data={
+                "number": "september",
+                "issued_at": "2026-09-01T12:00:00-03:00",
+            },
+            source_nsu="september",
+        )
+        response = self.client.get(reverse("hub:nfse-center"))
+
+        self.assertContains(response, "august")
+        self.assertNotContains(response, "september")
+        self.assertContains(response, '<option value="08" selected>Agosto</option>', html=True)
+        self.assertContains(response, 'value="2026"')
 
     def test_nfse_center_is_an_operational_bulk_sync_workspace(self) -> None:
         response = self.client.get(reverse("hub:nfse-center"), {"view": "collection"})
 
-        self.assertContains(response, "Coleta por empresa")
+        self.assertContains(response, "Situação da coleta")
+        self.assertContains(response, "Andamento por empresa")
+        self.assertContains(response, "Configurar empresas")
+        self.assertContains(response, reverse("hub:nfse-queue-status"))
         self.assertContains(response, "Selecionar todas as empresas exibidas")
         self.assertContains(response, "Ativar coleta")
-        self.assertContains(response, "Coleta externa ainda desligada neste ambiente")
+        self.assertNotContains(response, "Coleta externa ainda desligada neste ambiente")
         self.assertContains(response, self.company.name)
+
+    def test_nfse_live_queue_is_scoped_and_expired_certificates_are_skipped(self) -> None:
+        valid_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa válida", dominio_code="010"
+        )
+        Certificate.objects.create(
+            organization=self.organization,
+            company=valid_company,
+            label="A1 válido",
+            pfx_blob="encrypted-valid",
+            password="encrypted-password",
+            fingerprint_sha256="c" * 64,
+            valid_until=timezone.now() + timedelta(days=90),
+        )
+        NfseSync.objects.create(
+            organization=self.organization,
+            company=valid_company,
+            enabled=True,
+            status=NfseSync.Status.RUNNING,
+            last_run_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("hub:nfse-queue-status"))
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        states = {item["company"]: item["state"] for item in payload["items"]}
+        self.assertEqual(states["Empresa válida"], "running")
+        self.assertEqual(states[self.company.name], "blocked")
+        self.assertEqual(payload["counts"]["running"], 1)
+        self.assertEqual(payload["counts"]["skipped"], 1)
+        self.assertEqual(payload["counts"]["requires_action"], 1)
+        self.assertFalse(payload["simulated"])
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+
+    def test_nfse_live_queue_retries_only_failed_companies_without_page_reload(self) -> None:
+        certificate = Certificate.objects.create(
+            organization=self.organization,
+            company=self.company,
+            label="A1 válido",
+            pfx_blob="encrypted-valid",
+            password="encrypted-password",
+            fingerprint_sha256="d" * 64,
+            valid_until=timezone.now() + timedelta(days=90),
+        )
+        sync = NfseSync.objects.create(
+            organization=self.organization,
+            company=self.company,
+            certificate=certificate,
+            enabled=True,
+            status=NfseSync.Status.ERROR,
+            last_error_code="adn_error",
+            last_error_message="Falha anterior",
+        )
+
+        with (
+            self.captureOnCommitCallbacks(execute=True),
+            patch("apps.hub.tasks.dispatch_active_nfse_syncs.delay") as dispatch,
+        ):
+            response = self.client.post(
+                reverse("hub:nfse-queue-retry"), {"company_id": str(self.company.id)}
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"changed": 1})
+        sync.refresh_from_db()
+        self.assertEqual(sync.status, NfseSync.Status.RETRY)
+        self.assertEqual(sync.last_error_message, "")
+        self.assertIsNotNone(sync.next_run_at)
+        dispatch.assert_called_once_with()
 
     def test_nfse_activation_without_a_valid_company_certificate_is_blocked(self) -> None:
         response = self.client.post(
@@ -1444,7 +1970,8 @@ class HubWorkspaceViewTests(TestCase):
         self.assertFalse(
             NfseSync.objects.filter(organization=self.organization, company=self.company).exists()
         )
-        self.assertContains(response, "sem e-CNPJ válido e compatível")
+        self.assertContains(response, "ignorada por não ter e-CNPJ válido")
+        self.assertContains(response, "continuam normalmente")
 
     def test_nfse_bulk_pause_stops_scheduling_without_removing_history(self) -> None:
         sync = NfseSync.objects.create(
@@ -1474,20 +2001,31 @@ class HubWorkspaceViewTests(TestCase):
         create_document_and_artifact(
             company=self.company,
             original_xml="<nfse id='owned' />",
-            normalized_data={},
+            normalized_data={"number": "owned"},
             source_nsu="owned",
         )
         create_document_and_artifact(
             company=other_company,
             original_xml="<nfse id='other' />",
-            normalized_data={},
+            normalized_data={"number": "other"},
             source_nsu="other",
         )
 
-        response = self.client.get(reverse("hub:nfse-center"))
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
+        )
 
         self.assertContains(response, "owned")
         self.assertContains(response, "other")
+
+    def test_nfse_clear_filters_really_removes_the_default_competence(self) -> None:
+        response = self.client.get(reverse("hub:nfse-center"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'href="{reverse("hub:nfse-center")}?status=all" data-live-filter-clear',
+        )
 
     def test_nfse_center_paginates_the_portfolio_without_hiding_documents(self) -> None:
         now = timezone.now()
@@ -1496,6 +2034,7 @@ class HubWorkspaceViewTests(TestCase):
                 company=self.company,
                 original_xml=f"<nfse id='page-{index}' />",
                 normalized_data={
+                    "number": f"PAGE-{index:03d}",
                     "service_code": "unmatched",
                     "issued_at": (now - timedelta(days=index)).isoformat(),
                 },
@@ -1520,7 +2059,7 @@ class HubWorkspaceViewTests(TestCase):
         _document, _artifact, review = create_document_and_artifact(
             company=other_company,
             original_xml="<nfse id='search-review' />",
-            normalized_data={"service_code": "sem-regra"},
+            normalized_data={"number": "NOTA-PESQUISA", "service_code": "sem-regra"},
             source_nsu="NSU-PESQUISA",
         )
         assert review is not None
@@ -1528,8 +2067,9 @@ class HubWorkspaceViewTests(TestCase):
         response = self.client.get(reverse("hub:nfse-center"), {"q": "0888", "status": "review"})
 
         self.assertContains(response, other_company.name)
-        self.assertContains(response, "NSU-PESQUISA")
-        self.assertContains(response, reverse("hub:review-detail", args=[review.id]))
+        self.assertContains(response, "NOTA-PESQUISA")
+        self.assertNotContains(response, "NSU-PESQUISA")
+        self.assertContains(response, reverse("hub:resolve-review", args=[review.id]))
         self.assertNotContains(response, self.company.name)
 
     def test_logout_uses_post_and_ends_the_workspace_session(self) -> None:
@@ -1749,36 +2289,65 @@ class HubWorkspaceViewTests(TestCase):
 
         response = self.client.get(reverse("hub:nfse-center") + "?view=catalog")
 
-        self.assertContains(response, "Histórico de acumuladores")
+        self.assertContains(response, "Acumuladores por empresa")
         self.assertContains(response, "AC-001")
         self.assertNotContains(response, "AC-999")
 
+        filtered = self.client.get(
+            reverse("hub:nfse-center"),
+            {"view": "catalog", "catalog_q": "Serviços prestados"},
+        )
+        empty = self.client.get(
+            reverse("hub:nfse-center"),
+            {"view": "catalog", "catalog_q": "acumulador inexistente"},
+        )
+
+        self.assertContains(filtered, "AC-001")
+        self.assertContains(empty, "Nenhum acumulador corresponde aos filtros")
+
+    def test_nfse_demo_catalog_does_not_offer_a_refused_accumulator_form(self) -> None:
+        self.organization.is_demo = True
+        self.organization.save(update_fields=["is_demo", "updated_at"])
+
+        response = self.client.get(reverse("hub:nfse-center") + "?view=catalog")
+
+        self.assertContains(response, "Consulta na demonstração")
+        self.assertNotContains(response, 'value="add_accumulator_rule"')
+
     def test_nfse_export_history_paginates_without_hiding_old_packages(self) -> None:
-        NfseExport.objects.bulk_create(
+        document, _, _ = create_document_and_artifact(
+            company=self.company, original_xml="<nfse id='history-page' />", normalized_data={}
+        )
+        exports = NfseExport.objects.bulk_create(
             [
                 NfseExport(
                     organization=self.organization,
                     content_hash=f"{index:064x}",
                     document_count=1,
-                    snapshot={"documents": []},
+                    snapshot={"documents": [{"document_id": str(document.pk)}]},
                     target="conference_only_pending_dominio_layout",
                 )
                 for index in range(101)
             ]
         )
+        for export in exports:
+            export.documents.add(document)
 
         first = self.client.get(reverse("hub:nfse-center") + "?view=exports")
         second = self.client.get(reverse("hub:nfse-center") + "?view=exports&exports_page=2")
 
-        self.assertContains(first, "Pagina 1 de 2")
-        self.assertContains(first, "Proxima")
-        self.assertContains(second, "Pagina 2 de 2")
+        self.assertContains(first, "Página 1 de 3")
+        self.assertContains(first, "Próxima")
+        self.assertContains(second, "Página 2 de 3")
         self.assertContains(second, "Anterior")
 
     def test_nfse_export_download_recovers_from_a_missing_private_file(self) -> None:
         document, artifact, review = create_document_and_artifact(
             company=self.company,
-            original_xml="<nfse id='missing-file' />",
+            original_xml=(
+                "<NFSe><infNFSe><numero>missing</numero>"
+                "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+            ),
             normalized_data={"service_code": "1401"},
         )
         self.assertIsNotNone(document)
@@ -1795,6 +2364,12 @@ class HubWorkspaceViewTests(TestCase):
         export = create_nfse_export(
             organization=self.organization, documents=[document], actor=self.user
         )
+        with patch("django.db.models.fields.files.FieldFile.open", side_effect=OSError):
+            failed = self.client.post(reverse("hub:nfse-export-download", args=[export.id]))
+        self.assertRedirects(failed, reverse("hub:nfse-center") + "?view=exports")
+        export.refresh_from_db()
+        self.assertEqual(export.state, NfseExport.State.READY)
+        self.assertIsNone(export.downloaded_at)
         export.content.delete(save=False)
 
         response = self.client.post(reverse("hub:nfse-export-download", args=[export.id]))
@@ -1856,7 +2431,10 @@ class HubWorkspaceViewTests(TestCase):
         )
         document, artifact, review = create_document_and_artifact(
             company=self.company,
-            original_xml="<nfse id='export' />",
+            original_xml=(
+                "<NFSe><infNFSe><numero>export</numero>"
+                "<valores><vLiq>1</vLiq></valores></infNFSe></NFSe>"
+            ),
             normalized_data={"service_code": "1401"},
         )
         self.assertIsNotNone(document)
@@ -1881,14 +2459,19 @@ class HubWorkspaceViewTests(TestCase):
             reverse("hub:nfse-export-confirm-import", args=[export.id])
         )
         export.refresh_from_db()
-        self.assertEqual(export.state, NfseExport.State.READY)
+        self.assertEqual(export.state, NfseExport.State.DOWNLOADED)
         downloaded = self.client.post(reverse("hub:nfse-export-download", args=[export.id]))
         export.refresh_from_db()
         confirmed = self.client.post(reverse("hub:nfse-export-confirm-import", args=[export.id]))
         export.refresh_from_db()
 
-        self.assertRedirects(created, reverse("hub:nfse-center") + "?view=exports")
-        self.assertContains(exports_page, "Pacotes de conferencia")
+        self.assertEqual(created.status_code, 200)
+        self.assertEqual(created["Content-Type"], "application/zip")
+        self.assertIn("attachment", created["Content-Disposition"])
+        self.assertContains(exports_page, "Downloads preparados")
+        self.assertContains(exports_page, "Baixar novamente")
+        self.assertContains(exports_page, "Código")
+        self.assertNotContains(exports_page, "conference_only_pending_dominio_layout")
         self.assertEqual(before_download.status_code, 403)
         self.assertEqual(downloaded.status_code, 200)
         self.assertEqual(downloaded["X-Content-Type-Options"], "nosniff")
@@ -1918,15 +2501,19 @@ class HubWorkspaceViewTests(TestCase):
         resolved_review.resolved_by = self.user
         resolved_review.resolved_at = timezone.now()
         resolved_review.save()
-
-        default_queue = self.client.get(reverse("hub:reviews"))
-        self.assertContains(default_queue, self.company.name)
-        self.assertNotContains(default_queue, resolved_company.name)
-        resolved_queue = self.client.get(
-            reverse("hub:reviews"), {"status": "resolved", "q": "0777"}
+        IntegrationArtifact.objects.create(
+            organization=self.organization,
+            document=resolved_review.document,
+            accumulator_code="AC-777",
+            applied_rule="Decisão humana",
+            confidence=100,
         )
-        self.assertContains(resolved_queue, resolved_company.name)
-        self.assertNotContains(resolved_queue, self.company.name)
+
+        old_queue = self.client.get(reverse("hub:reviews"))
+        self.assertRedirects(old_queue, reverse("hub:nfse-center") + "?status=unclassified")
+        queue = self.client.get(reverse("hub:nfse-center"), {"status": "unclassified"})
+        self.assertContains(queue, self.company.name)
+        self.assertNotContains(queue, resolved_company.name)
 
     def test_dashboard_exposes_exact_operational_queues(self) -> None:
         for code in (
@@ -1944,7 +2531,7 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Pendências por área")
-        self.assertContains(response, f"{reverse('hub:reviews')}")
+        self.assertContains(response, f"{reverse('hub:nfse-center')}?status=unclassified")
         self.assertContains(response, f"{reverse('hub:dte-center')}?status=unread")
         self.assertContains(response, f"{reverse('hub:guides')}?status=pending")
 
@@ -2054,7 +2641,12 @@ class HubWorkspaceViewTests(TestCase):
         detail = self.client.get(detail_url)
         downloaded = self.client.get(xml_url)
 
-        self.assertContains(dashboard, detail_url)
+        self.assertContains(dashboard, reverse("hub:nfse-center") + "?status=unclassified")
+        center = self.client.get(reverse("hub:nfse-center"), {"status": "unclassified"})
+        self.assertContains(center, "1401")
+        self.assertContains(center, "NFS-2026-00042")
+        self.assertContains(center, "Assessoria contábil mensal")
+        self.assertContains(center, detail_url)
         self.assertContains(detail, "Código de serviço")
         self.assertContains(detail, "1401")
         self.assertContains(detail, "Número da NFS-e")

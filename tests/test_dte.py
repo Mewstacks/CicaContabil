@@ -126,6 +126,78 @@ class DteCenterTests(TestCase):
         self.assertContains(response, "A empresa selecionada n\u00e3o est\u00e1 no seu escopo")
         self.assertFalse(DteRun.objects.filter(organization=self.organization).exists())
 
+    def test_preparation_is_discoverable_with_messages_without_triggering_a_run(self) -> None:
+        DteMessage.objects.create(
+            organization=self.organization, company=self.company,
+            source_isn="DISCOVERY", subject="Mensagem já registrada",
+        )
+        url = reverse("hub:dte-center")
+        response = self.client.get(url, {"q": "registrada"})
+        html = response.content.decode()
+        self.assertContains(response, 'href="#dte-preparation"')
+        preparation = html.split('id="dte-preparation"', 1)[1].split("</section>", 1)[0]
+        self.assertNotIn("<details", preparation)
+        self.assertLess(html.index('href="#dte-preparation"'), html.index('id="dte-inbox-title"'))
+        self.assertContains(response, 'id="dte-preparation" tabindex="-1"')
+        self.assertContains(response, "O preparo não gera cobrança")
+        self.assertFalse(DteRun.objects.exists())
+        self.client.post(url, {"companies": [self.company.pk]})
+        prepared = self.client.get(url)
+        self.assertContains(prepared, 'href="#dte-approval"')
+        self.assertContains(prepared, "Ver consultas preparadas (1)")
+        self.membership.role = Membership.Role.AUDITOR
+        self.membership.save(update_fields=["role"])
+        readonly = self.client.get(url)
+        self.assertNotContains(readonly, 'href="#dte-preparation"')
+        self.assertContains(readonly, "Seu acesso é de consulta")
+        self.assertContains(readonly, 'href="#dte-approval"')
+
+    def test_pending_batches_require_complete_current_company_scope(self) -> None:
+        hidden_company = ClientCompany.objects.create(
+            organization=self.organization, name="Empresa sigilosa fora da carteira"
+        )
+        runs = []
+        for companies in ([self.company], [hidden_company], [self.company, hidden_company], []):
+            run = DteRun.objects.create(
+                organization=self.organization,
+                total_companies=len(companies),
+                status=DteRun.Status.AWAITING_APPROVAL,
+            )
+            for company in companies:
+                DteRunItem.objects.create(
+                    organization=self.organization, run=run, company=company
+                )
+            runs.append(run)
+        response = self.client.get(reverse("hub:dte-center"))
+        self.assertEqual(response.context["dte_stats"]["awaiting"], 1)
+        central = self.client.get(reverse("hub:integra"))
+        self.assertEqual(central.context["integra_pending_count"], 1)
+        self.assertNotContains(response, hidden_company.name)
+        for run in runs[1:]:
+            url = reverse("hub:decide-dte-run", args=[run.pk])
+            self.assertNotContains(response, url)
+            for decision in ("approve", "cancel"):
+                with patch("apps.hub.views.approve_dte_run") as approve, patch(
+                    "apps.hub.views.cancel_dte_run"
+                ) as cancel:
+                    self.assertEqual(self.client.post(url, {"decision": decision}).status_code, 404)
+                    approve.assert_not_called()
+                    cancel.assert_not_called()
+            run.refresh_from_db()
+            self.assertEqual(run.status, DteRun.Status.AWAITING_APPROVAL)
+        visible_url = reverse("hub:decide-dte-run", args=[runs[0].pk])
+        self.assertContains(response, visible_url)
+        # A changed declared scope fails closed, too.
+        DteRun.objects.filter(pk=runs[0].pk).update(total_companies=2)
+        self.assertEqual(self.client.post(visible_url, {"decision": "cancel"}).status_code, 404)
+        DteRun.objects.filter(pk=runs[0].pk).update(total_companies=1)
+        CompanyAccessGrant.objects.filter(membership=self.membership).delete()
+        self.assertEqual(self.client.post(visible_url, {"decision": "cancel"}).status_code, 404)
+        after = self.client.get(reverse("hub:dte-center"))
+        self.assertEqual(after.context["dte_stats"]["awaiting"], 0)
+        central = self.client.get(reverse("hub:integra"))
+        self.assertEqual(central.context["integra_pending_count"], 0)
+
     def test_dte_history_paginates_without_changing_the_message_page(self) -> None:
         for index in range(31):
             run = DteRun.objects.create(
@@ -269,9 +341,10 @@ class DteCenterTests(TestCase):
         self.assertContains(opened, "Mensagem fictícia para Empresa DTE")
         provider.assert_not_called()
         usage.assert_not_called()
-        access = DteMessageAccess.objects.get(message=message)
-        self.assertEqual(access.status, DteMessageAccess.Status.OPENED)
-        self.assertTrue(access.provider_request_id.startswith("DEMO-"))
+        self.assertFalse(DteMessageAccess.objects.filter(message=message).exists())
+        progress = self.client.session["demo_progress"]["dte_messages"][str(message.pk)]
+        self.assertTrue(progress["opened"])
+        self.assertTrue(progress["protocol"].startswith("DEMO-"))
 
     def test_uncertain_opening_is_separate_from_actionable_unread_messages(self) -> None:
         actionable = DteMessage.objects.create(
@@ -315,6 +388,12 @@ class DteCenterTests(TestCase):
         self.assertEqual(all_messages.context["dte_stats"]["uncertain"], 2)
         self.assertContains(all_messages, "Ciência a conferir")
         self.assertContains(all_messages, "Abertura em andamento")
+        self.assertContains(all_messages, "Abrir resumo", count=4)
+        self.assertContains(
+            all_messages,
+            reverse("hub:dte-message-detail", args=[actionable.id]),
+            count=1,
+        )
 
         to_open = self.client.get(reverse("hub:dte-center"), {"status": "unread"})
         self.assertContains(to_open, actionable.subject)

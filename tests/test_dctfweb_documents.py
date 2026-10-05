@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 from datetime import date
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -365,6 +366,47 @@ class DctfWebDocumentViewTests(TestCase):
             10,
         )
 
+    def test_bulk_preview_preserves_machine_cost_and_normalizes_ids(self) -> None:
+        with patch(
+            "apps.hub.views.quote_tokens",
+            return_value=SimpleNamespace(
+                total_tokens=5, tokens_per_operation=5, additional_overage_cents=1234
+            ),
+        ):
+            response = self.client.post(
+                reverse("hub:dctfweb-bulk-consult"),
+                {
+                    "kind": "receipt",
+                    "targets": [
+                        f"{str(self.company.id).upper()}|09/2026",
+                        f"{self.company.id}|09/2026",
+                    ],
+                },
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="approved_overage_cents" value="1234"')
+        self.assertContains(response, "1</strong><small>Máximo de 30")
+        self.assertFalse(DctfWebDocument.objects.exists())
+
+    def test_invalid_bulk_scope_never_partially_queues(self) -> None:
+        for targets in (
+            [],
+            [f"{self.company.id}|09/0000"],
+            [f"{self.company.id}|09/2026", "invalid|09/2026"],
+            [f"{self.company.id}|09/2026"] * 31,
+        ):
+            with (
+                self.subTest(targets=targets),
+                patch("apps.hub.views.request_dctfweb_document") as service,
+            ):
+                response = self.client.post(
+                    reverse("hub:dctfweb-bulk-consult"),
+                    {"kind": "receipt", "step": "confirm", "targets": targets},
+                )
+                self.assertEqual(response.status_code, 302)
+                service.assert_not_called()
+        self.assertFalse(TokenUsageEvent.objects.exists())
+
     def test_invalid_document_kind_is_rejected_without_usage(self) -> None:
         response = self.client.post(
             reverse("hub:dctfweb-consult"),
@@ -404,6 +446,40 @@ class DctfWebDocumentViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b"%PDF-1.7\nreceipt")
         provider.assert_not_called()
+
+    def test_refresh_only_reads_state_and_unknown_never_offers_retry(self) -> None:
+        document = DctfWebDocument.objects.create(
+            organization=self.organization,
+            company=self.company,
+            kind="receipt",
+            competence="09/2026",
+            service_key="dctfweb.recibo",
+            status="queued",
+            error_code="uncertain_result",
+            error_message="<script>provider-secret()</script>",
+        )
+        with patch("apps.hub.views.request_dctfweb_document") as request_service:
+            for state in ("queued", "fetching", "unknown"):
+                document.status = state
+                document.save(update_fields=["status"])
+                response = self.client.get(
+                    reverse("hub:dctfweb-consult"),
+                    {"company": self.company.pk, "competence": "09/2026"},
+                )
+                self.assertEqual(response.status_code, 200)
+                if state == "unknown":
+                    self.assertContains(response, "Não repita a consulta")
+                    self.assertContains(response, str(document.pk))
+                    self.assertNotContains(response, 'name="kind" value="receipt"')
+                    self.assertContains(response, "uncertain_result")
+                    self.assertNotContains(response, "provider-secret")
+                else:
+                    self.assertContains(response, "Atualizar situação")
+                    self.assertContains(response, "Atualizar não cria outra consulta")
+                document.refresh_from_db()
+                self.assertEqual(document.status, state)
+            request_service.assert_not_called()
+        self.assertFalse(TokenUsageEvent.objects.exists())
 
     @patch("apps.hub.views.ReadOnlyDominoOdbc")
     def test_documents_promote_reloaded_dominio_calculation_to_ready_guide(

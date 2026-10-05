@@ -30,42 +30,41 @@ def test_current_trial_does_not_require_mfa(user, trial):
     assert not mfa.is_required(user)
 
 
-def test_trial_membership_cannot_override_paid_office(user, trial):
+def test_paid_office_does_not_force_customer_enrollment(user, trial):
     paid = Organization.objects.create(name="Paid", slug="paid-mfa")
     Membership.objects.create(user=user, organization=paid, role="operator")
     TenantContract.objects.create(organization=paid, status="active")
-    assert mfa.is_required(user)
+    assert not mfa.is_required(user)
 
 
 @pytest.mark.parametrize("status", ["active", "grace", "suspended", "archived"])
-def test_commercial_status_overrides_disabled_office_preference(user, trial, status):
+def test_commercial_status_does_not_change_customer_mfa_policy(user, trial, status):
     trial.status = status
     trial.save()
-    assert mfa.is_required(user)
+    assert not mfa.is_required(user)
     client = Client()
     client.force_login(user)
     response = client.get("/app/")
-    assert response.status_code == 302
-    assert "/mfa/" in response["Location"]
+    assert "/mfa/" not in response.get("Location", "")
 
 
-def test_trial_expires_without_waiting_for_scheduled_job(user, trial):
+def test_expired_trial_does_not_force_customer_enrollment(user, trial):
     OfficeProfile.objects.filter(organization=trial.organization).update(
         trial_started_at=timezone.now() - timedelta(days=14)
     )
-    assert mfa.is_required(user)
+    assert not mfa.is_required(user)
 
 
-def test_missing_trial_expiry_fails_closed(user, trial):
+def test_missing_trial_expiry_does_not_force_customer_enrollment(user, trial):
     trial.trial_ends_on = None
     trial.save()
-    assert mfa.is_required(user)
+    assert not mfa.is_required(user)
 
 
-def test_missing_trial_profile_fails_closed(user, trial):
+def test_missing_trial_profile_does_not_force_customer_enrollment(user, trial):
     OfficeProfile.objects.filter(organization=trial.organization).delete()
 
-    assert mfa.is_required(user)
+    assert not mfa.is_required(user)
 
 
 def test_inactive_membership_does_not_require_another_offices_mfa(user, trial):

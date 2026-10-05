@@ -7,11 +7,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.audit.models import AuditEvent
 from apps.hub.models import (
+    ActivityTemplate,
     Certificate,
     ClientCompany,
+    DataSource,
     DteMessage,
     OfficeProfile,
+    OperationalActivity,
     ProductModule,
     ReviewCase,
 )
@@ -64,6 +68,8 @@ class CompanyRegistryTests(TestCase):
         for term, expected in (
             ("Padaria", {self.linked.name}),
             ("12.345", {self.linked.name}),
+            ("12345678000190", {self.linked.name}),
+            ("12 345 678 0001 90", {self.linked.name}),
             ("0103", {self.paused.name}),
         ):
             response = self.client.get(reverse("hub:companies"), {"q": term})
@@ -73,13 +79,73 @@ class CompanyRegistryTests(TestCase):
 
     def test_the_registry_can_isolate_companies_with_a_dominio_code(self) -> None:
         linked = self.client.get(reverse("hub:companies"), {"vinculo": "com"})
+        unlinked = self.client.get(reverse("hub:companies"), {"vinculo": "sem"})
 
         self.assertEqual(self._names(linked), {self.linked.name, self.paused.name})
+        self.assertEqual(self._names(unlinked), {self.unlinked.name})
+
+    def test_priority_filters_expose_the_accountants_next_work(self) -> None:
+        Certificate.objects.create(
+            organization=self.organization,
+            company=self.linked,
+            label="A1 vigente",
+            valid_until=timezone.now() + timedelta(days=200),
+            pfx_blob="x",
+            password="y",
+            fingerprint_sha256="c" * 64,
+        )
+        document, _, review_case = create_document_and_artifact(
+            company=self.unlinked,
+            original_xml="<nfse id='registro-prioridade' />",
+            normalized_data={},
+            source_nsu="registro-prioridade",
+        )
+        if review_case is None:
+            ReviewCase.objects.create(
+                organization=self.organization,
+                document=document,
+                reason="Baixa confiança",
+                confidence=20,
+            )
+
+        page = self.client.get(reverse("hub:companies"))
+        attention = self.client.get(reverse("hub:companies"), {"prioridade": "atencao"})
+        review = self.client.get(reverse("hub:companies"), {"prioridade": "revisao"})
+        certificate = self.client.get(
+            reverse("hub:companies"), {"prioridade": "certificado"}
+        )
+        missing_code = self.client.get(
+            reverse("hub:companies"), {"prioridade": "sem_codigo"}
+        )
+
+        self.assertContains(page, "Precisam de atenção")
+        self.assertContains(page, "Classificar 1 NFS-e")
+        self.assertEqual(self._names(attention), {self.unlinked.name})
+        self.assertEqual(self._names(review), {self.unlinked.name})
+        self.assertEqual(self._names(certificate), {self.unlinked.name})
+        self.assertEqual(self._names(missing_code), {self.unlinked.name})
+        self.assertNotIn(self.paused.name, self._names(attention))
+
+    def test_invalid_filter_never_widens_the_portfolio(self) -> None:
+        response = self.client.get(reverse("hub:companies"), {"certificado": "qualquer"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._names(response), set())
+        self.assertContains(response, "Um dos filtros não é válido")
+        self.assertContains(response, 'data-form-errors', html=False)
+
+    def test_search_accepts_unformatted_alphanumeric_cnpj(self) -> None:
+        self.linked.cnpj_masked = "12.ABC.345/01DE-35"
+        self.linked.save(update_fields=["cnpj_masked"])
+        response = self.client.get(reverse("hub:companies"), {"q": "12abc34501de35"})
+        self.assertEqual(self._names(response), {self.linked.name})
 
     def test_the_registry_filters_by_situation(self) -> None:
         response = self.client.get(reverse("hub:companies"), {"situacao": "pausada"})
 
         self.assertEqual(self._names(response), {self.paused.name})
+        self.assertContains(response, "1 de 3 empresas")
+        self.assertContains(response, "Pausada")
 
     def test_the_registry_filters_by_certificate_and_open_review(self) -> None:
         Certificate.objects.create(
@@ -177,6 +243,95 @@ class CompanyRegistryTests(TestCase):
                 self.assertEqual(response.status_code, 403)
                 self.assertFalse(ClientCompany.objects.filter(name="Cadastro manual").exists())
 
+    def test_company_detail_starts_with_priority_and_discoverable_areas(self) -> None:
+        OperationalActivity.objects.create(
+            organization=self.organization,
+            company=self.linked,
+            code="cadastro-impedido",
+            title="Resolver retorno da folha",
+            area=ActivityTemplate.Area.PAYROLL,
+            work_status=OperationalActivity.WorkStatus.BLOCKED,
+            blocked_reason="Fonte sem retorno",
+        )
+
+        response = self.client.get(reverse("hub:company-detail", args=[self.linked.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "O que precisa acontecer agora")
+        self.assertContains(response, "Resolver retorno da folha")
+        self.assertContains(response, "Trabalho")
+        self.assertContains(response, "NFS-e")
+        self.assertContains(response, "Financeiro")
+        self.assertContains(response, 'id="atividades"', html=False)
+        self.assertContains(response, 'id="documentos-nfse"', html=False)
+
+    def test_owner_can_edit_a_local_company_from_its_detail(self) -> None:
+        response = self.client.post(
+            reverse("hub:company-detail", args=[self.unlinked.id]),
+            {
+                "action": "update_company",
+                "name": "Transportes Guaíba Ltda",
+                "cnpj_masked": "04.252.011/0001-10",
+                "dominio_code": "0202",
+            },
+        )
+
+        self.assertRedirects(response, reverse("hub:company-detail", args=[self.unlinked.id]))
+        self.unlinked.refresh_from_db()
+        self.assertEqual(self.unlinked.name, "Transportes Guaíba Ltda")
+        self.assertEqual(self.unlinked.dominio_code, "0202")
+        event = AuditEvent.objects.get(
+            action="hub.company.updated", target_id=str(self.unlinked.id)
+        )
+        self.assertEqual(
+            set(event.metadata["changed_fields"]),
+            {"name", "cnpj_masked", "dominio_code"},
+        )
+
+    def test_invalid_company_edit_returns_400_and_reopens_the_dialog(self) -> None:
+        response = self.client.post(
+            reverse("hub:company-detail", args=[self.unlinked.id]),
+            {
+                "action": "update_company",
+                "name": "Transportes Guaiba",
+                "cnpj_masked": "",
+                "dominio_code": self.linked.dominio_code,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Outra empresa já usa este código", status_code=400)
+        self.assertContains(response, "data-modal-invalid", status_code=400)
+        self.unlinked.refresh_from_db()
+        self.assertEqual(self.unlinked.dominio_code, "")
+
+    def test_company_detail_refuses_editing_data_owned_by_an_external_source(self) -> None:
+        source = DataSource.objects.create(
+            organization=self.organization,
+            kind=DataSource.Kind.DOMINIO_LOCAL_AGENT,
+            label="Domínio Local",
+        )
+        self.linked.data_source = source
+        self.linked.external_key = "0101"
+        self.linked.save(update_fields=["data_source", "external_key"])
+
+        page = self.client.get(reverse("hub:company-detail", args=[self.linked.id]))
+        response = self.client.post(
+            reverse("hub:company-detail", args=[self.linked.id]),
+            {
+                "action": "update_company",
+                "name": "Alteração indevida",
+                "cnpj_masked": self.linked.cnpj_masked,
+                "dominio_code": self.linked.dominio_code,
+            },
+        )
+
+        self.assertContains(page, "Corrigir na origem")
+        self.assertNotContains(page, "Editar cadastro")
+        self.assertEqual(response.status_code, 403)
+        self.linked.refresh_from_db()
+        self.assertEqual(self.linked.name, "Padaria Vila Nova")
+
 
 class DominioCodePolicyTests(TestCase):
     databases = {"default", "knowledge"}
@@ -212,8 +367,10 @@ class DominioCodePolicyTests(TestCase):
             reverse("hub:companies"), {"name": "Sem codigo", "cnpj_masked": "", "dominio_code": ""}
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Este escritório exige o código do Domínio.")
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(
+            response, "Este escritório exige o código do Domínio.", status_code=400
+        )
         self.assertFalse(ClientCompany.objects.filter(name="Sem codigo").exists())
 
     def test_two_companies_in_one_office_cannot_share_a_code(self) -> None:
@@ -226,8 +383,8 @@ class DominioCodePolicyTests(TestCase):
             {"name": "Segunda", "cnpj_masked": "", "dominio_code": "0101"},
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Outra empresa já usa este código.")
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Outra empresa já usa este código.", status_code=400)
         self.assertFalse(ClientCompany.objects.filter(name="Segunda").exists())
 
     def test_the_same_code_may_exist_in_a_different_office(self) -> None:
@@ -305,6 +462,17 @@ class CompanyDetailTests(TestCase):
         self.assertContains(response, "0101")
         self.assertContains(response, "Nenhuma NFS-e desta empresa")
         self.assertContains(response, "Sem certificado A1")
+
+    def test_a_paused_company_listed_in_the_registry_still_opens(self) -> None:
+        self.company.active = False
+        self.company.save(update_fields=["active", "updated_at"])
+
+        registry = self.client.get(reverse("hub:companies"), {"situacao": "pausada"})
+        detail = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
+
+        self.assertContains(registry, reverse("hub:company-detail", args=[self.company.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.context["company"], self.company)
 
     def test_the_company_page_paginates_each_history_without_losing_the_others(self) -> None:
         for index in range(21):

@@ -52,6 +52,13 @@ class OnboardingTourTests(TestCase):
             self.client.get(reverse("hub:dashboard")), 'data-onboarding-auto="false"'
         )
 
+    def test_module_guidance_is_always_opened_on_demand(self) -> None:
+        page = self.client.get(reverse("hub:nfse-center"))
+
+        self.assertContains(page, 'data-onboarding-id="nfse"')
+        self.assertContains(page, 'data-onboarding-auto="false"')
+        self.assertContains(page, "Como usar")
+
         OnboardingProgress.objects.filter(user=self.user, tour_id="welcome").update(version=0)
 
         self.assertContains(

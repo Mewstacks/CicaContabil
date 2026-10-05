@@ -519,7 +519,7 @@ class GuidesViewTests(TestCase):
                 organization=self.organization, membership=member, company=company,
                 modules=[module],
             )
-            run = DteRun.objects.create(organization=self.organization)
+            run = DteRun.objects.create(organization=self.organization, total_companies=1)
             DteRunItem.objects.create(organization=self.organization, run=run, company=company)
             DteMessage.objects.create(
                 organization=self.organization, company=company, source_isn="message",
@@ -595,7 +595,7 @@ class GuidesViewTests(TestCase):
             response = self.client.get(url, {"next": "/app/guias/"})
             self.assertContains(response, "Tentativa 21")
             self.assertNotContains(response, "Tentativa 1 ")
-            self.assertContains(response, "&lt;script&gt;unsafe()&lt;/script&gt;")
+            self.assertNotContains(response, "unsafe()")
             self.assertNotContains(response, "never-render-this")
             self.assertContains(response, self.user.email)
             self.assertContains(response, "history_page=2#historico")
@@ -655,14 +655,16 @@ class GuidesViewTests(TestCase):
         self.guide.status = FiscalGuide.Status.UNKNOWN
         self.guide.save()
         pending = self.client.get(reverse("hub:guides"))
-        self.assertContains(pending, self.guide.reference)
+        self.assertContains(pending, self.company.name)
+        self.assertContains(pending, "Resolver resultado")
         self.assertNotContains(pending, f'data-modal-open="issue-guide-{self.guide.pk}"')
         filtered = self.client.get(reverse("hub:guides"), {"status": "unknown"})
-        self.assertContains(filtered, self.guide.reference)
+        self.assertContains(filtered, self.company.name)
         self.assertEqual(filtered.context["guide_status"], "unknown")
         detail = self.client.get(reverse("hub:guide-detail", args=[self.guide.pk]))
         self.assertContains(detail, "Não emita novamente")
-        self.assertNotContains(detail, "Baixar DARF oficial")
+        self.assertContains(detail, "Aguardar a conciliação")
+        self.assertNotContains(detail, "Confirmar emissão")
         alternative = FiscalGuide.objects.create(
             organization=self.organization,
             company=self.company,
@@ -750,7 +752,7 @@ class GuidesViewTests(TestCase):
         no_result = self.client.get(
             reverse("hub:guides"), {"status": "all", "q": "empresa inexistente"}
         )
-        self.assertContains(no_result, "Nenhuma guia oficial corresponde aos filtros")
+        self.assertContains(no_result, "Nenhuma guia corresponde aos filtros")
         self.assertNotContains(no_result, "Guias ainda sem fonte validada")
 
     def test_guides_screen_paginates_the_portfolio_without_hiding_records(self) -> None:
@@ -771,10 +773,16 @@ class GuidesViewTests(TestCase):
 
         self.assertContains(first_page, "101 resultados")
         self.assertContains(first_page, "Página 1 de 2")
-        self.assertContains(first_page, "page-guide-000")
-        self.assertNotContains(first_page, "page-guide-100")
+        first_page_references = {
+            guide.reference for guide in first_page.context["guide_page"]
+        }
+        self.assertIn("page-guide-000", first_page_references)
+        self.assertNotIn("page-guide-100", first_page_references)
         self.assertContains(second_page, "Página 2 de 2")
-        self.assertContains(second_page, "page-guide-100")
+        second_page_references = {
+            guide.reference for guide in second_page.context["guide_page"]
+        }
+        self.assertIn("page-guide-100", second_page_references)
         self.assertContains(
             second_page,
             "?q=page-guide&amp;status=pending&amp;due=all&amp;page=1",
@@ -790,8 +798,30 @@ class GuidesViewTests(TestCase):
         )
         response = self.client.get(reverse("hub:guides"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Nenhuma apuração encontrada nos filtros")
+        self.assertContains(response, "Nenhuma apuração encontrada")
         self.assertContains(response, "Confira a competência e a última sincronização do Domínio.")
+
+    @patch("apps.hub.views.ReadOnlyDominoOdbc")
+    def test_odbc_failure_uses_safe_recovery_without_reflecting_connector_error(
+        self, adapter
+    ) -> None:
+        self.company.dominio_code = "323"
+        self.company.save(update_fields=["dominio_code"])
+        IntelligenceConnector.objects.create(
+            organization=self.organization,
+            mode=IntelligenceConnector.Mode.DIRECT_ODBC,
+            status="healthy",
+            odbc_dsn="governed",
+        )
+        adapter.return_value.execute.side_effect = RuntimeError(
+            "Driver failed at SECRET-SERVER\\DOMINIO"
+        )
+
+        response = self.client.get(reverse("hub:guides"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "A origem não respondeu à leitura")
+        self.assertNotContains(response, "SECRET-SERVER")
 
     @patch("apps.hub.views.ReadOnlyDominoOdbc")
     def test_odbc_calculations_form_a_searchable_discovery_queue(self, adapter) -> None:
@@ -910,16 +940,33 @@ class GuidesViewTests(TestCase):
     def test_demo_guide_has_scoped_result_and_nonofficial_pdf(self) -> None:
         self.organization.is_demo = True
         self.organization.save(update_fields=["is_demo"])
-        self.guide.status = FiscalGuide.Status.ISSUED
-        self.guide.provider_request_id = "DEMO-GUIDE"
-        self.guide.save(update_fields=["status", "provider_request_id"])
+        self.guide.status = FiscalGuide.Status.READY
+        self.guide.reference = "DEMO-GUIDE"
+        self.guide.save(update_fields=["status", "reference"])
+        self.assertEqual(
+            self.client.get(reverse("hub:demo-guide-pdf", args=[self.guide.id])).status_code,
+            404,
+        )
+        with patch("apps.hub.views.issue_fiscal_guide") as real_issue:
+            issued = self.client.post(reverse("hub:issue-guide", args=[self.guide.id]))
+        self.assertEqual(issued.status_code, 302)
+        real_issue.assert_not_called()
+        self.guide.refresh_from_db()
+        self.assertEqual(self.guide.status, FiscalGuide.Status.READY)
         detail = self.client.get(reverse("hub:guide-detail", args=[self.guide.id]))
         pdf = self.client.get(reverse("hub:demo-guide-pdf", args=[self.guide.id]))
-        self.assertContains(detail, "Baixar PDF fictício sem validade")
+        self.assertContains(detail, "Baixar DARF fictício")
         self.assertEqual(pdf.status_code, 200)
         self.assertEqual(pdf["Content-Type"], "application/pdf")
         self.assertTrue(pdf.content.startswith(b"%PDF"))
         self.assertEqual(pdf["Cache-Control"], "private, no-store")
+        session = self.client.session
+        session.pop("demo_progress", None)
+        session.save()
+        self.assertEqual(
+            self.client.get(reverse("hub:demo-guide-pdf", args=[self.guide.id])).status_code,
+            404,
+        )
         self.organization.is_demo = False
         self.organization.save(update_fields=["is_demo"])
         self.assertEqual(

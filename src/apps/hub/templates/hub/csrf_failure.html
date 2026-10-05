@@ -1,0 +1,12 @@
+{% extends 'hub/auth_base.html' %}
+{% block title %}Envio não confirmado — CICA{% endblock %}
+{% block body %}
+<main id="conteudo" class="auth-page">
+  <section class="auth-card" aria-labelledby="csrf-failure-title">
+    <p class="eyebrow">ENVIO NÃO CONFIRMADO</p>
+    <h1 id="csrf-failure-title">Esta página ficou desatualizada</h1>
+    <p class="form-intro">Sua proteção de acesso foi renovada em outra tela. Nenhuma alteração foi aplicada.</p>
+    <a class="button" href="{{ retry_url }}">Voltar e tentar novamente</a>
+  </section>
+</main>
+{% endblock %}

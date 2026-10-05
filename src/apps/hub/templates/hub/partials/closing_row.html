@@ -1,0 +1,36 @@
+<article class="closing-card is-{{ row.assessment.status }}"{% if attention %} id="closing-attention-{{ forloop.counter }}"{% endif %}>
+  <header>
+    <div>
+      <strong>{{ row.company.name }}</strong>
+      <span>{{ row.area_label }} · {{ closing_competence|date:'F/Y' }}</span>
+    </div>
+    <span class="module-state {% if row.assessment.status == 'blocked' or row.assessment.status == 'reopened' %}is-danger{% elif row.assessment.status == 'completed' %}is-active{% else %}is-warning{% endif %}">{{ row.label }}</span>
+  </header>
+  <div class="closing-card-progress">
+    <div>
+      <span>Progresso</span>
+      <strong>{{ row.assessment.completed_activities }} de {{ row.assessment.total_activities }} requisito{{ row.assessment.total_activities|pluralize }} comprovado{{ row.assessment.total_activities|pluralize }}</strong>
+    </div>
+    <progress value="{{ row.assessment.completed_activities }}" max="{{ row.assessment.total_activities }}" aria-label="{{ row.assessment.completed_activities }} de {{ row.assessment.total_activities }} requisitos comprovados"></progress>
+  </div>
+  <div class="closing-card-action">
+    <div><span>Próximo passo</span><strong>{{ row.next_step }}</strong></div>
+    {% if row.next_activity %}<a class="button{% if row.assessment.status == 'completed' %} button-quiet{% endif %}" href="{% url 'hub:activity-detail' row.next_activity.pk %}">{% if row.assessment.status == 'completed' %}Abrir comprovante{% else %}Conferir atividade{% endif %}</a>{% else %}<a class="button button-quiet" href="{% url 'hub:company-detail' row.company.pk %}">Abrir empresa</a>{% endif %}
+  </div>
+  <details class="closing-card-details">
+    <summary>Ver {{ row.items|length }} atividade{{ row.items|length|pluralize }} e comprovantes</summary>
+    <div class="closing-content">
+      {% for item in row.items %}
+        <article>
+          <h4><a href="{% url 'hub:activity-detail' item.activity.pk %}">{{ item.activity.title }}</a></h4>
+          <p>{{ item.activity.get_work_status_display }} · {% if item.activity.assigned_to %}{{ item.activity.assigned_to.full_name|default:item.activity.assigned_to.email }}{% else %}Sem responsável{% endif %} · Prazo: {{ item.activity.internal_due_on|default:item.activity.legal_due_on|date:'d/m/Y'|default:'Sem prazo' }}</p>
+          <p>{{ item.activity.get_freshness_display }} · {{ item.evidence_count }} evidência{{ item.evidence_count|pluralize }} no histórico</p>
+          {% if item.activity.blocked_reason %}<p><strong>Impedimento:</strong> {{ item.activity.blocked_reason }}</p>{% endif %}
+          {% if item.activity.waived_reason %}<p><strong>Dispensa:</strong> {{ item.activity.waived_reason }}</p>{% endif %}
+          {% if item.missing %}<ul>{% for reason in item.missing %}<li>{{ reason }}</li>{% endfor %}</ul>{% endif %}
+        </article>
+      {% endfor %}
+      <a class="text-action" href="{% url 'hub:company-detail' row.company.pk %}">Abrir ficha de {{ row.company.name }}</a>
+    </div>
+  </details>
+</article>

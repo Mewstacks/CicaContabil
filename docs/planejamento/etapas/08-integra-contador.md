@@ -49,7 +49,8 @@ Permissão de ciência, paginação, autorização/custo, indisponibilidade, res
 - [x] D-150: preservar tentativas e estados de emissão em histórico imutável, com retorno criptografado e referência de consumo; nova tentativa não reutiliza protocolo anterior.
 - [x] D-151: histórico paginado na ficha e download do PDF preservado por tentativa, revalidando empresa/escritório/módulo e sem consulta ao provedor.
 - [x] D-152: consulta de Guias/Integra intersecta módulo e empresa na mesma concessão; contagem de consultas pendentes também respeita esse escopo.
-- [ ] Validar histórico no navegador e implementar reemissão conforme definição comercial pendente de D-149; migration 0064 somente em testes.
+- [x] V-266: histórico de tentativas, PDF fictício e estados pronto/emitido/falha/incerto validados no navegador em desktop e celular; erro bruto e chave de serviço não são apresentados.
+- [ ] Implementar e homologar reemissão somente depois da definição comercial pendente de D-149; resultado incerto continua sem repetição.
 - [x] D-155: guias, documentos DCTFWeb e operações PARCSN persistidos projetam atividade única, evidência e impedimento na central. Guia/DAS disponível não conclui pagamento, aceite ou fechamento; Q-40 e D-149 permanecem pendentes. O comando local `sync_serpro_activities` recompõe projeções sem chamada externa (V-174).
 - [ ] Homologação real e concorrência PostgreSQL. Chamadas dos testes são simuladas.
 - [x] V-172: suíte executada em PostgreSQL 17 local descartável; corrigidos locks de DCTFWeb/PARCSN, reserva concorrente validada. Provedores, cliques concorrentes específicos e recuperação real continuam pendentes.
@@ -62,3 +63,23 @@ V-034 registra 63 testes locais para DTE, DCTFWeb, PARCSN, cliente, autorizaçã
 > Execute a etapa 08. Homologue DTE, DCTFWeb e Parcelamentos com credenciais centrais Mewstack e escopo já aprovado. Preserve autorização de ciência e controles de consumo. Antes de qualquer chamada cobrada, solicite aprovação específica de custo; não repita chamadas de resultado incerto.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+## Continuação de usabilidade — V-232
+
+- [x] V-236: DTE demo isolada por sessão também para membro; preparação/decisão/abertura sem registros compartilhados, confirmação preservada e auditor bloqueado. Jornada local no navegador; não é ciência ou homologação real.
+- [x] V-237: fila DTE não-demo restrita integralmente à carteira atual; contador e POST usam o mesmo escopo. Testes de lote misto, vazio, inconsistente e revogação; sem serviço externo.
+- [x] V-238: atalho de seleção no topo, preparação aberta, revisão acessível por âncora, duas etapas explícitas e texto demo sem promessa de consumo. Jornada demo desktop/mobile, teclado, validação vazia e navegação sem JS verificadas localmente.
+- [x] V-239: contador da Central Integra usa a mesma carteira integral da fila DTE; demo de membro usa sessão, com entradas inválidas/mistas ocultadas. Jornada do contador 0→1→0 e isolamento entre sessões verificados localmente.
+- [ ] Reauditar estados reais/recuperação. Carteira restrita verificada por teste de integração em V-237/V-239, não por login restrito no navegador; sem homologação Serpro.
+
+- [x] Demo de Parcelamentos e confirmação de lote DCTFWeb: isolamento por sessão, permissões, identificador não localizado e testes locais conforme V-232.
+- [x] V-233: consulta individual demo isolada, validação da competência e acesso “Consultar documentos” pela linha da guia. Desktop/mobile e teclado verificados localmente; sem homologação Serpro nem publicação.
+- [x] V-234: descoberta do lote, seleção vazia/parcial/página, revisão de escopo e bloqueio sem contrato percorridos em tenant QA não-demo com fonte sintética. Centavos e UUIDs normalizados; limite e seleção explicitados.
+- [x] V-235: fila, processamento, falha, disponível e incerto renderizados em fixture local desktop/mobile; download de PDF sintético e atualização GET por teclado. Sem nova consulta/consumo. Falha inspecionada sem contrato, não uma nova tentativa paga.
+- [x] V-266: carteira prioriza guias oficiais, oferece consulta individual/lote a partir das apurações, mostra progresso de declaração/recibo e uma ação por estado. Lote, filtros, vazio, falha, incerto, detalhe e PDF demo foram reinspecionados sem chamada externa.
+- [ ] Homologar separadamente as transições do serviço real, retorno incerto/conciliação e contrato vigente. V-235 valida apresentação de estados locais, não transporte Serpro.
+## V-267 — Parcelamentos
+
+- [x] Reorganizar por empresa, acordo, parcela e DAS; incluir revisão de custo/escopo, lote, orientação segura, confirmação humana para estado incerto e PDF demo fictício privado à sessão.
+- [x] Validar localmente desktop, mobile, landscape, tema escuro, movimento reduzido, vazio, lote, teclado, foco, overflow e console.
+- [ ] Homologar com contrato e credenciais Serpro reais, incluindo respostas, custo, conciliação de estado incerto e validade do DAS oficial.

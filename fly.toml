@@ -8,7 +8,7 @@ kill_timeout = "30s"
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "python manage.py migrate --noinput"
+  release_command = "python -m config.release"
   release_command_timeout = "10m"
   strategy = "canary"
   wait_timeout = "10m"
@@ -18,9 +18,14 @@ kill_timeout = "30s"
   API_DOCS_ENABLED = "false"
   DJANGO_SETTINGS_MODULE = "config.settings.production"
   DB_SSL_REQUIRE = "true"
-  DB_TLS_ENFORCED_BY_NETWORK = "true"
+  # Neon is reached over the public network, so TLS must be enforced by Django.
+  DB_TLS_ENFORCED_BY_NETWORK = "false"
+  DEMO_ENTRY_ENABLED = "true"
+  DEMO_SESSION_ISOLATION_READY = "true"
   EDGE_AGENT_MTLS_REQUIRED = "false"
   LOG_LEVEL = "INFO"
+  NFSE_ADN_SYNC_ENABLED = "true"
+  NFSE_ADN_ENVIRONMENT = "production"
   OBJECT_STORAGE_REQUIRED = "true"
   PORT = "8000"
   PRIMARY_REGION = "gru"
@@ -50,7 +55,10 @@ kill_timeout = "30s"
     timeout = "5s"
     grace_period = "20s"
     method = "GET"
-    path = "/api/v1/health/ready/"
+    # The proxy only needs to know whether the web process can serve traffic.
+    # Dependency readiness remains available for deploy gates and operators;
+    # probing it every 15 seconds would keep serverless Postgres permanently awake.
+    path = "/api/v1/health/live/"
     headers = { Host = "cica-contabil.fly.dev", X-Forwarded-Proto = "https" }
 
 [[vm]]
