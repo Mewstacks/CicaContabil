@@ -466,6 +466,9 @@ def complete_file_job(request: HttpRequest, job_id: str) -> JsonResponse:
             target=TriageStatus.ARCHIVED,
             note="Hash e destino confirmados pelo agente Windows",
         )
+        from apps.triage.services import record_checklist_delivery
+
+        record_checklist_delivery(item)
         job.status = AgentFileJob.Status.DONE
         job.completed_at = timezone.now()
         job.result = "Hash e destino confirmados."

@@ -50,6 +50,60 @@ def dispatch_active_mailboxes() -> int:
     return queued
 
 
+def _scanner_configured() -> bool:
+    return bool(settings.TRIAGE_CLAMD_SOCKET or settings.TRIAGE_CLAMD_PORT)
+
+
+@shared_task(name="triage.process_item")  # type: ignore[untyped-decorator]
+def process_triage_item(item_id: str) -> str:
+    """Scan a quarantined item, then extract suggestions. Each step is idempotent."""
+    from apps.triage.extraction import extract_item
+    from apps.triage.models import TriageItem
+    from apps.triage.security import scan_quarantined_item
+    from apps.triage.transitions import TriageStatus
+
+    item = TriageItem.objects.filter(pk=item_id).first()
+    if item is None:
+        return "missing"
+    if item.status == TriageStatus.QUARANTINED:
+        try:
+            scan_quarantined_item(item=item)
+        except ValidationError:
+            return "scan_refused"
+        item.refresh_from_db(fields=["status"])
+    if item.status == TriageStatus.AWAITING_EXTRACTION:
+        item = extract_item(item_id=item.pk)
+    return str(item.status)
+
+
+@shared_task(name="triage.recover_pipeline")  # type: ignore[untyped-decorator]
+def recover_triage_pipeline() -> int:
+    """Resume items a crashed worker or an absent scanner left behind."""
+    from apps.triage.models import TriageItem
+    from apps.triage.transitions import TriageStatus
+
+    # Extraction runs in one transaction, so a crash never leaves an item in em_extracao.
+    stale = timezone.now() - timedelta(minutes=10)
+    waiting = Q(status=TriageStatus.AWAITING_EXTRACTION)
+    if _scanner_configured():
+        # Without a configured engine a retry only repeats the same failure event.
+        waiting |= Q(status=TriageStatus.QUARANTINED, safety_scan__isnull=True) | Q(
+            status=TriageStatus.QUARANTINED,
+            safety_scan__verdict="error",
+            safety_scan__scanned_at__lt=stale,
+        )
+    else:
+        waiting |= Q(status=TriageStatus.QUARANTINED, safety_scan__isnull=True)
+    ids = list(
+        TriageItem.objects.filter(waiting, organization__is_demo=False)
+        .order_by("created_at")
+        .values_list("pk", flat=True)[:200]
+    )
+    for item_id in ids:
+        process_triage_item.delay(str(item_id))
+    return len(ids)
+
+
 @shared_task(name="triage.poll_activated_mailbox")  # type: ignore[untyped-decorator]
 def poll_activated_mailbox(mailbox_id: str) -> dict[str, object]:
     """Use a recoverable DB lease; provider checkpoints belong to the reader."""

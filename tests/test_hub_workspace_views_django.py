@@ -1474,6 +1474,43 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(scoped, "owned")
         self.assertNotContains(scoped, "other")
 
+    def test_nfse_center_indicators_follow_the_list_filters(self) -> None:
+        other_company = ClientCompany.objects.create(
+            organization=self.organization, name="Outra empresa", dominio_code="003"
+        )
+        for company in (self.company, other_company):
+            for month in ("08", "09"):
+                for index in range(2):
+                    create_document_and_artifact(
+                        company=company,
+                        original_xml=f"<nfse id='{company.pk}-{month}-{index}' />",
+                        normalized_data={
+                            "number": f"{month}{index}",
+                            "issued_at": f"2026-{month}-10T12:00:00-03:00",
+                        },
+                        source_nsu=f"{company.pk}-{month}-{index}",
+                    )
+
+        response = self.client.get(
+            reverse("hub:nfse-center"),
+            {
+                "company": self.company.pk,
+                "status": "all",
+                "date_filter": "competence",
+                "competence_month": "09",
+                "competence_year": "2026",
+            },
+        )
+
+        stats = response.context["nfse_stats"]
+        self.assertEqual(stats["received"], 2)
+        self.assertEqual(stats["pending"] + stats["classified"], 2)
+        self.assertEqual(stats["provided"] + stats["taken"] + stats["unknown"], 2)
+        for url in response.context["nfse_stat_urls"].values():
+            self.assertIn("competence_month=09", url)
+            self.assertIn("competence_year=2026", url)
+            self.assertIn(f"company={self.company.pk}", url)
+
     def test_nfse_center_states_classification_instead_of_a_score(self) -> None:
         create_document_and_artifact(
             company=self.company,

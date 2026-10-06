@@ -130,4 +130,9 @@ def receive_email_attachment(
         target=item,
         metadata={"mailbox_id": str(mailbox.id), "byte_size": len(payload)},
     )
+    if not organization.is_demo:
+        from apps.triage.tasks import process_triage_item
+
+        item_id = str(item.id)
+        transaction.on_commit(lambda: process_triage_item.delay(item_id))
     return AttachmentReceipt(item, True)

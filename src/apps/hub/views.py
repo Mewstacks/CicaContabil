@@ -58,6 +58,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts import mfa
@@ -284,6 +285,7 @@ from apps.triage.forms import (
     IMAPConnectionForm,
     MailboxOperationForm,
     OfficeOAuthAppForm,
+    TriageFieldsForm,
 )
 from apps.triage.imap import MailboxIMAPError, encrypted_imap_credential, probe_imap_mailbox
 from apps.triage.models import (
@@ -305,8 +307,10 @@ from apps.triage.presentation import MailboxPresentation, present_mailbox
 from apps.triage.services import (
     archive_internal,
     decide_item,
+    open_reviewable_blob,
     open_verified_internal_copy,
     queue_windows_archive,
+    update_review_fields,
 )
 from apps.triage.transitions import InvalidTransition, TriageStatus
 
@@ -11555,11 +11559,35 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
     if visitor:
         _demo_triage_for_view(request, item)
     if request.method == "POST":
-        if not context["support_can_mutate"] or item.company is None:
-            return refuse(request, "Este perfil não pode decidir o destino deste arquivo.")
         decision = request.POST.get("decision", "")
+        if not context["support_can_mutate"] or (
+            item.company is None and decision not in {"update_fields", "reject"}
+        ):
+            return refuse(request, "Este perfil não pode decidir o destino deste arquivo.")
         success_message = "Decisão registrada com evidência no histórico do arquivo."
         try:
+            if decision == "update_fields":
+                if visitor:
+                    raise ValidationError("Na demonstração, os dados do anexo são fixos.")
+                review_form = TriageFieldsForm(
+                    request.POST, organization=office, companies=context["companies"]
+                )
+                if not review_form.is_valid():
+                    raise ValidationError(
+                        next(iter(review_form.errors.values()))[0]
+                    )
+                update_review_fields(
+                    item=item,
+                    actor=cast(User, request.user),
+                    company=review_form.cleaned_data["company"],
+                    document_type=review_form.cleaned_data["document_type"],
+                    period_label=review_form.cleaned_data["period_label"],
+                    counterparty_token=review_form.cleaned_data["counterparty_token"],
+                    final_name=review_form.cleaned_data["final_name"],
+                    request=request,
+                )
+                messages.success(request, "Dados do arquivo atualizados.")
+                return detail_redirect(request, "hub:triage-item", item_id=item.id)
             if decision == "reject" and request.POST.get("confirm_rejection") != "on":
                 raise ValidationError("Confirme a rejeição e registre o motivo antes de enviar.")
             if visitor:
@@ -11676,6 +11704,34 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
         {
             "page_title": "Arquivo em triagem",
             "item": item,
+            "triage_field_rows": [
+                (field, (item.ai_fields.get(label) or {}).get("evidencia", ""))
+                for field, label in zip(
+                    TriageFieldsForm(
+                        organization=office,
+                        companies=context["companies"],
+                        initial={
+                            "company": item.company_id,
+                            "document_type": item.document_type_id,
+                            "period_label": item.period_label,
+                            "counterparty_token": item.counterparty_token,
+                            "final_name": item.final_name,
+                        },
+                        auto_id="triage-%s",
+                    ),
+                    ("Empresa", "Tipo", "Período", "Contraparte", ""),
+                    strict=True,
+                )
+            ],
+            "triage_can_preview": (
+                not visitor
+                and PurePath(item.original_name).suffix.casefold() in _TRIAGE_PREVIEW_TYPES
+                and item.status
+                not in {TriageStatus.RECEIVED, TriageStatus.QUARANTINED, TriageStatus.REJECTED}
+                and getattr(item, "safety_scan", None) is not None
+                and item.safety_scan.verdict == "clean"
+                and item.safety_scan.format_verdict == "valid"
+            ),
             "demo_history": demo_history,
             "demo_visitor": visitor,
             "triage_history_events": triage_history_events,
@@ -11692,6 +11748,65 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
         }
     )
     return render(request, "hub/triage_item.html", context)
+
+
+_TRIAGE_PREVIEW_TYPES = {
+    ".pdf": "application/pdf",
+    ".xml": "text/plain; charset=utf-8",
+    ".csv": "text/plain; charset=utf-8",
+    ".ofx": "text/plain; charset=utf-8",
+}
+
+
+@office_required
+@require_http_methods(["GET"])
+@xframe_options_sameorigin
+def triage_preview(request: HttpRequest, item_id: str) -> HttpResponseBase:
+    """Show released bytes inline so the reviewer can check before deciding."""
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.TRIAGE))
+    if blocked:
+        raise Http404
+    office = context["office"]
+    assert isinstance(office, Organization)
+    item_scope = Q(company__in=context["companies"])
+    if _can_manage_collaborators(context):
+        item_scope |= Q(company__isnull=True)
+    item = get_object_or_404(
+        TriageItem.objects.select_related("blob").filter(item_scope),
+        organization=office,
+        id=item_id,
+    )
+    content_type = _TRIAGE_PREVIEW_TYPES.get(PurePath(item.original_name).suffix.casefold())
+    if content_type is None or is_demo_visitor(request, office):
+        raise Http404
+    try:
+        payload = open_reviewable_blob(item=item)
+    except ValidationError:
+        raise Http404 from None
+    if content_type.startswith("text/"):
+        try:
+            payload = payload.decode("utf-8").encode("utf-8")
+        except UnicodeDecodeError:
+            payload = payload.decode("latin-1").encode("utf-8")
+    response = HttpResponse(payload, content_type=content_type)
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "no-store, private"
+    response["X-Content-Type-Options"] = "nosniff"
+    # Chromium's PDF viewer needs object-src; text gets a scriptless sandbox.
+    response["Content-Security-Policy"] = (
+        "default-src 'none'; object-src 'self'; frame-ancestors 'self'"
+        if content_type == "application/pdf"
+        else "default-src 'none'; sandbox; frame-ancestors 'self'"
+    )
+    record_event(
+        action="triage.item.previewed",
+        actor=cast(User, request.user),
+        organization=office,
+        target=item,
+        request=request,
+        metadata={"content_hash": item.content_hash},
+    )
+    return response
 
 
 @office_required

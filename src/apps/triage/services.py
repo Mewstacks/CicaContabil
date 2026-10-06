@@ -22,6 +22,7 @@ from apps.hub.module_activities import sync_triage_activity
 from apps.organizations.models import Organization
 from apps.triage.models import (
     AgentFileJob,
+    ChecklistEntry,
     DestinationProfile,
     DocumentType,
     TriageBlob,
@@ -163,6 +164,134 @@ def _move(*, item: TriageItem, target: str, actor: User, note: str = "") -> None
         note=note[:500],
     )
     sync_triage_activity(item.pk)
+
+
+def record_checklist_delivery(item: TriageItem) -> ChecklistEntry | None:
+    """Mark the expected document for this company/type/period as delivered.
+
+    The first archived proof wins; a later duplicate never replaces it.
+    """
+    if (
+        item.status != TriageStatus.ARCHIVED
+        or item.company_id is None
+        or item.document_type_id is None
+        or not item.period_label
+    ):
+        return None
+    entry, _created = ChecklistEntry.objects.get_or_create(
+        organization=item.organization,
+        company_id=item.company_id,
+        document_type_id=item.document_type_id,
+        period_label=item.period_label,
+    )
+    if entry.triage_item_id is None:
+        entry.triage_item = item
+        entry.received_at = item.received_at or item.archived_at or timezone.now()
+        entry.save(update_fields=["triage_item", "received_at", "updated_at"])
+    return entry
+
+
+def update_review_fields(
+    *,
+    item: TriageItem,
+    actor: User,
+    company: ClientCompany | None,
+    document_type: DocumentType | None,
+    period_label: str,
+    counterparty_token: str,
+    final_name: str,
+    request: object | None = None,
+) -> TriageItem:
+    """Let the reviewer correct what extraction suggested, with an evidence trail."""
+    period_label = period_label.strip()
+    counterparty_token = counterparty_token.strip()[:64]
+    final_name = final_name.strip()
+    if period_label and not re.fullmatch(r"20\d{2}(-(0[1-9]|1[0-2]))?", period_label):
+        raise ValidationError("Use o período no formato AAAA-MM ou AAAA.")
+    if final_name and (
+        len(final_name) > 255
+        or any(char in final_name for char in '/\\<>:"|?*\x00')
+        or final_name.strip(".") == ""
+    ):
+        raise ValidationError("O nome final não pode conter / \\ < > : \" | ? *.")
+    with transaction.atomic():
+        item = TriageItem.objects.select_for_update().get(
+            pk=item.pk, organization=item.organization
+        )
+        if item.status != TriageStatus.AWAITING_REVIEW:
+            raise InvalidTransition("Este arquivo não está aguardando revisão.")
+        if company is not None and company.organization_id != item.organization_id:
+            raise ValidationError("A empresa não pertence a este escritório.")
+        if document_type is not None and document_type.organization_id != item.organization_id:
+            raise ValidationError("O tipo de documento não pertence a este escritório.")
+        before = {
+            "empresa": item.company.name if item.company else "",
+            "tipo": item.document_type.label if item.document_type else "",
+            "período": item.period_label,
+            "contraparte": item.counterparty_token,
+            "nome": item.final_name,
+        }
+        item.company = company
+        item.document_type = document_type
+        item.period_label = period_label
+        item.counterparty_token = counterparty_token
+        item.final_name = final_name
+        after = {
+            "empresa": company.name if company else "",
+            "tipo": document_type.label if document_type else "",
+            "período": period_label,
+            "contraparte": counterparty_token,
+            "nome": final_name,
+        }
+        changed = [key for key in before if before[key] != after[key]]
+        if not changed:
+            return item
+        item.save(
+            update_fields=[
+                "company", "document_type", "period_label", "counterparty_token",
+                "final_name", "updated_at",
+            ]
+        )
+        TriageEvent.objects.create(
+            organization=item.organization,
+            triage_item=item,
+            actor=actor,
+            from_status=item.status,
+            to_status=item.status,
+            note=("Corrigido: " + ", ".join(changed))[:500],
+        )
+    sync_triage_activity(item.pk)
+    record_event(
+        action="triage.item.review_fields_updated",
+        actor=actor,
+        organization=item.organization,
+        target=item,
+        request=request,
+        metadata={"changed": changed},
+    )
+    return item
+
+
+def open_reviewable_blob(*, item: TriageItem) -> bytes:
+    """Return released quarantine bytes for in-browser review, never unscanned ones."""
+    released = TriageSafetyScan.objects.filter(
+        organization=item.organization,
+        triage_item=item,
+        verdict=TriageSafetyScan.Verdict.CLEAN,
+        format_verdict=TriageSafetyScan.FormatVerdict.VALID,
+        content_hash=item.content_hash,
+    ).exists()
+    if not released or item.status in {TriageStatus.QUARANTINED, TriageStatus.RECEIVED}:
+        raise ValidationError("O arquivo ainda não foi liberado pela verificação.")
+    try:
+        blob = item.blob
+    except TriageBlob.DoesNotExist as exc:
+        raise ValidationError("O arquivo de origem não está disponível.") from exc
+    with blob.content.open("rb") as source:
+        payload: bytes = source.read(_MAX_BYTES + 1)
+    if len(payload) > _MAX_BYTES or hashlib.sha256(payload).hexdigest() != item.content_hash:
+        raise ValidationError("O arquivo mudou depois da verificação.")
+    return payload
 
 
 def decide_item(
@@ -400,6 +529,7 @@ def archive_internal(*, item: TriageItem, actor: User) -> TriageItem:
             ])
             _move(item=item, target=TriageStatus.ARCHIVED, actor=actor,
                   note="Cópia interna íntegra confirmada")
+            record_checklist_delivery(item)
     except Exception:
         if saved_path:
             storage.delete(saved_path)

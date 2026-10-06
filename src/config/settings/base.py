@@ -550,6 +550,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "hub.recover_financial_report_exports",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
     },
+    "recover-triage-pipeline": {
+        "task": "triage.recover_pipeline",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
     "dispatch-waiting-financial-report-exports": {
         "task": "hub.dispatch_waiting_financial_report_exports",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),

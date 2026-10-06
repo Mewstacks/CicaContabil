@@ -37,6 +37,40 @@ class ManualIntakeForm(forms.Form):
         self.fields["file"].widget.attrs.update({"accept": ".pdf,.csv,.xml,.ofx,.xlsx"})
 
 
+class TriageFieldsForm(forms.Form):
+    company = forms.ModelChoiceField(
+        queryset=ClientCompany.objects.none(), required=False, label="Empresa"
+    )
+    document_type = forms.ModelChoiceField(
+        queryset=DocumentType.objects.none(), required=False, label="Tipo"
+    )
+    period_label = forms.CharField(required=False, max_length=7, label="Período")
+    counterparty_token = forms.CharField(required=False, max_length=64, label="Contraparte")
+    final_name = forms.CharField(required=False, max_length=255, label="Nome final")
+
+    def __init__(
+        self, *args: Any, organization: Organization, companies: Any, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        company_field = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
+        document_type_field = cast(
+            "forms.ModelChoiceField[DocumentType]", self.fields["document_type"]
+        )
+        company_field.queryset = companies.filter(organization=organization).order_by("name")
+        company_field.empty_label = "Não identificada"
+        document_type_field.queryset = DocumentType.objects.filter(
+            organization=organization, active=True
+        ).order_by("label")
+        document_type_field.empty_label = "Não identificado"
+        self.fields["period_label"].widget.attrs.update(
+            {"placeholder": "AAAA-MM", "inputmode": "numeric", "autocomplete": "off"}
+        )
+        self.fields["counterparty_token"].widget.attrs.update({"autocomplete": "off"})
+        self.fields["final_name"].widget.attrs.update(
+            {"autocomplete": "off", "spellcheck": "false"}
+        )
+
+
 class TriageReviewForm(forms.Form):
     decision = forms.ChoiceField(
         choices=(("archive", "Arquivar na biblioteca"), ("reject", "Rejeitar")),

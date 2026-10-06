@@ -264,6 +264,7 @@ urlpatterns = [
     ),
     path("app/triagem/<uuid:item_id>/", views.triage_item_detail, name="triage-item"),
     path("app/triagem/<uuid:item_id>/arquivo/", views.triage_download, name="triage-download"),
+    path("app/triagem/<uuid:item_id>/previa/", views.triage_preview, name="triage-preview"),
     path("app/trocar-escritorio/", views.switch_office, name="switch-office"),
     path("app/aparencia/", views.set_theme, name="set-theme"),
     path(
