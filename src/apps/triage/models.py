@@ -212,6 +212,13 @@ class TriageItem(OrganizationScopedModel):
     status = models.CharField(
         max_length=24, choices=TriageStatus.choices, default=TriageStatus.RECEIVED
     )
+    # Automatic scan/extraction runs started for this item. The recovery job stops at a
+    # cap so a deterministic failure does not loop; a person can reset it (Reprocessar).
+    pipeline_attempts = models.PositiveSmallIntegerField(default=0, db_default=0)
+    # Same bytes already received by this office: the copy is closed, not classified again.
+    duplicate_of = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="duplicates"
+    )
 
     company = models.ForeignKey(
         "hub.ClientCompany", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -266,7 +273,7 @@ class TriageItem(OrganizationScopedModel):
 
     def clean(self) -> None:
         errors: dict[str, str] = {}
-        for field in ("mailbox", "company", "document_type"):
+        for field in ("mailbox", "company", "document_type", "duplicate_of"):
             related = getattr(self, field, None)
             if related is not None and related.organization_id != self.organization_id:
                 errors[field] = "Este registro pertence a outro escritório."
@@ -330,6 +337,8 @@ class TriageEvent(OrganizationScopedModel):
     from_status = models.CharField(max_length=24, choices=TriageStatus.choices)
     to_status = models.CharField(max_length=24, choices=TriageStatus.choices)
     note = models.CharField(max_length=500, blank=True)
+    # Why a reviewer overrode the classification; kept apart so the note never truncates it.
+    reason = models.CharField(max_length=500, blank=True, default="", db_default="")
 
     class Meta:
         ordering = ("created_at",)

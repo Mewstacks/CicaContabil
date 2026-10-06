@@ -8,7 +8,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.utils import timezone
 
 from apps.triage.gmail_poll import GmailMailboxError, poll_gmail_mailbox
@@ -54,17 +54,28 @@ def _scanner_configured() -> bool:
     return bool(settings.TRIAGE_CLAMD_SOCKET or settings.TRIAGE_CLAMD_PORT)
 
 
+# Automatic runs per item (the first dispatch included). Past it only Reprocessar resumes.
+MAX_PIPELINE_ATTEMPTS = 3
+
+
 @shared_task(name="triage.process_item")  # type: ignore[untyped-decorator]
 def process_triage_item(item_id: str) -> str:
     """Scan a quarantined item, then extract suggestions. Each step is idempotent."""
     from apps.triage.extraction import extract_item
     from apps.triage.models import TriageItem
     from apps.triage.security import scan_quarantined_item
+    from apps.triage.services import retry_failed_extraction
     from apps.triage.transitions import TriageStatus
 
     item = TriageItem.objects.filter(pk=item_id).first()
     if item is None:
         return "missing"
+    runnable = {TriageStatus.QUARANTINED, TriageStatus.AWAITING_EXTRACTION, TriageStatus.FAILED}
+    if item.status not in runnable:
+        return str(item.status)
+    TriageItem.objects.filter(pk=item.pk).update(pipeline_attempts=F("pipeline_attempts") + 1)
+    if item.status == TriageStatus.FAILED:
+        item = retry_failed_extraction(item=item)
     if item.status == TriageStatus.QUARANTINED:
         try:
             scan_quarantined_item(item=item)
@@ -94,8 +105,14 @@ def recover_triage_pipeline() -> int:
         )
     else:
         waiting |= Q(status=TriageStatus.QUARANTINED, safety_scan__isnull=True)
+    # A failed extraction gets another automatic chance once it has rested, up to the cap.
+    waiting |= Q(status=TriageStatus.FAILED, updated_at__lt=stale)
     ids = list(
-        TriageItem.objects.filter(waiting, organization__is_demo=False)
+        TriageItem.objects.filter(
+            waiting,
+            organization__is_demo=False,
+            pipeline_attempts__lt=MAX_PIPELINE_ATTEMPTS,
+        )
         .order_by("created_at")
         .values_list("pk", flat=True)[:200]
     )

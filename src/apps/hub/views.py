@@ -317,12 +317,14 @@ from apps.triage.oauth import (
 from apps.triage.presentation import MailboxPresentation, present_mailbox
 from apps.triage.services import (
     archive_internal,
+    can_reprocess,
     decide_item,
     open_reviewable_blob,
     open_verified_internal_copy,
     queue_windows_archive,
     update_review_fields,
 )
+from apps.triage.services import reprocess_item as reprocess_triage_item
 from apps.triage.transitions import InvalidTransition, TriageStatus
 
 logger = logging.getLogger(__name__)
@@ -11513,7 +11515,7 @@ def _triage_page_context(request: HttpRequest) -> tuple[dict[str, object], HttpR
     queue = (
         TriageItem.objects.filter(organization=office)
         .filter(queue_scope)
-        .select_related("company", "mailbox", "safety_scan")
+        .select_related("company", "mailbox", "safety_scan", "duplicate_of")
     )
     selected_status = request.GET.get("status", "")
     if selected_status not in TriageItem.Status.values:
@@ -12115,7 +12117,8 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
         item_scope |= Q(company__isnull=True)
     item = get_object_or_404(
         TriageItem.objects.select_related(
-            "company", "document_type", "reviewed_by", "blob", "mailbox", "safety_scan"
+            "company", "document_type", "reviewed_by", "blob", "mailbox", "safety_scan",
+            "duplicate_of",
         ).filter(item_scope),
         organization=office,
         id=item_id,
@@ -12126,7 +12129,7 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
     if request.method == "POST":
         decision = request.POST.get("decision", "")
         if not context["support_can_mutate"] or (
-            item.company is None and decision not in {"update_fields", "reject"}
+            item.company is None and decision not in {"update_fields", "reject", "reprocess"}
         ):
             return refuse(request, "Este perfil não pode decidir o destino deste arquivo.")
         success_message = "Decisão registrada com evidência no histórico do arquivo."
@@ -12149,9 +12152,16 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
                     period_label=review_form.cleaned_data["period_label"],
                     counterparty_token=review_form.cleaned_data["counterparty_token"],
                     final_name=review_form.cleaned_data["final_name"],
+                    reason=review_form.cleaned_data["reason"],
                     request=request,
                 )
                 messages.success(request, "Dados do arquivo atualizados.")
+                return detail_redirect(request, "hub:triage-item", item_id=item.id)
+            if decision == "reprocess":
+                if visitor or office.is_demo:
+                    raise ValidationError("Reprocessamento indisponível na demonstração.")
+                reprocess_triage_item(item=item, actor=cast(User, request.user), request=request)
+                messages.success(request, "Arquivo reenviado ao processamento.")
                 return detail_redirect(request, "hub:triage-item", item_id=item.id)
             if decision == "reject" and request.POST.get("confirm_rejection") != "on":
                 raise ValidationError("Confirme a rejeição e registre o motivo antes de enviar.")
@@ -12265,29 +12275,37 @@ def triage_item_detail(request: HttpRequest, item_id: str) -> HttpResponse:
         ).get_page(request.GET.get("history_page"))
         triage_history_events = list(triage_history_page.object_list)
         triage_history_total = triage_history_page.paginator.count
+    fields_form = TriageFieldsForm(
+        organization=office,
+        companies=context["companies"],
+        initial={
+            "company": item.company_id,
+            "document_type": item.document_type_id,
+            "period_label": item.period_label,
+            "counterparty_token": item.counterparty_token,
+            "final_name": item.final_name,
+        },
+        auto_id="triage-%s",
+    )
     context.update(
         {
             "page_title": "Arquivo em triagem",
             "item": item,
             "triage_field_rows": [
-                (field, (item.ai_fields.get(label) or {}).get("evidencia", ""))
-                for field, label in zip(
-                    TriageFieldsForm(
-                        organization=office,
-                        companies=context["companies"],
-                        initial={
-                            "company": item.company_id,
-                            "document_type": item.document_type_id,
-                            "period_label": item.period_label,
-                            "counterparty_token": item.counterparty_token,
-                            "final_name": item.final_name,
-                        },
-                        auto_id="triage-%s",
-                    ),
-                    ("Empresa", "Tipo", "Período", "Contraparte", ""),
-                    strict=True,
+                (fields_form[name], (item.ai_fields.get(label) or {}).get("evidencia", ""))
+                for name, label in (
+                    ("company", "Empresa"),
+                    ("document_type", "Tipo"),
+                    ("period_label", "Período"),
+                    ("counterparty_token", "Contraparte"),
+                    ("final_name", ""),
                 )
             ],
+            # Overruling a set company/type needs a reason; filling a blank one does not.
+            "triage_reason_field": (
+                fields_form["reason"] if item.company_id or item.document_type_id else None
+            ),
+            "triage_can_reprocess": not office.is_demo and can_reprocess(item),
             "triage_can_preview": (
                 not visitor
                 and PurePath(item.original_name).suffix.casefold() in _TRIAGE_PREVIEW_TYPES
