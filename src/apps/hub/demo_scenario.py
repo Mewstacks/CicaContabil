@@ -365,3 +365,24 @@ def refresh_demo_guides(office: Organization, *, today: date | None = None) -> i
         .exclude(reference__in=references)
         .update(status=FiscalGuide.Status.SKIPPED, updated_at=timezone.now())
     )
+
+
+def ensure_demo_window(office: Organization, *, today: date | None = None) -> bool:
+    """Roll the demonstration at most once a day, when a visitor arrives (D-277).
+
+    The daily task does the same at night; this keeps a fresh deploy or a missed night from
+    showing dates that contradict their competência. Returns True when it refreshed.
+    """
+
+    from django.core.cache import cache
+
+    today = today or timezone.localdate()
+    if not office.is_demo or not office.is_active:
+        return False
+    if not cache.add(f"demo-window:{office.pk}:{today.isoformat()}", True, 60 * 60 * 26):
+        return False
+    if not ClientCompany.objects.filter(organization=office, active=True).exists():
+        return False
+    populate_operations(office, today=today)
+    refresh_demo_guides(office, today=today)
+    return True

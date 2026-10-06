@@ -389,6 +389,9 @@ def demo_entry(request: HttpRequest) -> HttpResponse:
             return redirect("hub:dashboard")
         assert office is not None
         cleanup_stale_demo_visitors(office)
+        from apps.hub.demo_scenario import ensure_demo_window
+
+        ensure_demo_window(office)
         visitor_id = uuid.uuid4()
         user = User.objects.create_user(
             email=f"demo-{visitor_id}@example.test", full_name="Visitante da demonstração"
