@@ -4256,3 +4256,23 @@ Limites: não houve avaliação com usuários reais, reprodução de todos os es
 carga/restore, inspeção autenticada de produção, homologação ERP/Serpro/e-mail/IA, contratação,
 consumo ou deploy. As etapas funcionais continuam abertas conforme seus aceites. V-275 conclui
 a revisão documental solicitada, não a implementação dos pacotes nem a conclusão do sistema.
+
+## V-277 — Rotina diária: nomes, papéis e notas legíveis em produção (06/10/2026)
+
+- Origem D-277, fase 1. Revisão prévia da demonstração publicada mostrou e-mail interno como
+  responsável, papéis em inglês na Gestão, NSU/hash no lugar do número da NFS-e, trio de estados
+  padrão ("Não verificado · Não aplicável · Atualizado") e UUID no histórico de atribuição.
+- Entrega: `User.display_name`; rótulos de papel em português (migração só de choices); ficha da
+  empresa lista NFS-e por número, emissão e contraparte; um único qualificador acionável ao lado
+  da situação; histórico de atribuição com nomes (UUID antigo traduzido na exibição, histórico
+  imutável preservado); resumo duplicado da central de atividades removido; teste-catraca de
+  texto explicativo sob títulos (`tests/test_ui_copy_rule.py`, 88 ocorrências em 34 templates,
+  só pode diminuir).
+- Local: 1.149 testes e 145 subtestes aprovados, seis skips explícitos; Ruff e
+  `makemigrations --check` limpos; testes novos para nomes/nota/papéis/histórico.
+- Produção: release Fly v55 (build local, canário), web e worker saudáveis, logs sem erro. Na
+  demonstração publicada: ficha da Clínica Odonto Sorriso sem e-mail, hash ou trio de estados,
+  notas `DEMO-0103-001..004`; Gestão com "Operador"/"Dono"; Atividades sem o resumo duplicado.
+
+Limites: conferência na demonstração fictícia; conta de teste real ainda não aberta pelo
+proprietário. Prazos (competência × vencimento) seguem na fase 2.
