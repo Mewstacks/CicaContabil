@@ -155,9 +155,9 @@ Não colocar treinamento local como bloqueio da liberação por API já decidida
 
 | Proposta | Valor para o usuário | Prioridade recomendada / decisão necessária |
 |---|---|---|
-| Notificações internas de prazo, atribuição e falha | Perceber trabalho novo sem percorrer módulos | Alta após central estável; definir eventos/preferências/deduplicação; canal externo separado |
+| Notificações internas de prazo, atribuição e falha | Perceber trabalho novo sem percorrer módulos | **Aprovada em D-277** (só no produto, deduplicada); canal externo continua separado |
 | Documento esperado e pendência com responsável | Saber exatamente o que falta e quem acompanha | Parte do fechamento/Triagem; concluir checklist existente antes de abrir novo canal |
-| Visões salvas e busca global | Reencontrar empresa, tarefa, nota e protocolo | Média; primeiro preservar filtros atuais e isolamento em todos os resultados |
+| Visões salvas e busca global | Reencontrar empresa, tarefa, nota e protocolo | Busca global **aprovada em D-277**, limitada à carteira/módulos; visões salvas continuam proposta |
 | Portal de solicitação/entrega do cliente | Reduzir troca dispersa e confirmar recebimento | Validar demanda/canal/identidade/retenção; nova proposta, sem reativar Jornadas automaticamente |
 | Colaboração com comentário/menção | Passar contexto e devolver trabalho | Implementar somente o mínimo comprovado por PC-14/29; comentário não substitui evidência |
 | Indicadores de operação do escritório | Medir atraso, tempo de ciclo e gargalos | Medir processo e qualidade; não transformar tarefas atribuídas em ranking de pessoas |

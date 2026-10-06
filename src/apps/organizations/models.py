@@ -49,12 +49,12 @@ class Organization(UUIDTimeStampedModel):
 
 class Membership(UUIDTimeStampedModel):
     class Role(models.TextChoices):
-        OWNER = "owner", "Owner"
-        ADMIN = "admin", "Administrator"
-        MANAGER = "manager", "Manager"
-        OPERATOR = "operator", "Operator"
-        MEMBER = "member", "Member (legacy)"
-        BILLING = "billing", "Billing"
+        OWNER = "owner", "Dono"
+        ADMIN = "admin", "Administrador"
+        MANAGER = "manager", "Gestor"
+        OPERATOR = "operator", "Operador"
+        MEMBER = "member", "Membro"
+        BILLING = "billing", "Financeiro"
         AUDITOR = "auditor", "Auditor"
 
     organization = models.ForeignKey(

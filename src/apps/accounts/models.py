@@ -51,6 +51,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self) -> str:
         return self.email
 
+    def get_full_name(self) -> str:
+        return self.full_name.strip()
+
+    @property
+    def display_name(self) -> str:
+        """The name a colleague recognizes; the login e-mail only when no name was given."""
+
+        return self.get_full_name() or self.email
+
 
 class TotpDevice(UUIDTimeStampedModel):
     """One authenticator binding per account.

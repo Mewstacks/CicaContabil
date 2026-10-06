@@ -7,7 +7,7 @@
     <li>
       <h3>{{ decision.get_state_display }} · R$ {{ decision.amount_brl|floatformat:2 }}</h3>
       {% if decision.is_legacy_snapshot %}<p><strong>Registro legado preservado</strong></p>{% endif %}
-      <p>{% if decision.occurred_at %}<time datetime="{{ decision.occurred_at|date:'c' }}">{{ decision.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}Data da decisão não registrada{% endif %} · {% if decision.actor %}{{ decision.actor.get_full_name|default:decision.actor.email }}{% else %}Autor não registrado{% endif %}</p>
+      <p>{% if decision.occurred_at %}<time datetime="{{ decision.occurred_at|date:'c' }}">{{ decision.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}Data da decisão não registrada{% endif %} · {% if decision.actor %}{{ decision.actor.display_name }}{% else %}Autor não registrado{% endif %}</p>
       <p>Lançamento: {{ decision.reconciliation.entry.history }}</p>
       {% if decision.evidence.note %}<p>{{ decision.evidence.note }}</p>{% endif %}
       {% if decision.evidence.method == 'deterministic_exact_1to1' %}<p>Correspondência automática única de documento, data e valor.</p>{% endif %}

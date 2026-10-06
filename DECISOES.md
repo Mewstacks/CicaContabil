@@ -1507,3 +1507,43 @@ Pedido explícito: revisar criticamente a tela publicada, corrigir e fazer deplo
 - Evidência adicional da captura: sessão de suporte vigente é `read_only`. Download original/relatórios são leitura do mesmo acervo já autorizado, não alteração fiscal. Desacoplar essas leituras de `support_can_mutate`, preservando o escopo de empresas e a recusa de classificação/exportação derivada nessa sessão. Suporte `full` deve respeitar a autorização já existente, sem exigir vínculo de colaborador ausente por definição.
 - A primeira coluna sem checkbox estava recebendo largura de 48 px, comprimindo identificação e selos. Usar classe semântica exclusiva na célula de seleção; abrir a conferência na ficha existente em vez de expandir centenas de pixels dentro da tabela.
 - Solicitação subsequente: após publicação da correção de tela, auditar classificação, acumuladores por empresa e erros de importação apresentados no Domínio. Inspecionar os dados existentes primeiro, sem presumir regras fiscais novas ou sobrescrever decisões humanas.
+
+## D-277 — Rotina diária do contador: prazos, lote, busca, avisos e linguagem (06/10/2026)
+
+Origem: pedido do proprietário para revisar o produto publicado com olhos do contador, pesquisar
+UX e executar o plano aprovado em 06/10/2026. Revisão feita na demonstração publicada
+(`/demo/`, ~18 telas em 1280 e 375 px) e no código; complementa D-275/V-275 sem plano concorrente.
+Ordem aprovada: rotina diária → NFS-e (PC-02) → Triagem (PC-15/16). Portal e envio de guia ao
+cliente continuam fora. Validação em produção usa conta de teste aberta pelo próprio proprietário.
+
+1. **Competência × vencimento (PC-13; esclarece D-270).** Trabalho da competência M vence em
+   M+k, com k configurável por modelo; modelos existentes mantêm o comportamento atual até nova
+   versão explícita. Prazo legal só vem de regra aprovada com base legal, URL e vigência; sem
+   regra aprovada ou calendário do ano, o prazo legal fica ausente e isso é registrado. Prazo
+   interno nunca fica depois do legal. Mudança de prazo de atividade gerada exige motivo e
+   deixa evento. Regras de vencimento são aprovadas por papel da plataforma; o escritório ajusta
+   somente a antecedência interna (padrão: 2 dias úteis).
+2. **Ação em lote na central de atividades (revoga a exclusão de edição em lote de D-269).**
+   Atribuir, mudar prazo interno e concluir quando as condições da atividade forem atendidas;
+   até 50 itens; motivo obrigatório; carteira e permissão reconferidas item a item; itens
+   pulados voltam com o motivo. Mudar prazo: proprietário, administrador e gestor. Operador pode
+   assumir atividade sem responsável dentro da sua carteira. Na demonstração, ações valem só na
+   sessão.
+3. **Busca e avisos.** Busca global limitada à carteira e aos módulos da pessoa (não é a busca
+   irrestrita vetada em D-269). Avisos somente dentro do produto, com deduplicação e link de ação;
+   nenhum e-mail/WhatsApp.
+4. **Cadastro da empresa.** Regime tributário, IE, IM, contato e responsável por área são
+   editáveis localmente mesmo quando a identidade vem do Domínio ou de outra fonte. Responsável
+   por área é o padrão quando a atribuição do modelo não tem responsável. Contato é dado pessoal:
+   auditoria registra apenas os campos alterados.
+5. **Linguagem.** Tela não explica a si mesma: sem parágrafo explicativo sob títulos; rótulo
+   curto; identificador técnico (e-mail interno, UUID, hash, papel em inglês) não aparece onde há
+   nome humano. Exceções obrigatórias: resumo × ciência da DTE (D-233), confirmação de custo
+   (D-149/D-236), aviso de dados fictícios da demonstração e confirmação de ação irreversível.
+
+Referências: Acessórias (prazo e acompanhamento de processos), padrão prazo interno antes do legal
+em escritórios contábeis, boas práticas de ação em lote/filtro em tabela (UX DWorld, UX Collective),
+heurísticas de Nielsen aplicadas a SaaS B2B. Regras de vencimento iniciais em rascunho, com fontes:
+DCTFWeb no último dia útil do mês seguinte desde 01/2025; contribuições previdenciárias no dia 20,
+antecipando quando não houver expediente bancário (Lei 8.212/1991, art. 30, §2º); DAS no dia 20,
+prorrogando ao dia útil seguinte (confirmar no texto vigente da Resolução CGSN 140/2018 ao aprovar).

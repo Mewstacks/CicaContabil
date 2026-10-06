@@ -303,6 +303,8 @@ def assign_activity(
         assignee = candidate.user
     if previous == str(assignee.pk if assignee else ""):
         return locked
+    # The history is read by people: it names them. Identifiers stay in the audit metadata.
+    previous_name = locked.assigned_to.display_name if locked.assigned_to else "sem responsável"
     locked.assigned_to = assignee
     locked.save(update_fields=["assigned_to", "updated_at"])
     _event(
@@ -310,8 +312,8 @@ def assign_activity(
         event_type="assigned",
         actor=actor,
         summary=(
-            f"Responsável: {previous or 'sem responsável'} → "
-            f"{assignee_id or 'sem responsável'}. Motivo: {reason}"
+            f"Responsável: {previous_name} → "
+            f"{assignee.display_name if assignee else 'sem responsável'}. Motivo: {reason}"
         )[:500],
     )
     record_event(

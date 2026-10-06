@@ -2,17 +2,6 @@
 {% load static %}
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=3">{% endblock %}
 {% block workspace_content %}
-<section class="activity-intro" aria-label="Resumo da central de atividades">
-  <div>
-    <p class="section-kicker">CENTRAL OPERACIONAL</p>
-    <p>Escolha uma prioridade e encontre o trabalho pelo contexto contábil. Os filtros alteram somente esta lista.</p>
-  </div>
-  <dl class="activity-queue-summary">
-    <div><dt>Em aberto</dt><dd>{{ open_activity_count }}</dd></div>
-    <div{% if overdue_count %} class="is-attention"{% endif %}><dt>Em atraso neste recorte</dt><dd>{{ overdue_count }}</dd></div>
-  </dl>
-</section>
-
 <nav class="activity-priority-nav" aria-label="Prioridades das atividades">
   {% for item in priority_filters %}<a href="{{ item.url }}"{% if item.selected %} aria-current="page"{% endif %}><span>{{ item.label }}</span><strong>{{ item.count }}</strong></a>{% endfor %}
 </nav>
@@ -61,7 +50,7 @@
       <td data-label="Próximo passo"><span class="activity-next-copy">{{ activity.queue_next_step }}</span></td>
       <td data-label="Prazo"><strong{% if activity.is_overdue %} class="activity-due-overdue"{% endif %}>{{ activity.queue_due_label }}</strong>{% if activity.queue_due_on %}<small>{{ activity.queue_due_kind }} · {{ activity.queue_due_on|date:'d/m/Y' }}</small>{% endif %}</td>
       <td data-label="Responsável">{% if activity.assigned_to %}<strong>{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}</strong>{% else %}<span class="table-warning">Sem responsável</span>{% endif %}</td>
-      <td data-label="Situação"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span><small>{{ activity.get_freshness_display }}</small></td>
+      <td data-label="Situação"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% include 'hub/partials/activity_state.html' %}</td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:activity-detail' activity.id %}">Conferir<span class="sr-only"> {{ activity.title }}</span></a></td>
     </tr>{% endfor %}</tbody>
   </table></div>

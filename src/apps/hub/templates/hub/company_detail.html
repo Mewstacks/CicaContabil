@@ -58,9 +58,9 @@
   <div class="company-detail-section-body">
   {% if activities %}
     <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Atividade</th><th scope="col">Prazo</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Abrir</span></th></tr></thead><tbody>{% for activity in activities %}<tr>
-      <td data-label="Atividade"><strong>{{ activity.title }}</strong><small>{{ activity.get_area_display }}{% if activity.competence %} · {{ activity.competence|date:"m/Y" }}{% endif %}{% if activity.assigned_to %} · {{ activity.assigned_to.get_full_name|default:activity.assigned_to.email }}{% endif %}</small></td>
+      <td data-label="Atividade"><strong>{{ activity.title }}</strong><small>{{ activity.get_area_display }}{% if activity.competence %} · {{ activity.competence|date:"m/Y" }}{% endif %}{% if activity.assigned_to %} · {{ activity.assigned_to.display_name }}{% endif %}</small></td>
       <td data-label="Prazo">{% if activity.internal_due_on %}<strong>{{ activity.internal_due_on|date:"d/m/Y" }}</strong><small>Prazo interno{% if activity.legal_due_on %} · legal {{ activity.legal_due_on|date:"d/m/Y" }}{% endif %}</small>{% elif activity.legal_due_on %}<strong>{{ activity.legal_due_on|date:"d/m/Y" }}</strong><small>Prazo legal</small>{% else %}<span class="table-muted">Sem prazo</span>{% endif %}</td>
-      <td data-label="Situação"><span class="module-state {% if activity.work_status == 'completed' or activity.work_status == 'waived' %}is-active{% elif activity.work_status == 'blocked' %}is-danger{% else %}is-warning{% endif %}">{{ activity.get_work_status_display }}</span><small>{{ activity.get_processing_status_display }} · {{ activity.get_obligation_status_display }} · {{ activity.get_freshness_display }}</small></td>
+      <td data-label="Situação"><span class="module-state {% if activity.work_status == 'completed' or activity.work_status == 'waived' %}is-active{% elif activity.work_status == 'blocked' %}is-danger{% else %}is-warning{% endif %}">{{ activity.get_work_status_display }}</span>{% include 'hub/partials/activity_state.html' %}</td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:activity-detail' activity.id %}">Abrir<span class="sr-only"> {{ activity.title }}</span></a></td>
     </tr>{% endfor %}</tbody></table></div>
     <div class="company-section-footer"><a class="button button-quiet button-small" href="{% url 'hub:activities' %}?company={{ company.id }}">Ver todas as atividades</a></div>
@@ -196,10 +196,10 @@
     <span class="record-count">{{ document_count }} no total</span>
   </header>
   {% if documents %}
-    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Documento</th><th>Capturado</th><th>Revisão</th></tr></thead><tbody>{% for document in documents %}<tr>
-      <td><strong>{{ document.source_nsu|default:"Documento NFS-e" }}</strong><small>Hash {{ document.document_hash|slice:":12" }}</small></td>
-      <td>{{ document.captured_at|date:"d/m/Y H:i" }}</td>
-      <td>{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Nota</th><th scope="col">Emissão</th><th scope="col">Revisão</th></tr></thead><tbody>{% for document in documents %}<tr>
+      <td data-label="Nota"><strong>{{ document.display_number|default:"Sem número" }}</strong>{% if document.display_counterparty %}<small>{{ document.display_counterparty }}</small>{% endif %}</td>
+      <td data-label="Emissão">{% if document.display_issued_at %}{{ document.display_issued_at|date:"d/m/Y" }}{% else %}<span class="table-muted">—</span>{% endif %}</td>
+      <td data-label="Revisão">{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>{% if document_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos documentos NFS-e">{% if document_page.has_previous %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.previous_page_number }}#documentos-nfse" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.next_page_number }}#documentos-nfse" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
     <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>Os documentos aparecerão aqui depois da conexão NFS-e desta empresa ser homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
@@ -212,10 +212,10 @@
     <span class="record-count">{{ open_cases_count }} no total</span>
   </header>
   {% if open_cases %}
-    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th>Documento</th><th>Motivo</th><th>Aberta em</th><th></th></tr></thead><tbody>{% for case in open_cases %}<tr>
-      <td><strong>{{ case.document.source_nsu|default:"Documento NFS-e" }}</strong></td>
-      <td>{{ case.reason|default:"Sem motivo registrado" }}</td>
-      <td>{{ case.created_at|date:"d/m/Y" }}</td>
+    <div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Nota</th><th scope="col">Motivo</th><th scope="col">Aberta em</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for case in open_cases %}<tr>
+      <td data-label="Nota"><strong>{{ case.document.display_number|default:"Sem número" }}</strong></td>
+      <td data-label="Motivo">{{ case.reason|default:"Sem motivo registrado" }}</td>
+      <td data-label="Aberta em">{{ case.created_at|date:"d/m/Y" }}</td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:nfse-center' %}?status=unclassified&amp;company={{ company.id }}">Classificar na lista</a></td>
     </tr>{% endfor %}</tbody></table></div>{% if open_cases_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das revisões abertas">{% if open_cases_page.has_previous %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.previous_page_number }}#revisoes-abertas" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ open_cases_page.number }} de {{ open_cases_page.paginator.num_pages }}</span>{% if open_cases_page.has_next %}<a class="button button-quiet button-small" href="?{% if open_cases_querystring %}{{ open_cases_querystring }}&amp;{% endif %}reviews_page={{ open_cases_page.next_page_number }}#revisoes-abertas" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}

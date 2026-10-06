@@ -1217,16 +1217,7 @@ def team(request: HttpRequest) -> HttpResponse:
     collaborators = list(collaborator_rows)
     for item in collaborators:
         grants = list(item.company_grants.all())
-        role_labels: dict[str, str] = {
-            Membership.Role.OWNER: "Dono",
-            Membership.Role.ADMIN: "Administrador",
-            Membership.Role.MANAGER: "Gestor",
-            Membership.Role.OPERATOR: "Operador",
-            Membership.Role.AUDITOR: "Auditor",
-            Membership.Role.BILLING: "Financeiro",
-            Membership.Role.MEMBER: "Membro",
-        }
-        item.role_label = role_labels.get(item.role, item.get_role_display())  # type: ignore[attr-defined]
+        item.role_label = item.get_role_display()  # type: ignore[attr-defined]
         item.scope_modules = sorted(  # type: ignore[attr-defined]
             {str(code) for grant in grants for code in grant.modules if isinstance(code, str)}
         )
@@ -1481,10 +1472,22 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
 
     documents_query = (
         NfseDocument.objects.filter(organization=office, company=company)
-        .select_related("review_case")
+        .select_related("review_case", "side")
         .order_by("-captured_at")
     )
     document_page = Paginator(documents_query, 20).get_page(request.GET.get("documents_page"))
+    for document in document_page.object_list:
+        # The accountant looks for the fiscal number, the date and the other party; the
+        # transport NSU and hash stay available only as technical detail.
+        normalized = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+        side = _nfse_side(document)
+        document.display_number = _nfse_document_number(document)  # type: ignore[attr-defined]
+        document.display_issued_at = (  # type: ignore[attr-defined]
+            document.issued_at or _nfse_issued_at_from_normalized_data(document)
+        )
+        document.display_counterparty = str(  # type: ignore[attr-defined]
+            normalized.get("counterparty_name") or (side.counterparty_name if side else "")
+        ).strip()[:160]
     open_cases_query = (
         ReviewCase.objects.filter(
             organization=office, status=ReviewCase.Status.OPEN, document__company=company
@@ -1493,6 +1496,8 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         .order_by("-created_at")
     )
     open_cases_page = Paginator(open_cases_query, 20).get_page(request.GET.get("reviews_page"))
+    for case in open_cases_page.object_list:
+        case.document.display_number = _nfse_document_number(case.document)  # type: ignore[attr-defined]
     dte_messages_query = DteMessage.objects.filter(organization=office, company=company).order_by(
         "-sent_at", "-first_seen_at"
     )
@@ -2912,18 +2917,6 @@ def activities(request: HttpRequest) -> HttpResponse:
     if overdue == "1":
         add_active_filter("Prazo: em atraso", "overdue")
 
-    overdue_count = (
-        queue.filter(
-            Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
-        )
-        .exclude(
-            work_status__in=[
-                OperationalActivity.WorkStatus.COMPLETED,
-                OperationalActivity.WorkStatus.WAIVED,
-            ]
-        )
-        .count()
-    )
     page = Paginator(
         queue.order_by(
             Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True), "-created_at", "pk"
@@ -2968,7 +2961,6 @@ def activities(request: HttpRequest) -> HttpResponse:
             "page_title": ("Atividades do escritório" if is_administrator else "Minhas atividades"),
             "activities": page_items,
             "activities_page": page,
-            "overdue_count": overdue_count,
             "activity_areas": ActivityTemplate.Area.choices,
             "activity_statuses": OperationalActivity.WorkStatus.choices,
             "selected_area": selected_area,
@@ -3215,11 +3207,35 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
         "payroll_received": "Folha recebida",
     }
     activity_events = list(activity.events.select_related("actor").all())
+    # Assignments recorded before 06/10/2026 kept user identifiers in the text. History is
+    # immutable, so the identifiers are translated to names of this office when shown.
+    legacy_ids = {
+        match
+        for event in activity_events
+        if event.event_type == "assigned"
+        for match in _UUID_PATTERN.findall(event.summary)
+    }
+    legacy_names = (
+        {
+            str(user.pk): user.display_name
+            for user in User.objects.filter(
+                pk__in=legacy_ids,
+                organization_memberships__organization_id=activity.organization_id,
+            ).distinct()
+        }
+        if legacy_ids
+        else {}
+    )
     for event in activity_events:
         event.display_label = event_labels.get(  # type: ignore[attr-defined]
             event.event_type,
             "Atualização registrada",
         )
+        if legacy_ids and event.event_type == "assigned":
+            event.summary = _UUID_PATTERN.sub(
+                lambda match: legacy_names.get(match.group(0), "pessoa removida"),
+                event.summary,
+            )
     is_closed = activity.work_status in {
         OperationalActivity.WorkStatus.COMPLETED,
         OperationalActivity.WorkStatus.WAIVED,
@@ -4918,6 +4934,11 @@ def _nfse_issued_at_from_normalized_data(document: NfseDocument) -> datetime | N
         return parsed_datetime
     parsed_date = parse_date(raw_issued_at)
     return datetime.combine(parsed_date, time.min) if parsed_date else None
+
+
+_UUID_PATTERN = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+)
 
 
 def _nfse_document_number(document: NfseDocument) -> str:

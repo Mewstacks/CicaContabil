@@ -410,6 +410,57 @@ class HubWorkspaceViewTests(TestCase):
             [legal_overdue.id, internal_future.id, without_due_date.id],
         )
 
+    def test_company_detail_names_people_and_notes_instead_of_technical_ids(self) -> None:
+        """D-277: the accountant reads names, fiscal numbers and actionable states."""
+
+        operator = User.objects.create_user(
+            "ana.interna@example.test", "safe-password-123", full_name="Ana Martins"
+        )
+        Membership.objects.create(
+            organization=self.organization, user=operator, role=Membership.Role.OPERATOR
+        )
+        OperationalActivity.objects.create(
+            organization=self.organization,
+            company=self.company,
+            code="fiscal-fechamento",
+            title="Conferir apuração",
+            area="fiscal",
+            assigned_to=operator,
+            freshness=OperationalActivity.Freshness.CURRENT,
+        )
+        document, _artifact, _review = create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='fiscal-number' />",
+            normalized_data={"number": "4321", "counterparty_name": "Fornecedor Sul"},
+            source_nsu="000000000077",
+        )
+
+        response = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ana Martins")
+        self.assertNotContains(response, "ana.interna@example.test")
+        self.assertContains(response, "4321")
+        self.assertContains(response, "Fornecedor Sul")
+        self.assertNotContains(response, "000000000077")
+        self.assertNotContains(response, document.document_hash[:12])
+        self.assertNotContains(response, "Não verificado · Não aplicável")
+
+    def test_team_workload_shows_roles_in_portuguese(self) -> None:
+        operator = User.objects.create_user(
+            "bruno@example.test", "safe-password-123", full_name="Bruno Costa"
+        )
+        Membership.objects.create(
+            organization=self.organization, user=operator, role=Membership.Role.OPERATOR
+        )
+
+        response = self.client.get(reverse("hub:dashboard"), {"view": "management"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Operador")
+        self.assertNotContains(response, ">Operator<")
+        self.assertNotContains(response, ">Owner<")
+
     def test_company_detail_shows_aggregate_payroll_source_without_claiming_official_query(
         self,
     ) -> None:

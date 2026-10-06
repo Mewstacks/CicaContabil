@@ -365,6 +365,9 @@ class OperationalCenterTests(TestCase):
         self.activity.refresh_from_db()
         self.assertEqual(self.activity.assigned_to, self.operator)
         self.assertEqual(self.activity.events.filter(event_type="assigned").count(), 1)
+        summary = self.activity.events.get(event_type="assigned").summary
+        self.assertIn(self.operator.display_name, summary)
+        self.assertNotIn(str(self.operator.pk), summary)
         stale = self.client.post(url, {**payload, "assignment-assignee": str(self.owner.pk)})
         self.assertEqual(stale.status_code, 400)
         self.assertContains(stale, "responsável mudou", status_code=400)
@@ -387,6 +390,21 @@ class OperationalCenterTests(TestCase):
             len(self.client.get(reverse("hub:dashboard")).context["dashboard_activities"]), 0
         )
         self.assertEqual(self.activity.events.filter(event_type="assigned").count(), 2)
+
+    def test_legacy_assignment_history_shows_names_instead_of_identifiers(self) -> None:
+        OperationalActivityEvent.objects.create(
+            organization=self.activity.organization,
+            activity=self.activity,
+            event_type="assigned",
+            summary=f"Responsável: sem responsável → {self.operator.pk}. Motivo: carteira",
+            actor=self.owner,
+        )
+        self._login(self.owner)
+
+        response = self.client.get(reverse("hub:activity-detail", args=[self.activity.pk]))
+
+        self.assertContains(response, f"sem responsável → {self.operator.display_name}")
+        self.assertNotContains(response, str(self.operator.pk) + ".")
 
     def test_assignment_rejects_revoked_access_and_retains_validation_input(self) -> None:
         self._login(self.owner)
