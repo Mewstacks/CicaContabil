@@ -255,3 +255,12 @@ body:has(.workspace-shell) .skip-link:focus-visible { pointer-events: auto; colo
   .workspace-tabs::-webkit-scrollbar, .nfse-tabs::-webkit-scrollbar, .activity-priority-nav::-webkit-scrollbar { display: none; }
 }
 .settings-plan-empty { margin: 0; padding: 14px 22px; color: var(--ink); font-size: 13px; }
+
+/* D-277: on phones "Como usar" sits on the title row; the page action takes the next row. */
+@media (max-width: 560px) {
+  .workspace-shell .page-header { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .workspace-shell .page-header > div:first-child { flex: 1 1 0; min-width: 0; }
+  .workspace-shell .page-header-actions { display: contents; }
+  .workspace-shell .page-header .page-help { order: 1; flex: 0 0 auto; width: auto; }
+  .workspace-shell .page-header-actions > :not(.page-help) { order: 2; flex: 1 1 100%; }
+}

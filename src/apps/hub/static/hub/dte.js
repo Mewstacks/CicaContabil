@@ -36,12 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const scopeLabel = `${count} empresa${count === 1 ? "" : "s"} selecionada${count === 1 ? "" : "s"}`;
     announce(selected, count
       ? (list.dataset.demo === "true"
-        ? `${scopeLabel} para simulação. Sem Serpro, consumo ou cobrança.`
-        : `${scopeLabel} · ${count} consulta${count === 1 ? "" : "s"} Serpro quando o envio for autorizado. Nenhuma chamada ocorre no preparo.`)
-      : "Nenhuma empresa selecionada.");
+        ? `${scopeLabel} · simulação`
+        : `${scopeLabel} · ${count} consulta${count === 1 ? "" : "s"} Serpro ao autorizar`)
+      : "");
     announce(status, matches.length === 0
-      ? "Nenhuma empresa encontrada. Revise nome, código Domínio ou CNPJ."
-      : `${shown} de ${matches.length} empresa${matches.length === 1 ? "" : "s"} exibida${shown === 1 ? "" : "s"}.${matches.length > limit ? (query ? " Refine a busca para localizar as demais." : " Use o botão abaixo ou busque pelo nome, código ou CNPJ.") : ""}`);
+      ? "Nenhuma empresa encontrada"
+      : `${shown} de ${matches.length} empresa${matches.length === 1 ? "" : "s"}`);
     all.hidden = false;
     all.textContent = `Selecionar todas (${options.length})`;
     results.hidden = !query || matches.length === 0;

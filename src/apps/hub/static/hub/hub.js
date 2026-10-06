@@ -734,7 +734,7 @@ document.querySelectorAll('[data-nfse-bulk-form]').forEach((form) => {
     selectAll.indeterminate = selected > 0 && selected < targets.length;
     if (count) count.textContent = selected
       ? `${selected} empresa${selected === 1 ? '' : 's'} selecionada${selected === 1 ? '' : 's'}.`
-      : 'Nenhuma empresa selecionada.';
+      : '';
   };
 
   selectAll.addEventListener('change', () => {
@@ -989,7 +989,7 @@ document.querySelectorAll('#parcelamento-bulk-form').forEach((form) => {
       ? demo
         ? `${count} empresa${count === 1 ? '' : 's'} · simulação sem consumo`
         : `${count} empresa${count === 1 ? '' : 's'} · ${tokens} token${tokens === 1 ? '' : 's'} · excedente ${currency.format(overage / 100)}`
-      : 'Nenhuma empresa selecionada';
+      : '';
     if (summary) summary.textContent = selectionText;
     if (review) review.textContent = selectionText;
     selectAll.checked = count > 0 && count === targets.length;
