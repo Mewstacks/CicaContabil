@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=2">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=4">{% endblock %}
 {% block workspace_content %}
 <nav class="section-links" aria-label="Navegação da atividade"><a href="{% url 'hub:activities' %}">Voltar às atividades</a></nav>
 
@@ -16,6 +16,19 @@
   </div>
   <div class="activity-head-state"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% if is_overdue %}<span class="activity-warning">Prazo vencido</span>{% endif %}</div>
 </header>
+
+{% if can_claim_activity or can_reschedule_activity %}<div class="activity-quick-actions">
+  {% if can_claim_activity %}<form method="post" action="{% url 'hub:activity-claim' activity.id %}">{% csrf_token %}<button class="button button-small" type="submit" data-busy-label="Assumindo…">Assumir</button></form>{% endif %}
+  {% if can_reschedule_activity %}<details class="activity-action-disclosure activity-reschedule">
+    <summary>Mudar prazo interno</summary>
+    <form method="post" action="{% url 'hub:activity-reschedule' activity.id %}" novalidate>{% csrf_token %}
+      <input type="hidden" name="expected_internal_due_on" value="{{ activity.internal_due_on|date:'Y-m-d' }}">
+      <div class="field"><label for="activity-new-due">Novo prazo interno</label><input id="activity-new-due" name="internal_due_on" type="date" required value="{{ activity.internal_due_on|date:'Y-m-d' }}"{% if activity.legal_due_on %} max="{{ activity.legal_due_on|date:'Y-m-d' }}"{% endif %}></div>
+      <div class="field"><label for="activity-due-reason">Motivo</label><input id="activity-due-reason" name="reason" maxlength="500" required autocomplete="off" placeholder="Cliente enviou o extrato depois"></div>
+      <button class="button button-quiet" type="submit" data-busy-label="Salvando…">Salvar prazo</button>
+    </form>
+  </details>{% endif %}
+</div>{% endif %}
 
 <section class="workspace-panel activity-next-step activity-next-step-{{ activity_next_action.state }}" aria-labelledby="activity-next-heading">
   <div><p class="section-kicker">PRÓXIMO PASSO</p><h2 id="activity-next-heading">{{ activity_next_action.title }}</h2><p>{{ activity_next_action.description }}</p></div>
@@ -79,9 +92,10 @@
   {% if activity_source_observations %}<ol class="activity-timeline">{% for item in activity_source_observations %}<li><strong>{% if item.successful %}Leitura confirmada{% else %}Fonte indisponível{% endif %}</strong><span>{{ item.data_source.label }} · {{ item.summary }}</span>{% if item.external_reference %}<small>Referência: <span translate="no">{{ item.external_reference }}</span>{% if item.source_version %} · versão {{ item.source_version }}{% endif %}</small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma leitura registrada</strong><p>Consulte as evidências e, quando houver, o módulo de origem.</p></div>{% endif %}
 </details>
 
-<details class="workspace-panel activity-history-group">
+<details class="workspace-panel activity-history-group" id="historico"{% if can_manage_activity %} open{% endif %}>
   <summary>Histórico da atividade <span class="record-count">{{ activity_events|length }}</span></summary>
-  {% if activity_events %}<ol class="activity-timeline">{% for event in activity_events %}<li><strong>{{ event.display_label }}</strong><span>{{ event.summary }}</span>{% if event.actor %}<small>Por {{ event.actor.full_name|default:event.actor.email }}</small>{% endif %}<time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Ainda não há eventos</strong><p>As próximas ações serão preservadas nesta trilha.</p></div>{% endif %}
+  {% if can_manage_activity %}<form class="activity-note-form" method="post" action="{% url 'hub:activity-note' activity.id %}">{% csrf_token %}<div class="field"><label for="activity-note">Observação</label><textarea id="activity-note" name="note" rows="2" maxlength="500" required placeholder="Cliente prometeu o extrato na sexta"></textarea></div><button class="button button-quiet button-small" type="submit" data-busy-label="Registrando…">Registrar observação</button></form>{% endif %}
+  {% if activity_events %}<ol class="activity-timeline">{% for event in activity_events %}<li><strong>{{ event.display_label }}</strong><span>{{ event.summary }}</span>{% if event.actor %}<small>Por {{ event.actor.display_name }}</small>{% endif %}<time datetime="{{ event.occurred_at|date:'c' }}">{{ event.occurred_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Ainda não há eventos</strong><p>As próximas ações serão preservadas nesta trilha.</p></div>{% endif %}
 </details>
 
 {% if can_manage_activity and not activity_is_closed and not activity_completion_missing %}<div id="activity-complete-review" class="modal-backdrop" data-modal hidden><section class="modal-card activity-complete-modal" role="dialog" aria-modal="true" aria-labelledby="activity-complete-title"><header class="modal-head"><div><p class="section-kicker">{% if activity.work_status == 'blocked' %}REVISAR RESOLUÇÃO{% else %}REVISAR CONCLUSÃO{% endif %}</p><h2 id="activity-complete-title">{% if activity.work_status == 'blocked' %}Resolver o impedimento e concluir?{% else %}Concluir esta atividade?{% endif %}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header><p>{% if activity.work_status == 'blocked' %}Confirme que o impedimento foi resolvido e que as evidências comprovam o trabalho. A conclusão remove o impedimento atual e preserva a trilha operacional.{% else %}Confirme que as evidências registradas comprovam o trabalho. A conclusão fica preservada na trilha operacional.{% endif %}</p><dl class="activity-complete-summary"><div><dt>Empresa</dt><dd>{{ activity.company.name }}</dd></div><div><dt>Atividade</dt><dd>{{ activity.title }}</dd></div><div><dt>Evidências</dt><dd>{{ activity_evidence|length }}</dd></div></dl><form method="post" action="{% url 'hub:activity-complete' activity.id %}" class="modal-actions">{% csrf_token %}<button class="button" type="submit" data-busy-label="Concluindo…">{% if activity.work_status == 'blocked' %}Confirmar resolução e conclusão{% else %}Confirmar conclusão{% endif %}</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></form></section></div>{% endif %}

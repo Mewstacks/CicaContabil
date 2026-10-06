@@ -1,5 +1,6 @@
 {% comment %}
 At most one qualifier next to the work status, and only one the accountant can act on: an
 unreliable source, an obligation whose result is wrong or unknown, or a closing still pending.
-Default states (updated source, not applicable, not verified) are noise in a list and stay out.
-{% endcomment %}{% if activity.freshness == 'unavailable' %}<small>Fonte indisponível</small>{% elif activity.freshness == 'stale' %}<small>Fonte desatualizada</small>{% elif activity.freshness == 'not_configured' %}<small>Integração não configurada</small>{% elif activity.obligation_status == 'rejected' %}<small>Obrigação rejeitada</small>{% elif activity.obligation_status == 'unknown' %}<small>Obrigação a confirmar</small>{% elif activity.requires_processing_closed and activity.processing_status != 'closed' and activity.work_status != 'completed' and activity.work_status != 'waived' %}<small>Aguardando fechamento</small>{% endif %}
+Default states (updated source, no integration, not applicable, not verified) are noise
+in a list and stay out.
+{% endcomment %}{% if activity.freshness == 'unavailable' %}<small>Fonte indisponível</small>{% elif activity.freshness == 'stale' %}<small>Fonte desatualizada</small>{% elif activity.obligation_status == 'rejected' %}<small>Obrigação rejeitada</small>{% elif activity.obligation_status == 'unknown' %}<small>Obrigação a confirmar</small>{% elif activity.requires_processing_closed and activity.processing_status != 'closed' and activity.work_status != 'completed' and activity.work_status != 'waived' %}<small>Aguardando fechamento</small>{% endif %}

@@ -196,6 +196,7 @@ from apps.hub.operations import (
     assign_activity,
     block_activity,
     can_operate_activity,
+    can_reschedule_activity,
     claim_activity,
     competence_ready_until,
     complete_activity,
@@ -384,14 +385,14 @@ def demo_entry(request: HttpRequest) -> HttpResponse:
             return HttpResponseBadRequest("A demonstração ainda não está disponível.")
         if rate_limited(f"demo-entry:{client_ip(request)}", limit=8, window_seconds=60):
             return HttpResponse("Aguarde um minuto antes de iniciar outra sessão.", status=429)
-        if request.session.get("demo_visit_id") and request.user.is_authenticated:
-            request.session.set_expiry(0)
-            return redirect("hub:dashboard")
         assert office is not None
-        cleanup_stale_demo_visitors(office)
         from apps.hub.demo_scenario import ensure_demo_window
 
         ensure_demo_window(office)
+        if request.session.get("demo_visit_id") and request.user.is_authenticated:
+            request.session.set_expiry(0)
+            return redirect("hub:dashboard")
+        cleanup_stale_demo_visitors(office)
         visitor_id = uuid.uuid4()
         user = User.objects.create_user(
             email=f"demo-{visitor_id}@example.test", full_name="Visitante da demonstração"
@@ -2861,6 +2862,16 @@ def activities(request: HttpRequest) -> HttpResponse:
             invalid_competence = True
     elif competence_value:
         invalid_competence = True
+    search_value = request.GET.get("q", "").strip()[:80]
+    search_filter = (
+        Q(title__icontains=search_value)
+        | Q(company__name__icontains=search_value)
+        | Q(company__dominio_code=search_value)
+        if search_value
+        else Q()
+    )
+    if search_value:
+        queue = queue.filter(search_filter)
     today = timezone.localdate()
     due_today = Q(internal_due_on=today) | Q(internal_due_on__isnull=True, legal_due_on=today)
     due_next_seven_days = Q(
@@ -2904,7 +2915,7 @@ def activities(request: HttpRequest) -> HttpResponse:
         base = reverse("hub:activities")
         return f"{base}?{encoded}" if encoded else base
 
-    priority_queue = open_queue
+    priority_queue = open_queue.filter(search_filter)
     if selected_area:
         priority_queue = priority_queue.filter(area=selected_area)
     if selected_company:
@@ -2992,6 +3003,8 @@ def activities(request: HttpRequest) -> HttpResponse:
     def add_active_filter(label: str, key: str) -> None:
         active_filters.append({"label": label, "url": activity_filter_url(**{key: None})})
 
+    if search_value:
+        add_active_filter(f"Busca: {search_value}", "q")
     if selected_area:
         add_active_filter(f"Área: {area_labels[selected_area]}", "area")
     if selected_status:
@@ -3050,14 +3063,23 @@ def activities(request: HttpRequest) -> HttpResponse:
             item.queue_due_label = f"Vence em {(due_on - today).days} dias"
         else:
             item.queue_due_label = "Prazo futuro"
+        # Only a specific step earns the cell; "open and check" is what the row link does.
         if item.work_status == OperationalActivity.WorkStatus.BLOCKED:
-            item.queue_next_step = item.blocked_reason or "Confira o impedimento registrado."
+            item.queue_next_step = item.blocked_reason or "Resolver impedimento"
         elif item.freshness == OperationalActivity.Freshness.UNAVAILABLE:
-            item.queue_next_step = "Confira a fonte indisponível antes de continuar."
+            item.queue_next_step = "Fonte indisponível"
         elif item.assigned_to_id is None:
-            item.queue_next_step = "Defina quem vai assumir esta atividade."
+            item.queue_next_step = "Sem responsável"
+        elif item.source_nfse_review_id:
+            item.queue_next_step = "Classificar NFS-e"
+        elif item.source_triage_item_id:
+            item.queue_next_step = "Conferir na Triagem"
+        elif item.source_fiscal_guide_id:
+            item.queue_next_step = "Acompanhar guia"
+        elif item.source_dte_message_id:
+            item.queue_next_step = "Ler mensagem DTE"
         else:
-            item.queue_next_step = "Abra a atividade e confira as condições de conclusão."
+            item.queue_next_step = ""
     pagination_query = request.GET.copy()
     pagination_query.pop("page", None)
     context.update(
@@ -3081,6 +3103,16 @@ def activities(request: HttpRequest) -> HttpResponse:
             "invalid_competence": invalid_competence,
             "invalid_filter_messages": invalid_filter_messages,
             "is_activity_administrator": is_administrator,
+            "selected_search": search_value,
+            "secondary_filters_active": bool(
+                selected_area or selected_status or selected_freshness or selected_unassigned
+            ),
+            "can_bulk_activities": bool(context["support_can_mutate"])
+            and active_membership_row.role
+            not in {Membership.Role.AUDITOR, Membership.Role.BILLING},
+            "can_bulk_assign": is_administrator,
+            "can_bulk_reschedule": active_membership_row.role
+            in {Membership.Role.OWNER, Membership.Role.ADMIN, Membership.Role.MANAGER},
             "priority_filters": priority_filters,
             "active_filters": active_filters,
             "filters_expanded": bool(
@@ -3526,6 +3558,11 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
         "dte_analysis_reopened": "Análise reaberta",
         "reform_received": "Publicação recebida",
         "payroll_received": "Folha recebida",
+        "generated": "Atividade gerada",
+        "due_changed": "Prazo alterado",
+        "note": "Observação",
+        "legal_due_unavailable": "Prazo legal ausente",
+        "internal_due_adjusted": "Prazo interno ajustado",
     }
     activity_events = list(activity.events.select_related("actor").all())
     # Assignments recorded before 06/10/2026 kept user identifiers in the text. History is
@@ -3561,6 +3598,11 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
         OperationalActivity.WorkStatus.COMPLETED,
         OperationalActivity.WorkStatus.WAIVED,
     }
+    can_manage_activity = (
+        bool(context["support_can_mutate"])
+        and not activity.organization.is_demo
+        and can_operate_activity(membership=membership, activity=activity)
+    )
     if is_closed:
         next_action = {
             "title": "Atividade encerrada",
@@ -3630,12 +3672,13 @@ def activity_detail(request: HttpRequest, activity_id: uuid.UUID) -> HttpRespons
             "activity_completion_missing": completion_missing,
             "activity_next_action": next_action,
             "activity_is_closed": is_closed,
-            "can_manage_activity": bool(context["support_can_mutate"])
-            and not activity.organization.is_demo
-            and can_operate_activity(
-                membership=membership,
-                activity=activity,
-            ),
+            "can_manage_activity": can_manage_activity,
+            "can_reschedule_activity": can_manage_activity
+            and not is_closed
+            and can_reschedule_activity(membership=membership, activity=activity),
+            "can_claim_activity": can_manage_activity
+            and not is_closed
+            and activity.assigned_to_id is None,
             "is_overdue": activity_is_overdue(activity),
         }
     )

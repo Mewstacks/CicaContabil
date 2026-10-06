@@ -1425,3 +1425,70 @@ document.querySelectorAll('[data-auto-refresh]').forEach((marker) => {
   };
   window.setTimeout(tick, seconds * 1000);
 });
+
+// Generic bulk selection (D-277): count, "select page", and only the fields of the chosen
+// action. Without JavaScript every control stays visible and the server validates.
+document.querySelectorAll('[data-bulk-form]').forEach((form) => {
+  const targets = [...document.querySelectorAll('[data-bulk-target]')].filter(
+    (target) => target.form === form,
+  );
+  if (!targets.length) return;
+  const all = form.querySelector('[data-bulk-all]');
+  const actions = form.querySelector('[data-bulk-actions]');
+  const count = form.querySelector('[data-bulk-count]');
+  const action = form.querySelector('[data-bulk-action]');
+  const fields = [...form.querySelectorAll('[data-bulk-field]')];
+  const syncFields = () => {
+    const value = action ? action.value : '';
+    fields.forEach((field) => {
+      const visible = field.dataset.bulkField.split(' ').includes(value);
+      field.hidden = !visible;
+      field.querySelectorAll('input, select, textarea').forEach((input) => {
+        input.disabled = !visible;
+        input.required = visible && input.name !== 'assignee';
+      });
+    });
+  };
+  const update = () => {
+    const selected = targets.filter((target) => target.checked).length;
+    if (actions) actions.hidden = selected === 0;
+    if (all) {
+      all.checked = selected === targets.length;
+      all.indeterminate = selected > 0 && selected < targets.length;
+    }
+    if (count) {
+      count.textContent = selected
+        ? `${selected} ${selected === 1 ? count.dataset.bulkSingular : count.dataset.bulkPlural}`
+        : count.dataset.bulkEmpty;
+    }
+  };
+  targets.forEach((target) => target.addEventListener('change', update));
+  if (all) {
+    all.addEventListener('change', () => {
+      targets.forEach((target) => {
+        target.checked = all.checked;
+      });
+      update();
+    });
+  }
+  if (action) action.addEventListener('change', syncFields);
+  syncFields();
+  update();
+});
+
+// Activity filters on a phone: search stays, the rest opens on demand (D-277). Without
+// JavaScript, or with an active filter, every field stays visible.
+document.querySelectorAll('[data-toolbar]').forEach((toolbar) => {
+  const toggle = toolbar.querySelector('[data-toolbar-toggle]');
+  if (!toggle) return;
+  toolbar.classList.add('is-collapsible');
+  toggle.hidden = false;
+  const sync = () => {
+    toggle.setAttribute('aria-expanded', String(toolbar.classList.contains('is-expanded')));
+  };
+  toggle.addEventListener('click', () => {
+    toolbar.classList.toggle('is-expanded');
+    sync();
+  });
+  sync();
+});

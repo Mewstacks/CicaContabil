@@ -156,7 +156,7 @@ class OperationalCenterTests(TestCase):
         self.assertContains(response, "Responsável: operator@example.test")
         self.assertContains(response, "Aguardando confirmação do cliente.")
         self.assertContains(response, "1 dia em atraso")
-        self.assertContains(response, 'aria-label="Refinar atividades"')
+        self.assertContains(response, 'aria-label="Filtrar atividades"')
         self.assertNotContains(response, 'aria-label="Filtrar responsáveis"')
         self.assertContains(response, "Conferir fechamento da folha")
 
