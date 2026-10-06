@@ -556,3 +556,33 @@ a.nfse-note-number:focus-visible { outline: 3px solid var(--focus); outline-offs
   .nfse-segments { flex: 1 1 auto; }
   .nfse-segments a { flex: 1 1 auto; justify-content: center; padding: 0 8px; }
 }
+
+/* D-277: identifiers, dates and money never wrap; .operational-table td sets normal wrapping
+   with higher specificity, so these rules name the table too. */
+.nfse-table td.nfse-col-note, .nfse-table td.nfse-col-date, .nfse-table td.nfse-col-amount { white-space: nowrap; }
+.nfse-table .nfse-note-number { white-space: nowrap; }
+.nfse-table td.nfse-col-accumulator { min-width: 220px; }
+/* Between phone and laptop the seven columns do not fit: use the card layout up to 960px. */
+@media (max-width: 960px) {
+  .nfse-list .nfse-table, .nfse-list .nfse-table tbody { display: block !important; width: 100%; min-width: 0 !important; }
+  .nfse-list .nfse-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .nfse-list .nfse-table tbody tr { display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .nfse-list .nfse-table td { display: block !important; max-width: none; padding: 0 !important; border: 0 !important; }
+  .nfse-list .nfse-table td::before { content: none !important; }
+  .nfse-list .nfse-table .nfse-col-select { grid-column: 1; grid-row: 1 / span 2; width: auto; }
+  .nfse-list .nfse-table .nfse-col-note { grid-column: 2; grid-row: 1; }
+  .nfse-list .nfse-table .nfse-col-amount { grid-column: 3; grid-row: 1; }
+  .nfse-list .nfse-table .nfse-col-company { grid-column: 2 / -1; }
+  .nfse-list .nfse-table .nfse-col-counterparty { grid-column: 2 / -1; }
+  .nfse-list .nfse-table .nfse-col-date { display: none !important; }
+  .nfse-list .nfse-table .nfse-col-accumulator { grid-column: 1 / -1; min-width: 0; padding-top: 4px !important; }
+  .nfse-list .nfse-cell-main, .nfse-list .nfse-table td small { max-width: 100%; }
+}
+@media (min-width: 761px) and (max-width: 960px) {
+  .nfse-list .nfse-table tbody tr { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .nfse-list .nfse-table .nfse-col-company { grid-column: 2; }
+  .nfse-list .nfse-table .nfse-col-counterparty { grid-column: 3 / -1; }
+  .nfse-list .nfse-table .nfse-col-amount { grid-column: 4; }
+  .nfse-list .nfse-table .nfse-col-note { grid-column: 2 / 4; }
+  .nfse-list .nfse-table .nfse-col-accumulator { grid-column: 2 / -1; }
+}

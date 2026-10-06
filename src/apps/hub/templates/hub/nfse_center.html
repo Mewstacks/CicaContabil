@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% get_static_prefix %}hub/nfse.css?v=29">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% get_static_prefix %}hub/nfse.css?v=30">{% endblock %}
 {% block title %}NFS-e · {% if nfse_view == 'collection' %}Coleta automática{% elif nfse_view == 'catalog' %}Acumuladores{% elif nfse_view == 'exports' %}Exportações{% else %}Notas{% endif %} · CICA{% endblock %}
 
 {% block workspace_subnav %}{% include 'hub/nfse_navigation.html' %}{% endblock %}
