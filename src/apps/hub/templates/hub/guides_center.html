@@ -3,13 +3,11 @@
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:integra' %}">Voltar à Central Integra</a>{% endblock %}
 
 {% block workspace_content %}
-<p class="operation-context guides-intro">{% if office.is_demo %}Emita uma guia fictícia e baixe o PDF de exemplo, sem validade fiscal.{% else %}Confira a DCTFWeb, emita o DARF e acompanhe cada tentativa nesta carteira.{% endif %}</p>
 {% if not office.is_demo %}<p class="operation-context" role="status">Fonte Domínio: {% if guide_source_read_attempted %}{{ guide_source_connector.get_mode_display }} · leitura solicitada ao abrir a carteira{% elif guide_source_connector %}{{ guide_source_connector.get_mode_display }} · sem leitura direta configurada{% else %}não configurada{% endif %}. {{ guide_source_company_count }} empresa{{ guide_source_company_count|pluralize:'s' }} ativa{{ guide_source_company_count|pluralize:'s' }} no cadastro CICA.</p>{% endif %}
 
 {% if not guide_data_available and dominio_calculations %}
 <section class="workspace-panel guide-start-next" aria-labelledby="guide-start-next-heading">
   <div>
-    <p class="section-kicker">PRÓXIMO PASSO</p>
     <h2 id="guide-start-next-heading">Consulte a DCTFWeb antes de emitir</h2>
     
   </div>
@@ -40,7 +38,7 @@
 
 {% if dominio_calculations %}
 <section class="workspace-panel" aria-labelledby="dominio-calculations-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">APURAÇÃO LOCAL</p><h2 id="dominio-calculations-heading">Apurações do Domínio</h2><p>Valores estimados. Confirme na DCTFWeb.</p></div><span class="record-count">{{ dominio_calculation_total }} competência{{ dominio_calculation_total|pluralize }}</span></header>
+  <header class="workspace-panel-head"><div><h2 id="dominio-calculations-heading">Apurações do Domínio</h2><p>Valores estimados. Confirme na DCTFWeb.</p></div><span class="record-count">{{ dominio_calculation_total }} competência{{ dominio_calculation_total|pluralize }}</span></header>
   <form method="post" action="{% url 'hub:dctfweb-bulk-consult' %}" data-guide-bulk-form>{% csrf_token %}
     {% if can_issue_guides %}
     <p class="table-footnote">Consulte até 30 empresas e competências por lote. Selecione nesta página, escolha o documento e revise o custo antes de autorizar. A seleção não acompanha a troca de página.</p>

@@ -7,7 +7,7 @@
 {% block workspace_content %}
 <aside class="certificate-collection-state {% if nfse_sync_runtime_enabled %}is-active{% endif %}" role="status">
   <span class="status-pulse" aria-hidden="true"></span>
-  <div><strong>Coleta automática</strong><p>Ao importar um A1 válido, a primeira coleta da empresa entra na fila automaticamente. Certificados inválidos são ignorados sem interromper as demais empresas.</p></div>
+  <div><strong>Coleta automática {% if nfse_sync_runtime_enabled %}ligada{% else %}desligada{% endif %}</strong></div>
 </aside>
 <section class="metric-strip" aria-label="Resumo de certificados">
   <article><span>Empresas com A1 válido</span><strong>{{ certificate_stats.covered_companies }}</strong><a href="?status=all#certificados-cadastrados">Ver empresas</a></article>
@@ -19,7 +19,7 @@
 {% if certificate_import_results %}
 <section class="certificate-import-results" aria-labelledby="certificate-import-results-title">
   <header>
-    <div><p class="section-kicker">RESULTADO DA IMPORTAÇÃO</p><h2 id="certificate-import-results-title">{% if certificate_import_summary.recognized %}{{ certificate_import_summary.recognized }} certificado{{ certificate_import_summary.recognized|pluralize }} importado{{ certificate_import_summary.recognized|pluralize }}{% else %}Nenhum certificado foi importado{% endif %}</h2></div>
+    <div><h2 id="certificate-import-results-title">{% if certificate_import_summary.recognized %}{{ certificate_import_summary.recognized }} certificado{{ certificate_import_summary.recognized|pluralize }} importado{{ certificate_import_summary.recognized|pluralize }}{% else %}Nenhum certificado foi importado{% endif %}</h2></div>
     <span class="record-count">{{ certificate_import_results|length }} arquivo{{ certificate_import_results|length|pluralize }}</span>
   </header>
   {% if certificate_import_summary.unrecognized %}<div class="certificate-import-next-step" role="status"><div><strong>{{ certificate_import_summary.unrecognized }} arquivo{{ certificate_import_summary.unrecognized|pluralize }} precisa{{ certificate_import_summary.unrecognized|pluralize:"m" }} de atenção</strong><p>{% if certificate_import_summary.open_failed %}A causa mais provável é a senha. Selecione os arquivos novamente e informe a senha usada para abri-los.{% else %}Abra os detalhes para conferir o motivo e corrija somente os arquivos indicados.{% endif %} Os arquivos rejeitados foram descartados.</p></div><button class="button button-small" type="button" data-modal-open="certificate-dialog">Selecionar novamente</button></div>{% endif %}
@@ -38,13 +38,13 @@
 {% endif %}
 
 <section id="empresas-sem-certificado" class="workspace-panel certificate-gap-panel" aria-labelledby="certificate-gap-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">PRECISAM DE CERTIFICADO</p><h2 id="certificate-gap-heading">Empresas sem A1 válido</h2></div><span class="record-count">{{ certificate_stats.missing_companies }} empresa{{ certificate_stats.missing_companies|pluralize }}</span></header>
+  <header class="workspace-panel-head"><div><h2 id="certificate-gap-heading">Empresas sem A1 válido</h2></div><span class="record-count">{{ certificate_stats.missing_companies }} empresa{{ certificate_stats.missing_companies|pluralize }}</span></header>
   {% if missing_certificate_companies %}<ul class="certificate-gap-list">{% for company in missing_certificate_companies %}<li><div><strong>{{ company.name }}</strong><small>{% if company.dominio_code %}Domínio {{ company.dominio_code }}{% else %}Sem código Domínio{% endif %}{% if company.cnpj_masked %} · {{ company.cnpj_masked }}{% endif %}</small></div><span class="module-state is-warning">Sem certificado</span><a class="row-action-button" href="{% url 'hub:company-detail' company.id %}">Abrir empresa<span class="sr-only"> {{ company.name }}</span></a></li>{% endfor %}</ul>{% if missing_certificate_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das empresas sem certificado">{% if missing_certificate_page.has_previous %}<a class="button button-quiet button-small" href="?{% if missing_certificate_query_without_page %}{{ missing_certificate_query_without_page }}&amp;{% endif %}missing_page={{ missing_certificate_page.previous_page_number }}#empresas-sem-certificado" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ missing_certificate_page.number }} de {{ missing_certificate_page.paginator.num_pages }}</span>{% if missing_certificate_page.has_next %}<a class="button button-quiet button-small" href="?{% if missing_certificate_query_without_page %}{{ missing_certificate_query_without_page }}&amp;{% endif %}missing_page={{ missing_certificate_page.next_page_number }}#empresas-sem-certificado" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}{% else %}<div class="empty-block operational-empty"><strong>Todas as empresas ativas têm certificado válido</strong><p>Nenhuma ação de certificado está pendente.</p></div>{% endif %}
 </section>
 
 <section id="certificados-cadastrados" class="workspace-panel registry-panel certificate-registry-panel" aria-labelledby="certificate-list-heading">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">JÁ POSSUEM CERTIFICADO</p><h2 id="certificate-list-heading">Certificados cadastrados</h2></div>
+    <div><h2 id="certificate-list-heading">Certificados cadastrados</h2></div>
     <span class="record-count">{{ certificate_filtered_total }} resultado{{ certificate_filtered_total|pluralize }}</span>
   </header>
   <form class="workspace-filter-form" method="get" aria-label="Pesquisar e filtrar certificados">

@@ -4,24 +4,22 @@
 {% block workspace_content %}
 <section class="dashboard-brief" aria-labelledby="dashboard-brief-heading">
   <div class="dashboard-brief-copy">
-    <p class="section-kicker">PRIORIDADE DE {{ agenda_today|date:'d/m/Y' }}</p>
     <h2 id="dashboard-brief-heading">{{ dashboard_summary_title }}</h2>
-    <p>{{ dashboard_summary_text }}</p>
-    {% if demo_persona_name %}<p class="dashboard-demo-context">Você está vendo a rotina fictícia de <strong>{{ demo_persona_name }}</strong>. Os prazos são ilustrativos.</p>{% endif %}
+    {% if demo_persona_name %}<p class="dashboard-demo-context">Rotina fictícia de <strong>{{ demo_persona_name }}</strong></p>{% endif %}
   </div>
   <a class="button dashboard-primary-action" href="{{ dashboard_summary_url }}">{{ dashboard_summary_action }} <span aria-hidden="true">→</span></a>
 </section>
 
 <nav class="dashboard-view-switch" aria-label="Escopo das atividades">
   <a href="?view=mine&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if dashboard_view == 'mine' %} aria-current="page"{% endif %}>
-    <strong>Meu trabalho</strong><small>Só o que está atribuído a você</small>
+    <strong>Meu trabalho</strong>
   </a>
   <a href="?view=portfolio&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if dashboard_view == 'portfolio' %} aria-current="page"{% endif %}>
-    <strong>Carteira</strong><small>Todas as empresas ao seu alcance</small>
+    <strong>Carteira</strong>
   </a>
   {% if is_dashboard_administrator %}
   <a href="?view=management&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if dashboard_view == 'management' %} aria-current="page"{% endif %}>
-    <strong>Gestão</strong><small>Distribuição e exceções do time</small>
+    <strong>Gestão</strong>
   </a>
   {% endif %}
 </nav>
@@ -37,7 +35,7 @@
 {% if dashboard_view == 'management' %}
 <section class="workspace-panel dashboard-management" aria-labelledby="team-workload-heading">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">GESTÃO DA OPERAÇÃO</p><h2 id="team-workload-heading">Distribuição de atividades</h2></div>
+    <div><h2 id="team-workload-heading">Distribuição de atividades</h2></div>
     <a class="text-action" href="{% url 'hub:activities' %}?unassigned=1">{{ unassigned_activity_count }} sem responsável</a>
   </header>
   <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Pessoa</th><th scope="col">Abertas</th><th scope="col">Em atraso</th><th scope="col">Impedidas</th></tr></thead><tbody>{% for membership in admin_workload %}<tr><td data-label="Pessoa"><a class="text-action" href="{% url 'hub:activities' %}?assignee={{ membership.user.id }}">{{ membership.user.full_name|default:membership.user.email }}</a><small>{{ membership.get_role_display }}</small></td><td data-label="Abertas">{{ membership.open_activity_count }}</td><td data-label="Em atraso">{{ membership.overdue_activity_count }}</td><td data-label="Impedidas">{{ membership.blocked_activity_count }}</td></tr>{% endfor %}</tbody></table></div>
@@ -46,7 +44,7 @@
 
 <section class="workspace-panel dashboard-agenda" aria-labelledby="central-activities-heading">
   <header class="workspace-panel-head dashboard-agenda-head">
-    <div><p class="section-kicker">SUA FILA</p><h2 id="central-activities-heading">{{ agenda_heading }}</h2><p>{{ agenda_description }} <strong>{{ agenda_page.paginator.count }} aberta{{ agenda_page.paginator.count|pluralize }}.</strong></p></div>
+    <div><h2 id="central-activities-heading">{{ agenda_heading }}</h2><p>{{ agenda_page.paginator.count }} aberta{{ agenda_page.paginator.count|pluralize }}</p></div>
     {% if selected_agenda_filter %}<a class="text-action" href="?view={{ dashboard_view }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}">Limpar filtro <span aria-hidden="true">×</span></a>{% else %}<a class="text-action" href="{% url 'hub:activities' %}">Abrir central de atividades <span aria-hidden="true">→</span></a>{% endif %}
   </header>
   {% if dashboard_activities %}
@@ -66,15 +64,15 @@
       </a>
     {% endfor %}
   </div>
-  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma atividade neste recorte</strong><p>{{ dashboard_summary_text }}</p><a class="button button-quiet" href="{{ dashboard_summary_url }}">{{ dashboard_summary_action }}</a></div>{% endif %}
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma atividade neste recorte</strong><a class="button button-quiet" href="{{ dashboard_summary_url }}">{{ dashboard_summary_action }}</a></div>{% endif %}
 </section>
 
 {% if agenda_page.has_other_pages %}<nav class="pagination agenda-navigation" aria-label="Páginas da agenda">{% if agenda_page.has_previous %}<a href="?view={{ dashboard_view }}&amp;filter={{ selected_agenda_filter }}&amp;page={{ agenda_page.previous_page_number }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}" rel="prev">Anterior</a>{% endif %}<span>Página {{ agenda_page.number }} de {{ agenda_page.paginator.num_pages }}</span>{% if agenda_page.has_next %}<a href="?view={{ dashboard_view }}&amp;filter={{ selected_agenda_filter }}&amp;page={{ agenda_page.next_page_number }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}" rel="next">Próxima</a>{% endif %}</nav>{% endif %}
 
 {% if dashboard_view != 'mine' %}
-  {% if work_areas %}<section class="workspace-panel dashboard-work-areas" aria-labelledby="work-areas-heading"><header class="workspace-panel-head"><div><p class="section-kicker">OUTRAS FILAS</p><h2 id="work-areas-heading">Pendências por área</h2></div></header><ul>{% for area in work_areas %}<li><a href="{{ area.url }}"><span><strong>{{ area.label }}</strong><small>{{ area.note }}</small></span><span class="work-area-count{% if area.count %} has-work{% endif %}">{{ area.count }}<span class="sr-only"> pendência{{ area.count|pluralize }}</span></span></a></li>{% endfor %}</ul></section>{% endif %}
-  {% if copilot_enabled %}<section class="cica-ai-callout" aria-labelledby="ai-callout-heading"><div><p class="section-kicker">COPILOTO CICA · SOMENTE LEITURA</p><h2 id="ai-callout-heading">Consulte o Copiloto</h2></div><div class="ai-callout-actions"><a class="button" href="{% url 'intelligence:assistant' %}">Abrir Copiloto</a></div></section>{% endif %}
-  <section class="dashboard-primary"><section class="workspace-panel review-queue"><header class="workspace-panel-head"><div><p class="section-kicker">FILA DE DECISÃO</p><h2>NFS-e para classificar</h2></div><a class="text-action" href="{% url 'hub:nfse-center' %}?status=unclassified">Classificar notas <span aria-hidden="true">→</span></a></header>{% if open_cases %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Empresa</th><th scope="col">Ocorrência</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for case in open_cases %}<tr><td><strong>{{ case.document.company.name }}</strong><small>Documento em conferência · parado há {{ case.document.captured_at|timesince }}</small></td><td><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</td><td><a class="row-action" href="{% url 'hub:nfse-center' %}?status=unclassified&amp;q={{ case.document.company.name|urlencode }}">Classificar<span class="sr-only"> {{ case.document.company.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Fila limpa</strong><p>Nenhuma exceção aguardando decisão.</p></div>{% endif %}</section></section>
+  {% if work_areas %}<section class="workspace-panel dashboard-work-areas" aria-labelledby="work-areas-heading"><header class="workspace-panel-head"><div><h2 id="work-areas-heading">Pendências por área</h2></div></header><ul>{% for area in work_areas %}<li><a href="{{ area.url }}"><span><strong>{{ area.label }}</strong><small>{{ area.note }}</small></span><span class="work-area-count{% if area.count %} has-work{% endif %}">{{ area.count }}<span class="sr-only"> pendência{{ area.count|pluralize }}</span></span></a></li>{% endfor %}</ul></section>{% endif %}
+  {% if copilot_enabled %}<section class="cica-ai-callout" aria-labelledby="ai-callout-heading"><div><h2 id="ai-callout-heading">Consulte o Copiloto</h2></div><div class="ai-callout-actions"><a class="button" href="{% url 'intelligence:assistant' %}">Abrir Copiloto</a></div></section>{% endif %}
+  <section class="dashboard-primary"><section class="workspace-panel review-queue"><header class="workspace-panel-head"><div><h2>NFS-e para classificar</h2></div><a class="text-action" href="{% url 'hub:nfse-center' %}?status=unclassified">Classificar notas <span aria-hidden="true">→</span></a></header>{% if open_cases %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Empresa</th><th scope="col">Ocorrência</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead><tbody>{% for case in open_cases %}<tr><td><strong>{{ case.document.company.name }}</strong><small>Documento em conferência · parado há {{ case.document.captured_at|timesince }}</small></td><td><span class="reason-dot" aria-hidden="true"></span>{{ case.reason }}</td><td><a class="row-action" href="{% url 'hub:nfse-center' %}?status=unclassified&amp;q={{ case.document.company.name|urlencode }}">Classificar<span class="sr-only"> {{ case.document.company.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty"><strong>Fila limpa</strong><p>Nenhuma exceção aguardando decisão.</p></div>{% endif %}</section></section>
 {% endif %}
 
 {% include 'hub/partials/closing_dashboard.html' %}

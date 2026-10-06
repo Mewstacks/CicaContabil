@@ -357,7 +357,6 @@ class ParcelamentoJourneyTests(TestCase):
     def test_company_panel_offers_a_direct_quoted_consultation(self) -> None:
         response = self.client.get(self.url)
         self.assertContains(response, "Consultar pedidos")
-        self.assertContains(response, "REVISAR CONSULTA")
         self.assertContains(response, "3 tokens")
         self.assertContains(response, "Comece consultando os pedidos")
 

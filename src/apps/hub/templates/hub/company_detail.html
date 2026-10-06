@@ -12,9 +12,7 @@
 <section class="workspace-panel company-overview" aria-labelledby="company-overview-title">
   <header class="company-overview-head">
     <div>
-      <p class="section-kicker">ESPAÇO DE TRABALHO DO CLIENTE</p>
-      <h2 id="company-overview-title">O que precisa acontecer agora</h2>
-      
+      <h2 id="company-overview-title">Próxima ação</h2>
     </div>
     <div class="company-overview-state">
       {% if company.active %}<span class="module-state is-active">Empresa ativa</span>{% else %}<span class="module-state is-danger">Empresa pausada</span>{% endif %}
@@ -25,7 +23,7 @@
     <article class="company-next-action is-{{ next_action.tone }}">
       <span class="company-next-action-eyebrow">{{ next_action.eyebrow }}</span>
       <h3>{{ next_action.title }}</h3>
-      <p>{{ next_action.description }}</p>
+      {% if next_action.description %}<p>{{ next_action.description }}</p>{% endif %}
       {% if next_action.opens_modal %}
         <button class="button" type="button" data-modal-open="company-edit-dialog">{{ next_action.label }}</button>
       {% else %}
@@ -34,7 +32,7 @@
     </article>
     <dl class="company-identity-summary">
       <div><dt>CNPJ</dt><dd>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
-      <div><dt>Código Domínio</dt><dd>{% if company.dominio_code %}<span class="dominio-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
+      <div><dt>Código Domínio</dt><dd>{% if company.dominio_code %}<span class="source-code" translate="no">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
       <div><dt>Última sincronização</dt><dd>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Nunca sincronizada</span>{% endif %}</dd></div>
       <div><dt>Cadastro</dt><dd>{% if can_edit_company %}<button class="text-action" type="button" data-modal-open="company-edit-dialog">Editar dados</button>{% elif company_managed_externally %}<span>Corrigir na origem</span>{% else %}<span>Somente leitura</span>{% endif %}</dd></div>
       <div><dt>Regime</dt><dd>{% if company.tax_regime %}{{ company.get_tax_regime_display }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
@@ -263,7 +261,7 @@
 
 {% if can_edit_profile %}<div id="company-profile-dialog" class="modal-backdrop" data-modal{% if profile_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-profile-title">
-    <header class="modal-head"><div><p class="section-kicker">PERFIL DO CLIENTE</p><h2 id="company-profile-title">{{ company.name }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <header class="modal-head"><div><h2 id="company-profile-title">{{ company.name }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack">
       {% csrf_token %}<input type="hidden" name="action" value="update_profile">
       {% if profile_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.</div>{% endif %}
@@ -274,7 +272,7 @@
 </div>{% endif %}
 {% if can_edit_company %}<div id="company-edit-dialog" class="modal-backdrop" data-modal{% if company_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-edit-title">
-    <header class="modal-head"><div><p class="section-kicker">CADASTRO LOCAL</p><h2 id="company-edit-title">Editar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <header class="modal-head"><div><h2 id="company-edit-title">Editar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack">
       {% csrf_token %}<input type="hidden" name="action" value="update_company">
       {% if company_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.{% if company_form.non_field_errors %} {{ company_form.non_field_errors|striptags }}{% endif %}</div>{% endif %}

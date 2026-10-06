@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=4">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=5">{% endblock %}
 {% block workspace_content %}
 <nav class="section-links" aria-label="Navegação da atividade"><a href="{% url 'hub:activities' %}">Voltar às atividades</a></nav>
 
@@ -31,7 +31,7 @@
 </div>{% endif %}
 
 <section class="workspace-panel activity-next-step activity-next-step-{{ activity_next_action.state }}" aria-labelledby="activity-next-heading">
-  <div><p class="section-kicker">PRÓXIMO PASSO</p><h2 id="activity-next-heading">{{ activity_next_action.title }}</h2><p>{{ activity_next_action.description }}</p></div>
+  <div><h2 id="activity-next-heading">{{ activity_next_action.title }}</h2><p>{{ activity_next_action.description }}</p></div>
   {% if activity_origin %}{% include 'hub/partials/activity_origin.html' %}{% endif %}
 </section>
 
@@ -41,19 +41,19 @@
 
 <section class="activity-detail-grid">
   <section class="workspace-panel activity-readiness" aria-labelledby="readiness-heading">
-    <header class="workspace-panel-head"><div><p class="section-kicker">ANTES DE CONCLUIR</p><h2 id="readiness-heading">Condições da atividade</h2></div></header>
+    <header class="workspace-panel-head"><div><h2 id="readiness-heading">Condições da atividade</h2></div></header>
     {% if activity_completion_missing %}<ul class="activity-requirements">{% for requirement in activity_completion_missing %}<li><span aria-hidden="true">!</span><div><strong>Pendente</strong><p>{{ requirement }}</p></div></li>{% endfor %}</ul>{% else %}<div class="activity-ready"><span aria-hidden="true">✓</span><div><strong>Condições atendidas</strong><p>Revise as evidências abaixo antes de concluir.</p></div></div>{% endif %}
   </section>
 
   {% include 'hub/partials/activity_assignment.html' %}
 
   <section class="workspace-panel activity-evidence-panel" aria-labelledby="evidence-heading">
-    <header class="workspace-panel-head"><div><p class="section-kicker">EVIDÊNCIAS</p><h2 id="evidence-heading">O que comprova este trabalho</h2></div><span class="record-count">{{ activity_evidence|length }}</span></header>
+    <header class="workspace-panel-head"><div><h2 id="evidence-heading">O que comprova este trabalho</h2></div><span class="record-count">{{ activity_evidence|length }}</span></header>
     {% if activity_evidence %}<ol class="activity-timeline">{% for item in activity_evidence %}<li><strong>{{ item.get_kind_display }}</strong><span>{{ item.summary }}</span>{% if item.reference %}<small>Referência: <span translate="no">{{ item.reference }}</span></small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma evidência registrada</strong><p>Registre a confirmação ou aguarde a fonte integrada antes de concluir.</p></div>{% endif %}
   </section>
 
   <aside class="workspace-panel activity-actions" id="activity-actions" aria-labelledby="activity-actions-heading">
-    <header><p class="section-kicker">ATUALIZAR ATIVIDADE</p><h2 id="activity-actions-heading">Registre o que aconteceu</h2></header>
+    <header><h2 id="activity-actions-heading">Registre o que aconteceu</h2></header>
     {% if activity_action_error %}<div class="form-errors" role="alert" tabindex="-1" data-activity-errors><strong>{{ activity_action_error }}</strong></div>{% endif %}
     {% if office.is_demo %}<p>Atividade fictícia para consulta. Explore estados, evidências e histórico; este cenário não altera dados nem executa operações externas.</p>
     {% elif can_manage_activity %}

@@ -332,9 +332,7 @@ class HubWorkspaceViewTests(TestCase):
         certificates = self.client.get(reverse("hub:certificates"))
         company = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
 
-        self.assertContains(
-            certificates, "a primeira coleta da empresa entra na fila automaticamente"
-        )
+        self.assertContains(certificates, "Coleta automática")
         self.assertNotContains(certificates, "ativar a consulta de NFS-e")
         self.assertContains(company, "conexão NFS-e desta empresa ser homologada")
         self.assertNotContains(company, "certificado não há consulta de NFS-e nem DTE")
@@ -2399,7 +2397,7 @@ class HubWorkspaceViewTests(TestCase):
 
         response = self.client.get(reverse("hub:nfse-center") + "?view=catalog")
 
-        self.assertContains(response, "Consulta na demonstração")
+        self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'value="add_accumulator_rule"')
 
     def test_nfse_export_history_paginates_without_hiding_old_packages(self) -> None:

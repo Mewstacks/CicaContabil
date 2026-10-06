@@ -121,3 +121,26 @@
 }
 .activity-toolbar-toggle{display:none}
 @media(max-width:760px){.activity-toolbar-toggle:not([hidden]){display:inline-flex;justify-content:center}}
+
+/* D-277: models page opens with one bar (counts + section jumps) instead of hero, next step and steps. */
+.activity-model-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 0 0 16px; padding: 12px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-raised, var(--surface)); }
+.activity-model-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
+.activity-model-stats div { display: flex; align-items: baseline; gap: 8px; }
+.activity-model-stats dt { order: 2; color: var(--muted); font-size: 13px; }
+.activity-model-stats dd { order: 1; margin: 0; color: var(--ink); font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.activity-model-jump { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; }
+.activity-model-jump a:not(.button) { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.activity-model-jump a:not(.button):hover { text-decoration-color: currentColor; }
+.activity-model-jump .button { min-height: 44px; }
+@media (max-width: 560px) {
+  .activity-model-bar { padding: 12px 16px; }
+  .activity-model-stats { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .activity-model-jump { width: 100%; }
+  .activity-model-jump .button { order: -1; width: 100%; }
+}
+
+/* D-277: on phones the status tabs already carry the count; the list heading stays for screen readers only. */
+@media (max-width: 760px) {
+  .activity-list-panel > .workspace-panel-head { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .activity-bulk-toolbar [data-bulk-count]:empty { display: none; }
+}

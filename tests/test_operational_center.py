@@ -216,7 +216,6 @@ class OperationalCenterTests(TestCase):
 
         pending = self.client.get(url)
 
-        self.assertContains(pending, "PRÓXIMO PASSO")
         self.assertContains(pending, "Cumpra a condição para concluir")
         self.assertContains(pending, "confirmação humana registrada")
         self.assertNotContains(pending, "Revisar conclusão")
@@ -569,7 +568,7 @@ class OperationalCenterTests(TestCase):
         self.assertContains(response, "Comece por 1 atividade em atraso")
         self.assertContains(response, "1 dia em atraso")
         self.assertContains(response, "Prazo interno")
-        self.assertContains(response, "Só o que está atribuído a você")
+        self.assertContains(response, "<strong>Meu trabalho</strong>", html=False)
         self.assertContains(response, "Conferir fechamento por empresa")
         self.assertNotContains(response, "Não verificado · Não aplicável · Atualizado")
         self.assertNotContains(response, 'class="dashboard-task-owner"')
@@ -1524,7 +1523,7 @@ class OperationalCenterTests(TestCase):
         self._login(self.owner)
 
         overview = self.client.get(reverse("hub:activity-models"))
-        self.assertContains(overview, "Rotinas que alimentam a agenda")
+        self.assertContains(overview, "Prontas para gerar")
         self.assertContains(overview, "Empresas cobertas")
         self.assertContains(overview, "Conferir modelo pausável")
 

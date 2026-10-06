@@ -464,7 +464,7 @@ def test_demo_individual_dctfweb_is_session_local(entry_mode):
             session["hub_organization_id"] = str(member.organization_id)
             session.save()
     first, second = clients
-    assert "Emita uma guia fictícia" in first.get(reverse("hub:guides")).content.decode()
+    assert "Demonstração fictícia" in first.get(reverse("hub:guides")).content.decode()
     url = reverse("hub:dctfweb-consult")
     params = {"company": str(company.pk), "competence": "09/2026"}
     before = DctfWebDocument.objects.count()
@@ -783,7 +783,7 @@ def test_demo_reconciliation_confirmation_is_private_to_session(entry_mode) -> N
     center = reverse("hub:reconciliation")
     first_page = first.get(center)
     assert first_page.status_code == 200
-    assert "Sem dados bancários reais" in first_page.content.decode()
+    assert "Confirmações valem só nesta sessão" in first_page.content.decode()
     assert 'id="visao-geral"' not in first_page.content.decode()
     assert "normalized_movements" not in first_page.context
     empty = first.get(center, {"q": "nenhum-correspondente-qa"})
@@ -897,7 +897,7 @@ def test_demo_team_page_hides_the_accounts_of_other_visitors() -> None:
     body = page.content.decode()
     assert page.status_code == 200
     assert first_email not in body
-    assert User.objects.get(id=second.session["_auth_user_id"]).email in body
+    assert "Visitante da demonstração" in body
 
 
 @override_settings(

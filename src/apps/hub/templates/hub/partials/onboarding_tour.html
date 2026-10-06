@@ -3,9 +3,6 @@ Orientação guiada de primeiro uso. O diálogo nativo cuida de foco contido e E
 o script apenas troca o passo, registra a conclusão e devolve o foco ao acionador.
 {% endcomment %}
 {% if onboarding_tour %}
-<div class="onboarding-help">
-  <button class="button button-quiet button-small" type="button" data-onboarding-open aria-haspopup="dialog">Como usar</button>
-</div>
 <dialog class="onboarding-dialog"
         id="onboarding-{{ onboarding_tour.identifier }}"
         data-onboarding
@@ -17,7 +14,6 @@ o script apenas troca o passo, registra a conclusão e devolve o foco ao acionad
         aria-labelledby="onboarding-title-{{ onboarding_tour.identifier }}">
   <form method="dialog" class="onboarding-card">
     {% csrf_token %}
-    <p class="section-kicker">ORIENTAÇÃO</p>
     <h2 id="onboarding-title-{{ onboarding_tour.identifier }}">{{ onboarding_tour.title }}</h2>
     <ol class="onboarding-steps" aria-live="polite">
       {% for step in onboarding_tour.steps %}

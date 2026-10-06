@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=4">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/activities.css' %}?v=5">{% endblock %}
 {% block workspace_content %}
 <nav class="activity-priority-nav" aria-label="Prioridades das atividades">
   {% for item in priority_filters %}<a href="{{ item.url }}"{% if item.selected %} aria-current="page"{% endif %}><span>{{ item.label }}</span><strong>{{ item.count }}</strong></a>{% endfor %}
@@ -45,7 +45,7 @@
 
 <section class="workspace-panel activity-list-panel" aria-labelledby="activity-list-heading">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">FILA DE TRABALHO</p><h2 id="activity-list-heading">{% if is_activity_administrator %}Fila do escritório{% else %}Minha fila{% endif %}</h2></div>
+    <div><h2 id="activity-list-heading">{% if is_activity_administrator %}Fila do escritório{% else %}Minha fila{% endif %}</h2></div>
     <span class="record-count">{{ activities_page.paginator.count }} atividade{{ activities_page.paginator.count|pluralize }}</span>
   </header>
   {% if activities %}
@@ -53,7 +53,7 @@
   <input type="hidden" name="next" value="{{ request.get_full_path }}">
   <div class="bulk-toolbar activity-bulk-toolbar">
     <label class="checkbox-field"><input type="checkbox" data-bulk-all> Selecionar página</label>
-    <span role="status" aria-live="polite" data-bulk-count data-bulk-singular="atividade selecionada" data-bulk-plural="atividades selecionadas" data-bulk-empty="Nenhuma atividade selecionada">Nenhuma atividade selecionada</span>
+    <span role="status" aria-live="polite" data-bulk-count data-bulk-singular="atividade selecionada" data-bulk-plural="atividades selecionadas" data-bulk-empty=""></span>
     <div class="activity-bulk-actions" data-bulk-actions>
       <div class="field"><label for="activity-bulk-action">Ação</label><select id="activity-bulk-action" name="action" data-bulk-action>{% if can_bulk_assign %}<option value="assign">Atribuir</option>{% endif %}{% if can_bulk_reschedule %}<option value="reschedule">Mudar prazo interno</option>{% endif %}<option value="complete">Concluir</option></select></div>
       {% if can_bulk_assign %}<div class="field" data-bulk-field="assign"><label for="activity-bulk-assignee">Responsável</label><select id="activity-bulk-assignee" name="assignee"><option value="">Sem responsável</option>{% for user in activity_assignees %}<option value="{{ user.id }}">{{ user.display_name }}</option>{% endfor %}</select></div>{% endif %}

@@ -1804,9 +1804,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "tone": "muted",
             "eyebrow": "Somente histórico",
             "title": "Empresa pausada na origem",
-            "description": (
-                "Documentos e histórico continuam disponíveis, sem novas ações operacionais."
-            ),
+            "description": "",
             "label": "Ver documentos NFS-e",
             "url": "#documentos-nfse",
             "opens_details": True,
@@ -1821,9 +1819,12 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "eyebrow": "Precisa de atenção",
             "title": priority_activity.title,
             "description": (
-                "Resolva o impedimento registrado para o trabalho voltar a avançar."
+                priority_activity.blocked_reason
                 if is_blocked
-                else "O prazo desta atividade passou; confira a situação e registre o tratamento."
+                else "Prazo "
+                + (priority_activity.internal_due_on or priority_activity.legal_due_on).strftime(
+                    "%d/%m/%Y"
+                )
             ),
             "label": "Conferir atividade",
             "url": reverse("hub:activity-detail", args=[priority_activity.pk]),
@@ -1833,7 +1834,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "tone": "warning",
             "eyebrow": "Revisão fiscal",
             "title": f"{open_cases_page.paginator.count} NFS-e aguardando classificação",
-            "description": "Revise o acumulador antes de usar as notas no fechamento.",
+            "description": "",
             "label": "Classificar NFS-e",
             "url": f"{reverse('hub:nfse-center')}?status=unclassified&company={company.id}",
         }
@@ -1855,7 +1856,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "tone": "active",
             "eyebrow": "Próximo trabalho",
             "title": priority_activity.title,
-            "description": "Abra a atividade para conferir requisitos, responsável e evidências.",
+            "description": "",
             "label": "Conferir atividade",
             "url": reverse("hub:activity-detail", args=[priority_activity.pk]),
         }
@@ -1864,7 +1865,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "tone": "warning",
             "eyebrow": "Cadastro incompleto",
             "title": "Informar o código no Domínio",
-            "description": "O código exato evita associação ambígua nas importações do escritório.",
+            "description": "",
             "label": "Editar cadastro",
             "url": "#company-edit-dialog",
             "opens_modal": True,
@@ -1874,7 +1875,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "tone": "active",
             "eyebrow": "Sem pendência prioritária",
             "title": "Cadastro pronto para consulta",
-            "description": "Use as áreas abaixo para consultar trabalho, documentos e histórico.",
+            "description": "",
             "label": "Ver atividades",
             "url": "#atividades",
             "opens_details": True,
@@ -2224,30 +2225,21 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     dashboard_today_count = activity_attention[1]["count"]
     dashboard_open_count = agenda_query.count()
     if selected_agenda_filter:
-        filter_copy = {
-            "overdue": ("Atividades em atraso", "Priorize as tarefas cujo prazo já passou."),
-            "today": ("Atividades para hoje", "Conclua ou encaminhe o que vence hoje."),
-            "next_7_days": (
-                "Próximos 7 dias",
-                "Antecipe as tarefas com prazo nesta semana.",
-            ),
-            "blocked": ("Atividades impedidas", "Veja o motivo antes de decidir o próximo passo."),
-            "unavailable": (
-                "Fontes indisponíveis",
-                "Confira as tarefas cujo dado de origem não está disponível.",
-            ),
-        }
-        agenda_heading, agenda_description = filter_copy[selected_agenda_filter]
+        agenda_heading = {
+            "overdue": "Atividades em atraso",
+            "today": "Atividades para hoje",
+            "next_7_days": "Próximos 7 dias",
+            "blocked": "Atividades impedidas",
+            "unavailable": "Fontes indisponíveis",
+        }[selected_agenda_filter]
     else:
         agenda_heading = "Próximas atividades"
-        agenda_description = "Ordenadas pelo prazo para você começar pelo que exige atenção."
     if dashboard_overdue_count:
         dashboard_summary_title = (
             f"Comece por {dashboard_overdue_count} atividade em atraso"
             if dashboard_overdue_count == 1
             else f"Comece por {dashboard_overdue_count} atividades em atraso"
         )
-        dashboard_summary_text = "Depois, avance para o que vence hoje e planeje os próximos dias."
         dashboard_summary_url = f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=overdue"
         dashboard_summary_action = "Revisar atrasadas"
     elif dashboard_today_count:
@@ -2256,7 +2248,6 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             if dashboard_today_count == 1
             else f"Há {dashboard_today_count} atividades para hoje"
         )
-        dashboard_summary_text = "Sua fila abaixo já está ordenada para facilitar a decisão."
         dashboard_summary_url = f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=today"
         dashboard_summary_action = "Ver agenda de hoje"
     elif dashboard_open_count:
@@ -2265,18 +2256,12 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             if dashboard_view == "mine"
             else "A carteira está sem prazos críticos"
         )
-        dashboard_summary_text = "Confira a próxima atividade e antecipe o trabalho da semana."
         dashboard_summary_url = (
             f"{reverse('hub:dashboard')}?view={dashboard_view}&filter=next_7_days"
         )
         dashboard_summary_action = "Planejar a semana"
     else:
         dashboard_summary_title = "Nenhuma atividade aberta neste recorte"
-        dashboard_summary_text = (
-            "Consulte a Carteira para verificar trabalho compartilhado."
-            if dashboard_view == "mine"
-            else "Quando uma rotina gerar trabalho, ele aparecerá aqui com prazo e responsável."
-        )
         dashboard_summary_url = (
             f"{reverse('hub:dashboard')}?view=portfolio"
             if dashboard_view == "mine"
@@ -2441,11 +2426,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "agenda_page": agenda_page,
             "selected_agenda_filter": selected_agenda_filter,
             "agenda_heading": agenda_heading,
-            "agenda_description": agenda_description,
             "agenda_today": today,
             "dashboard_overdue_count": dashboard_overdue_count,
             "dashboard_summary_title": dashboard_summary_title,
-            "dashboard_summary_text": dashboard_summary_text,
             "dashboard_summary_url": dashboard_summary_url,
             "dashboard_summary_action": dashboard_summary_action,
             "closing_expanded": request.GET.get("closing_open") == "1",
@@ -4890,7 +4873,7 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 "source_label": "Cadastro existente",
                 "state_label": "Disponível para classificar",
                 "state_class": "success",
-                "detail": "Regra cadastrada antes da trilha auditável",
+                "detail": "",
             }
             for entry in raw_catalog_page.object_list
         ]

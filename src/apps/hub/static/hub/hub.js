@@ -1044,7 +1044,7 @@ const initNfseDownloadForm = (form) => {
     }
     if (count) count.textContent = selected
       ? `${selected} nota${selected === 1 ? '' : 's'} de ${selectedCompanies.size} empresa${selectedCompanies.size === 1 ? '' : 's'} selecionada${selected === 1 ? '' : 's'}.`
-      : 'Nenhuma nota selecionada.';
+      : '';
   };
 
   selectAll.addEventListener('change', () => {

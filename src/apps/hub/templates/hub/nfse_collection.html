@@ -3,7 +3,6 @@
     <div>
       <p class="section-kicker">{% if office.is_demo %}SIMULAÇÃO DE COLETA{% else %}COLETA AUTOMÁTICA · {{ nfse_sync_environment_label|upper }}{% endif %}</p>
       <h2 id="nfse-sync-heading">Situação da coleta</h2>
-      <p data-copy="required">{% if office.is_demo %}Explore a fila e a configuração com dados fictícios. Nenhum certificado ou provedor é acionado.{% else %}Acompanhe o recebimento automático das NFS-e e corrija somente as empresas que precisam de ação.{% endif %}</p>
     </div>
     <span class="record-count">{% if office.is_demo %}Simulação{% else %}{{ nfse_sync_configured }} em operação{% endif %}</span>
   </header>
@@ -17,23 +16,17 @@
   <aside class="nfse-next-action{% if nfse_sync_requires_action %} needs-action{% endif %}" aria-labelledby="nfse-next-action-title">
     <div>
       {% if nfse_sync_attention %}
-        <p class="section-kicker">PRÓXIMA AÇÃO</p>
         <h3 id="nfse-next-action-title">{{ nfse_sync_attention }} coleta{{ nfse_sync_attention|pluralize }} com falha ou nova tentativa</h3>
         <p data-copy="required">Abra o acompanhamento abaixo para repetir somente o que não concluiu.</p>
       {% elif nfse_sync_ready_to_activate %}
-        <p class="section-kicker">PRÓXIMA AÇÃO</p>
         <h3 id="nfse-next-action-title">{{ nfse_sync_ready_to_activate }} empresa{{ nfse_sync_ready_to_activate|pluralize }} pronta{{ nfse_sync_ready_to_activate|pluralize }} para ativar</h3>
         <p data-copy="required">Os certificados já estão válidos. Confirme quais empresas devem entrar na coleta.</p>
       {% elif nfse_sync_missing_certificate %}
-        <p class="section-kicker">PRÓXIMA AÇÃO</p>
         <h3 id="nfse-next-action-title">{{ nfse_sync_missing_certificate }} empresa{{ nfse_sync_missing_certificate|pluralize }} ainda não recebe{{ nfse_sync_missing_certificate|pluralize:"m" }} notas</h3>
-        <p data-copy="required">Adicione um A1 válido; as empresas prontas continuam sem esperar por elas.</p>
       {% elif nfse_sync_configured %}
-        <p class="section-kicker">SITUAÇÃO ATUAL</p>
         <h3 id="nfse-next-action-title">A coleta está configurada</h3>
         <p data-copy="required">Acompanhe abaixo o que está processando, aguardando ou já terminou.</p>
       {% else %}
-        <p class="section-kicker">PRIMEIRO PASSO</p>
         <h3 id="nfse-next-action-title">Prepare a primeira empresa</h3>
         <p data-copy="required">Adicione um A1 válido e depois ative a coleta na configuração.</p>
       {% endif %}
@@ -54,7 +47,6 @@
       <div>
         <p class="section-kicker">{% if office.is_demo %}SIMULAÇÃO ATUAL{% else %}ATUALIZAÇÃO AUTOMÁTICA{% endif %}</p>
         <h3 id="nfse-live-queue-title">Andamento por empresa</h3>
-        <p data-copy="required">Falhas aparecem primeiro e podem ser repetidas sem reiniciar o que já concluiu.</p>
       </div>
       <div class="nfse-live-queue-actions">
         <span data-nfse-queue-updated>Atualizando…</span>
@@ -74,7 +66,7 @@
   {% if nfse_sync_rows %}
     <details class="nfse-sync-settings" id="nfse-sync-settings"{% if nfse_sync_settings_open %} open{% endif %}>
       <summary>
-        <span><strong>{% if can_manage_nfse_sync %}Configurar empresas{% else %}Detalhes por empresa{% endif %}</strong><small>{% if can_manage_nfse_sync %}Ative, repita ou pause a coleta sem alterar as demais.{% else %}Consulte certificado, estado e último processamento de cada empresa.{% endif %}</small></span>
+        <span><strong>{% if can_manage_nfse_sync %}Configurar empresas{% else %}Detalhes por empresa{% endif %}</strong></span>
         <span>{{ nfse_sync_rows|length }} empresa{{ nfse_sync_rows|length|pluralize }}</span>
       </summary>
       {% if can_manage_nfse_sync %}

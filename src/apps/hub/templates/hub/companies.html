@@ -6,7 +6,6 @@
 <section class="workspace-panel registry-panel">
   <header class="workspace-panel-head">
     <div>
-      <p class="section-kicker">CARTEIRA DO ESCRITÓRIO</p>
       <h2>Empresas</h2>
       
     </div>
@@ -80,7 +79,7 @@
 
 {% if can_manage_companies and not dominio_manages_companies %}<div id="company-dialog" class="modal-backdrop" data-modal{% if form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-title">
-    <header class="modal-head"><div><p class="section-kicker">Novo cadastro</p><h2 id="company-title">Adicionar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <header class="modal-head"><div><h2 id="company-title">Adicionar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack">{% csrf_token %}{% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.{% if form.non_field_errors %} {{ form.non_field_errors|striptags }}{% endif %}</div>{% endif %}{% for field in form %}<div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="field-required" title="Obrigatório">*</span>{% endif %}</label>{{ field }}{% if field.errors %}<p class="field-error" role="alert" id="{{ field.id_for_label }}_error">{{ field.errors|striptags }}</p>{% endif %}</div>{% endfor %}<div class="modal-actions"><button class="button" type="submit">Salvar empresa</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div></form>
   </section>
 </div>{% endif %}

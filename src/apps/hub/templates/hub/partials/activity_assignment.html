@@ -1,5 +1,5 @@
 <section class="workspace-panel activity-assignment-panel" aria-labelledby="assignment-heading">
-  <div><p class="section-kicker">RESPONSABILIDADE</p><h2 id="assignment-heading">{% if activity.assigned_to %}{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}{% else %}Sem responsável{% endif %}</h2></div>
+  <div><h2 id="assignment-heading">{% if activity.assigned_to %}{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}{% else %}Sem responsável{% endif %}</h2></div>
   {% if can_assign_activity %}
   <details{% if assignment_form.errors %} open{% endif %}>
     <summary>Alterar responsável</summary>

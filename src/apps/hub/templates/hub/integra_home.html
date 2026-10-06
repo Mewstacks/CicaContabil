@@ -4,33 +4,27 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/integra.css' %}?v=cica-1">{% endblock %}
 
 {% block workspace_content %}
-<section class="integra-intro" aria-labelledby="integra-intro-title">
-  <p class="section-kicker">Trabalho fiscal por empresa</p>
-  <h2 id="integra-intro-title">Qual rotina você quer abrir?</h2>
-
-</section>
-
 {% if not connector_ready %}<div class="integra-readiness" role="status"><strong>Consultas externas indisponíveis neste ambiente.</strong> Conexão Serpro pendente. Você pode revisar os dados locais.</div>{% endif %}
 
 <section aria-labelledby="integra-tools-title">
-  <div class="integra-section-head"><div><p class="section-kicker">Ferramentas</p><h2 id="integra-tools-title">Central Integra Contador</h2></div><span>{{ integra_company_count }} empresas no seu escopo</span></div>
+  <div class="integra-section-head"><div><h2 id="integra-tools-title" class="sr-only">Rotinas</h2></div><span>{{ integra_company_count }} empresas no seu escopo</span></div>
   <div class="integra-tools">
     <article class="integra-tool">
-      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">01</span><span class="integra-tool-state">{% if connector_ready %}Disponível{% else %}Consulta externa bloqueada{% endif %}</span></div>
+      <div class="integra-tool-top"><span class="integra-tool-state">{% if connector_ready %}Disponível{% else %}Consulta externa bloqueada{% endif %}</span></div>
       <h3>Caixa DTE</h3>
       <p data-copy="required">Revise mensagens por empresa. Abrir o teor pode registrar ciência e iniciar prazo.</p>
       <dl><div><dt>Mensagens registradas</dt><dd>{{ integra_message_count }}</dd></div><div><dt>Consultas a autorizar</dt><dd>{{ integra_pending_count }}</dd></div></dl>
       <a class="button" href="{% url 'hub:dte-center' %}">Abrir Caixa DTE</a>
     </article>
     <article class="integra-tool{% if not office.is_demo %} integra-tool-pending{% endif %}">
-      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">02</span><span class="integra-tool-state">{% if office.is_demo %}Demonstração interativa{% else %}Homologação pendente{% endif %}</span></div>
+      <div class="integra-tool-top"><span class="integra-tool-state">{% if office.is_demo %}Demonstração interativa{% else %}Homologação pendente{% endif %}</span></div>
       <h3>Parcelamentos</h3>
       
       <p data-copy="required" class="integra-tool-limitation">{% if office.is_demo %}Dados e emissões fictícios, só nesta sessão.{% else %}Chamadas reais seguem bloqueadas até a homologação do PARCSN e da tarifa.{% endif %}</p>
       <a class="button button-quiet" href="{% url 'hub:parcelamentos' %}">Abrir Parcelamentos</a>
     </article>
     <article class="integra-tool">
-      <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">03</span><span class="integra-tool-state">{% if integra_guides_enabled %}Acompanhamento disponível{% else %}Módulo não liberado{% endif %}</span></div>
+      <div class="integra-tool-top"><span class="integra-tool-state">{% if integra_guides_enabled %}Acompanhamento disponível{% else %}Módulo não liberado{% endif %}</span></div>
       <h3>DCTFWeb</h3>
       
       <p data-copy="required" class="integra-tool-limitation">A emissão externa depende da conexão Serpro homologada e de contrato com tarifa configurada.</p>

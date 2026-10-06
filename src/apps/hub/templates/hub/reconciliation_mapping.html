@@ -4,7 +4,6 @@
 <section class="workspace-panel reconciliation-mapping-page">
   <header class="workspace-panel-head">
     <div>
-      <p class="section-kicker">2. PREPARAR ARQUIVO</p>
       <h2>Indique o que existe em cada coluna</h2>
       <p>{{ mapping_source.company.name }} · {{ mapping_source.original_filename }} · {{ mapping_source.get_kind_display }}</p>
     </div>
@@ -58,7 +57,7 @@
   </form>
 
   <section class="reconciliation-mapping-preview" aria-labelledby="mapping-preview-title">
-    <header><div><p class="section-kicker">PRÉVIA DO ARQUIVO</p><h3 id="mapping-preview-title">Confira as primeiras linhas</h3></div><span class="record-count">{{ mapping_preview.rows|length }} linha{{ mapping_preview.rows|length|pluralize }}</span></header>
+    <header><div><h3 id="mapping-preview-title">Confira as primeiras linhas</h3></div><span class="record-count">{{ mapping_preview.rows|length }} linha{{ mapping_preview.rows|length|pluralize }}</span></header>
     {% if mapping_preview.rows %}
       <div class="data-table-wrap"><table class="operational-table"><caption class="sr-only">Prévia de {{ mapping_source.original_filename }}</caption><thead><tr>{% for header in mapping_preview.headers %}<th scope="col">{{ header }}</th>{% endfor %}</tr></thead><tbody>{% for row in mapping_preview.rows %}<tr>{% for cell in row %}<td>{{ cell }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
     {% else %}

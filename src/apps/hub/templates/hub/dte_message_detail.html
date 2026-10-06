@@ -45,7 +45,7 @@
   </section>
 
   <aside class="workspace-panel dte-detail-evidence" aria-labelledby="dte-evidence-title">
-    <header class="workspace-panel-head"><div><p class="section-kicker">Evidência</p><h2 id="dte-evidence-title">Registro da mensagem</h2></div></header>
+    <header class="workspace-panel-head"><div><h2 id="dte-evidence-title">Registro da mensagem</h2></div></header>
     <dl>
       <div><dt>Empresa</dt><dd>{{ dte_message.company.name }}<small>{{ dte_message.company.cnpj_masked|default:'CNPJ não informado' }}</small></dd></div>
       <div><dt>{% if office.is_demo %}Identificador fictício{% else %}ISN Serpro{% endif %}</dt><dd translate="no">{{ dte_message.source_isn }}</dd></div>

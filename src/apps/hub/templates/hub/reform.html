@@ -5,8 +5,7 @@
 
 {% block workspace_content %}
 <section class="workspace-panel registry-panel radar-center" aria-labelledby="radar-heading">
-  <header class="workspace-panel-head radar-heading"><div><p class="section-kicker">Acompanhamento oficial</p><h2 id="radar-heading">Publicações para triagem</h2></div><span class="record-count">{{ alert_total }} {% if alert_total == 1 %}publicação{% else %}publicações{% endif %}</span></header>
-  {% if radar_demo %}<div class="inline-alert" role="status"><strong>Cenário demonstrativo</strong><span>Os títulos são fictícios. Os links levam apenas à página inicial da fonte e nenhuma análise é criada.</span></div>{% endif %}
+  <header class="workspace-panel-head radar-heading"><div><h2 id="radar-heading">Publicações para triagem</h2></div><span class="record-count">{{ alert_total }} {% if alert_total == 1 %}publicação{% else %}publicações{% endif %}</span></header>
 
   <form class="workspace-filter-form radar-filters" method="get" aria-label="Pesquisar e filtrar publicações">
     <div class="workspace-filter-search"><label for="radar-search">Buscar publicação</label><input id="radar-search" type="search" name="q" maxlength="100" value="{{ radar_search }}" autocomplete="off" placeholder="Ex.: IBS, CBS ou crédito tributário…"></div>
@@ -17,16 +16,14 @@
     {% if selected_source or selected_relevance or radar_search or selected_period %}<a class="button button-quiet button-small" href="{% url 'hub:reform' %}">Limpar filtros</a>{% endif %}
   </form>
 
-  <div class="radar-results-heading"><div><p class="section-kicker">Mais recentes primeiro</p><h3>Publicações encontradas</h3></div>{% if selected_source or selected_relevance or radar_search or selected_period %}<span>Filtros ativos</span>{% endif %}</div>
   {% if alerts %}
     <ol class="radar-feed">
       {% for alert in alerts %}
         <li><article class="radar-card" aria-labelledby="radar-alert-{{ alert.id }}">
           <div class="radar-card-main">
-            <div class="radar-card-meta"><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span><span>{{ alert.get_relevance_display }}</span>{% if alert.published_at %}<time datetime="{{ alert.published_at|date:'c' }}">{{ alert.published_at|date:'d/m/Y' }}</time>{% else %}<span>Data não informada</span>{% endif %}</div>
+            <div class="radar-card-meta"><span class="module-state {% if alert.relevance == 'reform' %}is-warning{% elif alert.relevance == 'fiscal' %}is-active{% else %}is-muted{% endif %}">{{ alert.get_source_display }}</span><span>{{ alert.get_relevance_display }}</span>{% if alert.published_at %}<time datetime="{{ alert.published_at|date:'c' }}">{{ alert.published_at|date:'d/m/Y' }}</time>{% else %}<span>Data não informada</span>{% endif %}<span class="module-state is-muted">Impacto não analisado</span></div>
             <h3 id="radar-alert-{{ alert.id }}">{{ alert.title }}</h3>
             {% if alert.summary %}<p>{{ alert.summary|truncatechars:220 }}</p>{% endif %}
-            <p class="radar-card-note">Publicação coletada; aplicabilidade fiscal ainda não analisada.</p>
           </div>
           <div class="radar-card-actions">
             {% if not radar_demo %}<a class="button button-small" href="{% url 'hub:reform-analysis' alert.id %}?return_to={{ request.get_full_path|urlencode }}">{% if radar_can_request_analysis %}Analisar impacto{% else %}Ver análises{% endif %}<span class="sr-only"> da publicação {{ alert.title }}</span></a>{% endif %}
@@ -37,11 +34,11 @@
     </ol>
     {% if alert_page.has_other_pages %}<nav class="pagination" aria-label="Páginas do Radar da Reforma Tributária">{% if alert_page.has_previous %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ alert_page.number }} de {{ alert_page.paginator.num_pages }}</span>{% if alert_page.has_next %}<a class="button button-quiet button-small" href="?{% if alert_querystring %}{{ alert_querystring }}&amp;{% endif %}page={{ alert_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>{% if selected_source or selected_relevance or radar_search or selected_period %}Nenhuma publicação corresponde aos filtros{% else %}Nenhuma publicação coletada ainda{% endif %}</strong><p>{% if selected_source or selected_relevance or radar_search or selected_period %}Ajuste a busca ou limpe os filtros para voltar à fila completa.{% else %}A coleta diária consultará Receita Federal, Ministério da Fazenda e Planalto.{% endif %}</p>{% if selected_source or selected_relevance or radar_search or selected_period %}<a class="button button-quiet" href="{% url 'hub:reform' %}">Ver todas as publicações</a>{% endif %}</div>
+    <div class="empty-block operational-empty"><strong>{% if selected_source or selected_relevance or radar_search or selected_period %}Nenhuma publicação corresponde aos filtros{% else %}Nenhuma publicação coletada ainda{% endif %}</strong>{% if selected_source or selected_relevance or radar_search or selected_period %}<a class="button button-quiet" href="{% url 'hub:reform' %}">Ver todas as publicações</a>{% endif %}</div>
   {% endif %}
 
   <details class="radar-health"{% if radar_source_has_error %} open{% endif %}>
-    <summary><span><strong>Situação das fontes oficiais</strong><small>{% if radar_source_has_error %}Uma ou mais fontes precisam de atenção.{% else %}Confira quando ocorreu a última coleta de cada origem.{% endif %}</small></span></summary>
+    <summary><span><strong>Situação das fontes oficiais</strong>{% if radar_source_has_error %}<small>Fonte com falha</small>{% endif %}</span></summary>
     <ul class="source-health-list">
       {% for value, label, status in source_health %}<li class="source-health-item"><div><strong>{{ label }}</strong>{% if status and status.last_success_at %}<small>Última atualização: {{ status.last_success_at|date:'d/m/Y H:i' }}</small>{% elif status and status.last_error %}<small>Falha na última tentativa; a próxima coleta tentará novamente.</small>{% else %}<small>Aguardando a primeira coleta.</small>{% endif %}</div>{% if status and status.last_error %}<span class="module-state is-danger">Falha na coleta</span>{% elif status and status.last_success_at %}<span class="module-state is-active">Coleta concluída</span>{% else %}<span class="module-state is-muted">Ainda não coletada</span>{% endif %}</li>{% endfor %}
     </ul>

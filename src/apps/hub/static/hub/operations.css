@@ -953,12 +953,12 @@ html[data-theme="dark"] .dashboard-intro .text-action{color:var(--green)}
 .guide-start-next p:not(.section-kicker){max-width:68ch;margin:0;color:var(--muted);font-size:14px;line-height:1.5}
 .guide-start-next>.button{flex:none;min-height:44px}
 .guide-official-panel{margin-bottom:18px}
-.work-area:has(.guides-intro) :is(.page-header .button,.onboarding-help .button,[data-guide-bulk-form] .button,.pagination .button){min-height:44px}
+.work-area:has(.guide-calculation-table) :is(.page-header .button,.onboarding-help .button,[data-guide-bulk-form] .button,.pagination .button){min-height:44px}
 .work-area:has(.dctfweb-document-grid) .page-header .button{min-height:44px}
 .work-area:has(.dctfweb-bulk-table) .page-header .button{min-height:44px}
 .work-area:has(.guide-detail-panel) .page-header .button{min-height:44px}
-.work-area:has(.guides-intro) .guide-calculation-table .row-action-button{box-sizing:border-box;min-height:44px}
-.work-area:has(.guides-intro) .guide-calculation-table .table-checkbox{min-width:44px;min-height:44px}
+.work-area:has(.guide-calculation-table) .guide-calculation-table .row-action-button{box-sizing:border-box;min-height:44px}
+.work-area:has(.guide-calculation-table) .guide-calculation-table .table-checkbox{min-width:44px;min-height:44px}
 .guide-official-table td{line-height:1.45}
 .guide-official-table td small{font-size:13px;line-height:1.4}
 .guide-official-table .guide-due-context{font-weight:750}

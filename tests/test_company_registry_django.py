@@ -257,7 +257,7 @@ class CompanyRegistryTests(TestCase):
         response = self.client.get(reverse("hub:company-detail", args=[self.linked.id]))
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "O que precisa acontecer agora")
+        self.assertContains(response, "Próxima ação")
         self.assertContains(response, "Resolver retorno da folha")
         self.assertContains(response, "Trabalho")
         self.assertContains(response, "NFS-e")

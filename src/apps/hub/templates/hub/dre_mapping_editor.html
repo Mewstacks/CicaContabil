@@ -2,7 +2,7 @@
 {% block title %}Mapa DRE | CICA{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel" aria-labelledby="dre-map-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">RELAT&Oacute;RIOS</p><h2 id="dre-map-title">Mapa DRE</h2></div>{% if active_dre_mapping %}<span class="module-state is-active">Ativo &middot; v{{ active_dre_mapping.version }}</span>{% else %}<span class="module-state is-warning">Sem mapa ativo</span>{% endif %}</header>
+  <header class="workspace-panel-head"><div><h2 id="dre-map-title">Mapa DRE</h2></div>{% if active_dre_mapping %}<span class="module-state is-active">Ativo &middot; v{{ active_dre_mapping.version }}</span>{% else %}<span class="module-state is-warning">Sem mapa ativo</span>{% endif %}</header>
   {% if can_manage_dre_mapping %}
     <form method="post" class="import-form" novalidate data-dre-mapping-form>{% csrf_token %}
       {{ dre_mapping_formset.management_form }}

@@ -1,7 +1,6 @@
 <section class="workspace-panel guide-official-panel" aria-labelledby="guide-list-heading">
   <header class="workspace-panel-head">
     <div>
-      <p class="section-kicker">DCTFWEB</p>
       <h2 id="guide-list-heading">Guias para acompanhar</h2>
       
     </div>
@@ -52,7 +51,7 @@
         <div id="issue-guide-{{ guide.id }}" class="modal-backdrop" data-modal hidden>
           <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="issue-guide-title-{{ guide.id }}">
             <header class="modal-head">
-              <div><p class="section-kicker">REVISAR EMISSÃO</p><h2 id="issue-guide-title-{{ guide.id }}">{% if guide.status == 'failed' %}Tentar novamente{% elif office.is_demo %}Simular emissão{% else %}Emitir{% endif %} {{ guide.get_kind_display }}</h2></div>
+              <div><h2 id="issue-guide-title-{{ guide.id }}">{% if guide.status == 'failed' %}Tentar novamente{% elif office.is_demo %}Simular emissão{% else %}Emitir{% endif %} {{ guide.get_kind_display }}</h2></div>
               <button class="icon-control" type="button" data-modal-close aria-label="Fechar" title="Fechar">×</button>
             </header>
             <p>{% if office.is_demo %}O resultado será fictício e não criará guia oficial para{% else %}A emissão será solicitada para{% endif %} <strong>{{ guide.company.name }}</strong>, competência {{ guide.competence }}, vencimento {{ guide.due_on|date:"d/m/Y" }} e valor calculado de R$ {{ guide.amount_brl|floatformat:2 }}.</p>

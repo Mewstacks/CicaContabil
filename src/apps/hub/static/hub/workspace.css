@@ -223,3 +223,35 @@ body:has(.workspace-shell) .skip-link:focus-visible { pointer-events: auto; colo
   .workspace-tabs { flex-wrap: nowrap; gap: 20px; overflow-x: auto; scrollbar-width: thin; }
   .workspace-tabs > a { flex: 0 0 auto; white-space: nowrap; }
 }
+
+/* D-277: "Como usar" lives beside the page action instead of on its own row. */
+.page-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.page-header-actions:empty { display: none; }
+.workspace-shell .page-header .page-help { min-height: 44px; }
+@media (max-width: 560px) {
+  .page-header-actions { justify-content: flex-start; }
+  .page-header-actions > * { flex: 1 1 auto; }
+  .workspace-shell .page-header .page-help { flex: 0 0 auto; width: auto; }
+}
+
+/* D-277: team invite collapses below the list; the header button opens it. */
+.team-invite > summary { display: flex; align-items: center; justify-content: space-between; min-height: 56px; padding: 0 22px; cursor: pointer; list-style: none; }
+.team-invite > summary::-webkit-details-marker { display: none; }
+.team-invite > summary h2 { margin: 0; font-size: 15px; }
+.team-invite > summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.team-invite[open] > summary { border-bottom: 1px solid var(--line); }
+.team-invite[open] > summary::after { transform: rotate(225deg); }
+.team-invite > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+
+/* D-277: on phones the demo notice is one row (label + exit) and scrolling tab rows hide the bar;
+   the clipped last tab already signals more content. */
+@media (max-width: 560px) {
+  .workspace-shell .demo-office-banner { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; }
+  .workspace-shell .demo-office-banner > span { display: none; }
+  .workspace-shell .demo-office-exit .button { min-height: 44px; }
+}
+@media (max-width: 760px) {
+  .workspace-shell .workspace-tabs, .workspace-shell .nfse-tabs, .workspace-shell .activity-priority-nav { scrollbar-width: none; }
+  .workspace-tabs::-webkit-scrollbar, .nfse-tabs::-webkit-scrollbar, .activity-priority-nav::-webkit-scrollbar { display: none; }
+}
+.settings-plan-empty { margin: 0; padding: 14px 22px; color: var(--ink); font-size: 13px; }

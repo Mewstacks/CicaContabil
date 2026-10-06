@@ -5,7 +5,6 @@
 <section class="workspace-panel" aria-labelledby="item-heading">
   <header class="workspace-panel-head">
     <div>
-      <p class="section-kicker">REGISTRO DE ARQUIVO</p>
       <h2 id="item-heading" class="triage-item-title">{{ item.original_name }}</h2>
       <p>{{ item.company.name|default:"Empresa não identificada" }}{% if item.document_type %} · {{ item.document_type.label }}{% endif %}</p>
     </div>
@@ -44,7 +43,7 @@
   {% else %}<p class="triage-decision-note" role="status">A verificação de segurança e a etapa indicada ainda precisam ser concluídas. Confira o histórico antes de tomar outra ação.</p>{% endif %}
 </section>
 <section class="workspace-panel" aria-labelledby="history-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">AUDITORIA</p><h2 id="history-heading">Histórico do arquivo</h2></div><span class="record-count">{{ triage_history_total }} evento{{ triage_history_total|pluralize }}</span></header>
+  <header class="workspace-panel-head"><div><h2 id="history-heading">Histórico do arquivo</h2></div><span class="record-count">{{ triage_history_total }} evento{{ triage_history_total|pluralize }}</span></header>
   <ol class="triage-history">
     {% if demo_visitor %}{% for event in demo_history %}<li><strong>{{ event.label }}</strong><span>{{ event.at|date:"d/m/Y H:i" }}{% if event.actor %} · {{ event.actor }}{% endif %}</span>{% if event.note %}<p>{{ event.note }}</p>{% endif %}</li>{% empty %}<li><span>Nenhuma etapa registrada nesta sessão.</span></li>{% endfor %}{% else %}{% for event in triage_history_events %}<li><strong>{{ event.get_to_status_display }}</strong><span>{{ event.created_at|date:"d/m/Y H:i" }}{% if event.actor %} · {{ event.actor.full_name|default:event.actor.email }}{% endif %}</span>{% if event.note %}<p>{{ event.note }}</p>{% endif %}</li>{% empty %}<li><span>Nenhuma etapa registrada.</span></li>{% endfor %}{% endif %}
   </ol>
