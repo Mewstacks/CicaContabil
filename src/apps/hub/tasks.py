@@ -19,6 +19,7 @@ from django.utils import timezone
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.dte_payload import DtePayloadError, list_rows, source_date, subject, value
 from apps.hub.models import (
+    ClientCompany,
     DctfWebDocument,
     DteMessage,
     DteMessageObservation,
@@ -47,6 +48,7 @@ from apps.integra.parcelamento import (
     pedidos,
 )
 from apps.integra.parties import author_cnpj_for
+from apps.organizations.models import Organization
 from apps.platform.billing import settle_usage
 from apps.platform.models import OperationalRun, TokenUsageEvent
 from apps.platform.operations import track_scheduled_operation
@@ -62,6 +64,22 @@ NFSE_SYNC_QUEUE_DELAY_SECONDS = 30
 def generate_recurring_activities() -> dict[str, int]:
     """Materialize expected work locally; never call providers or approve an operation."""
     return generate_due_assignments()
+
+
+@shared_task(name="hub.refresh_demo_operations")  # type: ignore[untyped-decorator]
+def refresh_demo_operations() -> dict[str, int]:
+    """Roll the synthetic demonstration window so its dates stay coherent every day."""
+
+    from apps.hub.demo_scenario import populate_operations, refresh_demo_guides
+
+    counts = {"offices": 0, "created": 0, "guides_retired": 0}
+    for office in Organization.objects.filter(is_demo=True, is_active=True):
+        if not ClientCompany.objects.filter(organization=office, active=True).exists():
+            continue
+        counts["offices"] += 1
+        counts["created"] += populate_operations(office)["created"]
+        counts["guides_retired"] += refresh_demo_guides(office)
+    return counts
 
 
 def _eligible_nfse_syncs() -> QuerySet[NfseSync]:

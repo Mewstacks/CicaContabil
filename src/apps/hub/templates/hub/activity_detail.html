@@ -10,7 +10,8 @@
     <dl class="activity-key-facts">
       {% if activity.competence %}<div><dt>Competência</dt><dd>{{ activity.competence|date:'m/Y' }}</dd></div>{% endif %}
       <div><dt>Prazo interno</dt><dd>{% if activity.internal_due_on %}{{ activity.internal_due_on|date:'d/m/Y' }}{% else %}Não definido{% endif %}</dd></div>
-      <div><dt>Responsável</dt><dd>{% if activity.assigned_to %}{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}{% else %}Não atribuído{% endif %}</dd></div>
+      <div><dt>Prazo legal</dt><dd>{% if activity.legal_due_on %}{{ activity.legal_due_on|date:'d/m/Y' }}{% if activity.legal_due_rule %} · <a class="text-action" href="{{ activity.legal_due_rule.source_url }}" target="_blank" rel="noopener noreferrer">fonte<span class="sr-only"> de {{ activity.legal_due_rule.title }}</span></a>{% endif %}{% else %}Não definido{% endif %}</dd></div>
+      <div><dt>Responsável</dt><dd>{% if activity.assigned_to %}{{ activity.assigned_to.display_name }}{% else %}Não atribuído{% endif %}</dd></div>
     </dl>
   </div>
   <div class="activity-head-state"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% if is_overdue %}<span class="activity-warning">Prazo vencido</span>{% endif %}</div>

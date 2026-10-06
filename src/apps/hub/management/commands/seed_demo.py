@@ -24,7 +24,6 @@ from apps.hub.models import (
     Connector,
     DteMessage,
     DteRun,
-    FiscalGuide,
     OfficeProfile,
     ProductModule,
     UsageAllowance,
@@ -303,22 +302,9 @@ class Command(BaseCommand):
     def _guides(self, organization: Organization, companies: list[ClientCompany]) -> None:
         """Create obligations only from synthetic reference data, with no Domínio import."""
 
-        today = timezone.localdate()
-        competence = (today.replace(day=1) - dt.timedelta(days=1)).strftime("%m/%Y")
-        for index, company in enumerate(companies[:3], start=1):
-            FiscalGuide.objects.get_or_create(
-                organization=organization,
-                company=company,
-                reference=f"DEMO-DCTFWEB-{company.dominio_code}-{competence}",
-                defaults={
-                    "kind": FiscalGuide.Kind.DCTFWEB,
-                    "status": FiscalGuide.Status.READY,
-                    "competence": competence,
-                    "due_on": today + dt.timedelta(days=index + 2),
-                    "amount_cents": 12_500 * index,
-                    "integra_service_key": "dctfweb.guia",
-                },
-            )
+        from apps.hub.demo_scenario import refresh_demo_guides
+
+        refresh_demo_guides(organization)
 
     def _triage(self, organization: Organization, companies: list[ClientCompany]) -> None:
         """Seed only fabricated e-mail attachments; no provider box is consulted."""

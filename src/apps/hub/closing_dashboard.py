@@ -5,6 +5,7 @@ from datetime import date
 from django.core.paginator import Paginator
 from django.db.models import Q, QuerySet
 
+from apps.fiscal_calendar.services import add_months
 from apps.hub.models import ActivityTemplate, ClientCompany, OperationalActivity
 from apps.hub.operations import assess_closing, completion_requirements
 
@@ -14,10 +15,12 @@ def closing_dashboard_context(
 ) -> dict[str, object]:
     error = ""
     filter_valid = True
+    # The month being closed is the one that just ended (D-277).
+    closing_default = add_months(today.replace(day=1), -1)
     try:
-        competence = date.fromisoformat(f"{month}-01") if month else today.replace(day=1)
+        competence = date.fromisoformat(f"{month}-01") if month else closing_default
     except ValueError:
-        competence = today.replace(day=1)
+        competence = closing_default
         filter_valid = False
         error = "Competência inválida. Selecione o mês e o ano para ver os fechamentos."
     company_page = Paginator(companies.order_by("name", "pk"), 10).get_page(page)

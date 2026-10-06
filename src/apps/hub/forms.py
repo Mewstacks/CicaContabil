@@ -10,6 +10,7 @@ from django.forms import BaseFormSet, formset_factory
 from apps.accounts.models import User
 from apps.common.cnpj import normalize_cnpj
 from apps.common.encryption import blind_index
+from apps.fiscal_calendar.models import ReferenceStatus, TaxDeadlineRule
 from apps.hub.controlplane import company_queryset_for_membership
 from apps.hub.models import (
     AccountingPeriod,
@@ -341,6 +342,14 @@ class OperationalAssignmentForm(forms.Form):
     )
 
 
+DUE_MONTH_CHOICES = [
+    (0, "Mesmo mês da competência"),
+    (1, "Mês seguinte"),
+    (2, "Dois meses depois"),
+    (3, "Três meses depois"),
+]
+
+
 class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
     class Meta:
         model = ActivityTemplate
@@ -350,8 +359,11 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "area",
             "description",
             "frequency",
+            "due_month_offset",
+            "legal_rule_code",
             "legal_due_day",
             "internal_due_day",
+            "internal_lead_business_days",
             "evidence_requirement",
             "requires_processing_closed",
             "requires_accepted_obligation",
@@ -360,9 +372,15 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "code": forms.TextInput(attrs={"autocomplete": "off", "spellcheck": "false"}),
             "title": forms.TextInput(attrs={"autocomplete": "off"}),
             "description": forms.Textarea(attrs={"rows": 3, "autocomplete": "off"}),
-            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 28, "autocomplete": "off"}),
+            "due_month_offset": forms.Select(
+                choices=DUE_MONTH_CHOICES, attrs={"autocomplete": "off"}
+            ),
+            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 31, "autocomplete": "off"}),
             "internal_due_day": forms.NumberInput(
-                attrs={"min": 1, "max": 28, "autocomplete": "off"}
+                attrs={"min": 1, "max": 31, "autocomplete": "off"}
+            ),
+            "internal_lead_business_days": forms.NumberInput(
+                attrs={"min": 0, "max": 30, "autocomplete": "off", "placeholder": "2"}
             ),
         }
         labels = {
@@ -371,8 +389,11 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "area": "Área",
             "description": "Orientação para a equipe",
             "frequency": "Periodicidade",
-            "legal_due_day": "Dia do prazo legal",
+            "due_month_offset": "Mês do prazo",
+            "legal_rule_code": "Prazo legal",
+            "legal_due_day": "Dia do prazo legal informado",
             "internal_due_day": "Dia do prazo interno",
+            "internal_lead_business_days": "Antecedência interna (dias úteis)",
             "evidence_requirement": "Comprovação necessária",
             "requires_processing_closed": "Exige processamento fechado para concluir",
             "requires_accepted_obligation": "Exige obrigação aceita para concluir",
@@ -381,6 +402,24 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        # D-277: the work of competência M is normally due in the following month.
+        self.fields["due_month_offset"].required = False
+        if not self.instance.pk and not self.is_bound:
+            self.initial.setdefault("due_month_offset", 1)
+        rules = (
+            TaxDeadlineRule.objects.filter(status=ReferenceStatus.APPROVED)
+            .order_by("code", "-version")
+            .values_list("code", "title")
+        )
+        rule_choices: dict[str, str] = {}
+        for code, title in rules:
+            rule_choices.setdefault(code, title)
+        self.fields["legal_rule_code"] = forms.ChoiceField(
+            label="Prazo legal",
+            required=False,
+            choices=[("", "Sem regra da agenda tributária"), *rule_choices.items()],
+            widget=forms.Select(attrs={"autocomplete": "off"}),
+        )
         help_texts = {
             "code": (
                 "Identificador estável, por exemplo fechamento-fiscal. "
@@ -388,11 +427,21 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             ),
             "title": "Comece com um verbo e descreva o resultado esperado pela equipe.",
             "description": "Inclua o critério de conferência e o que a pessoa precisa entregar.",
-            "legal_due_day": "Opcional. Use somente quando houver vencimento legal confirmado.",
-            "internal_due_day": "Opcional. Prazo do escritório para concluir antes do vencimento.",
+            "legal_due_day": "Somente sem regra da agenda tributária.",
+            "internal_due_day": "Vazio: antecedência antes do prazo legal.",
         }
         for field_name, help_text in help_texts.items():
             self.fields[field_name].help_text = help_text
+
+    def clean_due_month_offset(self) -> int:
+        value = self.cleaned_data.get("due_month_offset")
+        return 1 if value in (None, "") else int(value)
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        if cleaned.get("legal_rule_code") and cleaned.get("legal_due_day"):
+            self.add_error("legal_due_day", "Use a regra ou um dia informado, não os dois.")
+        return cleaned
 
     def clean_code(self) -> str:
         code = str(self.cleaned_data["code"]).strip().lower()
@@ -411,9 +460,9 @@ class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
             "template": forms.Select(attrs={"autocomplete": "off"}),
             "company": forms.Select(attrs={"autocomplete": "off"}),
             "assigned_to": forms.Select(attrs={"autocomplete": "off"}),
-            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 28, "autocomplete": "off"}),
+            "legal_due_day": forms.NumberInput(attrs={"min": 1, "max": 31, "autocomplete": "off"}),
             "internal_due_day": forms.NumberInput(
-                attrs={"min": 1, "max": 28, "autocomplete": "off"}
+                attrs={"min": 1, "max": 31, "autocomplete": "off"}
             ),
         }
         labels = {

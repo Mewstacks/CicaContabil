@@ -11,8 +11,19 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.fiscal_calendar.models import TaxDeadlineRule
+from apps.fiscal_calendar.services import (
+    BusinessCalendar,
+    CalendarIncomplete,
+    add_months,
+    approved_rule,
+    day_in_month,
+    internal_before,
+    rule_due_date,
+)
 from apps.hub.controlplane import company_queryset_for_membership
 from apps.hub.models import (
+    ActivityTemplate,
     ActivityTemplateAssignment,
     DataSource,
     OperationalActivity,
@@ -327,8 +338,86 @@ def assign_activity(
     return locked
 
 
-def _competence_due_date(competence: date, day: int | None) -> date | None:
-    return date(competence.year, competence.month, day) if day else None
+DEFAULT_INTERNAL_LEAD_BUSINESS_DAYS = 2
+
+
+@dataclass(frozen=True)
+class DueDates:
+    legal: date | None
+    internal: date | None
+    rule: TaxDeadlineRule | None
+    notes: tuple[tuple[str, str], ...] = ()
+
+
+def compute_due_dates(
+    *,
+    template: ActivityTemplate,
+    assignment: ActivityTemplateAssignment | None,
+    competence: date,
+    calendar: BusinessCalendar | None = None,
+) -> DueDates:
+    """Legal and internal deadlines of ``competence`` under the template (D-277).
+
+    The legal date comes only from an approved rule (or a day the office typed for templates
+    without rule). The internal date is the office's own day, or business days before the legal
+    date, and is pulled back when it would fall after the legal one.
+    """
+
+    calendar = calendar or BusinessCalendar()
+    competence = competence.replace(day=1)
+    due_month = add_months(competence, template.due_month_offset or 0)
+    notes: list[tuple[str, str]] = []
+    rule = approved_rule(template.legal_rule_code, competence)
+    legal: date | None = None
+    if template.legal_rule_code:
+        if rule is None:
+            notes.append(
+                (
+                    "legal_due_unavailable",
+                    "Prazo legal ausente: a regra da agenda tributária não tem versão aprovada "
+                    "para esta competência.",
+                )
+            )
+        else:
+            try:
+                legal = rule_due_date(rule, competence, calendar)
+            except CalendarIncomplete as error:
+                rule = None
+                notes.append(
+                    (
+                        "legal_due_unavailable",
+                        f"Prazo legal ausente: calendário de {error.args[0]} ainda não aprovado.",
+                    )
+                )
+    else:
+        legal_day = (assignment.legal_due_day if assignment else None) or template.legal_due_day
+        legal = day_in_month(due_month, legal_day) if legal_day else None
+    lead = (
+        template.internal_lead_business_days
+        if template.internal_lead_business_days is not None
+        else DEFAULT_INTERNAL_LEAD_BUSINESS_DAYS
+    )
+    internal_day = (
+        assignment.internal_due_day if assignment else None
+    ) or template.internal_due_day
+    internal = day_in_month(due_month, internal_day) if internal_day else None
+    if internal is None and legal is not None and rule is not None:
+        internal = internal_before(legal, lead, calendar)
+    elif internal is not None and legal is not None and internal > legal:
+        internal = internal_before(legal, lead, calendar)
+        notes.append(
+            (
+                "internal_due_adjusted",
+                f"Prazo interno antecipado para {internal:%d/%m/%Y}: ficaria depois do legal.",
+            )
+        )
+    return DueDates(legal=legal, internal=internal, rule=rule, notes=tuple(notes))
+
+
+def competence_ready_until(today: date, template: ActivityTemplate) -> date:
+    """Latest competência whose work can start: M opens on the first day of M + offset."""
+
+    return add_months(today.replace(day=1), -(template.due_month_offset or 0))
 
 
 def _assignment_responsible_has_access(assignment: ActivityTemplateAssignment) -> bool:
@@ -364,6 +453,7 @@ def generate_monthly_activities(
     created: list[OperationalActivity] = []
     ignored = 0
     competence = competence.replace(day=1)
+    calendar = BusinessCalendar()
     for assignment in assignments:
         template = assignment.template
         if (
@@ -378,6 +468,9 @@ def generate_monthly_activities(
             continue
         assignee_is_available = _assignment_responsible_has_access(assignment)
         assignee = assignment.assigned_to if assignee_is_available else None
+        due = compute_due_dates(
+            template=template, assignment=assignment, competence=competence, calendar=calendar
+        )
         activity, was_created = OperationalActivity.objects.get_or_create(
             organization=assignment.organization,
             company=assignment.company,
@@ -388,12 +481,9 @@ def generate_monthly_activities(
                 "template": template,
                 "title": template.title,
                 "area": template.area,
-                "legal_due_on": _competence_due_date(
-                    competence, assignment.legal_due_day or template.legal_due_day
-                ),
-                "internal_due_on": _competence_due_date(
-                    competence, assignment.internal_due_day or template.internal_due_day
-                ),
+                "legal_due_on": due.legal,
+                "internal_due_on": due.internal,
+                "legal_due_rule": due.rule,
                 "assigned_to": assignee,
                 "requires_processing_closed": template.requires_processing_closed,
                 "requires_accepted_obligation": template.requires_accepted_obligation,
@@ -419,6 +509,8 @@ def generate_monthly_activities(
             summary=f"Gerada pelo modelo {template.code} v{template.version}.",
             actor=actor,
         )
+        for event_type, summary in due.notes:
+            _event(activity=activity, event_type=event_type, summary=summary, actor=actor)
         record_event(
             action="hub.activity.generated",
             actor=actor,
@@ -445,6 +537,155 @@ def _event(
         summary=summary,
         actor=actor,
     )
+
+
+RESCHEDULE_ROLES = frozenset(
+    {Membership.Role.OWNER, Membership.Role.ADMIN, Membership.Role.MANAGER}
+)
+
+
+def can_reschedule_activity(
+    *, membership: Membership | None, activity: OperationalActivity
+) -> bool:
+    """D-277: owner, administration and management move internal deadlines."""
+
+    return bool(
+        membership is not None
+        and membership.role in RESCHEDULE_ROLES
+        and can_operate_activity(membership=membership, activity=activity)
+    )
+
+
+@transaction.atomic
+def reschedule_activity(
+    *,
+    activity: OperationalActivity,
+    membership: Membership | None,
+    actor: User,
+    internal_due_on: date,
+    expected_internal_due_on: str,
+    reason: str,
+    request: object,
+) -> OperationalActivity:
+    """Move the internal deadline with a reason; the legal deadline is never edited here."""
+
+    if not can_reschedule_activity(membership=membership, activity=activity):
+        raise PermissionDenied("Somente proprietário, administração ou gestão muda prazos.")
+    locked = OperationalActivity.objects.select_for_update().get(pk=activity.pk)
+    if locked.work_status in {
+        OperationalActivity.WorkStatus.COMPLETED,
+        OperationalActivity.WorkStatus.WAIVED,
+    }:
+        raise ValidationError("Atividade encerrada mantém o prazo registrado.")
+    previous = locked.internal_due_on
+    if (previous.isoformat() if previous else "") != expected_internal_due_on:
+        raise ValidationError("O prazo mudou. Recarregue a atividade antes de alterar.")
+    reason = reason.strip()
+    if not reason or len(reason) > 500:
+        raise ValidationError("Informe um motivo com até 500 caracteres.")
+    if locked.legal_due_on and internal_due_on > locked.legal_due_on:
+        raise ValidationError(
+            f"O prazo interno não pode passar do prazo legal ({locked.legal_due_on:%d/%m/%Y})."
+        )
+    if internal_due_on == previous:
+        return locked
+    locked.internal_due_on = internal_due_on
+    locked.save(update_fields=["internal_due_on", "updated_at"])
+    _event(
+        activity=locked,
+        event_type="due_changed",
+        actor=actor,
+        summary=(
+            f"Prazo interno: {previous:%d/%m/%Y} → {internal_due_on:%d/%m/%Y}. Motivo: {reason}"
+            if previous
+            else f"Prazo interno definido para {internal_due_on:%d/%m/%Y}. Motivo: {reason}"
+        )[:500],
+    )
+    record_event(
+        action="hub.activity.rescheduled",
+        actor=actor,
+        organization=locked.organization,
+        target=locked,
+        request=request,
+        metadata={
+            "previous": previous.isoformat() if previous else "",
+            "internal_due_on": internal_due_on.isoformat(),
+            "reason": reason[:240],
+        },
+    )
+    return locked
+
+
+@transaction.atomic
+def add_activity_note(
+    *,
+    activity: OperationalActivity,
+    membership: Membership | None,
+    actor: User,
+    note: str,
+    request: object,
+) -> OperationalActivityEvent:
+    """A short note for whoever picks the work up next; it never counts as evidence."""
+
+    if not can_operate_activity(membership=membership, activity=activity, actor=actor):
+        raise PermissionDenied("Você não possui acesso a esta atividade.")
+    note = note.strip()
+    if not note or len(note) > 500:
+        raise ValidationError("Escreva uma observação com até 500 caracteres.")
+    event = OperationalActivityEvent.objects.create(
+        organization=activity.organization,
+        activity=activity,
+        event_type="note",
+        summary=note,
+        actor=actor,
+    )
+    record_event(
+        action="hub.activity.note_added",
+        actor=actor,
+        organization=activity.organization,
+        target=activity,
+        request=request,
+        metadata={"length": len(note)},
+    )
+    return event
+
+
+@transaction.atomic
+def claim_activity(
+    *,
+    activity: OperationalActivity,
+    membership: Membership | None,
+    actor: User,
+    request: object,
+) -> OperationalActivity:
+    """Take unassigned work inside one's own portfolio (D-277)."""
+
+    if not can_operate_activity(membership=membership, activity=activity, actor=actor):
+        raise PermissionDenied("Você não possui acesso a esta atividade.")
+    locked = OperationalActivity.objects.select_for_update().get(pk=activity.pk)
+    if locked.work_status in {
+        OperationalActivity.WorkStatus.COMPLETED,
+        OperationalActivity.WorkStatus.WAIVED,
+    }:
+        raise ValidationError("Atividade encerrada preserva seu responsável histórico.")
+    if locked.assigned_to_id is not None:
+        raise ValidationError("A atividade já tem responsável. Recarregue a página.")
+    locked.assigned_to = actor
+    locked.save(update_fields=["assigned_to", "updated_at"])
+    _event(
+        activity=locked,
+        event_type="assigned",
+        actor=actor,
+        summary=f"Responsável: sem responsável → {actor.display_name}. Assumida pela pessoa.",
+    )
+    record_event(
+        action="hub.activity.claimed",
+        actor=actor,
+        organization=locked.organization,
+        target=locked,
+        request=request,
+    )
+    return locked
 
 
 @transaction.atomic

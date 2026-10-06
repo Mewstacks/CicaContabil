@@ -48,7 +48,7 @@
     <tbody>{% for activity in activities %}<tr{% if activity.is_overdue %} class="activity-overdue"{% endif %}>
       <td data-label="Atividade"><strong>{{ activity.title }}</strong><small>{{ activity.company.name }} · {{ activity.get_area_display }}{% if activity.competence %} · {{ activity.competence|date:'m/Y' }}{% endif %}</small></td>
       <td data-label="Próximo passo"><span class="activity-next-copy">{{ activity.queue_next_step }}</span></td>
-      <td data-label="Prazo"><strong{% if activity.is_overdue %} class="activity-due-overdue"{% endif %}>{{ activity.queue_due_label }}</strong>{% if activity.queue_due_on %}<small>{{ activity.queue_due_kind }} · {{ activity.queue_due_on|date:'d/m/Y' }}</small>{% endif %}</td>
+      <td data-label="Prazo"><strong{% if activity.is_overdue %} class="activity-due-overdue"{% endif %}>{{ activity.queue_due_label }}</strong>{% if activity.queue_due_on %}<small>{{ activity.queue_due_kind }} · {{ activity.queue_due_on|date:'d/m/Y' }}</small>{% endif %}{% if activity.internal_due_on and activity.legal_due_on %}<small>Prazo legal · {{ activity.legal_due_on|date:'d/m/Y' }}</small>{% endif %}</td>
       <td data-label="Responsável">{% if activity.assigned_to %}<strong>{{ activity.assigned_to.full_name|default:activity.assigned_to.email }}</strong>{% else %}<span class="table-warning">Sem responsável</span>{% endif %}</td>
       <td data-label="Situação"><span class="activity-status activity-status-{{ activity.work_status }}">{{ activity.get_work_status_display }}</span>{% include 'hub/partials/activity_state.html' %}</td>
       <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:activity-detail' activity.id %}">Conferir<span class="sr-only"> {{ activity.title }}</span></a></td>

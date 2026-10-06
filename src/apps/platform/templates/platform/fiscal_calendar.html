@@ -1,0 +1,30 @@
+{% extends 'platform/base.html' %}
+{% block platform_content %}
+<section class="panel" aria-labelledby="rules-heading">
+  <header class="panel-header"><div><h2 id="rules-heading">Regras de vencimento</h2><p>{{ rules|length }} versões</p></div></header>
+  <div class="data-table-wrap platform-list-wrap"><table class="platform-list-table">
+    <thead><tr><th scope="col">Obrigação</th><th scope="col">Regra</th><th scope="col">Base legal</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+    <tbody>{% for rule in rules %}<tr>
+      <td data-label="Obrigação"><strong>{{ rule.title }}</strong><small>{{ rule.code }} · v{{ rule.version }} · desde {{ rule.valid_from|date:"m/Y" }}{% if rule.valid_until %} até {{ rule.valid_until|date:"m/Y" }}{% endif %}</small></td>
+      <td data-label="Regra">{% if rule.anchor == 'last_business_day' %}Último dia útil{% elif rule.anchor == 'last_day' %}Último dia{% else %}Dia {{ rule.day }}{% endif %} · {% if rule.month_offset == 0 %}mesmo mês{% elif rule.month_offset == 1 %}mês seguinte{% else %}{{ rule.month_offset }} meses depois{% endif %}<small>{{ rule.get_non_business_shift_display }}</small></td>
+      <td data-label="Base legal">{{ rule.legal_basis }}<small><a class="text-action" href="{{ rule.source_url }}" target="_blank" rel="noopener noreferrer">Fonte</a> · conferida em {{ rule.source_checked_on|date:"d/m/Y" }}</small></td>
+      <td data-label="Situação"><span class="module-state {% if rule.status == 'approved' %}is-active{% elif rule.status == 'draft' %}is-warning{% else %}is-muted{% endif %}">{{ rule.get_status_display }}</span>{% if rule.approved_by %}<small>{{ rule.approved_by.display_name }} · {{ rule.approved_at|date:"d/m/Y" }}</small>{% endif %}</td>
+      <td class="table-action-cell">{% if rule.status != 'retired' %}<form method="post">{% csrf_token %}<input type="hidden" name="kind" value="rule"><input type="hidden" name="id" value="{{ rule.id }}"><input type="hidden" name="decision" value="{% if rule.status == 'draft' %}approve{% else %}retire{% endif %}"><button class="button button-quiet button-small" type="submit" data-busy-label="Salvando…">{% if rule.status == 'draft' %}Aprovar{% else %}Retirar{% endif %}<span class="sr-only"> {{ rule.title }} v{{ rule.version }}</span></button></form>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="5">Nenhuma regra cadastrada.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+
+<section class="panel" aria-labelledby="calendars-heading">
+  <header class="panel-header"><div><h2 id="calendars-heading">Dias sem expediente bancário</h2><p>{{ calendars|length }} anos</p></div></header>
+  <div class="data-table-wrap platform-list-wrap"><table class="platform-list-table">
+    <thead><tr><th scope="col">Ano</th><th scope="col">Dias</th><th scope="col">Base legal</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+    <tbody>{% for calendar in calendars %}<tr>
+      <td data-label="Ano"><strong>{{ calendar.year }}</strong><small>{{ calendar.scope }}</small></td>
+      <td data-label="Dias"><details><summary>{{ calendar.days.all|length }} dias</summary><ul>{% for day in calendar.days.all %}<li>{{ day.day|date:"d/m D" }} · {{ day.name }}</li>{% endfor %}</ul></details></td>
+      <td data-label="Base legal">{{ calendar.legal_basis }}<small><a class="text-action" href="{{ calendar.source_url }}" target="_blank" rel="noopener noreferrer">Fonte</a></small></td>
+      <td data-label="Situação"><span class="module-state {% if calendar.status == 'approved' %}is-active{% elif calendar.status == 'draft' %}is-warning{% else %}is-muted{% endif %}">{{ calendar.get_status_display }}</span>{% if calendar.approved_by %}<small>{{ calendar.approved_by.display_name }} · {{ calendar.approved_at|date:"d/m/Y" }}</small>{% endif %}</td>
+      <td class="table-action-cell">{% if calendar.status != 'retired' %}<form method="post">{% csrf_token %}<input type="hidden" name="kind" value="calendar"><input type="hidden" name="id" value="{{ calendar.id }}"><input type="hidden" name="decision" value="{% if calendar.status == 'draft' %}approve{% else %}retire{% endif %}"><button class="button button-quiet button-small" type="submit" data-busy-label="Salvando…">{% if calendar.status == 'draft' %}Aprovar{% else %}Retirar{% endif %}<span class="sr-only"> calendário {{ calendar.year }}</span></button></form>{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="5">Nenhum calendário cadastrado.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}

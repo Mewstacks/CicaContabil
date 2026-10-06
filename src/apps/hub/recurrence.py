@@ -13,7 +13,7 @@ from apps.audit.services import record_event
 from apps.hub.controlplane import authorization_is_fresh, company_queryset_for_membership
 from apps.hub.models import ActivityTemplateAssignment, OperationalActivityEvent, ProductModule
 from apps.hub.module_catalog import OFFERED_MODULE_CODES
-from apps.hub.operations import generate_monthly_activities
+from apps.hub.operations import competence_ready_until, generate_monthly_activities
 from apps.organizations.models import Membership, Organization
 from apps.platform.models import TenantLifecycle
 
@@ -51,7 +51,9 @@ def generate_assignment(assignment_id: UUID, *, today: date) -> int:
         code for code, enabled in modules.items() if enabled
     } == {ProductModule.Code.NFSE}:
         return 0
-    current = today.replace(day=1)
+    # Competência M opens on the first day of M + offset (D-277): September's closing is
+    # generated on 1 October when the template is due in the following month.
+    current = competence_ready_until(today, assignment.template)
     cursor = assignment.next_generation_competence or current
     cursor = cursor.replace(day=1)
     if cursor > current:

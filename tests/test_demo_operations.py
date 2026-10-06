@@ -97,3 +97,28 @@ def test_new_month_adds_only_missing_competences(demo):
     assert first["created"] == 84
     second = populate_operations(demo, today=date(2027, 2, 1))
     assert second["created"] == 42
+
+
+def test_demo_window_keeps_every_date_after_its_competence(demo):
+    """D-277: the demonstration closes the month that ended; no due date precedes it."""
+
+    from apps.hub.demo_scenario import refresh_demo_guides
+    from apps.hub.models import FiscalGuide
+
+    populate_operations(demo, today=date(2026, 10, 6))
+    refresh_demo_guides(demo, today=date(2026, 10, 6))
+
+    open_work = OperationalActivity.objects.filter(
+        organization=demo, work_status__in=["pending", "in_progress", "blocked"]
+    )
+    assert set(open_work.values_list("competence", flat=True)) == {date(2026, 9, 1)}
+    assert all(
+        due >= date(2026, 10, 1)
+        for due in open_work.values_list("internal_due_on", flat=True)
+        if due
+    )
+    history = OperationalActivity.objects.filter(organization=demo, competence=date(2026, 8, 1))
+    assert set(history.values_list("work_status", flat=True)) == {"completed"}
+    guides = FiscalGuide.objects.filter(organization=demo, status=FiscalGuide.Status.READY)
+    assert set(guides.values_list("competence", flat=True)) == {"09/2026"}
+    assert set(guides.values_list("due_on", flat=True)) == {date(2026, 10, 20)}

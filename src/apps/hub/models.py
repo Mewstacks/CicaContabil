@@ -2170,6 +2170,11 @@ class ActivityTemplate(OrganizationScopedModel):
     )
     legal_due_day = models.PositiveSmallIntegerField(null=True, blank=True)
     internal_due_day = models.PositiveSmallIntegerField(null=True, blank=True)
+    # D-277: work for competência M is due in M + offset. Existing rows keep the old
+    # same-month behaviour; the template form proposes the next month for new versions.
+    due_month_offset = models.PositiveSmallIntegerField(default=0, db_default=0)
+    legal_rule_code = models.CharField(max_length=64, blank=True, default="", db_default="")
+    internal_lead_business_days = models.PositiveSmallIntegerField(null=True, blank=True)
     requires_processing_closed = models.BooleanField(default=False)
     requires_accepted_obligation = models.BooleanField(default=False)
     version = models.PositiveIntegerField(default=1)
@@ -2188,10 +2193,14 @@ class ActivityTemplate(OrganizationScopedModel):
         super().clean()
         for field_name in ("legal_due_day", "internal_due_day"):
             day = getattr(self, field_name)
-            if day is not None and not 1 <= day <= 28:
+            if day is not None and not 1 <= day <= 31:
                 raise ValidationError(
-                    {field_name: "Informe um dia entre 1 e 28 para funcionar em todos os meses."}
+                    {field_name: "Informe um dia entre 1 e 31; meses curtos usam o último dia."}
                 )
+        if self.due_month_offset is not None and self.due_month_offset > 12:
+            raise ValidationError({"due_month_offset": "Use no máximo 12 meses."})
+        if self.internal_lead_business_days is not None and self.internal_lead_business_days > 30:
+            raise ValidationError({"internal_lead_business_days": "Use no máximo 30 dias úteis."})
 
     def __str__(self) -> str:
         return f"{self.title} ({self.code} · v{self.version})"
@@ -2242,9 +2251,9 @@ class ActivityTemplateAssignment(OrganizationScopedModel):
             raise ValidationError("O responsável precisa ser membro ativo do escritório.")
         for field_name in ("legal_due_day", "internal_due_day"):
             day = getattr(self, field_name)
-            if day is not None and not 1 <= day <= 28:
+            if day is not None and not 1 <= day <= 31:
                 raise ValidationError(
-                    {field_name: "Informe um dia entre 1 e 28 para funcionar em todos os meses."}
+                    {field_name: "Informe um dia entre 1 e 31; meses curtos usam o último dia."}
                 )
 
 
@@ -2381,6 +2390,14 @@ class OperationalActivity(OrganizationScopedModel):
     competence = models.DateField(null=True, blank=True, db_index=True)
     legal_due_on = models.DateField(null=True, blank=True, db_index=True)
     internal_due_on = models.DateField(null=True, blank=True, db_index=True)
+    # Which approved rule produced legal_due_on; empty for dates from a source or typed by hand.
+    legal_due_rule = models.ForeignKey(
+        "fiscal_calendar.TaxDeadlineRule",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
     assigned_to = models.ForeignKey(
         "accounts.User",
         null=True,

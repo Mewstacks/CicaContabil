@@ -9,6 +9,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
+from apps.fiscal_calendar.services import BusinessCalendar, internal_before
 from apps.hub.models import (
     DctfWebDocument,
     FiscalGuide,
@@ -18,6 +19,7 @@ from apps.hub.models import (
     ParcelamentoOperation,
     ReviewCase,
 )
+from apps.hub.operations import DEFAULT_INTERNAL_LEAD_BUSINESS_DAYS
 from apps.triage.models import TriageItem
 from apps.triage.transitions import TriageStatus
 
@@ -149,6 +151,14 @@ def sync_fiscal_guide_activity(guide_id: UUID) -> OperationalActivity | None:
             "area": "fiscal",
             "competence": _month_competence(guide.competence),
             "legal_due_on": guide.due_on,
+            # The guide's due date is the source's; the office works ahead of it (D-277).
+            "internal_due_on": (
+                internal_before(
+                    guide.due_on, DEFAULT_INTERNAL_LEAD_BUSINESS_DAYS, BusinessCalendar()
+                )
+                if guide.due_on
+                else None
+            ),
             "assigned_to": guide.issue_requested_by,
             "evidence_requirement": "source",
             "freshness": OperationalActivity.Freshness.CURRENT,

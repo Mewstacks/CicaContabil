@@ -10,7 +10,7 @@
     <a class="wordmark" href="{% url 'platform:dashboard' %}" translate="no" aria-label="CICA, Console Mewstack">{% include 'hub/partials/brand_lockup.html' %}</a>
     <p class="rail-label">Controle</p>
     <nav class="rail-nav">
-      {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a>{% endif %}
+      {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a><a href="{% url 'platform:fiscal-calendar' %}" {% if request.resolver_match.url_name == 'fiscal-calendar' %}aria-current="page"{% endif %}>Agenda tributária</a>{% endif %}
       <a href="{% url 'platform:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Visão geral</a>
       <a href="{% url 'platform:tenants' %}" {% if 'tenant' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Escritórios</a>
     </nav>
@@ -21,7 +21,7 @@
       <nav id="mobile-nav" class="mobile-nav" hidden aria-label="Navegação móvel">
         <a href="{% url 'platform:dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}aria-current="page"{% endif %}>Visão geral</a>
         <a href="{% url 'platform:tenants' %}" {% if 'tenant' in request.resolver_match.url_name %}aria-current="page"{% endif %}>Escritórios</a>
-        {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a>{% endif %}
+        {% if platform_role == 'developer' or platform_role == 'admin' %}<a href="{% url 'platform:configuration' %}" {% if request.resolver_match.url_name == 'configuration' %}aria-current="page"{% endif %}>Configurações</a><a href="{% url 'platform:fiscal-calendar' %}" {% if request.resolver_match.url_name == 'fiscal-calendar' %}aria-current="page"{% endif %}>Agenda tributária</a>{% endif %}
       </nav>
       <a class="platform-link" href="{% url 'hub:home' %}" translate="no">CICA</a>
       <div class="account-menu">

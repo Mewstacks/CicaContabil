@@ -57,7 +57,23 @@ urlpatterns = [
     ),
     path("app/atividades/", views.activities, name="activities"),
     path("app/atividades/modelos/", views.activity_models, name="activity-models"),
+    path("app/atividades/em-lote/", views.activity_bulk_action, name="activity-bulk-action"),
     path("app/atividades/<uuid:activity_id>/", views.activity_detail, name="activity-detail"),
+    path(
+        "app/atividades/<uuid:activity_id>/prazo/",
+        views.activity_reschedule,
+        name="activity-reschedule",
+    ),
+    path(
+        "app/atividades/<uuid:activity_id>/observacoes/",
+        views.activity_note,
+        name="activity-note",
+    ),
+    path(
+        "app/atividades/<uuid:activity_id>/assumir/",
+        views.activity_claim,
+        name="activity-claim",
+    ),
     path(
         "app/atividades/<uuid:activity_id>/evidencias/",
         views.activity_add_evidence,

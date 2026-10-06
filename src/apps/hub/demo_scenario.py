@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import User
+from apps.fiscal_calendar.reference import national_non_business_days
+from apps.fiscal_calendar.services import add_months, day_in_month
 from apps.hub.models import (
     ActivityTemplate,
     ActivityTemplateAssignment,
+    ClientCompany,
     CompanyAccessGrant,
+    FiscalGuide,
     OperationalActivity,
     OperationalActivityEvent,
     OperationalEvidence,
@@ -38,12 +42,10 @@ SCENARIOS = (
 
 @transaction.atomic
 def populate_operations(office: Organization, *, today: date | None = None) -> dict[str, int]:
-    """Add missing scenarios only; never reset progress or rewrite immutable evidence."""
+    """Keep the synthetic window current; evidence and events stay append-only."""
     office = Organization.objects.select_for_update().get(pk=office.pk)
     if not office.is_demo or not office.is_active:
         raise ValidationError("Somente um escritório de demonstração ativo pode ser populado.")
-    from apps.hub.models import ClientCompany
-
     companies = list(
         ClientCompany.objects.filter(organization=office, active=True).order_by("dominio_code")
     )
@@ -52,7 +54,6 @@ def populate_operations(office: Organization, *, today: date | None = None) -> d
     today = today or timezone.localdate()
     now = timezone.now()
     current = today.replace(day=1)
-    previous = (current - timedelta(days=1)).replace(day=1)
     people = []
     for index, name in enumerate(
         ("Ana Martins · demo", "Bruno Costa · demo", "Camila Rocha · demo")
@@ -78,6 +79,11 @@ def populate_operations(office: Organization, *, today: date | None = None) -> d
         people.append(person)
 
     created_count = 0
+    # Rolling window (D-277): the accountant works on the month that just closed. Competência
+    # M-1 holds the open scenario and M-2 the finished history; every date falls after its
+    # competência. Older or future rows of a previous layout leave the open queues.
+    open_month = add_months(current, -1)
+    history_month = add_months(current, -2)
     for scenario_index, (code, title, area) in enumerate(SCENARIOS):
         closes = code.startswith("fechamento-")
         template, _ = ActivityTemplate.objects.get_or_create(
@@ -93,9 +99,13 @@ def populate_operations(office: Organization, *, today: date | None = None) -> d
                     "Prazos ilustrativos, sem calendário fiscal oficial."
                 ),
                 "internal_due_day": 10 + scenario_index,
+                "due_month_offset": 1,
                 "evidence_requirement": ActivityTemplate.EvidenceRequirement.HUMAN,
             },
         )
+        if template.due_month_offset != 1:
+            template.due_month_offset = 1
+            template.save(update_fields=["due_month_offset", "updated_at"])
         for company_index, company in enumerate(companies):
             person = people[scenario_index % len(people)]
             # Each area has examples of pending, complete, blocked and unavailable work.
@@ -107,100 +117,64 @@ def populate_operations(office: Organization, *, today: date | None = None) -> d
                 company=company,
                 defaults={"assigned_to": assignee},
             )
-            for month in (previous, current):
-                historic = month == previous
-                status = (
-                    "completed"
-                    if historic or state_index == 4
-                    else "waived"
-                    if state_index == 5 and not closes
-                    else "blocked"
-                    if state_index == 2
-                    else "in_progress"
-                    if state_index in (1, 3)
-                    else "pending"
+            rows = {
+                row.competence: row
+                for row in OperationalActivity.objects.filter(
+                    organization=office, company=company, code=template.code, template_version=1
                 )
-                due = (
-                    (current - timedelta(days=3))
-                    if historic
-                    else today + timedelta(days=(-3, 0, 2, 5, -1, 12, 7)[state_index])
-                )
-                done = status == "completed"
-                blocked = (
-                    "Aguardando o extrato complementar do cliente. Cenário fictício."
-                    if status == "blocked"
-                    else ""
-                )
-                activity, created = OperationalActivity.objects.get_or_create(
-                    organization=office,
+            }
+            open_status = _scenario_status(state_index, closes)
+            moved = rows.get(open_month)
+            if (
+                history_month not in rows
+                and moved is not None
+                and moved.work_status == OperationalActivity.WorkStatus.COMPLETED
+                and open_status != OperationalActivity.WorkStatus.COMPLETED
+            ):
+                # An earlier layout finished this month already; it becomes the history row.
+                moved.competence = history_month
+                moved.save(update_fields=["competence", "updated_at"])
+                rows[history_month] = rows.pop(open_month)
+            for month in (history_month, open_month):
+                historic = month == history_month
+                status = OperationalActivity.WorkStatus.COMPLETED if historic else open_status
+                if historic:
+                    due = day_in_month(add_months(month, 1), 10 + scenario_index)
+                else:
+                    offset = (-3, 0, 2, 5, -1, 12, 7)[state_index]
+                    due = max(today + timedelta(days=offset), current)
+                created = _apply_scenario(
+                    office=office,
                     company=company,
-                    code=template.code,
-                    competence=month,
-                    template_version=1,
-                    defaults={
-                        "template": template,
-                        "title": title,
-                        "area": area,
-                        "assigned_to": assignee,
-                        "internal_due_on": due,
-                        "work_status": status,
-                        "requires_processing_closed": closes,
-                        "evidence_requirement": ActivityTemplate.EvidenceRequirement.HUMAN,
-                        "processing_status": "closed"
-                        if done and closes
-                        else "open"
-                        if closes
-                        else "not_verified",
-                        "freshness": "unavailable"
-                        if not historic and state_index == 3
-                        else "current",
-                        "blocked_reason": blocked,
-                        "waived_reason": "Documento não exigido neste cenário fictício."
-                        if status == "waived"
-                        else "",
-                        "completed_at": now - timedelta(days=2) if done else None,
-                        "completed_by": person if done else None,
-                    },
+                    template=template,
+                    month=month,
+                    activity=rows.pop(month, None),
+                    status=status,
+                    due=due,
+                    assignee=assignee,
+                    person=person,
+                    closes=closes,
+                    freshness_unavailable=not historic and state_index == 3,
+                    reference=f"DEMO-{company.dominio_code}-{month:%Y%m}-{scenario_index + 1}",
+                    now=now,
                 )
-                if not created:
-                    continue
-                activity.full_clean()
-                created_count += 1
-                OperationalActivityEvent.objects.create(
-                    organization=office,
-                    activity=activity,
-                    event_type="Cenário de demonstração",
-                    summary=(
-                        "Atividade fictícia criada a partir do modelo, "
-                        "com prazo ilustrativo e responsável da equipe demo."
-                    ),
-                    occurred_at=now - timedelta(days=4),
-                )
-                OperationalActivityEvent.objects.create(
-                    organization=office,
-                    activity=activity,
-                    event_type=activity.get_work_status_display(),
-                    summary=blocked
-                    or (
-                        "Conferência simulada concluída; nenhuma fonte externa foi consultada."
-                        if done
-                        else "Andamento fictício registrado para explorar a rotina."
-                    ),
-                    occurred_at=now - timedelta(days=2 if done else 1),
-                )
-                if done or status == "in_progress":
-                    OperationalEvidence.objects.create(
-                        organization=office,
-                        activity=activity,
-                        kind="human",
-                        reference=f"DEMO-{company.dominio_code}-{month:%Y%m}-{scenario_index + 1}",
-                        summary=(
-                            "Evidência fictícia: saldos, documentos e totais conferidos."
-                            if done
-                            else "Evidência fictícia: divergências aguardando revisão."
-                        ),
-                        recorded_by=person,
-                        observed_at=now - timedelta(days=2 if done else 1),
+                created_count += int(created)
+            for stale in rows.values():
+                if stale.work_status in _OPEN_STATES:
+                    stale.work_status = OperationalActivity.WorkStatus.WAIVED
+                    stale.waived_reason = "Cenário fictício fora da competência em conferência."
+                    stale.blocked_reason = ""
+                    stale.internal_due_on = None
+                    stale.legal_due_on = None
+                    stale.save(
+                        update_fields=[
+                            "work_status",
+                            "waived_reason",
+                            "blocked_reason",
+                            "internal_due_on",
+                            "legal_due_on",
+                            "updated_at",
+                        ]
                     )
     return {
         "created": created_count,
@@ -208,3 +182,186 @@ def populate_operations(office: Organization, *, today: date | None = None) -> d
         "templates": ActivityTemplate.objects.filter(organization=office).count(),
         "people": len(people),
     }
+
+
+_OPEN_STATES = {
+    OperationalActivity.WorkStatus.PENDING,
+    OperationalActivity.WorkStatus.IN_PROGRESS,
+    OperationalActivity.WorkStatus.BLOCKED,
+}
+
+
+def _scenario_status(state_index: int, closes: bool) -> str:
+    if state_index == 4:
+        return OperationalActivity.WorkStatus.COMPLETED
+    if state_index == 5 and not closes:
+        return OperationalActivity.WorkStatus.WAIVED
+    if state_index == 2:
+        return OperationalActivity.WorkStatus.BLOCKED
+    if state_index in (1, 3):
+        return OperationalActivity.WorkStatus.IN_PROGRESS
+    return OperationalActivity.WorkStatus.PENDING
+
+
+def _apply_scenario(
+    *,
+    office: Organization,
+    company: ClientCompany,
+    template: ActivityTemplate,
+    month: date,
+    activity: OperationalActivity | None,
+    status: str,
+    due: date,
+    assignee: User | None,
+    person: User,
+    closes: bool,
+    freshness_unavailable: bool,
+    reference: str,
+    now: datetime,
+) -> bool:
+    """Create or re-state one scenario row; evidence and events are only ever appended."""
+
+    done = status == OperationalActivity.WorkStatus.COMPLETED
+    values = {
+        "template": template,
+        "title": template.title,
+        "area": template.area,
+        "assigned_to": assignee,
+        "internal_due_on": due,
+        "legal_due_on": None,
+        "work_status": status,
+        "requires_processing_closed": closes,
+        "evidence_requirement": ActivityTemplate.EvidenceRequirement.HUMAN,
+        "processing_status": "closed" if done and closes else "open" if closes else "not_verified",
+        "freshness": "unavailable" if freshness_unavailable else "current",
+        "blocked_reason": (
+            "Aguardando o extrato complementar do cliente. Cenário fictício."
+            if status == OperationalActivity.WorkStatus.BLOCKED
+            else ""
+        ),
+        "waived_reason": (
+            "Documento não exigido neste cenário fictício."
+            if status == OperationalActivity.WorkStatus.WAIVED
+            else ""
+        ),
+        "completed_at": now - timedelta(days=2) if done else None,
+        "completed_by": person if done else None,
+    }
+    created = activity is None
+    if activity is None:
+        activity = OperationalActivity(
+            organization=office,
+            company=company,
+            code=template.code,
+            competence=month,
+            template_version=1,
+            **values,
+        )
+        activity.full_clean()
+        activity.save()
+        OperationalActivityEvent.objects.create(
+            organization=office,
+            activity=activity,
+            event_type="Cenário de demonstração",
+            summary=(
+                "Atividade fictícia criada a partir do modelo, "
+                "com prazo ilustrativo e responsável da equipe demo."
+            ),
+            occurred_at=now - timedelta(days=4),
+        )
+    else:
+        previous_status = activity.work_status
+        if previous_status == status and done:
+            # A finished row keeps who finished it and when; only the window moves.
+            values["completed_at"] = activity.completed_at
+            values["completed_by"] = activity.completed_by
+        changed = [field for field, value in values.items() if getattr(activity, field) != value]
+        for field in changed:
+            setattr(activity, field, values[field])
+        if changed:
+            activity.save(update_fields=[*changed, "updated_at"])
+        if previous_status == status:
+            return False
+    OperationalActivityEvent.objects.create(
+        organization=office,
+        activity=activity,
+        event_type=activity.get_work_status_display(),
+        summary=values["blocked_reason"]
+        or (
+            "Conferência simulada concluída; nenhuma fonte externa foi consultada."
+            if done
+            else "Andamento fictício registrado para explorar a rotina."
+        ),
+        occurred_at=now - timedelta(days=2 if done else 1),
+    )
+    if (done or status == OperationalActivity.WorkStatus.IN_PROGRESS) and not (
+        OperationalEvidence.objects.filter(activity=activity, reference=reference).exists()
+    ):
+        OperationalEvidence.objects.create(
+            organization=office,
+            activity=activity,
+            kind="human",
+            reference=reference,
+            summary=(
+                "Evidência fictícia: saldos, documentos e totais conferidos."
+                if done
+                else "Evidência fictícia: divergências aguardando revisão."
+            ),
+            recorded_by=person,
+            observed_at=now - timedelta(days=2 if done else 1),
+        )
+    return created
+
+
+def demo_guide_due_date(competence_month: date) -> date:
+    """Day 20 of the following month, brought forward over non-business days.
+
+    Same shape as the contribuições previdenciárias draft rule; the demonstration uses the
+    reference holidays shipped with the code because it must not depend on an approval.
+    """
+
+    due = day_in_month(add_months(competence_month, 1), 20)
+    holidays = {day for day, _name in national_non_business_days(due.year)}
+    while due.weekday() >= 5 or due in holidays:
+        due -= timedelta(days=1)
+    return due
+
+
+@transaction.atomic
+def refresh_demo_guides(office: Organization, *, today: date | None = None) -> int:
+    """DCTFWeb guides of the closed month; older demo guides leave the queue."""
+
+    if not office.is_demo or not office.is_active:
+        raise ValidationError("Somente um escritório de demonstração ativo pode ser populado.")
+    today = today or timezone.localdate()
+    month = add_months(today.replace(day=1), -1)
+    competence = f"{month:%m/%Y}"
+    companies = list(
+        ClientCompany.objects.filter(organization=office, active=True).order_by("dominio_code")[:3]
+    )
+    references = []
+    for index, company in enumerate(companies, start=1):
+        reference = f"DEMO-DCTFWEB-{company.dominio_code}-{competence}"
+        references.append(reference)
+        FiscalGuide.objects.get_or_create(
+            organization=office,
+            company=company,
+            reference=reference,
+            defaults={
+                "kind": FiscalGuide.Kind.DCTFWEB,
+                "status": FiscalGuide.Status.READY,
+                "competence": competence,
+                "due_on": demo_guide_due_date(month),
+                "amount_cents": 12_500 * index,
+                "integra_service_key": "dctfweb.guia",
+            },
+        )
+    return (
+        FiscalGuide.objects.filter(
+            organization=office,
+            reference__startswith="DEMO-DCTFWEB-",
+            status=FiscalGuide.Status.READY,
+        )
+        .exclude(reference__in=references)
+        .update(status=FiscalGuide.Status.SKIPPED, updated_at=timezone.now())
+    )

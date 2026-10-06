@@ -78,6 +78,7 @@ LOCAL_APPS = [
     "apps.organizations",
     "apps.audit",
     "apps.privacy",
+    "apps.fiscal_calendar",
     "apps.hub",
     "apps.platform",
     "apps.intelligence",
@@ -505,6 +506,10 @@ CELERY_BEAT_SCHEDULE = {
     "generate-recurring-activities": {
         "task": "hub.generate_recurring_activities",
         "schedule": timedelta(hours=1),
+    },
+    "refresh-demo-operations": {
+        "task": "hub.refresh_demo_operations",
+        "schedule": crontab(hour=0, minute=20),
     },
     "advance-tenant-lifecycles": {
         "task": "platform.advance_tenant_lifecycles",
