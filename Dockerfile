@@ -41,4 +41,4 @@ EXPOSE 8000
 # Bind to $PORT so the image runs on any host that injects a port (Heroku, Render, Railway,
 # Cloud Run, …); defaults to 8000 elsewhere. `exec` keeps gunicorn as PID 1 so SIGTERM is
 # delivered for graceful shutdown.
-CMD ["sh", "-c", "exec gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-8000} --worker-class uvicorn_worker.UvicornWorker --workers 2 --timeout 30 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "exec gunicorn config.asgi:application --bind 0.0.0.0:${PORT:-8000} --worker-class uvicorn_worker.UvicornWorker --workers 2 --timeout 30 --graceful-timeout 30 --max-requests 1000 --max-requests-jitter 100 --access-logfile - --error-logfile - --no-control-socket"]
