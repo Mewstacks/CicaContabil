@@ -8,7 +8,9 @@ from config.settings.base import *
 from config.settings.env import env_bool, env_int, env_str
 
 DEBUG = False
-PLATFORM_DEVELOPER_FULL_ACCESS = False
+# TEMPORARY (testing phase): support sessions are mutable. Set the env var to
+# "false" to restore read-only support sessions.
+PLATFORM_DEVELOPER_FULL_ACCESS = env_bool("PLATFORM_DEVELOPER_FULL_ACCESS", True)
 EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", True)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 

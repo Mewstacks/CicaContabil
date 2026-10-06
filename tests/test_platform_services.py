@@ -41,6 +41,12 @@ def test_platform_roles_and_support_mode(settings) -> None:
     settings.PLATFORM_DEVELOPER_FULL_ACCESS = True
     assert support_access_mode(user) == "full"
 
+    support = User.objects.create_user("support-services@example.test", "safe-password-123")
+    PlatformAccess.objects.create(user=support, role=PlatformAccess.Role.SUPPORT)
+    assert support_access_mode(support) == "full"
+    settings.PLATFORM_DEVELOPER_FULL_ACCESS = False
+    assert support_access_mode(support) == "read_only"
+
 
 def test_entitlements_and_flags_respect_expiry() -> None:
     office = Organization.objects.create(name="Serviços", slug="servicos")

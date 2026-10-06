@@ -30,12 +30,8 @@ def has_platform_role(user: User | AnonymousUser, *roles: str) -> bool:
 
 
 def support_access_mode(user: User | AnonymousUser) -> str:
-    """Only an explicit local developer mode can open a mutable support session."""
-    role = platform_role(user)
-    if settings.PLATFORM_DEVELOPER_FULL_ACCESS and role in {
-        PlatformAccess.Role.DEVELOPER,
-        PlatformAccess.Role.ADMIN,
-    }:
+    """Any platform role gets a mutable support session while the testing flag is on."""
+    if settings.PLATFORM_DEVELOPER_FULL_ACCESS and platform_role(user) is not None:
         return "full"
     return "read_only"
 
