@@ -4308,3 +4308,27 @@ proprietário. Prazos (competência × vencimento) seguem na fase 2.
 Limites: validação em produção feita na demonstração; conta de teste real ainda não aberta pelo
 proprietário; regras de vencimento e calendários continuam rascunho até aprovação no console
 (`/platform/agenda-tributaria/`); notificações e busca não foram exercitadas com dados reais.
+
+## V-279 — Varredura crítica em produção com Playwright e corte de texto (06/10/2026)
+
+- **Método:** Playwright em `https://cica-contabil.fly.dev` (demo pública), 22 telas em 1440 e
+  375 px; métricas de posição da primeira linha de dados, rolagem lateral, erros de console e
+  inventário de todo texto renderizado com 40+ caracteres. Zero erro de JS; zero rolagem lateral.
+- **Achados sistêmicos corrigidos:** "Como usar" em linha própria (agora no cabeçalho; no celular
+  na linha do título); 100 eyebrows literais acima de títulos; títulos secundários repetindo o
+  `h1`; avisos de demonstração duplicando a faixa global; ~70 frases explicativas (descrições de
+  seção, passos, status que repetiam o rótulo, segunda linha de estados vazios); "Nenhuma …
+  selecionada" ocupando linha; abas Meu trabalho/Carteira/Gestão como cartões vazios.
+- **Equipe:** lista primeiro, convite recolhido; demo sem e-mails sintéticos. Primeira pessoa de
+  1.077→367 px (desktop) e 1.621→415 px (celular).
+- **Primeira linha de dados (desktop → celular, antes→depois):** Modelos 794→485 / 1.342→652;
+  Radar 698→472 / 1.115→878; Triagem 651→556 / 901→731; Atividades 724→703 / 754→584;
+  Guias 838→721 / 1.267→1.132; NFS-e 688→651 / 963→894.
+- **Texto restante:** só fatos (contagens, datas, motivo de impedimento), custo, limite, formato de
+  arquivo e efeito legal (ciência DTE). Fontes: Microsoft UX Guide "User Interface Text"; Krug.
+- **Triagem (fase 7):** reprocessar com limite de 3 tentativas automáticas, deduplicação por
+  SHA-256 dentro do escritório, motivo obrigatório ao trocar empresa/tipo; correção de empresa
+  move a atividade sem evidência para a empresa certa (antes a troca era recusada).
+- **Infra:** gunicorn 26 registrava `Control server error: Permission denied` a cada boot;
+  `--no-control-socket` no `fly.toml` e `Dockerfile`.
+- Local: 1.192 testes aprovados, seis skips; Ruff e `makemigrations --check` limpos.
