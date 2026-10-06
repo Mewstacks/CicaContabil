@@ -4276,3 +4276,35 @@ a revisão documental solicitada, não a implementação dos pacotes nem a concl
 
 Limites: conferência na demonstração fictícia; conta de teste real ainda não aberta pelo
 proprietário. Prazos (competência × vencimento) seguem na fase 2.
+
+## V-278 — D-277 fases 2 a 5, limpeza de texto e nova tela de NFS-e (06/10/2026)
+
+- **Prazos (fase 2):** app `fiscal_calendar` com anos de calendário (CMN 4.880/2020, art. 6º, e
+  lista nacional ANBIMA; 2026 conferido em 13 datas) e regras versionadas em rascunho (DCTFWeb,
+  contribuições previdenciárias, DAS) com base legal, fonte e aprovação na plataforma. Modelos
+  ganham mês do prazo, regra legal e antecedência; recorrência abre M em M+offset; demonstração
+  com janela rolante. Produção: demo passou a mostrar competência 09/2026 com prazos em outubro
+  e guias DCTFWeb 09/2026 vencendo 20/10/2026; guias 08/2026 retiradas.
+- **Atividades (fase 3):** filtros visíveis, seleção e ação em lote (atribuir, mudar prazo,
+  concluir o que está pronto), próximo passo específico, "Assumir", mudança de prazo com motivo,
+  observações; celular com linha média 301→181 px e toolbar 349→138 px.
+- **Empresas (fase 4):** regime, IE, IM, contato e responsável por área; filtro por regime;
+  perfil editável com identidade vinda da fonte. Demo pública: cadastro somente leitura.
+- **Busca e avisos (fase 5):** busca por carteira/módulo (Ctrl+K), avisos deduplicados de
+  atribuição, prazo, fonte, DTE e certificado; tarefas diárias no Beat.
+- **Texto (fase 8):** 45 parágrafos explicativos removidos; 44 mantidos com
+  `data-copy="required"` (limite real, custo, ciência DTE, demonstração, formato); catraca zerada.
+- **NFS-e:** primeira nota de 1.343 px para 688 px no desktop (demo); um único botão primário
+  ("Classificar"); abas de situação e segmentos de movimento com contagens; um "Baixar" com XML
+  originais, pacote Domínio e retenções; filtro ao vivo mantido. Referências: Stripe Invoices,
+  Linear, NN/g (tabelas de dados), Qive. Detector Impeccable: 0 ocorrências.
+- Local: 1.180 testes e 145 subtestes aprovados, seis skips; Ruff e `makemigrations --check`
+  limpos. Produção: releases sucessivas com web/worker saudáveis.
+- **Triagem (fase 7, verificação sem mudança):** prévia, correção e quarentena prontas; faltam
+  motivo nas correções, destino exibido antes de aprovar, limite de tentativas/reprocesso de
+  FAILED, uso de `ChecklistExpectation` e deduplicação por conteúdo. Em produção a leitura de
+  caixas está desligada e não há ClamAV configurado, então a cadeia fica parada.
+
+Limites: validação em produção feita na demonstração; conta de teste real ainda não aberta pelo
+proprietário; regras de vencimento e calendários continuam rascunho até aprovação no console
+(`/platform/agenda-tributaria/`); notificações e busca não foram exercitadas com dados reais.
