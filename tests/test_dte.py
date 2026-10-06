@@ -139,7 +139,7 @@ class DteCenterTests(TestCase):
         self.assertNotIn("<details", preparation)
         self.assertLess(html.index('href="#dte-preparation"'), html.index('id="dte-inbox-title"'))
         self.assertContains(response, 'id="dte-preparation" tabindex="-1"')
-        self.assertContains(response, "O preparo não gera cobrança")
+        self.assertContains(response, "Preparar não cobra")
         self.assertFalse(DteRun.objects.exists())
         self.client.post(url, {"companies": [self.company.pk]})
         prepared = self.client.get(url)

@@ -54,7 +54,7 @@
 
 <details id="atividades" class="workspace-panel company-detail-section" open>
   <summary class="company-detail-section-summary">
-    <span><span class="company-detail-section-title" role="heading" aria-level="2">Trabalho e fechamento</span><small>Prioridades, prazos e responsáveis desta empresa.</small></span>
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Trabalho e fechamento</span></span>
     <span class="company-detail-section-count">{{ open_activity_count }} em aberto · {{ activities_count }} no total</span>
   </summary>
   <div class="company-detail-section-body">
@@ -74,7 +74,7 @@
 
 <details id="folha" class="workspace-panel company-detail-section"{% if payroll_period %} open{% endif %}>
   <summary class="company-detail-section-summary">
-    <span><span class="company-detail-section-title" role="heading" aria-level="2">Conferência da folha</span><small>Compare os totais recebidos antes de registrar o tratamento.</small></span>
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Conferência da folha</span></span>
     <span class="company-detail-section-count">{{ payroll_snapshots_total }} fonte{{ payroll_snapshots_total|pluralize }}</span>
   </summary>
   <div class="company-detail-section-body">
@@ -101,7 +101,7 @@
 
 {% if payroll_period and payroll_snapshots_count >= 2 %}
 <section id="comparar-folha" class="workspace-panel" aria-labelledby="payroll-comparison-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA · {{ payroll_period|date:'m/Y' }}</p><h2 id="payroll-comparison-title">Conferir diferenças entre fontes</h2><p data-copy="required">Escolha a fonte principal e aquela que você quer conferir. O CICA compara somente os totais informados e não calcula a folha.</p></div></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA · {{ payroll_period|date:'m/Y' }}</p><h2 id="payroll-comparison-title">Conferir diferenças entre fontes</h2></div></header>
   <form method="get" class="form-stack" data-payroll-comparison-form>
     {% if payroll_period %}<input type="hidden" name="payroll_competence" value="{{ payroll_period|date:'Y-m-d' }}">{% endif %}
     {% if payroll_comparison_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise as fontes escolhidas.</strong>{% for field in payroll_comparison_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
@@ -120,7 +120,7 @@
 
 <details id="relatorios-financeiros" class="workspace-panel company-detail-section">
   <summary class="company-detail-section-summary">
-    <span><span class="company-detail-section-title" role="heading" aria-level="2">Relatórios financeiros</span><small>DRE e caixa por fotografia identificada.</small></span>
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Relatórios financeiros</span></span>
     {% with total=accounting_snapshots_count|add:cash_scenarios_count %}<span class="company-detail-section-count">{{ total }} {% if total == 1 %}fotografia disponível{% else %}fotografias disponíveis{% endif %}</span>{% endwith %}
   </summary>
   <div class="company-detail-section-body">
@@ -138,7 +138,7 @@
   <div class="financial-report-grid">
     <section class="financial-report-group" aria-labelledby="dre-title">
       <div class="financial-report-group-head">
-        <div><h3 id="dre-title">DRE gerencial</h3><p data-copy="required">{% if active_dre_mapping %}Mapa ativo: {{ active_dre_mapping.label }} · v{{ active_dre_mapping.version }}{% else %}Um mapa DRE ativo é necessário para exportar.{% endif %}</p></div>
+        <div><h3 id="dre-title">DRE gerencial</h3><p data-copy="required">{% if active_dre_mapping %}Mapa ativo: {{ active_dre_mapping.label }} · v{{ active_dre_mapping.version }}{% else %}Sem mapa DRE ativo{% endif %}</p></div>
       </div>
       {% if accounting_snapshots %}
         <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Competência</th><th scope="col">Fonte</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for snapshot in accounting_snapshots %}<tr>
@@ -152,7 +152,7 @@
       {% endif %}
     </section>
     <section class="financial-report-group" aria-labelledby="cash-title">
-      <div class="financial-report-group-head"><div><h3 id="cash-title">Caixa gerencial</h3><p data-copy="required">Simulação, projeção e realizado continuam separados; não é uma consulta bancária automática.</p></div></div>
+      <div class="financial-report-group-head"><div><h3 id="cash-title">Caixa gerencial</h3></div></div>
       {% if cash_scenarios %}
         <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Cenário</th><th scope="col">Visão</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for scenario in cash_scenarios %}<tr>
           <td data-label="Cenário"><strong>{{ scenario.label }}</strong></td>
@@ -169,7 +169,7 @@
 
 {% if triage_available %}<details id="triagem" class="workspace-panel company-detail-section">
   <summary class="company-detail-section-summary">
-    <span><span class="company-detail-section-title" role="heading" aria-level="2">Documentos em triagem</span><small>Anexos associados e etapa real de tratamento.</small></span>
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">Documentos em triagem</span></span>
     <span class="company-detail-section-count">{{ triage_items_count }} no total</span>
   </summary>
   <div class="company-detail-section-body">
@@ -188,7 +188,7 @@
 
 <details id="documentos-nfse" class="workspace-panel company-detail-section"{% if open_cases_count %} open{% endif %}>
   <summary class="company-detail-section-summary">
-    <span><span class="company-detail-section-title" role="heading" aria-level="2">NFS-e e certificado</span><small>Documentos fiscais, revisões e cobertura A1.</small></span>
+    <span><span class="company-detail-section-title" role="heading" aria-level="2">NFS-e e certificado</span></span>
     <span class="company-detail-section-count">{{ document_count }} notas · {{ open_cases_count }} em revisão</span>
   </summary>
   <div class="company-detail-section-body company-fiscal-sections">

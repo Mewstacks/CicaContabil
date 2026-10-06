@@ -5131,29 +5131,29 @@ def nfse_queue_status(request: HttpRequest) -> JsonResponse:
         has_valid_certificate = company.id in valid_certificate_company_ids
         state = "queued"
         label = "Na fila"
-        detail = "Primeira coleta aguardando processamento."
+        detail = ""
         changed_at = sync.updated_at if sync else None
         if not has_valid_certificate:
             state = "blocked"
             label = "Certificado necessário"
-            detail = "Adicione um A1 válido para esta empresa começar a receber notas."
+            detail = ""
             counts["skipped"] += 1
             counts["requires_action"] += 1
         elif sync is None:
             if effective_status == NfseSync.Status.PAUSED:
                 state = "paused"
                 label = "Pausada"
-                detail = "A coleta está pausada somente para esta empresa."
+                detail = ""
                 counts["skipped"] += 1
             elif effective_status in {NfseSync.Status.IDLE, NfseSync.Status.QUEUED}:
                 state = "queued"
                 label = "Na fila"
-                detail = "Aguardando a empresa anterior terminar."
+                detail = ""
                 counts["queued"] += 1
             else:
                 state = "ready"
                 label = "Pronta para ativar"
-                detail = "O certificado está válido; ative a coleta na configuração."
+                detail = ""
                 counts["requires_action"] += 1
         elif effective_status == NfseSync.Status.RUNNING:
             state = "running"
@@ -5161,33 +5161,33 @@ def nfse_queue_status(request: HttpRequest) -> JsonResponse:
             detail = (
                 f"NSU {sync.checkpoint_nsu} de {sync.max_nsu}."
                 if sync.checkpoint_nsu and sync.max_nsu
-                else "Consultando novas NFS-e desta empresa."
+                else ""
             )
             counts["running"] += 1
             changed_at = sync.last_run_at or sync.updated_at
         elif effective_status in {NfseSync.Status.IDLE, NfseSync.Status.QUEUED}:
             state = "queued"
             label = "Na fila"
-            detail = "Aguardando a empresa anterior terminar."
+            detail = ""
             counts["queued"] += 1
         elif effective_status == NfseSync.Status.RETRY:
             state = "retry"
             label = "Nova tentativa"
-            detail = "Falha temporária; nova tentativa já agendada."
+            detail = ""
             counts["attention"] += 1
             counts["requires_action"] += 1
             changed_at = sync.last_error_at or sync.updated_at
         elif effective_status == NfseSync.Status.ERROR:
             state = "failed"
             label = "Falhou"
-            detail = sync.last_error_message or "Revise a configuração desta empresa."
+            detail = sync.last_error_message or ""
             counts["attention"] += 1
             counts["requires_action"] += 1
             changed_at = sync.last_error_at or sync.updated_at
         elif effective_status == NfseSync.Status.PAUSED or not sync.enabled:
             state = "paused"
             label = "Pausada"
-            detail = "Coleta pausada somente para esta empresa."
+            detail = ""
             counts["skipped"] += 1
         elif sync.last_success_at:
             state = "done"
@@ -11399,7 +11399,7 @@ def _demo_reform_alerts() -> list[SimpleNamespace]:
             ReformAlert.Source.RFB,
             ReformAlert.Relevance.REFORM,
             "Exemplo fictício: orientações operacionais sobre CBS",
-            "Cenário demonstrativo para mostrar pesquisa, fonte e data.",
+            "",
             "https://www.gov.br/receitafederal/pt-br/assuntos/noticias",
             1,
         ),
@@ -11407,7 +11407,7 @@ def _demo_reform_alerts() -> list[SimpleNamespace]:
             ReformAlert.Source.FAZENDA,
             ReformAlert.Relevance.REFORM,
             "Exemplo fictício: cronograma de implantação do IBS",
-            "Cenário demonstrativo; confirme qualquer informação na fonte oficial.",
+            "",
             "https://www.gov.br/fazenda/pt-br/canais_atendimento/imprensa",
             3,
         ),
@@ -11415,7 +11415,7 @@ def _demo_reform_alerts() -> list[SimpleNamespace]:
             ReformAlert.Source.PLANALTO,
             ReformAlert.Relevance.FISCAL,
             "Exemplo fictício: publicação de norma tributária",
-            "Cenário demonstrativo sem valor jurídico ou atualização normativa.",
+            "",
             "https://www.gov.br/planalto/pt-br/acompanhe-o-planalto/noticias",
             6,
         ),
@@ -13909,72 +13909,51 @@ def setup_center(request: HttpRequest) -> HttpResponse:
             "setup_diagnostics": [
                 {
                     "label": "Operação independente",
-                    "detail": "Empresas e atividades podem operar sem ERP conectado.",
                     "ready": ClientCompany.objects.filter(
                         organization=office, active=True
                     ).exists(),
                 },
                 {
                     "label": "Modelos de atividades",
-                    "detail": (
-                        "Defina responsáveis, prazos e evidências antes de gerar competências."
-                    ),
                     "ready": ActivityTemplate.objects.filter(
                         organization=office, active=True
                     ).exists(),
                 },
                 {
                     "label": "Fonte de dados",
-                    "detail": (
-                        "Uma fonte pronta permite atualizar estados observados; fonte pendente "
-                        "não bloqueia o restante."
-                    ),
                     "ready": sources.filter(status=DataSource.Status.READY).exists(),
                 },
                 {
                     "label": "Equipe atribuída",
-                    "detail": (
-                        "Convide colaboradores e atribua empresas para limitar a carteira "
-                        "operacional."
-                    ),
                     "ready": Membership.objects.filter(organization=office, is_active=True).count()
                     > 1,
                 },
                 {
                     "label": "Limites contratados",
-                    "detail": (
-                        "Configure franquias e tetos aprovados antes de ativar consumo cobrado."
-                    ),
                     "ready": UsageAllowance.objects.filter(organization=office).exists(),
                 },
             ],
             "setup_steps": [
                 {
                     "label": "Confirmar escritório",
-                    "detail": "Revise as condições cadastradas antes de liberar o consumo.",
                     "done": bool(profile and profile.cnpj_hash),
                     "action_label": "Ver condições",
                     "url": f"{reverse('hub:settings')}#meu-plano",
                 },
                 {
                     "label": "Escolher fonte de dados",
-                    "detail": "Domínio, Siescon quando homologado, ou operação independente.",
                     "done": sources.exists(),
                     "action_label": "Escolher fonte",
                     "url": f"{reverse('hub:setup')}#source-heading",
                 },
                 {
                     "label": "Cadastrar ou importar empresas",
-                    "detail": "Crie a carteira manualmente ou importe uma prévia conferível.",
                     "done": ClientCompany.objects.filter(organization=office, active=True).exists(),
                     "action_label": "Abrir empresas",
                     "url": reverse("hub:companies"),
                 },
                 {
                     "label": "Aplicar modelos de atividades",
-                    "detail": (
-                        "Defina prazos, responsáveis e evidências antes de gerar competências."
-                    ),
                     "done": ActivityTemplate.objects.filter(
                         organization=office, active=True
                     ).exists(),
@@ -13983,9 +13962,6 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                 },
                 {
                     "label": "Configurar os serviços desejados",
-                    "detail": (
-                        "Confira módulos e termos; nada é ativado ou cobrado automaticamente."
-                    ),
                     "done": ProductModule.objects.filter(
                         organization=office, enabled=True
                     ).exists(),
@@ -13994,7 +13970,6 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                 },
                 {
                     "label": "Convidar sua equipe",
-                    "detail": "Atribua empresas e módulos no convite de cada pessoa.",
                     "done": Membership.objects.filter(organization=office, is_active=True).count()
                     > 1,
                     "action_label": "Gerenciar equipe",
@@ -14002,25 +13977,16 @@ def setup_center(request: HttpRequest) -> HttpResponse:
                 },
                 {
                     "label": "Definir franquias e limites",
-                    "detail": "Revise franquias, saldo e teto mensal aprovados para o escritório.",
                     "done": UsageAllowance.objects.filter(organization=office).exists(),
                     "action_label": "Ver consumo",
                     "url": f"{reverse('hub:settings')}#consumo",
                 },
                 {
                     "label": "Proteger sua conta",
-                    "detail": (
-                        "MFA ativo: os próximos logins também pedem o código do aplicativo."
-                        if mfa_complete
-                        else (
-                            "Recomendado: ative o aplicativo autenticador para impedir acesso "
-                            "só com a senha."
-                        )
-                    ),
                     "done": mfa_complete,
                     "recommended": True,
                     "personal_action": True,
-                    "action_label": "Ativar MFA recomendado",
+                    "action_label": "Ativar MFA",
                     "url": f"{reverse('accounts:mfa-setup')}?next={reverse('hub:setup')}",
                 },
             ],

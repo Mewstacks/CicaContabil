@@ -82,8 +82,8 @@ def present_mailbox(
             mailbox,
             "paused",
             "Leitura automática desligada",
-            "A caixa está configurada, mas esta instalação ainda não consulta o provedor.",
-            "A Mewstack precisa homologar e habilitar a execução periódica.",
+            "",
+            "",
             provider_anchor,
         )
     if mailbox.poll_retry_after and mailbox.poll_retry_after > now:

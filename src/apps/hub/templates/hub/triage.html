@@ -2,7 +2,7 @@
 
 {% block workspace_content %}
 <section class="module-hero triage-readiness" aria-label="Recebimento">
-  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if office.is_demo %}Anexos de exemplo; leitura externa bloqueada{% elif mailbox_error_exists %}Caixa precisa de atenção{% elif not authorized_mailboxes_exist %}Caixa de e-mail não configurada{% elif not triage_email_poll_enabled %}Recebimento automático desligado{% else %}Confira o estado das caixas na configuração{% endif %}</span>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if office.is_demo %}Simulação{% elif mailbox_error_exists %}Caixa precisa de atenção{% elif not authorized_mailboxes_exist %}Caixa de e-mail não configurada{% elif not triage_email_poll_enabled %}Recebimento automático desligado{% else %}Confira o estado das caixas na configuração{% endif %}</span>
 </section>
 
 <section class="workspace-panel triage-queue-panel" aria-labelledby="triage-queue-heading">

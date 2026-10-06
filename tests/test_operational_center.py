@@ -715,7 +715,7 @@ class OperationalCenterTests(TestCase):
         complete_url = reverse("hub:activity-complete", args=[self.activity.id])
 
         refused = self.client.post(complete_url, follow=True)
-        self.assertContains(refused, "exige confirmação humana")
+        self.assertContains(refused, "confirmação humana registrada")
         self.assertNotContains(refused, "['Esta atividade")
         self.activity.refresh_from_db()
         self.assertEqual(self.activity.work_status, OperationalActivity.WorkStatus.PENDING)

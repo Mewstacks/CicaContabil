@@ -1,7 +1,7 @@
 {% if payroll_review_url %}
 <section class="workspace-panel activity-origin payroll-activity-context" aria-labelledby="payroll-review-heading">
   <h2 id="payroll-review-heading">Conferência da folha · {{ activity.competence|date:'m/Y' }}</h2>
-  <p data-copy="required">Confira os documentos e compare os totais da empresa. Depois, registre a evidência nesta atividade para concluir a revisão. A comparação não confirma fechamento ou aceite oficial.</p>
+  <p data-copy="required">Comparação não confirma fechamento oficial</p>
   <a class="button button-quiet" href="{{ payroll_review_url }}">Conferir folha desta competência</a>
 </section>
 {% endif %}

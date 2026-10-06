@@ -9,7 +9,6 @@
         <span aria-hidden="true">{% if step.done %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
         <div>
           <div class="setup-step-title"><strong>{{ step.label }}</strong>{% if step.recommended and not step.done %}<em>Recomendado</em>{% endif %}</div>
-          <small>{{ step.detail }}</small>
           {% if not step.done %}{% if can_manage_setup or step.personal_action %}<a class="text-action" href="{{ step.url }}">{{ step.action_label }} <span aria-hidden="true">→</span></a>{% endif %}{% endif %}
         </div>
       </li>
@@ -21,7 +20,7 @@
 
 <section class="workspace-panel" aria-labelledby="diagnostic-heading">
   <header class="workspace-panel-head"><div><h2 id="diagnostic-heading">O que já pode funcionar</h2></div></header>
-  <ul class="setup-checklist" aria-label="Diagnóstico da configuração">{% for item in setup_diagnostics %}<li class="{% if item.ready %}is-done{% endif %}"><span aria-hidden="true">{% if item.ready %}✓{% else %}!{% endif %}</span><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div></li>{% endfor %}</ul>
+  <ul class="setup-checklist" aria-label="Diagnóstico da configuração">{% for item in setup_diagnostics %}<li class="{% if item.ready %}is-done{% endif %}"><span aria-hidden="true">{% if item.ready %}✓{% else %}!{% endif %}</span><div><strong>{{ item.label }}</strong></div></li>{% endfor %}</ul>
 </section>
 
 {% if can_manage_setup %}<p><a class="text-action" href="{% url 'hub:dre-mapping-editor' %}">Configurar mapa DRE <span aria-hidden="true">&rarr;</span></a></p>{% endif %}
@@ -46,7 +45,7 @@
   {% if can_manage_setup and selected_source.status == 'disabled' %}
   <aside class="setup-note setup-source-reactivation" aria-labelledby="reactivate-source-title">
     <h3 id="reactivate-source-title">Fonte desativada</h3>
-    <p data-copy="required">Reative apenas se esta fonte voltar a ser usada. A reativação não consulta sistemas, não agenda sincronização e não torna os dados atuais.</p>
+    <p data-copy="required">Reativar não sincroniza dados</p>
     <form method="post">{% csrf_token %}<input type="hidden" name="action" value="reactivate-source"><input type="hidden" name="source_id" value="{{ selected_source.id }}"><label><input type="checkbox" name="confirm_reactivate" value="yes" autocomplete="off" required> Entendo que preciso executar uma nova sincronização antes de usar estes dados.</label><button class="button button-quiet" type="submit">Reativar fonte</button></form>
   </aside>
   {% endif %}
@@ -55,12 +54,12 @@
     <summary>Ver formatos para DRE e caixa</summary>
     <div>
       <h3>Saldos para DRE</h3>
-      <p data-copy="required">CSV/XLSX com <code>codigo_empresa</code>, <code>competencia</code> (AAAA-MM-DD), <code>referencia</code>, <code>conta</code>, <code>nome_conta</code> e <code>saldo</code>. Linhas com a mesma empresa, competência e referência formam uma fotografia.</p>
+      <p data-copy="required">CSV/XLSX com <code>codigo_empresa</code>, <code>competencia</code> (AAAA-MM-DD), <code>referencia</code>, <code>conta</code>, <code>nome_conta</code> e <code>saldo</code>.</p>
       <h3>Cenário de caixa</h3>
-      <p data-copy="required">CSV/XLSX com <code>codigo_empresa</code>, <code>cenario</code>, <code>visao</code>, <code>data_referencia</code>, <code>saldo_inicial</code>, <code>data</code>, <code>descricao</code> e <code>referencia</code>. Valores opcionais: <code>recebimento_bruto</code>, <code>pagamento</code>, <code>retencao</code>, <code>provisao</code> e <code>retencao_ja_provisionada</code>.</p>
+      <p data-copy="required">CSV/XLSX com <code>codigo_empresa</code>, <code>cenario</code>, <code>visao</code>, <code>data_referencia</code>, <code>saldo_inicial</code>, <code>data</code>, <code>descricao</code> e <code>referencia</code>. Opcionais: <code>recebimento_bruto</code>, <code>pagamento</code>, <code>retencao</code>, <code>provisao</code> e <code>retencao_ja_provisionada</code>.</p>
       <p>Use <code>simulation</code>, <code>projection</code> ou <code>realized</code> em <code>visao</code>. O CICA não preenche retenções, contas ou valores ausentes.</p>
       <h3>Mapa DRE</h3>
-      <p data-copy="required">CSV/XLSX com <code>conta</code>, <code>grupo</code> e <code>sinal</code> (<code>-1</code> ou <code>1</code>). Cada arquivo validado cria uma versão do mapa e preserva as versões anteriores para auditoria.</p>
+      <p data-copy="required">CSV/XLSX com <code>conta</code>, <code>grupo</code> e <code>sinal</code> (<code>-1</code> ou <code>1</code>).</p>
     </div>
   </details>
 

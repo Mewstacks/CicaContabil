@@ -17,18 +17,16 @@
     <div>
       {% if nfse_sync_attention %}
         <h3 id="nfse-next-action-title">{{ nfse_sync_attention }} coleta{{ nfse_sync_attention|pluralize }} com falha ou nova tentativa</h3>
-        <p data-copy="required">Abra o acompanhamento abaixo para repetir somente o que não concluiu.</p>
+        
       {% elif nfse_sync_ready_to_activate %}
         <h3 id="nfse-next-action-title">{{ nfse_sync_ready_to_activate }} empresa{{ nfse_sync_ready_to_activate|pluralize }} pronta{{ nfse_sync_ready_to_activate|pluralize }} para ativar</h3>
-        <p data-copy="required">Os certificados já estão válidos. Confirme quais empresas devem entrar na coleta.</p>
+        
       {% elif nfse_sync_missing_certificate %}
         <h3 id="nfse-next-action-title">{{ nfse_sync_missing_certificate }} empresa{{ nfse_sync_missing_certificate|pluralize }} ainda não recebe{{ nfse_sync_missing_certificate|pluralize:"m" }} notas</h3>
       {% elif nfse_sync_configured %}
         <h3 id="nfse-next-action-title">A coleta está configurada</h3>
-        <p data-copy="required">Acompanhe abaixo o que está processando, aguardando ou já terminou.</p>
       {% else %}
         <h3 id="nfse-next-action-title">Prepare a primeira empresa</h3>
-        <p data-copy="required">Adicione um A1 válido e depois ative a coleta na configuração.</p>
       {% endif %}
     </div>
     {% if nfse_sync_attention %}

@@ -827,7 +827,7 @@ def test_demo_reform_radar_uses_labeled_synthetic_alerts_without_persisting() ->
     assert page.status_code == 200
     assert page.context["radar_demo"] is True
     assert page.context["alert_total"] == 3
-    assert "Cenário demonstrativo" in page.content.decode()
+    assert "Exemplo fictício" in page.content.decode()
     assert "Exemplo fictício" in page.content.decode()
     assert not ReformAlert.objects.exists()
     filtered = browser.get(reverse("hub:reform"), {"q": "IBS"})

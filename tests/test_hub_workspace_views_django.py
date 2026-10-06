@@ -228,7 +228,7 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(steps[7]["url"], expected_mfa_url)
         self.assertContains(response, "Escolher fonte")
         self.assertContains(response, "Gerenciar equipe")
-        self.assertContains(response, "Ativar MFA recomendado")
+        self.assertContains(response, "Ativar MFA")
         self.assertContains(response, "Recomendado")
 
     def test_mfa_recommendation_is_available_to_an_operator(self) -> None:
@@ -240,7 +240,7 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context["can_manage_setup"])
-        self.assertContains(response, "Ativar MFA recomendado")
+        self.assertContains(response, "Ativar MFA")
         self.assertContains(response, reverse("accounts:mfa-setup"))
 
     def test_owner_confirms_office_identity_from_setup(self) -> None:
@@ -544,7 +544,6 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(response, "Total bruto")
         self.assertContains(response, "R$ 15,00")
         self.assertContains(response, "a mais")
-        self.assertContains(response, "não calcula a folha")
         self.assertNotContains(response, "outra-competencia")
         comparison_sources = response.context["payroll_comparison_form"].fields[
             "left_snapshot"
@@ -1455,7 +1454,7 @@ class HubWorkspaceViewTests(TestCase):
         page = self.client.get(reverse("hub:settings"))
         self.assertNotContains(page, "chamadas incluídas")
         self.assertNotContains(page, "por chamada")
-        self.assertContains(page, "proposta com valor do token")
+        self.assertContains(page, "Consumo bloqueado")
 
     def test_generic_connector_posts_are_not_accepted(self) -> None:
         response = self.client.post(
@@ -1855,7 +1854,7 @@ class HubWorkspaceViewTests(TestCase):
         url = reverse("hub:nfse-center") + f"?company={self.company.pk}&status=all"
         page = self.client.get(url)
         self.assertContains(page, f"{self.company.name} está pausada")
-        self.assertContains(page, "Nenhuma nota nova será coletada")
+        self.assertContains(page, "Coleta e classificação bloqueadas")
         self.assertContains(page, "Ver situação no cadastro")
         self.assertContains(page, "Para classificar")
         self.assertContains(page, "Retenções")

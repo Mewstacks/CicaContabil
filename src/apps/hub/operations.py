@@ -144,7 +144,7 @@ def completion_requirements(activity: OperationalActivity) -> tuple[str, ...]:
     if activity.evidence_requirement == "source" and "source" not in kinds:
         missing.append("Esta atividade exige evidência da fonte integrada.")
     elif activity.evidence_requirement == "human" and "human" not in kinds:
-        missing.append("Esta atividade exige confirmação humana registrada.")
+        missing.append("Exige confirmação humana registrada.")
     elif activity.evidence_requirement == "source_or_human" and not kinds.intersection(
         {"source", "human"}
     ):

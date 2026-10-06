@@ -70,7 +70,7 @@ is the row identifier and opens the note; classification happens in the row.
 <aside class="nfse-paused-context" aria-labelledby="nfse-paused-context-title">
   <div>
     <h2 id="nfse-paused-context-title">{{ nfse_selected_company.name }} está pausada</h2>
-    <p data-copy="required">Nenhuma nota nova será coletada e a classificação está bloqueada. Você ainda pode consultar o acervo e baixar notas, pacotes e relatórios já disponíveis.</p>
+    <p data-copy="required">Coleta e classificação bloqueadas · acervo e downloads disponíveis</p>
   </div>
   <a class="button button-quiet button-small" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Ver situação no cadastro</a>
 </aside>
@@ -122,7 +122,7 @@ is the row identifier and opens the note; classification happens in the row.
         {% if can_demo_download_nfse %}<div class="nfse-download-row"><div><strong>Pacote com acumuladores</strong><small>{% if nfse_selected_company %}Todas desta empresa{% else %}Carteira inteira{% endif %} · arquivos fictícios</small></div><button class="button button-quiet button-small" type="submit" form="nfse-download-demo-package"{% if not document_filtered_total %} disabled{% endif %}>Baixar ZIP</button></div>
         {% elif can_export_nfse %}<div class="nfse-download-row"><div><strong>Pacote Domínio</strong><small data-copy="required">{{ document_exportable_total }} classificada{{ document_exportable_total|pluralize }} · layout de importação em homologação</small></div><button class="button button-quiet button-small" type="submit" form="nfse-download-package"{% if not document_exportable_total %} disabled{% endif %}>Baixar ZIP</button></div>{% endif %}
         <div class="nfse-download-row"><div><strong>Retenções</strong><small>ISS, PIS, COFINS, CSLL, IRRF e INSS por nota</small></div><span class="nfse-download-pair"><button class="button button-quiet button-small" type="submit" form="nfse-retention-report" name="action" value="retention_report_pdf"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>PDF</button><button class="button button-quiet button-small" type="submit" form="nfse-retention-report" name="action" value="retention_report_xlsx"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Excel</button></span></div>
-        {% if retention_report_too_large %}<p class="nfse-download-limit" data-copy="required">Refine o filtro para até 5.000 notas por download.</p>{% endif %}
+        {% if retention_report_too_large %}<p class="nfse-download-limit" data-copy="required">Limite: 5.000 notas por download</p>{% endif %}
       </div>
     </details>
     <form id="nfse-download-originals" method="post" hidden>{% csrf_token %}<input type="hidden" name="action" value="download_original_xmls"><input type="hidden" name="report_q" value="{{ document_search }}"><input type="hidden" name="report_status" value="{{ document_status }}"><input type="hidden" name="report_direction" value="{{ document_direction }}"><input type="hidden" name="report_date_filter" value="{{ document_date_filter }}"><input type="hidden" name="report_competence" value="{{ document_competence }}"><input type="hidden" name="report_issued_from" value="{{ issued_from }}"><input type="hidden" name="report_issued_to" value="{{ issued_to }}"></form>

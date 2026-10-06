@@ -1,7 +1,7 @@
 {% if payroll_preview_page %}
 <div class="payroll-import-preview" id="payroll-preview">
   <h3>Totais da folha por empresa e competência</h3>
-  <p data-copy="required">Confira principalmente a empresa localizada, a competência e os totais. Valores vazios continuarão ausentes; o CICA não os completa.</p>
+  <p data-copy="required">Valores vazios ficam ausentes</p>
   <ol start="{{ payroll_preview_page.start_index }}">
     {% for row in payroll_preview_rows %}
     <li class="{% if row.issue %}has-issue{% endif %}">
