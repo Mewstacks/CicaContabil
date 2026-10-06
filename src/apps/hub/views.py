@@ -99,6 +99,7 @@ from apps.hub.forms import (
     CollaboratorAccessForm,
     CollaboratorInvitationForm,
     CompanyForm,
+    CompanyProfileForm,
     CostCenterForm,
     DataSourceForm,
     DreMappingFormSet,
@@ -1447,12 +1448,42 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
         and not company_has_external_source
     )
     company_form = CompanyForm(
-        request.POST or None,
+        request.POST if request.POST.get("action") == "update_company" else None,
         instance=company,
         organization=office,
         require_dominio_code=require_dominio_code,
     )
-    if request.method == "POST":
+    profile_candidates = _company_responsible_candidates(office, company)
+    profile_form = CompanyProfileForm(
+        request.POST if request.POST.get("action") == "update_profile" else None,
+        instance=company,
+        organization=office,
+        candidates=profile_candidates,
+        prefix="profile",
+    )
+    if request.method == "POST" and request.POST.get("action") == "update_profile":
+        if not can_manage_companies:
+            return refuse(request, "Esta sessão é somente leitura.")
+        before = {field: getattr(company, field) for field in profile_form.Meta.fields}
+        if profile_form.is_valid():
+            with transaction.atomic():
+                saved = profile_form.save()
+                changed_areas = profile_form.save_area_responsibles()
+            changed_fields = [
+                field for field, value in before.items() if value != getattr(saved, field)
+            ]
+            record_event(
+                action="hub.company.profile_updated",
+                actor=request.user,
+                organization=office,
+                target=saved,
+                request=request,
+                metadata={"changed_fields": changed_fields, "changed_areas": changed_areas},
+            )
+            messages.success(request, "Perfil da empresa atualizado.")
+            return redirect("hub:company-detail", company_id=company.id)
+        messages.error(request, "Revise o perfil da empresa.")
+    if request.method == "POST" and request.POST.get("action") != "update_profile":
         if request.POST.get("action") != "update_company":
             return HttpResponseBadRequest("Ação de cadastro inválida.")
         if not can_manage_companies:
@@ -1837,10 +1868,23 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "url": "#atividades",
             "opens_details": True,
         }
+    area_owner_names = dict(profile_candidates)
+    company_area_owners = [
+        {
+            "label": label,
+            "name": area_owner_names.get(str(row.user_id), "") if row.user_id else "",
+        }
+        for area, label in ActivityTemplate.Area.choices
+        for row in company.area_responsibles.all()
+        if row.area == area and row.user_id
+    ]
     context.update(
         {
             "page_title": company.name,
             "company": company,
+            "profile_form": profile_form,
+            "can_edit_profile": can_manage_companies,
+            "company_area_owners": company_area_owners,
             "documents": list(document_page.object_list),
             "document_page": document_page,
             "document_querystring": company_detail_querystrings["documents_page"],
@@ -5769,7 +5813,8 @@ def _operational_module(request: HttpRequest, code: str) -> HttpResponse:
 def _demo_guide_for_view(request: HttpRequest, guide: FiscalGuide) -> FiscalGuide:
     """Overlay each visitor's fictitious issuance without modifying seed data."""
 
-    if not guide.organization.is_demo:
+    if not guide.organization.is_demo or guide.status == FiscalGuide.Status.SKIPPED:
+        # Retired demonstration guides (an earlier competência) stay out of the queue.
         return guide
     entry = get_progress(request, "guides", guide.id)
     guide.status = FiscalGuide.Status.ISSUED if entry.get("issued") else FiscalGuide.Status.READY
@@ -12331,6 +12376,7 @@ def companies(request: HttpRequest) -> HttpResponse:
     link = request.GET.get("vinculo", "")
     certificate_filter = request.GET.get("certificado", "")
     pending_filter = request.GET.get("pendencia", "")
+    regime_filter = request.GET.get("regime", "")
 
     valid_filters = {
         "prioridade": {"", "atencao", "revisao", "certificado", "sem_codigo"},
@@ -12338,6 +12384,7 @@ def companies(request: HttpRequest) -> HttpResponse:
         "vinculo": {"", "com", "sem"},
         "certificado": {"", "valido", "vencendo", "ausente"},
         "pendencia": {"", "com", "sem"},
+        "regime": {"", "nao_informado", *ClientCompany.TaxRegime.values},
     }
     filter_values = {
         "prioridade": priority,
@@ -12345,6 +12392,7 @@ def companies(request: HttpRequest) -> HttpResponse:
         "vinculo": link,
         "certificado": certificate_filter,
         "pendencia": pending_filter,
+        "regime": regime_filter,
     }
     invalid_filter = next(
         (name for name, value in filter_values.items() if value not in valid_filters[name]),
@@ -12446,6 +12494,10 @@ def companies(request: HttpRequest) -> HttpResponse:
         rows = rows.filter(active=False)
     elif situation == "ativa":
         rows = rows.filter(active=True)
+    if regime_filter == "nao_informado":
+        rows = rows.filter(tax_regime="")
+    elif regime_filter:
+        rows = rows.filter(tax_regime=regime_filter)
     if link == "com":
         rows = rows.exclude(dominio_code="")
     elif link == "sem":
@@ -12478,10 +12530,12 @@ def companies(request: HttpRequest) -> HttpResponse:
         "vinculo": link,
         "certificado": certificate_filter,
         "pendencia": pending_filter,
+        "regime": regime_filter,
     }
     context.update(
         {
             "page_title": "Empresas",
+            "tax_regimes": ClientCompany.TaxRegime.choices,
             "companies": page.object_list,
             "page_obj": page,
             "paginator": paginator,
@@ -12518,6 +12572,25 @@ def _company_history_scope(context: dict[str, object]) -> QuerySet[ClientCompany
     if _sees_every_company(context):
         return ClientCompany.objects.filter(organization=cast(Organization, context["office"]))
     return scope
+
+
+def _company_responsible_candidates(
+    office: Organization, company: ClientCompany
+) -> list[tuple[str, str]]:
+    """People who can operate this client's work: active, operational and with access."""
+
+    candidates: list[tuple[str, str]] = []
+    for membership in (
+        Membership.objects.filter(organization=office, is_active=True, user__is_active=True)
+        .exclude(role__in=[Membership.Role.AUDITOR, Membership.Role.BILLING])
+        .select_related("user")
+        .order_by("user__full_name", "user__email")
+    ):
+        if office.is_demo and membership.user.email.startswith("demo-"):
+            continue
+        if company_queryset_for_membership(membership).filter(pk=company.pk).exists():
+            candidates.append((str(membership.user_id), membership.user.display_name))
+    return candidates
 
 
 def _can_manage_companies(context: dict[str, object]) -> bool:

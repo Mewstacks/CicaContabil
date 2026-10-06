@@ -127,6 +127,14 @@ class UsageAllowance(OrganizationScopedModel):
 
 
 class ClientCompany(OrganizationScopedModel):
+    class TaxRegime(models.TextChoices):
+        MEI = "mei", "MEI"
+        SIMPLES = "simples", "Simples Nacional"
+        PRESUMIDO = "presumido", "Lucro Presumido"
+        REAL = "real", "Lucro Real"
+        IMUNE_ISENTA = "imune_isenta", "Imune ou isenta"
+        OUTRO = "outro", "Outro"
+
     name = models.CharField(max_length=180)
     cnpj_masked = models.CharField(max_length=18, blank=True)
     commercial_root_cnpj = models.CharField(max_length=8, blank=True, db_index=True)
@@ -138,6 +146,18 @@ class ClientCompany(OrganizationScopedModel):
     )
     external_key = models.CharField(max_length=160, blank=True, db_index=True)
     source_updated_at = models.DateTimeField(null=True, blank=True)
+    # D-277: the office's own profile of the client. Editable even when the identity (name,
+    # CNPJ, code) comes from Domínio or the control plane. Contact is personal data.
+    tax_regime = models.CharField(
+        max_length=16, choices=TaxRegime.choices, blank=True, default="", db_default=""
+    )
+    state_registration = models.CharField(max_length=30, blank=True, default="", db_default="")
+    municipal_registration = models.CharField(
+        max_length=30, blank=True, default="", db_default=""
+    )
+    contact_name = models.CharField(max_length=120, blank=True, default="", db_default="")
+    contact_email = models.EmailField(max_length=254, blank=True, default="", db_default="")
+    contact_phone = models.CharField(max_length=30, blank=True, default="", db_default="")
 
     class Meta:
         ordering = ("name",)
@@ -2255,6 +2275,29 @@ class ActivityTemplateAssignment(OrganizationScopedModel):
                 raise ValidationError(
                     {field_name: "Informe um dia entre 1 e 31; meses curtos usam o último dia."}
                 )
+
+
+class CompanyAreaResponsible(OrganizationScopedModel):
+    """Default person for one area of one client (D-277); assignments without an owner use it."""
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.CASCADE, related_name="area_responsibles"
+    )
+    area = models.CharField(max_length=16, choices=ActivityTemplate.Area.choices)
+    user = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+
+    class Meta:
+        ordering = ("company__name", "area")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "area"), name="hub_unique_company_area_responsible"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.company} · {self.get_area_display()}"
 
 
 class OperationalActivity(OrganizationScopedModel):

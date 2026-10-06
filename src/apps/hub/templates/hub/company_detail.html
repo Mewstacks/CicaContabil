@@ -37,6 +37,10 @@
       <div><dt>Código Domínio</dt><dd>{% if company.dominio_code %}<span class="dominio-code">{{ company.dominio_code }}</span>{% else %}<span class="table-muted">Sem código</span>{% endif %}</dd></div>
       <div><dt>Última sincronização</dt><dd>{% if company.last_dominio_sync_at %}{{ company.last_dominio_sync_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Nunca sincronizada</span>{% endif %}</dd></div>
       <div><dt>Cadastro</dt><dd>{% if can_edit_company %}<button class="text-action" type="button" data-modal-open="company-edit-dialog">Editar dados</button>{% elif company_managed_externally %}<span>Corrigir na origem</span>{% else %}<span>Somente leitura</span>{% endif %}</dd></div>
+      <div><dt>Regime</dt><dd>{% if company.tax_regime %}{{ company.get_tax_regime_display }}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
+      <div><dt>Inscrições</dt><dd>{% if company.state_registration or company.municipal_registration %}{% if company.state_registration %}IE {{ company.state_registration }}{% endif %}{% if company.state_registration and company.municipal_registration %} · {% endif %}{% if company.municipal_registration %}IM {{ company.municipal_registration }}{% endif %}{% else %}<span class="table-muted">Não informadas</span>{% endif %}</dd></div>
+      <div><dt>Contato</dt><dd>{% if company.contact_name or company.contact_email or company.contact_phone %}{{ company.contact_name }}{% if company.contact_email %}<small><a class="text-action" href="mailto:{{ company.contact_email }}">{{ company.contact_email }}</a></small>{% endif %}{% if company.contact_phone %}<small><a class="text-action" href="tel:{{ company.contact_phone }}">{{ company.contact_phone }}</a></small>{% endif %}{% else %}<span class="table-muted">Não informado</span>{% endif %}</dd></div>
+      <div><dt>Responsáveis</dt><dd>{% for owner in company_area_owners %}<small>{{ owner.label }} · {{ owner.name }}</small>{% empty %}<span class="table-muted">Sem padrão por área</span>{% endfor %}{% if can_edit_profile %}<button class="text-action" type="button" data-modal-open="company-profile-dialog">Editar perfil</button>{% endif %}</dd></div>
     </dl>
   </div>
 </section>
@@ -257,6 +261,17 @@
   {% endif %}
 </div></details>
 
+{% if can_edit_profile %}<div id="company-profile-dialog" class="modal-backdrop" data-modal{% if profile_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-profile-title">
+    <header class="modal-head"><div><p class="section-kicker">PERFIL DO CLIENTE</p><h2 id="company-profile-title">{{ company.name }}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" class="form-stack">
+      {% csrf_token %}<input type="hidden" name="action" value="update_profile">
+      {% if profile_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.</div>{% endif %}
+      {% for field in profile_form %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}</div>{% endfor %}
+      <div class="modal-actions"><button class="button" type="submit" data-busy-label="Salvando…">Salvar perfil</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>{% endif %}
 {% if can_edit_company %}<div id="company-edit-dialog" class="modal-backdrop" data-modal{% if company_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-edit-title">
     <header class="modal-head"><div><p class="section-kicker">CADASTRO LOCAL</p><h2 id="company-edit-title">Editar empresa</h2><p>Esta alteração não muda documentos, atividades nem permissões.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>

@@ -25,6 +25,7 @@ from apps.hub.controlplane import company_queryset_for_membership
 from apps.hub.models import (
     ActivityTemplate,
     ActivityTemplateAssignment,
+    CompanyAreaResponsible,
     DataSource,
     OperationalActivity,
     OperationalActivityEvent,
@@ -420,6 +421,35 @@ def competence_ready_until(today: date, template: ActivityTemplate) -> date:
     return add_months(today.replace(day=1), -(template.due_month_offset or 0))
 
 
+def _area_responsible(assignment: ActivityTemplateAssignment, area: str) -> User | None:
+    """The company's default owner for ``area`` when that person can still operate it."""
+
+    row = (
+        CompanyAreaResponsible.objects.filter(
+            company_id=assignment.company_id, area=area, user__isnull=False
+        )
+        .select_related("user")
+        .first()
+    )
+    if row is None or row.user is None:
+        return None
+    membership = Membership.objects.filter(
+        organization_id=assignment.organization_id,
+        user_id=row.user_id,
+        is_active=True,
+        user__is_active=True,
+    ).first()
+    if (
+        membership is None
+        or membership.role in {Membership.Role.AUDITOR, Membership.Role.BILLING}
+        or not company_queryset_for_membership(membership)
+        .filter(pk=assignment.company_id)
+        .exists()
+    ):
+        return None
+    return row.user
+
+
 def _assignment_responsible_has_access(assignment: ActivityTemplateAssignment) -> bool:
     """Check the live portfolio instead of trusting an old default assignee."""
 
@@ -468,6 +498,9 @@ def generate_monthly_activities(
             continue
         assignee_is_available = _assignment_responsible_has_access(assignment)
         assignee = assignment.assigned_to if assignee_is_available else None
+        if assignment.assigned_to_id is None:
+            # D-277: without an owner in the assignment, the client's area owner takes it.
+            assignee = _area_responsible(assignment, template.area)
         due = compute_due_dates(
             template=template, assignment=assignment, competence=competence, calendar=calendar
         )

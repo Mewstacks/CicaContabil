@@ -17,6 +17,7 @@ from apps.hub.models import (
     ActivityTemplate,
     ActivityTemplateAssignment,
     ClientCompany,
+    CompanyAreaResponsible,
     CostCenter,
     DataSource,
     FinancialAccount,
@@ -72,6 +73,90 @@ class MultipleFileField(forms.FileField):
     def clean(self, data: Any, initial: Any = None) -> list[Any]:
         values = data if isinstance(data, (list, tuple)) else [data]
         return [super(MultipleFileField, self).clean(value, initial) for value in values]
+
+
+class CompanyProfileForm(forms.ModelForm):  # type: ignore[type-arg]
+    """The office's own profile of a client (D-277): regime, registrations, contact, owners."""
+
+    class Meta:
+        model = ClientCompany
+        fields = (
+            "tax_regime",
+            "state_registration",
+            "municipal_registration",
+            "contact_name",
+            "contact_email",
+            "contact_phone",
+        )
+        widgets = {
+            "state_registration": forms.TextInput(attrs={"autocomplete": "off"}),
+            "municipal_registration": forms.TextInput(attrs={"autocomplete": "off"}),
+            "contact_name": forms.TextInput(attrs={"autocomplete": "off"}),
+            "contact_email": forms.EmailInput(attrs={"autocomplete": "off"}),
+            "contact_phone": forms.TextInput(
+                attrs={"autocomplete": "off", "inputmode": "tel", "placeholder": "(51) 99999-0000"}
+            ),
+        }
+        labels = {
+            "tax_regime": "Regime tributário",
+            "state_registration": "Inscrição estadual",
+            "municipal_registration": "Inscrição municipal",
+            "contact_name": "Contato no cliente",
+            "contact_email": "E-mail do contato",
+            "contact_phone": "Telefone do contato",
+        }
+
+    def __init__(
+        self,
+        *args: Any,
+        organization: Organization,
+        candidates: list[tuple[str, str]],
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.organization = organization
+        self.fields["tax_regime"].choices = [  # type: ignore[attr-defined]
+            ("", "Não informado"),
+            *ClientCompany.TaxRegime.choices,
+        ]
+        current = {
+            row.area: str(row.user_id or "")
+            for row in CompanyAreaResponsible.objects.filter(company=self.instance)
+        }
+        self.area_field_names: list[tuple[str, str]] = []
+        for area, label in ActivityTemplate.Area.choices:
+            name = f"responsible_{area}"
+            self.fields[name] = forms.ChoiceField(
+                label=f"Responsável {label.lower()}",
+                required=False,
+                choices=[("", "Sem responsável padrão"), *candidates],
+                initial=current.get(area, ""),
+            )
+            self.area_field_names.append((area, name))
+
+    def save_area_responsibles(self) -> list[str]:
+        """Store the default owner per area; returns the areas that changed."""
+
+        changed: list[str] = []
+        for area, name in self.area_field_names:
+            user_id = self.cleaned_data.get(name) or None
+            row = CompanyAreaResponsible.objects.filter(company=self.instance, area=area).first()
+            if (str(row.user_id) if row and row.user_id else None) == user_id:
+                continue
+            if user_id is None and row is not None:
+                row.delete()
+            elif row is None:
+                CompanyAreaResponsible.objects.create(
+                    organization=self.organization,
+                    company=self.instance,
+                    area=area,
+                    user_id=user_id,
+                )
+            else:
+                row.user_id = user_id
+                row.save(update_fields=["user", "updated_at"])
+            changed.append(area)
+        return changed
 
 
 class CompanyForm(forms.ModelForm):  # type: ignore[type-arg]
