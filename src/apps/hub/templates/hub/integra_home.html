@@ -18,22 +18,22 @@
     <article class="integra-tool">
       <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">01</span><span class="integra-tool-state">{% if connector_ready %}Disponível{% else %}Consulta externa bloqueada{% endif %}</span></div>
       <h3>Caixa DTE</h3>
-      <p>Revise mensagens por empresa. Abrir o teor pode registrar ciência e iniciar prazo.</p>
+      <p data-copy="required">Revise mensagens por empresa. Abrir o teor pode registrar ciência e iniciar prazo.</p>
       <dl><div><dt>Mensagens registradas</dt><dd>{{ integra_message_count }}</dd></div><div><dt>Consultas a autorizar</dt><dd>{{ integra_pending_count }}</dd></div></dl>
       <a class="button" href="{% url 'hub:dte-center' %}">Abrir Caixa DTE</a>
     </article>
     <article class="integra-tool{% if not office.is_demo %} integra-tool-pending{% endif %}">
       <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">02</span><span class="integra-tool-state">{% if office.is_demo %}Demonstração interativa{% else %}Homologação pendente{% endif %}</span></div>
       <h3>Parcelamentos</h3>
-      <p>Consulte acordos e pagamentos. Emita o DAS da parcela.</p>
-      <p class="integra-tool-limitation">{% if office.is_demo %}Dados e emissões fictícios, só nesta sessão.{% else %}Chamadas reais seguem bloqueadas até a homologação do PARCSN e da tarifa.{% endif %}</p>
+      
+      <p data-copy="required" class="integra-tool-limitation">{% if office.is_demo %}Dados e emissões fictícios, só nesta sessão.{% else %}Chamadas reais seguem bloqueadas até a homologação do PARCSN e da tarifa.{% endif %}</p>
       <a class="button button-quiet" href="{% url 'hub:parcelamentos' %}">Abrir Parcelamentos</a>
     </article>
     <article class="integra-tool">
       <div class="integra-tool-top"><span class="integra-tool-number" aria-hidden="true">03</span><span class="integra-tool-state">{% if integra_guides_enabled %}Acompanhamento disponível{% else %}Módulo não liberado{% endif %}</span></div>
       <h3>DCTFWeb</h3>
-      <p>Confira obrigações por competência e emita guias.</p>
-      <p class="integra-tool-limitation">A emissão externa depende da conexão Serpro homologada e de contrato com tarifa configurada.</p>
+      
+      <p data-copy="required" class="integra-tool-limitation">A emissão externa depende da conexão Serpro homologada e de contrato com tarifa configurada.</p>
       {% if integra_guides_enabled %}<a class="button button-quiet" href="{% url 'hub:guides' %}">Abrir DCTFWeb</a>{% else %}<span class="integra-tool-unavailable">Peça a liberação do módulo</span>{% endif %}
     </article>
   </div>

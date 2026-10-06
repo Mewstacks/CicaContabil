@@ -1,6 +1,6 @@
 <section class="workspace-panel guide-history" id="historico" aria-labelledby="guide-history-heading">
   <h2 id="guide-history-heading">Histórico das tentativas</h2>
-  <p>Estados preservados, dos mais recentes aos mais antigos. Emissão não comprova pagamento. Consultar este histórico não gera nova chamada.</p>
+  <p data-copy="required">Estados preservados, dos mais recentes aos mais antigos. Emissão não comprova pagamento. Consultar este histórico não gera nova chamada.</p>
   {% if guide_history_rows %}
   <ol>
     {% for row in guide_history_rows %}{% with event=row.event %}

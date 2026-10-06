@@ -28,7 +28,7 @@
     <div>
       <p class="section-kicker">PRINCIPAL</p>
       <h2 id="dominio-heading">Domínio</h2>
-      <p>Empresas e obrigações do servidor local.</p>
+      
     </div>
     <span class="status-badge {% if dominio_sync_state == 'synced' %}is-active{% elif dominio_sync_state == 'failed' or dominio_sync_state == 'attention' %}is-warning{% else %}is-muted{% endif %}" role="status" aria-live="polite">
       {% if dominio_sync_state == 'synced' %}<span aria-hidden="true">✓</span> Sincronizado{% elif dominio_sync_state == 'syncing' %}Sincronizando{% elif dominio_sync_state == 'failed' %}Atenção{% elif dominio_sync_state == 'not_synced' %}Aguardando primeira atualização{% elif dominio_sync_state == 'attention' %}Aguardando agente{% else %}Não conectado{% endif %}
@@ -111,7 +111,7 @@
     <div><p class="section-kicker">OUTRAS CONEXÕES</p><h2 id="other-connections-heading">Conectores em preparação</h2><p>Ainda não recebem credenciais.</p></div>
   </header>
   <div class="connector-grid connector-grid-compact">
-    {% for item in connector_cards %}<article class="connector-card"><div class="connector-card-top"><span class="module-nav-icon" aria-hidden="true">{% if item.kind == 'siescon' %}SI{% else %}ON{% endif %}</span><span class="status-badge is-muted">Indisponível</span></div><h3>{{ item.label }}</h3><p>Conector ainda sem sincronização e verificação reais.</p></article>{% endfor %}
+    {% for item in connector_cards %}<article class="connector-card"><div class="connector-card-top"><span class="module-nav-icon" aria-hidden="true">{% if item.kind == 'siescon' %}SI{% else %}ON{% endif %}</span><span class="status-badge is-muted">Indisponível</span></div><h3>{{ item.label }}</h3><p data-copy="required">Conector ainda sem sincronização e verificação reais.</p></article>{% endfor %}
   </div>
 </section>
 {% endblock %}

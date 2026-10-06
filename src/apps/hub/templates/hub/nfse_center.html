@@ -10,7 +10,7 @@
 {% elif nfse_view == 'catalog' %}
 <section class="workspace-panel nfse-workspace" aria-labelledby="accumulator-catalog-title">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">CATÁLOGO E TRILHA AUDITÁVEL</p><h2 id="accumulator-catalog-title">Acumuladores por empresa</h2><p>Encontre o código que pode ser usado na classificação e confira de onde ele veio.</p></div>
+    <div><p class="section-kicker">CATÁLOGO E TRILHA AUDITÁVEL</p><h2 id="accumulator-catalog-title">Acumuladores por empresa</h2></div>
     <span class="record-count" role="status" aria-atomic="true">{{ accumulator_catalog_page.paginator.count }} resultado{{ accumulator_catalog_page.paginator.count|pluralize }}</span>
   </header>
   <div class="nfse-record-summary" aria-label="Resumo dos acumuladores"><div><span>Total no catálogo</span><strong>{{ accumulator_catalog_stats.total }}</strong></div><div><span>Fotografia do Domínio</span><strong>{{ accumulator_catalog_stats.backup }}</strong></div><div><span>Cadastros manuais</span><strong>{{ accumulator_catalog_stats.manual }}</strong></div><div><span>Decisões do contador</span><strong>{{ accumulator_catalog_stats.human }}</strong></div></div>
@@ -47,7 +47,7 @@
 </section>
 {% elif nfse_view == 'exports' %}
 <section class="workspace-panel nfse-workspace" aria-labelledby="nfse-exports-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">PACOTES DE CONFERÊNCIA</p><h2 id="nfse-exports-title">Downloads preparados</h2><p>Baixe novamente um ZIP, confirme seu escopo e veja quem o gerou. Estes arquivos ainda não são uma importação homologada no Domínio.</p></div><a class="button" href="{% url 'hub:nfse-center' %}?status=classified#nfse-bulk-download">Preparar novo download</a></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">PACOTES DE CONFERÊNCIA</p><h2 id="nfse-exports-title">Downloads preparados</h2><p data-copy="required">Baixe novamente um ZIP, confirme seu escopo e veja quem o gerou. Estes arquivos ainda não são uma importação homologada no Domínio.</p></div><a class="button" href="{% url 'hub:nfse-center' %}?status=classified#nfse-bulk-download">Preparar novo download</a></header>
   <div class="nfse-record-summary nfse-export-summary" aria-label="Resumo dos pacotes de conferência"><div><span>Total</span><strong>{{ nfse_export_stats.total }}</strong></div><div><span>Prontos</span><strong>{{ nfse_export_stats.ready }}</strong></div><div><span>Já baixados</span><strong>{{ nfse_export_stats.downloaded }}</strong></div></div>
   <form class="workspace-filter-form nfse-record-filters" method="get" aria-label="Pesquisar pacotes de conferência"><input type="hidden" name="view" value="exports">{% if nfse_selected_company %}<input type="hidden" name="company" value="{{ nfse_selected_company.id }}">{% endif %}<div class="workspace-filter-search"><label for="export-search">Empresa, código ou responsável</label><input id="export-search" name="export_q" value="{{ export_search }}" type="search" maxlength="100" autocomplete="off" placeholder="Ex.: Studio Alfa ou a1b2c3d4…"></div><div><label for="export-state">Situação</label><select id="export-state" name="export_state"><option value="all">Todas</option><option value="ready"{% if export_state == 'ready' %} selected{% endif %}>Pronto para baixar</option><option value="downloaded"{% if export_state == 'downloaded' %} selected{% endif %}>Já baixado</option></select></div><button class="button button-small" type="submit">Pesquisar</button>{% if export_search or export_state != 'all' %}<a class="button button-quiet button-small" href="?view=exports{% if nfse_selected_company %}&amp;company={{ nfse_selected_company.id }}{% endif %}">Limpar filtros</a>{% endif %}</form>
   {% if nfse_exports.object_list %}<div class="data-table-wrap"><table class="operational-table nfse-exports-table"><thead><tr><th scope="col">Conteúdo</th><th scope="col">Período e empresas</th><th scope="col">Situação</th><th scope="col">Responsáveis</th><th scope="col">Ação</th></tr></thead><tbody>{% for export in nfse_exports.object_list %}<tr>
@@ -70,7 +70,7 @@
 
 <section class="workspace-panel nfse-workspace">
   <header class="workspace-panel-head">
-    <div><p class="section-kicker">CONFERÊNCIA FISCAL</p><h2>Notas de serviço</h2><p>{% if nfse_selected_company and not nfse_selected_company.active %}Consulte o movimento, a contraparte, os valores e as retenções do histórico disponível.{% else %}Veja o movimento, a contraparte, os valores e as retenções antes de classificar ou baixar.{% endif %}</p></div>
+    <div><p class="section-kicker">CONFERÊNCIA FISCAL</p><h2>Notas de serviço</h2></div>
     {% if can_download_nfse %}<a class="button nfse-download-shortcut" href="#nfse-bulk-download">Baixar notas em lote</a>{% endif %}
     <span class="record-count" id="nfse-results-count" role="status">{{ document_filtered_total }} resultado{{ document_filtered_total|pluralize }}</span>
   </header>
@@ -79,7 +79,7 @@
     <div>
       <p class="section-kicker">HISTÓRICO SOMENTE PARA CONSULTA</p>
       <h3 id="nfse-paused-context-title">{{ nfse_selected_company.name }} está pausada</h3>
-      <p>Nenhuma nota nova será coletada e a classificação está bloqueada. Você ainda pode consultar o acervo e baixar notas, pacotes e relatórios já disponíveis.</p>
+      <p data-copy="required">Nenhuma nota nova será coletada e a classificação está bloqueada. Você ainda pode consultar o acervo e baixar notas, pacotes e relatórios já disponíveis.</p>
     </div>
     <a class="button button-quiet button-small" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Ver situação no cadastro</a>
   </aside>
@@ -134,7 +134,7 @@
 
   {% if can_download_nfse %}
   <div class="nfse-download-intro" id="nfse-bulk-download" tabindex="-1">
-    <div class="nfse-original-download"><div><h3>XMLs originais</h3><p>Baixe as notas deste filtro, inclusive as não classificadas. Sem alterar o XML ou incluir acumuladores.</p></div>
+    <div class="nfse-original-download"><div><h3>XMLs originais</h3><p data-copy="required">Baixe as notas deste filtro, inclusive as não classificadas. Sem alterar o XML ou incluir acumuladores.</p></div>
     <form method="post">{% csrf_token %}
       <input type="hidden" name="report_q" value="{{ document_search }}">
       <input type="hidden" name="report_status" value="{{ document_status }}">

@@ -1,12 +1,12 @@
 ﻿{% extends 'hub/workspace.html' %}
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Voltar aos anexos</a>{% endblock %}
 {% block workspace_content %}
-{% if office.is_demo %}<section class="workspace-panel triage-connect-panel" aria-labelledby="demo-triage-heading"><header class="workspace-panel-head"><div><p class="section-kicker">DEMONSTRAÇÃO FICTÍCIA</p><h2 id="demo-triage-heading">Caixa de exemplo</h2><p>Esta área usa documentos de demonstração. Conexões Microsoft, Google e IMAP reais ficam disponíveis somente no escritório cadastrado para operação.</p></div></header></section>{% else %}
+{% if office.is_demo %}<section class="workspace-panel triage-connect-panel" aria-labelledby="demo-triage-heading"><header class="workspace-panel-head"><div><p class="section-kicker">DEMONSTRAÇÃO FICTÍCIA</p><h2 id="demo-triage-heading">Caixa de exemplo</h2><p data-copy="required">Esta área usa documentos de demonstração. Conexões Microsoft, Google e IMAP reais ficam disponíveis somente no escritório cadastrado para operação.</p></div></header></section>{% else %}
 <section class="workspace-panel triage-connect-panel" aria-labelledby="triage-connect-heading">
-  <header class="workspace-panel-head"><div><h2 id="triage-connect-heading">Conectar caixa do escritório</h2><p>Escolha o provedor da caixa que recebe documentos. Você autoriza somente a caixa em que entrar; a CICA não pede sua senha principal.</p></div></header>
+  <header class="workspace-panel-head"><div><h2 id="triage-connect-heading">Conectar caixa do escritório</h2><p data-copy="required">Escolha o provedor da caixa que recebe documentos. Você autoriza somente a caixa em que entrar; a CICA não pede sua senha principal.</p></div></header>
   <div class="triage-provider-grid">
     <article class="triage-provider-card" id="triage-provider-ms">
-      <div><p class="section-kicker">Microsoft 365</p><h3>Conectar com Microsoft</h3><p>Entre na conta da caixa e conceda leitura de e-mail. Se sua empresa bloquear novos aplicativos, peça ao administrador Microsoft 365 que autorize a CICA.</p></div>
+      <div><p class="section-kicker">Microsoft 365</p><h3>Conectar com Microsoft</h3><p data-copy="required">Entre na conta da caixa e conceda leitura de e-mail. Se sua empresa bloquear novos aplicativos, peça ao administrador Microsoft 365 que autorize a CICA.</p></div>
       {% if can_manage_mailboxes and ms_oauth_ready %}
       <form method="post" action="{% url 'hub:triage-oauth-start' 'ms365_graph' %}">{% csrf_token %}<input type="hidden" name="oauth_source" value="office"><button class="button" type="submit">Conectar Microsoft 365</button></form>
       {% elif can_manage_mailboxes and not ms_app %}<p class="triage-provider-state">Primeiro configure o aplicativo Microsoft do seu escritório no passo a passo abaixo.</p>
@@ -24,7 +24,7 @@
       </details>{% endif %}
     </article>
     <article class="triage-provider-card" id="triage-provider-google">
-      <div><p class="section-kicker">Google</p><h3>Workspace e Gmail pessoal</h3><p>Escolha o tipo da caixa. O Workspace usa o aplicativo do seu escritório; Gmail pessoal usa o aplicativo verificado da Mewstack. Você autoriza apenas a conta em que entrar.</p></div>
+      <div><p class="section-kicker">Google</p><h3>Workspace e Gmail pessoal</h3><p data-copy="required">Escolha o tipo da caixa. O Workspace usa o aplicativo do seu escritório; Gmail pessoal usa o aplicativo verificado da Mewstack. Você autoriza apenas a conta em que entrar.</p></div>
       <div class="triage-google-option"><strong>Google Workspace</strong>
       {% if can_manage_mailboxes and google_workspace_ready %}<form method="post" action="{% url 'hub:triage-oauth-start' 'gmail_api' %}">{% csrf_token %}<input type="hidden" name="oauth_source" value="office"><button class="button" type="submit">Conectar Workspace</button></form>
       {% elif can_manage_mailboxes and not google_app %}<p class="triage-provider-state">Configure o aplicativo Google do escritório no guia abaixo.</p>
@@ -47,7 +47,7 @@
       </details>{% endif %}
     </article>
     <article class="triage-provider-card" id="triage-provider-imap">
-      <div><p class="section-kicker">Outros provedores</p><h3>IMAP com TLS</h3><p>Use os dados de IMAP do seu provedor. O teste usa TLS, porta 993 e leitura sem alterar mensagens. Uma senha específica de aplicativo pode ser necessária.</p></div>
+      <div><p class="section-kicker">Outros provedores</p><h3>IMAP com TLS</h3><p data-copy="required">Use os dados de IMAP do seu provedor. O teste usa TLS, porta 993 e leitura sem alterar mensagens. Uma senha específica de aplicativo pode ser necessária.</p></div>
       {% if can_manage_mailboxes %}
       <details class="triage-imap-details" {% if imap_form.errors %}open{% endif %}>
         <summary>Configurar IMAP</summary>
@@ -66,7 +66,7 @@
 </section>
 
 <section class="workspace-panel triage-destination-panel" aria-labelledby="triage-destination-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">DESTINO</p><h2 id="triage-destination-heading">Onde guardar arquivos aprovados</h2><p>Raiz e formato de pastas deste escritório.</p></div>{% if destination_profile.mode == 'windows' %}<span class="nfse-status {% if destination_agent_online %}nfse-status-success{% else %}nfse-status-attention{% endif %}">{% if destination_agent_online %}Agente conectado{% else %}Agente sem sinal{% endif %}</span>{% endif %}</header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">DESTINO</p><h2 id="triage-destination-heading">Onde guardar arquivos aprovados</h2></div>{% if destination_profile.mode == 'windows' %}<span class="nfse-status {% if destination_agent_online %}nfse-status-success{% else %}nfse-status-attention{% endif %}">{% if destination_agent_online %}Agente conectado{% else %}Agente sem sinal{% endif %}</span>{% endif %}</header>
   {% if destination_profile.mode == 'windows' %}<div class="inline-alert{% if not destination_agent_online %} inline-alert-warning{% endif %}" role="status"><strong>{% if destination_agent %}{{ destination_agent.label }}{% else %}Nenhum agente pareado{% endif %}</strong><span>{% if destination_agent.last_seen_at %}Último sinal em {{ destination_agent.last_seen_at|date:'d/m/Y H:i' }}.{% else %}Este escritório ainda não pareou um agente Windows.{% endif %} {% if destination_last_write %}Última gravação confirmada em {{ destination_last_write.completed_at|date:'d/m/Y H:i' }}: <code>{{ destination_last_write.destination_path }}</code>.{% else %}Nenhuma gravação confirmada até agora.{% endif %}</span>{% if destination_failed_write %}<span>Última falha: {{ destination_failed_write.result|default:'sem detalhe registrado' }}</span>{% endif %}</div>{% endif %}
   <form class="triage-operation-form" method="post" action="{% url 'hub:triage-destination-configure' %}">{% csrf_token %}
     {% if destination_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise o destino e tente novamente. {{ destination_form.non_field_errors|striptags }}</div>{% endif %}
@@ -78,7 +78,7 @@
 {% endif %}
 
 <section class="workspace-panel triage-mailboxes-panel" aria-labelledby="triage-mailboxes-heading">
-  <header class="workspace-panel-head"><div><h2 id="triage-mailboxes-heading">Caixas deste escritório</h2><p>Confira a autorização, a leitura e o que precisa de ação em cada caixa. Anexos recebidos ficam em quarentena até a revisão de segurança.</p></div></header>
+  <header class="workspace-panel-head"><div><h2 id="triage-mailboxes-heading">Caixas deste escritório</h2></div></header>
   {% if mailbox_rows %}
   <ul class="triage-mailbox-list">
     {% for row in mailbox_rows %}
@@ -107,6 +107,6 @@
     {% endwith %}
     {% endfor %}
   </ul>
-  {% else %}<div class="module-clean-empty"><h3>Nenhuma caixa de e-mail conectada</h3><p>A conexão do provedor vem primeiro. O processamento de anexos continua desligado nesta instalação.</p></div>{% endif %}
+  {% else %}<div class="module-clean-empty"><h3>Nenhuma caixa de e-mail conectada</h3><p data-copy="required">A conexão do provedor vem primeiro. O processamento de anexos continua desligado nesta instalação.</p></div>{% endif %}
 </section>
 {% endblock %}

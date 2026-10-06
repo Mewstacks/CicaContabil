@@ -74,7 +74,7 @@
 
 {% if dominio_calculation %}
 <section class="workspace-panel dctfweb-reconcile" aria-labelledby="dctfweb-reconcile-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">DEPOIS DOS DOCUMENTOS</p><h2 id="dctfweb-reconcile-heading">Preparar a emissão</h2><p>O CICA relê a apuração do Domínio ao confirmar. O DARF do Serpro continua sendo o valor oficial.</p></div>{% if prepared_guide %}<span class="module-state {% if prepared_guide.status == 'issued' %}is-active{% else %}is-warning{% endif %}">{{ prepared_guide.get_status_display }}</span>{% endif %}</header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">DEPOIS DOS DOCUMENTOS</p><h2 id="dctfweb-reconcile-heading">Preparar a emissão</h2><p data-copy="required">O CICA relê a apuração do Domínio ao confirmar. O DARF do Serpro continua sendo o valor oficial.</p></div>{% if prepared_guide %}<span class="module-state {% if prepared_guide.status == 'issued' %}is-active{% else %}is-warning{% endif %}">{{ prepared_guide.get_status_display }}</span>{% endif %}</header>
   <dl class="detail-list">
     <div><dt>Componentes no Domínio</dt><dd>{{ dominio_calculation.component_count }}</dd></div>
     <div><dt>Soma calculada</dt><dd>R$ {{ dominio_calculation.amount_brl|floatformat:2 }}</dd></div>

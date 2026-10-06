@@ -14,7 +14,7 @@
 </section>
 
 <section class="workspace-panel registry-panel radar-analysis" aria-labelledby="analysis-form-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">Decisão humana</p><h2 id="analysis-form-heading">Criar análise para uma empresa</h2><p>A atividade ficará atribuída a você, sem prazo ou obrigação presumidos.</p></div></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">Decisão humana</p><h2 id="analysis-form-heading">Criar análise para uma empresa</h2><p data-copy="required">A atividade ficará atribuída a você, sem prazo ou obrigação presumidos.</p></div></header>
   {% if can_request_analysis %}
   <form method="post" autocomplete="off" data-radar-analysis-form>
     {% csrf_token %}
@@ -29,7 +29,7 @@
 </section>
 
 <section class="workspace-panel radar-existing" aria-labelledby="existing-analysis-heading">
-  <header class="workspace-panel-head"><div><p class="section-kicker">Trabalho já vinculado</p><h2 id="existing-analysis-heading">Análises desta publicação</h2><p>Abra a atividade existente para continuar a conferência sem duplicar trabalho.</p></div><span class="record-count">{{ radar_activity_page.paginator.count }}</span></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">Trabalho já vinculado</p><h2 id="existing-analysis-heading">Análises desta publicação</h2></div><span class="record-count">{{ radar_activity_page.paginator.count }}</span></header>
   {% if radar_activity_page %}<ul class="radar-analysis-list">{% for item in radar_activity_page %}<li><div><strong>{{ item.company.name }}</strong><span class="module-state {% if item.work_status == 'blocked' %}is-danger{% elif item.work_status == 'done' %}is-active{% else %}is-warning{% endif %}">{{ item.get_work_status_display }}</span></div><a class="button button-quiet button-small" href="{% url 'hub:activity-detail' item.pk %}">Abrir atividade<span class="sr-only"> de {{ item.company.name }}</span></a></li>{% endfor %}</ul>{% if radar_activity_page.has_other_pages %}<nav class="pagination" aria-label="Páginas de análises">{% if radar_activity_page.has_previous %}<a class="button button-quiet button-small" href="?page={{ radar_activity_page.previous_page_number }}{% if request.GET.return_to %}&amp;return_to={{ request.GET.return_to|urlencode }}{% endif %}">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span>Página {{ radar_activity_page.number }} de {{ radar_activity_page.paginator.num_pages }}</span>{% if radar_activity_page.has_next %}<a class="button button-quiet button-small" href="?page={{ radar_activity_page.next_page_number }}{% if request.GET.return_to %}&amp;return_to={{ request.GET.return_to|urlencode }}{% endif %}">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}{% else %}<div class="empty-block"><strong>Nenhuma análise criada</strong><p>Quando alguém vincular esta publicação a uma empresa, a atividade aparecerá aqui.</p></div>{% endif %}
 </section>
 <script src="{% static 'hub/reform-analysis.js' %}?v=cica-4" defer></script>

@@ -2,7 +2,7 @@
 {% block title %}Mapa DRE | CICA{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel" aria-labelledby="dre-map-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">RELAT&Oacute;RIOS</p><h2 id="dre-map-title">Mapa DRE</h2><p>Conta, grupo e sinal definem a apresenta&ccedil;&atilde;o da DRE. Salvar cria uma nova vers&atilde;o completa e preserva as anteriores.</p></div>{% if active_dre_mapping %}<span class="module-state is-active">Ativo &middot; v{{ active_dre_mapping.version }}</span>{% else %}<span class="module-state is-warning">Sem mapa ativo</span>{% endif %}</header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">RELAT&Oacute;RIOS</p><h2 id="dre-map-title">Mapa DRE</h2></div>{% if active_dre_mapping %}<span class="module-state is-active">Ativo &middot; v{{ active_dre_mapping.version }}</span>{% else %}<span class="module-state is-warning">Sem mapa ativo</span>{% endif %}</header>
   {% if can_manage_dre_mapping %}
     <form method="post" class="import-form" novalidate data-dre-mapping-form>{% csrf_token %}
       {{ dre_mapping_formset.management_form }}
@@ -17,7 +17,7 @@
     </form>
   {% else %}<div class="compact-empty">Somente propriet&aacute;rios e administradores podem alterar este mapa.</div>{% endif %}
 </section>
-<section class="workspace-panel" aria-labelledby="dre-map-history"><header class="workspace-panel-head"><div><h2 id="dre-map-history">Vers&otilde;es preservadas</h2><p>Relat&oacute;rios antigos continuam ligados a sua fotografia e vers&atilde;o original.</p></div></header>
+<section class="workspace-panel" aria-labelledby="dre-map-history"><header class="workspace-panel-head"><div><h2 id="dre-map-history">Vers&otilde;es preservadas</h2></div></header>
 {% if dre_mapping_versions %}<div class="data-table-wrap"><table class="operational-table"><thead><tr><th scope="col">Vers&atilde;o</th><th scope="col">Nome</th><th scope="col">Situa&ccedil;&atilde;o</th><th scope="col">Criada</th></tr></thead><tbody>{% for version in dre_mapping_versions %}<tr><td data-label="Vers&atilde;o"><strong>v{{ version.version }}</strong></td><td data-label="Nome">{{ version.label }}</td><td data-label="Situa&ccedil;&atilde;o"><span class="module-state {% if version.is_active %}is-active{% else %}is-muted{% endif %}">{% if version.is_active %}Ativa{% else %}Hist&oacute;rica{% endif %}</span></td><td data-label="Criada">{{ version.created_at }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="compact-empty">Nenhuma vers&atilde;o foi criada ainda.</div>{% endif %}
 </section>
 {% endblock %}

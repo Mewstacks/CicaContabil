@@ -5,7 +5,7 @@
 
 {% block workspace_content %}
 <section class="workspace-panel registry-panel radar-center" aria-labelledby="radar-heading">
-  <header class="workspace-panel-head radar-heading"><div><p class="section-kicker">Acompanhamento oficial</p><h2 id="radar-heading">Publicações para triagem</h2><p>Encontre a atualização, confira a fonte e só então crie uma análise para a empresa afetada.</p></div><span class="record-count">{{ alert_total }} {% if alert_total == 1 %}publicação{% else %}publicações{% endif %}</span></header>
+  <header class="workspace-panel-head radar-heading"><div><p class="section-kicker">Acompanhamento oficial</p><h2 id="radar-heading">Publicações para triagem</h2></div><span class="record-count">{{ alert_total }} {% if alert_total == 1 %}publicação{% else %}publicações{% endif %}</span></header>
   {% if radar_demo %}<div class="inline-alert" role="status"><strong>Cenário demonstrativo</strong><span>Os títulos são fictícios. Os links levam apenas à página inicial da fonte e nenhuma análise é criada.</span></div>{% endif %}
 
   <form class="workspace-filter-form radar-filters" method="get" aria-label="Pesquisar e filtrar publicações">

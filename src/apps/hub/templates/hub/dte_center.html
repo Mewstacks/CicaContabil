@@ -12,7 +12,7 @@
   <div>
     <p class="section-kicker">Integra Contador · operação do escritório</p>
     <h2 id="dte-heading">Mensagens por empresa</h2>
-    <p>Confira mensagens e atualize a caixa quando precisar.</p>
+    
     {% if can_prepare_dte or pending_runs %}<nav class="dte-task-actions" aria-label="Ações da Caixa Postal">
       {% if can_prepare_dte %}<a class="button" href="#dte-preparation">Escolher empresas para consultar</a>{% endif %}
       {% if pending_runs %}<a class="button button-quiet" href="#dte-approval">Ver consultas preparadas ({{ pending_runs|length }})</a>{% endif %}
@@ -56,7 +56,7 @@
     <ul class="dte-message-list">
       {% for message in dte_message_page %}
       <li class="dte-message-row">
-        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3>{{ message.subject|default:'Assunto não informado' }}</h3><p>{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }} · recebida há {{ message.sent_at|timesince }}{% else %}Data não informada{% endif %}</p></div>
+        <div class="dte-message-main"><span class="source-code">{{ message.company.name }}</span><h3>{{ message.subject|default:'Assunto não informado' }}</h3><p data-copy="required">{{ message.sender|default:'Origem não informada' }} · {% if message.sent_at %}{{ message.sent_at|date:'d/m/Y H:i' }} · recebida há {{ message.sent_at|timesince }}{% else %}Data não informada{% endif %}</p></div>
         <div class="dte-message-state">
           {% if message.access_receipt.status == 'unknown' %}<span class="dte-status dte-status-failed">Ciência a conferir</span>
           {% elif message.access_receipt.status == 'reading' %}<span class="dte-status dte-status-pending">Abertura em andamento</span>

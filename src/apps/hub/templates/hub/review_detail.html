@@ -4,7 +4,7 @@
 {% block workspace_subnav %}{% include 'hub/nfse_navigation.html' %}{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel review-detail-panel" aria-labelledby="review-context-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">DOCUMENTO E ORIGEM</p><h2 id="review-context-title">{{ review.document.company.name }}</h2><p>Esta decisão vale apenas para a NFS-e abaixo.</p></div><span class="module-state {% if review.status == 'open' %}is-warning{% else %}is-active{% endif %}">{{ review.get_status_display }}</span></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">DOCUMENTO E ORIGEM</p><h2 id="review-context-title">{{ review.document.company.name }}</h2><p data-copy="required">Esta decisão vale apenas para a NFS-e abaixo.</p></div><span class="module-state {% if review.status == 'open' %}is-warning{% else %}is-active{% endif %}">{{ review.get_status_display }}</span></header>
   <dl class="identity-grid">
     <div><dt>Documento</dt><dd>{{ review.document.source_nsu|default:"Sem NSU informado" }}</dd></div>
     <div><dt>Capturado</dt><dd><time datetime="{{ review.document.captured_at|date:'c' }}">{{ review.document.captured_at|date:"d/m/Y H:i" }}</time></dd></div>

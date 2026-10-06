@@ -1860,7 +1860,6 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(page, "Nenhuma nota nova será coletada")
         self.assertContains(page, "Ver situação no cadastro")
         self.assertContains(page, "Ver pendências")
-        self.assertContains(page, "Consulte o movimento")
         self.assertContains(page, "Inclui 1 nota do filtro atual")
         self.assertNotContains(page, "1 para classificar")
         self.assertFalse(page.context["can_classify_nfse"])

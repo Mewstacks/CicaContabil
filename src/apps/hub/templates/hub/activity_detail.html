@@ -48,12 +48,12 @@
   {% include 'hub/partials/activity_assignment.html' %}
 
   <section class="workspace-panel activity-evidence-panel" aria-labelledby="evidence-heading">
-    <header class="workspace-panel-head"><div><p class="section-kicker">EVIDÊNCIAS</p><h2 id="evidence-heading">O que comprova este trabalho</h2><p>Registros imutáveis usados para sustentar a conclusão.</p></div><span class="record-count">{{ activity_evidence|length }}</span></header>
+    <header class="workspace-panel-head"><div><p class="section-kicker">EVIDÊNCIAS</p><h2 id="evidence-heading">O que comprova este trabalho</h2></div><span class="record-count">{{ activity_evidence|length }}</span></header>
     {% if activity_evidence %}<ol class="activity-timeline">{% for item in activity_evidence %}<li><strong>{{ item.get_kind_display }}</strong><span>{{ item.summary }}</span>{% if item.reference %}<small>Referência: <span translate="no">{{ item.reference }}</span></small>{% endif %}<time datetime="{{ item.observed_at|date:'c' }}">{{ item.observed_at|date:'d/m/Y H:i' }}</time></li>{% endfor %}</ol>{% else %}<div class="empty-block"><strong>Nenhuma evidência registrada</strong><p>Registre a confirmação ou aguarde a fonte integrada antes de concluir.</p></div>{% endif %}
   </section>
 
   <aside class="workspace-panel activity-actions" id="activity-actions" aria-labelledby="activity-actions-heading">
-    <header><p class="section-kicker">ATUALIZAR ATIVIDADE</p><h2 id="activity-actions-heading">Registre o que aconteceu</h2><p>Escolha somente a ação que representa o trabalho feito agora.</p></header>
+    <header><p class="section-kicker">ATUALIZAR ATIVIDADE</p><h2 id="activity-actions-heading">Registre o que aconteceu</h2></header>
     {% if activity_action_error %}<div class="form-errors" role="alert" tabindex="-1" data-activity-errors><strong>{{ activity_action_error }}</strong></div>{% endif %}
     {% if office.is_demo %}<p>Atividade fictícia para consulta. Explore estados, evidências e histórico; este cenário não altera dados nem executa operações externas.</p>
     {% elif can_manage_activity %}

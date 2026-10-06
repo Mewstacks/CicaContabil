@@ -7,7 +7,7 @@
     <div>
       <p class="section-kicker">AUDITORIA · SOMENTE LEITURA</p>
       <h2>Histórico de decisões da conciliação</h2>
-      <p>Investigue alterações, aprovações e exportações. A trilha informa quem fez o quê e quando, sem expor arquivos, documentos financeiros ou segredos.</p>
+      
     </div>
     <div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a></div>
   </header>
@@ -20,7 +20,7 @@
 
 <section class="workspace-panel reconciliation-v2-panel audit-results" aria-labelledby="audit-results-title">
   <header class="workspace-panel-head audit-results-head">
-    <div><p class="section-kicker">LOCALIZAR EVENTO</p><h2 id="audit-results-title">Atividades registradas</h2><p>Combine os filtros para conferir uma decisão ou investigar uma falha específica.</p></div>
+    <div><p class="section-kicker">LOCALIZAR EVENTO</p><h2 id="audit-results-title">Atividades registradas</h2></div>
   </header>
   {% if reconciliation_audit_filter_errors %}<div class="form-errors audit-filter-errors" tabindex="-1" role="alert" data-form-errors><strong>Confira os filtros.</strong>{% for error in reconciliation_audit_filter_errors %}<a href="#audit-filters">{{ error }}</a>{% endfor %}</div>{% endif %}
   <form method="get" class="audit-filters" id="audit-filters" aria-label="Filtrar eventos de auditoria">

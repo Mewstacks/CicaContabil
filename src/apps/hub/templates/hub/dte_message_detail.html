@@ -14,7 +14,7 @@
 <section class="dte-detail-heading" aria-labelledby="dte-detail-title">
   <p class="section-kicker">{{ dte_message.company.name }} · Caixa Postal</p>
   <h2 id="dte-detail-title">{{ dte_message.subject|default:'Assunto não informado' }}</h2>
-  <p>{{ dte_message.sender|default:'Origem não informada' }} · {% if dte_message.sent_at %}Enviada em {{ dte_message.sent_at|date:'d/m/Y H:i' }}{% else %}Data de envio não informada{% endif %}</p>
+  <p data-copy="required">{{ dte_message.sender|default:'Origem não informada' }} · {% if dte_message.sent_at %}Enviada em {{ dte_message.sent_at|date:'d/m/Y H:i' }}{% else %}Data de envio não informada{% endif %}</p>
 </section>
 
 <div class="dte-detail-grid">

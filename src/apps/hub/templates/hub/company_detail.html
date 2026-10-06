@@ -14,7 +14,7 @@
     <div>
       <p class="section-kicker">ESPAÇO DE TRABALHO DO CLIENTE</p>
       <h2 id="company-overview-title">O que precisa acontecer agora</h2>
-      <p>Confira a prioridade e entre direto na área certa, sem procurar pela página inteira.</p>
+      
     </div>
     <div class="company-overview-state">
       {% if company.active %}<span class="module-state is-active">Empresa ativa</span>{% else %}<span class="module-state is-danger">Empresa pausada</span>{% endif %}
@@ -103,7 +103,7 @@
 
 {% if payroll_period and payroll_snapshots_count >= 2 %}
 <section id="comparar-folha" class="workspace-panel" aria-labelledby="payroll-comparison-title">
-  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA · {{ payroll_period|date:'m/Y' }}</p><h2 id="payroll-comparison-title">Conferir diferenças entre fontes</h2><p>Escolha a fonte principal e aquela que você quer conferir. O CICA compara somente os totais informados e não calcula a folha.</p></div></header>
+  <header class="workspace-panel-head"><div><p class="section-kicker">CONFERÊNCIA · {{ payroll_period|date:'m/Y' }}</p><h2 id="payroll-comparison-title">Conferir diferenças entre fontes</h2><p data-copy="required">Escolha a fonte principal e aquela que você quer conferir. O CICA compara somente os totais informados e não calcula a folha.</p></div></header>
   <form method="get" class="form-stack" data-payroll-comparison-form>
     {% if payroll_period %}<input type="hidden" name="payroll_competence" value="{{ payroll_period|date:'Y-m-d' }}">{% endif %}
     {% if payroll_comparison_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Revise as fontes escolhidas.</strong>{% for field in payroll_comparison_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
@@ -128,7 +128,7 @@
   <div class="company-detail-section-body">
   {% if financial_report_exports %}
     <section class="financial-report-group" aria-labelledby="financial-report-exports-title">
-      <div class="financial-report-group-head"><div><h3 id="financial-report-exports-title">Solicitacoes recentes</h3><p>Cada arquivo preserva a fotografia e a situacao da geracao. Atualize a pagina para acompanhar uma solicitacao em andamento.</p></div></div>
+      <div class="financial-report-group-head"><div><h3 id="financial-report-exports-title">Solicitacoes recentes</h3></div></div>
       <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Relatorio</th><th scope="col">Solicitado</th><th scope="col">Situacao</th><th scope="col"><span class="sr-only">Arquivo</span></th></tr></thead><tbody>{% for export in financial_report_exports %}<tr>
         <td data-label="Relatorio"><strong>{{ export.get_resource_display }} / {{ export.get_export_format_display }}</strong><small>Fotografia {{ export.snapshot_sha256|slice:":12" }}</small></td>
         <td data-label="Solicitado">{{ export.created_at|date:"d/m/Y H:i" }}<small>{{ export.requested_by.email }}</small></td>
@@ -140,7 +140,7 @@
   <div class="financial-report-grid">
     <section class="financial-report-group" aria-labelledby="dre-title">
       <div class="financial-report-group-head">
-        <div><h3 id="dre-title">DRE gerencial</h3><p>{% if active_dre_mapping %}Mapa ativo: {{ active_dre_mapping.label }} · v{{ active_dre_mapping.version }}{% else %}Um mapa DRE ativo é necessário para exportar.{% endif %}</p></div>
+        <div><h3 id="dre-title">DRE gerencial</h3><p data-copy="required">{% if active_dre_mapping %}Mapa ativo: {{ active_dre_mapping.label }} · v{{ active_dre_mapping.version }}{% else %}Um mapa DRE ativo é necessário para exportar.{% endif %}</p></div>
       </div>
       {% if accounting_snapshots %}
         <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Competência</th><th scope="col">Fonte</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for snapshot in accounting_snapshots %}<tr>
@@ -154,7 +154,7 @@
       {% endif %}
     </section>
     <section class="financial-report-group" aria-labelledby="cash-title">
-      <div class="financial-report-group-head"><div><h3 id="cash-title">Caixa gerencial</h3><p>Simulação, projeção e realizado continuam separados; não é uma consulta bancária automática.</p></div></div>
+      <div class="financial-report-group-head"><div><h3 id="cash-title">Caixa gerencial</h3><p data-copy="required">Simulação, projeção e realizado continuam separados; não é uma consulta bancária automática.</p></div></div>
       {% if cash_scenarios %}
         <div class="data-table-wrap"><table class="operational-table company-context-table"><thead><tr><th scope="col">Cenário</th><th scope="col">Visão</th><th scope="col">Referência</th><th scope="col"><span class="sr-only">Exportar</span></th></tr></thead><tbody>{% for scenario in cash_scenarios %}<tr>
           <td data-label="Cenário"><strong>{{ scenario.label }}</strong></td>
@@ -274,7 +274,7 @@
 </div>{% endif %}
 {% if can_edit_company %}<div id="company-edit-dialog" class="modal-backdrop" data-modal{% if company_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-edit-title">
-    <header class="modal-head"><div><p class="section-kicker">CADASTRO LOCAL</p><h2 id="company-edit-title">Editar empresa</h2><p>Esta alteração não muda documentos, atividades nem permissões.</p></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <header class="modal-head"><div><p class="section-kicker">CADASTRO LOCAL</p><h2 id="company-edit-title">Editar empresa</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
     <form method="post" class="form-stack">
       {% csrf_token %}<input type="hidden" name="action" value="update_company">
       {% if company_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Confira os campos indicados antes de salvar.{% if company_form.non_field_errors %} {{ company_form.non_field_errors|striptags }}{% endif %}</div>{% endif %}
