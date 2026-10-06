@@ -66,6 +66,29 @@ def generate_recurring_activities() -> dict[str, int]:
     return generate_due_assignments()
 
 
+@shared_task(name="hub.notify_due_activities")  # type: ignore[untyped-decorator]
+def notify_due_activities_task() -> dict[str, int]:
+    """In-product notices for due today, due tomorrow and first day overdue (D-277)."""
+
+    from apps.hub.notifications import notify_due_activities
+
+    return notify_due_activities()
+
+
+@shared_task(name="hub.notify_expiring_certificates")  # type: ignore[untyped-decorator]
+def notify_expiring_certificates_task() -> int:
+    from apps.hub.notifications import notify_expiring_certificates
+
+    return notify_expiring_certificates()
+
+
+@shared_task(name="hub.purge_read_notifications")  # type: ignore[untyped-decorator]
+def purge_read_notifications_task() -> int:
+    from apps.hub.notifications import purge_read_notifications
+
+    return purge_read_notifications()
+
+
 @shared_task(name="hub.refresh_demo_operations")  # type: ignore[untyped-decorator]
 def refresh_demo_operations() -> dict[str, int]:
     """Roll the synthetic demonstration window so its dates stay coherent every day."""

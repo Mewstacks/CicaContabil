@@ -1,0 +1,8 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<form class="workspace-panel search-page-form" method="get" role="search">
+  <div class="field"><label for="search-page-input">Busca</label><input id="search-page-input" name="q" type="search" value="{{ search_query }}" placeholder="Empresa, CNPJ, atividade ou nota" autocomplete="off" maxlength="80" autofocus></div>
+  <button class="button" type="submit" data-busy-label="Buscando…">Buscar</button>
+</form>
+<section class="workspace-panel search-page-results" aria-label="Resultados">{% include 'hub/partials/search_results.html' %}</section>
+{% endblock %}

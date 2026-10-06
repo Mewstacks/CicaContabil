@@ -55,6 +55,13 @@ urlpatterns = [
         views.download_financial_report_export,
         name="financial-report-export-download",
     ),
+    path("app/busca/", views.workspace_search, name="search"),
+    path("app/avisos/", views.notifications_center, name="notifications"),
+    path(
+        "app/avisos/<uuid:notification_id>/",
+        views.notification_open,
+        name="notification-open",
+    ),
     path("app/atividades/", views.activities, name="activities"),
     path("app/atividades/modelos/", views.activity_models, name="activity-models"),
     path("app/atividades/em-lote/", views.activity_bulk_action, name="activity-bulk-action"),

@@ -2773,3 +2773,43 @@ class FinancialReportExport(OrganizationScopedModel):
             raise ValidationError("O relatorio precisa pertencer ao escritorio da empresa.")
         if self.requested_by_id and not self.requested_by.is_active:
             raise ValidationError("O solicitante do relatorio precisa estar ativo.")
+
+
+class Notification(OrganizationScopedModel):
+    """In-product notice for one person (D-277); never e-mail, never a message to clients."""
+
+    class Kind(models.TextChoices):
+        ASSIGNED = "assigned", "Atribuída a você"
+        DUE_TODAY = "due_today", "Vence hoje"
+        DUE_SOON = "due_soon", "Vence amanhã"
+        OVERDUE = "overdue", "Em atraso"
+        SOURCE_FAILED = "source_failed", "Fonte indisponível"
+        DTE_RECEIVED = "dte_received", "Nova mensagem na Caixa DTE"
+        CERTIFICATE_EXPIRING = "certificate_expiring", "Certificado vencendo"
+
+    recipient = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="notifications"
+    )
+    kind = models.CharField(max_length=32, choices=Kind.choices)
+    title = models.CharField(max_length=200)
+    activity = models.ForeignKey(
+        OperationalActivity, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
+    company = models.ForeignKey(
+        ClientCompany, null=True, blank=True, on_delete=models.CASCADE, related_name="+"
+    )
+    dedupe_key = models.CharField(max_length=160)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "recipient", "dedupe_key"),
+                name="hub_unique_notification_per_recipient",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "recipient", "read_at"))]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()}: {self.title}"

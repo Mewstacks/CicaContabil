@@ -165,6 +165,7 @@ from apps.hub.models import (
     NfseExport,
     NfseSync,
     NormalizedMovement,
+    Notification,
     OfficeProfile,
     OnboardingProgress,
     OperationalActivity,
@@ -227,6 +228,7 @@ from apps.hub.reconciliation_service import (
     undo_reconciliation as undo_normalized_reconciliation,
 )
 from apps.hub.reporting_exports import FinancialReportExportError, prepare_export
+from apps.hub.search import search_workspace
 from apps.hub.services import (
     DCTFWEB_DOCUMENT_SERVICE,
     DTE_ACTION_CODE,
@@ -841,6 +843,13 @@ def workspace_context(request: HttpRequest) -> dict[str, object]:
         ).count()
         if office
         else 0,
+        "unread_notifications_count": Notification.objects.filter(
+            organization=office, recipient=user, read_at__isnull=True
+        )
+        .filter(Q(company__isnull=True) | Q(company__in=companies))
+        .count()
+        if office
+        else 0,
         "enabled_modules": enabled_modules,
         "is_nfse_only_subscription": is_nfse_only_subscription,
         "copilot_enabled": copilot_enabled,
@@ -1441,6 +1450,8 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
     )
     centrally_managed = ControlPlaneBinding.objects.filter(organization=office).exists()
     company_has_external_source = bool(company.data_source_id or company.external_key)
+    # The public demonstration is shared by every visitor: its records stay read-only.
+    can_manage_companies = can_manage_companies and not office.is_demo
     can_edit_company = bool(
         can_manage_companies
         and not dominio_manages_companies
@@ -3194,6 +3205,107 @@ def activity_queue_scope(
     ):
         queue = queue.filter(Q(assigned_to=user) | Q(assigned_to__isnull=True))
     return queue
+
+
+@office_required
+@require_http_methods(["GET"])
+def workspace_search(request: HttpRequest) -> HttpResponse:
+    """Search inside the person's portfolio and modules (D-277); results open the record."""
+
+    context = workspace_context(request)
+    user = cast(User, request.user)
+    query = request.GET.get("q", "").strip()[:80]
+    if rate_limited(f"workspace-search:{user.pk}", limit=60, window_seconds=60):
+        return HttpResponse("Aguarde um minuto antes de buscar novamente.", status=429)
+    membership = context["membership"]
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    documents = None
+    if collaborator_can_use_module(context, ProductModule.Code.NFSE):
+        nfse_companies = (
+            company_queryset_for_module(membership, ProductModule.Code.NFSE)
+            if isinstance(membership, Membership)
+            else companies
+        )
+        documents = NfseDocument.objects.filter(
+            organization=context["office"], company__in=nfse_companies.filter(pk__in=companies)
+        )
+    groups = (
+        search_workspace(
+            query=query,
+            companies=companies,
+            activities=(
+                activity_queue_scope(context, user)
+                if not is_nfse_only_subscription(context)
+                else OperationalActivity.objects.none()
+            ),
+            documents=documents,
+        )
+        if query
+        else []
+    )
+    context.update({"page_title": "Busca", "search_query": query, "search_groups": groups})
+    template = (
+        "hub/partials/search_results.html"
+        if request.GET.get("partial") == "1"
+        else "hub/search.html"
+    )
+    return render(request, template, context)
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def notifications_center(request: HttpRequest) -> HttpResponse:
+    context = workspace_context(request)
+    user = cast(User, request.user)
+    office = context["office"]
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    visible = Notification.objects.filter(organization=office, recipient=user).filter(
+        Q(company__isnull=True) | Q(company__in=companies)
+    )
+    if request.method == "POST":
+        if request.POST.get("action") == "read-all":
+            visible.filter(read_at__isnull=True).update(read_at=timezone.now())
+            messages.success(request, "Avisos marcados como lidos.")
+        return redirect("hub:notifications")
+    show = request.GET.get("mostrar", "")
+    rows = visible.select_related("activity", "company")
+    if show != "todos":
+        rows = rows.filter(read_at__isnull=True)
+    page = Paginator(rows.order_by("-created_at"), 30).get_page(request.GET.get("pagina"))
+    context.update(
+        {
+            "page_title": "Avisos",
+            "notifications": page.object_list,
+            "notifications_page": page,
+            "notifications_show_all": show == "todos",
+        }
+    )
+    return render(request, "hub/notifications.html", context)
+
+
+@office_required
+@require_http_methods(["GET"])
+def notification_open(request: HttpRequest, notification_id: uuid.UUID) -> HttpResponse:
+    """Mark as read and go to the record; access is checked again on arrival."""
+
+    context = workspace_context(request)
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    notice = get_object_or_404(
+        Notification.objects.filter(Q(company__isnull=True) | Q(company__in=companies)),
+        pk=notification_id,
+        organization=context["office"],
+        recipient=request.user,
+    )
+    if notice.read_at is None:
+        notice.read_at = timezone.now()
+        notice.save(update_fields=["read_at", "updated_at"])
+    if notice.activity_id:
+        return redirect("hub:activity-detail", activity_id=notice.activity_id)
+    if notice.kind == Notification.Kind.CERTIFICATE_EXPIRING:
+        return redirect("hub:certificates")
+    if notice.company_id:
+        return redirect("hub:company-detail", company_id=notice.company_id)
+    return redirect("hub:notifications")
 
 
 ACTIVITY_BULK_LIMIT = 50
@@ -12311,7 +12423,8 @@ def companies(request: HttpRequest) -> HttpResponse:
     office = context["office"]
     assert isinstance(office, Organization)
     membership = context["membership"]
-    can_manage_companies = _can_manage_companies(context)
+    # Shared public demonstration: visitors explore, they do not add companies for others.
+    can_manage_companies = _can_manage_companies(context) and not office.is_demo
     require_dominio_code = OfficeProfile.objects.filter(
         organization=office, require_dominio_code=True
     ).exists()

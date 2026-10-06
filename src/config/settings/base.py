@@ -511,6 +511,18 @@ CELERY_BEAT_SCHEDULE = {
         "task": "hub.refresh_demo_operations",
         "schedule": crontab(hour=0, minute=20),
     },
+    "notify-due-activities": {
+        "task": "hub.notify_due_activities",
+        "schedule": crontab(hour=7, minute=30),
+    },
+    "notify-expiring-certificates": {
+        "task": "hub.notify_expiring_certificates",
+        "schedule": crontab(hour=7, minute=35),
+    },
+    "purge-read-notifications": {
+        "task": "hub.purge_read_notifications",
+        "schedule": crontab(hour=3, minute=10),
+    },
     "advance-tenant-lifecycles": {
         "task": "platform.advance_tenant_lifecycles",
         "schedule": crontab(hour=0, minute=1),

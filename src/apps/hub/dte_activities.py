@@ -12,6 +12,7 @@ from apps.hub.models import (
     OperationalActivityEvent,
     OperationalEvidence,
 )
+from apps.hub.notifications import notify_new_dte
 
 UNCERTAIN_REASON = "Resultado da abertura DTE a confirmar; não repetir a chamada automaticamente."
 
@@ -52,6 +53,7 @@ def sync_dte_activity(message_id: UUID) -> OperationalActivity | None:
             summary="Comunicação identificada. Analise o teor e as providências; "
             "nenhuma ciência foi provocada por esta atividade.",
         )
+        notify_new_dte(activity, message_id=message.pk)
     access = DteMessageAccess.objects.filter(
         message=message, organization_id=message.organization_id
     ).first()

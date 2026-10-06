@@ -1492,3 +1492,78 @@ document.querySelectorAll('[data-toolbar]').forEach((toolbar) => {
   });
   sync();
 });
+
+// Workspace search (D-277): Ctrl/Cmd+K or "/" opens a dialog; the header link keeps working
+// without JavaScript. Arrow keys move through results, Enter opens, Escape closes.
+(() => {
+  const dialog = document.getElementById('workspace-search-dialog');
+  if (!dialog || typeof dialog.showModal !== 'function') return;
+  const input = dialog.querySelector('[data-search-input]');
+  const results = dialog.querySelector('[data-search-results]');
+  const form = dialog.querySelector('form');
+  let timer = 0;
+  let controller = null;
+  const open = () => {
+    if (!dialog.open) dialog.showModal();
+    input.select();
+  };
+  const items = () => [...results.querySelectorAll('[data-search-result]')];
+  const select = (index) => {
+    const list = items();
+    list.forEach((item, position) => item.setAttribute('aria-selected', String(position === index)));
+    if (list[index]) list[index].scrollIntoView({ block: 'nearest' });
+  };
+  const search = () => {
+    const query = input.value.trim();
+    if (controller) controller.abort();
+    if (query.length < 2) {
+      results.replaceChildren();
+      return;
+    }
+    controller = new AbortController();
+    const url = `${form.action}?partial=1&q=${encodeURIComponent(query)}`;
+    fetch(url, { signal: controller.signal, headers: { 'X-Requested-With': 'fetch' } })
+      .then((response) => (response.ok ? response.text() : ''))
+      .then((html) => {
+        const fragment = new DOMParser().parseFromString(html, 'text/html');
+        results.replaceChildren(...fragment.body.childNodes);
+        select(0);
+      })
+      .catch(() => {});
+  };
+  document.querySelectorAll('[data-search-open]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      open();
+    });
+  });
+  dialog.querySelector('[data-search-close]').addEventListener('click', () => dialog.close());
+  input.addEventListener('input', () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(search, 200);
+  });
+  input.addEventListener('keydown', (event) => {
+    const list = items();
+    const current = list.findIndex((item) => item.getAttribute('aria-selected') === 'true');
+    if (event.key === 'ArrowDown' && list.length) {
+      event.preventDefault();
+      select(Math.min(current + 1, list.length - 1));
+    } else if (event.key === 'ArrowUp' && list.length) {
+      event.preventDefault();
+      select(Math.max(current - 1, 0));
+    } else if (event.key === 'Enter' && current >= 0) {
+      event.preventDefault();
+      window.location.assign(list[current].href);
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    const typing = event.target.closest('input, textarea, select, [contenteditable="true"]');
+    if ((event.key === 'k' || event.key === 'K') && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      open();
+    } else if (event.key === '/' && !typing && !dialog.open) {
+      event.preventDefault();
+      open();
+    }
+  });
+})();

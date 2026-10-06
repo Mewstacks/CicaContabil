@@ -27,11 +27,13 @@ from apps.hub.models import (
     ActivityTemplateAssignment,
     CompanyAreaResponsible,
     DataSource,
+    Notification,
     OperationalActivity,
     OperationalActivityEvent,
     OperationalEvidence,
     OperationalSourceObservation,
 )
+from apps.hub.notifications import notify_activity_owner
 from apps.organizations.models import Membership
 
 SOURCE_CAPABILITY_ACTIVITY_PROCESSING = "activity_processing_status"
@@ -328,6 +330,13 @@ def assign_activity(
             f"{assignee.display_name if assignee else 'sem responsável'}. Motivo: {reason}"
         )[:500],
     )
+    if assignee is not None:
+        notify_activity_owner(
+            locked,
+            kind=Notification.Kind.ASSIGNED,
+            dedupe_key=f"assigned:{locked.pk}:{assignee.pk}:{timezone.now():%Y%m%d%H%M%S%f}",
+            actor=actor,
+        )
     record_event(
         action="hub.activity.assigned",
         actor=actor,
@@ -984,6 +993,12 @@ def record_source_observation(
             data_source.last_error_message = summary[:240]
             data_source.save(update_fields=["status", "last_error_message", "updated_at"])
         _event(activity=locked, event_type="source_unavailable", summary=summary, actor=actor)
+        notify_activity_owner(
+            locked,
+            kind=Notification.Kind.SOURCE_FAILED,
+            dedupe_key=f"source:{locked.pk}:{moment.date().isoformat()}",
+            actor=actor,
+        )
         event_action = "hub.activity.source_unavailable"
     else:
         update_fields: dict[str, object] = applied.copy()

@@ -1,6 +1,6 @@
 {% extends 'hub/base.html' %}
 {% load static ui_navigation %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-61"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=20260925-1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-61"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=20261006-1">{% endblock %}
 {% block body %}
 <div class="product-shell workspace-shell">
   <section class="app-stage">
@@ -19,10 +19,14 @@
         {% endif %}
       {% endif %}
       
+      {% if office %}<div class="workspace-quick-links">
+        <a class="workspace-icon-link" href="{% url 'hub:search' %}" data-search-open aria-keyshortcuts="Control+K"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10.5 4a6.5 6.5 0 0 1 5.17 10.44l4.45 4.44-1.42 1.42-4.44-4.45A6.5 6.5 0 1 1 10.5 4Zm0 2a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Z"/></svg><span class="workspace-icon-label">Buscar</span><kbd aria-hidden="true">Ctrl K</kbd></a>
+        <a class="workspace-icon-link" href="{% url 'hub:notifications' %}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 1 6 6v3.6l1.7 2.9A1 1 0 0 1 18.8 17H5.2a1 1 0 0 1-.9-1.5L6 12.6V9a6 6 0 0 1 6-6Zm-2 15h4a2 2 0 0 1-4 0Z"/></svg><span class="workspace-icon-label">Avisos</span>{% if unread_notifications_count %}<span class="workspace-badge">{{ unread_notifications_count }}<span class="sr-only"> não lidos</span></span>{% endif %}</a>
+      </div>{% endif %}
       <div class="account-menu">
         <button class="account-button" type="button" data-popover-toggle="account-list" aria-expanded="false" aria-controls="account-list">
-          <span class="account-avatar" aria-hidden="true">{{ request.user.full_name|default:request.user.email|slice:':1' }}</span>
-          <span class="account-name">{{ request.user.full_name|default:request.user.email }}</span>
+          <span class="account-avatar" aria-hidden="true">{{ request.user.display_name|slice:':1' }}</span>
+          <span class="account-name">{{ request.user.display_name }}</span>
           <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5H7Z"/></svg>
           <span class="sr-only">Abrir menu da conta</span>
         </button>
@@ -42,5 +46,13 @@
     </header>
     <main tabindex="-1" id="conteudo" class="work-area">{% if support_session %}<aside class="support-banner" aria-label="Sessão de suporte"><span><strong>Suporte · {{ office.name }}</strong> · {% if support_can_mutate %}Alterações autorizadas{% else %}Somente leitura{% endif %}</span><form method="post" action="{% url 'platform:end-support' %}">{% csrf_token %}<button class="button button-quiet" type="submit">Encerrar suporte</button></form></aside>{% endif %}<div class="page-header"><div><h1>{{ page_title }}</h1></div>{% block page_action %}{% endblock %}</div>{% if office.is_demo %}<aside class="demo-office-banner" aria-label="Ambiente de demonstração"><strong>Demonstração fictícia</strong><span>Dados fictícios. Sem consultas externas ou cobranças.</span>{% if request.session.demo_visit_id %}<form class="demo-office-exit" action="{% url 'hub:logout' %}" method="post">{% csrf_token %}<button class="button button-quiet" type="submit">Sair da demonstração</button></form>{% endif %}</aside>{% endif %}{% include 'hub/partials/onboarding_tour.html' %}{% if messages %}<div class="flash-stack" aria-live="polite">{% for message in messages %}<div class="flash flash-{{ message.tags|default:'info' }}"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1 5h2v6h-2V7Zm0 8h2v2h-2v-2Z"/></svg><span>{{ message }}</span></div>{% endfor %}</div>{% endif %}{% block workspace_subnav %}{% endblock %}{% block workspace_content %}{% endblock %}</main>
   </section>
-</div><script src="{% static 'hub/workspace.js' %}?v=7" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% get_static_prefix %}hub/hub.js?v=cica-55" defer></script>
+</div>{% if office %}<dialog class="search-dialog" id="workspace-search-dialog" aria-labelledby="workspace-search-title">
+  <form class="search-dialog-form" method="get" action="{% url 'hub:search' %}" role="search">
+    <h2 class="sr-only" id="workspace-search-title">Buscar</h2>
+    <label class="sr-only" for="workspace-search-input">Empresa, CNPJ, atividade ou número da nota</label>
+    <input id="workspace-search-input" name="q" type="search" placeholder="Empresa, CNPJ, atividade ou nota" autocomplete="off" maxlength="80" data-search-input>
+    <button class="button button-quiet button-small" type="button" data-search-close>Fechar</button>
+  </form>
+  <div class="search-dialog-results" data-search-results aria-live="polite"></div>
+</dialog>{% endif %}<script src="{% static 'hub/workspace.js' %}?v=7" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% get_static_prefix %}hub/hub.js?v=cica-56" defer></script>
 {% endblock %}

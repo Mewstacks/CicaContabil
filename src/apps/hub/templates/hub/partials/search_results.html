@@ -1,0 +1,4 @@
+{% if search_groups %}{% for group in search_groups %}<section class="search-group" aria-label="{{ group.label }}">
+  <h3>{{ group.label }}</h3>
+  <ul>{% for result in group.results %}<li><a class="search-result" href="{{ result.url }}" data-search-result><strong>{{ result.title }}</strong>{% if result.detail %}<small>{{ result.detail }}</small>{% endif %}</a></li>{% endfor %}</ul>
+</section>{% endfor %}{% elif search_query %}<p class="search-empty">Nada encontrado para “{{ search_query }}”. <a class="text-action" href="{% url 'hub:companies' %}">Ver empresas</a></p>{% endif %}
