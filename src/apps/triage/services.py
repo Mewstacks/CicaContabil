@@ -166,6 +166,87 @@ def _move(*, item: TriageItem, target: str, actor: User, note: str = "") -> None
     sync_triage_activity(item.pk)
 
 
+def retry_failed_extraction(
+    *, item: TriageItem, actor: User | None = None, note: str = "Nova tentativa automática"
+) -> TriageItem:
+    """Put a failed extraction back in line. Idempotent: other states are returned as-is."""
+    with transaction.atomic():
+        item = TriageItem.objects.select_for_update(of=("self",)).get(
+            pk=item.pk, organization=item.organization
+        )
+        if item.status != TriageStatus.FAILED:
+            return item
+        item.transition_to(TriageStatus.AWAITING_EXTRACTION)
+        item.save(update_fields=["status", "updated_at"])
+        TriageEvent.objects.create(
+            organization=item.organization,
+            triage_item=item,
+            actor=actor,
+            from_status=TriageStatus.FAILED,
+            to_status=item.status,
+            note=note[:500],
+        )
+    sync_triage_activity(item.pk)
+    return item
+
+
+def can_reprocess(item: TriageItem) -> bool:
+    """Failed extraction, or a quarantine whose antimalware run errored."""
+    if item.status == TriageStatus.FAILED:
+        return True
+    scan = getattr(item, "safety_scan", None)
+    return (
+        item.status == TriageStatus.QUARANTINED
+        and scan is not None
+        and scan.verdict == TriageSafetyScan.Verdict.ERROR
+    )
+
+
+def reprocess_item(*, item: TriageItem, actor: User, request: object | None = None) -> TriageItem:
+    """A person restarts the automatic pipeline with a fresh attempt budget.
+
+    The antimalware gate is never skipped: a quarantined item is scanned again, and a
+    failed one only returns to extraction, which itself rechecks the clean verdict.
+    """
+    if item.organization.is_demo:
+        raise ValidationError("Reprocessamento indisponível na demonstração.")
+    with transaction.atomic():
+        item = (
+            TriageItem.objects.select_for_update(of=("self",))
+            .select_related("safety_scan")
+            .get(pk=item.pk, organization=item.organization)
+        )
+        if not can_reprocess(item):
+            raise InvalidTransition("Este arquivo não pode ser reprocessado.")
+        previous = item.status
+        item.pipeline_attempts = 0
+        if previous == TriageStatus.FAILED:
+            item.transition_to(TriageStatus.AWAITING_EXTRACTION)
+        item.save(update_fields=["status", "pipeline_attempts", "updated_at"])
+        TriageEvent.objects.create(
+            organization=item.organization,
+            triage_item=item,
+            actor=actor,
+            from_status=previous,
+            to_status=item.status,
+            note="Reprocessamento solicitado",
+        )
+        from apps.triage.tasks import process_triage_item
+
+        item_id = str(item.pk)
+        transaction.on_commit(lambda: process_triage_item.delay(item_id))
+    sync_triage_activity(item.pk)
+    record_event(
+        action="triage.item.reprocessed",
+        actor=actor,
+        organization=item.organization,
+        target=item,
+        request=request,
+        metadata={"from_status": str(previous)},
+    )
+    return item
+
+
 def record_checklist_delivery(item: TriageItem) -> ChecklistEntry | None:
     """Mark the expected document for this company/type/period as delivered.
 
@@ -191,6 +272,46 @@ def record_checklist_delivery(item: TriageItem) -> ChecklistEntry | None:
     return entry
 
 
+def _follow_company_correction(
+    *, item: TriageItem, company: ClientCompany, actor: User, reason: str
+) -> None:
+    """Re-point the item's pending review task when the reviewer fixes the company.
+
+    Extraction opens the task under the company it guessed. Without this, a correction
+    would leave the task on the wrong company and ``sync_triage_activity`` would refuse
+    every later step. Only an evidence-free, unfinished task moves, and the move is
+    recorded on the task itself; anything with evidence stays put and blocks the change.
+    """
+    from apps.hub.models import OperationalActivity, OperationalActivityEvent
+
+    activity = (
+        OperationalActivity.objects.select_for_update()
+        .select_related("company")
+        .filter(source_triage_item=item)
+        .first()
+    )
+    if activity is None or activity.company_id == company.pk:
+        return
+    if (
+        activity.work_status == OperationalActivity.WorkStatus.COMPLETED
+        or activity.evidence_items.exists()
+    ):
+        raise ValidationError("A atividade deste arquivo já tem evidência na empresa anterior.")
+    previous = activity.company.name
+    activity.company = company
+    activity.save(update_fields=["company", "updated_at"])
+    summary = f"Empresa corrigida na Triagem: {previous} → {company.name}"
+    if reason:
+        summary += f". Motivo: {reason}"
+    OperationalActivityEvent.objects.create(
+        organization_id=item.organization_id,
+        activity=activity,
+        event_type="triage_company_corrected",
+        actor=actor,
+        summary=summary[:500],
+    )
+
+
 def update_review_fields(
     *,
     item: TriageItem,
@@ -200,9 +321,17 @@ def update_review_fields(
     period_label: str,
     counterparty_token: str,
     final_name: str,
+    reason: str = "",
     request: object | None = None,
 ) -> TriageItem:
-    """Let the reviewer correct what extraction suggested, with an evidence trail."""
+    """Let the reviewer correct what extraction suggested, with an evidence trail.
+
+    Replacing a company or type that was already set (by extraction or a person) needs a
+    reason; filling an empty one does not, since nothing is being overruled.
+    """
+    reason = " ".join(reason.split())
+    if len(reason) > 500:
+        raise ValidationError("O motivo aceita até 500 caracteres.")
     period_label = period_label.strip()
     counterparty_token = counterparty_token.strip()[:64]
     final_name = final_name.strip()
@@ -246,12 +375,18 @@ def update_review_fields(
         changed = [key for key in before if before[key] != after[key]]
         if not changed:
             return item
+        overruled = [key for key in ("empresa", "tipo") if key in changed and before[key]]
+        if overruled and not reason:
+            raise ValidationError("Informe o motivo da correção de empresa ou tipo.")
         item.save(
             update_fields=[
                 "company", "document_type", "period_label", "counterparty_token",
                 "final_name", "updated_at",
             ]
         )
+        if "empresa" in changed and company is not None:
+            # Same transaction: a refused move rolls the field change back too.
+            _follow_company_correction(item=item, company=company, actor=actor, reason=reason)
         TriageEvent.objects.create(
             organization=item.organization,
             triage_item=item,
@@ -259,6 +394,7 @@ def update_review_fields(
             from_status=item.status,
             to_status=item.status,
             note=("Corrigido: " + ", ".join(changed))[:500],
+            reason=reason,
         )
     sync_triage_activity(item.pk)
     record_event(
@@ -267,7 +403,7 @@ def update_review_fields(
         organization=item.organization,
         target=item,
         request=request,
-        metadata={"changed": changed},
+        metadata={"changed": changed, "reason": reason},
     )
     return item
 

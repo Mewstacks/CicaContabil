@@ -265,7 +265,8 @@ class EmailAttachmentQuarantineTests(TestCase):
 
     def test_antimalware_detection_rejects_and_unavailable_scanner_stays_quarantined(self) -> None:
         infected = self._receive().item
-        pending = self._receive(message_id="provider-message-2").item
+        # Different bytes: identical ones would be closed as a content duplicate.
+        pending = self._receive(message_id="provider-message-2", payload=b"other-binary").item
 
         class InfectedScanner:
             def scan(self, stream: object) -> ScanVerdict:

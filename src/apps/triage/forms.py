@@ -47,6 +47,13 @@ class TriageFieldsForm(forms.Form):
     period_label = forms.CharField(required=False, max_length=7, label="Período")
     counterparty_token = forms.CharField(required=False, max_length=64, label="Contraparte")
     final_name = forms.CharField(required=False, max_length=255, label="Nome final")
+    # Required by the service only when an already-set company or type is replaced.
+    reason = forms.CharField(
+        required=False,
+        max_length=500,
+        label="Motivo da correção",
+        widget=forms.Textarea(attrs={"rows": 2, "autocomplete": "off", "placeholder": "Uma frase"}),
+    )
 
     def __init__(
         self, *args: Any, organization: Organization, companies: Any, **kwargs: Any

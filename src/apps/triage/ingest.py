@@ -41,6 +41,24 @@ def mailbox_accepts_message(*, mailbox: Mailbox, sender: str, subject: str) -> b
     )
 
 
+def _content_original(item: TriageItem) -> TriageItem | None:
+    """Oldest live item of this office with the same bytes, if any.
+
+    Rejected items do not count: a file sent again after a rejection gets a fresh review.
+    """
+    return (
+        TriageItem.objects.filter(
+            organization_id=item.organization_id,
+            content_hash=item.content_hash,
+            duplicate_of__isnull=True,
+        )
+        .exclude(pk=item.pk)
+        .exclude(status=TriageStatus.REJECTED)
+        .order_by("created_at", "pk")
+        .first()
+    )
+
+
 def receive_email_attachment(
     *,
     mailbox: Mailbox,
@@ -110,6 +128,24 @@ def receive_email_attachment(
                 to_status=TriageStatus.QUARANTINED,
                 note="Anexo recebido da caixa; validação de segurança pendente",
             )
+            original = _content_original(item)
+            if original is not None:
+                # Same bytes already in this office's pipeline: close the copy with a link
+                # instead of scanning and classifying it a second time.
+                item.duplicate_of = original
+                item.rejection_reason = f"Duplicado de {original.original_name}"[:500]
+                item.transition_to(TriageStatus.REJECTED)
+                item.save(
+                    update_fields=["duplicate_of", "rejection_reason", "status", "updated_at"]
+                )
+                TriageEvent.objects.create(
+                    organization=organization,
+                    triage_item=item,
+                    actor=None,
+                    from_status=TriageStatus.QUARANTINED,
+                    to_status=TriageStatus.REJECTED,
+                    note=item.rejection_reason,
+                )
     except IntegrityError:
         if saved_path:
             TriageBlob._meta.get_field("content").storage.delete(saved_path)
@@ -128,8 +164,14 @@ def receive_email_attachment(
         actor=None,
         organization=organization,
         target=item,
-        metadata={"mailbox_id": str(mailbox.id), "byte_size": len(payload)},
+        metadata={
+            "mailbox_id": str(mailbox.id),
+            "byte_size": len(payload),
+            "duplicate_of": str(item.duplicate_of_id or ""),
+        },
     )
+    if item.duplicate_of_id is not None:
+        return AttachmentReceipt(item, True, "content")
     if not organization.is_demo:
         from apps.triage.tasks import process_triage_item
 

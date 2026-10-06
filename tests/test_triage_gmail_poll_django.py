@@ -108,9 +108,11 @@ class GmailAttachmentHistoryTests(TestCase):
         second = self._poll(transport)
         self.assertEqual(second.attachments_created, 1)
         self.assertEqual(TriageItem.objects.count(), 2)
-        self.assertEqual(
-            set(TriageItem.objects.values_list("status", flat=True)), {TriageStatus.QUARANTINED}
-        )
+        # Same attachment bytes in the second message: kept as a delivery, closed as a copy.
+        first_item, copy = TriageItem.objects.order_by("created_at", "pk")
+        self.assertEqual(first_item.status, TriageStatus.QUARANTINED)
+        self.assertEqual(copy.status, TriageStatus.REJECTED)
+        self.assertEqual(copy.duplicate_of_id, first_item.pk)
         self.assertTrue(any("startHistoryId=100" in call for call in calls))
 
     def test_gmail_skips_nonmatching_message_before_fetching_attachment_bytes(self) -> None:
