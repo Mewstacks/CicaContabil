@@ -717,7 +717,7 @@ def test_demo_office_owner_can_use_the_download_shown_by_the_interface() -> None
         {"action": "demo_download_selected", "documents": [str(document.id)]},
     )
 
-    assert "Baixar selecionadas (ZIP)" in page.content.decode()
+    assert "Baixar pacote (ZIP)" in page.content.decode()
     assert response.status_code == 200
     assert response["Content-Type"] == "application/zip"
 

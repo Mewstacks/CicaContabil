@@ -1,6 +1,6 @@
 {% extends 'hub/base.html' %}
 {% load static ui_navigation %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-61"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=20261006-1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'hub/operations.css' %}?v=cica-61"><link rel="stylesheet" href="{% static 'hub/context-switcher.css' %}"><link rel="stylesheet" href="{% static 'hub/workspace.css' %}?v=20261006-2">{% endblock %}
 {% block body %}
 <div class="product-shell workspace-shell">
   <section class="app-stage">
@@ -54,5 +54,5 @@
     <button class="button button-quiet button-small" type="button" data-search-close>Fechar</button>
   </form>
   <div class="search-dialog-results" data-search-results aria-live="polite"></div>
-</dialog>{% endif %}<script src="{% static 'hub/workspace.js' %}?v=7" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% get_static_prefix %}hub/hub.js?v=cica-56" defer></script>
+</dialog>{% endif %}<script src="{% static 'hub/workspace.js' %}?v=7" defer></script><script src="{% static 'hub/onboarding.js' %}?v=5" defer></script><script src="{% get_static_prefix %}hub/hub.js?v=cica-57" defer></script>
 {% endblock %}

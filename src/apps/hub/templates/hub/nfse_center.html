@@ -1,6 +1,6 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% get_static_prefix %}hub/nfse.css?v=26">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% get_static_prefix %}hub/nfse.css?v=29">{% endblock %}
 {% block title %}NFS-e · {% if nfse_view == 'collection' %}Coleta automática{% elif nfse_view == 'catalog' %}Acumuladores{% elif nfse_view == 'exports' %}Exportações{% else %}Notas{% endif %} · CICA{% endblock %}
 
 {% block workspace_subnav %}{% include 'hub/nfse_navigation.html' %}{% endblock %}
@@ -61,135 +61,103 @@
   {% else %}<div class="empty-block operational-empty"><strong>Nenhum pacote disponível nesta carteira</strong><p>{% if office.is_demo %}Downloads fictícios não ficam salvos na demonstração. Volte às notas para gerar outro ZIP.{% else %}O histórico mostra somente pacotes cujas notas você ainda pode acessar. Selecione NFS-e classificadas para preparar o primeiro download.{% endif %}</p><a class="button button-quiet" href="{% url 'hub:nfse-center' %}">Abrir notas</a></div>{% endif %}
 </section>
 {% else %}
-<section class="metric-strip" id="nfse-metrics" aria-label="Resumo do recorte atual de NFS-e">
-  <article><span>Total no período</span><strong>{{ nfse_stats.received }}</strong><a href="{{ nfse_stat_urls.received }}">Ver resultados</a></article>
-  <article><span>Saídas · prestados</span><strong>{{ nfse_stats.provided }}</strong><a href="{{ nfse_stat_urls.provided }}"{% if document_direction == 'provided' %} aria-current="location"{% endif %}>Ver saídas</a></article>
-  <article><span>Entradas · tomados</span><strong>{{ nfse_stats.taken }}</strong><a href="{{ nfse_stat_urls.taken }}"{% if document_direction == 'taken' %} aria-current="location"{% endif %}>Ver entradas</a></article>
-  <article class="{% if nfse_stats.pending %}metric-needs-attention{% endif %}"><span>Não classificadas</span><strong>{{ nfse_stats.pending }}</strong><a href="{{ nfse_stat_urls.pending }}"{% if document_status == 'unclassified' %} aria-current="location"{% endif %}>{% if nfse_selected_company and not nfse_selected_company.active %}Ver pendências{% else %}Classificar{% endif %}</a></article>
-</section>
-
-<section class="workspace-panel nfse-workspace">
-  <header class="workspace-panel-head">
-    <div><p class="section-kicker">CONFERÊNCIA FISCAL</p><h2>Notas de serviço</h2></div>
-    {% if can_download_nfse %}<a class="button nfse-download-shortcut" href="#nfse-bulk-download">Baixar notas em lote</a>{% endif %}
-    <span class="record-count" id="nfse-results-count" role="status">{{ document_filtered_total }} resultado{{ document_filtered_total|pluralize }}</span>
-  </header>
-  {% if nfse_selected_company and not nfse_selected_company.active %}
-  <aside class="nfse-paused-context" aria-labelledby="nfse-paused-context-title">
-    <div>
-      <p class="section-kicker">HISTÓRICO SOMENTE PARA CONSULTA</p>
-      <h3 id="nfse-paused-context-title">{{ nfse_selected_company.name }} está pausada</h3>
-      <p data-copy="required">Nenhuma nota nova será coletada e a classificação está bloqueada. Você ainda pode consultar o acervo e baixar notas, pacotes e relatórios já disponíveis.</p>
-    </div>
-    <a class="button button-quiet button-small" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Ver situação no cadastro</a>
-  </aside>
-  {% endif %}
-  <form class="workspace-filter-form nfse-filter-form" method="get" aria-label="Pesquisar e filtrar NFS-e" data-live-filter="#nfse-results" data-live-filter-count="#nfse-results-count" data-live-filter-related="#nfse-metrics">
-    {% if nfse_selected_company %}<input type="hidden" name="company" value="{{ nfse_selected_company.id }}"><p class="nfse-filter-scope">Empresa: <strong>{{ nfse_selected_company.name }}</strong> · <a href="{% url 'hub:nfse-center' %}?status=all">Ver toda a carteira</a></p>{% endif %}
-    <div class="workspace-filter-search"><label for="nfse-search">Empresa, código Domínio ou número da nota</label><input id="nfse-search" type="search" name="q" maxlength="100" value="{{ document_search }}" autocomplete="off" placeholder="Ex.: Padaria, 0101 ou nota 123…"></div>
-    <div><label for="nfse-status">Situação</label><select id="nfse-status" name="status" autocomplete="off"><option value="all"{% if document_status == 'all' %} selected{% endif %}>Todas</option><option value="classified"{% if document_status == 'classified' %} selected{% endif %}>Classificadas</option><option value="unclassified"{% if document_status == 'unclassified' %} selected{% endif %}>Não classificadas</option></select></div>
-    <div><label for="nfse-direction">Movimento</label><select id="nfse-direction" name="direction" autocomplete="off"><option value="all"{% if document_direction == 'all' %} selected{% endif %}>Todos</option><option value="provided"{% if document_direction == 'provided' %} selected{% endif %}>Saídas · serviços prestados</option><option value="taken"{% if document_direction == 'taken' %} selected{% endif %}>Entradas · serviços tomados</option><option value="unknown"{% if document_direction == 'unknown' %} selected{% endif %}>Tipo a confirmar</option></select></div>
-    <div class="nfse-filter-mode" data-nfse-filter-mode><label for="nfse-date-filter">Filtrar período por</label><select id="nfse-date-filter" name="date_filter" data-nfse-filter-option><option value="competence"{% if document_date_filter == 'competence' %} selected{% endif %}>Competência</option><option value="issued"{% if document_date_filter == 'issued' %} selected{% endif %}>Data de emissão</option></select></div>
-    <div class="nfse-competence-picker" data-nfse-filter-panel="competence"{% if document_date_filter != 'competence' %} hidden{% endif %}>
-      <div><label for="nfse-competence-month">Mês de competência</label><select id="nfse-competence-month" name="competence_month" autocomplete="off"><option value="">Todos os meses</option>{% for number, label in competence_months %}<option value="{{ number|stringformat:'02d' }}"{% if document_competence|slice:'5:7' == number|stringformat:'02d' %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-      <div><label for="nfse-competence-year">Ano</label><input id="nfse-competence-year" name="competence_year" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" value="{{ competence_year }}" autocomplete="off" aria-label="Ano de competência"></div>
-    </div>
-    <div class="nfse-issued-range" data-nfse-filter-panel="issued"{% if document_date_filter != 'issued' %} hidden{% endif %}>
-      <div><label for="nfse-issued-from">Emissão de</label><input id="nfse-issued-from" type="text" inputmode="numeric" name="issued_from" value="{{ issued_from }}" placeholder="DD/MM/AAAA…" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-help nfse-date-error"></div>
-      <div><label for="nfse-issued-to">Emissão até</label><input id="nfse-issued-to" type="text" inputmode="numeric" name="issued_to" value="{{ issued_to }}" placeholder="DD/MM/AAAA…" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-help nfse-date-error"></div>
-      <div class="nfse-date-shortcuts"><button type="button" data-nfse-period="current">Este mês</button><button type="button" data-nfse-period="previous">Mês anterior</button><button type="button" data-nfse-period="clear">Limpar datas</button></div>
-      <small id="nfse-date-help" class="nfse-date-help sr-only">Digite dia, mês e ano. Ex.: 01/09/2026.</small>
-      <small id="nfse-date-error" class="nfse-date-error" role="status" aria-live="polite">{{ date_filter_error }}</small>
-    </div>
-    <div class="nfse-filter-actions"><button class="button button-small" type="submit" data-live-filter-submit>Pesquisar carteira</button>
-    <a class="button button-quiet button-small" href="{% url 'hub:nfse-center' %}?status=all{% if nfse_selected_company %}&amp;company={{ nfse_selected_company.id }}{% endif %}" data-live-filter-clear{% if not document_search and document_status == 'all' and document_direction == 'all' and not document_competence and not issued_from and not issued_to %} hidden{% endif %}>Limpar filtros</a>
-    </div>
-  </form>
-  <div id="nfse-results">
-  {% if can_download_nfse %}
-  <details class="nfse-report-disclosure"><summary>Relatórios de retenções · {{ document_filtered_total }} nota{{ document_filtered_total|pluralize }}</summary>
-  <section class="nfse-retention-report" aria-labelledby="nfse-retention-report-title">
-    <div>
-      <p class="section-kicker">RETENÇÕES DO RECORTE</p>
-      <h3 id="nfse-retention-report-title">Relatório para conferência fiscal</h3>
-      {% if not document_filtered_total %}<p>Nenhuma nota corresponde aos filtros atuais. Ajuste a pesquisa para gerar o relatório.</p>
-      {% elif retention_report_too_large %}<p>O filtro encontrou {{ document_filtered_total }} notas. Refine por empresa, movimento ou período para ficar em até 5.000 notas por arquivo.</p>
-      {% else %}<p>Inclui {{ document_filtered_total }} nota{{ document_filtered_total|pluralize }} do filtro atual, separa entradas e saídas e detalha ISS, PIS, COFINS, CSLL, IRRF, INSS e total retido.</p>{% endif %}
-    </div>
-    <form method="post" class="nfse-retention-report-actions">
-      {% csrf_token %}
-      <input type="hidden" name="report_q" value="{{ document_search }}">
-      <input type="hidden" name="report_status" value="{{ document_status }}">
-      <input type="hidden" name="report_direction" value="{{ document_direction }}">
-      <input type="hidden" name="report_date_filter" value="{{ document_date_filter }}">
-      <input type="hidden" name="report_competence" value="{{ document_competence }}">
-      <input type="hidden" name="report_issued_from" value="{{ issued_from }}">
-      <input type="hidden" name="report_issued_to" value="{{ issued_to }}">
-      <button class="button button-small" type="submit" name="action" value="retention_report_pdf"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Baixar PDF</button>
-      <button class="button button-quiet button-small" type="submit" name="action" value="retention_report_xlsx"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Baixar Excel (.xlsx)</button>
-    </form>
-  </section>
-  </details>
-  {% endif %}
-
-  {% if can_download_nfse %}
-  <div class="nfse-download-intro" id="nfse-bulk-download" tabindex="-1">
-    <div class="nfse-original-download"><div><h3>XMLs originais</h3><p data-copy="required">Baixe as notas deste filtro, inclusive as não classificadas. Sem alterar o XML ou incluir acumuladores.</p></div>
-    <form method="post">{% csrf_token %}
-      <input type="hidden" name="report_q" value="{{ document_search }}">
-      <input type="hidden" name="report_status" value="{{ document_status }}">
-      <input type="hidden" name="report_direction" value="{{ document_direction }}">
-      <input type="hidden" name="report_date_filter" value="{{ document_date_filter }}">
-      <input type="hidden" name="report_competence" value="{{ document_competence }}">
-      <input type="hidden" name="report_issued_from" value="{{ issued_from }}">
-      <input type="hidden" name="report_issued_to" value="{{ issued_to }}">
-      <button class="button" type="submit" name="action" value="download_original_xmls"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Baixar {{ document_filtered_total }} XML{{ document_filtered_total|pluralize }} (ZIP)</button>
-    </form></div>
-    {% if retention_report_too_large %}<p>Refine o filtro para até 5.000 notas por download.</p>{% endif %}
-    {% if can_demo_download_nfse or can_export_nfse %}<h3>Pacote com acumuladores</h3>
-    {% if not document_rows %}<p>Não há notas neste filtro. Ajuste a pesquisa ou limpe os filtros para encontrar as notas que deseja baixar.</p>
-    {% elif can_demo_download_nfse %}<p>Selecione as notas abaixo e baixe um único ZIP. O CICA separa automaticamente cada nota em <strong>Emitidas</strong> ou <strong>Tomadas</strong>, dentro da pasta <strong>código-</strong> da empresa. Os arquivos da demonstração são fictícios.</p>
-    {% elif document_exportable_total %}<p>Selecione as notas abaixo ou todos os resultados classificados do filtro. Depois, clique em <strong>Baixar selecionadas (ZIP)</strong>.</p>
-    {% elif nfse_selected_company and not nfse_selected_company.active %}<p>Nenhuma nota classificada está disponível neste filtro. Altere os filtros para consultar outros documentos do histórico.</p>
-    {% else %}<p>Nenhuma nota classificada está disponível neste filtro. Classifique as notas abaixo ou altere os filtros para preparar o download.</p>{% endif %}{% else %}<p>Acesso somente para consulta. O download original está disponível; classificações exigem um perfil autorizado do escritório.</p>{% endif %}
+{% comment %}
+Notas (D-277 redesign): filters on one line, status as tabs with counts, movement as a
+segmented control, one quiet "Baixar" for every download, then the list. The note number
+is the row identifier and opens the note; classification happens in the row.
+{% endcomment %}
+{% if nfse_selected_company and not nfse_selected_company.active %}
+<aside class="nfse-paused-context" aria-labelledby="nfse-paused-context-title">
+  <div>
+    <h2 id="nfse-paused-context-title">{{ nfse_selected_company.name }} está pausada</h2>
+    <p data-copy="required">Nenhuma nota nova será coletada e a classificação está bloqueada. Você ainda pode consultar o acervo e baixar notas, pacotes e relatórios já disponíveis.</p>
   </div>
-  {% endif %}
+  <a class="button button-quiet button-small" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Ver situação no cadastro</a>
+</aside>
+{% endif %}
+<form class="workspace-panel nfse-toolbar" id="nfse-filter" method="get" role="search" aria-label="Filtrar notas" data-live-filter="#nfse-results" data-live-filter-count="#nfse-results-count" novalidate>
+  <input type="hidden" name="status" value="{{ document_status }}">
+  <input type="hidden" name="direction" value="{{ document_direction }}">
+  {% if nfse_selected_company %}<input type="hidden" name="company" value="{{ nfse_selected_company.id }}">{% endif %}
+  <div class="nfse-toolbar-row">
+    <div class="field nfse-toolbar-competence" data-nfse-filter-panel="competence"{% if document_date_filter != 'competence' %} hidden{% endif %}>
+      <label for="nfse-competence">Competência</label>
+      <select id="nfse-competence" name="competence" autocomplete="off"><option value="">Todas</option>{% for value, label in nfse_competence_options %}<option value="{{ value }}"{% if document_competence == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    </div>
+    <div class="field nfse-toolbar-search">
+      <label for="nfse-search">Busca</label>
+      <input id="nfse-search" type="search" name="q" maxlength="100" value="{{ document_search }}" autocomplete="off" placeholder="Empresa, código Domínio ou nº da nota">
+    </div>
+    {% if nfse_selected_company %}<div class="field nfse-toolbar-scope"><span class="nfse-toolbar-label">Empresa</span><a class="nfse-scope-chip" href="{% url 'hub:nfse-center' %}?status={{ document_status }}">{{ nfse_selected_company.name }}<span aria-hidden="true">×</span><span class="sr-only"> (remover filtro de empresa)</span></a></div>{% endif %}
+    <details class="nfse-more-filters"{% if document_date_filter == 'issued' %} open{% endif %}>
+      <summary>Mais filtros</summary>
+      <div class="nfse-more-filters-panel">
+        <div class="field nfse-filter-mode" data-nfse-filter-mode><label for="nfse-date-filter">Período por</label><select id="nfse-date-filter" name="date_filter" data-nfse-filter-option autocomplete="off"><option value="competence"{% if document_date_filter == 'competence' %} selected{% endif %}>Competência</option><option value="issued"{% if document_date_filter == 'issued' %} selected{% endif %}>Data de emissão</option></select></div>
+        <div class="nfse-issued-range" data-nfse-filter-panel="issued"{% if document_date_filter != 'issued' %} hidden{% endif %}>
+          <div class="field"><label for="nfse-issued-from">Emissão de</label><input id="nfse-issued-from" type="text" inputmode="numeric" name="issued_from" value="{{ issued_from }}" placeholder="DD/MM/AAAA" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-error"></div>
+          <div class="field"><label for="nfse-issued-to">Emissão até</label><input id="nfse-issued-to" type="text" inputmode="numeric" name="issued_to" value="{{ issued_to }}" placeholder="DD/MM/AAAA" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-error"></div>
+          <div class="nfse-date-shortcuts"><button type="button" data-nfse-period="current">Este mês</button><button type="button" data-nfse-period="previous">Mês anterior</button><button type="button" data-nfse-period="clear">Limpar datas</button></div>
+          <small id="nfse-date-error" class="nfse-date-error" role="status" aria-live="polite">{{ date_filter_error }}</small>
+        </div>
+      </div>
+    </details>
+    <div class="nfse-toolbar-actions">
+      <button class="button button-quiet button-small" type="submit" data-live-filter-submit>Filtrar</button>
+      <a class="text-action" href="{% url 'hub:nfse-center' %}?status=all{% if nfse_selected_company %}&amp;company={{ nfse_selected_company.id }}{% endif %}" data-live-filter-clear{% if not document_search and not issued_from and not issued_to %} hidden{% endif %}>Limpar</a>
+    </div>
+  </div>
+</form>
+
+<section class="workspace-panel nfse-list" aria-labelledby="nfse-list-title">
+  <h2 class="sr-only" id="nfse-list-title">Notas</h2>
+  <div id="nfse-results">
+  <div class="nfse-list-head">
+    <nav class="nfse-tabs" aria-label="Situação">{% for tab in nfse_status_tabs %}<a href="{{ tab.url }}"{% if tab.selected %} aria-current="page"{% endif %}{% if tab.value == 'unclassified' and tab.count %} class="has-attention"{% endif %}>{{ tab.label }}<span class="nfse-tab-count">{{ tab.count }}</span></a>{% endfor %}</nav>
+    <nav class="nfse-segments" aria-label="Movimento">{% for tab in nfse_direction_tabs %}<a href="{{ tab.url }}"{% if tab.selected %} aria-current="page"{% endif %}>{{ tab.label }}<span class="nfse-segment-count">{{ tab.count }}</span></a>{% endfor %}</nav>
+    <span class="nfse-results-count" id="nfse-results-count" role="status">{{ document_filtered_total }} nota{{ document_filtered_total|pluralize }}</span>
+    {% if can_download_nfse %}<details class="nfse-downloads">
+      <summary class="button button-quiet button-small">Baixar</summary>
+      <div class="nfse-downloads-panel">
+        <div class="nfse-download-row"><div><strong>XML originais</strong><small>{{ document_filtered_total }} nota{{ document_filtered_total|pluralize }} deste filtro</small></div><button class="button button-quiet button-small" type="submit" form="nfse-download-originals"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Baixar ZIP</button></div>
+        {% if can_demo_download_nfse %}<div class="nfse-download-row"><div><strong>Pacote com acumuladores</strong><small>{% if nfse_selected_company %}Todas desta empresa{% else %}Carteira inteira{% endif %} · arquivos fictícios</small></div><button class="button button-quiet button-small" type="submit" form="nfse-download-demo-package"{% if not document_filtered_total %} disabled{% endif %}>Baixar ZIP</button></div>
+        {% elif can_export_nfse %}<div class="nfse-download-row"><div><strong>Pacote Domínio</strong><small data-copy="required">{{ document_exportable_total }} classificada{{ document_exportable_total|pluralize }} · layout de importação em homologação</small></div><button class="button button-quiet button-small" type="submit" form="nfse-download-package"{% if not document_exportable_total %} disabled{% endif %}>Baixar ZIP</button></div>{% endif %}
+        <div class="nfse-download-row"><div><strong>Retenções</strong><small>ISS, PIS, COFINS, CSLL, IRRF e INSS por nota</small></div><span class="nfse-download-pair"><button class="button button-quiet button-small" type="submit" form="nfse-retention-report" name="action" value="retention_report_pdf"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>PDF</button><button class="button button-quiet button-small" type="submit" form="nfse-retention-report" name="action" value="retention_report_xlsx"{% if not document_filtered_total or retention_report_too_large %} disabled{% endif %}>Excel</button></span></div>
+        {% if retention_report_too_large %}<p class="nfse-download-limit" data-copy="required">Refine o filtro para até 5.000 notas por download.</p>{% endif %}
+      </div>
+    </details>
+    <form id="nfse-download-originals" method="post" hidden>{% csrf_token %}<input type="hidden" name="action" value="download_original_xmls"><input type="hidden" name="report_q" value="{{ document_search }}"><input type="hidden" name="report_status" value="{{ document_status }}"><input type="hidden" name="report_direction" value="{{ document_direction }}"><input type="hidden" name="report_date_filter" value="{{ document_date_filter }}"><input type="hidden" name="report_competence" value="{{ document_competence }}"><input type="hidden" name="report_issued_from" value="{{ issued_from }}"><input type="hidden" name="report_issued_to" value="{{ issued_to }}"></form>
+    <form id="nfse-retention-report" method="post" hidden>{% csrf_token %}<input type="hidden" name="report_q" value="{{ document_search }}"><input type="hidden" name="report_status" value="{{ document_status }}"><input type="hidden" name="report_direction" value="{{ document_direction }}"><input type="hidden" name="report_date_filter" value="{{ document_date_filter }}"><input type="hidden" name="report_competence" value="{{ document_competence }}"><input type="hidden" name="report_issued_from" value="{{ issued_from }}"><input type="hidden" name="report_issued_to" value="{{ issued_to }}"></form>
+    {% if can_demo_download_nfse %}<form id="nfse-download-demo-package" method="post" hidden>{% csrf_token %}<input type="hidden" name="action" value="demo_download_selected"><input type="hidden" name="all_documents" value="1"></form>
+    {% elif can_export_nfse %}<form id="nfse-download-package" method="post" hidden>{% csrf_token %}<input type="hidden" name="action" value="export_dominio_xml"><input type="hidden" name="all_filtered_classified" value="1"><input type="hidden" name="export_q" value="{{ document_search }}"><input type="hidden" name="export_direction" value="{{ document_direction }}"><input type="hidden" name="export_date_filter" value="{{ document_date_filter }}"><input type="hidden" name="export_competence" value="{{ document_competence }}"><input type="hidden" name="export_issued_from" value="{{ issued_from }}"><input type="hidden" name="export_issued_to" value="{{ issued_to }}"></form>{% endif %}
+    {% endif %}
+  </div>
   {% if document_rows %}
     {% if can_demo_download_nfse or can_export_nfse %}<form method="post" data-nfse-download-form>{% csrf_token %}
       {% if not office.is_demo %}<input type="hidden" name="export_q" value="{{ document_search }}"><input type="hidden" name="export_direction" value="{{ document_direction }}"><input type="hidden" name="export_date_filter" value="{{ document_date_filter }}"><input type="hidden" name="export_competence" value="{{ document_competence }}"><input type="hidden" name="export_issued_from" value="{{ issued_from }}"><input type="hidden" name="export_issued_to" value="{{ issued_to }}">{% endif %}
-      <div class="bulk-toolbar" aria-label="Seleção e download em lote">
-        <div class="nfse-bulk-choices">
-          <label class="checkbox-field"><input type="checkbox" data-nfse-download-select-all>{% if can_demo_download_nfse %}Selecionar notas desta página{% else %}Selecionar classificadas desta página{% endif %}</label>
-          {% if can_demo_download_nfse %}<label class="checkbox-field"><input type="checkbox" name="all_documents" value="1" data-nfse-download-all{% if nfse_selected_company %} data-scope-label="Todas as notas desta empresa serão incluídas."{% endif %}>{% if nfse_selected_company %}Todas desta empresa{% else %}Carteira inteira{% endif %}</label>{% elif document_exportable_total %}<label class="checkbox-field"><input type="checkbox" name="all_filtered_classified" value="1" data-nfse-download-all data-total="{{ document_exportable_total }}" data-companies="{{ document_exportable_company_total }}">Selecionar todos os resultados classificados ({{ document_exportable_total }})</label>{% endif %}
-        </div>
+      <div class="bulk-toolbar nfse-bulk-bar" aria-label="Seleção de notas">
+        <label class="checkbox-field"><input type="checkbox" data-nfse-download-select-all>{% if can_demo_download_nfse %}Selecionar página{% else %}Selecionar classificadas da página{% endif %}</label>
         <span class="nfse-selection-summary" role="status" aria-live="polite" aria-atomic="true" data-nfse-download-selection-count>Nenhuma nota selecionada.</span>
-        <div class="bulk-actions" data-nfse-download-actions>{% if can_demo_download_nfse %}<button class="button button-small" type="submit" name="action" value="demo_download_selected" data-nfse-download-submit disabled>Baixar selecionadas (ZIP)</button>{% else %}<button class="button button-small" type="submit" name="action" value="export_dominio_xml" data-nfse-download-submit disabled>Baixar selecionadas (ZIP)</button>{% endif %}</div>
-        {% if not office.is_demo %}<small class="nfse-export-disclaimer">Inclui XMLs e manifesto com os acumuladores. O layout importável do Domínio ainda depende da homologação técnica.</small>{% endif %}
+        <div class="bulk-actions" data-nfse-download-actions><button class="button button-quiet button-small" type="submit" name="action" value="{% if can_demo_download_nfse %}demo_download_selected{% else %}export_dominio_xml{% endif %}" data-nfse-download-submit disabled>Baixar pacote (ZIP)</button></div>
       </div>
-    {% endif %}<div class="nfse-company-groups">
-      {% for group in document_groups %}<details class="nfse-company-group"{% if forloop.first %} open{% endif %}>
-        <summary><span><strong>{{ group.company.name }}</strong><small>Domínio {{ group.company.dominio_code|default:"não informado" }}</small></span><span class="nfse-company-summary"><b>{{ group.rows|length }} nota{{ group.rows|length|pluralize }}</b>{% if group.pending_count %}<span>{{ group.pending_count }} para classificar</span>{% endif %}</span></summary>
-        {% if not office.is_demo and can_export_nfse and group.classified_count %}<div class="nfse-company-actions"><label class="checkbox-field"><input type="checkbox" data-nfse-company-select="{{ group.company_id }}">Selecionar {{ group.classified_count }} classificada{{ group.classified_count|pluralize }} desta empresa nesta página</label><button class="button button-quiet button-small" type="submit" form="company-export-{{ group.company_id }}">Baixar {{ group.classified_count }} desta página</button></div>{% endif %}
-        <div class="data-table-wrap"><table class="operational-table nfse-download-table">
-          <thead><tr>{% if can_demo_download_nfse or can_export_nfse %}<th scope="col"><span class="sr-only">Selecionar</span></th>{% endif %}<th scope="col">Nota e movimento</th><th scope="col">Emissão / competência</th><th scope="col">Contraparte e serviço</th><th scope="col">Valores e retenções</th><th scope="col">Situação</th><th scope="col">Acumulador</th></tr></thead>
-          <tbody>{% for row in group.rows %}<tr>
-            {% if can_demo_download_nfse or can_export_nfse %}<td class="nfse-selection-cell" data-label="Selecionar">{% if can_demo_download_nfse or row.classified %}<label class="table-checkbox"><input type="checkbox" name="documents" value="{{ row.document.id }}" data-nfse-download-target data-company-id="{{ group.company_id }}"><span class="sr-only">Selecionar nota {{ row.number|default:"sem número" }} de {{ row.document.company.name }}</span></label>{% else %}<span class="table-muted">Classifique antes</span>{% endif %}</td>{% endif %}
-            <td data-label="Nota e movimento"><strong>{% if row.number %}{{ row.number }}{% else %}Número não informado{% endif %}</strong><span class="nfse-direction nfse-direction-{{ row.direction_class }}"><b>{{ row.direction_label }}</b><small>{{ row.direction_detail }}</small></span></td>
-            <td data-label="Emissão / competência"><strong>{% if row.issued_at %}{{ row.issued_at|date:"d/m/Y" }}{% elif row.document.normalized_data.issued_at %}{{ row.document.normalized_data.issued_at|slice:":10" }}{% else %}—{% endif %}</strong><small>Competência {{ row.competence }}</small></td>
-            <td data-label="Contraparte e serviço"><strong>{{ row.counterparty_role }}: {{ row.counterparty_name }}</strong>{% if row.service_code or row.service_description %}<small>{% if row.service_code %}{{ row.service_code }}{% if row.service_description %} · {% endif %}{% endif %}{{ row.service_description }}</small>{% else %}<small>Serviço não informado no XML</small>{% endif %}</td>
-            <td data-label="Valores e retenções"><strong>{{ row.amount|default:"Valor não informado" }}</strong>{% if row.retention_items %}<details class="nfse-retentions"><summary>{{ row.retained_total|default:"Ver retenções" }} retidos</summary><dl>{% for label, value in row.retention_items %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></details>{% else %}<small>Sem retenção informada</small>{% endif %}</td>
-            <td data-label="Situação"><span class="nfse-status nfse-status-{% if row.classified %}success{% else %}{{ row.status_class }}{% endif %}">{% if row.classified %}Classificada{% else %}{{ row.status }}{% endif %}</span>{% if row.review %}<a class="nfse-review-link" href="{% url 'hub:review-detail' row.review.id %}">Ver dados da nota</a>{% endif %}</td>
-            <td data-label="Acumulador">{% if row.review and not row.classified and can_classify_nfse %}<div class="nfse-inline-review"><label class="sr-only" for="review-accumulator-{{ row.review.id }}">Acumulador da NFS-e de {{ row.document.company.name }}</label><input id="review-accumulator-{{ row.review.id }}" name="accumulator_code" form="review-form-{{ row.review.id }}" value="{{ row.review.suggested_accumulator }}" maxlength="80" required autocomplete="off" spellcheck="false" list="review-options-{{ row.review.id }}" placeholder="Ex.: 6 ou Serviços prestados…"><datalist id="review-options-{{ row.review.id }}">{% for code, name in row.accumulator_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist><button class="button button-small" type="submit" form="review-form-{{ row.review.id }}">Classificar</button></div>{% elif row.classified and can_classify_nfse and not office.is_demo %}<div class="nfse-inline-review nfse-accumulator-correction" data-nfse-accumulator-edit><label class="sr-only" for="document-accumulator-{{ row.document.id }}">Editar acumulador da nota {{ row.number|default:"sem número" }}</label><input id="document-accumulator-{{ row.document.id }}" name="accumulator_code" form="accumulator-form-{{ row.document.id }}" value="{{ row.accumulator }}" maxlength="80" required autocomplete="off" spellcheck="false" list="document-options-{{ row.document.id }}" aria-describedby="document-save-status-{{ row.document.id }}" data-nfse-accumulator-input><datalist id="document-options-{{ row.document.id }}">{% for code, name in row.accumulator_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist><small id="document-save-status-{{ row.document.id }}" class="nfse-auto-save-status" role="status" aria-live="polite" data-nfse-accumulator-status>Salvamento automático</small></div>{% elif row.classified %}<div class="nfse-classified-actions"><strong class="source-code">{{ row.accumulator }}</strong>{% if not office.is_demo and can_export_nfse %}<button class="button button-quiet button-small" type="submit" form="single-export-{{ row.document.id }}">Baixar pacote</button>{% endif %}</div>{% elif row.review %}<span class="table-muted">Somente consulta</span>{% else %}<span class="table-muted">Aguardando classificação automática.</span>{% endif %}</td>
-          </tr>{% endfor %}</tbody>
-        </table></div>
-      </details>{% endfor %}
-    </div>{% if can_demo_download_nfse or can_export_nfse %}</form>{% endif %}
+    {% endif %}
+    <div class="data-table-wrap"><table class="operational-table nfse-table">
+      <thead><tr>{% if can_demo_download_nfse or can_export_nfse %}<th scope="col" class="nfse-col-select"><span class="sr-only">Selecionar</span></th>{% endif %}<th scope="col">Nota</th><th scope="col">Empresa</th><th scope="col">Contraparte</th><th scope="col">Emissão</th><th scope="col" class="nfse-col-amount">Valor</th><th scope="col">Acumulador</th></tr></thead>
+      <tbody>{% for row in document_rows %}<tr class="nfse-row{% if not row.classified %} is-pending{% endif %}">
+        {% if can_demo_download_nfse or can_export_nfse %}<td class="nfse-col-select" data-label="Selecionar">{% if can_demo_download_nfse or row.classified %}<label class="table-checkbox"><input type="checkbox" name="documents" value="{{ row.document.id }}" data-nfse-download-target data-company-id="{{ row.document.company_id }}"><span class="sr-only">Selecionar nota {{ row.number|default:"sem número" }} de {{ row.document.company.name }}</span></label>{% endif %}</td>{% endif %}
+        <td class="nfse-col-note" data-label="Nota">{% if row.review %}<a class="nfse-note-number" href="{% url 'hub:review-detail' row.review.id %}">{{ row.number|default:"Sem número" }}<span class="sr-only"> — abrir dados da nota</span></a>{% else %}<strong class="nfse-note-number">{{ row.number|default:"Sem número" }}</strong>{% endif %}<span class="nfse-direction-tag is-{{ row.direction_class }}">{{ row.direction_label }}</span></td>
+        <td class="nfse-col-company" data-label="Empresa"><span class="nfse-cell-main">{{ row.document.company.name }}</span><small>Domínio {{ row.document.company.dominio_code|default:"—" }}</small></td>
+        <td class="nfse-col-counterparty" data-label="Contraparte"><span class="nfse-cell-main" title="{{ row.counterparty_name }}">{{ row.counterparty_name }}</span>{% if row.service_code or row.service_description %}<small title="{{ row.service_description }}">{% if row.service_code %}{{ row.service_code }}{% if row.service_description %} · {% endif %}{% endif %}{{ row.service_description }}</small>{% endif %}</td>
+        <td class="nfse-col-date" data-label="Emissão">{% if row.issued_at %}{{ row.issued_at|date:"d/m/Y" }}{% elif row.document.normalized_data.issued_at %}{{ row.document.normalized_data.issued_at|slice:":10" }}{% else %}<span class="table-muted">—</span>{% endif %}</td>
+        <td class="nfse-col-amount" data-label="Valor"><span class="nfse-amount">{{ row.amount|default:"—" }}</span>{% if row.retention_items %}<details class="nfse-retentions"><summary>{{ row.retained_total|default:"Retenções" }} retido</summary><dl>{% for label, value in row.retention_items %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}</dl></details>{% endif %}</td>
+        <td class="nfse-col-accumulator" data-label="Acumulador">{% if row.review and not row.classified and can_classify_nfse %}<div class="nfse-inline-review"><label class="sr-only" for="review-accumulator-{{ row.review.id }}">Acumulador da nota {{ row.number|default:"sem número" }} de {{ row.document.company.name }}</label><input id="review-accumulator-{{ row.review.id }}" name="accumulator_code" form="review-form-{{ row.review.id }}" value="{{ row.review.suggested_accumulator }}" maxlength="80" required autocomplete="off" spellcheck="false" list="review-options-{{ row.review.id }}" placeholder="Código"><datalist id="review-options-{{ row.review.id }}">{% for code, name in row.accumulator_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist><button class="button button-small" type="submit" form="review-form-{{ row.review.id }}">Classificar</button></div>{% elif row.classified and can_classify_nfse and not office.is_demo %}<div class="nfse-inline-review nfse-accumulator-correction" data-nfse-accumulator-edit><label class="sr-only" for="document-accumulator-{{ row.document.id }}">Acumulador da nota {{ row.number|default:"sem número" }}</label><input id="document-accumulator-{{ row.document.id }}" name="accumulator_code" form="accumulator-form-{{ row.document.id }}" value="{{ row.accumulator }}" maxlength="80" required autocomplete="off" spellcheck="false" list="document-options-{{ row.document.id }}" aria-describedby="document-save-status-{{ row.document.id }}" data-nfse-accumulator-input><datalist id="document-options-{{ row.document.id }}">{% for code, name in row.accumulator_options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist><small id="document-save-status-{{ row.document.id }}" class="nfse-auto-save-status" role="status" aria-live="polite" data-nfse-accumulator-status>Salva ao sair do campo</small></div>{% elif row.classified %}<span class="nfse-accumulator-code" translate="no">{{ row.accumulator }}</span>{% elif row.review %}<span class="table-muted">Somente consulta</span>{% else %}<span class="table-muted">Aguardando</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% if can_demo_download_nfse or can_export_nfse %}</form>{% endif %}
     {% if can_classify_nfse %}{% for row in document_rows %}{% if row.review %}<form id="review-form-{{ row.review.id }}" method="post" action="{% url 'hub:resolve-review' row.review.id %}" class="nfse-inline-review-form">{% csrf_token %}<input type="hidden" name="return_to" value="{{ request.get_full_path }}"></form>{% endif %}{% endfor %}{% endif %}
     {% if can_classify_nfse and not office.is_demo %}{% for row in document_rows %}{% if row.classified %}<form id="accumulator-form-{{ row.document.id }}" method="post" action="{% url 'hub:nfse-update-accumulator' row.document.id %}" class="nfse-inline-review-form">{% csrf_token %}<input type="hidden" name="return_to" value="{{ request.get_full_path }}"></form>{% endif %}{% endfor %}{% endif %}
-    {% if not office.is_demo and can_export_nfse %}{% for group in document_groups %}{% if group.classified_count %}<form id="company-export-{{ group.company_id }}" method="post" class="nfse-inline-review-form">{% csrf_token %}<input type="hidden" name="action" value="export_dominio_xml">{% for row in group.rows %}{% if row.classified %}<input type="hidden" name="documents" value="{{ row.document.id }}">{% endif %}{% endfor %}</form>{% endif %}{% for row in group.rows %}{% if row.classified %}<form id="single-export-{{ row.document.id }}" method="post" class="nfse-inline-review-form">{% csrf_token %}<input type="hidden" name="action" value="export_dominio_xml"><input type="hidden" name="documents" value="{{ row.document.id }}"></form>{% endif %}{% endfor %}{% endfor %}{% endif %}
-    {% if document_page.has_other_pages %}<nav class="triage-queue-pagination" aria-label="Páginas das NFS-e">{% if document_page.has_previous %}<a href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.next_page_number }}">Próxima</a>{% endif %}</nav>{% endif %}
+    {% if document_page.has_other_pages %}<nav class="pagination nfse-pagination" aria-label="Páginas das notas">{% if document_page.has_previous %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}page={{ document_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
-    {% if document_search or document_competence or issued_from or issued_to or document_status != 'all' or document_direction != 'all' or nfse_stats.received %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e corresponde aos filtros</strong><p>Altere o movimento, a situação, o período ou a pesquisa para consultar outras notas.</p><a class="button button-quiet" href="{% url 'hub:nfse-center' %}?status=all{% if nfse_selected_company %}&amp;company={{ nfse_selected_company.id }}{% endif %}">Limpar filtros</a></div>{% elif nfse_selected_company and not nfse_selected_company.active %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e no histórico desta empresa</strong><p>A empresa está pausada. A consulta não inicia uma nova coleta.</p><a class="button button-quiet" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Voltar ao cadastro da empresa</a></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><p>Configure a coleta automática para receber as notas das empresas.</p><a class="button button-quiet" href="?view=collection">Configurar coleta automática</a></div>{% endif %}
+    {% if document_search or document_competence or issued_from or issued_to or document_status != 'all' or document_direction != 'all' or nfse_stats.received %}<div class="empty-block operational-empty"><strong>Nenhuma nota neste filtro</strong><a class="button button-quiet" href="{% url 'hub:nfse-center' %}?status=all{% if nfse_selected_company %}&amp;company={{ nfse_selected_company.id }}{% endif %}">Limpar filtros</a></div>{% elif nfse_selected_company and not nfse_selected_company.active %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e no histórico desta empresa</strong><a class="button button-quiet" href="{% url 'hub:company-detail' nfse_selected_company.id %}">Voltar ao cadastro da empresa</a></div>{% else %}<div class="empty-block operational-empty"><strong>Nenhuma NFS-e recebida</strong><a class="button button-quiet" href="?view=collection">Configurar coleta automática</a></div>{% endif %}
   {% endif %}
   </div>
 </section>

@@ -4587,6 +4587,43 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         "taken": nfse_filter_url(status=document_status, direction="taken"),
         "pending": nfse_filter_url(status="unclassified", direction=document_direction),
     }
+    # Status and movement are tabs over the list (Stripe-like): each count already ignores
+    # its own facet, so a tab shows what selecting it would return.
+    nfse_status_tabs = [
+        {"value": value, "label": label, "count": count}
+        for value, label, count in (
+            ("all", "Todas", pending_stat + classified_stat),
+            ("unclassified", "Para classificar", pending_stat),
+            ("classified", "Classificadas", classified_stat),
+        )
+    ]
+    for tab in nfse_status_tabs:
+        tab["url"] = nfse_filter_url(status=str(tab["value"]), direction=document_direction)
+        tab["selected"] = document_status == tab["value"]
+    nfse_direction_tabs = [
+        {"value": value, "label": label, "count": count}
+        for value, label, count in (
+            ("all", "Todas", sum(direction_stats.values())),
+            ("provided", "Saídas", direction_stats["provided"]),
+            ("taken", "Entradas", direction_stats["taken"]),
+            ("unknown", "A confirmar", direction_stats["unknown"]),
+        )
+        if value != "unknown" or count or document_direction == "unknown"
+    ]
+    for tab in nfse_direction_tabs:
+        tab["url"] = nfse_filter_url(status=document_status, direction=str(tab["value"]))
+        tab["selected"] = document_direction == tab["value"]
+    competence_cursor = timezone.localdate().replace(day=1)
+    nfse_competence_options: list[tuple[str, str]] = []
+    for _offset in range(18):
+        nfse_competence_options.append(
+            (competence_cursor.strftime("%Y-%m"), competence_cursor.strftime("%m/%Y"))
+        )
+        competence_cursor = add_months(competence_cursor, -1)
+    if document_competence and document_competence not in dict(nfse_competence_options):
+        nfse_competence_options.append(
+            (document_competence, f"{document_competence[5:7]}/{document_competence[:4]}")
+        )
     document_page = Paginator(ordered_documents, 100).get_page(request.GET.get("page"))
     document_query_params = request.GET.copy()
     document_query_params.pop("page", None)
@@ -5010,6 +5047,9 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 "classified": classified_stat,
             },
             "nfse_stat_urls": nfse_stat_urls,
+            "nfse_status_tabs": nfse_status_tabs,
+            "nfse_direction_tabs": nfse_direction_tabs,
+            "nfse_competence_options": nfse_competence_options,
             "nfse_sync_rows": sync_rows,
             "nfse_exports": exports_page,
             "exports_querystring": exports_query_params.urlencode(),

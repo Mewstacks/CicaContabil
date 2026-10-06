@@ -1579,7 +1579,8 @@ class HubWorkspaceViewTests(TestCase):
         self.assertNotContains(response, "Transitória · 0%")
         body = response.content.decode()
         self.assertIn("Classificar", body)
-        self.assertIn("Ver dados da nota", body)
+        self.assertIn("abrir dados da nota", body)
+        self.assertIn('class="nfse-note-number"', body)
 
     def test_nfse_center_shows_note_number_and_not_transport_identifiers(self) -> None:
         document, _artifact, _review = create_document_and_artifact(
@@ -1855,12 +1856,11 @@ class HubWorkspaceViewTests(TestCase):
         self.company.save(update_fields=["active"])
         url = reverse("hub:nfse-center") + f"?company={self.company.pk}&status=all"
         page = self.client.get(url)
-        self.assertContains(page, "HISTÓRICO SOMENTE PARA CONSULTA")
         self.assertContains(page, f"{self.company.name} está pausada")
         self.assertContains(page, "Nenhuma nota nova será coletada")
         self.assertContains(page, "Ver situação no cadastro")
-        self.assertContains(page, "Ver pendências")
-        self.assertContains(page, "Inclui 1 nota do filtro atual")
+        self.assertContains(page, "Para classificar")
+        self.assertContains(page, "Retenções")
         self.assertNotContains(page, "1 para classificar")
         self.assertFalse(page.context["can_classify_nfse"])
         self.assertNotContains(page, "data-nfse-accumulator-input")
@@ -1961,8 +1961,9 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertContains(response, "august")
         self.assertNotContains(response, "september")
-        self.assertContains(response, '<option value="08" selected>Agosto</option>', html=True)
-        self.assertContains(response, 'value="2026"')
+        self.assertContains(
+            response, '<option value="2026-08" selected>08/2026</option>', html=True
+        )
 
     def test_nfse_center_is_an_operational_bulk_sync_workspace(self) -> None:
         response = self.client.get(reverse("hub:nfse-center"), {"view": "collection"})
@@ -2131,7 +2132,7 @@ class HubWorkspaceViewTests(TestCase):
         first_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE"})
         second_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE", "page": "2"})
 
-        self.assertContains(first_page, "101 resultados")
+        self.assertContains(first_page, "101 notas")
         self.assertContains(first_page, "Página 1 de 2")
         self.assertContains(first_page, "PAGE-000")
         self.assertNotContains(first_page, "PAGE-100")

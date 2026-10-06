@@ -436,3 +436,123 @@
 .nfse-review-link { display: flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .nfse-review-link:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
 @media (max-width: 760px) { .nfse-workspace .nfse-download-table td[data-label="Nota e movimento"] { min-width: 0; } }
+
+/* ---------------------------------------------------------------------------------------
+   D-277 Notas redesign: toolbar on one line, status tabs with counts, movement segments,
+   one quiet "Baixar", flat list. Tokens from theme.css; 4px grid; 44px targets.
+   --------------------------------------------------------------------------------------- */
+.nfse-paused-context { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin: 0 0 16px; padding: 16px 20px; border: 1px solid var(--amber); border-radius: var(--radius); background: var(--amber-soft); }
+.nfse-paused-context h2 { margin: 0 0 4px; font-size: 15px; }
+.nfse-paused-context p { margin: 0; max-width: 72ch; color: var(--ink); font-size: 13px; }
+
+.nfse-toolbar { margin: 0 0 16px; padding: 16px 20px; }
+.nfse-toolbar-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; }
+.nfse-toolbar .field { display: grid; gap: 4px; min-width: 0; margin: 0; }
+.nfse-toolbar .field label, .nfse-toolbar-label { color: var(--ink); font-size: 12px; font-weight: 700; }
+.nfse-toolbar select, .nfse-toolbar input { width: auto; min-height: 44px; }
+.nfse-toolbar-competence select { min-width: 132px; }
+.nfse-toolbar-search { flex: 1 1 280px; }
+.nfse-toolbar .nfse-toolbar-search input { width: 100%; }
+.nfse-scope-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-subtle); color: var(--ink); font-size: 13px; font-weight: 700; text-decoration: none; }
+.nfse-scope-chip:hover { border-color: var(--ink); }
+.nfse-scope-chip:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.nfse-more-filters { align-self: flex-end; }
+.nfse-more-filters > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--ink); font-size: 13px; font-weight: 700; cursor: pointer; list-style: none; }
+.nfse-more-filters > summary::-webkit-details-marker { display: none; }
+.nfse-more-filters > summary::after { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
+.nfse-more-filters[open] > summary::after { transform: translateY(2px) rotate(225deg); }
+.nfse-more-filters > summary:hover { color: var(--accent); }
+.nfse-more-filters > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+.nfse-more-filters[open] { flex-basis: 100%; }
+.nfse-more-filters-panel { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; padding-top: 8px; }
+.nfse-more-filters-panel .nfse-issued-range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.nfse-more-filters-panel .nfse-issued-range[hidden] { display: none; }
+.nfse-toolbar-actions { display: flex; align-items: center; gap: 16px; min-height: 44px; }
+
+.nfse-list { overflow: visible; }
+.nfse-list-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 8px 20px; border-bottom: 1px solid var(--line); }
+.nfse-tabs { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.nfse-tabs a { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border-bottom: 2px solid transparent; color: var(--muted); font-size: 14px; font-weight: 700; text-decoration: none; }
+.nfse-tabs a:hover { color: var(--ink); }
+.nfse-tabs a[aria-current="page"] { border-bottom-color: var(--accent); color: var(--ink); }
+.nfse-tabs a:focus-visible, .nfse-segments a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+.nfse-tab-count { display: inline-grid; min-width: 24px; height: 22px; padding: 0 8px; place-items: center; border-radius: 999px; background: var(--surface-subtle); color: var(--ink); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nfse-tabs a.has-attention .nfse-tab-count { background: var(--amber-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--amber); }
+.nfse-segments { display: inline-flex; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.nfse-segments a { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+.nfse-segments a + a { border-left: 1px solid var(--line); }
+.nfse-segments a:hover { color: var(--ink); background: var(--surface-subtle); }
+.nfse-segments a[aria-current="page"] { background: var(--surface-subtle); color: var(--ink); }
+.nfse-segment-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nfse-results-count { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.nfse-downloads > summary { list-style: none; cursor: pointer; }
+.nfse-downloads > summary::-webkit-details-marker { display: none; }
+.nfse-list-head { position: relative; }
+.nfse-downloads-panel { position: absolute; top: calc(100% - 4px); right: 20px; z-index: 30; display: grid; width: min(440px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-raised, var(--surface)); box-shadow: var(--shadow); }
+.nfse-download-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 12px 16px; }
+.nfse-download-row + .nfse-download-row { border-top: 1px solid var(--line); }
+.nfse-download-row strong { display: block; font-size: 14px; }
+.nfse-download-row small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.nfse-download-pair { display: inline-flex; gap: 8px; }
+.nfse-download-limit { margin: 0; padding: 8px 16px 12px; color: var(--ink); font-size: 12px; }
+
+.nfse-bulk-bar { padding: 8px 20px; }
+.nfse-table { table-layout: auto; }
+.nfse-table td { vertical-align: middle; }
+.nfse-col-select { width: 44px; padding-right: 0 !important; }
+.nfse-note-number { display: inline-block; color: var(--ink); font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+a.nfse-note-number { text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+a.nfse-note-number:hover { text-decoration-color: currentColor; }
+a.nfse-note-number:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+.nfse-direction-tag { display: block; width: max-content; margin-top: 4px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.nfse-direction-tag.is-provided { background: var(--green-soft); color: var(--ink); }
+.nfse-direction-tag.is-taken { background: var(--info-soft); color: var(--ink); }
+.nfse-direction-tag.is-unknown { background: var(--amber-soft); color: var(--ink); }
+.nfse-cell-main { display: block; max-width: 28ch; overflow: hidden; color: var(--ink); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.nfse-table td small { max-width: 32ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nfse-col-date { white-space: nowrap; }
+.nfse-col-amount { text-align: right !important; white-space: nowrap; }
+.nfse-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.nfse-col-amount .nfse-retentions { margin-top: 4px; text-align: right; }
+.nfse-col-accumulator { min-width: 240px; }
+.nfse-accumulator-code { display: inline-block; padding: 2px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums; }
+.nfse-auto-save-status { flex-basis: 100%; }
+.nfse-pagination { padding: 12px 20px; }
+
+@media (max-width: 760px) {
+  .nfse-toolbar { padding: 12px 16px; }
+  .nfse-toolbar-search { flex-basis: 100%; }
+  .nfse-toolbar-competence, .nfse-toolbar-scope { flex: 1 1 140px; }
+  .nfse-toolbar select, .nfse-toolbar input { width: 100%; }
+  .nfse-list-head { padding: 8px 16px; }
+  .nfse-tabs { width: 100%; flex-wrap: nowrap; overflow-x: auto; }
+  .nfse-tabs a { flex: 0 0 auto; }
+  .nfse-results-count { margin-left: 0; }
+  .nfse-downloads { margin-left: auto; }
+  .nfse-downloads-panel { right: 16px; }
+  .nfse-bulk-bar { padding: 8px 16px; }
+  .nfse-list .nfse-table, .nfse-list .nfse-table tbody { display: block !important; width: 100%; min-width: 0 !important; }
+  .nfse-list .nfse-table tbody tr { display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .nfse-list .nfse-table td { display: block !important; max-width: none; padding: 0 !important; border: 0 !important; }
+  .nfse-list .nfse-table td::before { content: none !important; }
+  .nfse-list .nfse-table .nfse-col-select { grid-column: 1; grid-row: 1 / span 2; width: auto; }
+  .nfse-list .nfse-table .nfse-col-note { grid-column: 2; grid-row: 1; }
+  .nfse-list .nfse-table .nfse-col-amount { grid-column: 3; grid-row: 1; }
+  .nfse-list .nfse-table .nfse-col-company { grid-column: 2 / -1; }
+  .nfse-list .nfse-table .nfse-col-counterparty { grid-column: 2 / -1; }
+  .nfse-list .nfse-table .nfse-col-date { display: none !important; }
+  .nfse-list .nfse-table .nfse-col-accumulator { grid-column: 1 / -1; min-width: 0; padding-top: 4px !important; }
+  .nfse-cell-main, .nfse-table td small { max-width: 100%; }
+}
+
+/* D-277: on phones the search comes first; competência and "Mais filtros" share a row. */
+.nfse-toolbar-actions:not(:has(> :not([hidden]))) { display: none; }
+@media (max-width: 760px) {
+  .nfse-toolbar-search { order: -1; }
+  .nfse-toolbar-competence { flex: 1 1 120px; }
+  .nfse-more-filters { flex: 0 0 auto; }
+  .nfse-more-filters[open] { flex-basis: 100%; }
+  .nfse-list-head { gap: 8px 12px; }
+  .nfse-segments { flex: 1 1 auto; }
+  .nfse-segments a { flex: 1 1 auto; justify-content: center; padding: 0 8px; }
+}

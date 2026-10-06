@@ -1567,3 +1567,18 @@ document.querySelectorAll('[data-toolbar]').forEach((toolbar) => {
     }
   });
 })();
+
+// NFS-e "Baixar" menu (D-277): a details popover; Escape and a click outside close it and
+// focus returns to its button. Re-bound after the live filter swaps the results region.
+document.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  document.querySelectorAll('.nfse-downloads[open]').forEach((menu) => {
+    menu.open = false;
+    menu.querySelector('summary')?.focus();
+  });
+});
+document.addEventListener('click', (event) => {
+  document.querySelectorAll('.nfse-downloads[open]').forEach((menu) => {
+    if (!menu.contains(event.target)) menu.open = false;
+  });
+});
