@@ -1182,7 +1182,7 @@ const enhanceLiveFilter = (form) => {
   const clear = form.querySelector('[data-live-filter-clear]');
   const value = (name) => String(new FormData(form).get(name) || '').trim();
   const filtering = () => Boolean(
-    value('q') || value('competence_month') || value('issued_from') || value('issued_to')
+    value('q') || value('issued_from') || value('issued_to')
     || (value('status') && value('status') !== 'all')
     || (value('direction') && value('direction') !== 'all'),
   );
@@ -1218,6 +1218,7 @@ const enhanceLiveFilter = (form) => {
       if (count && nextCount) count.textContent = nextCount.textContent;
       if (String(url) !== window.location.href) history.replaceState({}, '', url);
       results.querySelectorAll('[data-nfse-download-form]').forEach(initNfseDownloadForm);
+      bindNfseAccumulatorEditors(results);
     } catch (error) {
       if (error.name !== 'AbortError' && current === request) window.location.assign(url);
     } finally {
@@ -1239,6 +1240,150 @@ const enhanceLiveFilter = (form) => {
   });
 };
 
+
+// NFS-e notes grouped by company: a group is a disclosure (button + region). Its notes are
+// fetched the first time it opens; "Mostrar mais" appends the next page of the same group.
+const bindNfseAccumulatorEditors = (root) => {
+  root.querySelectorAll('[data-nfse-accumulator-edit]').forEach((editor) => {
+    if (editor.dataset.bound) return;
+    editor.dataset.bound = '1';
+    const input = editor.querySelector('[data-nfse-accumulator-input]');
+    const status = editor.querySelector('[data-nfse-accumulator-status]');
+    if (!(input instanceof HTMLInputElement) || !(input.form instanceof HTMLFormElement)) return;
+    let timer = 0;
+    let saving = false;
+    const allowedValues = () => new Set(
+      [...(input.list?.options || [])].map((option) => option.value.trim()),
+    );
+    const persist = async () => {
+      window.clearTimeout(timer);
+      const value = input.value.trim();
+      if (!value || value === input.defaultValue.trim() || saving) return;
+      if (input.list && !allowedValues().has(value)) {
+        if (status) status.textContent = 'Escolha um acumulador da lista.';
+        return;
+      }
+      saving = true;
+      input.setAttribute('aria-busy', 'true');
+      if (status) status.textContent = 'Salvando…';
+      try {
+        const response = await fetch(input.form.action, {
+          method: 'POST',
+          body: new FormData(input.form),
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) throw new Error(payload.message || 'Não foi possível salvar.');
+        input.defaultValue = payload.accumulator;
+        if (status) status.textContent = 'Salvo';
+      } catch (error) {
+        if (status) status.textContent = error.message || 'Não foi possível salvar.';
+      } finally {
+        saving = false;
+        input.removeAttribute('aria-busy');
+      }
+    };
+    editor.addEventListener('submit', (event) => { event.preventDefault(); persist(); });
+    input.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      if (status) status.textContent = '';
+      if (input.value.trim() !== input.defaultValue.trim() && allowedValues().has(input.value.trim())) {
+        timer = window.setTimeout(persist, 500);
+      }
+    });
+    input.addEventListener('change', persist);
+    input.addEventListener('blur', persist);
+  });
+};
+
+const nfseFetchGroup = async (url) => {
+  const response = await fetch(url, {
+    credentials: 'same-origin',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  });
+  if (!response.ok) throw new Error('group request failed');
+  const holder = document.createElement('div');
+  holder.innerHTML = await response.text();
+  return holder;
+};
+
+const nfseOpenGroup = async (button, open) => {
+  const panel = document.getElementById(button.getAttribute('aria-controls'));
+  if (!panel) return;
+  button.setAttribute('aria-expanded', String(open));
+  panel.hidden = !open;
+  if (!open || panel.dataset.loaded) return;
+  panel.dataset.loaded = '1';
+  panel.setAttribute('aria-busy', 'true');
+  panel.innerHTML = '<p class="nfse-group-loading">Carregando…</p>';
+  try {
+    const holder = await nfseFetchGroup(button.dataset.url);
+    panel.replaceChildren(...holder.childNodes);
+    bindNfseAccumulatorEditors(panel);
+  } catch (error) {
+    delete panel.dataset.loaded;
+    panel.innerHTML = '<p class="nfse-group-loading">Não foi possível carregar. <button type="button" class="text-action" data-nfse-group-retry>Tentar de novo</button></p>';
+  } finally {
+    panel.removeAttribute('aria-busy');
+  }
+};
+
+document.addEventListener('click', async (event) => {
+  const toggle = event.target.closest('[data-nfse-group-toggle]');
+  if (toggle) {
+    nfseOpenGroup(toggle, toggle.getAttribute('aria-expanded') !== 'true');
+    return;
+  }
+  const retry = event.target.closest('[data-nfse-group-retry]');
+  if (retry) {
+    const panel = retry.closest('.nfse-group-panel');
+    const button = panel && document.querySelector(`[aria-controls="${panel.id}"]`);
+    if (button) nfseOpenGroup(button, true);
+    return;
+  }
+  const all = event.target.closest('[data-nfse-groups-toggle]');
+  if (all) {
+    const open = all.dataset.nfseGroupsToggle === 'open';
+    document.querySelectorAll('[data-nfse-group-toggle]').forEach((button) => nfseOpenGroup(button, open));
+    return;
+  }
+  const more = event.target.closest('[data-nfse-group-more]');
+  if (!more) return;
+  const panel = more.closest('.nfse-group-panel');
+  const rows = panel?.querySelector('[data-nfse-group-rows]');
+  if (!rows) return;
+  more.disabled = true;
+  more.setAttribute('aria-busy', 'true');
+  try {
+    const holder = await nfseFetchGroup(more.dataset.url);
+    const nextRows = holder.querySelector('[data-nfse-group-rows]');
+    if (nextRows) rows.append(...nextRows.children);
+    const foot = panel.querySelector('[data-nfse-group-foot]');
+    const nextFoot = holder.querySelector('[data-nfse-group-foot]');
+    if (foot && nextFoot) foot.replaceChildren(...nextFoot.childNodes);
+    bindNfseAccumulatorEditors(panel);
+  } catch (error) {
+    more.disabled = false;
+    more.removeAttribute('aria-busy');
+  }
+});
+
+document.querySelectorAll('[data-nfse-period-mode]').forEach((control) => {
+  const form = control.closest('form');
+  if (!form) return;
+  const update = () => {
+    form.querySelectorAll('[data-nfse-period-panel]').forEach((panel) => {
+      panel.hidden = panel.dataset.nfsePeriodPanel !== control.value;
+      panel.querySelectorAll('input, select').forEach((input) => { input.disabled = panel.hidden; });
+    });
+  };
+  control.addEventListener('change', update);
+  update();
+});
+
+bindNfseAccumulatorEditors(document);
+
 document.querySelectorAll('[data-live-filter]').forEach(enhanceLiveFilter);
 
 document.querySelectorAll('[data-nfse-filter-mode]').forEach((fieldSet) => {
@@ -1258,7 +1403,9 @@ document.querySelectorAll('[data-nfse-filter-mode]').forEach((fieldSet) => {
 
 document.querySelectorAll('.nfse-issued-range').forEach((range) => {
   const inputs = [...range.querySelectorAll('[data-nfse-date]')];
-  const error = range.querySelector('.nfse-date-error');
+  const error = range.querySelector('.nfse-date-error')
+    || range.closest('form')?.querySelector('.nfse-date-error')
+    || document.createElement('small');
   const format = date => new Intl.DateTimeFormat('pt-BR').format(date);
   const parse = value => {
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value)) return null;

@@ -22,12 +22,20 @@ from cryptography.hazmat.primitives.serialization import (
 from defusedxml import ElementTree  # type: ignore[import-untyped]
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import Certificate, NfseDocument, NfseDocumentSide, NfseSync
 from apps.hub.nfse_adn import AdnClient, AdnDocument, AdnPayloadError
+from apps.hub.nfse_facts import (
+    FACT_FIELDS,
+    FACTS_VERSION,
+    apply_facts,
+    nfse_facts,
+    refresh_situations,
+)
 from apps.hub.services import create_document_and_artifact
 
 
@@ -328,21 +336,82 @@ def _counterparty(values: dict[str, list[str]]) -> str:
     return ""
 
 
-def sync_nfse_side(document: NfseDocument) -> NfseDocumentSide:
-    """Persist the side of one note so filters and counters can query it in SQL."""
+def _side_for(document: NfseDocument, side: NfseDocumentSide | None = None) -> NfseDocumentSide:
+    """Side and fiscal facts of one stored document, read from its immutable XML."""
 
     data = nfse_match_data(document)
     direction = str(data.get("direction") or "unknown")
-    side, _created = NfseDocumentSide.objects.update_or_create(
-        document=document,
-        defaults={
-            "organization_id": document.organization_id,
-            "direction": direction if direction in {"provided", "taken"} else "unknown",
-            "counterparty_ref": str(data.get("counterparty_ref") or "")[:80],
-            "counterparty_name": str(data.get("counterparty_name") or "")[:160],
-        },
+    side = side or NfseDocumentSide(document=document, organization_id=document.organization_id)
+    side.direction = direction if direction in {"provided", "taken"} else "unknown"
+    side.counterparty_ref = str(data.get("counterparty_ref") or "")[:80]
+    side.counterparty_name = str(data.get("counterparty_name") or "")[:160]
+    apply_facts(
+        side,
+        nfse_facts(
+            document.original_xml,
+            company_cnpj=document.company.cnpj_masked,
+            fallback=document.normalized_data if isinstance(document.normalized_data, dict) else {},
+        ),
     )
+    if side.kind == "event":
+        side.direction = "unknown"
     return side
+
+
+def sync_nfse_side(document: NfseDocument) -> NfseDocumentSide:
+    """Persist the side of one note so filters and counters can query it in SQL."""
+
+    existing = NfseDocumentSide.objects.filter(document=document).first()
+    side = _side_for(document, existing)
+    side.save()
+    refresh_situations(document.organization_id, {side.access_key})
+    return side
+
+
+FACTS_PAGE_SIZE = 200
+
+
+def refresh_nfse_facts(*, limit: int = 5000, organization_id: Any = None) -> dict[str, int]:
+    """Read the facts of documents whose side is missing or older than ``FACTS_VERSION``.
+
+    Paged by primary key because production runs behind PgBouncer without server-side
+    cursors, and bounded per call so the 512 MB worker never holds the whole archive.
+    """
+
+    documents = NfseDocument.objects.filter(
+        Q(side__isnull=True) | Q(side__facts_version__lt=FACTS_VERSION)
+    )
+    if organization_id is not None:
+        documents = documents.filter(organization_id=organization_id)
+    pending = list(documents.order_by("pk").values_list("pk", flat=True)[:limit])
+    updated = 0
+    touched: dict[object, set[str]] = {}
+    for start in range(0, len(pending), FACTS_PAGE_SIZE):
+        batch = list(
+            NfseDocument.objects.filter(pk__in=pending[start : start + FACTS_PAGE_SIZE])
+            .select_related("company", "side")
+        )
+        creates: list[NfseDocumentSide] = []
+        updates: list[NfseDocumentSide] = []
+        for document in batch:
+            try:
+                existing = document.side
+            except NfseDocumentSide.DoesNotExist:
+                existing = None
+            side = _side_for(document, existing)
+            (updates if existing is not None else creates).append(side)
+            touched.setdefault(document.organization_id, set()).add(side.access_key)
+        with transaction.atomic():
+            NfseDocumentSide.objects.bulk_create(creates, ignore_conflicts=True)
+            NfseDocumentSide.objects.bulk_update(
+                updates,
+                ["direction", "counterparty_ref", "counterparty_name", "event_situation",
+                 "facts_version", *FACT_FIELDS],
+            )
+        updated += len(batch)
+    for organization, keys in touched.items():
+        refresh_situations(organization, keys)
+    return {"updated": updated, "remaining": max(documents.count(), 0)}
 
 
 def process_sync_pages(

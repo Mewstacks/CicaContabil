@@ -551,6 +551,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "hub.dispatch_active_nfse_syncs",
         "schedule": aligned_periodic_minutes(NFSE_ADN_POLL_INTERVAL_MINUTES),
     },
+    "refresh-nfse-facts": {
+        "task": "hub.refresh_nfse_facts",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
     "refresh-reform-radar": {
         "task": "hub.refresh_reform_sources",
         "schedule": crontab(hour=5, minute=20),

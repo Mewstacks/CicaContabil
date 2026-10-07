@@ -73,6 +73,7 @@ from apps.common.ratelimit import rate_limited
 from apps.common.redirects import detail_redirect, safe_next
 from apps.fiscal_calendar.models import ReferenceStatus, TaxDeadlineRule
 from apps.fiscal_calendar.services import add_months
+from apps.hub import nfse_list
 from apps.hub.closing_dashboard import closing_dashboard_context
 from apps.hub.controlplane import (
     authorization_is_fresh,
@@ -3988,14 +3989,27 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
         if action in {"retention_report_pdf", "retention_report_xlsx", "download_original_xmls"}:
             if not can_download_nfse:
                 return refuse(request, "Seu perfil não pode baixar relatórios desta carteira.")
-            report_query = (
-                NfseDocument.objects.filter(organization=office, company__in=scope)
-                .select_related("company", "review_case", "side")
-                .prefetch_related("integration_artifacts")
+            demo_resolved = (
+                [
+                    key
+                    for key, entry in get_section(request, "nfse_reviews").items()
+                    if entry.get("resolved")
+                ]
+                if is_demo_visitor(request, office)
+                else []
             )
             try:
                 report_documents = _filter_nfse_retention_report_documents(
-                    report_query, request.POST, demo=office.is_demo
+                    office=office,
+                    scope=scope,
+                    data=request.POST,
+                    demo_document_ids=set(
+                        ReviewCase.objects.filter(
+                            organization=office, pk__in=demo_resolved
+                        ).values_list("document_id", flat=True)
+                    )
+                    if demo_resolved
+                    else set(),
                 )
             except ValueError as exc:
                 messages.error(request, str(exc))
@@ -4104,9 +4118,11 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             try:
                 if request.POST.get("all_filtered_classified") == "1":
                     selected_documents = list(
-                        _filter_nfse_export_documents(selected_query, request.POST).order_by(
-                            "company__name", "-issued_at", "-captured_at"
+                        _filter_nfse_export_documents(
+                            office=office, scope=scope, data=request.POST
                         )
+                        .select_related("company")
+                        .order_by("company__name", "-issued_at", "-captured_at")
                     )
                 else:
                     document_ids = list(
@@ -4350,709 +4366,22 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
             )
         )
 
-    document_query = (
-        NfseDocument.objects.filter(organization=office, company__in=scope)
-        .select_related("review_case", "company")
-        .prefetch_related(
-            Prefetch(
-                "integration_artifacts",
-                queryset=IntegrationArtifact.objects.order_by("-created_at"),
-            )
-        )
-    )
-    document_search = request.GET.get("q", "").strip()[:100]
-    document_status = request.GET.get("status", "all")
-    document_direction = request.GET.get("direction", "all")
-    document_date_filter = request.GET.get("date_filter", "competence")
-    document_competence = request.GET.get("competence", "").strip()[:7]
-    if not request.GET:
-        current_month = timezone.localdate().replace(day=1)
-        previous_month = current_month - timedelta(days=1)
-        document_competence = previous_month.strftime("%Y-%m")
-    if "competence_month" in request.GET:
-        month = request.GET.get("competence_month", "")
-        year = request.GET.get("competence_year", "")
-        document_competence = f"{year}-{month}" if month and year else ""
-    issued_from = request.GET.get("issued_from", "").strip()[:10]
-    issued_to = request.GET.get("issued_to", "").strip()[:10]
-    if document_status in {"review", "received"}:
-        document_status = "unclassified"
-    if document_status not in {"all", "classified", "unclassified"}:
-        document_status = "all"
-    if document_direction not in {"all", "provided", "taken", "unknown"}:
-        document_direction = "all"
-    if document_date_filter not in {"competence", "issued"}:
-        document_date_filter = "competence"
-    scoped_documents = document_query
-    if document_search:
-        scoped_documents = scoped_documents.filter(
-            Q(company__name__icontains=document_search)
-            | Q(company__dominio_code__icontains=document_search)
-            | Q(normalized_data__number__icontains=document_search)
-        )
-    if document_date_filter == "competence" and re.fullmatch(
-        r"\d{4}-(0[1-9]|1[0-2])", document_competence
-    ):
-        competence_year, competence_month = document_competence.split("-")
-        if not office.is_demo:
-            scoped_documents = scoped_documents.filter(
-                issued_at__year=int(competence_year), issued_at__month=int(competence_month)
-            )
-    elif document_date_filter == "competence":
-        document_competence = ""
-    date_filter_error = ""
-
-    def parse_filter_date(value: str) -> date | None:
-        nonlocal date_filter_error
-        if not value:
-            return None
-        try:
-            return (
-                datetime.strptime(value, "%d/%m/%Y").date()
-                if "/" in value
-                else date.fromisoformat(value)
-            )
-        except ValueError:
-            if document_date_filter == "issued":
-                date_filter_error = "Informe uma data válida no formato DD/MM/AAAA."
-            return None
-
-    issued_from_date = parse_filter_date(issued_from)
-    issued_to_date = parse_filter_date(issued_to)
-    if issued_from_date:
-        issued_from = issued_from_date.strftime("%d/%m/%Y")
-    if issued_to_date:
-        issued_to = issued_to_date.strftime("%d/%m/%Y")
-    if (
-        document_date_filter == "issued"
-        and issued_from_date
-        and issued_to_date
-        and issued_from_date > issued_to_date
-    ):
-        date_filter_error = "A data final deve ser igual ou posterior à inicial."
-    if date_filter_error:
-        scoped_documents = scoped_documents.none()
-    if not office.is_demo and document_date_filter == "issued" and issued_from_date:
-        scoped_documents = scoped_documents.filter(issued_at__date__gte=issued_from_date)
-    if not office.is_demo and document_date_filter == "issued" and issued_to_date:
-        scoped_documents = scoped_documents.filter(issued_at__date__lte=issued_to_date)
-    scoped_documents = scoped_documents.distinct()
-
-    def filter_nfse_status(
-        query: QuerySet[NfseDocument], status: str
-    ) -> QuerySet[NfseDocument]:
-        if status == "classified":
-            return query.filter(integration_artifacts__isnull=False).distinct()
-        if status == "unclassified":
-            return query.filter(integration_artifacts__isnull=True).distinct()
-        return query
-
-    def filter_nfse_direction(
-        query: QuerySet[NfseDocument], direction: str
-    ) -> QuerySet[NfseDocument]:
-        return _filter_nfse_side(query, direction)
-
-    documents = filter_nfse_direction(
-        filter_nfse_status(scoped_documents, document_status), document_direction
-    ).distinct()
-    document_total = documents.count()
-    exportable_documents = documents.filter(integration_artifacts__isnull=False).distinct()
-    document_exportable_total = exportable_documents.count()
-    document_exportable_company_total = exportable_documents.values("company_id").distinct().count()
-    ordered_documents: QuerySet[NfseDocument] | list[NfseDocument] = documents.select_related(
-        "side"
-    ).order_by("company__name", "-issued_at", "-captured_at")
-    demo_accumulators: dict[object, str] = {}
-    direction_stats: dict[str, int]
-    pending_stat: int
-    classified_stat: int
-    if office.is_demo:
-        # Old demo fixtures keep their emission date in the normalized XML data.
-        # Filter against the same date shown in the table, before applying facets or limiting rows.
-        demo_scope: list[tuple[NfseDocument, bool, str, str]] = []
-        for document in scoped_documents.order_by("company__name", "-issued_at", "-captured_at"):
-            artifact = _latest_nfse_artifact(list(document.integration_artifacts.all()))
-            review = getattr(document, "review_case", None)
-            if review is not None:
-                _demo_review_for_view(request, review)
-            demo_accumulator = (
-                review.resolved_accumulator
-                if review is not None and review.status == ReviewCase.Status.RESOLVED
-                else ""
-            )
-            classified = bool((artifact and artifact.accumulator_code) or demo_accumulator)
-            effective_direction = _nfse_document_direction(document, demo=True)
-            issued = document.issued_at or _nfse_issued_at_from_normalized_data(document)
-            if issued and timezone.is_aware(issued):
-                issued = timezone.localtime(issued)
-            issued_date = issued.date() if issued else None
-            if (
-                document_date_filter == "competence"
-                and document_competence
-                and (not issued_date or issued_date.strftime("%Y-%m") != document_competence)
-            ):
-                continue
-            if document_date_filter == "issued":
-                if issued_from_date and (not issued_date or issued_date < issued_from_date):
-                    continue
-                if issued_to_date and (not issued_date or issued_date > issued_to_date):
-                    continue
-            demo_scope.append(
-                (document, classified, effective_direction, demo_accumulator or "")
-            )
-            if demo_accumulator:
-                demo_accumulators[document.pk] = demo_accumulator
-
-        def demo_status_matches(classified: bool, status: str) -> bool:
-            return (
-                status == "all"
-                or (status == "classified" and classified)
-                or (status == "unclassified" and not classified)
-            )
-
-        def demo_direction_matches(effective_direction: str, direction: str) -> bool:
-            return direction == "all" or effective_direction == direction
-
-        direction_stats = {
-            direction: sum(
-                demo_status_matches(classified, document_status)
-                and effective_direction == direction
-                for _document, classified, effective_direction, _accumulator in demo_scope
-            )
-            for direction in ("provided", "taken", "unknown")
-        }
-        status_scope = [
-            item
-            for item in demo_scope
-            if demo_direction_matches(item[2], document_direction)
-        ]
-        pending_stat = sum(not item[1] for item in status_scope)
-        classified_stat = sum(item[1] for item in status_scope)
-        filtered_demo_scope = [
-            item
-            for item in status_scope
-            if demo_status_matches(item[1], document_status)
-        ]
-        document_total = len(filtered_demo_scope)
-        ordered_documents = [item[0] for item in filtered_demo_scope]
-    else:
-        direction_scope = filter_nfse_status(scoped_documents, document_status)
-        direction_stats = {
-            "provided": filter_nfse_direction(direction_scope, "provided").count(),
-            "taken": filter_nfse_direction(direction_scope, "taken").count(),
-            "unknown": filter_nfse_direction(direction_scope, "unknown").count(),
-        }
-        status_scope = filter_nfse_direction(scoped_documents, document_direction)
-        pending_stat = filter_nfse_status(status_scope, "unclassified").count()
-        classified_stat = filter_nfse_status(status_scope, "classified").count()
-
-    def nfse_filter_url(*, status: str, direction: str) -> str:
-        params: dict[str, object] = {
-            "status": status,
-            "direction": direction,
-            "date_filter": document_date_filter,
-        }
-        if selected_company is not None:
-            params["company"] = selected_company.id
-        if document_search:
-            params["q"] = document_search
-        if document_date_filter == "competence" and document_competence:
-            params["competence_month"] = document_competence[5:7]
-            params["competence_year"] = document_competence[:4]
-        elif document_date_filter == "issued":
-            if issued_from:
-                params["issued_from"] = issued_from
-            if issued_to:
-                params["issued_to"] = issued_to
-        return f"{reverse('hub:nfse-center')}?{urlencode(params)}#nfse-results"
-
-    nfse_stat_urls = {
-        "received": nfse_filter_url(status=document_status, direction=document_direction),
-        "provided": nfse_filter_url(status=document_status, direction="provided"),
-        "taken": nfse_filter_url(status=document_status, direction="taken"),
-        "pending": nfse_filter_url(status="unclassified", direction=document_direction),
-    }
-    # Status and movement are tabs over the list (Stripe-like): each count already ignores
-    # its own facet, so a tab shows what selecting it would return.
-    nfse_status_tabs = [
-        {"value": value, "label": label, "count": count}
-        for value, label, count in (
-            ("all", "Todas", pending_stat + classified_stat),
-            ("unclassified", "Para classificar", pending_stat),
-            ("classified", "Classificadas", classified_stat),
-        )
-    ]
-    for tab in nfse_status_tabs:
-        tab["url"] = nfse_filter_url(status=str(tab["value"]), direction=document_direction)
-        tab["selected"] = document_status == tab["value"]
-    nfse_direction_tabs = [
-        {"value": value, "label": label, "count": count}
-        for value, label, count in (
-            ("all", "Todas", sum(direction_stats.values())),
-            ("provided", "Saídas", direction_stats["provided"]),
-            ("taken", "Entradas", direction_stats["taken"]),
-            ("unknown", "A confirmar", direction_stats["unknown"]),
-        )
-        if value != "unknown" or count or document_direction == "unknown"
-    ]
-    for tab in nfse_direction_tabs:
-        tab["url"] = nfse_filter_url(status=document_status, direction=str(tab["value"]))
-        tab["selected"] = document_direction == tab["value"]
-    competence_cursor = timezone.localdate().replace(day=1)
-    nfse_competence_options: list[tuple[str, str]] = []
-    for _offset in range(18):
-        nfse_competence_options.append(
-            (competence_cursor.strftime("%Y-%m"), competence_cursor.strftime("%m/%Y"))
-        )
-        competence_cursor = add_months(competence_cursor, -1)
-    if document_competence and document_competence not in dict(nfse_competence_options):
-        nfse_competence_options.append(
-            (document_competence, f"{document_competence[5:7]}/{document_competence[:4]}")
-        )
-    document_page = Paginator(ordered_documents, 100).get_page(request.GET.get("page"))
-    document_query_params = request.GET.copy()
-    document_query_params.pop("page", None)
-    document_rows: list[dict[str, object]] = []
-    accumulator_codes_cache: dict[tuple[object, date], list[tuple[str, str]]] = {}
-    for document in document_page.object_list:
-        artifact = _latest_nfse_artifact(list(document.integration_artifacts.all()))
-        review = getattr(document, "review_case", None)
-        open_review = review if review and review.status == ReviewCase.Status.OPEN else None
-        issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
-        # A note is classified or it is not: the accumulator either came from the catalogue
-        # or nobody chose one yet. No percentage is shown, because none of them describes a
-        # state an accountant can act on.
-        demo_accumulator = demo_accumulators.get(document.pk, "")
-        classified = bool((artifact and artifact.accumulator_code) or demo_accumulator)
-        direction = _nfse_document_direction(document, demo=office.is_demo)
-        direction_labels = {
-            "provided": ("Saída", "Serviço prestado", "provided", "Tomador"),
-            "taken": ("Entrada", "Serviço tomado", "taken", "Prestador"),
-            "unknown": ("A confirmar", "Tipo não identificado", "unknown", "Contraparte"),
-        }
-        direction_label, direction_detail, direction_class, counterparty_role = direction_labels[
-            direction
-        ]
-        normalized_data = (
-            document.normalized_data if isinstance(document.normalized_data, dict) else {}
-        )
-        side = _nfse_side(document)
-        counterparty_name = str(
-            normalized_data.get("counterparty_name") or (side.counterparty_name if side else "")
-        ).strip()[:160]
-        if office.is_demo and not counterparty_name:
-            counterparty_name = (
-                "Cliente fictício"
-                if direction == "provided"
-                else "Fornecedor fictício"
-                if direction == "taken"
-                else "Não identificada"
-            )
-        competence = _nfse_review_text(normalized_data.get("competence"), limit=40)
-        if not competence and issued_at:
-            competence = issued_at.strftime("%m/%Y")
-        elif re.fullmatch(r"\d{4}-\d{2}(?:-\d{2})?", competence):
-            competence = f"{competence[5:7]}/{competence[:4]}"
-        retention_items, retained_total = _nfse_retention_summary(normalized_data)
-        accumulator_options: list[tuple[str, str]] = []
-        if can_classify_nfse and (open_review or classified):
-            document_day = document.issued_at.date() if document.issued_at else timezone.localdate()
-            cache_key = (document.company_id, document_day)
-            if cache_key not in accumulator_codes_cache:
-                accumulator_codes_cache[cache_key] = _review_accumulator_options(document)
-            accumulator_options = accumulator_codes_cache[cache_key]
-        accumulator_codes = [code for code, _name in accumulator_options]
-        document_rows.append(
-            {
-                "document": document,
-                "number": _nfse_document_number(document),
-                "issued_at": issued_at,
-                "competence": competence or "—",
-                "direction": direction,
-                "direction_label": direction_label,
-                "direction_detail": direction_detail,
-                "direction_class": direction_class,
-                "counterparty_role": counterparty_role,
-                "counterparty_name": counterparty_name or "Não identificada",
-                "service_code": str(normalized_data.get("service_code") or "").strip()[:80],
-                "service_description": str(
-                    normalized_data.get("service_description") or ""
-                ).strip()[:240],
-                "amount": _nfse_review_amount(normalized_data.get("amount")),
-                "retention_items": retention_items,
-                "retained_total": retained_total,
-                "review": open_review,
-                "status": "Não classificada",
-                "status_class": "attention" if open_review else "muted",
-                "accumulator": (artifact.accumulator_code if artifact else demo_accumulator or "—"),
-                "classified": classified,
-                "artifact": artifact,
-                "accumulator_codes": accumulator_codes,
-                "accumulator_options": accumulator_options,
-                "review_evidence": _nfse_review_evidence(document) if open_review else [],
-            }
-        )
-    document_groups: list[dict[str, object]] = []
-    for row in document_rows:
-        document = cast(NfseDocument, row["document"])
-        if not document_groups or document_groups[-1]["company_id"] != document.company_id:
-            document_groups.append(
-                {
-                    "company": document.company,
-                    "company_id": document.company_id,
-                    "rows": [],
-                    "classified_count": 0,
-                    "pending_count": 0,
-                }
-            )
-        group = document_groups[-1]
-        cast(list[dict[str, object]], group["rows"]).append(row)
-        if row["classified"]:
-            group["classified_count"] = cast(int, group["classified_count"]) + 1
-        if row["review"] and not row["classified"]:
-            group["pending_count"] = cast(int, group["pending_count"]) + 1
-
-    now = timezone.now()
-    certificates_by_company: dict[str, Certificate] = {}
-    for certificate in (
-        Certificate.objects.filter(
-            organization=office,
-            company__in=scope,
-            revoked_at__isnull=True,
-            valid_until__gt=now,
-        )
-        .select_related("company")
-        .order_by("company_id", "-valid_until", "-created_at")
-    ):
-        certificates_by_company.setdefault(str(certificate.company_id), certificate)
-    sync_by_company = {
-        str(sync.company_id): sync
-        for sync in NfseSync.objects.filter(organization=office, company__in=scope).select_related(
-            "company", "certificate"
-        )
-    }
-    demo_syncs = get_section(request, "nfse_syncs") if is_demo_visitor(request, office) else {}
-    sync_rows: list[dict[str, object]] = []
-    sync_search = document_search.casefold()
-    for company in scope.order_by("name"):
-        haystack = f"{company.name} {company.cnpj_masked} {company.dominio_code}".casefold()
-        if sync_search and sync_search not in haystack:
-            continue
-        certificate = certificates_by_company.get(str(company.id))
-        sync = sync_by_company.get(str(company.id))
-        demo_state = demo_syncs.get(str(company.id), {})
-        effective_status = str(demo_state.get("status", "")) or (sync.status if sync else "")
-        if sync is not None and not sync.enabled and not demo_state:
-            effective_status = NfseSync.Status.PAUSED
-        display_status = effective_status if certificate is not None else "blocked"
-        display_enabled = bool(
-            certificate is not None
-            and (
-                effective_status != NfseSync.Status.PAUSED if demo_state else sync and sync.enabled
-            )
-        )
-        sync_rows.append(
-            {
-                "company": company,
-                "certificate": certificate,
-                "sync": sync,
-                "status": display_status,
-                "enabled": display_enabled,
-                "status_label": (
-                    "Certificado necessário"
-                    if certificate is None
-                    else dict(NfseSync.Status.choices).get(effective_status, "Não configurada")
-                ),
-                "attention": certificate is not None
-                and effective_status in {NfseSync.Status.ERROR, NfseSync.Status.RETRY},
-            }
-        )
-        if len(sync_rows) >= 100:
-            break
-
-    catalog_search = request.GET.get("catalog_q", "").strip()[:100]
-    catalog_source = request.GET.get("catalog_source", "all")
-    valid_catalog_sources = {value for value, _label in AccumulatorHistoryEntry.Source.choices}
-    if catalog_source not in {*valid_catalog_sources, "all"}:
-        catalog_source = "all"
-    history_query = AccumulatorHistoryEntry.objects.filter(
-        organization=office, company__in=scope
-    ).select_related("company", "created_by")
-    catalog_snapshot_query = AccumulatorCatalogEntry.objects.filter(
-        organization=office, company__in=scope
-    ).select_related("company", "data_source", "source_batch")
-    legacy_rule_query = AccumulatorRule.objects.filter(
-        organization=office, company__in=scope, active=True
-    ).select_related("company")
-    if catalog_search:
-        history_query = history_query.filter(
-            Q(company__name__icontains=catalog_search)
-            | Q(company__dominio_code__icontains=catalog_search)
-            | Q(accumulator_code__icontains=catalog_search)
-            | Q(name__icontains=catalog_search)
-        )
-        catalog_snapshot_query = catalog_snapshot_query.filter(
-            Q(company__name__icontains=catalog_search)
-            | Q(company__dominio_code__icontains=catalog_search)
-            | Q(accumulator_code__icontains=catalog_search)
-            | Q(name__icontains=catalog_search)
-        )
-        legacy_rule_query = legacy_rule_query.filter(
-            Q(company__name__icontains=catalog_search)
-            | Q(company__dominio_code__icontains=catalog_search)
-            | Q(accumulator_code__icontains=catalog_search)
-            | Q(name__icontains=catalog_search)
-        )
-    if catalog_source != "all":
-        history_query = history_query.filter(source=catalog_source)
-        if catalog_source != AccumulatorHistoryEntry.Source.BACKUP:
-            catalog_snapshot_query = catalog_snapshot_query.none()
-
-    history_count = history_query.count()
-    catalog_snapshot_count = catalog_snapshot_query.count()
-    # Imports create history and catalog together. The snapshot fallback keeps old databases
-    # readable without rebuilding both complete datasets in Python on every request.
-    catalog_uses_snapshot_fallback = (
-        history_count == 0
-        and catalog_snapshot_count > 0
-        and catalog_source
-        in {
-            "all",
-            AccumulatorHistoryEntry.Source.BACKUP,
-        }
-    )
-    catalog_uses_rule_fallback = (
-        history_count == 0
-        and catalog_snapshot_count == 0
-        and catalog_source
-        in {
-            "all",
-            AccumulatorHistoryEntry.Source.MANUAL,
-        }
-    )
-    source_labels = {
-        AccumulatorHistoryEntry.Source.BACKUP: "Fotografia do Domínio Web",
-        AccumulatorHistoryEntry.Source.MANUAL: "Cadastro manual",
-        AccumulatorHistoryEntry.Source.HUMAN_REVIEW: "Decisão humana",
-    }
-    catalog_source_options = [
-        ("all", "Todas as origens"),
-        (AccumulatorHistoryEntry.Source.BACKUP, "Fotografia do Domínio Web"),
-        (AccumulatorHistoryEntry.Source.MANUAL, "Cadastro manual"),
-        (AccumulatorHistoryEntry.Source.HUMAN_REVIEW, "Decisão humana"),
-    ]
-    raw_catalog_page: Any
-    if catalog_uses_snapshot_fallback:
-        raw_catalog_page = Paginator(
-            catalog_snapshot_query.order_by(
-                "-source_snapshot_at", "company__name", "accumulator_code"
-            ),
-            50,
-        ).get_page(request.GET.get("catalog_page"))
-        history_rows = [
-            {
-                "company": entry.company,
-                "accumulator_code": entry.accumulator_code,
-                "name": entry.name,
-                "occurred_at": entry.source_snapshot_at,
-                "source_label": "Fotografia do Domínio Web",
-                "state_label": "Disponível" if entry.active else "Inativo na fotografia",
-                "state_class": "success" if entry.active else "muted",
-                "detail": entry.source_batch.original_filename,
-            }
-            for entry in raw_catalog_page.object_list
-        ]
-    elif catalog_uses_rule_fallback:
-        raw_catalog_page = Paginator(
-            legacy_rule_query.order_by("company__name", "priority", "accumulator_code"), 50
-        ).get_page(request.GET.get("catalog_page"))
-        history_rows = [
-            {
-                "company": entry.company,
-                "accumulator_code": entry.accumulator_code,
-                "name": entry.name,
-                "occurred_at": entry.created_at,
-                "source_label": "Cadastro existente",
-                "state_label": "Disponível para classificar",
-                "state_class": "success",
-                "detail": "",
-            }
-            for entry in raw_catalog_page.object_list
-        ]
-    else:
-        raw_catalog_page = Paginator(
-            history_query.order_by("-occurred_at", "-created_at"), 50
-        ).get_page(request.GET.get("catalog_page"))
-        history_rows = [
-            {
-                "company": entry.company,
-                "accumulator_code": entry.accumulator_code,
-                "name": entry.name,
-                "occurred_at": entry.occurred_at,
-                "source_label": source_labels[entry.source],
-                "state_label": "Disponível para classificar",
-                "state_class": "success",
-                "detail": (
-                    entry.metadata.get("source_batch_id", "")
-                    if isinstance(entry.metadata, dict)
-                    else ""
-                ),
-            }
-            for entry in raw_catalog_page.object_list
-        ]
-    raw_catalog_page.object_list = history_rows
-    catalog_page = raw_catalog_page
-    unfiltered_history = AccumulatorHistoryEntry.objects.filter(
-        organization=office, company__in=scope
-    )
-    history_total = unfiltered_history.count()
-    snapshot_total = AccumulatorCatalogEntry.objects.filter(
-        organization=office, company__in=scope
-    ).count()
-    legacy_rule_total = AccumulatorRule.objects.filter(
-        organization=office, company__in=scope, active=True
-    ).count()
-    catalog_stats = {
-        "total": history_total or snapshot_total or legacy_rule_total,
-        "backup": (
-            unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.BACKUP).count()
-            if history_total
-            else snapshot_total
-        ),
-        "manual": (
-            unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.MANUAL).count()
-            if history_total
-            else legacy_rule_total
-            if not snapshot_total
-            else 0
-        ),
-        "human": unfiltered_history.filter(
-            source=AccumulatorHistoryEntry.Source.HUMAN_REVIEW
-        ).count(),
-    }
-    catalog_query_params = request.GET.copy()
-    catalog_query_params.pop("catalog_page", None)
     requested_nfse_view = request.GET.get("view")
     nfse_view = (
         requested_nfse_view
         if requested_nfse_view in {"collection", "catalog", "exports"}
         else "notes"
     )
-    export_search = request.GET.get("export_q", "").strip()[:100]
-    export_state = request.GET.get("export_state", "all")
-    if export_state not in {"all", NfseExport.State.READY, NfseExport.State.DOWNLOADED}:
-        export_state = "all"
-    visible_exports = _visible_nfse_exports(context)
-    export_stats = {
-        "total": visible_exports.count(),
-        "ready": visible_exports.filter(state=NfseExport.State.READY).count(),
-        "downloaded": visible_exports.filter(state=NfseExport.State.DOWNLOADED).count(),
-    }
-    export_query = visible_exports
-    if export_search:
-        matching_export_documents = NfseDocument.objects.filter(
-            exports=OuterRef("pk"), organization=office
-        ).filter(
-            Q(company__name__icontains=export_search)
-            | Q(company__dominio_code__icontains=export_search)
-        )
-        export_query = export_query.filter(
-            Q(content_hash__icontains=export_search)
-            | Q(created_by__full_name__icontains=export_search)
-            | Q(created_by__email__icontains=export_search)
-            | Exists(matching_export_documents)
-        )
-    if export_state != "all":
-        export_query = export_query.filter(state=export_state)
-    exports_page = Paginator(
-        export_query.select_related("created_by", "downloaded_by")
-        .annotate(
-            company_count=Count("documents__company", distinct=True),
-            issued_from=Min("documents__issued_at"),
-            issued_to=Max("documents__issued_at"),
-        )
-        .defer("snapshot")
-        .order_by("-created_at", "-id"),
-        50,
-    ).get_page(request.GET.get("exports_page"))
-    exports_query_params = request.GET.copy()
-    exports_query_params.pop("exports_page", None)
-
-    effective_sync_configured = sum(bool(row["enabled"]) for row in sync_rows)
-    effective_sync_attention = sum(bool(row["attention"]) for row in sync_rows)
-    missing_certificate_count = sum(row["certificate"] is None for row in sync_rows)
-    ready_to_activate_count = sum(
-        row["certificate"] is not None and not row["enabled"] and not row["status"]
-        for row in sync_rows
-    )
     context.update(
         {
             "page_title": "NFS-e",
             "nfse_view": nfse_view,
-            "document_rows": document_rows,
-            "document_page": document_page,
-            "document_querystring": document_query_params.urlencode(),
-            "document_filtered_total": document_total,
-            "retention_report_too_large": document_total > 5000,
-            "document_exportable_total": document_exportable_total,
-            "document_exportable_company_total": document_exportable_company_total,
-            "document_search": document_search,
             "nfse_selected_company": selected_company,
-            "document_status": document_status,
-            "document_direction": document_direction,
-            "document_date_filter": document_date_filter,
-            "document_competence": document_competence,
-            "competence_months": list(
-                enumerate(
-                    [
-                        "Janeiro",
-                        "Fevereiro",
-                        "Março",
-                        "Abril",
-                        "Maio",
-                        "Junho",
-                        "Julho",
-                        "Agosto",
-                        "Setembro",
-                        "Outubro",
-                        "Novembro",
-                        "Dezembro",
-                    ],
-                    1,
-                )
-            ),
-            "competence_year": document_competence[:4] or str(timezone.localdate().year),
-            "date_filter_error": date_filter_error,
-            "issued_from": issued_from,
-            "issued_to": issued_to,
-            "nfse_stats": {
-                "received": document_total,
-                **direction_stats,
-                "pending": pending_stat,
-                "classified": classified_stat,
-            },
-            "nfse_stat_urls": nfse_stat_urls,
-            "nfse_status_tabs": nfse_status_tabs,
-            "nfse_direction_tabs": nfse_direction_tabs,
-            "nfse_competence_options": nfse_competence_options,
-            "nfse_sync_rows": sync_rows,
-            "nfse_exports": exports_page,
-            "exports_querystring": exports_query_params.urlencode(),
-            "export_search": export_search,
-            "export_state": export_state,
-            "nfse_export_stats": export_stats,
             "can_export_nfse": can_export_nfse,
             "can_classify_nfse": can_classify_nfse,
             "can_demo_download_nfse": can_demo_download_nfse,
             "can_download_nfse": can_download_nfse,
-            "document_groups": document_groups,
-            "accumulator_catalog_page": catalog_page,
-            "accumulator_catalog_querystring": catalog_query_params.urlencode(),
-            "accumulator_catalog_search": catalog_search,
-            "accumulator_catalog_source": catalog_source,
-            "accumulator_catalog_sources": catalog_source_options,
-            "accumulator_catalog_stats": catalog_stats,
-            "catalog_companies": scope.filter(active=True).order_by("name"),
+            "can_manage_nfse_sync": can_manage_sync,
             "can_add_nfse_accumulator": can_export_nfse and not office.is_demo,
             "nfse_sync_enabled": settings.NFSE_ADN_SYNC_ENABLED or office.is_demo,
             "nfse_sync_environment": settings.NFSE_ADN_ENVIRONMENT,
@@ -5061,19 +4390,687 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 if settings.NFSE_ADN_ENVIRONMENT == "production"
                 else "Produção restrita (homologação)"
             ),
-            "nfse_sync_configured": effective_sync_configured,
-            "nfse_sync_attention": effective_sync_attention,
-            "nfse_sync_missing_certificate": missing_certificate_count,
-            "nfse_sync_ready_to_activate": ready_to_activate_count,
-            "nfse_sync_requires_action": (
-                effective_sync_attention + missing_certificate_count + ready_to_activate_count
+        }
+    )
+    if nfse_view == "notes":
+        return _render_nfse_notes(
+            request,
+            context,
+            office=office,
+            scope=scope,
+            selected_company=selected_company,
+            can_classify=can_classify_nfse,
+        )
+    if nfse_view == "collection":
+        now = timezone.now()
+        certificates_by_company: dict[str, Certificate] = {}
+        for certificate in (
+            Certificate.objects.filter(
+                organization=office,
+                company__in=scope,
+                revoked_at__isnull=True,
+                valid_until__gt=now,
+            )
+            .select_related("company")
+            .order_by("company_id", "-valid_until", "-created_at")
+        ):
+            certificates_by_company.setdefault(str(certificate.company_id), certificate)
+        sync_by_company = {
+            str(sync.company_id): sync
+            for sync in NfseSync.objects.filter(
+                organization=office, company__in=scope
+            ).select_related("company", "certificate")
+        }
+        demo_syncs = get_section(request, "nfse_syncs") if is_demo_visitor(request, office) else {}
+        sync_rows: list[dict[str, object]] = []
+        sync_search = request.GET.get("q", "").strip()[:100].casefold()
+        for company in scope.order_by("name"):
+            haystack = f"{company.name} {company.cnpj_masked} {company.dominio_code}".casefold()
+            if sync_search and sync_search not in haystack:
+                continue
+            certificate = certificates_by_company.get(str(company.id))
+            sync = sync_by_company.get(str(company.id))
+            demo_state = demo_syncs.get(str(company.id), {})
+            effective_status = str(demo_state.get("status", "")) or (sync.status if sync else "")
+            if sync is not None and not sync.enabled and not demo_state:
+                effective_status = NfseSync.Status.PAUSED
+            display_status = effective_status if certificate is not None else "blocked"
+            display_enabled = bool(
+                certificate is not None
+                and (
+                    effective_status != NfseSync.Status.PAUSED
+                    if demo_state
+                    else sync and sync.enabled
+                )
+            )
+            sync_rows.append(
+                {
+                    "company": company,
+                    "certificate": certificate,
+                    "sync": sync,
+                    "status": display_status,
+                    "enabled": display_enabled,
+                    "status_label": (
+                        "Certificado necessário"
+                        if certificate is None
+                        else dict(NfseSync.Status.choices).get(effective_status, "Não configurada")
+                    ),
+                    "attention": certificate is not None
+                    and effective_status in {NfseSync.Status.ERROR, NfseSync.Status.RETRY},
+                }
+            )
+            if len(sync_rows) >= 100:
+                break
+
+        effective_sync_configured = sum(bool(row["enabled"]) for row in sync_rows)
+        effective_sync_attention = sum(bool(row["attention"]) for row in sync_rows)
+        missing_certificate_count = sum(row["certificate"] is None for row in sync_rows)
+        ready_to_activate_count = sum(
+            row["certificate"] is not None and not row["enabled"] and not row["status"]
+            for row in sync_rows
+        )
+        context.update(
+            {
+                "nfse_sync_rows": sync_rows,
+                "nfse_sync_configured": effective_sync_configured,
+                "nfse_sync_attention": effective_sync_attention,
+                "nfse_sync_missing_certificate": missing_certificate_count,
+                "nfse_sync_ready_to_activate": ready_to_activate_count,
+                "nfse_sync_requires_action": (
+                    effective_sync_attention + missing_certificate_count + ready_to_activate_count
+                ),
+                "nfse_sync_settings_open": request.GET.get("configure") == "1",
+                "nfse_certificate_coverage": len(certificates_by_company),
+            }
+        )
+    elif nfse_view == "catalog":
+        catalog_search = request.GET.get("catalog_q", "").strip()[:100]
+        catalog_source = request.GET.get("catalog_source", "all")
+        valid_catalog_sources = {value for value, _label in AccumulatorHistoryEntry.Source.choices}
+        if catalog_source not in {*valid_catalog_sources, "all"}:
+            catalog_source = "all"
+        history_query = AccumulatorHistoryEntry.objects.filter(
+            organization=office, company__in=scope
+        ).select_related("company", "created_by")
+        catalog_snapshot_query = AccumulatorCatalogEntry.objects.filter(
+            organization=office, company__in=scope
+        ).select_related("company", "data_source", "source_batch")
+        legacy_rule_query = AccumulatorRule.objects.filter(
+            organization=office, company__in=scope, active=True
+        ).select_related("company")
+        if catalog_search:
+            history_query = history_query.filter(
+                Q(company__name__icontains=catalog_search)
+                | Q(company__dominio_code__icontains=catalog_search)
+                | Q(accumulator_code__icontains=catalog_search)
+                | Q(name__icontains=catalog_search)
+            )
+            catalog_snapshot_query = catalog_snapshot_query.filter(
+                Q(company__name__icontains=catalog_search)
+                | Q(company__dominio_code__icontains=catalog_search)
+                | Q(accumulator_code__icontains=catalog_search)
+                | Q(name__icontains=catalog_search)
+            )
+            legacy_rule_query = legacy_rule_query.filter(
+                Q(company__name__icontains=catalog_search)
+                | Q(company__dominio_code__icontains=catalog_search)
+                | Q(accumulator_code__icontains=catalog_search)
+                | Q(name__icontains=catalog_search)
+            )
+        if catalog_source != "all":
+            history_query = history_query.filter(source=catalog_source)
+            if catalog_source != AccumulatorHistoryEntry.Source.BACKUP:
+                catalog_snapshot_query = catalog_snapshot_query.none()
+
+        history_count = history_query.count()
+        catalog_snapshot_count = catalog_snapshot_query.count()
+        # Imports create history and catalog together. The snapshot fallback keeps old databases
+        # readable without rebuilding both complete datasets in Python on every request.
+        catalog_uses_snapshot_fallback = (
+            history_count == 0
+            and catalog_snapshot_count > 0
+            and catalog_source
+            in {
+                "all",
+                AccumulatorHistoryEntry.Source.BACKUP,
+            }
+        )
+        catalog_uses_rule_fallback = (
+            history_count == 0
+            and catalog_snapshot_count == 0
+            and catalog_source
+            in {
+                "all",
+                AccumulatorHistoryEntry.Source.MANUAL,
+            }
+        )
+        source_labels = {
+            AccumulatorHistoryEntry.Source.BACKUP: "Fotografia do Domínio Web",
+            AccumulatorHistoryEntry.Source.MANUAL: "Cadastro manual",
+            AccumulatorHistoryEntry.Source.HUMAN_REVIEW: "Decisão humana",
+        }
+        catalog_source_options = [
+            ("all", "Todas as origens"),
+            (AccumulatorHistoryEntry.Source.BACKUP, "Fotografia do Domínio Web"),
+            (AccumulatorHistoryEntry.Source.MANUAL, "Cadastro manual"),
+            (AccumulatorHistoryEntry.Source.HUMAN_REVIEW, "Decisão humana"),
+        ]
+        raw_catalog_page: Any
+        if catalog_uses_snapshot_fallback:
+            raw_catalog_page = Paginator(
+                catalog_snapshot_query.order_by(
+                    "-source_snapshot_at", "company__name", "accumulator_code"
+                ),
+                50,
+            ).get_page(request.GET.get("catalog_page"))
+            history_rows = [
+                {
+                    "company": entry.company,
+                    "accumulator_code": entry.accumulator_code,
+                    "name": entry.name,
+                    "occurred_at": entry.source_snapshot_at,
+                    "source_label": "Fotografia do Domínio Web",
+                    "state_label": "Disponível" if entry.active else "Inativo na fotografia",
+                    "state_class": "success" if entry.active else "muted",
+                    "detail": entry.source_batch.original_filename,
+                }
+                for entry in raw_catalog_page.object_list
+            ]
+        elif catalog_uses_rule_fallback:
+            raw_catalog_page = Paginator(
+                legacy_rule_query.order_by("company__name", "priority", "accumulator_code"), 50
+            ).get_page(request.GET.get("catalog_page"))
+            history_rows = [
+                {
+                    "company": entry.company,
+                    "accumulator_code": entry.accumulator_code,
+                    "name": entry.name,
+                    "occurred_at": entry.created_at,
+                    "source_label": "Cadastro existente",
+                    "state_label": "Disponível para classificar",
+                    "state_class": "success",
+                    "detail": "",
+                }
+                for entry in raw_catalog_page.object_list
+            ]
+        else:
+            raw_catalog_page = Paginator(
+                history_query.order_by("-occurred_at", "-created_at"), 50
+            ).get_page(request.GET.get("catalog_page"))
+            history_rows = [
+                {
+                    "company": entry.company,
+                    "accumulator_code": entry.accumulator_code,
+                    "name": entry.name,
+                    "occurred_at": entry.occurred_at,
+                    "source_label": source_labels[entry.source],
+                    "state_label": "Disponível para classificar",
+                    "state_class": "success",
+                    "detail": (
+                        entry.metadata.get("source_batch_id", "")
+                        if isinstance(entry.metadata, dict)
+                        else ""
+                    ),
+                }
+                for entry in raw_catalog_page.object_list
+            ]
+        raw_catalog_page.object_list = history_rows
+        catalog_page = raw_catalog_page
+        unfiltered_history = AccumulatorHistoryEntry.objects.filter(
+            organization=office, company__in=scope
+        )
+        history_total = unfiltered_history.count()
+        snapshot_total = AccumulatorCatalogEntry.objects.filter(
+            organization=office, company__in=scope
+        ).count()
+        legacy_rule_total = AccumulatorRule.objects.filter(
+            organization=office, company__in=scope, active=True
+        ).count()
+        catalog_stats = {
+            "total": history_total or snapshot_total or legacy_rule_total,
+            "backup": (
+                unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.BACKUP).count()
+                if history_total
+                else snapshot_total
             ),
-            "nfse_sync_settings_open": request.GET.get("configure") == "1",
-            "nfse_certificate_coverage": len(certificates_by_company),
-            "can_manage_nfse_sync": can_manage_sync,
+            "manual": (
+                unfiltered_history.filter(source=AccumulatorHistoryEntry.Source.MANUAL).count()
+                if history_total
+                else legacy_rule_total
+                if not snapshot_total
+                else 0
+            ),
+            "human": unfiltered_history.filter(
+                source=AccumulatorHistoryEntry.Source.HUMAN_REVIEW
+            ).count(),
+        }
+        catalog_query_params = request.GET.copy()
+        catalog_query_params.pop("catalog_page", None)
+        context.update(
+            {
+                "accumulator_catalog_page": catalog_page,
+                "accumulator_catalog_querystring": catalog_query_params.urlencode(),
+                "accumulator_catalog_search": catalog_search,
+                "accumulator_catalog_source": catalog_source,
+                "accumulator_catalog_sources": catalog_source_options,
+                "accumulator_catalog_stats": catalog_stats,
+                "catalog_companies": scope.filter(active=True).order_by("name"),
+            }
+        )
+    else:
+        export_search = request.GET.get("export_q", "").strip()[:100]
+        export_state = request.GET.get("export_state", "all")
+        if export_state not in {"all", NfseExport.State.READY, NfseExport.State.DOWNLOADED}:
+            export_state = "all"
+        visible_exports = _visible_nfse_exports(context)
+        export_stats = {
+            "total": visible_exports.count(),
+            "ready": visible_exports.filter(state=NfseExport.State.READY).count(),
+            "downloaded": visible_exports.filter(state=NfseExport.State.DOWNLOADED).count(),
+        }
+        export_query = visible_exports
+        if export_search:
+            matching_export_documents = NfseDocument.objects.filter(
+                exports=OuterRef("pk"), organization=office
+            ).filter(
+                Q(company__name__icontains=export_search)
+                | Q(company__dominio_code__icontains=export_search)
+            )
+            export_query = export_query.filter(
+                Q(content_hash__icontains=export_search)
+                | Q(created_by__full_name__icontains=export_search)
+                | Q(created_by__email__icontains=export_search)
+                | Exists(matching_export_documents)
+            )
+        if export_state != "all":
+            export_query = export_query.filter(state=export_state)
+        exports_page = Paginator(
+            export_query.select_related("created_by", "downloaded_by")
+            .annotate(
+                company_count=Count("documents__company", distinct=True),
+                issued_from=Min("documents__issued_at"),
+                issued_to=Max("documents__issued_at"),
+            )
+            .defer("snapshot")
+            .order_by("-created_at", "-id"),
+            50,
+        ).get_page(request.GET.get("exports_page"))
+        exports_query_params = request.GET.copy()
+        exports_query_params.pop("exports_page", None)
+
+        context.update(
+            {
+                "nfse_exports": exports_page,
+                "exports_querystring": exports_query_params.urlencode(),
+                "export_search": export_search,
+                "export_state": export_state,
+                "nfse_export_stats": export_stats,
+            }
+        )
+    return render(request, "hub/nfse_center.html", context)
+
+
+_NFSE_DIRECTION_LABELS = {
+    "provided": ("Saída", "Tomador"),
+    "taken": ("Entrada", "Prestador"),
+    "unknown": ("A confirmar", "Contraparte"),
+}
+
+
+def _render_nfse_notes(
+    request: HttpRequest,
+    context: dict[str, Any],
+    *,
+    office: Organization,
+    scope: QuerySet[ClientCompany],
+    selected_company: ClientCompany | None,
+    can_classify: bool,
+) -> HttpResponse:
+    """Notes grouped by company: one aggregate per company, rows read when a group opens."""
+
+    filters = nfse_list.parse_filters(request.GET, today=timezone.localdate())
+    if selected_company is not None:
+        filters.extra["company"] = str(selected_company.pk)
+    demo_reviews = (
+        {
+            key: entry
+            for key, entry in get_section(request, "nfse_reviews").items()
+            if entry.get("resolved")
+        }
+        if is_demo_visitor(request, office)
+        else {}
+    )
+    demo_document_ids = (
+        set(
+            ReviewCase.objects.filter(organization=office, pk__in=list(demo_reviews)).values_list(
+                "document_id", flat=True
+            )
+        )
+        if demo_reviews
+        else set()
+    )
+    base = nfse_list.base_queryset(
+        organization=office, companies=scope, demo_classified_ids=demo_document_ids
+    )
+    documents = nfse_list.apply_filters(base, filters)
+    base_url = reverse("hub:nfse-center")
+    list_url = filters.url(base_url)
+    counterparty_label = _NFSE_DIRECTION_LABELS.get(
+        filters.direction, _NFSE_DIRECTION_LABELS["unknown"]
+    )[1]
+
+    group_param = request.GET.get("group", "")
+    if group_param:
+        try:
+            company_id = uuid.UUID(group_param)
+            offset = max(0, min(int(request.GET.get("offset", "0") or 0), 100_000))
+        except ValueError as exc:
+            raise Http404 from exc
+        rows, has_more = _nfse_group_rows(
+            documents,
+            company_id,
+            offset=offset,
+            office=office,
+            demo_reviews=demo_reviews,
+            can_classify=can_classify,
+        )
+        totals_of_group = nfse_list.company_groups(documents.filter(company_id=company_id))
+        fragment_group: dict[str, Any] = (
+            totals_of_group[0] if totals_of_group else {"company_id": company_id, "notes": None}
+        )
+        fragment_group.update(
+            {
+                "rows": rows,
+                "has_more": has_more,
+                "next_offset": offset + len(rows),
+                "options": _group_options(rows),
+                "return_to": filters.url(base_url, open=str(company_id)),
+            }
+        )
+        return render(
+            request,
+            "hub/nfse_group_table.html",
+            {
+                **context,
+                "group": fragment_group,
+                "nfse_filters": filters,
+                "nfse_list_url": list_url,
+                "nfse_show_direction": filters.direction == "all",
+                "nfse_counterparty_label": counterparty_label,
+            },
+        )
+
+    status_counts, direction_counts = nfse_list.tab_counts(base, filters)
+    groups = nfse_list.company_groups(documents)
+    totals = nfse_list.portfolio_totals(groups)
+    requested_open = set(request.GET.getlist("open"))
+    if selected_company is not None or len(groups) == 1:
+        requested_open |= {str(group["company_id"]) for group in groups}
+    for group in groups:
+        group["open"] = str(group["company_id"]) in requested_open
+        group["rows"] = []
+        group["has_more"] = False
+        if group["open"]:
+            group["rows"], group["has_more"] = _nfse_group_rows(
+                documents,
+                group["company_id"],
+                offset=0,
+                office=office,
+                demo_reviews=demo_reviews,
+                can_classify=can_classify,
+            )
+        group["next_offset"] = len(group["rows"])
+        group["options"] = _group_options(group["rows"])
+        group["return_to"] = filters.url(base_url, open=str(group["company_id"]))
+
+    status_tabs = [
+        {
+            "value": value,
+            "label": label,
+            "count": status_counts[value],
+            "url": filters.url(base_url, status=value),
+            "selected": filters.status == value,
+        }
+        for value, label in (
+            ("all", "Todas"),
+            ("unclassified", "Para classificar"),
+            ("classified", "Classificadas"),
+        )
+    ]
+    direction_tabs = [
+        {
+            "value": value,
+            "label": label,
+            "count": direction_counts[value],
+            "url": filters.url(base_url, direction=value),
+            "selected": filters.direction == value,
+        }
+        for value, label in (
+            ("all", "Todas"),
+            ("taken", "Entradas"),
+            ("provided", "Saídas"),
+            ("unknown", "A confirmar"),
+        )
+        if value != "unknown" or direction_counts["unknown"] or filters.direction == "unknown"
+    ]
+    competence_cursor = timezone.localdate().replace(day=1)
+    competence_options: list[tuple[str, str]] = []
+    for _offset in range(24):
+        competence_options.append(
+            (competence_cursor.strftime("%Y-%m"), competence_cursor.strftime("%m/%Y"))
+        )
+        competence_cursor = add_months(competence_cursor, -1)
+    if filters.competence and filters.competence not in dict(competence_options):
+        competence_options.append(
+            (filters.competence, f"{filters.competence[5:7]}/{filters.competence[:4]}")
+        )
+    exportable_total = (
+        documents.filter(Q(is_classified=True))
+        .exclude(Q(situation__in=nfse_list.CLOSED_SITUATIONS))
+        .count()
+        if context["can_export_nfse"] and not office.is_demo
+        else 0
+    )
+    context.update(
+        {
+            "nfse_filters": filters,
+            "nfse_groups": groups,
+            "nfse_totals": totals,
+            "nfse_status_tabs": status_tabs,
+            "nfse_direction_tabs": direction_tabs,
+            "nfse_competence_options": competence_options,
+            "nfse_list_url": list_url,
+            "nfse_clear_url": base_url
+            + "?status=all&competence="
+            + (f"&company={selected_company.pk}" if selected_company else ""),
+            "nfse_show_direction": filters.direction == "all",
+            "nfse_counterparty_label": counterparty_label,
+            "nfse_stats": {
+                "received": totals["notes"],
+                "provided": direction_counts["provided"],
+                "taken": direction_counts["taken"],
+                "unknown": direction_counts["unknown"],
+                "pending": status_counts["unclassified"],
+                "classified": status_counts["classified"],
+            },
+            "document_filtered_total": totals["notes"],
+            "document_exportable_total": exportable_total,
+            "retention_report_too_large": totals["notes"] > 5000,
         }
     )
     return render(request, "hub/nfse_center.html", context)
+
+
+def _nfse_group_rows(
+    documents: QuerySet[NfseDocument],
+    company_id: Any,
+    *,
+    offset: int,
+    office: Organization,
+    demo_reviews: dict[str, dict[str, Any]],
+    can_classify: bool,
+) -> tuple[list[dict[str, Any]], bool]:
+    page = list(
+        nfse_list.group_documents(documents, company_id)
+        .select_related("company")
+        .prefetch_related(
+            Prefetch(
+                "integration_artifacts",
+                queryset=IntegrationArtifact.objects.order_by("-created_at"),
+            )
+        )[offset : offset + nfse_list.GROUP_PAGE_SIZE + 1]
+    )
+    has_more = len(page) > nfse_list.GROUP_PAGE_SIZE
+    page = page[: nfse_list.GROUP_PAGE_SIZE]
+    if not page:
+        return [], False
+    company = page[0].company
+    can_edit = can_classify and company.active
+    issued_days: dict[Any, date] = {}
+    for document in page:
+        side = _nfse_side(document)
+        issued_days[document.pk] = (side.issued_on if side else None) or (
+            timezone.localtime(document.issued_at).date()
+            if document.issued_at
+            else timezone.localdate()
+        )
+    options_by_day = (
+        _company_accumulator_options(company, set(issued_days.values())) if can_edit else {}
+    )
+    rows: list[dict[str, Any]] = []
+    for document in page:
+        side = _nfse_side(document)
+        normalized = document.normalized_data if isinstance(document.normalized_data, dict) else {}
+        artifact = _latest_nfse_artifact(list(document.integration_artifacts.all()))
+        review = getattr(document, "review_case", None)
+        demo_entry = demo_reviews.get(str(review.pk), {}) if review is not None else {}
+        accumulator = (artifact.accumulator_code if artifact else "") or str(
+            demo_entry.get("accumulator", "")
+        )[:80]
+        classified = bool(getattr(document, "is_classified", False) and accumulator)
+        open_review = (
+            review
+            if review is not None and review.status == ReviewCase.Status.OPEN and not demo_entry
+            else None
+        )
+        direction = _nfse_document_direction(document, demo=office.is_demo)
+        situation = str(getattr(document, "situation", "active") or "active")
+        rows.append(
+            {
+                "document": document,
+                "number": (side.number if side else "") or _nfse_document_number(document),
+                "issued": (side.issued_on if side else None)
+                or (timezone.localtime(document.issued_at).date() if document.issued_at else None),
+                "direction": direction,
+                "direction_label": _NFSE_DIRECTION_LABELS[direction][0],
+                "situation": situation,
+                "situation_label": nfse_list.SITUATION_LABELS.get(situation, "Ativa"),
+                "closed": situation in nfse_list.CLOSED_SITUATIONS,
+                "counterparty_name": (
+                    (side.counterparty_name if side else "")
+                    or str(normalized.get("counterparty_name") or "").strip()[:160]
+                    or "Não identificada"
+                ),
+                "counterparty_document": side.counterparty_document if side else "",
+                "service": " · ".join(
+                    part
+                    for part in (
+                        str(normalized.get("service_code") or "").strip()[:40],
+                        str(normalized.get("service_description") or "").strip()[:200],
+                    )
+                    if part
+                ),
+                "service_amount": nfse_list.brl(side.service_amount if side else None)
+                or _nfse_review_amount(normalized.get("amount")).removeprefix("R$ "),
+                "net": nfse_list.brl(side.net_amount if side else None),
+                "iss": _retained_cell(side, "iss_retained"),
+                "crf": _retained_cell(side, "crf_retained"),
+                "irrf": _retained_cell(side, "irrf_retained"),
+                "inss": _retained_cell(side, "inss_retained"),
+                "review": open_review,
+                "classified": classified,
+                "accumulator": accumulator,
+                "can_classify": bool(can_edit and open_review and not classified),
+                "can_correct": bool(can_edit and classified and artifact and not office.is_demo),
+                "accumulator_options": options_by_day.get(issued_days[document.pk], []),
+            }
+        )
+    return rows, has_more
+
+
+def _retained_cell(side: NfseDocumentSide | None, field: str) -> str:
+    """A retained amount read from the XML; empty when zero or not read yet."""
+
+    value = getattr(side, field) if side is not None and side.facts_version else None
+    return nfse_list.brl(value) if value else ""
+
+
+def _group_options(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    options: dict[str, str] = {}
+    for row in rows:
+        for code, name in row["accumulator_options"]:
+            options.setdefault(code, name)
+    return list(options.items())
+
+
+def _company_accumulator_options(
+    company: ClientCompany, days: set[date]
+) -> dict[date, list[tuple[str, str]]]:
+    """Same choices as ``_review_accumulator_options``, read once per company and page."""
+
+    rules = list(
+        AccumulatorRule.objects.filter(
+            organization_id=company.organization_id, company=company, active=True
+        )
+        .order_by("priority", "name")
+        .values_list("accumulator_code", "name", "valid_from", "valid_until")
+    )
+    catalog_codes = list(
+        dict.fromkeys(
+            AccumulatorCatalogEntry.objects.filter(
+                organization_id=company.organization_id, company=company, active=True
+            )
+            .order_by("-source_snapshot_at", "accumulator_code")
+            .values_list("accumulator_code", flat=True)
+        )
+    )
+    observed_codes = list(
+        AccumulatorObservation.objects.filter(
+            organization_id=company.organization_id, company=company
+        )
+        .values("accumulator_code")
+        .annotate(last=Max("last_used_at"))
+        .order_by("-last")
+        .values_list("accumulator_code", flat=True)
+    )
+    allowed = active_catalog_codes([company]).get(company.id)
+    names: dict[str, str] = {}
+    for code, name in (
+        AccumulatorCatalogEntry.objects.filter(
+            organization_id=company.organization_id, company=company
+        )
+        .order_by("-source_snapshot_at")
+        .values_list("accumulator_code", "name")
+    ):
+        names.setdefault(code, name)
+    for code, name, _start, _end in rules:
+        names.setdefault(code, name)
+
+    def order(code: str) -> tuple[int, str]:
+        return (int(code), "") if code.isdigit() else (10**9, code)
+
+    options: dict[date, list[tuple[str, str]]] = {}
+    for day in days:
+        configured = [
+            code
+            for code, _name, start, end in rules
+            if (start is None or start <= day) and (end is None or end >= day)
+        ]
+        codes = list(dict.fromkeys([*configured, *catalog_codes, *observed_codes]))
+        if allowed is not None:
+            codes = [code for code in codes if code in allowed]
+        options[day] = [(code, names.get(code, "")) for code in sorted(codes, key=order)]
+    return options
 
 
 @office_required
@@ -5576,136 +5573,71 @@ def _latest_nfse_artifact(
     )
 
 
+def _posted_nfse_filters(data: Any, prefix: str) -> nfse_list.NfseFilters:
+    """The list filters as the download form posted them; anything malformed is refused."""
+
+    status = str(data.get(f"{prefix}status", "all") or "all")
+    direction = str(data.get(f"{prefix}direction", "all") or "all")
+    period = str(data.get(f"{prefix}date_filter") or data.get(f"{prefix}period") or "competence")
+    competence = str(data.get(f"{prefix}competence", ""))[:10]
+    if status not in {"all", "classified", "unclassified"}:
+        raise ValueError("Situação inválida no filtro.")
+    if direction not in nfse_list.DIRECTION_VALUES:
+        raise ValueError("Movimento inválido no filtro.")
+    if period not in {"competence", "issued"}:
+        raise ValueError("Período inválido no filtro.")
+    if competence and not re.fullmatch(r"[1-9]\d{3}-(0[1-9]|1[0-2])", competence):
+        raise ValueError("Competência inválida no filtro.")
+    filters = nfse_list.parse_filters(
+        {
+            "q": str(data.get(f"{prefix}q", "")),
+            "status": status,
+            "direction": direction,
+            "period": period,
+            "competence": competence if period == "competence" else "",
+            "issued_from": str(data.get(f"{prefix}issued_from", "")),
+            "issued_to": str(data.get(f"{prefix}issued_to", "")),
+        },
+        today=timezone.localdate(),
+    )
+    if filters.error:
+        raise ValueError(filters.error)
+    return filters
+
+
 def _filter_nfse_export_documents(
-    documents: QuerySet[NfseDocument], data: Any
+    *, office: Organization, scope: QuerySet[ClientCompany], data: Any
 ) -> QuerySet[NfseDocument]:
     """Rebuild the visible production filter for a cross-page classified export."""
 
-    query = str(data.get("export_q", "")).strip()[:100]
-    if query:
-        documents = documents.filter(
-            Q(company__name__icontains=query)
-            | Q(company__dominio_code__icontains=query)
-            | Q(normalized_data__number__icontains=query)
-        )
-    direction = str(data.get("export_direction", "all"))
-    if direction not in {"all", "provided", "taken", "unknown"}:
-        raise ValueError("Tipo de movimento inválido.")
-    documents = _filter_nfse_side(documents, direction)
-    date_filter = str(data.get("export_date_filter", "competence"))
-    competence = str(data.get("export_competence", ""))[:7]
-    if date_filter not in {"competence", "issued"}:
-        raise ValueError("Filtro de período inválido.")
-    if (
-        date_filter == "competence"
-        and competence
-        and not re.fullmatch(r"[1-9]\d{3}-(0[1-9]|1[0-2])", competence)
-    ):
-        raise ValueError("Competência inválida.")
-    if date_filter == "competence" and re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", competence):
-        year, month = competence.split("-")
-        documents = documents.filter(issued_at__year=int(year), issued_at__month=int(month))
-    elif date_filter == "issued":
-        parsed_dates = []
-        for field, lookup in (
-            ("export_issued_from", "issued_at__date__gte"),
-            ("export_issued_to", "issued_at__date__lte"),
-        ):
-            raw = str(data.get(field, ""))[:10]
-            try:
-                parsed = datetime.strptime(raw, "%d/%m/%Y").date() if raw else None
-            except ValueError as exc:
-                raise ValueError("Data inválida no filtro do lote.") from exc
-            parsed_dates.append(parsed)
-            if parsed is not None:
-                documents = documents.filter(**{lookup: parsed})
-        start, end = parsed_dates
-        if start is not None and end is not None and start > end:
-            raise ValueError("O período final deve ser posterior ao inicial.")
-    return documents.distinct()
+    filters = _posted_nfse_filters(data, "export_")
+    filters.status = "classified"
+    documents = nfse_list.apply_filters(
+        nfse_list.base_queryset(organization=office, companies=scope), filters
+    ).exclude(Q(situation__in=nfse_list.CLOSED_SITUATIONS))
+    return documents.filter(integration_artifacts__isnull=False).distinct()
 
 
 def _filter_nfse_retention_report_documents(
-    documents: QuerySet[NfseDocument], data: Any, *, demo: bool
+    *,
+    office: Organization,
+    scope: QuerySet[ClientCompany],
+    data: Any,
+    demo_document_ids: set[Any],
 ) -> list[NfseDocument]:
     """Apply the visible note filters without allowing a broader report scope."""
 
-    query = str(data.get("report_q", "")).strip()[:100]
-    if query:
-        documents = documents.filter(
-            Q(company__name__icontains=query)
-            | Q(company__dominio_code__icontains=query)
-            | Q(normalized_data__number__icontains=query)
+    filters = _posted_nfse_filters(data, "report_")
+    selected = list(
+        nfse_list.apply_filters(
+            nfse_list.base_queryset(
+                organization=office, companies=scope, demo_classified_ids=demo_document_ids
+            ),
+            filters,
         )
-    status = str(data.get("report_status", "all"))
-    direction = str(data.get("report_direction", "all"))
-    date_filter = str(data.get("report_date_filter", "competence"))
-    competence = str(data.get("report_competence", ""))[:7]
-    if status not in {"all", "classified", "unclassified"}:
-        raise ValueError("Situação inválida no filtro do relatório.")
-    if direction not in {"all", "provided", "taken", "unknown"}:
-        raise ValueError("Movimento inválido no filtro do relatório.")
-    if date_filter not in {"competence", "issued"}:
-        raise ValueError("Período inválido no filtro do relatório.")
-    if competence and not re.fullmatch(r"[1-9]\d{3}-(0[1-9]|1[0-2])", competence):
-        raise ValueError("Competência inválida no filtro do relatório.")
-    parsed_dates: list[date | None] = []
-    for field in ("report_issued_from", "report_issued_to"):
-        raw = str(data.get(field, ""))[:10]
-        try:
-            parsed_dates.append(datetime.strptime(raw, "%d/%m/%Y").date() if raw else None)
-        except ValueError as exc:
-            raise ValueError("Data inválida no filtro do relatório.") from exc
-    issued_from, issued_to = parsed_dates
-    if issued_from and issued_to and issued_from > issued_to:
-        raise ValueError("A data final do relatório deve ser igual ou posterior à inicial.")
-
-    if not demo:
-        if status == "classified":
-            documents = documents.filter(integration_artifacts__isnull=False)
-        elif status == "unclassified":
-            documents = documents.filter(integration_artifacts__isnull=True)
-        documents = _filter_nfse_side(documents, direction)
-        if date_filter == "competence" and competence:
-            year, month = competence.split("-")
-            documents = documents.filter(issued_at__year=int(year), issued_at__month=int(month))
-        elif date_filter == "issued":
-            if issued_from:
-                documents = documents.filter(issued_at__date__gte=issued_from)
-            if issued_to:
-                documents = documents.filter(issued_at__date__lte=issued_to)
-        selected = list(
-            documents.distinct().order_by("company__name", "-issued_at", "-captured_at")[:5001]
-        )
-    else:
-        selected = []
-        candidates = documents.distinct().order_by("company__name", "-issued_at", "-captured_at")
-        for document in candidates:
-            artifacts = list(document.integration_artifacts.all())
-            review = getattr(document, "review_case", None)
-            classified = bool(
-                _latest_nfse_artifact(artifacts)
-                or (review and review.status == ReviewCase.Status.RESOLVED)
-            )
-            if status == "classified" and not classified:
-                continue
-            if status == "unclassified" and classified:
-                continue
-            if direction != "all" and _nfse_document_direction(document, demo=True) != direction:
-                continue
-            issued_at = document.issued_at or _nfse_issued_at_from_normalized_data(document)
-            issued_date = issued_at.date() if issued_at else None
-            if date_filter == "competence" and competence:
-                if not issued_date or issued_date.strftime("%Y-%m") != competence:
-                    continue
-            elif date_filter == "issued":
-                if issued_from and (not issued_date or issued_date < issued_from):
-                    continue
-                if issued_to and (not issued_date or issued_date > issued_to):
-                    continue
-            selected.append(document)
-            if len(selected) > 5000:
-                break
+        .select_related("company", "review_case", "side")
+        .order_by("company__name", "side__issued_on", "issued_at", "captured_at")[:5001]
+    )
     if len(selected) > 5000:
         raise ValueError(
             "O download aceita até 5.000 notas. Refine por empresa, movimento ou período."

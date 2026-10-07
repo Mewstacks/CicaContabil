@@ -509,12 +509,13 @@ def test_demo_nfse_review_decision_is_private_to_session() -> None:
     assert decided.status_code == 302
     assert "DEMO-1042" in first.get(detail).content.decode()
     assert "Registrar acumulador conferido" in second.get(detail).content.decode()
-    first_rows = first.get(reverse("hub:nfse-center"), {"status": "unclassified"}).context[
-        "document_rows"
-    ]
-    second_rows = second.get(reverse("hub:nfse-center"), {"status": "unclassified"}).context[
-        "document_rows"
-    ]
+    group_query = {
+        "status": "unclassified",
+        "competence": "",
+        "group": str(review.document.company_id),
+    }
+    first_rows = first.get(reverse("hub:nfse-center"), group_query).context["group"]["rows"]
+    second_rows = second.get(reverse("hub:nfse-center"), group_query).context["group"]["rows"]
     assert review.id not in {row["review"].id for row in first_rows if row["review"] is not None}
     assert review.id in {row["review"].id for row in second_rows if row["review"] is not None}
     first_pending = first.get(reverse("hub:dashboard")).context["stats"]["pending"]
@@ -714,10 +715,11 @@ def test_demo_office_owner_can_use_the_download_shown_by_the_interface() -> None
     page = client.get(reverse("hub:nfse-center"), {"status": "all"})
     response = client.post(
         reverse("hub:nfse-center"),
-        {"action": "demo_download_selected", "documents": [str(document.id)]},
+        {"action": "demo_download_selected", "all_documents": "1"},
     )
 
-    assert "Baixar pacote (ZIP)" in page.content.decode()
+    assert "Pacote com acumuladores" in page.content.decode()
+    assert 'form="nfse-download-demo-package"' in page.content.decode()
     assert response.status_code == 200
     assert response["Content-Type"] == "application/zip"
 

@@ -32,7 +32,7 @@ from apps.hub.models import (
     ProductModule,
 )
 from apps.hub.nfse_adn import AdnClient, AdnError
-from apps.hub.nfse_sync import certificate_ssl_context, process_sync_pages
+from apps.hub.nfse_sync import certificate_ssl_context, process_sync_pages, refresh_nfse_facts
 from apps.hub.reconciliation_service import process_run
 from apps.hub.recurrence import generate_due_assignments
 from apps.hub.reform import refresh_reform_sources
@@ -115,6 +115,13 @@ def _eligible_nfse_syncs() -> QuerySet[NfseSync]:
         certificate__revoked_at__isnull=True,
         certificate__valid_until__gt=timezone.now(),
     )
+
+
+@shared_task(name="hub.refresh_nfse_facts")  # type: ignore[untyped-decorator]
+def refresh_nfse_facts_task(limit: int = 3000) -> dict[str, int]:
+    """Fill the fiscal facts of stored NFS-e in bounded batches until none is left behind."""
+
+    return refresh_nfse_facts(limit=limit)
 
 
 @shared_task(name="hub.dispatch_active_nfse_syncs")  # type: ignore[untyped-decorator]

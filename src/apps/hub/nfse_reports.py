@@ -38,14 +38,15 @@ from reportlab.platypus import (  # type: ignore[import-untyped]
 
 from apps.hub.models import NfseDocument
 
+# Since NT SE/CGNFS-e 007/2026 the retained PIS, COFINS and CSLL come summed in vRetCSLL,
+# so they are reported together as CRF (see apps.hub.nfse_facts).
 TAXES = (
     ("iss", "ISS"),
-    ("pis", "PIS"),
-    ("cofins", "COFINS"),
-    ("csll", "CSLL"),
+    ("crf", "CRF (PIS/COFINS/CSLL)"),
     ("irrf", "IRRF"),
     ("inss", "INSS"),
 )
+SITUATION_LABELS = {"active": "Ativa", "cancelled": "Cancelada", "substituted": "Substituída"}
 
 
 class RetentionReportRow(TypedDict):
@@ -60,6 +61,9 @@ class RetentionReportRow(TypedDict):
     service_code: str
     service_description: str
     amount: Decimal
+    net_amount: Decimal
+    situation: str
+    counterparty_document: str
     retentions: dict[str, Decimal]
     retained_total: Decimal
 
@@ -122,33 +126,68 @@ def build_retention_report_rows(
             "taken": "Entrada · serviço tomado",
             "unknown": "A confirmar",
         }[direction]
-        raw_retentions = normalized.get("retentions")
-        raw_retentions = raw_retentions if isinstance(raw_retentions, dict) else {}
-        retentions = {key: _decimal(raw_retentions.get(key)) for key, _label in TAXES}
+        has_facts = bool(side is not None and side.facts_version)
+        if has_facts:
+            retentions = {
+                "iss": _decimal(side.iss_retained),
+                "crf": _decimal(side.crf_retained),
+                "irrf": _decimal(side.irrf_retained),
+                "inss": _decimal(side.inss_retained),
+            }
+        else:
+            raw = normalized.get("retentions")
+            raw = raw if isinstance(raw, dict) else {}
+            retentions = {
+                "iss": _decimal(raw.get("iss")),
+                "crf": sum(
+                    (_decimal(raw.get(key)) for key in ("pis", "cofins", "csll")),
+                    Decimal("0.00"),
+                ),
+                "irrf": _decimal(raw.get("irrf")),
+                "inss": _decimal(raw.get("inss")),
+            }
         retained_total = sum(retentions.values(), Decimal("0.00"))
-        competence = _safe_text(normalized.get("competence"), limit=40)
-        issued_at = _date_from_document(document, normalized)
-        if not competence and issued_at:
-            competence = issued_at.strftime("%m/%Y")
-        elif len(competence) >= 7 and competence[4:5] == "-":
-            competence = f"{competence[5:7]}/{competence[:4]}"
+        issued_at = (side.issued_on if has_facts else None) or _date_from_document(
+            document, normalized
+        )
+        if has_facts and side.competence:
+            competence = side.competence.strftime("%m/%Y")
+        else:
+            competence = _safe_text(normalized.get("competence"), limit=40)
+            if not competence and issued_at:
+                competence = issued_at.strftime("%m/%Y")
+            elif len(competence) >= 7 and competence[4:5] == "-":
+                competence = f"{competence[5:7]}/{competence[:4]}"
+        amount = (
+            _decimal(side.service_amount)
+            if has_facts and side.service_amount is not None
+            else _decimal(normalized.get("amount"))
+        )
         rows.append(
             {
                 "company": _safe_text(document.company.name, limit=160),
                 "dominio_code": _safe_text(document.company.dominio_code, limit=40),
-                "number": _safe_text(normalized.get("number"), limit=80) or "Sem número",
+                "number": _safe_text(
+                    (side.number if has_facts else "") or normalized.get("number"), limit=80
+                )
+                or "Sem número",
                 "direction": direction,
                 "direction_label": direction_label,
                 "issued_at": issued_at,
                 "competence": competence or "Não informada",
                 "counterparty": _safe_text(
-                    normalized.get("counterparty_name") or (side.counterparty_name if side else ""),
+                    (side.counterparty_name if side else "") or normalized.get("counterparty_name"),
                     limit=160,
                 )
                 or ("Contraparte fictícia" if demo else "Não identificada"),
                 "service_code": _safe_text(normalized.get("service_code"), limit=80),
                 "service_description": _safe_text(normalized.get("service_description"), limit=500),
-                "amount": _decimal(normalized.get("amount")),
+                "amount": amount,
+                "net_amount": _decimal(side.net_amount if has_facts else None),
+                "situation": SITUATION_LABELS.get(
+                    str(side.situation if has_facts else "active"), "Ativa"
+                ),
+                "counterparty_document": side.counterparty_document if has_facts else "",
                 "retentions": retentions,
                 "retained_total": retained_total,
             }
@@ -336,16 +375,41 @@ def generate_retention_xlsx(rows: list[RetentionReportRow], *, demo: bool = Fals
     border = Border(bottom=thin)
     generated_at = timezone.localtime(timezone.now()).replace(tzinfo=None)
     last_detail_row = len(rows) + 1
+    headers = [
+        "Empresa",
+        "Código Domínio",
+        "Número da nota",
+        "Situação",
+        "Movimento",
+        "Data de emissão",
+        "Competência",
+        "CNPJ/CPF contraparte",
+        "Contraparte",
+        "Código do serviço",
+        "Descrição do serviço",
+        "Valor do serviço",
+        "Valor líquido",
+        *[f"{label} retido" for _key, label in TAXES],
+        "Total retido",
+    ]
+    service_column = headers.index("Valor do serviço") + 1
+    first_tax = service_column + 2
+    last_tax = first_tax + len(TAXES) - 1
+    total_column = last_tax + 1
+    service_letter = get_column_letter(service_column)
+    last_letter = get_column_letter(total_column)
     summary_rows: list[list[object]] = [
         ["Relatório de retenções NFS-e" + (" · DEMONSTRAÇÃO" if demo else ""), None],
         ["Gerado em", generated_at],
         ["Notas no recorte", len(rows)],
-        ["Valor das notas", f"=SUM(Notas!J2:J{last_detail_row})"],
+        ["Valor das notas", f"=SUM(Notas!{service_letter}2:{service_letter}{last_detail_row})"],
     ]
     for index, (_key, label) in enumerate(TAXES):
-        column = get_column_letter(11 + index)
+        column = get_column_letter(first_tax + index)
         summary_rows.append([f"{label} retido", f"=SUM(Notas!{column}2:{column}{last_detail_row})"])
-    summary_rows.append(["Total retido", f"=SUM(Notas!Q2:Q{last_detail_row})"])
+    summary_rows.append(
+        ["Total retido", f"=SUM(Notas!{last_letter}2:{last_letter}{last_detail_row})"]
+    )
     for values in summary_rows:
         summary.append(values)
     summary.merge_cells("A1:B1")
@@ -364,66 +428,58 @@ def generate_retention_xlsx(rows: list[RetentionReportRow], *, demo: bool = Fals
     summary.cell(summary.max_row, 2).fill = PatternFill("solid", fgColor=pale)
     summary.cell(summary.max_row, 1).font = Font(bold=True)
     summary.cell(summary.max_row, 2).font = Font(bold=True)
-    summary.column_dimensions["A"].width = 28
+    summary.column_dimensions["A"].width = 32
     summary.column_dimensions["B"].width = 22
     summary.freeze_panes = "A2"
 
-    headers = [
-        "Empresa",
-        "Código Domínio",
-        "Número da nota",
-        "Movimento",
-        "Data de emissão",
-        "Competência",
-        "Contraparte",
-        "Código do serviço",
-        "Descrição do serviço",
-        "Valor da nota",
-        "ISS retido",
-        "PIS retido",
-        "COFINS retido",
-        "CSLL retida",
-        "IRRF retido",
-        "INSS retido",
-        "Total retido",
-    ]
     detail.append(headers)
     for cell in detail[1]:
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    first_tax_letter = get_column_letter(first_tax)
+    last_tax_letter = get_column_letter(last_tax)
     for row in rows:
         detail.append(
             [
                 _xlsx_text(row["company"]),
                 _xlsx_text(row["dominio_code"]),
                 _xlsx_text(row["number"]),
+                row["situation"],
                 row["direction_label"],
                 row["issued_at"],
                 _xlsx_text(row["competence"]),
+                _xlsx_text(row["counterparty_document"]),
                 _xlsx_text(row["counterparty"]),
                 _xlsx_text(row["service_code"]),
                 _xlsx_text(row["service_description"]),
                 float(row["amount"]),
+                float(row["net_amount"]),
                 *[float(row["retentions"][key]) for key, _label in TAXES],
                 None,
             ]
         )
-        detail.cell(detail.max_row, 17, f"=SUM(K{detail.max_row}:P{detail.max_row})")
+        current = detail.max_row
+        detail.cell(
+            current,
+            total_column,
+            f"=SUM({first_tax_letter}{current}:{last_tax_letter}{current})",
+        )
     for row_number in range(2, detail.max_row + 1):
-        detail.cell(row_number, 5).number_format = "dd/mm/yyyy"
-        for column in range(10, 18):
+        detail.cell(row_number, 6).number_format = "dd/mm/yyyy"
+        for column in range(service_column, total_column + 1):
             detail.cell(row_number, column).number_format = "R$ #,##0.00;[Red]-R$ #,##0.00"
         for cell in detail[row_number]:
             cell.border = border
-            cell.alignment = Alignment(vertical="top", wrap_text=cell.column == 9)
-    widths = [30, 16, 18, 28, 16, 14, 32, 18, 48, 18, 15, 15, 16, 15, 15, 15, 18]
+            cell.alignment = Alignment(vertical="top", wrap_text=cell.column == 11)
+    widths = [30, 14, 16, 13, 26, 15, 13, 21, 32, 16, 44, 16, 16, 14, 22, 14, 14, 16]
     for index, width in enumerate(widths, 1):
         detail.column_dimensions[get_column_letter(index)].width = width
     detail.freeze_panes = "A2"
-    detail.auto_filter.ref = f"A1:Q{detail.max_row}"
     if detail.max_row >= 2:
-        table = WorksheetTable(displayName="RetencoesNFSe", ref=f"A1:Q{detail.max_row}")
+        table = WorksheetTable(
+            displayName="RetencoesNFSe", ref=f"A1:{last_letter}{detail.max_row}"
+        )
         table.tableStyleInfo = TableStyleInfo(
             name="TableStyleMedium2",
             showFirstColumn=False,
@@ -431,9 +487,10 @@ def generate_retention_xlsx(rows: list[RetentionReportRow], *, demo: bool = Fals
             showRowStripes=True,
         )
         detail.add_table(table)
+    else:
+        detail.auto_filter.ref = f"A1:{last_letter}1"
     detail.sheet_view.showGridLines = False
     summary.sheet_view.showGridLines = False
-    detail.auto_filter.ref = f"A1:Q{detail.max_row}"
     workbook.calculation.fullCalcOnLoad = True
     workbook.calculation.forceFullCalc = True
     buffer = io.BytesIO()

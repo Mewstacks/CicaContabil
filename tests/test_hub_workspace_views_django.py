@@ -1514,8 +1514,16 @@ class HubWorkspaceViewTests(TestCase):
         )
 
         self.assertContains(response, "<h1>NFS-e</h1>", html=True)
-        self.assertContains(response, "owned")
-        self.assertContains(response, "other")
+        self.assertEqual(
+            [group["name"] for group in response.context["nfse_groups"]],
+            sorted([self.company.name, "Outra empresa"]),
+        )
+        owned = self.client.get(
+            reverse("hub:nfse-center"),
+            {"competence": "", "status": "all", "group": str(self.company.pk)},
+        )
+        self.assertContains(owned, "owned")
+        self.assertNotContains(owned, ">other<")
 
         scoped = self.client.get(reverse("hub:company-detail", args=[self.company.id]))
 
@@ -1554,10 +1562,10 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(stats["received"], 2)
         self.assertEqual(stats["pending"] + stats["classified"], 2)
         self.assertEqual(stats["provided"] + stats["taken"] + stats["unknown"], 2)
-        for url in response.context["nfse_stat_urls"].values():
-            self.assertIn("competence_month=09", url)
-            self.assertIn("competence_year=2026", url)
-            self.assertIn(f"company={self.company.pk}", url)
+        tabs = [*response.context["nfse_status_tabs"], *response.context["nfse_direction_tabs"]]
+        for tab in tabs:
+            self.assertIn("competence=2026-09", tab["url"])
+            self.assertIn(f"company={self.company.pk}", tab["url"])
 
     def test_nfse_center_states_classification_instead_of_a_score(self) -> None:
         create_document_and_artifact(
@@ -1571,13 +1579,14 @@ class HubWorkspaceViewTests(TestCase):
             reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
         )
 
-        self.assertContains(response, '<th scope="col">Acumulador</th>', html=True)
+        self.assertContains(
+            response, '<th scope="col" class="nfse-c-accumulator">Acumulador</th>', html=True
+        )
         self.assertNotContains(response, "Confiança")
         self.assertNotContains(response, "Transitória · 0%")
         body = response.content.decode()
         self.assertIn("Classificar", body)
-        self.assertIn("abrir dados da nota", body)
-        self.assertIn('class="nfse-note-number"', body)
+        self.assertIn('class="nfse-note-number" href="', body)
 
     def test_nfse_center_shows_note_number_and_not_transport_identifiers(self) -> None:
         document, _artifact, _review = create_document_and_artifact(
@@ -1656,11 +1665,13 @@ class HubWorkspaceViewTests(TestCase):
         notes = workbook["Notas"]
         self.assertEqual(notes.max_row, 2)
         self.assertEqual(notes["C2"].value, "ENTRADA-1")
-        self.assertEqual(notes["D2"].value, "Entrada · serviço tomado")
-        self.assertEqual(notes["G2"].value, "'=FORNECEDOR")
-        self.assertEqual(notes["K2"].value, 20)
-        self.assertEqual(notes["Q2"].value, "=SUM(K2:P2)")
-        self.assertEqual(workbook["Resumo"]["B11"].value, "=SUM(Notas!Q2:Q2)")
+        self.assertEqual(notes["D2"].value, "Ativa")
+        self.assertEqual(notes["E2"].value, "Entrada · serviço tomado")
+        self.assertEqual(notes["I2"].value, "'=FORNECEDOR")
+        self.assertEqual(notes["N2"].value, 20)
+        self.assertEqual(notes["O2"].value, 46.5)
+        self.assertEqual(notes["R2"].value, "=SUM(N2:Q2)")
+        self.assertEqual(workbook["Resumo"]["B9"].value, "=SUM(Notas!R2:R2)")
 
         pdf = self.client.post(
             reverse("hub:nfse-center") + "?status=all",
@@ -2100,8 +2111,9 @@ class HubWorkspaceViewTests(TestCase):
             reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
         )
 
-        self.assertContains(response, "owned")
-        self.assertContains(response, "other")
+        self.assertEqual(response.context["document_filtered_total"], 2)
+        self.assertContains(response, self.company.name)
+        self.assertContains(response, "Outra empresa")
 
     def test_nfse_clear_filters_really_removes_the_default_competence(self) -> None:
         response = self.client.get(reverse("hub:nfse-center"))
@@ -2109,12 +2121,14 @@ class HubWorkspaceViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            f'href="{reverse("hub:nfse-center")}?status=all" data-live-filter-clear',
+            f'href="{reverse("hub:nfse-center")}?status=all&amp;competence="'
+            " data-live-filter-clear",
         )
 
+    @patch("apps.hub.nfse_list.GROUP_PAGE_SIZE", 50)
     def test_nfse_center_paginates_the_portfolio_without_hiding_documents(self) -> None:
         now = timezone.now()
-        for index in range(101):
+        for index in range(51):
             create_document_and_artifact(
                 company=self.company,
                 original_xml=f"<nfse id='page-{index}' />",
@@ -2127,15 +2141,18 @@ class HubWorkspaceViewTests(TestCase):
             )
 
         first_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE"})
-        second_page = self.client.get(reverse("hub:nfse-center"), {"q": "PAGE", "page": "2"})
 
-        self.assertContains(first_page, "101 notas")
-        self.assertContains(first_page, "Página 1 de 2")
-        self.assertContains(first_page, "PAGE-000")
-        self.assertNotContains(first_page, "PAGE-100")
-        self.assertContains(second_page, "Página 2 de 2")
-        self.assertContains(second_page, "PAGE-100")
-        self.assertContains(second_page, "?q=PAGE&amp;page=1", html=False)
+        self.assertContains(first_page, "51 notas")
+        self.assertContains(first_page, "PAGE-050")
+        self.assertNotContains(first_page, "PAGE-000")
+        self.assertContains(first_page, "Mostrar mais")
+        more = self.client.get(
+            reverse("hub:nfse-center"),
+            {"q": "PAGE", "competence": "", "group": str(self.company.pk), "offset": "50"},
+        )
+        self.assertContains(more, "PAGE-000")
+        self.assertNotContains(more, "PAGE-050")
+        self.assertNotContains(more, "Mostrar mais")
 
     def test_nfse_center_searches_the_portfolio_and_links_the_exact_review(self) -> None:
         other_company = ClientCompany.objects.create(
@@ -2728,6 +2745,10 @@ class HubWorkspaceViewTests(TestCase):
 
         self.assertContains(dashboard, reverse("hub:nfse-center") + "?status=unclassified")
         center = self.client.get(reverse("hub:nfse-center"), {"status": "unclassified"})
+        center = self.client.get(
+            reverse("hub:nfse-center"),
+            {"status": "unclassified", "competence": "", "group": str(self.company.pk)},
+        )
         self.assertContains(center, "1401")
         self.assertContains(center, "NFS-2026-00042")
         self.assertContains(center, "Assessoria contábil mensal")

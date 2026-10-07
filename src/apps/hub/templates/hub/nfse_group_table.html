@@ -1,0 +1,38 @@
+{% load nfse_format %}{% comment %}
+One company's notes, Cobalchini column order: Data, Situação, Nº, contraparte, ISS, CRF,
+IRRF, INSS, valor do serviço, valor líquido, then the CICA accumulator. Rendered inline for an
+open group and returned alone by ?group=<company> when a group opens (or "Mostrar mais").
+{% endcomment %}
+<div class="nfse-group-scroll">
+  <table class="nfse-notes">
+    <thead><tr>
+      <th scope="col" class="nfse-c-date">Data</th>
+      <th scope="col" class="nfse-c-situation">Situação</th>
+      <th scope="col" class="nfse-c-number">Nº</th>
+      <th scope="col" class="nfse-c-party">{{ nfse_counterparty_label }}</th>
+      <th scope="col" class="nfse-c-money">ISS</th>
+      <th scope="col" class="nfse-c-money"><abbr title="PIS, COFINS e CSLL retidos">CRF</abbr></th>
+      <th scope="col" class="nfse-c-money">IRRF</th>
+      <th scope="col" class="nfse-c-money">INSS</th>
+      <th scope="col" class="nfse-c-money">Valor serviço</th>
+      <th scope="col" class="nfse-c-money">Valor líquido</th>
+      <th scope="col" class="nfse-c-accumulator">Acumulador</th>
+    </tr></thead>
+    <tbody data-nfse-group-rows>{% include 'hub/nfse_group_rows.html' %}</tbody>
+    {% if group.notes is not None %}<tfoot><tr>
+      <th scope="row" colspan="4">Total{% if group.closed %} <small>{{ group.closed }} cancelada{{ group.closed|pluralize }} ou substituída{{ group.closed|pluralize }} fora</small>{% endif %}</th>
+      <td class="nfse-c-money" data-label="ISS">{{ group.iss|brl }}</td>
+      <td class="nfse-c-money" data-label="CRF">{{ group.crf|brl }}</td>
+      <td class="nfse-c-money" data-label="IRRF">{{ group.irrf|brl }}</td>
+      <td class="nfse-c-money" data-label="INSS">{{ group.inss|brl }}</td>
+      <td class="nfse-c-money" data-label="Serviço">{{ group.service|brl }}</td>
+      <td class="nfse-c-money" data-label="Líquido">{{ group.net|brl }}</td>
+      <td></td>
+    </tr></tfoot>{% endif %}
+  </table>
+</div>
+{% if group.options %}<datalist id="nfse-acc-{{ group.company_id }}">{% for code, name in group.options %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</datalist>{% endif %}
+<div class="nfse-group-foot">
+  <span data-nfse-group-foot>{% if group.has_more %}<button class="button button-quiet button-small" type="button" data-nfse-group-more data-url="{{ nfse_list_url }}&amp;group={{ group.company_id }}&amp;offset={{ group.next_offset }}">Mostrar mais</button>{% endif %}</span>
+  {% if can_download_nfse and group.notes %}<form class="nfse-group-actions" method="post" action="{% url 'hub:nfse-center' %}?company={{ group.company_id }}">{% csrf_token %}{% include 'hub/nfse_filter_fields.html' with prefix='report_' %}<span class="nfse-group-actions-label">Baixar</span><button class="button button-quiet button-small" type="submit" name="action" value="download_original_xmls">XML</button><button class="button button-quiet button-small" type="submit" name="action" value="retention_report_pdf">PDF</button><button class="button button-quiet button-small" type="submit" name="action" value="retention_report_xlsx">Excel</button></form>{% endif %}
+</div>

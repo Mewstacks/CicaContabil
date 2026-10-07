@@ -458,9 +458,33 @@ class NfseDocumentSide(OrganizationScopedModel):
     direction = models.CharField(max_length=16, db_index=True)
     counterparty_ref = models.CharField(max_length=80, blank=True)
     counterparty_name = models.CharField(max_length=160, blank=True)
+    # Fiscal facts read from the XML (apps.hub.nfse_facts); facts_version 0 = not read yet.
+    facts_version = models.PositiveSmallIntegerField(default=0, db_index=True)
+    kind = models.CharField(max_length=8, default="note")
+    access_key = models.CharField(max_length=60, blank=True)
+    replaces_key = models.CharField(max_length=60, blank=True)
+    event_situation = models.CharField(max_length=16, blank=True)
+    situation = models.CharField(max_length=16, default="active")
+    number = models.CharField(max_length=40, blank=True)
+    issued_on = models.DateField(null=True, blank=True)
+    competence = models.DateField(null=True, blank=True)
+    counterparty_document = models.CharField(max_length=20, blank=True)
+    service_amount = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    net_amount = models.DecimalField(max_digits=16, decimal_places=2, null=True, blank=True)
+    iss_retained = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    crf_retained = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    irrf_retained = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    inss_retained = models.DecimalField(max_digits=16, decimal_places=2, default=0)
+    retained_total = models.DecimalField(max_digits=16, decimal_places=2, default=0)
 
     class Meta:
-        indexes = [models.Index(fields=("organization", "direction"))]
+        indexes = [
+            models.Index(fields=("organization", "direction")),
+            models.Index(fields=("organization", "competence")),
+            models.Index(fields=("organization", "issued_on")),
+            models.Index(fields=("organization", "access_key")),
+            models.Index(fields=("organization", "replaces_key")),
+        ]
 
 
 class AccumulatorRule(OrganizationScopedModel):
