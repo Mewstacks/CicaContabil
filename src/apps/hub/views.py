@@ -2049,47 +2049,53 @@ def dashboard(request: HttpRequest) -> HttpResponse:
     overdue_activities = open_activity_query.filter(
         Q(internal_due_on__lt=today) | Q(internal_due_on__isnull=True, legal_due_on__lt=today)
     )
+    # "tier" separa o que corre contra o relógio do que é exceção operacional, para que
+    # a Visão geral não apresente cinco pendências de naturezas diferentes com o mesmo peso.
     activity_attention = [
         {
             "label": "Em atraso",
+            "tier": "deadline",
             "count": overdue_activities.count(),
-            "note": "Revisar atrasadas",
             "url": f"{reverse('hub:activities')}?overdue=1",
             "tone": "attention",
         },
         {
             "label": "Para hoje",
+            "tier": "deadline",
             "count": open_activity_query.filter(due_today).count(),
-            "note": "Abrir agenda de hoje",
             "url": f"{reverse('hub:activities')}?due=today",
             "tone": "attention",
         },
         {
             "label": "Próximos 7 dias",
+            "tier": "deadline",
             "count": open_activity_query.filter(due_next_seven_days).count(),
-            "note": "Planejar a semana",
             "url": f"{reverse('hub:activities')}?due=next_7_days",
             "tone": "",
         },
         {
             "label": "Impedidas",
+            "tier": "exception",
             "count": open_activity_query.filter(
                 work_status=OperationalActivity.WorkStatus.BLOCKED
             ).count(),
-            "note": "Resolver impedimentos",
             "url": f"{reverse('hub:activities')}?status=blocked",
             "tone": "attention",
         },
         {
             "label": "Fonte indisponível",
+            "tier": "exception",
             "count": open_activity_query.filter(
                 freshness=OperationalActivity.Freshness.UNAVAILABLE
             ).count(),
-            "note": "Ver falhas de origem",
             "url": f"{reverse('hub:activities')}?freshness=unavailable",
             "tone": "attention",
         },
     ]
+    # Contagem zero não é pendência: sem isto o cartão continuaria em âmbar anunciando "0".
+    for item in activity_attention:
+        if not item["count"]:
+            item["tone"] = ""
     agenda_filters = {
         "overdue": Q(internal_due_on__lt=today)
         | Q(internal_due_on__isnull=True, legal_due_on__lt=today),
@@ -2108,6 +2114,9 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         selected_agenda_filter = ""
     for item, key in zip(activity_attention, agenda_filters, strict=True):
         item["selected"] = key == selected_agenda_filter
+    # Mesmas referências de activity_attention, apenas agrupadas para a Visão geral.
+    activity_deadline_filters = [i for i in activity_attention if i["tier"] == "deadline"]
+    activity_exception_filters = [i for i in activity_attention if i["tier"] == "exception"]
     agenda_page = Paginator(
         agenda_query.select_related("company", "assigned_to").order_by(
             Coalesce("internal_due_on", "legal_due_on").asc(nulls_last=True),
@@ -2375,6 +2384,8 @@ def dashboard(request: HttpRequest) -> HttpResponse:
             "dashboard_summary_action": dashboard_summary_action,
             "closing_expanded": request.GET.get("closing_open") == "1",
             "activity_attention": activity_attention,
+            "activity_deadline_filters": activity_deadline_filters,
+            "activity_exception_filters": activity_exception_filters,
             "is_dashboard_administrator": is_dashboard_administrator,
             "admin_workload": admin_workload,
             "unassigned_activity_count": unassigned_activity_count,

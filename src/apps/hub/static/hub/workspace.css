@@ -162,7 +162,8 @@ body:has(.workspace-shell) .skip-link:focus-visible { pointer-events: auto; colo
 }
 
 /* Orientação guiada: diálogo nativo, foco contido, sem depender de animação. */
-.workspace-shell .onboarding-help { display: flex; justify-content: flex-end; margin: -8px 0 16px; }
+.page-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.page-header-actions:empty { display: none; }
 .onboarding-dialog { width: min(460px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); }
 .onboarding-dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .onboarding-card { display: grid; gap: 4px; padding: 20px; }
