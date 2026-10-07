@@ -1018,6 +1018,8 @@ const initNfseDownloadForm = (form) => {
   const count = form.querySelector('[data-nfse-download-selection-count]');
   const actions = form.querySelector('[data-nfse-download-actions]');
   const actionButtons = [...(actions?.querySelectorAll('button') || [])];
+  const companyGroups = [...form.querySelectorAll('.nfse-company-group')];
+  const emptySelectionMessage = count?.textContent.trim() || 'Nenhuma nota selecionada.';
   if (!(selectAll instanceof HTMLInputElement)) return;
 
   const update = () => {
@@ -1025,7 +1027,9 @@ const initNfseDownloadForm = (form) => {
     const selected = selectedTargets.length;
     const selectedCompanies = new Set(selectedTargets.map((target) => target.dataset.companyId));
     const portfolio = selectPortfolio instanceof HTMLInputElement && selectPortfolio.checked;
-    actionButtons.forEach((button) => { button.disabled = selected === 0 && !portfolio; });
+    const hasSelection = selected > 0 || portfolio;
+    if (actions) actions.hidden = !hasSelection;
+    actionButtons.forEach((button) => { button.disabled = !hasSelection; });
     selectAll.checked = selected === targets.length && targets.length > 0;
     selectAll.indeterminate = selected > 0 && selected < targets.length;
     companySelectors.forEach((selector) => {
@@ -1044,12 +1048,14 @@ const initNfseDownloadForm = (form) => {
     }
     if (count) count.textContent = selected
       ? `${selected} nota${selected === 1 ? '' : 's'} de ${selectedCompanies.size} empresa${selectedCompanies.size === 1 ? '' : 's'} selecionada${selected === 1 ? '' : 's'}.`
-      : 'Nenhuma nota selecionada.';
+      : emptySelectionMessage;
   };
 
   selectAll.addEventListener('change', () => {
     if (selectPortfolio instanceof HTMLInputElement) selectPortfolio.checked = false;
     targets.forEach((target) => { target.checked = selectAll.checked; });
+    // O operador precisa ver o que acabou de marcar: empresas recolhidas escondiam a seleção.
+    if (selectAll.checked) companyGroups.forEach((group) => { group.open = true; });
     update();
   });
   if (selectPortfolio instanceof HTMLInputElement) {

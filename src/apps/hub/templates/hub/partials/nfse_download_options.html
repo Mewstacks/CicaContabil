@@ -1,0 +1,26 @@
+{% comment %}
+Barra do pacote com acumuladores, colada na lista.
+
+Cada download fica onde o seu escopo vive: o XML original é do filtro e por isso
+sobe para o cabeçalho do painel; o pacote depende da seleção e por isso fica aqui,
+imediatamente acima das notas. Antes os dois ocupavam um bloco de cartões entre o
+filtro e a lista, empurrando as notas para fora da primeira tela.
+
+A distinção entre os dois arquivos exigida pela D-276 continua explícita: rótulos,
+escopos e botões separados. A ação em lote só aparece depois que existe seleção.
+{% endcomment %}
+<div class="nfse-package-bar" id="nfse-bulk-download" tabindex="-1">
+  <div class="nfse-package-head">
+    <strong class="nfse-package-title">Pacote com acumuladores</strong>
+    {% if can_demo_download_nfse or can_export_nfse %}
+      <div class="nfse-bulk-choices" role="group" aria-label="Escolher as notas do pacote">
+        <label class="checkbox-field"><input type="checkbox" data-nfse-download-select-all>{% if can_demo_download_nfse %}Selecionar as notas desta página{% else %}Selecionar as classificadas desta página{% endif %}</label>
+        {% if can_demo_download_nfse %}<label class="checkbox-field"><input type="checkbox" name="all_documents" value="1" data-nfse-download-all{% if nfse_selected_company %} data-scope-label="Todas as notas desta empresa serão incluídas."{% endif %}>{% if nfse_selected_company %}Todas desta empresa{% else %}Carteira inteira{% endif %}</label>{% elif document_exportable_total %}<label class="checkbox-field"><input type="checkbox" name="all_filtered_classified" value="1" data-nfse-download-all data-total="{{ document_exportable_total }}" data-companies="{{ document_exportable_company_total }}">Todos os resultados classificados ({{ document_exportable_total }})</label>{% endif %}
+      </div>
+      <p class="nfse-package-scope" role="status" aria-live="polite" aria-atomic="true" data-nfse-download-selection-count>Separa cada nota em <strong>Emitidas</strong> ou <strong>Tomadas</strong>, na pasta <strong>código-</strong> da empresa.</p>
+      <div class="bulk-actions" data-nfse-download-actions hidden>{% if can_demo_download_nfse %}<button class="button button-small" type="submit" name="action" value="demo_download_selected" data-nfse-download-submit>Baixar selecionadas (ZIP)</button>{% else %}<button class="button button-small" type="submit" name="action" value="export_dominio_xml" data-nfse-download-submit>Baixar selecionadas (ZIP)</button>{% endif %}</div>
+    {% else %}<p class="nfse-package-scope">Somente consulta. O pacote exige um perfil autorizado do escritório.</p>
+    {% endif %}
+  </div>
+  {% if not office.is_demo and can_export_nfse %}<p class="nfse-export-disclaimer">Inclui XMLs e manifesto com os acumuladores. O layout importável do Domínio ainda depende da homologação técnica.</p>{% endif %}
+</div>

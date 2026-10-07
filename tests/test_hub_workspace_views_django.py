@@ -1474,6 +1474,45 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(scoped, "owned")
         self.assertNotContains(scoped, "other")
 
+    def test_nfse_center_places_each_download_where_its_scope_lives(self) -> None:
+        """XML original é do filtro e fica no cabeçalho; pacote é da seleção e fica na lista.
+
+        Protege a reorganização de D-277.1: as notas precisam vir antes dos relatórios e a
+        ação em lote não pode ocupar a tela antes de existir seleção. Mantém a separação
+        entre XML original e pacote classificado exigida por D-276.
+        """
+        create_document_and_artifact(
+            company=self.company,
+            original_xml="<nfse id='escopo' />",
+            normalized_data={"number": "escopo"},
+            source_nsu="escopo",
+        )
+
+        response = self.client.get(
+            reverse("hub:nfse-center"), {"date_filter": "competence", "competence_month": ""}
+        )
+        corpo = response.content.decode()
+
+        # O formulário do XML original é declarado antes do botão que o aciona.
+        self.assertIn('id="nfse-original-xml-form"', corpo)
+        self.assertIn('form="nfse-original-xml-form"', corpo)
+        self.assertLess(
+            corpo.index('id="nfse-original-xml-form"'),
+            corpo.index('form="nfse-original-xml-form"'),
+        )
+        # Uma nota no recorte: o rótulo precisa concordar no singular.
+        self.assertIn("Baixar 1 XML original (ZIP)", corpo)
+
+        # O pacote fica colado na lista, e os relatórios só vêm depois das notas.
+        posicao_barra = corpo.index('class="nfse-package-bar"')
+        posicao_lista = corpo.index('class="nfse-company-groups"')
+        posicao_relatorios = corpo.index("nfse-report-disclosure")
+        self.assertLess(posicao_barra, posicao_lista)
+        self.assertLess(posicao_lista, posicao_relatorios)
+
+        # Sem seleção não há ação em lote visível.
+        self.assertIn("data-nfse-download-actions hidden", corpo)
+
     def test_nfse_center_states_classification_instead_of_a_score(self) -> None:
         create_document_and_artifact(
             company=self.company,
@@ -1772,7 +1811,9 @@ class HubWorkspaceViewTests(TestCase):
         self.assertContains(page, "Nenhuma nota nova será coletada")
         self.assertContains(page, "Ver situação no cadastro")
         self.assertContains(page, "Ver pendências")
-        self.assertContains(page, "Consulte o movimento")
+        # Empresa pausada recebe enquadramento de consulta, nunca a chamada operacional.
+        self.assertContains(page, "Histórico disponível para consulta")
+        self.assertNotContains(page, "antes de classificar ou baixar")
         self.assertContains(page, "Inclui 1 nota do filtro atual")
         self.assertNotContains(page, "1 para classificar")
         self.assertFalse(page.context["can_classify_nfse"])
