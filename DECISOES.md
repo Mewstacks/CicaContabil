@@ -1507,3 +1507,78 @@ Pedido explícito: revisar criticamente a tela publicada, corrigir e fazer deplo
 - Evidência adicional da captura: sessão de suporte vigente é `read_only`. Download original/relatórios são leitura do mesmo acervo já autorizado, não alteração fiscal. Desacoplar essas leituras de `support_can_mutate`, preservando o escopo de empresas e a recusa de classificação/exportação derivada nessa sessão. Suporte `full` deve respeitar a autorização já existente, sem exigir vínculo de colaborador ausente por definição.
 - A primeira coluna sem checkbox estava recebendo largura de 48 px, comprimindo identificação e selos. Usar classe semântica exclusiva na célula de seleção; abrir a conferência na ficha existente em vez de expandir centenas de pixels dentro da tabela.
 - Solicitação subsequente: após publicação da correção de tela, auditar classificação, acumuladores por empresa e erros de importação apresentados no Domínio. Inspecionar os dados existentes primeiro, sem presumir regras fiscais novas ou sobrescrever decisões humanas.
+
+## D-277 — Visão geral e download NFS-e mais diretos na operação (07/10/2026)
+
+Origem: pedido do proprietário, navegando a demonstração, para tornar telas mais intuitivas. Escopo
+autorizado nesta entrega: os três pontos apontados na Visão geral e a reformulação da escolha e do
+download de notas na NFS-e. Execução em localhost com aprovação antes de ir para `main`. Pertence à
+etapa 11 e ao [PLANO_TELAS.md](PLANO_TELAS.md); não cria plano concorrente nem altera regra fiscal,
+contrato externo, cobrança ou autorização de dados.
+
+- A Visão geral tem uma única ação principal: o resumo do dia. Os cartões de prioridade são filtros
+  da fila e não repetem o verbo do resumo; passam a declarar apenas o estado de filtragem. Antes,
+  "Em atraso" oferecia "Revisar atrasadas" a poucos pixels do botão idêntico do resumo.
+- Pendência de prazo e exceção operacional não têm o mesmo peso visual. "Em atraso", "Para hoje" e
+  "Próximos 7 dias" ficam sob "Prazo"; "Impedidas" e "Fonte indisponível" sob "Exceções", com número
+  menor. "Em atraso" com contagem recebe o maior destaque da linha.
+- Contagem zero deixa de ser pintada como pendência. O tom de atenção passa a depender da contagem,
+  não de uma marcação fixa no código: um cartão zerado anunciava atenção em âmbar.
+- "Como usar" passa ao cabeçalho da página, junto ao título que explica. A linha flutuante à direita
+  deixava o acionador sem vínculo com o conteúdo.
+- Na NFS-e, os dois downloads aparecem lado a lado como documentos distintos, cada um com escopo e
+  botão próprios: XML original (o filtro inteiro, sem acumulador) e pacote com acumuladores (a
+  seleção). A separação exigida pela D-276 é mantida; o que muda é a apresentação, antes empilhada
+  em dois títulos de mesmo peso com texto corrido.
+- Os controles de seleção passam a ficar no cartão que explica o pacote. O título prometia a ação e
+  os controles viviam em um bloco separado abaixo dele.
+- A ação em lote só existe depois que há seleção, conforme o PLANO_TELAS; antes ocupava a tela como
+  botão desabilitado permanente.
+- Selecionar a página abre as empresas recolhidas. Marcar notas invisíveis dentro de grupos fechados
+  declarava um escopo que o operador não podia conferir.
+- O atalho do cabeçalho passa a se chamar "Baixar notas", igual ao bloco que ele abre, e só aparece
+  quando há nota no filtro; antes apontava para uma âncora inexistente no resultado vazio.
+- Filtro sem resultado continua oferecendo recuperação pelo estado vazio existente, sem cartões de
+  download inoperantes.
+
+Limites desta decisão: UI/UX Pro Max, Watermelon e Playwright não estavam disponíveis nesta sessão e
+não foram consultados; a revisão apoiou-se no PLANO_TELAS, na D-276 e em inspeção local. Não houve
+deploy, consumo externo, custo, migração ou mudança de capacidade. A validação é local e fictícia,
+não substitui homologação. A entrega cobre os pontos pedidos, não a auditoria integral da etapa 11.
+
+### D-277.1 — Segunda rodada, sobre a entrega acima (07/10/2026)
+
+Retorno do proprietário na demonstração: "Como usar" precisa ficar destacado, e a NFS-e exige
+rolagem longa demais até ver e baixar as notas. Os filtros e a pesquisa foram aprovados como estão.
+
+- "Como usar" adota o tom principal, igual ao da ação do dia. O acionador da orientação deixa de ser
+  discreto por decisão explícita do proprietário, mesmo convivendo com a ação principal na mesma tela.
+- Cada download passa a ficar onde o seu escopo vive. O XML original depende do filtro e sobe para o
+  cabeçalho do painel, com o escopo declarado ao lado. O pacote depende da seleção e vira uma barra
+  fina imediatamente acima das notas, fixa na rolagem para acompanhar carteiras longas. A separação
+  entre os dois arquivos exigida pela D-276 permanece explícita em rótulo, escopo e botão; o que se
+  desfaz é o bloco de cartões que os reunia entre o filtro e a lista.
+- Os relatórios de retenções passam para depois da lista, ainda recolhidos. A D-276 manda priorizar
+  notas e controles operacionais; ocupar altura antes das notas contrariava essa ordem.
+- O cabeçalho do painel perde o selo "CONFERÊNCIA FISCAL", que repetia o título da página e a aba
+  ativa, e a descrição encurta para uma linha.
+- Os indicadores do recorte passam a uma linha compacta, continuando filtros clicáveis. A compactação
+  é escopada em `#nfse-metrics` e `.nfse-workspace`: `metric-strip` e `workspace-panel-head` são
+  compartilhados por outras sete telas e não devem mudar sem pedido.
+
+Medição em 1920×950, com a faixa da demonstração presente: o topo da lista saiu de cerca de 995 px
+para 686 px e a primeira nota de cerca de 1.120 px para 811 px, com duas empresas visíveis sem
+rolagem. Em produção, sem a faixa da demonstração, a lista sobe outros 78 px. Não houve mudança de
+regra fiscal, permissão, contrato ou capacidade.
+
+### D-277.2 — Ancoragem do download no cabeçalho da NFS-e (07/10/2026)
+
+Retorno do proprietário: o botão do XML original ficou "no meio do nada"; o restante foi aprovado.
+
+- O cabeçalho do painel tinha três filhos sob `space-between`, o que jogava a ação para o vão entre
+  o título e o contador. O contador de resultados passa a acompanhar o título, que é o que ele
+  descreve, e a ação fica sozinha encostada à direita.
+- Em telas estreitas a ação ocupa a largura inteira. A regra anterior declarava `justify-items`
+  sem base de largura e não produzia efeito sobre um item flexível dimensionado pelo conteúdo.
+
+Sem mudança de escopo, permissão, rótulo ou comportamento dos downloads.
