@@ -900,7 +900,13 @@ def create_nfse_export(
     missing = [document for document in ordered_documents if str(document.id) not in artifacts]
     if missing:
         raise ValueError("Toda NFS-e do pacote precisa ter acumulador confirmado.")
-    catalogs = active_catalog_codes(list({document.company for document in ordered_documents}))
+    catalogs = active_catalog_codes(
+        list(
+            ClientCompany.objects.filter(
+                pk__in={document.company_id for document in ordered_documents}
+            )
+        )
+    )
     outside_catalog = [
         document
         for document in ordered_documents

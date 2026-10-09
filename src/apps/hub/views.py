@@ -4220,8 +4220,8 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 NfseDocument.objects.filter(
                     organization=office, company__in=scope, integration_artifacts__isnull=False
                 )
-                .select_related("company")
-                .defer("original_xml")
+                # The package service loads each page of notes itself; keep only the keys here.
+                .only("id", "organization_id", "company_id")
                 .distinct()
             )
             try:
@@ -4230,8 +4230,7 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                         _filter_nfse_export_documents(
                             office=office, scope=scope, data=request.POST
                         )
-                        .select_related("company")
-                        .defer("original_xml")
+                        .only("id", "organization_id", "company_id")
                         .order_by("company__name", "-issued_at", "-captured_at")
                     )
                 else:
@@ -5476,9 +5475,10 @@ def _nfse_export_context(
         raise Http404
     scope = _company_history_scope(context)
     documents = list(
-        NfseDocument.objects.filter(organization=office, company__in=scope, id__in=document_ids)
-        .select_related("company")
-        .defer("original_xml")
+        # Only the visibility of the frozen notes is checked here; nothing else is read.
+        NfseDocument.objects.filter(
+            organization=office, company__in=scope, id__in=document_ids
+        ).only("id")
     )
     if len(documents) != len(document_ids):
         raise Http404
