@@ -24,12 +24,32 @@
   {% endif %}
 </nav>
 
+{% comment %}
+Os cartões filtram a fila abaixo; a ação principal do dia continua sendo o resumo
+acima. Por isso não repetem o verbo dele. Prazo e exceção ficam separados para que
+o relógio não dispute atenção com falha de origem.
+{% endcomment %}
 <nav class="dashboard-priority-grid" aria-label="Filtrar atividades por prioridade">
-  {% for item in activity_attention %}
-  <a class="dashboard-priority-card{% if item.tone %} needs-attention{% endif %}" href="{{ item.url }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if item.selected %} aria-current="page"{% endif %}>
-    <span>{{ item.label }}</span><strong>{{ item.count }}</strong><small>{{ item.note }} <span aria-hidden="true">→</span></small>
-  </a>
-  {% endfor %}
+  <div class="dashboard-priority-group" role="group" aria-labelledby="dashboard-priority-deadline">
+    <p class="dashboard-priority-legend" id="dashboard-priority-deadline">Prazo</p>
+    <div class="dashboard-priority-cards">
+      {% for item in activity_deadline_filters %}
+      <a class="dashboard-priority-card{% if item.tone %} needs-attention{% endif %}{% if forloop.first %} is-first-deadline{% endif %}" href="{{ item.url }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if item.selected %} aria-current="page"{% endif %}>
+        <span>{{ item.label }}</span><strong>{{ item.count }}</strong><small>{% if item.selected %}Filtrando a fila{% else %}Filtrar a fila{% endif %}</small>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="dashboard-priority-group dashboard-priority-exceptions" role="group" aria-labelledby="dashboard-priority-exception">
+    <p class="dashboard-priority-legend" id="dashboard-priority-exception">Exceções</p>
+    <div class="dashboard-priority-cards">
+      {% for item in activity_exception_filters %}
+      <a class="dashboard-priority-card{% if item.tone %} needs-attention{% endif %}" href="{{ item.url }}&amp;closing_month={{ closing_month }}&amp;closing_page={{ closing_page.number }}"{% if item.selected %} aria-current="page"{% endif %}>
+        <span>{{ item.label }}</span><strong>{{ item.count }}</strong><small>{% if item.selected %}Filtrando a fila{% else %}Filtrar a fila{% endif %}</small>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
 </nav>
 
 {% if dashboard_view == 'management' %}

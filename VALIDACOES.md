@@ -4332,3 +4332,107 @@ proprietário; regras de vencimento e calendários continuam rascunho até aprov
 - **Infra:** gunicorn 26 registrava `Control server error: Permission denied` a cada boot;
   `--no-control-socket` no `fly.toml` e `Dockerfile`.
 - Local: 1.192 testes aprovados, seis skips; Ruff e `makemigrations --check` limpos.
+
+## V-280 — Visão geral e download NFS-e mais diretos na operação (07/10/2026)
+
+Registrada em paralelo como V-277 e renumerada na integração de 09/10/2026; a parte NFS-e foi
+substituída pela tela de V-278 já em produção.
+
+Escopo de D-280, verificado em localhost com `seed_demo`, SQLite e os gates `DEMO_ENTRY_ENABLED` e
+`DEMO_SESSION_ISOLATION_READY` ligados. Perfil exercitado na interface: visitante da demonstração.
+
+Visão geral (`/app/`): os cartões de prioridade renderizaram agrupados em "Prazo" (Em atraso, Para
+hoje, Próximos 7 dias) e "Exceções" (Impedidas, Fonte indisponível). Tamanhos computados do número
+confirmados em 40px para "Em atraso" com contagem, 32px para os demais prazos e 26px para as
+exceções. Os cartões deixaram de exibir verbo próprio e passaram a declarar "Filtrar a fila" ou
+"Filtrando a fila". O acionador "Como usar" foi confirmado dentro de `.page-header`, com
+`aria-haspopup="dialog"`, e o diálogo abriu pelo clique.
+
+NFS-e (`/app/nfse/`): os dois downloads renderizaram como cartões irmãos com escopo próprio. A
+associação de formulários foi conferida no DOM: o botão do XML original resolve para
+`nfse-original-xml-form` com os sete campos `report_*` mais `action`, está fisicamente dentro do
+formulário de seleção sem gerar formulário aninhado (`form form` ausente), e o botão do pacote
+resolve para o formulário de seleção. Ida e volta real dos dois downloads: `download_original_xmls`
+retornou 200 `application/zip`, 1.735 bytes, `nfse-xmls-originais.zip`; `demo_download_selected` com
+uma nota marcada retornou 200 `application/zip`, 519 bytes, `nfse-demonstracao-separadas.zip`. Os
+nomes distintos preservam a separação exigida pela D-276.
+
+Estados de seleção: sem seleção, a ação em lote permanece com `hidden` e o resumo exibe "Nenhuma
+nota selecionada. Marque as notas na lista abaixo."; "selecionar a página" marcou as 6 notas, abriu
+os 6 grupos de empresa — contra 1 aberto no início — e revelou a ação; desmarcar voltou ao estado
+inicial; uma nota isolada produziu "1 nota de 1 empresa selecionada.". O resumo é `aria-live` polite.
+Ordem de foco no bloco: botão do XML original, seleção da página, carteira inteira.
+
+Filtro sem resultado (`?status=all&q=inexistente-zzz`): o bloco de download não é renderizado, o
+atalho do cabeçalho não aparece e a âncora `#nfse-bulk-download` deixa de existir junto com ele,
+restando o estado vazio com "Limpar filtros". Com notas no filtro, o atalho existe e a âncora
+resolve.
+
+Responsividade: em 390×844, `.nfse-download-options` colapsa para uma coluna e os grupos da Visão
+geral empilham com cartões em duas colunas; `scrollWidth` igual a `clientWidth` nas duas telas, sem
+overflow horizontal.
+
+Automação: `ruff check` sem apontamentos; `manage.py check` sem issues; `makemigrations --check
+--dry-run` sem mudanças; suíte integral com 1.136 testes aprovados, 145 subtests e 7 pulados por
+limitação de ambiente preexistente (Playwright opcional, OCR local, locks de PostgreSQL).
+`ruff format --check` acusa 144 arquivos, condição confirmada como anterior a esta entrega
+comparando `views.py` contra `HEAD`; nenhuma reformatação foi feita.
+
+Limites: não houve captura de tela — o painel do navegador não desenhou durante a sessão e a
+verificação visual foi feita por DOM e estilo computado. UI/UX Pro Max, Watermelon e Playwright não
+estavam disponíveis e não foram consultados. A variante de escritório não-demo, com seleção por
+empresa e exportação Domínio, foi coberta apenas pela suíte automatizada, sem inspeção visual. Não
+foram exercitados os demais perfis, temas claro/escuro, volumes de múltiplas páginas nem leitor de
+tela. Dados fictícios e locais; não houve deploy, consumo externo, custo ou homologação. V-280 cobre
+os pontos pedidos em D-280, não a auditoria integral da etapa 11.
+
+### V-280.1 — Segunda rodada, sobre a validação acima (07/10/2026)
+
+Escopo de D-280.1. Medições em 1920×950, a largura relatada pelo proprietário, com a faixa da
+demonstração presente.
+
+Altura até as notas: topo da lista de 995 px para 686 px e primeira nota de cerca de 1.120 px para
+811 px, com duas empresas visíveis dentro da dobra de 950 px. Alturas por bloco após a mudança:
+indicadores 49 px (antes 121), cabeçalho do painel 96 px (antes 131), filtros 91 px inalterados e
+barra do pacote 66 px, contra cerca de 210 px do bloco de cartões que ela substitui. Os relatórios
+saíram de antes para depois da lista, confirmado por `compareDocumentPosition`.
+
+"Como usar" foi conferido com a mesma cor de fundo computada da ação principal do dia,
+`rgb(168, 208, 196)` nos dois elementos.
+
+Função preservada após a reorganização: seleção nos quatro estados, com a ação em lote oculta sem
+seleção, 6 notas marcando os 6 grupos de empresa e abrindo todos, e retorno ao estado inicial ao
+desmarcar. Ida e volta dos dois downloads novamente em 200 `application/zip`, com 1.735 e 519 bytes.
+Nenhum formulário aninhado. Barra `sticky` no desktop e `static` em 390×844, sem overflow
+horizontal. Filtro sem resultado não renderiza botão do XML original, barra do pacote nem a âncora
+`#nfse-bulk-download`, restando o estado vazio com recuperação.
+
+Testes: `test_paused_company_nfse_history_and_download_preserve_access_boundaries` falhou porque
+assertava a frase anterior do painel para empresa pausada. A asserção foi atualizada para o novo
+texto e reforçada com `assertNotContains` da chamada operacional, passando a garantir o
+enquadramento em vez de uma substring frouxa. Foi acrescentado
+`test_nfse_center_places_each_download_where_its_scope_lives`, que fixa a ordem barra do pacote →
+lista → relatórios, a declaração do formulário do XML original antes do botão que o aciona, a
+concordância no singular do rótulo e a ausência da ação em lote sem seleção. Esse teste roda sobre
+escritório não-demo com exportação Domínio, cobrindo por asserção a variante que não pôde ser
+inspecionada visualmente.
+
+Limite revisto: a tentativa de inspecionar visualmente o escritório não-demo falhou porque
+`seed_personas` vincula as personas ao mesmo escritório de demonstração; a variante continua sem
+captura, agora com cobertura estrutural explícita. Permanecem válidos os demais limites de V-280:
+sem capturas de tela, sem Playwright, sem leitor de tela, sem temas claro/escuro, sem volume de
+múltiplas páginas, dados fictícios e locais, sem deploy, consumo externo, custo ou homologação.
+
+### V-280.2 — Ancoragem do download no cabeçalho da NFS-e (07/10/2026)
+
+Escopo de D-280.2. Em 1920×950: título termina em x=409 e o contador começa em x=419, a 10 px dele;
+a ação termina em x=1630 contra x=1652 da borda do cabeçalho, dentro do respiro de 22 px. A altura
+do cabeçalho permanece 96 px e o topo da lista permanece em 686 px, ou seja, a ancoragem não
+devolveu altura à tela.
+
+Em 390×844 a ação passa a ocupar a largura inteira, 312 px dentro do respiro lateral, contra 208 px
+antes da correção; `scrollWidth` igual a `clientWidth`, sem overflow. A regra de largura que não
+produzia efeito foi corrigida em vez de removida, com a causa anotada no próprio arquivo.
+
+Filtro sem resultado continua sem renderizar a ação, com o contador exibindo "0 resultados".
+Limites de V-280 e V-280.1 permanecem; em especial, segue sem captura de tela e sem Playwright.
