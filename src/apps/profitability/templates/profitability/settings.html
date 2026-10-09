@@ -1,0 +1,60 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="settings-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="settings-heading">Os parâmetros que definem quanto custa uma hora da sua equipe.</h2>
+  </div>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if is_admin %}Gravar recalcula {{ competencias|length }} competência{{ competencias|length|pluralize }}{% else %}Somente leitura para o seu acesso{% endif %}</span>
+</section>
+
+<section class="workspace-panel" aria-labelledby="settings-params-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CÁLCULO</p><h2 id="settings-params-heading">Parâmetros de custo</h2><p>Estes valores entram no custo anual de cada colaborador e, por tabela, no custo de todos os clientes. Gravar reprojeta todas as competências na hora — sem isso, esta tela e a ficha do cliente passariam a se contradizer até a importação seguinte.</p></div></header>
+
+  {% if is_admin %}
+  <form class="profitability-form" method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="profitability-fields">
+      {% for field in form %}
+      <div class="profitability-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="profitability-help">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="profitability-error" role="alert">{{ field.errors|striptags }}</p>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <button class="button" type="submit">Gravar e recalcular</button>
+  </form>
+  {% else %}
+  <dl class="profitability-totals">
+    <div><dt>Margem-alvo padrão</dt><dd class="tnum">{{ config.margem_alvo_padrao|percentual }}</dd></div>
+    <div><dt>Limite da atenção</dt><dd class="tnum">{{ config.margem_atencao|percentual }}</dd></div>
+    <div><dt>Encargos</dt><dd class="tnum">{{ config.encargos_percentual|percentual }}</dd></div>
+    <div><dt>Índice de produtividade</dt><dd class="tnum">{{ config.indice_produtividade|percentual }}</dd></div>
+    <div><dt>Dias úteis no ano</dt><dd class="tnum">{{ config.dias_uteis_ano }}</dd></div>
+    <div><dt>Horas por dia</dt><dd class="tnum">{{ config.horas_dia }}</dd></div>
+  </dl>
+  <p class="profitability-caveat">Só um administrador altera estes parâmetros.</p>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="settings-revenue-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">RECEITA</p><h2 id="settings-revenue-heading">De onde vem o honorário</h2></div></header>
+  <p class="profitability-caveat">A fonte de honorários ainda não está definida para este escritório, e é ela que fecha a conta da margem. Enquanto isso, o módulo apura horas e custo, e o resultado por cliente só aparece onde houver honorário lançado. Não há escolha a fazer aqui até a fonte ser confirmada — oferecer a opção antes disso convidaria a armar um contrato que não tem dado do outro lado.</p>
+</section>
+
+<section class="workspace-panel" aria-labelledby="settings-segments-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">CADASTROS</p><h2 id="settings-segments-heading">Segmentos</h2><p>Usados para agrupar a carteira nas Análises.</p></div></header>
+  {% if segmentos %}
+  <ul class="profitability-logins">{% for segmento in segmentos %}<li>{{ segmento.nome }}</li>{% endfor %}</ul>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum segmento cadastrado</h3><p>Sem segmentos, o agrupamento das Análises usa regime e responsável.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

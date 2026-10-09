@@ -9,6 +9,47 @@ Karbon e navegacao de atribuicoes do Asana; Watermelon sem resultado pertinente.
 Guidelines sem violacao material. Playwright MCP indisponivel por `Transport closed`, sem
 inspecao visual alegada.
 
+## 28/09/2026 — proteção do adaptador Siescon (V-292)
+
+- D-294 registrou a branch `codex/siescon-adapter` sobre `codex/lucrums`.
+  O agente confere colunas do SQL antes de transmitir linhas e o backend exige
+  o conector da origem. Usuários Siescon ficam fora de despacho até confirmar
+  o campo de atividade, evitando marcar todos como ativos por suposição.
+- Testes .NET, Python focados e regressão integral passaram; MyPy, Ruff,
+  Django, migrações e builds Windows .NET 8 também. Ver números e ambiente em
+  V-292. Nenhum script DDF, ODBC, ERP ou dado real foi acessado.
+- Faltam layout de importação contábil, schema de contas/lançamentos e prova
+  no Siescon autorizado. Exportação permanece bloqueada; etapa 04 aberta.
+
+## 28/09/2026 — vínculo Domínio e margem sem honorário corrigidos (V-291)
+
+- O código Domínio da carteira agora prevalece sobre documento coincidente de
+  outro ERP, como D-282 já determinava. Ficha, carteira e gráfico não apresentam
+  resultado ou margem como zero confirmado quando falta honorário.
+- 973 testes Python passaram; Ruff, MyPy, Django, migrações e sintaxe do
+  gráfico passaram. Cobertura global de 80,09% segue abaixo dos 85% exigidos.
+- A cardinalidade escrita em D-282 diverge do modelo de dois perfis ERP;
+  esclarecimento solicitado. Q-41 a Q-43 e homologação real seguem abertas.
+
+## 28/09/2026 — MSI único construído no CI Windows (V-290)
+
+- O PR em rascunho #1 executou o novo job Windows. A primeira tentativa expôs
+  ICE38/ICE43/ICE57 no atalho; a chave HKCU corrigiu o componente. A execução
+  36450694685 gerou `CicaAgent.msi` e validou versão e SHA-256 do manifesto.
+- Construção não substitui instalação ou homologação com ERP real. O job geral
+  ainda concluía builds Docker quando esta evidência foi registrada.
+
+## 28/09/2026 — branch dedicada e correção da identidade do Lucrums (V-289)
+
+- D-293 moveu o trabalho da etapa 14 para `codex/lucrums`, preservando a
+  `main` como linha principal. A revisão do ProjetoARD encontrou o risco de
+  matriz e filial com documento repetido; a CICA agora conserva os códigos e
+  exige correspondência inequívoca para gêmeas de ERP e honorários.
+- 971 testes Python, 36 testes de ingestão e 20 testes .NET passaram. Ruff,
+  MyPy, Django e migrações passaram. Cobertura global de 80,09% ficou abaixo
+  dos 85% exigidos.
+- Faltam prova do MSI no CI Windows, decisões Q-41 a Q-43 e homologação real.
+
 ## V-139 - Prioridade operacional por prazo, bloqueio e fonte
 
 A area de trabalho agora conta todas as atividades abertas no escopo permitido e mostra atraso,
@@ -2251,3 +2292,81 @@ o lado e `backfill_nfse_sides` preencheu as 29.088 notas da Bianchi & Rizzotto e
 Filtros, contadores, relatório de retenções e nome da contraparte leem o lado gravado. Resultado
 em produção: 21.139 saídas, 7.450 entradas, 499 a confirmar; nota 453 como saída com tomador
 GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
+
+
+## 22/09/2026 — Etapa 14 aberta e fase 1 do módulo Rentabilidade (V-281)
+
+- O Lucrums (`Mewstacks/ProjetoARD`) deixa de ser sistema vizinho e entra como oitavo módulo, código `profitability`. Os dois repositórios foram sincronizados localmente e o corte de origem é `d9d4ebb`; o branch de instalador do lado do Lucrums já estava mergeado em `main`.
+- A verificação que sustenta o resto: os dois backends são forks do mesmo boilerplate, com Django, Python, Celery e cryptography nas mesmas versões e com `OrganizationScopedModel`, `EncryptedTextField` e `blind_index` equivalentes. Logo a base do Lucrums é descartada e move-se só o produto. D-281 a D-285 registram isso e as quatro decisões de arquitetura; Q-41 a Q-45 ficam abertas.
+- Fase 1 entregue: `contracts/` na raiz com os treze SHA-256 do manifesto conferidos, motor de cálculo e normalização portados sem alterar uma conta, onze modelos de domínio e métrica, casador de pessoas e `recompute_competencia` com custo, agrupamento por raiz de CNPJ e deduplicação entre ERPs.
+- Por D-282 a carteira continua sendo `hub.ClientCompany` e a `Empresa` do Lucrums não veio: uma segunda entidade faria as telas de rentabilidade contornarem o filtro de `CompanyAccessGrant`, que é regressão de controle de acesso e não duplicação.
+- 65 testes do módulo, 89% de cobertura no app, 863 na suíte inteira sem regressão. Ruff, mypy, `manage.py check` e `makemigrations --check` limpos.
+- Nada de tela, ingestão ou conector ainda. A margem depende de Q-41, que segue aberta: o levantamento de origem não achou fonte de honorários em nenhum dos dois ERPs, então com dado real o módulo apura custo e horas, não rentabilidade.
+
+## 22/09/2026 — Etapa 14, fase 3: ingestão do ERP para Rentabilidade (V-282)
+
+- O catálogo de consultas fixado por SHA-256 veio do Lucrums e é o que o conector da CICA não tinha: contrato divergente não é despachado nem aplicado, e o hash da consulta fica gravado na execução para uma auditoria poder dizer qual SQL gerou um número.
+- Por D-287 a cifra de envelope da origem não veio. O agente já se autentica por mTLS com assinatura do corpo e a CICA já cifra em repouso; um segundo sistema de chaves cobriria trecho já coberto. A página fica cifrada em repouso pelo campo da CICA, com soma conferida antes de aplicar.
+- A ponte de D-282 virou comportamento: a linha do ERP acha a empresa que a carteira já tem antes de cadastrar outra, inclusive a gêmea do outro ERP pelo documento. Só o Domínio escreve `dominio_code`, e escritório que exige esse código recusa empresa só do Siescon em vez de furar a própria regra.
+- Dois defeitos próprios corrigidos com teste: o perfil de ERP era um-para-um, então duas gêmeas não cabiam na mesma empresa; e o `distinct` das métricas não valia por causa da ordenação padrão do modelo.
+- A autenticação do agente não foi reimplementada — as três funções do `agent_v2` ganharam nome público e são importadas, com teste provando que agente revogado também é recusado aqui.
+- `PROFITABILITY_SYNC_ENABLED` nasce desligada: catálogo vazio e nenhuma execução aberta. Suíte: 916 aprovados, 3 ignorados; 86% de cobertura no app.
+- Nada de tela ainda. Nenhum agente real, ODBC, ERP ou rede foi tocado.
+
+## 22/09/2026 — Etapa 14: módulo Rentabilidade declarado e visível (V-283)
+
+- Os quatro pontos de declaração estão feitos — código, migração, catálogo e o grupo "Gestão" na navegação —, mais o azulejo do painel com os clientes de margem negativa ou em atenção. A visão geral mostra totais da competência e a carteira da menor margem para a maior.
+- A tela lê a carteira filtrada por `CompanyAccessGrant`, não a do escritório: é o fecho de D-282 do lado da interface, com teste provando que a margem por cliente não escapa do filtro nem atravessa inquilinos.
+- Falta de dado não vira margem: cliente sem hora aparece como "Sem horas no mês" e as situações de ausência usam borda tracejada em vez da cor das faixas. Q-42 continua necessária para o limiar de cobertura da carteira inteira.
+- Por D-288 o módulo fica fora dos módulos padrão do cadastro enquanto Q-41 e Q-43 estiverem abertas: ligá-lo no teste gratuito daria a todo escritório novo uma tela sem como responder o que promete.
+- Nenhuma dependência de front foi introduzida — sem build, Tailwind, HTMX, CDN ou script inline. Suíte: 928 aprovados, 3 ignorados.
+
+## 22/09/2026 — Etapa 14, fase 2: telas do módulo Rentabilidade (V-284)
+
+- Colaboradores com os vínculos do ERP, ficha da pessoa com a composição do custo anual, horas, análises por recorte, configuração do cálculo e a seção de rentabilidade dentro da ficha de empresa que o hub já tinha. A lista de clientes e a tela de conectores não foram portadas: a CICA já as tem.
+- A ficha do colaborador exibe os mesmos valores do vetor do contrato — R$ 64.690,00 de custo anual, R$ 37,09 por hora —, agora conferidos pela interface e não só pelo serviço.
+- Por D-286 o gráfico é SVG desenhado por script próprio servido de `static/`, sem biblioteca externa, build, CDN ou script inline. A mesma série sai como tabela ao lado, que é o que leitor de tela percorre, e por isso o SVG é `aria-hidden`.
+- Falta de dado não vira número em nenhuma tela: sem horas, custo, resultado, margem e honorário sugerido saem como travessão com a explicação ao lado; sem salário vigente o custo do colaborador também é travessão, e não zero.
+- Gravar um parâmetro de custo reprojeta todas as competências na hora, senão esta tela e a ficha do cliente passariam a se contradizer até a importação seguinte.
+- D-288 foi ampliada: o módulo ficou fora também da demonstração, não só do cadastro, porque uma demonstração que o abre já o está anunciando. A lista passou a viver em um lugar só.
+- Suíte: 955 aprovados, 3 ignorados. Inspeção visual em navegador, responsividade e leitor de tela seguem pendentes e pertencem à etapa 11.
+
+## 22/09/2026 — Etapa 14, fase 4: conector Windows unificado (V-285)
+
+- Antes de qualquer porte, um achado: o agente Windows **não compilava**. `AgentClient` passava um `Uri` para um parâmetro `string` desde `0ac1038`, e nenhum fluxo de integração contínua construía esse projeto. Corrigido, e os quatro projetos do agente entraram no CI — que é o que teria apanhado isso.
+- O catálogo de consultas fixado por SHA-256 veio do conector do Lucrums e é o que a CICA não tinha: o SQL vivia solto no código-fonte. Agora a nuvem manda o código e o hash, o SQL sai do catálogo incorporado, e divergência derruba o serviço na subida em vez de falhar calado de madrugada.
+- Por D-289 tudo permanece em .NET 8; por D-80 o pacote continua único, com o ERP vindo da configuração em vez de compilado no binário.
+- A ponte ODBC de 32 bits entrou, autorizada por D-290: o Pervasive do Siescon não tem driver de 64 bits. Fala por stdin/stdout, sem rede, e a credencial nunca vai pela linha de comando. A conversão de valores subiu para a biblioteca de contratos, porque na origem havia uma cópia de cada lado da ponte.
+- Q-33, Q-44 e Q-45 foram resolvidas por D-289 e D-290, e a etapa 04 deixou de estar bloqueada por falta de contrato técnico.
+- 17 testes do agente, 955 na suíte Python. Nada foi executado contra Windows, ODBC ou ERP real.
+
+## 22/09/2026 — Etapa 14, fase 5: documentação e material Siescon
+
+- O material Siescon do Lucrums entrou em `docs/siescon/`, porque D-290 o tornou a base técnica do adaptador. O limite viaja junto e está no índice da pasta: o layout foi inferido, não documentado pelo fornecedor.
+- O README dos contratos contradizia o próprio manifesto — dizia que três contratos Siescon nasciam não validados, quando três dos quatro estão validados — e descrevia o ERP compilado no binário, que é do projeto de origem e não vale aqui por D-80. Os dois trechos foram corrigidos.
+- O README do agente ganhou as seções de contratos, ponte de 32 bits e atualização.
+- D-291 registra que o atualizador automático do conector de origem não é absorvido: V-022 diz que o agente da CICA não baixa nem instala MSI sozinho, e reverter isso num porte seria decidir pelo responsável.
+- Não foram copiados do projeto de origem: a SPA React, os apps de base do backend (conta, organização, auditoria, privacidade, comuns), o segredo local, o banco de desenvolvimento, o ambiente virtual de PDF e a pasta `tmp/pdfs`.
+
+## 22/09/2026 — Etapa 14, continuidade da fase 2: ficha analítica do cliente (V-286)
+
+- A carteira e a ficha transversal da empresa agora levam a uma análise própria do módulo, sem criar outra entidade de empresa: evolução, conciliação diária de horas automáticas × F9, atividades, equipe, unidades do grupo, referências e histórico ficam na mesma rota por competência.
+- A ficha preserva a semântica dos dados ausentes: sem horas não há custo, margem nem honorário sugerido; custo parcial continua identificado. O gráfico próprio de D-286 foi reutilizado e a série também sai como tabela auditável.
+- `CompanyAccessGrant` passou a recortar não só a empresa aberta, mas também horas, atividades, unidades e médias de comparação. O custo individual por pessoa continua reservado a dono e administrador.
+- O plano da etapa foi consolidado em sete fases, do congelamento da origem à liberação, marcando o que já está concluído, o que depende das etapas 11 e 12 e o que Q-41 a Q-43 ainda bloqueiam. A documentação deixou de chamar o autoatualizador de pendência, em conformidade com D-291.
+- Provas locais: 37 testes de tela do módulo; suíte integral com 967 aprovados, 3 ignorados e 11 subtestes aprovados; `ruff`, `mypy`, checks do Django, ausência de migração pendente e `git diff --check` limpos. Não houve navegador, Windows, ODBC, ERP, rede externa, cobrança ou dado real.
+
+## 22/09/2026 — Etapa 14, continuidade da fase 4: configurador e MSI único (V-287)
+
+- A revisão encontrou uma integração pela metade: a ponte Pervasive x86 já entrava no diretório do serviço, mas o configurador só conseguia gravar Domínio. Ele agora seleciona Domínio Web, Domínio Local ou Siescon, filtra a arquitetura correta do registro e testa Siescon pela ponte sem credencial em argumento de processo.
+- Domínio e Siescon passaram a compartilhar um contrato de perfil usado pelo configurador e pelo serviço. A configuração protegida grava `SourceSystem`; instalações antigas sem o campo continuam Domínio.
+- O WiX continua sendo um único produto e ganhou descrição neutra, reparo de mesma versão, atalho no menu Iniciar e supressão da abertura do configurador em instalação silenciosa. O diagnóstico recusa pacote sem a ponte x86.
+- `build.ps1` agora limpa somente suas saídas próprias, verifica todos os executáveis e falha diante de retorno não zero. O CI recebeu um job Windows que gera o MSI e reconcilia seu SHA-256 com `release.json`; D-291 foi preservada e nenhum autoatualizador entrou.
+- Serviço, configurador e ponte compilaram sem avisos; 20 testes .NET passaram; WiX/XML e workflow YAML passaram em validação estática. A suíte Python manteve 967 aprovados, 3 ignorados e 11 subtestes. O MSI não foi gerado localmente porque WiX não suporta macOS; a primeira execução do job Windows, instalação, assinatura e ERP real seguem pendentes.
+
+## 28/09/2026 — Etapa 14 revalidada após pull; herança visual corrigida (V-288)
+
+- `git pull --ff-only` confirmou CICA `main` em `d501fbe` e ProjetoARD `main` em `d9d4ebb`, sem novos commits remotos. O trabalho da etapa 14 permanece na worktree local separada, 20 commits além da `main`, com alterações não commitadas preservadas.
+- Contrato de cálculo idêntico ao ProjetoARD. Lint, MyPy, Django, migrações, compilação dos três projetos .NET e 20 testes .NET passaram. A suíte Python aprovou 967 testes, 3 ignorados e 11 subtestes, mas a cobertura global ficou em 80,11%, abaixo do piso documental de 85%; o módulo Rentabilidade isolado ficou em 87%.
+- A inspeção em navegador com SQLite e dados fictícios revelou que oito templates descartavam os estilos herdados do workspace. Corrigida a herança; visão geral e ficha analítica foram vistas em desktop e celular, sem overflow ou erro de console. Quatro telas adicionais abriram em ambos os tamanhos, também sem overflow. Os 169 testes específicos passaram após a correção. A formatação .NET dos dois arquivos apontados pelo verificador foi normalizada; o verificador voltou a passar.
+- Não se marcou a etapa como concluída: o MSI exige execução do job Windows, o adaptador Siescon e as consultas não validadas precisam de base autorizada, Q-41 a Q-43 seguem abertas e a homologação real permanece na etapa 12. Nenhum código foi integrado à `main` ou enviado ao GitHub nesta entrega.

@@ -1956,6 +1956,7 @@ def company_detail(request: HttpRequest, company_id: str) -> HttpResponse:
             "certificate_attention": not valid_certificates or certificate_expiring,
         }
     )
+    context.update(_company_profitability(office, company, context))
     return render(
         request,
         "hub/company_detail.html",
@@ -2049,6 +2050,64 @@ def download_financial_report_export(request: HttpRequest, export_id: str) -> Ht
     response["X-Content-Type-Options"] = "nosniff"
     response["Cache-Control"] = "private, no-store"
     return response
+
+
+def _company_profitability(
+    office: Organization, company: ClientCompany, context: dict[str, object]
+) -> dict[str, object]:
+    """O que o módulo Rentabilidade sabe desta empresa, se o escritório o tiver.
+
+    A ficha transversal do Hub mantém o resumo junto dos demais fatos da empresa;
+    o módulo oferece uma análise própria para abrir horas, equipe, comparações e
+    histórico sem duplicar a entidade que D-282 consolidou.
+    """
+
+    if not any(
+        module.code == ProductModule.Code.PROFITABILITY
+        for module in cast("list[ModuleDefinition]", context["enabled_modules"])
+    ):
+        return {}
+
+    from apps.profitability.calc import mensalidade_sugerida
+    from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
+    from apps.profitability.services import get_config, unidades_do_grupo
+
+    competencia = (
+        Competencia.objects.filter(organization=office, is_atual=True)
+        .values_list("competencia", flat=True)
+        .first()
+        or Competencia.objects.filter(organization=office)
+        .values_list("competencia", flat=True)
+        .first()
+        or ""
+    )
+    if not competencia:
+        return {"profitability_enabled": True, "profitability_competencia": ""}
+
+    metrica = ClienteCompetenciaMetrics.objects.filter(
+        organization=office, empresa=company, competencia=competencia
+    ).first()
+    config = get_config(office)
+    perfil = company.erp_profiles.order_by("-sistema_origem").first()
+    alvo = (perfil.margem_alvo if perfil else None) or config.margem_alvo_padrao
+
+    # Sem base de custo nada é sugerido. O custo de alguns minutos dividido numa
+    # mensalidade cheia devolve margem quase plena e uma sugerida miudíssima, e o
+    # cliente sobe ao topo da carteira por falta de dado.
+    sugerida = (
+        mensalidade_sugerida(metrica.custo, alvo)
+        if metrica is not None and metrica.faixa not in {"sem_dados", "incompleta"}
+        else None
+    )
+    unidades = unidades_do_grupo(office, competencia, str(company.id))
+    return {
+        "profitability_enabled": True,
+        "profitability_competencia": competencia,
+        "profitability_metrics": metrica,
+        "profitability_margem_alvo": alvo,
+        "profitability_sugerida": sugerida,
+        "profitability_unidades": unidades if len(unidades) > 1 else [],
+    }
 
 
 @office_required
@@ -2424,6 +2483,29 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "count": reconciliation_count,
                 "note": "Lançamentos ambíguos ou sem correspondência",
                 "url": f"{reverse('hub:reconciliation')}?status=attention",
+            }
+        )
+    if ProductModule.Code.PROFITABILITY in enabled_codes:
+        from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
+
+        # Clientes cuja margem já é negativa ou está em atenção: é a fila de quem
+        # precisa de decisão de preço. Custo incompleto e sem dados ficam fora —
+        # aqueles são falta de dado, e misturá-los com prejuízo real inventaria
+        # uma urgência que o número não sustenta.
+        atencao_count = ClienteCompetenciaMetrics.objects.filter(
+            organization=office,
+            empresa__in=scope,
+            competencia__in=Competencia.objects.filter(
+                organization=office, is_atual=True
+            ).values_list("competencia", flat=True),
+            faixa__in=["negativa", "atencao"],
+        ).count()
+        work_areas.append(
+            {
+                "label": "Rentabilidade",
+                "count": atencao_count,
+                "note": "Clientes com margem negativa ou em atenção",
+                "url": reverse("profitability:overview"),
             }
         )
     context.update(

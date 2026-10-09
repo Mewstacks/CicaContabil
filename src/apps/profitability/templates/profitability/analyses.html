@@ -1,0 +1,60 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=4">
+<script src="{% static 'profitability/charts.js' %}?v=3" defer></script>{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="analyses-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="analyses-heading">Onde a carteira concentra resultado, e onde concentra prejuízo.</h2>
+  </div>
+  {% include 'profitability/_periodo.html' %}
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel"><header class="workspace-panel-head"><div><h2>Ainda não há competência</h2><p>As análises precisam de pelo menos uma competência calculada.</p></div></header></section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="analyses-evolution-heading">
+  <header class="workspace-panel-head"><div><p class="section-kicker">DOZE COMPETÊNCIAS</p><h2 id="analyses-evolution-heading">Evolução da carteira</h2><p>Receita e custo mês a mês, com a margem por cima. Meses sem dado aparecem vazios em vez de serem omitidos — um buraco escondido faria a linha saltar como se o mês não tivesse existido.</p></div></header>
+  <div class="profitability-chart" data-chart="evolucao" data-series="{{ evolucao_json }}" role="img" aria-label="Evolução de receita, custo e margem nas últimas doze competências"></div>
+  <table class="profitability-table profitability-chart-data">
+    <caption class="visually-hidden">Dados da evolução da carteira</caption>
+    <thead><tr><th scope="col">Competência</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+      <tbody>{% for item in evolucao %}<tr><th scope="row">{{ item.competencia }}</th><td class="tnum">{% if item.mensalidade %}{{ item.mensalidade|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{{ item.custo|floatformat:2 }}</td><td class="tnum">{% if item.mensalidade %}{{ item.resultado|floatformat:2 }}{% else %}—{% endif %}</td><td class="tnum">{% if item.mensalidade %}{{ item.margem|percentual }}{% else %}—{% endif %}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+
+<section class="workspace-panel" aria-labelledby="analyses-groups-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">POR RECORTE</p><h2 id="analyses-groups-heading">Rentabilidade por grupo</h2><p>A margem de um grupo é o resultado dele dividido pela receita dele — e não a média das margens dos clientes, que pesaria igual um cliente de mil reais e um de cem mil.</p></div>
+    <div class="profitability-segmented" role="group" aria-label="Agrupar por">
+      {% for valor, rotulo in agrupamentos %}<a class="{% if por == valor %}is-current{% endif %}" href="?competencia={{ competencia|urlencode }}&amp;por={{ valor }}"{% if por == valor %} aria-current="true"{% endif %}>{{ rotulo }}</a>{% endfor %}
+    </div>
+  </header>
+
+  {% if grupos %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Rentabilidade por {{ por }} na competência {{ competencia }}</caption>
+    <thead><tr><th scope="col">Grupo</th><th scope="col" class="tnum">Clientes</th><th scope="col" class="tnum">Receita</th><th scope="col" class="tnum">Custo</th><th scope="col" class="tnum">Resultado</th><th scope="col" class="tnum">Margem</th></tr></thead>
+    <tbody>
+      {% for grupo in grupos %}
+      <tr>
+        <th scope="row">{{ grupo.rotulo }}</th>
+        <td class="tnum">{{ grupo.clientes }}</td>
+        <td class="tnum">{{ grupo.mensalidade|floatformat:2 }}</td>
+        <td class="tnum">{{ grupo.custo|floatformat:2 }}</td>
+        <td class="tnum {% if grupo.resultado < 0 %}is-negative{% endif %}">{{ grupo.resultado|floatformat:2 }}</td>
+        <td class="tnum">{% if grupo.mensalidade %}{{ grupo.margem|percentual }}{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum cliente com linha nesta competência</h3><p>Os recortes aparecem quando houver carteira calculada no mês.</p></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

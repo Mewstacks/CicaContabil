@@ -14,6 +14,7 @@ handler500 = "apps.common.views.server_error"
 urlpatterns: list[URLPattern | URLResolver] = [
     path("", include("apps.hub.urls")),
     path("app/ia/", include("apps.intelligence.urls")),
+    path("app/rentabilidade/", include("apps.profitability.urls")),
     path("mfa/", include("apps.accounts.urls")),
     path("platform/", include("apps.platform.urls")),
     path("api/v1/", include("config.urls_api")),

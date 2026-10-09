@@ -85,8 +85,18 @@ LOCAL_APPS = [
     "apps.integra",
     "apps.knowledge",
     "apps.triage",
+    "apps.profitability",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
+
+# Onde vivem os contratos de consulta do módulo Rentabilidade. O padrão é
+# `contracts/datasets/` na raiz do repositório; a variável existe para a imagem
+# de container, que copia os contratos para outro caminho.
+DATASET_CATALOG_ROOT = env_str("DATASET_CATALOG_ROOT", "")
+# A sincronização do ERP para o módulo Rentabilidade. Desligada por padrão, como
+# toda integração antes de homologada: com ela em falso o agente recebe uma lista
+# de contratos vazia e nenhuma execução é aberta.
+PROFITABILITY_SYNC_ENABLED = env_bool("PROFITABILITY_SYNC_ENABLED", False)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -522,6 +532,12 @@ CELERY_BEAT_SCHEDULE = {
     "purge-read-notifications": {
         "task": "hub.purge_read_notifications",
         "schedule": crontab(hour=3, minute=10),
+    },
+    # Fecha execuções que o agente abriu e abandonou. A própria tarefa não faz
+    # nada com `PROFITABILITY_SYNC_ENABLED` em falso.
+    "reap-stale-profitability-runs": {
+        "task": "profitability.reap_stale_runs",
+        "schedule": crontab(hour=4, minute=10),
     },
     "advance-tenant-lifecycles": {
         "task": "platform.advance_tenant_lifecycles",

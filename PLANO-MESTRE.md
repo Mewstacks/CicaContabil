@@ -290,6 +290,8 @@ processamentos ganharam alvos de 44 px e cartões legíveis no celular. Playwrig
 mapeamento, erro, desktop/mobile, temas, teclado, foco e console; a regressão integral aprovou 1.077
 testes e 139 subtestes, com seis skips. Exportação Domínio continua bloqueada por Q-39.
 
+**Atualização V-292 (28/09/2026):** D-290 resolveu o bloqueio de Q-33 para implementação local com o layout inferido do Lucrums. A branch `codex/siescon-adapter`, sobre `codex/lucrums`, confere colunas antes da transmissão, exige conector da origem e retira usuários Siescon do despacho até confirmar sua situação. A etapa 04 continua sem homologação no ERP, layout de importação contábil e conferência de contas/lançamentos.
+
 **Atualização V-258:** a revisão individual da Conciliação agora informa o próximo passo pelo estado,
 preserva a data no campo nativo, foca e vincula erros e só oferece gerar lançamento quando os dados
 estão completos. Exportações prontas podem ser baixadas com integridade revalidada e, após Q-39 ser
@@ -550,7 +552,7 @@ Os nÃºmeros identificam etapas; a ordem de execuÃ§Ã£o deve respeitar depen
 - Generalizar vÃ­nculos hoje dependentes exclusivamente do cÃ³digo DomÃ­nio.
 - Registrar matriz de capacidades: o que funciona com DomÃ­nio, Siescon ou ambos.
 
-**PendÃªncias / limites:** Q-28 e Q-33. Banco disponÃ­vel foi confirmado; versÃ£o, meio de acesso e layout nÃ£o foram fornecidos.
+**Pendências / limites:** Q-28. D-290 resolveu Q-33 para implementação local com layout inferido; V-292 preparou leitura com conferência estrutural. Faltam prova na instalação autorizada, semântica de usuários/tributação, contas/lançamentos e layout de importação contábil. Sem isso, a etapa 04 não está homologada.
 
 **Aceite:** Dados sincronizados conferem com o Siescon; arquivo exportado Ã© importado e conferido no ambiente de homologaÃ§Ã£o. Gerar arquivo nÃ£o basta.
 
@@ -787,6 +789,29 @@ registrados, nunca presumidos validados.
 
 [Checklist, testes e continuidade da etapa 13](docs/planejamento/etapas/13-ia-local-definitiva.md).
 
+### Etapa 14 — Incorporar Rentabilidade por Cliente (Lucrums)
+
+**Depende de:** 01–03. A ingestão reaproveita o agente da etapa 03; o perfil Siescon depende da 04.
+
+**Entregas**
+
+- Declarar o módulo `profitability` no catálogo, na navegação e no controle de acesso por colaborador.
+- Portar o domínio e o motor de cálculo do Lucrums, mantendo os vetores de `contracts/calculations/v1.json` intactos.
+- Ligar o cálculo à carteira única `ClientCompany` por D-282, sem segunda entidade de empresa.
+- Portar as telas para templates no padrão da CICA por D-283, sem build de front nem biblioteca externa de gráfico.
+- Trazer o catálogo de consultas fixado por hash e o processamento por conjunto de dados para o protocolo de agente vigente.
+- Unificar o conector Windows por D-284, absorvendo extrator e ponte x86 no `agent-windows`; por D-291, atualização de pacote continua controlada pela CICA e não pelo autoatualizador do projeto de origem.
+
+**Pendências / limites:** Q-41 a Q-43. Sem Q-41 o módulo apresenta custo e horas, não margem confiável. Q-42 ainda define o limiar de cobertura que autoriza publicar margem; Q-43 mantém o módulo sem preço, com `TOKEN_BILLING_ENABLED` desligado. Q-33, Q-44 e Q-45 foram resolvidas por D-289 e D-290. Instalação real, assinatura e piloto permanecem na etapa 12 por D-86.
+
+**Aceite:** Módulo ligado e desligado por escritório com recusa correta; colaborador sem o módulo no escopo recebe recusa; inquilino vizinho não enxerga nada; sessão de suporte somente-leitura não grava; motor de cálculo aprovado contra os vetores do contrato sem alterar um valor; ingestão simulada de ponta a ponta sem Windows; conector único construído pela integração contínua.
+
+**Prompt**
+
+> Execute a etapa 14 conforme D-281 a D-285. Porte o produto do Lucrums, não a sua base: os apps de conta, organização, auditoria e privacidade da CICA prevalecem. Não crie segunda carteira de empresas. Não invente fonte de receita, limiar de cobertura, preço ou aceite do material Siescon — esses são Q-41 a Q-44. Atualize checklist, validações e registro de execução ao terminar.
+
+[Checklist, testes e continuidade da etapa 14](docs/planejamento/etapas/14-rentabilidade.md).
+
 ## 4. Regras de conclusÃ£o e continuidade
 
 Todo prompt de etapa deve ser executado com as instruÃ§Ãµes comuns abaixo:
@@ -1021,3 +1046,7 @@ corretas e 24.386 permaneceram explicitamente em revisão. Foram criadas 39 revi
 sugestões e resolvidas 16 com origem `backup`; nenhuma decisão humana foi substituída. Os 16 XMLs
 derivados respeitam `infNFSe/valores/acum`, sem `ACU`, e a segunda passagem criou zero registros.
 Release 45 e dependências terminaram saudáveis. Q-39 e os casos ambíguos continuam externos.
+
+[04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. D-290 resolveu Q-33 e Q-44 ao aceitar como base técnica o levantamento trazido do Lucrums, com o limite explícito de que o layout foi inferido; a ponte ODBC de 32 bits já está no conector e falta escrever o adaptador. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. Homologação contra ERP real continua obrigatória antes de liberar.
+
+A [etapa 14](docs/planejamento/etapas/14-rentabilidade.md) foi aberta em 22/09/2026 por D-281 e segue em paralelo na branch `codex/lucrums` por D-293. Domínio, cálculo, ingestão simulada, telas e ficha analítica do cliente já estão incorporados localmente (V-281 a V-286). O conector recebeu catálogo por hash, ponte x86, seleção de Siescon no configurador e WiX do pacote único, com MSI construído e manifesto conferido no CI Windows (V-287/V-290). V-288 corrigiu a herança visual; V-289/V-291 corrigiram conflitos de identidade e a exibição de margem sem honorário. A regressão V-291 confirmou 973 testes Python e 20 .NET já aprovados, mas encontrou cobertura global de 80,09% diante do piso documental de 85%. Restam a validação acessível integral na etapa 11 e a homologação operacional da etapa 12. Q-41 a Q-43 impedem oferta e publicação de margem como afirmação comercial, não o avanço técnico independente.

@@ -84,6 +84,15 @@ def _agent(request: HttpRequest) -> EdgeAgent | None:
     return agent
 
 
+# Reexportados para outros módulos usarem exatamente esta autenticação em vez de
+# reimplementá-la. Duas cópias de uma checagem de agente concordam até o dia em que
+# alguém corrige uma: é assim que um agente revogado volta a ser aceito por um
+# caminho e recusado no outro.
+authenticated_agent = _agent
+agent_error = _error
+agent_payload = _payload
+
+
 def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
     """Sign one client CSR with the deployment CA; the private key never leaves Windows."""
 

@@ -1,5 +1,7 @@
 {% extends 'hub/workspace.html' %}
-{% load ui_navigation %}
+{% load static ui_navigation profitability_extras %}
+
+{% block extra_head %}{{ block.super }}{% if profitability_enabled %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endif %}{% endblock %}
 
 {% block page_action %}
   <div class="company-detail-page-actions">
@@ -258,6 +260,55 @@
     <div class="empty-block operational-empty"><strong>Nenhuma mensagem</strong><p>As consultas ao DTE começam na central do Integra Contador.</p><a class="button button-small button-quiet" href="{% url 'hub:dte-center' %}">Abrir central DTE</a></div>
   {% endif %}
 </div></details>
+
+{% if profitability_enabled %}
+<section class="workspace-panel" id="rentabilidade" aria-labelledby="company-profitability-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <h2 id="company-profitability-heading">Rentabilidade</h2>
+      {% if profitability_competencia %}<p>Competência {{ profitability_competencia }}. O honorário é o do mês anterior, porque o escritório fatura em atraso; as horas e o custo são deste mês.</p>{% endif %}
+    </div>
+    <a class="button button-quiet" href="{% url 'profitability:client-detail' company.id %}?competencia={{ profitability_competencia|urlencode }}">Abrir análise</a>
+  </header>
+
+  {% if not profitability_competencia %}
+    <div class="empty-block operational-empty"><strong>Nenhuma competência calculada</strong><p>O resultado por cliente aparece depois que o agente trouxer horas e honorários.</p></div>
+  {% elif not profitability_metrics %}
+    <div class="empty-block operational-empty"><strong>Sem linha nesta competência</strong><p>Esta empresa não entrou no cálculo de {{ profitability_competencia }}. Empresa sem documento, empresa-fonte do escritório e filial de um grupo não ocupam linha própria na carteira.</p></div>
+  {% else %}
+    <dl class="profitability-totals">
+      <div><dt>Honorário</dt><dd class="tnum">{{ profitability_metrics.mensalidade|floatformat:2 }}</dd></div>
+      <div><dt>Horas</dt><dd class="tnum">{{ profitability_metrics.horas_auto_minutos|horas }}</dd></div>
+      <div><dt>Custo estimado</dt><dd class="tnum">{% if profitability_metrics.faixa == 'sem_dados' %}—{% else %}{{ profitability_metrics.custo|floatformat:2 }}{% endif %}</dd></div>
+      <div><dt>Resultado</dt><dd class="tnum {% if profitability_metrics.resultado < 0 %}is-negative{% endif %}">{% if profitability_metrics.faixa == 'sem_dados' %}—{% else %}{{ profitability_metrics.resultado|floatformat:2 }}{% endif %}</dd></div>
+      <div><dt>Margem</dt><dd class="tnum">{% if profitability_metrics.faixa == 'sem_dados' %}—{% else %}{{ profitability_metrics.margem|percentual }}{% endif %}</dd></div>
+      <div><dt>Honorário sugerido</dt><dd class="tnum">{% if profitability_sugerida %}{{ profitability_sugerida|floatformat:2 }}{% else %}—{% endif %}</dd></div>
+    </dl>
+
+    {% if profitability_metrics.faixa == 'sem_dados' %}
+      <p class="profitability-caveat">Sem horas suficientes na competência, custo, resultado, margem e honorário sugerido não são calculados. Inventar número aqui é pior que não ter: o custo de alguns minutos dividido num honorário cheio devolve margem quase plena, e o cliente sobe ao topo da carteira por falta de dado.</p>
+    {% elif not profitability_metrics.custo_completo %}
+      <p class="profitability-caveat">Custo parcial: {{ profitability_metrics.minutos_sem_custo|horas }} sem custo apurado nesta competência. Enquanto for assim, a margem acima lê mais alta do que é.</p>
+    {% else %}
+      <p class="profitability-caveat">O honorário sugerido usa a margem-alvo de {{ profitability_margem_alvo|percentual }}: custo dividido por um menos a meta.</p>
+    {% endif %}
+
+    {% if profitability_unidades %}
+    <h3>Unidades do grupo</h3>
+    <p class="profitability-caveat">A carteira soma o grupo numa linha só, o que é certo para decidir preço — o honorário é um só. Para conferir uma importação a pergunta é outra, e é esta lista que responde. Sem honorário e sem margem por unidade, de propósito: a receita é cobrada numa só, e a margem de uma filial leria cem por cento negativa.</p>
+    <div class="data-table-wrap"><table class="operational-table">
+      <thead><tr><th>Unidade</th><th>Horas</th><th>Custo</th><th></th></tr></thead>
+      <tbody>{% for unidade in profitability_unidades %}<tr>
+        <td>{{ unidade.empresa.name }}{% if unidade.eh_matriz %} <span class="module-state is-active">Matriz</span>{% endif %}</td>
+        <td class="tnum">{{ unidade.auto_minutos|horas }}</td>
+        <td class="tnum">{% if unidade.sem_base_de_custo %}—{% else %}{{ unidade.custo|floatformat:2 }}{% endif %}</td>
+        <td>{% if unidade.tem_divergencia %}<span class="module-state is-warning">Divergência de horas</span>{% elif not unidade.custo_completo %}<span class="table-muted">Custo parcial</span>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
 
 {% if can_edit_profile %}<div id="company-profile-dialog" class="modal-backdrop" data-modal{% if profile_form.errors %} data-modal-invalid{% else %} hidden{% endif %}>
   <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="company-profile-title">

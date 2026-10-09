@@ -4436,3 +4436,442 @@ produzia efeito foi corrigida em vez de removida, com a causa anotada no própri
 
 Filtro sem resultado continua sem renderizar a ação, com o contador exibindo "0 resultados".
 Limites de V-280 e V-280.1 permanecem; em especial, segue sem captura de tela e sem Playwright.
+
+## V-281 — Motor de cálculo do Lucrums portado e conferido contra o contrato
+
+Registrada na branch `codex/lucrums`/`codex/siescon-adapter` com outra numeração e renumerada na
+integração ao `main` de 09/10/2026, porque os números já existiam lá: D-108…D-121 → D-281…D-294,
+V-105…V-116 → V-281…V-292 e Q-39…Q-43 → Q-41…Q-45. Mensagens de commit antigas mantêm os números
+originais.
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, cobrança, deploy ou dado de cliente. Escopo: fase 1
+da etapa 14, conforme D-281 a D-285 — domínio, motor e serviços, sem interface e sem
+ingestão.
+
+- **O que foi portado:** `calc.py` e `normalize.py` sem alteração de conta; onze modelos
+  de domínio e métrica; o casador de pessoas; e `recompute_competencia` com os serviços
+  de custo, agrupamento por raiz de CNPJ, deduplicação entre ERPs e códigos de ERP. Cerca
+  de 10.300 linhas de Python existiam na origem; entraram as que compõem essas partes.
+- **O que sustenta a fidelidade:** `contracts/calculations/v1.json` veio junto, com os
+  treze contratos de consulta cujos SHA-256 do manifesto foram conferidos um a um e não
+  divergiram. O teste de cálculo lê cada vetor do contrato e compara valor a valor, sem
+  editar nenhum. Um teste adicional ancora o custo horário vigente em 37,09/h para o
+  exemplo de referência e recusa a conta aposentada pela auditoria de setembro
+  (`salário × 1,40 ÷ 176`, que dá 23,86/h — 37% a menos), inclusive verificando que as
+  constantes não voltaram ao módulo.
+- **Diferenças deliberadas em relação à origem, todas registradas em D-282 e D-285:** a
+  entidade `Empresa` não foi portada e a carteira continua sendo `hub.ClientCompany`, com
+  `CompanyErpProfile` carregando os campos de ERP; a coluna cifrada de razão social não
+  veio, porque `ClientCompany.name` é coluna em claro por desenho anterior da CICA e
+  cifrar aqui deixaria o nome exposto lá do mesmo jeito; as duas colunas aposentadas pela
+  auditoria não foram criadas, já que a tabela nasce vazia; e `last_seen_run` está ausente
+  em todos os modelos porque depende do ciclo de ingestão, que é a fase 3.
+- **Consequência verificada:** a carteira deste módulo são as empresas com perfil de ERP.
+  Empresa cadastrada apenas no hub, sem perfil, não ganha linha de métrica — mesmo destino
+  que a origem dava à empresa sem documento.
+- **Testes:** 65 aprovados nos quatro arquivos `tests/test_profitability_*`, com 89% de
+  cobertura no app (piso de 85%). A suíte inteira ficou em 863 aprovados e 3 ignorados,
+  sem regressão. `ruff check .` limpo no repositório, `mypy src` sem apontamentos no app,
+  `manage.py check` sem problemas e `makemigrations --check --dry-run` sem alterações
+  pendentes.
+- **Limites desta validação:** nada foi executado contra ERP real, agente, rede ou
+  navegador. Não há tela, não há ingestão e o módulo ainda não aparece no catálogo nem na
+  navegação — isso é fase 2. A margem depende de Q-41, que segue aberta: o levantamento de
+  origem não encontrou fonte de honorários em nenhum dos dois ERPs, então com dado real o
+  módulo apura custo e horas, não rentabilidade. Q-42 permanece necessária antes de a
+  margem ir à tela como número.
+
+## V-282 — Ingestão do ERP para Rentabilidade, no protocolo do agente vigente
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória, Celery síncrono). Nenhuma chamada externa, agente real, rede, cobrança ou dado
+de cliente. Escopo: fase 3 da etapa 14, conforme D-281, D-282, D-284 e D-287.
+
+- **O que entrou:** o catálogo de consultas fixado por SHA-256 vindo do Lucrums; o
+  processamento por conjunto de dados, com identidade de linha por hash mais ordinal,
+  reconciliação que marca em vez de apagar e orçamento de rejeição; os modelos de
+  execução e página; e quatro pontos de entrada no protocolo `api/agent/v2` — catálogo,
+  abertura, página e fechamento — mais a declaração de falha pelo agente.
+- **O que não entrou, e por quê (D-287):** a cifra de envelope da origem. O agente da
+  CICA já se autentica por mTLS com assinatura do corpo e a CICA já cifra em repouso com
+  chave rotacionável; um segundo sistema de chaves cobriria um trecho já coberto, ao
+  custo de ser operado, girado e auditado. A página fica cifrada em repouso pelo campo da
+  própria CICA, com soma de verificação do conteúdo em claro conferida antes de aplicar.
+  Também não entrou o preflight por escritório: o indicador de contrato validado continua
+  vindo do manifesto, o que mantém os três contratos ainda não validados fora de despacho.
+- **A ponte de D-282 verificada em comportamento:** a linha do ERP procura a empresa que a
+  carteira já tem — por documento, por `dominio_code` e por fim na gêmea do outro ERP —
+  antes de cadastrar uma nova. Só o Domínio escreve `dominio_code`; o Siescon numera o seu
+  próprio cadastro, e gravar esse número no campo que NFS-e, conciliação e DTE usam para
+  casar empresa faria uma delas achar a empresa errada. Quando o escritório exige código
+  Domínio, uma empresa existente apenas no Siescon é recusada em vez de entrar por um
+  caminho que o formulário não atravessa.
+- **Dois defeitos próprios encontrados e corrigidos, ambos com teste:** o perfil de ERP
+  era relação um-para-um, o que impedia duas gêmeas de apontarem para a mesma empresa; e o
+  `distinct` das métricas não valia, porque a ordenação padrão do modelo entra no SELECT e
+  a distinção passava a ser por empresa e código — duas linhas de métrica para a mesma
+  empresa violam a chave única.
+- **Autenticação:** não foi reimplementada. As três funções do `agent_v2` ganharam nome
+  público e são importadas; há teste provando que um agente revogado deixa de ser aceito
+  também por este caminho.
+- **Desligada por padrão:** `PROFITABILITY_SYNC_ENABLED=false`. Nesse estado o catálogo
+  volta vazio e nenhuma execução é aberta. O conector não é criado sob demanda.
+- **Testes:** 51 aprovados nos dois arquivos novos (`ingest` e `agent`), 118 no módulo,
+  916 na suíte inteira sem regressão, 86% de cobertura no app. `ruff check .` limpo,
+  `mypy src` sem apontamentos no app, `manage.py check` e `makemigrations --check` limpos.
+- **Limites desta validação:** nenhum agente real, nenhum ODBC, nenhum ERP, nenhuma rede.
+  O ciclo foi exercitado com páginas construídas no teste, não lidas do Domínio ou do
+  Siescon. Os três contratos não validados no manifesto seguem fora de despacho, e o perfil
+  Siescon do conector depende de Q-44. Nada de tela ainda: o módulo continua sem aparecer
+  no catálogo e na navegação.
+
+## V-283 — Módulo Rentabilidade declarado e visão geral da carteira
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, agente, cobrança ou dado de cliente. Escopo: primeira
+parte da fase 2 da etapa 14, conforme D-281, D-282, D-283 e D-288.
+
+- **Declaração:** código `profitability` no catálogo de módulos, migração de escolhas,
+  entrada em `module_catalog` apontando para `profitability:overview`, grupo "Gestão" na
+  navegação e azulejo no painel com os clientes de margem negativa ou em atenção. A rota
+  foi conferida por `reverse`, porque entrada de catálogo com rota que não reverte quebra
+  a navegação inteira.
+- **Tela:** visão geral por competência, com totais de honorário, custo e resultado da
+  carteira e a lista da menor margem para a maior, paginada de 20 em 20.
+- **O fecho de D-282 do lado da interface:** a tela lê `context["companies"]`, que é a
+  carteira filtrada por `CompanyAccessGrant`, e não a do escritório. Há teste provando que
+  um colaborador com acesso a uma empresa vê só a linha dela, e que o inquilino vizinho não
+  aparece. Era exatamente isso que a decisão de não criar uma segunda entidade de empresa
+  preservou.
+- **Falta de dado não vira margem:** cliente sem hora no mês aparece como "Sem horas no
+  mês", não como margem cheia, e o cabeçalho diz quantos estão nessa situação. Na lista,
+  "sem dados" e "custo incompleto" usam borda tracejada em vez da cor das faixas, para não
+  serem lidos como resultado. Isso atende a regra de D-98 a D-106 no que já é possível sem
+  Q-42, que segue necessária para o limiar de cobertura da carteira como um todo.
+- **Por D-288 o módulo fica fora dos módulos padrão do cadastro** enquanto Q-41 e Q-43
+  estiverem abertas. O teste de cadastro existente continua passando sem alteração.
+- **Restrições respeitadas:** nenhuma dependência de front foi introduzida — sem build,
+  sem Tailwind, sem HTMX, sem CDN e sem script inline, conforme D-283 e a CSP vigente. O
+  CSS do módulo usa os tokens do workspace.
+- **Testes:** 12 aprovados em `tests/test_profitability_module_django.py`, cobrindo módulo
+  desligado, colaborador fora do escopo, escopo de carteira, isolamento entre inquilinos,
+  acesso anônimo e a navegação. Suíte inteira em 928 aprovados e 3 ignorados, sem
+  regressão. `ruff check .`, `mypy src`, `manage.py check` e `makemigrations --check`
+  limpos.
+- **Limites desta validação:** a tela foi renderizada em teste com massa fictícia, não em
+  navegador contra ambiente real. Faltam as demais telas da fase 2 — ficha do cliente,
+  colaboradores, horas, análises e configuração do módulo — e os gráficos de D-286. A
+  margem exibida continua dependendo de Q-41 para ter honorário de verdade.
+
+## V-284 — Telas do módulo Rentabilidade portadas para templates
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória). Nenhuma chamada externa, agente, navegador, cobrança ou dado de cliente.
+Escopo: fase 2 da etapa 14, conforme D-281, D-282, D-283, D-286 e D-288.
+
+- **Telas entregues:** visão geral da carteira (V-283), colaboradores com a seção de
+  vínculos do ERP, ficha da pessoa com a composição do custo anual, horas, análises por
+  recorte, configuração do cálculo e a seção de rentabilidade dentro da ficha de empresa
+  que o hub já tinha. As telas de lista de clientes e de conectores do projeto de origem
+  não foram portadas: a CICA já as tem em `hub:companies` e `hub:settings`.
+- **Fidelidade ao cálculo, verificada na tela:** a ficha do colaborador exibe R$ 64.690,00
+  de custo anual, R$ 37,09 de valor-hora e R$ 46,37 de valor-hora produtivo para o
+  exemplo de referência — os mesmos valores do vetor de `contracts/calculations/v1.json`,
+  agora conferidos pela interface e não só pelo serviço.
+- **Por D-286 o gráfico de evolução é SVG desenhado por script próprio** servido de
+  `static/`, sem biblioteca externa, sem build, sem CDN e sem script inline, respeitando a
+  CSP vigente. A mesma série sai como tabela ao lado — é ela que leitor de tela percorre e
+  que sobrevive à impressão —, e por isso o SVG é `aria-hidden`. Mês sem dado é desenhado
+  vazio em vez de omitido.
+- **Falta de dado não vira número em nenhuma tela:** sem horas suficientes, custo,
+  resultado, margem e honorário sugerido saem como travessão, com a explicação ao lado;
+  sem salário vigente o custo do colaborador também é travessão, e não zero.
+- **Restrições de papel:** salário e custo aparecem somente para administrador, e somente
+  administrador decide um vínculo do ERP ou altera um parâmetro de custo. Sessão de
+  suporte somente-leitura não grava. Há teste para cada uma.
+- **Gravar um parâmetro reprojeta todas as competências na hora.** Sem esse passo, a
+  carteira só mudaria na importação seguinte enquanto a ficha do cliente, que recalcula a
+  cada pedido, mudaria na hora, e as duas telas passariam a se contradizer.
+- **Por D-288, ampliado nesta entrega:** o módulo ficou fora também da demonstração, não
+  só do cadastro. Uma demonstração que abre o módulo já o está anunciando, e
+  `docs/cica-module-truth.md` não autoriza texto público sobre ele enquanto Q-41 e Q-42
+  seguirem abertas. A lista passou a viver em um lugar só,
+  `module_catalog.self_service_module_codes()`.
+- **Testes:** 25 em `tests/test_profitability_screens_django.py` e 14 em
+  `tests/test_profitability_module_django.py`. Suíte inteira em 955 aprovados e 3
+  ignorados, sem regressão. `ruff check .`, `mypy src`, `manage.py check` e
+  `makemigrations --check` limpos.
+- **Limites desta validação:** as telas foram exercitadas por requisição em teste, com
+  massa fictícia, e não em navegador contra ambiente publicado — inspeção visual,
+  responsividade real, leitor de tela e temas lado a lado continuam pendentes e pertencem
+  à etapa 11. O gráfico foi verificado pelo dado que a página emite, não pelo desenho
+  renderizado. A margem exibida continua dependendo de Q-41 para ter honorário de verdade,
+  e Q-42 segue necessária para o limiar de cobertura da carteira.
+
+## V-285 — Conector Windows unificado, com catálogo fixado por hash
+
+Data: 22/09/2026. Ambiente: desenvolvimento local em macOS, com o SDK .NET 10 compilando
+os alvos `net8.0` e `net8.0-windows`. Nenhum Windows, nenhum ODBC, nenhum ERP, nenhuma
+rede e nenhum agente instalado. Escopo: fase 4 da etapa 14, conforme D-80, D-284, D-287,
+D-289 e D-290.
+
+- **Achado anterior ao porte, e o mais importante desta entrega:** o agente Windows **não
+  compilava**. `AgentClient` passava um `Uri` para um parâmetro `string` desde o commit
+  `0ac1038`, e nenhum fluxo de integração contínua construía esse projeto — por isso o erro
+  sobreviveu no ramo principal sem ninguém notar. Corrigido com uma sobrecarga, e os quatro
+  projetos do agente entraram no CI, que é o que teria apanhado isso. `EnableWindowsTargeting`
+  permite compilá-los em Linux; o pacote continua sendo gerado e assinado no Windows.
+- **O que veio do conector do Lucrums:** o catálogo de consultas incorporado no binário e
+  conferido por SHA-256. Até aqui o SQL do agente da CICA vivia solto no código-fonte e
+  nada garantia que a consulta executada na máquina do escritório fosse a que a nuvem
+  espera. Agora a nuvem manda o código do contrato e o hash que espera, o SQL sai do
+  catálogo, e os dois lados conferem antes de executar. Divergência derruba o serviço na
+  subida, com a razão no log, em vez de falhar calado num ciclo noturno.
+- **O catálogo ficou numa biblioteca separada** (`Cica.Agent.Contracts`), sem Windows e sem
+  identificador de runtime, para ser testável em qualquer máquina — inclusive num CI que
+  não seja Windows. O projeto do serviço é autocontido para `win-x64` e não podia ser
+  referenciado por um teste fora do Windows.
+- **Por D-289 tudo permanece em `net8.0-windows`:** `Convert.ToHexStringLower`, que é do
+  .NET 9, virou `ToHexString` com `ToLowerInvariant`.
+- **Por D-80 o pacote continua único:** o ERP vem da configuração em vez de compilado no
+  binário, como o conector de origem fazia com dois instaladores. Instalação antiga sem o
+  campo é do Domínio, que era o único perfil que existia.
+- **A ponte ODBC de 32 bits entrou, autorizada por D-290.** O serviço é x64 e continua
+  sendo; o Pervasive, que o Siescon usa, só publica driver de 32 bits. A ponte fala por
+  entrada e saída padrão, sem rede e sem arquivo temporário, e a credencial nunca vai pela
+  linha de comando. A conversão de valores é a mesma do serviço: na origem havia duas
+  cópias, uma de cada lado da ponte, e duas cópias de uma regra de conversão concordam até
+  alguém corrigir uma delas. Newtonsoft ficou de fora — `System.Text.Json` atende, e uma
+  dependência a menos é uma a menos para acompanhar num binário que roda dentro do cliente.
+- **Nesta entrega, as checagens de registro de 64 bits passaram a valer só para o perfil
+  Domínio.** Aplicá-las ao Siescon recusaria justamente a instalação que a ponte existe
+  para atender. V-287 completou esse ponto ao validar o DSN Siescon na visão de 32 bits.
+- **Testes:** 17 aprovados em `agent-windows/tests/Cica.Agent.Tests`, cobrindo a carga do
+  catálogo com os contratos reais, o recorte por ERP quando o código da consulta é o mesmo
+  nos dois, a recusa de consulta não validada e de modo fora do contrato, e a conversão de
+  valores, inclusive decimal em máquina com região em português. Os quatro projetos
+  compilam sem erro. A suíte Python seguiu em 955 aprovados.
+- **Limites desta validação:** nada foi executado contra Windows, ODBC, Domínio, Siescon ou
+  agente instalado. A ponte de 32 bits foi compilada, não exercitada — não há Pervasive
+  aqui. O envio de páginas ao servidor foi escrito contra os pontos de entrada validados em
+  V-282, mas não exercitado ponta a ponta com um agente real. A revisão do instalador WiX
+  que faltava nesta entrega foi feita em V-287; o atualizador automático do conector de
+  origem foi excluído por D-291 e não é pendência deste porte. A instalação real, a
+  assinatura do pacote e o piloto permanecem na etapa 12 por D-86.
+
+## V-286 — Ficha analítica do cliente no módulo Rentabilidade
+
+Data: 22/09/2026. Ambiente: desenvolvimento local (`config.settings.test`, SQLite em
+memória) em macOS. Nenhuma chamada externa, agente, ERP, cobrança ou dado real de cliente.
+Escopo: continuidade da fase 2 da etapa 14, conforme D-281 a D-288.
+
+- **A linha da carteira agora abre uma análise própria do cliente**, preservando
+  `hub.ClientCompany` como entidade única. A ficha reúne competência, honorário, horas,
+  custo, resultado, margem e honorário sugerido; depois abre o mesmo fato em evolução,
+  horas automáticas × F9 por dia, atividades manuais, equipe, unidades do grupo,
+  comparações e histórico. O resumo transversal continua na ficha da empresa do Hub.
+- **A ausência de dado permanece explícita:** sem base de custo não são calculados margem
+  nem honorário sugerido; custo incompleto mostra a quantidade de horas sem custo. O
+  histórico remove apenas competências totalmente vazias e mantém até doze meses úteis.
+- **A autorização foi aplicada também aos dados derivados.** A empresa da rota precisa
+  pertencer a `context["companies"]`; horas, atividades, unidades e médias usam somente a
+  carteira permitida por `CompanyAccessGrant`. Um cliente fora desse recorte responde 404,
+  e sua métrica não entra na média mostrada. Custo individual da equipe permanece visível
+  apenas a dono ou administrador, como nas telas de colaboradores já validadas em V-284.
+- **A interface segue D-283 e D-286:** template Django, CSS e o mesmo gráfico SVG próprio,
+  sem SPA, build, CDN ou biblioteca externa. A série visual também sai como tabela, e as
+  diferenças de horas preservam sinal positivo, negativo ou zero.
+- **Testes específicos:** 37 aprovados em
+  `tests/test_profitability_screens_django.py`, incluindo detalhe completo, navegação da
+  carteira, recusa por empresa, média limitada ao acesso, ausência de sugestão sem custo e
+  ocultação de custo individual para operador. A suíte integral ficou em 967 aprovados,
+  3 ignorados e 11 subtestes aprovados. `ruff check`, `ruff format --check` no recorte,
+  `mypy`, `manage.py check`, `makemigrations --check --dry-run` e `git diff --check`
+  ficaram limpos.
+- **Limites:** o caminho foi renderizado por requisição com massa fictícia, não inspecionado
+  em navegador ou leitor de tela; essa prova continua na etapa 11. A margem ainda depende
+  da fonte de honorários de Q-41 e do limiar de cobertura de Q-42, e o módulo permanece
+  fora do cadastro e da demonstração por D-288. Nenhum Windows, ODBC ou ERP real foi
+  exercitado; a homologação operacional continua na etapa 12.
+
+## V-287 — Configurador Domínio/Siescon e revisão do MSI único
+
+Data: 22/09/2026. Ambiente: desenvolvimento local em macOS, com SDK .NET 10
+compilando alvos .NET 8 e validação estática do WiX/YAML. Nenhum Windows, driver ODBC,
+ERP, rede, pacote assinado ou instalação foi exercitado. Escopo: continuidade da fase 4
+da etapa 14, conforme D-80, D-284, D-289, D-290 e D-291.
+
+- **A ponte x86 deixou de ser um arquivo sem caminho de configuração.** O configurador
+  único agora oferece Domínio Web, Domínio Local e Siescon Local. Domínio lê apenas DSN
+  SQL Anywhere na visão de 64 bits; Siescon lê apenas DSN Pervasive/PSQL na visão de
+  32 bits e testa a conexão executando a ponte instalada. Usuário e senha viajam no JSON
+  pela entrada padrão da ponte, não pela linha de comando nem pelo log.
+- **O perfil de fonte virou contrato compartilhado** entre serviço e configurador:
+  `dominio` exige SQL Anywhere de 64 bits; `siescon` exige ponte de 32 bits e dispensa
+  esse driver. Fonte desconhecida continua recusada. A configuração DPAPI passa a gravar
+  explicitamente `SourceSystem`, mantendo Domínio como compatibilidade para configuração
+  antiga que não tenha o campo.
+- **O WiX permanece um único produto e foi revisto:** descrição genérica para os sistemas
+  locais, reparo da mesma versão permitido, compressão alta, atalho permanente
+  **CICA → Configurar CICA Agent** e abertura automática do configurador somente em
+  instalação interativa — instalação silenciosa não abre interface. O diagnóstico agora
+  considera a ponte x86 parte obrigatória do pacote.
+- **O build ficou falha-fechada:** limpa somente suas pastas controladas de publicação,
+  confere serviço, configurador, ponte e script antes do WiX e verifica cada retorno do
+  `dotnet`. Um job `windows-latest` passou a gerar o MSI e comparar o SHA-256 real com
+  `release.json`; o autoatualizador do ProjetoARD não foi portado, em conformidade com
+  D-291.
+- **Provas locais:** serviço, configurador e ponte compilaram em Release com zero aviso e
+  zero erro; 20 testes .NET passaram, incluindo os dois perfis e a recusa de fonte
+  desconhecida. `dotnet format --verify-no-changes` passou nos arquivos/projetos tocados,
+  o XML do WiX e dos projetos passou em `xmllint`, e o workflow passou no parser YAML.
+  A regressão Python permaneceu em 967 aprovados, 3 ignorados e 11 subtestes aprovados.
+- **Limite decisivo:** o WiX informa que só suporta Windows. A tentativa deliberada de
+  gerar o MSI em macOS parou nesse limite e não é contada como falha do pacote nem como
+  prova de construção. O novo job Windows ainda precisa executar; instalação, assinatura,
+  DSN, ponte real e sincronização com ERP continuam para a etapa 12. O layout Siescon
+  permanece inferido e requer o adaptador/homologação da etapa 04.
+
+## V-288 — Revalidação local da etapa 14 e correção da herança visual
+
+Data: 28/09/2026. Ambiente: macOS, branch local `etapa-14-rentabilidade`, servidor
+de revisão isolado com SQLite e dados fictícios. Os `pull --ff-only` de CICA e
+ProjetoARD confirmaram `main == origin/main`, respectivamente em `d501fbe` e
+`d9d4ebb`; não havia commit remoto novo. A branch da etapa 14 segue com 20 commits
+à frente da `main` da CICA e alterações locais preservadas.
+
+- O contrato `contracts/calculations/v1.json` é idêntico ao do ProjetoARD
+  (`e37dc1e14ab7281fa8a3dff0a752edcbefb8dca73152368a9635da5241e1972f`).
+  `ruff check .`, MyPy (207 arquivos), `manage.py check`, conferência de migrações
+  e `git diff --check` passaram. Serviço, configurador e ponte x86 compilaram em
+  Release sem avisos; os 20 testes .NET passaram. A checagem de formatação .NET
+  revelou e corrigiu somente espaços e quebras de linha em dois arquivos do serviço.
+- A suíte Python aprovou 967 testes, ignorou 3 e aprovou 11 subtestes. **O portão
+  documental de cobertura global de 85% falhou:** 80,11%; o pacote
+  `src/apps/profitability` atingiu 87%. `ruff format --check` nos sete arquivos
+  Python alterados passou; a checagem de todo o repositório encontra 92 arquivos
+  antigos fora do formato tanto nesta worktree quanto na `main` atual.
+- A revisão em navegador encontrou que todos os templates de Rentabilidade
+  substituíam `extra_head` e omitiam os estilos herdados de `hub/workspace.html`.
+  A ficha do Hub tinha a mesma omissão. Foi acrescentado `{{ block.super }}` aos
+  oito templates afetados. Após a correção, visão geral e ficha do cliente foram
+  inspecionadas visualmente em 1280 px e 390 px, sem overflow horizontal nem erro
+  de console; Colaboradores, Horas, Análises e Configuração também foram abertas
+  nos dois tamanhos, com estilo do workspace e sem overflow. Os 169 testes
+  específicos de Rentabilidade passaram após a correção. Não houve teste com
+  leitor de tela nem homologação de toda a jornada da etapa 11.
+- O catálogo ainda marca como não validados `dominio/salaries`,
+  `dominio/billing_services` e `siescon/taxation`. A sincronização de Rentabilidade
+  segue desligada por padrão. O MSI não pôde ser construído em macOS e o job
+  Windows continua sem execução observada; não houve ODBC, ERP, agente instalado,
+  assinatura, piloto, publicação nem dados reais. Q-41 a Q-43 seguem abertas.
+
+**Resultado:** a implementação local avançou e a regressão funcional passou, mas
+a etapa 14 não está concluída nem pronta para uso operacional ou oferta. Permanecem
+o portão de cobertura global, a prova do MSI em Windows, o adaptador Siescon da
+etapa 04, a validação visual/acessível integral da etapa 11 e a homologação da
+etapa 12, além das decisões Q-41 a Q-43.
+
+## V-289 — Branch Lucrums e identidade de empresas com documento repetido
+
+Data: 28/09/2026. Ambiente: branch local `codex/lucrums`, derivada da etapa 14;
+`main` da CICA permanece separada em `d501fbe`. A revisão do ramo de laboratório
+do ProjetoARD identificou um caso que a incorporação ainda não protegia:
+matriz e filial podem chegar com o mesmo documento. A correção foi implementada
+na CICA, sem substituir o corte de origem `d9d4ebb` fixado por D-281.
+
+- Três testes de regressão cobrem códigos distintos do Domínio com documento
+  repetido, correspondência das duas gêmeas no Siescon e lançamento de honorário
+  à empresa certa. Um quarto garante que, quando documento e razão são ambíguos,
+  o honorário fica sem empresa em vez de ser atribuído arbitrariamente.
+- A ingestão conserva todos os perfis de um mesmo documento/razão no contexto.
+  Um perfil com código ERP já ocupado não é reaproveitado para outro código;
+  gêmeas de outro ERP são escolhidas por razão quando há mais de uma candidata.
+- `pytest -q` com cobertura: 971 aprovados, 3 ignorados, 11 subtestes; os 36
+  testes focados da ingestão também passaram. `ruff check`,
+  formatação dos arquivos Python alterados e MyPy em 207 arquivos passaram.
+  `manage.py check` e `makemigrations --check --dry-run` passaram. Os 20 testes
+  .NET passaram. A última execução global com cobertura marcou **80,09%**, ainda
+  abaixo do piso de 85%; o pacote Rentabilidade marcou **87,10%**. A cobertura
+  global mede toda a CICA, inclusive módulos de outras etapas.
+
+**Limites:** o MSI ainda precisa de execução observada no CI Windows. Os
+contratos de dados pendentes, ERP/ODBC real, instalação, piloto e aceite da etapa
+12 não foram exercitados. Q-41 a Q-43 continuam abertas; portanto, não há
+afirmação validada de margem ou oferta comercial do Lucrums.
+
+## V-290 — Primeiro MSI único construído no CI Windows
+
+Data: 28/09/2026. Branch `codex/lucrums`, PR em rascunho #1. O primeiro job
+`agent-package` encontrou ICE38/ICE43/ICE57 no atalho do configurador:
+o componente usava chave HKLM para um atalho não anunciado no menu de programas.
+O KeyPath foi corrigido para HKCU conforme a regra do Windows Installer. Na
+execução [36450694685](https://github.com/Mewstacks/CicaContabil/actions/runs/36450694685),
+o job Windows **passou**: publicou serviço x64, configurador x64 e ponte ODBC x86,
+gerou `CicaAgent.msi` e conferiu no `release.json` a versão e o SHA-256 do MSI.
+O job `agent` no Linux também passou. O WiX emitiu WIX1076 (upgrade da mesma
+versão permitido por configuração); foi aviso, sem falha de construção.
+
+**Limite:** isto comprova construção e consistência do pacote no CI, não
+instalação, execução do serviço, conexão ODBC/ERP, assinatura ou piloto. O job
+geral `verify` ainda estava nos builds Docker no momento deste registro.
+
+## V-291 — Prioridade do código Domínio e receita ausente na Rentabilidade
+
+Data: 28/09/2026. Ambiente: branch `codex/lucrums`, dados fictícios em SQLite.
+O teste de regressão mostrou que a ingestão contrariava a prioridade declarada
+em D-282: ao encontrar o mesmo documento num perfil Siescon, ligava a linha
+Domínio a ele antes de consultar o `dominio_code` já existente no Hub. A busca
+foi reordenada; o cadastro com código Domínio prevalece sem mover o perfil do
+outro ERP. Essa divergência entre os cadastros ainda requer reconciliação humana.
+
+A ficha do cliente também apresentava resultado negativo e margem de 0% quando
+as horas tinham custo, mas o honorário mensal não havia chegado. O campo
+`mensalidade_nao_disponivel` agora impede que a interface trate ausência como
+valor zero confirmado: ficha, histórico e carteira mostram traço e explicação;
+custos e horas continuam disponíveis. A série JSON usa `null` para margem sem
+receita e o SVG interrompe a linha nesses meses, sem conectar pontos vizinhos.
+
+- Testes focados: 37 de ingestão e 38 de telas; regressão integral: **973
+  aprovados, 3 ignorados e 11 subtestes**. Ruff, MyPy em 207 arquivos, Django,
+  migrações, `git diff --check` e sintaxe JavaScript passaram. Um ensaio Node
+  confirmou dois segmentos separados por um mês sem honorário. Cobertura global
+  **80,09%** (piso 85%); pacote Rentabilidade **87,11%**.
+- D-282 ainda descreve a relação de perfil ERP como um-para-um, enquanto a
+  implementação e os testes permitem um perfil por ERP no mesmo cliente. Foi
+  pedido esclarecimento ao responsável antes de alterar essa decisão.
+
+**Limites:** não houve nova inspeção visual em navegador, leitor de tela,
+instalação/ERP real ou dado autorizado. Q-41 a Q-43 e o aceite das etapas 11/12
+continuam pendentes.
+
+## V-292 — Contrato de leitura Siescon e isolamento do conector
+
+Data: 28/09/2026. Ambiente: macOS local, branch `codex/siescon-adapter`
+partindo de `codex/lucrums`; testes Python com SQLite de teste e compilação
+.NET 8 dos alvos Windows. Nenhuma conexão a ERP/ODBC, DSN, share, dado de
+cliente ou script DDF foi executada.
+
+- O agente agora compara as colunas retornadas com o manifesto antes de emitir
+  a primeira linha. A comparação inclui a ponte x86 Siescon e o caminho x64
+  Domínio; colunas preenchidas pelo contexto, como empresa e competência da
+  folha, ficam fora da expectativa SQL. Divergência produz falha visível.
+- A API só despacha uma origem com seu próprio `Connector` habilitado. Um
+  conector Domínio não habilita Siescon nem abre execução dessa origem.
+- `siescon/users` foi marcado não validado: seu SQL devolvia `situacao=1` para
+  todos os usuários, sem confirmação dos campos @1485/@1604. `taxation`
+  permanece não validado. `companies` e `salaries` seguem como contratos
+  exercitados na origem, ainda sem prova no ambiente autorizado da CICA.
+- Suíte Python integral: **975 aprovados, 3 ignorados e 11 subtestes** antes
+  da inclusão de um teste adicional de isolamento; a suíte focada de ingestão
+  e API passou com 58 testes, e a API foi reexecutada após esse teste.
+  Os **23 testes .NET** do catálogo/contrato passaram, e serviço e ponte compilaram
+  sem avisos. MyPy do arquivo alterado, Ruff, Django, migrações sem alterações,
+  `dotnet format` e `git diff --check` passaram.
+
+**Limites:** o layout Btrieve é inferido; estrutura de colunas não prova
+semântica ou tamanho de registro. Faltam ensaio dos DDFs em cópia autorizada,
+conferência com a tela do Siescon, fonte de contas/lançamentos e layout de
+importação contábil. A exportação Siescon continua recusada. A etapa 04 segue
+em andamento; não há homologação, deploy ou liberação comercial.

@@ -1,0 +1,105 @@
+{% extends 'hub/workspace.html' %}
+{% load static profitability_extras %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endblock %}
+
+{% block workspace_content %}
+<section class="module-hero" aria-labelledby="collaborators-heading">
+  <div>
+    <p class="section-kicker">{{ office.name }}</p>
+    <h2 id="collaborators-heading">Quem trabalhou no mês, e quais logins do ERP ainda não têm dono.</h2>
+  </div>
+  <span class="module-readiness"><span class="readiness-dot" aria-hidden="true"></span>{% if not competencia %}Nenhuma competência importada{% else %}{{ vinculos|length }} login{{ vinculos|length|pluralize }} nesta lista{% endif %}</span>
+</section>
+
+{% if not competencia %}
+<section class="workspace-panel"><header class="workspace-panel-head"><div><h2>Ainda não há competência</h2><p>Os colaboradores aparecem depois da primeira importação da folha e das horas.</p></div></header></section>
+{% else %}
+
+<section class="workspace-panel" aria-labelledby="collaborators-list-heading">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">COMPETÊNCIA {{ competencia }}</p><h2 id="collaborators-list-heading">Colaboradores</h2><p>Da maior carga de horas para a menor. Quem saiu do escritório mas trabalhou no mês continua aqui: as horas dele entram no custo do cliente.</p></div>
+    {% include 'profitability/_periodo.html' %}
+  </header>
+
+  <form class="profitability-search" method="get">
+    <input type="hidden" name="competencia" value="{{ competencia }}">
+    <label for="collaborators-search">Nome ou código</label>
+    <input id="collaborators-search" type="search" name="q" maxlength="80" value="{{ busca }}" autocomplete="off" placeholder="Ex.: Ana ou C-001">
+    <button class="button button-secondary" type="submit">Pesquisar</button>
+    {% if busca %}<a href="?competencia={{ competencia|urlencode }}">Limpar</a>{% endif %}
+  </form>
+
+  {% if linhas.object_list %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Colaboradores na competência {{ competencia }}</caption>
+    <thead><tr><th scope="col">Colaborador</th><th scope="col" class="tnum">Empresas</th><th scope="col" class="tnum">Automáticas</th><th scope="col" class="tnum">F9</th>{% if is_admin %}<th scope="col" class="tnum">Custo estimado</th>{% endif %}<th scope="col">Situação</th></tr></thead>
+    <tbody>
+      {% for item in linhas %}
+      <tr>
+        <th scope="row"><a href="{% url 'profitability:collaborator-detail' item.colaborador.id %}?competencia={{ competencia|urlencode }}">{{ item.colaborador.nome }}</a>{% if item.colaborador.codigo %} <span class="profitability-code">{{ item.colaborador.codigo }}</span>{% endif %}</th>
+        <td class="tnum">{{ item.empresas }}</td>
+        <td class="tnum">{{ item.auto_minutos|horas }}</td>
+        <td class="tnum">{{ item.f9_minutos|horas }}</td>
+        {% if is_admin %}<td class="tnum">{% if item.sem_salario %}<span title="Sem salário vigente nesta competência">—</span>{% else %}{{ item.custo|floatformat:2 }}{% endif %}</td>{% endif %}
+        <td>{% if item.sem_salario %}<span class="profitability-band is-incompleta">Sem salário</span>{% elif item.divergente %}<span class="profitability-band is-atencao">Divergente</span>{% elif item.f9_pendente %}<span class="profitability-band is-sem_dados">F9 pendente</span>{% else %}<span class="profitability-band">Conferido</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include 'profitability/_paginacao.html' with pagina=linhas %}
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum colaborador nesta competência</h3><p>{% if busca %}Nenhum nome ou código corresponde à pesquisa.{% else %}Quando a folha e as horas forem importadas, cada pessoa aparece aqui.{% endif %}</p></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel" aria-labelledby="erp-links-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <p class="section-kicker">VÍNCULOS COM O ERP</p>
+      <h2 id="erp-links-heading">De quem é cada login</h2>
+      <p>A hora chega pelo login do ERP; o custo por hora vem da folha. Sem o vínculo entre os dois, a hora existe, não gera custo, e a margem do cliente infla. A lista começa por quem deixa mais horas sem custo.</p>
+    </div>
+    <div class="profitability-segmented" role="group" aria-label="Filtrar vínculos">
+      <a class="{% if vinculos_pendentes %}is-current{% endif %}" href="?competencia={{ competencia|urlencode }}&amp;vinculos=pendentes"{% if vinculos_pendentes %} aria-current="true"{% endif %}>Sem vínculo</a>
+      <a class="{% if not vinculos_pendentes %}is-current{% endif %}" href="?competencia={{ competencia|urlencode }}&amp;vinculos=todos"{% if not vinculos_pendentes %} aria-current="true"{% endif %}>Todos</a>
+    </div>
+  </header>
+
+  {% if vinculos %}
+  <table class="profitability-table">
+    <caption class="visually-hidden">Logins do ERP e o colaborador de cada um</caption>
+    <thead><tr><th scope="col">Login</th><th scope="col">Nome no ERP</th><th scope="col" class="tnum">Horas sem custo</th><th scope="col">Vínculo</th>{% if is_admin %}<th scope="col">Decidir</th>{% endif %}</tr></thead>
+    <tbody>
+      {% for item in vinculos %}
+      <tr>
+        <th scope="row">{{ item.usuario.i_usuario }} <span class="profitability-code">{{ item.usuario.get_sistema_origem_display }}</span></th>
+        <td>{{ item.usuario.nome }}</td>
+        <td class="tnum">{% if item.minutos_sem_custo %}{{ item.minutos_sem_custo|horas }}{% else %}—{% endif %}</td>
+        <td>{% if item.estado == 'manual' %}<span class="profitability-band">{{ item.usuario.colaborador.nome }} · manual</span>{% elif item.estado == 'automatico' %}<span class="profitability-band">{{ item.usuario.colaborador.nome }} · automático</span>{% elif item.estado == 'empate' %}<span class="profitability-band is-atencao">Empate entre {{ item.sugestoes|length }}</span>{% else %}<span class="profitability-band is-sem_dados">Sem vínculo</span>{% endif %}</td>
+        {% if is_admin %}
+        <td>
+          <form class="profitability-link-form" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="usuario" value="{{ item.usuario.id }}">
+            <label class="visually-hidden" for="vinculo-{{ item.usuario.id }}">Colaborador para {{ item.usuario.i_usuario }}</label>
+            <select id="vinculo-{{ item.usuario.id }}" name="colaborador" autocomplete="off">
+              <option value="">Sem vínculo</option>
+              {% for sugestao in item.sugestoes %}<option value="{{ sugestao.id }}">Sugestão · {{ sugestao.nome }}</option>{% endfor %}
+              {% for pessoa in folha %}{% if pessoa not in item.sugestoes %}<option value="{{ pessoa.id }}"{% if pessoa.id == item.usuario.colaborador_id %} selected{% endif %}>{{ pessoa.nome }}</option>{% endif %}{% endfor %}
+            </select>
+            <button class="button button-quiet" type="submit">Gravar</button>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if is_admin %}<p class="profitability-caveat">Gravar um vínculo reescreve as horas daquele login e recalcula as competências afetadas. O que você decidir aqui não é desfeito pela sincronização seguinte.</p>{% endif %}
+  {% else %}
+  <div class="module-clean-empty"><h3>{% if vinculos_pendentes %}Nenhum login pendente{% else %}Nenhum login do ERP importado{% endif %}</h3><p>{% if vinculos_pendentes %}Todos os logins que lançaram hora já têm colaborador. Veja "Todos" para conferir a lista inteira.{% else %}Os logins aparecem aqui depois da primeira importação de usuários do ERP.{% endif %}</p></div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

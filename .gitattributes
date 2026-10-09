@@ -1,0 +1,3 @@
+# Query contracts are pinned by SHA-256 of their bytes (agent DatasetCatalog and
+# profitability catalog). A CRLF checkout on Windows would change the hash.
+contracts/datasets/** text eol=lf
