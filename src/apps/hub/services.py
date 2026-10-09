@@ -6,8 +6,9 @@ import hashlib
 import io
 import json
 import re
+import tempfile
 import zipfile
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
@@ -20,7 +21,7 @@ from cryptography.x509.oid import ExtensionOID, NameOID, ObjectIdentifier
 from defusedxml import ElementTree  # type: ignore[import-untyped]
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.files.base import ContentFile
+from django.core.files.base import File
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -843,6 +844,27 @@ def nfse_company_archive_folder(*, root: str, dominio_code: str | None) -> str:
     return f"{root}/{safe_code[:40]}-"
 
 
+_NFSE_EXPORT_PAGE = 200
+
+
+def _documents_with_xml_in_pages(documents: list[NfseDocument]) -> Iterator[NfseDocument]:
+    """Yield the notes in order, decrypting the XML of one page at a time.
+
+    Callers load the selection without ``original_xml``; production runs behind PgBouncer
+    with server-side cursors disabled, so a single query would pull every XML at once.
+    """
+
+    for start in range(0, len(documents), _NFSE_EXPORT_PAGE):
+        page = documents[start : start + _NFSE_EXPORT_PAGE]
+        loaded = NfseDocument.objects.select_related("company").in_bulk(
+            [document.pk for document in page]
+        )
+        for document in page:
+            if document.pk not in loaded:
+                raise ValueError("Seleção desatualizada. Selecione as notas novamente.")
+            yield loaded[document.pk]
+
+
 @transaction.atomic
 def create_nfse_export(
     *, organization: Any, documents: list[NfseDocument], actor: User
@@ -893,82 +915,85 @@ def create_nfse_export(
             f"{artifacts[str(sample.id)].accumulator_code})."
         )
 
-    archive = io.BytesIO()
     snapshot_documents: list[dict[str, str]] = []
-    with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
-        manifest = io.StringIO(newline="")
-        writer = csv.writer(manifest, delimiter=";")
-        writer.writerow(
-            [
-                "Documento",
-                "Empresa",
-                "Codigo Dominio",
-                "Movimento",
-                "Importador Dominio",
-                "Competencia",
-                "Acumulador",
-                "Hash",
-            ]
-        )
-        for document in ordered_documents:
-            artifact = artifacts[str(document.id)]
-            source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
-            issued_at = document.issued_at or _issued_at_from_normalized_data(
-                document.normalized_data
-            )
-            if issued_at and timezone.is_aware(issued_at):
-                issued_at = timezone.localtime(issued_at)
-            competence = issued_at.strftime("%Y%m") if issued_at else "SEM-COMPETENCIA"
-            # The accumulator belongs to one side of the note: an issued note must go through
-            # Domínio's Serviços importer of the issuing company, a taken one through Entradas.
-            direction = str(nfse_match_data(document).get("direction", ""))
-            movement, importer, side_folder = _NFSE_EXPORT_SIDES.get(
-                direction, ("A confirmar", "Conferir", "Tipo-a-confirmar")
-            )
-            company_folder = nfse_company_archive_folder(
-                root=f"NFS-e/{side_folder}",
-                dominio_code=document.company.dominio_code,
-            )
-            path = f"{company_folder}/{competence}/NFS-e-{source}.xml"
-            dominio_xml = _xml_with_dominio_accumulator(
-                document.original_xml,
-                artifact.accumulator_code,
-            )
-            bundle.writestr(path, dominio_xml)
+    # The web machine has little memory to spare: a whole-portfolio package used to hold every
+    # decrypted XML plus the ZIP twice in RAM and the request died. The ZIP now goes to a disk
+    # temp file and only one page of XMLs is decrypted at a time.
+    with tempfile.TemporaryFile() as archive:
+        with zipfile.ZipFile(archive, mode="w", compression=zipfile.ZIP_DEFLATED) as bundle:
+            manifest = io.StringIO(newline="")
+            writer = csv.writer(manifest, delimiter=";")
             writer.writerow(
                 [
-                    document.source_nsu or str(document.id),
-                    document.company.name,
-                    document.company.dominio_code or "",
-                    movement,
-                    importer,
-                    competence,
-                    artifact.accumulator_code,
-                    document.document_hash,
+                    "Documento",
+                    "Empresa",
+                    "Codigo Dominio",
+                    "Movimento",
+                    "Importador Dominio",
+                    "Competencia",
+                    "Acumulador",
+                    "Hash",
                 ]
             )
-            snapshot_documents.append(
-                {
-                    "document_id": str(document.id),
-                    "document_hash": document.document_hash,
-                    "artifact_id": str(artifact.id),
-                    "accumulator_code": artifact.accumulator_code,
-                    "path": path,
-                }
-            )
-        bundle.writestr("manifesto-classificacao.csv", manifest.getvalue().encode("utf-8-sig"))
-    content = archive.getvalue()
-    digest = hashlib.sha256(content).hexdigest()
-    export = NfseExport.objects.create(
-        organization=organization,
-        target="conference_only_pending_dominio_layout",
-        adapter_version="nfse-conference-acum-v3",
-        content_hash=digest,
-        document_count=len(ordered_documents),
-        snapshot={"documents": snapshot_documents, "layout": "nfse-conference-acum-v3"},
-        created_by=actor,
-    )
-    export.content.save(f"nfse-dominio-{export.id}.zip", ContentFile(content), save=True)
+            for document in _documents_with_xml_in_pages(ordered_documents):
+                artifact = artifacts[str(document.id)]
+                source = re.sub(r"[^A-Za-z0-9._-]", "_", document.source_nsu or str(document.id))
+                issued_at = document.issued_at or _issued_at_from_normalized_data(
+                    document.normalized_data
+                )
+                if issued_at and timezone.is_aware(issued_at):
+                    issued_at = timezone.localtime(issued_at)
+                competence = issued_at.strftime("%Y%m") if issued_at else "SEM-COMPETENCIA"
+                # The accumulator belongs to one side of the note: an issued note must go through
+                # Domínio's Serviços importer of the issuing company, a taken one through Entradas.
+                direction = str(nfse_match_data(document).get("direction", ""))
+                movement, importer, side_folder = _NFSE_EXPORT_SIDES.get(
+                    direction, ("A confirmar", "Conferir", "Tipo-a-confirmar")
+                )
+                company_folder = nfse_company_archive_folder(
+                    root=f"NFS-e/{side_folder}",
+                    dominio_code=document.company.dominio_code,
+                )
+                path = f"{company_folder}/{competence}/NFS-e-{source}.xml"
+                dominio_xml = _xml_with_dominio_accumulator(
+                    document.original_xml,
+                    artifact.accumulator_code,
+                )
+                bundle.writestr(path, dominio_xml)
+                writer.writerow(
+                    [
+                        document.source_nsu or str(document.id),
+                        document.company.name,
+                        document.company.dominio_code or "",
+                        movement,
+                        importer,
+                        competence,
+                        artifact.accumulator_code,
+                        document.document_hash,
+                    ]
+                )
+                snapshot_documents.append(
+                    {
+                        "document_id": str(document.id),
+                        "document_hash": document.document_hash,
+                        "artifact_id": str(artifact.id),
+                        "accumulator_code": artifact.accumulator_code,
+                        "path": path,
+                    }
+                )
+            bundle.writestr("manifesto-classificacao.csv", manifest.getvalue().encode("utf-8-sig"))
+        archive.seek(0)
+        digest = hashlib.file_digest(archive, "sha256").hexdigest()
+        export = NfseExport.objects.create(
+            organization=organization,
+            target="conference_only_pending_dominio_layout",
+            adapter_version="nfse-conference-acum-v3",
+            content_hash=digest,
+            document_count=len(ordered_documents),
+            snapshot={"documents": snapshot_documents, "layout": "nfse-conference-acum-v3"},
+            created_by=actor,
+        )
+        export.content.save(f"nfse-dominio-{export.id}.zip", File(archive), save=True)
     export.documents.add(*ordered_documents)
     return export
 

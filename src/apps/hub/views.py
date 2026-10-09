@@ -7,6 +7,7 @@ import json
 import logging
 import re
 import secrets
+import tempfile
 import uuid
 import zipfile
 from collections.abc import Callable
@@ -4018,22 +4019,36 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                 messages.error(request, "Nenhuma NFS-e corresponde ao recorte do relatório.")
                 return redirect(request.get_full_path())
             if action == "download_original_xmls":
-                archive = io.BytesIO()
+                # Up to 5.000 notes: decrypt one page of XMLs at a time and spool the ZIP to
+                # disk, so the download never needs the whole selection in the web worker's RAM.
+                archive = tempfile.TemporaryFile()  # noqa: SIM115 - FileResponse closes it
                 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
-                    for document in report_documents:
-                        direction = _nfse_document_direction(document, demo=office.is_demo)
-                        folder = nfse_company_archive_folder(
-                            root={"provided": "Emitidas", "taken": "Tomadas"}.get(
-                                direction, "Tipo-a-confirmar"
-                            ),
-                            dominio_code=document.company.dominio_code,
+                    for start in range(0, len(report_documents), 200):
+                        page = report_documents[start : start + 200]
+                        xmls = dict(
+                            NfseDocument.objects.filter(
+                                pk__in=[document.pk for document in page]
+                            ).values_list("pk", "original_xml")
                         )
-                        bundle.writestr(
-                            f"{folder}/NFS-e-{document.id}.xml",
-                            document.original_xml.encode("utf-8"),
-                        )
-                response = HttpResponse(archive.getvalue(), content_type="application/zip")
-                response["Content-Disposition"] = 'attachment; filename="nfse-xmls-originais.zip"'
+                        for document in page:
+                            direction = _nfse_document_direction(document, demo=office.is_demo)
+                            folder = nfse_company_archive_folder(
+                                root={"provided": "Emitidas", "taken": "Tomadas"}.get(
+                                    direction, "Tipo-a-confirmar"
+                                ),
+                                dominio_code=document.company.dominio_code,
+                            )
+                            bundle.writestr(
+                                f"{folder}/NFS-e-{document.id}.xml",
+                                xmls[document.pk].encode("utf-8"),
+                            )
+                archive.seek(0)
+                response = FileResponse(
+                    archive,
+                    as_attachment=True,
+                    filename="nfse-xmls-originais.zip",
+                    content_type="application/zip",
+                )
                 response["Cache-Control"] = "private, no-store"
                 response["X-Content-Type-Options"] = "nosniff"
                 record_event(
@@ -4113,6 +4128,7 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                     organization=office, company__in=scope, integration_artifacts__isnull=False
                 )
                 .select_related("company")
+                .defer("original_xml")
                 .distinct()
             )
             try:
@@ -4122,6 +4138,7 @@ def nfse_center(request: HttpRequest) -> HttpResponseBase:
                             office=office, scope=scope, data=request.POST
                         )
                         .select_related("company")
+                        .defer("original_xml")
                         .order_by("company__name", "-issued_at", "-captured_at")
                     )
                 else:
@@ -5366,9 +5383,9 @@ def _nfse_export_context(
         raise Http404
     scope = _company_history_scope(context)
     documents = list(
-        NfseDocument.objects.filter(
-            organization=office, company__in=scope, id__in=document_ids
-        ).select_related("company")
+        NfseDocument.objects.filter(organization=office, company__in=scope, id__in=document_ids)
+        .select_related("company")
+        .defer("original_xml")
     )
     if len(documents) != len(document_ids):
         raise Http404
@@ -5636,6 +5653,7 @@ def _filter_nfse_retention_report_documents(
             filters,
         )
         .select_related("company", "review_case", "side")
+        .defer("original_xml")
         .order_by("company__name", "side__issued_on", "issued_at", "captured_at")[:5001]
     )
     if len(selected) > 5000:

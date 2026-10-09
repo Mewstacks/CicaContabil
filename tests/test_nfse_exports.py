@@ -209,3 +209,51 @@ def test_nfse_export_updates_only_inf_nfse_values_acum_and_removes_legacy_acu() 
     assert len(acum_nodes) == 1
     assert acum_nodes[0].text == "NOVO"
     assert "ACU" not in exported_xml
+
+
+def test_nfse_export_reads_xml_page_by_page_without_needing_it_loaded(monkeypatch) -> None:
+    from apps.hub import services
+
+    monkeypatch.setattr(services, "_NFSE_EXPORT_PAGE", 2)
+    organization = Organization.objects.create(name="Carteira grande", slug="nfse-export-pages")
+    actor = User.objects.create_user("pages@example.test", "safe-password-123")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa Lote", dominio_code="200"
+    )
+    expected: dict[str, str] = {}
+    for number in range(5):
+        xml = (
+            '<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse">'
+            f"<infNFSe><nNFSe>{number}</nNFSe><valores><vLiq>1.00</vLiq></valores></infNFSe>"
+            "</NFSe>"
+        )
+        document = NfseDocument.objects.create(
+            organization=organization,
+            company=company,
+            source_nsu=f"LOTE-{number}",
+            document_hash=hashlib.sha256(xml.encode()).hexdigest(),
+            original_xml=xml,
+            issued_at=datetime(2026, 9, 10, 12, tzinfo=UTC),
+        )
+        IntegrationArtifact.objects.create(
+            organization=organization, document=document, accumulator_code="7", confidence=100
+        )
+        expected[f"LOTE-{number}"] = xml
+    documents = list(
+        NfseDocument.objects.filter(organization=organization)
+        .select_related("company")
+        .defer("original_xml")
+    )
+
+    export = create_nfse_export(organization=organization, documents=documents, actor=actor)
+
+    content = export.content.read()
+    assert export.content_hash == hashlib.sha256(content).hexdigest()
+    assert export.document_count == 5
+    assert export.documents.count() == 5
+    with zipfile.ZipFile(BytesIO(content)) as bundle:
+        for item in export.snapshot["documents"]:
+            source = item["path"].rsplit("NFS-e-", 1)[1].removesuffix(".xml")
+            assert bundle.read(item["path"]).decode() == expected[source].replace(
+                "<vLiq>1.00</vLiq></valores>", "<vLiq>1.00</vLiq><acum>7</acum></valores>"
+            )

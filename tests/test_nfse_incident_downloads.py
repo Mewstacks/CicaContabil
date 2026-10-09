@@ -37,7 +37,7 @@ def test_original_zip_includes_unclassified_exact_xml_and_respects_scope(client)
     response = client.post("/app/nfse/", data)
     assert response.status_code == 200
     assert response["Content-Type"] == "application/zip"
-    with ZipFile(BytesIO(response.content)) as archive:
+    with ZipFile(BytesIO(b"".join(response.streaming_content))) as archive:
         assert archive.namelist() == [f"Tomadas/001-/NFS-e-{doc.pk}.xml"]
         assert archive.read(archive.namelist()[0]) == xml.encode()
     assert not doc.integration_artifacts.exists()
