@@ -1,0 +1,94 @@
+- generic [active] [ref=f26e1]:
+  - link "Pular para o conteúdo" [ref=f26e2] [cursor=pointer]:
+    - /url: "#conteudo"
+  - generic [ref=f26e4]:
+    - generic [ref=f26e5]:
+      - generic [ref=f26e6]:
+        - link "CICA, visão geral" [ref=f26e7] [cursor=pointer]:
+          - /url: /app/
+          - generic [ref=f26e9]: CICA
+        - 'button "Trocar escritório: Escritório Demonstração" [ref=f26e11] [cursor=pointer]':
+          - generic [ref=f26e12]:
+            - generic [ref=f26e13]: Escritório
+            - generic [ref=f26e14]: Escritório Demonstração
+        - button "Abrir menu da conta" [ref=f26e16] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f26e17]: O
+      - button "Menu" [ref=f26e20] [cursor=pointer]
+    - main [ref=f26e23]:
+      - generic [ref=f26e24]:
+        - heading "Guias e DCTFWeb" [level=1] [ref=f26e26]
+        - link "Voltar à Central Integra" [ref=f26e27] [cursor=pointer]:
+          - /url: /app/integra-contador/
+      - complementary "Ambiente de demonstração" [ref=f26e28]:
+        - strong [ref=f26e29]: Demonstração fictícia
+        - generic [ref=f26e30]: Dados fictícios. Sem consultas externas ou cobranças.
+      - button "Como usar" [ref=f26e32] [cursor=pointer]
+      - generic [ref=f26e33]: Escolha uma competência válida (MM/AAAA) na carteira.
+      - paragraph [ref=f26e38]: Emita uma guia fictícia e baixe o PDF de exemplo, sem validade fiscal.
+      - region "Resumo de obrigações" [ref=f26e39]:
+        - article [ref=f26e40]:
+          - generic [ref=f26e41]: Apurações no Domínio
+          - strong [ref=f26e42]: "0"
+          - generic [ref=f26e43]: 0 empresas nos filtros
+        - article [ref=f26e44]:
+          - generic [ref=f26e45]: Guias a resolver
+          - strong [ref=f26e46]: "2"
+          - link "Abrir pendências" [ref=f26e47] [cursor=pointer]:
+            - /url: "?status=pending"
+        - article [ref=f26e48]:
+          - generic [ref=f26e49]: Emitidas
+          - strong [ref=f26e50]: "1"
+          - link "Ver emitidas" [ref=f26e51] [cursor=pointer]:
+            - /url: "?status=issued"
+      - region [ref=f26e52]:
+        - heading "Filtrar carteira" [level=2] [ref=f26e54]
+        - form "Pesquisar e filtrar guias" [ref=f26e55]:
+          - generic [ref=f26e56]:
+            - generic [ref=f26e57]: Empresa ou competência
+            - searchbox "Empresa ou competência" [ref=f26e58]
+          - generic [ref=f26e59]:
+            - generic [ref=f26e60]: Situação
+            - combobox "Situação" [ref=f26e61]:
+              - option "Exigem ação ou conferência" [selected]
+              - option "Emitidas"
+              - option "Com falha"
+              - option "Resultado a confirmar"
+              - option "Todas"
+          - generic [ref=f26e62]:
+            - generic [ref=f26e63]: Vencimento
+            - combobox "Vencimento" [ref=f26e64]:
+              - option "Qualquer data" [selected]
+              - option "Próximos 7 dias"
+              - option "Vencidas"
+          - button "Filtrar" [ref=f26e65] [cursor=pointer]
+      - region [ref=f26e66]:
+        - generic [ref=f26e67]:
+          - generic [ref=f26e68]:
+            - paragraph [ref=f26e69]: DCTFWEB
+            - heading "Guias para acompanhar" [level=2] [ref=f26e70]
+            - paragraph [ref=f26e71]: Emita o que está pronto, acompanhe o processamento e baixe os DARFs já obtidos.
+          - generic [ref=f26e72]: 2 resultados
+        - table [ref=f26e74]:
+          - rowgroup [ref=f26e75]:
+            - row "Empresa Obrigação Vencimento Valor Situação e próximo passo Ação" [ref=f26e76]:
+              - columnheader "Empresa" [ref=f26e77]
+              - columnheader "Obrigação" [ref=f26e78]
+              - columnheader "Vencimento" [ref=f26e79]
+              - columnheader "Valor" [ref=f26e80]
+              - columnheader "Situação e próximo passo" [ref=f26e81]
+              - columnheader "Ação" [ref=f26e82]
+          - rowgroup [ref=f26e84]:
+            - row "Transportes Guaíba ME Competência 09/2026 Obrigação DCTFWeb Vencimento 07/10/2026 Vence em 4 dias Valor R$ 250,00 Situação e próximo passo Pronta para emitir · demonstração Confira o valor, o vencimento e o consumo antes de emitir. Simular emissão Ver detalhes" [ref=f26e85]:
+              - cell "Transportes Guaíba ME Competência 09/2026" [ref=f26e86]
+              - cell "Obrigação DCTFWeb" [ref=f26e89]
+              - cell "Vencimento 07/10/2026 Vence em 4 dias" [ref=f26e90]
+              - cell "Valor R$ 250,00" [ref=f26e92]
+              - cell "Situação e próximo passo Pronta para emitir · demonstração Confira o valor, o vencimento e o consumo antes de emitir." [ref=f26e93]
+              - cell "Simular emissão Ver detalhes" [ref=f26e96]
+            - row "Clínica Odonto Sorriso Competência 09/2026 Obrigação DCTFWeb Vencimento 08/10/2026 Vence em 5 dias Valor R$ 375,00 Situação e próximo passo Pronta para emitir · demonstração Confira o valor, o vencimento e o consumo antes de emitir. Simular emissão Ver detalhes" [ref=f26e99]:
+              - cell "Clínica Odonto Sorriso Competência 09/2026" [ref=f26e100]
+              - cell "Obrigação DCTFWeb" [ref=f26e103]
+              - cell "Vencimento 08/10/2026 Vence em 5 dias" [ref=f26e104]
+              - cell "Valor R$ 375,00" [ref=f26e106]
+              - cell "Situação e próximo passo Pronta para emitir · demonstração Confira o valor, o vencimento e o consumo antes de emitir." [ref=f26e107]
+              - cell "Simular emissão Ver detalhes" [ref=f26e110]

@@ -1,0 +1,57 @@
+- generic [active] [ref=f1e1] [box=0,0,1280,1515]:
+  - link "Pular para o conteúdo" [ref=f1e2] [cursor=pointer] [box=18,-60,165,40]:
+    - /url: "#conteudo"
+  - generic [ref=f1e4] [box=0,0,1280,1515]:
+    - generic [ref=f1e5] [box=0,0,1280,121]:
+      - generic [ref=f1e6] [box=0,0,1280,68]:
+        - link "CICA, visão geral" [ref=f1e7] [cursor=pointer] [box=40,22,44,23]:
+          - /url: /app/
+          - generic [ref=f1e9] [box=39,18,30,30]: CICA
+        - 'button "Trocar escritório: Escritório Demonstração" [ref=f1e12] [cursor=pointer] [box=125,12,230,44]':
+          - generic [aria-hidden] [ref=f1e13] [box=133,19,30,30]: E
+          - generic [ref=f1e14] [box=172,19,150,30]
+        - button "Operador Demonstração Abrir menu da conta" [ref=f1e20] [cursor=pointer] [box=1018,12,222,44]:
+          - generic [aria-hidden] [ref=f1e21] [box=1026,19,30,30]: O
+          - generic [ref=f1e22] [box=1065,24,142,19]: Operador Demonstração
+          - generic [ref=f1e25] [box=1025,33,1,1]: Abrir menu da conta
+      - navigation "Navegação principal" [ref=f1e27] [box=32,68,1216,52]:
+        - link "Visão geral" [ref=f1e28] [cursor=pointer] [box=32,68,96,52]:
+          - /url: /app/
+        - group [ref=f1e29] [box=130,68,109,52]:
+          - generic "Operação" [ref=f1e30] [cursor=pointer] [box=130,68,109,52]
+        - group [ref=f1e33] [box=241,68,111,52]:
+          - generic "Cadastros" [ref=f1e34] [cursor=pointer] [box=241,68,111,52]
+        - group [ref=f1e37] [box=354,68,84,52]:
+          - generic "Fiscal" [ref=f1e38] [cursor=pointer] [box=354,68,84,52]
+        - group [ref=f1e41] [box=440,68,102,52]:
+          - generic "Contábil" [ref=f1e42] [cursor=pointer] [box=440,68,102,52]
+        - group [ref=f1e45] [box=544,68,128,52]:
+          - generic "Documentos" [ref=f1e46] [cursor=pointer] [box=544,68,128,52]
+        - group [ref=f1e49] [box=674,68,139,52]:
+          - generic "Configurações" [ref=f1e50] [cursor=pointer] [box=674,68,139,52]
+        - link "Copiloto CICA" [ref=f1e53] [cursor=pointer] [box=1110,68,138,52]:
+          - /url: /app/ia/
+    - main [ref=f1e56] [box=0,121,1280,1394]:
+      - generic [ref=f1e57] [box=40,157,1200,39]:
+        - heading "Parcelamentos" [level=1] [ref=f1e59] [box=40,160,181,34]
+        - link "Voltar à Central Integra" [ref=f1e60] [cursor=pointer] [box=1066,157,174,39]:
+          - /url: /app/integra-contador/
+      - complementary "Ambiente de demonstração" [ref=f1e61] [box=40,220,1200,41]:
+        - strong [ref=f1e62] [box=57,231,133,19]: Demonstração fictícia
+        - generic [ref=f1e63] [box=202,232,282,17]: Dados fictícios. Sem consultas externas ou cobranças.
+      - button "Como usar" [ref=f1e65] [cursor=pointer] [box=1157,277,83,39]
+      - generic [ref=f1e66] [box=40,332,1200,118]:
+        - paragraph [ref=f1e67] [box=40,332,1200,23]: Acompanhe acordos do Simples Nacional, parcelas pagas e DAS disponíveis.
+        - status [ref=f1e68] [box=40,367,1200,67]:
+          - strong [ref=f1e69] [box=57,380,1168,19]: Demonstração nesta sessão
+          - generic [ref=f1e70] [box=57,402,1168,19]: Consultas e documentos são fictícios, não consomem tokens e não têm validade fiscal.
+      - region "Escolha uma empresa" [ref=f1e71] [box=40,476,1200,941]:
+        - generic [ref=f1e72] [box=41,477,1198,134]:
+          - generic [ref=f1e73] [box=63,498,477,94]
+          - generic [ref=f1e77] [box=1126,498,91,28]: 8 encontradas
+        - search [ref=f1e78] [box=41,610,1198,100]:
+          - generic [ref=f1e79] [box=61,626,1060,67]
+          - button "Pesquisar" [ref=f1e82] [cursor=pointer] [box=1131,650,88,44]
+        - generic [ref=f1e83] [box=41,711,1198,706]:
+          - generic [ref=f1e84] [box=41,711,1198,69]
+          - table [ref=f1e89] [box=41,780,1198,637]

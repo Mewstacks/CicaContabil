@@ -1,0 +1,327 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#e3ddca">
+  <title>NFS-e · Notas · CICA</title>
+  <link rel="icon" href="/static/hub/brand/cica-mark-green.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/hub/hub.css">
+  <link rel="stylesheet" href="/static/hub/chrome.css">
+  <link rel="stylesheet" href="/static/hub/components.css">
+  <link rel="stylesheet" href="/static/hub/utility.css">
+  <link rel="stylesheet" href="/static/hub/cica.css?v=13">
+  <link rel="stylesheet" href="/static/hub/cica-a11y.css">
+  <link rel="stylesheet" href="/static/hub/operations.css?v=cica-43"><link rel="stylesheet" href="/static/hub/context-switcher.css"><link rel="stylesheet" href="/static/hub/workspace.css?v=20260925-1"><link rel="stylesheet" href="/static/hub/nfse.css?v=23">
+  <link rel="stylesheet" href="/static/hub/cica-brand.css?v=20260929-1">
+  <link rel="stylesheet" href="/static/hub/theme.css?v=20260929-1">
+  <script src="/static/hub/theme.js?v=csrf-1" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+  
+<div class="product-shell workspace-shell">
+  <section class="app-stage">
+    <header class="workspace-header">
+      <div class="app-bar workspace-identity">
+        <a class="workspace-brand" href="/app/" aria-label="CICA, visão geral"><span class="cica-brand-asset cica-brand-mark" aria-hidden="true"><img class="cica-brand-light" src="/static/hub/brand/cica-mark-green.svg?v=official-1" alt="" width="4378" height="3020"><img class="cica-brand-dark" src="/static/hub/brand/cica-mark-cream.svg?v=official-1" alt="" width="4378" height="3020"></span>
+<span class="sr-only">CICA</span></a>
+        <span class="workspace-divider" aria-hidden="true"></span>
+      
+        
+          <div class="office-switcher"><button class="office-button" type="button" data-popover-toggle="office-list" aria-label="Trocar escritório: Escritorio QA Retencoes" aria-expanded="false" aria-controls="office-list"><span class="office-avatar" aria-hidden="true">E</span><span><small>Escritório</small><b>Escritorio QA Retencoes</b></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5H7Z"/></svg></button><div id="office-list" class="office-list" hidden><form action="/app/trocar-escritorio/" method="post"><input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W"><input type="hidden" name="next" value="/app/nfse/"><button type="submit" name="organization_id" value="07fe6eb6-45eb-4b8a-a28d-5d0c71936aeb" aria-current="true">Escritorio QA Retencoes<span aria-hidden="true">✓ </span></button></form></div></div>
+        
+      
+      
+      <div class="account-menu">
+        <button class="account-button" type="button" data-popover-toggle="account-list" aria-expanded="false" aria-controls="account-list">
+          <span class="account-avatar" aria-hidden="true">C</span>
+          <span class="account-name">Contador QA</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5H7Z"/></svg>
+          <span class="sr-only">Abrir menu da conta</span>
+        </button>
+        <div id="account-list" class="account-list" hidden>
+          <a class="account-security-link" href="/mfa/configurar/?next=/app/nfse/%3Fdate_filter%3Dcompetence%26competence_month%3D"><span>Ativar MFA</span><small>Recomendado</small></a>
+          <form class="theme-picker" action="/app/aparencia/" method="post" aria-label="Aparência">
+  <input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W"><input type="hidden" name="next" value="/app/nfse/?date_filter=competence&amp;competence_month=">
+  <button type="submit" name="theme" value="system" aria-pressed="true">Sistema</button>
+  <button type="submit" name="theme" value="light" aria-pressed="false">Claro</button>
+  <button type="submit" name="theme" value="dark" aria-pressed="false">Escuro</button>
+</form>
+
+          <a href="/app/equipe/">Equipe e acessos</a>
+          
+          <form action="/sair/" method="post"><input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W"><button type="submit">Sair</button></form>
+        </div>
+      </div>
+      </div>
+      <div class="workspace-menu-row">
+        <button class="workspace-menu-toggle" type="button" aria-expanded="false" aria-controls="workspace-navigation" data-workspace-toggle><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Menu</button>
+        <nav class="workspace-navigation" id="workspace-navigation" aria-label="Navegação principal">
+  <a class="topnav-link" href="/app/">Visão geral</a>
+  
+  <details class="topnav-group" data-workspace-menu>
+    <summary>Operação<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>
+    <div class="topnav-panel">
+      <p class="topnav-caption">Operação</p>
+      <a href="/app/atividades/"><strong>Atividades</strong><span>Prazos, evidências e fechamentos da sua carteira</span></a>
+    </div>
+  </details>
+  
+  <details class="topnav-group" data-workspace-menu>
+    <summary>Cadastros<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>
+    <div class="topnav-panel">
+      <p class="topnav-caption">Cadastros</p>
+      <a href="/app/empresas/"><strong>Empresas</strong><span>Carteira e dados de cada empresa</span></a><a href="/app/certificados/"><strong>Certificados</strong><span>Validade e acesso por empresa</span></a>
+    </div>
+  </details>
+  
+  <details class="topnav-group is-current" data-workspace-menu>
+    <summary>Fiscal<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>
+    <div class="topnav-panel">
+      <p class="topnav-caption">Fiscal</p>
+      <a href="/app/nfse/" aria-current="page"><strong>NFS-e</strong><span>Notas, revisões e coleta automática</span></a>
+    </div>
+  </details>
+  
+  <details class="topnav-group" data-workspace-menu>
+    <summary>Configurações<svg aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></summary>
+    <div class="topnav-panel">
+      <p class="topnav-caption">Configurações</p>
+      <a href="/app/configuracoes/"><strong>Integrações</strong><span>Conexões e configuração do escritório</span></a><a href="/app/configuracoes/#consumo"><strong>Consumo e contrato</strong><span>Franquias, limites e contratação</span></a><a href="/app/equipe/"><strong>Equipe e acessos</strong><span>Pessoas e permissões</span></a><a href="/app/atividades/modelos/"><strong>Modelos de atividades</strong><span>Regras, responsáveis e prazos da central operacional</span></a><a href="/app/configuracao/"><strong>Primeiros passos</strong><span>Preparar o escritório para operar</span></a>
+    </div>
+  </details>
+  
+  
+</nav>
+
+      </div>
+    </header>
+    <main tabindex="-1" id="conteudo" class="work-area"><div class="page-header"><div><h1>NFS-e</h1></div></div>
+
+<div class="onboarding-help">
+  <button class="button button-quiet button-small" type="button" data-onboarding-open aria-haspopup="dialog">Como usar</button>
+</div>
+<dialog class="onboarding-dialog"
+        id="onboarding-nfse"
+        data-onboarding
+        data-onboarding-id="nfse"
+        data-onboarding-version="1"
+        data-onboarding-auto="false"
+        data-onboarding-session-only="false"
+        data-onboarding-url="/app/orientacao/nfse/concluir/"
+        aria-labelledby="onboarding-title-nfse">
+  <form method="dialog" class="onboarding-card">
+    <input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W">
+    <p class="section-kicker">ORIENTAÇÃO</p>
+    <h2 id="onboarding-title-nfse">NFS-e Inteligente</h2>
+    <ol class="onboarding-steps" aria-live="polite">
+      
+      <li data-onboarding-step="0">
+        <p class="onboarding-counter">Passo 1 de 3</p>
+        <h3>O que esta área faz</h3>
+        <p>Reúne as notas disponibilizadas à CICA, a fila de revisão e a coleta automática por empresa.</p>
+      </li>
+      
+      <li data-onboarding-step="1" hidden>
+        <p class="onboarding-counter">Passo 2 de 3</p>
+        <h3>Onde está o trabalho</h3>
+        <p>A aba Notas agrupa a carteira por empresa e mostra na própria linha o que ainda precisa de classificação.</p>
+      </li>
+      
+      <li data-onboarding-step="2" hidden>
+        <p class="onboarding-counter">Passo 3 de 3</p>
+        <h3>Como concluir</h3>
+        <p>Expanda a empresa, escolha o acumulador na nota e use “Classificar”. Depois, baixe o ZIP da nota ou da empresa na mesma tela.</p>
+      </li>
+      
+    </ol>
+    <div class="onboarding-actions">
+      <button class="button button-quiet button-small" type="button" data-onboarding-skip>Pular</button>
+      <button class="button button-quiet button-small" type="button" data-onboarding-back hidden>Voltar</button>
+      <button class="button button-small" type="button" data-onboarding-next autofocus>Avançar</button>
+      <button class="button button-small" type="button" data-onboarding-done hidden>Entendi</button>
+      <button class="icon-control onboarding-close" type="button" data-onboarding-close aria-label="Fechar orientação">×</button>
+    </div>
+  </form>
+</dialog>
+
+<nav class="workspace-tabs" aria-label="NFS-e">
+  <a href="/app/nfse/" aria-current="page">Notas</a>
+  <a href="/app/nfse/?view=catalog">Acumuladores</a>
+  <a href="/app/nfse/?view=exports">Exportações</a>
+  <a href="/app/nfse/?view=collection">Coleta automática</a>
+</nav>
+
+
+<section class="metric-strip" aria-label="Resumo da NFS-e do escritório">
+  <article><span>Total no período</span><strong>8</strong><a href="?status=all">Ver todas</a></article>
+  <article><span>Saídas · prestados</span><strong>4</strong><a href="?status=all&amp;direction=provided">Ver saídas</a></article>
+  <article><span>Entradas · tomados</span><strong>4</strong><a href="?status=all&amp;direction=taken">Ver entradas</a></article>
+  <article class="metric-needs-attention"><span>Exigem atenção</span><strong>8</strong><a href="?status=unclassified">Classificar</a></article>
+</section>
+
+<section class="workspace-panel nfse-workspace">
+  <header class="workspace-panel-head">
+    <div><p class="section-kicker">CONFERÊNCIA FISCAL</p><h2>Notas de serviço</h2><p>Veja o movimento, a contraparte, os valores e as retenções antes de classificar ou baixar.</p></div>
+    <a class="button nfse-download-shortcut" href="#nfse-bulk-download">Baixar notas em lote</a>
+    <span class="record-count" id="nfse-results-count" role="status">8 resultados</span>
+  </header>
+  <form class="workspace-filter-form nfse-filter-form" method="get" aria-label="Pesquisar e filtrar NFS-e" data-live-filter="#nfse-results" data-live-filter-count="#nfse-results-count">
+    
+    <div class="workspace-filter-search"><label for="nfse-search">Empresa, código Domínio ou número da nota</label><input id="nfse-search" type="search" name="q" maxlength="100" value="" autocomplete="off" placeholder="Ex.: Padaria, 0101 ou nota 123…"></div>
+    <div><label for="nfse-status">Situação</label><select id="nfse-status" name="status" autocomplete="off"><option value="all" selected>Todas</option><option value="classified">Classificadas</option><option value="unclassified">Não classificadas</option></select></div>
+    <div><label for="nfse-direction">Movimento</label><select id="nfse-direction" name="direction" autocomplete="off"><option value="all" selected>Todos</option><option value="provided">Saídas · serviços prestados</option><option value="taken">Entradas · serviços tomados</option><option value="unknown">Tipo a confirmar</option></select></div>
+    <div class="nfse-filter-mode" data-nfse-filter-mode><label for="nfse-date-filter">Filtrar período por</label><select id="nfse-date-filter" name="date_filter" data-nfse-filter-option><option value="competence" selected>Competência</option><option value="issued">Data de emissão</option></select></div>
+    <div class="nfse-competence-picker" data-nfse-filter-panel="competence">
+      <div><label for="nfse-competence-month">Mês de competência</label><select id="nfse-competence-month" name="competence_month" autocomplete="off"><option value="">Todos os meses</option><option value="01">Janeiro</option><option value="02">Fevereiro</option><option value="03">Março</option><option value="04">Abril</option><option value="05">Maio</option><option value="06">Junho</option><option value="07">Julho</option><option value="08">Agosto</option><option value="09">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
+      <div><label for="nfse-competence-year">Ano</label><input id="nfse-competence-year" name="competence_year" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" value="2026" autocomplete="off" aria-label="Ano de competência"></div>
+    </div>
+    <div class="nfse-issued-range" data-nfse-filter-panel="issued" hidden>
+      <div><label for="nfse-issued-from">Emissão de</label><input id="nfse-issued-from" type="text" inputmode="numeric" name="issued_from" value="" placeholder="DD/MM/AAAA…" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-help nfse-date-error"></div>
+      <div><label for="nfse-issued-to">Emissão até</label><input id="nfse-issued-to" type="text" inputmode="numeric" name="issued_to" value="" placeholder="DD/MM/AAAA…" autocomplete="off" maxlength="10" data-nfse-date aria-describedby="nfse-date-help nfse-date-error"></div>
+      <div class="nfse-date-shortcuts"><button type="button" data-nfse-period="current">Este mês</button><button type="button" data-nfse-period="previous">Mês anterior</button><button type="button" data-nfse-period="clear">Limpar datas</button></div>
+      <small id="nfse-date-help" class="nfse-date-help sr-only">Digite dia, mês e ano. Ex.: 01/09/2026.</small>
+      <small id="nfse-date-error" class="nfse-date-error" role="status" aria-live="polite"></small>
+    </div>
+    <div class="nfse-filter-actions"><button class="button button-small" type="submit" data-live-filter-submit>Pesquisar carteira</button>
+    <a class="button button-quiet button-small" href="/app/nfse/?status=all" data-live-filter-clear hidden>Limpar filtros</a>
+    </div>
+  </form>
+  
+  <section class="nfse-retention-report" aria-labelledby="nfse-retention-report-title">
+    <div>
+      <p class="section-kicker">RETENÇÕES DO RECORTE</p>
+      <h3 id="nfse-retention-report-title">Relatório para conferência fiscal</h3>
+      <p>Inclui as 8 notas do filtro atual, separa entradas e saídas e detalha ISS, PIS, COFINS, CSLL, IRRF, INSS e total retido.</p>
+    </div>
+    <form method="post" class="nfse-retention-report-actions">
+      <input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W">
+      <input type="hidden" name="report_q" value="">
+      <input type="hidden" name="report_status" value="all">
+      <input type="hidden" name="report_direction" value="all">
+      <input type="hidden" name="report_date_filter" value="competence">
+      <input type="hidden" name="report_competence" value="">
+      <input type="hidden" name="report_issued_from" value="">
+      <input type="hidden" name="report_issued_to" value="">
+      <button class="button button-small" type="submit" name="action" value="retention_report_pdf">Baixar PDF</button>
+      <button class="button button-quiet button-small" type="submit" name="action" value="retention_report_xlsx">Baixar Excel</button>
+    </form>
+  </section>
+  
+  <div id="nfse-results">
+  
+  <div class="nfse-download-intro" id="nfse-bulk-download" tabindex="-1">
+    <h3>Baixar notas em lote</h3>
+    <p>Nenhuma nota classificada está disponível neste filtro. Classifique as notas abaixo ou altere os filtros para preparar o download.</p>
+  </div>
+  
+  
+    <form method="post" data-nfse-download-form><input type="hidden" name="csrfmiddlewaretoken" value="yfGiEMPfEU5PEF1gBHsfofNoYOkOAZ7E4IQOUK345sTK1dn3zcGf2IpAq1v4pt0W">
+      <input type="hidden" name="export_q" value=""><input type="hidden" name="export_direction" value="all"><input type="hidden" name="export_date_filter" value="competence"><input type="hidden" name="export_competence" value=""><input type="hidden" name="export_issued_from" value=""><input type="hidden" name="export_issued_to" value="">
+      <div class="bulk-toolbar" aria-label="Seleção e download em lote">
+        <div class="nfse-bulk-choices">
+          <label class="checkbox-field"><input type="checkbox" data-nfse-download-select-all>Selecionar classificadas desta página</label>
+          
+        </div>
+        <span class="nfse-selection-summary" role="status" aria-live="polite" aria-atomic="true" data-nfse-download-selection-count>Nenhuma nota selecionada.</span>
+        <div class="bulk-actions" data-nfse-download-actions><button class="button button-small" type="submit" name="action" value="export_dominio_xml" data-nfse-download-submit disabled>Baixar selecionadas (ZIP)</button></div>
+        <small class="nfse-export-disclaimer">Inclui XMLs e manifesto com os acumuladores. O layout importável do Domínio ainda depende da homologação técnica.</small>
+      </div>
+    <div class="nfse-company-groups">
+      <details class="nfse-company-group" open>
+        <summary><span><strong>Cl??nica Cont??bil Modelo</strong><small>Domínio 0103</small></span><span class="nfse-company-summary"><b>4 notas</b></span></summary>
+        
+        <div class="data-table-wrap"><table class="operational-table nfse-download-table">
+          <thead><tr><th scope="col"><span class="sr-only">Selecionar</span></th><th scope="col">Nota e movimento</th><th scope="col">Emissão / competência</th><th scope="col">Contraparte e serviço</th><th scope="col">Valores e retenções</th><th scope="col">Situação</th><th scope="col">Acumulador</th></tr></thead>
+          <tbody><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1000</strong><span class="nfse-direction nfse-direction-provided"><b>Saída</b><small>Serviço prestado</small></span></td>
+            <td data-label="Emissão / competência"><strong>01/10/2026</strong><small>Competência 10/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Tomador: Cliente Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.000,00</strong><small>Sem retenção informada</small></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1001</strong><span class="nfse-direction nfse-direction-taken"><b>Entrada</b><small>Serviço tomado</small></span></td>
+            <td data-label="Emissão / competência"><strong>30/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Prestador: Fornecedor Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.125,50</strong><details class="nfse-retentions"><summary>R$ 130,60 retidos</summary><dl><div><dt>ISS</dt><dd>R$ 24,03</dd></div><div><dt>PIS</dt><dd>R$ 6,50</dd></div><div><dt>COFINS</dt><dd>R$ 30,00</dd></div><div><dt>CSLL</dt><dd>R$ 10,00</dd></div><div><dt>IRRF</dt><dd>R$ 7,20</dd></div><div><dt>INSS</dt><dd>R$ 52,87</dd></div></dl></details></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1002</strong><span class="nfse-direction nfse-direction-provided"><b>Saída</b><small>Serviço prestado</small></span></td>
+            <td data-label="Emissão / competência"><strong>29/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Tomador: Cliente Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.251,00</strong><small>Sem retenção informada</small></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1003</strong><span class="nfse-direction nfse-direction-taken"><b>Entrada</b><small>Serviço tomado</small></span></td>
+            <td data-label="Emissão / competência"><strong>28/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Prestador: Fornecedor Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.376,50</strong><details class="nfse-retentions"><summary>R$ 130,60 retidos</summary><dl><div><dt>ISS</dt><dd>R$ 24,03</dd></div><div><dt>PIS</dt><dd>R$ 6,50</dd></div><div><dt>COFINS</dt><dd>R$ 30,00</dd></div><div><dt>CSLL</dt><dd>R$ 10,00</dd></div><div><dt>IRRF</dt><dd>R$ 7,20</dd></div><div><dt>INSS</dt><dd>R$ 52,87</dd></div></dl></details></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr></tbody>
+        </table></div>
+      </details><details class="nfse-company-group">
+        <summary><span><strong>Transportes Modelo Ltda</strong><small>Domínio 0102</small></span><span class="nfse-company-summary"><b>4 notas</b></span></summary>
+        
+        <div class="data-table-wrap"><table class="operational-table nfse-download-table">
+          <thead><tr><th scope="col"><span class="sr-only">Selecionar</span></th><th scope="col">Nota e movimento</th><th scope="col">Emissão / competência</th><th scope="col">Contraparte e serviço</th><th scope="col">Valores e retenções</th><th scope="col">Situação</th><th scope="col">Acumulador</th></tr></thead>
+          <tbody><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1004</strong><span class="nfse-direction nfse-direction-provided"><b>Saída</b><small>Serviço prestado</small></span></td>
+            <td data-label="Emissão / competência"><strong>27/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Tomador: Cliente Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.502,00</strong><small>Sem retenção informada</small></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1005</strong><span class="nfse-direction nfse-direction-taken"><b>Entrada</b><small>Serviço tomado</small></span></td>
+            <td data-label="Emissão / competência"><strong>26/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Prestador: Fornecedor Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.627,50</strong><details class="nfse-retentions"><summary>R$ 130,60 retidos</summary><dl><div><dt>ISS</dt><dd>R$ 24,03</dd></div><div><dt>PIS</dt><dd>R$ 6,50</dd></div><div><dt>COFINS</dt><dd>R$ 30,00</dd></div><div><dt>CSLL</dt><dd>R$ 10,00</dd></div><div><dt>IRRF</dt><dd>R$ 7,20</dd></div><div><dt>INSS</dt><dd>R$ 52,87</dd></div></dl></details></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1006</strong><span class="nfse-direction nfse-direction-provided"><b>Saída</b><small>Serviço prestado</small></span></td>
+            <td data-label="Emissão / competência"><strong>25/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Tomador: Cliente Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.753,00</strong><small>Sem retenção informada</small></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr><tr>
+            <td data-label="Selecionar"><span class="table-muted">Classifique antes</span></td>
+            <td data-label="Nota e movimento"><strong>NF-1007</strong><span class="nfse-direction nfse-direction-taken"><b>Entrada</b><small>Serviço tomado</small></span></td>
+            <td data-label="Emissão / competência"><strong>24/09/2026</strong><small>Competência 09/2026</small></td>
+            <td data-label="Contraparte e serviço"><strong>Prestador: Fornecedor Modelo</strong><small>1401 · Assessoria contábil mensal</small></td>
+            <td data-label="Valores e retenções"><strong>R$ 1.878,50</strong><details class="nfse-retentions"><summary>R$ 130,60 retidos</summary><dl><div><dt>ISS</dt><dd>R$ 24,03</dd></div><div><dt>PIS</dt><dd>R$ 6,50</dd></div><div><dt>COFINS</dt><dd>R$ 30,00</dd></div><div><dt>CSLL</dt><dd>R$ 10,00</dd></div><div><dt>IRRF</dt><dd>R$ 7,20</dd></div><div><dt>INSS</dt><dd>R$ 52,87</dd></div></dl></details></td>
+            <td data-label="Situação"><span class="nfse-status nfse-status-muted">Não classificada</span></td>
+            <td data-label="Acumulador"><span class="table-muted">Aguardando classificação automática.</span></td>
+          </tr></tbody>
+        </table></div>
+      </details>
+    </div></form>
+    
+    
+    
+    
+  
+  </div>
+</section>
+
+</main>
+  </section>
+</div><script src="/static/hub/workspace.js?v=4" defer></script><script src="/static/hub/onboarding.js?v=5" defer></script><script src="/static/hub/hub.js?v=cica-nfse-collection-35" defer></script>
+
+</body>
+</html>

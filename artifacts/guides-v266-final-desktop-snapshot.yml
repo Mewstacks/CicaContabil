@@ -1,0 +1,77 @@
+- generic [active] [ref=f15e1]:
+  - link "Pular para o conteúdo" [ref=f15e2] [cursor=pointer]:
+    - /url: "#conteudo"
+  - generic [ref=f15e4]:
+    - generic [ref=f15e5]:
+      - generic [ref=f15e6]:
+        - link "CICA, visão geral" [ref=f15e7] [cursor=pointer]:
+          - /url: /app/
+          - generic [ref=f15e9]: CICA
+        - 'button "Trocar escritório: Escritório QA — carteira extensa e nomes longos para validação de interface" [ref=f15e11] [cursor=pointer]':
+          - generic [ref=f15e12]:
+            - generic [ref=f15e13]: Escritório
+            - generic [ref=f15e14]: Escritório QA — carteira extensa e nomes longos para validação de interface
+        - button "Abrir menu da conta" [ref=f15e16] [cursor=pointer]:
+          - generic [aria-hidden] [ref=f15e17]: O
+      - button "Menu" [ref=f15e20] [cursor=pointer]
+    - main [ref=f15e23]:
+      - generic [ref=f15e24]:
+        - heading "Guias e DCTFWeb" [level=1] [ref=f15e26]
+        - link "Voltar à Central Integra" [ref=f15e27] [cursor=pointer]:
+          - /url: /app/integra-contador/
+      - button "Como usar" [ref=f15e29] [cursor=pointer]
+      - paragraph [ref=f15e30]: Confira a DCTFWeb, emita o DARF e acompanhe cada tentativa nesta carteira.
+      - status [ref=f15e31]: "Fonte Domínio: ODBC interno · leitura solicitada ao abrir a carteira. 240 empresas ativas no cadastro CICA."
+      - region "Resumo de obrigações" [ref=f15e32]:
+        - article [ref=f15e33]:
+          - generic [ref=f15e34]: Apurações no Domínio
+          - strong [ref=f15e35]: "2.945"
+          - generic [ref=f15e36]: 240 empresas nos filtros
+        - article [ref=f15e37]:
+          - generic [ref=f15e38]: Guias a resolver
+          - strong [ref=f15e39]: "0"
+          - generic [ref=f15e40]: Aguardando conferência DCTFWeb
+        - article [ref=f15e41]:
+          - generic [ref=f15e42]: Emitidas
+          - strong [ref=f15e43]: —
+          - generic [ref=f15e44]: Sem registros no sistema
+      - region [ref=f15e45]:
+        - heading "Filtrar carteira" [level=2] [ref=f15e47]
+        - form "Pesquisar e filtrar guias" [ref=f15e48]:
+          - generic [ref=f15e49]:
+            - generic [ref=f15e50]: Empresa ou competência
+            - searchbox "Empresa ou competência" [ref=f15e51]
+          - generic [ref=f15e52]:
+            - generic [ref=f15e53]: Situação
+            - combobox "Situação" [ref=f15e54]
+          - generic [ref=f15e55]:
+            - generic [ref=f15e56]: Vencimento
+            - combobox "Vencimento" [ref=f15e57]
+          - button "Filtrar" [ref=f15e58] [cursor=pointer]
+      - region [ref=f15e59]:
+        - generic [ref=f15e60]:
+          - paragraph [ref=f15e61]: PRÓXIMO PASSO
+          - heading "Consulte a DCTFWeb antes de emitir" [level=2] [ref=f15e62]
+          - paragraph [ref=f15e63]: Selecione abaixo uma empresa ou monte um lote. A guia oficial aparecerá aqui depois da conferência.
+        - link "Ir para as apurações" [ref=f15e64] [cursor=pointer]:
+          - /url: "#dominio-calculations-heading"
+      - region "Apurações do Domínio" [ref=f15e65]:
+        - generic [ref=f15e66]:
+          - generic [ref=f15e67]:
+            - paragraph [ref=f15e68]: APURAÇÃO LOCAL
+            - heading "Apurações do Domínio" [level=2] [ref=f15e69]
+            - paragraph [ref=f15e70]: Valores estimados. Confirme na DCTFWeb.
+          - generic [ref=f15e71]: 2.945 competências
+        - generic [ref=f15e72]:
+          - paragraph [ref=f15e73]: Consulte até 30 empresas e competências por lote. Selecione nesta página, escolha o documento e revise o custo antes de autorizar. A seleção não acompanha a troca de página.
+          - generic "Ações em lote" [ref=f15e74]:
+            - generic [ref=f15e75] [cursor=pointer]
+            - status [ref=f15e77]: Nenhuma selecionada. Marque as linhas abaixo.
+            - generic [ref=f15e78]
+          - table [ref=f15e83]:
+            - rowgroup [ref=f15e84]
+            - rowgroup [ref=f15e94]
+        - navigation "Páginas de apurações" [ref=f15e515]:
+          - generic [ref=f15e516]: 1–30 de 2.945
+          - link "Próxima" [ref=f15e517] [cursor=pointer]:
+            - /url: "?q=&status=pending&due=all&apuracao_pagina=2#dominio-calculations-heading"

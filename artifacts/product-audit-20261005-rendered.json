@@ -1,0 +1,387 @@
+{
+  "date": "2026-10-05",
+  "base": "http://127.0.0.1:8055",
+  "environment": "isolated synthetic QA; outbound socket connections blocked",
+  "scope": "render and overflow sweep, not end-to-end homologation",
+  "screens": [
+    {
+      "path": "/app/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Meu trabalho · CICA"
+    },
+    {
+      "path": "/app/?view=portfolio",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Carteira de trabalho · CICA"
+    },
+    {
+      "path": "/app/?view=management",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Gestão da operação · CICA"
+    },
+    {
+      "path": "/app/atividades/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Atividades do escritório · CICA"
+    },
+    {
+      "path": "/app/atividades/modelos/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Modelos de atividades · CICA"
+    },
+    {
+      "path": "/app/empresas/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Empresas · CICA"
+    },
+    {
+      "path": "/app/certificados/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Certificados · CICA"
+    },
+    {
+      "path": "/app/nfse/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Notas · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=catalog",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Acumuladores · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=exports",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Exportações · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=collection",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Coleta automática · CICA"
+    },
+    {
+      "path": "/app/guias/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Guias e DCTFWeb · CICA"
+    },
+    {
+      "path": "/app/integra-contador/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Central Integra Contador · CICA"
+    },
+    {
+      "path": "/app/integra-contador/dte/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Caixa Postal DTE · CICA"
+    },
+    {
+      "path": "/app/integra-contador/parcelamentos/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Parcelamentos · CICA"
+    },
+    {
+      "path": "/app/conciliacao/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Conciliação OFX x Domínio · CICA"
+    },
+    {
+      "path": "/app/conciliacao/configuracao/",
+      "width": 1440,
+      "status": 403,
+      "overflow": false,
+      "title": "Ação indisponível — CICA"
+    },
+    {
+      "path": "/app/conciliacao/auditoria/",
+      "width": 1440,
+      "status": 403,
+      "overflow": false,
+      "title": "Ação indisponível — CICA"
+    },
+    {
+      "path": "/app/radar-reforma/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Radar da Reforma Tributária · CICA"
+    },
+    {
+      "path": "/app/triagem/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Triagem de Arquivos · CICA"
+    },
+    {
+      "path": "/app/triagem/caixas/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Caixas de e-mail da Triagem · CICA"
+    },
+    {
+      "path": "/app/configuracao/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Primeiros passos · CICA"
+    },
+    {
+      "path": "/app/configuracoes/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Integrações · CICA"
+    },
+    {
+      "path": "/app/equipe/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Equipe e acessos · CICA"
+    },
+    {
+      "path": "/app/ia/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Copiloto CICA · CICA"
+    },
+    {
+      "path": "/app/ia/aprendizado/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Central de aprendizado · CICA"
+    },
+    {
+      "path": "/app/configuracao/mapa-dre/",
+      "width": 1440,
+      "status": 200,
+      "overflow": false,
+      "title": "Mapa DRE | CICA"
+    },
+    {
+      "path": "/app/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Meu trabalho · CICA"
+    },
+    {
+      "path": "/app/?view=portfolio",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Carteira de trabalho · CICA"
+    },
+    {
+      "path": "/app/?view=management",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Gestão da operação · CICA"
+    },
+    {
+      "path": "/app/atividades/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Atividades do escritório · CICA"
+    },
+    {
+      "path": "/app/atividades/modelos/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Modelos de atividades · CICA"
+    },
+    {
+      "path": "/app/empresas/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Empresas · CICA"
+    },
+    {
+      "path": "/app/certificados/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Certificados · CICA"
+    },
+    {
+      "path": "/app/nfse/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Notas · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=catalog",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Acumuladores · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=exports",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Exportações · CICA"
+    },
+    {
+      "path": "/app/nfse/?view=collection",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "NFS-e · Coleta automática · CICA"
+    },
+    {
+      "path": "/app/guias/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Guias e DCTFWeb · CICA"
+    },
+    {
+      "path": "/app/integra-contador/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Central Integra Contador · CICA"
+    },
+    {
+      "path": "/app/integra-contador/dte/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Caixa Postal DTE · CICA"
+    },
+    {
+      "path": "/app/integra-contador/parcelamentos/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Parcelamentos · CICA"
+    },
+    {
+      "path": "/app/conciliacao/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Conciliação OFX x Domínio · CICA"
+    },
+    {
+      "path": "/app/conciliacao/configuracao/",
+      "width": 390,
+      "status": 403,
+      "overflow": false,
+      "title": "Ação indisponível — CICA"
+    },
+    {
+      "path": "/app/conciliacao/auditoria/",
+      "width": 390,
+      "status": 403,
+      "overflow": false,
+      "title": "Ação indisponível — CICA"
+    },
+    {
+      "path": "/app/radar-reforma/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Radar da Reforma Tributária · CICA"
+    },
+    {
+      "path": "/app/triagem/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Triagem de Arquivos · CICA"
+    },
+    {
+      "path": "/app/triagem/caixas/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Caixas de e-mail da Triagem · CICA"
+    },
+    {
+      "path": "/app/configuracao/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Primeiros passos · CICA"
+    },
+    {
+      "path": "/app/configuracoes/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Integrações · CICA"
+    },
+    {
+      "path": "/app/equipe/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Equipe e acessos · CICA"
+    },
+    {
+      "path": "/app/ia/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Copiloto CICA · CICA"
+    },
+    {
+      "path": "/app/ia/aprendizado/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Central de aprendizado · CICA"
+    },
+    {
+      "path": "/app/configuracao/mapa-dre/",
+      "width": 390,
+      "status": 200,
+      "overflow": false,
+      "title": "Mapa DRE | CICA"
+    }
+  ],
+  "jsErrors": []
+}
