@@ -464,6 +464,8 @@ def _save_messages(*, item: DteRunItem, payload: dict[str, Any]) -> int:
 def dispatch_dte_run(run_id: str) -> None:
     """Run one approved Caixa Postal batch against the centrally contracted API."""
 
+    from apps.hub.integra_access import can_execute_company_operation
+
     with transaction.atomic():
         run = DteRun.objects.select_for_update().filter(id=run_id).first()
         if run is None or run.status != DteRun.Status.QUEUED:
@@ -493,6 +495,31 @@ def dispatch_dte_run(run_id: str) -> None:
                 idempotency_key=f"dte-run-item:{item.id}:caixapostal"
             ).first()
         if usage is None:
+            failed += 1
+            continue
+        if not can_execute_company_operation(
+            organization_id=run.organization_id,
+            company_id=item.company_id,
+            actor_id=run.requested_by_id,
+            module_code=ProductModule.Code.INTEGRA,
+        ):
+            _settle_provider_usage(event=usage, provider_http_status=403, billable=False)
+            item.status = DteRunItem.Status.FAILED
+            item.error_code = "authorization_revoked"
+            item.error_message = (
+                "A autorização atual não permite consultar esta empresa "
+                "pela Integra."
+            )
+            item.completed_at = timezone.now()
+            item.save(
+                update_fields=[
+                    "status",
+                    "error_code",
+                    "error_message",
+                    "completed_at",
+                    "updated_at",
+                ]
+            )
             failed += 1
             continue
         if client is None:

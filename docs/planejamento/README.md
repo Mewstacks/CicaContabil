@@ -1,5 +1,8 @@
 ﻿# MemÃ³ria de planejamento da CICA
 
+**Revisão de 10/10/2026:** [auditoria de fluxos, controles e Serpro e plano de finalização](auditoria-fluxos-serpro-finalizacao-2026-10-10.md), com [inventário de controles](inventario-controles-2026-10-10.csv) e [rotas](inventario-rotas-2026-10-10.csv). D-295/V-294 prevalecem sobre estados históricos abaixo; a validação externa NFS-e foi aceita como concluída pelo responsável.
+
+
 ## Comece pelos arquivos da raiz
 
 - [PLANO-MESTRE.md](../../PLANO-MESTRE.md): plano Ãºnico aprovado e dependÃªncias.

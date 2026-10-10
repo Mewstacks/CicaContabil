@@ -9,7 +9,7 @@ import pytest
 from django.core.cache import cache
 
 from apps.integra.catalog import SERVICES, Verb, service
-from apps.integra.client import Credentials, IntegraClient
+from apps.integra.client import Credentials, IntegraClient, token_cache_key
 from apps.integra.envelope import Party
 from apps.integra.errors import (
     IntegraAuthenticationError,
@@ -86,6 +86,30 @@ def test_the_token_is_reused_until_it_is_close_to_expiring() -> None:
         call for call in transport.calls if call["url"].startswith("https://autenticacao")
     ]
     assert len(authentications) == 1
+
+
+def test_token_cache_isolated_by_credential_and_environment() -> None:
+    first_transport = RecordingTransport((200, TOKEN_RESPONSE))
+    first = IntegraClient(CREDENTIALS, transport=first_transport)
+    first.authenticate()
+
+    rotated = Credentials(
+        consumer_key=CREDENTIALS.consumer_key,
+        consumer_secret="rotated-secret",
+        certificate_path=CREDENTIALS.certificate_path,
+        certificate_password=CREDENTIALS.certificate_password,
+        contratante=CREDENTIALS.contratante,
+        autor_pedido=CREDENTIALS.autor_pedido,
+        environment="production",
+    )
+    second_transport = RecordingTransport(
+        (200, {**TOKEN_RESPONSE, "access_token": "rotated-access-token"})
+    )
+    second = IntegraClient(rotated, transport=second_transport)
+
+    assert token_cache_key(first.credentials) != token_cache_key(second.credentials)
+    assert second.authenticate().access_token == "rotated-access-token"
+    assert len(second_transport.calls) == 1
 
 
 def test_a_call_reaches_the_trial_gateway_with_the_documented_envelope() -> None:

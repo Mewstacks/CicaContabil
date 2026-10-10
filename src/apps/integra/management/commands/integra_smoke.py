@@ -17,6 +17,16 @@ class Command(BaseCommand):
         parser.add_argument("--service", default="dte.situacao", choices=sorted(SERVICES))
         parser.add_argument("--contribuinte", required=True, help="CPF or CNPJ, any punctuation")
         parser.add_argument("--dados", default="", help="JSON object for the service parameters")
+        parser.add_argument(
+            "--execute",
+            action="store_true",
+            help="Confirma a chamada externa. Sem esta opção, o comando somente mostra a prévia.",
+        )
+        parser.add_argument(
+            "--approve-billable-production",
+            action="store_true",
+            help="Confirma custo para serviço faturável no ambiente de produção.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         try:
@@ -33,6 +43,21 @@ class Command(BaseCommand):
         if spec.billable:
             self.stdout.write(
                 self.style.WARNING("Esta chamada é faturada pelo Serpro em produção.")
+            )
+        if not options["execute"]:
+            self.stdout.write(
+                self.style.WARNING(
+                    "Prévia concluída sem chamada externa. Use --execute para confirmar a execução."
+                )
+            )
+            return
+        if (
+            credentials.environment == "production"
+            and spec.billable
+            and not options["approve_billable_production"]
+        ):
+            raise CommandError(
+                "Serviço faturável em produção exige --approve-billable-production."
             )
 
         try:

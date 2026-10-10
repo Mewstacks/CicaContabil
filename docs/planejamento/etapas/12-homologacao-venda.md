@@ -1,8 +1,13 @@
 # Etapa 12 — Homologação integrada e liberação comercial
 
+**Acompanhamento 10/10/2026 — D-295/V-294:** consultar a [auditoria de fluxos e plano de finalização](../auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A etapa já tem publicações e validações parciais registradas abaixo; seu estado vigente é **em andamento, não concluída**. O responsável confirmou a validação externa NFS-e como concluída. Permanecem os gates de Serpro por operação, outras integrações, recuperação, operação e aceite por módulo.
+
+
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
 
-**Estado:** Não iniciada nesta execução.
+**Estado:** Em andamento nesta execução. As validações e publicações parciais registradas nesta
+etapa não constituem homologação integrada nem aceite de liberação; os itens pendentes abaixo
+continuam como gates de conclusão.
 
 **Dependências:** 01–11.
 

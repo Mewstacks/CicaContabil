@@ -238,6 +238,29 @@ def test_configuration_is_split_into_focused_deep_linked_sections(user):
     assert "Se??es" not in content
 
 
+def test_configuration_uses_distinct_control_ids_for_concurrent_copilot_forms(user):
+    PlatformAccess.objects.create(user=user, role="developer", mfa_required=False)
+    PlatformConfiguration.objects.update_or_create(
+        key="default",
+        defaults={
+            "local_llm_endpoint": "http://runtime.mewstack.test",
+            "local_llm_model": "qwen-local",
+            "copilot_available_for_offices": True,
+        },
+    )
+    client = Client()
+    client.force_login(user)
+
+    response = client.get("/platform/configuracoes/")
+
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert content.count('id="id_trial_trial_ai_included_requests"') == 1
+    assert content.count('id="id_copilot_trial_ai_included_requests"') == 1
+    assert 'for="id_trial_trial_ai_included_requests"' in content
+    assert 'for="id_copilot_trial_ai_included_requests"' in content
+
+
 def test_developer_syncs_verified_provider_registry(user, monkeypatch):
     PlatformAccess.objects.create(user=user, role="developer")
     client = Client()

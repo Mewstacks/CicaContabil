@@ -2377,3 +2377,33 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Fonte: plano vigente, decisões, validações, etapas e rotas; nenhuma regra ou homologação foi criada.
 - README e checklist da etapa 00 atualizados. Links locais e diff conferidos em V-293.
 - Próximo uso: QA escolhe release/ambiente e executa os casos pertinentes; estados externos continuam abertos.
+
+## 10/10/2026 — revisão de fluxos e plano de finalização (D-295/V-294)
+
+- Responsável confirmou a validação externa NFS-e como concluída; a informação foi aceita sem nova exigência de comprovante ou repetição.
+- Inventariadas 366 rotas e 1.216 controles; mapeadas as 19 operações do catálogo Serpro. Inspeção estática apontou a revalidação de acesso no worker DTE e o escopo da chave de cache OAuth como investigações prioritárias.
+- Suíte local: 1.376 aprovados, 6 ignorados, 4 erros ambientais de setup; os arquivos envolvidos passaram com `--basetemp` (6 testes). Sem chamada externa, execução botão a botão, inspeção renderizada ou deploy.
+- Plano por família, controles, operação Serpro e gate de liberação registrado em `auditoria-fluxos-serpro-finalizacao-2026-10-10.md`; etapas 11/12 continuam abertas.
+
+## 10/10/2026 — Proteções Serpro locais (D-296/D-297, V-295)
+
+- Worker DTE agora revalida autorização atual por item antes da consulta e libera a reserva sem faturamento se o solicitante perdeu acesso. O teste de revogação confirmou que não há chamada ao cliente.
+- Token OAuth foi isolado por identidade criptográfica de credencial/ambiente/contratante/certificado, sem segredo na chave de cache; teste cobriu duas identidades.
+- 38 testes DTE/Integra, Ruff, MyPy e `git diff --check` passaram. Não houve chamada Serpro, consumo, deploy ou homologação externa.
+
+## 10/10/2026 — Smoke Serpro com confirmação (D-298, V-296)
+
+- `integra_smoke` virou prévia sem rede por padrão. Execução exige `--execute`; produção faturável exige confirmação adicional de custo.
+- Testes de prévia, bloqueio e execução explícita passaram dentro da bateria Serpro/DTE de 41 testes. Nenhuma chamada externa foi feita.
+
+## 10/10/2026 — regressão completa após proteções Serpro (V-297)
+
+- 1.385 testes e 145 subtestes passaram em 184,02 s com temporário dentro do repositório.
+- Seis testes foram ignorados por dependências declaradas de Playwright Python ou concorrência PostgreSQL; não foram tratados como aprovados.
+- Próxima frente do goal: executar a matriz renderizada de rotas, controles, papéis e estados, com evidência por ação aplicável.
+
+## 10/10/2026 — tentativa de QA renderizado (V-298)
+
+- Aplicados ui-ux-pro-max e Web Interface Guidelines à revisão; Watermelon não retornou referência para dashboard/tabela.
+- Navegador integrado indisponível e módulo Node Playwright ausente. Os scripts locais de QA sintético foram localizados, mas não executados.
+- Verificação estática não encontrou os anti-padrões pesquisados. A matriz renderizada por botão, papel, estado e viewport continua pendente e não foi declarada validada.

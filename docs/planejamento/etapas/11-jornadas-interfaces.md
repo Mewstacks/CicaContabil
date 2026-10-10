@@ -1,5 +1,7 @@
 ## Revisão de produto em 05/10/2026 — D-275/V-275
 
+**Acompanhamento 10/10/2026 — D-295/V-294:** [inventário e protocolo de revisão de todos os controles](../auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A enumeração estática foi feita; a execução botão a botão por papel, estado e viewport permanece aberta. O checklist abaixo só se encerra após registrar resultado e reteste por controle aplicável.
+
 A [auditoria de produto](../auditoria-produto-2026-10-05.md) revisa funcionalidades, propósito
 das telas e comparação online. O plano mestre contém os pacotes PC correspondentes. Nenhum gap
 foi implementado nesta entrega de análise; a etapa 11 continua aberta.

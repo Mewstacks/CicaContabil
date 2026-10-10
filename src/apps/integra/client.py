@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import json
 import os
 import ssl
@@ -44,7 +45,7 @@ MAX_RESPONSE_BYTES = 4_000_000
 # The store reports expires_in around 2008 seconds. Retire the token early so a call is
 # never dispatched against one that expires in flight.
 TOKEN_SAFETY_MARGIN_SECONDS = 120
-TOKEN_CACHE_KEY = "integra:token"  # noqa: S105 - a cache key, not a credential
+TOKEN_CACHE_KEY_PREFIX = "integra:token"  # noqa: S105 - cache namespace, not a credential
 
 
 @dataclass(frozen=True)
@@ -100,6 +101,27 @@ class Credentials:
             raise IntegraConfigurationError(
                 f"INTEGRA_ENVIRONMENT deve ser 'trial' ou 'production'; got {self.environment!r}."
             ) from exc
+
+
+def token_cache_key(credentials: Credentials) -> str:
+    """Return a non-secret cache namespace for one Serpro client identity."""
+
+    certificate_identity = (
+        hashlib.sha256(credentials.certificate_blob).hexdigest()
+        if credentials.certificate_blob is not None
+        else str(credentials.certificate_path)
+    )
+    identity = "\x00".join(
+        (
+            credentials.environment,
+            credentials.consumer_key,
+            credentials.consumer_secret,
+            credentials.contratante,
+            certificate_identity,
+        )
+    )
+    fingerprint = hashlib.sha256(identity.encode()).hexdigest()
+    return f"{TOKEN_CACHE_KEY_PREFIX}:{fingerprint}"
 
 
 def credentials_from_settings() -> Credentials:
@@ -220,8 +242,9 @@ class IntegraClient:
         return self._ssl_context
 
     def authenticate(self, *, force: bool = False) -> Token:
+        cache_key = token_cache_key(self.credentials)
         if not force:
-            cached = cache.get(TOKEN_CACHE_KEY)
+            cached = cache.get(cache_key)
             if isinstance(cached, dict):
                 return Token(cached["access_token"], cached["jwt_token"])
 
@@ -246,7 +269,7 @@ class IntegraClient:
         ttl = max(expires_in - TOKEN_SAFETY_MARGIN_SECONDS, 0)
         if ttl:
             cache.set(
-                TOKEN_CACHE_KEY,
+                cache_key,
                 {"access_token": token.access_token, "jwt_token": token.jwt_token},
                 ttl,
             )

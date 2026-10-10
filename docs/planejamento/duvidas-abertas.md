@@ -1,4 +1,7 @@
 > **Leitura vigente após auditoria de 05/10/2026 (D-275/V-275):** os IDs abaixo permanecem
+
+> **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.
+
 > únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
 > D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
 > efetivo Integra: Q-01–06/D-79 não devem ser reabertas como escolhas nunca respondidas.

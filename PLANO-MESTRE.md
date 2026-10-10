@@ -1,5 +1,7 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Revisão de execução em 10/10/2026 (D-295/V-294):** [auditoria de fluxos, controles e Serpro com plano de finalização](docs/planejamento/auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A validação externa de importação NFS-e foi confirmada como concluída pelo responsável; PC-03/Q-39 não bloqueiam mais a sequência. As referências antigas a Q-39 abaixo são histórico. Os demais critérios NFS-e e os outros pacotes conservam seus gates próprios. F-01 (revalidação de acesso no worker DTE) precede chamadas externas adicionais.
+
 **Ponto de entrada vigente:** esta revisão organiza a conclusão do sistema a partir da auditoria
 solicitada em D-275. Preserva as etapas 00–13 e decisões anteriores aplicáveis. O conteúdo histórico
 abaixo continua como memória, mas seus estados datados não substituem este resumo reconciliado.

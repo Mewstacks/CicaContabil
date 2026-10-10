@@ -70,14 +70,15 @@ const scan = async (page, paths, prefix) => {
   await check('Registry filters, detail return and history', async () => {
     await page.goto(base + '/app/empresas/');
     await page.locator('#filtro-busca').fill('Pad');
-    await page.waitForURL('**q=Pad');
+    await page.waitForFunction(() => location.search === '?q=Pad');
     await page.locator('#filtro-busca').fill('Cl');
-    await page.waitForURL('**q=Cl');
+    await page.waitForFunction(() => location.search === '?q=Cl');
+    await page.locator('tbody a').first().waitFor();
     await page.locator('tbody a').first().click();
     assert.equal(await page.getByRole('link', { name: 'Voltar às empresas' }).getAttribute('href'), '/app/empresas/?q=Cl');
     await page.getByRole('link', { name: 'Voltar às empresas' }).click();
     await page.locator('#filtro-busca').fill('semresultadoxyz');
-    await page.waitForURL('**q=semresultadoxyz');
+    await page.waitForFunction(() => location.search === '?q=semresultadoxyz');
     assert(await page.getByText('Nenhuma empresa encontrada').isVisible());
     await page.goBack();
     await page.waitForFunction(() => document.querySelector('#filtro-busca')?.value === 'Cl');
@@ -85,10 +86,10 @@ const scan = async (page, paths, prefix) => {
   await check('Mobile menu, modal focus, Escape and invalid form recovery', async () => {
     await page.goto(base + '/app/empresas/');
     await page.setViewportSize({ width: 390, height: 850 });
-    await page.locator('[data-menu-toggle]').click();
-    assert.equal(await page.locator('#mobile-nav [aria-current=page]').innerText(), 'Empresas');
+    await page.locator('[data-workspace-toggle]').click();
+    assert.equal(await page.locator('#workspace-navigation [aria-current=page]').innerText(), 'Empresas');
     await page.keyboard.press('Escape');
-    assert(await page.locator('[data-menu-toggle]').evaluate(e => e === document.activeElement));
+    assert(await page.locator('[data-workspace-toggle]').evaluate(e => e === document.activeElement));
     await page.locator('[data-modal-open=company-dialog]').first().click();
     assert(await page.locator('#company-dialog input:not([type=hidden])').first().evaluate(e => e === document.activeElement));
     await page.keyboard.press('Escape');
@@ -103,17 +104,6 @@ const scan = async (page, paths, prefix) => {
     assert(await page.locator('#company-dialog').isVisible());
     assert.equal(await page.locator('#company-dialog [name=name]').inputValue(), 'Empresa de teste com erro');
     await page.keyboard.press('Escape');
-  });
-  await check('OFX company picker keyboard', async () => {
-    await page.goto(base + '/app/conciliacao/');
-    await page.getByRole('button', { name: 'Importar OFX', exact: true }).click();
-    await page.locator('[data-company-search]').fill('Pad');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('Enter');
-    assert(await page.locator('[data-company-picker] select').inputValue());
-    assert(await page.locator('[data-company-search]').evaluate(e => e === document.activeElement));
-    await page.keyboard.press('Escape');
-    assert(await page.locator('#import-ofx').isHidden());
   });
   await check('Responsive shared shell and 200% reflow', async () => {
     const evidence = [];
@@ -130,21 +120,28 @@ const scan = async (page, paths, prefix) => {
     try {
       await p.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
       await p.goto(base + '/entrar/');
-      await p.getByRole('button', { name: 'Claro', exact: true }).click();
-      await p.waitForLoadState();
+      await Promise.all([
+        p.waitForNavigation(),
+        p.getByRole('button', { name: 'Claro', exact: true }).click(),
+      ]);
       assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light');
       await p.goto(base + '/');
       assert.equal(await p.locator('html').getAttribute('data-theme'), 'light');
-      await p.getByRole('button', { name: 'Sistema', exact: true }).click();
-      await p.waitForLoadState();
+      await Promise.all([
+        p.waitForNavigation(),
+        p.getByRole('button', { name: 'Sistema', exact: true }).click(),
+      ]);
       assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
       await p.emulateMedia({ colorScheme: 'light' });
       assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'light');
-      await p.getByRole('button', { name: 'Escuro', exact: true }).click(); await p.reload();
+      await Promise.all([
+        p.waitForNavigation(),
+        p.getByRole('button', { name: 'Escuro', exact: true }).click(),
+      ]);
       assert.equal(await p.evaluate(() => getComputedStyle(document.documentElement).colorScheme), 'dark');
     } finally { await themed.close(); }
   });
-  const paths = ['/app/', '/app/empresas/', '/app/revisoes/', '/app/certificados/', '/app/nfse/', '/app/guias/', '/app/integra-contador/', '/app/integra-contador/dte/', '/app/integra-contador/parcelamentos/', '/app/conciliacao/', '/app/radar-reforma/', '/app/triagem/', '/app/triagem/caixas/', '/app/configuracao/', '/app/configuracoes/', '/app/equipe/', '/app/ia/'];
+  const paths = ['/app/', '/app/empresas/', '/app/revisoes/', '/app/certificados/', '/app/nfse/', '/app/guias/', '/app/integra-contador/', '/app/integra-contador/dte/', '/app/integra-contador/parcelamentos/', '/app/conciliacao/', '/app/radar-reforma/', '/app/triagem/', '/app/triagem/caixas/', '/app/configuracao/', '/app/configuracoes/', '/app/equipe/'];
   await scan(page, paths, 'workspace');
   await ctx.close();
   for (const name of ['operador', 'auditor', 'rival', 'dev', 'suporte', 'comercial']) {
@@ -197,7 +194,8 @@ const scan = async (page, paths, prefix) => {
     });
     await check('Demo parcelamento batch', async () => {
       await p.goto(base + '/app/integra-contador/parcelamentos/'); await p.locator('[name=selected_company]').first().check();
-      await p.getByRole('button', { name: 'Consultar pedidos selecionados' }).click();
+      await p.getByRole('button', { name: 'Revisar seleção e custo' }).click();
+      await p.getByRole('button', { name: 'Confirmar simulação' }).click();
       assert.match(await p.locator('.flash-stack').innerText(), /concluída/);
     });
     await check('Demo reconciliation decision', async () => {

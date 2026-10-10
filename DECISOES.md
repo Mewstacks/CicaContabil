@@ -1824,3 +1824,53 @@ no ambiente autorizado da CICA. Nenhum layout de importação de lançamentos fo
 obtido; a exportação Siescon permanece bloqueada, sem arquivo presumido nem
 gravação direta. O despacho de cada origem exige o `Connector` habilitado da
 própria origem; um conector Domínio não habilita o Siescon.
+
+## D-295 — Auditoria integral e plano de finalização (10/10/2026)
+
+Origem: pedido do responsável nesta conversa para revisar todos os fluxos, botões, código e
+conexões Serpro, e criar um plano para finalizar o sistema. O responsável confirmou que a
+validação externa da NFS-e já foi feita e determinou aceitar essa confirmação. PC-03/Q-39 deixam
+de bloquear este plano; não solicitar comprovante nem repetir o teste. O registro técnico pode
+anotar a confirmação verbal com sua origem e data, sem inventar protocolo ou resultado detalhado.
+
+A auditoria alimenta o plano mestre e os pacotes PC existentes, sem abrir etapa ou plano concorrente.
+Inventário estático de controle ou teste simulado não equivale a execução botão a botão, chamada
+Serpro real ou aceite. Achados terão arquivo/rota, efeito, reprodução, risco, responsável e teste
+de fechamento. O plano preserva duas liberações: primeiro NFS-e (D-189), depois a suíte D-109;
+IA local definitiva (etapa 13) não bloqueia a venda inicial por API (D-50/51).
+
+Esta decisão autoriza inspeção local, testes locais e documentação. Não amplia autorização para
+usar dados reais, fazer chamadas pagas, alterar produção, transmitir, conceder ciência oficial
+ou contratar recursos. Dúvidas continuam nos Q existentes. Q-33/Q-44 já foram resolvidas como base
+técnica por D-290; Siescon ainda precisa de homologação operacional e layout de importação.
+
+## D-296 — Revalidação de acesso antes de consulta DTE (10/10/2026)
+
+Origem: execução de F-01 do plano D-295. Todo item de lote DTE deve conferir novamente, antes de
+qualquer chamada ao Serpro, se o solicitante ainda é membro ativo, tem acesso à empresa e ao módulo
+Integra. A revogação posterior à aprovação cancela a ação daquele item com liquidação não faturável
+da reserva e registro de falha de autorização; não há reenvio automático. Esta regra trata consulta
+remunerada e dados fiscais como operação atual, não como autorização preservada pela fila.
+
+## D-297 — Isolamento do token Serpro por credencial e ambiente (10/10/2026)
+
+Origem: execução de F-02 do plano D-295. O cache OAuth da Integra deve ser derivado de uma impressão
+criptográfica das credenciais e do ambiente, sem expor segredo na chave. Assim, trocar chave/segredo,
+ambiente ou certificado configurado não reutiliza token de outra identidade. Renovação forçada continua
+usando a mesma identidade; o token não é compartilhado entre ela e uma credencial posterior.
+
+## D-298 — Smoke Serpro exige confirmação explícita (10/10/2026)
+
+Origem: auditoria das chamadas `IntegraClient` prevista em D-295. O comando administrativo
+`integra_smoke` passa a ser prévia por padrão, sem rede. Uma chamada real exige `--execute`; se o
+ambiente for produção e o serviço catalogado for faturável, exige também
+`--approve-billable-production`. O comando continua restrito ao catálogo, mas não substitui
+aprovação de consumo, trilha operacional nem homologação por operação.
+
+## D-299 — Identificadores distintos nos formulários de configuração (10/10/2026)
+
+Origem: inspeção renderizada da configuração da plataforma durante a auditoria D-295. Os
+formulários de franquia de teste e disponibilidade do Copiloto editam o mesmo atributo e eram
+renderizados na mesma página com o mesmo `id` HTML. Cada formulário passa a ter seu próprio
+prefixo de identificador, mantendo os nomes de campos e os contratos `POST` já utilizados. Assim,
+cada rótulo aponta para o controle do seu próprio formulário sem alterar a ação administrativa.

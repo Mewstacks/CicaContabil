@@ -657,10 +657,12 @@ def configuration(request: HttpRequest) -> HttpResponse:
     trial_form = TrialConfigurationForm(
         request.POST if request.method == "POST" and action == "trial" else None,
         instance=instance,
+        auto_id="id_trial_%s",
     )
     copilot_form = CopilotAvailabilityForm(
         request.POST if request.method == "POST" and action == "copilot-availability" else None,
         instance=instance,
+        auto_id="id_copilot_%s",
     )
     runtime_form = LocalRuntimeForm(
         request.POST if request.method == "POST" and action == "local-runtime" else None,

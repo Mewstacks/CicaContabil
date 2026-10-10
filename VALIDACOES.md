@@ -4891,3 +4891,64 @@ Validação desta entrega: conferência estática de links relativos e `git diff
 alterados. Nenhum teste de aplicação, navegação, integração externa, dado de cliente ou deploy foi
 executado: a alteração é somente documental. V-293 não substitui as provas por release nem fecha
 Q/PC/etapa funcional.
+
+## V-294 — Inventário de fluxos e plano de finalização (10/10/2026)
+
+Pedido: revisar código, botões, fluxos e conexões Serpro para planejar a conclusão. D-295 registra a confirmação do responsável de que a validação externa de importação NFS-e está concluída; não foi solicitado comprovante nem repetido o teste.
+
+Foram gerados `docs/planejamento/inventario-rotas-2026-10-10.csv` (366 rotas Django, 191 do admin) e `docs/planejamento/inventario-controles-2026-10-10.csv` (1.216 controles em 111 dos 116 templates examinados). As 307 referências estáticas a `{% url %}` encontradas foram comparadas aos nomes de rota, sem nome ausente. A extração não executa os controles, não inclui toda a UI dinâmica e não comprova permissão, acessibilidade ou efeito.
+
+O catálogo Integra contém 19 operações. Inspeção de `tasks.py` mostrou revalidação de acesso nos workers DCTFWeb/PARCSN e ausência aparente no worker de lote DTE depois da aprovação (F-01). O token usa chave global de cache (F-02); ambos são riscos para reprodução/correção, sem incidente observado. Não houve chamada real ao Serpro, emissão, ciência ou consumo pago.
+
+Regressão `.venv\\Scripts\\python.exe -m pytest -q -p no:cacheprovider`: 1.376 aprovados, 6 ignorados, 145 subtestes aprovados e 4 erros de setup por `PermissionError` no temporário padrão do pytest. Repetição dos arquivos afetados com `--basetemp .pytest_tmp_audit`: 6 aprovados. Os cinco arquivos de teste focados de DTE/Integra haviam aprovado 54 testes. Testes simulados não homologam integração externa. Não houve inspeção renderizada nesta entrega nem alteração de UI, código de produção ou deploy.
+
+Plano e critérios por jornada/serviço em `docs/planejamento/auditoria-fluxos-serpro-finalizacao-2026-10-10.md`. A etapa 11 segue aberta para execução dos controles; a etapa 12 segue aberta para homologação e aceite por módulo. PC-03/Q-39 deixam de bloquear por D-295; os outros gates do plano mestre permanecem.
+
+## V-295 — Proteções locais de despacho DTE e cache OAuth Serpro (10/10/2026)
+
+Implementadas D-296 e D-297. Antes de cada consulta de Caixa Postal, `dispatch_dte_run` revalida a associação ativa do solicitante, sua carteira, o módulo Integra e a empresa. Se qualquer condição foi revogada após a aprovação, o item recebe `authorization_revoked`, a reserva é liberada como não faturável e `IntegraClient.call` não é acionado. O cache OAuth passou a ter chave derivada por hash de ambiente, credenciais, contratante e certificado configurado; a chave não contém segredo e impede reutilização entre identidades diferentes.
+
+Validação: 38 testes de DTE/Integra aprovados em 43,56 s, incluindo revogação entre fila e execução e duas credenciais/ambientes. Ruff dos quatro arquivos alterados, MyPy de `tasks.py`/`client.py` e `git diff --check` aprovados. Não houve Serpro real, custo, produção ou navegador. A concorrência em PostgreSQL e a rotação em ambiente autorizado permanecem pendentes; V-295 não homologa as 19 operações externas.
+
+## V-296 — Confirmação do comando administrativo Serpro (10/10/2026)
+
+Implementada D-298. `integra_smoke` faz somente prévia por padrão e não instancia o cliente de rede. A chamada externa exige `--execute`; quando o ambiente é produção e o serviço do catálogo é faturável, exige também `--approve-billable-production`. O catálogo continua fechado e não foi criada rota livre.
+
+Validação: 41 testes de DTE/Integra/smoke aprovados em 40,81 s; os três novos cenários verificam prévia, bloqueio de custo e execução explícita. Ruff e MyPy dos arquivos envolvidos passaram. Nenhuma chamada Serpro, dado real, custo, produção ou deploy foi realizado. O comando administrativo não substitui reserva de consumo, autorização por empresa ou homologação por serviço.
+
+## V-297 — Regressão completa após proteções Serpro (10/10/2026)
+
+Com `--basetemp .pytest_tmp_full_goal` dentro da área de trabalho, a regressão completa aprovou 1.385 testes e 145 subtestes em 184,02 s. Seis testes foram ignorados: um depende do Playwright Python, quatro dependem de locks/transações independentes em PostgreSQL e um é o cenário de concorrência de token também limitado a PostgreSQL. O temporário controlado evita o `PermissionError` do diretório padrão do pytest visto em V-294.
+
+Esse resultado cobre regressão local da árvore atual, inclusive as proteções D-296–298. Não executa botões renderizados, serviços Serpro reais, custos, produção, restauração ou homologação externa.
+
+## V-298 — Tentativa de abrir a matriz renderizada (10/10/2026)
+
+Foram aplicadas as orientações de `ui-ux-pro-max` para foco visível, foco não encoberto e rótulo acessível de botões de ícone. O catálogo Watermelon foi consultado duas vezes, para dashboard contábil e tabela, sem correspondência. A referência de produtos reais usada para a futura execução preserva filtros por carteira/responsável, seleção em lote com escopo explícito e tarefas com dono/prazo/checklist; ela não muda a interface atual sem achado concreto.
+
+O navegador integrado falhou antes de abrir aba (`windows sandbox failed: helper_unknown_error`). O checkout não tem o módulo Node `playwright`; a suíte Python já declara esse suporte opcional. Foram localizados `scripts/qa_ui_server.py`, `qa_ui_browser.cjs` e `qa_ui_extended.cjs`, que usam dados sintéticos, bloqueiam rede externa e fecham o navegador, mas não puderam iniciar sem o módulo. A inspeção estática não encontrou `outline: none`, `transition: all` ou `href="#"` nos arquivos pesquisados; as imagens de template encontradas têm `alt`, largura e altura. Isso não substitui navegador, teclado, viewport ou console.
+
+O gate de execução por rota/botão da etapa 11 segue aberto. Nenhuma dependência foi instalada e nenhuma tela foi alterada nesta tentativa.
+
+## V-299 — Reexecução renderizada isolada e correção de acessibilidade (10/10/2026)
+
+Foi executado Playwright Node temporário contra `scripts/qa_ui_server.py`, com banco e mídia
+sintéticos, rede externa bloqueada e Chrome local em modo sem interface. O navegador foi fechado
+ao fim de cada cenário. A varredura alcançou 84 estados renderizados de 16 rotas em desktop e
+celular, temas claro/escuro, sem overflow horizontal, controles sem nome acessível detectado,
+ações de tabela comprimidas ou erros JavaScript de página. A persistência de tema foi exercitada
+em login e página pública e passou após o roteiro aguardar a navegação assíncrona do formulário.
+
+A inspeção renderizada achou dois `input` com o mesmo `id` em formulários concorrentes da
+configuração da plataforma. D-299 separou os `auto_id` de franquia e disponibilidade, preservando
+nomes e `POST`. O teste Django específico passou em 41,28 s; a inspeção Playwright autenticada
+confirmou `id_copilot_trial_ai_included_requests` associado ao seu rótulo. Ruff e MyPy dos
+arquivos Python alterados passaram.
+
+A execução ampla ainda não é aceite de todos os botões: o roteiro encontrou seletores que não
+correspondem à composição atual, cenários sem módulos habilitados na massa sintética e uma rota
+`/app/ia/` que já não existe. O roteiro foi corrigido para esperar filtros via History API, usar o
+menu da área de trabalho, aguardar a troca de tema e remover a rota obsoleta. A próxima execução
+deve habilitar módulos e construir estados próprios por jornada antes de considerar DTE, OFX,
+parcelamentos, NFS-e, guias ou triagem validados. Não houve chamada Serpro, dados reais, custo,
+produção, deploy ou homologação externa.

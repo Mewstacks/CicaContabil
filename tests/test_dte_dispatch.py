@@ -16,6 +16,7 @@ from apps.hub.models import (
     DteRun,
     DteRunItem,
     OfficeProfile,
+    ProductModule,
 )
 from apps.hub.services import (
     DTE_ACTION_CODE,
@@ -41,6 +42,19 @@ from apps.platform.models import (
 )
 
 pytestmark = pytest.mark.django_db
+
+
+def _authorize_dte_dispatch(*, organization: Organization, run: DteRun) -> User:
+    """Give a manually prepared test run the same current access as the HTTP flow."""
+
+    user = User.objects.create_user(f"{organization.slug}@example.test", "test-password")
+    Membership.objects.create(organization=organization, user=user, role=Membership.Role.OWNER)
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.INTEGRA, enabled=True
+    )
+    run.requested_by = user
+    run.save(update_fields=["requested_by", "updated_at"])
+    return user
 
 
 def test_dte_approval_uses_accepted_token_book_and_links_each_company() -> None:
@@ -185,6 +199,7 @@ def test_dte_worker_settles_usage_and_deduplicates_returned_messages(
         },
     }
 
+    _authorize_dte_dispatch(organization=organization, run=run)
     dispatch_dte_run.run(str(run.id))
     dispatch_dte_run.run(str(run.id))
 
@@ -198,6 +213,54 @@ def test_dte_worker_settles_usage_and_deduplicates_returned_messages(
     assert (
         DteMessage.objects.filter(organization=organization, source_isn="message-42").count() == 1
     )
+
+
+@patch("apps.hub.tasks.IntegraClient")
+def test_dte_worker_releases_reserved_usage_when_requester_access_is_revoked(
+    mock_client: MagicMock,
+) -> None:
+    organization = Organization.objects.create(name="DTE revogado", slug="dte-revogado")
+    OfficeProfile.objects.create(organization=organization, cnpj="11.222.333/0001-81")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa revogada", cnpj_masked="12.345.678/0001-95"
+    )
+    requester = User.objects.create_user("dte-revogado@example.test", "test-password")
+    membership = Membership.objects.create(
+        organization=organization, user=requester, role=Membership.Role.OWNER
+    )
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.INTEGRA, enabled=True
+    )
+    plan = Plan.objects.create(code="dte-revogado", name="DTE revogado")
+    PlanServiceRate.objects.create(plan=plan, action_code=DTE_ACTION_CODE, included_units=10)
+    TenantContract.objects.create(
+        organization=organization, plan=plan, status=TenantContract.Status.ACTIVE
+    )
+    run = DteRun.objects.create(
+        organization=organization,
+        requested_by=requester,
+        status=DteRun.Status.QUEUED,
+        total_companies=1,
+    )
+    item = DteRunItem.objects.create(organization=organization, run=run, company=company)
+    usage = reserve_usage(
+        organization=organization,
+        action_code=DTE_ACTION_CODE,
+        idempotency_key=f"dte-run-item:{item.id}:caixapostal",
+    )
+    membership.is_active = False
+    membership.save(update_fields=["is_active", "updated_at"])
+
+    dispatch_dte_run.run(str(run.id))
+
+    run.refresh_from_db()
+    item.refresh_from_db()
+    usage.refresh_from_db()
+    mock_client.return_value.call.assert_not_called()
+    assert run.status == DteRun.Status.FAILED
+    assert item.status == DteRunItem.Status.FAILED
+    assert item.error_code == "authorization_revoked"
+    assert usage.status == UsageEvent.Status.RELEASED
 
 
 @patch("apps.hub.tasks.IntegraClient")
@@ -245,6 +308,7 @@ def test_dte_worker_uses_official_nested_rows_dates_and_more_pages(mock_client: 
         ),
     }
 
+    _authorize_dte_dispatch(organization=organization, run=run)
     dispatch_dte_run.run(str(run.id))
 
     item.refresh_from_db()
@@ -283,7 +347,12 @@ def test_next_dte_page_requires_new_usage_and_uses_saved_pointer(mock_client: Ma
         status=DteRunItem.Status.COMPLETED, more_available=True,
         next_page_pointer="20260912093015",
     )
-    second = prepare_dte_next_page(source_item=source)
+    requester = User.objects.create_user("dte-pages@example.test", "test-password")
+    Membership.objects.create(organization=organization, user=requester, role=Membership.Role.OWNER)
+    ProductModule.objects.create(
+        organization=organization, code=ProductModule.Code.INTEGRA, enabled=True
+    )
+    second = prepare_dte_next_page(source_item=source, actor=requester)
     item = second.items.get()
     assert second.status == DteRun.Status.AWAITING_APPROVAL
     assert item.requested_page_pointer == "20260912093015"
@@ -460,6 +529,7 @@ def test_dte_worker_releases_a_reservation_when_central_credentials_are_unavaila
         idempotency_key=f"dte-run-item:{item.id}:caixapostal",
     )
 
+    _authorize_dte_dispatch(organization=organization, run=run)
     dispatch_dte_run.run(str(run.id))
 
     item.refresh_from_db()
