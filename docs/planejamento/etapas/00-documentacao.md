@@ -1,3 +1,12 @@
+## Guia funcional para QA em 09/10/2026 — V-293
+
+- [x] Inventariar áreas e entradas atuais do sistema em um guia na raiz.
+- [x] Descrever funções, perfis, jornadas, estados, critérios de evidência e pendências sem declarar homologação nova.
+- [x] Conferir links locais e manter separados demo, validação local, produção e aceite externo.
+
+Entrega: [CICA-QA.md](../../../CICA-QA.md). A etapa 00 recebe este material de apoio; os estados
+funcionais das etapas 01–14 não mudam por causa da documentação. Evidência em V-293.
+
 ## Revisão de planejamento em 05/10/2026 — D-275/V-275
 
 - [x] Confrontar estado histórico, código atual e decisões posteriores sem apagar memória.

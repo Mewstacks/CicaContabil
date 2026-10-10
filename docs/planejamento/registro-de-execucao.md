@@ -2370,3 +2370,10 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Contrato de cálculo idêntico ao ProjetoARD. Lint, MyPy, Django, migrações, compilação dos três projetos .NET e 20 testes .NET passaram. A suíte Python aprovou 967 testes, 3 ignorados e 11 subtestes, mas a cobertura global ficou em 80,11%, abaixo do piso documental de 85%; o módulo Rentabilidade isolado ficou em 87%.
 - A inspeção em navegador com SQLite e dados fictícios revelou que oito templates descartavam os estilos herdados do workspace. Corrigida a herança; visão geral e ficha analítica foram vistas em desktop e celular, sem overflow ou erro de console. Quatro telas adicionais abriram em ambos os tamanhos, também sem overflow. Os 169 testes específicos passaram após a correção. A formatação .NET dos dois arquivos apontados pelo verificador foi normalizada; o verificador voltou a passar.
 - Não se marcou a etapa como concluída: o MSI exige execução do job Windows, o adaptador Siescon e as consultas não validadas precisam de base autorizada, Q-41 a Q-43 seguem abertas e a homologação real permanece na etapa 12. Nenhum código foi integrado à `main` ou enviado ao GitHub nesta entrega.
+
+## 09/10/2026 — guia funcional para QA (V-293)
+
+- `CICA-QA.md` criado na raiz com mapa do produto, perfis, funções, roteiros de teste e modelo de evidência.
+- Fonte: plano vigente, decisões, validações, etapas e rotas; nenhuma regra ou homologação foi criada.
+- README e checklist da etapa 00 atualizados. Links locais e diff conferidos em V-293.
+- Próximo uso: QA escolhe release/ambiente e executa os casos pertinentes; estados externos continuam abertos.

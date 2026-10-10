@@ -1,6 +1,6 @@
 # CICA — Central de Inteligência Contábil Avançada
 
-[Documentação](docs/README.md) · [Planejamento e decisões](docs/planejamento/README.md) · [English](README.en.md)
+[Documentação](docs/README.md) · [Guia de QA](CICA-QA.md) · [Planejamento e decisões](docs/planejamento/README.md) · [English](README.en.md)
 
 **Memória vigente na raiz:** [Plano mestre](PLANO-MESTRE.md) · [Decisões](DECISOES.md) · [Validações](VALIDACOES.md) · [Etapas e prompts](docs/planejamento/etapas/README.md).
 

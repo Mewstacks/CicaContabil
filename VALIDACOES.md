@@ -4875,3 +4875,19 @@ semântica ou tamanho de registro. Faltam ensaio dos DDFs em cópia autorizada,
 conferência com a tela do Siescon, fonte de contas/lançamentos e layout de
 importação contábil. A exportação Siescon continua recusada. A etapa 04 segue
 em andamento; não há homologação, deploy ou liberação comercial.
+
+## V-293 — Guia funcional de QA (09/10/2026)
+
+Pedido: documentar o CICA para QA na raiz. Foi criado `CICA-QA.md` com visão do sistema, perfis,
+ambientes, funções por área, percursos, casos negativos, matriz transversal, critérios D-73,
+modelo de registro de defeito e limites de homologação. O README aponta ao guia; a checklist da
+etapa 00 e o registro de execução receberam a entrega.
+
+Fontes lidas: plano mestre vigente, decisões D-109/D-275/D-277/D-280/D-281–294, dúvidas únicas,
+validações anteriores, etapa 00 e etapas funcionais, README, arquitetura, rotas Django e índice
+do manual de homologação externa. O conteúdo distingue implementação local, demo, produção e liberação.
+
+Validação desta entrega: conferência estática de links relativos e `git diff --check` dos arquivos
+alterados. Nenhum teste de aplicação, navegação, integração externa, dado de cliente ou deploy foi
+executado: a alteração é somente documental. V-293 não substitui as provas por release nem fecha
+Q/PC/etapa funcional.
