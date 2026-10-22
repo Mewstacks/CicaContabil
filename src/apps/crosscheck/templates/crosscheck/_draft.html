@@ -1,0 +1,74 @@
+{% load crosscheck_extras %}
+<section class="workspace-panel crosscheck" aria-labelledby="files-heading">
+  <header class="workspace-panel-head">
+    <div><h2 id="files-heading">Arquivos</h2></div>
+  </header>
+  <div class="crosscheck-roles">
+    {% for block in role_blocks %}
+    <div class="crosscheck-role" data-role-block="{{ block.role.code }}">
+      <div class="crosscheck-role-head">
+        <h3>{{ block.role.label }}</h3>
+        <span class="record-count">{{ block.items|length }}</span>
+      </div>
+      {% if block.items %}
+      <ul class="crosscheck-files">
+        {% for item in block.items %}<li>
+          <div class="crosscheck-file-main">
+            <span class="crosscheck-file-name" title="{{ item.original_name }}">{{ item.original_name }}</span>
+            <span class="crosscheck-file-meta">{{ item.size_bytes|filesizeformat }}{% if item.kind == 'efd' %} · CNPJ {{ item.detected.cnpj|cnpj_mask }} · {{ item.detected.periodo.0|slice:'5:7' }}/{{ item.detected.periodo.0|slice:':4' }} · {{ item.detected.uf }} · {{ item.detected.finalidade|capfirst }}{% elif item.kind == 'xml' %} · {{ item.xml_count }} XML{% elif item.kind == 'dominio' %} · {{ item.detected.formato|upper }}{% endif %}</span>
+            {% for note in item.detected.avisos %}<span class="crosscheck-file-note">{{ note }}</span>{% endfor %}
+          </div>
+          {% if can_write %}<form method="post" action="{% url 'crosscheck:run-remove' run.id item.id %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Remover<span class="sr-only"> {{ item.original_name }}</span></button></form>{% endif %}
+        </li>{% endfor %}
+      </ul>
+      {% endif %}
+      {% if can_write and block.can_add %}
+      <form method="post" action="{% url 'crosscheck:run-attach' run.id %}" enctype="multipart/form-data" class="crosscheck-upload" data-crosscheck-upload data-role="{{ block.role.code }}" data-max-bytes="{{ block.max_bytes }}" data-accept="{{ block.accept }}"{% if block.multiple %} data-multiple data-max-loose="{{ max_loose_xml }}" data-max-loose-bytes="{{ max_loose_bytes }}" data-max-xml-bytes="{{ max_xml_bytes }}"{% endif %}>
+        {% csrf_token %}
+        <input type="hidden" name="role" value="{{ block.role.code }}">
+        <label class="crosscheck-drop" for="file-{{ block.role.code }}">
+          <input id="file-{{ block.role.code }}" class="crosscheck-drop-input" type="file" name="files" accept="{{ block.accept }}"{% if block.multiple %} multiple{% endif %}>
+          <span class="crosscheck-drop-action">Escolher</span>
+          <span class="crosscheck-drop-hint">{{ block.accept }} · {{ block.max_bytes|filesizeformat }}</span>
+        </label>
+        <ul class="crosscheck-queue" aria-live="polite" hidden></ul>
+        <noscript><button class="button button-small" type="submit">Enviar</button></noscript>
+      </form>
+      {% endif %}
+      {% if block.role.kind == 'dominio' %}<a class="text-action crosscheck-template-link" href="{% url 'crosscheck:dominio-template' %}">Modelo</a>{% endif %}
+    </div>
+    {% endfor %}
+    {% if agent %}
+    <div class="crosscheck-role" data-agent-block data-status-url="{% url 'crosscheck:run-status' run.id %}" data-agent-state="{{ agent.state }}">
+      <div class="crosscheck-role-head">
+        <h3>Domínio</h3>
+        <span class="module-state {{ agent.tone }}" data-agent-label>{{ agent.label|default:"Sem consulta" }}</span>
+      </div>
+      {% if agent.rows %}<span class="crosscheck-file-meta">{{ agent.rows }} chave{{ agent.rows|pluralize:"s" }}</span>{% endif %}
+      {% if agent.error %}<span class="crosscheck-file-note">{{ agent.error }}</span>{% endif %}
+      {% if can_write %}<div class="crosscheck-inline-actions">
+        {% if not agent.active %}<form method="post" action="{% url 'crosscheck:run-agent-request' run.id %}">{% csrf_token %}<button class="button button-small" type="submit">Consultar</button></form>{% endif %}
+        <form method="post" action="{% url 'crosscheck:run-agent-file' run.id %}">{% csrf_token %}<button class="button button-quiet button-small" type="submit">Enviar arquivo</button></form>
+      </div>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {% if blocking %}
+  <ul class="crosscheck-issues" aria-label="Pendências">
+    {% for issue in blocking %}<li class="is-error"><strong>Pendente</strong> {{ issue.message }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  <details class="crosscheck-disclosure">
+    <summary>Regras</summary>
+    <dl class="crosscheck-rule-list">{% for line in rules_lines %}<div><dt>{{ line.label }}</dt><dd>{{ line.value }}{% if line.reason %} <small>{{ line.reason }}</small>{% endif %}</dd></div>{% endfor %}</dl>
+  </details>
+
+  {% if can_write %}
+  <div class="modal-actions crosscheck-actions">
+    <form method="post" action="{% url 'crosscheck:run-start' run.id %}">{% csrf_token %}<button class="button" type="submit"{% if blocking %} disabled{% endif %}>Conferir</button></form>
+    <form method="post" action="{% url 'crosscheck:run-cancel' run.id %}">{% csrf_token %}<button class="button button-quiet" type="submit">Descartar</button></form>
+  </div>
+  {% endif %}
+</section>

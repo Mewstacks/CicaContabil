@@ -94,6 +94,7 @@ class ProductModule(OrganizationScopedModel):
         AI = "ai", "Copiloto CICA"
         TRIAGE = "triage", "Triagem de Arquivos"
         PROFITABILITY = "profitability", "Rentabilidade por Cliente"
+        CROSSCHECK = "crosscheck", "Contraprova"
 
     code = models.CharField(max_length=32, choices=Code.choices)
     enabled = models.BooleanField(default=False)

@@ -86,6 +86,7 @@ LOCAL_APPS = [
     "apps.knowledge",
     "apps.triage",
     "apps.profitability",
+    "apps.crosscheck",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
@@ -97,6 +98,10 @@ DATASET_CATALOG_ROOT = env_str("DATASET_CATALOG_ROOT", "")
 # toda integração antes de homologada: com ela em falso o agente recebe uma lista
 # de contratos vazia e nenhuma execução é aberta.
 PROFITABILITY_SYNC_ENABLED = env_bool("PROFITABILITY_SYNC_ENABLED", False)
+# A consulta de UF ao Domínio pelo agente Windows (dataset `fiscal_counterparts`, ainda
+# `validated: false`). Desligada por padrão (D-300): com ela em falso a tela só oferece o
+# arquivo CSV/XLSX e as rotas do agente respondem 404.
+CONTRAPROVA_AGENT_ENABLED = env_bool("CONTRAPROVA_AGENT_ENABLED", False)
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -294,6 +299,10 @@ LOGIN_REDIRECT_URL = "hub:dashboard"
 LOGOUT_REDIRECT_URL = "hub:home"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    # Arquivos do Contraprova (SPED, XML, relatório). Alias próprio para que, em produção,
+    # a leitura do objeto S3 vá para disco acima de alguns MiB em vez de ocupar a memória
+    # inteira do worker (django-storages lê o objeto todo em RAM por padrão).
+    "crosscheck": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
 }
 
@@ -594,6 +603,16 @@ CELERY_BEAT_SCHEDULE = {
     "dispatch-waiting-financial-report-exports": {
         "task": "hub.dispatch_waiting_financial_report_exports",
         "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    # Contraprova: retoma conferências cuja tarefa morreu e apaga arquivos de entrada
+    # vencidos (24 h) e resultados com mais de 90 dias (D-302).
+    "recover-crosscheck-runs": {
+        "task": "crosscheck.recover_runs",
+        "schedule": aligned_periodic_minutes(BACKGROUND_RECOVERY_INTERVAL_MINUTES),
+    },
+    "purge-expired-crosscheck": {
+        "task": "crosscheck.purge_expired",
+        "schedule": crontab(hour=3, minute=40),
     },
 }
 

@@ -1,0 +1,59 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'crosscheck/crosscheck.css' %}?v=1">{% endblock %}
+{% block page_action %}{% if can_write %}<a class="button" href="{% url 'crosscheck:new-run' %}">Conferir arquivos</a>{% endif %}{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel registry-panel crosscheck" aria-labelledby="runs-heading">
+  <header class="workspace-panel-head">
+    <div><h2 id="runs-heading">Conferências</h2></div>
+    <span class="record-count" role="status" aria-atomic="true">{% if filters_applied %}{{ page.paginator.count }} de {{ total_runs }}{% else %}{{ total_runs }}{% endif %}</span>
+  </header>
+
+  {% if total_runs %}
+  <form method="get" class="toolbar" role="search" data-auto-filter>
+    <div class="toolbar-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <label class="sr-only" for="runs-search">Buscar conferência</label>
+      <input id="runs-search" type="search" name="q" maxlength="100" value="{{ filters.q }}" placeholder="Empresa ou CNPJ" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="sr-only" for="runs-tool">Ferramenta</label>
+    <select id="runs-tool" name="ferramenta" autocomplete="off"><option value="">Todas as ferramentas</option>{% for tool in tools %}<option value="{{ tool.code }}"{% if filters.ferramenta == tool.code %} selected{% endif %}>{{ tool.label }}</option>{% endfor %}</select>
+    <label class="sr-only" for="runs-state">Situação</label>
+    <select id="runs-state" name="situacao" autocomplete="off">{% for value, label in state_filters %}<option value="{{ value }}"{% if filters.situacao == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <div class="toolbar-actions">
+      <button class="button button-small" type="submit">Buscar</button>
+      {% if filters_applied %}<a class="button button-quiet button-small" href="{% url 'crosscheck:index' %}" data-filter-clear>Limpar</a>{% endif %}
+    </div>
+  </form>
+
+  {% if page.object_list %}
+  <div class="data-table-wrap">
+    <table class="operational-table crosscheck-table">
+      <caption class="sr-only">Conferências do escritório</caption>
+      <thead><tr><th scope="col">Empresa</th><th scope="col">Ferramenta</th><th scope="col">Competência</th><th scope="col">Situação</th><th scope="col" class="tnum">Divergências</th><th scope="col">Criada</th></tr></thead>
+      <tbody>{% for run in page %}<tr>
+        <td data-label="Empresa"><strong><a class="text-action" href="{% url 'crosscheck:run-detail' run.id %}">{{ run.company.name }}</a></strong>{% if run.company.cnpj_masked %}<small>{{ run.company.cnpj_masked }}</small>{% endif %}</td>
+        <td data-label="Ferramenta">{{ run.get_tool_display }}</td>
+        <td data-label="Competência" class="num">{{ run.competence_label }}</td>
+        <td data-label="Situação">{% include 'crosscheck/_state.html' %}</td>
+        <td data-label="Divergências" class="tnum">{% if run.state == 'done' %}{{ run.divergent_count }}{% else %}—{% endif %}</td>
+        <td data-label="Criada" class="num"><time datetime="{{ run.created_at|date:'c' }}">{{ run.created_at|date:'d/m/Y H:i' }}</time></td>
+      </tr>{% endfor %}</tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}
+  <nav class="pagination" aria-label="Paginação">
+    {% if page.has_previous %}<a class="button button-quiet button-small" href="?pagina={{ page.previous_page_number }}{% if query_without_page %}&amp;{{ query_without_page }}{% endif %}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+    <span class="pagination-status">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="button button-quiet button-small" href="?pagina={{ page.next_page_number }}{% if query_without_page %}&amp;{{ query_without_page }}{% endif %}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    {% url 'crosscheck:index' as clear_url %}{% include 'hub/partials/empty_state.html' with title="Nenhuma conferência encontrada" action_url=clear_url action_label="Ver todas" %}
+  {% endif %}
+
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma conferência</strong>{% if can_write %}<div class="crosscheck-shortcuts">{% for tool in tools %}<a class="button button-quiet button-small" href="{% url 'crosscheck:new-run' %}?ferramenta={{ tool.code }}">{{ tool.label }}</a>{% endfor %}</div>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

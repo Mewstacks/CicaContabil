@@ -1,0 +1,10 @@
+<section class="workspace-panel crosscheck crosscheck-progress" aria-labelledby="progress-heading" data-crosscheck-progress data-status-url="{% url 'crosscheck:run-status' run.id %}" data-state="{{ run.state }}">
+  <header class="workspace-panel-head">
+    <div><h2 id="progress-heading" data-progress-stage>{{ run.stage_label|default:"Na fila" }}</h2></div>
+    <span class="record-count" data-progress-count role="status" aria-live="polite">{% if run.progress_total %}{{ run.progress_done }} de {{ run.progress_total }}{% elif run.progress_done %}{{ run.progress_done }}{% endif %}</span>
+  </header>
+  <div class="crosscheck-bar{% if not run.progress_total %} is-indeterminate{% endif %}" role="progressbar" aria-labelledby="progress-heading" aria-valuemin="0"{% if run.progress_total %} aria-valuemax="{{ run.progress_total }}" aria-valuenow="{{ run.progress_done }}"{% endif %} data-progress-track><span data-progress-bar{% if run.progress_total %} style="--pct: {% widthratio run.progress_done run.progress_total 100 %}"{% endif %}></span></div>
+  {% if can_write %}<div class="modal-actions crosscheck-actions">
+    <form method="post" action="{% url 'crosscheck:run-cancel' run.id %}">{% csrf_token %}<button class="button button-quiet" type="submit" data-cancel-button>{% if run.cancel_requested_at %}Cancelando…{% else %}Cancelar{% endif %}</button></form>
+  </div>{% endif %}
+</section>

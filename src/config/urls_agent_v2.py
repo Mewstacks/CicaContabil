@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.crosscheck import agent_api as crosscheck_agent
 from apps.intelligence import agent_v2
 from apps.profitability import agent_api as profitability_agent
 
@@ -64,5 +65,21 @@ urlpatterns = [
         "profitability/runs/<uuid:run_id>/failure",
         profitability_agent.fail_run,
         name="agent-v2-profitability-run-failure",
+    ),
+    path("contraprova/jobs/next", crosscheck_agent.next_job, name="agent-v2-crosscheck-next"),
+    path(
+        "contraprova/jobs/<uuid:job_id>/batches",
+        crosscheck_agent.append_batch,
+        name="agent-v2-crosscheck-batch",
+    ),
+    path(
+        "contraprova/jobs/<uuid:job_id>/complete",
+        crosscheck_agent.complete_job,
+        name="agent-v2-crosscheck-complete",
+    ),
+    path(
+        "contraprova/jobs/<uuid:job_id>/failure",
+        crosscheck_agent.fail_job,
+        name="agent-v2-crosscheck-failure",
     ),
 ]

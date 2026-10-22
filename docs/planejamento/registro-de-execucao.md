@@ -2407,3 +2407,10 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Aplicados ui-ux-pro-max e Web Interface Guidelines à revisão; Watermelon não retornou referência para dashboard/tabela.
 - Navegador integrado indisponível e módulo Node Playwright ausente. Os scripts locais de QA sintético foram localizados, mas não executados.
 - Verificação estática não encontrou os anti-padrões pesquisados. A matriz renderizada por botão, papel, estado e viewport continua pendente e não foi declarada validada.
+
+
+## 21–22/10/2026 — Contraprova, sucessor do Tax Envel (D-300 a D-302, V-300)
+
+- **21/10:** decisões D-300 (incorporação como módulo, nome, fontes e chave de acesso em claro), D-301 (regras padrão de conferência) e D-302 (retenção: 24 h para arquivos, 90 dias para resultado) registradas antes do comportamento; Q-46 (regras fiscais) e Q-47 (contrato do Domínio) abertas; PC-32 e a etapa 15 criados. Motor em Python puro com dinheiro em centavos, leitura em fluxo e geradores sintéticos.
+- **22/10:** módulo Django (`/app/contraprova/`, grupo Fiscal): fila com arrendamento, recuperador e purga no Beat, quatro ferramentas, telas no padrão da CICA, downloads XLSX, CSV e TXT, migração de dados que preserva o escritório só-NFS-e. Lado servidor da consulta de UF ao Domínio (`/api/agent/v2/contraprova/`) e agente Windows (contrato `fiscal_counterparts.v1`, binder de parâmetros, `ContraprovaProcessor`) atrás de `CONTRAPROVA_AGENT_ENABLED` desligado.
+- Regressão completa: 1.869 testes; cobertura do pacote 97,6%. Sem deploy, sem commit, módulo fora do cadastro e da demonstração. Próximo passo: Q-46, Q-47 e o ensaio do agente na base real (etapa 12).

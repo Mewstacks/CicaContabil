@@ -125,6 +125,7 @@ sem dimensionar equipe, acesso e disponibilidade do piloto.
 | PC-29 | Alto · 11/12 | Rodadas de usabilidade com contadores e regressão por papel/estado | Cenários da auditoria, amostra autorizada | Sucesso/tempo/dúvida/erro registrados; corrigir bloqueios e repetir só percursos afetados |
 | PC-30 | Crítico liberação · 12 | Dossiê por módulo, oferta coerente, manual/suporte e aceite | Todos os pacotes aplicáveis à liberação | Nenhuma promessa sem prova; proprietário assina matriz de capacidades e limitações |
 | PC-31 | Posterior · 13 | Treino/avaliação/capacidade da IA na máquina definitiva | Hardware/modelo/curadoria; D-50/51 | Qualidade e isolamento medidos; migração aprovada com rollback; API só como reserva autorizada |
+| PC-32 | Alto · 15 | Contraprova: conferência SPED × XML, SPED × SPED, ICMS 51 e UF × Domínio como módulo do CICA (sucessor do Tax Envel), com motor em streaming, regras explícitas e consulta de UF ao Domínio pelo agente | D-300 a D-302; Q-46 (responsável fiscal) e Q-47 (contrato do dataset); desenvolvimento | Cada defeito catalogado do legado coberto por teste; nada some em silêncio (o ignorado fica listado e exportado); entrada apagada em 24 h; consulta ao Domínio só homologa após ensaio autorizado na base real (D-86) |
 
 ### Ondas e caminho crítico
 

@@ -595,6 +595,69 @@
       ],
       "requiresSourceRole": "payroll_source",
       "maxRowsPerRun": 100000
+    },
+    {
+      "code": "fiscal_counterparts",
+      "sourceSystem": "dominio",
+      "schemaVersion": 1,
+      "sqlFile": "fiscal_counterparts.v1.sql",
+      "querySha256": "6e09a31f9e1d82efd17a94a53e7c6182f3bbc5b85387f5dc5277898e976e004b",
+      "validated": false,
+      "dispatch": "on_demand",
+      "parameters": [
+        {
+          "name": "codi_emp_sai",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "start_sai",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_sai",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "codi_emp_ent",
+          "type": "integer",
+          "odbcType": "Int"
+        },
+        {
+          "name": "start_ent",
+          "type": "date",
+          "odbcType": "Date"
+        },
+        {
+          "name": "end_ent",
+          "type": "date",
+          "odbcType": "Date"
+        }
+      ],
+      "columns": [
+        {
+          "name": "chave_nfe",
+          "type": "string"
+        },
+        {
+          "name": "direcao",
+          "type": "string"
+        },
+        {
+          "name": "uf",
+          "type": "string"
+        }
+      ],
+      "identityColumns": [
+        "chave_nfe",
+        "direcao"
+      ],
+      "allowedRunKinds": [
+        "full"
+      ],
+      "maxRowsPerRun": 200000
     }
   ]
 }

@@ -42,8 +42,15 @@ internal sealed record DatasetDefinition(
     IReadOnlyList<string> ContextColumns,
     IReadOnlyList<string> IdentityColumns,
     IReadOnlyList<string> AllowedRunKinds,
-    int MaxRowsPerRun)
+    int MaxRowsPerRun,
+    string Dispatch = "")
 {
+    internal const string OnDemand = "on_demand";
+
+    /// Dataset de fila própria (Contraprova): roda só sob job explícito do servidor,
+    /// nunca na lista do ciclo de `profitability/datasets`.
+    internal bool IsOnDemand => string.Equals(Dispatch, OnDemand, StringComparison.Ordinal);
+
     internal string[] ResultColumns => Columns
         .Select(column => column.Name)
         .Where(name => !ContextColumns.Contains(name, StringComparer.OrdinalIgnoreCase))
@@ -80,6 +87,13 @@ internal static class DatasetCatalog
 
     internal static string Key(string sourceSystem, string code) => sourceSystem + ":" + code;
 
+    /// Busca sem lançar: quem recebe o código da nuvem decide o que fazer com um
+    /// dataset que este binário não conhece.
+    internal static DatasetDefinition? TryGet(string sourceSystem, string code) =>
+        State.Value.Definitions.TryGetValue(Key(sourceSystem, code), out DatasetDefinition? value)
+            ? value
+            : null;
+
     internal static DatasetDefinition GetForRun(string sourceSystem, string code, string runKind)
     {
         if (!State.Value.Definitions.TryGetValue(
@@ -87,6 +101,8 @@ internal static class DatasetCatalog
             throw new InvalidOperationException("Consulta desconhecida no catálogo incorporado.");
         if (!value.Validated)
             throw new InvalidOperationException("Consulta ainda não validada para despacho.");
+        if (value.IsOnDemand)
+            throw new InvalidOperationException("Consulta sob demanda não entra no ciclo.");
         if (!value.AllowedRunKinds.Contains(runKind, StringComparer.Ordinal))
             throw new InvalidOperationException("Modo de execução não permitido pelo catálogo.");
         return value;
@@ -142,7 +158,8 @@ internal static class DatasetCatalog
                 item.ContextColumns ?? [],
                 item.IdentityColumns,
                 item.AllowedRunKinds,
-                item.MaxRowsPerRun);
+                item.MaxRowsPerRun,
+                item.Dispatch ?? "");
             if (!definitions.TryAdd(Key(item.SourceSystem, item.Code), definition))
                 throw new InvalidOperationException(
                     $"Consulta duplicada: {Key(item.SourceSystem, item.Code)}.");
@@ -181,5 +198,6 @@ internal static class DatasetCatalog
         [property: JsonPropertyName("contextColumns")] string[]? ContextColumns,
         [property: JsonPropertyName("identityColumns")] string[] IdentityColumns,
         [property: JsonPropertyName("allowedRunKinds")] string[] AllowedRunKinds,
-        [property: JsonPropertyName("maxRowsPerRun")] int MaxRowsPerRun);
+        [property: JsonPropertyName("maxRowsPerRun")] int MaxRowsPerRun,
+        [property: JsonPropertyName("dispatch")] string? Dispatch = null);
 }

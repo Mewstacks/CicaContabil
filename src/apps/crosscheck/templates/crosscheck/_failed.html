@@ -1,0 +1,13 @@
+<section class="workspace-panel crosscheck" aria-labelledby="failed-heading">
+  <header class="workspace-panel-head">
+    <div><h2 id="failed-heading">{% if run.state == 'canceled' %}Cancelada{% else %}Não foi possível conferir{% endif %}</h2></div>
+  </header>
+  {% if errors %}<ul class="crosscheck-issues" aria-label="Motivos">
+    {% for item in errors %}<li class="is-error"><strong>Erro</strong> {{ item.message }}{% if item.file %} <span class="crosscheck-file-note">{{ item.file }}</span>{% endif %}</li>{% endfor %}
+  </ul>{% endif %}
+  {% for item in warnings %}<div class="inline-alert inline-alert-warning" role="status">{{ item.message }}</div>{% endfor %}
+  {% if can_write %}<div class="modal-actions crosscheck-actions">
+    {% if can_repeat %}<form method="post" action="{% url 'crosscheck:run-repeat' run.id %}">{% csrf_token %}<button class="button" type="submit">Corrigir</button></form>{% endif %}
+    <a class="button button-quiet" href="{% url 'crosscheck:new-run' %}?ferramenta={{ run.tool }}&amp;empresa={{ run.company_id }}">Nova conferência</a>
+  </div>{% endif %}
+</section>

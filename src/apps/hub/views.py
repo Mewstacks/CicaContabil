@@ -2508,6 +2508,17 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 "url": reverse("profitability:overview"),
             }
         )
+    if ProductModule.Code.CROSSCHECK in enabled_codes:
+        from apps.crosscheck.services import runs_needing_attention
+
+        work_areas.append(
+            {
+                "label": "Contraprova",
+                "count": runs_needing_attention(office, scope),
+                "note": "Conferências com divergência nos últimos 30 dias",
+                "url": reverse("crosscheck:index"),
+            }
+        )
     context.update(
         {
             "page_title": {

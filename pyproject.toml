@@ -65,6 +65,9 @@ DJANGO_SETTINGS_MODULE = "config.settings.test"
 pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = "--strict-markers --strict-config -ra"
+markers = [
+  "performance: orçamento de memória e tempo do motor do Contraprova (pode ser excluído com -m 'not performance')",
+]
 
 [tool.coverage.run]
 branch = true

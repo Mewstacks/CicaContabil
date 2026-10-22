@@ -100,6 +100,13 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-44 | Resolvida em 22/09/2026 por D-290: o levantamento Siescon do Lucrums é aceito como base técnica, com o limite de que o layout foi inferido e não documentado pelo fornecedor. | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
 | Q-45 | Resolvida em 22/09/2026 por D-289: o conector unificado permanece em `net8.0-windows`, e o código do Lucrums é portado para trás. | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
 
+## Contraprova (etapa 15)
+
+| ID | Pergunta objetiva | Por que altera a implementação |
+| --- | --- | --- |
+| Q-46 | Quais das regras de conferência propostas em D-301 o responsável fiscal confirma ou corrige? | Define o que vira divergência e o que vira "ignorada por regra": tolerância de 1 centavo, operação padrão (entradas), conjunto de CFOP sem crédito (1406, 1407, 1551, 1556, 2406, 2407, 2551, 2556), tratamento de situação cancelada ou denegada, crédito do Simples Nacional (ICMSSN101/201/900), IPI com devolução, CFOP do ICMS 51 (1551/1556, com 2551/2556 opcionais) e UF da contraparte na entrada. As regras vêm do código legado e do Guia Prático, não de confirmação fiscal; enquanto estiver aberta, cada conferência grava e exibe as regras usadas. |
+| Q-47 | O contrato `fiscal_counterparts` (objetos `efsaidas`, `efentradas`, `efclientes` e `effornece`; colunas chave, direção e UF; janela por data de escrituração; exemplos mascarados) e o envio da chave de acesso em claro são aprovados? | `agent-windows/CONTRATOS-DOMINIO.md` exige aprovar objeto, chave de empresa e competência, códigos de estado e exemplos mascarados antes de criar uma consulta, e o precedente do backup guarda a contraparte só como hash; a chave de 44 posições embute o CNPJ do emitente. Sem aprovação o dataset permanece `validated: false` e o caminho por arquivo (CSV/XLSX) é o único ativo. Os nomes das colunas de data de `efsaidas`/`efentradas` e da situação cancelada ainda precisam de conferência por metadados na base real, sem valores. |
+
 ## Donos, etapas e estado das perguntas
 
 Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono e etapa. O responsável pelo projeto responde produto, política, ambiente e autorização; o executor levanta fatos técnicos primeiro. Pedir acesso em meio protegido, nunca conteúdo de credenciais.
@@ -129,6 +136,8 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Rentabilidade — comercial: Q-43 | Responsável pelo projeto | 14, 10 | Aberto; módulo entra sem preço |
 | Rentabilidade — Siescon: Q-44 | Já decidido | 04, 14 | Resolvido por D-290; resolve também Q-33 |
 | Rentabilidade — conector: Q-45 | Já decidido | 03, 14 | Resolvido por D-289 |
+| Contraprova — regras fiscais: Q-46 | Responsável pelo projeto / responsável fiscal indicado | 15 | Aberto; as regras padrão de D-301 valem até a resposta |
+| Contraprova — contrato do agente: Q-47 | Responsável pelo projeto / administrador do ambiente Domínio indicado | 03, 12, 15 | Aberto; a consulta nasce `validated: false` e desligada |
 
 Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário para a ação seguinte que não possa ser resolvido por inspeção nem pelas decisões existentes. Atualizar o ID original quando respondido, com referência ao novo registro D.
 | Q-38 | Onde estará o backup Domínio Web `.dom` autorizado para contingência e qual será o canal seguro da chave correspondente? | Etapa 12: D-82 transferiu a homologação do backup para a liberação final. Recomenda-se usar um único backup de teste em pasta temporária e chave por canal seguro; o agente nunca registra nem exibe a chave. |

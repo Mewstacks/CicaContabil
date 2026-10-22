@@ -108,6 +108,15 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
         )
     if "reform" in codes:
         fiscal.append(link("Reforma tributária", "hub:reform", "Publicações e mudanças fiscais"))
+    if "crosscheck" in codes:
+        fiscal.append(
+            link(
+                "Contraprova",
+                "crosscheck:index",
+                "SPED, XML e Domínio lado a lado",
+                routes=("new-run", "run-detail"),
+            )
+        )
     group("fiscal", "Fiscal", fiscal)
     group(
         "accounting",

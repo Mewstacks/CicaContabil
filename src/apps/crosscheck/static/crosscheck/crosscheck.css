@@ -1,0 +1,196 @@
+/* Contraprova. Só tokens de hub/theme.css; nenhuma cor literal.
+   Escala de espaço: 4 · 8 · 12 · 16 · 22 (o recuo dos painéis do CICA). */
+
+.crosscheck .tnum { font-variant-numeric: tabular-nums; text-align: right; }
+.crosscheck th.tnum { text-align: right; }
+.crosscheck .num { font-variant-numeric: tabular-nums; }
+.crosscheck .module-state { margin-left: 0; padding: 4px 9px; font-size: 12px; }
+.crosscheck .record-count { font-size: 12px; }
+
+.crosscheck-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; color: var(--muted); font-size: 13px; }
+.crosscheck-crumbs a { display: inline-flex; align-items: center; min-height: 24px; color: var(--blue); font-weight: 650; }
+.crosscheck-crumbs a:hover { text-decoration: underline; }
+.crosscheck-crumbs a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+.crosscheck.workspace-panel { margin-bottom: 16px; }
+.crosscheck-head .workspace-panel-head { border-bottom: 0; }
+.crosscheck-sub { display: block; margin-top: 4px; color: var(--muted); font-size: 13px; }
+.crosscheck-head h2 a { color: inherit; text-decoration: none; }
+.crosscheck-head h2 a:hover { color: var(--blue); text-decoration: underline; }
+
+.crosscheck-shortcuts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
+/* Tabela da lista e dos achados */
+.crosscheck-table td small { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; }
+.crosscheck-table tbody tr.is-ignored td { color: var(--muted); }
+.crosscheck-key { display: block; max-width: 34ch; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; line-height: 1.4; overflow-wrap: anywhere; }
+.crosscheck-finding-cell { display: grid; justify-items: start; gap: 2px; min-width: 0; }
+.crosscheck-kind-line { display: block; overflow-wrap: anywhere; }
+.crosscheck-kind { font-weight: 700; }
+.crosscheck-field { color: var(--muted); font-size: 12px; font-weight: 400; }
+.crosscheck-findings td { vertical-align: top; }
+
+.crosscheck-detail { margin-top: 6px; }
+.crosscheck-detail > summary { display: inline-flex; align-items: center; min-height: 24px; color: var(--blue); font-size: 12px; font-weight: 750; cursor: pointer; }
+.crosscheck-detail > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+.crosscheck-detail-body { display: grid; gap: 8px; padding: 8px 0 4px; font-size: 12px; }
+.crosscheck-facts { display: grid; gap: 4px; margin: 0; }
+.crosscheck-facts > div { display: flex; gap: 8px; }
+.crosscheck-facts dt { flex: 0 0 8.5rem; color: var(--muted); }
+.crosscheck-facts dd { margin: 0; overflow-wrap: anywhere; }
+.crosscheck-mini { width: 100%; border-collapse: collapse; font-size: 12px; }
+.crosscheck-mini caption { padding: 0 0 4px; color: var(--muted); font-weight: 700; text-align: left; }
+.crosscheck-mini th, .crosscheck-mini td { padding: 3px 8px 3px 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.crosscheck-mini th { color: var(--muted); }
+.crosscheck-mini .tnum { text-align: right; }
+
+/* Abas e resumo */
+.crosscheck-stats { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; }
+.crosscheck-stats > div { display: grid; gap: 2px; }
+.crosscheck-stats dt { color: var(--muted); font-size: 12px; }
+.crosscheck-stats dd { margin: 0; color: var(--ink); font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.crosscheck-tabs { margin: 0; padding: 0 22px; }
+.crosscheck-cfop { width: 7rem; min-height: 36px; padding: 7px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; }
+.crosscheck-cfop:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.crosscheck .inline-alert { margin: 12px 22px 0; }
+
+.crosscheck-footer { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 22px; border-top: 1px solid var(--line); }
+.crosscheck-downloads { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 12px; border-left: 1px solid var(--line); }
+.crosscheck-repeat { padding: 0; border: 0; }
+.crosscheck-repeat > summary { list-style: none; min-height: 36px; padding: 6px 12px; border: 1px solid var(--control-border); border-radius: var(--radius-sm); font-size: 13px; }
+.crosscheck-repeat > summary::-webkit-details-marker { display: none; }
+.crosscheck-repeat > summary:hover { border-color: var(--blue); }
+.crosscheck-repeat-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; padding: 8px 0; }
+
+.crosscheck-disclosure { padding: 0 22px; border-top: 1px solid var(--line); }
+.crosscheck-disclosure > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 700; cursor: pointer; }
+.crosscheck-disclosure > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; border-radius: 2px; }
+.crosscheck-disclosure > summary::after { width: 7px; height: 7px; margin: -3px 2px 0 auto; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; content: ""; transform: rotate(45deg); transition: transform 0.15s ease; }
+.crosscheck-disclosure[open] > summary::after { margin-top: 3px; transform: rotate(-135deg); }
+.crosscheck-disclosure[open] { padding-bottom: 14px; }
+.crosscheck-rule-list { display: grid; gap: 6px; margin: 0; font-size: 13px; }
+.crosscheck-rule-list > div { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.crosscheck-rule-list dt { flex: 0 0 10rem; color: var(--muted); }
+.crosscheck-rule-list dd { margin: 0; overflow-wrap: anywhere; }
+.crosscheck-rule-list small { color: var(--muted); }
+.crosscheck-disclosure .crosscheck-files { margin-top: 4px; }
+
+/* Nova conferência */
+.crosscheck-form { padding: 22px; margin: 0; gap: 22px; }
+.crosscheck-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.crosscheck-form legend, .crosscheck-form .field-label { padding: 0; margin-bottom: 8px; color: var(--ink); font-size: 13px; font-weight: 750; }
+.crosscheck-form-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
+.crosscheck-rules { display: grid; gap: 16px; padding-top: 4px; }
+.crosscheck-rules > legend { float: left; width: 100%; }
+.crosscheck-rules > legend + * { clear: both; }
+.crosscheck-tool-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.crosscheck-tool { position: relative; display: grid; align-content: start; gap: 4px; min-height: 76px; padding: 12px 40px 12px 14px; border: 1px solid var(--control-border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; }
+.crosscheck-tool:hover { border-color: var(--blue); }
+.crosscheck-tool input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.crosscheck-tool::after { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 18px; height: 18px; border: 1px solid var(--control-border); border-radius: 50%; content: ""; font-size: 12px; line-height: 1; }
+.crosscheck-tool:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); box-shadow: inset 0 0 0 1px var(--blue); }
+.crosscheck-tool:has(input:checked)::after { border-color: var(--blue); background: var(--blue); color: var(--on-strong); content: "\2713"; }
+.crosscheck-tool:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+.crosscheck-tool-name { color: var(--ink); font-weight: 750; }
+.crosscheck-tool-inputs { color: var(--muted); font-size: 12px; }
+.crosscheck-unit { display: flex; align-items: center; gap: 8px; }
+.crosscheck-unit input { width: 6.5rem; }
+.crosscheck-unit span { color: var(--muted); font-size: 13px; }
+.crosscheck-checks > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 16px; }
+.crosscheck-checks label, .crosscheck-check { display: flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13px; cursor: pointer; }
+.crosscheck-checks input, .crosscheck-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--blue); }
+.crosscheck-nested { margin-top: 12px; }
+.crosscheck-source { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.crosscheck-source > legend { width: 100%; }
+
+/* Arquivos */
+.crosscheck-roles { display: grid; }
+.crosscheck-role { display: grid; gap: 12px; padding: 18px 22px; border-top: 1px solid var(--line); }
+.crosscheck-role:first-child { border-top: 0; }
+.crosscheck-role-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.crosscheck-role-head h3 { margin: 0; font-size: 15px; }
+.crosscheck-files { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.crosscheck-files li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); }
+.crosscheck-file-main { display: grid; flex: 1 1 14rem; gap: 2px; min-width: 0; }
+.crosscheck-files li > form { flex: 0 0 auto; margin: 0; }
+.crosscheck-files li .button { white-space: nowrap; }
+.crosscheck-file-name { overflow: hidden; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.crosscheck-file-meta { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.crosscheck-file-note { color: var(--amber); font-size: 12px; font-weight: 650; }
+.crosscheck-drop { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 56px; padding: 12px 14px; border: 1px dashed var(--control-border); border-radius: var(--radius-sm); background: var(--surface-subtle); cursor: pointer; }
+.crosscheck-drop:hover, .crosscheck-drop.is-dragging { border-color: var(--blue); background: var(--blue-soft); }
+.crosscheck-drop:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.crosscheck-drop-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.crosscheck-drop-action { color: var(--blue); font-weight: 750; }
+.crosscheck-drop-hint { color: var(--muted); font-size: 12px; }
+.crosscheck-inline-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.crosscheck-inline-actions form { margin: 0; }
+.crosscheck-template-link { justify-self: start; font-size: 13px; }
+.crosscheck-queue { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }
+.crosscheck-queue li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-raised); font-size: 13px; }
+.crosscheck-queue li.is-error { border-color: var(--red); background: var(--red-soft); }
+.crosscheck-queue li.is-done { border-color: var(--green); }
+.crosscheck-queue .crosscheck-queue-state { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.crosscheck-queue .crosscheck-queue-error { grid-column: 1 / -1; color: var(--ink); font-size: 12px; }
+.crosscheck-queue progress { grid-column: 1 / -1; width: 100%; height: 6px; accent-color: var(--blue); }
+
+.crosscheck-issues { display: grid; gap: 6px; margin: 0; padding: 0 22px; list-style: none; }
+.crosscheck-issues li { padding: 9px 12px; border: 1px solid var(--control-border); border-radius: var(--radius-sm); font-size: 13px; }
+.crosscheck-issues li strong { margin-right: 6px; }
+.crosscheck-issues .is-error { border-color: var(--red); background: var(--red-soft); }
+.crosscheck-issues .is-warning { border-color: var(--amber); background: var(--amber-soft); }
+.crosscheck-actions { justify-content: flex-start; padding: 16px 22px; border-top: 1px solid var(--line); }
+.crosscheck-actions form { margin: 0; }
+.crosscheck .button[disabled] { cursor: not-allowed; opacity: 0.55; }
+
+/* Andamento */
+.crosscheck-bar { height: 8px; margin: 22px; overflow: hidden; border: 1px solid var(--line); border-radius: 99px; background: var(--surface-subtle); }
+.crosscheck-bar > span { display: block; width: 100%; height: 100%; border-radius: 99px; background: var(--blue); transform: scaleX(calc(var(--pct, 0) / 100)); transform-origin: left; transition: transform 0.3s ease; }
+.crosscheck-bar.is-indeterminate > span { width: 35%; transform: none; animation: crosscheck-slide 1.4s ease-in-out infinite alternate; }
+@keyframes crosscheck-slide { from { transform: translateX(0); } to { transform: translateX(185%); } }
+
+@media (max-width: 960px) {
+  .crosscheck-tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .page-header-actions .button, .crosscheck .button { min-height: 44px; }
+  .crosscheck-form input:not([type="checkbox"], [type="radio"]), .crosscheck-form select, .crosscheck-repeat-form input { min-height: 44px; }
+  .crosscheck-detail > summary { min-height: 44px; }
+  .crosscheck-form { padding: 16px; }
+  .crosscheck-form-row { grid-template-columns: 1fr; }
+  .crosscheck-role, .crosscheck-footer, .crosscheck-actions { padding-inline: 16px; }
+  .crosscheck-issues, .crosscheck-tabs, .crosscheck-disclosure { padding-inline: 16px; }
+  .crosscheck .inline-alert { margin-inline: 16px; }
+  .crosscheck-bar { margin: 18px 16px; }
+  .crosscheck-stats dd { font-size: 20px; }
+  .crosscheck-cfop { flex: 1 1 100%; width: auto; }
+  .crosscheck-downloads { flex: 1 1 100%; padding-left: 0; border-left: 0; }
+  .crosscheck-checks label, .crosscheck-check { min-height: 44px; }
+  .crosscheck-checks > div { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .crosscheck-form .modal-actions { flex-direction: column-reverse; align-items: stretch; }
+  .crosscheck-table thead { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .data-table-wrap .crosscheck-table, .crosscheck-table tbody { display: block; width: 100%; min-width: 0; }
+  .crosscheck-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; width: 100%; padding: 14px 16px; border-top: 1px solid var(--line); content-visibility: visible; contain-intrinsic-size: none; }
+  .crosscheck-table td { display: grid; align-content: start; gap: 2px; width: 100%; max-width: none; padding: 0; border: 0; overflow-wrap: anywhere; }
+  .crosscheck-table td::before { color: var(--muted); content: attr(data-label); font-size: 11px; font-weight: 700; }
+  .crosscheck-table td:first-child, .crosscheck-findings td[data-label="Achado"] { grid-column: 1 / -1; }
+  .crosscheck-table td:first-child::before { content: none; }
+  .crosscheck-table td.tnum { text-align: left; }
+  .crosscheck-table .module-state { justify-self: start; }
+  .crosscheck-key { max-width: none; }
+  .crosscheck-facts > div { flex-direction: column; gap: 0; }
+  .crosscheck-rule-list dt { flex-basis: 100%; }
+}
+
+@media (max-width: 460px) {
+  .crosscheck-tool-grid { grid-template-columns: 1fr; }
+  .crosscheck-actions .button, .crosscheck-repeat-form .button { width: 100%; }
+  .crosscheck-actions { flex-direction: column; align-items: stretch; }
+  .crosscheck-actions form { display: grid; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crosscheck-bar > span { transition: none; }
+  .crosscheck-bar.is-indeterminate > span { animation: none; width: 100%; opacity: 0.6; }
+}

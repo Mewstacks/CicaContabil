@@ -1874,3 +1874,29 @@ formulários de franquia de teste e disponibilidade do Copiloto editam o mesmo a
 renderizados na mesma página com o mesmo `id` HTML. Cada formulário passa a ter seu próprio
 prefixo de identificador, mantendo os nomes de campos e os contratos `POST` já utilizados. Assim,
 cada rótulo aponta para o controle do seu próprio formulário sem alterar a ação administrativa.
+
+## D-300 — Contraprova: a suíte Tax Envel passa a ser módulo do CICA (21/10/2026)
+
+Origem: responsável pelo projeto, nesta conversa, pedindo a reescrita completa do Tax Envel (`Site_Integracao\Django\apps\Tax_Envel`) dentro do CICA e escolhendo o nome. O módulo se chama **Contraprova**; o identificador técnico é `crosscheck` (código de módulo, pacote `src/apps/crosscheck`, namespace de URL), a rota é `/app/contraprova/` e ele fica no grupo Fiscal da navegação. Segue o precedente da etapa 14 (Rentabilidade): porta-se o produto, não a base. A empresa é `ClientCompany`, o acesso é o do escritório (papel, carteira, módulo) e nada do projeto legado (sem autenticação, MySQL, MongoDB interno, `DSN=Envel`, empresa fixa) é reaproveitado. Por D-288, o módulo fica fora do cadastro e da demonstração (`NOT_SELF_SERVICE_MODULE_CODES`) até haver aceite; o console da plataforma o habilita caso a caso.
+
+As funções mantidas são quatro ferramentas: SPED × XML (a variante "só ICMS" vira seleção de campos), SPED × SPED, ICMS 51 e UF × Domínio. As variantes que liam o MongoDB `fiscaldrive` deixam de existir; o XML passa a ser enviado como arquivo. A consulta de UF ao Domínio vem do agente Windows (fila própria, dataset `fiscal_counterparts`) ou de arquivo CSV/XLSX exportado do Domínio. A consulta nova segue D-18, D-80 e D-284 (somente leitura, SQL fixado por SHA-256, nunca recebido da nuvem), nasce com `validated: false`, atrás de `CONTRAPROVA_AGENT_ENABLED` desligado, e só se torna homologada após ensaio autorizado na base real (D-86). A chave de acesso (44 posições, que embute o CNPJ do emitente) trafega em claro do agente ao servidor, fica restrita ao escritório e é apagada com os arquivos de entrada (D-302): o precedente de hash de contraparte do backup vale para o documento da contraparte, não para este identificador, que o módulo precisa casar com o XML enviado. A confirmação está em Q-47.
+
+O código legado permanece intacto, fora deste repositório. Esta decisão não autoriza publicação para escritório real, custo, instalação de agente nem homologação.
+
+## D-301 — Regras padrão de conferência do Contraprova (21/10/2026)
+
+Origem: executor, a partir da auditoria do código legado do Tax Envel, do Guia Prático da EFD ICMS/IPI (registros 0000, C100, C190, D100 e D190) e do leiaute da NF-e 4.00. São o comportamento inicial; cada conferência grava as regras usadas (`rules_snapshot`) e as exibe no relatório, e elas ficam como proposta até Q-46 ser respondida pelo responsável fiscal.
+
+1. Valores em centavos inteiros; tolerância de 1 centavo, inclusiva.
+2. O vínculo é a chave de acesso de 44 posições com dígito verificador módulo 11 (CNPJ alfanumérico aceito): C100 dos modelos 55 e 65, D100 dos modelos 57 e 67. Documento sem chave é contado como não conferível.
+3. Operação padrão: entradas, como no legado, com escolha entre entradas, saídas e ambas.
+4. Situação 02, 03, 04 e 05 no SPED não compara valores: confere a situação no XML (cStat 101, 151, 110, 301 e 302, ou evento de cancelamento). As situações 06, 07 e 08 comparam só o campo preenchido.
+5. ICMS confere se o SPED igualar o vICMS da nota ou a soma de vCredICMSSN (grupos ICMSSN101, 201 e 900). IPI é vIPI mais vIPIDevol. O valor do documento (vNF contra VL_DOC) é sempre comparado.
+6. Entrada sem direito a crédito: se todos os CFOP do C190 estiverem no conjunto sem crédito (padrão 1406, 1407, 1551, 1556, 2406, 2407, 2551 e 2556, o conjunto que o legado usava para esconder tudo), a divergência de ICMS e de IPI passa a `ignorada por regra` e continua listada e exportada. Divergência do valor do documento nunca é ignorada.
+7. ICMS 51: C190 com CFOP 1551 ou 1556 (2551 e 2556 opcionais) e XML com o grupo ICMS51, conferindo vICMSOp − vICMSDif = vICMS.
+8. UF: na saída vale a UF do destinatário e na entrada a do emitente, comparada com a UF do cliente ou fornecedor cadastrado no Domínio. Sem destinatário ou exterior ("EX") tem categoria própria.
+9. A direção vem do CNPJ da empresa da conferência; XML de outra empresa é contado e excluído.
+
+## D-302 — Retenção dos arquivos do Contraprova (21/10/2026)
+
+Origem: responsável pelo projeto, nesta conversa. Os arquivos de entrada de uma conferência (SPED, XML, ZIP, exportação do Domínio e linhas recebidas do agente) são apagados 24 horas depois de a conferência terminar (concluída, com falha ou cancelada), o que permite repetir com outras regras sem reenviar. Achados e relatório XLSX ficam 90 dias. O cabeçalho da conferência (empresa, competência, ferramenta, contagens, hashes e regras) permanece como trilha. A rotina diária `crosscheck.purge_expired` aplica a regra e registra a purga em auditoria sem CNPJ nem nome. Rascunho sem movimento por 72 horas expira do mesmo modo, com os arquivos apagados. Não é a política geral de retenção do CICA (PC-28 segue aberto): vale somente para este módulo e pode ser encurtada por decisão posterior sem migração de dados.

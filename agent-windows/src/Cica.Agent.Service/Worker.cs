@@ -55,6 +55,18 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     config.Save();
                     AgentRuntimeStatus.Write("synchronizing", "Configuração de destino atualizada pela CICA.");
                 }
+                // Fila própria e isolada: uma falha do Contraprova nunca derruba o ciclo
+                // nem os outros processadores (só o tipo da exceção vai ao log).
+                try
+                {
+                    await new ContraprovaProcessor(config, client).RunOnce(stoppingToken);
+                }
+                catch (Exception error) when (
+                    error is not OperationCanceledException and not AgentAuthorizationException)
+                {
+                    logger.LogWarning(
+                        "CICA agent contraprova queue failed with code {Code}", error.GetType().Name);
+                }
                 await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
                 await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
                 await new BackupProcessor(config, client).RunOnce(stoppingToken);
