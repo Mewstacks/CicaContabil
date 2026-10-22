@@ -608,7 +608,7 @@ class ResultadoTests(CrosscheckCase):
 
     def test_csv_neutraliza_formula(self) -> None:
         CrosscheckFinding.objects.filter(run=self.run, kind="valor_divergente").update(
-            number='=HYPERLINK("http://x")', message="+cmd|' /C calc'!A0"
+            number='=HYPERLINK("x")', message="+cmd|' /C calc'!A0"
         )
 
         _, corpo = self._baixar("csv", aba="divergencias")

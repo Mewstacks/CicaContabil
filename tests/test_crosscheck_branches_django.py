@@ -232,6 +232,31 @@ class ValidacaoDeArquivosTests(CrosscheckCase):
         )
         assert xlsx.stored[0].detected == {"formato": "xlsx"}
 
+    def test_xlsx_que_descompacta_demais_e_recusado_no_envio_e_no_worker(self) -> None:
+        from apps.crosscheck.engine import dominio_file
+
+        bomba = build_zip(
+            {"xl/workbook.xml": b"<workbook/>", "xl/sharedStrings.xml": b"0" * (2 * 1024 * 1024)}
+        )
+        planilha = io.BytesIO()
+        livro = Workbook()
+        livro.active.append(["chave", "uf"])
+        livro.save(planilha)
+
+        resultado = self._enviar("dominio", SimpleUploadedFile("b.xlsx", bomba), run=self.uf)
+        assert resultado.errors and "grande demais" in resultado.errors[0]
+        with mock.patch.object(dominio_file, "XLSX_MAX_PART_BYTES", 10):
+            assert self._enviar(
+                "dominio", SimpleUploadedFile("g.xlsx", planilha.getvalue()), run=self.uf
+            ).errors
+        with mock.patch.object(dominio_file, "XLSX_MAX_TOTAL_BYTES", 10):
+            assert self._enviar(
+                "dominio", SimpleUploadedFile("t.xlsx", planilha.getvalue()), run=self.uf
+            ).errors
+        with self.assertRaises(dominio_file.DominioFileError):
+            list(dominio_file.iter_dominio_rows(io.BytesIO(bomba), "b.xlsx"))
+        assert not CrosscheckInput.objects.exists()
+
     def test_readiness_do_limite_de_xml_e_remocao_com_recusas(self) -> None:
         self._enviar("xml", zip_upload(nfe(1), nfe(2)))
         with mock.patch.object(limits, "MAX_XML_PER_RUN", 1):

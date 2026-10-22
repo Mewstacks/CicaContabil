@@ -38,7 +38,7 @@ from apps.hub.models import ClientCompany
 from apps.organizations.models import Membership, Organization
 
 from . import limits
-from .engine.dominio_file import DominioRow
+from .engine.dominio_file import DominioFileError, DominioRow, check_xlsx_bounds
 from .engine.efd import EfdFormatError, peek_header, peek_trailer
 from .engine.findings import DIVERGENT, IGNORED, Finding, MatchedRow, RunCancelled
 from .engine.keys import format_cnpj
@@ -276,15 +276,9 @@ def _inspect_dominio(upload: UploadedFile, name: str) -> dict[str, Any]:
         if head != _ZIP_MAGIC:
             raise CrosscheckError(f"{name}: o arquivo não é uma planilha XLSX.")
         try:
-            with zipfile.ZipFile(upload) as archive:
-                names = set(archive.namelist())
-                total = sum(info.file_size for info in archive.infolist())
-        except (zipfile.BadZipFile, OSError, EOFError) as exc:
-            raise CrosscheckError(f"{name}: o arquivo não é uma planilha XLSX válida.") from exc
-        finally:
-            upload.seek(0)
-        if "xl/workbook.xml" not in names or total > 400 * limits.MiB:
-            raise CrosscheckError(f"{name}: o arquivo não é uma planilha XLSX válida.")
+            check_xlsx_bounds(cast(BinaryIO, upload))
+        except DominioFileError as exc:
+            raise CrosscheckError(f"{name}: {exc}") from exc
         return {"formato": "xlsx"}
     if head == _ZIP_MAGIC or b"\x00" in _head(upload, 4096):
         raise CrosscheckError(f"{name}: o arquivo não é um CSV de texto.")

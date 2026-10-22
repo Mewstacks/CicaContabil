@@ -20,6 +20,11 @@ from typing import BinaryIO
 from .keys import is_well_formed
 
 MAX_ROWS = 200_000
+#: O XLSX é um ZIP: o openpyxl lê `sharedStrings.xml` inteiro para a memória, então o que
+#: importa é o tamanho descompactado de cada parte, não só o do arquivo enviado (D-302).
+XLSX_MAX_PART_BYTES = 48 * 1024 * 1024
+XLSX_MAX_TOTAL_BYTES = 96 * 1024 * 1024
+XLSX_MAX_RATIO = 100
 MAX_ISSUES = 50
 
 _KEY_NAMES = {"chave", "chave_nfe", "chavenfe", "chave_de_acesso", "chave_acesso"}
@@ -104,7 +109,30 @@ def _rows_csv(stream: BinaryIO) -> Iterator[list[str]]:
         yield [cell.strip() for cell in row]
 
 
+def check_xlsx_bounds(stream: BinaryIO) -> None:
+    """Recusa XLSX que descompacta para mais do que o worker aguenta, antes de abrir."""
+
+    try:
+        with zipfile.ZipFile(stream) as archive:
+            parts = archive.infolist()
+    except (zipfile.BadZipFile, OSError, EOFError) as exc:
+        raise DominioFileError("O arquivo não é uma planilha XLSX válida.") from exc
+    finally:
+        stream.seek(0)
+    if "xl/workbook.xml" not in {part.filename for part in parts}:
+        raise DominioFileError("O arquivo não é uma planilha XLSX válida.")
+    too_big = any(part.file_size > XLSX_MAX_PART_BYTES for part in parts)
+    suspicious = any(
+        part.file_size > 1024 * 1024
+        and part.file_size / max(part.compress_size, 1) > XLSX_MAX_RATIO
+        for part in parts
+    )
+    if too_big or suspicious or sum(part.file_size for part in parts) > XLSX_MAX_TOTAL_BYTES:
+        raise DominioFileError("A planilha é grande demais; exporte em CSV.")
+
+
 def _rows_xlsx(stream: BinaryIO) -> Iterator[list[str]]:
+    check_xlsx_bounds(stream)
     from openpyxl import load_workbook  # type: ignore[import-untyped]
     from openpyxl.utils.exceptions import InvalidFileException  # type: ignore[import-untyped]
 
