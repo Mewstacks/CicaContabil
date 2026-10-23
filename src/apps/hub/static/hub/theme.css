@@ -219,7 +219,7 @@ input::placeholder,textarea::placeholder { color: var(--muted); opacity: 1; }
 }
 
 /* D-184 official-kit overrides after legacy page layers. */
-.workspace-brand{min-width:44px;color:var(--blue)}
+.workspace-brand{min-width:44px;min-height:44px;color:var(--blue)}
 .workspace-brand>.cica-brand-mark{display:inline-grid;width:34px;height:auto;background:transparent!important;color:inherit!important}
 .wordmark>.cica-brand-lockup{background:transparent!important;color:inherit!important}
 .workspace-shell .topnav-link[aria-current],.workspace-shell .topnav-group.is-current>summary,.workspace-shell .topnav-copilot{color:var(--blue)}

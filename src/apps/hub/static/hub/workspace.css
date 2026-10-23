@@ -115,10 +115,14 @@
 .workspace-shell :where(section[id],h2[id],details[id],main[id],a,button,input,select,summary) { scroll-margin-top: calc(var(--workspace-header-height) + 16px); }
 .workspace-shell a, .workspace-shell button, .workspace-shell summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 body:has(.workspace-shell) .skip-link:focus-visible { pointer-events: auto; color: var(--ink); }
+/* Eight top-level entries no longer fit between 961px and ~1100px: tighten them before the menu collapses. */
+@media (min-width: 961px) and (max-width: 1120px) {
+  .topnav-link, .topnav-group>summary { padding-inline: 8px; }
+}
 @media (max-width: 1000px) {
   .workspace-shell .workspace-identity { padding-inline: 20px; }
   .workspace-menu-row { padding-inline: 14px; }
-  .topnav-link, .topnav-group>summary { padding-inline: 10px; }
+  .topnav-link, .topnav-group>summary { padding-inline: 8px; }
   .topnav-panel { width: 280px; }
   .topnav-group:last-of-type .topnav-panel { left: auto; right: 0; }
   .workspace-shell .work-area { padding-inline: 24px; }
