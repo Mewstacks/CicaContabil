@@ -2484,4 +2484,7 @@ mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
 - Workflow de push executa CI; deploy exige dispatch separado, não acionado.
   Ruff global exigiu somente uma quebra de linha no docstring de um script,
   que não foi executado. Testes funcionais permanecem os comprovados em V-302.
-- Commit/push e comparação remota serão registrados após o envio efetivo.
+- Envio confirmado: `main` avançou de `aad2f5a` para `1b978d4` com 27 arquivos
+  de código, testes e documentação. SHA conferido diretamente no remoto,
+  comparação local/remoto 0/0 e árvore limpa. Registro de confirmação em commit
+  documental adicional; nenhum deploy ou integração real foi executado.

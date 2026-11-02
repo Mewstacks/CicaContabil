@@ -72,6 +72,7 @@ Nenhuma homologação externa foi executada. Os resultados V-001 são da anális
 - [x] Preparar todas as alterações de projeto para o envio autorizado ao GitHub,
   excluindo temporários, dados de cliente e segredos.
 - [x] Conferir preflight, workflows e links, sem acionar deploy ou integração real.
+- [x] Enviar ao `main` e conferir SHA remoto/árvore limpa; implementação enviada em `1b978d4` (V-303).
 
 Entrega: [lista de conclusão](../pendencias-conclusao-2026-11-02.md).
 A preparação/envio do repositório não fecha nenhuma etapa funcional.

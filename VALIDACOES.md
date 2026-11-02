@@ -5161,4 +5161,9 @@ externo de negócio. Branch `main`, base `aad2f5a`, remoto `Mewstacks/CicaContab
 
 Temporários, bancos, dados de cliente, credenciais, PDF e assinaturas não fazem
 parte do envio. Push/CI não aplica a migração em produção nem instala o agente.
-A confirmação do envio será registrada após a comparação do commit remoto.
+**Confirmação de envio:** `git push origin main` concluiu de `aad2f5a` para
+`1b978d4882a3308cb76fd5e325574749c8a653ed`. `git ls-remote --heads origin main`
+retornou esse mesmo SHA e `HEAD...origin/main = 0/0`; árvore de trabalho limpa
+após o envio. Sem force push, deploy, instalação ou acesso ao ERP. O registro
+dessa confirmação segue em commit documental adicional; CI remoto é evidência
+separada e não é declarado aprovado por sucesso do push.
