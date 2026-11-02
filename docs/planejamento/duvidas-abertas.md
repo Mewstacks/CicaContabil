@@ -100,7 +100,41 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-44 | Resolvida em 22/09/2026 por D-290: o levantamento Siescon do Lucrums é aceito como base técnica, com o limite de que o layout foi inferido e não documentado pelo fornecedor. | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
 | Q-45 | Resolvida em 22/09/2026 por D-289: o conector unificado permanece em `net8.0-windows`, e o código do Lucrums é portado para trás. | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
 
+## Conciliador do contrato — detalhamento em 27/10/2026
+
+**Atualização 02/11/2026 — D-302:** Domínio **local**, agente **no computador da cliente**,
+acesso ainda a fornecer e **incluir contas a pagar/receber** confirmados pelo responsável.
+Não repetir essas escolhas. Q-28 conserva o acesso/recorte autorizado e a origem dos títulos;
+Q-46 conserva campos, chaves, regras e entradas/saídas do DE-PARA; Q-47 conserva a operação
+de destino. Inclusão não comprova implementação ou homologação. Correções locais e roteiro
+em [V-302](../../VALIDACOES.md) e na [verificação CONTAD](verificacao-conciliador-contad-2026-11-02.md).
+
+Escopo D-301, vinculado à etapa 09/PC-19. Perguntas operacionais no
+[roteiro do contrato](levantamento-contrato-conciliador-2026-10-27.md).
+Q-28 agora deve distinguir o ambiente da cliente deste contrato do ambiente
+Fedrizzi já conhecido por D-74; também reúne fonte de títulos, acesso autorizado,
+empresas/contas, volume, material e disponibilidade para implantação.
+
+| ID | Pergunta objetiva | Impacto e responsável |
+|---|---|---|
+| Q-46 | Para o conciliador do contrato, quais fatos serão comparados, quais faltas devem aparecer, quais regras de correspondência/parcelamento/agrupamento/tolerância valem e quais entradas/saídas compõem o DE-PARA inicial? | Cliente/contadora explica a rotina e fornece exemplos/mapa existente; executor especifica e valida. Sem essas respostas não presumir baixa, vencimento como pagamento, conta por histórico ou tolerância numérica. D-73 mantém critérios técnicos de aceite já decididos. |
+| Q-47 | Qual resultado deve voltar ao ERP: só conferência, arquivo para importação ou uma operação específica? Se a rota for fiscal, qual módulo, operação e retorno comprovam o resultado esperado? | Cliente/contadora demonstra o trabalho e o destino; técnico do ERP e executor conferem viabilidade, campos/layout e recuperação. A intenção de alternativa fiscal está em D-301, mas não há equivalência, escrita direta ou baixa automática autorizadas por inferência. O aceite NFS-e Q-39 não resolve esse contrato contábil/fiscal. |
+
+Não reabrir preços, prazo, carga contratada ou treinamento inicial já escritos
+no contrato. Apoio de IA ao DE-PARA também já está incluído; Q-08/Q-09 continuam
+valendo para custo/egressão quando houver execução real. Perguntas sobre os
+outros módulos não bloqueiam esta entrega por inferência.
+
 ## Donos, etapas e estado das perguntas
+
+**Detalhamento de Q-28 para PC-19 em 26/10/2026:** o
+[diagnóstico do conciliador](diagnostico-conciliador-2026-10-26.md) contém o roteiro
+de levantamento de ambiente, Razão, contas, arquivos, período, exceções e material
+de comparação. São desdobramentos operacionais de Q-28, não novas perguntas Q.
+D-74 já confirma Domínio local/ODBC na Fedrizzi; não pedir configuração ou
+credenciais novamente. Só confirmar modalidade local/Web para outra instalação
+ou mudança informada. D-73 mantém métricas e aprovador já decididos. D-295
+resolve o aceite NFS-e de Q-39; o layout contábil de PC-19 tem aceite próprio.
 
 Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono e etapa. O responsável pelo projeto responde produto, política, ambiente e autorização; o executor levanta fatos técnicos primeiro. Pedir acesso em meio protegido, nunca conteúdo de credenciais.
 

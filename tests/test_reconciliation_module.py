@@ -1510,7 +1510,7 @@ def test_rule_reapplication_preserves_manual_and_posting_decisions() -> None:
 
 
 @pytest.mark.django_db
-def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
+def test_historical_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
     organization = Organization.objects.create(name="OFX conta", slug="ofx-conta")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     account = FinancialAccount.objects.create(
@@ -1522,7 +1522,6 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
     source, run, _ = create_source_file(
         organization=organization,
         company=company,
-        financial_account=account,
         filename="outra-conta.ofx",
         content=(
             b"OFXHEADER:100\n<OFX><BANKMSGSRSV1><STMTRS><BANKACCTFROM>"
@@ -1532,6 +1531,10 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
         ),
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
+    # Historical sources may predate the intake account guard. Retain the
+    # worker guard as well, without using a new invalid upload to reach it.
+    source.financial_account = account
+    source.save(update_fields=["financial_account"])
 
     result = process_run(str(run.id))
     run.refresh_from_db()

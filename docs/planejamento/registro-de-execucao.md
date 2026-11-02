@@ -1,4 +1,43 @@
-﻿## V-140 - Visao administrativa de distribuicao de atividades
+## 27/10/2026 — contrato e levantamento de contas a pagar/receber (V-301)
+
+- D-301 registrou o recorte do contrato fornecido, a intenção sobre títulos e
+  a alternativa fiscal. Quatro páginas lidas e inspecionadas visualmente;
+  original, assinaturas e identificadores não adicionados ao controle de versão.
+- A cliente do contrato não é o ambiente Fedrizzi de D-74. Q-28 foi detalhada
+  para esse ambiente e material; Q-46 registra regras/DE-PARA; Q-47 registra
+  resultado e operação de destino contábil/fiscal.
+- [Roteiro de dez perguntas e material mínimo](levantamento-contrato-conciliador-2026-10-27.md)
+  diferencia título, banco e ERP. Triagem e demais módulos da suíte não viram
+  exigência para a entrega específica. DE-PARA com apoio de IA, testes,
+  implantação e treinamento inicial permanecem no recorte contratual.
+- Inspeção estática mostrou que o importador de obrigações trata guias fiscais;
+  rótulo de títulos não prova parcelas/baixas comerciais. Nenhum teste de V-300
+  foi repetido, nenhuma lacuna corrigida ou integração externa executada.
+- Checklist/plano/validações atualizados, etapa 09 aberta. Próximo passo é obter
+  fontes, exemplos de faltas, regras e demonstração da operação desejada no ERP,
+  sem presumir escrita direta ou equivalência contábil/fiscal.
+
+## 26/10/2026 — projeto atualizado e diagnóstico do conciliador (V-300)
+
+- Escopo D-300: pull e verificação local/documental de PC-19; nenhuma implementação
+  ou homologação externa iniciada. Checkout inicialmente limpo, `main` atualizada
+  por fast-forward de `d501fbe` para `aad2f5a` (59 commits); comparação remota 0/0.
+- 94 testes e 24 subtestes aprovados, um skip de OCR português. Quatro sondas
+  fictícias reproduziram reutilização de candidato, ausência de validação de
+  natureza, duplicação entre arquivos e divergência de conta entre os fluxos.
+  As sondas não corrigem nem aprovam esses comportamentos; detalhes e falhas
+  iniciais da fixture em V-300. Django e dry-run de migrações sem pendências.
+- A consulta do agente fornece itens do extrato Domínio, sem comprovar partidas
+  independentes do Razão. Falta ligar o espelho à conciliação avançada e fechar
+  os controles de integridade antes do piloto. Nenhuma mudança na aplicação/UI.
+- [Diagnóstico e entrevista da cliente](diagnostico-conciliador-2026-10-26.md)
+  detalham Q-28, material mínimo e critérios D-73. D-74 já confirma Domínio
+  local/ODBC da Fedrizzi; D-295 aceita NFS-e, sem homologar o arquivo contábil.
+- Checklist e plano atualizados. Etapa 09 aberta. Próxima execução de PC-19:
+  corrigir as lacunas de integridade e confirmar a fonte independente permitida;
+  piloto só com empresas, recorte e amostras autorizados, sem custo inferido.
+
+## V-140 - Visao administrativa de distribuicao de atividades
 
 Proprietario e administrador passaram a ver atribuicoes abertas por membro ativo, com atrasos
 e impedimentos separados, e podem abrir a fila exata de cada pessoa ou as atividades sem
@@ -2407,3 +2446,42 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Aplicados ui-ux-pro-max e Web Interface Guidelines à revisão; Watermelon não retornou referência para dashboard/tabela.
 - Navegador integrado indisponível e módulo Node Playwright ausente. Os scripts locais de QA sintético foram localizados, mas não executados.
 - Verificação estática não encontrou os anti-padrões pesquisados. A matriz renderizada por botão, papel, estado e viewport continua pendente e não foi declarada validada.
+
+## 02/11/2026 — Verificação e correções do conciliador CONTAD (D-302/D-303, V-302)
+
+- PDF de quatro páginas extraído/renderizado/inspecionado; preservado fora do Git.
+  Responsável confirmou Domínio local, agente no PC da cliente com acesso ainda
+  a fornecer e inclusão de pagar/receber. Q-28/Q-46/Q-47 atualizadas.
+- Implementadas proteções de identidade, conta, natureza, fonte independente,
+  exclusividade e concorrência; migração aditiva 0076 e auditoria somente leitura.
+  Consulta .NET de vínculo alinhada ao `EXISTS` já allowlisted. A UI não apresenta
+  espelho bancário como lançamento do Razão.
+- Regressão SQLite: 1.415 aprovados, 10 skips, 145 subtestes. Bateria PostgreSQL:
+  125 aprovados, 1 skip OCR, 24 subtestes, incluindo três concorrências reais.
+  Ensaio de 200 transações sintéticas íntegro em 0,974 s. Builds serviço/configurador/
+  ponte e 23 testes .NET passaram. Ruff/check/migrações/diff passaram; quatro
+  arquivos passam no MyPy, e views conserva dez erros anteriores comprovados em HEAD.
+- Playwright Node isolado validou upload/erros/confirmar/auditor e seis combinações
+  de viewport/tema, teclado/foco/movimento reduzido, sem overflow ou erros JS;
+  capturas inspecionadas e browsers fechados. Corrigido o teste de migração NFS-e
+  para restaurar o esquema atual ao fim do teste.
+- [Relatório e próximo passo](verificacao-conciliador-contad-2026-11-02.md).
+  Etapa 09 permanece aberta: Razão/títulos/DE-PARA IA, integração dos fluxos e
+  piloto CONTAD ainda pendentes. Nenhum ERP real, instalação, custo ou deploy.
+
+Complemento V-302: regressão integral em PostgreSQL descartável concluída com
+**1.423 testes e 145 subtestes aprovados, 2 skips** (OCR e Playwright Python),
+em 178,68 s. Todas as concorrências locais passaram. Instância PostgreSQL e
+servidor de QA desta sessão encerrados ao fim; logs e capturas sintéticas
+mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
+
+## 02/11/2026 — Consolidação GitHub e pendências (D-304/V-303)
+
+- Responsável autorizou enviar todas as alterações atuais ao GitHub. `main`
+  estava alinhada com `origin/main` em `aad2f5a`; sem reset ou descarte.
+- Preparados código/testes/migração e documentos de diagnóstico, contrato e
+  verificação anteriores, além da [lista de conclusão](pendencias-conclusao-2026-11-02.md).
+- Workflow de push executa CI; deploy exige dispatch separado, não acionado.
+  Ruff global exigiu somente uma quebra de linha no docstring de um script,
+  que não foi executado. Testes funcionais permanecem os comprovados em V-302.
+- Commit/push e comparação remota serão registrados após o envio efetivo.

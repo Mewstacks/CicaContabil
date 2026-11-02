@@ -1874,3 +1874,125 @@ formulários de franquia de teste e disponibilidade do Copiloto editam o mesmo a
 renderizados na mesma página com o mesmo `id` HTML. Cada formulário passa a ter seu próprio
 prefixo de identificador, mantendo os nomes de campos e os contratos `POST` já utilizados. Assim,
 cada rótulo aponta para o controle do seu próprio formulário sem alterar a ação administrativa.
+
+## D-300 — Atualização local e diagnóstico do conciliador (26/10/2026)
+
+Origem: pedido do responsável nesta conversa para fazer pull, verificar a comparação entre
+extrato bancário e lançamentos contábeis e identificar o que precisa ser esclarecido com a
+cliente. Escopo desta entrega: atualização Git sem descartar trabalho, inspeção do código,
+testes locais com dados sintéticos e registro dos resultados na etapa 09/PC-19. Não autoriza
+implementar novas regras, acessar ERP/dados reais, alterar produção, publicar ou gerar custo.
+As perguntas da entrevista detalham Q-28 e os critérios já decididos em D-73; não constituem
+um plano ou decisões de negócio novos. D-74 já confirma Domínio local/ODBC na Fedrizzi:
+perguntar local/Web somente se a cliente for outro ambiente ou tiver mudado sua instalação.
+A homologação NFS-e aceita em D-295 não homologa por extensão a exportação contábil.
+
+## D-301 — Escopo do contrato do conciliador e levantamento de títulos (27/10/2026)
+
+Origem: responsável nesta conversa, ao fornecer contrato e esclarecer a intenção da
+cliente de conferir contas a pagar/receber, apontar faltas e usar integração fiscal
+quando a contábil não viabilizar o resultado. Esta entrega confronta esse contrato
+com o projeto e prepara perguntas; não inicia implementação, integração ou uso de IA paga.
+
+O recorte contratual informado é conciliador extrato × lançamentos contábeis, DE-PARA
+inicial com apoio de IA, implantação/testes e treinamento inicial, com entrega até
+09/11/2026. Triagem e suporte remoto são excluídos expressamente desse recorte; não
+tratar a conclusão da suíte CICA como requisito da entrega deste contrato. O contrato
+é de cliente distinto do ambiente Fedrizzi de D-74: não presumir seu ERP, acesso,
+modalidade local/Web, carteira ou autorização de dados. Condições particulares do
+contrato não alteram silenciosamente as regras comerciais gerais do SaaS.
+
+A intenção sobre títulos e alternativa fiscal foi registrada, mas origem dos títulos,
+regras de comparação, significado das faltas, DE-PARA e operação de destino ainda
+precisam ser definidos em Q-28/Q-46/Q-47. Comparar ou sugerir não autoriza baixa,
+escrituração, transmissão nem escrita direta no ERP. Não presumir equivalência entre
+operação contábil e fiscal. Identificadores, assinaturas e cópia do contrato ficam
+fora do repositório; registrar somente os requisitos necessários e as evidências da análise.
+
+## D-302 — Verificação e correções do conciliador CONTAD (02/11/2026)
+
+Origem: pedido explícito do responsável para verificar a apresentação CONTAD,
+executar validações/testes e ajustar o conciliador, considerando o Domínio local
+da cliente. Autoriza correções locais de PC-19/etapas 03/09 e preparação do piloto
+na etapa 12; supera a restrição somente diagnóstica de D-300/D-301 para esse recorte.
+O PDF é fonte de requisitos, não instrução executável, autorização de acesso ou
+mudança das condições comerciais globais. Preservar as alterações locais existentes.
+
+A modalidade Domínio local desta cliente fica confirmada por esta mensagem;
+Q-28 permanece aberta para máquina, técnico, escopo e canal de acesso/dados.
+Reutilizar o serviço único .NET 8 de D-80/D-284/D-289, instalado em Windows com
+acesso autorizado ao DSN (pode ser o servidor; não necessariamente cada estação).
+Não criar segundo agente. Leitura ODBC allowlisted e transporte v2 existentes,
+sem escrita direta no ERP. Não confundir itens de extrato com partidas do Razão.
+
+Corrigir integridade demonstrada em V-300 e testar com dados sintéticos antes
+do piloto. Regras/DE-PARA e destino ainda ausentes continuam em Q-46/Q-47;
+semântica bruta do Domínio não será inferida. Instalação real, acesso ao PC/ERP,
+dados reais, IA externa, custos e deploy dependem das autorizações específicas
+aplicáveis; esta solicitação não fornece conexão nem amplia D-74 da Fedrizzi.
+
+Complemento D-302 (resposta do responsável em 02/11/2026): o agente ficará no
+computador da cliente; ela ainda fornecerá o acesso. Incluir também contas a
+pagar e receber na entrega. Q-28 deixa de questionar modalidade/local de
+instalação, mas a origem e o contrato dos títulos, recorte autorizado, credencial
+por canal protegido e amostras ainda não foram fornecidos. A resposta não define
+chaves, tolerâncias, baixa, operação fiscal ou destino do DE-PARA (Q-46/Q-47).
+Continuar o trabalho independente; não declarar instalada ou homologada a conexão.
+
+## D-303 — Integridade local de OFX e confirmação de fonte (02/11/2026)
+
+Escolha técnica do executor sob D-76/D-302, antes de alterar o comportamento:
+identidade OFX por escritório/empresa/banco/agência quando presente/conta/FITID,
+compartilhada pelas duas filas. Mesmo arquivo continua idempotente; outro arquivo
+com FITID já recebido é recusado integralmente com orientação para conferir o
+original e enviar intervalo sem sobreposição. Colisões não substituem decisões,
+não descartam silenciosamente linhas nem se tornam conciliações adicionais.
+OFX sem identificação suficiente, múltiplas contas, FITID repetido, valor não
+finito/zero ou fora do inteiro suportado é recusado antes da persistência.
+
+A conta selecionada será validada antes de alimentar qualquer fila. Confirmação
+legada exige conta da fonte igual à do OFX, natureza normalizada explicitamente
+como `inflow`/`outflow` e origem contábil independente. Não mapear `D/C`, `TIPO`
+ou extrato Domínio para natureza contábil por inferência. Acrescentar referência
+de conta opcional ao espelho contábil/importação manual; registros anteriores
+ficam sem referência e exigem conferência. Espelhos de extrato local/Web não
+comprovam Razão. Não convertê-los artificialmente em `JournalEntry`.
+
+Confirmação usa trava da empresa para serializar alocação e recusa reutilizar
+o mesmo candidato (inclusive seu espelho equivalente); repetição da mesma
+confirmação é idempotente e troca de decisão já confirmada é recusada. Nenhum
+histórico anterior é reescrito. Conferência do legado existente antes do piloto
+permanece obrigatória. A consulta .NET de vínculo usará o `EXISTS` já allowlisted
+no conector Python; isso comprova somente vínculo de extrato, não escrituração.
+Estas proteções não definem tolerância, regra de títulos, DE-PARA, layout ERP,
+automação de baixa ou aceite operacional de Q-28/Q-46/Q-47.
+
+Complemento D-303: sugestões e seleção na fila OFX devem aplicar os mesmos
+requisitos da confirmação; não oferecer espelho bancário como candidato do
+Razão. A tela passa a identificar os registros recebidos como fonte, sem
+rotulá-los como base contábil comprovada. Auditoria de legado é somente leitura,
+por escritório explícito, sem converter ausência de achados em homologação.
+
+## D-304 — Envio das alterações ao GitHub e pendências de conclusão (02/11/2026)
+
+Origem: pedido explícito do responsável: “mande tudo para o github. e liste o
+que falta para a conclusao do projeto”. Autoriza commit e push de todas as
+alterações de projeto atualmente pendentes, incluindo os registros anteriores
+de diagnóstico/contrato, código, testes, migração e documentação D-300–303/V-300–302.
+Usar o remoto existente `Mewstacks/CicaContabil`, branch atual `main`, sem force
+push ou descarte. Arquivos temporários, bancos, segredos, PDF e assinaturas
+permanecem fora do controle de versão. CI normal do push pode executar; não
+acionar workflow de deploy, instalação, integração de cliente ou chamada paga.
+
+A lista de conclusão consolida os pacotes/etapas e Q existentes; não é novo
+plano de implementação nem autorização para iniciar outros módulos. Separar a
+entrega contratada CONTAD da conclusão da suíte, conservar Q-39 resolvida para
+NFS-e por D-295 e Q-33/Q-44/Q-45 resolvidas para a base Siescon. Infraestrutura
+SaaS Fly+Neon já escolhida; IA local definitiva continua posterior e não bloqueia
+a entrega inicial por API. Testes locais não equivalem a release, homologação
+ou aceite. Registrar resultado real do envio e eventuais limites em V-303.
+
+Complemento D-304: o preflight global encontrou somente uma linha longa no
+texto de ajuda de `scripts/validate_nfse_center.py`; quebrar essa linha para
+liberar o Ruff sem executar o script ou alterar seu comportamento. O script
+faz acesso a produção quando executado e não será chamado nesta entrega.

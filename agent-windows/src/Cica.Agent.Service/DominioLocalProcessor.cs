@@ -38,14 +38,24 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
 
     private async Task SendBankEntries(CancellationToken token)
     {
-        const string sql = "SELECT TOP 500 CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || CAST(i.I_ITEM AS VARCHAR(64)), i.CODI_EMP, i.DATA_ITEM, i.HISTORICO, i.VALOR, i.TIPO FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM i WHERE CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || CAST(i.I_ITEM AS VARCHAR(64)) > ? ORDER BY 1";
+        // Same read-only linkage contract as the existing Python connector.
+        // This is a bank-statement link, never proof of a ledger posting.
+        const string sql = "SELECT TOP 500 CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || " +
+            "CAST(i.I_LANCAMENTO AS VARCHAR(64)) || '|' || CAST(i.I_ITEM AS VARCHAR(64)), " +
+            "i.CODI_EMP, i.DATA_ITEM, i.HISTORICO, i.VALOR, i.TIPO, " +
+            "CASE WHEN EXISTS (SELECT 1 FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM_LANCTO l " +
+            "WHERE l.CODI_EMP = i.CODI_EMP AND l.I_LANCAMENTO = i.I_LANCAMENTO " +
+            "AND l.I_ITEM = i.I_ITEM) THEN 1 ELSE 0 END " +
+            "FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM i " +
+            "WHERE CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) " +
+            "|| '|' || CAST(i.I_ITEM AS VARCHAR(64)) > ? ORDER BY 1";
         using var connection = new OdbcConnection($"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
         await connection.OpenAsync(token); string cursor = "";
         while (!token.IsCancellationRequested)
         {
-            using var command = new OdbcCommand(sql, connection); command.Parameters.AddWithValue("@after", cursor);
+            using var command = new OdbcCommand(sql, connection) { CommandTimeout = 60 }; command.Parameters.AddWithValue("@after", cursor);
             using var reader = await command.ExecuteReaderAsync(token); var page = new List<object>(PageSize);
-            while (await reader.ReadAsync(token)) { cursor = Convert.ToString(reader[0]) ?? ""; page.Add(new { source_id = cursor, company_code = Convert.ToString(reader[1]) ?? "", occurred_on = Convert.ToDateTime(reader[2]).ToString("yyyy-MM-dd"), description = Convert.ToString(reader[3]) ?? "", amount = Convert.ToDecimal(reader[4]), direction = Convert.ToString(reader[5]) ?? "", is_linked = false }); }
+            while (await reader.ReadAsync(token)) { cursor = Convert.ToString(reader[0]) ?? ""; page.Add(new { source_id = cursor, company_code = Convert.ToString(reader[1]) ?? "", occurred_on = Convert.ToDateTime(reader[2]).ToString("yyyy-MM-dd"), description = Convert.ToString(reader[3]) ?? "", amount = Convert.ToDecimal(reader[4]), direction = Convert.ToString(reader[5]) ?? "", is_linked = Convert.ToInt32(reader[6]) == 1 }); }
             if (page.Count == 0) return;
             using JsonDocument _ = await client.PostAsync("api/agent/v2/dominio/bank-entries", new { rows = page }, token);
             if (page.Count < PageSize) return;

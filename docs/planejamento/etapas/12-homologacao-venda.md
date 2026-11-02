@@ -85,3 +85,22 @@ Nenhuma homologação nova atribuída a esta etapa. A existência de código ou 
 - [x] Encerrar os contextos do navegador e o QA local desta tarefa.
 
 Release 33, 01/10/2026. V-246 registra as contagens e os limites; dados, prazos, pessoas e evidências são fictícios. Isso não encerra a etapa 12 nem comprova fontes fiscais, cobrança, recuperação ou piloto reais.
+
+### Piloto contratual CONTAD — D-302/D-303/V-302 (02/11/2026)
+
+Recorte PC-19, com [matriz e roteiro](../verificacao-conciliador-contad-2026-11-02.md).
+Não exige concluir os demais módulos da suíte. Acesso ao PC da cliente ainda
+será fornecido; Domínio local e inclusão de pagar/receber já confirmados.
+
+- [x] Preparar correções e testes locais da integridade OFX, builds do agente
+  e roteiro seguro. Isso não prova instalação ou homologação CONTAD.
+- [ ] Autorizar/receber recorte de dados e canal seguro; instalar/parear pacote
+  atual no PC e conferir DSN/driver/conta de serviço sem escrita no ERP.
+- [ ] Conferir Razão, títulos/parcelas/baixas e DE-PARA inicial assistido por IA;
+  completar o encadeamento e a comparação conforme Q-28/Q-46/Q-47.
+- [ ] Auditar legado, validar 200 itens independentes e demais critérios D-73,
+  recuperação, destino/importação quando aplicável, treinamento e aceite.
+
+Sem deploy ou liberação desta correção nesta entrega. O aceite NFS-e anterior
+não habilita o gate contábil. Retenção/comercial gerais continuam com seus próprios
+responsáveis e não alteram silenciosamente as condições deste contrato.

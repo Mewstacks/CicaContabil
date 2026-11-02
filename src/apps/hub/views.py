@@ -8765,32 +8765,25 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         for match in matches
         if match.status == ReconciliationMatch.Status.AMBIGUOUS and not match.is_manual
     }
-    candidate_entries = DominioBankEntry.objects.none()
     accounting_candidates = AccountingEntry.objects.none()
     if review_keys:
         pair_filter = Q()
         for candidate_company_id, occurred_on in review_keys:
             pair_filter |= Q(company_id=candidate_company_id, occurred_on=occurred_on)
-        candidate_entries = DominioBankEntry.objects.filter(organization=office).filter(pair_filter)
         accounting_candidates = (
             AccountingEntry.objects.filter(organization=office)
             .filter(pair_filter)
+            .exclude(
+                data_source__kind__in=[
+                    DataSource.Kind.DOMINIO_LOCAL_AGENT,
+                    DataSource.Kind.DOMINIO_WEB_BACKUP,
+                ]
+            )
+            .exclude(reconciliation_matches__status=ReconciliationMatch.Status.MATCHED)
             .select_related("data_source")
         )
-    candidates_by_key: dict[tuple[object, object, int], list[object]] = {}
-    for entry in candidate_entries:
-        entry.amount_brl = Decimal(entry.amount_cents) / 100  # type: ignore[attr-defined]
-        entry.candidate_token = f"dominio:{entry.id}"  # type: ignore[attr-defined]
-        entry.source_label = "Espelho Domínio"  # type: ignore[attr-defined]
-        candidates_by_key.setdefault(
-            (entry.company_id, entry.occurred_on, entry.amount_cents), []
-        ).append(entry)
-    dominio_source_ids = {entry.source_id for entry in candidate_entries}
+    candidates_by_key: dict[tuple[object, object, int], list[AccountingEntry]] = {}
     for accounting_entry in accounting_candidates:
-        # The direct ODBC sync mirrors the same row in both models. Present it
-        # once, preferring the Domínio-specific record as operator evidence.
-        if accounting_entry.external_key in dominio_source_ids:
-            continue
         accounting_entry.amount_brl = Decimal(accounting_entry.amount_cents) / 100  # type: ignore[attr-defined]
         accounting_entry.candidate_token = f"accounting:{accounting_entry.id}"  # type: ignore[attr-defined]
         accounting_entry.source_label = accounting_entry.data_source.label  # type: ignore[attr-defined]
@@ -8815,14 +8808,20 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         match.display_reference = getattr(match.display_entry, "source_id", "") or getattr(
             match.display_entry, "external_key", ""
         )
-        match.candidates = candidates_by_key.get(
-            (
-                match.transaction.statement.company_id,
-                match.transaction.occurred_on,
-                abs(match.transaction.amount_cents),
-            ),
-            [],
-        )
+        match.candidates = [
+            candidate
+            for candidate in candidates_by_key.get(
+                (
+                    match.transaction.statement.company_id,
+                    match.transaction.occurred_on,
+                    abs(match.transaction.amount_cents),
+                ),
+                [],
+            )
+            if candidate.account_reference == match.transaction.statement.account_reference
+            and candidate.direction
+            == ("inflow" if match.transaction.amount_cents > 0 else "outflow")
+        ]
     all_matches = ReconciliationMatch.objects.filter(
         organization=office, transaction__statement__company__in=companies
     )
@@ -10155,6 +10154,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                         company=form.cleaned_data["company"],
                         filename=filename,
                         content=content,
+                        financial_account=form.cleaned_data.get("financial_account"),
                         actor=request.user,
                         request=request,
                     )

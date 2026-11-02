@@ -52,3 +52,20 @@ A prova operacional ainda exige o piloto da etapa 12: parear o agente, usar um D
 ### Evidência Fedrizzi V-198 — leitura direta allowlisted
 
 25/09/2026: o DSN autorizado `contabil` respondeu à consulta de empresas com 576 registros e à consulta de guias com 3.335 registros. A sincronização local espelhou empresas e 10.000 registros normalizados. O contrato de guia não forneceu vencimento, logo nenhum prazo de guia foi inferido. A operação foi de leitura; não houve escrita no Domínio, emissão, transmissão ou chamada cobrada. A prova do agente pareado, interrupção e retomada continua na etapa 12.
+
+## Atualização PC-19/CONTAD — D-302/D-303/V-302 (02/11/2026)
+
+O responsável confirmou Domínio local e agente no computador da cliente; ela
+ainda fornecerá o acesso. Reutilizar o serviço único .NET 8, sem instalar Python.
+A conclusão local histórica da base desta etapa não comprova o conciliador CONTAD.
+
+- [x] Compilar serviço, configurador e ponte x86 e executar 23 testes .NET.
+- [x] Corrigir `is_linked` do processador local com o contrato `EXISTS` já
+  allowlisted, sem escrita no ERP nem inferência de escrituração.
+- [x] Preparar [roteiro do piloto CONTAD](../verificacao-conciliador-contad-2026-11-02.md).
+- [ ] Receber acesso autorizado, gerar/conferir pacote Windows atual, instalar
+  e parear no computador da cliente; testar DSN, credencial do serviço e rede.
+- [ ] Validar/implementar fonte de Razão e títulos comerciais. A consulta de
+  extrato atual não entrega esses fatos e não os transforma em lançamentos.
+- [ ] Homologar instalação, atualização, revogação, queda/retomada e integridade
+  no ambiente real. A prova permanece na etapa 12; não declarar instalada.

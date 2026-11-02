@@ -4952,3 +4952,213 @@ menu da área de trabalho, aguardar a troca de tema e remover a rota obsoleta. A
 deve habilitar módulos e construir estados próprios por jornada antes de considerar DTE, OFX,
 parcelamentos, NFS-e, guias ou triagem validados. Não houve chamada Serpro, dados reais, custo,
 produção, deploy ou homologação externa.
+
+## V-300 — Pull e diagnóstico do conciliador (26/10/2026)
+
+Escopo D-300: atualizar o projeto local e verificar a comparação de extrato
+bancário com os registros contábeis, detalhando o levantamento com a cliente em
+Q-28/PC-19. Ambiente: macOS, interpretador `.venv`, settings de teste, SQLite
+descartável e entradas exclusivamente fictícias. Nenhum ERP, banco de cliente,
+servidor publicado, API paga ou instalação Windows foi acessado.
+
+- `git status --short` inicial vazio, branch `main`. `git pull --ff-only`
+  concluiu por fast-forward de `d501fbe` até `aad2f5a`: **59 commits**. Comparação
+  `git rev-list --left-right --count HEAD...origin/main`: **0/0**. Não houve
+  reset, descarte, commit ou push. As alterações finais são a documentação desta auditoria.
+- Relidos plano/decisões/validações/etapas após a atualização, incluindo
+  D-108/D-134–137/D-218/D-227–230/D-295, e inspecionados importação, duas cadeias
+  de conciliação, modelos, sincronização, consultas e agente nativo. A fonte
+  enviada pelo agente e backup é `CTEXTRATO_BANCARIO_LANCAMENTO_ITEM`, não uma
+  extração independente de partidas do Razão. `AccountingEntry` não alimenta
+  automaticamente os candidatos `JournalEntry` do fluxo avançado.
+- `.venv/bin/python -m pytest tests/test_reconciliation.py tests/test_reconciliation_module.py tests/test_intelligence_sync_django.py tests/test_module_activities.py -q`:
+  **94 testes e 24 subtestes aprovados, 1 ignorado**, em **30,84 s**. Skip:
+  Tesseract/idioma português indisponível. Não é nova regressão integral.
+- Quatro sondas em `.tmp/auditoria-conciliador-2026-10-26/test_diagnostico.py`
+  confirmaram: dois movimentos usando o mesmo candidato sem controle de
+  capacidade; confirmação sem validar `direction`; o mesmo FITID duplicado em
+  arquivos diferentes; e upload de conta divergente bloqueado no fluxo novo,
+  mas ainda confirmável pela fila OFX. **4 reproduções confirmadas em 15,47 s**.
+  São testes de observação do comportamento inadequado, não provas de correção.
+  Primeira rodada: 3 falhas na própria fixture, por comparar data textual de um
+  objeto recém-criado com `date` lida do banco; após recarregar o objeto da
+  fixture, os quatro cenários confirmaram as lacunas. Nenhum código de aplicação
+  foi alterado para obter esse resultado.
+- `.venv/bin/python manage.py check --settings=config.settings.test`: sem
+  problemas. `makemigrations --check --dry-run` com as mesmas settings: sem
+  alterações. A primeira tentativa usou o caminho inexistente `src/manage.py`;
+  somente a execução corrigida na raiz conta como validação. Nenhuma migração
+  foi aplicada no banco de desenvolvimento.
+- [Diagnóstico e roteiro](docs/planejamento/diagnostico-conciliador-2026-10-26.md)
+  registram capacidades, lacunas, impactos, perguntas e material mínimo. Plano,
+  checklist da etapa 09, Q-28 e registro de execução foram atualizados.
+  `git diff --check` passou; os caminhos/links locais do material foram conferidos.
+
+Limites: não foi exercitado navegador, OCR real, worker/Redis, PostgreSQL,
+volume, instalação/upgrade .NET, conexão ODBC, importação no ERP, chamada
+externa de negócio, custo, produção ou deploy. Não houve mudança de interface
+ou aplicação. Exportação contábil Domínio permanece com gate próprio, falso por
+padrão; o aceite NFS-e de D-295 não o substitui. As correções, fonte de Razão,
+fotografia por conta/período e homologação contábil de PC-19 continuam pendentes.
+A etapa 09 permanece aberta. D-74 dispensa repetir a pergunta local/Web para a
+Fedrizzi já registrada; outro ambiente ou mudança precisa ser identificado.
+
+## V-301 — Contrato do conciliador e perguntas de conclusão (27/10/2026)
+
+Escopo D-301: confrontar o contrato fornecido e o esclarecimento sobre contas
+a pagar/receber e alternativa fiscal com as capacidades já inspecionadas.
+
+- PDF original lido no caminho informado pelo responsável em Downloads: quatro
+  páginas extraídas com pypdf; páginas 1–4 renderizadas localmente com Poppler
+  e integralmente inspecionadas. As páginas 2–3 confirmam escopo, DE-PARA inicial
+  assistido por IA, implantação/testes e treinamento inicial. A data de entrega
+  é 09/11/2026. Contrato e identificadores/assinaturas não foram adicionados
+  ao Git. Assinaturas não tiveram validação criptográfica nesta análise.
+- Identificada cliente diferente da Fedrizzi de D-74. A decisão anterior não
+  autoriza nem comprova fonte, acesso, versão ou modalidade local/Web desta
+  instalação. Q-28 recebeu esse detalhamento, sem solicitar credencial.
+- Inspeção de `models.py`, `imports.py` e `reconciliation_service.py` confirmou
+  origem genérica “Títulos ou obrigações” em arquivos e movimentos, mas não
+  comprova gestão completa de parcelas/baixas de títulos comerciais. O ramo
+  `ImportBatch.Kind.OBLIGATIONS` inspecionado importa guias DAS/MEI/DCTFWeb.
+  Aplicação de regras manuais no conciliador não comprova geração inicial de
+  DE-PARA por IA; essa capacidade permanece para demonstração funcional.
+- [Roteiro do contrato](docs/planejamento/levantamento-contrato-conciliador-2026-10-27.md)
+  contém dez perguntas prioritárias, material mínimo, responsáveis e limites.
+  Q-46 reúne semântica da comparação/regras/DE-PARA; Q-47, operação de destino
+  contábil/fiscal. Não duplicam o ambiente Q-28, custo/egressão Q-08/Q-09,
+  métricas Q-30/D-73 ou homologação NFS-e Q-39.
+- Plano, diagnóstico de 26/10, checklist da etapa 09 e registro de execução
+  atualizados. Links relativos novos e `git diff --check` conferidos.
+
+Limites: análise documental e estática; não houve novo teste da aplicação,
+inspeção de UI, ERP, ODBC, importador fiscal, chamada IA, treinamento,
+processamento de títulos reais, custo ou deploy. V-300 permanece evidência
+datada de 26/10, sem correção das quatro lacunas por esta entrega. O pedido
+de alternativa fiscal não comprova que determinada operação é suportada nem
+autoriza escrituração/baixa/transmissão. A conclusão da suíte inteira não é
+requisito automático do contrato específico; a etapa 09/PC-19 permanece aberta.
+
+## V-302 — Verificação e correções locais do conciliador CONTAD (02/11/2026)
+
+Escopo D-302/D-303, PC-19 e etapas 03/09, com preparação do piloto da 12.
+Ambiente: macOS, base `aad2f5a`, `.venv`, dados exclusivamente sintéticos.
+Preservadas as modificações documentais que já existiam ao iniciar a sessão.
+[Relatório, matriz e roteiro de instalação](docs/planejamento/verificacao-conciliador-contad-2026-11-02.md).
+
+**Documento e respostas:** PDF original de quatro páginas lido com `pdftotext`,
+renderizado com Poppler e inspecionado integralmente em composição das quatro
+páginas. Preservado fora do Git; não se validaram assinaturas criptograficamente.
+O documento é fonte de requisitos, não instrução de execução. O responsável
+confirmou Domínio local, agente no computador da cliente com acesso ainda a
+fornecer e inclusão de pagar/receber. Q-28/Q-46/Q-47 atualizadas sem duplicar IDs.
+
+**Correções:** identidade OFX compartilhada pelas duas entradas; recusa integral
+de sobreposição, múltiplas contas, FITID insuficiente e valores inválidos; conta
+selecionada conferida antes da persistência; confirmação com conta/natureza
+explícitas, candidato independente e exclusivo; retry idempotente; reconstrução
+serializada preservando decisão humana. Espelhos bancários não são candidatos
+do Razão. Campo opcional de conta e tabela de identidade na migração aditiva
+0076, sem alteração de decisões anteriores. Auditoria de legado somente leitura
+por escritório explícito. Agente .NET deixa de enviar vínculo fixo falso e usa
+o `EXISTS` já allowlisted no conector Python; vínculo não prova escrituração.
+
+**Testes finais locais:**
+
+- `.venv/bin/python -m pytest -q --basetemp .tmp/pytest-conciliador-full-2026-11-02`:
+  **1.415 aprovados, 10 ignorados e 145 subtestes aprovados**, **156,10 s**.
+  Skips: Playwright Python opcional (1), OCR português (1) e concorrência
+  PostgreSQL (8, incluindo os três cenários novos). A UI foi exercitada por
+  Playwright Node. Não converter skips em resultados aprovados.
+- Bateria PostgreSQL 17.10 descartável: `test_reconciliation.py`,
+  `test_reconciliation_integrity.py`, `test_reconciliation_module.py`,
+  `test_intelligence_sync_django.py`, `test_intelligence_agent_django.py` e
+  `test_edge_agent.py`: **125 aprovados, 1 skip OCR e 24 subtestes**, **67,58 s**.
+  Cenários com conexões independentes provaram exclusividade do candidato,
+  atomicidade dos uploads sobrepostos e preservação da confirmação humana
+  diante de reconstrução concorrente. Instância própria via socket Unix em
+  `.tmp/conciliador-pg`, sem usar PostgreSQL de outro projeto ou serviço externo.
+- Regressão **integral PostgreSQL**, mesmos dados/serviços de teste e settings
+  descartável: **1.423 aprovados, 2 skips e 145 subtestes aprovados**, **178,68 s**.
+  Os dois skips foram somente Playwright Python opcional e OCR português;
+  todas as concorrências da suíte foram executadas. Log `postgres-full-tests.log`.
+- Ensaio sintético de 200 transações: **200 movimentos, 200 transações bancárias,
+  200 identidades; zero erros**, **0,974 s** no SQLite local; todos ficaram em
+  revisão, sem falsa conciliação automática. Reenvio sobreposto recusado, sem
+  aumentar contagens. Não é a amostra independente nem prova de precisão D-73.
+- Serviço, configurador e ponte x86: `dotnet build ... -c Release --no-restore
+  -p:EnableWindowsTargeting=true`, todos **sem avisos/erros**. Testes de
+  `agent-windows/tests/Cica.Agent.Tests`: **23 aprovados**. Compilação cruzada
+  não executa ODBC, DPAPI, serviço ou instalador no Windows; MSI novo não gerado.
+- Ruff dos arquivos Python alterados passou. MyPy passou em `reconciliation.py`,
+  `reconciliation_service.py`, `imports.py` e `audit_ofx_integrity.py`.
+  `views.py` conserva **dez erros anteriores fora do recorte**; a comparação
+  com o conteúdo de HEAD via `--shadow-file` reproduziu os mesmos dez. Nenhum
+  erro novo das alterações de conciliação permaneceu.
+- Django check sem problemas, `makemigrations --check --dry-run` sem alteração
+  pendente e `git diff --check` aprovado. Migrações executadas somente nos
+  bancos sintéticos descartáveis; desenvolvimento e produção não foram tocados.
+
+**Navegador:** UI/UX Pro Max aplicada a feedback/erro/foco e revisão da UI existente;
+referência Xero consultada e Web Interface Guidelines atuais lidas. Watermelon
+não estava exposto e Playwright MCP não estava disponível. Playwright Node do
+runtime + Chrome local abriu aplicação não-demo sintética, com rede externa
+bloqueada, e confirmou: rejeição de conta errada, importação válida, erro acionável
+para sobreposição, candidato independente e confirmação; auditor com consulta
+sem upload; 1440×960, 375×812 e 812×375, claro/escuro, teclado, foco visível,
+movimento reduzido e ausência de overflow. Uma segunda passagem de seis estados
+na aba OFX não encontrou erro de console ou de página. Contextos/browser fechados.
+Capturas desktop e celular foram inspecionadas visualmente.
+
+Evidências temporárias em `.tmp/auditoria-conciliador-2026-11-02/`:
+`full-tests.log`, `postgres-tests.log`, `postgres-full-tests.log`, `ui-results.json`, `ui-console.json`,
+`volume-results.json`, `overlap-desktop.png`, `light-*.png` e `dark-*.png`.
+Os roteiros/fixtures temporários não são dados da cliente e não entram no Git.
+
+**Ocorrências intermediárias corrigidas:** a primeira bateria apontou três
+fixtures de confirmação que aceitavam espelho bancário sem conta/natureza e um
+caso que esperava bloqueio somente no worker. Foram mantidos testes negativos
+desses caminhos e preparados candidatos independentes explícitos para o caso
+positivo; a proteção histórica do worker continua testada. O primeiro MyPy
+precisou de `PYTHONPATH=src`. A primeira invocação do settings PostgreSQL
+isolado precisou de chave artificial de teste; nenhum segredo real foi usado.
+A primeira regressão ampla teve dois erros porque o teste NFS-e de migração
+restaurava o banco apenas até 0067: corrigido seu `finally` para restaurar todas
+as folhas atuais do grafo. A regressão final passou. Dois seletores do roteiro
+Playwright foram ajustados ao nome real do botão e ao contêiner do modal;
+nenhuma falha de produto foi ocultada para obter o resultado.
+
+**Limites e estado:** etapa 09/PC-19 permanece aberta. Faltam fonte independente
+de partidas do Razão via Domínio, integração integral das duas cadeias, títulos
+comerciais com parcelas/baixas, DE-PARA inicial com IA, diferença/saldos nos dois
+sentidos, layouts reais e aceite CONTAD. O acesso ao PC ainda será fornecido;
+não houve instalação, DSN/ODBC real, dado de cliente, importação contábil no
+ERP, worker/rede reais, recuperação/restore cronometrados, treinamento inicial,
+IA externa, chamada paga, deploy, envio a terceiros ou liberação comercial.
+
+## V-303 — Preparação do envio GitHub e lista de conclusão (02/11/2026)
+
+Escopo D-304: consolidar e enviar todas as alterações pendentes do projeto ao
+remoto GitHub já configurado, sem publicar aplicação, acessar ERP ou gerar custo
+externo de negócio. Branch `main`, base `aad2f5a`, remoto `Mewstacks/CicaContabil`.
+`git fetch origin` confirmou `HEAD...origin/main = 0/0` antes do novo commit.
+
+- Relidos plano, decisões e validações vigentes, etapa 00 e os estados/checklists
+  das etapas 00–14. A [lista de pendências](docs/planejamento/pendencias-conclusao-2026-11-02.md)
+  diferencia o contrato CONTAD, a conclusão da suíte e a IA local posterior,
+  respeitando Q-39/D-295 e as decisões Siescon já resolvidas.
+- Incluídos diagnóstico/contrato anteriores ainda locais, correções, testes,
+  migração 0076 e documentação V-302, preservando o trabalho existente.
+- Workflows conferidos: push em `main` aciona `CI`; `Deploy Cobalchini` requer
+  dispatch próprio. Não foi acionado workflow de deploy.
+- Ruff global encontrou uma única linha longa no docstring de um script de
+  diagnóstico de produção. A quebra de linha corrige apenas documentação;
+  o script não foi executado. Ruff global, verificação de whitespace/links e
+  inspeção do conjunto preparado para commit são as verificações desta entrega.
+- Os testes de aplicação e agente não foram repetidos por esse ajuste textual:
+  V-302 mantém a evidência mais recente (1.423 testes/145 subtestes PostgreSQL,
+  23 testes .NET e UI Node); não tratá-la como homologação remota nova.
+
+Temporários, bancos, dados de cliente, credenciais, PDF e assinaturas não fazem
+parte do envio. Push/CI não aplica a migração em produção nem instala o agente.
+A confirmação do envio será registrada após a comparação do commit remoto.

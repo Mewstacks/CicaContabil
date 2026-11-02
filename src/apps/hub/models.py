@@ -774,6 +774,7 @@ class AccountingEntry(OrganizationScopedModel):
     description = models.CharField(max_length=500, blank=True)
     amount_cents = models.BigIntegerField()
     direction = models.CharField(max_length=8, blank=True)
+    account_reference = models.CharField(max_length=160, blank=True)
     is_linked = models.BooleanField(default=False)
     source_updated_at = models.DateTimeField(null=True, blank=True)
 
@@ -1295,6 +1296,23 @@ class BankStatementImport(OrganizationScopedModel):
             models.UniqueConstraint(
                 fields=("organization", "company", "content_hash"),
                 name="hub_unique_bank_statement_content",
+            )
+        ]
+
+
+class OfxTransactionIdentity(OrganizationScopedModel):
+    """Reserve a bank FITID across both intake queues without merging source evidence."""
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.PROTECT)
+    account_reference = models.CharField(max_length=160)
+    external_id = models.CharField(max_length=160)
+    content_hash = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "account_reference", "external_id"),
+                name="hub_unique_ofx_identity",
             )
         ]
 

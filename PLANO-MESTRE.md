@@ -1,5 +1,31 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Pendências consolidadas em 02/11/2026 (D-304/V-303):**
+[lista de conclusão por entrega e etapa](docs/planejamento/pendencias-conclusao-2026-11-02.md).
+O envio ao GitHub não constitui deploy ou homologação de módulo.
+
+**Verificação e ajustes CONTAD em 02/11/2026 (D-302/D-303, V-302):**
+[relatório e roteiro do piloto](docs/planejamento/verificacao-conciliador-contad-2026-11-02.md).
+Corrigidas localmente as quatro lacunas OFX de V-300 e preparada auditoria de legado.
+Domínio local, agente no PC da cliente (acesso ainda a fornecer) e inclusão de pagar/receber
+confirmados pelo responsável. A entrega **não está concluída**: fonte independente do Razão,
+títulos comerciais, DE-PARA inicial com IA, ligação integral dos fluxos e piloto CONTAD continuam
+pendentes em Q-28/Q-46/Q-47. Sem deploy ou homologação externa nesta execução.
+
+**Recorte contratual em 27/10/2026 (D-301/V-301):** para a cliente do contrato
+fornecido, a entrega é conciliador e DE-PARA inicial com IA, implantação/testes
+e treinamento inicial até 09/11/2026, sem exigir a conclusão da suíte inteira.
+O [levantamento do contrato](docs/planejamento/levantamento-contrato-conciliador-2026-10-27.md)
+detalha Q-28/Q-46/Q-47 para títulos a pagar/receber, divergências e operação de
+destino contábil/fiscal. Não há implantação ou integração nova nesta análise.
+
+**Verificação do conciliador em 26/10/2026 (D-300/V-300):** pull concluído até
+`aad2f5a` e [diagnóstico de PC-19 com roteiro para a cliente](docs/planejamento/diagnostico-conciliador-2026-10-26.md).
+94 testes e 24 subtestes locais passaram, com um skip de OCR; quatro sondas
+reproduziram lacunas de integridade da fila OFX. Faltam fonte de Razão independente,
+ligação entre os fluxos e correções antes do piloto. A etapa 09 continua aberta;
+a confirmação de NFS-e em D-295 não homologa exportação contábil.
+
 **Revisão de execução em 10/10/2026 (D-295/V-294):** [auditoria de fluxos, controles e Serpro com plano de finalização](docs/planejamento/auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A validação externa de importação NFS-e foi confirmada como concluída pelo responsável; PC-03/Q-39 não bloqueiam mais a sequência. As referências antigas a Q-39 abaixo são histórico. Os demais critérios NFS-e e os outros pacotes conservam seus gates próprios. F-01 (revalidação de acesso no worker DTE) precede chamadas externas adicionais.
 
 **Ponto de entrada vigente:** esta revisão organiza a conclusão do sistema a partir da auditoria

@@ -1,6 +1,18 @@
 # Etapa 09 — Concluir Conciliação e Radar
 
+**Revisão 02/11/2026 — D-302/D-303/V-302:** [verificação CONTAD](../verificacao-conciliador-contad-2026-11-02.md).
+As lacunas OFX de V-300 receberam correções e testes locais. A etapa permanece aberta para
+Razão independente, títulos a pagar/receber incluídos pelo responsável, DE-PARA com IA e piloto.
+O agente ficará no computador da cliente; o acesso ainda será fornecido.
+
 [Plano mestre](../../../PLANO-MESTRE.md) · [Decisões](../../../DECISOES.md) · [Validações](../../../VALIDACOES.md)
+
+**Revisão em 26/10/2026 — D-300/V-300:** [diagnóstico do conciliador](../diagnostico-conciliador-2026-10-26.md)
+verificou `aad2f5a` e reproduziu quatro lacunas na fila OFX. Os controles de
+alocação do fluxo novo não cobrem automaticamente essa fila. O conector lê
+itens de extrato Domínio; ainda falta comprovar a fonte de Razão e sua ligação
+ao fluxo avançado. Não há homologação contábil nova. O aceite NFS-e D-295 não
+se estende ao arquivo de exportação contábil.
 
 **Estado:** Em andamento: funções e controles locais revalidados em V-037.
 V-047/V-049/V-050/V-062/V-064 tiparam formulários, serviço, limites de entrada,
@@ -21,9 +33,18 @@ arquivo, ERP, fonte oficial ou volume.
 
 ## Escopo e checklist
 
+- [x] Confrontar o contrato fornecido em 27/10/2026 e a intenção de contas a pagar/receber e alternativa fiscal, sem ampliar o aceite para a suíte inteira (D-301/V-301).
+- [ ] Resolver Q-46/Q-47: fonte de títulos em Q-28, significado de faltas, regras, DE-PARA inicial assistido por IA e operação contábil/fiscal de destino; comprovar execução no recorte da cliente.
+- [x] Diagnosticar em 26/10/2026 a comparação extrato × registros disponíveis e detalhar Q-28 para entrevista, com provas sintéticas em V-300.
+- [x] Corrigir localmente reutilização do candidato, conta/natureza não comprovadas e sobreposição OFX; compartilhar a identidade e validar a conta antes das duas filas (D-303/V-302).
+- [x] Validar concorrência PostgreSQL de confirmação, upload e reconstrução sem apagar decisão humana; preparar auditoria de legado somente leitura.
+- [ ] Homologar semântica/contas reais, revisar o legado existente e integrar o resultado das duas cadeias sobre fonte independente.
+- [ ] Implementar e homologar títulos a pagar/receber da fonte autorizada, com parcelas/baixas e regras Q-46; inclusão já confirmada em D-302.
+- [ ] Demonstrar o DE-PARA inicial assistido por IA do contrato, com revisão humana e controles Q-08/Q-09.
+- [ ] Validar fonte independente de lançamentos do Razão, vínculo real do ERP e integração entre `AccountingEntry` e o fluxo de `JournalEntry`, sem assumir que item de extrato seja partida contábil.
 - [ ] Concluir OFX, CSV, XLSX e PDF/OCR com layouts e evidências.
 - [x] Permitir localmente corrigir mapeamento, classificar, revisar, conciliar e tratar ausência de correspondência.
-- [x] Validar localmente contas, direção, competência, saldos e lançamentos equilibrados.
+- [x] Validar localmente cadastros, direção da normalização, competência, capacidade de alocação e partidas equilibradas no fluxo novo; isso não valida natureza/conta na fila OFX nem saldo inicial/final contra o Razão (V-300).
 - [ ] Homologar exportações Domínio e Siescon sem apresentar exportação como importação concluída.
 - [ ] Validar volume com PostgreSQL e corpus representativo.
 - [ ] No Radar, comprovar coleta, atualização, origem e falhas, preservando a proposta de acompanhamento de publicações.

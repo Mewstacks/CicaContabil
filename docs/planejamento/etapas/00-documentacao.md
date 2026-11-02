@@ -64,3 +64,14 @@ Nenhuma homologação externa foi executada. Os resultados V-001 são da anális
 > Execute a etapa 00 do plano mestre da CICA. Materialize os documentos e prompts deste plano, consolide as decisões já confirmadas e elimine contradições documentais sem apagar o histórico. Confira o código atual. Não pergunte novamente decisões registradas; apresente somente lacunas ou conflitos concretos.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+## Consolidação para GitHub e pendências — D-304/V-303 (02/11/2026)
+
+- [x] Consolidar as pendências atuais pelas etapas/PC e Q existentes, distinguindo
+  contrato CONTAD, suíte e IA local posterior; preservar decisões resolvidas.
+- [x] Preparar todas as alterações de projeto para o envio autorizado ao GitHub,
+  excluindo temporários, dados de cliente e segredos.
+- [x] Conferir preflight, workflows e links, sem acionar deploy ou integração real.
+
+Entrega: [lista de conclusão](../pendencias-conclusao-2026-11-02.md).
+A preparação/envio do repositório não fecha nenhuma etapa funcional.

@@ -182,6 +182,27 @@ def create_source_file(
             )
         sync_reconciliation_activity(existing.pk)
         return existing, run, False
+    if kind == ReconciliationSourceFile.Kind.OFX:
+        from apps.hub.reconciliation import (
+            OfxParseError,
+            claim_ofx_transactions,
+            parse_ofx,
+            validate_ofx_account,
+        )
+
+        try:
+            statement = parse_ofx(content)
+            validate_ofx_account(
+                statement,
+                organization=organization,
+                company=company,
+                financial_account=financial_account,
+            )
+            claim_ofx_transactions(
+                organization=organization, company=company, statement=statement, digest=digest
+            )
+        except OfxParseError as exc:
+            raise ReconciliationError(str(exc)) from exc
     source = ReconciliationSourceFile(
         organization=organization,
         company=company,
@@ -1242,6 +1263,16 @@ def process_run(run_id: str) -> dict[str, int | str]:
                         ],
                     )
                     return {"state": "review", "created": 0}
+            # Revalidate historical files too; an interrupted worker may resume
+            # a source uploaded before the shared identity boundary existed.
+            from apps.hub.reconciliation import claim_ofx_transactions, parse_ofx
+
+            claim_ofx_transactions(
+                organization=run.organization,
+                company=source.company,
+                statement=parse_ofx(_source_bytes(source)),
+                digest=source.content_hash,
+            )
         elif source.kind in {ReconciliationSourceFile.Kind.CSV, ReconciliationSourceFile.Kind.XLSX}:
             if run.layout_version_id is None:
                 _finish_run(
