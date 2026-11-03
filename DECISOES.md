@@ -1996,3 +1996,29 @@ Complemento D-304: o preflight global encontrou somente uma linha longa no
 texto de ajuda de `scripts/validate_nfse_center.py`; quebrar essa linha para
 liberar o Ruff sem executar o script ou alterar seu comportamento. O script
 faz acesso a produção quando executado e não será chamado nesta entrega.
+
+## D-306 — Gerar e testar o pacote Windows do agente (03/11/2026)
+
+Origem: pedido explícito do responsável, após a conferência do instalador:
+“então faça esse processo para testar o agente”. Autoriza compilar, gerar MSI,
+validar hash e testar instalação/serviço/configurador/diagnóstico/reinício/remoção
+em Windows descartável, com dados sintéticos e sem conexão a ERP. Preservar
+integralmente as alterações locais D-305 e as demais existentes.
+
+Este computador é macOS. Usar CI Windows padrão do repositório público já
+configurado, em branch `codex/agent-windows-validation`, com apenas as alterações
+necessárias ao pacote/teste e sem merge em main ou deploy. Commit/push dessa
+branch e download dos artefatos são passos necessários autorizados pelo pedido;
+não publicar os dados/anexos da cliente nem as mudanças locais do conciliador.
+O CI atual gerou o MSI na execução 41489363424, mas não preservou artefatos.
+Passar a guardar MSI, hash, manifesto e evidência de teste por prazo curto.
+Usar runner padrão público, sem contratação, runner pago ou serviço externo
+de negócio. Não adquirir certificado de assinatura por inferência.
+
+O MSI desta preparação mantém a versão 1.0.0 existente até haver necessidade
+concreta de mudança. Checksum não equivale a assinatura Authenticode. O teste
+de instalação usa somente Windows descartável; pareamento no ambiente real,
+driver/DSN e Domínio da cliente continuam dependentes do acesso prometido em
+Q-28. Não habilitar SQL novo, importar/escrever no ERP ou declarar homologação
+real a partir desse ensaio. Registrar comandos, versão/SHA, arquivo resultante,
+resultados e limites em V-305 e nos checklists/registro de execução.
