@@ -1,5 +1,13 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Agente Windows em 03/11/2026 — D-306/V-305:** MSI 1.0.0 e ciclo instalado
+aprovados em [Windows descartável](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414),
+com 25 verificações e 23 testes .NET. Artefatos preservados/baixados e hash
+conferido. Corrigida ACL da pasta; pacote de teste sem assinatura Authenticode.
+PC/driver/DSN/pareamento reais continuam em Q-28, aguardando acesso. A branch
+contém apenas preparação do agente; mudanças locais D-305 do conciliador foram
+preservadas na árvore principal e não são publicadas por este teste.
+
 **Pendências consolidadas em 02/11/2026 (D-304/V-303):**
 [lista de conclusão por entrega e etapa](docs/planejamento/pendencias-conclusao-2026-11-02.md).
 O envio ao GitHub não constitui deploy ou homologação de módulo.

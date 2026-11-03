@@ -5167,3 +5167,71 @@ retornou esse mesmo SHA e `HEAD...origin/main = 0/0`; árvore de trabalho limpa
 após o envio. Sem force push, deploy, instalação ou acesso ao ERP. O registro
 dessa confirmação segue em commit documental adicional; CI remoto é evidência
 separada e não é declarado aprovado por sucesso do push.
+
+## V-305 — MSI do agente testado em Windows descartável (03/11/2026)
+
+Escopo D-306, etapa 03 e preparação da 12, pedido explícito para gerar/testar
+agente após conferência de ausência do MSI local. Base `b499cd1`; alterações
+D-305 preservadas. Código de empacotamento isolado em worktree/branch
+`codex/agent-windows-validation`, sem merge em main, deploy ou dados da cliente.
+
+**Evidência final Windows:** [run 41664064414](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414),
+concluído com sucesso, SHA **`57acd4f9738209842f4d3be546859c164adcba88`**.
+Runner padrão `windows-2022` (Windows Server 2022, build 10.0.20348), repositório
+público; guard recusa instalar em máquina cliente/self-hosted ou com agente/configuração
+preexistentes. Foram executados **23 testes .NET e 25 verificações de instalação**:
+MSI/hash/manifesto, serviço automático LocalSystem, presença/arquitetura dos binários,
+estado sem configuração, ACL, abertura/fechamento do configurador, execução da
+ponte x86 com entrada recusada antes de ODBC, diagnóstico instalado, DPAPI sob
+LocalSystem, recusa de servidor HTTP, reparo preservando configuração cifrada,
+reinício após correção e remoção de serviço/binário. O teste não fornece DSN,
+credenciais, certificado de cliente ou servidor de negócio real.
+
+**Falha real corrigida:** run [41662010680](https://github.com/Mewstacks/CicaContabil/actions/runs/41662010680)
+gerou/instalou/iniciou/removeu o MSI, mas reprovou a ACL herdada na pasta de
+configuração. `Package.wxs` agora usa DACL protegida com `PermissionEx` para
+SYSTEM/Administradores antes de gravar credenciais. O segundo run
+[41663104581](https://github.com/Mewstacks/CicaContabil/actions/runs/41663104581)
+comprovou ACL/configurador/ponte/diagnóstico e parou no timeout do estado seguinte.
+O roteiro convertia uma data ISO já desserializada pelo PowerShell em string
+local, perdendo frações de segundo e recusando estado recente. Corrigida a
+conversão direta para DateTimeOffset, adicionado teste de precisão e captura
+do estado em timeout; os critérios de estado/frescura foram mantidos. A rodada
+final passou integralmente, inclusive DPAPI e recuperação. Pacotes reprovados
+não foram disponibilizados como instaladores aprovados.
+
+**Artefatos e conferência local:** MSI versão **1.0.0**, **97.790.959 bytes**;
+SHA-256 **`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393`**.
+Após download, igualdade entre bytes locais, `.sha256`, `release.json` e
+`installer-test.json` novamente conferida. Artefatos GitHub 13246525259 (pacote)
+e 13246670242 (evidência), retenção de um dia. Cópia local preservada em
+`agent-windows/artifacts/`, ignorada pelo Git; ZIP de transferência
+`CicaAgent-1.0.0-teste-windows-x64.zip` com MSI, checksum, manifesto, inventário,
+relatório de ensaio e instruções. ZIP **97.800.096 bytes**, CRC conferido;
+SHA-256 `ae7bc7751eaea7c7b8a593e8b4aa71fc47cbca1dc3cf6c639cf1781a175d4c01`.
+
+**Verificações locais adicionais:** `dotnet test ... -c Release --no-restore`
+repetiu os **23 testes**, zero falhas/skips. Builds Release de serviço,
+configurador e ponte passaram sem avisos/erros. Bateria Python
+`tests/test_edge_agent.py tests/test_intelligence_agent_django.py
+tests/test_intelligence_sync_django.py`: **23 testes aprovados em 58,32 s**, SQLite
+sintético. Não repetir a regressão financeira V-304 como se fosse nova nesta entrega.
+O build MSI conserva o aviso anterior WIX1076/ICE61 de upgrade na mesma versão;
+zero erros e instalação/reparo efetivamente testados. Não alegar MSI sem avisos.
+
+**Integridade do trabalho:** correção/teste/workflow/instruções copiados de volta
+à árvore principal somente após sucesso, recusando sobrescrever edição prévia.
+Hashes de 15 arquivos de aplicação/testes já modificados em D-305 foram conferidos
+inalterados. Segredos, anexos, binários, logs de runtime e configuração não foram
+commitados. Evidência temporária em `.tmp/agent-windows-2026-11-03/`, com TRX,
+logs/JSON das três execuções e bateria Python. Arquivos transferidos permanecem
+locais e não exigem que a cliente possua o repositório.
+
+**Limites:** `Authenticode=NotSigned`. Checksum/proveniência CI não equivalem
+à assinatura de editor; nenhuma compra/geração de identidade comercial foi
+presumida. Pacote é para instalação de teste controlada. Não houve instalação
+no PC da cliente, pareamento externo real, teste real SQL Anywhere/DSN/ODBC,
+leitura/escrita no ERP, rede/restore reais ou homologação CONTAD. Razão/títulos
+com parcelas/baixas e DE-PARA continuam nos gates próprios. Q-28 aguarda o
+acesso prometido; o responsável não precisa repetir a origem Domínio nem a
+inclusão de pagar/receber. Infraestrutura de produção não foi alterada.

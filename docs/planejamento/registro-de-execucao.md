@@ -2488,3 +2488,20 @@ mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
   de código, testes e documentação. SHA conferido diretamente no remoto,
   comparação local/remoto 0/0 e árvore limpa. Registro de confirmação em commit
   documental adicional; nenhum deploy ou integração real foi executado.
+
+## 03/11/2026 — Pacote Windows do agente testado (D-306/V-305)
+
+- Preservadas alterações D-305; branch isolada `codex/agent-windows-validation`,
+  baseada em `b499cd1`, sem merge/deploy ou dados de cliente.
+- CI anterior gerava MSI sem disponibilizá-lo. Criados teste de ciclo instalado
+  e retenção de MSI/hash/manifesto/inventário/logs. Primeiro ensaio comprovou
+  ACL herdada indevida; corrigida no MSI para SYSTEM/Administradores.
+- Rodada final Windows Server 2022: 23 testes .NET e **25 verificações aprovadas**,
+  incluindo ACL, configurador, ponte, diagnóstico, DPAPI, reparo, reinício e remoção.
+  Ajuste de precisão de horário no roteiro manteve os critérios de frescura.
+- Run 41664064414, SHA `57acd4f9738209842f4d3be546859c164adcba88`; pacote 1.0.0
+  baixado e hash confrontado com manifesto/relatório. ZIP local de transferência
+  com instruções em `agent-windows/artifacts/`, ignorado pelo Git.
+- Repetidos localmente três builds sem avisos/erros, 23 testes .NET e 23 Python.
+  Pacote sem assinatura Authenticode, pronto para ensaio controlado; acesso ao
+  PC, driver/DSN, pareamento e ERP da cliente ainda pendentes. Não houve deploy.

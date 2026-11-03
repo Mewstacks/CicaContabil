@@ -63,9 +63,21 @@ A conclusão local histórica da base desta etapa não comprova o conciliador CO
 - [x] Corrigir `is_linked` do processador local com o contrato `EXISTS` já
   allowlisted, sem escrita no ERP nem inferência de escrituração.
 - [x] Preparar [roteiro do piloto CONTAD](../verificacao-conciliador-contad-2026-11-02.md).
-- [ ] Receber acesso autorizado, gerar/conferir pacote Windows atual, instalar
-  e parear no computador da cliente; testar DSN, credencial do serviço e rede.
+- [ ] Receber acesso autorizado e instalar/parear o pacote Windows conferido
+  no computador da cliente; testar DSN, credencial do serviço e rede.
 - [ ] Validar/implementar fonte de Razão e títulos comerciais. A consulta de
   extrato atual não entrega esses fatos e não os transforma em lançamentos.
 - [ ] Homologar instalação, atualização, revogação, queda/retomada e integridade
   no ambiente real. A prova permanece na etapa 12; não declarar instalada.
+
+## Pacote testado em Windows descartável — D-306/V-305 (03/11/2026)
+
+Run 41664064414, SHA `57acd4f9738209842f4d3be546859c164adcba88`, MSI 1.0.0.
+23 testes .NET e 25 verificações do ciclo instalado aprovados. Corrigida a
+proteção da pasta no MSI; checksum/manifesto/relatório novamente conferidos
+após download. Instalador de teste sem assinatura de editor. Os limites reais
+de PC/driver/DSN/pareamento/ERP permanecem abertos.
+
+- [x] Gerar MSI atual e disponibilizar MSI/hash/manifesto/evidência por CI.
+- [x] Testar instalação, serviço, configurador, ACL, DPAPI, ponte x86, diagnóstico, reparo, reinício e remoção em Windows Server 2022 descartável.
+- [ ] Instalar e parear no PC autorizado da cliente e conferir driver/DSN/ERP reais.
