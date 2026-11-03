@@ -2022,3 +2022,9 @@ driver/DSN e Domínio da cliente continuam dependentes do acesso prometido em
 Q-28. Não habilitar SQL novo, importar/escrever no ERP ou declarar homologação
 real a partir desse ensaio. Registrar comandos, versão/SHA, arquivo resultante,
 resultados e limites em V-305 e nos checklists/registro de execução.
+
+Complemento D-306: o primeiro ensaio Windows (run 41662010680) instalou,
+iniciou e removeu o serviço, mas comprovou que a pasta de configuração herdava
+permissões em vez de restringi-las a SYSTEM/Administradores. Corrigir o ACL
+no próprio MSI com DACL protegida antes da configuração; repetir o ensaio
+integral. Não enfraquecer o teste nem tratar o pacote reprovado como entrega.

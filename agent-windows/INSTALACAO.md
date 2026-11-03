@@ -9,6 +9,25 @@
 
 Sem configuração concluída, o serviço permanece em espera e não tenta acessar ERP, pastas ou rede.
 
+## Ensaio do instalador em Windows descartável
+
+O fluxo `.github/workflows/agent-windows-validation.yml` gera o MSI, compara o
+SHA-256 com `release.json` e executa `test-installer.ps1` em runner Windows
+descartável. O ensaio instala, verifica binários/arquiteturas, inicia o serviço,
+abre/fecha o configurador, executa o diagnóstico instalado, testa DPAPI com uma
+configuração sintética inválida, repara, reinicia e remove o pacote.
+
+O script recusa execução fora de runner GitHub Windows descartável e recusa
+uma máquina com agente/configuração existente. Não executar esse roteiro no PC
+da cliente: o ensaio remove a própria instalação ao terminar. Ele não comprova
+driver/DSN, pareamento real, leitura do Domínio ou importação contábil.
+
+Em caso de sucesso, o fluxo conserva os artefatos
+`CicaAgent-tested-windows-x64` (MSI, checksum, manifesto e inventário) e
+`CicaAgent-windows-validation` (resultados e logs) por um dia. Baixar e conferir
+o hash antes do uso; preservar uma cópia local. Um pacote gerado sem certificado
+de assinatura continua sendo pacote de teste, mesmo com checksum conferido.
+
 ## Preparação nesta estação
 
 1. Confirmar Windows 64 bits e permissão de administrador.
@@ -30,6 +49,7 @@ O endereço HTTPS, código temporário, certificado do agente e pareamento com a
 ## Diagnóstico e remoção
 
 - Serviço: `Get-Service CicaAgent`.
+- Diagnóstico do pacote instalado: `& "$env:ProgramFiles\CICA Agent\Configurator\diagnosticar.ps1" -AsJson`.
 - Logs: Visualizador de Eventos do Windows, origem do serviço CICA Agent.
 - Configuração local: `C:\ProgramData\CICA\Agent\agent.config` (protegida por DPAPI; não copiar nem editar).
 - Estado do agente: `C:\ProgramData\CICA\Agent\agent-status.json`. O arquivo não contém senha, certificado, DSN nem dados do ERP. Estados: `awaiting_configuration`, `configuration_error`, `authorization_error`, `synchronizing`, `ready` e `temporary_error`. `authorization_error` pode indicar revogação ou pareamento incompatível e exige conferência no console CICA; o agente não apaga a configuração por conta própria.
