@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Cica.Agent.Contracts/Cica.Agent.Contracts.csproj" />
+    <Compile Include="../Cica.Agent.Service/LocalOdbcConnection.cs" Link="LocalOdbcConnection.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="System.Data.Odbc" Version="8.0.0" />

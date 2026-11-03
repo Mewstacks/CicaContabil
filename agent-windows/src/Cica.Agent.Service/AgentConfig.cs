@@ -18,7 +18,8 @@ internal sealed record AgentConfig(
     // configuração e não compilado no binário como fazia o conector de origem.
     // Instalação antiga não tem o campo, e é do Domínio: era o único perfil que
     // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
-    string? SourceSystem = null)
+    string? SourceSystem = null,
+    bool UseDsnAuthentication = false)
 {
     internal string EffectiveSourceSystem =>
         string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;

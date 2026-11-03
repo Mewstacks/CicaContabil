@@ -12,7 +12,8 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
     internal async Task RunOnce(CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(config.Dsn)) return;
-        using var connection = new OdbcConnection($"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
+        using var connection = new OdbcConnection(LocalOdbcConnection.Build(
+            config.Dsn, config.DatabaseUser, config.DatabasePassword, config.UseDsnAuthentication));
         connection.ConnectionTimeout = 20;
         await connection.OpenAsync(token);
         string cursor = "";
@@ -49,7 +50,8 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
             "FROM bethadba.CTEXTRATO_BANCARIO_LANCAMENTO_ITEM i " +
             "WHERE CAST(i.CODI_EMP AS VARCHAR(64)) || '|' || CAST(i.I_LANCAMENTO AS VARCHAR(64)) " +
             "|| '|' || CAST(i.I_ITEM AS VARCHAR(64)) > ? ORDER BY 1";
-        using var connection = new OdbcConnection($"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
+        using var connection = new OdbcConnection(LocalOdbcConnection.Build(
+            config.Dsn!, config.DatabaseUser, config.DatabasePassword, config.UseDsnAuthentication));
         await connection.OpenAsync(token); string cursor = "";
         while (!token.IsCancellationRequested)
         {

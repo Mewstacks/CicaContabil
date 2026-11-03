@@ -151,8 +151,8 @@ internal sealed class ProfitabilityProcessor(AgentConfig config, AgentClient cli
             yield break;
         }
 
-        using var connection = new OdbcConnection(
-            $"DSN={config.Dsn};UID={config.DatabaseUser};PWD={config.DatabasePassword}");
+        using var connection = new OdbcConnection(LocalOdbcConnection.Build(
+            config.Dsn!, config.DatabaseUser, config.DatabasePassword, config.UseDsnAuthentication));
         connection.ConnectionTimeout = 20;
         await connection.OpenAsync(token);
 
