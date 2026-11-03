@@ -51,14 +51,20 @@ function Wait-AgentState([string]$Expected, [DateTimeOffset]$After) {
         if (Test-Path -LiteralPath $statusPath) {
             try {
                 $state = Get-Content -Raw -LiteralPath $statusPath | ConvertFrom-Json
+                # PowerShell may deserialize ISO dates as DateTime. Parse(string)
+                # would stringify that value using the locale and lose fractions.
+                $observed = [DateTimeOffset]$state.observed_at_utc
                 if ($state.state -eq $Expected `
-                    -and [DateTimeOffset]::Parse($state.observed_at_utc) -ge $After) {
+                    -and $observed -ge $After) {
                     return $state
                 }
             }
             catch { Write-Verbose 'Aguardando gravação atômica do estado.' }
         }
         Start-Sleep -Milliseconds 400
+    }
+    if (Test-Path -LiteralPath $statusPath) {
+        Copy-Item -LiteralPath $statusPath -Destination (Join-Path $OutputDirectory "timeout-$Expected.json")
     }
     throw "O serviço não informou o estado $Expected em 45 segundos."
 }
@@ -77,6 +83,10 @@ function Get-PeMachine([string]$Path) {
 }
 
 try {
+    $timestamp = [DateTimeOffset]::UtcNow
+    $roundtrip = @{ observed = $timestamp.ToString('o') } | ConvertTo-Json | ConvertFrom-Json
+    $observed = [DateTimeOffset]$roundtrip.observed
+    Assert-Check ([Math]::Abs(($observed - $timestamp).TotalMilliseconds) -lt 1) 'status timestamps preserve subsecond freshness after JSON parsing'
     $manifest = Get-Content -Raw -LiteralPath (Join-Path (Split-Path $MsiPath) 'release.json') | ConvertFrom-Json
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $MsiPath).Hash.ToLowerInvariant()
     $hashFile = (Get-Content -Raw -LiteralPath "$MsiPath.sha256").Trim().Split(' ')[0]

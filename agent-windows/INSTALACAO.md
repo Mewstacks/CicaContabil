@@ -37,7 +37,7 @@ de assinatura continua sendo pacote de teste, mesmo com checksum conferido.
 
 ## Configuração local verificável
 
-1. Abrir o configurador instalado.
+1. Abrir o configurador instalado **como administrador**, pois a configuração é protegida para Administradores e SYSTEM.
 2. Selecionar Domínio Web, Domínio Local ou Siescon. O configurador alterna entre a visão ODBC de 64 bits do Domínio e a de 32 bits do Siescon e mostra apenas drivers compatíveis.
 3. Para uma fonte local, usar **Testar conexão**. No Domínio o teste consulta somente uma empresa pela consulta fixa allowlisted; no Siescon a ponte confirma a abertura do DSN sem executar o catálogo fiscal.
 4. Informar a pasta raiz de arquivos apenas se ela já estiver definida para a Triagem.
