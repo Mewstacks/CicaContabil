@@ -2028,3 +2028,34 @@ iniciou e removeu o serviço, mas comprovou que a pasta de configuração herdav
 permissões em vez de restringi-las a SYSTEM/Administradores. Corrigir o ACL
 no próprio MSI com DACL protegida antes da configuração; repetir o ensaio
 integral. Não enfraquecer o teste nem tratar o pacote reprovado como entrega.
+
+
+## D-307 — Testar o mesmo pacote em Windows 11 Desktop (03/11/2026)
+
+Origem: pedido explícito do responsável: “teste agora em windows 11 normal”.
+Ampliar o ensaio D-306 para Windows 11 cliente, mantendo os mesmos bytes do
+MSI já aprovado, sem rebuild ou mudança de versão. Registrar edição/build,
+ProductType e arquitetura reais antes de instalar; Windows Server não atende
+este pedido. Preservar alterações e evidências anteriores separadamente.
+
+O host disponível é macOS ARM64, sem VM Windows executável encontrada. Há uma
+ISO x64 em Downloads, mas isso não comprova Windows instalado/licenciado. O
+Windows App existe, porém a ferramenta informa ausência de permissão de uso
+do computador; não contornar essa restrição por outra API de interface.
+O runner padrão público `windows-11-arm` fornece Windows 11 Desktop ARM64 sem
+cobrança de computação neste repositório público, conforme documentação oficial
+GitHub consultada. Executar nele o MSI x64 sob compatibilidade/emulação do SO,
+sem alegar que esse resultado homologa Windows 11 Intel/AMD, SQL Anywhere ou
+ODBC real. Não alterar suporte/arquitetura do produto para fazer o teste passar.
+
+Reutilizar branch isolada `codex/agent-windows-validation`, com novo workflow
+restrito ao ensaio e download do artefato do run 41664064414, verificando SHA-256
+`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393` antes de
+executar. Commit/push do roteiro e registro necessários seguem autorizados pelo
+pedido; sem merge, deploy, runner pago, compra/licença, credenciais, anexos da
+cliente, acesso a ERP ou pareamento externo. Preservar V-305 e registrar resultado
+real/limites em V-306, checklists e execução. O ensaio continua recusando máquina
+com agente/configuração existente e remove somente sua instalação descartável.
+A prova Windows 11 x64 exige ambiente próprio disponível; não transformar
+indisponibilidade em aprovação, nem instalar virtualizador/aceitar EULA por
+inferência.
