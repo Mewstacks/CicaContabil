@@ -81,3 +81,16 @@ de PC/driver/DSN/pareamento/ERP permanecem abertos.
 - [x] Gerar MSI atual e disponibilizar MSI/hash/manifesto/evidência por CI.
 - [x] Testar instalação, serviço, configurador, ACL, DPAPI, ponte x86, diagnóstico, reparo, reinício e remoção em Windows Server 2022 descartável.
 - [ ] Instalar e parear no PC autorizado da cliente e conferir driver/DSN/ERP reais.
+
+
+## Windows 11 Desktop — D-307/V-306 (03/11/2026)
+
+- [x] Testar os mesmos bytes do MSI 1.0.0 em Windows 11 cliente: Enterprise,
+  build 26200, ARM64, 25 verificações aprovadas no run 41669715057.
+- [x] Preservar hash, arquitetura e logs/relatórios separadamente de V-305.
+- [ ] Testar Windows 11 Intel/AMD no PC informado por RDP: sessão declarada
+  pronta pelo responsável, mas controle de computador ainda recusado pela
+  ferramenta. Nenhuma ação nesse PC foi executada.
+
+A compatibilidade do instalador x64/ponte x86 sob emulação ARM64 não homologa
+ODBC/SQL Anywhere, pareamento, ERP ou o ambiente CONTAD. Sem mudança no MSI.

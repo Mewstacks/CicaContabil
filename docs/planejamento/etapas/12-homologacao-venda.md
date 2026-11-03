@@ -104,3 +104,15 @@ será fornecido; Domínio local e inclusão de pagar/receber já confirmados.
 Sem deploy ou liberação desta correção nesta entrega. O aceite NFS-e anterior
 não habilita o gate contábil. Retenção/comercial gerais continuam com seus próprios
 responsáveis e não alteram silenciosamente as condições deste contrato.
+
+
+### Windows 11 cliente — D-307/V-306 (03/11/2026)
+
+- [x] Executar 25 verificações do mesmo pacote x64 em Windows 11 Enterprise
+  ARM64 build 26200, ProductType=1, com relatório/ambiente/logs preservados.
+- [ ] Repetir no Windows 11 Intel/AMD por RDP. O PC foi disponibilizado, mas
+  a ferramenta retorna ausência de permissão mesmo após confirmação do usuário.
+- [ ] Homologar driver/DSN/pareamento/rede/ERP no PC autorizado da cliente.
+
+O resultado ARM64 é adicional ao Server 2022 V-305; não resolve o acesso RDP
+nem os critérios do piloto contábil. MSI sem Authenticode; nenhum deploy.

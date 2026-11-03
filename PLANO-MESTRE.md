@@ -1,5 +1,13 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Windows 11 Desktop em 03/11/2026 (D-307/V-306):** o mesmo MSI x64
+passou em 25 verificações no Windows 11 Enterprise build 26200 **ARM64**,
+[execução aprovada](https://github.com/Mewstacks/CicaContabil/actions/runs/41669715057).
+Instalação, serviço, configurador, DPAPI, reparo, reinício e remoção conferidos;
+sem ODBC/ERP reais. O responsável disponibilizou PC de teste por RDP, mas a
+ferramenta continua recusando controle por permissão. A prova **Windows 11
+Intel/AMD** permanece pendente; esta evidência ARM64 não a substitui.
+
 **Agente Windows em 03/11/2026 — D-306/V-305:** MSI 1.0.0 e ciclo instalado
 aprovados em [Windows descartável](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414),
 com 25 verificações e 23 testes .NET. Artefatos preservados/baixados e hash

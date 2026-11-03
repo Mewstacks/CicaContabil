@@ -2059,3 +2059,15 @@ com agente/configuração existente e remove somente sua instalação descartáv
 A prova Windows 11 x64 exige ambiente próprio disponível; não transformar
 indisponibilidade em aprovação, nem instalar virtualizador/aceitar EULA por
 inferência.
+
+
+Complemento D-307: o responsável confirmou um **PC de teste Windows 11 com
+acesso seguro por RDP**. Não é necessário perguntar novamente pela existência
+do ambiente ou pela ferramenta. A sessão precisa estar aberta/autenticada no
+Windows App e o controle do computador habilitado no Codex; a ferramenta de UI
+recusou acesso por ausência dessa permissão. Não solicitar senha no chat nem
+contornar a permissão. Antes de alterar a máquina, conferir SO/arquitetura,
+agente e configuração existentes. O script destrutivo de runner GitHub não deve
+ser executado nela nem ter seu guard burlado. Preservar instalação existente e
+credenciais; não conectar ao Domínio, parear externamente ou declarar teste RDP
+executado apenas porque o usuário informou disponibilidade do PC.

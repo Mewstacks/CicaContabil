@@ -2505,3 +2505,20 @@ mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
 - Repetidos localmente três builds sem avisos/erros, 23 testes .NET e 23 Python.
   Pacote sem assinatura Authenticode, pronto para ensaio controlado; acesso ao
   PC, driver/DSN, pareamento e ERP da cliente ainda pendentes. Não houve deploy.
+
+
+## 03/11/2026 — Teste Windows 11 Desktop (D-307/V-306)
+
+- Reutilizada branch isolada e artefato V-305, sem rebuild, merge ou alteração
+  no produto. Workflow público `windows-11-arm`, hash fixado antes de executar.
+- Run 41669715057 / commit 57427c7 aprovados: Windows 11 Enterprise cliente
+  build 26200 ARM64, 25 verificações de instalação, serviço, GUI, ponte,
+  diagnóstico, ACL/DPAPI, reparo, reinício e remoção. Mesmo MSI 1.0.0/SHA de V-305.
+- Relatórios e logs baixados; cópia JSON em `agent-windows/artifacts/windows-11-arm/`.
+  Evidência de Server 2022 preservada. Sem DSN, driver, pareamento ou ERP real.
+- Responsável confirmou PC de teste via RDP e sessão pronta. Interface continuou
+  recusando acesso com “Computer Use permissions are not granted”, mesmo após
+  recarregar o runtime. Não houve inspeção/instalação no PC. Orientação oficial
+  de permissões consultada; Windows 11 Intel/AMD continua pendente do acesso.
+- 15 hashes de arquivos preexistentes preservados; sem dados da cliente,
+  binários versionados, publicação, nova contratação ou custo presumido.

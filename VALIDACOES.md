@@ -5235,3 +5235,63 @@ leitura/escrita no ERP, rede/restore reais ou homologação CONTAD. Razão/títu
 com parcelas/baixas e DE-PARA continuam nos gates próprios. Q-28 aguarda o
 acesso prometido; o responsável não precisa repetir a origem Domínio nem a
 inclusão de pagar/receber. Infraestrutura de produção não foi alterada.
+
+
+## V-306 — Mesmo MSI testado em Windows 11 Desktop ARM64 (03/11/2026)
+
+**Pedido/escopo:** D-307, “teste agora em windows 11 normal”. Resultado do
+Windows 11 cliente separado do ensaio Server 2022 V-305. Não há declaração de
+homologação do PC Intel/AMD ou do Domínio.
+
+**Execução real:** [run 41669715057](https://github.com/Mewstacks/CicaContabil/actions/runs/41669715057),
+job 126034515875, workflow `agent-windows-11-validation.yml`, commit
+`57427c76dbc04edf4b8455c4ee721f0a276511e7`, sucesso. SO conferido antes da
+instalação por CIM: **Microsoft Windows 11 Enterprise**, versão **10.0.26200**,
+build **26200**, **ProductType=1** (cliente), SO/processo/runner **ARM64**.
+A edição Enterprise é Windows Desktop; o runner não é Windows Server. MSI x64
+com ponte x86 executado pela compatibilidade/emulação do Windows ARM64.
+
+**Mesmos bytes:** baixado o artefato do run 41664064414 (código do pacote
+`57acd4f9738209842f4d3be546859c164adcba88`), sem rebuild. MSI 1.0.0, SHA-256
+`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393`;
+conferência fixa antes da execução e igualdade com relatório/copias locais.
+Checksum/manifesto e os bytes do pacote anterior foram preservados.
+
+**25 verificações aprovadas:** instalação silenciosa com saída 0; serviço
+LocalSystem automático e em execução; binários x64/ponte x86 presentes; espera
+sem configuração e sem ERP; ACL protegido para Administradores/SYSTEM; abertura,
+loop de mensagens e fechamento normal do configurador; execução da ponte x86
+com rejeição de entrada inválida antes de ODBC; diagnóstico instalado; DPAPI
+LocalMachine lido pelo serviço e rejeição de HTTP; reparo MSI com saída 0 e
+preservação da configuração cifrada; recuperação após correção e reinício;
+remoção com saída 0 e ausência de serviço/executável. Inclui guard de precisão
+de data e conferência MSI/hash/manifesto. Não houve alteração do código do
+produto ou da proteção do ensaio para aprová-lo. Não repetidos .NET/backend:
+as contagens 23/23 continuam evidência V-305, não novos testes desta execução.
+
+**Evidências preservadas:** artefato GitHub **13248051379**,
+`CicaAgent-windows-11-arm-validation`, **409.075 bytes**, digest do arquivo ZIP
+`sha256:99ecf370b2d8f3e092328991e632d60e7e3ab69643ef54fd7724f77b69986c93`,
+retido até 04/11/2026 16:02:16 UTC. Download local conferido:
+`.tmp/agent-windows-11-2026-11-03/passed-run/` (logs instalação/reparo/remoção,
+ambiente e relatório); cópia dos JSONs em `agent-windows/artifacts/windows-11-arm/`.
+Relatório `passed=true`, 25 checks, `pairing_tested=false`, `real_odbc_tested=false`,
+assinatura `NotSigned`. Diagnóstico confirma serviço Running, zero DSNs e nenhum
+driver SQL Anywhere. O script não executou consulta de ERP ou pareamento.
+
+**PC por RDP:** o responsável confirmou PC de teste e RDP, depois informou
+sessão aberta e controle habilitado. A chamada de interface ainda retornou
+**“Computer Use permissions are not granted”**, inclusive depois de reset do
+runtime e nova tentativa. Nenhuma tela, SO/arquitetura ou instalação desse PC
+foi inspecionada; não confundir a confirmação do usuário com uma ação realizada.
+Orientação oficial de permissões consultada por OpenAI Docs (Acessibilidade,
+Gravação de Tela e acesso do aplicativo no controle do computador); não houve
+contorno do bloqueio. Teste Windows 11 **Intel/AMD via RDP permanece pendente**
+até a ferramenta reconhecer o acesso. Não pedir novamente se há PC ou qual
+ferramenta, nem solicitar senha no chat.
+
+**Integridade e limites:** YAML/guardas/diff conferidos; os 15 arquivos de
+aplicação/teste de D-305 continuam com os hashes preservados. Nenhum dado/anexo
+ou binário versionado, merge em main, deploy, assinatura comercial, custo ou
+acesso a ERP. Teste ARM64 não homologa drivers ODBC, o PC da cliente, interface
+visual completa, queda de rede, pares mTLS ou piloto/aceite CONTAD.

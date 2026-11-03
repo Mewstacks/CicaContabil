@@ -28,6 +28,21 @@ Em caso de sucesso, o fluxo conserva os artefatos
 o hash antes do uso; preservar uma cópia local. Um pacote gerado sem certificado
 de assinatura continua sendo pacote de teste, mesmo com checksum conferido.
 
+## Evidência Windows 11
+
+Em 03/11/2026, o mesmo MSI x64 1.0.0 aprovado no Server 2022 foi testado em
+**Windows 11 Enterprise ARM64, build 26200, ProductType=1**. O workflow
+`agent-windows-11-validation.yml` baixa os bytes originais, exige Windows 11
+cliente e registra SO/arquitetura antes do ensaio. As 25 verificações passaram:
+[run 41669715057](https://github.com/Mewstacks/CicaContabil/actions/runs/41669715057).
+Relatórios locais em `artifacts/windows-11-arm/`; MSI original em `artifacts/`.
+
+Esse teste comprova o ciclo do pacote x64/ponte x86 sob compatibilidade do
+Windows ARM64. A prova em **Windows 11 Intel/AMD por RDP** ainda está pendente
+do acesso da ferramenta. Não implica suporte/homologação de driver SQL Anywhere
+ARM64, DSN/ODBC real ou pareamento. Não executar `test-installer.ps1` no PC por
+RDP: ele é reservado ao runner descartável e remove sua própria instalação.
+
 ## Preparação nesta estação
 
 1. Confirmar Windows 64 bits e permissão de administrador.
