@@ -363,17 +363,17 @@ internal sealed class SetupForm : Form
         string directory = Path.Combine(Environment.GetFolderPath(
             Environment.SpecialFolder.CommonApplicationData), "CICA", "Agent");
         Directory.CreateDirectory(directory);
+        using Process? acl = Process.Start(new ProcessStartInfo("icacls.exe",
+            $"\"{directory}\" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F")
+        { UseShellExecute = false, CreateNoWindow = true });
+        acl?.WaitForExit();
+        if (acl?.ExitCode != 0) throw new InvalidOperationException(
+            "Não foi possível restringir a pasta de configuração.");
         byte[] plain = JsonSerializer.SerializeToUtf8Bytes(config);
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, "agent.config"),
+            AtomicConfigurationFile.Write(Path.Combine(directory, "agent.config"),
                 ProtectedData.Protect(plain, null, DataProtectionScope.LocalMachine));
-            using Process? acl = Process.Start(new ProcessStartInfo("icacls.exe",
-                $"\"{directory}\" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F")
-            { UseShellExecute = false, CreateNoWindow = true });
-            acl?.WaitForExit();
-            if (acl?.ExitCode != 0) throw new InvalidOperationException(
-                "Não foi possível restringir a pasta de configuração.");
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }
@@ -381,5 +381,6 @@ internal sealed class SetupForm : Form
     private sealed record Config(string ServerUrl, string AgentId, string SharedSecret,
         string CertificatePfxBase64, string? Dsn, string SqlAnywhereDriver,
         string DatabaseUser, string DatabasePassword, string? WindowsArchiveRoot,
-        string SourceSystem, bool UseDsnAuthentication, AgentSyncScope? SyncScope);
+        string SourceSystem, bool UseDsnAuthentication, AgentSyncScope? SyncScope,
+        string AuthenticationMode);
 }

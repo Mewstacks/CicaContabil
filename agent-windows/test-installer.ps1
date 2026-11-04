@@ -159,6 +159,24 @@ try {
     $beforeRepair = (Get-FileHash $configPath).Hash
     Invoke-Msi '/fa' 'repair.log'
     Assert-Check ((Get-FileHash $configPath).Hash -eq $beforeRepair) 'MSI repair preserves existing encrypted configuration'
+    # Explicit HMAC uses no PFX. An unreachable loopback HTTPS endpoint proves
+    # LocalSystem reaches transport setup without reading any ERP or contacting
+    # external services; certificate/configuration errors must not occur first.
+    Stop-Service -Name CicaAgent
+    $plain = [Text.Encoding]::UTF8.GetBytes((@{
+        ServerUrl = 'https://127.0.0.1:9'; AgentId = 'synthetic-only'; SharedSecret = 'synthetic-only';
+        CertificatePfxBase64 = ''; Dsn = $null; SqlAnywhereDriver = ''; DatabaseUser = '';
+        DatabasePassword = ''; WindowsArchiveRoot = $null; SourceSystem = 'siescon';
+        AuthenticationMode = 'hmac'
+    } | ConvertTo-Json))
+    $encrypted = [Security.Cryptography.ProtectedData]::Protect(
+        $plain, $null, [Security.Cryptography.DataProtectionScope]::LocalMachine)
+    [IO.File]::WriteAllBytes($configPath, $encrypted)
+    [Array]::Clear($plain, 0, $plain.Length)
+    $started = [DateTimeOffset]::UtcNow
+    Start-Service -Name CicaAgent
+    $state = Wait-AgentState 'temporary_error' $started
+    Assert-Check ($state.detail.Contains('alcançar')) 'LocalSystem loads HMAC configuration without a client certificate'
     Stop-Service -Name CicaAgent
     Remove-Item -LiteralPath $configPath
     $testConfigWritten = $false
