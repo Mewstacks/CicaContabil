@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
@@ -14,11 +13,9 @@ internal sealed class AgentClient : IDisposable
     internal AgentClient(AgentConfig config)
     {
         this.config = config;
-        byte[] pfx = Convert.FromBase64String(config.CertificatePfxBase64);
-        var certificate = new X509Certificate2(pfx, (string?)null,
-            X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
-        var handler = new HttpClientHandler();
-        handler.ClientCertificates.Add(certificate);
+        AgentAuthentication.Validate(config.AuthenticationMode, config.AgentId,
+            config.SharedSecret, config.CertificatePfxBase64);
+        var handler = AgentAuthentication.CreateHandler(config.AuthenticationMode, config.CertificatePfxBase64);
         http = new HttpClient(handler) { BaseAddress = new Uri(config.ServerUrl.TrimEnd('/') + "/") };
         http.Timeout = TimeSpan.FromMinutes(10);
     }

@@ -20,7 +20,8 @@ internal sealed record AgentConfig(
     // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
     string? SourceSystem = null,
     bool UseDsnAuthentication = false,
-    AgentSyncScope? SyncScope = null)
+    AgentSyncScope? SyncScope = null,
+    string AuthenticationMode = AgentAuthentication.Mtls)
 {
     internal string EffectiveSourceSystem =>
         string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
@@ -42,9 +43,7 @@ internal sealed record AgentConfig(
         if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out Uri? server)
             || !string.Equals(server.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("O endereço do servidor CICA precisa usar HTTPS.");
-        if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
-            || string.IsNullOrWhiteSpace(CertificatePfxBase64))
-            throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
+        AgentAuthentication.Validate(AuthenticationMode, AgentId, SharedSecret, CertificatePfxBase64);
         SyncScope?.Validate();
         if (SyncScope is not null && (EffectiveSourceSystem != "dominio" || string.IsNullOrWhiteSpace(Dsn)))
             throw new InvalidDataException("O recorte do piloto exige Domínio Local.");

@@ -104,6 +104,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
     private static async Task<AgentConfig> RenewCertificateIfNeeded(
         AgentConfig config, AgentClient client, CancellationToken token)
     {
+        if (config.AuthenticationMode == AgentAuthentication.Hmac) return config;
         byte[] existingPfx = Convert.FromBase64String(config.CertificatePfxBase64);
         using var identity = new X509Certificate2(existingPfx, (string?)null,
             X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);

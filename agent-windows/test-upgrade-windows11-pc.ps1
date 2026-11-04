@@ -3,8 +3,8 @@ param(
     [Parameter(Mandatory = $true)][string]$MsiPath,
     [Parameter(Mandatory = $true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedSha256,
     [Parameter(Mandatory = $true)][string]$OutputDirectory,
-    [ValidateSet("1.0.0.0", "1.0.1.0")][string]$SourceVersion = "1.0.1.0",
-    [ValidateSet("1.0.1", "1.0.2")][string]$TargetVersion = "1.0.2"
+    [ValidateSet("1.0.0.0", "1.0.1.0", "1.0.2.0")][string]$SourceVersion = "1.0.1.0",
+    [ValidateSet("1.0.1", "1.0.2", "1.0.3")][string]$TargetVersion = "1.0.3"
 )
 
 $ErrorActionPreference = 'Stop'

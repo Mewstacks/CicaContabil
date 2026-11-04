@@ -2,7 +2,6 @@ using System.Data.Odbc;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Cica.Agent.Service;
 using Microsoft.Win32;
@@ -247,19 +246,17 @@ internal sealed class SetupForm : Form
                 throw new InvalidOperationException("Selecione o DSN do ERP local.");
             if (profile.RequiresSqlAnywhereDriver && string.IsNullOrWhiteSpace(driver.Text))
                 throw new InvalidOperationException("Selecione o driver SQL Anywhere.");
-            using RSA key = RSA.Create(3072);
-            var request = new CertificateRequest(
-                $"CN=CICA Agent {Environment.MachineName}", key, HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1);
-            string csr = PemEncoding.WriteString("CERTIFICATE REQUEST", request.CreateSigningRequest());
-            using var http = new HttpClient
+            using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
             {
                 BaseAddress = new Uri(uri.ToString().TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(65)
             };
             http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
             using HttpResponseMessage response = await http.PostAsJsonAsync("api/agent/v2/enroll", new
-            { code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(), csr });
+            {
+                code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(),
+                authentication_mode = AgentAuthentication.Hmac
+            });
             string responseText = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
@@ -268,6 +265,8 @@ internal sealed class SetupForm : Form
             }
             using JsonDocument result = JsonDocument.Parse(responseText);
             JsonElement root = result.RootElement;
+            if (root.GetProperty("authentication_mode").GetString() != AgentAuthentication.Hmac)
+                throw new InvalidOperationException("O servidor não confirmou o pareamento por assinatura.");
             AgentSyncScope? scope = null;
             if (root.TryGetProperty("sync_scope", out JsonElement scopeValue)
                 && scopeValue.ValueKind == JsonValueKind.Object && scopeValue.EnumerateObject().Any())
@@ -279,18 +278,15 @@ internal sealed class SetupForm : Form
                 throw new InvalidOperationException("Solicite um código com empresa, conta e competência do piloto.");
             if (scope is not null && mode.SelectedIndex != DominioLocalMode)
                 throw new InvalidOperationException("Este código com recorte exige Domínio Local.");
-            using X509Certificate2 certificate = X509Certificate2.CreateFromPem(root.GetProperty("certificate").GetString()!);
-            using X509Certificate2 identity = certificate.CopyWithPrivateKey(key);
-            string pfx = Convert.ToBase64String(identity.Export(X509ContentType.Pkcs12));
             Save(new Config(server.Text.Trim(), root.GetProperty("agent_id").GetString()!,
-                root.GetProperty("shared_secret").GetString()!, pfx,
+                root.GetProperty("shared_secret").GetString()!, "",
                 local ? dsn.Text : null,
                 profile.RequiresSqlAnywhereDriver ? driver.Text : "",
                 UsesDsnAuthentication() ? "" : user.Text,
                 UsesDsnAuthentication() ? "" : password.Text,
                 string.IsNullOrWhiteSpace(archiveRoot.Text) ? null : Path.GetFullPath(archiveRoot.Text),
                 profile.SourceSystem,
-                UsesDsnAuthentication(), scope));
+                UsesDsnAuthentication(), scope, AgentAuthentication.Hmac));
             status.Text = scope is null ? "Tudo pronto. O serviço CICA Agent pode ser iniciado."
                 : $"Recorte configurado: empresa {scope.CompanyCode}, conta {scope.AccountReference}, "
                   + $"de {scope.PeriodStart} até {scope.PeriodEnd}.";
