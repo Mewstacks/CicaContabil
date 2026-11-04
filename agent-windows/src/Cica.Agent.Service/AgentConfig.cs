@@ -96,7 +96,7 @@ internal sealed record AgentConfig(
         try
         {
             byte[] encrypted = ProtectedData.Protect(plain, null, DataProtectionScope.LocalMachine);
-            File.WriteAllBytes(FilePath, encrypted);
+            AtomicConfigurationFile.Write(FilePath, encrypted);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }

@@ -48,12 +48,14 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 using JsonDocument heartbeat = await client.PostAsync("api/agent/v2/heartbeat",
                     new { version = AgentVersion }, stoppingToken);
                 var received = await client.GetConfigurationAsync(stoppingToken);
+                bool configurationChanged = config.WindowsArchiveRoot != received.ArchiveRoot
+                    || config.SyncScope?.Revision != received.Scope?.Revision;
                 config = config with { WindowsArchiveRoot = received.ArchiveRoot, SyncScope = received.Scope };
                 config.Validate();
                 if (config.EffectiveSourceSystem == "dominio" && !string.IsNullOrWhiteSpace(config.Dsn)
                     && config.SyncScope is null)
                     throw new InvalidDataException("Configure um recorte financeiro antes de sincronizar o Domínio Local.");
-                config.Save();
+                if (configurationChanged) config.Save();
                 if (config.SyncScope is not null)
                     await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
                 else
