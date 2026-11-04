@@ -39,6 +39,7 @@ internal sealed class AgentClient : IDisposable
         string signature = Convert.ToHexString(HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(config.SharedSecret), signed)).ToLowerInvariant();
         var request = new HttpRequestMessage(method, uri);
+        request.Headers.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
         request.Headers.Add("X-Hub-Agent-ID", config.AgentId);
         request.Headers.Add("X-Hub-Agent-Timestamp", timestamp.ToString());
         request.Headers.Add("X-Hub-Agent-Signature", signature);
@@ -57,11 +58,19 @@ internal sealed class AgentClient : IDisposable
         return await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
     }
 
-    internal async Task<string?> GetWindowsArchiveRootAsync(CancellationToken token)
+    internal async Task<(string? ArchiveRoot, AgentSyncScope? Scope)> GetConfigurationAsync(CancellationToken token)
     {
         using JsonDocument result = await PostAsync("api/agent/v2/configuration/next", new { }, token);
         string? root = result.RootElement.GetProperty("windows_archive_root").GetString();
-        return string.IsNullOrWhiteSpace(root) ? null : root;
+        AgentSyncScope? scope = null;
+        if (result.RootElement.TryGetProperty("sync_scope", out JsonElement value)
+            && value.ValueKind == JsonValueKind.Object && value.EnumerateObject().Any())
+        {
+            scope = value.Deserialize<AgentSyncScope>()
+                ?? throw new InvalidDataException("Recorte financeiro inválido.");
+            scope.Validate();
+        }
+        return (string.IsNullOrWhiteSpace(root) ? null : root, scope);
     }
 
     internal async Task DownloadAsync(string absoluteUrl, string output, CancellationToken token)

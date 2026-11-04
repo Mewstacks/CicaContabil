@@ -2,7 +2,9 @@
 param(
     [Parameter(Mandatory = $true)][string]$MsiPath,
     [Parameter(Mandatory = $true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedSha256,
-    [Parameter(Mandatory = $true)][string]$OutputDirectory
+    [Parameter(Mandatory = $true)][string]$OutputDirectory,
+    [ValidateSet("1.0.0.0", "1.0.1.0")][string]$SourceVersion = "1.0.1.0",
+    [ValidateSet("1.0.1", "1.0.2")][string]$TargetVersion = "1.0.2"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -26,7 +28,8 @@ if (-not $service -or $service.PathName.Trim('"') -ne $servicePath) {
     throw 'Instalacao CICA esperada nao encontrada; ensaio recusado.'
 }
 $oldVersion = (Get-Item -LiteralPath $servicePath).VersionInfo.FileVersion
-if ($oldVersion -ne '1.0.0.0') { throw 'A origem precisa ser exatamente CICA Agent 1.0.0.0.' }
+if ($oldVersion -ne $SourceVersion) { throw "A origem precisa ser exatamente CICA Agent $SourceVersion." }
+if ([version]($TargetVersion + ".0") -le [version]$SourceVersion) { throw "O alvo deve ser posterior a origem." }
 if (Get-Process -Name 'Cica.Agent.Configurator' -ErrorAction SilentlyContinue) {
     throw 'Feche o configurador CICA antes de atualizar; os campos abertos foram preservados.'
 }
@@ -35,7 +38,7 @@ $observedHash = (Get-FileHash -LiteralPath $MsiPath -Algorithm SHA256).Hash.ToLo
 if ($observedHash -ne $ExpectedSha256) { throw 'Hash do MSI diferente do artefato conferido.' }
 $manifestPath = Join-Path (Split-Path -Parent $MsiPath) 'release.json'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.version -ne '1.0.1' -or $manifest.sha256 -ne $ExpectedSha256) {
+if ($manifest.version -ne $TargetVersion -or $manifest.sha256 -ne $ExpectedSha256) {
     throw 'Manifesto diferente da versao/hash aprovados para este ensaio.'
 }
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
@@ -44,7 +47,7 @@ $checks = New-Object 'System.Collections.Generic.List[string]'
 $failure = $null
 $exitCode = $null
 try {
-    $checks.Add('original_1_0_0_unconfigured_and_pinned_1_0_1')
+    $checks.Add("original_" + $SourceVersion + "_unconfigured_and_pinned_" + $TargetVersion)
     if (Test-Path -LiteralPath $configPath) { throw 'Configuracao criada durante o preflight; interrompido.' }
     $upgrade = Start-Process msiexec.exe -ArgumentList @(
         '/i', ('"' + $MsiPath + '"'), '/qn', '/norestart', '/l*v',
@@ -53,10 +56,10 @@ try {
     $exitCode = $upgrade.ExitCode
     if ($exitCode -ne 0) { throw "A atualizacao nao terminou sem reinicio: codigo $exitCode." }
     $checks.Add('msiexec_upgrade_exit_0')
-    if ((Get-Item -LiteralPath $servicePath).VersionInfo.FileVersion -ne '1.0.1.0') {
-        throw 'Versao instalada nao confere com 1.0.1.0.'
+    if ((Get-Item -LiteralPath $servicePath).VersionInfo.FileVersion -ne ($TargetVersion + ".0")) {
+        throw "Versao instalada nao confere com $TargetVersion."
     }
-    $checks.Add('installed_service_1_0_1_0')
+    $checks.Add("installed_service_" + $TargetVersion)
     $service = Get-CimInstance Win32_Service -Filter "Name='CicaAgent'"
     if ($service.State -ne 'Running' -or $service.StartMode -ne 'Auto' -or $service.StartName -ne 'LocalSystem') {
         throw 'Servico nao esta automatico/LocalSystem/Running apos a atualizacao.'
@@ -82,7 +85,7 @@ $report = [ordered]@{
     passed = ($null -eq $failure)
     failure = $failure
     source_version = $oldVersion
-    target_version = '1.0.1.0'
+    target_version = ($TargetVersion + ".0")
     msi_sha256 = $observedHash
     msi_exit_code = $exitCode
     checks = @($checks.ToArray())

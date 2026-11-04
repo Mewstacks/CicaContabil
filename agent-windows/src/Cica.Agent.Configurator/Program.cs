@@ -257,6 +257,7 @@ internal sealed class SetupForm : Form
                 BaseAddress = new Uri(uri.ToString().TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(65)
             };
+            http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
             using HttpResponseMessage response = await http.PostAsJsonAsync("api/agent/v2/enroll", new
             { code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(), csr });
             string responseText = await response.Content.ReadAsStringAsync();
@@ -267,7 +268,18 @@ internal sealed class SetupForm : Form
             }
             using JsonDocument result = JsonDocument.Parse(responseText);
             JsonElement root = result.RootElement;
-            X509Certificate2 certificate = X509Certificate2.CreateFromPem(root.GetProperty("certificate").GetString()!);
+            AgentSyncScope? scope = null;
+            if (root.TryGetProperty("sync_scope", out JsonElement scopeValue)
+                && scopeValue.ValueKind == JsonValueKind.Object && scopeValue.EnumerateObject().Any())
+            {
+                scope = scopeValue.Deserialize<AgentSyncScope>();
+                scope?.Validate();
+            }
+            if (mode.SelectedIndex == DominioLocalMode && scope is null)
+                throw new InvalidOperationException("Solicite um código com empresa, conta e competência do piloto.");
+            if (scope is not null && mode.SelectedIndex != DominioLocalMode)
+                throw new InvalidOperationException("Este código com recorte exige Domínio Local.");
+            using X509Certificate2 certificate = X509Certificate2.CreateFromPem(root.GetProperty("certificate").GetString()!);
             using X509Certificate2 identity = certificate.CopyWithPrivateKey(key);
             string pfx = Convert.ToBase64String(identity.Export(X509ContentType.Pkcs12));
             Save(new Config(server.Text.Trim(), root.GetProperty("agent_id").GetString()!,
@@ -278,8 +290,10 @@ internal sealed class SetupForm : Form
                 UsesDsnAuthentication() ? "" : password.Text,
                 string.IsNullOrWhiteSpace(archiveRoot.Text) ? null : Path.GetFullPath(archiveRoot.Text),
                 profile.SourceSystem,
-                UsesDsnAuthentication()));
-            status.Text = "Tudo pronto. O serviço CICA Agent pode ser iniciado.";
+                UsesDsnAuthentication(), scope));
+            status.Text = scope is null ? "Tudo pronto. O serviço CICA Agent pode ser iniciado."
+                : $"Recorte configurado: empresa {scope.CompanyCode}, conta {scope.AccountReference}, "
+                  + $"de {scope.PeriodStart} até {scope.PeriodEnd}.";
         });
     }
 
@@ -371,5 +385,5 @@ internal sealed class SetupForm : Form
     private sealed record Config(string ServerUrl, string AgentId, string SharedSecret,
         string CertificatePfxBase64, string? Dsn, string SqlAnywhereDriver,
         string DatabaseUser, string DatabasePassword, string? WindowsArchiveRoot,
-        string SourceSystem, bool UseDsnAuthentication);
+        string SourceSystem, bool UseDsnAuthentication, AgentSyncScope? SyncScope);
 }

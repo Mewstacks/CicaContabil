@@ -19,7 +19,8 @@ internal sealed record AgentConfig(
     // Instalação antiga não tem o campo, e é do Domínio: era o único perfil que
     // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
     string? SourceSystem = null,
-    bool UseDsnAuthentication = false)
+    bool UseDsnAuthentication = false,
+    AgentSyncScope? SyncScope = null)
 {
     internal string EffectiveSourceSystem =>
         string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
@@ -44,6 +45,9 @@ internal sealed record AgentConfig(
         if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
             || string.IsNullOrWhiteSpace(CertificatePfxBase64))
             throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
+        SyncScope?.Validate();
+        if (SyncScope is not null && (EffectiveSourceSystem != "dominio" || string.IsNullOrWhiteSpace(Dsn)))
+            throw new InvalidDataException("O recorte do piloto exige Domínio Local.");
         SourceSystemProfile profile;
         try { profile = SourceSystemProfiles.Get(EffectiveSourceSystem); }
         catch (ArgumentOutOfRangeException error)

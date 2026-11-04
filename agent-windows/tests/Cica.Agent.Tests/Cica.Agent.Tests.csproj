@@ -17,5 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="../../src/Cica.Agent.Contracts/Cica.Agent.Contracts.csproj" />
     <Compile Include="../../src/Cica.Agent.Service/LocalOdbcConnection.cs" Link="LocalOdbcConnection.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/AgentSyncScope.cs" Link="AgentSyncScope.cs" />
   </ItemGroup>
 </Project>

@@ -33,7 +33,7 @@ jobs:
           --results-directory agent-windows/artifacts/validation
       - name: Build MSI
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.1
+        run: ./agent-windows/build.ps1 -Version 1.0.2
       - name: Install, repair, restart, diagnose and uninstall
         shell: pwsh
         run: ./agent-windows/test-installer.ps1
