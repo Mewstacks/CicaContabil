@@ -7,6 +7,8 @@ Corrigidos o ignorar humano perdido na reaplicação e o relatório bloqueado
 pelo aviso de proteção. PostgreSQL: **134 testes/24 subtestes aprovados**, sem
 skips; navegador conferiu filtro/paginação/revisão/download. Não comprova
 Razão, títulos, escrituração/importação Domínio, serviço Windows ou aceite.
+Correções publicadas na main em `700b496`, SHA remoto conferido; CI 42079806454
+iniciado e distinto dos resultados locais acima. Sem deploy de aplicação.
 
 **Anexos CONTAD reconferidos — V-315, 05/11/2026:** PDF/OFX de setembro permitem
 testes reais da entrada bancária: 163 movimentos em cada, zero sobras por

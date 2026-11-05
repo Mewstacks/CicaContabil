@@ -2837,3 +2837,7 @@ DSN ou confirmação de backup.
 - Candidata de 809 arquivos/hashes conferidos, SHA-256 em V-316. Dados reais,
   banco/mídia, relatórios e capturas ficam em `.tmp/contad-bank-pilot-2026-11-05/`.
   Aba/servidor/contêiner próprios encerrados. Nenhum ERP, IA, deploy ou aceite.
+- Publicadas correções/testes/registros anônimos na main, commit 700b496,
+  15 arquivos revisados; SHA remoto conferido. CI 42079806454 iniciado, resultado
+  ainda separado da prova local. Dados/scripts/relatórios/captura privados fora
+  do envio. Registro documental de confirmação acompanha commit separado.

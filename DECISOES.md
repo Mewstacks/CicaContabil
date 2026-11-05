@@ -2652,3 +2652,8 @@ Publicação corretiva D-314 segue a autorização de Git D-313 para o código
 PC-19 e seus registros: enviar apenas os dois módulos corrigidos, regressões
 sintéticas e documentação anônima após a validação local. Preservar o material
 real e a evidência em `.tmp`; nenhum deploy ou dado financeiro acompanha o push.
+
+Execução Git D-314: correções/testes/registros publicados por push normal no
+commit `700b496fc6b3ae0e521a11ca21ed6b65efbe7246`, 15 arquivos, SHA remoto
+conferido. CI 42079806454 iniciado; validação local V-316 concluída, resultado
+remoto separado. Nenhum arquivo privado ou imagem de cliente incluído.

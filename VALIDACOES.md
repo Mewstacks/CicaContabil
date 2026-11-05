@@ -6196,3 +6196,10 @@ ZIP e workspace confrontados. Evidências ignoradas/restritas em
 `.tmp/contad-bank-pilot-2026-11-05/`: `run-03/results.json`, checks, relatórios,
 banco/mídia, captura/browser-results, JUnit/log PostgreSQL e `release-candidate/`.
 Gate contábil desligado. Q-28/Q-46/Q-47, D-73, deploy, PC/serviço e aceite abertos.
+
+Publicação corretiva executada sob D-313/D-314: commit
+`700b496fc6b3ae0e521a11ca21ed6b65efbe7246`, 15 arquivos revisados, push normal
+8aeeff5→700b496 e SHA remoto idêntico. [CI 42079806454](https://github.com/Mewstacks/CicaContabil/actions/runs/42079806454)
+iniciado para essa implementação; não é declarado aprovado por sucesso do push.
+Registro documental do envio segue separado, com as mesmas fontes executáveis.
+Dados, banco/mídia, scripts privados, sessões, relatórios e captura fora do Git.
