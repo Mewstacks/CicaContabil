@@ -2407,3 +2407,37 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Aplicados ui-ux-pro-max e Web Interface Guidelines à revisão; Watermelon não retornou referência para dashboard/tabela.
 - Navegador integrado indisponível e módulo Node Playwright ausente. Os scripts locais de QA sintético foram localizados, mas não executados.
 - Verificação estática não encontrou os anti-padrões pesquisados. A matriz renderizada por botão, papel, estado e viewport continua pendente e não foi declarada validada.
+
+## 15/10/2026 — Origem da espécie na importação Domínio (D-300, V-300)
+
+- Investigação pedida pelo proprietário a partir de telas do cliente. A rota real de importação é o
+  Importador por conjunto de dados, não a tela de Configuração de Importação NFS-e Padrão Nacional.
+- Leitura dos três conjuntos do cliente, mantidos fora do repositório: `codi_esp` em `efentradas` com
+  `origem_coluna = F` e `valor_fixo = 1` nos três. A espécie é fixa no conjunto, não vem do XML.
+- O caminho de importação observado corresponde à estrutura de pastas de `create_nfse_export`.
+- Espécie correta na base atual: 39; valor por cliente, não embutido em nada da CICA.
+- Nenhum arquivo foi alterado, nenhum conjunto gerado ou reimportado, nenhum código da CICA tocado e
+  nenhuma importação homologada. Q-39 continua aberta quanto ao retorno verificável.
+
+## 15/10/2026 — Conjuntos gerados com espécie 39 (D-300, V-300)
+
+- Pedido explícito do proprietário: fixar a espécie 39 nas notas de serviço importadas.
+- Gerados `TOMADOS SEM ITENS V6`, `TOMADOS COM ITENS V6` e `PRESTADOS V4` a partir dos vigentes, com
+  `codi_esp` de 1 para 39 e `nome_conjunto` sufixado `ESP39`. Originais preservados.
+- Conferência por reversão das edições e comparação byte a byte: idêntica ao original nos três.
+- Não importados no Domínio, nenhuma nota reimportada, nada homologado. Q-39 segue aberta.
+
+## 05/11/2026 — Carteira de backup: ativar, desativar e corte por fotografia (D-301, V-301)
+
+- Pedido explícito do proprietário: escritório de origem backup não tem agente atualizando, então
+  precisa dizer quem ainda atende; e o backup novo deve tirar quem saiu. Conflito resolvido por ele:
+  o backup prevalece sobre a desativação manual.
+- Nova página `app/configuracoes/carteira/`, vinculada na navegação de Configurações apenas quando
+  a fonte é `dominio_web_backup` com capacidade `companies`, sem conector Domínio e sem controle
+  central. Ativar e desativar por empresa, com auditoria `hub.company.activation_changed`.
+- `complete_backup` passou a desativar as empresas da fonte que não vieram na fotografia, somente em
+  lote completo e sem erro de linha. Desativa, não exclui.
+- 14 testes novos; 35 de regressão dirigida aprovados. Verificação real no navegador em QA isolado
+  encontrou e corrigiu dois defeitos que os testes não pegavam (quebra do rótulo do botão e `action`
+  perdido pelo estado ocupado do botão).
+- Sem migração, sem deploy, sem custo e sem tocar em produção. Nada homologado.

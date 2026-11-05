@@ -4952,3 +4952,81 @@ menu da área de trabalho, aguardar a troca de tema e remover a rota obsoleta. A
 deve habilitar módulos e construir estados próprios por jornada antes de considerar DTE, OFX,
 parcelamentos, NFS-e, guias ou triagem validados. Não houve chamada Serpro, dados reais, custo,
 produção, deploy ou homologação externa.
+
+## V-300 — Inspeção de leitura dos conjuntos do importador Domínio (15/10/2026)
+
+Foram lidos, sem alteração, três conjuntos de dados fornecidos pelo cliente e mantidos **fora do
+repositório** (`conjuntos Krek/conjunto de dados`): `NFSE sem itens no estoque e tag acumulador -
+SEM ARGUMENTOS V4`, `NFSE com itens no estoque e tag acumulador - SEM ARGUMENTOS V4` e
+`NFSE PRESTADOS - SEM ARGUMENTOS V2`. Nessa primeira leitura nada foi editado.
+
+Verificado nos três: a coluna `codi_esp` está com `origem_coluna = F` e `valor_fixo = 1`. No conjunto
+de tomados, a coluna pertence à tabela `efentradas`, identificação "Grava Nota". A busca por
+"espécie" não retorna ocorrência: o campo existe apenas sob o nome de coluna do banco. Os conjuntos
+são despejos das tabelas `dw_importador_importa_*` do próprio Domínio.
+
+Verificado também que os arquivos declaram `encoding="UTF-16LE"` mas contêm bytes de byte único, e
+que o marcador de 19 bytes logo após `<dados>` é idêntico nos três arquivos — ou seja, é constante do
+formato e não resumo do conteúdo. Isso descreve o formato observado; não autoriza editar o arquivo.
+
+Correspondência de pasta: o caminho observado na tela do cliente (`...\XML\NFS-e\Tomadas\29-\202609`)
+corresponde à estrutura gerada por `create_nfse_export` em `src/apps/hub/services.py`
+(`NFS-e/{Emitidas|Tomadas}/{código Domínio}-/{AAAAMM}/NFS-e-*.xml`). Isso indica que o pacote da CICA
+é a fonte dos arquivos importados por essa rota.
+
+Limites desta validação:
+
+- Não foi aberta nenhuma nota **efetivamente importada** para confirmar a espécie resultante. A nota
+  inspecionada nas capturas anteriores tinha `Origem: Lançamento Manual` e não comprova o importador.
+- Não foi verificado a que descrição ou modelo corresponde a espécie 1 na base do cliente, nem
+  confirmado que 39 é aceito por aquele conjunto.
+- Nada foi alterado no Domínio, nenhum conjunto foi gerado ou reimportado, nenhuma nota foi
+  reimportada e nenhuma importação foi homologada. Q-39 não é encerrada por esta leitura.
+- O código da CICA não foi alterado; o contrato de exportação permanece o de D-274.
+
+Em 15/10/2026, com a espécie 39 informada pelo responsável, foram geradas versões novas a partir dos
+conjuntos então vigentes (`TOMADOS SEM ITENS V5`, `TOMADOS COM ITENS V5`, `PRESTADOS V3`), sem tocar
+nos originais: `...V6` e `...V4`, com `nome_conjunto` sufixado `ESP39`. Em cada arquivo foram
+alterados exatamente dois pontos: o `valor_fixo` da coluna `codi_esp` (1 para 39) e o nome exibido.
+
+A conferência reverteu as duas edições e comparou byte a byte com o original: idêntico nos três. A
+declaração XML, o marcador de 19 bytes, a contagem de CRLF e as ocorrências de `acum` ficaram
+inalteradas; nenhum outro `valor_fixo>1<` foi tocado.
+
+Observação não resolvida: `PRESTADOS` e `TOMADOS SEM ITENS` compartilham `codi_conjunto = 65` nos
+arquivos do cliente. Isso é anterior a esta geração. Não foi verificado se a importação de um
+substitui o outro.
+
+Limite desta geração: os arquivos foram apenas escritos em disco. Não foram importados no Domínio,
+nenhuma nota foi reimportada, a espécie 39 não foi observada em nota alguma e nada foi homologado.
+
+## V-301 — Carteira de origem backup com ativação manual e corte por fotografia (05/11/2026)
+
+Escopo de D-301. Mudança local, sem migração, sem deploy e sem tocar em produção.
+
+- **Testes:** `tests/test_backup_portfolio.py`, 14 aprovados. Cobrem listagem com código do
+  Domínio, filtro de situação, desativar e reativar com evento de auditoria, filtros preservados no
+  redirecionamento, recusa de membro (403) e de ação inválida (400), 404 quando um conector Domínio
+  passa a mandar no cadastro, e o vínculo na tela de Configurações só no escritório de backup. Do
+  lado do corte: backup limpo desativa o ausente, o ausente continua existindo, lote com erro de
+  linha não corta e lote sem a capacidade `companies` não corta.
+- **Regressão dirigida:** `test_self_service_backup.py`, `test_company_registry_django.py` e
+  `test_company_profile.py` — 35 aprovados e 2 subtestes. `manage.py check`, `makemigrations
+  --check` e `git diff --check` limpos; Ruff limpo nos arquivos alterados.
+- **Verificação real no navegador** (servidor QA isolado na porta 8011, banco descartável em
+  `.tmp/ui-review`, escritório sintético `qa-backup` com seis empresas): a página listou as seis,
+  o filtro `situacao=inativa` devolveu só as duas inativas e o clique real em Desativar gravou,
+  avisou "saiu da carteira" e moveu o contador de 5 para 4 de 6 ativas. Desktop 1440 e celular 375:
+  sem rolagem lateral, botão de 44 px e nenhum erro novo de console.
+- **Dois defeitos encontrados e corrigidos nessa verificação, não pelos testes:** o rótulo do botão
+  quebrava letra a letra, porque a célula de ação herda `overflow-wrap:anywhere` da tabela — foi
+  preciso um recorte de CSS próprio (`backup-portfolio-table`) e o `?v=` de `operations.css` subiu
+  para `cica-62`. E o `action` viajava no próprio botão de envio: `hub.js` desabilita esse botão ao
+  submeter, e botão desabilitado não envia valor, então com JavaScript ligado a ação chegava vazia
+  e a resposta era 400. Passou para campo oculto, como já fazem os modelos de atividade, com teste
+  de regressão que impede a volta.
+
+Limites: a verificação usou dados sintéticos em banco descartável. O corte por ausência não foi
+exercitado contra um `.dom` real nem contra a carteira da Bianchi; o que existe é o teste do
+`complete_backup` e o caminho do agente Windows lido no código (`BackupProcessor` já traz
+`stat_emp` como coluna). Nada foi publicado e nenhuma empresa real foi alterada.

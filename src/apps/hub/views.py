@@ -14412,9 +14412,131 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             "require_dominio_code": OfficeProfile.objects.filter(
                 organization=office, require_dominio_code=True
             ).exists(),
+            "backup_portfolio_available": _backup_managed_source(office) is not None,
         }
     )
     return render(request, "hub/settings.html", context)
+
+
+def _backup_managed_source(office: Organization) -> DataSource | None:
+    """The office whose portfolio is a manual backup, and nothing else writes it (D-301).
+
+    A live Domínio connector or the central control plane keeps rewriting the registry on
+    its own schedule, so a manual switch there would promise control the next sync takes
+    back. Those offices keep correcting the origin; only the backup office gets the page.
+    """
+
+    if (
+        IntelligenceConnector.objects.filter(organization=office)
+        .exclude(status="not_configured")
+        .exists()
+    ):
+        return None
+    if ControlPlaneBinding.objects.filter(organization=office).exists():
+        return None
+    source = (
+        DataSource.objects.filter(organization=office, kind=DataSource.Kind.DOMINIO_WEB_BACKUP)
+        .exclude(status=DataSource.Status.DISABLED)
+        .first()
+    )
+    if source is None or "companies" not in set(source.capabilities or []):
+        return None
+    return source
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def backup_portfolio(request: HttpRequest) -> HttpResponse:
+    """Activate or deactivate the companies a backup-sourced office actually serves.
+
+    Between two backups nothing updates this registry, so the office needs to say that a
+    client left without waiting for the next snapshot. Deactivation is not deletion: the
+    company leaves the operating portfolio and its fiscal history stays on the record.
+    """
+
+    context = workspace_context(request)
+    office = context["office"]
+    assert isinstance(office, Organization)
+    source = _backup_managed_source(office)
+    if source is None:
+        raise Http404
+    can_manage = _can_manage_companies(context) and not office.is_demo
+    scope = _company_history_scope(context).filter(data_source=source)
+    query = str(request.POST.get("q") if request.method == "POST" else request.GET.get("q", ""))
+    query = query.strip()[:100]
+    situation = str(
+        request.POST.get("situacao")
+        if request.method == "POST"
+        else request.GET.get("situacao", "")
+    )
+    if situation not in {"", "ativa", "inativa"}:
+        situation = ""
+    if request.method == "POST":
+        if not can_manage:
+            return refuse(request, "Esta sessão é somente leitura.")
+        action = request.POST.get("action", "")
+        if action not in {"activate", "deactivate"}:
+            return HttpResponseBadRequest("Ação de carteira inválida.")
+        try:
+            company_id = uuid.UUID(str(request.POST.get("company_id", "")))
+        except ValueError:
+            return HttpResponseBadRequest("Empresa inválida.")
+        company = scope.filter(id=company_id).first()
+        if company is None:
+            raise Http404
+        desired = action == "activate"
+        if company.active != desired:
+            company.active = desired
+            company.save(update_fields=["active", "updated_at"])
+            record_event(
+                action="hub.company.activation_changed",
+                actor=request.user,
+                organization=office,
+                target=company,
+                request=request,
+                metadata={"active": desired, "origin": "backup_portfolio"},
+            )
+        messages.success(
+            request,
+            f"{company.name} voltou para a carteira."
+            if desired
+            else f"{company.name} saiu da carteira.",
+        )
+        params = {name: value for name, value in (("q", query), ("situacao", situation)) if value}
+        target = reverse("hub:backup-portfolio")
+        return redirect(f"{target}?{urlencode(params)}" if params else target)
+    listing = scope.order_by("name")
+    if query:
+        listing = listing.filter(
+            Q(name__icontains=query)
+            | Q(dominio_code__icontains=query)
+            | Q(cnpj_masked__icontains=query)
+        )
+    if situation == "ativa":
+        listing = listing.filter(active=True)
+    elif situation == "inativa":
+        listing = listing.filter(active=False)
+    paginator = Paginator(listing, COMPANIES_PER_PAGE)
+    page = paginator.get_page(request.GET.get("pagina"))
+    filters = {"q": query, "situacao": situation}
+    context.update(
+        {
+            "page_title": "Carteira do backup",
+            "backup_source": source,
+            "companies": page.object_list,
+            "page_obj": page,
+            "paginator": paginator,
+            "filters": filters,
+            "filters_applied": any(filters.values()),
+            "query_without_page": urlencode(
+                {key: value for key, value in filters.items() if value}
+            ),
+            "can_manage_backup_portfolio": can_manage,
+            "active_count": scope.filter(active=True).count(),
+            "portfolio_total": scope.count(),
+        }
+    )
+    return render(request, "hub/backup_portfolio.html", context)
 
 
 @office_required

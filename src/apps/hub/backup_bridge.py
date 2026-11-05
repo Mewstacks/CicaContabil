@@ -261,11 +261,33 @@ def apply_backup_page(
     return {"created": created, "updated": updated, "ignored": ignored}
 
 
+def _deactivate_absent_companies(batch: ImportBatch, capabilities: set[str]) -> int:
+    """D-301: a finished backup is the new baseline, so what it omits stops being served.
+
+    Only a clean, complete snapshot may cut: a page that failed row validation, or a run
+    that never reached this function, would otherwise empty the portfolio. Absence
+    deactivates and never deletes — the fiscal history stays reachable from the record.
+    """
+
+    if batch.kind != ImportBatch.Kind.DOMINIO_BACKUP:
+        return 0
+    if "companies" not in capabilities or batch.errors or batch.source_snapshot_at is None:
+        return 0
+    absent = ClientCompany.objects.filter(
+        organization=batch.organization,
+        data_source=batch.data_source,
+        active=True,
+        external_key__gt="",
+    ).exclude(source_updated_at=batch.source_snapshot_at)
+    return int(absent.update(active=False, updated_at=timezone.now()))
+
+
 @transaction.atomic
 def complete_backup(*, batch: ImportBatch, agent: EdgeAgent, request: object = None) -> ImportBatch:
     batch = ImportBatch.objects.select_for_update().select_related("data_source").get(id=batch.id)
     capabilities = set(batch.data_source.capabilities)
     capabilities.update(batch.mapping.get("received_capabilities", []))
+    deactivated_companies = _deactivate_absent_companies(batch, capabilities)
     batch.status = ImportBatch.Status.COMPLETED
     batch.completed_at = timezone.now()
     batch.backup_key = ""
@@ -290,7 +312,11 @@ def complete_backup(*, batch: ImportBatch, agent: EdgeAgent, request: object = N
         organization=batch.organization,
         target=batch,
         request=request,
-        metadata={"agent_id": str(agent.id), "errors": len(batch.errors)},
+        metadata={
+            "agent_id": str(agent.id),
+            "errors": len(batch.errors),
+            "deactivated_companies": deactivated_companies,
+        },
     )
     return batch
 

@@ -1874,3 +1874,61 @@ formulários de franquia de teste e disponibilidade do Copiloto editam o mesmo a
 renderizados na mesma página com o mesmo `id` HTML. Cada formulário passa a ter seu próprio
 prefixo de identificador, mantendo os nomes de campos e os contratos `POST` já utilizados. Assim,
 cada rótulo aponta para o controle do seu próprio formulário sem alterar a ação administrativa.
+
+## D-300 — A espécie da NFS-e importada pertence ao conjunto de dados do Domínio (15/10/2026)
+
+Origem: investigação pedida pelo proprietário a partir de telas do cliente, para entender de onde vem
+a espécie das notas de serviço importadas e por que ela não podia ser mudada pela CICA.
+
+- A rota real de importação em uso é o **Importador por conjunto de dados**
+  (`Utilitários > Importação > Importador > Importar`), com o conjunto
+  `PORTAL NACIONAL TOMADOS - SEM ITENS - SEM ARGUMENTOS V4 (NFS-e Receita Tomados - SI)`, tipo XML.
+  Não é a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. O campo Espécie do
+  quadro "Dados NFS-e" daquela tela não governa esta rota e não deve ser usado como explicação.
+- A espécie é gravada pelo próprio conjunto, na coluna `codi_esp` da tabela `efentradas`
+  (identificação "Grava Nota"), com `origem_coluna = F` e `valor_fixo = 1`. Valor fixo: não vem do
+  XML, não vem de argumento e não vem de tela.
+- O padrão nacional da NFS-e não possui campo de espécie. A CICA continua escrevendo **apenas**
+  `infNFSe/valores/acum` no XML derivado (D-274) e **não** passa a escrever espécie, modelo ou série.
+  Nenhum campo novo entra no contrato de exportação por causa desta investigação.
+- O valor correto informado pelo responsável para a base atual é **39**. Esse número é **por cliente
+  e por base**: não pode ser embutido como padrão em código, leiaute, documentação ou conjunto gerado
+  pela CICA, nem presumido para outro escritório.
+- Alterar a espécie é mudança no conjunto de dados, que é artefato do Domínio. O caminho suportado é
+  chamado ao suporte, que cria e versiona esses conjuntos; a edição local do arquivo exportado é
+  decisão do escritório, assumida por ele, e não vira procedimento da CICA. A CICA não gera, não
+  versiona e não distribui conjunto de dados.
+- Qualquer conjunto novo precisa continuar lendo `infNFSe/valores/acum`. Perder essa leitura quebra a
+  chegada do acumulador classificado ao Domínio.
+
+## D-301 — Carteira de origem backup: ativação manual e corte pelo backup novo (05/11/2026)
+
+Origem: pedido explícito do proprietário nesta conversa, com a escolha de conflito respondida por
+ele ("backup prevalece"). Escritórios cuja carteira vem de backup do Domínio (`DataSource` de tipo
+`dominio_web_backup` com capacidade `companies`) não têm agente sincronizando sozinho, então o
+cadastro fica parado entre uma importação e outra. Até aqui não existia nenhuma ação de ativar ou
+desativar empresa na interface: `ClientCompany.active` só era escrito pela importação e pelo
+`full_snapshot` do agente, que nunca roda com `True` nos produtores atuais.
+
+Fica autorizado:
+
+- Uma página própria de Configurações, listando código do Domínio, nome, CNPJ e situação de cada
+  empresa da carteira, com ativar e desativar por empresa. Ela aparece somente para escritório de
+  origem backup, sem conector Domínio ativo e sem vínculo de controle central — nos demais a origem
+  continua mandando e a página não é oferecida.
+- Mutação pela mesma fronteira das demais alterações de cadastro (`_can_manage_companies`): dono
+  ou administrador do escritório, ou sessão de suporte autorizada a alterar e com a carteira
+  inteira; nunca na demonstração, que é compartilhada. Cada empresa alterada gera evento de
+  auditoria. Quem enxerga só parte da carteira não vê nem altera empresa fora dela.
+- No encerramento de um backup novo sem erro de linha, as empresas daquela fonte que não vieram na
+  fotografia passam a inativas. É desativação, não exclusão: histórico de NFS-e, DTE, guias e
+  acumuladores continua acessível pela ficha, conforme D-207 e D-209.
+
+Limites: o backup prevalece. A desativação manual vale até a próxima importação, que reescreve
+`active` a partir de `stat_emp` — é a escolha do proprietário e precisa estar dita na tela, porque
+uma empresa ainda marcada `A` no Domínio volta a ativa sozinha. O corte por ausência não roda em
+lote com erro de linha nem em lote interrompido, para que uma importação parcial não esvazie a
+carteira. Esta decisão não cria exclusão de empresa, não altera o caminho do agente
+(`WHERE stat_emp = 'A'`, sem desativar ausências), não mexe no contrato `companies.v1` da
+Rentabilidade, não autoriza custo, deploy, envio de mensagem ou acesso externo, e não declara
+homologação de nada.

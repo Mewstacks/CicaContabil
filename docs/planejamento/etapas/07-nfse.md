@@ -177,3 +177,18 @@ Em 29/09/2026, a release 21 colocou em produção a fila global de uma empresa p
 - [ ] Tratar as 24.386 notas sem correspondência única por regra adicional homologada ou revisão
   contábil; a rotina não pode inventar acumulador.
 - [ ] Homologar a importação e o retorno no Domínio conforme Q-39.
+
+### V-300 — Origem da espécie na importação Domínio (D-300)
+
+- [x] Identificar a rota real: Importador por conjunto de dados, não a tela de Configuração de
+  Importação NFS-e Padrão Nacional.
+- [x] Localizar a espécie no conjunto: coluna `codi_esp` em `efentradas` ("Grava Nota"), com
+  `origem_coluna = F` e `valor_fixo = 1` nos três conjuntos lidos.
+- [x] Confirmar que a estrutura de pastas importada corresponde à gerada por `create_nfse_export`.
+- [x] Registrar que a espécie correta varia por cliente (39 na base atual) e não entra em código,
+  leiaute ou padrão da CICA.
+- [ ] Abrir uma nota efetivamente importada e confirmar a espécie resultante; a nota conferida até
+  aqui era `Lançamento Manual` e não comprova o importador.
+- [ ] Obter do Domínio, por chamado, conjunto com a espécie desejada, preservando a leitura de
+  `infNFSe/valores/acum`; testar em uma empresa e uma competência antes de ampliar.
+- [ ] Homologar a importação e o retorno conforme Q-39; esta leitura não encerra a dúvida.

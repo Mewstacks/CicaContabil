@@ -2,6 +2,8 @@
 
 > **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.
 
+> **Atualização 15/10/2026 — D-300:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
+
 > únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
 > D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
 > efetivo Integra: Q-01–06/D-79 não devem ser reabertas como escolhas nunca respondidas.

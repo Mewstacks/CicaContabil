@@ -52,3 +52,21 @@ A prova operacional ainda exige o piloto da etapa 12: parear o agente, usar um D
 ### Evidência Fedrizzi V-198 — leitura direta allowlisted
 
 25/09/2026: o DSN autorizado `contabil` respondeu à consulta de empresas com 576 registros e à consulta de guias com 3.335 registros. A sincronização local espelhou empresas e 10.000 registros normalizados. O contrato de guia não forneceu vencimento, logo nenhum prazo de guia foi inferido. A operação foi de leitura; não houve escrita no Domínio, emissão, transmissão ou chamada cobrada. A prova do agente pareado, interrupção e retomada continua na etapa 12.
+
+### Origem backup: carteira editável e corte por fotografia (D-301, V-301)
+
+05/11/2026. O escritório que vive de backup manual não tem agente atualizando o cadastro entre uma
+importação e outra, e até aqui `ClientCompany.active` só era escrito pela importação. Agora
+`app/configuracoes/carteira/` lista código do Domínio, nome, CNPJ e situação e permite ativar ou
+desativar empresa por empresa; a página só aparece onde a fonte é `dominio_web_backup` com
+capacidade `companies`, sem conector Domínio e sem controle central.
+
+O encerramento de um backup completo e sem erro de linha desativa as empresas daquela fonte que não
+vieram na fotografia — desativa, nunca exclui. O backup prevalece: `BackupProcessor` já lê
+`stat_emp` como coluna, sem filtro, e `apply_backup_page` reescreve `active` a cada importação, de
+modo que a desativação manual vale até a próxima. O caminho do agente ao vivo não mudou: continua
+`WHERE stat_emp = 'A'` e continua sem desativar ausências, porque `full_snapshot` é `False` nos
+produtores atuais.
+
+Limite: nada foi exercitado contra um `.dom` real nem contra a carteira da Bianchi. A prova
+operacional dessa rotina continua dependendo do piloto da etapa 12.

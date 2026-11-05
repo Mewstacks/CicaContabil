@@ -317,6 +317,7 @@ urlpatterns = [
     ),
     path("app/revisoes/<uuid:case_id>/resolver/", views.resolve_review, name="resolve-review"),
     path("app/configuracoes/", views.settings_view, name="settings"),
+    path("app/configuracoes/carteira/", views.backup_portfolio, name="backup-portfolio"),
     path("app/configuracao/mapa-dre/", views.dre_mapping_editor, name="dre-mapping-editor"),
     path("app/configuracao/", views.setup_center, name="setup"),
     path(
