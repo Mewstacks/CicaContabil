@@ -2594,3 +2594,13 @@ Publicação no GitHub não autoriza deploy Fly/Cobalchini, instalação no PC,
 transmissão financeira, IA paga, escrita/importação ERP ou liberação comercial.
 Q-28/Q-46/Q-47, D-73, treinamento e aceite continuam abertos; distinguir código
 publicado de aplicação publicada, homologada e liberada.
+
+Execução D-313: commit `4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d`, 84 arquivos,
+enviado por push normal para origin/main e confirmado por `ls-remote` com o
+mesmo SHA. CI iniciado no run 42067809017 para esse commit. Resultado é
+publicação de código no GitHub; nenhum deploy de aplicação ou operação ERP.
+
+CI 42067809017 concluído com sucesso para 4fede1e: agente, pacote Windows e
+verificação Python/PostgreSQL/Docker aprovados. Registrar o resultado completo
+em V-314 e enviar os registros documentais em commit separado, sem alterar
+fontes executáveis ou alegar homologação/implantação por esse sucesso.

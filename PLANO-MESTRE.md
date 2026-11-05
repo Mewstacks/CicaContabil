@@ -1,5 +1,14 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Publicação do código D-313/V-314 — 05/11/2026:** responsável autorizou envio
+à main. Commit `4fede1e` publicado e SHA remoto conferido; CI
+[42067809017](https://github.com/Mewstacks/CicaContabil/actions/runs/42067809017)
+aprovado para essa versão: PostgreSQL 1.633 testes/151 subtestes, dois skips;
+agente, pacote Windows e três builds Docker aprovados. Código da entrega no GitHub; aplicação hospedada,
+instalação/pareamento reais, fontes/regras Q-28/Q-46/Q-47, D-73, treinamento e
+aceite continuam pendentes. Os estados anteriores “sem publicação” referem-se
+às respectivas rodadas locais, anteriores a esta autorização.
+
 **Continuidade D-312/V-313 — 05/11/2026:** prévia offline de alocações explícitas
 banco↔baixas e CLI privada implementadas, com capacidade dos dois lados,
 parciais/agrupamentos/componentes/estornos e diferenças de data para revisão.

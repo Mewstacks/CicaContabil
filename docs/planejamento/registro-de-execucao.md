@@ -2780,3 +2780,26 @@ DSN ou confirmação de backup.
   liberação continuam pendentes dos gates PC-19.
 - Conferência final: 809 hashes ZIP/workspace iguais, 7.199 arquivos iniciais
   presentes, base b499cd1 preservada e evidências privadas 0600; whitespace aprovado.
+
+## 05/11/2026 — Publicação na main D-313/V-314
+
+- Responsável autorizou expressamente “pode publicar na main”; D-313 registrada
+  antes do commit/push. Destino público Mewstacks/CicaContabil, main, mesma base
+  b499cd1. Sem divergência, force, reset, limpeza ou outras branches/worktrees.
+- Inventário revisado de 84 arquivos, sem dados/relatórios/configuração real ou
+  artefatos binários; nenhum padrão de segredo encontrado na verificação limitada.
+- Ruff global/whitespace aprovados; 809 hashes de fonte iguais à candidata
+  V-313, 40 arquivos não Markdown do agente iguais ao commit Windows 1bf8549.
+  Não repetida regressão completa local nem testes Windows nesta rodada.
+- Criado e enviado commit 4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d; push normal
+  b499cd1→4fede1e confirmado por ls-remote. CI 42067809017 iniciado para esse SHA.
+- CI 42067809017 terminou aprovado: SQLite 1.617 testes/151 subtestes e 18
+  skips; PostgreSQL 1.633/151 e dois skips Playwright/OCR. .NET Linux 43
+  aprovados/um skip Windows; build/manifesto MSI e três builds Docker aprovados.
+  Sem novo teste de instalação Windows, deploy ou imagens publicadas.
+- Confronto por git archive: 809 hashes do commit iguais à candidata V-313.
+  Registros do envio/CI preparados em commit documental separado, sem alterar
+  a implementação. Logs/resultados ignorados no diretório privado de publicação.
+- Evidências ignoradas em `.tmp/contad-main-publication-2026-11-05/`.
+  Código publicado no GitHub; aplicação hospedada, fontes reais, importação,
+  PC/serviço, D-73, treinamento, homologação e liberação continuam pendentes.

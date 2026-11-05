@@ -305,3 +305,12 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   privada; baixas, vínculo bancário e semântica não homologados por essa pesquisa.
 - [ ] Fechar recorte real, fontes/regras/importação, publicação e serviço real,
   D-73/recuperação operacional, treinamento e aceite do proprietário CONTAD.
+
+## Publicação do código D-313/V-314 — 05/11/2026
+
+- [x] Registrar autorização expressa e publicar 84 arquivos revisados na main,
+  commit 4fede1e; SHA remoto conferido, arquivos privados preservados fora do Git.
+- [x] Conferir sucesso do CI 42067809017 para o commit exato: Python/PostgreSQL,
+  agente, pacote Windows e três builds Docker; logs/skips/limites em V-314.
+- [ ] Publicar aplicação hospedada e comprovar percurso real, recuperação,
+  Q-28/Q-46/Q-47, D-73, treinamento e aceite. GitHub não equivale à implantação.

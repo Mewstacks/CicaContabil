@@ -208,3 +208,12 @@ está disponível; nenhuma configuração hospedada ou instalação do PC foi al
   comprovar recorte contábil fechado; alternativa não foi homologada.
 - [ ] Publicação, upgrade/pareamento, ODBC LocalSystem e envio real continuam
   dependentes dos gates documentados. MSI/DSN permanecem intactos.
+
+## Publicação do código D-313/V-314 — 05/11/2026
+
+- [x] Publicar fontes/configuração de exemplo/testes do agente na main, commit
+  4fede1e, com 40 arquivos não Markdown iguais ao commit Windows validado.
+- [x] CI 42067809017 aprovado: builds serviço/configurador/ponte, 43 testes
+  .NET Linux/um skip Windows e build/manifesto MSI; sem instalação nova.
+- [ ] Publicar backend hospedado e atualizar/parear o PC com acesso/autorização
+  próprios; envio ao GitHub não demonstra ODBC LocalSystem ou sincronização real.

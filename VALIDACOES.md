@@ -6068,3 +6068,33 @@ automático nesse evento. Resultado remoto será registrado após envio/verifica
 Evidências de preflight em `.tmp/contad-main-publication-2026-11-05/`, ignoradas.
 Aplicação hospedada, PC real, transmissão, importação e homologação permanecem
 fora desta autorização de publicação do código; gates PC-19 não encerrados.
+
+Publicação executada: commit `4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d`, 84
+arquivos, push normal b499cd1→4fede1e. `ls-remote origin refs/heads/main`
+confirmou o mesmo SHA; árvore de trabalho limpa imediatamente após o envio.
+[CI 42067809017](https://github.com/Mewstacks/CicaContabil/actions/runs/42067809017)
+iniciado para esse SHA. Nada de `.tmp`, PDFs, MSI, dados ou configuração real
+foi incluído. Sem deploy, migração hospedada, transmissão ou escrita ERP.
+
+CI remoto **42067809017 concluído com sucesso** para o commit 4fede1e:
+
+- Python 3.12/Ubuntu 24.04, SQLite: **1.617 testes e 151 subtestes aprovados**,
+  18 skips, 175,94 s. Dezesseis skips exigem PostgreSQL; os outros dois são
+  Playwright Python opcional e OCR local português indisponível no runner.
+- PostgreSQL 17 do serviço isolado CI: **1.633 testes e 151 subtestes aprovados**,
+  dois skips (os mesmos Playwright/OCR), 225,01 s. Concorrência não foi omitida.
+  Não somar as duas baterias como testes únicos ou extrapolar os tempos a D-73.
+- .NET/Linux: serviço, configurador e ponte ODBC compilados; **43 testes
+  aprovados e um skip Windows**, zero falhas. Job Windows construiu MSI e
+  conferiu manifesto pelo workflow existente (versão de build CI 1.0.0).
+  Não executa instalação real nem substitui o MSI 1.0.3/CI Windows V-311.
+- Ruff, Django check, ausência de migrações pendentes e builds Docker do
+  backend, multimodal e trainer aprovados. Imagens construídas no runner,
+  sem publicação em registry, deploy ou execução de treinamento.
+
+Conferência adicional por `git archive` do commit publicado: os mesmos **809
+arquivos de fonte** têm hashes idênticos à candidata V-313. Logs e JSON de jobs
+preservados no diretório privado de publicação. Registros Markdown do resultado
+seguem em commit separado; o CI acima identifica o commit de implementação.
+Sem Playwright novo ou OCR português executado no runner; evidências anteriores
+conservam seus limites. Aplicação/ERP/PC/CONTAD continuam sem nova homologação.

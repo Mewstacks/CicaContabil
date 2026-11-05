@@ -263,3 +263,9 @@ situação parcial retornaram sem dados, conforme V-313; isso não prova ausênc
 geral. Desenvolvimento ainda obtém fonte com chaves/baixas e recorte fechado;
 contadora revisa componentes/regras. Nenhuma nova pergunta ou autorização de
 escrita, transmissão ou homologação foi inferida dessa pesquisa somente leitura.
+
+Publicação D-313/V-314: responsável autorizou enviar código à main, realizado
+no commit 4fede1e com SHA remoto conferido. Isso resolve a autorização de
+commit/push dessa entrega; não resolve acesso/deploy hospedado, Q-28/Q-46/Q-47,
+IA Q-08/Q-09, corpus real ou aceite. Não perguntar novamente essa autorização
+de Git para o código e seus registros; não ampliá-la para dados/ERP/implantação.

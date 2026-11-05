@@ -1,5 +1,11 @@
 # Pendências para concluir o projeto CICA
 
+**Publicação do código D-313/V-314 — 05/11/2026:** commit 4fede1e enviado à
+main por autorização expressa e SHA remoto conferido; CI 42067809017 aprovado.
+O código está no GitHub. Operador ainda publica aplicação hospedada quando
+houver acesso/autorização; desenvolvimento/contadora fecham fontes/regras e
+Q-47; percurso real, recuperação, treinamento e aceite CONTAD continuam abertos.
+
 **Continuidade D-312/V-313 — 05/11/2026:** prévia offline de alocação e CLI
 privada prontas, 85 testes focados aprovados, nova candidata local preservada.
 Razão emitido/salvo no Windows; transferência/extração/revisão pendentes.

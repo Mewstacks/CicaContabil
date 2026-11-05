@@ -1,5 +1,17 @@
 # Verificação do conciliador CONTAD no CICA
 
+## Código publicado — D-313/V-314 (05/11/2026)
+
+Autorização expressa para main; commit [4fede1e](https://github.com/Mewstacks/CicaContabil/commit/4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d)
+enviado e SHA remoto conferido. 84 arquivos de código/testes/documentação,
+sem relatórios/dados/segredos/artefatos privados. Ruff/whitespace aprovados;
+809 hashes do commit iguais à candidata V-313. CI 42067809017 aprovado:
+PostgreSQL 1.633 testes/151 subtestes, dois skips Playwright/OCR; SQLite 1.617
+testes/151 subtestes, 18 skips. .NET Linux 43 aprovados/um skip Windows,
+build/manifesto MSI e três builds Docker aprovados. Sem novo teste de instalação.
+**Código publicado no GitHub; aplicação hospedada, homologação e liberação
+CONTAD pendentes.** Nenhum gate contábil, transmissão ou instalação habilitados.
+
 ## Continuidade — D-312/V-313 (05/11/2026)
 
 Prévia offline explícita banco↔baixas e CLI privada implementadas/testadas:

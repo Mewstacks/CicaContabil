@@ -1,8 +1,18 @@
 # Release candidata CONTAD: revisão e operação
 
-D-311/V-312 e D-312/V-313, PC-19, etapas 03/09/12. Este roteiro complementa os gates e
-checklists existentes. **Preparação local; não publicado, homologado ou liberado.**
+D-311/V-312, D-312/V-313 e D-313/V-314, PC-19, etapas 03/09/12. Este roteiro complementa os gates e
+checklists existentes. **Código publicado no GitHub; aplicação ainda não
+implantada, homologada ou liberada.**
 Prazo contratual 09/11/2026 preservado. A suíte inteira não integra este recorte.
+
+Autorização expressa de publicação na main executada no commit
+[4fede1e](https://github.com/Mewstacks/CicaContabil/commit/4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d),
+SHA remoto conferido. CI 42067809017 aprovado para esse SHA: PostgreSQL 1.633
+testes/151 subtestes, dois skips; agente, build Windows e três builds Docker
+aprovados, com ambientes/limites em V-314. Os hashes de código
+da candidata local abaixo permanecem iguais; registros Markdown não integram
+o ZIP de fonte. Nenhuma imagem hospedada, migração remota ou configuração do PC
+foi alterada pelo envio ao GitHub.
 
 ## Artefatos
 

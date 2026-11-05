@@ -212,3 +212,12 @@ contrato contábil, envio, importação ou aceite foi presumido por essa mudanç
 
 [Contratos, CLI e limites](../../conciliacao-fontes-titulos.md). Nova candidata
 local inclui a CLI; nenhum gate contábil foi habilitado.
+
+## Publicação do código D-313/V-314 — 05/11/2026
+
+- [x] Publicar na main as fontes/testes/contratos preparados, commit 4fede1e,
+  com hashes de código iguais à candidata V-313 e CI aprovado para esse SHA.
+- [x] PostgreSQL remoto: 1.633 testes/151 subtestes aprovados, dois skips
+  Playwright/OCR; testes de concorrência executados. Não equivale a dado real.
+- [ ] Concluir integração real de títulos, fontes/regras/layout revisados,
+  importação conferida e homologação. Gate contábil permanece desligado.
