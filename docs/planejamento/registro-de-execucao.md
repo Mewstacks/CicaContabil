@@ -2867,3 +2867,11 @@ DSN ou confirmação de backup.
 - Aba/servidor próprios encerrados, viewport restaurado. Publicação corretiva
   de fonte/testes/registros segue a autorização D-313; nenhum deploy, ERP,
   pareamento, transmissão, IA paga, treinamento ou aceite nesta execução.
+- Publicação concluída: `ed01dd51293be441ef7011763799ae557608cd5f`, 12 arquivos, push normal
+  e SHA remoto conferido. Confronto por git archive confirmou os 809 hashes
+  de fonte iguais ao ZIP. CI 42082634894 em execução; agente Linux já aprovado.
+  Resultado remoto novo ainda não é tratado como aprovado.
+- RDP existente observado desconectado por outra conexão (0x5); sem reconectar
+  ou interromper outro trabalho. AnyDesk CONTAD ainda não foi disponibilizado.
+- Captura normal de viewport `retorno-fila-confirmado.png` salva/inspecionada;
+  servidor/aba exclusivos de captura também encerrados.

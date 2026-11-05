@@ -2682,3 +2682,14 @@ sem modificar a evidência real V-316. Acompanhar o CI da implementação 700b49
 separadamente dos novos testes e preparar nova candidata quando a correção
 estiver validada. Publicação de fonte/testes/registros anônimos na main segue
 D-313; sem deploy, homologação ou aceite presumidos.
+
+Execução Git D-315: correção/testes/registros enviados por push normal à main
+no commit `ed01dd51293be441ef7011763799ae557608cd5f`, 12 arquivos revisados. SHA remoto
+idêntico; 809 hashes de fonte do commit iguais ao ZIP da candidata. CI
+42082634894 iniciado e ainda em execução na conferência final; não declarar
+aprovado por sucesso do push. Registros de confirmação seguem separados.
+
+A sessão RDP já existente foi consultada somente para conferir disponibilidade:
+aviso 0x5 informa desconexão porque outra conexão assumiu o PC. Não reconectar
+ou interromper essa conexão por inferência; nenhuma janela ERP ou novo relatório
+foi acessado nesta observação. AnyDesk da CONTAD não foi disponibilizado.

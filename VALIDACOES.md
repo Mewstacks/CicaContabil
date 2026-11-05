@@ -6247,7 +6247,7 @@ skips são Playwright Python opcional/OCR português indisponível no runner;
 os outros 18 em SQLite exigem PostgreSQL. Agente Linux 43 aprovados/um skip
 Windows, build/manifesto MSI e três builds Docker aprovados, sem implantação.
 Esse CI não contém a alteração de retorno D-315 e não é sua regressão remota.
-O commit documental 162d73c ainda estava em execução na última consulta.
+O CI 42080045517 do commit documental 162d73c também terminou aprovado.
 
 Nova candidata de **809 arquivos**, **2.023.623 bytes**, SHA-256
 `bc293cc85bbf3191d6f0d5e0c8f27171c72508c4b47d76ab2572c34b9f8d4542`;
@@ -6256,3 +6256,17 @@ em `.tmp/contad-navigation-2026-11-05/`: JUnit, browser-checks/results, capturas
 banco/mídia sintéticos, log CI 700b496 e release-candidate. Pastas/arquivos
 privados; a cópia real V-316 não foi alterada. Q-28/Q-46/Q-47, IA Q-08/Q-09,
 implantação, serviço real, D-73, treinamento e aceite permanecem abertos.
+
+Publicação D-315 concluída: `ed01dd51293be441ef7011763799ae557608cd5f` na main, push normal
+162d73c→ed01dd5 e SHA remoto conferido. Confronto por `git archive`: 809 hashes
+de fonte do commit iguais à candidata acima. [CI 42082634894](https://github.com/Mewstacks/CicaContabil/actions/runs/42082634894)
+em execução na última consulta: agente Linux aprovado, pytest/build Windows
+ainda em andamento; sem atribuir aprovação remota a esta correção. Confirmação
+documental em commit separado; fontes executáveis preservadas.
+
+Observação de disponibilidade do RDP existente: alerta 0x5 informa desconexão
+porque outra conexão assumiu o computador. Nenhuma reconexão, encerramento de
+terceiro ou consulta ERP realizada; a sessão AnyDesk CONTAD ainda não está aberta.
+Captura adicional normal de viewport do QA sintético em
+`retorno-fila-confirmado.png` evita o artefato de cabeçalho sticky da full-page.
+Servidor/aba exclusivos dessa captura também encerrados.

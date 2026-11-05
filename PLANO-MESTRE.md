@@ -6,7 +6,9 @@ revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e
 claro/escuro conferiram retorno, ignorar/restaurar e teclado. Nova candidata
 809 arquivos/hashes em V-317. CI 42079806454 aprovado para a implementação
 anterior 700b496, PostgreSQL 1.652/151, dois skips; não cobre esta nova alteração.
-Sem deploy ou acesso à cliente. PC-19 e gates contábeis continuam abertos.
+Fonte/testes/registros publicados na main em `ed01dd5`, SHA remoto conferido;
+CI 42082634894 em execução para a nova correção. Sem deploy ou acesso à cliente.
+PC-19 e gates contábeis continuam abertos.
 
 **Percurso bancário CONTAD — D-314/V-316, 05/11/2026:** importação persistida,
 reenvio, retomada, revisão e relatório executados localmente com os 163 eventos
