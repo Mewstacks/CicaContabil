@@ -217,3 +217,7 @@ está disponível; nenhuma configuração hospedada ou instalação do PC foi al
   .NET Linux/um skip Windows e build/manifesto MSI; sem instalação nova.
 - [ ] Publicar backend hospedado e atualizar/parear o PC com acesso/autorização
   próprios; envio ao GitHub não demonstra ODBC LocalSystem ou sincronização real.
+
+V-316 (05/11): percurso bancário dos anexos executado em banco/mídia isolados,
+42 verificações finais aprovadas. Não acionou agente/ODBC/Windows nem altera
+o estado pendente de implantação e sincronização real desta etapa.

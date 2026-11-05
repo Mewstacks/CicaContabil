@@ -1,5 +1,24 @@
 # Verificação do conciliador CONTAD no CICA
 
+## Percurso bancário executado — D-314/V-316 (05/11/2026)
+
+42 verificações finais locais aprovadas com os 163 eventos reais, em cenários
+separados por formato: upload, reenvio/retomada, revisão auditada, escopo/perfis
+e download do relatório. Corrigidos ignorar humano perdido na reaplicação e
+aviso de proteção bloqueando relatório. 134 testes/24 subtestes PostgreSQL
+aprovados, sem skips; navegador conferido. Candidata de fonte com 809 arquivos,
+hash em V-316; dados/artefatos reais privados. Razão/títulos, arquivo importado,
+implantação/serviço real, D-73, treinamento e aceite continuam pendentes.
+
+## Anexos permitem teste bancário — V-315 (05/11/2026)
+
+PDF/OFX fornecidos reconferidos com os parsers publicados: 163 movimentos em
+cada, mesma multiplicidade de data/valor, zero sobras, FITIDs únicos e saldos
+coerentes. Teste local de leitura/comparação concluído, sem banco/ERP/IA/rede.
+Permitem iniciar teste real da entrada bancária; o fluxo contábil completo ainda
+exige Razão/títulos independentes e revisão Q-28/Q-46/Q-47. Não são 326 itens
+independentes nem amostra D-73 completa. Evidência privada em V-315.
+
 ## Código publicado — D-313/V-314 (05/11/2026)
 
 Autorização expressa para main; commit [4fede1e](https://github.com/Mewstacks/CicaContabil/commit/4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d)

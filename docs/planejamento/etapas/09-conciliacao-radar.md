@@ -221,3 +221,25 @@ local inclui a CLI; nenhum gate contábil foi habilitado.
   Playwright/OCR; testes de concorrência executados. Não equivale a dado real.
 - [ ] Concluir integração real de títulos, fontes/regras/layout revisados,
   importação conferida e homologação. Gate contábil permanece desligado.
+
+## Anexos bancários CONTAD — V-315 (05/11/2026)
+
+- [x] Reconferir PDF/OFX reais com o parser publicado: 163 movimentos em cada,
+  zero sobras por data/valor, FITIDs únicos e saldos coerentes, sem SQL/escrita.
+- [x] Distinguir início dos testes bancários de homologação contábil: os anexos
+  permitem o primeiro, enquanto Razão/títulos/revisão/layout permanecem pendentes.
+- [ ] Homologar fontes contábeis independentes, regras Q-46 e importação Q-47;
+  não contar os dois formatos como 326 itens da amostra D-73.
+
+## Percurso bancário autorizado — D-314/V-316 (05/11/2026)
+
+- [x] Executar upload/reenvio/retomada/revisão/relatório em cópia isolada dos
+  163 eventos reais; cenários OFX/PDF separados, 42 verificações finais aprovadas.
+- [x] Corrigir preservação do editor humano em aplicação/reaplicação, incluindo
+  ignorar/restaurar históricos e revalidação após trava.
+- [x] Permitir relatório com aviso único de proteção, recusando erro real ou
+  aviso inconsistente; 134 testes/24 subtestes PostgreSQL aprovados, zero skips.
+- [x] Conferir navegador, salvar fatos originais e baixar CSV de 163 pendências,
+  sem Razão/alocações/partidas inventados; contas contábeis continuam em branco.
+- [ ] Concluir fontes/regras/importação reais Q-28/Q-46/Q-47 e aceite D-73.
+  Limite de retorno ao filtro após salvar registrado em V-316; sem nova UI.

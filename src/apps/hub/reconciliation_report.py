@@ -45,7 +45,19 @@ def build_source_report(
             "Aguarde o processamento do extrato antes de conferir o relatório."
         )
     latest = source.runs.order_by("-created_at", "-pk").first()
-    if latest is None or latest.state in {"failed", "canceled"} or latest.error_count:
+    protection_notice_only = (
+        latest is not None
+        and latest.stage == "rules_reapplied"
+        and isinstance(latest.errors, list)
+        and latest.error_count == len(latest.errors) == 1
+        and isinstance(latest.errors[0], dict)
+        and latest.errors[0].get("code") == "protected_movements"
+    )
+    if (
+        latest is None
+        or latest.state in {"failed", "canceled"}
+        or (latest.error_count and not protection_notice_only)
+    ):
         raise ReconciliationError(
             "Corrija ou retome o processamento do extrato antes da conferência."
         )
@@ -136,6 +148,8 @@ def build_source_report(
     opening_bank = bank_evidence.opening_cents if bank_evidence and full_pdf_period else None
     closing_bank = bank_evidence.closing_cents if bank_evidence and full_pdf_period else None
     warnings = ["A cobertura do Razão depende da conferência da fonte pela contadora."]
+    if protection_notice_only:
+        warnings.append("A reaplicação preservou os movimentos com decisões humanas ou contábeis.")
     if basis == "imported_movement_dates":
         warnings.append(
             "Período baseado nos movimentos importados; cobertura integral não comprovada."

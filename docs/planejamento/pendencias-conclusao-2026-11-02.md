@@ -1,5 +1,12 @@
 # Pendências para concluir o projeto CICA
 
+**Teste bancário D-314/V-316 — 05/11/2026:** percurso local com anexos reais
+concluído em 42 verificações finais: importação, reenvio/retomada, revisão e
+relatório. Duas falhas corrigidas; 134 testes/24 subtestes PostgreSQL aprovados,
+zero skips. Testar a entrada bancária não depende mais de material adicional.
+Desenvolvimento/contadora ainda completam Razão/títulos/regras/importação;
+operação/CONTAD completam implantação, provas D-73, treinamento e aceite.
+
 **Publicação do código D-313/V-314 — 05/11/2026:** commit 4fede1e enviado à
 main por autorização expressa e SHA remoto conferido; CI 42067809017 aprovado.
 O código está no GitHub. Operador ainda publica aplicação hospedada quando

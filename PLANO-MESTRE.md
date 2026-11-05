@@ -1,5 +1,19 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Percurso bancário CONTAD — D-314/V-316, 05/11/2026:** importação persistida,
+reenvio, retomada, revisão e relatório executados localmente com os 163 eventos
+reais, em cenários separados OFX/PDF. **42 verificações finais aprovadas**.
+Corrigidos o ignorar humano perdido na reaplicação e o relatório bloqueado
+pelo aviso de proteção. PostgreSQL: **134 testes/24 subtestes aprovados**, sem
+skips; navegador conferiu filtro/paginação/revisão/download. Não comprova
+Razão, títulos, escrituração/importação Domínio, serviço Windows ou aceite.
+
+**Anexos CONTAD reconferidos — V-315, 05/11/2026:** PDF/OFX de setembro permitem
+testes reais da entrada bancária: 163 movimentos em cada, zero sobras por
+data/valor, FITIDs únicos e saldos coerentes. As pendências de fonte contábil
+não impedem começar esse teste. Não são duas fontes independentes de Razão,
+nem 326 itens; Q-28/Q-46/Q-47 e homologação completa continuam abertos.
+
 **Publicação do código D-313/V-314 — 05/11/2026:** responsável autorizou envio
 à main. Commit `4fede1e` publicado e SHA remoto conferido; CI
 [42067809017](https://github.com/Mewstacks/CicaContabil/actions/runs/42067809017)

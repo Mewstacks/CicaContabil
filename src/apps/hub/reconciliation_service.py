@@ -911,6 +911,7 @@ def apply_rules(movement: NormalizedMovement, *, actor: object = None) -> Normal
     movement.refresh_from_db(from_queryset=NormalizedMovement.objects.select_for_update())
     if (
         movement.classification_source == NormalizedMovement.ClassificationSource.MANUAL
+        or movement.edited_by_id is not None
         or movement_has_ledger_match(movement)
         or movement.journal_entries.exclude(state=JournalEntry.State.INVALID).exists()
     ):
@@ -1502,6 +1503,7 @@ def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[
     all_movements = NormalizedMovement.objects.filter(source_file=source)
     eligible = (
         all_movements.exclude(classification_source=NormalizedMovement.ClassificationSource.MANUAL)
+        .filter(edited_by__isnull=True)
         .exclude(
             journal_entries__state__in=[
                 JournalEntry.State.DRAFT,
@@ -1541,6 +1543,7 @@ def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[
             # reconciled the movement while this worker waited for the company.
             if (
                 movement.classification_source == NormalizedMovement.ClassificationSource.MANUAL
+                or movement.edited_by_id is not None
                 or movement_has_ledger_match(movement)
                 or movement.journal_entries.filter(
                     state__in=[

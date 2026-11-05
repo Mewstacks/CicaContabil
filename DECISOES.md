@@ -2604,3 +2604,51 @@ CI 42067809017 concluído com sucesso para 4fede1e: agente, pacote Windows e
 verificação Python/PostgreSQL/Docker aprovados. Registrar o resultado completo
 em V-314 e enviar os registros documentais em commit separado, sem alterar
 fontes executáveis ou alegar homologação/implantação por esse sucesso.
+
+## D-314 — Percurso bancário local com anexos CONTAD (05/11/2026)
+
+Origem: após V-315 e a proposta de testar os arquivos já fornecidos, o
+responsável autorizou expressamente “pode ser entao, prossiga”. Executar
+importação, reenvio, revisão técnica e relatório em banco e mídia novos,
+isolados localmente em `.tmp`, preservando originais, desenvolvimento e produção.
+Usar settings de teste, bloquear conexões externas e não chamar ERP, IA ou
+serviços hospedados. Identificadores, dados, sessões, capturas e relatórios
+reais ficam em diretório privado ignorado; Git recebe apenas registros anônimos
+ou correção de código/testes sintéticos que se mostre necessária.
+
+OFX será o cenário principal; leitura persistida do PDF será verificada em
+cenário separado. São representações dos mesmos 163 movimentos, não 326 itens
+independentes. Não importar ambos como se fossem fatos bancários distintos na
+mesma conta, nem presumir deduplicação entre formatos sem identidade comum.
+Conferir reenvio idêntico/renomeado, sobreposição OFX, escopo de conta/empresa,
+retomada, revisão manual preservada, relatório e permissões. A prova sequencial
+local não substitui as provas de concorrência PostgreSQL existentes.
+
+Revisão técnica pode salvar os fatos originais, exercitar revisão obsoleta e
+ignorar/restaurar somente na cópia isolada, com motivo explícito e trilha.
+Não inventar plano de contas, classificação aprovada, Razão, título ou baixa.
+Manter gate de exportação contábil desligado e evidenciar pendências reais no
+relatório. Sem deploy, transmissão financeira, importação ERP ou aceite CONTAD.
+
+Falha reproduzida no percurso D-314: ignorar manualmente por HTTP deixa
+`edited_by` preenchido, mas pode manter `classification_source=none/rule`.
+A reaplicação considerava esse movimento elegível e removia o ignorar. Tratar
+qualquer movimento com editor humano registrado como protegido na aplicação
+e reaplicação, inclusive na revalidação depois da trava. Preservar também o
+retorno humano à revisão; não reescrever retrospectivamente a classificação
+dos dados. Cobrir estados históricos sem marcador manual e a corrida PostgreSQL
+com decisão surgida após a seleção inicial. Não alterar telas ou regras contábeis.
+
+Outro resultado D-314: o aviso de movimentos protegidos na reaplicação é
+registrado em `errors`, embora a execução preserve corretamente as escolhas.
+O relatório tratava esse aviso como erro de extração e bloqueava o download.
+Permitir conferência somente quando a única ocorrência for o aviso conhecido
+`protected_movements` da etapa `rules_reapplied`, com contagem consistente;
+conservar aviso no relatório. Erro real, mistura, contagem inconsistente,
+estado falho/cancelado, arquivo alterado e processamento incompleto continuam
+recusados. Cobrir as fronteiras em dados sintéticos antes de repetir o piloto.
+
+Publicação corretiva D-314 segue a autorização de Git D-313 para o código
+PC-19 e seus registros: enviar apenas os dois módulos corrigidos, regressões
+sintéticas e documentação anônima após a validação local. Preservar o material
+real e a evidência em `.tmp`; nenhum deploy ou dado financeiro acompanha o push.

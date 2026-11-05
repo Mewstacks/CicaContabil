@@ -269,3 +269,15 @@ no commit 4fede1e com SHA remoto conferido. Isso resolve a autorização de
 commit/push dessa entrega; não resolve acesso/deploy hospedado, Q-28/Q-46/Q-47,
 IA Q-08/Q-09, corpus real ou aceite. Não perguntar novamente essa autorização
 de Git para o código e seus registros; não ampliá-la para dados/ERP/implantação.
+
+V-315, Q-28/Q-46/Q-47: os anexos PDF/OFX Sicredi permitem testar a etapa
+bancária da CONTAD. Reconferência local: 163 movimentos correspondentes e
+saldos coerentes. A ausência de Razão/títulos revisados limita a homologação
+contábil completa, não o início desses testes. Não solicitar novamente os
+extratos já disponíveis nem contar seus dois formatos como amostras distintas.
+
+D-314/V-316: responsável autorizou prosseguir; percurso bancário local executado
+com os anexos e 42 verificações finais aprovadas. Q-28/Q-46/Q-47 continuam para
+fontes contábeis/baixas, regras revisadas e importação conferida, sem bloquear
+essa prova já concluída da entrada bancária. Nenhuma pergunta repetida de
+extratos, login, DSN, backup, CA ou Fly nesta execução.

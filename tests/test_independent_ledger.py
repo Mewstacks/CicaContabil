@@ -142,6 +142,49 @@ def test_complete_ledger_import_creates_two_linked_views_and_preserves_provenanc
 
 
 @pytest.mark.parametrize(
+    ("errors", "error_count", "stage", "state", "allowed"),
+    [
+        ([{"code": "protected_movements"}], 1, "rules_reapplied", "review", True),
+        ([{"code": "protected_movements"}], 1, "rules_reapplied", "completed_alerts", True),
+        ([{"code": "record_invalid"}], 1, "rules_reapplied", "review", False),
+        (
+            [{"code": "protected_movements"}, {"code": "record_invalid"}],
+            2,
+            "rules_reapplied",
+            "review",
+            False,
+        ),
+        ([], 1, "rules_reapplied", "review", False),
+        ([{"code": "protected_movements"}], 2, "rules_reapplied", "review", False),
+        ({"code": "protected_movements"}, 1, "rules_reapplied", "review", False),
+        ([{"code": "protected_movements"}], 1, "extracting", "review", False),
+        ([{"code": "protected_movements"}], 1, "rules_reapplied", "failed", False),
+    ],
+)
+def test_report_distinguishes_protection_notice_from_processing_error(
+    account, errors, error_count, stage, state, allowed
+):
+    source, _ = bank_for(account, legacy=False)
+    ReconciliationRun.objects.create(
+        organization=account.organization,
+        source_file=source,
+        errors=errors,
+        error_count=error_count,
+        stage=stage,
+        state=state,
+    )
+    if not allowed:
+        with pytest.raises(ReconciliationError, match="Corrija ou retome"):
+            build_source_report(source)
+        return
+    report = build_source_report(source)
+    assert report["bank_count"] == report["bank_unmatched_count"] == 1
+    assert report["ledger_count"] == 0
+    assert not report["homologated"] and not report["coverage_confirmed"]
+    assert any("preservou" in warning for warning in report["warnings"])
+
+
+@pytest.mark.parametrize(
     "broken",
     [
         lambda b: b.replace(b"10000;;DOC", b"9999;;DOC"),

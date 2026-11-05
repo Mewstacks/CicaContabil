@@ -6098,3 +6098,101 @@ preservados no diretório privado de publicação. Registros Markdown do resulta
 seguem em commit separado; o CI acima identifica o commit de implementação.
 Sem Playwright novo ou OCR português executado no runner; evidências anteriores
 conservam seus limites. Aplicação/ERP/PC/CONTAD continuam sem nova homologação.
+
+## V-315 — Reconferência dos anexos bancários CONTAD (05/11/2026)
+
+Pergunta do responsável sobre testar com o PDF/OFX Sicredi e a imagem fornecidos.
+Escopo de leitura local já previsto em D-305/D-311, base 8aeeff5, sem mudança de
+implementação ou regra contábil. Executados `parse_ofx` e `compare_bank_files`
+da versão publicada sobre os dois originais indicados em Downloads, com settings
+de teste sem serviços externos e guarda para recusar SQL. Nenhuma escrita em
+banco, importação ERP, IA, transmissão ou homologação.
+
+- Período 01–30/09/2026, **163 movimentos no PDF e 163 no OFX**.
+- Mesma multiplicidade de data/valor; zero movimentos exclusivos em cada lado.
+- Sequência de saldos válida; saldo inicial mais movimentos igual ao final;
+  saldo final informado no OFX igual ao PDF.
+- FITIDs presentes e únicos nas 163 transações do OFX.
+- PDF textual de seis páginas renderizado com Poppler e composição integral
+  inspecionada; imagem anexa é assinatura de e-mail, sem fonte contábil adicional.
+
+Isso permite iniciar testes reais da entrada bancária e preparar cenários de
+reenvio/revisão/relatório; esta reconferência executou leitura/comparação, não
+novo percurso persistido ou de interface. Corrobora V-304/V-308, sem somar uma
+repetição ao número de testes ou contar PDF e OFX como 326 itens independentes.
+São 163 eventos bancários representados em dois formatos, abaixo da amostra
+de 200 itens por fluxo de D-73; isso não impede os testes iniciais.
+
+Razão independente, títulos/parcelas/baixas, equivalência da conta e exemplos
+revisados continuam necessários para validar conciliação contábil, DE-PARA e
+retorno ao Domínio. Não se conclui que a leitura bancária está impedida por
+essas dependências. Q-28/Q-46/Q-47 e homologação permanecem abertos.
+
+Evidência privada ignorada: `.tmp/contad-files-review-2026-11-05/`, diretório
+0700, `bank-comparison.json` e PNGs 0600. Hashes dos originais preservados no
+JSON, conteúdo/identificadores fora do Git. Sem alteração de código ou novo CI.
+
+## V-316 — Percurso bancário persistido com anexos CONTAD (05/11/2026)
+
+D-314, base 8aeeff5 com registros V-315 preservados. Executado em SQLite novo
+e mídia privados, settings de teste, saída de rede externa bloqueada, Celery
+eager/memory. Escritório, usuários e duas empresas de cenário são artificiais;
+os 163 eventos bancários vêm dos originais autorizados. OFX e PDF em cenários
+separados, sem somá-los como 326 eventos independentes. Nenhuma escrita no ERP,
+banco de desenvolvimento/produção, chamada de IA ou transmissão financeira.
+
+Percurso final run-03: **42 verificações aprovadas**, 22,086 s incluindo setup
+e migrações; não é medição de processamento por empresa D-73. Cobriu:
+
+- Upload HTTP autenticado e persistência de 163 movimentos exatos por formato;
+  OFX também alimenta 163 transações da outra fila e suas identidades compartilhadas.
+- Despacho OFX suspenso pelo harness após persistir e recuperado pelo dispatcher;
+  fila em modo eager, sem alegar novo ensaio de broker/worker real.
+- Reenvio idêntico e renomeado mantém arquivo, IDs e contagens; OFX com hash
+  diferente e FITIDs sobrepostos é recusado integralmente. Conta errada e
+  conta de outra empresa recusadas antes de nova normalização.
+- Salvar fatos originais sem contas inventadas, recusar revisão obsoleta,
+  ignorar/restaurar com trilha, reaplicar regras e retomar sem perder a decisão.
+- Relatórios HTTP privados: 163 pendências bancárias, zero Razão independente,
+  cobertura/aceite falsos e saldo inicial contábil desconhecido; nenhuma partida,
+  alocação ou exportação contábil criada. Originais inalterados.
+- Auditor autorizado consulta/download, mas não altera; outro escritório não
+  acessa o relatório. Grants sintéticos incluem explicitamente o módulo.
+
+Falhas reais encontradas e corrigidas: `edited_by` humano agora protege
+aplicação/reaplicação mesmo sem marcador de classificação manual, inclusive
+após espera da trava. Aviso único e consistente `protected_movements` em
+`rules_reapplied` permite relatório com aviso; erros reais, mistura, formato ou
+contagem inválidos e estado falho continuam bloqueados. Sem migração ou mudança
+de template/CSS/JS. Não reescreve histórico nem aprova classificação contábil.
+
+Regressão sintética **PostgreSQL 17.11/Python 3.12.13/Django 6.0.8 no Mac**:
+**134 testes e 24 subtestes aprovados, zero skips, 46,71 s**, nos cinco módulos
+focados de conciliação/fontes/integridade. Inclui 19 casos novos: oito de decisão
+humana sem marcador manual, nove de limites do aviso no relatório e duas novas
+corridas PostgreSQL. Ruff global, MyPy dos dois módulos e whitespace aprovados.
+Não é regressão completa nova, teste Windows ou repetição dos CIs V-314.
+
+Tentativas anteriores preservadas: setup inicial recusado pela guarda de
+SECRET_KEY do módulo privado, corrigido antes de executar o cenário; run-01
+reproduziu duas perdas do ignorar e parou por grant sintético sem organização.
+Run-02 passou 39/42: dois bloqueios indevidos do relatório e grant do auditor
+sem módulo. Corrigidas as duas falhas de produto e os fixtures. Não apresentar
+tentativas intermediárias como aprovação nem somar suas repetições ao total.
+
+Navegador CUA/Playwright, viewport padrão 727×982, tema escuro: login técnico,
+filtro por empresa/arquivo, página 1→2 de quatro, salvar revisão com fatos
+originais, download real de CSV com 163 linhas bancárias/zero contábeis e zero
+erros de console. Não houve varredura responsiva completa ou novo design.
+Limite observado de navegação: após salvar, o link de retorno perde o filtro
+de arquivo/busca; comportamento existente não alterado nem declarado validado.
+Captura de confirmação preservada. Aba e servidor loopback próprios encerrados.
+Contêiner PostgreSQL exclusivamente sintético encerrado/removido; demais serviços
+preservados. Banco/mídia reais do piloto local conservados em pasta privada.
+
+Nova candidata de fonte: **809 arquivos**, 2.023.175 bytes, SHA-256
+`a3cd63af4679d0e3067657ffaa6a1f6361a57e4dedea2e50b2a0ce5d2ec6e88c`;
+ZIP e workspace confrontados. Evidências ignoradas/restritas em
+`.tmp/contad-bank-pilot-2026-11-05/`: `run-03/results.json`, checks, relatórios,
+banco/mídia, captura/browser-results, JUnit/log PostgreSQL e `release-candidate/`.
+Gate contábil desligado. Q-28/Q-46/Q-47, D-73, deploy, PC/serviço e aceite abertos.

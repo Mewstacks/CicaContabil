@@ -2803,3 +2803,37 @@ DSN ou confirmação de backup.
 - Evidências ignoradas em `.tmp/contad-main-publication-2026-11-05/`.
   Código publicado no GitHub; aplicação hospedada, fontes reais, importação,
   PC/serviço, D-73, treinamento, homologação e liberação continuam pendentes.
+
+## 05/11/2026 — Reconferência dos anexos CONTAD V-315
+
+- Pergunta do responsável sobre a possibilidade de testar com os anexos já
+  fornecidos. Leitura local no escopo existente D-305/D-311, base 8aeeff5.
+- Parsers publicados confirmaram 163 movimentos em cada PDF/OFX, zero sobras
+  por data/valor, FITIDs presentes/únicos, sequência de saldos e fechamento iguais.
+- PDF de seis páginas renderizado/inspecionado; imagem é assinatura de e-mail.
+  Nenhuma escrita em banco, ERP, transmissão, IA, interface ou alteração de código.
+- Evidências/hash/renderizações privados em `.tmp/contad-files-review-2026-11-05/`,
+  pasta 0700 e arquivos 0600. Teste real da entrada bancária é possível;
+  integração/homologação completa continua dependente de fontes contábeis,
+  regras revisadas e importação conferida. Não somar repetições ou duplicar
+  a amostra pelos dois formatos. Atualizados plano/validação/checklist/matriz/Q.
+
+## 05/11/2026 — Percurso bancário D-314/V-316
+
+- Responsável autorizou prosseguir após V-315; decisão D-314 antes de criar
+  banco/mídia isolados. Base 8aeeff5 e registros locais anteriores preservados.
+- Importação HTTP real dos 163 eventos por formato em cenários separados,
+  sem duplicar a amostra. Despacho suspenso/retomado em eager, reenvio idêntico/
+  renomeado, sobreposição/conta errada, revisão obsoleta, ignorar/restaurar,
+  reaplicação, retomada, relatórios e perfis: run-03 com 42/42 aprovadas.
+- Corrigidas duas falhas de produto: ignorar humano reaberto pela reaplicação
+  e aviso de proteção bloqueando relatório. Tentativas/fixtures intermediários
+  preservados e descritos em V-316, sem somar repetições ao total final.
+- PostgreSQL 17.11 descartável somente sintético: 134 testes/24 subtestes,
+  zero skips, 46,71 s; Ruff global/MyPy dois módulos/whitespace aprovados.
+- CUA/Playwright confirmou filtros/paginação, salvar fatos originais e download
+  de CSV com 163 linhas/zero Razão, zero erros de console; captura privada.
+  Limite de retorno ao filtro após salvar registrado, sem mudar interface.
+- Candidata de 809 arquivos/hashes conferidos, SHA-256 em V-316. Dados reais,
+  banco/mídia, relatórios e capturas ficam em `.tmp/contad-bank-pilot-2026-11-05/`.
+  Aba/servidor/contêiner próprios encerrados. Nenhum ERP, IA, deploy ou aceite.

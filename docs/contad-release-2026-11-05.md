@@ -5,6 +5,13 @@ checklists existentes. **Código publicado no GitHub; aplicação ainda não
 implantada, homologada ou liberada.**
 Prazo contratual 09/11/2026 preservado. A suíte inteira não integra este recorte.
 
+Continuidade D-314/V-316: percurso bancário real local passou em 42 verificações;
+corrigidos proteção do editor humano e relatório com aviso de proteção.
+134 testes/24 subtestes PostgreSQL aprovados, zero skips. Nova candidata em
+`.tmp/contad-bank-pilot-2026-11-05/release-candidate/`, 809 arquivos, 2.023.175
+bytes, SHA-256 `a3cd63af4679d0e3067657ffaa6a1f6361a57e4dedea2e50b2a0ce5d2ec6e88c`.
+Sem migração/agente/UI novos. O pacote V-313 abaixo é histórico preservado.
+
 Autorização expressa de publicação na main executada no commit
 [4fede1e](https://github.com/Mewstacks/CicaContabil/commit/4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d),
 SHA remoto conferido. CI 42067809017 aprovado para esse SHA: PostgreSQL 1.633

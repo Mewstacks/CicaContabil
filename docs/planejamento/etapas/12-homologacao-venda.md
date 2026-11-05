@@ -314,3 +314,14 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   agente, pacote Windows e três builds Docker; logs/skips/limites em V-314.
 - [ ] Publicar aplicação hospedada e comprovar percurso real, recuperação,
   Q-28/Q-46/Q-47, D-73, treinamento e aceite. GitHub não equivale à implantação.
+
+## Teste bancário local — D-314/V-316 (05/11/2026)
+
+- [x] Executar percurso persistido com anexos reais em SQLite/mídia novos,
+  42 verificações finais aprovadas; dados privados preservados fora do Git.
+- [x] Corrigir duas falhas e validar 134 testes/24 subtestes em PostgreSQL,
+  incluindo corridas de revisão humana, sem skips; sem nova prova Windows.
+- [x] Preparar candidata de 809 arquivos/hashes conferidos, relatórios privados
+  e evidência do navegador; servidor/aba/contêiner próprios encerrados.
+- [ ] Concluir publicação hospedada, fontes/retorno ERP, D-73 operacional,
+  treinamento e aceite. O teste local não é homologação completa da CONTAD.
