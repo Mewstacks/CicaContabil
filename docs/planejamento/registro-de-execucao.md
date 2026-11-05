@@ -2488,3 +2488,295 @@ mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
   de código, testes e documentação. SHA conferido diretamente no remoto,
   comparação local/remoto 0/0 e árvore limpa. Registro de confirmação em commit
   documental adicional; nenhum deploy ou integração real foi executado.
+
+## 03/11/2026 — Continuidade CONTAD com Sicredi e Razão independente (D-305/V-304)
+
+- Base `b499cd1`, árvore inicialmente limpa. Registradas antes da implementação
+  as confirmações: títulos no Domínio; saída de relatório e arquivo de importação.
+  Acesso ao PC ainda prometido. PDF/OFX tratados como dados locais; assinatura
+  de e-mail não define regra contábil. Binários/identificadores fora do Git.
+- PDF de seis páginas renderizado/inspecionado; 163 movimentos coincidem com
+  OFX em data/valor/multiplicidade, saldos de 100 para 0 centavos. Não é Razão.
+- Entrada de partidas completas `ledger-csv-v1`, vínculo persistido da fonte
+  (0077), ponte das duas filas, confirmação/desfazimento/retry, auditoria de
+  projeção e relatório privado implementados. Fonte escriturada não é reexportada.
+  Sicredi preserva documento/página/região/saldo e valida sequência.
+- Regressão integral PostgreSQL: **1.452 testes/151 subtestes aprovados, 2 skips,
+  212,71 s**. Concorrência entre filas e importações concorrentes executadas.
+  Ensaio com 200 lançamentos sintéticos completos, retry e nenhuma sobra no
+  relatório; não é piloto/precisão/aceite real D-73.
+- Ruff/check/migrações/diff aprovados; seis serviços passam MyPy. Views conserva
+  os mesmos dez erros anteriores comprovados com HEAD. Playwright Node validou
+  percurso, download privado, auditor com carteira, teclado/foco, claro/escuro,
+  desktop/celular/paisagem sem overflow ou erros JS; capturas inspecionadas.
+- [Contrato e operação](../conciliacao-razao-normalizado.md), checklists e matriz
+  atualizados. Razão/títulos diretos, regras de parcelas/baixas, DE-PARA com IA,
+  importação contábil, recuperação operacional, treinamento e aceite permanecem
+  pendentes. Instalação depende do acesso prometido; não houve custo ou deploy.
+
+Encerrados servidor de QA e PostgreSQL descartável. Links, Ruff global e diff
+conferidos; logs MyPy atual/HEAD idênticos. Mudanças permanecem locais, sem
+commit/push e sem arquivos da cliente no conjunto de alterações.
+
+## 03/11/2026 — Pacote Windows do agente testado (D-306/V-305)
+
+- Preservadas alterações D-305; branch isolada `codex/agent-windows-validation`,
+  baseada em `b499cd1`, sem merge/deploy ou dados de cliente.
+- CI anterior gerava MSI sem disponibilizá-lo. Criados teste de ciclo instalado
+  e retenção de MSI/hash/manifesto/inventário/logs. Primeiro ensaio comprovou
+  ACL herdada indevida; corrigida no MSI para SYSTEM/Administradores.
+- Rodada final Windows Server 2022: 23 testes .NET e **25 verificações aprovadas**,
+  incluindo ACL, configurador, ponte, diagnóstico, DPAPI, reparo, reinício e remoção.
+  Ajuste de precisão de horário no roteiro manteve os critérios de frescura.
+- Run 41664064414, SHA `57acd4f9738209842f4d3be546859c164adcba88`; pacote 1.0.0
+  baixado e hash confrontado com manifesto/relatório. ZIP local de transferência
+  com instruções em `agent-windows/artifacts/`, ignorado pelo Git.
+- Repetidos localmente três builds sem avisos/erros, 23 testes .NET e 23 Python.
+  Pacote sem assinatura Authenticode, pronto para ensaio controlado; acesso ao
+  PC, driver/DSN, pareamento e ERP da cliente ainda pendentes. Não houve deploy.
+
+Encerramento: branch remota confirmada em `158e4ae`, sem merge em main. Pacote
+local novamente conferido, hashes dos 15 arquivos preexistentes preservados,
+Ruff/diff/CRC aprovados e worktree isolada arquivada com confirmação. Binários
+e evidência temporária continuam fora do Git.
+
+
+## 03/11/2026 — Teste Windows 11 Desktop (D-307/V-306)
+
+- Reutilizada branch isolada e artefato V-305, sem rebuild, merge ou alteração
+  no produto. Workflow público `windows-11-arm`, hash fixado antes de executar.
+- Run 41669715057 / commit 57427c7 aprovados: Windows 11 Enterprise cliente
+  build 26200 ARM64, 25 verificações de instalação, serviço, GUI, ponte,
+  diagnóstico, ACL/DPAPI, reparo, reinício e remoção. Mesmo MSI 1.0.0/SHA de V-305.
+- Relatórios e logs baixados; cópia JSON em `agent-windows/artifacts/windows-11-arm/`.
+  Evidência de Server 2022 preservada. Sem DSN, driver, pareamento ou ERP real.
+- Responsável confirmou PC de teste via RDP e sessão pronta. Interface continuou
+  recusando acesso com “Computer Use permissions are not granted”, mesmo após
+  recarregar o runtime. Não houve inspeção/instalação no PC. Orientação oficial
+  de permissões consultada; Windows 11 Intel/AMD continua pendente do acesso.
+- 15 hashes de arquivos preexistentes preservados; sem dados da cliente,
+  binários versionados, publicação, nova contratação ou custo presumido.
+
+
+## 03/11/2026 — Agente testado e mantido no Windows 11 Pro x64 (D-307/V-307)
+
+- Helper habilitado e permissões conferidas. PC por RDP: Windows 11 Pro,
+  build 26200, ProductType=1, AMD64, sem agente/configuração anterior.
+- Keyboard Mode Unicode autorizado temporariamente para corrigir os símbolos;
+  pacote original baixado e hash fixado conferido no PC. Sem nova integração.
+- Roteiro de PC preparado, com recusa de instalação preexistente e sem remover
+  o produto ao terminar. Corrigida resolução de caminhos no Windows PowerShell
+  antes da instalação; novo hash/parser conferidos e RunAs normal.
+- 24 verificações aprovadas, instalação/reparo saída 0, serviço final Running,
+  configuração sintética removida, agente em espera sem ERP. MSI inalterado.
+- JSON/logs preservados em Downloads do PC; SHA do relatório registrado em
+  V-307, resumo local em `agent-windows/artifacts/windows-11-x64/`.
+- Não houve pareamento, SQL, dados da cliente, aceite CONTAD, deploy ou custo.
+
+Encerramento V-307: Scancode/tela cheia restaurados; configurador deixado aberto
+sem salvar/parear. Hashes locais MSI/roteiro e os 15 arquivos preexistentes
+conferidos. Sem commit/push novo ou ampliação para integração real.
+
+## 03/11/2026 — Teste do conciliador com o PC disponível (D-308/V-308)
+
+- Pedido atual registrado antes da execução, mantendo D-74 e Q-28/Q-46/Q-47.
+- No configurador instalado, selecionado Domínio Local; DSN de sistema e
+  driver SQL Anywhere 16 encontrados. Botão de teste retornou ODBC 28000
+  (usuário/senha recusados). Solicitada correção direta no RDP, sem senha no chat.
+- Sem salvar/parear, enviar dados ou alterar DSN/segurança. Configurador
+  conservado aberto e tela cheia restaurada; teclado permaneceu Scancode.
+- Nova travessia local do endpoint bancário v2 até relatório/decisão das duas
+  filas: 7 cenários novos aprovados; regressão PostgreSQL dirigida com 157 testes
+  e 24 subtestes aprovados, um skip OCR, 30,32 s. São dados sintéticos, sem
+  executar o serviço Windows contra o servidor. Não recontar os sete testes.
+- Anexos Sicredi reconferidos localmente: 163 movimentos por arquivo, zero
+  sobras de data/valor, sequência de saldos válida. Sem prova de Razão/conta.
+- Evidências locais ignoradas pelo Git: XMLs `.tmp/agent-*results.xml` e
+  `.tmp/agent-conciliador-2026-11-03/sicredi-check.json`. Sem publicação ou custo.
+- Sincronização Windows real e piloto continuam pendentes; o erro de
+  autenticação não equivale a conclusão ou a credenciais alteradas.
+- PostgreSQL de QA encerrado; Ruff/diff-check finais limpos e 15 hashes
+  preexistentes preservados. Resumo local em `.tmp/agent-conciliador-2026-11-03/summary.json`.
+
+## 03/11/2026 — Conexão Domínio corrigida no Windows 11 (D-308/V-309)
+
+- Esclarecida resposta: confirmação anterior foi no ODBC/Domínio. Configurador
+  1.0.0 ainda retornava 28000. Diagnóstico .NET somente com DSN passou, sem
+  imprimir registro ou credencial.
+- Corrigida substituição de autenticação com opção explícita do DSN, compatível
+  com configuração antiga, helper compartilhado e sem fallback. UI nativa
+  conferida no Windows com mouse/teclado/estado dos campos.
+- Branch isolada reutilizada: código 605436b, roteiro 50c0463. Builds locais
+  sem avisos/erros e 28 testes; CI 41706460758 com 28 testes e 25 checks
+  aprovados. Sem merge/deploy do site.
+- MSI 1.0.1/hash conferidos no Mac e PC; atualização real aprovada, saída 0,
+  serviço Running automático LocalSystem e sem configuração. Roteiro recusa
+  configuração preexistente; sem bypass da política de execução.
+- Configurador atualizado confirmou conexão Domínio. Sem salvar/parear.
+  Scancode restaurado; resultado mantido aberto. ODBC LocalSystem pendente.
+- Sondagem vazia HTTPS retornou 503 por CA não configurada. Sem código/CSR,
+  dados financeiros ou alteração de produção. Fly CLI somente leitura não
+  forneceu configuração utilizável (saída 1).
+- Relatório/logs originais preservados no PC; hash e resumo transcrito local,
+  MSI/CI em `agent-windows/artifacts/windows-1.0.1/`, fora do Git. V-309 separa
+  relatório de atualização e sucesso visual posterior.
+- Checklists 03/09/12 e registro de dúvidas atualizados; continuam pendentes
+  autorização da configuração hospedada, destino/recorte, pareamento e piloto
+  real. O bloqueio não equivale a conclusão.
+
+Encerramento V-309: TRX local preservado; 15 hashes financeiros intactos,
+MSI/roteiro conferidos e diff-check aprovado. Worktree arquivada com confirmação
+depois de conservar código/evidência. Configurador aberto com sucesso visível,
+sem configuração salva ou pareamento. Alteração de produção não executada.
+
+## 04/11/2026 — Implementação do plano CONTAD, D-309/V-310
+
+- Lidos plano, decisões, validações e etapas/dúvidas na ordem exigida. Registrado
+  D-309 antes dos comportamentos dependentes; baseline preserva estado anterior.
+- Implementados bloqueios de duplicidade nas duas cadeias e revisão/exportação
+  sob trava de empresa. Auditoria histórica permanece somente leitura.
+- Recorte persistido em cadastro/agente com migração aditiva 0031, protocolo
+  compatível, filtros antes do envio e validação atômica da página no servidor.
+  Ausência de recorte impede financeiro v2. Piloto não aciona outros módulos.
+- Endurecidos CA/CSR/mTLS/gateway, com bootstrap separado e cabeçalhos públicos
+  sobrescritos; preparado procedimento da etapa 12. Não criado segredo/CA real.
+- Ajustados orientação de movimento conciliado, rótulo de candidatos e OCR no
+  runtime Linux. Testes de interface feitos com dados e sessão sintéticos.
+- Regressão PostgreSQL: 1.502 testes/151 subtestes aprovados, um skip opcional.
+  .NET: 38 testes e builds sem avisos/erros; CI MSI 1.0.2: 25 verificações.
+  Nginx/Django TLS real local, Redis/Celery e restauração sintética aprovados;
+  V-310 registra os tempos e limites sem equipará-los a produção/Windows.
+- Branch isolada `codex/agent-windows-validation`, commit fc7b378 e run
+  41845516300 preservados. MSI/hash conferido no Mac; transferência ao PC
+  não respondeu, nenhum instalador executado. PC conserva 1.0.1.0 e ausência de
+  configuração. Não alterados DSN, firewall, credenciais ou ERP. Scancode
+  restaurado; terminal de diagnóstico criado nesta rodada fechado.
+- Pesquisa somente leitura autorizada pelo responsável escolheu candidato
+  Fedrizzi de uma empresa/conta bruta/janeiro de 2026 com 115 itens. IDs só na
+  evidência ignorada; falta confronto bancário/contábil, zero itens independentes
+  homologados e nenhum envio. Não repetida pergunta pelos identificadores.
+- Cadastro hospedado permanece 503 por CA; sessões CLI não acessam o app e
+  responsável confirmou não dispor desse acesso. Não repetir solicitação nesta
+  rodada. Nenhuma alteração hospedada, importação ERP ou execução de IA.
+- Plano, decisões, validações, checklists 03/09/12, dúvidas Q existentes, matriz
+  CONTAD, pendências e instalação atualizados. Worktree do agente arquivada;
+  contêineres/rede/servidores temporários próprios encerrados após evidências.
+  PC-19 continua aberto para fontes/regras, pareamento, importação conferida,
+  recuperação real, treinamento e aceite. Bloqueio não constitui conclusão.
+
+Complemento V-310: a revisão de entrada mTLS acrescentou recusa segura de
+cabeçalho de gateway com caracteres não ASCII. A regressão final de cinco
+módulos aprovou **80 testes PostgreSQL em 58,71 s**, sem skips, depois dessa
+alteração; não se soma esse número aos testes únicos da suíte integral.
+A persistência DPAPI recebeu arquivo temporário criptografado, flush e troca
+atômica, mantendo o arquivo anterior em caso de falha; ciclos sem mudança de
+recorte/destino não regravam configuração. Serviço/configurador compilaram com
+zero avisos/erros. Mac: 37 testes .NET aprovados e um skip explicitamente Windows;
+revalidação do pacote Windows preparada no commit `fc7b378`.
+
+Fechamento do pacote V-310: run **41845516300** concluído com **38 testes .NET
+sem skips e 25 checks MSI aprovados**; checksum final `e5bef0da853b740d3286087a863ad74922e2252ab6d969a2d8e2e333512158cc`
+conferido contra o arquivo, manifesto e relatório CI. Artefato final em
+`agent-windows/artifacts/windows-1.0.2/run-41845516300/`; candidato anterior
+preservado por run. O CI registrou avisos não bloqueantes de runtime Node das
+ações e ICE61 de atualização da mesma versão; os builds .NET tiveram zero
+avisos/erros. Não houve execução do MSI no PC. Worktree arquivada, serviços de
+QA próprios encerrados e alterações anteriores preservadas.
+
+## 04/11/2026 — Dispensar CA privada do agente, D-310/V-311
+
+- Registrada a decisão do responsável antes de mudar o contrato: piloto passa
+  a HTTPS/HMAC explícito, mantendo recorte, segredo, revogação, DPAPI e TLS.
+- Backend deixa de consultar CA no novo modo; configurador não cria CSR/PFX;
+  serviço dispensa certificado/renovação. Legado certificado preservado, sem
+  fallback silencioso. Configurador também usa gravação atômica/ACL antes da escrita.
+- Regressão integral: 1.522 testes Python/151 subtestes aprovados, um skip.
+  CI final 41854423194: 44 .NET e 26 checks Windows, incluindo LocalSystem sem PFX.
+  Dez cenários HTTPS reais sintéticos sem CA de cliente aprovados; V-311 registra
+  tentativas/correções, tempos, arquivos, hash e limites.
+- MSI 1.0.3 preservado por run, checksum conferido. CI não inclui dados reais.
+  Nenhum MSI executado no PC; sem deploy/conta Fly disponível, sem novo pedido
+  de acesso. PC continua 1.0.1.0; nenhum dado transmitido, ERP alterado ou custo contratado.
+- Plano/decisões/validações, etapas 03/09/12, Q-28, matriz, pendências e instalação
+  atualizados. Exigência de CA/mTLS como gate superada; demais condições reais
+  continuam. Worktree e serviços de QA próprios encerrados após preservar evidência.
+
+## 05/11/2026 — Continuidade PC-19/CONTAD, D-311/V-312
+
+- Solicitação anexada lida com plano/decisões/validações/etapas e dependências.
+  Base main b499cd1, baseline privado de 7.199 arquivos. Nenhum reset, limpeza,
+  pull, commit geral, push ou deploy; trabalho anterior preservado.
+- Registrada D-311 antes das correções: snapshots exportados protegidos contra
+  reaprovação/exportação nova e reexportação a partir de fatos mutáveis.
+  Aplicação/reaplicação de regras usa trava comum e revalida decisão humana.
+- Preparados contrato offline de títulos/parcelas/baixas e DE-PARA determinístico
+  em rascunho com revisão/contas/conflitos/autorizações. Sem SQL novo, conta
+  inventada, ativação automática ou IA/custo. Q-46/Q-47 continuam abertas.
+- Regressão final PostgreSQL: 1.578 testes + 151 subtestes aprovados, um skip,
+  430,32 s. Ruff global, MyPy três módulos, Django/migrações/whitespace passaram.
+  Rodadas intermediárias não somadas ao total único. Sem QA Playwright novo.
+- .NET Mac: 43 aprovados/um skip Windows; 43 arquivos do agente comparados ao
+  commit 1bf8549 (somente documentação difere). MSI 1.0.3/hash reconferidos,
+  sem reinstalação/CI Windows nesta rodada. Evidência Windows V-311 é histórica.
+- ZIP local de 806 arquivos, SHA-256 em V-312/manifesto. Roteiro de configuração,
+  migrações aditivas e retorno preparado. Não é imagem/release hospedada.
+- PostgreSQL sintético restaurado em outro banco: 182 tabelas/15 sequências,
+  dois arquivos, 200 movimentos/200 fontes independentes/dez alocações iguais;
+  5,726 s. RPO, Neon/objetos/knowledge e rollback publicado não demonstrados.
+- Aplicada skill PDF para leitura/inspeção dos anexos locais. Encontrado plano
+  de contas de 14 páginas; 754 linhas candidatas extraídas em arquivo privado,
+  sem importação/semântica presumida. Relatórios bancários não viraram Razão.
+- Responsável confirmou que relatórios solicitados ainda não existem e RDP
+  está logado. Cancelar menu nativo/elevar janela superou a leitura transitória
+  desconectada. Domínio Contabilidade aberto; responsável fez login diretamente
+  e autorizou atualização oficial. Falhou por executável ausente no caminho
+  configurado; nenhuma instalação/conversão/consulta SQL nova. DSN e processos
+  de outros trabalhos preservados. Não pedir novamente documentos inexistentes.
+- Evidências reais em `.tmp/contad-delivery-2026-11-05/`, ignoradas/restritas.
+  Plano, validações, etapas 03/09/12, dúvidas únicas, matriz e pendências
+  atualizados. Publicação, transmissão, fonte contábil real, IA autorizada,
+  Q-46/Q-47, recuperação operacional, treinamento e aceite continuam abertos.
+
+Continuidade operacional: localizado ajuste assinado na rede; assinatura válida
+Thomson Reuters e recusa por exigir versão completa 10.6A-10 sobre 10.6A-09.
+Responsável confirmou backup concluído e recuperável. Baixado pacote completo
+do repositório oficial; assinatura válida conferida. Assistente completou a
+instalação base 10.6A-10 em `C:\Contabil`, somente componente Domínio Contábil,
+sem novos termos, fechamento forçado, backup em nuvem ou LogMeIn. Ajuste 2 de
+05/11 também completou. Aplicação reaberta até a tela de autenticação, com
+senha vazia; login direto solicitado ao responsável. Scancode restaurado.
+Sem consulta SQL nova, conversão de base observada ou relatórios obtidos.
+Registros iniciais de falha acima são históricos; não pedir novamente pacote,
+DSN ou confirmação de backup.
+
+## 05/11/2026 — Continuidade D-312/V-313
+
+- Nova solicitação para continuar a implementação; arquivos de continuidade
+  relidos, main b499cd1 preservada, sem reset/pull/limpeza/commit/push/deploy.
+- Login Domínio confirmado; versão 10.6A-10 -02. Conta contábil do candidato
+  identificada na consulta de extrato e Razão limitado emitido. PDF observado
+  no Windows (141 KB); cópia Mac não confirmada, nenhuma linha normalizada.
+- Consultados fechamento e parâmetros sem gravar: candidato original com
+  fechamento contábil 11/2023 e títulos desmarcados. Responsável autorizou
+  procurar outro recorte somente leitura. Alternativa com menu de títulos,
+  fechamento fiscal 09/2026 e contábil 11/2014; pesquisa não é homologação.
+- A Pagar limitado à emissão/posição de setembro gerado; PDF conferido no
+  Explorer (116 KB exibidos) e cabeçalho aberto no leitor, sem executar IA.
+  Não apresenta conta/chave de baixa/data de pagamento nessa visão. Cinco
+  consultas delimitadas de recebimentos/pagamentos/parciais sem dados,
+  registradas privadamente com filtros. Não inferida ausência geral. Consultas
+  fechadas sem gravar parâmetros/lançamentos; Scancode restaurado e sessão logada.
+- D-312 registrada antes do núcleo offline de prévia de alocações e da CLI:
+  seleções explícitas, escopo/capacidade dos dois lados, agrupamentos/parciais,
+  componentes/estornos; diferenças de data e revisão obrigatória preservadas.
+  Sem ORM, SQL novo, rede, IA, persistência, ativação no agente ou gate contábil.
+- 85 testes focados aprovados, cobertura combinada 97,44%, Ruff global/MyPy e
+  whitespace passaram; CLI executada com fontes sintéticas. Não somar repetições
+  ou apresentar a regressão completa V-312 como atual para esses módulos.
+- Nova candidata local de 809 arquivos, 2.022.148 bytes, SHA-256 em V-313;
+  todos os hashes de ZIP/workspace iguais, CLI incluída. Pacote V-312 preservado.
+- Evidências privadas ignoradas no diretório de 05/11; plano/validações/etapas,
+  dúvidas, matriz, pendências e contrato atualizados. Publicação/homologação/
+  liberação continuam pendentes dos gates PC-19.
+- Conferência final: 809 hashes ZIP/workspace iguais, 7.199 arquivos iniciais
+  presentes, base b499cd1 preservada e evidências privadas 0600; whitespace aprovado.

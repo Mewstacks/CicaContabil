@@ -457,6 +457,7 @@ PRIVACY_REQUEST_TARGET_DAYS = env_int("PRIVACY_REQUEST_TARGET_DAYS", 15)
 # The reverse proxy must verify the certificate and overwrite the two forwarded
 # headers; Django then binds that verified client certificate to one EdgeAgent.
 EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", False)
+EDGE_AGENT_MTLS_PROXY_SECRET = env_str("EDGE_AGENT_MTLS_PROXY_SECRET")
 EDGE_AGENT_CA_CERT_PATH = env_str("EDGE_AGENT_CA_CERT_PATH")
 EDGE_AGENT_CA_KEY_PATH = env_str("EDGE_AGENT_CA_KEY_PATH")
 EDGE_AGENT_INSTALLER_URL = env_str("EDGE_AGENT_INSTALLER_URL")

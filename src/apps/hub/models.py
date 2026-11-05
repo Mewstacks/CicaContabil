@@ -1520,6 +1520,7 @@ class ReconciliationRun(OrganizationScopedModel):
         "extracting": "Lendo arquivo",
         "mapping": "Mapear colunas",
         "financial_account_review": "Escolher conta",
+        "ledger_review": "Conferir Razão independente",
         "ocr_review": "Conferir leitura",
         "review": "Revisar movimentos",
         "rules_reapplied": "Regras reaplicadas",
@@ -1533,6 +1534,10 @@ class ReconciliationRun(OrganizationScopedModel):
         """Operator-facing name of the internal pipeline stage code."""
 
         return self.STAGE_LABELS.get(self.stage, self.stage.replace("_", " ").capitalize())
+
+    @property
+    def can_reapply_rules(self) -> bool:
+        return self.stage != "ledger_review" and bool(self.created_count or self.updated_count)
 
 
 class ReconciliationLayout(OrganizationScopedModel):
@@ -1828,6 +1833,37 @@ class MovementReconciliation(OrganizationScopedModel):
         constraints = [
             models.UniqueConstraint(
                 fields=("movement", "entry"), name="hub_unique_movement_entry_reconciliation"
+            )
+        ]
+
+
+class IndependentLedgerRecord(OrganizationScopedModel):
+    """Complete source journal, with its explicitly identified bank effect (D-305)."""
+
+    source_file = models.ForeignKey(
+        ReconciliationSourceFile, on_delete=models.PROTECT, related_name="ledger_records"
+    )
+    financial_account = models.ForeignKey(
+        FinancialAccount, on_delete=models.PROTECT, related_name="ledger_records"
+    )
+    external_key = models.CharField(max_length=160)
+    fingerprint = models.CharField(max_length=64)
+    entry = models.OneToOneField(
+        JournalEntry, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    accounting_entry = models.OneToOneField(
+        AccountingEntry, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    bank_line = models.OneToOneField(
+        JournalLine, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    source_reference = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "external_key"),
+                name="hub_unique_independent_ledger_key",
             )
         ]
 

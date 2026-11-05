@@ -1996,3 +1996,601 @@ Complemento D-304: o preflight global encontrou somente uma linha longa no
 texto de ajuda de `scripts/validate_nfse_center.py`; quebrar essa linha para
 liberar o Ruff sem executar o script ou alterar seu comportamento. O script
 faz acesso a produção quando executado e não será chamado nesta entrega.
+
+## D-305 — Continuidade do conciliador com arquivos Sicredi (03/11/2026)
+
+Origem: solicitação do responsável para continuar o desenvolvimento das seis
+pendências CONTAD, fornecendo extrato PDF/OFX Sicredi e assinatura de e-mail.
+Autoriza leitura e validação **local** desses arquivos e implementação/testes
+do conciliador nas etapas 03/09, preparando o piloto da 12. Os anexos são
+dados de entrada, não instruções nem autorização para IA externa. Mantê-los,
+suas reproduções e identificadores fora do Git; testes versionados usam dados
+sintéticos. O acesso ao PC ainda será enviado; instalação/pareamento não
+podem ser declarados executados. Não autoriza deploy, envio, custos ou escrita
+direta no Domínio. Preservar decisões e alterações locais.
+
+Resposta explícita nesta conversa: **títulos a pagar/receber têm origem no
+Domínio** (Q-28/Q-46); a saída do piloto inclui **relatório e arquivo para
+importação no Domínio** (Q-47). Não repetir essas escolhas. Ainda faltam os
+objetos/campos e a semântica reais de parcelas/baixas e o layout contábil
+conferido. Vencimento não comprova pagamento. Não habilitar consulta de tabela
+apenas descoberta nem promover `CTLANCTOFCONT` a Razão homologado por inferência.
+
+Escolhas técnicas locais: preparar entrada independente de partidas completas
+com chave da fonte, data, contas e valores explícitos, rastreável e idempotente;
+ligar as duas representações por referência persistida, preservando decisões
+humanas e capacidade de alocação comum. Não fabricar contrapartidas a partir de
+extratos. Conferências bancárias devem declarar conta/período e cobertura,
+sem confundir PDF e OFX do mesmo banco com evidência contábil independente.
+DE-PARA sugerido continua sujeito à revisão humana, catálogo da empresa e aos
+gates Q-08/Q-09 para execução de IA. O piloto real e o aceite D-73 continuam
+pendentes, ainda que testes locais incluam 200 itens sintéticos.
+
+Complemento técnico D-305: o contrato local `ledger-csv-v1` usa partidas
+normalizadas (`debit`/`credit`, centavos inteiros e direção de caixa explícita),
+não códigos brutos do ERP. Exige conta financeira e plano de contas da empresa,
+um único efeito bancário por lançamento e partidas integralmente equilibradas;
+casos não representáveis são recusados integralmente. A importação conserva
+rascunhos de **fonte**, sem aprovar novos lançamentos ou reenviar ao ERP fatos
+já escriturados. Arquivos genéricos antigos não ganham prova independente por
+migração. Na ponte nova, confirmação e desfazimento compartilham alocação e
+trava da empresa; a fila antiga exige o OFX original processado na fila nova.
+
+## D-306 — Gerar e testar o pacote Windows do agente (03/11/2026)
+
+Origem: pedido explícito do responsável, após a conferência do instalador:
+“então faça esse processo para testar o agente”. Autoriza compilar, gerar MSI,
+validar hash e testar instalação/serviço/configurador/diagnóstico/reinício/remoção
+em Windows descartável, com dados sintéticos e sem conexão a ERP. Preservar
+integralmente as alterações locais D-305 e as demais existentes.
+
+Este computador é macOS. Usar CI Windows padrão do repositório público já
+configurado, em branch `codex/agent-windows-validation`, com apenas as alterações
+necessárias ao pacote/teste e sem merge em main ou deploy. Commit/push dessa
+branch e download dos artefatos são passos necessários autorizados pelo pedido;
+não publicar os dados/anexos da cliente nem as mudanças locais do conciliador.
+O CI atual gerou o MSI na execução 41489363424, mas não preservou artefatos.
+Passar a guardar MSI, hash, manifesto e evidência de teste por prazo curto.
+Usar runner padrão público, sem contratação, runner pago ou serviço externo
+de negócio. Não adquirir certificado de assinatura por inferência.
+
+O MSI desta preparação mantém a versão 1.0.0 existente até haver necessidade
+concreta de mudança. Checksum não equivale a assinatura Authenticode. O teste
+de instalação usa somente Windows descartável; pareamento no ambiente real,
+driver/DSN e Domínio da cliente continuam dependentes do acesso prometido em
+Q-28. Não habilitar SQL novo, importar/escrever no ERP ou declarar homologação
+real a partir desse ensaio. Registrar comandos, versão/SHA, arquivo resultante,
+resultados e limites em V-305 e nos checklists/registro de execução.
+
+Complemento D-306: o primeiro ensaio Windows (run 41662010680) instalou,
+iniciou e removeu o serviço, mas comprovou que a pasta de configuração herdava
+permissões em vez de restringi-las a SYSTEM/Administradores. Corrigir o ACL
+no próprio MSI com DACL protegida antes da configuração; repetir o ensaio
+integral. Não enfraquecer o teste nem tratar o pacote reprovado como entrega.
+
+
+## D-307 — Testar o mesmo pacote em Windows 11 Desktop (03/11/2026)
+
+Origem: pedido explícito do responsável: “teste agora em windows 11 normal”.
+Ampliar o ensaio D-306 para Windows 11 cliente, mantendo os mesmos bytes do
+MSI já aprovado, sem rebuild ou mudança de versão. Registrar edição/build,
+ProductType e arquitetura reais antes de instalar; Windows Server não atende
+este pedido. Preservar alterações e evidências anteriores separadamente.
+
+O host disponível é macOS ARM64, sem VM Windows executável encontrada. Há uma
+ISO x64 em Downloads, mas isso não comprova Windows instalado/licenciado. O
+Windows App existe, porém a ferramenta informa ausência de permissão de uso
+do computador; não contornar essa restrição por outra API de interface.
+O runner padrão público `windows-11-arm` fornece Windows 11 Desktop ARM64 sem
+cobrança de computação neste repositório público, conforme documentação oficial
+GitHub consultada. Executar nele o MSI x64 sob compatibilidade/emulação do SO,
+sem alegar que esse resultado homologa Windows 11 Intel/AMD, SQL Anywhere ou
+ODBC real. Não alterar suporte/arquitetura do produto para fazer o teste passar.
+
+Reutilizar branch isolada `codex/agent-windows-validation`, com novo workflow
+restrito ao ensaio e download do artefato do run 41664064414, verificando SHA-256
+`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393` antes de
+executar. Commit/push do roteiro e registro necessários seguem autorizados pelo
+pedido; sem merge, deploy, runner pago, compra/licença, credenciais, anexos da
+cliente, acesso a ERP ou pareamento externo. Preservar V-305 e registrar resultado
+real/limites em V-306, checklists e execução. O ensaio continua recusando máquina
+com agente/configuração existente e remove somente sua instalação descartável.
+A prova Windows 11 x64 exige ambiente próprio disponível; não transformar
+indisponibilidade em aprovação, nem instalar virtualizador/aceitar EULA por
+inferência.
+
+
+Complemento D-307: o responsável confirmou um **PC de teste Windows 11 com
+acesso seguro por RDP**. Não é necessário perguntar novamente pela existência
+do ambiente ou pela ferramenta. A sessão precisa estar aberta/autenticada no
+Windows App e o controle do computador habilitado no Codex; a ferramenta de UI
+recusou acesso por ausência dessa permissão. Não solicitar senha no chat nem
+contornar a permissão. Antes de alterar a máquina, conferir SO/arquitetura,
+agente e configuração existentes. O script destrutivo de runner GitHub não deve
+ser executado nela nem ter seu guard burlado. Preservar instalação existente e
+credenciais; não conectar ao Domínio, parear externamente ou declarar teste RDP
+executado apenas porque o usuário informou disponibilidade do PC.
+
+
+Continuidade D-307 — controle RDP liberado (03/11/2026): após adicionar o
+helper, conferidos por UI **Codex Computer Use** ligado em Gravação de Tela e
+Acessibilidade. A captura da sessão e os cliques no Windows funcionaram; aberto
+um terminal novo sem interromper trabalhos existentes. A entrada de teclado
+inicial alterou caixa/símbolos e os dois comandos de leitura falharam, sem
+instalação ou acesso a ERP. O responsável autorizou explicitamente a mudança
+**temporária para Unicode** no Keyboard Mode do RDP; conferir o resultado e
+restaurar o modo anterior ao encerrar. Não equivale a autorização para trocar
+idioma, enfraquecer segurança, alterar credenciais ou executar piloto ERP.
+
+
+Complemento operacional D-307: após Unicode, conferidos por CIM no PC RDP
+**Windows 11 Pro 10.0.26200, build 26200, ProductType=1, AMD64**. Serviço,
+configuração e binário CicaAgent ausentes; console inicial sem elevação.
+Preparar ensaio específico para PC de teste: exigir administrador/SO/hash,
+recusar instalação/configuração preexistente e conservar a instalação nova ao
+final em `awaiting_configuration`, sem pareamento/ERP. O roteiro reservado ao
+runner GitHub permanece intacto, sem falsificar variáveis de CI. Configuração
+sintética própria só pode ser removida se seu hash continuar idêntico; mudanças
+concorrentes exigem interrupção segura. Não desinstalar o agente do PC ao final
+por inferência nem alterar políticas de execução, firewall ou segurança.
+
+
+Preparacao D-307 no PC: sem pasta redirecionada/colagem de arquivos utilizavel,
+baixado somente o artefato publico original do CI por URL HTTPS temporaria do
+conector GitHub. Nao abrir listener, firewall, compartilhamento, login novo ou
+servico de transferencia persistente. SHA-256 do MSI conferido no proprio PC.
+Roteiro novo `test-windows11-pc.ps1` transferido como dados, SHA-256
+`9f006559f836d40b1752f8d54fd5ded3899e5c494dc11b3c2a0cbea78cad2097` conferido
+antes da execucao, parser Windows PowerShell com zero erros. Politica local ja
+existente `RemoteSigned`; nao foi alterada nem contornada. Executar com elevacao
+administrativa normal do Windows, dentro do teste/instalacao ja solicitado.
+
+
+Ajuste D-307 do roteiro de PC: o primeiro `powershell.exe -File` parou na
+avaliacao de `PSScriptRoot` nos argumentos padrao, antes de instalar o MSI.
+Resolver os caminhos no corpo pelo arquivo invocado e aceitar caminhos explicitos;
+novo SHA-256 `d9ab1e87bd3c738ac1357273dc5f8f2897f524b822b18bc7e68405f5ce8f29e9`
+conferido no PC e parser novamente com zero erros antes de repetir. O codigo do
+MSI nao mudou. Unicode funciona no Windows Terminal; o console legado elevado
+nao recebeu texto Unicode, portanto preparar comandos no terminal ja aberto e
+iniciar o arquivo administrativo por RunAs, sem contornar politicas do Windows.
+
+## D-308 — Testar o conciliador com o agente instalado (03/11/2026)
+
+Origem: pedido explícito “agora teste o conciliador utilizando isso”, depois
+da instalação validada em V-307. Autoriza continuar a verificação nas etapas
+03/09/12 usando o PC de teste RDP já disponibilizado e a conexão Domínio
+Fedrizzi existente de D-74. Primeiro conferir conexão somente leitura e os
+contratos de entrada do conciliador, preservando configuração, credenciais e
+dados existentes. Não repetir DSN, driver, origem Domínio dos títulos ou saída
+relatório/arquivo já decididos. A autorização temporária de teclado Unicode
+de D-307 acompanha esta continuidade; restaurar Scancode ao terminar.
+
+Preparar e executar os testes locais isolados possíveis, distinguindo-os da
+sincronização real do serviço Windows. Pareamento que amplie acesso precisa
+ter destino/escritório e recorte concretos antes de conectar; não assumir que
+esta instalação ainda sem configuração autoriza enviar a carteira inteira à
+produção. D-72/D-74 autorizam a homologação Fedrizzi, não a cliente CONTAD.
+Não executar SQL novo, descobrir semântica por suposição, escrever no ERP,
+publicar/deployar, consumir IA externa ou gerar custos. Q-28/Q-46/Q-47 e D-73
+mantêm seus limites: extrato não é Razão, dado sintético não é piloto real,
+exportação não é importação homologada. Registrar resultados e impedimentos
+concretos em V-308 e nos checklists, sem declarar conclusão por bloqueio.
+
+Continuidade D-308 (03/11/2026): o responsável respondeu **“Conexão confirmada
+no configurador”**, após a solicitação de corrigir os valores diretamente no
+RDP. Não pedir credenciais novamente nem expô-las. Conferir o resultado
+visível e continuar a preparação/validação usando essa conexão, sem inferir
+que confirmação ODBC já seja pareamento do serviço ou autorização de envio
+integral da carteira. Destino/escritório e recorte devem permanecer concretos;
+novas decisões dependentes serão registradas antes da execução.
+
+Diagnóstico D-308 após a resposta: ao repetir no configurador aberto, a UI
+mostrou novamente ODBC 28000. Pergunta de esclarecimento vinculada a Q-28
+solicita somente em qual ferramenta apareceu o sucesso, não credenciais.
+Inspeção do código encontrou diferença concreta: o adaptador Python de D-74
+conecta por `DSN` sem sobrescrever autenticação; o configurador/serviço .NET
+adicionam usuário/senha. Autoriza diagnóstico somente leitura da conexão DSN
+existente sem essas substituições, usando a mesma consulta mínima de empresa
+do configurador, sem imprimir resultado, ler senha, alterar DSN ou salvar
+configuração. Isso verifica o contexto interativo, não a conta LocalSystem.
+
+Esclarecimento D-308/Q-28: o responsável confirmou que o sucesso ocorreu **no
+teste ODBC do Windows ou no Domínio**, não na mensagem do configurador CICA.
+Não registrar o erro 28000 do configurador como resolvido por essa resposta;
+comparar o uso do DSN existente sem pedir novamente seus dados de conexão.
+
+Correção técnica D-308: o teste .NET no próprio Windows com `DSN` apenas
+retornou `connected=true`, `minimum_query_passed=true`, sem SQLSTATE e sem
+imprimir qualquer registro. Implementar opção explícita de autenticação do
+DSN somente para Domínio Local, marcada em configuração nova; desmarcar mantém
+credenciais explícitas. Salvar indicador `UseDsnAuthentication` e não copiar
+credenciais desabilitadas. Configurações antigas sem indicador conservam o
+comportamento anterior; não há fallback após falha de senha. Compartilhar
+construção segura da connection string entre teste e processadores locais.
+Backup Domínio Web e Siescon conservam seus modos próprios.
+
+Reutilizar a worktree isolada já anexada, gerar atualização de teste **1.0.1**
+no runner público gratuito já utilizado, verificar hash, ensaiar em Windows
+descartável e então conferir no PC de teste. Atualização do agente está dentro
+do teste solicitado; preservar instalação/configuração e recusar sobrescrita
+de dados inesperados. Sem merge/deploy do site, novo contrato SQL, dados de
+cliente em CI ou alteração de permissões. UI WinForms será conferida no Windows;
+pesquisa ui-ux-pro-max, Watermelon/diretrizes web e referências SAP/Microsoft
+orientam controle nativo e texto, sem redesenhar a aplicação web.
+
+Preparação D-308 do pareamento: conferir a prontidão do endpoint HTTPS CICA
+já conhecido com uma requisição de diagnóstico vazia, sem código de cadastro,
+CSR, identidade da máquina, credenciais ou dados de empresa. Não criar agente,
+certificado ou alterar produção. A sondagem apenas distingue indisponibilidade
+de CA/rota de um problema local antes de pedir qualquer ação de pareamento.
+
+Preflight D-308 da atualização: run 41706460758, commit de código
+`605436b85f8a4bf50b519faab3938693b2c19a5c`, aprovou 28 testes .NET e 25
+verificações do instalador. MSI 1.0.1, 97.795.055 bytes, SHA-256
+`33063a23d26eafc4865193da01db629d580df44006c3c3c46ec16c38ff8b9b28`
+conferido no Mac e no PC antes de executar. Roteiro de atualização
+`test-upgrade-windows11-pc.ps1`, commit `50c0463d5d042b1261eb92ce8f278f3cbe0be732`,
+SHA-256 `530c3a4e3e4e51d07f715f0084e606daaa8dba3134a4357db43150b1d007bd75`,
+conferido no Windows e parser com zero erros. Guard exige instalação 1.0.0,
+ausência de configuração ERP, GUI fechada e hash/manifesto 1.0.1; não executa
+remoção explícita ou altera política de execução. Atualizar por RunAs normal.
+
+Resultado D-308/V-309: atualização real aprovada, saída MSI 0, versão instalada
+1.0.1.0, serviço automático LocalSystem Running e em espera sem configuração.
+No configurador atualizado, o teste com autenticação do DSN mostrou **“Conexão
+confirmada. O Domínio está pronto para sincronizar.”** Não salvou configuração
+nem pareou. Teclado devolvido a Scancode. A sondagem vazia do cadastro retornou
+503 por CA não configurada. Preparar na etapa 12 procedimento/retorno e obter
+autorização específica antes da alteração hospedada; definir destino/recorte
+antes de enviar dados. Isso não autoriza enviar toda a carteira à produção.
+
+
+## D-309 — Executar o plano de testes e ajustes CONTAD (04/11/2026)
+
+Origem: aprovação explícita do plano pelo responsável nesta conversa. Executar
+PC-19 nas etapas 03/09/12, preservando alterações locais. Começar na Fedrizzi
+com uma empresa, uma conta e uma competência fechada; CONTAD conserva piloto,
+implantação, treinamento e aceite próprios. Os identificadores concretos seguem
+em Q-28, sem credenciais no chat. Não transmitir a carteira inteira.
+
+Proteção de escrituração: qualquer alocação confirmada bloqueia geração,
+aprovação e exportação de lançamento derivado do mesmo movimento. Usar a trava
+comum da empresa antes de movimento/lançamento. Conciliar invalida rascunhos e
+aprovações derivados ainda não exportados; se já houver exportação, exigir
+conferência/retificação explícita em vez de alterar seu snapshot. Desfazer não
+reaprova lançamento invalidado. Alocação parcial não autoriza inventar residual.
+Auditoria histórica permanece somente leitura.
+
+Preparar recorte persistido no cadastro/pareamento e validação nos dois lados;
+sem recorte, bloquear sincronização financeira v2. A origem bancária atual não
+comprova conta por I_LANCAMENTO: exigir associação revisada dos identificadores
+de extrato à conta do piloto, sem inventar join/tabela ou semântica. O agente do
+piloto só executa empresas/extratos desse recorte, sem acionar outros módulos.
+Preservar a autenticação do DSN já validada e recusar clientes incompatíveis.
+
+Endurecer emissão/renovação e confiança no proxy mTLS; preparar configuração e
+retorno de versão isoladamente. Mudança hospedada, envio de dados e consumo de IA
+continuam sujeitos à autorização específica prevista no plano antes da ação.
+Não habilitar gates contábeis, SQL novo, escrita ERP, custo, aceite ou deploy por
+inferência. Q-46/Q-47 exigem exemplos/semântica/layout aprovados; Q-08/Q-09 regem
+IA real. Corrigir orientação do movimento conciliado, rótulos de candidatos e
+portabilidade do teste/runtime OCR, mantendo identidade e interface existentes.
+Registrar testes novos separadamente dos resultados prévios do planejamento e
+atualizar checklists, validações e execução sem encerrar bloqueios como concluídos.
+
+
+Complemento D-309/Q-28: o responsável autorizou o executor a pesquisar a base
+Fedrizzi somente leitura e escolher empresa, conta e competência fechada para
+o piloto. Usar fontes/consultas já autorizadas; registrar a seleção e sua
+cobertura antes de sincronizar. A autorização de pesquisa não altera o gate de
+transmissão para destino concreto, de consulta nova ou de escrita/importação ERP.
+
+Complemento D-309: dados de movimento conciliado só podem ser alterados após
+desfazimento explícito. A revisão individual e em lote usa a mesma trava da
+empresa; a interface mantém consulta/evidência/desfazimento e bloqueia escrita
+de fatos já conciliados, sem retirar poderes de revisão do operador.
+
+Contrato técnico D-309 do recorte: `dominio-pilot-v1` contém uma empresa,
+FinancialAccount existente do escritório, referência da conta, início/fim de
+uma competência e lista revisada de I_LANCAMENTO. A lista apenas restringe a
+consulta já existente; não prova por si só a conta nem habilita outra tabela.
+Cadastro e agente armazenam o mesmo manifesto com revisão SHA-256. O protocolo
+`scoped-v1` é obrigatório para um agente restrito; sem ele, o heartbeat falha
+antes da leitura. O backend revalida conta/empresa/período e recusa a página
+inteira fora do recorte. Agente restrito não opera arquivos, backup, IA,
+rentabilidade, sync genérico ou API v1. Configuração antiga continua legível,
+mas não sincroniza financeiro v2 sem recorte. O configurador Domínio Local
+recusa pareamento sem manifesto; códigos sem recorte permanecem apenas para
+capacidades não financeiras já existentes. O piloto não inventa associação
+entre códigos de conta: I_LANCAMENTO precisa ser confrontado na fonte antes
+da emissão do código com esses IDs.
+
+Transporte D-309: cabeçalhos de certificado só são confiáveis quando o gateway
+privado também autentica a requisição com segredo próprio (`EDGE_AGENT_MTLS_PROXY_SECRET`),
+separado das credenciais do agente. Exigir mTLS sem esse segredo recusa acesso.
+O proxy verifica a cadeia/TLS e sobrescreve os cabeçalhos nas rotas v1/v2;
+backend conserva HMAC, fingerprint e validade temporal. Não configurar segredo,
+CA ou ingresso em produção nesta preparação. A CA deve estar válida, ter chave
+correspondente e poder assinar certificados; recusar CSR fraca e não emitir
+certificado além da validade da CA. OCR publicado requer Tesseract/português e
+fonte disponíveis no Linux; adaptar o teste às fontes locais suportadas.
+
+Empacotamento D-309: gerar MSI de teste 1.0.2 na mesma branch isolada
+`codex/agent-windows-validation`, com somente arquivos do agente/roteiro/workflow,
+CI padrão público já aprovado, sem merge/deploy, dados de cliente ou custo novo.
+Commit/push necessários ao CI e download do pacote integram o teste solicitado.
+Manter 1.0.1 preservado; atualização no PC só após CI/hash/guardas e sem configuração
+inesperada. TLS/gateway também serão exercitados em contêineres locais isolados,
+com CA, empresas e credenciais exclusivamente sintéticas; imagem/teste Docker
+não publicam o servidor nem comprovam transporte Windows ou produção.
+
+Pesquisa Q-28 sob D-309: a autorização posterior do responsável para buscar e
+escolher na Fedrizzi permite a sonda pontual, somente leitura, do cabeçalho do
+extrato candidato. Metadados ODBC confirmaram `CTEXTRATO_BANCARIO_LANCAMENTO`
+com CODI_EMP/I_LANCAMENTO/COMPETENCIA/CODI_CTA. Restringir aos dois IDs já
+observados, sem saldos/históricos, e confrontar a competência/identificador bruto
+de conta. Isso é diagnóstico local, não habilitação de contrato novo no agente,
+nem equivalência aprovada com o OFX/Razão. Não interpretar NATUREZA/ORIGEM_REG.
+Dados identificáveis e o candidato ficam somente nas evidências ignoradas.
+
+Seleção Q-28/D-309: candidato de uma empresa, conta bruta do cabeçalho e
+janeiro/2026 encontrado por leitura local; 115 itens no extrato escolhido.
+Identificadores somente na evidência privada. Ainda falta correspondência com
+conta bancária/Razão e comprovação de fechamento; não atende os 200 itens reais
+independentes de D-73. Nenhum dado financeiro foi enviado. MSI 1.0.2 aprovado
+no run 41839244976 (35 testes .NET e 25 checks), SHA-256
+`41167b9fe8bdd7b9817e0986597fd8776a65963c8b77a3b9db2e2f0bf634942c`.
+Preflight do PC: 1.0.1.0, sem agent.config, configurador de teste aberto.
+Preparar transferência temporária apenas desse pacote/roteiro pela rede local,
+restrita ao PC de teste, com hash verificado antes do RunAs normal. Fechar a GUI
+de teste sem salvar e atualizar somente se todas as guardas permanecerem válidas.
+
+Operação D-309: exercitar fila Redis/Celery real e restauração de banco/arquivos
+somente sobre cópia do corpus sintético, em contêineres próprios sem acesso
+externo. Medir integridade e tempo local; não extrapolar RPO/RTO ou rollback de
+produção. A transferência do MSI pela rede local não respondeu: interrompida,
+sem executar instalador nem mudar firewall/roteamento. PC conserva 1.0.1 e
+configurador anterior; 1.0.2 permanece preparado. Leitura Fly indisponível nas
+sessões CLI existentes no Mac e Windows, sem realizar login/alteração de conta.
+
+Complemento do responsável em Q-28/D-309: ainda não dispõe do acesso à conta
+Fly que administra o app. Não insistir na mesma solicitação nesta rodada nem
+presumir autorização/credenciais; concluir preparação e evidências locais.
+Pareamento/transporte hospedado e publicação continuam dependentes desse acesso
+e da autorização específica prevista no plano. Isso não encerra PC-19.
+
+Revisão final D-309: persistência do manifesto exige gravação atômica da
+configuração DPAPI e ausência de regravação quando recorte/destino não mudaram.
+O arquivo anterior deve permanecer íntegro se a substituição falhar. Incorporar
+ao mesmo pacote de teste e repetir validação Windows antes de considerá-lo
+final; artefato/CI anteriores continuam como evidência histórica, sem instalar
+no PC ou alterar produção.
+
+Pacote final D-309/V-310: commit `fc7b378c101350f5bb4c1e6324eb01aebb834201`,
+run 41845516300, **38 testes .NET/25 checks MSI aprovados no Windows**.
+MSI 1.0.2 final SHA-256 `e5bef0da853b740d3286087a863ad74922e2252ab6d969a2d8e2e333512158cc`,
+conferido no Mac contra manifesto/relatório. Substitui o candidato de run
+41839244976; ambos preservados em subpastas por run de
+`agent-windows/artifacts/windows-1.0.2/`. Não instalar o candidato anterior por
+engano. PC continua 1.0.1.0 sem configuração; não houve nova tentativa de
+transferência ou instalação. Worktree arquivada novamente após preservar a fonte.
+
+## D-310 — Pareamento sem CA privada obrigatória (04/11/2026)
+
+Origem: o responsável dispensou expressamente a autoridade certificadora após
+o esclarecimento de finalidade/custos nesta conversa. Para o agente CONTAD,
+retirar CA privada, certificado de cliente e mTLS como pré-requisitos. Adotar
+pareamento de uso único por HTTPS com segredo individual e assinatura HMAC das
+requisições, validade temporal, revogação, isolamento de escritório e recorte
+D-309. Conservar a validação normal do certificado HTTPS do servidor, DPAPI,
+ACL e gravação atômica; não desabilitar TLS ou autenticação.
+
+Negociar explicitamente o modo HMAC no cadastro, sem CSR/certificado ou acesso
+à CA. Recusar modo desconhecido, HTTP e tentativa HMAC em instalação que exija
+mTLS explicitamente. Clientes/configurações antigos com certificado conservam
+o comportamento e não devem consumir código de um fluxo incompatível.
+Não fazer fallback silencioso de certificado inválido para HMAC. A renovação
+de certificado não faz parte do ciclo HMAC. mTLS existente pode continuar como
+opção, sem bloquear o piloto que usa o novo contrato.
+
+Implementar backend/configurador/serviço, regressões e pacote de teste 1.0.3
+na branch isolada/runner público já autorizados. Preservar 1.0.1 no PC e todos
+os artefatos anteriores; atualização só com pacote/hash/guardas disponíveis.
+Esta mudança substitui a exigência mTLS do piloto em D-309, sem autorizar deploy,
+transmissão de dados, escrita ERP, custo ou abrir a carteira. O responsável
+continua sem acesso Fly: preparar e provar localmente, sem repetir a solicitação.
+
+Resultado D-310/V-311: HTTPS/HMAC sem CA privada comprovado localmente e MSI
+1.0.3 aprovado no run 41854423194, commit `1bf854958cecae319abc050241f7b83753903265`.
+44 testes .NET e 26 checks Windows, incluindo LocalSystem com DPAPI/HMAC sem
+PFX. SHA-256 `5850a351f9ea54f4b72131c840af5a34534ce9bbe521c62ec605a32695fd8253` conferido no Mac
+contra MSI/manifesto/relatório, pacote preservado por run. 1.522 testes Python
++ 151 subtestes aprovados, um skip opcional. Nada instalado no PC ou publicado.
+Configurador também usa gravação atômica e restringe a pasta antes de gravar.
+Worktree arquivada; PC mantém 1.0.1.0. CA não é mais condição do piloto, mas o
+backend publicado ainda precisa receber esta alteração quando houver acesso.
+
+## D-311 — Continuidade da entrega CONTAD e integridade dos snapshots (05/11/2026)
+
+Origem: solicitação anexada do responsável para executar PC-19 nas etapas
+03/09/12 até esgotar o trabalho local independente, preservando o prazo
+09/11/2026 e as alterações existentes. Não autoriza publicação, transmissão,
+IA paga, escrita/importação ERP ou aceite por inferência. D-310 prevalece:
+HTTPS/HMAC, sem CA privada obrigatória. Não repetir pedido de acesso Fly.
+
+Esclarecimento Q-28/Q-46/Q-47 nesta rodada: os materiais CONTAD estão em
+Downloads; na Fedrizzi é necessário procurar no Domínio. Autoriza procurar
+localmente esses materiais e pesquisar somente leitura na conexão/recorte
+Fedrizzi já autorizados. Não abrange outros clientes ou carteira inteira.
+Relatórios bancários, arquivos de demonstração e a proposta comercial não
+serão tratados como Razão/plano de contas/títulos ou layout homologado.
+Identificadores e conteúdo real permanecem nas evidências privadas ignoradas.
+
+Escolhas técnicas antes da correção: aprovação deve recusar lançamento já
+exportado sem alterar seu estado; reexportação exige mesmo destino/período,
+motivo e arquivo original íntegro, copiando seus bytes/hash e IDs, sem renderizar
+novamente registros mutáveis. Nova exportação também consulta o histórico de
+IDs para impedir duplicação de um lançamento cujo estado tenha regredido.
+Reaplicação de regras usa trava empresa→movimento e revalida proteção humana,
+conciliação e lançamentos após a espera, antes de apagar classificação anterior.
+
+Preparar contrato normalizado local de títulos/parcelas/baixas, sem SQL novo
+ou ativação no agente; principal, acréscimos, descontos, datas, conta e estorno
+devem ser explícitos. Preparar DE-PARA determinístico a partir de exemplos
+humanos e plano da empresa, com revisão obrigatória, conflito/insuficiência
+explícitos e correção manual preservada. Isso prepara a integração; não prova
+IA contratual, semântica Domínio ou regras Q-46. Q-08/Q-09 continuam abertas.
+Preparar manifesto revisável da versão e roteiro de publicação/retorno mantendo
+hub.0076/0077 e intelligence.0031 aditivas. Não habilitar gate contábil.
+
+Esclarecimento adicional Q-28/Q-46/Q-47: o responsável confirmou que os
+relatórios de Razão/títulos/parcelas/baixas solicitados **ainda não existem**;
+não continuar pedindo seus caminhos em Downloads. Também confirmou RDP logado.
+A primeira leitura da ferramenta mostrava sessão desconectada; após cancelar
+menu nativo e elevar a janela, a área de trabalho Windows ficou acessível.
+Essa observação supera o impedimento transitório, sem alegar nova autenticação.
+Pesquisar os relatórios disponíveis no Domínio em modo somente leitura, no
+recorte Fedrizzi já autorizado, sem modificar DSN, encerrar processos de outros
+trabalhos, escrever ERP ou transmitir dados. Semântica e exemplos continuam
+dependentes da revisão contábil; documento encontrado não equivale a aprovação.
+
+Continuidade Q-28: o responsável concluiu o login diretamente e informou
+"só precisa atualizar a domínio". Autoriza usar o atualizador oficial da
+instalação existente para prosseguir à consulta, sem baixar de fonte paralela,
+alterar DSN ou adquirir serviço/licença. Conferir as telas do atualizador;
+preservar backup/retorno antes de conversão de base e não aceitar termos novos,
+encerrar processos de terceiros ou ignorar bloqueios por inferência.
+
+Conferência do atualizador: o compartilhamento responde; contém setups
+C106A1001/C106A1002, mas não `atualiza.exe` esperado pelo início automático.
+Propriedades do C106A1002 identificam Domínio Contábil Setup; Windows confirmou
+assinatura digital válida de Thomson Reuters Corporation, carimbo 04/11/2026.
+Abrir o assistente desse pacote dentro da atualização já solicitada, para
+conferir versão/pré-requisitos e compatibilidade. Não renomear pacote para
+contornar o iniciador, mudar caminhos do ERP, forçar conversão ou fechar
+processos de outros usuários. Guardas/backup permanecem aplicáveis.
+
+Pré-requisito confirmado pelo assistente: estação em **10.6A-09**, ajuste
+C106A1002 exige **10.6A-10** completa. Não forçar o ajuste. Repositório oficial
+HTTPS do fornecedor possui `106a10/Atualiza.exe`; preparar essa versão completa
+e conferir assinatura antes da aplicação autorizada. O responsável confirmou
+expressamente **backup atual concluído e recuperável** ao ser consultado nesta
+rodada. Não solicitar novamente essa confirmação. Reusar os caminhos existentes
+e observar guardas/termos/processos, sem ampliar a autorização para lançamentos,
+baixas ou transmissão ERP.
+
+Pacote completo recebido diretamente do repositório oficial no Windows:
+`Atualiza (1).exe`, 1.324.901.936 bytes. Nas propriedades, o Windows confirmou
+assinatura digital válida de Thomson Reuters Corporation, carimbo 21/10/2026.
+Prosseguir pelo assistente normal dentro da atualização já autorizada e com
+backup confirmado; não contornar guardas nem aceitar novos termos por inferência.
+
+O assistente completo oferece componentes adicionais por padrão. Manter o
+caminho existente `C:\Contabil` e selecionar apenas Domínio Contábil nesta
+atualização; desmarcar drivers/utilitários/Busca NF-e/Backup em Nuvem/LogMeIn
+oferecidos pelo pacote. Isso não remove componentes existentes e evita adicionar
+acesso remoto ou serviços externos fora da solicitação.
+
+Instalação completa 10.6A-10 e ajuste C106A1002 (Atualização 2, 05/11/2026)
+concluídos pelos respectivos assistentes. Na reabertura, Domínio pediu nova
+autenticação com senha vazia; solicitar somente login diretamente na janela
+preparada, sem credenciais no chat. Não reaproveitar senha desconhecida, testar
+senhas ou recriar DSN. Teclado RDP restaurado de Unicode para Scancode antes
+da intervenção humana. Relatórios continuam pendentes do acesso à aplicação.
+
+Responsável confirmou novo login concluído. Conferência visual mostra a
+aplicação aberta em **10.6A-10 - 02**. Retomar somente leitura de Razão e
+títulos no candidato privado já autorizado, confrontando empresa/conta/período
+antes de emitir relatório. Não converter o código bruto de conta bancária em
+conta do Razão por inferência, nem consolidar outras empresas para a pesquisa.
+
+Conferência visual em Movimentos → Lançamentos de Extrato Bancário identifica
+o código bruto do candidato no campo explícito “Conta contábil do banco” e
+carrega movimentos ao selecionar janeiro/2026 na mesma empresa. Usar essa
+conta para filtrar o Razão do mesmo mês, sem tratar conciliação já marcada no
+ERP como aceite CICA nem presumir período fechado. Nenhuma inclusão, exclusão,
+alteração de saldo ou gravação deve ser executada nessa tela.
+
+## D-312 — Prévia local de alocação de baixas (05/11/2026)
+
+Origem: continuidade da implementação PC-19 solicitada após o novo login.
+Razão emitido na aplicação 10.6A-10 -02 para a empresa/conta/janeiro do
+candidato privado; PDF observado em Downloads do Windows. Transferência
+para o Mac ainda não confirmada; não declarar extração ou corpus homologado.
+Nenhuma nova escrita, baixa ou importação ERP está autorizada.
+
+Preparar um núcleo offline de prévia de alocações explícitas entre movimentos
+bancários normalizados e baixas do contrato de títulos D-311. Validar empresa,
+conta, período, direção, chaves compostas e capacidade de caixa de ambos os
+lados, incluindo agrupamentos, parciais e estornos. Usar o caixa efetivo da
+baixa, conservando seus componentes; não usar principal ou vencimento como
+pagamento. Sinalizar datas diferentes para revisão. Não escolher associações,
+aplicar tolerância, persistir decisões, gerar partidas ou habilitar agente/UI
+por essa prévia. Cobertura incompleta permanece explícita. Q-46 continua
+exigindo exemplos e aprovação contábil antes da integração real.
+
+Complemento D-312: oferecer execução local por CLI sobre três arquivos JSON
+normalizados (títulos, banco e seleções explícitas), com relatório de capacidades,
+componentes, diferenças de data e hashes das fontes. Validar tudo antes de
+produzir o arquivo, recusar JSON ambíguo e sobrescrita, gravar resultado privado
+atômico. Não enviar dados nem usar banco de dados.
+
+Pesquisa somente leitura: “Fechamento atual” contábil mostra 11/2023. Na Escrita
+Fiscal da mesma empresa, vigência exibida 09/2021, “Controlar contas a pagar e
+receber” desmarcado e período inicial/atual 10/2026. O menu de relatórios não
+ofereceu Contas a Pagar e Receber. Parâmetros fechados sem gravação. Isso não
+prova ausência histórica absoluta de títulos; impede obtê-los por esse percurso
+no recorte atual. Solicitada orientação do responsável em Q-28/Q-46 para outro
+recorte somente leitura, sem habilitar controle, criar vigência ou gerar parcelas.
+
+Esclarecimento Q-28/Q-46 nesta continuidade: o responsável autorizou
+expressamente “pesquisa de outro recorte somente leitura” na Fedrizzi após
+receber os impedimentos do candidato anterior. Permite procurar empresa e
+competência alternativas e conferir controle de títulos, fechamento e conta
+antes de emissão limitada dos relatórios. Não autoriza habilitar parâmetros,
+gerar parcelas/baixas, ampliar transmissão ou importar/escrever ERP. Registrar
+identificadores e evidências apenas nos arquivos privados ignorados.
+
+Pesquisa alternativa autorizada: encontrado candidato com menu fiscal de
+títulos disponível e fechamento fiscal 09/2026; fechamento contábil exibido
+11/2014. Não eleger esse candidato como período contábil fechado/homologado.
+Consultar relatórios fiscais limitados a setembro/2026 para conhecer campos
+e evidências de títulos/parcelas/baixas, preservando a diferença entre emissão,
+vencimento, pagamento e posição. Sem consolidação ou transmissão. A revisão
+da contadora e um recorte contábil fechado continuam pendentes para o piloto.
+
+Resultado da pesquisa alternativa: relatório A Pagar por emissão e posição
+de setembro emitido e PDF conferido no Windows. A visão tem documento,
+vencimento, valores/componentes e situação, mas não apresenta conta bancária,
+chave de baixa ou data de pagamento. Não promover documento a chave única,
+Valor Pago a caixa efetivo, Outras a tarifa ou Devolução a estorno vinculado
+sem exemplos e revisão Q-46. Consultas de recebimentos, pagamentos e situação
+parcial delimitadas a setembro retornaram sem dados nos filtros registrados;
+isso não prova ausência geral na empresa. Encerrar essas consultas sem alterar
+parâmetros/lançamentos, preservar os PDFs no Windows e manter fontes reais,
+recorte fechado e integração persistente em aberto. Não repetir pedido de
+login, documentos inexistentes, DSN ou backup já confirmado.
+
+## D-313 — Publicação do código preparado na main (05/11/2026)
+
+Origem: autorização expressa do responsável, “pode publicar na main”, após a
+entrega local D-312/V-313. Autoriza registrar e enviar ao GitHub o código,
+testes, configuração de exemplo e documentação preparados para PC-19, incluindo
+as dependências locais D-305–D-312 ainda não presentes na main remota.
+O destino conferido é `Mewstacks/CicaContabil`, branch `main`; remoto público
+na mesma base b499cd1, sem divergência observada no início desta rodada.
+
+Revisar inventário e bytes antes do commit; adicionar somente arquivos de
+fonte/documentação identificados, preservando dados, relatórios, configurações
+reais, segredos e artefatos privados fora do Git. Fazer push normal, sem force,
+reset, limpeza ou sobrescrita de trabalho concorrente. Não incluir outras
+worktrees/branches. O push aciona o CI existente; acompanhar seu resultado e
+registrar o SHA exato e os limites, sem transformar evidência histórica em
+teste novo. Os workflows conferidos não fazem deploy automático no push main.
+
+Esta autorização supera a restrição anterior de commit/push para esse código.
+Publicação no GitHub não autoriza deploy Fly/Cobalchini, instalação no PC,
+transmissão financeira, IA paga, escrita/importação ERP ou liberação comercial.
+Q-28/Q-46/Q-47, D-73, treinamento e aceite continuam abertos; distinguir código
+publicado de aplicação publicada, homologada e liberada.

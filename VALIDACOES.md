@@ -5167,3 +5167,904 @@ retornou esse mesmo SHA e `HEAD...origin/main = 0/0`; árvore de trabalho limpa
 após o envio. Sem force push, deploy, instalação ou acesso ao ERP. O registro
 dessa confirmação segue em commit documental adicional; CI remoto é evidência
 separada e não é declarado aprovado por sucesso do push.
+
+## V-304 — Razão independente, ponte das filas e conferência Sicredi (03/11/2026)
+
+Escopo D-305, PC-19, etapas 03/09 e preparação da 12. Base inicial
+`b499cd12d158fc33f68b39a365f70044aa31d7e5`, árvore inicialmente limpa.
+[Contrato e operação](docs/conciliacao-razao-normalizado.md) e
+[matriz CONTAD atualizada](docs/planejamento/verificacao-conciliador-contad-2026-11-02.md).
+
+**Fontes e decisões:** PDF Sicredi de seis páginas extraído com pdfplumber,
+renderizado com Poppler e inspecionado em composição integral. OFX lido localmente;
+ambos têm **163 movimentos**, iguais em data/valor/multiplicidade, zero sobras
+nessa comparação bancária. Sequência de saldos conferida: **100 → 0 centavos**.
+Não comprovam Razão ou equivalência dos formatos de conta. A imagem é assinatura
+de e-mail, sem regras de negócio. O responsável confirmou títulos de origem
+**Domínio** e saída de **relatório + arquivo para importação**; D-305 e Q atuais
+atualizadas antes do comportamento dependente. Anexos tratados como dados,
+mantidos fora do Git e sem envio externo.
+
+**Implementação:** contrato CSV de partidas completas, hash/fingerprint/chaves,
+idempotência e recusa atômica de inconsistências; migração aditiva 0077. Fonte
+permanece rascunho e não pode ser reexportada como novo lançamento. Ponte das
+duas filas com trava comum por empresa, capacidade do efeito bancário em
+partidas compostas, confirmação/desfazimento, projeção em upload tardio e trilha
+de decisão. Auditoria somente leitura detecta alocação compartilhada ausente.
+Relatório CSV privado por fonte/conta/período, sobras nos dois sentidos e saldos
+desconhecidos; recusa processamento incompleto e arquivo com hash alterado.
+Sicredi textual conserva documento, página/região e saldo por linha, valida a
+sequência e exclui lançamentos futuros.
+
+**Verificações finais locais:**
+
+- PostgreSQL 17.10 descartável em socket Unix próprio `.tmp/conciliador-pg/socket`,
+  porta 55439, settings isolado e chave artificial. Comando: `PYTHONPATH=src:.tmp/conciliador-pg
+  DJANGO_SETTINGS_MODULE=integrity_postgres_settings DJANGO_SECRET_KEY=...
+  .venv/bin/python -m pytest -q --basetemp .tmp/pytest-ledger-full-pg-2026-11-03`.
+  **1.452 aprovados, 2 skips e 151 subtestes aprovados em 212,71 s**.
+  Skips somente Playwright Python opcional e OCR português. Concorrências
+  executadas, inclusive disputa entre as duas filas pela mesma fonte e
+  importações simultâneas de Razão sem duplicar partidas.
+- Ensaio versionado com **200 lançamentos independentes sintéticos**, 400
+  partidas, 200 movimentos OFX e 200 confirmações compartilhadas. Retry reutiliza
+  as 200 chaves; relatório com zero sobras/diferença. Não é piloto CONTAD nem
+  prova de precisão/cobertura/tempo operacional D-73. Primeira bateria SQLite:
+  23 testes novos passaram em 36,38 s; os casos posteriores foram cobertos na
+  regressão final PostgreSQL. Não houve nova suíte integral SQLite nesta entrega.
+- Ruff global aprovado. MyPy aprovado nos seis serviços afetados: `ledger_import.py`,
+  `bank_evidence.py`, `reconciliation_bridge.py`, `reconciliation_report.py`,
+  `reconciliation.py` e `reconciliation_service.py`. `views.py` mantém os mesmos
+  dez erros anteriores, reproduzidos com `--shadow-file` usando HEAD; nenhum
+  novo erro. Django check sem problemas; `makemigrations --check --dry-run`
+  sem pendência. Migrações somente em bancos de teste, sem tocar desenvolvimento/produção.
+- Playwright Node/runtime + Chrome local, servidor não-demo sintético em
+  127.0.0.1:8013, mídia/banco descartáveis e rede externa bloqueada: upload do
+  Razão, estágio correto sem reaplicar regras, OFX, confirmação antiga refletida
+  no fluxo avançado, download e desfazimento refletido na fila OFX. Auditor com
+  carteira atribuída consulta sem upload. 1440×960, 375×812 e 812×375, claro/escuro
+  efetivos, teclado, foco visível, movimento reduzido e ausência de overflow.
+  Zero erros de console/página. Capturas desktop/celular claro/escuro inspecionadas;
+  contextos/browser encerrados.
+- UI/UX Pro Max aplicada; pesquisa local de design, referência oficial de
+  [conferência Xero](https://central.xero.com/0/article/Bank-Reconciliation-Summary)
+  e [Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+  consultadas. Watermelon e Playwright MCP não estavam expostos; a inspeção
+  executada foi Playwright Node. Identidade visual CICA preservada.
+
+**Ocorrências corrigidas:** fixture de permissão usava `user` em vez de
+`membership`; execução PostgreSQL isolada precisou de `DJANGO_SECRET_KEY`
+artificial; MyPy identificou opcionais/variáveis reutilizadas/kwargs corrigidos.
+O roteiro de navegador precisou recarregar navegação por hash para aplicar
+cookies de tema/perfil e atribuir carteira ao auditor sintético. Nenhuma permissão
+de produto foi alterada para obter resultado. Teste isolado e regressão final passaram.
+
+Evidências ignoradas pelo Git em `.tmp/conciliador-2026-11-03/`:
+`bank-pair-result.json`, `ledger-tests.log`, `postgres-focused.log`,
+`postgres-full.log`, `mypy*.log`, `ui-results.json`, `conference-ui.csv` e capturas.
+Os binários da cliente e reproduções visuais permanecem locais.
+
+**Limites:** entrada normalizada não é adaptador direto Domínio homologado.
+Não houve acesso ao PC, instalação/pareamento, SQL/ODBC real novo, implementação
+de títulos/parcelas/baixas, execução IA/DE-PARA, importação/escrita ERP, worker/rede
+reais, restore cronometrado, treinamento, aceite, envio, custo, push ou deploy.
+Faltam campos/amostras/regras Q-28/Q-46, plano/mapa e gates Q-08/Q-09, layout e
+importação contábil Q-47 e piloto D-73. Fonte Domínio e tipo de saída já estão
+decididos; não perguntar novamente. Etapa 09/PC-19 e entrega contratual abertas.
+
+Encerramento: servidor de QA e PostgreSQL descartável desta sessão foram
+parados após a regressão. `git diff --check`, Ruff global, links novos e
+comparação byte a byte dos logs MyPy de views atual/HEAD aprovados. Alterações
+permanecem locais e revisáveis, sem commit/push; nenhum arquivo da cliente no diff.
+
+## V-305 — MSI do agente testado em Windows descartável (03/11/2026)
+
+Escopo D-306, etapa 03 e preparação da 12, pedido explícito para gerar/testar
+agente após conferência de ausência do MSI local. Base `b499cd1`; alterações
+D-305 preservadas. Código de empacotamento isolado em worktree/branch
+`codex/agent-windows-validation`, sem merge em main, deploy ou dados da cliente.
+
+**Evidência final Windows:** [run 41664064414](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414),
+concluído com sucesso, SHA **`57acd4f9738209842f4d3be546859c164adcba88`**.
+Runner padrão `windows-2022` (Windows Server 2022, build 10.0.20348), repositório
+público; guard recusa instalar em máquina cliente/self-hosted ou com agente/configuração
+preexistentes. Foram executados **23 testes .NET e 25 verificações de instalação**:
+MSI/hash/manifesto, serviço automático LocalSystem, presença/arquitetura dos binários,
+estado sem configuração, ACL, abertura/fechamento do configurador, execução da
+ponte x86 com entrada recusada antes de ODBC, diagnóstico instalado, DPAPI sob
+LocalSystem, recusa de servidor HTTP, reparo preservando configuração cifrada,
+reinício após correção e remoção de serviço/binário. O teste não fornece DSN,
+credenciais, certificado de cliente ou servidor de negócio real.
+
+**Falha real corrigida:** run [41662010680](https://github.com/Mewstacks/CicaContabil/actions/runs/41662010680)
+gerou/instalou/iniciou/removeu o MSI, mas reprovou a ACL herdada na pasta de
+configuração. `Package.wxs` agora usa DACL protegida com `PermissionEx` para
+SYSTEM/Administradores antes de gravar credenciais. O segundo run
+[41663104581](https://github.com/Mewstacks/CicaContabil/actions/runs/41663104581)
+comprovou ACL/configurador/ponte/diagnóstico e parou no timeout do estado seguinte.
+O roteiro convertia uma data ISO já desserializada pelo PowerShell em string
+local, perdendo frações de segundo e recusando estado recente. Corrigida a
+conversão direta para DateTimeOffset, adicionado teste de precisão e captura
+do estado em timeout; os critérios de estado/frescura foram mantidos. A rodada
+final passou integralmente, inclusive DPAPI e recuperação. Pacotes reprovados
+não foram disponibilizados como instaladores aprovados.
+
+**Artefatos e conferência local:** MSI versão **1.0.0**, **97.790.959 bytes**;
+SHA-256 **`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393`**.
+Após download, igualdade entre bytes locais, `.sha256`, `release.json` e
+`installer-test.json` novamente conferida. Artefatos GitHub 13246525259 (pacote)
+e 13246670242 (evidência), retenção de um dia. Cópia local preservada em
+`agent-windows/artifacts/`, ignorada pelo Git; ZIP de transferência
+`CicaAgent-1.0.0-teste-windows-x64.zip` com MSI, checksum, manifesto, inventário,
+relatório de ensaio e instruções. ZIP **97.800.096 bytes**, CRC conferido;
+SHA-256 `ae7bc7751eaea7c7b8a593e8b4aa71fc47cbca1dc3cf6c639cf1781a175d4c01`.
+
+**Verificações locais adicionais:** `dotnet test ... -c Release --no-restore`
+repetiu os **23 testes**, zero falhas/skips. Builds Release de serviço,
+configurador e ponte passaram sem avisos/erros. Bateria Python
+`tests/test_edge_agent.py tests/test_intelligence_agent_django.py
+tests/test_intelligence_sync_django.py`: **23 testes aprovados em 58,32 s**, SQLite
+sintético. Não repetir a regressão financeira V-304 como se fosse nova nesta entrega.
+O build MSI conserva o aviso anterior WIX1076/ICE61 de upgrade na mesma versão;
+zero erros e instalação/reparo efetivamente testados. Não alegar MSI sem avisos.
+
+**Integridade do trabalho:** correção/teste/workflow/instruções copiados de volta
+à árvore principal somente após sucesso, recusando sobrescrever edição prévia.
+Hashes de 15 arquivos de aplicação/testes já modificados em D-305 foram conferidos
+inalterados. Segredos, anexos, binários, logs de runtime e configuração não foram
+commitados. Evidência temporária em `.tmp/agent-windows-2026-11-03/`, com TRX,
+logs/JSON das três execuções e bateria Python. Arquivos transferidos permanecem
+locais e não exigem que a cliente possua o repositório.
+
+**Limites:** `Authenticode=NotSigned`. Checksum/proveniência CI não equivalem
+à assinatura de editor; nenhuma compra/geração de identidade comercial foi
+presumida. Pacote é para instalação de teste controlada. Não houve instalação
+no PC da cliente, pareamento externo real, teste real SQL Anywhere/DSN/ODBC,
+leitura/escrita no ERP, rede/restore reais ou homologação CONTAD. Razão/títulos
+com parcelas/baixas e DE-PARA continuam nos gates próprios. Q-28 aguarda o
+acesso prometido; o responsável não precisa repetir a origem Domínio nem a
+inclusão de pagar/receber. Infraestrutura de produção não foi alterada.
+
+Encerramento D-306: branch de teste enviada sem merge, confirmação remota em
+`158e4ae3974af4294762244f7c72a7977bdb8443` (registro documental após o código
+testado `57acd4f`). MSI/ZIP/relatório preservados na árvore principal; hashes
+dos 15 arquivos de aplicação/teste preexistentes continuam idênticos. Ruff
+global, diff e CRC/hash finais aprovados. Worktree isolada arquivada após a
+cópia e confirmação do push (`archived_worktree` conferido); nenhum binário versionado.
+
+
+## V-306 — Mesmo MSI testado em Windows 11 Desktop ARM64 (03/11/2026)
+
+**Pedido/escopo:** D-307, “teste agora em windows 11 normal”. Resultado do
+Windows 11 cliente separado do ensaio Server 2022 V-305. Não há declaração de
+homologação do PC Intel/AMD ou do Domínio.
+
+**Execução real:** [run 41669715057](https://github.com/Mewstacks/CicaContabil/actions/runs/41669715057),
+job 126034515875, workflow `agent-windows-11-validation.yml`, commit
+`57427c76dbc04edf4b8455c4ee721f0a276511e7`, sucesso. SO conferido antes da
+instalação por CIM: **Microsoft Windows 11 Enterprise**, versão **10.0.26200**,
+build **26200**, **ProductType=1** (cliente), SO/processo/runner **ARM64**.
+A edição Enterprise é Windows Desktop; o runner não é Windows Server. MSI x64
+com ponte x86 executado pela compatibilidade/emulação do Windows ARM64.
+
+**Mesmos bytes:** baixado o artefato do run 41664064414 (código do pacote
+`57acd4f9738209842f4d3be546859c164adcba88`), sem rebuild. MSI 1.0.0, SHA-256
+`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393`;
+conferência fixa antes da execução e igualdade com relatório/copias locais.
+Checksum/manifesto e os bytes do pacote anterior foram preservados.
+
+**25 verificações aprovadas:** instalação silenciosa com saída 0; serviço
+LocalSystem automático e em execução; binários x64/ponte x86 presentes; espera
+sem configuração e sem ERP; ACL protegido para Administradores/SYSTEM; abertura,
+loop de mensagens e fechamento normal do configurador; execução da ponte x86
+com rejeição de entrada inválida antes de ODBC; diagnóstico instalado; DPAPI
+LocalMachine lido pelo serviço e rejeição de HTTP; reparo MSI com saída 0 e
+preservação da configuração cifrada; recuperação após correção e reinício;
+remoção com saída 0 e ausência de serviço/executável. Inclui guard de precisão
+de data e conferência MSI/hash/manifesto. Não houve alteração do código do
+produto ou da proteção do ensaio para aprová-lo. Não repetidos .NET/backend:
+as contagens 23/23 continuam evidência V-305, não novos testes desta execução.
+
+**Evidências preservadas:** artefato GitHub **13248051379**,
+`CicaAgent-windows-11-arm-validation`, **409.075 bytes**, digest do arquivo ZIP
+`sha256:99ecf370b2d8f3e092328991e632d60e7e3ab69643ef54fd7724f77b69986c93`,
+retido até 04/11/2026 16:02:16 UTC. Download local conferido:
+`.tmp/agent-windows-11-2026-11-03/passed-run/` (logs instalação/reparo/remoção,
+ambiente e relatório); cópia dos JSONs em `agent-windows/artifacts/windows-11-arm/`.
+Relatório `passed=true`, 25 checks, `pairing_tested=false`, `real_odbc_tested=false`,
+assinatura `NotSigned`. Diagnóstico confirma serviço Running, zero DSNs e nenhum
+driver SQL Anywhere. O script não executou consulta de ERP ou pareamento.
+
+**PC por RDP:** o responsável confirmou PC de teste e RDP, depois informou
+sessão aberta e controle habilitado. A chamada de interface ainda retornou
+**“Computer Use permissions are not granted”**, inclusive depois de reset do
+runtime e nova tentativa. Nenhuma tela, SO/arquitetura ou instalação desse PC
+foi inspecionada; não confundir a confirmação do usuário com uma ação realizada.
+Orientação oficial de permissões consultada por OpenAI Docs (Acessibilidade,
+Gravação de Tela e acesso do aplicativo no controle do computador); não houve
+contorno do bloqueio. Teste Windows 11 **Intel/AMD via RDP permanece pendente**
+até a ferramenta reconhecer o acesso. Não pedir novamente se há PC ou qual
+ferramenta, nem solicitar senha no chat.
+
+**Integridade e limites:** YAML/guardas/diff conferidos; os 15 arquivos de
+aplicação/teste de D-305 continuam com os hashes preservados. Nenhum dado/anexo
+ou binário versionado, merge em main, deploy, assinatura comercial, custo ou
+acesso a ERP. Teste ARM64 não homologa drivers ODBC, o PC da cliente, interface
+visual completa, queda de rede, pares mTLS ou piloto/aceite CONTAD.
+
+
+## V-307 — Agente instalado e testado no Windows 11 Pro x64 por RDP (03/11/2026)
+
+**Escopo/decisão:** continuidade D-307 após o responsável habilitar o helper.
+Captura/controle liberados, conferidos por UI `Codex Computer Use` ligado em
+Gravação de Tela e Acessibilidade. A evidência nova resolve a pendência de
+Windows 11 Intel/AMD descrita em V-306, sem substituir as limitações de ERP.
+
+**Ambiente real:** PC de teste disponibilizado pelo responsável por RDP;
+CIM mostrou **Microsoft Windows 11 Pro**, versão **10.0.26200**, build **26200**,
+**ProductType=1**, **AMD64**. Antes da instalação, serviço, configuração e
+binário do CicaAgent estavam ausentes. Nenhuma instalação anterior foi alterada.
+Não é o PC CONTAD nem prova de acesso ao Domínio da cliente.
+
+**Pacote idêntico:** MSI 1.0.0 do run 41664064414, SHA-256
+`0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393`, conferido
+novamente no PC antes de executar. Download HTTPS temporário do artefato pelo
+conector GitHub; nenhuma credencial enviada, listener, compartilhamento ou regra
+de firewall criados. A colagem de arquivos/retorno por clipboard não estava
+utilizável nessa sessão; não houve contorno de política de redirecionamento.
+Anexos/dados de cliente não foram transferidos.
+
+**24 verificações aprovadas:** guard de precisão de data, pin dos bytes e
+MSI/hash/manifesto; instalação `msiexec /i` com saída 0; serviço automático
+LocalSystem Running; quatro arquivos instalados; arquiteturas x64/x64/x86;
+espera sem configuração; ACL protegido para SYSTEM/Administradores; inicialização,
+abertura e fechamento do configurador; ponte x86 recusando entrada inválida antes
+de ODBC; diagnóstico instalado via Windows PowerShell; DPAPI LocalMachine lido
+pelo serviço com rejeição de HTTP antes de rede; reparo `/fa` com saída 0 e
+preservação da configuração cifrada; recuperação após remoção apenas da própria
+configuração sintética e reinício; agente conservado sem configuração ERP.
+Relatório `passed=true`, `failure=null`, **24 checks**; `Get-Service` após o teste
+confirmou **Running**. Não houve remoção do produto neste PC; os 25 checks de
+V-305/V-306 incluem remoção nos runners, portanto as contagens são distintas.
+
+**Roteiro específico de PC:** `agent-windows/test-windows11-pc.ps1` exige Windows
+11 AMD64/admin/hash e recusa serviço/pastas/configuração existentes. Não usa o
+guard GitHub nem falsifica variáveis de CI. Configuração sintética criada com
+CreateNew e removida somente se seu hash continuar idêntico; conserva a instalação.
+Primeira execução administrativa parou ao resolver `PSScriptRoot` nos padrões,
+antes de instalar. Resolver caminhos pelo arquivo invocado e permitir caminhos
+explícitos corrigiu a compatibilidade com Windows PowerShell. Parser aprovou
+zero erros antes da repetição. SHA do roteiro efetivamente executado:
+`d9ab1e87bd3c738ac1357273dc5f8f2897f524b822b18bc7e68405f5ce8f29e9`.
+Política já existente `LocalMachine=RemoteSigned` foi conferida e mantida.
+Nenhum bypass, alteração de segurança ou dependência nova foi necessário.
+
+**Evidência:** relatório original, diagnóstico e logs de instalação/reparo
+preservados em `%USERPROFILE%\Downloads\CicaAgent-PC-test-20261103-1330\validation\`
+no PC. SHA-256 do JSON original, lido pela sessão:
+`9e7f912d0b971404292686a6a57f6d942dbc7b06db6c2b3678342dde98f8943b`.
+Cópia local de resumo transcrito da leitura do relatório em
+`agent-windows/artifacts/windows-11-x64/windows-11-pc-summary.json`; não é alegada
+cópia byte a byte do JSON original. Os campos passado/contagem/SO/hashes/limites
+e serviço foram conferidos na tela. O MSI local original permaneceu intacto.
+
+**Operação da sessão:** mudança temporária de Keyboard Mode para Unicode foi
+explicitamente autorizada, registrada em D-307 e resolveu caixa/símbolos no
+Windows Terminal. O console legado elevado não recebeu essa digitação; os
+comandos foram preparados no terminal compatível e executados por RunAs normal.
+Nenhum comando financeiro ou SQL foi executado. Configuração e credenciais do
+ERP continuam ausentes. Manter o agente instalado em `awaiting_configuration`.
+
+**Limites:** MSI **sem assinatura Authenticode**. Pareamento HTTPS/mTLS, DSN,
+SQL Anywhere, consultas reais, rede/retomada e homologação CONTAD seguem pendentes.
+Não inferir Razão/títulos/parcelas/baixas, importação ou aceite pelo sucesso do
+instalador. Testes .NET/backend anteriores não foram repetidos nem recontados.
+Sem deploy, merge, publicação do binário ou nova despesa nesta continuidade.
+
+
+Encerramento V-307: configurador instalado aberto como administrador e
+inspecionado visualmente, com endereço/código de pareamento vazios, sem salvar
+ou testar conexão. Modo RDP devolvido a **Scancode** e visualização **tela cheia**
+restaurada; captura final confirmou o configurador aberto na sessão. Conferência
+local final confirmou SHA do MSI/roteiro e os 15 hashes preexistentes do
+conciliador preservados. Artefatos de execução continuam fora do Git. Nenhum
+push/merge/deploy adicional foi necessário para o ensaio no PC.
+
+## V-308 — Conexão do conciliador no PC e travessia local da API (03/11/2026)
+
+**Escopo:** D-308, pedido para testar o conciliador usando o agente instalado.
+PC RDP de teste de V-307, distinto da cliente CONTAD. Código do MSI não foi
+alterado/reinstalado. Preservadas todas as mudanças anteriores do conciliador.
+
+**Verificação real Windows:** configurador instalado aberto, selecionado
+Domínio Local. Encontrou DSN de sistema compatível e driver SQL Anywhere 16.
+O botão `Testar conexão` tentou a conexão ODBC do próprio configurador e recebeu
+**SQLSTATE 28000, Invalid user ID or password**. O código usa conexão com timeout
+de dez segundos e `SELECT TOP 1 codi_emp FROM bethadba.geempre`; a autenticação
+foi recusada antes da leitura. Não foi declarada leitura de empresa/lançamentos.
+Não modificar/exibir credenciais ou repetir tentativas com senhas alternativas.
+Solicitado ao responsável preencher os valores corretos diretamente no
+configurador RDP e conferir o teste, sem senha pelo chat. Resposta pendente.
+
+Nenhum `Conectar à CICA`, gravação de `agent.config`, pareamento, lote enviado,
+SQL novo, escrita Domínio ou alteração de segurança. O estado Running sem
+configuração do serviço permanece evidência de V-307, não nova consulta do
+serviço nesta entrega. RDP devolvido à tela cheia; configurador conservado
+em Domínio Local com o resultado visível. Scancode não foi alterado.
+
+**Travessia nova com dados sintéticos:**
+`tests/test_agent_reconciliation_pipeline.py`, sete cenários, exerce o endpoint
+HTTP real Django `agent-v2-dominio-bank-entries` em banco isolado, usando HMAC
+do contrato do cliente. Não executa o binário Windows nem uma conexão TLS/ODBC.
+
+- Página com 500 itens, página final com um, repetição sem duplicar e mudança
+  de vínculo no espelho. Exatamente 501 itens, sem desativar os da primeira
+  página e sem atingir escritório alheio com o mesmo código de empresa.
+- Recusa antes da persistência para página com 501 itens, tipos inválidos,
+  assinatura incorreta, agente revogado e ausência de mTLS quando obrigatório.
+  O caso mTLS verifica recusa, não autenticação TLS de ponta a ponta.
+- OFX com valor/data iguais ao espelho não ganha Razão automaticamente.
+  Confirmação é recusada e relatório mostra ausência de fonte independente.
+  Após importar partidas independentes equilibradas pelo contrato local,
+  confirmação humana compartilha alocação nas duas filas. Reenvio do agente
+  preserva essa decisão; relatório termina sem sobras/diferença e conserva
+  cobertura/aceite falsos e saldo contábil desconhecido explícito.
+
+**Execuções:** PostgreSQL 17.10 existente de QA, reiniciado somente no socket
+Unix próprio `.tmp/conciliador-pg/socket`, porta 55439, sem TCP. Settings
+`integrity_postgres_settings`, `PYTHONPATH=src:.tmp/conciliador-pg` e chave
+artificial, sem serviços externos. Bateria nova: **7 aprovados em 16,69 s**.
+Regressão dirigida: **157 aprovados, 24 subtestes e 1 skip em 30,32 s**.
+Os sete novos estão incluídos nos 157, não devem ser somados outra vez.
+Arquivos: `test_agent_reconciliation_pipeline`, `test_independent_ledger`,
+`test_reconciliation_integrity`, `test_reconciliation`,
+`test_reconciliation_module`, `test_bank_evidence`,
+`test_intelligence_agent_django`, `test_edge_agent` e
+`test_fedrizzi_dominio_setup_django`. Inclui os cenários concorrentes PostgreSQL
+e os 200 lançamentos independentes **sintéticos** de V-304. Skip exclusivamente
+OCR português indisponível. Não foi repetida a suíte integral de 1.452 testes.
+XMLs: `.tmp/agent-reconciliation-results.xml` e
+`.tmp/agent-conciliador-pg-results.xml`. Ruff do teste novo e diff-check aprovados.
+
+**Anexos autorizados:** `compare_bank_files` executado novamente localmente,
+somente leitura, sobre os originais PDF/OFX Sicredi: **163 movimentos em cada**,
+zero sobras por data/valor considerando multiplicidade, sequência de saldos
+válida, R$ 1,00 inicial/R$ 0,00 final. Relação entre as contas ainda exige
+confirmação, e os dois documentos são fonte bancária, não Razão independente.
+Resultado com hashes em `.tmp/agent-conciliador-2026-11-03/sicredi-check.json`,
+fora do Git; não houve transferência desses anexos para o Windows ou IA.
+
+**Limites e próximo passo:** corrigir autenticação no RDP, definir destino e
+recorte do pareamento antes de enviar dados e então comprovar o ciclo do serviço
+Windows. Razão/títulos diretos, parcelas/baixas, layout/importação Domínio,
+DE-PARA com IA revisado e piloto/treinamento/aceite reais D-73 continuam abertos.
+Não houve deploy, push, merge, chamada cobrada ou homologação CONTAD.
+
+Encerramento V-308: PostgreSQL de QA parado após os testes. Ruff e diff-check
+finais aprovados; os 15 arquivos preexistentes de aplicação/teste mantiveram
+os hashes de referência. Resumo do resultado observado e da bateria em
+`.tmp/agent-conciliador-2026-11-03/summary.json`, sem segredos ou dados bancários.
+
+## V-309 — Conexão Domínio corrigida no Windows 11 (03/11/2026)
+
+**Escopo/causa:** continuidade D-308, mesmo PC de teste autorizado de V-307.
+O responsável esclareceu que a confirmação anterior foi no ODBC do Windows
+ou no Domínio. O erro 28000 do configurador 1.0.0 ainda era reproduzível.
+Teste .NET somente leitura com autenticação do DSN retornou `connected=true`,
+`minimum_query_passed=true`, sem SQLSTATE. Mesma consulta mínima já existente,
+sem imprimir registro. O configurador acrescentava UID/PWD e sobrescrevia a
+autenticação do DSN, diferentemente do adaptador Python de D-74.
+
+**Correção:** opção explícita para usar autenticação do DSN em Domínio Local,
+marcada em configuração nova, com campos não utilizados desabilitados e
+credenciais vazias salvas nesse modo. Configuração antiga sem o indicador
+`UseDsnAuthentication` conserva o modo explícito. Sem fallback de identidade.
+Helper comum com OdbcConnectionStringBuilder no teste/processadores locais,
+incluindo substituições vazias no modo explícito e escape de valores. Backup
+Domínio Web/Siescon conservam seus modos. Controles ficam bloqueados no teste.
+
+**Código/testes:** branch `codex/agent-windows-validation`, código no commit
+`605436b85f8a4bf50b519faab3938693b2c19a5c`, roteiro de atualização no commit
+`50c0463d5d042b1261eb92ce8f278f3cbe0be732`. Código copiado à raiz após conferir
+igualdade dos arquivos anteriores com a base. Builds locais de serviço e
+configurador: zero avisos/erros; 28 testes .NET aprovados.
+[CI 41706460758](https://github.com/Mewstacks/CicaContabil/actions/runs/41706460758):
+**28 testes .NET e 25 verificações do instalador aprovados** em Windows Server
+2022 descartável, incluindo DPAPI/configuração antiga, reparo, reinício e
+remoção. Contagens local/CI não se somam. Cinco casos novos verificam DSN sem
+substituição, escape, DSN vazio e credenciais explícitas vazias sem fallback.
+Expectativas iniciais incorretas dos testes foram corrigidas; primeiro build
+sem restore exigiu restauração normal. Rodadas finais sem falhas.
+
+**Pacote:** MSI 1.0.1, **97.795.055 bytes**, SHA-256
+`33063a23d26eafc4865193da01db629d580df44006c3c3c46ec16c38ff8b9b28`,
+conferido no Mac/PC antes de executar. **Sem assinatura Authenticode**.
+Artefatos MSI/manifesto/inventário/CI/TRX em
+`agent-windows/artifacts/windows-1.0.1/`, ignorados pelo Git; versão 1.0.0
+anterior preservada. Não incluiu dados de cliente em CI.
+
+**PC real:** Windows 11 Pro AMD64 de V-307. Roteiro específico
+`test-upgrade-windows11-pc.ps1`, SHA-256
+`530c3a4e3e4e51d07f715f0084e606daaa8dba3134a4357db43150b1d007bd75`,
+conferido no PC e parser PowerShell com zero erros. Guards exigem versão
+anterior 1.0.0, configuração ausente, GUI fechada e hash/manifesto aprovados.
+RunAs normal, sem alterar/contornar política de execução. Cinco verificações
+aprovadas: origem/hash, saída MSI 0, versão instalada 1.0.1.0, serviço automático
+LocalSystem Running e `awaiting_configuration` sem ERP/pareamento. Sem reinício
+do PC ou remoção explícita ao terminar; agente mantido instalado.
+
+Relatório original/log no PC em
+`%USERPROFILE%\Downloads\CicaAgent-1.0.1-DSN-test\validation\`.
+SHA-256 de `windows-11-upgrade.json`:
+`0dee73a08811ee8a9b045ac8424b270ddc9d89d91cd3a9427bd8dac09e2089bf`.
+O original registra `gui_odbc_tested=false`, pois antecede o teste visual.
+Não foi reescrito. Resumo local transcrito, identificado como tal, em
+`agent-windows/artifacts/windows-1.0.1/windows-11-upgrade-summary.json`, separa
+essa execução da observação posterior; não é cópia byte a byte do original.
+
+**Conexão/UI real:** configurador instalado 1.0.1 aberto como administrador,
+Domínio Local, autenticação do DSN marcada/campos desabilitados. Teste mostrou
+**“Conexão confirmada. O Domínio está pronto para sincronizar.”**, reconferido
+na captura final. Desmarcar habilitou campos; Tab/foco e Espaço em Scancode
+permitiram remarcar. Em Unicode, Espaço não alternou o controle nesta sessão;
+Scancode restaurado. Configurador maximizado no Windows, RDP mantido na
+apresentação encontrada nesta continuidade; endereço/código/pasta vazios, sem
+salvar. Senha armazenada no DSN não foi lida/copiada/exibida. Conexão mínima
+usa contexto interativo administrativo; **ODBC sob LocalSystem não testado**.
+
+Aplicados ui-ux-pro-max, pesquisa Watermelon e diretrizes de interface:
+controle nativo, rótulo/AccessibleName, teclado/estado ocupado. Catálogo React
+Watermelon não fornece controle WinForms; nenhum componente instalado.
+Playwright não controla essa janela WinForms; teste nativo via CUA no Windows,
+sem espelho web ou declaração de auditoria completa de acessibilidade.
+Referências: [SAP, parâmetros ODBC](https://help.sap.com/docs/SAP_SQL_Anywhere/88bc65cec07241c5928ecd297d15cf13/811d64756ce2101485cda41548aba922.html?version=17.0),
+[Microsoft, acessibilidade WinForms](https://learn.microsoft.com/dotnet/desktop/winforms/advanced/walkthrough-creating-an-accessible-windows-based-application),
+[Watermelon](https://ui.watermelon.sh/home) e
+[diretrizes web](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md).
+
+**Bloqueio hospedado:** POST vazio no endpoint HTTPS de cadastro retornou
+**503 — “A autoridade certificadora do agente não está configurada.”** Sem
+CSR/código/identidade/dados financeiros; não criou agente. Evidência em
+`server-enrollment-readiness.json` nos artefatos locais. `_sign_csr` exige
+arquivos em `EDGE_AGENT_CA_CERT_PATH`/`EDGE_AGENT_CA_KEY_PATH`. Não geramos CA
+ou alteramos produção. Fly CLI somente leitura retornou saída 1, sem fornecer
+configuração utilizável; não afirmar nomes/valores dos segredos remotos.
+Configurar emissão não comprova mTLS de ponta a ponta; sem reduzir TLS.
+
+**Limites:** nenhuma gravação ERP, configuração salva, pareamento ou lote
+financeiro enviado; sem merge/deploy, infraestrutura ou custo novo. Backend
+não repetido: V-308 conserva 157 testes/24 subtestes e limites sintéticos.
+Os 15 arquivos financeiros preexistentes conservaram seus hashes. Conexão
+não comprova sincronização do serviço, Razão, títulos/parcelas/baixas,
+importação, piloto de 200 itens reais, recuperação, treinamento ou aceite.
+Próximo passo: autorização da mudança hospedada e destino/recorte antes de
+parear/enviar dados, conforme procedimento da etapa 12.
+
+Encerramento V-309: TRX local de 28 testes preservado em
+`agent-windows/artifacts/windows-1.0.1/local-dsn-auth.trx`; resumo transcrito
+gravado e confrontado com os campos observados. Hashes do MSI/roteiro e dos
+15 arquivos financeiros conferidos novamente; diff-check aprovado. Worktree
+isolada arquivada com confirmação, após preservar código na raiz, commits na
+branch e evidência necessária fora do checkout. Sem PR/merge/deploy. A janela
+do configurador foi deixada com conexão confirmada, sem salvar ou parear.
+
+## V-310 — Implementação do plano de testes CONTAD (04/11/2026)
+
+Escopo D-309, PC-19/etapas 03/09/12. Alterações locais anteriores preservadas;
+base `b499cd12` em main, sem merge/deploy. Aprovação do plano não foi tratada
+como autorização para transmitir a carteira, consumir IA ou importar no ERP.
+
+Implementado:
+
+- Geração, aprovação e exportação recusam movimento com alocação confirmada,
+  inclusive parcial e história OFX anterior. Trava comum de empresa serializa
+  com confirmação/revisão. Confirmar invalida rascunho/aprovação derivados;
+  lançamento exportado exige conferência explícita antes de conciliar.
+  Desfazer não reaproveita aprovação invalidada. Auditoria não reescreve legado.
+- Manifesto financeiro persistido, validado na emissão/resgate/configuração,
+  protocolo compatível, recusa de sync financeiro sem recorte. Agente filtra
+  empresa, IDs de extrato e datas antes de enviar; backend recusa página mista
+  inteira fora de empresa/conta/competência/revisão. Piloto não aciona módulos
+  de backup/arquivos/rentabilidade/IA ou sync v1/genérico. Migração 0031 aditiva.
+- CA/CSR/chave/validade/renovação endurecidas; backend exige segredo privado
+  de gateway além de identidade verificada e HMAC quando mTLS é obrigatório.
+  Template Nginx cobre bootstrap e rotas autenticadas v1/v2 e sobrescreve
+  cabeçalhos externos. Segredo/configuração de produção não foram criados.
+- Movimento conciliado fica somente leitura, conduz à evidência e conserva
+  desfazimento autorizado. Rótulo de candidatos disponíveis corrigido.
+  Runtime Linux recebe OCR português e fonte; teste usa fonte portátil.
+
+Validação automatizada:
+
+- **1.502 testes Python aprovados + 151 subtestes, um skip**, PostgreSQL 17.10
+  local isolado, 509,55 s. O único skip é Python Playwright opcional; CUA/
+  Playwright exercitou a interface. OCR antes ignorado agora foi executado.
+- Inclui concorrência PostgreSQL entre conciliar e gerar/aprovar/exportar,
+  revisão individual/lote, auditoria histórica sem escrita; páginas
+  0/1/499/500/501, replay, mudança/inativação do recorte, isolamento de
+  escritórios, protocolo antigo, código ausente/expirado/reutilizado,
+  CA ausente/malformada/expirada/incorreta, CSR/chave inválida, certificado
+  incorreto/expirado, renovação/revogação e cabeçalhos forjados.
+- **38 testes .NET aprovados**, serviço/configurador compilados sem avisos ou
+  erros. MSI 1.0.2 e **25 checks** de instalação/reparo/DPAPI/ACL/diagnóstico/
+  reinício/remoção aprovados em runner Windows Server 2022 descartável.
+  [Run 41845516300](https://github.com/Mewstacks/CicaContabil/actions/runs/41845516300),
+  commit `fc7b378c101350f5bb4c1e6324eb01aebb834201`, hash MSI
+  `e5bef0da853b740d3286087a863ad74922e2252ab6d969a2d8e2e333512158cc`.
+- Django check e ausência de migrações não geradas aprovados; Ruff global e
+  whitespace aprovados. MyPy dos sete módulos críticos aprovado. Format-check
+  global detectou 153 arquivos divergentes; não foi usado para reformatar
+  trabalho anterior nem é apresentado como aprovado. Não substitui o pass
+  do lint. A checagem ampliada de cinco módulos repetiu os dez erros anteriores de views (linhas fora das alterações), sem erro nos demais módulos; `mypy-expanded.log` preserva a saída.
+
+Ensaios operacionais sintéticos separados:
+
+- HTTPS real Nginx/Django em contêineres descartáveis: oito cenários aprovados,
+  incluindo CSR/pareamento, certificado + HMAC, falta de certificado com
+  cabeçalhos forjados, replay idempotente, página fora do recorte, renovação,
+  sobrescrita de cabeçalhos e interrupção/reinício sem duplicação. Recuperação
+  local do backend: **5,86 s**. Cliente de teste foi Python; não Windows.
+- Redis/Celery reais, eager desativado, rede de teste sem saída externa:
+  200 movimentos bancários sintéticos, três entregas do mesmo run, uma decisão
+  anterior preservada. Execução: **11,84 s**; reinício/retry: **7,02 s**.
+  Não é queda no meio de tarefa nem amostra independente de aceite.
+- Restauração de cópia SQLite + media: **0,02 s**, sete tabelas equivalentes,
+  três arquivos/hashes íntegros e integrity_check aprovado. Não é restore
+  Neon/objetos, RPO aprovado ou retorno de produção. Não substituir D-73.
+- Docker runtime: OCR português extraiu data/valor/região de PDF digitalizado
+  sintético. Imagem Linux `sha256:3ced2f077f34a45844d50bda6cc8e50f32cdbba04f1aa3d9bec4fe8ada9db288`
+  construída; não publicada. O ensaio Nginx usou a imagem anterior indicada
+  no seu JSON; os hashes/limites estão separados.
+- CUA/Playwright: confirmar conciliação conduz à evidência, sem ação de gerar/
+  aprovar/editar; auditor consulta sem botões de escrita. Seis combinações
+  1440×900, 390×844, 844×390 nos temas claro/escuro sem overflow global no DOM;
+  foco visível pelo teclado e zero avisos/erros de console na jornada. Captura
+  do painel pode apresentar escala/margens; não equivale a homologação em
+  dispositivos físicos. Viewport temporário restaurado e aba de teste fechada.
+
+Pesquisa real e limites:
+
+- O responsável autorizou buscar/escolher na Fedrizzi somente leitura.
+  Uma página bancária existente permitiu escolher empresa/competência;
+  metadados e dois cabeçalhos confirmaram códigos brutos de conta. O recorte
+  escolhido de janeiro/2026 contém **115 itens** no extrato selecionado.
+  Sem saldos/históricos coletados nessa consulta de cabeçalho e sem envio CICA.
+  Identificadores só em `private-pilot-candidate.json`, fora do Git, modo 0600.
+  Fechamento contábil e equivalência com a conta bancária/Razão não comprovados.
+  **Zero itens reais independentes homologados**, sem precisão/cobertura
+  D-73 inventadas. Não habilitado contrato SQL novo no agente.
+- Windows/RDP: versão 1.0.1.0 e ausência de agent.config conferidas. Transferência
+  temporária do MSI 1.0.2 por rede local não respondeu; nenhuma instalação foi
+  executada, firewall/DSN/credenciais preservados. O configurador anterior
+  continua disponível. Teclado Scancode restaurado e terminal criado fechado.
+- Endpoint hospedado de cadastro continua **503 por CA ausente**. CLI Mac e
+  Windows não acessam `cica-contabil`; responsável confirmou que ainda não tem
+  esse acesso. Não houve login/alteração Fly, criação de CA ou deploy.
+- ODBC sob LocalSystem, pareamento e mTLS Windows/hospedado, contratos reais de
+  Razão/títulos/parcelas/baixas, Q-46/Q-47, DE-PARA/IA Q-08/Q-09, importação
+  conferida Domínio, restauração/rollback publicados, 200 itens reais,
+  treinamento e aceite CONTAD permanecem abertos. RPO/janela ainda a definir.
+
+Evidências: `.tmp/contad-implementation-2026-11-04/` (JUnit, TRX, logs, JSONs
+TLS/fila/OCR, seis medições DOM e capturas); pacote/CI preservados em
+`agent-windows/artifacts/windows-1.0.2/`. Baseline de hashes e verificação de
+preservação não identificaram arquivo anterior removido. Worktree isolada do
+agente foi arquivada com confirmação após preservar fonte/pacote/CI. Main e
+alterações financeiras não foram enviados a produção. Checklists 03/09/12,
+Q-28, matriz CONTAD, pendências e execução atualizados sem concluir PC-19.
+
+Complemento V-310: a revisão de entrada mTLS acrescentou recusa segura de
+cabeçalho de gateway com caracteres não ASCII. A regressão final de cinco
+módulos aprovou **80 testes PostgreSQL em 58,71 s**, sem skips, depois dessa
+alteração; não se soma esse número aos testes únicos da suíte integral.
+A persistência DPAPI recebeu arquivo temporário criptografado, flush e troca
+atômica, mantendo o arquivo anterior em caso de falha; ciclos sem mudança de
+recorte/destino não regravam configuração. Serviço/configurador compilaram com
+zero avisos/erros. Mac: 37 testes .NET aprovados e um skip explicitamente Windows;
+revalidação do pacote Windows preparada no commit `fc7b378`.
+
+Fechamento do pacote V-310: run **41845516300** concluído com **38 testes .NET
+sem skips e 25 checks MSI aprovados**; checksum final `e5bef0da853b740d3286087a863ad74922e2252ab6d969a2d8e2e333512158cc`
+conferido contra o arquivo, manifesto e relatório CI. Artefato final em
+`agent-windows/artifacts/windows-1.0.2/run-41845516300/`; candidato anterior
+preservado por run. O CI registrou avisos não bloqueantes de runtime Node das
+ações e ICE61 de atualização da mesma versão; os builds .NET tiveram zero
+avisos/erros. Não houve execução do MSI no PC. Worktree arquivada, serviços de
+QA próprios encerrados e alterações anteriores preservadas.
+
+Conferência final V-310: 7.187 arquivos do baseline continuam presentes; as
+40 alterações em arquivos anteriores pertencem ao escopo executado. Os 41
+arquivos do agente foram comparados byte a byte ao commit CI final: somente a
+documentação de instalação difere, com os resultados desta rodada. Código do
+MSI confere com o workspace. `test-results.json` consolida testes e limites.
+
+## V-311 — Pareamento HTTPS/HMAC sem CA privada (04/11/2026)
+
+D-310 substitui a exigência mTLS do piloto em D-309 por decisão expressa do
+responsável. Implementado localmente, sem deploy, instalação no PC ou envio.
+
+- API v2 aceita modo `hmac` explícito por HTTPS, sem CSR, emissão de certificado
+  ou consulta à CA. Código continua de uso único/expirável; segredo individual,
+  HMAC/timestamp, revogação, isolamento e manifesto D-309 permanecem obrigatórios.
+- HTTP, modo desconhecido, código inválido/reusado/expirado, assinatura inválida/
+  não ASCII e identidade ausente/UUID inválido são recusados sem erro 500.
+- Servidor com mTLS explicitamente obrigatório recusa HMAC sem consumir o código.
+  Cliente antigo conserva fluxo certificado; CA inválida não causa fallback.
+  Produção usa HMAC como padrão; `EDGE_AGENT_MTLS_REQUIRED=true` continua opcional.
+- Configurador 1.0.3 não gera CSR/PFX, salva modo HMAC explícito com DPAPI/ACL e
+  gravação atômica. Pasta é restringida antes de gravar. Serviço não carrega PFX
+  nem renova certificado nesse modo. Configuração antiga continua `mtls`.
+- HTTPS do servidor mantém validação normal do sistema; redirecionamentos não
+  recebem corpo assinado/credenciais do agente. Nenhuma validação TLS desativada.
+
+Resultados:
+
+- PostgreSQL isolado: **1.522 testes + 151 subtestes aprovados**, um skip do
+  Python Playwright opcional, **108,56 s**. Inclui 20 casos novos de pareamento
+  HMAC e todos os casos anteriores. Antes deles, 71 regressões dos sete módulos
+  de agente/backup/triagem/rentabilidade também passaram. Não somar repetições.
+- .NET local Mac: 43 aprovados/um skip Windows; serviço/configurador compilados
+  com zero avisos/erros após correção do contrato do configurador.
+- Windows CI: **44 testes .NET sem skips e 26 verificações MSI aprovados**.
+  O novo check executa serviço LocalSystem com configuração DPAPI HMAC sem PFX;
+  chega ao transporte HTTPS de loopback inacessível e mantém retentativa, sem
+  ler ERP ou chamar serviço externo. Não equivale a sincronização Windows real.
+  [Run 41854423194](https://github.com/Mewstacks/CicaContabil/actions/runs/41854423194),
+  commit `1bf854958cecae319abc050241f7b83753903265`, MSI **1.0.3**, SHA-256
+  `5850a351f9ea54f4b72131c840af5a34534ce9bbe521c62ec605a32695fd8253`. Conferido contra arquivo,
+  manifesto e relatório; assinatura de editor ainda ausente. Avisos não
+  bloqueantes de runtime das Actions e ICE61 permanecem separados do build .NET.
+- HTTPS real local com proxy de terminação: **dez cenários aprovados** sem
+  certificado/CA de cliente ou gateway mTLS. Cadastro/uso único, heartbeat,
+  assinatura/credenciais inválidas, certificado HTTPS de servidor não confiável
+  recusado, recorte, replay, renovação dispensada e interrupção/reinício sem
+  duplicação. Retomada sintética: **1,70 s**. Certificado HTTPS de servidor é
+  exclusivamente fixture; não houve instalação de raiz no sistema do usuário.
+- Django check, migrações sem alterações pendentes, Ruff, MyPy dos dois módulos
+  Python alterados e whitespace aprovados. Sem migração nova nesta decisão.
+
+Correções durante validação: contrato duplicado do configurador ajustado para
+persistir o modo; CA fixtures antigas mantidas somente para testes legados;
+proxy sintético passou a reproduzir o `SECURE_PROXY_SSL_HEADER` da produção;
+UUID inválido/ausente passou a resultar em 401. CI inicial 41853259140 falhou
+na compilação do configurador; run final acima aprovou o pacote corrigido.
+Falha inicial do caso de assinatura vazia era do helper que assinava o vazio,
+corrigida antes da regressão integral aprovada. Não apresentar essas tentativas
+como validação do pacote final.
+
+Evidências ignoradas: `.tmp/contad-auth-hmac-2026-11-04/` (`test-results.json`,
+JUnit/TRX, logs, `https-hmac-results.json`); artefato preservado em
+`agent-windows/artifacts/windows-1.0.3/run-41854423194/`. Versões anteriores intactas.
+Worktree arquivada após preservar fonte/pacote; PostgreSQL e contêineres/rede de
+QA próprios encerrados. Nenhum recurso de terceiros foi modificado.
+
+Limites: PC conserva 1.0.1.0 sem configuração. Falta publicar o backend e
+instalar o novo MSI para usar esse modo no ambiente real; o responsável ainda
+não possui acesso Fly, e não foi solicitado novamente. Nenhuma nova coleta,
+transmissão, escrita ERP, consumo de IA ou contratação. CA/mTLS deixam de ser
+gate do piloto; acesso/publicação, recorte real conferido, Razão/títulos,
+Q-46/Q-47, recuperação operacional, treinamento e aceite CONTAD continuam
+abertos. RPO e métricas reais D-73 não foram inventados.
+
+## V-312 — Snapshots contábeis, preparação de títulos/DE-PARA e release CONTAD (05/11/2026)
+
+D-311 autoriza continuidade local de PC-19 nas etapas 03/09/12. Base main
+`b499cd1`, alterações anteriores preservadas; nenhum commit/push/deploy nesta
+rodada. Baseline privado de 7.199 arquivos preparado antes das alterações.
+
+Implementado:
+
+- Aprovar lançamento exportado é recusado antes de qualquer transição de estado.
+  Histórico de exportação também impede nova aprovação/exportação se o estado
+  do lançamento regredir. Concorrência aprovação/exportação exercitada em PostgreSQL.
+- Reexportação exige original da empresa, mesmo destino/período, estado válido,
+  motivo e integridade; copia bytes/hash/IDs/versão originais. Não renderiza
+  registros atuais mutáveis. Arquivo ausente/corrompido ou escopo divergente
+  recusa a operação sem novo registro. Gate contábil continua desligado.
+- Aplicação/reaplicação de regras usa trava empresa→movimento, recarrega fatos
+  e revalida revisão manual, conciliação e lançamentos antes de alterar a
+  classificação. Testes determinísticos de duas transações preservaram decisão
+  humana/rascunho surgidos após a seleção inicial de trabalho.
+- Contrato offline `titles-normalized-v1`: títulos, parcelas e baixas imutáveis,
+  conta/empresa, datas, componentes e centavos explícitos, saldo desconhecido,
+  cobertura declarada, parcialidade e reversão integral vinculada. Hash canônico
+  independente de ordem; inconsistência rejeita lote inteiro. Sem SQL, gravação,
+  endpoint ou ligação ao agente; não homologa semântica do Domínio.
+- DE-PARA determinístico cria somente rascunhos a partir de exemplos humanos,
+  com contas ativas da empresa, autorização do revisor, conflito/insuficiência
+  explícitos, trilha e retry que preserva correção/desativação humana. Não
+  classifica movimentos na preparação nem chama IA. Não atende sozinho a IA
+  contratual ou as regras reais ainda pendentes em Q-46/Q-08/Q-09.
+
+Validação final da versão de domínio entregue:
+
+- **1.578 testes Python aprovados + 151 subtestes, um skip opcional**, PostgreSQL
+  local descartável, **430,32 s**. `final-full-pytest.xml`/log. O skip é Python
+  Playwright opcional; não foi contabilizado como interface testada nesta rodada.
+  Abrange parsers/arquivos/OCR, HMAC/recorte, banco e proteção das duas cadeias,
+  além dos testes novos de snapshots, títulos, DE-PARA e corrida de regras.
+- **43 testes .NET aprovados/um skip Windows no Mac**, TRX desta rodada. Fonte
+  do agente comparada a `1bf854958cecae319abc050241f7b83753903265`: 43 arquivos,
+  somente instalação/documentação difere. MSI 1.0.3 reconferido SHA-256
+  `5850a351f9ea54f4b72131c840af5a34534ce9bbe521c62ec605a32695fd8253`.
+  Não repetir como atuais os 44 testes/26 checks Windows históricos V-311.
+- Ruff global, MyPy dos três módulos Python alterados, Django check,
+  ausência de migrações pendentes e whitespace aprovados. Nenhuma nova migração
+  criada. Sem alteração de templates/JS/CSS ou nova jornada visual; não houve
+  validação nova desktop/mobile/temas/teclado via Playwright nesta rodada.
+- Rodadas intermediárias focadas e suíte de 1.576 testes foram preservadas,
+  mas não somadas aos testes únicos da regressão final. A suíte foi repetida
+  após a guarda final de aplicação de regras e os dois testes adicionais.
+
+Operação sintética separada: aplicação de migrações em PostgreSQL descartável,
+seguida de dump/restore em outro banco e cópia de arquivos. **182 tabelas**
+confrontadas por contagem/hash de todas as linhas, **15 sequências** com estado
+igual e **dois arquivos** com SHA-256 igual. Preservados **200 movimentos,
+200 registros independentes e dez alocações confirmadas**. Restore/conferência
+**5,726 s**, geração da fixture **5,557 s**. Não é restore Neon/objetos/knowledge,
+falha de worker no meio da tarefa, rollback da aplicação anterior, RPO definido
+ou recuperação CONTAD. `postgres-restore-results.json` delimita a evidência.
+
+Release local revisável: ZIP com **806 arquivos**, 2.014.294 bytes, SHA-256
+`14b04f6d034fb9224494e81b05295a080932b4d6b6d6fcbc3a49edcdedb62429`.
+Manifesto por arquivo reconferido contra ZIP e workspace. O empacotador recusa
+sobrescrita, segredos/links inesperados e exclui dependências node_modules.
+A primeira tentativa encontrou essa dependência e foi corrigida antes de
+gerar o ZIP final. Não é imagem publicada. [Roteiro de configuração/retorno](docs/contad-release-2026-11-05.md)
+mantém hub.0076/0077 e intelligence.0031 aditivas e os gates existentes.
+
+Material real/autorização: Downloads continha plano de contas de 14 páginas;
+754 linhas candidatas extraídas privadamente, sem importar cadastros ou inferir
+situação ativa/código reduzido. Relatórios bancários/um balancete agregado e
+arquivos demonstrativos não viraram Razão/títulos Domínio ou layout homologado.
+O responsável confirmou que os relatórios solicitados ainda não existem;
+não solicitar novamente seus caminhos. [Contrato e limites](docs/conciliacao-fontes-titulos.md).
+
+RDP: primeira leitura transitória mostrou sessão desconectada; após cancelar
+menu nativo/elevar janela, Windows logado ficou acessível. O responsável fez
+login no Domínio Contabilidade e autorizou atualização oficial. O aplicativo
+falhou por não localizar `atualiza.exe` no compartilhamento configurado; não
+houve instalação/conversão de base, escrita contábil ou nova consulta SQL.
+Isso é falha do caminho de atualização, não ausência de RDP ou defeito do DSN.
+Processos de outros trabalhos foram preservados.
+
+Evidências privadas ignoradas em `.tmp/contad-delivery-2026-11-05/`, diretório
+0700 e arquivos reais restritos; fontes/pacote em `release/`, JUnit/TRX, logs,
+inventários, backup sintético e hashes. Identificadores não foram adicionados
+ao Git/CI. Nenhuma transmissão CICA, importação ERP, IA externa, custo ou
+alteração hospedada. Publicação, fonte real/regras Q-46/Q-47, IA autorizada,
+ODBC LocalSystem, D-73, recuperação operacional, treinamento e aceite CONTAD
+permanecem abertos; PC-19 não está concluído/homologado/liberado.
+
+Conferência operacional V-312: o contêiner efetivo usa **PostgreSQL 17.11**
+(comando `postgres --version`), não o 17.10 histórico que o script de restore
+inicialmente colocou como metadado fixo. JSON consolidado corrigido após a
+verificação direta; contagens/hashes/tempos não mudaram. Backup/evidências
+preservados e contêiner próprio encerrado/removido, sem tocar os demais serviços.
+O compartilhamento de atualização Domínio responde e contém dois setups
+C106A1001/C106A1002, mas não o `atualiza.exe` solicitado pelo lançamento
+automático. Assinatura listada do fornecedor em inspeção, sem execução dos
+setups ou conclusão de atualização nesta observação.
+
+Continuidade operacional V-312: C106A1002 foi inspecionado e o Windows confirmou
+assinatura digital válida Thomson Reuters Corporation. O assistente recusou a
+aplicação na estação 10.6A-09 por exigir a versão completa 10.6A-10; não foi
+forçado. O responsável confirmou backup atual concluído e recuperável. Baixado
+`Atualiza.exe` do [repositório oficial 106a10](https://download.dominiosistemas.com.br/atualizacao/contabil/106a10/),
+salvo como `Atualiza (1).exe`, 1.324.901.936 bytes. Propriedades confirmaram
+assinatura digital válida do mesmo fornecedor, carimbo 21/10/2026 23:27:54.
+O assistente completo confirmou **Atualização Terminada**, em `C:\Contabil`.
+Apenas Domínio Contábil selecionado; extras de drivers/utilitários/Busca NF-e,
+backup em nuvem e LogMeIn desmarcados. Não houve novo termo, fechamento forçado
+ou componente adicional de acesso remoto. Isso comprova a instalação base,
+não a abertura da aplicação, conversão de base ou obtenção dos relatórios.
+MD5 público do fornecedor preservado como referência; não houve comparação
+MD5 do executável Windows, e não se alega essa verificação.
+
+O ajuste **C106A1002 — Atualização 2 de 05/11/2026** aceitou o pré-requisito
+após a instalação completa, manteve `C:\Contabil` e também confirmou
+**Atualização Terminada**. Nenhum novo termo ou encerramento forçado exigido.
+Aplicação reaberta para conferir acesso e relatórios; essa instalação não
+atualiza o agente CICA nem comprova ODBC sob LocalSystem.
+
+Reabertura observada: tela de autenticação Domínio, senha vazia. Login direto
+solicitado ao responsável, sem credenciais no chat; janela mantida pronta.
+Teclado RDP restaurado de Unicode para Scancode. Nenhuma consulta nova, relatório
+obtido, importação contábil ou conversão de base observada nesta continuação.
+
+## V-313 — Prévia offline de alocações e consulta ERP (05/11/2026)
+
+D-312, PC-19/03/09/12. Implementados núcleo sem ORM/rede e CLI sobre contratos
+normalizados, com seleção explícita, escopo, chaves compostas, capacidade de
+caixa dos dois lados, parciais/agrupamentos, componentes e estornos brutos.
+Diferenças de data sinalizadas; toda saída exige revisão. Não escolhe vínculos,
+aplica tolerância, persiste decisão ou conecta títulos ao agente/UI.
+
+Validação desta versão: **85 testes focados aprovados** (56 de alocação/CLI e
+29 do contrato de títulos), Python 3.12.13/Django 6.0.8 no Mac, sem banco de dados.
+Cobertura do módulo de alocação 100%; combinada com CLI **97,44%**. Casos incluem
+escopo errado nas duas fontes, duplicação/limites, excesso acumulado dos dois
+lados, pagar/receber, parciais, agrupamento, estorno, JSON repetido/corrompido,
+destino existente/symlink e falha de escrita antes da publicação atômica.
+Ruff global, MyPy dos dois módulos e `git diff --check` passaram. MyPy inicial
+sem PYTHONPATH não encontrou config; reexecutado corretamente com PYTHONPATH=src.
+CLI executada também fora do pytest com fontes sintéticas, relatório 0600 e
+hashes conferidos. Nenhuma migração/alteração de UI/novo teste Windows necessário
+para esses módulos offline. Não reapresentar 1.578 testes/151 subtestes V-312
+como regressão completa desta alteração; nem somar rodadas repetidas.
+
+Nova candidata local em `.tmp/contad-delivery-2026-11-05/release-title-preview/`:
+**809 arquivos**, 2.022.148 bytes, SHA-256
+`db4085a89ff9215893478c51cae78c556284a303a2a013ed0b5e30040991b2e8`.
+809 hashes conferidos contra ZIP e workspace; inclui núcleo, testes e CLI.
+Base `b499cd12d158fc33f68b39a365f70044aa31d7e5`, alterações locais preservadas,
+sem commit/push/deploy. Pacote anterior de V-312 preservado. MSI/agente não mudaram.
+
+Consulta somente leitura no Windows: login concluído pelo responsável e versão
+10.6A-10 -02 confirmada. Movimentos → Lançamentos de Extrato Bancário identifica
+a conta do candidato no campo “Conta contábil do banco” e carrega janeiro/2026.
+Razão emitido para essa conta/mês, com Data/Número/Histórico/Cta.C.Part./Débito/
+Crédito/Saldo/Saldo-Exercício; PDF observado em Downloads do Windows, 141 KB.
+A transferência para Mac não foi confirmada; zero linhas extraídas/normalizadas
+ou exemplos aprovados. Relatório de uma conta não prova partidas compostas completas.
+
+“Fechamento atual” contábil original exibe 11/2023; Escrita Fiscal da mesma empresa
+mostra controle de títulos desmarcado, vigência exibida 09/2021 e período inicial/
+atual 10/2026. Parâmetros fechados sem gravar. Não se conclui ausência histórica
+absoluta de títulos. Responsável autorizou pesquisa alternativa somente leitura.
+Alternativa consultada possui menu de títulos e fechamento fiscal 09/2026,
+mas fechamento contábil 11/2014. Nenhum desses fatos homologa período contábil.
+Identificadores e observações em JSONs privados 0600; nenhuma alteração de
+parâmetros, baixa, fechamento, consulta SQL nova, importação ou transmissão CICA.
+
+Na alternativa, A Pagar por emissão 01–30/09/2026 e posição 30/09, situação
+Todas/tipo Todos, gerou relatório. PDF conferido no Explorer (116 KB exibidos)
+e aberto para verificar o cabeçalho; sem cópia Mac, hash, extração ou contagem
+de páginas verificados. Colunas observadas: Documento, Emissão, Entrada,
+Vencimento, V. Parcela, Valor Pago, Juros, Multa, Outras, Desconto, Devolução,
+Saldo e Situação. Sem conta bancária, chave de baixa ou data de pagamento nessa
+visão; repetição do documento não identifica parcela/baixa. Não houve mapeamento
+semântico desses componentes ao contrato nem aprovação contábil.
+
+Cinco consultas delimitadas retornaram “Sem dados para emitir”: A Receber por
+emissão/posição de setembro; A Receber por recebimento em setembro com posição
+30/09; A Pagar por pagamento em setembro com posição 30/09; o mesmo filtro de
+pagamento sem posição; e A Pagar em situação Pagamento parcial por emissão
+em setembro, sem posição. Tipo Todos nas cinco. A última consulta não filtra
+data de pagamento. Ausência restrita a esses filtros, sem inferir inexistência
+geral de títulos/baixas. Janelas próprias de consulta fechadas, Domínio mantido
+logado e teclado RDP restaurado para Scancode. Nenhuma mudança de parâmetros
+ou lançamentos, nova seleção homologada ou ampliação de transmissão.
+
+Evidências: `title-allocation-pytest.xml`, `title-allocation-coverage.json`,
+`title-allocation-example/`, `title-preview-release-verification.json`,
+`private-erp-observation.json` e `private-alternative-candidate.json` no diretório
+ignorado de 05/11. Q-28/Q-46 ainda exigem fonte real revisada, adaptação e fluxo
+persistido; Q-47 layout/importação; Q-08/Q-09 IA; publicação/serviço real/D-73,
+recuperação operacional, treinamento e aceite continuam abertos.
+
+Conferência final V-313: os 809 hashes do ZIP e workspace continuam iguais
+após os registros documentais. Os 7.199 arquivos do inventário inicial continuam
+presentes, base Git inalterada; evidências reais e prévia sintética em 0600.
+`git diff --check` aprovado. Nenhuma publicação, commit ou push realizado.
+
+## V-314 — Publicação autorizada do código na main (05/11/2026)
+
+D-313 registra a autorização expressa do responsável. Preflight: `origin`
+aponta para `Mewstacks/CicaContabil` público, branch padrão main; `ls-remote`
+confirmou a mesma base local b499cd1. Inventário explícito de 84 arquivos de
+fonte/testes/configuração de exemplo/documentação, sem dados, relatórios,
+artefatos binários ou arquivos privados. Busca de padrões de chaves privadas,
+tokens e URLs com credenciais não encontrou ocorrência nesse inventário;
+isso não é uma garantia universal de detecção de segredos.
+
+Ruff global e `git diff --check` aprovados nesta rodada. Os 809 hashes de fonte
+da candidata V-313 continuam iguais ao workspace; 40 arquivos não Markdown do
+agente comparados ao commit Windows 1bf8549 têm bytes idênticos. Resultados de
+testes V-312/V-313 e Windows V-311 conservam datas/ambientes próprios; não houve
+nova regressão completa local. O push main aciona CI, sem workflow de deploy
+automático nesse evento. Resultado remoto será registrado após envio/verificação.
+
+Evidências de preflight em `.tmp/contad-main-publication-2026-11-05/`, ignoradas.
+Aplicação hospedada, PC real, transmissão, importação e homologação permanecem
+fora desta autorização de publicação do código; gates PC-19 não encerrados.

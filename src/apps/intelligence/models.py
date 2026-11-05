@@ -388,6 +388,7 @@ class AgentEnrollment(OrganizationScopedModel):
     """Single-use bootstrap code; only its digest is stored."""
 
     code_digest = models.CharField(max_length=64, unique=True)
+    sync_scope = models.JSONField(default=dict, blank=True)
     expires_at = models.DateTimeField(db_index=True)
     used_at = models.DateTimeField(null=True, blank=True)
     issued_by = models.ForeignKey(
@@ -403,6 +404,7 @@ class EdgeAgent(OrganizationScopedModel):
     label = models.CharField(max_length=120)
     fingerprint = models.CharField(max_length=128)
     mtls_certificate_sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+    sync_scope = models.JSONField(default=dict, blank=True)
     shared_secret = EncryptedTextField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     enrolled_at = models.DateTimeField(auto_now_add=True)

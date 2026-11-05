@@ -306,6 +306,7 @@ def _rebuild_company_matches(*, organization: Organization, company: ClientCompa
                 ]
             )
             .exclude(reconciliation_matches__status=ReconciliationMatch.Status.MATCHED)
+            .exclude(independent_source__entry__movement_reconciliations__state="confirmed")
             .order_by("id")
         )
         if candidates.exists():
@@ -330,6 +331,14 @@ def _rebuild_company_matches(*, organization: Organization, company: ClientCompa
                 "resolved_at": None,
             },
         )
+        # A later upload to the old view must recover the existing allocation,
+        # instead of presenting a second, apparently available bank transaction.
+        from apps.hub.reconciliation_bridge import movement_for_legacy, project_confirmed_allocation
+
+        current = ReconciliationMatch.objects.get(transaction=transaction_item)
+        movement = movement_for_legacy(current)
+        if movement is not None:
+            project_confirmed_allocation(movement)
 
 
 def confirm_reconciliation_match(
@@ -402,6 +411,46 @@ def confirm_reconciliation_match(
             if locked.accounting_entry_id == selected_entry.pk and locked.is_manual:
                 return locked
             raise ValueError("Esta transação já possui uma confirmação; a decisão foi preservada.")
+        from apps.hub.models import IndependentLedgerRecord
+        from apps.hub.reconciliation_bridge import movement_for_legacy
+        from apps.hub.reconciliation_service import confirm_reconciliation
+
+        try:
+            record = selected_entry.independent_source
+        except IndependentLedgerRecord.DoesNotExist:
+            record = None
+        if record is not None:
+            movement = movement_for_legacy(locked)
+            if movement is None:
+                raise ValueError(
+                    "Processe o mesmo OFX na importação de movimentos antes de confirmar o Razão."
+                )
+            confirm_reconciliation(
+                movement=movement,
+                entry=record.entry,
+                amount_cents=selected_entry.amount_cents,
+                evidence={
+                    "method": "reviewed_independent_ledger",
+                    "legacy_match": str(locked.pk),
+                    "source_file": str(record.source_file_id),
+                    "source_hash": record.source_file.content_hash,
+                    "source_key": record.external_key,
+                },
+                actor=actor if isinstance(actor, User) else None,
+            )
+        else:
+            movement = movement_for_legacy(locked)
+            if movement is not None:
+                movement = type(movement).objects.select_for_update().get(pk=movement.pk)
+                from apps.hub.models import JournalEntry
+
+                if movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists():
+                    raise ValueError(
+                        "O movimento já foi exportado; confira a importação e a retificação."
+                    )
+                movement.journal_entries.filter(
+                    state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
+                ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
         locked.dominio_entry = dominio_entry
         locked.accounting_entry = accounting_entry
         locked.status = ReconciliationMatch.Status.MATCHED

@@ -2,7 +2,6 @@ using System.Data.Odbc;
 using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using Cica.Agent.Service;
 using Microsoft.Win32;
@@ -12,6 +11,7 @@ Application.Run(new SetupForm());
 
 internal sealed class SetupForm : Form
 {
+    private bool isBusy;
     private const int DominioWebMode = 0;
     private const int DominioLocalMode = 1;
     private const int SiesconLocalMode = 2;
@@ -24,6 +24,14 @@ internal sealed class SetupForm : Form
     private readonly ComboBox driver = new() { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList };
     private readonly TextBox user = new() { Text = "DBA", Dock = DockStyle.Fill };
     private readonly TextBox password = new() { Text = "sql", UseSystemPasswordChar = true, Dock = DockStyle.Fill };
+    private readonly CheckBox useDsnAuthentication = new()
+    {
+        Text = "Usar autenticação já configurada no &DSN",
+        AccessibleName = "Usar autenticação já configurada no DSN",
+        AutoSize = true,
+        Checked = true,
+        Margin = new Padding(3, 12, 3, 3)
+    };
     private readonly TextBox archiveRoot = new() { Dock = DockStyle.Fill };
     private readonly Label status = new() { AutoSize = true, MaximumSize = new(520, 0), Padding = new(0, 8, 0, 8) };
     private readonly Button test = new() { Text = "Testar conexão", AutoSize = true };
@@ -63,6 +71,7 @@ internal sealed class SetupForm : Form
         Add(layout, "Fonte de dados", mode);
         Add(layout, "DSN do ERP local", dsn);
         Add(layout, "Driver SQL Anywhere 64 bits (somente Domínio)", driver);
+        layout.Controls.Add(useDsnAuthentication);
         Add(layout, "Usuário do banco", user);
         Add(layout, "Senha do banco", password);
         Add(layout, "Pasta raiz para arquivos aprovados (opcional)", archiveRoot);
@@ -71,7 +80,12 @@ internal sealed class SetupForm : Form
         buttons.Controls.Add(test); buttons.Controls.Add(finish); layout.Controls.Add(buttons);
         layout.Controls.Add(status);
         Controls.Add(layout);
-        mode.SelectedIndexChanged += (_, _) => RefreshMode();
+        mode.SelectedIndexChanged += (_, _) =>
+        {
+            ApplyModeCredentialDefaults();
+            RefreshMode();
+        };
+        useDsnAuthentication.CheckedChanged += (_, _) => RefreshMode();
         test.Click += async (_, _) => await TestConnection();
         finish.Click += async (_, _) => await Enroll();
         chooseArchiveRoot.Click += (_, _) => ChooseArchiveRoot();
@@ -101,10 +115,23 @@ internal sealed class SetupForm : Form
         dsn.EndUpdate();
 
         bool hasCompatibleDsn = dsn.Items.Count > 0;
-        dsn.Enabled = local && hasCompatibleDsn;
-        test.Enabled = local && hasCompatibleDsn;
-        driver.Enabled = !siescon;
-        if (siescon)
+        dsn.Enabled = !isBusy && local && hasCompatibleDsn;
+        test.Enabled = !isBusy && local && hasCompatibleDsn;
+        driver.Enabled = !isBusy && !siescon;
+        mode.Enabled = useDsnAuthentication.Enabled = !isBusy;
+        useDsnAuthentication.Visible = mode.SelectedIndex == DominioLocalMode;
+        user.Enabled = password.Enabled = !isBusy && !UsesDsnAuthentication();
+        if (local && !hasCompatibleDsn)
+            status.Text = siescon
+                ? "Nenhum DSN de sistema Pervasive/PSQL de 32 bits foi encontrado. Configure-o antes de conectar."
+                : "Nenhum DSN de sistema SQL Anywhere de 64 bits foi encontrado. Configure-o antes de conectar.";
+        else if (status.Text.StartsWith("Nenhum DSN", StringComparison.Ordinal))
+            status.Text = "";
+    }
+
+    private void ApplyModeCredentialDefaults()
+    {
+        if (mode.SelectedIndex == SiesconLocalMode)
         {
             if (user.Text == "DBA") user.Text = "";
             if (password.Text == "sql") password.Text = "";
@@ -114,12 +141,6 @@ internal sealed class SetupForm : Form
             if (string.IsNullOrWhiteSpace(user.Text)) user.Text = "DBA";
             if (password.Text.Length == 0) password.Text = "sql";
         }
-        if (local && !hasCompatibleDsn)
-            status.Text = siescon
-                ? "Nenhum DSN de sistema Pervasive/PSQL de 32 bits foi encontrado. Configure-o antes de conectar."
-                : "Nenhum DSN de sistema SQL Anywhere de 64 bits foi encontrado. Configure-o antes de conectar.";
-        else if (status.Text.StartsWith("Nenhum DSN", StringComparison.Ordinal))
-            status.Text = "";
     }
 
     private async Task TestConnection()
@@ -132,14 +153,21 @@ internal sealed class SetupForm : Form
             {
                 await TestSiesconConnection();
             }
-            else await Task.Run(() =>
+            else
             {
-                using var connection = new OdbcConnection($"DSN={dsn.Text};UID={user.Text};PWD={password.Text}");
-                connection.ConnectionTimeout = 10;
-                connection.Open();
-                using var command = new OdbcCommand("SELECT TOP 1 codi_emp FROM bethadba.geempre", connection);
-                command.ExecuteScalar();
-            });
+                string connectionString = LocalOdbcConnection.Build(
+                    dsn.Text, user.Text, password.Text, UsesDsnAuthentication());
+                await Task.Run(() =>
+                {
+                    using var connection = new OdbcConnection(connectionString);
+                    connection.ConnectionTimeout = 10;
+                    connection.Open();
+                    using var command = new OdbcCommand(
+                        "SELECT TOP 1 codi_emp FROM bethadba.geempre", connection);
+                    command.CommandTimeout = 10;
+                    command.ExecuteScalar();
+                });
+            }
             status.Text = mode.SelectedIndex == SiesconLocalMode
                 ? "Conexão confirmada. O Siescon está pronto para sincronizar."
                 : "Conexão confirmada. O Domínio está pronto para sincronizar.";
@@ -218,18 +246,17 @@ internal sealed class SetupForm : Form
                 throw new InvalidOperationException("Selecione o DSN do ERP local.");
             if (profile.RequiresSqlAnywhereDriver && string.IsNullOrWhiteSpace(driver.Text))
                 throw new InvalidOperationException("Selecione o driver SQL Anywhere.");
-            using RSA key = RSA.Create(3072);
-            var request = new CertificateRequest(
-                $"CN=CICA Agent {Environment.MachineName}", key, HashAlgorithmName.SHA256,
-                RSASignaturePadding.Pkcs1);
-            string csr = PemEncoding.WriteString("CERTIFICATE REQUEST", request.CreateSigningRequest());
-            using var http = new HttpClient
+            using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false })
             {
                 BaseAddress = new Uri(uri.ToString().TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(65)
             };
+            http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
             using HttpResponseMessage response = await http.PostAsJsonAsync("api/agent/v2/enroll", new
-            { code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(), csr });
+            {
+                code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(),
+                authentication_mode = AgentAuthentication.Hmac
+            });
             string responseText = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode)
             {
@@ -238,18 +265,31 @@ internal sealed class SetupForm : Form
             }
             using JsonDocument result = JsonDocument.Parse(responseText);
             JsonElement root = result.RootElement;
-            X509Certificate2 certificate = X509Certificate2.CreateFromPem(root.GetProperty("certificate").GetString()!);
-            using X509Certificate2 identity = certificate.CopyWithPrivateKey(key);
-            string pfx = Convert.ToBase64String(identity.Export(X509ContentType.Pkcs12));
+            if (root.GetProperty("authentication_mode").GetString() != AgentAuthentication.Hmac)
+                throw new InvalidOperationException("O servidor não confirmou o pareamento por assinatura.");
+            AgentSyncScope? scope = null;
+            if (root.TryGetProperty("sync_scope", out JsonElement scopeValue)
+                && scopeValue.ValueKind == JsonValueKind.Object && scopeValue.EnumerateObject().Any())
+            {
+                scope = scopeValue.Deserialize<AgentSyncScope>();
+                scope?.Validate();
+            }
+            if (mode.SelectedIndex == DominioLocalMode && scope is null)
+                throw new InvalidOperationException("Solicite um código com empresa, conta e competência do piloto.");
+            if (scope is not null && mode.SelectedIndex != DominioLocalMode)
+                throw new InvalidOperationException("Este código com recorte exige Domínio Local.");
             Save(new Config(server.Text.Trim(), root.GetProperty("agent_id").GetString()!,
-                root.GetProperty("shared_secret").GetString()!, pfx,
+                root.GetProperty("shared_secret").GetString()!, "",
                 local ? dsn.Text : null,
                 profile.RequiresSqlAnywhereDriver ? driver.Text : "",
-                user.Text,
-                password.Text,
+                UsesDsnAuthentication() ? "" : user.Text,
+                UsesDsnAuthentication() ? "" : password.Text,
                 string.IsNullOrWhiteSpace(archiveRoot.Text) ? null : Path.GetFullPath(archiveRoot.Text),
-                profile.SourceSystem));
-            status.Text = "Tudo pronto. O serviço CICA Agent pode ser iniciado.";
+                profile.SourceSystem,
+                UsesDsnAuthentication(), scope, AgentAuthentication.Hmac));
+            status.Text = scope is null ? "Tudo pronto. O serviço CICA Agent pode ser iniciado."
+                : $"Recorte configurado: empresa {scope.CompanyCode}, conta {scope.AccountReference}, "
+                  + $"de {scope.PeriodStart} até {scope.PeriodEnd}.";
         });
     }
 
@@ -266,11 +306,13 @@ internal sealed class SetupForm : Form
 
     private async Task Busy(Func<Task> action)
     {
+        isBusy = true;
+        RefreshMode();
         test.Enabled = finish.Enabled = false;
         status.Text = "Aguarde…";
         try { await action(); }
         catch (Exception error) { status.Text = error.Message; }
-        finally { finish.Enabled = true; RefreshMode(); }
+        finally { isBusy = false; finish.Enabled = true; RefreshMode(); }
     }
 
     private static string MachineFingerprint()
@@ -281,6 +323,9 @@ internal sealed class SetupForm : Form
 
     private SourceSystemProfile SelectedSourceProfile() => SourceSystemProfiles.Get(
         mode.SelectedIndex == SiesconLocalMode ? "siescon" : "dominio");
+
+    private bool UsesDsnAuthentication() =>
+        mode.SelectedIndex == DominioLocalMode && useDsnAuthentication.Checked;
 
     private static IEnumerable<string> DiscoverDsns(SourceSystemProfile profile)
     {
@@ -318,17 +363,17 @@ internal sealed class SetupForm : Form
         string directory = Path.Combine(Environment.GetFolderPath(
             Environment.SpecialFolder.CommonApplicationData), "CICA", "Agent");
         Directory.CreateDirectory(directory);
+        using Process? acl = Process.Start(new ProcessStartInfo("icacls.exe",
+            $"\"{directory}\" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F")
+        { UseShellExecute = false, CreateNoWindow = true });
+        acl?.WaitForExit();
+        if (acl?.ExitCode != 0) throw new InvalidOperationException(
+            "Não foi possível restringir a pasta de configuração.");
         byte[] plain = JsonSerializer.SerializeToUtf8Bytes(config);
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, "agent.config"),
+            AtomicConfigurationFile.Write(Path.Combine(directory, "agent.config"),
                 ProtectedData.Protect(plain, null, DataProtectionScope.LocalMachine));
-            using Process? acl = Process.Start(new ProcessStartInfo("icacls.exe",
-                $"\"{directory}\" /inheritance:r /grant:r *S-1-5-18:(OI)(CI)F *S-1-5-32-544:(OI)(CI)F")
-            { UseShellExecute = false, CreateNoWindow = true });
-            acl?.WaitForExit();
-            if (acl?.ExitCode != 0) throw new InvalidOperationException(
-                "Não foi possível restringir a pasta de configuração.");
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }
@@ -336,5 +381,6 @@ internal sealed class SetupForm : Form
     private sealed record Config(string ServerUrl, string AgentId, string SharedSecret,
         string CertificatePfxBase64, string? Dsn, string SqlAnywhereDriver,
         string DatabaseUser, string DatabasePassword, string? WindowsArchiveRoot,
-        string SourceSystem);
+        string SourceSystem, bool UseDsnAuthentication, AgentSyncScope? SyncScope,
+        string AuthenticationMode);
 }

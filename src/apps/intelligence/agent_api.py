@@ -1,13 +1,9 @@
 from __future__ import annotations
 
-import hmac
 import json
 from collections.abc import Mapping
 from typing import Any
-from urllib.parse import unquote
 
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
@@ -15,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.hub.services import sync_fiscal_guides
+from apps.intelligence.agent_mtls import valid_mtls_client
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_companies
@@ -36,25 +33,7 @@ def _body(request: HttpRequest, limit: int) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
-def _valid_mtls_client(request: HttpRequest, agent: EdgeAgent) -> bool:
-    """Bind the proxy-verified client certificate to its enrolled agent."""
-    if not settings.EDGE_AGENT_MTLS_REQUIRED:
-        return True
-    verified = request.headers.get("X-Hub-MTLS-Verified", "")
-    encoded_certificate = request.headers.get("X-Hub-MTLS-Client-Cert", "")
-    try:
-        observed = (
-            x509.load_pem_x509_certificate(unquote(encoded_certificate).encode("ascii"))
-            .fingerprint(hashes.SHA256())
-            .hex()
-        )
-    except (TypeError, ValueError):
-        return False
-    return (
-        verified == "SUCCESS"
-        and bool(agent.mtls_certificate_sha256)
-        and hmac.compare_digest(observed, agent.mtls_certificate_sha256)
-    )
+_valid_mtls_client = valid_mtls_client
 
 
 @csrf_exempt
@@ -97,6 +76,7 @@ def sync(request: HttpRequest) -> JsonResponse:
         agent = None
     if (
         agent is None
+        or bool(agent.sync_scope)
         or not _valid_mtls_client(request, agent)
         or not verify_agent_signature(
             agent=agent, timestamp=timestamp, body=request.body, signature=signature

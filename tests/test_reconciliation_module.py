@@ -1953,9 +1953,21 @@ def test_scanned_pdf_without_local_ocr_stays_in_review(monkeypatch: pytest.Monke
 
 @pytest.mark.django_db
 def test_scanned_pdf_uses_local_portuguese_ocr_when_available() -> None:
-    font_path = Path(r"C:\Windows\Fonts\arial.ttf")
-    if not local_ocr_available() or not font_path.is_file():
+    font_path = next(
+        (
+            font
+            for font in (
+                Path(r"C:\Windows\Fonts\arial.ttf"),
+                Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+                Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+            )
+            if font.is_file()
+        ),
+        None,
+    )
+    if not local_ocr_available():
         pytest.skip("OCR local em português não está disponível neste ambiente.")
+    assert font_path is not None, "Runtime OCR exige uma fonte local para a prova digitalizada."
     from PIL import Image, ImageDraw, ImageFont
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen.canvas import Canvas
@@ -2803,10 +2815,12 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_restored"
     ).exists()
-    assert AuditEvent.objects.filter(
+    # An export without reviewed ERP import cannot acquire a second ledger association.
+    assert not AuditEvent.objects.filter(
         organization=organization,
         action="hub.reconciliation.reconciliation_confirmed",
     ).exists()
+    assert not MovementReconciliation.objects.filter(movement=movement, state="confirmed").exists()
     audit = client.get(reverse("hub:reconciliation-audit"))
     assert audit.status_code == 200
     assert b"hub.reconciliation.financial_account.created" in audit.content

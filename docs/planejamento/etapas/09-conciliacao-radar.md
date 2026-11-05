@@ -1,5 +1,25 @@
 # Etapa 09 — Concluir Conciliação e Radar
 
+**Continuidade 03/11/2026 — D-308/V-309:** corrigida autenticação do DSN no
+agente; versão 1.0.1 atualizada e conexão Domínio confirmada no configurador
+instalado do PC Windows 11 x64. Pareamento segue pendente porque o endpoint
+CICA respondeu 503 por ausência da CA do agente. A prova local V-308 e os gates
+de Razão/títulos/piloto permanecem distintos dessa conexão mínima.
+
+**Teste 03/11/2026 — D-308/V-308:** 157 testes/24 subtestes PostgreSQL
+aprovados (um skip de OCR), incluindo nova travessia HTTP do contrato do agente
+até a conferência com Razão independente. Isso é replay sintético local, sem
+transporte pelo serviço Windows. No PC real, o teste ODBC do configurador
+retornou 28000 (credenciais recusadas); aguarda correção segura no RDP antes do
+pareamento/sincronização. Etapa e piloto continuam abertos.
+
+**Revisão 03/11/2026 — D-305/V-304:** [contrato e operação do Razão normalizado](../../conciliacao-razao-normalizado.md).
+Entrada local de partidas completas, ponte das duas filas e relatório privado
+implementados. Sicredi textual recebeu documento/página/saldo e validação da
+sequência. Títulos confirmados como origem Domínio; saída deve incluir relatório
+e arquivo de importação. Isso não valida o adaptador direto, regras de títulos,
+IA, instalação ou importação real no ERP. Etapa permanece aberta.
+
 **Revisão 02/11/2026 — D-302/D-303/V-302:** [verificação CONTAD](../verificacao-conciliador-contad-2026-11-02.md).
 As lacunas OFX de V-300 receberam correções e testes locais. A etapa permanece aberta para
 Razão independente, títulos a pagar/receber incluídos pelo responsável, DE-PARA com IA e piloto.
@@ -32,6 +52,15 @@ arquivo, ERP, fonte oficial ou volume.
 **Decisões relacionadas:** D-35, D-54, D-55.
 
 ## Escopo e checklist
+
+- [x] Exercitar localmente o endpoint bancário v2 com páginas 500+1, retry, isolamento, assinatura/revogação/mTLS obrigatório e confirmação posterior com fonte independente (D-308/V-308).
+- [x] V-309: corrigir autenticação do DSN e confirmar a conexão ODBC pelo configurador 1.0.1 instalado no PC de teste.
+- [ ] Completar pareamento e sincronização do agente: servidor respondeu 503, CA ausente; envio e leitura sob LocalSystem ainda não executados.
+
+- [x] Implementar entrada local de Razão com partidas completas, referência de conta, origem, fingerprint e recusa integral de inconsistências (D-305/V-304).
+- [x] Integrar as duas filas para essa fonte normalizada, com alocação compartilhada, desfazimento, retry, auditoria e sem reexportar fatos já escriturados.
+- [x] Implementar relatório privado por extrato/conta/período, sobras dos dois lados e saldos desconhecidos explícitos; leitura Sicredi com saldo/documento/região.
+- [ ] Homologar adaptador direto de Razão e títulos Domínio, conferência dos saldos da fonte e equivalência de conta PDF/OFX com a contadora.
 
 - [x] Confrontar o contrato fornecido em 27/10/2026 e a intenção de contas a pagar/receber e alternativa fiscal, sem ampliar o aceite para a suíte inteira (D-301/V-301).
 - [ ] Resolver Q-46/Q-47: fonte de títulos em Q-28, significado de faltas, regras, DE-PARA inicial assistido por IA e operação contábil/fiscal de destino; comprovar execução no recorte da cliente.
@@ -122,3 +151,64 @@ registro de execução. Não incluir segredos ou dados de clientes.
 > Execute a etapa 09. Complete conciliação, lançamentos revisados e exportações homologadas para os conectores aprovados. Valide documentos reais autorizados e volume. Complete também a operação do Radar, sem ampliar sua promessa para cálculo tributário individual não decidido.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+## Continuidade D-309/V-310 — integridade e operação (04/11/2026)
+
+- [x] Bloquear nova escrituração de movimento já conciliado, inclusive parcial e histórico.
+- [x] Compartilhar trava da empresa em geração, aprovação, exportação e conciliação; testar concorrência PostgreSQL.
+- [x] Invalidar rascunho/aprovação ao conciliar; não reaprovar ao desfazer; recusar conciliação se já exportado sem conferência.
+- [x] Impedir edição individual/em lote de fatos conciliados até desfazer; orientar à evidência e corrigir rótulo de candidatos.
+- [x] Auditar duplicidade histórica somente leitura, sem modificar snapshots ou decisões.
+- [x] Exercitar OCR português na imagem Linux e fila Redis/Celery real com replay/reinício e decisão preservada.
+- [ ] Confrontar Razão/títulos/parcelas/baixas independentes e exemplos Q-46.
+- [ ] Homologar DE-PARA/IA conforme Q-08/Q-09 e arquivo Domínio conforme Q-47.
+- [ ] Executar piloto D-73 real e aceite; 115 itens bancários candidatos não são amostra independente de 200.
+
+V-310: 1.502 testes Python/151 subtestes, um skip opcional; navegador e seis
+combinações de viewport/tema via CUA/Playwright. O corpus é sintético, salvo
+a pesquisa ODBC local limitada e sem envio. Etapa permanece aberta.
+
+Continuidade D-310/V-311 (04/11/2026): autenticação do piloto passa a HTTPS +
+HMAC sem CA privada. Travas de duplicidade, decisões humanas, manifesto e
+recusa fora do recorte continuam preservados. Regressão integral PostgreSQL:
+1.522 testes e 151 subtestes aprovados, um skip opcional. Nenhuma regra Q-46,
+contrato contábil, envio, importação ou aceite foi presumido por essa mudança.
+
+## Continuidade D-311/V-312 — 05/11/2026
+
+- [x] Recusar reaprovação de lançamento exportado, preservando estado/snapshot;
+  histórico também impede nova exportação se o estado do lançamento regredir.
+- [x] Reexportar somente bytes/hash/IDs/versão originais íntegros, com mesmo
+  destino/período e motivo; não reconstruir arquivo a partir de fatos mutáveis.
+- [x] Revalidar proteção humana e lançamentos sob trava empresa→movimento na
+  aplicação/reaplicação de regras, incluindo espera concorrente em PostgreSQL.
+- [x] Preparar contrato local de títulos/parcelas/baixas e DE-PARA determinístico
+  em rascunho, com contas válidas, conflitos e revisão humana; nenhum provedor
+  acionado. [Contrato e limites](../../conciliacao-fontes-titulos.md).
+- [x] Extrair privadamente 754 contas candidatas do material local, sem importar
+  catálogo ou presumir situação ativa/código contábil aprovado.
+- [ ] Obter os relatórios Domínio ainda inexistentes e revisão Q-28/Q-46/Q-47;
+  completar adaptador real, alocação de títulos e exceções com exemplos aprovados.
+- [x] Preparar consulta com referência oficial de Razão por conta, títulos e
+  leiautes; Domínio 10.6A-10/ajuste 2 instalado. Reabertura aguarda login direto
+  solicitado ao responsável; isso não comprova dados ou semântica contábil.
+- [ ] Executar IA do DE-PARA conforme Q-08/Q-09, homologar layout/importação,
+  corpus real, treinamento e aceite. D-73 permanece aberto.
+
+## Continuidade D-312/V-313 — 05/11/2026
+
+- [x] Preparar alocação offline explícita banco↔baixas: chaves compostas,
+  escopo/período/direção, capacidades acumuladas, parciais/agrupamentos,
+  componentes, estornos brutos e datas diferentes para revisão.
+- [x] CLI privada com hashes, validação integral, recusa de JSON ambíguo,
+  sobrescrita/symlink e publicação atômica 0600; 85 testes focados aprovados.
+- [x] Emitir Razão de uma conta do recorte original no Domínio atualizado;
+  confirmar limite de fechamento/títulos e autorização de pesquisa alternativa.
+- [x] Confrontar colunas do A Pagar da alternativa, preservando diferenças de
+  emissão/vencimento/baixa/posição; PDF Windows não fornece as chaves necessárias.
+- [ ] Obter fontes reais revisadas e completar integração persistente de títulos
+  e regras Q-46; a prévia não confirma associações nem gera partidas.
+- [ ] Q-47, IA Q-08/Q-09, corpus D-73 e aceite permanecem abertos.
+
+[Contratos, CLI e limites](../../conciliacao-fontes-titulos.md). Nova candidata
+local inclui a CLI; nenhum gate contábil foi habilitado.

@@ -55,6 +55,26 @@ A prova operacional ainda exige o piloto da etapa 12: parear o agente, usar um D
 
 ## Atualização PC-19/CONTAD — D-302/D-303/V-302 (02/11/2026)
 
+**Pacote testado em 03/11/2026 — D-306/V-305:** [CI Windows aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414),
+MSI 1.0.0 e SHA-256 conferidos na cópia local em `agent-windows/artifacts/`.
+25 verificações do ciclo instalado, 23 testes .NET e 23 testes do servidor
+aprovados. O primeiro ensaio descobriu ACL herdado na pasta de configuração;
+o MSI agora a protege para Administradores/SYSTEM. Pacote ainda sem assinatura
+de editor. Instalação no PC da cliente, driver/DSN/pareamento, ERP e retomada
+de rede reais continuam pendentes; não foram simulados como aceite.
+
+- [x] Gerar MSI atual, preservar artefatos e conferir hash/manifesto/relatório.
+- [x] Instalar, executar, diagnosticar, reparar, reiniciar e remover em Windows Server 2022 descartável.
+- [x] Verificar pasta protegida e DPAPI sob LocalSystem sem credenciais reais.
+- [ ] Instalar e parear no PC autorizado da cliente, com SQL Anywhere/DSN e credencial somente leitura reais.
+
+Complemento de 03/11/2026 — D-305/V-304: títulos confirmados como origem
+Domínio; saída do piloto inclui relatório e arquivo de importação. A entrada
+normalizada de Razão e a ponte entre filas foram implementadas no servidor,
+conforme [contrato local](../../conciliacao-razao-normalizado.md), sem habilitar
+consulta ODBC nova ou alterar o agente. Acesso ao PC, instalação/pareamento e
+contratos reais de Razão/parcelas/baixas continuam pendentes nesta instalação.
+
 O responsável confirmou Domínio local e agente no computador da cliente; ela
 ainda fornecerá o acesso. Reutilizar o serviço único .NET 8, sem instalar Python.
 A conclusão local histórica da base desta etapa não comprova o conciliador CONTAD.
@@ -63,9 +83,128 @@ A conclusão local histórica da base desta etapa não comprova o conciliador CO
 - [x] Corrigir `is_linked` do processador local com o contrato `EXISTS` já
   allowlisted, sem escrita no ERP nem inferência de escrituração.
 - [x] Preparar [roteiro do piloto CONTAD](../verificacao-conciliador-contad-2026-11-02.md).
-- [ ] Receber acesso autorizado, gerar/conferir pacote Windows atual, instalar
-  e parear no computador da cliente; testar DSN, credencial do serviço e rede.
+- [ ] Receber acesso autorizado e instalar/parear o pacote Windows conferido
+  no computador da cliente; testar DSN, credencial do serviço e rede.
 - [ ] Validar/implementar fonte de Razão e títulos comerciais. A consulta de
   extrato atual não entrega esses fatos e não os transforma em lançamentos.
 - [ ] Homologar instalação, atualização, revogação, queda/retomada e integridade
   no ambiente real. A prova permanece na etapa 12; não declarar instalada.
+
+
+## Windows 11 Desktop — D-307/V-306 (03/11/2026)
+
+- [x] Testar os mesmos bytes do MSI 1.0.0 em Windows 11 cliente: Enterprise,
+  build 26200, ARM64, 25 verificações aprovadas no run 41669715057.
+- [x] Preservar hash, arquitetura e logs/relatórios separadamente de V-305.
+- [x] V-307: controle RDP liberado, instalado o mesmo MSI no Windows 11 Pro
+  AMD64 build 26200, 24 verificações aprovadas. Serviço mantido Running sem
+  configuração ERP; não é instalação/pareamento no PC CONTAD.
+
+A compatibilidade do instalador x64/ponte x86 sob emulação ARM64 não homologa
+ODBC/SQL Anywhere, pareamento, ERP ou o ambiente CONTAD. Sem mudança no MSI.
+
+
+### Continuidade Windows 11 x64 — V-307
+
+Roteiro específico `agent-windows/test-windows11-pc.ps1`, hashes conferidos,
+instalação/reparo com saída 0 e 24 checks aprovados. Preservar o agente instalado
+em espera, sem credenciais. Relatórios/logs no PC e resumo local nos artefatos.
+Acesso real à cliente, driver/DSN/pareamento e ERP seguem nos próprios gates.
+
+### Conexão do PC de teste — D-308/V-308 (03/11/2026)
+
+- [x] Abrir o configurador instalado, selecionar Domínio Local e conferir DSN
+  de sistema/driver SQL Anywhere 16 encontrados, sem recriar a conexão D-74.
+- [x] Executar o botão de teste somente leitura: banco recusou as credenciais
+  preenchidas com ODBC 28000. Não é sucesso de leitura de dados.
+- [x] V-309: esclarecer que o sucesso informado foi no ODBC/Domínio, identificar
+  autenticação do DSN sobrescrita pelo configurador e corrigir no pacote 1.0.1.
+- [x] Atualizar o PC de 1.0.0 para 1.0.1, serviço Running e teste no configurador
+  mostrando conexão Domínio confirmada, sem ler/copiar senha do DSN.
+- [ ] Parear e conferir sincronização real no escritório/recorte definido.
+
+Em V-308, não salvou configuração, expôs senha ou enviou dados. RDP foi mantido
+em tela cheia, configurador preservado em Domínio Local para a correção e sem
+mudança do modo Scancode naquela execução.
+
+V-309 supera o erro de conexão de V-308: opção explícita de usar autenticação
+do DSN, mesma construção no teste e serviço, sem fallback de identidade após
+erro. Configurações antigas conservam modo explícito. Teclado Unicode usado
+temporariamente no diagnóstico e retornado a Scancode. Configurador atualizado
+mantido aberto com sucesso visível, endereço/código vazios e sem salvar.
+Pareamento bloqueado pelo servidor HTTPS: 503, CA do agente não configurada.
+
+## Continuidade D-309/V-310 — recorte do piloto (04/11/2026)
+
+- [x] Persistir recorte empresa/conta/competência/extratos e revisão no cadastro/agente.
+- [x] Exigir protocolo compatível; filtrar antes do envio e recusar páginas externas no servidor.
+- [x] Bloquear financeiro v2 sem recorte e demais módulos no agente restrito.
+- [x] Preparar MSI 1.0.2: 38 testes .NET e 25 checks CI aprovados, hash registrado em V-310.
+- [x] Escolher candidato por pesquisa local autorizada em Q-28: uma conta bruta, janeiro/2026, 115 itens; nenhum envio.
+- [ ] Confrontar conta bancária e fechamento com a fonte, antes de emitir código.
+- [ ] Atualizar o PC com 1.0.2 pelo canal disponível; rede local de transferência não respondeu, 1.0.1 preservado.
+- [ ] Provar ODBC LocalSystem, mTLS Windows/hospedado e retomada no recorte real.
+
+O Nginx/Django sintético passou em emissão, autenticação, renovação, cabeçalhos
+forjados, rejeição fora do recorte e interrupção. Isso não comprova o ingresso
+Fly ou o PC. Consulta de cabeçalho é diagnóstico; nenhum contrato de Razão,
+título, parcela ou baixa foi presumido/habilitado. [Detalhes](../verificacao-conciliador-contad-2026-11-02.md).
+
+Persistência final D-309/V-310: configuração DPAPI é gravada em arquivo
+criptografado temporário na pasta protegida, com flush e substituição atômica;
+falha conserva o arquivo anterior e limpa o temporário. Ciclos sem mudança de
+recorte/destino não regravam configuração. O pacote final foi revalidado no
+Windows com 38 testes .NET, incluindo falha por bloqueio de arquivo, e 25 checks
+MSI (run 41845516300). Sem atualização no PC ou alteração do DSN.
+
+## Revisão do pareamento — D-310/V-311 (04/11/2026)
+
+- [x] Dispensar CA privada/mTLS no piloto por decisão do responsável.
+- [x] Negociar modo HMAC explicitamente por HTTPS, com código de uso único, segredo individual, revogação e recorte preservados.
+- [x] Não gerar CSR/PFX nem renovar certificado no modo HMAC; manter validação normal do HTTPS do servidor.
+- [x] Preservar configurações antigas em modo certificado, sem fallback silencioso.
+- [x] Compartilhar gravação atômica no configurador/serviço; restringir a pasta antes de gravar.
+- [x] Preparar MSI 1.0.3: 44 testes .NET e 26 checks Windows, incluindo LocalSystem com HMAC/DPAPI sem PFX.
+- [ ] Publicar backend compatível e atualizar o PC por pacote/hash/guardas conferidos.
+- [ ] Parear/sincronizar no recorte real aprovado; provar ODBC LocalSystem e retomada.
+
+A exigência anterior de mTLS no piloto está superada. O acesso Fly ainda não
+está disponível; nenhuma configuração hospedada ou instalação do PC foi alterada.
+
+## Continuidade D-311/V-312 — 05/11/2026
+
+- [x] Reconferir bytes do MSI 1.0.3 e fonte contra commit CI; 43 arquivos
+  comparados, somente documentação difere. Nenhum agente atualizado nesta rodada.
+- [x] Repetir .NET no Mac: 43 aprovados, um skip exclusivamente Windows.
+  Os 44 testes/26 checks Windows de V-311 continuam evidência histórica.
+- [x] Preparar contrato normalizado local de títulos/parcelas/baixas, com
+  identidade, conta, datas, valores, cobertura e estornos explícitos; sem SQL
+  novo, persistência ou ativação no agente. [Contrato](../../conciliacao-fontes-titulos.md).
+- [x] Acessar novamente a sessão RDP logada após superar leitura transitória
+  da ferramenta; não repetir pedido de conexão/DSN ou caminhos de relatórios
+  que o responsável confirmou ainda não existirem.
+- [ ] Confrontar/adaptar Razão e títulos Domínio no recorte Fedrizzi e depois
+  CONTAD, com revisão contábil Q-28/Q-46. Preparação sintética não os homologa.
+- [x] Instalar versão completa Domínio 10.6A-10 oficial, assinatura válida e
+  backup confirmado; preservar caminho/DSN e desmarcar extras de nuvem/acesso remoto.
+- [x] Concluir ajuste 2 de 05/11/2026; reabrir aplicação até login. Senha vazia,
+  login direto solicitado ao responsável e teclado Scancode restaurado.
+- [ ] Conferir acesso à aplicação/base e obter relatórios após o novo login.
+- [ ] Publicação autorizada, instalação/pareamento, ODBC LocalSystem e
+  sincronização real continuam abertos. [Release e retorno](../../contad-release-2026-11-05.md).
+
+## Continuidade D-312/V-313 — 05/11/2026
+
+- [x] Conferir novo login e versão efetiva Domínio 10.6A-10 -02.
+- [x] Identificar conta contábil pela consulta de extrato e emitir Razão limitado
+  ao candidato original; PDF observado no Windows, sem extração/homologação.
+- [x] Consultar fechamento/controle de títulos, sem gravar; obter autorização
+  para pesquisar alternativa somente leitura, registrada em D-312/Q-28/Q-46.
+- [x] Preparar prévia offline de capacidades e CLI privada; 85 testes focados,
+  sem SQL novo, persistência, pareamento ou ativação no agente.
+- [x] Emitir A Pagar limitado na alternativa e conferir PDF no Windows;
+  registrar campos ausentes e cinco consultas sem dados nos filtros de setembro.
+- [ ] Obter/revisar fontes e exemplos reais, fechar contrato do adaptador e
+  comprovar recorte contábil fechado; alternativa não foi homologada.
+- [ ] Publicação, upgrade/pareamento, ODBC LocalSystem e envio real continuam
+  dependentes dos gates documentados. MSI/DSN permanecem intactos.

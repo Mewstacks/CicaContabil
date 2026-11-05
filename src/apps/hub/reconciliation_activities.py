@@ -23,6 +23,8 @@ def reconciliation_file_pending(source: ReconciliationSourceFile) -> tuple[int, 
         return 1, "Aguardando processamento do arquivo."
     if run.state in {"failed", "canceled"} or run.error_count:
         return 1, "A execução exige correção ou retomada."
+    if source.ledger_records.exists():
+        return 1, "Razão recebido; confira correspondências, saldos e cobertura da fonte."
     movements = source.movements.all()
     if movements.exclude(
         organization_id=source.organization_id, company_id=source.company_id
@@ -104,7 +106,7 @@ def sync_reconciliation_activity(source_id: UUID) -> OperationalActivity | None:
     processing = (
         "processed"
         if run
-        and run.stage in {"review", "completed", "rules_reapplied"}
+        and run.stage in {"review", "completed", "rules_reapplied", "ledger_review"}
         and run.state not in {"waiting", "processing", "failed", "canceled"}
         and not run.error_count
         else "not_verified"
