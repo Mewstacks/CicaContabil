@@ -2657,3 +2657,28 @@ Execução Git D-314: correções/testes/registros publicados por push normal no
 commit `700b496fc6b3ae0e521a11ca21ed6b65efbe7246`, 15 arquivos, SHA remoto
 conferido. CI 42079806454 iniciado; validação local V-316 concluída, resultado
 remoto separado. Nenhum arquivo privado ou imagem de cliente incluído.
+
+
+## D-315 — Continuidade independente e retorno da revisão (05/11/2026)
+
+Origem: após perguntar sobre AnyDesk, o responsável solicitou prosseguir nos
+pontos que não exigem sua interferência. Manter PC-19/etapas 03/09/12 e avançar
+em código, verificação local, CI e candidata revisável. A sessão CONTAD ainda
+não foi disponibilizada; não iniciar conexão, alterar ERP, instalar/parear,
+publicar aplicação, enviar dados ou usar IA paga por essa solicitação.
+
+Corrigir o limite de navegação observado em V-316: todas as respostas de ação
+no detalhe do movimento preservam `return_to` usando `detail_redirect`, já
+existente. O retorno continua validado pela tag `back_url` contra a rota da
+Conciliação, com rejeição de host/caminho arbitrários. Manter empresa, arquivo,
+busca, filtros e página da fila na URL ao salvar, ignorar/restaurar ou receber
+recusa operacional. Não alterar regras, permissões, fatos contábeis, histórico,
+apresentação ou schema. A ausência de origem conserva o retorno padrão.
+
+Aplicar UI/UX Pro Max (navegação previsível/deep link), Web Design Guidelines e
+referência de filtros de produto; Watermelon não está exposto nesta sessão.
+Conferir a jornada em navegador/Playwright com dados exclusivamente sintéticos,
+sem modificar a evidência real V-316. Acompanhar o CI da implementação 700b496
+separadamente dos novos testes e preparar nova candidata quando a correção
+estiver validada. Publicação de fonte/testes/registros anônimos na main segue
+D-313; sem deploy, homologação ou aceite presumidos.

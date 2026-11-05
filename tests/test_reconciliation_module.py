@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import pytest
 from django.conf import settings
@@ -16,6 +17,7 @@ from django.core.management import call_command
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -3152,3 +3154,62 @@ def test_upload_form_no_longer_requires_a_period() -> None:
     )
     assert "period_start" not in form.fields
     assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "action, reason",
+    [
+        ("save", ""),
+        ("ignore_movement", "Conferência sintética"),
+        ("ignore_movement", ""),
+        ("restore_movement", ""),
+        ("generate_entry", ""),
+        ("save_rule", ""),
+        ("approve_entry", ""),
+        ("confirm_reconciliation", ""),
+    ],
+)
+def test_movement_action_keeps_the_originating_queue_after_success_or_refusal(
+    action: str, reason: str,
+) -> None:
+    organization, company, client = _upload_client("retorno-movimento")
+    source, run, _created = create_source_file(
+        organization=organization,
+        company=company,
+        filename="fila.csv",
+        content=CSV,
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    _map_and_process(source, run)
+    movement = source.movements.get(source_key="row:2")
+    queue_url = reverse("hub:reconciliation") + "?" + urlencode(
+        {
+            "source_file": str(source.pk),
+            "movement_company": str(company.pk),
+            "movement_q": "Fornecedor & revisão 100%",
+            "movement_review": "pending",
+            "movement_classification": "none",
+            "movement_page": "2",
+        }
+    )
+    detail_url = reverse("hub:reconciliation-movement", args=[movement.pk])
+    detail_url += "?" + urlencode({"return_to": queue_url})
+
+    response = client.post(
+        detail_url,
+        {
+            "action": action,
+            "reason": reason,
+            "expected_revision": movement.revision,
+            "occurred_on": movement.occurred_on.isoformat(),
+            "description": movement.description,
+            "document_number": movement.document_number,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert response.redirect_chain == [(detail_url, 302)]
+    assert f'href="{escape(queue_url)}#movimentos"' in response.content.decode()
+    assert AccountingExport.objects.filter(organization=organization).count() == 0

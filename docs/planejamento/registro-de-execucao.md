@@ -2841,3 +2841,29 @@ DSN ou confirmação de backup.
   15 arquivos revisados; SHA remoto conferido. CI 42079806454 iniciado, resultado
   ainda separado da prova local. Dados/scripts/relatórios/captura privados fora
   do envio. Registro documental de confirmação acompanha commit separado.
+
+
+## 05/11/2026 — Continuidade independente D-315/V-317
+
+- Responsável pediu avançar no que não exige interferência; D-315 registrada
+  antes da correção. PC-19/03/09/12 preservados, sem conexão nova à cliente.
+- Dez redirecionamentos do detalhe agora usam helper existente para conservar
+  origem da fila após ação; nenhuma regra contábil, permissão ou schema mudou.
+- 93 testes/24 subtestes aprovados, zero skips, 31,80 s; Ruff global, Django
+  check, migrações e whitespace aprovados. Nova regressão focada SQLite;
+  PostgreSQL/Windows não repetidos para essa navegação.
+- CUA/Playwright com 61 itens sintéticos em banco/mídia novos conferiu filtros,
+  página 2, salvar, ignorar/restaurar e teclado, desktop/celular e claro/escuro;
+  foco 3 px, sem overflow/console errors. Contas vazias; zero partidas/exportações.
+- UI/UX Pro Max e Web Design Guidelines aplicados; Watermelon indisponível.
+  Troca de tema perde painel do hash com query preservada; observado e não
+  alterado. Tentativas/limites em browser-results.json e V-317.
+- CI anterior 42079806454 aprovado para 700b496: SQLite 1.634/151 e 20 skips;
+  PostgreSQL 1.652/151 e dois skips; agente/build Windows/três imagens aprovados.
+  Não equivale a teste remoto da nova navegação ou implantação.
+- Preparada candidata de 809 arquivos, 2.023.623 bytes, hashes ZIP/workspace
+  iguais, SHA-256 em V-317. Evidências privadas ignoradas em
+  `.tmp/contad-navigation-2026-11-05/`; dados reais V-316 preservados.
+- Aba/servidor próprios encerrados, viewport restaurado. Publicação corretiva
+  de fonte/testes/registros segue a autorização D-313; nenhum deploy, ERP,
+  pareamento, transmissão, IA paga, treinamento ou aceite nesta execução.

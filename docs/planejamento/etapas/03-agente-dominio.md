@@ -221,3 +221,8 @@ está disponível; nenhuma configuração hospedada ou instalação do PC foi al
 V-316 (05/11): percurso bancário dos anexos executado em banco/mídia isolados,
 42 verificações finais aprovadas. Não acionou agente/ODBC/Windows nem altera
 o estado pendente de implantação e sincronização real desta etapa.
+
+
+V-317/D-315 (05/11): correção de retorno do detalhe e QA sintético não alteram
+agente, DSN ou ERP. CI 42079806454 aprovou builds/testes Linux e manifesto MSI
+da implementação 700b496, sem nova instalação/ODBC LocalSystem ou pareamento.

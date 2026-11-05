@@ -6203,3 +6203,56 @@ Publicação corretiva executada sob D-313/D-314: commit
 iniciado para essa implementação; não é declarado aprovado por sucesso do push.
 Registro documental do envio segue separado, com as mesmas fontes executáveis.
 Dados, banco/mídia, scripts privados, sessões, relatórios e captura fora do Git.
+
+
+## V-317 — Retorno à fila e CI da correção anterior (05/11/2026)
+
+D-315, PC-19/03/09/12; base 162d73c. Corrigidos os dez redirecionamentos de
+ação do detalhe do movimento para usar `detail_redirect`, preservando origem
+após sucesso ou recusa. `back_url` mantém a validação existente de host/caminho.
+Empresa, arquivo, busca com acentos/ampersand/percentual, revisão, classificação
+e página permanecem codificados na URL. Sem origem, comportamento padrão igual.
+Sem mudança de template/CSS/JS, regra contábil, permissão, migração ou agente.
+
+Regressão focada desta versão: **93 testes e 24 subtestes aprovados**, zero
+skips, **31,80 s**, Python 3.12.13/Django 6.0.8/SQLite em bancos temporários de
+pytest no Mac. Três módulos: conciliação, revisão UI e navegação. Inclui oito
+novos casos de sucesso/recusa preservando fila e os testes existentes de
+retorno externo/caminho arbitrário recusados. Não somar a execução inicial
+isolada dos mesmos oito casos. Ruff global, Django check, ausência de migrações
+e `git diff --check` aprovados. Não é nova regressão integral/PostgreSQL/Windows.
+
+CUA/Playwright em banco e mídia novos privados, somente **61 movimentos
+sintéticos**: salvar revisão e voltar conserva empresa/arquivo/busca/página
+2 de 2, com 11 itens visíveis; contas contábeis vazias, sem partidas inventadas.
+Desktop 1440×900 e celular 390×844; temas claro/escuro; salvar, ignorar/restaurar
+e retorno por teclado/Enter com foco de 3 px conferidos. Sem overflow horizontal
+ou erros de console observados. Capturas desktop escuro e detalhe mobile claro
+inspecionadas; a captura full-page do desktop mantém o cabeçalho sticky na
+posição da rolagem. Não é evidência de layout novo ou auditoria integral de UI.
+Aba/servidor próprios encerrados e override de viewport restaurado.
+
+UI/UX Pro Max local orientou navegação previsível/deep link. Watermelon não
+exposto no inventário de ferramentas. Aplicadas as [Web Design Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+e referência primária de [filtros/vistas Asana](https://help.asana.com/s/article/project-customization-and-views),
+sem copiar interface. O limite V-316 de perda do filtro após salvar foi corrigido.
+Limite adicional observado: trocar o tema na fila conserva a query, mas perde
+o painel definido no hash; foi necessário abrir “3. Revisar”. Não alterado nesta
+rodada. Paisagem/tablet e emulação de movimento reduzido não repetidos.
+
+CI **42079806454 aprovado para 700b496**, a implementação anterior D-314:
+SQLite **1.634 testes/151 subtestes aprovados, 20 skips**, 205,82 s; PostgreSQL
+17.11 **1.652 testes/151 subtestes aprovados, dois skips**, 249,14 s. Os dois
+skips são Playwright Python opcional/OCR português indisponível no runner;
+os outros 18 em SQLite exigem PostgreSQL. Agente Linux 43 aprovados/um skip
+Windows, build/manifesto MSI e três builds Docker aprovados, sem implantação.
+Esse CI não contém a alteração de retorno D-315 e não é sua regressão remota.
+O commit documental 162d73c ainda estava em execução na última consulta.
+
+Nova candidata de **809 arquivos**, **2.023.623 bytes**, SHA-256
+`bc293cc85bbf3191d6f0d5e0c8f27171c72508c4b47d76ab2572c34b9f8d4542`;
+ZIP reaberto e 809 hashes confrontados com o workspace. Evidências ignoradas
+em `.tmp/contad-navigation-2026-11-05/`: JUnit, browser-checks/results, capturas,
+banco/mídia sintéticos, log CI 700b496 e release-candidate. Pastas/arquivos
+privados; a cópia real V-316 não foi alterada. Q-28/Q-46/Q-47, IA Q-08/Q-09,
+implantação, serviço real, D-73, treinamento e aceite permanecem abertos.

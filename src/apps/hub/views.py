@@ -10679,15 +10679,19 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             movement_has_ledger_match(movement)
         ):
             messages.error(request, "Desfaça a conciliação antes de alterar os dados do movimento.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action in {"ignore_movement", "restore_movement"}:
             if movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists():
                 messages.error(request, "Um movimento já exportado exige uma retificação auditada.")
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
             reason = request.POST.get("reason", "").strip()
             if action == "ignore_movement" and not reason:
                 messages.error(request, "Informe o motivo para ignorar o movimento.")
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
             movement.review_state = (
                 NormalizedMovement.ReviewState.IGNORED
                 if action == "ignore_movement"
@@ -10722,7 +10726,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 if action == "ignore_movement"
                 else "Movimento devolvido à revisão.",
             )
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "generate_entry":
             try:
                 journal_entry = create_journal_entry_from_movement(
@@ -10732,7 +10736,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"Lançamento {journal_entry.id} gerado como rascunho.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "save_rule":
             try:
                 rule = save_rule_from_movement(movement=movement, actor=cast(User, request.user))
@@ -10740,7 +10744,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"Regra {rule.name} salva e ativada para esta empresa.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "approve_entry":
             draft_entry = movement.journal_entries.exclude(state=JournalEntry.State.INVALID).first()
             if draft_entry is None:
@@ -10754,7 +10758,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     messages.error(request, str(exc))
                 else:
                     messages.success(request, "Lançamento aprovado para exportação.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "confirm_reconciliation":
             try:
                 entry_id = request.POST.get("entry_id")
@@ -10805,7 +10809,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                         f"{Decimal(reconciliation.amount_cents) / 100:.2f} registrada."
                     ),
                 )
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "undo_reconciliation":
             reconciliation = get_object_or_404(
                 MovementReconciliation,
@@ -10829,7 +10833,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 },
             )
             messages.success(request, "Conciliação desfeita e valor liberado para nova revisão.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if form.is_valid():
             for field_name in ("debit_account_code", "credit_account_code"):
                 account_code = str(form.cleaned_data[field_name] or "").strip()
@@ -10908,7 +10912,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     request,
                     "Movimento revisado. A aprovação anterior, se houver, precisa ser refeita.",
                 )
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
     candidate_query = (
         JournalEntry.objects.filter(
             organization=office,

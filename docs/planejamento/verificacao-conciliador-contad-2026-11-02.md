@@ -1,5 +1,17 @@
 # Verificação do conciliador CONTAD no CICA
 
+## Continuidade independente — D-315/V-317 (05/11/2026)
+
+| Capacidade | Implementado | Validado localmente | Publicado em aplicação | Homologado | Liberado |
+|---|---|---|---|---|---|
+| Retorno à fila após revisão | Preserva origem em dez redirecionamentos de ação; validação do link existente mantida | 93 testes/24 subtestes; navegador desktop/celular, claro/escuro, teclado | Não | Não | Não |
+| Candidata de fonte | 809 hashes de ZIP/workspace iguais; SHA-256 em V-317 | Pacote reaberto e inventário conferido | Não | Não | Não |
+
+CI 42079806454 aprovado para a correção anterior 700b496: PostgreSQL
+1.652 testes/151 subtestes e dois skips Playwright/OCR. Não contém D-315.
+Q-28/Q-46/Q-47 e demais gates não mudam. Evidência desta rodada é exclusivamente
+sintética; os 163 eventos reais permanecem no piloto V-316 preservado.
+
 ## Percurso bancário executado — D-314/V-316 (05/11/2026)
 
 42 verificações finais locais aprovadas com os 163 eventos reais, em cenários

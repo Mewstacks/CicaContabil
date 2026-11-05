@@ -1,5 +1,13 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
+revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e
+24 subtestes locais aprovados, zero skips; CUA/Playwright desktop/celular e
+claro/escuro conferiram retorno, ignorar/restaurar e teclado. Nova candidata
+809 arquivos/hashes em V-317. CI 42079806454 aprovado para a implementação
+anterior 700b496, PostgreSQL 1.652/151, dois skips; não cobre esta nova alteração.
+Sem deploy ou acesso à cliente. PC-19 e gates contábeis continuam abertos.
+
 **Percurso bancário CONTAD — D-314/V-316, 05/11/2026:** importação persistida,
 reenvio, retomada, revisão e relatório executados localmente com os 163 eventos
 reais, em cenários separados OFX/PDF. **42 verificações finais aprovadas**.
@@ -8,7 +16,8 @@ pelo aviso de proteção. PostgreSQL: **134 testes/24 subtestes aprovados**, sem
 skips; navegador conferiu filtro/paginação/revisão/download. Não comprova
 Razão, títulos, escrituração/importação Domínio, serviço Windows ou aceite.
 Correções publicadas na main em `700b496`, SHA remoto conferido; CI 42079806454
-iniciado e distinto dos resultados locais acima. Sem deploy de aplicação.
+aprovado para essa implementação; resultado remoto detalhado em V-317 e
+distinto dos resultados locais acima. Sem deploy de aplicação.
 
 **Anexos CONTAD reconferidos — V-315, 05/11/2026:** PDF/OFX de setembro permitem
 testes reais da entrada bancária: 163 movimentos em cada, zero sobras por

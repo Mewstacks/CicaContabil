@@ -1,5 +1,12 @@
 # Pendências para concluir o projeto CICA
 
+**Continuidade D-315/V-317 — 05/11/2026:** retorno do detalhe preserva filtros e
+página após ações; 93 testes/24 subtestes locais aprovados, zero skips,
+CUA/Playwright desktop/celular/claro/escuro/teclado conferidos. CI anterior
+42079806454 aprovado para 700b496 (PostgreSQL 1.652/151, dois skips).
+Nova candidata com manifesto preparada; publicação hospedada, fontes/regras,
+serviço real, importação, D-73, treinamento e aceite continuam pendentes.
+
 **Teste bancário D-314/V-316 — 05/11/2026:** percurso local com anexos reais
 concluído em 42 verificações finais: importação, reenvio/retomada, revisão e
 relatório. Duas falhas corrigidas; 134 testes/24 subtestes PostgreSQL aprovados,

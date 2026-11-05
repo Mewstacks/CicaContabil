@@ -1,5 +1,14 @@
 # Release candidata CONTAD: revisão e operação
 
+Continuidade D-315/V-317: retorno da revisão preserva filtro/página após ações,
+93 testes/24 subtestes locais e navegador desktop/celular/claro/escuro aprovados.
+Candidata atual em `.tmp/contad-navigation-2026-11-05/release-candidate/`:
+809 arquivos, 2.023.623 bytes, SHA-256
+`bc293cc85bbf3191d6f0d5e0c8f27171c72508c4b47d76ab2572c34b9f8d4542`.
+809 hashes de ZIP/workspace conferidos. Sem migração/alteração de agente/gates.
+CI 42079806454 aprovado para a implementação anterior 700b496, com limites em
+V-317; a candidata nova ainda depende de seu próprio resultado remoto.
+
 D-311/V-312, D-312/V-313 e D-313/V-314, PC-19, etapas 03/09/12. Este roteiro complementa os gates e
 checklists existentes. **Código publicado no GitHub; aplicação ainda não
 implantada, homologada ou liberada.**

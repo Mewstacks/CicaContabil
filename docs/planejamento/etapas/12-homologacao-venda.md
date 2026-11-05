@@ -325,3 +325,14 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   e evidência do navegador; servidor/aba/contêiner próprios encerrados.
 - [ ] Concluir publicação hospedada, fontes/retorno ERP, D-73 operacional,
   treinamento e aceite. O teste local não é homologação completa da CONTAD.
+
+
+## Continuidade independente — D-315/V-317 (05/11/2026)
+
+- [x] Conferir CI 42079806454 aprovado para 700b496, sem presumir deploy.
+- [x] Preparar nova candidata após correção de retorno: 809 hashes de ZIP e
+  workspace iguais, SHA-256 em V-317; pacotes anteriores preservados.
+- [x] Encerrar QA somente sintético e registrar testes/limites: 93 testes e
+  24 subtestes locais, navegador desktop/celular/claro/escuro/teclado.
+- [ ] Publicação hospedada, serviço real, fontes/layout/importação, D-73,
+  recuperação operacional, treinamento e aceite continuam pendentes.

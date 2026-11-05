@@ -243,3 +243,18 @@ local inclui a CLI; nenhum gate contábil foi habilitado.
   sem Razão/alocações/partidas inventados; contas contábeis continuam em branco.
 - [ ] Concluir fontes/regras/importação reais Q-28/Q-46/Q-47 e aceite D-73.
   Limite de retorno ao filtro após salvar registrado em V-316; sem nova UI.
+
+
+## Continuidade independente — D-315/V-317 (05/11/2026)
+
+- [x] Corrigir perda de origem após ações do detalhe; preservar filtros/página
+  com helper existente e validação de retorno, sem nova regra contábil.
+- [x] Validar 93 testes/24 subtestes locais, zero skips; CUA/Playwright em
+  desktop/celular/claro/escuro, ignorar/restaurar e retorno por teclado.
+- [x] Conferir CI da correção anterior 700b496: PostgreSQL 1.652/151, dois skips;
+  build/manifesto Windows, agente e três builds Docker aprovados.
+- [ ] Completar fonte real/regras/importação, serviço/implantação e D-73/aceite.
+
+O limite de V-316 após salvar foi corrigido. Trocar o tema na fila ainda perde
+o painel do hash com a query preservada; registrado em V-317, sem alterar essa
+rotina nesta rodada. Nova candidata de fonte com 809 hashes conferidos.
