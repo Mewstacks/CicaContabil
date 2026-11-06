@@ -12,7 +12,9 @@ banco/cache ok, worker ready, recursos 512 MB e reserva parada preservados.
 Exportação Domínio false; prévia limitada à CONTAD e não homologada.
 
 Contrato individual/Conciliação/escritório ativos conforme autorização, sem
-convite/conta pessoal/cobrança automática. Agente 1.0.3 pareado no recorte
+convite/cobrança automática. Conta pessoal Grazi criada depois em D-321/V-325,
+Proprietária somente CONTAD, login HTTPS/Conciliação 200 e importação disponível;
+sem novo deploy ou arquivo importado na verificação. Agente 1.0.3 pareado no recorte
 explicitamente aprovado; operador comprovou Running/Auto/LocalSystem/ready após
 reinício e ausência dos campos de senha do novo CICA_CONTAD x64. Backend:
 163 itens, conector healthy, sem duplicações/fora do recorte e datas/valores

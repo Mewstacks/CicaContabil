@@ -6908,3 +6908,51 @@ emitir convite. Fontes completas/títulos/baixas/regras/DE-PARA, Q-47, 200 event
 D-73, recuperação recorrente/RPO, treinamento e aceite continuam abertos.
 Não declarar homologação integral ou importação ERP. Nenhum provedor de IA,
 nova cobrança/recurso recorrente ou convite foi acionado.
+
+## V-325 — Acesso pessoal da Grazi na CONTAD (06/11/2026)
+
+Autorização humana posterior em D-321: configurar conta com o e-mail já
+informado e senha simples, mantendo ausência de convite. Preflight somente
+leitura confirmou login inexistente, zero membros/convites/faturas, escritório
+active/Conciliação/contrato individual R$ 200 e 163 movimentos do agente.
+Identidade/credenciais permanecem em arquivos privados, sem Git.
+
+Primeiro roteiro aprovado em quatro testes, 14,85 s, mas o processo extra no
+web foi encerrado por OOM. Log Fly confirmou apenas processo administrativo
+python morto; health e agente continuaram com HTTP 200. Leitura posterior em
+worker confirmou zero usuário/membro/auditoria parcial. Roteiro ajustado para
+gerar/validar senha e Argon2 localmente, transmitir só hash à transação no
+worker existente, sem alterar política, parâmetros, recurso ou código hospedado.
+
+**Quatro testes finais com Argon2 real aprovados**, 15,01 s: criação e login por
+senha, escritório/empresa e ação de importação, nenhuma mensagem/convite/fatura,
+preservação de credencial existente, recusa de repetição sem reset/duplicação
+e rollback integral diante de falha de auditoria. Política vigente com mínimo
+oito caracteres e demais validadores preservada. Roteiro privado, não nova
+funcionalidade ou migração da aplicação; não foi necessária regressão/deploy.
+
+**Execução remota:** usuário ativo Grazi, vínculo único owner/Proprietária na
+CONTAD, senha inicial Argon2, sem staff/superusuário/grupo/permissão direta ou
+acesso à plataforma. Auditoria de criação persistida, sem e-mail/senha em
+metadados. Contrato individual/Conciliação/163 movimentos mantidos, zero convite,
+fatura ou arquivo importado pela verificação.
+
+**HTTP real por HTTPS/TLS verificado:** GET login 200, POST com senha e CSRF
+302 para /app/; Conciliação autenticada **200**, identidade Grazi/escritório
+CONTAD/SURIA 212 visíveis e formulário Nova importação/campo de arquivos/origem
+Extrato bancário disponíveis. Sessão encerrou por POST com CSRF, acesso anônimo
+posterior retornou 302 ao login. Não houve force_login, bypass MFA, convite,
+e-mail, upload ou confirmação contábil. Não é QA visual de navegador nem prova
+de arquivo efetivamente importado nessa conta.
+
+Credencial entregue em `/Users/pedromachado/Downloads/CICA-Grazi-acesso.txt`,
+0600, sem senha literal em argumentos ou saídas de ferramentas. Não foi
+implementada expiração/troca obrigatória; não alegar essas propriedades para
+a senha inicial. Evidências privadas em `.tmp/contad-grazi-access-2026-11-06/`:
+tests-argon2.xml, account-created-receipt.json, https-access-verification.json,
+account-final-state.log. Duplicatas transitórias da credencial/hash removidas
+após verificação; arquivo de entrega preservado.
+
+Acesso pessoal concluído. Restam fontes completas/títulos/baixas/regras/DE-PARA,
+Q-47, D-73/200 eventos, provas operacionais/recuperação recorrente, treinamento
+e aceite. Release continua 73/fonte 651368c; exportação Domínio false.

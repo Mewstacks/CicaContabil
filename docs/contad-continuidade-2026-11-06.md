@@ -1,6 +1,6 @@
 # CONTAD — resumo e continuidade
 
-Atualizado em 06/11/2026. Registro vigente: **D-321/V-324**, etapas 03/09/12,
+Atualizado em 06/11/2026. Registro vigente: **D-321/V-324/V-325**, etapas 03/09/12,
 PC-19 e Q-28/Q-46/Q-47. Os registros D-320/V-322/V-323 são etapas anteriores.
 
 **Situação:** deploy, ativação do escritório e integração real do extrato estão
@@ -16,8 +16,11 @@ completo ainda não foi homologado.
   privada não homologada limitada à CONTAD.
 - **CONTAD ativa**, somente Conciliação e contrato individual existente de
   R$ 200/mês travado, sem iniciar cobrança automática/fatura. O responsável
-  escolheu **não enviar convite**. Não criamos conta pessoal ou senha; o papel
-  Proprietária foi aprovado para vínculo futuro por fluxo seguro.
+  escolheu **não enviar convite**. Por solicitação posterior, a conta da Grazi
+  foi criada com e-mail já informado e senha inicial validada, como Proprietária
+  somente da CONTAD, sem acesso de plataforma. Login HTTPS real e Conciliação
+  200/Nova importação conferidos, sem anexar arquivo; sessão de teste encerrada.
+  Credencial só no arquivo privado `/Users/pedromachado/Downloads/CICA-Grazi-acesso.txt`.
 - **Recorte explicitamente aprovado:** SURIA, Domínio **212**, conta contábil
   **8 — BANCO SICREDI**, **09/2026**, somente cabeçalho da sonda. Identidade da
   conta veio dos arquivos aceitos, e o manifesto está validado no servidor.
@@ -45,14 +48,12 @@ completo ainda não foi homologado.
 
 ## Pendências reais
 
-1. **Acesso pessoal da responsável** por fluxo seguro que respeite a escolha
-   de não enviar convite. Ativação do escritório e agente já funcionam.
-2. Completar fontes/semântica e adaptadores de partidas e títulos/parcelas/
+1. Completar fontes/semântica e adaptadores de partidas e títulos/parcelas/
    baixas, regras e **DE-PARA** Q-28/Q-46/Q-08/Q-09. Não fabricar títulos ou
    contrapartidas, usar plano de outra empresa ou consumir IA paga por inferência.
-3. Layout/importação ERP **Q-47**, em autorização própria, treinamento e aceite.
+2. Layout/importação ERP **Q-47**, em autorização própria, treinamento e aceite.
    Prévia privada é não homologada; exportação continua desabilitada.
-4. **D-73:** 163 eventos únicos não atingem os 200 independentes. Repetição,
+3. **D-73:** 163 eventos únicos não atingem os 200 independentes. Repetição,
    OFX/PDF, espelhos ou restart não aumentam a amostra. Provas reais de múltiplas
    páginas/falha de rede e recuperação operacional/RPO recorrente seguem abertas.
 
@@ -70,6 +71,8 @@ Leia [PLANO-MESTRE](../PLANO-MESTRE.md), [DECISOES](../DECISOES.md) e
 
 Evidências privadas, fora do Git:
 
+- `.tmp/contad-grazi-access-2026-11-06/`: testes Argon2, recibo de criação,
+  conferência HTTPS de login/importação e estado final sem senha nos relatórios.
 - `.tmp/contad-deployment-2026-11-06/`: candidata, CI/deploy, ativação,
   manifesto, verificações runtime/HTTP e `agent-final-verification.json`.
 - `.tmp/contad-development-2026-11-06/contad-suria-pilot-request.json`:

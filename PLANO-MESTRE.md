@@ -1,5 +1,13 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Acesso Grazi — D-321/V-325, 06/11/2026:** conta criada com o e-mail já
+fornecido e senha inicial validada, Proprietária somente da CONTAD, sem convite,
+acesso de plataforma ou alteração comercial. Login HTTPS real/CSRF aprovado e
+Conciliação 200 com Nova importação, SURIA e campo de arquivo disponíveis;
+sessão de teste encerrada, sem upload. Credencial entregue em arquivo privado
+0600. A pendência de criação do acesso pessoal está concluída; os resumos
+anteriores sem usuário são históricos. Release permanece 73/fonte 651368c.
+
 **Entrega CONTAD — D-321/V-324, 06/11/2026:** **release Fly 73** publicada e
 verificada, fonte 651368c/CI 42282953292 aprovado. PostgreSQL: 1.755 testes/
 163 subtestes aprovados, dois skips explícitos; agente/pacote e três imagens

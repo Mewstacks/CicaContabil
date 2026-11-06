@@ -328,8 +328,10 @@ Este registro atualiza as pendências de implantação dos blocos históricos ac
   recorte e datas/valores iguais aos arquivos aceitos, inclusive após repetição.
 - [ ] Provar falha de rede/retentativa no PC e múltiplas páginas reais quando
   houver corpus autorizado para isso; 163 itens cabem em uma página de 500.
-- [ ] Completar fontes/adaptadores Razão completo e títulos/baixas, regras,
-  fluxo autenticado da responsável e homologação; envio do extrato não os encerra.
+- [x] Concluir acesso pessoal D-321/V-325: Grazi Proprietária da CONTAD,
+  login HTTPS/Conciliação 200 e importação disponível, sem convite ou upload.
+- [ ] Completar fontes/adaptadores Razão completo e títulos/baixas, regras
+  e homologação; envio do extrato e criação da conta não os encerram.
 
 Nenhuma senha recebida no chat/extraída do registro. 151 vínculos de extrato do
 Domínio não constituem partidas independentes nem aprovação automática CICA.

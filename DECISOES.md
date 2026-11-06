@@ -3432,3 +3432,41 @@ operação na main com [skip ci], mantendo o código implantado 651368c e as
 alterações locais anteriores fora do índice. Não fazer novo deploy por textos,
 criar usuário/convite/fatura ou encerrar gates de fontes/títulos/DE-PARA/ERP,
 D-73, recuperação recorrente, treinamento e aceite por essa documentação.
+
+**Autorização posterior de acesso pessoal D-321 (06/11/2026):** após perguntar
+pela conta da Grazi, o responsável solicitou configurá-la com o e-mail já
+fornecido e uma senha simples. Essa instrução autoriza agora criar usuário
+ativo e senha inicial, validada pela política vigente, e vinculá-lo como
+Proprietária somente à CONTAD, conforme papel já aprovado. Usar nome Grazi e
+identidade do arquivo privado existente, sem repetir pergunta de e-mail.
+Não atribuir staff/superusuário/acesso de plataforma, criar outro escritório,
+enviar convite/e-mail ou mudar contrato/módulos/cobrança/agente. Gerar senha
+inicial com caracteres fáceis de digitar e aleatoriedade, sem enfraquecer os
+validadores; entregar e-mail/senha em arquivo local 0600, sem Git/logs ou senha
+literal em argumentos de processo. Se surgir conta existente inesperada,
+preservar credencial/vínculos e revisar antes de sobrescrever. Testar o roteiro
+isolado e conferir login HTTPS real, escritório/empresa e permissão de importar,
+sem anexar dados ou aprovar conciliações na sessão de verificação. Essa entrega
+não exige mudança de código/interface, deploy ou envio de mensagem à Grazi.
+
+Execução de acesso D-321: primeiro roteiro passou em quatro testes isolados,
+mas o processo administrativo no web foi encerrado por falta de memória ao
+tratar Argon2. Leitura posterior confirmou zero conta/vínculo/auditoria parcial;
+site/health/agente continuaram respondendo. Preparar/validar a senha e o hash
+Argon2 no Mac, sem carregar essa operação extra no web; transmitir somente hash
+à transação na máquina worker existente, preservando algoritmo/parâmetros,
+recursos e política. Revalidar roteiro com Argon2 real antes da nova execução;
+conferir a senha pelo login HTTPS normal, sem hash ou segredo no registro Git.
+
+Resultado do acesso D-321: roteiro final com Argon2 real aprovado em quatro
+testes isolados. Usuário Grazi criado ativo, senha inicial validada e hash
+Argon2, vínculo único Proprietária da CONTAD, sem staff/superusuário/grupo ou
+permissão de plataforma. Contrato/módulos/agente/dados mantidos. Login HTTPS
+real aprovado, sessão entrou diretamente na CONTAD, Conciliação 200 com SURIA,
+origem extrato bancário e Nova importação/campo de arquivo disponíveis. Nenhum
+arquivo enviado/decisão contábil tomada; sessão de verificação encerrada e
+retorno anônimo ao login conferido. Credencial entregue só em arquivo privado
+0600; convite/e-mail/fatura continuam zero. A pendência de criação do acesso
+pessoal está concluída, substituindo o estado anterior sem usuário. Atualizar
+continuidade/checklists/validações e publicar só documentação com [skip ci],
+preservando os trabalhos locais anteriores; não há código/deploy novo.

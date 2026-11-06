@@ -3213,3 +3213,29 @@ arquivo de pareamento agora contém só comprovante, sem código reutilizável.
 Atualizados plano, V-324, checklists, dúvidas e continuidade; publicação final
 somente documental sem repetir CI/deploy. Gates remanescentes explicitados,
 sem marcar homologação ou acesso pessoal como concluídos.
+
+
+## Acesso pessoal Grazi — D-321/V-325 (06/11/2026)
+
+Responsável solicitou conta com o e-mail já informado e senha simples. Registrada
+autorização posterior antes de criar credencial/vínculo; papel Proprietária já
+aprovado, ausência de convite mantida. Preflight confirmou login inexistente e
+estado do escritório/agente/contrato preservado. Quatro testes iniciais aprovados;
+processo extra no web foi morto por OOM, sem usuário/vínculo/auditoria parcial,
+com health/agente seguindo 200. Preparação de senha/política/Argon2 movida ao Mac,
+transação reduzida executada no worker existente, sem ampliar recursos.
+
+Quatro testes finais com Argon2 real aprovados, 15,01 s, incluindo login, acesso
+à importação, proteção de conta existente/repetição e rollback de auditoria.
+Conta ativa Grazi/owner somente CONTAD criada com auditoria, sem staff/plataforma,
+convite/e-mail/fatura ou alteração de módulos/contrato/agente. Senha só no arquivo
+privado 0600 de entrega; cópias transitórias privadas limpas após verificação.
+
+Conferência HTTPS real com senha/CSRF: login 302 para app, Conciliação 200,
+CONTAD/Grazi/SURIA 212 e Nova importação/campo de arquivo/origem disponíveis.
+Sessão de verificação encerrada por POST, anônimo 302 ao login. Estado remoto
+final confirma vínculo único, último login, Argon2, 163 movimentos/healthy,
+zero arquivos importados/convites/faturas. Nenhum bypass MFA ou teste visual
+novo. Atualizados plano/checklists/continuidade/V-325; publicação documental
+sem novo código/deploy, preservando alterações locais anteriores. Acesso pessoal
+concluído; fontes/regras/Q-47/D-73/recuperação/treinamento e aceite seguem abertos.

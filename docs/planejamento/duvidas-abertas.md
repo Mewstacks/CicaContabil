@@ -381,3 +381,11 @@ provas reais de rede/paginação e acesso pessoal; não conserva a aprovação d
 recorte ou o pareamento já concluídos como bloqueio. Q-46: títulos/baixas/regras/
 DE-PARA reais e revisão. Q-47: layout/importação autorizada própria e homologada.
 D-73/200 eventos, recuperação recorrente, treinamento e aceite continuam abertos.
+
+
+Atualização posterior D-321/V-325 (06/11): responsável solicitou configurar a
+conta da Grazi com o e-mail já fornecido e senha inicial. Criada Proprietária
+somente CONTAD, sem convite/acesso de plataforma. Login HTTPS real aprovado,
+Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada sem
+upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
+login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.

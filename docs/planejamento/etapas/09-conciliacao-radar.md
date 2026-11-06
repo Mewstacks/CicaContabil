@@ -321,8 +321,9 @@ por esclarecimento humano posterior. Não reabrir a pergunta para os testes.
   com o corpus fornecido; os 163 registros AccountingEntry são espelho bancário.
 - [x] Comprovar serviço LocalSystem/ready e persistência da configuração após
   reinício; ausência de campos de senha no novo DSN informada pelo operador.
-- [ ] Concluir acesso pessoal da responsável por fluxo seguro sem contrariar
-  a escolha de não enviar convite; ativação do escritório já está concluída.
+- [x] Concluir acesso pessoal por solicitação posterior D-321/V-325: Grazi
+  Proprietária, login HTTPS/Conciliação 200/Nova importação conferidos, sem
+  convite, upload ou acesso de plataforma; credencial em arquivo privado.
 - [ ] Completar partidas/fontes de títulos e baixas/regras Q-46/DE-PARA sob
   Q-08/Q-09; não fabricar dados ausentes nem consumir IA paga por inferência.
 - [ ] Homologar importação Q-47 em autorização própria, D-73, treinamento e

@@ -400,8 +400,11 @@ espera e cadastro provisionado não equivalem à implantação completa.
   no novo DSN. Backend: 163 itens, conector saudável, sem duplicação/fora do recorte.
 - [x] Conferir datas/valores com os arquivos aceitos, preservando fatos de
   extrato versus Razão e sem contar formatos/repetições como novos eventos.
-- [ ] Concluir acesso pessoal, fontes completas/regras Q-28/Q-46, DE-PARA,
-  Q-47/importação homologada, D-73, recuperação operacional, treinamento e aceite.
+- [x] Concluir acesso pessoal D-321/V-325 com senha inicial validada,
+  Proprietária somente CONTAD, login HTTPS e importação disponível; sem convite
+  ou upload. Não equivale a aceite do fluxo contábil completo.
+- [ ] Concluir fontes completas/regras Q-28/Q-46, DE-PARA, Q-47/importação
+  homologada, D-73, recuperação operacional, treinamento e aceite.
 
 Deploy, ativação do escritório e integração real do extrato estão concluídos.
 O escopo é piloto bancário autorizado; a homologação integral continua aberta.
