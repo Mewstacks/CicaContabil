@@ -306,3 +306,30 @@ evidência de teste da empresa informada como fechada. Leitor PDF/CLI local
 confronta os 163 movimentos sem exigir a origem do saldo da captura Domínio.
 Essa entrega não aciona o serviço ou altera os gates de recorte/envio; não
 repetir instalação, sonda ou pergunta do importador para prosseguir no corpus.
+
+
+## Estado atual CONTAD — D-321/V-324 (06/11/2026)
+
+Este registro atualiza as pendências de implantação dos blocos históricos acima.
+
+- [x] Publicar/verificar backend release 73, fonte 651368c, mantendo recursos,
+  aliases Neon, exportação false e reserva parada.
+- [x] Ativar escritório/contrato/módulo Conciliação sem convite ou cobrança
+  automática; aprovação de Proprietária registrada, sem criar conta pessoal.
+- [x] Receber autorização específica para 212/conta 8/Sicredi/09-2026 e único
+  cabeçalho da sonda; cadastrar conta pelas fontes aceitas e validar manifesto.
+- [x] Parear agente 1.0.3 em Domínio Local/CICA_CONTAD x64; resolver falha ACL
+  com configurador elevado e revogar somente credencial órfã sem uso.
+- [x] Comprovar pelo operador serviço Running/Auto/LocalSystem/ready após
+  reinício, com credencial explícita protegida e DSN original preservado.
+- [x] Remover somente campos PWD/Password/Senha do novo CICA_CONTAD x64,
+  sem ler seus valores; operador informou false e Running/ready após reinício.
+- [x] Conferir backend saudável, 163 itens/espelho, zero duplicações/fora de
+  recorte e datas/valores iguais aos arquivos aceitos, inclusive após repetição.
+- [ ] Provar falha de rede/retentativa no PC e múltiplas páginas reais quando
+  houver corpus autorizado para isso; 163 itens cabem em uma página de 500.
+- [ ] Completar fontes/adaptadores Razão completo e títulos/baixas, regras,
+  fluxo autenticado da responsável e homologação; envio do extrato não os encerra.
+
+Nenhuma senha recebida no chat/extraída do registro. 151 vínculos de extrato do
+Domínio não constituem partidas independentes nem aprovação automática CICA.

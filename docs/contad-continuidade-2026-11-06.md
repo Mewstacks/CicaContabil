@@ -1,78 +1,84 @@
 # CONTAD — resumo e continuidade
 
-Atualizado em 06/11/2026. Continuidade de **D-320/V-322/V-323**, etapas 03/09/12,
-PC-19 e Q-28/Q-46/Q-47.
+Atualizado em 06/11/2026. Registro vigente: **D-321/V-324**, etapas 03/09/12,
+PC-19 e Q-28/Q-46/Q-47. Os registros D-320/V-322/V-323 são etapas anteriores.
 
-**Situação:** a prévia está publicada no CICA e o agente está instalado no PC
-da cliente. A conexão local funcionou. O agente ainda não foi pareado e o
-conciliador ainda não está homologado.
+**Situação:** deploy, ativação do escritório e integração real do extrato estão
+concluídos. O agente está sincronizando o recorte autorizado; o conciliador
+completo ainda não foi homologado.
 
-## O que já fizemos
+## Entrega concluída
 
-- Implementamos a **prévia privada de conferência**, com controle de acesso,
-  hash e auditoria. Publicamos a **release Fly 72**, fonte `f86ae4d`, após CI,
-  testes locais, migrações e verificações do servidor.
-- Fizemos backup Neon/Tigris e ensaio de restauração antes do deploy.
-  Retenção até **13/11/2026**; credencial temporária revogada.
-- Criamos o escritório **CONTAD** separado dos demais, em `activation_pending`.
-  Acesso ainda pendente; login responsável já informado em evidência privada.
-- O operador instalou o **agente 1.0.3** e informou serviço Running/Automatic,
-  inicialmente awaiting_configuration. Testes ODBC e do configurador funcionaram
-  com **CICA_CONTAD x64 / SQL Anywhere 17 / srvContabil / EXTERNO**.
-- Definimos o piloto: **SURIA COMPONENTES E ACESSORIOS PARA MODA LTDA**,
-  empresa **212**, conta contábil **8 — BANCO SICREDI**, **09/2026**.
-- Conferimos PDF/OFX bancários e Razão real: **163 movimentos coincidem em data
-  e valor**, e os saldos dos PDFs coincidem. Há valores repetidos; isso não
-  confirma conciliações nem fornece todas as partidas contábeis.
-- A consulta restrita, autorizada e executada pelo operador, encontrou um
-  cabeçalho desse recorte com 163 itens. O ID está na evidência privada.
-- A captura da conta 8 confirmou cadastro analítico/ativo, sem agência ou
-  número da conta bancária visíveis.
+- **Release Fly 73**, fonte `651368c`, CI 42282953292 aprovado. PostgreSQL:
+  1.755 testes/163 subtestes aprovados, dois skips declarados. Runtime de
+  web/worker, bancos/migrações Neon, health e proteção de acesso conferidos.
+  Mesmas máquinas/512 MB, reserva parada, exportação Domínio false e prévia
+  privada não homologada limitada à CONTAD.
+- **CONTAD ativa**, somente Conciliação e contrato individual existente de
+  R$ 200/mês travado, sem iniciar cobrança automática/fatura. O responsável
+  escolheu **não enviar convite**. Não criamos conta pessoal ou senha; o papel
+  Proprietária foi aprovado para vínculo futuro por fluxo seguro.
+- **Recorte explicitamente aprovado:** SURIA, Domínio **212**, conta contábil
+  **8 — BANCO SICREDI**, **09/2026**, somente cabeçalho da sonda. Identidade da
+  conta veio dos arquivos aceitos, e o manifesto está validado no servidor.
+  Não pedir novamente empresa/conta/período/ID ou autorização desse recorte.
+- **Agente 1.0.3 pareado**, Domínio Local/CICA_CONTAD x64/SQL Anywhere 17,
+  credencial EXTERNO digitada somente no PC. Operador comprovou serviço
+  **Running / Auto / LocalSystem / ready**, inclusive após reinícios.
+- O primeiro pareamento falhou no icacls antes de salvar a configuração.
+  Resolvido com configurador como administrador; credencial órfã revogada e
+  código substituto consumido. Não reinstalar ou emitir novo código se ready.
+- Removidos somente campos de senha do novo CICA_CONTAD x64, sem ler valores;
+  operador informou **CampoDeSenhaNoDsn=false / Running / ready** após reinício.
+  DSN original preservado; autenticação do agente é explícita, com configuração
+  protegida no Windows.
+- Backend recebeu **163 movimentos**, conector **healthy**, zero duplicações
+  e zero linhas fora do recorte. Datas/valores conferidos com os arquivos
+  fornecidos. Os 163 AccountingEntry são espelho do extrato; não são novas
+  partidas independentes. 151 vínculos do extrato Domínio não são aceite CICA.
+- Conferência repetível OFX/PDF/Razão já implementada em CLI e comando Django:
+  163 coincidências, 159 candidatos únicos, dois grupos ambíguos e saldos dos
+  PDFs iguais, sem confirmar alocações ou completar contrapartidas ausentes.
+- Backup Neon/Tigris e restore isolado comprovados em V-322, válidos até
+  **13/11/2026**. V-324 reconferiu só manifesto/metadados dos 53 objetos,
+  sem nova cópia/recurso/restore ou alteração de retenção.
 
-## O que falta agora
+## Pendências reais
 
-**Esclarecimento humano vigente — V-323:** o responsável informou que a empresa
-está fechada e os arquivos foram fornecidos para teste, determinando usá-los
-como evidência. Não exigir origem do saldo da tela ou perguntar quem importou
-para testar esse corpus. A diferença anterior fica registrada, sem causa presumida.
+1. **Acesso pessoal da responsável** por fluxo seguro que respeite a escolha
+   de não enviar convite. Ativação do escritório e agente já funcionam.
+2. Completar fontes/semântica e adaptadores de partidas e títulos/parcelas/
+   baixas, regras e **DE-PARA** Q-28/Q-46/Q-08/Q-09. Não fabricar títulos ou
+   contrapartidas, usar plano de outra empresa ou consumir IA paga por inferência.
+3. Layout/importação ERP **Q-47**, em autorização própria, treinamento e aceite.
+   Prévia privada é não homologada; exportação continua desabilitada.
+4. **D-73:** 163 eventos únicos não atingem os 200 independentes. Repetição,
+   OFX/PDF, espelhos ou restart não aumentam a amostra. Provas reais de múltiplas
+   páginas/falha de rede e recuperação operacional/RPO recorrente seguem abertas.
 
-O leitor do Razão PDF e a CLI local já reproduziram o confronto: 163 movimentos,
-159 candidatos únicos, dois grupos ambíguos, zero sobras por data/valor e saldos
-dos PDFs iguais. Relatório rastreável por página/linha e hashes, sem confirmar
-alocações ou criar partidas. Rodada com 139 testes aprovados/cinco skips
-PostgreSQL; execução real sem rede/banco. [Uso e limites](conciliacao-razao-normalizado.md).
+O responsável informou empresa fechada e arquivos fornecidos para teste:
+corpus aceito. **Não perguntar quem importou ou de onde veio o saldo da captura**
+para retomar esse teste. Diferença histórica não teve causa presumida; aprovação
+posterior do corpus/recorte está registrada. Não alterar saldos/ERP por inferência.
 
-1. **Concluir acesso/ativação CONTAD**, sem inventar contrato, condições
-   comerciais, papéis ou convites.
-2. Para o percurso real do agente, definir/autorizar seu recorte e, após acesso,
-   preparar manifesto restrito,
-   parear e testar autenticação, ausência de senha no DSN, LocalSystem,
-   paginação/repetição/retomada. Teste interativo não comprova o serviço.
-3. Completar partidas do Razão, títulos/baixas, regras, DE-PARA, treinamento e
-   aceite. Os 163 eventos não atendem os 200 itens independentes de D-73.
-
-## Como continuar
+## Como retomar
 
 Leia [PLANO-MESTRE](../PLANO-MESTRE.md), [DECISOES](../DECISOES.md) e
 [VALIDACOES](../VALIDACOES.md), nessa ordem; depois etapas 03/09/12 e
-[dúvidas abertas](planejamento/duvidas-abertas.md). Detalhes técnicos de
-publicação/backup: [roteiro de release](contad-release-2026-11-05.md).
+[dúvidas abertas](planejamento/duvidas-abertas.md). Operação/retorno:
+[roteiro de release](contad-release-2026-11-05.md).
 
-A preparação privada está em
-`.tmp/contad-development-2026-11-06/contad-suria-pilot-request.json`;
-ela aponta fontes, diagnóstico e comparação. **Não é manifesto aprovado.**
-O prompt completo está em `/Users/pedromachado/Downloads/CONTAD-prompt-continuidade.txt`,
-fora do Git. Originais bancários e Razão permanecem nos Downloads do Mac.
+Evidências privadas, fora do Git:
 
-O usuário executa passos guiados no Windows: controle nativo AnyDesk falhou.
-Não repetir instalação, sonda ou perguntas respondidas sem motivo. Senha somente
-no PC, nunca no chat. Não corrigir saldos, reimportar, ampliar SQL, enviar dados
-ou gerar custos por inferência. Exportação Domínio continua desabilitada.
+- `.tmp/contad-deployment-2026-11-06/`: candidata, CI/deploy, ativação,
+  manifesto, verificações runtime/HTTP e `agent-final-verification.json`.
+- `.tmp/contad-development-2026-11-06/contad-suria-pilot-request.json`:
+  fontes, preparação e referências, agora com recorte aprovado.
+- `.tmp/contad-ledger-evidence-2026-11-06/conferencia-final.json`:
+  confronto OFX/PDF/Razão e hashes. [Uso e limites](conciliacao-razao-normalizado.md).
+- Prompt privado em `/Users/pedromachado/Downloads/CONTAD-prompt-continuidade.txt`;
+  originais bancários/Razão permanecem nos Downloads.
 
-Relatório privado da retomada:
-`.tmp/contad-ledger-evidence-2026-11-06/conferencia-final.json`, com verificação
-dos originais e bloqueio de conexões em `verification.json` na mesma pasta.
-
-Últimas atualizações e evidências estão no workspace local; preservar mudanças
-anteriores. A retomada V-323 implementou apenas a conferência local, sem novo
-deploy ou conclusão dos gates.
+O operador executa passos guiados no Windows; não retomar controle alternativo
+AnyDesk ou repetir instalação/sonda. Senha fica somente no PC. Preservar trabalhos
+locais anteriores D-316/D-317/V-318/V-319/etapa 00 fora dos commits desta entrega.

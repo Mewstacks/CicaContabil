@@ -3324,3 +3324,111 @@ de arquivos da cliente por inferência. Reutilizar gravação privada/atômica n
 módulo da aplicação para que a CLI não dependa de `scripts` ausente no runtime;
 incluir a CLI no manifesto de fonte. Validar comando, CLI e a versão exata
 antes de publicar. A saída permanece conferência, não partidas contábeis.
+
+Conferência de acesso D-321: o login indicado ainda não possui conta no CICA.
+Ativar escritório/contrato individual/módulo sem criar usuário com senha
+improvisada ou conta inutilizável, e sem emitir convite; o vínculo Proprietária
+fica aprovado para o fluxo seguro posterior. Contrato sem plano de catálogo,
+mensalidade travada em R$ 200 e somente Conciliação, preserva a exclusão do
+fechamento automático de faturas já implementada. Dois testes isolados aprovaram
+acesso ao módulo, recusa de IA, nenhuma fatura/convite/credencial, reutilização
+de usuário quando existente e repetição da ativação sem duplicar contrato.
+
+Execução de ativação D-321: escritório CONTAD em **active**, somente
+Conciliação habilitada e contrato individual ativo R$ 200/mês, preço travado,
+sem plano de catálogo, Asaas, fatura, convite ou senha criados. Auditoria
+persistida com referência D-321; responsável ainda sem conta/membro, conforme
+escolha de não enviar convite. Não declarar login disponível por essa ativação.
+Fonte 651368c publicada na main, candidata de 820 hashes iguais ao commit,
+CI 42282953292 em execução. Imagem local linux/amd64 aprovada em teste sem
+rede/banco, 647 arquivos de runtime iguais à candidata; deploy ainda pendente.
+
+**Autorização específica recebida Q-28/D-321 (06/11/2026):** responsável escolheu
+“Autorizar somente esse recorte” para o agente ler/enviar ao CONTAD os dados da
+SURIA, Domínio 212, conta contábil 8 — Sicredi dos arquivos fornecidos,
+setembro/2026, somente extrato 55 já identificado pela sonda. Essa aprovação
+fecha o recorte operacional do piloto a partir das evidências existentes;
+não exigir origem do saldo da captura. Registrar empresa/conta financeira com
+identidade extraída dos arquivos aceitos e emitir manifesto `dominio-pilot-v1`
+limitado a esses campos/ID; não habilitar carteira inteira ou SQL adicional.
+Preparar código temporário de uso único para o operador no PC, sem convite,
+senha no chat ou conteúdo financeiro versionado. Preservar fonte bancária e
+Razão como fatos distintos; autorização de sincronizar extrato não é escrita
+ERP, importação/geração de partidas ausentes, IA paga ou homologação integral.
+
+Execução do recorte Q-28/D-321: empresa e conta financeira registradas no
+CONTAD a partir dos arquivos aceitos, manifesto validado para 212/8/09-2026/
+extrato 55 e código de uso único emitido por 60 minutos. Código guardado só
+em arquivo privado para o operador; não incluído nos registros ou Git.
+Três testes isolados de ativação/recorte aprovados; não emitido código genérico.
+No primeiro snapshot remoto posterior, código ainda não utilizado e zero
+agentes/linhas financeiras: a orientação ao PC não comprova pareamento.
+
+Gate de deploy D-321 cumprido: CI 42282953292 concluído com sucesso para
+651368c101bec5b8b0bb9a75b4fb1268029dd220, agente/pacote Windows, testes SQLite/
+PostgreSQL e três imagens aprovados. Publicar a imagem já conferida
+sha256:20f01b3888c8fa02395a876e6b4597fbf49db7a29a0919e288d3a9b78979717a,
+usando configuração hospedada preservada, --ha=false e excluindo a reserva
+287e35db920e48. Não ampliar recursos ou alterar banco/retencão/portas/gates;
+em falha retornar à imagem release 72, preservando dados/migrações e a
+ativação explicitamente autorizada. Conferir runtime, migrações, health e
+proteção de acesso após a atualização, antes de afirmar deploy concluído.
+
+Resultado de deploy D-321: release Fly **73** concluída, fonte 651368c,
+web/worker com os 647 arquivos/hashes esperados, migrações/endpoint Neon
+preservados e health 200/banco/cache ok. Duas máquinas originais/512 MB,
+ambiente/serviços e reserva parada conferidos; nenhuma alteração recorrente.
+Prévia/download anônimos 302, agente inválido 401, exportação false.
+
+Correção operacional do pareamento D-321: captura do operador mostrou erro
+“Não foi possível restringir a pasta de configuração”. Código foi consumido e
+agente criado, mas sem heartbeat, conector ou linha financeira; fonte do
+configurador confirma falha de icacls antes da gravação DPAPI. Orientar abertura
+elevada do configurador, preservando MSI/DSN. Revogar somente essa credencial
+órfã sem uso e emitir novo código temporário para o mesmo manifesto aprovado,
+sem apagar histórico ou ampliar o recorte; guardar substituto no arquivo
+privado já indicado, sem conteúdo de segredo nos registros. Não declarar
+serviço configurado ou leitura real até a prova posterior no PC/backend.
+
+
+Recuperação do pareamento D-321 executada: credencial órfã revogada, código
+substituto emitido com manifesto idêntico e arquivo privado substituído 0600.
+Operador informou “Recorte configurado” após abertura elevada; novo agente
+com heartbeat e **163 movimentos** recebidos no backend. Primeiro estado
+informado por PowerShell: Running/LocalSystem/ready, observado 20:13:55 UTC.
+Orientado reinício somente do serviço para provar reabertura da configuração e
+repetição sem duplicação; sem reiniciar PC/ERP ou alterar rede/credenciais.
+Registrar o resultado efetivo antes de marcar essa prova concluída. Credencial
+revogada fica no histórico, não reutilizada; código temporário consumido não
+representa login pessoal ou convite.
+
+Higiene do DSN dedicado D-321: operador retornou true para presença de campo
+PWD/Password/Senha no CICA_CONTAD x64. Isso prova nome de campo, não valor
+preenchido. Como a captura/serviço comprovaram credencial EXTERNO explícita na
+configuração protegida e autenticação herdada do DSN desmarcada, orientar
+remoção somente desses campos do novo CICA_CONTAD x64, sem ler/exportar valores,
+alterar usuário/servidor/driver ou tocar o DSN original x86. Reiniciar somente
+CicaAgent e conferir ausência dos campos, estado e nova sincronização; não
+marcar ausência comprovada antes do resultado. Essa correção segue o requisito
+já aberto da etapa 03, sem extração, troca ou revogação da senha do ERP.
+
+
+Conclusão da prova guiada D-321: após reinício, operador informou
+Running/Auto/LocalSystem/ready (20:15:14 UTC). Após remoção só dos campos de
+senha no CICA_CONTAD x64 e outro reinício, informou CampoDeSenhaNoDsn=false,
+Running/ready (20:17:39 UTC). Configuração protegida reabriu e ciclo concluiu;
+nenhuma leitura de segredo do registro ou alteração do DSN original.
+Conferência backend anterior: 163 itens/espelho, zero duplicações/fora de recorte,
+conector healthy. Multiconjunto data/módulo do valor igual ao corpus aceito;
+no recorte observado, C corresponde às 108 saídas e D às 55 entradas,
+reproduzindo também as datas/valores assinados dos arquivos. Preservar sinais
+originais e direção do Domínio, sem aplicar essa observação como regra geral
+para partidas contábeis. 151 vínculos de extrato preexistentes não são prova
+de Razão independente ou aceite do conciliador.
+
+Finalização documental D-321: atualizar plano/checklists, V-324, execução e
+continuidade com resultados efetivos; publicar somente esses registros de
+operação na main com [skip ci], mantendo o código implantado 651368c e as
+alterações locais anteriores fora do índice. Não fazer novo deploy por textos,
+criar usuário/convite/fatura ou encerrar gates de fontes/títulos/DE-PARA/ERP,
+D-73, recuperação recorrente, treinamento e aceite por essa documentação.

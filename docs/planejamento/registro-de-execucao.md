@@ -3159,3 +3159,57 @@ Atualizados decisões, plano, validações, dúvidas/checklists e continuidade.
 Evidências em .tmp/contad-ledger-evidence-2026-11-06, fora do Git. Sem novo acesso
 externo, SQL, pareamento, transmissão, liberação, custo, publicação ou aceite;
 nenhum trabalho anterior descartado. Novos eventos independentes: zero.
+
+## Deploy e pendências CONTAD — D-321/V-324 (06/11/2026)
+
+Responsável solicitou publicação/conclusão, confirmou PC disponível e escolheu
+ativação sem convite, somente Conciliação/perfil Proprietária/contrato R$ 200
+existente, sem iniciar cobrança automática. Preflight somente leitura confirmou
+release 72 e cadastro vazio; login informado ainda sem conta. Testado roteiro
+de ativação em banco isolado, com/sem usuário existente, incluindo fechamento
+financeiro sem gerar invoice. Corrigida chave proibida de metadados no ensaio
+local antes da produção. Executada ativação com auditoria: office active,
+contrato individual sem plano, módulo reconciliation; sem fatura/Asaas/convite/
+senha/usuário novos. Acesso pessoal permanece pendente, respeitando a escolha.
+
+Comando administrativo de conferência incluído no runtime e CLI no manifesto;
+100 testes focados sem skips, Ruff global/MyPy aprovados. Publicação main
+651368c/SHA remoto idêntico, candidata 820 arquivos/hashes e imagem amd64
+conferidas; ensaio do comando sintético na imagem sem rede/banco, 0600 aprovado.
+Registro Docker recebeu imagem. CI 42282953292 em execução; deploy ainda
+aguarda aprovação do CI. Configuração atual/tamanhos/reserva preservados.
+
+Metadados do backup D-320 reconferidos no Tigris: manifesto/hash, 53 objetos
+e expiração sete dias, sem nova cópia/recurso/restore. Trabalhos anteriores
+locais D-316/D-317/V-318/V-319 e etapa 00 permaneceram fora do commit.
+Recorte de pareamento apresentado ao responsável em Q-28; ainda sem resposta
+na observação, sem código emitido ou dado financeiro transmitido.
+
+
+Conclusão da publicação D-321: CI 42282953292 aprovado para 651368c (PostgreSQL
+1.755 testes/163 subtestes, dois skips; agente/pacote e três imagens aprovados).
+Deploy pela imagem conferida concluído na release 73. Conferidos web/worker,
+647 fontes/hashes, migrações/endpoint Neon, 512 MB, reserva parada, health e
+proteção de acesso; sem ampliar recursos ou gates. V-324 registra os detalhes.
+
+Resposta humana posterior autorizou somente SURIA/212/conta 8/09-2026/extrato
+identificado. Empresa/conta e manifesto preparados e código temporário entregue
+em arquivo privado. No PC, operador precisou do HTTPS e depois do código;
+orientações fornecidas. Captura posterior revelou falha icacls antes de salvar
+configuração. Backend confirmou consumo do código sem heartbeat/conector/
+linhas. Registrada correção em D-321 antes de revogar credencial órfã e
+substituir código, preservando recorte/DSN/MSI; configurador deve abrir elevado.
+Prova LocalSystem/sincronização continua em andamento, sem homologação presumida.
+
+
+Resultado final do PC e backend: “Recorte configurado”, Running/LocalSystem/
+ready; após reinício Running/Auto/LocalSystem/ready. Campo de senha encontrado
+por nome no DSN dedicado; remoção restrita orientada após D-321, sem ler valores.
+Novo reinício retornou false/Running/ready às 20:17:39 UTC. Conferência final
+backend posterior: agente/conector saudáveis, 163 itens/espelho, zero duplicados
+ou fora do recorte; datas/valores iguais ao corpus aceito, fatos contábeis
+independentes continuam zero. Credencial órfã revogada e códigos consumidos;
+arquivo de pareamento agora contém só comprovante, sem código reutilizável.
+Atualizados plano, V-324, checklists, dúvidas e continuidade; publicação final
+somente documental sem repetir CI/deploy. Gates remanescentes explicitados,
+sem marcar homologação ou acesso pessoal como concluídos.

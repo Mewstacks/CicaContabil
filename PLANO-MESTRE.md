@@ -1,5 +1,24 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Entrega CONTAD — D-321/V-324, 06/11/2026:** **release Fly 73** publicada e
+verificada, fonte 651368c/CI 42282953292 aprovado. PostgreSQL: 1.755 testes/
+163 subtestes aprovados, dois skips explícitos; agente/pacote e três imagens
+aprovados. Runtime web/worker, dois aliases Neon/migrações, health/banco/cache,
+512 MB e reserva parada conferidos. Escritório **active**, somente Conciliação,
+contrato individual existente R$ 200/mês travado, sem cobrança automática,
+convite ou senha/conta pessoal criados, por escolha humana.
+Recorte SURIA/212/conta 8/Sicredi/09-2026/único extrato da sonda explicitamente
+autorizado. Agente pareado; operador comprovou Running/Auto/LocalSystem/ready
+após reinícios e ausência dos campos de senha no novo CICA_CONTAD x64.
+Backend recebeu **163 movimentos**, conector healthy, sem duplicações/linhas
+fora do recorte; datas/valores conferidos com o corpus aceito. A falha inicial
+de ACL foi superada por execução elevada e substituição da credencial órfã.
+Sem importação ERP; exportação false e prévia somente CONTAD. Continuam abertos
+acesso pessoal sem convite, fontes completas/títulos/regras/DE-PARA, Q-47,
+D-73 (163 eventos), recuperação recorrente, treinamento e aceite. Os resumos
+V-322/V-323 abaixo descrevem os estados anteriores; não repetir suas pendências
+superadas de ativação, aprovação do recorte ou pareamento.
+
 **Retomada CONTAD — D-320/V-323, 06/11/2026:** responsável informou que a
 empresa está fechada e forneceu os arquivos para teste; esse corpus está aceito
 como evidência local, sem exigir explicação do saldo da captura Domínio.

@@ -6774,7 +6774,7 @@ IA paga, ativação comercial, deploy, commit/push ou homologação nesta rodada
 Acima da discrepância histórica, prevalece a aceitação humana para teste;
 pareamento/serviço real, fontes de títulos, DE-PARA e aceite conservam seus gates.
 
-## V-324 — Publicação e ativação CONTAD em andamento (06/11/2026)
+## V-324 — Release 73, ativação e integração real CONTAD (06/11/2026)
 
 D-321 autoriza deploy e conclusão das pendências CONTAD. Preflight real somente
 leitura confirma release 72/fonte f86ae4d em web/worker e CONTAD em
@@ -6797,3 +6797,114 @@ CLI sem dependência de scripts externos ao runtime; manifesto inclui a CLI.
 alocação de títulos); Ruff global e MyPy dos três módulos aprovados.
 Sem alteração de interface, endpoint ou migração. CI/candidata/deploy e
 ativação/pareamento permanecem em andamento; não tratar a preparação como conclusão.
+
+**Ativação efetivamente executada:** transação no escritório próprio mudou
+lifecycle para active, habilitou somente reconciliation e registrou contrato
+individual ativo, R$ 200/mês travado, sem plano/IDs Asaas e sem vigência inventada.
+Nenhuma fatura, convite, senha ou usuário criados; login informado não existe,
+logo zero membros permanece. Papel Proprietária aprovado para vínculo posterior
+por fluxo seguro; não houve acesso pessoal liberado. Dois testes adicionais
+isolados (com/sem usuário existente), 14,61 s, comprovaram acesso ao módulo,
+recusa de IA, exclusão do fechamento automático e repetição sem contrato duplicado.
+Primeiro ensaio local recusou chave de metadados `authorization`; corrigida para
+`decision` antes de qualquer execução remota, sem relaxar auditoria.
+
+**Artefato:** fonte 651368c101bec5b8b0bb9a75b4fb1268029dd220 publicada na main,
+SHA remoto idêntico. Candidata: 820 arquivos, ZIP SHA-256
+600af5819f7cd90f61bafbafc586f4f168bbe1e56acff2d1f7ecfb7cbb58c2b6;
+todos os blobs do commit conferidos. Trabalhos locais D-316/D-317/V-318/V-319
+preservados fora do índice/commit; histórico do workspace não foi reescrito.
+Imagem linux/amd64 registry.fly.io/cica-contabil:contad-651368c-20261106,
+digest sha256:20f01b3888c8fa02395a876e6b4597fbf49db7a29a0919e288d3a9b78979717a.
+Ensaio da imagem com rede desabilitada e conexão Django bloqueada: comando
+administrativo com três fontes sintéticas aprovado, arquivo 0600 e zero
+confirmações. Todos os 647 arquivos de fonte runtime iguais à candidata,
+hash agregado be6a65a2754a42c4e63f77c4ea1b8e9b26e149243eb20b63763c2aeb43a08772.
+Imagem enviada ao registro, sem deploy até esta observação.
+
+Backup existente D-320 reconferido somente por metadados: manifesto Tigris final
+com hash original idêntico, 53 objetos presentes/tamanhos iguais e regra de
+sete dias preservada, mesma referência de snapshot Neon. Não criou backup,
+chave/recurso/retencão ou repetiu restore; snapshot continua apoiado na prova
+de V-322, não em consulta API Neon nova. Evidências privadas nesta rodada em
+`.tmp/contad-deployment-2026-11-06/`.
+
+
+**CI concluído:** [42282953292](https://github.com/Mewstacks/CicaContabil/actions/runs/42282953292),
+head 651368c, três jobs aprovados. SQLite: **1.735 testes/163 subtestes**, 22 skips,
+312,49 s; PostgreSQL: **1.755 testes/163 subtestes**, dois skips, 398,78 s.
+Skips PostgreSQL: Python Playwright opcional e OCR português indisponível no
+runner; concorrência executada. Agente/pacote Windows e imagens backend/
+multimodal/trainer aprovados. Build do CI não muda o MSI 1.0.3 instalado no PC.
+
+**Deploy concluído:** release Fly **73**, 06/11/2026 20:06:46 UTC, imagem pelo
+digest acima. Release command aprovado; web 891e63ef665e58 e worker
+1857691da097e8 iniciados, 512 MB cada. Reserva 287e35db920e48 continua parada,
+configuração igual à anterior. As três máquinas finais são as originais;
+canários/release machine transitórios destruídos. Ambiente, portas, recursos,
+processos e políticas comparados antes/depois, preservados. Fonte runtime:
+647 arquivos/hash agregado esperado conferidos por SSH em **ambas** as máquinas.
+Comando administrativo disponível; aliases default/knowledge no endpoint Neon
+original com hub.0078/intelligence.0031. Celery/beat iniciou e worker ready.
+
+Readiness nos domínios público e Fly **200**, banco/cache ok; liveness **200**.
+Prévia/download anônimos **302** para login, heartbeat sem autenticação **401**.
+Exportação false e allowlist de prévia somente CONTAD reconferidas. Lifecycle
+active/Conciliação/contrato individual sem cobrança automática/zero convites e
+faturas também reconferidos no runtime. Evidências postdeploy-web.log,
+postdeploy-worker.log, postdeploy-http.json, fly-after-*.json e worker-postdeploy.log
+na pasta privada desta rodada. Primeira tentativa HTTP usou Python do sistema
+sem cadeia CA local disponível; repetida com ambiente/CA da aplicação e TLS
+verificado, sem desabilitar validação de certificado.
+
+**Recorte autorizado e preparado:** resposta humana “Autorizar somente esse
+recorte” registrada em D-321 para SURIA/212, conta contábil 8/Sicredi,
+09/2026 e somente cabeçalho da sonda. Empresa/conta financeira cadastradas
+pelas fontes aceitas; manifesto validado, código de uso único/60 minutos
+entregue em arquivo privado 0600. Três testes isolados de ativação/recorte
+aprovados, 14,33 s. Não é código genérico nem autorização de outros dados.
+
+**Tentativa real do PC:** captura mostra HTTPS correto, Domínio Local,
+CICA_CONTAD/SQL Anywhere 17, EXTERNO explícito, senha mascarada e autenticação
+herdada do DSN desmarcada. Erro “Não foi possível restringir a pasta de
+configuração”. Backend confirma código consumido/agente criado, mas zero
+heartbeat/conector/linhas. Fonte Save executa icacls antes da gravação DPAPI;
+a falha não comprova credencial local salva nem serviço autenticado. Orientada
+abertura como administrador e substituição apenas dessa credencial órfã pelo
+mesmo recorte. Não arquivar captura com código em Git. Consulta metadata inicial
+usou campo inexistente last_sync_at; falhou em transação somente leitura e foi
+corrigida para last_checked_at, sem mudança de dados nessa inspeção.
+
+
+**Prova real concluída:** operador retornou “Recorte configurado” e backend
+confirmou novo agente/heartbeat/163 itens. Credencial órfã anterior revogada,
+sem uso; código substituto consumido e removido do arquivo privado ao concluir.
+PowerShell do PC: Running/LocalSystem/ready em 20:13:55 UTC; após Restart-Service,
+Running/Auto/LocalSystem/ready em 20:15:14 UTC. Presença de campo de senha no
+novo DSN informada como true não provava valor preenchido. Removidos apenas
+PWD/Password/Senha no CICA_CONTAD x64, sem ler/exportar valores; após segundo
+reinício: **CampoDeSenhaNoDsn=false, Running/ready**, 20:17:39 UTC.
+MSI/DSN original/servidor/usuário e senha do ERP não foram alterados.
+
+Conferência final somente leitura no backend, posterior ao segundo reinício:
+agente ativo, heartbeat/ciclo posterior a 20:17 UTC, conector **healthy** sem
+código de erro; empresa única 212, **163 DominioBankEntry e 163 AccountingEntry**
+da fonte local, **zero source_id duplicado/linha fora de recorte**. Manifesto
+novamente validado no escritório/conta. Hash dos multiconjuntos de data/módulo
+do valor igual ao corpus aceito. No recorte, C=108 saídas e D=55 entradas reproduz
+também o multiconjunto de data/valor assinado do banco, sem alterar dados ou
+promover essa observação a regra genérica de partidas. 151 is_linked refletem
+vínculos existentes do extrato, não conciliações aprovadas por este teste.
+**Zero IndependentLedgerRecord/JournalEntry**: o espelho bancário não fabrica
+Razão independente. Repetição/reinício não aumentou contagem. Evidência privada:
+agent-final-verification.json e agent-sync-final.log na pasta desta rodada.
+
+**Limites remanescentes:** resultado do PC é execução guiada informada pelo
+operador, cruzada com recepção real no backend; não houve controle automatizado.
+163 itens cabem numa página, sem prova real de várias páginas ou falha de rede.
+Ausência dos campos de senha foi conferida no DSN dedicado, sem leitura ampla
+ou extração de registro. Acesso pessoal não foi criado por escolha de não
+emitir convite. Fontes completas/títulos/baixas/regras/DE-PARA, Q-47, 200 eventos
+D-73, recuperação recorrente/RPO, treinamento e aceite continuam abertos.
+Não declarar homologação integral ou importação ERP. Nenhum provedor de IA,
+nova cobrança/recurso recorrente ou convite foi acionado.

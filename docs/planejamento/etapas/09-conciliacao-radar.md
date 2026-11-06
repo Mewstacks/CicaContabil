@@ -306,3 +306,28 @@ rodadas de teste e os limites da versão. Não encerrar PC-19 por esta prévia.
 A pendência histórica de explicar o saldo da captura não bloqueia este corpus,
 por esclarecimento humano posterior. Não reabrir a pergunta para os testes.
 [Uso da CLI e limites](../../conciliacao-razao-normalizado.md).
+
+
+## Estado atual CONTAD — D-321/V-324 (06/11/2026)
+
+- [x] Publicar conferência OFX/PDF/Razão também como comando administrativo
+  na release 73, sem novo endpoint ou importação; 100 testes focados aprovados.
+- [x] Conferir CI da fonte 651368c: PostgreSQL 1.755 testes/163 subtestes,
+  dois skips declarados, incluindo os testes concorrentes antes omitidos em SQLite.
+- [x] Ativar somente Conciliação no escritório próprio, sem convite/fatura,
+  e receber autorização explícita do recorte bancário limitado.
+- [x] Receber via agente real os 163 itens de 212/09-2026/extrato aprovado;
+  conector healthy, zero duplicações/fora do recorte. Datas/valores conferidos
+  com o corpus fornecido; os 163 registros AccountingEntry são espelho bancário.
+- [x] Comprovar serviço LocalSystem/ready e persistência da configuração após
+  reinício; ausência de campos de senha no novo DSN informada pelo operador.
+- [ ] Concluir acesso pessoal da responsável por fluxo seguro sem contrariar
+  a escolha de não enviar convite; ativação do escritório já está concluída.
+- [ ] Completar partidas/fontes de títulos e baixas/regras Q-46/DE-PARA sob
+  Q-08/Q-09; não fabricar dados ausentes nem consumir IA paga por inferência.
+- [ ] Homologar importação Q-47 em autorização própria, D-73, treinamento e
+  aceite. Exportação Domínio permanece false; prévia é não homologada.
+
+A aprovação posterior do corpus e do recorte supera a antiga exigência de
+explicar o saldo da captura para o teste. Não reabrir importador/saldo ou pedir
+novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.

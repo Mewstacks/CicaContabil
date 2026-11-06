@@ -359,3 +359,25 @@ Leitor repetível/CLI confrontaram 163 linhas bancárias com o Razão fornecido,
 sem sobras por data/valor e com dois grupos ambíguos preservados. Q-28 conserva
 acesso/ativação e recorte próprio para agente/transporte reais; não interpretar
 a aceitação dos arquivos como autorização de envio ou partidas faltantes.
+
+
+## Atualização Q-28/Q-46/Q-47 — D-321/V-324 (06/11/2026)
+
+Responsável confirmou PC disponível, ativação sem convite e autorização
+**somente** SURIA/212, conta contábil 8/Sicredi, 09/2026 e cabeçalho único já
+identificado. Esses pontos não aguardam nova aprovação. Manifesto aprovado e
+pareamento efetivo concluídos; não repetir sonda ou exigir origem do saldo.
+CONTAD active/Conciliação/contrato individual R$ 200 sem cobrança automática;
+login responsável ainda sem conta, por escolha de não emitir convite.
+
+Operador comprovou Running/Auto/LocalSystem/ready após reinícios, e ausência
+dos campos de senha do novo CICA_CONTAD x64 sem extração de valores. Backend
+healthy/163 movimentos, sem duplicação/fora do recorte, datas/valores conferidos.
+Falha ACL inicial corrigida com execução elevada e credencial órfã revogada.
+Release 73/fonte 651368c/CI aprovado, exportação false/prévia só CONTAD.
+
+Q-28 conserva fontes completas/adaptadores e semântica onde faltarem, além de
+provas reais de rede/paginação e acesso pessoal; não conserva a aprovação do
+recorte ou o pareamento já concluídos como bloqueio. Q-46: títulos/baixas/regras/
+DE-PARA reais e revisão. Q-47: layout/importação autorizada própria e homologada.
+D-73/200 eventos, recuperação recorrente, treinamento e aceite continuam abertos.

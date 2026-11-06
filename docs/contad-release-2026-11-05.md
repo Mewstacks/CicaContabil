@@ -1,6 +1,31 @@
 # Release candidata CONTAD: revisão e operação
 
-## Continuidade vigente — D-320/V-322, 06/11/2026
+## Release vigente — D-321/V-324, 06/11/2026
+
+**Release Fly 73**, fonte 651368c101bec5b8b0bb9a75b4fb1268029dd220,
+[CI 42282953292 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42282953292).
+Imagem registry.fly.io/cica-contabil@sha256:20f01b3888c8fa02395a876e6b4597fbf49db7a29a0919e288d3a9b78979717a.
+Candidata 820 arquivos, ZIP 600af5819f7cd90f61bafbafc586f4f168bbe1e56acff2d1f7ecfb7cbb58c2b6.
+647 fontes runtime/hash agregado be6a65a2754a42c4e63f77c4ea1b8e9b26e149243eb20b63763c2aeb43a08772
+conferidos em web/worker. Migrações/Neon original preservados, health 200,
+banco/cache ok, worker ready, recursos 512 MB e reserva parada preservados.
+Exportação Domínio false; prévia limitada à CONTAD e não homologada.
+
+Contrato individual/Conciliação/escritório ativos conforme autorização, sem
+convite/conta pessoal/cobrança automática. Agente 1.0.3 pareado no recorte
+explicitamente aprovado; operador comprovou Running/Auto/LocalSystem/ready após
+reinício e ausência dos campos de senha do novo CICA_CONTAD x64. Backend:
+163 itens, conector healthy, sem duplicações/fora do recorte e datas/valores
+conferidos. Falha inicial icacls corrigida com execução elevada; credencial
+órfã revogada e código substituto consumido. Não emitir novo código se ready.
+
+Retorno de aplicação: imagem release 72 abaixo, preservando esquema aditivo,
+dados/ativação/credencial válida. Backup D-320 não foi refeito: só manifesto e
+metadados/53 objetos foram reconferidos; mesma validade até 13/11/2026.
+Resultados/limites em V-324 e [continuidade](contad-continuidade-2026-11-06.md).
+As próximas seções documentam a implantação anterior e a preparação histórica.
+
+## Implantação anterior — D-320/V-322, 06/11/2026
 
 Para o estado mais recente dos testes guiados, documentos da cliente e
 pendências de vínculo/saldos/pareamento, leia o

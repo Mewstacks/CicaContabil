@@ -383,3 +383,27 @@ espera e cadastro provisionado não equivalem à implantação completa.
   estáticas aprovadas e relatório privado 0600, sem nova migração ou deploy.
 - [ ] Completar acesso/agente real, fontes/regras ainda ausentes, DE-PARA,
   treinamento e aceite; não converter a evidência dos arquivos em homologação.
+
+
+## Estado atual CONTAD — D-321/V-324 (06/11/2026)
+
+- [x] Conferir fonte 651368c e CI 42282953292 aprovado; candidata 820 hashes,
+  imagem amd64/runtime conferidos. Trabalhos locais anteriores preservados.
+- [x] Reconferir manifesto/metadados dos 53 objetos do backup D-320, mesma
+  retenção; sem nova cópia, custo autorizado adicional ou novo ensaio de restore.
+- [x] Publicar release Fly 73 e conferir web/worker, 647 fontes/hashes,
+  migrações/Neon, health, acesso protegido, 512 MB e reserva parada.
+- [x] Ativar CONTAD/Conciliação/contrato individual R$ 200 existente, sem convite,
+  conta pessoal/senha, cobrança automática ou fatura, conforme escolha humana.
+- [x] Registrar autorização específica de dados e parear recorte restrito;
+  operador comprovou LocalSystem/Auto/ready e reinícios, sem campos de senha
+  no novo DSN. Backend: 163 itens, conector saudável, sem duplicação/fora do recorte.
+- [x] Conferir datas/valores com os arquivos aceitos, preservando fatos de
+  extrato versus Razão e sem contar formatos/repetições como novos eventos.
+- [ ] Concluir acesso pessoal, fontes completas/regras Q-28/Q-46, DE-PARA,
+  Q-47/importação homologada, D-73, recuperação operacional, treinamento e aceite.
+
+Deploy, ativação do escritório e integração real do extrato estão concluídos.
+O escopo é piloto bancário autorizado; a homologação integral continua aberta.
+O corpus de 163 não preenche os 200 eventos independentes de D-73. O ensaio
+pontual de backup/restore anterior não equivale a recuperação recorrente/RPO.
