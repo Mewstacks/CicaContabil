@@ -6957,45 +6957,99 @@ Acesso pessoal concluído. Restam fontes completas/títulos/baixas/regras/DE-PAR
 Q-47, D-73/200 eventos, provas operacionais/recuperação recorrente, treinamento
 e aceite. Release continua 73/fonte 651368c; exportação Domínio false.
 
-## V-327 — Ampliação da carteira CONTAD em execução (06/11/2026)
+## V-327 — Carteira: protocolo publicado, inventário real pendente (06/11/2026)
 
-D-323/PC-19, etapas 03/09/12. Histórico financeiro humano: setembro/2026 em
-diante; operador disponível mais tarde. Preflight read-only em worker confirmou
-647 hashes runtime da fonte 651368c, dois aliases Neon originais/migrações,
-CONTAD active/Conciliação/contrato individual sem cobrança, um membro e dois
-agentes no histórico (um revogado). Exportação false, prévia só CONTAD e zero
-convite/fatura. Release Fly 73 permanece; não houve alteração do manifesto real.
+D-323/PC-19, etapas 03/09/12. Responsável definiu histórico financeiro desde
+setembro/2026 e posteriormente confirmou operador ainda indisponível. Cadastros
+e contas integrais fazem parte do objetivo. Fonte **e9311eb**, CI
+[42294764025](https://github.com/Mewstacks/CicaContabil/actions/runs/42294764025)
+aprovado; backend publicado na **release Fly 74**. Isso é uma entrega parcial:
+manifesto real continua piloto, zero varredura de carteira, sem fontes novas.
 
-Nova implementação local: manifesto de carteira ligado ao escritório, protocolo
-scoped-v2 com transição segura/piloto compatível, fonte companies explicitamente
-selecionada, página de 500, cursor numérico confirmado na mesma transação dos
-cadastros, replay e retomada. Situação bruta preservada e mapa de situações
-obrigatório; desconhecida rejeita a página. Nenhuma desativação por ausência.
-Carga guarda contagens/cursor/conclusão ou abandono, sem afirmar snapshot ERP.
-Migrações aditivas hub.0079 e intelligence.0032/0033. Detalhes e limites em
-[contrato de carteira](docs/contad-carteira-protocolo.md).
+**Implementação:** manifesto `dominio-portfolio-v1` ligado ao escritório,
+revisão integral SHA-256 e fonte companies explicitamente selecionada. Agente
+novo usa scoped-v1 no piloto e scoped-v2 na carteira; configuração permite
+transição, mas recepção de carteira e consumo de código rejeitam cliente antigo.
+Páginas de até 500, cursor numérico persistido com os cadastros em transação,
+replay/retomada, validação atômica e trava do agente com revalidação de revogação.
+Situação bruta preservada em dominio_status, mapa obrigatório, desconhecida
+rejeitada; ausentes não são apagadas/desativadas. Contagens/fim explícitos,
+abandono de scan se a contagem mudar e releitura periódica dos cadastros.
+Não é snapshot transacional ERP; mudanças com mesma contagem durante a leitura
+podem exigir o ciclo seguinte. Contrato técnico em
+[carteira](docs/contad-carteira-protocolo.md). Migrações aditivas hub.0079 e
+intelligence.0032/0033; nenhuma fonte de conta/Razão/títulos foi presumida.
 
-Testes focados iniciais: 82 aprovados SQLite na base anterior ao último teste de
-concorrência. Último foco PostgreSQL: 49 aprovados; advertência no teardown por
-sobreposição indevida com início da regressão, que foi interrompida e reiniciada
-sequencialmente. Não usar essa tentativa abortada como regressão aprovada.
-Regressão final está em andamento. .NET Mac: 51 aprovados/um skip Windows;
-serviço/configurador compilados sem avisos/erros. Ruff global, MyPy dos cinco
-módulos Python, Django e ausência de migrações faltantes aprovados.
+**Verificações:** regressão local final PostgreSQL 17 descartável, **1.788
+aprovados/163 subtestes, um skip**, 286,91 s; skip de navegador Python opcional.
+CI exato: SQLite 1.766/163, 23 skips; PostgreSQL **1.787/163, dois skips**,
+239,90 s (Playwright Python opcional e OCR português ausente no runner).
+Concorrência foi executada: uma abertura e um commit para requisições paralelas,
+replay, 501 empresas, paginação numérica, inativas, alteração de origem,
+rollback após escrita e isolamento. Ruff global/MyPy dos cinco módulos/Django/
+migrações sem pendências aprovados. .NET local/Linux: 51 aprovados/um skip
+Windows; Windows: **52 aprovados, zero skips**. Serviço, GUI e ponte compilados;
+três builds Docker aprovados no CI. Nenhuma interface foi alterada; verificação
+HTTPS de login/HTML não é QA visual nem execução de Playwright nesta rodada.
 
-Preparados roteiros de inventário de metadados/contagens e upgrade configurado
-1.0.3 → 1.0.4, sem ler segredos do registro/DPAPI. CI Windows foi ampliado para
-parse PowerShell 5.1, testes, MSI e instalação descartável, ainda não executado
-para esta fonte. **Não há inventário ODBC real, upgrade ou sincronização ampliada
-comprovados.** Casos A/I são sintéticos; não aprovam mapa de situação real.
-Nenhuma UI foi alterada nem teste visual novo alegado. Fontes financeiras, IA,
-Q-46/Q-47, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
-Evidências privadas em `.tmp/contad-finalization-2026-11-06/`; alterações locais
-anteriores preservadas por patch/status inicial e fora do índice da entrega.
+**Tentativas descartadas:** foco anterior PostgreSQL teve 49 aprovados e aviso
+no teardown por sobreposição indevida com início da regressão, interrompida.
+A primeira regressão sequencial caiu por disco interno Docker cheio: 1.638
+aprovados/163 subtestes, 8 falhas/166 erros, um skip; log PostgreSQL mostra
+PANIC/No space left on device. Não foi resultado aprovado. Removidos somente
+container/volume desta tarefa. Bind mount local recusado pelo Docker/macOS;
+repetição aprovada usou tmpfs descartável de 1 GiB e foi limpa ao terminar.
+Não foram removidos caches, imagens ou volumes de outros projetos.
 
-A regressão local seguinte atingiu 1.638 testes/163 subtestes aprovados antes
-de falhas por falta de espaço no disco interno Docker: 8 falhas/166 erros,
-um skip. Logs PostgreSQL comprovam PANIC/No space left on device; resultado
-não aprovado. Removidos somente container/volume descartáveis desta tarefa.
-Bind mount da pasta do projeto foi recusado pelo Docker/macOS; repetição usa
-banco descartável em tmpfs de 1 GiB, sem alterar armazenamento de outras apps.
+**Artefatos e publicação:** candidata com **825 blobs iguais ao commit**, ZIP
+SHA-256 edb6538c07e21dd3dee332ae0305b448b966dd9295950b8cbc50b48a0fc7afef.
+Imagem sha256:080f24c0b055a0f4d8e8271a6cdd7112b035309bc5824feeddc4b4157920951e:
+base imutável 73 mais camada de onze arquivos Python do commit; Dockerfile,
+dependências/lock e assets iguais à fonte 651368c. Configuração runtime e todas
+as camadas anteriores preservadas; 651 hashes runtime iguais à candidata,
+agregado 118830444f5b2da7fe2fe911cf8012de11389e0f7e63fb405c3d7cc4023807d8,
+conferidos com rede/banco bloqueados. Primeiro bootstrap offline não definiu a
+chave de build e foi recusado antes do Django; repetição com chave sintética
+passou. Esta imagem empacotada sobre a base 73 é distinta das imagens construídas
+integralmente no CI, sem alegar que seus digests sejam iguais.
+
+Deploy rolling no app original, --ha=false/--update-only, reserva excluída.
+Release 74 concluída; 651 arquivos/hash agregado conferidos **em web e worker**,
+migrações dos dois aliases/Neon original conferidas. Máquinas originais/512 MB,
+reserva parada e configuração preservadas. Worker registrou ready às 18:25:18
+BRT; readiness dos dois domínios 200, banco/cache ok. Agente inválido recusado
+401 nas rotas antiga/nova; workspace anônimo redireciona ao login. Fingerprints
+e contagens de **doze conjuntos CONTAD** iguais antes/depois, incluindo arquivos,
+movimentos, decisões e manifesto/agentes. Login real Grazi/CSRF aprovado,
+Conciliação 200/empresa/campo de arquivo presentes, zero upload/decisão; sessão
+encerrada. Contrato individual/módulos/perfil/credenciais e gates mantidos,
+zero convite/fatura. Não houve extração de segredo ou credencial em logs/Git.
+
+**Windows e limite real:** MSI **1.0.4**, SHA-256
+331402999beb42dec54270d5ef7bee6421db58c21b86847a332140704d786c92,
+mesma fonte/CI; 26 checks de instalação/reparo/DPAPI/HMAC/ACL/reinício/remoção
+aprovados em Windows descartável, sem ODBC/pareamento real. Sem Authenticode.
+Roteiros novos passaram no parser PowerShell 5.1, sem consulta ERP executada.
+Cópia do inventário em Downloads/CICA-CONTAD-Inventario-e9311eb.ps1, SHA-256
+7515657a6d4b43e0d0b86f6cb4259c437d223fc541f1776a7126482db88757a2;
+pacote em Downloads/CICA-CONTAD-1.0.4-e9311eb. Operador ainda indisponível;
+**PC continua 1.0.3, sem upgrade/inventário/coleta ampliada comprovados**.
+Último heartbeat registrado: 20:31:25 UTC/17:31:25 BRT, anterior ao deploy;
+não afirmar ciclo real posterior ou causa dessa ausência. Piloto conserva uma
+empresa/conta, 163 movimentos/espelhos, um arquivo/163 movimentos normalizados,
+zero JournalEntry/IndependentLedgerRecord/decisão/saída, sem alteração dos fatos.
+A/I dos testes não é mapa homologado do ERP.
+
+**Recuperação e aceite:** manifesto original do backup/53 objetos/tamanhos e
+retenção de sete dias reconferidos; validade até 13/11/2026 14:29:44 UTC. Sem
+nova consulta API Neon, cópia, restore, chave ou recurso. Restore V-322 permanece
+histórico, não teste desta candidata nem RPO recorrente aprovado. Retorno:
+imagem 73 original, conservando migrações aditivas/dados. Guia de treinamento
+[preparado](docs/pt-BR/contad-conciliacao.md), **não executado/aceito**.
+Contas/referências, Razão/títulos/baixas reais, IA Q-08/Q-09, Q-46/Q-47,
+200 eventos/revisão humana/precisão e demais métricas D-73 continuam abertos.
+Próximo insumo necessário é o inventário real no PC. Projeto não concluído.
+
+Evidências privadas: `.tmp/contad-finalization-2026-11-06/`, incluindo CI,
+artefatos, snapshot antes/depois, pós-deploy, acesso HTTPS, recursos e delivery-final.
+Trabalhos locais anteriores foram preservados fora dos commits desta execução.

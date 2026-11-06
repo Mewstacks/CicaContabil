@@ -1,14 +1,17 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Finalização CONTAD em execução — D-323/V-327, 06/11/2026:** pedido atual
-inicia a ampliação para toda a carteira; histórico financeiro definido pelo
-responsável em **09/2026 em diante**, cadastros/contas integrais. Operador
-estará disponível mais tarde. Implementados localmente manifesto por escritório,
-recepção paginada/retomável de cadastros, situação bruta e proteção de inativas,
-com teste de concorrência PostgreSQL. [Contrato e limites](docs/contad-carteira-protocolo.md).
-Inventário real, fontes de contas/Razão/títulos e provas/aceite continuam abertos;
-manifesto de produção permanece piloto. Não considerar esta fase como entrega
-integral. Publicação/CI da nova versão em preparação; release vigente 73 conferida.
+**Entrega parcial CONTAD — D-323/V-327, 06/11/2026:** backend da carteira
+publicado/verificado na **release 74**, fonte e9311eb/CI 42294764025 aprovado.
+Manifesto por escritório e recepção retomável de empresas implementados; runtime
+real mantém o piloto SURIA, uma empresa/conta, 163 eventos, sem fontes novas.
+PostgreSQL local: 1.788 testes/163 subtestes, um skip; CI PostgreSQL: 1.787/163,
+dois skips. MSI 1.0.4/52 testes Windows/26 checks aprovado e preparado; PC ainda
+na versão 1.0.3, sem upgrade/coleta ampliada. Operador confirmou indisponibilidade.
+Histórico solicitado: **09/2026 em diante**. Próximo insumo: inventário real de
+metadados/situações; [contrato](docs/contad-carteira-protocolo.md) e
+[guia preparado](docs/pt-BR/contad-conciliacao.md). Contas/Razão/títulos/IA, Q-46/
+Q-47, D-73, recuperação recorrente, treinamento e aceite continuam abertos.
+Não considerar a publicação desta fase como conclusão do projeto.
 
 
 **Acesso Grazi — D-321/V-325, 06/11/2026:** conta criada com o e-mail já

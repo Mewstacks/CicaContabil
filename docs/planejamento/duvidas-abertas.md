@@ -390,13 +390,15 @@ Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada se
 upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
 login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
 
-## Continuidade Q-28 — execução D-323 (06/11/2026)
+## Continuidade Q-28 — execução D-323/V-327 (06/11/2026)
 
-Responsável definiu **setembro/2026 em diante** para dados financeiros da
-carteira completa; cadastros/contas integrais. Operador estará disponível mais
-tarde. Não repetir período, intenção de toda a carteira, credenciais ou DSN.
-Inventário guiado de metadados/contagens está preparado; ainda exige execução
-real. Mapa de situações e chaves/relações/fontes financeiras precisam desse
-confronto antes da ativação do manifesto novo. Protocolo paginado de empresas
-implementado localmente; não substitui contas/Razão/títulos reais. Q-46/Q-47 e
-Q-08/Q-09 conservam seus gates e IDs; não foram resolvidos por testes sintéticos.
+Responsável definiu **setembro/2026 em diante** para os dados financeiros da
+carteira completa; cadastros/contas integrais. Depois confirmou operador ainda
+indisponível. Não repetir período, intenção de carteira completa ou credenciais.
+Protocolo/recepção de empresas publicados na release 74, preservando o piloto.
+Inventário preparado e parser Windows aprovado; ainda não executado na CONTAD.
+Próximo insumo: metadados/situações reais para conferir fontes, contas e chaves.
+Mapa A/I sintético não é homologação; dados faltantes não serão fabricados.
+Pacote 1.0.4 pronto, PC permanece 1.0.3; último heartbeat anterior ao deploy.
+Q-46/Q-47, Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite seguem
+abertos com os mesmos IDs; nenhum gate resolvido por essa publicação.

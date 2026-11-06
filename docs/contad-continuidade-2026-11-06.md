@@ -1,12 +1,16 @@
 # CONTAD — resumo e continuidade
 
-**Execução atual D-323/V-327:** finalização iniciada por /goal. Período financeiro
-aprovado **09/2026 em diante**, cadastros/contas integrais; operador disponível
-mais tarde. Protocolo/recepção retomável de empresas implementados localmente,
-com situação explícita e proteção das inativas. [Contrato e inventário](contad-carteira-protocolo.md).
-Produção continua na release 73/manifesto piloto; fontes financeiras, upgrade,
-coleta ampliada e aceite ainda não comprovados. CI/publicação em preparação.
-O resumo D-322 abaixo é a base histórica, preservada.
+**Execução atual D-323/V-327:** backend publicado na **release 74**, fonte
+e9311eb/CI 42294764025 aprovado; migrações, 651 hashes runtime, doze fingerprints
+de dados e acesso HTTPS Grazi conferidos. Protocolo/recepção retomável de empresas
+prontos; manifesto real continua piloto, uma empresa/conta e 163 eventos.
+MSI 1.0.4 aprovado/preparado; PC ainda 1.0.3, sem novo ciclo comprovado após o
+deploy. Histórico financeiro: **09/2026 em diante**. Operador confirmou que ainda
+está indisponível. Próximo insumo: inventário real de metadados/situações do PC.
+[Contrato e inventário](contad-carteira-protocolo.md) · [Guia preparado](pt-BR/contad-conciliacao.md).
+Fontes completas, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento/aceite
+continuam pendentes; esta publicação não conclui o projeto. O resumo D-322 abaixo
+é a base histórica, preservada.
 
 
 Atualizado em 06/11/2026. Registro vigente: **D-321/V-324/V-325**, etapas 03/09/12,

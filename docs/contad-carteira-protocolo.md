@@ -1,5 +1,19 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+**Estado verificado em V-327:** backend publicado na release 74, fonte e9311eb,
+[CI 42294764025 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42294764025).
+MSI 1.0.4 aprovado em Windows descartável; upgrade no PC e inventário real
+aguardam o operador, que confirmou indisponibilidade. Manifesto real continua
+piloto, com uma empresa/conta e 163 eventos. Esta fase não conclui o projeto.
+
+| Capacidade | Implementada/testada | Publicada | Provada na CONTAD | Homologada/aceita |
+|---|---|---|---|---|
+| Protocolo/recepção da carteira de empresas | Sim; PostgreSQL, reenvio e concorrência | Backend 74 | Ainda sem scan real | Não |
+| Inventário de metadados/contagens | Roteiro preparado/parser Windows aprovado | Arquivo local preparado | Não executado | Não |
+| Agente 1.0.4 | 52 testes/26 checks Windows, MSI/hash aprovados | Artefato CI/cópia local | PC mantém 1.0.3 | Não |
+| Contas/referências/Razão/títulos | Contratos anteriores não equivalem a adaptadores reais | Nenhuma fonte nova ativada | Piloto bancário anterior preservado | Não |
+| Treinamento | [Guia preparado](pt-BR/contad-conciliacao.md) | Documento disponível | Não executado | Não |
+
 D-323, PC-19, etapas 03/09/12, Q-28/Q-46/Q-47. Histórico financeiro solicitado:
 **01/09/2026 em diante**. Cadastros e contas devem ser inventariados integralmente.
 Este documento descreve o contrato técnico; não é um segundo plano de execução.
@@ -70,8 +84,8 @@ com MSI/manifesto/hash conferidos, sem novo código, descriptografia da configur
 ou alteração do DSN. Confere preservação dos bytes criptografados, versão real,
 serviço e ciclo novo. Diferentemente do roteiro de PC de teste, aceita a
 configuração já existente. Não usar `test-installer.ps1` no PC CONTAD: ele instala
-e remove serviços somente em runner descartável. Upgrade real ainda requer os
-bytes aprovados pelo CI e o operador disponível. Retorno funcional preferido:
+e remove serviços somente em runner descartável. Bytes aprovados estão em
+Downloads/CICA-CONTAD-1.0.4-e9311eb; upgrade real aguarda o operador. Retorno funcional:
 manifesto piloto e imagem anterior, mantendo dados e esquema aditivo.
 
 ## Condições para avançar

@@ -3240,17 +3240,24 @@ novo. Atualizados plano/checklists/continuidade/V-325; publicação documental
 sem novo código/deploy, preservando alterações locais anteriores. Acesso pessoal
 concluído; fontes/regras/Q-47/D-73/recuperação/treinamento e aceite seguem abertos.
 
-## 06/11/2026 — Finalização CONTAD, D-323/V-327, em execução
+## 06/11/2026 — Carteira CONTAD publicada parcialmente, D-323/V-327
 
-Pedido /goal e prompt anexado lidos no contexto dos registros canônicos. Git
-inicial be883b3, trabalhos locais D-316/D-317 e D-322 preservados em patch/status
-privados; não incorporá-los aos commits desta execução. Responsável confirmou
-histórico financeiro desde 09/2026 e operador disponível mais tarde.
+Fonte e9311eb enviada à main, CI 42294764025 aprovado e backend release 74
+publicado/verificado. 825 blobs iguais ao commit; imagem sobre base imutável 73
+com onze arquivos Python aditivos/alterados, configuração e camadas preservadas,
+651 hashes runtime iguais em web/worker. Migrações/Neon original, recursos,
+worker/readiness, acesso Grazi e doze fingerprints CONTAD conferidos. Nenhum
+upload ou decisão contábil na verificação HTTPS. Alterações locais anteriores
+D-316/D-317/D-322/etapa 00 preservadas fora do índice e commits próprios.
 
-Implementados protocolo de carteira e scan transacional de empresas com
-retomada/replay/concorrência, situação explícita e preservação de ausentes,
-compatibilidade piloto e negação de fontes não implementadas. Preparados sonda
-de metadados/contagens e upgrade preservando configuração. Verificações e limites
-em V-327; nenhuma coleta ampliada/alteração ERP/IA ou homologação presumida.
-CI/publicação em preparação; próxima dependência externa é resultado do
-inventário no PC, enquanto as verificações independentes continuam.
+PostgreSQL local final: 1.788/163, um skip; CI PostgreSQL 1.787/163, dois skips;
+Windows 52 testes/26 checks, MSI 1.0.4 e parser PowerShell aprovados. Tentativas
+locais anteriores falharam por sobreposição de banco de teste e disco Docker;
+provas finais/limites discriminados em V-327, sem apagar resultados anteriores.
+
+Histórico financeiro desde 09/2026 confirmado. Operador respondeu ainda
+indisponível; inventário/upgrade reais aguardam essa ação. PC permanece 1.0.3,
+manifesto piloto, 163 eventos preservados e zero scan de carteira. Protocolo e
+cadastros não substituem contas, Razão/títulos, IA, Q-46/Q-47, D-73, recuperação
+recorrente, treinamento ou aceite. Guia preparado, sem execução humana. Projeto
+permanece aberto; próximo insumo: metadados/situações do PC, roteiro em Downloads.

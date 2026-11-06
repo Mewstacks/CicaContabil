@@ -3498,3 +3498,40 @@ não ativa/desativa cadastro por inferência; páginas incompletas não removem
 empresas. Paginação exige confirmação transacional e retomada explícita;
 replay não conta como nova amostra real. Q-46/Q-47 e Q-08/Q-09 permanecem com os
 mesmos IDs e gates. Nenhum requisito é concluído por esta decisão.
+
+Continuidade técnica D-323: regressão PostgreSQL em tmpfs concluída com
+1.788 testes/163 subtestes aprovados e um skip de navegador opcional. Docker
+local conserva apenas 150 MiB livres; não apagar imagens, volumes ou caches de
+outros projetos nem ampliar recursos globais para publicar. Como Dockerfile,
+dependências/lock e assets permanecem idênticos à fonte implantada 651368c,
+preparar a candidata sobre a imagem imutável da release 73, acrescentando somente
+os arquivos Python alterados/aditivos do commit e conservando usuário/configuração/
+camadas anteriores. Conferir o conjunto completo de hashes runtime e a cadeia
+de camadas/configuração antes do deploy, além do CI que constrói o Dockerfile
+completo. Essa escolha é empacotamento desta entrega, não mudança de arquitetura
+ou dependências. Não há deploy até os gates da versão exata passarem. Retorno
+permanece a imagem original da release 73, com migrações aditivas preservadas.
+
+Gate de publicação D-323: CI 42294764025 aprovado para e9311eb, testes/agente,
+MSI 1.0.4 e três imagens Docker aprovados. Candidata: 825 blobs iguais ao commit,
+ZIP edb6538c07e21dd3dee332ae0305b448b966dd9295950b8cbc50b48a0fc7afef.
+Imagem candidata imutável sha256:080f24c0b055a0f4d8e8271a6cdd7112b035309bc5824feeddc4b4157920951e,
+651 hashes runtime conferidos offline com rede/banco bloqueados, configuração
+runtime e camadas da release 73 preservadas. Config Fly atual igual à da 73;
+backup original/53 objetos/retencão de sete dias conferidos por metadados.
+Publicar no app existente com --ha=false, --update-only e reserva 287e35db920e48
+excluída, sem ampliar memória ou alterar bancos/retencão/manifesto do agente.
+Aplicar migrações aditivas; retorno na imagem original 73, sem apagar esquema
+ou dados. Conferir runtime dos dois processos, migrações, saúde, acesso e
+fingerprints do recorte antes de declarar publicação concluída. Publicar backend
+não habilita carteira nova, contas, Razão/títulos, IA ou exportação ERP.
+
+Resultado D-323/V-327: backend release 74/fonte e9311eb/CI 42294764025 aprovado,
+651 hashes e migrações conferidos nos dois processos/aliases, recursos originais
+e reserva preservados, doze fingerprints CONTAD iguais antes/depois, login
+Grazi conferido sem upload/decisão. Windows descartável aprovou MSI 1.0.4/52
+testes/26 checks; pacote preparado, sem upgrade no PC. Operador respondeu que
+continua indisponível. Inventário, novas fontes financeiras e coleta da carteira
+não executados. Último heartbeat real anterior ao deploy; não inferir causa ou
+prova de sincronização nova. Guia de treinamento preparado, sem execução/aceite.
+Manter PC-19 e gates abertos; próximo insumo Q-28 é o resultado real do inventário.

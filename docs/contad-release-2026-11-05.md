@@ -1,5 +1,44 @@
 # Release candidata CONTAD: revisão e operação
 
+## Release vigente — D-323/V-327, 06/11/2026
+
+**Release Fly 74**, fonte e9311ebf395de35acbfe995eea3ead326d522a47,
+[CI 42294764025 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42294764025).
+Imagem registry.fly.io/cica-contabil@sha256:080f24c0b055a0f4d8e8271a6cdd7112b035309bc5824feeddc4b4157920951e.
+Candidata 825 arquivos, ZIP edb6538c07e21dd3dee332ae0305b448b966dd9295950b8cbc50b48a0fc7afef.
+651 hashes runtime em web/worker, agregado
+118830444f5b2da7fe2fe911cf8012de11389e0f7e63fb405c3d7cc4023807d8.
+Migrações hub.0079 e intelligence.0033 nos dois aliases/Neon original,
+worker/readiness, máquinas/512 MB e reserva parada conferidos. Doze fingerprints
+CONTAD iguais antes/depois, incluindo arquivo/movimentos/decisões/agentes;
+login Grazi aprovado, sem upload/decisão, sessão encerrada. Gates de exportação,
+prévia e contrato/módulos preservados. V-327 detalha ambiente e limites.
+
+Publicada a base da carteira (protocolo/recepção de empresas). **Manifesto real
+continua piloto**, uma empresa/conta e 163 eventos. Histórico financeiro desde
+09/2026; operador confirmou indisponibilidade, inventário real ainda pendente.
+PC mantém agente 1.0.3; último heartbeat observado anterior ao deploy, sem
+prova de ciclo posterior. Sem fontes novas de contas/Razão/títulos ou aceite.
+
+MSI 1.0.4/hash 331402999beb42dec54270d5ef7bee6421db58c21b86847a332140704d786c92,
+52 testes e 26 checks Windows descartável aprovados, sem Authenticode. Pacote
+em Downloads/CICA-CONTAD-1.0.4-e9311eb; roteiros novos passaram no parser 5.1,
+sem consulta ERP ou upgrade real. [Contrato/limites](contad-carteira-protocolo.md)
+e [guia de treinamento preparado](pt-BR/contad-conciliacao.md), não executado.
+
+Retorno: imagem **original da release 73**,
+registry.fly.io/cica-contabil@sha256:20f01b3888c8fa02395a876e6b4597fbf49db7a29a0919e288d3a9b78979717a,
+preservando esquema aditivo, dados, conta e manifesto piloto. O agente novo
+mantém scoped-v1 no piloto para compatibilidade com essa imagem. Imagem 74
+preserva a base 73 e adiciona onze arquivos Python conferidos; Dockerfile,
+dependências/lock e assets não mudaram. CI construiu separadamente as três
+imagens pelo Dockerfile, sem alegar identidade dos digests.
+
+Backup original/53 objetos/tamanhos e retenção reconferidos; validade até
+13/11/2026 14:29:44 UTC, sem novo restore/consulta API Neon ou recurso.
+Q-46/Q-47, IA Q-08/Q-09, D-73, recuperação recorrente e aceite permanecem abertos.
+As próximas seções preservam o histórico das releases e candidatas anteriores.
+
 ## Release vigente — D-321/V-324, 06/11/2026
 
 **Release Fly 73**, fonte 651368c101bec5b8b0bb9a75b4fb1268029dd220,

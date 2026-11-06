@@ -413,14 +413,18 @@ pontual de backup/restore anterior não equivale a recuperação recorrente/RPO.
 
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
-- [x] Registrar período financeiro humano desde 09/2026; cadastros/contas integrais.
-- [x] Implementar localmente protocolo de carteira, recepção paginada de empresas,
-  situação explícita, replay/retomada e isolamento; testes descritos em V-327.
-- [x] Preparar inventário guiado e upgrade configurado, sem novo pareamento.
-- [ ] Validar inventário/situações e fontes reais no Windows, quando operador disponível.
+- [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.
+- [x] Protocolo/recepção paginada de empresas, situação explícita, replay/retomada,
+  concorrência PostgreSQL e isolamento implementados e testados.
+- [x] Fonte e9311eb/CI 42294764025 aprovado; backend release 74 com hashes,
+  migrações, saúde, acesso e integridade de dados conferidos.
+- [x] MSI 1.0.4/52 testes Windows/26 checks e roteiros preparados/validados.
+- [x] Guia de treinamento preparado, sem alegar execução ou aceite.
+- [ ] Inventário/situações/fontes reais no Windows: operador ainda indisponível.
 - [ ] Completar contas/referências/Razão/títulos e regras Q-28/Q-46 com fatos reais.
-- [ ] Publicar fonte/CI/artefato/backend e conferir upgrade/coleta da carteira real.
-- [ ] Cumprir saída Q-47, métricas D-73, recuperação, treinamento e aceite reais.
+- [ ] Upgrade configurado, manifesto ampliado e coleta/retomada reais da carteira.
+- [ ] Saída Q-47, IA Q-08/Q-09, métricas D-73, recuperação, treinamento/aceite reais.
 
-[Contrato e limites](../../contad-carteira-protocolo.md). Preparação de empresas
-não conclui a integração financeira; runtime continua piloto até evolução validada.
+[Contrato e limites](../../contad-carteira-protocolo.md). Runtime conserva piloto
+SURIA/163 eventos, sem fonte financeira nova. Publicação desta fase não conclui
+PC-19 nem a entrega contratual. Próximo insumo externo: inventário real do PC.
