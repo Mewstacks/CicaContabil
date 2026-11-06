@@ -6956,3 +6956,46 @@ após verificação; arquivo de entrega preservado.
 Acesso pessoal concluído. Restam fontes completas/títulos/baixas/regras/DE-PARA,
 Q-47, D-73/200 eventos, provas operacionais/recuperação recorrente, treinamento
 e aceite. Release continua 73/fonte 651368c; exportação Domínio false.
+
+## V-327 — Ampliação da carteira CONTAD em execução (06/11/2026)
+
+D-323/PC-19, etapas 03/09/12. Histórico financeiro humano: setembro/2026 em
+diante; operador disponível mais tarde. Preflight read-only em worker confirmou
+647 hashes runtime da fonte 651368c, dois aliases Neon originais/migrações,
+CONTAD active/Conciliação/contrato individual sem cobrança, um membro e dois
+agentes no histórico (um revogado). Exportação false, prévia só CONTAD e zero
+convite/fatura. Release Fly 73 permanece; não houve alteração do manifesto real.
+
+Nova implementação local: manifesto de carteira ligado ao escritório, protocolo
+scoped-v2 com transição segura/piloto compatível, fonte companies explicitamente
+selecionada, página de 500, cursor numérico confirmado na mesma transação dos
+cadastros, replay e retomada. Situação bruta preservada e mapa de situações
+obrigatório; desconhecida rejeita a página. Nenhuma desativação por ausência.
+Carga guarda contagens/cursor/conclusão ou abandono, sem afirmar snapshot ERP.
+Migrações aditivas hub.0079 e intelligence.0032/0033. Detalhes e limites em
+[contrato de carteira](docs/contad-carteira-protocolo.md).
+
+Testes focados iniciais: 82 aprovados SQLite na base anterior ao último teste de
+concorrência. Último foco PostgreSQL: 49 aprovados; advertência no teardown por
+sobreposição indevida com início da regressão, que foi interrompida e reiniciada
+sequencialmente. Não usar essa tentativa abortada como regressão aprovada.
+Regressão final está em andamento. .NET Mac: 51 aprovados/um skip Windows;
+serviço/configurador compilados sem avisos/erros. Ruff global, MyPy dos cinco
+módulos Python, Django e ausência de migrações faltantes aprovados.
+
+Preparados roteiros de inventário de metadados/contagens e upgrade configurado
+1.0.3 → 1.0.4, sem ler segredos do registro/DPAPI. CI Windows foi ampliado para
+parse PowerShell 5.1, testes, MSI e instalação descartável, ainda não executado
+para esta fonte. **Não há inventário ODBC real, upgrade ou sincronização ampliada
+comprovados.** Casos A/I são sintéticos; não aprovam mapa de situação real.
+Nenhuma UI foi alterada nem teste visual novo alegado. Fontes financeiras, IA,
+Q-46/Q-47, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
+Evidências privadas em `.tmp/contad-finalization-2026-11-06/`; alterações locais
+anteriores preservadas por patch/status inicial e fora do índice da entrega.
+
+A regressão local seguinte atingiu 1.638 testes/163 subtestes aprovados antes
+de falhas por falta de espaço no disco interno Docker: 8 falhas/166 erros,
+um skip. Logs PostgreSQL comprovam PANIC/No space left on device; resultado
+não aprovado. Removidos somente container/volume descartáveis desta tarefa.
+Bind mount da pasta do projeto foi recusado pelo Docker/macOS; repetição usa
+banco descartável em tmpfs de 1 GiB, sem alterar armazenamento de outras apps.

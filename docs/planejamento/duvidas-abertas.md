@@ -389,3 +389,14 @@ somente CONTAD, sem convite/acesso de plataforma. Login HTTPS real aprovado,
 Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada sem
 upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
 login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
+
+## Continuidade Q-28 — execução D-323 (06/11/2026)
+
+Responsável definiu **setembro/2026 em diante** para dados financeiros da
+carteira completa; cadastros/contas integrais. Operador estará disponível mais
+tarde. Não repetir período, intenção de toda a carteira, credenciais ou DSN.
+Inventário guiado de metadados/contagens está preparado; ainda exige execução
+real. Mapa de situações e chaves/relações/fontes financeiras precisam desse
+confronto antes da ativação do manifesto novo. Protocolo paginado de empresas
+implementado localmente; não substitui contas/Razão/títulos reais. Q-46/Q-47 e
+Q-08/Q-09 conservam seus gates e IDs; não foram resolvidos por testes sintéticos.

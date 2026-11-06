@@ -3470,3 +3470,31 @@ retorno anônimo ao login conferido. Credencial entregue só em arquivo privado
 pessoal está concluída, substituindo o estado anterior sem usuário. Atualizar
 continuidade/checklists/validações e publicar só documentação com [skip ci],
 preservando os trabalhos locais anteriores; não há código/deploy novo.
+
+## D-323 — Executar a finalização CONTAD para toda a carteira (06/11/2026)
+
+Origem: pedido humano `/goal Implemente o desenvolvimento final do projeto
+CONTAD com base no prompt anexado`. O anexo é especificação da entrega, lido
+como tal; não substitui autorizações humanas para custo, egressão ou escrita
+ERP. Executar PC-19/etapas 03/09/12, incluindo implementação, testes e publicação
+no ambiente existente, preservando alterações locais anteriores. D-322 deixa
+de ser somente um objetivo futuro nesta execução; o piloto existente continua
+intacto até evolução compatível e validada do agente/servidor.
+
+**Q-28 respondido nesta sessão:** histórico financeiro inicial de **setembro de
+2026 em diante**, cadastros/contas integrais. Operador **disponível mais tarde**
+para consulta guiada e atualização do Windows. Não escolher histórico anterior,
+repetir credenciais/DSN ou inferir acesso remoto alternativo. Preparar consulta
+limitada de metadados das fontes pertinentes e inventário agregado sem valores
+financeiros; obter o resultado real antes de habilitar SQL financeiro novo.
+
+Sequência única: (1) inventário de metadados e protocolo de carteira isolado por
+escritório, compatível com piloto, (2) cadastros/contas/referências e cobertura
+paginada auditada, (3) fontes independentes de Razão/títulos após confronto
+semântico real, (4) testes/CI/publicação/upgrade, (5) provas operacionais,
+recuperação, treinamento e aceite D-73. Frentes independentes podem avançar
+enquanto o operador não estiver disponível. Semântica de situação desconhecida
+não ativa/desativa cadastro por inferência; páginas incompletas não removem
+empresas. Paginação exige confirmação transacional e retomada explícita;
+replay não conta como nova amostra real. Q-46/Q-47 e Q-08/Q-09 permanecem com os
+mesmos IDs e gates. Nenhum requisito é concluído por esta decisão.

@@ -9,10 +9,12 @@ internal sealed class AgentClient : IDisposable
 {
     private readonly AgentConfig config;
     private readonly HttpClient http;
+    private string protocol;
 
     internal AgentClient(AgentConfig config)
     {
         this.config = config;
+        protocol = config.SyncScope?.IsPortfolio is true ? AgentSyncScope.Protocol : AgentSyncScope.LegacyProtocol;
         AgentAuthentication.Validate(config.AuthenticationMode, config.AgentId,
             config.SharedSecret, config.CertificatePfxBase64);
         var handler = AgentAuthentication.CreateHandler(config.AuthenticationMode, config.CertificatePfxBase64);
@@ -36,7 +38,7 @@ internal sealed class AgentClient : IDisposable
         string signature = Convert.ToHexString(HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(config.SharedSecret), signed)).ToLowerInvariant();
         var request = new HttpRequestMessage(method, uri);
-        request.Headers.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
+        request.Headers.Add("X-Hub-Agent-Protocol", protocol);
         request.Headers.Add("X-Hub-Agent-ID", config.AgentId);
         request.Headers.Add("X-Hub-Agent-Timestamp", timestamp.ToString());
         request.Headers.Add("X-Hub-Agent-Signature", signature);
@@ -66,6 +68,7 @@ internal sealed class AgentClient : IDisposable
             scope = value.Deserialize<AgentSyncScope>()
                 ?? throw new InvalidDataException("Recorte financeiro inválido.");
             scope.Validate();
+            protocol = scope.IsPortfolio ? AgentSyncScope.Protocol : AgentSyncScope.LegacyProtocol;
         }
         return (string.IsNullOrWhiteSpace(root) ? null : root, scope);
     }

@@ -1,5 +1,16 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Finalização CONTAD em execução — D-323/V-327, 06/11/2026:** pedido atual
+inicia a ampliação para toda a carteira; histórico financeiro definido pelo
+responsável em **09/2026 em diante**, cadastros/contas integrais. Operador
+estará disponível mais tarde. Implementados localmente manifesto por escritório,
+recepção paginada/retomável de cadastros, situação bruta e proteção de inativas,
+com teste de concorrência PostgreSQL. [Contrato e limites](docs/contad-carteira-protocolo.md).
+Inventário real, fontes de contas/Razão/títulos e provas/aceite continuam abertos;
+manifesto de produção permanece piloto. Não considerar esta fase como entrega
+integral. Publicação/CI da nova versão em preparação; release vigente 73 conferida.
+
+
 **Acesso Grazi — D-321/V-325, 06/11/2026:** conta criada com o e-mail já
 fornecido e senha inicial validada, Proprietária somente da CONTAD, sem convite,
 acesso de plataforma ou alteração comercial. Login HTTPS real/CSRF aprovado e

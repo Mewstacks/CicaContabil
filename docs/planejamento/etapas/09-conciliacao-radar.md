@@ -332,3 +332,17 @@ por esclarecimento humano posterior. Não reabrir a pergunta para os testes.
 A aprovação posterior do corpus e do recorte supera a antiga exigência de
 explicar o saldo da captura para o teste. Não reabrir importador/saldo ou pedir
 novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.
+
+## Execução integral CONTAD — D-323/V-327 (06/11/2026)
+
+- [x] Registrar período financeiro humano desde 09/2026; cadastros/contas integrais.
+- [x] Implementar localmente protocolo de carteira, recepção paginada de empresas,
+  situação explícita, replay/retomada e isolamento; testes descritos em V-327.
+- [x] Preparar inventário guiado e upgrade configurado, sem novo pareamento.
+- [ ] Validar inventário/situações e fontes reais no Windows, quando operador disponível.
+- [ ] Completar contas/referências/Razão/títulos e regras Q-28/Q-46 com fatos reais.
+- [ ] Publicar fonte/CI/artefato/backend e conferir upgrade/coleta da carteira real.
+- [ ] Cumprir saída Q-47, métricas D-73, recuperação, treinamento e aceite reais.
+
+[Contrato e limites](../../contad-carteira-protocolo.md). Preparação de empresas
+não conclui a integração financeira; runtime continua piloto até evolução validada.

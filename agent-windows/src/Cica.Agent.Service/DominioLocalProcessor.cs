@@ -14,6 +14,11 @@ internal sealed class DominioLocalProcessor(AgentConfig config, AgentClient clie
         AgentSyncScope scope = config.SyncScope
             ?? throw new InvalidDataException("O Domínio Local exige recorte financeiro autorizado.");
         scope.Validate();
+        if (scope.IsPortfolio)
+        {
+            await new DominioPortfolioProcessor(config, client).RunOnce(token);
+            return;
+        }
         if (string.IsNullOrWhiteSpace(config.Dsn))
             throw new InvalidDataException("O Domínio Local exige DSN configurado.");
         using var connection = new OdbcConnection(LocalOdbcConnection.Build(

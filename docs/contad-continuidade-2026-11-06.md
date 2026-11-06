@@ -1,5 +1,14 @@
 # CONTAD — resumo e continuidade
 
+**Execução atual D-323/V-327:** finalização iniciada por /goal. Período financeiro
+aprovado **09/2026 em diante**, cadastros/contas integrais; operador disponível
+mais tarde. Protocolo/recepção retomável de empresas implementados localmente,
+com situação explícita e proteção das inativas. [Contrato e inventário](contad-carteira-protocolo.md).
+Produção continua na release 73/manifesto piloto; fontes financeiras, upgrade,
+coleta ampliada e aceite ainda não comprovados. CI/publicação em preparação.
+O resumo D-322 abaixo é a base histórica, preservada.
+
+
 Atualizado em 06/11/2026. Registro vigente: **D-321/V-324/V-325**, etapas 03/09/12,
 PC-19 e Q-28/Q-46/Q-47. Os registros D-320/V-322/V-323 são etapas anteriores.
 

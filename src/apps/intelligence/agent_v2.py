@@ -27,7 +27,13 @@ from apps.audit.services import record_event
 from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_backup
 from apps.hub.models import ImportBatch
 from apps.intelligence.agent_mtls import valid_mtls_client
-from apps.intelligence.agent_scope import PROTOCOL, validate_scope_page, validate_sync_scope
+from apps.intelligence.agent_scope import (
+    PORTFOLIO_PROTOCOL,
+    PORTFOLIO_VERSION,
+    PROTOCOL,
+    validate_scope_page,
+    validate_sync_scope,
+)
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_bank_entries, sync_companies
@@ -70,8 +76,22 @@ def _agent(request: HttpRequest) -> EdgeAgent | None:
             "agent-v2-dominio-companies",
             "agent-v2-dominio-bank-entries",
         }
+        portfolio = agent.sync_scope.get("version") == PORTFOLIO_VERSION
+        if portfolio:
+            allowed -= {"agent-v2-dominio-companies", "agent-v2-dominio-bank-entries"}
+            allowed.add("agent-v2-dominio-portfolio-companies")
+        configuration_route = (
+            request.resolver_match is not None
+            and request.resolver_match.url_name
+            in {"agent-v2-heartbeat", "agent-v2-configuration-next"}
+        )
+        protocols = (
+            {PORTFOLIO_PROTOCOL}
+            if portfolio and not configuration_route
+            else {PROTOCOL, PORTFOLIO_PROTOCOL}
+        )
         if (
-            request.headers.get("X-Hub-Agent-Protocol") != PROTOCOL
+            request.headers.get("X-Hub-Agent-Protocol") not in protocols
             or request.resolver_match is None
             or request.resolver_match.url_name not in allowed
         ):
@@ -198,7 +218,9 @@ def enroll(request: HttpRequest) -> JsonResponse:
             fingerprint=str(payload.get("fingerprint", "")),
             mtls_certificate_sha256=fingerprint,
             request=request,
-            allow_scoped=request.headers.get("X-Hub-Agent-Protocol") == PROTOCOL,
+            allow_scoped=request.headers.get("X-Hub-Agent-Protocol")
+            in {PROTOCOL, PORTFOLIO_PROTOCOL},
+            allow_portfolio=request.headers.get("X-Hub-Agent-Protocol") == PORTFOLIO_PROTOCOL,
         )
     except ValueError as exc:
         return _error(str(exc), 403)

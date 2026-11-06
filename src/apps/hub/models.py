@@ -142,6 +142,7 @@ class ClientCompany(OrganizationScopedModel):
     dominio_code = models.CharField(max_length=64, blank=True, db_index=True)
     active = models.BooleanField(default=True)
     last_dominio_sync_at = models.DateTimeField(null=True, blank=True)
+    dominio_status = models.CharField(max_length=16, blank=True, default="")
     data_source = models.ForeignKey(
         "DataSource", null=True, blank=True, on_delete=models.SET_NULL, related_name="companies"
     )

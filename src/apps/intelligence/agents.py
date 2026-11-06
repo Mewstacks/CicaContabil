@@ -79,6 +79,7 @@ def redeem_enrollment(
     mtls_certificate_sha256: str = "",
     request: object = None,
     allow_scoped: bool = False,
+    allow_portfolio: bool = False,
 ) -> DeviceCredentials:
     certificate_sha256 = mtls_certificate_sha256.strip().lower().replace(":", "")
     if certificate_sha256 and not _SHA256_RE.fullmatch(certificate_sha256):
@@ -95,10 +96,12 @@ def redeem_enrollment(
         if enrollment is None:
             raise ValueError("Código de enrollment inválido ou expirado.")
         if enrollment.sync_scope:
-            from apps.intelligence.agent_scope import validate_sync_scope
+            from apps.intelligence.agent_scope import PORTFOLIO_VERSION, validate_sync_scope
 
             if not allow_scoped:
                 raise ValueError("Este código exige agente com protocolo de recorte financeiro.")
+            if enrollment.sync_scope.get("version") == PORTFOLIO_VERSION and not allow_portfolio:
+                raise ValueError("Este código exige agente com protocolo de carteira scoped-v2.")
             validate_sync_scope(enrollment.sync_scope, enrollment.organization)
         shared_secret = secrets.token_urlsafe(48)
         agent = EdgeAgent.objects.create(

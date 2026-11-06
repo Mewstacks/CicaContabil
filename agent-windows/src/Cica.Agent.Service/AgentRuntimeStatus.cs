@@ -17,7 +17,7 @@ internal sealed class AgentRuntimeStatus
                 state,
                 detail,
                 observed_at_utc = DateTimeOffset.UtcNow.ToString("O"),
-                version = "1.0.0",
+                version = typeof(AgentRuntimeStatus).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
             });
             try
             {

@@ -415,6 +415,31 @@ class EdgeAgent(OrganizationScopedModel):
         indexes = [models.Index(fields=("organization", "status", "last_seen_at"))]
 
 
+class AgentCompanyScan(OrganizationScopedModel):
+    """Durable keyset scan; completion describes coverage, never accounting acceptance."""
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="company_scans")
+    scope_revision = models.CharField(max_length=64)
+    expected_count = models.PositiveIntegerField()
+    received_count = models.PositiveIntegerField(default=0)
+    page_count = models.PositiveIntegerField(default=0)
+    cursor = models.CharField(max_length=18, default="0")
+    last_after = models.CharField(max_length=18, blank=True)
+    last_digest = models.CharField(max_length=64, blank=True)
+    last_result = models.JSONField(default=dict)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    aborted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("agent", "scope_revision"),
+                condition=models.Q(completed_at__isnull=True, aborted_at__isnull=True),
+                name="intelligence_one_open_company_scan",
+            )
+        ]
+
+
 class Conversation(OrganizationScopedModel):
     company = models.ForeignKey(
         "hub.ClientCompany", null=True, blank=True, on_delete=models.SET_NULL

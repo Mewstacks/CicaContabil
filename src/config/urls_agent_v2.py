@@ -1,9 +1,11 @@
 from django.urls import path
 
 from apps.intelligence import agent_v2
+from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
 
 urlpatterns = [
+    path("dominio/portfolio/companies", company_scan, name="agent-v2-dominio-portfolio-companies"),
     path("enroll", agent_v2.enroll, name="agent-v2-enroll"),
     path("heartbeat", agent_v2.heartbeat, name="agent-v2-heartbeat"),
     path(

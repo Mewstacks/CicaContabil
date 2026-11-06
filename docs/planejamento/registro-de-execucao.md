@@ -3239,3 +3239,18 @@ zero arquivos importados/convites/faturas. Nenhum bypass MFA ou teste visual
 novo. Atualizados plano/checklists/continuidade/V-325; publicação documental
 sem novo código/deploy, preservando alterações locais anteriores. Acesso pessoal
 concluído; fontes/regras/Q-47/D-73/recuperação/treinamento e aceite seguem abertos.
+
+## 06/11/2026 — Finalização CONTAD, D-323/V-327, em execução
+
+Pedido /goal e prompt anexado lidos no contexto dos registros canônicos. Git
+inicial be883b3, trabalhos locais D-316/D-317 e D-322 preservados em patch/status
+privados; não incorporá-los aos commits desta execução. Responsável confirmou
+histórico financeiro desde 09/2026 e operador disponível mais tarde.
+
+Implementados protocolo de carteira e scan transacional de empresas com
+retomada/replay/concorrência, situação explícita e preservação de ausentes,
+compatibilidade piloto e negação de fontes não implementadas. Preparados sonda
+de metadados/contagens e upgrade preservando configuração. Verificações e limites
+em V-327; nenhuma coleta ampliada/alteração ERP/IA ou homologação presumida.
+CI/publicação em preparação; próxima dependência externa é resultado do
+inventário no PC, enquanto as verificações independentes continuam.
