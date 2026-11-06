@@ -237,6 +237,14 @@ urlpatterns = [
         name="reconciliation-movement-bulk-action",
     ),
     path(
+        "app/conciliacao/previas/", views.reconciliation_preview,
+        name="reconciliation-preview",
+    ),
+    path(
+        "app/conciliacao/previas/<uuid:preview_id>/download/",
+        views.reconciliation_preview_download, name="reconciliation-preview-download",
+    ),
+    path(
         "app/conciliacao/exportar/",
         views.reconciliation_export_create,
         name="reconciliation-export-create",

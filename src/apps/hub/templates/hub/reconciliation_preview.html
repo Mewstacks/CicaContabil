@@ -1,0 +1,65 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/accounting-preview.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel accounting-preview-panel" aria-labelledby="preview-heading">
+  <header class="workspace-panel-head">
+    <div><h2 id="preview-heading">Preparar arquivo de conferência</h2></div>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}#exportacoes">Voltar à conciliação</a>
+  </header>
+  <div class="inline-alert inline-alert-warning" role="note">
+    <strong>Prévia não homologada</strong>
+    <span>Use para conferir o arquivo com a contadora. A importação no Domínio permanece pendente.</span>
+  </div>
+  {% if preview_form.errors %}
+  <div class="form-errors" data-form-errors tabindex="-1" role="alert">
+    <strong>Confira os dados antes de gerar a prévia.</strong>
+    {{ preview_form.non_field_errors }}
+    {% for field in preview_form %}{% for error in field.errors %}<p><a href="#{{ field.id_for_label }}">{{ field.label }}</a>: {{ error }}</p>{% endfor %}{% endfor %}
+  </div>
+  {% endif %}
+  {% if can_create_preview and preview_accounts_available %}
+  <form method="post" class="workspace-filter-form accounting-preview-form" aria-label="Gerar prévia para conferência">
+    {% csrf_token %}
+    {% for field in preview_form %}
+    <div>
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    <button class="button" type="submit">Gerar prévia para conferência</button>
+  </form>
+  {% elif can_create_preview %}
+  <div class="empty-block"><strong>Configure a conta bancária primeiro.</strong><p>A empresa precisa de uma conta financeira ativa, com referência bancária e conta contábil conferidas.</p><a class="button button-quiet" href="{% url 'hub:reconciliation-configuration' %}">Conferir configuração</a></div>
+  {% else %}<p class="field-help">Seu perfil permite consultar e baixar as prévias disponíveis. A geração exige um perfil operacional.</p>{% endif %}
+</section>
+<section class="workspace-panel accounting-preview-panel" id="previas" aria-labelledby="preview-history-heading">
+  <h2 id="preview-history-heading">Prévias preservadas</h2>
+  {% if preview_rows %}
+  <div class="data-table-wrap">
+    <table class="operational-table accounting-preview-table">
+      <thead><tr><th>Empresa e conta</th><th>Período</th><th>Fotografia</th><th>Gerada em</th><th><span class="sr-only">Ação</span></th></tr></thead>
+      <tbody>
+        {% for row in preview_rows %}{% with preview=row.preview %}
+        <tr>
+          <td data-label="Empresa e conta"><strong>{{ preview.company.name }}</strong><small>{{ preview.financial_account.name }}</small></td>
+          <td data-label="Período">{{ preview.period_start|date:'SHORT_DATE_FORMAT' }} a {{ preview.period_end|date:'SHORT_DATE_FORMAT' }}</td>
+          <td data-label="Fotografia"><strong>{% if row.is_current %}Atual para conferência{% else %}Desatualizada{% endif %}</strong><small>{{ preview.source_snapshot.entries|length }} lançamento{{ preview.source_snapshot.entries|length|pluralize }}</small></td>
+          <td data-label="Gerada em"><time datetime="{{ preview.created_at|date:'c' }}">{{ preview.created_at|date:'SHORT_DATETIME_FORMAT' }}</time></td>
+          <td class="table-action-cell">{% if row.is_current %}<a class="row-action-button" href="{% url 'hub:reconciliation-preview-download' preview.id %}" aria-label="Baixar prévia não homologada de {{ preview.company.name }}">Baixar prévia não homologada</a>{% else %}<span class="table-muted">Gere outra prévia</span>{% endif %}</td>
+        </tr>
+        {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if preview_page.has_other_pages %}
+  <nav class="pagination" aria-label="Páginas das prévias">
+    {% if preview_page.has_previous %}<a class="button button-quiet" href="?{% if preview_querystring %}{{ preview_querystring }}&amp;{% endif %}page={{ preview_page.previous_page_number }}#previas" rel="prev">Anterior</a>{% endif %}
+    <span>Página {{ preview_page.number }} de {{ preview_page.paginator.num_pages }}</span>
+    {% if preview_page.has_next %}<a class="button button-quiet" href="?{% if preview_querystring %}{{ preview_querystring }}&amp;{% endif %}page={{ preview_page.next_page_number }}#previas" rel="next">Próxima</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}<div class="empty-block"><strong>Nenhuma prévia neste recorte.</strong><p>Revise os lançamentos da conta e gere uma prévia para conferência. A geração não importa dados no Domínio.</p></div>{% endif %}
+</section>
+{% endblock %}

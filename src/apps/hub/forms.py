@@ -1131,6 +1131,39 @@ class AccountingPeriodForm(_ReconciliationCompanyScopedForm):
         return cleaned
 
 
+class AccountingPreviewForm(forms.Form):
+    financial_account = forms.ModelChoiceField(
+        queryset=FinancialAccount.objects.none(), label="Empresa e conta bancária",
+        empty_label="Escolha a conta para conferir…",
+        error_messages={"invalid_choice": "Escolha uma conta disponível na sua carteira."},
+    )
+    period_start = forms.DateField(
+        label="Início do período",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
+    period_end = forms.DateField(
+        label="Fim do período", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
+
+    def __init__(self, *args: Any, accounts: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["financial_account"].queryset = accounts  # type: ignore[attr-defined]
+        self.fields["financial_account"].label_from_instance = (  # type: ignore[attr-defined]
+            lambda account: f"{account.company.name} · {account.name} · {account.account_reference}"
+        )
+        for field in self.fields.values():
+            field.widget.attrs["autocomplete"] = "off"
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        if (cleaned.get("period_start") and cleaned.get("period_end")
+                and cleaned["period_start"] > cleaned["period_end"]):
+            self.add_error("period_end", "O fim deve ser igual ou posterior ao início.")
+        return cleaned
+
+
 class ReconciliationRuleForm(forms.Form):
     """A constrained, inspectable rule builder; it never accepts executable code."""
 

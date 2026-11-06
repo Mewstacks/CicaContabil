@@ -1,5 +1,53 @@
 # Release candidata CONTAD: revisão e operação
 
+## Continuidade vigente — D-320/V-322, 06/11/2026
+
+Plano de publicação aprovado; a aplicação ainda está na **release Fly 71**,
+com hub.0075 e intelligence.0030 nos dois aliases Neon. Acesso ao app existente
+cica-contabil/mewstack-629 disponível para pedro@mewstack.com.br; não criar app.
+A candidata atual inclui prévia privada não homologada e hub.0078, distinta de
+AccountingExport. Manter exportação false e lista de prévia vazia até habilitação
+no escritório correto. A importação efetiva no Domínio não faz parte desta entrega.
+
+Candidata: `.tmp/contad-development-2026-11-06/release-candidate-final/`,
+816 arquivos; SHA-256 `ced90f343ddbb08c82c7950cc7125a68d712e086708d9f317f06c203834a3eaa`.
+Preservar **hub.0076/0077/0078 e intelligence.0031** no retorno da aplicação;
+release command aplica migrações pelos endpoints diretos em ambos os aliases.
+O esquema é aditivo; não fazer rollback apagando tabelas/evidências.
+V-322 discrimina regressões e verificação final, navegador e limites.
+Migrações e 42 testes focados aprovados também em PostgreSQL **18.6** descartável
+(21,62 s), mesma versão do servidor observado; não comprova recuperação Neon.
+
+O operador instalou MSI 1.0.3 íntegro no PC **CONTAD**: informou Running/Automatic,
+ProductVersion correspondente e awaiting_configuration. Isso supera ausência
+inicial do agente; o PC Fedrizzi anterior é outro ambiente. Sem credencial de
+integração somente leitura, DSN de sistema x64, teste ODBC, pareamento ou envio.
+Usar SQL Anywhere 17 x64 para conexão própria do serviço, preservando DSN x86.
+Nenhuma senha deve ser copiada do registro ou informada no chat.
+
+CONTAD é escritório próprio, UUID **ae13d06f-6461-43a8-a9cc-3e0e0eafde50**,
+provisionado em activation_pending com auditoria e zero membros, sem contrato
+inventado, demo ou parceiro interno. Login responsável indicado em evidência
+privada; nenhum convite enviado ou senha criada. Cadastro não equivale a acesso
+ativo. Não reutilizar Bianchi/Cobalchini; fechar ativação e recorte antes de parear.
+
+**Gate antes de deploy:** backup/retorno consistente ainda não confirmado.
+Produção PostgreSQL 18.6/Neon (589.570.048/8.175.616 bytes); storage Tigris não
+informou versionamento habilitado. Ausência de API Neon no ambiente e falta de
+informação do responsável impedem confirmar janela/ponto de recuperação; não
+provam ausência de backup externo. Nenhum dump de produção baixado para o Mac.
+Verificar recuperação de ambos os bancos e objetos com identificador/data,
+retenção, chaves recuperáveis, contagens/hashes e procedimento de retorno antes
+de publicar. Restauração sintética PostgreSQL 17 não é essa evidência. Não criar
+infraestrutura/custo nem dispensar o gate por inferência.
+
+Após cumprir esse gate, publicar a candidata exata, conferir health/worker e
+migrações, recusa HMAC inválida sem CA, isolamento e arquivo privado; manter
+Q-47 false. Depois do recorte/autorização Q-28, parear 1.0.3 e provar leitura
+LocalSystem, paginação/repetição/retomada. Q-46/Q-47, IA Q-08/Q-09, D-73,
+treinamento e aceite ainda se aplicam. As seções seguintes são histórico das
+candidatas anteriores e não substituem esta continuidade.
+
 Continuidade D-315/V-317: retorno da revisão preserva filtro/página após ações,
 93 testes/24 subtestes locais e navegador desktop/celular/claro/escuro aprovados.
 Candidata atual em `.tmp/contad-navigation-2026-11-05/release-candidate/`:

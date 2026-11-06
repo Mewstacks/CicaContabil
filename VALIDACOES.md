@@ -6271,7 +6271,7 @@ Captura adicional normal de viewport do QA sintético em
 `retorno-fila-confirmado.png` evita o artefato de cabeçalho sticky da full-page.
 Servidor/aba exclusivos dessa captura também encerrados.
 
-## V-318 — Inspeção de leitura dos conjuntos do importador Domínio (15/10/2026)
+## V-320 — Inspeção de leitura dos conjuntos do importador Domínio (15/10/2026)
 
 Foram lidos, sem alteração, três conjuntos de dados fornecidos pelo cliente e mantidos **fora do
 repositório** (`conjuntos Krek/conjunto de dados`): `NFSE sem itens no estoque e tag acumulador -
@@ -6318,9 +6318,9 @@ substitui o outro.
 Limite desta geração: os arquivos foram apenas escritos em disco. Não foram importados no Domínio,
 nenhuma nota foi reimportada, a espécie 39 não foi observada em nota alguma e nada foi homologado.
 
-## V-319 — Carteira de origem backup com ativação manual e corte por fotografia (05/11/2026)
+## V-321 — Carteira de origem backup com ativação manual e corte por fotografia (05/11/2026)
 
-Escopo de D-317. Mudança local, sem migração, sem deploy e sem tocar em produção.
+Escopo de D-319. Mudança local, sem migração, sem deploy e sem tocar em produção.
 
 - **Testes:** `tests/test_backup_portfolio.py`, 14 aprovados. Cobrem listagem com código do
   Domínio, filtro de situação, desativar e reativar com evento de auditoria, filtros preservados no
@@ -6348,3 +6348,105 @@ Limites: a verificação usou dados sintéticos em banco descartável. O corte p
 exercitado contra um `.dom` real nem contra a carteira da Bianchi; o que existe é o teste do
 `complete_backup` e o caminho do agente Windows lido no código (`BackupProcessor` já traz
 `stat_emp` como coluna). Nada foi publicado e nenhuma empresa real foi alterada.
+
+## V-322 — Prévia privada CONTAD e instalação guiada no PC (06/11/2026)
+
+Escopo D-320, PC-19/etapas 03/09/12. Não conclui o conciliador contratado.
+
+**Implementação local:** `AccountingExportPreview` imutável separado de
+`AccountingExport`, migração aditiva hub.0078, fotografia das partidas/fatos,
+versão do adaptador, autor, arquivo privado e SHA-256. Geração protegida por
+POST/CSRF, papel e carteira; somente lançamentos novos aprovados da conta/período,
+com validação contábil e revalidação após trava da empresa. Repetição conserva
+os bytes; mudança de fatos/aprovações torna a fotografia obsoleta e exige outra.
+Download confere integridade e atualidade, limita carteira/escritório e usa
+private/no-store. Gerar prévia não registra exportação, altera lançamento,
+importa no ERP ou habilita o gate contábil. Lista explícita de UUIDs vazia por
+padrão; demo excluída. Arquivo continua **não homologado**.
+
+**Verificações:** 40 testes da prévia mais dois da regra de texto aprovados em
+PostgreSQL 17 descartável, sem skips. Cobrem isolamento, papéis, CSRF, arquivo
+corrompido/ausente, fotografia obsoleta, persistência/limpeza, capacidade e
+concorrência de geração/decisão após trava. A regressão completa anterior à
+última correção de auditoria aprovou **1.715 testes e 163 subtestes**, um skip
+opcional Python Playwright, em 252,32 s. A primeira execução revelou um texto
+explicativo contrário a D-277: removido, sem afrouxar baseline. Revisão adicional
+encontrou auditoria de integridade revertida pelo 404 dentro de transação:
+registro movido para depois da transação, teste passou a exigir sua persistência;
+42 testes focados aprovados novamente, 21,93 s. **Regressão final após a
+correção: 1.715 testes e 163 subtestes aprovados**, um skip opcional, em
+291,22 s. Percurso de entrada Conciliação → Prévia e reenvio conferidos também
+no navegador após retirar o texto explicativo do atalho. Ruff global, Django check, makemigrations --check e MyPy do
+módulo novo aprovados. MyPy do forms completo encontrou erro anterior em
+forms.py:523, fora da mudança; não declarar tipagem global aprovada.
+
+Conferência adicional na mesma versão principal/minor de produção: migrações
+e os **42 testes focados passaram em PostgreSQL 18.6**, 21,62 s, contêiner
+descartável sem dados reais. Imagem oficial fixada em
+`sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5`.
+Não é restauração Neon/Tigris nem substitui o gate operacional de backup.
+
+**Navegador sintético:** CUA/Playwright em 1440×900 e 390×844, temas claro e
+escuro, envio válido/repetido, período inválido com campos preservados, foco
+no erro e Tab/Enter até a data, download real e console sem erros. Ajustado o
+histórico no celular para exibir cada período/situação/ação sem rolagem lateral.
+Download sintético SHA-256 preservado; não é arquivo financeiro da cliente.
+Capturas e logs em `.tmp/contad-development-2026-11-06/`. Frontend Design aplicado;
+UI/UX Pro Max não encontrado e Watermelon não exposto, portanto não alegar seu
+uso. [Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+orientaram rótulos nativos, foco, alvos, erros e responsividade. Pesquisa primária
+[Xero](https://central.xero.com/0/article/Reconcile-your-bank-account) e
+[QuickBooks](https://quickbooks.intuit.com/learn-support/en-us/help-article/bank-transactions/match-transactions-quickbooks-online/L0MF3Fn6y_US_en_US)
+conferiu o padrão de revisão humana antes da conclusão, sem copiar interface
+ou presumir que sugestão vira escrituração.
+
+**PC CONTAD — resultados informados pelo operador:** Windows/PowerShell x64,
+SQL Anywhere 16/17 x64, três DSNs de usuário x64, um de sistema x86 usando
+SQL Anywhere 17, zero DSNs de sistema x64 e agente inicialmente ausente.
+AnyDesk não pôde ser lido pela ferramenta nativa, apesar de nova janela/instância;
+responsável escolheu execução guiada, sem AppleScript/System Events. Não houve
+controle remoto automatizado bem-sucedido. Pasta MSI transferida pelo operador;
+Get-FileHash no Windows igual a
+`5850a351f9ea54f4b72131c840af5a34534ce9bbe521c62ec605a32695fd8253`.
+Depois da instalação, Get-Service informou **Running / Automatic**, ProductVersion
+`1.0.3+1bf854958cecae319abc050241f7b83753903265` e estado
+`awaiting_configuration` no PowerShell administrativo. Leitura sem elevação
+negada pela pasta protegida; permissões preservadas. Os 44 testes .NET/26 checks
+Windows são a evidência histórica do pacote V-311, não reexecutados no PC.
+Pacote sem assinatura Authenticode. Responsável informou que não possui a
+credencial de integração somente leitura: nenhum DSN recriado, senha extraída,
+pareamento, ODBC LocalSystem, leitura ou envio ERP comprovados.
+
+**Hospedado:** acesso Fly confirmado para pedro@mewstack.com.br, app
+cica-contabil/mewstack-629, release 71/imagem e configuração preservadas em
+metadados privados. Ambos os aliases respondem no Neon; hub.0075 e
+intelligence.0030 ainda aplicadas, exportação Domínio false e mTLS false.
+Produção usa PostgreSQL **18.6**, enquanto regressão local usa 17. Bancos medidos
+em 589.570.048/8.175.616 bytes. Storage Tigris não informou versionamento
+habilitado; nenhuma credencial API Neon no ambiente remoto ou .env local.
+Isso não comprova ausência geral de backups, mas não confirma recuperação.
+Nenhum dump de produção baixado para o Mac ou backup/restauração executados.
+
+Cadastro próprio **CONTAD** criado após confirmação do responsável:
+`ae13d06f-6461-43a8-a9cc-3e0e0eafde50`, slug contad, lifecycle
+activation_pending, zero membros, sem demo/parceiro interno e com auditoria.
+E-mail do futuro login fornecido diretamente, mantido em evidência privada;
+nenhum convite enviado, senha criada ou acesso liberado. Não associado aos
+outros escritórios. Lista da prévia continua vazia. Cadastro não é deploy.
+
+**Integração documental:** main remota incorporada por fast-forward até
+`d338abc`; aplicação das mudanças preservadas exigiu resolver três apêndices.
+Escolha humana: IDs locais D-316/D-317 e V-318/V-319 preservados; registros
+remotos e referências por origem passaram a D-318/D-319 e V-320/V-321.
+Stash de recuperação `0a48fb863b5f888d505f93c6b4c03dfe9d72569c` e cópias/hashes
+privados mantidos, sem descarte de conteúdo. Nenhum ID foi substituído globalmente.
+
+Candidata final após correção de auditoria em
+`.tmp/contad-development-2026-11-06/release-candidate-final/`, 816 arquivos,
+SHA-256 `ced90f343ddbb08c82c7950cc7125a68d712e086708d9f317f06c203834a3eaa`;
+ZIP reaberto e hashes conferidos. Manifesto preserva hub.0076/0077/**0078** e
+intelligence.0031 no retorno. Candidata anterior preservada separadamente.
+Sem deploy, migração remota, habilitação da prévia ou chamada IA paga.
+Q-28/Q-46/Q-47, recuperação/backup, acesso/ativação, D-73, treinamento e aceite
+continuam pendentes. Credencial ODBC deve ser fornecida pelo técnico por canal
+local; não pedir senha no chat ou usar credencial da aplicação por inferência.

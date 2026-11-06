@@ -79,6 +79,7 @@ def prepare(root: Path, destination: Path) -> dict[str, object]:
         "migrations_to_preserve": [
             "hub.0076_accountingentry_account_reference_and_more",
             "hub.0077_independent_ledger_record",
+            "hub.0078_accountingexportpreview",
             "intelligence.0031_agent_sync_scope",
         ],
         "agent_version": "1.0.3",

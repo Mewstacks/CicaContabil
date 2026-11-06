@@ -75,6 +75,12 @@ from apps.common.redirects import detail_redirect, safe_next
 from apps.fiscal_calendar.models import ReferenceStatus, TaxDeadlineRule
 from apps.fiscal_calendar.services import add_months
 from apps.hub import nfse_list
+from apps.hub.accounting_preview import (
+    create_preview,
+    open_preview_content,
+    preview_enabled,
+    preview_is_current,
+)
 from apps.hub.closing_dashboard import closing_dashboard_context
 from apps.hub.controlplane import (
     authorization_is_fresh,
@@ -93,6 +99,7 @@ from apps.hub.dte_access import DteAccessError, open_message
 from apps.hub.dte_payload import body_text
 from apps.hub.forms import (
     AccountingPeriodForm,
+    AccountingPreviewForm,
     ActivationForm,
     ActivityGenerationForm,
     ActivityTemplateAssignmentForm,
@@ -129,6 +136,7 @@ from apps.hub.models import (
     AccountingBalanceSnapshot,
     AccountingEntry,
     AccountingExport,
+    AccountingExportPreview,
     AccountingPeriod,
     AccumulatorCatalogEntry,
     AccumulatorHistoryEntry,
@@ -9350,6 +9358,7 @@ def _reconciliation_v2_context(
         "reconciliation_dominio_export_homologated": (
             settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
         ),
+        "reconciliation_dominio_preview_enabled": preview_enabled(office),
     }
 
 
@@ -9878,6 +9887,18 @@ def reconciliation_audit(request: HttpRequest) -> HttpResponse:
             "Exportação",
             "Um arquivo contábil foi preparado.",
         ),
+        "hub.reconciliation.preview_created": (
+            "Prévia para conferência criada", "Prévia",
+            "Uma fotografia privada foi preservada, sem exportação ou importação no ERP.",
+        ),
+        "hub.reconciliation.preview_downloaded": (
+            "Prévia para conferência baixada", "Prévia",
+            "O arquivo não homologado foi baixado para conferência.",
+        ),
+        "hub.reconciliation.preview_integrity_failed": (
+            "Integridade da prévia falhou", "Segurança",
+            "O download foi recusado porque o arquivo não pôde ser conferido.",
+        ),
         "hub.reconciliation.export_downloaded": (
             "Exportação contábil baixada",
             "Exportação",
@@ -9907,6 +9928,7 @@ def reconciliation_audit(request: HttpRequest) -> HttpResponse:
         "hub.movementreconciliation": "Conciliação",
         "hub.journalentry": "Lançamento",
         "hub.accountingexport": "Exportação",
+        "hub.accountingexportpreview": "Prévia para conferência",
     }
     available_actions = list(
         base_events.order_by("action").values_list("action", flat=True).distinct()
@@ -11144,6 +11166,130 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
         }
     )
     return render(request, "hub/reconciliation_movement.html", context)
+
+
+@office_required
+@require_http_methods(["GET", "POST"])
+def reconciliation_preview(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    office = cast(Organization, context["office"])
+    if not preview_enabled(office):
+        raise Http404
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    can_create = bool(context["support_can_mutate"] and _can_manage_reconciliation(context))
+    if request.method == "POST" and not can_create:
+        return refuse(request, "Seu perfil pode consultar, mas não gerar prévias.")
+    accounts = FinancialAccount.objects.filter(
+        organization=office, company__in=companies, active=True, company__active=True,
+    ).select_related("company").order_by("company__name", "name", "id")
+    selection = request.POST if request.method == "POST" else request.GET
+    has_selection = any(
+        key in selection for key in ("financial_account", "period_start", "period_end")
+    )
+    form = AccountingPreviewForm(
+        selection if request.method == "POST" or has_selection else None, accounts=accounts
+    )
+    valid = form.is_valid() if form.is_bound else False
+    if request.method == "POST" and valid:
+        try:
+            preview, created = create_preview(
+                organization=office, account=form.cleaned_data["financial_account"],
+                start=form.cleaned_data["period_start"], end=form.cleaned_data["period_end"],
+                actor=request.user, request=request,
+            )
+        except ReconciliationError as exc:
+            form.add_error(None, str(exc))
+        else:
+            messages.success(request, (
+                "Prévia para conferência gerada. A importação no Domínio permanece pendente."
+                if created else "A prévia íntegra desta fotografia já está disponível."
+            ))
+            query = urlencode({
+                "financial_account": str(preview.financial_account_id),
+                "period_start": preview.period_start.isoformat(),
+                "period_end": preview.period_end.isoformat(),
+            })
+            return redirect(f"{reverse('hub:reconciliation-preview')}?{query}#previas")
+    previews = AccountingExportPreview.objects.filter(
+        organization=office, company__in=companies,
+    ).select_related("company", "financial_account", "created_by")
+    if form.is_bound:
+        if valid:
+            previews = previews.filter(
+                financial_account=form.cleaned_data["financial_account"],
+                period_start=form.cleaned_data["period_start"],
+                period_end=form.cleaned_data["period_end"],
+            )
+        else:
+            previews = previews.none()
+    page = Paginator(previews, 20).get_page(request.GET.get("page"))
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    context.update({
+        "page_title": "Prévia para conferência", "preview_form": form,
+        "can_create_preview": can_create, "preview_accounts_available": accounts.exists(),
+        "preview_page": page, "preview_querystring": query_params.urlencode(),
+        "preview_rows": [
+            {"preview": item, "is_current": preview_is_current(item)} for item in page
+        ],
+    })
+    response = render(request, "hub/reconciliation_preview.html", context)
+    response["Cache-Control"] = "private, no-store"
+    return response
+
+
+@office_required
+@require_http_methods(["GET"])
+def reconciliation_preview_download(request: HttpRequest, preview_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        raise Http404
+    office = cast(Organization, context["office"])
+    if not preview_enabled(office):
+        raise Http404
+    preview = get_object_or_404(
+        AccountingExportPreview, pk=preview_id, organization=office,
+        company__in=cast("QuerySet[ClientCompany]", context["companies"]),
+    )
+    with transaction.atomic():
+        ClientCompany.objects.select_for_update().get(pk=preview.company_id, organization=office)
+        if not preview_is_current(preview):
+            messages.error(
+                request, "Esta prévia está desatualizada. Gere outra para conferir os dados atuais."
+            )
+            return redirect("hub:reconciliation-preview")
+        try:
+            stream = open_preview_content(preview)
+        except ReconciliationError:
+            stream = None
+        if stream is not None:
+            try:
+                record_event(
+                    action="hub.reconciliation.preview_downloaded", actor=request.user,
+                    organization=office, target=preview, request=request,
+                    metadata={"hash": preview.content_hash[:12], "homologated": False},
+                )
+            except Exception:
+                stream.close()
+                raise
+    if stream is None:
+        record_event(
+            action="hub.reconciliation.preview_integrity_failed", actor=request.user,
+            organization=office, target=preview, request=request,
+            metadata={"hash": preview.content_hash[:12]},
+        )
+        raise Http404("Prévia indisponível; solicite conferência técnica.")
+    response = FileResponse(
+        stream, as_attachment=True,
+        filename=(f"previa-nao-homologada-{preview.period_start.isoformat()}-"
+                  f"{preview.period_end.isoformat()}-{preview.content_hash[:12]}.csv"),
+        content_type="text/csv; charset=utf-8",
+    )
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @office_required
@@ -14509,7 +14655,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
 
 
 def _backup_managed_source(office: Organization) -> DataSource | None:
-    """The office whose portfolio is a manual backup, and nothing else writes it (D-317).
+    """The office whose portfolio is a manual backup, and nothing else writes it (D-319).
 
     A live Domínio connector or the central control plane keeps rewriting the registry on
     its own schedule, so a manual switch there would promise control the next sync takes

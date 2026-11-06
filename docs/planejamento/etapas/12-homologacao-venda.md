@@ -336,3 +336,28 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   24 subtestes locais, navegador desktop/celular/claro/escuro/teclado.
 - [ ] Publicação hospedada, serviço real, fontes/layout/importação, D-73,
   recuperação operacional, treinamento e aceite continuam pendentes.
+
+## Implantação CONTAD — D-320/V-322 (06/11/2026)
+
+- [x] Confirmar acesso Fly/app/organização e preservar release 71/imagem/configuração
+  anteriores; consultas de aliases/migrações/gates sem segredos ou dados contábeis.
+- [x] Reconciliar IDs por escolha humana, preservando os locais e renumerando
+  os remotos; integrar source/main sem perda das alterações anteriores.
+- [x] Preparar candidata de 816 arquivos/hashes e manifesto incluindo hub.0078;
+  manter migrações aditivas de ambos os aliases no retorno da aplicação.
+- [x] Aplicar migrações e aprovar 42 testes focados em PostgreSQL 18.6 sintético,
+  além da regressão integral PostgreSQL 17; não é restore de produção.
+- [x] Instalação guiada no PC: MSI/hash/versão 1.0.3, serviço Running/Automatic
+  e awaiting_configuration informados; nenhum pareamento/envio configurado.
+- [x] Criar escritório próprio CONTAD em activation_pending e auditoria, após
+  confirmação humana, com zero membros/módulos liberados e sem convite.
+- [ ] Confirmar backup/retorno de Neon **18.6** e objetos Tigris no ponto consistente;
+  versionamento não confirmado, credencial API Neon indisponível. Não baixar dumps.
+- [ ] Publicar candidata revisada e verificar migrações/health/worker/HMAC;
+  habilitar prévia só no UUID autorizado, mantendo exportação false.
+- [ ] Concluir acesso/ativação do escritório e recorte/ODBC/serviço/retomada reais,
+  Q-28/Q-46/Q-47, D-73, recuperação operacional, treinamento e aceite.
+
+Autorização de deploy existe no plano aprovado; a pendência é o gate concreto
+backup/retorno, não um novo pedido genérico de permissão. Agente instalado em
+espera e cadastro provisionado não equivalem à implantação completa.

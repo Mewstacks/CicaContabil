@@ -2876,7 +2876,7 @@ DSN ou confirmação de backup.
 - Captura normal de viewport `retorno-fila-confirmado.png` salva/inspecionada;
   servidor/aba exclusivos de captura também encerrados.
 
-## 15/10/2026 — Origem da espécie na importação Domínio (D-316, V-318)
+## 15/10/2026 — Origem da espécie na importação Domínio (D-318, V-320)
 
 - Investigação pedida pelo proprietário a partir de telas do cliente. A rota real de importação é o
   Importador por conjunto de dados, não a tela de Configuração de Importação NFS-e Padrão Nacional.
@@ -2887,7 +2887,7 @@ DSN ou confirmação de backup.
 - Nenhum arquivo foi alterado, nenhum conjunto gerado ou reimportado, nenhum código da CICA tocado e
   nenhuma importação homologada. Q-39 continua aberta quanto ao retorno verificável.
 
-## 15/10/2026 — Conjuntos gerados com espécie 39 (D-316, V-318)
+## 15/10/2026 — Conjuntos gerados com espécie 39 (D-318, V-320)
 
 - Pedido explícito do proprietário: fixar a espécie 39 nas notas de serviço importadas.
 - Gerados `TOMADOS SEM ITENS V6`, `TOMADOS COM ITENS V6` e `PRESTADOS V4` a partir dos vigentes, com
@@ -2895,7 +2895,7 @@ DSN ou confirmação de backup.
 - Conferência por reversão das edições e comparação byte a byte: idêntica ao original nos três.
 - Não importados no Domínio, nenhuma nota reimportada, nada homologado. Q-39 segue aberta.
 
-## 05/11/2026 — Carteira de backup: ativar, desativar e corte por fotografia (D-317, V-319)
+## 05/11/2026 — Carteira de backup: ativar, desativar e corte por fotografia (D-319, V-321)
 
 - Pedido explícito do proprietário: escritório de origem backup não tem agente atualizando, então
   precisa dizer quem ainda atende; e o backup novo deve tirar quem saiu. Conflito resolvido por ele:
@@ -2917,8 +2917,8 @@ DSN ou confirmação de backup.
 - `origin/main` incorporado por merge. Conflito em quatro documentos, todos do tipo "ambos
   acrescentaram no fim": conteúdo remoto preservado e os blocos locais recolocados ao final.
   `views.py` e `urls.py` mesclaram sozinhos; a rota e a view novas continuam íntegras.
-- Renumerados: espécie da NFS-e de D-300/V-300 para **D-316/V-318**; carteira de backup de
-  D-301/V-301 para **D-317/V-319**. As referências cruzadas foram ajustadas nas etapas 03 e 07, nas
+- Renumerados: espécie da NFS-e de D-300/V-300 para **D-318/V-320**; carteira de backup de
+  D-301/V-301 para **D-319/V-321**. As referências cruzadas foram ajustadas nas etapas 03 e 07, nas
   dúvidas abertas, neste registro e nos comentários de `backup_bridge.py`, `views.py`,
   `operations.css` e do arquivo de testes.
 - 200 testes aprovados e 26 subtestes nos dois lados do merge (carteira de backup, cadastro,
@@ -2927,3 +2927,40 @@ DSN ou confirmação de backup.
 - Observação não resolvida, anterior a esta sessão e também presente no remoto: `D-192` e `V-204`
   aparecem duas vezes cada. Não foram tocados.
 - Nada foi enviado ao remoto.
+
+## 06/11/2026 — D-320: prévia CONTAD, instalação guiada e preflight
+
+- Plano aprovado colocado em execução para PC-19/03/09/12: arquivo privado de
+  conferência dentro do CICA, explicitamente não homologado, sem importar no ERP.
+- Main origin/d338abc incorporada por fast-forward com cópia/stash preservados;
+  três conflitos de apêndices resolvidos. Por escolha humana, IDs locais mantidos
+  e assuntos remotos renumerados por origem para D-318/D-319 e V-320/V-321.
+  Registros históricos acima conservam a perspectiva da execução que os escreveu.
+- Criados módulo/modelo/migração hub.0078, formulário, rotas e tela própria da
+  prévia; snapshot/arquivo imutáveis, dedupe, carteira, aprovação, integridade e
+  atualidade protegidos. Gate de exportação false e lista de UUIDs vazia.
+- 40 testes da prévia mais dois de linguagem aprovados em PostgreSQL sintético.
+  Regressão final 1.715/163 aprovada após a correção de auditoria, um skip
+  opcional, 291,22 s. Atalho Conciliação → Prévia também conferido no navegador. Ruff/check/makemigrations/MyPy do módulo
+  novo aprovados; limite anterior forms.py:523 mantido, sem alegar tipagem global.
+- PostgreSQL 18.6 descartável: migrações e 42 testes focados aprovados, 21,62 s;
+  imagem oficial fixada. Sem dado real ou restauração Neon/Tigris.
+- CUA/Playwright sintético cobriu desktop/celular, claro/escuro, envio/repetição,
+  período inválido, foco/Tab/Enter e download real íntegro; console sem erros.
+  Corrigidos texto sob título e histórico móvel; sem redesenho da interface.
+- AnyDesk não acessível pela ferramenta mesmo após nova instância e reinício;
+  responsável escolheu executar testes. Diagnóstico humano identificou SQL
+  Anywhere 17 no DSN x86 original, nenhum DSN de sistema x64 ou agente inicial.
+  Transferiu MSI/pasta, conferiu SHA256, instalou e informou 1.0.3, Running /
+  Automatic e awaiting_configuration. ACL preservada; sem ODBC/pareamento/envio.
+- Credencial somente leitura indisponível: configuração aguarda técnico Domínio.
+  Sem senha no chat, extração do registro, SQL novo, importação ERP ou IA paga.
+- Fly autenticado confirmou release 71, aliases Neon, hub.0075/intelligence.0030
+  e gates; metadados privados. Banco PostgreSQL 18.6, storage Tigris; recuperação
+  ainda não confirmada. Não houve deploy/migração remota ou dump local.
+- CONTAD confirmado como escritório próprio e provisionado em activation_pending,
+  UUID ae13d06f-6461-43a8-a9cc-3e0e0eafde50, auditoria e zero membros. Futuro login
+  indicado pelo responsável mantido fora do Git; nenhum convite/senha criados.
+- Candidata de 816 arquivos reaberta/hash conferido, manifesto atualiza migrações
+  de retorno. Pacote anterior preservado; checks/limites detalhados em V-322.
+  Publicação fonte/CI será registrada separadamente se concluída.

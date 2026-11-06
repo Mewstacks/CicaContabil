@@ -1,5 +1,19 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Implantação CONTAD em execução — D-320/V-322, 06/11/2026:** prévia privada
+não homologada implementada dentro do CICA, com fotografia imutável e download
+restrito; exportação contábil permanece desligada e lista de escritórios vazia.
+PostgreSQL: **1.715 testes/163 subtestes aprovados**, um skip opcional, após a
+correção final de auditoria. Navegador sintético
+desktop/celular/claro/escuro, erro/teclado/download conferidos. No PC CONTAD, o
+operador conferiu hash, instalou 1.0.3 e informou Running/Automatic, versão e
+awaiting_configuration. Sem ODBC/pareamento/envio: falta credencial somente
+leitura. Acesso Fly recuperado; release 71/esquema anterior preservados. Cadastro
+CONTAD próprio em activation_pending/sem membros. Candidata preparada, sem
+deploy: recuperação de Neon/Tigris ainda não confirmada. IDs locais preservados;
+registros remotos renumerados para D-318/D-319 e V-320/V-321 por escolha humana.
+PC-19/03/09/12, Q-28/Q-46/Q-47, D-73 e aceite continuam abertos.
+
 **Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
 revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e
 24 subtestes locais aprovados, zero skips; CUA/Playwright desktop/celular e

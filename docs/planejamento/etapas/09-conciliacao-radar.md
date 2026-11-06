@@ -258,3 +258,24 @@ local inclui a CLI; nenhum gate contábil foi habilitado.
 O limite de V-316 após salvar foi corrigido. Trocar o tema na fila ainda perde
 o painel do hash com a query preservada; registrado em V-317, sem alterar essa
 rotina nesta rodada. Nova candidata de fonte com 809 hashes conferidos.
+
+## Prévia privada CONTAD — D-320/V-322 (06/11/2026)
+
+- [x] Separar prévia imutável de AccountingExport, habilitada por UUID explícito,
+  com arquivo privado, fotografia, versão, autor e hash; lista vazia por padrão.
+- [x] Conferir aprovação/conta/partidas/revisão/período, rejeitar fatos existentes,
+  obsoletos ou exportados; não alterar estado dos lançamentos ao gerar prévia.
+- [x] Recusar download obsoleto/corrompido, preservar bytes anteriores e registrar
+  auditoria; validar concorrência e isolamento entre carteiras/escritórios.
+- [x] Conferir formulário/histórico/download em desktop/celular e claro/escuro,
+  erro/teclado, campos preservados, alvos e console com dados sintéticos.
+- [ ] Publicar e habilitar somente no escritório/recorte autorizados após gates
+  operacionais. Cadastro CONTAD criado, ainda em ativação pendente/sem membros.
+- [ ] Obter fonte independente real de Razão/títulos e aprovar semântica Q-46.
+- [ ] Concluir importação/layout Q-47 em entrega autorizada própria, DE-PARA
+  com IA sob Q-08/Q-09, D-73, treinamento e aceite CONTAD.
+
+O responsável escolheu preparar somente arquivo nesta entrega; prévia privada
+é explicitamente não homologada. Gate contábil permanece false; preview não
+registra exportação, importação, baixa ou escrituração. V-322 distingue as
+rodadas de teste e os limites da versão. Não encerrar PC-19 por esta prévia.

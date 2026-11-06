@@ -2,7 +2,7 @@
 
 > **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.
 
-> **Atualização 15/10/2026 — D-316:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
+> **Atualização 15/10/2026 — D-318:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
 
 > únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
 > D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
@@ -283,3 +283,25 @@ com os anexos e 42 verificações finais aprovadas. Q-28/Q-46/Q-47 continuam par
 fontes contábeis/baixas, regras revisadas e importação conferida, sem bloquear
 essa prova já concluída da entrada bancária. Nenhuma pergunta repetida de
 extratos, login, DSN, backup, CA ou Fly nesta execução.
+
+## Continuidade Q-28/Q-46/Q-47 — D-320/V-322 (06/11/2026)
+
+Não repetir escolhas: serviço único .NET, HTTPS/HMAC, app Fly existente, arquivo
+sem importação efetiva e prévia privada não homologada. Acesso Fly agora funciona.
+AnyDesk disponibilizado, controle nativo falhou e responsável escolheu testes
+guiados. No PC CONTAD informou MSI 1.0.3 íntegro, Running/Automatic e estado
+awaiting_configuration. SQL Anywhere 17 é a versão do DSN original x86; faltam
+DSN de sistema x64 e credencial de integração somente leitura, que ele confirmou
+não possuir. Próximo responsável técnico deve configurá-los diretamente no PC;
+não pedir senha no chat, ler segredo do registro ou recriar o DSN original.
+
+CONTAD é escritório distinto de Bianchi/Cobalchini, conforme confirmação. Cadastro
+próprio ae13d06f-6461-43a8-a9cc-3e0e0eafde50 provisionado em activation_pending,
+sem membros/ativação; futuro login indicado em evidência privada. Não pedir
+novamente qual escritório ou e-mail. Q-28 mantém ativação/acesso, recorte de
+empresa/conta/competência/IDs autorizados e fonte independente real antes de
+parear/enviar; não habilitar carteira inteira. Backup/retorno hospedado ainda não
+confirmado: responsável não sabe sua configuração, API Neon sem acesso e storage
+não informou versionamento. Não presumir que não há backup externo ou que foi
+restaurado. Q-46 mantém exemplos/regras de títulos/baixas/DE-PARA; Q-47 mantém
+layout/importação conferida em autorização posterior, sem escrita direta ERP.

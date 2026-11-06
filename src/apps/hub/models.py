@@ -1930,6 +1930,38 @@ class AccountingExport(OrganizationScopedModel):
         indexes = [models.Index(fields=("organization", "company", "period_start", "period_end"))]
 
 
+class AccountingExportPreview(ImmutableOrganizationModel):
+    """Private, unhomologated evidence. Never an export or ERP import receipt."""
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="accounting_export_previews"
+    )
+    financial_account = models.ForeignKey(
+        FinancialAccount, on_delete=models.PROTECT, related_name="accounting_export_previews"
+    )
+    period_start = models.DateField()
+    period_end = models.DateField()
+    adapter_version = models.CharField(max_length=64)
+    source_snapshot = models.JSONField()
+    source_fingerprint = models.CharField(max_length=64)
+    content_hash = models.CharField(max_length=64)
+    content = models.FileField(upload_to=private_reconciliation_path)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, on_delete=models.SET_NULL,
+        related_name="accounting_export_previews",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "source_fingerprint"),
+                name="hub_unique_accounting_preview_source",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "created_at"))]
+
+
 class OperationalTask(OrganizationScopedModel):
     """An office-owned operational follow-up, optionally tied to a client company."""
 

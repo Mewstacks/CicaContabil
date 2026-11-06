@@ -227,7 +227,7 @@ V-317/D-315 (05/11): correção de retorno do detalhe e QA sintético não alter
 agente, DSN ou ERP. CI 42079806454 aprovou builds/testes Linux e manifesto MSI
 da implementação 700b496, sem nova instalação/ODBC LocalSystem ou pareamento.
 
-### Origem backup: carteira editável e corte por fotografia (D-317, V-319)
+### Origem backup: carteira editável e corte por fotografia (D-319, V-321)
 
 05/11/2026. O escritório que vive de backup manual não tem agente atualizando o cadastro entre uma
 importação e outra, e até aqui `ClientCompany.active` só era escrito pela importação. Agora
@@ -244,3 +244,24 @@ produtores atuais.
 
 Limite: nada foi exercitado contra um `.dom` real nem contra a carteira da Bianchi. A prova
 operacional dessa rotina continua dependendo do piloto da etapa 12.
+
+## Implantação CONTAD — D-320/V-322 (06/11/2026)
+
+- [x] Receber sessão acompanhada; após falhas nativas AnyDesk, respeitar escolha
+  humana por testes guiados, sem controle alternativo do Mac.
+- [x] Registrar diagnóstico informado: Windows/PowerShell x64, SQL Anywhere
+  16/17 x64, zero DSNs de sistema x64; sistema x86 existente usa versão 17.
+- [x] Operador transferiu/conferiu hash e instalou MSI 1.0.3 no PC CONTAD;
+  informou Running/Automatic, versão correspondente e awaiting_configuration.
+- [x] Preservar conexão/permissões existentes e serviço em espera, sem salvar
+  configuração, senha extraída ou tentativa de identidade alternativa.
+- [ ] Técnico fornecer credencial de integração somente leitura; preparar DSN
+  de sistema x64 SQL Anywhere 17 e testar configurador/LocalSystem no PC.
+- [ ] Publicar backend compatível após backup/retorno, ativar escritório CONTAD
+  e autorizar recorte Q-28 antes do pareamento/envio e prova de retomada.
+- [ ] Fechar contratos reais Razão/títulos/parcelas/baixas Q-28/Q-46 e homologar.
+
+Resultados do PC são informados pelo operador, não controle automatizado ou
+homologação do ERP. Cadastro CONTAD está em ativação pendente; não usar os
+escritórios Bianchi/Cobalchini. Pacote sem Authenticode; checks Windows de V-311
+continuam históricos. O acesso Fly anterior indisponível foi superado.

@@ -2694,7 +2694,7 @@ aviso 0x5 informa desconexão porque outra conexão assumiu o PC. Não reconecta
 ou interromper essa conexão por inferência; nenhuma janela ERP ou novo relatório
 foi acessado nesta observação. AnyDesk da CONTAD não foi disponibilizado.
 
-## D-316 — A espécie da NFS-e importada pertence ao conjunto de dados do Domínio (15/10/2026)
+## D-318 — A espécie da NFS-e importada pertence ao conjunto de dados do Domínio (15/10/2026)
 
 Origem: investigação pedida pelo proprietário a partir de telas do cliente, para entender de onde vem
 a espécie das notas de serviço importadas e por que ela não podia ser mudada pela CICA.
@@ -2720,7 +2720,7 @@ a espécie das notas de serviço importadas e por que ela não podia ser mudada 
 - Qualquer conjunto novo precisa continuar lendo `infNFSe/valores/acum`. Perder essa leitura quebra a
   chegada do acumulador classificado ao Domínio.
 
-## D-317 — Carteira de origem backup: ativação manual e corte pelo backup novo (05/11/2026)
+## D-319 — Carteira de origem backup: ativação manual e corte pelo backup novo (05/11/2026)
 
 Origem: pedido explícito do proprietário nesta conversa, com a escolha de conflito respondida por
 ele ("backup prevalece"). Escritórios cuja carteira vem de backup do Domínio (`DataSource` de tipo
@@ -2751,3 +2751,158 @@ carteira. Esta decisão não cria exclusão de empresa, não altera o caminho do
 (`WHERE stat_emp = 'A'`, sem desativar ausências), não mexe no contrato `companies.v1` da
 Rentabilidade, não autoriza custo, deploy, envio de mensagem ou acesso externo, e não declara
 homologação de nada.
+
+## D-320 — Executar implantação do conciliador CONTAD e prévia privada (06/11/2026)
+
+Origem: plano discutido e aprovado pelo responsável nesta conversa, seguido de
+“Sim, implemente o plano” e “Inicie o desenvolvimento”. Executar PC-19 nas
+etapas 03/09/12, preservando alterações locais e os gates ainda abertos.
+Sessão AnyDesk acompanhada: avisar o responsável antes de entrar; ele abrirá
+a sessão. Recorte e autorização de leitura/envio CONTAD serão registrados em
+Q-28 antes do pareamento; a autorização Fedrizzi não os substitui.
+
+Escolhas explícitas: partir da candidata validada, manter o app existente no
+Fly da Mewstack e preparar **somente o arquivo**, sem importação efetiva no
+Domínio nesta entrega. A saída será uma prévia privada dentro do CICA,
+identificada como não homologada. Manter Q-47 e
+RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=false; não registrar exportação,
+importação ou escrituração por gerar uma prévia. Publicação da candidata
+revisada faz parte do plano aprovado, com backup/retorno e verificações antes;
+custos e IA real continuam sujeitos às regras específicas Q-08/Q-09.
+
+Implementação da prévia: registro próprio imutável, separado de
+AccountingExport, com fotografia de lançamentos/partidas, recorte, versão,
+autor, arquivo e SHA-256. Habilitação por lista explícita de UUIDs de
+escritórios, vazia por padrão; não adivinhar o tenant CONTAD nem habilitar
+globalmente. Criação por POST/CSRF e papel operacional existente; consulta e
+download limitados à carteira autorizada e arquivo íntegro. Não exportar
+fonte de Razão, fato já conciliado/exportado, lançamento inválido ou obsoleto;
+geração não muda estados/aprovações. Preservar fotografias e sinalizar
+desatualização quando fatos/decisões mudarem; exigir nova geração para o
+resultado atual. Os adaptadores do Domínio dependem de campos/chaves e
+exemplos revisados Q-28/Q-46, sem SQL novo por inferência.
+
+Acesso Fly reconferido: conta pedro@mewstack.com.br, app cica-contabil na
+organização mewstack-629; web/worker ativos. Supera o impedimento de acesso
+descrito no planejamento anterior, sem alegar deploy novo. Colisão de IDs
+D-316/D-317 e V-318/V-319 entre documentos locais e main remota apresentada
+ao responsável; preservar ambos os históricos enquanto aguarda escolha de
+renumeração. D-320 fica reservado a esta autorização e não reutiliza os IDs.
+
+Continuidade D-320 (06/11/2026): responsável confirmou que entrou no AnyDesk
+da cliente e que o Domínio está aberto, autorizando prosseguir na sessão
+acompanhada. Iniciar levantamento somente leitura da instalação e das fontes;
+registrar recorte/autorização de envio antes de parear, sem importação ERP.
+Para a colisão documental, escolheu **manter IDs locais e renumerar os
+registros remotos**, preservando integralmente ambos os históricos. Reservar
+D-318/D-319 e V-320/V-321 aos dois assuntos remotos; D-320 permanece nesta
+implantação, cuja evidência própria será V-322. Atualizar referências remotas
+por origem do trecho, sem substituir números globalmente nos registros locais.
+
+Continuidade operacional D-320: a leitura nativa da janela AnyDesk expirou
+repetidamente, inclusive após novo primeiro plano, nova instância solicitada
+pelo responsável e reinício do controle. A imagem fornecida confirma Domínio
+Escrita Fiscal aberto, não uma consulta executada pelo agente. O responsável
+priorizou testar no PC da cliente nesta manhã e escolheu **executar os testes
+com instruções**, em vez de AppleScript/System Events. Não executar esse
+controle alternativo. Primeiro diagnóstico guiado somente leitura: arquitetura,
+presença/estado do serviço, driver SQL Anywhere x64 e contagem de DSNs de
+sistema x64; sem nomes, credenciais ou conteúdo financeiro no resultado.
+Resultados humanos serão identificados como informados, sem alegar verificação
+automatizada ou homologação por essa informação.
+
+Diagnóstico guiado informado pelo responsável no PC CONTAD: Windows x64 e
+PowerShell x64; CicaAgent ausente; drivers SQL Anywhere 16 e 17 x64 presentes;
+zero DSNs de sistema x64, três DSNs de usuário x64 e um DSN de sistema x86.
+Conferir o driver/configuração da conexão existente antes de criar o DSN de
+sistema x64. Não copiar segredos do registro, testar senhas ou alterar o DSN
+original. Credencial de integração somente leitura será preenchida diretamente
+pelo responsável no PC; disponibilidade ainda não confirmada. Esses resultados
+são relatos do operador, não teste ODBC ou instalação concluídos.
+
+Complemento informado no PC CONTAD: o DSN de sistema x86 existente usa
+**SQL Anywhere 17**. Usar a versão 17 x64 já instalada para preparar a conexão
+do serviço, preservando o DSN original. A resposta não confirmou ainda a
+disponibilidade da credencial somente leitura; não presumir esse acesso.
+
+O responsável confirmou em seguida que **não possui a credencial de
+integração somente leitura**. Teste ODBC e configuração dessa conexão aguardam
+o técnico/administrador Domínio. Prosseguir com instalação e diagnóstico local
+do MSI 1.0.3 conferido, mantendo o serviço sem configuração/pareamento/envio;
+não tentar senha, extrair segredo de DSN existente ou usar usuário da aplicação
+como substituto por inferência.
+
+Transferência assistida: cópia do MSI criada em Downloads/CICA-Agent-1.0.3
+no Mac após reconferir SHA-256. O operador transferiu a pasta inteira para
+Downloads no Windows e informou Get-FileHash com o SHA-256 **idêntico** ao
+pacote 1.0.3 de V-311. A conferência do operador comprova os bytes recebidos;
+instalação e estado do serviço ainda aguardam resultado próprio.
+
+Instalação guiada no PC CONTAD: após conferir o hash, o responsável executou
+o MSI e informou `Get-Service CicaAgent` com **Running / Automatic**. Registrar
+como execução informada pelo operador; conferir versão/estado seguro a seguir.
+Não houve configuração ODBC, código de pareamento, salvamento, leitura ou envio
+comprovados. Ausência da credencial somente leitura permanece no próximo passo.
+
+Conferência guiada final da instalação: ProductVersion informado
+`1.0.3+1bf854958cecae319abc050241f7b83753903265`, correspondente à candidata
+Windows validada. A pasta protegida negou leitura no PowerShell sem elevação;
+não alterar ACL. No PowerShell administrativo, o operador informou
+`state=awaiting_configuration`. Serviço instalado e em espera; não é conexão
+ODBC, pareamento, sincronização ou homologação do conciliador.
+
+Preflight hospedado somente leitura: ambos os aliases de produção respondem
+no Neon, com hub.0075/intelligence.0030 aplicadas; exportação Domínio false,
+mTLS false e prévia ainda sem lista habilitada. Busca de nome CONTAD não
+encontrou escritório; não criar ou atribuir outro escritório por inferência.
+A API de storage não informou versionamento habilitado e o ambiente não tem
+credencial da API Neon. Isso não prova ausência de backup externo, mas não
+confirma recuperação de banco/objetos para o deploy. Preparar candidata com
+hub.0076/0077/0078 e intelligence.0031 preservadas; não publicar sem cumprir
+o gate de backup/retorno definido acima.
+
+O responsável não sabe se há recuperação configurada nem qual o cadastro
+CONTAD existente; considera que talvez seja necessário criar. Consultar
+metadados dos escritórios antes de propor novo cadastro. A resposta não
+define identidade, acesso de usuário ou condição comercial/teste parceiro,
+nem dispensa backup/retorno. Nenhum desses valores será inventado.
+
+Inventário somente leitura encontrou Bianchi & Rizzotto e Cobalchini
+Contabilidade como escritórios ativos não demo. O responsável confirmou
+que CONTAD é **outro escritório e precisa de cadastro próprio**; não associar
+seus dados a nenhum dos dois existentes. Identidade do acesso e ativação
+continuam a exigir os dados reais; não atribuir condição de parceiro interno
+ou valor comercial por inferência. Bancos de produção medidos em PostgreSQL
+18.6, 589.570.048 e 8.175.616 bytes; storage Tigris. A regressão local PostgreSQL
+17 não constitui prova de restauração do PostgreSQL 18/Neon/Tigris.
+
+Identidade do novo escritório confirmada pelo responsável: CONTAD, com e-mail
+de login fornecido nesta conversa e guardado em evidência privada, fora do Git.
+Provisionar o cadastro próprio pelo estado **activation_pending**, com auditoria,
+sem ativação comercial, contrato novo, módulo habilitado, associação a outro
+escritório, convite enviado ou senha criada. Preparar o vínculo de acesso, sem
+alegar que já pode entrar. A lista da prévia permanece vazia até a liberação
+concreta; pareamento continua condicionado a recorte/autorização e backend.
+
+Execução do cadastro próprio: CONTAD provisionado com auditoria no UUID
+ae13d06f-6461-43a8-a9cc-3e0e0eafde50, slug contad, activation_pending,
+zero membros; sem demo/parceiro interno, contrato, convite ou senha criados.
+E-mail indicado não entrou nos arquivos versionados. Painel Neon aberto para
+verificar recuperação, mas solicitou login; autenticação direta solicitada ao
+responsável, sem credencial no chat. Não há acesso autenticado Neon confirmado
+ainda. Regressão final local 1.715 testes/163 subtestes aprovada após correção
+de auditoria; um skip opcional. V-322 conserva contexto e limites.
+
+Publicação da fonte D-320: incluir a implementação/testes, sua continuidade
+canônica e a renumeração dos registros remotos. As entregas documentais locais
+anteriores D-316/V-318 (comparação) e D-317/V-319 (parada do legado), seus
+apêndices e arquivo próprio permanecem preservados no workspace; não incluí-las
+na publicação funcional por inferência. Manter o índice separado desse conteúdo
+preexistente, sem reescrever ou descartar o arquivo de trabalho. Como produção
+foi identificada em PostgreSQL 18.6, conferir adicionalmente migrações e testes
+focados em PostgreSQL 18 descartável antes do eventual deploy, sem dados reais.
+
+Conferência final da candidata: 42 testes focados/migrações aprovados também
+em PostgreSQL 18.6 sintético, mesma versão observada no Neon; 21,62 s. Não
+executou restore de produção. Código da candidata final com 816 hashes iguais
+ao ZIP/workspace, SHA-256 ced90f343ddbb08c82c7950cc7125a68d712e086708d9f317f06c203834a3eaa.
