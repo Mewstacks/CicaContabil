@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import hashlib
-import hmac
 import json
 from collections.abc import Mapping
 from datetime import timedelta
 from pathlib import Path, PureWindowsPath
 from typing import Any, cast
-from urllib.parse import unquote
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from cryptography.hazmat.primitives.asymmetric.types import CertificateIssuerPrivateKeyTypes
 from cryptography.x509.oid import ExtendedKeyUsageOID
 from django.conf import settings
@@ -27,6 +26,8 @@ from django.views.decorators.http import require_POST
 from apps.audit.services import record_event
 from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_backup
 from apps.hub.models import ImportBatch
+from apps.intelligence.agent_mtls import valid_mtls_client
+from apps.intelligence.agent_scope import PROTOCOL, validate_scope_page, validate_sync_scope
 from apps.intelligence.agents import redeem_enrollment, verify_agent_signature
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_bank_entries, sync_companies
@@ -52,28 +53,35 @@ def _payload(request: HttpRequest, limit: int = 5_000_000) -> dict[str, Any] | N
 
 
 def _agent(request: HttpRequest) -> EdgeAgent | None:
+    if not request.is_secure():
+        return None
     agent_id = request.headers.get("X-Hub-Agent-ID", "")
     try:
         agent = EdgeAgent.objects.select_related("organization").filter(id=agent_id).first()
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, ValidationError):
         return None
     if agent is None:
         return None
-    if settings.EDGE_AGENT_MTLS_REQUIRED:
-        verified = request.headers.get("X-Hub-MTLS-Verified", "")
-        encoded = request.headers.get("X-Hub-MTLS-Client-Cert", "")
-        try:
-            observed = (
-                x509.load_pem_x509_certificate(unquote(encoded).encode("ascii"))
-                .fingerprint(hashes.SHA256())
-                .hex()
-            )
-        except (TypeError, ValueError):
-            return None
-        if verified != "SUCCESS" or not hmac.compare_digest(
-            observed, agent.mtls_certificate_sha256
+    if agent.sync_scope:
+        allowed = {
+            "agent-v2-heartbeat",
+            "agent-v2-configuration-next",
+            "agent-v2-renew",
+            "agent-v2-dominio-companies",
+            "agent-v2-dominio-bank-entries",
+        }
+        if (
+            request.headers.get("X-Hub-Agent-Protocol") != PROTOCOL
+            or request.resolver_match is None
+            or request.resolver_match.url_name not in allowed
         ):
             return None
+        try:
+            validate_sync_scope(agent.sync_scope, agent.organization)
+        except ValueError:
+            return None
+    if not valid_mtls_client(request, agent):
+        return None
     if not verify_agent_signature(
         agent=agent,
         timestamp=request.headers.get("X-Hub-Agent-Timestamp", ""),
@@ -104,14 +112,44 @@ def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
         csr = x509.load_pem_x509_csr(csr_pem.encode("ascii"))
         if not csr.is_signature_valid:
             raise ValueError
+    except (TypeError, ValueError, UnicodeError) as exc:
+        raise ValueError("CSR inválida.") from exc
+    try:
         ca_cert = x509.load_pem_x509_certificate(cert_path.read_bytes())
         ca_key = cast(
             CertificateIssuerPrivateKeyTypes,
             serialization.load_pem_private_key(key_path.read_bytes(), password=None),
         )
     except (TypeError, ValueError) as exc:
-        raise ValueError("CSR inválida.") from exc
+        raise RuntimeError("A autoridade certificadora do agente é inválida.") from exc
+    except OSError as exc:
+        raise RuntimeError("A autoridade certificadora do agente está indisponível.") from exc
     now = timezone.now()
+    public = csr.public_key()
+    if not (
+        (isinstance(public, rsa.RSAPublicKey) and public.key_size >= 2048)
+        or (isinstance(public, ec.EllipticCurvePublicKey) and public.key_size >= 256)
+    ):
+        raise ValueError("A CSR exige chave RSA de 2048 bits ou EC de 256 bits, no mínimo.")
+    try:
+        can_sign = ca_cert.extensions.get_extension_for_class(x509.BasicConstraints).value.ca
+        usage = ca_cert.extensions.get_extension_for_class(x509.KeyUsage).value.key_cert_sign
+    except x509.ExtensionNotFound as exc:
+        raise RuntimeError("A autoridade certificadora do agente é inválida.") from exc
+    public_format = (serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo)
+    if (
+        not (
+            (isinstance(ca_key, rsa.RSAPrivateKey) and ca_key.key_size >= 2048)
+            or (isinstance(ca_key, ec.EllipticCurvePrivateKey) and ca_key.key_size >= 256)
+        )
+        or not can_sign
+        or not usage
+        or not ca_cert.not_valid_before_utc <= now < ca_cert.not_valid_after_utc
+        or ca_cert.not_valid_after_utc <= now + timedelta(minutes=5)
+        or ca_key.public_key().public_bytes(*public_format)
+        != ca_cert.public_key().public_bytes(*public_format)
+    ):
+        raise RuntimeError("A autoridade certificadora do agente é inválida ou está expirada.")
     certificate = (
         x509.CertificateBuilder()
         .subject_name(csr.subject)
@@ -119,7 +157,7 @@ def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
         .public_key(csr.public_key())
         .serial_number(x509.random_serial_number())
         .not_valid_before(now - timedelta(minutes=5))
-        .not_valid_after(now + timedelta(days=90))
+        .not_valid_after(min(now + timedelta(days=90), ca_cert.not_valid_after_utc))
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(x509.ExtendedKeyUsage([ExtendedKeyUsageOID.CLIENT_AUTH]), critical=False)
         .sign(ca_key, hashes.SHA256())
@@ -132,15 +170,27 @@ def _sign_csr(csr_pem: str) -> tuple[str, str, str]:
 @csrf_exempt
 @require_POST
 def enroll(request: HttpRequest) -> JsonResponse:
+    if not request.is_secure():
+        return _error("O pareamento do agente exige HTTPS.", 400)
     payload = _payload(request, 64_000)
     if payload is None:
         return _error("Cadastro do agente inválido.", 400)
-    try:
-        certificate, chain, fingerprint = _sign_csr(str(payload.get("csr", "")))
-    except RuntimeError as exc:
-        return _error(str(exc), 503)
-    except ValueError as exc:
-        return _error(str(exc), 400)
+    authentication_mode = payload.get("authentication_mode", "mtls")
+    if authentication_mode not in ("hmac", "mtls"):
+        return _error("Modo de autenticação do agente inválido.", 400)
+    certificate = chain = fingerprint = ""
+    if authentication_mode == "hmac":
+        if settings.EDGE_AGENT_MTLS_REQUIRED:
+            return _error("Este servidor exige autenticação por certificado de cliente.", 403)
+    else:
+        # Older clients require a certificate. Never silently consume their code
+        # in a different authentication flow when the CA is unavailable.
+        try:
+            certificate, chain, fingerprint = _sign_csr(str(payload.get("csr", "")))
+        except RuntimeError as exc:
+            return _error(str(exc), 503)
+        except ValueError as exc:
+            return _error(str(exc), 400)
     try:
         credentials = redeem_enrollment(
             code=str(payload.get("code", "")),
@@ -148,18 +198,25 @@ def enroll(request: HttpRequest) -> JsonResponse:
             fingerprint=str(payload.get("fingerprint", "")),
             mtls_certificate_sha256=fingerprint,
             request=request,
+            allow_scoped=request.headers.get("X-Hub-Agent-Protocol") == PROTOCOL,
         )
     except ValueError as exc:
         return _error(str(exc), 403)
-    response = JsonResponse(
-        {
-            "agent_id": credentials.agent_id,
-            "shared_secret": credentials.shared_secret,
-            "certificate": certificate,
-            "certificate_chain": chain,
-            "certificate_expires_in_days": 90,
-        }
-    )
+    result: dict[str, Any] = {
+        "agent_id": credentials.agent_id,
+        "shared_secret": credentials.shared_secret,
+        "authentication_mode": authentication_mode,
+        "sync_scope": credentials.sync_scope,
+    }
+    if authentication_mode == "mtls":
+        result.update(
+            {
+                "certificate": certificate,
+                "certificate_chain": chain,
+                "certificate_expires_in_days": 90,
+            }
+        )
+    response = JsonResponse(result)
     response["Cache-Control"] = "no-store"
     return response
 
@@ -192,13 +249,15 @@ def next_configuration(request: HttpRequest) -> JsonResponse:
     agent = _agent(request)
     if agent is None:
         return _error("Agente não autorizado.", 401)
-    profile = DestinationProfile.objects.filter(organization=agent.organization).first()
-    root = (
-        profile.windows_root
-        if profile and profile.mode == DestinationProfile.Mode.WINDOWS
-        else ""
+    profile = (
+        DestinationProfile.objects.filter(organization=agent.organization).first()
+        if not agent.sync_scope
+        else None
     )
-    response = JsonResponse({"windows_archive_root": root})
+    root = (
+        profile.windows_root if profile and profile.mode == DestinationProfile.Mode.WINDOWS else ""
+    )
+    response = JsonResponse({"windows_archive_root": root, "sync_scope": agent.sync_scope})
     response["Cache-Control"] = "no-store"
     return response
 
@@ -534,6 +593,11 @@ def sync_local_companies(request: HttpRequest) -> JsonResponse:
         or not all(isinstance(row, Mapping) for row in rows)
     ):
         return _error("Página de empresas Domínio inválida.", 400)
+    try:
+        scope = validate_sync_scope(agent.sync_scope, agent.organization)
+        validate_scope_page(scope, cast(dict[str, Any], payload), bank=False)
+    except ValueError as exc:
+        return _error(str(exc), 403)
     connector, _ = IntelligenceConnector.objects.get_or_create(
         organization=agent.organization,
         mode=IntelligenceConnector.Mode.EDGE_AGENT,
@@ -565,6 +629,11 @@ def sync_local_bank_entries(request: HttpRequest) -> JsonResponse:
         or not all(isinstance(row, Mapping) for row in rows)
     ):
         return _error("Página de extratos Domínio inválida.", 400)
+    try:
+        scope = validate_sync_scope(agent.sync_scope, agent.organization)
+        validate_scope_page(scope, cast(dict[str, Any], payload), bank=True)
+    except ValueError as exc:
+        return _error(str(exc), 403)
     connector, _ = IntelligenceConnector.objects.get_or_create(
         organization=agent.organization,
         mode=IntelligenceConnector.Mode.EDGE_AGENT,
@@ -647,6 +716,8 @@ def renew_certificate(request: HttpRequest) -> JsonResponse:
     agent = _agent(request)
     if agent is None:
         return _error("Agente não autorizado.", 401)
+    if not agent.mtls_certificate_sha256:
+        return _error("Este agente usa assinatura HMAC e não precisa renovar certificado.", 409)
     payload = _payload(request, 64_000)
     if payload is None:
         return _error("Renovação inválida.", 400)

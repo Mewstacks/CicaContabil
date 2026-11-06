@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import pytest
 from django.conf import settings
@@ -16,6 +17,7 @@ from django.core.management import call_command
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -1510,7 +1512,7 @@ def test_rule_reapplication_preserves_manual_and_posting_decisions() -> None:
 
 
 @pytest.mark.django_db
-def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
+def test_historical_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
     organization = Organization.objects.create(name="OFX conta", slug="ofx-conta")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     account = FinancialAccount.objects.create(
@@ -1522,7 +1524,6 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
     source, run, _ = create_source_file(
         organization=organization,
         company=company,
-        financial_account=account,
         filename="outra-conta.ofx",
         content=(
             b"OFXHEADER:100\n<OFX><BANKMSGSRSV1><STMTRS><BANKACCTFROM>"
@@ -1532,6 +1533,10 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
         ),
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
+    # Historical sources may predate the intake account guard. Retain the
+    # worker guard as well, without using a new invalid upload to reach it.
+    source.financial_account = account
+    source.save(update_fields=["financial_account"])
 
     result = process_run(str(run.id))
     run.refresh_from_db()
@@ -1950,9 +1955,21 @@ def test_scanned_pdf_without_local_ocr_stays_in_review(monkeypatch: pytest.Monke
 
 @pytest.mark.django_db
 def test_scanned_pdf_uses_local_portuguese_ocr_when_available() -> None:
-    font_path = Path(r"C:\Windows\Fonts\arial.ttf")
-    if not local_ocr_available() or not font_path.is_file():
+    font_path = next(
+        (
+            font
+            for font in (
+                Path(r"C:\Windows\Fonts\arial.ttf"),
+                Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+                Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+            )
+            if font.is_file()
+        ),
+        None,
+    )
+    if not local_ocr_available():
         pytest.skip("OCR local em português não está disponível neste ambiente.")
+    assert font_path is not None, "Runtime OCR exige uma fonte local para a prova digitalizada."
     from PIL import Image, ImageDraw, ImageFont
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen.canvas import Canvas
@@ -2800,10 +2817,12 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_restored"
     ).exists()
-    assert AuditEvent.objects.filter(
+    # An export without reviewed ERP import cannot acquire a second ledger association.
+    assert not AuditEvent.objects.filter(
         organization=organization,
         action="hub.reconciliation.reconciliation_confirmed",
     ).exists()
+    assert not MovementReconciliation.objects.filter(movement=movement, state="confirmed").exists()
     audit = client.get(reverse("hub:reconciliation-audit"))
     assert audit.status_code == 200
     assert b"hub.reconciliation.financial_account.created" in audit.content
@@ -3135,3 +3154,62 @@ def test_upload_form_no_longer_requires_a_period() -> None:
     )
     assert "period_start" not in form.fields
     assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "action, reason",
+    [
+        ("save", ""),
+        ("ignore_movement", "Conferência sintética"),
+        ("ignore_movement", ""),
+        ("restore_movement", ""),
+        ("generate_entry", ""),
+        ("save_rule", ""),
+        ("approve_entry", ""),
+        ("confirm_reconciliation", ""),
+    ],
+)
+def test_movement_action_keeps_the_originating_queue_after_success_or_refusal(
+    action: str, reason: str,
+) -> None:
+    organization, company, client = _upload_client("retorno-movimento")
+    source, run, _created = create_source_file(
+        organization=organization,
+        company=company,
+        filename="fila.csv",
+        content=CSV,
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    _map_and_process(source, run)
+    movement = source.movements.get(source_key="row:2")
+    queue_url = reverse("hub:reconciliation") + "?" + urlencode(
+        {
+            "source_file": str(source.pk),
+            "movement_company": str(company.pk),
+            "movement_q": "Fornecedor & revisão 100%",
+            "movement_review": "pending",
+            "movement_classification": "none",
+            "movement_page": "2",
+        }
+    )
+    detail_url = reverse("hub:reconciliation-movement", args=[movement.pk])
+    detail_url += "?" + urlencode({"return_to": queue_url})
+
+    response = client.post(
+        detail_url,
+        {
+            "action": action,
+            "reason": reason,
+            "expected_revision": movement.revision,
+            "occurred_on": movement.occurred_on.isoformat(),
+            "description": movement.description,
+            "document_number": movement.document_number,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert response.redirect_chain == [(detail_url, 302)]
+    assert f'href="{escape(queue_url)}#movimentos"' in response.content.decode()
+    assert AccountingExport.objects.filter(organization=organization).count() == 0

@@ -2,7 +2,7 @@
 
 > **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.
 
-> **Atualização 15/10/2026 — D-300:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
+> **Atualização 15/10/2026 — D-316:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
 
 > únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
 > D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
@@ -102,7 +102,63 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-44 | Resolvida em 22/09/2026 por D-290: o levantamento Siescon do Lucrums é aceito como base técnica, com o limite de que o layout foi inferido e não documentado pelo fornecedor. | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
 | Q-45 | Resolvida em 22/09/2026 por D-289: o conector unificado permanece em `net8.0-windows`, e o código do Lucrums é portado para trás. | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
 
+## Conciliador do contrato — detalhamento em 27/10/2026
+
+**Continuidade 03/11/2026 — D-308/V-309:** o responsável esclareceu que a
+confirmação anterior veio do ODBC/Domínio. Teste .NET com DSN sem substituição
+de credenciais passou; corrigido o pacote para usar explicitamente essa
+autenticação. Atualização 1.0.1 no PC e teste do configurador confirmados.
+Não pedir senha/DSN novamente. Q-28 conserva pareamento/destino/recorte;
+endpoint CICA respondeu 503 por ausência da autoridade certificadora do agente.
+
+**Atualização 03/11/2026 — D-308/V-308:** PC de teste já acessível e agente
+instalado; configurador detectou DSN/driver existentes, mas o teste recebeu
+ODBC 28000 (usuário/senha inválidos). Solicitado preenchimento correto direto
+no RDP e novo teste, sem credenciais no chat ou recriação do DSN. Q-28 conserva
+o recorte/destino do pareamento e os dados independentes; testes HTTP locais
+não equivalem à sincronização do Windows nem resolvem Q-46/Q-47.
+
+**Atualização 03/11/2026 — D-305:** o responsável confirmou que os títulos a
+pagar/receber vêm do **Domínio** e que o piloto deve entregar **relatório e
+arquivo para importação no Domínio**. Não repetir origem ou tipo de saída.
+Q-28/Q-46 ainda exigem amostra/contrato de parcelas e baixas e recorte autorizado;
+Q-47 ainda exige layout e importação contábil conferida, sem escrita direta.
+Fornecidos PDF e OFX Sicredi para leitura/testes locais; não foi fornecido Razão,
+lista de títulos, plano de contas ou acesso ao PC.
+
+**Atualização 02/11/2026 — D-302:** Domínio **local**, agente **no computador da cliente**,
+acesso ainda a fornecer e **incluir contas a pagar/receber** confirmados pelo responsável.
+Não repetir essas escolhas. Q-28 conserva o acesso/recorte autorizado e a origem dos títulos;
+Q-46 conserva campos, chaves, regras e entradas/saídas do DE-PARA; Q-47 conserva a operação
+de destino. Inclusão não comprova implementação ou homologação. Correções locais e roteiro
+em [V-302](../../VALIDACOES.md) e na [verificação CONTAD](verificacao-conciliador-contad-2026-11-02.md).
+
+Escopo D-301, vinculado à etapa 09/PC-19. Perguntas operacionais no
+[roteiro do contrato](levantamento-contrato-conciliador-2026-10-27.md).
+Q-28 agora deve distinguir o ambiente da cliente deste contrato do ambiente
+Fedrizzi já conhecido por D-74; também reúne fonte de títulos, acesso autorizado,
+empresas/contas, volume, material e disponibilidade para implantação.
+
+| ID | Pergunta objetiva | Impacto e responsável |
+|---|---|---|
+| Q-46 | Para o conciliador do contrato, quais fatos serão comparados, quais faltas devem aparecer, quais regras de correspondência/parcelamento/agrupamento/tolerância valem e quais entradas/saídas compõem o DE-PARA inicial? | Cliente/contadora explica a rotina e fornece exemplos/mapa existente; executor especifica e valida. Sem essas respostas não presumir baixa, vencimento como pagamento, conta por histórico ou tolerância numérica. D-73 mantém critérios técnicos de aceite já decididos. |
+| Q-47 | Qual resultado deve voltar ao ERP: só conferência, arquivo para importação ou uma operação específica? Se a rota for fiscal, qual módulo, operação e retorno comprovam o resultado esperado? | Cliente/contadora demonstra o trabalho e o destino; técnico do ERP e executor conferem viabilidade, campos/layout e recuperação. A intenção de alternativa fiscal está em D-301, mas não há equivalência, escrita direta ou baixa automática autorizadas por inferência. O aceite NFS-e Q-39 não resolve esse contrato contábil/fiscal. |
+
+Não reabrir preços, prazo, carga contratada ou treinamento inicial já escritos
+no contrato. Apoio de IA ao DE-PARA também já está incluído; Q-08/Q-09 continuam
+valendo para custo/egressão quando houver execução real. Perguntas sobre os
+outros módulos não bloqueiam esta entrega por inferência.
+
 ## Donos, etapas e estado das perguntas
+
+**Detalhamento de Q-28 para PC-19 em 26/10/2026:** o
+[diagnóstico do conciliador](diagnostico-conciliador-2026-10-26.md) contém o roteiro
+de levantamento de ambiente, Razão, contas, arquivos, período, exceções e material
+de comparação. São desdobramentos operacionais de Q-28, não novas perguntas Q.
+D-74 já confirma Domínio local/ODBC na Fedrizzi; não pedir configuração ou
+credenciais novamente. Só confirmar modalidade local/Web para outra instalação
+ou mudança informada. D-73 mantém métricas e aprovador já decididos. D-295
+resolve o aceite NFS-e de Q-39; o layout contábil de PC-19 tem aceite próprio.
 
 Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono e etapa. O responsável pelo projeto responde produto, política, ambiente e autorização; o executor levanta fatos técnicos primeiro. Pedir acesso em meio protegido, nunca conteúdo de credenciais.
 
@@ -137,3 +193,93 @@ Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário p
 
 | Q-39 | Qual importador, layout/versionamento, pasta por empresa/competencia e retorno verificavel da rotina Domínio devem ser homologados para NFS-e e acumuladores? | Etapas 07 e 12: bloqueia transformar o pacote de conferencia em arquivo importavel ou registrar importacao concluida. Enviar somente documentacao tecnica e uma amostra descartavel pelo canal seguro; nao enviar backup, dados de clientes ou credenciais no chat. |
 | Q-40 | Na central, o PDF válido conclui somente a atividade Emitir guia, deixando conferência e pagamento separados quando previstos nos modelos, ou a tarefa de emissão exige também conferência humana? | Pergunta enviada ao proprietário em 24/09/2026. Recomendação: separar os três trabalhos; não implementar a conclusão dependente sem resposta. Não altera a definição do adicional de reemissão ainda pendente em D-149. |
+
+## Continuidade Q-28/Q-46/Q-47 — D-309/V-310 (04/11/2026)
+
+O responsável autorizou pesquisar e escolher o recorte na Fedrizzi por leitura.
+Foi selecionado candidato de uma empresa/conta bruta, janeiro/2026, com 115 itens
+no extrato escolhido; identificadores ficam na evidência privada ignorada.
+Não repetir a pergunta pelos identificadores já pesquisados. Ainda confrontar
+conta bancária e fechamento; zero itens reais independentes homologados.
+O recorte não autoriza envio da carteira ou infere Razão a partir de extrato.
+
+Q-28 mantém pareamento/destino concreto e fonte independente. CA/ingresso
+hospedados continuam sem validação: cadastro retorna 503. CLI Mac/Windows não
+acessa o app; o responsável confirmou nesta conversa que **ainda não tem esse
+acesso Fly**. Não solicitar novamente senha, DSN ou essa sessão nesta rodada.
+Preparação local de configuração/retorno está na etapa 12; não houve deploy.
+Q-46 mantém exemplos e semântica de parcelas/baixas/parciais/DE-PARA; Q-47 mantém
+layout/importação Domínio conferida. Títulos Domínio e relatório + arquivo de
+importação já estão decididos; Q-08/Q-09 continuam a reger IA real.
+
+## Atualização Q-28 — D-310/V-311 (04/11/2026)
+
+O responsável dispensou CA privada/certificado de cliente. Pareamento novo
+usa HTTPS + HMAC e não exige essa infraestrutura; o certificado HTTPS normal
+do servidor continua validado. Não reabrir a escolha ou pedir contratação.
+Backend e MSI 1.0.3 preparados/testados; falta sua publicação/instalação real.
+O responsável continua sem acesso Fly; não repetir a solicitação nesta rodada.
+Destino/recorte/fonte independente e demais condições Q-28/Q-46/Q-47 não mudam.
+
+## Continuidade Q-28/Q-46/Q-47 — D-311/V-312 (05/11/2026)
+
+O responsável esclareceu que os documentos de Razão/títulos/parcelas/baixas
+solicitados ainda não existem como arquivos. Não solicitar novamente caminhos
+em Downloads. Foi localizado o plano de contas e preparada extração privada,
+sem assumir código reduzido/classificação, atividade ou contas lançáveis.
+Relatórios bancários não substituem a fonte Domínio.
+
+RDP está acessível; login Domínio realizado diretamente pelo responsável.
+Ele autorizou atualização oficial e confirmou backup concluído/recuperável.
+O iniciador não encontrou `atualiza.exe` na rede, e o ajuste exigia 10.6A-10
+completa. Essa versão foi baixada do fornecedor, assinatura válida conferida e
+instalação base concluída, sem extras de nuvem/acesso remoto. Ajuste 2 concluído.
+Reabertura pediu nova autenticação, senha vazia: login direto solicitado ao
+responsável na janela preparada; não pedir credenciais no chat. Não repetir
+pedido de backup/pacote. Desenvolvimento obtém os
+relatórios do recorte já autorizado e contadora revisa
+campos/chaves/sinais/baixas e exemplos. Não repetir pedido de DSN/credenciais.
+
+Contrato normalizado offline de títulos e DE-PARA determinístico em rascunho
+preparados/testados, sem SQL novo/IA externa. Q-46 mantém exemplos/semântica
+e alocação real; Q-47 mantém layout/importação conferida. Q-08/Q-09 permanecem
+para IA real. Publicação/Fly não foi solicitada novamente ou realizada.
+
+### Continuidade Q-28/Q-46/Q-47 — D-312/V-313
+
+Novo login concluído; não solicitá-lo novamente por esse estado histórico.
+Razão do candidato original emitido e PDF observado no Windows. Conta contábil
+identificada na consulta de extrato; fechamento exibido 11/2023 e controle de
+títulos desmarcado. Transferência/extração e revisão semântica pendentes.
+Responsável autorizou procurar outro recorte na Fedrizzi somente leitura.
+Alternativa possui menu de títulos e fechamento fiscal 09/2026, porém contábil
+11/2014; pesquisa ainda não homologa competência. Não alterar fechamento,
+parâmetros ou parcelas. Não repetir DSN, credenciais, backup ou caminhos antigos.
+Prévia offline e CLI validam capacidade/escopo, sem resolver regras e fluxo
+persistido Q-46 ou importação Q-47. Os mesmos IDs continuam abertos.
+
+A alternativa emitiu A Pagar; PDF conferido no Windows, sem cópia Mac/extração.
+Não apresenta chave de baixa, conta bancária ou data efetiva de pagamento na
+visão consultada. Cinco consultas limitadas de emissão/recebimento/pagamento/
+situação parcial retornaram sem dados, conforme V-313; isso não prova ausência
+geral. Desenvolvimento ainda obtém fonte com chaves/baixas e recorte fechado;
+contadora revisa componentes/regras. Nenhuma nova pergunta ou autorização de
+escrita, transmissão ou homologação foi inferida dessa pesquisa somente leitura.
+
+Publicação D-313/V-314: responsável autorizou enviar código à main, realizado
+no commit 4fede1e com SHA remoto conferido. Isso resolve a autorização de
+commit/push dessa entrega; não resolve acesso/deploy hospedado, Q-28/Q-46/Q-47,
+IA Q-08/Q-09, corpus real ou aceite. Não perguntar novamente essa autorização
+de Git para o código e seus registros; não ampliá-la para dados/ERP/implantação.
+
+V-315, Q-28/Q-46/Q-47: os anexos PDF/OFX Sicredi permitem testar a etapa
+bancária da CONTAD. Reconferência local: 163 movimentos correspondentes e
+saldos coerentes. A ausência de Razão/títulos revisados limita a homologação
+contábil completa, não o início desses testes. Não solicitar novamente os
+extratos já disponíveis nem contar seus dois formatos como amostras distintas.
+
+D-314/V-316: responsável autorizou prosseguir; percurso bancário local executado
+com os anexos e 42 verificações finais aprovadas. Q-28/Q-46/Q-47 continuam para
+fontes contábeis/baixas, regras revisadas e importação conferida, sem bloquear
+essa prova já concluída da entrada bancária. Nenhuma pergunta repetida de
+extratos, login, DSN, backup, CA ou Fly nesta execução.

@@ -60,7 +60,9 @@
     </DirectoryRef>
     <DirectoryRef Id="AgentData">
       <Component Id="DataPermissions" Guid="1A43F804-91BB-40E2-8056-BEF51DE432D2">
-        <CreateFolder />
+        <CreateFolder>
+          <PermissionEx Sddl="D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)" />
+        </CreateFolder>
       </Component>
     </DirectoryRef>
     <DirectoryRef Id="CicaProgramsFolder">

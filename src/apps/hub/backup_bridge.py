@@ -262,7 +262,7 @@ def apply_backup_page(
 
 
 def _deactivate_absent_companies(batch: ImportBatch, capabilities: set[str]) -> int:
-    """D-301: a finished backup is the new baseline, so what it omits stops being served.
+    """D-317: a finished backup is the new baseline, so what it omits stops being served.
 
     Only a clean, complete snapshot may cut: a page that failed row validation, or a run
     that never reached this function, would otherwise empty the portfolio. Absence

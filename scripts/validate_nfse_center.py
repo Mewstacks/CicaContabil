@@ -1,7 +1,8 @@
 """Render the NFS-e notes screen inside production and report time, queries and content.
 
 Pipe into a Django shell on a Fly machine:
-    cat scripts/validate_nfse_center.py | flyctl ssh console -a cica-contabil -C "python manage.py shell"
+    cat scripts/validate_nfse_center.py |
+        flyctl ssh console -a cica-contabil -C "python manage.py shell"
 Read-only: it renders GET pages for an existing owner of the office; nothing is written except
 the Django session row created by force_login.
 """

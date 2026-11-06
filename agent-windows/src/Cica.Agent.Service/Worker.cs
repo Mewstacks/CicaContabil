@@ -47,18 +47,23 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 using var client = new AgentClient(config);
                 using JsonDocument heartbeat = await client.PostAsync("api/agent/v2/heartbeat",
                     new { version = AgentVersion }, stoppingToken);
-                string? archiveRoot = await client.GetWindowsArchiveRootAsync(stoppingToken);
-                if (!string.Equals(archiveRoot, config.WindowsArchiveRoot, StringComparison.OrdinalIgnoreCase))
+                var received = await client.GetConfigurationAsync(stoppingToken);
+                bool configurationChanged = config.WindowsArchiveRoot != received.ArchiveRoot
+                    || config.SyncScope?.Revision != received.Scope?.Revision;
+                config = config with { WindowsArchiveRoot = received.ArchiveRoot, SyncScope = received.Scope };
+                config.Validate();
+                if (config.EffectiveSourceSystem == "dominio" && !string.IsNullOrWhiteSpace(config.Dsn)
+                    && config.SyncScope is null)
+                    throw new InvalidDataException("Configure um recorte financeiro antes de sincronizar o Domínio Local.");
+                if (configurationChanged) config.Save();
+                if (config.SyncScope is not null)
+                    await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
+                else
                 {
-                    config = config with { WindowsArchiveRoot = archiveRoot };
-                    config.Validate();
-                    config.Save();
-                    AgentRuntimeStatus.Write("synchronizing", "Configuração de destino atualizada pela CICA.");
+                    await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
+                    await new BackupProcessor(config, client).RunOnce(stoppingToken);
+                    await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
                 }
-                await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
-                await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
-                await new BackupProcessor(config, client).RunOnce(stoppingToken);
-                await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
                 await RenewCertificateIfNeeded(config, client, stoppingToken);
                 string serverVersion = heartbeat.RootElement.GetProperty("update").GetString() ?? "";
                 if (IsNewerVersion(serverVersion, AgentVersion))
@@ -99,6 +104,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
     private static async Task<AgentConfig> RenewCertificateIfNeeded(
         AgentConfig config, AgentClient client, CancellationToken token)
     {
+        if (config.AuthenticationMode == AgentAuthentication.Hmac) return config;
         byte[] existingPfx = Convert.FromBase64String(config.CertificatePfxBase64);
         using var identity = new X509Certificate2(existingPfx, (string?)null,
             X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);

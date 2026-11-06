@@ -8,7 +8,8 @@ from django.db.migrations.executor import MigrationExecutor
 @pytest.mark.django_db(transaction=True)
 def test_export_document_migration_preserves_legacy_manifest_and_rebuilds_links():
     executor = MigrationExecutor(connection)
-    other_apps = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "hub"]
+    latest = executor.loader.graph.leaf_nodes()
+    other_apps = [node for node in latest if node[0] != "hub"]
     before = [*other_apps, ("hub", "0066_alter_nfsesync_status")]
     after = [*other_apps, ("hub", "0067_nfseexport_documents")]
     executor.migrate(before)
@@ -70,4 +71,6 @@ def test_export_document_migration_preserves_legacy_manifest_and_rebuilds_links(
         assert preserved.snapshot == snapshot
         assert preserved.content.name == "private/legacy-package.zip"
     finally:
-        MigrationExecutor(connection).migrate(after)
+        # Restore the complete current schema for subsequent transactional tests,
+        # rather than leaving the database at this historical migration target.
+        MigrationExecutor(connection).migrate(latest)

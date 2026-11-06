@@ -178,7 +178,7 @@ Em 29/09/2026, a release 21 colocou em produção a fila global de uma empresa p
   contábil; a rotina não pode inventar acumulador.
 - [ ] Homologar a importação e o retorno no Domínio conforme Q-39.
 
-### V-300 — Origem da espécie na importação Domínio (D-300)
+### V-318 — Origem da espécie na importação Domínio (D-316)
 
 - [x] Identificar a rota real: Importador por conjunto de dados, não a tela de Configuração de
   Importação NFS-e Padrão Nacional.

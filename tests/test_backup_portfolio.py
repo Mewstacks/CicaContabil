@@ -1,4 +1,4 @@
-"""D-301: the office whose registry is a backup says who it still serves."""
+"""D-317: the office whose registry is a backup says who it still serves."""
 
 from __future__ import annotations
 

@@ -1,5 +1,171 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
+revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e
+24 subtestes locais aprovados, zero skips; CUA/Playwright desktop/celular e
+claro/escuro conferiram retorno, ignorar/restaurar e teclado. Nova candidata
+809 arquivos/hashes em V-317. CI 42079806454 aprovado para a implementação
+anterior 700b496, PostgreSQL 1.652/151, dois skips; não cobre esta nova alteração.
+Fonte/testes/registros publicados na main em `ed01dd5`, SHA remoto conferido;
+CI 42082634894 em execução para a nova correção. Sem deploy ou acesso à cliente.
+PC-19 e gates contábeis continuam abertos.
+
+**Percurso bancário CONTAD — D-314/V-316, 05/11/2026:** importação persistida,
+reenvio, retomada, revisão e relatório executados localmente com os 163 eventos
+reais, em cenários separados OFX/PDF. **42 verificações finais aprovadas**.
+Corrigidos o ignorar humano perdido na reaplicação e o relatório bloqueado
+pelo aviso de proteção. PostgreSQL: **134 testes/24 subtestes aprovados**, sem
+skips; navegador conferiu filtro/paginação/revisão/download. Não comprova
+Razão, títulos, escrituração/importação Domínio, serviço Windows ou aceite.
+Correções publicadas na main em `700b496`, SHA remoto conferido; CI 42079806454
+aprovado para essa implementação; resultado remoto detalhado em V-317 e
+distinto dos resultados locais acima. Sem deploy de aplicação.
+
+**Anexos CONTAD reconferidos — V-315, 05/11/2026:** PDF/OFX de setembro permitem
+testes reais da entrada bancária: 163 movimentos em cada, zero sobras por
+data/valor, FITIDs únicos e saldos coerentes. As pendências de fonte contábil
+não impedem começar esse teste. Não são duas fontes independentes de Razão,
+nem 326 itens; Q-28/Q-46/Q-47 e homologação completa continuam abertos.
+
+**Publicação do código D-313/V-314 — 05/11/2026:** responsável autorizou envio
+à main. Commit `4fede1e` publicado e SHA remoto conferido; CI
+[42067809017](https://github.com/Mewstacks/CicaContabil/actions/runs/42067809017)
+aprovado para essa versão: PostgreSQL 1.633 testes/151 subtestes, dois skips;
+agente, pacote Windows e três builds Docker aprovados. Código da entrega no GitHub; aplicação hospedada,
+instalação/pareamento reais, fontes/regras Q-28/Q-46/Q-47, D-73, treinamento e
+aceite continuam pendentes. Os estados anteriores “sem publicação” referem-se
+às respectivas rodadas locais, anteriores a esta autorização.
+
+**Continuidade D-312/V-313 — 05/11/2026:** prévia offline de alocações explícitas
+banco↔baixas e CLI privada implementadas, com capacidade dos dois lados,
+parciais/agrupamentos/componentes/estornos e diferenças de data para revisão.
+**85 testes focados aprovados**, sem somar repetições à regressão V-312;
+Ruff global, MyPy de dois módulos e CLI sintética aprovados. Nova candidata
+local: 809 arquivos, SHA-256 em V-313. Sem publicação, homologação ou liberação.
+Login Domínio concluído; aplicação 10.6A-10 -02 e Razão do candidato original
+emitido/salvo no Windows. Não houve extração no Mac ou aprovação contábil.
+Candidato original: fechamento contábil 11/2023 e controle de títulos desmarcado.
+Responsável autorizou pesquisa de outro recorte somente leitura; alternativa
+com menu de títulos e fechamento fiscal 09/2026, mas contábil 11/2014, ainda
+não selecionada para homologação. A Pagar emitido e PDF conferido no Windows;
+visão sem chave de baixa/conta/data efetiva de pagamento. Consultas delimitadas
+de recebimentos, pagamentos e parciais retornaram sem dados; não provam ausência
+geral. Q-28/Q-46/Q-47 e demais gates PC-19 permanecem.
+
+**Continuidade CONTAD em 05/11/2026 — D-311/V-312:** aprovação/exportação
+protegem o snapshot já exportado; reexportação copia bytes originais íntegros;
+aplicação/reaplicação de regras preserva decisão humana após espera concorrente.
+Contrato local de títulos/parcelas/baixas e DE-PARA determinístico em rascunho
+preparados, sem SQL novo/IA real. **1.578 testes Python + 151 subtestes**
+aprovados em PostgreSQL, um skip opcional; .NET Mac 43 aprovados/um skip Windows.
+Release local revisável e restauração PostgreSQL sintética com contagens/hashes
+preparadas. Plano de contas encontrado em Downloads, sem importação/semântica
+presumidas; responsável confirmou que relatórios de Razão/títulos ainda precisam
+ser obtidos. RDP acessível; login Domínio realizado pelo responsável. Superados
+o executável ausente na rede e o pré-requisito 10.6A-09: versão completa
+**10.6A-10 instalada pelo pacote oficial com assinatura válida**, backup
+confirmado pelo responsável. Ajuste 2 também concluído; na reabertura o Domínio
+pediu novo login direto pelo responsável. Consulta dos relatórios aguarda esse acesso.
+PC-19/03/09/12 continuam abertos para fonte real, Q-46/Q-47, publicação autorizada,
+IA Q-08/Q-09, D-73, treinamento e aceite. [Release e limites](docs/contad-release-2026-11-05.md).
+
+**Decisão vigente em 04/11/2026 — D-310/V-311:** CA privada/certificado de cliente
+não são requisitos do piloto CONTAD. Implementado pareamento explícito por
+**HTTPS + HMAC**, código de uso único, segredo individual, revogação e recorte
+D-309. HTTPS do servidor mantém validação normal. Agente 1.0.3 preparado; PC
+conserva 1.0.1 sem pareamento. 1.522 testes Python/151 subtestes e 44 testes
+.NET/26 checks Windows aprovados; dez cenários HTTPS reais sintéticos sem CA de
+cliente aprovados. Publicação ainda depende do acesso Fly, que o responsável
+não possui. Não configurar CA, gateway mTLS ou novo ingresso como condição
+para esse percurso. As referências obrigatórias a mTLS abaixo são histórico
+superado por D-310; opção explícita para instalações antigas permanece.
+
+**Implementação CONTAD em 04/11/2026 — D-309/V-310:** proteções contra nova
+escrituração de movimento conciliado, recorte obrigatório no agente/API v2,
+confiança mTLS e orientação/OCR ajustados localmente. PostgreSQL: **1.502 testes
++ 151 subtestes aprovados**, um skip opcional; .NET: 38 testes; MSI 1.0.2: 25
+checks CI. Transporte Nginx/Django, Redis/Celery e restauração sintética testados.
+Pesquisa somente leitura na Fedrizzi escolheu candidato de janeiro/2026 com
+115 itens; conta bruta ainda exige confronto bancário e fechamento contábil.
+PC conserva 1.0.1, sem pareamento/configuração. Produção continua com cadastro
+503; sessão Fly sem acesso ao app. [Evidências e limites](docs/planejamento/verificacao-conciliador-contad-2026-11-02.md).
+PC-19/etapas 03/09/12 continuam abertos: fontes independentes/títulos, destino,
+Q-46/Q-47, 200 itens reais, recuperação operacional, treinamento e aceite.
+
+**Conexão real corrigida em 03/11/2026 (D-308/V-309):** identificado e corrigido
+o uso de credenciais próprias sobre a autenticação existente do DSN. Agente
+**1.0.1 instalado por atualização no Windows 11 Pro x64**, serviço Running e
+teste do configurador com **conexão Domínio confirmada**. 28 testes .NET e
+25 checks do instalador aprovados em CI. Pareamento ainda bloqueado: endpoint
+HTTPS CICA respondeu **503 — CA do agente não configurada**. Não houve envio
+de carteira/lançamentos ou homologação do conciliador CONTAD.
+
+**Teste do conciliador com o PC em 03/11/2026 (D-308/V-308):** o configurador
+instalado encontrou DSN Domínio/driver SQL Anywhere 16, mas o teste real recebeu
+erro ODBC **28000 — usuário ou senha inválidos**. Correção solicitada diretamente
+no RDP, sem credenciais no chat. Recepção HTTP e conciliação passaram em **157
+testes locais PostgreSQL e 24 subtestes**, com um skip de OCR. Anexos Sicredi
+reconferidos localmente: 163 movimentos compatíveis, sem Razão independente.
+Não houve pareamento, sincronização real do serviço, importação ERP ou aceite.
+
+**PC Windows 11 Pro x64 em 03/11/2026 (D-307/V-307):** controle RDP
+liberado, mesmo MSI 1.0.0 instalado e **24 verificações aprovadas** no PC de
+teste AMD64, build 26200. Serviço automático Running, configurador/ACL/DPAPI,
+diagnóstico, reparo e reinício conferidos. Agente mantido instalado sem
+configuração ERP, aguardando configuração. A pendência de acesso da ferramenta
+em V-306 foi resolvida; PC CONTAD/DSN/pareamento/ERP reais continuam pendentes.
+
+**Windows 11 Desktop em 03/11/2026 (D-307/V-306):** o mesmo MSI x64
+passou em 25 verificações no Windows 11 Enterprise build 26200 **ARM64**,
+[execução aprovada](https://github.com/Mewstacks/CicaContabil/actions/runs/41669715057).
+Instalação, serviço, configurador, DPAPI, reparo, reinício e remoção conferidos;
+sem ODBC/ERP reais. O responsável disponibilizou PC de teste por RDP, mas a
+ferramenta continua recusando controle por permissão. A prova **Windows 11
+Intel/AMD** permanece pendente; esta evidência ARM64 não a substitui.
+
+**Agente Windows em 03/11/2026 (D-306/V-305):** MSI 1.0.0 gerado, baixado e
+validado em [Windows descartável](https://github.com/Mewstacks/CicaContabil/actions/runs/41664064414).
+25 verificações de instalação/ACL/configurador/DPAPI/reparo/reinício/remoção
+passaram, além de 23 testes .NET e 23 do servidor. Corrigida a proteção da pasta
+no MSI. Pacote de teste sem assinatura Authenticode; cópia local em
+`agent-windows/artifacts/`. PC/DSN/pareamento reais continuam em Q-28, aguardando
+acesso. Isso não conclui leitura direta de Razão/títulos ou homologação CONTAD.
+
+**Continuidade CONTAD em 03/11/2026 (D-305/V-304):** leitura local dos arquivos
+Sicredi, contrato de Razão independente por CSV normalizado, ponte de alocação
+entre as duas filas e relatório privado de conferência implementados localmente.
+[Contrato e operação](docs/conciliacao-razao-normalizado.md). Os títulos vêm do
+Domínio e a saída inclui relatório e arquivo de importação, conforme confirmado
+pelo responsável. O adaptador direto de Razão/títulos, parcelas/baixas, DE-PARA
+com IA e homologação contábil permanecem abertos em Q-28/Q-46/Q-47. O acesso ao
+PC ainda será fornecido; não houve instalação, deploy ou aceite da cliente.
+
+**Pendências consolidadas em 02/11/2026 (D-304/V-303):**
+[lista de conclusão por entrega e etapa](docs/planejamento/pendencias-conclusao-2026-11-02.md).
+O envio ao GitHub não constitui deploy ou homologação de módulo.
+
+**Verificação e ajustes CONTAD em 02/11/2026 (D-302/D-303, V-302):**
+[relatório e roteiro do piloto](docs/planejamento/verificacao-conciliador-contad-2026-11-02.md).
+Corrigidas localmente as quatro lacunas OFX de V-300 e preparada auditoria de legado.
+Domínio local, agente no PC da cliente (acesso ainda a fornecer) e inclusão de pagar/receber
+confirmados pelo responsável. A entrega **não está concluída**: fonte independente do Razão,
+títulos comerciais, DE-PARA inicial com IA, ligação integral dos fluxos e piloto CONTAD continuam
+pendentes em Q-28/Q-46/Q-47. Sem deploy ou homologação externa nesta execução.
+
+**Recorte contratual em 27/10/2026 (D-301/V-301):** para a cliente do contrato
+fornecido, a entrega é conciliador e DE-PARA inicial com IA, implantação/testes
+e treinamento inicial até 09/11/2026, sem exigir a conclusão da suíte inteira.
+O [levantamento do contrato](docs/planejamento/levantamento-contrato-conciliador-2026-10-27.md)
+detalha Q-28/Q-46/Q-47 para títulos a pagar/receber, divergências e operação de
+destino contábil/fiscal. Não há implantação ou integração nova nesta análise.
+
+**Verificação do conciliador em 26/10/2026 (D-300/V-300):** pull concluído até
+`aad2f5a` e [diagnóstico de PC-19 com roteiro para a cliente](docs/planejamento/diagnostico-conciliador-2026-10-26.md).
+94 testes e 24 subtestes locais passaram, com um skip de OCR; quatro sondas
+reproduziram lacunas de integridade da fila OFX. Faltam fonte de Razão independente,
+ligação entre os fluxos e correções antes do piloto. A etapa 09 continua aberta;
+a confirmação de NFS-e em D-295 não homologa exportação contábil.
+
 **Revisão de execução em 10/10/2026 (D-295/V-294):** [auditoria de fluxos, controles e Serpro com plano de finalização](docs/planejamento/auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A validação externa de importação NFS-e foi confirmada como concluída pelo responsável; PC-03/Q-39 não bloqueiam mais a sequência. As referências antigas a Q-39 abaixo são histórico. Os demais critérios NFS-e e os outros pacotes conservam seus gates próprios. F-01 (revalidação de acesso no worker DTE) precede chamadas externas adicionais.
 
 **Ponto de entrada vigente:** esta revisão organiza a conclusão do sistema a partir da auditoria

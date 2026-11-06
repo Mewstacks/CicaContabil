@@ -8765,32 +8765,26 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         for match in matches
         if match.status == ReconciliationMatch.Status.AMBIGUOUS and not match.is_manual
     }
-    candidate_entries = DominioBankEntry.objects.none()
     accounting_candidates = AccountingEntry.objects.none()
     if review_keys:
         pair_filter = Q()
         for candidate_company_id, occurred_on in review_keys:
             pair_filter |= Q(company_id=candidate_company_id, occurred_on=occurred_on)
-        candidate_entries = DominioBankEntry.objects.filter(organization=office).filter(pair_filter)
         accounting_candidates = (
             AccountingEntry.objects.filter(organization=office)
             .filter(pair_filter)
+            .exclude(
+                data_source__kind__in=[
+                    DataSource.Kind.DOMINIO_LOCAL_AGENT,
+                    DataSource.Kind.DOMINIO_WEB_BACKUP,
+                ]
+            )
+            .exclude(reconciliation_matches__status=ReconciliationMatch.Status.MATCHED)
+            .exclude(independent_source__entry__movement_reconciliations__state="confirmed")
             .select_related("data_source")
         )
-    candidates_by_key: dict[tuple[object, object, int], list[object]] = {}
-    for entry in candidate_entries:
-        entry.amount_brl = Decimal(entry.amount_cents) / 100  # type: ignore[attr-defined]
-        entry.candidate_token = f"dominio:{entry.id}"  # type: ignore[attr-defined]
-        entry.source_label = "Espelho Domínio"  # type: ignore[attr-defined]
-        candidates_by_key.setdefault(
-            (entry.company_id, entry.occurred_on, entry.amount_cents), []
-        ).append(entry)
-    dominio_source_ids = {entry.source_id for entry in candidate_entries}
+    candidates_by_key: dict[tuple[object, object, int], list[AccountingEntry]] = {}
     for accounting_entry in accounting_candidates:
-        # The direct ODBC sync mirrors the same row in both models. Present it
-        # once, preferring the Domínio-specific record as operator evidence.
-        if accounting_entry.external_key in dominio_source_ids:
-            continue
         accounting_entry.amount_brl = Decimal(accounting_entry.amount_cents) / 100  # type: ignore[attr-defined]
         accounting_entry.candidate_token = f"accounting:{accounting_entry.id}"  # type: ignore[attr-defined]
         accounting_entry.source_label = accounting_entry.data_source.label  # type: ignore[attr-defined]
@@ -8815,14 +8809,20 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
         match.display_reference = getattr(match.display_entry, "source_id", "") or getattr(
             match.display_entry, "external_key", ""
         )
-        match.candidates = candidates_by_key.get(
-            (
-                match.transaction.statement.company_id,
-                match.transaction.occurred_on,
-                abs(match.transaction.amount_cents),
-            ),
-            [],
-        )
+        match.candidates = [
+            candidate
+            for candidate in candidates_by_key.get(
+                (
+                    match.transaction.statement.company_id,
+                    match.transaction.occurred_on,
+                    abs(match.transaction.amount_cents),
+                ),
+                [],
+            )
+            if candidate.account_reference == match.transaction.statement.account_reference
+            and candidate.direction
+            == ("inflow" if match.transaction.amount_cents > 0 else "outflow")
+        ]
     all_matches = ReconciliationMatch.objects.filter(
         organization=office, transaction__statement__company__in=companies
     )
@@ -9006,6 +9006,15 @@ def _reconciliation_run_guidance(
     run: ReconciliationRun, *, local_ocr_available: bool
 ) -> dict[str, str]:
     """Return safe, actionable copy without reflecting raw processing exceptions."""
+
+    if run.stage == "ledger_review":
+        return {
+            "summary": (
+                "Partidas do Razão recebidas. Confira as correspondências e a cobertura da fonte."
+            ),
+            "label": "Conferir OFX",
+            "href": "#conciliacao-ofx",
+        }
 
     if run.stage == "mapping":
         return {
@@ -10155,6 +10164,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                         company=form.cleaned_data["company"],
                         filename=filename,
                         content=content,
+                        financial_account=form.cleaned_data.get("financial_account"),
                         actor=request.user,
                         request=request,
                     )
@@ -10251,6 +10261,11 @@ def reconciliation_run_action(request: HttpRequest, run_id: str) -> HttpResponse
         transaction.on_commit(partial(process_reconciliation_run.delay, str(retry.id)))
         messages.success(request, "Novo processamento criado a partir do checkpoint anterior.")
     elif action == "reapply_rules":
+        if run.source_file.ledger_records.exists():
+            messages.info(
+                request, "O Razão é fonte de comparação; regras não alteram suas partidas."
+            )
+            return redirect("hub:reconciliation")
         if run.state in {ReconciliationRun.State.WAITING, ReconciliationRun.State.PROCESSING}:
             messages.info(
                 request, "Aguarde o processamento atual terminar antes de reaplicar regras."
@@ -10432,6 +10447,32 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
 
 @office_required
 @require_http_methods(["GET"])
+def reconciliation_source_report(request: HttpRequest, source_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        raise Http404
+    source = get_object_or_404(
+        ReconciliationSourceFile, id=source_id, organization=context["office"],
+        company__in=context["companies"],
+    )
+    from apps.hub.reconciliation_report import build_source_report, render_conference_csv
+
+    try:
+        start = date.fromisoformat(request.GET["start"]) if request.GET.get("start") else None
+        end = date.fromisoformat(request.GET["end"]) if request.GET.get("end") else None
+        report = build_source_report(source, start=start, end=end)
+    except (ValueError, ReconciliationError) as exc:
+        messages.error(request, str(exc))
+        return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    response = HttpResponse(render_conference_csv(report), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="conferencia-banco-razao.csv"'
+    response["Cache-Control"] = "no-store, private"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@office_required
+@require_http_methods(["GET"])
 def reconciliation_source_download(request: HttpRequest, source_id: str) -> FileResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
@@ -10527,6 +10568,12 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
     with transaction.atomic():
+        from apps.hub.reconciliation_bridge import movement_has_ledger_match
+
+        company_ids = NormalizedMovement.objects.filter(
+            id__in=movement_ids, organization=office, company__in=companies
+        ).values_list("company_id", flat=True)
+        list(ClientCompany.objects.select_for_update().filter(pk__in=company_ids).order_by("pk"))
         movements = list(
             NormalizedMovement.objects.select_for_update()
             .filter(id__in=movement_ids, organization=office, company__in=companies)
@@ -10538,6 +10585,8 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
                 "Um ou mais movimentos não estão mais disponíveis para você.",
                 kind="unavailable",
             )
+        if any(movement_has_ledger_match(movement) for movement in movements):
+            return refuse(request, "Desfaça a conciliação antes de alterar movimentos em lote.")
         if any(
             movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists()
             for movement in movements
@@ -10591,6 +10640,7 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
 
 @office_required
 @require_http_methods(["GET", "POST"])
+@transaction.atomic
 def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
@@ -10620,15 +10670,28 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     if request.method == "POST":
         if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
             return refuse(request, "Seu perfil pode consultar, mas não revisar movimentos.")
+        from apps.hub.reconciliation_bridge import movement_has_ledger_match
+
+        ClientCompany.objects.select_for_update().get(pk=movement.company_id, organization=office)
+        movement = NormalizedMovement.objects.select_for_update().get(pk=movement.pk)
         action = request.POST.get("action", "save")
+        if action in {"save", "ignore_movement", "restore_movement", "save_rule"} and (
+            movement_has_ledger_match(movement)
+        ):
+            messages.error(request, "Desfaça a conciliação antes de alterar os dados do movimento.")
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action in {"ignore_movement", "restore_movement"}:
             if movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists():
                 messages.error(request, "Um movimento já exportado exige uma retificação auditada.")
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
             reason = request.POST.get("reason", "").strip()
             if action == "ignore_movement" and not reason:
                 messages.error(request, "Informe o motivo para ignorar o movimento.")
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
             movement.review_state = (
                 NormalizedMovement.ReviewState.IGNORED
                 if action == "ignore_movement"
@@ -10663,7 +10726,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 if action == "ignore_movement"
                 else "Movimento devolvido à revisão.",
             )
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "generate_entry":
             try:
                 journal_entry = create_journal_entry_from_movement(
@@ -10673,7 +10736,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"Lançamento {journal_entry.id} gerado como rascunho.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "save_rule":
             try:
                 rule = save_rule_from_movement(movement=movement, actor=cast(User, request.user))
@@ -10681,7 +10744,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 messages.error(request, str(exc))
             else:
                 messages.success(request, f"Regra {rule.name} salva e ativada para esta empresa.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "approve_entry":
             draft_entry = movement.journal_entries.exclude(state=JournalEntry.State.INVALID).first()
             if draft_entry is None:
@@ -10695,7 +10758,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     messages.error(request, str(exc))
                 else:
                     messages.success(request, "Lançamento aprovado para exportação.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "confirm_reconciliation":
             try:
                 entry_id = request.POST.get("entry_id")
@@ -10746,7 +10809,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                         f"{Decimal(reconciliation.amount_cents) / 100:.2f} registrada."
                     ),
                 )
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if action == "undo_reconciliation":
             reconciliation = get_object_or_404(
                 MovementReconciliation,
@@ -10770,7 +10833,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                 },
             )
             messages.success(request, "Conciliação desfeita e valor liberado para nova revisão.")
-            return redirect("hub:reconciliation-movement", movement_id=movement.id)
+            return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if form.is_valid():
             for field_name in ("debit_account_code", "credit_account_code"):
                 account_code = str(form.cleaned_data[field_name] or "").strip()
@@ -10849,7 +10912,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                     request,
                     "Movimento revisado. A aprovação anterior, se houver, precisa ser refeita.",
                 )
-                return redirect("hub:reconciliation-movement", movement_id=movement.id)
+                return detail_redirect(
+                    request, "hub:reconciliation-movement", movement_id=movement.id
+                )
     candidate_query = (
         JournalEntry.objects.filter(
             organization=office,
@@ -10921,13 +10986,21 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     normalized_document = movement.document_number.casefold().strip()
     normalized_counterparty = movement.counterparty.casefold().strip()
     for entry in candidate_entries:
+        from apps.hub.reconciliation_bridge import compatible_record, independent_record
+
+        independent = independent_record(entry)
+        if (entry.purpose == "source_ledger" or independent is not None) and (
+            independent is None or not compatible_record(movement, independent)
+        ):
+            continue
         debits = sum(
             line.amount_cents for line in entry.lines.all() if line.side == JournalLine.Side.DEBIT
         )
         credits = sum(
             line.amount_cents for line in entry.lines.all() if line.side == JournalLine.Side.CREDIT
         )
-        available = debits - int(entry_used.get(entry.id, 0) or 0)
+        capacity = independent.bank_line.amount_cents if independent else debits
+        available = capacity - int(entry_used.get(entry.id, 0) or 0)
         if debits <= 0 or debits != credits or available <= 0:
             continue
         score = 0
@@ -10977,7 +11050,23 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
         missing_entry_fields.append("conta de crédito")
     if movement.amount_cents == 0:
         missing_entry_fields.append("valor diferente de zero")
-    if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+    from apps.hub.reconciliation_bridge import movement_has_ledger_match
+
+    posting_blocked = movement_has_ledger_match(movement)
+    if posting_blocked:
+        movement_workflow = {
+            "state": "reconciled" if remaining_cents == 0 else "partially_reconciled",
+            "eyebrow": "CONCILIAÇÃO REGISTRADA",
+            "title": "Conferir a conciliação existente",
+            "description": (
+                "O movimento já possui evidência contábil. Confira as alocações e o histórico."
+                if remaining_cents == 0
+                else "Há uma alocação parcial. Confira o saldo e a regra antes de continuar."
+            ),
+            "label": "Ver evidências",
+            "href": "#allocation-heading",
+        }
+    elif movement.review_state == NormalizedMovement.ReviewState.IGNORED:
         movement_workflow = {
             "state": "ignored",
             "eyebrow": "MOVIMENTO IGNORADO",
@@ -11040,6 +11129,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "movement_form": form,
             "journal_entry": current_journal_entry,
             "movement_workflow": movement_workflow,
+            "movement_posting_blocked": posting_blocked,
             "reconciliation_candidates": suggestions,
             "reconciliation_candidate_page": candidate_page,
             "reconciliation_candidate_querystring": candidate_query_params.urlencode(),
@@ -14419,7 +14509,7 @@ def settings_view(request: HttpRequest) -> HttpResponse:
 
 
 def _backup_managed_source(office: Organization) -> DataSource | None:
-    """The office whose portfolio is a manual backup, and nothing else writes it (D-301).
+    """The office whose portfolio is a manual backup, and nothing else writes it (D-317).
 
     A live Domínio connector or the central control plane keeps rewriting the registry on
     its own schedule, so a manual switch there would promise control the next sync takes

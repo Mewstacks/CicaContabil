@@ -15,8 +15,8 @@
   </div>
   <div class="reconciliation-detail-grid">
     <article>
-      <h3 id="movement-review-heading">Dados para o lançamento</h3>
-      {% if can_review_movement %}
+      <h3 id="movement-review-heading">{% if movement_posting_blocked %}Dados do movimento{% else %}Dados para o lançamento{% endif %}</h3>
+      {% if can_review_movement and not movement_posting_blocked %}
       <form id="movement-review-form" method="post" class="form-stack" aria-labelledby="movement-review-heading">
         {% csrf_token %}
         {% if movement_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Confira os dados da revisão.</strong>{% for error in movement_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in movement_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
@@ -40,7 +40,7 @@
       {% endif %}
       </div>{% endif %}
       {% else %}
-      <p>Seu acesso permite consultar este movimento e suas evidências.</p>
+      <p>{% if movement_posting_blocked %}Confira a evidência registrada. Para corrigir os dados, desfaça a conciliação primeiro.{% else %}Seu acesso permite consultar este movimento e suas evidências.{% endif %}</p>
       <dl class="triage-details">
         <div><dt>Histórico</dt><dd>{{ movement.description }}</dd></div>
         <div><dt>Data</dt><dd>{{ movement.occurred_on|date:'SHORT_DATE_FORMAT' }}</dd></div>

@@ -8,6 +8,7 @@ import re
 import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.db import transaction
 from django.utils import timezone
@@ -30,6 +31,7 @@ class EnrollmentCredentials:
 class DeviceCredentials:
     agent_id: str
     shared_secret: str
+    sync_scope: dict[str, Any]
 
 
 def _digest(value: str) -> str:
@@ -42,7 +44,11 @@ def issue_enrollment(
     actor: User | None = None,
     request: object = None,
     valid_for_minutes: int = 30,
+    sync_scope: dict[str, Any] | None = None,
 ) -> EnrollmentCredentials:
+    from apps.intelligence.agent_scope import validate_sync_scope
+
+    scope = validate_sync_scope(sync_scope, organization) if sync_scope is not None else {}
     if not 1 <= valid_for_minutes <= 60:
         raise ValueError("O código deve expirar entre 1 e 60 minutos.")
     code = secrets.token_urlsafe(24)
@@ -50,6 +56,7 @@ def issue_enrollment(
     enrollment = AgentEnrollment.objects.create(
         organization=organization,
         code_digest=_digest(code),
+        sync_scope=scope,
         expires_at=expires_at,
         issued_by=actor,
     )
@@ -71,6 +78,7 @@ def redeem_enrollment(
     fingerprint: str,
     mtls_certificate_sha256: str = "",
     request: object = None,
+    allow_scoped: bool = False,
 ) -> DeviceCredentials:
     certificate_sha256 = mtls_certificate_sha256.strip().lower().replace(":", "")
     if certificate_sha256 and not _SHA256_RE.fullmatch(certificate_sha256):
@@ -86,6 +94,12 @@ def redeem_enrollment(
         )
         if enrollment is None:
             raise ValueError("Código de enrollment inválido ou expirado.")
+        if enrollment.sync_scope:
+            from apps.intelligence.agent_scope import validate_sync_scope
+
+            if not allow_scoped:
+                raise ValueError("Este código exige agente com protocolo de recorte financeiro.")
+            validate_sync_scope(enrollment.sync_scope, enrollment.organization)
         shared_secret = secrets.token_urlsafe(48)
         agent = EdgeAgent.objects.create(
             organization=enrollment.organization,
@@ -93,6 +107,7 @@ def redeem_enrollment(
             fingerprint=fingerprint.strip()[:128],
             mtls_certificate_sha256=certificate_sha256,
             shared_secret=shared_secret,
+            sync_scope=enrollment.sync_scope,
         )
         enrollment.used_at = timezone.now()
         enrollment.save(update_fields=["used_at", "updated_at"])
@@ -103,12 +118,14 @@ def redeem_enrollment(
             request=request,
             metadata={"fingerprint_present": True},
         )
-    return DeviceCredentials(str(agent.id), shared_secret)
+    return DeviceCredentials(str(agent.id), shared_secret, agent.sync_scope)
 
 
 def verify_agent_signature(
     *, agent: EdgeAgent, timestamp: str, body: bytes, signature: str
 ) -> bool:
+    if len(signature) != 64 or any(char not in "0123456789abcdef" for char in signature):
+        return False
     try:
         timestamp_value = int(timestamp)
     except (TypeError, ValueError):

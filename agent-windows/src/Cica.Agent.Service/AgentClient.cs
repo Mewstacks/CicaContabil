@@ -1,6 +1,5 @@
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
@@ -14,11 +13,9 @@ internal sealed class AgentClient : IDisposable
     internal AgentClient(AgentConfig config)
     {
         this.config = config;
-        byte[] pfx = Convert.FromBase64String(config.CertificatePfxBase64);
-        var certificate = new X509Certificate2(pfx, (string?)null,
-            X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
-        var handler = new HttpClientHandler();
-        handler.ClientCertificates.Add(certificate);
+        AgentAuthentication.Validate(config.AuthenticationMode, config.AgentId,
+            config.SharedSecret, config.CertificatePfxBase64);
+        var handler = AgentAuthentication.CreateHandler(config.AuthenticationMode, config.CertificatePfxBase64);
         http = new HttpClient(handler) { BaseAddress = new Uri(config.ServerUrl.TrimEnd('/') + "/") };
         http.Timeout = TimeSpan.FromMinutes(10);
     }
@@ -39,6 +36,7 @@ internal sealed class AgentClient : IDisposable
         string signature = Convert.ToHexString(HMACSHA256.HashData(
             Encoding.UTF8.GetBytes(config.SharedSecret), signed)).ToLowerInvariant();
         var request = new HttpRequestMessage(method, uri);
+        request.Headers.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
         request.Headers.Add("X-Hub-Agent-ID", config.AgentId);
         request.Headers.Add("X-Hub-Agent-Timestamp", timestamp.ToString());
         request.Headers.Add("X-Hub-Agent-Signature", signature);
@@ -57,11 +55,19 @@ internal sealed class AgentClient : IDisposable
         return await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
     }
 
-    internal async Task<string?> GetWindowsArchiveRootAsync(CancellationToken token)
+    internal async Task<(string? ArchiveRoot, AgentSyncScope? Scope)> GetConfigurationAsync(CancellationToken token)
     {
         using JsonDocument result = await PostAsync("api/agent/v2/configuration/next", new { }, token);
         string? root = result.RootElement.GetProperty("windows_archive_root").GetString();
-        return string.IsNullOrWhiteSpace(root) ? null : root;
+        AgentSyncScope? scope = null;
+        if (result.RootElement.TryGetProperty("sync_scope", out JsonElement value)
+            && value.ValueKind == JsonValueKind.Object && value.EnumerateObject().Any())
+        {
+            scope = value.Deserialize<AgentSyncScope>()
+                ?? throw new InvalidDataException("Recorte financeiro inválido.");
+            scope.Validate();
+        }
+        return (string.IsNullOrWhiteSpace(root) ? null : root, scope);
     }
 
     internal async Task DownloadAsync(string absoluteUrl, string output, CancellationToken token)

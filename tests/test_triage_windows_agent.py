@@ -44,7 +44,8 @@ def _headers(agent: EdgeAgent, body: bytes) -> dict[str, str]:
 def _post(client: Client, agent: EdgeAgent, path: str, payload: dict[str, object]):
     body = json.dumps(payload, separators=(",", ":")).encode()
     return client.generic(
-        "POST", path, body, content_type="application/json", headers=_headers(agent, body)
+        "POST", path, body, content_type="application/json", headers=_headers(agent, body),
+        secure=True,
     )
 
 
