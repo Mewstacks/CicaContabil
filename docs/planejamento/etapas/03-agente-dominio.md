@@ -257,8 +257,10 @@ operacional dessa rotina continua dependendo do piloto da etapa 12.
   configuração, senha extraída ou tentativa de identidade alternativa.
 - [ ] Técnico fornecer credencial de integração somente leitura; preparar DSN
   de sistema x64 SQL Anywhere 17 e testar configurador/LocalSystem no PC.
-- [ ] Publicar backend compatível após backup/retorno, ativar escritório CONTAD
-  e autorizar recorte Q-28 antes do pareamento/envio e prova de retomada.
+- [x] Publicar backend compatível/release 72 após backup/restore pontual,
+  conferir hub.0078/intelligence.0031 nos dois aliases e web/worker saudáveis.
+- [ ] Concluir ativação/acesso CONTAD e autorizar recorte Q-28 antes do
+  pareamento/envio e prova de retomada.
 - [ ] Fechar contratos reais Razão/títulos/parcelas/baixas Q-28/Q-46 e homologar.
 
 Resultados do PC são informados pelo operador, não controle automatizado ou

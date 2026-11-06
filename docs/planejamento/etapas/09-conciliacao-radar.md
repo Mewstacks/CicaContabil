@@ -269,8 +269,10 @@ rotina nesta rodada. Nova candidata de fonte com 809 hashes conferidos.
   auditoria; validar concorrência e isolamento entre carteiras/escritórios.
 - [x] Conferir formulário/histórico/download em desktop/celular e claro/escuro,
   erro/teclado, campos preservados, alvos e console com dados sintéticos.
-- [ ] Publicar e habilitar somente no escritório/recorte autorizados após gates
-  operacionais. Cadastro CONTAD criado, ainda em ativação pendente/sem membros.
+- [x] Publicar release 72 após backup/restore pontual e CI aprovado; prévia
+  configurada só no UUID CONTAD, exportação false, bloqueio anônimo conferido.
+- [ ] Concluir acesso/ativação e recorte autorizado para uso autenticado real;
+  cadastro CONTAD ainda em ativação pendente/sem membros.
 - [ ] Obter fonte independente real de Razão/títulos e aprovar semântica Q-46.
 - [ ] Concluir importação/layout Q-47 em entrega autorizada própria, DE-PARA
   com IA sob Q-08/Q-09, D-73, treinamento e aceite CONTAD.

@@ -1,18 +1,20 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Implantação CONTAD em execução — D-320/V-322, 06/11/2026:** prévia privada
-não homologada implementada dentro do CICA, com fotografia imutável e download
-restrito; exportação contábil permanece desligada e lista de escritórios vazia.
-PostgreSQL: **1.715 testes/163 subtestes aprovados**, um skip opcional, após a
-correção final de auditoria. Navegador sintético
-desktop/celular/claro/escuro, erro/teclado/download conferidos. No PC CONTAD, o
-operador conferiu hash, instalou 1.0.3 e informou Running/Automatic, versão e
-awaiting_configuration. Sem ODBC/pareamento/envio: falta credencial somente
-leitura. Acesso Fly recuperado; release 71/esquema anterior preservados. Cadastro
-CONTAD próprio em activation_pending/sem membros. Candidata preparada, sem
-deploy: recuperação de Neon/Tigris ainda não confirmada. IDs locais preservados;
-registros remotos renumerados para D-318/D-319 e V-320/V-321 por escolha humana.
-PC-19/03/09/12, Q-28/Q-46/Q-47, D-73 e aceite continuam abertos.
+**Implantação CONTAD — D-320/V-322, 06/11/2026:** prévia privada não
+homologada implementada e publicada na **release Fly 72**, fonte f86ae4d/CI
+42231907397 aprovado. Migrações dos dois aliases, hashes do runtime web/worker,
+health/banco/cache e recusa de agente inválido conferidos. Prévia limitada ao
+UUID CONTAD; exportação Domínio permanece false. Backup pontual Neon/Tigris e
+restore isolado dos dois bancos/53 arquivos verificados, retenção de sete dias,
+compute suspenso e chave temporária revogada. PostgreSQL local: 1.715 testes/
+163 subtestes aprovados, um skip; navegador sintético desktop/celular/claro/escuro,
+erro/teclado/download conferidos. No PC CONTAD, o operador instalou MSI 1.0.3
+íntegro e informou Running/Automatic/awaiting_configuration. Faltam credencial
+somente leitura, DSN de sistema x64 e recorte autorizado antes do pareamento;
+sem leitura/envio/importação ERP. Escritório próprio em activation_pending e
+zero membros, acesso/ativação pendentes. IDs locais preservados e registros
+remotos renumerados por escolha humana. PC-19/03/09/12, Q-28/Q-46/Q-47, D-73,
+recuperação recorrente, treinamento e aceite continuam abertos.
 
 **Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
 revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e

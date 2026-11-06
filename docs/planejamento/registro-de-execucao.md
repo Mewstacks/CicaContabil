@@ -2964,3 +2964,36 @@ DSN ou confirmação de backup.
 - Candidata de 816 arquivos reaberta/hash conferido, manifesto atualiza migrações
   de retorno. Pacote anterior preservado; checks/limites detalhados em V-322.
   Publicação fonte/CI será registrada separadamente se concluída.
+
+Continuidade da publicação D-320: fonte enviada à main em f86ae4d, SHA remoto
+e 816 hashes conferidos. CI 42231907397 aprovado nos três jobs; contagens/skips
+em V-322. Preservados fora do commit os documentos locais anteriores. Acesso
+Neon resolvido pelo seletor da organização compartilhada; janela atual de seis
+horas, sem snapshots/agenda. Backup pontual de bancos/53 objetos e ensaio isolado
+com retenção de sete dias aprovados até US$ 1,00; execução em andamento, sem
+liberar o gate de deploy antes do resultado.
+
+Continuidade D-320, recuperação antes do deploy: custo pontual até US$ 1,00
+aprovado; snapshot snap-hidden-tree-b6xt5ssj e 53 cópias Tigris privadas
+pareadas, manifesto SHA-256 9cb388132280969bf4e43ef03cd8c60a82684f3a8782b1df613c5577d9453443.
+Restore isolado dos dois aliases PostgreSQL 18.6: esquemas/migrações e todas
+as contagens iguais; hashes de sete tabelas críticas do default e quatro do
+knowledge iguais. Todos os 53 arquivos referenciados restaurados em temporário
+no Fly e hashes iguais; limpeza concluída. Expiração em sete dias, compute
+idle, chave CICA temporária revogada/401 e tokens locais removidos. Produção
+preservada. Gate pontual cumprido; não conclui recuperação recorrente/D-73.
+Deploy com build local iniciado a partir do ZIP exato, após CI aprovado;
+primeira tentativa sem acesso ao socket Docker abortou antes do build, sem
+mudar aplicação; retentativa usa socket Colima já existente, sem builder pago.
+
+Entrega operacional D-320: deploy/release Fly 72 concluído, fonte f86ae4d/
+CI 42231907397 aprovado, imagem contad-f86ae4d-20261106. Migrações dos dois
+aliases hub.0078/intelligence.0031, endpoint original. Em web e worker, todos
+os 645 arquivos do runtime iguais à candidata. HTTP health nos dois domínios
+200/banco/cache ok, worker ready, check Fly passing, agente inválido 401 e
+prévia/download anônimos redirecionados ao login. Somente UUID CONTAD na lista
+de prévia, exportação false. Reserva parada e 512 MB preservados. CONTAD sem
+membros/activation_pending; agente Windows 1.0.3 ainda em espera, sem ODBC,
+pareamento, envio ou importação. Faltam técnico/credencial somente leitura,
+DSN x64/recorte, acesso/ativação e gates Q-28/Q-46/Q-47/D-73/treinamento/aceite.
+Registros documentais não substituem esses resultados pendentes.

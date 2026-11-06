@@ -351,13 +351,18 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   e awaiting_configuration informados; nenhum pareamento/envio configurado.
 - [x] Criar escritório próprio CONTAD em activation_pending e auditoria, após
   confirmação humana, com zero membros/módulos liberados e sem convite.
-- [ ] Confirmar backup/retorno de Neon **18.6** e objetos Tigris no ponto consistente;
-  versionamento não confirmado, credencial API Neon indisponível. Não baixar dumps.
-- [ ] Publicar candidata revisada e verificar migrações/health/worker/HMAC;
-  habilitar prévia só no UUID autorizado, mantendo exportação false.
+- [x] Conferir backup pontual Neon **18.6**/Tigris e restore isolado dos dois bancos,
+  contagens/esquemas/hashes e 53 referências/arquivos, expiração sete dias.
+  Compute suspenso, chave temporária revogada; nenhum dump no Mac. Não conclui D-73.
+- [x] Publicar fonte f86ae4d e conferir CI 42231907397 aprovado; 816 hashes iguais.
+- [x] Publicar candidata no Fly/release 72; conferir fonte em web/worker,
+  migrações nos dois aliases, health e worker ready; agente inválido 401,
+  prévia/download anônimos bloqueados. Lista só CONTAD, exportação false.
+  Não equivale a pareamento ou teste autenticado da cliente em produção.
 - [ ] Concluir acesso/ativação do escritório e recorte/ODBC/serviço/retomada reais,
   Q-28/Q-46/Q-47, D-73, recuperação operacional, treinamento e aceite.
 
-Autorização de deploy existe no plano aprovado; a pendência é o gate concreto
-backup/retorno, não um novo pedido genérico de permissão. Agente instalado em
+Autorização de deploy existe no plano aprovado; o gate pontual de
+backup/retorno e o deploy foram cumpridos. Permanecem credencial/DSN x64,
+acesso/ativação, recorte e provas reais dos fluxos; não repetir a aprovação de deploy. Agente instalado em
 espera e cadastro provisionado não equivalem à implantação completa.

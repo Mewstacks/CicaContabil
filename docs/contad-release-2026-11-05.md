@@ -2,12 +2,18 @@
 
 ## Continuidade vigente — D-320/V-322, 06/11/2026
 
-Plano de publicação aprovado; a aplicação ainda está na **release Fly 71**,
-com hub.0075 e intelligence.0030 nos dois aliases Neon. Acesso ao app existente
-cica-contabil/mewstack-629 disponível para pedro@mewstack.com.br; não criar app.
-A candidata atual inclui prévia privada não homologada e hub.0078, distinta de
-AccountingExport. Manter exportação false e lista de prévia vazia até habilitação
-no escritório correto. A importação efetiva no Domínio não faz parte desta entrega.
+Publicação concluída na **release Fly 72**, em 06/11/2026, fonte f86ae4d e
+[CI 42231907397 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42231907397).
+Imagem registry.fly.io/cica-contabil:contad-f86ae4d-20261106, digest
+sha256:3f5f91ec176db121531a1e26176a1054f8001088fb273eea88e99b11ede832eb.
+App existente cica-contabil/mewstack-629, web/worker originais/512 MB ativos e
+reserva parada preservada. Prévia privada não homologada, distinta de
+AccountingExport, limitada ao UUID CONTAD. Exportação Domínio false; importação
+efetiva no ERP não faz parte desta entrega. Migrações dos dois aliases Neon
+agora hub.0078/intelligence.0031, endpoint original preservado. Os 645 arquivos
+de fonte do runtime foram confrontados com a candidata em web/worker; health
+nos dois domínios 200, banco/cache ok, worker ready e check Fly passing.
+Requisição de agente inválida 401; prévia/download anônimos 302 para login.
 
 Candidata: `.tmp/contad-development-2026-11-06/release-candidate-final/`,
 816 arquivos; SHA-256 `ced90f343ddbb08c82c7950cc7125a68d712e086708d9f317f06c203834a3eaa`.
@@ -31,19 +37,25 @@ inventado, demo ou parceiro interno. Login responsável indicado em evidência
 privada; nenhum convite enviado ou senha criada. Cadastro não equivale a acesso
 ativo. Não reutilizar Bianchi/Cobalchini; fechar ativação e recorte antes de parear.
 
-**Gate antes de deploy:** backup/retorno consistente ainda não confirmado.
-Produção PostgreSQL 18.6/Neon (589.570.048/8.175.616 bytes); storage Tigris não
-informou versionamento habilitado. Ausência de API Neon no ambiente e falta de
-informação do responsável impedem confirmar janela/ponto de recuperação; não
-provam ausência de backup externo. Nenhum dump de produção baixado para o Mac.
-Verificar recuperação de ambos os bancos e objetos com identificador/data,
-retenção, chaves recuperáveis, contagens/hashes e procedimento de retorno antes
-de publicar. Restauração sintética PostgreSQL 17 não é essa evidência. Não criar
-infraestrutura/custo nem dispensar o gate por inferência.
+**Gate pontual de backup/retorno cumprido em 06/11/2026:** snapshot
+Neon snap-hidden-tree-b6xt5ssj de 14:29:44 UTC/648.298.496 bytes, expira em
+13/11/2026 14:29:44 UTC. Restore isolado br-soft-pond-b6b07dau conferido desde
+Fly, sem trocar produção: default 180 tabelas/356.077 linhas e knowledge quatro
+tabelas/193 linhas, esquemas/migrações/contagens iguais; hashes de sete tabelas
+críticas do default e todas as quatro do knowledge iguais. Arquivos: 53
+referências cobertas, 53 objetos/2.901.052 bytes recuperados em temporário no
+Fly com hashes iguais e limpos ao terminar. Manifesto privado final pareado
+com o snapshot, SHA-256 9cb388132280969bf4e43ef03cd8c60a82684f3a8782b1df613c5577d9453443.
+Originais preservados e expiração restrita ao novo prefixo Tigris, sete dias.
+Compute do ensaio suspenso/idle em menos de 30 minutos; branch expira junto do
+snapshot. Chave project-scoped temporária revogada, HTTP 401 verificado e
+cópias locais removidas. Nenhum dump no Mac. Teto US$ 1,00 aprovado; cobrança
+final não medida. RPO/agenda recorrente/D-73 permanecem pendentes.
 
-Após cumprir esse gate, publicar a candidata exata, conferir health/worker e
-migrações, recusa HMAC inválida sem CA, isolamento e arquivo privado; manter
-Q-47 false. Depois do recorte/autorização Q-28, parear 1.0.3 e provar leitura
+Gate cumprido e candidata publicada/verificada; Q-47 continua false. Isolamento
+por carteira e integridade foram verificados com cenários sintéticos, sem alegar
+percurso autenticado de cliente em produção. Depois de acesso/ativação e
+recorte/autorização Q-28, parear 1.0.3 e provar leitura
 LocalSystem, paginação/repetição/retomada. Q-46/Q-47, IA Q-08/Q-09, D-73,
 treinamento e aceite ainda se aplicam. As seções seguintes são histórico das
 candidatas anteriores e não substituem esta continuidade.
@@ -174,3 +186,89 @@ retorno à versão anterior, RPO ou recuperação CONTAD em produção.
 Proprietário/operador define RPO e janela de medição; não há número presumido.
 Concluir recuperação operacional D-73, 200 itens reais independentes por fluxo,
 precisão aplicável, treinamento e aceite antes de liberar PC-19.
+
+## Backup pontual aprovado e executado — D-320
+
+06/11/2026, continuidade de V-322. Acesso ao projeto CICA no Neon resolvido
+pelo seletor da organização germano@mewstack.com.br. Projeto
+raspy-river-46466568, production/br-odd-tree-b6vhgfnv; os dois aliases hospedados
+conferidos no mesmo endpoint. No preflight havia janela de seis horas, sem
+snapshots/agenda; o snapshot pontual abaixo foi criado depois.
+Não alterar retenção corrente nem restaurar sobre produção por inferência.
+
+Inventário Tigris: cica-contabil-media na organização Fly cica, privado,
+53 objetos/2.901.052 bytes, snapshot desativado. Hash do inventário de metadados
+48e6075f99a372e268d79a7eb6da2aa0de90f24eab0c2f8bed47f80d496d30b8.
+Isso é hash de nomes/tamanhos/ETags/datas, não verificação dos bytes ou backup.
+Objetos originais e política de acesso preservados; adicionada apenas a regra
+de expiração de sete dias restrita ao prefixo novo.
+
+Operação aprovada até US$ 1,00 e executada em 06/11/2026: um snapshot manual do projeto CICA,
+cópia dos objetos para prefixo novo privado dentro do mesmo bucket e conferência
+de restauração em branch isolada, até 30 minutos/1 CU, sem trocar produção.
+Retenção de sete dias para estas cópias/snapshot, usando expiração explícita;
+nenhuma agenda recorrente. Preservar regras existentes do bucket e restringir
+a expiração ao prefixo novo. Se a expiração não puder ser confirmada, não
+prosseguir com cópias sem nova revisão. Snapshot manual deve ter expiração
+própria: as regras de uma agenda não o expiram.
+
+Preparação revisável em `.tmp/contad-development-2026-11-06/backup_objects_review.py`:
+modo padrão somente leitura; cópia exige inventário igual, prefixo UUID novo,
+limites de volume, ACL private, hash original/cópia, preservação de lifecycle
+e manifesto; finalização exige snapshot ID e inventário original ainda igual.
+Sem exportar credenciais ou dumps ao Mac, apagar arquivo ou mudar políticas de
+acesso. Compilação e quatro verificações sintéticas passaram antes da execução real.
+As cópias, pareamento e restauração descritos na continuidade vigente passaram. Mudança de fonte/inventário exige rever o plano, sem ocultar
+novos objetos ou aceitar fotografia parcial.
+
+Custo estimado adicional abaixo de US$ 0,10 para este volume e ensaio breve;
+**teto US$ 1,00 aprovado explicitamente** antes da execução pontual.
+[Neon](https://neon.com/docs/introduction/plans) informa US$ 0,09/GB-mês de
+snapshot e US$ 0,106/CU-hora no Launch; cerca de 0,65 GB por sete dias custa
+aproximadamente US$ 0,014 em armazenamento. [Tigris](https://www.tigrisdata.com/pricing/)
+informa Standard a US$ 0,02/GB-mês e COPY a US$ 0,005/mil, antes de franquias;
+53 cópias e 2,9 MB representam fração de centavo. Não tratar franquia como
+confirmada nesta conta. Parar se volume, preço ou recurso excederem a proposta.
+A retenção pontual não resolve RPO, agenda permanente ou D-73.
+
+### Retorno da aplicação preparado
+
+A imagem anterior da release 71 continua disponível. Se houver falha desta
+release, o retorno da aplicação usa a imagem anterior sem desfazer migrações
+aditivas nem substituir banco/arquivos por fotografia antiga. Executar a partir
+da raiz do projeto, somente quando o retorno for necessário:
+
+```sh
+flyctl deploy --app cica-contabil --config fly.toml \
+  --image registry.fly.io/cica-contabil:deployment-01M4GGRN0RPCT44F7JRZH4SYH0 \
+  --skip-release-command --ha=false --exclude-machines 287e35db920e48 \
+  --env RECONCILIATION_DOMINIO_PREVIEW_ORGANIZATION_IDS= \
+  --env RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=false --yes
+```
+
+Conferir depois health nos dois domínios, worker e imagem das duas máquinas.
+O retorno não foi necessário nem executado; não alegar ensaio da imagem anterior
+em produção. O ensaio de dados usou Multi-step restore em branch separada, sem
+Migrate connections and settings/finalize. Para recuperar dados no prazo da
+retenção, preservar produção, criar cópia pelo snapshot ID, conferir aliases e
+restaurar os objetos do manifesto privado para destino isolado antes de propor
+qualquer troca. Manifesto final:
+`private/operations/backups/contad/59523a7687024acabb6638ca8cc7f0b7/final.json`.
+O manifesto contém caminhos e hashes e deve permanecer privado no Tigris.
+
+### Próxima execução no PC CONTAD
+
+O técnico/administrador Domínio precisa disponibilizar a credencial própria de
+integração somente leitura e configurar um **novo DSN de Sistema de 64 bits**
+com SQL Anywhere 17, usando os dados reais da conexão. Preservar o DSN x86
+existente e os DSNs de usuário; não aproveitar senha salva ou usuário comum da
+aplicação por inferência. Digitar a senha diretamente no PC, sem enviá-la ao chat.
+O agente 1.0.3 está instalado/Running/Automatic e awaiting_configuration;
+não reinstalar só para obter esse diagnóstico.
+
+Antes de salvar/parear, concluir acesso/ativação do escritório e registrar uma
+empresa/conta/período e operações autorizadas em Q-28. Em seguida testar a
+conexão do serviço LocalSystem, escopo da coleta, reenvio/paginação/retomada e
+vínculo exclusivo ao CONTAD. Campos/chaves reais do Razão e títulos continuam
+em Q-28/Q-46; não escrever SQL por hipótese ou tratar lançamento fiscal como
+partida contábil. Prévia continua não homologada e não autoriza importar no ERP.

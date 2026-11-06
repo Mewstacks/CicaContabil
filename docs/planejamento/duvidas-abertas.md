@@ -300,8 +300,11 @@ próprio ae13d06f-6461-43a8-a9cc-3e0e0eafde50 provisionado em activation_pending
 sem membros/ativação; futuro login indicado em evidência privada. Não pedir
 novamente qual escritório ou e-mail. Q-28 mantém ativação/acesso, recorte de
 empresa/conta/competência/IDs autorizados e fonte independente real antes de
-parear/enviar; não habilitar carteira inteira. Backup/retorno hospedado ainda não
-confirmado: responsável não sabe sua configuração, API Neon sem acesso e storage
-não informou versionamento. Não presumir que não há backup externo ou que foi
-restaurado. Q-46 mantém exemplos/regras de títulos/baixas/DE-PARA; Q-47 mantém
+parear/enviar; não habilitar carteira inteira. Backup pontual Neon/Tigris e restore
+isolado dos dois bancos/53 arquivos agora conferidos, sete dias de retenção,
+compute suspenso e chave temporária CICA revogada; teto US$ 1,00 já autorizado,
+sem agenda recorrente. Release 72 publicada/verificada e prévia limitada ao UUID
+CONTAD, exportação false. Não repetir autorização pontual de custo/chave/deploy;
+recuperação recorrente/RPO/D-73 seguem abertos. Q-46 mantém exemplos/regras de
+títulos/baixas/DE-PARA; Q-47 mantém
 layout/importação conferida em autorização posterior, sem escrita direta ERP.

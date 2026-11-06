@@ -2906,3 +2906,104 @@ Conferência final da candidata: 42 testes focados/migrações aprovados também
 em PostgreSQL 18.6 sintético, mesma versão observada no Neon; 21,62 s. Não
 executou restore de produção. Código da candidata final com 816 hashes iguais
 ao ZIP/workspace, SHA-256 ced90f343ddbb08c82c7950cc7125a68d712e086708d9f317f06c203834a3eaa.
+
+Fonte D-320 publicada por push normal à main em
+f86ae4d7630bc707be2f407a1a9c12c5582110b9, SHA remoto idêntico e 816 hashes
+da candidata iguais aos blobs do commit. CI 42231907397 em execução; agente
+e build/manifesto Windows aprovados na observação, verify ainda pendente.
+As entregas documentais locais anteriores continuam fora do commit, preservadas.
+
+Acesso Neon resolvido durante a continuidade: o responsável autenticou pelo
+painel. A organização pessoal estava vazia; seletor já disponibilizava
+germano@mewstack.com.br e projeto CICA raspy-river-46466568, branch production
+br-odd-tree-b6vhgfnv. Ambos os aliases hospedados conferidos no mesmo endpoint
+do painel, LSN 0/BE42A1F8 em 06/11/2026 14:16:49 UTC. Backup & Restore informa
+**janela de seis horas**, sem snapshots ou agenda. Essa janela existente não
+define RPO/retencão de negócio nem prova restore. Não criou snapshot, branch,
+chave API, agenda ou alteração de retenção; storage ainda requer recuperação
+confirmada. Qualquer nova retenção/backup com custo exige aprovação específica.
+
+Preparação de recuperação D-320: Tigris cica-contabil-media é privado, tem
+53 objetos/2.901.052 bytes e snapshots desativados. Inventário/rotina de cópia
+privada e pareamento com snapshot Neon preparados, quatro verificações
+sintéticas, sem executar backup real. Proposta pontual de sete dias, snapshot
+Neon/cópia Tigris e ensaio de restauração isolado, estimativa abaixo de
+US$ 0,10 e teto US$ 1,00, detalhada no roteiro de release. **Custo ainda não
+aprovado**; não criar snapshot/cópias/branch/expiração antes da resposta.
+
+**Aprovação específica recebida em 06/11/2026:** responsável respondeu
+“Sim, autorizo até US$ 1,00” para snapshot Neon, cópia privada Tigris, retenção
+de sete dias e ensaio de restauração antes do deploy D-320. Executar somente
+esse escopo pontual e respeitar o teto; não criar agenda recorrente ou alterar
+retenção global por inferência. Preservar produção no ensaio, registrar IDs,
+expiração, contagens/hashes e resultado antes de publicar a aplicação.
+
+Snapshot manual criado no painel às 14:29:44 UTC, ainda com expiração never;
+console não oferece edição desse campo. Ensaio Multi-step restore criou
+br-soft-pond-b6b07dau, endpoint ep-broad-recipe-b6bd0c92 (0,25–1 CU), mantendo
+production/br-odd-tree-b6vhgfnv e conexões originais. Tigris: 53 cópias verificadas,
+2.901.052 bytes, prefixo privado 59523a7687024acabb6638ca8cc7f0b7 e expiração
+de sete dias confirmada; manifesto preparado a1f5ec6feecd17559b637c72be1885b14b0a487ccfaeecdbe1cacf17901fb213.
+Retenção do snapshot ainda precisa ajuste antes de alegar backup finalizado.
+
+Responsável autorizou explicitamente credencial temporária **somente para o
+projeto CICA**, para fixar expiração e concluir o ensaio, com revogação ao
+terminar. Usar CLI oficial Neon com profile novo e chave project-scoped;
+não criar chave de organização/conta nem imprimir segredo. Autorização direta
+no navegador; configuração privada fora do Git, sem instalar MCP/skills ou
+trocar configuração existente. Teto de US$ 1,00 permanece.
+
+A implementação do CLI 8.23.3 foi inspecionada antes do login: --mint inicia
+OAuth com escopos de conta antes de restringir a chave. Para respeitar a
+autorização somente CICA, criar a chave project-scoped diretamente no painel
+autenticado e importar no profile privado por stdin, sem iniciar OAuth amplo.
+Não imprimir token nem mudar permissões/credenciais de outros projetos.
+
+Gate pontual de backup/retorno cumprido antes do deploy: snapshot
+snap-hidden-tree-b6xt5ssj, 648.298.496 bytes, expira em 13/11/2026 14:29:44 UTC.
+Branch isolada br-soft-pond-b6b07dau restaurada e conferida a partir do Fly,
+sem dump/dados financeiros no Mac nem troca de conexão da aplicação. Ambos os
+aliases PostgreSQL 18.6: esquemas/migrações e contagens de todas as tabelas iguais
+à produção na observação; hashes de sete tabelas críticas do default e quatro
+do knowledge iguais. Cinquenta e três referências de arquivo cobertas; 53
+objetos/2.901.052 bytes recuperados em temporário no Fly e hashes iguais;
+temporário limpo. Manifesto Tigris final pareado com o snapshot, SHA-256
+9cb388132280969bf4e43ef03cd8c60a82684f3a8782b1df613c5577d9453443;
+inventário original permaneceu igual. Compute do ensaio suspenso/idle às
+14:43 UTC, em menos de 30 minutos; branch também expira em 13/11 14:29:44 UTC.
+Chave project-scoped criada diretamente no painel, usada por profile privado,
+revogada ao terminar; HTTP 401 verificado e cópias locais do token removidas.
+Retenção global de seis horas/agenda e produção preservadas. Isso cumpre o
+backup pontual D-320, sem concluir recuperação recorrente/RPO ou D-73.
+
+Publicar agora a candidata exata de f86ae4d/CI 42231907397 aprovado, usando
+contexto extraído do ZIP com 816 hashes conferidos e build Docker local,
+sem novo builder/recurso recorrente. Configuração vigente e candidata têm
+as mesmas variáveis; acrescentar somente a prévia privada no UUID CONTAD
+ae13d06f-6461-43a8-a9cc-3e0e0eafde50 e explicitar exportação Domínio false.
+Esta lista não ativa contrato/módulo/usuário do escritório, ainda pendentes.
+Preservar reserva parada 287e35db920e48, tamanho das máquinas e endpoints
+Neon originais; aplicar migrações aditivas de ambos os aliases. Em falha,
+retornar imagem da release 71 preservando migrações/arquivos/evidências;
+não restaurar snapshot sobre produção por inferência.
+
+Deploy D-320 concluído em 06/11/2026, release Fly **72**, criada às 14:49:20 UTC;
+imagem registry.fly.io/cica-contabil:contad-f86ae4d-20261106, digest
+sha256:3f5f91ec176db121531a1e26176a1054f8001088fb273eea88e99b11ede832eb.
+Release command e canário passaram; web/worker originais ativos com a mesma
+imagem/512 MB e reserva parada com a imagem anterior preservada. Os 645 arquivos
+de fonte presentes no runtime foram conferidos em ambas as máquinas contra o
+ZIP aprovado, hash agregado f00613a9dca60643a99f49efb16e8c784ecb78a18115c028141190ae88974f8d.
+Ambos os aliases no endpoint Neon original com hub.0078/intelligence.0031;
+health nos dois domínios 200, banco/cache ok, worker ready e check Fly passing.
+Requisição de agente com identidade/assinatura inválidas recusada 401;
+prévia e download anônimos redirecionaram ao login, sem arquivo exposto.
+Lista da prévia contém só CONTAD, exportação permanece false, mTLS false.
+CONTAD continua activation_pending/zero membros/zero prévias; não afirmar login,
+pareamento, envio, leitura do Razão/títulos ou importação/homologação por esse deploy.
+
+Publicar a continuidade operacional D-320 em commit só documental, preservando
+fora do índice os registros locais preexistentes D-316/D-317 e V-318/V-319.
+Código implantado continua f86ae4d/CI aprovado; não repetir toda a regressão por
+atualização documental. Conferir diff/escopo/hashes e marcar o commit documental
+com skip ci, sem alterar workflows ou dispensar checks de uma mudança funcional.

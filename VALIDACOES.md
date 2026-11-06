@@ -6450,3 +6450,70 @@ Sem deploy, migração remota, habilitação da prévia ou chamada IA paga.
 Q-28/Q-46/Q-47, recuperação/backup, acesso/ativação, D-73, treinamento e aceite
 continuam pendentes. Credencial ODBC deve ser fornecida pelo técnico por canal
 local; não pedir senha no chat ou usar credencial da aplicação por inferência.
+
+**Publicação da fonte V-322:** commit f86ae4d7630bc707be2f407a1a9c12c5582110b9
+na main, SHA remoto conferido e 816 hashes do commit iguais à candidata.
+[CI 42231907397](https://github.com/Mewstacks/CicaContabil/actions/runs/42231907397)
+concluído com sucesso: verify, agent e agent-package aprovados. SQLite 1.694
+testes/163 subtestes, 22 skips; PostgreSQL 1.714/163, dois skips (Python
+Playwright opcional e OCR português ausente no runner). .NET Linux 43 aprovados,
+um skip Windows; build/manifesto Windows e três builds Docker aprovados.
+Não é nova instalação Windows 1.0.3; o job de pacote CI usa versão 1.0.0.
+Implementação publicada, sem deploy da aplicação até esta observação.
+
+**Recuperação em continuidade:** acesso ao Neon confirmado pelo seletor da
+organização compartilhada; CICA/raspy-river-46466568, branch production
+br-odd-tree-b6vhgfnv. Ambos os aliases correspondem ao endpoint do painel,
+LSN 0/BE42A1F8 às 14:16:49 UTC. Janela existente de seis horas, sem snapshots
+ou agenda. Tigris cica-contabil-media privado, snapshot false, 53 objetos e
+2.901.052 bytes; hash apenas de metadados do inventário, não dos conteúdos.
+Responsável aprovou até US$ 1,00 para backup pontual/ensaio isolado/retenção de
+sete dias. Cópia protegida preparada com quatro verificações sintéticas; primeira
+tentativa recusada pelo limite de 36 caracteres no ID de lifecycle, antes de
+copiar objetos; corrigido para 35 caracteres e retentativa em andamento. Não
+confundir uma requisição recusada com backup concluído ou restore testado.
+
+**Backup/ensaio pontual final, 06/11/2026:** snapshot Neon
+snap-hidden-tree-b6xt5ssj de 14:29:44 UTC/648.298.496 bytes, expiração
+13/11/2026 14:29:44 UTC confirmada por API e painel. Restore isolado
+br-soft-pond-b6b07dau, sem finalize/migração de conexões. Consultas somente
+leitura via endpoint direto, desde Fly: default 180 tabelas/356.077 linhas,
+knowledge quatro tabelas/193 linhas; esquemas, migrações e todas as contagens
+iguais à produção na observação, hashes de sete tabelas críticas do default
+e todas as quatro do knowledge iguais. Tentativa inicial pelo pooler recusou
+statement_timeout no startup, antes de consultar; conexão direta resolveu.
+Não é comparação por hash de cada linha de todas as 180 tabelas.
+
+Todos os 53 arquivos referenciados cobertos pelo manifesto Tigris; 53 objetos/
+2.901.052 bytes recuperados em pasta temporária no Fly e hashes iguais,
+limpeza concluída. Manifesto final pareado ao snapshot e verificado,
+SHA-256 9cb388132280969bf4e43ef03cd8c60a82684f3a8782b1df613c5577d9453443.
+Originais/inventário preservados; lifecycle só no novo prefixo, sete dias.
+Compute do ensaio idle e branch com expiração de sete dias; produção segue
+default/ready no endpoint original. Chave limitada ao projeto revogada,
+API retornou 401 e tokens locais removidos. Sem dump no Mac, agenda nova ou retenção global alterada; recursos
+limitados ao escopo aprovado. Cobrança final não medida. Gate pontual atendido; D-73/RPO/agenda recorrente
+continuam abertos. Logs/capturas privados em .tmp/contad-development-2026-11-06.
+
+**Deploy e pós-verificação finais:** release Fly **72** concluída em 06/11/2026,
+imagem contad-f86ae4d-20261106, digest
+sha256:3f5f91ec176db121531a1e26176a1054f8001088fb273eea88e99b11ede832eb.
+Build local Colima para linux/amd64; release command/canários e deploy passaram.
+Web 891e63ef665e58 e worker 1857691da097e8 started/512 MB, mesma imagem;
+reserva 287e35db920e48 stopped e imagem anterior preservada. Sem ampliar tamanho
+ou manter novo builder/compute. Hashes de todos os **645 arquivos de fonte do
+runtime** iguais ao ZIP aprovado nas duas máquinas; agregado
+f00613a9dca60643a99f49efb16e8c784ecb78a18115c028141190ae88974f8d.
+Ambos os aliases preservam o endpoint Neon original e aplicaram hub.0078 e
+intelligence.0031_agent_sync_scope. Health nos dois domínios HTTP 200 com banco/
+cache ok; Celery worker ready às 14:50:54 UTC, check Fly passing, sem erro no
+buffer de 100 entradas observado. Requisição sem identidade/assinatura válidas
+401; prévia/download anônimos 302 para login. Não prova pareamento válido ou
+isolamento com dados reais novos; testes sintéticos anteriores cobrem esses controles.
+Lista de prévia só contém o UUID CONTAD; exportação homologada false/mTLS false.
+CONTAD segue activation_pending/zero membros/zero prévias. Sem ODBC, pareamento,
+sincronização, importação Domínio, treinamento, IA paga ou aceite novos.
+Logs privados: fly-deploy-v2.log, deployed-web-verification.log,
+deployed-worker-verification.log, production-http-checks.json e fly-after-*.json.
+Código implantado f86ae4d/CI 42231907397 aprovado; registro posterior documental
+não muda os hashes da aplicação. PC-19/Q-28/Q-46/Q-47/D-73 continuam abertos.
