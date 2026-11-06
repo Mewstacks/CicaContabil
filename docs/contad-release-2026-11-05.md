@@ -2,6 +2,10 @@
 
 ## Continuidade vigente — D-320/V-322, 06/11/2026
 
+Para o estado mais recente dos testes guiados, documentos da cliente e
+pendências de vínculo/saldos/pareamento, leia o
+[resumo de continuidade](contad-continuidade-2026-11-06.md).
+
 Publicação concluída na **release Fly 72**, em 06/11/2026, fonte f86ae4d e
 [CI 42231907397 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42231907397).
 Imagem registry.fly.io/cica-contabil:contad-f86ae4d-20261106, digest
@@ -26,8 +30,9 @@ Migrações e 42 testes focados aprovados também em PostgreSQL **18.6** descart
 
 O operador instalou MSI 1.0.3 íntegro no PC **CONTAD**: informou Running/Automatic,
 ProductVersion correspondente e awaiting_configuration. Isso supera ausência
-inicial do agente; o PC Fedrizzi anterior é outro ambiente. Sem credencial de
-integração somente leitura, DSN de sistema x64, teste ODBC, pareamento ou envio.
+inicial do agente; o PC Fedrizzi anterior é outro ambiente. Responsável informou possuir EXTERNO e Test Connection successful no novo
+DSN x64 CICA_CONTAD e conexão confirmada no configurador instalado. Faltam
+confirmar modo de autenticação, LocalSystem, recorte/acesso, pareamento e envio.
 Usar SQL Anywhere 17 x64 para conexão própria do serviço, preservando DSN x86.
 Nenhuma senha deve ser copiada do registro ou informada no chat.
 
@@ -258,8 +263,8 @@ O manifesto contém caminhos e hashes e deve permanecer privado no Tigris.
 
 ### Próxima execução no PC CONTAD
 
-O técnico/administrador Domínio precisa disponibilizar a credencial própria de
-integração somente leitura e configurar um **novo DSN de Sistema de 64 bits**
+O responsável informou possuir a credencial EXTERNO. Falta validar essa
+credencial e configurar um **novo DSN de Sistema de 64 bits**
 com SQL Anywhere 17, usando os dados reais da conexão. Preservar o DSN x86
 existente e os DSNs de usuário; não aproveitar senha salva ou usuário comum da
 aplicação por inferência. Digitar a senha diretamente no PC, sem enviá-la ao chat.

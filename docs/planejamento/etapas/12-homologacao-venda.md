@@ -363,6 +363,23 @@ do responsável solicitada para autenticar, sem credenciais no chat.
   Q-28/Q-46/Q-47, D-73, recuperação operacional, treinamento e aceite.
 
 Autorização de deploy existe no plano aprovado; o gate pontual de
-backup/retorno e o deploy foram cumpridos. Permanecem credencial/DSN x64,
-acesso/ativação, recorte e provas reais dos fluxos; não repetir a aprovação de deploy. Agente instalado em
+backup/retorno e o deploy foram cumpridos. Operador informou sucesso ODBC e
+conexão no configurador x64; SURIA/código Domínio 212/09-2026 informados e fontes
+bancárias identificadas; conta contábil 8 — BANCO SICREDI transcrita pelo operador.
+Razão real de quatro páginas recebido e conferido localmente, com 163 datas/
+valores iguais ao banco; há divergência de saldos na captura de extrato Domínio
+a esclarecer em Q-28. Permanecem vínculo/referência bancária/IDs, partidas
+completas/revisão semântica, acesso/ativação,
+recorte completo e provas reais do serviço/fluxos; não repetir a aprovação de deploy. Agente instalado em
 espera e cadastro provisionado não equivalem à implantação completa.
+
+## Retomada do corpus local — D-320/V-323 (06/11/2026)
+
+- [x] Registrar esclarecimento humano: empresa fechada, arquivos fornecidos
+  para teste e aceitos como evidência; origem do saldo da captura não é gate local.
+- [x] Executar nova CLI privada banco/Razão com os arquivos reais, 163 linhas
+  conferidas, ambiguidades mantidas, fontes preservadas e rede/banco bloqueados.
+- [x] Registrar 139 testes aprovados/cinco skips PostgreSQL, verificações
+  estáticas aprovadas e relatório privado 0600, sem nova migração ou deploy.
+- [ ] Completar acesso/agente real, fontes/regras ainda ausentes, DE-PARA,
+  treinamento e aceite; não converter a evidência dos arquivos em homologação.

@@ -2997,3 +2997,165 @@ membros/activation_pending; agente Windows 1.0.3 ainda em espera, sem ODBC,
 pareamento, envio ou importação. Faltam técnico/credencial somente leitura,
 DSN x64/recorte, acesso/ativação e gates Q-28/Q-46/Q-47/D-73/treinamento/aceite.
 Registros documentais não substituem esses resultados pendentes.
+
+Continuidade D-320 em 06/11/2026: responsável informou disponibilidade da
+credencial EXTERNO; registro/checklist atualizados para não repetir o pedido.
+Preparada próxima instrução guiada: abrir ODBC x64/driver SQL Anywhere 17.
+Nenhum segredo recebido, DSN modificado, conexão testada ou pareamento executado
+nesta mensagem; faltam os resultados próprios, recorte e ativação já registrados.
+
+D-320, continuidade guiada: operador abriu a tela SQL Anywhere 17. Orientado
+nome novo CICA_CONTAD e consulta somente leitura do parâmetro Server name na
+conexão x86, sem gravar alterações nela. DSN/teste ODBC continuam pendentes.
+
+D-320: Server name srvContabil confirmado pelo operador; preparado teste do
+novo DSN CICA_CONTAD com EXTERNO digitado localmente, sem gravar antes do
+resultado. Host/porta/banco não inferidos, conexão original preservada.
+
+D-320: operador informou Test Connection successful no novo CICA_CONTAD x64/
+SQL Anywhere 17, servidor srvContabil e EXTERNO local. Sucesso interativo
+informado, sem prova do configurador/LocalSystem ou permissões. Preparado
+próximo passo: novo DSN salvo sem senha e teste explícito no configurador;
+sem Conectar à CICA/pareamento/salvamento de configuração do serviço nesta fase.
+
+D-320: captura confirma CICA_CONTAD no configurador x64. Operador clicou
+Testar e não percebeu retorno; orientada leitura do status abaixo dos botões,
+confirmado no código instalado. Sem prova de sucesso/falha do configurador,
+sem novo pareamento ou envio. Serviço LocalSystem ainda não validado.
+
+D-320: operador informou conexão confirmada no configurador CICA instalado,
+depois da orientação de autenticação EXTERNO explícita. Registrado sucesso
+local informado, sem prova de serviço LocalSystem/pareamento/envio. Próximo
+passo Q-28: obter empresa/código, conta e competência do piloto; consultar
+somente o estado do CONTAD no backend antes de preparar manifesto restrito.
+
+Q-28/D-320: responsável confirmou SURIA (nome inicial URIA), competência 09/2026,
+com fontes bancárias em Downloads. PDF/OFX Sicredi conferidos por cabeçalho e
+hash, mesmos do piloto V-316 e período 09/2026; originais preservados. OFX
+usa conta com identificador longo, mesmo sufixo do PDF; relação requer conferência.
+Preparação privada gerada, sem usar plano de contas de outra empresa ou emitir
+código genérico. Preflight READ ONLY do CONTAD ainda sem empresas/contas/membros/
+contratos/agentes. Operador não sabe código Domínio; próximo passo é consulta
+Controle > Empresas, sem alteração do ERP. Sem upload financeiro/pareamento.
+
+Q-28/D-320: operador informou código Domínio 212 para SURIA/09-2026.
+Decisão, preparação privada, dúvidas e checklists atualizados. Removida somente
+a pendência do código da empresa; conta/referência, relação bancária, IDs
+internos, acesso/ativação e prova do serviço continuam pendentes. Preparada
+orientação de consulta da conta existente em Lançamentos de Extrato Bancário,
+sem incluir/gravar/importar. Nenhuma alteração remota, transmissão ou novo teste.
+
+Q-28/D-320: captura de Escrita Fiscal seguida de captura de Lançamentos de
+Extrato Bancário aberta pelo operador. Campo da conta vazio e mês 11/2026;
+não classificado como ausência de movimentos do piloto. Orientação preparada:
+SURIA/212, consulta de contas existentes por F2 e filtro 09/2026; sem cadastrar,
+gravar ou importar. Conta/referência/IDs seguem pendentes; atalho conferido em
+fonte oficial Domínio (6705). Nenhuma mudança remota, pareamento ou envio.
+
+Q-28/D-320: recebida captura com BANCO SICREDI/09-2026, origem Importação e
+linhas visíveis conciliadas. Ampliado localmente o campo da conta para inspeção,
+sem leitura segura do número destacado; preparada solicitação de transcrição
+somente do código. Observação adicionada à preparação privada, preservando
+pendências de referência/IDs/relação bancária e acesso. Nenhuma alteração ERP,
+consulta SQL, pareamento ou transmissão; não houve novo teste funcional.
+
+Q-28/D-320: operador transcreveu conta contábil 8 — BANCO SICREDI, SURIA/212,
+09/2026. Atualizados decisão, preparação privada, plano, checklists e dúvidas;
+mantidas pendências de vínculo da conta bancária, IDs e acesso/ativação.
+Preparada consulta local do Razão somente dessa conta em 01–30/09/2026,
+conforme soluções oficiais 1817/3132, sem consolidar outras empresas.
+Razão ainda não recebido, nenhum SQL novo, alteração ERP, pareamento ou envio.
+
+Q-28/D-320: Razão.pdf localizado em Downloads, quatro páginas da SURIA/conta 8/
+09-2026, hash af1ca6b11f558765531bb8009538ce585bbe781629732b281d355427273889d9.
+Preservado original; inspecionadas quatro renderizações, 163 linhas extraídas
+por coordenadas, números distintos, datas, saldos sucessivos e totais conferidos.
+Fontes bancárias com hashes iguais a V-316; normalização histórica reutilizada.
+Multiconjuntos de data/valor iguais (163), duas chaves repetidas; não confirmadas
+alocações, partidas completas, homologação ou 200 eventos independentes.
+Detectada divergência entre saldos da captura de extrato Domínio e os PDFs;
+solicitada conferência da empresa ativa/origem e vínculo da conta, sem alterar
+saldos. Atualizados decisão, plano, checklists, dúvidas e preparação privada.
+Derivados financeiros ignorados/restritos; nenhum dado financeiro enviado,
+SQL novo, alteração ERP/remota, IA paga, configuração, pareamento ou teste do agente.
+
+Q-28/D-320: operador confirmou a janela de extrato na SURIA/212 e não sabe
+confirmar o vínculo bancário da conta contábil 8. Registradas respostas sem
+repetir perguntas; divergência de saldos permanece sem causa, sem alteração.
+Pesquisadas soluções oficiais Domínio 1878/238 e APIs Microsoft GetSchema/
+ConnectionTimeout. Preparado roteiro restrito CICA-Consulta-Recorte-SURIA.ps1,
+dois SELECTs parametrizados/cabeçalhos e contagens, schema exato e máximo
+20 candidatos, senha EXTERNO digitada apenas no PC; sem históricos/valores/envio.
+Recebida autorização específica para execução manual guiada dessa sonda.
+Revisão estática passou; não há PowerShell no Mac, consulta ou resultado do PC.
+Hash final 054d736be382097ad6c76d15eb240d7aeff84895c7e097603c12e632c1f4ed4a.
+Atualizados registros/preparação privada e preparada transferência/comando com
+conferência de hash. Pareamento, transmissão, vínculo/IDs e demais gates pendentes.
+
+Q-28/D-320: tentativa humana da sonda parou no Get-FileHash, roteiro não
+encontrado no caminho esperado em Downloads/Windows; não executou ODBC.
+Reconferido arquivo original do Mac, 7.093 bytes/hash final idêntico. Preparada
+localização restrita pelo nome nas subpastas de Downloads, com execução somente
+de cópia com hash aprovado; se não localizada, transferir do Mac. Nenhuma
+alteração de roteiro, conexão, credencial, ERP ou backend; resultado da sonda pendente.
+
+Q-28/D-320: operador retornou resultado posterior de sucesso da sonda autorizada:
+um cabeçalho de empresa 212/conta contábil 8/09-2026 com 163 itens. ID e JSON
+guardados na evidência privada; revisão técnica do candidato consistente com
+os PDFs/recorte. Tentativa de caminho inexistente superada. scope_reviewed=false
+preservado, sem promover candidato a manifesto aprovado. Vínculo bancário,
+origem da diferença de saldos, acesso/ativação e LocalSystem continuam pendentes.
+Nenhuma senha recebida, dado financeiro enviado ao CICA, alteração ERP/remota,
+configuração ou pareamento; não repetir sonda ou pedir ID novamente.
+
+Q-28/D-320: responsável quer verificar os pontos pela interface. Conferida
+documentação oficial 43/1878; preparada consulta da conta 8 existente em
+Arquivos > Contas Contábeis, sem alteração. Cadastro pode não informar conta
+bancária; nome genérico não comprova vínculo. Causa do saldo inicial não
+determinada por esses artigos, sem inventar log/auditoria ou preenchimento
+automático. Ainda sem captura do cadastro ou nova ação ERP/SQL; gates mantidos.
+
+Q-28/D-320: recebida captura do cadastro da conta 8 — BANCO SICREDI, Analítica,
+Ativa, classificação compatível com o Razão. Agência/conta bancária e origem
+do saldo não aparecem. Registrada evidência privada e limite, sem repetir
+captura ou inferir vínculo. Preparada orientação de saída sem gravar e revisão
+do arquivo de importação/quem a realizou. Nenhuma alteração ERP, novo SQL,
+configuração, pareamento ou envio; pendências preservadas.
+
+Entrega documental D-320 solicitada pelo responsável: criado resumo simples
+docs/contad-continuidade-2026-11-06.md e prompt privado
+/Users/pedromachado/Downloads/CONTAD-prompt-continuidade.txt para outra sessão
+retomar no mesmo workspace. Registrados implantação e testes já feitos,
+evidências do PC versus verificações locais, pendências e próximo dado útil.
+Dados financeiros/identificador de extrato/login continuam fora do Git;
+prompt restrito, sem credenciais. Conferidos caminhos, links e consistência
+com a preparação privada; atualização apenas documental, sem testes funcionais,
+SQL, alteração remota, deploy, commit/push ou criação de sessão. Alterações
+anteriores preservadas; bloqueios não marcados como conclusão.
+
+## Retomada CONTAD — D-320/V-323 (06/11/2026)
+
+Responsável solicitou continuar pelos dois arquivos de continuidade. Conferidos
+HEAD 9057ca4, alterações locais preexistentes e preparação privada. A pergunta
+de origem do saldo foi corrigida após resposta humana: empresa fechada e arquivos
+fornecidos para teste são evidência autorizada do corpus; não bloqueá-lo por
+essa pergunta nem presumir dissolução legal ou causa da diferença observada.
+
+Implementados leitor do Razão PDF observado e CLI privada de confronto com
+OFX/PDF bancário, sem interface/banco/ERP. Corrigidas no desenvolvimento duas
+particularidades do layout: histórico sobreposto mistura as palavras com
+tolerância vertical ampla e deduplicação de glifos pode remover zeros distintos.
+Leitura preserva a camada numérica, colunas e totais explícitos. Arquivos de
+teste sintéticos cobrem essas falhas, escopo, ambiguidade e gravação segura.
+
+Rodada final: 139 testes aprovados/cinco skips de concorrência PostgreSQL,
+Ruff global/MyPy dos dois módulos/Django/migrações aprovados. CLI real final
+executada com conexão de banco e sockets bloqueados, originais intactos/hashes
+anteriores iguais e 163 linhas iguais à extração independente anterior.
+Relatório privado 0600: 159 candidatos únicos, dois grupos ambíguos, zero sobras
+por data/valor e saldos dos PDFs coincidentes; seis contrapartidas vazias mantidas.
+
+Atualizados decisões, plano, validações, dúvidas/checklists e continuidade.
+Evidências em .tmp/contad-ledger-evidence-2026-11-06, fora do Git. Sem novo acesso
+externo, SQL, pareamento, transmissão, liberação, custo, publicação ou aceite;
+nenhum trabalho anterior descartado. Novos eventos independentes: zero.

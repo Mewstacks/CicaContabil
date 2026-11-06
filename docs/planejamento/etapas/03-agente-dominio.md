@@ -255,15 +255,54 @@ operacional dessa rotina continua dependendo do piloto da etapa 12.
   informou Running/Automatic, versão correspondente e awaiting_configuration.
 - [x] Preservar conexão/permissões existentes e serviço em espera, sem salvar
   configuração, senha extraída ou tentativa de identidade alternativa.
-- [ ] Técnico fornecer credencial de integração somente leitura; preparar DSN
-  de sistema x64 SQL Anywhere 17 e testar configurador/LocalSystem no PC.
+- [x] Receber informação de disponibilidade da credencial EXTERNO, sem senha
+  no chat; não equivale a conexão ou permissões validadas.
+- [x] Receber relato de Test Connection successful no novo CICA_CONTAD x64/
+  SQL Anywhere 17, srvContabil e EXTERNO local; não equivale a teste do serviço.
+- [x] Conferir imagem com CICA_CONTAD no seletor de DSNs de sistema x64.
+- [x] Receber relato de conexão confirmada no configurador após orientação de
+  EXTERNO explícito; mensagem final localizada abaixo dos botões.
+- [ ] Conferir ausência de senha no novo DSN e modo efetivo da credencial;
+  validar LocalSystem após recorte/pareamento, preservando o DSN original.
+  Nome do banco/host/porta não foram presumidos.
 - [x] Publicar backend compatível/release 72 após backup/restore pontual,
   conferir hub.0078/intelligence.0031 nos dois aliases e web/worker saudáveis.
 - [ ] Concluir ativação/acesso CONTAD e autorizar recorte Q-28 antes do
   pareamento/envio e prova de retomada.
+- [x] Receber identificação do piloto: SURIA, código Domínio 212, 09/2026;
+  código informado pelo operador, sem consulta SQL ou cadastro remoto.
+- [ ] Conferir conta/referência e IDs internos de extrato do recorte Q-28;
+  não confundir com FITIDs bancários ou emitir pareamento genérico.
+- [x] Conferir captura de Lançamentos de Extrato Bancário aberta pelo operador;
+  conta vazia/11-2026 não comprovam consulta do recorte SURIA/09-2026.
+- [x] Receber captura com BANCO SICREDI/09-2026 e movimentos importados;
+  linhas visíveis conciliadas; operador depois transcreveu conta contábil 8.
+- [x] Registrar conta contábil 8 — BANCO SICREDI do recorte SURIA/212;
+  vínculo bancário e IDs de extrato continuam a exigir revisão própria.
+- [ ] Resolver divergência Q-28 entre saldos da captura de extrato Domínio e
+  dos PDFs antes de fechar recorte/parear; SURIA/212 confirmada pelo operador.
+- [x] Preparar sonda pontual x64/SELECTs parametrizados e receber autorização
+  específica de metadados/IDs/contagens, limitada a SURIA/212/conta 8/09-2026.
+- [x] Receber resultado da sonda executada pelo operador e revisar retorno:
+  um cabeçalho de empresa 212/conta 8/09-2026 e 163 itens, tecnicamente consistente.
+  Primeira tentativa de caminho inexistente superada; resultado informado,
+  sem prova de LocalSystem ou aprovação final do vínculo/recorte.
+- [ ] Concluir revisão contábil do vínculo/saldos antes de promover o candidato
+  a manifesto aprovado; manter configuração/pareamento/envio pendentes.
+  Operador pode levantar identificação explícita no cadastro da conta 8;
+  captura recebida confirma conta analítica/ativa BANCO SICREDI, sem agência/
+  conta bancária visíveis; vínculo e origem do saldo permanecem pendentes.
 - [ ] Fechar contratos reais Razão/títulos/parcelas/baixas Q-28/Q-46 e homologar.
+- [x] Salvar resumo simples e prompt privado de continuidade, a pedido do
+  responsável; [retomada](../../contad-continuidade-2026-11-06.md), sem concluir os gates.
 
 Resultados do PC são informados pelo operador, não controle automatizado ou
 homologação do ERP. Cadastro CONTAD está em ativação pendente; não usar os
 escritórios Bianchi/Cobalchini. Pacote sem Authenticode; checks Windows de V-311
 continuam históricos. O acesso Fly anterior indisponível foi superado.
+
+Retomada D-320/V-323 (06/11/2026): arquivos bancários/Razão aceitos como
+evidência de teste da empresa informada como fechada. Leitor PDF/CLI local
+confronta os 163 movimentos sem exigir a origem do saldo da captura Domínio.
+Essa entrega não aciona o serviço ou altera os gates de recorte/envio; não
+repetir instalação, sonda ou pergunta do importador para prosseguir no corpus.

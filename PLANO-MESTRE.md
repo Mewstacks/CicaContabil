@@ -1,5 +1,16 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Retomada CONTAD — D-320/V-323, 06/11/2026:** responsável informou que a
+empresa está fechada e forneceu os arquivos para teste; esse corpus está aceito
+como evidência local, sem exigir explicação do saldo da captura Domínio.
+Leitor repetível do Razão PDF e CLI privada OFX/PDF/Razão implementados localmente:
+163 movimentos coincidentes, zero sobras por data/valor, 159 candidatos únicos e
+dois grupos ambíguos; saldos dos PDFs iguais. 139 testes aprovados, cinco skips
+de concorrência PostgreSQL; Ruff global/MyPy dos módulos novos/Django aprovados.
+Execução real com rede/banco bloqueados e originais preservados. Relatório não
+confirma alocações nem inventa partidas. Sem mudança de interface ou publicação;
+acesso/ativação, agente real, títulos/DE-PARA e aceite permanecem pendentes.
+
 **Implantação CONTAD — D-320/V-322, 06/11/2026:** prévia privada não
 homologada implementada e publicada na **release Fly 72**, fonte f86ae4d/CI
 42231907397 aprovado. Migrações dos dois aliases, hashes do runtime web/worker,
@@ -9,12 +20,26 @@ restore isolado dos dois bancos/53 arquivos verificados, retenção de sete dias
 compute suspenso e chave temporária revogada. PostgreSQL local: 1.715 testes/
 163 subtestes aprovados, um skip; navegador sintético desktop/celular/claro/escuro,
 erro/teclado/download conferidos. No PC CONTAD, o operador instalou MSI 1.0.3
-íntegro e informou Running/Automatic/awaiting_configuration. Faltam credencial
-somente leitura, DSN de sistema x64 e recorte autorizado antes do pareamento;
-sem leitura/envio/importação ERP. Escritório próprio em activation_pending e
+íntegro e informou Running/Automatic/awaiting_configuration. Responsável agora
+informou possuir EXTERNO e sucesso no teste ODBC interativo do novo DSN x64.
+Imagem mostra CICA_CONTAD no configurador x64; operador agora informou
+conexão confirmada no configurador. Recorte informado: SURIA, código Domínio
+212, conta contábil 8 — BANCO SICREDI, competência 09/2026. Razão independente
+recebido/conferido: 163 datas/valores iguais ao extrato e saldos dos PDFs coerentes.
+A captura de extrato do Domínio mostra saldos diferentes na mesma SURIA/212,
+confirmada pelo operador; origem e vínculo bancário ainda não esclarecidos.
+Sonda restrita autorizada executada pelo operador: um cabeçalho candidato de
+SURIA/212/conta 8/09-2026, com 163 itens, consistente com o recorte. Faltam
+aprovação do vínculo/recorte, esclarecimento dos saldos, partidas
+completas, teste LocalSystem e acesso/ativação antes do pareamento;
+sem pareamento/transmissão/importação ERP. Escritório próprio em activation_pending e
 zero membros, acesso/ativação pendentes. IDs locais preservados e registros
 remotos renumerados por escolha humana. PC-19/03/09/12, Q-28/Q-46/Q-47, D-73,
 recuperação recorrente, treinamento e aceite continuam abertos.
+
+Resumo simples para retomada local: [CONTAD — continuidade de 06/11/2026](docs/contad-continuidade-2026-11-06.md).
+Prompt privado pronto em Downloads/CONTAD-prompt-continuidade.txt, sem nova
+sessão, deploy ou autorização de recorte gerados por essa entrega documental.
 
 **Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
 revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e

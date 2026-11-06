@@ -106,3 +106,53 @@ DE-PARA inicial com IA exige plano de contas/mapa, revisão e gates de custo e
 egressão Q-08/Q-09; não houve execução externa nesta entrega. Instalação Windows,
 recuperação operacional, 200 itens reais independentes, treinamento e aceite
 permanecem no piloto da etapa 12. Os testes sintéticos não os substituem.
+
+## Conferência local do Razão PDF observado — D-320/V-323
+
+O responsável aceitou os arquivos fornecidos pela cliente como evidência de
+teste da empresa informada como fechada. O leitor `ledger_evidence` e a CLI
+abaixo tornam repetível o confronto do efeito bancário do Razão PDF com o
+PDF/OFX bancários. Essa via não exige origem do saldo da captura anterior do
+Domínio para testar o corpus aceito. Não altera a entrada CSV de partidas
+completas acima, não confirma conciliações e não cria registros na aplicação.
+
+```bash
+PYTHONPATH=src .venv/bin/python -m scripts.compare_bank_ledger \
+  --ofx /caminho/extrato.ofx \
+  --bank-pdf /caminho/extrato-sicredi.pdf \
+  --ledger-pdf /caminho/razao-dominio.pdf \
+  --company-name 'EMPRESA DO RECORTE' \
+  --ledger-code 8 \
+  --output /pasta-privada/conferencia.json
+```
+
+O diretório de saída deve existir; o comando recusa destino existente e symlink,
+grava atomicamente com permissão 0600 e preserva os originais. A execução
+standalone inicializa settings isolados somente para reutilizar os leitores
+bancários; não carrega `.env`, conecta ao banco ou chama serviços externos.
+PDFs textuais no layout observado, A4 retrato, com cabeçalhos/páginas/colunas
+e totais explícitos são necessários; outros layouts e documentos incompletos
+são recusados. Limites: 25 MiB por fonte, 500 páginas/100 mil linhas no Razão;
+o leitor OFX existente conserva seu limite de 10 mil transações.
+
+O JSON conserva hashes, conta/período, saldos, linhas e referências de página/
+posição. Agrupa por data e débito menos crédito no Razão versus valor assinado
+do banco. `unique_candidate` indica apenas candidato único nessa chave;
+`ambiguous_candidates` preserva todos os candidatos sem desempate pela ordem.
+`bank_only`/`ledger_only` e contagens de sobras preservam multiplicidade.
+A comparação PDF/OFX também aparece separadamente, para que discrepância entre
+as duas representações bancárias permaneça visível.
+
+No corpus CONTAD: 163 movimentos, 159 candidatos únicos e dois grupos ambíguos,
+sem sobras por data/valor e com saldos dos PDFs iguais. São os mesmos eventos
+anteriores; não ampliam D-73. A rotina não comprova todas as partidas, títulos,
+vínculo de agente, regras de DE-PARA, importação ERP ou homologação integral.
+
+### Execução administrativa na imagem — D-321/V-324
+
+O mesmo comparador também está em `python manage.py compare_bank_ledger`,
+com os mesmos argumentos da CLI. Ele recebe caminhos locais acessíveis ao
+operador no runtime e não abre banco nem envia dados; a escolha dos arquivos
+continua limitada ao recorte autorizado. Não é uma rota de upload ou uma tela
+nova. A escrita privada/atômica está no módulo da aplicação e a CLI é incluída
+no manifesto de fonte, preservando a possibilidade de reproduzir a conferência.

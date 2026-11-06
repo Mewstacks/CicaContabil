@@ -290,9 +290,12 @@ Não repetir escolhas: serviço único .NET, HTTPS/HMAC, app Fly existente, arqu
 sem importação efetiva e prévia privada não homologada. Acesso Fly agora funciona.
 AnyDesk disponibilizado, controle nativo falhou e responsável escolheu testes
 guiados. No PC CONTAD informou MSI 1.0.3 íntegro, Running/Automatic e estado
-awaiting_configuration. SQL Anywhere 17 é a versão do DSN original x86; faltam
-DSN de sistema x64 e credencial de integração somente leitura, que ele confirmou
-não possuir. Próximo responsável técnico deve configurá-los diretamente no PC;
+awaiting_configuration. SQL Anywhere 17 é a versão do DSN original x86. O
+responsável agora informou possuir a credencial EXTERNO; não pedir novamente
+sua criação ou disponibilidade. Operador informou Test Connection successful
+no novo DSN CICA_CONTAD x64 e conexão confirmada no configurador instalado.
+Faltam confirmação de ausência de senha no DSN, modo efetivo de autenticação,
+permissões e LocalSystem, a executar diretamente no PC;
 não pedir senha no chat, ler segredo do registro ou recriar o DSN original.
 
 CONTAD é escritório distinto de Bianchi/Cobalchini, conforme confirmação. Cadastro
@@ -308,3 +311,51 @@ CONTAD, exportação false. Não repetir autorização pontual de custo/chave/de
 recuperação recorrente/RPO/D-73 seguem abertos. Q-46 mantém exemplos/regras de
 títulos/baixas/DE-PARA; Q-47 mantém
 layout/importação conferida em autorização posterior, sem escrita direta ERP.
+
+Continuidade do mesmo Q-28: SURIA COMPONENTES E ACESSORIOS PARA MODA LTDA
+confirmada pelo responsável (nome inicial URIA), competência 09/2026; PDF/OFX
+Sicredi em Downloads identificados e iguais ao piloto anterior. Não perguntar
+novamente empresa/período/arquivos. Código Domínio **212** informado pelo
+operador; não perguntar novamente. Consultar apenas a conta existente em
+Movimentos > Lançamentos de Extrato Bancário, sem incluir/gravar/importar.
+Referência da conta/IDs internos
+de extrato, revisão e acesso/ativação CONTAD permanecem pendentes para emitir
+manifesto; não substituir por FITID do OFX ou contas de outro plano de contas.
+
+Captura posterior mostra BANCO SICREDI/09-2026, movimentos importados e linhas
+visíveis conciliadas. Operador depois transcreveu código contábil **8**;
+não perguntar novamente. Razão dessa conta em 01–30/09/2026 agora recebido,
+quatro páginas conferidas, 163 datas/valores iguais ao banco e saldos dos PDFs
+coerentes. Não pedir novamente esse relatório. Ainda faltam referência/vínculo
+bancário, IDs internos e partidas completas/revisão semântica. A captura não
+prova conciliação integral; demais pendências do recorte/acesso permanecem abertas.
+
+Conflito real do mesmo Q-28: saldos da janela de extrato Domínio na captura
+diferem dos dois PDFs. Operador confirmou a mesma SURIA/212; não perguntar
+novamente empresa ativa. Não sabe confirmar o vínculo da conta contábil 8 com
+a conta bancária; manter pendente, sem concluir que seja outra conta.
+Origem da diferença segue aberta, sem alterar saldos ou parear; valores privados.
+
+Responsável autorizou sonda pontual somente leitura de metadados/IDs/contagens
+na CONTAD, empresa 212/conta 8/09-2026, sem históricos/valores/envio ao CICA.
+Execução posterior informada pelo operador: um cabeçalho de 212/conta 8/09-2026,
+163 itens; candidato/limites conferidos, ID privado já disponível. Não pedir
+novamente o ID nem repetir a sonda/autorização sem motivo. Resultado informado
+do PC não é prova de LocalSystem, vínculo bancário ou aprovação final do recorte.
+A revisão da contadora ainda deve esclarecer vínculo e divergência de saldos.
+
+Cadastro da conta 8 já mostrado: BANCO SICREDI, Analítica, Ativa, sem agência/
+conta bancária visíveis na tela enviada. Não pedir novamente essa captura nem
+concluir vínculo pela descrição. Próxima evidência é identificação do arquivo
+original usado na importação/quem a realizou e origem do saldo inicial;
+existência de histórico acessível no Domínio não foi comprovada.
+
+**Atualização humana D-320/V-323, 06/11/2026:** responsável esclareceu que a
+empresa está fechada e os arquivos foram fornecidos para teste, determinando
+usá-los como evidência. Para o corpus local, não exigir origem do saldo da tela,
+identificação do importador ou nova confirmação dos arquivos; a orientação
+anterior acima deixa de ser o próximo passo obrigatório desses testes.
+Leitor repetível/CLI confrontaram 163 linhas bancárias com o Razão fornecido,
+sem sobras por data/valor e com dois grupos ambíguos preservados. Q-28 conserva
+acesso/ativação e recorte próprio para agente/transporte reais; não interpretar
+a aceitação dos arquivos como autorização de envio ou partidas faltantes.

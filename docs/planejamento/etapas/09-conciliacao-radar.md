@@ -274,6 +274,14 @@ rotina nesta rodada. Nova candidata de fonte com 809 hashes conferidos.
 - [ ] Concluir acesso/ativação e recorte autorizado para uso autenticado real;
   cadastro CONTAD ainda em ativação pendente/sem membros.
 - [ ] Obter fonte independente real de Razão/títulos e aprovar semântica Q-46.
+- [x] Receber identificação do recorte SURIA/212, conta contábil 8 — BANCO
+  SICREDI, 09/2026; captura bancária com linhas visíveis já conciliadas.
+- [x] Receber/conferir quatro páginas do Razão independente da conta 8 em
+  01–30/09/2026: 163 linhas e datas/valores iguais ao banco, sem alocação automática.
+- [ ] Resolver Q-28: saldos da captura de extrato Domínio diferem dos PDFs;
+  SURIA/212 confirmada pelo operador, origem pendente, sem ajustar saldo por inferência.
+- [ ] Obter partidas completas/revisão semântica e vínculo da conta/IDs do
+  recorte; relatório de uma conta não completa contrato de importação do Razão.
 - [ ] Concluir importação/layout Q-47 em entrega autorizada própria, DE-PARA
   com IA sob Q-08/Q-09, D-73, treinamento e aceite CONTAD.
 
@@ -281,3 +289,20 @@ O responsável escolheu preparar somente arquivo nesta entrega; prévia privada
 é explicitamente não homologada. Gate contábil permanece false; preview não
 registra exportação, importação, baixa ou escrituração. V-322 distingue as
 rodadas de teste e os limites da versão. Não encerrar PC-19 por esta prévia.
+
+## Retomada dos arquivos fornecidos — D-320/V-323 (06/11/2026)
+
+- [x] Registrar informação humana de empresa fechada e aceitar os arquivos
+  fornecidos como evidência do teste local, sem exigir origem do saldo da captura.
+- [x] Implementar leitura repetível do Razão PDF observado, validando folhas,
+  empresa/conta/período, colunas, sequência de saldos e totais, sem fabricar partidas.
+- [x] Gerar conferência privada OFX/PDF/Razão com hashes e linhas rastreáveis:
+  163 coincidências, 159 candidatos únicos, dois grupos ambíguos e zero sobras.
+- [x] Validar 139 testes, cinco skips PostgreSQL explícitos; execução real com
+  rede/banco bloqueados, fontes intactas e saída 0600; Ruff/MyPy/Django aprovados.
+- [ ] Completar uso autenticado/agente, títulos/baixas/DE-PARA, partidas reais
+  quando necessárias e aceite; CLI local não encerra essas entregas.
+
+A pendência histórica de explicar o saldo da captura não bloqueia este corpus,
+por esclarecimento humano posterior. Não reabrir a pergunta para os testes.
+[Uso da CLI e limites](../../conciliacao-razao-normalizado.md).

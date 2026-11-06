@@ -3007,3 +3007,320 @@ fora do índice os registros locais preexistentes D-316/D-317 e V-318/V-319.
 Código implantado continua f86ae4d/CI aprovado; não repetir toda a regressão por
 atualização documental. Conferir diff/escopo/hashes e marcar o commit documental
 com skip ci, sem alterar workflows ou dispensar checks de uma mudança funcional.
+
+Continuidade D-320 (06/11/2026): responsável informou agora que possui a
+credencial EXTERNO do Domínio da cliente. Supera a indisponibilidade antes
+relatada; não pedir novamente criação de usuário nem solicitar senha no chat.
+Retomar configuração guiada do novo DSN de Sistema x64/SQL Anywhere 17,
+preservando o DSN x86 e demais conexões. Disponibilidade informada não prova
+credencial válida, tipo Externo/permissões, conexão ou acesso LocalSystem.
+Senha digitada somente no PC; nenhum salvamento/pareamento/envio antes do
+recorte/autorização Q-28 e acesso/ativação. Primeiro passo: abrir administrador
+ODBC x64 e a configuração do driver 17; não adivinhar servidor/banco/porta.
+
+Continuidade guiada D-320: operador informou que abriu a tela de configuração
+do SQL Anywhere 17. Preparar o novo DSN como CICA_CONTAD, sem sobrescrever
+conexão preexistente. Antes de preencher servidor/banco/host ou testar, conferir
+os parâmetros reais na conexão x86 já usada pelo Domínio, apenas pela interface
+ODBC e fechando com Cancelar. Ler somente nomes técnicos necessários, sem
+copiar/extrair credenciais ou enviar conexão completa. Abertura da tela não
+comprova DSN salvo ou conexão válida; salvar configuração do agente e parear
+ainda dependem do recorte/autorização e acesso/ativação registrados em Q-28.
+
+Continuidade guiada D-320: operador confirmou Server name **srvContabil**
+na conexão existente da cliente. Usar esse valor real no novo DSN CICA_CONTAD;
+selecionar autenticação Database e conexão a banco já em execução, com usuário
+EXTERNO e senha digitada localmente. Executar apenas Testar conexão e aguardar
+resultado antes de gravar o DSN; não inventar host, porta ou nome do banco nem
+alterar a conexão original. Este teste não pareia o agente nem envia dados ao CICA.
+
+Continuidade D-320: operador informou **successful** no Test Connection do
+novo DSN x64 CICA_CONTAD/SQL Anywhere 17, servidor srvContabil e credencial
+EXTERNO preenchida localmente. Registrar sucesso informado do ODBC interativo;
+não equivale a prova de permissões somente leitura, configurador, serviço
+LocalSystem, pareamento ou sincronização. Prosseguir salvando somente o novo
+DSN, retirando a senha antes de OK; no configurador usar credenciais explícitas,
+desmarcando Usar autenticação já configurada no DSN. Não alterar o DSN original.
+Teste do configurador fica restrito à consulta fixa local de diagnóstico, sem
+salvar configuração do agente ou Conectar à CICA antes de recorte/ativação Q-28.
+
+Continuidade D-320: imagem fornecida pelo operador mostra Domínio Local,
+CICA_CONTAD no seletor de DSNs e SQL Anywhere 17; o seletor enumera apenas
+DSNs de sistema x64. A imagem ainda mostrava autenticação pelo DSN marcada,
+orientada troca para EXTERNO explícito. Operador agora informou clicar em
+Testar sem perceber resultado. Não classificar como sucesso ou falha ODBC.
+Código do configurador da versão instalada conferido (sem diff desse arquivo
+entre 1bf8549 e HEAD): resultado/erro aparece no label abaixo dos botões, sem
+modal, com Aguarde durante execução. Orientar rolagem ao fim/maximização e
+leitura dessa mensagem antes de repetir teste, trocar parâmetros ou parear.
+
+Continuidade D-320: operador informou **conexão confirmada** no configurador
+instalado, depois da orientação de EXTERNO explícito. Registrar como sucesso
+informado de conexão/consulta mínima local; não equivale ao serviço LocalSystem,
+pareamento, transmissão ou homologação. Não repetir teste já aprovado sem motivo.
+Próximo passo é preparar pareamento restrito: confirmar situação do CONTAD no
+backend por consulta somente leitura e obter o recorte já exigido por Q-28
+(empresa/código Domínio, conta e competência anterior completa; extratos/IDs
+revisados antes de emitir manifesto). Endereço HTTPS do app já conhecido:
+https://cicacontabil.com.br/. Não emitir código genérico sem recorte nem ativar
+contrato/módulo/usuário por inferência; acesso/ativação e provas reais seguem abertos.
+
+Recorte Q-28/D-320 informado pelo responsável: **URIA COMPONENTES E ACESSORIOS
+PARA MODA LTDA**, competência **09/2026**; arquivos correspondentes já estão em
+Downloads. Localizar e analisar somente esses arquivos para conferir conta e
+código Domínio, preservando originais; nenhuma senha ou dado financeiro em logs
+versionados. Identidade bancária/código/IDs ainda dependem das fontes e revisão;
+não adivinhar ou emitir manifesto de carteira inteira. Essa consulta local não
+equivale a sincronização/ativação ou importação no ERP. Usar evidências locais
+anteriores se os hashes dos originais ainda coincidirem, evitando retrabalho.
+
+Continuidade Q-28/D-320: diferença URIA/SURIA apresentada ao responsável, que
+confirmou tratar-se de **SURIA COMPONENTES E ACESSORIOS PARA MODA LTDA**, como
+consta no extrato. Competência 09/2026 mantida. Responsável não sabe o código
+Domínio: orientar consulta somente leitura em Controle > Empresas, localizar
+SURIA e informar Código, sem editar/gravar cadastro. Não reabrir identidade,
+período ou pedir novamente arquivos bancários já disponíveis.
+PDF/OFX Sicredi de Downloads têm os mesmos hashes do piloto V-316 e período
+09/2026; a conta no OFX é um identificador longo terminado nos dígitos da conta
+do PDF, mas essa relação ainda exige conferência. Aproveitar os 42 checks/163
+eventos históricos sem
+alegar nova execução. Conta completa e manifesto de preparação ficam privados
+fora do Git; não usar FITIDs bancários como IDs internos do Domínio. O plano de
+contas inspecionado pertence a outra empresa e foi excluído deste recorte,
+sem presumir contas/DE-PARA compartilhados. Código Domínio, referência real da
+conta e IDs revisados ainda faltam ao manifesto; nenhum código genérico emitido.
+Preflight Fly somente leitura confirmou CONTAD activation_pending, zero membros,
+empresas, contas financeiras, contratos, enrollments e agentes. Não houve
+ativação, upload financeiro, cadastro de empresa/conta ou alteração de produção.
+
+Continuidade Q-28/D-320: responsável informou **212** como código Domínio da
+SURIA COMPONENTES E ACESSORIOS PARA MODA LTDA; competência 09/2026 mantida.
+Registrar como identificação informada pelo operador, sem alegar consulta SQL
+ou vínculo remoto já executado. Não pedir novamente esse código. Próxima
+consulta guiada: na empresa 212, abrir Movimentos > Lançamentos de Extrato
+Bancário e consultar Conta contábil do Banco para 09/2026, apenas identificando
+a conta Sicredi existente. Não incluir/gravar/importar lançamentos. Referência
+real da conta, relação com o extrato bancário e IDs internos revisados continuam
+pendentes; não emitir código de pareamento genérico nem deduzir esses campos
+do código da empresa ou dos FITIDs do OFX.
+
+Continuidade guiada Q-28/D-320: primeira captura mostrava Escrita Fiscal;
+operador em seguida abriu Lançamentos de Extrato Bancário, conforme nova
+captura. Campo da conta vazio e competência 11/2026: grade vazia nesse estado
+não comprova ausência de extrato em 09/2026. Prosseguir somente com consulta,
+mantendo SURIA/212, mudando filtro para 09/2026 e usando F2 no campo da conta
+para localizar as contas Sicredi existentes. Se houver mais de uma, revisar a
+lista antes de escolher; não presumir vínculo nem cadastrar conta/lançamento.
+Atalho de consulta conferido na documentação oficial Domínio, solução 6705.
+
+Continuidade Q-28/D-320: nova captura do operador mostra BANCO SICREDI e
+competência 09/2026 em Lançamentos de Extrato Bancário, com movimentos de origem
+Importação e linhas visíveis marcadas como conciliadas. Registrar somente esse
+trecho observado; não declarar toda a competência conciliada nem ausência de
+pendências. Código da conta destacado na imagem não foi lido com segurança:
+pedir transcrição apenas desse número antes de fixar a referência. Nome da
+conta não prova relação com o identificador bancário dos arquivos nem fornece
+IDs internos de extrato. Não gravar/reimportar/desconciliar para testar o agente;
+nenhum pareamento genérico ou transmissão liberados por essa captura.
+
+Continuidade Q-28/D-320: operador transcreveu **8** como código da conta
+contábil BANCO SICREDI da consulta de SURIA/212, competência 09/2026. Registrar
+como ledger_code do recorte; não pedir novamente nem usar esse código como
+agência/conta bancária ou I_LANCAMENTO. A referência financeira/relação com os
+arquivos e os IDs internos revisados seguem pendentes, assim como acesso/ativação.
+Próxima consulta guiada do levantamento já autorizado: emitir localmente o
+Razão somente da conta 8, de 01/09/2026 a 30/09/2026, sem consolidar outras
+empresas, para obter a fonte contábil independente. Caminho e filtro conferidos
+na documentação oficial Domínio (1817/3132). Emitir relatório não altera
+lançamentos; não importar, regravar, desconciliar ou habilitar SQL novo. Não
+declarar o Razão obtido antes do arquivo/resultado real nem parear sem manifesto.
+
+Continuidade Q-28/D-320: responsável informou ter transferido o Razão solicitado
+para Downloads do Mac. Localizar o PDF e conferir titular, conta 8 e período
+01–30/09/2026 antes de utilizá-lo. Se corresponder ao recorte, preservar original,
+registrar hash e conferir páginas, integridade dos saldos e cobertura local
+contra as fontes bancárias já autorizadas. Evidência financeira e derivados
+ficam privados/ignorados; não inferir partidas ausentes, conciliação, vínculo
+de extrato, IDs internos ou ativação. Nenhuma autorização adicional de SQL,
+escrita ERP, envio remoto, IA paga ou homologação decorre dessa transferência.
+
+Resultado Q-28/D-320: Razão.pdf recebido em Downloads, quatro páginas da SURIA,
+conta 8 — BANCO SICREDI, 01–30/09/2026, SHA-256
+af1ca6b11f558765531bb8009538ce585bbe781629732b281d355427273889d9.
+Inspeção visual das quatro páginas e extração numérica local conferiram 163
+linhas, números de lançamento distintos, todos os saldos sucessivos e os totais
+impressos. As 163 datas/valores assinados formam o mesmo multiconjunto das fontes
+bancárias V-316, cujos hashes foram reconferidos. Duas chaves data/valor têm
+repetição (quatro linhas); não transformar igualdade em alocação automática.
+Relatório de uma conta não fornece todas as partidas; seis linhas não mostram
+contrapartida nesse campo. Não preencher contas faltantes nem usar numeração
+do Razão como ID de extrato. Não soma 326 eventos nem cumpre os 200 de D-73.
+
+Conflito real Q-28 no mesmo recorte: saldos inicial/final do PDF bancário e
+do Razão coincidem, mas divergem dos saldos visíveis na captura da janela de
+extrato do Domínio. Valores e diagnóstico ficam privados, fora do Git. Confirmar
+a empresa ativa dessa janela e origem da diferença antes de fechar recorte ou
+parear; não corrigir saldos nem invalidar a escrituração por inferência.
+Associação da conta bancária segue para confirmação humana, IDs revisados e
+acesso/ativação continuam pendentes. Nenhum arquivo financeiro enviado, SQL
+novo, configuração de serviço ou alteração ERP nesta conferência local.
+
+Continuidade Q-28/D-320: responsável confirmou que a janela de Lançamentos de
+Extrato Bancário também estava na **SURIA — 212**. Não repetir a pergunta de
+empresa ativa. Informou **não saber confirmar** o vínculo da conta contábil 8
+com a conta bancária dos arquivos; manter vínculo pendente, sem concluir que
+seja outra conta. A diferença de saldos na mesma empresa permanece real e sem
+causa comprovada. Prosseguir com pesquisa documental e consulta guiada somente
+leitura dos parâmetros existentes, sem corrigir saldo, reimportar ou parear.
+Não transformar essa resposta em autorização de SQL novo, envio ou ativação.
+
+Preparação Q-28/D-320 após as respostas: documentação oficial (1878/238) descreve
+saldo informado na rotina e escolha explícita da conta contábil na importação;
+não explica a causa da diferença observada nem comprova a associação bancária.
+Preparar, sem executar, diagnóstico pontual revisável no PowerShell x64:
+metadados de somente duas tabelas já observadas na Fedrizzi e SELECT fixo do
+cabeçalho por empresa 212/conta contábil 8/09-2026; no máximo 20 candidatos,
+com contagem de itens por cada ID retornado, sempre no mesmo mês/empresa.
+Não ler históricos, valores, outras empresas ou toda a carteira; senha EXTERNO
+digitada apenas no PC, sem arquivo/registro/rede adicional. A consulta é proposta
+para esta instalação CONTAD, ainda não validada nela; não presumir o schema.
+Nenhum ID retornado será automaticamente homologado ou usado em pareamento.
+D-309 veda SQL novo por inferência: obter autorização específica antes da
+execução dessa sonda, preservando o bloqueio de escrita/pareamento e divergência.
+
+**Autorização específica recebida em Q-28/D-320:** responsável respondeu
+“Sim, autorizo essa consulta” para a sonda preparada de metadados, identificadores
+de extrato e contagens, somente leitura no PC da cliente, limitada à empresa
+212/conta contábil 8/setembro-2026, sem históricos/valores, alterações ERP ou
+envio ao CICA. Prosseguir com a execução manual guiada desse roteiro; não
+repetir autorização. Conferir nomes exatos dos objetos nos metadados antes
+dos dois SELECTs fixos e parâmetros; saída contém apenas candidatos para revisão.
+A aprovação não resolve vínculo bancário/diferença de saldos nem autoriza
+consulta do Razão por SQL, ampliação de recorte, pareamento ou transmissão.
+
+Continuidade operacional Q-28/D-320: operador recebeu arquivo não encontrado
+no Get-FileHash de Downloads do Windows; a execução do roteiro não começou.
+Isso não comprova ausência em outras pastas nem falha ODBC/schema. Original do
+Mac reconferido com o mesmo SHA-256 aprovado. Orientar localização somente do
+roteiro nas subpastas de Downloads do Windows, verificando o hash antes de
+executá-lo; se não localizado, transferir o arquivo do Mac. Preservar autorização
+e escopo existentes, sem pedir nova senha/autorização ou mudar o script.
+
+Resultado informado Q-28/D-320: operador executou o roteiro autorizado e
+retornou JSON com um cabeçalho candidato, empresa 212/conta contábil 8,
+competência 01/09/2026 e 163 itens no período. Identificador do cabeçalho e
+retorno integral guardados somente na preparação privada. Dados conferem com
+o recorte proposto e contagem dos PDFs; não pedir novamente esse identificador
+nem repetir a sonda sem motivo. O sucesso é informado pelo operador, não
+observação automatizada ou prova de LocalSystem. Não houve senha recebida.
+Revisão técnica do candidato é consistente, mas scope_reviewed permanece false:
+contadora ainda precisa confirmar a correspondência bancária e esclarecer a
+divergência de saldos. Não promover candidato a manifesto aprovado, configurar
+serviço, parear, enviar dados ou ativar acesso/contrato por esse retorno.
+
+Continuidade Q-28/D-320: responsável perguntou se pode verificar vínculo e
+diferença no próprio Domínio. Pode levantar evidências por consulta da conta 8
+existente em Arquivos > Contas Contábeis (solução oficial 43), sem editar/gravar.
+Não prometer agência/conta nesse cadastro: a documentação confirma identificação
+contábil, não vínculo bancário obrigatório. Se houver identificação bancária
+explícita, confrontá-la; somente descrição BANCO SICREDI não fecha o vínculo.
+A solução 1878 trata o saldo inicial como valor informado na rotina de extrato,
+sem demonstrar nesta instalação sua origem ou espelhamento automático do Razão.
+Não inventar tela de log/auditoria nem concluir causa pelo campo. Se o histórico
+do preenchimento/importação não estiver disponível, origem ainda exige quem
+operou ou responsável contábil. Prosseguir com consulta guiada do cadastro,
+preservando revisão final, recorte/pareamento e proibição de ajuste/importação.
+
+Continuidade Q-28/D-320: captura recebida do cadastro mostra código 8,
+BANCO SICREDI, tipo Analítica e situação Ativa, com classificação contábil
+compatível com o Razão. Não aparecem agência ou número da conta bancária na
+tela enviada. Registrar limite dessa evidência, sem concluir que inexista
+identificação em todo o sistema ou que a descrição genérica prove o vínculo.
+Não pedir repetição dessa captura nem abrir abas fiscais sem finalidade para
+esses pontos. Orientar saída sem gravar e conferência do arquivo original
+usado na importação/quem a realizou para vínculo e origem do saldo; não
+presumir a existência de um histórico de importação acessível nessa instalação.
+
+Continuidade documental D-320: responsável pediu resumo simples do trabalho
+CONTAD e prompt para outra sessão do Codex continuar. Entregar resumo local em
+docs/contad-continuidade-2026-11-06.md e prompt privado em Downloads, com caminhos
+das evidências e próximo passo real. Não abrir/criar outra sessão, executar
+novas consultas ou publicar alteração por esse pedido. Separar o que foi
+implantado, o que foi informado pelo operador e o que segue pendente. Identificador
+de extrato, conta bancária, valores e login continuam fora do Git; incluir somente
+no prompt/evidências privados o necessário à continuidade, sem senhas/tokens.
+Preservar alterações locais anteriores, IDs canônicos e autorizações já dadas;
+resumo não cria plano concorrente, aprovação de recorte ou conclusão de etapa.
+
+Retomada D-320 (06/11/2026): responsável solicitou nesta conversa “sim,
+continue o trabalho com base nesses dois arquivos”, referindo-se ao resumo e
+ao prompt de continuidade. Prosseguir em PC-19/etapas 03/09/12 a partir das
+evidências locais existentes, sem reinstalar ou repetir a sonda concluída.
+Conferir integridade das fontes e o percurso de acesso já implementado enquanto
+aguarda a informação de quem importou o extrato sobre arquivo e saldo inicial,
+no mesmo Q-28. A retomada não aprova vínculo/recorte, condição de ativação,
+convite, pareamento, envio de dados, SQL adicional, custo ou novo deploy.
+
+Esclarecimento humano na retomada D-320/Q-28 (06/11/2026): responsável afirmou
+“a empresa esta fechada e ela passou arquivos para teste. ponto final. utilize
+isso como evidencia”. Tratar a declaração de empresa fechada e o fornecimento
+dos PDF/OFX/Razão como evidência autorizada do corpus de teste local. Não exigir
+origem do saldo da janela Domínio ou identificação de quem importou para
+prosseguir nesses testes, nem repetir essa pergunta. A divergência observada
+fica como limite da evidência anterior, sem causa presumida e sem bloquear
+testes locais. Aproveitar resultados já verificados e avançar no confronto
+independente com o Razão fornecido; não contar replay como novos eventos ou
+inventar contrapartidas. Não interpretar “fechada” como baixa cadastral/legal,
+aprovação de partidas ausentes, autorização de escrita/importação ERP,
+pareamento/transmissão, ativação comercial, IA paga ou homologação integral.
+
+Implementação local da retomada D-320: tornar repetível o confronto já feito
+com os arquivos, por leitor do layout textual de Razão Domínio observado e
+CLI privada de conferência OFX/PDF bancário/Razão. Ler identidade/período/conta,
+colunas explícitas de débito/crédito/saldo, páginas e totais; rejeitar documento
+incompleto/inconsistente. Preservar hash e localização das linhas e multiplicidade
+de datas/valores; coincidência é candidato, com ambiguidades expostas e nenhuma
+conciliação automática. É evidência do efeito da conta no Razão, sem fabricar
+partidas completas ou cadastrar contas. Saída local restrita, sem banco de
+aplicação, alteração de interface, rede, provedor, ERP ou habilitação de gates.
+
+Resultado local da retomada D-320/V-323: leitor/CLI implementados e exercitados
+com os arquivos fornecidos; 163 coincidências por data/valor, 159 candidatos
+únicos, dois grupos ambíguos e saldos dos PDFs iguais. 139 testes aprovados,
+cinco skips antigos de concorrência PostgreSQL; Ruff global/MyPy dos dois
+módulos/Django aprovados. Execução real final sem conexões de rede/banco,
+fontes preservadas e relatório 0600; nenhuma confirmação automática ou escrita
+ERP. Não reabrir a origem do saldo da captura como condição do corpus local.
+
+## D-321 — Publicar a retomada e concluir pendências CONTAD (06/11/2026)
+
+Origem: responsável solicitou “faça o deploy e termine as pendencias” após a
+entrega D-320/V-323. Publicar a versão revisada no app Fly existente e avançar
+nas pendências PC-19/etapas 03/09/12, preservando arquivos/dados e alterações
+locais anteriores. A autorização de publicação não precisa ser repetida.
+Usar o corpus fornecido já aceito como evidência, sem reabrir a origem do saldo.
+Conferir versão/CI/artefato, recuperação existente e pós-deploy; não ampliar
+recursos/recorrência ou consumir IA paga por inferência. Manter saída privada
+não homologada e exportação Domínio false. Não inventar títulos/contrapartidas,
+condição comercial/papel ou aceite humano para marcar pendência concluída.
+Levantar primeiro o estado atual e preparar ações concretas; solicitar somente
+informação/autorização específica que realmente faltar, enquanto avança nas
+frentes independentes. Não enviar convite/mensagem sem instrução explícita,
+nem modificar o Domínio ou executar consulta SQL adicional não autorizada.
+
+Escolha específica D-321 (06/11/2026): diante da proposta de somente
+Conciliação, responsável já indicada como Proprietária e contrato existente de
+R$ 200/mês sem iniciar cobrança automática, o responsável escolheu **“Ativar,
+sem enviar convite”**. Ativar esse escopo no escritório próprio CONTAD; não
+enviar convite/recuperação/mensagem, gerar cobrança ou definir senha por essa
+ação. Reutilizar usuário existente quando a identidade confirmada já tiver
+conta; verificar o fluxo seguro antes de criar conta sem acesso utilizável.
+O responsável confirmou também que o PC CONTAD está disponível para passos
+guiados do agente. Não retomar controle alternativo AnyDesk nem reinstalar.
+
+Preparação do deploy D-321: expor a mesma conferência local por comando Django
+administrativo incluído na imagem, sem novo endpoint/tela, importação ou envio
+de arquivos da cliente por inferência. Reutilizar gravação privada/atômica no
+módulo da aplicação para que a CLI não dependa de `scripts` ausente no runtime;
+incluir a CLI no manifesto de fonte. Validar comando, CLI e a versão exata
+antes de publicar. A saída permanece conferência, não partidas contábeis.

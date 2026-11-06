@@ -12,7 +12,11 @@ from pathlib import Path
 
 ROOT_FILES = {"Dockerfile", "fly.toml", "manage.py", "pyproject.toml", "uv.lock", "README.md"}
 SOURCE_ROOTS = {"src", "runtime", "reporting", "deploy", "tests"}
-RELEASE_SCRIPTS = {"scripts/prepare_contad_release.py", "scripts/preview_title_allocations.py"}
+RELEASE_SCRIPTS = {
+    "scripts/prepare_contad_release.py",
+    "scripts/preview_title_allocations.py",
+    "scripts/compare_bank_ledger.py",
+}
 PROTECTED_SUFFIXES = {".pfx", ".pem", ".key", ".db", ".sqlite3", ".log"}
 
 
@@ -31,11 +35,7 @@ def prepare(root: Path, destination: Path) -> dict[str, object]:
     files = {}
     for name in sorted(set(paths) - {""}):
         path = Path(name)
-        allowed = (
-            name in ROOT_FILES
-            or path.parts[0] in SOURCE_ROOTS
-            or name in RELEASE_SCRIPTS
-        )
+        allowed = name in ROOT_FILES or path.parts[0] in SOURCE_ROOTS or name in RELEASE_SCRIPTS
         if not allowed:
             continue
         if "node_modules" in path.parts:
