@@ -354,7 +354,12 @@ PC-19 nem a entrega contratual. Próximo insumo externo: inventário real do PC.
 ### Continuidade D-323/V-328 — recuperação de cobertura (07/11/2026)
 
 - [x] Corrigir abandono/reinício de leitura inconsistente e proteger recibos concluídos.
-- [x] Persistir erro/horário e oferecer diagnóstico administrativo sem dados/segredos.
-- [x] Exercitar concorrência e retomada em 62 testes PostgreSQL focados.
-- [ ] Concluir regressão/CI da fonte exata e publicar/verificar a correção.
-- [ ] Obter inventário real Q-28; demais fontes/gates D-73 continuam abertos.
+- [x] Persistir erro/horário e diagnóstico administrativo sem dados/segredos.
+- [x] Foco PostgreSQL 62 e regressão local 1.801/163 aprovados, um skip explícito.
+- [x] Fonte c8b0c50/CI 42355490505 e release 75, hashes, migrações, integridade,
+  recursos, saúde, diagnóstico somente leitura e acesso conferidos.
+- [ ] Inventário real Q-28, upgrade/coleta da carteira e fontes contábeis/financeiras.
+- [ ] Demais gates Q-46/Q-47/IA, D-73, recuperação recorrente, treinamento e aceite.
+
+Nenhuma varredura real da carteira ocorreu; a recuperação foi testada com dados
+sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.

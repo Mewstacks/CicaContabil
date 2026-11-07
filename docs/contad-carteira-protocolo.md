@@ -1,14 +1,14 @@
 # Carteira CONTAD — contrato de integração em implementação
 
-**Estado verificado em V-327:** backend publicado na release 74, fonte e9311eb,
-[CI 42294764025 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42294764025).
+**Estado verificado em V-328:** backend publicado na release 75, fonte c8b0c50,
+[CI 42355490505 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42355490505).
 MSI 1.0.4 aprovado em Windows descartável; upgrade no PC e inventário real
 aguardam o operador, que confirmou indisponibilidade. Manifesto real continua
 piloto, com uma empresa/conta e 163 eventos. Esta fase não conclui o projeto.
 
 | Capacidade | Implementada/testada | Publicada | Provada na CONTAD | Homologada/aceita |
 |---|---|---|---|---|
-| Protocolo/recepção da carteira de empresas | Sim; PostgreSQL, reenvio e concorrência | Backend 74 | Ainda sem scan real | Não |
+| Protocolo/recepção da carteira de empresas | Sim; PostgreSQL, reenvio e concorrência | Backend 75 | Ainda sem scan real | Não |
 | Inventário de metadados/contagens | Roteiro preparado/parser Windows aprovado | Arquivo local preparado | Não executado | Não |
 | Agente 1.0.4 | 52 testes/26 checks Windows, MSI/hash aprovados | Artefato CI/cópia local | PC mantém 1.0.3 | Não |
 | Contas/referências/Razão/títulos | Contratos anteriores não equivalem a adaptadores reais | Nenhuma fonte nova ativada | Piloto bancário anterior preservado | Não |
@@ -54,6 +54,30 @@ Isto é **varredura por chave**, não snapshot transacional do ERP: mudanças co
 contagem igual durante a leitura podem exigir o ciclo seguinte. Não comprova
 uma fotografia consistente nem substitui a homologação de atualização real.
 O teto de um milhão de cadastros é explícito e recusa a carga; não corta dados.
+
+V-328 corrige a leitura que podia permanecer presa quando uma divergência
+de cobertura era seguida pelo retorno da contagem original. A recusa 409 com
+`code=source_count_changed` ou `coverage_mismatch` abandona a leitura aberta
+atomicamente, guarda erro/horário e conserva as páginas anteriores. A próxima
+abertura começa do zero, mesmo com a mesma contagem. Solicitação atrasada não
+abandona o progresso atual; recibo de carga concluída continua repetível.
+O protocolo e o MSI 1.0.4 anterior permanecem compatíveis.
+
+## Diagnóstico administrativo de cobertura
+
+No ambiente administrativo do servidor, o comando somente leitura
+`python manage.py portfolio_sync_status --organization <UUID-ou-slug>` apresenta
+estado do agente, último heartbeat/idade, contagens, conclusão/abandono e erros.
+`--agent <UUID>` limita ao agente do mesmo escritório; `--limit 1..100` limita
+scans por agente e informa quantos foram omitidos. Não imprime segredos, DSN,
+nomes de empresas, documentos ou valores financeiros. No PostgreSQL usa
+transação própria REPEATABLE READ/READ ONLY; recusa chamada dentro de outra
+transação. O diagnóstico não marca sincronização ou aceite como concluídos.
+
+A execução real em V-328 retornou manifesto piloto e zero scans da carteira.
+Os testes de reinício/erro/concorrência são PostgreSQL sintéticos, ainda sem
+prova dessa carga no Windows. O uso normal pela Grazi continua pela interface;
+este comando é para operação técnica e não exige ação da cliente.
 
 Código é único dentro do escritório. O mapa aprovado define `active` e a
 situação bruta fica em `ClientCompany.dominio_status`. Situação desconhecida,

@@ -3549,3 +3549,35 @@ administrativo somente leitura por escritório/agente. Compatível com MSI 1.0.4
 sem alteração de UI, SQL ERP ou manifesto real. Exercitar falha/repetição e
 concorrência PostgreSQL, atualizar registros e publicar a correção depois do
 CI da versão exata. Inventário e demais gates reais continuam pendentes.
+
+Empacotamento da correção D-323/V-328 (07/11): candidata sobre a imagem
+imutável da release 74, acrescentando somente os arquivos Python alterados/
+aditivos de c8b0c50. Dockerfile, dependências/lock, assets, agente e manifesto
+real continuam iguais; conferir camadas/configuração e todos os hashes runtime
+antes do deploy. Backup original/53 objetos/retencão reconferidos após timeout;
+processo anterior já ausente, sem leitura duplicada presumida como prova.
+Retorno de aplicação na imagem original 74, mantendo intelligence.0034 aditiva.
+Sem novo recurso, retenção, chave, cópia ou restore. Gates da versão exata e
+verificação pós-deploy continuam obrigatórios; nada disso habilita fonte ERP.
+
+Gate de publicação da correção D-323/V-328: CI 42355490505 aprovado para
+c8b0c50; PostgreSQL local 1.801/163 com um skip e CI 1.800/163 com dois skips.
+828 blobs da candidata iguais ao commit; imagem imutável
+sha256:61e035af2a18ff57b122cd1b1f5b13c7b5dee79f70a7bd8b87d16f581ed5af80,
+653 hashes runtime/offline iguais, base/configuração 74 preservadas. Migração
+aditiva intelligence.0034; comando somente leitura presente na imagem.
+Configuração live difere do arquivo anterior somente em deploy.strategy,
+canary → rolling, resultante do deploy rolling da 74 já registrado; ambiente,
+serviços e recursos iguais. Release corrente 74 conferida. Publicar no mesmo
+app com --ha=false/--update-only, reserva excluída, sem mudar manifesto, agente,
+memória, bancos ou retenção. Retorno na imagem 74 conservando a migração aditiva.
+Conferir ambos os processos/aliases, integridade e acesso depois da publicação.
+
+Resultado da correção D-323/V-328: release 75/fonte c8b0c50/CI 42355490505
+aprovado, 653 hashes e migrações conferidos em web/worker/dois aliases,
+diagnóstico somente leitura executado, doze fingerprints CONTAD e acesso Grazi
+preservados, recursos originais mantidos. Falha transitória do túnel SSH contornada
+pela API autenticada Fly Machines exec com credenciais existentes, sem mudar
+acesso ou infraestrutura. Comando/deploy não criou scan ou fonte nova. Último
+relato de operador indisponível e inventário não recebido; manter Q-28 e demais
+gates abertos, sem afirmar conclusão contratual ou recuperação real da carteira.

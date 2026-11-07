@@ -1,5 +1,17 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Correção de retomada CONTAD — D-323/V-328, 07/11/2026:** release **75**,
+fonte c8b0c50/CI 42355490505 aprovado. Leitura inconsistente agora reinicia sem
+ficar presa no cursor; recibos concluídos e dados anteriores preservados.
+Diagnóstico administrativo somente leitura com cobertura/heartbeat/erros.
+PostgreSQL local: 1.801 testes/163 subtestes, um skip; CI: 1.800/163, dois skips.
+653 hashes runtime, migrações, saúde/acesso e doze fingerprints CONTAD conferidos.
+Manifesto permanece piloto/163 eventos, zero scan real da carteira; inventário
+Windows ainda não recebido e último relato do operador indisponível. Sem
+alteração do agente ou upgrade no PC, SQL ERP ou IA. Contas/Razão/títulos, demais gates e aceite
+continuam abertos; esta correção não conclui o projeto.
+
+
 **Entrega parcial CONTAD — D-323/V-327, 06/11/2026:** backend da carteira
 publicado/verificado na **release 74**, fonte e9311eb/CI 42294764025 aprovado.
 Manifesto por escritório e recepção retomável de empresas implementados; runtime

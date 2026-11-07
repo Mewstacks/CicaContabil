@@ -3262,12 +3262,23 @@ cadastros não substituem contas, Razão/títulos, IA, Q-46/Q-47, D-73, recupera
 recorrente, treinamento ou aceite. Guia preparado, sem execução humana. Projeto
 permanece aberto; próximo insumo: metadados/situações do PC, roteiro em Downloads.
 
-## 07/11/2026 — Recuperação da carga CONTAD, D-323/V-328, em andamento
+## 07/11/2026 — Recuperação da carteira, release 75, D-323/V-328
 
-Revisão encontrou scan aberto inconsistente que podia manter o cursor mesmo
-após retorno da contagem original. Implementados abandono transacional, erro
-persistido e diagnóstico administrativo somente leitura, sem mudar manifesto,
-consultas ERP, interface ou agente. 62 testes PostgreSQL focados aprovados;
-regressão completa em andamento. Corrigida recusa de comando em transação
-aninhada após falha inicial observada nos testes. Sem coleta ampliada ou aceite.
-Inventário real permanece dependente do operador, sem nova pergunta repetida.
+Corrigido cursor preso após cobertura inconsistente; recusa abandona somente
+leitura aberta, preserva dados e reinicia na próxima abertura. Erro/horário
+persistidos e diagnóstico administrativo somente leitura implementados. Foco
+PostgreSQL 62 aprovados; regressão final local 1.801/163, um skip; CI exato
+1.800/163, dois skips. Falha inicial de transação aninhada corrigida e registrada.
+
+Fonte c8b0c50 publicada, CI 42355490505 aprovado, release 75 verificada: 828 blobs
+da candidata, 653 hashes runtime, dois aliases/migrações, recursos/saúde/worker,
+acesso Grazi e doze fingerprints CONTAD iguais. Túnel SSH falhou em duas leituras;
+organização permaneceu acessível e mesma prova concluída por Fly Machines exec,
+sem mudar permissões/infra. Backup original reconferido após observar término
+do processo anterior. Fonte/imagem, tentativas e limites detalhados em V-328.
+
+Sem alterar manifesto real, agente/MSI, UI ou SQL ERP. Inventário ainda não
+recebido; último relato do operador indisponível. Carteira real, fontes de
+contas/Razão/títulos, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento e
+aceite continuam pendentes. Trabalhos locais anteriores preservados fora dos
+commits. Não declarar conclusão do projeto por esta correção operacional.

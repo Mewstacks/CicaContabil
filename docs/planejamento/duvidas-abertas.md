@@ -402,3 +402,9 @@ Mapa A/I sintético não é homologação; dados faltantes não serão fabricado
 Pacote 1.0.4 pronto, PC permanece 1.0.3; último heartbeat anterior ao deploy.
 Q-46/Q-47, Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite seguem
 abertos com os mesmos IDs; nenhum gate resolvido por essa publicação.
+
+Continuidade Q-28/D-323/V-328 (07/11): correção de retomada e diagnóstico
+somente leitura publicados na release 75, mantendo manifesto piloto e zero
+scan real da carteira. Último relato de operador indisponível; inventário ainda
+não recebido. A correção não resolve fontes, Q-46/Q-47 ou gates de IA/aceite.
+Não repetir credenciais, período ou intenção de toda a carteira.

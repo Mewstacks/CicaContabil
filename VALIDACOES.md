@@ -7054,27 +7054,80 @@ Evidências privadas: `.tmp/contad-finalization-2026-11-06/`, incluindo CI,
 artefatos, snapshot antes/depois, pós-deploy, acesso HTTPS, recursos e delivery-final.
 Trabalhos locais anteriores foram preservados fora dos commits desta execução.
 
-## V-328 — Recuperação de cobertura inconsistente em preparação (07/11/2026)
+## V-328 — Recuperação de cobertura publicada na release 75 (07/11/2026)
 
-Continuidade D-323/PC-19. Corrigido localmente o scan que podia ficar preso no
-cursor após diferença de cobertura e retorno da contagem original. Leitura
-aberta inconsistente é abandonada na mesma transação da recusa; dados e páginas
-anteriores permanecem. Solicitações atrasadas e recibos concluídos não invalidam
-progresso. Código/horário de erro persistidos, sem dados cadastrais no diagnóstico.
-Comando portfolio_sync_status é somente leitura, limitado por escritório/agente,
-com heartbeat, contagens, scans e indicação explícita de histórico omitido.
-Não expõe credencial, DSN, nomes/documentos ou valores financeiros.
+Continuidade D-323/PC-19. **Fonte c8b0c50**, CI
+[42355490505](https://github.com/Mewstacks/CicaContabil/actions/runs/42355490505)
+aprovado e **release Fly 75** publicada/verificada. Corrigido scan que podia
+permanecer no cursor inconsistente se a contagem retornasse ao valor original.
+Agora a recusa por cobertura/contagem abandona somente a leitura aberta, na
+mesma transação; páginas/cadastros anteriores são preservados e a próxima
+abertura reinicia do zero. Requisição atrasada não abandona progresso alheio;
+recibo concluído continua íntegro/repetível. Código e horário do erro ficam
+persistidos sem texto/dados de origem, pela migração aditiva intelligence.0034.
 
-Foco PostgreSQL: **62 aprovados, zero skips**, inclusive concorrência e proteção
-do recibo concluído. Primeira rodada identificou transação aninhada no comando
-read-only; comando agora recusa esse uso e conserva a transação do chamador.
-Regressão completa em andamento; Ruff global, MyPy dos dois módulos, Django e
-migrações sem pendências aprovados. Migração aditiva intelligence.0034. Não há
-alteração de agente/MSI, UI, SQL ERP ou manifesto. Provas sintéticas não cumprem
-D-73 nem inventário real, que segue dependência externa em Q-28.
+**Diagnóstico:** portfolio_sync_status consulta apenas escritório/agentes
+selecionados, heartbeat/idade, estado, contagens, erros e histórico limitado
+(1–100 scans por agente, no máximo cem agentes ou seleção explícita). Indica
+quantos scans antigos foram omitidos. Sem credencial, DSN, nomes/documentos ou
+valores financeiros; testes inspecionam inclusive a projeção SQL. PostgreSQL
+usa transação própria REPEATABLE READ/READ ONLY. Chamador já em transação é
+recusado antes da consulta, sem alterar sua capacidade de escrita. Comando
+executado em produção somente leitura: agentes nos estados anteriores, manifesto
+piloto, **zero scans reais**. Isso não prova recuperação de carga real no PC.
 
-Preflight remoto confirmou release 74/runtime anterior e integridade CONTAD.
-Leitura dos metadados de backup excedeu a janela de observação; verificar estado
-do processo antes de repetir. Sem novo backup, custo permanente, chave ou restore.
-Fonte/CI/publicação da correção ainda pendentes. Evidências privadas em
-`.tmp/contad-recovery-2026-11-07/`; V-327 conserva a publicação anterior.
+**Testes:** foco PostgreSQL **62 aprovados, zero skips**, incluindo retorno da
+contagem original, preservação dos registros e corrida entre conclusão e página
+inconsistente. Primeira rodada: quatro falhas no diagnóstico por tentativa de
+mudar isolamento dentro da transação dos testes; corrigidos contrato/guarda e
+cenário transacional, sem mascarar a falha. Regressão local final PostgreSQL 17
+em tmpfs descartável: **1.801 testes/163 subtestes aprovados, um skip**, 357,02 s.
+Skip de Playwright Python opcional. CI exato: SQLite 1.778/163, 24 skips;
+PostgreSQL **1.800/163, dois skips**, 415,26 s (Playwright Python/OCR português
+indisponíveis). .NET Linux 51/um skip Windows; Windows 52/zero skips e pacote
+aprovados; três builds Docker aprovados. Ruff global, MyPy dos dois módulos,
+Django e ausência de migrações faltantes aprovados. Sem alteração de UI/agente
+ou novo teste visual alegado. Container temporário desta rodada removido;
+recursos/caches/volumes de outros projetos preservados.
+
+**Artefato:** 828 blobs iguais ao commit, ZIP SHA-256
+e33c3475e599dda6cad9bfc7e0d99b580857de91955f44da15b9d8016b4eeba6.
+Imagem sha256:61e035af2a18ff57b122cd1b1f5b13c7b5dee79f70a7bd8b87d16f581ed5af80,
+base imutável 74 e camada de quatro arquivos Python. Dockerfile, dependências,
+assets e agente sem mudanças. Configuração runtime/camadas anteriores iguais;
+653 hashes iguais à candidata, agregado
+041267a56203a500405389bceebb053f04d44c17952e084124d59f73ac7300c7,
+conferidos offline com rede/banco bloqueados e comando de diagnóstico presente.
+Imagem empacotada sobre a base anterior é distinta das três builds de CI;
+não alegar igualdade dos digests. Pacote MSI 1.0.4 anterior continua compatível,
+sem novo upgrade ou substituição dos arquivos entregues ao operador.
+
+**Publicação e operação:** rolling/--ha=false/--update-only e reserva excluída.
+Configuração salva mudou somente deploy.strategy de canary para rolling, como
+resultado da publicação 74 já registrada; ambiente/serviços/recursos iguais.
+Release 75 complete, 653 hashes conferidos em web/worker, hub.0079/intelligence.0034
+nos dois aliases Neon originais, worker ready e readiness 200/banco/cache ok
+nos dois domínios. Agente inválido 401 nas rotas antiga/nova, login HTTPS/CSRF
+Grazi/Conciliação 200 e campo de arquivo conferidos, zero upload/decisão, sessão
+encerrada. Máquinas originais/512 MB e reserva parada preservadas. Comparação
+final: **doze conjuntos CONTAD com contagens/hashes iguais antes/depois**,
+incluindo arquivos, movimentos, decisões e manifesto/agentes.
+
+Na verificação final, duas tentativas SSH falharam antes da leitura (consulta
+de organizações recusada e depois timeout do túnel). Identidade/listagem da
+organização continuaram válidas. Concluída a mesma leitura pela API autenticada
+Fly Machines exec, sem credencial nova ou mudança de acesso/infraestrutura;
+resultados guardados separadamente. Não repetir deploy por falha de observação.
+Leitura inicial do backup também excedeu a janela; processo remoto foi conferido
+como ausente antes da repetição, que passou com timeouts limitados e quatro
+leituras paralelas. Manifesto/53 objetos/tamanhos/retenção original conferidos,
+validade até 13/11/2026 14:29:44 UTC; nenhum backup, chave, recurso ou restore novo.
+Retorno: imagem original 74, mantendo intelligence.0034 aditiva e todos os dados.
+
+**Limite do objetivo:** manifesto real continua piloto, zero scans da carteira,
+163 eventos preservados, nenhum Razão/título novo obtido. Último relato do
+operador segue indisponível; resultado do inventário ainda não foi recebido.
+Sem upgrade no PC, SQL ERP, IA paga ou egressão novos. Q-28/Q-46/Q-47,
+Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
+Fonte e publicação da correção estão concluídas; projeto CONTAD completo não.
+Evidências privadas em `.tmp/contad-recovery-2026-11-07/`.

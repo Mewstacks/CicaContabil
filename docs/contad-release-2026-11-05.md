@@ -1,5 +1,38 @@
 # Release candidata CONTAD: revisão e operação
 
+## Release vigente — D-323/V-328, 07/11/2026
+
+**Release Fly 75**, fonte c8b0c50c1e30617527a9a4196c842f8fcecaf2e5,
+[CI 42355490505 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42355490505).
+Imagem registry.fly.io/cica-contabil@sha256:61e035af2a18ff57b122cd1b1f5b13c7b5dee79f70a7bd8b87d16f581ed5af80.
+Candidata: 828 arquivos, ZIP e33c3475e599dda6cad9bfc7e0d99b580857de91955f44da15b9d8016b4eeba6.
+653 hashes runtime em web/worker, agregado
+041267a56203a500405389bceebb053f04d44c17952e084124d59f73ac7300c7.
+Migrações hub.0079/intelligence.0034 nos dois aliases Neon originais, worker/
+readiness, acesso Grazi, máquinas/512 MB/reserva e doze fingerprints CONTAD
+conferidos. Túnel SSH falhou em duas leituras; comparação final concluída pela
+API autenticada Fly Machines exec, sem alterar acesso/infra ou dados.
+
+Leitura aberta com cobertura inconsistente agora é abandonada atomicamente;
+próxima abertura reinicia, preservando dados/recibos anteriores. Diagnóstico
+administrativo somente leitura de heartbeat/cobertura/erros disponível e
+executado: manifesto piloto e zero scans reais da carteira. PostgreSQL local
+1.801/163 aprovados, um skip; CI 1.800/163, dois skips. Nenhuma mudança no código
+do agente, manifesto ou fontes ERP; MSI 1.0.4 anterior continua compatível.
+
+Retorno: imagem **original da release 74**,
+registry.fly.io/cica-contabil@sha256:080f24c0b055a0f4d8e8271a6cdd7112b035309bc5824feeddc4b4157920951e,
+preservando intelligence.0034 e todos os dados. Candidata 75 preserva essa base/
+configuração e acrescenta quatro arquivos Python; builds Docker integrais do
+CI são provas separadas, sem alegar igualdade dos digests. Backup original e
+53 objetos reconferidos, mesma validade até 13/11/2026 14:29:44 UTC, sem novo
+restore, recurso, chave ou retenção. V-328 discrimina tentativas e limites.
+
+Inventário real ainda não recebido; último relato do operador indisponível.
+Carteira completa, contas/Razão/títulos, IA, Q-46/Q-47, D-73, recuperação
+recorrente, treinamento e aceite continuam abertos. A publicação desta correção
+não conclui o projeto; próximas seções preservam o histórico das releases.
+
 ## Release vigente — D-323/V-327, 06/11/2026
 
 **Release Fly 74**, fonte e9311ebf395de35acbfe995eea3ead326d522a47,

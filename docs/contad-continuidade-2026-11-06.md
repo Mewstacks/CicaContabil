@@ -1,5 +1,15 @@
 # CONTAD — resumo e continuidade
 
+**Atualização D-323/V-328, 07/11/2026:** backend na **release 75**, fonte c8b0c50/
+CI 42355490505 aprovado. Corrigida retomada após cobertura inconsistente e
+adicionado diagnóstico administrativo somente leitura; 1.801 testes/163 subtestes
+PostgreSQL local, um skip. 653 hashes runtime, migrações e doze fingerprints
+CONTAD conferidos, login Grazi preservado. Sem mudança do agente/MSI/manifesto
+real: piloto/163 eventos e zero scan da carteira. Inventário Windows ainda não
+recebido; último relato do operador indisponível. Próximo insumo permanece Q-28;
+demais fontes/gates, treinamento e aceite continuam abertos. Detalhes em V-328.
+
+
 **Execução atual D-323/V-327:** backend publicado na **release 74**, fonte
 e9311eb/CI 42294764025 aprovado; migrações, 651 hashes runtime, doze fingerprints
 de dados e acesso HTTPS Grazi conferidos. Protocolo/recepção retomável de empresas
