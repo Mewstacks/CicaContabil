@@ -427,6 +427,8 @@ class AgentCompanyScan(OrganizationScopedModel):
     last_after = models.CharField(max_length=18, blank=True)
     last_digest = models.CharField(max_length=64, blank=True)
     last_result = models.JSONField(default=dict)
+    last_error_code = models.CharField(max_length=48, blank=True, default="")
+    last_error_at = models.DateTimeField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     aborted_at = models.DateTimeField(null=True, blank=True)
 

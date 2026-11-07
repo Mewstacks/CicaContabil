@@ -3261,3 +3261,13 @@ manifesto piloto, 163 eventos preservados e zero scan de carteira. Protocolo e
 cadastros não substituem contas, Razão/títulos, IA, Q-46/Q-47, D-73, recuperação
 recorrente, treinamento ou aceite. Guia preparado, sem execução humana. Projeto
 permanece aberto; próximo insumo: metadados/situações do PC, roteiro em Downloads.
+
+## 07/11/2026 — Recuperação da carga CONTAD, D-323/V-328, em andamento
+
+Revisão encontrou scan aberto inconsistente que podia manter o cursor mesmo
+após retorno da contagem original. Implementados abandono transacional, erro
+persistido e diagnóstico administrativo somente leitura, sem mudar manifesto,
+consultas ERP, interface ou agente. 62 testes PostgreSQL focados aprovados;
+regressão completa em andamento. Corrigida recusa de comando em transação
+aninhada após falha inicial observada nos testes. Sem coleta ampliada ou aceite.
+Inventário real permanece dependente do operador, sem nova pergunta repetida.

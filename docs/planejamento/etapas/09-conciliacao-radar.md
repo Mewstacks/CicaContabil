@@ -350,3 +350,11 @@ novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.
 [Contrato e limites](../../contad-carteira-protocolo.md). Runtime conserva piloto
 SURIA/163 eventos, sem fonte financeira nova. Publicação desta fase não conclui
 PC-19 nem a entrega contratual. Próximo insumo externo: inventário real do PC.
+
+### Continuidade D-323/V-328 — recuperação de cobertura (07/11/2026)
+
+- [x] Corrigir abandono/reinício de leitura inconsistente e proteger recibos concluídos.
+- [x] Persistir erro/horário e oferecer diagnóstico administrativo sem dados/segredos.
+- [x] Exercitar concorrência e retomada em 62 testes PostgreSQL focados.
+- [ ] Concluir regressão/CI da fonte exata e publicar/verificar a correção.
+- [ ] Obter inventário real Q-28; demais fontes/gates D-73 continuam abertos.

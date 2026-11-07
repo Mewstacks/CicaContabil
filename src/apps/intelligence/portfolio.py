@@ -32,6 +32,36 @@ def _receipt(scan: AgentCompanyScan) -> dict[str, Any]:
     }
 
 
+def _abandon_scan(scan: AgentCompanyScan, *, code: str, request: HttpRequest) -> None:
+    """Caller holds the agent lock. Preserve committed rows and their checkpoint."""
+    if scan.completed_at is not None or scan.aborted_at is not None:
+        return
+    scan.aborted_at = scan.last_error_at = timezone.now()
+    scan.last_error_code = code
+    scan.save(update_fields=["aborted_at", "last_error_at", "last_error_code", "updated_at"])
+    record_event(
+        action="intelligence.dominio.company_scan_aborted",
+        organization=scan.organization,
+        target=scan,
+        request=request,
+        metadata={"reason": code, "received": scan.received_count},
+    )
+
+
+def _coverage_error(scan: AgentCompanyScan, *, code: str, request: HttpRequest) -> JsonResponse:
+    _abandon_scan(scan, code=code, request=request)
+    response = JsonResponse(
+        {
+            "error": "Cobertura alterada na origem; a próxima leitura começará do início.",
+            "code": code,
+            "scan_aborted": scan.aborted_at is not None,
+        },
+        status=409,
+    )
+    response["Cache-Control"] = "no-store"
+    return response
+
+
 def _company_rows(rows: Any, scope: dict[str, Any], after: str) -> list[dict[str, Any]]:
     if not isinstance(rows, list) or len(rows) > 500:
         raise ValueError("Página deve conter até 500 empresas.")
@@ -100,18 +130,7 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                     aborted_at=None,
                 ).first()
                 if previous_scan is not None and previous_scan.expected_count != count:
-                    previous_scan.aborted_at = timezone.now()
-                    previous_scan.save(update_fields=["aborted_at", "updated_at"])
-                    record_event(
-                        action="intelligence.dominio.company_scan_aborted",
-                        organization=agent.organization,
-                        target=previous_scan,
-                        request=request,
-                        metadata={
-                            "reason": "source_count_changed",
-                            "received": previous_scan.received_count,
-                        },
-                    )
+                    _abandon_scan(previous_scan, code="source_count_changed", request=request)
                 scan, _ = AgentCompanyScan.objects.get_or_create(
                     agent=agent,
                     scope_revision=scope["revision"],
@@ -148,14 +167,18 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                 after = payload["after"]
                 if not isinstance(after, str) or not re.fullmatch(r"0|[1-9][0-9]{0,17}", after):
                     raise ValueError("Cursor inválido.")
+                # Stale clients must not invalidate progress made by another request.
+                # Completed scans remain immutable, with their original replay receipt.
+                if after != scan.cursor and after != scan.last_after:
+                    return _error("Página fora de sequência ou carga já encerrada.", 409)
                 rows = _company_rows(payload["rows"], scope, after)
                 complete, count = payload["complete"], payload["source_count"]
                 if (
                     type(complete) is not bool
                     or type(count) is not int
-                    or count != scan.expected_count
+                    or not 0 <= count <= 1_000_000
                 ):
-                    return _error("Cobertura alterada na origem; leitura não concluída.", 409)
+                    return _error("Declaração de cobertura inválida.", 409)
                 digest = hashlib.sha256(
                     json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
                 ).hexdigest()
@@ -164,13 +187,13 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                 else:
                     if scan.completed_at is not None or after != scan.cursor:
                         return _error("Página fora de sequência ou carga já encerrada.", 409)
+                    if count != scan.expected_count:
+                        return _coverage_error(scan, code="source_count_changed", request=request)
                     received = scan.received_count + len(rows)
-                    if (
-                        received > count
-                        or (complete and received != count)
-                        or (not complete and not rows)
-                    ):
-                        return _error("Cobertura incompleta ou contagem inconsistente.", 409)
+                    if received > count or (complete and received != count):
+                        return _coverage_error(scan, code="coverage_mismatch", request=request)
+                    if not complete and not rows:
+                        return _error("Página sem progresso e sem declaração de fim.", 409)
                     connector, _ = IntelligenceConnector.objects.get_or_create(
                         organization=agent.organization,
                         mode=IntelligenceConnector.Mode.EDGE_AGENT,

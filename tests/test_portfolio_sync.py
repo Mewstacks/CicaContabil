@@ -179,6 +179,59 @@ def test_incomplete_final_page_not_committed(portfolio):
     assert not ClientCompany.objects.exists()
 
 
+@pytest.mark.parametrize("error", ["source_count_changed", "coverage_mismatch"])
+def test_coverage_failure_restarts_even_if_original_count_returns(portfolio, error):
+    run = open_scan(portfolio, 2)
+    first = post(portfolio, page(portfolio, run, [row()], complete=False))
+    assert first.status_code == 200
+    run_after = {**run, "after": "1"}
+    bad = (
+        page(portfolio, run_after, [row(2)], source_count=3)
+        if error == "source_count_changed"
+        else page(portfolio, run_after, [])
+    )
+    response = post(portfolio, bad)
+    assert response.status_code == 409 and response.json()["scan_aborted"]
+    assert response.json()["code"] == error
+    scan = AgentCompanyScan.objects.get(pk=run["run_id"])
+    assert scan.aborted_at == scan.last_error_at and scan.aborted_at is not None
+    assert scan.last_error_code == error and scan.completed_at is None
+    assert scan.received_count == 1 and scan.cursor == "1"
+    assert ClientCompany.objects.count() == 1
+    resumed = open_scan(portfolio, 2)
+    assert resumed["run_id"] != run["run_id"] and resumed["after"] == "0"
+    final = post(portfolio, page(portfolio, resumed, [row(), row(2)]))
+    assert final.status_code == 200 and final.json()["complete"]
+    assert final.json()["created"] == 1 and final.json()["updated"] == 1
+    assert ClientCompany.objects.count() == 2
+
+
+def test_stale_conflicting_page_never_aborts_the_current_progress(portfolio):
+    run = open_scan(portfolio, 2)
+    good = page(portfolio, run, [row()], complete=False)
+    assert post(portfolio, good).status_code == 200
+    stale = page(portfolio, run, [row(2)], source_count=99)
+    assert post(portfolio, stale).status_code == 409
+    scan = AgentCompanyScan.objects.get()
+    assert scan.aborted_at is None and scan.last_error_at is None
+    assert scan.last_error_code == "" and scan.cursor == "1"
+    replay = post(portfolio, good)
+    assert replay.status_code == 200 and replay.json()["replayed"]
+
+
+def test_completed_scan_is_not_aborted_and_original_receipt_still_replays(portfolio):
+    run = open_scan(portfolio, 1)
+    good = page(portfolio, run, [row()])
+    assert post(portfolio, good).status_code == 200
+    invalid = page(portfolio, {**run, "after": "1"}, [row(2)], source_count=2)
+    assert post(portfolio, invalid).status_code == 409
+    scan = AgentCompanyScan.objects.get()
+    assert scan.completed_at is not None and scan.aborted_at is None
+    assert scan.last_error_code == "" and scan.last_error_at is None
+    replay = post(portfolio, good)
+    assert replay.status_code == 200 and replay.json()["replayed"]
+
+
 def test_source_count_change_aborts_incomplete_scan_and_restarts_without_data_loss(portfolio):
     run = open_scan(portfolio, 2)
     assert post(portfolio, page(portfolio, run, [row()], complete=False)).status_code == 200
@@ -308,3 +361,36 @@ def test_concurrent_open_and_replayed_page_have_one_commit(portfolio):
     assert ClientCompany.objects.count() == 1
     scan = AgentCompanyScan.objects.get()
     assert scan.received_count == 1 and scan.page_count == 1
+
+
+@pytest.mark.django_db(transaction=True)
+def test_failed_final_page_cannot_abort_a_concurrent_completed_scan(portfolio):
+    if connection.vendor != "postgresql":
+        pytest.skip("Row locking requires PostgreSQL")
+    run = open_scan(portfolio, 2)
+    assert post(portfolio, page(portfolio, run, [row()], complete=False)).status_code == 200
+    run["after"] = "1"
+    payloads = [page(portfolio, run, [row(2)]), page(portfolio, run, [])]
+
+    def append(payload):
+        close_old_connections()
+        try:
+            return post(portfolio, payload).status_code
+        finally:
+            close_old_connections()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        statuses = list(executor.map(append, payloads))
+    assert statuses[1] == 409
+    scan = AgentCompanyScan.objects.get(pk=run["run_id"])
+    if statuses[0] == 200:
+        assert scan.completed_at is not None and scan.aborted_at is None
+        assert scan.last_error_code == "" and ClientCompany.objects.count() == 2
+    else:
+        assert statuses[0] == 403
+        assert scan.completed_at is None and scan.aborted_at is not None
+        assert ClientCompany.objects.count() == 1
+        resumed = open_scan(portfolio, 2)
+        assert resumed["after"] == "0"
+        assert post(portfolio, page(portfolio, resumed, [row(), row(2)])).status_code == 200
+        assert ClientCompany.objects.count() == 2

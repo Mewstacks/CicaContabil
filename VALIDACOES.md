@@ -7053,3 +7053,28 @@ Próximo insumo necessário é o inventário real no PC. Projeto não concluído
 Evidências privadas: `.tmp/contad-finalization-2026-11-06/`, incluindo CI,
 artefatos, snapshot antes/depois, pós-deploy, acesso HTTPS, recursos e delivery-final.
 Trabalhos locais anteriores foram preservados fora dos commits desta execução.
+
+## V-328 — Recuperação de cobertura inconsistente em preparação (07/11/2026)
+
+Continuidade D-323/PC-19. Corrigido localmente o scan que podia ficar preso no
+cursor após diferença de cobertura e retorno da contagem original. Leitura
+aberta inconsistente é abandonada na mesma transação da recusa; dados e páginas
+anteriores permanecem. Solicitações atrasadas e recibos concluídos não invalidam
+progresso. Código/horário de erro persistidos, sem dados cadastrais no diagnóstico.
+Comando portfolio_sync_status é somente leitura, limitado por escritório/agente,
+com heartbeat, contagens, scans e indicação explícita de histórico omitido.
+Não expõe credencial, DSN, nomes/documentos ou valores financeiros.
+
+Foco PostgreSQL: **62 aprovados, zero skips**, inclusive concorrência e proteção
+do recibo concluído. Primeira rodada identificou transação aninhada no comando
+read-only; comando agora recusa esse uso e conserva a transação do chamador.
+Regressão completa em andamento; Ruff global, MyPy dos dois módulos, Django e
+migrações sem pendências aprovados. Migração aditiva intelligence.0034. Não há
+alteração de agente/MSI, UI, SQL ERP ou manifesto. Provas sintéticas não cumprem
+D-73 nem inventário real, que segue dependência externa em Q-28.
+
+Preflight remoto confirmou release 74/runtime anterior e integridade CONTAD.
+Leitura dos metadados de backup excedeu a janela de observação; verificar estado
+do processo antes de repetir. Sem novo backup, custo permanente, chave ou restore.
+Fonte/CI/publicação da correção ainda pendentes. Evidências privadas em
+`.tmp/contad-recovery-2026-11-07/`; V-327 conserva a publicação anterior.

@@ -3535,3 +3535,17 @@ continua indisponível. Inventário, novas fontes financeiras e coleta da cartei
 não executados. Último heartbeat real anterior ao deploy; não inferir causa ou
 prova de sincronização nova. Guia de treinamento preparado, sem execução/aceite.
 Manter PC-19 e gates abertos; próximo insumo Q-28 é o resultado real do inventário.
+
+Continuidade independente D-323 (07/11/2026): revisão da carga encontrou uma
+lacuna de retomada na recepção já publicada: diferença de cobertura no fim da
+leitura devolve 409, mas conserva o scan aberto; se a contagem voltar ao valor
+original, a próxima tentativa pode insistir no mesmo cursor inválido. Corrigir
+o servidor para abandonar atomicamente somente a leitura aberta inconsistente,
+preservar páginas/cadastros anteriores e iniciar outra leitura na próxima
+abertura, mesmo com contagem igual. Conservar recibos de cargas concluídas e
+não abandonar por requisição atrasada ou cursor alheio. Persistir código/horário
+de erro sem nomes, documentos ou texto de origem e disponibilizar diagnóstico
+administrativo somente leitura por escritório/agente. Compatível com MSI 1.0.4;
+sem alteração de UI, SQL ERP ou manifesto real. Exercitar falha/repetição e
+concorrência PostgreSQL, atualizar registros e publicar a correção depois do
+CI da versão exata. Inventário e demais gates reais continuam pendentes.

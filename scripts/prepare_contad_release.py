@@ -84,6 +84,7 @@ def prepare(root: Path, destination: Path) -> dict[str, object]:
             "hub.0079_clientcompany_dominio_status",
             "intelligence.0032_agentcompanyscan",
             "intelligence.0033_remove_agentcompanyscan_intelligence_one_open_company_scan_and_more",
+            "intelligence.0034_agentcompanyscan_last_error_at_and_more",
         ],
         "agent_version": "1.0.3",
         "agent_msi_sha256": "5850a351f9ea54f4b72131c840af5a34534ce9bbe521c62ec605a32695fd8253",
