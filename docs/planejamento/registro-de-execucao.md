@@ -3437,3 +3437,40 @@ valor em logs/Git/ZIP; temporário remoto removido. Pacote MSI original mantido,
 roteiro e cópias atualizados. Sem acesso ao Windows, instalação/candidato/corte
 ou coleta nova; usuário deve instalar e devolver estados seguros para a próxima
 verificação. ODBC sob LocalSystem e demais gates não foram considerados cumpridos.
+
+## 10/11/2026 — 502 no login por falta de memória (D-328, V-341)
+
+- O proprietário relatou 502 ao enviar a senha. Diagnóstico pelos logs do Fly: o kernel matava o
+  worker Gunicorn por OOM, três vezes em 86 segundos, com ~216 MB de RSS cada, em uma máquina web
+  de 512 MB rodando `--workers 2`.
+- O `fly status` enganava: máquina `started` e health check passando, porque o processo morto e
+  recriado era o worker dentro dela.
+- Escolha do proprietário entre as saídas apresentadas: reduzir para `--workers 1`, sem custo novo.
+  A alternativa de dobrar a memória foi descartada por envolver custo.
+- Não é conserto da causa: `reportlab` é importado no nível do módulo em `nfse_reports.py`, e a
+  imagem ainda traz `pdfminer`, `pypdfium2` e `boto3`. Tornar esses imports preguiçosos continua
+  pendente.
+
+## 10/11/2026 — "Empresas atendidas" vai para o menu Configurações (D-319, V-321)
+
+- O proprietário abriu o menu Configurações na Bianchi & Rizzotto procurando a função de inativar
+  empresa e não achou: o link estava na barra interna da página de Integrações, um nível abaixo.
+- A entrada passou para o menu de navegação, logo abaixo de "Integrações", e saiu do rodapé da
+  página, para existir em um lugar só. A condição de exibição é a mesma.
+- `_backup_managed_source` saiu de `views.py` e virou `backup_managed_source` em
+  `apps.hub.services`, compartilhada por navegação e view. A ordem das consultas foi invertida para
+  a mais seletiva primeiro, porque a navegação roda em toda página: escritório sem fonte de backup
+  custa uma consulta.
+- 16 testes do módulo aprovados, três deles novos sobre o menu renderizado. Conferência no servidor
+  QA isolado confirmou a entrada no lugar certo, apontando para `/app/configuracoes/carteira/`.
+- Os IDs locais haviam sido renumerados na main remota: o que estava como D-317/V-319 é agora
+  D-319/V-321. Duas referências que eu havia escrito em `services.py` e `navigation.py` foram
+  corrigidas para D-319.
+
+## 10/11/2026 — Conexão SVAPL02 confirmada e consolidação autorizada, D-329/V-340
+
+Imagem confirma ODBC no configurador; código anterior expirou. Releases 78/79
+retiraram a implementação que estava somente na branch técnica. Detectadas
+colisões de IDs e obtida autorização humana para consolidar/main preservando
+ambas as frentes. Aplicação sem sobreposição de arquivos; próximo passo é
+integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova.

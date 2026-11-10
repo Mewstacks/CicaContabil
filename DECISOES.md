@@ -3821,3 +3821,55 @@ prévia ou habilitar exportação por causa do pareamento. Deploy rolling limita
 às duas Machines ativas, --ha=false/--update-only e reserva excluída; registrar
 somente a mudança de estratégia resultante. Backup original/53 objetos/retencão
 conferidos novamente; snapshot válido até 13/11, sem novo recurso ou restore.
+
+Continuidade Q-28/D-327 (10/11/2026): captura do configurador no Server mostra
+nome SVAPL02, HTTPS correto, Domínio Local/DSN CICA_CONTAD, SQL Anywhere 16 x64,
+autenticação do DSN desmarcada, usuário EXTERNO e senha mascarada. Mensagem
+“Conexão confirmada. O Domínio está pronto para sincronizar.” comprova teste
+interativo do configurador, sem demonstrar LocalSystem, pareamento ou instalação
+do serviço. Campo de código está vazio. Não repetir ODBC sem motivo ou solicitar
+senha. Às 15:59 de Brasília, código anterior já expirou às 15:48:07: verificar
+uso/candidatos no backend e, se expirado sem uso e sem candidato pendente, emitir
+outro código de uso único por 60 minutos sob a autorização D-327, em novo
+arquivo privado; preservar anterior/agentes/manifesto. Nenhum corte por imagem.
+
+## D-328 — Um worker Gunicorn na web até caber na memória (10/11/2026)
+
+Origem: 502 relatado pelo proprietário ao enviar a senha em `cicacontabil.com.br/entrar/`, e escolha
+dele entre as saídas apresentadas. Os logs da release 75 mostram o kernel matando o worker web por
+falta de memória três vezes em 86 segundos (`Out of memory: Killed process ... (gunicorn)`, RSS de
+~216 MB em cada), com o proxy do Fly devolvendo `connection closed before message completed`. A
+máquina web tem 512 MB e rodava `--workers 2`: dois workers mais o mestre não cabem.
+
+Fica autorizado reduzir o processo web para `--workers 1` no `fly.toml` e publicar essa release.
+Um worker de ~216 MB mais o mestre cabem nos 512 MB. A troca é de concorrência: sendo uvicorn/ASGI,
+pedidos de I/O continuam intercalando no mesmo worker, mas trabalho preso em CPU passa a serializar.
+
+Limites: isto é contenção, não conserto. A causa de ~216 MB por worker continua aberta — a imagem
+carrega `reportlab` no nível do módulo em `nfse_reports.py`, além de `pdfminer`, `pypdfium2` e
+`boto3`; tornar esses imports preguiçosos é trabalho separado e não foi feito aqui. Não foi alterada
+a memória da máquina, o que teria custo e não foi autorizado. Não foi tocado o processo `worker`,
+nem código de aplicação, nem dado de cliente.
+
+Reconciliação em D-329: este registro aparecia como D-324 na main. O ID D-324
+do agente Windows Server (09/11) permanece canônico; ambos os comportamentos
+são preservados. Referências históricas ao D-324 de OOM correspondem a D-328.
+
+## D-329 — Consolidar registros e integrar o agente na main (10/11/2026)
+
+Responsável aprovou expressamente “Consolidar e integrar (recomendado)” após
+explicação dos IDs duplicados e das publicações 78/79 que retiraram o recurso
+do agente. Autoriza consolidar registros, integrar a implementação do agente
+à versão atual do projeto/main, preservar as outras correções, validar a fonte
+consolidada e publicar o backend necessário ao pareamento no escopo D-327.
+Usar PR/merge após o CI exato, sem incorporar trabalhos locais anteriores
+D-316/D-317/etapa 00/comparação Pandolfo ou remover mudanças de outra frente.
+
+D-324 do agente (09/11) e V-329 da implementação permanecem canônicos; o D-324
+de OOM da main passa a **D-328**, e seu V-329 passa a **V-341**, com referências
+históricas explícitas. Não são decisões incompatíveis de comportamento.
+Comparação de aplicação entre as frentes não encontrou arquivos sobrepostos.
+Preservar worker web único, menu Empresas atendidas e restrições de recuperação
+NFS-e da main 77e0ca7. Migração e MSI do agente permanecem os mesmos; sem custo,
+coleta ampliada, nova interface, revogação ou corte presumidos. Somente depois
+do backend consolidado conferir código antigo e renovar por até 60 minutos.

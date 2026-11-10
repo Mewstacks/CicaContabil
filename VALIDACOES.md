@@ -7492,3 +7492,47 @@ continua relato V-335/V-336. Aguardam provas reais; não deduzir ODBC sob SYSTEM
 ou agente oficial de heartbeat/awaiting_activation. Carteira completa/fontes,
 Q-46/Q-47, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
 Evidências privadas em `.tmp/contad-server-release-2026-11-10/`.
+
+## V-340 — Configurador do Server confirma conexão; backend foi substituído (10/11/2026)
+
+Captura fornecida pelo responsável mostra configurador no servidor **SVAPL02**,
+HTTPS correto, Domínio Local/DSN CICA_CONTAD, SQL Anywhere 16 x64, autenticação
+do DSN desmarcada, EXTERNO, senha mascarada e pasta opcional vazia. Mensagem
+“Conexão confirmada. O Domínio está pronto para sincronizar.” Código vazio.
+Comprova teste ODBC interativo do configurador, sem provar versão instalada,
+serviço/LocalSystem, pareamento, candidato ou coleta. Não repetir o teste ou
+pedir senha. Captura privada em .tmp/contad-server-release-2026-11-10/configurator-connection-confirmed.png.
+
+Às 15:59 (Brasília), código V-339 já expirado às 15:48:07. Consulta de renovação
+falhou antes de obter o estado porque o ORM atual não possui is_official.
+Reconciliado estado real: releases 78/79 publicadas após 77, atual 79/imagem
+3e0c3e1c4a0af56599afe6241ef15d241b0fe8866b533b1be32354ecea11a284, sem recurso
+do agente; uso do código anterior ainda não reconfirmado. Nenhum novo código,
+pareamento, corte ou SQL de alteração foi executado nesta inspeção.
+
+Main avançou de b65dfe7 para 77e0ca7 com worker web único, navegação e recuperação
+NFS-e. Sem sobreposição dos arquivos de aplicação com o agente, mas colisões
+D-324/V-329 nos registros. Perguntado conforme AGENTS.md; responsável aprovou
+consolidar/integrar em D-329. V-339 permanece prova histórica da release 77;
+não tratar backend 79 como portador do protocolo ou o código vencido como válido.
+Próximo gate: fonte consolidada/CI/main/publicação, depois código privado novo.
+
+## V-341 — Diagnóstico do 502 por OOM e redução para um worker (10/11/2026)
+
+Escopo de D-328 (antigo D-324 da main).
+
+- **Sintoma:** `GET /entrar/` respondia 200, mas o envio da senha devolvia 502. `fly status` mostrava
+  a máquina `started` e o check `/api/v1/health/live/` passando, porque quem morria era o worker
+  dentro da máquina, não a máquina; ela não reinicia desde 07/11.
+- **Causa observada nos logs:** três `Out of memory: Killed process ... (gunicorn)` entre 17:13:53 e
+  17:14:44 UTC, com `anon-rss` de 216.696, 215.832 e 219.852 kB. Cada morte coincide com
+  `error.message="could not complete HTTP request to instance ... connection closed before message
+  completed"` no proxy. Máquina web: `shared-cpu-1x`, 512 MB, `--workers 2`.
+- **Mudança:** `--workers 2` para `--workers 1` no `fly.toml`. Nenhum código de aplicação alterado.
+
+Limites: a verificação pós-publicação observa ausência de OOM e o login real. Não houve teste de
+carga, então o efeito de um worker só sob concorrência real não está medido. O consumo de ~216 MB
+por worker não foi investigado nem reduzido.
+
+Registro renumerado na consolidação D-329; evidência histórica anteriormente
+V-329 na main. O V-329 do agente (09/11) permanece canônico.
