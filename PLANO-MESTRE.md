@@ -1,5 +1,50 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Instalação do Server liberada — D-327/V-339, 10/11/2026:** backend publicado
+na **release 77**, fonte 03ed5b0/[CI completo 42865006431](https://github.com/Mewstacks/CicaContabil/actions/runs/42865006431).
+Migrations/661 hashes em web/worker, saúde e doze fingerprints CONTAD aprovados;
+recursos, manifesto e agente anterior ativo preservados. MSI 1.0.5 entregue
+em V-338 mantido, roteiro atualizado e código privado emitido, válido até
+**15:48:07 de 10/11, Brasília**. Pode instalar/parear candidato no Server;
+awaiting_activation antecede o corte e não comprova ODBC/LocalSystem ou coleta.
+Instalação, provas Windows, corte oficial e demais gates continuam pendentes.
+
+**MSI oficial preparado — D-326/V-338, 10/11/2026:** branch técnica publicada,
+[CI Windows 42863201809 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
+fonte **53b834b**, MSI **1.0.5/.NET 10.0.15**, 62 testes e 26 checks instalados
+aprovados. Artefato/hash/manifesto conferidos; pasta e ZIP em Downloads com roteiro.
+Sem assinatura de editor. Backend compatível ainda não publicado; aguardar esse
+gate e novo código antes de instalar/parear. Sem deploy, corte ou aceite reais.
+
+**Novo destino CONTAD — D-324, 09/11/2026:** responsável solicitou adaptar o
+plano e iniciar desenvolvimento para uma instalação nova em **Windows Server**,
+que será o agente oficial. Sequência: conferir Server/ODBC → candidato com novo
+UUID/segredo e coleta bloqueada → provas Windows → corte atômico com revogação
+do anterior → inventário/carteira completa desde 09/2026 → fontes e aceite.
+[Prompt canônico revisado](docs/contad-prompt-finalizacao-2026-11-06.txt) e
+[procedimento técnico](docs/contad-agente-oficial-windows-server.md).
+V-331 (10/11): captura do operador confirma **Windows Server 2022 Standard,
+21H2/build 20348.5761**, plataforma incluída no suporte .NET 10. PowerShell x64,
+privilégios/instalação inicialmente pendentes; V-332 agora mostra PowerShell
+x64/Administrador, serviço sem listagem, configuração ausente e DSNs 64 com
+SQL Anywhere 16/17. V-333 recebe SrvContabil/Contabil, Host/Port vazios;
+V-335/V-336: operador informou sucesso no reteste ODBC após Database/EXTERNO
+e confirmou limpeza das credenciais temporárias/salvamento de CICA_CONTAD.
+D-325/V-337: migração para **.NET 10 LTS autorizada e implementada localmente**;
+59 testes aprovados, três exclusivos de Windows não executados no Mac;
+serviço/configurador x64 e ponte x86 publicados localmente com runtime 10.0.15.
+MSI novo/CI Windows/backend, instalação/LocalSystem e corte continuam pendentes.
+V-330 (10/11): roteiro do operador acrescentado ao mesmo procedimento;
+preparação pode seguir, instalação/pareamento aguardam runtime/pacote/backend.
+V-329: implementação local concluída, PostgreSQL **1.837/163**, um skip,
+.NET **59**, um skip Windows, e três builds aprovados. Fonte candidata 1.0.5,
+sem MSI novo/publicação/instalação/corte reais. Essa prova usou .NET 8 (D-289);
+identificação do Server resolvida em V-331 e revisão do alvo aprovada em D-325.
+A release 75 e o piloto anterior são a última evidência publicada. AnyDesk disponibilizado pelo responsável; ferramenta
+nativa retornou timeout ao obter a janela, sem observar o Server. Não afirmar
+instalação/corte reais ou repetir a antiga indisponibilidade do operador como
+fato atual. Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite continuam.
+
 **Correção de retomada CONTAD — D-323/V-328, 07/11/2026:** release **75**,
 fonte c8b0c50/CI 42355490505 aprovado. Leitura inconsistente agora reinicia sem
 ficar presa no cursor; recibos concluídos e dados anteriores preservados.

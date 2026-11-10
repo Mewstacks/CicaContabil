@@ -1,6 +1,8 @@
 # Agente CICA para Windows
 
-Native .NET 8 Windows service and guided configurator. The MSI supports:
+Serviço Windows e configurador nativos em .NET 10 LTS (D-325), com runtime
+autocontido: não é necessário instalar o SDK ou runtime no servidor da cliente.
+O MSI oferece:
 
 - Sincronização de leitura do Domínio Local por SQL Anywhere de 64 bits.
 - Sincronização de leitura do Siescon por Pervasive/PSQL de 32 bits, isolada na ponte x86.

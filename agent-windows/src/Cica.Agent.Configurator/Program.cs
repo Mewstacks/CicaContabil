@@ -252,6 +252,7 @@ internal sealed class SetupForm : Form
                 Timeout = TimeSpan.FromSeconds(65)
             };
             http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
+            http.DefaultRequestHeaders.Add("X-Hub-Agent-Replacement", "staged-v1");
             using HttpResponseMessage response = await http.PostAsJsonAsync("api/agent/v2/enroll", new
             {
                 code = code.Text.Trim(), label = label.Text.Trim(), fingerprint = MachineFingerprint(),

@@ -12,7 +12,7 @@ permissions:
 jobs:
   # O agente Windows não era construído por nenhum fluxo, e por isso um erro de
   # compilação em `AgentClient` sobreviveu no ramo principal sem ninguém notar.
-  # A construção roda em Linux: o serviço tem alvo `net8.0-windows` e só compila,
+  # A construção roda em Linux: o serviço tem alvo `net10.0-windows` e só compila,
   # não executa, aqui — o que já basta para o erro aparecer. Os testes ficam na
   # biblioteca de contratos, que não depende do Windows.
   agent:
@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
       - run: dotnet build agent-windows/src/Cica.Agent.Service/Cica.Agent.Service.csproj -c Release
       - run: dotnet build agent-windows/src/Cica.Agent.Configurator/Cica.Agent.Configurator.csproj -c Release
       - run: dotnet build agent-windows/src/Cica.Agent.OdbcBridge/Cica.Agent.OdbcBridge.csproj -c Release
@@ -37,13 +37,13 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
       - name: Test Windows contracts
         shell: pwsh
         run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.4
+        run: ./agent-windows/build.ps1 -Version 1.0.5
       - name: Parse Windows operational scripts without executing ERP queries
         shell: powershell
         run: |
@@ -60,7 +60,7 @@ jobs:
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.4') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.5') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
       - name: Verify installed package on disposable Windows
         if: github.event.repository.private == false

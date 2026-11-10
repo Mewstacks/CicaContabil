@@ -1,5 +1,11 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+**Revisão de destino D-324 (09/11/2026):** nova instalação será no Windows Server
+como agente oficial, com candidato sem coleta e corte explícito/revogação do
+anterior. Implementação local em desenvolvimento; nenhuma troca real realizada.
+[Procedimento técnico e limites](contad-agente-oficial-windows-server.md).
+As provas da release 75 abaixo continuam históricas e não cobrem essa mudança.
+
 **Estado verificado em V-328:** backend publicado na release 75, fonte c8b0c50,
 [CI 42355490505 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42355490505).
 MSI 1.0.4 aprovado em Windows descartável; upgrade no PC e inventário real
@@ -31,7 +37,10 @@ O agente novo mantém `scoped-v1` enquanto estiver no manifesto piloto, inclusiv
 para retorno à release 73. No manifesto de carteira usa `scoped-v2`. O servidor
 permite buscar configuração/heartbeat com o protocolo anterior para a transição,
 mas recusa ingestão de carteira por cliente antigo. Códigos de carteira não
-são consumidos por pareamento incompatível. **Não é necessário novo pareamento.**
+são consumidos por pareamento incompatível. **Atualizar a mesma máquina não
+exige novo pareamento.** A troca para outro computador em D-324 exige novo
+UUID/segredo, sem copiar DPAPI, candidato pendente e corte explícito. A recepção
+preserva dados/scans anteriores; o novo agente inicia seu próprio scan.
 
 `POST /api/agent/v2/dominio/portfolio/companies` oferece abertura/retomada e
 confirmação de páginas de até 500 empresas, na ordem numérica de `CODI_EMP`.

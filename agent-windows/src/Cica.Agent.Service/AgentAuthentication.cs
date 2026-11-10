@@ -27,7 +27,7 @@ internal static class AgentAuthentication
         {
             try
             {
-                var certificate = new X509Certificate2(Convert.FromBase64String(pfx), (string?)null,
+                var certificate = X509CertificateLoader.LoadPkcs12(Convert.FromBase64String(pfx), (string?)null,
                     X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
                 handler.ClientCertificates.Add(certificate);
             }

@@ -1,5 +1,45 @@
 # CONTAD — resumo e continuidade
 
+**10/11 — D-327/V-339:** backend release 77/fonte 03ed5b0/CI completo aprovado,
+migrations/hashes/dados/saúde conferidos. MSI 1.0.5 de V-338 mantido. Código
+privado do novo Server emitido, válido até 15:48:07 de 10/11 (Brasília).
+Instalação/pareamento liberados para candidato; aguardar provas Windows antes
+do corte. Anterior ativo/manifesto/dados preservados; sem coleta/carteira nova.
+
+**10/11 — D-326/V-338:** MSI 1.0.5/.NET 10.0.15 da fonte 53b834b validado em
+[CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809):
+62 testes/26 checks aprovados, artefatos e SHA-256 conferidos. Pacote/roteiro
+preservados em Downloads, sem assinatura de editor. Backend de substituição
+não publicado: aguardar liberação e código novo antes de instalar/parear.
+Sem deploy, instalação/corte reais ou aceite. As notas anteriores são históricas.
+
+## Atualização de destino — 09/11/2026, D-324
+
+**Estado de 10/11 — D-325/V-336/V-337:** Windows Server 2022 Standard,
+21H2/build 20348.5761, PowerShell x64 e DSN CICA_CONTAD/SQL Anywhere 16 x64.
+Teste interativo e limpeza/salvamento confirmados pelo operador. .NET 10 LTS
+aprovado e implementado; runtime autocontido 10.0.15 nos três componentes Windows
+publicados localmente; 59 testes aprovados e três exclusivos de Windows pendentes.
+MSI novo, CI Windows, backend, instalação/LocalSystem e corte ainda não executados.
+
+V-329: código local da substituição concluído; PostgreSQL 1.837/163 aprovados,
+um skip; .NET 59 aprovados/um skip Windows e três compilações aprovadas. Sem
+publicação, MSI novo ou instalação/corte reais; essa prova anterior usou .NET 8.
+Alvo posteriormente revisado em D-325, sem homologação Windows presumida.
+
+Novo agente será instalado no **Windows Server** disponibilizado por AnyDesk,
+e se tornará o oficial após provas locais e corte explícito. Plano/prompt
+canônico adaptado; [guia técnico](contad-agente-oficial-windows-server.md).
+Candidato recebe novo UUID/segredo, herda o manifesto e não coleta até ativação;
+corte ativa o novo e revoga o anterior sem apagar dados. Histórico da carteira
+continua desde 09/2026; a mudança de máquina não amplia o manifesto.
+
+Nesta sessão, AnyDesk foi encontrado aberto, mas a ferramenta retornou timeout
+-10005 ao obter a janela; nenhuma ação no Server. Acesso disponibilizado não
+equivale a controle observado. Desenvolvimento local não é instalação/aceite;
+release 75/piloto permanecem a última evidência publicada. Os estados anteriores
+abaixo são históricos, inclusive a indisponibilidade de operador em 06/11.
+
 **Atualização D-323/V-328, 07/11/2026:** backend na **release 75**, fonte c8b0c50/
 CI 42355490505 aprovado. Corrigida retomada após cobertura inconsistente e
 adicionado diagnóstico administrativo somente leitura; 1.801 testes/163 subtestes

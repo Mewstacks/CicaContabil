@@ -56,6 +56,14 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     && config.SyncScope is null)
                     throw new InvalidDataException("Configure um recorte financeiro antes de sincronizar o Domínio Local.");
                 if (configurationChanged) config.Save();
+                if (!received.CollectionEnabled)
+                {
+                    AgentRuntimeStatus.Write("awaiting_activation",
+                        "Comunicação confirmada. Aguardando ativação como agente oficial pela operação CICA.");
+                    retryDelay = TimeSpan.FromMinutes(1);
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    continue;
+                }
                 if (config.SyncScope is not null)
                     await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
                 else
@@ -106,7 +114,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
     {
         if (config.AuthenticationMode == AgentAuthentication.Hmac) return config;
         byte[] existingPfx = Convert.FromBase64String(config.CertificatePfxBase64);
-        using var identity = new X509Certificate2(existingPfx, (string?)null,
+        using var identity = X509CertificateLoader.LoadPkcs12(existingPfx, (string?)null,
             X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
         if (identity.NotAfter.ToUniversalTime() > DateTime.UtcNow.AddDays(30)) return config;
         using RSA key = identity.GetRSAPrivateKey()
