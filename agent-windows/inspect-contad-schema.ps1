@@ -31,9 +31,12 @@ try {
     $credential = $null
     $timer = [Diagnostics.Stopwatch]::StartNew()
     $stage = 'reading_tables'
-    $tables = $connection.GetSchema('Tables', [string[]]@($null, 'bethadba', $null, $null))
+    # System.Data.Odbc Tables/Views accept three restrictions, unlike SqlClient.
+    $tables = $connection.GetSchema('Tables', [string[]]@($null, 'bethadba', $null))
+    $stage = 'reading_views'
+    $views = $connection.GetSchema('Views', [string[]]@($null, 'bethadba', $null))
     $stage = 'selecting_objects'
-    $selected = @($tables.Rows | Where-Object {
+    $selected = @((@($tables.Rows) + @($views.Rows)) | Where-Object {
         ([string]$_.TABLE_SCHEM -ieq 'bethadba') -and (
             ([string]$_.TABLE_NAME -ieq 'GEEMPRE') -or
             ([string]$_.TABLE_NAME -imatch '^CT') -or

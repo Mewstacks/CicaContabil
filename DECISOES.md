@@ -4012,3 +4012,15 @@ validados e códigos nativos numéricos; nunca mensagem ODBC, senha ou connectio
 string. Validar essas recusas no Windows descartável antes de novo envio.
 Sem contornar a falha com SQL financeiro ou apresentar resultado parcial como
 completo. A carteira permanece piloto até resultado real e revisão.
+
+Diagnóstico real Q-28 recebido: reading_tables/índice 0, MethodInvocationException
+com ArgumentException, sem SQLState/nativo, após conexão abrir. Causa identificada
+no script: GetSchema Tables usa quatro restrições, mas OdbcMetaDataFactory do
+.NET Framework aceita três (código Microsoft, GetTablesCollection). Corrigir
+para catálogo/schema/tabela; Columns mantém quatro. Incluir Views em chamada
+própria (mesmas três restrições) para não omitir objetos pertinentes, conservando
+filtro local/limites. Teste sintético anterior não validava esse contrato; CI
+deve ler limites da metadata XML embutida no System.Data real do Windows,
+verificar contagens e rejeitar a chamada antiga, sem depender de ERP. Retorno
+real do script corrigido continua necessário; não inferir sucesso por CI.
+Fonte: https://github.com/microsoft/referencesource/blob/main/System.Data/System/Data/Odbc/odbcmetadatafactory.cs#L860

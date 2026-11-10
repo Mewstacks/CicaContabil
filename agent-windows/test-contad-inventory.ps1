@@ -11,21 +11,27 @@ using System;
 using System.Data;
 public sealed class InventoryFixtureConnection : IDisposable {
     public static string Scenario;
+    public static int TableRestrictions;
+    public static int ViewRestrictions;
+    public static int ColumnRestrictions;
     public int ConnectionTimeout { get; set; }
     public void Open() { if(ConnectionTimeout != 20) throw new Exception("Timeout not configured"); }
     public void Close() { }
     public void Dispose() { }
     public DataTable GetSchema(string kind, string[] restrictions) {
         var t = new DataTable();
-        if(kind == "Tables") {
+        if(kind == "Tables" || kind == "Views") {
+            int allowed=kind == "Tables" ? TableRestrictions : ViewRestrictions;
+            if(restrictions.Length != allowed) throw new ArgumentException("Wrong ODBC restriction count");
             foreach(var s in new[]{"TABLE_SCHEM","TABLE_NAME","TABLE_TYPE"}) t.Columns.Add(s,typeof(string));
+            if(kind == "Views") { t.Rows.Add("bethadba","EFRECEBER","VIEW"); return t; }
             t.Rows.Add("bethadba","GEEMPRE","TABLE");
             t.Rows.Add("bethadba","CTCONTAS","TABLE");
-            t.Rows.Add("bethadba","EFRECEBER","VIEW");
             t.Rows.Add("other","CTPRIVATE","TABLE");
             t.Rows.Add("bethadba","UNRELATED","TABLE");
             if(Scenario == "object_limit") for(int i=0;i<1500;i++) t.Rows.Add("bethadba","CT"+i,"TABLE");
         } else if(kind == "Columns") {
+            if(restrictions.Length != ColumnRestrictions) throw new ArgumentException("Wrong columns restriction count");
             foreach(var s in new[]{"TABLE_SCHEM","TABLE_NAME","COLUMN_NAME","TYPE_NAME","ORDINAL_POSITION","NULLABLE","COLUMN_SIZE","DECIMAL_DIGITS"}) t.Columns.Add(s,typeof(string));
             var names=restrictions[2] == "GEEMPRE" ? new[]{"CODI_EMP","NOME_EMP","CGCE_EMP","STAT_EMP"} : new[]{"CODI_EMP"};
             int i=0;
@@ -51,6 +57,21 @@ public sealed class InventoryFixtureCommand : IDisposable {
     public void Dispose() { }
 }
 '@
+    # Verify the contract against the actual .NET Framework provider shipped on Windows.
+    $assembly=[System.Data.Odbc.OdbcConnection].Assembly
+    $resource=@($assembly.GetManifestResourceNames() | Where-Object { $_ -match 'OdbcMetaData\.xml$' })
+    if($resource.Count -ne 1) { throw 'ODBC provider metadata resource not found.' }
+    $stream=$assembly.GetManifestResourceStream($resource[0])
+    $textReader=New-Object IO.StreamReader($stream)
+    try { [xml]$metadata=$textReader.ReadToEnd() } finally { $textReader.Dispose() }
+    [InventoryFixtureConnection]::TableRestrictions=[int]$metadata.SelectSingleNode("/NewDataSet/MetaDataCollections[CollectionName='Tables']/NumberOfRestrictions").InnerText
+    [InventoryFixtureConnection]::ViewRestrictions=[int]$metadata.SelectSingleNode("/NewDataSet/MetaDataCollections[CollectionName='Views']/NumberOfRestrictions").InnerText
+    [InventoryFixtureConnection]::ColumnRestrictions=[int]$metadata.SelectSingleNode("/NewDataSet/MetaDataCollections[CollectionName='Columns']/NumberOfRestrictions").InnerText
+    if([InventoryFixtureConnection]::TableRestrictions -ne 3 -or [InventoryFixtureConnection]::ViewRestrictions -ne 3 -or [InventoryFixtureConnection]::ColumnRestrictions -ne 4) { throw 'Unexpected actual ODBC provider contract.' }
+    $wrongRejected=$false
+    try { [void]([InventoryFixtureConnection]::new().GetSchema('Tables',[string[]]@($null,'bethadba',$null,$null))) }
+    catch { $wrongRejected=$_.Exception.InnerException -is [ArgumentException] }
+    if(-not $wrongRejected) { throw 'Previous four-restriction regression not detected.' }
     [InventoryFixtureConnection]::Scenario=$Scenario
     function Get-Credential {
         param($UserName,$Message)
