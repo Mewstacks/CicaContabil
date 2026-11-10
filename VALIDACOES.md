@@ -7625,3 +7625,36 @@ awaiting_activation comprova configuração DPAPI/registro de DSN e comunicaçã
 HMAC no serviço após reinício, mas não abertura ODBC ou leitura ERP sob SYSTEM.
 D-330 prepara prova separada; corte, nova coleta e demais gates pendentes.
 Evidências privadas .tmp/contad-server-pairing-2026-11-10/; imagem somente 0600.
+
+## V-344 — Ferramenta de prova LocalSystem validada e entregue (10/11/2026)
+
+Escopo D-330/D-324/D-327. Fonte 05fc97d85ca18370939a3ed421d958199e81611f,
+[CI Windows 42890385615](https://github.com/Mewstacks/CicaContabil/actions/runs/42890385615) aprovado e [PR 4](https://github.com/Mewstacks/CicaContabil/pull/4)
+integrado na main ff501af349d34961d1ccae320d4a940a52a90601 com árvore idêntica. Windows Server
+2022/10.0.20348 e PowerShell 5.1.20348.5773. Prova real de tarefa SYSTEM/x64,
+DPAPI/ACL privada, recusa IM002 para DSN inexistente, nenhuma leitura ERP,
+nenhuma credencial no relatório/saída, tarefa/arquivos removidos, relatório
+Administradores/SYSTEM e recusa de Worker sob conta interativa. Primeiro CI
+42889888743 falhou na asserção com nome sintético longo; nome encurtado em
+274f2fd/CI 42890124669 aprovado. Versão final 05fc97d preserva UTF-8 com BOM
+para Windows PowerShell e inclui SID explícito; novamente aprovada. O job MSI
+foi intencionalmente pulado: sem alteração do binário, runtime ou backend.
+
+Script separado testar-odbc-system.ps1, SHA-256 64dcc5ef12098edd1755ca54eb2d55851411b54d2d5ff0abf6c83e844296c9fb,
+com consulta mínima idêntica ao configurador. A senha será digitada somente
+no Windows, protegida para transporte em arquivo temporário privado; não lê
+agent.config/DSN/registro de senha. Relatório não contém valores da consulta.
+Também lê apenas os campos seguros do status e ACL, para comprovar versão,
+horário e permissões sem expor configuração. Pasta/roteiro/hash em Downloads/
+CICA-CONTAD-Teste-LocalSystem-2026-11-10; pacote MSI anterior atualizado com a
+ferramenta e instruções, sem alterar CicaAgent.msi. Prompt/cópias/checklists
+atualizados para próximo passo único: executar o teste e enviar relatório.
+
+Inspeção backend confirma candidato com label SVAPL02/pending e heartbeat,
+mesmo manifesto, anterior ativo. Onze conjuntos de dados anteriores idênticos
+às provas V-342; agentes agora três, pela inclusão do candidato. Código já
+consumido; não emitir outro ou parear novamente. Release 80 permanece corrente.
+**Limites:** CI não dispõe do ERP da cliente. ODBC/ACL/versão reais aguardam
+relatório do SVAPL02; sem corte, nova coleta, reinstalação, deploy ou custo novo.
+Q-28 e demais fontes/carteira/Q-46/Q-47/D-73/recuperação/treinamento/aceite abertos.
+Evidências privadas .tmp/contad-server-pairing-2026-11-10/.

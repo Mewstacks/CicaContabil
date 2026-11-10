@@ -395,10 +395,21 @@ texto do winver. Isso não é indisponibilidade humana nem prova de instalação
 - [x] V-340: receber confirmação visual de ODBC interativo em SVAPL02.
 - [x] Conferir código antigo expirado sem uso/zero candidato; emitir novo código
   privado por 60 minutos, fora de Git/ZIP, e atualizar roteiro do operador.
-- [ ] Parear candidato no Server e comprovar Running/Auto/LocalSystem,
-  reabertura após reinício só do serviço e awaiting_activation.
+- [x] V-343: candidato pareado; captura Running/Auto/LocalSystem e
+  awaiting_activation após reinício. Versão/horário/ACL/ODBC ainda por provar.
 - [ ] Provar ODBC sob LocalSystem/ACL/DPAPI, efetuar corte explícito e conferir
   novo oficial/recepção/recusa do anterior sem perda ou duplicação.
 
 Q-28 e demais gates continuam abertos. Não repetir o teste ODBC interativo,
 a identificação do Windows, decisão .NET ou instalação sem motivo novo.
+
+### Pareamento e prova SYSTEM — D-330/V-343/V-344 (10/11/2026)
+
+- [x] Candidato SVAPL02 real, identidade nova/manifesto idêntico e heartbeat;
+  captura Running/Auto/LocalSystem/awaiting_activation após reinício.
+- [x] Entregar ferramenta pontual ODBC SYSTEM, relatório seguro, hash e roteiro;
+  validar tarefa/DPAPI/ACL/limpeza no CI Windows 2022 da fonte exata.
+- [ ] Receber relatório real: ODBC mínimo sob SYSTEM, versão 1.0.5/status/horário,
+  configuração acessível por DPAPI no serviço e ACL Administradores/SYSTEM.
+- [ ] Depois dessas provas, efetuar corte oficial e conferir novo ready/recepção,
+  anterior recusado e dados preservados; demais gates continuam abertos.

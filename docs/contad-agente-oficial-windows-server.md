@@ -6,20 +6,17 @@ Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
 ## Estado e pré-requisitos
 
-**Estado atual — D-329/V-342, 10/11/2026:** agente integrado à main pelo
-[PR 3](https://github.com/Mewstacks/CicaContabil/pull/3); fonte validada 5c20766, main 272f977,
-[CI completo 42882756516](https://github.com/Mewstacks/CicaContabil/actions/runs/42882756516) aprovado. Backend consolidado publicado e
-conferido na **release 80**. Preservados worker web único, menu Empresas
-atendidas, filtros de recuperação NFS-e, recursos e dados CONTAD.
-MSI **1.0.5/.NET 10.0.15** de V-338 mantido; não reinstalar por esta integração.
-V-340 comprova ODBC interativo no configurador do **SVAPL02**, CICA_CONTAD/
-SQL Anywhere 16 x64. Próxima ação: **passo 7, parear como candidato**, usando
-o novo arquivo privado **CICA-CONTAD-Codigo-SVAPL02-2026-11-10-163051.txt**, válido até **17:30:50 de 10/11,
-Brasília**. Código anterior expirado sem uso; nenhum candidato ou corte criado.
-Após parear/reiniciar somente CicaAgent, conferir Running/Auto/LocalSystem e
-awaiting_activation. ODBC sob LocalSystem, corte oficial e recepção continuam
-pendentes; o anterior permanece ativo e o manifesto permanece o mesmo piloto.
-Código não integra Git/ZIP/chat. Registros anteriores abaixo são históricos.
+**Estado atual — D-330/V-343/V-344, 10/11/2026:** novo candidato SVAPL02
+pareado, serviço **Running/Auto/LocalSystem/awaiting_activation** após reinício.
+Backend confirma UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385 pending, identidade
+diferente, mesmo manifesto e heartbeat; anterior segue ativo. Código consumido.
+Próximo passo: executar **testar-odbc-system.ps1** entregue separadamente e enviar
+somente o relatório seguro. Prova SYSTEM/ACL/limpeza validada em Windows 2022/
+PowerShell 5.1 descartável, CI 42890385615/PR 4; acesso ERP real ainda pendente.
+MSI 1.0.5 e backend release 80 mantidos; não reinstalar/parear novamente ou emitir
+outro código. O teste também mostra versão/status/ACL. Corte oficial aguarda
+resultado real e conferência do candidato; manifesto continua o mesmo piloto.
+Registros anteriores abaixo são históricos.
 
 **D-325/V-337, 10/11:** responsável aprovou .NET 10 LTS, revisando D-289.
 Os projetos e CI foram migrados; publicação local dos três componentes inclui
@@ -137,6 +134,23 @@ Publicação, MSI/instalação real, inventário, dados, D-73, Q-47, recuperaç�
 treinamento e aceite ficam em estados separados. O novo agente só pode ser
 relatado como oficial **após** o corte real e sua conferência no backend.
 
+## Próxima prova no SVAPL02 — D-330/V-344
+
+O pareamento/passos 7–8 já foram comprovados em V-343. Não consumir outro código.
+Copiar testar-odbc-system.ps1 entregue em Downloads para C:\CICA-Instalacao.
+No Windows PowerShell x64/elevado, executar:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\testar-odbc-system.ps1"
+```
+
+Digitar a senha de EXTERNO só no prompt oculto do Windows. O script executa
+consulta mínima de leitura sob SYSTEM, descarta valores e remove tarefa/credencial.
+Não abre agent.config. Enviar somente JSON final; esperado ODBC/SELECT true,
+SID S-1-5-18, x64, ACL privada, versão 1.0.5, awaiting_activation/horário recente
+e remoção de tarefa/arquivos. Erro é diagnóstico, sem ativação automática.
+Operação confere relatório/candidato/heartbeat antes de efetuar corte oficial.
+
 ## Passo a passo dentro do Windows Server — operador, 10/11/2026
 
 **V-335/V-336, resultado atual:** operador informou sucesso no reteste e
@@ -172,7 +186,8 @@ ausente. No ODBC de sistema, Contabil 64 usa SQL Anywhere 16; Contabil 32 usa
 servidor/banco de Contabil 64 sem salvar/alterar ou ler senha. Não repetir os
 passos já comprovados nem supor que os DSNs tenham o mesmo destino.
 
-**Na captura atual, a configuração e o teste do passo 6 já deram certo.**
+**Histórico anterior ao pareamento V-343 — passos genéricos:**
+**Na captura de V-340, a configuração e o teste do passo 6 já deram certo.**
 Próxima ação é o passo 7 com o novo código privado, válido até 17:30:50 de
 10/11 (Brasília). MSI permanece o mesmo; não reinstalar por esta consolidação.
 O código antigo expirou sem uso. Serviço/versão/LocalSystem ainda precisam de

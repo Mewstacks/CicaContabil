@@ -482,3 +482,10 @@ antigo expirado sem uso e zero candidato; novo código privado emitido por
 60 minutos. Próximo passo Q-28: parear como candidato/passos 7–8, conferir
 serviço/LocalSystem/DPAPI e prova ODBC sob SYSTEM antes do corte. Sem nova
 pergunta, coleta ampliada ou alteração de manifesto.
+
+**Complemento D-330/V-343/V-344:** pareamento e serviço System/Auto/Running
+confirmados; código consumido, candidato SVAPL02 pending, anterior ativo e mesmo
+manifesto. Não repetir pareamento ou emitir código. Próxima prova Q-28 é executar
+a ferramenta testar-odbc-system.ps1 e enviar relatório seguro (ODBC real sob
+SYSTEM, versão/horário/ACL). CI Windows 2022 aprovou isolamento/limpeza, sem ERP
+real. Corte continua condicionado ao resultado, sem nova pergunta de decisão.

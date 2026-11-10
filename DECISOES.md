@@ -3916,3 +3916,8 @@ cobre integração da ferramenta do agente. MSI/backend continuam os mesmos.
 Entregar script/hash e comando pontual ao operador. Corte depende do resultado
 real, versão instalada, ACL/DPAPI e candidato recente; não há promoção por esta
 preparação ou pela captura. Sem nova pergunta ou autorização de custo inferida.
+
+Execução D-330 em V-344: ferramenta e tarefa SYSTEM aprovadas no Windows 2022
+isolado, fonte 05fc97d/CI 42890385615/PR 4 integrado, sem alteração de MSI/backend.
+Relatório real do SVAPL02 continua necessário antes do corte. Código já consumido;
+não emitir outro ou repetir pareamento. Dados anteriores preservados.

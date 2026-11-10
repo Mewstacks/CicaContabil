@@ -3487,3 +3487,18 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   já comprovado em V-340; próxima ação operador é parear e devolver estados.
 - Sem acesso/ação no Windows, corte oficial, nova coleta, custo ou aceite.
   Provas LocalSystem/DPAPI/ODBC e demais gates continuam abertos.
+
+## 10/11/2026 — Candidato pareado e prova ODBC SYSTEM preparada (D-330/V-343/V-344)
+
+- Captura humana: Running/Auto/LocalSystem/awaiting_activation após reinício.
+  Backend confirmou SVAPL02 pending, novo fingerprint e manifesto herdado,
+  código consumido e anterior ativo. Onze conjuntos de dados anteriores intactos.
+- Preparada ferramenta sem ler configuração/senhas existentes: senha digitada
+  só no Windows, DPAPI/ACL temporária, tarefa SYSTEM com SELECT mínimo, relatório
+  seguro, remoção da tarefa/credencial. Teste CI usa DSN inexistente/credencial sintética.
+- CI exato 42890385615/fonte 05fc97d aprovado em Windows 2022/PowerShell 5.1;
+  PR 4 integrado, script/hash/roteiro entregues. Fonte inicial de teste usava DSN
+  sintético longo e falhou na asserção; encurtado e versão final revalidada.
+- MSI 1.0.5/backend release 80 preservados; sem reinstalação/deploy/corte/coleta.
+  Próximo passo operador: executar teste e devolver JSON seguro; conferir ODBC,
+  ACL/versão/horário e heartbeat antes de corte. Q-28 e demais gates abertos.
