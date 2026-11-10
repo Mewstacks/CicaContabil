@@ -1,4 +1,4 @@
-#requires -Version 5.1
+﻿#requires -Version 5.1
 #requires -RunAsAdministrator
 [CmdletBinding()]
 param(
@@ -65,6 +65,7 @@ function Invoke-CicaSystemProbe {
         probe_version = '1.0.0'
         run_id = $RunId.ToString('N')
         executed_as_system = $true
+        execution_sid = 'S-1-5-18'
         process_x64 = [Environment]::Is64BitProcess
         odbc_connection_ok = $false
         minimal_select_ok = $false

@@ -84,3 +84,22 @@ The deterministic outputs are written to `artifacts/`, including a SHA-256 check
 inventory. O build recusa o pacote se serviço, configurador, ponte x86 ou diagnóstico estiverem
 ausentes, e o CI repete a geração completa em `windows-latest`. Publish the checksum alongside the stable MSI download URL. Existing Python agents keep
 using `/api/v1/intelligence/agent/*` during migration.
+
+### Prova pontual ODBC sob LocalSystem
+
+Quando o candidato está em `awaiting_activation`, ele ainda não consulta o ERP.
+`testar-odbc-system.ps1` é uma ferramenta separada do MSI para essa prova:
+Windows PowerShell 5.1 x64/elevado, DSN CICA_CONTAD e usuário EXTERNO por padrão.
+Solicita a senha localmente com entrada oculta, protege o transporte temporário
+com DPAPI/ACL Administradores-SYSTEM, executa somente a consulta mínima do
+configurador por tarefa SYSTEM e remove a tarefa/credencial ao terminar.
+Não lê `agent.config`; o relatório contém apenas indicadores/SQLState, versão,
+estado e ACL. O script deve ser copiado separadamente; não exige reinstalação.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\testar-odbc-system.ps1"
+```
+
+A política acima vale só para esse processo. Não executar
+`test-system-odbc-probe.ps1` na cliente: é o ensaio do CI descartável com DSN
+inexistente e senha sintética, sem prova de acesso ao ERP real.
