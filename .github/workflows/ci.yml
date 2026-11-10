@@ -55,6 +55,7 @@ jobs:
             if ($errors.Count -gt 0) { throw ($errors | Out-String) }
           }
       - name: Verify package manifest
+        # The probe uses only a missing DSN and synthetic credentials in disposable CI.
         shell: pwsh
         run: |
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
@@ -62,6 +63,10 @@ jobs:
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
           if ($release.version -ne '1.0.5') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
+      - name: Validate SYSTEM diagnostic isolation and cleanup
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-system-odbc-probe.ps1
       - name: Verify installed package on disposable Windows
         if: github.event.repository.private == false
         shell: pwsh

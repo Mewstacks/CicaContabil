@@ -7606,3 +7606,22 @@ ODBC sob LocalSystem, corte oficial ou nova coleta. Próximo passo no Server é
 colar o código e Conectar à CICA, reiniciar só CicaAgent e devolver estados
 seguros; completar provas faltantes antes do corte. Q-28/Q-46/Q-47, D-73,
 carteira/fontes completas, recuperação recorrente, treinamento e aceite abertos.
+
+## V-343 — Candidato real no Server e serviço aguardando ativação (10/11/2026)
+
+Captura humana de SVAPL02 mostra Restart-Service CicaAgent, serviço Running /
+Auto / LocalSystem e awaiting_activation. Configurador mostra recorte herdado
+(empresa 212, conta do piloto, setembro/2026), CICA_CONTAD/SQL Anywhere 16 x64.
+Código temporário aparece na imagem; é tratado como segredo, não transcrito ou
+copiado ao Git. Senha mascarada. Saída combinada do PowerShell ocultou colunas
+de versão/horário/detail: não afirmar esses valores a partir da captura.
+
+Consulta backend somente leitura, 19:46:28 UTC: código 1017ef5d consumido às
+19:44:58 UTC, candidato 0086bcf7-45a3-486b-b3ff-8b8f5e456385 pending, não oficial,
+referencia anterior 3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 ativo; heartbeat recente.
+Fingerprint diferente e mesmo manifesto/revisão ad932af6, hash 1fbaf927. Release
+80 continua corrente. Não emitir outro código, revogar ou parear novamente.
+awaiting_activation comprova configuração DPAPI/registro de DSN e comunicação
+HMAC no serviço após reinício, mas não abertura ODBC ou leitura ERP sob SYSTEM.
+D-330 prepara prova separada; corte, nova coleta e demais gates pendentes.
+Evidências privadas .tmp/contad-server-pairing-2026-11-10/; imagem somente 0600.

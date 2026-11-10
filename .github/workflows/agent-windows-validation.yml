@@ -8,6 +8,11 @@ on:
       - contracts/datasets/**
       - .github/workflows/agent-windows-validation.yml
   workflow_dispatch:
+    inputs:
+      probe_only:
+        description: Validate only the temporary SYSTEM ODBC diagnostic
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -15,7 +20,7 @@ permissions:
 jobs:
   install-test:
     # Standard public runner only; never install on a customer's/self-hosted machine.
-    if: github.event.repository.private == false
+    if: github.event.repository.private == false && inputs.probe_only != true
     runs-on: windows-2022
     timeout-minutes: 20
     steps:
@@ -55,5 +60,25 @@ jobs:
         with:
           name: CicaAgent-windows-validation
           path: agent-windows/artifacts/validation/
+          if-no-files-found: warn
+          retention-days: 1
+
+  system-odbc-probe:
+    if: github.event.repository.private == false
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate SYSTEM task, credential isolation, failure and cleanup
+        shell: powershell
+        run: ./agent-windows/test-system-odbc-probe.ps1
+      - name: Preserve diagnostic test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: system-odbc-probe-validation
+          path: agent-windows/artifacts/validation/system-odbc-probe.json
           if-no-files-found: warn
           retention-days: 1

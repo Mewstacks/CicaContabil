@@ -3892,3 +3892,27 @@ Execução D-329 concluída em V-342: PR 3/main 272f977, CI exato aprovado,
 backend consolidado release 80 e código renovado após conferir anterior
 expirado sem uso/zero candidato. Preservados MSI, correções, dados e recursos.
 Provas Windows, corte oficial e demais gates seguem pendentes.
+
+## D-330 — Prova ODBC LocalSystem antes do corte oficial (10/11/2026)
+
+Continuidade de D-324/D-327 e evidência V-343: novo candidato já pareado,
+serviço Running/Auto/LocalSystem e awaiting_activation após reinício. O estado
+pendente não consulta o ERP; não eliminar o gate ODBC nem ativar para testá-lo.
+Preparar teste pontual por tarefa Windows temporária sob SYSTEM, PowerShell
+64 bits já disponível, usando o mesmo DSN CICA_CONTAD e autenticação explícita.
+Senha digitada localmente em Read-Host -AsSecureString, nunca argumento/log/chat.
+Transporte apenas para essa tarefa por arquivo novo DPAPI LocalMachine em pasta
+ACL exclusiva Administradores/SYSTEM. Não ler/decifrar agent.config, senhas de
+DSN/registro ou credenciais HMAC. Executar somente SELECT TOP 1 codi_emp FROM
+bethadba.geempre (mesma consulta do configurador), descartar o conteúdo e emitir
+somente resultado, SID/arquitetura/versão/ACL e SQLState/código numérico em falha.
+
+Remover tarefa e arquivos temporários/credenciais ao terminar; não modificar
+serviço/agente, DSN, ERP, firewall ou recursos, nem reiniciar o Server. Arquivo
+final contém apenas diagnóstico seguro. Validar parser e tarefa SYSTEM/ACL/
+redação/limpeza em Windows 2022 descartável com DSN inexistente e senha sintética,
+sem simular uma conexão ERP real. D-326 cobre branch/CI público padrão; D-329
+cobre integração da ferramenta do agente. MSI/backend continuam os mesmos.
+Entregar script/hash e comando pontual ao operador. Corte depende do resultado
+real, versão instalada, ACL/DPAPI e candidato recente; não há promoção por esta
+preparação ou pela captura. Sem nova pergunta ou autorização de custo inferida.
