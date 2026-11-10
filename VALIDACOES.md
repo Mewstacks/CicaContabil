@@ -7723,3 +7723,46 @@ privadas .tmp/contad-server-cutover-2026-11-10/. Instalação e corte operaciona
 Q-28 permanece para inventário/fontes/carteira, além desse retorno do teste.
 Carteira/fontes completas, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento
 e aceite não homologados por essa operação.
+
+## V-347 — Retomada do SVAPL02 após reinício pós-corte (10/11/2026)
+
+Fecha somente a prova complementar pendente em V-346, sob D-324/D-330.
+Operador executou no PowerShell administrador a linha com separadores:
+Restart-Service CicaAgent; espera de 90 segundos; consulta do serviço/status.
+Resultado real: **Running / Auto / LocalSystem**, **ready / 1.0.5**,
+observed_at_utc **2026-11-10T20:23:26.9265491+00:00**, detalhe
+“Último ciclo concluído com sucesso.” O Ctrl+C ocorreu no prompt depois dos
+dois JSONs; não representa falha do teste nem parada do serviço. A primeira
+colagem sem separadores registrada em V-346 havia falhado antes da ação;
+o retorno atual comprova a execução corrigida, sem reescrever a prova anterior.
+
+Conferência live somente leitura em transações REPEATABLE READ/READ ONLY:
+companies_synced às 20:24:27/20:25:40 UTC (zero criação, uma atualização),
+bank_entries_synced às 20:24:29/20:25:42 UTC (zero criação/alteração/ignorados,
+sem truncamento), conector healthy/sem erro e heartbeat SVAPL02 20:26:50 UTC.
+Único active/is_official, anterior revoked/is_official=false com last_seen
+inalterado em 20:07:40 UTC, uma única auditoria de corte e mesmo manifesto.
+Recepção real após reinício confirmada; não inferir quantidade de linhas
+relidas a partir de auditorias de delta ou dos 163 movimentos já existentes.
+
+Onze conjuntos de dados não relacionados ao estado dos agentes continuam com
+contagens/hashes idênticos ao preflight: uma empresa/conta, 163 movimentos,
+163 DominioBankEntry/AccountingEntry de vínculo bancário, arquivo/vínculo de
+usuário preservados; zero JournalEntry/IndependentLedgerRecord/decisão/exportação.
+Três agentes mantidos como histórico, zero scan de carteira. Release 80,
+configuração completa, imagens, recursos e estados das três Machines idênticos,
+incluindo reserva parada. Sem escrita ERP, novo deploy, reinstalação ou reboot
+do servidor; apenas o serviço CICA foi reiniciado pelo operador.
+
+Instalação/troca oficial/teste pós-corte concluídos. Relatório, entrega.json,
+pacotes/ZIPs, prompt/cópias, plano e checklists atualizados; MSI/script preservados.
+Evidências privadas .tmp/contad-server-cutover-2026-11-10/windows-post-restart.json,
+operational-after-restart.json, official-state-after-restart.json,
+integrity-after-restart.json e final-verification.json. Sem senhas/chaves/códigos
+em Git ou pacote público. Serviço do computador anterior não foi fisicamente
+parado nesta sessão; sua credencial permanece revogada no backend.
+
+**Limites:** prova cobre reinício do serviço e o piloto autorizado, sem ampliar
+carteira/fontes. Q-28 segue para inventário/fontes/carteira; Q-46/Q-47, Razão/títulos,
+D-73 (inclusive falha de rede/restauração), IA, exportação ERP, treinamento e
+aceite contratual permanecem nas etapas próprias. Não é homologação integral.

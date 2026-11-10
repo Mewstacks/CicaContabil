@@ -419,6 +419,6 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
 - [x] ODBC SYSTEM/x64, ACL privada, versão 1.0.5 e limpeza comprovados.
 - [x] SVAPL02 único ativo/oficial; anterior revogado/auditado e assinatura 401.
 - [x] Primeiro ready e recepção reais, mesmo manifesto e dados/piloto preservados.
-- [ ] Receber JSON após segundo reinício, posterior ao corte; primeira tentativa
-  falhou no binding da colagem, comando em linha única reenviado.
+- [x] V-347: JSON recebido após reinício posterior ao corte: Running/Auto/
+  LocalSystem/ready/1.0.5; recepção real, único oficial e dados preservados.
 - [ ] Demais fontes/carteira, Q-46/Q-47, D-73, recuperação, treinamento e aceite.

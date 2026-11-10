@@ -3515,3 +3515,16 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   novamente retornou timeout -10005, sem observar/controlar Server.
 - Documentação/pacote/relatório atualizados para estado real; prova pendente não
   marcada concluída. Carteira/fontes/aceite e demais gates continuam abertos.
+
+## 10/11/2026 — Reinício pós-corte aprovado e instalação encerrada (V-347)
+
+- Operador devolveu os dois JSONs após linha corrigida com separadores:
+  Running/Auto/LocalSystem, ready/1.0.5 às 20:23:26 UTC, ciclo concluído.
+- Backend conferido somente leitura: ciclos reais às 20:24/20:25, conector
+  healthy, heartbeat 20:26:50, único oficial e anterior revogado/sem novo heartbeat.
+- Onze fingerprints anteriores idênticos; mesmo manifesto/piloto, zero scan,
+  release 80/configuração/imagens/recursos/estados de Machines preservados.
+- Plano/checklists/validações/relatório/prompt/cópias e pacotes atualizados.
+  MSI/script intactos; nenhuma reinstalação, nova coleta ampliada ou deploy.
+- Fecha o retorno pendente em V-346. Instalação, troca oficial e teste de
+  retomada do serviço concluídos; carteira/fontes/aceite continuam nos seus gates.

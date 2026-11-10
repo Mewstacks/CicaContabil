@@ -6,17 +6,20 @@ Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
 ## Estado e pré-requisitos
 
-**Agente oficial ativo — D-324/D-330/V-345/V-346, 10/11/2026:** **SVAPL02**
-ativo/oficial desde **17:08:35 Brasília**, UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385;
-anterior CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado/auditado. Único oficial,
-mesmo manifesto, assinatura antiga recusada HTTP 401 e novo 200/coleta habilitada.
-ODBC/SELECT mínimo sob SYSTEM/x64, ACL privada, DPAPI e versão 1.0.5 comprovados.
-Primeiro **ready/1.0.5 às 20:09:33 UTC** e recepção real conferidos, conector healthy.
-Onze fingerprints anteriores idênticos; piloto/163 movimentos preservado.
-MSI 1.0.5 e backend release 80 mantidos. Não reinstalar ou parear novamente.
-**Aguarda somente o retorno do teste complementar de reinício pós-corte**:
-primeira colagem falhou antes de executar; comando em linha única enviado.
-Não afirmar esse segundo reinício como comprovado. Carteira/fontes completas,
+**Agente oficial instalado e validado — D-324/D-330/V-345/V-346/V-347, 10/11/2026:**
+**SVAPL02** é o único oficial ativo desde **17:08:35 Brasília**, UUID
+0086bcf7-45a3-486b-b3ff-8b8f5e456385; anterior
+CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado/auditado.
+ODBC/SELECT mínimo sob SYSTEM/x64, ACL privada e DPAPI comprovados.
+Serviço **Running/Auto/LocalSystem**, versão **1.0.5**, estado **ready**,
+inclusive após reinício posterior ao corte: **17:23:26 Brasília / 20:23:26 UTC**.
+Recepção real posterior conferida às 20:24/20:25 UTC, conector healthy e
+heartbeat às 20:26:50 UTC. Anterior permanece revogado; assinatura recusada
+HTTP 401 em V-346. Mesmo manifesto e onze fingerprints anteriores idênticos;
+piloto com 163 movimentos preservado. MSI 1.0.5/.NET 10 e backend release 80
+mantidos, sem reinstalação/deploy ou alteração de recursos/configuração.
+Instalação, corte e teste complementar de reinício concluídos. Não emitir
+código, parear ou repetir provas concluídas por rotina. Carteira/fontes completas,
 Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem gates próprios.
 Registros anteriores são históricos.
 
@@ -139,8 +142,8 @@ relatado como oficial **após** o corte real e sua conferência no backend.
 ## Histórico da prova SYSTEM concluída — D-330/V-344/V-345
 
 Prova SYSTEM abaixo concluída em V-345; V-346 já ativou o oficial e confirmou
-primeiro ready/recepção. Não repetir por rotina. O retorno do segundo reinício
-pós-corte está pendente, conforme o estado atual acima.
+primeiro ready/recepção. V-347 concluiu o segundo reinício pós-corte,
+Running/Auto/LocalSystem/ready e recepção real. Não repetir por rotina.
 O pareamento/passos 7–8 já foram comprovados em V-343. Não consumir outro código.
 Copiar testar-odbc-system.ps1 entregue em Downloads para C:\CICA-Instalacao.
 No Windows PowerShell x64/elevado, executar:

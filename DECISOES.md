@@ -3942,3 +3942,10 @@ SVAPL02 único ativo/oficial e anterior revogado/auditado; antigo HTTP 401, novo
 comprovados, dados preservados. Segundo reinício pós-corte solicitado; primeira
 colagem falhou antes da ação, comando corrigido, retorno ainda não recebido.
 Não registrar essa prova como concluída. Demais fontes/gates permanecem abertos.
+
+Fechamento D-324/D-330 em V-347: retorno real do operador confirma reinício
+pós-corte, Running/Auto/LocalSystem/ready/1.0.5 às 20:23:26 UTC; backend confirma
+novos ciclos/heartbeat e conector healthy, único oficial e anterior revogado.
+Prova pendente em V-346 encerrada; instalação/troca concluídas, mesmo piloto e
+dados preservados. Não repetir instalação/pareamento/teste por rotina. Demais
+fontes/carteira/gates contratuais preservados, sem nova ampliação de escopo.

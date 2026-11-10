@@ -495,3 +495,9 @@ anterior revogado e primeiro ready/recepção reais, com dados preservados. Reto
 do segundo reinício pós-corte ainda pendente; não afirmar teste concluído pela
 colagem que falhou. Q-28 continua para inventário/fontes/carteira, sem reabrir
 instalação/runtime/driver/pareamento. Demais gates preservados.
+
+**Complemento V-347:** retorno do segundo reinício pós-corte recebido e
+conferido: Running/Auto/LocalSystem/ready/1.0.5, novos ciclos/heartbeat reais,
+conector healthy, único oficial e dados preservados. Instalação/troca/teste
+complementar concluídos; Q-28 permanece somente para inventário/fontes/carteira.
+Não repetir a mesma prova ou perguntas já respondidas. Demais gates preservados.
