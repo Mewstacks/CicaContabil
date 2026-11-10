@@ -6,6 +6,8 @@ from typing import Any
 
 from django.urls import reverse
 
+from apps.hub.services import backup_managed_source
+
 
 def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     request = context["request"]
@@ -154,13 +156,25 @@ def workspace_navigation(context: Any) -> list[dict[str, Any]]:
     )
     settings = [
         link("Integrações", "hub:settings", "Conexões e configuração do escritório"),
+    ]
+    # D-319: só o escritório que vive de backup manual decide sozinho quem ainda atende.
+    # Onde o Domínio sincroniza, a entrada não aparece, porque a origem é que manda.
+    if backup_managed_source(context.get("office")) is not None:
+        settings.append(
+            link(
+                "Empresas atendidas",
+                "hub:backup-portfolio",
+                "Ativar ou desativar as empresas da carteira",
+            )
+        )
+    settings.append(
         link(
             "Consumo e contrato",
             "hub:settings",
             "Franquias, limites e contratação",
             fragment="#consumo",
-        ),
-    ]
+        )
+    )
     if membership and membership.role in {"owner", "admin"}:
         settings.append(link("Equipe e acessos", "hub:team", "Pessoas e permissões"))
         if codes and not nfse_only:

@@ -2756,6 +2756,20 @@ carteira. Esta decisão não cria exclusão de empresa, não altera o caminho do
 Rentabilidade, não autoriza custo, deploy, envio de mensagem ou acesso externo, e não declara
 homologação de nada.
 
+Complemento de execução (10/11/2026): a entrada passa do rodapé interno da página de Integrações
+para o próprio menu Configurações da barra de navegação, logo abaixo de "Integrações". O
+proprietário abriu esse menu procurando a função e não a encontrou, porque ela estava um nível
+abaixo. A condição de exibição não muda; a verificação de origem de backup vira
+`backup_managed_source` em `apps.hub.services`, para navegação e view compartilharem a mesma regra.
+Como a navegação roda em toda página, a consulta mais seletiva vem primeiro: escritório sem fonte
+de backup custa uma consulta e para ali.
+
+Complemento de execução (10/11/2026, parte 2): as duas varreduras de recuperação no topo de
+`dispatch_active_nfse_syncs` passam a exigir `company__active=True`. Elas gravavam em empresa
+inativa o estado `retry` com a mensagem "A coleta foi retomada automaticamente após uma
+interrupção" — descrição de um trabalho que o filtro de elegibilidade nunca deixaria acontecer.
+A empresa que voltar a ativa é varrida normalmente na execução seguinte, então nada fica preso.
+
 ## D-320 — Executar implantação do conciliador CONTAD e prévia privada (06/11/2026)
 
 Origem: plano discutido e aprovado pelo responsável nesta conversa, seguido de

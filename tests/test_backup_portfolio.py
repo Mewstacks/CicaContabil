@@ -11,7 +11,15 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
 from apps.hub.backup_bridge import complete_backup
-from apps.hub.models import ClientCompany, DataSource, ImportBatch, OfficeProfile
+from apps.hub.models import (
+    Certificate,
+    ClientCompany,
+    DataSource,
+    ImportBatch,
+    NfseSync,
+    OfficeProfile,
+    ProductModule,
+)
 from apps.intelligence.models import EdgeAgent, IntelligenceConnector
 from apps.organizations.models import Membership, Organization
 
@@ -140,12 +148,22 @@ class BackupPortfolioPageTests(TestCase):
         IntelligenceConnector.objects.create(organization=self.organization, status="healthy")
         self.assertEqual(self.client.get(reverse("hub:backup-portfolio")).status_code, 404)
 
-    def test_settings_only_links_the_page_for_a_backup_office(self) -> None:
-        with_backup = self.client.get(reverse("hub:settings"))
-        self.assertTrue(with_backup.context["backup_portfolio_available"])
+    def _settings_menu_has_the_page(self) -> bool:
+        """The entry lives in the Configurações menu, rendered on every workspace page."""
+
+        response = self.client.get(reverse("hub:settings"))
+        return reverse("hub:backup-portfolio") in response.content.decode()
+
+    def test_the_settings_menu_lists_the_page_for_a_backup_office(self) -> None:
+        self.assertTrue(self._settings_menu_has_the_page())
+
+    def test_the_settings_menu_drops_the_page_without_a_backup_source(self) -> None:
         self.source.delete()
-        without_backup = self.client.get(reverse("hub:settings"))
-        self.assertFalse(without_backup.context["backup_portfolio_available"])
+        self.assertFalse(self._settings_menu_has_the_page())
+
+    def test_the_settings_menu_drops_the_page_when_dominio_syncs(self) -> None:
+        IntelligenceConnector.objects.create(organization=self.organization, status="healthy")
+        self.assertFalse(self._settings_menu_has_the_page())
 
 
 class BackupSnapshotCutTests(TestCase):
@@ -225,3 +243,61 @@ class BackupSnapshotCutTests(TestCase):
         complete_backup(batch=batch, agent=self.agent)
         self.absent.refresh_from_db()
         self.assertTrue(self.absent.active)
+
+
+class DeactivatedCompanyInTheCollectionTests(TestCase):
+    """Deactivating removes the company from the operating scope the collection reads."""
+
+    databases = {"default", "knowledge"}
+
+    def setUp(self) -> None:
+        self.user = User.objects.create_user("coleta@example.test", "safe-password-123")
+        self.organization = Organization.objects.create(name="Coleta", slug="coleta")
+        Membership.objects.create(
+            organization=self.organization, user=self.user, role=Membership.Role.OWNER
+        )
+        OfficeProfile.objects.create(organization=self.organization, legal_name="Coleta Ltda")
+        ProductModule.objects.create(
+            organization=self.organization, code=ProductModule.Code.NFSE, enabled=True
+        )
+        self.company = ClientCompany.objects.create(
+            organization=self.organization, name="Saiu da carteira", dominio_code="0101"
+        )
+        self.certificate = Certificate.objects.create(
+            organization=self.organization,
+            company=self.company,
+            label="A1",
+            pfx_blob="dummy",
+            password="dummy",
+            fingerprint_sha256="b" * 64,
+            valid_until=timezone.now() + timedelta(days=30),
+        )
+        NfseSync.objects.create(
+            organization=self.organization,
+            company=self.company,
+            certificate=self.certificate,
+            enabled=True,
+            status=NfseSync.Status.RUNNING,
+        )
+        self.client.force_login(self.user)
+        session = self.client.session
+        session["hub_organization_id"] = str(self.organization.id)
+        session.save()
+
+    def _rows(self) -> list[dict[str, object]]:
+        response = self.client.get(reverse("hub:nfse-center"), {"view": "collection"})
+        self.assertEqual(response.status_code, 200)
+        return list(response.context["nfse_sync_rows"])
+
+    def test_an_active_company_is_listed_with_its_collection_status(self) -> None:
+        rows = self._rows()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["status"], NfseSync.Status.RUNNING)
+        self.assertTrue(rows[0]["enabled"])
+
+    def test_a_deactivated_company_leaves_the_collection_list(self) -> None:
+        """The operating scope is already active-only, so no stale row is shown."""
+
+        self.company.active = False
+        self.company.save(update_fields=["active"])
+        self.assertEqual(self._rows(), [])
