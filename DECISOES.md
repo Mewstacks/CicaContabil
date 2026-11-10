@@ -3984,3 +3984,12 @@ sujeitas ao CI exato/recuperação/integridade; nenhuma aplicação operacional 
 carteira até inventário e revisão reais. Histórico financeiro desde 01/09/2026
 preservado; fontes novas só após confronto real Q-28/Q-46. Q-47, IA/custos/
 egressão Q-08/Q-09, D-73, recuperação, treinamento e aceite continuam próprios.
+
+Refinamento técnico D-331: inventário deve ser completo, emitido nas últimas
+24 horas sem horário futuro; limite local 12 MiB, 1.500 objetos/50.000 colunas/
+20 situações/um milhão de empresas. JSON ambíguo/repetido ou metadados sem
+GEEMPRE/colunas exigidas são recusados. Revisão separada vincula hashes, UUIDs
+de escritório/agente, versão compatível e usuário dono/administrador ativo,
+com referência explícita; não aprovar o mapa por códigos sintéticos A/I.
+O comando desta fase admite apenas piloto → companies, não atualização genérica
+de fontes; retry idêntico usa a auditoria original, sem repetir mudança.

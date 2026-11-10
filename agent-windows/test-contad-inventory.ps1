@@ -68,8 +68,9 @@ public sealed class InventoryFixtureCommand : IDisposable {
         }
         Microsoft.PowerShell.Utility\New-Object @PSBoundParameters
     }
+    $global:LASTEXITCODE = 0
     & $source
-    exit 0
+    exit $LASTEXITCODE
 }
 $evidence=@()
 $scriptPath=$MyInvocation.MyCommand.Path
