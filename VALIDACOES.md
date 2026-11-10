@@ -7131,3 +7131,20 @@ Sem upgrade no PC, SQL ERP, IA paga ou egressão novos. Q-28/Q-46/Q-47,
 Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
 Fonte e publicação da correção estão concluídas; projeto CONTAD completo não.
 Evidências privadas em `.tmp/contad-recovery-2026-11-07/`.
+
+## V-329 — Diagnóstico do 502 por OOM e redução para um worker (10/11/2026)
+
+Escopo de D-324.
+
+- **Sintoma:** `GET /entrar/` respondia 200, mas o envio da senha devolvia 502. `fly status` mostrava
+  a máquina `started` e o check `/api/v1/health/live/` passando, porque quem morria era o worker
+  dentro da máquina, não a máquina; ela não reinicia desde 07/11.
+- **Causa observada nos logs:** três `Out of memory: Killed process ... (gunicorn)` entre 17:13:53 e
+  17:14:44 UTC, com `anon-rss` de 216.696, 215.832 e 219.852 kB. Cada morte coincide com
+  `error.message="could not complete HTTP request to instance ... connection closed before message
+  completed"` no proxy. Máquina web: `shared-cpu-1x`, 512 MB, `--workers 2`.
+- **Mudança:** `--workers 2` para `--workers 1` no `fly.toml`. Nenhum código de aplicação alterado.
+
+Limites: a verificação pós-publicação observa ausência de OOM e o login real. Não houve teste de
+carga, então o efeito de um worker só sob concorrência real não está medido. O consumo de ~216 MB
+por worker não foi investigado nem reduzido.

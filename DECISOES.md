@@ -3581,3 +3581,21 @@ pela API autenticada Fly Machines exec com credenciais existentes, sem mudar
 acesso ou infraestrutura. Comando/deploy não criou scan ou fonte nova. Último
 relato de operador indisponível e inventário não recebido; manter Q-28 e demais
 gates abertos, sem afirmar conclusão contratual ou recuperação real da carteira.
+
+## D-324 — Um worker Gunicorn na web até caber na memória (10/11/2026)
+
+Origem: 502 relatado pelo proprietário ao enviar a senha em `cicacontabil.com.br/entrar/`, e escolha
+dele entre as saídas apresentadas. Os logs da release 75 mostram o kernel matando o worker web por
+falta de memória três vezes em 86 segundos (`Out of memory: Killed process ... (gunicorn)`, RSS de
+~216 MB em cada), com o proxy do Fly devolvendo `connection closed before message completed`. A
+máquina web tem 512 MB e rodava `--workers 2`: dois workers mais o mestre não cabem.
+
+Fica autorizado reduzir o processo web para `--workers 1` no `fly.toml` e publicar essa release.
+Um worker de ~216 MB mais o mestre cabem nos 512 MB. A troca é de concorrência: sendo uvicorn/ASGI,
+pedidos de I/O continuam intercalando no mesmo worker, mas trabalho preso em CPU passa a serializar.
+
+Limites: isto é contenção, não conserto. A causa de ~216 MB por worker continua aberta — a imagem
+carrega `reportlab` no nível do módulo em `nfse_reports.py`, além de `pdfminer`, `pypdfium2` e
+`boto3`; tornar esses imports preguiçosos é trabalho separado e não foi feito aqui. Não foi alterada
+a memória da máquina, o que teria custo e não foi autorizado. Não foi tocado o processo `worker`,
+nem código de aplicação, nem dado de cliente.

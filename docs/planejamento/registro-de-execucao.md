@@ -3282,3 +3282,16 @@ recebido; último relato do operador indisponível. Carteira real, fontes de
 contas/Razão/títulos, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento e
 aceite continuam pendentes. Trabalhos locais anteriores preservados fora dos
 commits. Não declarar conclusão do projeto por esta correção operacional.
+
+## 10/11/2026 — 502 no login por falta de memória (D-324, V-329)
+
+- O proprietário relatou 502 ao enviar a senha. Diagnóstico pelos logs do Fly: o kernel matava o
+  worker Gunicorn por OOM, três vezes em 86 segundos, com ~216 MB de RSS cada, em uma máquina web
+  de 512 MB rodando `--workers 2`.
+- O `fly status` enganava: máquina `started` e health check passando, porque o processo morto e
+  recriado era o worker dentro dela.
+- Escolha do proprietário entre as saídas apresentadas: reduzir para `--workers 1`, sem custo novo.
+  A alternativa de dobrar a memória foi descartada por envolver custo.
+- Não é conserto da causa: `reportlab` é importado no nível do módulo em `nfse_reports.py`, e a
+  imagem ainda traz `pdfminer`, `pypdfium2` e `boto3`. Tornar esses imports preguiçosos continua
+  pendente.
