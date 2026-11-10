@@ -3774,3 +3774,29 @@ do configurador, preservando a dependência explícita do serviço e a proteçã
 DPAPI, e repetir CI/pacote na fonte final. Não suprimir o aviso ou entregar
 artefato de fonte anterior como se cobrisse a correção. ICE61/AllowSameVersionUpgrades
 é aviso preexistente do instalador e não muda nesta migração; registrar seu limite.
+
+## D-327 — Liberar backend e pareamento do agente no Server (10/11/2026)
+
+Origem humana: após entrega do MSI e explicação de que faltavam backend e código,
+responsável pediu “faça os processos necessarios para que eu possa colocar o
+agente no servidor e executa-lo”. Autoriza os passos operacionais necessários
+para publicar/conferir o backend de substituição e entregar novo código de
+pareamento junto do pacote/roteiro, depois do CI da fonte exata e dos gates de
+recuperação, integridade, migrações e saúde. Esta solicitação amplia D-326 quanto
+ao backend; não repetir a pergunta de autorização de deploy desses componentes.
+
+Usar aplicação/infraestrutura existentes, preservar recursos, dados, contrato,
+usuários e manifesto piloto. Migração aditiva intelligence.0035, sem ampliar
+coleta, alterar ERP, contratar recursos ou executar IA. Preparar retorno da
+aplicação para a imagem corrente conservando o schema aditivo. Código temporário
+vinculado ao anterior ativo, manifesto idêntico, somente em arquivo privado;
+não expor segredo em chat/log/Git/ZIP público. Gerar ao fim, com validade até
+60 minutos, sem revogar o anterior. Testes administrativos não devem consumir
+o código real nem inventar fingerprint/candidato no lugar do Windows.
+
+O usuário instalará no Windows Server 2022 já identificado, seguindo o roteiro.
+O corte oficial continua condicionado às provas reais de instalação, ODBC,
+LocalSystem/ACL/DPAPI/reinício e candidato correto com heartbeat recente em
+D-324. Não ativar ou revogar automaticamente pelo deploy ou pela emissão do
+código. Esta liberação não homologa fontes/carteira completa, rede real,
+recuperação, treinamento ou aceite contratual.
