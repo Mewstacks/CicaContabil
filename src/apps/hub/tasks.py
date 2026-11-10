@@ -131,8 +131,13 @@ def dispatch_active_nfse_syncs() -> int:
     if not settings.NFSE_ADN_SYNC_ENABLED:
         return 0
     now = timezone.now()
+    # D-319: the recovery sweeps below say "a coleta foi retomada" in the row they touch.
+    # An inactive company is never dispatched, so saying that about it would describe work
+    # that cannot happen. Both sweeps keep to the portfolio the office still serves; a
+    # company that comes back active is swept normally on the next run.
     NfseSync.objects.filter(
         enabled=True,
+        company__active=True,
         status=NfseSync.Status.RUNNING,
     ).filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now)).update(
         status=NfseSync.Status.RETRY,
@@ -145,6 +150,7 @@ def dispatch_active_nfse_syncs() -> int:
     )
     NfseSync.objects.filter(
         enabled=True,
+        company__active=True,
         status=NfseSync.Status.QUEUED,
         updated_at__lt=now - timedelta(minutes=5),
     ).update(

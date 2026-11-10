@@ -6356,6 +6356,17 @@ QA isolado: no escritório sintético de backup o menu Configurações mostra "E
 logo abaixo de "Integrações", apontando para `/app/configuracoes/carteira/`. O rodapé interno da
 página de Integrações deixou de exibir o link, que agora vive em um lugar só.
 
+Complemento (10/11/2026, parte 2): 18 testes do módulo e 3 do fluxo ADN aprovados. O teste novo da
+varredura confirma que a empresa inativa conserva `running` sem mensagem de erro e que, ao voltar
+a ativa, a varredura seguinte a recupera com `stale_lease`.
+
+Correção do que eu havia afirmado antes: eu disse ao proprietário que a tela de coleta poderia
+mostrar um estado enganoso para a empresa desativada. Não mostra. A verificação pelo teste revelou
+que o escopo operacional dessa tela já é somente de empresas ativas
+(`company_queryset_for_membership` filtra `active=True`), então a empresa simplesmente sai da
+lista. A mudança na varredura continua valendo, porque o estado falso era gravado no registro e
+reapareceria se a empresa fosse reativada; mas o alcance é menor do que o descrito.
+
 ## V-322 — Prévia privada CONTAD e instalação guiada no PC (06/11/2026)
 
 Escopo D-320, PC-19/etapas 03/09/12. Não conclui o conciliador contratado.
