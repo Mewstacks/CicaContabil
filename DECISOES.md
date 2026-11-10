@@ -2752,6 +2752,14 @@ carteira. Esta decisão não cria exclusão de empresa, não altera o caminho do
 Rentabilidade, não autoriza custo, deploy, envio de mensagem ou acesso externo, e não declara
 homologação de nada.
 
+Complemento de execução (10/11/2026): a entrada passa do rodapé interno da página de Integrações
+para o próprio menu Configurações da barra de navegação, logo abaixo de "Integrações". O
+proprietário abriu esse menu procurando a função e não a encontrou, porque ela estava um nível
+abaixo. A condição de exibição não muda; a verificação de origem de backup vira
+`backup_managed_source` em `apps.hub.services`, para navegação e view compartilharem a mesma regra.
+Como a navegação roda em toda página, a consulta mais seletiva vem primeiro: escritório sem fonte
+de backup custa uma consulta e para ali.
+
 ## D-320 — Executar implantação do conciliador CONTAD e prévia privada (06/11/2026)
 
 Origem: plano discutido e aprovado pelo responsável nesta conversa, seguido de

@@ -6349,6 +6349,13 @@ exercitado contra um `.dom` real nem contra a carteira da Bianchi; o que existe 
 `complete_backup` e o caminho do agente Windows lido no código (`BackupProcessor` já traz
 `stat_emp` como coluna). Nada foi publicado e nenhuma empresa real foi alterada.
 
+Complemento (10/11/2026): com a entrada movida para o menu Configurações, 16 testes do módulo
+passaram, incluindo três novos que conferem o menu renderizado — presente no escritório de backup,
+ausente sem fonte de backup e ausente quando existe conector Domínio. Conferência real no servidor
+QA isolado: no escritório sintético de backup o menu Configurações mostra "Empresas atendidas"
+logo abaixo de "Integrações", apontando para `/app/configuracoes/carteira/`. O rodapé interno da
+página de Integrações deixou de exibir o link, que agora vive em um lugar só.
+
 ## V-322 — Prévia privada CONTAD e instalação guiada no PC (06/11/2026)
 
 Escopo D-320, PC-19/etapas 03/09/12. Não conclui o conciliador contratado.

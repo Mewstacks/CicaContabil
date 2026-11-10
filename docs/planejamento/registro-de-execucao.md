@@ -3295,3 +3295,19 @@ commits. Não declarar conclusão do projeto por esta correção operacional.
 - Não é conserto da causa: `reportlab` é importado no nível do módulo em `nfse_reports.py`, e a
   imagem ainda traz `pdfminer`, `pypdfium2` e `boto3`. Tornar esses imports preguiçosos continua
   pendente.
+
+## 10/11/2026 — "Empresas atendidas" vai para o menu Configurações (D-319, V-321)
+
+- O proprietário abriu o menu Configurações na Bianchi & Rizzotto procurando a função de inativar
+  empresa e não achou: o link estava na barra interna da página de Integrações, um nível abaixo.
+- A entrada passou para o menu de navegação, logo abaixo de "Integrações", e saiu do rodapé da
+  página, para existir em um lugar só. A condição de exibição é a mesma.
+- `_backup_managed_source` saiu de `views.py` e virou `backup_managed_source` em
+  `apps.hub.services`, compartilhada por navegação e view. A ordem das consultas foi invertida para
+  a mais seletiva primeiro, porque a navegação roda em toda página: escritório sem fonte de backup
+  custa uma consulta.
+- 16 testes do módulo aprovados, três deles novos sobre o menu renderizado. Conferência no servidor
+  QA isolado confirmou a entrada no lugar certo, apontando para `/app/configuracoes/carteira/`.
+- Os IDs locais haviam sido renumerados na main remota: o que estava como D-317/V-319 é agora
+  D-319/V-321. Duas referências que eu havia escrito em `services.py` e `navigation.py` foram
+  corrigidas para D-319.

@@ -140,12 +140,22 @@ class BackupPortfolioPageTests(TestCase):
         IntelligenceConnector.objects.create(organization=self.organization, status="healthy")
         self.assertEqual(self.client.get(reverse("hub:backup-portfolio")).status_code, 404)
 
-    def test_settings_only_links_the_page_for_a_backup_office(self) -> None:
-        with_backup = self.client.get(reverse("hub:settings"))
-        self.assertTrue(with_backup.context["backup_portfolio_available"])
+    def _settings_menu_has_the_page(self) -> bool:
+        """The entry lives in the Configurações menu, rendered on every workspace page."""
+
+        response = self.client.get(reverse("hub:settings"))
+        return reverse("hub:backup-portfolio") in response.content.decode()
+
+    def test_the_settings_menu_lists_the_page_for_a_backup_office(self) -> None:
+        self.assertTrue(self._settings_menu_has_the_page())
+
+    def test_the_settings_menu_drops_the_page_without_a_backup_source(self) -> None:
         self.source.delete()
-        without_backup = self.client.get(reverse("hub:settings"))
-        self.assertFalse(without_backup.context["backup_portfolio_available"])
+        self.assertFalse(self._settings_menu_has_the_page())
+
+    def test_the_settings_menu_drops_the_page_when_dominio_syncs(self) -> None:
+        IntelligenceConnector.objects.create(organization=self.organization, status="healthy")
+        self.assertFalse(self._settings_menu_has_the_page())
 
 
 class BackupSnapshotCutTests(TestCase):

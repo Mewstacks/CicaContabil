@@ -250,6 +250,7 @@ from apps.hub.services import (
     _xml_with_dominio_accumulator,
     active_catalog_codes,
     approve_dte_run,
+    backup_managed_source,
     cancel_dte_run,
     create_nfse_export,
     import_certificate_upload,
@@ -14648,36 +14649,9 @@ def settings_view(request: HttpRequest) -> HttpResponse:
             "require_dominio_code": OfficeProfile.objects.filter(
                 organization=office, require_dominio_code=True
             ).exists(),
-            "backup_portfolio_available": _backup_managed_source(office) is not None,
         }
     )
     return render(request, "hub/settings.html", context)
-
-
-def _backup_managed_source(office: Organization) -> DataSource | None:
-    """The office whose portfolio is a manual backup, and nothing else writes it (D-319).
-
-    A live Domínio connector or the central control plane keeps rewriting the registry on
-    its own schedule, so a manual switch there would promise control the next sync takes
-    back. Those offices keep correcting the origin; only the backup office gets the page.
-    """
-
-    if (
-        IntelligenceConnector.objects.filter(organization=office)
-        .exclude(status="not_configured")
-        .exists()
-    ):
-        return None
-    if ControlPlaneBinding.objects.filter(organization=office).exists():
-        return None
-    source = (
-        DataSource.objects.filter(organization=office, kind=DataSource.Kind.DOMINIO_WEB_BACKUP)
-        .exclude(status=DataSource.Status.DISABLED)
-        .first()
-    )
-    if source is None or "companies" not in set(source.capabilities or []):
-        return None
-    return source
 
 
 @office_required
@@ -14693,7 +14667,7 @@ def backup_portfolio(request: HttpRequest) -> HttpResponse:
     context = workspace_context(request)
     office = context["office"]
     assert isinstance(office, Organization)
-    source = _backup_managed_source(office)
+    source = backup_managed_source(office)
     if source is None:
         raise Http404
     can_manage = _can_manage_companies(context) and not office.is_demo
