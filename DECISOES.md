@@ -3993,3 +3993,22 @@ de escritório/agente, versão compatível e usuário dono/administrador ativo,
 com referência explícita; não aprovar o mapa por códigos sintéticos A/I.
 O comando desta fase admite apenas piloto → companies, não atualização genérica
 de fontes; retry idêntico usa a auditoria original, sem repetir mudança.
+
+Empacotamento D-331: dois módulos Python novos, sem dependências/migrações,
+assets, mudança no MSI ou alteração do caminho de coleta atual. Para publicação
+autorizada D-323, usar imagem imutável corrente como base, copiar só os dois
+fontes, conferir integralmente hashes/runtime/camadas/configuração e CI exato
+antes de publicar. Reconferir release/configuração, backup original/53 objetos/
+retenção e integridade; preservar dois processos ativos de 512 MB e reserva
+parada. Retorno é a imagem anterior, sem alteração de schema. Publicar o comando
+não o executa: nenhum manifesto/mapa/cadastro novo será aplicado sem inventário
+e revisão reais. Não criar novo backup/recurso/chave por rotina.
+
+Retorno real Q-28/D-331: operador executou a sonda no SVAPL02 e recebeu
+MethodInvocationException, sem inventário concluído. Não atribuir causa ao
+DSN/timeout/driver ou repetir instalação. Acrescentar diagnóstico estruturado
+somente com etapa constante, índice do objeto, tipos de exceção, SQLStates
+validados e códigos nativos numéricos; nunca mensagem ODBC, senha ou connection
+string. Validar essas recusas no Windows descartável antes de novo envio.
+Sem contornar a falha com SQL financeiro ou apresentar resultado parcial como
+completo. A carteira permanece piloto até resultado real e revisão.

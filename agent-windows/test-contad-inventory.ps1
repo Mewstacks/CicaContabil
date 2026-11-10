@@ -101,7 +101,16 @@ foreach ($case in @('success','missing_column','object_limit','status_limit','mi
             }
             if(-not (Get-Acl -LiteralPath (Split-Path $path)).AreAccessRulesProtected) { throw 'Output directory inherits public ACLs.' }
         } finally { Remove-Item -LiteralPath (Split-Path $path) -Recurse -Force }
-    } elseif($exitCode -eq 0 -or $match.Success) { throw ('Failure fixture accepted: '+$case) }
+    } else {
+        if($exitCode -eq 0 -or $match.Success) { throw ('Failure fixture accepted: '+$case) }
+        $diagnosticMatch=[regex]::Match($output,'(?s)\{\s*"version":\s*"contad-schema-diagnostic-v1".*?\n\}')
+        if(-not $diagnosticMatch.Success) { throw ('Safe diagnostic missing: '+$case) }
+        $diagnostic=$diagnosticMatch.Value | ConvertFrom-Json
+        if($diagnostic.inventory_completed) { throw 'Incomplete inventory falsely completed.' }
+        $expectedStage=@{missing_column='validating_company_columns';object_limit='selecting_objects';status_limit='reading_company_status_counts';missing_dsn='opening_connection'}[$case]
+        if($diagnostic.stage -ne $expectedStage) { throw ('Unexpected failure stage: '+$case) }
+        if($case -eq 'missing_dsn' -and 'IM002' -notin $diagnostic.sql_states) { throw 'Real ODBC SQLState missing.' }
+    }
     $evidence+=@{ scenario=$case; passed=$true; exit_code=$exitCode; real_erp=$false }
 }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation'
