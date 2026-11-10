@@ -475,3 +475,10 @@ código privado emitido com manifesto herdado e validade até 15:48:07 de 10/11
 (Brasília). Prérequisitos de backend/pacote resolvidos. Próxima prova Q-28:
 instalação/pareamento e estado awaiting_activation no Server, mantendo o anterior
 ativo; ODBC/LocalSystem e corte continuam obrigatórios, sem inferir homologação.
+
+**Complemento D-329/V-342:** consolidação na main e backend release 80
+conferidos; ODBC interativo em SVAPL02 confirmado por captura V-340. Código
+antigo expirado sem uso e zero candidato; novo código privado emitido por
+60 minutos. Próximo passo Q-28: parear como candidato/passos 7–8, conferir
+serviço/LocalSystem/DPAPI e prova ODBC sob SYSTEM antes do corte. Sem nova
+pergunta, coleta ampliada ou alteração de manifesto.

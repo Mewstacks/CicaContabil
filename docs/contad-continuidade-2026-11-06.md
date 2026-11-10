@@ -1,10 +1,19 @@
 # CONTAD — resumo e continuidade
 
-**10/11 — D-327/V-339:** backend release 77/fonte 03ed5b0/CI completo aprovado,
-migrations/hashes/dados/saúde conferidos. MSI 1.0.5 de V-338 mantido. Código
-privado do novo Server emitido, válido até 15:48:07 de 10/11 (Brasília).
-Instalação/pareamento liberados para candidato; aguardar provas Windows antes
-do corte. Anterior ativo/manifesto/dados preservados; sem coleta/carteira nova.
+**Estado atual — D-329/V-342, 10/11/2026:** agente integrado à main pelo
+[PR 3](https://github.com/Mewstacks/CicaContabil/pull/3); fonte validada 5c20766, main 272f977,
+[CI completo 42882756516](https://github.com/Mewstacks/CicaContabil/actions/runs/42882756516) aprovado. Backend consolidado publicado e
+conferido na **release 80**. Preservados worker web único, menu Empresas
+atendidas, filtros de recuperação NFS-e, recursos e dados CONTAD.
+MSI **1.0.5/.NET 10.0.15** de V-338 mantido; não reinstalar por esta integração.
+V-340 comprova ODBC interativo no configurador do **SVAPL02**, CICA_CONTAD/
+SQL Anywhere 16 x64. Próxima ação: **passo 7, parear como candidato**, usando
+o novo arquivo privado **CICA-CONTAD-Codigo-SVAPL02-2026-11-10-163051.txt**, válido até **17:30:50 de 10/11,
+Brasília**. Código anterior expirado sem uso; nenhum candidato ou corte criado.
+Após parear/reiniciar somente CicaAgent, conferir Running/Auto/LocalSystem e
+awaiting_activation. ODBC sob LocalSystem, corte oficial e recepção continuam
+pendentes; o anterior permanece ativo e o manifesto permanece o mesmo piloto.
+Código não integra Git/ZIP/chat. Registros anteriores abaixo são históricos.
 
 **10/11 — D-326/V-338:** MSI 1.0.5/.NET 10.0.15 da fonte 53b834b validado em
 [CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809):

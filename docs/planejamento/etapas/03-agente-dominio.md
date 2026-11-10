@@ -408,3 +408,20 @@ AnyDesk disponibilizado pelo responsável; a ferramenta nativa retornou timeout
 -10005 ao obter a janela, sem observar/controlar o Server. Solicitado somente
 texto do winver, agora recebido em V-331. Isso não é prova de instalação.
 [Procedimento técnico](../../contad-agente-oficial-windows-server.md).
+
+### Consolidação D-329/V-342 — 10/11/2026
+
+- [x] Integrar agente à main/PR 3, consolidar D-324/V-329 e D-328/V-341,
+  preservar correções atuais e aprovar CI completo 42882756516.
+- [x] Publicar/conferir backend consolidado release 80, hashes/saúde,
+  migrações, dados/manifesto e recursos; manter MSI 1.0.5 entregue.
+- [x] V-340: receber confirmação visual de ODBC interativo em SVAPL02.
+- [x] Conferir código antigo expirado sem uso/zero candidato; emitir novo código
+  privado por 60 minutos, fora de Git/ZIP, e atualizar roteiro do operador.
+- [ ] Parear candidato no Server e comprovar Running/Auto/LocalSystem,
+  reabertura após reinício só do serviço e awaiting_activation.
+- [ ] Provar ODBC sob LocalSystem/ACL/DPAPI, efetuar corte explícito e conferir
+  novo oficial/recepção/recusa do anterior sem perda ou duplicação.
+
+Q-28 e demais gates continuam abertos. Não repetir o teste ODBC interativo,
+a identificação do Windows, decisão .NET ou instalação sem motivo novo.

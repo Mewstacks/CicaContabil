@@ -7554,3 +7554,55 @@ por worker não foi investigado nem reduzido.
 
 Registro renumerado na consolidação D-329; evidência histórica anteriormente
 V-329 na main. O V-329 do agente (09/11) permanece canônico.
+
+## V-342 — Integração na main, backend consolidado e novo código do Server (10/11/2026)
+
+Escopo D-329/D-327, PC-19/etapas 03/09/12. [PR 3](https://github.com/Mewstacks/CicaContabil/pull/3) integrado:
+fonte 5c20766, árvore bb600d07b630b86b1fa6fbfe47e7b1a93579b15c, main 272f97797c9183fa14491882d8962663c8fb0a3b com árvore idêntica.
+Colisões consolidadas: agente D-324/V-329; contenção de memória D-328/V-341.
+Correções da main 77e0ca7 preservadas, incluindo worker web único, menu e NFS-e.
+Trabalhos locais anteriores D-316/D-317/etapa 00/Pandolfo excluídos dos commits.
+Oito arquivos locais da main só foram atualizados após conferir que não tinham
+edições próprias; snapshots guardados. HEAD da cópia original não foi resetado.
+
+CI exato [42882756516](https://github.com/Mewstacks/CicaContabil/actions/runs/42882756516) aprovado: SQLite 1813 testes,
+163 subtestes e 30 skips; PostgreSQL
+1841/163, 2 skips.
+.NET Linux 59 aprovados/três exclusivos de Windows pulados; Windows 62/zero
+skips e ciclo do instalador aprovados. Lint, Django, migrações e três builds
+aprovados. Skips opcionais Playwright Python/OCR PT não provam homologação visual
+ou OCR real. MSI entregue continua o 1.0.5 de V-338, SHA-256
+f89127453589a5721dd1dd392144b3beed17eebef0e0a33a023bbf7f6283882f;
+sem alteração de binário/assinatura e sem exigir reinstalação.
+
+Base real era release 79, sem protocolo, apesar da migração 0035 já aplicada.
+Comparação normalizada encontrou somente cinco arquivos alterados e três novos
+do agente; preservados os demais arquivos e cinco metadados egg-info. Imagem
+registry.fly.io/cica-contabil@sha256:1d6d6ee6081e92c7ebc1aa65836fb74fab22a00d8821faa36c79f73c272260a2 construída sobre a 79, configuração/camadas-base idênticas mais
+uma camada. Conferência offline dos 661 hashes, rede/banco bloqueados, comandos
+e estado pending aprovados. Hash bruto agregado
+7658466a786e24b17226d6431f34580095c6c493a83e2121a2602a52fd59ed28.
+
+Release **80** publicada nas duas Machines ativas: hashes, comandos,
+0035/default/knowledge, endpoints HTTPS/readiness/banco/cache, recusa de chamadas
+de agente sem assinatura e worker ready conferidos. Doze fingerprints CONTAD
+antes/depois idênticos; mesmo manifesto/piloto, anterior ativo, zero candidato/
+oficial/scan. Configuração preservada, exceto estratégia registrada como rolling;
+512 MB/CPU compartilhada, IDs/região e reserva parada mantidos. Exportação false
+e prévia desabilitada preservadas. Retorno é imagem imutável da release 79;
+esquema aditivo não é removido. Manifesto/53 objetos/retencão original conferidos,
+snapshot válido até 13/11/2026 14:29:44 UTC; sem novo recurso, restore ou custo.
+
+Código antigo 14cccaae expirado sem uso, sem candidato. Novo código de uso único
+para SVAPL02 emitido por 60 minutos, validade **17:30:50 de 10/11 (Brasília)**,
+arquivo local 0600 separado do ZIP/Git; temporário remoto removido após entrega
+local persistida. Recorte herdado e anterior preservados; código nunca impresso.
+Roteiros, pacote, prompt/cópias e checklists atualizados. Evidências privadas em
+.tmp/contad-server-integration-2026-11-10/.
+
+**Limites:** captura V-340 prova apenas ODBC interativo. Não houve controle ou
+comando no Windows, confirmação de versão/serviço instalado, pareamento,
+ODBC sob LocalSystem, corte oficial ou nova coleta. Próximo passo no Server é
+colar o código e Conectar à CICA, reiniciar só CicaAgent e devolver estados
+seguros; completar provas faltantes antes do corte. Q-28/Q-46/Q-47, D-73,
+carteira/fontes completas, recuperação recorrente, treinamento e aceite abertos.

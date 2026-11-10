@@ -3887,3 +3887,8 @@ Preservar worker web único, menu Empresas atendidas e restrições de recupera�
 NFS-e da main 77e0ca7. Migração e MSI do agente permanecem os mesmos; sem custo,
 coleta ampliada, nova interface, revogação ou corte presumidos. Somente depois
 do backend consolidado conferir código antigo e renovar por até 60 minutos.
+
+Execução D-329 concluída em V-342: PR 3/main 272f977, CI exato aprovado,
+backend consolidado release 80 e código renovado após conferir anterior
+expirado sem uso/zero candidato. Preservados MSI, correções, dados e recursos.
+Provas Windows, corte oficial e demais gates seguem pendentes.

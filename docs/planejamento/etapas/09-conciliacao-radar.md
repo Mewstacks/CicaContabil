@@ -374,9 +374,8 @@ sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
   compilar serviço/configurador/ponte e validar 59 testes .NET, um skip Windows.
 - [x] V-329: regressão final PostgreSQL 1.837/163 aprovada, um skip; foco
   SQLite 30 aprovados/seis skips concorrentes cobertos no PostgreSQL.
-- [ ] Gerar/testar MSI 1.0.5 e aprovar CI da fonte exata; publicar backend compatível.
-- [ ] Observar edição/build/arquitetura do Server e compatibilidade do runtime
-  (D-289); responsável pediu conferir o sistema provavelmente antigo antes de mudar.
+- [x] V-338/V-342: MSI 1.0.5 testado e backend consolidado publicado com CI aprovado.
+- [x] V-331/V-332/D-325: Server 2022 x64 observado; .NET 10 aprovado e MSI validado.
 - [ ] Instalar/configurar no Server; comprovar ODBC/LocalSystem/ACL/DPAPI/reinício.
 - [ ] Efetuar corte real, novo oficial/ready, anterior recusado e dados preservados.
 - [ ] Inventário/fontes/carteira completa, Q-46/Q-47, D-73, recuperação,
@@ -386,3 +385,20 @@ AnyDesk disponibilizado pelo responsável; a ferramenta nativa retornou timeout
 -10005 ao obter a janela, sem observar/controlar o Server. Solicitado somente
 texto do winver. Isso não é indisponibilidade humana nem prova de instalação.
 [Procedimento técnico](../../contad-agente-oficial-windows-server.md).
+
+### Consolidação D-329/V-342 — 10/11/2026
+
+- [x] Integrar agente à main/PR 3, consolidar D-324/V-329 e D-328/V-341,
+  preservar correções atuais e aprovar CI completo 42882756516.
+- [x] Publicar/conferir backend consolidado release 80, hashes/saúde,
+  migrações, dados/manifesto e recursos; manter MSI 1.0.5 entregue.
+- [x] V-340: receber confirmação visual de ODBC interativo em SVAPL02.
+- [x] Conferir código antigo expirado sem uso/zero candidato; emitir novo código
+  privado por 60 minutos, fora de Git/ZIP, e atualizar roteiro do operador.
+- [ ] Parear candidato no Server e comprovar Running/Auto/LocalSystem,
+  reabertura após reinício só do serviço e awaiting_activation.
+- [ ] Provar ODBC sob LocalSystem/ACL/DPAPI, efetuar corte explícito e conferir
+  novo oficial/recepção/recusa do anterior sem perda ou duplicação.
+
+Q-28 e demais gates continuam abertos. Não repetir o teste ODBC interativo,
+a identificação do Windows, decisão .NET ou instalação sem motivo novo.

@@ -3474,3 +3474,16 @@ retiraram a implementação que estava somente na branch técnica. Detectadas
 colisões de IDs e obtida autorização humana para consolidar/main preservando
 ambas as frentes. Aplicação sem sobreposição de arquivos; próximo passo é
 integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova.
+
+## 10/11/2026 — Integração do agente e liberação consolidada (D-329/V-342)
+
+- PR 3 integrado em main 272f977, árvore idêntica à fonte validada 5c20766;
+  CI 42882756516 aprovado. Registros renumerados, demais correções preservadas.
+- Imagem sobre a release 79, somente oito arquivos do agente; 661 hashes,
+  migrações, saúde, worker, 12 fingerprints e recursos conferidos na release 80.
+- Código anterior expirado sem uso/zero candidato; novo código privado 0600
+  entregue até 17:30:50, temporário remoto removido, fora de Git/ZIP.
+- MSI 1.0.5 mantido; pacote/roteiro/prompt e cópias atualizados. ODBC interativo
+  já comprovado em V-340; próxima ação operador é parear e devolver estados.
+- Sem acesso/ação no Windows, corte oficial, nova coleta, custo ou aceite.
+  Provas LocalSystem/DPAPI/ODBC e demais gates continuam abertos.

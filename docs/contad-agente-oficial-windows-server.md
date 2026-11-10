@@ -6,16 +6,20 @@ Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
 ## Estado e pré-requisitos
 
-**V-339, liberação atual — 10/11/2026:** backend publicado e conferido na
-**release 77**, fonte **03ed5b0**, CI completo 42865006431. MSI **1.0.5/.NET
-10.0.15** de V-338 mantido, SHA-256
-`f89127453589a5721dd1dd392144b3beed17eebef0e0a33a023bbf7f6283882f`,
-62 testes/26 checks Windows aprovados, sem assinatura de editor. Pacote em
-Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10 e ZIP correspondente.
-Código em arquivo privado separado, **CICA-CONTAD-Codigo-Servidor-2026-11-10.txt**,
-válido até **15:48:07 de 10/11 (Brasília)**; uso único, fora do ZIP/Git/chat.
-Backend/pacote prontos: pode seguir os passos 4–8 para instalar/parear candidato.
-Anterior permanece ativo; provas Windows e corte oficial continuam pendentes.
+**Estado atual — D-329/V-342, 10/11/2026:** agente integrado à main pelo
+[PR 3](https://github.com/Mewstacks/CicaContabil/pull/3); fonte validada 5c20766, main 272f977,
+[CI completo 42882756516](https://github.com/Mewstacks/CicaContabil/actions/runs/42882756516) aprovado. Backend consolidado publicado e
+conferido na **release 80**. Preservados worker web único, menu Empresas
+atendidas, filtros de recuperação NFS-e, recursos e dados CONTAD.
+MSI **1.0.5/.NET 10.0.15** de V-338 mantido; não reinstalar por esta integração.
+V-340 comprova ODBC interativo no configurador do **SVAPL02**, CICA_CONTAD/
+SQL Anywhere 16 x64. Próxima ação: **passo 7, parear como candidato**, usando
+o novo arquivo privado **CICA-CONTAD-Codigo-SVAPL02-2026-11-10-163051.txt**, válido até **17:30:50 de 10/11,
+Brasília**. Código anterior expirado sem uso; nenhum candidato ou corte criado.
+Após parear/reiniciar somente CicaAgent, conferir Running/Auto/LocalSystem e
+awaiting_activation. ODBC sob LocalSystem, corte oficial e recepção continuam
+pendentes; o anterior permanece ativo e o manifesto permanece o mesmo piloto.
+Código não integra Git/ZIP/chat. Registros anteriores abaixo são históricos.
 
 **D-325/V-337, 10/11:** responsável aprovou .NET 10 LTS, revisando D-289.
 Os projetos e CI foram migrados; publicação local dos três componentes inclui
@@ -58,8 +62,8 @@ as ACLs para Administradores/SYSTEM.
 
 ## Preparar sem interromper o agente anterior
 
-Backend release 77 e MSI 1.0.5 conferidos em V-339/V-338. Código privado
-entregue para esta substituição; não executar novamente a emissão por rotina.
+Backend consolidado de V-342 e MSI 1.0.5 de V-338 conferidos. Código privado
+renovado para esta substituição; não executar novamente a emissão por rotina.
 As releases 75/76 e MSI 1.0.4 não implementam o protocolo de substituição.
 
 Após observar a instalação íntegra, executar no ambiente administrativo CICA:
@@ -140,7 +144,8 @@ confirmou limpeza de User ID/Password e salvamento de CICA_CONTAD, preservando
 Database. Não repetir a preparação ou o teste sem motivo. Isso é relato humano,
 sem inspeção de segredos no registro. Serviço/instalação/LocalSystem continuam
 pendentes. **D-325/V-337:** .NET 10 autorizado e migração local verificada;
-V-339 liberou o backend; pode seguir o passo 4 com o pacote entregue.
+V-342 consolida a liberação do backend. V-340 já mostra o configurador em
+SVAPL02 com conexão confirmada: seguir o passo 7, sem repetir o teste ODBC.
 
 **V-334, falha histórica:** teste informado recusou login Integrated. Na
 configuração **CICA_CONTAD** (não no DSN original), conferir Login →
@@ -167,10 +172,11 @@ ausente. No ODBC de sistema, Contabil 64 usa SQL Anywhere 16; Contabil 32 usa
 servidor/banco de Contabil 64 sem salvar/alterar ou ler senha. Não repetir os
 passos já comprovados nem supor que os DSNs tenham o mesmo destino.
 
-**Passos 1–3 já percorridos com as evidências acima.** Backend release 77 e
-MSI 1.0.5 liberados em V-339. Seguir a partir do passo 4. Usar o código privado
-recém-entregue; ele expira às 15:48:07 de 10/11 (Brasília). Se expirar, solicitar
-nova emissão; não repetir códigos antigos ou copiar pareamento do PC anterior.
+**Na captura atual, a configuração e o teste do passo 6 já deram certo.**
+Próxima ação é o passo 7 com o novo código privado, válido até 17:30:50 de
+10/11 (Brasília). MSI permanece o mesmo; não reinstalar por esta consolidação.
+O código antigo expirou sem uso. Serviço/versão/LocalSystem ainda precisam de
+prova, e o candidato deve permanecer aguardando ativação.
 
 1. **Identificar o Windows.** Abrir Win+R → `winver` e registrar edição/ano e
    versão/build. Abrir Windows PowerShell **64 bits como administrador**:
@@ -258,7 +264,7 @@ nova emissão; não repetir códigos antigos ou copiar pareamento do PC anterior
    | Campo | Preencher |
    |---|---|
    | Endereço HTTPS da CICA | https://cicacontabil.com.br |
-   | Nome deste servidor | Rótulo identificável, por exemplo CONTAD-SERVIDOR |
+   | Nome deste servidor | SVAPL02, conforme captura recebida |
    | Fonte de dados | Domínio Local — DSN de 64 bits |
    | DSN do ERP local | CICA_CONTAD, depois de conferido no Server |
    | Driver SQL Anywhere | O x64 compatível encontrado nessa máquina |

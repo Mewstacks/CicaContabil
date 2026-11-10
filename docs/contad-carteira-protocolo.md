@@ -128,3 +128,8 @@ Q-28. A recepção de cadastros não homologa Razão, títulos/parcelas/baixas,
 DE-PARA Q-46, saída Q-47, D-73 ou treinamento/aceite. O manifesto instalado
 permanece piloto até alteração operacional validada. Cada verificação pertence
 à versão e ao ambiente registrados em VALIDACOES.md.
+
+Continuidade D-329/V-342 (10/11): backend do agente integrado na main e publicado
+na release 80. ODBC interativo do SVAPL02 comprovado em V-340;
+pareamento e provas de serviço/LocalSystem/corte ainda pendentes. Mesma revisão
+de manifesto/piloto e MSI 1.0.5; esta liberação não amplia a carteira/fontes.
