@@ -15,10 +15,12 @@ try {
         [void][Management.Automation.Language.Parser]::ParseFile($cicaFile, [ref]$cicaTokens, [ref]$cicaErrors)
         if ($cicaErrors.Count -gt 0) { throw 'PowerShell parser rejected the diagnostic.' }
     }
-    $cicaMissingDsn = 'CICA_CI_ABSENT_' + [guid]::NewGuid().ToString('N')
+    $cicaMissingDsn = 'CICA_CI_' + [guid]::NewGuid().ToString('N').Substring(0, 16)
     $cicaOutput = & $cicaProbe -Dsn $cicaMissingDsn -DatabaseUser 'SYNTHETIC_CI' -DatabasePassword $cicaSecurePassword
     if (($cicaOutput | Out-String).Contains($cicaSyntheticPassword)) { throw 'Credential leaked into output.' }
     $cicaResult = ($cicaOutput | Out-String) | ConvertFrom-Json
+    # Only the sanitized report is printed, including on a failed assertion.
+    $cicaResult | ConvertTo-Json -Depth 5 | Write-Output
     if (-not $cicaResult.executed_as_system -or -not $cicaResult.process_x64) { throw 'Test did not run under SYSTEM/x64.' }
     if ($cicaResult.odbc_connection_ok -or $cicaResult.minimal_select_ok -or $cicaResult.query_returned_row) { throw 'Missing DSN reported a successful ERP test.' }
     if ($cicaResult.error_code -ne 'odbc_failed' -or 'IM002' -notin $cicaResult.sql_states) { throw 'Expected bounded missing-DSN failure.' }
