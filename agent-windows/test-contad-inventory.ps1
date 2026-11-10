@@ -109,3 +109,6 @@ $folder=Join-Path $PSScriptRoot 'artifacts\validation'
 @{ windows=$PSVersionTable.PSVersion.ToString(); process_x64=[Environment]::Is64BitProcess; source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant(); scenarios=$evidence; real_erp=$false } |
     ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-inventory.json') -Encoding UTF8
 Write-Host 'Inventory: synthetic success/limits/schema, real missing DSN, redaction and private ACLs passed.'
+
+# Expected failing child processes must not fail a successful harness.
+exit 0
