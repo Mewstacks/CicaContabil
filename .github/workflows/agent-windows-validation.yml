@@ -9,6 +9,10 @@ on:
       - .github/workflows/agent-windows-validation.yml
   workflow_dispatch:
     inputs:
+      inventory_only:
+        description: Validate only the bounded CONTAD metadata inventory
+        type: boolean
+        default: false
       probe_only:
         description: Validate only the temporary SYSTEM ODBC diagnostic
         type: boolean
@@ -20,7 +24,7 @@ permissions:
 jobs:
   install-test:
     # Standard public runner only; never install on a customer's/self-hosted machine.
-    if: github.event.repository.private == false && inputs.probe_only != true
+    if: github.event.repository.private == false && inputs.probe_only != true && inputs.inventory_only != true
     runs-on: windows-2022
     timeout-minutes: 20
     steps:
@@ -64,7 +68,7 @@ jobs:
           retention-days: 1
 
   system-odbc-probe:
-    if: github.event.repository.private == false
+    if: github.event.repository.private == false && inputs.inventory_only != true
     runs-on: windows-2022
     timeout-minutes: 5
     steps:
@@ -80,5 +84,25 @@ jobs:
         with:
           name: system-odbc-probe-validation
           path: agent-windows/artifacts/validation/system-odbc-probe.json
+          if-no-files-found: warn
+          retention-days: 1
+
+  contad-inventory:
+    if: github.event.repository.private == false
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate bounded metadata inventory, errors and private report
+        shell: powershell
+        run: ./agent-windows/test-contad-inventory.ps1
+      - name: Preserve inventory validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: contad-inventory-validation
+          path: agent-windows/artifacts/validation/contad-inventory.json
           if-no-files-found: warn
           retention-days: 1

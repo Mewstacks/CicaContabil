@@ -3949,3 +3949,38 @@ novos ciclos/heartbeat e conector healthy, único oficial e anterior revogado.
 Prova pendente em V-346 encerrada; instalação/troca concluídas, mesmo piloto e
 dados preservados. Não repetir instalação/pareamento/teste por rotina. Demais
 fontes/carteira/gates contratuais preservados, sem nova ampliação de escopo.
+
+## D-331 — Retomar finalização após o agente oficial (10/11/2026)
+
+Origem humana: “continue o desenvolvimento do projeto visando a finalização”.
+Continuidade D-301/D-323, PC-19/03/09/12; V-347 encerrou a instalação/corte.
+Próxima dependência é o inventário real de metadados/situações Q-28, já previsto
+em D-323. Não repetir instalação/pareamento ou ampliar manifesto pelo simples
+reinício. Preservar SVAPL02, piloto/dados/contrato e alterações locais anteriores.
+
+Preparar/testar execução do inventário no Windows 2022 descartável, sem ERP
+real ou senha da cliente no CI. Metadados/contagens agrupadas no Server continuam
+somente leitura e dependem do retorno real; credencial digitada localmente.
+A propriedade OdbcConnection.ConnectionTimeout é gravável: hipótese inicial de
+falha foi descartada após documentação/código Microsoft, sem alteração por ela.
+AnyDesk novamente retornou timeout -10005; não presumir Server indisponível.
+
+Implementar administração da transição piloto → carteira companies, reutilizando
+protocolo existente: prévia sem escrita por padrão, inventário identificado por
+SHA-256, mapa de situações revisado com responsável/referência, cobertura integral
+dos códigos observados e aplicação explícita vinculada ao agente oficial e à
+revisão anterior esperada. Travar organização/agente na ordem existente para
+serializar com revogação/substituição/ingestão; rejeitar candidato, agente antigo,
+manifesto inválido, heartbeat ausente/antigo, substituição em aberto e evidência
+incompatível. Preservar segredo/UUID/cadastros/movimentos/decisões/recibos;
+registrar mudança auditável sem senhas/dados cadastrais. Não exigir pareamento
+ou MSI novo para o cliente 1.0.5 já compatível. Somente companies nesta fase;
+não fingir leitura de contas/Razão/títulos ou manter banco piloto coletando
+quando o manifesto trocar de modo. Explicitar essa limitação na prévia.
+
+Testar recusa, replay, concorrência PostgreSQL e isolamento com dados sintéticos.
+Código/publicação seguem autorizações D-304/D-323/D-329 no ambiente existente,
+sujeitas ao CI exato/recuperação/integridade; nenhuma aplicação operacional da
+carteira até inventário e revisão reais. Histórico financeiro desde 01/09/2026
+preservado; fontes novas só após confronto real Q-28/Q-46. Q-47, IA/custos/
+egressão Q-08/Q-09, D-73, recuperação, treinamento e aceite continuam próprios.

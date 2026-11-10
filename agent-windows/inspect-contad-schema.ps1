@@ -21,7 +21,7 @@ try {
     $builder['DSN'] = 'CICA_CONTAD'
     $builder['UID'] = $credential.UserName
     $builder['PWD'] = $credential.GetNetworkCredential().Password
-    $connection = New-Object System.Data.Odbc.OdbcConnection($builder.ConnectionString)
+    $connection = New-Object System.Data.Odbc.OdbcConnection -ArgumentList $builder.ConnectionString
     $connection.ConnectionTimeout = 20
     $connection.Open()
     $builder.Clear()
