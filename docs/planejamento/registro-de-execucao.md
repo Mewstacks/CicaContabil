@@ -3502,3 +3502,16 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
 - MSI 1.0.5/backend release 80 preservados; sem reinstalação/deploy/corte/coleta.
   Próximo passo operador: executar teste e devolver JSON seguro; conferir ODBC,
   ACL/versão/horário e heartbeat antes de corte. Q-28 e demais gates abertos.
+
+## 10/11/2026 — SVAPL02 oficial e primeiro ciclo comprovado (V-345/V-346)
+
+- Prova humana ODBC SYSTEM/x64/ACL/versão/limpeza aceita; preflight live aprovado.
+- Corte transacional às 17:08:35 Brasília: único oficial ativo SVAPL02, anterior
+  revogado e auditoria única. Assinaturas reais: anterior 401, novo 200/coleta true.
+- Recepção real e ready/1.0.5 às 20:09:33 UTC, onze fingerprints/piloto preservados;
+  MSI/backend/recursos/saúde intactos. Nenhum lote ou heartbeat artificial enviado.
+- Reinício complementar pós-corte solicitado. Colagem sem separadores falhou
+  antes da ação; versão em linha única enviada, JSON ainda aguardado. AnyDesk
+  novamente retornou timeout -10005, sem observar/controlar Server.
+- Documentação/pacote/relatório atualizados para estado real; prova pendente não
+  marcada concluída. Carteira/fontes/aceite e demais gates continuam abertos.

@@ -1,16 +1,18 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Estado atual — D-330/V-343/V-344, 10/11/2026:** novo candidato SVAPL02
-pareado, serviço **Running/Auto/LocalSystem/awaiting_activation** após reinício.
-Backend confirma UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385 pending, identidade
-diferente, mesmo manifesto e heartbeat; anterior segue ativo. Código consumido.
-Próximo passo: executar **testar-odbc-system.ps1** entregue separadamente e enviar
-somente o relatório seguro. Prova SYSTEM/ACL/limpeza validada em Windows 2022/
-PowerShell 5.1 descartável, CI 42890385615/PR 4; acesso ERP real ainda pendente.
-MSI 1.0.5 e backend release 80 mantidos; não reinstalar/parear novamente ou emitir
-outro código. O teste também mostra versão/status/ACL. Corte oficial aguarda
-resultado real e conferência do candidato; manifesto continua o mesmo piloto.
-Registros anteriores abaixo são históricos.
+**Agente oficial ativo — D-324/D-330/V-345/V-346, 10/11/2026:** **SVAPL02**
+ativo/oficial desde **17:08:35 Brasília**, UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385;
+anterior CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado/auditado. Único oficial,
+mesmo manifesto, assinatura antiga recusada HTTP 401 e novo 200/coleta habilitada.
+ODBC/SELECT mínimo sob SYSTEM/x64, ACL privada, DPAPI e versão 1.0.5 comprovados.
+Primeiro **ready/1.0.5 às 20:09:33 UTC** e recepção real conferidos, conector healthy.
+Onze fingerprints anteriores idênticos; piloto/163 movimentos preservado.
+MSI 1.0.5 e backend release 80 mantidos. Não reinstalar ou parear novamente.
+**Aguarda somente o retorno do teste complementar de reinício pós-corte**:
+primeira colagem falhou antes de executar; comando em linha única enviado.
+Não afirmar esse segundo reinício como comprovado. Carteira/fontes completas,
+Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem gates próprios.
+Registros anteriores são históricos.
 
 **Histórico de preparação e publicações anteriores:**
 

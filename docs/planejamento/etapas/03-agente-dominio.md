@@ -397,10 +397,10 @@ sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
 - [x] D-325/V-337: atualizar projetos/CI para .NET 10 LTS; três componentes
   autocontidos 10.0.15 publicados localmente, 59 testes aprovados/três Windows pendentes.
 - [x] V-338: homologar MSI .NET 10 em Windows Server 2022 descartável.
-- [ ] Conferir conexão real sob LocalSystem na cliente.
+- [x] V-345: conferir conexão real sob LocalSystem na cliente.
   Network/Advanced não inspecionados; teste interativo já informado em V-335.
-- [ ] Instalar/configurar no Server; comprovar ODBC/LocalSystem/ACL/DPAPI/reinício.
-- [ ] Efetuar corte real, novo oficial/ready, anterior recusado e dados preservados.
+- [x] V-345/V-346: instalação/ODBC/LocalSystem/ACL/DPAPI e reinício pré-corte comprovados.
+- [x] V-346: corte real, novo oficial/primeiro ready, anterior recusado e dados preservados.
 - [ ] Inventário/fontes/carteira completa, Q-46/Q-47, D-73, recuperação,
   treinamento e aceite conforme os mesmos gates existentes.
 
@@ -420,7 +420,7 @@ texto do winver, agora recebido em V-331. Isso não é prova de instalação.
   privado por 60 minutos, fora de Git/ZIP, e atualizar roteiro do operador.
 - [x] V-343: candidato pareado; captura Running/Auto/LocalSystem e
   awaiting_activation após reinício. Versão/horário/ACL/ODBC ainda por provar.
-- [ ] Provar ODBC sob LocalSystem/ACL/DPAPI, efetuar corte explícito e conferir
+- [x] V-345/V-346: ODBC/LocalSystem/ACL/DPAPI e corte explícito comprovados;
   novo oficial/recepção/recusa do anterior sem perda ou duplicação.
 
 Q-28 e demais gates continuam abertos. Não repetir o teste ODBC interativo,
@@ -432,7 +432,16 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
   captura Running/Auto/LocalSystem/awaiting_activation após reinício.
 - [x] Entregar ferramenta pontual ODBC SYSTEM, relatório seguro, hash e roteiro;
   validar tarefa/DPAPI/ACL/limpeza no CI Windows 2022 da fonte exata.
-- [ ] Receber relatório real: ODBC mínimo sob SYSTEM, versão 1.0.5/status/horário,
+- [x] V-345: receber relatório real ODBC sob SYSTEM, versão 1.0.5/status/horário,
   configuração acessível por DPAPI no serviço e ACL Administradores/SYSTEM.
-- [ ] Depois dessas provas, efetuar corte oficial e conferir novo ready/recepção,
+- [x] V-346: corte oficial e primeiro ready/recepção comprovados,
   anterior recusado e dados preservados; demais gates continuam abertos.
+
+### Corte e primeiro ciclo concluídos — V-345/V-346 (10/11/2026)
+
+- [x] ODBC SYSTEM/x64, ACL privada, versão 1.0.5 e limpeza comprovados.
+- [x] SVAPL02 único ativo/oficial; anterior revogado/auditado e assinatura 401.
+- [x] Primeiro ready e recepção reais, mesmo manifesto e dados/piloto preservados.
+- [ ] Receber JSON após segundo reinício, posterior ao corte; primeira tentativa
+  falhou no binding da colagem, comando em linha única reenviado.
+- [ ] Demais fontes/carteira, Q-46/Q-47, D-73, recuperação, treinamento e aceite.

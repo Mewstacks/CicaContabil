@@ -489,3 +489,9 @@ manifesto. Não repetir pareamento ou emitir código. Próxima prova Q-28 é exe
 a ferramenta testar-odbc-system.ps1 e enviar relatório seguro (ODBC real sob
 SYSTEM, versão/horário/ACL). CI Windows 2022 aprovou isolamento/limpeza, sem ERP
 real. Corte continua condicionado ao resultado, sem nova pergunta de decisão.
+
+**Complemento V-345/V-346:** ODBC SYSTEM/ACL/versão comprovados, SVAPL02 oficial,
+anterior revogado e primeiro ready/recepção reais, com dados preservados. Retorno
+do segundo reinício pós-corte ainda pendente; não afirmar teste concluído pela
+colagem que falhou. Q-28 continua para inventário/fontes/carteira, sem reabrir
+instalação/runtime/driver/pareamento. Demais gates preservados.

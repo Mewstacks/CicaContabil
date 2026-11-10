@@ -1,16 +1,18 @@
 PLANO/PROMPT CANÔNICO CONTAD — revisão de 10/11/2026, D-324/D-325/D-326/D-327/D-329/D-330
 
-**Estado atual — D-330/V-343/V-344, 10/11/2026:** novo candidato SVAPL02
-pareado, serviço **Running/Auto/LocalSystem/awaiting_activation** após reinício.
-Backend confirma UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385 pending, identidade
-diferente, mesmo manifesto e heartbeat; anterior segue ativo. Código consumido.
-Próximo passo: executar **testar-odbc-system.ps1** entregue separadamente e enviar
-somente o relatório seguro. Prova SYSTEM/ACL/limpeza validada em Windows 2022/
-PowerShell 5.1 descartável, CI 42890385615/PR 4; acesso ERP real ainda pendente.
-MSI 1.0.5 e backend release 80 mantidos; não reinstalar/parear novamente ou emitir
-outro código. O teste também mostra versão/status/ACL. Corte oficial aguarda
-resultado real e conferência do candidato; manifesto continua o mesmo piloto.
-Registros anteriores abaixo são históricos.
+**Agente oficial ativo — D-324/D-330/V-345/V-346, 10/11/2026:** **SVAPL02**
+ativo/oficial desde **17:08:35 Brasília**, UUID 0086bcf7-45a3-486b-b3ff-8b8f5e456385;
+anterior CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado/auditado. Único oficial,
+mesmo manifesto, assinatura antiga recusada HTTP 401 e novo 200/coleta habilitada.
+ODBC/SELECT mínimo sob SYSTEM/x64, ACL privada, DPAPI e versão 1.0.5 comprovados.
+Primeiro **ready/1.0.5 às 20:09:33 UTC** e recepção real conferidos, conector healthy.
+Onze fingerprints anteriores idênticos; piloto/163 movimentos preservado.
+MSI 1.0.5 e backend release 80 mantidos. Não reinstalar ou parear novamente.
+**Aguarda somente o retorno do teste complementar de reinício pós-corte**:
+primeira colagem falhou antes de executar; comando em linha única enviado.
+Não afirmar esse segundo reinício como comprovado. Carteira/fontes completas,
+Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem gates próprios.
+Registros anteriores são históricos.
 
 Instale um novo agente no Windows Server disponibilizado e torne-o o agente oficial da CONTAD, substituindo o computador anterior com corte verificado. Continue a finalização do projeto CONTAD no CICA, com integração automática de toda a carteira do escritório no Domínio, testes finais, implantação e preparação do aceite. Trabalhe no workspace /Users/pedromachado/Documents/CicaContabil. Este pedido vai além do piloto SURIA: o resultado esperado é o escritório conseguir usar o conciliador com todas as suas empresas, sem cadastrar manualmente uma empresa e uma conta para cada teste.
 
@@ -21,7 +23,7 @@ A solicitação humana atual autoriza adaptar o plano e iniciar o desenvolviment
 Leia nesta ordem:
 - AGENTS.md e PLANO-MESTRE.md na raiz.
 - DECISOES.md: registro canônico, especialmente D-73, D-301, D-309/D-310 e D-320 a D-330; D-324 define Windows Server oficial e D-325 aprova .NET 10 LTS.
-- VALIDACOES.md: principalmente V-322 a V-344; diferencie cada prova e seu limite.
+- VALIDACOES.md: principalmente V-322 a V-346; diferencie cada prova e seu limite.
 - docs/planejamento/etapas/03-agente-dominio.md, 09-conciliacao-radar.md e 12-homologacao-venda.md; consulte etapas 02/11 e demais dependências apenas quando pertinentes.
 - docs/planejamento/duvidas-abertas.md: reutilize Q-28, Q-46, Q-47, Q-08/Q-09 e os demais IDs aplicáveis.
 - docs/contad-continuidade-2026-11-06.md, docs/contad-release-2026-11-05.md, docs/planejamento/verificacao-conciliador-contad-2026-11-02.md, docs/conciliacao-razao-normalizado.md e docs/conciliacao-fontes-titulos.md.
@@ -34,10 +36,10 @@ Confira git status e a versão atual antes de editar. Preserve alterações loca
 
 Sequência por dependências, sem segundo plano paralelo:
 A. Preservar as verificações do novo Server já recebidas em V-331 a V-336: Windows Server 2022 Standard/21H2/build 20348.5761; PowerShell x64/Administrador; sem serviço/configuração CICA na captura; Contabil 64 usa SQL Anywhere 16. Operador informou conexão interativa bem-sucedida e confirmou limpeza de usuário/senha e salvamento do novo DSN de sistema CICA_CONTAD, com SrvContabil/Contabil e Host/Port vazios. Não repetir perguntas/testes sem motivo, trocar para driver 17 pela existência dele ou solicitar senhas. Network/Advanced não inspecionados e LocalSystem ainda não testado. AnyDesk disponibilizado, mas a ferramenta nativa desta sessão retornou timeout; usar orientação ao operador enquanto isso. Não instalar Python/SDK: pacote autocontido.
-B. .NET 10 LTS aprovado em D-325, MSI 1.0.5/.NET 10.0.15 validado em V-338 e mantido. D-329/V-342 consolidou o backend na main e publicou/conferiu release 80. V-343 confirma pareamento SVAPL02/código consumido; V-344 entrega prova pontual SYSTEM. Não reinstalar, emitir código ou repetir testes interativos concluídos. Próximo passo é o relatório SYSTEM; depois o corte explícito, sem ampliar fontes, recursos ou custos.
-C. Código V-342 já consumido, candidato SVAPL02 confirmado em V-343. Não emitir outro ou repetir pareamento. Preservar novo UUID/segredo e recorte idêntico; não copiar DPAPI/credenciais entre PCs. Candidato pendente permite só heartbeat/configuração, sem coleta; anterior segue ativo.
-D. Serviço Running/Auto/LocalSystem/awaiting_activation após reinício já comprovado em captura V-343. Completar versão/horário/ACL e ODBC sob SYSTEM com testar-odbc-system.ps1 (D-330/V-344), ferramenta separada do MSI, validada em Windows descartável. A senha é digitada só no Windows; enviar apenas relatório seguro. Não decifrar agent.config/registro ou interpretar heartbeat como teste de ERP.
-E. Após as provas do Server, executar corte administrativo explícito com os dois UUIDs, mesma revisão/manifesto e heartbeat recente do candidato (cinco minutos). Uma transação torna o novo ativo/oficial e revoga o anterior, com auditoria e restrição de um oficial por escritório. Requisições de ingestão já em andamento devem terminar antes do corte; as posteriores do anterior devem ser recusadas. Conferir novo ciclo ready, recebimento real e ausência de duplicação/perda. Desativar o serviço anterior depois do corte quando acessível; a revogação no servidor independe disso.
+B. MSI 1.0.5/.NET 10 LTS mantido e backend release 80. SVAPL02 já é o oficial em V-346, primeiro ready/1.0.5 e recepção reais comprovados. Segundo teste de reinício pós-corte aguarda retorno do Windows; não repetir instalação, driver, runtime ou pareamento.
+C. Código consumido e identidades próprias preservadas. SVAPL02 0086bcf7-45a3-486b-b3ff-8b8f5e456385 ativo/oficial e anterior 3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado, mesma revisão/manifesto. Não emitir outro código ou reativar segredo antigo por rotina.
+D. V-345 comprovou ODBC mínimo SYSTEM/x64, ACL, versão e limpeza; V-343 comprovou serviço e DPAPI/HMAC após reinício antes do corte. V-346 comprova primeiro ready depois do corte. Falta apenas o retorno do segundo reinício pós-corte: primeira colagem falhou no binding, versão em linha única com separadores foi enviada. Não inferir execução sem o resultado.
+E. Corte administrativo concluído em V-346 às 17:08:35 Brasília, com auditoria e único oficial. Assinatura antiga 401, novo 200/coleta habilitada e recepção real. Preservar esse estado; não executar o corte novamente. Serviço antigo ainda não foi fisicamente parado nesta sessão.
 F. Se falhar antes do corte, revogar candidato e manter o anterior. Se falhar depois, diagnosticar sem reativar segredo revogado: retorno de máquina exige outra substituição explícita. Não transferir scans/cursor do agente antigo nem apagar dados/histórico.
 G. No novo agente oficial comprovado, obter inventário real, revisar mapa de situações/chaves/fontes e evoluir o manifesto para carteira completa. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
 

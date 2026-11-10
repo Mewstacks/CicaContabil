@@ -3921,3 +3921,24 @@ Execução D-330 em V-344: ferramenta e tarefa SYSTEM aprovadas no Windows 2022
 isolado, fonte 05fc97d/CI 42890385615/PR 4 integrado, sem alteração de MSI/backend.
 Relatório real do SVAPL02 continua necessário antes do corte. Código já consumido;
 não emitir outro ou repetir pareamento. Dados anteriores preservados.
+
+Continuidade de D-324/D-330 — corte após provas reais (10/11/2026): responsável
+forneceu relatório b0401de2 do SVAPL02, consulta ODBC mínima concluída sob SYSTEM
+S-1-5-18/x64, configuração com ACL privada, versão 1.0.5, awaiting_activation
+com horário recente e tarefa/arquivos removidos. Somado ao reinício/serviço da
+captura V-343, satisfaz a prova prévia do Server em V-345. Executar a ativação
+administrativa já solicitada: reconferir candidato 0086bcf7-45a3-486b-b3ff-8b8f5e456385,
+anterior 3cf6e4fb-c268-49e8-8905-be3afe7fa2e6, manifesto/revisão idênticos,
+identidade diferente e heartbeat de cinco minutos, preservar dados e recursos.
+Corte somente pelo comando transacional activate_official_agent, no backend,
+sem tocar DSN/ERP ou reinstalar. Conferir auditoria/único oficial, recusa da
+credencial antiga e primeiro ciclo real do mesmo piloto. Ausência de ready
+observável no backend exige retorno seguro do Windows; não inventar o estado.
+Não ampliar coleta/fontes ou reativar automaticamente credencial revogada.
+
+Resultado D-324/D-330 em V-346: corte transacional às 17:08:35 Brasília,
+SVAPL02 único ativo/oficial e anterior revogado/auditado; antigo HTTP 401, novo
+200/coleta habilitada. ODBC SYSTEM/ACL/DPAPI e primeiro ready/recepção reais
+comprovados, dados preservados. Segundo reinício pós-corte solicitado; primeira
+colagem falhou antes da ação, comando corrigido, retorno ainda não recebido.
+Não registrar essa prova como concluída. Demais fontes/gates permanecem abertos.

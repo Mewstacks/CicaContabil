@@ -7658,3 +7658,68 @@ consumido; não emitir outro ou parear novamente. Release 80 permanece corrente.
 relatório do SVAPL02; sem corte, nova coleta, reinstalação, deploy ou custo novo.
 Q-28 e demais fontes/carteira/Q-46/Q-47/D-73/recuperação/treinamento/aceite abertos.
 Evidências privadas .tmp/contad-server-pairing-2026-11-10/.
+
+## V-345 — ODBC real sob SYSTEM e pré-requisitos Windows comprovados (10/11/2026)
+
+Relatório humano b0401de2d22a4cf6b2eae21c9e5695e8 recebido sem credenciais:
+SYSTEM/SID S-1-5-18, processo x64, conexão ODBC true, SELECT mínimo true/com linha,
+sem erro/SQLState/código nativo. agent_config_acl_private=true, versão 1.0.5,
+awaiting_activation observado 20:03:21 UTC; teste 20:04:19 UTC. Tarefa e arquivos
+temporários removidos. Relatório seguro no Windows em ProgramData/CICA/OdbcChecks.
+Soma-se à captura V-343: Running/Auto/LocalSystem após reinício, configuração
+DPAPI reaberta pelo serviço, HMAC e recorte confirmado no backend. Não repetir
+ODBC/senha/pareamento/instalação; prova prévia Windows satisfeita. Nenhuma senha
+foi enviada ou lida do registro/configuração. Evidência privada em
+.tmp/contad-server-cutover-2026-11-10/windows-system-proof.json.
+
+Conferência live do candidato/manifesto/heartbeat e corte são os próximos passos
+D-324/D-330; este registro ainda não afirma oficial/ready/recepção ou aceite.
+Carteira/fontes completas e demais gates contratuais permanecem pendentes.
+
+## V-346 — SVAPL02 oficial, primeiro ciclo e dados preservados (10/11/2026)
+
+Escopo D-324/D-327/D-330. V-345 satisfez ODBC/SELECT mínimo real sob SYSTEM/x64,
+ACL privada, versão 1.0.5 e limpeza; V-343 comprovou serviço Auto/Running/
+LocalSystem após reinício e configuração DPAPI/HMAC. Preflight live confirmou
+novo fingerprint, mesmo manifesto e heartbeat recente. Comando transacional
+activate_official_agent executado em 10/11 às **17:08:35 Brasília**
+(20:08:35 UTC): SVAPL02/0086bcf7-45a3-486b-b3ff-8b8f5e456385 active/is_official=true;
+CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revoked/is_official=false. Único oficial,
+zero pending e uma auditoria intelligence.agent.official_replaced,
+ID f1e04ce5-7df8-4349-ae84-062d9a7f5482. Mesma revisão ad932af6/manifesto piloto.
+Sem copiar segredo/cursor/configuração entre máquinas ou apagar histórico.
+
+Prova HTTPS com assinaturas válidas mantidas apenas na memória do backend:
+antes, anterior 200/coleta true e candidato 200/coleta false; depois, anterior
+401 e novo 200/coleta true. Nenhuma chave exportada, heartbeat ou ingestão
+artificiais enviados. Auditorias reais depois do corte: companies_synced às
+20:09:22 UTC (zero criação/uma atualização), bank_entries_synced às 20:09:25
+(zero criação/alteração/ignorados, sem truncamento); conector healthy.
+Relato humano do Windows confirmou **ready/1.0.5 às 20:09:33 UTC**, detalhe
+“Último ciclo concluído com sucesso.” Prova recepção/ciclo; não inferir o número
+total de linhas relidas dos 163 registros existentes, pois auditoria de delta
+não registra input_count. Somente o novo oficial está autorizado a coletar.
+
+Onze conjuntos anteriores (exceto estado de agentes) idênticos em contagens/
+hashes antes/depois do primeiro ciclo: uma empresa/conta, 163 movimentos,
+163 DominioBankEntry e 163 AccountingEntry de vínculo bancário. Zero exportação,
+JournalEntry/IndependentLedgerRecord; arquivos, vínculo de usuário e demais dados
+preservados. Agentes continuam três, único ativo é SVAPL02 e nenhum scan real
+de carteira. Readiness/banco/cache nos dois domínios, imagens/512 MB/Machines/
+reserva parada e configuração preservados. MSI e release 80 mantidos, sem deploy.
+
+**Teste complementar pós-corte ainda pendente:** solicitado reiniciar somente
+CicaAgent e conferir outro ready/Auto/LocalSystem. Primeira colagem chegou como
+linha única sem separadores; PowerShell falhou no binding antes do reinício.
+Versão em linha única com separadores enviada; JSON de retorno ainda não
+recebido. Não declarar esse segundo reinício comprovado. AnyDesk consultado
+novamente via ferramenta nativa: timeout -10005, sem observar/controlar Server;
+isso não nega o acesso humano. Serviço antigo não foi fisicamente parado nesta
+sessão, mas sua credencial já é recusada. Não reativá-la automaticamente.
+
+Relatório de entrega, pacote, prompt/cópias e checklists atualizados para oficial
+ativo/primeiro ready, distinguindo o segundo teste ainda aberto. Evidências
+privadas .tmp/contad-server-cutover-2026-11-10/. Instalação e corte operacionais;
+Q-28 permanece para inventário/fontes/carteira, além desse retorno do teste.
+Carteira/fontes completas, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento
+e aceite não homologados por essa operação.
