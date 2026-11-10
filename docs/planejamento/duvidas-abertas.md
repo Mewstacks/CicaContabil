@@ -469,3 +469,9 @@ permanecem abertos; relato de DSN não é homologação do serviço.
 Próximo gate passa a ser backend compatível antes de instalar/parear no Server;
 Q-28 permanece aberto para instalação/ODBC real/LocalSystem/corte e fontes.
 Não repetir identificação do Server, decisão .NET ou preparação do DSN.
+
+**Complemento D-327/V-339:** backend publicado/conferido na release 77 e
+código privado emitido com manifesto herdado e validade até 15:48:07 de 10/11
+(Brasília). Prérequisitos de backend/pacote resolvidos. Próxima prova Q-28:
+instalação/pareamento e estado awaiting_activation no Server, mantendo o anterior
+ativo; ODBC/LocalSystem e corte continuam obrigatórios, sem inferir homologação.

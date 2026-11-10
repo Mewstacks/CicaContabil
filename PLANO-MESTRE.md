@@ -1,5 +1,14 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Instalação do Server liberada — D-327/V-339, 10/11/2026:** backend publicado
+na **release 77**, fonte 03ed5b0/[CI completo 42865006431](https://github.com/Mewstacks/CicaContabil/actions/runs/42865006431).
+Migrations/661 hashes em web/worker, saúde e doze fingerprints CONTAD aprovados;
+recursos, manifesto e agente anterior ativo preservados. MSI 1.0.5 entregue
+em V-338 mantido, roteiro atualizado e código privado emitido, válido até
+**15:48:07 de 10/11, Brasília**. Pode instalar/parear candidato no Server;
+awaiting_activation antecede o corte e não comprova ODBC/LocalSystem ou coleta.
+Instalação, provas Windows, corte oficial e demais gates continuam pendentes.
+
 **MSI oficial preparado — D-326/V-338, 10/11/2026:** branch técnica publicada,
 [CI Windows 42863201809 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
 fonte **53b834b**, MSI **1.0.5/.NET 10.0.15**, 62 testes e 26 checks instalados

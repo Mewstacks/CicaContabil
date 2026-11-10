@@ -1,5 +1,11 @@
 # CONTAD — resumo e continuidade
 
+**10/11 — D-327/V-339:** backend release 77/fonte 03ed5b0/CI completo aprovado,
+migrations/hashes/dados/saúde conferidos. MSI 1.0.5 de V-338 mantido. Código
+privado do novo Server emitido, válido até 15:48:07 de 10/11 (Brasília).
+Instalação/pareamento liberados para candidato; aguardar provas Windows antes
+do corte. Anterior ativo/manifesto/dados preservados; sem coleta/carteira nova.
+
 **10/11 — D-326/V-338:** MSI 1.0.5/.NET 10.0.15 da fonte 53b834b validado em
 [CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809):
 62 testes/26 checks aprovados, artefatos e SHA-256 conferidos. Pacote/roteiro

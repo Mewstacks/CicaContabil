@@ -7432,3 +7432,63 @@ backend compatível e código novo antes de instalar/parear no Server. CI do
 instalador não homologa Q-28/Q-46/Q-47, carteira completa, D-73, rede real,
 recuperação, treinamento ou aceite. Regressão backend V-329 não repetida:
 código Python/migrações idênticos, sem alterações nesta migração de runtime.
+
+## V-339 — Backend liberado e código privado do Server emitido (10/11/2026)
+
+D-327 autoriza os processos para o responsável instalar/executar o novo agente.
+Fonte **03ed5b0bae49706a02f8f9c1d3225acddd6b4bc6**, [CI completo aprovado
+42865006431](https://github.com/Mewstacks/CicaContabil/actions/runs/42865006431):
+SQLite **1.808 testes/163 subtestes**, 30 skips; PostgreSQL **1.836/163**, dois
+skips (Playwright Python/OCR português indisponíveis); .NET Linux 59/três skips
+Windows, Windows 62/zero skips; três imagens, Ruff, Django e migrations check
+aprovados. Código de aplicação/agente idêntico ao validado anteriormente; novos
+commits de autorização/documentação não alteram o MSI entregue em V-338.
+
+Preflight encontrou release **76** externa, posterior à evidência 75. Runtime
+sem protocolo de substituição, intelligence.0034 nos dois aliases; 653 arquivos
+rastreados iguais à 75 após normalizar CRLF e cinco egg-info gerados. Configuração
+76 usa um worker Gunicorn, exportação efetiva false e prévia sem escritórios
+habilitados; esses estados foram preservados. Não restaurada prévia por inferência.
+Imagem/configuração 76 preservadas como base e retorno. Backup original/53
+objetos/tamanhos/retencão de sete dias reconferidos, válido até 13/11; sem nova
+cópia, chave, recurso ou restore. Doze fingerprints CONTAD registrados antes.
+
+Publicada **release 77**, imagem imutável
+`registry.fly.io/cica-contabil@sha256:25f5b23d85cb160a221b36b120bd3f0275a668c906c6f76149840af04451ea7b`,
+base 76 mais oito arquivos Python alterados/aditivos. Configuração e camadas da
+imagem-base iguais, 661 hashes brutos conferidos offline sem rede/banco, agregado
+`8a35f1f16afa622996c22c7877a265a07eea4c650f21936bfc5fd18c5358c504`.
+Essa imagem empacotada é distinta da build Docker de CI; não confundir digests.
+Primeiro ensaio offline usou módulo build sem chave sintética; corrigido somente
+o ambiente de teste para config.settings.test, sem chave/flag de produção.
+
+Release command aplicou intelligence.0035 aditiva. Pós-deploy: 661 hashes em
+web/worker, comandos de preparação/ativação disponíveis, migrations em default
+/knowledge nos endpoints Neon originais, ciclo Celery ready após a release,
+readiness 200/banco/cache nos dois domínios e agentes inválidos recusados 401.
+Doze conjuntos CONTAD com contagens/hashes iguais antes/depois, manifesto piloto,
+163 eventos, usuários/contrato e agente anterior ativo preservados. Machines
+originais/512 MB e reserva parada preservadas; somente deploy.strategy passou
+canary → rolling, com --ha=false/--update-only e reserva excluída. Retorno de
+aplicação na imagem 76 conservando schema aditivo. Leituras de inspeção ajustadas
+para campo existente e JSON multilinha dos logs; não houve novo deploy por isso.
+
+Emitido **um código de substituição de uso único**, validade até **10/11/2026
+15:48:07, horário de Brasília**. Arquivo privado 0600 em
+Downloads/CICA-CONTAD-Codigo-Servidor-2026-11-10.txt, fora de Git/ZIP público;
+conteúdo não exibido em chat/log. Cópia temporária remota removida após gravação
+local durável. Conferidos código ainda não usado, referência ao anterior ativo
+e manifesto idêntico; emissão não cria candidato nem revoga/promove agente.
+
+MSI 1.0.5 de V-338 mantém SHA-256 f89127453589a5721dd1dd392144b3beed17eebef0e0a33a023bbf7f6283882f,
+sem assinatura de editor. Pasta/ZIP/roteiro e prompt/cópias atualizados para
+backend pronto. Pode instalar/configurar como candidato no Server 2022 com
+CICA_CONTAD/SQL Anywhere 16 x64 e credencial EXTERNO somente no Windows.
+Esperado após pareamento/reinício: Running/Auto/LocalSystem e awaiting_activation.
+
+**Limites:** sem instalação ou comando remoto no Windows nesta entrega,
+pareamento/candidato, ODBC sob LocalSystem, corte ou coleta nova. ODBC interativo
+continua relato V-335/V-336. Aguardam provas reais; não deduzir ODBC sob SYSTEM
+ou agente oficial de heartbeat/awaiting_activation. Carteira completa/fontes,
+Q-46/Q-47, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
+Evidências privadas em `.tmp/contad-server-release-2026-11-10/`.

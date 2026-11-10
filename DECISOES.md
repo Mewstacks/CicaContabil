@@ -3800,3 +3800,24 @@ LocalSystem/ACL/DPAPI/reinício e candidato correto com heartbeat recente em
 D-324. Não ativar ou revogar automaticamente pelo deploy ou pela emissão do
 código. Esta liberação não homologa fontes/carteira completa, rede real,
 recuperação, treinamento ou aceite contratual.
+
+Preflight D-327: encontrada release **76** já publicada externamente em
+10/11/2026, imagem imutável sha256:cea886a12c52b05d565e8eb71d7a2c57bd316f516e358fb68af63d41ffa0c45d.
+Ainda usa intelligence.0034 e não contém prepare_agent_replacement/activate_official_agent.
+Os 653 arquivos rastreados de runtime são semanticamente idênticos à release
+75 após normalizar CRLF; cinco arquivos egg-info adicionais são metadados gerados.
+Não tratar a 75 como corrente nem sobrescrever a publicação externa por inferência.
+Preservar imagem/configuração 76 como base e retorno, acrescentando somente os
+oito arquivos Python alterados/aditivos da candidata 03ed5b0; conferir hashes
+brutos completos e camadas/configuração antes do deploy. CI 42865006431 valida
+a fonte candidata exata. Sem mudança de dependências/lock, assets ou infraestrutura.
+
+Continuidade do preflight D-327: a configuração 76 usa um worker Gunicorn,
+canary e auto_stop_machines=true; os dois controles de prévia/exportação não
+estão no env. Configuração efetiva observada: exportação não homologada/false,
+prévia sem escritórios habilitados. Para liberar somente o agente, preservar
+esse estado efetivo atual, assim como um worker e recursos 512 MB. Não reabrir
+prévia ou habilitar exportação por causa do pareamento. Deploy rolling limitado
+às duas Machines ativas, --ha=false/--update-only e reserva excluída; registrar
+somente a mudança de estratégia resultante. Backup original/53 objetos/retencão
+conferidos novamente; snapshot válido até 13/11, sem novo recurso ou restore.

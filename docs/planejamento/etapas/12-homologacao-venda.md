@@ -456,7 +456,9 @@ sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
   SQLite 30 aprovados/seis skips concorrentes cobertos no PostgreSQL.
 - [x] D-326/V-338: MSI 1.0.5/.NET 10.0.15 gerado/testado, CI Windows da fonte
   53b834b aprovado: 62 testes e 26 checks, hashes/manifestos conferidos.
-- [ ] Publicar/conferir backend compatível antes da instalação/pareamento.
+- [x] D-327/V-339: backend release 77/fonte 03ed5b0/CI completo aprovado;
+  migrations, hashes, saúde e dados conferidos; código privado de uso único emitido.
+- [ ] Instalar/parear candidato no Windows e devolver estados seguros.
 - [x] V-331: captura confirma Server 2022 Standard, 21H2/build 20348.5761;
   plataforma incluída na matriz .NET 10.
 - [x] V-332: captura mostra PowerShell x64/Administrador, serviço sem listagem

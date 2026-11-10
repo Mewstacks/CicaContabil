@@ -1,18 +1,21 @@
 # Agente oficial CONTAD no Windows Server
 
-Procedimento técnico D-324/D-325/D-326, PC-19, etapas 03/09/12. A sequência única de entrega
+Procedimento técnico D-324/D-325/D-326/D-327, PC-19, etapas 03/09/12. A sequência única de entrega
 permanece no [prompt canônico](contad-prompt-finalizacao-2026-11-06.txt).
 Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
 ## Estado e pré-requisitos
 
-Última publicação comprovada: release 75/fonte c8b0c50, V-328. Agente anterior
-com MSI 1.0.3 e manifesto piloto; MSI 1.0.4 preparado não possui o protocolo de
-substituição em duas fases. **V-338:** MSI **1.0.5/.NET 10.0.15** da fonte **53b834b** aprovado no
-[CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
-com 62 testes e 26 checks instalados. Hash/manifesto/relatório conferidos; pacote
-preservado em Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10.
-MSI sem assinatura de editor. Backend compatível e instalação/corte reais pendentes.
+**V-339, liberação atual — 10/11/2026:** backend publicado e conferido na
+**release 77**, fonte **03ed5b0**, CI completo 42865006431. MSI **1.0.5/.NET
+10.0.15** de V-338 mantido, SHA-256
+`f89127453589a5721dd1dd392144b3beed17eebef0e0a33a023bbf7f6283882f`,
+62 testes/26 checks Windows aprovados, sem assinatura de editor. Pacote em
+Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10 e ZIP correspondente.
+Código em arquivo privado separado, **CICA-CONTAD-Codigo-Servidor-2026-11-10.txt**,
+válido até **15:48:07 de 10/11 (Brasília)**; uso único, fora do ZIP/Git/chat.
+Backend/pacote prontos: pode seguir os passos 4–8 para instalar/parear candidato.
+Anterior permanece ativo; provas Windows e corte oficial continuam pendentes.
 
 **D-325/V-337, 10/11:** responsável aprovou .NET 10 LTS, revisando D-289.
 Os projetos e CI foram migrados; publicação local dos três componentes inclui
@@ -55,9 +58,9 @@ as ACLs para Administradores/SYSTEM.
 
 ## Preparar sem interromper o agente anterior
 
-Primeiro publicar/testar a versão exata do backend e gerar/conferir MSI 1.0.5
-em Windows descartável. Não emitir código de substituição na release 75: ela
-ainda não implementa esse protocolo. Código antigo e MSI 1.0.4 não o substituem.
+Backend release 77 e MSI 1.0.5 conferidos em V-339/V-338. Código privado
+entregue para esta substituição; não executar novamente a emissão por rotina.
+As releases 75/76 e MSI 1.0.4 não implementam o protocolo de substituição.
 
 Após observar a instalação íntegra, executar no ambiente administrativo CICA:
 
@@ -137,7 +140,7 @@ confirmou limpeza de User ID/Password e salvamento de CICA_CONTAD, preservando
 Database. Não repetir a preparação ou o teste sem motivo. Isso é relato humano,
 sem inspeção de segredos no registro. Serviço/instalação/LocalSystem continuam
 pendentes. **D-325/V-337:** .NET 10 autorizado e migração local verificada;
-MSI 1.0.5 testado em Windows em V-338; aguardar backend compatível antes do passo 4.
+V-339 liberou o backend; pode seguir o passo 4 com o pacote entregue.
 
 **V-334, falha histórica:** teste informado recusou login Integrated. Na
 configuração **CICA_CONTAD** (não no DSN original), conferir Login →
@@ -164,11 +167,10 @@ ausente. No ODBC de sistema, Contabil 64 usa SQL Anywhere 16; Contabil 32 usa
 servidor/banco de Contabil 64 sem salvar/alterar ou ler senha. Não repetir os
 passos já comprovados nem supor que os DSNs tenham o mesmo destino.
 
-**Passos 1–3 já percorridos com as evidências acima.** O MSI 1.0.5 está
-validado e preservado em Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10,
-com checksum, release.json e relatório. O backend de substituição **não foi
-publicado**; instalação/pareamento nos passos 4–8 aguardam essa liberação e
-código novo. Não usar MSI/código anteriores ou copiar o pareamento do PC antigo.
+**Passos 1–3 já percorridos com as evidências acima.** Backend release 77 e
+MSI 1.0.5 liberados em V-339. Seguir a partir do passo 4. Usar o código privado
+recém-entregue; ele expira às 15:48:07 de 10/11 (Brasília). Se expirar, solicitar
+nova emissão; não repetir códigos antigos ou copiar pareamento do PC anterior.
 
 1. **Identificar o Windows.** Abrir Win+R → `winver` e registrar edição/ano e
    versão/build. Abrir Windows PowerShell **64 bits como administrador**:

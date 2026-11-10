@@ -3420,3 +3420,20 @@ Plano/checklists/prompts atualizados, commits restritos à entrega na branch.
 Sem merge, release ou deploy em produção, instalação na cliente, ODBC real,
 pareamento/corte. Próximo gate é publicar/conferir backend compatível no escopo
 que vier a ser autorizado; somente depois instalar/parear e testar no Server.
+
+## 10/11/2026 — Backend pronto para instalar/parear o Server, D-327/V-339
+
+Responsável autorizou os processos necessários após entrega do MSI. Registrado
+D-327 antes da publicação; CI completo 42865006431/fonte 03ed5b0 aprovado:
+1.836 testes PostgreSQL/163 subtestes, dois skips, três imagens e agente Windows.
+Release externa 76 reconciliada e preservada como base/retorno; oito arquivos
+Python acrescentados/alterados, 661 hashes e camadas/configuração conferidos.
+
+Publicada release 77 sem mudar recursos/manifesto; intelligence.0035 nos dois
+aliases, web/worker/HTTPS/banco/cache e doze fingerprints CONTAD aprovados.
+Agente anterior ativo, dados/usuários/contrato preservados. Código novo emitido
+em arquivo privado de uso único, válido até 15:48:07 de 10/11 (Brasília), sem
+valor em logs/Git/ZIP; temporário remoto removido. Pacote MSI original mantido,
+roteiro e cópias atualizados. Sem acesso ao Windows, instalação/candidato/corte
+ou coleta nova; usuário deve instalar e devolver estados seguros para a próxima
+verificação. ODBC sob LocalSystem e demais gates não foram considerados cumpridos.
