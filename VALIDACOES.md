@@ -7131,3 +7131,257 @@ Sem upgrade no PC, SQL ERP, IA paga ou egressão novos. Q-28/Q-46/Q-47,
 Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite permanecem abertos.
 Fonte e publicação da correção estão concluídas; projeto CONTAD completo não.
 Evidências privadas em `.tmp/contad-recovery-2026-11-07/`.
+
+## V-329 — Plano Windows Server e substituição oficial local (09/11/2026)
+
+D-324/PC-19, etapas 03/09/12. Responsável solicitou adaptar o plano anexado,
+instalar novamente em outro computador Windows Server, torná-lo o oficial e
+iniciar desenvolvimento. Depois informou AnyDesk já disponibilizado e pediu
+conferir se o Server provavelmente antigo suporta a proposta .NET 10.
+
+**Entrega documental:** atualizado o prompt canônico existente, sem segundo
+plano de execução: estado V-328/release 75, instalação nova antes de ampliar
+carteira, candidato sem coleta, corte explícito/revogação, retorno sem reativar
+segredo revogado, preservação de dados e gates. Criado procedimento técnico
+`docs/contad-agente-oficial-windows-server.md`. Original/cópias anteriores
+preservados privadamente; três cópias atualizadas em Downloads, idênticas ao
+canônico e 0600. Histórico financeiro desde 01/09/2026 permanece decidido.
+
+**Implementação local:** migração aditiva intelligence.0035 acrescenta vínculo
+de substituição, estado pending e oficial único por escritório, obrigatório
+ativo. Emissão exige anterior ativo do mesmo escritório, manifesto validado
+idêntico e ausência de outro código válido/candidato pendente. Novo arquivo
+de entrega 0600/O_EXCL; código não vai ao stdout nem sobrescreve arquivo/symlink.
+Pareamento staged-v1 gera UUID/segredo próprios e candidato que só autentica
+heartbeat/configuração; cliente antigo não consome código de substituição.
+
+Worker 1.0.5 respeita collection_enabled=false antes de qualquer processador,
+grava awaiting_activation e continua heartbeat; preserva compatibilidade com
+backend anterior. Ativação administrativa exige IDs distintos do mesmo
+escritório, predecessor ativo vinculado, mesmo manifesto/revisão e heartbeat
+dos últimos cinco minutos. Transação revoga anterior e ativa novo/oficial com
+auditoria; repetição idêntica é idempotente e falha na auditoria reverte ambos.
+Revogação limpa flag oficial. Dados/scans anteriores permanecem; candidato
+reinicia scan próprio, sem duplicar identidades cadastrais/financeiras.
+Diagnóstico somente leitura agora inclui oficial e predecessor, sem segredos.
+
+**Concorrência:** ingestões piloto e carteira travam somente a linha do agente;
+corte/emissão/revogação serializam pelo escritório com FOR NO KEY UPDATE,
+compatível com as verificações de FK. Requisição em andamento termina antes do
+corte, depois o anterior é recusado. Testes exercitam simultaneidade de emissão,
+ativação repetida e corte durante ingestão de extrato **e carteira**, preservando
+scan concluído e iniciando outro no novo agente. Não é prova de operação real.
+
+**Verificações finais:** regressão integral PostgreSQL 17 descartável em tmpfs:
+**1.837 testes/163 subtestes aprovados, um skip**, 357,06 s. Skip de Playwright
+Python opcional, não executado como QA visual. Testes abrangem isolamento,
+manifesto/fingerprint, heartbeat ausente/antigo/futuro, cliente incompatível,
+segredo diferente, rollback, restrições do banco, código privado e replay.
+Foco final SQLite: **30 aprovados/seis skips**, 16,31 s; os seis casos de
+concorrência foram executados no PostgreSQL integral. Não somar repetições à
+amostra. Ruff global, MyPy de seis módulos, Django check e migrações sem pendências
+aprovados. Container temporário desta rodada removido; demais projetos intactos.
+
+.NET no Mac: **59 aprovados/um skip Windows**; alvo net8.0 com RollForward
+LatestMajor, execução no runtime 10.0.11/SDK 10.0.400 instalado. Não é execução
+no runtime Windows ou validação de .NET 10 no Server. Serviço, configurador e
+ponte win-x64/x86 compilados Release, zero erros/avisos. Fonte/workflows
+preparam versão **1.0.5**; MSI novo/instalação/reparo/DPAPI/ACL/ODBC reais e CI
+da candidata ainda não foram executados. Pacote 1.0.4 anterior não ganha o
+protocolo staged-v1 por esta alteração dos fontes. Sem mudança de layout/fluxo
+de tela; não foi alegada revisão visual do configurador ou do site.
+
+**Tentativas anteriores:** primeira rodada SQLite teve duas falhas por nome
+incorreto da rota no teste, 26 aprovados/quatro skips. Primeiro foco PostgreSQL
+teve três falhas/135 aprovados/um skip: duas da mesma rota e um deadlock real
+na troca por trava excessiva do escritório. Corrigidos nome, escopo das travas
+e FOR NO KEY UPDATE. Foco intermediário: 138 aprovados/um skip, 246,26 s,
+anterior à inclusão do cenário de corrida da carteira e demais casos finais;
+não somar essa repetição à regressão final. Primeira chamada MyPy não encontrou
+config sem PYTHONPATH=src; chamada final com contexto correto passou.
+
+**Compatibilidade/acesso:** AnyDesk encontrado aberto no Mac. Obter janela por
+nome, bundle ID e caminho completo retornou timeout **-10005**, sem binding
+utilizável ou observação do Server. Solicitado somente texto do winver; edição,
+versão, arquitetura e condições locais ainda desconhecidas. Não invalidar o
+acesso disponibilizado pelo responsável nem atribuir causa ao Server.
+Política Microsoft consultada confirma fim do .NET 8 em 10/11/2026; matriz
+.NET 10 inclui Server 2016/2019/2022/2025 x64 e 2012/R2 sob ESU. Essa consulta
+não confirma o sistema real. D-289 preservada; nenhuma migração de alvo ou
+instalação inferida da resposta humana de verificar a compatibilidade.
+
+Sem commit/push, CI remoto, deploy, código real de pareamento emitido, ação no
+Server, revogação/promoção real, SQL ERP ou IA paga. Última publicação provada
+continua V-328/release 75; não foi reconferida live nesta entrega. Piloto e
+credenciais/dados reais não alterados. Q-28/Q-46/Q-47, IA, D-73, recuperação,
+treinamento e aceite permanecem. Evidências privadas:
+`.tmp/contad-official-agent-2026-11-09/` (logs/XML/TRX, hashes e preservação).
+Snapshot prévio reconstruído em pasta isolada a partir de HEAD+diff confirmou
+conteúdo anterior preservado nos dez arquivos já modificados; dezenove arquivos
+de fonte/workflow/testes possuem SHA-256 no manifesto privado. Nenhum arquivo
+foi colocado no índice. A comparação preexistente e etapa 00 seguem preservadas.
+
+## V-330 — Roteiro do operador no Windows Server (10/11/2026)
+
+Continuidade D-324/Q-28, etapas 03/12: responsável pediu passo a passo para
+instalar/testar no Server. Acrescentado ao procedimento técnico existente o
+roteiro do operador: inventário somente leitura, instalação/configuração
+preexistentes, DSN de sistema x64, gate de pacote/backend, MSI sem reinício,
+campos do configurador, teste ODBC interativo, pareamento candidato, reinício
+somente do serviço, estados/diagnóstico seguros e verificação do corte.
+
+Conferidos diretamente Package.wxs, AgentConfig.cs, Worker.cs, configurador,
+LocalOdbcConnection.cs, diagnosticar.ps1 e instalação documentada: serviço
+CicaAgent/Auto/LocalSystem, pastas reais em Program Files/ProgramData, arquivo
+protegido agent.config (corrigida referência imprecisa anterior agent-config.bin),
+campos/botões e distinção de ODBC interativo versus leitura sob LocalSystem.
+Estado awaiting_activation não executa processadores ERP e não prova essa leitura.
+
+Pacote em Downloads/CICA-CONTAD-1.0.4-e9311eb continua identificado 1.0.4 pelo
+release.json. Manifesto genérico em agent-windows/artifacts ainda indica 1.0.0;
+nenhum deles foi apresentado como MSI 1.0.5. HEAD local permanece b65dfe7,
+implementação da substituição não publicada. Guia permite preparação agora,
+sem instruir pareamento oficial em release 75 ou com pacote incompatível.
+
+Reconsultadas documentação Microsoft de .NET/PowerShell e política de suporte;
+.NET 8 tem fim de suporte em 10/11/2026. Isso não identifica o Windows real nem
+aprova outro alvo. Versão/edição do Server ainda não recebidas. Roteiro entregue
+é documental: comandos Windows não foram executados nesta rodada, sem inspeção
+AnyDesk, teste PowerShell/ODBC no cliente, instalação, emissão de código,
+ativação/revogação, CI, deploy, custos ou chamadas de IA. Não foi repetida a
+regressão de aplicação por esta edição documental; V-329 mantém seus limites.
+Conferência de referências/fontes e git diff --check realizados.
+
+## V-331 — Identificação do Windows Server por imagem (10/11/2026)
+
+Continuidade Q-28/D-324. Captura winver recebida do responsável mostra Windows
+Server **2022 Standard**, versão **21H2**, compilação **20348.5761**. É evidência
+visual fornecida pelo operador, não execução de comando ou controle AnyDesk.
+Matriz Microsoft .NET 10 reconsultada: Windows Server 2022 x64 está incluído.
+Compatibilidade da versão do SO não comprova pacote/ODBC/agente ou autorização
+de trocar o alvo .NET 8 de D-289. Imagem preservada privadamente em
+`.tmp/contad-server-identification-2026-11-10/winver.png`.
+
+Atualizados estado corrente, guia, Q-28 e checklists sem concluir arquitetura
+do processo, privilégios, driver/DSN, instalação ou corte. Próximos comandos
+guiados verificam PowerShell x64, serviço CicaAgent e presença de agent.config,
+sem ler o conteúdo protegido. Sem execução Windows, alteração de código/runtime,
+novos testes de aplicação, pacote/CI/publicação ou pareamento nesta rodada.
+Conferência documental e git diff --check; gates operacionais preservados.
+
+## V-332 — PowerShell x64 e catálogo DSN observados (10/11/2026)
+
+Segunda captura fornecida pelo operador no Server: título Administrador no
+PowerShell, Is64BitProcess=True, consulta de serviço sem listagem visível e
+Test-Path da configuração False. Resultado completo de OSArchitecture e
+PSVersion está encoberto pela janela ODBC: não transcrever valores não visíveis.
+ODBC (64 bits), aba DSN de Sistema, mostra Contabil 32/SQL Anywhere 17,
+Contabil 64/SQL Anywhere 16, e-Robo 64/SQL Anywhere 16, e-Robo 17 64/SQL Anywhere 17.
+Selecionada a linha Contabil 32, cujo painel informa que só pode ser configurada
+no administrador de 32 bits. CICA_CONTAD não está listado na captura.
+
+Identificação de servidor/banco dos DSNs e conexão ainda não verificadas.
+Roteiro seguinte é inspeção somente leitura da configuração Contabil 64,
+sem mudar DSNs originais, ler senha ou presumir equivalência das conexões.
+Sem executar teste ODBC, instalar agente, parear ou alterar runtime/backend.
+Imagem preservada privadamente em
+`.tmp/contad-server-identification-2026-11-10/powershell-odbc.png`.
+Registros/checklists atualizados; conferência documental/git diff --check.
+
+## V-333 — Destino da conexão Contabil recebido (10/11/2026)
+
+Captura fornecida no percurso de Contabil 64/SQL Anywhere 16 mostra Login:
+Authentication Database, usuário/senha vazios, ação de conexão a banco já em
+execução em outro computador, Host/Port vazios, servidor SrvContabil e banco
+Contabil. Não há senha visível; isso não é inspeção de campos no registro nem
+prova de ausência de senha em todo DSN. Network/Advanced e teste autenticado
+não foram observados. Imagem privada em
+`.tmp/contad-server-identification-2026-11-10/contabil64-login.png`.
+
+Recebidos os identificadores, próxima orientação prepara DSN dedicado
+CICA_CONTAD de sistema x64 com driver SQL Anywhere 16 e esses parâmetros,
+sem modificar o original, inventar host/porta ou salvar credencial. Criação e
+conexão continuam pendentes de execução/resultado humano. Sem ação remota,
+instalação, pareamento, coleta, runtime/deploy ou teste de aplicação novo.
+Registros/guia/checklists atualizados; git diff --check como conferência documental.
+
+## V-334 — Teste ODBC recusado por login integrado (10/11/2026)
+
+Operador informou erro ao testar conexão. Captura mostra exatamente:
+Connection failed: Login mode 'Integrated' not permitted by login_mode setting.
+A imagem contém apenas a mensagem, sem identificar DSN/driver ou os campos
+Login usados nesse teste. Não comprova senha errada, driver incompatível,
+parâmetro persistido, DSN dedicado criado ou leitura de dados. Evidência privada:
+`.tmp/contad-server-identification-2026-11-10/odbc-integrated-rejected.png`.
+
+Reconsultada documentação SAP SQL Anywhere: Authentication Database usa
+usuário/senha; Test Connection exige ambos na aba Login. Orientação confere
+Database no DSN dedicado e usa EXTERNO/senha somente no Windows durante o teste,
+limpando campos antes de salvar. Não instruída mudança de login_mode no banco,
+credencial ou DSN original. Reteste segue pendente, sem resultado inferido.
+Sem execução remota, instalação, pareamento, alteração de código/runtime/deploy
+ou teste de aplicação novo; registro/guia/checklist e git diff --check documentais.
+
+## V-335 — Sucesso ODBC informado pelo operador (10/11/2026)
+
+Responsável respondeu “sucesso” ao reteste orientado após recusa de Integrated.
+Evidência é relato humano de Test Connection, sem nova imagem ou execução da
+ferramenta. Resolve o resultado interativo de autenticação dessa rodada;
+não comprova o conteúdo persistido do DSN, ausência de campos de senha,
+conexão LocalSystem, agente instalado, sincronização ou aceite do projeto.
+
+Orientação seguinte limpa User ID/Password antes de salvar CICA_CONTAD,
+preservando Authentication Database e servidor/banco já recebidos. Não declarar
+limpeza/salvamento concluídos antes da confirmação. Mantidos MSI 1.0.5/CI/backend
+não entregues e alvo .NET 8 conforme D-289. Sem acesso remoto, leitura de senha,
+SQL/dados novos, alteração de código/runtime/deploy ou teste de aplicação novo.
+Registros/checklists/guia e git diff --check atualizados; não repetir ODBC por
+mera atualização documental. Falha V-334 permanece histórica com seu contexto.
+
+## V-336 — Salvamento do DSN confirmado pelo operador (10/11/2026)
+
+Responsável respondeu “foi” à instrução de limpar User ID/Password e salvar
+CICA_CONTAD após Test Connection bem-sucedido. Registrar limpeza/salvamento
+informados, mantendo Authentication Database. Não houve leitura do registro,
+coleta de senha, ação remota, instalação ou teste sob LocalSystem. Não repetir
+preparação por falta de atualização documental. Demais gates de D-324/Q-28
+continuam abertos.
+
+## V-337 — Migração local do agente para .NET 10 LTS (10/11/2026)
+
+D-325 registra aprovação humana antes da mudança, revisando D-289 para novas
+compilações. Serviço, configurador e ponte usam net10.0-windows; contratos e
+testes net10.0. CI prepara SDK 10.0.x. Pacotes Microsoft WindowsServices, Odbc
+e ProtectedData atualizados para **10.0.15**, estável no feed oficial NuGet
+consultado nesta data; runtime autocontido fixado na mesma versão. Versão
+candidata do produto preservada em 1.0.5, x64 para serviço/configurador e x86
+para ponte. Carregamento PKCS#12 adaptado para X509CertificateLoader mantendo
+MachineKeySet/EphemeralKeySet e validação HTTPS normal.
+
+Verificação local macOS, SDK 10.0.400/runtime de testes 10.0.11:
+
+- `dotnet test ... -c Release`: **59 aprovados, zero falhas, três skips Windows**.
+  Dois novos testes verificam chave privada utilizável/HTTPS e rejeição de PFX
+  inválido; o terceiro cobre substituição de arquivo bloqueado. Os três exigem
+  execução no Windows CI. Tentativa inicial dos testes novos no Mac expôs
+  PlatformNotSupportedException para EphemeralKeySet; classificados como Windows
+  sem enfraquecer as flags de produção. Logs dessa tentativa preservados.
+- `dotnet publish -c Release` dos três executáveis: sucesso, sem avisos ou erros.
+  Conferidos PE x64/x64/x86 e runtimeconfig net10.0/includedFrameworks 10.0.15;
+  configurador inclui também WindowsDesktop 10.0.15. Ponte em arquivo único,
+  runtimeconfig conferido na saída intermediária da mesma publicação.
+- Inventários transitivos e auditoria `dotnet list ... package --vulnerable
+  --include-transitive --format json` dos três projetos: sucesso, nenhum pacote
+  vulnerável apontado pelo NuGet nesta consulta. Não é garantia de ausência de
+  vulnerabilidades futuras ou não catalogadas.
+
+Evidências em `.tmp/contad-net10-2026-11-10/`: TRX/logs, publicações locais,
+inventários, consulta de versões, verification.json e manifesto SHA-256 das
+fontes. Testes Python V-329 não repetidos: esta alteração não modifica backend
+ou migrações. Plano, continuidade, prompt/cópias, checklists e execução atualizados.
+
+Compatibilidade Server 2022 x64 reconsultada na [matriz Microsoft](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md).
+O pacote autocontido dispensa instalar SDK/runtime na cliente. **Não foram
+gerados MSI novo, CI remoto, assinatura, release, deploy, instalação, pareamento
+ou corte real.** Não homologados ODBC/DPAPI/serviço no Server; três testes
+Windows continuam pendentes. Última publicação comprovada continua release 75.

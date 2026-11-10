@@ -1,18 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <AssemblyName>Cica.Agent.Tests</AssemblyName>
-    <!-- O serviço tem alvo .NET 8 por D-289. O teste compila contra o mesmo alvo,
-         mas roda no runtime que a máquina tiver: exigir exatamente o 8 aqui
-         impediria rodar o teste em quem só instalou o mais novo. -->
-    <RollForward>LatestMajor</RollForward>
+    <!-- D-325: os testes executam na mesma versão principal do agente. -->
+    <RollForward>LatestPatch</RollForward>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
-    <PackageReference Include="System.Data.Odbc" Version="8.0.0" />
+    <PackageReference Include="System.Data.Odbc" Version="10.0.15" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Cica.Agent.Contracts/Cica.Agent.Contracts.csproj" />
@@ -21,5 +19,6 @@
     <Compile Include="../../src/Cica.Agent.Service/PortfolioCompany.cs" Link="PortfolioCompany.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AtomicConfigurationFile.cs" Link="AtomicConfigurationFile.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentAuthentication.cs" Link="AgentAuthentication.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/AgentCollectionGate.cs" Link="AgentCollectionGate.cs" />
   </ItemGroup>
 </Project>

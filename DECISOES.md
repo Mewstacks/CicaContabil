@@ -1746,6 +1746,10 @@ um runtime novo, e a matriz de build não muda. Recurso de linguagem ou bibliote
 que não exista no alvo é reescrito, não contornado com dependência adicional.
 Q-45 fica resolvida por esta decisão.
 
+Atualização de 10/11/2026: **D-325 substitui este alvo por .NET 10 LTS para
+novas compilações do agente oficial**. Instalações anteriores e suas provas
+históricas não são migradas ou homologadas automaticamente.
+
 ## D-290 — Levantamento Siescon do Lucrums aceito como base técnica
 
 Data: 22/09/2026. Origem: responsável pelo projeto, nesta conversa, respondendo
@@ -3581,3 +3585,184 @@ pela API autenticada Fly Machines exec com credenciais existentes, sem mudar
 acesso ou infraestrutura. Comando/deploy não criou scan ou fonte nova. Último
 relato de operador indisponível e inventário não recebido; manter Q-28 e demais
 gates abertos, sem afirmar conclusão contratual ou recuperação real da carteira.
+
+## D-324 — Novo agente oficial CONTAD no Windows Server (09/11/2026)
+
+Origem humana: adaptar o plano anexado para instalar novamente o agente em
+outro computador, agora Windows Server, torná-lo o agente oficial, melhorar o
+plano e começar o desenvolvimento. O responsável informou que o acesso já foi
+disponibilizado por **AnyDesk**. Essa decisão substitui o destino PC antigo das
+instruções D-321/D-323, sem reabrir a intenção de carteira completa nem o início
+financeiro em 01/09/2026. Versão/arquitetura/ODBC e identidade da nova máquina
+ainda precisam ser observados; configuração válida no PC antigo não os comprova.
+
+O anexo é base de especificação, não autorização independente para executar seus
+imperativos de deploy, custos, egressão ou importação ERP. Nesta rodada iniciar
+implementação local e preparar instalação/corte com evidência. Preservar runtime,
+dados, decisões humanas, contrato, credenciais pessoais e trabalhos locais.
+Usar PC-19 e etapas 03/09/12; atualizar o prompt canônico existente, sem criar
+plano concorrente. D-323/V-328 é a última evidência publicada: release 75,
+MSI 1.0.4 preparado, PC antigo 1.0.3/piloto, inventário real ainda não recebido.
+
+Escolha técnica antes do comportamento dependente: substituição em **duas
+fases**. Código temporário próprio referencia explicitamente o agente anterior
+do mesmo escritório e herda exatamente seu manifesto validado. Novo equipamento
+recebe novo UUID/segredo HMAC, sem copiar DPAPI, configuração ou senha do PC.
+Pareamento cria candidato pendente; permite apenas heartbeat/configuração e
+impede coleta até ativação. Cliente deve declarar suporte a esse protocolo.
+Depois de comprovar instalação/LocalSystem/ACL/DPAPI/ODBC/reinício no Server,
+ativação administrativa exige os dois IDs, revisão idêntica e heartbeat recente
+(cinco minutos, limite técnico desta operação). Em uma transação, torna o novo
+agente oficial e revoga apenas o anterior, com auditoria. Um único oficial por
+escritório; solicitações concorrentes de ingestão são serializadas com o corte.
+Não promover automaticamente pelo mero consumo do código ou heartbeat.
+
+Falha antes do corte mantém o anterior ativo; candidato pode ser revogado.
+Falha posterior não reativa credencial revogada: retorno exige outra
+substituição explícita. Scans e dados anteriores permanecem como histórico;
+o novo agente recomeça sua leitura paginada, com identidades idempotentes no
+escritório. Troca de máquina não amplia fontes/manifesto: carteira completa
+segue após inventário real/situações e contratos Q-28/Q-46, em passo separado.
+Q-47, IA Q-08/Q-09, custos, D-73, recuperação, treinamento e aceite permanecem.
+
+Inspeção desta sessão: AnyDesk consta aberto no Mac, mas a ferramenta nativa
+retornou timeout (-10005) ao obter a janela por nome e bundle ID; não foi
+possível observar/controlar o Server. Isso é limite da ferramenta, não prova de
+indisponibilidade do acesso humano. Nenhuma ação remota foi executada.
+
+Revisão de compatibilidade D-324: a [política oficial Microsoft](https://dotnet.microsoft.com/en-us/platform/support/policy/dotnet-core),
+consultada em 09/11/2026, informa fim do suporte .NET 8 em **10/11/2026** e
+.NET 10 LTS em 14/11/2028. D-289 fixa .NET 8, portanto não trocar o alvo por
+inferência nesta implementação. Recomendada revisão explícita de D-289 para
+preparar .NET 10 antes da operação oficial duradoura, sujeita à versão do Server
+real e às provas de pacote/ODBC/DPAPI. Consulta encaminhada ao responsável;
+desenvolvimento independente do corte segue na base atual até a resposta.
+
+Resposta humana sobre a revisão D-289/D-324: **“Verifique se o windows server
+(provavelmente antigo) suporta isso”**. Verificar o sistema real antes de
+alterar o alvo; isso não é aprovação incondicional de .NET 10. Nova tentativa
+de observar AnyDesk por caminho completo também retornou timeout -10005.
+Solicitado somente o texto do `winver`, sem senha ou mudança no servidor.
+A [matriz oficial .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md)
+consultada lista Windows Server 2016/2019/2022/2025 x64 e 2012/2012 R2 sob ESU.
+Essas condições documentais não comprovam edição, patches, ESU, driver ou
+instalação reais da CONTAD; mantida a base .NET 8 enquanto a versão é desconhecida.
+
+Resultado local D-324/V-329: plano/prompt adaptados, candidato/coleta bloqueada e
+corte oficial atômico implementados; PostgreSQL 1.837 testes/163 subtestes,
+um skip, SQLite focado 30/seis skips concorrentes e .NET 59/um skip Windows.
+Três builds Release sem erros/avisos; Ruff/MyPy/Django/migrações aprovados.
+Dez arquivos com alterações anteriores conferidos como preservados. Nenhuma
+mudança do alvo .NET 8, CI remoto, MSI 1.0.5, publicação ou instalação/corte reais.
+Texto do winver ainda aguardado para verificar suporte do Server. Próxima ação
+externa: observar a edição/versão antes da decisão de runtime e preparar a
+publicação/pacote exatos; demais gates do projeto permanecem abertos.
+
+Continuidade D-324 — roteiro ao operador (10/11/2026): responsável pediu passo
+a passo para instalação e testes dentro do Windows Server. Entrega documental
+do procedimento existente, com preparação executável agora e instalação/
+pareamento condicionados à versão real compatível, MSI 1.0.5 validado e backend
+de substituição publicado. Não tratar o MSI 1.0.4 disponível como portador de
+staged-v1 nem supor publicação desde V-329. Não há novo deploy, acesso remoto
+ou decisão de runtime nesta orientação. Testar conexão no configurador comprova
+ODBC sob o operador; awaiting_activation comprova comunicação/configuração
+do serviço, mas o candidato não executa leitura ERP. Não declarar ODBC sob
+LocalSystem, ingestão ou carteira completa por esses dois resultados isolados.
+O aceite da troca continua exigindo as verificações operacionais e do backend.
+
+Evidência humana Q-28/D-324 (10/11/2026): captura de winver fornecida pelo
+responsável identifica **Windows Server 2022 Standard, versão 21H2, compilação
+20348.5761**. A identificação não está mais pendente; não repetir pedido de
+ano/edição/build. A matriz oficial Microsoft .NET 10 consultada inclui Server
+2022 x64: a versão do sistema é compatível em nível de plataforma. A imagem
+não comprova arquitetura do processo PowerShell, privilégios, DSN/driver,
+conexão LocalSystem, pacote ou funcionamento do agente. Não equivale a execução
+remota ou aprovação de mudança do alvo fixado em D-289; próxima verificação
+guiada é PowerShell x64 e presença de instalação/configuração CICA no Server.
+
+Continuidade visual Q-28/D-324 (10/11/2026): segunda captura mostra janela
+PowerShell identificada como Administrador, Is64BitProcess=True, consulta de
+serviço sem listagem e Test-Path da configuração retornando False. ODBC 64 bits,
+aba DSN de Sistema, lista Contabil/32 bits/SQL Anywhere 17 (selecionado),
+Contabil/64 bits/SQL Anywhere 16, e-Robo/64 bits/SQL Anywhere 16 e
+e-Robo 17/64 bits/SQL Anywhere 17. Não inferir que os DSNs apontam ao mesmo
+banco ou escolher driver 17 apenas pela versão. Próximo passo guiado: selecionar
+Contabil de 64 bits e inspecionar somente identificação do servidor/banco,
+sem salvar/alterar o DSN original e sem exibir/extrair senha. CICA_CONTAD não
+aparece na lista observada. Isso não é teste ODBC ou instalação concluída.
+
+Continuidade Q-28/D-324 (10/11/2026): captura da configuração inspecionada mostra
+Authentication=Database, User ID/Password vazios, Action=Connect to a running
+database on another computer, Host/Port vazios, Server name=SrvContabil e
+Database name=Contabil. Os nomes/valores estão recebidos; não repetir a pergunta
+ou inferir IP/porta/localhost. Orientação seguinte prepara novo DSN de sistema
+CICA_CONTAD em x64/SQL Anywhere 16 com esses parâmetros observados, sem alterar
+Contabil original e sem salvar usuário/senha no DSN. Isso é configuração inicial,
+não clone de Network/Advanced (ainda não inspecionados) nem conexão aprovada;
+teste autenticado explícito somente no Windows continua pendente. Não selecionar
+SQL Anywhere 17 por existência de outra conexão e não instalar o agente por
+essa evidência. Dados do recorte e gates anteriores preservados.
+
+Falha guiada Q-28/D-324 (10/11/2026): captura do teste mostra “Login mode
+'Integrated' not permitted by login_mode setting”. É recusa de modo de login,
+não prova de senha errada ou incompatibilidade de driver. Não mudar login_mode
+do banco nem trocar 16/17 por essa mensagem. Próximo ajuste somente no DSN
+dedicado: conferir Authentication=Database e fornecer EXTERNO/senha localmente
+apenas para Test Connection. SAP documenta que esse botão exige usuário/senha
+na aba Login. Os campos vazios eram para a configuração salva; depois do teste,
+limpar User ID/Password antes de salvar, sem captura/chat de credenciais.
+Estado atual da aba Login/DSN usado no teste não está visível na captura do
+erro: não inferir parâmetro salvo, criação concluída ou resultado do reteste.
+
+Resultado informado Q-28/D-324 (10/11/2026): após orientação de conferir
+Authentication=Database e EXTERNO/senha apenas no teste local, responsável
+respondeu **“sucesso”**. Registrar teste ODBC interativo bem-sucedido informado
+pelo operador; a falha de login integrado não é mais o resultado atual.
+Não repetir o teste sem motivo nem inferir parâmetros persistidos, ausência
+de senha no DSN, execução LocalSystem ou instalação do agente. Próximo passo
+local é limpar User ID/Password e salvar somente CICA_CONTAD, mantendo
+Authentication=Database e dados de conexão. Não alterar o DSN original.
+Pacote 1.0.5/backend de substituição e demais gates permanecem pendentes.
+
+Confirmação humana Q-28/D-324 (10/11/2026): após instrução de limpar User ID/
+Password e salvar CICA_CONTAD mantendo Database, responsável respondeu “foi”.
+Registrar limpeza/salvamento informados; não repetir essa tarefa ou exigir
+nova senha. Resultado não é leitura do registro, prova LocalSystem ou instalação.
+Próxima dependência é o pacote/backend oficial, ainda não entregues.
+
+Preparação independente D-324 antes da revisão D-289: verificar compilação e
+testes do alvo .NET 10 em cópia temporária isolada de fontes/contratos, sem
+mudar o alvo do projeto corrente, instalar no cliente ou publicar. Essa prova
+completa a avaliação solicitada pelo responsável após confirmar Server 2022;
+não aprova por si a migração ou homologa runtime/ODBC Windows. Solicitar revisão
+expressa de D-289 para incorporar .NET 10 ao pacote oficial; custos, CI/publicação
+e demais gates não são inferidos da confirmação de salvamento do DSN.
+
+## D-325 — Agente oficial em .NET 10 LTS (10/11/2026)
+
+Responsável aprovou expressamente a opção “Atualizar para .NET 10 LTS
+(recomendado)” após confirmação do Windows Server 2022 Standard. Esta decisão
+substitui o alvo .NET 8 de D-289 para as novas compilações do agente oficial
+preparado em D-324. Migrar serviço, configurador, ponte ODBC, contratos e testes
+para .NET 10, ajustar dependências Microsoft e CI, preservando versão candidata
+1.0.5, distribuição autocontida, serviço/configurador x64 e ponte x86. Usar
+patches estáveis disponíveis e verificar testes, compilação e publicação local.
+
+A compatibilidade de plataforma Server 2022 x64 está confirmada na matriz
+Microsoft; não equivale a homologação de ODBC sob LocalSystem ou do MSI. A
+aprovação do runtime não autoriza deploy, publicação de release, custos ou
+ativação/revogação de agentes. Permanecem os gates de D-324/Q-28, com DSN
+CICA_CONTAD salvo e teste ODBC interativo informados pelo operador.
+
+## D-326 — Branch técnica e CI Windows do agente oficial (10/11/2026)
+
+Responsável respondeu **“Autorizar branch e CI Windows”** à proposta concreta
+de enviar somente as alterações do agente oficial/substituição e gerar/testar
+MSI 1.0.5 em Windows descartável. Autorizados branch técnica no GitHub e CI
+Windows dessa fonte, incluindo migração .NET 10 LTS de D-325. Não inclui deploy
+em produção, publicação de release, instalação na cliente, corte de agentes,
+mensagens a terceiros ou contratação de recursos. Preservar e excluir do commit
+os trabalhos locais anteriores D-316/D-317/etapa 00/comparação Pandolfo. Conferir
+privacidade/capacidade do runner antes de disparar; não recorrer a runner pago
+especial ou self-hosted/cliente para contornar indisponibilidade. Artefatos,
+fonte, hashes e resultado devem ser registrados com seus limites.

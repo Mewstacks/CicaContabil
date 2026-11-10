@@ -394,11 +394,19 @@ class AgentEnrollment(OrganizationScopedModel):
     issued_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
     )
+    replaces_agent = models.ForeignKey(
+        "EdgeAgent",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="replacement_enrollments",
+    )
 
 
 class EdgeAgent(OrganizationScopedModel):
     class Status(models.TextChoices):
         ACTIVE = "active", "Ativo"
+        PENDING_ACTIVATION = "pending", "Aguardando ativação"
         REVOKED = "revoked", "Revogado"
 
     label = models.CharField(max_length=120)
@@ -410,9 +418,28 @@ class EdgeAgent(OrganizationScopedModel):
     enrolled_at = models.DateTimeField(auto_now_add=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    is_official = models.BooleanField(default=False)
+    replaces_agent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="replacement_candidates",
+    )
 
     class Meta:
         indexes = [models.Index(fields=("organization", "status", "last_seen_at"))]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization",),
+                condition=models.Q(is_official=True),
+                name="intelligence_one_official_agent",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(is_official=False) | models.Q(status="active"),
+                name="intelligence_official_agent_active",
+            ),
+        ]
 
 
 class AgentCompanyScan(OrganizationScopedModel):

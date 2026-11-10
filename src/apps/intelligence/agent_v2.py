@@ -58,12 +58,15 @@ def _payload(request: HttpRequest, limit: int = 5_000_000) -> dict[str, Any] | N
     return value if isinstance(value, dict) else None
 
 
-def _agent(request: HttpRequest) -> EdgeAgent | None:
+def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
     if not request.is_secure():
         return None
     agent_id = request.headers.get("X-Hub-Agent-ID", "")
     try:
-        agent = EdgeAgent.objects.select_related("organization").filter(id=agent_id).first()
+        agents = EdgeAgent.objects.select_related("organization")
+        if lock:
+            agents = agents.select_for_update(of=("self",))
+        agent = agents.filter(id=agent_id).first()
     except (TypeError, ValueError, ValidationError):
         return None
     if agent is None:
@@ -107,6 +110,11 @@ def _agent(request: HttpRequest) -> EdgeAgent | None:
         timestamp=request.headers.get("X-Hub-Agent-Timestamp", ""),
         body=request.body,
         signature=request.headers.get("X-Hub-Agent-Signature", ""),
+        allow_pending=(
+            request.resolver_match is not None
+            and request.resolver_match.url_name
+            in {"agent-v2-heartbeat", "agent-v2-configuration-next"}
+        ),
     ):
         return None
     return agent
@@ -221,6 +229,7 @@ def enroll(request: HttpRequest) -> JsonResponse:
             allow_scoped=request.headers.get("X-Hub-Agent-Protocol")
             in {PROTOCOL, PORTFOLIO_PROTOCOL},
             allow_portfolio=request.headers.get("X-Hub-Agent-Protocol") == PORTFOLIO_PROTOCOL,
+            allow_replacement=request.headers.get("X-Hub-Agent-Replacement") == "staged-v1",
         )
     except ValueError as exc:
         return _error(str(exc), 403)
@@ -279,7 +288,13 @@ def next_configuration(request: HttpRequest) -> JsonResponse:
     root = (
         profile.windows_root if profile and profile.mode == DestinationProfile.Mode.WINDOWS else ""
     )
-    response = JsonResponse({"windows_archive_root": root, "sync_scope": agent.sync_scope})
+    response = JsonResponse(
+        {
+            "windows_archive_root": root,
+            "sync_scope": agent.sync_scope,
+            "collection_enabled": agent.status == EdgeAgent.Status.ACTIVE,
+        }
+    )
     response["Cache-Control"] = "no-store"
     return response
 
@@ -602,9 +617,10 @@ def download_backup(request: HttpRequest, batch_id: str) -> HttpResponseBase:
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 def sync_local_companies(request: HttpRequest) -> JsonResponse:
     """Accept one bounded, read-only Domínio Local page from the native agent."""
-    agent = _agent(request)
+    agent = _agent(request, lock=True)
     if agent is None:
         return _error("Agente não autorizado.", 401)
     payload = _payload(request)
@@ -639,8 +655,9 @@ def sync_local_companies(request: HttpRequest) -> JsonResponse:
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 def sync_local_bank_entries(request: HttpRequest) -> JsonResponse:
-    agent = _agent(request)
+    agent = _agent(request, lock=True)
     if agent is None:
         return _error("Agente não autorizado.", 401)
     payload = _payload(request)

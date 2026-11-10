@@ -53,7 +53,9 @@ class Command(BaseCommand):
                 raise CommandError("Mais de cem agentes; selecione um com --agent.")
             observed = timezone.now()
             result = []
-            for agent in agents.values("id", "status", "last_seen_at", "sync_scope"):
+            for agent in agents.values(
+                "id", "status", "last_seen_at", "sync_scope", "is_official", "replaces_agent_id"
+            ):
                 scope = agent["sync_scope"]
                 version = scope.get("version") if isinstance(scope, dict) else None
                 if version not in (VERSION, PORTFOLIO_VERSION):
@@ -89,6 +91,8 @@ class Command(BaseCommand):
                     {
                         "agent_id": agent["id"],
                         "agent_status": agent["status"],
+                        "is_official": agent["is_official"],
+                        "replaces_agent_id": agent["replaces_agent_id"],
                         "scope_version": version,
                         "last_seen_at": seen,
                         "heartbeat_age_seconds": (

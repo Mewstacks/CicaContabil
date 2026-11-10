@@ -104,7 +104,7 @@ def company_scan(request: HttpRequest) -> JsonResponse:
         # Serializes open/page/replay and rechecks revocation/scope after waiting.
         with transaction.atomic():
             agent = (
-                EdgeAgent.objects.select_for_update()
+                EdgeAgent.objects.select_for_update(of=("self",))
                 .select_related("organization")
                 .get(pk=agent.pk)
             )

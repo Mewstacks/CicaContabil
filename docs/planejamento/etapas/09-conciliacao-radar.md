@@ -363,3 +363,26 @@ PC-19 nem a entrega contratual. Próximo insumo externo: inventário real do PC.
 
 Nenhuma varredura real da carteira ocorreu; a recuperação foi testada com dados
 sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
+
+## Novo agente oficial no Windows Server — D-324 (09/11/2026)
+
+- [x] Adaptar prompt canônico, preservar original/cópias privadas e atualizar
+  sequência de execução: instalar novo Server → validar candidato → corte → carteira.
+- [x] Implementar candidato pendente, novo UUID/segredo, manifesto herdado,
+  bloqueio de coleta e comando de ativação/revogação atômica com auditoria.
+- [x] Preparar fonte 1.0.5, atualizar configuração recebida/worker e workflows;
+  compilar serviço/configurador/ponte e validar 59 testes .NET, um skip Windows.
+- [x] V-329: regressão final PostgreSQL 1.837/163 aprovada, um skip; foco
+  SQLite 30 aprovados/seis skips concorrentes cobertos no PostgreSQL.
+- [ ] Gerar/testar MSI 1.0.5 e aprovar CI da fonte exata; publicar backend compatível.
+- [ ] Observar edição/build/arquitetura do Server e compatibilidade do runtime
+  (D-289); responsável pediu conferir o sistema provavelmente antigo antes de mudar.
+- [ ] Instalar/configurar no Server; comprovar ODBC/LocalSystem/ACL/DPAPI/reinício.
+- [ ] Efetuar corte real, novo oficial/ready, anterior recusado e dados preservados.
+- [ ] Inventário/fontes/carteira completa, Q-46/Q-47, D-73, recuperação,
+  treinamento e aceite conforme os mesmos gates existentes.
+
+AnyDesk disponibilizado pelo responsável; a ferramenta nativa retornou timeout
+-10005 ao obter a janela, sem observar/controlar o Server. Solicitado somente
+texto do winver. Isso não é indisponibilidade humana nem prova de instalação.
+[Procedimento técnico](../../contad-agente-oficial-windows-server.md).

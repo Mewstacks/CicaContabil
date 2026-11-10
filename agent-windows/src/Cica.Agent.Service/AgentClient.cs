@@ -57,7 +57,7 @@ internal sealed class AgentClient : IDisposable
         return await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(token), cancellationToken: token);
     }
 
-    internal async Task<(string? ArchiveRoot, AgentSyncScope? Scope)> GetConfigurationAsync(CancellationToken token)
+    internal async Task<(string? ArchiveRoot, AgentSyncScope? Scope, bool CollectionEnabled)> GetConfigurationAsync(CancellationToken token)
     {
         using JsonDocument result = await PostAsync("api/agent/v2/configuration/next", new { }, token);
         string? root = result.RootElement.GetProperty("windows_archive_root").GetString();
@@ -70,7 +70,8 @@ internal sealed class AgentClient : IDisposable
             scope.Validate();
             protocol = scope.IsPortfolio ? AgentSyncScope.Protocol : AgentSyncScope.LegacyProtocol;
         }
-        return (string.IsNullOrWhiteSpace(root) ? null : root, scope);
+        return (string.IsNullOrWhiteSpace(root) ? null : root, scope,
+            AgentCollectionGate.IsEnabled(result.RootElement));
     }
 
     internal async Task DownloadAsync(string absoluteUrl, string output, CancellationToken token)

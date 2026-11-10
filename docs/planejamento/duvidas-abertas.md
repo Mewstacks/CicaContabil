@@ -408,3 +408,58 @@ somente leitura publicados na release 75, mantendo manifesto piloto e zero
 scan real da carteira. Último relato de operador indisponível; inventário ainda
 não recebido. A correção não resolve fontes, Q-46/Q-47 ou gates de IA/aceite.
 Não repetir credenciais, período ou intenção de toda a carteira.
+
+## Atualização do mesmo Q-28 — D-324 (09/11/2026)
+
+Responsável determinou nova instalação em outro computador, **Windows Server**,
+como agente oficial, e informou acesso já disponibilizado por **AnyDesk**.
+Não perguntar novamente qual canal de acesso ou tratar o antigo relato de
+operador indisponível como estado atual. Ferramenta encontrou AnyDesk aberto,
+mas obter sua janela por nome/bundle ID falhou com timeout -10005: sem observação
+da versão/build/arquitetura/edição ou ODBC/serviço reais do Server nesta sessão.
+Esses fatos técnicos ainda precisam ser observados, sem solicitar senhas.
+
+Novo destino substitui o PC antigo no próximo passo. Código de substituição
+herda manifesto, novo candidato não coleta e só vira oficial no corte explícito
+que revoga o anterior. O início em 01/09/2026 e a carteira integral estão
+decididos; não reabrir. Inventário/fontes/situações Q-28, Q-46/Q-47 e demais gates
+continuam, agora a executar no novo agente após a troca comprovada.
+
+**Resposta Q-28/D-324, V-331 (10/11):** captura winver confirma Windows Server
+2022 Standard, 21H2/build 20348.5761. Não repetir ano/edição/build. Microsoft
+lista Server 2022 x64 no suporte .NET 10; continuam por conferir PowerShell
+x64/privilégios, instalação/configuração anterior, driver/DSN e leitura real.
+Imagem não resolve decisão D-289 ou pacote/backend/pareamento pendentes.
+
+**Complemento V-332:** PowerShell informa processo de 64 bits; janela aparece
+como Administrador, consulta de serviço sem listagem e configuração False.
+Há DSNs de sistema Contabil 64/SQL Anywhere 16 e e-Robo 17 64/SQL Anywhere 17,
+além de Contabil 32 selecionado. CICA_CONTAD ainda ausente na lista. Não pedir
+novamente prova do processo x64; conferir destino de Contabil 64 sem alterar
+DSN original, coletar credencial ou assumir que versões 16/17 usam o mesmo banco.
+
+**Complemento V-333:** Login recebido: servidor SrvContabil, banco Contabil,
+Host/Port vazios, Authentication Database, ação remota para banco em execução.
+Não repetir pergunta desses nomes nem inventar endereço/porta. Próximo passo:
+CICA_CONTAD dedicado x64/SQL Anywhere 16, sem salvar credencial nem alterar
+Contabil. Network/Advanced, criação e conexão ainda não comprovados.
+
+**Complemento V-334:** teste informado retornou Integrated recusado por
+login_mode. Conferir Database e credenciais explícitas apenas no teste local;
+limpar antes de salvar. Não mudar política do banco ou presumir senha/driver
+errados. Identidade do DSN usado e campos atuais não aparecem no erro;
+conexão/reteste seguem pendentes no mesmo Q-28.
+
+**Complemento V-335:** responsável informou sucesso no reteste ODBC orientado.
+Não repetir senha, servidor/banco ou esse teste sem novo motivo. Limpeza das
+credenciais temporárias/salvamento de CICA_CONTAD ainda por confirmar; serviço,
+LocalSystem, pacote/backend/pareamento e demais gates continuam pendentes.
+
+**Complemento V-336/D-325/V-337:** operador confirmou limpeza de User ID/
+Password e salvamento de CICA_CONTAD após o teste bem-sucedido. Não repetir
+essa tarefa ou pedir credenciais. Após confirmar Server 2022 compatível,
+responsável aprovou **.NET 10 LTS**: D-325 substitui o alvo de D-289 para novas
+compilações. Migração local verificada em V-337; não reabrir a decisão do runtime.
+Próximas dependências: MSI 1.0.5/CI Windows/backend compatível, instalação,
+ODBC sob LocalSystem e corte oficial. Q-28/fontes/carteira e demais gates
+permanecem abertos; relato de DSN não é homologação do serviço.
