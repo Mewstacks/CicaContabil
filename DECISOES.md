@@ -3766,3 +3766,11 @@ os trabalhos locais anteriores D-316/D-317/etapa 00/comparação Pandolfo. Confe
 privacidade/capacidade do runner antes de disparar; não recorrer a runner pago
 especial ou self-hosted/cliente para contornar indisponibilidade. Artefatos,
 fonte, hashes e resultado devem ser registrados com seus limites.
+
+Refinamento técnico D-325/D-326: primeiro CI Windows 42862054949/fonte 67d5f82
+aprovou 62 testes e 26 verificações do MSI. SDK emitiu NU1510 porque WinForms
+.NET 10 já fornece ProtectedData. Remover apenas essa referência redundante
+do configurador, preservando a dependência explícita do serviço e a proteção
+DPAPI, e repetir CI/pacote na fonte final. Não suprimir o aviso ou entregar
+artefato de fonte anterior como se cobrisse a correção. ICE61/AllowSameVersionUpgrades
+é aviso preexistente do instalador e não muda nesta migração; registrar seu limite.
