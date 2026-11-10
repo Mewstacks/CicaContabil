@@ -1,5 +1,12 @@
 # CONTAD — resumo e continuidade
 
+**10/11 — D-326/V-338:** MSI 1.0.5/.NET 10.0.15 da fonte 53b834b validado em
+[CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809):
+62 testes/26 checks aprovados, artefatos e SHA-256 conferidos. Pacote/roteiro
+preservados em Downloads, sem assinatura de editor. Backend de substituição
+não publicado: aguardar liberação e código novo antes de instalar/parear.
+Sem deploy, instalação/corte reais ou aceite. As notas anteriores são históricas.
+
 ## Atualização de destino — 09/11/2026, D-324
 
 **Estado de 10/11 — D-325/V-336/V-337:** Windows Server 2022 Standard,

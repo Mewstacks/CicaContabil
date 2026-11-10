@@ -1,5 +1,12 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**MSI oficial preparado — D-326/V-338, 10/11/2026:** branch técnica publicada,
+[CI Windows 42863201809 aprovado](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
+fonte **53b834b**, MSI **1.0.5/.NET 10.0.15**, 62 testes e 26 checks instalados
+aprovados. Artefato/hash/manifesto conferidos; pasta e ZIP em Downloads com roteiro.
+Sem assinatura de editor. Backend compatível ainda não publicado; aguardar esse
+gate e novo código antes de instalar/parear. Sem deploy, corte ou aceite reais.
+
 **Novo destino CONTAD — D-324, 09/11/2026:** responsável solicitou adaptar o
 plano e iniciar desenvolvimento para uma instalação nova em **Windows Server**,
 que será o agente oficial. Sequência: conferir Server/ODBC → candidato com novo

@@ -463,3 +463,9 @@ compilações. Migração local verificada em V-337; não reabrir a decisão do 
 Próximas dependências: MSI 1.0.5/CI Windows/backend compatível, instalação,
 ODBC sob LocalSystem e corte oficial. Q-28/fontes/carteira e demais gates
 permanecem abertos; relato de DSN não é homologação do serviço.
+
+**Complemento D-326/V-338:** MSI 1.0.5/.NET 10.0.15 e CI Windows da fonte
+53b834b aprovados (62 testes/26 checks), pacote/hash/relatório preservados.
+Próximo gate passa a ser backend compatível antes de instalar/parear no Server;
+Q-28 permanece aberto para instalação/ODBC real/LocalSystem/corte e fontes.
+Não repetir identificação do Server, decisão .NET ou preparação do DSN.

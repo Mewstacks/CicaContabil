@@ -3403,3 +3403,20 @@ Sem MSI novo, CI remoto, publicação, deploy ou operação na cliente. Próximo
 gate: gerar/homologar MSI da fonte exata em Windows e backend compatível antes
 do pareamento. Instalação/LocalSystem/corte e demais gates permanecem abertos;
 a aprovação do runtime não os resolve nem autoriza custos/publicação por inferência.
+
+## 10/11/2026 — Branch e MSI .NET 10 homologados em Windows descartável, D-326/V-338
+
+Autorização humana registrada antes do envio. Branch isolada
+codex/contad-official-agent-net10 preserva os trabalhos locais anteriores.
+CI inicial 42862054949 aprovado; referência ProtectedData redundante do
+configurador removida e CI final 42863201809/fonte 53b834b aprovado novamente:
+62 testes .NET, zero skips, 26 checks do ciclo instalado. Serviço LocalSystem,
+ACL/DPAPI, configurador, ponte x86, reparo, reinício e remoção testados com dados
+sintéticos. Aviso NU1510 resolvido; aviso WiX ICE61 preexistente documentado.
+MSI 1.0.5 autocontido 10.0.15 sem assinatura de editor, SHA-256 e artefatos
+conferidos e preservados em Downloads junto do roteiro e relatório.
+
+Plano/checklists/prompts atualizados, commits restritos à entrega na branch.
+Sem merge, release ou deploy em produção, instalação na cliente, ODBC real,
+pareamento/corte. Próximo gate é publicar/conferir backend compatível no escopo
+que vier a ser autorizado; somente depois instalar/parear e testar no Server.

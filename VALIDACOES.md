@@ -7385,3 +7385,50 @@ O pacote autocontido dispensa instalar SDK/runtime na cliente. **Não foram
 gerados MSI novo, CI remoto, assinatura, release, deploy, instalação, pareamento
 ou corte real.** Não homologados ODBC/DPAPI/serviço no Server; três testes
 Windows continuam pendentes. Última publicação comprovada continua release 75.
+
+## V-338 — MSI .NET 10 validado no Windows e preservado (10/11/2026)
+
+D-326 autorizou branch técnica e CI Windows sem deploy em produção. Criada
+`codex/contad-official-agent-net10` em worktree isolada, excluindo os trabalhos
+locais anteriores D-316/D-317/etapa 00/comparação Pandolfo. Os 26 arquivos de
+código/workflows/testes conferem com o manifesto SHA-256 da fonte local.
+
+Primeiro CI 42862054949/fonte 67d5f82 aprovou 62 testes e 26 checks, mas apontou
+NU1510 para ProtectedData explícito no configurador WinForms. Referência
+redundante removida; DPAPI fornecido pelo WindowsDesktop, dependência do serviço
+preservada. Publicação local e auditoria do configurador novamente aprovadas.
+O artefato inicial fica apenas como evidência intermediária, não como entrega final.
+
+**Fonte final do pacote: 53b834b12318ed5177e4d736929ab58f2c31559a.**
+[CI Windows aprovado — 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
+runner Windows Server 2022 (NT 10.0.20348.0), repositório público/runner padrão:
+
+- **62 testes .NET aprovados, zero falhas/skips**, incluindo os três pendentes
+  no Mac (chave privada/HTTPS, PFX inválido e substituição de arquivo bloqueado).
+- MSI **1.0.5**, runtime autocontido **10.0.15**, x64/x64/x86. **26 checks**
+  instalados aprovados: instalação, serviço Automatic/LocalSystem, arquiteturas,
+  ACL SYSTEM/Administradores, GUI sem crash, ponte executável, diagnóstico,
+  DPAPI sob LocalSystem, HMAC sem certificado, reparo preservando configuração,
+  reinício/recuperação e remoção. Usados somente dados sintéticos/loopback.
+- Artefatos ZIP baixados pelo conector GitHub e digests SHA-256 conferidos com a
+  API. MSI, release.json, checksum e installer-test.json concordam no SHA-256:
+  `f89127453589a5721dd1dd392144b3beed17eebef0e0a33a023bbf7f6283882f`.
+  Tamanho do MSI: **68.110.164 bytes**. Fonte/run do relatório conferidos.
+- NU1510 eliminado no CI final. Permanecem aviso preexistente WiX ICE61 por
+  AllowSameVersionUpgrades e avisos de execução Node 20/24 das actions fixadas.
+  Não foram suprimidos ou tratados como falha de instalação. MSI **NotSigned**,
+  sem assinatura de editor; nenhuma contratação de certificado.
+
+Evidências locais: `.tmp/contad-net10-2026-11-10/ci-42863201809/`, logs, TRX,
+JSON dos artefatos e windows-final-verification.json. Artefatos GitHub expiram
+em 11/11; cópia de entrega preservada em Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10,
+com MSI, checksum, manifesto, inventário, relatório e roteiro. ZIP correspondente
+preparado para transferência manual, sem credenciais ou scripts de remoção do CI.
+
+**Limites:** sem merge em main, release pública, deploy/backend, instalação na
+cliente, pareamento, ODBC real, corte ou agente oficial efetivo. Backend release
+75 continua a última publicação comprovada e não aceita staged-v1. Aguardar
+backend compatível e código novo antes de instalar/parear no Server. CI do
+instalador não homologa Q-28/Q-46/Q-47, carteira completa, D-73, rede real,
+recuperação, treinamento ou aceite. Regressão backend V-329 não repetida:
+código Python/migrações idênticos, sem alterações nesta migração de runtime.

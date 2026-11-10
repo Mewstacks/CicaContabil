@@ -1,6 +1,6 @@
 # Agente oficial CONTAD no Windows Server
 
-Procedimento técnico D-324, PC-19, etapas 03/09/12. A sequência única de entrega
+Procedimento técnico D-324/D-325/D-326, PC-19, etapas 03/09/12. A sequência única de entrega
 permanece no [prompt canônico](contad-prompt-finalizacao-2026-11-06.txt).
 Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
@@ -8,14 +8,17 @@ Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.
 
 Última publicação comprovada: release 75/fonte c8b0c50, V-328. Agente anterior
 com MSI 1.0.3 e manifesto piloto; MSI 1.0.4 preparado não possui o protocolo de
-substituição em duas fases. O desenvolvimento desta rodada prepara **1.0.5**;
-compilação no Mac não significa MSI pronto ou instalação Windows homologada.
+substituição em duas fases. **V-338:** MSI **1.0.5/.NET 10.0.15** da fonte **53b834b** aprovado no
+[CI Windows 42863201809](https://github.com/Mewstacks/CicaContabil/actions/runs/42863201809),
+com 62 testes e 26 checks instalados. Hash/manifesto/relatório conferidos; pacote
+preservado em Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10.
+MSI sem assinatura de editor. Backend compatível e instalação/corte reais pendentes.
 
 **D-325/V-337, 10/11:** responsável aprovou .NET 10 LTS, revisando D-289.
 Os projetos e CI foram migrados; publicação local dos três componentes inclui
 runtime autocontido **10.0.15**. Testes no Mac: 59 aprovados e três exclusivos
-de Windows pendentes. MSI novo e teste do instalador em Windows ainda não
-executados. A [matriz Microsoft](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md)
+de Windows pendentes. MSI e ciclo do instalador em Windows posteriormente aprovados em V-338;
+instalação na cliente não realizada. A [matriz Microsoft](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md)
 inclui o **Windows Server 2022 Standard, 21H2/build 20348.5761** observado em
 V-331. PowerShell x64/Administrador observados em V-332. Compatibilidade de
 plataforma não substitui a prova do pacote/ODBC/DPAPI sob LocalSystem.
@@ -134,7 +137,7 @@ confirmou limpeza de User ID/Password e salvamento de CICA_CONTAD, preservando
 Database. Não repetir a preparação ou o teste sem motivo. Isso é relato humano,
 sem inspeção de segredos no registro. Serviço/instalação/LocalSystem continuam
 pendentes. **D-325/V-337:** .NET 10 autorizado e migração local verificada;
-aguardar MSI 1.0.5 testado em Windows e backend compatível antes do passo 4.
+MSI 1.0.5 testado em Windows em V-338; aguardar backend compatível antes do passo 4.
 
 **V-334, falha histórica:** teste informado recusou login Integrated. Na
 configuração **CICA_CONTAD** (não no DSN original), conferir Login →
@@ -161,12 +164,11 @@ ausente. No ODBC de sistema, Contabil 64 usa SQL Anywhere 16; Contabil 32 usa
 servidor/banco de Contabil 64 sem salvar/alterar ou ler senha. Não repetir os
 passos já comprovados nem supor que os DSNs tenham o mesmo destino.
 
-**Passos 1–3 já percorridos com as evidências acima.** A instalação/pareamento
-nos passos 4–8 dependem de pacote e backend compatíveis. O pacote disponível
-em Downloads é 1.0.4; o artefato genérico `agent-windows/artifacts/release.json`
-ainda é 1.0.0. O MSI **1.0.5 não foi gerado/testado** e o backend de substituição
-não foi publicado. Não usar esses artefatos anteriores como nova instalação
-oficial ou copiar o pareamento do PC antigo.
+**Passos 1–3 já percorridos com as evidências acima.** O MSI 1.0.5 está
+validado e preservado em Downloads/CICA-CONTAD-Agente-1.0.5-NET10-2026-11-10,
+com checksum, release.json e relatório. O backend de substituição **não foi
+publicado**; instalação/pareamento nos passos 4–8 aguardam essa liberação e
+código novo. Não usar MSI/código anteriores ou copiar o pareamento do PC antigo.
 
 1. **Identificar o Windows.** Abrir Win+R → `winver` e registrar edição/ano e
    versão/build. Abrir Windows PowerShell **64 bits como administrador**:

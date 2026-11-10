@@ -454,7 +454,9 @@ sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
   compilar serviço/configurador/ponte e validar 59 testes .NET, um skip Windows.
 - [x] V-329: regressão final PostgreSQL 1.837/163 aprovada, um skip; foco
   SQLite 30 aprovados/seis skips concorrentes cobertos no PostgreSQL.
-- [ ] Gerar/testar MSI 1.0.5 e aprovar CI da fonte exata; publicar backend compatível.
+- [x] D-326/V-338: MSI 1.0.5/.NET 10.0.15 gerado/testado, CI Windows da fonte
+  53b834b aprovado: 62 testes e 26 checks, hashes/manifestos conferidos.
+- [ ] Publicar/conferir backend compatível antes da instalação/pareamento.
 - [x] V-331: captura confirma Server 2022 Standard, 21H2/build 20348.5761;
   plataforma incluída na matriz .NET 10.
 - [x] V-332: captura mostra PowerShell x64/Administrador, serviço sem listagem
@@ -467,7 +469,8 @@ sintéticos no PostgreSQL. Manifesto do piloto e dados anteriores preservados.
   de CICA_CONTAD; sem inspeção de segredos no registro.
 - [x] D-325/V-337: atualizar projetos/CI para .NET 10 LTS; três componentes
   autocontidos 10.0.15 publicados localmente, 59 testes aprovados/três Windows pendentes.
-- [ ] Homologar o MSI .NET 10 em Windows; conferir conexão sob LocalSystem.
+- [x] V-338: homologar MSI .NET 10 em Windows Server 2022 descartável.
+- [ ] Conferir conexão real sob LocalSystem na cliente.
   Network/Advanced não inspecionados; teste interativo já informado em V-335.
 - [ ] Instalar/configurar no Server; comprovar ODBC/LocalSystem/ACL/DPAPI/reinício.
 - [ ] Efetuar corte real, novo oficial/ready, anterior recusado e dados preservados.
