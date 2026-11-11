@@ -3949,3 +3949,78 @@ novos ciclos/heartbeat e conector healthy, único oficial e anterior revogado.
 Prova pendente em V-346 encerrada; instalação/troca concluídas, mesmo piloto e
 dados preservados. Não repetir instalação/pareamento/teste por rotina. Demais
 fontes/carteira/gates contratuais preservados, sem nova ampliação de escopo.
+
+## D-331 — Retomar finalização após o agente oficial (10/11/2026)
+
+Origem humana: “continue o desenvolvimento do projeto visando a finalização”.
+Continuidade D-301/D-323, PC-19/03/09/12; V-347 encerrou a instalação/corte.
+Próxima dependência é o inventário real de metadados/situações Q-28, já previsto
+em D-323. Não repetir instalação/pareamento ou ampliar manifesto pelo simples
+reinício. Preservar SVAPL02, piloto/dados/contrato e alterações locais anteriores.
+
+Preparar/testar execução do inventário no Windows 2022 descartável, sem ERP
+real ou senha da cliente no CI. Metadados/contagens agrupadas no Server continuam
+somente leitura e dependem do retorno real; credencial digitada localmente.
+A propriedade OdbcConnection.ConnectionTimeout é gravável: hipótese inicial de
+falha foi descartada após documentação/código Microsoft, sem alteração por ela.
+AnyDesk novamente retornou timeout -10005; não presumir Server indisponível.
+
+Implementar administração da transição piloto → carteira companies, reutilizando
+protocolo existente: prévia sem escrita por padrão, inventário identificado por
+SHA-256, mapa de situações revisado com responsável/referência, cobertura integral
+dos códigos observados e aplicação explícita vinculada ao agente oficial e à
+revisão anterior esperada. Travar organização/agente na ordem existente para
+serializar com revogação/substituição/ingestão; rejeitar candidato, agente antigo,
+manifesto inválido, heartbeat ausente/antigo, substituição em aberto e evidência
+incompatível. Preservar segredo/UUID/cadastros/movimentos/decisões/recibos;
+registrar mudança auditável sem senhas/dados cadastrais. Não exigir pareamento
+ou MSI novo para o cliente 1.0.5 já compatível. Somente companies nesta fase;
+não fingir leitura de contas/Razão/títulos ou manter banco piloto coletando
+quando o manifesto trocar de modo. Explicitar essa limitação na prévia.
+
+Testar recusa, replay, concorrência PostgreSQL e isolamento com dados sintéticos.
+Código/publicação seguem autorizações D-304/D-323/D-329 no ambiente existente,
+sujeitas ao CI exato/recuperação/integridade; nenhuma aplicação operacional da
+carteira até inventário e revisão reais. Histórico financeiro desde 01/09/2026
+preservado; fontes novas só após confronto real Q-28/Q-46. Q-47, IA/custos/
+egressão Q-08/Q-09, D-73, recuperação, treinamento e aceite continuam próprios.
+
+Refinamento técnico D-331: inventário deve ser completo, emitido nas últimas
+24 horas sem horário futuro; limite local 12 MiB, 1.500 objetos/50.000 colunas/
+20 situações/um milhão de empresas. JSON ambíguo/repetido ou metadados sem
+GEEMPRE/colunas exigidas são recusados. Revisão separada vincula hashes, UUIDs
+de escritório/agente, versão compatível e usuário dono/administrador ativo,
+com referência explícita; não aprovar o mapa por códigos sintéticos A/I.
+O comando desta fase admite apenas piloto → companies, não atualização genérica
+de fontes; retry idêntico usa a auditoria original, sem repetir mudança.
+
+Empacotamento D-331: dois módulos Python novos, sem dependências/migrações,
+assets, mudança no MSI ou alteração do caminho de coleta atual. Para publicação
+autorizada D-323, usar imagem imutável corrente como base, copiar só os dois
+fontes, conferir integralmente hashes/runtime/camadas/configuração e CI exato
+antes de publicar. Reconferir release/configuração, backup original/53 objetos/
+retenção e integridade; preservar dois processos ativos de 512 MB e reserva
+parada. Retorno é a imagem anterior, sem alteração de schema. Publicar o comando
+não o executa: nenhum manifesto/mapa/cadastro novo será aplicado sem inventário
+e revisão reais. Não criar novo backup/recurso/chave por rotina.
+
+Retorno real Q-28/D-331: operador executou a sonda no SVAPL02 e recebeu
+MethodInvocationException, sem inventário concluído. Não atribuir causa ao
+DSN/timeout/driver ou repetir instalação. Acrescentar diagnóstico estruturado
+somente com etapa constante, índice do objeto, tipos de exceção, SQLStates
+validados e códigos nativos numéricos; nunca mensagem ODBC, senha ou connection
+string. Validar essas recusas no Windows descartável antes de novo envio.
+Sem contornar a falha com SQL financeiro ou apresentar resultado parcial como
+completo. A carteira permanece piloto até resultado real e revisão.
+
+Diagnóstico real Q-28 recebido: reading_tables/índice 0, MethodInvocationException
+com ArgumentException, sem SQLState/nativo, após conexão abrir. Causa identificada
+no script: GetSchema Tables usa quatro restrições, mas OdbcMetaDataFactory do
+.NET Framework aceita três (código Microsoft, GetTablesCollection). Corrigir
+para catálogo/schema/tabela; Columns mantém quatro. Incluir Views em chamada
+própria (mesmas três restrições) para não omitir objetos pertinentes, conservando
+filtro local/limites. Teste sintético anterior não validava esse contrato; CI
+deve ler limites da metadata XML embutida no System.Data real do Windows,
+verificar contagens e rejeitar a chamada antiga, sem depender de ERP. Retorno
+real do script corrigido continua necessário; não inferir sucesso por CI.
+Fonte: https://github.com/microsoft/referencesource/blob/main/System.Data/System/Data/Odbc/odbcmetadatafactory.cs#L860

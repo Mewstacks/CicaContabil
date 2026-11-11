@@ -13,6 +13,8 @@ $connection = $null
 $builder = $null
 $credential = $null
 $outputDirectory = $null
+$stage = 'credential_prompt'
+$objectIndex = 0
 try {
     # Local entry only. Never inspect the registry or decrypt the agent configuration.
     $credential = Get-Credential -UserName 'EXTERNO' -Message 'Somente leitura: informe a credencial local do Domínio. Não a envie ao chat.'
@@ -21,14 +23,20 @@ try {
     $builder['DSN'] = 'CICA_CONTAD'
     $builder['UID'] = $credential.UserName
     $builder['PWD'] = $credential.GetNetworkCredential().Password
-    $connection = New-Object System.Data.Odbc.OdbcConnection($builder.ConnectionString)
+    $connection = New-Object System.Data.Odbc.OdbcConnection -ArgumentList $builder.ConnectionString
     $connection.ConnectionTimeout = 20
+    $stage = 'opening_connection'
     $connection.Open()
     $builder.Clear()
     $credential = $null
     $timer = [Diagnostics.Stopwatch]::StartNew()
-    $tables = $connection.GetSchema('Tables', [string[]]@($null, 'bethadba', $null, $null))
-    $selected = @($tables.Rows | Where-Object {
+    $stage = 'reading_tables'
+    # System.Data.Odbc Tables/Views accept three restrictions, unlike SqlClient.
+    $tables = $connection.GetSchema('Tables', [string[]]@($null, 'bethadba', $null))
+    $stage = 'reading_views'
+    $views = $connection.GetSchema('Views', [string[]]@($null, 'bethadba', $null))
+    $stage = 'selecting_objects'
+    $selected = @((@($tables.Rows) + @($views.Rows)) | Where-Object {
         ([string]$_.TABLE_SCHEM -ieq 'bethadba') -and (
             ([string]$_.TABLE_NAME -ieq 'GEEMPRE') -or
             ([string]$_.TABLE_NAME -imatch '^CT') -or
@@ -39,8 +47,10 @@ try {
     $objects = New-Object 'System.Collections.Generic.List[object]'
     $columnCount = 0
     foreach ($table in $selected) {
+        $objectIndex++
         if ($timer.Elapsed.TotalMinutes -gt 5) { throw 'Inventário excedeu cinco minutos; não concluído.' }
         $tableName = [string]$table.TABLE_NAME
+        $stage = 'reading_columns'
         $columns = $connection.GetSchema('Columns', [string[]]@($null, 'bethadba', $tableName, $null))
         $ownColumns = @($columns.Rows | Where-Object {
             ([string]$_.TABLE_SCHEM -ieq 'bethadba') -and ([string]$_.TABLE_NAME -ieq $tableName)
@@ -60,6 +70,7 @@ try {
         })
         $objects.Add([ordered]@{ schema = 'bethadba'; name = $tableName; kind = [string]$table.TABLE_TYPE; columns = $fields })
     }
+    $stage = 'validating_company_columns'
     $company = @($objects | Where-Object { $_.name -ieq 'GEEMPRE' })
     if ($company.Count -ne 1) { throw 'Cadastro GEEMPRE não identificado de modo único.' }
     $names = @($company[0].columns | ForEach-Object { $_.name.ToUpperInvariant() })
@@ -69,6 +80,7 @@ try {
     $command = $connection.CreateCommand()
     $command.CommandTimeout = 60
     $command.CommandText = 'SELECT TOP 21 stat_emp, COUNT(*) FROM bethadba.geempre GROUP BY stat_emp ORDER BY stat_emp'
+    $stage = 'reading_company_status_counts'
     $reader = $command.ExecuteReader()
     $statuses = New-Object 'System.Collections.Generic.List[object]'
     $companyTotal = [long]0
@@ -95,6 +107,7 @@ try {
         keys_relations_and_financial_semantics_verified = $false
         elapsed_seconds = [Math]::Round($timer.Elapsed.TotalSeconds, 2)
     }
+    $stage = 'writing_private_report'
     $outputDirectory = Join-Path ([Environment]::GetFolderPath('UserProfile')) ('Downloads\CICA-CONTAD-Inventario-' + [Guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($outputDirectory)
     $acl = New-Object Security.AccessControl.DirectorySecurity
@@ -113,7 +126,30 @@ try {
     Write-Host ('SHA-256: ' + (Get-FileHash -Algorithm SHA256 -LiteralPath $outputPath).Hash.ToLowerInvariant())
     Write-Host 'Nenhum dado foi enviado. Metadados não comprovam chaves, relações ou semântica financeira.'
 } catch {
-    # ODBC exception text can contain connection details. Return only the exception type.
+    # Never emit exception Message/ToString: driver text may include credentials.
+    $types = New-Object 'System.Collections.Generic.List[string]'
+    $states = New-Object 'System.Collections.Generic.List[string]'
+    $native = New-Object 'System.Collections.Generic.List[int]'
+    $exception = $_.Exception
+    for ($depth = 0; $null -ne $exception -and $depth -lt 8; $depth++) {
+        $types.Add($exception.GetType().Name)
+        if ($exception -is [System.Data.Odbc.OdbcException]) {
+            foreach ($errorItem in @($exception.Errors | Select-Object -First 20)) {
+                if ($errorItem.SQLState -match '^[A-Z0-9]{5}$') { $states.Add($errorItem.SQLState) }
+                $native.Add([int]$errorItem.NativeError)
+            }
+        }
+        $exception = $exception.InnerException
+    }
+    [ordered]@{
+        version = 'contad-schema-diagnostic-v1'
+        inventory_completed = $false
+        stage = $stage
+        object_index = $objectIndex
+        exception_types = @($types.ToArray())
+        sql_states = @($states.ToArray() | Select-Object -Unique)
+        native_error_codes = @($native.ToArray() | Select-Object -Unique)
+    } | ConvertTo-Json -Depth 5 | Write-Host
     Write-Error ('Inventário não concluído. Tipo: ' + $_.Exception.GetType().Name + '. Preserve a janela para orientação, sem compartilhar credenciais.') -ErrorAction Continue
     exit 1
 } finally {
