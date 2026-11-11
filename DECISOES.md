@@ -4336,3 +4336,11 @@ A fonte real e o aceite Q-46/Q-47/D-73 permanecem condicionados às provas próp
 Referências:
 https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=4495
 https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6973
+
+Refinamento D-337 antes do normalizador: contexto explícito deve fornecer plano,
+contas, filiais brutas permitidas, código de lado ausente (que não pode existir
+no plano), direção bancária e contagem esperada de linhas de cada lote. Não
+inferir essas escolhas pela letra/tamanho/classificação. Preservar texto/documento
+por partida e recusar variações incompatíveis com o contrato atual, sem concatenar,
+truncar ou inventar histórico comum. Saída é candidata local para revisão, sem
+importação persistida ou autorização de coleta/exportação.
