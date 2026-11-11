@@ -18,15 +18,16 @@ internal sealed record PortfolioCompany(
         string key = Convert.ToString(code, CultureInfo.InvariantCulture) ?? "";
         string label = Convert.ToString(name, CultureInfo.InvariantCulture)?.Trim() ?? "";
         string rawStatus = Convert.ToString(status, CultureInfo.InvariantCulture)?.Trim() ?? "";
-        string document = Convert.ToString(cnpj, CultureInfo.InvariantCulture)?.Trim() ?? "";
+        string document = Convert.ToString(cnpj, CultureInfo.InvariantCulture) ?? "";
+        document = scope.IsActiveOnly ? document.Trim(' ') : document.Trim();
         if (!Regex.IsMatch(key, @"\A[1-9][0-9]{0,17}\z") || label.Length is < 1 or > 180
             || scope.CompanyStatusMap?.ContainsKey(rawStatus) is not true
             || (scope.IsActiveOnly && !scope.CompanyStatusMap[rawStatus])
-            || (document.Length > 0 && !Regex.IsMatch(document, @"\A[0-9./-]+\z")))
+            || (!scope.IsActiveOnly && document.Length > 0 && !Regex.IsMatch(document, @"\A[0-9./-]+\z")))
             throw new InvalidDataException("Cadastro inválido ou situação de origem não revisada; carga incompleta.");
         if (scope.IsActiveOnly)
         {
-            if (document.Length > 14)
+            if (document.Length > 14 || document.Any(char.IsControl))
                 throw new InvalidDataException("Inscrição de origem excede o limite literal; carga incompleta.");
             int? kind = null;
             if (registrationType is not null and not DBNull)

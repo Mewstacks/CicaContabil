@@ -4160,3 +4160,9 @@ Referências: https://suporte.dominioatendimento.com/central/faces/solucao.html?
 (mais de uma forma de inscrição, sem mapa TIPOI_EMP); funções usadas pela sonda:
 https://help.sap.com/docs/SAP_SQL_Anywhere/7eca48cee41b418bbd54feff83d57803/3eddbe4a50c3446f8c294eb6e6088153.html
 e https://help.sap.com/docs/SAP_SQL_Anywhere/7eca48cee41b418bbd54feff83d57803/9fba5996582a45c789310438147d164f.html.
+
+Refinamento D-333 antes do contrato dependente: a inscrição é texto literal
+até14 caracteres, sem controles; não impor apenas dígitos ou inferir tipo fiscal.
+Preservar letras, separadores e zeros; remover somente padding de espaço CHAR.
+Isto não valida CNPJ/CPF ou aprova legenda TIPOI_EMP. V3 mantém contrato anterior;
+v4 não deve provocar outra atualização por uma classe textual não interpretada.

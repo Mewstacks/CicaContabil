@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from typing import Any
 from uuid import UUID
 
@@ -96,8 +97,8 @@ def _company_rows(
                 scope["version"] != ACTIVE_PORTFOLIO_VERSION
                 or not isinstance(raw, str)
                 or len(raw) > 14
-                or raw != raw.strip()
-                or (raw and not re.fullmatch(r"[0-9./-]+", raw))
+                or raw != raw.strip(" ")
+                or any(unicodedata.category(character) == "Cc" for character in raw)
                 or (kind is not None and (type(kind) is not int or not 0 <= kind <= 255))
             ):
                 raise ValueError("Inscrição de origem fora do contrato literal autorizado.")

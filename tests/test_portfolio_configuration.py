@@ -720,7 +720,8 @@ def test_literal_registration_resumes_old_open_scan_and_preserves_cnpj_and_ident
 @pytest.mark.parametrize(
     "change",
     [
-        {"registration_raw": "x"},
+        {"registration_raw": "\x00"},
+        {"registration_raw": "\x85"},
         {"registration_raw": "123456789012345"},
         {"registration_type_code": True},
         {"registration_type_code": 256},

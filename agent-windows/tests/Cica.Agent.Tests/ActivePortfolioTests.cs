@@ -69,6 +69,7 @@ public sealed class ActivePortfolioTests
     [Theory]
     [InlineData("", 1)]
     [InlineData("12345678901", 1)]
+    [InlineData("AB12CD34000190", 1)]
     [InlineData("11222333000181", 1)]
     [InlineData("11222333000181", 2)]
     [InlineData("11222333000181", 3)]
