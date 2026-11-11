@@ -49,8 +49,14 @@ public sealed class RelationsFixtureCommand:IDisposable {
   }else if(keys){
    foreach(string s in new[]{"table_id","index_id","category","unique","not_enforced","index_name","sequence","column_id","column_name","primary_column_id"})t.Columns.Add(s,s=="not_enforced"||s=="index_name"||s=="column_name"?typeof(string):typeof(long));
    if(scenario!="empty_catalog"){
-    int count=scenario=="key_limit"?1025:2;
-    for(int i=0;i<count;i++)t.Rows.Add(101L,0L,1L,1L,"N","PRIMARY",(long)i,(long)i+1,"column_"+i,DBNull.Value);
+    if(scenario=="key_limit") {
+     for(int i=0;i<1025;i++)t.Rows.Add(101L,0L,1L,1L,"N","PRIMARY",(long)i,(long)i+1,"column_"+i,DBNull.Value);
+    } else {
+     t.Rows.Add(101L,0L,1L,1L,"N","PRIMARY",0L,7L,"CODI_EMP",DBNull.Value);
+     t.Rows.Add(101L,0L,1L,1L,"N","PRIMARY",1L,19L,"CODI_CTA",DBNull.Value);
+     t.Rows.Add(104L,2L,2L,4L,"N","fk_debit",0L,23L,"CDEB_LAN",19L);
+     t.Rows.Add(104L,2L,2L,4L,"N","fk_debit",1L,42L,"CODI_EMP_PLANO",7L);
+    }
     if(scenario=="null_required")t.Rows[0][8]=DBNull.Value;
     if(scenario=="invalid_name")t.Rows[0][8]="unsafe\nname";
     if(scenario=="invalid_number")t.Rows[0][6]=-1L;
@@ -58,8 +64,12 @@ public sealed class RelationsFixtureCommand:IDisposable {
   }else{
    foreach(string s in new[]{"foreign_table_id","foreign_index_id","primary_table_id","primary_index_id","foreign_schema","foreign_table","primary_schema","primary_table","match_type","check_on_commit","nulls","sequence","foreign_column_id","foreign_column","primary_column_id","primary_column"})t.Columns.Add(s,s.EndsWith("schema")||s.EndsWith("table")||s=="check_on_commit"||s=="nulls"||s=="foreign_column"||s=="primary_column"?typeof(string):typeof(long));
    if(scenario!="empty_catalog"){
-    int count=scenario=="relation_limit"?2049:2;
-    for(int i=0;i<count;i++)t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",(long)i,(long)i+1,"source_"+i,2L-i,"target_"+i);
+    if(scenario=="relation_limit") {
+     for(int i=0;i<2049;i++)t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",(long)i,(long)i+1,"source_"+i,2L-i,"target_"+i);
+    } else {
+     t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",0L,23L,"CDEB_LAN",19L,"CODI_CTA");
+     t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",1L,42L,"CODI_EMP_PLANO",7L,"CODI_EMP");
+    }
    }
   }
   return t.CreateDataReader();
@@ -97,13 +107,17 @@ foreach ($case in @('success','summary','empty_catalog','missing_table','duplica
             $reportPath=Join-Path $created[0].FullName 'relacoes.json'
             $report=Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
             if ($report.tables.Count -ne 9 -or $report.business_values_selected -or $report.erp_write_performed -or $report.agent_configuration_read) {throw 'Unsafe report.'}
-            if ($case -eq 'success' -and ($report.key_columns.Count -ne 2 -or $report.relation_columns.Count -ne 2 -or $report.relation_columns[0].primary_column_id -ne 2)) {throw 'Composite ordering or mapping lost.'}
+            if ($case -eq 'success' -and ($report.key_columns.Count -ne 4 -or $report.relation_columns.Count -ne 2 -or $report.relation_columns[0].primary_column_id -ne 19)) {throw 'Composite ordering or mapping lost.'}
             if ($case -eq 'empty_catalog' -and ($report.key_columns.Count -ne 0 -or $report.relation_columns.Count -ne 0)) {throw 'Empty catalog fabricated keys.'}
             if ($case -eq 'summary' -and $result.sha256 -ne (Get-FileHash -LiteralPath $reportPath -Algorithm SHA256).Hash.ToLowerInvariant()) {throw 'Wrong report hash.'}
             $acl=Get-Acl -LiteralPath $created[0].FullName
             if (-not $acl.AreAccessRulesProtected) {throw 'Inherited report ACL.'}
             $allowed=@([Security.Principal.WindowsIdentity]::GetCurrent().User.Value,'S-1-5-18','S-1-5-32-544')
             foreach ($rule in $acl.Access) {if ($allowed -notcontains $rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value) {throw 'Unexpected report reader.'}}
+            if ($case -eq 'success') {
+                $folder=Join-Path $PSScriptRoot 'artifacts\validation';[void][IO.Directory]::CreateDirectory($folder)
+                Copy-Item -LiteralPath $reportPath -Destination (Join-Path $folder 'contad-relations-synthetic.json')
+            }
         } elseif ($code -eq 0 -or $result.completed -or $created.Count -ne 0) {throw ('Partial/failing fixture accepted: '+$case)}
         $evidence+=@{scenario=$case;passed=$true;exit_code=$code;real_erp=$false}
     } finally {
@@ -111,6 +125,25 @@ foreach ($case in @('success','summary','empty_catalog','missing_table','duplica
     }
 }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation';[void][IO.Directory]::CreateDirectory($folder)
+# Cross-language round-trip: the actual PowerShell JSON must satisfy the Python analyzer.
+$previousPythonPath=$env:PYTHONPATH
+try {
+    $env:PYTHONPATH=Join-Path (Split-Path $PSScriptRoot -Parent) 'src'
+    @'
+import json,sys
+from pathlib import Path
+from apps.hub.contad_relations import analyze_catalog
+r=json.loads(Path(sys.argv[1]).read_text(encoding="utf-8-sig"))
+objects=[]
+for t in r["tables"]:
+    names=[k["column_name"] for k in r["key_columns"] if k["table_id"]==t["table_id"]]
+    objects.append({"schema":"bethadba","name":t["table_name"],"columns":[{"name":n} for n in names]})
+a=analyze_catalog(r,{"version":"contad-schema-inventory-v1","objects":objects})
+assert a["catalog_consistent"] and not a["financial_collection_enabled"]
+assert a["declared_relations"][0]["columns"]==[{"sequence":0,"foreign":"CDEB_LAN","primary":"CODI_CTA"},{"sequence":1,"foreign":"CODI_EMP_PLANO","primary":"CODI_EMP"}]
+'@ | python - (Join-Path $folder 'contad-relations-synthetic.json')
+    if ($LASTEXITCODE -ne 0) {throw 'PowerShell/Python metadata contract mismatch.'}
+} finally {$env:PYTHONPATH=$previousPythonPath}
 @{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-relations.json') -Encoding UTF8
 Write-Host 'Relations catalog: fixed metadata scope, composite columns, bounds, refusals, private ACL and redaction passed.'
 exit 0
