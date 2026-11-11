@@ -4076,3 +4076,21 @@ retomada após upgrade; não executar o ensaio CI na cliente. Entregar atualiza�
 pontual com manifesto/hash e diagnóstico seguro, preservando identidade/configuração
 e evitando novo pareamento. Protocolo v3 só depois do cliente compatível; revisão
 real do mapa permanece necessária. O modo antigo/piloto permanece disponível.
+
+Continuidade D-332: responsável não sabe conferir o total na seleção do Domínio.
+Não insistir em decodificar a base pela cliente. Primeiro recorte técnico usa
+STAT_EMP=A, filtro de ativas já existente nos conectores/piloto; 146 cadastros no
+inventário. M=10 permanece não classificado e fora desta primeira seleção, sem
+gravar M como inativa nem declarar todas as situações resolvidas. Preservar
+I=346/históricos já existentes; ausência no recorte não desativa dados.
+
+Para não fabricar revisão/identidade da Grazi, permitir revisão técnica restrita
+a esse seletor existente somente em comando administrativo com flags explícitas
+--active-only/--existing-active-selector, revisão contad-active-selection-review-v1,
+reviewer_id=null, mapa exatamente A=true e referência D-332. Mantém SHA/UUIDs/
+heartbeat/CAS/cliente1.0.6/auditoria/--apply. Evento com actor=None e origem
+existing_active_selector; não atribuir aprovação humana de M ou revisão à conta
+da Grazi. Outros mapas mantêm requisito de dono/administrador e revisão integral.
+A exceção técnica aplica a instrução humana de buscar ativas usando o critério
+existente, sem criar acesso, segredo ou autorização financeira. Não habilitar M
+por essa exceção. A ampliação financeira continua após semântica/confronto reais.

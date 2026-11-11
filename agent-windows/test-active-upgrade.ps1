@@ -5,7 +5,7 @@ param([Parameter(Mandatory=$true)][string]$BaselineMsi)
 $ErrorActionPreference='Stop'
 if($env:GITHUB_ACTIONS -ne 'true') { throw 'Ensaio exclusivo do CI descartável.' }
 $config=Join-Path $env:ProgramData 'CICA\Agent\agent.config'
-$exe=Join-Path $env:ProgramFiles 'CICA\Agent\Cica.Agent.Service.exe'
+$exe=Join-Path $env:ProgramFiles 'CICA Agent\Service\Cica.Agent.Service.exe'
 $statusFile=Join-Path $env:ProgramData 'CICA\Agent\agent-status.json'
 if((Get-Service CicaAgent -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $config)) { throw 'Ambiente já configurado; ensaio recusado.' }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation\upgrade'

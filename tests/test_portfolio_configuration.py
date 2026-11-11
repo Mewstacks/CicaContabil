@@ -330,6 +330,52 @@ def test_active_only_administration_requires_the_new_client_and_reports_selected
     assert not AgentCompanyScan.objects.exists()
 
 
+def selector_review(prepared):
+    prepared[2].update(
+        version="contad-active-selection-review-v1",
+        reviewer_id=None,
+        review_reference="D-332:existing-dominio-active-selector",
+        agent_version="1.0.6",
+        company_status_map={"A": True},
+    )
+
+
+def test_existing_active_selector_requires_both_flags_and_does_not_forge_a_human_actor(prepared):
+    selector_review(prepared)
+    for flags in [{}, {"active_only": True}, {"allow_existing_active_selector": True}]:
+        with pytest.raises(ValueError):
+            configure(prepared, apply=True, **flags)
+    result = configure(
+        prepared,
+        active_only=True,
+        allow_existing_active_selector=True,
+        apply=True,
+    )
+    event = AuditEvent.objects.get(action=ACTION)
+    assert event.actor_id is None
+    assert event.metadata["review_origin"] == result["review_origin"] == "existing_active_selector"
+    assert result["selected_company_count"] == 501
+    prepared[0].refresh_from_db()
+    assert prepared[0].sync_scope["company_status_map"] == {"A": True}
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"company_status_map": {"A": True, "I": False}},
+        {"company_status_map": {"A": True, "M": True}},
+        {"review_reference": "unrelated"},
+        {"reviewer_id": str(uuid4())},
+    ],
+)
+def test_existing_selector_cannot_approve_other_codes_or_a_fake_reviewer(prepared, changes):
+    selector_review(prepared)
+    prepared[2].update(changes)
+    with pytest.raises(ValueError):
+        configure(prepared, active_only=True, allow_existing_active_selector=True, apply=True)
+    assert not AuditEvent.objects.filter(action=ACTION).exists()
+
+
 def test_active_only_scope_binds_selection_to_revision_and_rejects_empty_map(prepared):
     from apps.intelligence.agent_scope import build_portfolio_scope, validate_sync_scope
 

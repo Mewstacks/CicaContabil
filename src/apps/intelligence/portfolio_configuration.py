@@ -153,26 +153,41 @@ def validate_inventory(inventory_raw: bytes) -> dict[str, Any]:
     }
 
 
-def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any]:
+def reviewed_inventory(
+    inventory_raw: bytes,
+    review_raw: bytes,
+    *,
+    active_only: bool = False,
+    allow_existing_active_selector: bool = False,
+) -> dict[str, Any]:
     """Validate bounded source evidence and an explicitly separate human review."""
     inventory = validate_inventory(inventory_raw)
     review = _document(review_raw, REVIEW_LIMIT)
-    if (
-        set(review)
-        != {
-            "version",
-            "organization_id",
-            "agent_id",
-            "inventory_sha256",
-            "reviewer_id",
-            "review_reference",
-            "agent_version",
-            "company_status_map",
-        }
-        or review["version"] != "contad-company-status-review-v1"
+    existing_selector = review.get("version") == "contad-active-selection-review-v1"
+    if set(review) != {
+        "version",
+        "organization_id",
+        "agent_id",
+        "inventory_sha256",
+        "reviewer_id",
+        "review_reference",
+        "agent_version",
+        "company_status_map",
+    } or review["version"] not in (
+        "contad-company-status-review-v1",
+        "contad-active-selection-review-v1",
     ):
         raise ValueError("Contrato de revisão de situações inválido.")
-    for key in ("organization_id", "agent_id", "reviewer_id"):
+    if existing_selector and (
+        not active_only
+        or not allow_existing_active_selector
+        or review["reviewer_id"] is not None
+        or review["company_status_map"] != {"A": True}
+        or not isinstance(review["review_reference"], str)
+        or not review["review_reference"].startswith("D-332:")
+    ):
+        raise ValueError("Seletor técnico restrito a A exige flags e referência D-332 explícitas.")
+    for key in ("organization_id", "agent_id", *(() if existing_selector else ("reviewer_id",))):
         try:
             if str(UUID(review[key])) != review[key]:
                 raise ValueError
@@ -190,7 +205,11 @@ def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any
     mapping = review["company_status_map"]
     if (
         not isinstance(mapping, dict)
-        or set(mapping) != set(inventory["status_counts"])
+        or (
+            not set(mapping) <= set(inventory["status_counts"])
+            if existing_selector
+            else set(mapping) != set(inventory["status_counts"])
+        )
         or any(type(active) is not bool for active in mapping.values())
     ):
         raise ValueError("Cobertura integral do mapa revisado não confere.")
@@ -200,6 +219,9 @@ def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any
         "company_count": inventory["company_count"],
         "status_counts": inventory["status_counts"],
         "inventory_observed_at": inventory["inventory_observed_at"],
+        "review_origin": "existing_active_selector"
+        if existing_selector
+        else "organization_reviewer",
     }
 
 
@@ -213,8 +235,14 @@ def configure_portfolio(
     period_end: date,
     apply: bool = False,
     active_only: bool = False,
+    allow_existing_active_selector: bool = False,
 ) -> dict[str, Any]:
-    evidence = reviewed_inventory(inventory_raw, review_raw)
+    evidence = reviewed_inventory(
+        inventory_raw,
+        review_raw,
+        active_only=active_only,
+        allow_existing_active_selector=allow_existing_active_selector,
+    )
     if active_only and tuple(map(int, evidence["agent_version"].split("."))) < (1, 0, 6):
         raise ValueError("Coleta somente de ativas exige agente 1.0.6 ou posterior comprovado.")
     if evidence["organization_id"] != str(organization.pk) or evidence["agent_id"] != str(agent_id):
@@ -248,7 +276,7 @@ def configure_portfolio(
             )
             .first()
         )
-        if reviewer is None:
+        if reviewer is None and evidence["review_origin"] != "existing_active_selector":
             raise ValueError("Revisão exige dono/administrador ativo deste escritório.")
         current = validate_sync_scope(agent.sync_scope, organization)
         proposed = build_portfolio_scope(
@@ -295,10 +323,11 @@ def configure_portfolio(
             "existing_financial_data_preserved": True,
             "observed_company_count": evidence["company_count"],
             "company_selection": "active_only" if active_only else "all_reviewed_statuses",
+            "review_origin": evidence["review_origin"],
             "selected_company_count": sum(
                 count
                 for code, count in evidence["status_counts"].items()
-                if not active_only or evidence["company_status_map"][code]
+                if not active_only or evidence["company_status_map"].get(code, False)
             ),
             "inventory_sha256": evidence["inventory_sha256"],
         }
@@ -309,7 +338,7 @@ def configure_portfolio(
                 action=ACTION,
                 organization=organization,
                 target=agent,
-                actor=reviewer.user,
+                actor=reviewer.user if reviewer is not None else None,
                 metadata={
                     **result,
                     "revision": proposed["revision"],

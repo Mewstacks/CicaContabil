@@ -40,6 +40,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Filtrar ativas na origem; exige agente 1.0.6+.",
         )
+        parser.add_argument(
+            "--existing-active-selector",
+            action="store_true",
+            help="Revisão técnica restrita ao filtro A já existente; sem atribuir revisor humano.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         import json
@@ -57,6 +62,7 @@ class Command(BaseCommand):
                 period_end=date.fromisoformat(options["period_end"]),
                 apply=options["apply"],
                 active_only=options["active_only"],
+                allow_existing_active_selector=options["existing_active_selector"],
             )
         except OSError as exc:
             raise CommandError("Não foi possível ler os arquivos locais de evidência.") from exc

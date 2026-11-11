@@ -10,10 +10,12 @@ $ErrorActionPreference = 'Stop'
 $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
 $principal=New-Object Security.Principal.WindowsPrincipal($identity)
 if(-not [Environment]::Is64BitProcess -or -not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'Use Windows PowerShell x64 como administrador.' }
-$exe=Join-Path $env:ProgramFiles 'CICA\Agent\Cica.Agent.Service.exe'
+$exe=Join-Path $env:ProgramFiles 'CICA Agent\Service\Cica.Agent.Service.exe'
 $configuration=Join-Path $env:ProgramData 'CICA\Agent\agent.config'
 $statusFile=Join-Path $env:ProgramData 'CICA\Agent\agent-status.json'
 if(-not (Test-Path -LiteralPath $exe) -or -not (Test-Path -LiteralPath $configuration)) { throw 'Agente configurado não encontrado; nada alterado.' }
+$installedService=Get-CimInstance Win32_Service -Filter "Name='CicaAgent'"
+if(-not $installedService -or $installedService.PathName.Trim('"') -ne $exe -or $installedService.StartName -ne 'LocalSystem') { throw 'Serviço esperado não encontrado; nada alterado.' }
 if(Get-Process -Name 'Cica.Agent.Configurator' -ErrorAction SilentlyContinue) { throw 'Feche o configurador antes de atualizar.' }
 $sourceVersion=(Get-Item -LiteralPath $exe).VersionInfo.FileVersion
 if($sourceVersion -notin @('1.0.5.0','1.0.6.0')) { throw 'Versão de origem inesperada; nada alterado.' }
