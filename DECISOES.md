@@ -4206,3 +4206,36 @@ atualização/zero ignorados; releituras sem duplicatas ou mudanças de valores/
 Financeiro/SURIA/CNPJ/recursos/identidades preservados. Fechar primeira carga A,
 sem repetir instalação/corte/manifesto/sondas; M/fontes/aceite continuam pendentes.
 Download direto não equivale a auto-instalação de versões futuras.
+
+## D-335 — Chaves e relações das fontes contábeis (11/11/2026)
+
+Continuidade solicitada pelo responsável após V-352. Preservar o oficial SVAPL02
+1.0.7, escopo A e carga146 concluída; não repetir MSI, corte, manifesto ou inventário
+de601 objetos. Próxima dependência técnica de Q-28/Q-46: comprovar chaves compostas
+e relações antes de consultar contas/Razão, inclusive possível plano compartilhado.
+
+Preparar complemento somente leitura dos catálogos SYS.SYSTAB/SYSUSER/SYSIDX/
+SYSIDXCOL/SYSFKEY/SYSTABCOL, com projeção explícita de nomes/IDs/tipos de índices,
+ordem de colunas e pares FK. Seleção fixa dos objetos já observados GEEMPRE,
+CTCONTAS, CTCONTACAIXA, CTCONTACAIXA_CONTA_BANCARIA, CTLANCTO, CTCLANCTO,
+CTCCUSTO, EFCLIENTES e EFFORNECE; incluir relações declaradas de entrada/saída
+desses objetos, sem pesquisar valores de negócio. Não selecionar SYSUSER.password,
+comentários, defaults, documentos, nomes de empresas ou valores financeiros.
+
+Limitar linhas/tempo/tamanho, parâmetros ODBC e consulta fixa; falhar sem resultado
+parcial quando exceder limites ou faltar contrato. Credencial EXTERNO somente na
+janela Windows, sem registro/configuração DPAPI ou upload automático. Relatório
+local com ACL privada e diagnóstico técnico sem mensagem do driver. Testar Windows
+PowerShell5.1 em Server2022 descartável, recusas/limites/redação incluídos.
+Distribuir script genérico por HTTPS/hash no repositório oficial existente sob
+D-326/D-334, sem dados da cliente, custo/serviço novo ou instalação permanente.
+
+Preparar análise local verificável do relatório e do inventário recebido: relacionar
+colunas por IDs e preservar a ordem de chaves compostas; relações ausentes não
+comprovam ausência de vínculo e nomes semelhantes não autorizam JOIN. Chave
+declarada não comprova semântica financeira nem situação M. Nenhum novo dataset,
+SQL de valores financeiros, escrita ERP, revisão humana ou aceite é habilitado.
+Referências primárias SAP: SYSFKEY, SYSIDXCOL e SYSIDX (SQL Anywhere Server),
+https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8a8d96c5f1014bb2cb502516a5227.html
+https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8e1416c5f1014aa0185d6ff33803a.html
+https://help.sap.com/docs/SAP_SQL_Anywhere/e38b2f6217f24bdb90a3ff8ae57b1dd5/3be8d99a6c5f10149158a1c4b55629f2.html

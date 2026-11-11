@@ -111,6 +111,9 @@ jobs:
       - name: Validate document shape aggregates and safe failures
         shell: powershell
         run: ./agent-windows/test-contad-document-profile.ps1
+      - name: Validate bounded relation metadata and credential isolation
+        shell: powershell
+        run: ./agent-windows/test-contad-relations.ps1
       - name: Preserve inventory validation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -119,5 +122,6 @@ jobs:
           path: |
             agent-windows/artifacts/validation/contad-inventory.json
             agent-windows/artifacts/validation/contad-document-profile.json
+            agent-windows/artifacts/validation/contad-relations.json
           if-no-files-found: warn
           retention-days: 1
