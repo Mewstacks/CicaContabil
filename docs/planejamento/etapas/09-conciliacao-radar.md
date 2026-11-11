@@ -501,5 +501,9 @@ catálogos não decide M nem autoriza JOIN por semelhança de nomes.
 
 - [x] Perfil curto testado em16 cenários Windows e executado no piloto real.
 - [x]1.405 registros/contas correspondentes/zero fanout,163 da conta8 conferidos.
-- [ ] D-337: comprovar agrupamento e preparar partidas completas sem contrapartida inferida.
+- [x] D-337/V-358/V-359: agrupamento estrutural comprovado e normalizador local preparado.
 - [ ] Q-46/Q-47/D-73 e aceite, sem contabilizar contagens como amostra revisada.
+
+- [ ] Integrar snapshot real completo ao agente/backend, sem habilitar fonte antes da revisão.
+
+- [x] V-359: normalizador integrado na main094a93d após CI integral aprovado.

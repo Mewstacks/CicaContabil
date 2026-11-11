@@ -4344,3 +4344,14 @@ inferir essas escolhas pela letra/tamanho/classificação. Preservar texto/docum
 por partida e recusar variações incompatíveis com o contrato atual, sem concatenar,
 truncar ou inventar histórico comum. Saída é candidata local para revisão, sem
 importação persistida ou autorização de coleta/exportação.
+
+Resultado D-337/V-358:163 lotes/177 registros da conta8, todos completos no período,
+equilibrados, com uma data/plano/filial e um efeito bancário por lote; filial bruta212.
+Nenhum cabeçalho ausente ou valor não positivo. Grupos C/V/X continuam sem legenda.
+Isto sustenta o candidato estrutural; não aprova textos/semântica financeira.
+V-359 prepara normalizador local/43 testes; sem snapshot real normalizado, agente
+novo, persistência ou coleta financeira habilitada.
+
+Fechamento V-359: CI integral43091250239/2d40869 aprovado e PR9 integrado na
+main094a93d. Apenas preparação local/código e provas agregadas; oficial1.0.7,
+backend83, manifesto A, financeiro e recursos de produção não alterados.

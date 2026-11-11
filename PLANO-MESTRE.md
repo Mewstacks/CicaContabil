@@ -1,5 +1,14 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Continuidade D-336/D-337/V-356–V-359 — 11/11/2026:** contas do piloto
+conferidas sem multiplicação; fonte da conta8 comprovou163 lotes/177 registros
+completos e equilibrados. Normalizador local de partidas implementado,43 testes
+novos/89 focados aprovados e dois perfis Windows com16 cenários cada. PR9/main094a93d e CI43091250239/2d40869
+aprovados. Não houve importação real de valores/textos, MSI novo,
+dataset financeiro ou deploy. Próximo passo é integrar snapshot completo e revisado
+à coleta; Q-46/Q-47/D-73 e aceite continuam próprios. Não repetir perfis concluídos.
+
+
 **Relações reais conferidas — D-335/V-354, 11/11/2026:** JSON recebido por
 retorno textual compactado; SHA05f69122…34e8479 confere.9 tabelas/51 colunas de
 índices/1.496 relações analisadas contra o inventário original. PKs e vínculos

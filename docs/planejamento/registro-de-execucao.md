@@ -3635,3 +3635,18 @@ Perfil/16 cenários Windows aprovados e download exato conferido. Retorno real:
 1.405 registros/163 banco8,contas correspondentes/zero fanout,567 unilaterais.
 D-337 registrado antes do normalizador: preservar partidas e conferir lotes,
 sem importar registro unilateral como lançamento completo ou ativar financeiro.
+
+## 11/11/2026 — Lotes reais e normalizador (V-357/V-358/V-359)
+
+16 cenários Windows dos lotes aprovados, script HTTPS/hash conferido e executado.
+163 lotes/177 registros reais equilibrados/completos no período e um efeito por lote.
+Normalizador local preserva registros e exige cobertura/escopo/balanço;43 testes
+novos e89 focados aprovados. PR9/CI integral em andamento; sem dados financeiros
+importados, alteração do oficial1.0.7/backend83, dataset novo ou escrita ERP.
+
+Fechamento V-359: PR9/main094a93d integrado após CI43091250239/2d40869 integral
+aprovado:1.961 SQLite/1.992 PG/163 subtestes,74 Windows, instalação/upgrade e
+três builds. Nove arquivos próprios sincronizados ao diretório principal sem
+substituir alterações anteriores; seis recibos privados preservados fora do Git.
+Normalizador ainda não recebeu snapshot real com textos/valores. Sem deploy ou
+novo MSI; não declarar projeto concluído, fonte financeira ativada ou homologação.

@@ -544,3 +544,8 @@ completo, instalação ou seleção A. Q-46/Q-47/M/semântica financeira continu
 **Q-28/D-335/V-354:** catálogo real recebido e conferido, nove PKs e1.496 relações.
 Não pedir novo envio ou repetir consulta. Faltam prova de vínculo com plano,
 partidas/sinais e fontes de títulos; ausência de FK não decide o JOIN.
+
+**Q-28/D-336/D-337/V-356/V-358/V-359:** perfis reais concluídos, contas
+correspondentes e163 lotes/177 registros íntegros. Não repetir consulta ou pedir
+contagens ao operador. Normalizador preparado; falta snapshot real completo/
+revisão e integração da coleta. Letras de tipo/situação, Q-46/Q-47/D-73 mantêm gates.

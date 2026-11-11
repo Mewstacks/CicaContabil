@@ -8185,3 +8185,43 @@ Contagens/escopo coerentes; sem valores financeiros/nomes/documentos, escrita ER
 configuração do agente ou coleta financeira habilitada. Correspondência numérica
 não valida sinal, agrupamento de567 unilaterais ou aceite financeiro. D-337
 prepara conferência de grupos; não repetir este perfil nem inferir contrapartidas.
+
+## V-357 — Conferência agregada de lotes validada no Windows (11/11/2026)
+
+D-337, fontea75cd51/CI43089495881:16 cenários PowerShell5.1/Server2022 aprovados
+para lotes completos, período, cardinalidade bancária, diferença de planos/filiais/
+datas, valores não positivos, cabeçalho ausente, cobertura, limites e redação.
+Montantes são usados só no cálculo interno de equilíbrio do período e não retornam.
+HTTPS/bytes conferidos, SHA76ecb9515d13c52bba00a2f531b73fb08d08f753c8941378148a6ba8a69ff500.
+
+## V-358 — Lotes reais completos da conta8 (11/11/2026)
+
+Operador executou e retornou às19:48:20.0270554 UTC:163 registros bancários,
+163 lotes não nulos,163 efeitos. Grupos brutos C=5 lotes/15 registros,
+V=1/5 eX=157/157, total177 registros. Nenhum lote fora do período, com
+múltiplas datas/planos/filiais, desequilibrado, sem cabeçalho ou com múltiplos
+efeitos bancários; zero montantes não positivos. Filial bruta212 em todos os163.
+structural_candidate_compatible=true, grouping_meaning_approved=false.
+
+Recebimento0600 privado `.tmp/contad-relations-2026-11-11/pilot-lot-profile-real.json`,
+SHA b0f3f878b9add3db358696de29f77d5d112975bc30f934da8b087e26ec97febe.
+Não inferir legenda C/V/X ou número de partidas por tipo.177 é quantidade de
+registros de origem, não de partidas normalizadas/importadas. Sem montantes,
+nomes/documentos retornados, escrita ERP, configuração do agente ou dataset novo.
+
+## V-359 — Normalizador local de partidas preparado (11/11/2026)
+
+D-337:43 testes locais aprovados, incluindo unilateral/bilateral, contagens por
+lote, centavos exatos, recusa de sinal/rounding/float, escopo/duplicatas, falta
+de linhas mesmo em prefixo equilibrado, textos divergentes e múltiplos efeitos.
+Com os46 de relações,89 focados aprovados, sem somar sobreposição à regressão.
+Ruff/MyPy/check/makemigrations aprovados, sem migração. Saída candidata imutável
+ledger-csv-v1, com revisão exigida e coleta financeira false.
+
+Sem acesso ERP/rede, persistência, endpoint, alteração do importador ou novo MSI.
+Nenhum snapshot real com valores/textos foi recebido pelo normalizador; as provas
+reais V-356/V-358 são agregadas. CI43091250239/2d40869 aprovado:1.961 testes
+SQLite/33 skips,1.992 PostgreSQL/2 skips e163 subtestes em cada suíte; .NET
+Linux71/3 skips,Windows74/0 skips, instalação/upgrade e três builds Docker.
+PR9 integrado na main094a93d. Os43 focados fazem parte da regressão, sem somar
+amostras. Não declarar normalização real ou aceite financeiro concluídos.
