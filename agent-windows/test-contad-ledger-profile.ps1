@@ -95,7 +95,7 @@ foreach ($case in @('success','empty_ledger','null_codes','missing_column','miss
     try {$ErrorActionPreference='Continue';$lines=@(& "$PSHOME\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path -Scenario $case 2>&1);$code=$LASTEXITCODE} finally {$ErrorActionPreference=$saved}
     $output=$lines | Out-String
     if ($output.Contains('synthetic-ledger-secret')) {throw 'Credential or driver message leaked.'}
-    $match=[regex]::Match($output,'(?s)\{.*?\}(?=\s*(?:$|\r?\n))')
+    $match=[regex]::Match($output,'(?ms)^\{.*?^\}')
     if (-not $match.Success) {throw ('Missing safe JSON: '+$case)}
     $result=$match.Value | ConvertFrom-Json
     if ($case -in @('success','empty_ledger','null_codes')) {
