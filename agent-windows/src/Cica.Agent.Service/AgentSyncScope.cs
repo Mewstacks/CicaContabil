@@ -20,7 +20,7 @@ internal sealed record AgentSyncScope(
 {
     internal const string Protocol = "scoped-v2";
     internal const string LegacyProtocol = "scoped-v1";
-    internal const string ActiveProtocol = "scoped-v3";
+    internal const string ActiveProtocol = "scoped-v4";
     internal bool IsActiveOnly => Version == "dominio-portfolio-v2";
     internal bool IsPortfolio => Version is "dominio-portfolio-v1" or "dominio-portfolio-v2";
     internal string TransportProtocol => IsActiveOnly ? ActiveProtocol : IsPortfolio ? Protocol : LegacyProtocol;

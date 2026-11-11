@@ -15,7 +15,8 @@ internal sealed record PortfolioReadPlan(string CountSql, string PageSql, string
         string source = "FROM bethadba.geempre";
         string count = "SELECT COUNT(*) " + source +
             (statuses.Length == 0 ? "" : " WHERE " + filter[..^5]);
-        string page = "SELECT TOP 500 codi_emp, nome_emp, cgce_emp, stat_emp " + source +
+        string page = "SELECT TOP 500 codi_emp, nome_emp, cgce_emp, stat_emp" +
+            (scope.IsActiveOnly ? ", tipoi_emp " : " ") + source +
             " WHERE " + filter + "codi_emp > ? ORDER BY codi_emp";
         return new(count, page, statuses);
     }

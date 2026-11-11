@@ -1,21 +1,22 @@
-PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332
+PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332/D-333
 
-**Continuidade D-332/V-350 — 11/11/2026:** inventário completo recebido e
-SHA-256 4b7be104…652e3c69 reconferido: 601 objetos, 5.674 colunas e 502 empresas
-(A=146, I=346, M=10). Pedido humano: buscar todas as ativas. Primeiro seletor
-usa A, já empregado pelo conector; M permanece não classificado e fora desta
-primeira seleção, sem ser marcado como inativo. Não pedir à cliente que decifre
-códigos ou repita a sonda. Chaves/semântica financeiras ainda não homologadas.
-Backend de seleção na origem publicado/verificado na **release 82**, PR 6/main
-7a02775, fonte 11147d4/CI 43061206044. Recursos/configuração, doze fingerprints,
-único oficial SVAPL02 e piloto/163 movimentos preservados, sem scan ampliado.
-MSI **1.0.6** aprovado no Windows Server 2022, incluindo upgrade configurado
-1.0.5→1.0.6/DPAPI/retomada; pacote e comando único entregues. **Atualização real
-do SVAPL02 ainda aguarda o JSON do operador**; não refazer pareamento ou DSN.
-Depois conferir esse retorno/heartbeat, prévia administrativa e aplicação única
-do recorte A, seguidas de cobertura real. Não aplicar antes da versão compatível.
-Demais fontes, Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem abertos.
+**Continuidade D-333/V-351 — 11/11/2026:** upgrade real do SVAPL02 para1.0.6
+confirmado: Running/Auto/LocalSystem, bytes protegidos preservados, ready às
+17:10:36 UTC, sem reboot. Backend82/mesmo oficial/heartbeat conferidos. Seletor A
+aplicado uma única vez às17:15:17 UTC, revisão ebd69a73…; não reaplicar manifesto
+nem refazer corte/pareamento. Origem contou146, mas scan está incompleto/zero
+cadastros recebidos, por identificação fora do contrato14 dígitos. Dados anteriores
+preservados. Não afirmar carga concluída ou estado ready posterior à seleção.
+Sonda real de agregados confirmou12 inscrições de11 dígitos,133 de14 e uma vazia;
+códigos1/2/3 não têm legenda aprovada. Nenhum documento/nome/valor foi consultado
+pela sonda. D-333 define espelho literal da inscrição/tipo, sem inventar CNPJ/CPF,
+preencher zeros ou sobrescrever CNPJ existente. Correção1.0.7 está em validação;
+MSI novo/backend compatível ainda não entregues/publicados nesta entrada.
+M=10 continua não classificado/fora do recorte, sem inativação. Próximo passo é
+validar/publicar correção, atualizar o mesmo agente e retomar o scan existente;
+não pedir outra revisão de códigos à cliente. Fontes financeiras e aceite pendentes.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 
@@ -166,9 +167,8 @@ Feche cada requisito com evidência e mantenha a matriz de capacidade em estados
 
 Ao finalizar, entregue um resumo objetivo: versão/código implantados, Windows Server real, UUID do novo oficial/anterior revogado e momento do corte, empresas/contas/períodos e volumes sincronizados, fontes cobertas, testes e métricas D-73, recuperação/retorno, percurso da Grazi, saída ERP, treinamento e aceite efetivos. Atualize os documentos canônicos e os arquivos de continuidade, indicando qualquer dependência externa ainda não resolvida, sua causa e a próxima ação concreta. Não chame o projeto de concluído enquanto houver requisito contratual ou gate de aceite pendente.
 
-PRÓXIMA AÇÃO PONTUAL D-332/V-350: aguardar JSON do upgrade já solicitado.
-Pacote Downloads/CICA-CONTAD-Agente-1.0.6-2026-11-11.zip, MSI SHA-256
-14473e84bc4101a257e0a626078ab75963fccfc792094eb066e4218370df2588.
-Sem novo pareamento/DSN. Backend release82 já está publicado; nenhuma seleção
-foi aplicada ainda. Após comprovar1.0.6 real, usar revisão técnica D-332 restrita
-a A, sem ator humano, prévia e --apply uma vez; conferir cobertura/preservação.
+PRÓXIMA AÇÃO D-333/V-351: perfil agregado real recebido; não repetir a sonda.
+Inscrições de11/14 e vazia devem ser preservadas literalmente, com tipo de origem
+sem legenda inferida. Validar1.0.7/scoped-v4/migração aditiva, backend compatível
+e upgrade configurado. Depois pacote/mesmo agente, retomada do scanfc7eed16
+(revisão ebd69a73) e cobertura real146. Não reaplicar manifesto/pareamento/corte.

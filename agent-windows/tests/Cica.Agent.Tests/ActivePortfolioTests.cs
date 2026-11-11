@@ -18,7 +18,7 @@ public sealed class ActivePortfolioTests
         var loaded = JsonSerializer.Deserialize<AgentSyncScope>(JsonSerializer.Serialize(Scope()))!;
         loaded.Validate();
         Assert.True(loaded.IsActiveOnly);
-        Assert.Equal("scoped-v3", loaded.TransportProtocol);
+        Assert.Equal("scoped-v4", loaded.TransportProtocol);
         var legacy = loaded with { Version = "dominio-portfolio-v1", CompanySelection = null };
         legacy.Validate();
         Assert.Equal("scoped-v2", legacy.TransportProtocol);
@@ -30,7 +30,7 @@ public sealed class ActivePortfolioTests
         var plan = PortfolioReadPlan.FromScope(Scope());
         Assert.Equal(new[] { "A", "Z" }, plan.Statuses);
         Assert.Equal("SELECT COUNT(*) FROM bethadba.geempre WHERE stat_emp IN (?,?)", plan.CountSql);
-        Assert.Equal("SELECT TOP 500 codi_emp, nome_emp, cgce_emp, stat_emp FROM bethadba.geempre WHERE stat_emp IN (?,?) AND codi_emp > ? ORDER BY codi_emp", plan.PageSql);
+        Assert.Equal("SELECT TOP 500 codi_emp, nome_emp, cgce_emp, stat_emp, tipoi_emp FROM bethadba.geempre WHERE stat_emp IN (?,?) AND codi_emp > ? ORDER BY codi_emp", plan.PageSql);
         Assert.DoesNotContain("'A'", plan.PageSql);
         Assert.DoesNotContain("'Z'", plan.CountSql);
     }
@@ -64,5 +64,34 @@ public sealed class ActivePortfolioTests
             Scope() with { CompanyStatusMap = new() { ["A' OR 1=1"] = true } },
             Scope() with { Version = "dominio-portfolio-v1" },
         }) Assert.Throws<InvalidDataException>(() => PortfolioReadPlan.FromScope(scope));
+    }
+
+    [Theory]
+    [InlineData("", 1)]
+    [InlineData("12345678901", 1)]
+    [InlineData("AB12CD34000190", 1)]
+    [InlineData("11222333000181", 1)]
+    [InlineData("11222333000181", 2)]
+    [InlineData("11222333000181", 3)]
+    public void RegistrationStaysLiteralWithoutGuessingDocumentKind(string raw, int kind)
+    {
+        var company = PortfolioCompany.FromSource(2, "Synthetic", raw, "A", Scope(), kind);
+        Assert.Null(company.Cnpj);
+        Assert.Equal(raw, company.RegistrationRaw);
+        Assert.Equal(kind, company.RegistrationTypeCode);
+        using var json = JsonDocument.Parse(JsonSerializer.Serialize(company));
+        Assert.False(json.RootElement.TryGetProperty("cnpj_masked", out _));
+        Assert.Equal(raw, json.RootElement.GetProperty("registration_raw").GetString());
+    }
+
+    [Fact]
+    public void UnknownTypeIsNotClassifiedAndInvalidTypeIsRejected()
+    {
+        var company = PortfolioCompany.FromSource(2, "Synthetic", "12345678901", "A", Scope(), DBNull.Value);
+        Assert.Null(company.RegistrationTypeCode);
+        Assert.Equal("12345678901", company.RegistrationRaw);
+        foreach (object bad in new object[] { -1, 256, "CPF", true })
+            Assert.Throws<InvalidDataException>(() => PortfolioCompany.FromSource(2, "Synthetic", "", "A", Scope(), bad));
+        Assert.Throws<InvalidDataException>(() => PortfolioCompany.FromSource(2, "Synthetic", "123456789012345", "A", Scope(), 1));
     }
 }

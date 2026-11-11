@@ -3571,3 +3571,15 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   manifesto não ampliado e nenhum scan da carteira. Não declarar projeto concluído.
 - Entrada AnyDesk não verificável/limite de licença respeitado; sem consulta ERP
   comprovada ou contratação. Fonte financeira continua nos gates Q-28/Q-46/Q-47.
+
+## 11/11/2026 — Upgrade real e recusa de formato localizada (V-351/D-333)
+
+- Recebido upgrade1.0.6/ready/bytes preservados; oficial/heartbeat/backend82 conferidos.
+- Prévia e aplicação única A às17:15:17 UTC, auditoria técnica; staging privado removido.
+- Scan146/cursor0 abriu, sem enviar cadastros. Erro real às17:18:30 aponta limite14 dígitos.
+- Sonda agregada Windows/seis cenários validada e executada na cliente às17:27:45:
+  12 inscrições11,133 inscrições14 e uma vazia, sem divulgar documentos/nomes/valores.
+- Onze fingerprints originais preservados, nenhuma fonte financeira nova.
+- D-333 registrado antes do código: espelho literal em campos próprios, sem
+  interpretação de TIPOI_EMP/CNPJ/CPF ou mudança de UI/regra comercial.
+- Correção1.0.7 em validação; coleta ainda incompleta, não marcar projeto concluído.

@@ -31,7 +31,8 @@ internal sealed class DominioPortfolioProcessor(AgentConfig config, AgentClient 
             using (var reader = await command.ExecuteReaderAsync(token))
             {
                 while (await reader.ReadAsync(token))
-                    page.Add(PortfolioCompany.FromSource(reader[0], reader[1], reader[2], reader[3], scope));
+                    page.Add(PortfolioCompany.FromSource(reader[0], reader[1], reader[2], reader[3], scope,
+                        scope.IsActiveOnly ? reader[4] : null));
             }
             bool complete = page.Count < 500;
             int sourceCount = complete ? await CountCompanies(connection, plan, token) : count;

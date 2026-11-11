@@ -4100,3 +4100,69 @@ aprovados, PR6/main7a02775 integrado e backend release82 conferido/preservado.
 Pacote entregue; versão1.0.6 real e coleta A ainda pendentes. Não aplicar antes
 do retorno do operador; não reinterpretar M, reabrir instalação ou atribuir
 aprovação da Grazi. Próxima fonte depende das relações/semântica reais.
+
+Continuidade operacional D-332 (11/11, antes da aplicação): operador devolveu
+upgrade real1.0.5→1.0.6 no SVAPL02, MSI14473e84…, bytes protegidos preservados,
+Running/Auto/LocalSystem, ready/fresh às17:10:36 UTC, exit0/sem reboot. Conferir
+mesmo oficial/heartbeat recente e backend82 antes de avançar. Sob autorização
+D-332 já registrada, preparar revisão técnica A=true/ator nulo, validar prévia
+e aplicar uma única vez com revisão piloto esperada; acompanhar scan real.
+O inventário original de metadados pode ser colocado temporariamente apenas
+no backend CICA da operação, via SFTP/0600 em diretório0700, hash conferido e
+removido após o comando; não publicar JSON bruto ou atribuir aprovação humana.
+Preservar identidades, histórico financeiro e M não classificado. Não executar
+novo pareamento, reinstalação, corte ou envio de lote artificial.
+
+Diagnóstico D-332/Q-28 antes da correção de formatos: aplicação única do seletor A
+concluída, revisão ebd69a73…, auditoria técnica sem ator humano. Agente1.0.6 abriu
+scan com contagem146, mas enviou zero cadastros. Operador confirmou às17:18:30 UTC
+configuration_error/Identificação de empresa fora do contrato. Não atribuir a CPF,
+CEI ou cadastro inválido por inferência: a causa conhecida é quantidade de dígitos
+fora do contrato14, após aceitar caracteres de identificação. Preservar carga
+incompleta/cursor e históricos; não pular linhas, zerar documentos ou fabricar CNPJ.
+Preparar sonda pontual somente de agregados no recorte A: TIPOI_EMP (nome real
+tipoi_emp), comprimento original e sem pontuação e COUNT(*), sem selecionar
+nomes, códigos de empresas ou documentos. Validar coluna/limites/parametrização,
+redação de falha e execução PowerShell5.1 em Windows descartável antes da entrega.
+Credencial só no próprio Windows como na sonda anterior; não ler registro ou
+descriptografar agent.config. Resultado não classifica TIPOI_EMP/CPF/CEI sozinho.
+Não repetir inventário completo ou instalar MSI diferente antes de conhecer os
+formatos reais; autorização de branch/CI Windows permanece a existente.
+
+## D-333 — Inscrição de origem preservada sem classificação presumida (11/11/2026)
+
+Q-28/D-332: sonda real concluída às17:27:45 UTC. Recorte A tem146 cadastros:
+tipo1/vazio1, tipo1/11 dígitos12, tipo1/14 dígitos130, tipo2/14 dígitos1 e
+tipo3/14 dígitos2. Não interpretar11 dígitos como CPF nem completar zeros ou
+formatar14 como CNPJ: TIPOI_EMP ainda não tem legenda conferida. O fabricante
+admite inscrições distintas, mas isso não aprova o mapa numérico desta base.
+
+Para cumprir a coleta autorizada de todas as ativas sem perder identificação,
+acrescentar campos de espelho dominio_registration_raw (texto original até14,
+retirado apenas preenchimento CHAR) e dominio_registration_type_code (nulo ou
+0..255, sem legenda inferida). Chave continua escritório+CODI_EMP. Não substituir
+CNPJ/commercial_root existentes nem derivá-los desses códigos; novos registros
+ficam com inscrição de origem preservada e CNPJ não classificado. Sem mudança de
+UI, módulos, regras comerciais, fonte financeira, terceiros ou IA. A interpretação
+fiscal permanece pendente; espelho literal não homologa inscrição ou documento.
+
+Agente1.0.7 usa contrato de linha explícito em scoped-v4 no mesmo recorte A e
+mesma revisão. Backend mantém v3/CNPJ anterior e piloto; v4 transmite campos
+registration_raw/registration_type_code sem rebatizá-los como CNPJ/CPF. Validar
+campos exatos/tipos/limites/status/ordem e atomicidade antes de qualquer escrita.
+Migração aditiva com defaults de banco permite imagem anterior continuar a operar.
+Não refazer manifesto, pareamento, scans ou corte; retomar scan real de146/cursor0.
+Validar upgrade1.0.6→1.0.7 com DPAPI/ACL/retomada em Windows descartável antes
+de entregá-lo, publicar backend compatível sob D-323/D-329 e conferir dados/saúde.
+Somente depois do cliente real, verificar cobertura146/releitura sem duplicação.
+
+Referências: https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=5997
+(mais de uma forma de inscrição, sem mapa TIPOI_EMP); funções usadas pela sonda:
+https://help.sap.com/docs/SAP_SQL_Anywhere/7eca48cee41b418bbd54feff83d57803/3eddbe4a50c3446f8c294eb6e6088153.html
+e https://help.sap.com/docs/SAP_SQL_Anywhere/7eca48cee41b418bbd54feff83d57803/9fba5996582a45c789310438147d164f.html.
+
+Refinamento D-333 antes do contrato dependente: a inscrição é texto literal
+até14 caracteres, sem controles; não impor apenas dígitos ou inferir tipo fiscal.
+Preservar letras, separadores e zeros; remover somente padding de espaço CHAR.
+Isto não valida CNPJ/CPF ou aprova legenda TIPOI_EMP. V3 mantém contrato anterior;
+v4 não deve provocar outra atualização por uma classe textual não interpretada.

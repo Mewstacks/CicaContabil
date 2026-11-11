@@ -43,7 +43,7 @@ jobs:
         run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.6
+        run: ./agent-windows/build.ps1 -Version 1.0.7
       - name: Parse Windows operational scripts without executing ERP queries
         shell: powershell
         run: |
@@ -61,7 +61,7 @@ jobs:
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.6') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.7') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
       - name: Validate SYSTEM diagnostic isolation and cleanup
         if: github.event.repository.private == false
@@ -78,15 +78,15 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: github.event.repository.private == false
         with:
-          ref: 53b834b12318ed5177e4d736929ab58f2c31559a
+          ref: 11147d4bdc040e2ed2d4b80ee2942f2516f758aa
           path: baseline-agent
           persist-credentials: false
-      - name: Build baseline 1.0.5 and verify configured upgrade to 1.0.6
+      - name: Build baseline 1.0.6 and verify configured upgrade to 1.0.7
         if: github.event.repository.private == false
         shell: pwsh
         run: |
-          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.5
-          ./agent-windows/test-active-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.6
+          ./agent-windows/test-registration-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
       - name: Preserve tested agent and evidence
         if: success() && github.event.repository.private == false
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

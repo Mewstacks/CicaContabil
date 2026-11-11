@@ -33,6 +33,7 @@ from apps.intelligence.agent_scope import (
     PORTFOLIO_PROTOCOL,
     PORTFOLIO_VERSIONS,
     PROTOCOL,
+    REGISTRATION_PROTOCOL,
     validate_scope_page,
     validate_sync_scope,
 )
@@ -92,9 +93,13 @@ def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
             in {"agent-v2-heartbeat", "agent-v2-configuration-next"}
         )
         protocols = (
-            {ACTIVE_PORTFOLIO_PROTOCOL if active_only else PORTFOLIO_PROTOCOL}
+            (
+                {ACTIVE_PORTFOLIO_PROTOCOL, REGISTRATION_PROTOCOL}
+                if active_only
+                else {PORTFOLIO_PROTOCOL}
+            )
             if portfolio and not configuration_route
-            else {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL}
+            else {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL, REGISTRATION_PROTOCOL}
         )
         if (
             request.headers.get("X-Hub-Agent-Protocol") not in protocols
@@ -230,11 +235,11 @@ def enroll(request: HttpRequest) -> JsonResponse:
             mtls_certificate_sha256=fingerprint,
             request=request,
             allow_scoped=request.headers.get("X-Hub-Agent-Protocol")
-            in {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL},
+            in {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL, REGISTRATION_PROTOCOL},
             allow_portfolio=request.headers.get("X-Hub-Agent-Protocol")
-            in {PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL},
+            in {PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL, REGISTRATION_PROTOCOL},
             allow_active_portfolio=request.headers.get("X-Hub-Agent-Protocol")
-            == ACTIVE_PORTFOLIO_PROTOCOL,
+            in {ACTIVE_PORTFOLIO_PROTOCOL, REGISTRATION_PROTOCOL},
             allow_replacement=request.headers.get("X-Hub-Agent-Replacement") == "staged-v1",
         )
     except ValueError as exc:
