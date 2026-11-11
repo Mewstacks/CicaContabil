@@ -49,8 +49,8 @@ try {
     do {
         Start-Sleep -Milliseconds 400
         $state=Get-Content $statusFile -Raw | ConvertFrom-Json
-    } while([DateTimeOffset]::Parse($state.observed_at_utc) -lt $start -and [DateTimeOffset]::UtcNow -lt $deadline)
-    if([DateTimeOffset]::Parse($state.observed_at_utc) -lt $start -or $state.version -ne '1.0.6' -or (Get-FileHash $config).Hash -ne $hash) { throw 'Restart did not preserve the upgraded configuration.' }
+    } while(([DateTimeOffset]$state.observed_at_utc) -lt $start -and [DateTimeOffset]::UtcNow -lt $deadline)
+    if(([DateTimeOffset]$state.observed_at_utc) -lt $start -or $state.version -ne '1.0.6' -or (Get-FileHash $config).Hash -ne $hash) { throw 'Restart did not preserve the upgraded configuration.' }
     @{passed=$true;baseline_source='53b834b12318ed5177e4d736929ab58f2c31559a';from='1.0.5';to='1.0.6';encrypted_bytes_preserved=$true;system_dpapi_reopened=$true;restart_verified=$true;network_erp_used=$false;source_sha=$env:GITHUB_SHA} |
         ConvertTo-Json | Set-Content (Join-Path $folder 'upgrade-test.json') -Encoding UTF8
     Write-Host 'Upgrade 1.0.5 -> 1.0.6 preserved encrypted configuration, SYSTEM DPAPI and restart.'

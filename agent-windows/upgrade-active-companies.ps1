@@ -48,7 +48,7 @@ $deadline=[DateTimeOffset]::UtcNow.AddSeconds($TimeoutSeconds)
 do {
     try {
         $state=Get-Content -LiteralPath $statusFile -Raw | ConvertFrom-Json
-        $fresh=$state.version -eq '1.0.6' -and [DateTimeOffset]::Parse($state.observed_at_utc) -ge $started
+        $fresh=$state.version -eq '1.0.6' -and ([DateTimeOffset]$state.observed_at_utc) -ge $started
     } catch { $fresh=$false }
     if($fresh -and $state.state -in @('ready','update_available')) { break }
     Start-Sleep -Milliseconds 400
