@@ -17,6 +17,7 @@
     <Compile Include="../../src/Cica.Agent.Service/LocalOdbcConnection.cs" Link="LocalOdbcConnection.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentSyncScope.cs" Link="AgentSyncScope.cs" />
     <Compile Include="../../src/Cica.Agent.Service/PortfolioCompany.cs" Link="PortfolioCompany.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/PortfolioReadPlan.cs" Link="PortfolioReadPlan.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AtomicConfigurationFile.cs" Link="AtomicConfigurationFile.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentAuthentication.cs" Link="AgentAuthentication.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentCollectionGate.cs" Link="AgentCollectionGate.cs" />

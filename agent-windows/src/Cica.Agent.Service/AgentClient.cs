@@ -14,7 +14,7 @@ internal sealed class AgentClient : IDisposable
     internal AgentClient(AgentConfig config)
     {
         this.config = config;
-        protocol = config.SyncScope?.IsPortfolio is true ? AgentSyncScope.Protocol : AgentSyncScope.LegacyProtocol;
+        protocol = Protocol(config.SyncScope);
         AgentAuthentication.Validate(config.AuthenticationMode, config.AgentId,
             config.SharedSecret, config.CertificatePfxBase64);
         var handler = AgentAuthentication.CreateHandler(config.AuthenticationMode, config.CertificatePfxBase64);
@@ -68,11 +68,13 @@ internal sealed class AgentClient : IDisposable
             scope = value.Deserialize<AgentSyncScope>()
                 ?? throw new InvalidDataException("Recorte financeiro inválido.");
             scope.Validate();
-            protocol = scope.IsPortfolio ? AgentSyncScope.Protocol : AgentSyncScope.LegacyProtocol;
+            protocol = Protocol(scope);
         }
         return (string.IsNullOrWhiteSpace(root) ? null : root, scope,
             AgentCollectionGate.IsEnabled(result.RootElement));
     }
+
+    private static string Protocol(AgentSyncScope? scope) => scope?.TransportProtocol ?? AgentSyncScope.LegacyProtocol;
 
     internal async Task DownloadAsync(string absoluteUrl, string output, CancellationToken token)
     {

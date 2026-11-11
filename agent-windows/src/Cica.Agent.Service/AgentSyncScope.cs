@@ -15,11 +15,15 @@ internal sealed record AgentSyncScope(
     [property: JsonPropertyName("revision")] string Revision,
     [property: JsonPropertyName("organization_id")] string? OrganizationId = null,
     [property: JsonPropertyName("datasets")] string[]? Datasets = null,
-    [property: JsonPropertyName("company_status_map")] Dictionary<string, bool>? CompanyStatusMap = null)
+    [property: JsonPropertyName("company_status_map")] Dictionary<string, bool>? CompanyStatusMap = null,
+    [property: JsonPropertyName("company_selection")] string? CompanySelection = null)
 {
     internal const string Protocol = "scoped-v2";
     internal const string LegacyProtocol = "scoped-v1";
-    internal bool IsPortfolio => Version == "dominio-portfolio-v1";
+    internal const string ActiveProtocol = "scoped-v3";
+    internal bool IsActiveOnly => Version == "dominio-portfolio-v2";
+    internal bool IsPortfolio => Version is "dominio-portfolio-v1" or "dominio-portfolio-v2";
+    internal string TransportProtocol => IsActiveOnly ? ActiveProtocol : IsPortfolio ? Protocol : LegacyProtocol;
     internal DateTime Start => DateTime.ParseExact(PeriodStart, "yyyy-MM-dd", CultureInfo.InvariantCulture);
     internal DateTime EndExclusive => DateTime.ParseExact(PeriodEnd, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddDays(1);
 
@@ -31,6 +35,8 @@ internal sealed record AgentSyncScope(
                 || Datasets is null || !Datasets.SequenceEqual(new[] { "companies" })
                 || CompanyStatusMap is null || CompanyStatusMap.Count is < 1 or > 16
                 || CompanyStatusMap.Keys.Any(key => !Regex.IsMatch(key, @"\A[A-Z0-9_-]{1,16}\z"))
+                || (IsActiveOnly && (CompanySelection != "active_only" || !CompanyStatusMap.Values.Any(active => active)))
+                || (!IsActiveOnly && CompanySelection is not null)
                 || Revision is null || !Regex.IsMatch(Revision, @"\A[0-9a-f]{64}\z")
                 || !DateOnly.TryParseExact(PeriodStart, "yyyy-MM-dd", CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out DateOnly portfolioStart)

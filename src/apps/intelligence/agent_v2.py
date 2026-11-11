@@ -28,8 +28,10 @@ from apps.hub.backup_bridge import apply_backup_page, complete_backup, fail_back
 from apps.hub.models import ImportBatch
 from apps.intelligence.agent_mtls import valid_mtls_client
 from apps.intelligence.agent_scope import (
+    ACTIVE_PORTFOLIO_PROTOCOL,
+    ACTIVE_PORTFOLIO_VERSION,
     PORTFOLIO_PROTOCOL,
-    PORTFOLIO_VERSION,
+    PORTFOLIO_VERSIONS,
     PROTOCOL,
     validate_scope_page,
     validate_sync_scope,
@@ -79,7 +81,8 @@ def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
             "agent-v2-dominio-companies",
             "agent-v2-dominio-bank-entries",
         }
-        portfolio = agent.sync_scope.get("version") == PORTFOLIO_VERSION
+        portfolio = agent.sync_scope.get("version") in PORTFOLIO_VERSIONS
+        active_only = agent.sync_scope.get("version") == ACTIVE_PORTFOLIO_VERSION
         if portfolio:
             allowed -= {"agent-v2-dominio-companies", "agent-v2-dominio-bank-entries"}
             allowed.add("agent-v2-dominio-portfolio-companies")
@@ -89,9 +92,9 @@ def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
             in {"agent-v2-heartbeat", "agent-v2-configuration-next"}
         )
         protocols = (
-            {PORTFOLIO_PROTOCOL}
+            {ACTIVE_PORTFOLIO_PROTOCOL if active_only else PORTFOLIO_PROTOCOL}
             if portfolio and not configuration_route
-            else {PROTOCOL, PORTFOLIO_PROTOCOL}
+            else {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL}
         )
         if (
             request.headers.get("X-Hub-Agent-Protocol") not in protocols
@@ -227,8 +230,11 @@ def enroll(request: HttpRequest) -> JsonResponse:
             mtls_certificate_sha256=fingerprint,
             request=request,
             allow_scoped=request.headers.get("X-Hub-Agent-Protocol")
-            in {PROTOCOL, PORTFOLIO_PROTOCOL},
-            allow_portfolio=request.headers.get("X-Hub-Agent-Protocol") == PORTFOLIO_PROTOCOL,
+            in {PROTOCOL, PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL},
+            allow_portfolio=request.headers.get("X-Hub-Agent-Protocol")
+            in {PORTFOLIO_PROTOCOL, ACTIVE_PORTFOLIO_PROTOCOL},
+            allow_active_portfolio=request.headers.get("X-Hub-Agent-Protocol")
+            == ACTIVE_PORTFOLIO_PROTOCOL,
             allow_replacement=request.headers.get("X-Hub-Agent-Replacement") == "staged-v1",
         )
     except ValueError as exc:

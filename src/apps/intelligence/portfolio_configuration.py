@@ -49,40 +49,9 @@ def _integer(value: Any, maximum: int) -> bool:
     return type(value) is int and 0 <= value <= maximum
 
 
-def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any]:
-    """Validate bounded source evidence and an explicitly separate human review."""
+def validate_inventory(inventory_raw: bytes) -> dict[str, Any]:
+    """Check source structure without fabricating a reviewer or approving semantics."""
     inventory = _document(inventory_raw, INVENTORY_LIMIT)
-    review = _document(review_raw, REVIEW_LIMIT)
-    if (
-        set(review)
-        != {
-            "version",
-            "organization_id",
-            "agent_id",
-            "inventory_sha256",
-            "reviewer_id",
-            "review_reference",
-            "agent_version",
-            "company_status_map",
-        }
-        or review["version"] != "contad-company-status-review-v1"
-    ):
-        raise ValueError("Contrato de revisão de situações inválido.")
-    for key in ("organization_id", "agent_id", "reviewer_id"):
-        try:
-            if str(UUID(review[key])) != review[key]:
-                raise ValueError
-        except (ValueError, TypeError, AttributeError) as exc:
-            raise ValueError("Identificador da revisão inválido.") from exc
-    if review["inventory_sha256"] != hashlib.sha256(inventory_raw).hexdigest():
-        raise ValueError("SHA-256 do inventário difere da revisão.")
-    if (
-        not isinstance(review["review_reference"], str)
-        or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,120}", review["review_reference"])
-        or not isinstance(review["agent_version"], str)
-        or not re.fullmatch(r"1\.0\.(?:[5-9]|[1-9][0-9]+)", review["agent_version"])
-    ):
-        raise ValueError("Referência de revisão ou versão compatível ausente.")
     if (
         inventory.get("version") != "contad-schema-inventory-v1"
         or inventory.get("financial_period_start") != "2026-09-01"
@@ -158,12 +127,7 @@ def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any
     ):
         raise ValueError("Cobertura de metadados não confere.")
     statuses = inventory.get("company_status_counts")
-    mapping = review["company_status_map"]
-    if (
-        not isinstance(statuses, list)
-        or not 1 <= len(statuses) <= 20
-        or not isinstance(mapping, dict)
-    ):
+    if not isinstance(statuses, list) or not 1 <= len(statuses) <= 20:
         raise ValueError("Situações de origem ou mapa revisado ausentes.")
     counts: dict[str, int] = {}
     for row in statuses:
@@ -177,18 +141,65 @@ def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any
         ):
             raise ValueError("Situação de origem inválida ou repetida.")
         counts[row["source_status"]] = row["count"]
-    if (
-        not _integer(inventory.get("company_count"), 1_000_000)
-        or inventory["company_count"] != sum(counts.values())
-        or set(mapping) != set(counts)
-        or any(type(active) is not bool for active in mapping.values())
+    if not _integer(inventory.get("company_count"), 1_000_000) or inventory["company_count"] != sum(
+        counts.values()
     ):
         raise ValueError("Contagens ou cobertura integral do mapa de situações não conferem.")
+    return {
+        **inventory,
+        "inventory_sha256": hashlib.sha256(inventory_raw).hexdigest(),
+        "inventory_observed_at": observed.isoformat(),
+        "status_counts": counts,
+    }
+
+
+def reviewed_inventory(inventory_raw: bytes, review_raw: bytes) -> dict[str, Any]:
+    """Validate bounded source evidence and an explicitly separate human review."""
+    inventory = validate_inventory(inventory_raw)
+    review = _document(review_raw, REVIEW_LIMIT)
+    if (
+        set(review)
+        != {
+            "version",
+            "organization_id",
+            "agent_id",
+            "inventory_sha256",
+            "reviewer_id",
+            "review_reference",
+            "agent_version",
+            "company_status_map",
+        }
+        or review["version"] != "contad-company-status-review-v1"
+    ):
+        raise ValueError("Contrato de revisão de situações inválido.")
+    for key in ("organization_id", "agent_id", "reviewer_id"):
+        try:
+            if str(UUID(review[key])) != review[key]:
+                raise ValueError
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("Identificador da revisão inválido.") from exc
+    if review["inventory_sha256"] != hashlib.sha256(inventory_raw).hexdigest():
+        raise ValueError("SHA-256 do inventário difere da revisão.")
+    if (
+        not isinstance(review["review_reference"], str)
+        or not re.fullmatch(r"[A-Za-z0-9._:/-]{1,120}", review["review_reference"])
+        or not isinstance(review["agent_version"], str)
+        or not re.fullmatch(r"1\.0\.(?:[5-9]|[1-9][0-9]+)", review["agent_version"])
+    ):
+        raise ValueError("Referência de revisão ou versão compatível ausente.")
+    mapping = review["company_status_map"]
+    if (
+        not isinstance(mapping, dict)
+        or set(mapping) != set(inventory["status_counts"])
+        or any(type(active) is not bool for active in mapping.values())
+    ):
+        raise ValueError("Cobertura integral do mapa revisado não confere.")
     return {
         **review,
         "review_sha256": hashlib.sha256(review_raw).hexdigest(),
         "company_count": inventory["company_count"],
-        "inventory_observed_at": observed.isoformat(),
+        "status_counts": inventory["status_counts"],
+        "inventory_observed_at": inventory["inventory_observed_at"],
     }
 
 
@@ -201,8 +212,11 @@ def configure_portfolio(
     review_raw: bytes,
     period_end: date,
     apply: bool = False,
+    active_only: bool = False,
 ) -> dict[str, Any]:
     evidence = reviewed_inventory(inventory_raw, review_raw)
+    if active_only and tuple(map(int, evidence["agent_version"].split("."))) < (1, 0, 6):
+        raise ValueError("Coleta somente de ativas exige agente 1.0.6 ou posterior comprovado.")
     if evidence["organization_id"] != str(organization.pk) or evidence["agent_id"] != str(agent_id):
         raise ValueError("Revisão não pertence a este escritório/agente.")
     with transaction.atomic():
@@ -242,6 +256,7 @@ def configure_portfolio(
             start=date(2026, 9, 1),
             end=period_end,
             company_status_map=evidence["company_status_map"],
+            active_only=active_only,
         )
         replay = AuditEvent.objects.filter(
             organization=organization,
@@ -279,6 +294,12 @@ def configure_portfolio(
             "financial_collection_enabled": False,
             "existing_financial_data_preserved": True,
             "observed_company_count": evidence["company_count"],
+            "company_selection": "active_only" if active_only else "all_reviewed_statuses",
+            "selected_company_count": sum(
+                count
+                for code, count in evidence["status_counts"].items()
+                if not active_only or evidence["company_status_map"][code]
+            ),
             "inventory_sha256": evidence["inventory_sha256"],
         }
         if apply:

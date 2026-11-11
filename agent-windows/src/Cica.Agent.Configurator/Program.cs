@@ -251,7 +251,7 @@ internal sealed class SetupForm : Form
                 BaseAddress = new Uri(uri.ToString().TrimEnd('/') + "/"),
                 Timeout = TimeSpan.FromSeconds(65)
             };
-            http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.Protocol);
+            http.DefaultRequestHeaders.Add("X-Hub-Agent-Protocol", AgentSyncScope.ActiveProtocol);
             http.DefaultRequestHeaders.Add("X-Hub-Agent-Replacement", "staged-v1");
             using HttpResponseMessage response = await http.PostAsJsonAsync("api/agent/v2/enroll", new
             {

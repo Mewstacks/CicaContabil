@@ -15,7 +15,11 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.audit.services import record_event
-from apps.intelligence.agent_scope import PORTFOLIO_VERSION, validate_sync_scope
+from apps.intelligence.agent_scope import (
+    ACTIVE_PORTFOLIO_VERSION,
+    PORTFOLIO_VERSIONS,
+    validate_sync_scope,
+)
 from apps.intelligence.agent_v2 import _agent, _error, _payload
 from apps.intelligence.models import AgentCompanyScan, EdgeAgent, IntelligenceConnector
 from apps.intelligence.sync import sync_companies
@@ -84,6 +88,10 @@ def _company_rows(rows: Any, scope: dict[str, Any], after: str) -> list[dict[str
             or (cnpj and not re.fullmatch(r"[0-9]{2}\.[0-9]{3}\.[0-9]{3}/[0-9]{4}-[0-9]{2}", cnpj))
             or not isinstance(status, str)
             or status not in scope["company_status_map"]
+            or (
+                scope["version"] == ACTIVE_PORTFOLIO_VERSION
+                and not scope["company_status_map"].get(status)
+            )
         ):
             raise ValueError("Empresa inválida, ordem inconsistente ou situação não revisada.")
         previous = int(code)
@@ -112,7 +120,7 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                 return _error("Agente revogado.", 401)
             scope = validate_sync_scope(agent.sync_scope, agent.organization)
             if (
-                scope["version"] != PORTFOLIO_VERSION
+                scope["version"] not in PORTFOLIO_VERSIONS
                 or payload.get("scope_revision") != scope["revision"]
             ):
                 return _error("Revisão de carteira ausente ou desatualizada.", 403)
