@@ -12,7 +12,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.db import connection, transaction
 from django.utils import timezone
 
-from apps.intelligence.agent_scope import PORTFOLIO_VERSION, VERSION
+from apps.intelligence.agent_scope import PORTFOLIO_VERSIONS, VERSION
 from apps.intelligence.models import AgentCompanyScan, EdgeAgent
 from apps.organizations.selectors import resolve_organization
 
@@ -58,7 +58,7 @@ class Command(BaseCommand):
             ):
                 scope = agent["sync_scope"]
                 version = scope.get("version") if isinstance(scope, dict) else None
-                if version not in (VERSION, PORTFOLIO_VERSION):
+                if version not in (VERSION, *PORTFOLIO_VERSIONS):
                     version = "unscoped" if scope == {} else "invalid"
                 scans = AgentCompanyScan.objects.filter(
                     organization=organization, agent_id=agent["id"]

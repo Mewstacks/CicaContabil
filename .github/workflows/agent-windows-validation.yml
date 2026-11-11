@@ -42,10 +42,20 @@ jobs:
           --results-directory agent-windows/artifacts/validation
       - name: Build MSI
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.5
+        run: ./agent-windows/build.ps1 -Version 1.0.6
       - name: Install, repair, restart, diagnose and uninstall
         shell: pwsh
         run: ./agent-windows/test-installer.ps1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 53b834b12318ed5177e4d736929ab58f2c31559a
+          path: baseline-agent
+          persist-credentials: false
+      - name: Build baseline and verify configured upgrade
+        shell: pwsh
+        run: |
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.5
+          ./agent-windows/test-active-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
       - name: Preserve tested installer
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

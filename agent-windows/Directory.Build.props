@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <Version>1.0.5</Version>
+    <Version>1.0.6</Version>
     <!-- O runtime autocontido precisa acompanhar os patches estáveis (D-325). -->
     <CicaRuntimeVersion>10.0.15</CicaRuntimeVersion>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>

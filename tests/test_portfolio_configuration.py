@@ -31,6 +31,7 @@ from apps.intelligence.portfolio_configuration import (
     INVENTORY_LIMIT,
     configure_portfolio,
     reviewed_inventory,
+    validate_inventory,
 )
 from apps.organizations.models import Membership
 
@@ -294,6 +295,218 @@ def test_command_previews_without_writing_and_hides_bad_file_contents(prepared, 
     with pytest.raises(CommandError) as caught:
         call_command("configure_agent_portfolio", **args, apply=True)
     assert "never-echo-this" not in str(caught.value)
+
+
+def test_inventory_can_be_checked_without_a_fabricated_human_review(prepared, tmp_path):
+    data = raw(prepared[1])
+    with CaptureQueriesContext(connection) as queries:
+        result = validate_inventory(data)
+        path = tmp_path / "inventory.json"
+        path.write_bytes(data)
+        output = StringIO()
+        call_command("inspect_agent_inventory", inventory=str(path), stdout=output)
+    assert len(queries) == 0
+    report = json.loads(output.getvalue())
+    assert report["status_counts"] == {"A": 501, "I": 2}
+    assert report["read_only"] and not report["semantics_approved"]
+    assert result["inventory_sha256"] == hashlib.sha256(data).hexdigest()
+    assert "reviewer_id" not in report and "objects" not in report
+
+
+def test_active_only_administration_requires_the_new_client_and_reports_selected_count(prepared):
+    with pytest.raises(ValueError, match=r"1\.0\.6"):
+        configure(prepared, active_only=True)
+    prepared[2]["agent_version"] = "1.0.6"
+    preview = configure(prepared, active_only=True)
+    assert preview["selected_company_count"] == 501
+    assert preview["observed_company_count"] == 503
+    assert preview["company_selection"] == "active_only" and not preview["applied"]
+    result = configure(prepared, active_only=True, apply=True)
+    prepared[0].refresh_from_db()
+    assert result["applied"]
+    assert prepared[0].sync_scope["version"] == "dominio-portfolio-v2"
+    assert prepared[0].sync_scope["company_selection"] == "active_only"
+    assert ClientCompany.objects.count() == 1
+    assert not AgentCompanyScan.objects.exists()
+
+
+def selector_review(prepared):
+    prepared[2].update(
+        version="contad-active-selection-review-v1",
+        reviewer_id=None,
+        review_reference="D-332:existing-dominio-active-selector",
+        agent_version="1.0.6",
+        company_status_map={"A": True},
+    )
+
+
+def test_existing_active_selector_requires_both_flags_and_does_not_forge_a_human_actor(prepared):
+    selector_review(prepared)
+    for flags in [{}, {"active_only": True}, {"allow_existing_active_selector": True}]:
+        with pytest.raises(ValueError):
+            configure(prepared, apply=True, **flags)
+    result = configure(
+        prepared,
+        active_only=True,
+        allow_existing_active_selector=True,
+        apply=True,
+    )
+    event = AuditEvent.objects.get(action=ACTION)
+    assert event.actor_id is None
+    assert event.metadata["review_origin"] == result["review_origin"] == "existing_active_selector"
+    assert result["selected_company_count"] == 501
+    prepared[0].refresh_from_db()
+    assert prepared[0].sync_scope["company_status_map"] == {"A": True}
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"company_status_map": {"A": True, "I": False}},
+        {"company_status_map": {"A": True, "M": True}},
+        {"review_reference": "unrelated"},
+        {"reviewer_id": str(uuid4())},
+    ],
+)
+def test_existing_selector_cannot_approve_other_codes_or_a_fake_reviewer(prepared, changes):
+    selector_review(prepared)
+    prepared[2].update(changes)
+    with pytest.raises(ValueError):
+        configure(prepared, active_only=True, allow_existing_active_selector=True, apply=True)
+    assert not AuditEvent.objects.filter(action=ACTION).exists()
+
+
+def test_active_only_scope_binds_selection_to_revision_and_rejects_empty_map(prepared):
+    from apps.intelligence.agent_scope import build_portfolio_scope, validate_sync_scope
+
+    organization = prepared[0].organization
+    kwargs = dict(organization=organization, start=date(2026, 9, 1), end=date(2026, 9, 30))
+    normal = build_portfolio_scope(**kwargs, company_status_map={"A": True, "I": False})
+    active = build_portfolio_scope(
+        **kwargs, company_status_map={"A": True, "I": False}, active_only=True
+    )
+    assert active["revision"] != normal["revision"]
+    for changed in [
+        {**active, "company_selection": "all"},
+        {**active, "version": "dominio-portfolio-v1"},
+        {**active, "revision": normal["revision"]},
+    ]:
+        with pytest.raises(ValueError):
+            validate_sync_scope(changed, organization)
+    with pytest.raises(ValueError):
+        build_portfolio_scope(**kwargs, company_status_map={"I": False}, active_only=True)
+
+
+def active_credentials(prepared):
+    from types import SimpleNamespace
+
+    prepared[2]["agent_version"] = "1.0.6"
+    configure(prepared, active_only=True, apply=True)
+    agent = prepared[0]
+    agent.refresh_from_db()
+    return SimpleNamespace(
+        agent_id=str(agent.pk), shared_secret=agent.shared_secret, sync_scope=agent.sync_scope
+    )
+
+
+def test_active_intake_requires_new_protocol_but_configuration_remains_compatible(
+    prepared,
+):
+    from test_portfolio_sync import post
+
+    credentials = active_credentials(prepared)
+    payload = {
+        "action": "open",
+        "expected_count": 501,
+        "scope_revision": credentials.sync_scope["revision"],
+    }
+    for protocol in ("scoped-v1", "scoped-v2"):
+        assert post(credentials, payload, protocol=protocol).status_code == 401
+        configuration = post(
+            credentials, {}, route="agent-v2-configuration-next", protocol=protocol
+        )
+        assert configuration.status_code == 200
+        assert configuration.json()["sync_scope"]["version"] == "dominio-portfolio-v2"
+    assert not AgentCompanyScan.objects.exists()
+    assert post(credentials, payload, protocol="scoped-v3").status_code == 200
+
+
+def test_active_only_scan_covers_501_selected_companies_and_preserves_absent_history(prepared):
+    from test_portfolio_sync import page, post, row
+
+    organization = prepared[0].organization
+    historic = ClientCompany.objects.create(
+        organization=organization,
+        dominio_code="990",
+        name="Historical inactive",
+        active=False,
+        dominio_status="I",
+    )
+    credentials = active_credentials(prepared)
+    payload = {
+        "action": "open",
+        "expected_count": 501,
+        "scope_revision": credentials.sync_scope["revision"],
+    }
+    opened = post(credentials, payload, protocol="scoped-v3").json()
+    first = page(credentials, opened, [row(i) for i in range(1, 501)], complete=False)
+    receipt = post(credentials, first, protocol="scoped-v3")
+    assert receipt.status_code == 200 and not receipt.json()["complete"]
+    assert post(credentials, first, protocol="scoped-v3").json()["replayed"]
+    resumed = post(credentials, payload, protocol="scoped-v3").json()
+    assert resumed["after"] == "500"
+    final = post(credentials, page(credentials, resumed, [row(501)]), protocol="scoped-v3")
+    assert final.status_code == 200 and final.json()["complete"]
+    historic.refresh_from_db()
+    assert not historic.active and historic.dominio_status == "I"
+    assert ClientCompany.objects.count() == 502
+    scan = AgentCompanyScan.objects.get()
+    assert scan.expected_count == scan.received_count == 501 and scan.completed_at is not None
+
+
+def test_active_only_intake_refuses_an_inactive_or_unknown_row_without_partial_writes(prepared):
+    from test_portfolio_sync import page, post, row
+
+    credentials = active_credentials(prepared)
+    payload = {
+        "action": "open",
+        "expected_count": 2,
+        "scope_revision": credentials.sync_scope["revision"],
+    }
+    opened = post(credentials, payload, protocol="scoped-v3").json()
+    for status in ("I", "UNREVIEWED"):
+        response = post(
+            credentials, page(credentials, opened, [row(2), row(3, status)]), protocol="scoped-v3"
+        )
+        assert response.status_code == 400
+        assert ClientCompany.objects.count() == 1
+        assert AgentCompanyScan.objects.get().received_count == 0
+
+
+def test_old_enrollment_client_does_not_consume_active_only_code(prepared):
+    from apps.intelligence.agent_scope import build_portfolio_scope
+    from apps.intelligence.agents import redeem_enrollment
+    from apps.intelligence.models import AgentEnrollment
+
+    scope = build_portfolio_scope(
+        organization=prepared[0].organization,
+        start=date(2026, 9, 1),
+        end=date(2026, 9, 30),
+        company_status_map={"A": True, "I": False},
+        active_only=True,
+    )
+    enrollment = issue_enrollment(organization=prepared[0].organization, sync_scope=scope)
+    kwargs = dict(
+        code=enrollment.code,
+        label="Synthetic",
+        fingerprint="synthetic-active",
+        allow_scoped=True,
+        allow_portfolio=True,
+    )
+    with pytest.raises(ValueError, match="scoped-v3"):
+        redeem_enrollment(**kwargs)
+    assert not AgentEnrollment.objects.filter(used_at__isnull=False).exists()
+    assert redeem_enrollment(**kwargs, allow_active_portfolio=True).sync_scope == scope
 
 
 @pytest.mark.django_db(transaction=True)

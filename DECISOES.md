@@ -4032,3 +4032,65 @@ CI final aprovado, PR 5/main 5cfa462 integrado e backend release 81 verificado,
 mesmo oficial/piloto/dados/recursos/configuração, novo ciclo real saudável.
 Comando preparado/publicado; nenhum manifesto ampliado/scan real. Semântica,
 fontes financeiras, critérios/aceite continuam nos mesmos gates.
+
+## D-332 — Inventário recebido e coleta somente de empresas ativas (11/11/2026)
+
+Origem humana: após receber o arquivo, responsável esclareceu “todas as empresas
+ativas da dominio devem ser buscadas”. Prioriza somente ativas na nova coleta,
+preservando empresas/históricos já existentes; não apagar nem reativar por ausência.
+Substitui a intenção anterior de coletar cadastro completo nesta primeira carga.
+Inventário original de 2.851.946 bytes recebido e SHA-256 4b7be104…652e3c69
+conferido; 601 objetos/5.674 colunas/502 empresas, A=146/I=346/M=10. Resposta
+não confirmou a legenda de M. Não registrar M como ativa ou inativa por inferência.
+
+A implementação publicada de carteira lê todas as situações antes da transmissão.
+Para cumprir o novo recorte na origem, preparar modo explícito active_only no
+manifesto dominio-portfolio-v2 e protocolo scoped-v3, com códigos ativos revisados
+e filtros parametrizados idênticos na contagem/paginação ODBC. Preservar v1 e o
+piloto; v2 exige agente compatível e recusa cliente antigo antes da coleta.
+Atualizar componente Windows/pacote para 1.0.6, necessário para filtrar na origem,
+sem novo pareamento/identidade ou mudança de DSN/credenciais/contrato. CI público
+Windows/upgrade e backend seguem autorizações existentes D-304/D-323/D-329.
+Não confundir atualização funcional com repetição da instalação/corte já provados.
+
+O critério A é o filtro de ativas já usado pelos conectores/piloto existentes;
+não expandir automaticamente para M. Semântica e inclusão das empresas sem
+movimento continuam a conferir na origem, sem declarar carteira completa antes
+da cobertura real do recorte. Revisão da seleção não equivale a autorizar fonte
+financeira nova. CTCONTAS, CTCONTACAIXA_CONTA_BANCARIA, CTLANCTO/CTCLANCTO e
+CTCCUSTO existem com tipos observados; são candidatos, sem PK/FK/semântica provadas.
+
+Separar validação estrutural do inventário da aprovação de mapa; não fabricar
+revisor/assinatura humana para analisar metadados. Preservar artefato original
+privado e hashes; nenhum inventário bruto/nome/documento/valor em Git. Preparar
+e testar mudanças antes de aplicação operacional; sem código/M flags sintéticos
+no ambiente real. AnyDesk voltou a permitir observar SVAPL02, mas mostrou limite
+de licença de quatro minutos e entrada remota ainda não operável de modo confiável
+(windowNotFoundAtPosition/sem efeito de teclas observado). Não contratar plano,
+contornar limitações, ler segredos ou afirmar consulta ERP pela imagem do desktop.
+
+Refinamento D-332: validar upgrade 1.0.5 → 1.0.6 em Windows descartável com
+MSI baseline construído da fonte pública exata 53b834b, configuração sintética
+DPAPI/ACL e rede/ERP não usados. Conferir binário/serviço/bytes protegidos e
+retomada após upgrade; não executar o ensaio CI na cliente. Entregar atualização
+pontual com manifesto/hash e diagnóstico seguro, preservando identidade/configuração
+e evitando novo pareamento. Protocolo v3 só depois do cliente compatível; revisão
+real do mapa permanece necessária. O modo antigo/piloto permanece disponível.
+
+Continuidade D-332: responsável não sabe conferir o total na seleção do Domínio.
+Não insistir em decodificar a base pela cliente. Primeiro recorte técnico usa
+STAT_EMP=A, filtro de ativas já existente nos conectores/piloto; 146 cadastros no
+inventário. M=10 permanece não classificado e fora desta primeira seleção, sem
+gravar M como inativa nem declarar todas as situações resolvidas. Preservar
+I=346/históricos já existentes; ausência no recorte não desativa dados.
+
+Para não fabricar revisão/identidade da Grazi, permitir revisão técnica restrita
+a esse seletor existente somente em comando administrativo com flags explícitas
+--active-only/--existing-active-selector, revisão contad-active-selection-review-v1,
+reviewer_id=null, mapa exatamente A=true e referência D-332. Mantém SHA/UUIDs/
+heartbeat/CAS/cliente1.0.6/auditoria/--apply. Evento com actor=None e origem
+existing_active_selector; não atribuir aprovação humana de M ou revisão à conta
+da Grazi. Outros mapas mantêm requisito de dono/administrador e revisão integral.
+A exceção técnica aplica a instrução humana de buscar ativas usando o critério
+existente, sem criar acesso, segredo ou autorização financeira. Não habilitar M
+por essa exceção. A ampliação financeira continua após semântica/confronto reais.

@@ -19,6 +19,7 @@ internal sealed record PortfolioCompany(
         string document = Convert.ToString(cnpj, CultureInfo.InvariantCulture)?.Trim() ?? "";
         if (!Regex.IsMatch(key, @"\A[1-9][0-9]{0,17}\z") || label.Length is < 1 or > 180
             || scope.CompanyStatusMap?.ContainsKey(rawStatus) is not true
+            || (scope.IsActiveOnly && !scope.CompanyStatusMap[rawStatus])
             || (document.Length > 0 && !Regex.IsMatch(document, @"\A[0-9./-]+\z")))
             throw new InvalidDataException("Cadastro inválido ou situação de origem não revisada; carga incompleta.");
         string digits = new string(document.Where(char.IsAsciiDigit).ToArray());

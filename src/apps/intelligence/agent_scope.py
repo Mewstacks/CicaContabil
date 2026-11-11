@@ -19,6 +19,9 @@ PROTOCOL = "scoped-v1"
 VERSION = "dominio-pilot-v1"
 PORTFOLIO_VERSION = "dominio-portfolio-v1"
 PORTFOLIO_PROTOCOL = "scoped-v2"
+ACTIVE_PORTFOLIO_VERSION = "dominio-portfolio-v2"
+ACTIVE_PORTFOLIO_PROTOCOL = "scoped-v3"
+PORTFOLIO_VERSIONS = (PORTFOLIO_VERSION, ACTIVE_PORTFOLIO_VERSION)
 _FIELDS = {
     "version",
     "financial_account_id",
@@ -33,7 +36,7 @@ _ID = re.compile(r"[0-9]{1,18}")
 
 def validate_sync_scope(value: Any, organization: Organization) -> dict[str, Any]:
     """Reject missing/stale manifests; never derive account identity from bank rows."""
-    if isinstance(value, dict) and value.get("version") == PORTFOLIO_VERSION:
+    if isinstance(value, dict) and value.get("version") in PORTFOLIO_VERSIONS:
         return validate_portfolio_scope(value, organization)
     if not isinstance(value, dict) or set(value) != _FIELDS | {"revision"}:
         raise ValueError("Recorte financeiro ausente ou inválido.")
@@ -99,6 +102,13 @@ def validate_portfolio_scope(value: dict[str, Any], organization: Organization) 
         "company_status_map",
         "revision",
     }
+    active_only = value.get("version") == ACTIVE_PORTFOLIO_VERSION
+    if active_only:
+        fields.add("company_selection")
+    if value.get("version") not in PORTFOLIO_VERSIONS or (
+        active_only and value.get("company_selection") != "active_only"
+    ):
+        raise ValueError("Seleção de empresas da carteira inválida.")
     if set(value) != fields or value.get("organization_id") != str(organization.pk):
         raise ValueError("Manifesto de carteira não pertence a este escritório.")
     # Each additional dataset requires its own verified source and intake contract.
@@ -116,6 +126,8 @@ def validate_portfolio_scope(value: dict[str, Any], organization: Organization) 
         )
     ):
         raise ValueError("Informe o mapa revisado das situações de origem.")
+    if active_only and not any(mapping.values()):
+        raise ValueError("Selecione ao menos uma situação ativa revisada.")
     try:
         start = date.fromisoformat(value["period_start"])
         end = date.fromisoformat(value["period_end"])
@@ -138,16 +150,23 @@ def validate_portfolio_scope(value: dict[str, Any], organization: Organization) 
 
 
 def build_portfolio_scope(
-    *, organization: Organization, start: date, end: date, company_status_map: dict[str, bool]
+    *,
+    organization: Organization,
+    start: date,
+    end: date,
+    company_status_map: dict[str, bool],
+    active_only: bool = False,
 ) -> dict[str, Any]:
     content = {
-        "version": PORTFOLIO_VERSION,
+        "version": ACTIVE_PORTFOLIO_VERSION if active_only else PORTFOLIO_VERSION,
         "organization_id": str(organization.pk),
         "datasets": ["companies"],
         "period_start": start.isoformat(),
         "period_end": end.isoformat(),
         "company_status_map": company_status_map,
     }
+    if active_only:
+        content["company_selection"] = "active_only"
     content["revision"] = hashlib.sha256(
         json.dumps(content, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
