@@ -3583,3 +3583,20 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
 - D-333 registrado antes do código: espelho literal em campos próprios, sem
   interpretação de TIPOI_EMP/CNPJ/CPF ou mudança de UI/regra comercial.
 - Correção1.0.7 em validação; coleta ainda incompleta, não marcar projeto concluído.
+
+## 11/11/2026 — Inscrição literal e146 empresas sincronizadas (V-352)
+
+- D-333: campos de origem sem inferir espécie fiscal;143 testes PG focados,
+  CI integral1.872 SQLite/1.903 PG/163 subtestes, Windows74 e upgrade aprovados.
+- PR7/main1a0f30b integrado; release83/665 hashes e migração0080 nos dois aliases,
+  recursos/configuração/backup/original financeiro conferidos.
+- AnyDesk aceito, mas entrada não funcionou. D-334 publicou ZIP genérico por HTTPS
+  no repositório oficial; hash/TLS/artefatos verificados, sem dados da cliente.
+- Operador usou um comando de download/verificação/extração/upgrade: ready1.0.7
+  às18:31:19 UTC, bytes protegidos preservados, sem reboot ou novo pareamento.
+- Scan original concluiu146/146,145 criações/uma atualização/zero ignorados.
+  Releituras reais mantiveram146/IDs/valores, zero duplicatas, último ciclo18:34:23 UTC.
+- Onze fingerprints protegidos e campos originais da SURIA/CNPJ/contato iguais;
+  nenhuma fonte financeira nova ou classificação de M. Não declarar projeto concluído.
+- Plano/checklists/prompt/cópias/relatório e entrega atualizados; download direto
+  não é auto-instalação permanente. Próximo trabalho: relações/fontes e demais gates.

@@ -529,3 +529,10 @@ scan146/zero recebido parou no contrato14 dígitos. Sonda pontual real concluíd
 que a cliente classifique CPF/CNPJ por inferência nem repetir sonda/pareamento.
 D-333 guarda inscrição/tipo literais e preserva CNPJ anterior; validar correção
 1.0.7/upgrade/backend e retomar scan existente. M/fontes/aceite ainda pendentes.
+
+**Q-28/D-333/D-334/V-352:** falha de formato resolvida por espelho literal, sem
+classificar CPF/CNPJ ou preencher zeros. Backend83/1.0.7 real, carga A146/146 e
+releituras sem duplicação comprovadas. Não repetir perguntas/sondas/instalação.
+Q-28 permanece para M10 quando comprovado e relações/fontes financeiras reais;
+contas/Razão/títulos, Q-46/Q-47/D-73 e aceite não foram homologados. Download
+direto verificado elimina transferência manual; auto-instalação futura não existe.

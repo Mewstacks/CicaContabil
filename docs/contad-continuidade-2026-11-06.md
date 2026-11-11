@@ -1,21 +1,24 @@
 # CONTAD — resumo e continuidade
 
-**Continuidade D-333/V-351 — 11/11/2026:** upgrade real do SVAPL02 para1.0.6
-confirmado: Running/Auto/LocalSystem, bytes protegidos preservados, ready às
-17:10:36 UTC, sem reboot. Backend82/mesmo oficial/heartbeat conferidos. Seletor A
-aplicado uma única vez às17:15:17 UTC, revisão ebd69a73…; não reaplicar manifesto
-nem refazer corte/pareamento. Origem contou146, mas scan está incompleto/zero
-cadastros recebidos, por identificação fora do contrato14 dígitos. Dados anteriores
-preservados. Não afirmar carga concluída ou estado ready posterior à seleção.
-Sonda real de agregados confirmou12 inscrições de11 dígitos,133 de14 e uma vazia;
-códigos1/2/3 não têm legenda aprovada. Nenhum documento/nome/valor foi consultado
-pela sonda. D-333 define espelho literal da inscrição/tipo, sem inventar CNPJ/CPF,
-preencher zeros ou sobrescrever CNPJ existente. Correção1.0.7 está em validação;
-MSI novo/backend compatível ainda não entregues/publicados nesta entrada.
-M=10 continua não classificado/fora do recorte, sem inativação. Próximo passo é
-validar/publicar correção, atualizar o mesmo agente e retomar o scan existente;
-não pedir outra revisão de códigos à cliente. Fontes financeiras e aceite pendentes.
+**Continuidade D-333/D-334/V-352 — 11/11/2026:** **SVAPL02/1.0.7** atualizado
+por download direto no servidor, Running/Auto/LocalSystem/ready, configuração
+protegida preservada e sem reboot às18:31:19 UTC. Backend **release83**, PR7/main
+1a0f30b, fonte ffe2be3/CI43071093213, migração aditiva0080 e665 hashes conferidos.
+**Primeira carga A concluída:146/146**,145 criações/uma atualização/zero ignorados,
+mesmo scan fc7eed16/revisão ebd69a73. Releituras reais sem duplicatas ou mudança
+nos valores/identidades; última conferida às18:34:23 UTC. Onze fingerprints
+protegidos e campos anteriores da SURIA/CNPJ/conta/163 movimentos preservados.
+Inscrição e tipo de origem ficam literais em campos próprios, sem inferir CPF/CNPJ,
+completar zeros ou derivar raiz comercial. Perfil0/11/14 coincide com a origem.
+**Não repetir upgrade, manifesto, corte, pareamento ou sondas já concluídas.**
+M=10 permanece não classificado/fora do primeiro recorte, sem ser marcado inativo.
+Download oficial por versão disponível, sem transferência manual de arquivos;
+a1.0.7 não implementa instalação automática de versões futuras. AnyDesk aceito,
+mas entrada falhou na ferramenta; instalação real foi feita pelo comando direto.
+Próximas dependências: M quando comprovado, relações/contas/Razão/títulos,
+Q-46/Q-47, IA/D-73, recuperação, treinamento e aceite. Projeto não concluído.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 

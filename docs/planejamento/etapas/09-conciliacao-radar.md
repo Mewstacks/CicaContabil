@@ -450,7 +450,7 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
 - [x] Filtro parametrizado na origem/protocolo v3/recepção e compatibilidade testados.
 - [x] MSI1.0.6/Windows2022/upgrade DPAPI/retomada aprovados e pacote entregue.
 - [x] PR6 integrado; backend release82 e preservação/saúde conferidos.
-- [ ] JSON da atualização real do SVAPL02 e heartbeat posterior.
+- [x] V-351/V-352: atualização real/heartbeat recebidos e conferidos.
 - [ ] Prévia/aplicação única do seletor A e cobertura real, sem declarar M resolvido.
 - [ ] Relações/fontes financeiras, Q-46/Q-47, D-73, recuperação, treinamento e aceite.
 
@@ -464,9 +464,22 @@ companies ampliado pausa sua leitura financeira, preservando os163 movimentos.
 - [x] Prévia e aplicação única do recorte A, com auditoria sem ator humano.
 - [x] Origem contou146 e abriu scan; recusa por contrato14 dígitos localizada.
 - [x] Sonda agregada testada no Windows e executada:12 inscrições11/133 inscrições14/uma vazia.
-- [ ] Validar/publicar espelho literal e MSI1.0.7, sem classificação presumida.
-- [ ] Atualizar o mesmo agente e concluir/relê scan146 sem duplicar ou perder histórico.
+- [x] V-352: espelho literal/backend83/MSI1.0.7 publicados e conferidos.
+- [x] V-352: mesmo agente atualizado e scan146 concluído/relido sem duplicação.
 - [ ] M/relações/fontes financeiras, Q-46/Q-47/D-73, recuperação, treinamento e aceite.
 
 O scan está incompleto/zero recebido. Não repetir manifesto, corte, credencial ou
 inventário. Inscrições não serão omitidas, completadas com zeros ou rebatizadas.
+
+### Carga real e entrega direta — D-333/D-334/V-352 (11/11/2026)
+
+- [x] Inscrição literal/tipo de origem em campos próprios, sem inferência CPF/CNPJ.
+- [x] 143 testes PG focados, CI integral/74 Windows e upgrade1.0.6→1.0.7 aprovados.
+- [x] PR7/main, backend83/665 hashes e migração aditiva0080 conferidos.
+- [x] Download direto/hash verificado; upgrade real ready/1.0.7, sem novo pareamento.
+- [x] Scan original retomado e concluído146/146:145 criações/uma atualização/zero ignorados.
+- [x] Releituras sem duplicação, IDs/valores/financeiro/CNPJ anteriores preservados.
+- [ ] M/relações/contas/Razão/títulos, Q-46/Q-47, D-73, recuperação, treinamento e aceite.
+
+Primeiro recorte A concluído; não declarar M resolvido ou projeto homologado.
+Atualização direta elimina cópia manual; agente não faz auto-instalação futura.

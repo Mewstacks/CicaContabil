@@ -8008,3 +8008,92 @@ espelho literal em campos próprios, sem usar como CNPJ ou raiz comercial.
 Correção1.0.7/migração aditiva/compatibilidade e upgrade estão em validação local;
 sem novo MSI/backend entregue neste registro. Evidências privadas em
 .tmp/contad-active-collection-2026-11-11/. M, relações/fontes, D-73 e aceite abertos.
+
+## V-352 — Inscrição literal, release83 e carga real146/146 (11/11/2026)
+
+D-333/D-334/PC-19/03/09/12. Correção implementada sem interpretar TIPOI_EMP ou
+comprimentos como espécie fiscal. Dois campos próprios preservam inscrição
+literal até14/caracteres sem controle e código nulo/0..255; somente padding de
+espaço CHAR é retirado. CNPJ e raiz comercial anteriores não são substituídos,
+preenchidos ou derivados desses campos; registros novos não recebem CNPJ
+presumido. Nenhuma UI, regra comercial, fonte financeira ou custo de IA alterado.
+Contrato scoped-v4/registration_raw/registration_type_code mantém v3/piloto,
+valida campos/tipos/limites/seleção/ordem antes da transação. Migração hub0080
+aditiva: duas colunas, default de banco para compatibilidade de inserção anterior,
+sem DROP, data migration ou alteração destrutiva. SQL gerado conferido em PG.
+
+Fonte **ffe2be370a74fbd2a487a06d3250e5e998ddb751**. Local PostgreSQL: **143 testes
+focados** aprovados, incluindo retomada do scan v3 por v4, reenvio, campos originais,
+nulos, caracteres, limites/controles e isolamento/atomicidade. Uma asserção nova
+usou refresh_from_db em DTO; corrigida para o modelo e suíte repetida/aprovada.
+.NET local **71/três skips Windows**. CI integral **43071093213** aprovado:
+SQLite **1.872/163 subtestes/33 skips**, PostgreSQL **1.903/163/dois skips**,
+.NET Linux71/três, Windows74/zero, três builds Docker. Esses casos se sobrepõem;
+não somar contagens. Ruff/MyPy/check/makemigrations aprovados. Contêiner PG
+local próprio removido, sem tocar outros. Artefato/candidato39ac20c anterior não
+foi usado para liberar cliente; fonte final ffe2be3 testada novamente.
+
+Windows Server2022, CI **43071083198** da fonte exata: **74 testes/26 checks**,
+MSI/reparo/retomada e upgrade configurado1.0.6→1.0.7 (baseline11147d4) aprovados,
+DPAPI/ACL/bytes e reinício SYSTEM preservados, sem rede/ERP no ensaio. MSI
+**98438743202f11f1f827285576770a307419ad454989d8bd59816edaf24cfc22**,
+.NET10.0.15 autocontido, NotSigned como as versões anteriores. Pacote Downloads/
+CICA-CONTAD-Agente-1.0.7-2026-11-11.zip entregue; não confundir com MSI produzido
+por outro runner de mesma versão. Updater protege configuração e recusa origem
+inesperada; nenhum script de teste CI foi enviado à cliente.
+
+PR7 integrado em main **1a0f30b04064b03c234d2920367e0c3ceaada3ad**, árvore igual
+à fonte validada. Imagem sobre release82 com seis arquivos Python alterados/novos,
+**665 hashes** completos iguais offline e em web/worker; agregado
+**597fb054ba75ca77667b96926b583513a639ba28bb900d29f7c5ecd3ff0c833a**.
+Imagem registry.fly.io/cica-contabil@sha256:3f386bdab753199ffdad64b0eb2c48bc7d7834aa0e901c8a88a80f6826196c23.
+Release **83** publicada/verificada com migração0080 nos aliases originais,
+mesmas camadas/dependências/configuração da base. Configuração Fly integral,
+mesmos três IDs/512MB, dois processos ativos e reserva parada/imagem preservados.
+Antes do cliente, doze fingerprints iguais, mesmo oficial/escopo/scan e fonte
+financeira pausada. Readiness200/banco/cache nos dois domínios, agente inválido401,
+worker pronto às18:06:13 UTC/zero erros observados. Backup original/53 objetos/
+tamanhos/retenção até13/11 reconferidos, sem novo backup/restore/chave/recurso.
+
+Responsável pediu eliminar transferência manual. AnyDesk reconectado uma vez e
+aceito por ele; mostrou desktop intermediário/cliente RDP. Teclado/mouse não
+produziram resultado verificável; erros windowNotFoundAtPosition/noWindowsAvailable
+persistiram após teste de foco/modo de tela/teclado. Limite de licença respeitado;
+nenhuma assinatura, nova credencial/porta ou comando no Windows foi executado
+pela ferramenta. Não apresentar tentativa de controle como instalação realizada.
+
+D-334: release pública genérica **agent-v1.0.7** no repositório oficial existente,
+tag ffe2be3, somente MSI/hash/manifesto/updater, sem configuração, relatório ou
+inventário da cliente. ZIP **b9f03bbfc788b50e9b4d7f0c6f82169dc69e6d77b1a2ba279eb525ba7bef6c21**.
+Download HTTPS sem autenticação reconferido integralmente, hash igual aos bytes
+testados e TLS validado. Python do sistema não tinha CA local adequada; verificação
+feita com requests/certificados da venv existente, sem desabilitar TLS. Comando
+único baixa ZIP, confere hash, extrai e executa o atualizador que confere MSI.
+Não usa IEX, tarefa agendada, WinRM, token novo ou mecanismo de jobs como RCE.
+É download assistido; **auto-instalação de versões futuras não implementada**.
+
+Operador executou esse comando e devolveu:1.0.6.0→**1.0.7**, MSI correto,
+bytes protegidos preservados, Running/Auto/LocalSystem/ready/fresh às
+**18:31:19.6401379 UTC /15:31:19 Brasília**, exit0/sem reboot. Backend conferiu
+**mesmo scan fc7eed16-a02a-41dd-807e-116cbed273bd**, aberto em V-351 e concluído
+às**18:31:19.611 UTC**: origem146/recebido146/uma página, cursor10000,
+**145 criações/uma atualização/zero ignorados**. Nenhum lote/heartbeat artificial.
+146 empresas A/ativas, zero códigos duplicados. Formatos/tipos iguais ao agregado
+real: tipo1 vazio1/11 dígitos12/14 dígitos130; tipo2/14 dígitos1; tipo3/14 dígitos2.
+São inscrições literais, sem aprovação de legenda fiscal ou validação documental.
+
+Releituras reais concluídas; três scans completos observados no recorte mais
+recente, última às**18:34:23.508 UTC**.146 cadastros, zero novas criações/ignorados
+na releitura, mesmos IDs e hash de todos os valores não temporais. Conector healthy,
+heartbeat ativo, anterior revogado, zero pendente e quatro pareamentos históricos.
+Onze fingerprints além da expansão de ClientCompany iguais, incluindo agentes,
+financeiro/membership; hash separado dos campos anteriores da SURIA/CNPJ/raiz
+comercial/contato igual. Mesma identidade/conta/piloto163 preservados; não é uma
+nova fonte financeira. Nenhum M/I foi coletado ou inativado por ausência.
+
+Fecha a falha de identificação de V-351 e a primeira carga A. Não reexecutar
+instalador/sonda/manifesto/corte. M=10, PK/FK/semântica financeira, contas/Razão/
+títulos, Q-46/Q-47, IA Q-08/Q-09, D-73, recuperação, treinamento e aceite permanecem
+abertos.146 empresas não contam como200 itens financeiros independentes em D-73.
+Documentação/checklists/prompt/cópias/entrega atualizados, alterações locais
+anteriores preservadas. Evidências privadas .tmp/contad-active-collection-2026-11-11/.

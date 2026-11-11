@@ -4166,3 +4166,43 @@ até14 caracteres, sem controles; não impor apenas dígitos ou inferir tipo fis
 Preservar letras, separadores e zeros; remover somente padding de espaço CHAR.
 Isto não valida CNPJ/CPF ou aprova legenda TIPOI_EMP. V3 mantém contrato anterior;
 v4 não deve provocar outra atualização por uma classe textual não interpretada.
+
+## D-334 — Download direto e execução remota da atualização (11/11/2026)
+
+Origem humana: responsável pediu outra forma de atualizar sem ele precisar
+transferir arquivos. Preferir execução pelo acesso remoto já autorizado e download
+HTTPS no próprio servidor. AnyDesk reconectado uma vez pela opção oficial e
+aceito pelo responsável; entrada continua falhando com windowNotFoundAtPosition/
+noWindowsAvailable. Não afirmar comando executado nem repetir reconexões para
+contornar limite de licença; sem assinatura/plano, WinRM, portas ou credenciais novas.
+
+Disponibilizar os artefatos genéricos já testados1.0.7 no repositório público oficial
+existente, tag agent-v1.0.7 vinculada à fonte ffe2be3. Somente MSI, hash, manifesto
+e atualizador genérico da fonte validada; sem ZIP da cliente, inventário, nomes,
+documentos, credenciais ou relatórios reais. Link fixo por versão, download
+HTTPS e hashes conhecidos antes de executar. Não instalar via IEX ou desabilitar
+TLS/antivírus. Recurso de distribuição do repositório existente, sem novo serviço,
+LFS, custo contratado ou permissão de dados. Releases não limitam tamanho total/
+banda e cada arquivo deve ter menos de2GiB (documentação GitHub conferida).
+
+Preparar um bootstrap que baixa/valida os arquivos e executa somente a atualização
+1.0.6→1.0.7 já aprovada, mantendo UUID/DSN/configuração. Sem tarefa agendada,
+execução arbitrária, credencial de administração nova ou atualização silenciosa
+de versões futuras. A1.0.6 atual não implementa auto-instalação; não usar jobs de
+arquivos/backup como atalho para executar software. Automação permanente exigirá
+contrato próprio de atualização/validação e não está sendo declarada pronta.
+Fonte: https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases
+
+Refinamento D-334: pacote ZIP genérico contém exclusivamente MSI, hash,
+release.json e atualizador já testado. Verificar SHA do ZIP antes de extrair
+e SHA do MSI antes de instalar; não incluir relatório/README personalizado ou
+configuração da cliente. Receita de download não registra tarefa permanente.
+
+Resultado D-333/D-334/V-352: fonte ffe2be3/CI43071093213 e Windows74/upgrade
+aprovados, PR7/main1a0f30b integrado e backend83/665 hashes/migração0080 conferidos.
+Download oficial direto publicado/verificado; operador atualizou SVAPL02 para1.0.7
+ready/bytes preservados sem reboot. Mesmo scan retomado,146/146,145 criações/uma
+atualização/zero ignorados; releituras sem duplicatas ou mudanças de valores/IDs.
+Financeiro/SURIA/CNPJ/recursos/identidades preservados. Fechar primeira carga A,
+sem repetir instalação/corte/manifesto/sondas; M/fontes/aceite continuam pendentes.
+Download direto não equivale a auto-instalação de versões futuras.

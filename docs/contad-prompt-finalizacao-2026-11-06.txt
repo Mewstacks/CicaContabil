@@ -1,21 +1,24 @@
-PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332/D-333
+PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332/D-333/D-334
 
-**Continuidade D-333/V-351 — 11/11/2026:** upgrade real do SVAPL02 para1.0.6
-confirmado: Running/Auto/LocalSystem, bytes protegidos preservados, ready às
-17:10:36 UTC, sem reboot. Backend82/mesmo oficial/heartbeat conferidos. Seletor A
-aplicado uma única vez às17:15:17 UTC, revisão ebd69a73…; não reaplicar manifesto
-nem refazer corte/pareamento. Origem contou146, mas scan está incompleto/zero
-cadastros recebidos, por identificação fora do contrato14 dígitos. Dados anteriores
-preservados. Não afirmar carga concluída ou estado ready posterior à seleção.
-Sonda real de agregados confirmou12 inscrições de11 dígitos,133 de14 e uma vazia;
-códigos1/2/3 não têm legenda aprovada. Nenhum documento/nome/valor foi consultado
-pela sonda. D-333 define espelho literal da inscrição/tipo, sem inventar CNPJ/CPF,
-preencher zeros ou sobrescrever CNPJ existente. Correção1.0.7 está em validação;
-MSI novo/backend compatível ainda não entregues/publicados nesta entrada.
-M=10 continua não classificado/fora do recorte, sem inativação. Próximo passo é
-validar/publicar correção, atualizar o mesmo agente e retomar o scan existente;
-não pedir outra revisão de códigos à cliente. Fontes financeiras e aceite pendentes.
+**Continuidade D-333/D-334/V-352 — 11/11/2026:** **SVAPL02/1.0.7** atualizado
+por download direto no servidor, Running/Auto/LocalSystem/ready, configuração
+protegida preservada e sem reboot às18:31:19 UTC. Backend **release83**, PR7/main
+1a0f30b, fonte ffe2be3/CI43071093213, migração aditiva0080 e665 hashes conferidos.
+**Primeira carga A concluída:146/146**,145 criações/uma atualização/zero ignorados,
+mesmo scan fc7eed16/revisão ebd69a73. Releituras reais sem duplicatas ou mudança
+nos valores/identidades; última conferida às18:34:23 UTC. Onze fingerprints
+protegidos e campos anteriores da SURIA/CNPJ/conta/163 movimentos preservados.
+Inscrição e tipo de origem ficam literais em campos próprios, sem inferir CPF/CNPJ,
+completar zeros ou derivar raiz comercial. Perfil0/11/14 coincide com a origem.
+**Não repetir upgrade, manifesto, corte, pareamento ou sondas já concluídas.**
+M=10 permanece não classificado/fora do primeiro recorte, sem ser marcado inativo.
+Download oficial por versão disponível, sem transferência manual de arquivos;
+a1.0.7 não implementa instalação automática de versões futuras. AnyDesk aceito,
+mas entrada falhou na ferramenta; instalação real foi feita pelo comando direto.
+Próximas dependências: M quando comprovado, relações/contas/Razão/títulos,
+Q-46/Q-47, IA/D-73, recuperação, treinamento e aceite. Projeto não concluído.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 
@@ -37,7 +40,7 @@ código, parear ou repetir provas concluídas por rotina. Carteira/fontes comple
 Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem gates próprios.
 Registros anteriores são históricos.
 
-Instale um novo agente no Windows Server disponibilizado e torne-o o agente oficial da CONTAD, substituindo o computador anterior com corte verificado. Continue a finalização do projeto CONTAD no CICA, com integração automática de toda a carteira do escritório no Domínio, testes finais, implantação e preparação do aceite. Trabalhe no workspace /Users/pedromachado/Documents/CicaContabil. Este pedido vai além do piloto SURIA: o resultado esperado é o escritório conseguir usar o conciliador com todas as suas empresas, sem cadastrar manualmente uma empresa e uma conta para cada teste.
+Preserve o SVAPL02 oficial/1.0.7, a carga A146 concluída e todos os históricos. Continue a finalização CONTAD no CICA por relações/contas/Razão/títulos, testes operacionais, recuperação, treinamento e aceite; não reinstale, repareie ou reaplique o manifesto por rotina. Workspace /Users/pedromachado/Documents/CicaContabil. M10 permanece pendente de prova; não atribua situação por inferência.
 
 A solicitação humana atual autoriza adaptar o plano e iniciar o desenvolvimento. Este documento organiza a entrega integral; seus imperativos não autorizam por si só deploy, custos, egressão ou escrita ERP. Execute o trabalho autorizado até concluir as entregas verificáveis. Leia o projeto antes de alterar, identifique lacunas, implemente, teste, corrija, publique e confira a operação real. Não encerre apenas com diagnóstico, checklist, pacote local, CI aprovado ou uma lista de pendências que você consegue resolver. Quando depender de resposta humana, avance nas frentes independentes e peça somente o dado ou a decisão que realmente faltar. Não marque bloqueio documentado como conclusão.
 
@@ -167,8 +170,10 @@ Feche cada requisito com evidência e mantenha a matriz de capacidade em estados
 
 Ao finalizar, entregue um resumo objetivo: versão/código implantados, Windows Server real, UUID do novo oficial/anterior revogado e momento do corte, empresas/contas/períodos e volumes sincronizados, fontes cobertas, testes e métricas D-73, recuperação/retorno, percurso da Grazi, saída ERP, treinamento e aceite efetivos. Atualize os documentos canônicos e os arquivos de continuidade, indicando qualquer dependência externa ainda não resolvida, sua causa e a próxima ação concreta. Não chame o projeto de concluído enquanto houver requisito contratual ou gate de aceite pendente.
 
-PRÓXIMA AÇÃO D-333/V-351: perfil agregado real recebido; não repetir a sonda.
-Inscrições de11/14 e vazia devem ser preservadas literalmente, com tipo de origem
-sem legenda inferida. Validar1.0.7/scoped-v4/migração aditiva, backend compatível
-e upgrade configurado. Depois pacote/mesmo agente, retomada do scanfc7eed16
-(revisão ebd69a73) e cobertura real146. Não reaplicar manifesto/pareamento/corte.
+PRÓXIMA AÇÃO D-333/D-334/V-352: carga A146 concluída e1.0.7 real saudável.
+Não pedir outra execução do instalador, perfil, inventário ou contagem no Domínio.
+Avançar pelas chaves/relações e fontes contábeis/financeiras observadas no inventário;
+conferir plano próprio/compartilhado antes de joins e não confundir EF tributário
+com títulos. Manter M10 sem classificação até evidência. Q-46/Q-47/IA/D-73 e
+recuperação/treinamento/aceite continuam. Auto-instalação futura não foi implementada;
+download direto oficial por versão foi publicado/verificado para remover cópia manual.
