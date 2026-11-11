@@ -496,3 +496,10 @@ Atualização direta elimina cópia manual; agente não faz auto-instalação fu
 
 Sem reinstalação, novo escopo ou ativação de fontes financeiras. Consulta de
 catálogos não decide M nem autoriza JOIN por semelhança de nomes.
+
+### Perfil contábil D-336/V-355/V-356
+
+- [x] Perfil curto testado em16 cenários Windows e executado no piloto real.
+- [x]1.405 registros/contas correspondentes/zero fanout,163 da conta8 conferidos.
+- [ ] D-337: comprovar agrupamento e preparar partidas completas sem contrapartida inferida.
+- [ ] Q-46/Q-47/D-73 e aceite, sem contabilizar contagens como amostra revisada.
