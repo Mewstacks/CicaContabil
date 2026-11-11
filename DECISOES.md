@@ -4100,3 +4100,31 @@ aprovados, PR6/main7a02775 integrado e backend release82 conferido/preservado.
 Pacote entregue; versão1.0.6 real e coleta A ainda pendentes. Não aplicar antes
 do retorno do operador; não reinterpretar M, reabrir instalação ou atribuir
 aprovação da Grazi. Próxima fonte depende das relações/semântica reais.
+
+Continuidade operacional D-332 (11/11, antes da aplicação): operador devolveu
+upgrade real1.0.5→1.0.6 no SVAPL02, MSI14473e84…, bytes protegidos preservados,
+Running/Auto/LocalSystem, ready/fresh às17:10:36 UTC, exit0/sem reboot. Conferir
+mesmo oficial/heartbeat recente e backend82 antes de avançar. Sob autorização
+D-332 já registrada, preparar revisão técnica A=true/ator nulo, validar prévia
+e aplicar uma única vez com revisão piloto esperada; acompanhar scan real.
+O inventário original de metadados pode ser colocado temporariamente apenas
+no backend CICA da operação, via SFTP/0600 em diretório0700, hash conferido e
+removido após o comando; não publicar JSON bruto ou atribuir aprovação humana.
+Preservar identidades, histórico financeiro e M não classificado. Não executar
+novo pareamento, reinstalação, corte ou envio de lote artificial.
+
+Diagnóstico D-332/Q-28 antes da correção de formatos: aplicação única do seletor A
+concluída, revisão ebd69a73…, auditoria técnica sem ator humano. Agente1.0.6 abriu
+scan com contagem146, mas enviou zero cadastros. Operador confirmou às17:18:30 UTC
+configuration_error/Identificação de empresa fora do contrato. Não atribuir a CPF,
+CEI ou cadastro inválido por inferência: a causa conhecida é quantidade de dígitos
+fora do contrato14, após aceitar caracteres de identificação. Preservar carga
+incompleta/cursor e históricos; não pular linhas, zerar documentos ou fabricar CNPJ.
+Preparar sonda pontual somente de agregados no recorte A: TIPOI_EMP (nome real
+tipoi_emp), comprimento original e sem pontuação e COUNT(*), sem selecionar
+nomes, códigos de empresas ou documentos. Validar coluna/limites/parametrização,
+redação de falha e execução PowerShell5.1 em Windows descartável antes da entrega.
+Credencial só no próprio Windows como na sonda anterior; não ler registro ou
+descriptografar agent.config. Resultado não classifica TIPOI_EMP/CPF/CEI sozinho.
+Não repetir inventário completo ou instalar MSI diferente antes de conhecer os
+formatos reais; autorização de branch/CI Windows permanece a existente.
