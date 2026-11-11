@@ -1,5 +1,28 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Relações reais conferidas — D-335/V-354, 11/11/2026:** JSON recebido por
+retorno textual compactado; SHA05f69122…34e8479 confere.9 tabelas/51 colunas de
+índices/1.496 relações analisadas contra o inventário original. PKs e vínculos
+de rateios/bancos comprovados; ligação lançamentos/caixa→plano de contas não
+aparece como FK e segue pendente de prova. Não repetir a consulta ou pedir JSON
+inteiro/transferência manual. Nenhuma fonte financeira foi habilitada.
+
+
+**Continuidade D-335/V-353 — 11/11/2026:** preparação das relações de contas/Razão
+implementada em [complemento de chaves](docs/contad-relacoes-fontes.md), sem alterar
+o oficial1.0.7 ou a carga A146. Consulta fixa de catálogos e análise local contra
+o inventário recebido;46 testes locais e12 cenários Windows5.1/Server2022, com
+interoperabilidade JSON, aprovados. HTTPS/commit fixo/hash conferidos byte a byte.
+PR8/CI43082799730 integral aprovado; retorno real conferido em V-354.
+Não confundir testes sintéticos com chave/semântica financeira comprovada.
+
+Sequência de conclusão: receber/conferir chaves → plano próprio/compartilhado e
+contas → partidas completas do Razão e confronto independente → títulos/parcelas/
+baixas com exemplos Q-46 → conciliação e importação homologada Q-47 → amostra
+D-73, recuperação, treinamento e aceite. Preservar exportação bloqueada até prova
+no destino; não contar empresas sincronizadas ou releituras como eventos financeiros.
+
+
 **Continuidade D-333/D-334/V-352 — 11/11/2026:** **SVAPL02/1.0.7** atualizado
 por download direto no servidor, Running/Auto/LocalSystem/ready, configuração
 protegida preservada e sem reboot às18:31:19 UTC. Backend **release83**, PR7/main

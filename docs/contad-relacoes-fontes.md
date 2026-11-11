@@ -59,3 +59,12 @@ e aceite financeiro continuam dependentes das provas próprias Q-28/Q-46/Q-47.
 Referências do fornecedor: [SYSFKEY](https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8a8d96c5f1014bb2cb502516a5227.html),
 [SYSIDXCOL](https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8e1416c5f1014aa0185d6ff33803a.html),
 [SYSIDX](https://help.sap.com/docs/SAP_SQL_Anywhere/e38b2f6217f24bdb90a3ff8ae57b1dd5/3be8d99a6c5f10149158a1c4b55629f2.html).
+
+## Evidência real V-354
+
+JSON1.950.830 bytes, SHA05f69122…34e8479, recebido e confrontado com o
+inventário:9 tabelas/51 colunas de índices/1.496 relações. A FK de CTCLANCTO
+usa nume_ccu para nume_lan; a referência bancária usa I_CONTA_CAIXA para
+codi_cta. Não há FK declarada lançamentos/caixa→CTCONTAS. Os arquivos reais
+ficam na área privada .tmp, fora do Git. D-336 prepara prova agregada do vínculo
+no piloto já autorizado; não ativar leitura financeira por nome de campo.

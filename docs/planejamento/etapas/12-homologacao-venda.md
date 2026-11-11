@@ -581,3 +581,16 @@ inventário. Inscrições não serão omitidas, completadas com zeros ou rebatiz
 
 Primeiro recorte A concluído; não declarar M resolvido ou projeto homologado.
 Atualização direta elimina cópia manual; agente não faz auto-instalação futura.
+
+### Chaves e relações — D-335/V-353 (11/11/2026)
+
+- [x] Complemento limitado de catálogos, preservando inventário e agente1.0.7.
+- [x] Análise local de chaves compostas/pares FK, com conferência de colunas.
+- [x] 46 testes locais e12 cenários Windows5.1/JSON entre linguagens aprovados.
+- [x] Download direto/commit/hash verificados; comando enviado ao operador.
+- [x] V-354: relações reais recebidas/hash conferido/análise contra inventário aprovada.
+- [ ] Validar plano próprio/compartilhado, contas, partidas completas e títulos/baixas.
+- [ ] Q-46/Q-47/D-73, recuperação, treinamento e aceite.
+
+Sem reinstalação, novo escopo ou ativação de fontes financeiras. Consulta de
+catálogos não decide M nem autoriza JOIN por semelhança de nomes.

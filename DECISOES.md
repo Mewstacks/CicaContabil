@@ -4239,3 +4239,62 @@ Referências primárias SAP: SYSFKEY, SYSIDXCOL e SYSIDX (SQL Anywhere Server),
 https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8a8d96c5f1014bb2cb502516a5227.html
 https://help.sap.com/docs/SAP_SQL_Anywhere/93079d4ba8e44920ae63ffb4def91f5b/3be8e1416c5f1014aa0185d6ff33803a.html
 https://help.sap.com/docs/SAP_SQL_Anywhere/e38b2f6217f24bdb90a3ff8ae57b1dd5/3be8d99a6c5f10149158a1c4b55629f2.html
+
+Refinamento D-335 após execução do operador: responsável informou que o JSON
+foi gerado, está aberto no AnyDesk e excede o tamanho prático para colar no chat.
+CUA vê AnyDesk em execução, mas vinculação por nome/ID e observação pela sessão
+anterior falharam com timeoutReached; não afirmar leitura ou recuperação do arquivo.
+Reutilizar relacoes.json já salvo, sem nova consulta/credencial. Preparar cópia
+compactada GZip/Base64 do relatório limitado e reconhecido para retorno textual
+a este chat, mantendo arquivo original e SHA; sem upload para serviço terceiro
+ou acesso remoto permanente. Se a ponte de clipboard falhar, não repetir o ERP.
+
+Resultado D-335/V-354: retorno textual GZip/Base64 recebido do responsável.
+Descompactação limitada a2MiB e SHA-256 conferido:05f69122586c843fd05de04de8635f09f890b013e889f894713a3e51734e8479.
+JSON real de1.950.830 bytes, observado2026-11-11T18:58:45.4260428Z, completed=true:
+nove tabelas,51 colunas de índices e1.839 colunas de1.496 relações declaradas.
+Análise local confrontada com o inventário original concluída, sem inconsistências.
+CTCLANCTO(codi_emp,nume_ccu) referencia CTLANCTO(codi_emp,nume_lan);
+CTCONTACAIXA_CONTA_BANCARIA(CODI_EMP,I_CONTA_CAIXA) referencia
+CTCONTACAIXA(codi_emp,codi_cta). Não usar CTCLANCTO.nume_lan por semelhança de nome.
+
+PKs confirmadas: CTCONTAS/CTCONTACAIXA(codi_emp,codi_cta),
+CTLANCTO(codi_emp,nume_lan), CTCLANCTO(codi_emp,nume_ccu,cdeb_ccu,ccre_ccu),
+CTCCUSTO(codi_emp,codi_ccu), EFCLIENTES(codi_emp,codi_cli),
+EFFORNECE(codi_emp,codi_for), GEEMPRE(codi_emp) e relação bancária
+(CODI_EMP,I_CONTA_CAIXA,I_SEQUENCIAL_CONTA_BANCARIA).
+Não há FK declarada no complemento entre CTLANCTO/CTCONTACAIXA e CTCONTAS;
+ausência não comprova inexistência do vínculo. Plano/sinais/partidas/títulos ainda
+exigem prova própria; não ativar financeiro, inferir M ou declarar revisão humana.
+Metadados/relatório completo preservados apenas em área local privada, fora do Git.
+
+## D-336 — Conferência agregada do vínculo contábil no piloto (11/11/2026)
+
+V-354 confirmou PKs e relações reais, mas CTLANCTO/CTCONTACAIXA→CTCONTAS não
+têm FK declarada. O mesmo inventário contém CTPARMTO.codi_pad/comp_pad/I_PLANOCONTAS,
+e o catálogo recebido declara CTPARMTO.codi_pad→GEEMPRE.codi_emp. Tratar como
+referência candidata; não inferir origem do plano pelos nomes. GEEMPRE.ucta_emp/
+ucxa_emp são tinyint, não prova de código da empresa de origem.
+
+Próximo preparo técnico, sob o recorte já autorizado D-320/D-321/D-323/Q-28:
+sonda somente leitura da empresa212, conta8, setembro2026, sem nome, documento,
+histórico ou valor financeiro. Consultas fixas/parametrizadas de configuração
+contábil bruta e contagens por CODI_EMP_PLANO/formato débito/crédito; confrontar
+existência de contas pelo plano informado na linha e pela própria empresa.
+Comparar contagens base e após JOIN para recusar multiplicação de linhas.
+Agrupar apenas tipos/situações brutos e quantidades das contas dos candidatos
+observados. Não consultar empresas/carteira financeira inteiras nesta sonda.
+
+Validar colunas contra contrato observado, limites de grupos/tempo/contagens,
+redação de credenciais e tamanho pequeno do retorno em Windows5.1/Server2022.
+Sem SQL livre, upload, escrita ERP, leitura/decriptação de configuração do agente,
+novo MSI, alteração do escopo A ou dataset financeiro habilitado. Credencial
+somente na janela Windows; download direto HTTPS/hash de código genérico validado.
+Retornar JSON compacto de agregados, evitando novo relatório extenso ao operador.
+
+A prova empírica de correspondência não aprova automaticamente semântica de
+partidas/sinais, tipos/situações, títulos/baixas, M, DE-PARA ou importação Q-47.
+Não transformar contagens em lançamentos ou amostra D-73. Fonte primária do
+fornecedor confirma possibilidade de plano compartilhado e empresa de origem,
+sem documentar o mapa físico destes campos:
+https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=1814

@@ -8097,3 +8097,66 @@ títulos, Q-46/Q-47, IA Q-08/Q-09, D-73, recuperação, treinamento e aceite per
 abertos.146 empresas não contam como200 itens financeiros independentes em D-73.
 Documentação/checklists/prompt/cópias/entrega atualizados, alterações locais
 anteriores preservadas. Evidências privadas .tmp/contad-active-collection-2026-11-11/.
+
+## V-353 — Complemento de chaves e análise de relações (11/11/2026)
+
+D-335, Q-28/Q-46 e etapas03/09/12. Consulta de nove tabelas já presentes no
+inventário original (hash reconferido), com projeções explícitas SYS.SYSTAB/
+SYSUSER/SYSIDX/SYSIDXCOL/SYSFKEY/SYSTABCOL, parâmetros, limites e relatório
+privado. Sem valores de negócio/senhas/comentários/defaults ou configuração do agente.
+
+- 46 testes locais aprovados para ordem composta, pares FK explícitos, IDs com
+lacunas, divergências de colunas/índices/alvos, ausência de vínculos, limites, JSON
+duplicado e relatório0600/sem sobrescrita. Ruff/MyPy/check sem erros, sem migrações.
+- Windows Server2022/PowerShell5.1.20348.5773: CI43082396118 e43082784556
+aprovados;12 cenários, ACL privada, redação de segredos, seleção fixa, limites
+de chaves/relações e interoperabilidade do JSON produzido pelo PowerShell com
+a análise Python. Fixtures sintéticas; real_erp=false.
+- Byte exato do script baixado por HTTPS igual ao SHA registrado no Windows:
+a9bdd83668ae0dde53c9c5840270e1dca5e84d76ebecf4ae7c2e8deabf2a5865.
+Git attributes fixa LF para evitar divergência de hash por checkout CRLF.
+- Comando direto disponibilizado ao operador, com commit7e10a660 e hash antes de
+executar; credencial EXTERNO somente na janela Windows. Nenhum MSI/serviço/
+manifesto novo, consulta financeira ou deploy em produção nesta preparação.
+- PR8/CI43082799730/fa980f5 integral aprovado:1.918 testes SQLite/33 skips,
+  1.949 PostgreSQL/2 skips e163 subtestes em cada suíte; .NET Linux71/3 skips,
+  Windows74/0 skips, instalador/upgrade e três builds Docker. Sem alterações
+  de runtime em produção. Os46 focados fazem parte das suítes, não são somados.
+
+Complemento real conferido em V-354. Catálogo consistente não aprova plano
+compartilhado, sinais/partidas, títulos/baixas ou situaçãoM. Não foram habilitados
+datasets financeiros nem simuladas revisão humana ou homologação D-73/Q-47.
+
+Retorno de operação D-335: responsável informou JSON grande aberto no AnyDesk,
+mas conteúdo ainda não recebido/conferido. Ferramenta CUA retorna timeoutReached
+na vinculação e observação da janela; não afirmar leitura remota. Solicitada cópia
+GZip/Base64 com SHA do relacoes.json já salvo, por clipboard para este chat;
+sem refazer consulta, senha, instalação ou transferência manual do script.
+
+## V-354 — Chaves e relações reais recebidas e confrontadas (11/11/2026)
+
+D-335/Q-28: operador informou relatório grande no AnyDesk; CUA não conseguiu
+observar a janela (timeoutReached), e o retorno veio de cópia compactada do arquivo
+já salvo. Nenhuma consulta, credencial, instalação ou transferência do script foi
+repetida. Envelope recebido em texto neste chat:51.303 bytes GZip/68.404 caracteres
+Base64, descompactados com teto2MiB. JSON1.950.830 bytes/SHA-256
+05f69122586c843fd05de04de8635f09f890b013e889f894713a3e51734e8479 idêntico.
+
+Resultado real às18:58:45.4260428 UTC:9 tabelas base,51 colunas de índices e1.839
+colunas de1.496 relações. Parser limitado/sem membros JSON duplicados e análise
+contra inventário original4b7be104…652e3c69 passaram. PKs das nove tabelas e pares
+FK completos preservados, inclusive FK com ordem distinta da chave alvo.
+
+Confirmados CTCLANCTO(codi_emp,nume_ccu)→CTLANCTO(codi_emp,nume_lan) e
+CTCONTACAIXA_CONTA_BANCARIA(CODI_EMP,I_CONTA_CAIXA)→CTCONTACAIXA(codi_emp,codi_cta).
+CTLANCTO/CTCONTACAIXA não têm FK declarada para CTCONTAS neste catálogo;
+não decidir JOIN com codi_emp/CODI_EMP_PLANO por nome ou existência de PK.
+
+Relatório0600 criado sem sobrescrever: `.tmp/contad-relations-2026-11-11/analise-real.json`;
+recebimento original e resumo estrutural também privados. Sem linhas de negócio
+selecionadas, escrita ERP, leitura da configuração do agente ou upload pelo script.
+O retorno textual do responsável não é leitura bem-sucedida pelo AnyDesk.
+
+Limites: isso comprova estrutura declarada, não plano compartilhado, partidas/sinais,
+semântica financeira, M ou aceite. financial_collection_enabled=false e
+human_reviewed=false; oficial1.0.7/escopo A/backend83 preservados.

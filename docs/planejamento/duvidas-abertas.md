@@ -536,3 +536,11 @@ releituras sem duplicação comprovadas. Não repetir perguntas/sondas/instalaç
 Q-28 permanece para M10 quando comprovado e relações/fontes financeiras reais;
 contas/Razão/títulos, Q-46/Q-47/D-73 e aceite não foram homologados. Download
 direto verificado elimina transferência manual; auto-instalação futura não existe.
+
+**Q-28/D-335/V-353:** complemento de chaves e análise local preparados/testados;
+aguarda JSON real do SVAPL02 pelo comando direto já enviado. Não repetir inventário
+completo, instalação ou seleção A. Q-46/Q-47/M/semântica financeira continuam próprios.
+
+**Q-28/D-335/V-354:** catálogo real recebido e conferido, nove PKs e1.496 relações.
+Não pedir novo envio ou repetir consulta. Faltam prova de vínculo com plano,
+partidas/sinais e fontes de títulos; ausência de FK não decide o JOIN.

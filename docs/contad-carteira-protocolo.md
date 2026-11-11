@@ -232,3 +232,10 @@ arquivos manualmente. Não é auto-instalação permanente. AnyDesk recebeu acei
 mas ferramenta não conseguiu enviar entrada; execução real veio do operador pelo
 comando direto. Não usar jobs de backup/arquivos como mecanismo de execução.
 Próximo avanço técnico são relações/fontes financeiras, não repetir esta instalação.
+
+## Relações das fontes — D-335/V-353
+
+Complemento e contrato em `docs/contad-relacoes-fontes.md`; consulta somente
+catálogos, com chave composta e primary_column_id explícitos.46 testes locais/
+12 cenários Windows aprovados; comando direto/hash conferidos. Aguarda resultado
+real, sem atualizar agente1.0.7 ou habilitar datasets de contas/Razão/títulos.

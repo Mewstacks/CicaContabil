@@ -3600,3 +3600,31 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   nenhuma fonte financeira nova ou classificação de M. Não declarar projeto concluído.
 - Plano/checklists/prompt/cópias/relatório e entrega atualizados; download direto
   não é auto-instalação permanente. Próximo trabalho: relações/fontes e demais gates.
+
+## 11/11/2026 — Relações das fontes preparadas (D-335/V-353)
+
+- Preservado1.0.7/carga146; inventário original/hash reutilizado, sem nova descoberta.
+- Criada consulta fixa e limitada de chaves/relações, sem linhas financeiras.
+- Análise local valida ordem composta/IDs/pares FK e confronta nomes com o inventário.
+-46 testes locais e12 cenários Windows5.1 aprovados, incluindo JSON PowerShell→Python.
+- HTTPS/commit fixo/hash iguais aos bytes testados; comando sem transferência manual
+enviado ao operador. Retorno real ainda pendente, sem novo pareamento ou MSI.
+- PR8 criada e anexada; CI integral em andamento. Sem deploy ou fonte financeira nova.
+
+Retorno de operação D-335: responsável informou JSON grande aberto no AnyDesk,
+mas conteúdo ainda não recebido/conferido. Ferramenta CUA retorna timeoutReached
+na vinculação e observação da janela; não afirmar leitura remota. Solicitada cópia
+GZip/Base64 com SHA do relacoes.json já salvo, por clipboard para este chat;
+sem refazer consulta, senha, instalação ou transferência manual do script.
+
+## 11/11/2026 — Catálogo real recuperado (V-354)
+
+Envelope GZip do operador recuperado/hash conferido; JSON1.950.830 bytes privado.
+Nove tabelas/51 colunas de índices/1.496 relações analisadas sem inconsistências.
+FK de rateio usa nume_ccu→nume_lan; relação bancária usa I_CONTA_CAIXA→codi_cta.
+Não há FK lançamentos/caixa→CTCONTAS; continuar prova de plano e partidas,
+sem habilitar fonte financeira ou repetir a consulta já concluída.
+
+Fechamento técnico V-353: CI integral43082799730/fa980f5 aprovado, sem
+alterar backend83/serviço1.0.7 ou recursos de produção. Integração PR8 segue
+a autorização D-329; D-336 prepara conferência pontual, sem coleta financeira.
