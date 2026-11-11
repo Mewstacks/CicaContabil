@@ -65,7 +65,7 @@ public sealed class RelationsFixtureCommand:IDisposable {
    foreach(string s in new[]{"foreign_table_id","foreign_index_id","primary_table_id","primary_index_id","foreign_schema","foreign_table","primary_schema","primary_table","match_type","check_on_commit","nulls","sequence","foreign_column_id","foreign_column","primary_column_id","primary_column"})t.Columns.Add(s,s.EndsWith("schema")||s.EndsWith("table")||s=="check_on_commit"||s=="nulls"||s=="foreign_column"||s=="primary_column"?typeof(string):typeof(long));
    if(scenario!="empty_catalog"){
     if(scenario=="relation_limit") {
-     for(int i=0;i<2049;i++)t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",(long)i,(long)i+1,"source_"+i,2L-i,"target_"+i);
+     for(int i=0;i<2049;i++)t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",(long)i,(long)i+1,"source_"+i,7L+i,"target_"+i);
     } else {
      t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",0L,23L,"CDEB_LAN",19L,"CODI_CTA");
      t.Rows.Add(104L,2L,101L,0L,"bethadba","CTLANCTO","bethadba","CTCONTAS",0L,"N","N",1L,42L,"CODI_EMP_PLANO",7L,"CODI_EMP");
