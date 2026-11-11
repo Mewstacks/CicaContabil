@@ -4094,3 +4094,9 @@ da Grazi. Outros mapas mantêm requisito de dono/administrador e revisão integr
 A exceção técnica aplica a instrução humana de buscar ativas usando o critério
 existente, sem criar acesso, segredo ou autorização financeira. Não habilitar M
 por essa exceção. A ampliação financeira continua após semântica/confronto reais.
+
+Resultado D-332/V-350: CI exato11147d4 aprovado, Windows2022/upgrade1.0.6
+aprovados, PR6/main7a02775 integrado e backend release82 conferido/preservado.
+Pacote entregue; versão1.0.6 real e coleta A ainda pendentes. Não aplicar antes
+do retorno do operador; não reinterpretar M, reabrir instalação ou atribuir
+aprovação da Grazi. Próxima fonte depende das relações/semântica reais.

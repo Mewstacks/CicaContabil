@@ -1,16 +1,22 @@
 # Carteira CONTAD — contrato de integração em implementação
 
-**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
-**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
-O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
-não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
-situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
-Backend administrativo de transição publicado/verificado na **release 81**,
-PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
-recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
-SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
-fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+**Continuidade D-332/V-350 — 11/11/2026:** inventário completo recebido e
+SHA-256 4b7be104…652e3c69 reconferido: 601 objetos, 5.674 colunas e 502 empresas
+(A=146, I=346, M=10). Pedido humano: buscar todas as ativas. Primeiro seletor
+usa A, já empregado pelo conector; M permanece não classificado e fora desta
+primeira seleção, sem ser marcado como inativo. Não pedir à cliente que decifre
+códigos ou repita a sonda. Chaves/semântica financeiras ainda não homologadas.
+Backend de seleção na origem publicado/verificado na **release 82**, PR 6/main
+7a02775, fonte 11147d4/CI 43061206044. Recursos/configuração, doze fingerprints,
+único oficial SVAPL02 e piloto/163 movimentos preservados, sem scan ampliado.
+MSI **1.0.6** aprovado no Windows Server 2022, incluindo upgrade configurado
+1.0.5→1.0.6/DPAPI/retomada; pacote e comando único entregues. **Atualização real
+do SVAPL02 ainda aguarda o JSON do operador**; não refazer pareamento ou DSN.
+Depois conferir esse retorno/heartbeat, prévia administrativa e aplicação única
+do recorte A, seguidas de cobertura real. Não aplicar antes da versão compatível.
+Demais fontes, Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem abertos.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 **Revisão de destino D-324 (09/11/2026):** nova instalação será no Windows Server
@@ -168,3 +174,35 @@ Ao trocar, o modo companies pausa leitura financeira do piloto e mantém seus
 dados. Isso não entrega contas/Razão/títulos ou carga financeira da carteira.
 Primeira execução operacional continua pendente; diagnóstico de cobertura deve
 confrontar todas as empresas e preservar situações inativas e campos desconhecidos.
+
+## Seleção na origem — D-332/V-350
+
+A solicitação passou a ser buscar somente empresas ativas. `dominio-portfolio-v2`
+exige `company_selection=active_only` e `scoped-v3`; sua revisão cobre a seleção.
+Agente1.0.6 usa a mesma condição ODBC parametrizada na contagem e em cada página,
+com cursor numérico e limite500. Somente situações com valor true são lidas;
+cliente e backend recusam qualquer linha fora da seleção. V1 continua permitindo
+situações inativas revisadas, conforme contrato histórico acima.
+
+Inventário original recebido/reconferido: A146/I346/M10. Primeiro seletor usa
+somente A, já empregado pelo conector existente. M permanece não classificado,
+fora dessa primeira seleção e sem gravar active=false. Ausência não apaga nem
+desativa cadastros/histórico. Isto não é prova de cobertura de todas as situações.
+
+A exceção administrativa `--active-only --existing-active-selector` aceita apenas
+review version `contad-active-selection-review-v1`, reviewer_id=null, mapa A=true
+e referência D-332; actor=None/review_origin=existing_active_selector na auditoria.
+Mantém hash original/UUIDs/24h/heartbeat/CAS/--apply e exige cliente1.0.6. Não usar
+a exceção para M/outros mapas nem atribuir aprovação à Grazi. Revisões normais
+mantêm cobertura integral e dono/administrador ativo.
+
+`inspect_agent_inventory` valida metadados sem aprovação ou consultas ao banco.
+`configure_agent_portfolio` permanece em prévia por padrão. Pacote novo contém
+`upgrade-active-companies.ps1`, específico1.0.5→1.0.6; script de teste CI nunca é
+entregue à cliente. Atualização real e aplicação/scan continuam pendentes.
+
+Próximas fontes: CTCONTAS/CTCONTACAIXA/relação bancária, CTLANCTO/CTCLANCTO e
+CTCCUSTO observados no inventário. Antes de qualquer join, conferir chaves,
+plano próprio/compartilhado (CODI_EMP_PLANO), partidas/sinais/cancelamentos e
+confronto do Razão. Nomes de objetos EF tributários não comprovam contas a
+pagar/receber, parcelas ou baixas. Nenhuma fonte financeira nova habilitada.

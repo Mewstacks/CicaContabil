@@ -540,3 +540,18 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
 - [ ] Receber JSON completo e reconferir SHA, situações, tipos/chaves/fontes.
 - [ ] Revisão/aplicação do mapa e scan real das 502 empresas com cobertura.
 - [ ] Contas/Razão/títulos, Q-46/Q-47, IA/D-73, recuperação, treinamento e aceite.
+
+### Somente ativas e atualização de origem — D-332/V-350 (11/11/2026)
+
+- [x] JSON completo recebido e hash/601 objetos/5.674 colunas/502 empresas conferidos.
+- [x] Pedido de todas as ativas registrado; primeiro seletor A=146, M=10 pendente sem inativação.
+- [x] Filtro parametrizado na origem/protocolo v3/recepção e compatibilidade testados.
+- [x] MSI1.0.6/Windows2022/upgrade DPAPI/retomada aprovados e pacote entregue.
+- [x] PR6 integrado; backend release82 e preservação/saúde conferidos.
+- [ ] JSON da atualização real do SVAPL02 e heartbeat posterior.
+- [ ] Prévia/aplicação única do seletor A e cobertura real, sem declarar M resolvido.
+- [ ] Relações/fontes financeiras, Q-46/Q-47, D-73, recuperação, treinamento e aceite.
+
+Não repetir instalação/corte/DSN/credenciais ou inventário já concluídos. A atualização
+funcional1.0.6 preserva identidade e configuração. O piloto permanece até essa prova;
+companies ampliado pausa sua leitura financeira, preservando os163 movimentos.

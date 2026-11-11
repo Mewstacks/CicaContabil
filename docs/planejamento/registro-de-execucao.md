@@ -3555,3 +3555,19 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   foi repetido. Sem novo recurso/backup/chave, MSI/driver/DSN ou custo de IA.
 - Atualizados plano/prompt/cópias/contrato/checklists/pacotes. Próximo insumo:
   JSON completo/revisão das situações/fontes, sem repetir a sonda concluída.
+
+## 11/11/2026 — Seleção de ativas na origem e atualização preparada (D-332/V-350)
+
+- Original recebido/hash reconferido; estrutura e contagens conferidas, sem aprovar
+  M ou relações financeiras. Responsável não sabe conferir A/M: primeiro recorte A,
+  sem atribuir revisão à Grazi nem classificar M como inativo.
+- Agente1.0.6 e backend v2/v3 implementados/testados, contagem/paginação filtradas,
+  protocolo anterior preservado e recepção recusa registros fora da seleção.
+- Regressão local PostgreSQL isolada1.893/163; CI integral43061206044 aprovado;
+  Windows2022/67 testes/26 checks e upgrade1.0.5→1.0.6 DPAPI/retomada aprovados.
+- PR6/main7a02775 integrado; release82/664 hashes web-worker, recursos/configuração,
+  doze fingerprints, piloto/agentes e backup preservados; saúde/worker conferidos.
+- Pacote1.0.6 entregue e execução pontual solicitada. Falta JSON real do SVAPL02;
+  manifesto não ampliado e nenhum scan da carteira. Não declarar projeto concluído.
+- Entrada AnyDesk não verificável/limite de licença respeitado; sem consulta ERP
+  comprovada ou contratação. Fonte financeira continua nos gates Q-28/Q-46/Q-47.

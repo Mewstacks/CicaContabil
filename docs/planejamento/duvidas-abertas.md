@@ -514,3 +514,11 @@ aplica mapa sintético nem presume semântica financeira.
 perguntas de credencial/driver. Falta receber o inventario.json do Windows para
 conferir hash, situações e fontes; resumo numérico não fornece esses campos.
 Backend de transição publicado/verificado na release 81; piloto ainda vigente.
+
+**Q-28/D-332/V-350 (11/11):** JSON recebido/hash reconferido; 601 objetos,
+5.674 colunas/502 empresas, A146/I346/M10. Pedido é buscar todas as ativas;
+responsável não sabe conferir a contagem. Não repetir pergunta de legenda/total:
+primeiro seletor técnico A existente, M pendente sem inativação. Backend82 e
+MSI1.0.6 testados/preparados; retorno do upgrade pontual já solicitado. Depois
+prévia/aplicação e cobertura real. Q-28 agora é relações/fontes e confirmação
+de M, sem reabrir inventário/instalação/DSN ou presumir semântica/aceite.

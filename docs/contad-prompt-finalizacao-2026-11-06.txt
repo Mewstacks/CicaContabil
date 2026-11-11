@@ -1,16 +1,22 @@
-PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331
+PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332
 
-**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
-**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
-O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
-não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
-situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
-Backend administrativo de transição publicado/verificado na **release 81**,
-PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
-recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
-SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
-fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+**Continuidade D-332/V-350 — 11/11/2026:** inventário completo recebido e
+SHA-256 4b7be104…652e3c69 reconferido: 601 objetos, 5.674 colunas e 502 empresas
+(A=146, I=346, M=10). Pedido humano: buscar todas as ativas. Primeiro seletor
+usa A, já empregado pelo conector; M permanece não classificado e fora desta
+primeira seleção, sem ser marcado como inativo. Não pedir à cliente que decifre
+códigos ou repita a sonda. Chaves/semântica financeiras ainda não homologadas.
+Backend de seleção na origem publicado/verificado na **release 82**, PR 6/main
+7a02775, fonte 11147d4/CI 43061206044. Recursos/configuração, doze fingerprints,
+único oficial SVAPL02 e piloto/163 movimentos preservados, sem scan ampliado.
+MSI **1.0.6** aprovado no Windows Server 2022, incluindo upgrade configurado
+1.0.5→1.0.6/DPAPI/retomada; pacote e comando único entregues. **Atualização real
+do SVAPL02 ainda aguarda o JSON do operador**; não refazer pareamento ou DSN.
+Depois conferir esse retorno/heartbeat, prévia administrativa e aplicação única
+do recorte A, seguidas de cobertura real. Não aplicar antes da versão compatível.
+Demais fontes, Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem abertos.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 **Agente oficial instalado e validado — D-324/D-330/V-345/V-346/V-347, 10/11/2026:**
@@ -57,13 +63,13 @@ C. Código consumido e identidades próprias preservadas. SVAPL02 0086bcf7-45a3-
 D. V-345 comprova ODBC mínimo SYSTEM/x64, ACL, versão e limpeza; V-343 comprova DPAPI/HMAC após reinício pré-corte. V-346 comprova corte/primeiro ready; V-347 fecha teste pós-corte e recepção. Colagem corrigida executada com sucesso; não solicitar novamente a mesma prova.
 E. Corte administrativo concluído em V-346 às 17:08:35 Brasília, com auditoria e único oficial. Assinatura antiga 401, novo 200/coleta habilitada e recepção real. Preservar esse estado; não executar o corte novamente. Serviço antigo ainda não foi fisicamente parado nesta sessão.
 F. Se falhar antes do corte, revogar candidato e manter o anterior. Se falhar depois, diagnosticar sem reativar segredo revogado: retorno de máquina exige outra substituição explícita. Não transferir scans/cursor do agente antigo nem apagar dados/histórico.
-G. Inventário já concluído no SVAPL02 (601 objetos/5.674 colunas/502 empresas). Receber o JSON completo, revisar mapa de situações/chaves/fontes e evoluir o manifesto para carteira completa. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
+G. Inventário recebido/hash conferido (601 objetos/5.674 colunas/502 empresas). Atualizar SVAPL02 para1.0.6 usando o pacote testado, conferir JSON/heartbeat, depois prévia/aplicação administrativa do seletor A e scan real. M=10 permanece pendente de confirmação, sem ser marcado inativo. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
 
 Operação técnica dos comandos e do corte: docs/contad-agente-oficial-windows-server.md. O protocolo está publicado na release 80 e integrado na main em V-342. Conferir a versão corrente antes de emitir/renovar código; releases 75/76/78/79 não possuem o recurso. Publicação do backend não comprova instalação/pareamento/corte no Windows.
 
-OBJETIVO FUNCIONAL: TODAS AS EMPRESAS DA CONTAD
+OBJETIVO FUNCIONAL: TODAS AS EMPRESAS ATIVAS DA CONTAD
 
-Implemente a descoberta e sincronização automática, somente leitura no ERP, dos dados necessários ao conciliador contratado para todas as empresas pertencentes ao escritório CONTAD. A carteira deve aparecer no CICA com identidade e situação corretas; os dados devem permanecer isolados por escritório, empresa, conta e período. Preserve a situação das empresas inativas e a rastreabilidade dos dados históricos, sem reativá-las ou descartá-las por inferência.
+Implemente a descoberta e sincronização automática, somente leitura no ERP, dos dados necessários ao conciliador contratado para todas as empresas ativas pertencentes ao escritório CONTAD, conforme D-332. A carteira deve aparecer no CICA com identidade e situação corretas; os dados devem permanecer isolados por escritório, empresa, conta e período. Preserve a situação das empresas inativas e a rastreabilidade dos dados históricos, sem reativá-las ou descartá-las por inferência.
 
 O escopo contratual D-301/PC-19 compreende conciliação extrato × registros contábeis, conferência dos fatos financeiros pertinentes, DE-PARA inicial com apoio de IA sob os gates existentes, implantação/testes e treinamento inicial. Conclua as dependências necessárias a esse resultado. Preserve as regras comerciais e os módulos atuais da CONTAD.
 
@@ -75,7 +81,7 @@ Para a carteira inteira, complete:
 - Títulos: contas a pagar/receber, parcelas, fornecedores/clientes necessários, vencimentos, pagamentos/recebimentos efetivos, baixas parciais, agrupamentos, juros, multas, descontos, retenções e estornos conforme a fonte realmente representar esses fatos.
 - Atualizações: primeira carga paginada e acompanhamento de alterações, com retomada, idempotência, cobertura explícita e indicação de última sincronização/erros. Nada de corte silencioso em 500 registros ou duplicação a cada ciclo.
 
-A instrução desta execução é ampliar a integração para a carteira inteira, superando o objetivo funcional restrito à SURIA. O runtime atual ainda está protegido por um manifesto de uma empresa/conta/mês/extrato. Evolua o protocolo, a configuração e os validadores do agente e do servidor de forma compatível e auditada. Não transforme a ampliação em remoção geral de filtros ou em transmissão de uma base inteira sem seleção de campos e controle de volume. Mantenha a coleta vinculada ao escritório CONTAD e às finalidades acima.
+A instrução desta execução é ampliar a integração para as ativas, com primeiro seletor A e M ainda não classificado, superando o objetivo funcional restrito à SURIA. O runtime atual ainda está protegido por um manifesto de uma empresa/conta/mês/extrato. Evolua o protocolo, a configuração e os validadores do agente e do servidor de forma compatível e auditada. Não transforme a ampliação em remoção geral de filtros ou em transmissão de uma base inteira sem seleção de campos e controle de volume. Mantenha a coleta vinculada ao escritório CONTAD e às finalidades acima.
 
 Inventarie competências, situações e volumes para planejar a primeira carga e a leitura incremental. O histórico financeiro já está definido em D-323: 01/09/2026 em diante, com cadastros/contas integrais. Se uma regra contábil essencial continuar ausente, faça uma pergunta concreta no Q existente e continue o desenvolvimento que não depender dela. Não escolha arbitrariamente um histórico ilimitado nem volte a perguntar se o objetivo é toda a carteira: isso está definido aqui.
 
@@ -159,3 +165,10 @@ Prepare e execute o roteiro de treinamento inicial e o teste acompanhado da Graz
 Feche cada requisito com evidência e mantenha a matriz de capacidade em estados distintos: implementado, testado localmente, publicado, comprovado com dados reais, homologado e aceito. Não altere preço, prazo contratual, papel ou aprovador por conta própria.
 
 Ao finalizar, entregue um resumo objetivo: versão/código implantados, Windows Server real, UUID do novo oficial/anterior revogado e momento do corte, empresas/contas/períodos e volumes sincronizados, fontes cobertas, testes e métricas D-73, recuperação/retorno, percurso da Grazi, saída ERP, treinamento e aceite efetivos. Atualize os documentos canônicos e os arquivos de continuidade, indicando qualquer dependência externa ainda não resolvida, sua causa e a próxima ação concreta. Não chame o projeto de concluído enquanto houver requisito contratual ou gate de aceite pendente.
+
+PRÓXIMA AÇÃO PONTUAL D-332/V-350: aguardar JSON do upgrade já solicitado.
+Pacote Downloads/CICA-CONTAD-Agente-1.0.6-2026-11-11.zip, MSI SHA-256
+14473e84bc4101a257e0a626078ab75963fccfc792094eb066e4218370df2588.
+Sem novo pareamento/DSN. Backend release82 já está publicado; nenhuma seleção
+foi aplicada ainda. Após comprovar1.0.6 real, usar revisão técnica D-332 restrita
+a A, sem ator humano, prévia e --apply uma vez; conferir cobertura/preservação.

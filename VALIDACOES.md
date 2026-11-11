@@ -7886,3 +7886,80 @@ Plano/contrato de integração/prompt/cópias/checklists e entrega atualizados.
 MSI 1.0.5 oficial e scripts SYSTEM preservados; não instalar artefato novo de
 mesma versão produzido pelo CI desta rodada. Evidências privadas
 .tmp/contad-portfolio-finalization-2026-11-10/, inclusive resumo humano sem JSON bruto.
+
+## V-350 — Inventário recebido, seleção de ativas e atualização 1.0.6 (11/11/2026)
+
+Continuidade D-332/PC-19/03/09/12. JSON original recebido: 2.851.946 bytes,
+SHA-256 **4b7be104b2225b19cc922528d8d1cb65734f02d0b9f463f9e9d0d965652e3c69**
+recalculado; 601 objetos (596 tabelas/cinco views), 5.674 colunas e 502 empresas.
+Situações A=146/I=346/M=10. Estrutura, limites, tipos e colunas GEEMPRE conferidos;
+isto não confirma relações, PK/FK ou semântica financeira. Original privado,
+sem nomes/documentos/valores em Git. CTCONTAS, CTCONTACAIXA e relação bancária,
+CTLANCTO/CTCLANCTO e CTCCUSTO são candidatos observados. CODI_EMP_PLANO exige
+conferir plano próprio/compartilhado; objetos EF tributários não comprovam títulos.
+
+Responsável pediu todas as ativas e não sabe conferir total A/M. Primeiro recorte
+usa apenas A, seletor existente; M permanece não classificado/não selecionado.
+Nenhum M foi gravado inativo. A revisão técnica é restrita a flags explícitas,
+mapa A=true, referência D-332 e reviewer_id=null; auditoria não atribui aprovação
+à Grazi. Outros mapas exigem revisão humana integral. Não afirmar carteira
+completa enquanto M/semântica e cobertura real não forem resolvidos.
+
+Implementação: dominio-portfolio-v2/scoped-v3/active_only, condição parametrizada
+igual na contagem e paginação ODBC, seleção vinculada à revisão, rejeição de
+linha fora do recorte antes do envio e na recepção. V1/piloto preservados;
+configuração/heartbeat anteriores permitem transição, ingestão exige v3.
+Validação estrutural independente de revisão humana; novo comando somente leitura
+inspect_agent_inventory. Sem migração, dependência, fonte financeira ou UI nova.
+
+Fonte final **11147d4bdc040e2ed2d4b80ee2942f2516f758aa**, CI **43061206044**
+aprovado: SQLite **1.861/163 subtestes, 33 skips**; PostgreSQL **1.892/163,
+dois skips**; .NET Linux **64/três skips Windows**, Windows **67/zero**;
+três builds Docker aprovados. Local PostgreSQL final **1.893/163, um skip
+opcional**, 504,34 s, em execução isolada; focados 127 e seletor 51 reutilizam
+casos e não se somam à regressão. Uma tentativa anterior sofreu remoção da base
+de teste por outra suíte local concorrente; descartada como validação final,
+conferida a causa e repetida integralmente sozinha. Contêiner temporário próprio
+removido, sem tocar os demais. Ruff/MyPy/check/makemigrations e três builds .NET
+aprovados; sem novas migrations.
+
+CI Windows Server 2022 **43061211615** da fonte exata: **67 testes, 26 checks
+MSI**, instalação/reparo/retomada/desinstalação e upgrade configurado real de
+MSI baseline1.0.5 (fonte53b834b) para1.0.6 aprovados. Bytes DPAPI/ACL preservados,
+SYSTEM reabriu configuração e retomou após reinício, sem rede/ERP no ensaio.
+Primeira execução CI detectou caminho de executável incorreto no harness;
+corrigido para Program Files/CICA Agent/Service. Comparação de frescor usa cast
+DateTimeOffset, preservando precisão subsegundo após JSON. Resultados antigos
+não foram usados para liberar MSI. Pacote final autocontido/.NET10.0.15,
+MSI **14473e84bc4101a257e0a626078ab75963fccfc792094eb066e4218370df2588**,
+NotSigned como o anterior. Script de cliente confere hash/manifesto/serviço,
+bytes criptografados, versão e ciclo novo; não descriptografa nem refaz pareamento.
+Entregue Downloads/CICA-CONTAD-Agente-1.0.6-2026-11-11.zip e solicitada execução
+pontual. **Ainda sem prova de atualização real no SVAPL02.**
+
+PR6 integrado em main **7a0277504696a999abab061feb32b70547563e23**, árvore igual
+à fonte validada. Imagem sobre release81 com oito arquivos Python alterados/novos,
+**664 hashes** completos iguais offline e em web/worker; agregado
+**6a684baa54cd76e123512b78213182ba2fafa480ccfe84b8230dff9c3dfb7c16**.
+Mesmas camadas/configuração/dependências da base. Imagem imutável
+registry.fly.io/cica-contabil@sha256:01a1799e2d43d43cf2dceef08d97f507dea6613ca7bb8fbc49a24336ad35a27b.
+**Release82** publicada/verificada, dois processos/512MB/mesmos IDs e reserva
+parada/imagem anterior, configuração Fly integral igual, aliases Neon e migrations
+originais. Doze contagens/hashes iguais, único oficial e anterior revogado,
+mesmo piloto/163 movimentos e zero scan ampliado. Readiness/banco/cache200 nos
+dois domínios, assinatura inválida401, worker pronto/sem erros no recorte pós-release.
+Backup original/53 objetos/tamanhos/retenção até13/11 reconferidos, sem novo recurso.
+Ciclo real após publicação: empresas16:57:31 UTC e banco16:57:33 UTC, conector
+healthy. Auditoria bancária: zero criação/alteração/ignorados e sem truncamento;
+não inferir total relido do delta. Nenhum heartbeat/lote artificial; nenhum
+manifesto ampliado aplicado.
+
+AnyDesk permitiu observar o desktop/Downloads do servidor; entrada remota não
+funcionou de forma verificável e aviso de limite de licença foi respeitado.
+Não houve leitura de credenciais, assinatura/subscrição ou consulta ERP confirmada.
+A instrução pendente ao operador é executar somente a atualização e devolver JSON,
+sem exigir que saiba decodificar A/M. Próximo passo: versão1.0.6 real e heartbeat,
+prévia/--apply administrativo do seletor A e scan real confrontado com146 observadas,
+sem antecipar sucesso. Depois relações/fontes, Q-46/Q-47, D-73 e aceite.
+Evidências privadas em .tmp/contad-active-companies-2026-11-11/; plano, checklists,
+execução, prompt/cópias e entrega atualizados; alterações locais anteriores preservadas.
