@@ -6,3 +6,5 @@ agent-windows/inspect-contad-relations.ps1 text eol=lf
 agent-windows/test-contad-relations.ps1 text eol=lf
 agent-windows/inspect-contad-ledger-profile.ps1 text eol=lf
 agent-windows/test-contad-ledger-profile.ps1 text eol=lf
+agent-windows/inspect-contad-lot-profile.ps1 text eol=lf
+agent-windows/test-contad-lot-profile.ps1 text eol=lf

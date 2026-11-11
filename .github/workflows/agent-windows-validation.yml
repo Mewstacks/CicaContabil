@@ -117,6 +117,9 @@ jobs:
       - name: Validate scoped ledger shape counts and candidate link checks
         shell: powershell
         run: ./agent-windows/test-contad-ledger-profile.ps1
+      - name: Validate complete lot counts and internal balance checks
+        shell: powershell
+        run: ./agent-windows/test-contad-lot-profile.ps1
       - name: Preserve inventory validation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -127,5 +130,6 @@ jobs:
             agent-windows/artifacts/validation/contad-document-profile.json
             agent-windows/artifacts/validation/contad-relations.json
             agent-windows/artifacts/validation/contad-ledger-profile.json
+            agent-windows/artifacts/validation/contad-lot-profile.json
           if-no-files-found: warn
           retention-days: 1

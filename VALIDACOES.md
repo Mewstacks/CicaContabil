@@ -8160,3 +8160,28 @@ O retorno textual do responsável não é leitura bem-sucedida pelo AnyDesk.
 Limites: isso comprova estrutura declarada, não plano compartilhado, partidas/sinais,
 semântica financeira, M ou aceite. financial_collection_enabled=false e
 human_reviewed=false; oficial1.0.7/escopo A/backend83 preservados.
+
+## V-355 — Perfil contábil agregado preparado e validado (11/11/2026)
+
+D-336, fonte4cf2710/Windows43086799503:16 cenários PowerShell5.1/Server2022
+aprovados. Escopo fixo212/conta8/09-2026, configuração bruta, contagens antes/depois
+de JOIN, recusa de multiplicação, falta de colunas/configuração, limites e JSON
+maior que16KiB; nenhuma projeção de montantes/nomes/documentos. Falha inicial foi
+no leitor JSON do harness (fechamento de objeto aninhado); corrigida antes da entrega.
+HTTPS igual aos bytes testados, SHA15a4c645d18a57b38b9d2b1c09cfe72c80c7de0efc39c626eafb5b8aa1ae3ef4.
+
+## V-356 — Perfil real do piloto e cobertura das contas (11/11/2026)
+
+Retorno do operador às19:27:45.8738075 UTC:1.405 registros em setembro/212;
+838 bilaterais,282 só débito,285 só crédito,zero sem lado e163 na conta8.
+JOIN manteve1.405;1.120/1.120 débitos e1.123/1.123 créditos correspondentes
+com CODI_EMP_PLANO=212/própria empresa.4.093 contas em três grupos brutos
+(A/A=3.981,A/I=8,S/A=104), sem legenda aprovada. codi_pad=null,comp_pad=N,
+I_PLANOCONTAS=1 não foram interpretados como regra de plano.
+
+Recebimento privado0600 em `.tmp/contad-relations-2026-11-11/pilot-ledger-profile-real.json`,
+SHA d29ac3efe14e3228434ba8507f188b2a97327d578466484df44e93ed1aaeef2c.
+Contagens/escopo coerentes; sem valores financeiros/nomes/documentos, escrita ERP,
+configuração do agente ou coleta financeira habilitada. Correspondência numérica
+não valida sinal, agrupamento de567 unilaterais ou aceite financeiro. D-337
+prepara conferência de grupos; não repetir este perfil nem inferir contrapartidas.

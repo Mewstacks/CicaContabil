@@ -3628,3 +3628,10 @@ sem habilitar fonte financeira ou repetir a consulta já concluída.
 Fechamento técnico V-353: CI integral43082799730/fa980f5 aprovado, sem
 alterar backend83/serviço1.0.7 ou recursos de produção. Integração PR8 segue
 a autorização D-329; D-336 prepara conferência pontual, sem coleta financeira.
+
+## 11/11/2026 — Perfil real e próximo agrupamento (V-355/V-356)
+
+Perfil/16 cenários Windows aprovados e download exato conferido. Retorno real:
+1.405 registros/163 banco8,contas correspondentes/zero fanout,567 unilaterais.
+D-337 registrado antes do normalizador: preservar partidas e conferir lotes,
+sem importar registro unilateral como lançamento completo ou ativar financeiro.

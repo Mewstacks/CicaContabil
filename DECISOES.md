@@ -4298,3 +4298,41 @@ Não transformar contagens em lançamentos ou amostra D-73. Fonte primária do
 fornecedor confirma possibilidade de plano compartilhado e empresa de origem,
 sem documentar o mapa físico destes campos:
 https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=1814
+
+Resultado D-336/V-356: perfil real concluído às19:27:45.8738075 UTC. Empresa212/
+setembro2026:1.405 registros,838 com ambos os lados,282 só débito,285 só crédito,
+nenhum sem lado e163 envolvendo a conta8. JOIN preservou1.405;1.120 débitos e
+1.123 créditos encontraram contas tanto em CODI_EMP_PLANO=212 quanto na própria
+empresa212. CTPARMTO.codi_pad nulo/comp_pad=N/I_PLANOCONTAS=1 ficam brutos.
+4.093 contas:3.981 A/A,8 A/I e104 S/A, sem interpretar letras ou aprovar mapa.
+Não representar os567 registros unilaterais como lançamentos completos isolados.
+
+## D-337 — Partidas completas e conferência de lotes do piloto (11/11/2026)
+
+Prosseguir no mesmo Q-28/Q-46. Documentação primária do Domínio descreve
+lançamentos com vários débitos/créditos e consulta de lotes com diferença; o
+catálogo real comprova CTLANCTO(codi_emp,codi_lote)→CTLANCTOLOTE. Isso fundamenta
+conferir o lote como candidato a agrupamento, sem presumir que basta somar um
+período/batch para fabricar lançamento.
+
+Preparar consulta fixa somente de agregados dos lotes que envolvem a conta8 da
+empresa212 em setembro2026. Conferir todas as partidas desses lotes: contagens,
+existência de cabeçalho, período completo, datas/planos/filiais, quantidades de
+efeitos na conta e equilíbrio débito/crédito por lote. Usar valor numérico apenas
+no cálculo interno da comparação, sem retornar montantes, nomes/documentos ou
+históricos. Partidas fora do período devem ser contadas e bloquear a interpretação
+como snapshot completo do período; não selecionar seus montantes para a comparação.
+Retorno pequeno, limites/timeout e credencial local, download HTTPS/hash validado
+no Windows antes de execução. Sem repetir inventário ou perfil anterior.
+
+Preparar também normalizador local de snapshot de partidas explicitamente
+identificadas, com escopo/total esperado, IDs de linha estáveis, valores positivos
+em centavos exatos, todos os lados preservados e equilíbrio por grupo. Recusar
+conjunto incompleto, mistura de empresa/plano/filial/data, inferência de contrapartida
+ou descarte de linhas. Manter contrato ledger-csv-v1 e seu limite atual de um
+efeito bancário por lançamento; múltiplos efeitos não serão repartidos artificialmente.
+Não aprovar tipo/situação de conta ou habilitar agente/dataset/exportação por isso.
+A fonte real e o aceite Q-46/Q-47/D-73 permanecem condicionados às provas próprias.
+Referências:
+https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=4495
+https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6973
