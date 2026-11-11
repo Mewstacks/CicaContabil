@@ -1,5 +1,18 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
+**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
+O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
+não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
+situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
+Backend administrativo de transição publicado/verificado na **release 81**,
+PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
+recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
+SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
+fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+Os estados anteriores abaixo registram a sequência histórica das entregas.
+
+
 **Agente oficial instalado e validado — D-324/D-330/V-345/V-346/V-347, 10/11/2026:**
 **SVAPL02** é o único oficial ativo desde **17:08:35 Brasília**, UUID
 0086bcf7-45a3-486b-b3ff-8b8f5e456385; anterior

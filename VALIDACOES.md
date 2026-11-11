@@ -7766,3 +7766,123 @@ parado nesta sessão; sua credencial permanece revogada no backend.
 carteira/fontes. Q-28 segue para inventário/fontes/carteira; Q-46/Q-47, Razão/títulos,
 D-73 (inclusive falha de rede/restauração), IA, exportação ERP, treinamento e
 aceite contratual permanecem nas etapas próprias. Não é homologação integral.
+
+## V-348 — Preparação da carteira e diagnóstico do inventário (10/11/2026)
+
+Escopo D-331/D-323, PC-19/03/09/12. Agente oficial SVAPL02 permanece validado
+em V-347; nenhuma reinstalação, pareamento, SQL financeiro ou ampliação real.
+Implementada prévia sem escrita e aplicação administrativa explícita piloto →
+companies, vinculada a inventário SHA-256, escritório/agente, versão compatível,
+mapa de situações inteiramente revisado e dono/administrador ativo. CAS da revisão
+anterior, travas organização/agente na ordem do corte, recusa de substituição
+pendente e replay pela auditoria original. Preserva UUID/segredo/dados e informa
+que a coleta financeira do piloto é pausada ao trocar para companies. Não
+configura carteira de fontes financeiras ainda não implementadas/homologadas.
+
+Verificações locais: 112 testes focados PostgreSQL aprovados em 22,23 s,
+incluindo replay, revogação e mudança durante ingestão; regressão integral
+PostgreSQL 17 descartável em tmpfs: **1.881 testes/163 subtestes aprovados**,
+um skip opcional de Playwright Python, 264,23 s. Não é QA visual. SQLite inicial
+32 aprovados/dois skips de lock (executados depois no PostgreSQL); não somar
+repetições à amostra. Ruff global, MyPy dos dois módulos, Django/migrações e
+diff check aprovados. Sem mudanças de UI/fluxo que exijam nova homologação visual.
+
+Windows 2022/PowerShell 5.1: CI 42897681292/f52aaab aprovou cinco cenários do
+inventário: sucesso de metadados sintéticos, ausência de coluna, limite de objetos,
+limite de situações e DSN realmente inexistente; ACL privada e nenhuma senha
+na saída/JSON. O primeiro harness 42896886618 mascarava exit do filho; corrigido.
+42897306850 passou as asserções, mas herdou exit 1 esperado do último filho;
+final 42897681292 corrigiu o exit do harness. Esses testes não possuem ERP real.
+Bytes CRLF/BOM executados diferem do checkout LF somente em final de linha,
+SHA de entrega 8fe116a26d6563ac2b2d096386f8ac9c3a4c4752e999e80e936f41e607e8627c.
+
+**Tentativa real Q-28:** operador executou no SVAPL02 e retornou
+MethodInvocationException, sem etapa/código e sem inventário concluído. Não
+atribuir causa a timeout/DSN/driver/credencial. Documentação/código Microsoft
+confirmaram que OdbcConnection.ConnectionTimeout permite escrita; hipótese de
+propriedade somente leitura foi descartada sem alterar esse comportamento.
+AnyDesk novamente falhou -10005, sem observar/controlar a sessão Windows.
+
+Acrescentado diagnóstico seguro: etapa constante/índice, tipos de exceção,
+SQLStates validados e códigos nativos; não imprime Message/ToString, senha ou
+connection string. CI **42898977773**, fonte **32070be**, novamente aprovou
+os cinco cenários e conferiu etapa/IM002 real. SHA dos bytes Windows entregues:
+**dc5e9b19989763541162762ba045afa0de1a747f03678ca4744f8600b3260506**.
+Pasta/ZIP Downloads/CICA-CONTAD-Inventario-Diagnostico-2026-11-10. Nova execução
+pontual solicitada ao operador; retorno do diagnóstico/inventário ainda pendente.
+
+Candidata sobre imagem release 80: somente dois módulos Python adicionados;
+663 hashes completos conferidos offline, rede/banco bloqueados, comando presente,
+configuração/camadas anteriores iguais. CI integral/integração/publicação desta
+fonte ainda em andamento; não descrever candidata como backend publicado.
+Backup original/53 objetos/tamanhos/retenção até 13/11 reconferidos, sem novo
+recurso/restore/chave. Agente oficial, manifesto piloto e dados reais preservados.
+
+Evidências privadas .tmp/contad-portfolio-finalization-2026-11-10/. PR 5 anexada.
+**Limites:** sem inventário, revisão de situações ou scan real da carteira. Contas/
+referências/Razão/títulos, Q-28/Q-46/Q-47, IA Q-08/Q-09, D-73, recuperação,
+treinamento e aceite continuam necessários; nenhuma homologação presumida.
+
+Complemento V-348/D-331: diagnóstico real recebido em reading_tables/índice 0,
+MethodInvocationException → ArgumentException, sem SQLState/nativo, conexão já
+aberta. Código Microsoft confirma limite de três restrições em Tables/Views;
+a sonda usava quatro. Corrigida chamada e incluída Views separadamente, mesmos
+filtros/limites. CI 42900001117/d39acd0 passou os cinco cenários e conferiu os
+limites no XML do provedor System.Data real do Windows, detectando a chamada
+antiga. Pasta Downloads/CICA-CONTAD-Inventario-Corrigido-2026-11-10 entregue;
+aguarda retorno real corrigido. A falha do script não é falha de ODBC/DSN do
+agente oficial. Nenhuma nova fonte ou semântica habilitada.
+
+## V-349 — Inventário concluído no SVAPL02 e backend publicado (11/11/2026)
+
+Continuidade D-331/PC-19/03/09/12. Operador executou a sonda corrigida após
+reading_tables/ArgumentException: **601 objetos, 5.674 colunas, 502 empresas**.
+Arquivo Windows em Downloads/CICA-CONTAD-Inventario-a40d4f3235ee4b99b6d0397b7a129490/
+inventario.json, SHA informado **4b7be104b2225b19cc922528d8d1cb65734f02d0b9f463f9e9d0d965652e3c69**.
+Isso comprova a execução/conclusão relatada; conteúdo JSON ainda não recebido,
+hash não recalculado no Mac, situações/chaves/relações/semântica não revisadas.
+Nenhum mapa A/I sintético foi aplicado. Não pedir outra execução sem motivo.
+
+Fonte final d39acd0c586b1bbfeb459ea7476445070e07f9f3, CI 42900012334 aprovado:
+SQLite **1.849/163 subtestes, 33 skips**; PostgreSQL **1.880/163, dois skips**;
+.NET Linux **59/três skips Windows**, Windows **62/zero**; inventário/diagnóstico,
+instalação/contratos e três builds Docker aprovados. Esses testes reutilizam a
+mesma amostra; não somar às 1.881/163 locais de V-348. Correção Tables/Views=3,
+Columns=4 e regressão da chamada antiga conferidas no System.Data real do runner
+Windows 2022 em CI 42900001117. Script Windows final SHA-256
+6e9006593bdfc315a97a940a0b52e73998406d2f19928b054b6fcc160aa2bc1b.
+
+PR 5 integrado em main **5cfa462b10b66180aed4bb98e29565eda9323a4c**, árvore
+idêntica à fonte validada. Imagem sobre release 80, somente dois módulos Python
+novos; 663 hashes completos conferidos offline e no runtime web/worker,
+agregado a0cf56d8f2a1c2ef51c089c547d200f0e82c5139cd11acff5983edbe40a7439a.
+Configuração/camadas/dependências anteriores iguais. Imagem imutável
+registry.fly.io/cica-contabil@sha256:a3b99dd712904e2be318b0ccf30a0746a2b8511adbd9a92c1b492fe9012f35a0.
+
+Publicada/verificada **release 81**, sem migração ou mudança do MSI. Configuração
+Fly completa igual, mesmos três IDs/512 MB/região, dois processos ativos e reserva
+parada/imagem anterior preservada. Doze contagens/hashes anteriores idênticos,
+incluindo agentes e piloto/163 movimentos; banco default/knowledge originais e
+migrações preservados. Backend confirma único oficial SVAPL02, anterior revogado,
+mesmo manifesto piloto, zero scan de carteira e conector healthy. Ciclo real
+pós-publicação: companies 15:49:58 UTC, banco 15:50:00 UTC (zero criação/alteração
+bancária/ignorados, sem truncamento), heartbeat 15:49:57 UTC. Não inferir total
+relido dessas auditorias de delta. Nenhum lote ou heartbeat artificial enviado.
+
+Readiness 200/banco/cache ok nos dois domínios; autenticação inválida recusada
+401 nas rotas de empresas/extratos; worker pronto após release, zero erro runtime
+no recorte observado. Prévia/exportação permanecem desabilitadas. Backup original/
+53 objetos/tamanhos/retenção até 13/11 reconferidos, sem novo recurso/restore/chave.
+Primeiro push da imagem falhou por autenticação expirada do registro; autenticação
+existente renovada pelo flyctl e push concluído, sem criar outro repositório/app.
+Um download de logs GitHub retornou 502; repetido com sucesso, sem falha do CI.
+
+Comando configure_agent_portfolio disponível com prévia sem escrita por padrão;
+não foi aplicado no ambiente real. Publicação não é carga da carteira nem
+homologação de contas/Razão/títulos. Ainda necessário receber JSON/revisar
+situações/fontes, aplicar escopo compatível e conferir cobertura real; Q-46/Q-47,
+IA Q-08/Q-09, D-73, recuperação, treinamento e aceite seguem abertos.
+Plano/contrato de integração/prompt/cópias/checklists e entrega atualizados.
+MSI 1.0.5 oficial e scripts SYSTEM preservados; não instalar artefato novo de
+mesma versão produzido pelo CI desta rodada. Evidências privadas
+.tmp/contad-portfolio-finalization-2026-11-10/, inclusive resumo humano sem JSON bruto.

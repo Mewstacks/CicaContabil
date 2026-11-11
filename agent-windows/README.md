@@ -103,3 +103,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\test
 A política acima vale só para esse processo. Não executar
 `test-system-odbc-probe.ps1` na cliente: é o ensaio do CI descartável com DSN
 inexistente e senha sintética, sem prova de acesso ao ERP real.
+
+### Inventário CONTAD após o corte oficial (D-331/V-349)
+
+inspect-contad-schema.ps1 é uma sonda separada, sem reinstalação, leitura de
+segredos existentes ou mudança de manifesto. Tables/Views usam três restrições
+ODBC e Columns quatro. test-contad-inventory.ps1 é exclusivo do CI descartável:
+confere o contrato real embutido no System.Data e usa metadados sintéticos,
+incluindo limites, erro DSN real, redação e ACL. Nunca executar o teste CI na cliente.
+Operador informou inventário de 601 objetos/5.674 colunas/502 empresas; JSON
+completo/revisão e primeira carga ainda pendentes. Não repetir a sonda por rotina.

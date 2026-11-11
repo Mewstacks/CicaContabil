@@ -1,5 +1,18 @@
 # Agente oficial CONTAD no Windows Server
 
+**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
+**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
+O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
+não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
+situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
+Backend administrativo de transição publicado/verificado na **release 81**,
+PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
+recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
+SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
+fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+Os estados anteriores abaixo registram a sequência histórica das entregas.
+
+
 Procedimento técnico D-324/D-325/D-326/D-327, PC-19, etapas 03/09/12. A sequência única de entrega
 permanece no [prompt canônico](contad-prompt-finalizacao-2026-11-06.txt).
 Este guia descreve o corte de equipamento, não amplia as fontes autorizadas.

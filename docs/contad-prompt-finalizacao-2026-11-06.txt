@@ -1,4 +1,17 @@
-PLANO/PROMPT CANÔNICO CONTAD — revisão de 10/11/2026, D-324/D-325/D-326/D-327/D-329/D-330
+PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331
+
+**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
+**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
+O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
+não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
+situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
+Backend administrativo de transição publicado/verificado na **release 81**,
+PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
+recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
+SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
+fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 **Agente oficial instalado e validado — D-324/D-330/V-345/V-346/V-347, 10/11/2026:**
 **SVAPL02** é o único oficial ativo desde **17:08:35 Brasília**, UUID
@@ -26,7 +39,7 @@ A solicitação humana atual autoriza adaptar o plano e iniciar o desenvolviment
 Leia nesta ordem:
 - AGENTS.md e PLANO-MESTRE.md na raiz.
 - DECISOES.md: registro canônico, especialmente D-73, D-301, D-309/D-310 e D-320 a D-330; D-324 define Windows Server oficial e D-325 aprova .NET 10 LTS.
-- VALIDACOES.md: principalmente V-322 a V-347; diferencie cada prova e seu limite.
+- VALIDACOES.md: principalmente V-322 a V-349; diferencie cada prova e seu limite.
 - docs/planejamento/etapas/03-agente-dominio.md, 09-conciliacao-radar.md e 12-homologacao-venda.md; consulte etapas 02/11 e demais dependências apenas quando pertinentes.
 - docs/planejamento/duvidas-abertas.md: reutilize Q-28, Q-46, Q-47, Q-08/Q-09 e os demais IDs aplicáveis.
 - docs/contad-continuidade-2026-11-06.md, docs/contad-release-2026-11-05.md, docs/planejamento/verificacao-conciliador-contad-2026-11-02.md, docs/conciliacao-razao-normalizado.md e docs/conciliacao-fontes-titulos.md.
@@ -38,13 +51,13 @@ Confira git status e a versão atual antes de editar. Preserve alterações loca
 2. PRIORIDADE: WINDOWS SERVER OFICIAL, DEPOIS CARTEIRA COMPLETA
 
 Sequência por dependências, sem segundo plano paralelo:
-A. Preservar as verificações do novo Server já recebidas em V-331 a V-336: Windows Server 2022 Standard/21H2/build 20348.5761; PowerShell x64/Administrador; sem serviço/configuração CICA na captura; Contabil 64 usa SQL Anywhere 16. Operador informou conexão interativa bem-sucedida e confirmou limpeza de usuário/senha e salvamento do novo DSN de sistema CICA_CONTAD, com SrvContabil/Contabil e Host/Port vazios. Não repetir perguntas/testes sem motivo, trocar para driver 17 pela existência dele ou solicitar senhas. Network/Advanced não inspecionados e LocalSystem ainda não testado. AnyDesk disponibilizado, mas a ferramenta nativa desta sessão retornou timeout; usar orientação ao operador enquanto isso. Não instalar Python/SDK: pacote autocontido.
+A. Preservar as verificações do novo Server já recebidas em V-331 a V-336: Windows Server 2022 Standard/21H2/build 20348.5761; PowerShell x64/Administrador; sem serviço/configuração CICA na captura; Contabil 64 usa SQL Anywhere 16. Operador informou conexão interativa bem-sucedida e confirmou limpeza de usuário/senha e salvamento do novo DSN de sistema CICA_CONTAD, com SrvContabil/Contabil e Host/Port vazios. Não repetir perguntas/testes sem motivo, trocar para driver 17 pela existência dele ou solicitar senhas. Network/Advanced não inspecionados; LocalSystem/ODBC/ACL/DPAPI comprovados em V-345/V-347. AnyDesk disponibilizado, mas a ferramenta nativa desta sessão retornou timeout; usar orientação ao operador enquanto isso. Não instalar Python/SDK: pacote autocontido.
 B. MSI 1.0.5/.NET 10 LTS e backend release 80 mantidos. SVAPL02 oficial em V-346; V-347 fecha Running/Auto/LocalSystem/ready/1.0.5 após reinício pós-corte e recepção real. Não repetir instalação, driver, runtime ou pareamento.
 C. Código consumido e identidades próprias preservadas. SVAPL02 0086bcf7-45a3-486b-b3ff-8b8f5e456385 ativo/oficial e anterior 3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado, mesma revisão/manifesto. Não emitir outro código ou reativar segredo antigo por rotina.
 D. V-345 comprova ODBC mínimo SYSTEM/x64, ACL, versão e limpeza; V-343 comprova DPAPI/HMAC após reinício pré-corte. V-346 comprova corte/primeiro ready; V-347 fecha teste pós-corte e recepção. Colagem corrigida executada com sucesso; não solicitar novamente a mesma prova.
 E. Corte administrativo concluído em V-346 às 17:08:35 Brasília, com auditoria e único oficial. Assinatura antiga 401, novo 200/coleta habilitada e recepção real. Preservar esse estado; não executar o corte novamente. Serviço antigo ainda não foi fisicamente parado nesta sessão.
 F. Se falhar antes do corte, revogar candidato e manter o anterior. Se falhar depois, diagnosticar sem reativar segredo revogado: retorno de máquina exige outra substituição explícita. Não transferir scans/cursor do agente antigo nem apagar dados/histórico.
-G. No novo agente oficial comprovado, obter inventário real, revisar mapa de situações/chaves/fontes e evoluir o manifesto para carteira completa. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
+G. Inventário já concluído no SVAPL02 (601 objetos/5.674 colunas/502 empresas). Receber o JSON completo, revisar mapa de situações/chaves/fontes e evoluir o manifesto para carteira completa. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
 
 Operação técnica dos comandos e do corte: docs/contad-agente-oficial-windows-server.md. O protocolo está publicado na release 80 e integrado na main em V-342. Conferir a versão corrente antes de emitir/renovar código; releases 75/76/78/79 não possuem o recurso. Publicação do backend não comprova instalação/pareamento/corte no Windows.
 
@@ -68,20 +81,14 @@ Inventarie competências, situações e volumes para planejar a primeira carga e
 
 3. ESTADO JÁ COMPROVADO: REUTILIZE
 
-Base operacional comprovada em D-321/V-324/V-325 e atualizada em D-323/V-327/V-328. Prompt preparado em D-322/V-326 e adaptado para Windows Server oficial por D-324/V-329. Evidência histórica não é consulta live desta rodada.
-
-- Site: https://cicacontabil.com.br. Fly app cica-contabil, organização mewstack-629.
-- Última publicação de código comprovada: release Fly 75, fonte c8b0c50, CI 42355490505 aprovado. Imagem sha256:61e035af2a18ff57b122cd1b1f5b13c7b5dee79f70a7bd8b87d16f581ed5af80. Reconfira o estado atual antes de agir.
-- Web 891e63ef665e58 e worker 1857691da097e8: máquinas originais de 512 MB. Reserva 287e35db920e48 parada e preservada. Não aumente recursos ou ative reserva por inferência.
-- default e knowledge no Neon original, PostgreSQL observado 18.6; migrações até hub.0079 e intelligence.0034 conferidas em V-328. A migração intelligence.0035 desta revisão é local e não deve ser descrita como aplicada em produção. Não troque banco/endpoint nem remova migrações aditivas.
-- CONTAD é escritório próprio, UUID ae13d06f-6461-43a8-a9cc-3e0e0eafde50, active, somente Conciliação. Contrato individual existente R$ 200/mês travado, sem plano de catálogo e sem iniciar cobrança automática/faturas.
-- Grazi já tem usuário ativo e vínculo único Proprietária da CONTAD, sem staff/superusuário/acesso de plataforma. Não recrie a conta nem altere a senha. Credencial no arquivo privado /Users/pedromachado/Downloads/CICA-Grazi-acesso.txt. Não copie e-mail/senha para logs, Git ou resposta pública. Nenhum convite/e-mail foi solicitado ou enviado.
-- Login HTTPS real por senha/CSRF já foi conferido: Conciliação 200, SURIA visível e Nova importação/campo de arquivos disponíveis. A sessão de verificação foi encerrada; naquela prova não houve upload. Reconfira os dados atuais e preserve arquivos ou decisões que o usuário tenha incluído depois.
-- Navegação do produto: Contábil > Conciliação bancária > Nova importação. URL: /app/conciliacao/.
-- Legado a substituir: agente único .NET 8, MSI 1.0.3 instalado e pareado no PC CONTAD. Domínio Local, DSN de sistema CICA_CONTAD x64, SQL Anywhere 17, srvContabil, EXTERNO informado somente no Windows. Não pedir senha ou disponibilidade da credencial já informada. No novo Server, observar driver/DSN e configurar a credencial localmente, sem presumir que o registro do PC anterior foi migrado.
-- Operador comprovou Running / Auto / LocalSystem / ready após reinícios. Campos de senha foram removidos somente do novo CICA_CONTAD x64, sem leitura de valores; false / Running / ready confirmado. DSN original preservado, credencial explícita protegida por DPAPI e ACL.
-- Falha inicial de icacls foi resolvida abrindo o configurador como administrador. Credencial órfã foi revogada e código substituto consumido. Por D-324, emitir novo código próprio de substituição para o Windows Server, sem reutilizar o código consumido ou o segredo anterior. Preservar o PC até o corte. MSI 1.0.4 foi preparado/testado em V-327; 1.0.5 com staged-v1 está em desenvolvimento local e precisa de CI/MSI/prova Windows próprios.
-- Transporte vigente: HTTPS com verificação normal de certificado e HMAC individual. CA privada/mTLS não são requisito deste piloto. Criar apenas o candidato explicitamente ligado ao agente anterior, sem segundo coletor ativo; promovê-lo a oficial/revogar o anterior no corte D-324. Não criar novo ingresso.
+- Backend vigente: release 81, fonte d39acd0/CI 42900012334, PR 5/main 5cfa462; web e worker conferidos por 663 hashes. Imagem imutável a3b99dd7 e retorno na imagem anterior release 80, sem migração nova.
+- Site https://cicacontabil.com.br; app cica-contabil. Dois processos originais de 512 MB e reserva parada; default/knowledge Neon originais. Prévia e exportação permanecem desabilitadas, conforme configuração vigente preservada.
+- CONTAD ae13d06f-6461-43a8-a9cc-3e0e0eafde50 active/somente Conciliação; contrato individual R$ 200/mês travado, sem cobrança automática ou módulos novos.
+- Grazi já tem conta ativa, vínculo único Proprietária da CONTAD, sem acesso de plataforma. Não recriar/alterar senha; arquivo privado Downloads/CICA-Grazi-acesso.txt, sem conteúdo em Git/log/chat. Nenhum convite/e-mail foi autorizado.
+- Oficial SVAPL02 0086bcf7-45a3-486b-b3ff-8b8f5e456385, Windows Server 2022 x64, MSI 1.0.5/.NET 10 autocontido. Running/Auto/LocalSystem/ready e retomada já comprovados. Anterior CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado; preservar histórico.
+- DSN CICA_CONTAD/SQL Anywhere 16 x64/SrvContabil/Contabil, autenticação Database/EXTERNO explícita configurada somente no Windows; dados protegidos por DPAPI/ACL. Não pedir senha, reinstalar driver ou recriar DSN. HTTPS/HMAC, sem CA privada obrigatória neste piloto.
+- Inventário corrigido foi executado no Server: 601 objetos, 5.674 colunas, 502 empresas; hash informado 4b7be104b2225b19cc922528d8d1cb65734f02d0b9f463f9e9d0d965652e3c69. JSON ainda no Windows, sem recebimento/validação do conteúdo no Mac; não inferir mapa de situações ou chaves desses totais.
+- Comando configure_agent_portfolio publicado: prévia padrão e aplicação explícita com inventário/revisão/CAS. Não aplicado. Se trocar para companies, a coleta financeira do piloto pausa; os dados recebidos ficam preservados. Somente cadastros implementados nesse modo, sem Razão/títulos/contas completos.
 
 4. PILOTO EXISTENTE E LIMITES
 
@@ -99,7 +106,7 @@ Evidências privadas no workspace:
 
 5. IMPLEMENTAÇÃO E DESCOBERTA DAS FONTES
 
-Comece confrontando a implementação com o resultado esperado; não confunda contrato normalizado/offline ou leitor de PDF com integração ODBC pronta. V-327/V-328 já implementaram/publicaram protocolo de carteira e recepção retomável de empresas; MSI 1.0.4 preparado contém essa leitura, mas o PC 1.0.3 mantém o piloto e não há scan real da carteira. A conta financeira do piloto foi preparada previamente. Contas/referências/Razão/títulos reais continuam faltando; não reimplementar como se o protocolo de empresas não existisse. Complete a descoberta automática dos cadastros e as fontes contábeis/financeiras que ainda faltam no agente e no recebimento persistente do CICA.
+Comece confrontando a implementação com o resultado esperado; não confunda contrato normalizado/offline ou leitor de PDF com integração ODBC pronta. V-327/V-328 implementaram protocolo de carteira e recepção retomável de empresas; V-349 publica o comando auditado de transição na release 81. SVAPL02 já está no MSI 1.0.5 compatível, ainda no manifesto piloto, sem scan real da carteira. A conta financeira do piloto foi preparada previamente. Contas/referências/Razão/títulos reais continuam faltando; não reimplementar como se o protocolo de empresas não existisse. Complete a descoberta automática dos cadastros e as fontes contábeis/financeiras que ainda faltam no agente e no recebimento persistente do CICA.
 
 Reutilize o serviço único, os modelos, filas, APIs, controles de auditoria e contratos já existentes. Localize os arquivos responsáveis e registre uma sequência curta de execução por dependências.
 

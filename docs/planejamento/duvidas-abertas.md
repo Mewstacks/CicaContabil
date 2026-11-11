@@ -501,3 +501,16 @@ conferido: Running/Auto/LocalSystem/ready/1.0.5, novos ciclos/heartbeat reais,
 conector healthy, único oficial e dados preservados. Instalação/troca/teste
 complementar concluídos; Q-28 permanece somente para inventário/fontes/carteira.
 Não repetir a mesma prova ou perguntas já respondidas. Demais gates preservados.
+
+**Q-28/D-331/V-348:** instalação/corte não são reabertos. Inventário executado
+na cliente falhou com MethodInvocationException, sem resultado completo. Versão
+de diagnóstico com etapa/SQLState/nativo foi validada no CI Windows e entregue;
+aguarda retorno pontual. Não repetir pergunta de DSN/senha/runtime/histórico.
+Situações reais/revisão continuam condição para a carteira; novo comando não
+aplica mapa sintético nem presume semântica financeira.
+
+**Q-28/V-349 (11/11):** sonda corrigida concluída segundo operador: 601 objetos,
+5.674 colunas, 502 empresas, SHA 4b7be104…652e3c69. Não repetir a execução nem
+perguntas de credencial/driver. Falta receber o inventario.json do Windows para
+conferir hash, situações e fontes; resumo numérico não fornece esses campos.
+Backend de transição publicado/verificado na release 81; piloto ainda vigente.

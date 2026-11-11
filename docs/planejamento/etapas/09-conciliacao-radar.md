@@ -422,3 +422,23 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
 - [x] V-347: JSON recebido após reinício posterior ao corte: Running/Auto/
   LocalSystem/ready/1.0.5; recepção real, único oficial e dados preservados.
 - [ ] Demais fontes/carteira, Q-46/Q-47, D-73, recuperação, treinamento e aceite.
+
+### Carteira após o agente oficial — D-331/V-348 (10/11/2026)
+
+- [x] Prévia/aplicação com evidência e revisão, CAS, auditoria e travas; 112 testes
+  focados e regressão PostgreSQL 1.881/163 aprovados, sem ativação operacional.
+- [x] Inventário/diagnóstico executados em CI Windows 2022; sucesso sintético,
+  limites, IM002 real, redação e ACL. Tentativa na cliente falhou, sem inventário.
+- [x] V-349: causa das restrições ODBC corrigida; operador concluiu inventário
+  de 601 objetos/5.674 colunas/502 empresas, com hash informado.
+- [ ] Revisar situações/chaves, aplicar manifesto e conferir scan real da carteira.
+- [ ] Contas/fontes financeiras, Q-46/Q-47, D-73, recuperação, treinamento e aceite.
+
+### Inventário e publicação da carteira — V-349 (11/11/2026)
+
+- [x] CI exato/PR 5/main e backend release 81 conferidos; 663 hashes, doze
+  fingerprints, saúde, recursos, oficial/piloto e novo ciclo real preservados.
+- [x] Conclusão do inventário real informada pelo operador, sem pedir repetição.
+- [ ] Receber JSON completo e reconferir SHA, situações, tipos/chaves/fontes.
+- [ ] Revisão/aplicação do mapa e scan real das 502 empresas com cobertura.
+- [ ] Contas/Razão/títulos, Q-46/Q-47, IA/D-73, recuperação, treinamento e aceite.

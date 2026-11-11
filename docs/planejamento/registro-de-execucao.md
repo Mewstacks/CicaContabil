@@ -3528,3 +3528,30 @@ integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova
   MSI/script intactos; nenhuma reinstalação, nova coleta ampliada ou deploy.
 - Fecha o retorno pendente em V-346. Instalação, troca oficial e teste de
   retomada do serviço concluídos; carteira/fontes/aceite continuam nos seus gates.
+
+## 10/11/2026 — Carteira preparada e inventário real em diagnóstico (D-331/V-348)
+
+- Backend: prévia/aplicação administrativa com evidência/CAS/revisão/auditoria,
+  identidade/dados preservados e bloqueio de corte concorrente.
+- PostgreSQL: 112 focados; regressão 1.881/163, um skip opcional. Estáticas e
+  imagem candidata de 663 hashes offline aprovadas; CI integral ainda em curso.
+- Windows CI 42897681292 validou sonda; tentativa real no SVAPL02 falhou sem
+  inventário. CI 42898977773 validou diagnóstico seguro/etapas/IM002; entregue
+  script de hash dc5e9b19 e solicitado retorno. Sem hipótese de causa presumida.
+- Publicação/carteira reais não declaradas por essa preparação. Piloto/manifesto/
+  MSI/instalação preservados; fontes/gates contábeis e aceite continuam abertos.
+
+## 11/11/2026 — Inventário concluído e backend da carteira publicado (V-349)
+
+- Retorno humano: 601 objetos/5.674 colunas/502 empresas e hash; JSON completo
+  ainda no Windows. Registrada conclusão sem aprovar situações ou nova coleta.
+- CI final 42900012334/d39acd0 aprovado, PR 5/main 5cfa462 integrado com árvore
+  idêntica. Nova imagem de dois módulos/663 hashes sobre release 80, mesma base.
+- Release 81: dois processos/aliases/runtime, worker, readiness, recusa de agente
+  inválido, doze fingerprints e recursos/configuração/reserva conferidos.
+- SVAPL02 permanece único oficial; ciclo real pós-deploy e conector healthy,
+  mesmo piloto/163 movimentos e zero scan. Não foi aplicado configure_agent_portfolio.
+- Registro Docker exigiu renovar autenticação existente; um download GitHub 502
+  foi repetido. Sem novo recurso/backup/chave, MSI/driver/DSN ou custo de IA.
+- Atualizados plano/prompt/cópias/contrato/checklists/pacotes. Próximo insumo:
+  JSON completo/revisão das situações/fontes, sem repetir a sonda concluída.

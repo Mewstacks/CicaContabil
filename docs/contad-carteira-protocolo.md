@@ -1,5 +1,18 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+**Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
+**502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
+O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,
+não reconferido localmente. Próximo insumo Q-28: receber esse arquivo e revisar
+situações/chaves/fontes antes da primeira carga. Não repetir inventário por rotina.
+Backend administrativo de transição publicado/verificado na **release 81**,
+PR 5/main 5cfa462, CI exato 42900012334 aprovado. Doze fingerprints anteriores,
+recursos/configuração e mesmo piloto preservados; ciclo real pós-deploy saudável.
+SVAPL02 permanece único oficial/1.0.5. Sem manifesto ampliado, scan de carteira,
+fonte financeira nova, exportação, custo/IA, treinamento ou aceite presumidos.
+Os estados anteriores abaixo registram a sequência histórica das entregas.
+
+
 **Revisão de destino D-324 (09/11/2026):** nova instalação será no Windows Server
 como agente oficial, com candidato sem coleta e corte explícito/revogação do
 anterior. Implementação local em desenvolvimento; nenhuma troca real realizada.
@@ -15,8 +28,8 @@ piloto, com uma empresa/conta e 163 eventos. Esta fase não conclui o projeto.
 | Capacidade | Implementada/testada | Publicada | Provada na CONTAD | Homologada/aceita |
 |---|---|---|---|---|
 | Protocolo/recepção da carteira de empresas | Sim; PostgreSQL, reenvio e concorrência | Backend 75 | Ainda sem scan real | Não |
-| Inventário de metadados/contagens | Roteiro preparado/parser Windows aprovado | Arquivo local preparado | Não executado | Não |
-| Agente 1.0.4 | 52 testes/26 checks Windows, MSI/hash aprovados | Artefato CI/cópia local | PC mantém 1.0.3 | Não |
+| Inventário de metadados/contagens | CI Windows/contrato ODBC real e limites aprovados | Script/hash entregues | 601 objetos/5.674 colunas/502 empresas informados; JSON pendente | Semântica não revisada |
+| Agente oficial 1.0.5 | 62 testes/26 checks Windows, MSI/hash aprovados | MSI oficial preservado | SVAPL02/ready/LocalSystem após reinício | Instalação/corte validados; fontes completas pendentes |
 | Contas/referências/Razão/títulos | Contratos anteriores não equivalem a adaptadores reais | Nenhuma fonte nova ativada | Piloto bancário anterior preservado | Não |
 | Treinamento | [Guia preparado](pt-BR/contad-conciliacao.md) | Documento disponível | Não executado | Não |
 
@@ -133,3 +146,25 @@ Continuidade D-329/V-342 (10/11): backend do agente integrado na main e publicad
 na release 80. ODBC interativo do SVAPL02 comprovado em V-340;
 pareamento e provas de serviço/LocalSystem/corte ainda pendentes. Mesma revisão
 de manifesto/piloto e MSI 1.0.5; esta liberação não amplia a carteira/fontes.
+
+## Transição administrativa preparada — D-331/V-349
+
+configure_agent_portfolio foi publicado na release 81. Exige --organization,
+--agent, --expected-scope-revision, --inventory, --review e --period-end.
+Sem --apply apenas verifica e mostra a prévia; --apply muda o manifesto sob
+travas organização/agente e auditoria. Não exige novo pareamento ou MSI.
+Não executar antes de receber e revisar o JSON real. Evidência recente (24 h),
+completa e de até 12 MiB; revisão de até 32 KiB, sem campos repetidos, vinculada
+ao hash/UUIDs e dono/administrador ativo. A revisão possui exatamente:
+version=contad-company-status-review-v1, organization_id, agent_id, reviewer_id,
+inventory_sha256, review_reference, agent_version e company_status_map.
+Mapa deve cobrir exatamente os códigos observados, com booleanos revisados;
+não preencher A/I por causa dos exemplos sintéticos dos testes.
+
+Somente piloto → companies nesta fase, heartbeat oficial recente e nenhuma
+substituição em aberto. Revisão anterior esperada impede mudança concorrente;
+repetição idêntica usa auditoria original. UUID/segredo/dados/recibos permanecem.
+Ao trocar, o modo companies pausa leitura financeira do piloto e mantém seus
+dados. Isso não entrega contas/Razão/títulos ou carga financeira da carteira.
+Primeira execução operacional continua pendente; diagnóstico de cobertura deve
+confrontar todas as empresas e preservar situações inativas e campos desconhecidos.

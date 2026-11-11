@@ -4024,3 +4024,11 @@ deve ler limites da metadata XML embutida no System.Data real do Windows,
 verificar contagens e rejeitar a chamada antiga, sem depender de ERP. Retorno
 real do script corrigido continua necessário; não inferir sucesso por CI.
 Fonte: https://github.com/microsoft/referencesource/blob/main/System.Data/System/Data/Odbc/odbcmetadatafactory.cs#L860
+
+Resultado D-331/V-349 (11/11/2026): operador informou inventário concluído,
+601 objetos/5.674 colunas/502 empresas e SHA 4b7be104…652e3c69. Não repetir a
+sonda; receber JSON completo antes de revisar/aplicar situações e fontes.
+CI final aprovado, PR 5/main 5cfa462 integrado e backend release 81 verificado,
+mesmo oficial/piloto/dados/recursos/configuração, novo ciclo real saudável.
+Comando preparado/publicado; nenhum manifesto ampliado/scan real. Semântica,
+fontes financeiras, critérios/aceite continuam nos mesmos gates.
