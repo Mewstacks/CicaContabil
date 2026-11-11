@@ -16,6 +16,7 @@ from apps.hub.models import FinancialAccount
 from apps.organizations.models import Organization
 
 PROTOCOL = "scoped-v1"
+REGISTRATION_PROTOCOL = "scoped-v4"
 VERSION = "dominio-pilot-v1"
 PORTFOLIO_VERSION = "dominio-portfolio-v1"
 PORTFOLIO_PROTOCOL = "scoped-v2"

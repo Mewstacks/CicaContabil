@@ -1,21 +1,22 @@
 # CONTAD — resumo e continuidade
 
-**Continuidade D-332/V-350 — 11/11/2026:** inventário completo recebido e
-SHA-256 4b7be104…652e3c69 reconferido: 601 objetos, 5.674 colunas e 502 empresas
-(A=146, I=346, M=10). Pedido humano: buscar todas as ativas. Primeiro seletor
-usa A, já empregado pelo conector; M permanece não classificado e fora desta
-primeira seleção, sem ser marcado como inativo. Não pedir à cliente que decifre
-códigos ou repita a sonda. Chaves/semântica financeiras ainda não homologadas.
-Backend de seleção na origem publicado/verificado na **release 82**, PR 6/main
-7a02775, fonte 11147d4/CI 43061206044. Recursos/configuração, doze fingerprints,
-único oficial SVAPL02 e piloto/163 movimentos preservados, sem scan ampliado.
-MSI **1.0.6** aprovado no Windows Server 2022, incluindo upgrade configurado
-1.0.5→1.0.6/DPAPI/retomada; pacote e comando único entregues. **Atualização real
-do SVAPL02 ainda aguarda o JSON do operador**; não refazer pareamento ou DSN.
-Depois conferir esse retorno/heartbeat, prévia administrativa e aplicação única
-do recorte A, seguidas de cobertura real. Não aplicar antes da versão compatível.
-Demais fontes, Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem abertos.
+**Continuidade D-333/V-351 — 11/11/2026:** upgrade real do SVAPL02 para1.0.6
+confirmado: Running/Auto/LocalSystem, bytes protegidos preservados, ready às
+17:10:36 UTC, sem reboot. Backend82/mesmo oficial/heartbeat conferidos. Seletor A
+aplicado uma única vez às17:15:17 UTC, revisão ebd69a73…; não reaplicar manifesto
+nem refazer corte/pareamento. Origem contou146, mas scan está incompleto/zero
+cadastros recebidos, por identificação fora do contrato14 dígitos. Dados anteriores
+preservados. Não afirmar carga concluída ou estado ready posterior à seleção.
+Sonda real de agregados confirmou12 inscrições de11 dígitos,133 de14 e uma vazia;
+códigos1/2/3 não têm legenda aprovada. Nenhum documento/nome/valor foi consultado
+pela sonda. D-333 define espelho literal da inscrição/tipo, sem inventar CNPJ/CPF,
+preencher zeros ou sobrescrever CNPJ existente. Correção1.0.7 está em validação;
+MSI novo/backend compatível ainda não entregues/publicados nesta entrada.
+M=10 continua não classificado/fora do recorte, sem inativação. Próximo passo é
+validar/publicar correção, atualizar o mesmo agente e retomar o scan existente;
+não pedir outra revisão de códigos à cliente. Fontes financeiras e aceite pendentes.
 Os estados anteriores abaixo registram a sequência histórica das entregas.
+
 
 
 

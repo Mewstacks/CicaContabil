@@ -193,6 +193,7 @@ def sync_companies(
     request: object = None,
     full_snapshot: bool = False,
     honor_source_active: bool = False,
+    honor_source_registration: bool = False,
 ) -> SyncResult:
     """Mirror operational company metadata from the authenticated Domínio agent."""
     if connector.organization_id != organization.id:
@@ -229,6 +230,14 @@ def sync_companies(
                     "source_updated_at": now,
                     "active": cast(bool, row["active"]) if honor_source_active else True,
                     "dominio_status": str(row["status"]) if honor_source_active else "",
+                    **(
+                        {
+                            "dominio_registration_raw": row["registration_raw"],
+                            "dominio_registration_type_code": row.get("registration_type_code"),
+                        }
+                        if honor_source_registration
+                        else {}
+                    ),
                 },
             )
             if was_created:
@@ -244,6 +253,12 @@ def sync_companies(
             if honor_source_active:
                 company.dominio_status = str(row["status"])
                 changes.append("dominio_status")
+            if honor_source_registration:
+                company.dominio_registration_raw = cast(str, row["registration_raw"])
+                company.dominio_registration_type_code = cast(
+                    int | None, row.get("registration_type_code")
+                )
+                changes.extend(["dominio_registration_raw", "dominio_registration_type_code"])
             source_active = cast(bool, row["active"]) if honor_source_active else True
             if company.active != source_active:
                 company.active = source_active

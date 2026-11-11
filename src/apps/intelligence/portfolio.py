@@ -18,6 +18,7 @@ from apps.audit.services import record_event
 from apps.intelligence.agent_scope import (
     ACTIVE_PORTFOLIO_VERSION,
     PORTFOLIO_VERSIONS,
+    REGISTRATION_PROTOCOL,
     validate_sync_scope,
 )
 from apps.intelligence.agent_v2 import _agent, _error, _payload
@@ -66,15 +67,40 @@ def _coverage_error(scan: AgentCompanyScan, *, code: str, request: HttpRequest) 
     return response
 
 
-def _company_rows(rows: Any, scope: dict[str, Any], after: str) -> list[dict[str, Any]]:
+def _company_rows(
+    rows: Any, scope: dict[str, Any], after: str, *, registration: bool = False
+) -> list[dict[str, Any]]:
     if not isinstance(rows, list) or len(rows) > 500:
         raise ValueError("Página deve conter até 500 empresas.")
     normalized = []
     previous = int(after)
     for row in rows:
-        if not isinstance(row, dict) or set(row) != {"codigo", "nome", "cnpj_masked", "status"}:
+        common = {"codigo", "nome", "status"}
+        if (
+            not isinstance(row, dict)
+            or (
+                registration
+                and (
+                    not common | {"registration_raw"} <= set(row)
+                    or not set(row) <= common | {"registration_raw", "registration_type_code"}
+                )
+            )
+            or (not registration and set(row) != common | {"cnpj_masked"})
+        ):
             raise ValueError("Campos da empresa fora do contrato autorizado.")
-        code, name, cnpj, status = (row[key] for key in ("codigo", "nome", "cnpj_masked", "status"))
+        code, name, status = (row[key] for key in ("codigo", "nome", "status"))
+        cnpj = "" if registration else row["cnpj_masked"]
+        if registration:
+            raw, kind = row["registration_raw"], row.get("registration_type_code")
+            if (
+                scope["version"] != ACTIVE_PORTFOLIO_VERSION
+                or not isinstance(raw, str)
+                or len(raw) > 14
+                or raw != raw.strip()
+                or (raw and not re.fullmatch(r"[0-9./-]+", raw))
+                or (kind is not None and (type(kind) is not int or not 0 <= kind <= 255))
+            ):
+                raise ValueError("Inscrição de origem fora do contrato literal autorizado.")
         if (
             not isinstance(code, str)
             or not re.fullmatch(r"[1-9][0-9]{0,17}", code)
@@ -179,7 +205,8 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                 # Completed scans remain immutable, with their original replay receipt.
                 if after != scan.cursor and after != scan.last_after:
                     return _error("Página fora de sequência ou carga já encerrada.", 409)
-                rows = _company_rows(payload["rows"], scope, after)
+                registration = request.headers.get("X-Hub-Agent-Protocol") == REGISTRATION_PROTOCOL
+                rows = _company_rows(payload["rows"], scope, after, registration=registration)
                 complete, count = payload["complete"], payload["source_count"]
                 if (
                     type(complete) is not bool
@@ -214,6 +241,7 @@ def company_scan(request: HttpRequest) -> JsonResponse:
                         request=request,
                         full_snapshot=False,
                         honor_source_active=True,
+                        honor_source_registration=registration,
                     )
                     scan.received_count = received
                     scan.page_count += 1

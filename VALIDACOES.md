@@ -7963,3 +7963,48 @@ prévia/--apply administrativo do seletor A e scan real confrontado com146 obser
 sem antecipar sucesso. Depois relações/fontes, Q-46/Q-47, D-73 e aceite.
 Evidências privadas em .tmp/contad-active-companies-2026-11-11/; plano, checklists,
 execução, prompt/cópias e entrega atualizados; alterações locais anteriores preservadas.
+
+## V-351 — Upgrade real, primeiro scan e formatos observados (11/11/2026)
+
+Operador executou upgrade1.0.5→1.0.6, MSI14473e84… confirmado, exit0, sem reboot,
+Running/Auto/LocalSystem/ready/fresh às17:10:36 UTC e bytes protegidos preservados.
+Backend82 com664 hashes iguais, mesmo UUID/oficial e heartbeat recente, anterior
+revogado/zero pendente/quatro pareamentos históricos. Sem novo pareamento ou corte.
+Prévia e aplicação única via comando testado às17:15:17.867 UTC: revisão
+**ebd69a732a42f978bb7bb2c72495e564135235f55309fccc36bba315a81889e1**,
+auditoria6bdf3b8f-7e27-4391-bdd7-8a3b556fd649, actor=None e origem
+existing_active_selector. Inventário hash original conferido; arquivos temporários
+0600/diretório0700 removidos do backend após comando. Nenhuma aprovação atribuída
+à Grazi ou interpretação de M. Prévia não aplicou; --apply executado apenas uma vez.
+
+Agente abriu scan **fc7eed16-a02a-41dd-807e-116cbed273bd** às17:15:29 UTC,
+origem146, recebido0/páginas0/cursor0. Operador às17:18:30 UTC confirmou estado
+configuration_error/Identificação de empresa fora do contrato. Causa localizada
+no adaptador: aceita caracteres de inscrição, mas exige14 dígitos; nenhum
+cadastro da página foi transmitido. Não é evidência de erro de senha/DSN/DPAPI.
+Onze fingerprints não agentes iguais, mesma empresa SURIA/conta/163 movimentos,
+sem dado financeiro novo. Coleta financeira do piloto está pausada pelo modo
+companies; registros anteriores preservados. Não afirmar carga/ready concluídos.
+
+Sonda pontual inspect-contad-document-profile.ps1, somente agregados do recorte A:
+TIPOI_EMP/comprimento original/sem pontuação/COUNT(*). Não seleciona documento,
+nome/código de empresa, valor financeiro ou configuração do agente; credencial
+somente no Windows. CI Windows2022 **43067636385**, fonte **d171838**, seis
+cenários (sucesso, coluna ausente, limites de grupos/contagem, forma inválida e
+falha de driver), parametrização/limites/nulos/redação aprovados. Script entregue
+com os mesmos bytes CRLF testados, SHA-256
+**1ea41d0f5f2c6e952f14660d5da63b5943e4e71ef217e89d109df43d2620d324**.
+Não repetir inventário completo. Consulta real concluída às17:27:45.607 UTC:
+- tipo1/comprimento0:1;
+- tipo1/comprimento11:12;
+- tipo1/comprimento14:130;
+- tipo2/comprimento14:1;
+- tipo3/comprimento14:2.
+
+Total146, sem pontuação nos grupos. Legenda de TIPOI_EMP não aprovada; não inferir
+CPF pelos11 dígitos ou CNPJ pelos14. Nenhum documento bruto saiu nessa sonda.
+D-333 registra a correção antes da implementação: guardar inscrição/tipo como
+espelho literal em campos próprios, sem usar como CNPJ ou raiz comercial.
+Correção1.0.7/migração aditiva/compatibilidade e upgrade estão em validação local;
+sem novo MSI/backend entregue neste registro. Evidências privadas em
+.tmp/contad-active-collection-2026-11-11/. M, relações/fontes, D-73 e aceite abertos.

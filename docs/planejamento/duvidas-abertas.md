@@ -522,3 +522,10 @@ primeiro seletor técnico A existente, M pendente sem inativação. Backend82 e
 MSI1.0.6 testados/preparados; retorno do upgrade pontual já solicitado. Depois
 prévia/aplicação e cobertura real. Q-28 agora é relações/fontes e confirmação
 de M, sem reabrir inventário/instalação/DSN ou presumir semântica/aceite.
+
+**Q-28/D-333/V-351:** upgrade1.0.6 e seletor A reais comprovados, mas primeiro
+scan146/zero recebido parou no contrato14 dígitos. Sonda pontual real concluída:
+12 inscrições11/133 inscrições14/uma vazia; tipos1/2/3 sem legenda. Não pedir
+que a cliente classifique CPF/CNPJ por inferência nem repetir sonda/pareamento.
+D-333 guarda inscrição/tipo literais e preserva CNPJ anterior; validar correção
+1.0.7/upgrade/backend e retomar scan existente. M/fontes/aceite ainda pendentes.

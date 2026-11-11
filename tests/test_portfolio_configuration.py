@@ -659,3 +659,143 @@ def test_transition_waits_for_inflight_bank_page_then_refuses_old_scope(prepared
     assert DominioBankEntry.objects.count() == 1
     assert send_page() in (400, 401, 403)
     assert DominioBankEntry.objects.count() == 1
+
+
+def registration_row(code, value, kind=1):
+    return {
+        "codigo": str(code),
+        "nome": f"Synthetic {code}",
+        "status": "A",
+        "registration_raw": value,
+        "registration_type_code": kind,
+    }
+
+
+def test_literal_registration_resumes_old_open_scan_and_preserves_cnpj_and_identity(prepared):
+    from test_portfolio_sync import page, post
+
+    original = ClientCompany.objects.get()
+    original.cnpj_masked = "11.222.333/0001-81"
+    original.save()
+    credentials = active_credentials(prepared)
+    opening = {
+        "action": "open",
+        "scope_revision": credentials.sync_scope["revision"],
+        "expected_count": 4,
+    }
+    # Actual failure pattern: previous client opened a scan before a format refusal.
+    run = post(credentials, opening, protocol="scoped-v3").json()
+    resumed = post(credentials, opening, protocol="scoped-v4").json()
+    assert resumed["run_id"] == run["run_id"] and resumed["after"] == "0"
+    rows = [
+        registration_row(1, "12345678901"),
+        registration_row(2, "11222333000181", 2),
+        registration_row(3, "11222333000181", 3),
+        registration_row(4, ""),
+    ]
+    payload = page(credentials, resumed, rows)
+    response = post(credentials, payload, protocol="scoped-v4")
+    assert response.status_code == 200 and response.json()["complete"], response.content
+    assert response.json()["created"] == 3 and ClientCompany.objects.count() == 4
+    original.refresh_from_db()
+    assert original.dominio_registration_raw == "12345678901"
+    assert original.dominio_registration_type_code == 1
+    assert original.cnpj_masked == "11.222.333/0001-81"
+    assert original.commercial_root_cnpj == "11222333"
+    assert list(
+        ClientCompany.objects.order_by("dominio_code").values_list(
+            "dominio_registration_raw", flat=True
+        )
+    ) == [r["registration_raw"] for r in rows]
+    assert (
+        ClientCompany.objects.exclude(pk=original.pk)
+        .filter(cnpj_masked="", commercial_root_cnpj="")
+        .count()
+        == 3
+    )
+    assert post(credentials, payload, protocol="scoped-v4").json()["replayed"]
+    assert AgentCompanyScan.objects.get().received_count == 4
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"registration_raw": "x"},
+        {"registration_raw": "123456789012345"},
+        {"registration_type_code": True},
+        {"registration_type_code": 256},
+        {"registration_type_code": "1"},
+        {"cnpj_masked": ""},
+        {"status": "I"},
+    ],
+)
+def test_literal_registration_rejects_wrong_shape_without_partial_writes(prepared, change):
+    from test_portfolio_sync import page, post
+
+    credentials = active_credentials(prepared)
+    run = post(
+        credentials,
+        {
+            "action": "open",
+            "scope_revision": credentials.sync_scope["revision"],
+            "expected_count": 2,
+        },
+        protocol="scoped-v4",
+    ).json()
+    rows = [registration_row(2, "12345678901"), {**registration_row(3, ""), **change}]
+    response = post(credentials, page(credentials, run, rows), protocol="scoped-v4")
+    assert response.status_code == 400
+    assert ClientCompany.objects.count() == 1 and AgentCompanyScan.objects.get().received_count == 0
+
+
+def test_literal_registration_null_type_remains_unknown_and_old_protocol_cannot_submit_it(prepared):
+    from test_portfolio_sync import page, post
+
+    credentials = active_credentials(prepared)
+    run = post(
+        credentials,
+        {
+            "action": "open",
+            "scope_revision": credentials.sync_scope["revision"],
+            "expected_count": 1,
+        },
+        protocol="scoped-v4",
+    ).json()
+    row = registration_row(2, "12345678901", None)
+    payload = page(credentials, run, [row])
+    assert post(credentials, payload, protocol="scoped-v3").status_code == 400
+    assert post(credentials, payload, protocol="scoped-v4").status_code == 200
+    company = ClientCompany.objects.get(dominio_code="2")
+    assert company.dominio_registration_type_code is None and company.cnpj_masked == ""
+
+
+def test_registration_protocol_enrollment_preserves_scoped_compatibility(organization):
+    from apps.intelligence.agent_scope import build_portfolio_scope
+
+    scope = build_portfolio_scope(
+        organization=organization,
+        start=date(2026, 9, 1),
+        end=date(2026, 9, 30),
+        company_status_map={"A": True},
+        active_only=True,
+    )
+    enrollment = issue_enrollment(organization=organization, sync_scope=scope)
+    response = Client().post(
+        reverse("agent-v2-enroll"),
+        data=json.dumps(
+            {
+                "code": enrollment.code,
+                "label": "Synthetic",
+                "fingerprint": "synthetic-registration",
+                "authentication_mode": "hmac",
+            }
+        ),
+        content_type="application/json",
+        headers={"X-Hub-Agent-Protocol": "scoped-v4"},
+        secure=True,
+    )
+    assert response.status_code == 200, response.content
+    from apps.intelligence.models import AgentEnrollment
+
+    assert AgentEnrollment.objects.get().used_at is not None
+    assert EdgeAgent.objects.get().sync_scope == scope

@@ -143,6 +143,11 @@ class ClientCompany(OrganizationScopedModel):
     active = models.BooleanField(default=True)
     last_dominio_sync_at = models.DateTimeField(null=True, blank=True)
     dominio_status = models.CharField(max_length=16, blank=True, default="")
+    # Literal ERP registration, without inferring CPF/CNPJ or a commercial root (D-333).
+    dominio_registration_raw = models.CharField(
+        max_length=14, blank=True, default="", db_default=""
+    )
+    dominio_registration_type_code = models.PositiveSmallIntegerField(null=True, blank=True)
     data_source = models.ForeignKey(
         "DataSource", null=True, blank=True, on_delete=models.SET_NULL, related_name="companies"
     )

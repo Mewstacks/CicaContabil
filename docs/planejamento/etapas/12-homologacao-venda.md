@@ -555,3 +555,16 @@ a identificação do Windows, decisão .NET ou instalação sem motivo novo.
 Não repetir instalação/corte/DSN/credenciais ou inventário já concluídos. A atualização
 funcional1.0.6 preserva identidade e configuração. O piloto permanece até essa prova;
 companies ampliado pausa sua leitura financeira, preservando os163 movimentos.
+
+### Retorno real e formatos — D-333/V-351 (11/11/2026)
+
+- [x] Upgrade real1.0.6/serviço/bytes protegidos e heartbeat conferidos.
+- [x] Prévia e aplicação única do recorte A, com auditoria sem ator humano.
+- [x] Origem contou146 e abriu scan; recusa por contrato14 dígitos localizada.
+- [x] Sonda agregada testada no Windows e executada:12 inscrições11/133 inscrições14/uma vazia.
+- [ ] Validar/publicar espelho literal e MSI1.0.7, sem classificação presumida.
+- [ ] Atualizar o mesmo agente e concluir/relê scan146 sem duplicar ou perder histórico.
+- [ ] M/relações/fontes financeiras, Q-46/Q-47/D-73, recuperação, treinamento e aceite.
+
+O scan está incompleto/zero recebido. Não repetir manifesto, corte, credencial ou
+inventário. Inscrições não serão omitidas, completadas com zeros ou rebatizadas.
