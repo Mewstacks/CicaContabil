@@ -4,3 +4,5 @@ contracts/datasets/** text eol=lf
 # The direct-download diagnostic must have exactly the bytes validated on Windows.
 agent-windows/inspect-contad-relations.ps1 text eol=lf
 agent-windows/test-contad-relations.ps1 text eol=lf
+agent-windows/inspect-contad-ledger-profile.ps1 text eol=lf
+agent-windows/test-contad-ledger-profile.ps1 text eol=lf
