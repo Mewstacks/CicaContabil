@@ -3860,3 +3860,11 @@ recepção privada autenticada e revisão obrigatória. 89 testes focados Postgr
 MyPy e Django aprovados. Upgrade preservando DPAPI/identidade/SYSTEM preparado
 para CI Windows. Não foi instalado ou enfileirado job real; Q-46/Q-47/D-73 e
 carteira financeira seguem pendentes. CI anterior0effa47 concluído integralmente.
+
+
+Continuidade V-376: CI43284808251/2ef5769 recusou seis testes Windows por
+hash divergente antes do ODBC; Linux97/3 skips aprovado. Reproduzida conversão
+CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
+títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
+os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
+Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.

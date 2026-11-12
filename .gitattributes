@@ -12,3 +12,7 @@ agent-windows/test-contad-lot-profile.ps1 text eol=lf
 contracts/ledger/** text eol=lf
 agent-windows/upgrade-ledger.ps1 text eol=lf
 agent-windows/test-ledger-upgrade.ps1 text eol=lf
+
+contracts/titles/** text eol=lf
+agent-windows/upgrade-titles.ps1 text eol=lf
+agent-windows/test-title-upgrade.ps1 text eol=lf

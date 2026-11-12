@@ -8836,3 +8836,11 @@ Também conferidos completos os runs anteriores 43274063310/54ba2fb e
 43275171024/0effa47, todos os jobs aprovados. Último: 2059 testes SQLite,
 2092 PostgreSQL, 163 subtestes em cada ambiente; limites e cenários Windows
 da revisão V-373 aprovados. Essas provas não substituem o CI da nova candidata.
+
+
+Continuidade V-376: CI43284808251/2ef5769 recusou seis testes Windows por
+hash divergente antes do ODBC; Linux97/3 skips aprovado. Reproduzida conversão
+CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
+títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
+os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
+Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.

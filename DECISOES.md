@@ -4699,3 +4699,12 @@ sem truncamento. Filas não são criadas por padrão: comando administrativo mos
 prévia, requer referência e confirmação explícita de captura; papel/carteira/
 contrato atuais são revalidados também na recepção. SQL e esquema incorporados
 por hash no binário; nenhum SQL ou credencial é recebido da nuvem.
+
+
+Refinamento D-352 após CI43284808251: Windows recusou seis testes na
+conferência dos hashes das novas consultas, antes de qualquer ODBC. O checkout
+Windows converteu LF para CRLF; contracts/titles ainda não tinha a regra EOL
+explícita já existente para contracts/ledger. Fixar LF nessa família e nos
+novos scripts de upgrade, sem mudar consulta, hash esperado ou reduzir a
+conferência. Repetir CI Windows/pacote/upgrade exatos antes de disponibilizar
+a candidata. Run anterior não é aprovado para distribuição.
