@@ -1,5 +1,15 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Estado vigente CONTAD — 12/11/2026, D-339/V-362:**
+[Prompt consolidado para a próxima sessão](docs/contad-prompt-continuidade-2026-11-12.txt).
+Última prova V-361: oficial SVAPL02/1.0.8, backend84,177 registros/163 lançamentos/
+334 partidas reais equilibradas,163 movimentos compatíveis comOFX e repetição
+sem duplicatas. A carga A146 permanece concluída. Títulos/baixas Q-46, layout/
+importação Q-47, carteira/fontes completas e aceite D-73 continuam abertos.
+Os resumos abaixo são históricos; não repetir instalação/inventários ou pedir
+snapshot já recebido. A integração inicial concluída não equivale ao sistema inteiro.
+
+
 **Continuidade D-336/D-337/V-356–V-359 — 11/11/2026:** contas do piloto
 conferidas sem multiplicação; fonte da conta8 comprovou163 lotes/177 registros
 completos e equilibrados. Normalizador local de partidas implementado,43 testes

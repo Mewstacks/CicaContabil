@@ -1,4 +1,11 @@
-PLANO/PROMPT CANÔNICO CONTAD — revisão de 11/11/2026, D-324/D-325/D-326/D-327/D-329/D-330/D-331/D-332/D-333/D-334/D-335/D-336/D-337
+PLANO/PROMPT CANÔNICO CONTAD — atualização12/11/2026, D-338/D-339 e V-360–V-362
+
+PARA CONTINUAR EM OUTRA SESSÃO, USE PRIMEIRO:
+docs/contad-prompt-continuidade-2026-11-12.txt
+O piloto real já foi coletado com oficial1.0.8/backend84:163 lançamentos/334 partidas.
+Os estados de preparação1.0.7/backend83 abaixo são históricos; V-361 prevalece.
+Este arquivo conserva o histórico e não substitui o plano/registro de decisões.
+
 
 **Continuidade D-336/D-337/V-356–V-359 — 11/11/2026:** contas do piloto
 conferidas sem multiplicação; fonte da conta8 comprovou163 lotes/177 registros

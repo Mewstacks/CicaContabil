@@ -1,3 +1,12 @@
+> **Q-28 — estado comprovado em12/11/2026 (D-338/V-361; handoffD-339/V-362):**
+> SVAPL02/1.0.8 e backend84 concluíram a coleta nativa inicial:163 lançamentos/
+>334 partidas reais equilibradas,163 movimentos compatíveis comOFX, repetição
+>sem duplicatas. Instalação/corte/inventários/perfis e snapshot do piloto estão
+>concluídos. A146 já foi carregado. M/carteira e fontes completas, títulos/baixas
+>Q-46, layout/importação Q-47 e revisão humana D-73 continuam próprios.
+>Não repetir escolhas de período/origem/destino nem pedir novas senhas.
+>[Prompt atual](../contad-prompt-continuidade-2026-11-12.txt).
+
 > **Leitura vigente após auditoria de 05/10/2026 (D-275/V-275):** os IDs abaixo permanecem
 
 > **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.

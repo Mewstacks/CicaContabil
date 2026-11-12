@@ -3681,3 +3681,19 @@ e ignorou163; originais e gates preservados. Relatório privado entregue com
 limites de cobertura/saldo e revisão humana explícitos. Sem novo pareamento,
 escrita ERP, classificação de contas, aprovação ou exportação. Integração/coleta
 inicial concluídas; Q-46/Q-47/D-73 não foram convertidos em aceite por inferência.
+
+
+## 12/11/2026 — Prompt para outra sessão e publicação documental (D-339/V-362)
+
+Consolidado prompt atual com leitura obrigatória, Git/worktrees, estado1.0.8/84,
+carteira A146,177 registros/163 lançamentos/334 partidas reais, conferência OFX,
+replay0/163, testes, infraestrutura e fontes privadas. Explicita que a1.0.8 cobre
+o job inicial fixo e não a sincronização financeira recorrente da carteira inteira.
+Q-46/Q-47/M/D-73/recuperação e aceite não foram presumidos concluídos.
+
+Novo atalho no plano, aviso no prompt histórico e atualização vigente de Q-28
+evitarão reabrir provas superadas. Cópia TXT privada preparada nos Downloads.
+Commit/push somente desta documentação pelo checkout isolado atualizado; código
+anterior já publicado. Preservado o diretório principal com trabalho preexistente.
+Sem nova sessão, deploy, coleta ERP, consumo de IA, alteração de configuração ou
+novos testes de aplicação nesta entrega documental.

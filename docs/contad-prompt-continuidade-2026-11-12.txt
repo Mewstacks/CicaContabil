@@ -1,0 +1,203 @@
+CONTINUIDADE CICA/CONTAD — ESTADO CONSOLIDADO EM 12/11/2026
+
+Continue o desenvolvimento do projeto CICA visando à conclusão do sistema para a
+CONTAD. A intenção continua sendo TODAS as empresas ativas, cadastros/contas
+completos e dados financeiros desde setembro/2026. O piloto concluído não reduz
+esse objetivo à empresa212. Prossiga com trabalho independente autorizado; não
+encerre apenas com outro plano ou repita etapas já comprovadas.
+
+1. LEITURA E PRESERVAÇÃO OBRIGATÓRIAS
+
+Antes de planejar, perguntar regras ou implementar, leia nesta ordem:
+- PLANO-MESTRE.md;
+- DECISOES.md, especialmente D-73, D-305, D-320/D-321/D-323 e D-324–D-339;
+- VALIDACOES.md, principalmente V-352, V-354, V-356, V-358 e V-360–V-362;
+- docs/planejamento/etapas/03-agente-dominio.md,
+  docs/planejamento/etapas/09-conciliacao-radar.md,
+  docs/planejamento/etapas/12-homologacao-venda.md e
+  docs/planejamento/duvidas-abertas.md (Q-28/Q-46/Q-47).
+
+Este prompt resume a continuidade; não é um plano concorrente nem substitui esses
+registros. Os textos antigos que dizem agente1.0.7, backend83 ou "falta snapshot
+real" são históricos e foram superados por V-360/V-361. Registre nova decisão na
+raiz antes de executar comportamento dependente. Não reabra escolhas respondidas.
+
+O diretório principal é /Users/pedromachado/Documents/CicaContabil. Seu HEAD local
+permanece em b65dfe7 e há alterações anteriores misturadas com cópias de código já
+publicado. NÃO faça git reset/clean, stash destrutivo, pull/rebase nesse diretório
+nem commit de tudo por atalho. Preserve também os worktrees de Siescon/Lucrums.
+
+Checkout isolado usado nesta integração:
+/Users/pedromachado/.codex/worktrees/official-agent-net10/CicaContabil
+Estava limpo após a publicação3b8903a, antes do handoff documental D-339/V-362.
+Execute git fetch origin main e confira o estado real antes de escolher uma branch
+codex/ baseada na main atual. A main local é ocupada pelo diretório principal;
+não a force em outro worktree. Nem toda diferença local é trabalho não enviado.
+
+Código da integração: PR10, merge0f08388e6db91d61c2621b61abd15388121c9bac.
+Fonte validada do backend:c327eae245c75863fd0d339068db0d55afe7d98c.
+Documentação anterior ao handoff:3b8903a8d77114b14035848835b522220e37e624.
+Repositório:https://github.com/Mewstacks/CicaContabil
+PR:https://github.com/Mewstacks/CicaContabil/pull/10
+O commit documental deste handoff é posterior; obtenha seu SHA na main remota.
+
+2. O QUE JÁ FOI FEITO E NÃO DEVE SER REPETIDO
+
+Agente oficial SVAPL02, Windows Server2022 Standard21H2/build20348.5761, x64.
+Instalado1.0.8/.NET10 LTS; operador confirmou às09:58:19 de12/11, Brasília
+(12:58:19 UTC):Running/Auto/LocalSystem, ready fresco, MSI exit0, sem reboot e
+bytes DPAPI da configuração preservados. Mesmo UUID/DSN/identidade, sem pareamento
+novo. O agente anterior CONTAD16 está revogado. Não pedir instalação, corte,
+reinício, senha ou criação da credencial EXTERNO novamente por rotina.
+
+DSN de sistema x64:CICA_CONTAD; driverSQL Anywhere16; servidorSrvContabil;
+bancoContabil. Não substituir por DSNs32 bits ou presumir driver17 pela lista.
+Serviço:CicaAgent. Estado local seguro:C:\ProgramData\CICA\Agent\agent-status.json.
+Não ler/decriptar agent.config ou registro, nem acessar arquivos de credenciais.
+O uso normal da configuração protegida pelo próprio serviço continua autorizado.
+
+Carteira:A=146 empresas, carga146/146 concluída e releituras sem duplicação.
+Inscrições/tipos são espelhos literais; CNPJ/CPF/raiz comercial não foram inferidos.
+M=10 continua sem classificação; I=346 não entrou na seleção ativa. O usuário já
+disse que quer todas as ativas e não soube contar146/156 na interface. Não repetir
+a pergunta nem interpretar M por palpite, ou marcar ausentes como inativas.
+
+Inventário601 objetos/5.674 colunas/502 empresas, relações reais e perfis do Razão
+já recebidos e validados. Não repetir consultas, pedir JSON grande ou transferir
+arquivos ao servidor novamente. Material privado está disponível localmente.
+
+3. PROVA REAL DO RAZÃO — V-361
+
+Escopo comprovado:empresa212, plano212, filial212, conta contábil8/Sicredi,
+01/09/2026 inclusive até01/10/2026 exclusive. Débito=entrada nessa conta;
+conta0 ausente foi conferida antes de tratá-la como lado ausente.
+
+Agente1.0.8 realizou duas leituras completas idênticas com consultas fixas
+incorporadas por hash. Job nativo separado do manifesto da carteira A, autenticado
+e restrito ao oficial. Snapshot original JSON retido em armazenamento privado.
+Resultado real:177 registros (157 bilaterais/20 unilaterais),163 lotes/lançamentos,
+334 partidas,163 efeitos bancários e18 contas brutas referenciadas. Todos os lotes
+foram conferidos completos/equilibrados e o texto/documento por partida foi
+preservado. Cabeçalho usa histórico literal da partida bancária, sem invenção.
+
+Todos os163 lançamentos são DRAFT/source_ledger, independentes dos163 espelhos
+bancários anteriores. Contas brutas não foram promovidas a LedgerAccount
+ativo/classificado. Reimportação do original criou0/ignorou163, mantendo163/334;
+fingerprints dos dados originais preservados. Não somar espelho e Razão como
+326 eventos bancários. Não reenviar ao ERP fatos que já estão escriturados.
+
+OFX163 e Razão163 têm o mesmo multiconjunto de data/direção/centavos; diferença
+líquida do período zero e zero sobras técnicas. Isso NÃO é confirmação humana,
+saldo inicial/final do Razão ou prova de cobertura integral do ERP. Saldo inicial
+do Razão não foi fornecido. As334 partidas não viram uma amostra humana de200.
+
+IMPORTANTE:a1.0.8 implementa esse job inicial de escopo fixo; não presumir coleta
+financeira recorrente de todos os meses/empresas, plano completo ou títulos.
+O manifesto da carteira permanece somente companies. Expansão precisa respeitar
+os contratos, provas e autorizações existentes antes de comportamento dependente.
+
+4. CÓDIGO E TESTES RELEVANTES
+
+- contracts/ledger/manifest.json e SQLs lots/records/accounts;
+- src/apps/intelligence/native_ledger_contract.py, native_ledger.py e models.py;
+- src/apps/intelligence/management/commands/queue_contad_native_ledger.py;
+- src/apps/hub/dominio_journal_normalization.py e native_ledger_import.py;
+- src/apps/hub/reconciliation.py e seleção de candidatos em views.py;
+- agent-windows/src/Cica.Agent.Contracts/NativeLedgerPlan.cs;
+- agent-windows/src/Cica.Agent.Service/NativeLedgerProcessor.cs e Worker.cs;
+- tests/test_native_ledger.py e test_dominio_journal_normalization.py;
+- agent-windows/upgrade-ledger.ps1 e test-ledger-upgrade.ps1.
+
+Contrato nativo:dominio-ledger-snapshot-v1; CSV manualledger-csv-v1 preservado.
+Migrações aditivas:hub0081 e intelligence0036; históricos ampliados500→1000.
+Não enfraquecer limites, cobertura por lote, centavos exatos, autenticação,
+idempotência, isolamento ou conflitos para fazer uma carga "passar".
+
+CI43218624356/c327eae aprovado:1.984 SQLite/34 skips,2.016 PostgreSQL/2 skips e
+163 subtestes em cada suíte;85 .NET Linux/3 skips,88 Windows/zero skips,
+instalação/upgrade e três builds Docker. Esses números não são amostra humana.
+Windows Server2022 dedicado43217493053/bcf802e aprovou instalação/reparo/reinício
+e upgrade configurado1.0.7→1.0.8 com reabertura DPAPI sob SYSTEM.
+
+Fonte exata do MSI:bcf802e344ff602daf39cc22fa3aee673aae6b67.
+Release:https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.8
+ZIP SHA256:14fb73d8b75241a435752b71a5b9baaa7e92b45733aa26773a1a7359c35e7eef
+MSI SHA256:230dabcac9a762609ba99b691ae33974fa04465018671686929c4f54fdb61980
+Não sobrescrever tags/assets publicados nem usar "latest" no lugar da versão/hash.
+Já instalado e validado; não executar o bootstrap de novo sem falha nova concreta.
+
+5. PRODUÇÃO E LIMITES DE OPERAÇÃO
+
+Última prova publicada:Fly cica-contabil, release84, sitecicacontabil.com.br.
+Imagem:registry.fly.io/cica-contabil@sha256:e8dbffc8e404a54ef30c3e5cd49428c42efd14b445b0ef2ff2f636342ec19e22
+693 arquivos conferidos no web/worker; agregadoSHA256:
+9f361a1c436a221a7c01f441d4f8208e6d0ba309073dead040e27b43c17f0714
+Ambos os aliases Neon originais/migrações conferidos; readiness200 e agente
+inválido401. Web891e63ef665e58 e worker1857691da097e8,512MiB/1CPU; reserva
+287e35db920e48 parada/intacta. Sem escala, mudança de ambiente/comandos ou custo
+novo. Revalidar estado/versão antes de qualquer mutação; não publicar imagem antiga
+por cima de correções novas. Manter somente um worker gunicorn na configuração.
+
+CONTAD continua ativa, somente Conciliação, contrato individualR$200/mês travado.
+Acesso da Grazi já existe como Proprietária do escritório. Não recriar usuário,
+convite, senha, contrato, módulos ou condições comerciais.
+RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=false; lista de preview vazia.
+Não habilitar gates, IA externa/Serpro/transmissões, escrita ERP ou novos gastos
+por inferência. D-326/D-327/D-329 registram as autorizações já dadas de branch,
+CI/integração/deploy na infraestrutura existente; não repetir confirmações sem
+mudança real de escopo e não tratá-las como autorização genérica de custos/dados.
+
+Backup pontual original:53 objetos e manifesto/tamanhos conferidos; snapshot
+Neon anterior expira13/11/2026 às11:29:44 Brasília(14:29:44UTC). Não presumir
+validade após esse prazo nem recriar recurso/chave/custo pelo texto deste prompt.
+Recuperação recorrente/RPO/RTO ainda tem seus gates próprios.
+
+6. FONTES PRIVADAS E CONTINUIDADE SEM NOVA CONSULTA
+
+- .tmp/contad-native-ledger-2026-11-12/:delivery-final.json,
+  operator-upgrade-receipt.json, real-pilot-summary.json, runtime-web.json,
+  runtime-worker.json, deployment-verification.json e recibos de integridade;
+- no mesmo diretório:observe_pilot.py e run_remote_check.py para leitura técnica
+  delimitada; conferir código/estado atual antes de executar. verify_real_pilot.py
+  também faz replay e grava auditoria: não tratá-lo como consulta somente leitura;
+- .tmp/contad-relations-2026-11-11/:relações/perfis reais já conferidos;
+- inventário original em Downloads/CICA-CONTAD-Inventario-a40d4f3235ee4b99b6d0397b7a129490/;
+- Downloads/CICA-CONTAD-Conferencia-2026-11-12/:CSV/JSON/LEIA-ME privados.
+
+Use metadados/recibos existentes antes de solicitar algo ao operador. Não publicar
+originais financeiros, suas reproduções, documentos, nomes, credenciais ou valores
+em Git/CI/logs. Testes versionados são sintéticos; arquivos privados0600/pastas0700.
+
+AnyDesk já foi disponibilizado/aceito. Última tentativa de controle nesta sessão
+retornou timeout; isso não prova indisponibilidade futura. Não contornar licença
+ou abrir WinRM/portas. Quando atualização nova for realmente necessária, preferir
+controle remoto disponível ou download HTTPS oficial por versão, com hashes e
+Windows CI conferidos; evitar transferência manual de arquivos pelo usuário.
+D-334 não implementou nem autorizou auto-instalação permanente de versões futuras;
+não usar jobs de arquivos/backup para execução arbitrária ou aceitar SQL livre.
+
+7. PRÓXIMO TRABALHO, SEM FALSA CONCLUSÃO
+
+a) Confronte a main atual, os contratos e V-361. Confirme o que falta para a carteira
+   integral:legendas/situaçãoM, planos próprios/compartilhados e contas completas;
+   somente18 contas referenciadas do piloto foram lidas pelo job nativo.
+b) Avance as fontes de títulos/parcelas/baixas em Q-46 com as chaves e semântica
+   reais. A origem Domínio já está decidida; vencimento não prova pagamento.
+   Relação estrutural/nome de coluna não basta para homologar liquidação/estorno.
+c) Q-47 já decide relatório+arquivo para importação no Domínio. Falta o layout
+   conferido/prova de importação no destino. Não perguntar de novo qual destino,
+   inventar contrapartida, reenviar Razão já escriturado ou escrever direto no ERP.
+d) Execute trabalho independente de testes/diagnóstico/recuperação/treinamento
+   dentro dos gates. Para lacuna real, prepare evidência concreta e faça somente a
+   pergunta indispensável, com impacto/recomendação/procedimento(D-75).
+e) D-73 exige200 itens revisados pelo proprietário, precisão medida mínima95%
+   para classificação automática, zero duplicidade/empresa errada/vazamento,
+   retomada sem perda em até15min, restauração conferida em até4h e importação
+   conferida no destino. Não aprovar por conta própria nem contar testes como aceite.
+
+Implemente e valide o próximo avanço autorizado. Se mexer em interface, aplique as
+regras/skills de UI e validação em navegador previstas no AGENTS.md. Antes de
+publicar, conferir escopo, dados privados, CI apropriado e runtime atual; preservar
+alterações de outras frentes. Atualize plano, decisões, validações, checklist e
+registro de execução em cada entrega. Só declare o sistema concluído quando os
+critérios reais forem satisfeitos; integração técnica do piloto já está concluída.

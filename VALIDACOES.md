@@ -8314,3 +8314,18 @@ e montantes reais não entram nos testes versionados. Recibos em
 Fonte nativa inicial do piloto concluída; Q-46(títulos/baixas), Q-47(layout e
 conferência da importação no Domínio), revisão200 itens e demais critérios de
 aceite D-73 continuam pendentes. Não declarar sistema integralmente homologado.
+
+
+## V-362 — Handoff documental e estado Git conferidos (12/11/2026)
+
+D-339: prompt consolidado contraposto a D-338/V-360/V-361, recibos privados da
+entrega e main remota3b8903a antes desta atualização. Código da integração já
+publicado em PR10/0f08388e; novo envio limitado a documentos próprios. Checkout
+principal preservado em b65dfe7, com alterações anteriores e cópias de código
+publicado; checkout isolado usado para commit/push sem reset/commit indiscriminado.
+
+Conferidos leitura/links/caminhos/IDs, fatos e limites do handoff, igualdade da
+cópia TXT nos Downloads, ausência de dados financeiros/credenciais no commit e
+`git diff --check`. A conferência de SHA remoto e manifesto privado registra a
+publicação. Não reexecutados CI, aplicação, agente, ERP ou produção: as provas
+funcionais continuam V-360/V-361, com Q-46/Q-47/D-73 e demais gates abertos.

@@ -4403,3 +4403,26 @@ com provas de integridade/recuperação e sem escala/custos/serviços novos. Ap�
 upgrade, concluir coleta e conferência no backend, sem repetir os perfis já feitos.
 D-73 exige revisão humana de200 itens e prova no destino para exportação; “conclua”
 não é essa revisão nem dispensa Q-46/Q-47. Não declarar homologação que não ocorreu.
+
+
+## D-339 — Handoff consolidado e publicação documental (12/11/2026)
+
+Origem humana: responsável pediu prompt para outra sessão continuar, commit/push
+e documentação da entrega. Consolidar o estado posterior a D-338/V-360/V-361
+num prompt curto e atual, ligado ao plano e aos IDs existentes. Priorizar a prova
+real1.0.8/backend84, separar coleta inicial de carteira/aceite completos e evitar
+repetição de instalação, corte, inventário ou perguntas já respondidas.
+
+Código e provas da integração já publicados em PR10/main0f08388e e documentação
+3b8903a. Criar/atualizar somente documentos próprios desta entrega, com cópia do
+prompt nos Downloads. Registrar limites de títulos/baixas, layout/importação,
+M, recuperação e aceite humano sem inventar conclusão ou criar plano concorrente.
+
+Commit/push desta documentação autorizados; usar checkout isolado e atualizado
+porque o diretório principal está na main local antiga com alterações anteriores
+e cópias de código já publicado. Preservar esse trabalho; não incluir diferenças
+alheias/sem validação no commit, nem resetar, descartar ou commitar tudo por atalho.
+Dados/relatórios financeiros, credenciais e recibos privados continuam fora do Git.
+Esta entrega não cria sessão nova, altera aplicação, publica novo deploy, executa
+ERP/IA ou amplia permissões/custos. Autorizações anteriores mantêm seu escopo;
+o prompt de continuidade não substitui Q-46/Q-47/D-73 nem aprova escrita no ERP.

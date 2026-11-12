@@ -76,3 +76,16 @@ Nenhuma homologação externa foi executada. Os resultados V-001 são da anális
 
 Entrega: [lista de conclusão](../pendencias-conclusao-2026-11-02.md).
 A preparação/envio do repositório não fecha nenhuma etapa funcional.
+
+
+## Handoff consolidado CONTAD — D-339/V-362 (12/11/2026)
+
+- [x] Consolidar a prova real1.0.8/backend84 e distinguir piloto de conclusão integral.
+- [x] Preparar prompt atual, contexto Git/worktrees, próximos trabalhos e limites.
+- [x] Atualizar atalhos de continuidade e Q-28, preservando decisões/histórico.
+- [x] Publicar somente documentos próprios e conferir SHA remoto/cópia Downloads.
+
+Entrega:[prompt de continuidade](../../contad-prompt-continuidade-2026-11-12.txt).
+Código/provas anteriores já estão na main(PR10/0f08388e e3b8903a). Esta entrega
+não altera código/runtime ou aceita Q-46/Q-47/D-73. Alterações locais anteriores
+no checkout principal são preservadas e não entram por atalho no commit.
