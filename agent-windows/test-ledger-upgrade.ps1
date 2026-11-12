@@ -1,4 +1,4 @@
-﻿﻿#requires -Version 5.1
+﻿#requires -Version 5.1
 <# CI ONLY. Never run on a customer's machine. Uses synthetic DPAPI configuration. #>
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$BaselineMsi)

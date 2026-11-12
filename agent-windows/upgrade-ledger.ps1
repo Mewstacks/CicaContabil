@@ -1,4 +1,4 @@
-﻿﻿#requires -Version 5.1
+﻿#requires -Version 5.1
 <# Customer-safe 1.0.7 -> 1.0.8 update. Never decrypt or print the agent configuration. #>
 [CmdletBinding()]
 param(
