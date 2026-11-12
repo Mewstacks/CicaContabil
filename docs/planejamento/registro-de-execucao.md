@@ -3796,3 +3796,15 @@ Harness12 cenários no CI padrão; aguardar prova Windows antes do comando.
 CI anterior43265387462/fdbda60 integral aprovado,2071 PostgreSQL/2038 SQLite,
 163 subtestes,88 testes Windows, agente e três imagens. Sem merge/deploy ou
 nova consulta ERP. Perfil só conta códigos/sinais/vínculos; não homologa Q-46.
+
+
+### 12/11/2026 — Perfil Windows aprovado e referências oficiais (V-369/V-370)
+
+Corrigida medição PowerShell5.1 de dicionários ordenados;12 cenários aprovaram
+na etapa específica43270180630/a560b7d. HTTPS/12813 bytes/SHAbe28c75b…576e4
+conferidos; comando enviado ao operador, aguardando JSON real. Regressão integral
+desse run ainda em andamento; run43265387462/fdbda60 anterior integral aprovado.
+Conjuntos oficiais6168/6169 lidos estaticamente sem macros/importação: mapas por
+família, código9 diferente. Não infere Serviços, principal/líquido ou estorno.
+Arquivos próprios do perfil/workflow sincronizados por baseline/hash na raiz;
+trabalho local alheio preservado. Sem nova consulta ERP/deploy/homologação.

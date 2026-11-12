@@ -574,5 +574,6 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Consultas agregadas das famílias comprovadas; nove cenários relacionais
   adversariais e78 testes de consultas/catálogos aprovados localmente.
 - [x] CI43265387462/fdbda60 integral aprovado para a persistência de títulos.
-- [ ] Validar perfil PowerShell no Windows exato e obter contagens reais.
+- [x] Perfil PowerShell validado no Windows5.1,12 cenários, fontea560b7d/CI43270180630.
+- [ ] Obter/conferir contagens reais do perfil; comando HTTPS/hash entregue.
 - [ ] Comprovar semântica de tipos/componentes/estornos e exemplos Q-46.

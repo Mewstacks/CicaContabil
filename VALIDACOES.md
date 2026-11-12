@@ -8607,3 +8607,43 @@ parâmetros, códigos, ausência de coluna e redação. Sua execução ainda dep
 do CI desta fonte; não entregar comando antes da prova exata. Nenhuma nova
 consulta ao ERP foi executada neste preparo. Fonte Q-46, exemplos/estornos,
 carteira completa, IA/Q-47/D-73, recuperação, treinamento e aceite seguem abertos.
+
+
+## V-370 — Componentes fiscais localizados em fontes oficiais (12/11/2026)
+
+D-349: leitura estática dos conjuntos oficiais ligados às soluções
+[Entradas6168](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6168)
+e [Saídas6169](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6169).
+Downloads HTTPS concluídos sem contornar TLS; nenhuma macro, fórmula ou código
+do fornecedor executado, nenhum conjunto importado no ERP.
+
+Entradas:XML149966 bytes/SHAa8ac0ef1c27310e4e1f3c3ca7371eb316f8d9e573daeb417abdbe1ee81930c62.
+Saídas:XML89664 bytes/SHA366c0508e9f48dbdb2fff5d0a7b1312e58b001b8b14ce1d91d3cb5010805400c,
+extraído apenas esse membro do ZIP oficial. Definições relacionam explicitamente
+coluna tipo_* fixa ao campo vpag_* de cada componente. Código9 é CRF em Entradas
+e IRRF em Saídas; não existe legenda universal. Número de pagamento é dependente
+entre normal e componentes. Nenhuma prova correspondente para Serviços ou códigos
+não presentes; não inferir. Material e recorte factual privado em .tmp.
+
+Isto é referência do fornecedor, ainda sem confronto com movimento real,
+semântica de principal/líquido, retenção/estorno ou homologação da CONTAD.
+Continua necessária a prova da fonte antes de coletar/normalizar valores Q-46.
+
+
+Continuidade V-369: primeiro CI43269075611/b142b05 detectou falha na execução
+PowerShell. CI43269951648/7596518 acrescentou diagnóstico sintético e identificou
+PSArgumentException ao medir propriedades de dicionários ordenados. Substituído
+Measure-Object por acumulação explícita, mantendo as recusas/limites e as consultas.
+Regressões obsoletas canceladas após a falha Windows; não registrar como aprovadas.
+
+Fonte **a560b7dbec778f73b883f2bce0756f4996565ed0**, CI43270180630: etapa específica
+do perfil **aprovada** no Windows5.1 com os12 cenários. Regressão integral e
+empacotamento desse run ainda em andamento nesta observação; CI completo da
+persistência de títulos permanece fdbda60/43265387462 já aprovado.
+
+Arquivo HTTPS do perfil conferido byte a byte:12813 bytes/SHA-256
+be28c75b3a42339709b49d49932698075d9d333e1f0340472edcf46823c576e4.
+Comando privado0600 em Downloads/CONTAD-comando-perfil-titulos-2026-11-12.txt,
+com commit/hash fixos, Windows64 e remoção somente do próprio script temporário.
+Execução solicitada ao responsável sob D-348; resultado real ainda aguardado.
+Nenhum título financeiro coletado/persistido ou adaptador Q-46 habilitado.

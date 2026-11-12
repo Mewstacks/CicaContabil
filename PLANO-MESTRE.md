@@ -1,6 +1,6 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Desenvolvimento iniciado — 12/11/2026, D-344–346/V-367:** Títulos normalizados agora têm persistência privada, alocação revisada, recibos e desfazimento;181 testes focados PostgreSQL aprovados. Complemento fiscal de metadados preparado após pesquisa oficial e identificação da lacuna do filtro antigo. Branch pública/CI autorizados; Windows/fonte real Q-46, carteira completa, IA/Q-47/D-73 e aceite continuam pendentes.
+**Desenvolvimento CONTAD — 12/11/2026, D-344–349/V-367–370:** Títulos normalizados têm persistência privada, alocação revisada, recibos e desfazimento; CI43265387462/fdbda60 integral aprovado (2071 PostgreSQL/2038 SQLite). Catálogo fiscal real recebido/conferido,15 tabelas; mapas oficiais de componentes encontrados com diferenças por família. Perfil agregado validado em12 cenários Windows/a560b7d; comando enviado, aguardando contagens reais. Fonte/semântica Q-46, carteira financeira completa, IA/Q-47/D-73 e aceite continuam pendentes. Sem merge/deploy.
 
 
 **Verificação de conclusão — 12/11/2026, D-343/V-366:**

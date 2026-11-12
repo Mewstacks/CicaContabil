@@ -4574,3 +4574,24 @@ e o executor PowerShell no Windows do CI padrão já autorizado em D-346.
 Disponibilizar comando somente após prova exata e hash HTTPS. Não habilitar
 adaptador, instalar agente, alterar DSN/parâmetros, gravar ERP ou declarar
 homologação pelo perfil; exemplos semânticos e Q-47/D-73 mantêm provas próprias.
+
+
+## V-370 — Componentes fiscais localizados em fontes oficiais (12/11/2026)
+
+D-349: leitura estática dos conjuntos oficiais ligados às soluções
+[Entradas6168](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6168)
+e [Saídas6169](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6169).
+Downloads HTTPS concluídos sem contornar TLS; nenhuma macro, fórmula ou código
+do fornecedor executado, nenhum conjunto importado no ERP.
+
+Entradas:XML149966 bytes/SHAa8ac0ef1c27310e4e1f3c3ca7371eb316f8d9e573daeb417abdbe1ee81930c62.
+Saídas:XML89664 bytes/SHA366c0508e9f48dbdb2fff5d0a7b1312e58b001b8b14ce1d91d3cb5010805400c,
+extraído apenas esse membro do ZIP oficial. Definições relacionam explicitamente
+coluna tipo_* fixa ao campo vpag_* de cada componente. Código9 é CRF em Entradas
+e IRRF em Saídas; não existe legenda universal. Número de pagamento é dependente
+entre normal e componentes. Nenhuma prova correspondente para Serviços ou códigos
+não presentes; não inferir. Material e recorte factual privado em .tmp.
+
+Isto é referência do fornecedor, ainda sem confronto com movimento real,
+semântica de principal/líquido, retenção/estorno ou homologação da CONTAD.
+Continua necessária a prova da fonte antes de coletar/normalizar valores Q-46.

@@ -213,3 +213,37 @@ consultas. PDF A Pagar conferido no Windows (116 KB exibidos), sem cópia Mac,
 extração ou hash verificados. Identificadores e conteúdo real ficam apenas nas
 evidências privadas. Fechamento fiscal 09/2026 e contábil 11/2014 da alternativa
 não homologam a competência; os parâmetros foram fechados sem gravar.
+
+
+## Descoberta fiscal real — D-345/D-348/D-349, V-368–370
+
+O catálogo real já comprovou notas → parcelas → pagamentos e as ligações
+contábeis das três famílias fiscais. Não solicitar novo inventário. A chave
+física de pagamento inclui empresa, nota, parcela, data, tipo e número de
+pagamento; tipo ou número de pagamento não podem ser descartados ao agrupar.
+A ligação contábil usa `fili_lan` como empresa fiscal e `codi_emp` como empresa
+contábil, preservando os dois identificadores.
+
+O perfil `agent-windows/inspect-contad-title-profile.ps1` conta apenas o piloto
+212/conta8/plano212/setembro2026. Recortes de vencimento e pagamento são
+separados. Não retorna montantes, participantes ou documentos. Exige duas
+leituras idênticas, cobertura completa dentro dos limites e não habilita
+coleta financeira. Windows5.1:12 cenários aprovados em a560b7d/CI43270180630;
+resultado real do perfil ainda aguardado. O script não lê configuração do agente,
+não altera DSN/parâmetros e não executa baixas ou lançamentos.
+
+Conjuntos oficiais de [Entradas](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6168)
+e [Saídas](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6169)
+fornecem referência de componentes, com limites registrados em D-349/V-370:
+
+| Código bruto | Entradas | Saídas |
+|---|---|---|
+| 1 | Normal/valor pago | Normal/valor recebido |
+| 2/3/4 | Juros/multa/desconto | Juros/multa/desconto |
+| 6/7/8 | PIS/COFINS/CSLL | PIS/COFINS/CSLL |
+| 9 | CRF | IRRF |
+| 10 | IRRF | Sem referência nesse conjunto |
+
+Não estender esses mapas a Serviços, códigos ausentes ou principal/líquido.
+Retenção, estorno/exclusão, composição do saldo e efeito no banco ainda exigem
+confronto real Q-46. Não importar os conjuntos para produzir a prova.
