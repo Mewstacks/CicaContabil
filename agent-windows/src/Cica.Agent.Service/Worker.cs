@@ -19,6 +19,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         try
         {
             DatasetCatalog.SelfVerify();
+            NativeLedgerPlan.SelfVerify();
         }
         catch (InvalidOperationException error)
         {
@@ -64,8 +65,13 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
                     continue;
                 }
+                bool nativeReview = false;
                 if (config.SyncScope is not null)
+                {
                     await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
+                    if (config.SyncScope.IsActiveOnly)
+                        nativeReview = await new NativeLedgerProcessor(config, client).RunOnce(stoppingToken);
+                }
                 else
                 {
                     await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
@@ -74,7 +80,9 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 }
                 await RenewCertificateIfNeeded(config, client, stoppingToken);
                 string serverVersion = heartbeat.RootElement.GetProperty("update").GetString() ?? "";
-                if (IsNewerVersion(serverVersion, AgentVersion))
+                if (nativeReview)
+                    AgentRuntimeStatus.Write("source_review_required", "Coleta nativa requer conferência no CICA. A sincronização de empresas foi preservada.");
+                else if (IsNewerVersion(serverVersion, AgentVersion))
                     AgentRuntimeStatus.Write("update_available",
                         $"Atualização {serverVersion} disponível. Baixe e execute o MSI pelo console CICA.");
                 else

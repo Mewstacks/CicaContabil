@@ -3650,3 +3650,14 @@ três builds. Nove arquivos próprios sincronizados ao diretório principal sem
 substituir alterações anteriores; seis recibos privados preservados fora do Git.
 Normalizador ainda não recebeu snapshot real com textos/valores. Sem deploy ou
 novo MSI; não declarar projeto concluído, fonte financeira ativada ou homologação.
+
+
+## 12/11/2026 — Integração nativa e nova versão (D-338/V-360)
+
+Implementados contrato SQL fixo incorporado/hasheado, job do oficial sem alterar
+carteira A, fonte JSON privada, importação idempotente/atômica e migrações aditivas.
+Texto/documento por partida preservados; banco usa histórico literal de sua partida.
+Preparado upgrade1.0.7→1.0.8 com DPAPI/identidade/DSN preservados e bootstrap HTTPS.
+Preflight confirmou oficial/conta8/zero Razão independente antes desta coleta.
+Testes locais/PG focados aprovados; validação integral final/Windows/publicação
+e snapshot real ainda em execução, sem homologação ou aprovação/exportação.

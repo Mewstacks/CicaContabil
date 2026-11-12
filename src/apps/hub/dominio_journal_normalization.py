@@ -106,8 +106,8 @@ def _cents(value: Any) -> int:
     return cents
 
 
-def normalize_journal_snapshot(
-    records: list[dict[str, Any]], scope: JournalScope
+def _normalize_journal_snapshot(
+    records: list[dict[str, Any]], scope: JournalScope, *, native: bool = False
 ) -> NormalizedJournalCandidate:
     """All-or-nothing candidate for the unchanged nine-column ledger-csv-v1 contract.
 
@@ -194,7 +194,11 @@ def normalize_journal_snapshot(
             raise JournalNormalizationError(
                 "Partida fora do período; não cortar um lote incompleto."
             )
-        history = _text(row["history"], limit=500, required=True)
+        history = (
+            _native_text(row["history"])
+            if native
+            else _text(row["history"], limit=500, required=True)
+        )
         document = _text(row["document"], limit=160, required=False)
         amount = _cents(row["amount"])
         accounts = {side: _code(row[f"{side}_account_code"]) for side in ("debit", "credit")}
@@ -230,7 +234,8 @@ def normalize_journal_snapshot(
         group = [item[2] for item in sorted(values, key=lambda item: (item[0], item[1]))]
         if (
             len(branches_by_lot[lot]) != 1
-            or len({(p.date, p.history, p.document) for p in group}) != 1
+            or len({p.date for p in group}) != 1
+            or (not native and len({(p.history, p.document) for p in group}) != 1)
         ):
             raise JournalNormalizationError(
                 "Lote com dados por partida incompatíveis com ledger-csv-v1."
@@ -249,3 +254,46 @@ def normalize_journal_snapshot(
     if bank_effects != scope.expected_bank_effects or len(parties) > 100_000:
         raise JournalNormalizationError("Cobertura final das partidas incompatível.")
     return NormalizedJournalCandidate(tuple(parties), len(records), len(grouped), bank_effects)
+
+
+def normalize_journal_snapshot(
+    records: list[dict[str, Any]], scope: JournalScope
+) -> NormalizedJournalCandidate:
+    """Legacy ledger-csv-v1 contract, unchanged."""
+    return _normalize_journal_snapshot(records, scope)
+
+
+def _native_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if (
+        not isinstance(value, str)
+        or len(value) > 1000
+        or any(unicodedata.category(c).startswith("C") and c not in "\t\r\n" for c in value)
+    ):
+        raise JournalNormalizationError("Texto nativo incompatível; não truncar a origem.")
+    return value
+
+
+def normalize_native_journal_snapshot(
+    records: list[dict[str, Any]], scope: JournalScope
+) -> NormalizedJournalCandidate:
+    """Native source parties retain their own literal nullable text/document.
+
+    The caller must retain the original snapshot for nulls and history-code provenance.
+    This path does not relax the legacy manual CSV contract.
+    """
+    prepared = []
+    for raw in records:
+        if not isinstance(raw, dict) or set(raw) != FIELDS | {"history_code_raw"}:
+            raise JournalNormalizationError("Campos nativos incompatíveis.")
+        row = dict(raw)
+        history_code = row.pop("history_code_raw")
+        if history_code is not None:
+            _code(history_code)
+        document = row["document"]
+        if document is not None:
+            _code(document)
+        row["document"] = "" if document is None else str(document)
+        prepared.append(row)
+    return _normalize_journal_snapshot(prepared, scope, native=True)

@@ -687,3 +687,33 @@ class EgressAudit(OrganizationScopedModel):
     cache_creation_input_tokens = models.PositiveIntegerField(default=0)
     cache_read_input_tokens = models.PositiveIntegerField(default=0)
     completed_at = models.DateTimeField(null=True, blank=True)
+
+
+class NativeLedgerCollection(OrganizationScopedModel):
+    """One explicitly queued, immutable native snapshot; never a general SQL job."""
+
+    class State(models.TextChoices):
+        QUEUED = "queued", "Aguardando agente"
+        IMPORTED = "imported", "Rascunhos importados"
+        REVIEW = "review", "Revisão necessária"
+        FAILED = "failed", "Falha de coleta"
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="ledger_jobs")
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=("agent", "financial_account", "scope_revision"),
+            name="intelligence_unique_native_ledger_scope",
+        )]

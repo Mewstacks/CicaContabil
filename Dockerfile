@@ -33,6 +33,7 @@ COPY --from=builder /app/.venv /app/.venv
 
 COPY --chown=app:app manage.py ./
 COPY --chown=app:app src ./src
+COPY --chown=app:app contracts ./contracts
 
 RUN DJANGO_SETTINGS_MODULE=config.settings.build \
     DJANGO_SECRET_KEY=build-only-static-collection-key-never-used-at-runtime \

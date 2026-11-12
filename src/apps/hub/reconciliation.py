@@ -303,7 +303,8 @@ def _rebuild_company_matches(*, organization: Organization, company: ClientCompa
                 data_source__kind__in=[
                     DataSource.Kind.DOMINIO_LOCAL_AGENT,
                     DataSource.Kind.DOMINIO_WEB_BACKUP,
-                ]
+                ],
+                independent_source__isnull=True,
             )
             .exclude(reconciliation_matches__status=ReconciliationMatch.Status.MATCHED)
             .exclude(independent_source__entry__movement_reconciliations__state="confirmed")
@@ -374,7 +375,7 @@ def confirm_reconciliation_match(
         if selected_entry.data_source.kind in {
             DataSource.Kind.DOMINIO_LOCAL_AGENT,
             DataSource.Kind.DOMINIO_WEB_BACKUP,
-        }:
+        } and not hasattr(selected_entry, "independent_source"):
             raise ValueError("O espelho de extrato Domínio não comprova um lançamento do Razão.")
         expected_direction = "inflow" if transaction_item.amount_cents > 0 else "outflow"
         if selected_entry.direction != expected_direction:

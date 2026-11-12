@@ -1422,3 +1422,9 @@ Release 45 e dependências terminaram saudáveis. Q-39 e os casos ambíguos cont
 [04 — implementar e homologar Siescon](docs/planejamento/etapas/04-siescon.md) é a próxima etapa habilitada. D-290 resolveu Q-33 e Q-44 ao aceitar como base técnica o levantamento trazido do Lucrums, com o limite explícito de que o layout foi inferido; a ponte ODBC de 32 bits já está no conector e falta escrever o adaptador. As frentes locais independentes de IA, Triagem, NFS-e, Central Integra Contador, Conciliação/Radar e cobrança também avançaram e foram evidenciadas em V-032 a V-035, V-037–V-040, sem antecipar integrações externas. Homologação contra ERP real continua obrigatória antes de liberar.
 
 A [etapa 14](docs/planejamento/etapas/14-rentabilidade.md) foi aberta em 22/09/2026 por D-281 e segue em paralelo na branch `codex/lucrums` por D-293. Domínio, cálculo, ingestão simulada, telas e ficha analítica do cliente já estão incorporados localmente (V-281 a V-286). O conector recebeu catálogo por hash, ponte x86, seleção de Siescon no configurador e WiX do pacote único, com MSI construído e manifesto conferido no CI Windows (V-287/V-290). V-288 corrigiu a herança visual; V-289/V-291 corrigiram conflitos de identidade e a exibição de margem sem honorário. A regressão V-291 confirmou 973 testes Python e 20 .NET já aprovados, mas encontrou cobertura global de 80,09% diante do piso documental de 85%. Restam a validação acessível integral na etapa 11 e a homologação operacional da etapa 12. Q-41 a Q-43 impedem oferta e publicação de margem como afirmação comercial, não o avanço técnico independente.
+
+
+**12/11/2026 — D-338/V-360:** integração nativa do piloto212/conta8/setembro
+implementada em branch técnica: snapshot completo por hash, duas leituras idênticas,
+recepção privada e partidas independentes em rascunho. MSI1.0.8/CI/upgrade e coleta
+real seguem em execução; Q-46/Q-47/D-73 e homologação não estão concluídos.
