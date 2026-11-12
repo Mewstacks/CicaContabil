@@ -15,11 +15,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--catalog", type=Path, required=True)
     parser.add_argument("--inventory", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--focus-table",
+        action="append",
+        default=[],
+        help="Objeto bethadba a destacar nos metadados recebidos (repetível, até 12).",
+    )
     args = parser.parse_args(argv)
     try:
         report = analyze_catalog(
             read_metadata_json(args.catalog, max_bytes=2 * 1024 * 1024),
             read_metadata_json(args.inventory, max_bytes=4 * 1024 * 1024),
+            focus_tables=tuple(args.focus_table),
         )
         write_evidence_report(args.output, report)
     except (CatalogEvidenceError, OSError):

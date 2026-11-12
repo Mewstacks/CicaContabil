@@ -717,3 +717,28 @@ class NativeLedgerCollection(OrganizationScopedModel):
             fields=("agent", "financial_account", "scope_revision"),
             name="intelligence_unique_native_ledger_scope",
         )]
+
+
+class NativeTitleCollection(OrganizationScopedModel):
+    """Explicit raw fiscal capture, kept private and pending semantic review."""
+
+    class State(models.TextChoices):
+        QUEUED = "queued", "Aguardando agente"
+        CAPTURED = "captured", "Fonte recebida para revisão"
+        REVIEW = "review", "Contrato da fonte requer revisão"
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="title_jobs")
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)

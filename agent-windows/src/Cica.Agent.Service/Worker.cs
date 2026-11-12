@@ -20,6 +20,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         {
             DatasetCatalog.SelfVerify();
             NativeLedgerPlan.SelfVerify();
+            NativeTitlePlan.SelfVerify();
         }
         catch (InvalidOperationException error)
         {
@@ -70,7 +71,10 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 {
                     await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
                     if (config.SyncScope.IsActiveOnly)
+                    {
                         nativeReview = await new NativeLedgerProcessor(config, client).RunOnce(stoppingToken);
+                        nativeReview = await new NativeTitleProcessor(config, client).RunOnce(stoppingToken) || nativeReview;
+                    }
                 }
                 else
                 {

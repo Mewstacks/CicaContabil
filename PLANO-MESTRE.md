@@ -1,5 +1,40 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Desenvolvimento CONTAD — 12/11/2026, D-344–352/V-367–376:** Persistência privada de títulos normalizados e captura fiscal original implementadas. Fonte84a3190/CI43285420180 integral aprovada:2092 SQLite,2126 PostgreSQL e100 Windows, incluindo upgrade1.0.8→1.0.9 com DPAPI/identidade preservados. Imagem local714 hashes e restauração sintética dos dois aliases/fonte aprovadas. Perfis reais não demonstraram vínculo bancário dos títulos à conta8. Candidata/pacote prontos; publicação/upgrade/coleta original com solicitante auditável ainda pendentes. Semântica Q-46, carteira financeira completa, IA/Q-47/D-73 e aceite continuam abertos.
+
+
+**Verificação de conclusão — 12/11/2026, D-343/V-366:**
+[Pendências reconciliadas do contrato CONTAD e da suíte](docs/planejamento/pendencias-conclusao-2026-11-02.md).
+A146 e a coleta nativa inicial estão concluídas; o código financeiro ainda
+aceita somente empresa212/conta8/setembro2026. Restam carteira financeira
+completa/planos/contas, títulos/baixas Q-46, DE-PARA assistido por IA, retorno
+contábil Q-47, métricas/recuperação D-73, treinamento e aceite. CI de V-365
+aprovado, PR11 registrado em rascunho, sem novo deploy nesta verificação.
+Responsável confirmou que a correção específica da espécie NFS-e de
+D-318/V-320 ainda está pendente; preservar a importação anterior aceita em
+D-295. Revisão documental/estática, sem consulta externa ou novo teste funcional.
+
+
+**PR de regressão e ensaio de recuperação — 12/11/2026, D-342/V-365.**
+[PR #11 em rascunho](https://github.com/Mewstacks/CicaContabil/pull/11) com os
+quatro arquivos de D-340/D-341 e regressão no CI padrão. O ensaio local
+restaurou os dois aliases e o arquivo privado sintético, conferiu o hash e
+repetiu o recibo sem duplicação. Recuperação operacional e aceite continuam
+dependentes das provas de D-73. O [guia CONTAD](docs/pt-BR/contad-conciliacao.md)
+especifica as evidências pendentes de Q-28/Q-46/Q-47/D-73.
+
+**Evidência estrutural Q-28/Q-46 — 12/11/2026, D-341/V-364.** O analisador
+offline agora recorta objetos e relações dos catálogos já recebidos. O recorte
+real reúne sete objetos e 52 relações. Cinco candidatos de títulos e baixas
+aparecem apenas por referências no catálogo recebido. Ainda faltam suas chaves
+próprias e amostras que comprovem parcelas, baixas e estornos.
+
+**Bateria de retomada CONTAD — 12/11/2026, D-340/V-363.** Quatro cenários
+sintéticos exercitaram reenvio após falhas transitórias, encaminhamento para
+revisão por falha de contrato e rollback de banco e arquivo seguido de nova
+tentativa. As provas reais continuam em V-361. A concorrência PostgreSQL,
+a recuperação operacional e o aceite D-73 permanecem com verificações próprias.
+
 **Estado vigente CONTAD — 12/11/2026, D-339/V-362:**
 [Prompt consolidado para a próxima sessão](docs/contad-prompt-continuidade-2026-11-12.txt).
 Última prova V-361: oficial SVAPL02/1.0.8, backend84,177 registros/163 lançamentos/

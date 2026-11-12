@@ -8329,3 +8329,553 @@ cópia TXT nos Downloads, ausência de dados financeiros/credenciais no commit e
 `git diff --check`. A conferência de SHA remoto e manifesto privado registra a
 publicação. Não reexecutados CI, aplicação, agente, ERP ou produção: as provas
 funcionais continuam V-360/V-361, com Q-46/Q-47/D-73 e demais gates abertos.
+
+## V-363 — Retomada sintética da coleta nativa CONTAD (12/11/2026)
+
+D-340: main remota conferida em 7114caa0c8025bb794851d04cc2bdc37445af0fd.
+Testes executados numa cópia isolada dessa revisão com as quatro novas
+variações de `tests/test_native_ledger.py`. O agente sintético recebeu o
+mesmo job depois de `source_changed` e `source_unavailable`. Em
+`source_contract`, a coleta saiu da fila para revisão e recusou o snapshot.
+Uma interrupção simulada depois de persistir fonte e lançamentos, antes
+do recibo, reverteu registros e removeu o arquivo. O reenvio concluiu o job.
+
+- SQLite focado: 167 aprovados, quatro skips de concorrência PostgreSQL.
+- SQLite integral: 1.987 aprovados, 163 subtestes aprovados, 33 skips e duas
+  falhas de ambiente. `test_agent_transport` e `test_intelligence_multimodal`
+  receberam `PermissionError` ao abrir uma porta loopback.
+- PostgreSQL 17 descartável: `initdb` bloqueado pelo ambiente em `shmget`.
+  A regressão PostgreSQL desta rodada permanece pendente.
+- Agente .NET: 85 aprovados e três skips exclusivos de Windows. O executor
+  padrão VSTest abortou ao abrir porta loopback. A mesma suíte foi executada
+  pelo xUnit em processo numa cópia temporária.
+- Ruff, Django check e verificação de migrações passaram.
+
+Recibos locais de V-361 comparados sem nova coleta: agente 1.0.8, release 84,
+177 registros, 163 lançamentos, 334 partidas, 163 movimentos bancários, zero
+sobras por assinatura, repetição com 0 criados/163 ignorados e zero exportações.
+A rodada foi local. Q-28/Q-46/Q-47, restauração operacional, prazo real de
+retomada e aceite D-73 seguem abertos.
+
+## V-364 — Recorte offline das fontes Q-28/Q-46 (12/11/2026)
+
+D-341: a opção `--focus-table` recorta até 12 objetos de `bethadba`,
+separa colunas inventariadas de chaves confrontadas e mantém as FKs
+declaradas no catálogo recebido com a ordem dos pares intacta.
+O modo anterior gerou relatório idêntico byte a byte ao de V-354.
+
+Hashes dos dois insumos reais coincidiram com V-350/V-354. O recorte
+privado reuniu sete objetos e 52 FKs. Cinco candidatos de títulos e baixas
+aparecem apenas por referência. Dentre eles, há seis FKs para fornecedor,
+cliente, empresa ou lançamento contábil. Nenhuma fornece a chave própria
+dos candidatos nem comprova o encadeamento título → parcela → baixa.
+O recorte preservou o vínculo estrutural CTPARMTO.codi_pad → GEEMPRE.codi_emp.
+A origem efetiva do plano compartilhado e a situação M continuam abertas.
+
+- SQLite focado: 173 aprovados e quatro skips PostgreSQL. Inclui seis novos
+  casos de recorte e os quatro de retomada de V-363.
+- Regressão SQLite: 1.993 aprovados, 163 subtestes aprovados e 33 skips.
+  Dois testes de portas loopback foram desmarcados pelo bloqueio de V-363.
+- Ruff, MyPy dos dois módulos, Django check e verificação de migrações passaram.
+- O Docker local bloqueou o acesso ao socket. A revisão automática rejeitou
+  o envio dos arquivos de código e testes ao repositório público sem autorização
+  específica. Branch e PR não foram criados. O PostgreSQL segue pendente.
+
+Sem nova consulta ao ERP, alteração de agente, coleta, deploy ou mudança de
+homologação. Q-46 depende de chaves e amostras de eventos revisados. Q-47,
+recuperação operacional e D-73 mantêm verificações próprias.
+
+## V-365 — PR de regressão e ensaio local de recuperação CONTAD (12/11/2026)
+
+D-342: PR público em rascunho #11, branch codex/contad-catalog-evidence,
+head e38c9f29bb3dff49615d3800a7df221c2fbc1669. O conector de gravação Git
+respondeu HTTP 403. A sessão autorizada do GitHub criou três commits com
+os quatro arquivos previstos. A lista de arquivos do PR e os quatro hashes
+Git coincidiram com a cópia testada localmente. CI padrão 43233720276.
+
+Ensaio sintético local: backup SQLite dos aliases default e knowledge e cópia
+do arquivo privado para destino separado. Validação em novo processo com
+integridade SQLite, migrações registradas, SHA-256 da fonte, vínculo ao job e
+reenvio com o mesmo recibo. Um job, uma fonte, 163 lançamentos, 333 partidas
+e 163 efeitos permaneceram após o reenvio. Preparação/migração/cópia 34,79 s.
+Verificação no ambiente restaurado 0,49 s. Primeira execução do ensaio
+isolado precisou configurar o host testserver que o pytest já configura.
+O ensaio não mede RPO/RTO do ambiente publicado nem usa dados da cliente.
+
+O guia CONTAD registra as provas de Q-28/Q-46/Q-47/D-73 por responsável.
+As rotas documentadas pelo fornecedor para Q-47 não determinam qual
+conjunto de dados está habilitado no destino da CONTAD. Permanecem
+pendentes a confirmação do leiaute, a prova de importação e o aceite humano.
+
+Regressão no CI 43233720276: SQLite com 1.994 testes aprovados, 34 skips e
+163 subtestes aprovados, incluindo os testes de loopback. PostgreSQL 17 com
+2.026 testes aprovados, dois skips e 163 subtestes aprovados, incluindo
+concorrência da coleta nativa. Agente Linux com 85 aprovados e três skips.
+Windows com 88 aprovados, instalação e upgrade 1.0.7 → 1.0.8 validados no runner.
+
+CI 43233720276 concluído com sucesso nos três jobs, incluindo as três
+construções Docker. O PR #11 permanece em rascunho. A tentativa de verificar
+a janela do Domínio pelo AnyDesk expirou sem leitura da sessão. Não houve
+consulta à base da cliente, gravação no ERP ou implantação. A prova operacional
+de recuperação, as amostras Q-46, a importação Q-47 e o aceite D-73 seguem abertos.
+
+## V-366 — Verificação das pendências para finalizar o projeto (12/11/2026)
+
+Escopo D-343: leitura do plano, decisões, validações, etapas 00–14, Q,
+lista de conclusão, guia e handoff CONTAD. Inspeção estática de coleta
+nativa, títulos, DE-PARA e exportação; sem execução desses caminhos.
+
+Achados atuais:
+
+- Carga cadastral A146 e Razão inicial não equivalem à carteira financeira
+  completa. Comando, contrato Python e plano C# ainda fixam empresa/plano/
+  filial212, conta8, setembro2026 e as contagens do piloto. A prova real
+  continua V-361, com163 lançamentos/334 partidas em rascunho.
+- `depara.py` prepara rascunhos por exemplos humanos sem provedor;
+  `title_allocation.py` valida uma prévia offline e não persiste alocações.
+  Isso não comprova o DE-PARA assistido por IA nem a fonte real de títulos.
+- `reconciliation_service.py` mantém o gate Domínio, exclui `source_ledger`
+  da exportação e recusa Siescon sem adaptador registrado. Q-47 permanece
+  próprio, distinto do aceite NFS-e.
+- Os seis arquivos desses caminhos coincidem por hash Git com a referência
+  `origin/main` disponível localmente em7114caa. HEAD principal b65dfe7,
+  54 commits atrás dessa referência e com trabalho anterior. Não foi feito
+  fetch/pull/reset, commit ou descarte; referência local não é leitura ao vivo.
+- CI43233720276 aprovado e PR11 em rascunho são os estados documentados em
+  V-365, não consultados novamente. As falhas locais de ambiente de V-363
+  não devem voltar como regressão PostgreSQL ainda sem resultado.
+- Responsável respondeu “Ainda está pendente” sobre a correção específica
+  da espécie NFS-e de D-318/V-320. D-343 registra a confirmação sem revogar
+  a importação anterior aceita em D-295 ou homologar a correção pendente.
+
+Atualizados a lista existente de pendências, plano, Q, checklists de
+documentação/agente/NFS-e/conciliação/homologação e registro de execução.
+Separados contrato CONTAD, demais módulos da suíte e IA local posterior;
+preservados os estados históricos, sem novo plano ou IDs Q.
+
+Verificação documental: conferir os links/IDs introduzidos, whitespace do
+diff incremental e preservação dos bytes anteriores e dos arquivos de
+código preexistentes. Os resultados dessa conferência constam no registro
+de execução. Não foram repetidos testes de aplicação, navegador, CI,
+agente, ERP ou restore. Nenhum serviço externo/produção foi acessado.
+
+Resultado documental: 11 arquivos com inserções e conteúdo anterior intacto;
+12 links locais novos válidos, IDs resolvidos e sem duplicação D-343/V-366;
+diff incremental sem erro de whitespace. Os hashes de 94 arquivos com
+alterações anteriores fora do escopo permaneceram iguais.
+
+Limite: diagnóstico documental e estático. Não mede completude da fonte,
+qualidade contábil, precisão da IA, desempenho, RPO/RTO ou aceite. Continuam
+abertos Q-28/Q-46/Q-47, correção NFS-e específica, D-73, treinamento e
+liberação por módulo/release. Não atribuir percentual ou data de conclusão.
+
+
+## V-367 — Títulos persistidos e complemento fiscal preparados (12/11/2026)
+
+D-344/D-345/D-346: desenvolvimento no checkout isolado
+`codex/contad-finalizacao-hoje`, baseado na main7114caa conferida por fetch.
+Diretório principal e worktrees anteriores preservados. Quatro arquivos de
+D-340/D-341 já autorizados/testados foram trazidos como base; não há originais
+financeiros ou credenciais no conjunto publicável.
+
+Implementados quatro modelos e migração aditiva hub0082, importação privada
+imutável de títulos normalizados, prévia sobre movimentos bancários reais do
+banco de aplicação, confirmação transacional com chave de reenvio, capacidades
+compartilhadas entre lotes/fotografias, proteção de sobreposição OFX e
+confirmação/desfazimento com decisões imutáveis. Hashes das fontes de títulos
+e banco, revisão de datas divergentes, alteração da fonte e carteira/perfil/
+contrato atuais são conferidos antes da escrita. Nenhuma baixa no ERP,
+classificação ou lançamento contábil é criado por essa alocação.
+
+Comando `reconcile_titles`: import/preview/confirm/undo. A prévia privada0600
+não sobrescreve arquivo existente; a confirmação confere também o conteúdo
+da revisão exibida, e o recibo retém a fotografia revisada. Lote técnico de
+até1000 alocações e arquivo de até25MiB, com recusa explícita sem truncamento.
+A persistência exige `company_key` igual ao UUID CICA da empresa e conta
+bancária explícita. O contrato offline anterior mantém suas regras.
+
+Pesquisa oficial da Escrita localizou o fluxo de parcelas/baixas nas soluções
+[224](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=224)
+e [175](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=175).
+A leitura do inventário recebido e de seu seletor comprovou que nomes
+abreviados de famílias fiscais não estavam incluídos. Preparados complemento
+PowerShell apenas de metadados, transporte gzip/base64 com hash/limite e
+analisador offline. O analisador reaproveita as verificações de chaves/FKs,
+preserva pares/ordem e declara que a evidência de colunas vem do mesmo
+catálogo, sem afirmar semântica financeira ou revisão independente.
+
+Provas locais executadas:
+
+- Primeiro recorte integral SQLite:2017 testes/163 subtestes aprovados,
+  34 skips, em127,31s. Antecede o complemento fiscal e o refinamento final de
+  integridade da fonte bancária; não tratá-lo como CI da fonte final.
+- PostgreSQL17.10 descartável, bateria final de títulos/contratos/catálogos:
+  **181 aprovados**, incluindo duas confirmações concorrentes disputando
+  a mesma baixa, CLI completo, replay, estorno, rollback de banco/arquivo,
+  alteração de fonte e revogação de carteira/perfil.
+- Bateria local intermediária SQLite dos catálogos/títulos:91 aprovados,
+  um skip PostgreSQL. Versão final amplia os casos de integridade/permissão.
+- Ruff global, MyPy dos seis módulos/comando/script afetados, Django check,
+  dry-run de migrações e diff sem whitespace aprovados.
+
+PostgreSQL usa somente127.0.0.1 e dados sintéticos. `initdb` funcionou com
+memória mmap; a primeira partida falhou apenas pelo caminho longo do socket
+Unix, corrigido com diretório temporário curto. Nenhum recurso externo de
+banco foi usado. PowerShell Windows e regressão integral da fonte final
+aguardam CI da branch autorizada em D-346; não houve execução desses novos
+scripts na cliente, coleta de valores, merge, deploy ou aceite.
+
+Limite: o armazenamento/alocação normalizados estão implementados, mas o
+adaptador ERP e seus vínculos reais continuam em Q-46. Carteira financeira
+completa, DE-PARA com IA, Q-47, D-73, treinamento e aceite permanecem abertos.
+
+
+Continuidade V-367: PR12 em rascunho criado em branch autorizada. O conector
+GitHub retornou403 ao criar PR; a sessão CLI autorizada concluiu a operação.
+Primeiro CI43263301915 identificou erro no teste ao ler apenas a primeira
+linha do JSON. Fontec5307ef/CI43264227739 executou os dez cenários Windows
+com sucesso, mas o harness conservou o exit1 do último caso negativo.
+Corrigido o status final do teste sem alterar a recusa de nenhum cenário.
+Também revisada a leitura da fotografia persistida, em vez de atributos ORM
+alterados em memória;27 testes SQLite aprovados/um skip de concorrência.
+
+A revisão documental retirou da branch os registros locais anteriores
+D-316/D-317/D-322 e V-318/V-319/V-326 que não pertencem a esta publicação.
+Seus originais no diretório principal continuam intactos. Nenhum documento
+privado de comparação foi enviado. CI final e recebimento real seguem pendentes.
+
+
+## V-368 — Catálogo fiscal real de títulos recebido e conferido (12/11/2026)
+
+D-345/D-347: responsável executou o complemento de metadados no SVAPL02 e
+retornou o transporte textual. Conferidos gzip/base64,292874 bytes e SHA-256
+`812f0b56c4df22d5e6948fec3d16f15449a63a7ea4fd946ccae1fcf94c0b9361`.
+Observação da origem:12/11/2026 às17:09:15.5976353UTC. Arquivo HTTPS conferido
+por hash; os dez cenários Windows do complemento aprovados na fonte fdbda60.
+
+Análise offline real aprovada:15 objetos,557 colunas,189 linhas de índices,
+536 pares de colunas de FK e242 relações declaradas. As três famílias fiscais
+entradas/saídas/serviços têm chaves próprias comprovadas para nota, parcela
+e pagamento e vínculo ao lançamento contábil. As parcelas usam empresa/nota/
+parcela; pagamentos incluem também data, tipo e número de pagamento. Nos
+vínculos contábeis, `fili_lan` aponta à empresa da nota/pagamento, enquanto
+`codi_emp` identifica a empresa do lançamento. Não substituir um pelo outro.
+
+O material resolve a falta estrutural desse recorte de Q-46; os candidatos
+HR/PM anteriores não são a prova do fluxo fiscal. Permanecem por comprovar
+os códigos de tipo, principal versus valor bruto/líquido, encargos/descontos,
+retenções, estornos e vínculo bancário nos eventos reais. Não normalizar
+valores só pelo nome da coluna, nem declarar baixa ou saldo homologados.
+
+Transporte, original e análise em `.tmp/finalizacao-2026-11-12/fiscal-real`,
+permissões0700/0600 e fora do Git. Recebimento foi feito a partir do texto
+integral da resposta humana neste próprio chat; não houve nova consulta ERP,
+coleta de valores financeiros, leitura de segredo, alteração do agente,
+publicação da estrutura real, escrita ERP ou ampliação de exportação.
+
+
+Fechamento V-367: CI43265387462 integral **aprovado** para a fonte
+fdbda60a930304326d27273924903a1f4bdd6a2d. SQLite:2038 testes/163 subtestes,
+35 skips; PostgreSQL17:2071 testes/163 subtestes, dois skips, incluindo
+concorrência de alocação. Agente Linux85 aprovados/três skips; Windows88
+aprovados/zero skips, dez cenários do complemento fiscal, instalação/upgrade
+e as três imagens Docker aprovados. Sem merge, implantação ou agente novo
+na cliente. O código de títulos foi sincronizado no diretório principal por
+hash dos arquivos próprios, sem substituir históricos/documentos locais alheios.
+
+## V-369 — Perfil fiscal agregado do piloto preparado (12/11/2026)
+
+D-348: consultas fixas das três famílias fiscais, preservando empresa/nota/
+parcela/data/tipo/número de pagamento e a empresa fiscal em fili_lan. Contagens
+de sinal/nulidade, integridade dos pais, cardinalidade das ligações contábeis,
+conta8/plano212, outra empresa contábil e lançamento fora do período. Sem
+retorno de montantes, documentos, nomes, históricos ou significado de códigos.
+Parcelas por vencimento e pagamentos por data efetiva são recortes distintos.
+Duas leituras completas devem coincidir; limites de256 grupos/um milhão de
+linhas por família,180s/32KiB, diagnóstico com redação de segredo.
+
+Consultas reais do script executadas contra fontes sintéticas nas três
+famílias: nove testes aprovados. Casos incluem mesma parcela/data com tipos e
+pagamentos parciais distintos, duas empresas em sentidos diferentes do vínculo,
+plano diferente, múltiplos vínculos, lançamento fora do período, ausência de
+pais/Razão, sinais negativos/nulos e limites exclusivos do período. SQLite
+confere a relação entre linhas, não comprova sintaxe/driver SQL Anywhere real.
+Bateria conjunta com catálogos:78 aprovados; Ruff global aprovado.
+
+Harness Windows preparado com12 cenários de limites, partições, fonte mutável,
+parâmetros, códigos, ausência de coluna e redação. Sua execução ainda depende
+do CI desta fonte; não entregar comando antes da prova exata. Nenhuma nova
+consulta ao ERP foi executada neste preparo. Fonte Q-46, exemplos/estornos,
+carteira completa, IA/Q-47/D-73, recuperação, treinamento e aceite seguem abertos.
+
+
+## V-370 — Componentes fiscais localizados em fontes oficiais (12/11/2026)
+
+D-349: leitura estática dos conjuntos oficiais ligados às soluções
+[Entradas6168](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6168)
+e [Saídas6169](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6169).
+Downloads HTTPS concluídos sem contornar TLS; nenhuma macro, fórmula ou código
+do fornecedor executado, nenhum conjunto importado no ERP.
+
+Entradas:XML149966 bytes/SHAa8ac0ef1c27310e4e1f3c3ca7371eb316f8d9e573daeb417abdbe1ee81930c62.
+Saídas:XML89664 bytes/SHA366c0508e9f48dbdb2fff5d0a7b1312e58b001b8b14ce1d91d3cb5010805400c,
+extraído apenas esse membro do ZIP oficial. Definições relacionam explicitamente
+coluna tipo_* fixa ao campo vpag_* de cada componente. Código9 é CRF em Entradas
+e IRRF em Saídas; não existe legenda universal. Número de pagamento é dependente
+entre normal e componentes. Nenhuma prova correspondente para Serviços ou códigos
+não presentes; não inferir. Material e recorte factual privado em .tmp.
+
+Isto é referência do fornecedor, ainda sem confronto com movimento real,
+semântica de principal/líquido, retenção/estorno ou homologação da CONTAD.
+Continua necessária a prova da fonte antes de coletar/normalizar valores Q-46.
+
+
+Continuidade V-369: primeiro CI43269075611/b142b05 detectou falha na execução
+PowerShell. CI43269951648/7596518 acrescentou diagnóstico sintético e identificou
+PSArgumentException ao medir propriedades de dicionários ordenados. Substituído
+Measure-Object por acumulação explícita, mantendo as recusas/limites e as consultas.
+Regressões obsoletas canceladas após a falha Windows; não registrar como aprovadas.
+
+Fonte **a560b7dbec778f73b883f2bce0756f4996565ed0**, CI43270180630: etapa específica
+do perfil **aprovada** no Windows5.1 com os12 cenários. Regressão integral e
+empacotamento desse run ainda em andamento nesta observação; CI completo da
+persistência de títulos permanece fdbda60/43265387462 já aprovado.
+
+Arquivo HTTPS do perfil conferido byte a byte:12813 bytes/SHA-256
+be28c75b3a42339709b49d49932698075d9d333e1f0340472edcf46823c576e4.
+Comando privado0600 em Downloads/CONTAD-comando-perfil-titulos-2026-11-12.txt,
+com commit/hash fixos, Windows64 e remoção somente do próprio script temporário.
+Execução solicitada ao responsável sob D-348; resultado real ainda aguardado.
+Nenhum título financeiro coletado/persistido ou adaptador Q-46 habilitado.
+
+
+## V-371 — Perfil fiscal real recebido e validado (12/11/2026)
+
+D-348: responsável retornou JSON completo do SVAPL02, com observação
+12/11/2026 às17:41:19.4639008UTC e duas leituras idênticas. Conferidos contrato,
+piloto212/conta8/plano212/setembro2026, flags, partições de sinais, cobertura
+de ligações e limites. Consultas do perfil executaram no SQL Anywhere real;
+a prova sintética de Windows não foi confundida com esta execução.
+
+Entradas/Saídas têm parcelas e pagamentos; Serviços está vazio neste recorte.
+Há componentes normais, juros e código9 em Entradas, sem estender essa legenda
+por analogia. As linhas de pagamento têm pais, e os vínculos contábeis presentes
+não apontam a outra empresa ou período, nem a lançamento ausente. Há múltiplos
+vínculos por componente e componentes sem contabilização, inclusive zeros.
+Nenhuma ligação direta observada à conta8/plano212; isso não comprova ausência
+de linha bancária em outra partida do lote, nem correspondência com OFX.
+Parcelas por vencimento e pagamentos por data efetiva não são bases subtraíveis.
+
+JSON e análise mantidos em .tmp/finalizacao-2026-11-12/fiscal-real,0600/0700,
+fora do Git; resumo detalhado preservado só nessa evidência privada. Original
+textual3089 bytes/SHA09281df55f09d6c5d73d88d2b9d545c46eb33ffd57b35adc5682f28c0332f8bd
+(inclui quebra final). Zero valores financeiros, nomes/documentos, segredo,
+escrita ERP ou coleta financeira habilitada. Contagens não são eventos humanos
+homologados D-73. Próxima prova estrutural por lote/contas em D-350/Q-46.
+
+
+## V-372 — Conferência estrutural de títulos por lote preparada (12/11/2026)
+
+D-350: complemento fixo apenas de chaves, códigos de contas e contagens para
+pagamento → vínculo → lançamento → lote → linhas candidatas da conta8/plano212.
+Nenhuma coluna monetária ou narrativa consultada. Distingue vínculo direto,
+mesmo lote, múltiplos lotes/linhas/efeitos bancários, banco fora do período,
+empresa/plano diferentes e ausência de lançamento/lote/cabeçalho. Fonte com
+duas leituras idênticas, limites256/128 grupos, um milhão de linhas por família,
+180s/32KiB. Relação no lote não é prova de alocação/capacidade ou baixa.
+
+SQL efetivo do complemento exercitado em SQLite contra dados sintéticos nas
+três famílias:12 cenários relacionais aprovados, incluindo multiplicidade sem
+duplicar componente, chaves de tipo/número parcial/empresa, mesma numeração de
+lote em empresas diferentes, plano errado, vários bancos, banco em outra data,
+fontes ausentes, limites exclusivos e vazio. Bateria conjunta90 testes aprovada;
+Ruff global/diff aprovados. Não comprova sintaxe/driver SQL Anywhere real.
+
+Harness Windows com15 cenários preparado para parâmetros, metadados, limites,
+fonte mutável, códigos, campos/cobertura e redação de segredo. CI exato pendente;
+nenhum comando entregue ou nova consulta ERP feita por esse preparo. O resultado
+V-371 anterior é preservado e não será pedido novamente. Q-46/Q-47/D-73 abertos.
+
+
+Fechamento adicional V-369: CI43270180630 integral aprovado para a fonte
+a560b7dbec778f73b883f2bce0756f4996565ed0. SQLite2047 testes/163 subtestes,
+35 skips; PostgreSQL2080/163, dois skips. Agente Linux, Windows88, os12 cenários
+do perfil, instalação/upgrade e três imagens aprovados. Não inclui o novo
+complemento por lote de V-372; este tem CI e retorno reais próprios.
+
+
+Continuidade V-372: etapa específica de vínculos fiscais no Windows5.1
+**aprovada**,15 cenários, fonte54ba2fb06b6406ba03a64081daa4da6a91998edc,
+CI43274063310. Empacotamento/regressão integral desse run ainda em andamento
+nesta observação; o CI completo anterior a560b7d/43270180630 permanece aprovado.
+
+Arquivo público HTTPS conferido byte a byte:13659 bytes/SHA-256
+c9ad8b44b72904e543ca72efdb3137b86d7193155dedc0a47755ff2d2ea11e5d.
+Comando privado0600 em Downloads/CONTAD-comando-vinculos-titulos-2026-11-12.txt,
+fixado por commit/hash, remoção somente do próprio temporário, credencial no
+prompt local. Execução acompanhada solicitada sob D-350; aguarda JSON novo de
+lotes/contas, sem pedir novamente V-368/V-371. Nada coletado por este complemento
+até essa observação; nenhum adaptador financeiro, baixa ERP ou aceite habilitado.
+
+
+## V-373 — Recusa real na conferência das contas de Saídas (12/11/2026)
+
+Responsável executou o comando fixado54ba2fb/hashc9ad8b44…11e5d e retornou
+completed=false, stage=reading_saidas_account_shapes, RuntimeException,
+SQLState/native vazios. Não houve relatório completo nem prova real de lotes.
+Resultados intermediários não foram devolvidos e não podem ser presumidos.
+Não repetir catálogo V-368 ou perfil concluído V-371. Fonte/homologação Q-46
+continua aberta; erro de limite128 é hipótese, não causa observada.
+
+Correção técnica em D-350 prepara razão estática de cada recusa, maior limite
+estrutural1024/sem truncar, e transporte compacto verificado até4MiB. Mesmas
+fontes/empresa/período, sem nova classe de dados, senha ou escrita ERP. Exige
+CI Windows/hash exatos antes do próximo comando; nenhuma correção executada
+no servidor nesta entrada.
+
+
+Continuidade V-373: correção local mantém as consultas/chaves/recorte e passa a
+emitir códigos estáticos por regra de recusa, distinguindo excesso de grupos,
+tempo, tipo/intervalo, cobertura e mudança de fonte sem mensagem do driver.
+Conta agora admite1024 formas, com TOP1025 e recusa integral de excesso; limite
+da cobertura permanece256. Transporte opcional gzip/base64/SHA com limite4MiB
+descompactado, sem truncar o JSON. A causa do retorno real anterior ainda não
+foi determinada; a ampliação é uma preparação limitada e explícita.
+
+Noventa testes locais de consultas/catálogos e Ruff aprovados. Harness ampliado
+para17 cenários Windows, incluindo129 formas de conta completas, recusa de1025,
+transporte/hash/bytes e código exato de cada recusa. Execução dessa nova versão
+aguarda CI antes do comando; não executar no servidor apenas por passar localmente.
+
+
+Continuidade V-373: etapa específica da revisão no Windows5.1 **aprovada**,
+17 cenários, fonte0effa4797963bac8a80031c6817839851a6439da/CI43275171024.
+Comprovados129 agrupamentos completos e recusa de1025, transporte gzip/hash/
+bytes e códigos exatos de falha sem expor mensagens do driver. Regressão
+integral/empacotamento desse run ainda em andamento nesta observação.
+
+HTTPS conferido byte a byte:14597 bytes/SHA-256
+369312e1e2a7d8914be523313b2759df3aaed98357230f7db2331cb1ff27ef41.
+Comando revisado privado0600 em Downloads/CONTAD-comando-vinculos-titulos-revisado-2026-11-12.txt,
+fixado em commit/hash e -Compact. Solicitada nova execução ao responsável;
+aguarda resultado completo ou razão estática. Retorno anterior preservado em
+.tmp/finalizacao-2026-11-12/fiscal-real/title-links-failed.json,0600.
+A causa original e o vínculo por lote continuam não comprovados. Sem valores,
+novos segredos, alteração de agente/DSN, ERP escrito, implantação ou aceite.
+
+
+## V-374 — Vínculos reais completos recebidos, sem relação à conta8 (12/11/2026)
+
+D-350: transporte compacto retornado pelo responsável conferido com gzip
+limitado4MiB, JSON sem membros duplicados,42100 bytes/SHA-256
+e3090ff072ee4bac05000709b6e5d0c26e1148621e74faa281072432fd6c42e8.
+Observação12/11/2026 às18:02:04.8199783UTC; contrato/piloto/flags e duas leituras
+idênticas conferidos. Contagens por tipo/origem e totais de vínculos coincidem
+com o perfil real V-371. Originais/análise em .tmp/finalizacao-2026-11-12/fiscal-real,
+0700/0600, fora do Git; nenhuma coluna monetária ou narrativa selecionada.
+
+Recebidas59 formas de contas em Entradas e193 em Saídas; esta última seleção
+excede o antigo limite128 e o relatório completo excede32KiB. A revisão retorna
+o conjunto inteiro sem truncar. O conteúdo recebido reproduz a insuficiência
+dos limites anteriores; o retorno original não expunha o motivo específico.
+Serviços permanece vazio nesse recorte. Metadados dos códigos de conta ficam
+brutos, sem atividade/natureza/classe inferidas.
+
+Não há conta8/plano212 nas linhas diretamente vinculadas aos componentes nem
+em outra partida de seus lotes, dentro ou fora do período. Há múltiplos vínculos,
+sem lançamento/lote/cabeçalho ausente ou empresa contábil estrangeira nos vínculos
+presentes. Componentes não contabilizados permanecem visíveis. Isso não autoriza
+associação por data/valor ao Sicredi, normalização de principal/líquido, estorno,
+contabilização ou amostra humana D-73. Q-46/Q-47 e carteira completa seguem abertos.
+
+
+## V-375 — Contas retidas do piloto conferidas sem nova consulta ERP (12/11/2026)
+
+D-351: leitura no backend existente, transação REPEATABLE READ READ ONLY,
+do job nativo já importado7c08276b-6313-469f-9fbc-cd9aca3deac6 do mesmo escritório.
+Arquivo retido conferido pelo hash600ac3de31470c55c3d0bf93c22bf60542528862793d9001c17829da8d152072
+e contrato/escopo do piloto212/plano212/conta8/setembro. Catálogo18 contas,
+recorte de códigos pertinentes; nomes/tipos/classificação permanecem literais.
+Referências4/9 presentes no catálogo, demais candidatas não retidas não foram
+buscadas na carteira ou em plano de outro escritório. Evidência privada em
+.tmp/finalizacao-2026-11-12/fiscal-real/retained-accounts.json,0600.
+
+Somente catálogo retornado, sem montantes/documentos/históricos, importação
+repetida, escrita de banco/ERP ou mudança de recurso/serviço. Consulta observada
+às18:07:18.134991UTC. Não aprova natureza/atividade das contas ou associação dos
+títulos com o banco. A descoberta prepara captura bruta de revisão D-352/Q-46;
+sem fonte fiscal monetária coletada, normalização ou homologação nova.
+
+
+## V-376 — Captura fiscal privada implementada para revisão (12/11/2026)
+
+D-352: contrato dominio-title-snapshot-v1 e doze consultas fixas por hash,
+com parcelas vencendo no mês ou pagas no mês, componentes e chaves contábeis
+completas. Candidata Windows 1.0.9 preparada, preservando o agente oficial e
+a configuração existente. Fonte recebida fica privada, pendente de revisão
+semântica, sem criar título normalizado, alocação bancária ou lançamento.
+Reenvio confere arquivo original, contexto e resultado; alteração da exigência
+de revisão é recusada. Autorização atual é revalidada na fila e na recepção.
+
+Validações locais: 86 testes SQLite aprovados e três casos exclusivos de
+PostgreSQL ignorados; 89 testes PostgreSQL aprovados em 150,86 s, incluindo
+concorrência da captura, do Razão e das alocações. Guarda adicional de reenvio
+aprovada separadamente no SQLite. .NET: 97 aprovados e três casos específicos
+de Windows ignorados no Mac. Ruff global, MyPy dos quatro módulos envolvidos,
+Django check e migrações sem divergências aprovados. Instância PostgreSQL
+descartável própria encerrada após os testes; nenhum recurso alheio alterado.
+
+As doze consultas foram executadas em tabelas SQLite sintéticas, incluindo
+parcela fora do mês com pagamento no mês, componentes negativos/zero e empresa
+contábil distinta da filial fiscal. Isso não prova execução no SQL Anywhere16
+real. O ensaio Windows de upgrade 1.0.8 para 1.0.9 e a regressão integral desta
+candidata aguardam o CI exato. Sem instalação, enfileiramento ou coleta real
+de montantes, implantação, normalização fiscal ou aceite nesta entrada.
+
+Também conferidos completos os runs anteriores 43274063310/54ba2fb e
+43275171024/0effa47, todos os jobs aprovados. Último: 2059 testes SQLite,
+2092 PostgreSQL, 163 subtestes em cada ambiente; limites e cenários Windows
+da revisão V-373 aprovados. Essas provas não substituem o CI da nova candidata.
+
+
+Continuidade V-376: CI43284808251/2ef5769 recusou seis testes Windows por
+hash divergente antes do ODBC; Linux97/3 skips aprovado. Reproduzida conversão
+CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
+títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
+os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
+Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.
+
+
+Fechamento V-376: CI43285420180/fonte84a3190c4b885b3daba21f6c54c26cb5316f936b
+**integralmente aprovado**:2092 SQLite/36 skips,2126 PostgreSQL/2 skips e
+163 subtestes em cada ambiente;97 .NET/3 skips Linux e100 Windows/zero skips.
+Três imagens, diagnóstico Windows, instalação/reparo/desinstalação e upgrade
+configurado1.0.8→1.0.9 aprovados. Upgrade confirma bytes DPAPI, leitura SYSTEM
+e reinício preservados. CI Windows10.0.26100; não é ensaio real no SVAPL02
+ou execução SQL Anywhere16. Consultas/dados de cliente não foram usados no CI.
+
+Artefato13975620571 conferido por SHA-256
+748aee099735a346109ed77f8e8a78e67b710f40870ea72bfe6b5c86353de4b8;
+MSI1.0.9 SHAa3da91a40531bd1c2ab2f4ee98c22822004e964d61b0427b58db9efc6ec2feca.
+Recibos apontam o merge de teste de5b16058ae2c01d37b180bcddcd4a5c440bb96b,
+com pais7114caa/84a3190 e árvore2bbdc1e62ed689a6c41f7a8dbf7d2ffed14e3957,
+idêntica à fonte da branch. Pacote genérico local contém somente MSI, manifesto,
+checksum, atualizador testado e instruções; ainda não publicado/instalado.
+
+Imagem local sobre base imutável da release84 preserva configuração e17 camadas,
+714 arquivos conferidos,26 arquivos próprios copiados. Baselines dos cinco
+arquivos preexistentes iguais à fonte-base; nenhum hotfix de produção perdido.
+Smoke sem rede/banco aprovou hashes, doze consultas e migrações hub0082/
+intelligence0037. Configuração Fly atual igual à anterior; recursos preservados.
+Prévia READ ONLY conferiu oficial/escopo,163 lançamentos/163 registros de Razão,
+duas fontes e um job existentes. Gate de exportação continua desabilitado.
+Backup original53 objetos e prazo13/11/2026 às14:29:44UTC reconferidos, sem nova
+cópia/retenção/restore operacional ou RPO presumido.
+
+Ensaio separado de restauração sintética dos aliases SQLite default/knowledge
+e fonte privada aprovado: hash preservado, um job/arquivo/auditoria e replay
+sem duplicação, revisão semântica mantida e zero títulos normalizados/lançamentos.
+Cópia/restauração/replay local0,124s após preparo; não mede infraestrutura,
+recuperação real/RPO ou aceite D-73. Originais/evidências privados em .tmp;
+pacote/proposta de operação em Downloads,0600. Sem merge, deploy, upgrade ou
+enfileiramento real nesta entrega; coleta/atribuição aguardam confirmação.

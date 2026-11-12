@@ -1,5 +1,15 @@
 ﻿# Etapa 03 â€” Concluir agente Windows e integraÃ§Ã£o DomÃ­nio
 
+> **Estado reconciliado em 12/11/2026 — D-343/V-366:** V-347/V-352/V-361
+> comprovam oficial SVAPL02/1.0.8/.NET10, ODBC LocalSystem, corte/revogação,
+> carga cadastral A146/146 e Razão inicial do piloto. Instalação, DSN,
+> pareamento e snapshot inicial não são pendências atuais. Restam cobertura
+> financeira recorrente da carteira, planos/contas completos e M10 em Q-28;
+> títulos/baixas Q-46 e aceite operacional permanecem próprios. Os blocos
+> datados abaixo preservam histórico, inclusive alvos/runtime já substituídos.
+> [Lista vigente](../pendencias-conclusao-2026-11-02.md).
+
+
 [Plano mestre](../../../PLANO-MESTRE.md) Â· [DecisÃµes](../../../DECISOES.md) Â· [ValidaÃ§Ãµes](../../../VALIDACOES.md)
 
 **Estado:** ConcluÃ­da no nÃ­vel de implementaÃ§Ã£o e validaÃ§Ã£o local em 18/09/2026. O contrato ODBC Fedrizzi foi validado em ambiente real autorizado (V-010), D-80 definiu o serviÃ§o nativo CICA como pacote Ãºnico e D-82 definiu API oficial DomÃ­nio/Onvio como rota preferencial. Por D-86, a homologaÃ§Ã£o operacional contra o site publicado e o piloto real fica na etapa 12.
@@ -336,6 +346,7 @@ Este registro atualiza as pendências de implantação dos blocos históricos ac
 Nenhuma senha recebida no chat/extraída do registro. 151 vínculos de extrato do
 Domínio não constituem partidas independentes nem aprovação automática CICA.
 
+
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.
@@ -546,3 +557,16 @@ V-361:163 lotes/334 partidas reais equilibradas, OFX163 compatível por data,
 direção e valor, diferença líquida zero; reimportação criou0/ignorou163.
 Relatório privado entregue. Isso não substitui revisão humana200 itens, saldo
 inicial/fechamento de saldos ou homologação de layout/importação no Domínio.
+
+- [x] V-363: reoferta do mesmo job após duas falhas transitórias e revisão após falha de contrato, com agente sintético.
+- [x] V-363: suíte xUnit local com 85 aprovados e três casos exclusivos de Windows pulados.
+- [x] V-364: recortar offline as referências do catálogo sem ampliar o agente ou a seleção de coleta.
+
+
+### Captura fiscal privada preparada — D-352/V-376 (12/11/2026)
+
+- [x] Contrato fixo/doze consultas, duas leituras, hashes e fila explícita na candidata1.0.9.
+- [x] CI integral43285420180/84a3190,100 testes Windows e upgrade1.0.8→1.0.9 com configuração/reinício preservados.
+- [x] Pacote exato e imagem local714 hashes conferidos, sem rede/banco no smoke.
+- [ ] Publicação/upgrade e captura original com solicitante auditável confirmado.
+- [ ] Confrontar semântica Q-46; carteira integral/Q-47/D-73 continuam abertos.

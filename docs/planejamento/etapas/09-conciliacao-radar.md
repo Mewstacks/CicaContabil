@@ -1,5 +1,26 @@
 # Etapa 09 — Concluir Conciliação e Radar
 
+## Checklist vigente CONTAD — D-343/V-366 (12/11/2026)
+
+Os blocos datados abaixo preservam histórico. Esta lista consolida V-325,
+V-347/V-352 e V-361–365, sem transformar prova técnica em aceite.
+
+- [x] Acesso pessoal, instalação/corte do oficial, ODBC LocalSystem e versão 1.0.8.
+- [x] Carga cadastral A146/146 e releituras sem duplicação.
+- [x] Coleta nativa inicial real: 163 lançamentos/334 partidas independentes e equilibradas, replay idempotente e compatibilidade técnica com OFX.
+- [x] Regressão V-365, incluindo concorrência PostgreSQL e Windows, registrada como aprovada.
+- [ ] Q-28: carteira financeira recorrente desde 09/2026, planos/contas completos e situação M comprovada. O contrato nativo ainda é fixo no piloto212/8/setembro.
+- [ ] Q-46: chaves/vínculos e coleta persistida de títulos, parcelas, baixas totais/parciais e estornos com exemplos revisados.
+- [ ] Q-46/Q-08/Q-09: DE-PARA inicial com apoio de IA, dados/custos permitidos e revisão humana; rascunho determinístico não comprova IA.
+- [ ] Q-46: saldos inicial/final e regras/exceções reais conferidos, além de pares técnicos por data/direção/valor.
+- [ ] Q-47: leiaute contábil aceito e importação de teste autorizada conferida no destino, com caso ainda não escriturado.
+- [ ] D-73/etapa12: amostra/qualidade, desempenho, retomada/restore, treinamento e aceite por release.
+
+A suíte preserva ainda seus próprios layouts/OCR/destinos, folha/DRE/caixa,
+relatórios e fontes do Radar. [Detalhamento vigente](../pendencias-conclusao-2026-11-02.md).
+Nenhuma implementação ou homologação nova foi executada nesta revisão.
+
+
 **Continuidade 03/11/2026 — D-308/V-309:** corrigida autenticação do DSN no
 agente; versão 1.0.1 atualizada e conexão Domínio confirmada no configurador
 instalado do PC Windows 11 x64. Pareamento segue pendente porque o endpoint
@@ -333,6 +354,7 @@ A aprovação posterior do corpus e do recorte supera a antiga exigência de
 explicar o saldo da captura para o teste. Não reabrir importador/saldo ou pedir
 novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.
 
+
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.
@@ -523,3 +545,60 @@ V-361:163 lotes/334 partidas reais equilibradas, OFX163 compatível por data,
 direção e valor, diferença líquida zero; reimportação criou0/ignorou163.
 Relatório privado entregue. Isso não substitui revisão humana200 itens, saldo
 inicial/fechamento de saldos ou homologação de layout/importação no Domínio.
+
+- [x] V-363: falha simulada antes do recibo reverteu lançamentos, partidas, efeitos e arquivo privado. O reenvio concluiu o mesmo job.
+- [x] V-365: reexecutar a concorrência da coleta no PostgreSQL com as novas alterações de teste.
+- [x] V-364: separar colunas inventariadas, chaves da seleção original e referências estruturais de candidatos Q-46.
+- [ ] Confirmar chaves próprias e vínculos entre títulos, parcelas, baixas e estornos com amostras representativas.
+
+
+## Desenvolvimento de títulos persistidos — D-344/V-367 (12/11/2026)
+
+- [x] Persistir fonte normalizada privada/imutável e recibo idempotente.
+- [x] Preparar/revalidar plano de alocações, compartilhar capacidade entre lotes e fotografias e detectar OFX sobreposto.
+- [x] Confirmar/desfazer com trilha imutável, sem criar escrituração ou baixar ERP.
+- [x] Conferir fontes/hash, revisão explícita de datas e acesso/carteira/contrato atuais.
+- [x] Validar concorrência PostgreSQL, rollback, CLI e casos negativos em181 testes focados.
+- [x] Preparar complemento fiscal restrito a metadados e análise offline, sem pedir ao usuário os nomes técnicos.
+- [x] Windows e CI integral aprovados em fdbda60/43265387462; perfil em a560b7d/43270180630. Complementos posteriores têm provas próprias.
+- [x] V-368: receber/conferir o catálogo fiscal real:15 tabelas,557 colunas e242 relações, incluindo nota → parcela → pagamento → lançamento.
+- [ ] Comprovar tipos/componentes/estornos e amostras reais; implementar/homologar o adaptador de títulos Q-46.
+- [ ] Concluir carteira financeira, DE-PARA com IA, Q-47, D-73, treinamento e aceite.
+
+Operação técnica documentada no [guia CONTAD](../../pt-BR/contad-conciliacao.md).
+A persistência normalizada está implementada; a fonte ERP não foi presumida homologada.
+
+
+### Perfil fiscal do piloto — D-348/V-369 (12/11/2026)
+
+- [x] Consultas agregadas das famílias comprovadas; nove cenários relacionais
+  adversariais e78 testes de consultas/catálogos aprovados localmente.
+- [x] CI43265387462/fdbda60 integral aprovado para a persistência de títulos.
+- [x] Perfil PowerShell validado no Windows5.1,12 cenários, fontea560b7d/CI43270180630.
+- [x] V-371: perfil real recebido/conferido, duas leituras idênticas; nenhum vínculo direto à conta8.
+- [x] D-350/V-374: conferir lotes/contas e multiplicidade; nenhum vínculo com a conta8 foi demonstrado.
+- [ ] Comprovar semântica de tipos/componentes/estornos e exemplos Q-46.
+
+
+### Vínculos fiscais por lote — D-350/V-371/V-372 (12/11/2026)
+
+- [x] Receber/conferir perfil real do piloto sem repetir o catálogo.
+- [x] Preparar conferência sem montantes;12 cenários relacionais/90 testes aprovados.
+- [x] V-372:15 cenários Windows aprovados em54ba2fb/CI43274063310; HTTPS/hash conferidos.
+- [x] V-373: revisão com diagnóstico estático/limite1024/transporte compacto passou em17 cenários Windows/0effa47.
+- [x] V-374: receber/conferir o recorte completo;193 formas em Saídas excedem limite antigo e nenhum vínculo bancário à conta8 aparece nos lotes.
+- [x] D-351/V-375: conferir referências retidas e preservar ausência de associação; semântica/exemplos seguem pendentes.
+- [ ] Confrontar semântica e eventos reais antes de habilitar títulos Q-46.
+
+
+### Captura fiscal original — D-352/V-376 (12/11/2026)
+
+- [x] Preservar campos e decimais literais em fonte privada, sem converter tipo normal em principal/caixa.
+- [x] Implementar contrato/consultas incorporados por hash e duas leituras completas.
+- [x] Implementar prévia de fila, autorização atual, isolamento, replay e auditoria única.
+- [x] Provar 89 testes PostgreSQL, concorrência e recusa de resultado que dispense revisão.
+- [x] Preparar candidata 1.0.9 e ensaio Windows de upgrade preservando DPAPI/identidade/DSN.
+- [x] CI43285420180/84a3190 integral aprovado, incluindo pacote/upgrade Windows.
+- [ ] Publicar backend compatível, acompanhar upgrade e enfileirar captura original com solicitante confirmado.
+- [ ] Receber/conferir fonte fiscal original do piloto e confrontar semântica com exemplos no Domínio.
+- [ ] Homologar adaptador de títulos, vínculo bancário próprio e demais critérios Q-46/Q-47/D-73.

@@ -3697,3 +3697,189 @@ Commit/push somente desta documentação pelo checkout isolado atualizado; códi
 anterior já publicado. Preservado o diretório principal com trabalho preexistente.
 Sem nova sessão, deploy, coleta ERP, consumo de IA, alteração de configuração ou
 novos testes de aplicação nesta entrega documental.
+
+## 12/11/2026 — Retomada da bateria CONTAD (D-340/V-363)
+
+Main remota 7114caa conferida. Quatro cenários sintéticos acrescentados
+para duas falhas transitórias, falha de contrato e interrupção antes do recibo.
+Reenvio e rollback de banco/arquivo passaram. SQLite focado 167/4 skips.
+SQLite integral 1.987 aprovados, 163 subtestes, 33 skips e duas falhas de porta
+loopback. PostgreSQL descartável bloqueado por memória compartilhada. xUnit em
+processo aprovou 85 testes com três skips Windows. Recibos de V-361 conferidos.
+A rodada não altera os critérios pendentes de recuperação e aceite D-73.
+
+## 12/11/2026 — Recorte de evidência Q-28/Q-46 (D-341/V-364)
+
+O analisador ganhou seleção local de objetos e preservou a saída legada.
+Recorte real privado de sete objetos e 52 relações a partir dos mesmos
+insumos de V-350/V-354. Cinco candidatos de títulos/baixas exigem suas
+chaves próprias e provas de semântica. SQLite focado com 173 aprovados e
+quatro skips. Regressão com 1.993 aprovados, 163 subtestes, 33 skips e dois
+testes de porta local desmarcados. Docker local bloqueado e envio ao GitHub
+recusado pela revisão automática. CI PostgreSQL pendente.
+
+## 12/11/2026 — Regressão pública e recuperação sintética CONTAD (D-342/V-365)
+
+PR #11 em rascunho, head e38c9f2, quatro arquivos conferidos por hash.
+CI 43233720276 aprovado. SQLite 1.994, PostgreSQL 2.026 e 163 subtestes
+em cada suíte. Agente Linux 85, Windows 88 e três construções Docker.
+Ensaio local restaurou os aliases SQLite e a fonte privada, verificou
+hash e repetiu o recibo sem duplicar lançamentos. Guia CONTAD atualizado
+com as provas para Q-28/Q-46/Q-47/D-73. AnyDesk expirou sem acesso à sessão.
+
+## 12/11/2026 — Verificação do que falta para finalizar (D-343/V-366)
+
+Pedido atual limitado a verificação; conciliados plano, registros, etapas e
+Q existentes. Fonte nativa ainda fixa no piloto212/8/setembro, com seis
+arquivos críticos idênticos por hash à referência origin/main local7114caa.
+Identificados como restantes carteira financeira/contas completas, títulos/
+baixas, DE-PARA com IA, saldos/regras, leiaute/importação, métricas operacionais,
+treinamento e aceite; suíte conserva os demais pacotes aplicáveis.
+
+Responsável confirmou correção da espécie NFS-e ainda pendente. Registrado
+em D-343/Q-39 específico, sem revogar D-295 ou confundir com Q-47 contábil.
+Atualizados a lista de pendências vigente, plano, dúvidas e resumos/checklists
+das etapas 00/03/07/09/12. O histórico foi preservado, inclusive as provas
+concluídas de instalação/corte, A146, fonte inicial e CI V-365.
+
+Preservado HEAD b65dfe7 e as alterações locais anteriores. Sem implementação,
+testes funcionais novos, fetch/push, serviço externo, deploy, coleta, escrita
+ERP, custo ou novo aceite. CI/produção citados somente pelas evidências
+anteriores; recuperação pontual/sintética não encerra recuperação recorrente.
+
+Conferência final: 11 documentos atualizados somente por inserções, com todos
+os trechos anteriores preservados; 12 links locais novos existentes, IDs D/Q/V/PC
+resolvidos e definições D-343/V-366 únicas. `git diff --no-index --check` entre
+as cópias anteriores e os documentos atualizados passou. Os 94 arquivos com
+alterações preexistentes fora desta entrega conservaram seus hashes SHA-256.
+
+
+## 12/11/2026 — Desenvolvimento iniciado para concluir hoje (D-344–346/V-367)
+
+Checkout isolado atualizado pela main7114caa; diretório principal preservado.
+Implementados modelos/migração, fonte privada, alocações revisadas persistidas,
+recibos de reenvio, desfazimento auditado e CLI. SQLite integral do primeiro
+recorte:2017/163,34 skips; bateria final PostgreSQL de títulos/catálogos:181
+aprovados, incluindo concorrência, identidade, fontes e revogação de acesso.
+Ruff/MyPy/Django/migrações/diff aprovados; sem fonte real ou novo deploy.
+
+Responsável pode acompanhar testes hoje, mas não conhece o menu dos títulos;
+descoberta ficou com o executor. Pesquisa oficial identificou o fluxo da
+Escrita; seletor antigo excluía nomes abreviados. Preparado complemento fixo
+apenas de metadados, testes Windows sintéticos e analisador privado com hash.
+D-346 autoriza publicação em branch/PR rascunho/CI padrão. Windows e CI final
+aguardam execução. Q-46/Q-47/D-73 e aceite continuam próprios, sem novo plano.
+
+
+Refinamento: PR12 aberto pela CLI após403 do conector. O teste Windows foi
+corrigido para ler JSON completo e limpar o exit do cenário negativo final;
+os dez cenários já haviam passado em c5307ef. Conferência adicional recarrega
+a fonte persistida, com27 testes SQLite aprovados/um skip. Registros documentais
+preexistentes fora do recorte foram retirados somente da branch; raiz preservada.
+
+
+## 12/11/2026 — Estrutura fiscal real recebida (V-368)
+
+Transporte humano conferido por SHA/bytes e descompressão. Catálogo fiscal:
+15 objetos/557 colunas/189 linhas de índice/536 pares de FK/242 relações.
+Chaves de nota/parcela/pagamento e vínculo contábil comprovados estruturalmente;
+empresa fiscal por fili_lan preservada distinta de codi_emp contábil. Valores,
+tipos/componentes/estorno e fonte financeira ainda exigem prova própria.
+Originais/análise privados fora do Git; sem nova leitura ERP nesta análise.
+
+
+### 12/11/2026 — Perfil fiscal agregado preparado (D-348/V-369)
+
+Catálogo real V-368 usado para preservar chaves completas e empresa fiscal no
+JOIN. Nove testes de consultas e78 de consultas/catálogos, Ruff aprovados.
+Harness12 cenários no CI padrão; aguardar prova Windows antes do comando.
+CI anterior43265387462/fdbda60 integral aprovado,2071 PostgreSQL/2038 SQLite,
+163 subtestes,88 testes Windows, agente e três imagens. Sem merge/deploy ou
+nova consulta ERP. Perfil só conta códigos/sinais/vínculos; não homologa Q-46.
+
+
+### 12/11/2026 — Perfil Windows aprovado e referências oficiais (V-369/V-370)
+
+Corrigida medição PowerShell5.1 de dicionários ordenados;12 cenários aprovaram
+na etapa específica43270180630/a560b7d. HTTPS/12813 bytes/SHAbe28c75b…576e4
+conferidos; comando enviado ao operador, aguardando JSON real. Regressão integral
+desse run ainda em andamento; run43265387462/fdbda60 anterior integral aprovado.
+Conjuntos oficiais6168/6169 lidos estaticamente sem macros/importação: mapas por
+família, código9 diferente. Não infere Serviços, principal/líquido ou estorno.
+Arquivos próprios do perfil/workflow sincronizados por baseline/hash na raiz;
+trabalho local alheio preservado. Sem nova consulta ERP/deploy/homologação.
+
+
+### 12/11/2026 — Perfil real e conferência por lote (D-350/V-371/V-372)
+
+JSON real SVAPL02 recebido: duas leituras idênticas e ligações diretas à conta8
+zeradas, com multiplicidades contábeis presentes. Original/contagens detalhadas
+privados; contratos/flags/partições/limites conferidos, sem semântica homologada.
+Complemento fixo por lote/contas preparado,12 cenários relacionais/90 testes e
+Ruff aprovados.15 cenários Windows ainda aguardam CI exato antes do comando.
+Nenhuma nova consulta ERP, montante, agente/DSN alterado, deploy ou aceite.
+
+
+### 12/11/2026 — Complemento de lotes Windows aprovado (V-372)
+
+Etapa específica43274063310/54ba2fb aprovada,15 cenários. HTTPS/13659 bytes/
+SHA c9ad8b44…11e5d conferidos; comando fixado/hash enviado. Retorno novo aguarda
+operador; perfis anteriores preservados. CI integral desse run ainda em andamento.
+CI anterior43270180630/a560b7d integral aprovado:2080 PostgreSQL/2047 SQLite,
+163 subtestes,88 Windows,12 cenários e três imagens. Sem novo ERP/deploy/aceite.
+
+
+### 12/11/2026 — Recusa real e correção limitada dos vínculos (V-373)
+
+Retorno completed=false em reading_saidas_account_shapes, RuntimeException sem
+SQLState. Nenhum recorte completo ou lotes homologados. Não inferir a causa;
+novos códigos estáticos de recusa,1024 grupos de contas/sem truncamento e
+transporte gzip/hash4MiB preparados.90 testes locais/Ruff aprovados;17 cenários
+Windows aguardam CI exato. Mesma fonte/recorte, sem montantes ou ERP escrito.
+
+
+### 12/11/2026 — Revisão dos vínculos aprovada no Windows (V-373)
+
+Etapa específica43275171024/0effa47 aprovada com17 cenários:129 grupos,
+limite1024/recusa1025, transporte e códigos exatos. HTTPS/14597 bytes/
+SHA369312e1…7ef41 conferidos, comando revisado enviado e retorno aguardado.
+Regressão integral desse run ainda em andamento. Falha anterior preservada;
+causa não inferida e nenhuma fonte/baixa contábil homologada.
+
+
+### 12/11/2026 — Vínculos reais e captura fiscal preparada (V-374–376)
+
+Recebido e conferido o transporte revisado: duas leituras idênticas, hash e
+42.100 bytes completos; nenhum vínculo direto ou no lote à conta8. Catálogo
+de contas já retido consultado em READ ONLY, sem nova consulta ERP. Referências
+continuam brutas e não demonstram caixa ou natureza contábil por nome.
+
+Implementada candidata1.0.9/contrato fiscal com consultas fixas, fila explícita,
+recepção privada autenticada e revisão obrigatória. 89 testes focados PostgreSQL,
+86 SQLite e guarda adicional de replay aprovados; .NET97/3 skips locais, Ruff,
+MyPy e Django aprovados. Upgrade preservando DPAPI/identidade/SYSTEM preparado
+para CI Windows. Não foi instalado ou enfileirado job real; Q-46/Q-47/D-73 e
+carteira financeira seguem pendentes. CI anterior0effa47 concluído integralmente.
+
+
+Continuidade V-376: CI43284808251/2ef5769 recusou seis testes Windows por
+hash divergente antes do ODBC; Linux97/3 skips aprovado. Reproduzida conversão
+CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
+títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
+os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
+Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.
+
+
+### 12/11/2026 — Candidata1.0.9 pronta para etapa operacional (D-352/V-376)
+
+CI43285420180/84a3190 integral aprovado:2092 SQLite,2126 PostgreSQL,163
+subtestes por ambiente e100 Windows, incluindo MSI/upgrade1.0.8→1.0.9 com
+DPAPI/SYSTEM/reinício preservados. Artefato/merge de teste/árvore/hash conferidos.
+Imagem local714 hashes preserva base/configuração da release84; smoke sem rede
+ou banco aprovado. Backup53 objetos e configuração atual reconferidos.
+Restauração sintética dos dois aliases e fonte privada, seguida de replay sem
+duplicação/revisão mantida, aprovada; não substitui D-73 operacional.
+
+Pacote e proposta concretos preparados nos Downloads. Próxima captura Q-46
+contém valores originais e exige confirmar atribuição do solicitante; ainda
+sem job, publicação, instalação, coleta monetária, normalização ou aceite.

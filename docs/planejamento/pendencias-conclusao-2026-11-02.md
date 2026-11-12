@@ -1,5 +1,101 @@
 # Pendências para concluir o projeto CICA
 
+**Avanço de desenvolvimento — D-344–346/V-367, 12/11/2026:** Persistência/alocação normalizadas de títulos e CLI implementadas;181 testes focados PostgreSQL aprovados. Ainda falta o adaptador ERP real Q-46. Complemento fiscal restrito a metadados preparado, com Windows/CI pendentes na branch autorizada. Este avanço não encerra carteira financeira, DE-PARA com IA, Q-47, recuperação, treinamento ou aceite.
+
+
+## Verificação vigente — 12/11/2026, D-343/V-366
+
+**O projeto ainda não está concluído.** A integração inicial do conciliador
+CONTAD está comprovada, mas faltam cobertura financeira da carteira,
+títulos/baixas, DE-PARA com IA, retorno contábil homologado e aceite operacional.
+A suíte inteira conserva outras frentes próprias. Este levantamento atualiza
+os pacotes existentes; não abre outro plano nem executa essas implementações.
+
+Base: plano, decisões, validações até V-365, etapas 00–14, Q existentes,
+guia CONTAD e inspeção estática dos caminhos críticos. Produção, ERP e GitHub
+não foram consultados novamente; os estados externos abaixo são as últimas
+evidências registradas, não uma observação ao vivo.
+
+### Avanços comprovados que não devem voltar como bloqueios
+
+| Entrega | Evidência existente e limite |
+|---|---|
+| Acesso da Grazi | V-325: Proprietária CONTAD, login real aprovado. Não recriar conta ou convite. |
+| Oficial Windows | V-347/V-361: SVAPL02, versão 1.0.8/.NET 10, Running/Auto/LocalSystem/ready; anterior revogado. Não repetir instalação, corte ou DSN. |
+| Cadastros das empresas | V-352: carga A146/146 concluída, releituras sem duplicação. M10 não classificado; isso não comprova fontes financeiras de toda a carteira. |
+| Razão independente do piloto | V-361: 177 registros, 163 lançamentos, 334 partidas equilibradas e 163 efeitos compatíveis com OFX; replay criou zero. Tudo em rascunho, sem aprovação/exportação ou aceite humano. |
+| Regressão atual registrada | V-365: CI 43233720276 aprovado, PostgreSQL 2.026 testes e 163 subtestes; Windows 88 testes. PR #11 registrado em rascunho; aprovação do CI não equivale a merge, deploy ou homologação. |
+| Recuperação parcial | V-322: backup/restore pontual isolado; V-365: restauração SQLite/fonte sintética e replay sem duplicação. Rotina operacional e métricas D-73 continuam abertas. |
+
+### O que falta para entregar o contrato CONTAD
+
+| Pendência | O que deve ser feito / quem depende | Prova para encerrar |
+|---|---|---|
+| Carteira financeira completa — Q-28, PC-17/19 | Desenvolvimento evolui a coleta para empresas/planos/contas e competências desde 09/2026; técnico/contadora comprovam planos compartilhados e situação M. | Contas completas e cobertura por empresa/conta/período, coleta recorrente e retomável sem perda/duplicação. Hoje o código nativo aceita somente empresa/plano/filial 212, conta 8, setembro/2026; só 18 contas brutas referenciadas vieram no snapshot. |
+| Títulos a pagar/receber — Q-28/Q-46, PC-19 | Obter/conferir chaves próprias e vínculos título → parcela → baixa; implementar coleta e integração persistida. Contadora valida exemplos em aberto, baixa total/parcial e estorno. | Eventos e saldos rastreáveis na origem e no banco. O recorte de sete objetos/52 relações de V-364 não comprova esses vínculos; contratos/prévia offline não concluem o adaptador. |
+| DE-PARA assistido por IA — Q-46/Q-08/Q-09, PC-19/22 | Desenvolvimento liga o apoio de IA ao plano de contas e exemplos revisados; responsável define apenas dados/limites ainda ausentes, contadora aprova sugestões. | DE-PARA inicial demonstrado e revisado com custo/egressão permitidos. O preparador atual cria rascunhos determinísticos a partir de exemplos humanos, sem chamada ao provedor. |
+| Saldos, diferenças e regras reais — Q-46, PC-19 | Conferir saldo inicial/final, ambiguidades, agrupamentos, tarifas, transferências, baixas parciais e estornos aplicáveis. | Relatório explicado nos dois sentidos e decisões humanas preservadas. A igualdade técnica dos 163 movimentos não prova fechamento de saldos ou correspondências humanas. |
+| Arquivo de retorno contábil — Q-47, PC-19 | Técnico do Domínio/contadora fixam o leiaute aceito, campos/ordem/codificação e partidas simples/compostas; desenvolvimento ajusta o adaptador e prepara caso ainda não escriturado. | Importação de teste autorizada e partidas conferidas no destino. Exportação/confirmar importação seguem bloqueados por gate; aceite NFS-e não homologa essa saída. |
+| Qualidade, desempenho e recuperação — D-73, PC-09/10/19 | Proprietário revisa amostra independente; técnico mede processamento, interrupção e recuperação no ambiente representativo, bancos e documentos. | 200 fatos distintos revisados por fluxo, precisão mínima de 95% na classificação automática, zero duplicação/empresa errada/vazamento; até 5 min por empresa, retomada sem perda até 15 min e restore até 4 h; RPO/rotina registrados. Se os 163 eventos atuais forem aceitos na revisão humana, ainda faltam ao menos 37 distintos. |
+| Entrega e aceite — etapa 12, PC-30 | Desenvolvimento/operação publicam e conferem apenas as alterações necessárias após validação; responsável conduz treinamento inicial com CONTAD e registra aceite por release. | Usuária conclui o percurso real, manuais/limites correspondem ao liberado e proprietário formaliza o aceite. Guia/roteiro pronto não comprova treinamento realizado. |
+
+Sequência dependente já existente: cobertura/contas e fontes → títulos/regras/
+DE-PARA → retorno contábil → percurso real, métricas, recuperação, treinamento
+e aceite. Preparação de recuperação e treinamento pode avançar durante as
+dependências de fonte. Não reenviar ao ERP o Razão que já estava escriturado.
+
+Conferência estática desta verificação:
+[comando de coleta](../../src/apps/intelligence/management/commands/queue_contad_native_ledger.py),
+[contrato do backend](../../src/apps/intelligence/native_ledger_contract.py) e
+[plano do agente](../../agent-windows/src/Cica.Agent.Contracts/NativeLedgerPlan.cs)
+fixam o piloto. [DE-PARA](../../src/apps/hub/depara.py) prepara rascunhos
+humanos sem provedor; [alocação de títulos](../../src/apps/hub/title_allocation.py)
+é prévia offline sem persistência.
+[Serviço de exportação](../../src/apps/hub/reconciliation_service.py) bloqueia
+Domínio sem homologação, exclui lançamentos `source_ledger` da saída e recusa
+Siescon sem adaptador registrado. Esses seis arquivos coincidem por hash com
+a referência `origin/main` disponível localmente; não houve fetch nesta revisão.
+
+O prazo contratual registrado em D-301 é **09/11/2026**, já transcorrido na
+data desta verificação. Não foi localizado aceite final nos registros lidos;
+este levantamento não altera prazo nem condições do contrato.
+
+### O que falta para concluir a suíte CICA
+
+| Frente / etapas | Pendência remanescente | Referência existente |
+|---|---|---|
+| Acesso/equipe/e-mail — 02/11/12 | Entrega real Brevo, convite/recuperação/MFA administrativa e validação dos papéis em carteira operacional. Acesso CONTAD já criado não homologa o fluxo geral de e-mail. | PC-06/11/26, Q-29 |
+| Domínio/Siescon — 03/04/12 | Completar capacidades de fontes, backup/pastas quando aplicáveis e prova de leitura/importação Siescon. Adaptador local de empresas/folha existe; base inferida já aceita, sem reabrir Q-33/Q-44/Q-45. Alvo novo .NET 10 por D-325. | PC-17/25, Q-28/Q-31 |
+| IA/curadoria/relatórios — 05 | Dados permitidos, limites, governança da chave, curador, corpus/qualidade independente e renderer Node publicado com fila/download/recuperação comprovados. | PC-21/22/23, Q-08/Q-09/Q-11/Q-34 |
+| Triagem — 06 | Percurso completo e-mail → segurança → extração/classificação/revisão → destino → checklist; homologar provedores, catálogo e Windows reais. | PC-15/16/17, Q-12–25/Q-31 |
+| NFS-e — 07/12 | Qualidade/cobertura do piloto, ambiguidades e recuperação; **correção da espécie no conjunto do Domínio ainda pendente**, confirmada pelo responsável nesta verificação. D-295 continua aceitando a importação anterior; não repetir essa homologação genericamente. | PC-02/03/04/05, D-295/D-318/D-343, Q-39 específico |
+| Integra Contador — 08 | Prova real por operação de DTE/DCTFWeb/PARCSN, representação, custo/retorno incerto, reemissão e transição da atividade. Consulta não comprova transmissão. | PC-18, D-149/Q-40 |
+| Conciliação ampliada, folha/DRE/caixa/Radar — 09 | Além do contrato CONTAD, validar demais layouts/OCR, destinos, totais financeiros, relatórios e completude/frescor das fontes do Radar. | PC-19/20/21/24 |
+| Cobrança — 10 | Reconciliar modelo D-109 e completar Asaas/pagamento → acesso, Pix/boleto/cartão, atraso, reativação, estorno e eventos repetidos/fora de ordem. Não presumir valores ausentes. | PC-07/08 |
+| Rotina e interfaces — 11 | Modelos/prazos/responsáveis/evidências reais, calendário/handoffs aplicáveis, jornadas por perfil e teste de usabilidade com contadores. Inspeções anteriores não são aceite de usuário. | PC-11–14/26/27/29/30 |
+| Operação/liberação — 01/12 | Backup recorrente/RPO, restore/rollback cronometrados, carga/alertas, privacidade/retenção/portabilidade/exclusão, suporte e aceite por módulo/release. Fly+Neon e CI PostgreSQL já existem. | PC-01/09/10/28/30, Q-24/Q-29 |
+| Rentabilidade — 14 | Fonte de honorários, cobertura mínima de horas, regras comerciais e piloto real/acessível. O déficit de cobertura de testes de V-291 (80,09% diante de 85%) é histórico e requer aferição da etapa, não uma medição nova desta auditoria. | Q-41/Q-42/Q-43, V-281–292 |
+
+**IA local definitiva (etapa 13/PC-31):** equipamento/modelo, treino, avaliação,
+capacidade e virada com rollback permanecem posteriores. Não bloqueiam a
+entrega inicial por API, conforme D-50/D-51.
+
+Prioridade operacional já documentada: o snapshot Neon pontual referido no
+handoff D-339 tem vencimento registrado em **13/11/2026, 11:29:44 de Brasília**.
+Conferir validade e a cobertura da rotina de backup no trabalho de PC-09;
+este levantamento não consultou nem renovou recursos.
+
+Não há base para percentual confiável ou data de conclusão: testes/telas e
+cadastros não medem aceite, e os insumos de Q-28/Q-46/Q-47 ainda condicionam
+o esforço. Manter implementado, validado, publicado, homologado e liberado
+como estados distintos.
+
+## Histórico preservado até 05/11/2026
+
+Os estados e próximos passos abaixo são datados. Usar a verificação acima
+para a situação atual; não repetir instalação, pareamento, coleta inicial,
+credenciais ou aprovação do CI já comprovados posteriormente.
+
 **Continuidade D-315/V-317 — 05/11/2026:** retorno do detalhe preserva filtros e
 página após ações; 93 testes/24 subtestes locais aprovados, zero skips,
 CUA/Playwright desktop/celular/claro/escuro/teclado conferidos. CI anterior

@@ -1,3 +1,29 @@
+> **Q-46 — vínculos reais e candidata conferidos em12/11/2026 (V-374–376):**
+> complemento completo recebido; nenhum vínculo direto ou por lote à conta8.
+> Referências já retidas conferidas em READ ONLY. Captura fiscal original privada
+> implementada na candidata1.0.9, CI integral/upgrade Windows aprovados; próximo
+> passo é a coleta original para revisão, com solicitante auditável confirmado.
+> Não repetir catálogos/perfis ou presumir principal/caixa/saldo/estorno.
+
+> **Q-46 — perfil real recebido em12/11/2026 (V-371/D-350):** parcelas e
+> componentes fiscais presentes, múltiplas ligações contábeis e vínculo direto
+> à conta8 zerado. Não pedir de novo o catálogo/perfil. Executor confere ligação
+> por lote/contas e multiplicidades antes de concluir correspondência bancária.
+> Semântica, saldo/estorno e exemplos humanos continuam próprios.
+
+> **Q-46 — estrutura fiscal real conferida em 12/11/2026 (V-368):** recebidas
+> chaves/FKs das15 tabelas fiscais; notas → parcelas → pagamentos → lançamentos
+> estão vinculados no catálogo. Não pedir esse complemento novamente. Faltam
+> tipos de pagamento/componentes, interpretação dos valores/estornos e exemplos
+> reais, com identificação técnica a cargo do executor por D-345.
+
+> **Q-39 — confirmação específica em 12/11/2026 (D-343/V-366):** o responsável
+> informou que a correção da espécie no conjunto de importação Domínio de
+> D-318/V-320 ainda está pendente. D-295 conserva a importação anterior aceita;
+> não exigir sua repetição genérica. Próximo trabalho desse caso: conferir o
+> conjunto próprio da base e observar o resultado da correção no destino em
+> teste autorizado. Isso não resolve Q-47, que trata da saída contábil CONTAD.
+
 > **Q-28 — estado comprovado em12/11/2026 (D-338/V-361; handoffD-339/V-362):**
 > SVAPL02/1.0.8 e backend84 concluíram a coleta nativa inicial:163 lançamentos/
 >334 partidas reais equilibradas,163 movimentos compatíveis comOFX, repetição
@@ -399,6 +425,7 @@ Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada se
 upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
 login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
 
+
 ## Continuidade Q-28 — execução D-323/V-327 (06/11/2026)
 
 Responsável definiu **setembro/2026 em diante** para os dados financeiros da
@@ -558,3 +585,12 @@ partidas/sinais e fontes de títulos; ausência de FK não decide o JOIN.
 correspondentes e163 lotes/177 registros íntegros. Não repetir consulta ou pedir
 contagens ao operador. Normalizador preparado; falta snapshot real completo/
 revisão e integração da coleta. Letras de tipo/situação, Q-46/Q-47/D-73 mantêm gates.
+
+**Q-28/Q-46/D-341/V-364 (12/11):** recorte offline de sete objetos e 52 FKs a
+partir dos catálogos já recebidos. Dois candidatos contábeis estão inventariados.
+Os cinco candidatos de títulos/baixas no recorte aparecem apenas por referências.
+Há vínculos declarados de alguns deles a fornecedor, cliente, empresa e
+lançamento contábil. Faltam as chaves próprias e o vínculo comprovado entre
+título, parcela e baixa, além de exemplos revisados de vencimento em aberto,
+baixa total/parcial e estorno. Preservar situação M e origem do plano compartilhado
+em Q-28. Q-47 continua condicionado a layout e importação conferidos no Domínio.

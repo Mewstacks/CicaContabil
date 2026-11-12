@@ -4426,3 +4426,321 @@ Dados/relatórios financeiros, credenciais e recibos privados continuam fora do 
 Esta entrega não cria sessão nova, altera aplicação, publica novo deploy, executa
 ERP/IA ou amplia permissões/custos. Autorizações anteriores mantêm seu escopo;
 o prompt de continuidade não substitui Q-46/Q-47/D-73 nem aprova escrita no ERP.
+
+## D-340 — Continuar a bateria de testes CONTAD (12/11/2026)
+
+Origem humana: responsável pediu continuar a bateria de testes com o prompt de
+D-339. Executar regressão local na referência disponível da main e acrescentar
+cenários sintéticos para falha transitória do agente, revisão por falha de contrato
+e rollback após gravação do snapshot, com reenvio do mesmo job. Usar ambiente
+descartável e os recibos existentes de V-361 como referência documental.
+Preservar alterações locais e manter Q-28/Q-46/Q-47 e o aceite D-73 abertos.
+
+## D-341 — Recorte de evidência estrutural para Q-28/Q-46 (12/11/2026)
+
+Origem humana: continuar testes e desenvolvimento com o prompt D-339.
+Acrescentar ao analisador offline um recorte explícito dos metadados já
+recebidos, separando tabela inventariada, chave observada na seleção original
+e referência de catálogo fora dessa seleção. Preservar pares e ordem das FKs.
+A seleção é local e não amplia o catálogo recebido, executa SQL ou autoriza
+coleta. Guardar o recorte real em área privada. Usar somente fixtures sintéticas
+e a suíte existente no CI padrão para a regressão PostgreSQL, se disponível.
+
+## D-342 — Autorizar PR público e CI PostgreSQL da CONTAD (12/11/2026)
+
+O responsável autorizou expressamente o envio dos quatro arquivos de código e
+testes de D-340/D-341 ao repositório público Mewstacks/CicaContabil, em branch
+técnica com PR em rascunho, para executar a regressão PostgreSQL no CI padrão.
+Usar somente código genérico e fixtures sintéticas. Preservar os arquivos
+privados, o checkout local e os critérios de homologação Q-28/Q-46/Q-47/D-73.
+
+Enquanto o CI roda, executar um ensaio descartável de backup e restauração
+dos dois aliases SQLite e da fonte privada, reutilizando o corpus sintético
+de retomada. Conferir o recibo e o replay no ambiente restaurado. A prova local
+não substitui o ensaio operacional da infraestrutura nem aprova D-73.
+
+## D-343 — Verificar pendências de conclusão e confirmar correção NFS-e (12/11/2026)
+
+Origem humana: pedido para verificar o que falta para finalizar o projeto.
+Esta entrega reconcilia os registros e inspeciona o código local, separando
+o contrato CONTAD da suíte completa. Atualizar a lista de pendências e os
+checklists existentes, sem iniciar implementação funcional, deploy, coleta,
+consumo externo, envio de mensagens ou aceite. Preservar o checkout e as
+alterações anteriores; usar os mesmos pacotes PC e IDs Q.
+
+Ao esclarecer a divergência entre D-295 e D-318/V-320, o responsável respondeu
+**“Ainda está pendente”** para o teste/conclusão da correção da espécie no
+conjunto de importação NFS-e do Domínio. Registrar essa correção específica
+como pendente de Q-39/PC-03, sem revogar a importação aceita em D-295 nem
+exigir sua repetição genérica. O valor e o conjunto continuam próprios da
+base em D-318; não alterar XML, conjunto de dados ou padrão do produto por
+esta confirmação. Q-47 continua sendo o aceite distinto da saída contábil.
+
+## D-344 — Iniciar desenvolvimento de conclusão com meta para hoje (12/11/2026)
+
+Origem humana: “inicie o desenvolvimento agora entao, com o bjetivo de acabar
+hoje”. Retoma implementação e validação dos pacotes existentes, priorizando
+o contrato CONTAD, sem limitar a entrega a outro levantamento documental.
+Responsável confirmou que pode acompanhar hoje os testes no Domínio de
+títulos/baixas e importação contábil (Q-46/Q-47). Não repetir credenciais,
+instalação, inventários ou a intenção da carteira completa desde09/2026.
+
+Primeiro avanço independente: persistir o contrato normalizado de títulos e
+as alocações explicitamente revisadas, com fonte privada imutável, identidade
+por empresa/conta, idempotência, limites de capacidade, desfazimento auditável
+e isolamento. Usar o contrato/aritmética já existentes; não inferir SQL,
+vínculo título/parcela/baixa, tolerância, classificação contábil ou baixa ERP.
+Metadados e exemplos reais continuam necessários para habilitar a fonte Q-46.
+
+Trabalhar em checkout isolado atualizado, preservando o diretório principal
+e demais frentes. A meta de hoje orienta prioridade, sem dispensar revisão
+humana, leiaute/importação Q-47, métricas D-73, treinamento e aceite. Custos,
+egressão de IA e operações externas mantêm os escopos das autorizações
+existentes. Não alterar dados financeiros ou habilitar exportação por pressa.
+
+## D-345 — Executor identifica a fonte fiscal dos títulos (12/11/2026)
+
+Responsável informou não conhecer o módulo/menu dos títulos e determinou que
+o executor identifique o caminho. Não repetir essa pergunta nem transferir a
+descoberta técnica ao usuário. A documentação oficial da Escrita indica
+controle de parcelas de notas e consultas em Relatórios > Contas a Pagar e
+Receber, com baixas em Movimentos > Baixas > Entradas/Saídas/Serviços.
+Referências: soluções Domínio224 e175; pesquisa não comprova configuração
+ou movimento da CONTAD nem autoriza alterar parâmetros ou executar baixas.
+
+O inventário recebido selecionava CT* e apenas nomes EF contendo PARC/PAGA/
+RECE/BAIX/CLIENTE/FORNE/BANCO/CONTA. Portanto, ele não abrangia famílias de
+nomes abreviados como as referências reais `efentradaspag_lancto`,
+`efsaidaspag_lancto` e `efservicospag_lancto` encontradas no catálogo. Preparar
+um complemento fixo exclusivamente de metadados das famílias fiscais
+entradas/saídas/serviços, parcelas/pagamentos e vínculos, sem repetir o
+inventário integral, selecionar valores de negócio, ler configuração
+protegida, executar SQL arbitrário ou presumir semântica pelo nome da tabela.
+Q-46 conserva amostras e conferência real antes de habilitar o adaptador.
+
+## D-346 — Publicar títulos e complemento fiscal no CI padrão (12/11/2026)
+
+Após a proposta concreta da implementação/testes de títulos e do complemento
+de metadados fiscais, o responsável escolheu **“Autorizar branch pública e CI
+padrão”**. Autoriza enviar esses arquivos genéricos, fixtures sintéticas e
+documentação técnica ao repositório público existente, em branch técnica com
+PR em rascunho, para validar PostgreSQL e Windows no CI padrão. Essa ampliação
+é distinta dos quatro arquivos cobertos em D-342; não pedir a mesma autorização
+novamente durante esta entrega.
+
+Não enviar dados financeiros, credenciais, originais ou recibos privados.
+Depois do CI exato e hash, disponibilizar o comando HTTPS do complemento
+somente de metadados para a execução acompanhada no Windows. Não presume
+merge/deploy, instalação de agente novo, coleta de valores ou escrita no ERP;
+essas operações conservam seus próprios escopos e evidências.
+
+## D-347 — Executar o complemento fiscal validado, sem liberar aplicação (12/11/2026)
+
+Continuidade operacional autorizada em D-346: o CI43265387462 da fonte
+fdbda60 aprovou a etapa específica de catálogo fiscal no Windows, com os
+dez cenários positivos/negativos e saída correta. O arquivo do complemento
+permanece idêntico por hash ao já exercitado, sem alteração no agente ou SQL
+de negócio. Entregar seu comando HTTPS fixado por commit/SHA para a execução
+local acompanhada enquanto a regressão/Docker do backend continuam no CI.
+Essa prova específica basta para o diagnóstico independente de metadados;
+não equivale a aprovar o CI inteiro, merge, deploy ou fonte financeira Q-46.
+
+O controle AnyDesk falhou nesta sessão por nome e por bundle ID confirmado
+na lista de aplicativos. Por isso o responsável executa o comando local e
+retorna somente o JSON de catálogo; o executor identifica as tabelas e
+interpreta o resultado, sem pedir ao usuário os nomes técnicos ou senhas.
+
+
+## D-348 — Conferir cobertura fiscal e vínculos do piloto sem montantes (12/11/2026)
+
+V-368 recebeu as chaves próprias e FKs do fluxo fiscal. Prosseguir na descoberta
+Q-46 já atribuída ao executor, sob a consulta agregada D-323 e o recorte
+212/conta8/setembro2026 de D-320/D-321/D-336, sem perguntar nomes técnicos ao
+responsável. Preparar perfil fixo de contagens de parcelas com vencimento no
+período, pagamentos no período e seus vínculos contábeis. Preservar códigos
+brutos de tipo/origem/grupo, a chave completa de pagamento e a distinção
+fili_lan→empresa fiscal versus codi_emp→empresa contábil.
+
+Retornar apenas quantidades e códigos técnicos: ausência de parcela/nota,
+sinal/nulidade dos campos monetários (comparação interna, sem devolver montante),
+existência de vínculo contábil e com a conta8, e vínculo fora da competência ou
+com outra empresa contábil. Não consultar participantes/documentos/históricos,
+não produzir amostra financeira nem inferir principal, juros/desconto/retenção,
+estorno ou conta pela coincidência de valor. Dois perfis completos idênticos,
+limites de grupos/linhas/tempo/bytes e falha explícita sem truncamento.
+
+Validar consultas em corpus sintético com casos adversariais de chaves/empresa,
+e o executor PowerShell no Windows do CI padrão já autorizado em D-346.
+Disponibilizar comando somente após prova exata e hash HTTPS. Não habilitar
+adaptador, instalar agente, alterar DSN/parâmetros, gravar ERP ou declarar
+homologação pelo perfil; exemplos semânticos e Q-47/D-73 mantêm provas próprias.
+
+
+## V-370 — Componentes fiscais localizados em fontes oficiais (12/11/2026)
+
+D-349: leitura estática dos conjuntos oficiais ligados às soluções
+[Entradas6168](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6168)
+e [Saídas6169](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6169).
+Downloads HTTPS concluídos sem contornar TLS; nenhuma macro, fórmula ou código
+do fornecedor executado, nenhum conjunto importado no ERP.
+
+Entradas:XML149966 bytes/SHAa8ac0ef1c27310e4e1f3c3ca7371eb316f8d9e573daeb417abdbe1ee81930c62.
+Saídas:XML89664 bytes/SHA366c0508e9f48dbdb2fff5d0a7b1312e58b001b8b14ce1d91d3cb5010805400c,
+extraído apenas esse membro do ZIP oficial. Definições relacionam explicitamente
+coluna tipo_* fixa ao campo vpag_* de cada componente. Código9 é CRF em Entradas
+e IRRF em Saídas; não existe legenda universal. Número de pagamento é dependente
+entre normal e componentes. Nenhuma prova correspondente para Serviços ou códigos
+não presentes; não inferir. Material e recorte factual privado em .tmp.
+
+Isto é referência do fornecedor, ainda sem confronto com movimento real,
+semântica de principal/líquido, retenção/estorno ou homologação da CONTAD.
+Continua necessária a prova da fonte antes de coletar/normalizar valores Q-46.
+
+
+## D-350 — Conferir títulos por lote e contas contábeis sem presumir associação (12/11/2026)
+
+V-371 recebeu perfil real completo, duas leituras idênticas, com pagamentos
+nas famílias Entradas/Saídas e nenhuma ligação direta à conta8. Isso não prova
+inexistência de relação com o banco: no Razão multipartida, outra linha do
+mesmo lote pode conter o efeito bancário. O executor continua a descoberta
+Q-46 sob as contagens D-323/D-348 e o mesmo piloto212/8/setembro2026.
+
+Preparar consulta fixa limitada para pagamento → vínculo → lançamento → lote
+→ possíveis linhas bancárias. Preservar chaves completas, empresa contábil e
+fiscal, plano da conta8 e multiplicidades. Apenas contagens/códigos técnicos:
+referência direta versus mesmo lote, vários lotes/efeitos bancários, ausência
+de lançamento/cabeçalho/lote, período externo e contas reduzidas brutas das
+linhas vinculadas. Datas fora do período só para contagens internas de lotes
+selecionados, sem montantes ou documentos; não ampliar recorte financeiro.
+Não somar valor da baixa repetido pelo JOIN ou associar só por lote/data/valor.
+
+A relação de lote é candidata estrutural, não confirmação de capacidade,
+quitação, saldo ou conciliação. Fonte deve ter duas leituras idênticas,
+limites/timeout e diagnóstico sem segredos. Exercitar SQL em dados sintéticos
+adversariais e executor Windows no CI público D-346; somente após prova exata
+e hash disponibilizar comando acompanhado. Sem novo agente, DSN, escrita ERP,
+montantes, classificação ou exportação. Não repetir catálogo/perfil já recebidos.
+
+
+Refinamento D-350 antes da correção: retorno real do complemento54ba2fb não
+concluiu, em reading_saidas_account_shapes, RuntimeException sem SQLState.
+Não atribuir automaticamente a causa a ODBC ou ao limite128, nem usar resultados
+parciais não retornados. Acrescentar códigos estáticos por regra de recusa,
+sem publicar mensagem do driver ou valor de coluna. A hipótese de mais formas
+de contas é compatível com o recorte, mas ainda não está comprovada.
+
+Ampliar somente o limite de agrupamentos de contas para1024, sempre TOP1025
+para detectar excesso e sem truncamento. Preservar recorte/timeout/um milhão
+de linhas e limite256 da cobertura. Transporte opcional gzip/base64/hash com
+até4MiB descompactados, já usado no catálogo, evita texto grande no chat;
+provar conjunto acima de128 e transporte no Windows antes do novo comando.
+Não ampliar empresas, datas, colunas ou valores financeiros consultados.
+
+
+## D-351 — Consultar referências já retidas e preservar ausência de vínculo bancário (12/11/2026)
+
+V-374 concluiu o perfil revisado, com contagens coerentes com V-371 e nenhum
+vínculo direto ou no lote à conta8/plano212. Não forçar associação dos títulos
+a esse banco por nome, data, montante ou coincidência de código. Manter os
+componentes sem confirmação bancária até prova própria; ausência nesse recorte
+não é prova de inexistência de títulos/pagamentos em outras contas.
+
+Antes de pedir outro comando ao operador, consultar os metadados/contas do
+snapshot nativo já recebido e validado em D-338/V-361, mesmo piloto212/8/setembro,
+com o seu hash e vínculo ao job. Leitura limitada ao catálogo retido no backend
+CICA existente, em transação READ ONLY, sem nova consulta ao ERP, scan/carteira,
+replay de importação, escrita ou segredo. Retornar apenas códigos/nomes/tipos
+brutos de contas pertinentes, preservados privadamente; não emitir valores,
+documentos/históricos ou classificar LedgerAccount por inferência.
+
+A leitura serve à descoberta Q-28/Q-46 já autorizada em D-323, não é merge,
+deploy, ampliação de fontes, custo/serviço novo ou homologação financeira.
+Se as referências não estiverem no catálogo retido, registrar a falta e
+preparar a menor evidência técnica ainda necessária, sem reaproveitar plano
+de outra empresa/escritório ou repetir V-368/V-371/V-374.
+
+
+## D-352 — Preparar captura fiscal privada para revisão, sem normalizar caixa (12/11/2026)
+
+Continuidade de implementação D-344, após estrutura/contagens V-368/V-371/V-374.
+Preparar contrato, consultas fixas e recepção privada da fotografia fiscal de
+parcelas/pagamentos do piloto, reutilizando autenticação e protocolo de jobs
+do agente oficial, com identidade/hashes/duas leituras completas. Não resolver
+a lacuna de títulos só com diagnósticos; permitir revisão dos fatos originais
+antes de traduzir valores em títulos normalizados/alocações.
+
+Manter campos monetários como decimais literais de origem, chaves completas e
+códigos brutos. Tipo1 não vira principal nem caixa por inferência; retenção,
+zero, exclusão e estorno não são descartados/convertidos. Contas4/9 são nomes
+brutos do catálogo retido; não aprovam natureza, trânsito ou vínculo bancário.
+Recepção resulta somente em fonte privada aguardando revisão sem lançar,
+conciliar, baixar ERP, aprovar LedgerAccount ou habilitar exportação.
+
+Primeiro recorte é empresa212, setembro2026, com parcelas vencendo no período
+ou referenciadas por pagamentos do período; pagamentos somente do período.
+Não declarar cobertura vitalícia, saldo inicial/final, carteira inteira ou
+vínculo dos títulos à conta8. A conta8 é contexto de comparação já existente.
+Usar contagens de pagamentos e parcelas por vencimento já verificadas como
+guardas; controlar também a união de parcelas sem truncamento. Fonte valida
+chaves/pais/contagens, isolamento/revogação e replay, com limites de bytes/linhas.
+
+Desenvolvimento/fixtures genéricas e CI seguem a branch/PR em rascunho D-346.
+Não coletar valores, enfileirar job real, instalar novo agente ou implantar por
+essa preparação: apresentar a candidata exata e seus testes antes da etapa
+operacional que coleta a fonte para confronto semântico Q-46. Autorizações
+de dados/publicação mantêm seus limites; nenhuma amostra ou aceite é presumido.
+
+
+Refinamento técnico D-352: preparar candidata1.0.9/.NET10 e ensaio Windows de
+upgrade1.0.8→1.0.9 preservando bytes DPAPI, identidade, DSN e serviço SYSTEM.
+Oficial real continua1.0.8; pacote/CI não são instalação. Fonte bruta limitada
+4.000.000 bytes, dentro do limite HTTP existente, e50.000 linhas por consulta,
+sem truncamento. Filas não são criadas por padrão: comando administrativo mostra
+prévia, requer referência e confirmação explícita de captura; papel/carteira/
+contrato atuais são revalidados também na recepção. SQL e esquema incorporados
+por hash no binário; nenhum SQL ou credencial é recebido da nuvem.
+
+
+Refinamento D-352 após CI43284808251: Windows recusou seis testes na
+conferência dos hashes das novas consultas, antes de qualquer ODBC. O checkout
+Windows converteu LF para CRLF; contracts/titles ainda não tinha a regra EOL
+explícita já existente para contracts/ledger. Fixar LF nessa família e nos
+novos scripts de upgrade, sem mudar consulta, hash esperado ou reduzir a
+conferência. Repetir CI Windows/pacote/upgrade exatos antes de disponibilizar
+a candidata. Run anterior não é aprovado para distribuição.
+
+
+Fechamento técnico D-352: fonte84a3190/CI43285420180 integral aprovada. A
+árvore do merge de teste de5b160 é idêntica à fonte84a3190; MSI e recibos do
+upgrade estão vinculados a esse merge. Preparados pacote genérico e imagem
+local sobre a release84, sem alterar configuração/recursos ou coletar valores.
+Próximo passo Q-46 é a captura original privada, que deixa de ser o diagnóstico
+sem montantes até aqui executado. A fila também exige solicitante auditável;
+a prévia encontrou somente a Proprietária já cadastrada. Confirmar essa
+coleta/atribuição antes de enfileirar, sem atribuir o pedido a outra pessoa
+apenas por seu cadastro estar ativo. A candidata e seus testes estão prontos
+para essa confirmação; não reabrir a autorização de branch/CI de D-346.
+
+
+## D-353 — Autorizar candidata1.0.9 e captura original pela Grazi (12/11/2026)
+
+Após receber candidata/pacote/proposta concretos e CI43285420180 integral
+aprovado, o responsável respondeu **“Autorizar operação e solicitação pela
+Grazi”**. Autoriza publicação/upgrade na infraestrutura existente e uma captura
+privada dos valores originais de parcelas, pagamentos e vínculos da empresa212,
+setembro2026, registrando Grazi como solicitante autorizada. A fonte permanece
+aguardando conferência semântica Q-46; não é normalização, vínculo bancário,
+lançamento, baixa ERP, importação Q-47 ou aceite D-73.
+
+Usar a fonte84a3190, árvore idêntica ao merge de teste de5b160, pacote/MSI
+conferidos em V-376 e imagem714 arquivos sobre a release84, preservando
+configuração/recursos/contratos/identidade/DSN. Publicar backend compatível,
+verificar saúde/migrações/integridade/gates e distribuir pacote genérico por
+HTTPS/hash no canal oficial existente. Nenhum recurso, custo ou serviço novo.
+
+Acompanhar upgrade1.0.8→1.0.9 do oficial SVAPL02 sem novo pareamento. Conferir
+bytes DPAPI/identidade/versão/ciclo saudável antes de enfileirar a captura;
+revalidar papel/acesso/contrato atuais da Grazi. Escopo preparado mantém
+empresa212/setembro e conta8 apenas como comparação. Duas leituras completas
+idênticas, guarda de contagens e fonte privada/hash são obrigatórios. Não
+publicar valores/originais/recibos privados no Git ou CI, nem enviá-los à IA.

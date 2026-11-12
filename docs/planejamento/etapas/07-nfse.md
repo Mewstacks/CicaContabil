@@ -1,3 +1,12 @@
+> **Situação reconciliada em 12/11/2026 — D-343/V-366:** há coleta NFS-e
+> real e a importação anterior foi aceita pelo responsável em D-295; não
+> reabrir sua prova genérica. Nesta verificação o responsável confirmou
+> que a correção posterior da espécie no conjunto do Domínio (D-318/V-320)
+> **ainda está pendente**. Manter esse caso específico em Q-39/PC-03,
+> além da qualidade/cobertura/recuperação aplicáveis. Não tratar checklists
+> antigos de coleta/layout como ausência de toda integração NFS-e.
+> [Lista vigente](../pendencias-conclusao-2026-11-02.md).
+
 ## V-132 - Acesso exclusivo NFS-e
 
 - [x] Abrir a assinatura NFS-e exclusiva diretamente na central NFS-e.

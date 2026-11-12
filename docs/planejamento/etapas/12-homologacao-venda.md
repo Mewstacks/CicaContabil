@@ -1,5 +1,26 @@
 # Etapa 12 — Homologação integrada e liberação comercial
 
+## Checklist vigente de conclusão — D-343/V-366 (12/11/2026)
+
+A etapa permanece **em andamento**. Os blocos datados abaixo são históricos;
+instalação/corte, carga cadastral e coleta inicial não voltam a ser bloqueios.
+
+- [x] V-325/V-347/V-352/V-361: acesso CONTAD, oficial1.0.8, carga A146 e coleta real inicial comprovados.
+- [x] V-365: CI PostgreSQL/Windows aprovado e restauração/replay local sintético conferidos; PR11 registrado em rascunho, sem presumir merge/deploy.
+- [ ] CONTAD: fontes/contas da carteira completa, títulos/baixas, DE-PARA assistido por IA, saldos/regras e importação contábil Q-28/Q-46/Q-47.
+- [ ] D-73: 200 fatos distintos revisados por fluxo, precisão mínima95% aplicável, integridade, até5min por empresa, retomada até15min e restore até4h; RPO e rotina de backup registrados.
+- [ ] CONTAD: treinamento inicial executado e aceite formal vinculado à release.
+- [ ] NFS-e: testar/concluir a correção específica de espécie D-318/V-320, ainda pendente segundo o responsável em D-343; preservar a importação anterior aceita em D-295.
+- [ ] Suíte: fechar homologações por operação/módulo, e-mail/cobrança, fontes/relatórios, privacidade, carga/alertas, suporte e oferta coerente conforme pacotes existentes.
+
+V-322 comprova restore pontual isolado, V-365 usa corpus sintético local;
+nenhum deles encerra sozinho a recuperação operacional recorrente. O snapshot
+pontual citado no handoff vence em13/11/2026 às11:29:44 de Brasília, segundo
+o registro existente; validade/rotina precisam ser conferidas em PC-09.
+[Pendências, responsáveis e provas](../pendencias-conclusao-2026-11-02.md).
+Sem produção/ERP/CI consultados novamente nesta revisão documental.
+
+
 **Conexão vigente — D-308/V-309 (03/11/2026):** versão 1.0.1 atualizada no PC
 Windows 11 Pro AMD64, serviço Running e conexão Domínio confirmada no
 configurador. Pareamento bloqueado por 503, CA não configurada no servidor.
@@ -411,6 +432,7 @@ O escopo é piloto bancário autorizado; a homologação integral continua abert
 O corpus de 163 não preenche os 200 eventos independentes de D-73. O ensaio
 pontual de backup/restore anterior não equivale a recuperação recorrente/RPO.
 
+
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.
@@ -621,3 +643,31 @@ V-361:163 lotes/334 partidas reais equilibradas, OFX163 compatível por data,
 direção e valor, diferença líquida zero; reimportação criou0/ignorou163.
 Relatório privado entregue. Isso não substitui revisão humana200 itens, saldo
 inicial/fechamento de saldos ou homologação de layout/importação no Domínio.
+
+- [x] V-363: retomada e rollback do Razão validados com dados sintéticos e recibos existentes de V-361 reconferidos.
+- [ ] Medir retomada operacional em até 15 minutos, conferir restauração em até 4 horas e obter aceite D-73.
+- [x] V-364: validar localmente o diagnóstico estrutural Q-46 sem usar valores de negócio ou dados reais em testes.
+- [x] V-365: restaurar os aliases SQLite e a fonte privada sintética em ambiente separado, conferir o hash e repetir o recibo sem duplicar.
+- [x] V-365: registrar no guia CONTAD as evidências operacionais que faltam e quem as confere.
+
+
+## Preparação operacional de títulos — D-344/V-367 (12/11/2026)
+
+- [x] Confirmar disponibilidade do responsável para acompanhar testes no Domínio hoje.
+- [x] Validar títulos/alocações em PostgreSQL descartável, incluindo confirmação concorrente, replay e rollback.
+- [x] Preparar guia de operação e complemento fiscal sem valores financeiros ou alteração de agente.
+- [x] Obter autorização específica da branch pública/PR em rascunho/CI padrão em D-346.
+- [ ] Confirmar CI Windows/integral e entregar comando HTTPS fixado por hash.
+- [ ] Executar prova de fonte real Q-46, retorno contábil Q-47 e métricas/recuperação D-73.
+- [ ] Publicar alterações aplicáveis após seus gates e registrar treinamento/aceite reais.
+
+Esta preparação não instala MSI, altera coleta real ou habilita exportação.
+
+
+### Candidata fiscal original pronta — D-352/V-376 (12/11/2026)
+
+- [x] CI integral43285420180 e pacote/upgrade Windows1.0.9 aprovados.
+- [x] Conferir artefato/SHA/árvore, imagem714 hashes e base/configuração da release84.
+- [x] Reconferir backup53 objetos e executar restauração sintética dos dois aliases/fonte com replay idempotente.
+- [ ] Publicar candidata, acompanhar upgrade e receber fonte original sob solicitação confirmada.
+- [ ] Conferência semântica Q-46, importação Q-47, carteira completa, IA e recuperação/amostra/treinamento/aceite D-73.

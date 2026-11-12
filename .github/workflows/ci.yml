@@ -35,6 +35,14 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Validate fiscal title profile without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-profile.ps1
+      - name: Validate fiscal title lot links without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-links.ps1
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: "10.0.x"
@@ -43,7 +51,7 @@ jobs:
         run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.8
+        run: ./agent-windows/build.ps1 -Version 1.0.9
       - name: Parse Windows operational scripts without executing ERP queries
         shell: powershell
         run: |
@@ -61,7 +69,7 @@ jobs:
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.8') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.9') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
       - name: Validate SYSTEM diagnostic isolation and cleanup
         if: github.event.repository.private == false
@@ -71,6 +79,10 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-inventory.ps1
+      - name: Validate fiscal title catalog without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-catalog.ps1
       - name: Verify installed package on disposable Windows
         if: github.event.repository.private == false
         shell: pwsh
@@ -78,15 +90,15 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: github.event.repository.private == false
         with:
-          ref: 2d4086920da3f6af8201ed97221dd7ad41ce804a
+          ref: 7114caa0c8025bb794851d04cc2bdc37445af0fd
           path: baseline-agent
           persist-credentials: false
-      - name: Build baseline 1.0.7 and verify configured upgrade to 1.0.8
+      - name: Build baseline 1.0.8 and verify configured upgrade to 1.0.9
         if: github.event.repository.private == false
         shell: pwsh
         run: |
-          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.7
-          ./agent-windows/test-ledger-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.8
+          ./agent-windows/test-title-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
       - name: Preserve tested agent and evidence
         if: success() && github.event.repository.private == false
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
