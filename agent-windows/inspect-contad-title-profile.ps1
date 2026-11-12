@@ -79,7 +79,7 @@ function Read-Aggregates {
         foreach ($item in $Parameters) {$p=$command.Parameters.Add('p',$item.type); $p.Value=$item.value}
         $reader=$command.ExecuteReader()
         if ($reader.FieldCount -ne $Fields.Count) {throw 'Contrato de retorno incompatível.'}
-        $rows=New-Object 'System.Collections.Generic.List[object]'
+        $rows=New-Object 'System.Collections.Generic.List[object]'; $rowTotal=[long]0
         while ($reader.Read()) {
             if ($rows.Count -ge 256 -or $timer.Elapsed.TotalSeconds -gt 180) {throw 'Perfil incompleto por limite.'}
             $row=[ordered]@{}
@@ -113,9 +113,10 @@ function Read-Aggregates {
                     if ($row[$field] -gt ($count-$row.unlinked)) {throw 'Vínculo fora da cobertura.'}
                 }
             }
+            $rowTotal+=$count
+            if ($rowTotal -gt 1000000) {throw 'Cobertura excedeu um milhão de linhas.'}
             $rows.Add($row)
         }
-        if (($rows | Measure-Object -Property row_count -Sum).Sum -gt 1000000) {throw 'Cobertura excedeu um milhão de linhas.'}
         return ,$rows.ToArray()
     } finally {if ($null -ne $reader) {$reader.Dispose()}; $command.Dispose()}
 }
