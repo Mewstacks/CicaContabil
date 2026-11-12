@@ -3836,3 +3836,12 @@ SQLState. Nenhum recorte completo ou lotes homologados. Não inferir a causa;
 novos códigos estáticos de recusa,1024 grupos de contas/sem truncamento e
 transporte gzip/hash4MiB preparados.90 testes locais/Ruff aprovados;17 cenários
 Windows aguardam CI exato. Mesma fonte/recorte, sem montantes ou ERP escrito.
+
+
+### 12/11/2026 — Revisão dos vínculos aprovada no Windows (V-373)
+
+Etapa específica43275171024/0effa47 aprovada com17 cenários:129 grupos,
+limite1024/recusa1025, transporte e códigos exatos. HTTPS/14597 bytes/
+SHA369312e1…7ef41 conferidos, comando revisado enviado e retorno aguardado.
+Regressão integral desse run ainda em andamento. Falha anterior preservada;
+causa não inferida e nenhuma fonte/baixa contábil homologada.

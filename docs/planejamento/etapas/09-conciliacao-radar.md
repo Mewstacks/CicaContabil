@@ -585,5 +585,6 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Receber/conferir perfil real do piloto sem repetir o catálogo.
 - [x] Preparar conferência sem montantes;12 cenários relacionais/90 testes aprovados.
 - [x] V-372:15 cenários Windows aprovados em54ba2fb/CI43274063310; HTTPS/hash conferidos.
-- [ ] V-373: corrigir recusa real em reading_saidas_account_shapes; causa ainda não identificada. Diagnóstico estático/limite1024/transporte compacto preparados,17 cenários Windows aguardando CI.
+- [x] V-373: revisão com diagnóstico estático/limite1024/transporte compacto passou em17 cenários Windows/0effa47.
+- [ ] Receber retorno completo da revisão e comprovar vínculo por lote; causa da recusa original ainda não identificada.
 - [ ] Confrontar semântica e eventos reais antes de habilitar títulos Q-46.

@@ -8746,3 +8746,19 @@ Noventa testes locais de consultas/catálogos e Ruff aprovados. Harness ampliado
 para17 cenários Windows, incluindo129 formas de conta completas, recusa de1025,
 transporte/hash/bytes e código exato de cada recusa. Execução dessa nova versão
 aguarda CI antes do comando; não executar no servidor apenas por passar localmente.
+
+
+Continuidade V-373: etapa específica da revisão no Windows5.1 **aprovada**,
+17 cenários, fonte0effa4797963bac8a80031c6817839851a6439da/CI43275171024.
+Comprovados129 agrupamentos completos e recusa de1025, transporte gzip/hash/
+bytes e códigos exatos de falha sem expor mensagens do driver. Regressão
+integral/empacotamento desse run ainda em andamento nesta observação.
+
+HTTPS conferido byte a byte:14597 bytes/SHA-256
+369312e1e2a7d8914be523313b2759df3aaed98357230f7db2331cb1ff27ef41.
+Comando revisado privado0600 em Downloads/CONTAD-comando-vinculos-titulos-revisado-2026-11-12.txt,
+fixado em commit/hash e -Compact. Solicitada nova execução ao responsável;
+aguarda resultado completo ou razão estática. Retorno anterior preservado em
+.tmp/finalizacao-2026-11-12/fiscal-real/title-links-failed.json,0600.
+A causa original e o vínculo por lote continuam não comprovados. Sem valores,
+novos segredos, alteração de agente/DSN, ERP escrito, implantação ou aceite.
