@@ -325,7 +325,7 @@ def _prepare(
     )
     if latest is None or latest.pk != snapshot.pk:
         raise TitleContractError("Há fotografia mais recente; revise os títulos atuais.")
-    payload, parsed = _load(snapshot, account)
+    payload, parsed = _load(latest, account)
     if not isinstance(requests, list) or not 1 <= len(requests) <= MAX_PLAN_ALLOCATIONS:
         raise TitleContractError("Revise de 1 a 1.000 alocações por lote.")
     try:

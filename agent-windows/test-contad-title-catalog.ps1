@@ -101,8 +101,8 @@ foreach ($case in @('success','compact','empty_family','empty_columns','column_l
         if ($output -match 'synthetic-title-secret|PWD=|Password=') { throw 'Secret exposed.' }
         $success=$case -in @('success','compact')
         if (($code -eq 0) -ne $success) {throw ('Unexpected result: '+$case+': '+$output)}
-        $jsonLine=@($lines | Where-Object {([string]$_).Trim().StartsWith('{')})[0]
-        $result=([string]$jsonLine) | ConvertFrom-Json
+        $stdout=@($lines | Where-Object {$_ -is [string]})
+        $result=($stdout -join "`n") | ConvertFrom-Json
         if ($success) {
             if ($case -eq 'compact') {
                 $buffer=New-Object IO.MemoryStream

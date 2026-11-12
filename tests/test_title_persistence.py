@@ -735,3 +735,16 @@ def test_operator_portfolio_grant_is_revalidated_at_confirmation(context, member
             evidence_reference="Conferido",
         )
     assert not ReconciliationTitleBatch.objects.exists()
+
+
+def test_preview_uses_the_persisted_snapshot_instead_of_mutated_orm_attributes(context):
+    account, actor, _ = context
+    snapshot = imported(context)
+    rows = [request(bank(account))]
+    original = prepared(snapshot, rows, actor)
+    snapshot.fingerprint = "0" * 64
+    snapshot.as_of = date(2000, 1, 1)
+    snapshot.settlements_complete = False
+    verified = prepared(snapshot, rows, actor)
+    assert verified.fingerprint == original.fingerprint
+    assert verified.preview.source_settlements_complete is True
