@@ -1,3 +1,26 @@
+## Verificação de conclusão — D-343/V-366 (12/11/2026)
+
+- [x] Ler registros canônicos e confrontar etapas/Q com as provas até V-365.
+- [x] Inspecionar os caminhos críticos de coleta, títulos, DE-PARA e exportação, distinguindo o piloto da carteira financeira completa.
+- [x] Registrar a confirmação humana da correção de espécie NFS-e ainda pendente, preservando D-295.
+- [x] Atualizar lista de conclusão, plano, dúvidas e checklists atuais, mantendo o histórico e as alterações anteriores.
+- [x] Conferir links/IDs e o diff desta entrega documental; nenhuma mudança de aplicação ou homologação nova.
+
+Entrega: [pendências reconciliadas](../pendencias-conclusao-2026-11-02.md).
+A auditoria documental foi concluída; etapas funcionais, recuperação,
+treinamento e aceite continuam pendentes. Não há percentual ou prazo de
+conclusão comprovado pela quantidade de testes/cadastros.
+
+## Comparação técnica CICA × Pandolfo — D-316/V-318 (05/11/2026)
+
+- [x] Confrontar escopo, arquitetura, algoritmos e evidências dos dois projetos.
+- [x] Conferir Pandolfo local e GitHub, preservando o commit local adicional e `.review/`.
+- [x] Medir código próprio com dependências, migrações e testes separados.
+- [x] Registrar conclusão, fontes, CI e limites, sem declarar homologação nova.
+
+Entrega: [comparação e metodologia](../comparacao-cica-pandolfo-2026-11-05.md).
+Somente documentação; etapas funcionais e perguntas existentes permanecem.
+
 ## Guia funcional para QA em 09/10/2026 — V-293
 
 - [x] Inventariar áreas e entradas atuais do sistema em um guia na raiz.

@@ -1,5 +1,40 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
+**Desenvolvimento iniciado — 12/11/2026, D-344–346/V-367:** Títulos normalizados agora têm persistência privada, alocação revisada, recibos e desfazimento;181 testes focados PostgreSQL aprovados. Complemento fiscal de metadados preparado após pesquisa oficial e identificação da lacuna do filtro antigo. Branch pública/CI autorizados; Windows/fonte real Q-46, carteira completa, IA/Q-47/D-73 e aceite continuam pendentes.
+
+
+**Verificação de conclusão — 12/11/2026, D-343/V-366:**
+[Pendências reconciliadas do contrato CONTAD e da suíte](docs/planejamento/pendencias-conclusao-2026-11-02.md).
+A146 e a coleta nativa inicial estão concluídas; o código financeiro ainda
+aceita somente empresa212/conta8/setembro2026. Restam carteira financeira
+completa/planos/contas, títulos/baixas Q-46, DE-PARA assistido por IA, retorno
+contábil Q-47, métricas/recuperação D-73, treinamento e aceite. CI de V-365
+aprovado, PR11 registrado em rascunho, sem novo deploy nesta verificação.
+Responsável confirmou que a correção específica da espécie NFS-e de
+D-318/V-320 ainda está pendente; preservar a importação anterior aceita em
+D-295. Revisão documental/estática, sem consulta externa ou novo teste funcional.
+
+
+**PR de regressão e ensaio de recuperação — 12/11/2026, D-342/V-365.**
+[PR #11 em rascunho](https://github.com/Mewstacks/CicaContabil/pull/11) com os
+quatro arquivos de D-340/D-341 e regressão no CI padrão. O ensaio local
+restaurou os dois aliases e o arquivo privado sintético, conferiu o hash e
+repetiu o recibo sem duplicação. Recuperação operacional e aceite continuam
+dependentes das provas de D-73. O [guia CONTAD](docs/pt-BR/contad-conciliacao.md)
+especifica as evidências pendentes de Q-28/Q-46/Q-47/D-73.
+
+**Evidência estrutural Q-28/Q-46 — 12/11/2026, D-341/V-364.** O analisador
+offline agora recorta objetos e relações dos catálogos já recebidos. O recorte
+real reúne sete objetos e 52 relações. Cinco candidatos de títulos e baixas
+aparecem apenas por referências no catálogo recebido. Ainda faltam suas chaves
+próprias e amostras que comprovem parcelas, baixas e estornos.
+
+**Bateria de retomada CONTAD — 12/11/2026, D-340/V-363.** Quatro cenários
+sintéticos exercitaram reenvio após falhas transitórias, encaminhamento para
+revisão por falha de contrato e rollback de banco e arquivo seguido de nova
+tentativa. As provas reais continuam em V-361. A concorrência PostgreSQL,
+a recuperação operacional e o aceite D-73 permanecem com verificações próprias.
+
 **Estado vigente CONTAD — 12/11/2026, D-339/V-362:**
 [Prompt consolidado para a próxima sessão](docs/contad-prompt-continuidade-2026-11-12.txt).
 Última prova V-361: oficial SVAPL02/1.0.8, backend84,177 registros/163 lançamentos/
@@ -146,6 +181,15 @@ Q-47, D-73, recuperação recorrente, treinamento e aceite continuam abertos.
 Não considerar a publicação desta fase como conclusão do projeto.
 
 
+**Próxima execução CONTAD — D-322/V-326, 06/11/2026:** responsável solicitou
+prompt para finalizar o projeto abrangendo **todas as empresas do escritório**,
+cadastros/contas automáticos, Razão/títulos, testes finais, publicação e aceite.
+[Prompt canônico](docs/contad-prompt-finalizacao-2026-11-06.txt), com cópia nos
+Downloads. A entrega atual é documental, sem iniciar outra sessão ou ampliar
+coleta/deploy. Runtime permanece no piloto restrito D-321; carteiras/contas
+completas ainda não sincronizadas. Próxima execução segue PC-19/03/09/12,
+Q-28/Q-46/Q-47 e gates de custo/escrita, sem considerar o piloto a entrega integral.
+
 **Acesso Grazi — D-321/V-325, 06/11/2026:** conta criada com o e-mail já
 fornecido e senha inicial validada, Proprietária somente da CONTAD, sem convite,
 acesso de plataforma ou alteração comercial. Login HTTPS real/CSRF aprovado e
@@ -213,6 +257,22 @@ recuperação recorrente, treinamento e aceite continuam abertos.
 Resumo simples para retomada local: [CONTAD — continuidade de 06/11/2026](docs/contad-continuidade-2026-11-06.md).
 Prompt privado pronto em Downloads/CONTAD-prompt-continuidade.txt, sem nova
 sessão, deploy ou autorização de recorte gerados por essa entrega documental.
+
+**Banco legado Fly parado — D-317/V-319, 06/11/2026:** após autorização de
+manter parado se estivesse sem uso, conferidos web/worker e ambos os aliases
+no Neon, sem clientes externos no legado na observação. `cica-contabil-db`
+parado às 10:02 BRT, mesma máquina/volume de 3 GB preservados; permanece em
+CICA, sem transferência ou exclusão. Site/readiness 200 antes/depois nos dois
+domínios, banco/cache `ok`. Armazenamento ainda sujeito à cobrança. Operação
+pontual da etapa 12; não conclui recuperação, homologação ou liberação.
+
+**Comparação técnica — D-316/V-318, 05/11/2026:** analisados CICA e Retificação
+Pandolfo local/GitHub. CICA tem maior amplitude e coordenação para concluir a
+suíte; Pandolfo concentra maior profundidade fiscal e maior código próprio
+no recorte medido. [Comparação e metodologia](docs/planejamento/comparacao-cica-pandolfo-2026-11-05.md).
+Entrega documental da etapa 00, sem alterar estados funcionais. CI CICA
+42083053235/b4a0b56 e 42082634894/ed01dd5 agora conferidos como aprovados;
+nenhum deploy ou teste de aplicação novo nesta análise.
 
 **Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
 revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e

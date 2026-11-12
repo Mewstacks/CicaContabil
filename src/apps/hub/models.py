@@ -1892,6 +1892,94 @@ class ReconciliationDecision(ImmutableOrganizationModel):
         indexes = [models.Index(fields=("organization", "created_at"))]
 
 
+class ReconciliationTitleSnapshot(ImmutableOrganizationModel):
+    """Reviewed normalized evidence; never a payment or an ERP posting."""
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.PROTECT)
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    source_file = models.OneToOneField(ReconciliationSourceFile, on_delete=models.PROTECT)
+    fingerprint = models.CharField(max_length=64)
+    as_of = models.DateField()
+    settlements_complete = models.BooleanField()
+    evidence_reference = models.CharField(max_length=240)
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "fingerprint"),
+                name="hub_unique_title_snapshot",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "financial_account", "as_of"))]
+
+
+class ReconciliationTitleBatch(ImmutableOrganizationModel):
+    """Idempotency receipt for an explicitly reviewed allocation plan."""
+
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    snapshot = models.ForeignKey(ReconciliationTitleSnapshot, on_delete=models.PROTECT)
+    request_id = models.UUIDField()
+    preview_fingerprint = models.CharField(max_length=64)
+    request_fingerprint = models.CharField(max_length=64)
+    review_snapshot = models.JSONField(default=dict)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    accepted_date_differences = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "request_id"),
+                name="hub_unique_title_batch_request",
+            )
+        ]
+
+
+class ReconciliationTitleAllocation(OrganizationScopedModel):
+    class State(models.TextChoices):
+        CONFIRMED = "confirmed", "Confirmada"
+        UNDONE = "undone", "Desfeita"
+
+    batch = models.ForeignKey(
+        ReconciliationTitleBatch, on_delete=models.PROTECT, related_name="allocations"
+    )
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    movement = models.ForeignKey(NormalizedMovement, on_delete=models.PROTECT)
+    movement_identity = models.CharField(max_length=64)
+    movement_fingerprint = models.CharField(max_length=64)
+    title_key = models.CharField(max_length=160)
+    installment_key = models.CharField(max_length=160)
+    settlement_key = models.CharField(max_length=160)
+    settlement_identity = models.CharField(max_length=64)
+    settlement_fingerprint = models.CharField(max_length=64)
+    cash_cents = models.PositiveBigIntegerField()
+    state = models.CharField(max_length=12, choices=State.choices, default=State.CONFIRMED)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("batch", "movement_identity", "settlement_identity"),
+                name="hub_unique_title_allocation_pair",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(cash_cents__gt=0), name="hub_title_allocation_positive"
+            ),
+        ]
+        indexes = [models.Index(fields=("organization", "financial_account", "state"))]
+
+
+class ReconciliationTitleDecision(ImmutableOrganizationModel):
+    allocation = models.ForeignKey(
+        ReconciliationTitleAllocation, on_delete=models.PROTECT, related_name="decisions"
+    )
+    state = models.CharField(max_length=12, choices=ReconciliationTitleAllocation.State.choices)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    reason = models.CharField(max_length=240)
+
+
 class AccountingExport(OrganizationScopedModel):
     class Target(models.TextChoices):
         DOMINIO = "dominio", "Domínio"

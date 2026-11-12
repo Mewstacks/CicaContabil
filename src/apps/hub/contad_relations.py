@@ -131,7 +131,21 @@ def _ordered(rows: list[dict[str, Any]], column_field: str) -> list[dict[str, An
     return ordered
 
 
-def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[str, Any]:
+def analyze_catalog(
+    report: dict[str, Any], inventory: dict[str, Any], *, focus_tables: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    return _analyze_catalog(report, inventory, focus_tables=focus_tables, expected_targets=TARGETS)
+
+
+def _analyze_catalog(
+    report: dict[str, Any],
+    inventory: dict[str, Any],
+    *,
+    focus_tables: tuple[str, ...] = (),
+    expected_targets: frozenset[str],
+    key_limit: int = 1024,
+    relation_limit: int = 2048,
+) -> dict[str, Any]:
     """Cross-check explicit catalog IDs/names with the earlier column inventory.
 
     SQL Anywhere column IDs may have gaps: ODBC ordinal positions must never be
@@ -154,7 +168,7 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
     if report["schema"] != "bethadba" or not isinstance(report["targets"], list):
         raise CatalogEvidenceError("Seleção de catálogo incompatível.")
     targets = [_name(value).upper() for value in report["targets"]]
-    if len(targets) != len(TARGETS) or set(targets) != TARGETS:
+    if len(targets) != len(expected_targets) or set(targets) != expected_targets:
         raise CatalogEvidenceError("Seleção de catálogo incompatível.")
     if inventory.get("version") != "contad-schema-inventory-v1":
         raise CatalogEvidenceError("Versão do inventário incompatível.")
@@ -181,8 +195,8 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
             raise CatalogEvidenceError("Coluna duplicada ou incompatível no inventário.")
         columns[inventory_identity] = set(names)
 
-    tables = _rows(report["tables"], TABLE_FIELDS, 9)
-    if len(tables) != len(TARGETS):
+    tables = _rows(report["tables"], TABLE_FIELDS, len(expected_targets))
+    if len(tables) != len(expected_targets):
         raise CatalogEvidenceError("Conjunto de tabelas incompleto.")
     by_id: dict[int, str] = {}
     for selected_table in tables:
@@ -190,10 +204,10 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
         name = _name(selected_table["table_name"])
         if selected_table["table_type"] != 1 or type(selected_table["table_type"]) is not int:
             raise CatalogEvidenceError("Objeto não é tabela base.")
-        if table_id in by_id or name.upper() not in TARGETS:
+        if table_id in by_id or name.upper() not in expected_targets:
             raise CatalogEvidenceError("Identidade de tabela incompatível.")
         by_id[table_id] = name
-    if {name.upper() for name in by_id.values()} != TARGETS:
+    if {name.upper() for name in by_id.values()} != expected_targets:
         raise CatalogEvidenceError("Tabela duplicada ou ausente.")
     if any(("bethadba", name.casefold()) not in columns for name in by_id.values()):
         raise CatalogEvidenceError("Tabela não confrontada com o inventário.")
@@ -218,7 +232,7 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
         column_ids[identity] = name.casefold()
         column_names[reverse] = column_id
 
-    for row in _rows(report["key_columns"], KEY_FIELDS, 1024):
+    for row in _rows(report["key_columns"], KEY_FIELDS, key_limit):
         for field in ("table_id", "index_id", "column_id"):
             _number(row[field])
         _number(row["sequence"], maximum=32767)
@@ -258,7 +272,7 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
     relations: dict[tuple[int, int], list[dict[str, Any]]] = defaultdict(list)
     table_names = {table_id: ("bethadba", name.casefold()) for table_id, name in by_id.items()}
     table_ids = {identity: table_id for table_id, identity in table_names.items()}
-    for row in _rows(report["relation_columns"], RELATION_FIELDS, 2048):
+    for row in _rows(report["relation_columns"], RELATION_FIELDS, relation_limit):
         for field in (
             "foreign_table_id",
             "foreign_index_id",
@@ -293,7 +307,7 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
                 raise CatalogEvidenceError("Identidade da relação diverge das tabelas.")
             if (
                 schema.casefold() == "bethadba"
-                and table.upper() in TARGETS
+                and table.upper() in expected_targets
                 and table_id not in by_id
             ):
                 raise CatalogEvidenceError("Tabela da relação com ID conflitante.")
@@ -360,28 +374,8 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
         if rows[0]["index_category"] == 2 and identity not in relations:
             raise CatalogEvidenceError("Índice estrangeiro sem relação correspondente.")
 
-    return {
-        "version": "contad-relations-analysis-v1",
+    metadata = {
         "catalog_consistent": True,
-        "tables": [
-            {
-                "name": by_id[table_id],
-                "keys": [
-                    {
-                        "index_id": identity[1],
-                        "name": rows[0]["index_name"],
-                        "category": rows[0]["index_category"],
-                        "unique_code": rows[0]["unique_code"],
-                        "not_enforced_raw": rows[0]["not_enforced"],
-                        "columns": [r["column_name"] for r in rows],
-                    }
-                    for identity, rows in sorted(key_groups.items())
-                    if identity[0] == table_id
-                ],
-            }
-            for table_id in sorted(by_id)
-        ],
-        "declared_relations": relation_output,
         "human_reviewed": False,
         "financial_collection_enabled": False,
         "limitations": [
@@ -393,3 +387,74 @@ def analyze_catalog(report: dict[str, Any], inventory: dict[str, Any]) -> dict[s
             "metadata_is_not_financial_acceptance",
         ],
     }
+    selected_tables = [
+        {
+            "name": by_id[table_id],
+            "keys": [
+                {
+                    "index_id": identity[1],
+                    "name": rows[0]["index_name"],
+                    "category": rows[0]["index_category"],
+                    "unique_code": rows[0]["unique_code"],
+                    "not_enforced_raw": rows[0]["not_enforced"],
+                    "columns": [r["column_name"] for r in rows],
+                }
+                for identity, rows in sorted(key_groups.items())
+                if identity[0] == table_id
+            ],
+        }
+        for table_id in sorted(by_id)
+    ]
+    if focus_tables:
+        return {
+            "version": "contad-relations-focus-v1",
+            **metadata,
+            "focus": _focus_evidence(focus_tables, columns, selected_tables, relation_output),
+        }
+    return {
+        "version": "contad-relations-analysis-v1",
+        **metadata,
+        "tables": selected_tables,
+        "declared_relations": relation_output,
+    }
+
+
+def _focus_evidence(
+    tables: tuple[str, ...],
+    inventory_columns: dict[tuple[str, str], set[str]],
+    catalog_tables: list[dict[str, Any]],
+    catalog_relations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Project named bethadba objects from validated evidence without inventing links."""
+    if len(tables) > 12:
+        raise CatalogEvidenceError("Seleção de objetos excede o limite.")
+    names = [_name(table).casefold() for table in tables]
+    if len(set(names)) != len(names):
+        raise CatalogEvidenceError("Objeto repetido na seleção.")
+    selected = {table["name"].casefold(): table["keys"] for table in catalog_tables}
+    referenced: set[str] = set()
+    relations = []
+    for relation in catalog_relations:
+        endpoints = {
+            relation[f"{side}_table"].casefold()
+            for side in ("foreign", "primary")
+            if relation[f"{side}_schema"].casefold() == "bethadba"
+        }
+        if endpoints.intersection(names):
+            relations.append(relation)
+            referenced.update(endpoints)
+
+    objects = []
+    for name in names:
+        columns = inventory_columns.get(("bethadba", name))
+        keys = selected.get(name)
+        if columns is None and keys is None and name not in referenced:
+            raise CatalogEvidenceError("Objeto sem evidência nos catálogos recebidos.")
+        objects.append(
+            {
+                "name": name,
+                "inventory_columns": sorted(columns) if columns is not None else None,
+                "catalog_keys": keys,
+            }
+        )
+    return {"schema": "bethadba", "objects": objects, "declared_relations": relations}

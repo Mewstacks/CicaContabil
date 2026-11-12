@@ -68,3 +68,34 @@ usa nume_ccu para nume_lan; a referência bancária usa I_CONTA_CAIXA para
 codi_cta. Não há FK declarada lançamentos/caixa→CTCONTAS. Os arquivos reais
 ficam na área privada .tmp, fora do Git. D-336 prepara prova agregada do vínculo
 no piloto já autorizado; não ativar leitura financeira por nome de campo.
+
+
+## Complemento fiscal de títulos — D-345/V-367
+
+A descoberta técnica não depende de o operador conhecer as tabelas. A fonte
+oficial da Escrita descreve parcelas nas notas e consultas em Relatórios >
+Contas a Pagar e Receber; as baixas são consultadas em Movimentos > Baixas >
+Entradas/Saídas/Serviços. Ver soluções
+[224](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=224)
+e [175](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=175).
+Essas instruções não autorizam alterar parâmetros, incluir ou excluir baixas.
+
+O filtro do inventário antigo não selecionava todos os nomes abreviados dessas
+famílias. `inspect-contad-title-catalog.ps1` prepara um complemento apenas de
+catálogo para até15 objetos da família fixa
+`^ef(entradas|saidas|servicos)(par|pag|_lancto|pag_lancto)?$`.
+As consultas alcançam apenas SYS; as colunas usam GetSchema. Não há valores
+financeiros, leitura da configuração protegida, alteração do DSN ou escrita ERP.
+Credencial é digitada somente no prompt local, como nos complementos anteriores.
+
+O relatório local tem ACL privada. `-Compact` gera transporte textual gzip/base64
+com SHA-256, limitado a4MiB descomprimidos. O recebimento é analisado offline:
+
+```sh
+PYTHONPATH=src python scripts/analyze_contad_titles.py --input /caminho/privado/estrutura-ou-transporte.json --output /caminho/privado/analise-nova.json
+```
+
+A análise confere colunas/chaves/pares de FK e distingue coerência estrutural
+de semântica financeira. Não ativa fonte de títulos. A versão Windows e o
+comando HTTPS fixado por commit/hash só serão entregues após o CI aprovado;
+não executar uma cópia de desenvolvimento sem essa conferência.

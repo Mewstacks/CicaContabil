@@ -1,3 +1,10 @@
+> **Q-39 — confirmação específica em 12/11/2026 (D-343/V-366):** o responsável
+> informou que a correção da espécie no conjunto de importação Domínio de
+> D-318/V-320 ainda está pendente. D-295 conserva a importação anterior aceita;
+> não exigir sua repetição genérica. Próximo trabalho desse caso: conferir o
+> conjunto próprio da base e observar o resultado da correção no destino em
+> teste autorizado. Isso não resolve Q-47, que trata da saída contábil CONTAD.
+
 > **Q-28 — estado comprovado em12/11/2026 (D-338/V-361; handoffD-339/V-362):**
 > SVAPL02/1.0.8 e backend84 concluíram a coleta nativa inicial:163 lançamentos/
 >334 partidas reais equilibradas,163 movimentos compatíveis comOFX, repetição
@@ -399,6 +406,21 @@ Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada se
 upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
 login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
 
+
+## Próxima execução integral CONTAD — D-322/V-326 (06/11/2026)
+
+Responsável esclareceu que o objetivo é **todas as empresas do escritório**,
+com empresas/contas automáticas, e solicitou prompt para outra sessão finalizar
+coleta, testes e entrega. Não repetir a pergunta se a intenção se limita à SURIA.
+O objetivo funcional futuro está explícito no prompt; runtime continua com
+manifesto piloto D-321 e não teve autorização/configuração ampliada nesta
+entrega documental. Resolver evolução/cobertura/histórico no Q-28, regras em
+Q-46 e destino/validação em Q-47, preservando Q-08/Q-09 e demais gates reais.
+
+[Prompt canônico](../contad-prompt-finalizacao-2026-11-06.txt) contém sequência
+até publicação, Windows, recuperação, treinamento e aceite; não cria novo plano
+paralelo ou considera gate documentado como concluído.
+
 ## Continuidade Q-28 — execução D-323/V-327 (06/11/2026)
 
 Responsável definiu **setembro/2026 em diante** para os dados financeiros da
@@ -558,3 +580,12 @@ partidas/sinais e fontes de títulos; ausência de FK não decide o JOIN.
 correspondentes e163 lotes/177 registros íntegros. Não repetir consulta ou pedir
 contagens ao operador. Normalizador preparado; falta snapshot real completo/
 revisão e integração da coleta. Letras de tipo/situação, Q-46/Q-47/D-73 mantêm gates.
+
+**Q-28/Q-46/D-341/V-364 (12/11):** recorte offline de sete objetos e 52 FKs a
+partir dos catálogos já recebidos. Dois candidatos contábeis estão inventariados.
+Os cinco candidatos de títulos/baixas no recorte aparecem apenas por referências.
+Há vínculos declarados de alguns deles a fornecedor, cliente, empresa e
+lançamento contábil. Faltam as chaves próprias e o vínculo comprovado entre
+título, parcela e baixa, além de exemplos revisados de vencimento em aberto,
+baixa total/parcial e estorno. Preservar situação M e origem do plano compartilhado
+em Q-28. Q-47 continua condicionado a layout e importação conferidos no Domínio.

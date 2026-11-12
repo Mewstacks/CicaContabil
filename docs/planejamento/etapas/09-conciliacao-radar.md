@@ -1,5 +1,26 @@
 # Etapa 09 — Concluir Conciliação e Radar
 
+## Checklist vigente CONTAD — D-343/V-366 (12/11/2026)
+
+Os blocos datados abaixo preservam histórico. Esta lista consolida V-325,
+V-347/V-352 e V-361–365, sem transformar prova técnica em aceite.
+
+- [x] Acesso pessoal, instalação/corte do oficial, ODBC LocalSystem e versão 1.0.8.
+- [x] Carga cadastral A146/146 e releituras sem duplicação.
+- [x] Coleta nativa inicial real: 163 lançamentos/334 partidas independentes e equilibradas, replay idempotente e compatibilidade técnica com OFX.
+- [x] Regressão V-365, incluindo concorrência PostgreSQL e Windows, registrada como aprovada.
+- [ ] Q-28: carteira financeira recorrente desde 09/2026, planos/contas completos e situação M comprovada. O contrato nativo ainda é fixo no piloto212/8/setembro.
+- [ ] Q-46: chaves/vínculos e coleta persistida de títulos, parcelas, baixas totais/parciais e estornos com exemplos revisados.
+- [ ] Q-46/Q-08/Q-09: DE-PARA inicial com apoio de IA, dados/custos permitidos e revisão humana; rascunho determinístico não comprova IA.
+- [ ] Q-46: saldos inicial/final e regras/exceções reais conferidos, além de pares técnicos por data/direção/valor.
+- [ ] Q-47: leiaute contábil aceito e importação de teste autorizada conferida no destino, com caso ainda não escriturado.
+- [ ] D-73/etapa12: amostra/qualidade, desempenho, retomada/restore, treinamento e aceite por release.
+
+A suíte preserva ainda seus próprios layouts/OCR/destinos, folha/DRE/caixa,
+relatórios e fontes do Radar. [Detalhamento vigente](../pendencias-conclusao-2026-11-02.md).
+Nenhuma implementação ou homologação nova foi executada nesta revisão.
+
+
 **Continuidade 03/11/2026 — D-308/V-309:** corrigida autenticação do DSN no
 agente; versão 1.0.1 atualizada e conexão Domínio confirmada no configurador
 instalado do PC Windows 11 x64. Pareamento segue pendente porque o endpoint
@@ -333,6 +354,19 @@ A aprovação posterior do corpus e do recorte supera a antiga exigência de
 explicar o saldo da captura para o teste. Não reabrir importador/saldo ou pedir
 novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.
 
+
+## Objetivo da próxima execução — D-322/V-326 (06/11/2026)
+
+- [x] Preparar prompt de conclusão para carteira completa CONTAD, explicitando
+  conta/empresa do piloto versus integração automática ainda pendente.
+- [ ] Completar contas/plano por empresa, Razão independente/títulos/baixas,
+  comparação/DE-PARA, identidade do extrato e revisão das ambiguidades.
+- [ ] Executar jornada real da Grazi e fechar Q-28/Q-46/Q-47/D-73 com evidências,
+  preservando custo/egressão e autorização de escrita/importação ERP.
+
+[Prompt de finalização](../../contad-prompt-finalizacao-2026-11-06.txt).
+O documento não habilita gates no runtime ou comprova dados ainda não recebidos.
+
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.
@@ -523,3 +557,24 @@ V-361:163 lotes/334 partidas reais equilibradas, OFX163 compatível por data,
 direção e valor, diferença líquida zero; reimportação criou0/ignorou163.
 Relatório privado entregue. Isso não substitui revisão humana200 itens, saldo
 inicial/fechamento de saldos ou homologação de layout/importação no Domínio.
+
+- [x] V-363: falha simulada antes do recibo reverteu lançamentos, partidas, efeitos e arquivo privado. O reenvio concluiu o mesmo job.
+- [x] V-365: reexecutar a concorrência da coleta no PostgreSQL com as novas alterações de teste.
+- [x] V-364: separar colunas inventariadas, chaves da seleção original e referências estruturais de candidatos Q-46.
+- [ ] Confirmar chaves próprias e vínculos entre títulos, parcelas, baixas e estornos com amostras representativas.
+
+
+## Desenvolvimento de títulos persistidos — D-344/V-367 (12/11/2026)
+
+- [x] Persistir fonte normalizada privada/imutável e recibo idempotente.
+- [x] Preparar/revalidar plano de alocações, compartilhar capacidade entre lotes e fotografias e detectar OFX sobreposto.
+- [x] Confirmar/desfazer com trilha imutável, sem criar escrituração ou baixar ERP.
+- [x] Conferir fontes/hash, revisão explícita de datas e acesso/carteira/contrato atuais.
+- [x] Validar concorrência PostgreSQL, rollback, CLI e casos negativos em181 testes focados.
+- [x] Preparar complemento fiscal restrito a metadados e análise offline, sem pedir ao usuário os nomes técnicos.
+- [ ] Validar Windows e CI integral da fonte exata na branch pública autorizada em D-346.
+- [ ] Receber/conferir estrutura fiscal e amostras reais, implementar/homologar o adaptador de títulos Q-46.
+- [ ] Concluir carteira financeira, DE-PARA com IA, Q-47, D-73, treinamento e aceite.
+
+Operação técnica documentada no [guia CONTAD](../../pt-BR/contad-conciliacao.md).
+A persistência normalizada está implementada; a fonte ERP não foi presumida homologada.

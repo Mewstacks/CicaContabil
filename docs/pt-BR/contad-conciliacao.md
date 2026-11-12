@@ -92,3 +92,66 @@ amostra independente de 200 itens e os critérios D-73; os 163 eventos atuais
 não bastam. Precisão, integridade, tempo, recuperação e importação no destino
 devem ter medições reais. Treinamento realizado e aceite do módulo são registros
 separados, dependentes da participação e aprovação humanas efetivas.
+
+## Provas para fechar a homologação
+
+Use referências internas às evidências. Mantenha extratos, relatórios com
+valores e arquivos de importação no ambiente autorizado do escritório.
+
+| Critério | Evidência a conferir | Quem confere |
+|---|---|---|
+| Q-28, carteira e contas | Legenda oficial da situação M e exemplo em que a empresa usa plano compartilhado, com a empresa de origem visível no Domínio | Operador CONTAD e responsável técnico |
+| Q-46, títulos e baixas | Título em aberto, baixa total, baixa parcial com saldo remanescente e estorno, quando aplicáveis ao fluxo. Em cada exemplo, vincular título, parcela, evento e movimento contábil ou bancário pelos identificadores da origem | Contadora e responsável técnico |
+| Q-47, importação Domínio | Layout aceito pelo destino e resultado de uma importação de teste autorizada. Registrar o que entrou, erros e conferência das partidas no destino. Usar um caso que ainda não esteja escriturado | Operador do Domínio e contadora |
+| D-73, amostra e precisão | Revisão de 200 fatos distintos pelo proprietário, com decisão registrada para cada item. Medir acertos sobre os casos classificados automaticamente, com mínimo de 95%, e verificar zero duplicidade, empresa incorreta ou vazamento | Proprietário e responsável técnico |
+| D-73, tempo por empresa | Medir consultas e processamentos por empresa com limite de 5 minutos. Registrar a dependência externa quando ela impedir essa medição | Responsável técnico |
+| D-73, retomada e restauração | Registrar início da interrupção, retomada sem perda em até 15 minutos e restauração isolada conferida em até 4 horas. Verificar banco, documentos privados e reprocessamento sem duplicação | Responsável técnico |
+
+Os 163 movimentos do piloto só entram na amostra depois da revisão humana.
+Se todos entrarem, ainda são necessários 37 fatos distintos. OFX, PDF, partidas
+e reenvios referentes ao mesmo movimento não acrescentam itens à amostra.
+
+Para Q-47, confirme no destino qual tela e qual leiaute serão usados. O Domínio
+documenta a Importação Padrão com Separador e o Importador com Conjunto de
+Dados. A prévia atual do CICA gera um CSV de dez colunas. A conferência
+precisa fixar a versão e a ordem dos campos, a codificação e a regra para
+partidas simples e compostas antes de ensaiar a importação.
+[Importação com Separador](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=11916)
+· [Importador com Conjunto de Dados](https://suporte.dominioatendimento.com/central/faces/solucao.html?codigo=6055)
+
+
+## Operação técnica dos títulos normalizados — D-344/V-367
+
+O comando administrativo `reconcile_titles` permite guardar uma fonte
+normalizada e revisar vínculos explícitos com movimentos bancários já
+importados. A coleta direta do Domínio ainda depende do complemento de
+estrutura e da conferência de Q-46. Não há baixa, escrituração ou confirmação
+automática de associação pela igualdade de data/valor.
+
+A fonte usa o contrato `titles-normalized-v1`; na persistência,
+`company_key` é o UUID CICA da empresa, e `account_reference` deve coincidir
+com a conta selecionada. Parcela, baixa e estorno precisam ter chaves próprias.
+Saldo ou cobertura desconhecidos continuam desconhecidos. Use arquivos
+privados de até25MiB e lotes de até1000 vínculos, sem dados no Git.
+
+Fluxo do operador técnico, substituindo os identificadores pelos do ambiente:
+
+```sh
+python manage.py reconcile_titles --organization ORG_UUID --account CONTA_UUID --actor USUARIO_UUID import --input /caminho/privado/titulos.json --evidence "Referência da conferência"
+python manage.py reconcile_titles --organization ORG_UUID --account CONTA_UUID --actor USUARIO_UUID preview --snapshot SNAPSHOT_UUID --requests /caminho/privado/vinculos.json --start 2026-09-01 --end 2026-09-30 --output /caminho/privado/revisao-nova.json
+python manage.py reconcile_titles --organization ORG_UUID --account CONTA_UUID --actor USUARIO_UUID confirm --plan /caminho/privado/revisao-nova.json --request-id UUID_DE_REENVIO --evidence "Referência do aceite dos vínculos"
+python manage.py reconcile_titles --organization ORG_UUID --account CONTA_UUID --actor USUARIO_UUID undo --allocation VINCULO_UUID --reason "Motivo da revisão"
+```
+
+`vinculos.json` contém uma lista com `movement_key` (UUID do movimento CICA),
+`title_key`, `installment_key`, `settlement_key` e `cash_cents` inteiro positivo.
+Confira o arquivo de revisão antes de confirmar. Diferenças de data exigem
+`--accept-date-differences`, sem definir tolerância fiscal. O mesmo UUID de
+reenvio só repete o recibo do mesmo conteúdo; não deve ser reutilizado para
+outra revisão. O desfazimento libera capacidade e preserva todas as decisões.
+
+A confirmação recusa fotografia antiga, arquivo adulterado, saldo já alocado,
+movimento duplicado em OFX sobreposto e acesso/perfil/carteira/contrato revogados.
+O recibo preserva a revisão e o comando imprime somente identificadores,
+contagens e hashes. O relatório de revisão é privado e criado sem sobrescrita.
+Isso não conclui Q-46, importação ERP Q-47, treinamento ou aceite D-73.

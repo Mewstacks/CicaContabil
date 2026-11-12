@@ -2698,6 +2698,54 @@ aviso 0x5 informa desconexão porque outra conexão assumiu o PC. Não reconecta
 ou interromper essa conexão por inferência; nenhuma janela ERP ou novo relatório
 foi acessado nesta observação. AnyDesk da CONTAD não foi disponibilizado.
 
+## D-316 — Comparação técnica CICA × Retificação Pandolfo (05/11/2026)
+
+Origem: responsável solicitou comparar a complexidade e a dificuldade de
+desenvolvimento dos dois sistemas, examinando o projeto Pandolfo local e no
+GitHub. Escopo documental da etapa 00: inspecionar código, arquitetura,
+planejamento, evidências existentes e estado Git, distinguindo amplitude do
+produto, profundidade fiscal, volume implementado e dificuldade de conclusão.
+Leituras dos dois repositórios e do GitHub estão autorizadas por esse pedido;
+preservar alterações locais e registrar diferenças entre versões. Novas
+medições estáticas não equivalem a execução de testes ou homologação.
+
+Não iniciar implementação, mudar regras/arquitetura ou concluir etapas
+funcionais por causa da comparação. Registrar o resultado e seus limites nos
+documentos do CICA; não alterar o repositório Pandolfo, publicar, fazer deploy,
+transmitir documentos fiscais, acessar dados/serviços de clientes ou usar IA
+paga. Autorizações anteriores de publicação PC-19 não se estendem a esta análise.
+
+## D-317 — Destino e parada condicional do banco legado Fly (06/11/2026)
+
+Origem: responsável pediu mover `cica-contabil-db` para `mewstack` e acrescentou
+que, se não estiver mais em uso, pode ser cancelado ou apenas parado. O
+inventário autenticado identifica origem `CICA` (`cica`) e destino `mewstack`
+(`mewstack-629`); aplicação principal e Valkey já estão no destino. Escopo
+operacional pontual da etapa 12, sem concluir homologação.
+
+Verificar o uso atual antes de parar. Confirmado o desuso, escolher a parada
+conservadora autorizada, preservando aplicação, máquina, volume e dados de
+rollback de D-205/D-208; não destruir o banco. Essa alternativa evita recriar
+recursos para contornar a restrição de transferência de Fly Postgres descrita
+na documentação oficial. Não contratar capacidade adicional, clonar/restaurar
+volumes, mudar os bancos de produção ou presumir novo aceite.
+
+O inventário inicial encontrou a máquina `7817961a377e68` **started**, região
+`gru`, volume `vol_4ojw3pnyw9kz6zor` de 3 GB. Conferir os destinos efetivos de
+conexão de produção e conexões do legado, com saída limitada a metadados sem
+credenciais ou conteúdo contábil. Se houver uso ativo, preservar o serviço e
+avaliar a transferência direta autorizada; registrar eventual impedimento.
+Preservar alterações locais existentes. Resultado e limites em V-319,
+checklist da etapa 12 e registro de execução.
+
+Execução D-317: verificação de configurações efetivas nas duas máquinas ativas
+confirmou ambos os aliases no Neon; sessões PostgreSQL e conexões TCP do legado
+somente locais na observação. Às 10:02 de 06/11/2026 (America/Sao_Paulo), a
+máquina foi parada e o estado `stopped` confirmado, sem remoção de volume.
+Escolhida a alternativa autorizada de manter parado: permanece em `CICA`, sem
+transferência tentada nem banco substituto. Site/readiness 200 após a parada;
+detalhes e limites em V-319. Armazenamento preservado continua sujeito à cobrança.
+
 ## D-318 — A espécie da NFS-e importada pertence ao conjunto de dados do Domínio (15/10/2026)
 
 Origem: investigação pedida pelo proprietário a partir de telas do cliente, para entender de onde vem
@@ -3488,6 +3536,34 @@ retorno anônimo ao login conferido. Credencial entregue só em arquivo privado
 pessoal está concluída, substituindo o estado anterior sem usuário. Atualizar
 continuidade/checklists/validações e publicar só documentação com [skip ci],
 preservando os trabalhos locais anteriores; não há código/deploy novo.
+
+## D-322 — Prompt de finalização CONTAD para toda a carteira (06/11/2026)
+
+Origem: após esclarecer que deseja todas as empresas do escritório, o responsável
+solicitou um prompt para outra sessão Codex finalizar a integração Domínio, os
+testes finais e os demais passos do projeto CONTAD. A entrega atual é documental:
+preparar instrução executável de continuidade, atualizar estado/checklists e
+preservar trabalhos locais. Não iniciar outra sessão ou efetuar coleta ampliada,
+alteração do agente, deploy ou escrita ERP ao produzir o prompt.
+
+O objetivo futuro é a carteira inteira da CONTAD e os dados necessários ao
+conciliador contratado D-301/PC-19, incluindo cadastros, contas, plano de contas,
+Razão completo e títulos/parcelas/baixas. O piloto SURIA não encerra esse objetivo.
+Registrar claramente a distinção entre a intenção de carteira completa e o
+manifesto restrito ainda vigente no runtime; a próxima execução deve evoluir
+o escopo/protocolo com isolamento e validação, sem simplesmente retirar os
+filtros ou inferir significado de campos do ERP. Amplitude de histórico e regras
+de negócio ainda ausentes devem ser resolvidas nos Q existentes, sem repetir
+perguntas de empresa/DSN/credencial/login ou da intenção de toda a carteira.
+
+O prompt deve conter o estado provado D-321/V-324/V-325, caminhos das evidências
+privadas/credencial sem seu conteúdo, dependências e critérios D-73, sequência
+de implementação/testes/CI/publicação/Windows/recuperação/treinamento e aceite.
+Preservar limites de custo/egressão e autorização de escrita/importação ERP;
+não declarar homologação por teste sintético, mero deploy ou documento.
+Atualizar o prompt privado de continuidade como cópia idêntica do prompt
+de finalização, com uma referência canônica no repositório, evitando versões
+concorrentes. Não incluir e-mail pessoal/senha/dados financeiros no Git.
 
 ## D-323 — Executar a finalização CONTAD para toda a carteira (06/11/2026)
 
@@ -4426,3 +4502,110 @@ Dados/relatórios financeiros, credenciais e recibos privados continuam fora do 
 Esta entrega não cria sessão nova, altera aplicação, publica novo deploy, executa
 ERP/IA ou amplia permissões/custos. Autorizações anteriores mantêm seu escopo;
 o prompt de continuidade não substitui Q-46/Q-47/D-73 nem aprova escrita no ERP.
+
+## D-340 — Continuar a bateria de testes CONTAD (12/11/2026)
+
+Origem humana: responsável pediu continuar a bateria de testes com o prompt de
+D-339. Executar regressão local na referência disponível da main e acrescentar
+cenários sintéticos para falha transitória do agente, revisão por falha de contrato
+e rollback após gravação do snapshot, com reenvio do mesmo job. Usar ambiente
+descartável e os recibos existentes de V-361 como referência documental.
+Preservar alterações locais e manter Q-28/Q-46/Q-47 e o aceite D-73 abertos.
+
+## D-341 — Recorte de evidência estrutural para Q-28/Q-46 (12/11/2026)
+
+Origem humana: continuar testes e desenvolvimento com o prompt D-339.
+Acrescentar ao analisador offline um recorte explícito dos metadados já
+recebidos, separando tabela inventariada, chave observada na seleção original
+e referência de catálogo fora dessa seleção. Preservar pares e ordem das FKs.
+A seleção é local e não amplia o catálogo recebido, executa SQL ou autoriza
+coleta. Guardar o recorte real em área privada. Usar somente fixtures sintéticas
+e a suíte existente no CI padrão para a regressão PostgreSQL, se disponível.
+
+## D-342 — Autorizar PR público e CI PostgreSQL da CONTAD (12/11/2026)
+
+O responsável autorizou expressamente o envio dos quatro arquivos de código e
+testes de D-340/D-341 ao repositório público Mewstacks/CicaContabil, em branch
+técnica com PR em rascunho, para executar a regressão PostgreSQL no CI padrão.
+Usar somente código genérico e fixtures sintéticas. Preservar os arquivos
+privados, o checkout local e os critérios de homologação Q-28/Q-46/Q-47/D-73.
+
+Enquanto o CI roda, executar um ensaio descartável de backup e restauração
+dos dois aliases SQLite e da fonte privada, reutilizando o corpus sintético
+de retomada. Conferir o recibo e o replay no ambiente restaurado. A prova local
+não substitui o ensaio operacional da infraestrutura nem aprova D-73.
+
+## D-343 — Verificar pendências de conclusão e confirmar correção NFS-e (12/11/2026)
+
+Origem humana: pedido para verificar o que falta para finalizar o projeto.
+Esta entrega reconcilia os registros e inspeciona o código local, separando
+o contrato CONTAD da suíte completa. Atualizar a lista de pendências e os
+checklists existentes, sem iniciar implementação funcional, deploy, coleta,
+consumo externo, envio de mensagens ou aceite. Preservar o checkout e as
+alterações anteriores; usar os mesmos pacotes PC e IDs Q.
+
+Ao esclarecer a divergência entre D-295 e D-318/V-320, o responsável respondeu
+**“Ainda está pendente”** para o teste/conclusão da correção da espécie no
+conjunto de importação NFS-e do Domínio. Registrar essa correção específica
+como pendente de Q-39/PC-03, sem revogar a importação aceita em D-295 nem
+exigir sua repetição genérica. O valor e o conjunto continuam próprios da
+base em D-318; não alterar XML, conjunto de dados ou padrão do produto por
+esta confirmação. Q-47 continua sendo o aceite distinto da saída contábil.
+
+## D-344 — Iniciar desenvolvimento de conclusão com meta para hoje (12/11/2026)
+
+Origem humana: “inicie o desenvolvimento agora entao, com o bjetivo de acabar
+hoje”. Retoma implementação e validação dos pacotes existentes, priorizando
+o contrato CONTAD, sem limitar a entrega a outro levantamento documental.
+Responsável confirmou que pode acompanhar hoje os testes no Domínio de
+títulos/baixas e importação contábil (Q-46/Q-47). Não repetir credenciais,
+instalação, inventários ou a intenção da carteira completa desde09/2026.
+
+Primeiro avanço independente: persistir o contrato normalizado de títulos e
+as alocações explicitamente revisadas, com fonte privada imutável, identidade
+por empresa/conta, idempotência, limites de capacidade, desfazimento auditável
+e isolamento. Usar o contrato/aritmética já existentes; não inferir SQL,
+vínculo título/parcela/baixa, tolerância, classificação contábil ou baixa ERP.
+Metadados e exemplos reais continuam necessários para habilitar a fonte Q-46.
+
+Trabalhar em checkout isolado atualizado, preservando o diretório principal
+e demais frentes. A meta de hoje orienta prioridade, sem dispensar revisão
+humana, leiaute/importação Q-47, métricas D-73, treinamento e aceite. Custos,
+egressão de IA e operações externas mantêm os escopos das autorizações
+existentes. Não alterar dados financeiros ou habilitar exportação por pressa.
+
+## D-345 — Executor identifica a fonte fiscal dos títulos (12/11/2026)
+
+Responsável informou não conhecer o módulo/menu dos títulos e determinou que
+o executor identifique o caminho. Não repetir essa pergunta nem transferir a
+descoberta técnica ao usuário. A documentação oficial da Escrita indica
+controle de parcelas de notas e consultas em Relatórios > Contas a Pagar e
+Receber, com baixas em Movimentos > Baixas > Entradas/Saídas/Serviços.
+Referências: soluções Domínio224 e175; pesquisa não comprova configuração
+ou movimento da CONTAD nem autoriza alterar parâmetros ou executar baixas.
+
+O inventário recebido selecionava CT* e apenas nomes EF contendo PARC/PAGA/
+RECE/BAIX/CLIENTE/FORNE/BANCO/CONTA. Portanto, ele não abrangia famílias de
+nomes abreviados como as referências reais `efentradaspag_lancto`,
+`efsaidaspag_lancto` e `efservicospag_lancto` encontradas no catálogo. Preparar
+um complemento fixo exclusivamente de metadados das famílias fiscais
+entradas/saídas/serviços, parcelas/pagamentos e vínculos, sem repetir o
+inventário integral, selecionar valores de negócio, ler configuração
+protegida, executar SQL arbitrário ou presumir semântica pelo nome da tabela.
+Q-46 conserva amostras e conferência real antes de habilitar o adaptador.
+
+## D-346 — Publicar títulos e complemento fiscal no CI padrão (12/11/2026)
+
+Após a proposta concreta da implementação/testes de títulos e do complemento
+de metadados fiscais, o responsável escolheu **“Autorizar branch pública e CI
+padrão”**. Autoriza enviar esses arquivos genéricos, fixtures sintéticas e
+documentação técnica ao repositório público existente, em branch técnica com
+PR em rascunho, para validar PostgreSQL e Windows no CI padrão. Essa ampliação
+é distinta dos quatro arquivos cobertos em D-342; não pedir a mesma autorização
+novamente durante esta entrega.
+
+Não enviar dados financeiros, credenciais, originais ou recibos privados.
+Depois do CI exato e hash, disponibilizar o comando HTTPS do complemento
+somente de metadados para a execução acompanhada no Windows. Não presume
+merge/deploy, instalação de agente novo, coleta de valores ou escrita no ERP;
+essas operações conservam seus próprios escopos e evidências.
