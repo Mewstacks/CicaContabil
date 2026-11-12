@@ -75,6 +75,10 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-title-catalog.ps1
+      - name: Validate fiscal title profile without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-profile.ps1
       - name: Verify installed package on disposable Windows
         if: github.event.repository.private == false
         shell: pwsh

@@ -3776,3 +3776,23 @@ corrigido para ler JSON completo e limpar o exit do cenário negativo final;
 os dez cenários já haviam passado em c5307ef. Conferência adicional recarrega
 a fonte persistida, com27 testes SQLite aprovados/um skip. Registros documentais
 preexistentes fora do recorte foram retirados somente da branch; raiz preservada.
+
+
+## 12/11/2026 — Estrutura fiscal real recebida (V-368)
+
+Transporte humano conferido por SHA/bytes e descompressão. Catálogo fiscal:
+15 objetos/557 colunas/189 linhas de índice/536 pares de FK/242 relações.
+Chaves de nota/parcela/pagamento e vínculo contábil comprovados estruturalmente;
+empresa fiscal por fili_lan preservada distinta de codi_emp contábil. Valores,
+tipos/componentes/estorno e fonte financeira ainda exigem prova própria.
+Originais/análise privados fora do Git; sem nova leitura ERP nesta análise.
+
+
+### 12/11/2026 — Perfil fiscal agregado preparado (D-348/V-369)
+
+Catálogo real V-368 usado para preservar chaves completas e empresa fiscal no
+JOIN. Nove testes de consultas e78 de consultas/catálogos, Ruff aprovados.
+Harness12 cenários no CI padrão; aguardar prova Windows antes do comando.
+CI anterior43265387462/fdbda60 integral aprovado,2071 PostgreSQL/2038 SQLite,
+163 subtestes,88 testes Windows, agente e três imagens. Sem merge/deploy ou
+nova consulta ERP. Perfil só conta códigos/sinais/vínculos; não homologa Q-46.

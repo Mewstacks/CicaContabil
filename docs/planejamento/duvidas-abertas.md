@@ -1,3 +1,9 @@
+> **Q-46 — estrutura fiscal real conferida em 12/11/2026 (V-368):** recebidas
+> chaves/FKs das15 tabelas fiscais; notas → parcelas → pagamentos → lançamentos
+> estão vinculados no catálogo. Não pedir esse complemento novamente. Faltam
+> tipos de pagamento/componentes, interpretação dos valores/estornos e exemplos
+> reais, com identificação técnica a cargo do executor por D-345.
+
 > **Q-39 — confirmação específica em 12/11/2026 (D-343/V-366):** o responsável
 > informou que a correção da espécie no conjunto de importação Domínio de
 > D-318/V-320 ainda está pendente. D-295 conserva a importação anterior aceita;

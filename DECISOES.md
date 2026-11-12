@@ -4533,3 +4533,44 @@ Depois do CI exato e hash, disponibilizar o comando HTTPS do complemento
 somente de metadados para a execução acompanhada no Windows. Não presume
 merge/deploy, instalação de agente novo, coleta de valores ou escrita no ERP;
 essas operações conservam seus próprios escopos e evidências.
+
+## D-347 — Executar o complemento fiscal validado, sem liberar aplicação (12/11/2026)
+
+Continuidade operacional autorizada em D-346: o CI43265387462 da fonte
+fdbda60 aprovou a etapa específica de catálogo fiscal no Windows, com os
+dez cenários positivos/negativos e saída correta. O arquivo do complemento
+permanece idêntico por hash ao já exercitado, sem alteração no agente ou SQL
+de negócio. Entregar seu comando HTTPS fixado por commit/SHA para a execução
+local acompanhada enquanto a regressão/Docker do backend continuam no CI.
+Essa prova específica basta para o diagnóstico independente de metadados;
+não equivale a aprovar o CI inteiro, merge, deploy ou fonte financeira Q-46.
+
+O controle AnyDesk falhou nesta sessão por nome e por bundle ID confirmado
+na lista de aplicativos. Por isso o responsável executa o comando local e
+retorna somente o JSON de catálogo; o executor identifica as tabelas e
+interpreta o resultado, sem pedir ao usuário os nomes técnicos ou senhas.
+
+
+## D-348 — Conferir cobertura fiscal e vínculos do piloto sem montantes (12/11/2026)
+
+V-368 recebeu as chaves próprias e FKs do fluxo fiscal. Prosseguir na descoberta
+Q-46 já atribuída ao executor, sob a consulta agregada D-323 e o recorte
+212/conta8/setembro2026 de D-320/D-321/D-336, sem perguntar nomes técnicos ao
+responsável. Preparar perfil fixo de contagens de parcelas com vencimento no
+período, pagamentos no período e seus vínculos contábeis. Preservar códigos
+brutos de tipo/origem/grupo, a chave completa de pagamento e a distinção
+fili_lan→empresa fiscal versus codi_emp→empresa contábil.
+
+Retornar apenas quantidades e códigos técnicos: ausência de parcela/nota,
+sinal/nulidade dos campos monetários (comparação interna, sem devolver montante),
+existência de vínculo contábil e com a conta8, e vínculo fora da competência ou
+com outra empresa contábil. Não consultar participantes/documentos/históricos,
+não produzir amostra financeira nem inferir principal, juros/desconto/retenção,
+estorno ou conta pela coincidência de valor. Dois perfis completos idênticos,
+limites de grupos/linhas/tempo/bytes e falha explícita sem truncamento.
+
+Validar consultas em corpus sintético com casos adversariais de chaves/empresa,
+e o executor PowerShell no Windows do CI padrão já autorizado em D-346.
+Disponibilizar comando somente após prova exata e hash HTTPS. Não habilitar
+adaptador, instalar agente, alterar DSN/parâmetros, gravar ERP ou declarar
+homologação pelo perfil; exemplos semânticos e Q-47/D-73 mantêm provas próprias.

@@ -8543,3 +8543,67 @@ A revisão documental retirou da branch os registros locais anteriores
 D-316/D-317/D-322 e V-318/V-319/V-326 que não pertencem a esta publicação.
 Seus originais no diretório principal continuam intactos. Nenhum documento
 privado de comparação foi enviado. CI final e recebimento real seguem pendentes.
+
+
+## V-368 — Catálogo fiscal real de títulos recebido e conferido (12/11/2026)
+
+D-345/D-347: responsável executou o complemento de metadados no SVAPL02 e
+retornou o transporte textual. Conferidos gzip/base64,292874 bytes e SHA-256
+`812f0b56c4df22d5e6948fec3d16f15449a63a7ea4fd946ccae1fcf94c0b9361`.
+Observação da origem:12/11/2026 às17:09:15.5976353UTC. Arquivo HTTPS conferido
+por hash; os dez cenários Windows do complemento aprovados na fonte fdbda60.
+
+Análise offline real aprovada:15 objetos,557 colunas,189 linhas de índices,
+536 pares de colunas de FK e242 relações declaradas. As três famílias fiscais
+entradas/saídas/serviços têm chaves próprias comprovadas para nota, parcela
+e pagamento e vínculo ao lançamento contábil. As parcelas usam empresa/nota/
+parcela; pagamentos incluem também data, tipo e número de pagamento. Nos
+vínculos contábeis, `fili_lan` aponta à empresa da nota/pagamento, enquanto
+`codi_emp` identifica a empresa do lançamento. Não substituir um pelo outro.
+
+O material resolve a falta estrutural desse recorte de Q-46; os candidatos
+HR/PM anteriores não são a prova do fluxo fiscal. Permanecem por comprovar
+os códigos de tipo, principal versus valor bruto/líquido, encargos/descontos,
+retenções, estornos e vínculo bancário nos eventos reais. Não normalizar
+valores só pelo nome da coluna, nem declarar baixa ou saldo homologados.
+
+Transporte, original e análise em `.tmp/finalizacao-2026-11-12/fiscal-real`,
+permissões0700/0600 e fora do Git. Recebimento foi feito a partir do texto
+integral da resposta humana neste próprio chat; não houve nova consulta ERP,
+coleta de valores financeiros, leitura de segredo, alteração do agente,
+publicação da estrutura real, escrita ERP ou ampliação de exportação.
+
+
+Fechamento V-367: CI43265387462 integral **aprovado** para a fonte
+fdbda60a930304326d27273924903a1f4bdd6a2d. SQLite:2038 testes/163 subtestes,
+35 skips; PostgreSQL17:2071 testes/163 subtestes, dois skips, incluindo
+concorrência de alocação. Agente Linux85 aprovados/três skips; Windows88
+aprovados/zero skips, dez cenários do complemento fiscal, instalação/upgrade
+e as três imagens Docker aprovados. Sem merge, implantação ou agente novo
+na cliente. O código de títulos foi sincronizado no diretório principal por
+hash dos arquivos próprios, sem substituir históricos/documentos locais alheios.
+
+## V-369 — Perfil fiscal agregado do piloto preparado (12/11/2026)
+
+D-348: consultas fixas das três famílias fiscais, preservando empresa/nota/
+parcela/data/tipo/número de pagamento e a empresa fiscal em fili_lan. Contagens
+de sinal/nulidade, integridade dos pais, cardinalidade das ligações contábeis,
+conta8/plano212, outra empresa contábil e lançamento fora do período. Sem
+retorno de montantes, documentos, nomes, históricos ou significado de códigos.
+Parcelas por vencimento e pagamentos por data efetiva são recortes distintos.
+Duas leituras completas devem coincidir; limites de256 grupos/um milhão de
+linhas por família,180s/32KiB, diagnóstico com redação de segredo.
+
+Consultas reais do script executadas contra fontes sintéticas nas três
+famílias: nove testes aprovados. Casos incluem mesma parcela/data com tipos e
+pagamentos parciais distintos, duas empresas em sentidos diferentes do vínculo,
+plano diferente, múltiplos vínculos, lançamento fora do período, ausência de
+pais/Razão, sinais negativos/nulos e limites exclusivos do período. SQLite
+confere a relação entre linhas, não comprova sintaxe/driver SQL Anywhere real.
+Bateria conjunta com catálogos:78 aprovados; Ruff global aprovado.
+
+Harness Windows preparado com12 cenários de limites, partições, fonte mutável,
+parâmetros, códigos, ausência de coluna e redação. Sua execução ainda depende
+do CI desta fonte; não entregar comando antes da prova exata. Nenhuma nova
+consulta ao ERP foi executada neste preparo. Fonte Q-46, exemplos/estornos,
+carteira completa, IA/Q-47/D-73, recuperação, treinamento e aceite seguem abertos.

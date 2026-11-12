@@ -561,8 +561,18 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 - [x] Validar concorrência PostgreSQL, rollback, CLI e casos negativos em181 testes focados.
 - [x] Preparar complemento fiscal restrito a metadados e análise offline, sem pedir ao usuário os nomes técnicos.
 - [ ] Validar Windows e CI integral da fonte exata na branch pública autorizada em D-346.
-- [ ] Receber/conferir estrutura fiscal e amostras reais, implementar/homologar o adaptador de títulos Q-46.
+- [x] V-368: receber/conferir o catálogo fiscal real:15 tabelas,557 colunas e242 relações, incluindo nota → parcela → pagamento → lançamento.
+- [ ] Comprovar tipos/componentes/estornos e amostras reais; implementar/homologar o adaptador de títulos Q-46.
 - [ ] Concluir carteira financeira, DE-PARA com IA, Q-47, D-73, treinamento e aceite.
 
 Operação técnica documentada no [guia CONTAD](../../pt-BR/contad-conciliacao.md).
 A persistência normalizada está implementada; a fonte ERP não foi presumida homologada.
+
+
+### Perfil fiscal do piloto — D-348/V-369 (12/11/2026)
+
+- [x] Consultas agregadas das famílias comprovadas; nove cenários relacionais
+  adversariais e78 testes de consultas/catálogos aprovados localmente.
+- [x] CI43265387462/fdbda60 integral aprovado para a persistência de títulos.
+- [ ] Validar perfil PowerShell no Windows exato e obter contagens reais.
+- [ ] Comprovar semântica de tipos/componentes/estornos e exemplos Q-46.
