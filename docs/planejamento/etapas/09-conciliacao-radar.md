@@ -504,7 +504,7 @@ catálogos não decide M nem autoriza JOIN por semelhança de nomes.
 - [x] D-337/V-358/V-359: agrupamento estrutural comprovado e normalizador local preparado.
 - [ ] Q-46/Q-47/D-73 e aceite, sem contabilizar contagens como amostra revisada.
 
-- [ ] Integrar snapshot real completo ao agente/backend, sem habilitar fonte antes da revisão.
+- [x] D-338/V-361: integrar e conferir snapshot real completo do piloto como fonte independente em rascunho.
 
 - [x] V-359: normalizador integrado na main094a93d após CI integral aprovado.
 
@@ -513,6 +513,13 @@ catálogos não decide M nem autoriza JOIN por semelhança de nomes.
 
 - [x] Implementar snapshot completo/double-read/hash e recepção privada do oficial.
 - [x] Persistir partidas literais em rascunho com idempotência e revisão de conflitos.
-- [ ] Concluir CI integral, MSI/upgrade Windows e instalação1.0.8 no SVAPL02.
-- [ ] Conferir snapshot real, relatório, repetição/recuperação e integridade.
+- [x] CI integral, MSI/upgrade Windows Server2022 e backend84 publicados/verificados.
+- [x] V-361:1.0.8 confirmado no SVAPL02; Running/Auto/LocalSystem/ready e DPAPI preservado.
+- [x] V-361: snapshot real/relatório/repetição idempotente/integridade conferidos; retomada do upgrade confirmada.
 - [ ] Q-46/Q-47/D-73 e aceite humano; nenhum gate liberado por testes técnicos.
+
+
+V-361:163 lotes/334 partidas reais equilibradas, OFX163 compatível por data,
+direção e valor, diferença líquida zero; reimportação criou0/ignorou163.
+Relatório privado entregue. Isso não substitui revisão humana200 itens, saldo
+inicial/fechamento de saldos ou homologação de layout/importação no Domínio.

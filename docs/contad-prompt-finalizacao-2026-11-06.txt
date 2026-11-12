@@ -209,3 +209,45 @@ conferir plano próprio/compartilhado antes de joins e não confundir EF tribut�
 com títulos. Manter M10 sem classificação até evidência. Q-46/Q-47/IA/D-73 e
 recuperação/treinamento/aceite continuam. Auto-instalação futura não foi implementada;
 download direto oficial por versão foi publicado/verificado para remover cópia manual.
+
+
+ATUALIZACAO PRIORITARIA 12/11/2026 — D-338/V-360
+PR10 integrada/main0f08388e6db91d61c2621b61abd15388121c9bac; CI43218624356/c327eae integral aprovado.
+Backend Fly release84, imagem e8dbffc8e404a54ef30c3e5cd49428c42efd14b445b0ef2ff2f636342ec19e22.
+693 arquivos, agregado9f361a1c436a221a7c01f441d4f8208e6d0ba309073dead040e27b43c17f0714,
+web/worker e duas conexoes originais conferidos; recursos/ambiente/reserva parada/gates preservados.
+1.984 SQLite/2.016 PG/163 subtestes;88 Windows; MSI/upgrade1.0.7->1.0.8 no Server2022 aprovado.
+Fonte do MSI bcf802e344ff602daf39cc22fa3aee673aae6b67, Windows43217493053.
+Pacote publico: https://github.com/Mewstacks/CicaContabil/releases/download/agent-v1.0.8/CicaAgent-1.0.8-win-x64.zip
+ZIP SHA14fb73d8b75241a435752b71a5b9baaa7e92b45733aa26773a1a7359c35e7eef.
+MSI SHA230dabcac9a762609ba99b691ae33974fa04465018671686929c4f54fdb61980.
+Download anonimo/TLS/hashes conferidos. Nao transferir arquivos manualmente nem refazer pareamento.
+Job nativo unico para212/plano212/filial212/conta8/setembro; ID no recibo privado queued-pilot.json.
+Scope SHAeee504f7733095d92e11b5d48a03b3ba910b1e65fd67e09e6a7de9cb840b3ba6; contrato70d6bf1e97f6e8bd35cdbf7507ecc7ab7b9e89ce7d280db48cc400497b65a475.
+SQL fixo incorporado, duas leituras identicas, arquivo JSON privado e rascunhos independentes;
+contas brutas nao sao classificadas/ativadas, texto/documento por partida preservados.
+Nenhum snapshot nativo financeiro real foi conferido ainda. Ultima instalacao comprovada1.0.7.
+AnyDesk cua.getApp retornou timeout; bootstrap1.0.8 unico enviado via pergunta assincrona, aguardando operador.
+Ao retomar, observar job/estado antes de pedir qualquer coisa. Nao repetir inventarios/perfis executados.
+Recibos privados .tmp/contad-native-ledger-2026-11-12 (inclui bootstrap.txt e observe_pilot.py).
+Apos receber snapshot: conferir cobertura/valores em privado, reimportacao idempotente, originais
+preservados e relatorio. Q-46/Q-47/D-73/revisao humana200 itens/importacao destino nao dispensados.
+
+
+ATUALIZACAO FINAL DESTA INTEGRACAO — V-361 / 12/11/2026
+Operador confirmou1.0.8 no SVAPL02:Running/Auto/LocalSystem/ready, DPAPI preservado,
+MSI0/sem reboot, observado12:58:19.6468005 UTC. Nao pedir novo upgrade/pareamento.
+Job concluiu12:58:19.602 UTC:177 registros,163 lancamentos,334 partidas,163 efeitos
+bancarios e18 contas brutas. Todos equilibrados/literais/em rascunho;157 registros
+bilaterais e20 unilaterais. Fonte privada original/hash conferidos.
+Reimportacao real criou0/ignorou163, mantendo163 lancamentos/334 partidas.
+Dez fingerprints dos dados originais preservados;163 espelhos anteriores mantidos.
+OFX163/Razao163:multiconjunto data/direcao/centavos identico e diferenca liquida zero.
+Nao foram confirmados movimentos/aprovados lancamentos/exportados dados ao ERP.
+Saldo inicial do Razao ausente; cobertura integral/saldos e aceite nao comprovados.
+Relatorios privados:Downloads/CICA-CONTAD-Conferencia-2026-11-12 (CSV/JSON/LEIA-ME).
+Recibos privados .tmp/contad-native-ledger-2026-11-12; observar estado antes de
+repetir qualquer acao. Nao repetir inventarios/perfis/atualizacao ja concluidos.
+Colecao nativa inicial do piloto concluida. Q-46 titulos/baixas, Q-47 layout
+e conferencia de importacao no Dominio, amostra humana200 e demais requisitos
+D-73 continuam pendentes; nao declarar sistema integralmente homologado.

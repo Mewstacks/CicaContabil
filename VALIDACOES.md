@@ -8248,3 +8248,69 @@ Preflight publicado somente leitura confirmou conta212 com ledger_code8/ativa,
 SVAPL02 oficial/ativo com heartbeat12/11 e zero JournalEntry/IndependentLedgerRecord.
 Isso não comprova coleta nova. Infraestrutura, agente instalado1.0.7, carteira146,
 originais bancários e gates financeiros permanecem preservados nesta preparação.
+
+
+Fechamento técnico V-360: PR10 integrado na main0f08388e após CI43218624356
+(c327eae) aprovado:1.984 SQLite/34 skips,2.016 PostgreSQL/2 skips e163 subtestes
+em cada suíte;85 .NET Linux/3 skips e88 Windows/zero skips, instalação/upgrade
+e três builds Docker. Windows Server2022 dedicado43217493053/bcf802e confirmou
+instalação, reparo, reinício e atualização1.0.7→1.0.8 com bytes DPAPI preservados.
+Falha inicial de BOM duplicado nos dois scripts foi corrigida antes da distribuição.
+
+MSI1.0.8 publicado em https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.8,
+SHA230dabcac9a762609ba99b691ae33974fa04465018671686929c4f54fdb61980;
+ZIP14fb73d8b75241a435752b71a5b9baaa7e92b45733aa26773a1a7359c35e7eef,
+67.838.086 bytes, HTTPS anônimo/bytes conferidos com TLS normal. Fonte do binário
+bcf802e; backend c327eae inclui também a seleção dos candidatos nativos na página
+de conciliação, verificada por teste autenticado, mantendo espelhos sem candidatura.
+
+Release84 publicada com imagem imutável
+registry.fly.io/cica-contabil@sha256:e8dbffc8e404a54ef30c3e5cd49428c42efd14b445b0ef2ff2f636342ec19e22.
+693 arquivos conferidos em web/worker; agregado
+9f361a1c436a221a7c01f441d4f8208e6d0ba309073dead040e27b43c17f0714.
+Migrações hub0081/intelligence0036 confirmadas em ambas as conexões originais;
+readiness200, agentes inválidos401,12 fingerprints protegidos iguais antes/depois.
+Dois processos/máquinas existentes,512MiB/1CPU, comandos/ambiente preservados e
+reserva parada/intacta. Backup original53 objetos/manifesto/tamanhos conferidos,
+sem novo recurso/restauração. Gate de exportação false e preview vazio.
+
+Um único job212/plano212/filial212/conta8/setembro enfileirado; repetição da
+preparação retornou o mesmo job, sem duplicar. Última instalação real comprovada
+continua1.0.7; operador recebeu uma linha HTTPS/hash para1.0.8 porque o controle
+AnyDesk retornou timeout. Coleta nativa real/conferência permanecem pendentes
+do upgrade; nenhum resultado sintético foi contado como aceite D-73.
+
+
+## V-361 — Coleta real do Razão no oficial1.0.8 (12/11/2026)
+
+Operador confirmou upgrade1.0.7→1.0.8 no SVAPL02 às12:58:19.6468005 UTC:
+MSI/hash corretos, saída0, sem reboot, serviço Running/Auto/LocalSystem, bytes
+protegidos da configuração preservados, status fresco ready. Backend concluiu
+o job às12:58:19.602 UTC com177 registros de origem,163 lotes/lançamentos e334
+partidas;163 efeitos bancários e18 contas brutas referenciadas. Recepção/fonte
+privada/hash/cobertura e todas as partidas foram conferidos, incluindo157
+registros bilaterais e20 unilaterais, sem inferir legendas de tipo de lote/conta.
+
+Cada lançamento tem débitos=créditos, histórico literal por partida, cabeçalho
+com o histórico da própria partida bancária e rastro ao original privado. Todos
+os163 são rascunhos source_ledger; zero aprovação/exportação. Catálogo bruto não
+foi promovido a LedgerAccount ativo/classificado. Reimportação do original criou0
+e ignorou163, mantendo163 lançamentos/334 partidas. Dez fingerprints dos conjuntos
+originais conferidos após a coleta/repetição continuam iguais aos de antes do
+deploy; os conjuntos antes vazios JournalEntry/IndependentLedgerRecord agora
+contêm os163 registros novos esperados, preservando os163 espelhos bancários.
+
+Conferência do OFX selecionado:163 movimentos e163 efeitos do Razão; multiconjunto
+data/direção/centavos idêntico, zero itens sem par técnico em ambos os lados e
+diferença líquida do período zero. Isto não confirma correspondências humanas,
+saldo inicial/final do Razão ou cobertura integral do ERP. Saldo inicial do Razão
+não foi fornecido; base do OFX são as datas dos movimentos, sem certificado de
+completude. Não somar334 partidas ou testes técnicos à amostra humana D-73.
+
+CSV/JSON/LEIA-ME de conferência entregues em pasta local privada0600/0700; fonte
+original e recibos financeiros permanecem fora do Git. Códigos, nomes, documentos
+e montantes reais não entram nos testes versionados. Recibos em
+`.tmp/contad-native-ledger-2026-11-12`, incluindo repetição e hashes protegidos.
+Fonte nativa inicial do piloto concluída; Q-46(títulos/baixas), Q-47(layout e
+conferência da importação no Domínio), revisão200 itens e demais critérios de
+aceite D-73 continuam pendentes. Não declarar sistema integralmente homologado.

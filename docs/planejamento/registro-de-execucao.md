@@ -3661,3 +3661,23 @@ Preparado upgrade1.0.7→1.0.8 com DPAPI/identidade/DSN preservados e bootstrap 
 Preflight confirmou oficial/conta8/zero Razão independente antes desta coleta.
 Testes locais/PG focados aprovados; validação integral final/Windows/publicação
 e snapshot real ainda em execução, sem homologação ou aprovação/exportação.
+
+
+Fechamento técnico D-338/V-360: PR10/main0f08388e e CI43218624356 aprovados.
+MSI1.0.8/upgrade Server2022 validados, pacote oficial publicado/hash conferido.
+Backend84 saudável em ambas as máquinas, migrações aditivas confirmadas,693
+arquivos/12 fingerprints/ambiente/recursos/reserva/gates preservados. Job único
+212/8/setembro enfileirado e repetição idempotente. Bootstrap único enviado ao
+operador por indisponibilidade da ferramenta AnyDesk; aguarda execução e coleta
+real. D-73/Q-46/Q-47 e aceite seguem pendentes, sem declaração de conclusão.
+
+
+## 12/11/2026 — Oficial1.0.8 e conferência real (V-361)
+
+Upgrade confirmado pelo operador; job concluiu163 lançamentos/334 partidas a
+partir de177 registros reais. Todos equilibrados/literais/em rascunho. OFX163 e
+Razão163 coincidem por data/direção/valor; diferença líquida zero. Repetição criou0
+e ignorou163; originais e gates preservados. Relatório privado entregue com
+limites de cobertura/saldo e revisão humana explícitos. Sem novo pareamento,
+escrita ERP, classificação de contas, aprovação ou exportação. Integração/coleta
+inicial concluídas; Q-46/Q-47/D-73 não foram convertidos em aceite por inferência.

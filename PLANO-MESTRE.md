@@ -1428,3 +1428,16 @@ A [etapa 14](docs/planejamento/etapas/14-rentabilidade.md) foi aberta em 22/09/2
 implementada em branch técnica: snapshot completo por hash, duas leituras idênticas,
 recepção privada e partidas independentes em rascunho. MSI1.0.8/CI/upgrade e coleta
 real seguem em execução; Q-46/Q-47/D-73 e homologação não estão concluídos.
+
+
+**Fechamento técnico12/11 — V-360:** backend84/PR10 publicado e íntegro,
+CI integral aprovado e MSI1.0.8 testado/disponível no canal oficial. Job nativo
+do piloto enfileirado; instalação no SVAPL02/coleta real aguardam bootstrap
+do operador, pois o controle AnyDesk está indisponível. Aceite financeiro pendente.
+
+
+**V-361 — 12/11/2026:** SVAPL02 atualizado1.0.8 e coleta inicial real do Razão
+concluída:163 lançamentos/334 partidas equilibradas,177 registros de origem,
+163 movimentos compatíveis comOFX e diferença líquida zero. Repetição sem
+duplicatas e originais preservados. Conferência privada entregue; títulos/baixas
+Q-46, layout/importação Q-47 e critérios humanos de D-73 continuam pendentes.
