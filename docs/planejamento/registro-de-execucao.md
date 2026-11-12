@@ -3808,3 +3808,13 @@ Conjuntos oficiais6168/6169 lidos estaticamente sem macros/importação: mapas p
 família, código9 diferente. Não infere Serviços, principal/líquido ou estorno.
 Arquivos próprios do perfil/workflow sincronizados por baseline/hash na raiz;
 trabalho local alheio preservado. Sem nova consulta ERP/deploy/homologação.
+
+
+### 12/11/2026 — Perfil real e conferência por lote (D-350/V-371/V-372)
+
+JSON real SVAPL02 recebido: duas leituras idênticas e ligações diretas à conta8
+zeradas, com multiplicidades contábeis presentes. Original/contagens detalhadas
+privados; contratos/flags/partições/limites conferidos, sem semântica homologada.
+Complemento fixo por lote/contas preparado,12 cenários relacionais/90 testes e
+Ruff aprovados.15 cenários Windows ainda aguardam CI exato antes do comando.
+Nenhuma nova consulta ERP, montante, agente/DSN alterado, deploy ou aceite.

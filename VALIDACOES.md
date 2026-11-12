@@ -8647,3 +8647,51 @@ Comando privado0600 em Downloads/CONTAD-comando-perfil-titulos-2026-11-12.txt,
 com commit/hash fixos, Windows64 e remoção somente do próprio script temporário.
 Execução solicitada ao responsável sob D-348; resultado real ainda aguardado.
 Nenhum título financeiro coletado/persistido ou adaptador Q-46 habilitado.
+
+
+## V-371 — Perfil fiscal real recebido e validado (12/11/2026)
+
+D-348: responsável retornou JSON completo do SVAPL02, com observação
+12/11/2026 às17:41:19.4639008UTC e duas leituras idênticas. Conferidos contrato,
+piloto212/conta8/plano212/setembro2026, flags, partições de sinais, cobertura
+de ligações e limites. Consultas do perfil executaram no SQL Anywhere real;
+a prova sintética de Windows não foi confundida com esta execução.
+
+Entradas/Saídas têm parcelas e pagamentos; Serviços está vazio neste recorte.
+Há componentes normais, juros e código9 em Entradas, sem estender essa legenda
+por analogia. As linhas de pagamento têm pais, e os vínculos contábeis presentes
+não apontam a outra empresa ou período, nem a lançamento ausente. Há múltiplos
+vínculos por componente e componentes sem contabilização, inclusive zeros.
+Nenhuma ligação direta observada à conta8/plano212; isso não comprova ausência
+de linha bancária em outra partida do lote, nem correspondência com OFX.
+Parcelas por vencimento e pagamentos por data efetiva não são bases subtraíveis.
+
+JSON e análise mantidos em .tmp/finalizacao-2026-11-12/fiscal-real,0600/0700,
+fora do Git; resumo detalhado preservado só nessa evidência privada. Original
+textual3089 bytes/SHA09281df55f09d6c5d73d88d2b9d545c46eb33ffd57b35adc5682f28c0332f8bd
+(inclui quebra final). Zero valores financeiros, nomes/documentos, segredo,
+escrita ERP ou coleta financeira habilitada. Contagens não são eventos humanos
+homologados D-73. Próxima prova estrutural por lote/contas em D-350/Q-46.
+
+
+## V-372 — Conferência estrutural de títulos por lote preparada (12/11/2026)
+
+D-350: complemento fixo apenas de chaves, códigos de contas e contagens para
+pagamento → vínculo → lançamento → lote → linhas candidatas da conta8/plano212.
+Nenhuma coluna monetária ou narrativa consultada. Distingue vínculo direto,
+mesmo lote, múltiplos lotes/linhas/efeitos bancários, banco fora do período,
+empresa/plano diferentes e ausência de lançamento/lote/cabeçalho. Fonte com
+duas leituras idênticas, limites256/128 grupos, um milhão de linhas por família,
+180s/32KiB. Relação no lote não é prova de alocação/capacidade ou baixa.
+
+SQL efetivo do complemento exercitado em SQLite contra dados sintéticos nas
+três famílias:12 cenários relacionais aprovados, incluindo multiplicidade sem
+duplicar componente, chaves de tipo/número parcial/empresa, mesma numeração de
+lote em empresas diferentes, plano errado, vários bancos, banco em outra data,
+fontes ausentes, limites exclusivos e vazio. Bateria conjunta90 testes aprovada;
+Ruff global/diff aprovados. Não comprova sintaxe/driver SQL Anywhere real.
+
+Harness Windows com15 cenários preparado para parâmetros, metadados, limites,
+fonte mutável, códigos, campos/cobertura e redação de segredo. CI exato pendente;
+nenhum comando entregue ou nova consulta ERP feita por esse preparo. O resultado
+V-371 anterior é preservado e não será pedido novamente. Q-46/Q-47/D-73 abertos.

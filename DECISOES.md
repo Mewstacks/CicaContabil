@@ -4595,3 +4595,28 @@ não presentes; não inferir. Material e recorte factual privado em .tmp.
 Isto é referência do fornecedor, ainda sem confronto com movimento real,
 semântica de principal/líquido, retenção/estorno ou homologação da CONTAD.
 Continua necessária a prova da fonte antes de coletar/normalizar valores Q-46.
+
+
+## D-350 — Conferir títulos por lote e contas contábeis sem presumir associação (12/11/2026)
+
+V-371 recebeu perfil real completo, duas leituras idênticas, com pagamentos
+nas famílias Entradas/Saídas e nenhuma ligação direta à conta8. Isso não prova
+inexistência de relação com o banco: no Razão multipartida, outra linha do
+mesmo lote pode conter o efeito bancário. O executor continua a descoberta
+Q-46 sob as contagens D-323/D-348 e o mesmo piloto212/8/setembro2026.
+
+Preparar consulta fixa limitada para pagamento → vínculo → lançamento → lote
+→ possíveis linhas bancárias. Preservar chaves completas, empresa contábil e
+fiscal, plano da conta8 e multiplicidades. Apenas contagens/códigos técnicos:
+referência direta versus mesmo lote, vários lotes/efeitos bancários, ausência
+de lançamento/cabeçalho/lote, período externo e contas reduzidas brutas das
+linhas vinculadas. Datas fora do período só para contagens internas de lotes
+selecionados, sem montantes ou documentos; não ampliar recorte financeiro.
+Não somar valor da baixa repetido pelo JOIN ou associar só por lote/data/valor.
+
+A relação de lote é candidata estrutural, não confirmação de capacidade,
+quitação, saldo ou conciliação. Fonte deve ter duas leituras idênticas,
+limites/timeout e diagnóstico sem segredos. Exercitar SQL em dados sintéticos
+adversariais e executor Windows no CI público D-346; somente após prova exata
+e hash disponibilizar comando acompanhado. Sem novo agente, DSN, escrita ERP,
+montantes, classificação ou exportação. Não repetir catálogo/perfil já recebidos.

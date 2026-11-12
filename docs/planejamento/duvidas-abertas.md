@@ -1,3 +1,9 @@
+> **Q-46 — perfil real recebido em12/11/2026 (V-371/D-350):** parcelas e
+> componentes fiscais presentes, múltiplas ligações contábeis e vínculo direto
+> à conta8 zerado. Não pedir de novo o catálogo/perfil. Executor confere ligação
+> por lote/contas e multiplicidades antes de concluir correspondência bancária.
+> Semântica, saldo/estorno e exemplos humanos continuam próprios.
+
 > **Q-46 — estrutura fiscal real conferida em 12/11/2026 (V-368):** recebidas
 > chaves/FKs das15 tabelas fiscais; notas → parcelas → pagamentos → lançamentos
 > estão vinculados no catálogo. Não pedir esse complemento novamente. Faltam

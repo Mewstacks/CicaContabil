@@ -575,5 +575,14 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
   adversariais e78 testes de consultas/catálogos aprovados localmente.
 - [x] CI43265387462/fdbda60 integral aprovado para a persistência de títulos.
 - [x] Perfil PowerShell validado no Windows5.1,12 cenários, fontea560b7d/CI43270180630.
-- [ ] Obter/conferir contagens reais do perfil; comando HTTPS/hash entregue.
+- [x] V-371: perfil real recebido/conferido, duas leituras idênticas; nenhum vínculo direto à conta8.
+- [ ] D-350: conferir lotes/contas e multiplicidade antes de associar títulos ao banco.
 - [ ] Comprovar semântica de tipos/componentes/estornos e exemplos Q-46.
+
+
+### Vínculos fiscais por lote — D-350/V-371/V-372 (12/11/2026)
+
+- [x] Receber/conferir perfil real do piloto sem repetir o catálogo.
+- [x] Preparar conferência sem montantes;12 cenários relacionais/90 testes aprovados.
+- [ ] Validar15 cenários Windows na fonte exata, conferir HTTPS/hash e obter novo recorte de vínculos.
+- [ ] Confrontar semântica e eventos reais antes de habilitar títulos Q-46.

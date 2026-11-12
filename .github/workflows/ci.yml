@@ -39,6 +39,10 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-title-profile.ps1
+      - name: Validate fiscal title lot links without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-links.ps1
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: "10.0.x"
