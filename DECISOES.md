@@ -2698,54 +2698,6 @@ aviso 0x5 informa desconexão porque outra conexão assumiu o PC. Não reconecta
 ou interromper essa conexão por inferência; nenhuma janela ERP ou novo relatório
 foi acessado nesta observação. AnyDesk da CONTAD não foi disponibilizado.
 
-## D-316 — Comparação técnica CICA × Retificação Pandolfo (05/11/2026)
-
-Origem: responsável solicitou comparar a complexidade e a dificuldade de
-desenvolvimento dos dois sistemas, examinando o projeto Pandolfo local e no
-GitHub. Escopo documental da etapa 00: inspecionar código, arquitetura,
-planejamento, evidências existentes e estado Git, distinguindo amplitude do
-produto, profundidade fiscal, volume implementado e dificuldade de conclusão.
-Leituras dos dois repositórios e do GitHub estão autorizadas por esse pedido;
-preservar alterações locais e registrar diferenças entre versões. Novas
-medições estáticas não equivalem a execução de testes ou homologação.
-
-Não iniciar implementação, mudar regras/arquitetura ou concluir etapas
-funcionais por causa da comparação. Registrar o resultado e seus limites nos
-documentos do CICA; não alterar o repositório Pandolfo, publicar, fazer deploy,
-transmitir documentos fiscais, acessar dados/serviços de clientes ou usar IA
-paga. Autorizações anteriores de publicação PC-19 não se estendem a esta análise.
-
-## D-317 — Destino e parada condicional do banco legado Fly (06/11/2026)
-
-Origem: responsável pediu mover `cica-contabil-db` para `mewstack` e acrescentou
-que, se não estiver mais em uso, pode ser cancelado ou apenas parado. O
-inventário autenticado identifica origem `CICA` (`cica`) e destino `mewstack`
-(`mewstack-629`); aplicação principal e Valkey já estão no destino. Escopo
-operacional pontual da etapa 12, sem concluir homologação.
-
-Verificar o uso atual antes de parar. Confirmado o desuso, escolher a parada
-conservadora autorizada, preservando aplicação, máquina, volume e dados de
-rollback de D-205/D-208; não destruir o banco. Essa alternativa evita recriar
-recursos para contornar a restrição de transferência de Fly Postgres descrita
-na documentação oficial. Não contratar capacidade adicional, clonar/restaurar
-volumes, mudar os bancos de produção ou presumir novo aceite.
-
-O inventário inicial encontrou a máquina `7817961a377e68` **started**, região
-`gru`, volume `vol_4ojw3pnyw9kz6zor` de 3 GB. Conferir os destinos efetivos de
-conexão de produção e conexões do legado, com saída limitada a metadados sem
-credenciais ou conteúdo contábil. Se houver uso ativo, preservar o serviço e
-avaliar a transferência direta autorizada; registrar eventual impedimento.
-Preservar alterações locais existentes. Resultado e limites em V-319,
-checklist da etapa 12 e registro de execução.
-
-Execução D-317: verificação de configurações efetivas nas duas máquinas ativas
-confirmou ambos os aliases no Neon; sessões PostgreSQL e conexões TCP do legado
-somente locais na observação. Às 10:02 de 06/11/2026 (America/Sao_Paulo), a
-máquina foi parada e o estado `stopped` confirmado, sem remoção de volume.
-Escolhida a alternativa autorizada de manter parado: permanece em `CICA`, sem
-transferência tentada nem banco substituto. Site/readiness 200 após a parada;
-detalhes e limites em V-319. Armazenamento preservado continua sujeito à cobrança.
-
 ## D-318 — A espécie da NFS-e importada pertence ao conjunto de dados do Domínio (15/10/2026)
 
 Origem: investigação pedida pelo proprietário a partir de telas do cliente, para entender de onde vem
@@ -3536,34 +3488,6 @@ retorno anônimo ao login conferido. Credencial entregue só em arquivo privado
 pessoal está concluída, substituindo o estado anterior sem usuário. Atualizar
 continuidade/checklists/validações e publicar só documentação com [skip ci],
 preservando os trabalhos locais anteriores; não há código/deploy novo.
-
-## D-322 — Prompt de finalização CONTAD para toda a carteira (06/11/2026)
-
-Origem: após esclarecer que deseja todas as empresas do escritório, o responsável
-solicitou um prompt para outra sessão Codex finalizar a integração Domínio, os
-testes finais e os demais passos do projeto CONTAD. A entrega atual é documental:
-preparar instrução executável de continuidade, atualizar estado/checklists e
-preservar trabalhos locais. Não iniciar outra sessão ou efetuar coleta ampliada,
-alteração do agente, deploy ou escrita ERP ao produzir o prompt.
-
-O objetivo futuro é a carteira inteira da CONTAD e os dados necessários ao
-conciliador contratado D-301/PC-19, incluindo cadastros, contas, plano de contas,
-Razão completo e títulos/parcelas/baixas. O piloto SURIA não encerra esse objetivo.
-Registrar claramente a distinção entre a intenção de carteira completa e o
-manifesto restrito ainda vigente no runtime; a próxima execução deve evoluir
-o escopo/protocolo com isolamento e validação, sem simplesmente retirar os
-filtros ou inferir significado de campos do ERP. Amplitude de histórico e regras
-de negócio ainda ausentes devem ser resolvidas nos Q existentes, sem repetir
-perguntas de empresa/DSN/credencial/login ou da intenção de toda a carteira.
-
-O prompt deve conter o estado provado D-321/V-324/V-325, caminhos das evidências
-privadas/credencial sem seu conteúdo, dependências e critérios D-73, sequência
-de implementação/testes/CI/publicação/Windows/recuperação/treinamento e aceite.
-Preservar limites de custo/egressão e autorização de escrita/importação ERP;
-não declarar homologação por teste sintético, mero deploy ou documento.
-Atualizar o prompt privado de continuidade como cópia idêntica do prompt
-de finalização, com uma referência canônica no repositório, evitando versões
-concorrentes. Não incluir e-mail pessoal/senha/dados financeiros no Git.
 
 ## D-323 — Executar a finalização CONTAD para toda a carteira (06/11/2026)
 

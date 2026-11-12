@@ -181,15 +181,6 @@ Q-47, D-73, recuperação recorrente, treinamento e aceite continuam abertos.
 Não considerar a publicação desta fase como conclusão do projeto.
 
 
-**Próxima execução CONTAD — D-322/V-326, 06/11/2026:** responsável solicitou
-prompt para finalizar o projeto abrangendo **todas as empresas do escritório**,
-cadastros/contas automáticos, Razão/títulos, testes finais, publicação e aceite.
-[Prompt canônico](docs/contad-prompt-finalizacao-2026-11-06.txt), com cópia nos
-Downloads. A entrega atual é documental, sem iniciar outra sessão ou ampliar
-coleta/deploy. Runtime permanece no piloto restrito D-321; carteiras/contas
-completas ainda não sincronizadas. Próxima execução segue PC-19/03/09/12,
-Q-28/Q-46/Q-47 e gates de custo/escrita, sem considerar o piloto a entrega integral.
-
 **Acesso Grazi — D-321/V-325, 06/11/2026:** conta criada com o e-mail já
 fornecido e senha inicial validada, Proprietária somente da CONTAD, sem convite,
 acesso de plataforma ou alteração comercial. Login HTTPS real/CSRF aprovado e
@@ -257,22 +248,6 @@ recuperação recorrente, treinamento e aceite continuam abertos.
 Resumo simples para retomada local: [CONTAD — continuidade de 06/11/2026](docs/contad-continuidade-2026-11-06.md).
 Prompt privado pronto em Downloads/CONTAD-prompt-continuidade.txt, sem nova
 sessão, deploy ou autorização de recorte gerados por essa entrega documental.
-
-**Banco legado Fly parado — D-317/V-319, 06/11/2026:** após autorização de
-manter parado se estivesse sem uso, conferidos web/worker e ambos os aliases
-no Neon, sem clientes externos no legado na observação. `cica-contabil-db`
-parado às 10:02 BRT, mesma máquina/volume de 3 GB preservados; permanece em
-CICA, sem transferência ou exclusão. Site/readiness 200 antes/depois nos dois
-domínios, banco/cache `ok`. Armazenamento ainda sujeito à cobrança. Operação
-pontual da etapa 12; não conclui recuperação, homologação ou liberação.
-
-**Comparação técnica — D-316/V-318, 05/11/2026:** analisados CICA e Retificação
-Pandolfo local/GitHub. CICA tem maior amplitude e coordenação para concluir a
-suíte; Pandolfo concentra maior profundidade fiscal e maior código próprio
-no recorte medido. [Comparação e metodologia](docs/planejamento/comparacao-cica-pandolfo-2026-11-05.md).
-Entrega documental da etapa 00, sem alterar estados funcionais. CI CICA
-42083053235/b4a0b56 e 42082634894/ed01dd5 agora conferidos como aprovados;
-nenhum deploy ou teste de aplicação novo nesta análise.
 
 **Continuidade independente — D-315/V-317, 05/11/2026:** corrigido retorno da
 revisão para conservar empresa/arquivo/busca/página após ações. 93 testes e

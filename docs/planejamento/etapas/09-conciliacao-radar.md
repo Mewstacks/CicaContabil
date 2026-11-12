@@ -355,18 +355,6 @@ explicar o saldo da captura para o teste. Não reabrir importador/saldo ou pedir
 novamente arquivos/empresa/conta/competência/ID. Continuam 163 eventos únicos.
 
 
-## Objetivo da próxima execução — D-322/V-326 (06/11/2026)
-
-- [x] Preparar prompt de conclusão para carteira completa CONTAD, explicitando
-  conta/empresa do piloto versus integração automática ainda pendente.
-- [ ] Completar contas/plano por empresa, Razão independente/títulos/baixas,
-  comparação/DE-PARA, identidade do extrato e revisão das ambiguidades.
-- [ ] Executar jornada real da Grazi e fechar Q-28/Q-46/Q-47/D-73 com evidências,
-  preservando custo/egressão e autorização de escrita/importação ERP.
-
-[Prompt de finalização](../../contad-prompt-finalizacao-2026-11-06.txt).
-O documento não habilita gates no runtime ou comprova dados ainda não recebidos.
-
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.

@@ -358,19 +358,6 @@ do responsável solicitada para autenticar, sem credenciais no chat.
 - [ ] Publicação hospedada, serviço real, fontes/layout/importação, D-73,
   recuperação operacional, treinamento e aceite continuam pendentes.
 
-## Operação pontual D-317/V-319 — 06/11/2026
-
-- [x] Conferir nas máquinas web/worker que bancos principal e knowledge usam
-  Neon; no legado, sessões/TCP sem clientes externos na observação.
-- [x] Executar a alternativa autorizada de manter `cica-contabil-db` parado,
-  confirmando `stopped` e preservando máquina/volume de 3 GB para rollback.
-- [x] Conferir site/readiness 200 após parada nos domínios público e Fly,
-  banco/cache `ok` e web/worker iniciados; registrar evidências em V-319.
-- [x] Registrar que o legado permanece em CICA, sem transferência ou exclusão;
-  armazenamento preservado ainda pode gerar cobrança, conforme preços Fly.
-- [ ] Concluir os gates de recuperação operacional e homologação já existentes;
-  essa parada não comprova restore, piloto integrado ou liberação comercial.
-
 ## Implantação CONTAD — D-320/V-322 (06/11/2026)
 
 - [x] Confirmar acesso Fly/app/organização e preservar release 71/imagem/configuração
@@ -445,18 +432,6 @@ O escopo é piloto bancário autorizado; a homologação integral continua abert
 O corpus de 163 não preenche os 200 eventos independentes de D-73. O ensaio
 pontual de backup/restore anterior não equivale a recuperação recorrente/RPO.
 
-
-## Objetivo da próxima execução — D-322/V-326 (06/11/2026)
-
-- [x] Entregar prompt para finalizar as entregas contratuais CONTAD com todas
-  as empresas do escritório, estados comprovados e critérios de conclusão.
-- [ ] Cumprir implementação/regressão/Windows/jornada real, CI/publicação,
-  recuperação e métricas D-73 sobre a integração completa, sem somar replays.
-- [ ] Executar treinamento inicial e obter aceite real do responsável,
-  fechando requisitos de saída ERP sob autorização e validação Q-47.
-
-[Prompt de finalização](../../contad-prompt-finalizacao-2026-11-06.txt).
-Somente preparação documental nesta entrega, sem outra sessão, custo ou deploy.
 
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 

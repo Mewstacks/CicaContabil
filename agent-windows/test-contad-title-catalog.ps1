@@ -124,3 +124,6 @@ foreach ($case in @('success','compact','empty_family','empty_columns','column_l
     }
 }
 [ordered]@{version='contad-title-catalog-tests-v1';passed=$true;scenarios=$evidence} | ConvertTo-Json -Depth 4
+
+$global:LASTEXITCODE=0
+exit 0

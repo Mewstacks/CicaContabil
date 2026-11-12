@@ -347,20 +347,6 @@ Nenhuma senha recebida no chat/extraída do registro. 151 vínculos de extrato d
 Domínio não constituem partidas independentes nem aprovação automática CICA.
 
 
-## Objetivo da próxima execução — D-322/V-326 (06/11/2026)
-
-- [x] Registrar pedido de prompt para finalizar integração de todas as empresas
-  do escritório CONTAD, com estado atual e limites explícitos.
-- [ ] Implementar descoberta/sincronização da carteira e das contas/referências
-  por empresa, incluindo situação e cobertura, sem cadastro manual por teste.
-- [ ] Evoluir protocolo/manifesto, consultas reais e recepção com paginação,
-  retomada, idempotência e isolamento; o runtime atual continua restrito ao piloto.
-- [ ] Completar fontes de Razão/títulos e validar no Windows/LocalSystem,
-  publicar atualização e provar carteira completa conforme o prompt canônico.
-
-[Prompt de finalização](../../contad-prompt-finalizacao-2026-11-06.txt).
-Entrega atual só documental, sem nova coleta, alteração do agente ou sessão.
-
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
 - [x] Histórico financeiro humano desde 09/2026; cadastros/contas integrais.

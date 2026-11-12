@@ -2876,59 +2876,6 @@ DSN ou confirmação de backup.
 - Captura normal de viewport `retorno-fila-confirmado.png` salva/inspecionada;
   servidor/aba exclusivos de captura também encerrados.
 
-## 05/11/2026 — Comparação técnica CICA × Pandolfo D-316/V-318
-
-- Responsável pediu análise comparativa dos sistemas, incluindo Pandolfo
-  local e GitHub. Registrado D-316 antes da entrega documental dependente.
-- Lidos registros canônicos/etapa 00/dúvidas do CICA e inspecionados código,
-  arquitetura, planos e evidências dos dois sistemas. Preservado o trabalho
-  local: CICA inicialmente limpo; Pandolfo um commit adiante e `.review/`.
-- Conector GitHub sem acesso ao repositório privado; CLI autenticada permitiu
-  conferir main, árvore completa, blobs, arquivos, workflow, jobs e CI.
-  O delta local Pandolfo é um comando de cadastro e um teste, sem alteração
-  dos motores comparados; não houve pull/fetch ou escrita nesse projeto.
-- Medido código próprio rastreado com recortes e exclusões documentados;
-  Pandolfo Python 101.577/TSX+TS 28.404, CICA Python 68.224 e outras camadas
-  separadas. Não inferir esforço, produtividade ou qualidade só pelas linhas.
-- Na conferência final apareceram alterações concorrentes no leitor SPED/ECF
-  do Pandolfo; preservadas sem intervenção. Métricas reconferidas nos blobs
-  dos commits identificados para excluir esse estado parcial da comparação.
-- CI CICA b4a0b56/ed01dd5 aprovado agora confirmado; Pandolfo 7dceb17 com
-  instalação de navegador incompatível com runner, demais passos frontend
-  até build aprovados e backend cancelado. Não reexecutar nem corrigir por
-  inferência desta solicitação de análise.
-- Entregue `comparacao-cica-pandolfo-2026-11-05.md`, atualizados plano,
-  validações e checklist da etapa 00. Conferidos links locais, contagens,
-  whitespace e ausência de alteração de código de aplicação. Sem deploy,
-  produção, ERP, programa fiscal, IA, homologação ou mudança de aceite.
-- Conferência final: contagens iguais nos commits fixados, nove links locais
-  existentes e `git diff --check` aprovado. Evidência estática ignorada em
-  `.tmp/cica-pandolfo-comparison-2026-11-05/static-checks.json`.
-
-## 06/11/2026 — Banco legado Fly parado D-317/V-319
-
-- Pedido inicial: mover `cica-contabil-db` de CICA para mewstack. Responsável
-  depois autorizou cancelar ou somente parar se não estivesse mais em uso.
-  D-317 registrado antes da ação; escolhida parada, preservando rollback.
-- CLI Fly autenticada confirmou os dois destinos; aplicação/Valkey já na
-  mewstack. Consulta de plugins não encontrou conector Fly aplicável; usada CLI
-  disponível. Documentação oficial registra restrição de mover Fly Postgres.
-- SSH às máquinas web/worker confirmou quatro URLs e dois aliases efetivos
-  somente no Neon, sem exibir segredos. Sessões PostgreSQL em transação somente
-  leitura e TCP mostraram apenas clientes da própria máquina do legado naquele
-  instante, sem leitura de conteúdo contábil ou alegação sobre uso histórico.
-- Máquina `7817961a377e68` encontrada ligada, parada às 10:02:42 BRT; código
-  zero e estado `stopped` reconfirmado. Mesmo volume de 3 GB/retenção cinco dias
-  preservado. Nenhum banco recriado, volume excluído ou transferência tentada;
-  o app permanece em CICA pela alternativa autorizada mais recente.
-- Site e readiness 200 antes/depois, nos domínios público e Fly; banco/cache
-  `ok`, web/worker iniciados e worker reserva já parado preservado. urllib
-  inicial sem resposta HTTP (URLError); curl com validação TLS confirmou saúde.
-- Evidências privadas ignoradas em `.tmp/cica-db-move-2026-11-06/`; baseline
-  das alterações locais anteriores preservada. Atualizados plano, D-317, V-319
-  e checklist da etapa 12. Armazenamento/rootfs continuam sujeitos à cobrança;
-  sem contratação, destruição, deploy, commit/push, restore ou homologação nova.
-
 ## 15/10/2026 — Origem da espécie na importação Domínio (D-318, V-320)
 
 - Investigação pedida pelo proprietário a partir de telas do cliente. A rota real de importação é o
@@ -3292,25 +3239,6 @@ zero arquivos importados/convites/faturas. Nenhum bypass MFA ou teste visual
 novo. Atualizados plano/checklists/continuidade/V-325; publicação documental
 sem novo código/deploy, preservando alterações locais anteriores. Acesso pessoal
 concluído; fontes/regras/Q-47/D-73/recuperação/treinamento e aceite seguem abertos.
-
-## Prompt de finalização CONTAD — D-322/V-326 (06/11/2026)
-
-Responsável esclareceu objetivo de todas as empresas do escritório e pediu
-prompt para outra sessão concluir o sistema, extração Domínio, testes e passos
-contratuais. Registrada D-322 antes de produzir instrução dependente; relidos
-plano/decisões/validações, etapas 03/09/12, matriz PC-19 e contratos de fontes.
-
-Criado prompt canônico de 2.546 palavras/nove seções, com escopo de carteira
-completa, estado operacional real V-324/V-325, cadastros/contas/Razão/títulos,
-evolução do protocolo, testes e critérios D-73, publicação, Windows, recuperação,
-treinamento/aceite e limites de custo/escrita. Inclui credencial por caminho
-privado, sem seu conteúdo, e orientação de não repetir decisões respondidas.
-
-Cópias privadas idênticas nos dois nomes de prompt em Downloads; anterior
-preservado em .tmp. Conferidos hash/UTF-8/estrutura/referências e ausência de
-login/senha reais. Atualizados plano, checklists/dúvidas e continuidade, sem
-nova sessão, execução externa, mudança funcional, publicação ou homologação.
-Trabalhos anteriores preservados; coleta atual permanece no piloto restrito.
 
 ## 06/11/2026 — Carteira CONTAD publicada parcialmente, D-323/V-327
 
@@ -3841,3 +3769,10 @@ Escrita; seletor antigo excluía nomes abreviados. Preparado complemento fixo
 apenas de metadados, testes Windows sintéticos e analisador privado com hash.
 D-346 autoriza publicação em branch/PR rascunho/CI padrão. Windows e CI final
 aguardam execução. Q-46/Q-47/D-73 e aceite continuam próprios, sem novo plano.
+
+
+Refinamento: PR12 aberto pela CLI após403 do conector. O teste Windows foi
+corrigido para ler JSON completo e limpar o exit do cenário negativo final;
+os dez cenários já haviam passado em c5307ef. Conferência adicional recarrega
+a fonte persistida, com27 testes SQLite aprovados/um skip. Registros documentais
+preexistentes fora do recorte foram retirados somente da branch; raiz preservada.

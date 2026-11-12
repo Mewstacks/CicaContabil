@@ -6271,93 +6271,6 @@ Captura adicional normal de viewport do QA sintético em
 `retorno-fila-confirmado.png` evita o artefato de cabeçalho sticky da full-page.
 Servidor/aba exclusivos dessa captura também encerrados.
 
-## V-318 — Comparação técnica CICA × Retificação Pandolfo (05/11/2026)
-
-D-316, etapa 00. [Relatório com método, fontes e conclusão](docs/planejamento/comparacao-cica-pandolfo-2026-11-05.md).
-Base CICA `b4a0b56c1dc4f3b2a4fe8bcefc9b28ac98169869`, inicialmente limpa;
-Pandolfo local `d338e4b0c6dbdee7063b386d31f65d6a268ad209`, com `.review/`
-preexistente preservada. GitHub privado consultado por `gh` autenticado após
-404 do conector: main `7dceb17f831077b7ab53bd9da0afe134e98798b8`, árvore de
-1.345 arquivos não truncada. Comparados os blobs: só um comando de 68 linhas
-adicionado localmente e um teste alterado; motores fiscais coincidentes.
-
-Na conferência final, outro trabalho alterou os leitores `ingestion/ecf.py`
-e `retifications/sped_text.py`, um teste e acrescentou dois arquivos `sped_scan`.
-Preservados integralmente, sem incluir edições parciais nas métricas; contagem
-reconferida diretamente nos blobs dos commits locais identificados.
-
-Inspeção estática dos planos, decisões, validações, pendências e código de
-conciliação/títulos/cobrança/IA/agente no CICA; ingestão, EFD/ECF/DIME,
-distribuição, lotes, validadores, frontend e relatórios no Pandolfo. Código
-próprio rastreado, linhas físicas com comentários/vazias, excluindo terceiros,
-build, migrações e dados: CICA Python 68.224, TS 289, JS 3.198, C# 2.113,
-HTML 5.162, CSS 4.138; Pandolfo Python 101.577, TS/TSX 28.404, CSS 4.178.
-Testes separados: 155 arquivos/41.203 linhas e 264/80.035 respectivamente;
-não são casos executados. Método e recortes completos no relatório.
-
-GitHub: CI CICA 42083053235/b4a0b56 e 42082634894/ed01dd5 `success`.
-Atualiza somente o resultado antes pendente de V-317, sem presumir deploy.
-CI Pandolfo 42089601131/7dceb17 `failure`: frontend passou unitários, tipos,
-lint e build; instalação Chromium falhou por Playwright 1.55.1 incompatível
-com Ubuntu 26.04 do runner, antes dos E2E. Backend `cancelled`, sem atribuir
-causa não apurada ou regressão fiscal. Workflow/jobs/logs lidos, sem reexecução.
-
-Conclusão qualitativa: CICA mais amplo e mais exigente em coordenação para
-concluir a suíte; Pandolfo mais especializado em algoritmos e prova fiscal,
-com maior implementação no recorte medido. Sem multiplicador de esforço,
-estimativa comercial, classificação de prontidão ou conclusão de etapa.
-Não foram executados testes de aplicação, benchmark, UI, produção, ERP,
-programas fiscais, transmissão ou IA. Registros do Pandolfo permanecem
-históricos, sem serem apresentados como nova validação. Alterados somente
-documentos CICA; links locais, contagens e whitespace conferidos nesta entrega.
-Verificação final: nove links locais do relatório existentes, contagens
-idênticas nos blobs fixados e nenhuma alteração de aplicação no CICA.
-Evidência ignorada: `.tmp/cica-pandolfo-comparison-2026-11-05/static-checks.json`.
-
-## V-319 — Banco legado Fly parado após conferir uso atual (06/11/2026)
-
-D-317, escopo operacional pontual da etapa 12. O pedido inicial de transferência
-para `mewstack` foi complementado pela autorização de cancelar ou apenas parar
-se o banco não estivesse mais em uso. Escolhida a parada conservadora: o app
-`cica-contabil-db` permanece em `CICA` (`cica`), sem transferência executada.
-Aplicação principal e Valkey já pertencem a `mewstack` (`mewstack-629`).
-
-Antes da parada, leitura autenticada nas máquinas worker `1857691da097e8` e
-web `891e63ef665e58`: as quatro URLs de banco configuradas apontam ao Neon,
-e os aliases Django efetivos `default`/`knowledge` também; nenhuma referência
-ao banco legado. Saída limitada a flags/engine, sem URLs ou credenciais.
-Consulta PostgreSQL em transação somente leitura encontrou cinco sessões
-internas, todas com origem na própria máquina; fotografia de TCP 5432/5433
-também mostrou apenas conexões entre endereços da própria máquina. Não houve
-leitura de conteúdo contábil. Isso comprova a configuração atual da aplicação
-e ausência de clientes externos naquele instante, não todo o histórico de uso.
-
-A máquina `7817961a377e68` estava `started` no inventário inicial. Comando
-`flyctl machine stop 7817961a377e68 -a cica-contabil-db --timeout 60 --wait-timeout 60s`
-concluiu com código zero às **10:02:42 BRT**. Inventário posterior confirmou
-`stopped`, mesma máquina/região `gru`, mesmo volume `vol_4ojw3pnyw9kz6zor`,
-`pg_data`, 3 GB, anexado e com retenção de snapshots de cinco dias. Nenhuma
-exclusão, cópia, restauração, migração, recriação ou mudança no Neon. Não houve
-ensaio de restore ou nova comparação de conteúdo/hashes do volume.
-
-Após a parada, web/worker continuaram `started`; o worker reserva já parado
-foi preservado. `/` e `/api/v1/health/ready/` responderam **200** em
-`cicacontabil.com.br` e `cica-contabil.fly.dev`; readiness retornou `status=ok`,
-`database=ok` e `cache=ok`. As quatro respostas já eram 200 antes da parada.
-Sondagem inicial por urllib falhou com URLError sem resposta HTTP; verificações
-conclusivas usaram curl com validação TLS normal, sem atribuir falha ao site.
-
-[Documentação Fly de transferência](https://docs.fly.io/apps/move-app-org)
-informa restrição para Fly Postgres; não foi necessário tentar ou contornar
-a operação após a alternativa autorizada. [Preços Fly](https://docs.fly.io/about/pricing)
-confirmam cobrança de volume/rootfs mesmo com máquina parada; não alegar
-cancelamento total da fatura. Nenhum novo recurso ou custo contratado.
-
-Evidências restritas e ignoradas em `.tmp/cica-db-move-2026-11-06/`: baseline
-documental, destinos efetivos, sessões/TCP, inventários, stop e HTTP antes/depois.
-Alterações locais anteriores preservadas; sem commit/push, deploy ou nova
-homologação. Checklist e registro atualizados; demais gates da etapa 12 abertos.
-
 ## V-320 — Inspeção de leitura dos conjuntos do importador Domínio (15/10/2026)
 
 Foram lidos, sem alteração, três conjuntos de dados fornecidos pelo cliente e mantidos **fora do
@@ -7061,30 +6974,6 @@ após verificação; arquivo de entrega preservado.
 Acesso pessoal concluído. Restam fontes completas/títulos/baixas/regras/DE-PARA,
 Q-47, D-73/200 eventos, provas operacionais/recuperação recorrente, treinamento
 e aceite. Release continua 73/fonte 651368c; exportação Domínio false.
-
-## V-326 — Prompt de finalização da carteira CONTAD (06/11/2026)
-
-D-322 registra o pedido de prompt para outra sessão concluir a integração de
-todas as empresas e as demais entregas contratuais. Produzido
-`docs/contad-prompt-finalizacao-2026-11-06.txt`: 2.546 palavras/nove seções,
-estado comprovado D-321/V-324/V-325, objetivo de carteira completa, contratos/
-fontes, dados ausentes, Windows, testes D-73, CI/publicação/retorno, recuperação,
-treinamento e aceite. Diferencia objetivo futuro de manifesto restrito ainda
-ativo, preservando custo/egressão, escrita ERP e autenticação existentes.
-
-Cópias idênticas em Downloads/CONTAD-prompt-finalizacao.txt e no nome anterior
-CONTAD-prompt-continuidade.txt, ambas 0600, sem versões de instrução concorrentes.
-SHA-256 b2a918132bd078caa2f51531546735a6beaab70f37ad94a95a6e38a438513465.
-Prompt anterior preservado privadamente. Conferidos UTF-8, estrutura, referências
-dos arquivos/evidências e ausência do e-mail/senha reais da Grazi no conteúdo.
-Credencial continua somente no arquivo privado de acesso, não copiada no prompt.
-Verificação em `.tmp/contad-finalization-handoff-2026-11-06/verification.json`.
-
-Atualizados plano, decisões, checklists 03/09/12, dúvidas, execução e resumo de
-continuidade. Entrega exclusivamente documental: sem criar outra sessão,
-consulta externa/SQL, coleta ampliada, alteração de agente/runtime, testes de
-aplicação, custos, commit/push/deploy ou aceite novo. A integração completa
-continua pendente; documento não comprova requisito operacional concluído.
 
 ## V-327 — Carteira: protocolo publicado, inventário real pendente (06/11/2026)
 
@@ -8639,3 +8528,18 @@ scripts na cliente, coleta de valores, merge, deploy ou aceite.
 Limite: o armazenamento/alocação normalizados estão implementados, mas o
 adaptador ERP e seus vínculos reais continuam em Q-46. Carteira financeira
 completa, DE-PARA com IA, Q-47, D-73, treinamento e aceite permanecem abertos.
+
+
+Continuidade V-367: PR12 em rascunho criado em branch autorizada. O conector
+GitHub retornou403 ao criar PR; a sessão CLI autorizada concluiu a operação.
+Primeiro CI43263301915 identificou erro no teste ao ler apenas a primeira
+linha do JSON. Fontec5307ef/CI43264227739 executou os dez cenários Windows
+com sucesso, mas o harness conservou o exit1 do último caso negativo.
+Corrigido o status final do teste sem alterar a recusa de nenhum cenário.
+Também revisada a leitura da fotografia persistida, em vez de atributos ORM
+alterados em memória;27 testes SQLite aprovados/um skip de concorrência.
+
+A revisão documental retirou da branch os registros locais anteriores
+D-316/D-317/D-322 e V-318/V-319/V-326 que não pertencem a esta publicação.
+Seus originais no diretório principal continuam intactos. Nenhum documento
+privado de comparação foi enviado. CI final e recebimento real seguem pendentes.

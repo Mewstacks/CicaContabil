@@ -11,16 +11,6 @@ A auditoria documental foi concluída; etapas funcionais, recuperação,
 treinamento e aceite continuam pendentes. Não há percentual ou prazo de
 conclusão comprovado pela quantidade de testes/cadastros.
 
-## Comparação técnica CICA × Pandolfo — D-316/V-318 (05/11/2026)
-
-- [x] Confrontar escopo, arquitetura, algoritmos e evidências dos dois projetos.
-- [x] Conferir Pandolfo local e GitHub, preservando o commit local adicional e `.review/`.
-- [x] Medir código próprio com dependências, migrações e testes separados.
-- [x] Registrar conclusão, fontes, CI e limites, sem declarar homologação nova.
-
-Entrega: [comparação e metodologia](../comparacao-cica-pandolfo-2026-11-05.md).
-Somente documentação; etapas funcionais e perguntas existentes permanecem.
-
 ## Guia funcional para QA em 09/10/2026 — V-293
 
 - [x] Inventariar áreas e entradas atuais do sistema em um guia na raiz.
