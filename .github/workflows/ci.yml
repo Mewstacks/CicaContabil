@@ -35,6 +35,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Validate fiscal title profile without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-profile.ps1
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: "10.0.x"
@@ -75,10 +79,6 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-title-catalog.ps1
-      - name: Validate fiscal title profile without ERP access
-        if: github.event.repository.private == false
-        shell: powershell
-        run: ./agent-windows/test-contad-title-profile.ps1
       - name: Verify installed package on disposable Windows
         if: github.event.repository.private == false
         shell: pwsh

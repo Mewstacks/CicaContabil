@@ -102,7 +102,7 @@ foreach ($case in @('success','empty','changed','missing_column','group_limit','
     if ($json.Count -ne 1) {throw ('Missing safe JSON for '+$case+': '+$output)}
     $result=$json[0] | ConvertFrom-Json
     if ($case -in @('success','empty')) {
-        if ($code -ne 0 -or -not $result.completed -or $result.version -ne 'contad-title-profile-v1' -or $result.company_code -ne 212 -or $result.identical_read_count -ne 2 -or $result.families.Count -ne 3 -or $result.financial_values_selected -or $result.names_or_documents_selected -or $result.erp_write_performed -or $result.payment_semantics_approved -or $result.financial_collection_enabled) {throw ('Incorrect success: '+$case)}
+        if ($code -ne 0 -or -not $result.completed -or $result.version -ne 'contad-title-profile-v1' -or $result.company_code -ne 212 -or $result.identical_read_count -ne 2 -or $result.families.Count -ne 3 -or $result.financial_values_selected -or $result.names_or_documents_selected -or $result.erp_write_performed -or $result.payment_semantics_approved -or $result.financial_collection_enabled) {throw ('Incorrect success: '+$case+'; exit='+$code+'; safe output='+$output)}
         foreach ($family in $result.families) {
             if ($case -eq 'empty') {if ($family.due_installments.Count -ne 0 -or $family.payments.Count -ne 0) {throw 'Empty source invented rows.'}}
             elseif ($family.due_installments.Count -ne 1 -or $family.payments.Count -ne 1 -or $family.payments[0].row_count -ne 2 -or $family.payments[0].pilot_bank_linked -ne 1) {throw 'Wrong profile shape.'}
