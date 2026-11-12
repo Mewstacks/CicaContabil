@@ -8786,7 +8786,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
                 data_source__kind__in=[
                     DataSource.Kind.DOMINIO_LOCAL_AGENT,
                     DataSource.Kind.DOMINIO_WEB_BACKUP,
-                ]
+                ],
+                independent_source__isnull=True,
             )
             .exclude(reconciliation_matches__status=ReconciliationMatch.Status.MATCHED)
             .exclude(independent_source__entry__movement_reconciliations__state="confirmed")

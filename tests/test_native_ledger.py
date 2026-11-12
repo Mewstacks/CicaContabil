@@ -325,7 +325,7 @@ def test_contract_hash_and_scope_fail_closed_and_duplicate_json_rejected(setup_n
     assert NativeLedgerCollection.objects.count() == 1
 
 
-def test_native_entries_can_be_suggested_without_becoming_confirmed(setup_native):
+def test_native_entries_can_be_suggested_without_becoming_confirmed(setup_native, org_client):
     from apps.hub.models import BankStatementImport, BankTransaction, ReconciliationMatch
 
     agent, account, job, data = setup_native
@@ -347,6 +347,20 @@ def test_native_entries_can_be_suggested_without_becoming_confirmed(setup_native
     match = ReconciliationMatch.objects.get(transaction=item)
     assert match.status == "ambiguous" and not match.is_manual
     assert match.accounting_entry_id is None
+    from apps.hub.models import ProductModule
+
+    ProductModule.objects.create(
+        organization=account.organization, code=ProductModule.Code.RECONCILIATION, enabled=True
+    )
+    session = org_client.session
+    session["hub_organization_id"] = str(account.organization_id)
+    session.save()
+    response = org_client.get(reverse("hub:reconciliation"))
+    assert response.status_code == 200
+    visible = next(row for row in response.context["matches"] if row.pk == match.pk)
+    assert visible.candidates and all(
+        hasattr(row, "independent_source") for row in visible.candidates
+    )
 
 
 @pytest.mark.django_db(transaction=True)
