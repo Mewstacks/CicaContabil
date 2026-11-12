@@ -1,3 +1,10 @@
+> **Q-46 — operação autorizada/publicada em12/11/2026 (D-353/V-377):**
+> responsável autorizou coleta original e solicitação pela Grazi. Backend85 e
+> pacote1.0.9 publicados/conferidos; prévia atual aprovada sem criar job.
+> Aguardar JSON do upgrade saudável do SVAPL02 para enfileirar a captura.
+> Não repetir autorização, catálogos, perfis, DSN ou pareamento. Semântica,
+> vínculo bancário e revisão no Domínio continuam pendentes.
+
 > **Q-46 — vínculos reais e candidata conferidos em12/11/2026 (V-374–376):**
 > complemento completo recebido; nenhum vínculo direto ou por lote à conta8.
 > Referências já retidas conferidas em READ ONLY. Captura fiscal original privada

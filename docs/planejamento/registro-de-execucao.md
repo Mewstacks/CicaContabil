@@ -3883,3 +3883,17 @@ duplicação/revisão mantida, aprovada; não substitui D-73 operacional.
 Pacote e proposta concretos preparados nos Downloads. Próxima captura Q-46
 contém valores originais e exige confirmar atribuição do solicitante; ainda
 sem job, publicação, instalação, coleta monetária, normalização ou aceite.
+
+
+### 12/11/2026 — Backend85 publicado; aguardando upgrade do SVAPL02 (D-353/V-377)
+
+Responsável autorizou operação/coleta original pela Grazi. PR12 integrado,
+pacote1.0.9 publicado e download HTTPS/hash conferido. Release85 aplicada
+sobre base84,714 hashes/migrações conferidos no web/worker; saúde e mesmas
+máquinas/capacidade preservadas.14 grupos de dados anteriores inalterados.
+Prévia da fila com acesso atual da Grazi aprovada, sem criar pedido.
+
+AnyDesk voltou a falhar por timeout; comando x64 elevado do pacote testado
+solicitado ao responsável. Aguardar JSON1.0.9 saudável para enfileirar a
+captura já autorizada; não pedir novamente consentimento/DSN/pareamento.
+Fonte original será privada e pendente de revisão; Q-46/Q-47/D-73 abertos.

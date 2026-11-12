@@ -8879,3 +8879,44 @@ Cópia/restauração/replay local0,124s após preparo; não mede infraestrutura,
 recuperação real/RPO ou aceite D-73. Originais/evidências privados em .tmp;
 pacote/proposta de operação em Downloads,0600. Sem merge, deploy, upgrade ou
 enfileiramento real nesta entrega; coleta/atribuição aguardam confirmação.
+
+
+## V-377 — Publicação1.0.9/backend85 e integridade conferidas (12/11/2026)
+
+D-353 autorizou expressamente a operação e a solicitação pela Grazi. PR12
+integrado por squash em d899d442c3aa695b3732417151b96181bbf06069. Pacote
+genérico agent-v1.0.9 publicado no canal GitHub existente; ZIP67.856.444 bytes/
+SHA3460a3219378c56ed8220989959c03332cb6ada7f1a9d9fe7404669e142d1299
+conferido por download HTTPS anônimo com validação TLS. MSI/testes são os mesmos
+de V-376; nenhuma configuração ou dado da cliente foi publicado.
+
+Release Fly85 concluída, criada12/11/2026 às19:21:27UTC, imagem imutável
+sha256:cd89d5c8047302fb385587c000a7dd225fb10a7d5e1f306868d4e7e59adc0a6a.
+Web/worker:714 hashes iguais, agregado
+8708ad09f7a873b1f4423582fa976e492b64d0fc4d25e06e260bb96ad7519d08;
+contratos do Razão/títulos e migrações hub0082/intelligence0037 conferidos
+nos dois aliases. Banco/cache saudáveis e check HTTP passando. Mesmas três
+máquinas: web/worker iniciados na imagem nova; legado preservado parado na
+imagem anterior. Configuração/capacidade/base/camadas preservadas.
+
+Quatorze grupos de fingerprints de dados anteriores iguais antes/depois,
+incluindo contas, fontes, movimentos, lançamentos/partidas, permissões, agente
+e job nativo existente. Oficial/escopo mantidos;163 lançamentos/334 partidas/
+163 registros independentes, duas fontes e um job de Razão existentes. Gate
+de exportação continua desabilitado. Nenhum job de títulos ou título
+normalizado criado. Prévia administrativa com papel/contrato/carteira atuais
+da Grazi aprovada, queued=false e revisão semântica obrigatória.
+
+Controle AnyDesk tentado novamente nesta rodada: timeoutReached. Comando HTTPS
+fixado por versão/hash do pacote e MSI preparado em Downloads/
+CONTAD-comando-upgrade-1.0.9-2026-11-12.txt,0600, solicitado ao responsável
+para PowerShell x64 elevado no SVAPL02. Aguardando JSON seguro de versão,
+bytes protegidos e ciclo saudável. A captura já está autorizada D-353;
+não repetir a pergunta de autorização. Enfileirar somente depois dessa prova
+e revalidação do oficial/acesso atual. Sem novo DSN/pareamento/senha.
+
+O oficial real permanece1.0.8 até retorno do upgrade. Não coletados valores
+fiscais nem enfileirada captura real nesta entrada; fonte/semântica Q-46,
+carteira completa, IA/Q-47/D-73, treinamento e aceite continuam próprios.
+Evidências operacionais privadas na fase finalizacao-2026-11-12 do checkout
+isolado; originais/recibos financeiros permanecem fora do Git/CI.

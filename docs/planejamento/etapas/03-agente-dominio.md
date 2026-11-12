@@ -568,5 +568,12 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 - [x] Contrato fixo/doze consultas, duas leituras, hashes e fila explícita na candidata1.0.9.
 - [x] CI integral43285420180/84a3190,100 testes Windows e upgrade1.0.8→1.0.9 com configuração/reinício preservados.
 - [x] Pacote exato e imagem local714 hashes conferidos, sem rede/banco no smoke.
-- [ ] Publicação/upgrade e captura original com solicitante auditável confirmado.
+- [x] D-353/V-377: publicação do backend/pacote e atribuição à Grazi autorizadas/conferidas.
+- [ ] Upgrade real e captura original com revisão semântica.
 - [ ] Confrontar semântica Q-46; carteira integral/Q-47/D-73 continuam abertos.
+
+
+### Publicação da captura preparada — D-353/V-377
+
+- [x] D-353/V-377: backend85/pacote1.0.9 publicados e714 hashes conferidos; prévia autorizada pela Grazi sem job.
+- [ ] Receber JSON de upgrade saudável1.0.9 no SVAPL02 e enfileirar captura já autorizada.

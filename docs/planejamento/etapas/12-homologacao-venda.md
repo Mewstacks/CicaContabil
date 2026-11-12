@@ -671,3 +671,9 @@ Esta preparação não instala MSI, altera coleta real ou habilita exportação.
 - [x] Reconferir backup53 objetos e executar restauração sintética dos dois aliases/fonte com replay idempotente.
 - [ ] Publicar candidata, acompanhar upgrade e receber fonte original sob solicitação confirmada.
 - [ ] Conferência semântica Q-46, importação Q-47, carteira completa, IA e recuperação/amostra/treinamento/aceite D-73.
+
+
+### Publicação da captura preparada — D-353/V-377
+
+- [x] D-353/V-377: publicar/verificar backend85 e pacote1.0.9; preservação dos dados e gate de exportação conferidos.
+- [ ] Upgrade real1.0.9, captura privada original e conferência Q-46; demais gates permanecem abertos.

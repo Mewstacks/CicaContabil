@@ -4744,3 +4744,10 @@ revalidar papel/acesso/contrato atuais da Grazi. Escopo preparado mantém
 empresa212/setembro e conta8 apenas como comparação. Duas leituras completas
 idênticas, guarda de contagens e fonte privada/hash são obrigatórios. Não
 publicar valores/originais/recibos privados no Git ou CI, nem enviá-los à IA.
+
+
+Continuidade D-353/V-377: pacote1.0.9 e backend85 publicados e verificados;
+prévia com a Grazi aprovada sem job. Atualização local do oficial ainda aguarda
+JSON do operador após novo timeout AnyDesk. A autorização de coleta/atribuição
+permanece válida; não perguntar de novo. Confirmar1.0.9 saudável e identidade
+antes de enfileirar o escopo preparado, mantendo todos os gates semânticos.

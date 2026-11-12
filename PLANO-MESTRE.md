@@ -1,6 +1,6 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Desenvolvimento CONTAD — 12/11/2026, D-344–352/V-367–376:** Persistência privada de títulos normalizados e captura fiscal original implementadas. Fonte84a3190/CI43285420180 integral aprovada:2092 SQLite,2126 PostgreSQL e100 Windows, incluindo upgrade1.0.8→1.0.9 com DPAPI/identidade preservados. Imagem local714 hashes e restauração sintética dos dois aliases/fonte aprovadas. Perfis reais não demonstraram vínculo bancário dos títulos à conta8. Candidata/pacote prontos; publicação/upgrade/coleta original com solicitante auditável ainda pendentes. Semântica Q-46, carteira financeira completa, IA/Q-47/D-73 e aceite continuam abertos.
+**Desenvolvimento CONTAD — 12/11/2026, D-344–353/V-367–377:** Títulos persistidos e captura fiscal original implementados; CI43285420180 integral aprovado (2092 SQLite/2126 PostgreSQL/100 Windows). PR12 integrado, pacote1.0.9 publicado e backend85 conferido:714 hashes,14 grupos de dados anteriores inalterados, migrações/saúde/identidade preservadas. Operação e coleta pela Grazi autorizadas. Comando de upgrade do SVAPL02 enviado; aguarda JSON1.0.9 saudável antes de enfileirar a captura original. Oficial real ainda1.0.8. Semântica Q-46, vínculo bancário próprio, carteira financeira completa, IA/Q-47/D-73 e aceite continuam abertos.
 
 
 **Verificação de conclusão — 12/11/2026, D-343/V-366:**

@@ -599,6 +599,13 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Provar 89 testes PostgreSQL, concorrência e recusa de resultado que dispense revisão.
 - [x] Preparar candidata 1.0.9 e ensaio Windows de upgrade preservando DPAPI/identidade/DSN.
 - [x] CI43285420180/84a3190 integral aprovado, incluindo pacote/upgrade Windows.
-- [ ] Publicar backend compatível, acompanhar upgrade e enfileirar captura original com solicitante confirmado.
+- [x] D-353/V-377: backend85 e pacote publicados, solicitante Grazi autorizado.
+- [ ] Acompanhar upgrade saudável e enfileirar captura original já autorizada.
 - [ ] Receber/conferir fonte fiscal original do piloto e confrontar semântica com exemplos no Domínio.
 - [ ] Homologar adaptador de títulos, vínculo bancário próprio e demais critérios Q-46/Q-47/D-73.
+
+
+### Publicação da captura preparada — D-353/V-377
+
+- [x] D-353/V-377: publicação/saúde/migrações e14 grupos anteriores inalterados conferidos; prévia da captura aprovada.
+- [ ] Receber prova do upgrade1.0.9 e fonte original privada, antes do confronto semântico Q-46.
