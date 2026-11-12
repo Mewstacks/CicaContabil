@@ -4355,3 +4355,51 @@ novo, persistência ou coleta financeira habilitada.
 Fechamento V-359: CI integral43091250239/2d40869 aprovado e PR9 integrado na
 main094a93d. Apenas preparação local/código e provas agregadas; oficial1.0.7,
 backend83, manifesto A, financeiro e recursos de produção não alterados.
+
+## D-338 — Concluir integração nativa do Razão e sua prova real (11/11/2026)
+
+Origem humana: após V-359, responsável instruiu “conclua”. Prosseguir da preparação
+local para coleta nativa, recepção privada, normalização/persistência independente
+em rascunho e conferência real do piloto. Reutilizar oficial SVAPL02, autenticação,
+DSN e configuração; sem novo pareamento/corte ou interpretação de M/tipos de conta.
+
+Implementar contrato dedicado dominio-ledger-snapshot-v1 e jobs de escopo imutável
+por escritório/agente oficial/conta/empresa/plano/filial/competência, separados do
+manifesto A de empresas. Código SQL fixo e incorporado, compartilhado por hash
+com o backend; nenhum SQL recebido da nuvem. Primeira prova: empresa212, plano212,
+filial212, conta8, setembro2026 (163 lotes/177 registros em V-358); conta é a
+Sicredi já selecionada em D-320/D-321, débito como entrada bancária explicitamente
+nessa conta. Confirmar ausência de conta0 na origem antes de tratar0 como lado ausente.
+Competências seguintes somente no histórico já autorizado desde09/2026, mesma
+conta/empresa e escopo validado, sem presumir outras contas ou fontes de títulos.
+
+Snapshot inclui todas as linhas dos lotes selecionados, contagem individual por
+lote e catálogo de contas referenciadas com tipo/situação literais. Obter duas
+leituras completas idênticas antes de transmitir, com limites/timeout/bytes; não
+truncar, misturar páginas, consultar períodos anteriores ou bloquear o ERP com
+opções/transações persistentes. Credenciais usadas só pelo serviço nativo normal;
+sem utilitário de decriptação/registro ou senha no chat. MSI1.0.8 testado em Windows
+e atualização1.0.7→1.0.8 preservando bytes DPAPI, identidade e DSN; distribuir por
+HTTPS/hash no canal oficial existente, sem transferência manual de arquivos.
+
+Recepção autenticada pelo canal existente, vínculo com job/revisão/contrato/bytes,
+limites, idempotência, isolamento e revogação. Manter arquivo fonte JSON privado
+e rastro das partidas; contas brutas não viram LedgerAccount ativo/classificado
+por inferência. Não substituir os163 espelhos bancários existentes por Razão.
+Importar apenas grupos completos, equilibrados e com um efeito da conta; conflitos
+de conteúdo ficam para revisão, sem sobrescrever lançamentos ou criar duplicatas.
+
+O contrato nativo preserva histórico/documento por partida, inclusive diferenças
+e ausência; não forçar uniformidade, concatenar, truncar ou inventar descrição.
+Cabeçalho e efeito bancário usam o texto literal da própria partida do banco;
+null permanece no JSON original e ausência textual é representada por campo vazio.
+Ampliar campos textuais de500 para1000, conforme VARCHAR1000 já observado, sem
+perda ou alteração dos valores existentes. CSV manual ledger-csv-v1 mantém suas
+regras; normalizador nativo é contrato próprio. Escrita ERP, baixa, classificação,
+DE-PARA, aprovação/exportação e aceite humano não são autorizados por essa leitura.
+
+Publicação/CI/integração seguem D-323/D-326/D-327/D-329 na infraestrutura existente,
+com provas de integridade/recuperação e sem escala/custos/serviços novos. Após
+upgrade, concluir coleta e conferência no backend, sem repetir os perfis já feitos.
+D-73 exige revisão humana de200 itens e prova no destino para exportação; “conclua”
+não é essa revisão nem dispensa Q-46/Q-47. Não declarar homologação que não ocorreu.

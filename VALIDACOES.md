@@ -8225,3 +8225,26 @@ SQLite/33 skips,1.992 PostgreSQL/2 skips e163 subtestes em cada suíte; .NET
 Linux71/3 skips,Windows74/0 skips, instalação/upgrade e três builds Docker.
 PR9 integrado na main094a93d. Os43 focados fazem parte da regressão, sem somar
 amostras. Não declarar normalização real ou aceite financeiro concluídos.
+
+
+## V-360 — Integração nativa do Razão e agente1.0.8 (12/11/2026)
+
+D-338: contrato dedicado por hash, três consultas fixas incorporadas, duas leituras
+completas idênticas, job oficial separado da carteira A, fonte JSON privada e
+importação atômica em rascunho. Históricos/documentos por partida preservados;
+sem criar LedgerAccount ativo/classificado ou transformar espelhos bancários em Razão.
+Migrações aditivas hub0081/intelligence0036; campos textuais ampliados para1000.
+CSV manual anterior conserva contrato e43 testes. Repetição serial/concorrente,
+tenancy/autenticação, escopo, cobertura, conflito e ausência de aprovação cobertos.
+
+Compilação local .NET sem avisos;85 testes/3 skips de recursos Windows.23 testes
+nativos SQLite aprovados/um skip de concorrência PostgreSQL; primeira bateria
+focada PostgreSQL64 aprovada. Ruff/MyPy/makemigrations aprovados. Regressão local
+identificou teste histórico NFS-e com alvos incompatíveis por nova dependência
+entre apps; teste corrigido preservando prova de avanço/retrocesso e1001 vínculos.
+Validação integral final, MSI/upgrade Windows e execução no SVAPL02 ainda pendentes.
+
+Preflight publicado somente leitura confirmou conta212 com ledger_code8/ativa,
+SVAPL02 oficial/ativo com heartbeat12/11 e zero JournalEntry/IndependentLedgerRecord.
+Isso não comprova coleta nova. Infraestrutura, agente instalado1.0.7, carteira146,
+originais bancários e gates financeiros permanecem preservados nesta preparação.

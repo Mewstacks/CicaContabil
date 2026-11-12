@@ -87,6 +87,12 @@ def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
         if portfolio:
             allowed -= {"agent-v2-dominio-companies", "agent-v2-dominio-bank-entries"}
             allowed.add("agent-v2-dominio-portfolio-companies")
+            if active_only and request.headers.get("X-Hub-Agent-Protocol") == REGISTRATION_PROTOCOL:
+                allowed |= {
+                    "agent-v2-ledger-next",
+                    "agent-v2-ledger-complete",
+                    "agent-v2-ledger-failure",
+                }
         configuration_route = (
             request.resolver_match is not None
             and request.resolver_match.url_name

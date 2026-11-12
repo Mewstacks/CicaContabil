@@ -605,3 +605,12 @@ catálogos não decide M nem autoriza JOIN por semelhança de nomes.
 - [ ] Integrar snapshot real completo ao agente/backend, sem habilitar fonte antes da revisão.
 
 - [x] V-359: normalizador integrado na main094a93d após CI integral aprovado.
+
+
+### Integração nativa D-338/V-360 — 12/11/2026
+
+- [x] Implementar snapshot completo/double-read/hash e recepção privada do oficial.
+- [x] Persistir partidas literais em rascunho com idempotência e revisão de conflitos.
+- [ ] Concluir CI integral, MSI/upgrade Windows e instalação1.0.8 no SVAPL02.
+- [ ] Conferir snapshot real, relatório, repetição/recuperação e integridade.
+- [ ] Q-46/Q-47/D-73 e aceite humano; nenhum gate liberado por testes técnicos.

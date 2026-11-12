@@ -777,7 +777,7 @@ class AccountingEntry(OrganizationScopedModel):
     )
     external_key = models.CharField(max_length=160)
     occurred_on = models.DateField(db_index=True)
-    description = models.CharField(max_length=500, blank=True)
+    description = models.CharField(max_length=1000, blank=True)
     amount_cents = models.BigIntegerField()
     direction = models.CharField(max_length=8, blank=True)
     account_reference = models.CharField(max_length=160, blank=True)
@@ -1424,6 +1424,7 @@ class ReconciliationSourceFile(OrganizationScopedModel):
         CSV = "csv", "CSV"
         XLSX = "xlsx", "XLSX"
         PDF = "pdf", "PDF"
+        JSON = "json", "Snapshot nativo JSON"
 
     class Origin(models.TextChoices):
         BANK_STATEMENT = "bank_statement", "Extrato bancário"
@@ -1550,7 +1551,9 @@ class ReconciliationLayout(OrganizationScopedModel):
     company = models.ForeignKey(
         "ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_layouts"
     )
-    kind = models.CharField(max_length=12, choices=ReconciliationSourceFile.Kind.choices)
+    kind = models.CharField(
+        max_length=12, choices=[c for c in ReconciliationSourceFile.Kind.choices if c[0] != "json"]
+    )
     name = models.CharField(max_length=120)
     version = models.PositiveIntegerField(default=1)
     active = models.BooleanField(default=True)
@@ -1781,7 +1784,7 @@ class JournalEntry(OrganizationScopedModel):
     )
     source_movement_revision = models.PositiveIntegerField(null=True, blank=True)
     occurred_on = models.DateField()
-    history = models.CharField(max_length=500)
+    history = models.CharField(max_length=1000)
     purpose = models.CharField(max_length=24)
     state = models.CharField(max_length=12, choices=State.choices, default=State.DRAFT)
     revision = models.PositiveIntegerField(default=1)
@@ -1808,7 +1811,7 @@ class JournalLine(OrganizationScopedModel):
     side = models.CharField(max_length=8, choices=Side.choices)
     amount_cents = models.PositiveBigIntegerField()
     cost_center_code = models.CharField(max_length=64, blank=True)
-    history = models.CharField(max_length=500, blank=True)
+    history = models.CharField(max_length=1000, blank=True)
 
 
 class MovementReconciliation(OrganizationScopedModel):
