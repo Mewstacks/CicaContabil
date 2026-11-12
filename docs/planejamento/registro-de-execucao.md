@@ -3897,3 +3897,17 @@ AnyDesk voltou a falhar por timeout; comando x64 elevado do pacote testado
 solicitado ao responsável. Aguardar JSON1.0.9 saudável para enfileirar a
 captura já autorizada; não pedir novamente consentimento/DSN/pareamento.
 Fonte original será privada e pendente de revisão; Q-46/Q-47/D-73 abertos.
+
+
+### 12/11/2026 — Captura real concluída e exemplos Q-46 disponíveis (V-378/V-379)
+
+Operador confirmou1.0.9 pronto/DPAPI preservado/sem reboot; backend revalidou
+oficial/heartbeat/contrato. Job autorizado pela Grazi enfileirado uma vez e
+capturado:822 parcelas/546 componentes/590 vínculos, fonte/hash conferidos,
+zero normalizações ou lançamentos novos e14 fingerprints anteriores iguais.
+
+Recorte técnico JSON privado de sete casos preparado com origem/hash, campos
+literais e perguntas de juros/retenções. Repetição não duplicou documento/
+auditoria; download exige login. Confirmação humana de C01/C02 solicitada;
+montantes e documentos permanecem privados na CICA. Sem nova implantação
+ou consultas ERP adicionais. Q-46 semântico e demais gates ainda abertos.

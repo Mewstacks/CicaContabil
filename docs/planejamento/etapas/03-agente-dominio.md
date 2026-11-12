@@ -576,4 +576,11 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 ### Publicação da captura preparada — D-353/V-377
 
 - [x] D-353/V-377: backend85/pacote1.0.9 publicados e714 hashes conferidos; prévia autorizada pela Grazi sem job.
-- [ ] Receber JSON de upgrade saudável1.0.9 no SVAPL02 e enfileirar captura já autorizada.
+- [x] V-378:1.0.9 saudável/identidade confirmados e captura autorizada recebida.
+
+
+### Fonte fiscal recebida — D-353/D-354/V-378/V-379
+
+- [x] Oficial1.0.9/mesma identidade/DPAPI e fonte original/hash/contagens conferidos.
+- [x] Sete exemplos técnicos privados, idempotência e preservação dos dados anteriores conferidos.
+- [ ] Confrontar C01/retenções e C02/juros com a Grazi; semântica Q-46 e demais gates não presumidos.

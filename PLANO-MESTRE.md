@@ -1,6 +1,6 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Desenvolvimento CONTAD — 12/11/2026, D-344–353/V-367–377:** Títulos persistidos e captura fiscal original implementados; CI43285420180 integral aprovado (2092 SQLite/2126 PostgreSQL/100 Windows). PR12 integrado, pacote1.0.9 publicado e backend85 conferido:714 hashes,14 grupos de dados anteriores inalterados, migrações/saúde/identidade preservadas. Operação e coleta pela Grazi autorizadas. Comando de upgrade do SVAPL02 enviado; aguarda JSON1.0.9 saudável antes de enfileirar a captura original. Oficial real ainda1.0.8. Semântica Q-46, vínculo bancário próprio, carteira financeira completa, IA/Q-47/D-73 e aceite continuam abertos.
+**Desenvolvimento CONTAD — 12/11/2026, D-344–354/V-367–379:** Oficial1.0.9 e backend85 conferidos; captura fiscal original concluída:822 registros de parcelas,546 componentes e590 vínculos, hash/contrato e14 grupos anteriores preservados. Sete exemplos técnicos privados preparados, com repetição sem duplicação e download autenticado; solicitada conferência de C01/retenções e C02/juros com a Grazi. Não repetir upgrade, captura ou autorização. Tradução financeira Q-46, vínculo bancário próprio, carteira completa, IA/Q-47/D-73 e aceite continuam abertos.
 
 
 **Verificação de conclusão — 12/11/2026, D-343/V-366:**

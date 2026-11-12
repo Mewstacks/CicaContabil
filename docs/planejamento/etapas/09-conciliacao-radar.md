@@ -600,12 +600,20 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Preparar candidata 1.0.9 e ensaio Windows de upgrade preservando DPAPI/identidade/DSN.
 - [x] CI43285420180/84a3190 integral aprovado, incluindo pacote/upgrade Windows.
 - [x] D-353/V-377: backend85 e pacote publicados, solicitante Grazi autorizado.
-- [ ] Acompanhar upgrade saudável e enfileirar captura original já autorizada.
-- [ ] Receber/conferir fonte fiscal original do piloto e confrontar semântica com exemplos no Domínio.
+- [x] V-378: upgrade saudável confirmado e captura original concluída.
+- [x] V-378/V-379: fonte original recebida/conferida e exemplos privados preparados.
+- [ ] Confrontar semântica com os exemplos no Domínio.
 - [ ] Homologar adaptador de títulos, vínculo bancário próprio e demais critérios Q-46/Q-47/D-73.
 
 
 ### Publicação da captura preparada — D-353/V-377
 
 - [x] D-353/V-377: publicação/saúde/migrações e14 grupos anteriores inalterados conferidos; prévia da captura aprovada.
-- [ ] Receber prova do upgrade1.0.9 e fonte original privada, antes do confronto semântico Q-46.
+- [x] V-378: receber/conferir prova1.0.9 e fonte fiscal original privada.
+
+
+### Fonte fiscal recebida — D-353/D-354/V-378/V-379
+
+- [x] Oficial1.0.9/mesma identidade/DPAPI e fonte original/hash/contagens conferidos.
+- [x] Sete exemplos técnicos privados, idempotência e preservação dos dados anteriores conferidos.
+- [ ] Confrontar C01/retenções e C02/juros com a Grazi; semântica Q-46 e demais gates não presumidos.

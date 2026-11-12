@@ -8920,3 +8920,67 @@ fiscais nem enfileirada captura real nesta entrada; fonte/semântica Q-46,
 carteira completa, IA/Q-47/D-73, treinamento e aceite continuam próprios.
 Evidências operacionais privadas na fase finalizacao-2026-11-12 do checkout
 isolado; originais/recibos financeiros permanecem fora do Git/CI.
+
+
+## V-378 — Oficial1.0.9 e captura fiscal original real conferidos (12/11/2026)
+
+D-353: operador retornou MSI/hash exatos,1.0.9/Running/Auto/LocalSystem, ready,
+fresh_status, bytes protegidos preservados e sem reboot pendente, observado
+às22:26:41.9101639UTC. A origem deste comando já era1.0.9.0; prova de estado
+atual, sem afirmar que esta execução fez a primeira transição de versão.
+Backend reconferido:714 hashes, contratos/migrações/gate preservados, mesmo
+oficial/escopo e heartbeat recente posterior ao retorno.
+
+Fila privada enfileirada uma vez pela Grazi sob D-353, revalidando acesso/
+contrato atuais; fonte recebida às22:34UTC e conferida no armazenamento privado.
+JSON869.867 bytes/SHA09931df9e628c21bef53dfa1119f70149ceb208afbba38c68a3d03aa7b409a90
+compatível com contrato, identidade e revisão do escopo.822 registros de
+parcelas selecionadas:457 Entradas/365 Saídas, incluindo451 vencendo no mês e
+pais de pagamentos do mês.546 componentes de pagamento e590 vínculos contábeis.
+Serviços vazio. Contagens/pais/chaves conferidos; fonte bruta, sem declarar
+cobertura vitalícia, saldo, principal, líquido ou vínculo com a conta8.
+
+Um job e uma auditoria de solicitação/captura; resultado captured com revisão
+semântica obrigatória. Zero títulos normalizados, alocações bancárias ou novos
+lançamentos. Quatorze fingerprints anteriores iguais antes/depois, excluída
+somente a nova fonte autorizada.163 lançamentos/334 partidas anteriores
+preservados; sem exportação ou escrita ERP. Originais/recibos privados, sem
+montantes/documentos impressos no chat ou enviados à IA.
+
+Q-46 passa à conferência de exemplos na origem, antes de implementar a tradução
+financeira; Q-47, carteira completa, IA/D-73/recuperação/treinamento/aceite
+continuam próprios. Não repetir upgrade, captura já recebida ou autorização.
+
+
+## V-379 — Sete exemplos técnicos privados de Q-46 preparados (12/11/2026)
+
+D-354: recorte JSON técnico gerado exclusivamente da fonte retida V-378, com
+parcela, todos os seus componentes/vínculos do recorte, resumo literal, limites
+e perguntas por caso. Sete casos distintos cobrem retenção/juros, comparações
+com vlor e componentes zero/sem vínculo/multivínculo. Nenhum critério observado
+foi omitido pelo limite8; categorias não observadas foram declaradas. Não
+inferir baixa parcial/total, título aberto ou estorno desses critérios.
+
+Função determinística conferida com dados sintéticos: original inalterado,
+completude por chave, campos literais do resumo iguais à fonte, limite explícito
+e respostas humanas/normalização pendentes. Prévia validou acesso atual da
+Grazi e hash da fonte antes da criação. Documento comprobatório JSON privado
+na CICA,28.371 bytes/SHA
+8e5453d8a405a2895481ebf3628a99638b03da54b6313f15d2d5763ed44e1337.
+Repetição devolveu o mesmo artefato, created=false, uma auditoria de preparo.
+Original preservado;14 fingerprints anteriores iguais, excluídas somente as
+duas novas fontes autorizadas (original fiscal e recorte técnico).
+
+Download autenticado existente preparado; acesso HTTP anônimo retornou302
+para login. Hash/conteúdo e vínculo de empresa/conta/solicitante conferidos
+internamente. Não foi alegado login/download humano real. Sem nova interface,
+renderizador PDF/XLSX, implantação, fonte ERP, serviço/custo, montagem de
+lançamento ou exportação. Saída do executor contém somente metadados e
+comparações booleanas, sem montantes/documentos transmitidos ao chat/IA.
+
+Solicitada conferência com a Grazi de C01 (retenções) e C02 (juros), usando
+campos literais e o caminho de consulta da Escrita Fiscal já identificado
+pelo executor. Resposta requerida apenas por caso/campo/resultado técnico;
+valores ficam no ambiente privado. Q-46 permanece pendente da conferência,
+sem presumir principal/caixa/saldo ou vínculo bancário. Captura e upgrade
+não serão repetidos. Demais gates Q-47/carteira/IA/D-73 permanecem próprios.

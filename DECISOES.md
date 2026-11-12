@@ -4751,3 +4751,47 @@ prévia com a Grazi aprovada sem job. Atualização local do oficial ainda aguar
 JSON do operador após novo timeout AnyDesk. A autorização de coleta/atribuição
 permanece válida; não perguntar de novo. Confirmar1.0.9 saudável e identidade
 antes de enfileirar o escopo preparado, mantendo todos os gates semânticos.
+
+
+Continuidade D-353 após retorno do operador (12/11/2026): JSON seguro confirma
+SVAPL02/1.0.9, MSI exato de V-376, configuração protegida preservada, serviço
+Running/Auto/LocalSystem, ready/fresh_status e sem reboot pendente, observado
+às22:26:41.9101639UTC. A versão de origem deste comando já era1.0.9.0; o
+retorno comprova o estado atual e a preservação nesta execução, sem afirmar
+que ela realizou a primeira transição de1.0.8. Não reinstalar nem repetir
+pareamento/DSN. Conferir oficial/heartbeat/contrato/acesso atuais no backend e
+enfileirar o escopo privado já autorizado pela Grazi. Sem novo consentimento
+ou normalização financeira por esse recebimento.
+
+
+## D-354 — Preparar recorte técnico privado de exemplos Q-46 (12/11/2026)
+
+V-378 recebeu a fonte fiscal original; continuar a conferência já autorizada
+em D-353, preparando até oito exemplos distintos a partir do arquivo retido,
+sem nova consulta ao ERP ou coleta de campos. Usar critérios estruturais e
+comparações literais somente para localizar casos; soma do tipo1 menor/igual
+a vlor não prova saldo, baixa parcial/total ou caixa. Ausências no recorte
+não viram títulos abertos, exclusões ou estornos por inferência.
+
+Produzir recorte técnico JSON legível, com a parcela, todos os seus componentes
+e vínculos do recorte, hash/proveniência/limites e perguntas objetivas de Q-46.
+Permanece privado na CICA, como documento comprobatório pelo armazenamento e
+download autenticado existentes, com acesso atual da Grazi, idempotência e
+auditoria. Original imutável; nenhum aceite é registrado por gerar o recorte.
+Não criar outro renderizador PDF/XLSX, interface, serviço ou custo; decisões
+D-109/D-110 e o serviço de relatórios continuam preservados.
+
+Validação determinística com dados sintéticos antes da criação do recorte;
+saída técnica do executor contém só contagens/hashes/identidade do artefato.
+Não imprimir montantes, identificadores fiscais ou conteúdo do recorte no
+chat/IA/Git/CI. Entregar apenas link autenticado para a conferência humana e
+pedir respostas por caso/campo, mantendo os valores na CICA. Não repetir a
+descoberta técnica ou pedir nomes de tabelas/menus ao responsável (D-345).
+
+
+Continuidade D-354/V-378/V-379: captura real original concluída e sete exemplos
+privados preparados. Pergunta Q-46 atual pede somente confrontar C01/retenções
+e C02/juros no Domínio e informar caso/campo/resultado sem montantes. Não
+repetir upgrade, coleta, autorização ou descoberta técnica. A resposta não
+é presumida e não altera o arquivo original/resultado imutável do job, nem
+libera escrituração/exportação ou aceite D-73 por inferência.

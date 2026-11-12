@@ -1,3 +1,10 @@
+> **Q-46 — captura recebida e exemplos prontos em12/11/2026 (V-378/V-379):**
+> oficial1.0.9 e fonte original privada conferidos. Sete casos preparados;
+> aguarda confronto humano de C01/retenções e C02/juros no Domínio. Informar
+> somente caso/campo/resultado, mantendo montantes e documentos privados.
+> Não repetir autorização, upgrade, captura, catálogos ou menus. Semântica
+> financeira, banco, Q-47 e D-73 permanecem próprios.
+
 > **Q-46 — operação autorizada/publicada em12/11/2026 (D-353/V-377):**
 > responsável autorizou coleta original e solicitação pela Grazi. Backend85 e
 > pacote1.0.9 publicados/conferidos; prévia atual aprovada sem criar job.
