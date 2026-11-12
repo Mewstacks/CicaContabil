@@ -8984,3 +8984,13 @@ pelo executor. Resposta requerida apenas por caso/campo/resultado técnico;
 valores ficam no ambiente privado. Q-46 permanece pendente da conferência,
 sem presumir principal/caixa/saldo ou vínculo bancário. Captura e upgrade
 não serão repetidos. Demais gates Q-47/carteira/IA/D-73 permanecem próprios.
+
+
+## V-380 — Conferência humana C01/C02 adiada pelo responsável (12/11/2026)
+
+D-355 registra indisponibilidade atual de acesso ao Domínio e adiamento
+exclusivo da conferência humana Q-46. Não houve resposta aos campos de C01/
+C02, aprovação semântica, nova captura ou aceite. Fontes, hashes e exemplos
+V-378/V-379 continuam válidos e privados. Solicitação não será repetida
+agora; desenvolvimento independente continua com dados sintéticos e fontes
+já retidas, sem presumir interpretação financeira ou data de retomada.

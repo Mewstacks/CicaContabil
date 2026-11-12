@@ -4795,3 +4795,30 @@ e C02/juros no Domínio e informar caso/campo/resultado sem montantes. Não
 repetir upgrade, coleta, autorização ou descoberta técnica. A resposta não
 é presumida e não altera o arquivo original/resultado imutável do job, nem
 libera escrituração/exportação ou aceite D-73 por inferência.
+
+
+## D-355 — Adiar conferência no Domínio e continuar frentes independentes (12/11/2026)
+
+Origem humana: responsável informou **“nao tenho acesso a dominio agora, é
+possivel adiar essa parte?”**. Adiar somente o confronto humano de C01/C02
+de Q-46, sem data presumida, lembrete automático ou pausa do projeto inteiro.
+Não repetir essa solicitação enquanto o responsável não tiver acesso.
+Captura/exemplos V-378/V-379 permanecem preservados; juros, retenções, saldo,
+vínculo bancário e aceite não foram confirmados. Manter a tradução financeira
+e os gates Q-46/Q-47/D-73 pendentes. Não renovar consulta/captura/upgrade.
+
+Continuar implementação D-344 pelo tratamento técnico de mudanças entre
+fontes fiscais retidas: comparação determinística de duas fotografias do
+mesmo escritório/empresa/conta de comparação/período, com chaves completas,
+hashes/contrato e autorização atual. Identificar registros novos, ausentes
+ou com campos literais alterados; ausência no recorte não significa exclusão
+na origem ou estorno. Comparação não classifica valores nem cria/desfaz
+títulos, alocações, lançamentos ou decisões humanas.
+
+Implementar módulo/comando administrativo usando a autorização operacional
+de títulos existente, com resumo de contagens/hashes e detalhes técnicos
+sem montantes ou identificadores fiscais em stdout. Provar mudanças, replay,
+contaminação de escopo e integridade com fixtures sintéticas. Código/CI seguem
+D-346; publicação compatível na infraestrutura existente segue D-323/D-353,
+sem novos serviços/custos, fontes, identidade, DSN, coleta ERP ou alteração
+de interface. As consultas e downloads existentes conservam suas regras.

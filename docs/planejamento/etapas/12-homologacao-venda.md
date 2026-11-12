@@ -684,4 +684,4 @@ Esta preparação não instala MSI, altera coleta real ou habilita exportação.
 
 - [x] Oficial1.0.9/mesma identidade/DPAPI e fonte original/hash/contagens conferidos.
 - [x] Sete exemplos técnicos privados, idempotência e preservação dos dados anteriores conferidos.
-- [ ] Confrontar C01/retenções e C02/juros com a Grazi; semântica Q-46 e demais gates não presumidos.
+- [ ] D-355/V-380: C01/retenções e C02/juros adiados por indisponibilidade do Domínio; não solicitar agora. Semântica/gates continuam pendentes.

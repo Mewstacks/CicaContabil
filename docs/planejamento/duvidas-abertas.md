@@ -1,3 +1,9 @@
+> **Q-46 — conferência humana adiada em12/11/2026 (D-355/V-380):**
+> responsável está sem acesso ao Domínio. C01/retenções e C02/juros aguardam
+> retomada; não repetir a solicitação agora nem presumir resposta/aceite.
+> Captura e sete exemplos permanecem preservados. Desenvolvimento técnico
+> independente continua; semântica, banco e gates de homologação continuam abertos.
+
 > **Q-46 — captura recebida e exemplos prontos em12/11/2026 (V-378/V-379):**
 > oficial1.0.9 e fonte original privada conferidos. Sete casos preparados;
 > aguarda confronto humano de C01/retenções e C02/juros no Domínio. Informar

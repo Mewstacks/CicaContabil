@@ -3911,3 +3911,11 @@ literais e perguntas de juros/retenções. Repetição não duplicou documento/
 auditoria; download exige login. Confirmação humana de C01/C02 solicitada;
 montantes e documentos permanecem privados na CICA. Sem nova implantação
 ou consultas ERP adicionais. Q-46 semântico e demais gates ainda abertos.
+
+
+### 12/11/2026 — Adiamento do confronto humano Q-46 (D-355/V-380)
+
+Responsável sem acesso ao Domínio; C01/C02 adiados, sem data presumida.
+Captura/exemplos preservados e semântica pendente. Continuar o desenvolvimento
+independente por comparação técnica de fontes retidas, sem coleta adicional
+ou ativação financeira. Não repetir a solicitação de conferência agora.
