@@ -4720,3 +4720,27 @@ a prévia encontrou somente a Proprietária já cadastrada. Confirmar essa
 coleta/atribuição antes de enfileirar, sem atribuir o pedido a outra pessoa
 apenas por seu cadastro estar ativo. A candidata e seus testes estão prontos
 para essa confirmação; não reabrir a autorização de branch/CI de D-346.
+
+
+## D-353 — Autorizar candidata1.0.9 e captura original pela Grazi (12/11/2026)
+
+Após receber candidata/pacote/proposta concretos e CI43285420180 integral
+aprovado, o responsável respondeu **“Autorizar operação e solicitação pela
+Grazi”**. Autoriza publicação/upgrade na infraestrutura existente e uma captura
+privada dos valores originais de parcelas, pagamentos e vínculos da empresa212,
+setembro2026, registrando Grazi como solicitante autorizada. A fonte permanece
+aguardando conferência semântica Q-46; não é normalização, vínculo bancário,
+lançamento, baixa ERP, importação Q-47 ou aceite D-73.
+
+Usar a fonte84a3190, árvore idêntica ao merge de teste de5b160, pacote/MSI
+conferidos em V-376 e imagem714 arquivos sobre a release84, preservando
+configuração/recursos/contratos/identidade/DSN. Publicar backend compatível,
+verificar saúde/migrações/integridade/gates e distribuir pacote genérico por
+HTTPS/hash no canal oficial existente. Nenhum recurso, custo ou serviço novo.
+
+Acompanhar upgrade1.0.8→1.0.9 do oficial SVAPL02 sem novo pareamento. Conferir
+bytes DPAPI/identidade/versão/ciclo saudável antes de enfileirar a captura;
+revalidar papel/acesso/contrato atuais da Grazi. Escopo preparado mantém
+empresa212/setembro e conta8 apenas como comparação. Duas leituras completas
+idênticas, guarda de contagens e fonte privada/hash são obrigatórios. Não
+publicar valores/originais/recibos privados no Git ou CI, nem enviá-los à IA.
