@@ -598,6 +598,7 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Implementar prévia de fila, autorização atual, isolamento, replay e auditoria única.
 - [x] Provar 89 testes PostgreSQL, concorrência e recusa de resultado que dispense revisão.
 - [x] Preparar candidata 1.0.9 e ensaio Windows de upgrade preservando DPAPI/identidade/DSN.
-- [ ] Concluir CI exato, publicar backend compatível e acompanhar upgrade autorizado.
+- [x] CI43285420180/84a3190 integral aprovado, incluindo pacote/upgrade Windows.
+- [ ] Publicar backend compatível, acompanhar upgrade e enfileirar captura original com solicitante confirmado.
 - [ ] Receber/conferir fonte fiscal original do piloto e confrontar semântica com exemplos no Domínio.
 - [ ] Homologar adaptador de títulos, vínculo bancário próprio e demais critérios Q-46/Q-47/D-73.

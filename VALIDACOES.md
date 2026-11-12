@@ -8844,3 +8844,38 @@ CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
 títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
 os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
 Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.
+
+
+Fechamento V-376: CI43285420180/fonte84a3190c4b885b3daba21f6c54c26cb5316f936b
+**integralmente aprovado**:2092 SQLite/36 skips,2126 PostgreSQL/2 skips e
+163 subtestes em cada ambiente;97 .NET/3 skips Linux e100 Windows/zero skips.
+Três imagens, diagnóstico Windows, instalação/reparo/desinstalação e upgrade
+configurado1.0.8→1.0.9 aprovados. Upgrade confirma bytes DPAPI, leitura SYSTEM
+e reinício preservados. CI Windows10.0.26100; não é ensaio real no SVAPL02
+ou execução SQL Anywhere16. Consultas/dados de cliente não foram usados no CI.
+
+Artefato13975620571 conferido por SHA-256
+748aee099735a346109ed77f8e8a78e67b710f40870ea72bfe6b5c86353de4b8;
+MSI1.0.9 SHAa3da91a40531bd1c2ab2f4ee98c22822004e964d61b0427b58db9efc6ec2feca.
+Recibos apontam o merge de teste de5b16058ae2c01d37b180bcddcd4a5c440bb96b,
+com pais7114caa/84a3190 e árvore2bbdc1e62ed689a6c41f7a8dbf7d2ffed14e3957,
+idêntica à fonte da branch. Pacote genérico local contém somente MSI, manifesto,
+checksum, atualizador testado e instruções; ainda não publicado/instalado.
+
+Imagem local sobre base imutável da release84 preserva configuração e17 camadas,
+714 arquivos conferidos,26 arquivos próprios copiados. Baselines dos cinco
+arquivos preexistentes iguais à fonte-base; nenhum hotfix de produção perdido.
+Smoke sem rede/banco aprovou hashes, doze consultas e migrações hub0082/
+intelligence0037. Configuração Fly atual igual à anterior; recursos preservados.
+Prévia READ ONLY conferiu oficial/escopo,163 lançamentos/163 registros de Razão,
+duas fontes e um job existentes. Gate de exportação continua desabilitado.
+Backup original53 objetos e prazo13/11/2026 às14:29:44UTC reconferidos, sem nova
+cópia/retenção/restore operacional ou RPO presumido.
+
+Ensaio separado de restauração sintética dos aliases SQLite default/knowledge
+e fonte privada aprovado: hash preservado, um job/arquivo/auditoria e replay
+sem duplicação, revisão semântica mantida e zero títulos normalizados/lançamentos.
+Cópia/restauração/replay local0,124s após preparo; não mede infraestrutura,
+recuperação real/RPO ou aceite D-73. Originais/evidências privados em .tmp;
+pacote/proposta de operação em Downloads,0600. Sem merge, deploy, upgrade ou
+enfileiramento real nesta entrega; coleta/atribuição aguardam confirmação.

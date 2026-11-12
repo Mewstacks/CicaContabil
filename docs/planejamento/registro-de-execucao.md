@@ -3868,3 +3868,18 @@ CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
 títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
 os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
 Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.
+
+
+### 12/11/2026 — Candidata1.0.9 pronta para etapa operacional (D-352/V-376)
+
+CI43285420180/84a3190 integral aprovado:2092 SQLite,2126 PostgreSQL,163
+subtestes por ambiente e100 Windows, incluindo MSI/upgrade1.0.8→1.0.9 com
+DPAPI/SYSTEM/reinício preservados. Artefato/merge de teste/árvore/hash conferidos.
+Imagem local714 hashes preserva base/configuração da release84; smoke sem rede
+ou banco aprovado. Backup53 objetos e configuração atual reconferidos.
+Restauração sintética dos dois aliases e fonte privada, seguida de replay sem
+duplicação/revisão mantida, aprovada; não substitui D-73 operacional.
+
+Pacote e proposta concretos preparados nos Downloads. Próxima captura Q-46
+contém valores originais e exige confirmar atribuição do solicitante; ainda
+sem job, publicação, instalação, coleta monetária, normalização ou aceite.

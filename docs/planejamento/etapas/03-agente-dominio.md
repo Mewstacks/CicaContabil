@@ -561,3 +561,12 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 - [x] V-363: reoferta do mesmo job após duas falhas transitórias e revisão após falha de contrato, com agente sintético.
 - [x] V-363: suíte xUnit local com 85 aprovados e três casos exclusivos de Windows pulados.
 - [x] V-364: recortar offline as referências do catálogo sem ampliar o agente ou a seleção de coleta.
+
+
+### Captura fiscal privada preparada — D-352/V-376 (12/11/2026)
+
+- [x] Contrato fixo/doze consultas, duas leituras, hashes e fila explícita na candidata1.0.9.
+- [x] CI integral43285420180/84a3190,100 testes Windows e upgrade1.0.8→1.0.9 com configuração/reinício preservados.
+- [x] Pacote exato e imagem local714 hashes conferidos, sem rede/banco no smoke.
+- [ ] Publicação/upgrade e captura original com solicitante auditável confirmado.
+- [ ] Confrontar semântica Q-46; carteira integral/Q-47/D-73 continuam abertos.

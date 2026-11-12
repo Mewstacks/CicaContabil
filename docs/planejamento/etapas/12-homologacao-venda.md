@@ -662,3 +662,12 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 - [ ] Publicar alterações aplicáveis após seus gates e registrar treinamento/aceite reais.
 
 Esta preparação não instala MSI, altera coleta real ou habilita exportação.
+
+
+### Candidata fiscal original pronta — D-352/V-376 (12/11/2026)
+
+- [x] CI integral43285420180 e pacote/upgrade Windows1.0.9 aprovados.
+- [x] Conferir artefato/SHA/árvore, imagem714 hashes e base/configuração da release84.
+- [x] Reconferir backup53 objetos e executar restauração sintética dos dois aliases/fonte com replay idempotente.
+- [ ] Publicar candidata, acompanhar upgrade e receber fonte original sob solicitação confirmada.
+- [ ] Conferência semântica Q-46, importação Q-47, carteira completa, IA e recuperação/amostra/treinamento/aceite D-73.

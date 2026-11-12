@@ -4708,3 +4708,15 @@ explícita já existente para contracts/ledger. Fixar LF nessa família e nos
 novos scripts de upgrade, sem mudar consulta, hash esperado ou reduzir a
 conferência. Repetir CI Windows/pacote/upgrade exatos antes de disponibilizar
 a candidata. Run anterior não é aprovado para distribuição.
+
+
+Fechamento técnico D-352: fonte84a3190/CI43285420180 integral aprovada. A
+árvore do merge de teste de5b160 é idêntica à fonte84a3190; MSI e recibos do
+upgrade estão vinculados a esse merge. Preparados pacote genérico e imagem
+local sobre a release84, sem alterar configuração/recursos ou coletar valores.
+Próximo passo Q-46 é a captura original privada, que deixa de ser o diagnóstico
+sem montantes até aqui executado. A fila também exige solicitante auditável;
+a prévia encontrou somente a Proprietária já cadastrada. Confirmar essa
+coleta/atribuição antes de enfileirar, sem atribuir o pedido a outra pessoa
+apenas por seu cadastro estar ativo. A candidata e seus testes estão prontos
+para essa confirmação; não reabrir a autorização de branch/CI de D-346.

@@ -1,6 +1,6 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Desenvolvimento CONTAD — 12/11/2026, D-344–352/V-367–376:** Persistência privada de títulos normalizados implementada e CI anterior integral aprovado. Catálogo/perfis reais conferidos; o complemento revisado retornou inteiro e não demonstrou vínculo direto ou por lote à conta8. Referências de contas já retidas conferidas sem nova consulta ERP. Candidata1.0.9 prepara captura fiscal original privada, com revisão obrigatória e sem normalização/lançamento:89 testes PostgreSQL e97 .NET locais aprovados; Windows/CI exatos pendentes. Sem job financeiro real, instalação ou deploy desta candidata. Fonte/semântica Q-46, carteira financeira completa, IA/Q-47/D-73 e aceite continuam pendentes.
+**Desenvolvimento CONTAD — 12/11/2026, D-344–352/V-367–376:** Persistência privada de títulos normalizados e captura fiscal original implementadas. Fonte84a3190/CI43285420180 integral aprovada:2092 SQLite,2126 PostgreSQL e100 Windows, incluindo upgrade1.0.8→1.0.9 com DPAPI/identidade preservados. Imagem local714 hashes e restauração sintética dos dois aliases/fonte aprovadas. Perfis reais não demonstraram vínculo bancário dos títulos à conta8. Candidata/pacote prontos; publicação/upgrade/coleta original com solicitante auditável ainda pendentes. Semântica Q-46, carteira financeira completa, IA/Q-47/D-73 e aceite continuam abertos.
 
 
 **Verificação de conclusão — 12/11/2026, D-343/V-366:**

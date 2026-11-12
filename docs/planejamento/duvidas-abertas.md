@@ -1,3 +1,10 @@
+> **Q-46 — vínculos reais e candidata conferidos em12/11/2026 (V-374–376):**
+> complemento completo recebido; nenhum vínculo direto ou por lote à conta8.
+> Referências já retidas conferidas em READ ONLY. Captura fiscal original privada
+> implementada na candidata1.0.9, CI integral/upgrade Windows aprovados; próximo
+> passo é a coleta original para revisão, com solicitante auditável confirmado.
+> Não repetir catálogos/perfis ou presumir principal/caixa/saldo/estorno.
+
 > **Q-46 — perfil real recebido em12/11/2026 (V-371/D-350):** parcelas e
 > componentes fiscais presentes, múltiplas ligações contábeis e vínculo direto
 > à conta8 zerado. Não pedir de novo o catálogo/perfil. Executor confere ligação
