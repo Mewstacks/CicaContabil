@@ -3845,3 +3845,18 @@ limite1024/recusa1025, transporte e códigos exatos. HTTPS/14597 bytes/
 SHA369312e1…7ef41 conferidos, comando revisado enviado e retorno aguardado.
 Regressão integral desse run ainda em andamento. Falha anterior preservada;
 causa não inferida e nenhuma fonte/baixa contábil homologada.
+
+
+### 12/11/2026 — Vínculos reais e captura fiscal preparada (V-374–376)
+
+Recebido e conferido o transporte revisado: duas leituras idênticas, hash e
+42.100 bytes completos; nenhum vínculo direto ou no lote à conta8. Catálogo
+de contas já retido consultado em READ ONLY, sem nova consulta ERP. Referências
+continuam brutas e não demonstram caixa ou natureza contábil por nome.
+
+Implementada candidata1.0.9/contrato fiscal com consultas fixas, fila explícita,
+recepção privada autenticada e revisão obrigatória. 89 testes focados PostgreSQL,
+86 SQLite e guarda adicional de replay aprovados; .NET97/3 skips locais, Ruff,
+MyPy e Django aprovados. Upgrade preservando DPAPI/identidade/SYSTEM preparado
+para CI Windows. Não foi instalado ou enfileirado job real; Q-46/Q-47/D-73 e
+carteira financeira seguem pendentes. CI anterior0effa47 concluído integralmente.

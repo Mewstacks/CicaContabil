@@ -576,7 +576,7 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] CI43265387462/fdbda60 integral aprovado para a persistência de títulos.
 - [x] Perfil PowerShell validado no Windows5.1,12 cenários, fontea560b7d/CI43270180630.
 - [x] V-371: perfil real recebido/conferido, duas leituras idênticas; nenhum vínculo direto à conta8.
-- [ ] D-350: conferir lotes/contas e multiplicidade antes de associar títulos ao banco.
+- [x] D-350/V-374: conferir lotes/contas e multiplicidade; nenhum vínculo com a conta8 foi demonstrado.
 - [ ] Comprovar semântica de tipos/componentes/estornos e exemplos Q-46.
 
 
@@ -586,5 +586,18 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Preparar conferência sem montantes;12 cenários relacionais/90 testes aprovados.
 - [x] V-372:15 cenários Windows aprovados em54ba2fb/CI43274063310; HTTPS/hash conferidos.
 - [x] V-373: revisão com diagnóstico estático/limite1024/transporte compacto passou em17 cenários Windows/0effa47.
-- [ ] Receber retorno completo da revisão e comprovar vínculo por lote; causa da recusa original ainda não identificada.
+- [x] V-374: receber/conferir o recorte completo;193 formas em Saídas excedem limite antigo e nenhum vínculo bancário à conta8 aparece nos lotes.
+- [x] D-351/V-375: conferir referências retidas e preservar ausência de associação; semântica/exemplos seguem pendentes.
 - [ ] Confrontar semântica e eventos reais antes de habilitar títulos Q-46.
+
+
+### Captura fiscal original — D-352/V-376 (12/11/2026)
+
+- [x] Preservar campos e decimais literais em fonte privada, sem converter tipo normal em principal/caixa.
+- [x] Implementar contrato/consultas incorporados por hash e duas leituras completas.
+- [x] Implementar prévia de fila, autorização atual, isolamento, replay e auditoria única.
+- [x] Provar 89 testes PostgreSQL, concorrência e recusa de resultado que dispense revisão.
+- [x] Preparar candidata 1.0.9 e ensaio Windows de upgrade preservando DPAPI/identidade/DSN.
+- [ ] Concluir CI exato, publicar backend compatível e acompanhar upgrade autorizado.
+- [ ] Receber/conferir fonte fiscal original do piloto e confrontar semântica com exemplos no Domínio.
+- [ ] Homologar adaptador de títulos, vínculo bancário próprio e demais critérios Q-46/Q-47/D-73.

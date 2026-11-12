@@ -8762,3 +8762,77 @@ aguarda resultado completo ou razão estática. Retorno anterior preservado em
 .tmp/finalizacao-2026-11-12/fiscal-real/title-links-failed.json,0600.
 A causa original e o vínculo por lote continuam não comprovados. Sem valores,
 novos segredos, alteração de agente/DSN, ERP escrito, implantação ou aceite.
+
+
+## V-374 — Vínculos reais completos recebidos, sem relação à conta8 (12/11/2026)
+
+D-350: transporte compacto retornado pelo responsável conferido com gzip
+limitado4MiB, JSON sem membros duplicados,42100 bytes/SHA-256
+e3090ff072ee4bac05000709b6e5d0c26e1148621e74faa281072432fd6c42e8.
+Observação12/11/2026 às18:02:04.8199783UTC; contrato/piloto/flags e duas leituras
+idênticas conferidos. Contagens por tipo/origem e totais de vínculos coincidem
+com o perfil real V-371. Originais/análise em .tmp/finalizacao-2026-11-12/fiscal-real,
+0700/0600, fora do Git; nenhuma coluna monetária ou narrativa selecionada.
+
+Recebidas59 formas de contas em Entradas e193 em Saídas; esta última seleção
+excede o antigo limite128 e o relatório completo excede32KiB. A revisão retorna
+o conjunto inteiro sem truncar. O conteúdo recebido reproduz a insuficiência
+dos limites anteriores; o retorno original não expunha o motivo específico.
+Serviços permanece vazio nesse recorte. Metadados dos códigos de conta ficam
+brutos, sem atividade/natureza/classe inferidas.
+
+Não há conta8/plano212 nas linhas diretamente vinculadas aos componentes nem
+em outra partida de seus lotes, dentro ou fora do período. Há múltiplos vínculos,
+sem lançamento/lote/cabeçalho ausente ou empresa contábil estrangeira nos vínculos
+presentes. Componentes não contabilizados permanecem visíveis. Isso não autoriza
+associação por data/valor ao Sicredi, normalização de principal/líquido, estorno,
+contabilização ou amostra humana D-73. Q-46/Q-47 e carteira completa seguem abertos.
+
+
+## V-375 — Contas retidas do piloto conferidas sem nova consulta ERP (12/11/2026)
+
+D-351: leitura no backend existente, transação REPEATABLE READ READ ONLY,
+do job nativo já importado7c08276b-6313-469f-9fbc-cd9aca3deac6 do mesmo escritório.
+Arquivo retido conferido pelo hash600ac3de31470c55c3d0bf93c22bf60542528862793d9001c17829da8d152072
+e contrato/escopo do piloto212/plano212/conta8/setembro. Catálogo18 contas,
+recorte de códigos pertinentes; nomes/tipos/classificação permanecem literais.
+Referências4/9 presentes no catálogo, demais candidatas não retidas não foram
+buscadas na carteira ou em plano de outro escritório. Evidência privada em
+.tmp/finalizacao-2026-11-12/fiscal-real/retained-accounts.json,0600.
+
+Somente catálogo retornado, sem montantes/documentos/históricos, importação
+repetida, escrita de banco/ERP ou mudança de recurso/serviço. Consulta observada
+às18:07:18.134991UTC. Não aprova natureza/atividade das contas ou associação dos
+títulos com o banco. A descoberta prepara captura bruta de revisão D-352/Q-46;
+sem fonte fiscal monetária coletada, normalização ou homologação nova.
+
+
+## V-376 — Captura fiscal privada implementada para revisão (12/11/2026)
+
+D-352: contrato dominio-title-snapshot-v1 e doze consultas fixas por hash,
+com parcelas vencendo no mês ou pagas no mês, componentes e chaves contábeis
+completas. Candidata Windows 1.0.9 preparada, preservando o agente oficial e
+a configuração existente. Fonte recebida fica privada, pendente de revisão
+semântica, sem criar título normalizado, alocação bancária ou lançamento.
+Reenvio confere arquivo original, contexto e resultado; alteração da exigência
+de revisão é recusada. Autorização atual é revalidada na fila e na recepção.
+
+Validações locais: 86 testes SQLite aprovados e três casos exclusivos de
+PostgreSQL ignorados; 89 testes PostgreSQL aprovados em 150,86 s, incluindo
+concorrência da captura, do Razão e das alocações. Guarda adicional de reenvio
+aprovada separadamente no SQLite. .NET: 97 aprovados e três casos específicos
+de Windows ignorados no Mac. Ruff global, MyPy dos quatro módulos envolvidos,
+Django check e migrações sem divergências aprovados. Instância PostgreSQL
+descartável própria encerrada após os testes; nenhum recurso alheio alterado.
+
+As doze consultas foram executadas em tabelas SQLite sintéticas, incluindo
+parcela fora do mês com pagamento no mês, componentes negativos/zero e empresa
+contábil distinta da filial fiscal. Isso não prova execução no SQL Anywhere16
+real. O ensaio Windows de upgrade 1.0.8 para 1.0.9 e a regressão integral desta
+candidata aguardam o CI exato. Sem instalação, enfileiramento ou coleta real
+de montantes, implantação, normalização fiscal ou aceite nesta entrada.
+
+Também conferidos completos os runs anteriores 43274063310/54ba2fb e
+43275171024/0effa47, todos os jobs aprovados. Último: 2059 testes SQLite,
+2092 PostgreSQL, 163 subtestes em cada ambiente; limites e cenários Windows
+da revisão V-373 aprovados. Essas provas não substituem o CI da nova candidata.

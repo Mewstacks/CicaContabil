@@ -49,7 +49,8 @@ def _reason(value: str) -> str:
     return value.strip()
 
 
-def _authorize(account: FinancialAccount, actor: User) -> None:
+def authorize_title_account(account: FinancialAccount, actor: User) -> None:
+    """Current role, company grant and contract, shared by reviewed and raw title intake."""
     membership = (
         Membership.objects.select_related("organization")
         .filter(
@@ -156,7 +157,7 @@ def import_title_snapshot(
     try:
         with transaction.atomic():
             account = _account(financial_account.pk, lock=True)
-            _authorize(account, actor)
+            authorize_title_account(account, actor)
             reason = _reason(evidence_reference)
             _, parsed = _parse(content, account)
             existing = (
@@ -482,7 +483,7 @@ def prepare_title_allocations(
     period_end: date,
 ) -> TitleAllocationPlan:
     account = _account(snapshot.financial_account_id)
-    _authorize(account, actor)
+    authorize_title_account(account, actor)
     return _prepare(snapshot, account, requests, period_start, period_end).plan
 
 
@@ -500,7 +501,7 @@ def confirm_title_allocations(
     accept_date_differences: bool = False,
 ) -> tuple[ReconciliationTitleBatch, bool]:
     account = _account(snapshot.financial_account_id, lock=True)
-    _authorize(account, actor)
+    authorize_title_account(account, actor)
     reason = _reason(evidence_reference)
     if type(request_id) is not UUID or type(accept_date_differences) is not bool:
         raise TitleContractError("Lote exige chave de reenvio e revisão explícita das datas.")
@@ -600,7 +601,7 @@ def undo_title_allocation(
     *, allocation: ReconciliationTitleAllocation, actor: User, reason: str
 ) -> bool:
     account = _account(allocation.financial_account_id, lock=True)
-    _authorize(account, actor)
+    authorize_title_account(account, actor)
     reason = _reason(reason)
     current = ReconciliationTitleAllocation.objects.select_for_update().get(
         pk=allocation.pk, organization_id=account.organization_id, financial_account=account

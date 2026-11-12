@@ -4,6 +4,47 @@ D-311, 05/11/2026. Complementa [Razão normalizado](conciliacao-razao-normalizad
 e a [matriz CONTAD](planejamento/verificacao-conciliador-contad-2026-11-02.md).
 Não é layout Domínio homologado nem autorização de consulta SQL, baixa ou importação ERP.
 
+## Captura fiscal original para revisão — D-352
+
+A candidata 1.0.9 acrescenta o contrato `dominio-title-snapshot-v1` ao agente
+oficial. A captura produz uma fonte JSON privada no CICA, vinculada ao escritório,
+à empresa e ao pedido auditado. O resultado exige revisão semântica e não cria
+títulos normalizados, alocações bancárias ou lançamentos contábeis.
+
+O primeiro recorte mantém a empresa 212 e setembro de 2026. Inclui parcelas com
+vencimento no mês ou referenciadas por pagamentos do mês, os componentes desses
+pagamentos e suas ligações contábeis. A conta 8 identifica o contexto de comparação;
+os perfis reais V-371/V-374 não demonstraram vínculo bancário com esses títulos.
+Não há afirmação de saldo ou cobertura completa da vida de cada título.
+
+As doze consultas e o esquema estão em `contracts/titles`, incorporados por hash
+ao binário. Duas leituras completas precisam ser idênticas. Decimais são strings
+literais com duas casas; valores negativos, zeros, retenções e códigos desconhecidos
+continuam presentes. Não se traduz o componente normal em principal ou caixa.
+O limite é 4.000.000 bytes e 50.000 linhas por consulta, com recusa integral de
+excesso, mudança da fonte ou cobertura incompatível.
+
+O comando `queue_contad_native_titles` exige escritório, agente oficial, conta,
+usuário solicitante autorizado, arquivo de escopo e referência de evidência.
+Sem `--allow-financial-capture`, apenas apresenta os hashes e a prévia, sem gravar
+pedido. A operação real depende da aprovação aplicável à coleta, backend compatível
+publicado e pacote Windows exato verificado. Nunca usar um usuário fictício ou
+atribuir o pedido a outra pessoa para contornar a autorização.
+
+O escopo contém `capture_id`, `company_code`, `comparison_bank_account_code`,
+`period_start`, `period_end_exclusive` e `expected_counts` por família
+(`due_installments`, `payments`, `accounting_links`). As contagens vêm da evidência
+privada conferida, sem registros de cliente no código/CI. `capture_id` é também a
+identidade do pedido; reenvios preservam a fonte e geram uma única auditoria.
+Uma nova captura requer outra identidade explícita e não conta como nova amostra
+humana por si só.
+
+O upgrade preparado em `agent-windows/upgrade-titles.ps1` aceita 1.0.8/1.0.9 e
+confere MSI, manifesto, versão, serviço SYSTEM e preservação dos bytes DPAPI.
+Não refaz pareamento ou DSN. O ensaio `test-title-upgrade.ps1` é exclusivo do CI
+Windows descartável e usa configuração sintética; nunca executá-lo na CONTAD.
+Preparar essa candidata não instala, implanta nem enfileira uma captura real.
+
 ## Contrato de títulos
 
 `apps.hub.title_contract.validate_title_snapshot` recebe uma fotografia completa

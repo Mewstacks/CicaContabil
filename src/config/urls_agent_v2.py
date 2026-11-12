@@ -1,10 +1,15 @@
 from django.urls import path
 
-from apps.intelligence import agent_v2, native_ledger
+from apps.intelligence import agent_v2, native_ledger, native_titles
 from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
 
 urlpatterns = [
+    path("titles/next", native_titles.next_job, name="agent-v2-titles-next"),
+    path(
+        "titles/<uuid:job_id>/complete", native_titles.complete_job, name="agent-v2-titles-complete"
+    ),
+    path("titles/<uuid:job_id>/failure", native_titles.fail_job, name="agent-v2-titles-failure"),
     path("ledger/next", native_ledger.next_job, name="agent-v2-ledger-next"),
     path(
         "ledger/<uuid:job_id>/complete", native_ledger.complete_job, name="agent-v2-ledger-complete"

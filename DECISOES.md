@@ -4635,3 +4635,67 @@ de linhas e limite256 da cobertura. Transporte opcional gzip/base64/hash com
 até4MiB descompactados, já usado no catálogo, evita texto grande no chat;
 provar conjunto acima de128 e transporte no Windows antes do novo comando.
 Não ampliar empresas, datas, colunas ou valores financeiros consultados.
+
+
+## D-351 — Consultar referências já retidas e preservar ausência de vínculo bancário (12/11/2026)
+
+V-374 concluiu o perfil revisado, com contagens coerentes com V-371 e nenhum
+vínculo direto ou no lote à conta8/plano212. Não forçar associação dos títulos
+a esse banco por nome, data, montante ou coincidência de código. Manter os
+componentes sem confirmação bancária até prova própria; ausência nesse recorte
+não é prova de inexistência de títulos/pagamentos em outras contas.
+
+Antes de pedir outro comando ao operador, consultar os metadados/contas do
+snapshot nativo já recebido e validado em D-338/V-361, mesmo piloto212/8/setembro,
+com o seu hash e vínculo ao job. Leitura limitada ao catálogo retido no backend
+CICA existente, em transação READ ONLY, sem nova consulta ao ERP, scan/carteira,
+replay de importação, escrita ou segredo. Retornar apenas códigos/nomes/tipos
+brutos de contas pertinentes, preservados privadamente; não emitir valores,
+documentos/históricos ou classificar LedgerAccount por inferência.
+
+A leitura serve à descoberta Q-28/Q-46 já autorizada em D-323, não é merge,
+deploy, ampliação de fontes, custo/serviço novo ou homologação financeira.
+Se as referências não estiverem no catálogo retido, registrar a falta e
+preparar a menor evidência técnica ainda necessária, sem reaproveitar plano
+de outra empresa/escritório ou repetir V-368/V-371/V-374.
+
+
+## D-352 — Preparar captura fiscal privada para revisão, sem normalizar caixa (12/11/2026)
+
+Continuidade de implementação D-344, após estrutura/contagens V-368/V-371/V-374.
+Preparar contrato, consultas fixas e recepção privada da fotografia fiscal de
+parcelas/pagamentos do piloto, reutilizando autenticação e protocolo de jobs
+do agente oficial, com identidade/hashes/duas leituras completas. Não resolver
+a lacuna de títulos só com diagnósticos; permitir revisão dos fatos originais
+antes de traduzir valores em títulos normalizados/alocações.
+
+Manter campos monetários como decimais literais de origem, chaves completas e
+códigos brutos. Tipo1 não vira principal nem caixa por inferência; retenção,
+zero, exclusão e estorno não são descartados/convertidos. Contas4/9 são nomes
+brutos do catálogo retido; não aprovam natureza, trânsito ou vínculo bancário.
+Recepção resulta somente em fonte privada aguardando revisão sem lançar,
+conciliar, baixar ERP, aprovar LedgerAccount ou habilitar exportação.
+
+Primeiro recorte é empresa212, setembro2026, com parcelas vencendo no período
+ou referenciadas por pagamentos do período; pagamentos somente do período.
+Não declarar cobertura vitalícia, saldo inicial/final, carteira inteira ou
+vínculo dos títulos à conta8. A conta8 é contexto de comparação já existente.
+Usar contagens de pagamentos e parcelas por vencimento já verificadas como
+guardas; controlar também a união de parcelas sem truncamento. Fonte valida
+chaves/pais/contagens, isolamento/revogação e replay, com limites de bytes/linhas.
+
+Desenvolvimento/fixtures genéricas e CI seguem a branch/PR em rascunho D-346.
+Não coletar valores, enfileirar job real, instalar novo agente ou implantar por
+essa preparação: apresentar a candidata exata e seus testes antes da etapa
+operacional que coleta a fonte para confronto semântico Q-46. Autorizações
+de dados/publicação mantêm seus limites; nenhuma amostra ou aceite é presumido.
+
+
+Refinamento técnico D-352: preparar candidata1.0.9/.NET10 e ensaio Windows de
+upgrade1.0.8→1.0.9 preservando bytes DPAPI, identidade, DSN e serviço SYSTEM.
+Oficial real continua1.0.8; pacote/CI não são instalação. Fonte bruta limitada
+4.000.000 bytes, dentro do limite HTTP existente, e50.000 linhas por consulta,
+sem truncamento. Filas não são criadas por padrão: comando administrativo mostra
+prévia, requer referência e confirmação explícita de captura; papel/carteira/
+contrato atuais são revalidados também na recepção. SQL e esquema incorporados
+por hash no binário; nenhum SQL ou credencial é recebido da nuvem.

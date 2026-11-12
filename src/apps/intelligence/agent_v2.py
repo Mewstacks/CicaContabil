@@ -92,6 +92,9 @@ def _agent(request: HttpRequest, *, lock: bool = False) -> EdgeAgent | None:
                     "agent-v2-ledger-next",
                     "agent-v2-ledger-complete",
                     "agent-v2-ledger-failure",
+                    "agent-v2-titles-next",
+                    "agent-v2-titles-complete",
+                    "agent-v2-titles-failure",
                 }
         configuration_route = (
             request.resolver_match is not None
