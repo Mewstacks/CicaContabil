@@ -394,3 +394,74 @@ def test_in_scope_unbalanced_snapshot_retained_for_review_without_partial_import
     assert ReconciliationSourceFile.objects.count() == 1 and not JournalEntry.objects.exists()
     job.refresh_from_db()
     assert job.error_code == "ledger_import_review" and job.source_file_id
+
+
+@pytest.mark.parametrize("code", ["source_changed", "source_unavailable", "source_contract"])
+def test_native_job_recovers_transient_failure_or_stops_for_review(setup_native, code):
+    agent, _, job, data = setup_native
+    response = post(
+        agent,
+        "agent-v2-ledger-failure",
+        dict(scope_revision=job.scope_revision, contract_hash=job.contract_hash, code=code),
+        job=job,
+    )
+    assert response.status_code == 200
+    job.refresh_from_db()
+    assert job.error_code == code
+    assert not ReconciliationSourceFile.objects.exists()
+    assert not JournalEntry.objects.exists()
+
+    poll = post(agent, "agent-v2-ledger-next", {"version": "1.0.8"})
+    assert poll.status_code == 200
+    if code == "source_contract":
+        assert response.json() == {"state": "review"}
+        assert poll.json() == {"job": None, "review_required": True}
+        assert complete(agent, job, data).status_code == 409
+        assert not ReconciliationSourceFile.objects.exists()
+        assert not JournalEntry.objects.exists()
+        return
+
+    assert response.json() == {"state": "queued"}
+    assert poll.json()["job"]["id"] == str(job.pk)
+    assert poll.json()["job"]["scope_revision"] == job.scope_revision
+    assert poll.json()["review_required"] is False
+    completed = complete(agent, job, data)
+    assert completed.status_code == 200 and completed.json()["state"] == "imported"
+    assert complete(agent, job, data).json() == completed.json()
+    assert ReconciliationSourceFile.objects.count() == 1
+    assert JournalEntry.objects.count() == 163
+
+
+@pytest.mark.django_db(transaction=True)
+def test_native_intake_rolls_back_storage_and_journals_then_accepts_retry(
+    setup_native, monkeypatch, tmp_path
+):
+    agent, _, job, data = setup_native
+
+    def fail_job_save(instance, *args, **kwargs):
+        assert instance.state == NativeLedgerCollection.State.IMPORTED
+        assert JournalEntry.objects.count() == 163
+        assert ReconciliationSourceFile.objects.count() == 1
+        assert instance.source_file.content.storage.exists(instance.source_file.content.name)
+        raise RuntimeError("Simulated interruption before saving the import receipt")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(NativeLedgerCollection, "save", fail_job_save)
+        with pytest.raises(RuntimeError, match="Simulated interruption"):
+            complete(agent, job, data)
+
+    job.refresh_from_db()
+    assert job.state == NativeLedgerCollection.State.QUEUED
+    assert job.source_file_id is None
+    assert not ReconciliationSourceFile.objects.exists()
+    assert not JournalEntry.objects.exists()
+    assert not JournalLine.objects.exists()
+    assert not IndependentLedgerRecord.objects.exists()
+    assert not AccountingEntry.objects.exists()
+    assert not any(path.is_file() for path in tmp_path.rglob("*"))
+
+    response = complete(agent, job, data)
+    assert response.status_code == 200 and response.json()["state"] == "imported"
+    assert ReconciliationSourceFile.objects.count() == 1
+    assert JournalEntry.objects.count() == 163 and JournalLine.objects.count() == 333
+    assert IndependentLedgerRecord.objects.count() == 163 and AccountingEntry.objects.count() == 163

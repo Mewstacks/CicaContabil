@@ -256,6 +256,51 @@ def test_one_hop_reference_outside_inventory_is_explicitly_unchecked():
     assert not result["financial_collection_enabled"]
 
 
+def test_focus_distinguishes_inventoried_columns_from_catalog_only_reference():
+    report, inventory = evidence()
+    for row in report["relation_columns"]:
+        row.update(primary_table_id=900, primary_table="SYNTHETIC_TITLE")
+    inventory["objects"].append(
+        {
+            "schema": "bethadba",
+            "name": "SYNTHETIC_INSTALLMENT",
+            "columns": [{"name": "DUE_DATE", "ordinal": 1}],
+        }
+    )
+    result = analyze_catalog(
+        report,
+        inventory,
+        focus_tables=("Synthetic_Title", "synthetic_installment", "CTLANCTO"),
+    )
+    assert result["version"] == "contad-relations-focus-v1"
+    assert "tables" not in result
+    assert not result["human_reviewed"] and not result["financial_collection_enabled"]
+    focus = result["focus"]
+    title, installment, ledger = focus["objects"]
+    assert title == {"name": "synthetic_title", "inventory_columns": None, "catalog_keys": None}
+    assert installment == {
+        "name": "synthetic_installment",
+        "inventory_columns": ["due_date"],
+        "catalog_keys": None,
+    }
+    assert ledger["catalog_keys"][0]["columns"] == ["CDEB_LAN", "CODI_EMP_PLANO"]
+    (relation,) = focus["declared_relations"]
+    assert not relation["target_key_in_selection"]
+    assert [(pair["foreign"], pair["primary"]) for pair in relation["columns"]] == [
+        ("CDEB_LAN", "CODI_CTA"),
+        ("CODI_EMP_PLANO", "CODI_EMP"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "focus", [("ctcontas", "CTCONTAS"), ("missing_table",), ("ctcontas",) * 13, ("other.ctcontas",)]
+)
+def test_focus_rejects_duplicate_unknown_excessive_or_qualified_names(focus):
+    report, inventory = evidence()
+    with pytest.raises(CatalogEvidenceError):
+        analyze_catalog(report, inventory, focus_tables=focus)
+
+
 @pytest.mark.parametrize(
     "content,limit",
     [
@@ -293,3 +338,33 @@ def test_cli_private_report_never_overwrites_or_echoes_rejected_values(tmp_path,
     captured = capsys.readouterr()
     assert "synthetic-hidden-password" not in captured.out + captured.err
     assert output.read_bytes() == before
+
+
+def test_cli_writes_only_focused_evidence(tmp_path):
+    report, inventory = evidence()
+    catalog, source, output = [
+        tmp_path / name for name in ("catalog.json", "inventory.json", "out.json")
+    ]
+    catalog.write_text(json.dumps(report))
+    source.write_text(json.dumps(inventory))
+    assert (
+        main(
+            [
+                "--catalog",
+                str(catalog),
+                "--inventory",
+                str(source),
+                "--output",
+                str(output),
+                "--focus-table",
+                "CTCCUSTO",
+                "--focus-table",
+                "CTCONTAS",
+            ]
+        )
+        == 0
+    )
+    result = json.loads(output.read_text())
+    assert [row["name"] for row in result["focus"]["objects"]] == ["ctccusto", "ctcontas"]
+    assert len(result["focus"]["declared_relations"]) == 1
+    assert "declared_relations" not in result and "tables" not in result
