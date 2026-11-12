@@ -3818,3 +3818,21 @@ privados; contratos/flags/partições/limites conferidos, sem semântica homolog
 Complemento fixo por lote/contas preparado,12 cenários relacionais/90 testes e
 Ruff aprovados.15 cenários Windows ainda aguardam CI exato antes do comando.
 Nenhuma nova consulta ERP, montante, agente/DSN alterado, deploy ou aceite.
+
+
+### 12/11/2026 — Complemento de lotes Windows aprovado (V-372)
+
+Etapa específica43274063310/54ba2fb aprovada,15 cenários. HTTPS/13659 bytes/
+SHA c9ad8b44…11e5d conferidos; comando fixado/hash enviado. Retorno novo aguarda
+operador; perfis anteriores preservados. CI integral desse run ainda em andamento.
+CI anterior43270180630/a560b7d integral aprovado:2080 PostgreSQL/2047 SQLite,
+163 subtestes,88 Windows,12 cenários e três imagens. Sem novo ERP/deploy/aceite.
+
+
+### 12/11/2026 — Recusa real e correção limitada dos vínculos (V-373)
+
+Retorno completed=false em reading_saidas_account_shapes, RuntimeException sem
+SQLState. Nenhum recorte completo ou lotes homologados. Não inferir a causa;
+novos códigos estáticos de recusa,1024 grupos de contas/sem truncamento e
+transporte gzip/hash4MiB preparados.90 testes locais/Ruff aprovados;17 cenários
+Windows aguardam CI exato. Mesma fonte/recorte, sem montantes ou ERP escrito.

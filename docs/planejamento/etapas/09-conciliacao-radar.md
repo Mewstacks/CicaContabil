@@ -560,7 +560,7 @@ inicial/fechamento de saldos ou homologação de layout/importação no Domínio
 - [x] Conferir fontes/hash, revisão explícita de datas e acesso/carteira/contrato atuais.
 - [x] Validar concorrência PostgreSQL, rollback, CLI e casos negativos em181 testes focados.
 - [x] Preparar complemento fiscal restrito a metadados e análise offline, sem pedir ao usuário os nomes técnicos.
-- [ ] Validar Windows e CI integral da fonte exata na branch pública autorizada em D-346.
+- [x] Windows e CI integral aprovados em fdbda60/43265387462; perfil em a560b7d/43270180630. Complementos posteriores têm provas próprias.
 - [x] V-368: receber/conferir o catálogo fiscal real:15 tabelas,557 colunas e242 relações, incluindo nota → parcela → pagamento → lançamento.
 - [ ] Comprovar tipos/componentes/estornos e amostras reais; implementar/homologar o adaptador de títulos Q-46.
 - [ ] Concluir carteira financeira, DE-PARA com IA, Q-47, D-73, treinamento e aceite.
@@ -584,5 +584,6 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 
 - [x] Receber/conferir perfil real do piloto sem repetir o catálogo.
 - [x] Preparar conferência sem montantes;12 cenários relacionais/90 testes aprovados.
-- [ ] Validar15 cenários Windows na fonte exata, conferir HTTPS/hash e obter novo recorte de vínculos.
+- [x] V-372:15 cenários Windows aprovados em54ba2fb/CI43274063310; HTTPS/hash conferidos.
+- [ ] V-373: corrigir recusa real em reading_saidas_account_shapes; causa ainda não identificada. Diagnóstico estático/limite1024/transporte compacto preparados,17 cenários Windows aguardando CI.
 - [ ] Confrontar semântica e eventos reais antes de habilitar títulos Q-46.

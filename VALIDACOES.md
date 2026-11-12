@@ -8695,3 +8695,54 @@ Harness Windows com15 cenários preparado para parâmetros, metadados, limites,
 fonte mutável, códigos, campos/cobertura e redação de segredo. CI exato pendente;
 nenhum comando entregue ou nova consulta ERP feita por esse preparo. O resultado
 V-371 anterior é preservado e não será pedido novamente. Q-46/Q-47/D-73 abertos.
+
+
+Fechamento adicional V-369: CI43270180630 integral aprovado para a fonte
+a560b7dbec778f73b883f2bce0756f4996565ed0. SQLite2047 testes/163 subtestes,
+35 skips; PostgreSQL2080/163, dois skips. Agente Linux, Windows88, os12 cenários
+do perfil, instalação/upgrade e três imagens aprovados. Não inclui o novo
+complemento por lote de V-372; este tem CI e retorno reais próprios.
+
+
+Continuidade V-372: etapa específica de vínculos fiscais no Windows5.1
+**aprovada**,15 cenários, fonte54ba2fb06b6406ba03a64081daa4da6a91998edc,
+CI43274063310. Empacotamento/regressão integral desse run ainda em andamento
+nesta observação; o CI completo anterior a560b7d/43270180630 permanece aprovado.
+
+Arquivo público HTTPS conferido byte a byte:13659 bytes/SHA-256
+c9ad8b44b72904e543ca72efdb3137b86d7193155dedc0a47755ff2d2ea11e5d.
+Comando privado0600 em Downloads/CONTAD-comando-vinculos-titulos-2026-11-12.txt,
+fixado por commit/hash, remoção somente do próprio temporário, credencial no
+prompt local. Execução acompanhada solicitada sob D-350; aguarda JSON novo de
+lotes/contas, sem pedir novamente V-368/V-371. Nada coletado por este complemento
+até essa observação; nenhum adaptador financeiro, baixa ERP ou aceite habilitado.
+
+
+## V-373 — Recusa real na conferência das contas de Saídas (12/11/2026)
+
+Responsável executou o comando fixado54ba2fb/hashc9ad8b44…11e5d e retornou
+completed=false, stage=reading_saidas_account_shapes, RuntimeException,
+SQLState/native vazios. Não houve relatório completo nem prova real de lotes.
+Resultados intermediários não foram devolvidos e não podem ser presumidos.
+Não repetir catálogo V-368 ou perfil concluído V-371. Fonte/homologação Q-46
+continua aberta; erro de limite128 é hipótese, não causa observada.
+
+Correção técnica em D-350 prepara razão estática de cada recusa, maior limite
+estrutural1024/sem truncar, e transporte compacto verificado até4MiB. Mesmas
+fontes/empresa/período, sem nova classe de dados, senha ou escrita ERP. Exige
+CI Windows/hash exatos antes do próximo comando; nenhuma correção executada
+no servidor nesta entrada.
+
+
+Continuidade V-373: correção local mantém as consultas/chaves/recorte e passa a
+emitir códigos estáticos por regra de recusa, distinguindo excesso de grupos,
+tempo, tipo/intervalo, cobertura e mudança de fonte sem mensagem do driver.
+Conta agora admite1024 formas, com TOP1025 e recusa integral de excesso; limite
+da cobertura permanece256. Transporte opcional gzip/base64/SHA com limite4MiB
+descompactado, sem truncar o JSON. A causa do retorno real anterior ainda não
+foi determinada; a ampliação é uma preparação limitada e explícita.
+
+Noventa testes locais de consultas/catálogos e Ruff aprovados. Harness ampliado
+para17 cenários Windows, incluindo129 formas de conta completas, recusa de1025,
+transporte/hash/bytes e código exato de cada recusa. Execução dessa nova versão
+aguarda CI antes do comando; não executar no servidor apenas por passar localmente.

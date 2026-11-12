@@ -16,7 +16,7 @@ def query(variable, family, note, suffix):
     match = re.search(rf"\${variable}=@'\n(.*?)\n'@", SOURCE.read_text(encoding="utf-8-sig"), re.S)
     assert match
     sql = match[1].replace("{family}", family).replace("{note}", note).replace("{suffix}", suffix)
-    return sql.replace("TOP 257 ", "").replace("TOP 129 ", "").replace("bethadba.", "")
+    return sql.replace("TOP 257 ", "").replace("TOP 1025 ", "").replace("bethadba.", "")
 
 
 @pytest.fixture

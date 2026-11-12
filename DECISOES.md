@@ -4620,3 +4620,18 @@ limites/timeout e diagnóstico sem segredos. Exercitar SQL em dados sintéticos
 adversariais e executor Windows no CI público D-346; somente após prova exata
 e hash disponibilizar comando acompanhado. Sem novo agente, DSN, escrita ERP,
 montantes, classificação ou exportação. Não repetir catálogo/perfil já recebidos.
+
+
+Refinamento D-350 antes da correção: retorno real do complemento54ba2fb não
+concluiu, em reading_saidas_account_shapes, RuntimeException sem SQLState.
+Não atribuir automaticamente a causa a ODBC ou ao limite128, nem usar resultados
+parciais não retornados. Acrescentar códigos estáticos por regra de recusa,
+sem publicar mensagem do driver ou valor de coluna. A hipótese de mais formas
+de contas é compatível com o recorte, mas ainda não está comprovada.
+
+Ampliar somente o limite de agrupamentos de contas para1024, sempre TOP1025
+para detectar excesso e sem truncamento. Preservar recorte/timeout/um milhão
+de linhas e limite256 da cobertura. Transporte opcional gzip/base64/hash com
+até4MiB descompactados, já usado no catálogo, evita texto grande no chat;
+provar conjunto acima de128 e transporte no Windows antes do novo comando.
+Não ampliar empresas, datas, colunas ou valores financeiros consultados.

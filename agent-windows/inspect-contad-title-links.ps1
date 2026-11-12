@@ -1,11 +1,11 @@
 ﻿#requires -Version 5.1
 <# D-350/Q-46: payment/ledger/lot structural counts only; no monetary columns. #>
 [CmdletBinding()]
-param()
+param([switch]$Compact)
 $ErrorActionPreference='Stop'
 if (-not [Environment]::Is64BitProcess) {throw 'Use Windows PowerShell de 64 bits.'}
 Add-Type -AssemblyName System.Data
-$connection=$null; $builder=$null; $credential=$null; $stage='credential_prompt'
+$connection=$null; $builder=$null; $credential=$null; $stage='credential_prompt'; $diagnosticCode='UNCLASSIFIED'
 $families=@(@{name='entradas';note='ent';suffix='entp'},@{name='saidas';note='sai';suffix='saip'},@{name='servicos';note='ser';suffix='serp'})
 
 $coverageQuery=@'
@@ -67,7 +67,7 @@ GROUP BY tipo_{suffix}, origempg_{suffix}, origem_reg
 ORDER BY tipo_{suffix}, origempg_{suffix}, origem_reg
 '@
 $accountQuery=@'
-SELECT TOP 129 p.tipo_{suffix}, x.codi_emp, l.CODI_EMP_PLANO, l.cdeb_lan, l.ccre_lan,
+SELECT TOP 1025 p.tipo_{suffix}, x.codi_emp, l.CODI_EMP_PLANO, l.cdeb_lan, l.ccre_lan,
  COUNT(*), COUNT(DISTINCT l.nume_lan)
 FROM bethadba.ef{family}pag p
 JOIN bethadba.ef{family}pag_lancto x ON x.fili_lan=p.codi_emp AND x.codi_{note}=p.codi_{note} AND x.parc_{suffix}=p.parc_{suffix} AND x.pgto_{suffix}=p.pgto_{suffix} AND x.tipo_{suffix}=p.tipo_{suffix} AND x.nropag_{suffix}=p.nropag_{suffix}
@@ -79,54 +79,58 @@ ORDER BY p.tipo_{suffix}, x.codi_emp, l.CODI_EMP_PLANO, l.cdeb_lan, l.ccre_lan
 $coverageFields=@('type_raw','origin_raw','origin_reg_raw','row_count','unlinked','direct_bank','same_lot_bank','multiple_bank_lots','multiple_bank_rows','multiple_bank_effects','cross_period_bank_lot','outside_only_bank_lot','missing_ledger','null_lot','missing_lot_header','foreign_accounting_company')
 $accountFields=@('type_raw','ledger_company_raw','chart_company_raw','debit_account_raw','credit_account_raw','link_row_count','distinct_entry_count')
 
+function Reject-Profile {param([string]$Code);$script:diagnosticCode=$Code;throw 'Perfil recusado por regra fixa.'}
 function Scope-Parameters {
  return @(@{type=[System.Data.Odbc.OdbcType]::Int;value=212},@{type=[System.Data.Odbc.OdbcType]::Date;value=[DateTime]::new(2026,9,1)},@{type=[System.Data.Odbc.OdbcType]::Date;value=[DateTime]::new(2026,10,1)})
 }
 function Expand-Family {param([string]$Query,$Family);return $Query.Replace('{family}',$Family.name).Replace('{note}',$Family.note).Replace('{suffix}',$Family.suffix)}
 function Read-SafeRows {
  param([string]$Query,[object[]]$Parameters,[string[]]$Fields,[int]$Limit,[bool]$Coverage)
- if ($timer.Elapsed.TotalSeconds -gt 180) {throw 'Tempo excedido.'}
+ if ($timer.Elapsed.TotalSeconds -gt 180) {Reject-Profile 'TIME_LIMIT'}
  $command=$connection.CreateCommand(); $reader=$null
  try {
   $command.CommandText=$Query; $command.CommandTimeout=20
   foreach ($item in $Parameters) {$p=$command.Parameters.Add('p',$item.type); $p.Value=$item.value}
   $reader=$command.ExecuteReader()
-  if ($reader.FieldCount -ne $Fields.Count) {throw 'Contrato de retorno inválido.'}
+  if ($reader.FieldCount -ne $Fields.Count) {Reject-Profile 'FIELD_COUNT'}
   $rows=New-Object 'System.Collections.Generic.List[object]'; $total=[long]0
   while ($reader.Read()) {
-   if ($rows.Count -ge $Limit -or $timer.Elapsed.TotalSeconds -gt 180) {throw 'Perfil incompleto por limite.'}
+   if ($rows.Count -ge $Limit) {
+    if ($Coverage) {Reject-Profile 'COVERAGE_GROUP_LIMIT'} else {Reject-Profile 'ACCOUNT_GROUP_LIMIT'}
+   }
+   if ($timer.Elapsed.TotalSeconds -gt 180) {Reject-Profile 'TIME_LIMIT'}
    $row=[ordered]@{}
    for ($i=0;$i -lt $Fields.Count;$i++) {
     $field=$Fields[$i]
     if ($reader.IsDBNull($i)) {
-     if ($field -notin @('type_raw','origin_raw','origin_reg_raw','chart_company_raw','debit_account_raw','credit_account_raw')) {throw 'Contagem ausente.'}
+     if ($field -notin @('type_raw','origin_raw','origin_reg_raw','chart_company_raw','debit_account_raw','credit_account_raw')) {Reject-Profile 'REQUIRED_COUNT_NULL'}
      $row[$field]=$null; continue
     }
     $value=$reader.GetValue($i)
     if ($field -eq 'origin_raw') {
      $text=([string]$value).TrimEnd([char[]]@(' '))
-     if ($text.Length -gt 1 -or $text -match '\p{C}') {throw 'Código bruto inválido.'}
+     if ($text.Length -gt 1 -or $text -match '\p{C}') {Reject-Profile 'RAW_CODE_FORMAT'}
      $row[$field]=$text
     } else {
-     if ($value -is [string]) {throw 'Tipo numérico inválido.'}
+     if ($value -is [string]) {Reject-Profile 'NUMERIC_TYPE'}
      $number=[long]$value
      $max=$(if ($field -in @('type_raw','origin_reg_raw')) {255} elseif ($field.EndsWith('_raw')) {2147483647} else {1000000})
-     if ($number -lt 0 -or $number -gt $max -or [decimal]$value -ne $number) {throw 'Número fora do limite.'}
+     if ($number -lt 0 -or $number -gt $max -or [decimal]$value -ne $number) {Reject-Profile 'NUMERIC_RANGE'}
      $row[$field]=$number
     }
    }
    if ($Coverage) {
     $count=$row.row_count
-    if ($count -lt 1) {throw 'Grupo vazio.'}
-    foreach ($field in $Fields) {if ($field -notin @('type_raw','origin_raw','origin_reg_raw','row_count') -and $row[$field] -gt $count) {throw 'Cobertura inconsistente.'}}
-    foreach ($field in @('direct_bank','same_lot_bank','outside_only_bank_lot','missing_ledger','null_lot','missing_lot_header','foreign_accounting_company')) {if ($row[$field] -gt ($count-$row.unlinked)) {throw 'Vínculo fora da cobertura.'}}
-    foreach ($field in @('multiple_bank_lots','multiple_bank_rows','multiple_bank_effects','cross_period_bank_lot')) {if ($row[$field] -gt $row.same_lot_bank) {throw 'Lote fora da cobertura.'}}
+    if ($count -lt 1) {Reject-Profile 'EMPTY_GROUP'}
+    foreach ($field in $Fields) {if ($field -notin @('type_raw','origin_raw','origin_reg_raw','row_count') -and $row[$field] -gt $count) {Reject-Profile 'COVERAGE_COUNT'}}
+    foreach ($field in @('direct_bank','same_lot_bank','outside_only_bank_lot','missing_ledger','null_lot','missing_lot_header','foreign_accounting_company')) {if ($row[$field] -gt ($count-$row.unlinked)) {Reject-Profile 'LINK_COVERAGE'}}
+    foreach ($field in @('multiple_bank_lots','multiple_bank_rows','multiple_bank_effects','cross_period_bank_lot')) {if ($row[$field] -gt $row.same_lot_bank) {Reject-Profile 'LOT_COVERAGE'}}
    } else {
     $count=$row.link_row_count
-    if ($count -lt 1 -or $row.distinct_entry_count -gt $count -or $row.ledger_company_raw -lt 1) {throw 'Forma contábil inconsistente.'}
+    if ($count -lt 1 -or $row.distinct_entry_count -gt $count -or $row.ledger_company_raw -lt 1) {Reject-Profile 'ACCOUNT_SHAPE'}
    }
    $total+=$count
-   if ($total -gt 1000000) {throw 'Mais de um milhão de linhas.'}
+   if ($total -gt 1000000) {Reject-Profile 'ROW_LIMIT'}
    $rows.Add($row)
   }
   return ,$rows.ToArray()
@@ -139,14 +143,14 @@ function Read-Snapshot {
   $parameters=@(Scope-Parameters)+@(@{type=[System.Data.Odbc.OdbcType]::Date;value=[DateTime]::new(2026,9,1)},@{type=[System.Data.Odbc.OdbcType]::Date;value=[DateTime]::new(2026,10,1)})
   $coverage=Read-SafeRows -Query (Expand-Family $coverageQuery $family) -Parameters $parameters -Fields $coverageFields -Limit 256 -Coverage $true
   $script:stage='reading_'+$family.name+'_account_shapes'
-  $accounts=Read-SafeRows -Query (Expand-Family $accountQuery $family) -Parameters (Scope-Parameters) -Fields $accountFields -Limit 128 -Coverage $false
+  $accounts=Read-SafeRows -Query (Expand-Family $accountQuery $family) -Parameters (Scope-Parameters) -Fields $accountFields -Limit 1024 -Coverage $false
   $result.Add([ordered]@{family=$family.name;payment_coverage=$coverage;linked_account_shapes=$accounts})
  }
  return ,$result.ToArray()
 }
 try {
  $credential=Get-Credential -UserName 'EXTERNO' -Message 'Vínculos estruturais do piloto: informe a credencial local do Domínio. Não envie a senha ao chat.'
- if ($null -eq $credential) {throw 'Consulta cancelada.'}
+ if ($null -eq $credential) {Reject-Profile 'CANCELLED'}
  $builder=New-Object System.Data.Odbc.OdbcConnectionStringBuilder
  $builder['DSN']='CICA_CONTAD'; $builder['UID']=$credential.UserName; $builder['PWD']=$credential.GetNetworkCredential().Password
  $connection=New-Object System.Data.Odbc.OdbcConnection -ArgumentList $builder.ConnectionString
@@ -159,20 +163,29 @@ try {
   $required[('ef'+$family.name+'pag_lancto')]=$keys+@('NUME_LAN','FILI_LAN')
  }
  foreach ($table in $required.Keys) {
-  if ($timer.Elapsed.TotalSeconds -gt 180) {throw 'Tempo de metadados excedido.'}
+  if ($timer.Elapsed.TotalSeconds -gt 180) {Reject-Profile 'METADATA_TIME_LIMIT'}
   $columns=$connection.GetSchema('Columns',[string[]]@($null,'bethadba',$table,$null))
   $names=@($columns.Rows | Where-Object {$_.TABLE_SCHEM -ieq 'bethadba' -and $_.TABLE_NAME -ieq $table} | ForEach-Object {([string]$_.COLUMN_NAME).ToUpperInvariant()})
-  foreach ($name in $required[$table]) {if ($names -notcontains $name) {throw 'Coluna esperada ausente.'}}
+  foreach ($name in $required[$table]) {if ($names -notcontains $name) {Reject-Profile 'MISSING_COLUMN'}}
  }
  $stage='first_snapshot'; $first=Read-Snapshot
  $stage='second_snapshot'; $second=Read-Snapshot
- if (($first | ConvertTo-Json -Depth 8 -Compress) -cne ($second | ConvertTo-Json -Depth 8 -Compress)) {throw 'Fonte mudou entre leituras.'}
- if ($timer.Elapsed.TotalSeconds -gt 180) {throw 'Tempo da conferência excedido.'}
+ if (($first | ConvertTo-Json -Depth 8 -Compress) -cne ($second | ConvertTo-Json -Depth 8 -Compress)) {Reject-Profile 'SOURCE_CHANGED'}
+ if ($timer.Elapsed.TotalSeconds -gt 180) {Reject-Profile 'TIME_LIMIT'}
  $stage='serializing_snapshot'
  $result=[ordered]@{version='contad-title-links-v1';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o');company_code=212;pilot_account_code=8;chart_company_code=212;period_start='2026-09-01';period_end_exclusive='2026-10-01';identical_read_count=2;families=$first;monetary_columns_selected=$false;names_or_documents_selected=$false;lot_membership_proves_bank_allocation=$false;payment_semantics_approved=$false;agent_configuration_read=$false;erp_write_performed=$false;financial_collection_enabled=$false}
  $json=$result | ConvertTo-Json -Depth 8 -Compress
- if ([Text.Encoding]::UTF8.GetByteCount($json) -gt 32768) {throw 'Perfil excedeu trinta e dois KiB.'}
- Write-Output $json
+ $bytes=[Text.Encoding]::UTF8.GetBytes($json)
+ if ($bytes.Length -gt 4194304) {Reject-Profile 'BYTE_LIMIT'}
+ if ($Compact) {
+  $crypto=[Security.Cryptography.SHA256]::Create()
+  try {$sha=[BitConverter]::ToString($crypto.ComputeHash($bytes)).Replace('-','').ToLowerInvariant()} finally {$crypto.Dispose()}
+  $buffer=New-Object IO.MemoryStream
+  $gzip=New-Object IO.Compression.GZipStream($buffer,[IO.Compression.CompressionMode]::Compress,$true)
+  try {$gzip.Write($bytes,0,$bytes.Length)} finally {$gzip.Dispose()}
+  try {$packed=[Convert]::ToBase64String($buffer.ToArray())} finally {$buffer.Dispose()}
+  [ordered]@{version='contad-title-links-transfer-v1';sha256=$sha;bytes=$bytes.Length;encoding='gzip-base64';data=$packed} | ConvertTo-Json -Compress | Write-Output
+ } else {Write-Output $json}
 } catch {
  $types=New-Object 'System.Collections.Generic.List[string]'; $states=New-Object 'System.Collections.Generic.List[string]'; $native=New-Object 'System.Collections.Generic.List[int]'
  $exception=$_.Exception
@@ -181,7 +194,7 @@ try {
   if ($exception -is [System.Data.Odbc.OdbcException]) {foreach ($item in @($exception.Errors | Select-Object -First 20)) {if ($item.SQLState -match '^[A-Z0-9]{5}$') {$states.Add($item.SQLState)}; $native.Add([int]$item.NativeError)}}
   $exception=$exception.InnerException
  }
- [ordered]@{version='contad-title-links-v1';completed=$false;stage=$stage;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);native_error_codes=@($native.ToArray() | Select-Object -Unique)} | ConvertTo-Json -Depth 5 -Compress | Write-Output
+ [ordered]@{version='contad-title-links-v1';completed=$false;stage=$stage;reason_code=$diagnosticCode;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);native_error_codes=@($native.ToArray() | Select-Object -Unique)} | ConvertTo-Json -Depth 5 -Compress | Write-Output
  Write-Error 'Vínculos não conferidos. Envie somente o JSON seguro; preserve DSN e agente.' -ErrorAction Continue
  exit 1
 } finally {if ($null -ne $connection) {$connection.Dispose()}; if ($null -ne $builder) {$builder.Clear()}; $credential=$null}
