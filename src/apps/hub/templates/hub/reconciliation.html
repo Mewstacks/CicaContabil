@@ -5,7 +5,7 @@
 {% if not reconciliation_demo %}
 {% include 'hub/partials/reconciliation_source_context.html' %}
 <nav class="workspace-tabs reconciliation-flow-tabs" aria-label="Fluxo da conciliação">
-  <a href="#visao-geral" aria-current="page" data-reconciliation-tab>1. Importar</a><a href="#processamentos" data-reconciliation-tab>2. Processar</a><a href="#movimentos" data-reconciliation-tab>3. Revisar</a><a href="#exportacoes" data-reconciliation-tab>4. Exportar</a><a href="#conciliacao-ofx" data-reconciliation-tab>Conferir OFX</a>
+  <a href="#visao-geral" aria-current="page" data-reconciliation-tab>Visão geral</a><a href="#processamentos" data-reconciliation-tab>Importações</a><a href="#movimentos" data-reconciliation-tab>Movimentos</a><a href="#exportacoes" data-reconciliation-tab>Exportações</a><a href="#conciliacao-ofx" data-reconciliation-tab>Conferir OFX</a>
 </nav>
 <section id="visao-geral" class="workspace-panel reconciliation-v2-overview" data-reconciliation-panel>
   <header class="workspace-panel-head"><div><h2>Resumo da carteira</h2></div><div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-configuration' %}">Configurar referências</a></div></header>
@@ -19,6 +19,15 @@
     <article class="{% if reconciliation_v2_stats.pending or reconciliation_v2_stats.conflicts %}metric-needs-attention{% endif %}"><span>Precisam de revisão</span><strong>{{ reconciliation_v2_stats.pending|add:reconciliation_v2_stats.conflicts }}</strong><small>{{ reconciliation_v2_stats.conflicts }} conflito{{ reconciliation_v2_stats.conflicts|pluralize }}</small><a href="?movement_review=pending#movimentos">Abrir fila</a></article>
     <article><span>Conciliados</span><strong>{{ reconciliation_v2_stats.reconciled }}</strong><small>{{ reconciliation_v2_stats.partially_reconciled }} parcia{{ reconciliation_v2_stats.partially_reconciled|pluralize:"l,is" }}</small><a href="#movimentos">Ver evidências</a></article>
   </div>
+  {% if reconciliation_conference_sources %}
+  <div class="reconciliation-source-list" aria-labelledby="conference-sources-heading">
+    <header class="workspace-panel-head"><div><h3 id="conference-sources-heading">Extratos para conferir</h3></div></header>
+    <div class="data-table-wrap"><table class="operational-table reconciliation-run-table"><thead><tr><th>Empresa e conta</th><th>Extrato</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+      {% for source in reconciliation_conference_sources %}<tr><td data-label="Empresa e conta"><strong>{{ source.company.name }}</strong><small>{{ source.financial_account.name }}</small></td><td data-label="Extrato">{{ source.original_filename }}</td><td class="table-action-cell" data-label="Ação"><a class="row-action-button" href="{% url 'hub:reconciliation-source-review' source.id %}">Abrir conferência<span class="sr-only"> de {{ source.original_filename }}</span></a></td></tr>{% endfor %}
+    </tbody></table></div>
+    {% if reconciliation_conference_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos extratos para conferência">{% if reconciliation_conference_page.has_previous %}<a class="button button-quiet button-small" href="?{% if reconciliation_conference_querystring %}{{ reconciliation_conference_querystring }}&amp;{% endif %}conference_page={{ reconciliation_conference_page.previous_page_number }}#visao-geral" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ reconciliation_conference_page.number }} de {{ reconciliation_conference_page.paginator.num_pages }}</span>{% if reconciliation_conference_page.has_next %}<a class="button button-quiet button-small" href="?{% if reconciliation_conference_querystring %}{{ reconciliation_conference_querystring }}&amp;{% endif %}conference_page={{ reconciliation_conference_page.next_page_number }}#visao-geral" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  </div>
+  {% endif %}
 </section>
 
 <section id="processamentos" class="workspace-panel reconciliation-v2-panel" data-reconciliation-panel>

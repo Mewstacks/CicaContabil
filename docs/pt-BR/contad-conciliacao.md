@@ -18,7 +18,32 @@ se houver mais de uma opção compatível, interrompa a importação e informe a
 responsável qual identificação está faltando. Não escolha uma empresa parecida
 nem cadastre contas provisórias para contornar uma sincronização incompleta.
 
-## Importar o extrato
+## Conferir os arquivos que já estão no sistema
+
+Na página de conciliação, use **Abrir conferência** ou escolha o arquivo em
+**Extratos para conferir**. A tela identifica empresa, conta, período e os
+registros recebidos do extrato e do Razão. A ficha externa de novas contas não
+é requisito para conferir uma conta que já possui fontes vinculadas.
+
+1. Em **A conferir**, localize o histórico e abra **Comparar e revisar**.
+2. Compare data, histórico, documento e valor com o registro independente.
+   **Consultar evidências dos registros desta página** permite examinar a fonte.
+   Data e valor iguais são sugestões; confira qual registro representa o fato.
+3. Selecione o registro correto, confira **Valor alocado**, descreva a evidência
+   da relação e use **Confirmar conciliação**. Uma relação parcial deixa o valor
+   restante disponível; o sistema limita a alocação aos dois registros.
+4. Use **Voltar à conferência**. O resumo e os filtros **A conferir** e
+   **Conferidos** acompanham as confirmações. Para corrigir uma relação, abra
+   **Ver evidências** e use **Desfazer**; o histórico da decisão é preservado.
+5. Use **Baixar relatório de conferência** para guardar o resultado e as
+   pendências. Leia **Cobertura dos arquivos e saldos**: diferença zero entre
+   variações não comprova saldo inicial, cobertura integral ou revisão humana.
+
+Esse caminho compara escrituração já recebida e não exige preencher débito e
+crédito de um novo lançamento. Não produz importação no ERP. Novas empresas,
+contas ou títulos dependem das fontes e dos vínculos próprios.
+
+## Importar outro extrato
 
 1. Abra **Nova importação** e selecione a empresa e a conta corretas.
 2. Escolha a origem bancária e o arquivo original do período. Os formatos

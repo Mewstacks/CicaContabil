@@ -3126,7 +3126,7 @@ def test_reconciliation_exposes_searchable_company_pickers_and_real_workflow() -
     central = client.get(reverse("hub:reconciliation")).content.decode()
     configuration = client.get(reverse("hub:reconciliation-configuration")).content.decode()
 
-    for step in ("1. Importar", "2. Processar", "3. Revisar", "4. Exportar"):
+    for step in ("Visão geral", "Importações", "Movimentos", "Exportações"):
         assert step in central
     assert "Importar o primeiro extrato ou documento" in central
     assert "Selecionar arquivos" in central

@@ -1,0 +1,42 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-conference.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel conference-intro">
+  <header class="workspace-panel-head">
+    <div><h2>{{ conference_source.company.name }}</h2><p>{{ conference_source.financial_account.name }} · {{ conference_source.original_filename }}</p></div>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a>
+  </header>
+  <p class="operation-context">Período dos movimentos: {{ conference_report.period_start }} a {{ conference_report.period_end }}.</p>
+  <div class="metric-strip reconciliation-metrics" aria-label="Resumo da conferência">
+    <article><span>Movimentos do extrato</span><strong>{{ conference_report.bank_count }}</strong><small>Variação: R$ {{ conference_bank_net_brl|floatformat:2 }}</small></article>
+    <article><span>Registros do Razão</span><strong>{{ conference_report.ledger_count }}</strong><small>Variação: R$ {{ conference_ledger_net_brl|floatformat:2 }}</small></article>
+    <article><span>Movimentos conferidos</span><strong>{{ conference_confirmed_count }}</strong><small>{{ conference_report.bank_unmatched_count }} com valor a confirmar</small></article>
+    <article><span>Diferença nas variações</span><strong>R$ {{ conference_difference_brl|floatformat:2 }}</strong><small>Valores iguais ainda precisam de conferência.</small></article>
+  </div>
+  <div class="conference-report-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-source-report' conference_source.id %}">Baixar relatório de conferência</a><span>O relatório acompanha as confirmações registradas na CICA.</span></div>
+  <details class="conference-limits"><summary>Cobertura dos arquivos e saldos</summary><ul>{% for warning in conference_report.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>
+</section>
+<section class="workspace-panel" aria-labelledby="conference-movements-heading">
+  <header class="workspace-panel-head"><div><h2 id="conference-movements-heading">Conferir os movimentos</h2></div><span class="record-count">{{ conference_page.paginator.count }} resultado{{ conference_page.paginator.count|pluralize }}</span></header>
+  <form method="get" class="conference-filters" aria-label="Filtrar a conferência">
+    <div class="field"><label for="conference-query">Histórico do extrato</label><input id="conference-query" name="q" type="search" value="{{ conference_query }}" maxlength="100" autocomplete="off"></div>
+    <div class="field"><label for="conference-state">Conferência</label><select id="conference-state" name="state"><option value="pending"{% if conference_state == 'pending' %} selected{% endif %}>A conferir</option><option value="confirmed"{% if conference_state == 'confirmed' %} selected{% endif %}>Conferidos</option><option value="all"{% if conference_state == 'all' %} selected{% endif %}>Todos</option></select></div>
+    <button class="button button-quiet" type="submit">Aplicar filtros</button>
+    {% if conference_query or conference_state != 'pending' %}<a class="button button-quiet" href="{% url 'hub:reconciliation-source-review' conference_source.id %}">Limpar filtros</a>{% endif %}
+  </form>
+  {% if conference_rows %}
+  <div class="data-table-wrap"><table class="operational-table conference-review-table"><thead><tr><th>Data</th><th>Histórico do extrato</th><th>Valor</th><th>Razão para comparar</th><th>Conferência</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
+    {% for row in conference_rows %}<tr>
+      <td data-label="Data">{{ row.movement.occurred_on|date:'SHORT_DATE_FORMAT' }}</td>
+      <td data-label="Histórico do extrato"><strong>{{ row.movement.original_description|default:row.movement.description }}</strong><small>{% if row.movement.direction == 'inflow' %}Entrada{% else %}Saída{% endif %}</small></td>
+      <td data-label="Valor">R$ {{ row.amount_brl|floatformat:2 }}</td>
+      <td data-label="Razão para comparar">{% if row.candidate_count == 1 %}<span>{{ row.candidate_history|default:'Histórico não informado na fonte' }}</span><small>Data, valor e direção coincidem. Confira a evidência.</small>{% elif row.candidate_count %}<strong>{{ row.candidate_count }} registros para comparar</strong><small>Escolha a correspondência correta na revisão.</small>{% else %}<span>Sem correspondência exata</span><small>Abra a revisão para consultar os registros e as alocações.</small>{% endif %}</td>
+      <td data-label="Conferência"><span class="status-badge {% if row.state == 'confirmed' %}is-active{% elif row.state == 'partial' %}is-warning{% else %}is-muted{% endif %}">{{ row.state_label }}</span>{% if row.state == 'partial' %}<small>R$ {{ row.remaining_brl|floatformat:2 }} a confirmar</small>{% endif %}</td>
+      <td class="table-action-cell" data-label="Ação"><a class="row-action-button" href="{{ row.detail_url }}">{% if can_review_conference and row.state != 'confirmed' %}Comparar e revisar{% else %}Ver evidências{% endif %}<span class="sr-only"> do movimento de {{ row.movement.occurred_on|date:'SHORT_DATE_FORMAT' }}</span></a></td>
+    </tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>{% if conference_state == 'pending' and not conference_query %}Nenhum movimento com valor a confirmar{% else %}Nenhum movimento corresponde aos filtros{% endif %}</strong><a class="button button-quiet" href="?state=all">Ver todos os movimentos</a></div>{% endif %}
+  {% if conference_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos movimentos da conferência">{% if conference_page.has_previous %}<a class="button button-quiet button-small" href="?{{ conference_querystring }}&amp;page={{ conference_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ conference_page.number }} de {{ conference_page.paginator.num_pages }}</span>{% if conference_page.has_next %}<a class="button button-quiet button-small" href="?{{ conference_querystring }}&amp;page={{ conference_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+</section>
+{% endblock %}
