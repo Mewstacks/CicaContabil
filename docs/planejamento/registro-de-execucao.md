@@ -3919,3 +3919,12 @@ Responsável sem acesso ao Domínio; C01/C02 adiados, sem data presumida.
 Captura/exemplos preservados e semântica pendente. Continuar o desenvolvimento
 independente por comparação técnica de fontes retidas, sem coleta adicional
 ou ativação financeira. Não repetir a solicitação de conferência agora.
+
+
+### 12/11/2026 — Comparador de fontes retidas preparado (D-355/V-381)
+
+Implementados módulo/comando administrativo de comparação por chaves completas,
+sem interpretação financeira ou alterações de dados.88 testes locais/duas
+verificações PostgreSQL pendentes, Ruff/MyPy/Django/migrações aprovados.
+Código genérico e fixtures sintéticas preparados para CI D-346. Nenhuma nova
+coleta, consulta ERP, interface, dado privado público ou aceite C01/C02.

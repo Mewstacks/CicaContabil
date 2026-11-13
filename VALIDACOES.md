@@ -8994,3 +8994,34 @@ C02, aprovação semântica, nova captura ou aceite. Fontes, hashes e exemplos
 V-378/V-379 continuam válidos e privados. Solicitação não será repetida
 agora; desenvolvimento independente continua com dados sintéticos e fontes
 já retidas, sem presumir interpretação financeira ou data de retomada.
+
+
+## V-381 — Comparação técnica de fontes fiscais implementada (12/11/2026)
+
+D-355: módulo e comando compare_contad_native_titles comparam fotografias
+retidas por chaves completas. Nova captura sem mudança de linhas não vira
+fato novo; alteração literal é sinalizada por nome de campo e referência
+opaca/posição na fonte, sem expor montante ou documento no resumo/detalhes.
+Pai ausente da união vencendo-ou-pago fica como ausência no recorte, não como
+exclusão ERP/estorno. Revisão semântica permanece obrigatória.
+
+Leitura exige fonte captured íntegra por hash/contrato/escopo/recibo e acesso
+operacional atual do usuário, revalidado após I/O. Fontes de outro escritório,
+conta ou contexto e a mesma captura com conteúdos divergentes são recusadas.
+Sem escrita no banco, coleta adicional, normalização, lançamento, reversão ou
+aprovação. Saída opcional privada0600 recusa arquivo existente e symlink.
+
+Validação local:88 testes aprovados, dois casos exclusivos de PostgreSQL
+ignorados; inclui28 testes novos de comparação, isolamento, recusa, nulidade
+e literalidade, alteração de chaves, vínculos entre empresa contábil/filial,
+revogação durante leitura e preservação de arquivos. Ruff global, MyPy dos
+dois módulos, Django check e migrações sem alterações aprovados. CI integral
+exato/publicação ainda pendentes nesta entrada; nenhuma fonte real nova.
+Conferência C01/C02 continua adiada, sem interpretação ou aceite presumido.
+
+
+Continuidade V-381: teste adicional de falha de armazenamento aprovado (29º
+caso de comparação), verificando recusa segura sem expor detalhes privados
+do backend. Ruff global e MyPy novamente aprovados após essa guarda. Os88
+casos anteriores não foram repetidos localmente; CI integral verificará a
+árvore final exata, incluindo os dois testes exclusivos de PostgreSQL.
