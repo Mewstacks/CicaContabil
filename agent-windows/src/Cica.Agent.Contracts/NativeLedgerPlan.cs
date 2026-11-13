@@ -31,6 +31,17 @@ internal sealed class NativeLedgerPlan
     }
     internal static string Digest(byte[] bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
     internal static string LocalContractHash => Digest(Resource("manifest.json"));
+    internal static async Task<JsonDocument> NextJob(
+        Func<bool, CancellationToken, Task<JsonDocument>> send, CancellationToken token)
+    {
+        try { return await send(true, token); }
+        catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            // Release 86 understands the same fixed pilot, without the capability flag.
+            // Never retry authorization, scope, transport or certificate failures.
+            return await send(false, token);
+        }
+    }
     internal static void SelfVerify()
     {
         using JsonDocument document = JsonDocument.Parse(Resource("manifest.json"));
