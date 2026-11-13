@@ -288,3 +288,29 @@ fornecem referência de componentes, com limites registrados em D-349/V-370:
 Não estender esses mapas a Serviços, códigos ausentes ou principal/líquido.
 Retenção, estorno/exclusão, composição do saldo e efeito no banco ainda exigem
 confronto real Q-46. Não importar os conjuntos para produzir a prova.
+
+
+## Comparação técnica de capturas retidas — D-355/V-381
+
+`compare_contad_native_titles` identifica registros novos, ausentes do recorte
+atual e com campos literais alterados. A comparação usa as chaves completas
+de parcelas, componentes e vínculos; preserva a distinção entre empresa
+contábil (`codi_emp`) e filial fiscal (`fili_lan`) nos vínculos. Não interpreta
+ausência como exclusão, estorno ou quitação. Mesmo quando não há mudanças,
+a revisão semântica e o vínculo bancário continuam pendentes.
+
+Informe o escritório, um usuário operacional atualmente autorizado e os dois
+UUIDs de captura. O comando lê somente fontes privadas já retidas, verifica
+hash/contrato/recibo e revalida o acesso após a leitura. Não altera registros
+e não consulta o ERP. O resumo mostra apenas contagens/hashes; referências
+de linhas nos detalhes usam hash da chave e posição1-based na fonte original,
+sem expor o identificador fiscal ou valor.
+
+```text
+python manage.py compare_contad_native_titles --organization UUID_ESCRITORIO --actor UUID_USUARIO --previous UUID_CAPTURA_ANTERIOR --current UUID_CAPTURA_ATUAL --output /local/privado/comparacao.json
+```
+
+Substitua os UUIDs e escolha um caminho novo. `--output` é opcional, privado
+com modo0600 e recusa sobrescrita/symlink; sem ele, só o resumo sai no console.
+Uma comparação de uma fonte consigo mesma prova apenas leitura/reenvio, sem
+provar atualização real, qualidade financeira ou nova amostra D-73.

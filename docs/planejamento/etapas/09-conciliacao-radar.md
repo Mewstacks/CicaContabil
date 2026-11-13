@@ -617,3 +617,12 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Oficial1.0.9/mesma identidade/DPAPI e fonte original/hash/contagens conferidos.
 - [x] Sete exemplos técnicos privados, idempotência e preservação dos dados anteriores conferidos.
 - [ ] D-355/V-380: C01/retenções e C02/juros adiados por indisponibilidade do Domínio; não solicitar agora. Semântica/gates continuam pendentes.
+
+
+### Desenvolvimento independente da conferência adiada — D-355/V-381
+
+- [x] Comparador por chaves completas, referência opaca/posição e literalidade das mudanças.
+- [x] Leitura privada/isolamento/acesso atual, integridade e recusa de saída existente/symlink.
+- [x]88 testes locais e checagens estáticas/Django aprovados; sem migração.
+- [ ] CI exato, integração/publicação compatível e prova técnica de leitura retida.
+- [ ] C01/C02 adiados; ausência ou comparação sem mudanças não prova estorno/semântica.
