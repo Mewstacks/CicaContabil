@@ -212,6 +212,11 @@ urlpatterns = [
         name="reconciliation-mapping",
     ),
     path(
+        "app/conciliacao/arquivos/<uuid:source_id>/revisao/",
+        views.reconciliation_source_review,
+        name="reconciliation-source-review",
+    ),
+    path(
         "app/conciliacao/arquivos/<uuid:source_id>/conferencia/",
         views.reconciliation_source_report,
         name="reconciliation-source-report",

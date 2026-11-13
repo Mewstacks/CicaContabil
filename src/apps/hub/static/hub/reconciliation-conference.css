@@ -1,0 +1,29 @@
+.conference-intro .operation-context{max-width:80ch}
+.conference-intro > :not(.workspace-panel-head){margin-left:22px;margin-right:22px}
+.conference-intro .conference-limits{margin-bottom:14px}
+.conference-filters{padding:0 22px}
+.conference-report-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:20px 0;color:var(--muted);font-size:13px}
+.conference-limits{border-top:1px solid var(--line);padding-top:8px}
+.conference-limits summary{display:flex;align-items:center;min-height:44px;color:var(--blue);cursor:pointer;font-weight:700}
+.conference-limits summary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.conference-limits li{max-width:80ch;margin:8px 0;color:var(--muted);font-size:13px;line-height:1.5}
+.conference-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin-bottom:20px}
+.conference-filters .field:first-child{flex:1 1 260px}.conference-filters .field{min-width:160px}
+.conference-filters input,.conference-filters select{width:100%;min-height:44px;border:1px solid var(--control-border);border-radius:var(--radius-sm);padding:9px 11px;background:var(--surface);color:var(--ink);font:inherit;box-sizing:border-box}
+.conference-filters .button{min-height:44px}
+.conference-review-table td{vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.5}
+.conference-review-table td:nth-child(2),.conference-review-table td:nth-child(4){min-width:170px;max-width:38ch}
+.conference-review-table td small{display:block;margin-top:5px;color:var(--muted)}
+.conference-review-table .row-action-button{min-height:44px;white-space:normal}
+@media(max-width:760px){
+  .conference-intro .workspace-panel-head{align-items:stretch;flex-direction:column}
+  .conference-filters{display:grid;grid-template-columns:1fr}.conference-filters .field{min-width:0}
+  .conference-report-actions{align-items:stretch;flex-direction:column}
+  .conference-review-table{display:block;width:100%;min-width:0}
+  .conference-review-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  .conference-review-table tbody{display:grid}
+  .conference-review-table tr{display:grid;gap:12px;border-top:1px solid var(--line);padding:18px 0;content-visibility:visible;contain-intrinsic-size:none}
+  .conference-review-table td,.conference-review-table td:nth-child(2),.conference-review-table td:nth-child(4){display:block;min-width:0;max-width:none;width:100%;padding:0;border:0}
+  .conference-review-table td::before{content:attr(data-label);display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700}
+  .conference-review-table .table-action-cell::before{content:none}.conference-review-table .row-action-button{display:flex;justify-content:center;width:100%}
+}

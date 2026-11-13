@@ -9253,6 +9253,21 @@ def _reconciliation_v2_context(
         .order_by("created_at")
         .first()
     )
+    conference_sources = ReconciliationSourceFile.objects.filter(
+        organization=office, company__in=companies, origin="bank_statement",
+        financial_account__isnull=False, movements__isnull=False,
+    ).select_related("company", "financial_account").distinct().order_by("-created_at", "-pk")
+    if selected_source:
+        conference_sources = conference_sources.filter(pk=selected_source.pk)
+    conference_params = request.GET.copy() if request else None
+    if conference_params is not None:
+        conference_params.pop("conference_page", None)
+    conference_page = Paginator(conference_sources, 20).get_page(
+        request.GET.get("conference_page") if request else 1
+    )
+    ready_source = conference_sources.filter(
+        financial_account__ledger_records__source_file__origin="accounting",
+    ).first()
     if blocked_run:
         guidance = _reconciliation_run_guidance(
             blocked_run, local_ocr_available=local_ocr_is_available
@@ -9276,6 +9291,19 @@ def _reconciliation_v2_context(
             ),
             "label": "Revisar conflitos",
             "href": "?movement_review=conflict#movimentos",
+        }
+    elif ready_source is not None:
+        next_action = {
+            "kind": "link", "eyebrow": "PRÓXIMA AÇÃO",
+            "title": "Conferir o extrato com o Razão",
+            "description": (
+                "Abra a conferência desta conta, compare os registros recebidos "
+                "e confirme as correspondências na tela."
+            ),
+            "label": "Abrir conferência",
+            "href": reverse(
+                "hub:reconciliation-source-review", kwargs={"source_id": ready_source.pk}
+            ),
         }
     elif stats["pending"]:
         next_action = {
@@ -9356,6 +9384,11 @@ def _reconciliation_v2_context(
         "reconciliation_v2_stats": stats,
         "reconciliation_active_run_count": active_run_count,
         "reconciliation_next_action": next_action,
+        "reconciliation_conference_sources": list(conference_page.object_list),
+        "reconciliation_conference_page": conference_page,
+        "reconciliation_conference_querystring": (
+            conference_params.urlencode() if conference_params else ""
+        ),
         "reconciliation_local_ocr_available": local_ocr_is_available,
         "reconciliation_dominio_export_homologated": (
             settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
@@ -10471,6 +10504,40 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
 
 @office_required
 @require_http_methods(["GET"])
+def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    source = get_object_or_404(
+        ReconciliationSourceFile.objects.select_related("company", "financial_account"),
+        pk=source_id, organization=context["office"], company__in=context["companies"],
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    from apps.hub.reconciliation_workbench import source_review_context
+
+    try:
+        context.update(source_review_context(source, request))
+    except OSError:
+        messages.error(
+            request,
+            "O arquivo original não está disponível. Tente novamente ou solicite suporte.",
+        )
+        return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    except ReconciliationError as exc:
+        messages.error(request, str(exc))
+        return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    context.update({
+        "page_title": "Conferir extrato e Razão",
+        "can_review_conference": bool(context["support_can_mutate"])
+        and _can_manage_reconciliation(context),
+    })
+    response = render(request, "hub/reconciliation_source_review.html", context)
+    response["Cache-Control"] = "no-store, private"
+    return response
+
+
+@office_required
+@require_http_methods(["GET"])
 def reconciliation_source_report(request: HttpRequest, source_id: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
@@ -10666,6 +10733,8 @@ def reconciliation_movement_bulk_action(request: HttpRequest) -> HttpResponse:
 @require_http_methods(["GET", "POST"])
 @transaction.atomic
 def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> HttpResponse:
+    from apps.hub.reconciliation_workbench import conference_return_url
+
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
         return blocked
@@ -10946,7 +11015,32 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED],
         )
         .exclude(movement=movement)
+        .select_related(
+            "independent_source__accounting_entry__data_source",
+            "independent_source__financial_account",
+            "independent_source__bank_line",
+            "independent_source__source_file",
+        )
         .prefetch_related("lines")
+    )
+    # Apply independent-source compatibility before pagination. Otherwise a matching
+    # entry can disappear behind unrelated accounts and dates on another page.
+    independent_scope = Q(
+        independent_source__financial_account_id=movement.financial_account_id,
+        independent_source__accounting_entry__direction=movement.direction,
+        independent_source__accounting_entry__occurred_on=movement.occurred_on,
+        independent_source__source_file__company_id=movement.company_id,
+    )
+    candidate_query = candidate_query.filter(
+        (Q(independent_source__isnull=True) & ~Q(purpose="source_ledger")) | independent_scope
+    ).annotate(
+        conference_exact_amount=Case(
+            When(
+                independent_source__accounting_entry__amount_cents=abs(movement.amount_cents),
+                then=Value(1),
+            ),
+            default=Value(0), output_field=IntegerField(),
+        )
     )
     if movement.occurred_on:
         candidate_query = candidate_query.filter(
@@ -10958,7 +11052,8 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     candidate_query_params = request.GET.copy()
     candidate_query_params.pop("candidate_page", None)
     candidate_page = Paginator(
-        candidate_query.order_by("-occurred_on", "-created_at"), 25
+        candidate_query.order_by("-conference_exact_amount", "-occurred_on", "-created_at", "pk"),
+        25,
     ).get_page(request.GET.get("candidate_page"))
     candidate_entries = list(candidate_page.object_list)
     movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100  # type: ignore[attr-defined]
@@ -11048,6 +11143,8 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             suggestions.append(
                 {
                     "entry": entry,
+                    "independent_record": independent,
+                    "source_amount_brl": Decimal(capacity) / 100,
                     "score": score,
                     "reasons": "; ".join(reasons),
                     "available_cents": available,
@@ -11147,6 +11244,7 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
     context.update(
         {
             "page_title": "Revisar movimento",
+            "conference_return_url": conference_return_url(request, movement.source_file_id),
             "can_review_movement": bool(context["support_can_mutate"])
             and _can_manage_reconciliation(context),
             "movement": movement,
