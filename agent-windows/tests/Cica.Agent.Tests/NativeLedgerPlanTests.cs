@@ -5,6 +5,42 @@ namespace Cica.Agent.Service;
 
 public class NativeLedgerPlanTests
 {
+    [Fact]
+    public async Task BackendRollbackNegotiatesLegacyPilotOnlyAfterCapabilityIsRejected()
+    {
+        var attempts = new List<bool>();
+        using var response = await NativeLedgerPlan.NextJob((expanded, _) => {
+            attempts.Add(expanded);
+            if (expanded) throw new HttpRequestException("legacy", null, System.Net.HttpStatusCode.BadRequest);
+            return Task.FromResult(JsonDocument.Parse("{\"job\":null}"));
+        }, CancellationToken.None);
+        Assert.Equal(new[] { true, false }, attempts);
+        Assert.Equal(JsonValueKind.Null, response.RootElement.GetProperty("job").ValueKind);
+    }
+    [Theory]
+    [InlineData(401)]
+    [InlineData(403)]
+    [InlineData(409)]
+    [InlineData(500)]
+    public async Task AuthorizationAndScopeFailuresNeverNegotiateAroundARejection(int status)
+    {
+        int attempts = 0;
+        await Assert.ThrowsAsync<HttpRequestException>(() => NativeLedgerPlan.NextJob((_, _) => {
+            attempts++;
+            throw new HttpRequestException("rejected", null, (System.Net.HttpStatusCode)status);
+        }, CancellationToken.None));
+        Assert.Equal(1, attempts);
+    }
+    [Fact]
+    public async Task TransportFailureIsNotRetriedAsLegacy()
+    {
+        int attempts = 0;
+        await Assert.ThrowsAsync<HttpRequestException>(() => NativeLedgerPlan.NextJob((_, _) => {
+            attempts++;
+            throw new HttpRequestException("transport");
+        }, CancellationToken.None));
+        Assert.Equal(1, attempts);
+    }
     private static Dictionary<string, object> Scope() => new() {
         ["company_code"] = 212, ["chart_company_code"] = 212, ["branch_code"] = 212,
         ["bank_account_code"] = 8, ["absent_account_code"] = 0, ["bank_inflow_side"] = "debit",

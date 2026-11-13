@@ -10,7 +10,10 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
 {
     internal async Task<bool> RunOnce(CancellationToken token)
     {
-        using JsonDocument response = await client.PostAsync("api/agent/v2/ledger/next", new { version = "1.0.8", portfolio_scope = true }, token);
+        using JsonDocument response = await NativeLedgerPlan.NextJob((expanded, cancellation) =>
+            client.PostAsync("api/agent/v2/ledger/next", expanded
+                ? (object)new { version = "1.0.8", portfolio_scope = true }
+                : new { version = "1.0.8" }, cancellation), token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
             return response.RootElement.TryGetProperty("review_required", out var review) && review.GetBoolean();
