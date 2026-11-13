@@ -126,7 +126,8 @@ def test_customer_can_compare_confirm_report_and_undo_without_chart_setup(organi
     assert "Voltar à conferência" in detail.content.decode()
     assert "Comparar com o registro existente" in detail.content.decode()
     assert 'id="movement-review-form"' not in detail.content.decode()
-    assert "DOC-0" in detail.content.decode() and "Baixar razao-teste.csv" in detail.content.decode()
+    assert "DOC-0" in detail.content.decode()
+    assert "Baixar razao-teste.csv" in detail.content.decode()
     chosen = detail.context["reconciliation_candidates"][0]["entry"]
     assert chosen.independent_source.external_key == "entry-0"
     response = client.post(
