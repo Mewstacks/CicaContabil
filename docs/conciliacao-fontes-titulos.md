@@ -314,3 +314,9 @@ Substitua os UUIDs e escolha um caminho novo. `--output` é opcional, privado
 com modo0600 e recusa sobrescrita/symlink; sem ele, só o resumo sai no console.
 Uma comparação de uma fonte consigo mesma prova apenas leitura/reenvio, sem
 provar atualização real, qualidade financeira ou nova amostra D-73.
+
+
+V-382: comando disponível no backend86, com CI integral aprovado. Leitura real
+da fonte retida conferida duas vezes em READ ONLY, sem mudanças ou gravações.
+A prova usou a mesma captura e não substitui duas fontes reais independentes
+ou o confronto humano C01/C02, que permanece adiado por D-355.

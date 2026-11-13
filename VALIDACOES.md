@@ -9025,3 +9025,39 @@ caso de comparação), verificando recusa segura sem expor detalhes privados
 do backend. Ruff global e MyPy novamente aprovados após essa guarda. Os88
 casos anteriores não foram repetidos localmente; CI integral verificará a
 árvore final exata, incluindo os dois testes exclusivos de PostgreSQL.
+
+
+## V-382 — Comparador integrado, publicado e fonte retida conferida (12/11/2026)
+
+D-355/V-381: PR13 integrado por squash d70f02a; árvore idêntica à fonte
+exata e3a968f aprovada no CI43335886670.2121 testes SQLite/36 skips,2155
+PostgreSQL/2 skips e163 subtestes por ambiente;29 casos novos de comparação.
+.NET Linux97/3 skips, Windows100/0 skips, perfil12/vínculos17 cenários,
+três imagens Docker e ensaio MSI/upgrade com DPAPI/SYSTEM aprovados. Pacote
+real1.0.9 permanece o já publicado; não substituir pelo artefato deste CI.
+
+Backend86 publicado com somente os dois novos arquivos sobre a imagem85
+imutável.716 arquivos/hashes conferidos em web e worker, agregado
+1ac6dcc0141d12597b45fca2f1207399d209cc28b3925ae6ef15273e4a10452d.
+Imagem sha256:ed95ffecef69b022831592f0ecdb634d03fcac562d56b3bcba31c1564bedd2ae;
+configuração, máquinas/capacidade e schemas0082/0037 em ambos os aliases
+preservados. Legada permaneceu parada; saúde banco/cache ok. Sem nova
+migração, dependência, serviço/custo, interface, agente, DSN ou coleta ERP.
+Backup existente reconferido por metadados; isso não prova backup recorrente
+ou recuperação operacional D-73.
+
+Com acesso operacional atual da Grazi, comando executado duas vezes em
+transação READ ONLY contra a mesma captura original V-378:1958 registros
+inalterados, zero novos/ausentes/alterados, resultado repetido idêntico,
+revisão semântica obrigatória e nenhuma ação financeira. Recibo de captura
+e auditorias preservados;14 fingerprints anteriores iguais, incluindo as
+quatro fontes atuais. Sete exemplos privados/hash preservados. Não foram
+criadas fontes, capturas, títulos normalizados, alocações ou lançamentos.
+Montantes e documentos não foram impressos no chat/IA/Git/CI.
+
+Essa autocomparação prova leitura/integridade/repetição da fonte retida;
+não compara duas capturas reais independentes, não cria nova amostra D-73 e
+não homologa semântica financeira. Diferenças entre fotografias foram provadas
+com dados sintéticos no CI. C01/C02 continuam adiados conforme D-355/V-380;
+Q-46/Q-47, vínculo bancário, carteira completa, IA/D-73/recuperação/treinamento
+e aceite seguem pendentes. Projeto inteiro não foi declarado concluído.

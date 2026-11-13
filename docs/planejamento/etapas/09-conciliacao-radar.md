@@ -624,5 +624,5 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Comparador por chaves completas, referência opaca/posição e literalidade das mudanças.
 - [x] Leitura privada/isolamento/acesso atual, integridade e recusa de saída existente/symlink.
 - [x]88 testes locais e checagens estáticas/Django aprovados; sem migração.
-- [ ] CI exato, integração/publicação compatível e prova técnica de leitura retida.
+- [x] V-382: CI43335886670 integral aprovado, PR13 integrado e backend86 saudável; prova READ ONLY da fonte retida e preservação dos14 grupos conferidas.
 - [ ] C01/C02 adiados; ausência ou comparação sem mudanças não prova estorno/semântica.

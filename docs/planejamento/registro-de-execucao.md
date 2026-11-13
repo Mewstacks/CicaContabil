@@ -3928,3 +3928,15 @@ sem interpretação financeira ou alterações de dados.88 testes locais/duas
 verificações PostgreSQL pendentes, Ruff/MyPy/Django/migrações aprovados.
 Código genérico e fixtures sintéticas preparados para CI D-346. Nenhuma nova
 coleta, consulta ERP, interface, dado privado público ou aceite C01/C02.
+
+
+### 12/11/2026 — Comparador publicado com conferência humana adiada (V-382)
+
+CI43335886670/e3a968f integral aprovado e PR13 integrado por árvore idêntica.
+Backend86 publicado sobre85 com somente dois arquivos novos;716 hashes em
+web/worker, configuração/máquinas/schemas e saúde conferidos. Autocomparação
+READ ONLY da fonte retida repetida com1958 linhas inalteradas; recibo,
+auditorias,14 grupos de dados e sete exemplos preservados. Nenhuma coleta
+ERP, captura, normalização, alocação ou lançamento novo. C01/retenções e
+C02/juros continuam adiados por D-355, sem nova solicitação, data ou aceite.
+Limites Q-46/Q-47/D-73 e demais pendências conservados.

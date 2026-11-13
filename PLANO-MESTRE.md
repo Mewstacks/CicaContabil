@@ -1,6 +1,6 @@
 # CICA — plano de conclusão revisado em 05/10/2026
 
-**Desenvolvimento CONTAD — 12/11/2026, D-344–355/V-367–380:** Oficial1.0.9 e backend85 conferidos; captura fiscal original concluída:822 registros de parcelas,546 componentes e590 vínculos, hash/contrato e14 grupos anteriores preservados. Sete exemplos técnicos privados preparados, com repetição sem duplicação e download autenticado; conferência de C01/retenções e C02/juros adiada pelo responsável, sem acesso ao Domínio. Desenvolvimento técnico independente continua. Não repetir upgrade, captura ou autorização. Tradução financeira Q-46, vínculo bancário próprio, carteira completa, IA/Q-47/D-73 e aceite continuam abertos.
+**Desenvolvimento CONTAD — 12/11/2026, D-344–355/V-367–382:** Oficial1.0.9 preservado e backend86 saudável. Captura fiscal original e sete exemplos privados preservados; conferência C01/retenções e C02/juros adiada pelo responsável. Comparador de fontes retidas integrado/publicado com CI integral aprovado; autocomparação READ ONLY com1958 registros inalterados e14 grupos anteriores preservados. Não repetir upgrade, coleta ou autorização. Semântica financeira Q-46, vínculo bancário próprio, carteira completa, IA/Q-47/D-73 e aceite continuam abertos; projeto não concluído.
 
 
 **Verificação de conclusão — 12/11/2026, D-343/V-366:**
