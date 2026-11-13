@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
+import re
+import unicodedata
 from typing import Any
 
 from django.db import transaction
@@ -25,15 +28,196 @@ from apps.intelligence.models import (
     ClaudeFallbackApproval,
     DeparaAiBatch,
     EgressAudit,
+    NativeLedgerCollection,
 )
-from apps.intelligence.native_ledger_contract import canonical_hash
+from apps.intelligence.native_ledger_contract import MAX_BYTES, canonical_hash, validate_snapshot
 from apps.intelligence.native_title_contract import strict_json
 from apps.intelligence.services import audit_claude_egress
 from apps.organizations.models import Membership
 from apps.platform.models import PlatformConfiguration
 
 
+def _candidate_codes(account: FinancialAccount, codes: list[str]) -> None:
+    if (
+        not isinstance(codes, list)
+        or not 2 <= len(codes) <= 12
+        or any(not isinstance(c, str) or not 1 <= len(c) <= 20 for c in codes)
+        or len(set(codes)) != len(codes)
+        or account.ledger_code not in codes
+    ):
+        raise ValueError("Selecione de 2 a 12 contas, incluindo a conta bancária.")
+
+
+def _native_accounts(
+    account: FinancialAccount, codes: list[str], collection_id: str
+) -> tuple[list[dict[str, str]], dict[str, str]]:
+    """Read immutable evidence, without interpreting source flags as posting approval."""
+    _candidate_codes(account, codes)
+    job = NativeLedgerCollection.objects.select_related("source_file").get(
+        pk=collection_id,
+        organization_id=account.organization_id,
+        financial_account_id=account.pk,
+        state=NativeLedgerCollection.State.IMPORTED,
+    )
+    source = job.source_file
+    if (
+        source is None
+        or source.organization_id != account.organization_id
+        or source.company_id != account.company_id
+        or source.financial_account_id != account.pk
+        or source.origin != "accounting"
+        or source.content_hash != job.content_hash
+        or job.scope.get("company_code") != int(account.company.dominio_code)
+        or str(job.scope.get("bank_account_code")) != account.ledger_code
+        or job.scope_revision != canonical_hash(job.scope)
+    ):
+        raise ValueError("Fonte contábil fora da conta/empresa ou sem integridade.")
+    with source.content.open("rb") as stream:
+        content = stream.read(MAX_BYTES + 1)
+    if hashlib.sha256(content).hexdigest() != job.content_hash:
+        raise ValueError("A fonte contábil foi alterada.")
+    snapshot = validate_snapshot(content, job.scope)
+    catalogue = {str(row["account_code"]): row for row in snapshot["accounts"]}
+    if any(code not in catalogue for code in codes):
+        raise ValueError("Conta candidata ausente do catálogo comprovado.")
+    rows = [{"code": code, "name": catalogue[code]["name_raw"] or ""} for code in sorted(codes)]
+    return rows, {"collection_id": str(job.pk), "sha256": job.content_hash}
+
+
+_TECHNICAL_ACCOUNT_WORDS = frozenset(
+    [
+        "A",
+        "O",
+        "AS",
+        "OS",
+        "DE",
+        "DO",
+        "DA",
+        "DOS",
+        "DAS",
+        "E",
+        "COM",
+        "POR",
+        "PARA",
+        "EM",
+        "CONTA",
+        "CONTAS",
+        "BANCO",
+        "BANCOS",
+        "CAIXA",
+        "MOVIMENTO",
+        "CORRENTE",
+        "CORRENTES",
+        "APLICACAO",
+        "APLICACOES",
+        "FINANCEIRA",
+        "FINANCEIRAS",
+        "DESPESA",
+        "DESPESAS",
+        "RECEITA",
+        "RECEITAS",
+        "TARIFA",
+        "TARIFAS",
+        "TAXA",
+        "TAXAS",
+        "SERVICO",
+        "SERVICOS",
+        "BANCARIA",
+        "BANCARIAS",
+        "BANCARIO",
+        "BANCARIOS",
+        "JURO",
+        "JUROS",
+        "ATIVO",
+        "ATIVOS",
+        "PASSIVO",
+        "PASSIVOS",
+        "CLIENTE",
+        "CLIENTES",
+        "FORNECEDOR",
+        "FORNECEDORES",
+        "NACIONAL",
+        "NACIONAIS",
+        "DIVERSO",
+        "DIVERSOS",
+        "SALARIO",
+        "SALARIOS",
+        "ORDENADO",
+        "ORDENADOS",
+        "ENCARGO",
+        "ENCARGOS",
+        "SOCIAIS",
+        "TRIBUTO",
+        "TRIBUTOS",
+        "IMPOSTO",
+        "IMPOSTOS",
+        "IOF",
+        "INSS",
+        "FGTS",
+        "IRRF",
+        "ISS",
+        "PIS",
+        "COFINS",
+        "CSLL",
+        "IRPJ",
+        "SIMPLES",
+        "PAGAR",
+        "RECEBER",
+        "EMPRESTIMO",
+        "EMPRESTIMOS",
+        "FINANCIAMENTO",
+        "FINANCIAMENTOS",
+        "TRANSFERENCIA",
+        "TRANSFERENCIAS",
+        "ADIANTAMENTO",
+        "ADIANTAMENTOS",
+        "CAPITAL",
+        "SOCIAL",
+        "MULTA",
+        "MULTAS",
+        "DESCONTO",
+        "DESCONTOS",
+        "OBTIDO",
+        "OBTIDOS",
+        "CONCEDIDO",
+        "CONCEDIDOS",
+        "RENDIMENTO",
+        "RENDIMENTOS",
+        "RESGATE",
+        "RESGATES",
+        "INVESTIMENTO",
+        "INVESTIMENTOS",
+        "OUTRA",
+        "OUTRAS",
+        "OUTRO",
+        "OUTROS",
+        "OPERACIONAL",
+        "OPERACIONAIS",
+        "ADMINISTRATIVA",
+        "ADMINISTRATIVAS",
+        "FINANCEIRO",
+        "FINANCEIROS",
+        "LIQUIDACAO",
+        "COBRANCA",
+        "COBRANCAS",
+    ]
+)
+
+
+def _native_cloud_name(name: str) -> str:
+    normalized = "".join(
+        char
+        for char in unicodedata.normalize("NFKD", name).upper()
+        if not unicodedata.combining(char)
+    )
+    words = re.findall("[A-Z]+", normalized)
+    if not words or not set(words) <= _TECHNICAL_ACCOUNT_WORDS:
+        return "Conta com nome omitido"
+    return " ".join(words)[:60]
+
+
 def _accounts(account: FinancialAccount, codes: list[str]) -> list[dict[str, str]]:
+    _candidate_codes(account, codes)
     rows = list(
         LedgerAccount.objects.filter(
             company_id=account.company_id,
@@ -45,13 +229,7 @@ def _accounts(account: FinancialAccount, codes: list[str]) -> list[dict[str, str
         .order_by("code")
         .values("code", "name")
     )
-    if (
-        not 2 <= len(codes) <= 12
-        or len(set(codes)) != len(codes)
-        or len(rows) != len(codes)
-        or account.ledger_code not in codes
-        or any(not isinstance(c, str) or not 1 <= len(c) <= 20 for c in codes)
-    ):
+    if len(rows) != len(codes):
         raise ValueError("Selecione de 2 a 12 contas válidas do plano, incluindo a conta bancária.")
     return [{"code": row["code"], "name": row["name"]} for row in rows]
 
@@ -63,6 +241,7 @@ def prepare_depara_ai(
     actor: User,
     items: list[dict[str, str]],
     candidate_codes: list[str],
+    native_collection_id: str | None = None,
 ) -> tuple[DeparaAiBatch, bool]:
     account = (
         FinancialAccount.objects.select_for_update()
@@ -85,13 +264,20 @@ def prepare_depara_ai(
         ):
             raise ValueError("Descrições exigem referência distinta e direção explícita.")
         references.add(item["reference"])
-    context = {
+    source = None
+    if native_collection_id is not None:
+        accounts, source = _native_accounts(account, candidate_codes, native_collection_id)
+    else:
+        accounts = _accounts(account, candidate_codes)
+    context: dict[str, Any] = {
         "items": items,
-        "accounts": _accounts(account, candidate_codes),
+        "accounts": accounts,
         "bank_code": account.ledger_code,
         "account_reference": account.account_reference,
         "company_id": str(account.company_id),
     }
+    if source is not None:
+        context["catalogue_source"] = source
     batch, created = DeparaAiBatch.objects.get_or_create(
         organization_id=account.organization_id,
         financial_account=account,
@@ -119,6 +305,9 @@ def depara_payload(context: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
         f"A conta bancária é {context['bank_code']}. Itens: "
         + json.dumps(items, ensure_ascii=False, separators=(",", ":"))
     )
+    native = "catalogue_source" in context
+    if native:
+        question += " Catálogo ainda não homologado: omita sugestões sem evidência."
     cards = []
     for index in range(0, len(context["accounts"]), 2):
         pair = context["accounts"][index : index + 2]
@@ -127,7 +316,15 @@ def depara_payload(context: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
                 "label": "Contas candidatas revisáveis",
                 "reference": f"grupo_{index // 2}",
                 "detail": "; ".join(
-                    f"{r['code']}: {_mask_cloud_text(r['name'], limit=60)}" for r in pair
+                    f"{r['code']}: "
+                    + (
+                        "Conta bancaria"
+                        if native and r["code"] == context["bank_code"]
+                        else _native_cloud_name(r["name"])
+                        if native
+                        else _mask_cloud_text(r["name"], limit=60)
+                    )
+                    for r in pair
                 ),
             }
         )
@@ -142,9 +339,18 @@ def _current(batch: DeparaAiBatch, actor: User) -> FinancialAccount:
     )
     authorize_title_account(account, actor)
     context = batch.context
+    codes = [r["code"] for r in context["accounts"]]
+    if "catalogue_source" in context:
+        accounts, source = _native_accounts(
+            account, codes, context["catalogue_source"]["collection_id"]
+        )
+        if source != context["catalogue_source"]:
+            raise ValueError("Proveniência do catálogo alterada; prepare outro lote.")
+    else:
+        accounts = _accounts(account, codes)
     if (
         canonical_hash(context) != batch.fingerprint
-        or context["accounts"] != _accounts(account, [r["code"] for r in context["accounts"]])
+        or context["accounts"] != accounts
         or context["bank_code"] != account.ledger_code
         or context["account_reference"] != account.account_reference
         or context["company_id"] != str(account.company_id)
@@ -191,6 +397,7 @@ def depara_review_packet(*, batch: DeparaAiBatch, actor: User) -> dict[str, Any]
         "batch_id": str(batch.pk),
         "egress_id": str(batch.egress_id),
         "requires_human_review": True,
+        "requires_chart_review": "catalogue_source" in batch.context,
     }
 
 
@@ -318,6 +525,9 @@ def review_depara_ai(
     account = _current(batch, actor)
     if batch.state != "succeeded" or not choices or len(choices) > 4:
         raise ValueError("Selecione sugestões respondidas para revisão humana.")
+    if "catalogue_source" in batch.context:
+        # Suggestions are allowed before chart approval; accounting rules are not.
+        _accounts(account, sorted({c[k] for c in choices for k in ("debit", "credit")}))
     proposed = {s["reference"]: s for s in batch.suggestions}
     examples, seen = [], set()
     for choice in choices:
