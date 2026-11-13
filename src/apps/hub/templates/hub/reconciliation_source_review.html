@@ -7,7 +7,7 @@
     <div><h2>{{ conference_source.company.name }}</h2><p>{{ conference_source.financial_account.name }} · {{ conference_source.original_filename }}</p></div>
     <a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a>
   </header>
-  <p class="operation-context">Período dos movimentos: {{ conference_report.period_start }} a {{ conference_report.period_end }}. Abra cada movimento para comparar as evidências e confirmar a relação correta.</p>
+  <p class="operation-context">Período dos movimentos: {{ conference_report.period_start }} a {{ conference_report.period_end }}.</p>
   <div class="metric-strip reconciliation-metrics" aria-label="Resumo da conferência">
     <article><span>Movimentos do extrato</span><strong>{{ conference_report.bank_count }}</strong><small>Variação: R$ {{ conference_bank_net_brl|floatformat:2 }}</small></article>
     <article><span>Registros do Razão</span><strong>{{ conference_report.ledger_count }}</strong><small>Variação: R$ {{ conference_ledger_net_brl|floatformat:2 }}</small></article>

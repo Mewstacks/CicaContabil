@@ -9296,10 +9296,7 @@ def _reconciliation_v2_context(
         next_action = {
             "kind": "link", "eyebrow": "PRÓXIMA AÇÃO",
             "title": "Conferir o extrato com o Razão",
-            "description": (
-                "Abra a conferência desta conta, compare os registros recebidos "
-                "e confirme as correspondências na tela."
-            ),
+            "description": "",
             "label": "Abrir conferência",
             "href": reverse(
                 "hub:reconciliation-source-review", kwargs={"source_id": ready_source.pk}

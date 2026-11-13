@@ -11,7 +11,7 @@
   </header>
   <div class="reconciliation-movement-next" data-workflow-state="{{ movement_workflow.state }}">
     {% if conference_return_url %}
-    <div><p class="section-kicker">CONFERÊNCIA DO EXTRATO</p><h3>Comparar com o registro existente</h3><p>Confira os históricos, a data, o valor e as evidências do Razão antes de confirmar a correspondência.</p></div>
+    <div><p class="section-kicker">CONFERÊNCIA DO EXTRATO</p><h3>Comparar com o registro existente</h3></div>
     <a class="button" href="#allocation-heading">Ver alocações e registros</a>
     {% else %}
     <div><p class="section-kicker">{{ movement_workflow.eyebrow }}</p><h3>{{ movement_workflow.title }}</h3><p>{{ movement_workflow.description }}</p></div>

@@ -21,7 +21,7 @@
   </div>
   {% if reconciliation_conference_sources %}
   <div class="reconciliation-source-list" aria-labelledby="conference-sources-heading">
-    <header class="workspace-panel-head"><div><h3 id="conference-sources-heading">Extratos para conferir</h3><p>Abra um extrato para comparar com o Razão e registrar a revisão.</p></div></header>
+    <header class="workspace-panel-head"><div><h3 id="conference-sources-heading">Extratos para conferir</h3></div></header>
     <div class="data-table-wrap"><table class="operational-table reconciliation-run-table"><thead><tr><th>Empresa e conta</th><th>Extrato</th><th><span class="sr-only">Ação</span></th></tr></thead><tbody>
       {% for source in reconciliation_conference_sources %}<tr><td data-label="Empresa e conta"><strong>{{ source.company.name }}</strong><small>{{ source.financial_account.name }}</small></td><td data-label="Extrato">{{ source.original_filename }}</td><td class="table-action-cell" data-label="Ação"><a class="row-action-button" href="{% url 'hub:reconciliation-source-review' source.id %}">Abrir conferência<span class="sr-only"> de {{ source.original_filename }}</span></a></td></tr>{% endfor %}
     </tbody></table></div>
