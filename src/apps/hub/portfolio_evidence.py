@@ -96,6 +96,7 @@ def _rows(snapshot: dict[str, Any], key: str, limit: int, fields: set[str]) -> l
 
 
 def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
+    accounts_only = report.get("version") == "contad-reconciliation-account-profile-v1"
     if (
         set(report)
         != {
@@ -107,7 +108,8 @@ def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
             "snapshot",
             *FLAGS,
         }
-        or report["version"] != "contad-portfolio-profile-v1"
+        or report["version"]
+        not in ("contad-portfolio-profile-v1", "contad-reconciliation-account-profile-v1")
         or report["company_selector"] != "A"
         or any(report[key] is not value for key, value in FLAGS.items())
     ):
@@ -131,11 +133,16 @@ def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
     except (ValueError, TypeError, AttributeError):
         raise CatalogEvidenceError("Período ou data de cobertura incompatível.") from None
     snapshot = report["snapshot"]
-    if not isinstance(snapshot, dict) or set(snapshot) != {
-        "companies",
-        "cash_candidates",
-        "monthly_ledger",
-    }:
+    expected_snapshot = (
+        {"companies", "configured_accounts"}
+        if accounts_only
+        else {
+            "companies",
+            "cash_candidates",
+            "monthly_ledger",
+        }
+    )
+    if not isinstance(snapshot, dict) or set(snapshot) != expected_snapshot:
         raise CatalogEvidenceError("Fontes de cobertura incompatíveis.")
     companies = _rows(
         snapshot,
@@ -149,33 +156,41 @@ def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
             "i_planocontas_raw",
         },
     )
-    cash = _rows(
-        snapshot,
-        "cash_candidates",
-        5000,
-        {
-            "company_code",
-            "cash_account_code",
-            "selection_raw",
-            "cash_type_raw",
-            "bank_reference_count",
-        },
+    cash = (
+        []
+        if accounts_only
+        else _rows(
+            snapshot,
+            "cash_candidates",
+            5000,
+            {
+                "company_code",
+                "cash_account_code",
+                "selection_raw",
+                "cash_type_raw",
+                "bank_reference_count",
+            },
+        )
     )
-    ledger = _rows(
-        snapshot,
-        "monthly_ledger",
-        10000,
-        {
-            "company_code",
-            "source_plan_company_code",
-            "branch_code",
-            "year",
-            "month",
-            "entry_count",
-            "zero_debit_rows",
-            "zero_credit_rows",
-            "rows_without_lot",
-        },
+    ledger = (
+        []
+        if accounts_only
+        else _rows(
+            snapshot,
+            "monthly_ledger",
+            10000,
+            {
+                "company_code",
+                "source_plan_company_code",
+                "branch_code",
+                "year",
+                "month",
+                "entry_count",
+                "zero_debit_rows",
+                "zero_credit_rows",
+                "rows_without_lot",
+            },
+        )
     )
     by_company: dict[int, dict[str, Any]] = {}
     for row in companies:
@@ -204,6 +219,8 @@ def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
             "cash_candidates": [],
             "monthly_ledger": [],
         }
+    if accounts_only:
+        return _configured_accounts(report, snapshot, by_company)
     cash_keys: set[tuple[int, int]] = set()
     for row in cash:
         company = _number(row["company_code"], 1)
@@ -295,4 +312,61 @@ def analyze_portfolio_profile(report: dict[str, Any]) -> dict[str, Any]:
         "human_reviewed": False,
         "acceptance_distinct_facts": 0,
         "evidence_limit": "technical_codes_and_counts_only_not_transactions_or_approval",
+    }
+
+
+def _configured_accounts(
+    report: dict[str, Any], snapshot: dict[str, Any], companies: dict[int, dict[str, Any]]
+) -> dict[str, Any]:
+    rows = _rows(
+        snapshot,
+        "configured_accounts",
+        5000,
+        {
+            "company_code",
+            "chart_company_code",
+            "account_code",
+            "account_type_raw",
+            "account_status_raw",
+            "catalogue_matches",
+        },
+    )
+    seen: set[tuple[int, int, int]] = set()
+    for row in rows:
+        key = tuple(
+            _number(row[field], 1)
+            for field in ("company_code", "chart_company_code", "account_code")
+        )
+        if key[0] not in companies or key in seen:
+            raise CatalogEvidenceError("Conta configurada repetida ou fora do recorte.")
+        matches = _number(row["catalogue_matches"], maximum=1)
+        for field in ("account_type_raw", "account_status_raw"):
+            text = row[field]
+            if text is not None and (
+                not isinstance(text, str)
+                or len(text) > 1
+                or not text.isascii()
+                or (text and not text.isprintable())
+                or matches == 0
+            ):
+                raise CatalogEvidenceError(
+                    "Tipo/situação ou correspondência de conta incompatível."
+                )
+        seen.add((key[0], key[1], key[2]))
+    return {
+        "version": "contad-reconciliation-account-analysis-v1",
+        "observed_at_utc": report["observed_at_utc"],
+        "company_selector": "A",
+        "company_count": len(companies),
+        "configured_accounts": rows,
+        "configured_account_count": len(rows),
+        "companies_without_configured_accounts": sorted(
+            set(companies) - {row["company_code"] for row in rows}
+        ),
+        "missing_catalogue_accounts": sum(row["catalogue_matches"] == 0 for row in rows),
+        "account_meanings_approved": False,
+        "bank_association_approved": False,
+        "financial_collection_enabled": False,
+        "human_reviewed": False,
+        "evidence_limit": "configuration_codes_and_raw_flags_not_bank_transactions_or_approval",
     }

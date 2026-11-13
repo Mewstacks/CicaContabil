@@ -59,3 +59,17 @@ contagens próprias da coleta mensal; `queue_portfolio_ledger` continua
 fazendo apenas prévia até confirmação operacional aplicável. Dados e
 retornos reais ficam privados, fora de Git/CI/IA. Revisão de sugestões,
 importação Domínio e aceite D-73 mantêm seus próprios critérios.
+
+## Complemento de contas configuradas para conciliação
+
+O modo explícito `-ReconciliationAccountsOnly` faz duas consultas fixas por
+leitura: empresas/configurações e códigos de CTCONCILIACAO_CONTA, com Tipo e
+Situação literais do CTCONTAS pela chave declarada empresa do plano/conta.
+Não repete a consulta de movimentos nem considera conta caixa como banco.
+Mantém o mesmo seletor A, duas leituras, limites e transporte; o resultado
+interno usa `contad-reconciliation-account-profile-v1` e o analisador reconhece
+ambos os modos. Campos de período são contexto da descoberta, sem representar
+consulta temporal das configurações. Ausência de conta no catálogo é explícita;
+duplicação de chave ou multiplicação no vínculo é recusada. Flags A/S/I e a
+presença em configuração não aprovam natureza/atividade analítica, relação
+com banco físico, saldo ou fatos. Não seleciona a data de conciliação.

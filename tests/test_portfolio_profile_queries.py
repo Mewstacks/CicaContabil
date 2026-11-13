@@ -25,6 +25,10 @@ def source():
         "I_CONTA_CAIXA INTEGER,I_SEQUENCIAL_CONTA_BANCARIA INTEGER)",
         "CREATE TABLE bethadba.ctlancto(codi_emp INTEGER,CODI_EMP_PLANO INTEGER,"
         "fili_lan INTEGER,data_lan TEXT,cdeb_lan INTEGER,ccre_lan INTEGER,codi_lote INTEGER)",
+        "CREATE TABLE bethadba.CTCONCILIACAO_CONTA(CODI_EMP INTEGER,"
+        "CODI_EMP_PLANO INTEGER,CODI_CTA INTEGER)",
+        "CREATE TABLE bethadba.ctcontas(codi_emp INTEGER,codi_cta INTEGER,"
+        "tipo_cta TEXT,SITUACAO_CTA TEXT)",
     ]
     for statement in statements:
         connection.execute(statement)
@@ -58,12 +62,12 @@ def source():
     connection.close()
 
 
-def queries():
+def fixed_queries():
     text = (
         Path(__file__).parents[1] / "agent-windows/inspect-contad-portfolio-profile.ps1"
     ).read_text(encoding="utf-8-sig")
     fixed = re.findall(r"-Query @'\n(.*?)\n'@", text, re.S)
-    assert len(fixed) == 3
+    assert len(fixed) == 4
     result = []
     for statement in fixed:
         match = re.search(r"SELECT TOP (\d+) ", statement)
@@ -75,6 +79,10 @@ def queries():
             re.I,
         )
     return result
+
+
+def queries():
+    return [q for q in fixed_queries() if "CTCONCILIACAO_CONTA" not in q]
 
 
 def test_active_companies_include_absent_configuration_and_preserve_duplicate_signal(source):
@@ -93,3 +101,17 @@ def test_monthly_count_covers_own_and_other_plan_branches_with_exclusive_period(
     rows = source.execute(queries()[2], ["A", "2026-09-01", "2026-11-01"]).fetchall()
     assert rows == [(1, 1, 0, 2026, 10, 1, 0, 0, 0), (1, 9, 1, 2026, 9, 2, 1, 1, 1)]
     assert source.execute(queries()[2], ["A", "2026-09-01", "2026-10-01"]).fetchall() == [rows[1]]
+
+
+def test_configured_accounts_use_declared_chart_key_and_preserve_missing_matches(source):
+    source.executemany(
+        "INSERT INTO bethadba.CTCONCILIACAO_CONTA VALUES (?,?,?)", [(1, 9, 8), (2, 9, 9), (3, 3, 8)]
+    )
+    source.executemany(
+        "INSERT INTO bethadba.ctcontas VALUES (?,?,?,?)", [(9, 8, "A", "A"), (1, 8, "S", "I")]
+    )
+    sql = next(q for q in fixed_queries() if "CTCONCILIACAO_CONTA" in q)
+    assert source.execute(sql, ["A"]).fetchall() == [
+        (1, 9, 8, "A", "A", 1),
+        (2, 9, 9, None, None, 0),
+    ]

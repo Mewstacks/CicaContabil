@@ -259,3 +259,76 @@ def test_compression_bomb_is_bounded():
     transfer["data"] = base64.b64encode(gzip.compress(b" " * (MAX_BYTES + 1))).decode()
     with pytest.raises(CatalogEvidenceError):
         decode_portfolio_profile(json.dumps(transfer).encode())
+
+
+def configured_evidence():
+    value = evidence()
+    value["version"] = "contad-reconciliation-account-profile-v1"
+    value["snapshot"] = {
+        "companies": value["snapshot"]["companies"],
+        "configured_accounts": [
+            {
+                "company_code": 212,
+                "chart_company_code": 100,
+                "account_code": 8,
+                "account_type_raw": "A",
+                "account_status_raw": "A",
+                "catalogue_matches": 1,
+            },
+            {
+                "company_code": 213,
+                "chart_company_code": 100,
+                "account_code": 9,
+                "account_type_raw": None,
+                "account_status_raw": None,
+                "catalogue_matches": 0,
+            },
+        ],
+    }
+    return value
+
+
+def test_configured_account_analysis_does_not_interpret_raw_flags_or_bank_semantics():
+    value = configured_evidence()
+    report = analyze_portfolio_profile(value)
+    assert report["configured_account_count"] == 2
+    assert report["companies_without_configured_accounts"] == []
+    assert report["missing_catalogue_accounts"] == 1
+    assert report["configured_accounts"][0]["account_type_raw"] == "A"
+    assert not report["account_meanings_approved"] and not report["bank_association_approved"]
+    assert not report["financial_collection_enabled"] and not report["human_reviewed"]
+    assert "entry_count" not in report
+    value["snapshot"]["configured_accounts"] = []
+    report = analyze_portfolio_profile(value)
+    assert report["configured_account_count"] == 0
+    assert report["companies_without_configured_accounts"] == [212, 213]
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("company_code", 999),
+        ("chart_company_code", 0),
+        ("account_code", False),
+        ("catalogue_matches", 2),
+        ("catalogue_matches", 0),
+        ("account_type_raw", "AA"),
+        ("account_status_raw", "\n"),
+    ],
+)
+def test_configured_account_scope_and_lookup_inconsistencies_rejected(field, value):
+    report = configured_evidence()
+    report["snapshot"]["configured_accounts"][0][field] = value
+    with pytest.raises(CatalogEvidenceError):
+        analyze_portfolio_profile(report)
+
+
+def test_configured_identity_cannot_be_duplicated_or_replaced_by_portfolio_fields():
+    report = configured_evidence()
+    rows = report["snapshot"]["configured_accounts"]
+    rows.append(deepcopy(rows[0]))
+    with pytest.raises(CatalogEvidenceError):
+        analyze_portfolio_profile(report)
+    report["snapshot"] = evidence()["snapshot"]
+    with pytest.raises(CatalogEvidenceError):
+        analyze_portfolio_profile(report)

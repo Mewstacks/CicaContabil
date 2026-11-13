@@ -1,7 +1,7 @@
 ﻿#requires -Version 5.1
 <# D-356/Q-28: active-company technical codes and counts only; no financial values. #>
 [CmdletBinding()]
-param()
+param([switch]$ReconciliationAccountsOnly)
 $ErrorActionPreference='Stop'
 if (-not [Environment]::Is64BitProcess) {throw 'Use Windows PowerShell de 64 bits.'}
 Add-Type -AssemblyName System.Data
@@ -25,11 +25,11 @@ function Read-Profile {
             for ($i=0;$i -lt $Fields.Count;$i++) {
                 $field=$Fields[$i]
                 if ($reader.IsDBNull($i)) {
-                    if ($field -notin @('codi_pad_raw','comp_pad_raw','i_planocontas_raw','selection_raw','cash_type_raw')) {Reject-Profile 'NULL_FIELD'}
+                    if ($field -notin @('codi_pad_raw','comp_pad_raw','i_planocontas_raw','selection_raw','cash_type_raw','account_type_raw','account_status_raw')) {Reject-Profile 'NULL_FIELD'}
                     $row[$field]=$null;continue
                 }
                 $value=$reader.GetValue($i)
-                if ($field -in @('comp_pad_raw','selection_raw')) {
+                if ($field -in @('comp_pad_raw','selection_raw','account_type_raw','account_status_raw')) {
                     $text=([string]$value).TrimEnd([char[]]@(' '))
                     if ($text -notmatch '^[\x20-\x7E]?$') {Reject-Profile 'RAW_CODE'}
                     $row[$field]=$text
@@ -58,6 +58,24 @@ GROUP BY g.codi_emp ORDER BY g.codi_emp
     foreach ($c in $companies) {
         if ($c.company_code -lt 1 -or -not $ids.Add($c.company_code) -or $c.configuration_rows -gt 1) {Reject-Profile 'COMPANY_CONFIGURATION'}
         if ($c.configuration_rows -eq 0 -and ($null -ne $c.codi_pad_raw -or $null -ne $c.comp_pad_raw -or $null -ne $c.i_planocontas_raw)) {Reject-Profile 'MISSING_CONFIGURATION'}
+    }
+    if ($ReconciliationAccountsOnly) {
+        $script:stage='reading_configured_reconciliation_accounts'
+        $configured=Read-Profile -Limit 5000 -Parameters $active -Fields @('company_code','chart_company_code','account_code','account_type_raw','account_status_raw','catalogue_matches') -Query @'
+SELECT TOP 5001 q.CODI_EMP,q.CODI_EMP_PLANO,q.CODI_CTA,c.tipo_cta,c.SITUACAO_CTA,COUNT(c.codi_cta)
+FROM bethadba.CTCONCILIACAO_CONTA q JOIN bethadba.geempre g ON g.codi_emp=q.CODI_EMP
+LEFT JOIN bethadba.ctcontas c ON c.codi_emp=q.CODI_EMP_PLANO AND c.codi_cta=q.CODI_CTA
+WHERE g.stat_emp=?
+GROUP BY q.CODI_EMP,q.CODI_EMP_PLANO,q.CODI_CTA,c.tipo_cta,c.SITUACAO_CTA
+ORDER BY q.CODI_EMP,q.CODI_EMP_PLANO,q.CODI_CTA,c.tipo_cta,c.SITUACAO_CTA
+'@
+        $configuredKeys=New-Object 'System.Collections.Generic.HashSet[string]'
+        foreach ($c in $configured) {
+            $key='{0}:{1}:{2}' -f $c.company_code,$c.chart_company_code,$c.account_code
+            if (-not $ids.Contains($c.company_code) -or $c.chart_company_code -lt 1 -or $c.account_code -lt 1 -or $c.catalogue_matches -gt 1 -or -not $configuredKeys.Add($key)) {Reject-Profile 'CONFIGURED_ACCOUNT_COVERAGE'}
+            if ($c.catalogue_matches -eq 0 -and ($null -ne $c.account_type_raw -or $null -ne $c.account_status_raw)) {Reject-Profile 'CONFIGURED_ACCOUNT_LOOKUP'}
+        }
+        return [ordered]@{companies=$companies;configured_accounts=$configured}
     }
     $script:stage='reading_cash_candidates'
     $cash=Read-Profile -Limit 5000 -Parameters $active -Fields @('company_code','cash_account_code','selection_raw','cash_type_raw','bank_reference_count') -Query @'
@@ -104,6 +122,7 @@ try {
     $connection.ConnectionTimeout=20;$stage='opening_connection';$connection.Open();$builder.Clear();$credential=$null
     $timer=[Diagnostics.Stopwatch]::StartNew();$stage='validating_columns'
     $required=@{geempre=@('CODI_EMP','STAT_EMP');ctparmto=@('CODI_EMP','CODI_PAD','COMP_PAD','I_PLANOCONTAS');ctcontacaixa=@('CODI_EMP','CODI_CTA','SELE_CTA','TIPO_CONTA_CAIXA');ctcontacaixa_conta_bancaria=@('CODI_EMP','I_CONTA_CAIXA','I_SEQUENCIAL_CONTA_BANCARIA');ctlancto=@('CODI_EMP','CODI_EMP_PLANO','FILI_LAN','DATA_LAN','CDEB_LAN','CCRE_LAN','CODI_LOTE')}
+    if ($ReconciliationAccountsOnly) {$required=@{geempre=@('CODI_EMP','STAT_EMP');ctparmto=@('CODI_EMP','CODI_PAD','COMP_PAD','I_PLANOCONTAS');ctconciliacao_conta=@('CODI_EMP','CODI_EMP_PLANO','CODI_CTA');ctcontas=@('CODI_EMP','CODI_CTA','TIPO_CTA','SITUACAO_CTA')}}
     foreach ($table in $required.Keys) {
         $columns=$connection.GetSchema('Columns',[string[]]@($null,'bethadba',$table,$null))
         $names=@($columns.Rows | Where-Object {$_.TABLE_SCHEM -ieq 'bethadba' -and $_.TABLE_NAME -ieq $table} | ForEach-Object {([string]$_.COLUMN_NAME).ToUpperInvariant()})
@@ -113,7 +132,8 @@ try {
     if (($first | ConvertTo-Json -Depth 7 -Compress) -cne ($second | ConvertTo-Json -Depth 7 -Compress)) {Reject-Profile 'SOURCE_CHANGED'}
     if ($timer.Elapsed.TotalSeconds -gt 300) {Reject-Profile 'TIME_LIMIT'}
     $stage='serializing_profile'
-    $result=[ordered]@{version='contad-portfolio-profile-v1';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o');period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';snapshot=$first;two_reads_identical=$true;account_meanings_approved=$false;chart_owner_mapping_approved=$false;bank_association_approved=$false;financial_values_selected=$false;names_or_documents_selected=$false;agent_configuration_read=$false;erp_write_performed=$false;financial_collection_enabled=$false;uploaded=$false}
+    $profileVersion=if ($ReconciliationAccountsOnly) {'contad-reconciliation-account-profile-v1'} else {'contad-portfolio-profile-v1'}
+    $result=[ordered]@{version=$profileVersion;completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o');period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';snapshot=$first;two_reads_identical=$true;account_meanings_approved=$false;chart_owner_mapping_approved=$false;bank_association_approved=$false;financial_values_selected=$false;names_or_documents_selected=$false;agent_configuration_read=$false;erp_write_performed=$false;financial_collection_enabled=$false;uploaded=$false}
     $json=$result | ConvertTo-Json -Depth 8 -Compress
     $bytes=[Text.Encoding]::UTF8.GetBytes($json)
     if ($bytes.Length -gt 4194304) {Reject-Profile 'OUTPUT_LIMIT'}
