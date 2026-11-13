@@ -116,9 +116,18 @@ try {
 
     $gui = Start-Process -FilePath $guiPath -PassThru
     Assert-Check ($gui.WaitForInputIdle(15000)) 'configurator initializes Windows message loop'
-    Start-Sleep -Seconds 2
-    $gui.Refresh()
-    Assert-Check (-not $gui.HasExited -and $gui.MainWindowTitle -eq 'Configurar agente CICA') 'configurator opens without crash'
+    $guiReady = $false
+    $guiDeadline = [DateTimeOffset]::UtcNow.AddSeconds(20)
+    do {
+        $gui.Refresh()
+        if ($gui.HasExited) { break }
+        if ($gui.MainWindowTitle -eq 'Configurar agente CICA') {
+            $guiReady = $true
+            break
+        }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTimeOffset]::UtcNow -lt $guiDeadline)
+    Assert-Check $guiReady ('configurator opens without crash (exited={0}, expected_window={1})' -f $gui.HasExited, $guiReady)
     $gui.CloseMainWindow() | Out-Null
     Assert-Check ($gui.WaitForExit(10000)) 'configurator closes normally'
 

@@ -296,3 +296,12 @@ uma regra, as contas efetivamente escolhidas precisam existir como ativas e
 aptas a lançamentos no plano confirmado; a regra permanece em rascunho e
 exige ativação separada. Sugestão IA não comprova a legenda do catálogo,
 adequação contábil, saldo ou aprovação humana.
+
+O perfil `depara-compact-v2` usa baixo esforço e desliga o raciocínio prévio
+somente na classificação curta com Haiku5.5, mantendo o limite de420 tokens.
+Outras utilizações e modelos conservam seus parâmetros. O consumo e o motivo
+de término são registrados mesmo quando o provedor não entrega texto final;
+pensamento e assinatura não são persistidos. Resposta desconhecida continua
+bloqueando repetição automática. Um novo perfil cria outro lote, preservando
+o recibo anterior; isso não substitui nova autorização de dados/custo nem
+libera a reserva de uma tentativa que pode ter sido consumida.
