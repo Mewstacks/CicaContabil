@@ -39,7 +39,7 @@ def import_native_source(
         or account.organization_id != source.organization_id
         or account.company_id != source.company_id
         or not account.active
-        or account.ledger_code != "8"
+        or not account.ledger_code
         or not account.account_reference
         or source.kind != "json"
         or source.origin != "accounting"
@@ -51,7 +51,17 @@ def import_native_source(
     prepared = []
     for key, parties in grouped.items():
         bank = next(p for p in parties if p.cash_direction)
-        raw_rows = [r for r in snapshot["records"] if key == f"dominio:212:lote:{r['lot_code']}"]
+        raw_rows = [
+            r
+            for r in snapshot["records"]
+            if key == f"dominio:{r['company_code']}:lote:{r['lot_code']}"
+        ]
+        if (
+            not raw_rows
+            or any(str(r["company_code"]) != source.company.dominio_code for r in raw_rows)
+            or any(p.cash_direction and p.account_code != account.ledger_code for p in parties)
+        ):
+            raise ValueError("ledger_account_scope")
         # Include raw history codes/nulls/catalogue so provenance changes cannot silently replay.
         used = {int(p.account_code) for p in parties}
         fingerprint = canonical_hash(

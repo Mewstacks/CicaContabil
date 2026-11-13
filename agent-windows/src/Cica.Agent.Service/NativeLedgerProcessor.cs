@@ -10,7 +10,7 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
 {
     internal async Task<bool> RunOnce(CancellationToken token)
     {
-        using JsonDocument response = await client.PostAsync("api/agent/v2/ledger/next", new { version = "1.0.8" }, token);
+        using JsonDocument response = await client.PostAsync("api/agent/v2/ledger/next", new { version = "1.0.8", portfolio_scope = true }, token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
             return response.RootElement.TryGetProperty("review_required", out var review) && review.GetBoolean();
@@ -72,7 +72,7 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
             ["type_raw"] = Text(r[4]), ["status_raw"] = Text(r[5]),
             ["inactive_date_raw"] = r.IsDBNull(6) ? null : Day(r[6]),
         }, token);
-        if (lots.Count != 163 || records.Count != 177 || accounts.Count == 0
+        if (lots.Count != plan.ExpectedLots || records.Count != plan.ExpectedRows
             || accounts.Count > 5000 || accounts.Any(a => (int)a["account_code"]! == 0)
             || lots.Sum(l => (int)l["row_count"]!) != records.Count) throw NativeLedgerPlan.Invalid();
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new {

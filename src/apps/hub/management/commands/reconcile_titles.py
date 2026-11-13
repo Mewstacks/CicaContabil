@@ -28,6 +28,8 @@ from apps.hub.title_persistence import (
     title_plan_review,
     undo_title_allocation,
 )
+from apps.intelligence.models import NativeTitleCollection
+from apps.intelligence.native_title_translation import import_reviewed_native_titles
 
 
 def _read(path: str) -> bytes:
@@ -71,6 +73,9 @@ class Command(BaseCommand):
         importer = actions.add_parser("import")
         importer.add_argument("--input", required=True)
         importer.add_argument("--evidence", required=True)
+        native = actions.add_parser("native-import")
+        native.add_argument("--capture", required=True)
+        native.add_argument("--input", required=True)
         preview = actions.add_parser("preview")
         preview.add_argument("--snapshot", required=True)
         preview.add_argument("--requests", required=True)
@@ -113,6 +118,24 @@ class Command(BaseCommand):
         self, options: dict[str, Any], account: FinancialAccount, actor: User
     ) -> dict[str, Any]:
         action = options["action"]
+        if action == "native-import":
+            job = NativeTitleCollection.objects.get(
+                pk=UUID(options["capture"]),
+                financial_account=account,
+                organization_id=account.organization_id,
+            )
+            snapshot, created = import_reviewed_native_titles(
+                organization_id=account.organization_id,
+                capture_id=job.pk,
+                actor=actor,
+                review=_json(options["input"]),
+            )
+            return {
+                "snapshot_id": str(snapshot.pk),
+                "created": created,
+                "bank_linkage": "unproven",
+                "settlements_complete": False,
+            }
         if action == "import":
             snapshot, created = import_title_snapshot(
                 financial_account=account,

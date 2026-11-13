@@ -320,3 +320,99 @@ V-382: comando disponível no backend86, com CI integral aprovado. Leitura real
 da fonte retida conferida duas vezes em READ ONLY, sem mudanças ou gravações.
 A prova usou a mesma captura e não substitui duas fontes reais independentes
 ou o confronto humano C01/C02, que permanece adiado por D-355.
+
+
+## Tradução financeira explicitamente revisada — D-356 (local)
+
+`native_title_translation.translate_reviewed_titles` liga decisões humanas à
+fonte fiscal íntegra. `reconcile_titles native-import --capture UUID --input
+REVISAO.json` reaproveita autorização e persistência existentes. A captura
+precisa pertencer à conta selecionada; cada parcela e componente recebe
+referência opaca por chave física, estável entre releituras. A trilha imutável
+liga captura/hash, parcela, campo do principal e todos os componentes de cada
+baixa ao snapshot normalizado. Não chama ERP nem escolhe associação bancária.
+
+A revisão contém `source_sha256`, `evidence_reference` e `decisions`. Cada
+decisão informa família, referência da parcela, natureza, campo literal do
+principal (`vlor_*`/`vbru_*`, escolhido pelo revisor) e eventos com referências
+dos componentes e campos do contrato `titles-normalized-v1`. A chave de cada
+evento é o hash da lista ordenada de referências dos componentes. Data e
+número de pagamento vêm da origem; uma decisão não mistura pagamentos nem
+omite componentes zero/retenções. Todas as baixas da parcela selecionada
+precisam de decisão. Componentes e reversão são explícitos, nunca derivados
+da legenda do código, sinal, ausência, igualdade ou saldo aparente.
+
+O contrato valida baixas parciais, aritmética e estorno integral vinculado;
+o caminho integrado foi exercitado até alocação bancária parcial, capacidade
+remanescente e desfazimento, somente com dados sintéticos. A fonte mensal
+não prova história completa: `settlements_complete=false` e saldo desconhecido
+permanecem obrigatórios. Vínculo bancário continua `unproven` até a decisão
+com evidência bancária própria. Isso não substitui C01/C02 nem comprova saldos.
+
+## Sugestões de DE-PARA com IA e revisão separada — D-356 (local)
+
+O comando administrativo `depara_ai` oferece `prepare`, `generate`,
+`review-packet` e `review`. As opções comuns são organização, conta e ator.
+A preparação recebe JSON com `items` (referência, descrição, direção) e
+`candidate_codes` (2–12 contas ativas/analíticas do plano da própria empresa,
+incluindo a conta contábil do banco). Cada lote admite até quatro descrições.
+Não se usa o catálogo bruto como plano aprovado nem se cria conta por inferência.
+
+A chamada única exige `--max-request-cents` positivo, `--allow-data-egress`,
+política Claude vigente, papel permitido, chave central e reserva de cota
+configurada. A transação confirma a reserva antes do HTTP. O payload usa
+referências opacas, descrições limitadas/mascaradas e nomes/códigos candidatos;
+não manda nome da empresa, valores ou identificadores bancários/fiscais do
+contexto. Mascaramento não é autorização de egressão: Q-08/Q-09 continuam
+exigindo decisão sobre o conteúdo concreto e teto. “Menor custo possível”
+não foi convertido em orçamento numérico nem em permissão de dados.
+
+Resposta só aceita referências e contas candidatas, sem contas iguais no
+débito/crédito ou ausência da conta bancária. Dados do modelo nunca ativam
+regra. `review-packet --batch UUID --output CAMINHO_NOVO.json` cria arquivo
+privado0600, sem sobrescrita/symlink, com contexto e escolhas editáveis. O
+revisor corrige contas, preenche histórico e submete `review --input ARQUIVO`.
+A regra resultante fica em rascunho para ativação humana no fluxo existente.
+Alteração do plano/acesso é revalidada. Tentativa incerta/inválida não repete
+consumo automaticamente; resposta válida e revisão repetida são reaproveitadas.
+
+O mecanismo não liga o Copiloto nem altera contratação/cobrança do escritório.
+Nenhuma chamada real ou classificação da CONTAD foi executada nesta entrega.
+
+## Aferição D-73 por fatos e revisão do proprietário — D-356 (local)
+
+`reconciliation_acceptance prepare` congela contas previstas e origem da
+classificação antes da revisão. Recebe `--release`, arquivo com `movement_ids`
+e `--output` novo. O JSON privado contém fatos e campos em branco para a
+referência humana, sem mostrar a previsão. Somente o proprietário pode
+registrar `review --sample UUID --input ARQUIVO`, com contas/centro de custo
+esperados e evidência. A trilha é imutável; correção posterior do movimento
+não reescreve a previsão medida. Revisão de fonte alterada é recusada.
+
+`report --release IDENTIFICACAO [--run UUID ...]` conta identidades bancárias
+distintas e revisadas: FITID/conta para OFX; arquivo/chave/conta nos demais.
+Sobreposição/releitura não aumenta amostra; respostas conflitantes impedem
+aprovação. Precisão compara débito/crédito/centro de custo previstos com os
+revisados, usando limite95% exato e ao menos200 previsões automáticas revisadas
+naquele recorte. Confiança da IA, exemplos manuais e amostra não revisada não
+viram precisão. O relatório é por conta/recorte; não exige200 eventos em cada
+empresa como nova regra comercial nem substitui o desenho representativo
+por fluxo exigido em D-73.
+
+Os tempos vêm de processamentos reais identificados, encerrados e com início/
+fim válidos. A soma do recorte da empresa é comparada com300s; o proprietário
+ainda confirma se a carga representa a rotina completa. Ausência de medição
+não é desempenho aprovado. `release_accepted=false` conserva integridade,
+retomada/restore, importação no destino e assinatura do proprietário como
+provas separadas. Os200 itens dos testes são sintéticos, não aceite CONTAD.
+
+## Retorno contábil Q-47 nesta execução
+
+O responsável pediu pular agora o teste no Domínio. O adaptador publicado
+continua `dominio-3.1-pending-homologation`, sem promoção de layout. Sua
+candidata atual usa dez colunas CSV separadas por ponto e vírgula, UTF-8 com
+BOM, CRLF, dataDD/MM/AAAA e valor decimal com ponto. Conta/histórico/matriz/
+centros de custo e tratamento de multipartidas precisam do conjunto aceito
+no destino. A prévia privada existente só admite lançamentos novos aprovados
+e exclui `source_ledger`/exportações anteriores. Não reutilizar o Razão já
+escriturado, alterar parâmetros ou ligar o gate para fabricar essa prova.

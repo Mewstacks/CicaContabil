@@ -239,3 +239,39 @@ Complemento e contrato em `docs/contad-relacoes-fontes.md`; consulta somente
 catálogos, com chave composta e primary_column_id explícitos.46 testes locais/
 12 cenários Windows aprovados; comando direto/hash conferidos. Aguarda resultado
 real, sem atualizar agente1.0.7 ou habilitar datasets de contas/Razão/títulos.
+
+
+## Coleta financeira mensal com escopo explícito — D-356 (candidata local)
+
+A candidata de código1.0.10 remove o recorte fixo do caminho de Razão, mantendo
+as três consultas SQL e seus hashes. Não é o agente oficial instalado1.0.9,
+MSI aprovado ou cobertura real da carteira. O catálogo continua literal: nenhuma
+conta é declarada ativa/analítica e nenhum plano compartilhado é inferido.
+
+`queue_portfolio_ledger` recebe organização, oficial, conta existente, solicitante,
+referência da conferência e `--scope-file`. O arquivo contém os mesmos onze
+campos do piloto, agora validados por tipo/limite: empresa, empresa do plano,
+filial, conta bancária, sentinela zero, lado da entrada, início/fim exclusivo
+de um mês desde09/2026 e contagens de linhas/lotes/efeitos. O mapeamento e as
+contagens precisam de prova da origem; a ferramenta não os inventa dos cadastrosA146.
+
+Sem `--allow-financial-capture`, o comando só faz a prévia e retorna hashes.
+Com a confirmação operacional aplicável, cria um job auditado por escopo.
+Repetição não cria outro job e não altera recibos existentes. A recepção
+revalida acesso atual, conta/empresa e hashes; revogação posterior bloqueia
+entrega e importação. O plano contábil explicitamente escolhido deve coincidir
+com cada conta do catálogo, mesmo quando difere da empresa fiscal/contábil.
+
+O agente novo declara `portfolio_scope=true`. O backend continua atendendo
+1.0.8/1.0.9 sem essa capacidade exclusivamente no piloto original; não manda
+a eles jobs ampliados. Publicar backend compatível antes de atualizar agente.
+Candidata de upgrade1.0.9→1.0.10 e ensaio Windows estão preparados nos arquivos
+`upgrade-portfolio-ledger.ps1` e `test-portfolio-ledger-upgrade.ps1`. Não executar
+o ensaio de CI em cliente. Windows/MSI/upgrade reais ainda precisam de prova exata.
+
+Limites preservados:50.000 linhas,5.000 contas,2MB, mês completo e um efeito
+bancário por lote. Excesso/multipartida incompatível vai para recusa/revisão,
+sem truncar ou forçar vínculo. Escopo zero/zero/zero pode registrar fotografia
+vazia, sem criar eventos. Comparar cobertura por empresa/conta/mês após a
+coleta real; essa preparação não implementa descoberta automática de todas
+as contas, situaçãoM, agendamento recorrente ou retomada operacional homologada.
