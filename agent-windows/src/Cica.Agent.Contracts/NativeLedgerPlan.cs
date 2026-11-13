@@ -13,8 +13,13 @@ internal sealed class NativeLedgerPlan
     internal string Id { get; }
     internal string Revision { get; }
     internal string ContractHash { get; }
-    internal DateTime Start => new(2026, 9, 1);
-    internal DateTime End => new(2026, 10, 1);
+    internal DateTime Start { get; }
+    internal int Company { get; }
+    internal int Chart { get; }
+    internal int Bank { get; }
+    internal int ExpectedRows { get; }
+    internal int ExpectedLots { get; }
+    internal DateTime End { get; }
     internal JsonElement Manifest { get; }
     private static byte[] Resource(string name)
     {
@@ -52,22 +57,39 @@ internal sealed class NativeLedgerPlan
         Revision = job.GetProperty("scope_revision").GetString() ?? throw Invalid();
         ContractHash = LocalContractHash;
         var scope = job.GetProperty("scope");
-        var expected = new SortedDictionary<string, object>(StringComparer.Ordinal) {
-            ["company_code"] = 212, ["chart_company_code"] = 212, ["branch_code"] = 212,
-            ["bank_account_code"] = 8, ["absent_account_code"] = 0, ["bank_inflow_side"] = "debit",
-            ["period_start"] = "2026-09-01", ["period_end_exclusive"] = "2026-10-01",
-            ["expected_source_rows"] = 177, ["expected_lots"] = 163, ["expected_bank_effects"] = 163,
-        };
-        if (scope.EnumerateObject().Count() != expected.Count) throw Invalid();
-        foreach (var pair in expected)
-        {
-            var value = scope.GetProperty(pair.Key);
-            if (pair.Value is int number)
-            {
-                if (value.ValueKind != JsonValueKind.Number || value.GetRawText() != number.ToString(CultureInfo.InvariantCulture)) throw Invalid();
+        string[] fields = ["company_code", "chart_company_code", "branch_code", "bank_account_code",
+            "absent_account_code", "bank_inflow_side", "period_start", "period_end_exclusive",
+            "expected_source_rows", "expected_lots", "expected_bank_effects"];
+        if (scope.EnumerateObject().Count() != fields.Length) throw Invalid();
+        var expected = new SortedDictionary<string, object>(StringComparer.Ordinal);
+        foreach (string field in fields) {
+            var value = scope.GetProperty(field);
+            if (field is "period_start" or "period_end_exclusive" or "bank_inflow_side") {
+                if (value.ValueKind != JsonValueKind.String) throw Invalid();
+                expected[field] = value.GetString() ?? throw Invalid();
+            } else {
+                if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out int number)
+                    || value.GetRawText() != number.ToString(CultureInfo.InvariantCulture)) throw Invalid();
+                int minimum = field.StartsWith("expected_") || field == "absent_account_code" ? 0 : 1;
+                int maximum = field.StartsWith("expected_") ? 50_000 : int.MaxValue;
+                if (number < minimum || number > maximum) throw Invalid();
+                expected[field] = number;
             }
-            else if (value.ValueKind != JsonValueKind.String || value.GetString() != (string)pair.Value) throw Invalid();
         }
+        if ((int)expected["absent_account_code"] != 0
+            || (string)expected["bank_inflow_side"] is not ("debit" or "credit")) throw Invalid();
+        if (!DateTime.TryParseExact((string)expected["period_start"], "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out DateTime start)
+            || !DateTime.TryParseExact((string)expected["period_end_exclusive"], "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out DateTime end)
+            || start < new DateTime(2026, 9, 1) || start.Day != 1 || end.Day != 1
+            || end != start.AddMonths(1)) throw Invalid();
+        Start = start; End = end;
+        Company = (int)expected["company_code"]; Chart = (int)expected["chart_company_code"];
+        Bank = (int)expected["bank_account_code"];
+        ExpectedRows = (int)expected["expected_source_rows"]; ExpectedLots = (int)expected["expected_lots"];
+        if (ExpectedLots > ExpectedRows || (ExpectedRows == 0) != (ExpectedLots == 0)
+            || (int)expected["expected_bank_effects"] != ExpectedLots) throw Invalid();
         if (Revision != Digest(JsonSerializer.SerializeToUtf8Bytes(expected))) throw Invalid();
         using JsonDocument manifest = JsonDocument.Parse(Resource("manifest.json"));
         Manifest = manifest.RootElement.Clone();
@@ -75,7 +97,7 @@ internal sealed class NativeLedgerPlan
     internal string Query(string name) => Encoding.UTF8.GetString(Resource(name + ".sql"));
     internal object[] Parameters(string name) => Manifest.GetProperty("queries").GetProperty(name)
         .GetProperty("parameters").EnumerateArray().Select(p => p.GetString() switch {
-            "company" or "chart" => (object)212, "bank" => 8, "absent" => 0,
+            "company" => (object)Company, "chart" => Chart, "bank" => Bank, "absent" => 0,
             "start" => Start, "end" => End, _ => throw Invalid(),
         }).ToArray();
     internal static InvalidDataException Invalid() => new("Contrato de coleta nativa incompatível; confira a coleta no CICA.");

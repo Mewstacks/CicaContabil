@@ -689,6 +689,24 @@ class EgressAudit(OrganizationScopedModel):
     completed_at = models.DateTimeField(null=True, blank=True)
 
 
+class DeparaAiBatch(OrganizationScopedModel):
+    """One bounded request, reusable suggestions and separate human review."""
+
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    fingerprint = models.CharField(max_length=64)
+    context = models.JSONField()
+    suggestions = models.JSONField(default=list)
+    state = models.CharField(max_length=16, default="prepared")
+    egress = models.OneToOneField(EgressAudit, null=True, blank=True, on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "financial_account", "fingerprint"),
+            name="intelligence_unique_depara_ai_batch",
+        )]
+
+
 class NativeLedgerCollection(OrganizationScopedModel):
     """One explicitly queued, immutable native snapshot; never a general SQL job."""
 
@@ -699,6 +717,10 @@ class NativeLedgerCollection(OrganizationScopedModel):
         FAILED = "failed", "Falha de coleta"
 
     agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="ledger_jobs")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
+    )
+    evidence_reference = models.CharField(max_length=240, blank=True)
     financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
     scope = models.JSONField()
     scope_revision = models.CharField(max_length=64)

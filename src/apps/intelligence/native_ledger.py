@@ -7,6 +7,7 @@ import binascii
 import hashlib
 from typing import Any
 
+from django.core.exceptions import PermissionDenied
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.http import HttpRequest, JsonResponse
@@ -16,6 +17,7 @@ from django.views.decorators.http import require_POST
 
 from apps.hub.models import ReconciliationSourceFile
 from apps.hub.native_ledger_import import import_native_source
+from apps.hub.title_persistence import authorize_title_account
 from apps.intelligence.agent_v2 import agent_error, agent_payload, authenticated_agent
 from apps.intelligence.models import EdgeAgent, NativeLedgerCollection
 from apps.intelligence.native_ledger_contract import (
@@ -24,6 +26,7 @@ from apps.intelligence.native_ledger_contract import (
     canonical_hash,
     contract_hash,
     normalize_snapshot,
+    pilot_scope,
     validate_scope,
     validate_snapshot,
 )
@@ -33,6 +36,12 @@ def _job_valid(job: NativeLedgerCollection, agent: EdgeAgent) -> bool:
     account = job.financial_account
     try:
         scope = validate_scope(job.scope)
+        if job.requested_by_id:
+            if not job.evidence_reference.strip() or job.requested_by is None:
+                return False
+            authorize_title_account(account, job.requested_by)
+        elif scope != pilot_scope():
+            return False
         return (
             job.organization_id == agent.organization_id
             and job.agent_id == agent.id
@@ -45,7 +54,7 @@ def _job_valid(job: NativeLedgerCollection, agent: EdgeAgent) -> bool:
             and job.scope_revision == canonical_hash(scope)
             and job.contract_hash == contract_hash()
         )
-    except ValueError:
+    except (ValueError, PermissionDenied):
         return False
 
 
@@ -64,15 +73,17 @@ def next_job(request: HttpRequest) -> JsonResponse:
     if agent is None:
         return agent_error("Agente não autorizado.", 401)
     payload = agent_payload(request, 1024)
-    if payload != {"version": "1.0.8"}:
+    expanded = payload == {"version": "1.0.8", "portfolio_scope": True}
+    if not expanded and payload != {"version": "1.0.8"}:
         return agent_error("Versão de coleta nativa incompatível.", 400)
-    job = (
+    jobs = (
         NativeLedgerCollection.objects.select_for_update()
         .select_related("financial_account__company")
         .filter(agent=agent, organization=agent.organization, state="queued")
-        .order_by("created_at")
-        .first()
     )
+    if not expanded:
+        jobs = jobs.filter(scope_revision=canonical_hash(pilot_scope()))
+    job = jobs.order_by("created_at").first()
     result: dict[str, Any] = {
         "job": None,
         "review_required": (

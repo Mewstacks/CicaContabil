@@ -16,3 +16,6 @@ agent-windows/test-ledger-upgrade.ps1 text eol=lf
 contracts/titles/** text eol=lf
 agent-windows/upgrade-titles.ps1 text eol=lf
 agent-windows/test-title-upgrade.ps1 text eol=lf
+
+agent-windows/upgrade-portfolio-ledger.ps1 text eol=lf
+agent-windows/test-portfolio-ledger-upgrade.ps1 text eol=lf
