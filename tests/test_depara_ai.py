@@ -501,3 +501,52 @@ def test_native_prepare_command_keeps_only_private_catalogue_in_batch(native_ai_
     result = json.loads(output.getvalue())
     assert result["batch_id"] == str(batch.pk) and result["provider_called"] is False
     assert "Pessoa privada" not in output.getvalue()
+
+
+def test_empty_provider_text_preserves_usage_and_unknown_result_without_retry(ai_batch):
+    _, actor, batch, _ = ai_batch
+
+    def provider(**kwargs):
+        kwargs["on_response_usage"](
+            ClaudeCompletion(
+                "",
+                "claude-haiku-5-5",
+                input_tokens=973,
+                output_tokens=420,
+                stop_reason="max_tokens",
+            )
+        )
+        return None
+
+    with patch(
+        "apps.intelligence.depara_ai.generate_claude_fallback_completion", side_effect=provider
+    ) as call:
+        result = generate_depara_ai(
+            batch=batch, actor=actor, max_request_cents=1, allow_data_egress=True
+        )
+        assert result.state == "unknown" and not result.suggestions
+        with pytest.raises(ValueError):
+            generate_depara_ai(
+                batch=result, actor=actor, max_request_cents=1, allow_data_egress=True
+            )
+        assert call.call_count == 1 and call.call_args.kwargs["minimal_reasoning"] is True
+    audit = EgressAudit.objects.get()
+    assert (audit.input_tokens, audit.output_tokens) == (973, 420)
+    assert audit.estimated_cost_cents == 1 and audit.call_state == "unknown"
+    assert not ReconciliationRule.objects.exists()
+
+
+def test_preparing_new_request_profile_never_overwrites_an_old_unknown_receipt(ai_batch):
+    account, actor, old, items = ai_batch
+    old.context.pop("generation_profile")
+    old.fingerprint = canonical_hash(old.context)
+    old.state = "unknown"
+    old.save()
+    new, created = prepare_depara_ai(
+        account=account, actor=actor, items=items, candidate_codes=["1", "2", "3"]
+    )
+    old.refresh_from_db()
+    assert created and new.pk != old.pk
+    assert old.state == "unknown" and "generation_profile" not in old.context
+    assert new.state == "prepared" and new.context["generation_profile"] == "depara-compact-v2"
+    assert not EgressAudit.objects.exists()  # Preparation is not permission to spend.

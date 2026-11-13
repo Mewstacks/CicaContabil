@@ -17,6 +17,7 @@ from apps.hub.depara import DeparaExample, DeparaResult, create_initial_depara_d
 from apps.hub.models import FinancialAccount, LedgerAccount
 from apps.hub.title_persistence import authorize_title_account
 from apps.intelligence.gateway import (
+    ClaudeCompletion,
     _mask_cloud_text,
     can_use_claude_fallback,
     claude_fallback_payload,
@@ -270,6 +271,7 @@ def prepare_depara_ai(
     else:
         accounts = _accounts(account, candidate_codes)
     context: dict[str, Any] = {
+        "generation_profile": "depara-compact-v2",
         "items": items,
         "accounts": accounts,
         "bank_code": account.ledger_code,
@@ -457,6 +459,7 @@ def generate_depara_ai(
             evidence=cards,
             allow_full_data=False,
             model=platform.cloud_fallback_model,
+            minimal_reasoning=True,
         )
         audit = audit_claude_egress(
             organization=account.organization,
@@ -478,6 +481,26 @@ def generate_depara_ai(
             provider_http_status=http_status,
         )
 
+    def response_usage(completion: ClaudeCompletion) -> None:
+        EgressAudit.objects.filter(pk=audit.pk).update(
+            input_tokens=completion.input_tokens,
+            output_tokens=completion.output_tokens,
+            cache_creation_input_tokens=completion.cache_creation_input_tokens,
+            cache_read_input_tokens=completion.cache_read_input_tokens,
+        )
+        record_event(
+            action="intelligence.depara_provider_response_observed",
+            organization=account.organization,
+            actor=actor,
+            target=audit,
+            metadata={
+                "stop_reason": completion.stop_reason,
+                "has_text": bool(completion.content),
+                "input_tokens": completion.input_tokens,
+                "output_tokens": completion.output_tokens,
+            },
+        )
+
     try:
         completion = generate_claude_fallback_completion(
             api_key=key,
@@ -488,6 +511,8 @@ def generate_depara_ai(
             evidence=cards,
             allow_full_data=False,
             on_response_metadata=response_metadata,
+            on_response_usage=response_usage,
+            minimal_reasoning=True,
         )
     finally:
         with transaction.atomic():
