@@ -275,3 +275,24 @@ sem truncar ou forçar vínculo. Escopo zero/zero/zero pode registrar fotografia
 vazia, sem criar eventos. Comparar cobertura por empresa/conta/mês após a
 coleta real; essa preparação não implementa descoberta automática de todas
 as contas, situaçãoM, agendamento recorrente ou retomada operacional homologada.
+## Sugestões DE-PARA antes da conferência do catálogo
+
+O preparo administrativo aceita `depara_ai ... prepare --input <privado.json>
+--native-collection <uuid>`. A coleção deve estar importada, pertencer à mesma
+conta/empresa/escritório e manter fonte, hash e escopo íntegros. O arquivo de
+entrada continua contendo apenas `items` (até quatro) e `candidate_codes`
+(de dois a doze, incluindo a conta bancária). A procedência integra o fingerprint
+do lote e é reconferida antes de cada uso.
+
+Esse caminho não interpreta tipo/situação brutos nem cria `LedgerAccount`.
+Permite sugestões preliminares sobre as contas do catálogo retido; nomes fora
+do vocabulário técnico são omitidos no payload externo, e a conta bancária
+recebe rótulo genérico. Projeções de históricos devem ser identificadas como
+reduzidas e conservar a referência privada ao original para revisão.
+
+A geração mantém os mesmos gates de acesso, política, teto e reserva única.
+O pacote privado de revisão informa `requires_chart_review=true`. Para criar
+uma regra, as contas efetivamente escolhidas precisam existir como ativas e
+aptas a lançamentos no plano confirmado; a regra permanece em rascunho e
+exige ativação separada. Sugestão IA não comprova a legenda do catálogo,
+adequação contábil, saldo ou aprovação humana.

@@ -1,3 +1,5 @@
+import hashlib
+import io
 import json
 from unittest.mock import patch
 
@@ -9,6 +11,7 @@ from apps.hub.models import (
     LedgerAccount,
     ProductModule,
     ReconciliationRule,
+    ReconciliationSourceFile,
 )
 from apps.intelligence.depara_ai import (
     depara_payload,
@@ -22,8 +25,11 @@ from apps.intelligence.models import (
     AssistantSettings,
     ClaudeFallbackApproval,
     DeparaAiBatch,
+    EdgeAgent,
     EgressAudit,
+    NativeLedgerCollection,
 )
+from apps.intelligence.native_ledger_contract import VERSION, canonical_hash, contract_hash
 from apps.organizations.models import Membership
 from apps.platform.models import PlatformConfiguration, TenantContract
 
@@ -273,3 +279,225 @@ def test_competing_calls_commit_reservation_once_before_provider_io(ai_batch):
             assert pending.result(timeout=15) == "succeeded"
         assert call.call_count == 1
     assert EgressAudit.objects.count() == 1
+
+
+@pytest.fixture
+def native_ai_batch(ai_batch, settings, tmp_path):
+    from django.core.files.base import ContentFile
+
+    settings.MEDIA_ROOT = tmp_path
+    account, actor, _, items = ai_batch
+    account.company.dominio_code = "212"
+    account.company.save(update_fields=["dominio_code"])
+    LedgerAccount.objects.filter(company=account.company).delete()
+    scope = {
+        "company_code": 212,
+        "chart_company_code": 212,
+        "branch_code": 212,
+        "bank_account_code": 1,
+        "absent_account_code": 0,
+        "bank_inflow_side": "debit",
+        "period_start": "2026-09-01",
+        "period_end_exclusive": "2026-10-01",
+        "expected_source_rows": 2,
+        "expected_lots": 2,
+        "expected_bank_effects": 2,
+    }
+    snapshot = {
+        "version": VERSION,
+        "scope_revision": canonical_hash(scope),
+        "lots": [{"lot_code": lot, "row_count": 1, "type_raw": "C"} for lot in (1, 2)],
+        "records": [
+            {
+                "company_code": 212,
+                "chart_company_code": 212,
+                "branch_code": 212,
+                "lot_code": 1,
+                "row_code": 1,
+                "occurred_on": "2026-09-03",
+                "debit_account_code": 1,
+                "credit_account_code": 2,
+                "amount": "1.00",
+                "history": None,
+                "history_code_raw": None,
+                "document": None,
+            }
+        ],
+        "accounts": [
+            {
+                "company_code": 212,
+                "account_code": code,
+                "name_raw": name,
+                "classification_raw": "1",
+                "type_raw": "A",
+                "status_raw": "I",
+                "inactive_date_raw": None,
+            }
+            for code, name in [
+                (1, "Banco privado 123"),
+                (2, "Despesas bancarias"),
+                (3, "Pessoa privada"),
+            ]
+        ],
+    }
+    snapshot["records"].append(
+        {**snapshot["records"][0], "lot_code": 2, "row_code": 2, "credit_account_code": 3}
+    )
+    raw = json.dumps(snapshot).encode()
+    digest = hashlib.sha256(raw).hexdigest()
+    source = ReconciliationSourceFile.objects.create(
+        organization=account.organization,
+        company=account.company,
+        financial_account=account,
+        kind="json",
+        origin="accounting",
+        original_filename="synthetic.json",
+        content_hash=digest,
+        size_bytes=len(raw),
+    )
+    source.content.save("synthetic.json", ContentFile(raw))
+    agent = EdgeAgent.objects.create(
+        organization=account.organization,
+        label="Synthetic",
+        fingerprint="native-ai",
+        shared_secret="synthetic-only",
+    )
+    job = NativeLedgerCollection.objects.create(
+        organization=account.organization,
+        agent=agent,
+        financial_account=account,
+        scope=scope,
+        scope_revision=canonical_hash(scope),
+        contract_hash=contract_hash(),
+        state="imported",
+        source_file=source,
+        content_hash=digest,
+    )
+    batch, created = prepare_depara_ai(
+        account=account,
+        actor=actor,
+        items=items,
+        candidate_codes=["3", "2", "1"],
+        native_collection_id=str(job.pk),
+    )
+    assert created
+    return account, actor, batch, items, job
+
+
+def test_native_catalogue_can_propose_without_approving_flags_or_posting_accounts(native_ai_batch):
+    account, actor, batch, items, job = native_ai_batch
+    repeated, created = prepare_depara_ai(
+        account=account,
+        actor=actor,
+        items=items,
+        candidate_codes=["1", "2", "3"],
+        native_collection_id=str(job.pk),
+    )
+    assert not created and repeated.pk == batch.pk
+    assert batch.context["catalogue_source"]["sha256"] == job.content_hash
+    assert not LedgerAccount.objects.exists()
+    question, cards = depara_payload(batch.context)
+    sent = question + json.dumps(cards)
+    assert "DESPESAS BANCARIAS" in sent and "Conta bancaria" in sent
+    for private in ("Banco privado", "Pessoa privada", "123", str(job.pk), job.content_hash):
+        assert private not in sent
+    result, call = generate(native_ai_batch[:4])
+    assert result.state == "succeeded" and call.call_count == 1
+    assert not LedgerAccount.objects.exists() and not ReconciliationRule.objects.exists()
+    assert depara_review_packet(batch=result, actor=actor)["requires_chart_review"] is True
+
+
+def test_native_suggestions_require_separate_verified_accounts_before_rule_creation(
+    native_ai_batch,
+):
+    account, actor, _, _, _ = native_ai_batch
+    batch, _ = generate(native_ai_batch[:4])
+    choices = [{"reference": "item_1", "debit": "2", "credit": "1", "history": "Reviewed"}]
+    with pytest.raises(ValueError):
+        review_depara_ai(batch=batch, actor=actor, choices=choices)
+    assert not ReconciliationRule.objects.exists()
+    for code in ("1", "2"):
+        LedgerAccount.objects.create(
+            organization=account.organization,
+            company=account.company,
+            code=code,
+            name="Human approved",
+            active=True,
+            accepts_entries=True,
+        )
+    reviewed = review_depara_ai(batch=batch, actor=actor, choices=choices)
+    assert ReconciliationRule.objects.get(pk=reviewed[0].rule_id).state == "draft"
+    assert LedgerAccount.objects.count() == 2  # Unselected candidate 3 remains unapproved.
+
+
+@pytest.mark.parametrize("failure", ["state", "hash", "scope", "source_company", "bytes"])
+def test_native_catalogue_revalidates_provenance_before_paid_call(native_ai_batch, failure):
+    account, actor, batch, _, job = native_ai_batch
+    if failure == "state":
+        NativeLedgerCollection.objects.filter(pk=job.pk).update(state="review")
+    elif failure == "hash":
+        NativeLedgerCollection.objects.filter(pk=job.pk).update(content_hash="0" * 64)
+    elif failure == "scope":
+        account.company.dominio_code = "213"
+        account.company.save(update_fields=["dominio_code"])
+    elif failure == "source_company":
+        other = ClientCompany.objects.create(organization=account.organization, name="Other")
+        ReconciliationSourceFile.objects.filter(pk=job.source_file_id).update(company=other)
+    else:
+        with job.source_file.content.open("wb") as stream:
+            stream.write(b"{}")
+    from django.core.exceptions import ObjectDoesNotExist
+
+    with patch("apps.intelligence.depara_ai.generate_claude_fallback_completion") as call:
+        with pytest.raises((ValueError, ObjectDoesNotExist)):
+            generate_depara_ai(
+                batch=batch, actor=actor, max_request_cents=1, allow_data_egress=True
+            )
+        call.assert_not_called()
+    assert not EgressAudit.objects.exists()
+
+
+def test_native_collection_cannot_be_borrowed_from_another_account(native_ai_batch):
+    account, actor, _, items, job = native_ai_batch
+    other = FinancialAccount.objects.create(
+        organization=account.organization,
+        company=account.company,
+        name="Other",
+        account_reference="other-account",
+        ledger_code="1",
+    )
+    from django.core.exceptions import ObjectDoesNotExist
+
+    with pytest.raises(ObjectDoesNotExist):
+        prepare_depara_ai(
+            account=other,
+            actor=actor,
+            items=items,
+            candidate_codes=["1", "2"],
+            native_collection_id=str(job.pk),
+        )
+
+
+def test_native_prepare_command_keeps_only_private_catalogue_in_batch(native_ai_batch, tmp_path):
+    from django.core.management import call_command
+
+    account, actor, batch, items, job = native_ai_batch
+    source = tmp_path / "prepare.json"
+    source.write_text(json.dumps({"items": items, "candidate_codes": ["1", "2", "3"]}))
+    output = io.StringIO()
+    call_command(
+        "depara_ai",
+        "--organization",
+        str(account.organization_id),
+        "--account",
+        str(account.pk),
+        "--actor",
+        str(actor.pk),
+        "prepare",
+        input=str(source),
+        native_collection=str(job.pk),
+        stdout=output,
+    )
+    result = json.loads(output.getvalue())
+    assert result["batch_id"] == str(batch.pk) and result["provider_called"] is False
+    assert "Pessoa privada" not in output.getvalue()

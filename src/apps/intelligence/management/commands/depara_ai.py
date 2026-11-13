@@ -31,6 +31,9 @@ class Command(BaseCommand):
         actions = parser.add_subparsers(dest="action", required=True)
         prepare = actions.add_parser("prepare")
         prepare.add_argument("--input", required=True)
+        prepare.add_argument(
+            "--native-collection", help="Catálogo retido; não aprova contas para regras."
+        )
         generate = actions.add_parser("generate")
         generate.add_argument("--batch", required=True)
         generate.add_argument("--max-request-cents", required=True, type=int)
@@ -55,7 +58,12 @@ class Command(BaseCommand):
             if options["action"] == "prepare":
                 if not isinstance(payload, dict) or set(payload) != {"items", "candidate_codes"}:
                     raise ValueError
-                batch, created = prepare_depara_ai(account=account, actor=actor, **payload)
+                batch, created = prepare_depara_ai(
+                    account=account,
+                    actor=actor,
+                    native_collection_id=options.get("native_collection"),
+                    **payload,
+                )
                 result = {
                     "batch_id": str(batch.pk),
                     "state": batch.state,
@@ -92,7 +100,14 @@ class Command(BaseCommand):
                         not isinstance(payload, dict)
                         or "choices" not in payload
                         or set(payload)
-                        - {"choices", "context", "batch_id", "egress_id", "requires_human_review"}
+                        - {
+                            "choices",
+                            "context",
+                            "batch_id",
+                            "egress_id",
+                            "requires_human_review",
+                            "requires_chart_review",
+                        }
                     ):
                         raise ValueError
                     reviewed = review_depara_ai(
