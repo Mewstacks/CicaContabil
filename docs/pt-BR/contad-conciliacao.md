@@ -1,15 +1,16 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
-Preparado em 06/11/2026, D-323/PC-19. **Treinamento ainda não realizado.**
-A carteira completa e as fontes contábeis estão em implantação. O piloto
-SURIA não representa a entrega de todas as empresas. Este guia acompanha o
-treinamento e não substitui a conferência contábil.
+Atualizado em 13/11/2026, D-361/PC-19, para a **release 90**. O percurso do
+piloto está disponível; o treinamento com a cliente e seu aceite ainda não
+foram registrados. A primeira sessão usa o extrato e o Razão já recebidos,
+sem esperar a revisão das 43 contas ou importar outro arquivo. A ampliação da
+carteira e a homologação integral continuam com critérios próprios.
 
 ## Entrar e conferir o contexto
 
 Acesse [CICA](https://cicacontabil.com.br) com sua conta pessoal. Depois do
 login, confira o escritório CONTAD e abra **Contábil → Conciliação bancária**.
-A conta da Grazi já existe; não é necessário cadastrar outro escritório ou
+A conta pessoal da operadora já existe; não é necessário cadastrar outro escritório ou
 pedir novo convite. Não compartilhe senha, arquivos ou dados de clientes pelo chat.
 
 Antes de importar, confira empresa, conta financeira e período. Os dados devem
@@ -88,6 +89,20 @@ totais e pendências. Relatório ou prévia privada não comprovam importação 
 A exportação Domínio segue bloqueada até validação do layout e autorização
 operacional específica; não tente importar uma prévia como arquivo homologado.
 
+O download da conferência gera `conferencia-banco-razao.csv`, separado por
+ponto e vírgula. O arquivo contém os dois lados: `bank` identifica o extrato e
+`ledger` identifica o Razão. Os campos `valor_centavos`, `alocado_centavos` e
+`pendente_centavos` são valores inteiros em centavos: por exemplo, `12345`
+significa R$ 123,45. Não some os dois lados como se fossem movimentos diferentes.
+O cabeçalho registra período, data de geração, hash da fonte e avisos; saldos
+não disponíveis aparecem como **não informado**. Guarde o CSV na pasta privada
+do escritório, junto da referência da empresa e conta conferidas na tela.
+
+O botão baixa o relatório do arquivo e período, incluindo todas as páginas.
+Os filtros de histórico e **A conferir/Conferidos** da tela não reduzem o CSV.
+Depois de confirmar ou desfazer, faça outro download para registrar o estado
+atual; o CSV anterior permanece uma fotografia da geração anterior.
+
 Se houver falha de comunicação ou interrupção, conserve o arquivo original e
 a identificação da importação. Confira o estado e o histórico antes de reenviar.
 Informe ao responsável o horário, empresa, etapa e mensagem exibida; nunca
@@ -96,27 +111,63 @@ pareamento nem reinstale o agente para resolver um item de conciliação.
 
 ## Teste acompanhado e registro do treinamento
 
-O responsável acompanha Grazi ou o operador indicado na execução abaixo.
-Cada resultado deve ser registrado com referência da tela/arquivo, sem dados
-financeiros ou pessoais neste documento público. Não assinar antecipadamente.
+O responsável acompanha a operadora na primeira sessão abaixo. A operadora
+usa sua própria conta e executa as ações. O acompanhante observa, registra
+dificuldades e explica os limites; não confirma em nome dela. Comece no arquivo
+piloto já disponível. A ausência de novas contas não impede essa sessão.
+
+1. Abra **Abrir conferência** e peça à operadora que identifique escritório,
+   empresa, conta, arquivo e período. Registre as quantidades iniciais do extrato,
+   do Razão e de movimentos conferidos, além do horário de início.
+2. Escolha um movimento cuja relação possa ser comprovada nas fontes. Em
+   **Comparar e revisar**, a operadora explica a correspondência, confere
+   **Lançamento independente** e **Valor alocado**, preenche **Evidência da
+   relação** e usa **Confirmar conciliação**. Sem evidência suficiente, mantenha
+   o movimento pendente e registre o que falta.
+3. Volte à conferência, escolha **Conferidos** e use **Aplicar filtros**. Abra
+   **Ver evidências** e confira a alocação e o **Histórico das decisões**. A
+   confirmação deve aparecer vinculada à operadora e à evidência registrada.
+4. Examine um item ambíguo ou sem correspondente, se houver. A operadora deve
+   explicar qual prova falta e mantê-lo pendente. Não é preciso fabricar uma
+   decisão para completar o exercício.
+5. Pratique correção em ambiente de ensaio com dados sintéticos: abra a relação,
+   use **Desfazer**, confira a capacidade liberada e a decisão preservada, e
+   refaça a relação correta com nova evidência. Na operação real, use esse
+   caminho somente quando houver uma correção efetiva; não crie erro no piloto
+   para treinar. Se a sessão não tiver esse exercício, registre-o como pendente.
+6. Baixe **Baixar relatório de conferência**, abra o CSV e confira período,
+   quantidades, alocações, valores pendentes e avisos. A operadora explica o que
+   foi conferido, o que continua pendente e por que o relatório não é uma
+   importação no Domínio. Registre horário final e o local privado da evidência.
+
+Use uma cópia privada da [ficha de treinamento e aceite](contad-treinamento-registro.txt).
+O modelo deixa resultados e assinaturas vazios e separa ensaio técnico,
+treinamento acompanhado, primeira operação real e aceite da versão. Não grave
+a ficha preenchida no Git nem neste guia público. Um exercício só fica
+concluído quando a participante o executa e a evidência é registrada.
 
 | Exercício | Resultado esperado | Estado desta entrega |
 |---|---|---|
 | Acesso e contexto | Identificar CONTAD, empresa, conta e período | A executar no treinamento |
-| Carteira integrada | Localizar empresas/contas sem cadastro manual por teste | Ampliação pendente de prova real |
-| Importação | Enviar original, conferir identificação e quantidade | A executar acompanhado |
-| Revisão simples | Confrontar fontes e explicar motivo da decisão | A executar acompanhado |
+| Conferência do piloto | Abrir extrato e Razão já recebidos | Disponível na release 90; execução humana pendente |
+| Revisão simples | Confrontar fontes, confirmar e localizar a decisão | A executar acompanhado |
 | Ambiguidade/falta | Manter pendência e localizar evidência adicional | A executar acompanhado |
-| Parcelas/baixas | Separar vencimento de pagamento e conferir componentes | Fonte real/regras pendentes |
-| Recuperação | Retomar após interrupção e conferir que nada duplicou | Prova operacional pendente |
-| Relatório/saída | Baixar conferência e distinguir saída ERP homologada | Q-47 permanece aberto |
+| Correção | Desfazer e conferir histórico/capacidade; corrigir com evidência | Ensaiar em dados sintéticos; correção real somente se necessária |
+| Relatório | Baixar CSV, conferir centavos, abrangência e pendências | A executar acompanhado |
+
+Ampliação da carteira, nova importação, parcelas/baixas, recuperação de falha e
+retorno ao ERP são sessões adicionais conforme suas fontes e autorizações.
+Não são pré-requisitos para iniciar a conferência do piloto. Q-47, retenções e
+juros continuam adiados; esta sessão não os executa nem os aprova.
 
 Registrar data, participantes, versão do site/agente, recorte, referências das
 evidências, dificuldades e nova execução necessária. O proprietário revisa a
 amostra independente de 200 itens e os critérios D-73; os 163 eventos atuais
 não bastam. Precisão, integridade, tempo, recuperação e importação no destino
 devem ter medições reais. Treinamento realizado e aceite do módulo são registros
-separados, dependentes da participação e aprovação humanas efetivas.
+separados, dependentes da participação e aprovação humanas efetivas. A ficha
+permite registrar uso assistido limitado ao piloto; isso não aprova a carteira
+completa, os 200 fatos, a precisão de 95% ou a liberação integral do módulo.
 
 ## Provas para fechar a homologação
 
@@ -149,9 +200,10 @@ partidas simples e compostas antes de ensaiar a importação.
 
 O comando administrativo `reconcile_titles` permite guardar uma fonte
 normalizada e revisar vínculos explícitos com movimentos bancários já
-importados. A coleta direta do Domínio ainda depende do complemento de
-estrutura e da conferência de Q-46. Não há baixa, escrituração ou confirmação
-automática de associação pela igualdade de data/valor.
+importados. A captura original do Domínio já foi recebida e comparada; sua
+tradução em títulos, parcelas e baixas utilizáveis ainda depende da conferência
+semântica de Q-46. Não há baixa, escrituração ou confirmação automática de
+associação pela igualdade de data/valor.
 
 A fonte usa o contrato `titles-normalized-v1`; na persistência,
 `company_key` é o UUID CICA da empresa, e `account_reference` deve coincidir

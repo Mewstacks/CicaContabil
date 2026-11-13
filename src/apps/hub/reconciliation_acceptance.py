@@ -135,6 +135,7 @@ def review_acceptance_sample(
     sample_id: str,
     expected: list[dict[str, Any]],
     evidence_reference: str,
+    expected_source_facts: list[dict[str, Any]] | None = None,
 ) -> AuditEvent:
     account = (
         FinancialAccount.objects.select_for_update()
@@ -149,7 +150,9 @@ def review_acceptance_sample(
         target_id=str(account.pk),
         target_type="hub.financialaccount",
     )
-    acceptance_review_packet(account=account, actor=actor, sample_id=str(sample.pk))
+    packet = acceptance_review_packet(account=account, actor=actor, sample_id=str(sample.pk))
+    if expected_source_facts is not None and expected_source_facts != packet["facts"]:
+        raise ValueError("Os fatos da ficha diferem da fonte congelada para revisão.")
     evidence = _label(evidence_reference)
     if not isinstance(expected, list) or len(expected) != len(sample.metadata["facts"]):
         raise ValueError("Revise todos os fatos da amostra, sem acrescentar cópias.")
@@ -316,11 +319,18 @@ def acceptance_review_packet(
             financial_account=account,
             company_id=account.company_id,
             organization_id=account.organization_id,
+            source_file__origin="bank_statement",
+            source_file__organization_id=account.organization_id,
+            source_file__company_id=account.company_id,
+            source_file__financial_account=account,
         )
         if movement.source_file_id not in verified:
             _verify_bank_source(movement.source_file)
             verified.add(movement.source_file_id)
-        if _bank_fingerprint(movement) != fact["source_fingerprint"]:
+        if (
+            movement.source_file.content_hash != fact["source_sha256"]
+            or _bank_fingerprint(movement) != fact["source_fingerprint"]
+        ):
             raise ValueError("A fonte de um fato da amostra mudou; confira o original.")
         facts.append(
             {

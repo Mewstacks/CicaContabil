@@ -75,6 +75,12 @@ class Command(BaseCommand):
                 if (
                     not isinstance(payload, dict)
                     or not {"expected", "evidence_reference"}.issubset(payload)
+                    or ("sample_id" in payload and payload["sample_id"] != options["sample"])
+                    or ("facts" in payload and not isinstance(payload["facts"], list))
+                    or (
+                        "requires_owner_review" in payload
+                        and payload["requires_owner_review"] is not True
+                    )
                     or set(payload)
                     - {
                         "expected",
@@ -91,6 +97,7 @@ class Command(BaseCommand):
                     sample_id=options["sample"],
                     expected=payload["expected"],
                     evidence_reference=payload["evidence_reference"],
+                    expected_source_facts=payload.get("facts"),
                 )
                 result = {"review_id": str(review.pk), "release_accepted": False}
             else:

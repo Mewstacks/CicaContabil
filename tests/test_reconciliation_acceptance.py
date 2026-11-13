@@ -1,9 +1,13 @@
 import hashlib
+import json
 from datetime import timedelta
+from io import StringIO
 
 import pytest
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.core.files.base import ContentFile
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.utils import timezone
 
 from apps.audit.models import AuditEvent
@@ -226,3 +230,138 @@ def test_owner_worksheet_preserves_source_context_and_hides_the_prediction(accep
     assert len(packet["facts"]) == 2 and packet["facts"][0]["cash_cents"] == 100
     assert all(row["debit"] == "" and row["credit"] == "" for row in packet["expected"])
     assert "prediction" not in str(packet)
+
+
+def test_replaced_source_cannot_be_substituted_for_the_frozen_review_source(acceptance):
+    account, actor, run, ids = acceptance
+    sample = prepare_acceptance_sample(
+        account=account, actor=actor, movement_ids=ids[:2], release="synthetic-release"
+    )
+    source = run.source_file
+    replacement = b"A different synthetic file with the same normalized OFX facts."
+    source.content.save("replacement.ofx", ContentFile(replacement), save=False)
+    source.content_hash = hashlib.sha256(replacement).hexdigest()
+    source.size_bytes = len(replacement)
+    source.save()
+    expected = [
+        {"fact_key": fact["fact_key"], "debit": "2", "credit": "1", "cost_center": ""}
+        for fact in sample.metadata["facts"]
+    ]
+    with pytest.raises(ValueError, match="fonte de um fato da amostra mudou"):
+        acceptance_review_packet(account=account, actor=actor, sample_id=str(sample.pk))
+    with pytest.raises(ValueError, match="fonte de um fato da amostra mudou"):
+        review_acceptance_sample(
+            account=account,
+            actor=actor,
+            sample_id=str(sample.pk),
+            expected=expected,
+            evidence_reference="Synthetic owner review only",
+        )
+    assert not AuditEvent.objects.filter(action="hub.reconciliation.acceptance_review").exists()
+
+
+def test_review_command_rejects_a_worksheet_from_another_sample(acceptance, tmp_path):
+    account, actor, _, ids = acceptance
+    samples = [
+        prepare_acceptance_sample(
+            account=account, actor=actor, movement_ids=ids[:2], release=release
+        )
+        for release in ("synthetic-release-before", "synthetic-release-after")
+    ]
+    packet = acceptance_review_packet(account=account, actor=actor, sample_id=str(samples[0].pk))
+    for row in packet["expected"]:
+        row.update(debit="2", credit="1")
+    packet["evidence_reference"] = "Synthetic owner review only"
+    worksheet = tmp_path / "review.json"
+    worksheet.write_text(json.dumps(packet))
+    arguments = [
+        "--organization",
+        str(account.organization_id),
+        "--account",
+        str(account.pk),
+        "--actor",
+        str(actor.pk),
+        "review",
+        "--input",
+        str(worksheet),
+    ]
+    with pytest.raises(CommandError):
+        call_command(
+            "reconciliation_acceptance",
+            *arguments,
+            "--sample",
+            str(samples[1].pk),
+            stdout=StringIO(),
+        )
+    assert not AuditEvent.objects.filter(action="hub.reconciliation.acceptance_review").exists()
+    call_command(
+        "reconciliation_acceptance",
+        *arguments,
+        "--sample",
+        str(samples[0].pk),
+        stdout=StringIO(),
+    )
+    event = AuditEvent.objects.get(action="hub.reconciliation.acceptance_review")
+    assert event.metadata["sample_id"] == str(samples[0].pk)
+    assert event.metadata["evidence_reference"] == packet["evidence_reference"]
+
+
+def test_review_rechecks_bank_source_ownership_after_preparation(acceptance):
+    account, actor, run, ids = acceptance
+    sample = prepare_acceptance_sample(
+        account=account, actor=actor, movement_ids=ids[:2], release="synthetic-release"
+    )
+    ReconciliationSourceFile.objects.filter(pk=run.source_file_id).update(financial_account=None)
+    with pytest.raises(ObjectDoesNotExist):
+        acceptance_review_packet(account=account, actor=actor, sample_id=str(sample.pk))
+    with pytest.raises(ObjectDoesNotExist):
+        review_acceptance_sample(
+            account=account,
+            actor=actor,
+            sample_id=str(sample.pk),
+            expected=[
+                {"fact_key": fact["fact_key"], "debit": "2", "credit": "1", "cost_center": ""}
+                for fact in sample.metadata["facts"]
+            ],
+            evidence_reference="Synthetic owner review only",
+        )
+    assert not AuditEvent.objects.filter(action="hub.reconciliation.acceptance_review").exists()
+
+
+@pytest.mark.parametrize("change", ["description", "amount", "facts_shape", "owner_flag"])
+def test_review_command_rejects_changed_worksheet_evidence(acceptance, tmp_path, change):
+    account, actor, _, ids = acceptance
+    sample = prepare_acceptance_sample(
+        account=account, actor=actor, movement_ids=ids[:2], release="synthetic-release"
+    )
+    packet = acceptance_review_packet(account=account, actor=actor, sample_id=str(sample.pk))
+    for row in packet["expected"]:
+        row.update(debit="2", credit="1")
+    packet["evidence_reference"] = "Synthetic owner review only"
+    if change == "description":
+        packet["facts"][0]["description"] = "A different event presented to the reviewer."
+    elif change == "amount":
+        packet["facts"][0]["cash_cents"] = 1
+    elif change == "facts_shape":
+        packet["facts"] = None
+    else:
+        packet["requires_owner_review"] = False
+    worksheet = tmp_path / "review.json"
+    worksheet.write_text(json.dumps(packet))
+    with pytest.raises(CommandError):
+        call_command(
+            "reconciliation_acceptance",
+            "--organization",
+            str(account.organization_id),
+            "--account",
+            str(account.pk),
+            "--actor",
+            str(actor.pk),
+            "review",
+            "--input",
+            str(worksheet),
+            "--sample",
+            str(sample.pk),
+            stdout=StringIO(),
+        )
+    assert not AuditEvent.objects.filter(action="hub.reconciliation.acceptance_review").exists()
