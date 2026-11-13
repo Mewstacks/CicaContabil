@@ -1,0 +1,113 @@
+CICA / CONTAD — REGISTRO DE TREINAMENTO E ACEITE
+Modelo preparado em 13/11/2026, D-361. Nenhuma sessão ou aprovação registrada.
+Copiar para a pasta privada do escritório antes de preencher. Não salvar
+nomes, dados financeiros, relatórios ou respostas preenchidas no repositório.
+
+CONTEXTO
+Release de referência do roteiro: 90 (confirmar a versão efetiva da sessão).
+Versão efetiva do site / fonte de verificação:
+Versão efetiva do agente / fonte de verificação, quando pertinente:
+Data, fuso e local da sessão:
+Participante / papel:
+Acompanhante / papel:
+Escritório / empresa / conta / período:
+Arquivo de extrato / referência ou hash:
+Arquivo do Razão / referência ou hash:
+Tipo da sessão (marcar apenas o que ocorreu):
+[ ] Ensaio técnico com dados sintéticos
+[ ] Treinamento acompanhado com a participante
+[ ] Primeira operação real acompanhada
+Horário de início:
+Horário de término:
+Interrupções / ajuda necessária:
+
+EXECUÇÃO
+Estados possíveis: realizado / pendente / não aplicável, sempre com motivo.
+Não preencher como realizado por ter assistido a uma demonstração do técnico.
+
+1. IDENTIFICAÇÃO DO RECORTE
+Participante abriu “Abrir conferência” e identificou empresa, conta e período.
+Estado / horário:
+Quantidades iniciais: extrato ____ / Razão ____ / conferidos ____.
+Referência da evidência:
+Dificuldade / ajuda recebida / nova tentativa:
+
+2. CONFIRMAÇÃO COM EVIDÊNCIA
+Participante confrontou a fonte independente, escolheu o registro e o valor,
+preencheu “Evidência da relação” e confirmou somente a relação comprovada.
+Estado / horário:
+Referência privada do movimento / decisão:
+Resultado e evidência preservada:
+Dificuldade / ajuda recebida / nova tentativa:
+
+3. CONSULTA DA DECISÃO
+Participante aplicou o filtro “Conferidos”, abriu “Ver evidências” e encontrou
+a alocação, o autor e o Histórico das decisões.
+Estado / horário:
+Referência da evidência:
+Dificuldade / ajuda recebida / nova tentativa:
+
+4. AMBIGUIDADE OU AUSÊNCIA
+Participante explicou a prova faltante e manteve o caso pendente, quando havia
+caso aplicável. Não se cria fato ambíguo nem confirmação fictícia em produção.
+Estado / horário:
+Referência privada do caso / evidência ainda necessária:
+Responsável pelo próximo passo:
+
+5. CORREÇÃO E HISTÓRICO
+Usar dados sintéticos para treinar; em operação real, apenas corrigir erro
+efetivo. Não desfazer uma decisão correta para fabricar evidência de treino.
+Ambiente e natureza dos dados usados:
+Estado / horário:
+Referências da confirmação, desfazimento e eventual nova confirmação:
+Capacidade liberada / histórico preservado:
+Evidência e motivo da correção:
+Dificuldade / ajuda recebida / nova tentativa:
+
+6. RELATÓRIO E EXPLICAÇÃO DO RESULTADO
+Participante baixou “Baixar relatório de conferência”, abriu o CSV e conferiu
+período, fonte, quantidades, valores em centavos, alocações e pendências.
+Estado / horário:
+Local privado / hash / data de geração do CSV:
+Quantidades finais: extrato ____ / Razão ____ / conferidos ____.
+Explicação da participante sobre o que ficou pendente:
+Confirmação de que filtros/paginação da tela não reduzem esse download:
+Explicação da diferença entre relatório e importação no Domínio:
+Dificuldade / ajuda recebida / nova tentativa:
+
+FECHAMENTO DO TREINAMENTO
+Resultado declarado pela participante (preencher após executar):
+Exercícios ainda pendentes / motivo / responsável:
+Nova sessão necessária / escopo:
+Identificação e data da confirmação da participante:
+Identificação e data do registro do acompanhante:
+
+REGISTRO SEPARADO DE ACEITE HUMANO DA VERSÃO
+Preencher somente após manifestação efetiva da pessoa que aceita.
+Deixar vazio não significa aprovação. Treinamento realizado não é aceite.
+
+Pessoa responsável pelo aceite / papel:
+Data, fuso e versão examinada:
+Escopo exato examinado (empresa, conta, período, funções):
+Decisão expressa (aceita no escopo / não aceita / pendente) e suas palavras:
+Referência privada da manifestação efetiva:
+Ressalvas / limitações / correções necessárias:
+Responsável e próxima ação para cada ressalva:
+
+O uso assistido do piloto pode ser registrado sem aprovar o módulo inteiro.
+O aceite integral exige as evidências aplicáveis D-73: 200 fatos distintos
+revisados pelo proprietário, precisão automática mínima de 95%, integridade,
+tempo por empresa, retomada/restore e importação conferida no destino.
+Anexar referências verificáveis para cada critério que a decisão abranja:
+
+Amostra independente / revisões / precisão:
+Duplicidade / empresa / isolamento:
+Tempo por empresa / dependências externas:
+Retomada / restauração / RPO:
+Layout e importação no destino:
+Carteira / títulos / baixas / saldos / DE-PARA, quando incluídos no escopo:
+Critérios ainda não atendidos e impacto sobre o aceite:
+
+Não contar OFX e PDF do mesmo movimento, partidas ou reenvios como novos fatos.
+Ficha43 e aprovação das novas contas não impedem a primeira sessão do piloto.
+Domínio/Q-47, retenções e juros permanecem adiados até retomada explícita.
