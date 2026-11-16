@@ -2428,6 +2428,12 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     session["hub_organization_id"] = str(organization.id)
     session.save()
 
+    from apps.platform.models import TenantContract
+
+    TenantContract.objects.create(
+        organization=organization, status="active", selected_modules=["reconciliation"],
+    )
+
     page = client.get(reverse("hub:reconciliation-configuration"))
 
     assert page.status_code == 200
@@ -2523,9 +2529,25 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         },
     )
     assert deactivate.status_code == 302
-    assert deactivate.url.endswith("#contas-financeiras")
+    assert deactivate.url == reverse(
+        "hub:reconciliation-financial-account-edit", args=[financial_account.pk],
+    )
+    financial_account.refresh_from_db()
+    assert financial_account.active is True
+    edit_page = client.get(deactivate.url)
+    edit_form = edit_page.context["setup_form"]
+    changed = client.post(deactivate.url, {
+        "name": financial_account.name, "bank_code": financial_account.bank_code,
+        "account_reference": financial_account.account_reference,
+        "ledger_code": financial_account.ledger_code,
+        "expected_revision": edit_form["expected_revision"].value(),
+        "reason": "Conta sintética encerrada para novos usos.",
+    })
+    assert changed.status_code == 302, changed.context["setup_form"].errors
+    assert changed.url.endswith("#contas-financeiras")
     financial_account.refresh_from_db()
     assert financial_account.active is False
+    assert len(financial_account.review_history) == 1
     assert FinancialAccount.objects.filter(
         organization=organization,
         company=company,
@@ -2812,7 +2834,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization,
-        action="hub.reconciliation.financial_account.state_changed",
+        action="hub.reconciliation.financial_account.corrected",
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_ignored"

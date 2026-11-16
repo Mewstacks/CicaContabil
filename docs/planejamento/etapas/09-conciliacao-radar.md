@@ -1,13 +1,27 @@
+## D-366/V-405 — Correções do uso diário, 16/11/2026
+
+- [x] Corrigir conta manual com motivo, histórico privado e controle de revisão concorrente; proteger identidade já usada.
+- [x] Corrigir vínculo sem uso e reconsiderar descarte, preservando fonte e revisão anterior; exigir nova evidência explícita.
+- [x] Validar completude do cadastro e manter empresa/conta na importação.
+- [x] Separar envio do Razão independente, disponibilizar modelo e rejeitar lote inválido antes da gravação.
+- [x] Implementar recuperação por lease360s/watchdog/token e startup, mantendo agenda ociosa15min.
+- [ ] Encerrar CI integral, ensaio0084 e publicação compatível com integridade conferida.
+- [ ] Fonte/revisão humana para os43 vínculos e identificação das contas nas134 demais empresas; fontes e cobertura Q-28 próprias.
+
+A implementação não equivale a aceite, backup operacional ou operação completa.
+Q-46/D-73 e os adiados Q-47/C01/C02 conservam seus critérios.
+
 ## D-365/V-404 — Contas das demais empresas, 16/11/2026
 
 - [x] Conferir fontes retidas, matriz146 e ordem C01–C43 sem completar dados ausentes.
 - [x] Implementar pré-cadastro separado, importação idempotente e revisão privada com permissões.
 - [x] Indicar vínculos pendentes na carteira/configuração, sem esconder fontes faltantes.
-- [ ] Concluir CI integral, migração/publicação e cadastro43 real com recibo e integridade.
+- [x] CI43895994663, migração0083, release94 e43 pré-cadastros reais conferidos; replay0 e14 grupos anteriores intactos.
 - [ ] Cliente validar banco/referência, nome/plano/direção e evidência de cada vínculo aplicável.
 - [ ] Identificar contas nas134 demais empresas sem candidata e obter fontes/competências reais.
 
-Nada nesta preparação encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02.
+Pré-cadastros disponíveis em Vínculos de contas; nenhum banco validado por inferência.
+Esta entrega não encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02.
 
 # Etapa 09 — Concluir Conciliação e Radar
 

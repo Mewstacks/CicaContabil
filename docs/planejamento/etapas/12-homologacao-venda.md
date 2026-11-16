@@ -1,13 +1,27 @@
+## D-366/V-405 — Correções do uso diário, 16/11/2026
+
+- [x] Corrigir conta manual com motivo, histórico privado e controle de revisão concorrente; proteger identidade já usada.
+- [x] Corrigir vínculo sem uso e reconsiderar descarte, preservando fonte e revisão anterior; exigir nova evidência explícita.
+- [x] Validar completude do cadastro e manter empresa/conta na importação.
+- [x] Separar envio do Razão independente, disponibilizar modelo e rejeitar lote inválido antes da gravação.
+- [x] Implementar recuperação por lease360s/watchdog/token e startup, mantendo agenda ociosa15min.
+- [ ] Encerrar CI integral, ensaio0084 e publicação compatível com integridade conferida.
+- [ ] Fonte/revisão humana para os43 vínculos e identificação das contas nas134 demais empresas; fontes e cobertura Q-28 próprias.
+
+A implementação não equivale a aceite, backup operacional ou operação completa.
+Q-46/D-73 e os adiados Q-47/C01/C02 conservam seus critérios.
+
 ## D-365/V-404 — Contas das demais empresas, 16/11/2026
 
 - [x] Conferir fontes retidas, matriz146 e ordem C01–C43 sem completar dados ausentes.
 - [x] Implementar pré-cadastro separado, importação idempotente e revisão privada com permissões.
 - [x] Indicar vínculos pendentes na carteira/configuração, sem esconder fontes faltantes.
-- [ ] Concluir CI integral, migração/publicação e cadastro43 real com recibo e integridade.
+- [x] CI43895994663, migração0083, release94 e43 pré-cadastros reais conferidos; replay0 e14 grupos anteriores intactos.
 - [ ] Cliente validar banco/referência, nome/plano/direção e evidência de cada vínculo aplicável.
 - [ ] Identificar contas nas134 demais empresas sem candidata e obter fontes/competências reais.
 
-Nada nesta preparação encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02.
+Pré-cadastros disponíveis em Vínculos de contas; nenhum banco validado por inferência.
+Esta entrega não encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02.
 
 ## D-364/V-403 — Facilitar o uso da cliente, 16/11/2026
 
@@ -15,12 +29,31 @@ Nada nesta preparação encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02
 - [x] Validar localmente escopo empresa E módulo, período, erros explícitos, leitura sem decisão e importação preenchida sem envio automático.
 - [x] Atualizar guia e preparar cenário privado de treinamento técnico com dados fictícios; resultados humanos permanecem sem aprovação presumida.
 - [x] Concluir QA visual sintético e regressão PostgreSQL focada, incluindo concorrência.
-- [ ] Concluir CI integral, publicação compatível e conferência posterior; nenhuma release nova declarada nesta anotação.
+- [x] CI integral, release93 compatível e conferência posterior concluídos; dados/decisões preservados e serviços saudáveis, sem atribuir aceite humano.
 - [ ] Q-28/Q-46/D-73: cobertura real, semântica, amostra, recuperação/backup, treinamento e aceite efetivos.
 
 O avanço é de operação da interface. Não houve coleta financeira nova,
 aprovação de conta ou ampliação comprovada da carteira. Q-47/C01/C02
 permanecem adiados. [V-403 e limites](../../../VALIDACOES.md).
+
+## D-363/V-402 — Publicação técnica da expansão, 16/11/2026
+
+- [x] Implementar lote mensal revisado, prévia sem escrita, idempotência e isolamento de falhas da fila no checkout isolado.
+- [x] Aprovar189 testes PostgreSQL, incluindo concorrência; Ruff/check e migrações sem alterações aprovados.
+- [x] Gerar matriz privada146/43 dos perfis de13/11, sem aprovação de vínculos ou nova coleta financeira.
+- [x] Preparar roteiro TXT privado com146 nomes cadastrais atuais/códigos conferidos e43 referências à ficha existente; leitura CICA, sem capturaERP.
+- [x] Concluir CI43873060568 integral, integrar PR21/mainc053cc0 com árvore idêntica à fonte1a16f3c e publicar release92.
+- [x] Conferir732 hashes em web/worker, liveness/readiness200 e workerpong; somente duas máquinas ativas atualizadas, legado igual/parado e capacidade/configuração preservadas.
+- [x] Conferir14 grupos protegidos e prévia real READ ONLY do piloto, sem novos jobs ou mudança de autoria/evidência/histórico.
+- [ ] Q-28: revisar contas/banco/plano/direção e contagens mensais próprias antes de ativar coleta ampliada.
+- [ ] Q-46/D-73: semântica, revisão, recuperação, treinamento e aceite efetivos; Q-47/C01/C02 continuam adiados.
+
+Etapa permanece em andamento. Publicação técnica não amplia por si a carteira
+operacional nem comprova recorrência/filiais ou encerra o contrato. Piloto e
+alterações locais preservados; sem MSI, nova capturaERP, conta ou inferênciaIA.
+[Provas e limites em V-402](../../../VALIDACOES.md). Os blocos abaixo são históricos.
+
+> **Reconciliação V-383 — 13/11/2026:** oficial1.0.9/backend86, captura fiscal, persistência e comparação técnica concluídos conformeV-367–382. C01/C02 adiados; carteira financeira, tradução financeira/banco/regras, IA, Q-47, D-73, recuperação, treinamento e aceite continuam pendentes. Checklist abaixo mantém os critérios; versões e PRs antigos são históricos. [Lista vigente](../pendencias-conclusao-2026-11-02.md).
 
 # Etapa 12 — Homologação integrada e liberação comercial
 

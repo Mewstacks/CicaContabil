@@ -17,7 +17,8 @@ import subprocess
 import tempfile
 import uuid
 import zipfile
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -25,6 +26,7 @@ from itertools import islice
 from pathlib import Path, PurePath
 from typing import Any, cast
 
+from celery.exceptions import SoftTimeLimitExceeded
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
@@ -50,6 +52,7 @@ from apps.hub.models import (
 )
 from apps.hub.reconciliation_activities import sync_reconciliation_activity
 from apps.hub.reconciliation_bridge import movement_has_ledger_match
+from apps.hub.reconciliation_recovery import LEASE_SECONDS
 from apps.organizations.models import Organization
 
 MAX_BYTES = 25 * 1024 * 1024
@@ -1276,13 +1279,40 @@ def undo_reconciliation(
     sync_reconciliation_activity(locked.movement.source_file_id)
 
 
-def process_run(run_id: str) -> dict[str, int | str]:
+class ReconciliationLeaseLost(Exception):
+    """This attempt can no longer write or finish the durable run."""
+
+
+@contextmanager
+def _owned_run_write(run: ReconciliationRun, token: uuid.UUID) -> Iterator[None]:
+    """Serialize financial writes with human company work and lease recovery."""
+    with transaction.atomic():
+        ClientCompany.objects.select_for_update().get(
+            pk=run.source_file.company_id, organization_id=run.organization_id
+        )
+        owned = ReconciliationRun.objects.select_for_update().filter(
+            pk=run.pk,
+            state=ReconciliationRun.State.PROCESSING,
+            lease_token=token,
+            lease_until__gt=timezone.now(),
+        ).first()
+        if owned is None:
+            raise ReconciliationLeaseLost
+        yield
+
+
+def process_run(
+    run_id: str,
+    *,
+    on_acquired: Callable[[uuid.UUID, datetime], None] | None = None,
+) -> dict[str, int | str]:
     try:
         parsed_id = uuid.UUID(str(run_id))
     except ValueError:
         return {"state": "invalid_id"}
     token = uuid.uuid4()
     now = timezone.now()
+    deadline = now + timedelta(seconds=LEASE_SECONDS)
     acquired = (
         ReconciliationRun.objects.filter(
             id=parsed_id,
@@ -1293,12 +1323,30 @@ def process_run(run_id: str) -> dict[str, int | str]:
             state=ReconciliationRun.State.PROCESSING,
             stage="extracting",
             lease_token=token,
-            lease_until=now + timedelta(minutes=20),
+            lease_until=deadline,
             started_at=now,
         )
     )
     if not acquired:
         return {"state": "not_ready"}
+    if on_acquired is not None:
+        try:
+            # Publish before parsing or financial writes. A broker failure leaves
+            # durable WAITING work for retry/startup/the unchanged periodic sweep.
+            on_acquired(token, deadline)
+        except Exception:
+            ReconciliationRun.objects.filter(
+                pk=parsed_id,
+                state=ReconciliationRun.State.PROCESSING,
+                lease_token=token,
+                lease_until=deadline,
+            ).update(
+                state=ReconciliationRun.State.WAITING,
+                stage="queued",
+                lease_token=None,
+                lease_until=None,
+            )
+            raise
     try:
         run = ReconciliationRun.objects.select_related(
             "source_file", "source_file__company", "source_file__financial_account"
@@ -1312,7 +1360,8 @@ def process_run(run_id: str) -> dict[str, int | str]:
         from apps.hub.ledger_import import import_ledger_source, is_ledger_csv
 
         if is_ledger_csv(source):
-            result = import_ledger_source(source)
+            with _owned_run_write(run, token):
+                result = import_ledger_source(source)
             _finish_run(
                 run,
                 token,
@@ -1355,12 +1404,13 @@ def process_run(run_id: str) -> dict[str, int | str]:
             # a source uploaded before the shared identity boundary existed.
             from apps.hub.reconciliation import claim_ofx_transactions, parse_ofx
 
-            claim_ofx_transactions(
-                organization=run.organization,
-                company=source.company,
-                statement=parse_ofx(_source_bytes(source)),
-                digest=source.content_hash,
-            )
+            with _owned_run_write(run, token):
+                claim_ofx_transactions(
+                    organization=run.organization,
+                    company=source.company,
+                    statement=parse_ofx(_source_bytes(source)),
+                    digest=source.content_hash,
+                )
         elif source.kind in {ReconciliationSourceFile.Kind.CSV, ReconciliationSourceFile.Kind.XLSX}:
             if run.layout_version_id is None:
                 _finish_run(
@@ -1419,46 +1469,47 @@ def process_run(run_id: str) -> dict[str, int | str]:
                 )
                 return {"state": "canceled", "created": created}
             try:
-                movement, was_created = NormalizedMovement.objects.get_or_create(
-                    organization=run.organization,
-                    source_file=source,
-                    source_key=record.source_key,
-                    defaults={
-                        "run": run,
-                        "company": source.company,
-                        "financial_account": source.financial_account,
-                        "source_reference": record.source_reference or {},
-                        "original_date": record.original_date,
-                        "occurred_on": record.occurred_on,
-                        "original_amount": record.original_amount,
-                        "amount_cents": record.amount_cents,
-                        "direction": _record_direction(record.amount_cents),
-                        "original_description": record.description,
-                        "description": record.description,
-                        "document_number": record.document_number,
-                        "counterparty": record.counterparty,
-                        "confidence": record.confidence,
-                        "confidence_details": record.confidence_details or {},
-                    },
-                )
-                if was_created:
-                    created += 1
-                    apply_rules(movement)
-                    require_review_for_low_quality_extraction(movement)
-                    # Evaluate automatic reconciliation only after every record in
-                    # this source has been persisted.  A duplicate later in the
-                    # same input must make the candidate ambiguous.
-                    if movement.review_state == NormalizedMovement.ReviewState.READY:
-                        auto_reconciliation_candidates.append(movement.id)
-                    if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
-                        ignored += 1
+                with _owned_run_write(run, token):
+                    movement, was_created = NormalizedMovement.objects.get_or_create(
+                        organization=run.organization,
+                        source_file=source,
+                        source_key=record.source_key,
+                        defaults={
+                            "run": run,
+                            "company": source.company,
+                            "financial_account": source.financial_account,
+                            "source_reference": record.source_reference or {},
+                            "original_date": record.original_date,
+                            "occurred_on": record.occurred_on,
+                            "original_amount": record.original_amount,
+                            "amount_cents": record.amount_cents,
+                            "direction": _record_direction(record.amount_cents),
+                            "original_description": record.description,
+                            "description": record.description,
+                            "document_number": record.document_number,
+                            "counterparty": record.counterparty,
+                            "confidence": record.confidence,
+                            "confidence_details": record.confidence_details or {},
+                        },
+                    )
+                    if was_created:
+                        created += 1
+                        apply_rules(movement)
+                        require_review_for_low_quality_extraction(movement)
+                        # Only evaluate matches once every record was persisted.
+                        # A later duplicate must still make a candidate ambiguous.
+                        if movement.review_state == NormalizedMovement.ReviewState.READY:
+                            auto_reconciliation_candidates.append(movement.id)
+                        if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+                            ignored += 1
             except (IntegrityError, ReconciliationError) as exc:
                 errors.append(
                     {"line": str(index), "code": "record_invalid", "message": str(exc)[:240]}
                 )
         for movement_id in auto_reconciliation_candidates:
             try:
-                auto_reconcile_unique_movement(NormalizedMovement.objects.get(id=movement_id))
+                with _owned_run_write(run, token):
+                    auto_reconcile_unique_movement(NormalizedMovement.objects.get(id=movement_id))
             except ReconciliationError:
                 # A concurrent review may have consumed the candidate after this
                 # run's deterministic check. Leave it pending for manual review.
@@ -1483,6 +1534,13 @@ def process_run(run_id: str) -> dict[str, int | str]:
             errors=errors,
         )
         return {"state": state, "created": created, "errors": len(errors)}
+    except ReconciliationLeaseLost:
+        return {"state": "not_ready"}
+    except SoftTimeLimitExceeded:
+        # The per-record transaction has rolled back. Retain PROCESSING and its
+        # lease for the watchdog; treating interruption as FAILED would turn the
+        # watchdog into a no-op and strand an otherwise recoverable run.
+        raise
     except Exception as exc:
         failed_run = ReconciliationRun.objects.filter(id=parsed_id).first()
         if failed_run:
@@ -1534,10 +1592,7 @@ def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[
                 updated=changed,
             )
             return {"state": "canceled", "updated": changed}
-        with transaction.atomic():
-            ClientCompany.objects.select_for_update().get(
-                pk=source.company_id, organization_id=source.organization_id
-            )
+        with _owned_run_write(run, token):
             movement = NormalizedMovement.objects.select_for_update().get(id=movement_id)
             # The initial query is only a work list. A human may have reviewed or
             # reconciled the movement while this worker waited for the company.
@@ -1654,7 +1709,12 @@ def _finish_run(
     errors: list[dict[str, str]] | None = None,
 ) -> None:
     errors = errors or []
-    updated_rows = ReconciliationRun.objects.filter(id=run.id, lease_token=token).update(
+    updated_rows = ReconciliationRun.objects.filter(
+        id=run.id,
+        state=ReconciliationRun.State.PROCESSING,
+        lease_token=token,
+        lease_until__gt=timezone.now(),
+    ).update(
         state=state,
         stage=stage,
         processed_count=processed,

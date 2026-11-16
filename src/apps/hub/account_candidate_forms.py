@@ -76,3 +76,39 @@ class AccountCandidateDismissForm(_CandidateReviewForm):
         help_text="Registre o resultado da sua conferência. A origem será preservada.",
         widget=forms.Textarea(attrs={"rows": 3}),
     )
+
+
+class AccountCandidateCorrectionForm(AccountCandidateLinkForm):
+    expected_revision = forms.RegexField(r"\A[0-9a-f]{64}\Z", widget=forms.HiddenInput)
+    reason = forms.CharField(
+        max_length=1000, label="Motivo da correção", widget=forms.Textarea(attrs={"rows": 2})
+    )
+
+    def __init__(
+        self, *args: Any, candidate: ReconciliationAccountCandidate, **kwargs: Any
+    ) -> None:
+        from apps.hub.account_candidate_review import candidate_revision
+
+        initial = {
+            field: candidate.review_data.get(field, "")
+            for field in ("name", "bank_code", "account_reference", "bank_inflow_side")
+        }
+        initial["expected_revision"] = candidate_revision(candidate)
+        kwargs["initial"] = {**initial, **(kwargs.get("initial") or {})}
+        super().__init__(*args, candidate=candidate, **kwargs)
+
+
+class AccountCandidateReopenForm(AccountCandidateDismissForm):
+    expected_revision = forms.RegexField(r"\A[0-9a-f]{64}\Z", widget=forms.HiddenInput)
+
+    def __init__(
+        self, *args: Any, candidate: ReconciliationAccountCandidate, **kwargs: Any
+    ) -> None:
+        from apps.hub.account_candidate_review import candidate_revision
+
+        kwargs["initial"] = {
+            **(kwargs.get("initial") or {}),
+            "expected_revision": candidate_revision(candidate),
+        }
+        super().__init__(*args, candidate=candidate, **kwargs)
+        self.fields["reason"].label = "Motivo para reconsiderar"

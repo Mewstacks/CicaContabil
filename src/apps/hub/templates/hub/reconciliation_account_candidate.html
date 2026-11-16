@@ -37,5 +37,13 @@
   <dl class="account-known-data">{% if candidate.financial_account %}<div><dt>Conta financeira</dt><dd>{{ candidate.financial_account.name }}</dd></div><div><dt>Banco</dt><dd>{{ candidate.financial_account.bank_code }}</dd></div><div><dt>Referência bancária</dt><dd>{{ candidate.financial_account.account_reference }}</dd></div><div><dt>Entrada bancária no Razão</dt><dd>{{ candidate_inflow_label }}</dd></div>{% endif %}<div><dt>Responsável</dt><dd>{{ candidate.reviewed_by.full_name|default:'Responsável registrado' }}</dd></div><div><dt>Data da revisão</dt><dd>{{ candidate.reviewed_at|date:'d/m/Y H:i'|default:'Não registrada' }}</dd></div><div class="account-evidence-field"><dt>{% if candidate.state == 'dismissed' %}Motivo{% else %}Evidência do vínculo{% endif %}</dt><dd>{{ candidate.review_evidence|linebreaksbr }}</dd></div></dl>
 </section>
 {% endif %}
+{% if can_correct_candidate %}
+<section class="workspace-panel account-candidate-review account-candidate-correction"><details{% if correction_form.is_bound or reopen_form.is_bound %} open{% endif %}>
+  <summary>{% if candidate.state == 'linked' %}Corrigir vínculo{% else %}Reconsiderar decisão{% endif %}</summary>
+  <p>A revisão anterior será preservada. Um vínculo já usado em fontes, lançamentos ou coletas precisa ser analisado pelo responsável.</p>
+  {% if candidate.state == 'linked' %}{% include 'hub/partials/candidate_correction_form.html' with form=correction_form action='correct' submit_label='Salvar correção' %}{% else %}{% include 'hub/partials/candidate_correction_form.html' with form=reopen_form action='reopen' submit_label='Reabrir para revisão' %}{% endif %}
+</details></section>
+{% endif %}
+{% if candidate_history %}<section class="workspace-panel account-candidate-history"><details><summary>Revisões anteriores ({{ candidate_history|length }})</summary>{% for review in candidate_history reversed %}<article><h3>{% if review.state == 'linked' %}Vínculo anterior{% else %}Decisão anterior{% endif %}</h3><dl class="account-known-data"><div><dt>Revisão registrada em</dt><dd>{{ review.reviewed_at_local|date:'d/m/Y H:i'|default:'Não registrada' }}</dd></div><div><dt>Evidência anterior</dt><dd>{{ review.review_evidence|linebreaksbr }}</dd></div><div><dt>Motivo da alteração</dt><dd>{{ review.reason|linebreaksbr }}</dd></div>{% if review.financial_account %}<div><dt>Referência anterior</dt><dd>{{ review.financial_account.account_reference }}</dd></div><div><dt>Nome anterior</dt><dd>{{ review.financial_account.name }}</dd></div>{% endif %}</dl></article>{% endfor %}</details></section>{% endif %}
 <p class="account-candidate-note">Para conciliar, a conta precisa do extrato e do Razão do período.</p>
 {% endblock %}

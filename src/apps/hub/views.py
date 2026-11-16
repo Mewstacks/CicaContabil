@@ -8878,7 +8878,7 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
 
 
 def _reconciliation_upload_prefill(request: HttpRequest, context: dict[str, Any]) -> None:
-    keys = ("open_upload", "upload_company", "upload_account", "upload_origin")
+    keys = ("open_upload", "upload_company", "upload_account", "upload_origin", "upload_purpose")
     if not any(key in request.GET for key in keys):
         return
     if not context.get("can_upload_reconciliation"):
@@ -8894,7 +8894,10 @@ def _reconciliation_upload_prefill(request: HttpRequest, context: dict[str, Any]
         origin = request.GET.get("upload_origin", "bank_statement")
         if origin not in {"bank_statement", "accounting"}:
             raise ValueError
-        initial: dict[str, Any] = {"company": company.pk, "origin": origin}
+        purpose = request.GET.get("upload_purpose", "general")
+        if purpose not in {"general", "independent_ledger"}:
+            raise ValueError
+        initial: dict[str, Any] = {"company": company.pk, "origin": origin, "purpose": purpose}
         if request.GET.get("upload_account"):
             account_id = uuid.UUID(request.GET["upload_account"])
             account = FinancialAccount.objects.get(
@@ -9508,6 +9511,8 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         )
 
     action = request.POST.get("action", "")
+    from apps.hub.setup_review import account_integrity_errors
+
     forms_by_action: dict[str, forms.BaseForm] = {
         "financial_account": FinancialAccountForm(
             request.POST if action == "financial_account" else None,
@@ -9564,9 +9569,21 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 )
         configured: Any
         form = forms_by_action.get(action)
-        if form is not None and form.is_valid():
+        form_valid = form is not None and form.is_valid()
+        if form_valid and action == "financial_account":
+            account_form = cast(FinancialAccountForm, form)
+            proposed = account_form.save(commit=False)
+            proposed.organization = office
+            if proposed.active:
+                for field, error in account_integrity_errors(proposed).items():
+                    account_form.add_error(field, error)
+                form_valid = not account_form.errors
+        if form is not None and form_valid:
             try:
                 with transaction.atomic():
+                    ClientCompany.objects.select_for_update().get(
+                        pk=selected_company.pk, organization=office,
+                    )
                     if action == "reconciliation_rule":
                         rule_form = cast(ReconciliationRuleForm, form)
                         all_conditions, any_conditions = rule_form.condition_groups()
@@ -9584,17 +9601,28 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                     else:
                         configured = cast("forms.ModelForm[models.Model]", form).save(commit=False)
                         configured.organization = office
+                        if (
+                            action == "financial_account" and configured.active
+                            and (integrity_errors := account_integrity_errors(configured))
+                        ):
+                            raise ValidationError(integrity_errors)
                         configured.save()
-                record_event(
-                    action=f"hub.reconciliation.{action}.created",
-                    actor=request.user,
-                    organization=office,
-                    target=configured,
-                    request=request,
-                    metadata={"company_id": str(configured.company_id)},
-                )
+                    record_event(
+                        action=f"hub.reconciliation.{action}.created",
+                        actor=request.user,
+                        organization=office,
+                        target=configured,
+                        request=request,
+                        metadata={"company_id": str(configured.company_id)},
+                    )
             except IntegrityError:
                 form.add_error(None, "Já existe um cadastro com estes dados para esta empresa.")
+            except ValidationError as exc:
+                if hasattr(exc, "error_dict"):
+                    for field, errors in exc.error_dict.items():
+                        form.add_error(field if field in form.fields else None, errors)
+                else:
+                    form.add_error(None, exc)
             else:
                 messages.success(request, "Configuração salva.")
                 section_by_action = {
@@ -9639,25 +9667,26 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             setup_model = setup_models.get(setup_kind)
             if setup_model is None:
                 return refuse(request, "Item de configuração inválido.", kind="unavailable")
-            configured = cast(
-                Any,
-                get_object_or_404(
-                    setup_model,
-                    id=request.POST.get("setup_id"),
-                    organization=office,
-                    company=selected_company,
-                ),
-            )
-            configured.active = not configured.active
-            configured.save(update_fields=["active", "updated_at"])
-            record_event(
-                action=f"hub.reconciliation.{setup_kind}.state_changed",
-                actor=request.user,
-                organization=office,
-                target=configured,
-                request=request,
-                metadata={"active": configured.active},
-            )
+            with transaction.atomic():
+                ClientCompany.objects.select_for_update().get(
+                    pk=selected_company.pk, organization=office,
+                )
+                configured = cast(Any, get_object_or_404(
+                    setup_model.objects.select_for_update(), id=request.POST.get("setup_id"),
+                    organization=office, company=selected_company,
+                ))
+                if setup_kind == "financial_account":
+                    # Correct/activate with reason and a revision token through the edit flow.
+                    return redirect(
+                        "hub:reconciliation-financial-account-edit", account_id=configured.pk,
+                    )
+                configured.active = not configured.active
+                configured.save(update_fields=["active", "updated_at"])
+                record_event(
+                    action=f"hub.reconciliation.{setup_kind}.state_changed",
+                    actor=request.user, organization=office, target=configured, request=request,
+                    metadata={"active": configured.active},
+                )
             messages.success(
                 request,
                 "Item ativado." if configured.active else "Item desativado para novos usos.",
@@ -9754,7 +9783,19 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         state=ReconciliationAccountCandidate.State.PENDING,
     ).count()
     ledger_account_count = ledger_accounts_query.filter(active=True, accepts_entries=True).count()
-    financial_account_count = financial_accounts_query.filter(active=True).count()
+    complete_accounts = financial_accounts_query.filter(
+        active=True, bank_code__regex=r"\S", account_reference__regex=r"\S",
+        ledger_code__in=ledger_accounts_query.filter(
+            active=True, accepts_entries=True,
+        ).values("code"),
+    )
+    financial_account_count = complete_accounts.count()
+    incomplete_account_count = (
+        financial_accounts_query.filter(active=True).count() - financial_account_count
+    )
+    for account in cast(list[FinancialAccount], paginated_lists["financial_accounts"]):
+        account.setup_errors = account_integrity_errors(account)  # type: ignore[attr-defined]
+
     accounting_period_count = accounting_periods_query.count()
     locked_period_count = accounting_periods_query.filter(locked_at__isnull=False).count()
     active_rule_count = reconciliation_rules_query.filter(
@@ -9788,6 +9829,16 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
             "href": "#plano-contas-form",
             "section": "plano-contas",
         }
+    elif incomplete_account_count:
+        setup_next_action = {
+            "state": "blocked", "eyebrow": "COMPLETE O CADASTRO",
+            "title": "Há contas financeiras com dados pendentes",
+            "description": (
+                "Confira banco, referência e vínculo com uma conta ativa do plano "
+                "antes de importar."
+            ),
+            "label": "Revisar contas financeiras", "href": "#contas-financeiras", "section": "",
+        }
     elif not financial_account_count:
         setup_next_action = {
             "state": "recommended",
@@ -9812,7 +9863,10 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 "necessários."
             ),
             "label": "Voltar e importar arquivos",
-            "href": f"{reverse('hub:reconciliation')}#visao-geral",
+            "href": reverse("hub:reconciliation") + "?" + urlencode({
+                "open_upload": "1", "upload_company": str(selected_company.pk),
+                "upload_origin": "bank_statement",
+            }),
             "section": "",
         }
 
@@ -10210,6 +10264,21 @@ def reconciliation_audit(request: HttpRequest) -> HttpResponse:
         }
     )
     return render(request, "hub/reconciliation_audit.html", context)
+
+
+@office_required
+@require_http_methods(["GET"])
+def reconciliation_ledger_template(request: HttpRequest) -> HttpResponse:
+    from apps.hub.ledger_import import ledger_csv_template
+
+    _context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    response = HttpResponse(ledger_csv_template(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = 'attachment; filename="modelo-razao.csv"'
+    response["Cache-Control"] = "no-store, private"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @office_required

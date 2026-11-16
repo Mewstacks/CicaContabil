@@ -1,10 +1,11 @@
 import re
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
+from uuid import UUID
 
 from django import forms
 from django.contrib.auth.forms import SetPasswordForm
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.forms import BaseFormSet, formset_factory
 
 from apps.accounts.models import User
@@ -865,6 +866,15 @@ class FinancialAccountSelect(forms.Select):
 
 
 class ReconciliationUploadForm(forms.Form):
+    purpose = forms.ChoiceField(
+        label="O que você vai importar?",
+        required=False,
+        initial="general",
+        choices=[
+            ("general", "Arquivos gerais — não formam Razão independente"),
+            ("independent_ledger", "Razão independente — CSV de partidas completas"),
+        ],
+    )
     company = forms.ModelChoiceField(
         queryset=ClientCompany.objects.none(),
         label="Empresa",
@@ -891,6 +901,7 @@ class ReconciliationUploadForm(forms.Form):
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.independent_ledger_preview: list[dict[str, Any]] = []
         company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         setattr(  # noqa: B010 - ModelChoiceField deliberately customizes visible labels.
@@ -903,10 +914,14 @@ class ReconciliationUploadForm(forms.Form):
         company_id = self.data.get("company") if self.is_bound else None
         accounts = FinancialAccount.objects.filter(
             company__in=companies,
+            organization_id=F("company__organization_id"),
             active=True,
         ).select_related("company")
         if company_id:
-            accounts = accounts.filter(company_id=company_id)
+            try:
+                accounts = accounts.filter(company_id=UUID(str(company_id)))
+            except (ValueError, TypeError, AttributeError):
+                accounts = accounts.none()
         financial_account_field = cast(
             "forms.ModelChoiceField[FinancialAccount]", self.fields["financial_account"]
         )
@@ -923,6 +938,12 @@ class ReconciliationUploadForm(forms.Form):
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
+        cleaned["purpose"] = cleaned.get("purpose") or "general"
+        if hasattr(self.data, "getlist") and any(
+            len(self.data.getlist(field)) > 1
+            for field in ("purpose", "company", "financial_account", "origin", "physical_batch")
+        ):
+            self.add_error(None, "Informe cada campo do envio uma única vez.")
         company = cleaned.get("company")
         financial_account = cleaned.get("financial_account")
         if (
@@ -940,6 +961,24 @@ class ReconciliationUploadForm(forms.Form):
             and financial_account is None
         ):
             self.add_error("financial_account", "Escolha a conta financeira do extrato.")
+        if cleaned["purpose"] == "independent_ledger":
+            if cleaned.get("origin") != ReconciliationSourceFile.Origin.ACCOUNTING:
+                self.add_error("origin", "Para Razão independente, selecione Registros contábeis.")
+            if not isinstance(financial_account, FinancialAccount):
+                self.add_error("financial_account", "Escolha a conta financeira do Razão.")
+            if not self.errors and isinstance(company, ClientCompany):
+                from apps.hub.ledger_import import preview_ledger_uploads
+                from apps.hub.reconciliation_service import ReconciliationError
+
+                try:
+                    self.independent_ledger_preview = preview_ledger_uploads(
+                        organization=company.organization,
+                        company=company,
+                        financial_account=financial_account,
+                        uploads=cleaned["files"],
+                    )
+                except ReconciliationError as exc:
+                    self.add_error("files", str(exc))
         return cleaned
 
 

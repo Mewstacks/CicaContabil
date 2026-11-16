@@ -308,6 +308,9 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
                     "url": _url("hub:reconciliation", {
                         "upload_company": account.company_id, "upload_account": account.pk,
                         "upload_origin": origin, "open_upload": "1",
+                        "upload_purpose": (
+                            "independent_ledger" if origin == "accounting" else "general"
+                        ),
                     }),
                 })
         accounts_by_company[account.company_id].append({

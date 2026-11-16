@@ -10,6 +10,15 @@ from apps.platform.signup import SignupError, issue_signup, provision_signup
 pytestmark = pytest.mark.django_db
 
 
+@pytest.fixture(autouse=True)
+def synthetic_registry(monkeypatch):
+    # These tests exercise token security, not the availability of a public registry.
+    monkeypatch.setattr(
+        "apps.platform.signup.lookup_company",
+        lambda _cnpj: {"status": "found", "razao_social": "Escritório sintético"},
+    )
+
+
 def configure_trial() -> None:
     configuration, _ = PlatformConfiguration.objects.get_or_create(key="default")
     configuration.trial_ai_included_requests = 3

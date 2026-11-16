@@ -1,5 +1,10 @@
 # Razão independente: contrato local de entrada
 
+Atualização D-366, 16/11/2026: finalidade explícita, modelo para download e
+validação do envio implementados; CI e publicação ainda pendentes. O contrato
+de partidas abaixo permanece compatível. A publicação técnica não comprova
+cobertura real, treinamento ou aceite da carteira.
+
 D-305, etapa 09/PC-19, 03/11/2026. Este contrato prepara o CICA para receber
 partidas completas antes da homologação do adaptador Domínio. **Não é um
 layout oficial Domínio, consulta ODBC aprovada ou prova de completude da fonte.**
@@ -8,12 +13,23 @@ habilitada nesta entrega. Não usar a tabela FCONT como Razão por inferência.
 
 ## Entrada pelo CICA
 
-Em Conciliação → Nova importação, selecionar empresa, conta financeira, origem
-**Registros contábeis** e CSV. A conta financeira deve ter referência bancária
-e conta contábil; as contas das partidas devem existir no plano da empresa.
-O arquivo é reconhecido como `ledger-csv-v1`, sem passar pelo mapeamento de
-movimentos bancários. O formato genérico anterior continua existindo, mas não
-gera partidas completas nem essa nova evidência independente.
+Na carteira da conta, **Importar Razão** abre a empresa, conta, origem e
+finalidade correspondentes. Também é possível abrir **Nova importação** e,
+em **O que você vai importar?**, escolher **Razão independente — CSV de
+partidas completas**, origem **Registros contábeis**, empresa e conta financeira.
+Confira esses dados antes de selecionar o arquivo.
+
+Use **Baixar modelo do Razão** para obter `modelo-razao.csv`. Substitua todos
+os exemplos fictícios pelos dados da fonte real. **Abrir plano de contas**
+mantém a empresa selecionada: todas as contas citadas nas partidas precisam
+estar cadastradas, ativas e permitir lançamentos. A conta financeira precisa
+de nome, banco, referência bancária e vínculo contábil explícitos.
+
+O envio valida o lote inteiro antes de guardar arquivos ou iniciar o
+processamento. Essa finalidade aceita somente CSV com o contrato
+`ledger-csv-v1`, de 1 a 20 arquivos por envio. PDF, XLSX ou CSV genérico
+continuam disponíveis na finalidade **Arquivos gerais**, sem criar por isso
+partidas completas ou evidência de Razão independente.
 
 CSV com separador `;`, UTF-8 ou codificação local já suportada pelo importador,
 estas nove colunas na ordem, uma linha por partida:
@@ -45,6 +61,14 @@ são preservadas integralmente. Múltiplos efeitos bancários, contas ausentes,
 valores fora do limite, chaves repetidas ou linhas incompletas são recusados
 sem gravar parte dos lançamentos. Limites existentes: 25 MiB e 100 mil partidas.
 
+Se aparecer **contas ausentes ou indisponíveis no plano da empresa**, confira
+os códigos indicados em **Configuração → Plano de contas**. Cadastre os dados
+reais ou revise a situação de uma conta existente; não invente contrapartidas
+nem troque códigos apenas para passar pela validação. Erro de formato exige
+confrontar as nove colunas com o modelo. Erro de equilíbrio exige conferir
+todas as partidas na fonte original. Corrija o arquivo e envie novamente;
+uma recusa não significa que o mês esteja sem movimento.
+
 ## Identidade, revisão e recuperação
 
 A chave é escritório + conta financeira + chave externa. O fingerprint inclui
@@ -74,8 +98,10 @@ projeção que não possui a correspondente alocação compartilhada. Não a cor
 
 ## Relatório de conferência
 
-Na trilha Processar, **Baixar conferência** gera CSV privado para um único
-arquivo bancário com conta selecionada. Mostra movimentos e registros do Razão,
+Na conferência, **Ver relatório** mostra o resultado legível em reais e
+**Imprimir ou salvar PDF** usa a impressão do navegador. **Baixar CSV técnico**
+gera o CSV privado compatível para um único arquivo bancário com conta
+selecionada. As saídas mostram movimentos e registros do Razão,
 valores alocados/pendentes, diferença líquida do período e limites de cobertura.
 Requer processamento sem erro e hash original íntegro; usa os mesmos controles
 de escritório/empresa/módulo do download da fonte. Perfis de consulta podem ler.
@@ -96,15 +122,16 @@ conferência humana. Não importar ambos como se fossem movimentação adicional
 
 ## Dependências ainda abertas
 
-Q-28/Q-46: acesso ao PC, amostra do Razão e títulos reais do **Domínio**, contrato
-de chaves/campos/parcelas/baixas e revisão da contadora. A origem dos títulos já
-foi confirmada, sem necessidade de perguntar novamente. Q-47: saída inclui
+Q-28/Q-46: vínculos, fontes e contagens da carteira por conta/competência,
+semântica de chaves/campos/parcelas/baixas e revisão da contadora. A instalação,
+as capturas recebidas e o piloto já comprovados mantêm suas evidências em
+VALIDACOES.md; não precisam ser repetidos para usar este contrato. Q-47: saída inclui
 relatório **e arquivo de importação**, mas o layout e a importação contábil
 ainda precisam de homologação. O gate de exportação continua desligado.
 
 DE-PARA inicial com IA exige plano de contas/mapa, revisão e gates de custo e
-egressão Q-08/Q-09; não houve execução externa nesta entrega. Instalação Windows,
-recuperação operacional, 200 itens reais independentes, treinamento e aceite
+egressão Q-08/Q-09; não houve execução externa nesta atualização. Recuperação
+operacional, 200 itens reais independentes, treinamento e aceite
 permanecem no piloto da etapa 12. Os testes sintéticos não os substituem.
 
 ## Conferência local do Razão PDF observado — D-320/V-323

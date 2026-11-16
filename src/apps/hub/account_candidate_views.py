@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Callable
 from typing import cast
 from urllib.parse import urlencode
 
@@ -14,14 +15,22 @@ from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
-from apps.hub.account_candidate_forms import AccountCandidateDismissForm, AccountCandidateLinkForm
+from apps.hub.account_candidate_forms import (
+    AccountCandidateCorrectionForm,
+    AccountCandidateDismissForm,
+    AccountCandidateLinkForm,
+    AccountCandidateReopenForm,
+)
 from apps.hub.account_candidate_review import (
+    CandidateReviewConflict,
     CandidateReviewError,
     dismiss_candidate,
     finalize_candidate,
+    revise_candidate,
 )
 from apps.hub.models import ClientCompany, ProductModule, ReconciliationAccountCandidate
 from apps.hub.module_catalog import definition
@@ -178,6 +187,8 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
     pending = candidate.state == ReconciliationAccountCandidate.State.PENDING
     link_form = AccountCandidateLinkForm(candidate=candidate)
     dismiss_form = AccountCandidateDismissForm(candidate=candidate)
+    correction_form = AccountCandidateCorrectionForm(candidate=candidate)
+    reopen_form = AccountCandidateReopenForm(candidate=candidate)
     status = 400 if errors else 200
     return_query = _query(filters, include_page=True)
     detail_url = reverse("hub:reconciliation-account-candidate", args=[candidate.pk])
@@ -188,30 +199,43 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
             return refuse(request, "Seu perfil pode consultar, mas não revisar vínculos de contas.")
         if errors:
             pass
-        elif not pending:
+        elif not pending and request.POST.get("action") not in {"correct", "reopen"}:
             errors.append("Este vínculo já foi revisado. Consulte o resultado registrado.")
             status = 409
         else:
             actions = request.POST.getlist("action")
             action = actions[0] if len(actions) == 1 else ""
-            if action not in {"link", "dismiss"}:
+            if action not in {"link", "dismiss", "correct", "reopen"}:
                 errors.append("Escolha uma ação válida para este vínculo.")
                 status = 400
             else:
-                form_type = (
-                    AccountCandidateLinkForm if action == "link" else AccountCandidateDismissForm
-                )
+                form_type = {
+                    "link": AccountCandidateLinkForm,
+                    "dismiss": AccountCandidateDismissForm,
+                    "correct": AccountCandidateCorrectionForm,
+                    "reopen": AccountCandidateReopenForm,
+                }[action]
                 form = form_type(request.POST, candidate=candidate)
                 if action == "link":
                     link_form = cast(AccountCandidateLinkForm, form)
-                else:
+                elif action == "dismiss":
                     dismiss_form = cast(AccountCandidateDismissForm, form)
+                elif action == "correct":
+                    correction_form = cast(AccountCandidateCorrectionForm, form)
+                else:
+                    reopen_form = cast(AccountCandidateReopenForm, form)
                 valid = form.is_valid()
                 if any(len(request.POST.getlist(name)) > 1 for name in form.fields):
                     form.add_error(None, "Informe cada campo uma única vez.")
                     valid = False
                 if valid:
-                    operation = finalize_candidate if action == "link" else dismiss_candidate
+                    operations: dict[str, Callable[..., ReconciliationAccountCandidate]] = {
+                        "link": finalize_candidate,
+                        "dismiss": dismiss_candidate,
+                        "correct": revise_candidate,
+                        "reopen": revise_candidate,
+                    }
+                    operation = operations[action]
                     try:
                         operation(
                             candidate=candidate,
@@ -219,31 +243,54 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
                             authorized_companies=companies,
                             cleaned_data=form.cleaned_data,
                             request=request,
+                            **({"reopen": True} if action == "reopen" else {}),
                         )
                     except PermissionDenied:
                         return refuse(request, "Seu acesso mudou. Solicite revisão ao responsável.")
+                    except CandidateReviewConflict as exc:
+                        form.add_error(None, str(exc))
+                        status = 409
                     except CandidateReviewError as exc:
                         form.add_error(None, str(exc))
                         status = 400
                     else:
                         messages.success(
                             request,
-                            "Conta vinculada."
-                            if action == "link"
-                            else "Decisão registrada: não utilizar esta conta.",
+                            {
+                                "link": "Conta vinculada.",
+                                "dismiss": "Decisão registrada: não utilizar esta conta.",
+                                "correct": "Vínculo corrigido. A revisão anterior foi preservada.",
+                                "reopen": "Vínculo reaberto. Confira as fontes antes de vincular.",
+                            }[action],
                         )
                         return _private(redirect(detail_url))
                 else:
                     status = 400
     link_form.auto_id = "candidate-link-%s"
     dismiss_form.auto_id = "candidate-dismiss-%s"
+    correction_form.auto_id = "candidate-correct-%s"
+    reopen_form.auto_id = "candidate-reopen-%s"
+    history = []
+    for review in candidate.review_history if isinstance(candidate.review_history, list) else []:
+        if not isinstance(review, dict):
+            continue
+        raw_date = review.get("reviewed_at")
+        try:
+            reviewed_at = parse_datetime(raw_date) if isinstance(raw_date, str) else None
+        except ValueError:
+            reviewed_at = None
+        history.append({**review, "reviewed_at_local": reviewed_at})
     context.update(
         {
             "page_title": "Revisar vínculo de conta",
             "candidate": candidate,
+            "candidate_history": history,
             "candidate_errors": errors,
             "review_form": link_form,
             "dismiss_form": dismiss_form,
+            "correction_form": correction_form,
+            "reopen_form": reopen_form,
+            "can_correct_candidate": can_manage and not pending and not errors,
             "can_review_candidate": can_manage and pending and not errors,
             "candidate_is_pending": pending,
             "candidate_detail_url": detail_url,

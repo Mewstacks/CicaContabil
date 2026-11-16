@@ -1,9 +1,16 @@
-**16/11/2026 — D-365/V-404: pré-cadastro das contas CONTAD em implementação.**
-Fontes retidas identificam43 candidatas em11 empresas; empresa/plano/código
-reaproveitados, vínculo bancário separado para revisão humana no CICA.
-Zero novas contas completas comprovadas;134 demais empresas sem candidata
-identificada. Migração/publicação/importação real ainda pendentes nesta
-anotação. PC-19/Q-28 e os demais critérios continuam abertos. [V-404](VALIDACOES.md).
+**16/11/2026 — D-366/V-405: correções operacionais implementadas; validação final em curso.**
+Conta manual e vínculo ganham correção com histórico; entrada do Razão tem
+modelo e validação prévia; recuperação de processamento respeita tokens e
+preserva a agenda ociosa. CI/publicação ainda não concluídos nesta anotação.
+Dados e revisão humana da carteira permanecem necessários. [V-405](VALIDACOES.md).
+
+**16/11/2026 — D-365/V-404: 43 pré-cadastros CONTAD publicados na release94.**
+C01–C43 de11 empresas registrados com empresa/plano/código e proveniência;
+revisão bancária fica com a cliente na tela Vínculos de contas. Importação
+idempotente criou zero contas operacionais/aceites e preservou14 grupos
+anteriores, incluindo o piloto163/163. CI integral, migração0083, runtime e
+saúde verificados.134 demais empresas seguem sem candidata identificada;
+Q-28/PC-19 e os demais critérios continuam abertos. [V-404](VALIDACOES.md).
 
 **16/11/2026 — D-364/V-403: operação da cliente validada localmente; publicação pendente.**
 Carteira por empresa, conta e competência, inclusive empresas sem contas ou
