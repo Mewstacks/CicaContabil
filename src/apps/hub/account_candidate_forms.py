@@ -18,7 +18,8 @@ class _CandidateReviewForm(forms.Form):
     ) -> None:
         initial = dict(kwargs.pop("initial", {}) or {})
         initial.update(expected_source_hash=candidate.source_file_sha256, expected_state="pending")
-        super().__init__(*args, initial=initial, **kwargs)
+        kwargs["initial"] = initial
+        super().__init__(*args, **kwargs)
 
 
 class AccountCandidateLinkForm(_CandidateReviewForm):
