@@ -1,3 +1,27 @@
+## 16/11/2026 — D-364/V-403, carteira e relatório validados localmente
+
+No checkout isolado contad-client-operations, implementadas carteira por
+empresa/conta/mês, indicação de dados ausentes, importação preenchida e saída
+legível/imprimível em reais. CSV técnico preservado. Empresa E módulo delimitam
+o acesso, inclusive suporte/revogação; período acompanha conferência, detalhe,
+retorno e relatório, sem ampliar consultas com filtros inválidos.
+
+37 testes HTTP independentes aprovados, com papéis, escopo, 25+2 empresas,
+erros, período e GET sem jobs/auditoria/contas/decisões. Rodada agregada local:
+233 testes aprovados, cinco skips explícitos de concorrência PostgreSQL e
+24 subtestes. Rodadas auxiliares sobrepostas não somadas ao total. Ruff e
+diff-check do novo arquivo HTTP passaram. QA privado preparado com 27
+empresas fictícias, quatro contas, dois meses e um Razão pendente; três sessões
+de papel. QA visual e follow-up concluídos sem erros de console/requisições;
+foco/modal/Escape e tabela móvel corrigidos e retestados, com cinco campos
+e ação visíveis. PostgreSQL focado:160 testes aprovados, incluindo os cinco
+casos de concorrência. Ruff/check/diff-check locais aprovados.
+
+Guia e registros atualizados por deltas, preservando alterações existentes.
+CI integral/publicação pendentes nesta anotação. Sem produção, coletaERP,
+conta real, aprovação humana, IA ou custo novos. Q-28/Q-46/D-73, recuperação,
+treinamento/aceite e Q-47/C01/C02 adiados continuam próprios. Detalhes emV-403.
+
 ## 27/10/2026 — contrato e levantamento de contas a pagar/receber (V-301)
 
 - D-301 registrou o recorte do contrato fornecido, a intenção sobre títulos e

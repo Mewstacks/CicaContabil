@@ -5847,6 +5847,11 @@ def _module_page_context(
         membership, Membership
     ):
         context["companies"] = company_queryset_for_module(membership, module.code)
+    if module.code == ProductModule.Code.RECONCILIATION and isinstance(membership, Membership):
+        # A grant for another module must not expose that company's financial files.
+        context["companies"] = cast("QuerySet[ClientCompany]", context["companies"]).filter(
+            pk__in=company_queryset_for_module(membership, module.code)
+        )
     if module.code == ProductModule.Code.INTEGRA:
         # The platform is the sole Serpro contractor.  A tenant never configures
         # credentials, certificate, endpoint, or a duplicate connector record.
@@ -8867,7 +8872,69 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             **_reconciliation_v2_context(office, companies, request),
         }
     )
+    _reconciliation_upload_prefill(request, context)
     return render(request, "hub/reconciliation.html", context)
+
+
+def _reconciliation_upload_prefill(request: HttpRequest, context: dict[str, Any]) -> None:
+    keys = ("open_upload", "upload_company", "upload_account", "upload_origin")
+    if not any(key in request.GET for key in keys):
+        return
+    if not context.get("can_upload_reconciliation"):
+        return
+    try:
+        if any(len(request.GET.getlist(key)) > 1 for key in keys):
+            raise ValueError
+        if request.GET.get("open_upload") != "1":
+            raise ValueError
+        company_id = uuid.UUID(request.GET.get("upload_company", ""))
+        companies = cast("QuerySet[ClientCompany]", context["companies"])
+        company = companies.get(pk=company_id)
+        origin = request.GET.get("upload_origin", "bank_statement")
+        if origin not in {"bank_statement", "accounting"}:
+            raise ValueError
+        initial: dict[str, Any] = {"company": company.pk, "origin": origin}
+        if request.GET.get("upload_account"):
+            account_id = uuid.UUID(request.GET["upload_account"])
+            account = FinancialAccount.objects.get(
+                pk=account_id, company=company, organization=context["office"], active=True
+            )
+            initial["financial_account"] = account.pk
+    except (ValueError, ClientCompany.DoesNotExist, FinancialAccount.DoesNotExist):
+        messages.error(request, "Revise a empresa e a conta antes de abrir a importação.")
+        return
+    context["upload_form"] = ReconciliationUploadForm(companies=companies, initial=initial)
+    context["upload_open"] = True
+
+
+@office_required
+@require_http_methods(["GET"])
+def reconciliation_portfolio(request: HttpRequest) -> HttpResponse:
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        return blocked
+    from apps.hub.reconciliation_portfolio import portfolio_context
+
+    companies = cast("QuerySet[ClientCompany]", context["companies"])
+    portfolio = portfolio_context(
+        office=context["office"], companies=companies, params=request.GET,
+        can_manage=bool(context["support_can_mutate"]) and _can_manage_reconciliation(context),
+    )
+    selected_company = None
+    accounts = FinancialAccount.objects.none()
+    if not portfolio["errors"] and portfolio["filters"]["company"]:
+        selected_company = companies.filter(pk=portfolio["filters"]["company"]).first()
+        if selected_company:
+            accounts = FinancialAccount.objects.filter(
+                organization=context["office"], company=selected_company
+            ).order_by("name", "pk")
+    context.update({
+        "page_title": "Conciliação por empresa", "portfolio": portfolio,
+        "portfolio_company": selected_company, "portfolio_accounts": accounts,
+    })
+    response = render(request, "hub/reconciliation_portfolio.html", context)
+    response["Cache-Control"] = "no-store, private"
+    return response
 
 
 def _demo_reconciliation_matches(
@@ -10504,13 +10571,21 @@ def reconciliation_mapping(request: HttpRequest, source_id: str) -> HttpResponse
 def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
     if blocked:
-        return blocked
+        raise Http404
     source = get_object_or_404(
         ReconciliationSourceFile.objects.select_related("company", "financial_account"),
         pk=source_id, organization=context["office"], company__in=context["companies"],
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
+    from apps.hub.reconciliation_report import report_period_params
     from apps.hub.reconciliation_workbench import source_review_context
+
+    try:
+        report_period_params(request.GET)
+    except ReconciliationError as exc:
+        return render(request, "hub/reconciliation_query_error.html", {
+            **context, "period_error": str(exc),
+        }, status=400)
 
     try:
         context.update(source_review_context(source, request))
@@ -10540,20 +10615,56 @@ def reconciliation_source_report(request: HttpRequest, source_id: str) -> HttpRe
     if blocked:
         raise Http404
     source = get_object_or_404(
-        ReconciliationSourceFile, id=source_id, organization=context["office"],
+        ReconciliationSourceFile.objects.select_related("company", "financial_account"),
+        id=source_id, organization=context["office"],
         company__in=context["companies"],
     )
-    from apps.hub.reconciliation_report import build_source_report, render_conference_csv
+    from apps.hub.reconciliation_report import (
+        build_source_report,
+        render_conference_csv,
+        report_period_params,
+        report_presentation_context,
+    )
+    from apps.hub.reconciliation_workbench import portfolio_return_url
 
     try:
-        start = date.fromisoformat(request.GET["start"]) if request.GET.get("start") else None
-        end = date.fromisoformat(request.GET["end"]) if request.GET.get("end") else None
-        report = build_source_report(source, start=start, end=end)
-    except (ValueError, ReconciliationError) as exc:
+        period = report_period_params(request.GET)
+        report_format = request.GET.get("format", "csv")
+        if len(request.GET.getlist("format")) > 1 or report_format not in {"csv", "print"}:
+            raise ReconciliationError("Escolha o relatório para impressão ou o CSV técnico.")
+    except ReconciliationError as exc:
+        return render(request, "hub/reconciliation_query_error.html", {
+            **context, "period_error": str(exc),
+        }, status=400)
+    try:
+        report = build_source_report(source, **period)
+    except ReconciliationError as exc:
         messages.error(request, str(exc))
         return redirect(f"{reverse('hub:reconciliation')}#processamentos")
-    response = HttpResponse(render_conference_csv(report), content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = 'attachment; filename="conferencia-banco-razao.csv"'
+    except OSError:
+        messages.error(request, "O arquivo original não está disponível. Solicite suporte.")
+        return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    if report_format == "print":
+        params = {key: value.isoformat() for key, value in period.items() if value is not None}
+        portfolio_url = portfolio_return_url(request)
+        if portfolio_url:
+            params["portfolio_return"] = portfolio_url
+        query = "?" + urlencode(params) if params else ""
+        context.update(report_presentation_context(source, report))
+        context.update({
+            "page_title": "Relatório de conferência",
+            "report_csv_url": reverse("hub:reconciliation-source-report", args=[source.pk]) + query,
+            "report_conference_url": (
+                reverse("hub:reconciliation-source-review", args=[source.pk]) + query
+            ),
+            "report_portfolio_url": portfolio_url,
+        })
+        response = render(request, "hub/reconciliation_print_report.html", context)
+    else:
+        response = HttpResponse(
+            render_conference_csv(report), content_type="text/csv; charset=utf-8"
+        )
+        response["Content-Disposition"] = 'attachment; filename="conferencia-banco-razao.csv"'
     response["Cache-Control"] = "no-store, private"
     response["X-Content-Type-Options"] = "nosniff"
     return response

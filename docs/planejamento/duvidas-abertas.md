@@ -1,3 +1,12 @@
+> **Q-28 — D-364/V-403, 16/11/2026:** carteira por empresa/conta/competência
+> e relatório legível/imprimível implementados e validados localmente, incluindo
+> QA visual sintético e PostgreSQL focado; CI integral/publicação pendentes. A página inclui empresas sem
+> conta/dados e usa somente registros já recebidos, respeitando empresa E módulo.
+> Isso não resolve vínculos banco/conta/plano/direção, contagens mensais próprias,
+> lotes completos multi-filial ou recorrência. Não repetir sondas recebidas nem
+> criar conta/aprovação por inferência. Q-46/D-73, treinamento/backup/aceite e
+> Q-47/C01/C02 adiados mantêm seus critérios; nenhuma nova pergunta criada.
+
 > **Q-46 — conferência humana adiada em12/11/2026 (D-355/V-380):**
 > responsável está sem acesso ao Domínio. C01/retenções e C02/juros aguardam
 > retomada; não repetir a solicitação agora nem presumir resposta/aceite.

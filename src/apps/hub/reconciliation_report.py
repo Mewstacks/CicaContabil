@@ -6,10 +6,12 @@ import csv
 import hashlib
 import io
 from collections import Counter
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from django.db import transaction
+from django.db.models import Q
+from django.http import QueryDict
 from django.utils import timezone
 
 from apps.hub.models import (
@@ -19,6 +21,75 @@ from apps.hub.models import (
     ReconciliationSourceFile,
 )
 from apps.hub.reconciliation_service import ReconciliationError, _source_bytes
+
+
+def report_period_params(params: QueryDict) -> dict[str, date | None]:
+    """Reject ambiguous dates instead of silently enlarging the requested report."""
+    parsed: dict[str, date | None] = {"start": None, "end": None}
+    try:
+        for name in parsed:
+            values = params.getlist(name)
+            if not values:
+                continue
+            if len(values) != 1:
+                raise ValueError
+            value = date.fromisoformat(values[0])
+            if value.isoformat() != values[0]:
+                raise ValueError
+            parsed[name] = value
+        if parsed["start"] and parsed["end"] and parsed["start"] > parsed["end"]:
+            raise ValueError
+    except (TypeError, ValueError):
+        raise ReconciliationError(
+            "Confira o período solicitado; use datas válidas no formato AAAA-MM-DD."
+        ) from None
+    return parsed
+
+
+def _plain_reference(value: Any) -> str:
+    return str(value) if isinstance(value, (str, int)) and not isinstance(value, bool) else ""
+
+
+def _source_position(reference: Any) -> str:
+    if not isinstance(reference, dict):
+        return ""
+    for field, label in (("page", "Página"), ("row", "Linha"), ("fitid", "OFX")):
+        value = _plain_reference(reference.get(field))
+        if value:
+            return f"{label} {value}"
+    for field, label in (("rows", "Linhas"), ("row_codes", "Registros")):
+        rows = reference.get(field)
+        if isinstance(rows, list):
+            labels = [_plain_reference(row) for row in rows]
+            if labels and all(labels):
+                return label + " " + ", ".join(labels)
+    return ""
+
+
+def _record_in_scope(record: IndependentLedgerRecord, source: ReconciliationSourceFile) -> bool:
+    account = source.financial_account
+    assert account is not None
+    entry = record.accounting_entry
+    return bool(
+        record.organization_id == source.organization_id
+        and record.financial_account_id == source.financial_account_id
+        and record.source_file.organization_id == source.organization_id
+        and record.source_file.company_id == source.company_id
+        and record.source_file.financial_account_id == source.financial_account_id
+        and record.source_file.origin == "accounting"
+        and record.entry.organization_id == source.organization_id
+        and record.entry.company_id == source.company_id
+        and record.entry.movement_id is None
+        and entry.organization_id == source.organization_id
+        and entry.company_id == source.company_id
+        and entry.data_source.organization_id == source.organization_id
+        and entry.account_reference == account.account_reference
+        and entry.occurred_on == record.entry.occurred_on
+        and record.bank_line.organization_id == source.organization_id
+        and record.bank_line.entry_id == record.entry_id
+        and record.bank_line.account_code == account.ledger_code
+        and record.bank_line.amount_cents == entry.amount_cents
+    )
 
 
 @transaction.atomic
@@ -65,6 +136,15 @@ def build_source_report(
     if hashlib.sha256(content).hexdigest() != source.content_hash:
         raise ReconciliationError("O hash do extrato diverge; restaure o arquivo original.")
     movements = list(source.movements.order_by("occurred_on", "source_key"))
+    if any(
+        movement.organization_id != source.organization_id
+        or movement.company_id != source.company_id
+        or movement.financial_account_id != source.financial_account_id
+        for movement in movements
+    ):
+        raise ReconciliationError(
+            "Há movimentos fora da empresa ou conta do extrato; solicite revisão."
+        )
     dates = [m.occurred_on for m in movements if m.occurred_on]
     if not dates or len(dates) != len(movements):
         raise ReconciliationError(
@@ -89,33 +169,92 @@ def build_source_report(
             organization=source.organization,
             financial_account=account,
             entry__occurred_on__range=(start, end),
-        ).select_related("accounting_entry", "entry")
+        ).select_related("accounting_entry__data_source", "entry", "source_file", "bank_line")
     )
+    if any(not _record_in_scope(record, source) for record in records):
+        raise ReconciliationError(
+            "Há registros do Razão fora do escopo da fonte; solicite revisão."
+        )
+    movement_ids = {movement.pk for movement in movements}
+    record_entry_ids = {record.entry_id for record in records}
     allocations = list(
         MovementReconciliation.objects.filter(
-            organization=source.organization,
+            Q(movement_id__in=movement_ids) | Q(entry_id__in=record_entry_ids),
             state="confirmed",
-            movement__in=movements,
-        ).values("movement_id", "entry_id", "amount_cents")
-    )
-    # Source capacity consumed by another statement is still consumed here.
-    ledger_allocations = list(
-        MovementReconciliation.objects.filter(
-            organization=source.organization,
-            state="confirmed",
-            entry_id__in=[r.entry_id for r in records],
-        ).values("entry_id", "amount_cents")
+        ).values(
+            "organization_id",
+            "movement_id",
+            "entry_id",
+            "amount_cents",
+            "movement__organization_id",
+            "movement__company_id",
+            "movement__financial_account_id",
+            "movement__source_file__organization_id",
+            "movement__source_file__company_id",
+            "movement__source_file__financial_account_id",
+            "movement__source_file__origin",
+            "entry__organization_id",
+            "entry__company_id",
+            "entry__movement_id",
+            "entry__purpose",
+            "entry__independent_source__financial_account_id",
+        )
     )
     bank_used: Counter[Any] = Counter()
     ledger_used: Counter[Any] = Counter()
     for allocation in allocations:
-        bank_used[allocation["movement_id"]] += allocation["amount_cents"]
-    for ledger_allocation in ledger_allocations:
-        ledger_used[ledger_allocation["entry_id"]] += ledger_allocation["amount_cents"]
+        if (
+            any(
+                allocation[field] != source.organization_id
+                for field in (
+                    "organization_id",
+                    "movement__organization_id",
+                    "movement__source_file__organization_id",
+                    "entry__organization_id",
+                )
+            )
+            or any(
+                allocation[field] != source.company_id
+                for field in (
+                    "movement__company_id",
+                    "movement__source_file__company_id",
+                    "entry__company_id",
+                )
+            )
+            or any(
+                allocation[field] != source.financial_account_id
+                for field in (
+                    "movement__financial_account_id",
+                    "movement__source_file__financial_account_id",
+                )
+            )
+            or allocation["movement__source_file__origin"] != "bank_statement"
+            or allocation["entry__movement_id"] == allocation["movement_id"]
+            or (
+                allocation["entry__independent_source__financial_account_id"] is not None
+                and (
+                    allocation["entry__independent_source__financial_account_id"]
+                    != source.financial_account_id
+                    or allocation["entry_id"] not in record_entry_ids
+                )
+            )
+            or (
+                allocation["entry__purpose"] == "source_ledger"
+                and allocation["entry_id"] not in record_entry_ids
+            )
+        ):
+            raise ReconciliationError("Há alocações fora da empresa ou conta; solicite revisão.")
+        if allocation["movement_id"] in movement_ids:
+            bank_used[allocation["movement_id"]] += allocation["amount_cents"]
+        # Capacity consumed by another statement in the same account remains consumed.
+        if allocation["entry_id"] in record_entry_ids:
+            ledger_used[allocation["entry_id"]] += allocation["amount_cents"]
     bank_rows: list[dict[str, Any]] = []
     for movement in movements:
         assert movement.occurred_on is not None
         used = bank_used[movement.pk]
+        if used > abs(movement.amount_cents):
+            raise ReconciliationError("A alocação excede o movimento; solicite revisão.")
         bank_rows.append(
             {
                 "reference": str(movement.pk),
@@ -124,12 +263,19 @@ def build_source_report(
                 "amount_cents": abs(movement.amount_cents),
                 "allocated_cents": used,
                 "remaining_cents": abs(movement.amount_cents) - used,
+                "history": movement.original_description or movement.description,
+                "document": movement.document_number,
+                "source_name": source.original_filename,
+                "source_position": _source_position(movement.source_reference),
+                "source_hash": source.content_hash,
             }
         )
     ledger_rows: list[dict[str, Any]] = []
     for record in records:
         entry = record.accounting_entry
         used = ledger_used[record.entry_id]
+        if used > entry.amount_cents:
+            raise ReconciliationError("A alocação excede o registro do Razão; solicite revisão.")
         ledger_rows.append(
             {
                 "reference": str(record.pk),
@@ -138,6 +284,15 @@ def build_source_report(
                 "amount_cents": entry.amount_cents,
                 "allocated_cents": used,
                 "remaining_cents": entry.amount_cents - used,
+                "history": record.entry.history or entry.description,
+                "document": _plain_reference(
+                    record.source_reference.get("document")
+                    if isinstance(record.source_reference, dict)
+                    else None
+                ),
+                "source_name": record.source_file.original_filename,
+                "source_position": _source_position(record.source_reference),
+                "source_hash": record.source_file.content_hash,
             }
         )
     bank_net = sum(m.amount_cents for m in movements)
@@ -193,6 +348,109 @@ def build_source_report(
         "bank_rows": bank_rows,
         "ledger_rows": ledger_rows,
         "warnings": warnings,
+    }
+
+
+def _money(cents: int | None) -> str:
+    if cents is None:
+        return "Não informado"
+    sign = "-" if cents < 0 else ""
+    units, remainder = divmod(abs(cents), 100)
+    return f"{sign}R$ {units:,}".replace(",", ".") + f",{remainder:02}"
+
+
+def report_presentation_context(
+    source: ReconciliationSourceFile, report: dict[str, Any]
+) -> dict[str, Any]:
+    """Present all report rows without changing the stable technical CSV contract."""
+    if (
+        report["source_id"] != str(source.pk)
+        or report["company_id"] != str(source.company_id)
+        or report["financial_account_id"] != str(source.financial_account_id)
+        or report["source_hash"] != source.content_hash
+    ):
+        raise ReconciliationError("Relatório fora da empresa, conta ou fonte solicitada.")
+    sections = []
+    for key, label in (("bank", "Extrato bancário"), ("ledger", "Razão independente")):
+        rows = []
+        for row in report[f"{key}_rows"]:
+            confirmed = row["amount_cents"] > 0 and row["remaining_cents"] == 0
+            partial = row["allocated_cents"] > 0 and not confirmed
+            rows.append(
+                {
+                    **row,
+                    "date_label": date.fromisoformat(row["date"]).strftime("%d/%m/%Y"),
+                    "direction_label": {"inflow": "Entrada", "outflow": "Saída"}.get(
+                        row["direction"], "Não informada"
+                    ),
+                    "amount_label": _money(row["amount_cents"]),
+                    "allocated_label": _money(row["allocated_cents"]),
+                    "remaining_label": _money(row["remaining_cents"]),
+                    "state": "confirmed" if confirmed else "partial" if partial else "pending",
+                    "state_label": "Conferido"
+                    if confirmed
+                    else "Parcial"
+                    if partial
+                    else "A conferir",
+                }
+            )
+        sections.append(
+            {
+                "key": key,
+                "label": label,
+                "rows": rows,
+                "count": len(rows),
+                "pending_count": sum(row["state"] != "confirmed" for row in rows),
+            }
+        )
+    balances = [
+        {"label": label, "value": _money(report[key])}
+        for key, label in (
+            ("opening_bank_cents", "Saldo inicial do banco"),
+            ("closing_bank_cents", "Saldo final do banco"),
+            ("opening_ledger_cents", "Saldo inicial do Razão"),
+            ("calculated_closing_ledger_cents", "Saldo final calculado do Razão"),
+        )
+    ]
+    generated = datetime.fromisoformat(report["generated_at"])
+    sources = {
+        ("Extrato bancário", source.original_filename, source.content_hash): {
+            "label": "Extrato bancário",
+            "name": source.original_filename,
+            "hash": source.content_hash,
+            "hash_label": "Hash do arquivo verificado",
+        }
+    }
+    for row in report["ledger_rows"]:
+        sources.setdefault(
+            ("Razão", row["source_name"], row["source_hash"]),
+            {
+                "label": "Razão",
+                "name": row["source_name"],
+                "hash": row["source_hash"],
+                "hash_label": "Hash registrado na importação",
+            },
+        )
+    return {
+        "report_source": source,
+        "report_data": report,
+        "report_sections": sections,
+        "report_balances": balances,
+        "report_sources": list(sources.values()),
+        "report_period_label": (
+            f"{date.fromisoformat(report['period_start']):%d/%m/%Y} a "
+            f"{date.fromisoformat(report['period_end']):%d/%m/%Y}"
+        ),
+        "report_generated_label": timezone.localtime(generated).strftime("%d/%m/%Y às %H:%M:%S %z"),
+        "report_bank_net_label": _money(report["bank_net_cents"]),
+        "report_ledger_net_label": (
+            _money(report["ledger_net_cents"]) if report["ledger_count"] else "Sem registros"
+        ),
+        "report_difference_label": (
+            _money(report["period_difference_cents"])
+            if report["ledger_count"]
+            else "Não comparável"
+        ),
     }
 
 

@@ -1,3 +1,16 @@
+## D-364/V-403 — Carteira e relatório da conciliação, 16/11/2026
+
+- [x] Preservar identidade CICA, controles nativos, empresa/conta/competência e retorno previsível nas novas superfícies.
+- [x] Aplicar UI/UX Pro Max local, consultar Watermelon table/data-table, diretrizes Vercel e referência oficial QuickBooks sobre consultar/imprimir/exportar relatório.
+- [x] Validar HTTP por papel, interseção empresa/módulo, revogação, suporte restrito, filtro inválido e consulta sem criação de jobs/decisões.
+- [x] Preparar QA isolado com 27 empresas fictícias, quatro contas, dois meses e um Razão aguardando revisão; sessões Owner/Auditor/Operator separadas.
+- [x] Concluir QA visual sintético e retestes de tabela móvel, foco/modal/Escape, impressão, temas e zoom; cinco campos e ação visíveis no celular.
+- [ ] Concluir CI integral e publicação; nesta anotação, a alteração está validada localmente e ainda não publicada.
+- [ ] Executar treinamento e aceite com a cliente; QA técnico não substitui participação humana.
+
+V-403 reúne provas e limites. Pesquisa orienta organização, tabela e relatório;
+nenhuma interface React, dado externo ou novo sistema visual foi copiado.
+
 ## Revisão de produto em 05/10/2026 — D-275/V-275
 
 **Acompanhamento 10/10/2026 — D-295/V-294:** [inventário e protocolo de revisão de todos os controles](../auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A enumeração estática foi feita; a execução botão a botão por papel, estado e viewport permanece aberta. O checklist abaixo só se encerra após registrar resultado e reteste por controle aplicável.

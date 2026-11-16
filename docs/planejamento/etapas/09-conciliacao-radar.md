@@ -1,5 +1,19 @@
 # Etapa 09 — Concluir Conciliação e Radar
 
+## D-364/V-403 — Operação por empresa e competência, 16/11/2026
+
+- [x] Implementar carteira paginada por empresa/conta/mês, incluindo empresas sem conta e ausência de extrato/Razão, com dados já persistidos.
+- [x] Aplicar empresa E módulo na consulta/conferência/relatório; preservar suporte restrito e recusar acesso revogado.
+- [x] Preservar período entre carteira, conferência, detalhe e relatório; filtros inválidos retornam erro sem ampliar o recorte.
+- [x] Oferecer relatório legível/imprimível em reais e CSV técnico compatível; saldos ausentes continuam desconhecidos e leitura não confirma movimentos.
+- [x] Preparar importação com empresa/conta/origem válidas, sem upload ou escrita no GET; validar regressão HTTP local e atualizar o guia.
+- [x] Concluir QA visual sintético e regressão PostgreSQL focada de160 testes, incluindo concorrência.
+- [ ] Concluir CI integral e publicação da árvore exata; candidata ainda não publicada nesta anotação.
+- [ ] Q-28: revisar vínculos/contagens/filiais e comprovar a operação das empresas; interface não acrescenta cobertura financeira real.
+
+Q-46/D-73, recuperação, treinamento e aceite continuam próprios; Q-47/C01/C02
+permanecem adiados. [Evidência local e limites](../../../VALIDACOES.md).
+
 ## Checklist vigente CONTAD — D-343/V-366 (12/11/2026)
 
 Os blocos datados abaixo preservam histórico. Esta lista consolida V-325,

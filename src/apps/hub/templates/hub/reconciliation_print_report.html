@@ -1,0 +1,93 @@
+{% extends 'hub/base.html' %}
+{% load static %}
+{% block title %}Conferência · {{ report_source.company.name }} · CICA{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'hub/reconciliation-report.css' %}">
+<script src="{% static 'hub/reconciliation-report.js' %}" defer></script>
+{% endblock %}
+{% block body %}
+<div class="report-toolbar" aria-label="Ações do relatório">
+  <a class="report-link" href="{{ report_conference_url }}">Voltar à conferência</a>
+  {% if report_portfolio_url %}<a class="report-link" href="{{ report_portfolio_url }}">Carteira</a>{% endif %}
+  <a class="report-link" href="{{ report_csv_url }}">Baixar CSV técnico</a>
+  <button class="report-print" type="button" data-report-print hidden>Imprimir ou salvar PDF</button>
+</div>
+<main id="conteudo" class="reconciliation-report">
+  <header class="report-header">
+    <a class="report-brand" href="{% url 'hub:reconciliation' %}" aria-label="CICA · Conciliação">
+      <img class="report-logo-light" src="{% static 'hub/brand/cica-mark-green.svg' %}" alt="" width="30" height="30"><img class="report-logo-dark" src="{% static 'hub/brand/cica-mark-cream.svg' %}" alt="" width="30" height="30"> CICA
+    </a>
+    <span class="report-status">Conferência · leitura</span>
+    <h1>Extrato e Razão</h1>
+    <dl class="report-identity">
+      <div><dt>Empresa</dt><dd>{{ report_source.company.name }}</dd></div>
+      <div><dt>Código da empresa</dt><dd>{{ report_source.company.dominio_code|default:'Não informado' }}</dd></div>
+      <div><dt>Conta financeira</dt><dd>{{ report_source.financial_account.name }}</dd></div>
+      <div><dt>Referência da conta</dt><dd>{{ report_source.financial_account.account_reference|default:'Não informada' }}</dd></div>
+      <div><dt>Conta no Razão</dt><dd>{{ report_source.financial_account.ledger_code|default:'Não informada' }}</dd></div>
+      <div><dt>Período</dt><dd>{{ report_period_label }}</dd></div>
+    </dl>
+  </header>
+
+  <section class="report-overview" aria-labelledby="report-overview-title">
+    <h2 id="report-overview-title">Valores do período</h2>
+    <dl class="report-totals">
+      <div><dt>Movimentação líquida do banco</dt><dd>{{ report_bank_net_label }}</dd></div>
+      <div><dt>Movimentação líquida do Razão</dt><dd>{{ report_ledger_net_label }}</dd></div>
+      <div><dt>Diferença entre movimentações</dt><dd>{{ report_difference_label }}</dd></div>
+    </dl>
+    <dl class="report-balances">
+      {% for balance in report_balances %}<div><dt>{{ balance.label }}</dt><dd>{{ balance.value }}</dd></div>{% endfor %}
+    </dl>
+  </section>
+
+  <aside class="report-notice" aria-labelledby="report-scope-title">
+    <h2 id="report-scope-title">Escopo da conferência</h2>
+    <ul>
+      <li>Inclui todos os movimentos do extrato selecionado e os registros independentes do Razão recebidos para esta conta no período. Filtros de busca, situação e página não limitam este relatório.</li>
+      <li>Conferido indica alocação integral registrada. Valores parciais ou zerados continuam a conferir. Este relatório não confirma movimentos, cobertura ou aceite final.</li>
+      {% for warning in report_data.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+  </aside>
+
+  {% for section in report_sections %}
+  <section class="report-section" aria-labelledby="report-{{ section.key }}-title">
+    <div class="report-section-heading">
+      <h2 id="report-{{ section.key }}-title">{{ section.label }}</h2>
+      <span>{{ section.count }} registro{{ section.count|pluralize:'s' }} · {{ section.pending_count }} a conferir</span>
+    </div>
+    {% if section.rows %}
+    <table class="report-table">
+      <caption class="report-sr-only">{{ section.label }} · {{ report_period_label }}</caption>
+      <thead><tr><th scope="col">Data</th><th scope="col">Histórico e documento</th><th scope="col">Fonte</th><th scope="col" class="report-number">Movimento</th><th scope="col" class="report-number">Alocado</th><th scope="col" class="report-number">Pendente</th><th scope="col">Situação</th></tr></thead>
+      <tbody>
+      {% for row in section.rows %}
+        <tr>
+          <td data-label="Data">{{ row.date_label }}</td>
+          <td data-label="Histórico e documento" class="report-history">{{ row.history|default:'Histórico não informado' }}<span class="report-subline">Documento: {{ row.document|default:'não informado' }}</span></td>
+          <td data-label="Fonte" class="report-source">{{ row.source_name }}{% if row.source_position %}<span class="report-subline">{{ row.source_position }}</span>{% endif %}</td>
+          <td data-label="Movimento" class="report-number">{{ row.amount_label }}<span class="report-subline">{{ row.direction_label }}</span></td>
+          <td data-label="Alocado" class="report-number">{{ row.allocated_label }}</td>
+          <td data-label="Pendente" class="report-number">{{ row.remaining_label }}</td>
+          <td data-label="Situação"><span class="report-row-state report-row-state--{{ row.state }}">{{ row.state_label }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="report-empty">Nenhum registro de {{ section.label|lower }} neste período.</div>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  <section class="report-evidence" aria-labelledby="report-evidence-title">
+    <h2 id="report-evidence-title">Fontes e integridade</h2>
+    <dl>
+      {% for source in report_sources %}
+      <div><dt>{{ source.label }} · {{ source.name }}</dt><dd><span>{{ source.hash_label }}</span><code>{{ source.hash }}</code></dd></div>
+      {% endfor %}
+    </dl>
+  </section>
+  <footer class="report-footer">Gerado em {{ report_generated_label }} · Consulta sem alteração de dados · Cobertura e aceite pendentes</footer>
+</main>
+{% endblock %}

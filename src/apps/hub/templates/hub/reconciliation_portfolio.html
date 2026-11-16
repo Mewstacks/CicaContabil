@@ -1,0 +1,44 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-portfolio.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel portfolio-controls" aria-labelledby="portfolio-heading">
+  <header class="workspace-panel-head"><div><h2 id="portfolio-heading">Contas e arquivos</h2></div><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Visão geral</a></header>
+  {% if portfolio.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in portfolio.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <form method="get" class="portfolio-filters" aria-label="Filtrar empresas e competência">
+    <div class="field"><label for="portfolio-month">Competência</label><input type="month" id="portfolio-month" name="month" value="{{ portfolio.filters.month }}" autocomplete="off" required></div>
+    <div class="field portfolio-search"><label for="portfolio-query">Empresa ou código Domínio</label><input type="search" id="portfolio-query" name="q" value="{{ portfolio.filters.q }}" maxlength="100" autocomplete="off" placeholder="Busque uma empresa…"></div>
+    <div class="field"><label for="portfolio-status">Situação</label><select id="portfolio-status" name="status" autocomplete="off">
+      <option value="all"{% if portfolio.filters.status == 'all' %} selected{% endif %}>Todas</option>
+      <option value="missing_account"{% if portfolio.filters.status == 'missing_account' %} selected{% endif %}>Sem conta cadastrada</option>
+      <option value="missing_bank"{% if portfolio.filters.status == 'missing_bank' %} selected{% endif %}>Sem extrato no mês</option>
+      <option value="missing_ledger"{% if portfolio.filters.status == 'missing_ledger' %} selected{% endif %}>Sem Razão no mês</option>
+      <option value="available"{% if portfolio.filters.status == 'available' %} selected{% endif %}>Extrato e Razão recebidos</option>
+      <option value="review"{% if portfolio.filters.status == 'review' %} selected{% endif %}>Revisar cadastro ou importação</option>
+    </select></div>
+    {% if portfolio_company %}<input type="hidden" name="company" value="{{ portfolio_company.id }}"><div class="field"><label for="portfolio-account">Conta</label><select id="portfolio-account" name="account" autocomplete="off"><option value="">Todas as contas</option>{% for account in portfolio_accounts %}<option value="{{ account.id }}"{% if portfolio.filters.account == account.id|stringformat:'s' %} selected{% endif %}>{{ account.name }}{% if not account.active %} · Inativa{% endif %}</option>{% endfor %}</select></div>{% endif %}
+    <button class="button" type="submit">Aplicar filtros</button>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation-portfolio' %}?month={{ portfolio.month|urlencode }}">Limpar filtros</a>
+  </form>
+  <div class="portfolio-context" role="status"><span>{{ portfolio.page.paginator.count }} empresa{{ portfolio.page.paginator.count|pluralize }}{% if portfolio_company %} · {{ portfolio_company.name }}{% endif %}</span>{% if not portfolio.errors %}<span>{{ portfolio.start|date:'d/m/Y' }} a {{ portfolio.end|date:'d/m/Y' }}</span>{% endif %}</div>
+</section>
+{% for row in portfolio.rows %}
+<section class="workspace-panel portfolio-company" aria-labelledby="company-{{ row.company.id }}">
+  <header class="workspace-panel-head"><div><h2 id="company-{{ row.company.id }}">{{ row.company.name }}</h2>{% if row.company.dominio_code %}<span class="portfolio-company-code">Domínio {{ row.company.dominio_code }}</span>{% endif %}</div>{% if not portfolio_company %}<a class="button button-quiet button-small" href="{% url 'hub:reconciliation-portfolio' %}?month={{ portfolio.month|urlencode }}&amp;company={{ row.company.id }}">Ver empresa<span class="sr-only"> {{ row.company.name }}</span></a>{% endif %}</header>
+  {% if row.accounts %}
+  <div class="data-table-wrap"><table class="operational-table portfolio-table"><caption class="sr-only">Contas de {{ row.company.name }} no mês selecionado</caption><thead><tr><th scope="col">Conta</th><th scope="col">Extrato</th><th scope="col">Razão</th><th scope="col">Situação</th><th scope="col">Próximo passo</th></tr></thead><tbody>
+    {% for item in row.accounts %}<tr>
+      <td data-label="Conta"><strong>{{ item.account.name }}</strong><small>{{ item.account.account_reference|default:'Referência bancária não informada' }}</small>{% if item.sources %}<details class="portfolio-sources"><summary>Arquivos recebidos ({{ item.sources|length }})</summary><ul>{% for file in item.sources %}<li>{% if file.review_url %}<a href="{{ file.review_url }}">{{ file.source.original_filename }}</a>{% else %}<span>{{ file.source.original_filename }}</span>{% endif %}<small>{{ file.status_label }}</small></li>{% endfor %}</ul></details>{% endif %}</td>
+      <td data-label="Extrato"><span class="portfolio-number">{{ item.bank_count }}</span><small>movimento{{ item.bank_count|pluralize }}</small></td>
+      <td data-label="Razão"><span class="portfolio-number">{{ item.ledger_count }}</span><small>registro{{ item.ledger_count|pluralize }}</small></td>
+      <td data-label="Situação"><span class="status-badge {% if item.status == 'available' %}is-active{% elif item.status == 'review' %}is-warning{% else %}is-muted{% endif %}">{{ item.status_label }}</span>{% for issue in item.issues %}<small>{{ issue }}</small>{% endfor %}</td>
+      <td data-label="Próximo passo"><div class="portfolio-actions">{% for action in item.actions %}<a class="row-action-button" href="{{ action.url }}">{{ action.label }}<span class="sr-only"> · {{ item.account.name }}</span></a>{% empty %}<span class="table-muted">Aguarde a revisão do responsável.</span>{% endfor %}</div></td>
+    </tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-block operational-empty portfolio-empty"><strong>Sem conta cadastrada</strong>{% for action in row.actions %}<a class="button button-quiet" href="{{ action.url }}">{{ action.label }}</a>{% empty %}<span>Solicite ao responsável o cadastro da conta.</span>{% endfor %}</div>{% endif %}
+  {% if row.unassigned_source_count %}<p class="portfolio-notice">{{ row.unassigned_source_count }} arquivo{{ row.unassigned_source_count|pluralize }} sem conta ou período identificável. <a href="{% url 'hub:reconciliation' %}#processamentos">Ver importações</a></p>{% endif %}
+</section>
+{% empty %}<section class="workspace-panel"><div class="empty-block operational-empty"><strong>{% if portfolio.errors %}A consulta não foi ampliada{% else %}Nenhuma empresa corresponde aos filtros{% endif %}</strong><a class="button button-quiet" href="{% url 'hub:reconciliation-portfolio' %}">Consultar carteira</a></div></section>{% endfor %}
+{% if portfolio.page.has_other_pages %}<nav class="pagination" aria-label="Páginas da carteira de conciliação">{% if portfolio.page.has_previous %}<a class="button button-quiet" href="?{{ portfolio.querystring }}&amp;page={{ portfolio.page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span></span>{% endif %}<span>Página {{ portfolio.page.number }} de {{ portfolio.page.paginator.num_pages }}</span>{% if portfolio.page.has_next %}<a class="button button-quiet" href="?{{ portfolio.querystring }}&amp;page={{ portfolio.page.next_page_number }}" rel="next">Próxima</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+<p class="portfolio-footnote">Os números mostram os arquivos recebidos no período. A cobertura e as correspondências precisam de conferência.</p>
+{% endblock %}

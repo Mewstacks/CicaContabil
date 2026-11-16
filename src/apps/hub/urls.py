@@ -190,6 +190,10 @@ urlpatterns = [
     ),
     path("app/conciliacao/", views.reconciliation, name="reconciliation"),
     path(
+        "app/conciliacao/carteira/", views.reconciliation_portfolio,
+        name="reconciliation-portfolio",
+    ),
+    path(
         "app/conciliacao/configuracao/",
         views.reconciliation_configuration,
         name="reconciliation-configuration",

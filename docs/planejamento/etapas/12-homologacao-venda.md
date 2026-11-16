@@ -1,3 +1,16 @@
+## D-364/V-403 — Facilitar o uso da cliente, 16/11/2026
+
+- [x] Implementar carteira por empresa/conta/mês e relatório legível/imprimível, mantendo o CSV técnico.
+- [x] Validar localmente escopo empresa E módulo, período, erros explícitos, leitura sem decisão e importação preenchida sem envio automático.
+- [x] Atualizar guia e preparar cenário privado de treinamento técnico com dados fictícios; resultados humanos permanecem sem aprovação presumida.
+- [x] Concluir QA visual sintético e regressão PostgreSQL focada, incluindo concorrência.
+- [ ] Concluir CI integral, publicação compatível e conferência posterior; nenhuma release nova declarada nesta anotação.
+- [ ] Q-28/Q-46/D-73: cobertura real, semântica, amostra, recuperação/backup, treinamento e aceite efetivos.
+
+O avanço é de operação da interface. Não houve coleta financeira nova,
+aprovação de conta ou ampliação comprovada da carteira. Q-47/C01/C02
+permanecem adiados. [V-403 e limites](../../../VALIDACOES.md).
+
 # Etapa 12 — Homologação integrada e liberação comercial
 
 ## Checklist vigente de conclusão — D-343/V-366 (12/11/2026)
