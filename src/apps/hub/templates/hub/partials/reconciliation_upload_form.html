@@ -26,5 +26,6 @@
     <p class="reconciliation-file-error" data-file-error role="alert" hidden></p>
     {% for error in upload_form.files.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
   </div>
+  <p class="field-help"><a href="{% url 'hub:reconciliation-ledger-request' %}{% if upload_form.company.value %}?company={{ upload_form.company.value|urlencode }}{% if upload_form.financial_account.value %}&amp;account={{ upload_form.financial_account.value|urlencode }}{% endif %}{% endif %}">Enviar extrato e buscar Razão do Domínio</a></p>
   <div class="modal-actions"><button class="button" type="submit" data-upload-submit>Importar arquivos</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
 </form>

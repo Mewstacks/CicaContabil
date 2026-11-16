@@ -1,5 +1,39 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
+## Enviar extrato e buscar o Razão — D-368, 16/11/2026
+
+Percurso preparado para publicação; a liberação operacional depende de o agente
+CICA1.0.11 estar atualizado e conectado no computador do Domínio.
+
+1. Abra **Contábil → Conciliação bancária → Extrato e Razão**. Escolha a
+   empresa, a conta e a competência mensal; confira o período apresentado.
+2. Escolha um extrato novo ou um arquivo já recebido. São aceitos
+   **OFX, QFX, CSV, XLSX e PDF, até25MiB**. CSV/XLSX podem pedir mapeamento de
+   colunas; PDF depende de conteúdo que possa ser extraído e revisado.
+   Arquivo ilegível ou formato não aceito precisa ser obtido novamente no banco.
+3. Quando solicitado, confira **Vínculo com o Domínio**: empresa do plano,
+   filial, conta contábil e lado da entrada bancária. Registre a referência
+   usada na conferência e salve. Essa revisão é feita quando o vínculo ainda
+   não está comprovado ou mudou; não é necessário informar contagens técnicas.
+4. Use **Buscar Razão**. O pedido fica registrado e mostra quando foi entregue
+   ao agente e quando os dados chegaram. É possível usar **Enviar extrato**
+   separadamente; um extrato aceito permanece disponível se a coleta falhar.
+5. Quando aparecer **Razão recebido**, abra **Abrir conferência**. Confira os
+   movimentos, registre evidência real para cada decisão e gere o relatório.
+
+**Na fila** significa pedido salvo, ainda sem resultado. **Sem lançamentos
+neste período** descreve apenas a resposta daquele vínculo e competência;
+não encerra o mês. **Revisão necessária** exige conferir vínculo/fonte no
+Domínio. Se a origem mudou, o CICA preserva o histórico e informa a pendência.
+Use **Atualizar situação** ou a retomada indicada pela tela após resolver o motivo.
+
+Para atualizar dados do mesmo mês, faça uma nova solicitação. Reenviar o mesmo
+pedido não duplica importações; movimentos anteriores confirmados são
+preservados. O computador do Domínio deve estar ligado e com o agente conectado.
+A atualização pontual do agente conserva o acesso existente; as solicitações
+seguintes são feitas pelo site.
+
+
 ## Cadastrar, corrigir e receber o Razão — atualização D-366, 16/11/2026
 
 Atualização disponível no CICA, release95, com publicação conferida em V-405.
@@ -33,7 +67,7 @@ marcado **Não utilizar**, use **Reconsiderar decisão** e informe o motivo;
 **Reabrir para revisão** devolve o caso às pendências. As revisões anteriores
 continuam disponíveis, sem apagar a decisão original.
 
-Para receber o Razão da conta, siga **Importar Razão** na carteira. Confira
+Como alternativa à busca direta, use o envio de Razão em CSV na carteira. Confira
 empresa, conta, origem **Registros contábeis** e finalidade **Razão independente
 — CSV de partidas completas**. Use **Baixar modelo do Razão**, substitua os
 exemplos fictícios pelos dados reais e inclua todas as partidas de cada
@@ -68,7 +102,7 @@ conta já vêm da origem; os dados bancários precisam da sua conferência.
 4. Se a candidata não deve ser usada, abra **Não utilizar esta conta**, descreva
    o motivo e registre. A origem e a decisão permanecem disponíveis para consulta.
 5. Volte à carteira, escolha a competência e siga a pendência de **Importar
-   extrato** ou **Importar Razão**. O vínculo cadastrado não traz movimentos
+   extrato** ou **Buscar Razão**. O vínculo cadastrado não traz movimentos
    de outros meses. Confira a conta e o período antes de enviar cada fonte.
 
 A situação **Vínculo revisado** identifica o cadastro conferido; não significa

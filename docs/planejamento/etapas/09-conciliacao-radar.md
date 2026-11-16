@@ -674,7 +674,26 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x] Relatório legível/CSV em reais e referências humanas das fontes revisadas.
 - [x] Revisão das sugestões DE-PARA retidas e ativação com plano/acesso atuais.
 - [x] Testes sintéticos PostgreSQL/SQLite e QA no navegador.
-- [ ] CI integral da árvore final e publicação compatível comprovados.
+- [x] CI43925999340, 0085 e release96: árvore/runtime/saúde e15 grupos preservados comprovados.
 - [ ] Cliente valida as fontes/semântica/vínculos reais; fontes ausentes continuam próprias.
 
 Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.
+
+
+### Esclarecimento V-406 — Autonomia da coleta do Razão
+
+- [ ] Solicitar e acompanhar coleta direta pelo agente na interface, com escopo revisado; upload atual somente processa o arquivo e compara com fontes já recebidas.
+
+A coleta técnica por comandos existe; esse ponto não está entregue à cliente
+como ação autônoma. Não autoriza captura ou inferência de novos vínculos.
+
+
+### D-368/V-407 — Extrato e Razão pela tela
+
+- [x] Jornada empresa/conta/competência, extrato opcional e pedido idempotente.
+- [x] Revisão auditada do vínculo, acompanhamento e retomada com acesso atual.
+- [x] Contagens automáticas no agente, dupla leitura e compatibilidade v1.
+- [x] Preservação de fontes/decisões e revisão de alterações na origem.
+- [ ] Encerrar QA, CI e publicação do backend/pacote exatos.
+- [ ] Comprovar atualização/capability no agente oficial da cliente.
+- [ ] Conferir os vínculos ainda incompletos e fontes reais da carteira.

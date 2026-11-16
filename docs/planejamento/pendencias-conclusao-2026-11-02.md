@@ -1,3 +1,24 @@
+## Entrega vigente — D-367/V-406, 16/11/2026, release96
+
+- [x] Títulos/baixas pela interface: fonte, revisão, prévia, vínculo, histórico, desfazer e relatório em reais.
+- [x] Revisão das sugestões DE-PARA retidas e ativação humana com revalidação do plano.
+- [x] CI43925999340, migração0085, publicação, saúde e preservação de15 grupos de dados comprovados.
+
+Pendência técnica para uso autônomo, identificada na pergunta sobre o envio de extratos:
+
+- [ ] Disponibilizar solicitação e acompanhamento da coleta direta do Razão pela interface. Hoje o upload compara com o Razão já recebido; nova coleta exige comando administrativo. V-406/D-363.
+
+Dependências reais para ampliar a operação:
+
+- Cliente valida dados bancários/contábeis e evidência das43 candidatas em11 empresas.
+- Identificar contas e obter fontes/períodos nas134 demais empresas sem candidata.
+- Revisar natureza/componentes dos títulos e comprovar suas relações com o banco.
+- Aprovar contas lançáveis e históricos das sugestões DE-PARA; realizar uso real e aceite.
+- Q-47/C01/C02 seguem adiados; não solicitar novamente nesta rodada.
+
+Backup não é prioridade por instrução expressa. Os registros abaixo são
+histórico do projeto; lacunas técnicas superadas não voltam como bloqueios.
+
 ## D-366/V-405 — Correções do uso diário, 16/11/2026
 
 - [x] Corrigir conta manual com motivo, histórico privado e controle de revisão concorrente; proteger identidade já usada.
@@ -298,9 +319,9 @@ permanece específica, nos termos de D-304 e decisões anteriores.
 
 ## Prioridade de uso atual — D-367/V-406 (16/11/2026)
 
-A implementação de títulos/baixas e da revisão DE-PARA está pronta para
-validação final/publicação. A cliente poderá operar pela tela; CLI/JSON não
-são mais a etapa de revisão. Separar da publicação técnica:
+A implementação de títulos/baixas e da revisão DE-PARA está publicada na
+release96, conforme V-406. A cliente pode operar pela tela; CLI/JSON
+não são mais a etapa de revisão. Dependências reais mantidas:
 
 - Validar banco, referência, conta contábil e uso das43 candidatas; cadastro
   não autoriza ativação automática de plano/vínculo.
@@ -314,3 +335,8 @@ são mais a etapa de revisão. Separar da publicação técnica:
 
 Backup não é prioridade desta rodada, por instrução expressa do responsável,
 e não será apresentado como impedimento para avançar no uso assistido.
+
+
+### D-368/V-407 — Coleta pela cliente (16/11/2026)
+
+Em implementação/publicação: anexar OFX/QFX/CSV/XLSX/PDF, escolher empresa/conta/competência e buscar o Razão pelo agente existente. A conclusão operacional depende da versão1.0.11 comprovada no servidor; publicação do site isoladamente não resolve esse requisito. Revisão dos vínculos incompletos continua humana, com tela própria e sem contagens técnicas. Backup não bloqueia esta entrega.

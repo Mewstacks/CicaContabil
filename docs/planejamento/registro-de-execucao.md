@@ -4001,3 +4001,26 @@ e revisão DE-PARA sem novas chamadas. Corrigidos capacidade global, revisão
 cumulativa, restauração da fotografia vigente, rollback de fontes e ativação
 de regras concorrente/auditada. PostgreSQL238+3focados e QA sintético passaram;
 0085 ensaiada no runtime95. CI/publicação final seguem antes da entrega.
+
+
+### 16/11/2026 — D-367/V-406 publicado, release96
+
+PR25 integrado após CI43925999340; árvore exata e imagem verificadas.0085
+aplicada nos dois recorders; web/worker preservam capacidade/configuração,
+legado parado.15 grupos protegidos idênticos, saúde/worker/assets e leitura
+do novo percurso aprovados. Entrega técnica encerrada; somente dependências
+reais de fontes, revisão humana e itens adiados permanecem. Backup não foi
+usado como bloqueio. Evidências e limites completos em V-406.
+
+
+### 16/11/2026 — Esclarecimento da autonomia extrato × Domínio (V-406)
+
+Conferido o código publicado: formatos limitados a OFX/QFX/CSV/XLSX/PDF;
+upload não aciona coleta do Razão. Registrada lacuna técnica de solicitação
+e acompanhamento pela interface, separada das validações da cliente.
+Somente leitura; nenhuma nova captura ERP ou alteração de runtime.
+
+
+### 16/11/2026 — D-368/V-407: extrato e coleta mensal pela interface
+
+Autorização explícita para implementar e publicar; checkout isolado da96. Nova tela integra upload com coleta nativa sem contagens humanas. Protocolo v2 e atualizador1.0.11 preservam identidade/DPAPI/DSN e fontes anteriores. Testes sintéticos e ensaio de migrações em andamento; nenhuma instalação ou coleta real declarada. Acesso à conexão existente do servidor ainda não disponível nesta sessão.

@@ -304,13 +304,10 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
             if account.active and (not bank_count or not ledger["valid"]):
                 origin = "bank_statement" if not bank_count else "accounting"
                 actions.append({
-                    "label": "Importar extrato" if origin == "bank_statement" else "Importar Razão",
-                    "url": _url("hub:reconciliation", {
-                        "upload_company": account.company_id, "upload_account": account.pk,
-                        "upload_origin": origin, "open_upload": "1",
-                        "upload_purpose": (
-                            "independent_ledger" if origin == "accounting" else "general"
-                        ),
+                    "label": "Enviar extrato" if origin == "bank_statement" else "Buscar Razão",
+                    "url": _url("hub:reconciliation-ledger-request", {
+                        "company": account.company_id, "account": account.pk,
+                        "month": values["month"],
                     }),
                 })
         accounts_by_company[account.company_id].append({

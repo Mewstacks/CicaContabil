@@ -15,18 +15,19 @@ from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.hub.models import ReconciliationSourceFile
+from apps.hub.models import ClientCompany, FinancialAccount, ReconciliationSourceFile
 from apps.hub.native_ledger_import import import_native_source
 from apps.hub.title_persistence import authorize_title_account
 from apps.intelligence.agent_v2 import agent_error, agent_payload, authenticated_agent
 from apps.intelligence.models import EdgeAgent, NativeLedgerCollection
 from apps.intelligence.native_ledger_contract import (
     MAX_BYTES,
-    VERSION,
     canonical_hash,
     contract_hash,
+    is_automatic_scope,
     normalize_snapshot,
     pilot_scope,
+    snapshot_version,
     validate_scope,
     validate_snapshot,
 )
@@ -36,6 +37,11 @@ def _job_valid(job: NativeLedgerCollection, agent: EdgeAgent) -> bool:
     account = job.financial_account
     try:
         scope = validate_scope(job.scope)
+        if is_automatic_scope(scope):
+            from apps.hub.ledger_requests import validate_job_mapping
+
+            if scope["capture_id"] != str(job.pk) or not validate_job_mapping(job):
+                return False
         if job.requested_by_id:
             if not job.evidence_reference.strip() or job.requested_by is None:
                 return False
@@ -65,6 +71,62 @@ def _official(request: HttpRequest) -> EdgeAgent | None:
     return agent
 
 
+def _locked_job(job_id: str, agent: EdgeAgent) -> NativeLedgerCollection | None:
+    # The caller holds the official agent lock. Configuration/request writes share
+    # Company → Account before Job, so receipts cannot deadlock with a mapping review.
+    candidate = (
+        NativeLedgerCollection.objects.filter(
+            pk=job_id, agent=agent, organization=agent.organization
+        )
+        .select_related("financial_account")
+        .first()
+    )
+    if candidate is None:
+        return None
+    company_id = candidate.financial_account.company_id
+    if (
+        not ClientCompany.objects.select_for_update()
+        .filter(pk=company_id, organization_id=agent.organization_id)
+        .exists()
+    ):
+        return None
+    if (
+        not FinancialAccount.objects.select_for_update()
+        .filter(
+            pk=candidate.financial_account_id,
+            company_id=company_id,
+            organization_id=agent.organization_id,
+        )
+        .exists()
+    ):
+        return None
+    return (
+        NativeLedgerCollection.objects.select_for_update(of=("self",))
+        .select_related("financial_account__company")
+        .filter(pk=job_id, agent=agent, organization=agent.organization)
+        .first()
+    )
+
+
+def _retained(source: ReconciliationSourceFile, job: NativeLedgerCollection, digest: str) -> bool:
+    if (
+        source.organization_id != job.organization_id
+        or source.company_id != job.financial_account.company_id
+        or source.financial_account_id != job.financial_account_id
+        or source.kind != "json"
+        or source.origin != "accounting"
+        or source.content_hash != digest
+        or not 1 <= source.size_bytes <= MAX_BYTES
+    ):
+        return False
+    try:
+        with source.content.open("rb") as stream:
+            content = stream.read(MAX_BYTES + 1)
+        return len(content) == source.size_bytes and hashlib.sha256(content).hexdigest() == digest
+    except (OSError, ValueError):
+        return False
+
+
 @csrf_exempt
 @require_POST
 @transaction.atomic
@@ -73,9 +135,17 @@ def next_job(request: HttpRequest) -> JsonResponse:
     if agent is None:
         return agent_error("Agente não autorizado.", 401)
     payload = agent_payload(request, 1024)
-    expanded = payload == {"version": "1.0.8", "portfolio_scope": True}
+    automatic = payload == {"version": "1.0.8", "portfolio_scope": True, "automatic_counts": True}
+    expanded = automatic or payload == {"version": "1.0.8", "portfolio_scope": True}
     if not expanded and payload != {"version": "1.0.8"}:
         return agent_error("Versão de coleta nativa incompatível.", 400)
+    agent.ledger_capabilities = {
+        "version": "1.0.8",
+        "portfolio_scope": expanded,
+        "automatic_counts": automatic,
+    }
+    agent.ledger_capabilities_observed_at = timezone.now()
+    agent.save(update_fields=["ledger_capabilities", "ledger_capabilities_observed_at"])
     jobs = (
         NativeLedgerCollection.objects.select_for_update(of=("self",))
         .select_related("financial_account__company")
@@ -83,6 +153,8 @@ def next_job(request: HttpRequest) -> JsonResponse:
     )
     if not expanded:
         jobs = jobs.filter(scope_revision=canonical_hash(pilot_scope()))
+    elif not automatic:
+        jobs = jobs.exclude(scope__has_key="capture_id")
     result: dict[str, Any] = {
         "job": None,
         "review_required": (
@@ -106,9 +178,12 @@ def next_job(request: HttpRequest) -> JsonResponse:
         if job is None:
             return agent_error("Escopo de coleta nativa incompatível.", 409)
     if job is not None:
+        if is_automatic_scope(job.scope) and job.claimed_at is None:
+            job.claimed_at = timezone.now()
+            job.save(update_fields=["claimed_at"])
         result["job"] = {
             "id": str(job.id),
-            "version": VERSION,
+            "version": snapshot_version(job.scope),
             "scope": job.scope,
             "scope_revision": job.scope_revision,
             "contract_hash": job.contract_hash,
@@ -133,12 +208,7 @@ def complete_job(request: HttpRequest, job_id: str) -> JsonResponse:
         "content_base64",
     }:
         return agent_error("Snapshot nativo inválido.", 400)
-    job = (
-        NativeLedgerCollection.objects.select_for_update()
-        .select_related("financial_account__company")
-        .filter(id=job_id, agent=agent, organization=agent.organization)
-        .first()
-    )
+    job = _locked_job(job_id, agent)
     if job is None:
         return agent_error("Coleta não encontrada.", 404)
     if (
@@ -159,17 +229,18 @@ def complete_job(request: HttpRequest, job_id: str) -> JsonResponse:
     except (ValueError, TypeError, binascii.Error):
         return agent_error("Snapshot fora do contrato nativo.", 400)
     if job.state != NativeLedgerCollection.State.QUEUED:
-        if job.content_hash == digest and job.state in {"imported", "review"}:
+        if (
+            job.content_hash == digest
+            and job.state in {"imported", "review"}
+            and job.source_file is not None
+            and _retained(job.source_file, job, digest)
+        ):
             return JsonResponse({"state": job.state, "result": job.result})
         return agent_error("Coleta já encerrada ou conteúdo divergente.", 409)
     source = ReconciliationSourceFile.objects.filter(
         organization=agent.organization, company=job.financial_account.company, content_hash=digest
     ).first()
-    if source is not None and (
-        source.financial_account_id != job.financial_account_id
-        or source.kind != "json"
-        or source.origin != "accounting"
-    ):
+    if source is not None and not _retained(source, job, digest):
         return agent_error("Arquivo existente com escopo divergente.", 409)
     saved = False
     if source is None:
@@ -191,15 +262,19 @@ def complete_job(request: HttpRequest, job_id: str) -> JsonResponse:
         try:
             candidate = normalize_snapshot(snapshot, job.scope)
             job.result = import_native_source(
-                source=source, candidate=candidate, snapshot=snapshot, job_id=str(job.id)
+                source=source,
+                candidate=candidate,
+                snapshot=snapshot,
+                job_id=str(job.id),
+                refresh_scope=job.scope if is_automatic_scope(job.scope) else None,
             )
             job.state = NativeLedgerCollection.State.IMPORTED
         except ValueError as error:
             # The nested import rolls back all journals; retain the original source for review.
             job.state = NativeLedgerCollection.State.REVIEW
             job.error_code = (
-                "ledger_content_conflict"
-                if str(error) == "ledger_content_conflict"
+                str(error)
+                if str(error) in {"ledger_content_conflict", "ledger_records_removed"}
                 else "ledger_import_review"
             )
             job.result = {"source_rows": len(snapshot["records"]), "created": 0}
@@ -238,12 +313,7 @@ def fail_job(request: HttpRequest, job_id: str) -> JsonResponse:
         or payload["code"] not in {"source_changed", "source_contract", "source_unavailable"}
     ):
         return agent_error("Diagnóstico de coleta inválido.", 400)
-    job = (
-        NativeLedgerCollection.objects.select_for_update()
-        .select_related("financial_account__company")
-        .filter(id=job_id, agent=agent, organization=agent.organization)
-        .first()
-    )
+    job = _locked_job(job_id, agent)
     if job is None:
         return agent_error("Coleta não encontrada.", 404)
     if (

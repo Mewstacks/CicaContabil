@@ -1,5 +1,73 @@
 # Agente oficial CONTAD no Windows Server
 
+## Atualização preparada para o Razão pela tela — D-368, 16/11/2026
+
+O código do agente **1.0.11** e o procedimento de atualização **1.0.10 → 1.0.11**
+estão preparados para a solicitação mensal de Razão pela interface. Esta seção
+não comprova publicação do pacote, instalação no SVAPL02 nem coleta real posterior.
+Esses resultados devem constar em `VALIDACOES.md` com a versão e a evidência exatas.
+Os registros abaixo desta seção são históricos; não repetir corte, pareamento,
+inventário ou configuração ODBC para executar esta atualização.
+
+O backend compatível deve ser publicado antes de instalar o MSI. A cliente seleciona empresa,
+conta e competência em **Extrato e Razão**, envia o extrato quando necessário e
+aciona **Buscar Razão**. Ela não informa contagens técnicas nem executa comandos.
+O vínculo empresa/plano/filial/conta/direção precisa estar comprovado na fonte
+importada íntegra ou ser revisado explicitamente na tela. O agente usa as mesmas
+três consultas fixas somente leitura; detalhes em
+[Carteira CONTAD — solicitação mensal pela tela](contad-carteira-protocolo.md#solicitação-mensal-pela-tela--d-368-16112026).
+
+### Atualizar o agente já configurado
+
+Depois de o CI Windows aprovar o pacote exato e a operação entregar o SHA-256
+verificado, manter juntos `CicaAgent.msi`, `release.json` e
+`upgrade-ledger-self-service.ps1`. O build inclui o script no mesmo artefato do MSI.
+Não substituir a configuração existente por um arquivo de outra máquina.
+
+Fechar o configurador e executar no Windows PowerShell x64 como administrador:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\upgrade-ledger-self-service.ps1" `
+  -MsiPath "C:\CICA-Instalacao\CicaAgent.msi" `
+  -ExpectedSha256 "<SHA256_MINUSCULO_CONFIRMADO_NA_ENTREGA>"
+```
+
+O script exige serviço e configuração existentes, caminho esperado do executável,
+conta LocalSystem, origem 1.0.10 ou 1.0.11 e manifesto/hash correspondentes ao MSI
+1.0.11. Na origem 1.0.10 executa a atualização silenciosa com `/norestart`; se já
+estiver na 1.0.11, somente confere o estado. Não abre nem descriptografa
+`agent.config`, não pede credenciais e não refaz pareamento. Compara os hashes dos
+bytes protegidos antes/depois e grava relatório em pasta privada em Downloads.
+
+Sucesso técnico exige versão 1.0.11, configuração preservada, serviço
+**Running/Auto/LocalSystem** e estado recente `ready`, `update_available` ou
+`source_review_required`. Este último significa que o agente concluiu o ciclo,
+mas há fonte que precisa de revisão no CICA; não significa Razão aprovado.
+O JSON mantém `backend_verification_required=true` em todos esses casos.
+
+Código MSI 3010, configuração alterada, estado antigo ou ciclo sem conclusão
+produzem diagnóstico, sem reiniciar o servidor automaticamente. Preservar a
+configuração e o relatório; não contornar o erro com novo pareamento. Compartilhar
+somente `verification.json` revisado, sem enviar `agent.config` ou logs completos.
+
+### Comprovar a atualização e a solicitação separadamente
+
+O ensaio `test-ledger-self-service-upgrade.ps1` é exclusivo do CI Windows
+descartável: usa a baseline fixa `57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5`
+(1.0.10), configuração DPAPI sintética e verifica preservação, reabertura por
+SYSTEM e reinício na 1.0.11. Um ramo sintético separado testa a aceitação de
+`source_review_required`, mantendo a pendência de conferência. Não executa ERP
+nem comprova conectividade da cliente. Não rodar esse ensaio no SVAPL02.
+
+Depois da atualização real, conferir no CICA a capacidade `automatic_counts`
+recebida de uma chamada autenticada do agente, a solicitação da conta/competência
+corretas e o resultado da recepção. Heartbeat, número de versão, serviço Running
+ou solicitação entregue isoladamente não comprovam leitura do Domínio.
+Só declarar dados disponíveis depois da recepção íntegra; confirmação contábil
+continua sendo uma operação humana no percurso de conferência.
+
+## Registros históricos de instalação e corte
+
 **Continuidade D-331/V-349 — 11/11/2026:** inventário executado no SVAPL02:
 **502 empresas, 601 objetos e 5.674 colunas**, conforme retorno do operador.
 O JSON completo ainda está no Windows; hash informado 4b7be104…652e3c69,

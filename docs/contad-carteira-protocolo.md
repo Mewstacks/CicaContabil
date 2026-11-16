@@ -1,5 +1,69 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+## Solicitação mensal pela tela — D-368, 16/11/2026
+
+Implementação preparada para o backend compatível e agente **1.0.11**. Este texto
+não comprova publicação, instalação na cliente ou coleta real. Os procedimentos
+administrativos D-363/D-356 abaixo continuam compatíveis e descrevem o contrato
+anterior com contagens explícitas; essas contagens não são exigidas da cliente
+no novo percurso.
+
+Em **Extrato e Razão**, selecionar empresa, conta e competência e acionar
+**Buscar Razão**, com extrato opcional. **Enviar extrato** permite guardar o
+arquivo bancário independentemente da disponibilidade do agente. Aceitação e
+interpretação do extrato seguem os formatos e validações do importador; não há
+promessa de interpretação de qualquer arquivo. A leitura do Razão não cria nem
+aprova vínculos bancários: usa a fonte nativa anterior íntegra ou vínculo revisado
+por uma pessoa com acesso atual à empresa e ao módulo.
+
+### Contrato automático e compatibilidade
+
+O envelope `dominio-ledger-snapshot-v2` usa os oito campos de mapeamento/período
+anteriores e `capture_id` igual ao UUID da solicitação. Não aceita
+`expected_source_rows`, `expected_lots` nem `expected_bank_effects`. O agente
+executa duas leituras completas e exige conteúdo idêntico; o servidor recalcula
+as contagens, valida lotes, partidas, catálogo, competência e escopo recebido.
+Duas leituras iguais demonstram estabilidade observada, não uma transação de
+snapshot do ERP nem homologação contábil.
+
+As três consultas SQL, o manifesto e seus hashes v1 permanecem iguais. Nenhuma
+consulta SQL é enviada pelo servidor ao agente. O mapeamento continua explícito:
+empresa, empresa do plano, filial, conta bancária contábil, sentinela zero e lado
+da entrada. O intervalo é um mês completo desde setembro de 2026. Limites
+mantidos: 50.000 linhas, 5.000 contas, 2 MB e um efeito bancário por lote; excesso
+ou inconsistência gera recusa/revisão, nunca truncamento ou preenchimento fictício.
+Um mês realmente vazio pode ser recebido sem criar registros financeiros.
+
+A capacidade `automatic_counts=true` é anunciada junto de `portfolio_scope=true`
+na chamada autenticada `ledger/next`; o identificador de negociação `version:
+1.0.8` permanece por compatibilidade, separado da versão 1.0.11 do executável.
+A capacidade é registrada somente quando recebida, não deduzida do heartbeat.
+Agentes anteriores não recebem solicitações v2; o novo agente ainda atende jobs
+v1. Contra backend antigo, só HTTP 400 permite tentar a negociação anterior;
+falhas de autorização, escopo ou transporte não reduzem a proteção.
+
+### Atualizar o período e acompanhar
+
+Reenvio da mesma solicitação não duplica jobs ou fatos. Uma atualização explícita
+gera outra captura e mantém fontes/recibos anteriores. Fatos idênticos são
+reutilizados; lotes novos podem ser acrescentados. Alteração ou desaparecimento
+de lote já importado ou fonte original ausente/adulterada impede a importação
+da atualização e mantém o novo arquivo privado em revisão. Vínculo incompatível
+é recusado antes da recepção financeira. Nenhum registro, decisão ou confirmação
+anterior é apagado ou sobrescrito.
+
+A entrega ao agente registra `claimed_at`; o estado exibido é **Solicitação
+entregue ao agente**, sem afirmar leitura em andamento apenas pelo heartbeat.
+Falha transitória conserva a tentativa automática. Revisão necessária orienta
+conferir a origem/vínculo antes de **Tentar novamente**. Conta, acesso atual do
+solicitante, vínculo e hashes são reconferidos na entrega e na recepção.
+
+O agente continua atendendo uma coleta de Razão por ciclo. A tela não agenda
+novas competências nem comprova que todas as empresas possuem conta/vínculo ou
+movimentos. A atualização do agente existente segue o
+[procedimento Windows](contad-agente-oficial-windows-server.md#atualização-preparada-para-o-razão-pela-tela--d-368-16112026),
+com preservação da configuração DPAPI e provas separadas de instalação e recepção.
+
 ## Expansão financeira por lotes revisados — D-363, 16/11/2026
 
 A carga cadastral das146 empresas não equivale a contas financeiras prontas.

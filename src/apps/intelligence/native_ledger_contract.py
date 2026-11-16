@@ -8,6 +8,7 @@ import re
 from datetime import date
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from apps.hub.dominio_journal_normalization import (
     FIELDS,
@@ -18,6 +19,7 @@ from apps.hub.dominio_journal_normalization import (
 )
 
 VERSION = "dominio-ledger-snapshot-v1"
+AUTOMATIC_VERSION = "dominio-ledger-snapshot-v2"
 MAX_BYTES = 2_000_000
 ROOT = Path(__file__).resolve().parents[3] / "contracts" / "ledger"
 SCOPE_FIELDS = frozenset(
@@ -35,6 +37,16 @@ SCOPE_FIELDS = frozenset(
         "expected_bank_effects",
     }
 )
+COUNT_FIELDS = frozenset({"expected_source_rows", "expected_lots", "expected_bank_effects"})
+AUTOMATIC_SCOPE_FIELDS = (SCOPE_FIELDS - COUNT_FIELDS) | {"capture_id"}
+
+
+def is_automatic_scope(scope: Any) -> bool:
+    return isinstance(scope, dict) and "capture_id" in scope
+
+
+def snapshot_version(scope: dict[str, Any]) -> str:
+    return AUTOMATIC_VERSION if is_automatic_scope(scope) else VERSION
 
 
 def contract_hash() -> str:
@@ -75,8 +87,15 @@ def pilot_scope() -> dict[str, Any]:
 
 def validate_scope(scope: Any) -> dict[str, Any]:
     """Validate an explicit mapping, never discover or authorize it by inference."""
-    if not isinstance(scope, dict) or set(scope) != SCOPE_FIELDS:
+    if not isinstance(scope, dict) or set(scope) not in (SCOPE_FIELDS, AUTOMATIC_SCOPE_FIELDS):
         raise ValueError("ledger_scope_invalid")
+    automatic = is_automatic_scope(scope)
+    if automatic:
+        try:
+            if str(UUID(scope["capture_id"])) != scope["capture_id"]:
+                raise ValueError
+        except (ValueError, TypeError, AttributeError):
+            raise ValueError("ledger_capture_invalid") from None
     for field in ("company_code", "chart_company_code", "branch_code", "bank_account_code"):
         if type(scope[field]) is not int or not 1 <= scope[field] <= 2147483647:
             raise ValueError("ledger_scope_invalid")
@@ -102,7 +121,9 @@ def validate_scope(scope: Any) -> dict[str, Any]:
             raise ValueError
     except (ValueError, TypeError):
         raise ValueError("ledger_scope_invalid") from None
-    for field in ("expected_source_rows", "expected_lots", "expected_bank_effects"):
+    if automatic:
+        return dict(scope)
+    for field in COUNT_FIELDS:
         if type(scope[field]) is not int or not 0 <= scope[field] <= 50_000:
             raise ValueError("ledger_scope_invalid")
     if not (
@@ -112,6 +133,23 @@ def validate_scope(scope: Any) -> dict[str, Any]:
     ):
         raise ValueError("ledger_scope_invalid")
     return dict(scope)
+
+
+def _counted_scope(scope: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
+    """Derive coverage from complete received lists, never from claimed agent totals."""
+    if not is_automatic_scope(scope):
+        return scope
+    for name in ("records", "lots"):
+        if not isinstance(data.get(name), list) or len(data[name]) > 50_000:
+            raise ValueError("ledger_snapshot_coverage")
+    return validate_scope(
+        {
+            **{key: value for key, value in scope.items() if key != "capture_id"},
+            "expected_source_rows": len(data["records"]),
+            "expected_lots": len(data["lots"]),
+            "expected_bank_effects": len(data["lots"]),
+        }
+    )
 
 
 def _object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -144,8 +182,11 @@ def validate_snapshot(content: bytes, scope: dict[str, Any]) -> dict[str, Any]:
     data = strict_json(content)
     if set(data) != {"version", "scope_revision", "lots", "records", "accounts"}:
         raise ValueError("ledger_snapshot_fields")
-    if data["version"] != VERSION or data["scope_revision"] != canonical_hash(scope):
+    if data["version"] != snapshot_version(scope) or data["scope_revision"] != canonical_hash(
+        scope
+    ):
         raise ValueError("ledger_snapshot_scope")
+    scope = _counted_scope(scope, data)
     for key, count in (
         ("records", scope["expected_source_rows"]),
         ("lots", scope["expected_lots"]),
@@ -260,7 +301,7 @@ def validate_snapshot(content: bytes, scope: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_snapshot(data: dict[str, Any], scope: dict[str, Any]) -> NormalizedJournalCandidate:
-    scope = validate_scope(scope)
+    scope = _counted_scope(validate_scope(scope), data)
     if (
         scope["expected_source_rows"] == 0
         and not data["records"]
