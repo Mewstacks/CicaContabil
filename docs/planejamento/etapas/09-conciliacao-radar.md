@@ -690,10 +690,32 @@ como ação autônoma. Não autoriza captura ou inferência de novos vínculos.
 
 ### D-368/V-407 — Extrato e Razão pela tela
 
-- [x] Jornada empresa/conta/competência, extrato opcional e pedido idempotente.
-- [x] Revisão auditada do vínculo, acompanhamento e retomada com acesso atual.
-- [x] Contagens automáticas no agente, dupla leitura e compatibilidade v1.
-- [x] Preservação de fontes/decisões e revisão de alterações na origem.
-- [ ] Encerrar QA, CI e publicação do backend/pacote exatos.
-- [ ] Comprovar atualização/capability no agente oficial da cliente.
-- [ ] Conferir os vínculos ainda incompletos e fontes reais da carteira.
+- [x] Jornada empresa/conta/competência, upload retido e pedido idempotente.
+- [x] Vínculo auditado, acesso atual, acompanhamento e retomada.
+- [x] Contagens automáticas/dupla leitura, compatibilidade e preservação de decisões.
+- [x] QA completo, CI43937515442, migrações0086/0040, backend97 e pacote1.0.11 publicados/verificados.
+- [ ] Atualizar SVAPL02, observar capability e comprovar coleta real; sem acesso hoje.
+- [ ] Revisar43 candidatas/11 empresas, identificar contas nas134 demais e obter fontes.
+- [ ] Generalizar captura de títulos para outras empresas/períodos e solicitação autônoma (Q-28/Q-46).
+- [ ] Conferir semântica, plano/contrapartidas e regras; retorno DomínioQ-47 continua adiado.
+
+
+### D-369/V-408 — Títulos e baixas da carteira
+
+- [ ] Contrato/agente com contagens automáticas por empresa/competência, legado preservado.
+- [ ] Solicitação em lote, prévia, acompanhamento, retomada e fonte por empresa sem conta obrigatória.
+- [ ] Revisão por conta e capacidade global por origem, sem inferência de banco/semântica.
+- [ ] QA/CI/migrações e backend/pacote publicados e verificados.
+- [ ] Atualização/prova real no servidor quando houver acesso; validações contábeis humanas.
+
+
+### D-369/V-408 — coleta fiscal por empresa/competência
+
+- [x] Protocolo automático v2, compatibilidade v1 e doze consultas/manifest intactos.
+- [x] Solicitação em lote idempotente e autorizada, incluindo empresas sem conta;146×12 verificado localmente.
+- [x] Procedência e capacidade da baixa entre contas, com concorrência PostgreSQL.
+- [x] Migração aditiva ensaiada sobre runtime97 e PostgreSQL17, mantendo modelos legados.
+- [x] Concluir QA visual do percurso, erros/retomada e relatórios em celular/desktop e ambos os temas.
+- [ ] CI exato, pacote1.0.12 e publicação/verificação hospedada.
+- [ ] Aplicar atualização única no SVAPL02 e comprovar coleta real; pendência técnica de acesso.
+- [ ] Revisar fontes, semântica, vínculos e regras reais; conferência humana permanece distinta da coleta.

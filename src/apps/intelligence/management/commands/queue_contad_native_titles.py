@@ -16,7 +16,12 @@ from apps.hub.models import FinancialAccount
 from apps.hub.title_persistence import authorize_title_account
 from apps.intelligence.agent_scope import ACTIVE_PORTFOLIO_VERSION
 from apps.intelligence.models import EdgeAgent, NativeTitleCollection
-from apps.intelligence.native_title_contract import canonical_hash, contract_hash, validate_scope
+from apps.intelligence.native_title_contract import (
+    canonical_hash,
+    contract_hash,
+    is_automatic_scope,
+    validate_scope,
+)
 
 
 class Command(BaseCommand):
@@ -45,6 +50,8 @@ class Command(BaseCommand):
             if len(content) > 16384:
                 raise ValueError
             scope = validate_scope(json.loads(content, object_pairs_hook=unique))
+            if is_automatic_scope(scope):
+                raise ValueError
             actor = User.objects.get(pk=options["actor"], is_active=True)
             agent = EdgeAgent.objects.select_for_update().get(
                 pk=options["agent"],

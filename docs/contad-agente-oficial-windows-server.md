@@ -1,11 +1,14 @@
 # Agente oficial CONTAD no Windows Server
 
-## Atualização preparada para o Razão pela tela — D-368, 16/11/2026
+## Atualização única para Razão, títulos e baixas pela tela — D-369, 16/11/2026
 
-O código do agente **1.0.11** e o procedimento de atualização **1.0.10 → 1.0.11**
-estão preparados para a solicitação mensal de Razão pela interface. Esta seção
-não comprova publicação do pacote, instalação no SVAPL02 nem coleta real posterior.
-Esses resultados devem constar em `VALIDACOES.md` com a versão e a evidência exatas.
+A candidata 1.0.12 reúne a busca do Razão e a nova coleta de títulos/baixas.
+A publicação desta candidata e os ensaios exatos serão registrados em V-408.
+Ela substitui a atualização 1.0.11 ainda não aplicada: basta uma atualização
+partindo da 1.0.10 instalada, preservando configuração, DSN e identidade.
+O responsável informou não ter acesso ao SVAPL02 hoje; instalação e prova real
+continuam pendências técnicas. Não repetir pedido de acesso nesta data.
+
 Os registros abaixo desta seção são históricos; não repetir corte, pareamento,
 inventário ou configuração ODBC para executar esta atualização.
 
@@ -17,29 +20,36 @@ importada íntegra ou ser revisado explicitamente na tela. O agente usa as mesma
 três consultas fixas somente leitura; detalhes em
 [Carteira CONTAD — solicitação mensal pela tela](contad-carteira-protocolo.md#solicitação-mensal-pela-tela--d-368-16112026).
 
+Em **Títulos e baixas → Buscar títulos e baixas**, a cliente seleciona as
+empresas autorizadas e o intervalo de competências, confere a prévia e confirma
+o lote. Contas bancárias e contagens técnicas não são requisito dessa coleta.
+O agente conserva as doze consultas fixas de títulos somente leitura. Uma fonte
+recebida exige revisão antes de ser relacionada ao banco; não gera baixa contábil
+nem confirmação automática de conciliação.
+
 ### Atualizar o agente já configurado
 
 Depois de o CI Windows aprovar o pacote exato e a operação entregar o SHA-256
 verificado, manter juntos `CicaAgent.msi`, `release.json` e
-`upgrade-ledger-self-service.ps1`. O build inclui o script no mesmo artefato do MSI.
+`upgrade-title-self-service.ps1`. O build inclui o script no mesmo artefato do MSI.
 Não substituir a configuração existente por um arquivo de outra máquina.
 
 Fechar o configurador e executar no Windows PowerShell x64 como administrador:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\upgrade-ledger-self-service.ps1" `
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\upgrade-title-self-service.ps1" `
   -MsiPath "C:\CICA-Instalacao\CicaAgent.msi" `
   -ExpectedSha256 "<SHA256_MINUSCULO_CONFIRMADO_NA_ENTREGA>"
 ```
 
 O script exige serviço e configuração existentes, caminho esperado do executável,
-conta LocalSystem, origem 1.0.10 ou 1.0.11 e manifesto/hash correspondentes ao MSI
-1.0.11. Na origem 1.0.10 executa a atualização silenciosa com `/norestart`; se já
-estiver na 1.0.11, somente confere o estado. Não abre nem descriptografa
+conta LocalSystem, origem 1.0.10, 1.0.11 ou 1.0.12 e manifesto/hash correspondentes ao MSI
+1.0.12. Nas origens 1.0.10 e 1.0.11 executa a atualização silenciosa com `/norestart`; se já
+estiver na 1.0.12, somente confere o estado. Não abre nem descriptografa
 `agent.config`, não pede credenciais e não refaz pareamento. Compara os hashes dos
 bytes protegidos antes/depois e grava relatório em pasta privada em Downloads.
 
-Sucesso técnico exige versão 1.0.11, configuração preservada, serviço
+Sucesso técnico exige versão 1.0.12, configuração preservada, serviço
 **Running/Auto/LocalSystem** e estado recente `ready`, `update_available` ou
 `source_review_required`. Este último significa que o agente concluiu o ciclo,
 mas há fonte que precisa de revisão no CICA; não significa Razão aprovado.
@@ -52,16 +62,18 @@ somente `verification.json` revisado, sem enviar `agent.config` ou logs completo
 
 ### Comprovar a atualização e a solicitação separadamente
 
-O ensaio `test-ledger-self-service-upgrade.ps1` é exclusivo do CI Windows
+O ensaio `test-title-self-service-upgrade.ps1` é exclusivo do CI Windows
 descartável: usa a baseline fixa `57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5`
-(1.0.10), configuração DPAPI sintética e verifica preservação, reabertura por
-SYSTEM e reinício na 1.0.11. Um ramo sintético separado testa a aceitação de
+(1.0.10) e `17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2` (1.0.11),
+com configuração DPAPI sintética. Verifica preservação, reabertura por SYSTEM
+e reinício na 1.0.12, com recibos independentes para cada origem. Um ramo sintético separado testa a aceitação de
 `source_review_required`, mantendo a pendência de conferência. Não executa ERP
 nem comprova conectividade da cliente. Não rodar esse ensaio no SVAPL02.
 
-Depois da atualização real, conferir no CICA a capacidade `automatic_counts`
-recebida de uma chamada autenticada do agente, a solicitação da conta/competência
-corretas e o resultado da recepção. Heartbeat, número de versão, serviço Running
+Depois da atualização real, conferir no CICA `portfolio_scope`/`automatic_counts`
+para Razão e `company_scope`/`automatic_counts` para títulos, recebidos nas
+chamadas autenticadas próprias. Solicitar empresa/conta/competência corretas
+para Razão e empresa/competência para títulos; conferir cada recepção. Heartbeat, número de versão, serviço Running
 ou solicitação entregue isoladamente não comprovam leitura do Domínio.
 Só declarar dados disponíveis depois da recepção íntegra; confirmação contábil
 continua sendo uma operação humana no percurso de conferência.

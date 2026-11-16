@@ -3,7 +3,7 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><script src="{% static 'hub/reconciliation-titles.js' %}" defer></script>{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel titles-panel" aria-labelledby="native-review-heading">
-  <header class="workspace-panel-head"><div><h2 id="native-review-heading">Revisar parcela da fonte</h2><p>{{ title_account.company.name }} · {{ title_account.name }}</p></div><a class="button button-quiet" href="{{ native_back_url }}">Voltar às parcelas</a></header>
+  <header class="workspace-panel-head"><div><h2 id="native-review-heading">Revisar parcela da fonte</h2><p>{{ title_account.company.name }} · {{ title_account.name }}</p></div><div class="titles-actions"><a class="button button-quiet" href="{{ native_company_source_url }}">Fonte recebida</a><a class="button button-quiet" href="{{ native_back_url }}">Voltar às parcelas</a></div></header>
   {% if native_error %}<div class="form-errors" role="alert">{{ native_error }}</div>{% endif %}
   {% if native_part %}
   <dl class="titles-data"><div><dt>Origem</dt><dd>{{ native_part.family_label }}</dd></div><div><dt>Nota da fonte</dt><dd>{{ native_part.note }}</dd></div><div><dt>Parcela</dt><dd>{{ native_part.number }}</dd></div><div><dt>Vencimento informado</dt><dd>{{ native_part.due_on|default:'Não informado' }}</dd></div></dl>

@@ -8,7 +8,10 @@ internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient clien
 {
     internal async Task<bool> RunOnce(CancellationToken token)
     {
-        using JsonDocument response = await client.PostAsync("api/agent/v2/titles/next", new { version = "1.0.9" }, token);
+        using JsonDocument response = await NativeTitlePlan.NextAutomaticJob((automatic, cancellation) =>
+            client.PostAsync("api/agent/v2/titles/next", automatic
+                ? (object)new { version = "1.0.9", company_scope = true, automatic_counts = true }
+                : new { version = "1.0.9" }, cancellation), token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
             return response.RootElement.GetProperty("review_required").GetBoolean();
@@ -22,12 +25,13 @@ internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient clien
                 config.DatabaseUser, config.DatabasePassword, config.UseDsnAuthentication));
             connection.ConnectionTimeout = 20;
             await connection.OpenAsync(deadline.Token);
-            byte[] first = await ReadSnapshot(connection, plan, deadline.Token);
-            content = await ReadSnapshot(connection, plan, deadline.Token);
-            if (!first.AsSpan().SequenceEqual(content)) {
+            byte[]? stable = await NativeTitlePlan.ReadStableSnapshot(
+                cancellation => ReadSnapshot(connection, plan, cancellation), deadline.Token);
+            if (stable is null) {
                 await Fail(plan, "source_changed", token);
                 return true;
             }
+            content = stable;
         }
         catch (OdbcException) { await Fail(plan, "source_unavailable", token); return true; }
         catch (InvalidDataException) { await Fail(plan, "source_contract", token); return true; }
@@ -58,18 +62,16 @@ internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient clien
             var controls = await Rows(connection, plan, family + "_control", token);
             if (controls.Count != 1) throw NativeTitlePlan.Invalid();
             var control = controls[0];
-            foreach (string field in new[] { "due_installments", "payments", "accounting_links" })
-                if ((int)control[field]! != plan.Expected(family, field)) throw NativeTitlePlan.Invalid();
-            if ((int)control["missing_headers"]! != 0 || (int)control["missing_installments"]! != 0) throw NativeTitlePlan.Invalid();
             var installments = await Rows(connection, plan, family + "_installments", token);
             var payments = await Rows(connection, plan, family + "_payments", token);
             var links = await Rows(connection, plan, family + "_accounting_links", token);
-            if ((int)control["selected_installments"]! != installments.Count
-                || (int)control["payments"]! != payments.Count || (int)control["accounting_links"]! != links.Count) throw NativeTitlePlan.Invalid();
+            string dueField = plan.Manifest.GetProperty("families").GetProperty(family).GetProperty("due_field").GetString()!;
+            plan.ValidateObservedCounts(family, control, installments.Count, payments.Count, links.Count,
+                installments.Count(row => plan.IsDueInPeriod((string)row[dueField]!)));
             families.Add(new { name = family, control, installments, payments, accounting_links = links });
         }
         byte[] content = JsonSerializer.SerializeToUtf8Bytes(new {
-            version = NativeTitlePlan.Version, scope_revision = plan.Revision,
+            version = plan.SnapshotVersion, scope_revision = plan.Revision,
             coverage = plan.Manifest.GetProperty("coverage"), families,
         });
         if (content.Length > NativeTitlePlan.MaxBytes) throw NativeTitlePlan.Invalid();

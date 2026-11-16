@@ -1,0 +1,47 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><link rel="stylesheet" href="{% static 'hub/title-requests.css' %}"><script src="{% static 'hub/title-requests.js' %}" defer></script>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel titles-panel" aria-labelledby="collection-heading">
+  <header class="workspace-panel-head"><div><h2 id="collection-heading">Buscar títulos e baixas</h2></div><a class="button button-quiet" href="{{ collection_back_url }}">Títulos e baixas</a></header>
+  {% for error in collection_errors %}<div class="form-errors" role="alert">{{ error }}</div>{% endfor %}
+  {% if collection_can_write %}
+  <form method="post" action="{{ collection_url }}" class="titles-form collection-form" data-collection-form>
+    {% csrf_token %}{{ collection_form.request_key }}
+    {% if collection_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-collection-errors><strong>Confira os campos indicados.</strong>{{ collection_form.non_field_errors }}{{ collection_form.request_key.errors }}{{ collection_form.expected_revision.errors }}</div>{% endif %}
+    <fieldset class="collection-company-picker"><legend>Empresas</legend>
+      <div class="field"><label for="collection-search">Localizar empresa</label><input id="collection-search" type="search" autocomplete="off" placeholder="Nome ou código Domínio" data-company-search></div>
+      <div class="titles-actions collection-selection-actions"><button class="button button-quiet" type="button" data-select-companies>Selecionar empresas exibidas</button><button class="button button-quiet" type="button" data-clear-companies>Limpar seleção</button><output data-selected-count aria-live="polite"></output></div>
+      {{ collection_form.companies.errors }}
+      <div class="collection-companies" data-company-options>{{ collection_form.companies }}</div>
+      <p class="field-help" hidden data-no-companies>Nenhuma empresa corresponde à busca.</p>
+    </fieldset>
+    <div class="titles-fields"><div class="field">{{ collection_form.start_month.label_tag }}{{ collection_form.start_month }}{{ collection_form.start_month.errors }}</div><div class="field">{{ collection_form.end_month.label_tag }}{{ collection_form.end_month }}{{ collection_form.end_month.errors }}</div></div>
+    <p class="field-help">A busca inclui os meses inicial e final. Você confere as empresas e o intervalo antes de solicitar.</p>
+    <div class="titles-actions"><button class="button" type="submit" name="action" value="preview" data-busy-label="Conferindo…">Conferir lote</button></div>
+  </form>
+  {% else %}<div class="empty-block"><strong>Acesso de consulta</strong><span>Você pode acompanhar as buscas e abrir as fontes das empresas autorizadas.</span></div>{% endif %}
+</section>
+{% if collection_preview %}
+<section class="workspace-panel titles-panel" id="collection-preview" aria-labelledby="collection-preview-heading" tabindex="-1" data-collection-preview>
+  <header class="workspace-panel-head"><div><h2 id="collection-preview-heading">Confira a solicitação</h2></div></header>
+  <dl class="titles-data"><div><dt>Empresas</dt><dd>{{ collection_selected|length }}</dd></div><div><dt>Competências</dt><dd>{{ collection_start_label }} a {{ collection_end_label }}</dd></div><div><dt>Buscas</dt><dd>{{ collection_preview.count }} · {{ collection_month_count }} competência{{ collection_month_count|pluralize }} por empresa</dd></div></dl>
+  <details class="titles-source-details" open><summary>Empresas incluídas</summary><ul class="collection-preview-companies">{% for company in collection_selected %}<li>{{ company.name }} <span class="table-muted">· Domínio {{ company.dominio_code }}</span></li>{% endfor %}</ul></details>
+  <div class="collection-connection" role="status"><strong>{{ collection_preview.agent_state.label }}</strong><p>{{ collection_preview.agent_state.detail }}</p></div>
+  <p class="titles-notice">Cada competência terá uma busca própria. Os registros recebidos ainda precisarão de revisão antes de vincular baixas ao extrato.</p>
+  <form method="post" action="{{ collection_url }}" class="titles-form" data-collection-form>{% csrf_token %}{% for company in collection_selected %}<input type="hidden" name="companies" value="{{ company.pk }}">{% endfor %}<input type="hidden" name="start_month" value="{{ collection_start }}"><input type="hidden" name="end_month" value="{{ collection_end }}"><input type="hidden" name="request_key" value="{{ collection_preview.request_key }}"><input type="hidden" name="expected_revision" value="{{ collection_preview.revision }}"><div class="titles-actions"><button class="button" type="submit" name="action" value="request" data-busy-label="Solicitando…">Solicitar {{ collection_preview.count }} busca{{ collection_preview.count|pluralize }}</button><a class="button button-quiet" href="#collection-heading">Alterar seleção</a></div></form>
+</section>
+{% endif %}
+<section class="workspace-panel titles-panel" id="title-requests" aria-labelledby="requests-heading" data-title-requests data-status-url="{% url 'hub:reconciliation-title-request-status' %}">
+  <header class="workspace-panel-head"><div><h2 id="requests-heading">Buscas e fontes recebidas</h2></div><a class="button button-quiet" href="{{ collection_url }}#title-requests">Atualizar buscas</a></header>
+  <form method="get" action="{{ collection_url }}#title-requests" class="titles-form titles-filters" aria-label="Filtrar buscas"><div class="field"><label for="history-company">Empresa</label><select id="history-company" name="company"><option value="">Todas as empresas autorizadas</option>{% for company in companies %}<option value="{{ company.pk }}"{% if collection_company.pk == company.pk %} selected{% endif %}>{{ company.name }}</option>{% endfor %}</select></div><div class="field"><label for="history-month">Competência</label><input id="history-month" type="month" name="month" min="0001-01" max="9998-12" value="{{ collection_month }}"></div><button class="button button-quiet" type="submit">Filtrar buscas</button></form>
+  {% if collection_batch %}<p class="titles-notice">Exibindo o lote solicitado. <a href="{{ collection_url }}#title-requests">Ver todas as buscas</a></p>{% endif %}
+  <p class="titles-notice" role="status" aria-live="polite" data-poll-notice></p>
+  {% if collection_jobs %}
+  <div class="data-table-wrap titles-table-wrap"><table class="operational-table titles-table collection-table"><caption class="sr-only">Buscas de títulos e baixas por empresa e competência</caption><thead><tr><th scope="col">Empresa e competência</th><th scope="col">Solicitada em</th><th scope="col">Situação</th><th scope="col">Próximo passo</th></tr></thead><tbody>
+    {% for row in collection_jobs %}<tr data-title-job="{{ row.job.pk }}" data-poll="{{ row.poll|yesno:'true,false' }}"><td data-label="Empresa e competência"><strong>{{ row.company.name }}</strong><small>{{ row.month_label }}</small></td><td data-label="Solicitada em">{{ row.job.created_at|date:'d/m/Y H:i' }}</td><td data-label="Situação"><span class="status-badge {{ row.status_class }}" data-job-label>{{ row.label }}</span><small data-job-detail>{{ row.detail }}</small><small data-job-connection>{{ row.connection_detail }}</small></td><td data-label="Próximo passo"><div class="collection-job-actions"><a class="button button-quiet" data-job-source href="{{ row.source_url }}"{% if not row.source_url %} hidden{% endif %}>Abrir fonte</a>{% if collection_can_write %}<form method="post" action="{{ row.retry_url }}" data-job-retry{% if not row.can_retry %} hidden{% endif %}>{% csrf_token %}<input type="hidden" name="request_key" value="{{ row.retry_key }}"><button class="button button-quiet" type="submit" data-busy-label="Retomando…">Tentar novamente</button></form>{% endif %}<span class="table-muted" data-job-wait{% if row.source_url or row.can_retry %} hidden{% endif %}>{{ row.poll|yesno:'Acompanhe nesta tela.,Confira a situação da busca.' }}</span></div></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% if collection_page.has_other_pages %}<nav class="pagination" aria-label="Páginas das buscas">{% if collection_page.has_previous %}<a class="button button-quiet" href="?{{ collection_query }}&amp;page={{ collection_page.previous_page_number }}#title-requests">Anterior</a>{% else %}<span></span>{% endif %}<span>Página {{ collection_page.number }} de {{ collection_page.paginator.num_pages }}</span>{% if collection_page.has_next %}<a class="button button-quiet" href="?{{ collection_query }}&amp;page={{ collection_page.next_page_number }}#title-requests">Próxima</a>{% endif %}</nav>{% endif %}
+  {% else %}<div class="empty-block"><strong>Nenhuma busca neste filtro</strong><span>As buscas solicitadas aparecerão aqui, mesmo antes da conexão receber a atualização necessária.</span></div>{% endif %}
+</section>
+{% endblock %}

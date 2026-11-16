@@ -773,6 +773,19 @@ Nenhum teste sintético substitui fonte/semântica/aceite reais. Backup fora da 
 
 ### D-368/V-407 — Extrato e Razão
 
-- [x] Controles nativos, erros no contexto, upload preservado e estado real do pedido.
-- [x] Pesquisa UI/UX Pro Max, Watermelon Forms, Web Interface Guidelines e referências oficiais Conta Azul, mantendo identidade CICA.
-- [ ] Encerrar Playwright de empresa/conta/competência/upload/coleta e estados responsivos.
+- [x] Jornada nativa, erros no contexto, upload preservado e estado real do pedido.
+- [x] Referências UI/UX Pro Max, Watermelon Forms, Web Interface Guidelines/Conta Azul, mantendo CICA.
+- [x] Playwright375/1440, claro/escuro, troca de empresa, envio/coleta sintética/retomada/conferência/relatório, sem overflow/erros JS.
+- [x] Corrigidas tabelas ocultas no celular; release97 publicada.
+- [ ] Prova da nova coleta real após atualização do agente no servidor.
+
+
+### D-369/V-408 — títulos e baixas de toda a carteira
+
+Jornada implementada: seleção pesquisável de empresas, competências inicial/final,
+prévia explícita, solicitação em lote, histórico paginado, estado da conexão,
+retomada e fonte por empresa. Conta bancária é escolhida na revisão financeira;
+sem conta, há caminho para cadastro da empresa correta. Recepção via polling
+não confirma vínculo financeiro. QA sintético cobre solicitação/recepção/revisão,
+alocação/histórico/relatório,375/1440px, claro/escuro e erros/retomada; resultados
+exatos e publicação emV-408. Uso real continua dependendo da atualização1.0.12.

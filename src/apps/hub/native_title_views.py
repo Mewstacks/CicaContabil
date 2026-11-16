@@ -48,16 +48,12 @@ def _catalog_url(account: Any, scope: dict[str, Any] | None = None) -> str:
 @office_required
 @require_http_methods(["GET"])
 def native_titles(request: HttpRequest, account_id: UUID) -> HttpResponse:
+    from apps.hub.title_requests import captures_for_account
+
     context, account = title_workspace(request, account_id, write=True)
     assert account is not None
     context.update(page_title="Revisar fontes de títulos", native_catalog_url=_catalog_url(account))
-    captures = list(
-        NativeTitleCollection.objects.filter(
-            organization_id=account.organization_id,
-            financial_account=account,
-            state=NativeTitleCollection.State.CAPTURED,
-        ).order_by("-completed_at", "-pk")[:100]
-    )
+    captures = captures_for_account(account)
     context["native_captures"] = captures
     context["native_list_url"] = reverse("hub:reconciliation-native-titles", args=[account.pk])
     status = 200
@@ -112,7 +108,11 @@ def native_title_review(
         + "?"
         + urlencode({"capture": str(capture_id)})
     )
-    context.update(page_title="Revisar parcela da fonte", native_back_url=back)
+    context.update(
+        page_title="Revisar parcela da fonte", native_back_url=back,
+        native_company_source_url=reverse("hub:reconciliation-title-source", args=[capture_id])
+        + "?" + urlencode({"account": str(account.pk)}),
+    )
     try:
         source = load_native_source(account=account, capture_id=capture_id, actor=actor)
         part = installment_context(source, installment_reference)

@@ -1,9 +1,54 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+
+## Coleta de títulos e baixas por empresa e competência — D-369, 16/11/2026
+
+Implementação candidata, publicação e validações exatas em V-408. O agente
+1.0.12 reúne esta coleta e a busca do Razão; não é preciso aplicar duas versões.
+Instalação no SVAPL02 e consulta real permanecem pendências técnicas de acesso.
+
+A tela aceita uma ou várias empresas autorizadas e um intervalo de competências
+mensais. A prévia explicita empresas, meses e quantidade; cada confirmação aceita
+até 2.000 coletas, sem corte silencioso. As 146 empresas por 12 meses geram 1.752
+solicitações. Intervalos maiores são divididos explicitamente pelo operador.
+A autorização e o código Domínio são conferidos novamente ao confirmar, entregar
+e receber. Reenvio do mesmo lote é idempotente; mudar seleção exige nova prévia.
+
+O envelope `dominio-title-snapshot-v2` contém somente `capture_id`,
+`company_code`, `period_start` e `period_end_exclusive`. Aceita competências de
+0001-01 a 9998-12, com limite superior exclusivo representável; a disponibilidade
+de dados depende do Domínio. Não exige conta bancária nem `expected_counts`.
+As doze consultas SQL e o manifesto v1 permanecem idênticos. As contagens vêm
+das consultas de controle; duas leituras completas precisam ser idênticas e
+o servidor revalida linhas, chaves, contagens, período e limites. Isso prova
+estabilidade observada, não um snapshot transacional do ERP.
+
+O agente declara `company_scope=true` e `automatic_counts=true` na negociação
+autenticada de títulos. O backend registra a capacidade somente nessa chamada,
+nunca a deduz do heartbeat ou do número do executável. Agentes antigos atendem
+apenas o contrato v1. As novas solicitações usam `CompanyTitleCollection`,
+preservando a tabela e os jobs legados para compatibilidade com a release97.
+A captura mantém os limites de 4 MB e 50.000 linhas; excesso ou divergência
+produz revisão sem truncar dados nem declarar o período vazio.
+
+A fonte fiscal pertence à empresa e pode ser aberta sem conta bancária. A
+revisão financeira escolhe explicitamente uma conta da mesma empresa, sem
+alterar o arquivo bruto. A origem e a interpretação das baixas ficam ligadas
+às parcelas normalizadas; a capacidade já consumida é considerada entre contas.
+Uma baixa não ganha novo saldo por ter sido aberta em outra conta. Referências
+sobrepostas ou interpretações incompatíveis com alocação ativa exigem revisão.
+Captura não aprova semântica, saldo, natureza, vínculo bancário ou DE-PARA.
+
+A cobertura continua sendo parcelas vencidas no período ou pagas no período e
+baixas lançadas no período. `settlements_complete=false`, `bank_linkage=unproven`
+e `normalization=none` permanecem no bruto. Ausência de linha não comprova
+quitação, saldo zero ou encerramento contábil. Semântica e evidência reais são
+validadas pela contadora no percurso já publicado.
+
+
 ## Solicitação mensal pela tela — D-368, 16/11/2026
 
-Implementação preparada para o backend compatível e agente **1.0.11**. Este texto
-não comprova publicação, instalação na cliente ou coleta real. Os procedimentos
+Backend97 e pacote1.0.11 publicados/verificados emV-407. A atualização no servidor e coleta real permanecem pendentes; o responsável está sem acesso hoje. Os procedimentos
 administrativos D-363/D-356 abaixo continuam compatíveis e descrevem o contrato
 anterior com contagens explícitas; essas contagens não são exigidas da cliente
 no novo percurso.

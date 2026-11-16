@@ -759,6 +759,20 @@ Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.
 
 ### D-368/V-407 — Limite da entrega autônoma
 
-- [ ] Backend e pacote1.0.11 publicados após CI exato.
-- [ ] Atualização e capability observadas no agente oficial.
-- [ ] Operação real da cliente na nova jornada; não confundir testes sintéticos com aceite financeiro.
+- [x] Backend97 e pacote1.0.11 publicados após CI exato; runtime/saúde/dados preservados conferidos.
+- [ ] Atualização/capability e coleta real no agente oficial; acesso ao servidor indisponível hoje.
+- [ ] Cobertura das contas/competências da carteira, fontes e semântica reais.
+- [ ] Generalização técnica da captura de títulos, atualmente fixa no piloto.
+- [ ] Retorno DomínioQ-47, amostra/métricas e aceite completoD-73 seguem próprios; não repetir treinamento já relatado.
+
+
+### D-369/V-408 — publicação do autoatendimento de títulos
+
+Preparar agente1.0.12, com upgrade sintético dos baselines1.0.10/1.0.11,
+configuração protegida e identidade preservadas. Uma atualização reunirá Razão
+e títulos; não instalar duas versões nem refazer pareamento. Backend/migração
+aditivos são publicados/verificados na infraestrutura atual após o CI exato.
+SVAPL02 indisponível hoje: instalação, anúncio autenticado das capacidades e
+primeira coleta real são pendências técnicas de acesso, separadas da semântica,
+contas/regras/evidência e aceite humanos. Não usar backup como bloqueio desta
+rodada. Q-47/C01/C02 permanecem adiados, sem reabrir perguntas resolvidas.

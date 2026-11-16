@@ -4023,4 +4023,20 @@ Somente leitura; nenhuma nova captura ERP ou alteração de runtime.
 
 ### 16/11/2026 — D-368/V-407: extrato e coleta mensal pela interface
 
-Autorização explícita para implementar e publicar; checkout isolado da96. Nova tela integra upload com coleta nativa sem contagens humanas. Protocolo v2 e atualizador1.0.11 preservam identidade/DPAPI/DSN e fontes anteriores. Testes sintéticos e ensaio de migrações em andamento; nenhuma instalação ou coleta real declarada. Acesso à conexão existente do servidor ainda não disponível nesta sessão.
+Implementação em checkout isolado da96, preservando raiz suja. Após testes/QA e correções das tabelas móveis, CI43937515442 aprovou84e62cb; PR26 integrado como17660ea com árvore idêntica. Pacote1.0.11 publicado a partir do artefato Windows testado. Hub0086/intelligence0040 aplicadas e backend97 publicado só nas duas máquinas existentes, com dois parâmetros do canal do agente.
+
+Web/worker,787 hashes,12 assets, saúde e15 grupos de dados anteriores verificados. Carteira:146 empresas,43 candidatas/11 empresas,134 sem candidata; piloto163+163 preservado. Leitura de acesso/reutilização do vínculo do piloto sem gravação aprovada. Agente oficial real ainda informa automatic_counts=false; nenhuma coleta financeira nova foi solicitada.
+
+Responsável sem acesso ao SVAPL02 hoje; não repetir pedido. Atualização e primeira coleta real pendentes de acesso. Registrada lacuna técnica adicional: títulos de outras empresas/períodos ainda precisam de captura generalizada/autônoma; a interface de revisão D-367 não equivale a essa coleta. Dados de contas, plano, semântica, DE-PARA e aceite permanecem humanos; Q-47/C01/C02 adiados. Backup fora da prioridade.
+
+
+### 16/11/2026 — D-369/V-408: ampliar a captura de títulos e baixas
+
+Pedido explícito de implementar/publicar. Checkout isolado da97, controles/alterações locais preservados. Contrato v2 mantém consultas fixas e amplia empresa/competência sem contagens humanas; captura por empresa não cria vínculo bancário. Registro de captura separado protege rollback97. Revisão financeira posterior mantém capacidade global da baixa entre contas. Acesso ao servidor indisponível hoje; sem nova solicitação de acesso.
+
+
+Contrato/intake e serviço de lote implementados, sem conta obrigatória na captura.
+Verificados146×12, autorização/replay, capacidade multiconta e ensaio0041 sobre
+runtime97/PG17. Preparado pacote único1.0.12 e ensaios de upgrade de1.0.10/1.0.11,
+com configuração DPAPI sintética e DSN fictício preservado. QA/CI/publicação
+continuam em execução; nenhuma consulta financeira real ou novo job de produção.

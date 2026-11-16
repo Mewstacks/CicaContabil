@@ -1,9 +1,47 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
+## Buscar títulos e baixas das empresas — D-369, 16/11/2026
+
+Percurso em validação para publicação. A atualização única **1.0.12** do agente
+reúne as buscas de **Razão e títulos/baixas**. Ela substitui a atualização1.0.11
+ainda pendente: não são duas instalações. A instalação no SVAPL02 e a primeira
+coleta real dependem do acesso técnico ao servidor, indisponível hoje.
+
+1. Abra **Contábil → Conciliação bancária → Buscar títulos e baixas**. Localize
+   e selecione uma ou várias empresas. Empresas sem conta bancária também podem
+   ter suas fontes buscadas; o código da empresa no Domínio deve estar correto.
+2. Informe **Competência inicial** e **Competência final**. O intervalo inclui
+   os dois meses e aceita períodos históricos, anteriores ao piloto.
+3. Use **Conferir lote**. Confira todas as empresas, o intervalo e o número de
+   buscas antes de **Solicitar buscas**. Cada empresa e mês gera uma busca.
+   As146empresas por12meses cabem em um lote; acima de2.000buscas, divida a seleção.
+4. Acompanhe **Buscas e fontes recebidas**. Filtre por empresa e competência;
+   navegue pelas páginas para consultar o histórico. O pedido salvo pode ficar
+   na fila enquanto o agente aguarda atualização ou conexão. **Solicitação
+   entregue ao agente** ainda não significa que a fonte chegou.
+5. Quando a fonte chegar, use **Abrir fonte**. Confira as parcelas e os registros
+   originais. Isso funciona mesmo sem conta cadastrada. Uma resposta sem
+   registros vale somente para a competência solicitada e não comprova saldo zero.
+6. Para continuar a revisão financeira, escolha explicitamente uma conta da
+   mesma empresa e use **Abrir revisão nesta conta**. Confira cada parcela,
+   natureza, principal e componentes da baixa antes de salvar. Depois, em
+   **Títulos e baixas**, vincule as baixas ao extrato e obtenha o relatório.
+
+**Revisão necessária** conserva a busca anterior. Corrija o motivo indicado
+antes de **Tentar novamente**. Para atualizar uma competência já recebida,
+prepare uma nova solicitação. A fonte anterior e as decisões são preservadas.
+
+A fonte mensal não comprova saldo completo, quitação ou conta bancária.
+Selecionar uma conta não vincula baixas automaticamente. Uma fonte histórica
+continua consultável mesmo quando a fotografia financeira mais recente impede
+substituí-la por uma mais antiga. Nesse caso, consulte a fonte e mantenha a
+fotografia vigente; a mensagem de revisão indica o que precisa ser conferido.
+
 ## Enviar extrato e buscar o Razão — D-368, 16/11/2026
 
-Percurso preparado para publicação; a liberação operacional depende de o agente
-CICA1.0.11 estar atualizado e conectado no computador do Domínio.
+Tela publicada na release97. Para buscar diretamente no Domínio, falta atualizar
+o agente existente para1.0.12 no SVAPL02 e comprovar uma coleta real. O responsável
+não tem acesso ao servidor hoje; as fontes já carregadas continuam disponíveis.
 
 1. Abra **Contábil → Conciliação bancária → Extrato e Razão**. Escolha a
    empresa, a conta e a competência mensal; confira o período apresentado.

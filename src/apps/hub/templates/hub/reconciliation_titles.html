@@ -1,7 +1,7 @@
 {% extends 'hub/reconciliation_titles_base.html' %}
 {% block titles_content %}
 <section class="workspace-panel titles-panel">
-  <header class="workspace-panel-head"><div><h2>Consultar títulos e baixas</h2></div><a class="button button-quiet" href="{{ title_back_url }}">Voltar à carteira</a></header>
+  <header class="workspace-panel-head"><div><h2>Consultar títulos e baixas</h2></div><div class="titles-actions"><a class="button" href="{% url 'hub:reconciliation-title-requests' %}{% if title_account %}?company={{ title_account.company_id }}{% endif %}">Buscar títulos e baixas</a><a class="button button-quiet" href="{{ title_back_url }}">Voltar à carteira</a></div></header>
   <form method="get" class="titles-form titles-fields" aria-label="Consultar títulos por conta e período">
     <div class="field"><label for="titles-account">Empresa e conta</label><select id="titles-account" name="account" required><option value="">Escolha uma conta…</option>{% for account in title_accounts %}<option value="{{ account.id }}"{% if title_account.id == account.id %} selected{% endif %}>{{ account.company.name }} · {{ account.name }}{% if not account.active %} · Inativa{% endif %}</option>{% endfor %}</select></div>
     {% if title_account %}{% for field in titles_period_form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}{% endif %}

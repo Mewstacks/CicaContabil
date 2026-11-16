@@ -36,3 +36,8 @@
 
 /* Report data must wrap in full on screen and paper; global tables use ellipsis. */
 .titles-report .report-table :is(th,td){white-space:normal;overflow:visible;text-overflow:clip;max-width:none;min-width:0;overflow-wrap:anywhere}.titles-report .report-table th:nth-child(n){width:auto}.titles-report .report-table small,.titles-report .report-evidence small{display:block;margin-top:5px;line-height:1.5}.titles-report .report-table tr{content-visibility:visible;contain-intrinsic-size:none}
+
+/* Source and review tables must remain visible and fit narrow screens. */
+.titles-panel .data-table-wrap .titles-table{min-width:0}.titles-panel .titles-table tbody tr{content-visibility:visible;contain-intrinsic-size:none}.titles-panel .titles-table :is(th,td){max-width:none;overflow:visible;text-overflow:clip}
+
+@media(max-width:760px){.titles-panel .titles-table caption{display:block;width:100%;box-sizing:border-box}}
