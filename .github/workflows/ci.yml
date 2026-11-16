@@ -55,7 +55,7 @@ jobs:
         run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.10
+        run: ./agent-windows/build.ps1 -Version 1.0.11
       - name: Parse Windows operational scripts without executing ERP queries
         shell: powershell
         run: |
@@ -73,7 +73,7 @@ jobs:
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.10') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.11') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
       - name: Validate SYSTEM diagnostic isolation and cleanup
         if: github.event.repository.private == false
@@ -94,15 +94,15 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: github.event.repository.private == false
         with:
-          ref: d70f02a02c223249380ee4067f5e7593a4cab4f8
+          ref: 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5
           path: baseline-agent
           persist-credentials: false
-      - name: Build baseline 1.0.9 and verify configured upgrade to 1.0.10
+      - name: Build baseline 1.0.10 and verify configured upgrade to 1.0.11
         if: github.event.repository.private == false
         shell: pwsh
         run: |
-          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.9
-          ./agent-windows/test-portfolio-ledger-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
+          ./agent-windows/test-ledger-self-service-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
       - name: Preserve tested agent and evidence
         if: success() && github.event.repository.private == false
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -112,6 +112,7 @@ jobs:
             agent-windows/artifacts/CicaAgent.msi
             agent-windows/artifacts/CicaAgent.msi.sha256
             agent-windows/artifacts/release.json
+            agent-windows/artifacts/upgrade-ledger-self-service.ps1
             agent-windows/artifacts/dependency-inventory.json
             agent-windows/artifacts/validation/
           if-no-files-found: error

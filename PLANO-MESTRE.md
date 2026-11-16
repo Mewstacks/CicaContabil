@@ -1,9 +1,11 @@
-**16/11/2026 — D-367/V-406: títulos/baixas e DE-PARA utilizáveis pela tela; validação final em andamento.**
-Revisão de fontes por parcela, preservação cumulativa, prévia e confirmação de
-vínculos, histórico/desfazer, relatório em reais e revisão das sugestões
-existentes implementados. Validação contábil continua humana. Backup fora da
-prioridade por instrução explícita. Produção95 até comprovar publicação;
-acompanhar [V-406](VALIDACOES.md).
+**16/11/2026 — D-367/V-406: títulos, baixas e revisão DE-PARA publicados, release96.**
+Cliente pode revisar as fontes por parcela, vincular baixas ao extrato,
+consultar histórico/desfazer e emitir relatório em reais. Sugestões DE-PARA
+retidas podem ser revisadas e transformadas em rascunhos para ativação humana.
+CI integral, migração0085, runtime/saúde e15 grupos preservados comprovados.
+Permanece a solicitação/acompanhamento da coleta do Razão pela interface,
+além dos dados e revisões humanas43+134, fontes/semântica, regras e aceite;
+Q-47/C01/C02 adiados. Backup fora da prioridade. [V-406](VALIDACOES.md).
 
 **16/11/2026 — D-366/V-405: correções operacionais publicadas, release95.**
 Contas/vínculos têm correção auditada e histórico; ativação de conta vinculada
@@ -1519,3 +1521,6 @@ concluída:163 lançamentos/334 partidas equilibradas,177 registros de origem,
 163 movimentos compatíveis comOFX e diferença líquida zero. Repetição sem
 duplicatas e originais preservados. Conferência privada entregue; títulos/baixas
 Q-46, layout/importação Q-47 e critérios humanos de D-73 continuam pendentes.
+
+
+**16/11/2026 — D-368: extrato e Razão pela interface.** Implementação em andamento da escolha de empresa/conta/competência, upload e solicitação/acompanhamento do Razão nativo. O agente passa a calcular contagens; o vínculo precisa estar comprovado ou revisado. Publicação do backend e pacote 1.0.11, seguida de comprovação no agente oficial, ainda precedem a declaração de uso autônomo em produção. Formatos: OFX/QFX/CSV/XLSX/PDF até25MiB; não é aceitação de qualquer formato. Backup fora da prioridade.

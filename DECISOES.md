@@ -5064,3 +5064,84 @@ empresa o acesso e as contas contábeis ativas/analíticas referenciadas. Grava�
 da ativação e auditoria serão atômicas; mudança posterior ao rascunho exige
 correção humana. A desativação permanece disponível. Não transformar sugestão
 em regra ativa automaticamente nem usar plano bruto como aprovação.
+
+## D-368 — Coleta do Razão pela cliente na tela (16/11/2026)
+
+Origem: pedido explícito para implementar e publicar o percurso em que a
+cliente anexa extrato, escolhe empresa, conta e período e busca o Razão direto
+do Domínio, sem intervenção técnica. Corrige a lacuna identificada após
+V-406; retoma etapas 03/09/11/12 e D-323/D-363.
+
+Implementar solicitação autenticada, acompanhamento e retomada pela interface,
+com integração ao upload e à conferência. Reutilizar o agente oficial e a
+leitura das fontes já comprovadas, sem escrita ERP, novo pareamento ou envio
+de SQL arbitrário. A cliente não deve precisar de comandos, arquivos JSON,
+contagens técnicas prévias ou acionamento por desenvolvedor. Empresa, conta
+e período selecionados delimitam a coleta; vínculos ainda não comprovados
+continuam exigindo revisão explícita, com orientação acionável na tela.
+
+Preservar isolamento por escritório/empresa/módulo, autoria, integridade,
+limites, consistência de leitura, reenvio, histórico e decisões existentes.
+Não copiar contagens de um período para outro, inferir banco/plano/filial ou
+transformar igualdade de valores em aprovação contábil. Inspecionar contrato
+e agente antes de fixar a estratégia de contagem/atualização; registrar o
+refinamento nesta decisão antes de executar seu comportamento dependente.
+
+Desenvolver em checkout isolado da release 96, preservar alterações locais,
+validar com dados sintéticos e Playwright e publicar após CI da árvore exata
+no ambiente/capacidade existentes. O pedido autoriza a publicação do fluxo
+de coleta solicitado; não autoriza custos novos, IA extra, mensagens, escrita
+contábil no ERP ou homologação humana. Fontes privadas ficam fora do Git/CI.
+Backup permanece fora da prioridade; Q-47/C01/C02 continuam adiados.
+
+
+Refinamento D-368 — contagem pela fonte e atualização compatível.
+O agente 1.0.10 exige expected_* antes da coleta e não consegue executar a
+jornada autônoma. Evoluir para protocolo/capability v2, mantendo os bytes das
+três consultas SQL já validadas e o protocolo v1 para trabalhos antigos. A
+solicitação v2 contém apenas vínculo revisado, competência mensal e UUID da
+coleta; não recebe contagens humanas. O agente calcula contagens a partir de
+duas leituras completas idênticas, e o backend as reconfere independentemente,
+incluindo soma dos lotes, catálogo, limites, partidas e balanceamento. Agente
+antigo não recebe trabalho v2; atualização compatível preserva identidade,
+DPAPI e DSN e será publicada no canal existente após CI/hash. O pedido atual
+de implementar/publicar a jornada cobre essa evolução necessária do agente.
+
+Reenvio do mesmo UUID é idempotente; nova atualização explícita cria outra
+coleta e preserva as fontes anteriores. Novos lotes podem ser acrescentados;
+lotes alterados ou ausentes no recorte anteriormente importado exigem revisão,
+sem exclusão ou sobrescrita de confirmações. A tela deve distinguir fila,
+leitura, ausência de lançamentos, dados recebidos e revisão pendente; nenhuma
+pendência vira sucesso. O período será a competência mensal já suportada,
+desde setembro/2026, sem ampliar a leitura por uma data inválida.
+
+
+Refinamento D-368 — vínculo e acompanhamento. Guardar vínculo próprio de
+coleta, auditado e separado das contagens, com plano, filial e direção
+explicitamente revisados. Manter o código reduzido numérico do Domínio
+coerente com FinancialAccount.ledger_code; não converter classificação ou
+código livre silenciosamente. Reutilizar escopo importado anterior somente
+após comprovar integridade/mesma conta e preservar a proveniência, inclusive
+a autoria ausente no legado; pedido novo tem sua própria autoria. Registrar
+UUID do pedido, revisão do vínculo, fonte bancária opcional, entrega real
+ao agente e capability observada com defaults aditivos compatíveis. Estado
+de leitura não será inferido apenas por heartbeat.
+
+
+Refinamento D-368 — prova da atualização: o estado local fresco
+source_review_required não será apagado nem tratado como falha do instalador
+quando versão, serviço LocalSystem e bytes DPAPI estiverem corretos. O recibo
+de atualização o distinguirá de ready; verificação no backend e revisão da
+fonte continuam necessárias. Falha de configuração/transporte ou reboot
+pendente não será marcada como ciclo concluído.
+
+
+Refinamento D-368 — canal de atualização: após conferir o MSI 1.0.11 do CI
+exato e publicá-lo na release oficial agent-v1.0.11, configurar somente
+EDGE_AGENT_LATEST_VERSION e EDGE_AGENT_INSTALLER_URL no ambiente existente
+para que console e heartbeat apontem o pacote efetivamente publicado. Não
+alterar capacidade, políticas de IA, pareamento, DSN ou demais configurações.
+A nova versão instalada e a capability real devem ser observadas antes de
+declarar a coleta autônoma operacional no servidor da cliente.
+
+Refinamento D-368 — cadastro mínimo: um vínculo humano novo exige código do banco, referência bancária e código reduzido numérico coerente, além da revisão explícita do plano/filial/direção. Não exigir novo LedgerAccount para reutilizar o escopo nativo comprovado: o catálogo da própria coleta verifica a conta analítica. O legado importado íntegro mantém sua proveniência e não recebe um revisor fictício.

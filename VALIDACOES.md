@@ -9431,3 +9431,81 @@ bases locais novas após congelar os serviços e a0085;8 verificações passaram
 em .tmp/qa_final, sem erros de navegador. A gravação de regras permaneceu
 humana e nenhuma chamada externa ocorreu. Relatório distingue revisão
 original da restauração que tornou a fotografia vigente.
+
+
+Fechamento V-406 — publicação comprovada em 16/11/2026.
+PR25 integrado em 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5; CI43925999340 aprovado em
+600abf6e17ccdbe3831d43e59a21cd9b58342987, árvore 1ab281fd06ce5b7cc965f0a379a255d117edc3f5, idêntica à integração.
+2869 passed, 48 skipped, 181 subtests passed in 281.31s (0:04:41)
+2915 passed, 2 skipped, 181 subtests passed in 380.69s (0:06:20)
+Contratos/agente Windows e Linux e três imagens CI aprovados. O primeiro CI
+recusou textos explicativos novos sob títulos (D-277); cabeçalhos foram
+simplificados e orientações movidas para o ponto de preenchimento/desfazimento.
+Regressão73 passou (1caso PostgreSQL separado); QA final17 cenários visuais
+aprovados, além do percurso sintético completo8 verificações sem erros.
+
+0085 SHA1c54c86b9b73c17c91ebbe70dea061c4221faf3847b28c14ce13ef7f78db9359
+ensaiada na imagem95 exata com12 verificações SQLite e em PostgreSQL17,
+ambos aliases, incluindo INSERT/UPDATE do modelo antigo e replay. Aplicada
+somente após CI/preflight, com FK nullable no default e recorder nos dois
+aliases; runtime anterior e arquivos da migração preservados na transição.
+
+Release96, imagem registry.fly.io/cica-contabil@sha256:95c5bcba0227738f22ef72112fcc780bdee682faea7186df96705f61901e5766, publicada
+somente em web891e63ef665e58 e worker1857691da097e8, mantendo512MB/1CPU,
+configurações/capacidade e legado287e35db920e48 parado e inalterado.
+Runtime779arquivos/SHAbebc0b8843ab739f044f38dcdb6d01c1f89866a463915c35e4c558df32435827 idêntico em ambos;
+774 fontes confrontadas com Git, cinco metadados herdados preservados.
+Saúde live/ready, banco/cache,10assets e resposta do worker aprovados.
+
+Quinze grupos protegidos inalterados:146empresas,1conta operacional,
+43candidatas em11empresas,134 demais sem candidata; piloto163/163 preservado.
+Verificação somente leitura do percurso real: captura retida íntegra e
+sugestões DE-PARA retidas acessíveis ao responsável atual. Nenhum título
+normalizado, alocação, regra, chamada IA ou fonte ERP foi criado por esta
+verificação; seleção vigente continuaNULL. Política IA continua desligada.
+A sessão de navegador usa dados sintéticos; não representa operação humana
+real nem homologação da carteira.
+
+Recibos privados: contad-titles-customer-usage/CicaContabil/.tmp/release/
+publication.json,delivery-final.json,ci-result.json,ci-final.log,
+migration-preflight/apply.json,migration-rehearsal*.json,fingerprints*,
+title-operation-after.json,machines*,public-assets.json; .tmp/operations/
+git-source-verification.json e recibos da imagem; .tmp/qa_final/8 verificações
+do percurso e17 verificações visuais. Nenhum dado financeiro real no Git/CI.
+
+Entregue o percurso técnico de títulos/baixas e revisão DE-PARA. Dependem
+agora de dados/revisão humana os43 vínculos, contas/fontes das134 empresas,
+semântica/evidências e revisão contábil das regras, primeiro uso real do novo
+percurso, amostra e aceite. Q-47/C01/C02 continuam adiados; backup fora da
+prioridade expressa desta rodada. Não declarar operação completa da carteira.
+
+
+Esclarecimento V-406 — envio de extrato e coleta do Razão (16/11/2026).
+Inspeção somente leitura do código publicado na release 96, motivada pela
+pergunta do responsável: o upload aceita OFX/QFX, CSV, XLSX e PDF (25 MiB),
+com mapeamento tabular e limites de leitura/layout do PDF. Não aceita todo
+formato. O upload enfileira processamento do arquivo, não uma coleta ERP.
+A conferência usa o Razão já recebido; quando falta, a carteira oferece
+importação do CSV de partidas completas. A coleta direta pelo agente existe
+e foi comprovada no piloto, mas novos jobs são preparados por comandos
+administrativos; não há acionamento pela interface ou recorrência automática.
+Falta técnica para autonomia: solicitar e acompanhar a coleta do Razão pela
+interface, respeitando conta/período/escopo revisados. Esse ponto corrige a
+generalização anterior de que restavam somente dados e validações humanas.
+O percurso entregue de títulos/baixas permanece comprovado. Nenhuma coleta,
+consulta financeira ERP, mudança de código ou teste novo foi executado aqui.
+
+
+## V-407 — D-368: extrato e coleta mensal do Razão pela tela (16/11/2026)
+
+Implementação no checkout isolado `codex/contad-razao-pela-tela`, sobre57bcfe2/release96. A nova jornada em `/app/conciliacao/razao/` recebe empresa, conta, competência e extrato opcional; preserva upload aceito se a coleta não for concluída. Permite revisar o vínculo, solicitar, acompanhar e retomar a coleta com autoria e revisão atuais. GET não cria vínculo nem coleta.
+
+Envelope v2 mantém SQL/manifest v1; agente1.0.11 calcula contagens a partir de duas leituras completas idênticas, e o backend reconfere. V1 permanece compatível; agentes antigos não recebemv2. Atualizações preservam fontes/decisões e bloqueiam lotes alterados/ausentes ou fonte anterior danificada. Migrações aditivas hub0086/intelligence0040 mantêm defaults para o runtime anterior.
+
+Estado desta entrada: implementação e validação local; não comprova CI, publicação nem instalação no servidor da cliente. Nova versão/capability real precisa ser observada. Não foi realizada coleta financeira nova nesta preparação. Fontes/vínculos/semântica da carteira continuam dependências humanas; Q-47/C01/C02 permanecem adiados.
+
+Validação local V-407:140 testes PostgreSQL agregados e2 regressões adicionais aprovados, incluindo quatro concorrências. .NET:122 aprovados/3 exclusivos Windows aguardando CI. SQLite integral inicial:2965 aprovados,50 skips PostgreSQL/181 subtestes; único assert de rota antiga foi corrigido para o novo destino e o pacote final de127 testes UI/carteira/navegação/relatório/copy passou. Ruff/Django/migrações/diff limpos. Playwright sintético comprovou troca de empresa, revisão do vínculo, upload/pedido, entrega real ao agente, retomada após revisão e preservação de upload após409.
+
+Migrações0086/0040 ensaiadas em PostgreSQL17 e na imagem exata96, sem rede e filesystem somente leitura: prévia sem mudança, bloqueio por migração estranha, compatibilidade de INSERT/UPDATE dos modelos anteriores com defaults, replay e bloqueio por divergência schema/recorder. Prévia READ ONLY em produção aprovada; aplicação ainda não realizada nesta entrada.
+
+Fechamento do QA V-407: Playwright percorreu envio → pedido → recepção sintética autenticada → conferência → relatório na competência09/2026, em375px/1440px, claro/escuro, sem overflow/erros JS. Corrigidos conflitos concretos de especificidade/content-visibility nas tabelas da tela nova, conferência e relatório, que ocultavam linhas no celular. Nenhuma confirmação financeira real foi feita. Evidência privada: `.tmp/qa_ledger_ui/result.json` e capturas; servidor/browser próprios encerrados. CI preliminar foi substituído para validar os bytes finais.

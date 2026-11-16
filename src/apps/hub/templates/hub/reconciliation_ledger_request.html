@@ -1,0 +1,56 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-ledger-request.css' %}"><script src="{% static 'hub/reconciliation-ledger-request.js' %}" defer></script>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel ledger-request-panel">
+  <header class="workspace-panel-head"><div><h2>Empresa e competência</h2></div><a class="button button-quiet" href="{{ ledger_back_url }}">Voltar à carteira</a></header>
+  {% if ledger_errors %}<div class="form-errors ledger-request-error" role="alert" tabindex="-1" data-form-errors>{% for error in ledger_errors %}<p>{{ error }}</p>{% endfor %}{% if ledger_current_url %}<a href="{{ ledger_current_url }}">Reabrir solicitação com os dados atuais</a>{% endif %}</div>{% endif %}
+  <form method="get" class="ledger-request-form" data-ledger-scope-form>
+    <div class="ledger-request-fields">
+      <div class="field company-picker" data-company-picker><label data-company-label for="{{ ledger_form.company.id_for_label }}">Empresa</label><input class="company-picker-search" data-company-search type="search" placeholder="Busque por nome" autocomplete="off" hidden>{{ ledger_form.company }}<ul class="company-picker-options" data-company-options role="listbox" hidden></ul><span class="company-picker-status" data-company-status role="status" aria-live="polite"></span>{{ ledger_form.company.errors }}</div>
+      <div class="field">{{ ledger_form.account.label_tag }}{{ ledger_form.account }}{{ ledger_form.account.errors }}</div>
+      <div class="field">{{ ledger_form.month.label_tag }}{{ ledger_form.month }}{{ ledger_form.month.errors }}</div>
+    </div>
+    <div class="ledger-request-actions"><button class="button{% if ledger_account %} button-quiet{% endif %}" type="submit">{% if ledger_account %}Atualizar seleção{% else %}Continuar{% endif %}</button></div>
+  </form>
+</section>
+{% if ledger_account %}
+<section class="workspace-panel ledger-request-panel">
+  <header class="workspace-panel-head"><div><h2>Extrato e Razão</h2></div>{% if ledger_agent_label %}<span class="status-badge {% if ledger_agent_attention %}is-warning{% else %}is-muted{% endif %}">{{ ledger_agent_label }}</span>{% endif %}</header>
+  <dl class="ledger-request-context"><div><dt>Empresa</dt><dd>{{ ledger_account.company.name }}</dd></div><div><dt>Conta</dt><dd>{{ ledger_account.name }}</dd></div><div><dt>Período</dt><dd>{{ ledger_start|date:'d/m/Y' }} a {{ ledger_end|date:'d/m/Y' }}</dd></div></dl>
+  {% if ledger_upload_notice %}<div class="ledger-request-notice" role="status">{{ ledger_upload_notice }}</div>{% endif %}
+  {% if ledger_readiness_message %}<div class="ledger-request-notice">{{ ledger_readiness_message }}{% if ledger_configuration_url %} <a href="{{ ledger_configuration_url }}">Revisar conta</a>{% endif %}</div>{% endif %}
+  {% if ledger_can_write %}
+  <form method="post" enctype="multipart/form-data" class="ledger-request-form" data-ledger-command-form>
+    {% csrf_token %}<input type="hidden" name="company" value="{{ ledger_account.company_id }}"><input type="hidden" name="account" value="{{ ledger_account.id }}"><input type="hidden" name="month" value="{{ ledger_month }}">{{ ledger_form.request_key }}{{ ledger_form.expected_mapping_revision }}
+    {{ ledger_form.non_field_errors }}
+    <p class="field-help">Use um arquivo novo ou selecione um extrato já recebido.</p>
+    <div class="ledger-request-sources"><div class="field"><label for="{{ ledger_form.statement.id_for_label }}">Novo extrato <span class="field-optional">opcional</span></label>{{ ledger_form.statement }}<p class="field-help">OFX, QFX, CSV, XLSX ou PDF · até 25 MiB</p>{{ ledger_form.statement.errors }}</div><div class="field">{{ ledger_form.bank_source.label_tag }}{{ ledger_form.bank_source }}{{ ledger_form.bank_source.errors }}</div></div>
+    {% if ledger_agent_detail %}<p class="field-help">{{ ledger_agent_detail }}{% if ledger_installer_url %} <a href="{{ ledger_installer_url }}">Baixar atualização da conexão</a>{% endif %}</p>{% endif %}
+    <div class="ledger-request-actions"><button class="button" name="action" value="request" type="submit" data-busy-label="Solicitando…"{% if not ledger_can_request %} disabled{% endif %}>Buscar Razão</button><button class="button button-quiet" name="action" value="upload" type="submit" data-busy-label="Enviando…">Enviar extrato</button></div>
+  </form>
+  {% else %}<div class="ledger-request-notice">Seu acesso permite consultar esta conta. Solicite o envio ou a coleta ao responsável.</div>{% endif %}
+</section>
+{% if ledger_mapping_form and ledger_can_write %}
+<section class="workspace-panel ledger-request-panel">
+  <header class="workspace-panel-head"><div><h2>Vínculo com o Domínio</h2></div></header>
+  {% if not ledger_data.needs_mapping %}<details class="ledger-request-secondary"><summary>Revisar vínculo</summary>{% endif %}
+  <dl class="ledger-request-context"><div><dt>Empresa no Domínio</dt><dd>{{ ledger_account.company.dominio_code }}</dd></div><div><dt>Conta contábil</dt><dd>{{ ledger_account.ledger_code|default:'Não informada' }}</dd></div></dl>
+  <form method="post" class="ledger-request-form" data-ledger-command-form>
+    {% csrf_token %}<input type="hidden" name="action" value="mapping"><input type="hidden" name="company" value="{{ ledger_account.company_id }}"><input type="hidden" name="account" value="{{ ledger_account.id }}"><input type="hidden" name="month" value="{{ ledger_month }}">{{ ledger_mapping_form.expected_revision }}
+    {% if ledger_mapping_form.non_field_errors %}<div class="form-errors" role="alert">{{ ledger_mapping_form.non_field_errors }}</div>{% endif %}
+    <div class="ledger-request-fields">{% for field in ledger_mapping_form %}{% if not field.is_hidden and field.name != 'confirmed' and field.name != 'evidence_reference' %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endif %}{% endfor %}</div>
+    <div class="field">{{ ledger_mapping_form.evidence_reference.label_tag }}{{ ledger_mapping_form.evidence_reference }}{{ ledger_mapping_form.evidence_reference.errors }}</div>
+    <label class="ledger-request-check" for="{{ ledger_mapping_form.confirmed.id_for_label }}">{{ ledger_mapping_form.confirmed }}<span>{{ ledger_mapping_form.confirmed.label }}</span></label>{{ ledger_mapping_form.confirmed.errors }}
+    <div class="ledger-request-actions"><button class="button" type="submit" data-busy-label="Salvando…">Salvar vínculo</button><a class="button button-quiet" href="{{ ledger_configuration_url }}">Abrir cadastro da conta</a></div>
+  </form>
+  {% if not ledger_data.needs_mapping %}</details>{% endif %}
+</section>
+{% endif %}
+<section class="workspace-panel ledger-request-panel" id="ledger-requests">
+  <header class="workspace-panel-head"><div><h2>Solicitações</h2></div><a class="button button-quiet" href="{{ ledger_current_url }}#ledger-requests">Atualizar situação</a></header>
+  {% if ledger_jobs %}<div class="data-table-wrap"><table class="operational-table ledger-request-table"><thead><tr><th>Competência</th><th>Solicitada em</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{% for row in ledger_jobs %}<tr{% if row.poll %} data-ledger-status-url="{{ row.status_url }}"{% endif %}><td data-label="Competência">{{ row.month_label }}</td><td data-label="Solicitada em">{{ row.created_at|date:'d/m/Y H:i' }}</td><td data-label="Situação"><span class="status-badge {{ row.status_class }}" data-ledger-state>{{ row.label }}</span>{% if row.detail %}<small data-ledger-detail>{{ row.detail }}</small>{% else %}<small data-ledger-detail></small>{% endif %}</td><td class="table-action-cell" data-label="Ação"><div class="ledger-request-history-actions" data-ledger-actions>{% if row.conference_url %}<a class="row-action-button" href="{{ row.conference_url }}" data-ledger-conference>Abrir conferência</a>{% else %}<a class="row-action-button" data-ledger-conference hidden>Abrir conferência</a>{% endif %}{% if ledger_can_write and row.can_retry %}<form method="post" action="{{ row.retry_url }}">{% csrf_token %}<input type="hidden" name="request_key" value="{{ row.retry_key }}"><input type="hidden" name="expected_mapping_revision" value="{{ ledger_mapping_revision }}"><button class="row-action-button" type="submit" data-busy-label="Retomando…">Tentar novamente</button></form>{% endif %}</div></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-block operational-empty ledger-request-empty"><strong>Nenhuma solicitação nesta competência</strong></div>{% endif %}
+</section>
+{% if ledger_bank_sources %}<section class="workspace-panel ledger-request-panel"><header class="workspace-panel-head"><div><h2>Extratos recebidos</h2></div></header><div class="data-table-wrap"><table class="operational-table ledger-request-table"><thead><tr><th>Arquivo</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{% for row in ledger_bank_sources %}<tr><td data-label="Arquivo">{{ row.source.original_filename }}</td><td data-label="Situação">{{ row.label }}</td><td class="table-action-cell" data-label="Ação">{% if row.url %}<a class="row-action-button" href="{{ row.url }}">{{ row.action }}</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div></section>{% endif %}
+{% endif %}
+{% endblock %}

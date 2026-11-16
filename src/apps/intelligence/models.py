@@ -417,6 +417,8 @@ class EdgeAgent(OrganizationScopedModel):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    ledger_capabilities = models.JSONField(default=dict, db_default={}, blank=True)
+    ledger_capabilities_observed_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
     is_official = models.BooleanField(default=False)
     replaces_agent = models.ForeignKey(
@@ -721,6 +723,13 @@ class NativeLedgerCollection(OrganizationScopedModel):
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
     )
     evidence_reference = models.CharField(max_length=240, blank=True)
+    request_key = models.UUIDField(null=True, blank=True)
+    mapping_revision = models.CharField(max_length=64, blank=True, default="", db_default="")
+    bank_source = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True,
+        on_delete=models.PROTECT, related_name="requested_ledger_collections",
+    )
+    claimed_at = models.DateTimeField(null=True, blank=True)
     financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
     scope = models.JSONField()
     scope_revision = models.CharField(max_length=64)
@@ -735,10 +744,16 @@ class NativeLedgerCollection(OrganizationScopedModel):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(
-            fields=("agent", "financial_account", "scope_revision"),
-            name="intelligence_unique_native_ledger_scope",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("agent", "financial_account", "scope_revision"),
+                name="intelligence_unique_native_ledger_scope",
+            ),
+            models.UniqueConstraint(
+                fields=("organization", "request_key"),
+                name="intelligence_unique_ledger_request_key",
+            ),
+        ]
 
 
 class NativeTitleCollection(OrganizationScopedModel):

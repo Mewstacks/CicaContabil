@@ -766,6 +766,13 @@ a produção foi validada por HTTP autenticado na demo e não foi declarada como
 - [x] Baixas/extrato → prévia → confirmação → histórico/desfazer → relatório em reais.
 - [x] Sugestões DE-PARA existentes → revisão → rascunho → ativação humana validada.
 - [x] Percurso e estados de erro verificados com Playwright sintético, claro/escuro e mobile.
-- [ ] Publicação da árvore final após CI integral (ver V-406).
+- [x] CI43925999340, 0085 e release96: árvore/runtime/saúde e15 grupos preservados comprovados.
 
 Nenhum teste sintético substitui fonte/semântica/aceite reais. Backup fora da prioridade atual.
+
+
+### D-368/V-407 — Extrato e Razão
+
+- [x] Controles nativos, erros no contexto, upload preservado e estado real do pedido.
+- [x] Pesquisa UI/UX Pro Max, Watermelon Forms, Web Interface Guidelines e referências oficiais Conta Azul, mantendo identidade CICA.
+- [ ] Encerrar Playwright de empresa/conta/competência/upload/coleta e estados responsivos.

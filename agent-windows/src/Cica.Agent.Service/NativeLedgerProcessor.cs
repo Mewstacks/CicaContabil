@@ -10,10 +10,12 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
 {
     internal async Task<bool> RunOnce(CancellationToken token)
     {
-        using JsonDocument response = await NativeLedgerPlan.NextJob((expanded, cancellation) =>
-            client.PostAsync("api/agent/v2/ledger/next", expanded
-                ? (object)new { version = "1.0.8", portfolio_scope = true }
-                : new { version = "1.0.8" }, cancellation), token);
+        using JsonDocument response = await NativeLedgerPlan.NextAutomaticJob((capability, cancellation) =>
+            client.PostAsync("api/agent/v2/ledger/next", capability switch {
+                2 => (object)new { version = "1.0.8", portfolio_scope = true, automatic_counts = true },
+                1 => new { version = "1.0.8", portfolio_scope = true },
+                _ => new { version = "1.0.8" },
+            }, cancellation), token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
             return response.RootElement.TryGetProperty("review_required", out var review) && review.GetBoolean();
@@ -25,13 +27,14 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
                 config.DatabaseUser, config.DatabasePassword, config.UseDsnAuthentication));
             connection.ConnectionTimeout = 20;
             await connection.OpenAsync(token);
-            byte[] first = await ReadSnapshot(connection, plan, token);
-            content = await ReadSnapshot(connection, plan, token);
-            if (!first.AsSpan().SequenceEqual(content))
+            byte[]? stable = await NativeLedgerPlan.ReadStableSnapshot(
+                cancellation => ReadSnapshot(connection, plan, cancellation), token);
+            if (stable is null)
             {
                 await Fail(plan, "source_changed", token);
                 return true;
             }
+            content = stable;
         }
         catch (OdbcException)
         {
@@ -75,11 +78,10 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
             ["type_raw"] = Text(r[4]), ["status_raw"] = Text(r[5]),
             ["inactive_date_raw"] = r.IsDBNull(6) ? null : Day(r[6]),
         }, token);
-        if (lots.Count != plan.ExpectedLots || records.Count != plan.ExpectedRows
-            || accounts.Count > 5000 || accounts.Any(a => (int)a["account_code"]! == 0)
-            || lots.Sum(l => (int)l["row_count"]!) != records.Count) throw NativeLedgerPlan.Invalid();
+        plan.ValidateObservedCounts(records.Count, lots.Count, accounts.Count,
+            lots.Sum(l => (long)(int)l["row_count"]!), accounts.Any(a => (int)a["account_code"]! == 0));
         byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(new {
-            version = NativeLedgerPlan.Version, scope_revision = plan.Revision, lots, records, accounts,
+            version = plan.SnapshotVersion, scope_revision = plan.Revision, lots, records, accounts,
         });
         if (bytes.Length > NativeLedgerPlan.MaxBytes) throw NativeLedgerPlan.Invalid();
         return bytes;

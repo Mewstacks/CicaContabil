@@ -320,9 +320,11 @@ def test_links_preserve_month_scope_and_offer_no_writes_to_readers(organization)
     assert urlsplit(review["portfolio_return"][0]).path == "/app/conciliacao/carteira/"
     row = context(organization, can_manage=True)["rows"][0]["accounts"][0]
     upload = parse_qs(urlsplit(row["actions"][0]["url"]).query)
-    assert upload["upload_account"] == [str(item.pk)]
-    assert upload["upload_company"] == [str(item.company_id)]
-    assert upload["upload_origin"] == ["accounting"]
+    assert urlsplit(row["actions"][0]["url"]).path == "/app/conciliacao/razao/"
+    assert row["actions"][0]["label"] == "Buscar Razão"
+    assert upload["account"] == [str(item.pk)]
+    assert upload["company"] == [str(item.company_id)]
+    assert upload["month"] == ["2026-09"]
 
 
 def test_read_only_and_query_count_does_not_grow_per_company(organization):

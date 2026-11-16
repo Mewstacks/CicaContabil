@@ -9,6 +9,7 @@ namespace Cica.Agent.Service;
 internal sealed class NativeLedgerPlan
 {
     internal const string Version = "dominio-ledger-snapshot-v1";
+    internal const string AutomaticVersion = "dominio-ledger-snapshot-v2";
     internal const int MaxBytes = 2_000_000;
     internal string Id { get; }
     internal string Revision { get; }
@@ -19,6 +20,8 @@ internal sealed class NativeLedgerPlan
     internal int Bank { get; }
     internal int ExpectedRows { get; }
     internal int ExpectedLots { get; }
+    internal bool AutomaticCounts { get; }
+    internal string SnapshotVersion { get; }
     internal DateTime End { get; }
     internal JsonElement Manifest { get; }
     private static byte[] Resource(string name)
@@ -42,6 +45,23 @@ internal sealed class NativeLedgerPlan
             return await send(false, token);
         }
     }
+    internal static async Task<JsonDocument> NextAutomaticJob(
+        Func<int, CancellationToken, Task<JsonDocument>> send, CancellationToken token)
+    {
+        try { return await send(2, token); }
+        catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            return await NextJob((expanded, cancellation) => send(expanded ? 1 : 0, cancellation), token);
+        }
+    }
+    internal static async Task<byte[]?> ReadStableSnapshot(
+        Func<CancellationToken, Task<byte[]>> read, CancellationToken token)
+    {
+        byte[] first = await read(token);
+        byte[] second = await read(token);
+        if (first.Length > MaxBytes || second.Length > MaxBytes) throw Invalid();
+        return first.AsSpan().SequenceEqual(second) ? second : null;
+    }
     internal static void SelfVerify()
     {
         using JsonDocument document = JsonDocument.Parse(Resource("manifest.json"));
@@ -61,21 +81,24 @@ internal sealed class NativeLedgerPlan
     internal NativeLedgerPlan(JsonElement job)
     {
         SelfVerify();
-        if (job.GetProperty("version").GetString() != Version
+        SnapshotVersion = job.GetProperty("version").GetString() ?? throw Invalid();
+        AutomaticCounts = SnapshotVersion == AutomaticVersion;
+        if (SnapshotVersion is not (Version or AutomaticVersion)
             || job.GetProperty("contract_hash").GetString() != LocalContractHash) throw Invalid();
         Id = job.GetProperty("id").GetString() ?? throw Invalid();
         if (!Guid.TryParseExact(Id, "D", out _)) throw Invalid();
         Revision = job.GetProperty("scope_revision").GetString() ?? throw Invalid();
         ContractHash = LocalContractHash;
         var scope = job.GetProperty("scope");
-        string[] fields = ["company_code", "chart_company_code", "branch_code", "bank_account_code",
-            "absent_account_code", "bank_inflow_side", "period_start", "period_end_exclusive",
+        string[] common = ["company_code", "chart_company_code", "branch_code", "bank_account_code",
+            "absent_account_code", "bank_inflow_side", "period_start", "period_end_exclusive"];
+        string[] fields = AutomaticCounts ? [..common, "capture_id"] : [..common,
             "expected_source_rows", "expected_lots", "expected_bank_effects"];
         if (scope.EnumerateObject().Count() != fields.Length) throw Invalid();
         var expected = new SortedDictionary<string, object>(StringComparer.Ordinal);
         foreach (string field in fields) {
             var value = scope.GetProperty(field);
-            if (field is "period_start" or "period_end_exclusive" or "bank_inflow_side") {
+            if (field is "period_start" or "period_end_exclusive" or "bank_inflow_side" or "capture_id") {
                 if (value.ValueKind != JsonValueKind.String) throw Invalid();
                 expected[field] = value.GetString() ?? throw Invalid();
             } else {
@@ -98,12 +121,24 @@ internal sealed class NativeLedgerPlan
         Start = start; End = end;
         Company = (int)expected["company_code"]; Chart = (int)expected["chart_company_code"];
         Bank = (int)expected["bank_account_code"];
-        ExpectedRows = (int)expected["expected_source_rows"]; ExpectedLots = (int)expected["expected_lots"];
-        if (ExpectedLots > ExpectedRows || (ExpectedRows == 0) != (ExpectedLots == 0)
-            || (int)expected["expected_bank_effects"] != ExpectedLots) throw Invalid();
+        if (AutomaticCounts) {
+            string capture = (string)expected["capture_id"];
+            if (capture != Id || !Guid.TryParseExact(capture, "D", out Guid captureId)
+                || captureId.ToString("D") != capture) throw Invalid();
+        } else {
+            ExpectedRows = (int)expected["expected_source_rows"]; ExpectedLots = (int)expected["expected_lots"];
+            if (ExpectedLots > ExpectedRows || (ExpectedRows == 0) != (ExpectedLots == 0)
+                || (int)expected["expected_bank_effects"] != ExpectedLots) throw Invalid();
+        }
         if (Revision != Digest(JsonSerializer.SerializeToUtf8Bytes(expected))) throw Invalid();
         using JsonDocument manifest = JsonDocument.Parse(Resource("manifest.json"));
         Manifest = manifest.RootElement.Clone();
+    }
+    internal void ValidateObservedCounts(int rows, int lots, int accounts, long lotRows, bool zeroAccount)
+    {
+        if (rows < 0 || rows > 50_000 || lots < 0 || lots > rows || accounts < 0 || accounts > 5000
+            || (rows == 0) != (lots == 0) || lotRows != rows || zeroAccount
+            || (!AutomaticCounts && (rows != ExpectedRows || lots != ExpectedLots))) throw Invalid();
     }
     internal string Query(string name) => Encoding.UTF8.GetString(Resource(name + ".sql"));
     internal object[] Parameters(string name) => Manifest.GetProperty("queries").GetProperty(name)

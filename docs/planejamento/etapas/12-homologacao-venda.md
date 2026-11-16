@@ -751,7 +751,14 @@ Esta preparação não instala MSI, altera coleta real ou habilita exportação.
 - [x] Relatório legível/CSV em reais e referências humanas das fontes revisadas.
 - [x] Revisão das sugestões DE-PARA retidas e ativação com plano/acesso atuais.
 - [x] Testes sintéticos PostgreSQL/SQLite e QA no navegador.
-- [ ] CI integral da árvore final e publicação compatível comprovados.
+- [x] CI43925999340, 0085 e release96: árvore/runtime/saúde e15 grupos preservados comprovados.
 - [ ] Cliente valida as fontes/semântica/vínculos reais; fontes ausentes continuam próprias.
 
 Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.
+
+
+### D-368/V-407 — Limite da entrega autônoma
+
+- [ ] Backend e pacote1.0.11 publicados após CI exato.
+- [ ] Atualização e capability observadas no agente oficial.
+- [ ] Operação real da cliente na nova jornada; não confundir testes sintéticos com aceite financeiro.

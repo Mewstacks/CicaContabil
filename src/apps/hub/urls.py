@@ -4,6 +4,7 @@ from django.urls import path, reverse_lazy
 from apps.hub import (
     account_candidate_views,
     depara_review_views,
+    ledger_request_views,
     native_title_views,
     setup_views,
     title_views,
@@ -14,6 +15,18 @@ from apps.platform.legal import legal_document
 app_name = "hub"
 
 urlpatterns = [
+    path(
+        "app/conciliacao/razao/", ledger_request_views.ledger_request,
+        name="reconciliation-ledger-request",
+    ),
+    path(
+        "app/conciliacao/razao/<uuid:job_id>/situacao/", ledger_request_views.ledger_status,
+        name="reconciliation-ledger-status",
+    ),
+    path(
+        "app/conciliacao/razao/<uuid:job_id>/retomar/", ledger_request_views.ledger_retry,
+        name="reconciliation-ledger-retry",
+    ),
     path(
         "app/conciliacao/de-para/", depara_review_views.depara_batches,
         name="reconciliation-depara",

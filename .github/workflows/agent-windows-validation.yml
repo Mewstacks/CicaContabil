@@ -42,20 +42,20 @@ jobs:
           --results-directory agent-windows/artifacts/validation
       - name: Build MSI
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.8
+        run: ./agent-windows/build.ps1 -Version 1.0.11
       - name: Install, repair, restart, diagnose and uninstall
         shell: pwsh
         run: ./agent-windows/test-installer.ps1
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 2d4086920da3f6af8201ed97221dd7ad41ce804a
+          ref: 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5
           path: baseline-agent
           persist-credentials: false
       - name: Build baseline and verify configured upgrade
         shell: pwsh
         run: |
-          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.7
-          ./agent-windows/test-ledger-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
+          ./agent-windows/test-ledger-self-service-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi
       - name: Preserve tested installer
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -64,6 +64,7 @@ jobs:
             agent-windows/artifacts/CicaAgent.msi
             agent-windows/artifacts/CicaAgent.msi.sha256
             agent-windows/artifacts/release.json
+            agent-windows/artifacts/upgrade-ledger-self-service.ps1
             agent-windows/artifacts/dependency-inventory.json
           if-no-files-found: error
           retention-days: 1

@@ -25,6 +25,7 @@ from apps.hub.models import (
     OfxTransactionIdentity,
     ProductModule,
     ReconciliationAccountCandidate,
+    ReconciliationLedgerMapping,
 )
 from apps.intelligence.models import AgentEnrollment, EdgeAgent
 from apps.organizations.models import Membership
@@ -84,7 +85,7 @@ def account_usage_reasons(account: FinancialAccount) -> tuple[str, ...]:
     reasons = []
     for relation in FinancialAccount._meta.related_objects:
         model = relation.related_model
-        if model is ReconciliationAccountCandidate:
+        if model in (ReconciliationAccountCandidate, ReconciliationLedgerMapping):
             continue
         if model._default_manager.filter(**{relation.field.name: account.pk}).exists():
             reasons.append(model._meta.label_lower)

@@ -1604,6 +1604,22 @@ class FinancialAccount(OrganizationScopedModel):
         ]
 
 
+class ReconciliationLedgerMapping(OrganizationScopedModel):
+    """Private, explicit review of the Domínio scope used by monthly collections."""
+
+    financial_account = models.OneToOneField(
+        FinancialAccount, on_delete=models.PROTECT, related_name="ledger_mapping",
+    )
+    scope = models.JSONField()
+    account_identity = models.JSONField()
+    revision = models.CharField(max_length=64)
+    evidence_reference = models.CharField(max_length=240)
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    reviewed_at = models.DateTimeField()
+    provenance = models.JSONField(default=dict)
+    review_history = models.JSONField(default=list)
+
+
 class ReconciliationAccountCandidate(OrganizationScopedModel):
     """Retained account configuration, distinct from an operational bank account."""
 
