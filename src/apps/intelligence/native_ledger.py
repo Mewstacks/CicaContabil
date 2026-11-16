@@ -77,13 +77,12 @@ def next_job(request: HttpRequest) -> JsonResponse:
     if not expanded and payload != {"version": "1.0.8"}:
         return agent_error("Versão de coleta nativa incompatível.", 400)
     jobs = (
-        NativeLedgerCollection.objects.select_for_update()
+        NativeLedgerCollection.objects.select_for_update(of=("self",))
         .select_related("financial_account__company")
         .filter(agent=agent, organization=agent.organization, state="queued")
     )
     if not expanded:
         jobs = jobs.filter(scope_revision=canonical_hash(pilot_scope()))
-    job = jobs.order_by("created_at").first()
     result: dict[str, Any] = {
         "job": None,
         "review_required": (
@@ -92,9 +91,21 @@ def next_job(request: HttpRequest) -> JsonResponse:
             ).exists()
         ),
     }
-    if job is not None:
-        if not _job_valid(job, agent):
+    job = None
+    invalid_pending = False
+    # A transient failure updates its job, allowing the other accounts to run
+    # before it is retried. Invalid scopes stay untouched and never reach the
+    # agent, but must not prevent delivery of another currently authorized job.
+    for candidate in jobs.order_by("updated_at", "created_at", "id").iterator():
+        if _job_valid(candidate, agent):
+            job = candidate
+            break
+        invalid_pending = True
+    if invalid_pending:
+        result["review_required"] = True
+        if job is None:
             return agent_error("Escopo de coleta nativa incompatível.", 409)
+    if job is not None:
         result["job"] = {
             "id": str(job.id),
             "version": VERSION,
