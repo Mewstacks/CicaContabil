@@ -182,6 +182,7 @@ from apps.hub.models import (
     ParcelamentoOperation,
     PayrollPeriodSnapshot,
     ProductModule,
+    ReconciliationAccountCandidate,
     ReconciliationDecision,
     ReconciliationLayout,
     ReconciliationMatch,
@@ -9748,6 +9749,10 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         paginated_lists[f"{key}_page"] = page
         paginated_lists[f"{key}_querystring"] = params.urlencode()
 
+    pending_account_candidates = ReconciliationAccountCandidate.objects.filter(
+        organization=office, company=selected_company,
+        state=ReconciliationAccountCandidate.State.PENDING,
+    ).count()
     ledger_account_count = ledger_accounts_query.filter(active=True, accepts_entries=True).count()
     financial_account_count = financial_accounts_query.filter(active=True).count()
     accounting_period_count = accounting_periods_query.count()
@@ -9756,7 +9761,21 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         state=ReconciliationRule.State.ACTIVE
     ).count()
     active_layout_count = reconciliation_layouts_query.filter(active=True).count()
-    if not ledger_account_count:
+    if pending_account_candidates:
+        setup_next_action = {
+            "state": "recommended",
+            "eyebrow": "CONTAS RECEBIDAS DA ORIGEM",
+            "title": f"{pending_account_candidates} pré-cadastro"
+                     + ("s" if pending_account_candidates != 1 else "") + " aguardando vínculo",
+            "description": "Empresa, plano e código já estão preenchidos para a conferência.",
+            "label": "Revisar vínculos",
+            "href": (
+                reverse("hub:reconciliation-account-candidates")
+                + "?" + urlencode({"company": selected_company.id, "status": "pending"})
+            ),
+            "section": "",
+        }
+    elif not ledger_account_count:
         setup_next_action = {
             "state": "blocked",
             "eyebrow": "COMECE PELO ESSENCIAL",
@@ -9801,6 +9820,7 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
         {
             "page_title": "Configuração da conciliação",
             "reconciliation_configuration_company": selected_company,
+            "reconciliation_pending_account_candidates": pending_account_candidates,
             "reconciliation_can_manage": (
                 context["support_can_mutate"] and _can_manage_reconciliation(context)
             ),

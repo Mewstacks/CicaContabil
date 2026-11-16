@@ -1596,6 +1596,72 @@ class FinancialAccount(OrganizationScopedModel):
         ]
 
 
+class ReconciliationAccountCandidate(OrganizationScopedModel):
+    """Retained account configuration, distinct from an operational bank account."""
+
+    class State(models.TextChoices):
+        PENDING = "pending", "Vínculo pendente"
+        LINKED = "linked", "Vínculo revisado"
+        DISMISSED = "dismissed", "Não utilizar"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="reconciliation_account_candidates"
+    )
+    source_company_code = models.PositiveIntegerField()
+    chart_company_code = models.PositiveIntegerField()
+    account_code = models.PositiveIntegerField()
+    case_reference = models.CharField(max_length=16)
+    source_key = models.CharField(max_length=96)
+    source_file_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    source_observed_at = models.DateTimeField()
+    evidence = models.JSONField(default=dict)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
+    financial_account = models.ForeignKey(
+        FinancialAccount, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="source_candidates",
+    )
+    reviewed_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="reviewed_account_candidates",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_data = models.JSONField(default=dict, blank=True)
+    review_evidence = models.CharField(max_length=1000, blank=True)
+
+    class Meta:
+        ordering = ("source_company_code", "chart_company_code", "account_code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "chart_company_code", "account_code"),
+                name="hub_unique_account_candidate_scope",
+            ),
+            models.UniqueConstraint(
+                fields=("organization", "source_key"), name="hub_unique_account_candidate_source"
+            ),
+        ]
+        indexes = [models.Index(
+            fields=("organization", "company", "state"), name="hub_account_candidate_state"
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.source_key != ":".join(str(value) for value in (
+            self.source_company_code, self.chart_company_code, self.account_code
+        )):
+            raise ValidationError({"source_key": "A chave precisa corresponder à origem da conta."})
+        if self.company_id and (
+            self.company.organization_id != self.organization_id
+            or self.company.dominio_code != str(self.source_company_code)
+        ):
+            raise ValidationError({"company": "Empresa fora do escritório ou da origem da conta."})
+        if self.financial_account_id and (
+            self.financial_account.organization_id != self.organization_id
+            or self.financial_account.company_id != self.company_id
+        ):
+            raise ValidationError({"financial_account": "Conta financeira fora da empresa."})
+
+
 class LedgerAccount(OrganizationScopedModel):
     company = models.ForeignKey(
         "ClientCompany", on_delete=models.CASCADE, related_name="ledger_accounts"

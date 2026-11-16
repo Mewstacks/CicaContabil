@@ -20,18 +20,22 @@ from apps.hub.models import (
     FinancialAccount,
     IndependentLedgerRecord,
     NormalizedMovement,
+    ReconciliationAccountCandidate,
     ReconciliationRun,
     ReconciliationSourceFile,
 )
 
 STATUS_LABELS = {
+    "pending_mapping": "Vínculo de conta pendente",
     "missing_account": "Sem conta cadastrada",
     "missing_bank": "Sem extrato no mês",
     "missing_ledger": "Sem Razão no mês",
     "available": "Dados disponíveis para conferir",
     "review": "Exige revisão",
 }
-STATUS_PRIORITY = ("review", "missing_account", "missing_bank", "missing_ledger", "available")
+STATUS_PRIORITY = (
+    "review", "pending_mapping", "missing_account", "missing_bank", "missing_ledger", "available",
+)
 FILTER_NAMES = ("month", "q", "company", "account", "status", "page")
 
 
@@ -179,6 +183,13 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
         )
     company_rows = list(companies.only("id", "name", "dominio_code"))
     company_ids = [company.pk for company in company_rows]
+    pending_candidates = {} if selected_account else {
+        row["company_id"]: row["total"]
+        for row in ReconciliationAccountCandidate.objects.filter(
+            organization=office, company_id__in=company_ids,
+            state=ReconciliationAccountCandidate.State.PENDING,
+        ).values("company_id").annotate(total=Count("pk"))
+    }
     account_query = FinancialAccount.objects.filter(
         organization=office, company_id__in=company_ids,
     ).order_by("name", "pk")
@@ -310,12 +321,23 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
     for company in company_rows:
         company_accounts = accounts_by_company[company.pk]
         statuses = {account["status"] for account in company_accounts} or {"missing_account"}
+        candidate_count = pending_candidates.get(company.pk, 0)
+        candidate_url = _url("hub:reconciliation-account-candidates", {
+            "company": company.pk, "status": "pending",
+        }) if candidate_count else ""
+        if candidate_count:
+            statuses.add("pending_mapping")
         if unassigned[company.pk]:
             statuses.add("review")
         ordered_statuses = [status for status in STATUS_PRIORITY if status in statuses]
         actions = [{"label": "Conferir configuração", "url": _url(
             "hub:reconciliation-configuration", {"company": company.pk},
         )}] if can_manage and (not company_accounts or unassigned[company.pk]) else []
+        if candidate_count:
+            actions = [{
+                "label": "Revisar vínculos" if can_manage else "Ver vínculos pendentes",
+                "url": candidate_url,
+            }]
         row = {
             "company": company, "accounts": company_accounts,
             "status": ordered_statuses[0], "status_label": STATUS_LABELS[ordered_statuses[0]],
@@ -323,6 +345,7 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
             "bank_count": sum(account["bank_count"] for account in company_accounts),
             "ledger_count": sum(account["ledger_count"] for account in company_accounts),
             "unassigned_source_count": unassigned[company.pk], "actions": actions,
+            "candidate_count": candidate_count, "candidate_url": candidate_url,
         }
         counts["all"] += 1
         for status in statuses:

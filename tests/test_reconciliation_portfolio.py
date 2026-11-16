@@ -9,6 +9,7 @@ from django.db import connection
 from django.http import QueryDict
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.hub.models import (
     AccountingEntry,
@@ -19,6 +20,7 @@ from apps.hub.models import (
     JournalEntry,
     JournalLine,
     NormalizedMovement,
+    ReconciliationAccountCandidate,
     ReconciliationRun,
     ReconciliationSourceFile,
 )
@@ -339,3 +341,62 @@ def test_read_only_and_query_count_does_not_grow_per_company(organization):
     assert result["counts"]["available"] == 31
     assert all(query["sql"].lstrip().upper().startswith("SELECT") for query in expanded)
     assert all("FOR UPDATE" not in query["sql"].upper() for query in expanded)
+
+
+def candidate(company, *, code=8, state="pending", organization=None, source_code=41):
+    company.dominio_code = str(source_code)
+    company.save(update_fields=["dominio_code"])
+    return ReconciliationAccountCandidate.objects.create(
+        organization=organization or company.organization, company=company,
+        source_company_code=source_code, chart_company_code=41, account_code=code,
+        case_reference=f"C{code:02d}", source_key=f"{source_code}:41:{code}",
+        source_file_sha256="a" * 64, portfolio_file_sha256="b" * 64,
+        source_observed_at=timezone.now(), evidence={}, state=state,
+    )
+
+
+def test_pending_candidates_are_visible_without_becoming_operational_accounts(organization):
+    item = company(organization)
+    candidate(item)
+    candidate(item, code=9)
+    candidate(item, code=10, state="dismissed")
+    before = FinancialAccount.objects.count()
+    result = context(organization, "month=2026-09&status=pending_mapping", can_manage=True)
+    row = result["rows"][0]
+    assert row["company"] == item and row["candidate_count"] == 2
+    assert row["accounts"] == [] and row["status"] == "pending_mapping"
+    assert result["counts"]["missing_account"] == result["counts"]["pending_mapping"] == 1
+    assert row["actions"][0]["label"] == "Revisar vínculos"
+    assert parse_qs(urlsplit(row["candidate_url"]).query) == {
+        "company": [str(item.pk)], "status": ["pending"],
+    }
+    assert FinancialAccount.objects.count() == before
+
+
+def test_candidate_counts_follow_company_and_organization_scope(organization):
+    allowed = company(organization)
+    restricted = company(organization, "Não autorizada")
+    candidate(restricted)
+    other = Organization.objects.create(name="Outro escritório", slug="other-candidates")
+    candidate(allowed, organization=other, source_code=42)
+    result = portfolio_context(
+        office=organization, companies=ClientCompany.objects.filter(pk=allowed.pk),
+        params=QueryDict("month=2026-09"), can_manage=False,
+    )
+    assert len(result["rows"]) == 1
+    assert result["rows"][0]["candidate_count"] == 0
+    assert result["counts"]["pending_mapping"] == 0
+
+
+def test_candidate_does_not_hide_existing_coverage_and_account_filter_is_specific(organization):
+    item = account(company(organization))
+    bank(item)
+    ledger(item)
+    candidate(item.company, code=9)
+    result = context(organization, "month=2026-09")
+    row = result["rows"][0]
+    assert set(row["statuses"]) == {"available", "pending_mapping"}
+    assert row["accounts"][0]["actions"][0]["label"] == "Abrir conferência"
+    selected = context(organization, f"month=2026-09&account={item.pk}")
+    assert selected["rows"][0]["candidate_count"] == 0
+    assert selected["rows"][0]["status"] == "available"

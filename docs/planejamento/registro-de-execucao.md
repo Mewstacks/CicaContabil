@@ -3964,3 +3964,12 @@ auditorias,14 grupos de dados e sete exemplos preservados. Nenhuma coleta
 ERP, captura, normalização, alocação ou lançamento novo. C01/retenções e
 C02/juros continuam adiados por D-355, sem nova solicitação, data ou aceite.
 Limites Q-46/Q-47/D-73 e demais pendências conservados.
+
+
+### 16/11/2026 — Pré-cadastro das demais contas preparado (D-365/V-404)
+
+43 candidatas/11 empresas identificadas nos perfis existentes, sem dados
+bancários/revisões completos. Implementadas persistência separada, importação
+atômica e revisão pela cliente; carteira aponta o próximo passo. Pré-cadastro
+não cria fonte financeira ou conta utilizável. Validação local/QA em andamento;
+CI/publicação/importação real ainda pendentes. Fontes privadas e piloto preservados.

@@ -1,3 +1,14 @@
+## D-365/V-404 — Contas das demais empresas, 16/11/2026
+
+- [x] Conferir fontes retidas, matriz146 e ordem C01–C43 sem completar dados ausentes.
+- [x] Implementar pré-cadastro separado, importação idempotente e revisão privada com permissões.
+- [x] Indicar vínculos pendentes na carteira/configuração, sem esconder fontes faltantes.
+- [ ] Concluir CI integral, migração/publicação e cadastro43 real com recibo e integridade.
+- [ ] Cliente validar banco/referência, nome/plano/direção e evidência de cada vínculo aplicável.
+- [ ] Identificar contas nas134 demais empresas sem candidata e obter fontes/competências reais.
+
+Nada nesta preparação encerra PC-19/Q-28, Q-46/D-73 ou os adiados Q-47/C01/C02.
+
 ## D-364/V-403 — Facilitar o uso da cliente, 16/11/2026
 
 - [x] Implementar carteira por empresa/conta/mês e relatório legível/imprimível, mantendo o CSV técnico.

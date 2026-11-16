@@ -1,11 +1,35 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
+## Validar as contas das demais empresas — D-365/V-404
+
+Recurso preparado; aguarda publicação e importação verificadas em V-404.
+Os casos C01–C43 reaproveitam a ficha existente. Empresa, plano e código da
+conta já vêm da origem; os dados bancários precisam da sua conferência.
+
+1. Na carteira, abra **Vínculos de contas** ou filtre **Vínculo de conta pendente**
+   e escolha **Revisar vínculos** na empresa. Busque por empresa, caso ou código.
+2. Abra o caso e confira empresa, conta contábil e empresa do plano. Consulte
+   o extrato e o plano reais; informe nome da conta, código do banco, agência
+   e conta, lado do Razão para entrada bancária e referência da evidência.
+3. Confirme as três verificações somente depois de comprová-las e escolha
+   **Vincular conta**. A tela registra responsável, data e prova; cadastros
+   incompatíveis precisam de revisão e não são sobrescritos.
+4. Se a candidata não deve ser usada, abra **Não utilizar esta conta**, descreva
+   o motivo e registre. A origem e a decisão permanecem disponíveis para consulta.
+5. Volte à carteira, escolha a competência e siga a pendência de **Importar
+   extrato** ou **Importar Razão**. O vínculo cadastrado não traz movimentos
+   de outros meses. Confira a conta e o período antes de enviar cada fonte.
+
+A situação **Vínculo revisado** identifica o cadastro conferido; não significa
+que os movimentos do mês já foram conciliados. Se faltarem dados para provar
+a associação, mantenha **Vínculo pendente**. Para empresas sem candidata,
+use **Conferir configuração** após identificar as contas nas fontes reais.
+
 ## Carteira por empresa e relatório — atualização D-364, 16/11/2026
 
-**Preparado e validado localmente; publicação ainda pendente.** Este roteiro
-descreve a nova versão e será usado após a confirmação de sua publicação.
-O percurso do piloto já publicado continua disponível. Não há nova aprovação
-de contas ou fontes, treinamento concluído ou aceite atribuído à cliente.
+**Carteira e relatório publicados na release93, conforme V-403.**
+O percurso do piloto continua disponível; as demais empresas precisam de
+contas vinculadas e fontes do período para iniciar a conferência.
 
 1. Em **Contábil → Conciliação bancária**, abra **Conciliação por empresa**.
    Confira o escritório e escolha a **Competência**. Use empresa/código e
