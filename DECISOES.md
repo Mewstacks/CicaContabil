@@ -4991,3 +4991,76 @@ Complemento D-366: preservar ativação/desativação de conta vinculada por mei
 da edição auditada (motivo, token e histórico), mantendo nome/identidade/plano
 somente leitura nessa tela. A revisão bancária/evidência permanece intacta;
 identidade segue corrigível exclusivamente no vínculo ainda sem uso.
+
+
+## D-367 — Títulos e baixas utilizáveis pela cliente (16/11/2026)
+
+Origem: o responsável instruiu concluir tudo que depende do desenvolvimento,
+começando por títulos/baixas e separando somente dados ou validações realmente
+dependentes da cliente. Backup não é prioridade desta rodada e não bloqueará
+o avanço do uso. Retoma D-323/D-346/D-356 após a publicação95/D-366.
+
+Auditar e concluir o percurso pela interface sobre os contratos/serviços já
+existentes: consultar fontes retidas, revisar explicitamente sua tradução,
+importar títulos revisados, conferir baixas e suas alocações, desfazer decisões
+e consultar histórico/relatório conforme o escopo comprovado. Escolhas de
+semântica, componentes, saldo/cobertura, vínculo bancário e evidência permanecem
+humanas; nenhum código bruto, igualdade de valor ou ausência vira aprovação.
+Não exigir da cliente edição de JSON/CLI se uma interface puder concluir a
+operação com os mesmos controles. Preservar segregação por empresa/escritório,
+acesso vigente, concorrência, integridade e idempotência.
+
+Implementar em checkout isolado a partir da versão95 e validar com dados
+sintéticos, testes adequados e Playwright. Aplicar UI/UX Pro Max, Watermelon,
+pesquisa de produto e diretrizes de interface, mantendo o padrão CICA. Dados
+financeiros reais e recibos privados ficam fora do Git, CI e conteúdo enviado
+a modelos. Publicação compatível nas mesmas máquinas/capacidade após CI da
+árvore exata conforme autorização D-323/D-346; legado permanece parado.
+
+Q-28/Q-46 mantêm apenas comprovações reais ainda necessárias. Q-47/C01/C02
+continuam adiados, sem nova pergunta por rotina. Não autoriza terceira chamada
+IA, novos custos/recursos, nova captura financeira ERP por inferência, mensagens
+ou aceite humano. Atualizar controles existentes com o que foi realmente
+entregue e pendências concretas; não declarar a carteira inteira concluída por
+haver código pronto.
+
+Refinamento D-367: a revisão guiada da captura retida será feita por parcela,
+com publicação cumulativa e explícita. Cada publicação preserva as demais
+parcelas da fotografia vigente íntegra e substitui somente a parcela revisada,
+com vínculo imutável à fotografia anterior e à captura/evidência atual. Token
+de revisão vincula ator, conta, fonte e revisão vigente; mudanças concorrentes
+exigem nova leitura. Fonte anterior à posição vigente não a substitui. Nenhuma
+ausência é interpretada como exclusão; a cobertura continua incompleta e os
+saldos desconhecidos. Correção incompatível com alocações confirmadas exige
+desfazimento humano prévio. Catálogo/prévia mostram capacidade global já
+utilizada, não somente a capacidade do pedido atual. A interface confirma
+alocações de baixas existentes; não executa pagamentos nem grava no ERP.
+
+Complemento D-367: disponibilizar também a revisão das sugestões DE-PARA já
+respondidas e retidas. A tela usa exclusivamente review-packet/review, com
+contas ativas/analíticas conferidas, histórico explícito, token concorrente e
+criação de rascunhos idempotentes. A ativação continua humana na configuração
+existente. Fonte nativa sem plano aprovado aponta para o cadastro/revisão do
+plano; não cria contas nem assume permissões de lançamento. Esta tela não
+prepara ou gera chamadas externas e mantém a política IA desligada. Consulta
+de títulos normalizados/histórico permite auditor com acesso vigente à mesma
+empresa e módulo; escrita continua restrita aos papéis operacionais atuais.
+
+Refinamento de integridade D-367: o ensaio A→A'→A demonstrou que a
+deduplicação devolve a fotografia antiga sem torná-la vigente. Corrigir o
+problema técnico nesta rodada com seleção vigente explícita e auditada na
+conta (FK opcional/aditiva, preservando INSERT do runtime anterior). Unificar
+a seleção vigente nos serviços, catálogo e tradução. Importação inédita segue
+a posição vigente; reenvio não reativa silenciosamente uma fotografia antiga.
+A restauração de fotografia idêntica anterior só ocorre após prévia humana
+explícita, token vigente, mesmo escopo e posição compatível, mantendo todas
+as fotografias/decisões imutáveis e bloqueando alterações de baixas alocadas.
+Não alterar a data da fonte nem apagar dados para contornar a deduplicação.
+Ensaiar migração/compatibilidade e aplicar a mesma validação das duas bases
+e máquinas já autorizadas antes da publicação.
+
+Complemento D-367: a ativação de regra existente deve revalidar sob trava da
+empresa o acesso e as contas contábeis ativas/analíticas referenciadas. Gravação
+da ativação e auditoria serão atômicas; mudança posterior ao rascunho exige
+correção humana. A desativação permanece disponível. Não transformar sugestão
+em regra ativa automaticamente nem usar plano bruto como aprovação.

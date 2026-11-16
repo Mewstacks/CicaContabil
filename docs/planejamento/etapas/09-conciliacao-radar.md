@@ -5,7 +5,7 @@
 - [x] Validar completude do cadastro e manter empresa/conta na importação.
 - [x] Separar envio do Razão independente, disponibilizar modelo e rejeitar lote inválido antes da gravação.
 - [x] Implementar recuperação por lease360s/watchdog/token e startup, mantendo agenda ociosa15min.
-- [ ] Encerrar CI integral, ensaio0084 e publicação compatível com integridade conferida.
+- [x] CI43912687677, ensaio0084, publicação release95 e15 grupos preservados conferidos.
 - [ ] Fonte/revisão humana para os43 vínculos e identificação das contas nas134 demais empresas; fontes e cobertura Q-28 próprias.
 
 A implementação não equivale a aceite, backup operacional ou operação completa.
@@ -665,3 +665,16 @@ A persistência normalizada está implementada; a fonte ERP não foi presumida h
 - [x]88 testes locais e checagens estáticas/Django aprovados; sem migração.
 - [x] V-382: CI43335886670 integral aprovado, PR13 integrado e backend86 saudável; prova READ ONLY da fonte retida e preservação dos14 grupos conferidas.
 - [ ] C01/C02 adiados; ausência ou comparação sem mudanças não prova estorno/semântica.
+
+
+### D-367/V-406 — Operação de títulos/baixas e DE-PARA pela cliente
+
+- [x] Revisão nativa guiada, cumulativa e restauração auditada sem alterar fonte.
+- [x] Seleção banco/baixas, prévia, confirmação, capacidade global, histórico e desfazer.
+- [x] Relatório legível/CSV em reais e referências humanas das fontes revisadas.
+- [x] Revisão das sugestões DE-PARA retidas e ativação com plano/acesso atuais.
+- [x] Testes sintéticos PostgreSQL/SQLite e QA no navegador.
+- [ ] CI integral da árvore final e publicação compatível comprovados.
+- [ ] Cliente valida as fontes/semântica/vínculos reais; fontes ausentes continuam próprias.
+
+Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.

@@ -1,0 +1,39 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><script src="{% static 'hub/reconciliation-titles.js' %}" defer></script>{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel titles-panel" aria-labelledby="native-review-heading">
+  <header class="workspace-panel-head"><div><h2 id="native-review-heading">Revisar parcela da fonte</h2><p>{{ title_account.company.name }} · {{ title_account.name }}</p></div><a class="button button-quiet" href="{{ native_back_url }}">Voltar às parcelas</a></header>
+  {% if native_error %}<div class="form-errors" role="alert">{{ native_error }}</div>{% endif %}
+  {% if native_part %}
+  <dl class="titles-data"><div><dt>Origem</dt><dd>{{ native_part.family_label }}</dd></div><div><dt>Nota da fonte</dt><dd>{{ native_part.note }}</dd></div><div><dt>Parcela</dt><dd>{{ native_part.number }}</dd></div><div><dt>Vencimento informado</dt><dd>{{ native_part.due_on|default:'Não informado' }}</dd></div></dl>
+  <p class="titles-notice">A decisão é sua: os códigos de tipo e os valores da fonte não são classificados automaticamente. O saldo permanecerá não informado; salvar a parcela não confirma baixa bancária nem quitação.</p>
+  <details class="titles-source-details"><summary>Conferir os campos originais da parcela</summary><dl class="titles-data">{% for key,value in native_part.raw_fields %}<div><dt>{{ key }}</dt><dd>{{ value|default_if_none:'Não informado' }}</dd></div>{% endfor %}</dl></details>
+  {% endif %}
+</section>
+{% if native_form %}
+<form method="post" action="{{ native_review_url }}" class="titles-form" data-title-review-form>
+{% csrf_token %}
+<section class="workspace-panel titles-panel"><h3>1. Conferir a parcela</h3>{% include 'hub/reconciliation_native_titles_fields.html' with form=native_form %}</section>
+<section class="workspace-panel titles-panel"><h3>2. Interpretar os eventos da fonte</h3>
+{% for event,form in native_events %}
+<fieldset class="titles-panel"><legend>Evento {{ forloop.counter }} · {{ event.posted_on }} · número {{ event.number }}</legend>
+<details class="titles-source-details"><summary>Conferir os {{ event.rows|length }} componentes originais deste evento</summary>{% for row in event.rows %}<h4>Componente {{ forloop.counter }}</h4><dl class="titles-data">{% for key,value in row %}<div><dt>{{ key }}</dt><dd>{{ value|default_if_none:'Não informado' }}</dd></div>{% endfor %}</dl>{% endfor %}</details>
+<p class="field-help">Valores em reais; preencha componentes ausentes com zero. Caixa efetivo = principal + juros + multa + tarifas − desconto.</p>
+{% include 'hub/reconciliation_native_titles_fields.html' with form=form %}
+</fieldset>
+{% empty %}<p>Não há eventos de baixa nesta parcela na fonte recebida. Isso não comprova que a parcela esteja em aberto ou quitada.</p>{% endfor %}
+</section>
+{% if native_preview %}
+<section class="workspace-panel titles-panel" aria-labelledby="native-preview-heading"><h3 id="native-preview-heading">3. Conferir a prévia antes de salvar</h3>
+<dl class="titles-data"><div><dt>Natureza escolhida</dt><dd>{% if native_preview.kind == 'payable' %}A pagar{% else %}A receber{% endif %}</dd></div><div><dt>Principal da parcela</dt><dd>R$ {{ native_preview.principal_display }}</dd></div><div><dt>Saldo</dt><dd>Não informado</dd></div><div><dt>Data de referência da fotografia</dt><dd>{{ native_preview.as_of }}</dd></div></dl>
+{% for event in native_preview.installment.settlements %}<article><h4>Evento {{ forloop.counter }} · {{ event.posted_on }} · {% if event.direction == 'inflow' %}Entrada{% else %}Saída{% endif %}{% if event.reverses %} · Estorno integral{% endif %}</h4><dl class="titles-data">{% for label,amount in event.amounts %}<div><dt>{{ label }}</dt><dd>R$ {{ amount }}</dd></div>{% endfor %}</dl></article>{% endfor %}
+<p>Serão preservadas {{ native_preview.preserved_count }} outras parcelas da fotografia vigente. Somente esta parcela será incluída ou substituída. A cobertura das baixas permanece parcial, mesmo que a fotografia anterior fosse completa.</p>
+<input type="hidden" name="confirmation_token" value="{{ native_preview.confirmation_token }}">
+<div class="field field-checkbox"><label for="native-publication-confirmed"><input id="native-publication-confirmed" type="checkbox" name="publication_confirmed"><span>Conferi a prévia e autorizo salvar esta parcela, preservando as demais e os registros anteriores.</span></label></div>
+<div class="titles-actions"><button class="button" type="submit" name="action" value="confirm" data-busy-label="Salvando…">Salvar parcela revisada</button><button class="button button-quiet" type="submit" name="action" value="preview">Atualizar prévia</button></div>
+</section>
+{% else %}<div class="titles-actions"><button class="button" type="submit" name="action" value="preview">Conferir prévia</button><a class="button button-quiet" href="{{ native_review_url }}">Reabrir parcela</a></div>{% endif %}
+</form>
+{% endif %}
+{% endblock %}

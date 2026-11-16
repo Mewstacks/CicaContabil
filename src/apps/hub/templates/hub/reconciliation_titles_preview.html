@@ -1,0 +1,16 @@
+{% extends 'hub/reconciliation_titles_base.html' %}
+{% block titles_content %}
+<section class="workspace-panel titles-panel">
+  <header class="workspace-panel-head"><div><h2>Revisar vínculos</h2><p>{{ title_account.company.name }} · {{ title_account.name }} · {{ titles_start|date:'d/m/Y' }} a {{ titles_end|date:'d/m/Y' }}</p></div><a class="button button-quiet" href="{{ titles_plan_url }}">Preparar outra seleção</a></header>
+  <p class="titles-notice">Esta prévia ainda não confirma nada. Confira cada relação e informe a evidência antes de salvar.</p>
+  <div class="data-table-wrap"><table class="operational-table titles-table"><thead><tr><th>Baixa revisada</th><th>Movimento do extrato</th><th class="titles-number">Valor deste vínculo</th><th>Datas</th></tr></thead><tbody>{% for row in titles_preview_rows %}<tr><td data-label="Baixa">{{ row.settlement.label }}<small>{{ row.settlement.direction_label }} · caixa {{ row.settlement.cash_display }}</small></td><td data-label="Movimento">{{ row.movement.label }}<small>{{ row.movement.direction_label }} · valor {{ row.movement.cash_display }}</small></td><td data-label="Valor" class="titles-number">{{ row.amount }}</td><td data-label="Datas">{% if row.date_difference %}<strong class="status-badge is-warning">Datas diferentes</strong>{% else %}Mesma data{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  <details class="titles-data"><summary>Valores disponíveis após esta confirmação</summary><ul>{% for row in titles_preview_movements %}<li>{{ row.label }}<p>Total alocado {{ row.allocated }} · disponível {{ row.remaining }}</p></li>{% endfor %}</ul></details>
+  <form method="post" action="{% url 'hub:reconciliation-title-confirm' account_id=title_account.id %}" class="titles-form" data-title-review-form>
+    {% csrf_token %}{{ titles_confirm_form.token }}
+    {% for field in titles_confirm_form %}{% if not field.is_hidden %}<div class="field{% if field.field.widget.input_type == 'checkbox' %} titles-check{% endif %}">{% if field.field.widget.input_type == 'checkbox' %}<label for="{{ field.id_for_label }}">{{ field }}<span>{{ field.label }}</span></label>{% else %}{{ field.label_tag }}{{ field }}{% endif %}{{ field.errors }}</div>{% endif %}{% endfor %}
+    {{ titles_confirm_form.non_field_errors }}
+    <div class="titles-actions"><button class="button" type="submit" data-busy-label="Confirmando…">Confirmar {{ titles_preview_count }} vínculo{{ titles_preview_count|pluralize }}</button><a class="button button-quiet" href="{{ titles_catalog_url }}">Cancelar</a></div>
+  </form>
+  <p class="field-help">A confirmação registra sua conferência na CICA. Não cria ou altera baixas no ERP.</p>
+</section>
+{% endblock %}

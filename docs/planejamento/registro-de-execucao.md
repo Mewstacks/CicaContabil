@@ -1,3 +1,12 @@
+## 16/11/2026 — D-366/V-405 concluída em produção, release95
+
+PR24/CI43912687677 aprovados e publicação nas duas máquinas existentes.
+Migração0084 ensaiada/aplicada, runtime idêntico, saúde/worker aprovados;
+15grupos protegidos preservados. Percurso de empresa nova e correções de
+contas/vínculos validados sinteticamente. Não houve nova confirmação humana,
+coleta financeira ou expansão fictícia de cobertura. Ver V-405 para números,
+provas e pendências de dados/backup/aceite que continuam abertas.
+
 ## 16/11/2026 — D-366/V-405, fechamento dos bloqueios de uso
 
 Implementados no checkout isolado correção auditada de contas/vínculos,
@@ -3983,3 +3992,12 @@ bancários/revisões completos. Implementadas persistência separada, importaç�
 atômica e revisão pela cliente; carteira aponta o próximo passo. Pré-cadastro
 não cria fonte financeira ou conta utilizável. Validação local/QA em andamento;
 CI/publicação/importação real ainda pendentes. Fontes privadas e piloto preservados.
+
+
+### 16/11/2026 — D-367/V-406: fechar uso da cliente em títulos/baixas
+
+Checkout isolado da95, fontes reais preservadas. Construído percurso semCLI
+e revisão DE-PARA sem novas chamadas. Corrigidos capacidade global, revisão
+cumulativa, restauração da fotografia vigente, rollback de fontes e ativação
+de regras concorrente/auditada. PostgreSQL238+3focados e QA sintético passaram;
+0085 ensaiada no runtime95. CI/publicação final seguem antes da entrega.

@@ -2,9 +2,8 @@
 
 ## Cadastrar, corrigir e receber o Razão — atualização D-366, 16/11/2026
 
-Atualização implementada e validada localmente; CI e publicação ainda
-pendentes. As instruções abaixo acompanham essa atualização. Os dados de cada
-empresa e a conferência da cliente continuam necessários.
+Atualização disponível no CICA, release95, com publicação conferida em V-405.
+Os dados de cada empresa e a conferência da cliente continuam necessários.
 
 Para uma empresa **Sem conta cadastrada**, abra **Conferir configuração**.
 Cadastre a conta contábil real em **Plano de contas**, ativa e apta a receber
@@ -21,7 +20,12 @@ fontes, lançamentos ou coletas associados; nessa situação, o formulário perm
 corrigir o nome e controlar novos usos. Se a página informar que outra pessoa
 alterou a conta, reabra e confira a versão atual antes de salvar.
 
-Contas originadas de **Vínculos de contas** são corrigidas no próprio caso.
+Para uma conta originada de **Vínculos de contas**, **Corrigir conta** permite
+ativar ou desativar novos usos com motivo e histórico. Nome, banco, agência/conta
+e vínculo contábil ficam somente para leitura nessa tela; ativar exige cadastro
+completo. A evidência e a revisão do vínculo são preservadas.
+
+Os dados do vínculo são corrigidos no próprio caso.
 Use **Corrigir vínculo**, registre motivo e nova evidência e confira novamente
 as três verificações. Se já houver fontes, lançamentos ou coletas associados,
 o vínculo usado é preservado e exige análise do responsável. Para um caso
@@ -361,3 +365,35 @@ movimento duplicado em OFX sobreposto e acesso/perfil/carteira/contrato revogado
 O recibo preserva a revisão e o comando imprime somente identificadores,
 contagens e hashes. O relatório de revisão é privado e criado sem sobrescrita.
 Isso não conclui Q-46, importação ERP Q-47, treinamento ou aceite D-73.
+
+
+## Títulos e baixas
+
+Na Conciliação bancária, abra **Títulos e baixas**, escolha empresa/conta e
+período. Em **Conferir fontes recebidas**, selecione a fonte e revise uma
+parcela por vez. Confira os campos originais, escolha a natureza e o campo
+que representa o principal e informe os componentes de cada evento em reais.
+Registre a referência da conferência, abra a prévia e salve somente após
+comprovar as decisões. As outras parcelas revisadas são preservadas.
+
+Em **Vincular baixas ao extrato**, selecione a baixa, o movimento e o valor
+desta relação. Use **Adicionar vínculo** para parciais/agrupamentos (até20 por
+revisão). Confira a prévia, diferenças de datas e evidência antes de confirmar.
+Valores já usados são descontados da capacidade. Uma fonte de cobertura
+parcial conserva saldo não informado; a tela não registra baixa no Domínio.
+
+**Vínculos e histórico** conserva decisões e permite **Desfazer vínculo** com
+motivo. **Ver relatório** permite imprimir e **Baixar CSV** apresenta valores
+em reais, componentes e evidências. O relatório de títulos traz as parcelas
+da fotografia, as baixas/movimentos do período e o histórico completo dos
+vínculos da conta. É diferente do CSV técnico da conferência extrato×Razão,
+que continua com seu contrato de centavos e todas as páginas.
+
+## Revisar as sugestões DE-PARA
+
+Abra **Revisar DE-PARA** na conciliação ou configuração. Escolha um lote já
+respondido, confira contas de débito/crédito e histórico e selecione as
+sugestões aprovadas. **Preparar rascunhos selecionados** não ativa regras.
+Depois use **Revisar e ativar regras**; o sistema confere novamente o plano.
+Se faltam contas aprovadas, use **Conferir ou cadastrar contas**. Essa tela
+não faz novas chamadas de IA e não libera consumo recorrente.

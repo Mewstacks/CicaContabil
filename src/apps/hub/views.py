@@ -9634,26 +9634,34 @@ def reconciliation_configuration(request: HttpRequest) -> HttpResponse:
                 }
                 return configuration_redirect(section_by_action[action])
         elif action == "toggle_rule":
+            from apps.hub.depara_rule_activation import (
+                RuleActivationConflict,
+                set_reconciliation_rule_state,
+            )
+
+            if any(len(request.POST.getlist(name)) != 1 for name in (
+                "action", "company", "rule_id", "expected_rule_state",
+            )):
+                return refuse(
+                    request, "Reabra a regra antes de alterar seu estado.", kind="unavailable",
+                )
             rule = get_object_or_404(
                 ReconciliationRule,
                 id=request.POST.get("rule_id"),
                 organization=office,
                 company=selected_company,
             )
-            rule.state = (
-                ReconciliationRule.State.DISABLED
-                if rule.state == ReconciliationRule.State.ACTIVE
-                else ReconciliationRule.State.ACTIVE
-            )
-            rule.save(update_fields=["state", "updated_at"])
-            record_event(
-                action="hub.reconciliation.rule.state_changed",
-                actor=request.user,
-                organization=office,
-                target=rule,
-                request=request,
-                metadata={"state": rule.state},
-            )
+            try:
+                set_reconciliation_rule_state(
+                    rule=rule, actor=cast(User, request.user),
+                    expected_state=request.POST["expected_rule_state"], request=request,
+                )
+            except PermissionDenied as exc:
+                return refuse(request, str(exc))
+            except ValueError as exc:
+                response = refuse(request, str(exc), kind="unavailable")
+                response.status_code = 409 if isinstance(exc, RuleActivationConflict) else 400
+                return response
             messages.success(request, "Situação da regra atualizada.")
             return configuration_redirect("regras-layouts")
         elif action == "toggle_setup":

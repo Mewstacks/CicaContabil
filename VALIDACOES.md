@@ -9333,3 +9333,101 @@ roteamento default/recordersambos, prévia sem escrita, replay, hash inválido,
 pendência em outroalias e divergência schema/recorder recusados. Novo default
 persistente garante a transição sem janela presumida de ausência de escritas.
 Isso não é backup/restore da produção nem homologação humana.
+
+
+Fechamento V-405: PR24 integrado em 5895283c460ec0a709445ef67da839a2b027a287; CI43912687677 aprovado
+na árvore bcdf354973076df31228bba699759c64e86effe6, tree
+fd37a0affbc139ac7258e18d0df8a9ad701ea14e. Suítes finais: 2701 passed, 44 skipped, 181 subtests passed in 285.53s;
+2743 passed, 2 skipped, 181 subtests passed in 374.93s. Contratos Windows/Linux e três imagens CI aprovados.
+Quarenta testes PostgreSQL da edição final também passaram;68 testes locais
+setup/candidata passaram(2skipsPG), além do agregado236 anterior. São conjuntos
+sobrepostos, não somar. Ensaio0084 em PostgreSQL local com classes94:9/9checks,
+complementando12/12 da imagem94 isolada. Nenhuma prova é backup real/aceite.
+
+Migração0084 SHA2f59cb0424facd6965ae1e9c80879aeea7957c83aca804cfbe0251c9d7152b9b
+aplicada pelo runner ensaiado após preflight dos dois aliases/endpoints diretos.
+Runtime antigo preservado durante a aplicação; default persistente garante
+INSERT compatível. Campos hub somente no default e recorder nos dois aliases;
+temporários removidos, fontes anteriores inalteradas.
+
+Release95, imagem registry.fly.io/cica-contabil@sha256:33203ec16c93fad7a95d1d50a0f53c213a3999a0fd92598dae517cd84a9ad28a, publicada somente em web891e63ef665e58
+e worker1857691da097e8, mantendo512MB/1CPU e configurações anteriores.
+Legado287e35db920e48 permanece parado e inalterado. Runtime756arquivos/SHA
+967fbca57ec2155b4bdb6b892b7ff312b801d209cc00cf18d9af770fb181af78 igual em ambos;
+751fontes confrontadas com o commit(142exatas,609CRLF herdadas),5metadados
+preservados. Saúde live/ready, banco/cache, assets e resposta do worker aprovados.
+
+Quinze grupos protegidos iguais antes/depois.146empresas,1conta operacional,
+43candidatas pendentes em11empresas e134 demais sem identificação mantidos.
+Novos históricos vazios:1FinancialAccount/43candidatas; nenhuma revisão/conta
+ou fonte real criada. Piloto mantém163movimentos/163registros independentes,
+334partidas e3decisões anteriores. Nenhuma coletaERP/IA/custo/MSI/mensagem,
+exportação Domínio ou homologação humana realizada nesta rodada.
+
+QA visual final do controleactive vinculado:3vistas(375claro/escuro e1440),
+campos de identidade somenteleitura, motivo/token e navegação por teclado,
+sem overflow/erros. Produção validada por runtime/saúde/assets e leitura
+servidor; não houve nova sessão autenticada da cliente operada por nós.
+
+Evidências privadas em contad-operational-completion/CicaContabil/.tmp:
+release/delivery-final.json, ci-result.json, ci-final.log, migration-rehearsal*
+/preflight/apply.json, fingerprints*, history-after.json e machines*;
+operations/git-source-verification.json, runtime-verification.json e imagem;
+qa/new-company-complete.json, new-company-database-verification.json,
+candidate-correction-visual-followup.json e linked-account-active-readonly.json.
+
+Ficam abertas as informações/revisões humanas43+134 e fontes/competências
+Q-28, títulos/baixas/DE-PARA Q-46, backup/recuperação operacional, amostra e
+aceite D-73; Q-47/C01/C02 adiados preservados. Correção publicada não equivale
+a sistema integralmente concluído nem operação comprovada de toda a carteira.
+
+
+## V-406 — Títulos, baixas e revisão DE-PARA pela cliente (16/11/2026)
+
+D-367, etapas09/11/12, PC-19/Q-46. Implementação em checkout isolado a partir
+da release95; dados usados nos testes e navegador inteiramente sintéticos.
+O novo percurso elimina a necessidade de editar JSON/usar CLI: lista de
+fontes retidas, revisão explícita de parcela/componentes, prévia, publicação
+cumulativa, seleção banco/baixas, confirmação, histórico/desfazer e relatório
+HTML/CSV em reais. Não registra pagamento ou lançamento no ERP.
+
+A fotografia vigente passa a ter seleção explícita nullable na conta
+(migração0085), preservando as fotografias imutáveis. Restauração A→A'→A
+exige revisão atual e mantém prova de quem a tornou vigente. Alocações
+confirmadas impedem correção silenciosa; capacidade inclui todo uso anterior,
+OFX sobreposto e estorno integral. Fontes/conteúdo/escopo/acesso/plano atuais
+são revalidados; prévias vinculadas ao ator e à conta recusam adulteração.
+
+DE-PARA: lotes já respondidos podem ser revisados na tela. Contas/histórico
+explícitos criam somente rascunhos; ativação humana revalida plano e acesso
+sob trava, com auditoria atômica e detecção de revisão concorrente. Nenhuma
+nova preparação, chamada IA ou liberação de política ocorre nessa tela.
+
+Validação local: agregado PostgreSQL238 testes sem skips, mais3 focados no
+filtro por empresa; SQLite49 UI/labels,88 revisão/tradução/persistência com3
+casos exclusivos PostgreSQL. Esses conjuntos se sobrepõem: não somar. Ruff,
+checks Django, migrações e mypy focal aprovados. Ensaio da migração executado
+na imagem imutável95, sem rede, com filesystem somente leitura e bases
+sintéticas em tmpfs: preflight sem alteração, rejeição de pendência no outro
+alias/hash adulterado/divergência schema-recorder, aplicação nos dois
+recorders, coluna apenas default, reenvio e INSERT/UPDATE do modelo antigo.
+
+QA Playwright: percurso sintético de parcial, excesso de capacidade recusado,
+múltiplos vínculos, recebimento/estorno, CSV em reais, desfazer mantendo o
+período, revisão nativa e DE-PARA até ativação humana.17 verificações visuais
+claro/escuro,375px/900px/1440px e impressão. Encontrado/corrigido no navegador
+o descarte da ação do botão quando entra em estado de envio; campo oculto
+preserva a ação sem repetir decisões. Capturas e recibos ficam privados em
+.tmp/qa; a sessão não é uso ou aceite da cliente.
+
+CI integral, revisão da árvore exata e publicação desta rodada ainda pendem
+neste registro inicial. Produção permanece95 até a comprovação abaixo.
+Backup está fora da prioridade desta rodada por instrução do responsável.
+Permanecem somente dependências reais de fonte/revisão e os itens adiados
+Q-47/C01/C02; nenhum dado da carteira foi aprovado por testes sintéticos.
+
+V-406, complemento pré-publicação: o percurso Playwright foi repetido em
+bases locais novas após congelar os serviços e a0085;8 verificações passaram
+em .tmp/qa_final, sem erros de navegador. A gravação de regras permaneceu
+humana e nenhuma chamada externa ocorreu. Relatório distingue revisão
+original da restauração que tornou a fotografia vigente.

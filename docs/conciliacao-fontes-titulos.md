@@ -416,3 +416,20 @@ centros de custo e tratamento de multipartidas precisam do conjunto aceito
 no destino. A prévia privada existente só admite lançamentos novos aprovados
 e exclui `source_ledger`/exportações anteriores. Não reutilizar o Razão já
 escriturado, alterar parâmetros ou ligar o gate para fabricar essa prova.
+
+
+## Operação pela interface — D-367/V-406
+
+O percurso acima também está disponível em Contábil → Conciliação → Títulos e
+baixas. A revisão é por parcela, com publicação cumulativa, seleção vigente
+explícita e restauração auditada. Fonte/semântica/componentes continuam escolhas
+humanas. Banco e baixa só se vinculam em prévia/confirmar próprias, com
+capacidade global e desfazimento. A interface usa os mesmos contratos privados;
+não consulta ERP, executa pagamento ou chama IA. A revisão DE-PARA na tela
+aproveita somente lotes respondidos, criando rascunhos para ativação humana.
+
+Referências de interface consultadas: [formulários Watermelon](https://ui.watermelon.sh/components/form),
+[diretrizes de interface](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+e [revisão de valores Conta Azul](https://ajuda.contaazul.com/hc/pt-br/articles/46019896707981-Concilia%C3%A7%C3%A3o-revisar-e-ajustar-valores).
+Inspiram campos/feedback, comparação de componentes e capacidade remanescente;
+não homologam semântica da fonte CONTAD. Mantidos tokens e identidade CICA.

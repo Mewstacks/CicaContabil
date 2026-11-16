@@ -12,9 +12,10 @@ from django.db import transaction
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
-from apps.hub.models import FinancialAccount, ReconciliationTitleSnapshot
+from apps.hub.models import ClientCompany, FinancialAccount, ReconciliationTitleSnapshot
 from apps.hub.title_contract import TitleContractError, validate_title_snapshot
 from apps.hub.title_persistence import authorize_title_account, import_title_snapshot
+from apps.intelligence.models import NativeTitleCollection
 from apps.intelligence.native_title_comparison import TitleSourceEvidence, _key, _load, _validated
 from apps.intelligence.native_title_contract import canonical_hash, manifest
 
@@ -65,7 +66,8 @@ def translate_reviewed_titles(
         family = decision["family"]
         spec = contract["families"][family]
         parts = {
-            row_reference(family, "installments", p): p for p in families[family]["installments"]
+            canonical_hash([family, "installments", _key(p, spec, "installments")]): p
+            for p in families[family]["installments"]
         }
         reference = decision["installment_reference"]
         if not isinstance(reference, str) or reference not in parts or reference in seen:
@@ -85,7 +87,7 @@ def translate_reviewed_titles(
         if principal <= 0 or principal != principal.to_integral_value():
             raise TitleContractError("Principal da origem exige revisão específica.")
         payments = {
-            row_reference(family, "payments", p): p
+            canonical_hash([family, "payments", _key(p, spec, "payments")]): p
             for p in families[family]["payments"]
             if _key(p, spec, "installments") == identity
         }
@@ -167,46 +169,61 @@ def translate_reviewed_titles(
     return payload, provenance
 
 
-@transaction.atomic
 def import_reviewed_native_titles(
     *, organization_id: UUID, capture_id: UUID, actor: User, review: dict[str, Any]
 ) -> tuple[ReconciliationTitleSnapshot, bool]:
-    job, evidence = _load(capture_id, organization_id, actor)
-    account = (
-        FinancialAccount.objects.select_for_update()
-        .select_related("company", "organization")
-        .get(pk=job.financial_account_id, organization_id=organization_id)
-    )
-    authorize_title_account(account, actor)
-    payload, provenance = translate_reviewed_titles(
-        evidence=evidence,
-        review=review,
-        company_key=str(account.company_id),
-        account_reference=account.account_reference,
-    )
-    snapshot, created = import_title_snapshot(
-        financial_account=account,
-        content=json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
-        actor=actor,
-        evidence_reference=review["evidence_reference"],
-    )
-    prior = snapshot.evidence_reference
-    # The snapshot retains the normalized facts; the immutable audit binds each
-    # financial decision to raw components and the original capture/hash.
-    if created:
-        record_event(
-            action="hub.reconciliation.native_titles_translated",
-            actor=actor,
-            organization=account.organization,
-            target=snapshot,
-            metadata={
-                "capture_id": str(job.pk),
-                "source_sha256": evidence.expected_sha256,
-                "review_sha256": canonical_hash(review),
-                "provenance": provenance,
-                "bank_linkage": "unproven",
-                "settlements_complete": False,
-                "evidence_reference": prior,
-            },
-        )
-    return snapshot, created
+    saved_source = None
+    try:
+        with transaction.atomic():
+            job = NativeTitleCollection.objects.select_related("financial_account").get(
+                pk=capture_id, organization_id=organization_id
+            )
+            ClientCompany.objects.select_for_update().get(
+                pk=job.financial_account.company_id, organization_id=organization_id
+            )
+            account = (
+                FinancialAccount.objects.select_for_update(of=("self",))
+                .select_related("company", "organization")
+                .get(
+                    pk=job.financial_account_id,
+                    organization_id=organization_id,
+                    company_id=job.financial_account.company_id,
+                )
+            )
+            authorize_title_account(account, actor)
+            job, evidence = _load(capture_id, organization_id, actor)
+            payload, provenance = translate_reviewed_titles(
+                evidence=evidence,
+                review=review,
+                company_key=str(account.company_id),
+                account_reference=account.account_reference,
+            )
+            snapshot, created = import_title_snapshot(
+                financial_account=account,
+                content=json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
+                actor=actor,
+                evidence_reference=review["evidence_reference"],
+            )
+            # Keep the normalized facts and their raw-source decision in one transaction.
+            if created:
+                saved_source = snapshot.source_file
+                record_event(
+                    action="hub.reconciliation.native_titles_translated",
+                    actor=actor,
+                    organization=account.organization,
+                    target=snapshot,
+                    metadata={
+                        "capture_id": str(job.pk),
+                        "source_sha256": evidence.expected_sha256,
+                        "review_sha256": canonical_hash(review),
+                        "provenance": provenance,
+                        "bank_linkage": "unproven",
+                        "settlements_complete": False,
+                        "evidence_reference": snapshot.evidence_reference,
+                    },
+                )
+            return snapshot, created
+    except Exception:
+        if saved_source is not None:
+            saved_source.content.delete(save=False)
+        raise

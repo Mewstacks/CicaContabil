@@ -5,7 +5,7 @@
 - [x] Validar completude do cadastro e manter empresa/conta na importação.
 - [x] Separar envio do Razão independente, disponibilizar modelo e rejeitar lote inválido antes da gravação.
 - [x] Implementar recuperação por lease360s/watchdog/token e startup, mantendo agenda ociosa15min.
-- [ ] Encerrar CI integral, ensaio0084 e publicação compatível com integridade conferida.
+- [x] CI43912687677, ensaio0084, publicação release95 e15 grupos preservados conferidos.
 - [ ] Fonte/revisão humana para os43 vínculos e identificação das contas nas134 demais empresas; fontes e cobertura Q-28 próprias.
 
 A implementação não equivale a aceite, backup operacional ou operação completa.
@@ -742,3 +742,16 @@ Esta preparação não instala MSI, altera coleta real ou habilita exportação.
 - [x] Oficial1.0.9/mesma identidade/DPAPI e fonte original/hash/contagens conferidos.
 - [x] Sete exemplos técnicos privados, idempotência e preservação dos dados anteriores conferidos.
 - [ ] D-355/V-380: C01/retenções e C02/juros adiados por indisponibilidade do Domínio; não solicitar agora. Semântica/gates continuam pendentes.
+
+
+### D-367/V-406 — Operação de títulos/baixas e DE-PARA pela cliente
+
+- [x] Revisão nativa guiada, cumulativa e restauração auditada sem alterar fonte.
+- [x] Seleção banco/baixas, prévia, confirmação, capacidade global, histórico e desfazer.
+- [x] Relatório legível/CSV em reais e referências humanas das fontes revisadas.
+- [x] Revisão das sugestões DE-PARA retidas e ativação com plano/acesso atuais.
+- [x] Testes sintéticos PostgreSQL/SQLite e QA no navegador.
+- [ ] CI integral da árvore final e publicação compatível comprovados.
+- [ ] Cliente valida as fontes/semântica/vínculos reais; fontes ausentes continuam próprias.
+
+Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.
