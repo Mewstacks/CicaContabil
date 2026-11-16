@@ -1,3 +1,10 @@
+**16/11/2026 — D-365/V-404: pré-cadastro das contas CONTAD em implementação.**
+Fontes retidas identificam43 candidatas em11 empresas; empresa/plano/código
+reaproveitados, vínculo bancário separado para revisão humana no CICA.
+Zero novas contas completas comprovadas;134 demais empresas sem candidata
+identificada. Migração/publicação/importação real ainda pendentes nesta
+anotação. PC-19/Q-28 e os demais critérios continuam abertos. [V-404](VALIDACOES.md).
+
 **16/11/2026 — D-364/V-403: operação da cliente validada localmente; publicação pendente.**
 Carteira por empresa, conta e competência, inclusive empresas sem contas ou
 fontes; relatório legível/imprimível em reais e CSV técnico compatível.

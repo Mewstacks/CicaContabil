@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from apps.hub import views
+from apps.hub import account_candidate_views, views
 from apps.platform.legal import legal_document
 
 app_name = "hub"
@@ -189,6 +189,14 @@ urlpatterns = [
         name="decide-dte-run",
     ),
     path("app/conciliacao/", views.reconciliation, name="reconciliation"),
+    path(
+        "app/conciliacao/contas/", account_candidate_views.account_candidates,
+        name="reconciliation-account-candidates",
+    ),
+    path(
+        "app/conciliacao/contas/<uuid:candidate_id>/", account_candidate_views.account_candidate,
+        name="reconciliation-account-candidate",
+    ),
     path(
         "app/conciliacao/carteira/", views.reconciliation_portfolio,
         name="reconciliation-portfolio",

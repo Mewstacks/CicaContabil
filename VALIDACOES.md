@@ -9142,3 +9142,67 @@ aprova publicação. A regressão agora verifica janela visível e inicializaç�
 do foco sem depender da ordem/classe dos atributos. Teste isolado aprovado;
 nenhuma mudança no runtime da imagem validada. Nova árvore será submetida
 novamente ao CI integral antes de publicar.
+
+## V-404 — Pré-cadastro e revisão das contas CONTAD (16/11/2026)
+
+D-365, Q-28/PC-19, etapas09/12. Implementado em checkout isolado
+`contad-account-enrollment/CicaContabil`, base publicada93/main7a8af3b.
+**Estado desta anotação: implementação e validação local; CI integral,
+migração, publicação e cadastro real ainda pendentes.**
+
+Confronto das fontes privadas retidas de13/11:43 triplas empresa/plano/conta
+em11 empresas, correspondência única no catálogo e flags literais A/A.
+Matriz146 de16/11 reproduzida exatamente; C01–C43 coincidem com a ficha
+existente. Seus campos de revisão seguem vazios. Nenhum nome bancário,
+código de banco, agência/conta, direção ou evidência humana completa está
+presente; zero novas contas operacionais podem ser ativadas por inferência.
+Os120 registros de caixa têm zero referência bancária e não foram promovidos.
+Dentre145 empresas sem FinancialAccount,11 têm candidatas e134 não possuem
+candidata bancária identificada na fonte. O piloto existente é separado.
+
+Implementação: modelo separado ReconciliationAccountCandidate/migração0083;
+prévia somente leitura e importação atômica/idempotente dos perfis originais.
+Valida o conjunto integral de empresas e a proveniência; conflitos impedem
+escrita. Importação técnica tem ator nulo/referência D-365, sem atribuir aceite
+à cliente nem criar conta financeira/contábil, regras, fontes ou jobs.
+
+A carteira e a configuração apontam vínculos pendentes. Lista/detalhe privado
+com busca, situação e paginação25 respeitam empresa E módulo. Dados conhecidos
+preenchidos; nome, banco, referência, direção e prova começam vazios.
+Três confirmações explícitas exigem associação bancária, plano e conta ativa
+analítica. Ação humana cria/reutiliza contas compatíveis de forma atômica;
+conflito, acesso revogado, origem alterada ou contrato impedido preservam os
+cadastros. Reenvio não duplica nem troca responsável. Não utilizar exige motivo.
+Revisões concluídas ficam para consulta; nenhum GET confirma/captura dados.
+Cadastro sozinho continua sem extrato/Razão na competência da carteira.
+
+Validações iniciais:150 testes agregados aprovados e um skip específico de
+concorrência PostgreSQL;41 testes da revisão aprovados com dois skips de
+locks. Rodadas sobrepostas não são somadas. Ruff/Django/makemigrations/diff-check
+aprovados. Playwright em banco isolado com27 empresas fictícias,43 candidatas
+em11 empresas e Owner/Auditor/Operator aprovou14 verificações funcionais:
+paginação25+18, busca, ausência de defaults humanos, campos/erros associados,
+aviso ao sair com edição, escopo e consulta de Auditor, carteira pendente,
+desktop/mobile/paisagem/200% e tema. Capturas visuais sob revisão adicional;
+ensaio completo de submissão e PostgreSQL serão complementados abaixo.
+
+Pesquisa de interface: skill UI/UX Pro Max local, tokens/componentes CICA,
+[Watermelon Form](https://ui.watermelon.sh/components/form),
+[Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md),
+[QuickBooks: cadastro de conta](https://quickbooks.intuit.com/learn-support/en-us/help-article/chart-accounts/add-account-chart-accounts-quickbooks-online/L0mCv3AKn_US_en_US?uid=l5j2599h).
+Sem dependências novas; referências orientam formulário/erros, não semântica
+bancária. Artefatos privados em `.tmp/qa`, `.tmp/operations` e `.tmp/release`.
+
+Esta preparação não encerra Q-28 (vínculos, cobertura, fontes mensais e
+recorrência), Q-46/D-73 (semântica, amostra/recuperação/aceite) ou o projeto.
+Q-47/C01/C02 adiados preservados. Sem nova consultaERP, IA, MSI, custo,
+mensagem externa ou confirmação financeira em nome da cliente.
+
+Complemento local V-404:194 testes focados PostgreSQL aprovados em50,92s,
+incluindo três casos de concorrência;162 testes SQLite de integração/
+configuração/workbench/revisão aprovados,2 skips PostgreSQL e24 subtestes.
+Após tratar códigos como identificadores sem separador de milhares,39 testes
+HTTP passaram. Rodadas têm sobreposição. Captura antiga após redimensionamento
+tinha bitmap repetido; contexto fresco confirmou DOM único e formulário
+completo, sem overflow/erros. Fonte/CSS congelados para CI; QA transacional
+sintético e migração sobre imagem93 continuam em artefatos privados.

@@ -1,0 +1,29 @@
+.account-candidate-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:16px 22px 18px}
+.account-candidate-filters .field{flex:1 1 220px;min-width:0}.account-candidate-filters .field:first-of-type{flex:2 1 300px}
+.account-company-name{display:block;margin-top:6px;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.account-candidate-filters input,.account-candidate-filters select,.account-review-form input:not([type=checkbox]):not([type=hidden]),.account-review-form select,.account-review-form textarea{box-sizing:border-box;width:100%;min-height:44px;border:1px solid var(--control-border);border-radius:var(--radius-sm);padding:10px 12px;background:var(--surface);color:var(--ink);font:inherit}
+.account-review-form textarea{min-height:112px;resize:vertical}.account-review-form .field>label,.account-candidate-filters .field>label{display:block;margin-bottom:7px}
+.account-candidate-filters :is(input,select):focus-visible,.account-review-form :is(input,select,textarea):focus-visible,.account-provenance summary:focus-visible,.account-candidate-dismiss summary:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.account-candidates .button,.account-candidate-detail .button,.account-candidate-result .button,.account-review-actions .button,.account-candidate-table .row-action-button{min-height:44px;white-space:normal}
+.account-list-count{padding:12px 22px;border-top:1px solid var(--line);color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
+.account-candidate-table{width:100%;table-layout:fixed}.account-candidate-table th:first-child{width:32%}.account-candidate-table th:last-child{width:18%}
+.account-candidates .account-candidate-table td{vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.5;max-width:none}.account-candidate-table small{display:block;margin-top:5px;color:var(--muted)}
+.account-candidate-table .status-badge,.account-known-data .status-badge{white-space:normal;line-height:1.5}.account-candidate-table .row-action-button{display:inline-flex;align-items:center}
+.account-candidate-empty{padding:24px;line-height:1.6}.account-candidate-note{max-width:82ch;color:var(--muted);font-size:14px;line-height:1.6}
+.account-known-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 28px;margin:0;padding:22px}.account-known-data>div{min-width:0}.account-known-data dt,.account-provenance dt{color:var(--muted);font-size:13px;margin-bottom:6px}.account-known-data dd,.account-provenance dd{margin:0;overflow-wrap:anywhere;line-height:1.6}.account-known-data dd{font-size:16px;font-weight:600}
+.account-candidate-detail .workspace-panel-head>div{min-width:0}.account-candidate-detail h2{overflow-wrap:anywhere}
+.account-provenance{border-top:1px solid var(--line);padding:0 22px}.account-provenance summary,.account-candidate-dismiss summary{min-height:52px;align-content:center;cursor:pointer;color:var(--blue);font-weight:600;line-height:1.5;padding-block:6px}
+.account-provenance dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px;margin:0;padding:8px 0 20px}.account-provenance dl>div{min-width:0}.account-provenance .account-hash{font-size:12px;word-break:break-all}
+.account-candidate-review,.account-candidate-dismiss,.account-candidate-result{margin-top:16px}.account-review-form{padding:16px 22px 22px}.account-review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.account-review-fields .field{min-width:0}.account-evidence-field,.account-confirmation{grid-column:1/-1}.account-review-form .account-confirmation>label{display:flex;align-items:flex-start;gap:12px;min-height:44px;margin:0;padding:8px 0;line-height:1.6;cursor:pointer}.account-confirmation input{flex:none;width:20px;height:20px;margin:3px 0 0;accent-color:var(--blue)}
+.account-review-form .field-help{margin:7px 0 0;max-width:78ch;line-height:1.5}.account-review-form .field-error{padding-left:18px;margin:8px 0;color:var(--red);line-height:1.5}.account-review-form .form-errors{margin:0 0 20px}.account-review-form .form-errors a{display:inline-flex;align-items:center;min-height:44px;margin-right:14px}
+.account-review-actions{margin-top:22px}.account-review-actions button[disabled]{opacity:.65;cursor:wait}.account-candidate-dismiss>details{padding:0 22px}.account-candidate-dismiss .account-review-form{padding:8px 0 22px}
+@media(max-width:760px){
+ .account-candidate-filters{display:grid;grid-template-columns:1fr}.account-candidate-filters .button{width:100%}
+ .account-candidates .workspace-panel-head,.account-candidate-detail .workspace-panel-head,.account-candidate-result .workspace-panel-head{align-items:stretch;flex-direction:column}
+ .account-candidates .data-table-wrap{overflow:visible}.account-candidates .account-candidate-table{display:block;width:100%;min-width:0}.account-candidate-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+ .account-candidate-table tbody{display:grid;width:100%}.account-candidate-table tbody tr{box-sizing:border-box;display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:18px 16px;border-top:1px solid var(--line);content-visibility:visible;contain-intrinsic-size:none}
+ .account-candidates .account-candidate-table td{display:block;width:auto;min-width:0;max-width:none;padding:0;border:0;overflow:visible}.account-candidate-table td:first-child,.account-candidate-table td:last-child{grid-column:1/-1}
+ .account-candidate-table td::before{content:attr(data-label);display:block;margin-bottom:5px;color:var(--muted);font-size:12px;font-weight:700}.account-candidate-table .row-action-button{width:100%;justify-content:center}
+ .account-review-fields,.account-known-data,.account-provenance dl{grid-template-columns:1fr}.account-review-actions .button{width:100%}.account-candidate-detail h2{font-size:20px}
+}

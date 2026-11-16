@@ -3,12 +3,13 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-portfolio.css' %}">{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel portfolio-controls" aria-labelledby="portfolio-heading">
-  <header class="workspace-panel-head"><div><h2 id="portfolio-heading">Contas e arquivos</h2></div><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Visão geral</a></header>
+  <header class="workspace-panel-head"><div><h2 id="portfolio-heading">Contas e arquivos</h2></div><div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-account-candidates' %}">Vínculos de contas</a><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Visão geral</a></div></header>
   {% if portfolio.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in portfolio.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <form method="get" class="portfolio-filters" aria-label="Filtrar empresas e competência">
     <div class="field"><label for="portfolio-month">Competência</label><input type="month" id="portfolio-month" name="month" value="{{ portfolio.filters.month }}" autocomplete="off" required></div>
     <div class="field portfolio-search"><label for="portfolio-query">Empresa ou código Domínio</label><input type="search" id="portfolio-query" name="q" value="{{ portfolio.filters.q }}" maxlength="100" autocomplete="off" placeholder="Busque uma empresa…"></div>
     <div class="field"><label for="portfolio-status">Situação</label><select id="portfolio-status" name="status" autocomplete="off">
+      <option value="pending_mapping"{% if portfolio.filters.status == 'pending_mapping' %} selected{% endif %}>Vínculo de conta pendente</option>
       <option value="all"{% if portfolio.filters.status == 'all' %} selected{% endif %}>Todas</option>
       <option value="missing_account"{% if portfolio.filters.status == 'missing_account' %} selected{% endif %}>Sem conta cadastrada</option>
       <option value="missing_bank"{% if portfolio.filters.status == 'missing_bank' %} selected{% endif %}>Sem extrato no mês</option>
@@ -35,7 +36,8 @@
       <td data-label="Próximo passo"><div class="portfolio-actions">{% for action in item.actions %}<a class="row-action-button" href="{{ action.url }}">{{ action.label }}<span class="sr-only"> · {{ item.account.name }}</span></a>{% empty %}<span class="table-muted">Aguarde a revisão do responsável.</span>{% endfor %}</div></td>
     </tr>{% endfor %}
   </tbody></table></div>
-  {% else %}<div class="empty-block operational-empty portfolio-empty"><strong>Sem conta cadastrada</strong>{% for action in row.actions %}<a class="button button-quiet" href="{{ action.url }}">{{ action.label }}</a>{% empty %}<span>Solicite ao responsável o cadastro da conta.</span>{% endfor %}</div>{% endif %}
+  {% else %}<div class="empty-block operational-empty portfolio-empty"><strong>{% if row.candidate_count %}{{ row.candidate_count }} pré-cadastro{{ row.candidate_count|pluralize }} aguardando vínculo{% else %}Sem conta cadastrada{% endif %}</strong>{% for action in row.actions %}<a class="button button-quiet" href="{{ action.url }}">{{ action.label }}</a>{% empty %}<span>Solicite ao responsável o cadastro da conta.</span>{% endfor %}</div>{% endif %}
+  {% if row.accounts and row.candidate_count %}<p class="portfolio-notice">{{ row.candidate_count }} pré-cadastro{{ row.candidate_count|pluralize }} aguardando vínculo. <a href="{{ row.candidate_url }}">Ver vínculos pendentes</a></p>{% endif %}
   {% if row.unassigned_source_count %}<p class="portfolio-notice">{{ row.unassigned_source_count }} arquivo{{ row.unassigned_source_count|pluralize }} sem conta ou período identificável. <a href="{% url 'hub:reconciliation' %}#processamentos">Ver importações</a></p>{% endif %}
 </section>
 {% empty %}<section class="workspace-panel"><div class="empty-block operational-empty"><strong>{% if portfolio.errors %}A consulta não foi ampliada{% else %}Nenhuma empresa corresponde aos filtros{% endif %}</strong><a class="button button-quiet" href="{% url 'hub:reconciliation-portfolio' %}">Consultar carteira</a></div></section>{% endfor %}

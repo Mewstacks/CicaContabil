@@ -4851,3 +4851,72 @@ D-323/D-346 autorizam CI e publicação compatível após árvore exata aprovada
 mesmas máquinas/capacidade, legado excluído, integridade das fontes/decisões
 conferida. Sem MSI, nova IA, nova fonte financeira, agenda paga, backup pago,
 mensagens ou importação Domínio. Q-46/D-73 e Q-47/C01/C02 adiados preservados.
+
+## D-365 — Cadastrar contas comprovadas e organizar vínculos pendentes CONTAD (16/11/2026)
+
+Origem: responsável instruiu avançar no cadastro das contas das demais
+empresas usando dados já disponíveis, finalizar o possível e separar os
+vínculos que precisam de validação da cliente, com prioridade à conclusão.
+Retoma Q-28/PC-19 e etapas09/12, sobre a release93; supera a limitação anterior
+de não iniciar cadastros, sem transformar dados ausentes em fatos.
+
+Cruzar fontes privadas retidas e cadastros atuais, conferir hashes/empresa/
+plano/conta e revisões já registradas. Criar somente os campos comprovados,
+com origem e idempotência; manter candidatos ou cadastros incompletos em
+revisão explícita, sem habilitar coleta/importação ou simular conta bancária.
+Conta operacional exige referência bancária própria e vínculo comprovado.
+Código contábil, configuração de conciliação, nome ou flags A/A não substituem
+banco/agência/conta, natureza, direção ou aprovação humana ausentes. Preservar
+piloto, contas existentes, documentos, decisões e todos os dados anteriores.
+
+A separação deve ficar acionável no fluxo existente: dados conhecidos
+preenchidos, pendências por empresa/conta e validação da cliente limitada ao
+que realmente falta; não criar ficha ou perguntas concorrentes. Reaproveitar
+os casos C01–C43 e a matriz146 existentes. Não atribuir revisão/aceite à
+cliente nem usar sua identidade como autora de execução técnica delegada.
+Sem novas consultasERP, valores, IA, custos, MSI, mensagens ou importação
+Domínio. Q-46/D-73 e Q-47/C01/C02 adiados mantêm seus critérios próprios.
+
+Se houver lacuna de persistência/interface para candidatos, implementar
+a menor extensão em checkout isolado da árvore publicada, com controle de
+acesso empresa E módulo, proveniência e proteção contra ativação incompleta.
+Aplicar requisitos UI/UX e QA se houver interface. CI e publicação compatível
+seguem D-323/D-346, após árvore exata aprovada, mesmas máquinas/capacidade e
+legado excluído. Operação de cadastro deverá ter prévia concreta, validação
+de escopo, recibo e comparação dos grupos de dados antes/depois; apenas os
+novos cadastros/evidências autorizados podem mudar. Atualizar os registros
+canônicos e checklists com o resultado real, sem declarar sistema concluído
+enquanto houver dependência operacional efetiva.
+
+Refinamento D-365 após confronto das fontes:43 triplas empresa/plano/conta
+comprovadas em11 empresas, sem banco/referência/direção/nomes ou revisão
+preenchidos;0 novas contas bancárias completas disponíveis. A ordem C01–C43
+da ficha coincide com a ordenação numérica e será preservada. Persistir em
+ReconciliationAccountCandidate, separado dos cadastros operacionais, pois
+FinancialAccount inativa só admite uma referência vazia por empresa e sua
+ativação atual não representa revisão. Importar só pré-cadastros comprovados,
+sem nome bancário fictício, LedgerAccount ativo ou escopo de coleta.
+
+Cliente terá lista/detalhe no CICA, com dados de origem e faltantes. Vincular
+exige conta/banco/referência/direção e evidência, além de confirmar associação,
+plano e atividade para lançamentos; criação operacional ocorre somente pela
+ação humana explícita. Conflitos com cadastros existentes não serão
+sobrescritos. Descartar como não bancária exige motivo e preserva auditoria.
+Direção e revisão não substituem contagens mensais/escopos de coleta.
+
+UI/UX Pro Max aplicado a labels, erros, foco, legibilidade e retorno, mantendo
+identidade CICA; a sugestão genérica de landing/gradiente/fonte foi descartada.
+Watermelon Form e diretrizes Vercel consultados; referência oficial QuickBooks
+orienta organização de cadastro/conta sem copiar dados, flags ou semântica
+para CONTAD. Xero não acessível nesta consulta. Não instalar bibliotecas novas.
+
+Complemento operacional D-365: a decisão humana “Não utilizar esta conta”
+aceita motivo explícito (por exemplo, vínculo incorreto ou conta encerrada),
+sem rotular automaticamente a candidata como não bancária. A interface mantém
+empresa/plano/código como identificadores literais, sem separador de milhares.
+A migração0083 é aditiva. Antes da publicação, ensaiar sua execução padrão
+Django sobre a imagem93 com módulo temporário de migrações e os dois aliases;
+produção só após CI integral, plano restrito à0083 e endpoints conferidos.
+Pode executar a migração validada na máquina web existente, sem substituir
+fontes do runtime nem criar recursos, aplicando URLs diretas como config.release.
+O roteador mantém tabelas hub somente no default, com recorder em ambos aliases.
