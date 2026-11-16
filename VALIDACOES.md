@@ -9133,3 +9133,12 @@ MSI ou operaçãoERP foi realizada por esta etapa. Q-28 mantém vínculos,
 contagens/filiais/recorrência; Q-46/D-73, recuperação/backup, treinamento e
 aceite permanecem abertos. Q-47/C01/C02 continuam adiados. Publicação da
 árvore exata e conferência operacional ainda pendentes nesta anotação.
+
+Complemento V-403 — CI inicial43882578594: agente e pacote Windows aprovados;
+a suíte SQLite identificou uma asserção legada que exigia a tag exata da
+janela de importação, antes do atributo de abertura acessível.2460 testes
+passaram,38 foram ignorados e175 subtestes passaram; essa execução NÃO
+aprova publicação. A regressão agora verifica janela visível e inicialização
+do foco sem depender da ordem/classe dos atributos. Teste isolado aprovado;
+nenhuma mudança no runtime da imagem validada. Nova árvore será submetida
+novamente ao CI integral antes de publicar.

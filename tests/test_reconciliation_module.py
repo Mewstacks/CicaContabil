@@ -450,7 +450,10 @@ def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     assert b"data-form-errors" in response.content
     assert b"Selecione ao menos um arquivo" in response.content
     content = response.content.decode()
-    assert 'id="reconciliation-upload-dialog" class="modal-backdrop" data-modal>' in content
+    modal = re.search(r'<div\b[^>]*\bid="reconciliation-upload-dialog"[^>]*>', content)
+    assert modal is not None
+    assert re.search(r"\bdata-modal-initial-open(?:\s|>)", modal[0])
+    assert not re.search(r"\bhidden(?:\s|>|=)", modal[0])
     assert 'id="id_company-error"' in content
 
 
