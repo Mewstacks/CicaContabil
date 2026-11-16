@@ -158,13 +158,17 @@ def review_financial_account(*, account: FinancialAccount, actor: User,
         raise SetupReviewConflict(
             "A conta foi alterada. Reabra a página para conferir a revisão atual."
         )
-    if ReconciliationAccountCandidate.objects.filter(
+    linked_account = ReconciliationAccountCandidate.objects.filter(
         financial_account=current, state=ReconciliationAccountCandidate.State.LINKED,
-    ).exists():
-        raise SetupReviewConflict(
-            "Esta conta tem um vínculo revisado. Corrija pela revisão do vínculo."
-        )
+    ).exists()
     before = account_snapshot(current)
+    if linked_account and any(
+        data[field] != before[field] for field in ("name", *IDENTITY_FIELDS)
+    ):
+        raise SetupReviewConflict(
+            "Nesta tela, altere somente a situação ativa da conta. Nome e identificação "
+            "devem ser corrigidos pela revisão do vínculo."
+        )
     if not isinstance(current.review_history, list):
         raise SetupReviewConflict("O histórico desta conta precisa de revisão antes da correção.")
     identity_changed = any(data[field] != before[field] for field in IDENTITY_FIELDS)

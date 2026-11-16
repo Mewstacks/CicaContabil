@@ -5,8 +5,9 @@
 <section class="workspace-panel setup-account-panel" aria-labelledby="setup-account-heading">
   <header class="workspace-panel-head"><div><h2 id="setup-account-heading">{{ setup_account.name }}</h2><p>{{ setup_account.company.name }}</p></div><a class="button button-quiet" href="{{ setup_back_url }}">Voltar à configuração</a></header>
   {% if setup_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{% for error in setup_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  {% if setup_linked_account %}<div class="setup-account-notice"><p>{% if setup_can_edit %}Aqui você pode ativar ou desativar esta conta para novos usos, informando o motivo. Nome e identificação permanecem vinculados à revisão bancária.{% else %}Esta conta tem um vínculo revisado. As correções ficam junto da evidência e do histórico desse vínculo.{% endif %}</p>{% if setup_candidate_url %}<a class="button button-quiet" href="{{ setup_candidate_url }}">Abrir revisão do vínculo</a>{% endif %}</div>{% endif %}
   {% if setup_can_edit %}
-    {% if setup_identity_locked %}<p class="setup-account-notice">Esta conta já tem fontes, lançamentos ou coletas. Você pode corrigir o nome e controlar novos usos; a identificação bancária e o vínculo contábil serão preservados.</p>{% endif %}
+    {% if setup_identity_locked and not setup_linked_account %}<p class="setup-account-notice">Esta conta já tem fontes, lançamentos ou coletas. Você pode corrigir o nome e controlar novos usos; a identificação bancária e o vínculo contábil serão preservados.</p>{% endif %}
     <form method="post" class="setup-account-form" data-setup-review-form>
       {% csrf_token %}
       {% if setup_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira a correção.</strong>{% for error in setup_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in setup_form %}{% if field.errors %}{% if field.is_hidden %}{% for error in field.errors %}<p>{{ error }}</p>{% endfor %}{% else %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endif %}{% endfor %}</div>{% endif %}
@@ -20,7 +21,7 @@
     </form>
   {% else %}
     <dl class="setup-account-data"><div><dt>Banco</dt><dd>{{ setup_account.bank_code|default:'Pendente' }}</dd></div><div><dt>Agência e conta</dt><dd>{{ setup_account.account_reference|default:'Pendente' }}</dd></div><div><dt>Conta contábil</dt><dd>{{ setup_account.ledger_code|default:'Pendente' }}</dd></div><div><dt>Situação</dt><dd>{% if setup_account.active %}Ativa{% else %}Inativa{% endif %}</dd></div></dl>
-    {% if setup_linked_account %}<div class="setup-account-notice"><p>Esta conta tem um vínculo revisado. As correções ficam junto da evidência e do histórico desse vínculo.</p>{% if setup_candidate_url %}<a class="button button-quiet" href="{{ setup_candidate_url }}">Abrir revisão do vínculo</a>{% endif %}</div>{% else %}<p class="setup-account-notice">Seu perfil permite consultar esta configuração. Um responsável com permissão pode corrigir o cadastro.</p>{% endif %}
+    <p class="setup-account-notice">Seu perfil permite consultar esta configuração. Um responsável com permissão pode corrigir o cadastro.</p>
   {% endif %}
 </section>
 {% if setup_history %}

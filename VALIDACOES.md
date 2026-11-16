@@ -9306,3 +9306,30 @@ empresa nova já criou plano/conta, corrigiu com motivo, recusou cadastro e CSV
 inválidos e chegou à conferência com extrato/Razão1/1; fechamento do ensaio,
 suítes integrais, CI, migração/publicação e verificação final ainda pendentes
 neste registro. Nenhuma decisão real da cliente executada nesta rodada.
+
+
+Complemento V-405: ensaio Playwright sintético concluído para empresa nova:
+plano→conta→correção→OFX→CSV inválido recusado→Razão completo→confirmação
+com evidência→Conferidos→relatório→desfazer, mantendo histórico. Verificação
+do banco local:2fontes,0 arquivo inválido salvo,1movimento,1registro do Razão,
+2partidas,1correção de cadastro e2decisões. C04/C05 sintéticos também passaram
+vincular/corrigir e descartar/reabrir;11checks e4vistas(1440/375claro/escuro),
+sem overflow/errosJavaScript; datas locais e áreas de toque52px.
+
+PostgreSQL focado:236 testes aprovados, incluindo concorrência, permissões,
+rollback, correção de conta/candidata, entrada do Razão e soft timeout. Uma
+tentativa anterior não conectou à porta local55446; não executou casos de
+banco. Novo container descartável próprio55447 resolveu sem alterar SSH ou
+outros projetos. Segurança de cadastro:14 testes passaram após substituir
+consulta BrasilAPI real por fixture sintética somente nos testes. A primeira
+suíte integral local teve4falhas:fixture semsize_bytes(já corrigida),2 consultas
+externas isoladas e contrato antigo de toggle adaptado para edição auditada;
+caso de configuração corrigido passou novamente. CI integral final continua
+pendente, sem usar esta rodada como aprovação integral.
+
+0084 ensaiada na imagem94 exata, rede desabilitada/runtime somenteleitura:
+12checks aprovados, incluindo backfill, INSERT/UPDATE pelo modelo antigo,
+roteamento default/recordersambos, prévia sem escrita, replay, hash inválido,
+pendência em outroalias e divergência schema/recorder recusados. Novo default
+persistente garante a transição sem janela presumida de ausência de escritas.
+Isso não é backup/restore da produção nem homologação humana.

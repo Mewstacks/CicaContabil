@@ -4986,3 +4986,8 @@ a política que exclui nomes dos metadados gerais de auditoria.
 Compatibilidade da0084: manter db_default=[] nos dois históricos JSON, além
 do default da aplicação, para que INSERT do runtime94 continue válido entre
 migração aditiva e atualização das máquinas. Ensaiar escrita pelo modelo antigo.
+
+Complemento D-366: preservar ativação/desativação de conta vinculada por meio
+da edição auditada (motivo, token e histórico), mantendo nome/identidade/plano
+somente leitura nessa tela. A revisão bancária/evidência permanece intacta;
+identidade segue corrigível exclusivamente no vínculo ainda sem uso.

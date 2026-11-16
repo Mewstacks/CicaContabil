@@ -23,14 +23,17 @@ class FinancialAccountEditForm(forms.Form):
     expected_revision = forms.RegexField(r"\A[0-9a-f]{64}\Z", widget=forms.HiddenInput)
 
     def __init__(self, *args: Any, account: FinancialAccount,
-                 identity_locked: bool = False, **kwargs: Any) -> None:
+                 identity_locked: bool = False, candidate_linked: bool = False,
+                 **kwargs: Any) -> None:
         initial = {field: getattr(account, field) for field in ACCOUNT_FIELDS}
         initial["expected_revision"] = account_revision(account)
         kwargs["initial"] = initial
         super().__init__(*args, **kwargs)
         for name in ("name", *IDENTITY_FIELDS):
             self.fields[name].widget.attrs["autocomplete"] = "off"
-        if identity_locked:
+        if candidate_linked:
+            self.fields["name"].widget.attrs["readonly"] = True
+        if identity_locked or candidate_linked:
             for name in IDENTITY_FIELDS:
                 self.fields[name].widget.attrs["readonly"] = True
         else:

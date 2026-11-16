@@ -219,23 +219,117 @@ def test_stale_revision_and_duplicate_reference_preserve_data(prepared):
     assert account.account_reference == "001:123:456"
 
 
-def test_linked_candidate_routes_to_its_own_review(prepared):
-    account = prepared[0]
-    candidate = ReconciliationAccountCandidate.objects.create(
+def linked_candidate(prepared):
+    account, actor, _, _ = prepared
+    return ReconciliationAccountCandidate.objects.create(
         organization=account.organization, company=account.company,
         financial_account=account, source_company_code=9001, chart_company_code=1,
         account_code=1001, case_reference="C01", source_key="9001:1:1001",
         source_file_sha256="a" * 64, portfolio_file_sha256="b" * 64,
         source_observed_at=account.created_at, state="linked",
+        reviewed_by=actor, reviewed_at=account.created_at,
+        review_data={"decision": "linked", "bank_inflow_side": "debit"},
+        review_evidence="Evidência bancária fictícia preservada",
     )
+
+
+def test_linked_candidate_routes_identity_to_its_own_review(prepared):
+    account = prepared[0]
+    candidate = linked_candidate(prepared)
     assert not account_usage_reasons(account)
     with pytest.raises(SetupReviewConflict, match="vínculo"):
         review(prepared)
     client = client_for(prepared)
     page = client.get(endpoint(account))
-    assert not page.context["setup_can_edit"]
+    assert page.context["setup_can_edit"]
+    for field in ("name", "bank_code", "account_reference", "ledger_code"):
+        assert page.context["setup_form"].fields[field].widget.attrs["readonly"]
+    assert not page.context["setup_form"].fields["active"].widget.attrs.get("readonly")
     assert str(candidate.pk) in page.context["setup_candidate_url"]
     assert client.post(endpoint(account), data(account)).status_code == 409
+
+
+def test_linked_used_account_can_deactivate_and_reactivate_preserving_bank_review(prepared):
+    account, actor, _, _ = prepared
+    candidate = linked_candidate(prepared)
+    before_candidate = ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+    ReconciliationSourceFile.objects.create(
+        organization=account.organization, company=account.company, financial_account=account,
+        origin="bank_statement", kind="csv", original_filename="used-synthetic.csv",
+        content_hash="a" * 64, size_bytes=0,
+    )
+    client = client_for(prepared)
+    old_name = account.name
+    submission = data(account, name=old_name, active=False)
+    assert client.post(endpoint(account), submission).status_code == 302
+    account.refresh_from_db()
+    assert not account.active and len(account.review_history) == 1
+    assert account.review_history[0]["before"]["active"] is True
+    assert account.review_history[0]["after"]["active"] is False
+    assert account.review_history[0]["actor_id"] == str(actor.pk)
+    assert client.post(endpoint(account), submission).status_code == 409
+    activated = client.post(endpoint(account), data(account, name=old_name, active=True))
+    assert activated.status_code == 302
+    account.refresh_from_db()
+    assert account.active and len(account.review_history) == 2
+    assert (
+        ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+        == before_candidate
+    )
+    audits = AuditEvent.objects.filter(action="hub.reconciliation.financial_account.corrected")
+    assert audits.count() == 2
+    assert all(event.metadata["changed_fields"] == ["active"] for event in audits)
+
+
+@pytest.mark.parametrize("field", ["name", "bank_code", "account_reference", "ledger_code"])
+def test_linked_account_cannot_bypass_bank_review_when_changing_active(prepared, field):
+    account = prepared[0]
+    candidate = linked_candidate(prepared)
+    before_candidate = ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+    changes = data(account, name=account.name, active=False)
+    changes[field] = "999"
+    with pytest.raises(SetupReviewConflict, match="somente"):
+        review(prepared, changes)
+    account.refresh_from_db()
+    assert account.active and account.review_history == []
+    assert (
+        ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+        == before_candidate
+    )
+    assert not AuditEvent.objects.exists()
+
+
+def test_linked_active_change_requires_reason_and_audit_is_atomic(prepared):
+    account = prepared[0]
+    linked_candidate(prepared)
+    with pytest.raises(SetupReviewError):
+        review(prepared, data(account, name=account.name, active=False, reason=""))
+    with (
+        patch("apps.hub.setup_review.record_event", side_effect=RuntimeError("synthetic failure")),
+        pytest.raises(RuntimeError),
+    ):
+        review(prepared, data(account, name=account.name, active=False))
+    account.refresh_from_db()
+    assert account.active and account.review_history == []
+    assert not AuditEvent.objects.exists()
+
+
+def test_linked_legacy_deactivation_allows_missing_plan_but_reactivation_requires_it(prepared):
+    account, _, _, ledger = prepared
+    candidate = linked_candidate(prepared)
+    before_candidate = ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+    ledger.delete()
+    review(prepared, data(account, name=account.name, active=False))
+    account.refresh_from_db()
+    assert not account.active
+    with pytest.raises(SetupReviewError, match="contábil"):
+        review(prepared, data(account, name=account.name, active=True))
+    account.refresh_from_db()
+    assert not account.active and len(account.review_history) == 1
+    assert (
+        ReconciliationAccountCandidate.objects.filter(pk=candidate.pk).values().get()
+        == before_candidate
+    )
 
 
 @pytest.mark.parametrize("revocation", ["membership", "user", "module", "grant", "contract"])

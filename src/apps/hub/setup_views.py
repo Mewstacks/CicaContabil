@@ -97,46 +97,41 @@ def financial_account_edit(request: HttpRequest, account_id: str) -> HttpRespons
     identity_locked = bool(account_usage_reasons(account))
     form = FinancialAccountEditForm(
         request.POST if request.method == "POST" else None,
-        account=account, identity_locked=identity_locked,
+        account=account, identity_locked=identity_locked, candidate_linked=linked_account,
     )
     status = 200
-    errors = []
     if request.method == "POST":
         if not can_manage:
             return _private(refuse(request, "Seu perfil pode consultar, mas não corrigir contas."))
-        if linked_account:
-            errors.append("Esta conta tem um vínculo revisado. Abra a revisão para corrigi-lo.")
-            status = 409
-        else:
-            valid = form.is_valid()
-            if any(len(request.POST.getlist(field)) > 1 for field in form.fields):
-                form.add_error(None, "Informe cada campo uma única vez.")
-                valid = False
-            if valid:
-                try:
-                    review_financial_account(
-                        account=account, actor=cast(User, request.user),
-                        authorized_companies=companies, cleaned_data=form.cleaned_data,
-                        request=request,
-                    )
-                except PermissionDenied:
-                    return _private(refuse(
-                        request, "Seu acesso mudou. Solicite revisão ao responsável."
-                    ))
-                except SetupReviewError as exc:
-                    form.add_error(None, str(exc))
-                    status = 409 if isinstance(exc, SetupReviewConflict) else 400
-                else:
-                    messages.success(
-                        request, "Conta corrigida. O motivo foi registrado no histórico."
-                    )
-                    return _private(redirect(back_url))
+        valid = form.is_valid()
+        if any(len(request.POST.getlist(field)) > 1 for field in form.fields):
+            form.add_error(None, "Informe cada campo uma única vez.")
+            valid = False
+        if valid:
+            try:
+                review_financial_account(
+                    account=account, actor=cast(User, request.user),
+                    authorized_companies=companies, cleaned_data=form.cleaned_data,
+                    request=request,
+                )
+            except PermissionDenied:
+                return _private(refuse(
+                    request, "Seu acesso mudou. Solicite revisão ao responsável."
+                ))
+            except SetupReviewError as exc:
+                form.add_error(None, str(exc))
+                status = 409 if isinstance(exc, SetupReviewConflict) else 400
             else:
-                status = 400
+                messages.success(
+                    request, "Conta corrigida. O motivo foi registrado no histórico."
+                )
+                return _private(redirect(back_url))
+        else:
+            status = 400
     context.update({
         "page_title": "Corrigir conta financeira", "setup_account": account,
-        "setup_form": form, "setup_errors": errors,
-        "setup_can_edit": can_manage and not linked_account,
+        "setup_form": form,
+        "setup_can_edit": can_manage,
         "setup_identity_locked": identity_locked, "setup_back_url": back_url,
         "setup_linked_account": linked_account,
         "setup_history": _history(account),
