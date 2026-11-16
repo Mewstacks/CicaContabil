@@ -13,9 +13,14 @@ from django.db import transaction
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.models import ClientCompany, FinancialAccount, ReconciliationTitleSnapshot
+from apps.hub.native_title_capacity import (
+    persist_native_provenance,
+    proposed_provenance,
+    validate_native_revision,
+)
 from apps.hub.title_contract import TitleContractError, validate_title_snapshot
 from apps.hub.title_persistence import authorize_title_account, import_title_snapshot
-from apps.intelligence.models import NativeTitleCollection
+from apps.intelligence.models import CompanyTitleCollection, NativeTitleCollection
 from apps.intelligence.native_title_comparison import TitleSourceEvidence, _key, _load, _validated
 from apps.intelligence.native_title_contract import canonical_hash, manifest
 
@@ -127,7 +132,15 @@ def translate_reviewed_titles(
                 )
             used.update(refs)
             settlements.append(row)
-            mapped.append({"settlement_key": stable_key, "payment_references": sorted(refs)})
+            mapped.append(
+                {
+                    "settlement_key": stable_key,
+                    "payment_references": sorted(refs),
+                    "event_identity": canonical_hash(
+                        [family, identity, next(iter(posted)), next(iter(numbers))]
+                    ),
+                }
+            )
         if used != set(payments):
             raise TitleContractError(
                 "Há componentes sem decisão; não omitir retenção, zero ou estorno."
@@ -170,26 +183,49 @@ def translate_reviewed_titles(
 
 
 def import_reviewed_native_titles(
-    *, organization_id: UUID, capture_id: UUID, actor: User, review: dict[str, Any]
+    *,
+    organization_id: UUID,
+    capture_id: UUID,
+    actor: User,
+    review: dict[str, Any],
+    financial_account: FinancialAccount | None = None,
 ) -> tuple[ReconciliationTitleSnapshot, bool]:
     saved_source = None
     try:
         with transaction.atomic():
-            job = NativeTitleCollection.objects.select_related("financial_account").get(
-                pk=capture_id, organization_id=organization_id
+            legacy = (
+                NativeTitleCollection.objects.select_related("financial_account")
+                .filter(pk=capture_id, organization_id=organization_id)
+                .first()
             )
+            modern = CompanyTitleCollection.objects.filter(
+                pk=capture_id, organization_id=organization_id
+            ).first()
+            if (legacy is None) == (modern is None):
+                raise TitleContractError("Fonte ausente ou identificador ambíguo.")
+            if modern is not None and financial_account is None:
+                raise TitleContractError(
+                    "Escolha explicitamente a conta antes de revisar esta fonte da empresa."
+                )
+            if modern is not None:
+                assert financial_account is not None
+                selected, company_id = financial_account, modern.company_id
+            else:
+                assert legacy is not None
+                selected = (
+                    financial_account if financial_account is not None else legacy.financial_account
+                )
+                company_id = legacy.financial_account.company_id
             ClientCompany.objects.select_for_update().get(
-                pk=job.financial_account.company_id, organization_id=organization_id
+                pk=company_id, organization_id=organization_id
             )
             account = (
                 FinancialAccount.objects.select_for_update(of=("self",))
                 .select_related("company", "organization")
-                .get(
-                    pk=job.financial_account_id,
-                    organization_id=organization_id,
-                    company_id=job.financial_account.company_id,
-                )
+                .get(pk=selected.pk, organization_id=organization_id, company_id=company_id)
             )
+            if legacy is not None and account.pk != legacy.financial_account_id:
+                raise TitleContractError("A fonte legada pertence a outra conta.")
             authorize_title_account(account, actor)
             job, evidence = _load(capture_id, organization_id, actor)
             payload, provenance = translate_reviewed_titles(
@@ -198,11 +234,21 @@ def import_reviewed_native_titles(
                 company_key=str(account.company_id),
                 account_reference=account.account_reference,
             )
+            proposed = proposed_provenance(
+                account=account, job=job, payload=payload, provenance=provenance
+            )
+            installments = {(item["title_key"], item["installment_key"]) for item in provenance}
+            validate_native_revision(account=account, proposed=proposed, installments=installments)
             snapshot, created = import_title_snapshot(
                 financial_account=account,
                 content=json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(),
                 actor=actor,
                 evidence_reference=review["evidence_reference"],
+            )
+            if created:
+                saved_source = snapshot.source_file
+            persist_native_provenance(
+                account=account, snapshot=snapshot, proposed=proposed, installments=installments
             )
             # Keep the normalized facts and their raw-source decision in one transaction.
             if created:

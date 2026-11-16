@@ -18,9 +18,7 @@ class IntelligenceArea(models.TextChoices):
     PAYROLL = "payroll", "Folha"
 
 
-def _validate_company_scope(
-    *, organization_id: object, company: object | None
-) -> None:
+def _validate_company_scope(*, organization_id: object, company: object | None) -> None:
     if company is not None and getattr(company, "organization_id", None) != organization_id:
         raise ValidationError({"company": "A empresa precisa pertencer ao mesmo escritório."})
 
@@ -419,6 +417,8 @@ class EdgeAgent(OrganizationScopedModel):
     last_seen_at = models.DateTimeField(null=True, blank=True)
     ledger_capabilities = models.JSONField(default=dict, db_default={}, blank=True)
     ledger_capabilities_observed_at = models.DateTimeField(null=True, blank=True)
+    title_capabilities = models.JSONField(default=dict, db_default={}, blank=True)
+    title_capabilities_observed_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
     is_official = models.BooleanField(default=False)
     replaces_agent = models.ForeignKey(
@@ -703,10 +703,12 @@ class DeparaAiBatch(OrganizationScopedModel):
     egress = models.OneToOneField(EgressAudit, null=True, blank=True, on_delete=models.PROTECT)
 
     class Meta:
-        constraints = [models.UniqueConstraint(
-            fields=("organization", "financial_account", "fingerprint"),
-            name="intelligence_unique_depara_ai_batch",
-        )]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "fingerprint"),
+                name="intelligence_unique_depara_ai_batch",
+            )
+        ]
 
 
 class NativeLedgerCollection(OrganizationScopedModel):
@@ -726,8 +728,11 @@ class NativeLedgerCollection(OrganizationScopedModel):
     request_key = models.UUIDField(null=True, blank=True)
     mapping_revision = models.CharField(max_length=64, blank=True, default="", db_default="")
     bank_source = models.ForeignKey(
-        "hub.ReconciliationSourceFile", null=True, blank=True,
-        on_delete=models.PROTECT, related_name="requested_ledger_collections",
+        "hub.ReconciliationSourceFile",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="requested_ledger_collections",
     )
     claimed_at = models.DateTimeField(null=True, blank=True)
     financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
@@ -779,3 +784,75 @@ class NativeTitleCollection(OrganizationScopedModel):
     result = models.JSONField(default=dict)
     error_code = models.CharField(max_length=48, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+
+
+class CompanyTitleCollection(OrganizationScopedModel):
+    """Monthly company-wide raw fiscal source; no bank association is implied."""
+
+    State = NativeTitleCollection.State
+    company = models.ForeignKey("hub.ClientCompany", on_delete=models.PROTECT)
+    agent = models.ForeignKey(
+        EdgeAgent, on_delete=models.PROTECT, related_name="company_title_jobs"
+    )
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    request_key = models.UUIDField()
+    batch_key = models.UUIDField(db_index=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "request_key"),
+                name="intelligence_unique_company_title_request",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "created_at"))]
+
+
+class NativeTitleSettlementProvenance(OrganizationScopedModel):
+    """Immutable native references behind one explicitly reviewed cash interpretation."""
+
+    company = models.ForeignKey("hub.ClientCompany", on_delete=models.PROTECT)
+    snapshot = models.ForeignKey(
+        "hub.ReconciliationTitleSnapshot",
+        on_delete=models.PROTECT,
+        related_name="native_provenance",
+    )
+    source_file = models.ForeignKey("hub.ReconciliationSourceFile", on_delete=models.PROTECT)
+    capture_id = models.UUIDField()
+    source_sha256 = models.CharField(max_length=64)
+    title_key = models.CharField(max_length=160)
+    installment_key = models.CharField(max_length=160)
+    settlement_key = models.CharField(max_length=160)
+    payment_references = models.JSONField()
+    interpretation = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("snapshot", "title_key", "installment_key", "settlement_key"),
+                name="intelligence_unique_native_settlement_provenance",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "settlement_key"))]
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self._state.adding:
+            raise ValidationError("A proveniência nativa da baixa é imutável.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> NoReturn:
+        raise ValidationError("A proveniência nativa da baixa é imutável.")

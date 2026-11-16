@@ -20,6 +20,11 @@ from apps.hub.models import (
     ReconciliationTitleAllocation,
     ReconciliationTitleSnapshot,
 )
+from apps.hub.native_title_capacity import (
+    persist_native_provenance,
+    proposed_provenance,
+    validate_native_revision,
+)
 from apps.hub.title_contract import TitleContractError, validate_title_snapshot
 from apps.hub.title_persistence import (
     _load as load_snapshot,
@@ -29,7 +34,7 @@ from apps.hub.title_persistence import (
     import_title_snapshot,
     latest_title_snapshot,
 )
-from apps.intelligence.models import NativeTitleCollection
+from apps.intelligence.models import CompanyTitleCollection, NativeTitleCollection
 from apps.intelligence.native_title_comparison import TitleSourceEvidence, _key, _load, _validated
 from apps.intelligence.native_title_contract import canonical_hash, manifest
 from apps.intelligence.native_title_translation import translate_reviewed_titles
@@ -46,7 +51,7 @@ class NativeReviewConflict(TitleContractError):
 @dataclass(frozen=True)
 class NativeReviewSource:
     account: FinancialAccount
-    capture: NativeTitleCollection
+    capture: NativeTitleCollection | CompanyTitleCollection
     evidence: TitleSourceEvidence
     raw: dict[str, Any]
 
@@ -59,17 +64,34 @@ def load_native_source(
         pk=account.pk, organization_id=account.organization_id, company_id=account.company_id
     )
     authorize_title_account(current, actor)
-    if not NativeTitleCollection.objects.filter(
+    legacy = NativeTitleCollection.objects.filter(
         pk=capture_id,
         organization_id=current.organization_id,
         financial_account=current,
-        state=NativeTitleCollection.State.CAPTURED,
-    ).exists():
+        state="captured",
+    ).exists()
+    modern = CompanyTitleCollection.objects.filter(
+        pk=capture_id,
+        organization_id=current.organization_id,
+        company_id=current.company_id,
+        state="captured",
+    ).exists()
+    if not legacy and not modern:
         raise TitleContractError("Esta fonte não está disponível para a conta selecionada.")
     job, evidence = _load(capture_id, current.organization_id, actor)
-    if job.financial_account_id != current.pk:
+    if isinstance(job, NativeTitleCollection):
+        if job.financial_account_id != current.pk:
+            raise PermissionDenied
+    elif job.company_id != current.company_id:
         raise PermissionDenied
     return NativeReviewSource(current, job, evidence, _validated(evidence))
+
+
+def load_company_title_source(
+    *, job_id: Any, organization_id: Any, actor: User
+) -> tuple[Any, TitleSourceEvidence, dict[str, Any]]:
+    job, evidence = _load(job_id, organization_id, actor)
+    return job, evidence, _validated(evidence)
 
 
 def source_installments(source: NativeReviewSource) -> list[dict[str, Any]]:
@@ -185,6 +207,17 @@ def _accumulate(
         company_key=str(source.account.company_id),
         account_reference=source.account.account_reference,
     )
+    proposed = proposed_provenance(
+        account=source.account, job=source.capture, payload=payload, provenance=provenance
+    )
+    try:
+        validate_native_revision(
+            account=source.account,
+            proposed=proposed,
+            installments={(item["title_key"], item["installment_key"]) for item in provenance},
+        )
+    except TitleContractError as error:
+        raise NativeReviewConflict(str(error)) from error
     if len(provenance) != 1:
         raise TitleContractError("Revise uma parcela por vez.")
     if latest is None:
@@ -360,6 +393,16 @@ def confirm_native_review(
             )
             if created:
                 saved = snapshot.source_file
+            proposed = proposed_provenance(
+                account=current, job=source.capture, payload=payload, provenance=provenance
+            )
+            persist_native_provenance(
+                account=current,
+                snapshot=snapshot,
+                proposed=proposed,
+                installments={(item["title_key"], item["installment_key"]) for item in provenance},
+                previous=latest,
+            )
             restored = latest is not None and snapshot.pk != latest.pk and not created
             if created or restored:
                 record_event(

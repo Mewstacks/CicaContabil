@@ -1,3 +1,21 @@
+## Entrega em validação final — D-369/V-408, 16/11/2026
+
+A coleta de títulos e baixas por empresa/competência está implementada pela tela,
+incluindo empresas sem conta cadastrada. A cliente seleciona empresas e meses,
+confere o lote e acompanha as fontes. Código, migração, compatibilidade e jornada
+foram testados localmente; CI exato e publicação ainda serão registrados emV-408.
+
+| Dependência real | O que falta | Responsável |
+|---|---|---|
+| Conexão do Domínio às novas telas | Aplicar a atualização única1.0.12, que reúne Razão e títulos, e comprovar recepção real. | Técnico com acesso ao SVAPL02; acesso indisponível hoje. Não é outra instalação/pareamento nem validação da contadora. |
+| Demais contas e extratos | Conferir43 candidatas em11 empresas; identificar contas nas134 outras; fornecer extratos por conta/competência. | Cliente fornece/confere dados reais; cadastro e revisão já existem. A coleta fiscal por empresa não depende disso. |
+| Interpretação e vínculo financeiro | Revisar natureza, componentes/estornos e evidência das relações com o banco; conferir plano e regras DE-PARA. | Cliente/contadora. Nenhuma igualdade de valor substitui evidência. |
+| Retorno e aceite completo | Critérios de importação/aceite próprios, cobertura e amostra real. | Técnico+contadora/responsável. Q-47/C01/C02 seguem adiados; não impedem a consulta/conciliação disponível. |
+
+O primeiro treinamento e a conferência real já relatados não voltam como
+pendência. Backup permanece fora da prioridade. Os registros abaixo são
+históricos; prevalece esta atualização e o fechamento deV-408.
+
 ## Entrega vigente — D-367/V-406, 16/11/2026, release96
 
 - [x] Títulos/baixas pela interface: fonte, revisão, prévia, vínculo, histórico, desfazer e relatório em reais.
@@ -339,4 +357,16 @@ e não será apresentado como impedimento para avançar no uso assistido.
 
 ### D-368/V-407 — Coleta pela cliente (16/11/2026)
 
-Em implementação/publicação: anexar OFX/QFX/CSV/XLSX/PDF, escolher empresa/conta/competência e buscar o Razão pelo agente existente. A conclusão operacional depende da versão1.0.11 comprovada no servidor; publicação do site isoladamente não resolve esse requisito. Revisão dos vínculos incompletos continua humana, com tela própria e sem contagens técnicas. Backup não bloqueia esta entrega.
+**Backend97 e pacote1.0.11 publicados e verificados. Operação completa da carteira ainda pendente.** A cliente pode continuar no piloto com fontes carregadas. A nova tela de Extrato e Razão está publicada; o agente observado ainda exige atualização. Não existe acesso ao SVAPL02 hoje.
+
+| Prioridade de uso | Falta real | Responsabilidade |
+|---|---|---|
+| Busca direta do Razão | Aplicar1.0.11 no SVAPL02 e comprovar capability/coleta real pela tela. | Técnico, quando houver acesso. Pacote/interface prontos. |
+| Demais contas | Revisar43 candidatas em11 empresas; identificar/cadastrar contas nas134 outras. | Cliente fornece/confere banco, agência/conta, conta contábil, plano, filial e direção; cadastro/revisão já existem. |
+| Fontes por competência | Extrato de cada conta/mês e Razão correspondente; tratar arquivo ilegível/colunas. | Cliente fornece fonte; nova coleta do Razão usa agente atualizado e vínculo validado. |
+| Títulos fora do piloto | Generalizar captura de títulos por empresa/conta/período e torná-la autônoma. Contrato atual fixa212/8/setembro2026 e expected_counts/comando. | Trabalho técnico ainda aberto (Q-28/Q-46), separado da validação humana. |
+| Títulos/baixas e DE-PARA | Revisar natureza/componentes/estornos e vínculos reais; cadastrar contas/contrapartidas aptas no plano e revisar/ativar regras. Catálogo bruto não é LedgerAccount aprovado. | Cliente/contadora valida; telas já entregues. C01/C02 seguem adiados. |
+| Retorno ao Domínio | Confirmar leiaute/adaptação e importação de fato não escriturado com conferência no destino. | Técnico+contadora/operador; Q-47 continua adiado, não bloqueia consulta/conciliação disponíveis. |
+| Contrato completo | Cobertura contratada, amostra/métricas reais e aceiteD-73. | Técnico+contadora/responsável; primeiro treinamento e conferência real já relatados. |
+
+Formatos atuais: OFX/QFX/CSV/XLSX/PDF até25MiB; imagens/XLS antigo e conteúdo PDF não extraível não são cobertura universal. Novas chamadas de IA não são requisito para usar conciliação ou revisar sugestões retidas. Backup não é bloqueio desta rodada. Não apresentar todos os itens restantes como responsabilidade da cliente.

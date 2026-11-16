@@ -7,6 +7,7 @@ from apps.hub import (
     ledger_request_views,
     native_title_views,
     setup_views,
+    title_request_views,
     title_views,
     views,
 )
@@ -34,6 +35,23 @@ urlpatterns = [
     path(
         "app/conciliacao/de-para/<uuid:batch_id>/",
         depara_review_views.depara_batch, name="reconciliation-depara-batch",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/", title_request_views.title_requests,
+        name="reconciliation-title-requests",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/situacao/", title_request_views.title_request_status,
+        name="reconciliation-title-request-status",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/<uuid:job_id>/fonte/", title_request_views.title_source,
+        name="reconciliation-title-source",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/<uuid:job_id>/retomar/",
+        title_request_views.title_request_retry,
+        name="reconciliation-title-request-retry",
     ),
     path("app/conciliacao/titulos/", title_views.titles, name="reconciliation-titles"),
     path(

@@ -10,12 +10,14 @@ from uuid import UUID
 from apps.accounts.models import User
 from apps.hub.models import FinancialAccount
 from apps.hub.title_persistence import authorize_title_account
-from apps.intelligence.models import NativeTitleCollection
+from apps.hub.title_requests import authorize_title_company, title_job_company
+from apps.intelligence.models import CompanyTitleCollection, NativeTitleCollection
 from apps.intelligence.native_title_contract import (
     FAMILIES,
     MAX_BYTES,
     canonical_hash,
     contract_hash,
+    is_automatic_scope,
     manifest,
     review_summary,
     validate_scope,
@@ -81,8 +83,8 @@ def compare_title_sources(
     previous: TitleSourceEvidence, current: TitleSourceEvidence
 ) -> dict[str, Any]:
     before, after = _validated(previous), _validated(current)
-    context = {key: previous.scope[key] for key in CONTEXT_FIELDS}
-    if context != {key: current.scope[key] for key in CONTEXT_FIELDS}:
+    context = {key: previous.scope[key] for key in CONTEXT_FIELDS if key in previous.scope}
+    if context != {key: current.scope[key] for key in CONTEXT_FIELDS if key in current.scope}:
         raise NativeTitleComparisonError("Fontes de recortes diferentes não são comparáveis.")
     same_capture = previous.scope["capture_id"] == current.scope["capture_id"]
     if same_capture and previous.expected_sha256 != current.expected_sha256:
@@ -165,24 +167,49 @@ def _account(identifier: UUID, organization_id: UUID, actor: User) -> FinancialA
 
 def _load(
     identifier: UUID, organization_id: UUID, actor: User
-) -> tuple[NativeTitleCollection, TitleSourceEvidence]:
-    job = NativeTitleCollection.objects.select_related("source_file").get(
-        pk=identifier, organization_id=organization_id, state="captured"
+) -> tuple[NativeTitleCollection | CompanyTitleCollection, TitleSourceEvidence]:
+    legacy = (
+        NativeTitleCollection.objects.select_related("source_file", "financial_account__company")
+        .filter(pk=identifier, organization_id=organization_id)
+        .first()
     )
-    account = _account(job.financial_account_id, organization_id, actor)
+    company_job = (
+        CompanyTitleCollection.objects.select_related("source_file", "company")
+        .filter(pk=identifier, organization_id=organization_id)
+        .first()
+    )
+    if legacy is None and company_job is None:
+        raise NativeTitleCollection.DoesNotExist("Fonte ausente.")
+    if legacy is not None and company_job is not None:
+        raise NativeTitleComparisonError("Identificador ambíguo.")
+    job = legacy if legacy is not None else company_job
+    assert job is not None
+    company = title_job_company(job)
+    authorize_title_company(company, actor, write=False)
+    account = (
+        _account(job.financial_account_id, organization_id, actor)
+        if isinstance(job, NativeTitleCollection)
+        else None
+    )
     scope = validate_scope(job.scope)
     source = job.source_file
     if (
-        str(job.pk) != scope["capture_id"]
+        job.state != "captured"
+        or company.organization_id != organization_id
+        or is_automatic_scope(scope) != isinstance(job, CompanyTitleCollection)
+        or str(job.pk) != scope["capture_id"]
         or job.completed_at is None
         or not job.evidence_reference.strip()
         or job.scope_revision != canonical_hash(scope)
-        or str(scope["company_code"]) != account.company.dominio_code
-        or str(scope["comparison_bank_account_code"]) != account.ledger_code
+        or str(scope["company_code"]) != company.dominio_code
+        or (
+            account is not None
+            and str(scope["comparison_bank_account_code"]) != account.ledger_code
+        )
         or source is None
         or source.organization_id != organization_id
-        or source.company_id != account.company_id
-        or source.financial_account_id != account.id
+        or source.company_id != company.pk
+        or source.financial_account_id != (account.pk if account else None)
         or source.origin != "obligation"
         or source.kind != "json"
         or source.content_hash != job.content_hash
@@ -211,13 +238,19 @@ def compare_collected_titles(
         current_job, current = previous_job, previous
     else:
         current_job, current = _load(current_id, organization_id, actor)
-    if previous_job.financial_account_id != current_job.financial_account_id:
+    if title_job_company(previous_job).pk != title_job_company(current_job).pk or getattr(
+        previous_job, "financial_account_id", None
+    ) != getattr(current_job, "financial_account_id", None):
         raise NativeTitleComparisonError("Contas de comparação diferentes.")
     result = compare_title_sources(previous, current)
     # Re-read current permission/account metadata after private storage I/O.
-    account = _account(previous_job.financial_account_id, organization_id, actor)
-    if account.company.dominio_code != str(
-        result["context"]["company_code"]
-    ) or account.ledger_code != str(result["context"]["comparison_bank_account_code"]):
-        raise NativeTitleComparisonError("O contexto da conta mudou durante a comparação.")
+    company = title_job_company(previous_job)
+    company.refresh_from_db()
+    authorize_title_company(company, actor, write=False)
+    if company.dominio_code != str(result["context"]["company_code"]):
+        raise NativeTitleComparisonError("O contexto da empresa mudou durante a comparação.")
+    if isinstance(previous_job, NativeTitleCollection):
+        account = _account(previous_job.financial_account_id, organization_id, actor)
+        if account.ledger_code != str(result["context"]["comparison_bank_account_code"]):
+            raise NativeTitleComparisonError("O contexto da conta mudou durante a comparação.")
     return result

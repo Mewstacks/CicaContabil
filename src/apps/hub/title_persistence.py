@@ -512,6 +512,14 @@ def _prepare(
             event_used[previous.settlement_identity] += previous.cash_cents
         if previous.movement_identity in identities or previous.settlement_identity in selected:
             affected.append([str(previous.pk), previous.cash_cents])
+    from apps.hub.native_title_capacity import shared_native_usage
+
+    native_used, native_affected = shared_native_usage(
+        account=account, snapshot=latest, parsed=parsed
+    )
+    for identity, cents in native_used.items():
+        event_used[identity] += cents
+    affected.extend(native_affected)
     for row in preview.allocations:
         movement = movements[row.movement_key]
         bank_id = _bank_identity(movement)
@@ -611,7 +619,13 @@ def confirm_title_allocations(
     evidence_reference: str,
     accept_date_differences: bool = False,
 ) -> tuple[ReconciliationTitleBatch, bool]:
+    scope = _account(snapshot.financial_account_id)
+    ClientCompany.objects.select_for_update().get(
+        pk=scope.company_id, organization_id=scope.organization_id
+    )
     account = _account(snapshot.financial_account_id, lock=True)
+    if account.company_id != scope.company_id:
+        raise TitleContractError("A conta mudou de empresa. Reabra a revisão.")
     authorize_title_account(account, actor)
     reason = _reason(evidence_reference)
     if type(request_id) is not UUID or type(accept_date_differences) is not bool:
@@ -711,7 +725,13 @@ def confirm_title_allocations(
 def undo_title_allocation(
     *, allocation: ReconciliationTitleAllocation, actor: User, reason: str
 ) -> bool:
+    scope = _account(allocation.financial_account_id)
+    ClientCompany.objects.select_for_update().get(
+        pk=scope.company_id, organization_id=scope.organization_id
+    )
     account = _account(allocation.financial_account_id, lock=True)
+    if account.company_id != scope.company_id:
+        raise TitleContractError("A conta mudou de empresa. Reabra a revisão.")
     authorize_title_account(account, actor)
     reason = _reason(reason)
     current = ReconciliationTitleAllocation.objects.select_for_update().get(

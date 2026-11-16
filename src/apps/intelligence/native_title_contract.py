@@ -14,6 +14,10 @@ from apps.intelligence.native_ledger_contract import canonical_hash as canonical
 
 ROOT = Path(__file__).resolve().parents[3] / "contracts" / "titles"
 VERSION = "dominio-title-snapshot-v1"
+AUTOMATIC_VERSION = "dominio-title-snapshot-v2"
+AUTOMATIC_SCOPE_FIELDS = frozenset(
+    {"capture_id", "company_code", "period_start", "period_end_exclusive"}
+)
 MAX_BYTES = 4_000_000
 MAX_ROWS = 50_000
 FAMILIES = ("entradas", "saidas", "servicos")
@@ -55,24 +59,17 @@ def contract_hash() -> str:
     return hashlib.sha256((ROOT / "manifest.json").read_bytes()).hexdigest()
 
 
+def is_automatic_scope(value: Any) -> bool:
+    return isinstance(value, dict) and set(value) == AUTOMATIC_SCOPE_FIELDS
+
+
+def snapshot_version(scope: dict[str, Any]) -> str:
+    return AUTOMATIC_VERSION if is_automatic_scope(scope) else VERSION
+
+
 def validate_scope(value: Any) -> dict[str, Any]:
-    fields = {
-        "capture_id",
-        "company_code",
-        "comparison_bank_account_code",
-        "period_start",
-        "period_end_exclusive",
-        "expected_counts",
-    }
-    if not isinstance(value, dict) or set(value) != fields:
-        raise ValueError("title_scope_invalid")
-    fixed = {
-        "company_code": 212,
-        "comparison_bank_account_code": 8,
-        "period_start": "2026-09-01",
-        "period_end_exclusive": "2026-10-01",
-    }
-    if any(type(value[k]) is not type(v) or value[k] != v for k, v in fixed.items()):
+    legacy_fields = AUTOMATIC_SCOPE_FIELDS | {"comparison_bank_account_code", "expected_counts"}
+    if not isinstance(value, dict) or set(value) not in (AUTOMATIC_SCOPE_FIELDS, legacy_fields):
         raise ValueError("title_scope_invalid")
     try:
         if (
@@ -82,6 +79,38 @@ def validate_scope(value: Any) -> dict[str, Any]:
             raise ValueError
     except (ValueError, AttributeError, TypeError):
         raise ValueError("title_scope_invalid") from None
+    if is_automatic_scope(value):
+        try:
+            if (
+                type(value["company_code"]) is not int
+                or not 1 <= value["company_code"] <= 2147483647
+            ):
+                raise ValueError
+            for name in ("period_start", "period_end_exclusive"):
+                text = value[name]
+                if not isinstance(text, str) or not re.fullmatch(
+                    r"[0-9]{4}-[0-9]{2}-[0-9]{2}", text
+                ):
+                    raise ValueError
+            start = date.fromisoformat(value["period_start"])
+            end = date.fromisoformat(value["period_end_exclusive"])
+            if (
+                start.day != 1
+                or start.year > 9998
+                or end != date(start.year + (start.month == 12), start.month % 12 + 1, 1)
+            ):
+                raise ValueError
+        except (ValueError, TypeError, OverflowError):
+            raise ValueError("title_scope_invalid") from None
+        return value
+    fixed = {
+        "company_code": 212,
+        "comparison_bank_account_code": 8,
+        "period_start": "2026-09-01",
+        "period_end_exclusive": "2026-10-01",
+    }
+    if any(type(value[k]) is not type(v) or value[k] != v for k, v in fixed.items()):
+        raise ValueError("title_scope_invalid")
     counts = value["expected_counts"]
     if not isinstance(counts, dict) or set(counts) != set(FAMILIES):
         raise ValueError("title_scope_invalid")
@@ -170,7 +199,7 @@ def validate_snapshot(content: bytes, scope: dict[str, Any]) -> dict[str, Any]:
     if (
         not isinstance(data, dict)
         or set(data) != {"version", "scope_revision", "coverage", "families"}
-        or data["version"] != VERSION
+        or data["version"] != snapshot_version(scope)
         or data["scope_revision"] != canonical_hash(scope)
         or data["coverage"] != COVERAGE
         or type(data["coverage"].get("settlements_complete")) is not bool
@@ -197,7 +226,10 @@ def validate_snapshot(content: bytes, scope: dict[str, Any]) -> dict[str, Any]:
         for kind in ("installments", "payments", "accounting_links"):
             _rows(family[kind], contract["queries"][f"{name}_{kind}"])
         if (
-            any(control[k] != scope["expected_counts"][name][k] for k in COUNT_FIELDS)
+            (
+                not is_automatic_scope(scope)
+                and any(control[k] != scope["expected_counts"][name][k] for k in COUNT_FIELDS)
+            )
             or control["missing_headers"] != 0
             or control["missing_installments"] != 0
             or control["selected_installments"] != len(family["installments"])

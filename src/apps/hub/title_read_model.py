@@ -302,6 +302,15 @@ def build_title_workspace(
                 "ou revise uma fonte mais recente."
             )
         bank_used, event_used, fingerprints, checked = _capacities(account, parsed, allocations)
+        from apps.hub.native_title_capacity import shared_native_usage
+
+        assert snapshot is not None
+        native_used, _ = shared_native_usage(account=account, snapshot=snapshot, parsed=parsed)
+        for identity, cents in native_used.items():
+            event_used[identity] += cents
+        for identity, (event, _) in _settlements(parsed, account).items():
+            if event_used[identity] > event.cash_cents:
+                raise TitleContractError("Capacidade excedida entre contas; revise as alocações.")
         titles, parts, events = _catalog(account, parsed, event_used, start, end, direction)
         movements = _movements(account, start, end, direction, bank_used, fingerprints, checked)
         result.update(
