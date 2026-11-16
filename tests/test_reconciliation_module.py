@@ -2834,7 +2834,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization,
-        action="hub.reconciliation.financial_account.state_changed",
+        action="hub.reconciliation.financial_account.corrected",
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_ignored"
