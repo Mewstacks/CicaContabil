@@ -1,5 +1,69 @@
 # Carteira CONTAD — contrato de integração em implementação
 
+## Expansão financeira por lotes revisados — D-363, 16/11/2026
+
+A carga cadastral das146 empresas não equivale a contas financeiras prontas.
+O contrato mensal já aceita empresa/plano/conta/período explícitos. A operação
+abaixo agrupa esses escopos, preserva os existentes e apresenta pendências;
+não descobre bancos, cria contas ou aprova dados da origem.
+
+### Conferir a cobertura antes de preparar capturas
+
+`scripts/prepare_contad_portfolio_readiness.py` combina os dois perfis originais
+recebidos, verificando carteira, configuração e período iguais. Exige
+`--portfolio-input`, `--accounts-input` e `--output` em caminho privado novo.
+A saída exclusiva0600 preserva todas as empresas, candidatos, meses, filiais,
+hashes e campos de revisão vazios. As empresas sem configuração continuam
+pendentes; a prova anterior do piloto fica separada, sem ser invalidada.
+
+Essa matriz **não é um manifesto de captura**. As contagens agregadas por
+empresa não substituem contagens específicas por conta/mês. Antes de preparar
+o lote, o responsável confere vínculo bancário, plano, conta, direção e período;
+o técnico obtém e confronta linhas, lotes e efeitos do mesmo escopo. Ausência
+de informação não é zero. Múltiplas filiais exigem validar os lotes completos;
+um filtro de filial pode truncar partidas e não é aplicado automaticamente.
+
+### Prévia e execução administrativa do lote
+
+O JSON privado usa `version: contad-portfolio-ledger-batch-v1`,
+`organization_id`, `agent_id` e `items` (1 a1000). Cada item tem
+`financial_account_id`, `scope` completo validado pelo contrato nativo e
+`evidence_reference` da revisão efetiva (1 a240 caracteres). Não preencher
+campos desconhecidos com valores do piloto ou da competência anterior.
+
+```sh
+python manage.py queue_portfolio_ledger_batch --organization ORG_UUID --agent AGENTE_UUID --actor OPERADOR_UUID --manifest-file /caminho/privado/lote-revisado.json
+```
+
+Sem `--allow-financial-capture`, a prévia não cria jobs nem auditorias. O
+relatório informa itens prontos, já enfileirados/importados/em revisão e
+problemas por item; erro de acesso/conta usa diagnóstico genérico. Não imprime
+nomes, históricos, valores bancários ou o texto das evidências.
+
+Somente depois da revisão e autorização da coleta real, acrescente
+`--allow-financial-capture`. Todo o lote é validado antes de qualquer inserção;
+um item inválido impede todas as novas coletas. Reenvio reutiliza o mesmo
+escopo sem mudar autor, evidência ou estado. Conta/mês repetidos no lote ou
+escopo diferente já registrado para a mesma conta/mês exigem revisão, nunca
+sobrescrita. Jobs em revisão/falha permanecem assim, sem reativação silenciosa.
+O comando unitário `queue_portfolio_ledger` mantém a interface anterior e
+utiliza o mesmo serviço de autorização, validação e gravação.
+
+### Fila, acompanhamento e limites
+
+O agente existente com capacidade `portfolio_scope` recebe os jobs elegíveis.
+Uma conta desativada/revogada ou um escopo inválido não bloqueia outras contas;
+se todos os candidatos forem inválidos, a resposta409 continua explícita.
+Falhas transitórias vão para o fim da ordem de tentativa, sem perder o retry.
+Acesso, conta, hash e escopo são novamente conferidos ao receber a fonte.
+
+A cadência existente do agente continua de uma coleta por ciclo. Este lote
+não cria agenda automática de competências, não copia contagens para meses
+novos e não comprova cobertura de lotes complexos ou de todas as filiais.
+Novos meses precisam dos próprios escopos revisados. Q-28/Q-46/D-73 continuam
+com suas evidências; importação Domínio/Q-47 e C01/C02 permanecem adiados.
+Os registros de versões anteriores abaixo são históricos.
+
 **Continuidade D-333/D-334/V-352 — 11/11/2026:** **SVAPL02/1.0.7** atualizado
 por download direto no servidor, Running/Auto/LocalSystem/ready, configuração
 protegida preservada e sem reboot às18:31:19 UTC. Backend **release83**, PR7/main
