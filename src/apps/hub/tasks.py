@@ -10,9 +10,11 @@ from functools import partial
 from typing import Any
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
+from celery.signals import worker_ready
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -33,6 +35,14 @@ from apps.hub.models import (
 )
 from apps.hub.nfse_adn import AdnClient, AdnError
 from apps.hub.nfse_sync import certificate_ssl_context, process_sync_pages, refresh_nfse_facts
+from apps.hub.reconciliation_recovery import (
+    TASK_HARD_LIMIT_SECONDS,
+    TASK_SOFT_LIMIT_SECONDS,
+    RecoveryDeliveryError,
+    recover_run,
+    resume_active_runs,
+    schedule_recovery,
+)
 from apps.hub.reconciliation_service import process_run
 from apps.hub.recurrence import generate_due_assignments
 from apps.hub.reform import refresh_reform_sources
@@ -314,10 +324,55 @@ def refresh_reform_sources_task() -> dict[str, int]:
     return {"created": created, "updated": updated, "failed": failed}
 
 
-@shared_task(name="hub.process_reconciliation_run")  # type: ignore[untyped-decorator]
-def process_reconciliation_run(run_id: str) -> dict[str, int | str]:
+@shared_task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="hub.process_reconciliation_run",
+    time_limit=TASK_HARD_LIMIT_SECONDS,
+    soft_time_limit=TASK_SOFT_LIMIT_SECONDS,
+    autoretry_for=(RecoveryDeliveryError, DatabaseError, SoftTimeLimitExceeded),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def process_reconciliation_run(self: Any, run_id: str) -> dict[str, int | str]:
     """Process one durable reconciliation run. Re-delivery is safe by source keys."""
-    return process_run(run_id)
+    # Synchronous/eager test and management calls have no future broker consumer.
+    arm = None if self.request.is_eager else partial(schedule_recovery, run_id)
+    result = process_run(run_id, on_acquired=arm)
+    if result["state"] == "not_ready" and arm is not None:
+        recover_run(run_id)
+    return result
+
+
+@shared_task(  # type: ignore[untyped-decorator]
+    name="hub.recover_reconciliation_run",
+    autoretry_for=(RecoveryDeliveryError, DatabaseError),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def recover_reconciliation_run(run_id: str, token: str) -> str:
+    """One watchdog for active work; an old token cannot reopen a newer attempt."""
+    return recover_run(run_id, token)
+
+
+@shared_task(  # type: ignore[untyped-decorator]
+    name="hub.resume_active_reconciliation_runs",
+    autoretry_for=(RecoveryDeliveryError, DatabaseError),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def resume_active_reconciliation_runs() -> dict[str, int]:
+    return resume_active_runs()
+
+
+@worker_ready.connect(weak=False)
+def resume_reconciliation_after_worker_start(**_kwargs: Any) -> None:
+    """Rebuild active watchdogs lost with a worker/broker, once the consumer is ready."""
+    try:
+        resume_active_reconciliation_runs.delay()
+    except Exception as exc:
+        # A broker outage remains an operational dependency. The unchanged
+        # periodic sweep is the fallback; never advertise an RPO from this hook.
+        logger.warning(
+            "Reconciliation startup recovery unavailable",
+            extra={"failure_type": type(exc).__name__},
+        )
 
 
 @shared_task(name="hub.dispatch_waiting_reconciliation_runs")  # type: ignore[untyped-decorator]
@@ -388,21 +443,15 @@ def recover_reconciliation_runs() -> int:
     now = timezone.now()
     from apps.hub.models import ReconciliationRun
 
-    with transaction.atomic():
-        run_ids = list(
-            ReconciliationRun.objects.filter(
-                state=ReconciliationRun.State.PROCESSING, lease_until__lt=now
-            ).values_list("id", flat=True)
-        )
-        ReconciliationRun.objects.filter(id__in=run_ids).update(
-            state=ReconciliationRun.State.WAITING,
-            stage="recovered",
-            lease_token=None,
-            lease_until=None,
-        )
-        for run_id in run_ids:
-            transaction.on_commit(partial(process_reconciliation_run.delay, str(run_id)))
-    return len(run_ids)
+    expired = list(
+        ReconciliationRun.objects.filter(
+            state=ReconciliationRun.State.PROCESSING, lease_until__lt=now
+        ).values_list("id", "lease_token")
+    )
+    return sum(
+        recover_run(str(run_id), str(token) if token is not None else None) == "recovered"
+        for run_id, token in expired
+    )
 
 
 def _value(row: dict[str, Any], *keys: str) -> str:

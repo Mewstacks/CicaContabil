@@ -9206,3 +9206,103 @@ HTTP passaram. Rodadas têm sobreposição. Captura antiga após redimensionamen
 tinha bitmap repetido; contexto fresco confirmou DOM único e formulário
 completo, sem overflow/erros. Fonte/CSS congelados para CI; QA transacional
 sintético e migração sobre imagem93 continuam em artefatos privados.
+
+Fechamento D-365/V-404 — 16/11/2026: CI43895994663 integral aprovado no
+head49d72240e708607cbbe4280ec9cedc3ac5d349ea. PR23 integrado em
+main055a0dbe4a999d1446ae747e4fd6bd71f2fa0c06, árvore idêntica
+5f930b1a9e89d27dc988cfa48afb3175128d0b35.2580 testes SQLite aprovados,
+41 skips;2619 PostgreSQL aprovados,2 skips;175 subtestes por suíte.
+110 contratos Windows e107 Linux+3 skips aprovados, instalação/upgrade
+sintéticos e três imagens aprovados. MyPy dos quatro módulos novos passou.
+
+QA sintético final: C02 vinculada por formulário, C03 descartada com motivo,
+resultado somente consulta e replayHTTP409. Delta: uma FinancialAccount,
+uma LedgerAccount e dois eventos; zero fontes, jobs ou decisões financeiras.
+Conta nova corretamente sem extrato/Razão.39 testes HTTP e14 verificações
+Playwright iniciais aprovados, com ensaio final adicional. Códigos1000/1001
+literais, celular375px, paisagem,200%, tema/foco/erros e rascunho conferidos.
+A repetição de bitmap antiga não ocorreu no novo contexto; captura final
+`final-detail-mobile.png` inspecionada, formulário completo e espaçamento16px.
+
+Migração0083 ensaiada na imagem93 exata, sem rede, com SQLite descartável:
+nove verificações de prévia sem escrita, modelo histórico sem classe nova
+no runtime, roteamento, replay, guards e limpeza. Script/hash privado fixado;
+revisão independente sem bloqueio. PostgreSQL integral cobriu migrações e
+concorrência. Produção confirmou endpoints diretos correspondentes e somente
+0083 pendente nos dois aliases. Aplicada pelo Django na máquina web existente,
+com pacote temporário isolado; tabela apenas no default e recorder em ambos,
+sem substituir o runtime anterior. Temporários removidos e fontes preservadas.
+
+Release94 publicada nas duas máquinas existentes,512MB/1CPU cada;
+legado287e35db920e48 permanece parado/configuração idêntica. Imagem
+b30207cbe86974821eb62d1f391ae2f41a8afa1c9fb1a9d25e83005af35615cf;
+runtime748 arquivos/SHA7154002f2eccfd5ce85ca42d64c3ec23e4b62ffb7a682cd3dd7cb41983e54d8e,
+igual em web/worker.743 fontes conferidas contra o commit:126 exatas,
+617 herdadas comCRLF; cinco metadados de empacotamento preservados.
+Live/ready200, banco/cache, seis assets públicos e ping do worker aprovados.
+Autenticação do registry renovada pela CLI existente após tentativa recusada;
+sem nova conta/permissão. HTTPS verificado pelo curl do sistema; Python3.14
+local não tinha a cadeiaCA, e nenhuma verificaçãoTLS foi desativada.
+
+Cadastro real: prévia146 empresas/43 candidatas/11 empresas, zero escrita.
+Aplicação criou43 ReconciliationAccountCandidate pendentes e um evento
+`técnico`, ator nulo/referência D-365. Zero FinancialAccount/LedgerAccount,
+aprovação humana, fontes ou jobs criados. Manifesto privado
+5f20d707dc5cca60b4ea956b2f3f2a21a1ced900fc4418221db75e88fe788fad.
+Repetição criou zero registros/eventos e preservou todos os campos.
+Comparação posterior:14 grupos anteriores idênticos; piloto mantém163
+movimentos/163 registros independentes e decisões anteriores. A carteira
+mostra146 empresas,11 com43 vínculos pendentes e134 demais sem candidata
+identificada nas fontes retidas. Uma conta operacional existente preservada.
+
+Verificação da sessão autenticada no Chrome NÃO concluída: navegador em uso,
+a ferramenta recusou duas tentativas por mudança simultânea de estado.
+Nenhuma navegação, preenchimento ou decisão humana foi confirmada pela UI.
+Não interrompido o uso do navegador; prova de produção foi READ ONLY no
+servidor, respeitando a carteira autorizada, mais saúde/assets/runtime.
+O ensaio completo da interface foi feito com dados sintéticos. Não atribuir
+novo treinamento, conferência real, aceite ou revisão dos43 casos à cliente.
+
+Ficha privada existente C01–C43 ganhou indicação da tela publicada, sem
+marcar checkboxes nem criar ficha concorrente. Fontes JSON originais mantêm
+seus hashes. Guia, checklist, plano e registro atualizados por deltas,
+preservando alterações locais anteriores. Evidências privadas em
+`contad-account-enrollment/CicaContabil/.tmp/release/`: delivery-final.json,
+ci-result.json/ci-final.log, migration-rehearsal/preflight/apply.json,
+candidate-preview/import/replay.json, candidates-after.json e fingerprints;
+imagem em .tmp/operations e ensaios em .tmp/qa.
+
+Ainda dependem de fonte/revisão humana: banco/agência/conta, nome/plano,
+direção e prova dos vínculos; identificação das contas nas134 empresas sem
+candidata; fontes/contagens/competências, filiais e recorrência Q-28. Q-46/D-73,
+backup/recuperação, amostra e aceite permanecem abertos. Q-47/C01/C02 adiados
+preservados. Pré-cadastro disponível não equivale a operação integral da
+carteira ou sistema concluído. Sem nova consultaERP, IA, MSI, mensagens ou custo.
+
+
+## V-405 — Correções operacionais da conciliação (16/11/2026)
+
+D-366 implementada no checkout isolado contad-operational-completion, sobre
+release94. Edição de conta manual e correção/reconsideração de candidata têm
+motivo, controle de concorrência, escopo empresa E módulo e histórico privado.
+Identidade usada por fontes/lançamentos/coletas não é sobrescrita. Migração0084
+aditiva cria históricos JSON com default persistente compatível com runtime94.
+
+Propósito explícito de Razão independente valida todos os arquivos e códigos
+do plano antes da gravação. Modelo fictício e instruções acessíveis; PDF/XLSX
+ou CSV genérico não são promovidos a partidas completas. Contrato existente
+permanece, inclusive idempotência e guarda de chaves/conteúdo.
+
+Retomada ativa por lease360s/watchdog com token e CAS; hard300/soft270s,
+startup/reentrega rearmam recuperação e falha de entrega não inicia escrita.
+Agenda ociosa15min preservada. Janela de retomada depende de worker, Redis,
+banco e fila disponíveis e não comprova RPO/restore em produção.
+
+Validação inicial:137 testes de navegação/configuração/carteira passaram
+(3skipsPG);30 testes novos de entrada do Razão;29 de correção de candidata
+(1skipPG);32 de edição de conta(1skipPG). São rodadas sobrepostas, não somar.
+Ruff e makemigrations--check aprovados. Percurso HTTP/Playwright sintético de
+empresa nova já criou plano/conta, corrigiu com motivo, recusou cadastro e CSV
+inválidos e chegou à conferência com extrato/Razão1/1; fechamento do ensaio,
+suítes integrais, CI, migração/publicação e verificação final ainda pendentes
+neste registro. Nenhuma decisão real da cliente executada nesta rodada.

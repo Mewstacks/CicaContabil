@@ -1,3 +1,13 @@
+## 16/11/2026 — D-366/V-405, fechamento dos bloqueios de uso
+
+Implementados no checkout isolado correção auditada de contas/vínculos,
+prontidão baseada em cadastro completo, entrada explícita do Razão com modelo
+/validação prévia e recuperação de trabalho interrompido. Revisão independente
+fechou escopo de conta/plano, concorrência e soft timeout; migração0084 mantém
+default no banco para compatibilidade com o runtime anterior. Ensaios locais
+usam somente fontes sintéticas. CI/publicação e prova final seguem pendentes
+nesta anotação;43 revisões e fontes das demais empresas não foram inventadas.
+
 ## 16/11/2026 — D-364/V-403, carteira e relatório validados localmente
 
 No checkout isolado contad-client-operations, implementadas carteira por

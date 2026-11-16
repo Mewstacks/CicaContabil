@@ -1,8 +1,55 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
+## Cadastrar, corrigir e receber o Razão — atualização D-366, 16/11/2026
+
+Atualização implementada e validada localmente; CI e publicação ainda
+pendentes. As instruções abaixo acompanham essa atualização. Os dados de cada
+empresa e a conferência da cliente continuam necessários.
+
+Para uma empresa **Sem conta cadastrada**, abra **Conferir configuração**.
+Cadastre a conta contábil real em **Plano de contas**, ativa e apta a receber
+lançamentos. Depois, em **Contas financeiras**, informe nome, código do banco,
+agência/conta e vínculo contábil. Uma conta ativa precisa desses dados completos.
+As contas sem candidata também usam esse caminho, com os dados comprovados
+pela cliente. Ao voltar à importação, confira a empresa selecionada.
+
+Para corrigir uma conta manual, abra **Corrigir conta** na configuração.
+Confira os campos, informe o **Motivo da correção** e escolha **Salvar correção**.
+O **Histórico de correções** conserva os dados anteriores, responsável, data
+e motivo. Banco, agência/conta e vínculo contábil ficam protegidos quando há
+fontes, lançamentos ou coletas associados; nessa situação, o formulário permite
+corrigir o nome e controlar novos usos. Se a página informar que outra pessoa
+alterou a conta, reabra e confira a versão atual antes de salvar.
+
+Contas originadas de **Vínculos de contas** são corrigidas no próprio caso.
+Use **Corrigir vínculo**, registre motivo e nova evidência e confira novamente
+as três verificações. Se já houver fontes, lançamentos ou coletas associados,
+o vínculo usado é preservado e exige análise do responsável. Para um caso
+marcado **Não utilizar**, use **Reconsiderar decisão** e informe o motivo;
+**Reabrir para revisão** devolve o caso às pendências. As revisões anteriores
+continuam disponíveis, sem apagar a decisão original.
+
+Para receber o Razão da conta, siga **Importar Razão** na carteira. Confira
+empresa, conta, origem **Registros contábeis** e finalidade **Razão independente
+— CSV de partidas completas**. Use **Baixar modelo do Razão**, substitua os
+exemplos fictícios pelos dados reais e inclua todas as partidas de cada
+lançamento, com débitos e créditos equilibrados. **Abrir plano de contas**
+leva à configuração da empresa selecionada.
+
+O envio confere o formato e as contas antes de guardar o lote. Se indicar
+contas ausentes ou indisponíveis, confira os códigos no plano; se indicar
+partidas incompletas ou desequilíbrio, revise a fonte original. Depois,
+selecione novamente o arquivo corrigido. PDF, XLSX e CSV genérico enviados como
+**Arquivos gerais** não preenchem a pendência de Razão independente.
+Consulte o [contrato e exemplo do CSV](../conciliacao-razao-normalizado.md).
+
+Concluído o processamento, volte à carteira da competência e abra a
+conferência. Cadastro completo e fontes recebidas permitem iniciar o trabalho;
+não significam que os movimentos foram conciliados ou que o mês foi encerrado.
+
 ## Validar as contas das demais empresas — D-365/V-404
 
-Recurso preparado; aguarda publicação e importação verificadas em V-404.
+Pré-cadastros publicados na release94, conforme V-404.
 Os casos C01–C43 reaproveitam a ficha existente. Empresa, plano e código da
 conta já vêm da origem; os dados bancários precisam da sua conferência.
 
@@ -93,7 +140,8 @@ A conta pessoal da operadora já existe; não é necessário cadastrar outro esc
 pedir novo convite. Não compartilhe senha, arquivos ou dados de clientes pelo chat.
 
 Antes de importar, confira empresa, conta financeira e período. Os dados devem
-vir da integração do escritório. Se a empresa/conta esperada não aparecer, ou
+corresponder às fontes conferidas do escritório, recebidas pela integração ou
+cadastradas manualmente com comprovação. Se a empresa/conta esperada não aparecer, ou
 se houver mais de uma opção compatível, interrompa a importação e informe ao
 responsável qual identificação está faltando. Não escolha uma empresa parecida
 nem cadastre contas provisórias para contornar uma sincronização incompleta.
@@ -162,7 +210,7 @@ oferecido pelo sistema, evitando criar outra escrituração do mesmo fato.
 
 ## Relatório, saída e falhas
 
-Na versão D-364, após a publicação, use **Ver relatório** para ler e
+Use **Ver relatório** para ler e
 **Imprimir ou salvar PDF** para guardar a conferência; **Baixar CSV técnico**
 mantém a saída anterior. Confira empresa, conta, período, totais, pendências
 e avisos. O período limita as duas saídas; busca, situação e página da tela

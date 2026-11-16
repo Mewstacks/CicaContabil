@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import hmac
+import json
 import re
 from datetime import datetime
 from typing import Any
@@ -30,6 +33,10 @@ LINK_FIELDS = ("name", "bank_code", "account_reference", "bank_inflow_side", *CH
 
 
 class CandidateReviewError(ValueError):
+    pass
+
+
+class CandidateReviewConflict(CandidateReviewError):
     pass
 
 
@@ -377,6 +384,207 @@ def dismiss_candidate(
             "company_id": str(candidate.company_id),
             "source_file_sha256": candidate.source_file_sha256,
             "portfolio_file_sha256": candidate.portfolio_file_sha256,
+        },
+    )
+    return candidate
+
+
+def candidate_revision(candidate: ReconciliationAccountCandidate) -> str:
+    from apps.hub.setup_review import account_revision
+
+    account = candidate.financial_account if candidate.financial_account_id else None
+    ledger = (
+        LedgerAccount.objects.filter(
+            organization_id=candidate.organization_id,
+            company_id=candidate.company_id,
+            code=str(candidate.account_code),
+        )
+        .values("id", "name", "active", "accepts_entries", "updated_at")
+        .first()
+    )
+    state = {
+        "id": str(candidate.pk),
+        "state": candidate.state,
+        "organization_id": str(candidate.organization_id),
+        "company_id": str(candidate.company_id),
+        "reviewed_by_id": str(candidate.reviewed_by_id) if candidate.reviewed_by_id else None,
+        "reviewed_at": candidate.reviewed_at.isoformat() if candidate.reviewed_at else None,
+        "updated_at": candidate.updated_at.isoformat(),
+        "review_data": candidate.review_data,
+        "review_evidence": candidate.review_evidence,
+        "history": candidate.review_history,
+        "source": candidate.source_file_sha256,
+        "ledger": ledger,
+        "account": account_revision(account) if account is not None else None,
+    }
+    return hashlib.sha256(json.dumps(state, sort_keys=True, default=str).encode()).hexdigest()
+
+
+@transaction.atomic
+def revise_candidate(
+    *,
+    candidate: ReconciliationAccountCandidate,
+    actor: User,
+    authorized_companies: QuerySet[ClientCompany],
+    cleaned_data: dict[str, Any],
+    reopen: bool = False,
+    request: Any = None,
+) -> ReconciliationAccountCandidate:
+    from apps.hub.account_candidate_forms import (
+        AccountCandidateCorrectionForm,
+        AccountCandidateReopenForm,
+    )
+    from apps.hub.setup_review import account_snapshot, account_usage_reasons
+
+    candidate = _locked_candidate(candidate)
+    _access(candidate, actor, authorized_companies, request)
+    form_type = AccountCandidateReopenForm if reopen else AccountCandidateCorrectionForm
+    data = _form_data(form_type, candidate, cleaned_data)
+    _source(candidate, data)
+    expected = "dismissed" if reopen else "linked"
+    if candidate.state != expected:
+        raise CandidateReviewConflict("A situação mudou. Reabra o vínculo para conferir.")
+    account = None
+    ledger = None
+    if not reopen:
+        if candidate.financial_account_id is None:
+            raise CandidateReviewError("O cadastro vinculado não está disponível nesta empresa.")
+        account = (
+            FinancialAccount.objects.select_for_update()
+            .filter(
+                pk=candidate.financial_account_id,
+                organization_id=candidate.organization_id,
+                company_id=candidate.company_id,
+            )
+            .first()
+        )
+        if account is None:
+            raise CandidateReviewError("O cadastro vinculado não está disponível nesta empresa.")
+        candidate.financial_account = account
+        ledger = (
+            LedgerAccount.objects.select_for_update()
+            .filter(
+                organization_id=candidate.organization_id,
+                company_id=candidate.company_id,
+                code=str(candidate.account_code),
+            )
+            .first()
+        )
+    if not hmac.compare_digest(data["expected_revision"], candidate_revision(candidate)):
+        raise CandidateReviewConflict("A revisão mudou. Reabra a página antes de corrigir.")
+    previous = {
+        "state": candidate.state,
+        "review_data": candidate.review_data,
+        "review_evidence": candidate.review_evidence,
+        "reviewed_by_id": str(candidate.reviewed_by_id) if candidate.reviewed_by_id else None,
+        "reviewed_at": candidate.reviewed_at.isoformat() if candidate.reviewed_at else None,
+        "financial_account_id": str(candidate.financial_account_id)
+        if candidate.financial_account_id
+        else None,
+        "reason": data["reason"],
+        "changed_by_id": str(actor.pk),
+        "changed_at": timezone.now().isoformat(),
+    }
+    if not reopen:
+        if any(cleaned_data.get(field) is not True for field in CHECKS):
+            raise CandidateReviewError("Confira novamente os três vínculos antes de corrigir.")
+        assert account is not None
+        if account_usage_reasons(account):
+            raise CandidateReviewError(
+                "Esta conta já possui fontes, lançamentos ou coletas. O vínculo usado precisa "
+                "ser preservado; solicite ao responsável a análise dos registros existentes."
+            )
+        if (
+            ReconciliationAccountCandidate.objects.filter(financial_account=account)
+            .exclude(pk=candidate.pk)
+            .exists()
+        ):
+            raise CandidateReviewError(
+                "Esta conta é compartilhada com outro vínculo. Revise os cadastros."
+            )
+        previous["financial_account"] = account_snapshot(account)
+        if (
+            ledger is None
+            or not ledger.active
+            or not ledger.accepts_entries
+            or account.ledger_code != str(candidate.account_code)
+        ):
+            raise CandidateReviewError(
+                "O plano ou o cadastro diverge da revisão. Confira a configuração."
+            )
+        if (
+            ledger.name != data["name"]
+            and FinancialAccount.objects.filter(
+                company_id=candidate.company_id,
+                ledger_code=account.ledger_code,
+            )
+            .exclude(pk=account.pk)
+            .exists()
+        ):
+            raise CandidateReviewError(
+                "A conta contábil é compartilhada; seu nome precisa ser preservado."
+            )
+        if (
+            FinancialAccount.objects.filter(
+                company_id=candidate.company_id, account_reference=data["account_reference"]
+            )
+            .exclude(pk=account.pk)
+            .exists()
+        ):
+            raise CandidateReviewError("Já existe uma conta com esta referência para a empresa.")
+        previous["ledger_name"] = ledger.name
+        for field in ("name", "bank_code", "account_reference"):
+            setattr(account, field, data[field])
+        account.active = True
+        account.save(
+            update_fields=["name", "bank_code", "account_reference", "active", "updated_at"]
+        )
+        ledger.name = data["name"]
+        ledger.save(update_fields=["name", "updated_at"])
+    elif candidate.financial_account_id:
+        raise CandidateReviewError(
+            "A candidata possui uma conta vinculada. Confira a revisão atual."
+        )
+    candidate.review_history = [*candidate.review_history, previous]
+    candidate.state = "pending"
+    candidate.financial_account = None
+    candidate.reviewed_by = None
+    candidate.reviewed_at = None
+    candidate.review_data = {}
+    candidate.review_evidence = ""
+    candidate.save(
+        update_fields=[
+            "review_history",
+            "state",
+            "financial_account",
+            "reviewed_by",
+            "reviewed_at",
+            "review_data",
+            "review_evidence",
+            "updated_at",
+        ]
+    )
+    if not reopen:
+        candidate = finalize_candidate(
+            candidate=candidate,
+            actor=actor,
+            authorized_companies=authorized_companies,
+            cleaned_data=data,
+            request=request,
+        )
+    record_event(
+        action="hub.reconciliation.account_candidate.reopened"
+        if reopen
+        else "hub.reconciliation.account_candidate.corrected",
+        organization=candidate.organization,
+        actor=actor,
+        target=candidate,
+        request=request,
+        metadata={
+            "company_id": str(candidate.company_id),
+            "reason": data["reason"],
+            "previous_revision": data["expected_revision"],
+            "history_count": len(candidate.review_history),
         },
     )
     return candidate

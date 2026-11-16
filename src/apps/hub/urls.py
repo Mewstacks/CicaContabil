@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from apps.hub import account_candidate_views, views
+from apps.hub import account_candidate_views, setup_views, views
 from apps.platform.legal import legal_document
 
 app_name = "hub"
@@ -207,6 +207,14 @@ urlpatterns = [
         name="reconciliation-configuration",
     ),
     path("app/conciliacao/auditoria/", views.reconciliation_audit, name="reconciliation-audit"),
+    path(
+        "app/conciliacao/contas-financeiras/<uuid:account_id>/",
+        setup_views.financial_account_edit, name="reconciliation-financial-account-edit",
+    ),
+    path(
+        "app/conciliacao/modelo-razao/", views.reconciliation_ledger_template,
+        name="reconciliation-ledger-template",
+    ),
     path("app/conciliacao/importar/", views.reconciliation_upload, name="reconciliation-upload"),
     path(
         "app/conciliacao/processamentos/<uuid:run_id>/",

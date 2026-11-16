@@ -143,8 +143,32 @@
     const account = form.querySelector('[data-financial-account-select]');
     if (!(company instanceof HTMLSelectElement) || !(account instanceof HTMLSelectElement)) return;
     const help = form.querySelector('[data-financial-account-help]');
+    const purpose = form.querySelector('select[name="purpose"]');
+    const origin = form.querySelector('select[name="origin"]');
+    const files = form.querySelector('input[type="file"]');
+    const ledgerHelp = form.querySelector('[data-ledger-help]');
+    const planLink = form.querySelector('[data-ledger-plan-link]');
+    const updatePurpose = () => {
+      const independent = purpose?.value === 'independent_ledger';
+      if (independent && origin) origin.value = 'accounting';
+      if (files) files.accept = independent ? '.csv' : '.ofx,.qfx,.csv,.xlsx,.pdf';
+      if (independent && ledgerHelp) ledgerHelp.open = true;
+      const label = form.querySelector('.reconciliation-dropzone-copy small');
+      if (label) label.textContent = independent
+        ? 'CSV de partidas completas · até 20 arquivos de 25 MiB'
+        : 'OFX, CSV, XLSX ou PDF · até 20 arquivos de 25 MiB';
+    };
+    purpose?.addEventListener('change', updatePurpose);
+    updatePurpose();
+
     const updateAccounts = () => {
       const companyId = company.value;
+      if (planLink) {
+        const target = new URL(planLink.href);
+        if (companyId) target.searchParams.set('company', companyId);
+        else target.searchParams.delete('company');
+        planLink.href = target.href;
+      }
       if (companyId) {
         company.removeAttribute('aria-invalid');
         form.querySelector('[data-company-search]')?.removeAttribute('aria-invalid');

@@ -4920,3 +4920,69 @@ produção só após CI integral, plano restrito à0083 e endpoints conferidos.
 Pode executar a migração validada na máquina web existente, sem substituir
 fontes do runtime nem criar recursos, aplicando URLs diretas como config.release.
 O roteador mantém tabelas hub somente no default, com recorder em ambos aliases.
+
+
+## D-366 — Fechar bloqueios técnicos do uso da conciliação (16/11/2026)
+
+Origem: após a distinção entre etapa publicada e sistema incompleto, o
+responsável instruiu finalizar imediatamente. Retoma D-356/D-365 e PC-19,
+etapas09/11/12. Finalizar os bloqueios de software comprovados no percurso
+realista de uma empresa nova, com dados sintéticos, e publicar a correção
+compatível conforme D-323/D-346. Não substituir essa execução por novo plano
+ou considerar preenchimento de rascunhos como operação financeira concluída.
+Preservar a release94 e todos os dados/decisões, fontes e alterações locais.
+
+Auditoria reproduziu: (1) cadastro manual permite vínculo incompleto, marca
+base pronta e não oferece edição; (2) revisão de candidata vinculada ou
+rejeitada não tem correção humana com histórico; (3) Importar Razão aceita
+arquivo genérico que cria movimentos comuns mas não o Razão independente,
+e não apresenta modelo nem contas faltantes; (4) lease20min + varredura15min
+permite retomada após20–35min, incompatível com o objetivo D-73 de15min.
+
+Implementar edição auditada de cadastros e correção explícita de revisão,
+com motivo, nova prova e preservação da revisão anterior. Identidade/vínculo
+já usados por fontes, lançamentos ou coleta não serão trocados silenciosamente;
+revalidar escopo, estado e concorrência. Não apagar histórico ou registros
+financeiros para permitir uma correção. Prontidão deve exigir cadastro
+completo e ações devem conservar a empresa/conta selecionadas.
+
+Separar no envio o propósito Razão independente do formato genérico existente:
+modelo e instrução acessíveis, validação prévia, identificação das contas do
+plano faltantes, nenhuma promoção de PDF/CSV genérico a partidas completas.
+Preservar contratos existentes, valores/direções explícitos e atomicidade.
+Não inventar nomes, contrapartidas, banco ou fontes. As134 empresas podem
+cadastrar manualmente dados comprovados; isso não cria seus dados ausentes.
+
+Corrigir recuperação de processamento ativo respeitando o hard limit atual,
+concorrência, tokens e retomada sem duplicação. Preservar D-210: não aumentar
+varreduras ociosas ou alterar globalmente a agenda para manter Neon acordado.
+Ensaio de queda deve distinguir mecanismo técnico de RPO/restore reais.
+
+Aplicar UI/UX Pro Max, Watermelon/diretrizes/pesquisa já consultadas e QA
+Playwright com casos sintéticos, sem disputar o navegador em uso. Código e
+CI em checkout isolado, dados reais fora do Git; publicação somente após
+árvore exata aprovada, mesmas máquinas/capacidade e legado intacto/parado.
+Dados adicionais serão buscados somente nas fontes já disponíveis/autorizadas.
+Não há liberação de novas consultasERP/valores, IA/custos/recursos, mensagens,
+exportação Domínio ou aceite humano por esta ordem. Q-28/Q-46/D-73 e os
+adiados Q-47/C01/C02 mantêm evidência própria; qualquer bloqueio restante
+deve ser concreto, separado do trabalho técnico efetivamente finalizado.
+
+
+Refinamento D-366: preservar cada revisão anterior de candidata em campo
+aditivo review_history; correção/reabertura exige motivo, revisão concorrente
+válida e nova evidência antes de ativar. Identidade já utilizada fica protegida.
+Retomada ativa: hard limit300s/soft270s, lease360s e watchdog por token antes
+do processamento; falha de publicação não inicia escrita. Startup/reentrega
+rearmam recuperação e CAS protege conclusão/leases novas. Agenda ociosa15min
+preservada. Janela aproximada de seis minutos depende de worker, Redis, banco
+e capacidade da fila disponíveis; não comprova recuperação operacional/RPO.
+
+Complemento D-366: histórico privado JSON também em FinancialAccount, na
+mesma migração0084, para preservar nome/identidade anteriores, autor e motivo.
+AuditEvent mantém apenas campos alterados, hashes e contagem; não contornar
+a política que exclui nomes dos metadados gerais de auditoria.
+
+Compatibilidade da0084: manter db_default=[] nos dois históricos JSON, além
+do default da aplicação, para que INSERT do runtime94 continue válido entre
+migração aditiva e atualização das máquinas. Ensaiar escrita pelo modelo antigo.

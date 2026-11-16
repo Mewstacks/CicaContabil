@@ -1586,6 +1586,7 @@ class FinancialAccount(OrganizationScopedModel):
     account_reference = models.CharField(max_length=160, blank=True)
     ledger_code = models.CharField(max_length=64, blank=True)
     active = models.BooleanField(default=True)
+    review_history = models.JSONField(default=list, db_default=[], blank=True)
 
     class Meta:
         constraints = [
@@ -1628,6 +1629,7 @@ class ReconciliationAccountCandidate(OrganizationScopedModel):
     reviewed_at = models.DateTimeField(null=True, blank=True)
     review_data = models.JSONField(default=dict, blank=True)
     review_evidence = models.CharField(max_length=1000, blank=True)
+    review_history = models.JSONField(default=list, db_default=[], blank=True)
 
     class Meta:
         ordering = ("source_company_code", "chart_company_code", "account_code")
