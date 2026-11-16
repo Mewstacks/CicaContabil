@@ -3,7 +3,7 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-account-edit.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}">{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel setup-account-panel" aria-labelledby="depara-heading">
-  <header class="workspace-panel-head"><div><h2 id="depara-heading">Revisar DE-PARA</h2><p>{% if title_account %}{{ title_account.company.name }} · {{ title_account.name }}{% else %}Sugestões já recebidas, por empresa e conta{% endif %}</p></div><a class="button button-quiet" href="{% if depara_batch %}{{ depara_list_url }}{% else %}{{ title_back_url }}{% endif %}">{% if depara_batch %}Voltar aos lotes{% else %}Voltar à carteira{% endif %}</a></header>
+  <header class="workspace-panel-head"><div><h2 id="depara-heading">Revisar DE-PARA</h2><p>{% if title_account %}{{ title_account.company.name }} · {{ title_account.name }}{% else %}Sugestões recebidas{% endif %}</p></div><a class="button button-quiet" href="{% if depara_batch %}{{ depara_list_url }}{% else %}{{ title_back_url }}{% endif %}">{% if depara_batch %}Voltar aos lotes{% else %}Voltar à carteira{% endif %}</a></header>
   {% if depara_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{% for error in depara_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   {% if depara_batch %}
     <p class="setup-account-notice">Confira débito, crédito e histórico. As sugestões selecionadas serão preparadas como rascunhos; a ativação fica na configuração de regras.</p>

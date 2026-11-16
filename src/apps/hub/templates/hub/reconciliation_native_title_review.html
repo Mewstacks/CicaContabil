@@ -15,10 +15,11 @@
 <form method="post" action="{{ native_review_url }}" class="titles-form" data-title-review-form>
 {% csrf_token %}
 <section class="workspace-panel titles-panel"><h3>1. Conferir a parcela</h3>{% include 'hub/reconciliation_native_titles_fields.html' with form=native_form %}</section>
-<section class="workspace-panel titles-panel"><h3>2. Interpretar os eventos da fonte</h3><p>Informe os valores em reais, incluindo zero nos componentes ausentes. Caixa efetivo = principal + juros + multa + tarifas − desconto.</p>
+<section class="workspace-panel titles-panel"><h3>2. Interpretar os eventos da fonte</h3>
 {% for event,form in native_events %}
 <fieldset class="titles-panel"><legend>Evento {{ forloop.counter }} · {{ event.posted_on }} · número {{ event.number }}</legend>
 <details class="titles-source-details"><summary>Conferir os {{ event.rows|length }} componentes originais deste evento</summary>{% for row in event.rows %}<h4>Componente {{ forloop.counter }}</h4><dl class="titles-data">{% for key,value in row %}<div><dt>{{ key }}</dt><dd>{{ value|default_if_none:'Não informado' }}</dd></div>{% endfor %}</dl>{% endfor %}</details>
+<p class="field-help">Valores em reais; preencha componentes ausentes com zero. Caixa efetivo = principal + juros + multa + tarifas − desconto.</p>
 {% include 'hub/reconciliation_native_titles_fields.html' with form=form %}
 </fieldset>
 {% empty %}<p>Não há eventos de baixa nesta parcela na fonte recebida. Isso não comprova que a parcela esteja em aberto ou quitada.</p>{% endfor %}
