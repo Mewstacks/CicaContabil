@@ -758,3 +758,14 @@ a produção foi validada por HTTP autenticado na demo e não foi declarada como
   alvos, overflow e console pelo Playwright MCP.
 - [ ] Homologar sincronização e edição do cadastro com a fonte Domínio real autorizada; a prova local
   não decide quem pode alterar dados sincronizados nem substitui o piloto.
+
+
+### D-367/V-406 — Títulos/baixas e DE-PARA operáveis pela interface
+
+- [x] Fonte retida → revisão por parcela → prévia → publicação cumulativa.
+- [x] Baixas/extrato → prévia → confirmação → histórico/desfazer → relatório em reais.
+- [x] Sugestões DE-PARA existentes → revisão → rascunho → ativação humana validada.
+- [x] Percurso e estados de erro verificados com Playwright sintético, claro/escuro e mobile.
+- [ ] Publicação da árvore final após CI integral (ver V-406).
+
+Nenhum teste sintético substitui fonte/semântica/aceite reais. Backup fora da prioridade atual.

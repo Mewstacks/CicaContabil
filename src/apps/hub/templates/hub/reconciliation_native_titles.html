@@ -1,0 +1,21 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel titles-panel" aria-labelledby="native-heading">
+  <header class="workspace-panel-head"><div><h2 id="native-heading">Revisar fontes de títulos</h2><p>{{ title_account.company.name }} · {{ title_account.name }}</p></div><a class="button button-quiet" href="{{ native_catalog_url }}">Títulos e baixas</a></header>
+  <p>Confira uma parcela por vez. A prévia permite decidir a natureza e os componentes antes de salvar, preservando as parcelas já revisadas.</p>
+  <p class="titles-notice">Os registros abaixo são fatos da fonte, ainda sem interpretação financeira aprovada. Não comprovam saldo, quitação ou vínculo com o banco.</p>
+  {% if native_error %}<div class="form-errors" role="alert">{{ native_error }}</div>{% endif %}
+  {% if native_captures %}
+  <form method="get" action="{{ native_list_url }}" class="titles-form"><div class="field"><label for="native-capture">Fonte recebida</label><select name="capture" id="native-capture">{% for capture in native_captures %}<option value="{{ capture.pk }}"{% if native_capture_id == capture.pk|stringformat:'s' %} selected{% endif %}>{{ capture.completed_at|date:'d/m/Y H:i' }} · {{ capture.scope.period_start }} a {{ capture.scope.period_end_exclusive }} (fim não incluído)</option>{% endfor %}</select></div><button class="button button-quiet" type="submit">Abrir fonte</button></form>
+  {% else %}<div class="empty-block"><strong>Nenhuma fonte de títulos recebida nesta conta</strong><p>Solicite ao responsável a fonte autorizada da empresa e do período. Vincular uma conta não cria títulos nem inicia uma coleta.</p></div>{% endif %}
+  {% if native_page %}
+  <p>{{ native_page.paginator.count }} parcela{{ native_page.paginator.count|pluralize }} na fonte selecionada.</p>
+  <div class="data-table-wrap titles-table-wrap"><table class="operational-table titles-table"><caption>Parcelas disponíveis para revisão</caption><thead><tr><th scope="col">Família da fonte</th><th scope="col">Nota</th><th scope="col">Parcela</th><th scope="col">Vencimento informado</th><th scope="col">Ação</th></tr></thead><tbody>
+  {% for row in native_page %}<tr><td data-label="Família da fonte">{{ row.family_label }}</td><td data-label="Nota">{{ row.note }}</td><td data-label="Parcela">{{ row.number }}</td><td data-label="Vencimento">{{ row.due_on|default:'Não informado' }}</td><td data-label="Ação"><a class="button button-quiet" href="{{ row.url }}">Revisar parcela {{ row.number }}</a></td></tr>{% empty %}<tr><td colspan="5">Esta fonte não contém parcelas.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <nav class="titles-actions" aria-label="Páginas das parcelas">{% if native_page.has_previous %}<a class="button button-quiet" href="?capture={{ native_capture_id }}&amp;page={{ native_page.previous_page_number }}">Anterior</a>{% endif %}<span>Página {{ native_page.number }} de {{ native_page.paginator.num_pages }}</span>{% if native_page.has_next %}<a class="button button-quiet" href="?capture={{ native_capture_id }}&amp;page={{ native_page.next_page_number }}">Próxima</a>{% endif %}</nav>
+  {% endif %}
+</section>
+{% endblock %}

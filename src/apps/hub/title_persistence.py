@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import date
 from typing import Any, cast
 from uuid import UUID
@@ -19,6 +19,7 @@ from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.controlplane import company_queryset_for_module
 from apps.hub.models import (
+    ClientCompany,
     FinancialAccount,
     NormalizedMovement,
     ProductModule,
@@ -149,17 +150,71 @@ def _load(
     return payload, parsed
 
 
+def latest_title_snapshot(account: FinancialAccount) -> ReconciliationTitleSnapshot | None:
+    """Read the current reviewed version; legacy accounts retain the original ordering.
+
+    Fetch the pointer again even for an already loaded account: a human may have restored
+    an earlier immutable snapshot since that instance was read. An invalid pointer never
+    falls back to unrelated or old facts.
+    """
+    pointer = cast(
+        UUID | None,
+        FinancialAccount.objects.filter(
+            pk=account.pk,
+            organization_id=account.organization_id,
+            company_id=account.company_id,
+        )
+        .values_list("current_title_snapshot_id", flat=True)
+        .get(),
+    )
+    query = ReconciliationTitleSnapshot.objects.select_related("source_file")
+    if pointer is not None:
+        snapshot = query.filter(
+            pk=pointer,
+            organization_id=account.organization_id,
+            company_id=account.company_id,
+            financial_account=account,
+        ).first()
+        if snapshot is None:
+            raise TitleContractError("A fotografia vigente está fora desta empresa ou conta.")
+        return snapshot
+    return (
+        query.filter(organization_id=account.organization_id, financial_account=account)
+        .order_by("-as_of", "-created_at", "-id")
+        .first()
+    )
+
+
 def import_title_snapshot(
-    *, financial_account: FinancialAccount, content: bytes, actor: User, evidence_reference: str
+    *,
+    financial_account: FinancialAccount,
+    content: bytes,
+    actor: User,
+    evidence_reference: str,
+    activate_existing: bool = False,
 ) -> tuple[ReconciliationTitleSnapshot, bool]:
     """Retain a complete reviewed contract atomically; a replay never duplicates it."""
     saved_source: ReconciliationSourceFile | None = None
     try:
         with transaction.atomic():
+            scope = _account(financial_account.pk)
+            ClientCompany.objects.select_for_update().get(
+                pk=scope.company_id, organization_id=scope.organization_id
+            )
             account = _account(financial_account.pk, lock=True)
+            if (
+                account.company_id != scope.company_id
+                or account.organization_id != scope.organization_id
+            ):
+                raise TitleContractError("A conta mudou de empresa. Reabra a revisão.")
             authorize_title_account(account, actor)
             reason = _reason(evidence_reference)
+            if type(activate_existing) is not bool:
+                raise TitleContractError("A ativação de uma revisão exige decisão explícita.")
             _, parsed = _parse(content, account)
+            current = latest_title_snapshot(account)
+            if current is not None:
+                _load(current, account)
             existing = (
                 ReconciliationTitleSnapshot.objects.select_related("source_file")
                 .filter(
@@ -171,6 +226,14 @@ def import_title_snapshot(
             )
             if existing:
                 _load(existing, account)
+                if activate_existing:
+                    if current is not None and existing.as_of < current.as_of:
+                        raise TitleContractError(
+                            "Uma fonte anterior não pode substituir a fotografia vigente."
+                        )
+                    FinancialAccount.objects.filter(pk=account.pk).update(
+                        current_title_snapshot=existing
+                    )
                 return existing, False
             digest = hashlib.sha256(content).hexdigest()
             source = ReconciliationSourceFile.objects.filter(
@@ -206,6 +269,10 @@ def import_title_snapshot(
                 evidence_reference=reason,
                 reviewed_by=actor,
             )
+            if current is None or snapshot.as_of >= current.as_of:
+                FinancialAccount.objects.filter(pk=account.pk).update(
+                    current_title_snapshot=snapshot
+                )
             record_event(
                 action="hub.reconciliation.titles_imported",
                 organization=account.organization,
@@ -317,13 +384,7 @@ def _prepare(
 ) -> _PreparedPlan:
     if type(period_start) is not date or type(period_end) is not date:
         raise TitleContractError("Período exige datas explícitas.")
-    latest = (
-        ReconciliationTitleSnapshot.objects.filter(
-            organization_id=account.organization_id, financial_account=account
-        )
-        .order_by("-as_of", "-created_at", "-id")
-        .first()
-    )
+    latest = latest_title_snapshot(account)
     if latest is None or latest.pk != snapshot.pk:
         raise TitleContractError("Há fotografia mais recente; revise os títulos atuais.")
     payload, parsed = _load(latest, account)
@@ -404,7 +465,7 @@ def _prepare(
             row.reference.installment_key,
             row.reference.settlement_key,
         )
-        for row in preview.allocations
+        for row in preview.settlements
     }
     active = list(
         ReconciliationTitleAllocation.objects.filter(
@@ -420,6 +481,18 @@ def _prepare(
     event_used: dict[str, int] = defaultdict(int)
     affected = []
     for previous in active:
+        if (
+            previous.movement.organization_id != account.organization_id
+            or previous.movement.company_id != account.company_id
+            or previous.movement.financial_account_id != account.pk
+            or previous.movement.source_file.organization_id != account.organization_id
+            or previous.movement.source_file.company_id != account.company_id
+            or previous.movement.source_file.financial_account_id != account.pk
+        ):
+            raise TitleContractError("Vínculo anterior fora da empresa ou conta revisada.")
+        if previous.movement.source_file_id not in checked_sources:
+            _verify_bank_source(previous.movement.source_file)
+            checked_sources.add(previous.movement.source_file_id)
         if previous.movement_fingerprint != _bank_fingerprint(previous.movement):
             raise TitleContractError("Fonte de vínculo anterior mudou; revise antes de alocar.")
         if previous.movement_identity in identities:
@@ -455,6 +528,44 @@ def _prepare(
             or event_used[event_id] > settlements[event_id][0].cash_cents
         ):
             raise TitleContractError("Capacidade já utilizada por outra alocação confirmada.")
+    # Receipts must display total committed capacity plus this proposal. The
+    # allocation rows still contain only the explicit new request.
+    preview = replace(
+        preview,
+        movements=tuple(
+            replace(
+                row,
+                allocated_cents=bank_used[_bank_identity(movements[row.movement.key])],
+                remaining_cents=(
+                    row.movement.cash_cents - bank_used[_bank_identity(movements[row.movement.key])]
+                ),
+            )
+            for row in preview.movements
+        ),
+        settlements=tuple(
+            replace(
+                row,
+                allocated_cents=event_used[
+                    _settlement_identity(
+                        account,
+                        row.reference.title_key,
+                        row.reference.installment_key,
+                        row.reference.settlement_key,
+                    )
+                ],
+                remaining_cents=row.settlement.cash_cents
+                - event_used[
+                    _settlement_identity(
+                        account,
+                        row.reference.title_key,
+                        row.reference.installment_key,
+                        row.reference.settlement_key,
+                    )
+                ],
+            )
+            for row in preview.settlements
+        ),
+    )
     fingerprint = _hash(
         {
             "snapshot": str(snapshot.pk),

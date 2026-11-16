@@ -2607,7 +2607,8 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     rule = ReconciliationRule.objects.get(organization=organization, name="Banco principal")
     toggle_response = client.post(
         reverse("hub:reconciliation-configuration"),
-        {"action": "toggle_rule", "company": str(company.id), "rule_id": str(rule.id)},
+        {"action": "toggle_rule", "company": str(company.id), "rule_id": str(rule.id),
+         "expected_rule_state": rule.state},
     )
     assert toggle_response.status_code == 302
     assert toggle_response.url.endswith("#regras-layouts")

@@ -1587,6 +1587,13 @@ class FinancialAccount(OrganizationScopedModel):
     ledger_code = models.CharField(max_length=64, blank=True)
     active = models.BooleanField(default=True)
     review_history = models.JSONField(default=list, db_default=[], blank=True)
+    current_title_snapshot = models.ForeignKey(
+        "ReconciliationTitleSnapshot",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
 
     class Meta:
         constraints = [

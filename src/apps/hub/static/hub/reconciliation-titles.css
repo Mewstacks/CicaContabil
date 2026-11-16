@@ -1,0 +1,35 @@
+/* Financial review shares CICA typography, semantic colors and keyboard behavior. */
+.titles-panel{min-width:0}.titles-panel :is(h2,h3,p,dd,li){overflow-wrap:anywhere}
+.titles-panel .workspace-panel-head>div{min-width:0}.titles-panel :is(.button,.row-action-button){min-height:44px;white-space:normal}
+.titles-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.titles-panel>.titles-actions{padding:16px 22px}
+.titles-notice,.titles-summary{padding:16px 22px;margin:0;line-height:1.6;max-width:90ch;color:var(--muted)}
+.titles-notice strong{color:var(--ink)}.titles-notice a{display:inline-block;min-height:24px}
+.titles-form{padding:18px 22px 22px}.titles-grid,.titles-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px}
+.titles-form .field{min-width:0}.titles-form .field>label{display:block;margin-bottom:7px}.titles-full{grid-column:1/-1}
+.titles-form :is(input:not([type=hidden]):not([type=checkbox]),select,textarea){width:100%;box-sizing:border-box;min-height:44px;padding:10px 12px;border:1px solid var(--control-border);border-radius:var(--radius-sm);background:var(--surface);color:var(--ink);font:inherit}
+.titles-form input[readonly]{background:var(--surface-soft,var(--surface));color:var(--muted)}
+.titles-form textarea{min-height:90px;resize:vertical}.titles-form input[type=checkbox]{width:20px;height:20px;margin:2px 0;flex:none;accent-color:var(--blue)}
+.titles-form :is(.field-checkbox,.titles-checkbox) label{display:flex;align-items:flex-start;gap:12px;min-height:44px;line-height:1.6;cursor:pointer}
+.titles-form :is(input,select,textarea):focus-visible,.titles-panel :is(summary,a,button):focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.titles-form .field-help{color:var(--muted);line-height:1.5;margin:7px 0 0}.titles-form .field-error,.titles-form .errorlist{color:var(--red);line-height:1.5}
+.titles-form .form-errors{margin:0 0 20px}.titles-form .form-errors a{display:inline-flex;align-items:center;min-height:44px;margin-right:12px}
+.titles-form fieldset{min-width:0;border:1px solid var(--line);border-radius:var(--radius-sm);padding:18px;margin:0 0 20px}.titles-form legend{padding:0 8px;font-weight:700;max-width:100%;overflow-wrap:anywhere}
+.titles-form .titles-actions{margin-top:22px}.titles-form button[disabled]{opacity:.65;cursor:wait}
+.titles-filters{display:flex;flex-wrap:wrap;align-items:end;gap:16px}.titles-filters .field{flex:1 1 200px}.titles-filters .field:first-child{flex-basis:300px}
+.titles-table{width:100%;min-width:0}.titles-table :is(td,th){vertical-align:top;white-space:normal;overflow-wrap:anywhere;line-height:1.5}.titles-table td small{display:block;color:var(--muted);margin-top:5px}
+.titles-table .titles-money,.titles-money{font-variant-numeric:tabular-nums}.titles-table :is(.titles-reference,code){overflow-wrap:anywhere;font-size:12px}
+.titles-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:0;padding:20px 22px}.titles-data>div{min-width:0}.titles-data dt{color:var(--muted);font-size:13px}.titles-data dd{margin:6px 0 0;line-height:1.5;font-variant-numeric:tabular-nums}
+.titles-history{list-style:none;margin:0;padding:0 22px 22px}.titles-history>li+li{border-top:1px solid var(--line)}.titles-panel summary{min-height:44px;align-content:center;cursor:pointer;font-weight:600;overflow-wrap:anywhere}.titles-history p{line-height:1.6}
+.titles-empty{padding:24px 22px}.titles-empty p{color:var(--muted);line-height:1.6;max-width:75ch}.titles-source-details{margin:0 22px 18px}.titles-source-details .data-table-wrap{padding:0}
+@media(max-width:760px){.titles-panel .workspace-panel-head{flex-direction:column;align-items:stretch}.titles-grid,.titles-fields,.titles-data{grid-template-columns:1fr}.titles-full{grid-column:auto}.titles-filters{display:grid;grid-template-columns:1fr}.titles-actions .button{flex:1 1 180px}.titles-form{padding:16px}.titles-form fieldset{padding:12px}.titles-table,.titles-table tbody{display:block;width:100%;min-width:0}.titles-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.titles-table tr{display:grid;gap:12px;padding:16px 0;border-top:1px solid var(--line);content-visibility:visible;contain-intrinsic-size:none}.titles-table td{display:block;min-width:0;max-width:none;width:100%;padding:0;border:0;box-sizing:border-box}.titles-table td::before{content:attr(data-label);display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700}.titles-table .table-action-cell::before{content:none}.titles-table .row-action-button{display:flex;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.titles-panel *{scroll-behavior:auto;transition:none}}
+@media print{.titles-panel .titles-actions,.titles-panel .titles-filters,.titles-panel form{display:none}.titles-table tr{content-visibility:visible;break-inside:avoid}.titles-panel{border:0;box-shadow:none}.titles-table{display:table}.titles-table tbody{display:table-row-group}.titles-table thead{position:static;width:auto;height:auto;clip:auto;display:table-header-group}.titles-table tr{display:table-row}.titles-table td{display:table-cell}.titles-table td::before{display:none}}
+
+.titles-panel>p:not(.titles-notice){margin:16px 22px;line-height:1.6}.titles-panel>.form-errors{margin:16px 22px}.titles-panel>.empty-block{margin:20px 22px}.titles-form>section{padding:20px;box-sizing:border-box}.titles-form>section+section{margin-top:20px}.titles-form>section>h3{margin:0 0 18px}.titles-form>section>p{margin:12px 0;line-height:1.6}.titles-form .titles-fields{margin-bottom:18px}.titles-table-wrap{padding:0 22px 18px;overflow-x:auto}.titles-table caption{text-align:left;color:var(--muted);font-size:13px;padding:8px 0 14px}.titles-table:not(.operational-table) :is(th,td){text-align:left;padding:12px;border-bottom:1px solid var(--line)}
+@media(max-width:760px){.titles-form>section{padding:16px}.titles-table-wrap{padding:0 16px 16px}.titles-table:not(.operational-table) td{padding:0;border:0}}
+
+.titles-form fieldset.titles-data{display:block}.titles-form fieldset .titles-fields{grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(130px,1fr)}.titles-number{font-variant-numeric:tabular-nums;text-align:right}
+@media(max-width:760px){.titles-form fieldset .titles-fields{grid-template-columns:1fr}.titles-number{text-align:left}}
+
+.titles-form label:has(input[type=checkbox]){display:flex;align-items:flex-start;gap:12px;min-height:44px;line-height:1.6;cursor:pointer}.titles-form label:has(input[type=checkbox]) input{margin-top:3px}
+@media(max-width:760px){.titles-form :is(input:not([type=hidden]):not([type=checkbox]),select,textarea){font-size:16px}}

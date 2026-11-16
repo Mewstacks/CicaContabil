@@ -3,7 +3,7 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-portfolio.css' %}">{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel portfolio-controls" aria-labelledby="portfolio-heading">
-  <header class="workspace-panel-head"><div><h2 id="portfolio-heading">Contas e arquivos</h2></div><div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-account-candidates' %}">Vínculos de contas</a><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Visão geral</a></div></header>
+  <header class="workspace-panel-head"><div><h2 id="portfolio-heading">Contas e arquivos</h2></div><div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-account-candidates' %}">Vínculos de contas</a><a class="button button-quiet" href="{% url 'hub:reconciliation-titles' %}">Títulos e baixas</a><a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Visão geral</a></div></header>
   {% if portfolio.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in portfolio.errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <form method="get" class="portfolio-filters" aria-label="Filtrar empresas e competência">
     <div class="field"><label for="portfolio-month">Competência</label><input type="month" id="portfolio-month" name="month" value="{{ portfolio.filters.month }}" autocomplete="off" required></div>
@@ -33,7 +33,7 @@
       <td data-label="Extrato"><span class="portfolio-number">{{ item.bank_count }}</span><small>movimento{{ item.bank_count|pluralize }}</small></td>
       <td data-label="Razão"><span class="portfolio-number">{{ item.ledger_count }}</span><small>registro{{ item.ledger_count|pluralize }}</small></td>
       <td data-label="Situação"><span class="status-badge {% if item.status == 'available' %}is-active{% elif item.status == 'review' %}is-warning{% else %}is-muted{% endif %}">{{ item.status_label }}</span>{% for issue in item.issues %}<small>{{ issue }}</small>{% endfor %}</td>
-      <td data-label="Próximo passo"><div class="portfolio-actions">{% for action in item.actions %}<a class="row-action-button" href="{{ action.url }}">{{ action.label }}<span class="sr-only"> · {{ item.account.name }}</span></a>{% empty %}<span class="table-muted">Aguarde a revisão do responsável.</span>{% endfor %}</div></td>
+      <td data-label="Próximo passo"><div class="portfolio-actions"><a class="row-action-button" href="{% url 'hub:reconciliation-titles' %}?account={{ item.account.id }}">Títulos e baixas<span class="sr-only"> · {{ item.account.name }}</span></a>{% for action in item.actions %}<a class="row-action-button" href="{{ action.url }}">{{ action.label }}<span class="sr-only"> · {{ item.account.name }}</span></a>{% empty %}<span class="table-muted">Aguarde a revisão do responsável.</span>{% endfor %}</div></td>
     </tr>{% endfor %}
   </tbody></table></div>
   {% else %}<div class="empty-block operational-empty portfolio-empty"><strong>{% if row.candidate_count %}{{ row.candidate_count }} pré-cadastro{{ row.candidate_count|pluralize }} aguardando vínculo{% else %}Sem conta cadastrada{% endif %}</strong>{% for action in row.actions %}<a class="button button-quiet" href="{{ action.url }}">{{ action.label }}</a>{% empty %}<span>Solicite ao responsável o cadastro da conta.</span>{% endfor %}</div>{% endif %}

@@ -1,12 +1,52 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from apps.hub import account_candidate_views, setup_views, views
+from apps.hub import (
+    account_candidate_views,
+    depara_review_views,
+    native_title_views,
+    setup_views,
+    title_views,
+    views,
+)
 from apps.platform.legal import legal_document
 
 app_name = "hub"
 
 urlpatterns = [
+    path(
+        "app/conciliacao/de-para/", depara_review_views.depara_batches,
+        name="reconciliation-depara",
+    ),
+    path(
+        "app/conciliacao/de-para/<uuid:batch_id>/",
+        depara_review_views.depara_batch, name="reconciliation-depara-batch",
+    ),
+    path("app/conciliacao/titulos/", title_views.titles, name="reconciliation-titles"),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/vincular/",
+        title_views.title_plan, name="reconciliation-title-plan",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/confirmar/",
+        title_views.title_confirm, name="reconciliation-title-confirm",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/vinculos/<uuid:allocation_id>/desfazer/",
+        title_views.title_undo, name="reconciliation-title-undo",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/relatorio/",
+        title_views.title_report, name="reconciliation-title-report",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/fontes/",
+        native_title_views.native_titles, name="reconciliation-native-titles",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/fontes/<uuid:capture_id>/<str:installment_reference>/",
+        native_title_views.native_title_review, name="reconciliation-native-title-review",
+    ),
     path("app/radar/<uuid:alert_id>/analisar/", views.reform_analysis, name="reform-analysis"),
     path("legal/<slug:document>/", legal_document, name="legal"),
     path("", views.home, name="home"),

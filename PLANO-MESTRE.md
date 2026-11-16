@@ -1,8 +1,17 @@
-**16/11/2026 — D-366/V-405: correções operacionais implementadas; validação final em curso.**
-Conta manual e vínculo ganham correção com histórico; entrada do Razão tem
-modelo e validação prévia; recuperação de processamento respeita tokens e
-preserva a agenda ociosa. CI/publicação ainda não concluídos nesta anotação.
-Dados e revisão humana da carteira permanecem necessários. [V-405](VALIDACOES.md).
+**16/11/2026 — D-367/V-406: títulos/baixas e DE-PARA utilizáveis pela tela; validação final em andamento.**
+Revisão de fontes por parcela, preservação cumulativa, prévia e confirmação de
+vínculos, histórico/desfazer, relatório em reais e revisão das sugestões
+existentes implementados. Validação contábil continua humana. Backup fora da
+prioridade por instrução explícita. Produção95 até comprovar publicação;
+acompanhar [V-406](VALIDACOES.md).
+
+**16/11/2026 — D-366/V-405: correções operacionais publicadas, release95.**
+Contas/vínculos têm correção auditada e histórico; ativação de conta vinculada
+preserva identidade/revisão. Razão independente tem modelo e validação prévia.
+Recuperação por token/lease mantém a agenda ociosa. CI integral, migração0084,
+runtime e saúde aprovados;15 grupos de dados preservados, incluindo43
+pré-cadastros e piloto163/163. Fontes/revisões humanas, backup operacional e
+aceite final continuam pendentes. [V-405](VALIDACOES.md).
 
 **16/11/2026 — D-365/V-404: 43 pré-cadastros CONTAD publicados na release94.**
 C01–C43 de11 empresas registrados com empresa/plano/código e proveniência;

@@ -1,0 +1,7 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><script src="{% static 'hub/reconciliation-titles.js' %}" defer></script>{% endblock %}
+{% block workspace_content %}
+{% if titles_errors %}<div class="form-errors titles-notice" role="alert" tabindex="-1" data-error-summary><strong>Confira antes de continuar.</strong>{% for error in titles_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+{% block titles_content %}{% endblock %}
+{% endblock %}

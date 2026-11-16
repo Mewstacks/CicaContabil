@@ -14,7 +14,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.audit.services import record_event
 from apps.hub.depara import DeparaExample, DeparaResult, create_initial_depara_drafts
-from apps.hub.models import FinancialAccount, LedgerAccount
+from apps.hub.models import ClientCompany, FinancialAccount, LedgerAccount
 from apps.hub.title_persistence import authorize_title_account
 from apps.intelligence.gateway import (
     ClaudeCompletion,
@@ -546,6 +546,15 @@ def generate_depara_ai(
 def review_depara_ai(
     *, batch: DeparaAiBatch, actor: User, choices: list[dict[str, str]]
 ) -> tuple[DeparaResult, ...]:
+    # Account/chart corrections and draft creation share the company lock. Acquire
+    # it before the batch, including CLI callers, so current context is rechecked
+    # under the same boundary as the reviewed write.
+    company_id = FinancialAccount.objects.values_list("company_id", flat=True).get(
+        pk=batch.financial_account_id, organization_id=batch.organization_id,
+    )
+    ClientCompany.objects.select_for_update().get(
+        pk=company_id, organization_id=batch.organization_id,
+    )
     batch = DeparaAiBatch.objects.select_for_update().get(pk=batch.pk)
     account = _current(batch, actor)
     if batch.state != "succeeded" or not choices or len(choices) > 4:

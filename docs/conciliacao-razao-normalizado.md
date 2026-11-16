@@ -1,7 +1,7 @@
 # Razão independente: contrato local de entrada
 
 Atualização D-366, 16/11/2026: finalidade explícita, modelo para download e
-validação do envio implementados; CI e publicação ainda pendentes. O contrato
+validação do envio publicados na release95, conforme V-405. O contrato
 de partidas abaixo permanece compatível. A publicação técnica não comprova
 cobertura real, treinamento ou aceite da carteira.
 

@@ -5,7 +5,7 @@
 - [x] Validar completude do cadastro e manter empresa/conta na importação.
 - [x] Separar envio do Razão independente, disponibilizar modelo e rejeitar lote inválido antes da gravação.
 - [x] Implementar recuperação por lease360s/watchdog/token e startup, mantendo agenda ociosa15min.
-- [ ] Encerrar CI integral, ensaio0084 e publicação compatível com integridade conferida.
+- [x] CI43912687677, ensaio0084, publicação release95 e15 grupos preservados conferidos.
 - [ ] Fonte/revisão humana para os43 vínculos e identificação das contas nas134 demais empresas; fontes e cobertura Q-28 próprias.
 
 A implementação não equivale a aceite, backup operacional ou operação completa.
@@ -294,3 +294,23 @@ as fontes e o retorno no ERP; o proprietário aprova os módulos conforme D-73.
 **GitHub é entrega de código.** Push/CI não instala o agente, não aplica a
 migração em produção nem homologa o produto. Autorização de publicação/ERP/custo
 permanece específica, nos termos de D-304 e decisões anteriores.
+
+
+## Prioridade de uso atual — D-367/V-406 (16/11/2026)
+
+A implementação de títulos/baixas e da revisão DE-PARA está pronta para
+validação final/publicação. A cliente poderá operar pela tela; CLI/JSON não
+são mais a etapa de revisão. Separar da publicação técnica:
+
+- Validar banco, referência, conta contábil e uso das43 candidatas; cadastro
+  não autoriza ativação automática de plano/vínculo.
+- Fornecer/identificar contas e fontes nas134 demais empresas sem candidata;
+  preencher cadastro não cria extrato, Razão ou títulos ausentes.
+- Conferir a semântica/componentes dos títulos e a evidência de cada relação
+  bancária; ausência/valor igual não comprovam saldo, quitação ou vínculo.
+- Validar contas lançáveis e histórico das sugestões DE-PARA existentes.
+- Confronto Domínio/aceite conforme Q-47/C01/C02 adiados e critérios humanos
+  já existentes. Não reabrir perguntas decididas nem inventar homologação.
+
+Backup não é prioridade desta rodada, por instrução expressa do responsável,
+e não será apresentado como impedimento para avançar no uso assistido.

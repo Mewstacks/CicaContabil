@@ -1,0 +1,40 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-account-edit.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel setup-account-panel" aria-labelledby="depara-heading">
+  <header class="workspace-panel-head"><div><h2 id="depara-heading">Revisar DE-PARA</h2><p>{% if title_account %}{{ title_account.company.name }} · {{ title_account.name }}{% else %}Sugestões já recebidas, por empresa e conta{% endif %}</p></div><a class="button button-quiet" href="{% if depara_batch %}{{ depara_list_url }}{% else %}{{ title_back_url }}{% endif %}">{% if depara_batch %}Voltar aos lotes{% else %}Voltar à carteira{% endif %}</a></header>
+  {% if depara_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert">{% for error in depara_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  {% if depara_batch %}
+    <p class="setup-account-notice">Confira débito, crédito e histórico. As sugestões selecionadas serão preparadas como rascunhos; a ativação fica na configuração de regras.</p>
+    {% if depara_chart_url %}<div class="setup-account-notice">{% if not depara_chart_ready %}<p>Confira e cadastre as contas contábeis antes de preparar os rascunhos.</p>{% endif %}<a class="button button-quiet" href="{{ depara_chart_url }}">Conferir ou cadastrar contas</a></div>{% endif %}
+    {% if depara_results %}<div class="setup-account-notice" role="status"><ul>{% for result in depara_results %}<li>{{ result.label }}</li>{% endfor %}</ul><a class="button" href="{{ depara_rules_url }}">Revisar e ativar regras</a></div>{% endif %}
+    {% if depara_choices %}
+    <form method="post" class="setup-account-form form-stack" data-depara-review-form>
+      {% csrf_token %}<input type="hidden" name="action" value="review">{{ depara_form.expected_token }}
+      {% if depara_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira a revisão.</strong>{% for error in depara_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in depara_form %}{% for error in field.errors %}<p>{{ field.label }}: {{ error }}</p>{% endfor %}{% endfor %}</div>{% endif %}
+      {% for row in depara_choices %}
+      <fieldset class="setup-account-panel"><legend>Sugestão {{ row.index }} · {{ row.direction }}</legend><p>{{ row.description }}</p><p class="field-help">Sugestão recebida: débito {{ row.suggestion.debit }} · crédito {{ row.suggestion.credit }}.</p>
+        {% if row.form.non_field_errors %}<div class="form-errors" role="alert">{{ row.form.non_field_errors }}</div>{% endif %}
+        <div class="setup-account-fields">
+        {% for field in row.form %}<div class="field{% if field.name == 'selected' or field.name == 'history' %} setup-account-full{% endif %}{% if field.errors %} has-error{% endif %}">
+          {% if field.field.widget.input_type == 'checkbox' %}<label class="setup-account-checkbox" for="{{ field.id_for_label }}">{{ field }}<span>{{ field.label }}</span></label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+          {% if field.errors %}<ul class="field-error" id="{{ field.id_for_label }}_error">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+        </div>{% endfor %}
+        </div>
+      </fieldset>
+      {% endfor %}
+      <div class="field setup-account-actions"><label class="setup-account-checkbox" for="{{ depara_form.confirmed.id_for_label }}">{{ depara_form.confirmed }}<span>{{ depara_form.confirmed.label }}</span></label></div>
+      <div class="setup-account-actions"><button class="button" type="submit" data-busy-label="Preparando…"{% if not depara_chart_ready %} disabled{% endif %}>Preparar rascunhos selecionados</button></div>
+    </form>
+    {% elif not depara_errors %}<p class="setup-account-notice">Este lote não contém sugestões disponíveis para revisão.</p>{% endif %}
+  {% else %}
+    {% if title_can_write %}
+    <form method="get" class="setup-account-form titles-form">{% if title_company %}<input type="hidden" name="company" value="{{ title_company.pk }}">{% endif %}<div class="setup-account-fields"><div class="field"><label for="depara-account">Empresa e conta</label><select id="depara-account" name="account"><option value="">Todas as contas permitidas</option>{% for account in title_accounts %}<option value="{{ account.pk }}"{% if account.pk == title_account.pk %} selected{% endif %}>{{ account.company.name }} · {{ account.name }}</option>{% endfor %}</select></div><div class="setup-account-actions"><button class="button" type="submit">Filtrar lotes</button></div></div></form>
+    {% if depara_rows %}<div class="data-table-wrap"><table class="operational-table account-candidate-table"><caption class="sr-only">Lotes de sugestões por empresa e conta</caption><thead><tr><th scope="col">Empresa e conta</th><th scope="col">Recebido em</th><th scope="col">Situação</th><th scope="col">Ação</th></tr></thead><tbody>{% for row in depara_rows %}<tr><td data-label="Empresa e conta"><strong>{{ row.batch.financial_account.company.name }}</strong><small>{{ row.batch.financial_account.name }}</small></td><td data-label="Recebido em">{{ row.batch.created_at|date:'d/m/Y H:i' }}</td><td data-label="Situação">{{ row.state_label }}</td><td data-label="Ação"><a class="row-action-button" href="{{ row.url }}">Conferir lote<span class="sr-only"> de {{ row.batch.financial_account.name }}</span></a></td></tr>{% endfor %}</tbody></table></div>
+    {% else %}<p class="setup-account-notice">Nenhum lote disponível para esta seleção.</p>{% endif %}
+    {% else %}<p class="setup-account-notice">Um responsável autorizado pode consultar e revisar as sugestões desta empresa.</p>{% endif %}
+  {% endif %}
+</section>
+{% if depara_page.has_other_pages %}<nav class="pagination" aria-label="Páginas de lotes DE-PARA">{% if depara_page.has_previous %}<a class="button button-quiet" href="?{{ depara_querystring }}&amp;page={{ depara_page.previous_page_number }}" rel="prev">Anterior</a>{% else %}<span></span>{% endif %}<span>Página {{ depara_page.number }} de {{ depara_page.paginator.num_pages }}</span>{% if depara_page.has_next %}<a class="button button-quiet" href="?{{ depara_querystring }}&amp;page={{ depara_page.next_page_number }}" rel="next">Próxima</a>{% else %}<span></span>{% endif %}</nav>{% endif %}
+{% endblock %}
