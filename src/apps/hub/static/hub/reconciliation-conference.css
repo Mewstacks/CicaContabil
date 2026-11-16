@@ -26,4 +26,7 @@
   .conference-review-table td,.conference-review-table td:nth-child(2),.conference-review-table td:nth-child(4){display:block;min-width:0;max-width:none;width:100%;padding:0;border:0}
   .conference-review-table td::before{content:attr(data-label);display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700}
   .conference-review-table .table-action-cell::before{content:none}.conference-review-table .row-action-button{display:flex;justify-content:center;width:100%}
+  .workspace-panel .conference-review-table{min-width:0}
+  .workspace-panel .conference-review-table tbody tr{width:100%;padding:18px 16px;content-visibility:visible;contain-intrinsic-size:none}
+  .workspace-panel .conference-review-table td{overflow:visible}
 }
