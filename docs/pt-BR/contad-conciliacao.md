@@ -1,5 +1,60 @@
 # CONTAD — guia de conciliação e roteiro de treinamento
 
+## Carteira por empresa e relatório — atualização D-364, 16/11/2026
+
+**Preparado e validado localmente; publicação ainda pendente.** Este roteiro
+descreve a nova versão e será usado após a confirmação de sua publicação.
+O percurso do piloto já publicado continua disponível. Não há nova aprovação
+de contas ou fontes, treinamento concluído ou aceite atribuído à cliente.
+
+1. Em **Contábil → Conciliação bancária**, abra **Conciliação por empresa**.
+   Confira o escritório e escolha a **Competência**. Use empresa/código e
+   **Situação** para localizar o trabalho; a carteira mostra 25 empresas por
+   página. **Ver empresa** permite escolher uma conta daquela empresa.
+2. Confira empresa, conta e os arquivos recebidos. **Sem conta cadastrada**,
+   **Sem extrato no mês** e **Sem Razão no mês** indicam pendências diferentes.
+   Ausência de dados não significa empresa dispensada nem mês sem movimento.
+   **Extrato e Razão recebidos** significa disponibilidade para conferência,
+   não conciliação concluída. Arquivo em processamento/revisão exige o próximo
+   passo indicado; não confirme valores para contornar uma pendência.
+3. Abra a conferência da conta. A competência escolhida acompanha a lista,
+   o detalhe do movimento, **Voltar à conferência** e o relatório. Confira o
+   período no cabeçalho antes de decidir. Um filtro inválido mostra erro;
+   corrija-o para consultar o recorte pretendido.
+4. Use **Comparar e revisar** apenas quando houver evidência da relação.
+   Confira data, histórico, documento e valor e registre uma referência que
+   permita reencontrar a prova. Se faltar prova, mantenha o item pendente.
+   Consultar a carteira ou abrir um relatório não confirma nenhum movimento.
+5. Use **Ver relatório** para ler extrato e Razão com valores em reais,
+   alocações, pendências e referências. Confira empresa, conta, competência,
+   horário de geração e avisos. **Imprimir ou salvar PDF** abre a impressão
+   do navegador; guarde o resultado na pasta privada do escritório.
+6. **Baixar CSV técnico** mantém o arquivo compatível com a versão anterior:
+   `bank` é extrato, `ledger` é Razão e `12345` centavos significa R$ 123,45.
+   Não some os dois lados. Relatório e CSV abrangem todas as páginas do período;
+   busca de histórico e situação A conferir/Conferidos não reduzem a saída.
+   Depois de confirmar ou desfazer, gere novamente para registrar o estado atual.
+
+**Quando faltarem dados:** use o próximo passo da empresa/conta para abrir
+o cadastro ou a importação existentes. O formulário pode trazer empresa,
+conta e origem preenchidas; confira tudo antes de escolher/enviar o original.
+Abrir esse formulário não importa arquivo. Não crie conta provisória nem
+escolha empresa parecida para contornar uma ausência. Peça ao responsável a
+revisão do vínculo e da fonte correspondente.
+
+Você vê apenas as empresas para as quais tem acesso ao módulo de conciliação.
+Ter acesso à mesma empresa em outro módulo não libera seus arquivos aqui.
+O perfil Auditor consulta, sem confirmar ou importar; o suporte mantém o
+escopo autorizado. Se um acesso tiver sido removido, solicite revisão ao
+responsável, sem compartilhar conta ou tentar outra empresa.
+
+Saldo **não informado** não é zero. Diferença zero não comprova cobertura
+integral ou revisão humana. Relatório/PDF/CSV são conferência, não arquivo
+homologado de importação no Domínio. Q-47/C01/C02 permanecem adiados.
+No treinamento, registrar participante, versão, empresa/conta/competência,
+ação realmente executada, referência privada do relatório e pendências;
+não antecipar resultado, assinatura, treinamento concluído ou aceite.
+
 Atualizado em 13/11/2026, D-361/PC-19, para a **release 90**. O percurso do
 piloto está disponível; o treinamento com a cliente e seu aceite ainda não
 foram registrados. A primeira sessão usa o extrato e o Razão já recebidos,
@@ -83,9 +138,11 @@ oferecido pelo sistema, evitando criar outra escrituração do mesmo fato.
 
 ## Relatório, saída e falhas
 
-Use **Baixar conferência**, quando disponível no arquivo bancário processado,
-para guardar o relatório do período. Confira o cabeçalho, conta, período,
-totais e pendências. Relatório ou prévia privada não comprovam importação no ERP.
+Na versão D-364, após a publicação, use **Ver relatório** para ler e
+**Imprimir ou salvar PDF** para guardar a conferência; **Baixar CSV técnico**
+mantém a saída anterior. Confira empresa, conta, período, totais, pendências
+e avisos. O período limita as duas saídas; busca, situação e página da tela
+não limitam o relatório. Relatório ou prévia privada não comprovam importação no ERP.
 A exportação Domínio segue bloqueada até validação do layout e autorização
 operacional específica; não tente importar uma prévia como arquivo homologado.
 

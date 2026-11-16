@@ -1,3 +1,13 @@
+**16/11/2026 — D-364/V-403: operação da cliente validada localmente; publicação pendente.**
+Carteira por empresa, conta e competência, inclusive empresas sem contas ou
+fontes; relatório legível/imprimível em reais e CSV técnico compatível.
+Permissão combina empresa e módulo; período preservado entre carteira,
+conferência, detalhe e relatório. Filtros inválidos não ampliam a consulta.
+Regressão SQLite e PostgreSQL focada, QA visual sintético e checagens locais
+aprovados; CI integral e implantação ainda pendentes. Não há nova cobertura financeira real, coleta,
+aprovação de contas, treinamento/aceite ou prova de backup. Q-28/Q-46/D-73
+e Q-47/C01/C02 adiados mantêm os próprios critérios. [V-403](VALIDACOES.md).
+
 # CICA — plano de conclusão revisado em 05/10/2026
 
 **Desenvolvimento CONTAD — 12/11/2026, D-344–355/V-367–382:** Oficial1.0.9 preservado e backend86 saudável. Captura fiscal original e sete exemplos privados preservados; conferência C01/retenções e C02/juros adiada pelo responsável. Comparador de fontes retidas integrado/publicado com CI integral aprovado; autocomparação READ ONLY com1958 registros inalterados e14 grupos anteriores preservados. Não repetir upgrade, coleta ou autorização. Semântica financeira Q-46, vínculo bancário próprio, carteira completa, IA/Q-47/D-73 e aceite continuam abertos; projeto não concluído.

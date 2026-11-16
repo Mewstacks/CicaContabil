@@ -4822,3 +4822,32 @@ contaminação de escopo e integridade com fixtures sintéticas. Código/CI segu
 D-346; publicação compatível na infraestrutura existente segue D-323/D-353,
 sem novos serviços/custos, fontes, identidade, DSN, coleta ERP ou alteração
 de interface. As consultas e downloads existentes conservam suas regras.
+
+## D-364 — Priorizar a operação da cliente na carteira e no relatório (16/11/2026)
+
+Origem: responsável instruiu continuar a implementação, principalmente nos
+pontos que ajudam o uso da cliente. Retoma D-360/D-363 e Q-28/etapas09/11/12.
+Implementar em checkout isolado da release92 uma carteira de conciliação
+por empresa, conta e competência, incluindo empresas sem contas/fontes.
+Usar dados já persistidos, distinguir ausência, processamento e arquivos
+disponíveis; contagens não aprovam cobertura, banco ou conciliação.
+Acesso deve respeitar empresa E módulo, inclusive relatórios e conferência;
+suporte mantém o escopo explícito já autorizado. Não criar contas por inferência.
+
+Preservar a competência entre carteira, conferência, revisão e relatório,
+com filtros inválidos explícitos sem ampliar o recorte. Oferecer relatório
+legível/imprimível, valores em reais, identificação da empresa/conta, histórico
+e pendências de banco e Razão. Manter CSV técnico compatível, saldos ausentes
+como desconhecidos e avisos de cobertura/aceite. Leitura não confirma nada.
+Orientar a cliente aos cadastros/importação existentes com contexto preenchido;
+nenhuma coleta real, arquivo ou decisão humana será criado pelo executor.
+
+Aplicar UI/UX Pro Max local, diretrizes web atuais, consulta Watermelon e
+pesquisa oficial de produto, preservando tokens/fontes/componentes CICA.
+Validar desktop/mobile/paisagem, temas, teclado, erro/vazio, permissões e
+percurso com Playwright e dados sintéticos. Pesquisa não autoriza instalar
+dependências, comprar serviços ou copiar interfaces incompatíveis com Django.
+D-323/D-346 autorizam CI e publicação compatível após árvore exata aprovada,
+mesmas máquinas/capacidade, legado excluído, integridade das fontes/decisões
+conferida. Sem MSI, nova IA, nova fonte financeira, agenda paga, backup pago,
+mensagens ou importação Domínio. Q-46/D-73 e Q-47/C01/C02 adiados preservados.

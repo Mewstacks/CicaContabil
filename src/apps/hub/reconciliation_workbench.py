@@ -5,41 +5,66 @@ from __future__ import annotations
 from collections import defaultdict
 from decimal import Decimal
 from typing import Any
-from urllib.parse import urlencode, urlsplit
+from urllib.parse import unquote, urlencode, urlsplit
 
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpRequest
+from django.http import HttpRequest, QueryDict
 from django.urls import reverse
 
 from apps.hub.models import IndependentLedgerRecord, ReconciliationSourceFile
 from apps.hub.reconciliation_bridge import compatible_record
-from apps.hub.reconciliation_report import build_source_report
+from apps.hub.reconciliation_report import build_source_report, report_period_params
+from apps.hub.reconciliation_service import ReconciliationError
+
+
+def _local_return(candidate: str, expected_path: str) -> bool:
+    try:
+        parts = urlsplit(candidate)
+    except ValueError:
+        return False
+    decoded = unquote(candidate)
+    return bool(
+        candidate.startswith("/")
+        and not candidate.startswith("//")
+        and not parts.scheme
+        and not parts.netloc
+        and parts.path == expected_path
+        and not parts.fragment
+        and "\\" not in decoded
+        and not any(ord(c) < 32 or ord(c) == 127 for c in decoded)
+    )
+
+
+def portfolio_return_url(request: HttpRequest) -> str:
+    """Keep the portfolio filter context without accepting an arbitrary return URL."""
+    values = request.GET.getlist("portfolio_return")
+    if len(values) != 1:
+        return ""
+    candidate = values[0]
+    return candidate if _local_return(candidate, reverse("hub:reconciliation-portfolio")) else ""
 
 
 def conference_return_url(request: HttpRequest, source_id: object) -> str:
     """Only return to this movement's own source, never another tenant or host."""
-    candidate = request.GET.get("return_to", "")
-    fallback = reverse("hub:reconciliation-source-review", kwargs={"source_id": source_id})
-    try:
-        parts = urlsplit(candidate)
-    except ValueError:
+    values = request.GET.getlist("return_to")
+    if len(values) != 1:
         return ""
-    if (
-        not candidate.startswith("/")
-        or candidate.startswith("//")
-        or parts.scheme
-        or parts.netloc
-        or parts.path != fallback
-        or "\\" in candidate
-        or any(ord(c) < 32 for c in candidate)
-    ):
+    candidate = values[0]
+    fallback = reverse("hub:reconciliation-source-review", kwargs={"source_id": source_id})
+    if not _local_return(candidate, fallback):
+        return ""
+    try:
+        report_period_params(QueryDict(urlsplit(candidate).query))
+    except ReconciliationError:
         return ""
     return candidate
 
 
 def source_review_context(source: ReconciliationSourceFile, request: HttpRequest) -> dict[str, Any]:
-    report = build_source_report(source)
+    period = report_period_params(request.GET)
+    report = build_source_report(source, **period)
+    portfolio_return = portfolio_return_url(request)
     state = request.GET.get("state", "pending")
     if state not in {"all", "pending", "confirmed"}:
         state = "pending"
@@ -94,7 +119,10 @@ def source_review_context(source: ReconciliationSourceFile, request: HttpRequest
         ):
             entry = record.accounting_entry
             candidates[(entry.occurred_on, entry.direction, entry.amount_cents)].append(record)
-    params = {"state": state, "q": query}
+    report_params = {key: value.isoformat() for key, value in period.items() if value is not None}
+    if portfolio_return:
+        report_params["portfolio_return"] = portfolio_return
+    params = {"state": state, "q": query, **report_params}
     list_path = reverse("hub:reconciliation-source-review", kwargs={"source_id": source.pk})
     return_path = list_path + "?" + urlencode({**params, "page": page.number})
     items = []
@@ -134,6 +162,10 @@ def source_review_context(source: ReconciliationSourceFile, request: HttpRequest
         "conference_query": query,
         "conference_state": state,
         "conference_querystring": urlencode(params),
+        "conference_report_querystring": urlencode(report_params),
+        "conference_portfolio_return_url": portfolio_return,
+        "conference_period_start": period["start"].isoformat() if period["start"] else "",
+        "conference_period_end": period["end"].isoformat() if period["end"] else "",
         "conference_confirmed_count": sum(
             row["amount_cents"] > 0 and row["remaining_cents"] == 0 for row in bank_rows.values()
         ),

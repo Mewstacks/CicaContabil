@@ -71,9 +71,10 @@ document.querySelectorAll('[data-modal]').forEach((modal) => {
   });
 });
 
-document.querySelectorAll('[data-modal-invalid]').forEach((modal) => {
+document.querySelectorAll('[data-modal-invalid], [data-modal-initial-open]').forEach((modal) => {
   const trigger = document.querySelector(`[data-modal-open="${modal.id}"]`);
-  openModal(modal, trigger);
+  // Finish enhancing company selectors before choosing the initial focus target.
+  queueMicrotask(() => openModal(modal, trigger));
 });
 
 document.querySelectorAll('[data-certificate-files]').forEach((input) => {

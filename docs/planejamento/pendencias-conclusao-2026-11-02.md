@@ -1,3 +1,18 @@
+## Uso da carteira e relatório — D-364/V-403, 16/11/2026
+
+Implementação validada localmente: carteira por empresa/conta/competência,
+incluindo ausências; relatório legível/imprimível em reais, CSV técnico e
+período preservado no percurso. Empresa E módulo limitam a consulta; filtros
+inválidos não ampliam o recorte e importação preenchida não envia arquivos.
+QA visual sintético e PostgreSQL focado aprovados; CI integral e publicação
+permanecem pendentes nesta anotação.
+
+O guia está atualizado e o ensaio usa dados fictícios. Continuam pendentes
+os vínculos/contagens reais Q-28, lotes completos multi-filial, recorrência,
+semântica Q-46, amostra/recuperação/backup e treinamento/aceite D-73. A página
+não acrescenta fontes financeiras à carteira nem aprova banco ou conciliação.
+Q-47/C01/C02 permanecem adiados. [V-403](../../VALIDACOES.md).
+
 # Pendências para concluir o projeto CICA
 
 **Avanço de desenvolvimento — D-344–346/V-367, 12/11/2026:** Persistência/alocação normalizadas de títulos e CLI implementadas;181 testes focados PostgreSQL aprovados. Ainda falta o adaptador ERP real Q-46. Complemento fiscal restrito a metadados preparado, com Windows/CI pendentes na branch autorizada. Este avanço não encerra carteira financeira, DE-PARA com IA, Q-47, recuperação, treinamento ou aceite.

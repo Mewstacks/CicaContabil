@@ -9061,3 +9061,75 @@ não homologa semântica financeira. Diferenças entre fotografias foram provada
 com dados sintéticos no CI. C01/C02 continuam adiados conforme D-355/V-380;
 Q-46/Q-47, vínculo bancário, carteira completa, IA/D-73/recuperação/treinamento
 e aceite seguem pendentes. Projeto inteiro não foi declarado concluído.
+
+## V-403 — Carteira de conciliação e relatório para a cliente (16/11/2026)
+
+D-364, etapas09/11/12. Implementação em checkout isolado
+`contad-client-operations/CicaContabil`, baseada na release92. **Estado desta
+anotação: validada localmente, inclusive QA visual e PostgreSQL focado;
+CI integral e publicação pendentes.** Não declarar nova release ou cobertura real da carteira.
+
+Comportamento implementado:
+
+- Carteira somente leitura por empresa/conta/competência, 25 empresas por
+  página, incluindo empresas sem contas ou sem fontes. Situações distinguem
+  ausência de extrato/Razão, dados recebidos e revisão/processamento pendente.
+  Quantidades descrevem o que está persistido, não completude ou aprovação.
+  Fonte multi-mês com vínculo inválido em outro mês também exige revisão.
+- Consulta combina empresa E módulo, inclusive conferência e relatório;
+  suporte conserva suas empresas explícitas. Acesso revogado/fora de escopo
+  não expõe a fonte. Importação preenchida só aceita empresa/conta/origem
+  autorizadas e compatíveis; GET não importa arquivo nem cria conta ou decisão.
+- Competência acompanha carteira, conferência, movimento, retorno e relatório.
+  Filtros duplicados/inválidos não ampliam a lista; período inválido retorna
+  erro explícito. Busca, situação e paginação não reduzem o relatório completo
+  do período selecionado.
+- Relatório HTML legível/imprimível identifica empresa/conta/período,
+  valores em reais, histórico/documento/fonte, alocações e pendências dos dois
+  lados. CSV técnico mantém o contrato existente de centavos. Saldos ausentes
+  continuam desconhecidos; diferença zero e leitura não comprovam cobertura,
+  confirmação humana, fechamento ou importação homologada no ERP.
+
+Verificações locais:
+
+- 37 testes HTTP independentes aprovados em20,08s, cobrindo Owner/Operator/
+  Auditor, empresa+módulo, revogação, suporte restrito, paginação25+2,
+  ausência de contas, filtros, período, relatório e importação preenchida.
+  Contagens de jobs/auditoria/fontes/contas/decisões permanecem iguais nos GETs.
+- Rodadas auxiliares de35 e82 testes aprovadas separadamente; a carteira
+  recebeu um caso adicional e passou36 testes após a revisão multi-mês. A regressão
+  agregada local registrada em `.tmp/qa/focused-tests.log` aprovou233 testes,
+  cinco skips de concorrência PostgreSQL e24 subtestes em28,09s. As rodadas
+  têm sobreposição e não são somadas; skips não equivalem a aprovação.
+  Rodada PostgreSQL focada posterior aprovou160 testes, incluindo os cinco
+  casos de concorrência. Banco de teste em tmpfs após falta de espaço do
+  Docker local, sem remover dados ou volumes de outros projetos.
+- Ruff, Django check e diff-check locais passaram. QA isolado privado contém27
+  empresas fictícias, quatro contas, setembro/outubro e um Razão pendente;
+  sessões separadas Owner/Auditor/Operator e banco/arquivos0600.
+- `.tmp/qa/visual-result.json` registra dez verificações iniciais, incluindo
+  paginação/vazio, período/retorno, imprimir/CSV, celular/paisagem sem overflow,
+  tema escuro, teclado, mês inválido e escopo Auditor/Operator; zero erros de
+  console e requisições. `.tmp/qa/visual-followup-result.json` registra três
+  verificações adicionais aprovadas de impressão/tema/zoom e importação
+  preenchida/foco/Escape. A primeira asserção de Escape foi corrigida para
+  considerar o fechamento prévio das sugestões do combobox; o segundo Escape
+  fecha o modal. Ajustada inicialização do modal após os comboboxes, com foco
+  e inatividade do fundo. Corrigida especificidade do CSS antigo que truncava
+  células; screenshot final `portfolio-mobile-account.png` inspecionado, com
+  cinco campos e ação completamente visíveis. QA visual técnico concluído.
+
+Pesquisa aplicada: UI/UX Pro Max local; catálogo público Watermelon
+[table](https://ui.watermelon.sh/components/table) e
+[data-table](https://ui.watermelon.sh/components/data-table);
+[Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md);
+[QuickBooks: consultar, imprimir e exportar relatório de conciliação](https://quickbooks.intuit.com/learn-support/en-us/help-article/export-reports/view-print-export-reconciliation-report/L1yNaVaOG_US_en_US?uid=m2i8bqzc). Adaptadas hierarquia, tabelas e leitura; identidade CICA
+preservada, sem copiar React para Django nem importar dados das referências.
+
+Guia atualizado em `docs/pt-BR/contad-conciliacao.md`. Preparação, testes e
+ensaio fictício não constituem treinamento/aceite da cliente. Nenhuma nova
+coleta financeira, conta real, vínculo aprovado, regra, job real, IA, custo,
+MSI ou operaçãoERP foi realizada por esta etapa. Q-28 mantém vínculos,
+contagens/filiais/recorrência; Q-46/D-73, recuperação/backup, treinamento e
+aceite permanecem abertos. Q-47/C01/C02 continuam adiados. Publicação da
+árvore exata e conferência operacional ainda pendentes nesta anotação.
