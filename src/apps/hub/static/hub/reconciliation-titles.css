@@ -33,3 +33,6 @@
 
 .titles-form label:has(input[type=checkbox]){display:flex;align-items:flex-start;gap:12px;min-height:44px;line-height:1.6;cursor:pointer}.titles-form label:has(input[type=checkbox]) input{margin-top:3px}
 @media(max-width:760px){.titles-form :is(input:not([type=hidden]):not([type=checkbox]),select,textarea){font-size:16px}}
+
+/* Report data must wrap in full on screen and paper; global tables use ellipsis. */
+.titles-report .report-table :is(th,td){white-space:normal;overflow:visible;text-overflow:clip;max-width:none;min-width:0;overflow-wrap:anywhere}.titles-report .report-table th:nth-child(n){width:auto}.titles-report .report-table small,.titles-report .report-evidence small{display:block;margin-top:5px;line-height:1.5}.titles-report .report-table tr{content-visibility:visible;contain-intrinsic-size:none}
