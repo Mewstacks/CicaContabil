@@ -5277,3 +5277,16 @@ propagar cancelamento real do serviço imediatamente. Testar ambos os casos com
 transporte/controle sintéticos, sem ampliar tentativas ou consultas reais.
 A revisão também confirmou perda da seleção do extrato ao salvar o vínculo;
 preservar bank_source já validado no formulário/retorno, sob o mesmo escopo.
+
+
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+**Fechamento D-371/V-410 —17/11/2026:**
+
+**17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
+[PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
+
+CI integral: 3072 SQLite/54 skips, 3124 PostgreSQL/2 skips; 181/181 subtestes, respectivamente; 179 testes Windows aprovados.
+
+Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.

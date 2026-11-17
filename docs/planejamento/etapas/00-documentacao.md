@@ -1,3 +1,19 @@
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+## Fechamento D-371/V-410 — publicação técnica para testes, 17/11/2026
+
+- [x] Correções revisadas, regressão local/CI exato e QA sintético aprovados.
+- [x] Publicar release99/agente1.0.13 e conferir runtime797/assets/saúde/worker.
+- [x] Conferir15 grupos protegidos, configuração/capacidade e legado parado.
+- [x] Validar instalação limpa e upgrades1.0.10/11/12 em Windows descartável.
+- [ ] Comprovar instalação/capacidades/recepção reais no SVAPL02.
+- [ ] Concluir revisões humanas e critérios Q-28/Q-46/D-73 próprios.
+
+Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+[Evidências V-410](../../../VALIDACOES.md).
+
 ## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
 
 - [x] Trazer continuidade V-409 da raiz à candidata, preservando D-370/D-371.

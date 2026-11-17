@@ -11206,3 +11206,26 @@ de estado/modo para um .ps1 filho antes de validar o updater. Produto e
 atualizador não mudaram nesta correção. Sem PowerShell local; execução dos
 cenários será comprovada pelo novo CI Windows, sem antecipar aprovação.
 [Regra de escopo PowerShell](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scopes?view=powershell-7.5).
+
+
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+## Fechamento V-410 — publicação técnica para testes, 17/11/2026
+
+**17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
+[PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
+
+CI integral: 3072 SQLite/54 skips, 3124 PostgreSQL/2 skips; 181/181 subtestes, respectivamente; 179 testes Windows aprovados.
+
+Histórico do Razão filtra mês antes de paginar; extratos têm páginas próprias, fonte/contexto preservados e páginas inválidas recusadas antes de escrita. Polling informa falha/timeout/pausa e conserva o último estado íntegro. Agente mantém pares sequenciais Razão→títulos, controle autenticado antes de cada par e orçamento de quatro pares/30s verificado entre pares para sincronizar novamente a carteira. Recupera timeout HTTP sem encerrar o serviço, respeita parada real, preserva justiça entre famílias e exige prova recente do último ciclo no diagnóstico. Não é benchmark de vazão nem promessa de concluir um lote real no mesmo dia.
+
+Validação local:SQLite3072 aprovados/53 skips/181 subtestes e PostgreSQL3124/um skip/181 subtestes. A coleta integral começou antes do último POST:26 casos novos incluídos; 27 regressões novas focadas, incluindo o POST adicional, passaram. Não somar rodadas sobrepostas; as contagens CI acima correspondem à fonte final exata. .NET local176/três Windows reservados. QA Playwright17 verificações mais POST pelo formulário real, todos sintéticos, com43 pedidos/23 extratos,375/1440px claro/escuro, paisagem, teclado, erro/recuperação e contexto; erros400/503 induzidos. PostgreSQL temporário, servidor e browser próprios encerrados.
+
+Imagem:`registry.fly.io/cica-contabil@sha256:d85e200759b8241122da5213ead21dd483e49ffd458e64fed243712357d1888a`. Esquema inalterado, mesmas máquinas/recursos, legado parado e15 grupos protegidos idênticos. Somente os dois parâmetros existentes do canal do agente apontam1.0.13. O recibo delivery-final.json verificado vincula runtime, assets, saúde/banco/cache/worker e preservação.
+
+MSI SHA-256:`2356abba6e54156f536d4ee5ea06c2506743906997cd93d50f450989d94fd104`. ZIP SHA-256:`af18005949e69528776b8a4e0faf58dcf8a016f85193963670a3b0b58edf2db5`. Artefatos publicados conferidos por tamanho/digest e manifesto público idêntico; instalação limpa/upgrades usam DPAPI/DSN sintéticos e não executam ERP.
+
+Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+Provas privadas:.tmp/release/delivery-final.json,ci-summary.json,agent-release.json,agent-release-published-api.json,merge-verification.json,releases-after.json,local-tests.json e .tmp/qa_history/{result,mapping-result}.json. Os blocos EM ANDAMENTO anteriores são históricos e ficam superados por este fechamento.

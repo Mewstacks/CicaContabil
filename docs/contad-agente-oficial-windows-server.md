@@ -1,3 +1,23 @@
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+## Agente1.0.13 publicado — D-371/V-410, 17/11/2026
+
+Backend release99 e [pacote1.0.13](https://github.com/Mewstacks/CicaContabil/releases/download/agent-v1.0.13/CICA-Agent-1.0.13-atualizacao.zip) publicados e verificados. [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovou instalação limpa e upgrades diretos 1.0.10/11/12; são provas sintéticas, separadas da instalação da cliente.
+
+MSI SHA-256:`2356abba6e54156f536d4ee5ea06c2506743906997cd93d50f450989d94fd104`. Baixar o pacote oficial e manter MSI,manifesto/atualizador da mesma pasta. Fechar configurador, preservar identidade/DSN/configuração DPAPI e executar em Windows PowerShell x64 como administrador na pasta extraída:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".\upgrade-active-queue.ps1" `
+  -MsiPath ".\CicaAgent.msi" -ExpectedSha256 "2356abba6e54156f536d4ee5ea06c2506743906997cd93d50f450989d94fd104"
+```
+
+O script verifica versões/hash/manifesto e configuração protegida antes/depois; exige serviço Running/Auto/LocalSystem e ciclo recente. Fila ativa pode apresentar synchronizing somente com prova de ciclo concluído no mesmo processo após iniciar a verificação. source_review_required mantém revisão pendente e backend_verification_required=true exige conferência no backend. MSI3010 ou erro mantém diagnóstico pendente; não reiniciar automaticamente, substituir agent.config ou refazer pareamento. Preservar verification.json privado, sem divulgar segredos.
+
+Histórico do Razão filtra mês antes de paginar; extratos têm páginas próprias, fonte/contexto preservados e páginas inválidas recusadas antes de escrita. Polling informa falha/timeout/pausa e conserva o último estado íntegro. Agente mantém pares sequenciais Razão→títulos, controle autenticado antes de cada par e orçamento de quatro pares/30s verificado entre pares para sincronizar novamente a carteira. Recupera timeout HTTP sem encerrar o serviço, respeita parada real, preserva justiça entre famílias e exige prova recente do último ciclo no diagnóstico. Não é benchmark de vazão nem promessa de concluir um lote real no mesmo dia.
+
+Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+
+Não executar scripts test-* no SVAPL02. Atualizar o agente não autoriza novas consultas ERP por si. As seções anteriores de preparação abaixo são históricas; o hash concreto deste fechamento substitui o marcador1.0.13 anterior.
+
 # Agente oficial CONTAD no Windows Server
 
 ## Agente 1.0.13 em validação — D-371, 17/11/2026
