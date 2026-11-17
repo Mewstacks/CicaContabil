@@ -11224,8 +11224,39 @@ Imagem:`registry.fly.io/cica-contabil@sha256:d85e200759b8241122da5213ead21dd483e
 
 MSI SHA-256:`2356abba6e54156f536d4ee5ea06c2506743906997cd93d50f450989d94fd104`. ZIP SHA-256:`af18005949e69528776b8a4e0faf58dcf8a016f85193963670a3b0b58edf2db5`. Artefatos publicados conferidos por tamanho/digest e manifesto público idêntico; instalação limpa/upgrades usam DPAPI/DSN sintéticos e não executam ERP.
 
-Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
 
 Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
 
 Provas privadas:.tmp/release/delivery-final.json,ci-summary.json,agent-release.json,agent-release-published-api.json,merge-verification.json,releases-after.json,local-tests.json e .tmp/qa_history/{result,mapping-result}.json. Os blocos EM ANDAMENTO anteriores são históricos e ficam superados por este fechamento.
+
+
+### Complemento V-410 — atualização real do SVAPL02 confirmada
+
+O responsável executou manualmente o atualizador publicado após a ferramenta
+AnyDesk retornar timeout. O JSON seguro fornecido informa origem1.0.10.0,
+instalada1.0.13 e MSI SHA2356abba6e54156f536d4ee5ea06c2506743906997cd93d50f450989d94fd104.
+Configuração cifrada preservada, serviço Running/Auto/LocalSystem, diagnóstico
+fresco/source_review_required com ciclo concluído às13:17:09UTC, MSIexit0
+e reboot_required=false. Esta prova é o recibo fornecido pelo responsável,
+corroborado pela conferência independente do backend; não foi execução via CUA.
+
+Backend somente leitura às13:17:47 e13:19:58UTC: mesmo agente oficial, Razão
+e títulos online; automatic_counts=true nos dois, portfolio_scope=true e
+company_scope=true, respectivamente. Versões1.0.8/1.0.9 das capacidades são
+protocolos, não versão do executável. A versão instalada vem do recibo1.0.13.
+Revisão independente conferiu SHA do recibo, MSI local e asset publicado.
+
+Estado retido: um Razão imported, um título legado captured e zero pedidos
+novos por empresa. native_titles devolve review_required para captured/review,
+e o Worker propaga esse estado; permanece a revisão humana da fonte recebida.
+Comparação anterior/depois da publicação e depois do upgrade:15 grupos
+protegidos idênticos, mesma identidade, nenhum job, normalização ou decisão
+financeira nova. Nenhuma consulta financeira ERP adicional foi iniciada.
+
+Atualização do agente deixa de ser pendência técnica. Primeira nova recepção
+pela tela, evidências/semântica/regras e aceite humano continuam com provas
+próprias. O recibo offline agent-release.json continua histórico, sem reescrever
+seus flags como prova contemporânea. Novos recibos privados:svapl02-user-receipt.json,
+svapl02-installation.json,agent-after-upgrade.json,agent-review-after-upgrade.json
+e fingerprints-after-upgrade.json.

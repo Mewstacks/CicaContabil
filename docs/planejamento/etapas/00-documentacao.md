@@ -5,10 +5,11 @@
 - [x] Publicar release99/agente1.0.13 e conferir runtime797/assets/saúde/worker.
 - [x] Conferir15 grupos protegidos, configuração/capacidade e legado parado.
 - [x] Validar instalação limpa e upgrades1.0.10/11/12 em Windows descartável.
-- [ ] Comprovar instalação/capacidades/recepção reais no SVAPL02.
+- [x] Comprovar instalação1.0.13/conexão/capacidades no SVAPL02; recibo e backend autenticado.
+- [ ] Comprovar primeira nova coleta financeira pela tela no recorte autorizado.
 - [ ] Concluir revisões humanas e critérios Q-28/Q-46/D-73 próprios.
 
-Instalação1.0.13 e capacidades/recepção reais no SVAPL02 continuam sem prova nesta entrega. O responsável informou a sessão AnyDesk conectada e visível; a automação da ferramenta retornou timeout repetidamente, inclusive após reiniciar a sessão da ferramenta. Isso descreve a limitação da ferramenta, não falta de acesso do responsável, e não comprova instalação. Preservar identidade/DSN/DPAPI e conferir a atualização e o recorte autorizado antes de declarar autonomia real.
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
 
 Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
 
