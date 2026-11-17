@@ -5290,3 +5290,55 @@ CI integral: 3072 SQLite/54 skips, 3124 PostgreSQL/2 skips; 181/181 subtestes, r
 **SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
 
 Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+
+## D-372 — Preparar demais empresas no Domínio e comprovar coleta real (17/11/2026)
+
+Origem: responsável instruiu “Prepare as demais empresas, buscando as contas
+e os vínculos no Domínio, e valide uma coleta real com comparação do extrato
+para a cliente testar hoje.” Autoriza agora consultas reais de leitura à origem
+para completar cadastros/vínculos e uma nova coleta financeira com comparação.
+Retoma Q-28/PC-19 e etapas03/09/12; supera, neste escopo, a vedação a novas
+consultas ERP da entrega D-371. A instalação1.0.13 já está comprovada.
+
+Reutilizar os146 cadastros,43 candidatas e fontes privadas existentes. Buscar
+nomes/classificações e referências bancárias reais nas relações comprovadas
+do catálogo, preservando cardinalidade, ausência e origem. Não inferir banco,
+conta, direção ou relação caixa→contábil por igualdade de código/nome. Preparar
+campos comprovados; habilitar coleta somente com vínculo efetivo e escopo
+válido. Registrar execução técnica delegada como tal, sem atribuir ao cliente
+uma revisão humana inexistente. Não repetir sondas que já estão completas.
+
+Para a primeira prova real, usar a conta piloto212/8 e setembro2026, que já
+possuem vínculo e extrato retidos compatíveis. Solicitar novo Razão pelo fluxo
+publicado, conferir recepção/contagens e comparar ao extrato preservando fontes,
+decisões humanas e idempotência. A prova de uma conta não comprova toda a carteira.
+Demais contas serão preparadas conforme evidência obtida, mantendo lacunas
+acionáveis no mesmo Q-28. Não executar aceite contábil em nome da cliente.
+
+Manter dados privados, consultas limitadas e somente leitura no ERP. Preservar
+alterações locais, agente/pareamento/credenciais, recursos existentes e legado
+parado. Sem IA, custos novos, mensagens, importação no Domínio ou exportação
+contábil. Q-47/C01/C02 adiados mantêm critérios próprios. Registrar prévia,
+autoria técnica, provas antes/depois, contagens efetivas e limites; atualizar
+validações/checklists ao concluir. Se a automação AnyDesk continuar indisponível,
+preparar primeiro script concreto e validado para execução local assistida.
+
+
+Refinamento D-372 — execução pela tela autorizada: após a prévia e identificação
+do acesso disponível, o responsável instruiu “Faz tu pela tela, esta autorizado”.
+Autoriza o executor a acionar Buscar Razão na sessão CICA disponível com a
+conta212/8,setembro2026 e extrato já conferidos. A execução ocorre por delegação
+explícita nesta conversa; não é declaração de revisão contábil da cliente.
+A limitação anterior de D-365 não impede esse pedido expressamente autorizado
+agora. Não alterar identidade, permissões, vínculos ou decisões de conciliação.
+
+
+Complemento D-372 — catálogo retido também comprova CTPARMTO_CONTAS_ICEBERG
+(CODI_EMP,CODI_CTA,CODI_FIL,I_BANCO,DATA_INICIO_INTEGRACAO). Incluir somente
+esses campos cadastrais literais na leitura limitada às mesmas146 empresas;
+excluir SALDO_INICIAL. Persistir lista separada de configurações de integração,
+sem presumir proprietário do plano, significado de I_BANCO ou relação ao
+catálogo Banco Central: FKs deste objeto não vieram no perfil de relações.
+Ausência, zeros, data e multiplicidade terão prova própria. Não usar a nova
+configuração como aprovação automática de conta/vínculo.

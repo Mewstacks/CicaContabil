@@ -11260,3 +11260,40 @@ próprias. O recibo offline agent-release.json continua histórico, sem reescrev
 seus flags como prova contemporânea. Novos recibos privados:svapl02-user-receipt.json,
 svapl02-installation.json,agent-after-upgrade.json,agent-review-after-upgrade.json
 e fingerprints-after-upgrade.json.
+
+
+## V-411 — Preparação das demais empresas e primeira nova coleta — EM ANDAMENTO (17/11/2026)
+
+D-372 autoriza leituras reais adicionais para cadastros e teste de coleta. Fontes146/43 retidas conferidas; permanecem43 candidatas em11 empresas,145 empresas sem conta operacional. Prévia PostgreSQL REPEATABLE READ READ ONLY executada às13:46:03UTC: extrato OFX retido com163 movimentos, hash e normalização coincidentes, conta212/8 e período2026-09, vínculo legado íntegro, agente oficial online. Pronto para pedido; não é comprovação de nova coleta. Apenas Grazi possui membership ativa habilitada; operador técnico sem identidade disponível. URL preenchida entregue ao responsável para acionar o pedido na sessão legítima.
+
+AnyDesk continua disponível no inventário, mas getApp retorna timeout(-10005); não foi falta de sessão aberta. Complemento cadastral independente em preparação, com SELECTs fixos de contas/referências bancárias, sem valores ou escrita ERP. Preservar43 candidatas e decisões anteriores; não inferir caixa→contábil nem banco a partir de nomes.
+
+Provas privadas no checkout contad-company-preparation: .tmp/company-preparation/before-operations.json, access-preview.json e pilot-preflight-before.json. O recibo preflight tem SHA eeb9e3f5bbaf50caf4bb4337a2efc520a4f5d12b04592a5f8ec83199c26ad323. Nenhuma nova consulta financeira executada nesta prévia.
+
+
+### Complemento V-411 — coleta real pela tela e comparação aprovadas (17/11/2026)
+
+Após autorização expressa “Faz tu pela tela, esta autorizado”, pedido acionado
+por CUA no Chrome, sessão CONTAD disponível. A tela confirmou “Busca do Razão
+solicitada” às10:59BRT; não houve chamada de escrita SSH com identidade emprestada.
+Pedido d97677c8-6727-416a-bc10-bcb4c45ac00b criado13:59:25UTC, entregue ao agente
+14:00:22UTC e importado14:00:32UTC. Auditoria da sessão/request_id conferida.
+
+Validação independente PostgreSQL READ ONLY às14:00:41UTC: novo snapshot SHA
+e440f0ab2ac219ba206290b4ea1a8e572d6ff2aaae54e788e42249d84abcfb28,177 linhas
+de origem,163 lançamentos/efeitos bancários e334 partidas. Compatibilidade por
+data/direção/valor com163 movimentos do OFX:163/163,zero sobras nos dois lados,
+diferença líquida zero. Dois grupos de assinaturas repetidas permanecem ambíguos;
+compatibilidade técnica não é aceite individual nem homologação de cobertura.
+
+Fonte anterior e17 grupos protegidos, incluindo decisões humanas, integralmente
+preservados. Importação idempotente:created0/ignored163,sem duplicação. Tela
+confirmou “Razão recebido” e abriu comparação com163 movimentos do extrato,163
+registros do Razão,um movimento já conferido e162 ainda a conferir. Nada foi
+confirmado contabilmente pelo executor. Primeira nova coleta pela tela deixa de
+ser pendência técnica; demais empresas ainda dependem do complemento cadastral.
+
+Provas privadas:.tmp/company-preparation/pilot-validation-1.json e
+pilot-ui-receipt.json. O complemento Windows está em CI; a primeira rodada
+falhou no harness antes de qualquer execução real, e está sendo diagnosticada.
+Backend permanece release99 e agente1.0.13; nenhum novo MSI é necessário.
