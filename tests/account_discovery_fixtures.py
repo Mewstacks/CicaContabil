@@ -21,11 +21,12 @@ def write_discovery_archive(
     template_rows: Iterable[dict[str, Any]] | None = None,
     nature_rows: Iterable[dict[str, Any]] | None = None,
     script_sha256: str | None = None,
+    version: str = contract.ARCHIVE_VERSION,
 ) -> dict[str, Any]:
     manifest = {
         **profile,
-        "version": contract.ARCHIVE_VERSION,
-        "script_sha256": script_sha256 or contract.ARCHIVE_SCRIPT_SHA,
+        "version": version,
+        "script_sha256": script_sha256 or contract.script_sha_for_version(version),
         "snapshot": {key: value for key, value in profile["snapshot"].items() if key not in TABLES},
     }
     overrides = dict(

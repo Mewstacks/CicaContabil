@@ -4642,3 +4642,32 @@ registrados em V-412. Código local preparado; fonte ampliada e deploy pendentes
 Segunda tentativa: ROW_LIMIT acima de100mil contas. Ensaio confirmouOOM/rollback
 sem dadosreais; arquitetura de processamento emfluxo e migração0088quatro tabelas
 substituem protótipos anteriores. Ver D-373 e checkpoint de capacidadeV-412.
+
+
+Checkpoint D-373/V-412 de consistência e memória — terceira tentativa real,
+leitor5d62cd3, completou as duas passagens e recusou SOURCE_CHANGED. A seção
+divergente não foi informada; não afirmar que somente contagens mudaram.
+Manifesto v3 mantém cadastro/chaves idênticos, preserva as duas contagens e
+intervalos UTC e permite apenas variação em contagens positivas. Fonte70bb143,
+SHA2561cff13a2c964008acffa989d6a15a228669796e069beafb12454395379bc6e86;
+107 cenários locais do leitor aprovados. Windows44136610838 e cruzamento dos
+ZIPs PowerShell5.1 em andamento; ainda sem quarto comando liberado.
+
+Backend congelado:232 testes aprovados/5 exclusivosPG separados;39 testesv3
+PostgreSQL aprovados. Ruff global/MyPy focado aprovados. CI9fc parou em três
+apontamentos Ruff somente nos testes SQL; contagem passou a percorrer o cursor
+sem montar SQL adicional, mantendo as consultas do leitor;13 testes SQL passaram.
+CI integral final permanece pendente. Keyset LIMIT500 no catálogo/LIMIT2 nos
+blocos dispensa cursores de servidor; índicePG verificado. Ensaio100mil contas
+mais100mil modelos com app ativo/512MiB passou prévia/aplicação/replay/integridade/
+ficha, zeroOOM; pico398,6MiB.250mil e gate com fonte real permanecem pendentes.
+
+Migração0088 de QUATRO estruturas ensaiada no runtime100 e PostgreSQL isolado:
+prévia sem escrita, duas aliases, replay/retomada, rollback de DDL/recorder e
+recusa de divergências aprovados.195 linhas antigas preservadas. Hash migração
+7ab588371354697ab3199cbeae468b9756435b9217c9da9fb039cf5541655979;
+helper98b49b8a9e0406c26bd9f2be31677ed6a9b9970f4311717102f227fba48d5f45.
+Ensaios anteriores de três tabelas e imagens anteriores são superados.
+QA ZIP sintético:23 verificaçõesPlaywright, zeroJS; fluxo de banco reaproveitado
+no mês novo distingue confirmação humana da observação na fonte. Não houve
+fonte completa real recebida, importação real nem deploy: release100 preservada.

@@ -14,6 +14,7 @@ from copy import deepcopy
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import connection
+from django.test.utils import CaptureQueriesContext
 
 from account_discovery_fixtures import write_discovery_archive
 from apps.hub.account_discovery import (
@@ -443,3 +444,74 @@ def test_concurrent_archive_replay_has_one_atomic_set_of_all_four_models(
         AuditEvent.objects.filter(action="hub.reconciliation.account_discovery.imported").count()
         == 1
     )
+
+
+@pytest.mark.parametrize("operation", ["deep", "replay"])
+def test_integrity_scans_use_sql_keyset_limits_with_server_cursors_disabled(
+    organization,
+    sources,
+    discovered_profile,
+    tmp_path,
+    monkeypatch,
+    operation,
+):
+    from django.db.models import QuerySet
+
+    profile = with_sources(discovered_profile)
+    sample = profile["snapshot"]["chart_accounts"][-1]
+    profile["snapshot"]["chart_accounts"].extend(
+        dict(sample, chart_company_code=owner, account_code=1000 + index)
+        for owner, total in ((212, 501), (213, 502))
+        for index in range(total)
+    )
+    template = profile["snapshot"]["plan_template_accounts"][0]
+    profile["snapshot"]["plan_template_accounts"] = [
+        dict(template, account_code=index) for index in range(1, 5001)
+    ]
+    package = write_discovery_archive(profile, tmp_path / "keyset.zip")
+    run_archive(organization, sources, package, apply=True)
+    batch = latest_consistent_discovery(organization)
+    assert batch.chart_accounts.count() == 1007
+    assert batch.source_blocks.filter(table_name="plan_template_accounts").count() > 2
+    monkeypatch.setitem(connection.settings_dict, "DISABLE_SERVER_SIDE_CURSORS", True)
+    original_iterator = QuerySet.iterator
+
+    def reject_unbounded_iterator(self, *args, **kwargs):
+        assert self.model not in {
+            ReconciliationDiscoveredChartAccount,
+            ReconciliationDiscoverySourceBlock,
+        }, "Large integrity scans must LIMIT in SQL, independently of cursor mode."
+        return original_iterator(self, *args, **kwargs)
+
+    monkeypatch.setattr(QuerySet, "iterator", reject_unbounded_iterator)
+    with CaptureQueriesContext(connection) as captured:
+        if operation == "deep":
+            assert _consistent_discovery(batch, deep=True)
+        else:
+            assert run_archive(organization, sources, package, apply=True)["created"] == 0
+    chart_sql = [
+        query["sql"]
+        for query in captured
+        if query["sql"].startswith("SELECT")
+        and '"hub_reconciliationdiscoveredchartaccount"."row"' in query["sql"]
+    ]
+    block_sql = [
+        query["sql"]
+        for query in captured
+        if query["sql"].startswith("SELECT") and '"compressed_data"' in query["sql"]
+    ]
+    assert len(chart_sql) == 4  # Three bounded pages and the terminal empty page.
+    assert len(block_sql) >= 5
+    assert all(" LIMIT 500" in sql and " OFFSET " not in sql for sql in chart_sql)
+    assert all(" LIMIT 2" in sql and " OFFSET " not in sql for sql in block_sql)
+    assert all('("chart_company_code", "account_code") >' in sql for sql in chart_sql[1:])
+    assert all('"ordinal" >=' in sql for sql in block_sql)
+
+    # The final catalogue page participates in the same ordered digest as the first.
+    last = batch.chart_accounts.order_by("-chart_company_code", "-account_code").first()
+    with connection.cursor() as cursor:
+        cursor.execute(
+            "UPDATE hub_reconciliationdiscoveredchartaccount SET row_sha256=%s WHERE id=%s",
+            ["0" * 64, last.pk.hex if connection.vendor == "sqlite" else last.pk],
+        )
+    assert not _consistent_discovery(batch, deep=True)

@@ -7,6 +7,7 @@ import json
 import re
 from collections import Counter
 from datetime import UTC, datetime
+from itertools import pairwise
 from typing import Any, cast
 
 from apps.hub import account_source_contract as details
@@ -38,6 +39,8 @@ LIMIT = 67_108_864
 VERSION = "contad-chart-discovery-v1"
 ARCHIVE_VERSION = "contad-chart-discovery-v2"
 ARCHIVE_SCRIPT_SHA = "497fbb87f30c8e96a05395e40dc183f9e0610f20039612816a34f814a787d9dd"
+CONSISTENCY_VERSION = "contad-chart-discovery-v3"
+CONSISTENCY_SCRIPT_SHA = "1cff13a2c964008acffa989d6a15a228669796e069beafb12454395379bc6e86"
 SCRIPT_SHA = "b114b0c612e23c0d535be3f4177b08f055ea4a08b560381e10f96436bc116ba2"
 PERIOD_START = "2026-09-01"
 PERIOD_END = "2026-12-01"
@@ -94,6 +97,13 @@ USAGE_FIELDS = {
     "month",
     "entry_count",
 }
+USAGE_KEY = ("company_code", "chart_company_code", "branch_code", "year", "month")
+READ_TIMES = (
+    "first_read_started_at_utc",
+    "first_read_completed_at_utc",
+    "second_read_started_at_utc",
+    "second_read_completed_at_utc",
+)
 TARGETS = {
     "CTPARMTO",
     "CTPLANOCONTAS",
@@ -129,6 +139,79 @@ def rows(value: Any, fields: set[str], key: tuple[str, ...], limit: int) -> list
         require(identity not in seen, "TABLE_DUPLICATE")
         seen.add(identity)
     return cast(list[dict[str, Any]], value)
+
+
+def script_sha_for_version(version: str) -> str:
+    """Historical fixtures keep their own exact reader pin; no version/hash interchange."""
+    if version == VERSION:
+        return SCRIPT_SHA
+    if version == ARCHIVE_VERSION:
+        return ARCHIVE_SCRIPT_SHA
+    if version == CONSISTENCY_VERSION:
+        return CONSISTENCY_SCRIPT_SHA
+    raise Invalid("REPORT_IDENTITY")
+
+
+def _usage_rows(value: Any, companies: set[int]) -> list[dict[str, Any]]:
+    result = rows(value, USAGE_FIELDS, USAGE_KEY, 10000)
+    for row in result:
+        for field in USAGE_FIELDS:
+            integer(row[field], positive=field != "branch_code")
+        require(row["company_code"] in companies, "USAGE_SCOPE")
+        require(row["year"] == 2026 and 9 <= row["month"] <= 11, "USAGE_PERIOD")
+    return result
+
+
+def _utc_timestamp(value: Any) -> str:
+    require(
+        type(value) is str
+        and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{7}Z", value)
+        is not None,
+        "READ_TIMESTAMP",
+    )
+    try:
+        datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        raise Invalid("READ_TIMESTAMP") from None
+    return cast(str, value)
+
+
+def _read_consistency(
+    data: dict[str, Any],
+    companies: set[int],
+    usage: list[dict[str, Any]],
+) -> None:
+    proof = data["read_consistency"]
+    keys(
+        proof,
+        {
+            "cadastral_reads_identical",
+            "observed_usage_keys_identical",
+            "observed_usage_counts_identical",
+            "first_observed_chart_usage",
+            *READ_TIMES,
+        },
+    )
+    # Cadastral equality is attested by the pinned two-read reader; only the second
+    # cadastral copy is in this package. The two supplied usage sets are independently
+    # checked here, rather than accepting their declared flags as proof.
+    require(proof["cadastral_reads_identical"] is True, "CADASTRAL_READS_CHANGED")
+    first = _usage_rows(proof["first_observed_chart_usage"], companies)
+    first_counts = {tuple(row[field] for field in USAGE_KEY): row["entry_count"] for row in first}
+    second_counts = {tuple(row[field] for field in USAGE_KEY): row["entry_count"] for row in usage}
+    require(first_counts.keys() == second_counts.keys(), "USAGE_KEYS_CHANGED")
+    require(proof["observed_usage_keys_identical"] is True, "USAGE_KEYS_FLAG")
+    counts_equal = first_counts == second_counts
+    require(
+        proof["observed_usage_counts_identical"] is counts_equal
+        and data["two_reads_identical"] is counts_equal,
+        "USAGE_COUNTS_FLAG",
+    )
+    # The format is fixed-width UTC. Compare the original strings after calendar
+    # validation to retain the seventh fractional digit (Python datetime truncates it).
+    times = [_utc_timestamp(proof[field]) for field in READ_TIMES]
+    times.append(_utc_timestamp(data["observed_at_utc"]))
+    require(all(left <= right for left, right in pairwise(times)), "READ_CHRONOLOGY")
 
 
 def validate_chart_row(row: Any, *, template: bool = False) -> None:
@@ -201,10 +284,13 @@ def _reference_tables(data: dict[str, Any], companies: set[int], portfolio_sha25
     # cardinality rules while allowing literal, well-formed business Unicode.
     for flag in (
         "completed",
-        "two_reads_identical",
         "cadastral_names_and_bank_references_selected",
     ):
         require(data[flag] is True, "POSITIVE_FLAG")
+    if data["version"] != CONSISTENCY_VERSION:
+        require(data["two_reads_identical"] is True, "POSITIVE_FLAG")
+    else:
+        require(type(data["two_reads_identical"]) is bool, "READ_CONSISTENCY_FLAG")
     integer(data["expected_company_count"])
     require(data["expected_company_count"] == len(companies), "EXPECTED_COMPANY_COUNT")
     require(
@@ -324,6 +410,8 @@ def _reference_tables(data: dict[str, Any], companies: set[int], portfolio_sha25
 def validate(
     data: Any, companies: set[int], portfolio_sha256: str, *, streaming: bool = False
 ) -> dict[str, Any]:
+    require(type(data) is dict, "REPORT_OBJECT")
+    consistency = data.get("version") == CONSISTENCY_VERSION
     keys(
         data,
         {
@@ -343,16 +431,15 @@ def validate(
             "snapshot",
             "cadastral_names_and_bank_references_selected",
             *FALSE_FLAGS,
+            *({"read_consistency"} if consistency else set()),
         },
     )
     require(
-        data["version"] == (ARCHIVE_VERSION if streaming else VERSION)
+        data["version"] in ({ARCHIVE_VERSION, CONSISTENCY_VERSION} if streaming else {VERSION})
         and data["decision"] == "D-373",
         "REPORT_IDENTITY",
     )
-    require(
-        data["script_sha256"] == (ARCHIVE_SCRIPT_SHA if streaming else SCRIPT_SHA), "READER_HASH"
-    )
+    require(data["script_sha256"] == script_sha_for_version(data["version"]), "READER_HASH")
     require(
         data["period_start"] == PERIOD_START and data["period_end_exclusive"] == PERIOD_END,
         "PERIOD_CONTRACT",
@@ -389,17 +476,9 @@ def validate(
         else:
             require(row["i_planocontas_raw"] is not None, "PARAMETER_NULL")
     _reference_tables(data, companies, portfolio_sha256)
-    usage = rows(
-        snapshot["observed_chart_usage"],
-        USAGE_FIELDS,
-        ("company_code", "chart_company_code", "branch_code", "year", "month"),
-        10000,
-    )
-    for row in usage:
-        for field in USAGE_FIELDS:
-            integer(row[field], positive=field not in {"branch_code"})
-        require(row["company_code"] in companies, "USAGE_SCOPE")
-        require(row["year"] == 2026 and 9 <= row["month"] <= 11, "USAGE_PERIOD")
+    usage = _usage_rows(snapshot["observed_chart_usage"], companies)
+    if consistency:
+        _read_consistency(data, companies, usage)
     equivalents = rows(
         snapshot["equivalent_accounts"], set(details.CONFIG_KEY), details.CONFIG_KEY, 20000
     )

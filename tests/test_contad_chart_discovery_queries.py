@@ -168,7 +168,7 @@ def test_limit_plus_one_exposes_overflow_instead_of_silent_truncation(
     source, table, count, insert, params
 ):
     source.executemany(insert, ((i,) for i in range(1000, 1000 + count)))
-    assert source.execute("SELECT COUNT(*) FROM (" + queries()[table] + ")", params).fetchone()[0] == count
+    assert sum(1 for _ in source.execute(queries()[table], params)) == count
 
 
 def test_fixed_metadata_queries_are_bounded_and_not_business_sql():
@@ -187,7 +187,7 @@ def test_stream_catalogue_query_does_not_truncate_above_one_hundred_thousand(sou
         ((i,) for i in range(1000, 101005)),
     )
     sql = queries()["ctcontas"]
-    assert source.execute("SELECT COUNT(*) FROM (" + sql + ")", [1, 99, 90]).fetchone()[0] == 100009
+    assert sum(1 for _ in source.execute(sql, [1, 99, 90])) == 100009
     assert "ORDER BY c.codi_emp,c.codi_cta" in sql
     assert "ORDER BY c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA" in queries()["ctplanocontas"]
     assert "ORDER BY n.codi_emp,n.ordem" in queries()["ctnatureza_conta"]

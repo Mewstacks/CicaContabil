@@ -4,8 +4,9 @@ Ampliação autorizada para as146 empresas, consultando catálogo completo e rel
 empresa/plano/filial com proveniência, além da configuração de conciliação.
 Preparação em lote e confirmação apenas dos campos não comprovados pela fonte;
 release100 continua publicada até validação/publicação da nova candidata.
-Segunda consulta real comprovou catálogo acima de100mil contas; leitor/importação
-em fluxo em validação. Fonte completa e publicação adicional pendentes; ver V-412.
+Terceira consulta real completou as duas leituras e recusou SOURCE_CHANGED;
+a seção divergente ainda não é conhecida. Manifesto v3 distingue cadastro de
+contagens variáveis, com diagnóstico por seção. Testes e fonte real pendentes; ver V-412.
 
 <!-- D372-V411-PUBLISHED-2026-11-17 -->
 **17/11/2026 — D-372/V-411: release 100 publicada; piloto real validado e 43 fichas preparadas.**

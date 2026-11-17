@@ -14,6 +14,8 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import BooleanField
+from django.db.models.expressions import RawSQL
 
 from apps.audit.services import record_event
 from apps.hub import account_discovery_contract as discovery_contract
@@ -143,25 +145,42 @@ def _proof_signature(proof: dict[str, Any]) -> str:
 
 
 def _stored_catalogue_digest(discovery: ReconciliationAccountDiscovery) -> str | None:
-    """Check all retained accounts without materializing a second large list."""
+    """Bound SQL result size even when PgBouncer disables server-side cursors."""
     checksum = hashlib.sha256(b"[")
     first = True
     values = discovery.chart_accounts.order_by("chart_company_code", "account_code").values_list(
         "organization_id", "chart_company_code", "account_code", "row", "row_sha256"
     )
-    for organization_id, owner, code, row, row_sha in values.iterator(chunk_size=500):
-        validate_chart_row(row)
-        if (
-            organization_id != discovery.organization_id
-            or owner != row["chart_company_code"]
-            or code != row["account_code"]
-            or row_sha != digest(row)
-        ):
-            return None
-        if not first:
-            checksum.update(b",")
-        checksum.update(canonical(row).encode())
-        first = False
+    after = None
+    while True:
+        page = values
+        if after is not None:
+            # Tuple comparison follows the unique index directly on both supported
+            # databases (PostgreSQL/SQLite), without OFFSET or rescanning prior keys.
+            page = page.filter(
+                RawSQL(
+                    '("chart_company_code", "account_code") > (%s, %s)',
+                    after,
+                    output_field=BooleanField(),
+                )
+            )
+        batch = list(page[:500])
+        if not batch:
+            break
+        for organization_id, owner, code, row, row_sha in batch:
+            validate_chart_row(row)
+            if (
+                organization_id != discovery.organization_id
+                or owner != row["chart_company_code"]
+                or code != row["account_code"]
+                or row_sha != digest(row)
+            ):
+                return None
+            if not first:
+                checksum.update(b",")
+            checksum.update(canonical(row).encode())
+            first = False
+        after = (batch[-1][1], batch[-1][2])
     checksum.update(b"]")
     return checksum.hexdigest()
 
@@ -187,18 +206,19 @@ def _stored_blocks_consistent(discovery: ReconciliationAccountDiscovery) -> bool
                 "compressed_data",
             )
         )
-        for org_id, number, rows, raw_size, sha, payload in values.iterator(chunk_size=2):
-            if org_id != discovery.organization_id or number != ordinal:
-                return False
-            raw = decompress_block(bytes(payload), raw_size)
-            if (
-                not raw.endswith(b"\n")
-                or raw.count(b"\n") != rows
-                or hashlib.sha256(raw).hexdigest() != sha
-            ):
-                return False
-            checksum.update(raw)
-            size, count, ordinal = size + len(raw), count + rows, ordinal + 1
+        while batch := list(values.filter(ordinal__gte=ordinal)[:2]):
+            for org_id, number, rows, raw_size, sha, payload in batch:
+                if org_id != discovery.organization_id or number != ordinal:
+                    return False
+                raw = decompress_block(bytes(payload), raw_size)
+                if (
+                    not raw.endswith(b"\n")
+                    or raw.count(b"\n") != rows
+                    or hashlib.sha256(raw).hexdigest() != sha
+                ):
+                    return False
+                checksum.update(raw)
+                size, count, ordinal = size + len(raw), count + rows, ordinal + 1
         if (
             size != descriptor["bytes"]
             or count != descriptor["rows"]
@@ -226,11 +246,7 @@ def _consistent_discovery(discovery: ReconciliationAccountDiscovery, *, deep: bo
             and proof["source_size_bytes"] == discovery.source_size_bytes
             and proof["source_observed_at"] == discovery.source_observed_at.isoformat()
             and discovery.script_sha256
-            == (
-                discovery_contract.ARCHIVE_SCRIPT_SHA
-                if discovery.source_metadata["version"] == discovery_contract.ARCHIVE_VERSION
-                else discovery_contract.SCRIPT_SHA
-            )
+            == discovery_contract.script_sha_for_version(discovery.source_metadata["version"])
             and proof["source_metadata_sha256"] == digest(discovery.source_metadata)
             and discovery.source_metadata["script_sha256"] == discovery.script_sha256
             and discovery.source_metadata["company_codes_sha256"] == discovery.company_codes_sha256
