@@ -5342,3 +5342,28 @@ sem presumir proprietário do plano, significado de I_BANCO ou relação ao
 catálogo Banco Central: FKs deste objeto não vieram no perfil de relações.
 Ausência, zeros, data e multiplicidade terão prova própria. Não usar a nova
 configuração como aprovação automática de conta/vínculo.
+
+
+Refinamento D-372 — complemento real executado pelo responsável: recibo do
+SVAPL02 informa146 empresas,43 contas com catálogo,120 contas de caixa e zero
+referências bancárias/configurações Iceberg, duas leituras iguais; JSON privado
+29.061 bytes/SHA369308d2b1fc3bbf125598d4d08c31bde33c94a22c656ab1b9a95278d41eaaa9.
+Validar o arquivo recebido antes da aplicação. Preparar nomes/classificações e
+dados literais comprovados por chave exata empresa/plano/conta nas43 candidatas.
+
+A persistência atual não tem rascunho técnico: evidence integra o replay da
+fonte e review_data representa revisão humana. Criar complemento imutável
+separado, associado à candidata e único por candidata/hash da nova fonte,
+com proveniência, referência técnica e auditoria actor=None. Não alterar
+SOURCE_FIELDS, estado, reviewed_by/at, review_data/history, conta financeira ou
+vínculo de coleta. Importação terá prévia, aplicação atômica/idempotente e
+conferência antes/depois. Divergência de escopo/candidatas impede aplicação.
+
+Na ficha existente, mostrar os dados consultados e preencher inicialmente
+somente o nome literal comprovado quando a candidata estiver pendente e o
+formulário ainda não tiver sido enviado. Preservar valores enviados/revisados,
+permissões empresa E módulo, flags e confirmações exigidas. Ausência de vínculo
+bancário permanece explícita; nomes/códigos não fornecem associação ou direção.
+Sem nova etapa concorrente. Aplicar UI/UX/QA, migração aditiva e CI integral;
+publicar pelo processo D-323/D-346 nas máquinas/capacidade atuais. Autoriza-se
+somente esta preparação adicional de fatos, sem aprovação contábil automática.

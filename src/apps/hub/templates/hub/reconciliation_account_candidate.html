@@ -9,6 +9,23 @@
   <details class="account-provenance"><summary>Origem dos dados</summary><dl><div><dt>Data da fonte</dt><dd>{{ candidate.source_observed_at|date:'d/m/Y H:i' }}</dd></div><div><dt>Referência na origem</dt><dd>{{ candidate.source_key }}</dd></div><div><dt>Hash do arquivo de contas</dt><dd class="account-hash">{{ candidate.source_file_sha256 }}</dd></div><div><dt>Hash do perfil da carteira</dt><dd class="account-hash">{{ candidate.portfolio_file_sha256 }}</dd></div></dl></details>
 </section>
 
+<section class="workspace-panel account-candidate-source" aria-labelledby="account-source-detail-heading">
+  <header class="workspace-panel-head"><div><h2 id="account-source-detail-heading">Dados consultados no Domínio</h2>{% if candidate_source_detail %}<span class="account-company-name">Cadastro de contas · Consulta em {{ candidate_source_detail.source_observed_at|date:'d/m/Y H:i' }}</span>{% endif %}</div></header>
+  {% if candidate_source_detail %}
+  <dl class="account-known-data">
+    <div><dt>Nome no plano de contas</dt><dd translate="no">{{ candidate_source_detail.row.account_name_raw|default:'Não informado' }}</dd></div>
+    <div><dt>Classificação contábil</dt><dd translate="no">{{ candidate_source_detail.row.classification_raw|default:'Não informada' }}</dd></div>
+    <div><dt>Tipo na origem</dt><dd translate="no">{{ candidate_source_detail.row.account_type_raw|default:'Não informado' }}</dd></div>
+    <div><dt>Situação na origem</dt><dd translate="no">{{ candidate_source_detail.row.account_status_raw|default:'Não informada' }}</dd></div>
+    <div><dt>Inativação informada</dt><dd>{{ candidate_source_inactive_on|date:'d/m/Y'|default:'Não informada' }}</dd></div>
+    <div class="account-evidence-field"><dt>Referência bancária</dt><dd>{% if candidate_source_bank_references == 0 %}A consulta não trouxe referências bancárias para esta empresa.{% else %}A consulta trouxe referências bancárias da empresa, sem confirmar a correspondência com esta conta contábil.{% endif %} Banco, agência, conta e direção no Razão dependem da conferência do extrato e do plano.</dd></div>
+  </dl>
+  <details class="account-provenance"><summary>Origem do complemento</summary><dl><div><dt>Fonte</dt><dd>Cadastro de contas do Domínio</dd></div><div><dt>Hash do arquivo consultado</dt><dd class="account-hash" translate="no">{{ candidate_source_detail.source_file_sha256 }}</dd></div></dl></details>
+  {% else %}
+  <div class="empty-block operational-empty account-candidate-empty"><strong>Não há complemento cadastral válido para esta conta.</strong><span>Confira nome e classificação no plano de contas. Os dados bancários continuam sujeitos à conferência do extrato.</span></div>
+  {% endif %}
+</section>
+
 {% if can_review_candidate %}
 <section class="workspace-panel account-candidate-review" aria-labelledby="account-link-heading">
   <header class="workspace-panel-head"><div><h2 id="account-link-heading">Validar o vínculo bancário</h2></div></header>

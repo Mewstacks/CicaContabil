@@ -11297,3 +11297,71 @@ Provas privadas:.tmp/company-preparation/pilot-validation-1.json e
 pilot-ui-receipt.json. O complemento Windows está em CI; a primeira rodada
 falhou no harness antes de qualquer execução real, e está sendo diagnosticada.
 Backend permanece release99 e agente1.0.13; nenhum novo MSI é necessário.
+
+<!-- D372-WINDOWS-CHECKPOINT-2026-11-17 -->
+### Complemento V-411 — leitor cadastral validado em Windows; fonte real pendente
+
+O step “Validate account details with synthetic ODBC and private reports” do
+[CI44101060487](https://github.com/Mewstacks/CicaContabil/actions/runs/44101060487)
+passou no Windows PowerShell, fonte83e8c07345458338bb2be0340e6c8506ac7872fb.
+O harness contém37 cenários:13 positivos e24 recusas esperadas. A conclusão da
+suíte integral ainda está em acompanhamento neste checkpoint. Os12 testes SQL
+com fixtures passaram; não substituem a execução contra SQL Anywhere real.
+
+As primeiras rodadas revelaram ordenação incorreta dos códigos em
+OrderedDictionary e saída residual do processo filho no harness. Ambas foram
+corrigidas antes da entrega. O script e o harness têm LF fixado para que o
+arquivo publicado tenha os mesmos bytes executados no Windows.
+
+Leitor independente inspect-contad-account-details.ps1:17.611 bytes/SHA256
+dc9895816ec645a2cb6cdc49343c653e62a55bd17010687310d88dfa901998c3.
+Download público imutável conferido byte a byte com o git/worktree. Cinco SELECTs
+fixos, duas leituras iguais,146 códigos exatos, limites de tempo/linhas/arquivo,
+relatório com ACL privada e diagnóstico seguro. Configurações Iceberg são
+literais e separadas, sem FK presumida, sem saldo ou ativação de vínculo.
+
+Comando concreto entregue ao responsável para execução no SVAPL02 e cópia
+privada do contas-detalhes.json para o Mac. A automação AnyDesk segue timeout;
+não houve nova falha de instalação ou de conexão do agente. Ainda não recebido
+o complemento real: nenhuma candidata foi enriquecida ou ativada neste passo.
+Os43 pré-cadastros em11 empresas e145 empresas sem conta operacional permanecem.
+O piloto SURIA/212/8 já concluiu a nova coleta e comparação descritas acima.
+
+<!-- D372-REAL-DETAILS-RECEIVED-2026-11-17 -->
+### Complemento V-411 — cadastro real recebido; preparação da ficha em validação
+
+Leitor executado pelo responsável no SVAPL02 às14:28:36UTC. JSON recebido no
+Mac com29.061 bytes e SHA369308d2b1fc3bbf125598d4d08c31bde33c94a22c656ab1b9a95278d41eaaa9,
+iguais ao recibo do console. Validação independente confirma146 códigos exatos,
+43 candidatas com correspondência integral de chaves/catálogo, nomes não vazios,
+120 contas de caixa, zero referências bancárias e zero configurações Iceberg.
+As135 empresas sem configuração CTCONCILIACAO incluem o piloto212 já operacional;
+não confundir esse conjunto com as145 empresas sem conta operacional no CICA.
+
+Fonte privada retida e relatório de validação em .tmp/company-preparation;
+nenhuma alteração de produção nessa recepção. Hash/script/duas leituras são
+provas de integridade e declaração do leitor, não assinatura criptográfica do ERP.
+Não inferir relação caixa→contábil ou banco/conta a partir dos nomes.
+
+[PR29](https://github.com/Mewstacks/CicaContabil/pull/29) do leitor integrado em
+main a929b70, árvore idêntica à fonte83e8c073. CI44101060487 integral aprovado:
+SQLite3084/54 skips, PostgreSQL3136/2 skips,181 subtestes em cada banco;
+Windows179, Linux176/3 skips,37 cenários do leitor e três imagens aprovados.
+Isto fecha a validação/publicação do leitor, sem alterar backend release99.
+
+Preparação da ficha usa modelo complementar imutável e migração0087 aditiva,
+com importação por prévia/hash/escopo e autoria técnica. Fonte original e revisão
+humana permanecem separadas. Nome inicial apenas no GET pendente; POST/revisões,
+banco/referência/direção/checkboxs são preservados. Testes focados de backend e
+navegação passaram; concorrência exige PostgreSQL na suíte integral. Playwright
+local com dados sintéticos:14 verificações de375/1440px, claro/escuro, paisagem,
+texto200%, teclado/foco, POST inválido, fonte ausente/conflitante e permissões.
+Capturas inspecionadas; corrigido espaçamento do painel novo com tokens existentes.
+Publicação/aplicação dos43 complementos ainda pendentes neste checkpoint.
+
+UI/UX Pro Max lido e aplicado a campos/feedback/acessibilidade; sugestões
+incompatíveis de landing e novo visual descartadas. Consultados
+[Watermelon Form](https://ui.watermelon.sh/components/form),
+[Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
+e [fluxo Intuit de conta/plano](https://quickbooks.intuit.com/learn-support/en-us/help-article/bank-connectivity/connect-bank-account-credit-cards/L8L8nMtso_US_en_US).
+Adaptados rótulos/ausência/conferência, sem copiar semântica ou dados bancários.

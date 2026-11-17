@@ -757,3 +757,22 @@ pertencem ao desenvolvimento/medição dePC-19, não a perguntas contábeis nova
 Q-47/C01/C02 continuam adiados. Piloto já recebido pode iniciar testes sem
 repetir cadastro, pareamento, primeira IA ou treinamento inicial. Aceite integral
 permanece ausente e não é inferido de testes sintéticos ou saúde do serviço.
+
+<!-- D372-WINDOWS-CHECKPOINT-2026-11-17 -->
+**Q-28/PC-19 — D-372/V-411,17/11/2026:** primeira nova coleta pela tela
+comprovada às11:00BRT na conta212/8,setembro2026. Razão recebido e163/163
+movimentos compatíveis com OFX por data/direção/valor; diferença líquida zero,
+fontes/decisões preservadas. Dois grupos repetidos e162 movimentos seguem para
+conferência individual. Deixa de ser pendência técnica do piloto; não comprova
+coleta de qualquer empresa. Leitor cadastral das146 empresas passou no Windows,
+aguardando execução local assistida/recebimento do JSON real. Persistem43
+candidatas em11 empresas e145 sem conta operacional, com nomes/referências/
+vínculos ainda por completar conforme fonte. Sem aceite humano novo ou custo.
+
+<!-- D372-REAL-DETAILS-RECEIVED-2026-11-17 -->
+**D-372/V-411 — fonte cadastral real recebida e validada:**146 empresas,
+43 candidatas com nomes e catálogo comprovados,120 caixas,zero referências
+bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável das
+43 fichas implementada e em validação/publicação; nada ativado automaticamente.
+Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
+continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.

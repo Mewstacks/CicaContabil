@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from html.parser import HTMLParser
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -20,6 +21,7 @@ from apps.hub.models import (
     LedgerAccount,
     ProductModule,
     ReconciliationAccountCandidate,
+    ReconciliationAccountSourceDetail,
 )
 from apps.intelligence.models import NativeLedgerCollection
 from apps.organizations.models import Membership, Organization
@@ -134,6 +136,252 @@ def counts():
             NativeLedgerCollection,
         )
     }
+
+
+def make_source_detail(
+    candidate,
+    *,
+    name="Conta consultada fictícia",
+    source_hash="d" * 64,
+    observed_at=None,
+    bank_references=0,
+):
+    """Synthetic consistent complement for HTTP and isolated browser fixtures."""
+    from apps.hub.account_source_contract import SCRIPT_SHA
+    from apps.hub.account_source_details import VERSION, _facts, _fingerprint, _hash
+
+    observed = observed_at or timezone.now()
+    row = {
+        "company_code": candidate.source_company_code,
+        "chart_company_code": candidate.chart_company_code,
+        "account_code": candidate.account_code,
+        "catalogue_account_code": candidate.account_code,
+        "account_name_raw": name,
+        "classification_raw": "001.0008 ",
+        "account_type_raw": "A",
+        "account_status_raw": "A",
+        "inactive_on_raw": None,
+        "catalogue_matches": 1,
+    }
+    provenance = {
+        "version": VERSION,
+        "execution_kind": "technical_preparation",
+        "script_sha256": SCRIPT_SHA,
+        "candidate_fingerprint": _fingerprint(candidate),
+        "human_reviewed": False,
+        "bank_mapping_inferred": False,
+        "financial_collection_enabled": False,
+        "row_sha256": _hash(row),
+        "source_file_sha256": source_hash,
+        "source_observed_at": observed.isoformat(),
+        "source_size_bytes": 4096,
+        "company_counts": {
+            "cash_accounts": 1,
+            "bank_references": bank_references,
+            "integration_account_configurations": 0,
+        },
+    }
+    provenance["facts_sha256"] = _facts(provenance)
+    return ReconciliationAccountSourceDetail.objects.create(
+        organization=candidate.organization,
+        candidate=candidate,
+        source_file_sha256=source_hash,
+        source_size_bytes=4096,
+        source_observed_at=observed,
+        candidate_source_sha256=candidate.source_file_sha256,
+        portfolio_file_sha256=candidate.portfolio_file_sha256,
+        row=row,
+        provenance=provenance,
+        request_reference="Fixture técnica sintética, sem revisão humana",
+    )
+
+
+def source_review_snapshot():
+    return {
+        model.__name__: list(model.objects.order_by("pk").values())
+        for model in (
+            ReconciliationAccountCandidate,
+            ReconciliationAccountSourceDetail,
+            FinancialAccount,
+            LedgerAccount,
+            AuditEvent,
+            NativeLedgerCollection,
+        )
+    }
+
+
+def test_consulted_name_is_initial_only_and_get_preserves_every_record(case):
+    candidate = case["candidates"][0]
+    source = make_source_detail(candidate)
+    before = source_review_snapshot()
+    page = case["client"].get(detail(candidate), {"status": "pending", "q": "Alfa"})
+    assert page.status_code == 200
+    assert page.context["candidate_source_detail"] == source
+    form = page.context["review_form"]
+    assert not form.is_bound and form["name"].value() == source.row["account_name_raw"]
+    for name in (
+        "bank_code",
+        "account_reference",
+        "bank_inflow_side",
+        "evidence_reference",
+        "bank_association_confirmed",
+        "chart_owner_confirmed",
+        "account_active_and_postable",
+    ):
+        assert not form[name].value()
+    content = page.content.decode()
+    assert "001.0008 " in content and "Dados consultados no Domínio" in content
+    assert "A consulta não trouxe referências bancárias para esta empresa." in content
+    assert "Não há complemento cadastral válido" not in content
+    assert "status=pending" in page.context["candidate_list_url"]
+    assert "q=Alfa" in page.context["candidate_list_url"]
+    assert page["Cache-Control"] == "no-store, private"
+    assert source_review_snapshot() == before
+
+
+def test_imported_complement_flows_through_real_service_to_read_only_facts(organization):
+    from tests.test_portfolio_readiness import profiles
+
+    from test_account_candidates import run_import
+    from test_account_source_details import apply_details, detail_profile
+
+    sources = profiles()
+    for row in sources[0]["snapshot"]["companies"]:
+        ClientCompany.objects.create(
+            organization=organization,
+            dominio_code=str(row["company_code"]),
+            name="Empresa de importação fictícia",
+            dominio_status="A",
+        )
+    run_import(organization, sources, apply=True)
+    profile = detail_profile(sources)
+    apply_details(organization, sources, profile, apply=True)
+    ProductModule.objects.create(organization=organization, code="reconciliation", enabled=True)
+    TenantContract.objects.create(
+        organization=organization, status="active", selected_modules=["reconciliation"]
+    )
+    client, _ = login(organization, "owner")
+    candidate = ReconciliationAccountCandidate.objects.first()
+    before = source_review_snapshot()
+    page = client.get(detail(candidate))
+    assert page.status_code == 200
+    assert page.context["review_form"]["name"].value() == "Nome literal sintético "
+    assert page.context["candidate_source_detail"].provenance["execution_kind"] == (
+        "technical_preparation"
+    )
+    assert "A consulta não trouxe referências bancárias" in page.content.decode()
+    assert source_review_snapshot() == before
+
+
+@pytest.mark.parametrize("posted_name", ["Nome digitado pela revisora", ""])
+@pytest.mark.parametrize("query", ["", "?page=invalid"])
+def test_invalid_post_never_replaces_submitted_name(case, posted_name, query):
+    candidate = case["candidates"][0]
+    make_source_detail(candidate)
+    before = source_review_snapshot()
+    response = case["client"].post(
+        detail(candidate) + query, {"action": "link", "name": posted_name}
+    )
+    assert response.status_code == 400
+    assert response.context["review_form"].is_bound
+    assert response.context["review_form"]["name"].value() == posted_name
+    assert not response.context["review_form"]["bank_association_confirmed"].value()
+    assert source_review_snapshot() == before
+
+
+@pytest.mark.parametrize("state", ["linked", "dismissed"])
+def test_source_does_not_replace_existing_review_or_revised_form(case, state):
+    candidate = case["candidates"][0]
+    make_source_detail(candidate)
+    data = (
+        link_data(candidate)
+        if state == "linked"
+        else {
+            "action": "dismiss",
+            "expected_source_hash": candidate.source_file_sha256,
+            "expected_state": "pending",
+            "reason": "Decisão fictícia preservada",
+        }
+    )
+    assert case["client"].post(detail(candidate), data).status_code == 302
+    before = source_review_snapshot()
+    page = case["client"].get(detail(candidate))
+    assert not page.context["review_form"]["name"].value()
+    if state == "linked":
+        assert page.context["correction_form"]["name"].value() == data["name"]
+        assert page.context["candidate"].financial_account.name == data["name"]
+    assert source_review_snapshot() == before
+
+
+def test_missing_complement_is_not_presented_as_consulted_zero_banks(case):
+    page = case["client"].get(detail(case["candidates"][0]))
+    assert page.context["candidate_source_detail"] is None
+    assert not page.context["review_form"]["name"].value()
+    assert "Não há complemento cadastral válido para esta conta." in page.content.decode()
+    assert "A consulta não trouxe referências bancárias" not in page.content.decode()
+
+
+def test_conflicting_latest_complements_hide_names_without_writes(case):
+    candidate = case["candidates"][0]
+    observed = timezone.now()
+    make_source_detail(candidate, name="Nome conflitante A", observed_at=observed)
+    make_source_detail(
+        candidate, name="Nome conflitante B", source_hash="e" * 64, observed_at=observed
+    )
+    before = source_review_snapshot()
+    page = case["client"].get(detail(candidate))
+    assert page.context["candidate_source_detail"] is None
+    assert not page.context["review_form"]["name"].value()
+    assert "Nome conflitante" not in page.content.decode()
+    assert "Não há complemento cadastral válido" in page.content.decode()
+    assert source_review_snapshot() == before
+
+
+def test_banking_rows_do_not_imply_a_link_or_prefill_bank_fields(case):
+    candidate = case["candidates"][0]
+    make_source_detail(candidate, bank_references=2)
+    page = case["client"].get(detail(candidate))
+    assert "sem confirmar a correspondência com esta conta contábil" in page.content.decode()
+    for name in (
+        "bank_code",
+        "account_reference",
+        "bank_inflow_side",
+        "bank_association_confirmed",
+    ):
+        assert not page.context["review_form"][name].value()
+
+
+def test_source_text_is_escaped_and_not_rendered_as_markup(case):
+    candidate = case["candidates"][0]
+    make_source_detail(candidate, name='<script>alert("synthetic")</script>')
+    page = case["client"].get(detail(candidate))
+    assert '<script>alert("synthetic")</script>' not in page.content.decode()
+    assert "&lt;script&gt;" in page.content.decode()
+
+
+@pytest.mark.parametrize("denial", ["company", "module", "tenant"])
+def test_source_lookup_occurs_only_after_company_and_module_authorization(case, denial):
+    candidate = case["candidates"][0]
+    make_source_detail(candidate)
+    client, membership = login(case["organization"], "operator")
+    CompanyAccessGrant.objects.create(
+        organization=case["organization"],
+        membership=membership,
+        company=case["companies"][1] if denial == "company" else candidate.company,
+        modules=["payroll"] if denial == "module" else ["reconciliation"],
+    )
+    if denial == "tenant":
+        other = Organization.objects.create(name="Outro escritório sintético", slug="source-other")
+        other_company = ClientCompany.objects.create(
+            organization=other, name="Outra", dominio_code="901"
+        )
+        candidate = make_candidate(other, other_company)
+        make_source_detail(candidate, name="Nome restrito de outro escritório")
+    before = source_review_snapshot()
+    with patch("apps.hub.account_candidate_views.latest_consistent_source_detail") as lookup:
+        assert client.get(detail(candidate)).status_code == 404
+        lookup.assert_not_called()
+    assert source_review_snapshot() == before
 
 
 @pytest.mark.parametrize("role", ["owner", "operator", "auditor"])

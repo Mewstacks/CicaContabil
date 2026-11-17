@@ -15,7 +15,7 @@ from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpRequest, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
@@ -32,6 +32,7 @@ from apps.hub.account_candidate_review import (
     finalize_candidate,
     revise_candidate,
 )
+from apps.hub.account_source_details import latest_consistent_source_detail
 from apps.hub.models import ClientCompany, ProductModule, ReconciliationAccountCandidate
 from apps.hub.module_catalog import definition
 from apps.hub.views import _can_manage_reconciliation, _module_page_context, office_required, refuse
@@ -185,7 +186,11 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
         errors.append("A empresa do filtro não corresponde a este vínculo.")
     can_manage = bool(context["support_can_mutate"]) and _can_manage_reconciliation(context)
     pending = candidate.state == ReconciliationAccountCandidate.State.PENDING
-    link_form = AccountCandidateLinkForm(candidate=candidate)
+    source_detail = latest_consistent_source_detail(candidate)
+    link_form = AccountCandidateLinkForm(
+        request.POST if request.method == "POST" and request.POST.get("action") == "link" else None,
+        candidate=candidate,
+    )
     dismiss_form = AccountCandidateDismissForm(candidate=candidate)
     correction_form = AccountCandidateCorrectionForm(candidate=candidate)
     reopen_form = AccountCandidateReopenForm(candidate=candidate)
@@ -266,6 +271,12 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
                         return _private(redirect(detail_url))
                 else:
                     status = 400
+    if source_detail and pending:
+        if request.method == "GET" and not link_form.is_bound:
+            link_form.initial["name"] = source_detail.row["account_name_raw"]
+        link_form.fields["name"].help_text = (
+            "O nome consultado está acima. Confira ou ajuste conforme o plano de contas."
+        )
     link_form.auto_id = "candidate-link-%s"
     dismiss_form.auto_id = "candidate-dismiss-%s"
     correction_form.auto_id = "candidate-correct-%s"
@@ -284,6 +295,15 @@ def account_candidate(request: HttpRequest, candidate_id: str) -> HttpResponse:
         {
             "page_title": "Revisar vínculo de conta",
             "candidate": candidate,
+            "candidate_source_detail": source_detail,
+            "candidate_source_inactive_on": parse_date(source_detail.row["inactive_on_raw"])
+            if source_detail and source_detail.row["inactive_on_raw"]
+            else None,
+            "candidate_source_bank_references": source_detail.provenance["company_counts"][
+                "bank_references"
+            ]
+            if source_detail
+            else None,
             "candidate_history": history,
             "candidate_errors": errors,
             "review_form": link_form,

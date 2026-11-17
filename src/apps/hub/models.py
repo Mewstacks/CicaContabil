@@ -1680,11 +1680,47 @@ class ReconciliationAccountCandidate(OrganizationScopedModel):
             or self.company.dominio_code != str(self.source_company_code)
         ):
             raise ValidationError({"company": "Empresa fora do escritório ou da origem da conta."})
-        if self.financial_account_id and (
-            self.financial_account.organization_id != self.organization_id
-            or self.financial_account.company_id != self.company_id
+        account = self.financial_account
+        if account is not None and (
+            account.organization_id != self.organization_id
+            or account.company_id != self.company_id
         ):
             raise ValidationError({"financial_account": "Conta financeira fora da empresa."})
+
+
+class ReconciliationAccountSourceDetail(ImmutableOrganizationModel):
+    """Technical source facts, separate from candidate origin and human review."""
+
+    candidate = models.ForeignKey(
+        ReconciliationAccountCandidate, on_delete=models.PROTECT, related_name="source_details"
+    )
+    source_file_sha256 = models.CharField(max_length=64)
+    source_size_bytes = models.PositiveIntegerField()
+    source_observed_at = models.DateTimeField()
+    candidate_source_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    row = models.JSONField()
+    provenance = models.JSONField()
+    request_reference = models.CharField(max_length=240)
+
+    class Meta:
+        ordering = ("-source_observed_at", "-created_at")
+        constraints = [models.UniqueConstraint(
+            fields=("candidate", "source_file_sha256"), name="hub_unique_candidate_source_detail"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "candidate", "source_observed_at"),
+            name="hub_candidate_detail_observed",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.candidate_id and self.candidate.organization_id != self.organization_id:
+            raise ValidationError({"candidate": "Complemento fora do escritório da candidata."})
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
 
 
 class LedgerAccount(OrganizationScopedModel):
