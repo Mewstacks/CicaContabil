@@ -1,3 +1,35 @@
+## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
+
+- [x] Trazer continuidade V-409 da raiz à candidata, preservando D-370/D-371.
+- [x] Separar correção implementada, teste sintético, publicação e prova real.
+- [x] Registrar SQLite/.NET/QA e ressalva do último POST fora da coleta integral.
+- [x] Esclarecer orçamento30s entre pares e controle autenticado por par nos dois DECISOES.
+
+- [ ] Concluir PostgreSQL integral, CI da fonte exata, MSI limpo e upgrades diretos1.0.10/11/12.
+- [ ] Publicar e conferir hashes/assets/saúde/worker e preservação dos dados/configuração.
+- [ ] Comprovar atualização/capacidades/recepção reais no SVAPL02 antes de declarar autonomia.
+
+Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
+Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
+mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
+[V-410 e limites](../../../VALIDACOES.md).
+
+## Prontidão para testes da cliente — D-370/V-409 (17/11/2026)
+
+- [x] Ler registros canônicos, etapas e dúvidas na ordem definida pelo AGENTS.
+- [x] Distinguir piloto, novas coletas, contrato CONTAD e suíte completa.
+- [x] Auditar fonte 32bc89d/tree 1cc5f9c da release 98 em worktree isolado; preservar alterações existentes.
+- [x] Reconferir CI/PR, artefatos e estado de produção somente leitura; sem consulta financeira ao ERP.
+- [x] Reproduzir P2 do histórico do Razão e avaliar limite de processamento do agente.
+- [x] Executar checks locais e smoke Playwright sintético, sem decisões/dados novos em produção.
+- [x] Fechar registro das regressões locais e conferir links/diff da documentação.
+- [x] Consolidar parecer e roteiro no documento canônico de pendências, sem criar plano concorrente.
+
+Entrega: [análise de prontidão e próximos responsáveis](../pendencias-conclusao-2026-11-02.md).
+Testes controlados do piloto podem começar; atualização/prova de coleta real,
+correção do histórico para uso ampliado e critérios humanos continuam abertos.
+Nenhuma etapa funcional ou aceite integral foi encerrado por esta análise.
+
 ## Verificação de conclusão — D-343/V-366 (12/11/2026)
 
 - [x] Ler registros canônicos e confrontar etapas/Q com as provas até V-365.
@@ -10,6 +42,16 @@ Entrega: [pendências reconciliadas](../pendencias-conclusao-2026-11-02.md).
 A auditoria documental foi concluída; etapas funcionais, recuperação,
 treinamento e aceite continuam pendentes. Não há percentual ou prazo de
 conclusão comprovado pela quantidade de testes/cadastros.
+
+## Comparação técnica CICA × Pandolfo — D-316/V-318 (05/11/2026)
+
+- [x] Confrontar escopo, arquitetura, algoritmos e evidências dos dois projetos.
+- [x] Conferir Pandolfo local e GitHub, preservando o commit local adicional e `.review/`.
+- [x] Medir código próprio com dependências, migrações e testes separados.
+- [x] Registrar conclusão, fontes, CI e limites, sem declarar homologação nova.
+
+Entrega: comparação e metodologia (registro local `comparacao-cica-pandolfo-2026-11-05.md`, preservado no checkout principal).
+Somente documentação; etapas funcionais e perguntas existentes permanecem.
 
 ## Guia funcional para QA em 09/10/2026 — V-293
 

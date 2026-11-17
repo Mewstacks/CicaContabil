@@ -576,13 +576,6 @@ def ledger_request_context(*, account: FinancialAccount, actor: User) -> dict[st
         "mapping_source": mapping["source"],
         "errors": errors,
         "agent_state": _agent_state(agent),
-        "current_jobs": [
-            ledger_job_context(job=job, actor=actor)
-            for job in NativeLedgerCollection.objects.filter(
-                organization_id=account.organization_id,
-                financial_account=account,
-            ).order_by("-created_at", "-id")[:20]
-        ],
     }
 
 

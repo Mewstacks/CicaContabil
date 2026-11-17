@@ -55,7 +55,7 @@ jobs:
         run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.12
+        run: ./agent-windows/build.ps1 -Version 1.0.13
       - name: Parse Windows operational scripts without executing ERP queries
         shell: powershell
         run: |
@@ -73,7 +73,7 @@ jobs:
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.12') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.13') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
       - name: Validate SYSTEM diagnostic isolation and cleanup
         if: github.event.repository.private == false
@@ -97,24 +97,36 @@ jobs:
           ref: 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5
           path: baseline-agent
           persist-credentials: false
-      - name: Build baseline 1.0.10 and verify configured upgrade to 1.0.12
+      - name: Build baseline 1.0.10 and verify configured upgrade to 1.0.13
         if: github.event.repository.private == false
         shell: pwsh
         run: |
           ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
-          ./agent-windows/test-title-self-service-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: github.event.repository.private == false
         with:
           ref: 17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2
           path: baseline-ledger-agent
           persist-credentials: false
-      - name: Verify configured upgrade from 1.0.11 to 1.0.12
+      - name: Verify configured upgrade from 1.0.11 to 1.0.13
         if: github.event.repository.private == false
         shell: pwsh
         run: |
           ./baseline-ledger-agent/agent-windows/build.ps1 -Version 1.0.11
-          ./agent-windows/test-title-self-service-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: github.event.repository.private == false
+        with:
+          ref: 7d075261c88408ec3ef5b93ba1c276478dc33971
+          path: baseline-title-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.12 to 1.0.13
+        if: github.event.repository.private == false
+        shell: pwsh
+        run: |
+          ./baseline-title-agent/agent-windows/build.ps1 -Version 1.0.12
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-title-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.12
       - name: Preserve tested agent and evidence
         if: success() && github.event.repository.private == false
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -124,7 +136,7 @@ jobs:
             agent-windows/artifacts/CicaAgent.msi
             agent-windows/artifacts/CicaAgent.msi.sha256
             agent-windows/artifacts/release.json
-            agent-windows/artifacts/upgrade-title-self-service.ps1
+            agent-windows/artifacts/upgrade-active-queue.ps1
             agent-windows/artifacts/dependency-inventory.json
             agent-windows/artifacts/validation/
           if-no-files-found: error

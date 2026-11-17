@@ -1,11 +1,36 @@
+> **Q-28/Q-46/D-73 — D-371/V-410 EM ANDAMENTO, 17/11/2026:** candidata
+> corrige histórico/polling e prepara agente1.0.13. SQLite3072/53 skips,
+> 27 regressões novas focadas, .NET176/três Windows reservados e QA17+POST
+> sintéticos aprovados; PostgreSQL integral, CI/Windows e publicação pendentes.
+> Produção comprovada permanece release98/canal1.0.12. Atualização/prova real
+> é responsabilidade técnica; vínculos/fontes/semântica/regras/aceite seguem
+> humanos. Não criar pergunta nova, presumir acesso Windows/homologação nem
+> reabrir treinamento/capturas recebidas. Q-47/C01/C02 adiados e backup fora
+> da prioridade mantidos. Orçamento30s entre pares não é prazo de coleta real.
+
 > **Q-28 — D-364/V-403, 16/11/2026:** carteira por empresa/conta/competência
-> e relatório legível/imprimível implementados e validados localmente, incluindo
-> QA visual sintético e PostgreSQL focado; CI integral/publicação pendentes. A página inclui empresas sem
+> e relatório legível/imprimível publicados na release 93 após CI integral
+> aprovado e conferência em produção; 146 empresas visíveis, 145 sem conta no CICA. A página inclui empresas sem
 > conta/dados e usa somente registros já recebidos, respeitando empresa E módulo.
 > Isso não resolve vínculos banco/conta/plano/direção, contagens mensais próprias,
 > lotes completos multi-filial ou recorrência. Não repetir sondas recebidas nem
 > criar conta/aprovação por inferência. Q-46/D-73, treinamento/backup/aceite e
 > Q-47/C01/C02 adiados mantêm seus critérios; nenhuma nova pergunta criada.
+
+> **Q-28 — D-363/V-402, 16/11/2026:** lote mensal revisado e isolamento da fila
+> publicados na release92/PR21/mainc053cc0 após CI integral43873060568.
+>732 hashes/14 grupos protegidos e prévia READ ONLY do piloto conferidos,
+> zero novos jobs; autoria/evidência/histórico preservados. Matriz dos perfis de13/11 mantém
+>146 empresas,43 candidatas em11,135 sem configuração,32 sem linhas e14 sem
+> parâmetros. Não repetir as sondas já recebidas nem inferir bancos das flags.
+> Ainda faltam vínculos banco/conta/plano/direção e contagens por conta/mês;
+> seis empresas com múltiplas filiais exigem conferir lotes completos, sem
+> filtrar partidas por inferência. A matriz não aprova coleta nem exclui o
+> piloto. Mesmo Q-28; Q-46/D-73 e Q-47/C01/C02 adiados mantêm seus critérios.
+> Roteiro TXT privado de16/11 usa nomes já cadastrados no CICA,146 códigos
+> conferidos e43 referências à ficha existente; não pede novamente as sondas,
+> não capturaERP nem atribui revisão humana. A publicação conclui os mecanismos
+> técnicos; carteira integral, recorrência, filiais e aceite permanecem abertos.
 
 > **Q-46 — conferência humana adiada em12/11/2026 (D-355/V-380):**
 > responsável está sem acesso ao Domínio. C01/retenções e C02/juros aguardam
@@ -455,6 +480,20 @@ upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
 login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
 
 
+## Próxima execução integral CONTAD — D-322/V-326 (06/11/2026)
+
+Responsável esclareceu que o objetivo é **todas as empresas do escritório**,
+com empresas/contas automáticas, e solicitou prompt para outra sessão finalizar
+coleta, testes e entrega. Não repetir a pergunta se a intenção se limita à SURIA.
+O objetivo funcional futuro está explícito no prompt; runtime continua com
+manifesto piloto D-321 e não teve autorização/configuração ampliada nesta
+entrega documental. Resolver evolução/cobertura/histórico no Q-28, regras em
+Q-46 e destino/validação em Q-47, preservando Q-08/Q-09 e demais gates reais.
+
+[Prompt canônico](../contad-prompt-finalizacao-2026-11-06.txt) contém sequência
+até publicação, Windows, recuperação, treinamento e aceite; não cria novo plano
+paralelo ou considera gate documentado como concluído.
+
 ## Continuidade Q-28 — execução D-323/V-327 (06/11/2026)
 
 Responsável definiu **setembro/2026 em diante** para os dados financeiros da
@@ -623,3 +662,86 @@ lançamento contábil. Faltam as chaves próprias e o vínculo comprovado entre
 título, parcela e baixa, além de exemplos revisados de vencimento em aberto,
 baixa total/parcial e estorno. Preservar situação M e origem do plano compartilhado
 em Q-28. Q-47 continua condicionado a layout e importação conferidos no Domínio.
+
+
+**Q-08/Q-09/Q-11 — D-358/V-390 (13/11/2026):** responsável solicitou obter
+a chave e autenticou o console. Nova credencial específica criada/guardada
+localmente0600/0700, metadados HTTP200 e saldo promocional conferidos.
+Histórico de chave local não representa o estado atual: presença nas
+variáveis históricas era negativa e chaves antigas do console expiraram.
+Sem inferência, compra, ativação ou segredo implantado em produção. Teto,
+conteúdo e governança continuam próprios. Q-46: pedido de códigos passa a
+conferência orientada; responsável não soube selecionar sem guia.
+
+
+**Q-08/Q-09/Q-11/Q-46 — D-359/V-395 (13/11/2026):** duas autorizações
+específicas de uma chamada até R$0,10 cada foram utilizadas, sem compra/retry.
+Primeira unknown preservada; segunda succeeded/duas sugestões para três
+casos. Total estimado US$0,0004335 em créditos; política central/escritório
+desabilitados e aprovação revogada. Não repetir essas perguntas nem executar
+terceira chamada. Ficha humana privada com históricos originais entregue;
+contas ativas/analíticas, sugestões e condições literais de regra ainda
+exigem revisão. Governança recorrente/franquias gerais permanecem próprias;
+Q-47 e C01/C02 continuam adiados, e D-73 não foi homologado.
+
+
+**Q-28/D-73 — D-356/V-396 (13/11/2026):** sonda nova de cobertura das
+empresas A por códigos/configurações e contagens preparada, com22 cenários
+Windows específicos aprovados. Comando HTTPS/hash entregue; resultado real
+aguarda execução local após timeout AnyDesk. Não repetir inventários antigos,
+DSN, pareamento ou perguntas sobre número de empresas. Contas/plano/banco não
+são inferidos da presença no catálogo. Amostra real163 fatos congelada/ficha
+independente pronta; nenhuma revisão humana registrada, faltam no mínimo37
+fatos adicionais. Q-08/Q-09 não autorizam nova IA; Q-46/revisão e Q-47/C01/C02
+adiados continuam próprios.
+
+
+**Q-28 — D-356/V-397:** retorno da descoberta recebido/conferido,146 empresas A
+idênticas ao cadastro e matriz privada entregue. Não solicitar de novo.120
+cadastros de caixa não têm referência bancária nessa família; não supor que
+são bancos. Próxima evidência é o modo específico de contas configuradas de
+conciliação, baseado na chave declarada do catálogo retido. Valores financeiros,
+contas lançáveis, banco de operações e aceite continuam sem homologação.
+
+
+**Q-28 — D-356/V-398:** complemento real recebido/conferido:43 contas
+configuradas em11 empresas, todas no catálogo correspondente. Não solicitar
+novamente o retorno/sonda. Ficha guiada com nomes das empresas pronta;
+aguarda confirmação contábil efetiva de banco/atividade/lançamentos/direção.
+Não interpretar A/A, transformar configuração em banco ou excluir piloto
+por ausência. Os135 casos sem configuração não provam dispensa da carteira.
+
+
+V-399 — D-360 não cria nova pergunta: uso assistido da conta piloto disponível
+no backend90, sem exigir ficha43 para começar. Q-28/Q-46 continuam para a
+carteira completa e semântica/vínculos financeiros; Q-47/C01/C02 adiados.
+D-73 e revisão efetiva DE-PARA permanecem pendentes. Dois lotes específicos
+IA consumidos/política desabilitada, sem nova franquia ou autorização inferida.
+
+
+**D-361/V-400 — 13/11/2026:** execução autônoma não cria novas perguntas.
+Q-28/Q-46 mantêm revisão dos vínculos/contas/semântica e sugestões; auditoria
+offline preservou146/43/163 e zero revisões. D-73 recebeu correção de integridade
+do aceite, medição limitada real e ensaio PostgreSQL sintético; RPO de negócio
+e rotina/recuperação reais permanecem sem encerramento. Roteiro/ficha de treino
+prontos; não dependem da ficha43 para começar, mas participação e aceite não
+são inferidos. Q-47/C01/C02 e terceira chamadaIA continuam não autorizados.
+
+
+**D-362/V-401 — 16/11/2026:** não cria nova pergunta. Acesso e percurso do
+piloto conferidos; exercício humano desfeito e nova confirmação observados.
+Revisão real declarada, referência“documento” genérica; CSV atual baixado e
+verificado pelo executor. Complementar evidência/treinamento no mesmo Q-46/
+D-73; não contar a sessão como revisão da amostra ou aceite formal. Q-28,
+recuperação e adiamentos Q-47/C01/C02 preservados.
+
+
+**Q-28/Q-46/D-73 — D-370/V-409, 17/11/2026:** auditoria de prontidão não cria
+nova pergunta. Produção reconferida08:53 BRT:146 empresas,uma conta, 43 candidatas
+pendentes; capacidades atuais de Razão/títulos ainda exigem atualização 1.0.12.
+A atualização/prova real é pendência técnica; vínculos/fontes/semântica/regras
+mantêm revisão humana. P2 reproduzido no histórico do Razão e vazão limitada
+pertencem ao desenvolvimento/medição dePC-19, não a perguntas contábeis novas.
+Q-47/C01/C02 continuam adiados. Piloto já recebido pode iniciar testes sem
+repetir cadastro, pareamento, primeira IA ou treinamento inicial. Aceite integral
+permanece ausente e não é inferido de testes sintéticos ou saúde do serviço.

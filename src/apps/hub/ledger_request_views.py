@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import EmptyPage, Paginator
 from django.db import transaction
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse, QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
@@ -35,10 +36,33 @@ from apps.hub.views import _can_manage_reconciliation, _module_page_context, off
 from apps.intelligence.models import NativeLedgerCollection
 from apps.organizations.models import Organization
 
-FILTERS = ("company", "account", "month", "bank_source", "start", "end")
+FILTERS = ("company", "account", "month", "bank_source", "start", "end", "page", "sources_page")
+HISTORY_PAGE_SIZE = 20
 
 
-def _url(account: FinancialAccount, month: date, source: Any = None) -> str:
+class LedgerHistoryPageError(ValueError):
+    pass
+
+
+def _page_number(value: str) -> int:
+    if not value.isascii() or not value.isdigit() or not 1 <= len(value) <= 8 or int(value) < 1:
+        raise LedgerHistoryPageError("Escolha uma página válida para consultar o histórico.")
+    return int(value)
+
+
+def _history_page(query: Any, value: str, label: str) -> Any:
+    try:
+        return Paginator(query, HISTORY_PAGE_SIZE).page(_page_number(value))
+    except EmptyPage:
+        raise LedgerHistoryPageError(
+            f"Esta página de {label} não existe. Volte à primeira página do histórico."
+        ) from None
+
+
+def _url(
+    account: FinancialAccount, month: date, source: Any = None, *,
+    page: int = 1, sources_page: int = 1,
+) -> str:
     query = {
         "company": str(account.company_id),
         "account": str(account.pk),
@@ -46,6 +70,10 @@ def _url(account: FinancialAccount, month: date, source: Any = None) -> str:
     }
     if source:
         query["bank_source"] = str(source.pk)
+    if page != 1:
+        query["page"] = str(page)
+    if sources_page != 1:
+        query["sources_page"] = str(sources_page)
     return reverse("hub:reconciliation-ledger-request") + "?" + urlencode(query)
 
 
@@ -108,13 +136,21 @@ def _conference(source: ReconciliationSourceFile | None, month: date) -> str:
     )
 
 
-def _job_row(data: dict[str, Any], source: ReconciliationSourceFile | None) -> dict[str, Any]:
+def _job_row(
+    data: dict[str, Any], source: ReconciliationSourceFile | None, *,
+    page: int = 1, sources_page: int = 1,
+) -> dict[str, Any]:
     job, month = data["job"], data["month"]
     source = data.get("bank_source") or source
     if isinstance(month, str):
         month = LedgerMonthField().clean(month[:7])
     status = data["status"]
-    query = "?" + urlencode({"bank_source": str(source.pk)}) if source else ""
+    params = {"bank_source": str(source.pk)} if source else {}
+    if page != 1:
+        params["page"] = str(page)
+    if sources_page != 1:
+        params["sources_page"] = str(sources_page)
+    query = "?" + urlencode(params) if params else ""
     return {
         **data,
         "month_label": month.strftime("%m/%Y"),
@@ -133,7 +169,7 @@ def _job_row(data: dict[str, Any], source: ReconciliationSourceFile | None) -> d
 
 
 def _populate(request: HttpRequest, context: dict[str, Any], form: LedgerRequestForm) -> None:
-    from apps.hub.ledger_requests import ledger_request_context
+    from apps.hub.ledger_requests import ledger_job_context, ledger_request_context
 
     account, month = form.cleaned_data["account"], form.cleaned_data["month"]
     data = ledger_request_context(account=account, actor=cast(User, request.user))
@@ -176,16 +212,46 @@ def _populate(request: HttpRequest, context: dict[str, Any], form: LedgerRequest
                 "expected_revision": data["mapping_revision"],
             },
         )
-    rows = [_job_row(row, source) for row in data["current_jobs"]]
-    context["ledger_jobs"] = [row for row in rows if row["month_label"] == month.strftime("%m/%Y")]
+    # Filter before paginating: newer requests in other months must never hide this month.
+    jobs = NativeLedgerCollection.objects.filter(
+        organization_id=account.organization_id,
+        financial_account=account,
+        scope__period_start=month.isoformat(),
+    ).order_by("-created_at", "-id")
     sources = ReconciliationSourceFile.objects.filter(
         organization_id=account.organization_id,
         company_id=account.company_id,
         financial_account=account,
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
-    ).order_by("-created_at", "-id")[:20]
+    ).order_by("-created_at", "-id")
+    jobs_page = _history_page(jobs, form.data.get("page", "1"), "solicitações")
+    sources_page = _history_page(sources, form.data.get("sources_page", "1"), "extratos")
+    pages = {"page": jobs_page.number, "sources_page": sources_page.number}
+    context.update(
+        ledger_jobs_page=jobs_page,
+        ledger_sources_page=sources_page,
+        ledger_current_url=_url(account, month, source, **pages),
+        ledger_jobs=[
+            _job_row(
+                ledger_job_context(job=job, actor=cast(User, request.user)), source, **pages
+            )
+            for job in jobs_page
+        ],
+    )
+    for name, page, parameter, anchor in (
+        ("jobs", jobs_page, "page", "ledger-requests"),
+        ("sources", sources_page, "sources_page", "ledger-bank-sources"),
+    ):
+        for direction, available, number in (
+            ("previous", page.has_previous(), page.number - 1),
+            ("next", page.has_next(), page.number + 1),
+        ):
+            context[f"ledger_{name}_{direction}_url"] = (
+                _url(account, month, source, **{**pages, parameter: number}) + "#" + anchor
+                if available else ""
+            )
     source_rows = []
-    for item in sources:
+    for item in sources_page:
         run = item.runs.order_by("-created_at", "-id").first()
         label = run.get_state_display() if run else "Arquivo recebido"
         target, action = "", ""
@@ -277,6 +343,10 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
         return _render(request, context, 400)
     try:
         _populate(request, context, form)
+    except LedgerHistoryPageError as exc:
+        context["ledger_errors"] = [str(exc)]
+        context["ledger_history_error"] = True
+        return _render(request, context, 400)
     except ValueError:
         raise PermissionDenied(
             "Seu acesso atual não permite consultar a coleta desta conta."
@@ -304,7 +374,7 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
                 mapping.add_error(None, str(exc))
             else:
                 messages.success(request, "Vínculo salvo.")
-                return redirect(_url(account, month))
+                return redirect(context["ledger_current_url"])
         return _render(request, context, 400)
     if action not in {"request", "upload"}:
         context["ledger_errors"] = ["Escolha enviar o extrato ou buscar o Razão."]
@@ -372,11 +442,18 @@ def ledger_status(request: HttpRequest, job_id: UUID) -> HttpResponse:
     from apps.hub.ledger_requests import ledger_job_context
 
     context, job = _scoped_job(request, job_id)
-    if has_duplicate_fields(request.GET, ("bank_source",)):
-        return private_response(JsonResponse({"detail": "Informe um único extrato."}, status=400))
+    if has_duplicate_fields(request.GET, ("bank_source", "page", "sources_page")):
+        return private_response(
+            JsonResponse({"detail": "Informe cada filtro uma única vez."}, status=400)
+        )
     source = _source(job.financial_account, request.GET.get("bank_source"))
     try:
-        data = _job_row(ledger_job_context(job=job, actor=cast(User, request.user)), source)
+        pages = {key: _page_number(request.GET.get(key, "1")) for key in ("page", "sources_page")}
+        data = _job_row(
+            ledger_job_context(job=job, actor=cast(User, request.user)), source, **pages
+        )
+    except LedgerHistoryPageError as exc:
+        return private_response(JsonResponse({"detail": str(exc)}, status=400))
     except ValueError:
         return private_response(
             JsonResponse(
@@ -410,12 +487,30 @@ def ledger_retry(request: HttpRequest, job_id: UUID) -> HttpResponse:
     _context, job = _scoped_job(request, job_id, write=True)
     if has_duplicate_fields(
         request.POST, ("request_key", "expected_mapping_revision")
-    ) or has_duplicate_fields(request.GET, ("bank_source",)):
+    ) or has_duplicate_fields(request.GET, ("bank_source", "page", "sources_page")):
         return private_response(HttpResponse("Informe cada campo uma única vez.", status=400))
     source = _source(job.financial_account, request.GET.get("bank_source"))
     try:
+        pages = {key: _page_number(request.GET.get(key, "1")) for key in ("page", "sources_page")}
         key = UUID(request.POST.get("request_key", ""))
         month = ledger_job_context(job=job, actor=cast(User, request.user))["month"]
+        if isinstance(month, str):
+            month = LedgerMonthField().clean(month[:7])
+        # A malformed return page must not create a new collection before being rejected.
+        _history_page(
+            NativeLedgerCollection.objects.filter(
+                organization=job.organization, financial_account=job.financial_account,
+                scope__period_start=month.isoformat(),
+            ).order_by("-created_at", "-id"),
+            str(pages["page"]), "solicitações",
+        )
+        _history_page(
+            ReconciliationSourceFile.objects.filter(
+                organization=job.organization, company=job.financial_account.company,
+                financial_account=job.financial_account, origin="bank_statement",
+            ).order_by("-created_at", "-id"),
+            str(pages["sources_page"]), "extratos",
+        )
         retry_ledger_request(
             job=job,
             actor=cast(User, request.user),
@@ -423,11 +518,13 @@ def ledger_retry(request: HttpRequest, job_id: UUID) -> HttpResponse:
             expected_mapping_revision=request.POST.get("expected_mapping_revision", ""),
             request=request,
         )
+    except LedgerHistoryPageError as exc:
+        return private_response(
+            HttpResponse(str(exc), status=400, content_type="text/plain; charset=utf-8")
+        )
     except (ValueError, TypeError) as exc:
         return private_response(
             HttpResponse(str(exc), status=409, content_type="text/plain; charset=utf-8")
         )
-    if isinstance(month, str):
-        month = LedgerMonthField().clean(month[:7])
-    messages.success(request, "Solicitação retomada.")
-    return redirect(_url(job.financial_account, month, source) + "#ledger-requests")
+    messages.success(request, "Solicitação retomada. A nova tentativa aparece na primeira página.")
+    return redirect(_url(job.financial_account, month, source, **pages) + "#ledger-requests")

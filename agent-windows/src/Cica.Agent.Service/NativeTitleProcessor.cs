@@ -6,7 +6,7 @@ namespace Cica.Agent.Service;
 
 internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient client)
 {
-    internal async Task<bool> RunOnce(CancellationToken token)
+    internal async Task<NativeCollectionOutcome> RunOnce(CancellationToken token)
     {
         using JsonDocument response = await NativeTitlePlan.NextAutomaticJob((automatic, cancellation) =>
             client.PostAsync("api/agent/v2/titles/next", automatic
@@ -14,7 +14,7 @@ internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient clien
                 : new { version = "1.0.9" }, cancellation), token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
-            return response.RootElement.GetProperty("review_required").GetBoolean();
+            return NativeCollectionOutcome.Idle(response.RootElement.GetProperty("review_required").GetBoolean());
         var plan = new NativeTitlePlan(job);
         byte[] content;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token);
@@ -29,24 +29,25 @@ internal sealed class NativeTitleProcessor(AgentConfig config, AgentClient clien
                 cancellation => ReadSnapshot(connection, plan, cancellation), deadline.Token);
             if (stable is null) {
                 await Fail(plan, "source_changed", token);
-                return true;
+                return NativeCollectionOutcome.Rejected();
             }
             content = stable;
         }
-        catch (OdbcException) { await Fail(plan, "source_unavailable", token); return true; }
-        catch (InvalidDataException) { await Fail(plan, "source_contract", token); return true; }
+        catch (OdbcException) { await Fail(plan, "source_unavailable", token); return NativeCollectionOutcome.Rejected(); }
+        catch (InvalidDataException) { await Fail(plan, "source_contract", token); return NativeCollectionOutcome.Rejected(); }
         catch (OperationCanceledException) when (!token.IsCancellationRequested)
-        { await Fail(plan, "source_unavailable", token); return true; }
+        { await Fail(plan, "source_unavailable", token); return NativeCollectionOutcome.Rejected(); }
         // byte[] uses the base64 JSON converter, avoiding string-encoder expansion.
         try {
             using JsonDocument completed = await client.PostAsync($"api/agent/v2/titles/{plan.Id}/complete", new {
                 scope_revision = plan.Revision, contract_hash = plan.ContractHash,
                 content_sha256 = NativeTitlePlan.Digest(content), content_base64 = content,
             }, token);
-            return completed.RootElement.GetProperty("result").GetProperty("requires_semantic_review").GetBoolean();
+            return NativeCollectionOutcome.Completed(
+                completed.RootElement.GetProperty("result").GetProperty("requires_semantic_review").GetBoolean());
         }
         catch (HttpRequestException error) when (error.StatusCode == System.Net.HttpStatusCode.BadRequest)
-        { await Fail(plan, "source_contract", token); return true; }
+        { await Fail(plan, "source_contract", token); return NativeCollectionOutcome.Rejected(); }
     }
     private async Task Fail(NativeTitlePlan plan, string code, CancellationToken token)
     {
