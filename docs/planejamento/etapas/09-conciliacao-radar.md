@@ -1,3 +1,18 @@
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+## D-372/V-411 — preparação publicada e piloto real validado, 17/11/2026
+
+- [x] Receber e validar cadastro real: 146 empresas, 43 candidatas, 120 caixas e zero referências bancárias/Iceberg.
+- [x] Publicar release 100, migração 0087 e 43 complementos imutáveis; replay zero, autoria técnica e revisões preservadas.
+- [x] Validar coleta real SURIA/8/setembro: 163/163 movimentos compatíveis, diferença líquida zero.
+- [x] Aprovar CI integral, 15 verificações de UI sintética, ficha real, saúde/worker/assets e 15 grupos protegidos.
+- [ ] Conferir extrato/plano e concluir vínculos bancários das demais empresas; 145 ainda sem conta operacional.
+- [ ] Concluir revisão individual do piloto (162 movimentos, dois grupos ambíguos) e demais critérios Q-28/Q-46/D-73.
+
+Cliente pode testar o piloto e revisar as 43 fichas de 11 empresas. Não há prova de
+operação para toda a carteira nem homologação contábil. Agente permanece 1.0.13;
+nenhum novo comando Windows é necessário. [Evidências V-411](../../../VALIDACOES.md).
+Os checkpoints abaixo registram estados anteriores à release 100.
+
 <!-- D371-V410-PUBLISHED-2026-11-17 -->
 ## Fechamento D-371/V-410 — publicação técnica para testes, 17/11/2026
 

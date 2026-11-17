@@ -1,3 +1,19 @@
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+**17/11/2026 — D-372/V-411: release 100 publicada; piloto real validado e 43 fichas preparadas.**
+O novo Razão da SURIA, conta 8, setembro/2026, foi coletado pelo agente 1.0.13 e
+comparado ao OFX: 163/163 movimentos compatíveis por data/direção/valor, diferença
+líquida zero. Há dois grupos ambíguos e 162 movimentos ainda sujeitos à revisão.
+Foram publicados e aplicados 43 complementos cadastrais em 11 empresas, com nomes
+e classificações reais do Domínio; repetição criou zero registros. Saúde, worker,
+14 assets, runtime e 15 grupos protegidos conferidos; revisões humanas preservadas.
+
+**Disponibilidade parcial:** a cliente pode testar o piloto e revisar as fichas.
+A consulta retornou zero referências bancárias; 145 empresas continuam sem conta
+operacional. Não foram inferidos banco, agência, conta, direção ou aprovação.
+Dessas 145 empresas, 11 têm candidatas e 134 ainda não têm candidata identificada.
+Q-28/PC-19 e critérios de homologação permanecem abertos. Evidência completa em V-411.
+Os checkpoints abaixo são históricos e não substituem este estado atual.
+
 <!-- D371-V410-PUBLISHED-2026-11-17 -->
 **Q-28/Q-46/D-73 — fechamento D-371/V-410:**
 
