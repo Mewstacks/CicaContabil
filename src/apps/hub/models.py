@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable
 from decimal import Decimal
-from typing import Any, NoReturn, Protocol
+from typing import Any, ClassVar, NoReturn, Protocol
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -1717,6 +1717,148 @@ class ReconciliationAccountSourceDetail(ImmutableOrganizationModel):
         super().clean()
         if self.candidate_id and self.candidate.organization_id != self.organization_id:
             raise ValidationError({"candidate": "Complemento fora do escritório da candidata."})
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class ReconciliationAccountDiscovery(ImmutableOrganizationModel):
+    """An entire technical discovery; its original candidates and reviews stay separate."""
+
+    source_file_sha256 = models.CharField(max_length=64)
+    source_size_bytes = models.PositiveIntegerField()
+    source_observed_at = models.DateTimeField()
+    script_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    company_codes_sha256 = models.CharField(max_length=64)
+    company_count = models.PositiveIntegerField()
+    chart_account_count = models.PositiveIntegerField()
+    source_metadata = models.JSONField()
+    source_data = models.JSONField()
+    provenance = models.JSONField()
+    request_reference = models.CharField(max_length=240)
+
+    class Meta:
+        ordering = ("-source_observed_at", "source_file_sha256")
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "source_file_sha256"), name="hub_unique_account_discovery"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "source_observed_at"), name="hub_discovery_observed"
+        )]
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class DiscoveryChartQuerySet(AppendOnlyQuerySet[Any]):
+    """Permit validated inserts in batches, never upserts or changes to old evidence."""
+
+    def insert_validated(self, objs: Iterable[Any], batch_size: int = 500) -> list[Any]:
+        rows = list(objs)
+        for row in rows:
+            if not row._state.adding:
+                self._reject()
+            # The service supplies cached FK instances, and clean checks their scope.
+            # Database FKs and uniqueness remain enforced for the entire atomic insert.
+            row.full_clean(
+                exclude=("organization", "discovery"),
+                validate_unique=False, validate_constraints=False,
+            )
+        return models.QuerySet.bulk_create(self, rows, batch_size=batch_size)
+
+
+class ReconciliationDiscoveredChartAccount(ImmutableOrganizationModel):
+    """One literal account per shared chart, not one copy per customer company."""
+
+    objects: ClassVar[Any] = DiscoveryChartQuerySet.as_manager()
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="chart_accounts"
+    )
+    chart_company_code = models.PositiveIntegerField()
+    account_code = models.PositiveIntegerField()
+    row = models.JSONField()
+    row_sha256 = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ("chart_company_code", "account_code")
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "chart_company_code", "account_code"),
+            name="hub_unique_discovered_chart_account",
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "chart_company_code"),
+            name="hub_discovered_chart_scope",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        from apps.hub.account_discovery_contract import Invalid, digest, validate_chart_row
+
+        try:
+            validate_chart_row(self.row)
+            valid = (
+                self.discovery.organization_id == self.organization_id
+                and self.chart_company_code == self.row["chart_company_code"]
+                and self.account_code == self.row["account_code"]
+                and self.row_sha256 == digest(self.row)
+            )
+        except (Invalid, KeyError, TypeError, ValueError):
+            valid = False
+        if not valid:
+            raise ValidationError("Conta descoberta fora da fonte ou do escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class ReconciliationCompanyDiscovery(ImmutableOrganizationModel):
+    """Explicit coverage for every company, including absent parameters and empty charts."""
+
+    class Coverage(models.TextChoices):
+        CATALOGUED = "catalogued", "Plano com referência na origem"
+        OPTIONS_ONLY = "options_only", "Opções de plano para conferir"
+        NO_ACCOUNTS = "no_accounts", "Sem contas no catálogo consultado"
+
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="company_coverage"
+    )
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="account_discoveries"
+    )
+    source_company_code = models.PositiveIntegerField()
+    coverage_state = models.CharField(max_length=20, choices=Coverage.choices)
+    facts = models.JSONField()
+    gaps = models.JSONField(default=list, blank=True)
+    facts_sha256 = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ("source_company_code",)
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "company"), name="hub_unique_company_discovery"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "coverage_state"),
+            name="hub_company_discovery_state",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        from apps.hub.account_discovery_contract import digest
+
+        if (
+            self.discovery.organization_id != self.organization_id
+            or self.company.organization_id != self.organization_id
+            or self.company.dominio_code != str(self.source_company_code)
+            or not isinstance(self.facts, dict)
+            or self.facts.get("company", {}).get("company_code") != self.source_company_code
+            or digest({"facts": self.facts, "gaps": self.gaps, "state": self.coverage_state})
+            != self.facts_sha256
+        ):
+            raise ValidationError("Cobertura fora da fonte, da empresa ou do escritório.")
 
     def save(self, **kwargs: Any) -> None:
         self.full_clean()

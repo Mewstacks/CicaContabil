@@ -3,7 +3,7 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}">{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel account-candidates" aria-labelledby="account-candidates-heading">
-  <header class="workspace-panel-head"><div><h2 id="account-candidates-heading">Vínculos de contas</h2>{% if candidate_company %}<span class="account-company-name">{{ candidate_company.name }}</span>{% endif %}</div><a class="button button-quiet" href="{{ candidate_portfolio_url }}">Voltar à carteira</a></header>
+  <header class="workspace-panel-head"><div><h2 id="account-candidates-heading">Vínculos de contas</h2>{% if candidate_company %}<span class="account-company-name">{{ candidate_company.name }}</span>{% endif %}</div><div class="reconciliation-header-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-account-discovery' %}">Consultar catálogo completo</a><a class="button button-quiet" href="{{ candidate_portfolio_url }}">Voltar à carteira</a></div></header>
   {% if candidate_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in candidate_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <form method="get" class="account-candidate-filters" aria-label="Filtrar vínculos de contas">
     {% if candidate_company %}<input type="hidden" name="company" value="{{ candidate_company.pk }}">{% endif %}

@@ -11452,3 +11452,30 @@ completo dos proprietários referenciados, parâmetros/modelos/regras literais e
 uso agregado por empresa/plano/filial/competência, sem valores ou movimentos
 individuais. Metadados retidos sustentam FKs; semântica não comprovada permanece
 explícita. Fonte real ampliada, importação e publicação ainda não executadas.
+
+
+Checkpoint D-373/V-412 — primeira tentativa real de 17/11 conectou ao Domínio,
+mas encerrou na leitura completa de CTCONTAS com TEXT_CONTRACT; nenhum upload,
+importação ou ativação ocorreu. Leitor inicial16ff2e7 havia passado69cenários no
+Windows (run44122014058); isso não comprovou compatibilidade com todos os textos
+reais. Correção20e1d5a preserva Unicode literal, distingue tipo/tamanhoUTF16/
+surrogate e compara as duas leituras ordinalmente. NovoleitorSHA256
+b114b0c612e23c0d535be3f4177b08f055ea4a08b560381e10f96436bc116ba2;
+86cenários locais e24SQL aprovados, novoWindows44126264740 em andamento.
+
+Implementados lote/catálogo/cobertura imutáveis separados, prévia/aplicação/replay,
+validação de fonte e competência, navegação por empresa/plano/conta e confirmação
+mínima com usuário real. Preservam43candidatas/revisões/piloto; descarte humano e
+filialzero não são contornados. Texto U+0000 pode ser coletado no JSON privado,
+mas importação recusa antes de escrever até representação reversível, se real
+exigir. Não houve dado real novo no Git/CI.
+
+QA local:23testesHTTP aprovados, MyPy/Ruff das views/forms aprovados;
+22verificaçõesPlaywright sintéticas sem errosJS, desktop1440/mobile375, temas,
+paisagem, texto200%, busca/paginação/retorno, foco/erro, permissões, descarte,
+confirmação e retorno à solicitação doRazão. Imagens inspecionadas, servidor local
+encerrado. Migração0088 ensaiada no PostgreSQL17 nas duas aliases; três tabelas
+somente default, replay/retomada e preflight semescrita aprovados. Ensaio100mil
+contas passou; consumo no limite precisa conferir com fonte real/capacidade512MB.
+CI integral, fonte real completa, preparação em produção e publicação permanecem
+pendentes; release100 e piloto validado continuam sendo a evidência publicada.

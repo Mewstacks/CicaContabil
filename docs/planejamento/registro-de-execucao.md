@@ -4632,6 +4632,9 @@ extrato/plano/vínculo bancário. Carteira integral e homologação permanecem a
 - [x] Identificar limitação da descoberta anterior e aprovar contrato completo com proveniência.
 - [ ] Validar leitor Windows ampliado e receber fonte real das146 empresas.
 - [ ] Preparar catálogo/vínculos em lote com prévia, replay e fatos/ambiguidades explícitos.
-- [ ] Validar confirmação mínima e acesso por empresa/módulo, UI/UX e Playwright.
+- [x] Validar confirmação mínima e acesso por empresa/módulo, UI/UX e Playwright sintéticos; repetir fluxo real após fonte/publicação.
 - [ ] Aprovar CI da fonte exata, publicar e conferir dados/runtime/saúde/fluxo real.
 - [ ] Registrar cobertura efetiva e lacunas restantes, sem declarar homologação humana.
+
+Primeira tentativa real encerrou em TEXT_CONTRACT; correção do leitor e testes
+registrados em V-412. Código local preparado; fonte ampliada e deploy pendentes.
