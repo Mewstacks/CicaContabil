@@ -8,12 +8,65 @@ if (-not [Environment]::Is64BitProcess) {throw 'Use Windows PowerShell de 64 bit
 Add-Type -AssemblyName System.Data
 $connection=$null; $builder=$null; $credential=$null; $timer=$null
 $stage='credential_prompt'; $reason='UNCLASSIFIED'; $outputDirectory=$null
+$textFailure=$null
 $periodStart=[DateTime]::new(2026,9,1); $periodEnd=[DateTime]::new(2026,12,1)
 $expectedCompanyCount=146
 $expectedCompanyCodeSha256='4ab91c9e80c1b20275c5878b3ec3f844deec7f6b155d94fdb90b79fbf6626f55'
 function Reject-Details {param([string]$Code); $script:reason=$Code; throw 'Descoberta cadastral recusado.'}
 function Check-Deadline {
     if ($null -ne $timer -and $timer.Elapsed.TotalSeconds -gt 600) {Reject-Details 'TIME_LIMIT'}
+}
+function Reject-SourceText {
+    param([string]$Field,[object]$Value,[int]$Limit,[string]$Violation)
+    # Never include the text, its row key, SQL, credentials or printable codepoints.
+    $type=if ($null -eq $Value) {'null'} else {$Value.GetType().FullName}
+    $length=$null; $scalars=$null; $inspected=0; $nonprinting=0; $truncated=$false
+    $positions=New-Object 'System.Collections.Generic.List[object]'
+    if ($Value -is [string]) {
+        $length=$Value.Length; $scalars=0; $valid=$true
+        $scanLimit=[Math]::Min($length,512)
+        for ($index=0;$index -lt $scanLimit;$index++) {
+            $unit=$Value[$index]; $category=[Globalization.CharUnicodeInfo]::GetUnicodeCategory($Value,$index)
+            $scalars++; $inspected=$index+1
+            if ([char]::IsHighSurrogate($unit) -and $index+1 -lt $length -and [char]::IsLowSurrogate($Value[$index+1])) {
+                $index++; $inspected=$index+1
+                continue
+            }
+            if ([char]::IsSurrogate($unit)) {$valid=$false}
+            if ($category -in @([Globalization.UnicodeCategory]::Control,[Globalization.UnicodeCategory]::Format,[Globalization.UnicodeCategory]::Surrogate)) {
+                $nonprinting++
+                if ($positions.Count -lt 32) {
+                    $positions.Add([ordered]@{utf16_index=$index;category=$category.ToString();codepoint=('U+{0:X4}' -f [int]$unit)})
+                } else {$truncated=$true}
+            }
+        }
+        if ($length -gt $inspected) {$truncated=$true; $scalars=$null}
+        if (-not $valid) {$scalars=$null}
+    }
+    $script:textFailure=[ordered]@{
+        field=$Field;dotnet_type=$type;utf16_length=$length;utf16_limit=$Limit;violation=$Violation
+        scalar_length=$scalars;inspected_utf16_units=$inspected;nonprinting_in_scanned=$nonprinting
+        nonprinting_positions=$positions.ToArray();diagnostic_truncated=$truncated
+    }
+    Reject-Details 'TEXT_CONTRACT'
+}
+function Assert-SourceText {
+    param([string]$Field,[object]$Value,[int]$Limit)
+    if ($Value -isnot [string]) {Reject-SourceText $Field $Value $Limit 'TYPE'}
+    if ($Value.Length -gt $Limit) {Reject-SourceText $Field $Value $Limit 'LENGTH'}
+    for ($index=0;$index -lt $Value.Length;$index++) {
+        if ([char]::IsHighSurrogate($Value[$index])) {
+            if ($index+1 -ge $Value.Length -or -not [char]::IsLowSurrogate($Value[$index+1])) {
+                Reject-SourceText $Field $Value $Limit 'INVALID_SURROGATE'
+            }
+            $index++
+        } elseif ([char]::IsLowSurrogate($Value[$index])) {
+            Reject-SourceText $Field $Value $Limit 'INVALID_SURROGATE'
+        }
+    }
+    # Literal, well-formed Unicode is source evidence, not approved semantics.
+    # Controls, format/private-use characters and NUL remain unchanged in the
+    # private JSON. Persistence must encode NUL reversibly before PostgreSQL JSONB.
 }
 function Read-Details {
     param([string]$Query,[string[]]$Fields,[int]$Limit,[object[]]$Values=@('A'))
@@ -44,7 +97,7 @@ function Read-Details {
                 }
                 $value=$reader.GetValue($i)
                 if ($textLimits.ContainsKey($field)) {
-                    if ($value -isnot [string] -or $value.Length -gt $textLimits[$field] -or $value -match '\p{C}') {Reject-Details 'TEXT_CONTRACT'}
+                    Assert-SourceText $field $value $textLimits[$field]
                     # Do not trim/pad strings or parse banking identifiers as numbers.
                     $row[$field]=$value
                 } elseif ($field -in @('inactive_on_raw','integration_started_on_raw')) {
@@ -337,7 +390,7 @@ ORDER BY n.codi_emp,n.ordem
             if ($collection.template) {$key+=':'+$item.plan_id_raw}
             if (-not $keys.Add($key)) {Reject-Details 'CATALOGUE_CARDINALITY'}
             foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw')) {if ($null -eq $item[$field]) {Reject-Details 'CATALOGUE_NULL'}}
-            if ($collection.template -and $item.account_name_raw.Length -gt 60) {Reject-Details 'TEXT_CONTRACT'}
+            if ($collection.template) {Assert-SourceText 'account_name_raw' $item.account_name_raw 60}
         }
     }
     $chartByKey=@{}
@@ -347,7 +400,7 @@ ORDER BY n.codi_emp,n.ordem
         if ($chartByKey.ContainsKey($key) -ne ($item.catalogue_matches -eq 1)) {Reject-Details 'CATALOGUE_INCONSISTENT'}
         if ($item.catalogue_matches -eq 1) {
             foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw')) {
-                if ($item[$field] -cne $chartByKey[$key][$field]) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+                if (-not [object]::Equals($item[$field],$chartByKey[$key][$field])) {Reject-Details 'CATALOGUE_INCONSISTENT'}
             }
         }
     }
@@ -393,7 +446,7 @@ try {
     $firstJson=$first | ConvertTo-Json -Depth 8 -Compress
     if ([Text.Encoding]::UTF8.GetByteCount($firstJson) -gt 67108864) {Reject-Details 'OUTPUT_LIMIT'}
     $second=Read-Snapshot
-    if ($firstJson -cne ($second | ConvertTo-Json -Depth 8 -Compress)) {Reject-Details 'SOURCE_CHANGED'}
+    if (-not [string]::Equals($firstJson,($second | ConvertTo-Json -Depth 8 -Compress),[StringComparison]::Ordinal)) {Reject-Details 'SOURCE_CHANGED'}
     Check-Deadline
     $connection.Close()
     $stage='writing_private_report'
@@ -464,7 +517,7 @@ try {
         }
         $exception=$exception.InnerException
     }
-    [ordered]@{version='contad-chart-discovery-receipt-v1';completed=$false;stage=$stage;reason_code=$reason;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 4 -Compress | Write-Output
+    [ordered]@{version='contad-chart-discovery-receipt-v1';completed=$false;stage=$stage;reason_code=$reason;text_contract_failure=$textFailure;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 6 -Compress | Write-Output
     Write-Error 'Descoberta nao concluido. Retorne somente este diagnostico seguro; preserve credencial e agente.' -ErrorAction Continue
     exit 1
 } finally {

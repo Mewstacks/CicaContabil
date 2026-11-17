@@ -5446,3 +5446,22 @@ Precisão D-373 — o agregado de utilização preserva também ano/mês de comp
 em uma competência não se transforma automaticamente em vínculo para qualquer
 período. Guardar multiplicidade e filiais por competência; a interface preserva
 o mês e solicita confirmação somente quando a fonte não comprovar aquele escopo.
+
+Refinamento D-373 após leitura real — o diagnóstico TEXT_CONTRACT ocorreu na
+leitura de CTCONTAS, sem subcausa conhecida. Preservar literalmente textos Unicode
+bem formados, inclusive controles, formatos e espaços; não aplicar trim, substituir,
+truncar ou inferir semântica. O arquivo JSON privado pode preservar U+0000 escapado;
+se presente na fonte recebida, a persistência exigirá representação reversível
+explícita antes de importar, pois JSONB não aceita esse caractere. Manter limites
+em unidades UTF-16 e bloquear tipo diferente de string ou surrogate isolado.
+Diagnósticos expõem somente campo, tipo, tamanho, limite e códigos/categorias de
+caracteres não imprimíveis, sem texto, nomes ou identificadores da linha. Revalidar
+no Windows antes de novo comando; falha anterior não comprova catálogo recebido.
+
+Precisão D-373 — referência configurada/equivalente não comprova plano no mês;
+somente uso observado na competência ou revisão humana íntegra daquele mês
+pode dispensar a confirmação. Filial observada zero permanece impedimento explícito
+para o agente atual, sem substituir por filial inventada. Uma candidata previamente
+descartada não pode ser reativada pela ficha do catálogo: apresentar a decisão
+existente e encaminhar sua reconsideração ao fluxo já previsto. Revisões dinâmicas
+incluem a revisão da candidata para detectar alteração entre leitura e envio.
