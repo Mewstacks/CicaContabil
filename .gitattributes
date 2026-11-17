@@ -19,3 +19,7 @@ agent-windows/test-title-upgrade.ps1 text eol=lf
 
 agent-windows/upgrade-portfolio-ledger.ps1 text eol=lf
 agent-windows/test-portfolio-ledger-upgrade.ps1 text eol=lf
+
+# D-372: direct download must match the exact script tested by Windows CI.
+agent-windows/inspect-contad-account-details.ps1 text eol=lf
+agent-windows/test-contad-account-details.ps1 text eol=lf
