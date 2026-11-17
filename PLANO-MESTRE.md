@@ -1746,3 +1746,6 @@ Q-46, layout/importação Q-47 e critérios humanos de D-73 continuam pendentes.
 
 
 **17/11/2026 — D-372/V-411 em andamento:** preparar as demais empresas com novas leituras cadastrais autorizadas no Domínio e comprovar coleta real com extrato. Reaproveitados146 cadastros/43 candidatas; prévia READ ONLY da conta212/8,setembro2026 aprovada com163 movimentos bancários, vínculo retido e agente online. Consulta cadastral complementar em preparação; nenhuma conta nova ativada ou aceite humano executado. Única membership habilitada é da cliente; pedido de Razão precisa partir de sessão legítima, sem atribuir execução técnica à cliente. AnyDesk retorna timeout pela automação.
+
+
+**D-372/V-411 — coleta real concluída em17/11 às11:00BRT:** solicitação pela tela autorizada, novo Razão recebido pelo agente1.0.13 e163/163 movimentos compatíveis com o OFX por data/direção/valor, diferença líquida zero. Fontes e decisões anteriores preservadas; dois grupos repetidos e162 movimentos aguardam conferência individual. Preparação das demais empresas permanece em andamento, aguardando complemento cadastral; não declarar carteira integral pronta.

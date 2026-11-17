@@ -4587,3 +4587,6 @@ mensagem, alteração comercial ou decisão contábil em nome da cliente.
 - [ ] Fechar evidências, checklist e disponibilidade real para testes da cliente.
 
 Autoria: única membership habilitada da cliente; pedido de coleta solicitado via URL preenchida ao responsável. Sem emprestar identidade, criar permissões ou declarar aceite contábil. Automação AnyDesk ainda timeout.
+
+
+**D-372/V-411 — coleta real concluída em17/11 às11:00BRT:** solicitação pela tela autorizada, novo Razão recebido pelo agente1.0.13 e163/163 movimentos compatíveis com o OFX por data/direção/valor, diferença líquida zero. Fontes e decisões anteriores preservadas; dois grupos repetidos e162 movimentos aguardam conferência individual. Preparação das demais empresas permanece em andamento, aguardando complemento cadastral; não declarar carteira integral pronta.

@@ -5332,3 +5332,13 @@ conta212/8,setembro2026 e extrato já conferidos. A execução ocorre por delega
 explícita nesta conversa; não é declaração de revisão contábil da cliente.
 A limitação anterior de D-365 não impede esse pedido expressamente autorizado
 agora. Não alterar identidade, permissões, vínculos ou decisões de conciliação.
+
+
+Complemento D-372 — catálogo retido também comprova CTPARMTO_CONTAS_ICEBERG
+(CODI_EMP,CODI_CTA,CODI_FIL,I_BANCO,DATA_INICIO_INTEGRACAO). Incluir somente
+esses campos cadastrais literais na leitura limitada às mesmas146 empresas;
+excluir SALDO_INICIAL. Persistir lista separada de configurações de integração,
+sem presumir proprietário do plano, significado de I_BANCO ou relação ao
+catálogo Banco Central: FKs deste objeto não vieram no perfil de relações.
+Ausência, zeros, data e multiplicidade terão prova própria. Não usar a nova
+configuração como aprovação automática de conta/vínculo.

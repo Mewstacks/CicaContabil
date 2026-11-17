@@ -37,6 +37,7 @@ public sealed class AccountDetailsFixtureConnection:IDisposable {
    case "ctcontacaixa":cols=new[]{"CODI_EMP","CODI_CTA","SELE_CTA","TIPO_CONTA_CAIXA"};break;
    case "ctcontacaixa_conta_bancaria":cols=new[]{"CODI_EMP","I_CONTA_CAIXA","I_SEQUENCIAL_CONTA_BANCARIA","AGENCIA","IDENTIFICADOR_CONTA","I_BANCO"};break;
    case "ctlista_bancos_banco_central":cols=new[]{"I_BANCO","CODIGO_BANCO","DESCRICAO_BANCO"};break;
+   case "ctparmto_contas_iceberg":cols=new[]{"CODI_EMP","CODI_CTA","CODI_FIL","I_BANCO","DATA_INICIO_INTEGRACAO"};break;
    default:throw new Exception("Unexpected table");
   }
   var t=new DataTable();foreach(string key in new[]{"TABLE_SCHEM","TABLE_NAME","COLUMN_NAME"})t.Columns.Add(key,typeof(string));
@@ -52,13 +53,14 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
  private DataTable Table(params Type[] types){var t=new DataTable();for(int i=0;i<types.Length;i++)t.Columns.Add("c"+i,types[i]);return t;}
  public IDataReader ExecuteReader(){
   string q=CommandText.Replace("\r","").Trim(),s=AccountDetailsFixtureConnection.Scenario;
-  bool companies=q.StartsWith("SELECT TOP 501 "),configured=q.Contains("FROM bethadba.CTCONCILIACAO_CONTA q"),cash=q.Contains("FROM bethadba.ctcontacaixa c"),banks=q.Contains("FROM bethadba.CTCONTACAIXA_CONTA_BANCARIA b");
-  if((!companies&&!configured&&!cash&&!banks)||CommandTimeout!=40||Parameters.Count!=1||Parameters[0].OdbcType!=OdbcType.VarChar||(string)Parameters[0].Value!="A"||!q.Contains("WHERE g.stat_emp=?"))throw new Exception("Query scope");
-  if(Regex.IsMatch(q,@"(?i)\b(INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|CALL|CTLANCTO|CTEXTRATO|VLOR_LAN|VALOR|SALDO|CGCE_EMP|PASSWORD)\b")||q.Contains("SELECT *"))throw new Exception("Forbidden values/write");
-  foreach(Match m in Regex.Matches(q,@"(?i)\b(?:FROM|JOIN)\s+(\S+)"))if(Array.IndexOf(new[]{"bethadba.geempre","bethadba.CTCONCILIACAO_CONTA","bethadba.ctcontas","bethadba.ctcontacaixa","bethadba.CTCONTACAIXA_CONTA_BANCARIA","bethadba.CTLISTA_BANCOS_BANCO_CENTRAL"},m.Groups[1].Value)<0)throw new Exception("Unexpected source");
+  bool companies=q.StartsWith("SELECT TOP 501 "),configured=q.Contains("FROM bethadba.CTCONCILIACAO_CONTA q"),cash=q.Contains("FROM bethadba.ctcontacaixa c"),banks=q.Contains("FROM bethadba.CTCONTACAIXA_CONTA_BANCARIA b"),integrations=q.Contains("FROM bethadba.CTPARMTO_CONTAS_ICEBERG i");
+  if((!companies&&!configured&&!cash&&!banks&&!integrations)||CommandTimeout!=40||Parameters.Count!=1||Parameters[0].OdbcType!=OdbcType.VarChar||(string)Parameters[0].Value!="A"||!q.Contains("WHERE g.stat_emp=?"))throw new Exception("Query scope");
+  if(Regex.IsMatch(q,@"(?i)\b(INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|CALL|CTLANCTO|CTEXTRATO|VLOR_LAN|VALOR|SALDO(?:_INICIAL)?|CGCE_EMP|PASSWORD)\b")||q.Contains("SELECT *"))throw new Exception("Forbidden values/write");
+  foreach(Match m in Regex.Matches(q,@"(?i)\b(?:FROM|JOIN)\s+(\S+)"))if(Array.IndexOf(new[]{"bethadba.geempre","bethadba.CTCONCILIACAO_CONTA","bethadba.ctcontas","bethadba.ctcontacaixa","bethadba.CTCONTACAIXA_CONTA_BANCARIA","bethadba.CTLISTA_BANCOS_BANCO_CENTRAL","bethadba.CTPARMTO_CONTAS_ICEBERG"},m.Groups[1].Value)<0)throw new Exception("Unexpected source");
   if(configured&&!q.Contains("c.codi_emp=q.CODI_EMP_PLANO AND c.codi_cta=q.CODI_CTA"))throw new Exception("Chart composite key");
   if(banks&&!q.Contains("k.I_BANCO=b.I_BANCO"))throw new Exception("Bank catalog key");
   if((cash||banks)&&q.Contains("bethadba.ctcontas"))throw new Exception("Inferred cash-to-ledger mapping");
+  if(integrations&&(!q.StartsWith("SELECT TOP 5001 i.CODI_EMP,i.CODI_CTA,i.CODI_FIL,i.I_BANCO,i.DATA_INICIO_INTEGRACAO\n")||Regex.Matches(q,@"(?i)\bJOIN\b").Count!=1||!q.Contains("JOIN bethadba.geempre g ON g.codi_emp=i.CODI_EMP")))throw new Exception("Inferred integration mapping or extra values");
   Reads++;DataTable t;
   if(companies){
    t=Table(s=="number_type"?typeof(string):typeof(long));int count=s=="company_limit"?501:s=="company_count_changed"?147:146;
@@ -73,7 +75,7 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
     t.Rows.Add(s=="account_outside"?999L:1L,100L,(long)i+8,missing?(object)DBNull.Value:(object)((long)i+8),missing?(object)DBNull.Value:s=="invalid_text"?"synthetic-private-name\n":"synthetic-private-name",missing?(object)DBNull.Value:"001.0008 ",missing?(object)DBNull.Value:"A",missing?(object)DBNull.Value:"A",s=="inactive_date"?(object)new DateTime(2026,10,1):DBNull.Value);
    }
    if(s=="account_fanout")t.ImportRow(t.Rows[0]);
-   if(s=="source_changed"&&Reads>4)t.Rows[0][4]="changed-private-name";
+   if(s=="source_changed"&&Reads>5)t.Rows[0][4]="changed-private-name";
    return t.CreateDataReader();
   }
   if(cash){
@@ -81,6 +83,15 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
    if(s=="empty_details")return t.CreateDataReader();int count=s=="cash_limit"?5001:1;
    for(int i=0;i<count;i++)t.Rows.Add(s=="cash_outside"?999L:1L,(long)i+8,s=="null_cash_codes"?(object)DBNull.Value:"S",s=="null_cash_codes"?(object)DBNull.Value:0L);
    if(s=="cash_duplicate")t.ImportRow(t.Rows[0]);return t.CreateDataReader();
+  }
+  if(integrations){
+   t=Table(typeof(long),typeof(long),typeof(long),typeof(long),typeof(DateTime));
+   if(s=="empty_details"||s=="no_integrations")return t.CreateDataReader();int count=s=="integration_limit"?5001:2;
+   for(int i=0;i<count;i++)t.Rows.Add(s=="integration_outside"?999L:2L,s=="integration_zero_codes"?0L:8L,(long)i,s=="integration_zero_codes"?0L:7L,s=="integration_null_start"?(object)DBNull.Value:s=="integration_invalid_date"?(object)new DateTime(2026,9,1,12,0,0):(object)new DateTime(2026,9,1));
+   if(s=="integration_duplicate")t.ImportRow(t.Rows[0]);
+   if(s=="integration_null_code")t.Rows[0][3]=DBNull.Value;
+   if(s=="integration_changed"&&Reads>5)t.Rows[0][4]=new DateTime(2026,9,2);
+   return t.CreateDataReader();
   }
   t=Table(typeof(long),typeof(long),typeof(long),typeof(string),typeof(string),typeof(long),typeof(long),typeof(long),typeof(string));
   if(s=="empty_details"||s=="no_bank_references")return t.CreateDataReader();int bankCount=s=="bank_limit"?20001:2;
@@ -111,8 +122,9 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
 $tokens=$null; $errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) {throw ($errors | Out-String)}
-$success=@('success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date')
-$cases=$success+@('missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','invalid_text','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout')
+$success=@('success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date','integration_null_start','integration_zero_codes','no_integrations')
+$cases=$success+@('missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','invalid_text','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout','integration_limit','integration_outside','integration_duplicate','integration_null_code','integration_invalid_date','integration_changed')
+$integrationFailures=@{integration_limit='ROW_LIMIT';integration_outside='INTEGRATION_SCOPE';integration_duplicate='INTEGRATION_CARDINALITY';integration_null_code='NULL_FIELD';integration_invalid_date='DATE_CONTRACT';integration_changed='SOURCE_CHANGED'}
 $evidence=@()
 foreach ($case in $cases) {
     $saved=$ErrorActionPreference
@@ -142,10 +154,17 @@ foreach ($case in $cases) {
             try {$fixtureHash=([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes((Get-FixtureSourceText))))).Replace('-','').ToLowerInvariant()}
             finally {$hasher.Dispose()}
             if ($data.script_sha256 -ne $fixtureHash -or $data.company_codes_sha256 -ne '794ea11f50892913aa01dd78f0835597272e0b1dcdb39169ca982253ec04e44b') {throw 'Script/scope provenance mismatch.'}
+            $integrationProvenance=$data.provenance.integration_account_configurations
+            if ($integrationProvenance.source -cne 'CTPARMTO_CONTAS_ICEBERG' -or $integrationProvenance.declared_foreign_keys_verified -ne $false -or $integrationProvenance.chart_owner_mapping_inferred -ne $false -or $integrationProvenance.bank_catalogue_link_inferred -ne $false) {throw 'Integration semantics inferred.'}
+            if (@($data.snapshot.integration_account_configurations).Count -ne $receipt.integration_account_configurations) {throw 'Integration count mismatch.'}
             if ($case -eq 'success') {
                 if ($data.snapshot.bank_references.Count -ne 2 -or $data.snapshot.cash_accounts[0].bank_reference_count -ne 2 -or $data.snapshot.bank_references[0].agency_raw -cne '0001' -or $data.snapshot.bank_references[0].account_identifier_raw -cne '0000123-0' -or $data.snapshot.bank_references[0].bank_code_raw -ne 0 -or $data.snapshot.configured_accounts[0].classification_raw -cne '001.0008 ') {throw 'Multiplicity, raw strings or numeric zero lost.'}
+                if ($data.snapshot.integration_account_configurations.Count -ne 2 -or $data.snapshot.integration_account_configurations[0].integration_started_on_raw -cne '2026-09-01' -or $data.snapshot.integration_account_configurations[0].integration_account_code_raw -ne 8 -or $data.snapshot.integration_account_configurations[0].integration_bank_id_raw -ne 7 -or $data.snapshot.integration_account_configurations[1].integration_branch_code_raw -ne 1) {throw 'Integration multiplicity, literal codes or date lost.'}
             }
-            if ($case -eq 'empty_details' -and ($data.snapshot.configured_accounts.Count -ne 0 -or $data.snapshot.cash_accounts.Count -ne 0 -or $data.snapshot.bank_references.Count -ne 0)) {throw 'Invented source records.'}
+            if ($case -eq 'empty_details' -and ($data.snapshot.configured_accounts.Count -ne 0 -or $data.snapshot.cash_accounts.Count -ne 0 -or $data.snapshot.bank_references.Count -ne 0 -or $data.snapshot.integration_account_configurations.Count -ne 0)) {throw 'Invented source records.'}
+            if ($case -eq 'no_integrations' -and $receipt.integration_account_configurations -ne 0) {throw 'Invented integration configurations.'}
+            if ($case -eq 'integration_null_start' -and $null -ne $data.snapshot.integration_account_configurations[0].integration_started_on_raw) {throw 'Null integration date changed.'}
+            if ($case -eq 'integration_zero_codes' -and ($data.snapshot.integration_account_configurations[0].integration_account_code_raw -ne 0 -or $data.snapshot.integration_account_configurations[0].integration_branch_code_raw -ne 0 -or $data.snapshot.integration_account_configurations[0].integration_bank_id_raw -ne 0)) {throw 'Integration numeric zero lost.'}
             if ($case -eq 'no_bank_references' -and $data.snapshot.cash_accounts[0].bank_reference_count -ne 0) {throw 'Zero references changed.'}
             if ($case -eq 'missing_chart' -and $receipt.missing_chart_accounts -ne 1) {throw 'Missing chart hidden.'}
             if ($case -in @('missing_bank','null_bank_id') -and $receipt.missing_bank_catalogue -ne 2) {throw 'Missing bank hidden.'}
@@ -153,8 +172,12 @@ foreach ($case in $cases) {
             if ($case -eq 'inactive_date' -and $data.snapshot.configured_accounts[0].inactive_on_raw -cne '2026-10-01') {throw 'Source date changed.'}
         } finally {Remove-Item -LiteralPath $folder -Recurse -Force}
     } elseif ($code -eq 0 -or $receipt.completed -or -not $receipt.reason_code -or $receipt.report_file) {throw ('Failure accepted: '+$case)}
+    if ($integrationFailures.ContainsKey($case) -and $receipt.reason_code -cne $integrationFailures[$case]) {throw ('Unexpected integration rejection: '+$case+'; '+$receipt.reason_code)}
     $evidence+=@{scenario=$case;passed=$true;exit_code=$code;real_erp=$false}
 }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation'; [void][IO.Directory]::CreateDirectory($folder)
 @{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false;private_fixtures_removed=$true;fixture_company_scope_hash_replaced=$true;production_source_unchanged=$true} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-account-details.json') -Encoding UTF8
 Write-Host 'Account details: fixed SELECTs, scope, cardinality, two reads, private ACL, zero preservation and safe diagnostics passed.'
+# The final negative subprocess must not determine the successful harness exit.
+$global:LASTEXITCODE=0
+exit 0

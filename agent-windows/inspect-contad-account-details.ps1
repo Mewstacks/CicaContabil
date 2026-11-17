@@ -19,7 +19,7 @@ function Read-Details {
     Check-Deadline
     $command=$connection.CreateCommand(); $reader=$null
     $textLimits=@{account_name_raw=150;classification_raw=20;account_type_raw=1;account_status_raw=1;selection_raw=1;agency_raw=10;account_identifier_raw=30;bank_name_raw=100}
-    $nullable=@('catalogue_account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw','selection_raw','cash_type_raw','bank_id_raw','bank_catalogue_id','bank_code_raw','bank_name_raw')
+    $nullable=@('catalogue_account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw','selection_raw','cash_type_raw','bank_id_raw','bank_catalogue_id','bank_code_raw','bank_name_raw','integration_started_on_raw')
     try {
         $command.CommandText=$Query; $command.CommandTimeout=40
         $parameter=$command.Parameters.Add('p',[System.Data.Odbc.OdbcType]::VarChar,1)
@@ -42,7 +42,7 @@ function Read-Details {
                     if ($value -isnot [string] -or $value.Length -gt $textLimits[$field] -or $value -match '\p{C}') {Reject-Details 'TEXT_CONTRACT'}
                     # Do not trim/pad strings or parse banking identifiers as numbers.
                     $row[$field]=$value
-                } elseif ($field -eq 'inactive_on_raw') {
+                } elseif ($field -in @('inactive_on_raw','integration_started_on_raw')) {
                     if ($value -isnot [DateTime] -or $value.TimeOfDay -ne [TimeSpan]::Zero) {Reject-Details 'DATE_CONTRACT'}
                     $row[$field]=$value.ToString('yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture)
                 } else {
@@ -142,7 +142,23 @@ ORDER BY b.CODI_EMP,b.I_CONTA_CAIXA,b.I_SEQUENCIAL_CONTA_BANCARIA
             $bank['bank_catalogue_matches']=1
         } elseif ($null -ne $bank.bank_code_raw -or $null -ne $bank.bank_name_raw) {Reject-Details 'BANK_LOOKUP'}
     }
-    return [ordered]@{companies=$companies;configured_accounts=$configured;cash_accounts=$cash;bank_references=$banks}
+    $script:stage='reading_integration_account_configurations'
+    $integrations=Read-Details -Limit 5000 -Fields @('company_code','integration_account_code_raw','integration_branch_code_raw','integration_bank_id_raw','integration_started_on_raw') -Query @'
+SELECT TOP 5001 i.CODI_EMP,i.CODI_CTA,i.CODI_FIL,i.I_BANCO,i.DATA_INICIO_INTEGRACAO
+FROM bethadba.CTPARMTO_CONTAS_ICEBERG i
+JOIN bethadba.geempre g ON g.codi_emp=i.CODI_EMP
+WHERE g.stat_emp=?
+ORDER BY i.CODI_EMP,i.CODI_CTA,i.CODI_FIL,i.I_BANCO
+'@
+    $keys.Clear()
+    foreach ($configuration in $integrations) {
+        if (-not $companyIds.Contains($configuration.company_code)) {Reject-Details 'INTEGRATION_SCOPE'}
+        # Comparison key only: no retained foreign key proves an account owner,
+        # branch meaning or association of this I_BANCO with the bank catalog.
+        $key='{0}:{1}:{2}:{3}' -f $configuration.company_code,$configuration.integration_account_code_raw,$configuration.integration_branch_code_raw,$configuration.integration_bank_id_raw
+        if (-not $keys.Add($key)) {Reject-Details 'INTEGRATION_CARDINALITY'}
+    }
+    return [ordered]@{companies=$companies;configured_accounts=$configured;cash_accounts=$cash;bank_references=$banks;integration_account_configurations=$integrations}
 }
 try {
     $credential=Get-Credential -UserName 'EXTERNO' -Message 'Complemento cadastral CONTAD: informe a credencial local do Dominio. Nao envie senha ao chat.'
@@ -160,6 +176,7 @@ try {
         ctcontacaixa=@('CODI_EMP','CODI_CTA','SELE_CTA','TIPO_CONTA_CAIXA')
         ctcontacaixa_conta_bancaria=@('CODI_EMP','I_CONTA_CAIXA','I_SEQUENCIAL_CONTA_BANCARIA','AGENCIA','IDENTIFICADOR_CONTA','I_BANCO')
         ctlista_bancos_banco_central=@('I_BANCO','CODIGO_BANCO','DESCRICAO_BANCO')
+        ctparmto_contas_iceberg=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO','DATA_INICIO_INTEGRACAO')
     }
     foreach ($table in $required.Keys) {
         Check-Deadline
@@ -184,6 +201,13 @@ try {
             bank_references='CTCONTACAIXA_CONTA_BANCARIA.(CODI_EMP,I_CONTA_CAIXA) -> CTCONTACAIXA.(codi_emp,codi_cta)'
             bank_catalogue='CTCONTACAIXA_CONTA_BANCARIA.I_BANCO -> CTLISTA_BANCOS_BANCO_CENTRAL.I_BANCO'
             bank_code_storage='CODIGO_BANCO is an integer in the retained catalog; no padding inferred.'
+            integration_account_configurations=[ordered]@{
+                source='CTPARMTO_CONTAS_ICEBERG'
+                selected_columns=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO','DATA_INICIO_INTEGRACAO')
+                comparison_key_columns=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO')
+                declared_foreign_keys_verified=$false;chart_owner_mapping_inferred=$false;bank_catalogue_link_inferred=$false
+                interpretation='Literal cadastral codes and date only; comparison key does not assert a database primary key.'
+            }
         }
         snapshot=$first;cash_to_ledger_mapping_inferred=$false;bank_association_approved=$false;account_meanings_approved=$false
         human_reviewed=$false;financial_collection_enabled=$false;financial_values_selected=$false
@@ -208,6 +232,7 @@ try {
     [ordered]@{
         version='contad-account-details-receipt-v1';completed=$true;companies=$first.companies.Count
         configured_accounts=$first.configured_accounts.Count;cash_accounts=$first.cash_accounts.Count;bank_references=$first.bank_references.Count
+        integration_account_configurations=$first.integration_account_configurations.Count
         missing_chart_accounts=@($first.configured_accounts | Where-Object {$_.catalogue_matches -eq 0}).Count
         missing_bank_catalogue=@($first.bank_references | Where-Object {$_.bank_catalogue_matches -eq 0}).Count
         missing_cash_keys=@($first.bank_references | Where-Object {-not $_.cash_key_present}).Count
