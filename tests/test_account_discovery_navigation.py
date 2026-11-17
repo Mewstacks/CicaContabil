@@ -177,6 +177,16 @@ def test_new_month_reuses_confirmed_bank_identity_and_only_requests_missing_scop
     assert "chart_owner_confirmed" in fields
     assert "branch_code" in fields
     assert "month=2026-10" in response.context["discovery_back_url"]
+    response = web["client"].post(
+        detail_url(coverage, chart, "2026-10"), confirmed(coverage, chart, "2026-10")
+    )
+    assert response.status_code == 302
+    response = web["client"].get(response.url)
+    assert response.context["discovery_prepared"]["collection_ready"]
+    assert "Conferido no vínculo existente" in response.content.decode()
+    assert "Filial do vínculo" in response.content.decode()
+    assert "Filial observada na competência" not in response.content.decode()
+    assert "Precisa de conferência" not in response.content.decode()
 
 
 def test_dismissed_candidate_is_visible_without_form_and_cannot_be_bypassed(web):

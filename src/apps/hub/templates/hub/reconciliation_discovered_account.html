@@ -9,8 +9,8 @@
     <div><dt>Código da conta contábil</dt><dd translate="no">{{ discovery_account.account_code|unlocalize }}</dd></div>
     <div><dt>Plano de contas</dt><dd translate="no">{{ discovery_account.chart_company_code|unlocalize }}</dd></div>
     <div><dt>Classificação contábil</dt><dd translate="no">{{ discovery_account.row.classification_raw|default:'Não informada' }}</dd></div>
-    <div><dt>Vínculo entre empresa e plano</dt><dd>{% if discovery_prepared.proof.chart_link.proven %}Identificado na fonte{% else %}Precisa de conferência{% endif %}</dd></div>
-    {% if discovery_known.branch_code %}<div><dt>Filial observada na competência</dt><dd translate="no">{{ discovery_known.branch_code|unlocalize }}</dd></div>{% endif %}
+    <div><dt>Vínculo entre empresa e plano</dt><dd>{% if discovery_prepared.proof.chart_link.proven %}Identificado na fonte{% elif discovery_prepared.collection_ready %}Conferido no vínculo existente{% else %}Precisa de conferência{% endif %}</dd></div>
+    {% if discovery_known.branch_code %}<div><dt>{% if discovery_prepared.collection_ready %}Filial do vínculo{% else %}Filial observada na competência{% endif %}</dt><dd translate="no">{{ discovery_known.branch_code|unlocalize }}</dd></div>{% endif %}
     <div><dt>Data da consulta</dt><dd>{{ discovery.source_observed_at|date:'d/m/Y H:i' }}</dd></div>
   </dl>
   <details class="account-provenance"><summary>Consultar detalhes da origem</summary><dl><div><dt>Tipo informado na origem</dt><dd translate="no">{{ discovery_account.row.account_type_raw|default:'Não informado' }}</dd></div><div><dt>Situação informada na origem</dt><dd translate="no">{{ discovery_account.row.account_status_raw|default:'Não informada' }}</dd></div><div><dt>Inativação informada na origem</dt><dd translate="no">{{ discovery_account.row.inactive_on_raw|default:'Não informada' }}</dd></div><div><dt>Identificação da fonte</dt><dd class="account-hash" translate="no">{{ discovery.source_file_sha256 }}</dd></div></dl></details>
