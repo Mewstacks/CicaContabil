@@ -11260,3 +11260,12 @@ próprias. O recibo offline agent-release.json continua histórico, sem reescrev
 seus flags como prova contemporânea. Novos recibos privados:svapl02-user-receipt.json,
 svapl02-installation.json,agent-after-upgrade.json,agent-review-after-upgrade.json
 e fingerprints-after-upgrade.json.
+
+
+## V-411 — Preparação das demais empresas e primeira nova coleta — EM ANDAMENTO (17/11/2026)
+
+D-372 autoriza leituras reais adicionais para cadastros e teste de coleta. Fontes146/43 retidas conferidas; permanecem43 candidatas em11 empresas,145 empresas sem conta operacional. Prévia PostgreSQL REPEATABLE READ READ ONLY executada às13:46:03UTC: extrato OFX retido com163 movimentos, hash e normalização coincidentes, conta212/8 e período2026-09, vínculo legado íntegro, agente oficial online. Pronto para pedido; não é comprovação de nova coleta. Apenas Grazi possui membership ativa habilitada; operador técnico sem identidade disponível. URL preenchida entregue ao responsável para acionar o pedido na sessão legítima.
+
+AnyDesk continua disponível no inventário, mas getApp retorna timeout(-10005); não foi falta de sessão aberta. Complemento cadastral independente em preparação, com SELECTs fixos de contas/referências bancárias, sem valores ou escrita ERP. Preservar43 candidatas e decisões anteriores; não inferir caixa→contábil nem banco a partir de nomes.
+
+Provas privadas no checkout contad-company-preparation: .tmp/company-preparation/before-operations.json, access-preview.json e pilot-preflight-before.json. O recibo preflight tem SHA eeb9e3f5bbaf50caf4bb4337a2efc520a4f5d12b04592a5f8ec83199c26ad323. Nenhuma nova consulta financeira executada nesta prévia.

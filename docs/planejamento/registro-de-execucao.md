@@ -4575,3 +4575,15 @@ Piloto retido pode iniciar testes hoje. Autonomia da carteira, revisões humanas
 amostra/métricas/recuperação e aceite integral continuam abertos; Q-47/C01/C02
 adiados e backup fora da prioridade do início dos testes. Sem deploy, chamadaIA,
 mensagem, alteração comercial ou decisão contábil em nome da cliente.
+
+
+## 17/11/2026 — D-372/V-411: preparação da carteira e coleta real em andamento
+
+- [x] Registrar nova autorização e preservar checkout canônico/alterações existentes.
+- [x] Reconciliar fontes146/43 e validar em READ ONLY o piloto/extrato/setembro:163 movimentos, vínculo íntegro e agente conectado.
+- [ ] Receber complemento cadastral real com nomes/classificações e referências bancárias comprovadas.
+- [ ] Preparar demais contas/vínculos com proveniência e registrar lacunas efetivas.
+- [ ] Receber novo snapshot automático e comparar ao OFX retido, preservando decisões.
+- [ ] Fechar evidências, checklist e disponibilidade real para testes da cliente.
+
+Autoria: única membership habilitada da cliente; pedido de coleta solicitado via URL preenchida ao responsável. Sem emprestar identidade, criar permissões ou declarar aceite contábil. Automação AnyDesk ainda timeout.
