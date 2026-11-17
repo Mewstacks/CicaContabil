@@ -1,5 +1,72 @@
 # Agente oficial CONTAD no Windows Server
 
+## Agente 1.0.13 em validação — D-371, 17/11/2026
+
+**Em validação; não executar este comando antes da publicação do pacote exato e
+entrega do hash confirmado.** A candidata 1.0.13 reúne as funções da 1.0.12 e
+corrige a espera artificial entre pedidos ativos, a recuperação após timeout e
+o diagnóstico de atualização durante processamento contínuo. CI Windows,
+pacote publicado e instalação real têm provas próprias; este procedimento não
+os declara concluídos. A última publicação comprovada é a 1.0.12 em V-408;
+o procedimento dessa versão permanece abaixo como histórico.
+
+A fila segue sequencialmente, alternando Razão e títulos. Cada par passa pelo
+controle autenticado de heartbeat/configuração/autorização e renovação; a
+sincronização cadastral completa volta a cada quatro pares ou 30 segundos,
+com o limite verificado ao final de cada par. Fila vazia mantém um minuto de
+espera. Falha de uma fonte já reportada permite tentar a outra família e
+encerra o bloco ativo; falha de transporte/autorização interrompe o ciclo.
+Timeout de comunicação entra na recuperação existente; parada real do serviço
+continua imediata. Isso não cria pedidos nem amplia consultas por si.
+
+### Atualização única, sem novo pareamento
+
+O novo `upgrade-active-queue.ps1` aceita origens **1.0.10, 1.0.11 e 1.0.12**;
+se a 1.0.13 já estiver instalada, somente verifica. O pacote final conterá os
+mesmos bytes de MSI, manifesto e atualizador aprovados no CI. Depois de o
+backend compatível e o pacote serem publicados/verificados, extrair a pasta,
+fechar o configurador e executar em Windows PowerShell x64 como administrador:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\upgrade-active-queue.ps1" `
+  -MsiPath "C:\CICA-Instalacao\CicaAgent.msi" `
+  -ExpectedSha256 "<SHA256_MINUSCULO_CONFIRMADO_NA_ENTREGA_1_0_13>"
+```
+
+O hash acima é um marcador, não um valor autorizado para execução. Preservar
+`agent.config`, identidade, DSN e segredos; o atualizador compara os bytes
+protegidos sem descriptografá-los nem pedir credenciais. Exige versão/manifesto/
+hash coerentes e serviço **Running/Auto/LocalSystem**. Não reinicia o servidor
+automaticamente; MSI 3010 conserva a pendência de reinício/verificação.
+
+A fila ativa pode permanecer em `synchronizing`. Esse estado só satisfaz a
+verificação quando `last_completed_at_utc`/`last_completed_state` comprovam um
+ciclo saudável posterior ao início do atualizador, no mesmo processo. Erro,
+espera de ativação/configuração ou reinício limpam essa memória; evidência
+antiga ou futura é recusada. `source_review_required` preserva a conferência
+pendente, e `backend_verification_required=true` permanece obrigatório.
+
+O relatório `verification.json` fica em pasta privada de Downloads. Em caso de
+erro, preservar relatório/configuração e investigar; não reinstalar, refazer
+pareamento ou substituir a configuração por outra máquina. Compartilhar apenas
+o JSON revisado, sem `agent.config` ou logs completos.
+
+### Provas ainda separadas da instalação
+
+O ensaio `test-active-queue-upgrade.ps1` é exclusivo do CI Windows descartável,
+com três origens fixas: 1.0.10 (`57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5`),
+1.0.11 (`17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2`) e
+1.0.12 (`7d075261c88408ec3ef5b93ba1c276478dc33971`). Usa configuração DPAPI
+sintética, verifica reabertura SYSTEM/reinício e exercita diagnóstico ativo,
+prova antiga/futura e erro. **Não executar esse teste no SVAPL02.**
+
+Depois da atualização real, conferir capacidades autenticadas de Razão
+(`portfolio_scope`/`automatic_counts`) e títulos (`company_scope`/
+`automatic_counts`), e a recepção íntegra do recorte solicitado pela tela.
+Versão, serviço e heartbeat isolados não comprovam leitura do ERP. Revisão das
+fontes, vínculos e decisões contábeis continua humana; não registrar aceite
+ou coleta real por causa dos ensaios sintéticos.
+
 ## Atualização única para Razão, títulos e baixas pela tela — D-369, 16/11/2026
 
 A candidata 1.0.12 reúne a busca do Razão e a nova coleta de títulos/baixas.

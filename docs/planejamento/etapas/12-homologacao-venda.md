@@ -415,6 +415,19 @@ do responsável solicitada para autenticar, sem credenciais no chat.
 - [ ] Publicação hospedada, serviço real, fontes/layout/importação, D-73,
   recuperação operacional, treinamento e aceite continuam pendentes.
 
+## Operação pontual D-317/V-319 — 06/11/2026
+
+- [x] Conferir nas máquinas web/worker que bancos principal e knowledge usam
+  Neon; no legado, sessões/TCP sem clientes externos na observação.
+- [x] Executar a alternativa autorizada de manter `cica-contabil-db` parado,
+  confirmando `stopped` e preservando máquina/volume de 3 GB para rollback.
+- [x] Conferir site/readiness 200 após parada nos domínios público e Fly,
+  banco/cache `ok` e web/worker iniciados; registrar evidências em V-319.
+- [x] Registrar que o legado permanece em CICA, sem transferência ou exclusão;
+  armazenamento preservado ainda pode gerar cobrança, conforme preços Fly.
+- [ ] Concluir os gates de recuperação operacional e homologação já existentes;
+  essa parada não comprova restore, piloto integrado ou liberação comercial.
+
 ## Implantação CONTAD — D-320/V-322 (06/11/2026)
 
 - [x] Confirmar acesso Fly/app/organização e preservar release 71/imagem/configuração
@@ -489,6 +502,18 @@ O escopo é piloto bancário autorizado; a homologação integral continua abert
 O corpus de 163 não preenche os 200 eventos independentes de D-73. O ensaio
 pontual de backup/restore anterior não equivale a recuperação recorrente/RPO.
 
+
+## Objetivo da próxima execução — D-322/V-326 (06/11/2026)
+
+- [x] Entregar prompt para finalizar as entregas contratuais CONTAD com todas
+  as empresas do escritório, estados comprovados e critérios de conclusão.
+- [ ] Cumprir implementação/regressão/Windows/jornada real, CI/publicação,
+  recuperação e métricas D-73 sobre a integração completa, sem somar replays.
+- [ ] Executar treinamento inicial e obter aceite real do responsável,
+  fechando requisitos de saída ERP sob autorização e validação Q-47.
+
+[Prompt de finalização](../../contad-prompt-finalizacao-2026-11-06.txt).
+Somente preparação documental nesta entrega, sem outra sessão, custo ou deploy.
 
 ## Execução integral CONTAD — D-323/V-327 (06/11/2026)
 
@@ -744,6 +769,164 @@ Esta preparação não instala MSI, altera coleta real ou habilita exportação.
 - [ ] D-355/V-380: C01/retenções e C02/juros adiados por indisponibilidade do Domínio; não solicitar agora. Semântica/gates continuam pendentes.
 
 
+### Candidata local dos cinco pontos — D-356/V-384 (13/11/2026)
+
+Código isolado `ecdb9a7`, branch `codex/contad-cinco-pontos`; não publicado.
+
+- [x] Escopos mensais explícitos de coleta e compatibilidade do piloto implementados/testados localmente.
+- [x] Ponte revisada captura→títulos→alocação parcial→desfazimento com proveniência e testes sintéticos.
+- [x] Sugestões IA com reserva/cotas, revisão privada e regra em rascunho; provedor real apenas simulado nos testes.
+- [x] Amostra congelada, revisão do proprietário e aferição por fatos/precisão/duração implementadas e testadas.
+- [x] Regressão PostgreSQL2207/163 subtestes, bateria final54 e .NET101 registradas com limites emV-384.
+- [ ] CI Windows/MSI/upgrade e publicação desta candidata, dentro da autorização operacional aplicável.
+- [ ] Descoberta/contas/planos e coleta recorrente da carteira inteira desde09/2026; escopo explícito não prova cobertura.
+- [ ] Semântica Q-46, saldo/história completa e vínculo bancário real; C01/C02 continuam adiados.
+- [ ] Q-08/Q-09: teto numérico e conteúdo permitido, execução IA real e revisão de sugestões CONTAD.
+- [ ] Q-47: conjunto/leiaute e importação real conferida, quando houver acesso; teste adiado nesta sessão.
+- [ ] D-73:200 fatos reais distintos revisados,95% medidos e desempenho/recuperação/aceite operacional.
+
+Não promover estas provas locais a homologação ou conclusão dos cinco pontos.
+
+
+### Candidata em revisão — V-385 (13/11/2026)
+
+- [x] PR14/código genérico publicado; Windows104/zero skips e MSI1.0.10/upgrade1.0.9→1.0.10 no CI conferidos.
+- [x] Fonte/artefatos por hash e imagem candidata local sobre a base86 preparados para revisão, sem dados reais.
+- [x] CI43426219942 integral aprovado: três builds Docker e regressões/Windows, com limites emV-385.
+- [ ] Publicação/implantação/upgrade reais e fontes/IA/retorno/amostra D-73, sob seus gates.
+
+A instalação oficial e a carteira real não foram alteradas por estas provas.
+
+
+### Operação publicada — D-357/V-386–387 (13/11/2026)
+
+- [x] PR14/15 integrados, CIs integrais e pacote final1.0.10/110 Windows aprovados.
+- [x] Backend87, migrações0038/0039 nos aliases originais,725 hashes e saúde conferidos.
+- [x] Mesmas máquinas/capacidade/configuração e dados financeiros anteriores conferidos; limites cadastrais emV-386.
+- [x] Release1.0.10/download HTTPS/hash e comando PowerShell preparados e entregues.
+- [x] Medição READ ONLY limitada do piloto em1,537s, sem fatos novos ou falso aceite.
+- [x] V-388: JSON real1.0.10/exit0/configuração preservada e comunicação posterior do mesmo oficial conferidos; source_review_required mantém gate semântico.
+- [ ] Carteira/fontes/contas/planos completos, títulos/saldos/banco Q-46, IA real Q-08/Q-09 e retorno Q-47.
+- [ ]200 fatos reais distintos revisados,95% medidos, carga/recuperação representativas e aceite D-73.
+
+Continuam válidos o adiamento do teste Domínio e os limites dos cinco pontos.
+
+
+### Sugestões reais prontas para revisão — D-359/V-395 (13/11/2026)
+
+- [x] Segunda chamada até R$0,10 adicionais autorizada expressamente e executada uma única vez, sem compra/retry.
+- [x] Lote corrigido succeeded: duas sugestões para três casos,972 entrada/58 saída/zero cache e recibo de uso conhecido.
+- [x] Primeira tentativa unknown e ambas reservas preservadas; somente duas inferências, consumo total estimado US$0,0004335.
+- [x] Ficha privada dos três casos com históricos originais/proveniência e campos de decisão entregue, sem enviar originais à IA.
+- [x] Política central/escritório desabilitados, aprovação revogada e14 grupos protegidos conferidos; zero contas/regras criadas.
+- [ ] Revisão humana dos históricos e contas ativas/analíticas, correção do item sem sugestão e rascunhos vinculados às descrições literais.
+- [ ] Ativação separada e demais critérios reais Q-46/Q-47/D-73; projeto permanece em andamento.
+
+Projeções técnicas não são condições de regra. Ficha e evidências em
+Downloads/CONTAD-sugestoes-DEPARA-para-revisar-2026-11-13.txt e
+CONTAD-evidencias-revisao-DEPARA-2026-11-13.json (ambas0600). Limites emV-395.
+
+
+### Descoberta da carteira e amostra independente — D-356/V-396 (13/11/2026)
+
+- [x] Sonda limitada a códigos/contagens de empresas A e analisador offline implementados; sem criar contas/coletas ou interpretar flags/plano.
+- [x]70 testes novos/102 com regressão local, Ruff/MyPy e22 cenários Windows específicos aprovados; PR18/CI integral iniciado.
+- [x] Download HTTPS/commit/SHA conferidos e comando com orientações comentadas entregue; AnyDesk retornou timeout.
+- [x]163 fatos bancários reais distintos congelados, referência humana vazia/previsões ocultas e ficha privada entregues.
+- [x]14 grupos protegidos conferidos; backend89/agente1.0.10 e duas chamadas IA preservados, sem custo adicional.
+- [ ] Receber/conferir o perfil real de cobertura e depois provar vínculos/escopos de contas, planos e banco antes de coleta de valores.
+- [ ] Revisão humana das sugestões e dos163 fatos, pelo menos37 fatos adicionais,95% medidos e demais critérios D-73.
+- [ ] Q-46 e retorno Q-47/C01/C02 adiados; não há aceite operacional nesta preparação.
+
+
+### Perfil real da carteira — D-356/V-397 (13/11/2026)
+
+- [x] Retorno70728bytes/SHA21136b2a…9e1231 recebido, contrato/hash e duas leituras conferidos.
+- [x]146 códigos A idênticos ao cadastro;94566 linhas agregadas em242 grupos de09/10-2026, sem valores financeiros.
+- [x]32 empresas sem linhas/14 sem parâmetros/120 cadastros de caixa sem referência bancária explicitados na matriz privada.
+- [x] CI inicial43473250820 integral aprovado; não repetir a primeira consulta ou instalação.
+- [x] Complemento fixo CTCONCILIACAO_CONTA→CTCONTAS preparado:80 testes/115 com regressão, Ruff/MyPy; CI43475605920 iniciado.
+- [ ] Windows do complemento e retorno real dos códigos configurados; conferir natureza/plano/banco antes de valores.
+- [ ] Revisão humana das sugestões/163 fatos, ao menos37 fatos adicionais e demais Q-46/Q-47/D-73.
+
+- [x] Continuidade V-397:30 cenários Windows dos dois modos aprovados, comando do complemento entregue.
+- [ ] Resultado real das contas configuradas e demais provas financeiras/aceite permanecem pendentes.
+
+
+### Contas configuradas reais — D-356/V-398 (13/11/2026)
+
+- [x] Segundo retorno21668bytes/SHA99c90475…16d01cfa conferido;43 contas em11 empresas, correspondência composta integral.
+- [x] Configurações das146 empresas idênticas entre perfis;135 sem configuração não são marcadas inativas/dispensadas.
+- [x] Ficha guiada C01–C43 com nomes retidos/proveniência entregue, campos humanos vazios e piloto preservado à parte.
+- [x]30 cenários Windows específicos e CI2270SQLite/2305PG/três builds aprovados; limites emV-398.
+- [ ] Revisão efetiva de banco/atividade/lançamentos/direção e escopos antes de coleta financeira ampliada.
+- [ ] Títulos Q-46, sugestões/contas, Q-47 adiado e amostra200/95%/desempenho/recuperação/aceite D-73.
+
+- [x] Fechamento V-398: CI43475605920 integral/110Windows e PR18 integrados; árvore final conferida, sem novo backend/MSI.
+- [ ] Confirmações contábeis e aceite continuam pendentes; perguntar onde preencher não equivale a revisão.
+
+
+### D-360/V-399 — Uso operacional no aplicativo, 13/11/2026
+
+- [x] Inspecionar sessão CONTAD autenticada e identificar desvio para classificação sem plano.
+- [x] Preparar conferência de extrato/Razão no início, revisão de registros existentes, relatório e retorno, sem ficha externa como porta de entrada.
+- [x] Validar confirmação/desfazer/CSV em dados sintéticos e isolamento/papéis na regressão local.
+- [ ] Concluir CI integral da candidata exata, implantação compatível e prova autenticada da interface publicada.
+- [ ] Manter revisão humana real, carteira ampliada, títulos/saldos/banco, DE-PARA revisado e critérios D-73 como pendências próprias.
+
+Candidata2a5ddfc/PR19, CI43487952368 em execução; release89 ainda vigente.
+Sem novo consumo IA, agente ou importação Domínio. D-360 altera prioridade
+da entrega, não cria homologação ou decisão em nome da contadora.
+
+
+### Entrega D-360/V-399 — conferência publicada, 13/11/2026
+
+- [x] CI integral da fonte451e129 aprovado e PR19 integrado com árvore idêntica.
+- [x] Backend90 implantado nas mesmas máquinas;729 hashes, readiness/worker e configuração conferidos.
+- [x] CONTAD autenticada: abrir conferência163+163, consultar revisão/candidatas e baixar CSV real.
+- [x] Confirmação/desfazer com evidência e histórico validados em ensaio sintético, sem decisões contábeis reais do executor.
+- [x] Desktop/celular, filtros/páginas/retorno, papéis e isolamento verificados no recorte desta entrega.
+- [x]14 grupos protegidos/política IA/agente preservados; guia e imagens privadas preparados, aba entregue aberta.
+- [ ] Carteira completa, semântica/vínculos de títulos, DE-PARA revisado e critérios de200 fatos/95%/desempenho/recuperação/treinamento/aceite reais.
+- [ ] Q-47/C01/C02 permanecem adiados conforme pedido humano.
+
+O percurso assistido do piloto está disponível para uso; esta prova parcial
+não encerra a etapa nem comprova homologação integral. [Limites em V-399](../../../VALIDACOES.md).
+
+
+### D-361/V-400 — Sete pontos sem intervenção externa, 13/11/2026
+
+- [x] Endurecer aceite contra troca de fonte/ficha/escopo e contexto alterado, sem criar revisão humana;69 testes+2 gatesQ-47 aprovados.
+- [x] Executar restore sintético PostgreSQL dos dois aliases/objeto/chaves, hashes íntegros/replay sem duplicação;9 guardas aprovadas.
+- [x] Reconferir offline163 fatos banco/Razão e saldos, tempos locais1,17–1,63s, sem inflar amostra/95% ou homologação.
+- [x] Preparar treinamento/ficha vinculados à release90;11 testes do percurso aprovados, piloto independe da ficha43.
+- [x] Publicar candidata genéricaff3bac3/PR20 e iniciar CI43498802673, sem dados privados ou MSI novo.
+- [x] CI43498802673 integral/PR20/main1f8d9c5 e backend91 publicados;729 hashes/14 grupos/readiness/worker/ficha163 READ ONLY conferidos, legado restaurado exatamente e parado.
+- [ ] Confirmar vínculos/contas/semânticaQ-28/Q-46, revisar DE-PARA e163 fatos, obter37 fatos adicionais e precisão95% aplicável.
+- [ ] Aprovar RPO e comprovar rotina/recuperação operacional, desempenho representativo, treinamento e aceite humanos.
+- [ ] Retomar Q-47/C01/C02 somente conforme solicitação explícita; continuam adiados.
+
+Provas e limites em [V-400](../../../VALIDACOES.md); nenhum bloqueio foi convertido em concluído.
+
+
+### D-362/V-401 — Entrega assistida atual, 16/11/2026
+
+- [x] Registrar autorização do plano e preservar alterações locais anteriores.
+- [x] Conferir árvore publicada,11 testes do percurso e saúde atual do site/banco/cache.
+- [x] Confirmar acesso existente após autenticação humana e abrir piloto163+163.
+- [x] Preparar roteiro, suporte e ficha privada sem aceite preenchido.
+- [x] Identificar a confirmação de exercício e distingui-la de conferência real.
+- [x] Conferir desfazimento do exercício e nova confirmação humana, preservando o histórico.
+- [x] Registrar revisão real declarada e nota genérica, sem inferir correção contábil.
+- [x] Baixar/verificar tecnicamente CSV atual163+163/uma alocação de cada lado; entregar cópia privada.
+- [x] Registrar resultados observados/declarados e manter aceite humano ausente.
+- [ ] Completar referência auditável, download autônomo e explicação do CSV pela cliente.
+- [ ] Obter eventual aceite humano limitado ao recorte; não presumir aceite integral.
+
+Q-28/Q-46/D-73 e recuperação continuam próprios; Q-47/C01/C02 adiados.
+As marcações acima não encerram a etapa nem a entrega integral do contrato.
+
+
 ### D-367/V-406 — Operação de títulos/baixas e DE-PARA pela cliente
 
 - [x] Revisão nativa guiada, cumulativa e restauração auditada sem alterar fonte.
@@ -766,13 +949,42 @@ Backup fora da prioridade desta rodada; Q-47/C01/C02 permanecem adiados.
 - [ ] Retorno DomínioQ-47, amostra/métricas e aceite completoD-73 seguem próprios; não repetir treinamento já relatado.
 
 
-### D-369/V-408 — publicação do autoatendimento de títulos
+### Fechamento D-369/V-408 — entrega publicada
 
-Preparar agente1.0.12, com upgrade sintético dos baselines1.0.10/1.0.11,
-configuração protegida e identidade preservadas. Uma atualização reunirá Razão
-e títulos; não instalar duas versões nem refazer pareamento. Backend/migração
-aditivos são publicados/verificados na infraestrutura atual após o CI exato.
-SVAPL02 indisponível hoje: instalação, anúncio autenticado das capacidades e
-primeira coleta real são pendências técnicas de acesso, separadas da semântica,
-contas/regras/evidência e aceite humanos. Não usar backup como bloqueio desta
-rodada. Q-47/C01/C02 permanecem adiados, sem reabrir perguntas resolvidas.
+- [x] Implementação, testes, CI, migração, pacote1.0.12 e backend98 publicados/verificados.
+- [ ] Atualização1.0.12 no SVAPL02 e recepção real; dependência técnica de acesso.
+- [ ] Fontes, dados e conferência humana das contas/relações/regras aplicáveis.
+
+**Fechamento D-369/V-408 —16/11/2026:** release98/PR27 e agente1.0.12 publicados após CI43949218680; fonte integrada/testada com árvore idêntica. Migração0041,796 hashes/14 assets, saúde/worker e15 grupos protegidos verificados. Prévia somente leitura146×12 aprovada, incluindo empresas sem conta; fonte v1 intacta e zero novas coletas/normalizações/decisões de produção. A captura fora do piloto está implementada pela tela. Resta tecnicamente aplicar1.0.12 no SVAPL02 e comprovar recepção real, quando houver acesso. Dados, vínculos, semântica e regras reais permanecem humanos; Q-47/C01/C02 adiados e backup fora da prioridade. Pacote único substitui1.0.11 pendente; não refazer pareamento/DSN nem pedir acesso novamente hoje.
+
+
+### Análise de prontidão — D-370/V-409, 17/11/2026
+
+- [x] Distinguir início de testes do piloto, autonomia das novas coletas, contrato CONTAD e suíte completa.
+- [x] Reconferir site/login/saúde, CI e fonte publicada sem mutação de negócio; capacidades do agente ainda desatualizadas.
+- [x] Consolidar parecer e roteiro do dia no documento canônico de pendências.
+- [ ] Instalar atualização 1.0.12 e comprovar coleta real antes de afirmar autonomia.
+- [ ] Corrigir P2 do histórico para uso ampliado; medir vazão real antes de lote da carteira.
+- [ ] Revisões humanas, amostra/precisão/desempenho/recuperação/aceite D-73 e retorno Q-47 próprios.
+
+Testes controlados do piloto podem começar. O primeiro treinamento/conferência
+não voltou como pendência; falta complementar autonomia/evidência já registrada
+em V-401. Backup continua fora da prioridade do início dos testes, sem encerrar
+recuperação. Nenhuma liberação integral ou aceite foi registrado por esta análise.
+
+
+## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
+
+- [x] Registrar autorização de corrigir/validar/publicar preservando dados/decisões anteriores.
+- [x] Implementar candidata e concluir revisão independente sem novo bloqueador concreto.
+- [x] Aprovar SQLite3072/53 skips/181 subtestes; última regressãoPOST coberta pela rodada focada27.
+- [x] Registrar .NET176/três Windows reservados e QA17+POST sintéticos, com seus limites.
+
+- [ ] Concluir PostgreSQL integral, CI da fonte exata, MSI limpo e upgrades diretos1.0.10/11/12.
+- [ ] Publicar e conferir hashes/assets/saúde/worker e preservação dos dados/configuração.
+- [ ] Comprovar atualização/capacidades/recepção reais no SVAPL02 antes de declarar autonomia.
+
+Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
+Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
+mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
+[V-410 e limites](../../../VALIDACOES.md).

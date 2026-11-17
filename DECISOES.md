@@ -5171,3 +5171,109 @@ A mesma baixa pode envolver contas diferentes; não impor vínculo exclusivo por
 
 
 **D-369 — integridade da interpretação no mesmo lote:** a revisão final reproduziu duas interpretações parciais conflitantes do mesmo evento fiscal entrando juntas antes de existir alocação ativa. A regra de não inventar divisão de componentes também vale dentro da própria revisão/lote: cada evento nativo (família/parcela/data/número) deve conservar seu grupo completo, e snapshots conflitantes são recusados. Isso não impede alocar parcialmente o caixa de um evento íntegro entre contas distintas; a capacidade total compartilhada permanece a mesma. Correção e regressão precedem o congelamento/publicação.
+
+
+## D-370 — Análise de prontidão para testes da cliente em 17/11/2026
+
+Origem: pedido de análise completa do projeto e verificação da possibilidade de
+entrega hoje para testes. Escopo desta rodada: auditoria documental e técnica,
+inspeção da fonte correspondente à release98, testes locais sintéticos e
+consolidação do parecer nos registros existentes. Distinguir início de testes
+do piloto, autonomia de novas coletas, conclusão do contrato CONTAD (D-301/302)
+e conclusão da suíte; manter os IDs Q/PC existentes.
+
+Preservar o checkout principal com suas alterações anteriores e os demais
+worktrees. Leituras operacionais já autorizadas em D-323/D-346 podem subsidiar
+a análise; não ampliar consultas financeiras ERP, criar pedidos, decisões ou
+dados em produção. Esta análise não solicita nova instalação, publicação,
+mensagem, consumo IA ou aceite contábil. Evidência de16/11 será identificada
+como histórica se não houver nova observação. A indisponibilidade de acesso
+informada em16/11 não será afirmada como fato novo de17/11. Q-47/C01/C02
+continuam adiados; backup permanece fora da prioridade do início dos testes,
+sem encerrar o critério de recuperação de D-73.
+
+
+## D-371 — Corrigir, validar e publicar para testes da cliente (17/11/2026)
+
+Origem: após V-409, o responsável instruiu corrigir todos os defeitos possíveis,
+validar e publicar a correção para testes hoje. Autoriza implementação e
+publicação das correções do percurso CONTAD nas etapas 03/09/11/12, em checkout
+isolado da release 98/main correspondente, preservando alterações anteriores.
+Corrigir o histórico do Razão e investigar os percursos relacionados; ampliar
+somente defeitos concretos reproduzidos, sem substituir revisão contábil ou
+homologação por implementação. Registrar refinamentos antes do comportamento
+novo dependente, incluindo eventual melhoria da cadência do agente.
+
+Validar regressões pertinentes, concorrência, isolamento, idempotência e QA
+Playwright com dados sintéticos; aplicar padrões UI/UX existentes e diretrizes
+de interface, sem redesenhar o produto. Congelar fonte exata, publicar código/CI
+e só então backend e eventual pacote compatível no ambiente e capacidade já
+existentes. Preservar configurações, segredos, dados, fontes, decisões e legado
+parado; verificar hashes, saúde, compatibilidade e dados antes/depois. O pedido
+atual fornece autorização de publicação, sem nova confirmação por rotina.
+
+A atualização do agente real mantém identidade/DSN/DPAPI e exige prova própria;
+acesso Windows ainda não observado nesta rodada. Não afirmar instalação ou
+coleta real sem evidência. Não iniciar novas consultas financeiras ERP, revisar
+contas/fontes em nome da cliente, ativar regras/IA, mudar preços/recursos, enviar
+mensagens ou efetuar importação contábil por inferência. Q-47/C01/C02 continuam
+adiados e backup fora da prioridade do início dos testes. Q-28/Q-46/D-73 mantêm
+suas evidências humanas/operacionais; nenhum bloqueio documentado vira aceite.
+
+
+Refinamento D-371 — histórico e consulta de estado. Filtrar solicitações do
+Razão pela competência no banco antes de paginar 20 por página, sem descartar
+histórico. Paginar separadamente os extratos recebidos da mesma conta (o corte
+atual de 20 também impede descobrir fontes anteriores), com links nativos,
+totais e estado na URL. Preservar empresa/conta/competência/fonte e as páginas
+independentes no retorno e retomada; página inválida não amplia a consulta.
+O polling usa somente o contexto necessário ao pedido consultado, sem carregar
+20 históricos para obter a revisão do vínculo. Isolamento e revisão corrente
+continuam obrigatórios. Não inferir período/conteúdo de fonte bancária.
+
+Refinamento D-371 — cadência ativa do agente. Publicar pacote compatível
+1.0.13, preservando SQL, contratos, escopos, identidade, DSN e DPAPI. Distinguir
+job realmente recebido/processado de revisão pendente sem novo trabalho.
+Drenar sequencialmente pares Razão→títulos enquanto houver pedidos existentes.
+Renovar o controle autenticado e reavaliar configuração/collectionEnabled/
+revogação antes de cada par; verificar cancelamento antes de cada job.
+Sincronizar novamente a carteira ao atingir quatro pares ou 30 segundos,
+com o orçamento verificado ao terminar cada par, sem interromper uma leitura
+válida nem suprimir títulos quando o Razão ultrapassar esse tempo.
+Após bloco com trabalho, o próximo ciclo pode ser imediato. Ociosidade mantém
+um minuto e falha conserva o backoff; revisão pendente sem job não gera loop
+ativo. Sem paralelismo ODBC ou criação automática de pedidos. Validar limites,
+justiça entre tipos, falha, cancelamento e revogação com transporte sintético.
+Testar instalação limpa e upgrades diretos das versões 1.0.10/11/12, mantendo
+os atualizadores e recibos históricos intactos. O pacote não comprova instalação
+real e não autoriza consulta financeira nova por si.
+
+
+Refinamento D-371 — falha no acompanhamento do Razão. O polling atual pode
+manter estado antigo sem avisar quando HTTP/JSON falha. Corrigir com timeout de
+10 segundos, aviso acessível de falha/pausa e ação explícita “Atualizar situação”,
+preservando os dados e ações anteriores. Manter intervalo de 10 segundos e
+limite de 60 rodadas, sem requisições concorrentes duplicadas ou retomada de
+coleta por GET; comprovar erro503/timeout, recuperação e teclado no navegador.
+
+
+Refinamento D-371 — diagnóstico da fila ativa e atualização. A continuação
+imediata pode tornar o estado saudável breve demais para o atualizador observar.
+Acrescentar ao diagnóstico local o último ciclo concluído e seu horário,
+preservados apenas durante synchronizing do mesmo processo/controle válido;
+limpar em erro, espera de ativação ou configuração ausente/inválida. O
+atualizador 1.0.13 só aceita synchronizing quando houver prova de ciclo saudável
+posterior ao início da atualização, com versão/configuração/serviço esperados;
+prova antiga ou erro nunca satisfaz a conclusão. Preservar source_review_required
+e backend_verification_required; isso não comprova nova coleta ou revisão
+contábil. Validar positivo, prova antiga, erro e reinício em cenários sintéticos.
+
+
+Refinamento D-371 — retomada após timeout do agente. A exceção de timeout do
+HttpClient pode ser TaskCanceledException sem cancelamento do serviço; o filtro
+atual deixa escapar toda OperationCanceledException. Tratar timeout sem token
+de parada como falha transitória com o backoff existente e diagnóstico limpo;
+propagar cancelamento real do serviço imediatamente. Testar ambos os casos com
+transporte/controle sintéticos, sem ampliar tentativas ou consultas reais.
+A revisão também confirmou perda da seleção do extrato ao salvar o vínculo;
+preservar bank_source já validado no formulário/retorno, sob o mesmo escopo.

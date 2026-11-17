@@ -31,12 +31,14 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         }
 
         TimeSpan retryDelay = TimeSpan.FromMinutes(1);
+        var nativeCycle = new NativeCollectionCycle();
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 if (!File.Exists(AgentConfig.FilePath))
                 {
+                    nativeCycle.Reset();
                     logger.LogInformation("CICA Agent is awaiting local configuration");
                     AgentRuntimeStatus.Write("awaiting_configuration",
                         "Aguardando configuração local no configurador CICA.");
@@ -58,6 +60,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     && config.SyncScope is null)
                     throw new InvalidDataException("Configure um recorte financeiro antes de sincronizar o Domínio Local.");
                 if (configurationChanged) config.Save();
+                nativeCycle.Prepare(received.CollectionEnabled, config.SyncScope?.IsActiveOnly == true, configurationChanged);
                 if (!received.CollectionEnabled)
                 {
                     AgentRuntimeStatus.Write("awaiting_activation",
@@ -69,11 +72,15 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 bool nativeReview = false;
                 if (config.SyncScope is not null)
                 {
-                    await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
+                    if (nativeCycle.SynchronizePortfolio)
+                        await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
                     if (config.SyncScope.IsActiveOnly)
                     {
-                        nativeReview = await new NativeLedgerProcessor(config, client).RunOnce(stoppingToken);
-                        nativeReview = await new NativeTitleProcessor(config, client).RunOnce(stoppingToken) || nativeReview;
+                        var result = await nativeCycle.RunAsync(
+                            cancellation => new NativeLedgerProcessor(config, client).RunOnce(cancellation),
+                            cancellation => new NativeTitleProcessor(config, client).RunOnce(cancellation),
+                            stoppingToken);
+                        nativeReview = result.RequiresReview;
                     }
                 }
                 else
@@ -93,8 +100,9 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     AgentRuntimeStatus.Write("ready", "Último ciclo concluído com sucesso.");
                 retryDelay = TimeSpan.FromMinutes(1);
             }
-            catch (Exception error) when (error is not OperationCanceledException)
+            catch (Exception error) when (WorkerFailurePolicy.Recover(error, stoppingToken))
             {
+                nativeCycle.Reset();
                 logger.LogWarning("CICA agent cycle failed with code {Code}", error.GetType().Name);
                 string state = error switch
                 {
@@ -107,7 +115,8 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 retryDelay = TimeSpan.FromMinutes(Math.Min(retryDelay.TotalMinutes * 2, 5));
                 continue;
             }
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            if (!nativeCycle.ContinueImmediately)
+                await Task.Delay(NativeCollectionCycle.IdleDelay, stoppingToken);
         }
     }
 
@@ -117,7 +126,7 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         InvalidDataException => error.Message,
         CryptographicException => "A configuração local não pôde ser aberta neste computador. Execute o configurador novamente.",
         HttpRequestException => "Não foi possível alcançar o servidor CICA. O agente tentará novamente.",
-        TaskCanceledException => "A comunicação com a CICA excedeu o tempo limite. O agente tentará novamente.",
+        OperationCanceledException => "A comunicação com a CICA excedeu o tempo limite. O agente tentará novamente.",
         _ => "O ciclo não foi concluído. Consulte o Visualizador de Eventos e o arquivo de diagnóstico.",
     };
 

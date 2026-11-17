@@ -26,7 +26,7 @@ jobs:
     # Standard public runner only; never install on a customer's/self-hosted machine.
     if: github.event.repository.private == false && inputs.probe_only != true && inputs.inventory_only != true
     runs-on: windows-2022
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -42,7 +42,7 @@ jobs:
           --results-directory agent-windows/artifacts/validation
       - name: Build MSI
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.12
+        run: ./agent-windows/build.ps1 -Version 1.0.13
       - name: Install, repair, restart, diagnose and uninstall
         shell: pwsh
         run: ./agent-windows/test-installer.ps1
@@ -55,17 +55,27 @@ jobs:
         shell: pwsh
         run: |
           ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
-          ./agent-windows/test-title-self-service-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: 17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2
           path: baseline-ledger-agent
           persist-credentials: false
-      - name: Verify configured upgrade from 1.0.11 to 1.0.12
+      - name: Verify configured upgrade from 1.0.11 to 1.0.13
         shell: pwsh
         run: |
           ./baseline-ledger-agent/agent-windows/build.ps1 -Version 1.0.11
-          ./agent-windows/test-title-self-service-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7d075261c88408ec3ef5b93ba1c276478dc33971
+          path: baseline-title-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.12 to 1.0.13
+        shell: pwsh
+        run: |
+          ./baseline-title-agent/agent-windows/build.ps1 -Version 1.0.12
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-title-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.12
       - name: Preserve tested installer
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -74,7 +84,7 @@ jobs:
             agent-windows/artifacts/CicaAgent.msi
             agent-windows/artifacts/CicaAgent.msi.sha256
             agent-windows/artifacts/release.json
-            agent-windows/artifacts/upgrade-title-self-service.ps1
+            agent-windows/artifacts/upgrade-active-queue.ps1
             agent-windows/artifacts/dependency-inventory.json
           if-no-files-found: error
           retention-days: 1

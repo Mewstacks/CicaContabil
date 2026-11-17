@@ -5,7 +5,7 @@
 - [x] Validar HTTP por papel, interseção empresa/módulo, revogação, suporte restrito, filtro inválido e consulta sem criação de jobs/decisões.
 - [x] Preparar QA isolado com 27 empresas fictícias, quatro contas, dois meses e um Razão aguardando revisão; sessões Owner/Auditor/Operator separadas.
 - [x] Concluir QA visual sintético e retestes de tabela móvel, foco/modal/Escape, impressão, temas e zoom; cinco campos e ação visíveis no celular.
-- [ ] Concluir CI integral e publicação; nesta anotação, a alteração está validada localmente e ainda não publicada.
+- [x] CI integral e release93 concluídos; carteira, competência e relatório verificados na sessão existente da cliente, em consulta sem decisão.
 - [ ] Executar treinamento e aceite com a cliente; QA técnico não substitui participação humana.
 
 V-403 reúne provas e limites. Pesquisa orienta organização, tabela e relatório;
@@ -760,6 +760,21 @@ a produção foi validada por HTTP autenticado na demo e não foi declarada como
   não decide quem pode alterar dados sincronizados nem substitui o piloto.
 
 
+### Entrega D-360/V-399 — conferência publicada, 13/11/2026
+
+- [x] CI integral da fonte451e129 aprovado e PR19 integrado com árvore idêntica.
+- [x] Backend90 implantado nas mesmas máquinas;729 hashes, readiness/worker e configuração conferidos.
+- [x] CONTAD autenticada: abrir conferência163+163, consultar revisão/candidatas e baixar CSV real.
+- [x] Confirmação/desfazer com evidência e histórico validados em ensaio sintético, sem decisões contábeis reais do executor.
+- [x] Desktop/celular, filtros/páginas/retorno, papéis e isolamento verificados no recorte desta entrega.
+- [x]14 grupos protegidos/política IA/agente preservados; guia e imagens privadas preparados, aba entregue aberta.
+- [ ] Carteira completa, semântica/vínculos de títulos, DE-PARA revisado e critérios de200 fatos/95%/desempenho/recuperação/treinamento/aceite reais.
+- [ ] Q-47/C01/C02 permanecem adiados conforme pedido humano.
+
+O percurso assistido do piloto está disponível para uso; esta prova parcial
+não encerra a etapa nem comprova homologação integral. [Limites em V-399](../../../VALIDACOES.md).
+
+
 ### D-367/V-406 — Títulos/baixas e DE-PARA operáveis pela interface
 
 - [x] Fonte retida → revisão por parcela → prévia → publicação cumulativa.
@@ -780,12 +795,41 @@ Nenhum teste sintético substitui fonte/semântica/aceite reais. Backup fora da 
 - [ ] Prova da nova coleta real após atualização do agente no servidor.
 
 
-### D-369/V-408 — títulos e baixas de toda a carteira
+### Fechamento D-369/V-408 — entrega publicada
 
-Jornada implementada: seleção pesquisável de empresas, competências inicial/final,
-prévia explícita, solicitação em lote, histórico paginado, estado da conexão,
-retomada e fonte por empresa. Conta bancária é escolhida na revisão financeira;
-sem conta, há caminho para cadastro da empresa correta. Recepção via polling
-não confirma vínculo financeiro. QA sintético cobre solicitação/recepção/revisão,
-alocação/histórico/relatório,375/1440px, claro/escuro e erros/retomada; resultados
-exatos e publicação emV-408. Uso real continua dependendo da atualização1.0.12.
+- [x] Implementação, testes, CI, migração, pacote1.0.12 e backend98 publicados/verificados.
+- [ ] Atualização1.0.12 no SVAPL02 e recepção real; dependência técnica de acesso.
+- [ ] Fontes, dados e conferência humana das contas/relações/regras aplicáveis.
+
+**Fechamento D-369/V-408 —16/11/2026:** release98/PR27 e agente1.0.12 publicados após CI43949218680; fonte integrada/testada com árvore idêntica. Migração0041,796 hashes/14 assets, saúde/worker e15 grupos protegidos verificados. Prévia somente leitura146×12 aprovada, incluindo empresas sem conta; fonte v1 intacta e zero novas coletas/normalizações/decisões de produção. A captura fora do piloto está implementada pela tela. Resta tecnicamente aplicar1.0.12 no SVAPL02 e comprovar recepção real, quando houver acesso. Dados, vínculos, semântica e regras reais permanecem humanos; Q-47/C01/C02 adiados e backup fora da prioridade. Pacote único substitui1.0.11 pendente; não refazer pareamento/DSN nem pedir acesso novamente hoje.
+
+
+### Inspeção de prontidão — D-370/V-409, 17/11/2026
+
+- [x] Smoke Playwright local de sete páginas, 375/1440 px, claro/escuro: 28 verificações e três de navegação/teclado aprovadas.
+- [x] Preservar 92 arquivos do QA anterior; usar cópias de bases, mídia e sessão inteiramente sintéticas; encerrar servidor/browser próprios.
+- [x] Reproduzir P2 do histórico do Razão: pedidos anteriores podem ficar invisíveis após o limite de 20, antes do filtro de competência.
+- [ ] Corrigir histórico antes do uso ampliado; nenhum código foi alterado nesta análise.
+- [ ] Cliente executar e avaliar seus cenários reais; smoke não constitui aceite contábil ou usabilidade homologada.
+
+DE-PARA coberto apenas na lista vazia neste smoke. Evidências completas e
+limites em V-409; roteiro vigente no documento canônico de pendências.
+
+
+## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
+
+- [x] Conferir43 pedidos/23 extratos sintéticos alcançáveis, páginas/mês/voltar/retomada.
+- [x] Validar375/1440px claro/escuro, paisagem, teclado e erro de página sem overflow.
+- [x] Comprovar503/JSON inválido/timeout10s, recuperação e pausa60rodadas aceleradas.
+- [x] Aprovar17 verificações mais POST pelo formulário real preservando fonte/páginas.
+- [x] Congelar QA, preservar quatro capturas375/1440px claro/escuro e encerrar browser/servidor próprios.
+- [ ] Cliente executar seus cenários reais; QA sintético não é homologação contábil.
+
+- [ ] Concluir PostgreSQL integral, CI da fonte exata, MSI limpo e upgrades diretos1.0.10/11/12.
+- [ ] Publicar e conferir hashes/assets/saúde/worker e preservação dos dados/configuração.
+- [ ] Comprovar atualização/capacidades/recepção reais no SVAPL02 antes de declarar autonomia.
+
+Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
+Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
+mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
+[V-410 e limites](../../../VALIDACOES.md).

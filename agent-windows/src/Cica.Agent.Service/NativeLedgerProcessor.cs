@@ -8,7 +8,7 @@ namespace Cica.Agent.Service;
 
 internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient client)
 {
-    internal async Task<bool> RunOnce(CancellationToken token)
+    internal async Task<NativeCollectionOutcome> RunOnce(CancellationToken token)
     {
         using JsonDocument response = await NativeLedgerPlan.NextAutomaticJob((capability, cancellation) =>
             client.PostAsync("api/agent/v2/ledger/next", capability switch {
@@ -18,7 +18,8 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
             }, cancellation), token);
         var job = response.RootElement.GetProperty("job");
         if (job.ValueKind == JsonValueKind.Null)
-            return response.RootElement.TryGetProperty("review_required", out var review) && review.GetBoolean();
+            return NativeCollectionOutcome.Idle(
+                response.RootElement.TryGetProperty("review_required", out var review) && review.GetBoolean());
         var plan = new NativeLedgerPlan(job);
         byte[] content;
         try
@@ -32,25 +33,25 @@ internal sealed class NativeLedgerProcessor(AgentConfig config, AgentClient clie
             if (stable is null)
             {
                 await Fail(plan, "source_changed", token);
-                return true;
+                return NativeCollectionOutcome.Rejected();
             }
             content = stable;
         }
         catch (OdbcException)
         {
             await Fail(plan, "source_unavailable", token);
-            return true;
+            return NativeCollectionOutcome.Rejected();
         }
         catch (InvalidDataException)
         {
             await Fail(plan, "source_contract", token);
-            return true;
+            return NativeCollectionOutcome.Rejected();
         }
         using JsonDocument completed = await client.PostAsync($"api/agent/v2/ledger/{plan.Id}/complete", new {
             scope_revision = plan.Revision, contract_hash = plan.ContractHash,
             content_sha256 = NativeLedgerPlan.Digest(content), content_base64 = Convert.ToBase64String(content),
         }, token);
-        return completed.RootElement.GetProperty("state").GetString() != "imported";
+        return NativeCollectionOutcome.Completed(completed.RootElement.GetProperty("state").GetString() != "imported");
     }
 
     private async Task Fail(NativeLedgerPlan plan, string code, CancellationToken token)

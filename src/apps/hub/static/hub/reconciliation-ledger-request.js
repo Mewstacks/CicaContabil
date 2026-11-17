@@ -48,28 +48,47 @@
     });
   });
   const rows = [...document.querySelectorAll('[data-ledger-status-url]')];
+  const notice = document.querySelector('[data-ledger-poll-notice]');
+  const announce = (text) => { if (notice) { notice.textContent = text; notice.hidden = !text; } };
+  const localTarget = (value) => {
+    if (typeof value !== 'string') throw new Error('invalid-target');
+    if (!value) return '';
+    const target = new URL(value, window.location.href);
+    if (target.origin !== window.location.origin) throw new Error('invalid-target');
+    return target.href;
+  };
   let rounds = 0;
-  const refresh = async () => {
-    if (document.hidden) { window.setTimeout(refresh, 10000); return; }
-    rounds += 1;
-    await Promise.allSettled(rows.map(async (row) => {
-      if (!row.dataset.ledgerStatusUrl) return;
-      const response = await fetch(row.dataset.ledgerStatusUrl, {credentials: 'same-origin', cache: 'no-store', headers: {'Accept': 'application/json'}});
-      if (!response.ok) return;
+  const refreshRow = async (row) => {
+    if (!row.dataset.ledgerStatusUrl) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch(row.dataset.ledgerStatusUrl, {
+        credentials: 'same-origin', cache: 'no-store', headers: {'Accept': 'application/json'},
+        signal: controller.signal,
+      });
+      if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) throw new Error('unavailable');
       const data = await response.json();
-      row.querySelector('[data-ledger-state]').textContent = data.label;
-      row.querySelector('[data-ledger-detail]').textContent = data.detail || '';
+      if (!data || typeof data.label !== 'string' || typeof data.detail !== 'string'
+          || typeof data.status !== 'string' || typeof data.poll !== 'boolean'
+          || typeof data.can_retry !== 'boolean') throw new Error('invalid-status');
+      const conferenceUrl = localTarget(data.conference_url);
+      const retryUrl = data.can_retry ? localTarget(data.retry_url) : '';
+      if (data.can_retry && (!retryUrl || typeof data.retry_key !== 'string'
+          || typeof data.mapping_revision !== 'string')) throw new Error('invalid-retry');
+      // Do not change any retained state or action until the complete response is validated.
+      const label = row.querySelector('[data-ledger-state]');
+      label.textContent = data.label;
+      label.className = `status-badge ${['imported', 'empty'].includes(data.status) ? 'is-active' : ['review', 'failed'].includes(data.status) ? 'is-warning' : 'is-muted'}`;
+      row.querySelector('[data-ledger-detail]').textContent = data.detail;
       const link = row.querySelector('[data-ledger-conference]');
-      if (data.conference_url) {
-        const target = new URL(data.conference_url, window.location.href);
-        if (target.origin === window.location.origin) { link.href = target.href; link.hidden = false; }
-      }
+      link.hidden = !conferenceUrl;
+      if (conferenceUrl) link.href = conferenceUrl;
       const actions = row.querySelector('[data-ledger-actions]');
-      if (data.can_retry && data.retry_url && !actions.querySelector('form')) {
-        const target = new URL(data.retry_url, window.location.href);
+      if (data.can_retry && !actions.querySelector('form')) {
         const csrf = document.querySelector('input[name=csrfmiddlewaretoken]');
-        if (target.origin === window.location.origin && csrf) {
-          const form = document.createElement('form'); form.method = 'post'; form.action = target.href;
+        if (csrf) {
+          const form = document.createElement('form'); form.method = 'post'; form.action = retryUrl;
           Object.entries({csrfmiddlewaretoken: csrf.value, request_key: data.retry_key,
             expected_mapping_revision: data.mapping_revision}).forEach(([name, value]) => {
             const input = document.createElement('input'); input.type = 'hidden';
@@ -82,8 +101,21 @@
         }
       }
       if (!data.poll) delete row.dataset.ledgerStatusUrl;
-    }));
-    if (rounds < 60 && rows.some((row) => row.dataset.ledgerStatusUrl)) window.setTimeout(refresh, 10000);
+    } finally { window.clearTimeout(timeout); }
+  };
+  const refresh = async () => {
+    if (document.hidden) { window.setTimeout(refresh, 10000); return; }
+    rounds += 1;
+    const results = await Promise.allSettled(rows.map(refreshRow));
+    if (results.some((result) => result.status === 'rejected')) {
+      announce('Não foi possível atualizar agora. A última situação foi preservada; use Atualizar situação para conferir novamente.');
+    } else {
+      announce('Situação das solicitações atualizada.');
+    }
+    if (rows.some((row) => row.dataset.ledgerStatusUrl)) {
+      if (rounds < 60) window.setTimeout(refresh, 10000);
+      else announce('A atualização automática foi pausada. Use Atualizar situação para continuar acompanhando.');
+    }
   };
   if (rows.length) window.setTimeout(refresh, 10000);
 })();

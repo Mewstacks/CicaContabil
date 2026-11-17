@@ -21,5 +21,8 @@
     <Compile Include="../../src/Cica.Agent.Service/AtomicConfigurationFile.cs" Link="AtomicConfigurationFile.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentAuthentication.cs" Link="AgentAuthentication.cs" />
     <Compile Include="../../src/Cica.Agent.Service/AgentCollectionGate.cs" Link="AgentCollectionGate.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/NativeCollectionCycle.cs" Link="NativeCollectionCycle.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/RuntimeCycleEvidence.cs" Link="RuntimeCycleEvidence.cs" />
+    <Compile Include="../../src/Cica.Agent.Service/WorkerFailurePolicy.cs" Link="WorkerFailurePolicy.cs" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,6 @@
 param(
   [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')]
-  [string]$Version = '1.0.12'
+  [string]$Version = '1.0.13'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,7 +46,7 @@ $msi = Get-ChildItem -LiteralPath (Join-Path $root 'installer\bin') -Filter '*.m
 if (-not $msi) { throw 'O MSI não foi gerado.' }
 Copy-Item -LiteralPath $msi.FullName -Destination (Join-Path $artifacts 'CicaAgent.msi') -Force
 $finalMsi = Join-Path $artifacts 'CicaAgent.msi'
-Copy-Item -LiteralPath (Join-Path $root 'upgrade-title-self-service.ps1') -Destination $artifacts -Force
+Copy-Item -LiteralPath (Join-Path $root 'upgrade-active-queue.ps1') -Destination $artifacts -Force
 $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $finalMsi
 $hash.Hash.ToLowerInvariant() + '  CicaAgent.msi' |
   Set-Content -LiteralPath (Join-Path $artifacts 'CicaAgent.msi.sha256') -Encoding ascii
