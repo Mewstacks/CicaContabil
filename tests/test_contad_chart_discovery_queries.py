@@ -134,19 +134,19 @@ def test_duplicate_parameters_are_visible_to_reader_cardinality_rejection(source
     [
         (
             "ctcontas",
-            100001,
+            1000001,
             "INSERT INTO bethadba.ctcontas VALUES(99,?,'Name','1','A','A',NULL)",
             [1, 99, 90],
         ),
         (
             "ctplanocontas",
-            100001,
+            1000001,
             "INSERT INTO bethadba.CTPLANOCONTAS VALUES(99,1,?,'Name','1','A','A',NULL)",
             [1, 99, 90],
         ),
         (
             "ctnatureza_conta",
-            10001,
+            100001,
             "INSERT INTO bethadba.ctnatureza_conta VALUES(99,?,'1','X','Z')",
             [1, 99, 90],
         ),
@@ -168,7 +168,7 @@ def test_limit_plus_one_exposes_overflow_instead_of_silent_truncation(
     source, table, count, insert, params
 ):
     source.executemany(insert, ((i,) for i in range(1000, 1000 + count)))
-    assert len(source.execute(queries()[table], params).fetchall()) == count
+    assert source.execute("SELECT COUNT(*) FROM (" + queries()[table] + ")", params).fetchone()[0] == count
 
 
 def test_fixed_metadata_queries_are_bounded_and_not_business_sql():
@@ -179,3 +179,15 @@ def test_fixed_metadata_queries_are_bounded_and_not_business_sql():
     assert all("u.user_name=?" in sql or "fu.user_name=?" in sql for sql in metadata)
     assert all("SELECT TOP " in sql and "ORDER BY" in sql for sql in metadata)
     assert all("bethadba." not in sql for sql in metadata)
+
+
+def test_stream_catalogue_query_does_not_truncate_above_one_hundred_thousand(source):
+    source.executemany(
+        "INSERT INTO bethadba.ctcontas VALUES(99,?,'Name','1','A','A',NULL)",
+        ((i,) for i in range(1000, 101005)),
+    )
+    sql = queries()["ctcontas"]
+    assert source.execute("SELECT COUNT(*) FROM (" + sql + ")", [1, 99, 90]).fetchone()[0] == 100009
+    assert "ORDER BY c.codi_emp,c.codi_cta" in sql
+    assert "ORDER BY c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA" in queries()["ctplanocontas"]
+    assert "ORDER BY n.codi_emp,n.ordem" in queries()["ctnatureza_conta"]

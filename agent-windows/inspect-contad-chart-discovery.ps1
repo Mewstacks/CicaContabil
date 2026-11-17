@@ -1,20 +1,22 @@
 #requires -Version 5.1
 <# D-373/Q-28. Fixed cadastral SELECTs only. Never reads agent.config, writes ERP,
-   selects transaction values or infers a cash-to-ledger mapping. Private JSON stays local. #>
+   selects transaction values or infers a cash-to-ledger mapping. Private ZIP stays local. #>
 [CmdletBinding()]
 param()
 $ErrorActionPreference='Stop'
 if (-not [Environment]::Is64BitProcess) {throw 'Use Windows PowerShell de 64 bits.'}
 Add-Type -AssemblyName System.Data
+Add-Type -AssemblyName System.IO.Compression
 $connection=$null; $builder=$null; $credential=$null; $timer=$null
 $stage='credential_prompt'; $reason='UNCLASSIFIED'; $outputDirectory=$null
+$completed=$false; $readDirectories=@()
 $textFailure=$null
 $periodStart=[DateTime]::new(2026,9,1); $periodEnd=[DateTime]::new(2026,12,1)
 $expectedCompanyCount=146
 $expectedCompanyCodeSha256='4ab91c9e80c1b20275c5878b3ec3f844deec7f6b155d94fdb90b79fbf6626f55'
 function Reject-Details {param([string]$Code); $script:reason=$Code; throw 'Descoberta cadastral recusado.'}
 function Check-Deadline {
-    if ($null -ne $timer -and $timer.Elapsed.TotalSeconds -gt 600) {Reject-Details 'TIME_LIMIT'}
+    if ($null -ne $timer -and $timer.Elapsed.TotalSeconds -gt 1800) {Reject-Details 'TIME_LIMIT'}
 }
 function Reject-SourceText {
     param([string]$Field,[object]$Value,[int]$Limit,[string]$Violation)
@@ -69,13 +71,13 @@ function Assert-SourceText {
     # private JSON. Persistence must encode NUL reversibly before PostgreSQL JSONB.
 }
 function Read-Details {
-    param([string]$Query,[string[]]$Fields,[int]$Limit,[object[]]$Values=@('A'))
+    param([string]$Query,[string[]]$Fields,[int]$Limit,[object[]]$Values=@('A'),[object]$Sink=$null)
     Check-Deadline
     $command=$connection.CreateCommand(); $reader=$null
     $textLimits=@{account_name_raw=150;classification_raw=20;account_type_raw=1;account_status_raw=1;selection_raw=1;agency_raw=10;account_identifier_raw=30;bank_name_raw=100;comp_pad_raw=1;branch_parameter_raw=1;nature_raw=1;group_raw=1}
     $nullable=@('parameter_company_code','codi_pad_raw','comp_pad_raw','i_planocontas_raw','cash_account_parameter_raw','branch_parameter_raw','catalogue_account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw','selection_raw','cash_type_raw','bank_id_raw','bank_catalogue_id','bank_code_raw','bank_name_raw','integration_started_on_raw')
     try {
-        $command.CommandText=$Query; $command.CommandTimeout=40
+        $command.CommandText=$Query; $command.CommandTimeout=120
         foreach ($value in $Values) {
             if ($value -is [DateTime]) {$type=[System.Data.Odbc.OdbcType]::Date}
             elseif ($value -is [string]) {$type=[System.Data.Odbc.OdbcType]::VarChar}
@@ -84,10 +86,10 @@ function Read-Details {
         }
         $reader=$command.ExecuteReader()
         if ($reader.FieldCount -ne $Fields.Count) {Reject-Details 'COLUMN_COUNT'}
-        $rows=New-Object 'System.Collections.Generic.List[object]'
+        $rows=New-Object 'System.Collections.Generic.List[object]'; $count=0
         while ($reader.Read()) {
             Check-Deadline
-            if ($rows.Count -ge $Limit) {Reject-Details 'ROW_LIMIT'}
+            if ($count -ge $Limit) {Reject-Details 'ROW_LIMIT'}
             $row=[ordered]@{}
             for ($i=0;$i -lt $Fields.Count;$i++) {
                 $field=$Fields[$i]
@@ -110,17 +112,18 @@ function Read-Details {
                     $row[$field]=$number
                 }
             }
-            $rows.Add($row)
+            $count++
+            if ($null -eq $Sink) {$rows.Add($row)} else {Write-CatalogueRow $Sink $row}
         }
         Check-Deadline
-        return ,$rows.ToArray()
+        if ($null -eq $Sink) {return ,$rows.ToArray()}
     } finally {if ($null -ne $reader) {$reader.Dispose()}; $command.Dispose()}
 }
 function Read-CatalogRows {
     param([string]$Query, [object[]]$Values, [string[]]$Fields, [int]$Limit)
     $command=$connection.CreateCommand(); $reader=$null
     try {
-        $command.CommandTimeout=40; $command.CommandText=$Query
+        $command.CommandTimeout=120; $command.CommandText=$Query
         foreach ($value in $Values) {
             $parameter=$command.Parameters.Add('p',[System.Data.Odbc.OdbcType]::VarChar,128)
             $parameter.Value=[string]$value
@@ -129,7 +132,8 @@ function Read-CatalogRows {
         if ($reader.FieldCount -ne $Fields.Count) { throw 'Contrato de catálogo incompatível.' }
         $rows=New-Object 'System.Collections.Generic.List[object]'
         while ($reader.Read()) {
-            if ($rows.Count -ge $Limit -or $timer.Elapsed.TotalSeconds -gt 600) { throw 'Limite do complemento excedido.' }
+            Check-Deadline
+            if ($rows.Count -ge $Limit) { throw 'Limite do complemento excedido.' }
             $row=[ordered]@{}
             for ($i=0; $i -lt $Fields.Count; $i++) {
                 $field=$Fields[$i]
@@ -204,7 +208,57 @@ ORDER BY f.foreign_table_id, f.foreign_index_id, ic.sequence
     return [ordered]@{targets=$targets;tables=$tables;key_columns=$keys;relation_columns=$relations}
 }
 
+function New-CatalogueSink {
+    param([string]$Kind,[string]$Directory,[object]$Owners,[object]$Requested)
+    $names=@{chart_accounts='chart-accounts.jsonl';plan_template_accounts='plan-template-accounts.jsonl';nature_rules='nature-rules.jsonl'}
+    $path=Join-Path $Directory $names[$Kind]
+    $rowLimit=1000000; $byteLimit=536870912
+    if ($Kind -eq 'nature_rules') {$rowLimit=100000; $byteLimit=33554432}
+    return @{kind=$Kind;file=$names[$Kind];path=$path;rows=[long]0;bytes=[long]0;row_limit=$rowLimit;byte_limit=$byteLimit;previous=$null;owners=$Owners;requested=$Requested;matched=@{};stream=[IO.File]::Open($path,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)}
+}
+function Write-CatalogueRow {
+    param([object]$Sink,[object]$Row)
+    if ($Sink.rows -ge $Sink.row_limit) {Reject-Details 'ROW_LIMIT'}
+    if (-not $Sink.owners.Contains($Row.chart_company_code)) {Reject-Details 'CATALOGUE_SCOPE'}
+    if ($Sink.kind -eq 'nature_rules') {
+        if ($Row.rule_order -gt 255) {Reject-Details 'NATURE_SCOPE'}
+        if ($null -eq $Row.classification_raw) {Reject-Details 'CATALOGUE_NULL'}
+        $key=@([long]$Row.chart_company_code,[long]$Row.rule_order)
+    } else {
+        if ($Row.account_code -lt 1) {Reject-Details 'CATALOGUE_SCOPE'}
+        foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw')) {if ($null -eq $Row[$field]) {Reject-Details 'CATALOGUE_NULL'}}
+        $key=@([long]$Row.chart_company_code,[long]$Row.account_code)
+        if ($Sink.kind -eq 'plan_template_accounts') {
+            Assert-SourceText 'account_name_raw' $Row.account_name_raw 60
+            $key=@([long]$Row.chart_company_code,[long]$Row.plan_id_raw,[long]$Row.account_code)
+        }
+    }
+    # Queries order by the complete numeric key. Strict monotonicity proves
+    # uniqueness without keeping a million keys or catalogue objects in memory.
+    if ($null -ne $Sink.previous) {
+        $comparison=0
+        for ($i=0;$i -lt $key.Count;$i++) {
+            if ($key[$i] -lt $Sink.previous[$i]) {$comparison=-1;break}
+            if ($key[$i] -gt $Sink.previous[$i]) {$comparison=1;break}
+        }
+        if ($comparison -le 0) {Reject-Details 'CATALOGUE_CARDINALITY'}
+    }
+    $Sink.previous=$key
+    if ($Sink.kind -eq 'chart_accounts') {
+        $lookup='{0}:{1}' -f $Row.chart_company_code,$Row.account_code
+        if ($Sink.requested.ContainsKey($lookup)) {$Sink.matched[$lookup]=$Row}
+    }
+    $line=[Text.Encoding]::UTF8.GetBytes(($Row | ConvertTo-Json -Depth 3 -Compress)+"`n")
+    if ($Sink.bytes+$line.Length -gt $Sink.byte_limit) {Reject-Details 'OUTPUT_LIMIT'}
+    $Sink.stream.Write($line,0,$line.Length); $Sink.bytes+=$line.Length; $Sink.rows++
+}
+function Close-CatalogueSink {
+    param([object]$Sink)
+    if ($null -ne $Sink.stream) {$Sink.stream.Dispose();$Sink.stream=$null}
+    return [ordered]@{file=$Sink.file;rows=$Sink.rows;bytes=$Sink.bytes;sha256=(Get-FileHash -LiteralPath $Sink.path -Algorithm SHA256).Hash.ToLowerInvariant()}
+}
 function Read-Snapshot {
+    param([string]$Directory)
     $script:stage='reading_active_company_codes'
     $companies=Read-Details -Limit 500 -Fields @('company_code','parameter_company_code','codi_pad_raw','comp_pad_raw','i_planocontas_raw','cash_account_parameter_raw','branch_parameter_raw') -Query @'
 SELECT TOP 501 g.codi_emp,p.codi_emp,p.codi_pad,p.comp_pad,p.I_PLANOCONTAS,p.ccxa_par,p.fili_par
@@ -348,70 +402,55 @@ ORDER BY l.codi_emp,l.CODI_EMP_PLANO,l.fili_lan,YEAR(l.data_lan),MONTH(l.data_la
     foreach ($item in @($configured)+@($equivalents)+@($usage)) {[void]$ownerSet.Add($item.chart_company_code)}
     $owners=@($ownerSet | Sort-Object)
     if ($owners.Count -gt 600) {Reject-Details 'OWNER_LIMIT'}
-    $charts=New-Object 'System.Collections.Generic.List[object]'
-    $templates=New-Object 'System.Collections.Generic.List[object]'
-    $natures=New-Object 'System.Collections.Generic.List[object]'
+    $requested=@{}
+    foreach ($item in $configured) {$requested[('{0}:{1}' -f $item.chart_company_code,$item.account_code)]=$true}
+    $charts=$null; $templates=$null; $natures=$null
+    try {
+        $charts=New-CatalogueSink 'chart_accounts' $Directory $ownerSet $requested
+        $templates=New-CatalogueSink 'plan_template_accounts' $Directory $ownerSet $requested
+        $natures=New-CatalogueSink 'nature_rules' $Directory $ownerSet $requested
     for ($offset=0;$offset -lt $owners.Count;$offset+=100) {
         $last=[Math]::Min($offset+99,$owners.Count-1)
         $batch=@($owners[$offset..$last]); $placeholders=(@($batch | ForEach-Object {'?'}) -join ',')
         $script:stage='reading_complete_chart_accounts'
         $query=@'
-SELECT TOP 100001 c.codi_emp,c.codi_cta,c.nome_cta,c.clas_cta,c.tipo_cta,c.SITUACAO_CTA,c.DATAINATIVA_CTA
+SELECT TOP 1000001 c.codi_emp,c.codi_cta,c.nome_cta,c.clas_cta,c.tipo_cta,c.SITUACAO_CTA,c.DATAINATIVA_CTA
 FROM bethadba.ctcontas c WHERE c.codi_emp IN (__OWNERS__)
 ORDER BY c.codi_emp,c.codi_cta
 '@
-        $rows=Read-Details -Limit 100000 -Values $batch -Fields @('chart_company_code','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
-        foreach ($row in $rows) {$charts.Add($row)}
-        if ($charts.Count -gt 100000) {Reject-Details 'ROW_LIMIT'}
+        Read-Details -Limit 1000000 -Sink $charts -Values $batch -Fields @('chart_company_code','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
         $script:stage='reading_plan_template_accounts'
         $query=@'
-SELECT TOP 100001 c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA,c.NOME_CTA,c.CLAS_CTA,c.TIPO_CTA,c.SITUACAO_CTA,c.DATAINATIVA_CTA
+SELECT TOP 1000001 c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA,c.NOME_CTA,c.CLAS_CTA,c.TIPO_CTA,c.SITUACAO_CTA,c.DATAINATIVA_CTA
 FROM bethadba.CTPLANOCONTAS c WHERE c.CODI_EMP IN (__OWNERS__)
 ORDER BY c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA
 '@
-        $rows=Read-Details -Limit 100000 -Values $batch -Fields @('chart_company_code','plan_id_raw','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
-        foreach ($row in $rows) {$templates.Add($row)}
-        if ($templates.Count -gt 100000) {Reject-Details 'ROW_LIMIT'}
+        Read-Details -Limit 1000000 -Sink $templates -Values $batch -Fields @('chart_company_code','plan_id_raw','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
         $script:stage='reading_literal_nature_rules'
         $query=@'
-SELECT TOP 10001 n.codi_emp,n.ordem,n.clas_cta,n.natureza,n.grupo
+SELECT TOP 100001 n.codi_emp,n.ordem,n.clas_cta,n.natureza,n.grupo
 FROM bethadba.ctnatureza_conta n WHERE n.codi_emp IN (__OWNERS__)
 ORDER BY n.codi_emp,n.ordem
 '@
-        $rows=Read-Details -Limit 10000 -Values $batch -Fields @('chart_company_code','rule_order','classification_raw','nature_raw','group_raw') -Query $query.Replace('__OWNERS__',$placeholders)
-        foreach ($row in $rows) {$natures.Add($row)}
-        if ($natures.Count -gt 10000) {Reject-Details 'ROW_LIMIT'}
+        Read-Details -Limit 100000 -Sink $natures -Values $batch -Fields @('chart_company_code','rule_order','classification_raw','nature_raw','group_raw') -Query $query.Replace('__OWNERS__',$placeholders)
     }
-    foreach ($collection in @(@{items=$charts;template=$false},@{items=$templates;template=$true})) {
-        $keys.Clear()
-        foreach ($item in $collection.items) {
-            if (-not $ownerSet.Contains($item.chart_company_code) -or $item.account_code -lt 1) {Reject-Details 'CATALOGUE_SCOPE'}
+        foreach ($item in $configured) {
             $key='{0}:{1}' -f $item.chart_company_code,$item.account_code
-            if ($collection.template) {$key+=':'+$item.plan_id_raw}
-            if (-not $keys.Add($key)) {Reject-Details 'CATALOGUE_CARDINALITY'}
-            foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw')) {if ($null -eq $item[$field]) {Reject-Details 'CATALOGUE_NULL'}}
-            if ($collection.template) {Assert-SourceText 'account_name_raw' $item.account_name_raw 60}
-        }
-    }
-    $chartByKey=@{}
-    foreach ($item in $charts) {$chartByKey[('{0}:{1}' -f $item.chart_company_code,$item.account_code)]=$item}
-    foreach ($item in $configured) {
-        $key='{0}:{1}' -f $item.chart_company_code,$item.account_code
-        if ($chartByKey.ContainsKey($key) -ne ($item.catalogue_matches -eq 1)) {Reject-Details 'CATALOGUE_INCONSISTENT'}
-        if ($item.catalogue_matches -eq 1) {
-            foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw')) {
-                if (-not [object]::Equals($item[$field],$chartByKey[$key][$field])) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+            if ($charts.matched.ContainsKey($key) -ne ($item.catalogue_matches -eq 1)) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+            if ($item.catalogue_matches -eq 1) {
+                foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw')) {
+                    if (-not [object]::Equals($item[$field],$charts.matched[$key][$field])) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+                }
             }
         }
-    }
-    $keys.Clear()
-    foreach ($item in $natures) {
-        if (-not $ownerSet.Contains($item.chart_company_code) -or $item.rule_order -gt 255) {Reject-Details 'NATURE_SCOPE'}
-        if (-not $keys.Add(('{0}:{1}' -f $item.chart_company_code,$item.rule_order))) {Reject-Details 'NATURE_CARDINALITY'}
-        if ($null -eq $item.classification_raw) {Reject-Details 'CATALOGUE_NULL'}
+        $chartDescriptor=Close-CatalogueSink $charts
+        $templateDescriptor=Close-CatalogueSink $templates
+        $natureDescriptor=Close-CatalogueSink $natures
+    } finally {
+        foreach ($sink in @($charts,$templates,$natures)) {if ($null -ne $sink -and $null -ne $sink.stream) {$sink.stream.Dispose();$sink.stream=$null}}
     }
     $metadata=Read-DiscoveryMetadata
-    return [ordered]@{companies=$companies;observed_chart_usage=$usage;chart_owners=@($owners | ForEach-Object {[ordered]@{chart_company_code=$_}});chart_accounts=$charts.ToArray();plan_template_accounts=$templates.ToArray();nature_rules=$natures.ToArray();configured_accounts=$configured;equivalent_accounts=$equivalents;cash_accounts=$cash;bank_references=$banks;integration_account_configurations=$integrations;metadata=$metadata}
+    return [ordered]@{companies=$companies;observed_chart_usage=$usage;chart_owners=@($owners | ForEach-Object {[ordered]@{chart_company_code=$_}});chart_accounts=$chartDescriptor;plan_template_accounts=$templateDescriptor;nature_rules=$natureDescriptor;configured_accounts=$configured;equivalent_accounts=$equivalents;cash_accounts=$cash;bank_references=$banks;integration_account_configurations=$integrations;metadata=$metadata}
 }
 try {
     $credential=Get-Credential -UserName 'EXTERNO' -Message 'Descoberta cadastral CONTAD: informe a credencial local do Dominio. Nao envie senha ao chat.'
@@ -442,16 +481,28 @@ try {
         $names=@($columns.Rows | Where-Object {$_.TABLE_SCHEM -ieq 'bethadba' -and $_.TABLE_NAME -ieq $table} | ForEach-Object {([string]$_.COLUMN_NAME).ToUpperInvariant()})
         foreach ($name in $required[$table]) {if ($names -notcontains $name) {Reject-Details 'MISSING_COLUMN'}}
     }
-    $first=Read-Snapshot
+    $outputDirectory=Join-Path ([Environment]::GetFolderPath('UserProfile')) ('Downloads\CICA-CONTAD-Planos-Contas-'+[Guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($outputDirectory)
+    $acl=New-Object Security.AccessControl.DirectorySecurity
+    $acl.SetAccessRuleProtection($true,$false)
+    foreach ($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'),[Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))) {
+        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+    }
+    Set-Acl -LiteralPath $outputDirectory -AclObject $acl
+    if (-not (Get-Acl -LiteralPath $outputDirectory).AreAccessRulesProtected) {Reject-Details 'PRIVATE_ACL'}
+    $firstDirectory=Join-Path $outputDirectory 'read-one'; $secondDirectory=Join-Path $outputDirectory 'read-two'
+    $readDirectories=@($firstDirectory,$secondDirectory)
+    foreach ($directory in $readDirectories) {[void][IO.Directory]::CreateDirectory($directory)}
+    $first=Read-Snapshot $firstDirectory
     $firstJson=$first | ConvertTo-Json -Depth 8 -Compress
-    if ([Text.Encoding]::UTF8.GetByteCount($firstJson) -gt 67108864) {Reject-Details 'OUTPUT_LIMIT'}
-    $second=Read-Snapshot
+    if ([Text.Encoding]::UTF8.GetByteCount($firstJson) -gt 8388608) {Reject-Details 'OUTPUT_LIMIT'}
+    $second=Read-Snapshot $secondDirectory
     if (-not [string]::Equals($firstJson,($second | ConvertTo-Json -Depth 8 -Compress),[StringComparison]::Ordinal)) {Reject-Details 'SOURCE_CHANGED'}
     Check-Deadline
     $connection.Close()
     $stage='writing_private_report'
     $result=[ordered]@{
-        version='contad-chart-discovery-v1';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o')
+        version='contad-chart-discovery-v2';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o')
         decision='D-373';period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';expected_company_count=$expectedCompanyCount;two_reads_identical=$true
         company_codes_sha256=$expectedCompanyCodeSha256
         retained_portfolio_sha256='21136b2aaab37d28a85ac833001a039f6f100abde565101dbd3f8219099e1231'
@@ -481,30 +532,51 @@ try {
         cadastral_names_and_bank_references_selected=$true;agent_configuration_read=$false;erp_write_performed=$false;uploaded=$false
     }
     $bytes=[Text.Encoding]::UTF8.GetBytes(($result | ConvertTo-Json -Depth 10 -Compress))
-    if ($bytes.Length -gt 67108864) {Reject-Details 'OUTPUT_LIMIT'}
-    $outputDirectory=Join-Path ([Environment]::GetFolderPath('UserProfile')) ('Downloads\CICA-CONTAD-Planos-Contas-'+[Guid]::NewGuid().ToString('N'))
-    [void][IO.Directory]::CreateDirectory($outputDirectory)
-    $acl=New-Object Security.AccessControl.DirectorySecurity
-    $acl.SetAccessRuleProtection($true,$false)
-    foreach ($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'),[Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))) {
-        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+    if ($bytes.Length -gt 8388608) {Reject-Details 'OUTPUT_LIMIT'}
+    $uncompressed=[long]$bytes.Length+$first.chart_accounts.bytes+$first.plan_template_accounts.bytes+$first.nature_rules.bytes
+    if ($uncompressed -gt 1073741824) {Reject-Details 'OUTPUT_LIMIT'}
+    [IO.File]::WriteAllBytes((Join-Path $firstDirectory 'manifest.json'),$bytes)
+    $path=Join-Path $outputDirectory 'planos-contas.zip'; $temporary=$path+'.partial'
+    $archive=$null; $zipStream=$null
+    try {
+        $zipStream=[IO.File]::Open($temporary,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+        $archive=[IO.Compression.ZipArchive]::new($zipStream,[IO.Compression.ZipArchiveMode]::Create,$true)
+        # Fixed root names only; no recursive directory ingestion or arbitrary paths.
+        foreach ($name in @('manifest.json','chart-accounts.jsonl','plan-template-accounts.jsonl','nature-rules.jsonl')) {
+            Check-Deadline
+            $entry=$archive.CreateEntry($name,[IO.Compression.CompressionLevel]::Optimal)
+            $inputStream=$null; $entryStream=$null
+            try {
+                $inputStream=[IO.File]::OpenRead((Join-Path $firstDirectory $name)); $entryStream=$entry.Open()
+                $buffer=New-Object byte[] 65536
+                while (($count=$inputStream.Read($buffer,0,$buffer.Length)) -gt 0) {
+                    Check-Deadline; $entryStream.Write($buffer,0,$count)
+                    if ($zipStream.Length -gt 134217728) {Reject-Details 'PACKAGE_LIMIT'}
+                }
+            } finally {if ($null -ne $inputStream) {$inputStream.Dispose()};if ($null -ne $entryStream) {$entryStream.Dispose()}}
+        }
+        $archive.Dispose();$archive=$null
+        if ($zipStream.Length -gt 134217728) {Reject-Details 'PACKAGE_LIMIT'}
+        $zipStream.Dispose();$zipStream=$null
+        [IO.File]::Move($temporary,$path)
+    } finally {
+        if ($null -ne $archive) {$archive.Dispose()}; if ($null -ne $zipStream) {$zipStream.Dispose()}
+        if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}
     }
-    Set-Acl -LiteralPath $outputDirectory -AclObject $acl
-    if (-not (Get-Acl -LiteralPath $outputDirectory).AreAccessRulesProtected) {Reject-Details 'PRIVATE_ACL'}
-    $path=Join-Path $outputDirectory 'planos-contas.json'
-    $temporary=$path+'.partial'
-    try {[IO.File]::WriteAllBytes($temporary,$bytes); [IO.File]::Move($temporary,$path)}
-    finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
     $sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    $packageBytes=(Get-Item -LiteralPath $path).Length
+    # Delete both raw passes before reporting success; only the private ZIP remains.
+    foreach ($directory in $readDirectories) {Remove-Item -LiteralPath $directory -Recurse -Force}
+    $completed=$true
     [ordered]@{
-        version='contad-chart-discovery-receipt-v1';completed=$true;companies=$first.companies.Count
-        chart_owners=$first.chart_owners.Count;chart_accounts=$first.chart_accounts.Count;plan_template_accounts=$first.plan_template_accounts.Count;nature_rules=$first.nature_rules.Count;observed_chart_usage=$first.observed_chart_usage.Count;equivalent_accounts=$first.equivalent_accounts.Count
+        version='contad-chart-discovery-receipt-v2';completed=$true;companies=$first.companies.Count
+        chart_owners=$first.chart_owners.Count;chart_accounts=$first.chart_accounts.rows;plan_template_accounts=$first.plan_template_accounts.rows;nature_rules=$first.nature_rules.rows;observed_chart_usage=$first.observed_chart_usage.Count;equivalent_accounts=$first.equivalent_accounts.Count
         configured_accounts=$first.configured_accounts.Count;cash_accounts=$first.cash_accounts.Count;bank_references=$first.bank_references.Count
         integration_account_configurations=$first.integration_account_configurations.Count
         missing_chart_accounts=@($first.configured_accounts | Where-Object {$_.catalogue_matches -eq 0}).Count
         missing_bank_catalogue=@($first.bank_references | Where-Object {$_.bank_catalogue_matches -eq 0}).Count
         missing_cash_keys=@($first.bank_references | Where-Object {-not $_.cash_key_present}).Count
-        sha256=$sha;bytes=$bytes.Length;report_file=$path;two_reads_identical=$true;financial_values_selected=$false
+        sha256=$sha;bytes=$packageBytes;uncompressed_bytes=$uncompressed;report_file=$path;two_reads_identical=$true;financial_values_selected=$false
         uploaded=$false;human_reviewed=$false
     } | ConvertTo-Json -Depth 3 -Compress | Write-Output
 } catch {
@@ -517,11 +589,12 @@ try {
         }
         $exception=$exception.InnerException
     }
-    [ordered]@{version='contad-chart-discovery-receipt-v1';completed=$false;stage=$stage;reason_code=$reason;text_contract_failure=$textFailure;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 6 -Compress | Write-Output
+    [ordered]@{version='contad-chart-discovery-receipt-v2';completed=$false;stage=$stage;reason_code=$reason;text_contract_failure=$textFailure;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 6 -Compress | Write-Output
     Write-Error 'Descoberta nao concluido. Retorne somente este diagnostico seguro; preserve credencial e agente.' -ErrorAction Continue
     exit 1
 } finally {
     if ($null -ne $connection) {$connection.Dispose()}
     if ($null -ne $builder) {$builder.Clear()}
     $credential=$null
+    if (-not $completed -and $null -ne $outputDirectory -and [IO.Directory]::Exists($outputDirectory)) {Remove-Item -LiteralPath $outputDirectory -Recurse -Force}
 }

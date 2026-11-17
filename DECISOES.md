@@ -5465,3 +5465,25 @@ para o agente atual, sem substituir por filial inventada. Uma candidata previame
 descartada não pode ser reativada pela ficha do catálogo: apresentar a decisão
 existente e encaminhar sua reconsideração ao fluxo já previsto. Revisões dinâmicas
 incluem a revisão da candidata para detectar alteração entre leitura e envio.
+
+
+Refinamento D-373 de capacidade após segunda consulta real — v2 do comando
+superou TEXT_CONTRACT e parou em ROW_LIMIT na leitura de CTCONTAS: catálogo real
+ultrapassa100mil contas. Ensaio sintético confirmou OOM ao aplicar100mil com o
+aplicativo ativo em512MiB; transação desfeita, nenhum dado real alterado. Não
+resolver aumentando apenas limite ou memória/VM. Ampliar o formato do leitor para
+pacote privado ZIP com manifest.json e tabelas grandes JSONL, escritas/lidas em
+fluxo; duas consultas completas continuam comparadas por conteúdo exato/hash.
+CTCONTAS e CTPLANOCONTAS até1milhão de linhas cada, naturezas até100mil;
+limites explícitos por arquivo e pacote, sem truncamento. Metadados pequenos e
+relações preservados; consultas ainda somente leitura no mesmo escopo146.
+
+O backend valida e prepara em lotes de tamanho limitado, incluindo replay e
+checksums calculados em fluxo, sem materializar catálogo completo em RAM.
+Além das três estruturas previstas, admite estrutura imutável de blocos para
+modelos/regras de origem, com bytes comprimidos, contagem e hashes reversíveis;
+catálogo pesquisável permanece uma linha por conta. Migração0088 ainda não
+publicada pode ser ajustada e deve ser novamente ensaiada nas duas aliases.
+Não publicar/importar antes de ensaio representativo com arquivo real e app
+ativo na capacidade512MiB, preservando margem e todas as revisões. Novo leitor
+passaWindows antes de comando assistido. Não há novaVM/custo nem alteraçãoERP.

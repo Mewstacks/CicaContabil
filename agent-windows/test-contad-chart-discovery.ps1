@@ -11,7 +11,21 @@ function Get-FixtureSourceText {
     if ([regex]::Matches($text,[regex]::Escape($expected)).Count -ne 1) {throw 'Unexpected production scope literal.'}
     # Replace only the approved selector hash in a disposable copy, never publish
     # real company codes or weaken the production script's fixed scope.
-    return $text.Replace($expected,"`$expectedCompanyCodeSha256='794ea11f50892913aa01dd78f0835597272e0b1dcdb39169ca982253ec04e44b'")
+    $text=$text.Replace($expected,"`$expectedCompanyCodeSha256='794ea11f50892913aa01dd78f0835597272e0b1dcdb39169ca982253ec04e44b'")
+    # Bounded negative fixtures exercise the exact production guards without
+    # manufacturing million-row failures; the large success uses real limits.
+    if ($Scenario -in @('catalogue_limit','template_limit','nature_limit')) {
+        $text=$text.Replace('$rowLimit=1000000;', '$rowLimit=100;').Replace('$rowLimit=100000;', '$rowLimit=100;')
+    }
+    if ($Scenario -eq 'catalogue_bytes_limit') {$text=$text.Replace('$byteLimit=536870912','$byteLimit=128')}
+    if ($Scenario -eq 'template_bytes_limit') {$text=$text.Replace('$path=Join-Path $Directory $names[$Kind]', '$path=Join-Path $Directory $names[$Kind]').Replace('return @{kind=$Kind;', "if (`$Kind -eq 'plan_template_accounts') {`$byteLimit=128}; return @{kind=`$Kind;")}
+    if ($Scenario -eq 'nature_bytes_limit') {$text=$text.Replace('$byteLimit=33554432','$byteLimit=8')}
+    if ($Scenario -eq 'manifest_limit') {$text=$text.Replace('8388608','1')}
+    if ($Scenario -eq 'uncompressed_limit') {$text=$text.Replace('1073741824','1')}
+    if ($Scenario -eq 'package_limit') {$text=$text.Replace('134217728','1')}
+    if ($Scenario -eq 'stream_failure') {$text=$text.Replace('$Sink.stream.Write($line,0,$line.Length);', '$Sink.stream.Write($line,0,$line.Length); Reject-Details ''SYNTHETIC_IO_FAILURE'';')}
+    return $text
+
 }
 if ($Scenario) {
     Add-Type -AssemblyName System.Data
@@ -61,7 +75,7 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
   bool companies=q.StartsWith("SELECT TOP 501 "),configured=q.Contains("FROM bethadba.CTCONCILIACAO_CONTA q"),cash=q.Contains("FROM bethadba.ctcontacaixa c"),banks=q.Contains("FROM bethadba.CTCONTACAIXA_CONTA_BANCARIA b"),integrations=q.Contains("FROM bethadba.CTPARMTO_CONTAS_ICEBERG i");
   bool equivalents=q.Contains("FROM bethadba.CTCONTAS_EQUIVALENTES e"),usage=q.Contains("FROM bethadba.ctlancto l"),chart=q.Contains("FROM bethadba.ctcontas c WHERE"),templates=q.Contains("FROM bethadba.CTPLANOCONTAS c WHERE"),nature=q.Contains("FROM bethadba.ctnatureza_conta n WHERE"),metadata=q.Contains("FROM SYS.");
   bool ownerQuery=chart||templates||nature;
-  if(CommandTimeout!=40||(!companies&&!configured&&!cash&&!banks&&!integrations&&!equivalents&&!usage&&!ownerQuery&&!metadata))throw new Exception("Query scope");
+  if(CommandTimeout!=120||(!companies&&!configured&&!cash&&!banks&&!integrations&&!equivalents&&!usage&&!ownerQuery&&!metadata))throw new Exception("Query scope");
   if(Regex.IsMatch(q,@"(?i)\b(INSERT|UPDATE|DELETE|DROP|ALTER|EXEC|CALL|CTEXTRATO|VLOR_LAN|CHIS_LAN|NDOC_LAN|VALOR|SALDO(?:_INICIAL)?|CGCE_EMP|PASSWORD)\b")||q.Contains("SELECT *"))throw new Exception("Forbidden values/write");
   if(metadata) return Metadata(q,s);
   if(ownerQuery){
@@ -102,7 +116,7 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
    if(nature){
     t=Table(typeof(long),typeof(long),typeof(string),typeof(string),typeof(string));
     if(s=="empty_details"||s=="empty_nature")return t.CreateDataReader();
-    if(HasOwner(1)){int count=s=="nature_limit"?10001:1;for(int i=0;i<count;i++)t.Rows.Add(s=="nature_outside"?999L:1L,(long)i,"001 ","X","Z");
+    if(HasOwner(1)){int count=s=="nature_limit"?101:1;for(int i=0;i<count;i++)t.Rows.Add(s=="nature_outside"?999L:1L,(long)i,"001 ","X","Z");
      if(s=="nature_duplicate")t.ImportRow(t.Rows[0]);if(s=="nature_changed"&&CompanyReads>1)t.Rows[0][3]="Y";}
     return t.CreateDataReader();
    }
@@ -110,7 +124,7 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
    if(s=="empty_details"||s=="empty_catalogues")return t.CreateDataReader();
    foreach(long owner in new long[]{1,100,900,901,902}){
     if(!HasOwner(owner)||s=="missing_chart"&&owner==100)continue;
-    int count=owner==1&&(s=="catalogue_limit"&&!templates||s=="template_limit"&&templates)?100001:1;
+    int count=owner==1&&(s=="catalogue_limit"&&!templates||s=="template_limit"&&templates)?101:1;
     for(int i=0;i<count;i++){
      long account=owner==900?9:owner==901?10:owner==902?11:8;
      long selectedOwner=s=="catalogue_outside"&&!templates||s=="template_outside"&&templates?999:owner;
@@ -123,6 +137,10 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
     if(s=="catalogue_duplicate"&&!templates||s=="template_duplicate"&&templates)t.ImportRow(t.Rows[0]);
     if(templates&&s=="multiple_templates"&&HasOwner(1)){var row=t.NewRow();row.ItemArray=(object[])t.Rows[0].ItemArray.Clone();row[1]=2L;t.Rows.Add(row);}
    }
+   if((s=="large_catalogue"||s=="large_source_changed")&&chart&&HasOwner(1))return new RepeatedChartReader(t.CreateDataReader(),100005,s=="large_source_changed"&&CompanyReads>1);
+   if(s=="catalogue_out_of_order"&&chart&&t.Rows.Count>1){var first=t.Rows[0].ItemArray;t.Rows[0].ItemArray=t.Rows[1].ItemArray;t.Rows[1].ItemArray=first;}
+   // The real database sorts owner/plan/account. Preserve that order in fixture.
+   if(templates){var view=t.DefaultView;view.Sort="c0 ASC, c1 ASC, c2 ASC";return view.ToTable().CreateDataReader();}
    return t.CreateDataReader();
   }
   if(configured){
@@ -197,6 +215,21 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
  }
  public void Dispose(){holder.Dispose();}
 }
+public sealed class RepeatedChartReader:IDataReader {
+ private readonly IDataReader inner;private readonly int total;private readonly bool changed;private int repeated;private bool repeat;
+ public RepeatedChartReader(IDataReader source,int count,bool change){inner=source;total=count;changed=change;}
+ public bool Read(){if(repeat&&repeated<total){repeated++;return true;}bool next=inner.Read();repeat=next&&Convert.ToInt64(inner.GetValue(0))==1;repeated=repeat?1:0;return next;}
+ public object GetValue(int i){if(repeat&&i==1)return Convert.ToInt64(inner.GetValue(i))+repeated-1;if(repeat&&i==2&&changed&&repeated==total)return "changed-private-name";return inner.GetValue(i);}
+ public bool IsDBNull(int i){return GetValue(i)==DBNull.Value;}
+ public int FieldCount{get{return inner.FieldCount;}}public int Depth{get{return inner.Depth;}}public bool IsClosed{get{return inner.IsClosed;}}public int RecordsAffected{get{return inner.RecordsAffected;}}
+ public object this[int i]{get{return GetValue(i);}}public object this[string n]{get{return GetValue(GetOrdinal(n));}}
+ public void Close(){inner.Close();}public void Dispose(){inner.Dispose();}public DataTable GetSchemaTable(){return inner.GetSchemaTable();}public bool NextResult(){return inner.NextResult();}
+ public string GetName(int i){return inner.GetName(i);}public string GetDataTypeName(int i){return inner.GetDataTypeName(i);}public Type GetFieldType(int i){return inner.GetFieldType(i);}public int GetOrdinal(string n){return inner.GetOrdinal(n);}
+ public int GetValues(object[] values){for(int i=0;i<Math.Min(values.Length,FieldCount);i++)values[i]=GetValue(i);return Math.Min(values.Length,FieldCount);}
+ public bool GetBoolean(int i){return Convert.ToBoolean(GetValue(i));}public byte GetByte(int i){return Convert.ToByte(GetValue(i));}public char GetChar(int i){return Convert.ToChar(GetValue(i));}public DateTime GetDateTime(int i){return Convert.ToDateTime(GetValue(i));}public decimal GetDecimal(int i){return Convert.ToDecimal(GetValue(i));}public double GetDouble(int i){return Convert.ToDouble(GetValue(i));}public float GetFloat(int i){return Convert.ToSingle(GetValue(i));}public Guid GetGuid(int i){return (Guid)GetValue(i);}public short GetInt16(int i){return Convert.ToInt16(GetValue(i));}public int GetInt32(int i){return Convert.ToInt32(GetValue(i));}public long GetInt64(int i){return Convert.ToInt64(GetValue(i));}public string GetString(int i){return Convert.ToString(GetValue(i));}
+ public long GetBytes(int i,long a,byte[] b,int c,int d){throw new NotSupportedException();}public long GetChars(int i,long a,char[] b,int c,int d){throw new NotSupportedException();}public IDataReader GetData(int i){throw new NotSupportedException();}
+}
+
 '@
     [ChartDiscoveryFixtureConnection]::Scenario=$Scenario
     function global:Get-Credential {param($UserName,$Message);return [Management.Automation.PSCredential]::new('EXTERNO',(ConvertTo-SecureString 'synthetic-private-password' -AsPlainText -Force))}
@@ -216,8 +249,8 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
 $tokens=$null; $errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) {throw ($errors | Out-String)}
-$success=@('invalid_text','unicode_whitespace','unicode_format','unicode_private','unicode_unassigned','unicode_supplementary','unicode_combining','unicode_nul','unicode_utf16_limit','missing_parameters','empty_catalogues','empty_nature','multiple_templates','success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date','integration_null_start','integration_zero_codes','no_integrations')
-$cases=$success+@('text_utf16_overflow','text_length','text_diagnostic_limit','text_type','text_high_surrogate','text_low_surrogate','text_classification_limit','text_flag_limit','unicode_changed','parameter_changed','missing_plan_id','equivalent_limit','equivalent_outside','equivalent_duplicate','equivalent_changed','usage_limit','usage_outside','usage_outside_month','usage_total_limit','usage_duplicate','usage_changed','catalogue_limit','catalogue_outside','catalogue_null','catalogue_changed','catalogue_duplicate','template_limit','template_outside','template_name_limit','template_duplicate','nature_limit','nature_outside','nature_duplicate','nature_changed','metadata_missing_target','metadata_limit','metadata_changed','missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout','integration_limit','integration_outside','integration_duplicate','integration_null_code','integration_invalid_date','integration_changed')
+$success=@('large_catalogue','invalid_text','unicode_whitespace','unicode_format','unicode_private','unicode_unassigned','unicode_supplementary','unicode_combining','unicode_nul','unicode_utf16_limit','missing_parameters','empty_catalogues','empty_nature','multiple_templates','success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date','integration_null_start','integration_zero_codes','no_integrations')
+$cases=$success+@('large_source_changed','catalogue_out_of_order','catalogue_bytes_limit','template_bytes_limit','nature_bytes_limit','manifest_limit','uncompressed_limit','package_limit','stream_failure','text_utf16_overflow','text_length','text_diagnostic_limit','text_type','text_high_surrogate','text_low_surrogate','text_classification_limit','text_flag_limit','unicode_changed','parameter_changed','missing_plan_id','equivalent_limit','equivalent_outside','equivalent_duplicate','equivalent_changed','usage_limit','usage_outside','usage_outside_month','usage_total_limit','usage_duplicate','usage_changed','catalogue_limit','catalogue_outside','catalogue_null','catalogue_changed','catalogue_duplicate','template_limit','template_outside','template_name_limit','template_duplicate','nature_limit','nature_outside','nature_duplicate','nature_changed','metadata_missing_target','metadata_limit','metadata_changed','missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout','integration_limit','integration_outside','integration_duplicate','integration_null_code','integration_invalid_date','integration_changed')
 $unicodeNames=@{
     invalid_text="synthetic-private-name`n"
     unicode_whitespace=" `tsynthetic-private-name`r`n "
@@ -242,7 +275,10 @@ $textFailures=@{
 }
 $integrationFailures=@{integration_limit='ROW_LIMIT';integration_outside='INTEGRATION_SCOPE';integration_duplicate='INTEGRATION_CARDINALITY';integration_null_code='NULL_FIELD';integration_invalid_date='DATE_CONTRACT';integration_changed='SOURCE_CHANGED'}
 $evidence=@()
+Add-Type -AssemblyName System.IO.Compression
 foreach ($case in $cases) {
+    $downloads=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
+    $foldersBefore=@(Get-ChildItem -LiteralPath $downloads -Directory -Filter 'CICA-CONTAD-Planos-Contas-*' -ErrorAction SilentlyContinue | ForEach-Object FullName)
     $saved=$ErrorActionPreference
     try {$ErrorActionPreference='Continue'; $lines=@(& "$PSHOME\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File $MyInvocation.MyCommand.Path -Scenario $case 2>&1); $code=$LASTEXITCODE}
     finally {$ErrorActionPreference=$saved}
@@ -264,7 +300,42 @@ foreach ($case in $cases) {
             if (-not $acl.AreAccessRulesProtected) {throw 'Private ACL inheritance remains active.'}
             $allowed=@([Security.Principal.WindowsIdentity]::GetCurrent().User.Value,'S-1-5-18','S-1-5-32-544')
             foreach ($rule in $acl.Access) {if ($rule.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value -notin $allowed) {throw 'Unexpected report access.'}}
-            $data=Get-Content -LiteralPath $report -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ([IO.Path]::GetExtension($report) -cne '.zip') {throw 'Expected ZIP report.'}
+            if (@(Get-ChildItem -LiteralPath $folder -Force).Count -ne 1) {throw 'Raw snapshot or partial file remained.'}
+            $zipStream=[IO.File]::OpenRead($report);$zip=[IO.Compression.ZipArchive]::new($zipStream,[IO.Compression.ZipArchiveMode]::Read)
+            try {
+                $expectedFiles=@('manifest.json','chart-accounts.jsonl','plan-template-accounts.jsonl','nature-rules.jsonl')
+                if ($zip.Entries.Count -ne 4 -or @($zip.Entries | Where-Object {$_.FullName -cnotin $expectedFiles -or $_.Name -cne $_.FullName}).Count -or @($zip.Entries.FullName | Sort-Object -Unique).Count -ne 4) {throw 'Unsafe ZIP entry layout.'}
+                $stream=$zip.GetEntry('manifest.json').Open();$reader=[IO.StreamReader]::new($stream,[Text.UTF8Encoding]::new($false,$true),$false)
+                try {$data=$reader.ReadToEnd() | ConvertFrom-Json} finally {$reader.Dispose()}
+                if ($data.version -cne 'contad-chart-discovery-v2') {throw 'Wrong discovery version.'}
+                $uncompressed=[long]$zip.GetEntry('manifest.json').Length
+                foreach ($kind in @('chart_accounts','plan_template_accounts','nature_rules')) {
+                    $descriptor=$data.snapshot.$kind
+                    if (@($descriptor.PSObject.Properties.Name | Sort-Object) -join ',' -cne 'bytes,file,rows,sha256') {throw 'Unexpected descriptor.'}
+                    $entry=$zip.GetEntry($descriptor.file)
+                    if ($null -eq $entry -or $entry.Length -ne $descriptor.bytes) {throw 'Stream byte count mismatch.'}
+                    $stream=$entry.Open();$hasher=[Security.Cryptography.SHA256]::Create()
+                    try {$digest=([BitConverter]::ToString($hasher.ComputeHash($stream))).Replace('-','').ToLowerInvariant()} finally {$stream.Dispose();$hasher.Dispose()}
+                    if ($digest -cne $descriptor.sha256) {throw 'Stream digest mismatch.'}
+                    $stream=$entry.Open();$buffer=New-Object byte[] 65536;$seen=[long]0;$lf=[long]0;$last=-1
+                    try {
+                        while (($length=$stream.Read($buffer,0,$buffer.Length)) -gt 0) {
+                            if ($seen -eq 0 -and $length -ge 3 -and $buffer[0] -eq 239 -and $buffer[1] -eq 187 -and $buffer[2] -eq 191) {throw 'UTF8 BOM emitted.'}
+                            for ($i=0;$i -lt $length;$i++) {if ($buffer[$i] -eq 13 -or $buffer[$i] -eq 0) {throw 'Unescaped control in JSONL.'};if ($buffer[$i] -eq 10) {$lf++}}
+                            $seen+=$length;$last=$buffer[$length-1]
+                        }
+                    } finally {$stream.Dispose()}
+                    if ($seen -ne $descriptor.bytes -or $lf -ne $descriptor.rows -or ($seen -gt 0 -and $last -ne 10)) {throw 'JSONL framing mismatch.'}
+                    $stream=$entry.Open();$reader=[IO.StreamReader]::new($stream,[Text.UTF8Encoding]::new($false,$true),$false)
+                    $items=New-Object 'System.Collections.Generic.List[object]';$count=0
+                    try {while ($null -ne ($line=$reader.ReadLine())) {$item=$line | ConvertFrom-Json;$count++;if ($case -ne 'large_catalogue' -or $count -le 5) {$items.Add($item)}}} finally {$reader.Dispose()}
+                    if ($count -ne $descriptor.rows) {throw 'JSONL row count mismatch.'}
+                    $uncompressed+=$descriptor.bytes
+                    $data.snapshot.$kind=$items.ToArray()
+                }
+                if ($uncompressed -ne $receipt.uncompressed_bytes) {throw 'Package total mismatch.'}
+            } finally {$zip.Dispose();$zipStream.Dispose()}
             foreach ($flag in @('nature_interpreted','chart_owner_mapping_inferred','cash_to_ledger_mapping_inferred','bank_association_approved','account_meanings_approved','human_reviewed','financial_collection_enabled','financial_values_selected','agent_configuration_read','erp_write_performed','uploaded')) {if ($data.$flag -ne $false) {throw ('Unsafe flag: '+$flag)}}
             $hasher=[Security.Cryptography.SHA256]::Create()
             try {$fixtureHash=([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes((Get-FixtureSourceText))))).Replace('-','').ToLowerInvariant()}
@@ -278,8 +349,9 @@ foreach ($case in $cases) {
                 $literal=@($data.snapshot.chart_accounts | Where-Object {$_.chart_company_code -eq 1})[0].account_name_raw
                 if (-not [string]::Equals($literal,$unicodeNames[$case],[StringComparison]::Ordinal)) {throw ('Literal Unicode changed: '+$case)}
                 if ($case -eq 'invalid_text' -and (-not [string]::Equals($data.snapshot.configured_accounts[0].account_name_raw,$unicodeNames[$case],[StringComparison]::Ordinal))) {throw 'Configured whitespace changed.'}
-                if ($case -eq 'unicode_nul' -and (-not [IO.File]::ReadAllText($report).Contains('\u0000'))) {throw 'NUL not preserved as JSON escape.'}
+                # Framing scan rejects literal NUL; parsed value proves the escaped NUL round trip.
             }
+            if ($case -eq 'large_catalogue' -and $receipt.chart_accounts -ne 100009) {throw 'Large catalogue truncated.'}
             if ($case -eq 'success') {
                 if ($data.snapshot.chart_owners.Count -ne 149 -or $data.snapshot.chart_accounts.Count -ne 5 -or $data.snapshot.plan_template_accounts.Count -ne 5) {throw 'Full shared-owner catalogue incomplete or multiplied.'}
                 if ($data.snapshot.observed_chart_usage.Count -ne 2 -or $data.snapshot.observed_chart_usage[1].month -ne 10 -or $data.snapshot.observed_chart_usage[1].branch_code -ne 1) {throw 'Observed month/branch multiplicity lost.'}
@@ -287,6 +359,8 @@ foreach ($case in $cases) {
                 if ($data.snapshot.nature_rules[0].nature_raw -cne 'X' -or $data.snapshot.nature_rules[0].group_raw -cne 'Z' -or $data.snapshot.equivalent_accounts[0].chart_company_code -ne 902) {throw 'Literal nature/equivalent reference lost.'}
                 if ($data.snapshot.metadata.targets.Count -ne 7 -or $data.snapshot.metadata.relation_columns.Count -ne 2) {throw 'Metadata absent.'}
                 if ($data.snapshot.bank_references.Count -ne 2 -or $data.snapshot.cash_accounts[0].bank_reference_count -ne 2 -or $data.snapshot.bank_references[0].agency_raw -cne '0001' -or $data.snapshot.bank_references[0].account_identifier_raw -cne '0000123-0' -or $data.snapshot.bank_references[0].bank_code_raw -ne 0 -or $data.snapshot.configured_accounts[0].classification_raw -cne '001.0008 ') {throw 'Multiplicity, raw strings or numeric zero lost.'}
+                $artifactFolder=Join-Path $PSScriptRoot 'artifacts\validation';[void][IO.Directory]::CreateDirectory($artifactFolder)
+                Copy-Item -LiteralPath $report -Destination (Join-Path $artifactFolder 'contad-chart-discovery-synthetic.zip') -Force
                 if ($data.snapshot.integration_account_configurations.Count -ne 2 -or $data.snapshot.integration_account_configurations[0].integration_started_on_raw -cne '2026-09-01' -or $data.snapshot.integration_account_configurations[0].integration_account_code_raw -ne 8 -or $data.snapshot.integration_account_configurations[0].integration_bank_id_raw -ne 7 -or $data.snapshot.integration_account_configurations[1].integration_branch_code_raw -ne 1) {throw 'Integration multiplicity, literal codes or date lost.'}
             }
             if ($case -eq 'missing_parameters' -and @($data.snapshot.companies | Where-Object {$_.configuration_rows -ne 0}).Count) {throw 'Parameters invented.'}
@@ -315,12 +389,14 @@ foreach ($case in $cases) {
         if ($case -eq 'text_diagnostic_limit' -and (-not $diagnostic.diagnostic_truncated -or @($diagnostic.nonprinting_positions).Count -ne 32 -or $diagnostic.inspected_utf16_units -ne 512 -or $diagnostic.nonprinting_in_scanned -ne 512)) {throw 'Text diagnostic is not bounded.'}
         if ($case -in @('text_high_surrogate','text_low_surrogate') -and (@($diagnostic.nonprinting_positions).Count -ne 1 -or $diagnostic.nonprinting_positions[0].category -cne 'Surrogate' -or $diagnostic.nonprinting_positions[0].utf16_index -ne 1)) {throw 'Isolated surrogate diagnostic lost.'}
     }
-    if ($case -eq 'unicode_changed' -and $receipt.reason_code -cne 'SOURCE_CHANGED') {throw 'Invisible source change accepted.'}
+    if ($case -in @('unicode_changed','large_source_changed') -and $receipt.reason_code -cne 'SOURCE_CHANGED') {throw 'Invisible source change accepted.'}
+    $foldersAfter=@(Get-ChildItem -LiteralPath $downloads -Directory -Filter 'CICA-CONTAD-Planos-Contas-*' -ErrorAction SilentlyContinue | ForEach-Object FullName)
+    if (@($foldersAfter | Where-Object {$_ -notin $foldersBefore}).Count) {throw ('Private temporary data remained: '+$case)}
     $evidence+=@{scenario=$case;passed=$true;exit_code=$code;real_erp=$false}
 }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation'; [void][IO.Directory]::CreateDirectory($folder)
-@{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false;private_fixtures_removed=$true;fixture_company_scope_hash_replaced=$true;production_source_unchanged=$true} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-chart-discovery.json') -Encoding UTF8
-Write-Host 'Chart discovery: fixed SELECTs, scope, cardinality, two reads, private ACL, zero preservation, literal Unicode and safe bounded diagnostics passed.'
+@{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false;private_fixtures_removed=$true;fixture_company_scope_hash_replaced=$true;production_source_unchanged=$true;synthetic_package='contad-chart-discovery-synthetic.zip';large_catalogue_rows=100009;format='contad-chart-discovery-v2'} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-chart-discovery.json') -Encoding UTF8
+Write-Host 'Chart discovery: fixed SELECTs, scope, cardinality, two reads, private ACL, zero preservation, literal Unicode, bounded streaming ZIP and safe diagnostics passed.'
 # The final negative subprocess must not determine the successful harness exit.
 $global:LASTEXITCODE=0
 exit 0
