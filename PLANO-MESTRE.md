@@ -1,3 +1,11 @@
+<!-- D373-V412-IN-PROGRESS-2026-11-17 -->
+**17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
+Ampliação autorizada para as146 empresas, consultando catálogo completo e relações
+empresa/plano/filial com proveniência, além da configuração de conciliação.
+Preparação em lote e confirmação apenas dos campos não comprovados pela fonte;
+release100 continua publicada até validação/publicação da nova candidata.
+Nenhuma nova consulta de origem ou ativação de conta comprovada neste checkpoint.
+
 <!-- D372-V411-PUBLISHED-2026-11-17 -->
 **17/11/2026 — D-372/V-411: release 100 publicada; piloto real validado e 43 fichas preparadas.**
 O novo Razão da SURIA, conta 8, setembro/2026, foi coletado pelo agente 1.0.13 e

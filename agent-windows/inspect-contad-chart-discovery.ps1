@@ -1,0 +1,474 @@
+#requires -Version 5.1
+<# D-373/Q-28. Fixed cadastral SELECTs only. Never reads agent.config, writes ERP,
+   selects transaction values or infers a cash-to-ledger mapping. Private JSON stays local. #>
+[CmdletBinding()]
+param()
+$ErrorActionPreference='Stop'
+if (-not [Environment]::Is64BitProcess) {throw 'Use Windows PowerShell de 64 bits.'}
+Add-Type -AssemblyName System.Data
+$connection=$null; $builder=$null; $credential=$null; $timer=$null
+$stage='credential_prompt'; $reason='UNCLASSIFIED'; $outputDirectory=$null
+$periodStart=[DateTime]::new(2026,9,1); $periodEnd=[DateTime]::new(2026,12,1)
+$expectedCompanyCount=146
+$expectedCompanyCodeSha256='4ab91c9e80c1b20275c5878b3ec3f844deec7f6b155d94fdb90b79fbf6626f55'
+function Reject-Details {param([string]$Code); $script:reason=$Code; throw 'Descoberta cadastral recusado.'}
+function Check-Deadline {
+    if ($null -ne $timer -and $timer.Elapsed.TotalSeconds -gt 600) {Reject-Details 'TIME_LIMIT'}
+}
+function Read-Details {
+    param([string]$Query,[string[]]$Fields,[int]$Limit,[object[]]$Values=@('A'))
+    Check-Deadline
+    $command=$connection.CreateCommand(); $reader=$null
+    $textLimits=@{account_name_raw=150;classification_raw=20;account_type_raw=1;account_status_raw=1;selection_raw=1;agency_raw=10;account_identifier_raw=30;bank_name_raw=100;comp_pad_raw=1;branch_parameter_raw=1;nature_raw=1;group_raw=1}
+    $nullable=@('parameter_company_code','codi_pad_raw','comp_pad_raw','i_planocontas_raw','cash_account_parameter_raw','branch_parameter_raw','catalogue_account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw','selection_raw','cash_type_raw','bank_id_raw','bank_catalogue_id','bank_code_raw','bank_name_raw','integration_started_on_raw')
+    try {
+        $command.CommandText=$Query; $command.CommandTimeout=40
+        foreach ($value in $Values) {
+            if ($value -is [DateTime]) {$type=[System.Data.Odbc.OdbcType]::Date}
+            elseif ($value -is [string]) {$type=[System.Data.Odbc.OdbcType]::VarChar}
+            else {$type=[System.Data.Odbc.OdbcType]::Int}
+            $parameter=$command.Parameters.Add('p',$type); $parameter.Value=$value
+        }
+        $reader=$command.ExecuteReader()
+        if ($reader.FieldCount -ne $Fields.Count) {Reject-Details 'COLUMN_COUNT'}
+        $rows=New-Object 'System.Collections.Generic.List[object]'
+        while ($reader.Read()) {
+            Check-Deadline
+            if ($rows.Count -ge $Limit) {Reject-Details 'ROW_LIMIT'}
+            $row=[ordered]@{}
+            for ($i=0;$i -lt $Fields.Count;$i++) {
+                $field=$Fields[$i]
+                if ($reader.IsDBNull($i)) {
+                    if ($field -notin $nullable) {Reject-Details 'NULL_FIELD'}
+                    $row[$field]=$null; continue
+                }
+                $value=$reader.GetValue($i)
+                if ($textLimits.ContainsKey($field)) {
+                    if ($value -isnot [string] -or $value.Length -gt $textLimits[$field] -or $value -match '\p{C}') {Reject-Details 'TEXT_CONTRACT'}
+                    # Do not trim/pad strings or parse banking identifiers as numbers.
+                    $row[$field]=$value
+                } elseif ($field -in @('inactive_on_raw','integration_started_on_raw')) {
+                    if ($value -isnot [DateTime] -or $value.TimeOfDay -ne [TimeSpan]::Zero) {Reject-Details 'DATE_CONTRACT'}
+                    $row[$field]=$value.ToString('yyyy-MM-dd',[Globalization.CultureInfo]::InvariantCulture)
+                } else {
+                    if ($value -is [string] -or $value -is [bool]) {Reject-Details 'NUMBER_TYPE'}
+                    $number=[long]$value
+                    if ($number -lt 0 -or $number -gt 2147483647 -or [decimal]$value -ne $number) {Reject-Details 'NUMBER_RANGE'}
+                    $row[$field]=$number
+                }
+            }
+            $rows.Add($row)
+        }
+        Check-Deadline
+        return ,$rows.ToArray()
+    } finally {if ($null -ne $reader) {$reader.Dispose()}; $command.Dispose()}
+}
+function Read-CatalogRows {
+    param([string]$Query, [object[]]$Values, [string[]]$Fields, [int]$Limit)
+    $command=$connection.CreateCommand(); $reader=$null
+    try {
+        $command.CommandTimeout=40; $command.CommandText=$Query
+        foreach ($value in $Values) {
+            $parameter=$command.Parameters.Add('p',[System.Data.Odbc.OdbcType]::VarChar,128)
+            $parameter.Value=[string]$value
+        }
+        $reader=$command.ExecuteReader()
+        if ($reader.FieldCount -ne $Fields.Count) { throw 'Contrato de catálogo incompatível.' }
+        $rows=New-Object 'System.Collections.Generic.List[object]'
+        while ($reader.Read()) {
+            if ($rows.Count -ge $Limit -or $timer.Elapsed.TotalSeconds -gt 600) { throw 'Limite do complemento excedido.' }
+            $row=[ordered]@{}
+            for ($i=0; $i -lt $Fields.Count; $i++) {
+                $field=$Fields[$i]
+                if ($reader.IsDBNull($i)) {
+                    if ($field -notin @('primary_column_id','primary_column','not_enforced')) { throw 'Metadado obrigatório ausente.' }
+                    $row[$field]=$null; continue
+                }
+                $value=$reader.GetValue($i)
+                if ($field -match '(_id|_category|_code|sequence|table_type|match_type)$') {
+                    if ($value -is [string]) { throw 'Tipo numérico de catálogo incompatível.' }
+                    $number=[long]$value
+                    if ($number -lt 0 -or $number -gt 4294967295 -or [decimal]$value -ne $number) { throw 'Número de catálogo fora do limite.' }
+                    $row[$field]=$number
+                } else {
+                    $name=([string]$value).TrimEnd([char[]]@(' '))
+                    if ($name.Length -lt 1 -or $name.Length -gt 128 -or $name -match '\p{C}') { throw 'Identificador de catálogo fora do limite.' }
+                    $row[$field]=$name
+                }
+            }
+            $rows.Add($row)
+        }
+        return ,$rows.ToArray()
+    } finally {
+        if ($null -ne $reader) { $reader.Dispose() }
+        $command.Dispose()
+    }
+}
+
+function Read-DiscoveryMetadata {
+    $targets=@('CTPARMTO','CTPLANOCONTAS','CTNATUREZA_CONTA','CTCONTACAIXA','CTCONTACAIXA_CONTA_BANCARIA','CTPARMTO_CONTAS_ICEBERG','CTCONTAS_EQUIVALENTES')
+    $script:stage='reading_target_tables'
+    $tables=Read-CatalogRows -Limit 7 -Fields @('table_id','table_name','table_type') -Values (@('bethadba')+$targets) -Query @'
+SELECT TOP 8 t.table_id, t.table_name, t.table_type
+FROM SYS.SYSTAB t JOIN SYS.SYSUSER u ON u.user_id=t.creator
+WHERE u.user_name=? AND UPPER(t.table_name) IN (?,?,?,?,?,?,?)
+ORDER BY t.table_id
+'@
+    if ($tables.Count -ne $targets.Count -or @($tables | ForEach-Object {$_.table_name.ToUpperInvariant()} | Sort-Object -Unique).Count -ne $targets.Count) { throw 'Objetos esperados não identificados de modo único.' }
+    foreach ($target in $targets) {
+        if (@($tables | Where-Object {$_.table_name -ieq $target -and $_.table_type -eq 1}).Count -ne 1) { throw 'Tabela base esperada ausente.' }
+    }
+    $script:stage='reading_declared_keys'
+    $keys=Read-CatalogRows -Limit 1024 -Fields @('table_id','index_id','index_category','unique_code','not_enforced','index_name','sequence','column_id','column_name','primary_column_id') -Values (@('bethadba')+$targets) -Query @'
+SELECT TOP 1025 i.table_id, i.index_id, i.index_category, i."unique", i.not_enforced,
+ i.index_name, ic.sequence, ic.column_id, c.column_name, ic.primary_column_id
+FROM SYS.SYSIDX i
+JOIN SYS.SYSTAB t ON t.table_id=i.table_id
+JOIN SYS.SYSUSER u ON u.user_id=t.creator
+JOIN SYS.SYSIDXCOL ic ON ic.table_id=i.table_id AND ic.index_id=i.index_id
+JOIN SYS.SYSTABCOL c ON c.table_id=ic.table_id AND c.column_id=ic.column_id
+WHERE u.user_name=? AND UPPER(t.table_name) IN (?,?,?,?,?,?,?)
+ AND (i.index_category IN (1,2) OR i."unique" IN (1,2,5))
+ORDER BY i.table_id, i.index_id, ic.sequence
+'@
+    $script:stage='reading_declared_relations'
+    $relations=Read-CatalogRows -Limit 4096 -Fields @('foreign_table_id','foreign_index_id','primary_table_id','primary_index_id','foreign_schema','foreign_table','primary_schema','primary_table','match_type','check_on_commit','nulls','sequence','foreign_column_id','foreign_column','primary_column_id','primary_column') -Values (@('bethadba')+$targets+@('bethadba')+$targets) -Query @'
+SELECT TOP 4097 f.foreign_table_id, f.foreign_index_id, f.primary_table_id, f.primary_index_id,
+ fu.user_name, ft.table_name, pu.user_name, pt.table_name, f.match_type, f.check_on_commit,
+ f.nulls, ic.sequence, ic.column_id, fc.column_name, ic.primary_column_id, pc.column_name
+FROM SYS.SYSFKEY f
+JOIN SYS.SYSTAB ft ON ft.table_id=f.foreign_table_id
+JOIN SYS.SYSUSER fu ON fu.user_id=ft.creator
+JOIN SYS.SYSTAB pt ON pt.table_id=f.primary_table_id
+JOIN SYS.SYSUSER pu ON pu.user_id=pt.creator
+JOIN SYS.SYSIDXCOL ic ON ic.table_id=f.foreign_table_id AND ic.index_id=f.foreign_index_id
+JOIN SYS.SYSTABCOL fc ON fc.table_id=ic.table_id AND fc.column_id=ic.column_id
+LEFT JOIN SYS.SYSTABCOL pc ON pc.table_id=f.primary_table_id AND pc.column_id=ic.primary_column_id
+WHERE (fu.user_name=? AND UPPER(ft.table_name) IN (?,?,?,?,?,?,?))
+ OR (pu.user_name=? AND UPPER(pt.table_name) IN (?,?,?,?,?,?,?))
+ORDER BY f.foreign_table_id, f.foreign_index_id, ic.sequence
+'@
+    return [ordered]@{targets=$targets;tables=$tables;key_columns=$keys;relation_columns=$relations}
+}
+
+function Read-Snapshot {
+    $script:stage='reading_active_company_codes'
+    $companies=Read-Details -Limit 500 -Fields @('company_code','parameter_company_code','codi_pad_raw','comp_pad_raw','i_planocontas_raw','cash_account_parameter_raw','branch_parameter_raw') -Query @'
+SELECT TOP 501 g.codi_emp,p.codi_emp,p.codi_pad,p.comp_pad,p.I_PLANOCONTAS,p.ccxa_par,p.fili_par
+FROM bethadba.geempre g LEFT JOIN bethadba.ctparmto p ON p.codi_emp=g.codi_emp
+WHERE g.stat_emp=?
+ORDER BY g.codi_emp
+'@
+    $companyIds=New-Object 'System.Collections.Generic.HashSet[long]'
+    foreach ($company in $companies) {
+        $company['configuration_rows']=0
+        if ($null -ne $company.parameter_company_code) {
+            if ($company.parameter_company_code -ne $company.company_code -or $null -eq $company.i_planocontas_raw) {Reject-Details 'COMPANY_CONFIGURATION'}
+            $company['configuration_rows']=1
+        } elseif (@('codi_pad_raw','comp_pad_raw','i_planocontas_raw','cash_account_parameter_raw','branch_parameter_raw') | Where-Object {$null -ne $company[$_]}) {Reject-Details 'COMPANY_CONFIGURATION'}
+        $company.Remove('parameter_company_code')
+        if ($company.company_code -lt 1 -or -not $companyIds.Add($company.company_code)) {Reject-Details 'COMPANY_COVERAGE'}
+    }
+    if ($companies.Count -ne $expectedCompanyCount) {Reject-Details 'COMPANY_COUNT_CHANGED'}
+    # Sort primitive Int64 codes: Sort-Object -Property does not consistently
+    # resolve OrderedDictionary keys and can scramble otherwise identical sets.
+    $codeText=(@($companies | ForEach-Object {[long]$_.company_code} | Sort-Object | ForEach-Object {$_.ToString([Globalization.CultureInfo]::InvariantCulture)}) -join ',')
+    $hasher=[Security.Cryptography.SHA256]::Create()
+    try {$codeSha=([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::ASCII.GetBytes($codeText)))).Replace('-','').ToLowerInvariant()}
+    finally {$hasher.Dispose()}
+    if ($codeSha -cne $expectedCompanyCodeSha256) {Reject-Details 'COMPANY_CODES_CHANGED'}
+    $script:stage='reading_configured_account_details'
+    $configured=Read-Details -Limit 5000 -Fields @('company_code','chart_company_code','account_code','catalogue_account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query @'
+SELECT TOP 5001 q.CODI_EMP,q.CODI_EMP_PLANO,q.CODI_CTA,c.codi_cta,
+ c.nome_cta,c.clas_cta,c.tipo_cta,c.SITUACAO_CTA,c.DATAINATIVA_CTA
+FROM bethadba.CTCONCILIACAO_CONTA q
+JOIN bethadba.geempre g ON g.codi_emp=q.CODI_EMP
+LEFT JOIN bethadba.ctcontas c ON c.codi_emp=q.CODI_EMP_PLANO AND c.codi_cta=q.CODI_CTA
+WHERE g.stat_emp=?
+ORDER BY q.CODI_EMP,q.CODI_EMP_PLANO,q.CODI_CTA
+'@
+    $keys=New-Object 'System.Collections.Generic.HashSet[string]'
+    foreach ($account in $configured) {
+        $key='{0}:{1}:{2}' -f $account.company_code,$account.chart_company_code,$account.account_code
+        if (-not $companyIds.Contains($account.company_code) -or $account.chart_company_code -lt 1 -or $account.account_code -lt 1) {Reject-Details 'ACCOUNT_SCOPE'}
+        if (-not $keys.Add($key)) {Reject-Details 'ACCOUNT_CARDINALITY'}
+        $account['catalogue_matches']=0
+        if ($null -ne $account.catalogue_account_code) {
+            if ($account.catalogue_account_code -ne $account.account_code) {Reject-Details 'ACCOUNT_LOOKUP'}
+            foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw')) {
+                if ($null -eq $account[$field]) {Reject-Details 'ACCOUNT_LOOKUP'}
+            }
+            $account['catalogue_matches']=1
+        } elseif (@('account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') | Where-Object {$null -ne $account[$_]}) {Reject-Details 'ACCOUNT_LOOKUP'}
+    }
+    $script:stage='reading_cash_accounts'
+    $cash=Read-Details -Limit 5000 -Fields @('company_code','cash_account_code','selection_raw','cash_type_raw') -Query @'
+SELECT TOP 5001 c.codi_emp,c.codi_cta,c.sele_cta,c.TIPO_CONTA_CAIXA
+FROM bethadba.ctcontacaixa c
+JOIN bethadba.geempre g ON g.codi_emp=c.codi_emp
+WHERE g.stat_emp=?
+ORDER BY c.codi_emp,c.codi_cta
+'@
+    $cashByKey=@{}
+    foreach ($account in $cash) {
+        $key='{0}:{1}' -f $account.company_code,$account.cash_account_code
+        if (-not $companyIds.Contains($account.company_code)) {Reject-Details 'CASH_SCOPE'}
+        if ($cashByKey.ContainsKey($key)) {Reject-Details 'CASH_CARDINALITY'}
+        $account['bank_reference_count']=0
+        $cashByKey[$key]=$account
+    }
+    $script:stage='reading_bank_references'
+    $banks=Read-Details -Limit 20000 -Fields @('company_code','cash_account_code','bank_reference_sequence','agency_raw','account_identifier_raw','bank_id_raw','bank_catalogue_id','bank_code_raw','bank_name_raw') -Query @'
+SELECT TOP 20001 b.CODI_EMP,b.I_CONTA_CAIXA,b.I_SEQUENCIAL_CONTA_BANCARIA,
+ b.AGENCIA,b.IDENTIFICADOR_CONTA,b.I_BANCO,k.I_BANCO,k.CODIGO_BANCO,k.DESCRICAO_BANCO
+FROM bethadba.CTCONTACAIXA_CONTA_BANCARIA b
+JOIN bethadba.geempre g ON g.codi_emp=b.CODI_EMP
+LEFT JOIN bethadba.CTLISTA_BANCOS_BANCO_CENTRAL k ON k.I_BANCO=b.I_BANCO
+WHERE g.stat_emp=?
+ORDER BY b.CODI_EMP,b.I_CONTA_CAIXA,b.I_SEQUENCIAL_CONTA_BANCARIA
+'@
+    $keys.Clear()
+    foreach ($bank in $banks) {
+        $key='{0}:{1}:{2}' -f $bank.company_code,$bank.cash_account_code,$bank.bank_reference_sequence
+        if (-not $companyIds.Contains($bank.company_code)) {Reject-Details 'BANK_SCOPE'}
+        if (-not $keys.Add($key)) {Reject-Details 'BANK_CARDINALITY'}
+        $cashKey='{0}:{1}' -f $bank.company_code,$bank.cash_account_code
+        $bank['cash_key_present']=$cashByKey.ContainsKey($cashKey)
+        if ($bank.cash_key_present) {$cashByKey[$cashKey]['bank_reference_count']++}
+        $bank['bank_catalogue_matches']=0
+        if ($null -ne $bank.bank_catalogue_id) {
+            if ($null -eq $bank.bank_id_raw -or $bank.bank_catalogue_id -ne $bank.bank_id_raw -or $null -eq $bank.bank_code_raw -or $null -eq $bank.bank_name_raw) {Reject-Details 'BANK_LOOKUP'}
+            $bank['bank_catalogue_matches']=1
+        } elseif ($null -ne $bank.bank_code_raw -or $null -ne $bank.bank_name_raw) {Reject-Details 'BANK_LOOKUP'}
+    }
+    $script:stage='reading_integration_account_configurations'
+    $integrations=Read-Details -Limit 5000 -Fields @('company_code','integration_account_code_raw','integration_branch_code_raw','integration_bank_id_raw','integration_started_on_raw') -Query @'
+SELECT TOP 5001 i.CODI_EMP,i.CODI_CTA,i.CODI_FIL,i.I_BANCO,i.DATA_INICIO_INTEGRACAO
+FROM bethadba.CTPARMTO_CONTAS_ICEBERG i
+JOIN bethadba.geempre g ON g.codi_emp=i.CODI_EMP
+WHERE g.stat_emp=?
+ORDER BY i.CODI_EMP,i.CODI_CTA,i.CODI_FIL,i.I_BANCO
+'@
+    $keys.Clear()
+    foreach ($configuration in $integrations) {
+        if (-not $companyIds.Contains($configuration.company_code)) {Reject-Details 'INTEGRATION_SCOPE'}
+        # Comparison key only: no retained foreign key proves an account owner,
+        # branch meaning or association of this I_BANCO with the bank catalog.
+        $key='{0}:{1}:{2}:{3}' -f $configuration.company_code,$configuration.integration_account_code_raw,$configuration.integration_branch_code_raw,$configuration.integration_bank_id_raw
+        if (-not $keys.Add($key)) {Reject-Details 'INTEGRATION_CARDINALITY'}
+    }
+    $script:stage='reading_equivalent_account_references'
+    $equivalents=Read-Details -Limit 20000 -Fields @('company_code','chart_company_code','account_code') -Query @'
+SELECT TOP 20001 e.CODI_EMP,e.CODI_EMP_PLANO,e.CODI_CTA
+FROM bethadba.CTCONTAS_EQUIVALENTES e
+JOIN bethadba.geempre g ON g.codi_emp=e.CODI_EMP
+WHERE g.stat_emp=?
+ORDER BY e.CODI_EMP,e.CODI_EMP_PLANO,e.CODI_CTA
+'@
+    $keys.Clear()
+    foreach ($item in $equivalents) {
+        if (-not $companyIds.Contains($item.company_code) -or $item.chart_company_code -lt 1 -or $item.account_code -lt 1) {Reject-Details 'EQUIVALENT_SCOPE'}
+        if (-not $keys.Add(('{0}:{1}:{2}' -f $item.company_code,$item.chart_company_code,$item.account_code))) {Reject-Details 'EQUIVALENT_CARDINALITY'}
+    }
+    $script:stage='reading_observed_chart_usage'
+    $usage=Read-Details -Limit 10000 -Values @('A',$periodStart,$periodEnd) -Fields @('company_code','chart_company_code','branch_code','year','month','entry_count') -Query @'
+SELECT TOP 10001 l.codi_emp,l.CODI_EMP_PLANO,l.fili_lan,YEAR(l.data_lan),MONTH(l.data_lan),COUNT(*)
+FROM bethadba.ctlancto l JOIN bethadba.geempre g ON g.codi_emp=l.codi_emp
+WHERE g.stat_emp=? AND l.data_lan>=? AND l.data_lan<?
+GROUP BY l.codi_emp,l.CODI_EMP_PLANO,l.fili_lan,YEAR(l.data_lan),MONTH(l.data_lan)
+ORDER BY l.codi_emp,l.CODI_EMP_PLANO,l.fili_lan,YEAR(l.data_lan),MONTH(l.data_lan)
+'@
+    $keys.Clear(); $total=[long]0
+    foreach ($item in $usage) {
+        if (-not $companyIds.Contains($item.company_code) -or $item.chart_company_code -lt 1 -or $item.year -ne 2026 -or $item.month -lt 9 -or $item.month -gt 11 -or $item.entry_count -lt 1) {Reject-Details 'USAGE_SCOPE'}
+        if (-not $keys.Add(('{0}:{1}:{2}:{3}:{4}' -f $item.company_code,$item.chart_company_code,$item.branch_code,$item.year,$item.month))) {Reject-Details 'USAGE_CARDINALITY'}
+        $total+=$item.entry_count
+        if ($total -gt 5000000) {Reject-Details 'USAGE_TOTAL_LIMIT'}
+    }
+    # Candidate owners are a union of independently labelled references. This is
+    # a catalogue selection, never an assertion that CODI_PAD/COMP_PAD is active.
+    $ownerSet=New-Object 'System.Collections.Generic.HashSet[long]'
+    foreach ($company in $companies) {
+        [void]$ownerSet.Add($company.company_code)
+        if ($null -ne $company.codi_pad_raw -and $company.codi_pad_raw -gt 0) {[void]$ownerSet.Add($company.codi_pad_raw)}
+    }
+    foreach ($item in @($configured)+@($equivalents)+@($usage)) {[void]$ownerSet.Add($item.chart_company_code)}
+    $owners=@($ownerSet | Sort-Object)
+    if ($owners.Count -gt 600) {Reject-Details 'OWNER_LIMIT'}
+    $charts=New-Object 'System.Collections.Generic.List[object]'
+    $templates=New-Object 'System.Collections.Generic.List[object]'
+    $natures=New-Object 'System.Collections.Generic.List[object]'
+    for ($offset=0;$offset -lt $owners.Count;$offset+=100) {
+        $last=[Math]::Min($offset+99,$owners.Count-1)
+        $batch=@($owners[$offset..$last]); $placeholders=(@($batch | ForEach-Object {'?'}) -join ',')
+        $script:stage='reading_complete_chart_accounts'
+        $query=@'
+SELECT TOP 100001 c.codi_emp,c.codi_cta,c.nome_cta,c.clas_cta,c.tipo_cta,c.SITUACAO_CTA,c.DATAINATIVA_CTA
+FROM bethadba.ctcontas c WHERE c.codi_emp IN (__OWNERS__)
+ORDER BY c.codi_emp,c.codi_cta
+'@
+        $rows=Read-Details -Limit 100000 -Values $batch -Fields @('chart_company_code','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
+        foreach ($row in $rows) {$charts.Add($row)}
+        if ($charts.Count -gt 100000) {Reject-Details 'ROW_LIMIT'}
+        $script:stage='reading_plan_template_accounts'
+        $query=@'
+SELECT TOP 100001 c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA,c.NOME_CTA,c.CLAS_CTA,c.TIPO_CTA,c.SITUACAO_CTA,c.DATAINATIVA_CTA
+FROM bethadba.CTPLANOCONTAS c WHERE c.CODI_EMP IN (__OWNERS__)
+ORDER BY c.CODI_EMP,c.I_PLANOCONTAS,c.CODI_CTA
+'@
+        $rows=Read-Details -Limit 100000 -Values $batch -Fields @('chart_company_code','plan_id_raw','account_code','account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw') -Query $query.Replace('__OWNERS__',$placeholders)
+        foreach ($row in $rows) {$templates.Add($row)}
+        if ($templates.Count -gt 100000) {Reject-Details 'ROW_LIMIT'}
+        $script:stage='reading_literal_nature_rules'
+        $query=@'
+SELECT TOP 10001 n.codi_emp,n.ordem,n.clas_cta,n.natureza,n.grupo
+FROM bethadba.ctnatureza_conta n WHERE n.codi_emp IN (__OWNERS__)
+ORDER BY n.codi_emp,n.ordem
+'@
+        $rows=Read-Details -Limit 10000 -Values $batch -Fields @('chart_company_code','rule_order','classification_raw','nature_raw','group_raw') -Query $query.Replace('__OWNERS__',$placeholders)
+        foreach ($row in $rows) {$natures.Add($row)}
+        if ($natures.Count -gt 10000) {Reject-Details 'ROW_LIMIT'}
+    }
+    foreach ($collection in @(@{items=$charts;template=$false},@{items=$templates;template=$true})) {
+        $keys.Clear()
+        foreach ($item in $collection.items) {
+            if (-not $ownerSet.Contains($item.chart_company_code) -or $item.account_code -lt 1) {Reject-Details 'CATALOGUE_SCOPE'}
+            $key='{0}:{1}' -f $item.chart_company_code,$item.account_code
+            if ($collection.template) {$key+=':'+$item.plan_id_raw}
+            if (-not $keys.Add($key)) {Reject-Details 'CATALOGUE_CARDINALITY'}
+            foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw')) {if ($null -eq $item[$field]) {Reject-Details 'CATALOGUE_NULL'}}
+            if ($collection.template -and $item.account_name_raw.Length -gt 60) {Reject-Details 'TEXT_CONTRACT'}
+        }
+    }
+    $chartByKey=@{}
+    foreach ($item in $charts) {$chartByKey[('{0}:{1}' -f $item.chart_company_code,$item.account_code)]=$item}
+    foreach ($item in $configured) {
+        $key='{0}:{1}' -f $item.chart_company_code,$item.account_code
+        if ($chartByKey.ContainsKey($key) -ne ($item.catalogue_matches -eq 1)) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+        if ($item.catalogue_matches -eq 1) {
+            foreach ($field in @('account_name_raw','classification_raw','account_type_raw','account_status_raw','inactive_on_raw')) {
+                if ($item[$field] -cne $chartByKey[$key][$field]) {Reject-Details 'CATALOGUE_INCONSISTENT'}
+            }
+        }
+    }
+    $keys.Clear()
+    foreach ($item in $natures) {
+        if (-not $ownerSet.Contains($item.chart_company_code) -or $item.rule_order -gt 255) {Reject-Details 'NATURE_SCOPE'}
+        if (-not $keys.Add(('{0}:{1}' -f $item.chart_company_code,$item.rule_order))) {Reject-Details 'NATURE_CARDINALITY'}
+        if ($null -eq $item.classification_raw) {Reject-Details 'CATALOGUE_NULL'}
+    }
+    $metadata=Read-DiscoveryMetadata
+    return [ordered]@{companies=$companies;observed_chart_usage=$usage;chart_owners=@($owners | ForEach-Object {[ordered]@{chart_company_code=$_}});chart_accounts=$charts.ToArray();plan_template_accounts=$templates.ToArray();nature_rules=$natures.ToArray();configured_accounts=$configured;equivalent_accounts=$equivalents;cash_accounts=$cash;bank_references=$banks;integration_account_configurations=$integrations;metadata=$metadata}
+}
+try {
+    $credential=Get-Credential -UserName 'EXTERNO' -Message 'Descoberta cadastral CONTAD: informe a credencial local do Dominio. Nao envie senha ao chat.'
+    if ($null -eq $credential) {Reject-Details 'CANCELLED'}
+    $builder=New-Object System.Data.Odbc.OdbcConnectionStringBuilder
+    $builder['DSN']='CICA_CONTAD'; $builder['UID']=$credential.UserName; $builder['PWD']=$credential.GetNetworkCredential().Password
+    $connection=New-Object System.Data.Odbc.OdbcConnection -ArgumentList $builder.ConnectionString
+    $connection.ConnectionTimeout=20; $stage='opening_connection'; $connection.Open()
+    $builder.Clear(); $credential=$null; $timer=[Diagnostics.Stopwatch]::StartNew()
+    $stage='validating_proven_columns'
+    $required=@{
+        geempre=@('CODI_EMP','STAT_EMP')
+        ctparmto=@('CODI_EMP','CODI_PAD','COMP_PAD','I_PLANOCONTAS','CCXA_PAR','FILI_PAR')
+        ctlancto=@('CODI_EMP','CODI_EMP_PLANO','FILI_LAN','DATA_LAN')
+        ctplanocontas=@('CODI_EMP','CODI_CTA','I_PLANOCONTAS','NOME_CTA','CLAS_CTA','TIPO_CTA','SITUACAO_CTA','DATAINATIVA_CTA')
+        ctnatureza_conta=@('CODI_EMP','ORDEM','CLAS_CTA','NATUREZA','GRUPO')
+        ctcontas_equivalentes=@('CODI_EMP','CODI_EMP_PLANO','CODI_CTA')
+        ctconciliacao_conta=@('CODI_EMP','CODI_EMP_PLANO','CODI_CTA')
+        ctcontas=@('CODI_EMP','CODI_CTA','NOME_CTA','CLAS_CTA','TIPO_CTA','SITUACAO_CTA','DATAINATIVA_CTA')
+        ctcontacaixa=@('CODI_EMP','CODI_CTA','SELE_CTA','TIPO_CONTA_CAIXA')
+        ctcontacaixa_conta_bancaria=@('CODI_EMP','I_CONTA_CAIXA','I_SEQUENCIAL_CONTA_BANCARIA','AGENCIA','IDENTIFICADOR_CONTA','I_BANCO')
+        ctlista_bancos_banco_central=@('I_BANCO','CODIGO_BANCO','DESCRICAO_BANCO')
+        ctparmto_contas_iceberg=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO','DATA_INICIO_INTEGRACAO')
+    }
+    foreach ($table in $required.Keys) {
+        Check-Deadline
+        $columns=$connection.GetSchema('Columns',[string[]]@($null,'bethadba',$table,$null))
+        $names=@($columns.Rows | Where-Object {$_.TABLE_SCHEM -ieq 'bethadba' -and $_.TABLE_NAME -ieq $table} | ForEach-Object {([string]$_.COLUMN_NAME).ToUpperInvariant()})
+        foreach ($name in $required[$table]) {if ($names -notcontains $name) {Reject-Details 'MISSING_COLUMN'}}
+    }
+    $first=Read-Snapshot
+    $firstJson=$first | ConvertTo-Json -Depth 8 -Compress
+    if ([Text.Encoding]::UTF8.GetByteCount($firstJson) -gt 67108864) {Reject-Details 'OUTPUT_LIMIT'}
+    $second=Read-Snapshot
+    if ($firstJson -cne ($second | ConvertTo-Json -Depth 8 -Compress)) {Reject-Details 'SOURCE_CHANGED'}
+    Check-Deadline
+    $connection.Close()
+    $stage='writing_private_report'
+    $result=[ordered]@{
+        version='contad-chart-discovery-v1';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o')
+        decision='D-373';period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';expected_company_count=$expectedCompanyCount;two_reads_identical=$true
+        company_codes_sha256=$expectedCompanyCodeSha256
+        retained_portfolio_sha256='21136b2aaab37d28a85ac833001a039f6f100abde565101dbd3f8219099e1231'
+        script_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        provenance=[ordered]@{
+            observed_chart_usage='CTLANCTO.(codi_emp,CODI_EMP_PLANO,fili_lan,YEAR(data_lan),MONTH(data_lan)); grouped codes and counts within declared period only'
+            chart_accounts='Complete CTCONTAS per union of own/CODI_PAD/observed/configured/equivalent chart owners; no name/type/status filtering'
+            company_parameters='CTPARMTO literal CODI_PAD,COMP_PAD,I_PLANOCONTAS,CCXA_PAR,FILI_PAR; no active-plan or cash mapping inferred'
+            plan_template_accounts='CTPLANOCONTAS literal accounts per owner/I_PLANOCONTAS; not substituted for CTCONTAS'
+            nature_rules='CTNATUREZA_CONTA literal codi_emp,ordem,clas_cta,natureza,grupo; no prefix, precedence or debit/credit interpretation'
+            equivalent_accounts='CTCONTAS_EQUIVALENTES.(CODI_EMP_PLANO,CODI_CTA) -> CTCONTAS.(codi_emp,codi_cta); company reference only'
+
+            configured_accounts='CTCONCILIACAO_CONTA.(CODI_EMP_PLANO,CODI_CTA) -> CTCONTAS.(codi_emp,codi_cta)'
+            bank_references='CTCONTACAIXA_CONTA_BANCARIA.(CODI_EMP,I_CONTA_CAIXA) -> CTCONTACAIXA.(codi_emp,codi_cta)'
+            bank_catalogue='CTCONTACAIXA_CONTA_BANCARIA.I_BANCO -> CTLISTA_BANCOS_BANCO_CENTRAL.I_BANCO'
+            bank_code_storage='CODIGO_BANCO is an integer in the retained catalog; no padding inferred.'
+            integration_account_configurations=[ordered]@{
+                source='CTPARMTO_CONTAS_ICEBERG'
+                selected_columns=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO','DATA_INICIO_INTEGRACAO')
+                comparison_key_columns=@('CODI_EMP','CODI_CTA','CODI_FIL','I_BANCO')
+                declared_foreign_keys_verified=$false;chart_owner_mapping_inferred=$false;bank_catalogue_link_inferred=$false
+                interpretation='Literal cadastral codes and date only; comparison key does not assert a database primary key.'
+            }
+        }
+        snapshot=$first;nature_interpreted=$false;chart_owner_mapping_inferred=$false;cash_to_ledger_mapping_inferred=$false;bank_association_approved=$false;account_meanings_approved=$false
+        human_reviewed=$false;financial_collection_enabled=$false;financial_values_selected=$false
+        cadastral_names_and_bank_references_selected=$true;agent_configuration_read=$false;erp_write_performed=$false;uploaded=$false
+    }
+    $bytes=[Text.Encoding]::UTF8.GetBytes(($result | ConvertTo-Json -Depth 10 -Compress))
+    if ($bytes.Length -gt 67108864) {Reject-Details 'OUTPUT_LIMIT'}
+    $outputDirectory=Join-Path ([Environment]::GetFolderPath('UserProfile')) ('Downloads\CICA-CONTAD-Planos-Contas-'+[Guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($outputDirectory)
+    $acl=New-Object Security.AccessControl.DirectorySecurity
+    $acl.SetAccessRuleProtection($true,$false)
+    foreach ($sid in @([Security.Principal.WindowsIdentity]::GetCurrent().User,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'),[Security.Principal.SecurityIdentifier]::new('S-1-5-32-544'))) {
+        $acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($sid,'FullControl','ContainerInherit,ObjectInherit','None','Allow'))
+    }
+    Set-Acl -LiteralPath $outputDirectory -AclObject $acl
+    if (-not (Get-Acl -LiteralPath $outputDirectory).AreAccessRulesProtected) {Reject-Details 'PRIVATE_ACL'}
+    $path=Join-Path $outputDirectory 'planos-contas.json'
+    $temporary=$path+'.partial'
+    try {[IO.File]::WriteAllBytes($temporary,$bytes); [IO.File]::Move($temporary,$path)}
+    finally {if ([IO.File]::Exists($temporary)) {[IO.File]::Delete($temporary)}}
+    $sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+    [ordered]@{
+        version='contad-chart-discovery-receipt-v1';completed=$true;companies=$first.companies.Count
+        chart_owners=$first.chart_owners.Count;chart_accounts=$first.chart_accounts.Count;plan_template_accounts=$first.plan_template_accounts.Count;nature_rules=$first.nature_rules.Count;observed_chart_usage=$first.observed_chart_usage.Count;equivalent_accounts=$first.equivalent_accounts.Count
+        configured_accounts=$first.configured_accounts.Count;cash_accounts=$first.cash_accounts.Count;bank_references=$first.bank_references.Count
+        integration_account_configurations=$first.integration_account_configurations.Count
+        missing_chart_accounts=@($first.configured_accounts | Where-Object {$_.catalogue_matches -eq 0}).Count
+        missing_bank_catalogue=@($first.bank_references | Where-Object {$_.bank_catalogue_matches -eq 0}).Count
+        missing_cash_keys=@($first.bank_references | Where-Object {-not $_.cash_key_present}).Count
+        sha256=$sha;bytes=$bytes.Length;report_file=$path;two_reads_identical=$true;financial_values_selected=$false
+        uploaded=$false;human_reviewed=$false
+    } | ConvertTo-Json -Depth 3 -Compress | Write-Output
+} catch {
+    $types=New-Object 'System.Collections.Generic.List[string]'; $states=New-Object 'System.Collections.Generic.List[string]'
+    $exception=$_.Exception
+    for ($depth=0;$null -ne $exception -and $depth -lt 8;$depth++) {
+        $types.Add($exception.GetType().Name)
+        if ($exception -is [System.Data.Odbc.OdbcException]) {
+            foreach ($item in @($exception.Errors | Select-Object -First 20)) {if ($item.SQLState -match '^[A-Z0-9]{5}$') {$states.Add($item.SQLState)}}
+        }
+        $exception=$exception.InnerException
+    }
+    [ordered]@{version='contad-chart-discovery-receipt-v1';completed=$false;stage=$stage;reason_code=$reason;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 4 -Compress | Write-Output
+    Write-Error 'Descoberta nao concluido. Retorne somente este diagnostico seguro; preserve credencial e agente.' -ErrorAction Continue
+    exit 1
+} finally {
+    if ($null -ne $connection) {$connection.Dispose()}
+    if ($null -ne $builder) {$builder.Clear()}
+    $credential=$null
+}

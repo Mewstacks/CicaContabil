@@ -4625,3 +4625,13 @@ Cliente pode testar o piloto SURIA e revisar 43 fichas de 11 empresas. Coleta re
 163/163 compatível, diferença líquida zero; dois grupos ambíguos e 162 revisões
 pendentes. 145 empresas ainda sem conta operacional, devido às lacunas efetivas de
 extrato/plano/vínculo bancário. Carteira integral e homologação permanecem abertas.
+
+## 17/11/2026 — D-373/V-412: descoberta completa e preparação em lote
+
+- [x] Registrar autorização e preservar checkout/estado publicado.
+- [x] Identificar limitação da descoberta anterior e aprovar contrato completo com proveniência.
+- [ ] Validar leitor Windows ampliado e receber fonte real das146 empresas.
+- [ ] Preparar catálogo/vínculos em lote com prévia, replay e fatos/ambiguidades explícitos.
+- [ ] Validar confirmação mínima e acesso por empresa/módulo, UI/UX e Playwright.
+- [ ] Aprovar CI da fonte exata, publicar e conferir dados/runtime/saúde/fluxo real.
+- [ ] Registrar cobertura efetiva e lacunas restantes, sem declarar homologação humana.

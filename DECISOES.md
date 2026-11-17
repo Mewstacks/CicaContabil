@@ -5378,3 +5378,71 @@ classificações não substituem vínculo bancário. A consulta retornou zero re
 Manter Q-28/PC-19 e revisões pendentes; não anunciar “qualquer empresa pronta”.
 Canal preexistente 1.0.13 restaurado após deploy e configuração final conferida;
 próximos deploys devem preservar os overrides existentes verificados na prévia.
+
+## D-373 — Descoberta completa de planos e contas das 146 empresas (17/11/2026)
+
+Origem: responsável instruiu “Então complete a descoberta automática dos planos e
+contas das 146 empresas, prepare os vínculos em lote, valide e publique para a
+cliente testar hoje. Deixe para ela confirmar só o que realmente precisar de
+conferência.” Retoma Q-28/PC-19 e etapas03/09/12 após a entrega parcial D-372.
+
+Autoriza ampliar a leitura real, somente consulta no Domínio, além de
+CTCONCILIACAO_CONTA: descobrir os planos efetivamente utilizados e contas do
+catálogo completo no escopo das mesmas146 empresas, com relações verificadas
+no catálogo retido. Preparar em lote fatos e vínculos comprovados pela origem,
+sem fazer a cliente redigitar fatos já disponíveis. Ausência naquela configuração
+não é ausência de conta no plano; piloto212/8 é prova dessa diferença.
+
+Classificar com evidência os vínculos resolvidos e as ambiguidades reais; mostrar
+a confirmação apenas do que a origem não comprova. Não inventar banco, agência,
+conta, natureza, direção ou correspondência caixa→contábil por nome/código igual.
+Não rotular execução automática como revisão/aceite humano. Preservar fontes,
+revisões,43 candidatas/complementos e o piloto operacional existentes; importação
+com prévia atômica, escopo/hash e replay idempotente. Cobertura declarada por
+empresa, inclusive ausência de parâmetros/plano e multiplicidade de filiais.
+
+Implementar e validar o fluxo completo, com testes SQLite/PostgreSQL/Windows
+pertinentes, revisão independente, UI/UX/Playwright e verificação de produção.
+Publicação já autorizada nas máquinas/capacidade existentes, preservando canal
+1.0.13 ou publicando atualização de agente apenas se tecnicamente necessária e
+validada. Nenhum custo novo, IA, mensagem externa, alteração comercial, escrita
+ERP, exportação contábil ou confirmação de conciliação em nome da cliente.
+Reutilizar acessos/fontes disponíveis. Se AnyDesk continuar sem controle, preparar
+primeiro comando único concreto, testado e com hash para execução local assistida.
+Não declarar carteira pronta sem descoberta recebida, vínculos preparados e
+validação real. Registrar lacunas efetivas no mesmo Q-28, sem perguntas repetidas.
+
+Refinamento D-373 — contrato de descoberta aprovado antes da implementação:
+leitor independente `inspect-contad-chart-discovery.ps1`, sem novo MSI, com
+duas leituras completas, escopo/hash exatos, limites e arquivo privado. Além dos
+parâmetros cadastrais das146 empresas, consultar somente códigos empresa/plano/
+filial e contagens agregadas de CTLANCTO no intervalo 01/09/2026 a 01/12/2026
+(exclusivo). Nenhum valor, histórico ou movimento individual selecionado. Essa
+janela evidencia utilização; não prova semântica atual de parâmetros nem exclui
+planos fora do período. Catálogo CTCONTAS completo, sem filtro por nome/tipo ou
+configuração de conciliação, para proprietários próprios, CODI_PAD, utilizados
+e explicitamente configurados; incluir referências de proprietários fora do
+escopo146 sem ampliar empresas atendidas. CTPLANOCONTAS, CTNATUREZA_CONTA e
+metadados limitados mantêm fatos literais, sem inferência de natureza/precedência.
+
+Persistência aditiva separada: lote imutável por escritório/hash, catálogo
+deduplicado por lote/plano/conta e cobertura por lote/empresa. Preparar vínculos
+e campos a partir desses fatos, com proveniência; não multiplicar o catálogo
+por todas as empresas nem alterar fontes/revisões das43 candidatas antigas.
+Prévia/aplicação/replay atômicos, recusando escopo divergente e truncamento.
+Página de cobertura e busca por empresa/plano/conta deve permitir chegar ao
+vínculo a partir do catálogo completo. Campos comprovados são apresentados
+preenchidos; formulário pede somente evidência/associação/semântica ainda
+não comprovadas. Qualquer confirmação real registra o usuário da sessão e
+os campos efetivamente confirmados, distinguindo-os dos fatos técnicos da fonte.
+
+Complemento D-373 — catálogo retido comprova FK composta de
+CTCONTAS_EQUIVALENTES(CODI_EMP_PLANO,CODI_CTA) para CTCONTAS. Incluir códigos
+empresa/plano/conta literais em array separado e seus proprietários no catálogo
+completo; a referência não declara banco físico nem plano atualmente ativo.
+
+Precisão D-373 — o agregado de utilização preserva também ano/mês de competência
+(sem datas individuais), pois o Razão é solicitado por mês. Vínculo observado
+em uma competência não se transforma automaticamente em vínculo para qualquer
+período. Guardar multiplicidade e filiais por competência; a interface preserva
+o mês e solicita confirmação somente quando a fonte não comprovar aquele escopo.

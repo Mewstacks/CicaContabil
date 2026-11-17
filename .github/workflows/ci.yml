@@ -51,6 +51,10 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-account-details.ps1
+      - name: Validate complete chart discovery with synthetic ODBC and private reports
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-chart-discovery.ps1
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
           dotnet-version: "10.0.x"

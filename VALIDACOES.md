@@ -11437,3 +11437,18 @@ Recibos privados em `.tmp/release-details`: `migration-applied.json`,
 `worker-health.json`, `production-ui-verification.json` e `private-inputs-cleanup.json`.
 Preservação canônica: 114 caminhos locais não Markdown com hashes inalterados;
 nenhum reset/rebase/cópia de código sobre as alterações preexistentes.
+
+## V-412 — Descoberta completa dos planos e contas — EM ANDAMENTO (17/11/2026)
+
+D-373 autoriza leitor independente completo, persistência imutável e fluxo de
+confirmação mínima. Base main113fe954/release100, agente1.0.13; trabalho isolado
+na branch codex/contad-descoberta146. Checkout canônico preservado: novo baseline
+de114 arquivos não Markdown em .tmp/discovery146/canonical-source-before.json.
+
+Diagnóstico: CTCONCILIACAO_CONTA contém apenas43 configurações/11empresas e não
+lista o plano completo; piloto212/8 nem consta nessa lista. Motor de Razão já
+aceita empresa/plano/conta/filial parametrizados. Ampliação consulta CTCONTAS
+completo dos proprietários referenciados, parâmetros/modelos/regras literais e
+uso agregado por empresa/plano/filial/competência, sem valores ou movimentos
+individuais. Metadados retidos sustentam FKs; semântica não comprovada permanece
+explícita. Fonte real ampliada, importação e publicação ainda não executadas.
