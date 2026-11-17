@@ -36,6 +36,8 @@ def digest(value: Any) -> str:
 
 LIMIT = 67_108_864
 VERSION = "contad-chart-discovery-v1"
+ARCHIVE_VERSION = "contad-chart-discovery-v2"
+ARCHIVE_SCRIPT_SHA = "497fbb87f30c8e96a05395e40dc183f9e0610f20039612816a34f814a787d9dd"
 SCRIPT_SHA = "b114b0c612e23c0d535be3f4177b08f055ea4a08b560381e10f96436bc116ba2"
 PERIOD_START = "2026-09-01"
 PERIOD_END = "2026-12-01"
@@ -319,7 +321,9 @@ def _reference_tables(data: dict[str, Any], companies: set[int], portfolio_sha25
         details.day(row["integration_started_on_raw"])
 
 
-def validate(data: Any, companies: set[int], portfolio_sha256: str) -> dict[str, Any]:
+def validate(
+    data: Any, companies: set[int], portfolio_sha256: str, *, streaming: bool = False
+) -> dict[str, Any]:
     keys(
         data,
         {
@@ -341,8 +345,14 @@ def validate(data: Any, companies: set[int], portfolio_sha256: str) -> dict[str,
             *FALSE_FLAGS,
         },
     )
-    require(data["version"] == VERSION and data["decision"] == "D-373", "REPORT_IDENTITY")
-    require(data["script_sha256"] == SCRIPT_SHA, "READER_HASH")
+    require(
+        data["version"] == (ARCHIVE_VERSION if streaming else VERSION)
+        and data["decision"] == "D-373",
+        "REPORT_IDENTITY",
+    )
+    require(
+        data["script_sha256"] == (ARCHIVE_SCRIPT_SHA if streaming else SCRIPT_SHA), "READER_HASH"
+    )
     require(
         data["period_start"] == PERIOD_START and data["period_end_exclusive"] == PERIOD_END,
         "PERIOD_CONTRACT",
@@ -408,44 +418,46 @@ def validate(data: Any, companies: set[int], portfolio_sha256: str) -> dict[str,
         row["chart_company_code"] for row in usage + equivalents + snapshot["configured_accounts"]
     }
     require(owner_codes == expected_owners, "EXACT_CHART_SCOPE")
-    charts = rows(
-        snapshot["chart_accounts"], CHART_FIELDS, ("chart_company_code", "account_code"), 100000
-    )
-    chart_index = {}
-    for row in charts:
-        validate_chart_row(row)
-        require(row["chart_company_code"] in owner_codes, "CATALOGUE_SCOPE")
-        chart_index[(row["chart_company_code"], row["account_code"])] = row
-    for row in rows(
-        snapshot["plan_template_accounts"],
-        CHART_FIELDS | {"plan_id_raw"},
-        ("chart_company_code", "plan_id_raw", "account_code"),
-        100000,
-    ):
-        validate_chart_row(row, template=True)
-        require(row["chart_company_code"] in owner_codes, "TEMPLATE_SCOPE")
-    for row in rows(
-        snapshot["nature_rules"],
-        {"chart_company_code", "rule_order", "classification_raw", "nature_raw", "group_raw"},
-        ("chart_company_code", "rule_order"),
-        10000,
-    ):
-        integer(row["chart_company_code"], positive=True)
-        integer(row["rule_order"])
-        require(
-            row["chart_company_code"] in owner_codes and row["rule_order"] <= 255, "NATURE_SCOPE"
+    if not streaming:
+        charts = rows(
+            snapshot["chart_accounts"], CHART_FIELDS, ("chart_company_code", "account_code"), 100000
         )
-        text(row["classification_raw"], 20)
-        text(row["nature_raw"], 1)
-        text(row["group_raw"], 1)
-    for row in snapshot["configured_accounts"]:
-        chart = chart_index.get((row["chart_company_code"], row["account_code"]))
-        require(bool(chart) == (row["catalogue_matches"] == 1), "CONFIGURED_CATALOGUE_DRIFT")
-        if chart:
+        chart_index = {}
+        for row in charts:
+            validate_chart_row(row)
+            require(row["chart_company_code"] in owner_codes, "CATALOGUE_SCOPE")
+            chart_index[(row["chart_company_code"], row["account_code"])] = row
+        for row in rows(
+            snapshot["plan_template_accounts"],
+            CHART_FIELDS | {"plan_id_raw"},
+            ("chart_company_code", "plan_id_raw", "account_code"),
+            100000,
+        ):
+            validate_chart_row(row, template=True)
+            require(row["chart_company_code"] in owner_codes, "TEMPLATE_SCOPE")
+        for row in rows(
+            snapshot["nature_rules"],
+            {"chart_company_code", "rule_order", "classification_raw", "nature_raw", "group_raw"},
+            ("chart_company_code", "rule_order"),
+            10000,
+        ):
+            integer(row["chart_company_code"], positive=True)
+            integer(row["rule_order"])
             require(
-                all(chart[field] == row[field] for field in CHART_FIELDS),
-                "CONFIGURED_CATALOGUE_DRIFT",
+                row["chart_company_code"] in owner_codes and row["rule_order"] <= 255,
+                "NATURE_SCOPE",
             )
+            text(row["classification_raw"], 20)
+            text(row["nature_raw"], 1)
+            text(row["group_raw"], 1)
+        for row in snapshot["configured_accounts"]:
+            chart = chart_index.get((row["chart_company_code"], row["account_code"]))
+            require(bool(chart) == (row["catalogue_matches"] == 1), "CONFIGURED_CATALOGUE_DRIFT")
+            if chart:
+                require(
+                    all(chart[field] == row[field] for field in CHART_FIELDS),
+                    "CONFIGURED_CATALOGUE_DRIFT",
+                )
     validate_metadata(snapshot["metadata"])
     return cast(dict[str, Any], data)
 

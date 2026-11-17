@@ -4,8 +4,8 @@ Ampliação autorizada para as146 empresas, consultando catálogo completo e rel
 empresa/plano/filial com proveniência, além da configuração de conciliação.
 Preparação em lote e confirmação apenas dos campos não comprovados pela fonte;
 release100 continua publicada até validação/publicação da nova candidata.
-Primeira consulta ampliada interrompida em TEXT_CONTRACT; correção em validação.
-Fonte completa e ativação adicional ainda não comprovadas; ver checkpoint V-412.
+Segunda consulta real comprovou catálogo acima de100mil contas; leitor/importação
+em fluxo em validação. Fonte completa e publicação adicional pendentes; ver V-412.
 
 <!-- D372-V411-PUBLISHED-2026-11-17 -->
 ## D-372/V-411 — preparação publicada e piloto real validado, 17/11/2026

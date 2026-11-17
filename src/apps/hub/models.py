@@ -1815,6 +1815,57 @@ class ReconciliationDiscoveredChartAccount(ImmutableOrganizationModel):
         super().save(**kwargs)
 
 
+class ReconciliationDiscoverySourceBlock(ImmutableOrganizationModel):
+    """Reversible source JSONL blocks, bounded independently of the full catalogue."""
+
+    objects: ClassVar[Any] = DiscoveryChartQuerySet.as_manager()
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="source_blocks"
+    )
+    table_name = models.CharField(max_length=32)
+    ordinal = models.PositiveIntegerField()
+    row_count = models.PositiveIntegerField()
+    raw_size_bytes = models.PositiveIntegerField()
+    raw_sha256 = models.CharField(max_length=64)
+    compressed_data = models.BinaryField()
+
+    class Meta:
+        ordering = ("table_name", "ordinal")
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "table_name", "ordinal"), name="hub_unique_discovery_block"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "table_name"), name="hub_discovery_block_scope"
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        import hashlib
+        import zlib
+
+        from apps.hub.account_discovery_archive import decompress_block
+        from apps.hub.account_discovery_contract import Invalid
+
+        try:
+            raw = decompress_block(bytes(self.compressed_data), self.raw_size_bytes)
+            valid = (
+                self.discovery.organization_id == self.organization_id
+                and self.table_name in {"plan_template_accounts", "nature_rules"}
+                and raw.endswith(b"\n")
+                and raw.count(b"\n") == self.row_count
+                and self.row_count > 0
+                and self.raw_sha256 == hashlib.sha256(raw).hexdigest()
+            )
+        except (Invalid, TypeError, ValueError, zlib.error):
+            valid = False
+        if not valid:
+            raise ValidationError("Bloco da descoberta fora da fonte ou do escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
 class ReconciliationCompanyDiscovery(ImmutableOrganizationModel):
     """Explicit coverage for every company, including absent parameters and empty charts."""
 

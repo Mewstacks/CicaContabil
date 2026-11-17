@@ -5,19 +5,22 @@ from __future__ import annotations
 import hashlib
 import hmac
 import re
+import zlib
 from collections import Counter, defaultdict
 from datetime import date, datetime
+from itertools import islice
+from pathlib import Path
 from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from apps.audit.services import record_event
+from apps.hub import account_discovery_contract as discovery_contract
 from apps.hub.account_candidates import AccountCandidateImportError, _prepare
+from apps.hub.account_discovery_archive import DiscoveryStage, decompress_block
 from apps.hub.account_discovery_contract import (
-    SCRIPT_SHA,
     Invalid,
-    decode_discovery,
     digest,
     validate_chart_row,
 )
@@ -29,29 +32,19 @@ from apps.hub.models import (
     ReconciliationAccountDiscovery,
     ReconciliationCompanyDiscovery,
     ReconciliationDiscoveredChartAccount,
+    ReconciliationDiscoverySourceBlock,
     ReconciliationLedgerMapping,
 )
 from apps.organizations.models import Organization
 
-VERSION = "reconciliation-account-discovery-v1"
+VERSION = "reconciliation-account-discovery-v2"
 
 
 class AccountDiscoveryError(ValueError):
     """Safe diagnostics; never source names, company codes or bank identifiers."""
 
 
-def _needs_storage_codec(value: Any) -> bool:
-    if isinstance(value, str):
-        return "\0" in value
-    if isinstance(value, dict):
-        return any(_needs_storage_codec(item) for item in value.values())
-    if isinstance(value, list):
-        return any(_needs_storage_codec(item) for item in value)
-    return False
-
-
-def _company_plans(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
-    counts = Counter(row["chart_company_code"] for row in snapshot["chart_accounts"])
+def _company_plans(snapshot: dict[str, Any], counts: dict[int, int]) -> list[dict[str, Any]]:
     usage: dict[int, list[dict[str, Any]]] = defaultdict(list)
     configured: dict[int, list[dict[str, Any]]] = defaultdict(list)
     equivalent: dict[int, list[dict[str, Any]]] = defaultdict(list)
@@ -102,7 +95,7 @@ def _company_plans(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
                 dict(
                     chart_company_code=owner,
                     sources=sources,
-                    account_count=counts[owner],
+                    account_count=counts.get(owner, 0),
                     observed_usage=sorted(
                         observed, key=lambda row: (row["year"], row["month"], row["branch_code"])
                     ),
@@ -173,6 +166,53 @@ def _stored_catalogue_digest(discovery: ReconciliationAccountDiscovery) -> str |
     return checksum.hexdigest()
 
 
+def _stored_blocks_consistent(discovery: ReconciliationAccountDiscovery) -> bool:
+    """Verify exact reversible source bytes in constant memory, including missing blocks."""
+    expected = discovery.provenance["source_blocks"]
+    if set(expected) != {"plan_template_accounts", "nature_rules"}:
+        return False
+    if discovery.source_blocks.exclude(table_name__in=expected).exists():
+        return False
+    for table, descriptor in expected.items():
+        checksum, size, count, ordinal = hashlib.sha256(), 0, 0, 0
+        values = (
+            discovery.source_blocks.filter(table_name=table)
+            .order_by("ordinal")
+            .values_list(
+                "organization_id",
+                "ordinal",
+                "row_count",
+                "raw_size_bytes",
+                "raw_sha256",
+                "compressed_data",
+            )
+        )
+        for org_id, number, rows, raw_size, sha, payload in values.iterator(chunk_size=2):
+            if org_id != discovery.organization_id or number != ordinal:
+                return False
+            raw = decompress_block(bytes(payload), raw_size)
+            if (
+                not raw.endswith(b"\n")
+                or raw.count(b"\n") != rows
+                or hashlib.sha256(raw).hexdigest() != sha
+            ):
+                return False
+            checksum.update(raw)
+            size, count, ordinal = size + len(raw), count + rows, ordinal + 1
+        if (
+            size != descriptor["bytes"]
+            or count != descriptor["rows"]
+            or ordinal != descriptor["blocks"]
+            or checksum.hexdigest() != descriptor["sha256"]
+        ):
+            return False
+        if discovery.source_data[table] != {
+            key: value for key, value in descriptor.items() if key != "blocks"
+        }:
+            return False
+    return True
+
+
 def _consistent_discovery(discovery: ReconciliationAccountDiscovery, *, deep: bool = False) -> bool:
     try:
         proof = discovery.provenance
@@ -185,9 +225,14 @@ def _consistent_discovery(discovery: ReconciliationAccountDiscovery, *, deep: bo
             and proof["source_file_sha256"] == discovery.source_file_sha256
             and proof["source_size_bytes"] == discovery.source_size_bytes
             and proof["source_observed_at"] == discovery.source_observed_at.isoformat()
-            and discovery.script_sha256 == SCRIPT_SHA
+            and discovery.script_sha256
+            == (
+                discovery_contract.ARCHIVE_SCRIPT_SHA
+                if discovery.source_metadata["version"] == discovery_contract.ARCHIVE_VERSION
+                else discovery_contract.SCRIPT_SHA
+            )
             and proof["source_metadata_sha256"] == digest(discovery.source_metadata)
-            and discovery.source_metadata["script_sha256"] == SCRIPT_SHA
+            and discovery.source_metadata["script_sha256"] == discovery.script_sha256
             and discovery.source_metadata["company_codes_sha256"] == discovery.company_codes_sha256
             and len(proof["company_facts"]) == discovery.company_count
             and discovery.company_coverage.count() == discovery.company_count
@@ -208,8 +253,9 @@ def _consistent_discovery(discovery: ReconciliationAccountDiscovery, *, deep: bo
         return not deep or (
             proof["source_data_sha256"] == digest(discovery.source_data)
             and proof["chart_rows_sha256"] == _stored_catalogue_digest(discovery)
+            and _stored_blocks_consistent(discovery)
         )
-    except (AttributeError, TypeError, KeyError, ValueError, Invalid):
+    except (AttributeError, TypeError, KeyError, ValueError, Invalid, zlib.error):
         return False
 
 
@@ -526,65 +572,119 @@ def prepared_account_facts(
         return invalid
 
 
-@transaction.atomic
 def import_account_discovery(
     *,
     organization: Organization,
     portfolio_raw: bytes,
     accounts_raw: bytes,
-    discovery_raw: bytes,
     expected_sha256: str,
     expected_size_bytes: int,
     request_reference: str,
+    discovery_raw: bytes | None = None,
+    discovery_path: str | Path | None = None,
     apply: bool = False,
     expected_manifest: str | None = None,
 ) -> dict[str, Any]:
-    """Preview first; add only technical evidence, as one atomic/idempotent office operation."""
+    """Pinned path/ZIP ingestion and atomic bounded inserts; bytes support small fixtures."""
     if (
         type(apply) is not bool
         or not isinstance(request_reference, str)
         or not 1 <= len(request_reference.strip()) <= 240
         or any(ord(char) < 32 or ord(char) == 127 for char in request_reference)
+        or (discovery_raw is None) == (discovery_path is None)
     ):
-        raise AccountDiscoveryError("Informe uma referência técnica válida.")
-    try:
-        original = _prepare(
-            organization=organization,
-            portfolio_raw=portfolio_raw,
-            accounts_raw=accounts_raw,
-            lock=apply,
-        )
-        if original["to_create"]:
-            raise AccountDiscoveryError("Registre as candidatas da origem antes da descoberta.")
-        companies = list(ClientCompany.objects.filter(organization=organization).order_by("pk"))
-        by_code = {int(company.dominio_code): company for company in companies}
-        portfolio_sha = original["sources"]["portfolio"]["input_file_sha256"]
-        data = decode_discovery(
-            discovery_raw,
-            expected_sha256=expected_sha256,
-            expected_size_bytes=expected_size_bytes,
-            companies=set(by_code),
-            portfolio_sha256=portfolio_sha,
-        )
-    except (Invalid, AccountCandidateImportError, ValueError, TypeError, KeyError) as exc:
-        if isinstance(exc, AccountDiscoveryError):
-            raise
-        raise AccountDiscoveryError(
-            "Confira arquivos, hashes e escopo original da descoberta."
-        ) from None
+        raise AccountDiscoveryError("Informe fonte única e referência técnica válida.")
+    with DiscoveryStage() as stage:
+        try:
+            original = _prepare(
+                organization=organization,
+                portfolio_raw=portfolio_raw,
+                accounts_raw=accounts_raw,
+                lock=False,
+            )
+            if original["to_create"]:
+                raise AccountDiscoveryError("Registre as candidatas da origem antes da descoberta.")
+            companies = list(ClientCompany.objects.filter(organization=organization).order_by("pk"))
+            by_code = {int(company.dominio_code): company for company in companies}
+            portfolio_sha = original["sources"]["portfolio"]["input_file_sha256"]
+            source = discovery_raw if discovery_raw is not None else discovery_path
+            assert source is not None
+            stage.load(
+                source,
+                expected_sha256=expected_sha256,
+                expected_size_bytes=expected_size_bytes,
+                companies=set(by_code),
+                portfolio_sha256=portfolio_sha,
+            )
+        except (
+            Invalid,
+            AccountCandidateImportError,
+            ValueError,
+            TypeError,
+            KeyError,
+            OSError,
+        ) as exc:
+            if isinstance(exc, AccountDiscoveryError):
+                raise
+            raise AccountDiscoveryError(
+                "Confira arquivos, hashes e escopo original da descoberta."
+            ) from None
+        if stage.has_nul:
+            raise AccountDiscoveryError(
+                "A fonte contém U+0000 e exige representação reversível antes da persistência. "
+                "O arquivo original deve ser preservado; nada foi preparado."
+            )
+        # Catalogue parsing/sorting can take minutes. Hold office locks only for
+        # final source revalidation, integrity checks and atomic database writes.
+        with transaction.atomic():
+            try:
+                refreshed = _prepare(
+                    organization=organization,
+                    portfolio_raw=portfolio_raw,
+                    accounts_raw=accounts_raw,
+                    lock=apply,
+                )
+                current = list(
+                    ClientCompany.objects.filter(organization=organization).order_by("pk")
+                )
+                if refreshed["to_create"] or {
+                    company.dominio_code: company.pk for company in current
+                } != {company.dominio_code: company.pk for company in companies}:
+                    raise AccountDiscoveryError("O escopo mudou; confira uma nova prévia.")
+            except AccountCandidateImportError:
+                raise AccountDiscoveryError("A origem mudou; confira uma nova prévia.") from None
+            return _import_staged(
+                stage=stage,
+                organization=organization,
+                by_code=by_code,
+                portfolio_sha=portfolio_sha,
+                expected_sha256=expected_sha256,
+                expected_size_bytes=expected_size_bytes,
+                request_reference=request_reference,
+                apply=apply,
+                expected_manifest=expected_manifest,
+            )
+
+
+def _import_staged(
+    *,
+    stage: DiscoveryStage,
+    organization: Organization,
+    by_code: dict[int, ClientCompany],
+    portfolio_sha: str,
+    expected_sha256: str,
+    expected_size_bytes: int,
+    request_reference: str,
+    apply: bool,
+    expected_manifest: str | None,
+) -> dict[str, Any]:
+    data = stage.data
     observed = datetime.fromisoformat(data["observed_at_utc"].replace("Z", "+00:00"))
-    if _needs_storage_codec(data):
-        raise AccountDiscoveryError(
-            "A fonte contém U+0000 e exige representação reversível antes da persistência. "
-            "O arquivo original deve ser preservado; nada foi preparado."
-        )
     snapshot = data["snapshot"]
-    plans = _company_plans(snapshot)
+    plans = _company_plans(snapshot, stage.chart_counts())
     metadata = {key: value for key, value in data.items() if key != "snapshot"}
-    source_data = {key: value for key, value in snapshot.items() if key != "chart_accounts"}
-    charts = sorted(
-        snapshot["chart_accounts"], key=lambda row: (row["chart_company_code"], row["account_code"])
-    )
+    source_data = snapshot
+    chart_count = stage.descriptors["chart_accounts"]["rows"]
     content_sha = digest(data)
     proof = dict(
         version=VERSION,
@@ -597,7 +697,8 @@ def import_account_discovery(
         source_metadata_sha256=digest(metadata),
         source_data_sha256=digest(source_data),
         content_sha256=content_sha,
-        chart_rows_sha256=digest(charts),
+        chart_rows_sha256=stage.chart_digest(),
+        source_blocks=stage.block_manifest(),
         company_facts={str(row["source_company_code"]): row["facts_sha256"] for row in plans},
     )
     proof["integrity_sha256"] = _proof_signature(proof)
@@ -606,11 +707,11 @@ def import_account_discovery(
         source_file_sha256=expected_sha256,
         source_size_bytes=expected_size_bytes,
         source_observed_at=observed,
-        script_sha256=SCRIPT_SHA,
+        script_sha256=data["script_sha256"],
         portfolio_file_sha256=portfolio_sha,
         company_codes_sha256=scope_hash(by_code),
-        company_count=len(companies),
-        chart_account_count=len(charts),
+        company_count=len(by_code),
+        chart_account_count=chart_count,
         source_metadata=metadata,
         source_data=source_data,
         provenance=proof,
@@ -621,7 +722,6 @@ def import_account_discovery(
     if existing is not None:
         if any(getattr(existing, field) != value for field, value in values.items()):
             raise AccountDiscoveryError("A descoberta registrada diverge; nada foi substituído.")
-        stored_charts = list(existing.chart_accounts.order_by("chart_company_code", "account_code"))
         stored_companies = list(
             existing.company_coverage.select_related("company", "discovery")
             .defer("discovery__source_data")
@@ -629,22 +729,18 @@ def import_account_discovery(
         )
         if (
             not _consistent_discovery(existing, deep=True)
-            or [row.row for row in stored_charts] != charts
-            or any(
-                row.row_sha256 != digest(row.row)
-                or row.organization_id != organization.pk
-                or row.chart_company_code != row.row["chart_company_code"]
-                or row.account_code != row.row["account_code"]
-                for row in stored_charts
-            )
             or len(stored_companies) != len(plans)
             or any(not _consistent_company(row) for row in stored_companies)
         ):
             raise AccountDiscoveryError(
                 "A descoberta registrada perdeu integridade; nada foi substituído."
             )
-    for same_time in ReconciliationAccountDiscovery.objects.filter(
-        organization=organization, source_observed_at=observed
+    for same_time in (
+        ReconciliationAccountDiscovery.objects.filter(
+            organization=organization, source_observed_at=observed
+        )
+        .defer("source_data")
+        .iterator(chunk_size=10)
     ):
         if (
             not _consistent_discovery(same_time)
@@ -670,8 +766,8 @@ def import_account_discovery(
         source_file_sha256=expected_sha256,
         source_size_bytes=expected_size_bytes,
         manifest_sha256=manifest,
-        company_count=len(companies),
-        chart_account_count=len(charts),
+        company_count=len(by_code),
+        chart_account_count=chart_count,
         chart_owner_count=len(snapshot["chart_owners"]),
         coverage_counts=dict(Counter(row["coverage_state"] for row in plans)),
         existing=1 if existing else 0,
@@ -679,6 +775,7 @@ def import_account_discovery(
         created=0,
         chart_accounts_created=0,
         company_coverage_created=0,
+        source_blocks_created=0,
         financial_accounts_created=0,
         human_review_performed=False,
         financial_collection_enabled=False,
@@ -687,20 +784,28 @@ def import_account_discovery(
         discovery = ReconciliationAccountDiscovery.objects.create(
             **values, request_reference=request_reference.strip()
         )
-        ReconciliationDiscoveredChartAccount.objects.insert_validated(
-            [
-                ReconciliationDiscoveredChartAccount(
-                    organization=organization,
-                    discovery=discovery,
-                    chart_company_code=row["chart_company_code"],
-                    account_code=row["account_code"],
-                    row=row,
-                    row_sha256=digest(row),
-                )
-                for row in charts
-            ],
-            batch_size=500,
-        )
+        iterator = stage.chart_rows()
+        while batch := list(islice(iterator, 250)):
+            ReconciliationDiscoveredChartAccount.objects.insert_validated(
+                [
+                    ReconciliationDiscoveredChartAccount(
+                        organization=organization,
+                        discovery=discovery,
+                        chart_company_code=row["chart_company_code"],
+                        account_code=row["account_code"],
+                        row=row,
+                        row_sha256=sha,
+                    )
+                    for row, sha in batch
+                ],
+                batch_size=250,
+            )
+        blocks = 0
+        for block in stage.source_blocks():
+            ReconciliationDiscoverySourceBlock.objects.create(
+                organization=organization, discovery=discovery, **block
+            )
+            blocks += 1
         for row in plans:
             ReconciliationCompanyDiscovery.objects.create(
                 organization=organization,
@@ -709,7 +814,10 @@ def import_account_discovery(
                 **row,
             )
         report.update(
-            created=1, chart_accounts_created=len(charts), company_coverage_created=len(plans)
+            created=1,
+            chart_accounts_created=chart_count,
+            company_coverage_created=len(plans),
+            source_blocks_created=blocks,
         )
         record_event(
             action="hub.reconciliation.account_discovery.imported",

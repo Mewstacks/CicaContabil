@@ -22,6 +22,7 @@ from apps.hub.account_discovery import (
     prepared_account_facts,
 )
 from apps.hub.account_discovery_contract import (
+    ARCHIVE_SCRIPT_SHA,
     CHART_FIELDS,
     FALSE_FLAGS,
     PROVENANCE,
@@ -53,7 +54,7 @@ def test_reader_pin_matches_the_committed_source():
     reader = (
         Path(__file__).resolve().parents[1] / "agent-windows/inspect-contad-chart-discovery.ps1"
     )
-    assert hashlib.sha256(reader.read_bytes()).hexdigest() == SCRIPT_SHA
+    assert hashlib.sha256(reader.read_bytes()).hexdigest() == ARCHIVE_SCRIPT_SHA
 
 
 def discovery_profile(sources):

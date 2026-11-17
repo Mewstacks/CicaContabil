@@ -3,7 +3,7 @@
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-discovery.css' %}">{% endblock %}
 {% block workspace_content %}
 <section class="workspace-panel account-candidates discovery-panel" aria-labelledby="discovery-heading">
-  <header class="workspace-panel-head"><div><h2 id="discovery-heading">Planos e contas do Domínio</h2><p class="discovery-intro">Escolha a empresa e localize a conta do extrato no catálogo consultado.</p></div><a class="button button-quiet" href="{{ discovery_portfolio_url }}">Voltar à carteira</a></header>
+  <header class="workspace-panel-head"><div><h2 id="discovery-heading">Planos e contas do Domínio</h2></div><a class="button button-quiet" href="{{ discovery_portfolio_url }}">Voltar à carteira</a></header>
   {% if discovery_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in discovery_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
   <form method="get" class="account-candidate-filters" aria-label="Filtrar empresas e competência">
     <div class="field"><label for="discovery-query">Nome ou código da empresa</label><input type="search" id="discovery-query" name="q" value="{{ discovery_filters.q }}" maxlength="100" autocomplete="off"></div>

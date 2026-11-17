@@ -97,4 +97,25 @@ class Migration(migrations.Migration):
             model_name='reconciliationdiscoveredchartaccount',
             constraint=models.UniqueConstraint(fields=('discovery', 'chart_company_code', 'account_code'), name='hub_unique_discovered_chart_account'),
         ),
+        migrations.CreateModel(
+            name='ReconciliationDiscoverySourceBlock',
+            fields=[
+                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
+                ('updated_at', models.DateTimeField(auto_now=True)),
+                ('table_name', models.CharField(max_length=32)),
+                ('ordinal', models.PositiveIntegerField()),
+                ('row_count', models.PositiveIntegerField()),
+                ('raw_size_bytes', models.PositiveIntegerField()),
+                ('raw_sha256', models.CharField(max_length=64)),
+                ('compressed_data', models.BinaryField()),
+                ('discovery', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='source_blocks', to='hub.reconciliationaccountdiscovery')),
+                ('organization', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='organizations.organization')),
+            ],
+            options={
+                'ordering': ('table_name', 'ordinal'),
+                'indexes': [models.Index(fields=['organization', 'discovery', 'table_name'], name='hub_discovery_block_scope')],
+                'constraints': [models.UniqueConstraint(fields=('discovery', 'table_name', 'ordinal'), name='hub_unique_discovery_block')],
+            },
+        ),
     ]

@@ -4638,3 +4638,7 @@ extrato/plano/vínculo bancário. Carteira integral e homologação permanecem a
 
 Primeira tentativa real encerrou em TEXT_CONTRACT; correção do leitor e testes
 registrados em V-412. Código local preparado; fonte ampliada e deploy pendentes.
+
+Segunda tentativa: ROW_LIMIT acima de100mil contas. Ensaio confirmouOOM/rollback
+sem dadosreais; arquitetura de processamento emfluxo e migração0088quatro tabelas
+substituem protótipos anteriores. Ver D-373 e checkpoint de capacidadeV-412.

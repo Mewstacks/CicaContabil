@@ -33,7 +33,7 @@ class Command(BaseCommand):
         try:
             organization = Organization.objects.get(pk=UUID(options["organization"]))
             inputs = {}
-            for key in ("portfolio", "accounts", "discovery"):
+            for key in ("portfolio", "accounts"):
                 with Path(options[f"{key}_file"]).open("rb") as stream:
                     inputs[f"{key}_raw"] = stream.read(LIMIT + 1)
             if options["apply"] and not options["expected_manifest"]:
@@ -41,6 +41,7 @@ class Command(BaseCommand):
             result = import_account_discovery(
                 organization=organization,
                 **inputs,
+                discovery_path=Path(options["discovery_file"]),
                 expected_sha256=options["expected_sha256"],
                 expected_size_bytes=options["expected_size_bytes"],
                 expected_manifest=options["expected_manifest"],

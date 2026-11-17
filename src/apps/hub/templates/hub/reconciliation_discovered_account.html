@@ -18,10 +18,10 @@
 {% if discovery_blocking_message %}
 <section class="workspace-panel discovery-panel discovery-result"><h2>Coleta aguardando revisão</h2><p>{{ discovery_blocking_message }}</p>{% if discovery_candidate_url %}<a class="button button-quiet" href="{{ discovery_candidate_url }}">Consultar conferência anterior</a>{% endif %}</section>
 {% elif discovery_prepared.collection_ready %}
-<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo já disponível</h2><p>A conta já possui identificação e vínculo registrados. A conferência anterior foi preservada.</p>{% if discovery_ledger_url %}<a class="button" href="{{ discovery_ledger_url }}">Buscar Razão desta competência</a>{% endif %}</section>
+<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo já disponível</h2>{% if discovery_ledger_url %}<a class="button" href="{{ discovery_ledger_url }}">Buscar Razão desta competência</a>{% endif %}</section>
 {% elif discovery_can_confirm %}
 <section class="workspace-panel account-candidate-review discovery-panel" aria-labelledby="discovery-confirm-heading">
-  <header class="workspace-panel-head"><div><h2 id="discovery-confirm-heading">Complete somente o que falta</h2><p class="discovery-intro">Nome, código e classificação já vieram do Domínio. Confira abaixo apenas os dados que a fonte não comprovou.</p></div></header>
+  <header class="workspace-panel-head"><div><h2 id="discovery-confirm-heading">Complete somente o que falta</h2></div></header>
   {% if discovery_prepared.branches|length > 1 %}<p class="discovery-branch-note">Há lançamentos de mais de uma filial na competência. Confirme a filial desta conta. Se o Razão incluir outras filiais no mesmo lote, a coleta precisará de revisão para preservar todos os lançamentos.</p>{% endif %}
   <form method="post" action="{{ discovery_detail_url }}" class="account-review-form" id="discovery-link-form" data-account-candidate-form>
     {% csrf_token %}
@@ -35,6 +35,6 @@
     <div class="account-review-actions"><button class="button" type="submit" data-busy-label="Registrando…">Confirmar vínculo e preparar conta</button></div>
   </form>
 </section>
-{% elif not discovery_errors %}<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo aguardando conferência</h2><p>Um responsável com permissão pode completar os dados que ainda faltam nesta ficha.</p></section>{% endif %}
+{% elif not discovery_errors %}<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo aguardando conferência</h2><span class="status-badge">Somente consulta</span></section>{% endif %}
 <p class="account-candidate-note">Confirmar o vínculo não confirma movimentos ou saldos. A comparação usa o extrato e o Razão da competência selecionada.</p>
 {% endblock %}

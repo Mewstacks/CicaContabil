@@ -1,7 +1,6 @@
 .discovery-panel + .discovery-panel { margin-top: 16px; }
 .discovery-panel .workspace-panel-head > div { min-width: 0; }
 .discovery-panel h2, .discovery-panel h3 { overflow-wrap: anywhere; }
-.discovery-intro { margin: 8px 0 0; max-width: 72ch; color: var(--muted); font-size: 15px; font-weight: 400; line-height: 1.6; }
 .discovery-plan-list { display: grid; gap: 16px; padding: 20px 22px; }
 .discovery-plan-list article + article { border-top: 1px solid var(--line); padding-top: 16px; }
 .discovery-plan-list h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.5; }
@@ -20,6 +19,10 @@
 .discovery-account-table th:first-child { width: 38%; }
 @media (max-width: 760px) {
   .discovery-panel .workspace-panel-head { align-items: stretch; flex-direction: column; }
-  .discovery-intro { font-size: 16px; }
   .discovery-result .button { width: 100%; }
 }
+
+.discovery-plan-facts { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 4px 12px; line-height: 1.6; }
+.discovery-plan-facts dt { color: var(--muted); }
+.discovery-plan-facts dd { margin: 0; }
+.discovery-result .button, .discovery-result > .status-badge { margin-top: 16px; }

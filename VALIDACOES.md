@@ -11479,3 +11479,27 @@ somente default, replay/retomada e preflight semescrita aprovados. Ensaio100mil
 contas passou; consumo no limite precisa conferir com fonte real/capacidade512MB.
 CI integral, fonte real completa, preparação em produção e publicação permanecem
 pendentes; release100 e piloto validado continuam sendo a evidência publicada.
+
+
+Checkpoint de capacidade D-373/V-412 — segunda tentativa real com leitor20e1d5a
+passou a validação de texto, mas retornou ROW_LIMIT em CTCONTAS: mais de100mil
+linhas no catálogo. Nenhum arquivo completo recebido, upload ou importação real.
+Benchmark sintético100mil comapp ativo/1CPU/512MiB confirmouOOM137 na aplicação;
+rollback deixou descoberta/catálogo/cobertura/auditoria nova zerados e três
+candidatas sintéticas intactas. Navegação/deep100mil separada passou até326MiB;
+a deficiência concreta estava na preparação/importação inteira em memória.
+
+D-373 refinado antes do redesenho: ZIP commanifest+3JSONL, fluxos limitados,
+staging privado emdisco, lotes250, replay poriterador e blocos comprimidos
+imutáveis para modelos/naturezas. Migração0088 passa aquatro estruturas; imagem
+anterior4edb0fc9 e ensaio3tabelas são protótipos superados, não candidatos a deploy.
+Leitor5d62cd3/SHA497fbb87f30c8e96a05395e40dc183f9e0610f20039612816a34f814a787d9dd
+passou96cenários locais (incluindo100.009contas) e25SQL; CIWindows44130428527
+em andamento. Backend ZIP/capacidade/CI integral e fonte real ainda pendentes.
+
+CI integral cf4d98f/44126922396 detectou somente a regra D-277 de parágrafos
+explicativos sob títulos novos. Root removeu textos redundantes e apresentou uso
+na competência como dado; dois testes da regra passaram. Sem alterar baseline ou
+criar exceção. Revisão independente também corrigiu rótulo da filial/plano
+confirmados por pessoa, distinguindo-os dos observados;23testesHTTP aprovados.
+Checkout canônico segue com114 caminhos nãoMarkdown preservados porSHA.
