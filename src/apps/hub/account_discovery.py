@@ -739,10 +739,12 @@ def _import_staged(
         if any(getattr(existing, field) != value for field, value in values.items()):
             raise AccountDiscoveryError("A descoberta registrada diverge; nada foi substituído.")
         stored_companies = list(
-            existing.company_coverage.select_related("company", "discovery")
-            .defer("discovery__source_data")
-            .order_by("source_company_code")
+            existing.company_coverage.select_related("company").order_by("source_company_code")
         )
+        # The v3 metadata retains the first usage array. Reuse its single verified
+        # batch instance instead of repeating that JSON in every company join row.
+        for company_row in stored_companies:
+            company_row.discovery = existing
         if (
             not _consistent_discovery(existing, deep=True)
             or len(stored_companies) != len(plans)

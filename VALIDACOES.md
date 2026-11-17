@@ -11532,3 +11532,26 @@ Ensaios anteriores de três tabelas e imagens anteriores são superados.
 QA ZIP sintético:23 verificaçõesPlaywright, zeroJS; fluxo de banco reaproveitado
 no mês novo distingue confirmação humana da observação na fonte. Não houve
 fonte completa real recebida, importação real nem deploy: release100 preservada.
+
+
+Checkpoint final local v3 — Windows44136610838 aprovado,107/107 cenários
+(30 positivos/77 recusas), incluindo100.009 contas, ACL e limpeza. Os dois ZIPs
+gerados no PowerShell5.1 (leituras idênticas e contagens distintas) passaram no
+parser do backend, com override de hash apenas na fixture em memória. Pin de
+produto1cff13a2 mantido. Quarto comando, fonte70bb143, enviado ao responsável;
+resultado e arquivo real ainda pendentes. QA por navegador com ZIPv3 de
+contagens diferentes passou23 verificações, zeroJS; capturas desktop1440 em
+contextos novos claro/escuro inspecionadas, browser/servidor próprios encerrados.
+
+Revisão encontrou e corrigiu repetição de source_metadata nos joins de cobertura
+do replay: reutiliza-se a instância já validada do lote para todas as empresas.
+Isso evita146 cópias do manifesto em memória; três regressões focadas passaram,
+incluindo SQL sem join duplicador e identidade da instância. Helper operacional
+recebe a mesma correção; novo CI integral/candidata final continuam pendentes.
+
+Reconferência autenticada somente leitura em produção confirmou runtime100
+801arquivos/SHA1b09fc44,146empresas/43candidatas/43complementos/uma conta,
+agente oficial recente e pontas0087/0041 nas duas aliases. Prévia do runner
+0088 exato aprovada sem DDL/recorder: quatro estruturas ausentes, única migração
+prevista0088, estado antes/depois idêntico e diretório temporário removido.
+Sem aplicação, importação ou deploy; isso não libera a carteira completa.

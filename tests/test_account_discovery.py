@@ -404,6 +404,47 @@ def test_read_helpers_do_not_load_full_snapshot_and_source_revision_is_stable(di
     assert first["revision"] == second["revision"]
 
 
+def test_replay_reuses_one_discovery_without_repeating_metadata_in_company_join(
+    organization,
+    sources,
+    discovered_profile,
+    discovered,
+    monkeypatch,
+):
+    from apps.hub import account_discovery as service
+
+    verified_batches = []
+    verified_companies = []
+    original_discovery = service._consistent_discovery
+    original_company = service._consistent_company
+
+    def check_discovery(batch, *, deep=False):
+        if deep:
+            verified_batches.append(batch)
+        return original_discovery(batch, deep=deep)
+
+    def check_company(company):
+        assert len(verified_batches) == 1
+        assert company._state.fields_cache["discovery"] is verified_batches[0]
+        verified_companies.append(company.pk)
+        return original_company(company)
+
+    monkeypatch.setattr(service, "_consistent_discovery", check_discovery)
+    monkeypatch.setattr(service, "_consistent_company", check_company)
+    with CaptureQueriesContext(connection) as captured:
+        result = run_discovery(organization, sources, discovered_profile, apply=True)
+    assert result["created"] == 0
+    assert len(verified_companies) == discovered.company_count == 3
+    company_queries = [
+        item["sql"]
+        for item in captured
+        if '"hub_reconciliationcompanydiscovery"."facts"' in item["sql"]
+    ]
+    assert len(company_queries) == 1
+    assert '"hub_reconciliationaccountdiscovery"' not in company_queries[0]
+    assert '"source_metadata"' not in company_queries[0]
+
+
 def test_deep_guard_checks_retained_payload_and_full_catalogue(discovered):
     from apps.hub.account_discovery import _consistent_discovery
 
