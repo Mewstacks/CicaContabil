@@ -4577,14 +4577,15 @@ adiados e backup fora da prioridade do início dos testes. Sem deploy, chamadaIA
 mensagem, alteração comercial ou decisão contábil em nome da cliente.
 
 
-## 17/11/2026 — D-372/V-411: preparação da carteira e coleta real em andamento
+## 17/11/2026 — D-372/V-411: preparação publicada e coleta real validada; carteira parcial
 
 - [x] Registrar nova autorização e preservar checkout canônico/alterações existentes.
 - [x] Reconciliar fontes146/43 e validar em READ ONLY o piloto/extrato/setembro:163 movimentos, vínculo íntegro e agente conectado.
 - [x] Receber complemento cadastral real:43 nomes/classificações comprovados; zero referências bancárias nas tabelas consultadas (17/11,11:28BRT; V-411).
-- [ ] Preparar demais contas/vínculos com proveniência e registrar lacunas efetivas.
+- [x] Preparar 43 fichas com nomes/classificações comprovados, proveniência e lacunas explícitas.
+- [ ] Concluir vínculos bancários efetivos das demais empresas com extrato/plano; 145 ainda sem conta operacional.
 - [x] Receber novo snapshot automático e comparar ao OFX retido, preservando decisões (17/11,11:00BRT; V-411).
-- [ ] Fechar evidências, checklist e disponibilidade real para testes da cliente.
+- [x] Fechar evidências, checklist e disponibilidade parcial para testes da cliente (V-411/release 100).
 
 Autoria: única membership habilitada da cliente; pedido de coleta solicitado via URL preenchida ao responsável. Sem emprestar identidade, criar permissões ou declarar aceite contábil. Automação AnyDesk ainda timeout.
 
@@ -4606,3 +4607,21 @@ bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável
 43 fichas implementada e em validação/publicação; nada ativado automaticamente.
 Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
 continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
+
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+### Fechamento técnico — release 100, 17/11/2026
+
+PR30/main 1b4511ba e CI44106692496 aprovados; migração 0087 aplicada sem alterar
+15 grupos protegidos. Imagem/runtime 801 verificados em web/worker, health live/ready,
+worker e 14 assets aprovados. Capacidade, legado parado e canal 1.0.13 preservados
+após restauração dos dois overrides removidos pelo deploy genérico.
+
+43 complementos aplicados às 12:25 BRT com fonte real validada e autoria técnica;
+replay interno/externo zero. Ficha real conferida pela tela, nenhuma confirmação
+submetida. Arquivos temporários de origem retirados do servidor. Detalhes e hashes
+em V-411; fontes/recibos privados retidos. Não há novo comando Windows necessário.
+
+Cliente pode testar o piloto SURIA e revisar 43 fichas de 11 empresas. Coleta real
+163/163 compatível, diferença líquida zero; dois grupos ambíguos e 162 revisões
+pendentes. 145 empresas ainda sem conta operacional, devido às lacunas efetivas de
+extrato/plano/vínculo bancário. Carteira integral e homologação permanecem abertas.

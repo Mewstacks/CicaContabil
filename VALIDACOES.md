@@ -11262,7 +11262,7 @@ svapl02-installation.json,agent-after-upgrade.json,agent-review-after-upgrade.js
 e fingerprints-after-upgrade.json.
 
 
-## V-411 — Preparação das demais empresas e primeira nova coleta — EM ANDAMENTO (17/11/2026)
+## V-411 — Preparação publicada e coleta real validada; carteira parcial (17/11/2026)
 
 D-372 autoriza leituras reais adicionais para cadastros e teste de coleta. Fontes146/43 retidas conferidas; permanecem43 candidatas em11 empresas,145 empresas sem conta operacional. Prévia PostgreSQL REPEATABLE READ READ ONLY executada às13:46:03UTC: extrato OFX retido com163 movimentos, hash e normalização coincidentes, conta212/8 e período2026-09, vínculo legado íntegro, agente oficial online. Pronto para pedido; não é comprovação de nova coleta. Apenas Grazi possui membership ativa habilitada; operador técnico sem identidade disponível. URL preenchida entregue ao responsável para acionar o pedido na sessão legítima.
 
@@ -11365,3 +11365,75 @@ incompatíveis de landing e novo visual descartadas. Consultados
 [Web Interface Guidelines](https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/command.md)
 e [fluxo Intuit de conta/plano](https://quickbooks.intuit.com/learn-support/en-us/help-article/bank-connectivity/connect-bank-account-credit-cards/L8L8nMtso_US_en_US).
 Adaptados rótulos/ausência/conferência, sem copiar semântica ou dados bancários.
+
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+### Fechamento técnico V-411 — release 100 e 43 complementos publicados; carteira parcial
+
+[PR30](https://github.com/Mewstacks/CicaContabil/pull/30) integrado em main
+`1b4511ba6240eab262b7ed023b94c46593065c59`, árvore igual ao código testado
+`91af8407feb230ffcfe537cd041912c5708bd8a3`.
+[CI44106692496](https://github.com/Mewstacks/CicaContabil/actions/runs/44106692496)
+integral aprovado: SQLite 3122/55 skips, PostgreSQL 3175/2 skips, 181 subtestes em
+cada banco; concorrência PostgreSQL executada. Windows 179, Linux 176/3 skips,
+37 cenários do leitor, instalação limpa/upgrades 1.0.10/11/12 e três imagens aprovados.
+QA Playwright final: 15 verificações sintéticas, sem erros de página; 375/1440px,
+claro/escuro, paisagem, texto 200%, teclado/foco, POST, fontes e permissões.
+Nome/códigos preservam tradução literal; capturas finais inspecionadas e servidor
+local encerrado. Os 14 checks do checkpoint anterior precedem a verificação final.
+
+Migração aditiva `hub.0087_account_source_detail`, SHA
+`82757d644f4b36c4caddb0feecd662c1abf42a6211cd77144fb27ecbb6d689a7`, ensaiada com
+13 verificações de aplicação/replay/retomada/bloqueio, aplicada no runtime 99 antes
+do deploy. Cria apenas a nova tabela no banco default; recorder dos dois aliases
+atualizado conforme router. Nenhuma pendência além de 0087; tips finais 0087/0041.
+Prévia READ ONLY e 15 grupos antes/depois coincidentes, endpoints preservados.
+
+Release 100 nas máquinas web/worker existentes, imagem
+`registry.fly.io/cica-contabil@sha256:886d711f192a15a579179650178297c2d908d4f4899a03bba31f95ddb678e947`.
+Runtime independente em ambas: 801 arquivos, SHA
+`1b09fc44eb06584e7608646b094fd7faeef326fb60f331a3787684aa796210c2`.
+Live/ready e páginas públicas HTTP 200, banco/cache/worker saudáveis; 14/14 assets
+com bytes/SHA coincidentes e TLS verificado. Capacidade/configuração preservadas;
+legado segue parado. Deploy genérico removeu dois overrides preexistentes do canal
+do agente; foram restaurados exatamente para 1.0.13/URL do mesmo MSI. Comparação
+final confirma apenas imagem/metadados de release diferentes. Não houve reinstalação
+nem alteração de credenciais/pareamento, novos recursos, IA ou custo adicional.
+
+Fonte real 29.061 bytes/SHA
+`369308d2b1fc3bbf125598d4d08c31bde33c94a22c656ab1b9a95278d41eaaa9` validada contra
+os dois perfis retidos, com 43 chaves exatas. Ensaio privado com fonte real aprovou
+prévia/aplicação/replay e preservação. Operação de produção sob REPEATABLE READ:
+prévia READ ONLY, aplicação atômica às 15:25:43 UTC (12:25 BRT), **43 criados**,
+43 linhas literais e 43 seleções de fonte verificadas. Replay interno e nova execução
+após commit criaram **zero**. Manifesto
+`49a64ebdbe92e71d03cbe292551167de7f6f5a295f1c5c80ccdb6c32a2afd1f8` e hash protegido
+`9ee645778d56c2521e20c8f7e538ef760a50013e0b8fc7f15914ed589a3efb0a` coincidentes.
+Auditoria técnica única com actor=None; candidatas, SOURCE_FIELDS, revisões, contas,
+vínculos, fontes, coletas e decisões anteriores preservados. Nova leitura ampla
+confirma os mesmos 15 grupos protegidos. Nenhuma conta ou vínculo operacional criado.
+Os três arquivos temporários privados no servidor foram conferidos por hash e removidos;
+fontes originais/recibos privados locais retidos, sem dados reais no Git/CI.
+
+Conferência final pela sessão Chrome normal: ficha C01 mostra “Dados consultados no
+Domínio”, nome inicial literal, classificação/tipo/situação e ausência de referência
+bancária explícita. Banco/referência vazios, três confirmações desmarcadas; nenhum
+formulário submetido ou aceite humano executado. Ficha deixada aberta para revisão.
+
+A prova real do piloto permanece a coleta concluída às 14:00:32 UTC (11:00 BRT),
+163/163 movimentos compatíveis por data/direção/valor e diferença líquida zero.
+Dois grupos ambíguos, uma confirmação anterior e 162 movimentos aguardando revisão;
+não equivale a aprovação individual ou prova de saldo inicial/fechamento.
+Cobertura integral e saldo inicial do Razão continuam sem confirmação
+(`coverage_confirmed=false`, `opening_ledger_provided=false`).
+**Limite atual:** 43 fichas de 11 empresas preparadas; zero referências bancárias
+consultadas e 145 empresas sem conta operacional. A ausência não prova que não haja
+contas bancárias: falta evidência de extrato/plano/vínculo para habilitar as demais.
+Q-28/PC-19, revisão humana, Q-46/D-73 e aceite contratual não concluídos.
+
+Recibos privados em `.tmp/release-details`: `migration-applied.json`,
+`account-details-preview.json`, `account-details-applied.json`,
+`account-details-replay.json`, `after-details-applied.json`, `runtime-web.json`,
+`runtime-worker.json`, `machine-preservation.json`, `public-verification.json`,
+`worker-health.json`, `production-ui-verification.json` e `private-inputs-cleanup.json`.
+Preservação canônica: 114 caminhos locais não Markdown com hashes inalterados;
+nenhum reset/rebase/cópia de código sobre as alterações preexistentes.

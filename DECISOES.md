@@ -5367,3 +5367,14 @@ bancário permanece explícita; nomes/códigos não fornecem associação ou dir
 Sem nova etapa concorrente. Aplicar UI/UX/QA, migração aditiva e CI integral;
 publicar pelo processo D-323/D-346 nas máquinas/capacidade atuais. Autoriza-se
 somente esta preparação adicional de fatos, sem aprovação contábil automática.
+
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+Execução D-372 concluída no recorte técnico comprovado em V-411: release 100,
+migração aditiva 0087 e 43 complementos imutáveis publicados, replay zero, auditoria
+actor=None, nenhuma revisão humana ou conta operacional criada. Piloto real
+SURIA/8/setembro comparado em 163/163 movimentos, diferença líquida zero.
+A disponibilidade permanece parcial: 145 empresas sem conta operacional; nomes e
+classificações não substituem vínculo bancário. A consulta retornou zero referências.
+Manter Q-28/PC-19 e revisões pendentes; não anunciar “qualquer empresa pronta”.
+Canal preexistente 1.0.13 restaurado após deploy e configuração final conferida;
+próximos deploys devem preservar os overrides existentes verificados na prévia.

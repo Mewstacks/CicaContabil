@@ -1,3 +1,18 @@
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+**17/11/2026 — D-372/V-411: release 100 publicada; piloto real validado e 43 fichas preparadas.**
+O novo Razão da SURIA, conta 8, setembro/2026, foi coletado pelo agente 1.0.13 e
+comparado ao OFX: 163/163 movimentos compatíveis por data/direção/valor, diferença
+líquida zero. Há dois grupos ambíguos e 162 movimentos ainda sujeitos à revisão.
+Foram publicados e aplicados 43 complementos cadastrais em 11 empresas, com nomes
+e classificações reais do Domínio; repetição criou zero registros. Saúde, worker,
+14 assets, runtime e 15 grupos protegidos conferidos; revisões humanas preservadas.
+
+**Disponibilidade parcial:** a cliente pode testar o piloto e revisar as fichas.
+A consulta retornou zero referências bancárias; 145 empresas continuam sem conta
+operacional. Não foram inferidos banco, agência, conta, direção ou aprovação.
+Q-28/PC-19 e critérios de homologação permanecem abertos. Evidência completa em V-411.
+Os checkpoints abaixo são históricos e não substituem este estado atual.
+
 <!-- D371-V410-PUBLISHED-2026-11-17 -->
 **17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
 [PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
