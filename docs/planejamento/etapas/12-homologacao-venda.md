@@ -1008,3 +1008,19 @@ mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
 
 
 **D-372/V-411 — coleta real concluída em17/11 às11:00BRT:** solicitação pela tela autorizada, novo Razão recebido pelo agente1.0.13 e163/163 movimentos compatíveis com o OFX por data/direção/valor, diferença líquida zero. Fontes e decisões anteriores preservadas; dois grupos repetidos e162 movimentos aguardam conferência individual. Preparação das demais empresas permanece em andamento, aguardando complemento cadastral; não declarar carteira integral pronta.
+
+<!-- D372-WINDOWS-CHECKPOINT-2026-11-17 -->
+**D-372/V-411 — complemento cadastral preparado:** leitor independente com
+37 cenários Windows aprovados no step do CI44101060487; download imutável
+e SHA conferidos, comando entregue para execução local no SVAPL02 porque
+AnyDesk retorna timeout. Fonte real ainda não recebida; nenhuma conta nova
+ativada. A coleta/comparação SURIA está concluída; carteira integral continua
+em preparação, sem inferir referências bancárias ou aprovação humana.
+
+<!-- D372-REAL-DETAILS-RECEIVED-2026-11-17 -->
+**D-372/V-411 — fonte cadastral real recebida e validada:**146 empresas,
+43 candidatas com nomes e catálogo comprovados,120 caixas,zero referências
+bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável das
+43 fichas implementada e em validação/publicação; nada ativado automaticamente.
+Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
+continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
