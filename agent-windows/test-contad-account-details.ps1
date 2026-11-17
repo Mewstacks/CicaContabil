@@ -62,7 +62,7 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
   Reads++;DataTable t;
   if(companies){
    t=Table(s=="number_type"?typeof(string):typeof(long));int count=s=="company_limit"?501:s=="company_count_changed"?147:146;
-   for(int i=1;i<=count;i++)t.Rows.Add(s=="number_type"?(object)i.ToString():(object)(long)(s=="company_codes_changed"&&i==146?999:i));
+   for(int i=1;i<=count;i++)t.Rows.Add(s=="number_type"?(object)i.ToString():(object)(long)(s=="company_codes_changed"&&i==146?999:s=="company_order_reversed"?147-i:i));
    if(s=="duplicate_company")t.Rows.Add(1L);return t.CreateDataReader();
   }
   if(configured){
@@ -111,7 +111,7 @@ public sealed class AccountDetailsFixtureCommand:IDisposable {
 $tokens=$null; $errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) {throw ($errors | Out-String)}
-$success=@('success','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date')
+$success=@('success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date')
 $cases=$success+@('missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','invalid_text','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout')
 $evidence=@()
 foreach ($case in $cases) {

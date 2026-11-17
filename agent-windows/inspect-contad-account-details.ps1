@@ -71,7 +71,9 @@ ORDER BY g.codi_emp
         if ($company.company_code -lt 1 -or -not $companyIds.Add($company.company_code)) {Reject-Details 'COMPANY_COVERAGE'}
     }
     if ($companies.Count -ne $expectedCompanyCount) {Reject-Details 'COMPANY_COUNT_CHANGED'}
-    $codeText=(@($companies | Sort-Object company_code | ForEach-Object {([long]$_.company_code).ToString([Globalization.CultureInfo]::InvariantCulture)}) -join ',')
+    # Sort primitive Int64 codes: Sort-Object -Property does not consistently
+    # resolve OrderedDictionary keys and can scramble otherwise identical sets.
+    $codeText=(@($companies | ForEach-Object {[long]$_.company_code} | Sort-Object | ForEach-Object {$_.ToString([Globalization.CultureInfo]::InvariantCulture)}) -join ',')
     $hasher=[Security.Cryptography.SHA256]::Create()
     try {$codeSha=([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::ASCII.GetBytes($codeText)))).Replace('-','').ToLowerInvariant()}
     finally {$hasher.Dispose()}
