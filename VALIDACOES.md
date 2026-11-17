@@ -11186,3 +11186,23 @@ Sem nova consulta financeira ERP, revisão/aceite em nome da cliente, ativação
 de regra/IA, mensagem ou alteração comercial nesta correção local. Piloto,
 autonomia, contrato e suíte continuam distintos. Q-28/Q-46/D-73 próprios;
 Q-47/C01/C02 adiados, backup fora da prioridade e treinamento inicial preservado.
+
+
+**Complemento V-410 antes da publicação:** PostgreSQL integral local concluiu
+com **3124 aprovados, um skip,181 subtestes,539,03s**. A coleta também antecedeu
+a última regressão POST, aprovada na bateria focada27; CI roda a fonte congelada.
+Container e volume descartáveis próprios removidos; nenhuma base real usada.
+
+O primeiro CI44084354778 registrou falha no ensaio sintético do
+updater, após instalação limpa e instalação1.0.10→1.0.13 com bytes DPAPI
+preservados e serviço Running/Auto/LocalSystem. A prova sintética de estado
+saudável não satisfez a verificação; falha em investigação, sem publicação
+do pacote/backend. Esse run não autoriza entrega nem é contado como aprovado.
+
+Correção do ensaio: o mock Get-Content usava `$script:` ao ser chamado pelo
+script filho do atualizador; passou a capturar uma hashtable mutável por
+GetNewClosure. Os cinco cenários permanecem, com prova explícita de passagem
+de estado/modo para um .ps1 filho antes de validar o updater. Produto e
+atualizador não mudaram nesta correção. Sem PowerShell local; execução dos
+cenários será comprovada pelo novo CI Windows, sem antecipar aprovação.
+[Regra de escopo PowerShell](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scopes?view=powershell-7.5).

@@ -61,33 +61,52 @@ try {
     if(([DateTimeOffset]$state.observed_at_utc) -lt $start -or $state.version -ne '1.0.13' -or (Get-FileHash $config).Hash -ne $hash) { throw 'Restart did not preserve the upgraded configuration.' }
     # Exercise the updater decision with a synthetic fresh status, independently of
     # the real SYSTEM/DPAPI proof above. No backend or ERP success is claimed here.
-    $script:syntheticRuntimeState='source_review_required'
-    $script:syntheticCompletionMode='fresh'
-    function Get-Content {
+    # A called .ps1 has its own $script: scope. Capture one mutable context in
+    # the mock's closure so the child updater sees exactly the requested case.
+    $syntheticContext=@{state='source_review_required';mode='fresh';path=$statusFile}
+    $mockGetContent={
         [CmdletBinding()]
         param([string]$LiteralPath,[switch]$Raw)
-        if($LiteralPath -eq $statusFile) {
+        if($LiteralPath -eq $syntheticContext.path) {
             $now=[DateTimeOffset]::UtcNow
-            $completed=if($script:syntheticCompletionMode -eq 'stale') { $now.AddDays(-1) } elseif($script:syntheticCompletionMode -eq 'future') { $now.AddMinutes(1) } else { $now }
-            return (@{version='1.0.13';state=$script:syntheticRuntimeState;observed_at_utc=$now.ToString('O');last_completed_at_utc=$completed.ToString('O');last_completed_state='source_review_required'} | ConvertTo-Json)
+            $completed=if($syntheticContext.mode -eq 'stale') { $now.AddDays(-1) } elseif($syntheticContext.mode -eq 'future') { $now.AddMinutes(1) } else { $now }
+            return (@{version='1.0.13';state=$syntheticContext.state;observed_at_utc=$now.ToString('O');last_completed_at_utc=$completed.ToString('O');last_completed_state='source_review_required'} | ConvertTo-Json)
         }
         Microsoft.PowerShell.Management\Get-Content -LiteralPath $LiteralPath -Raw:$Raw
+    }.GetNewClosure()
+    Set-Item -Path Function:\Get-Content -Value $mockGetContent
+    $mockProbe=Join-Path $folder 'mock-status-probe.ps1'
+    [IO.File]::WriteAllText($mockProbe, 'param([string]$StatusPath)' + [Environment]::NewLine + 'Get-Content -LiteralPath $StatusPath -Raw', [Text.UTF8Encoding]::new($false))
+    function Assert-SyntheticChildStatus {
+        $probe = & $mockProbe -StatusPath $syntheticContext.path | ConvertFrom-Json
+        if($probe.state -ne $syntheticContext.state -or $probe.version -ne '1.0.13') {
+            throw 'Synthetic status context was lost in a child script scope.'
+        }
+        $offset=([DateTimeOffset]$probe.last_completed_at_utc) - ([DateTimeOffset]$probe.observed_at_utc)
+        if(($syntheticContext.mode -eq 'fresh' -and $offset.Ticks -ne 0) -or
+           ($syntheticContext.mode -eq 'stale' -and $offset -ge [TimeSpan]::Zero) -or
+           ($syntheticContext.mode -eq 'future' -and $offset -le [TimeSpan]::Zero)) {
+            throw 'Synthetic completion mode was lost in a child script scope.'
+        }
     }
     try {
+        Assert-SyntheticChildStatus
         $reviewResult = & (Join-Path $PSScriptRoot 'upgrade-active-queue.ps1') -MsiPath $target -ExpectedSha256 $targetHash -TimeoutSeconds 3
         $reviewReport = $reviewResult | ConvertFrom-Json
         if(-not $reviewReport.source_review_required -or -not $reviewReport.fresh_status -or -not $reviewReport.configuration_encrypted_bytes_preserved -or -not $reviewReport.backend_verification_required) {
             throw 'A healthy service with a source requiring review must preserve that pending review.'
         }
-        $script:syntheticRuntimeState='synchronizing'
+        $syntheticContext.state='synchronizing'
+        Assert-SyntheticChildStatus
         $activeResult = & (Join-Path $PSScriptRoot 'upgrade-active-queue.ps1') -MsiPath $target -ExpectedSha256 $targetHash -TimeoutSeconds 3
         $activeReport = $activeResult | ConvertFrom-Json
         if(-not $activeReport.cycle_completed_since_update -or -not $activeReport.source_review_required -or $activeReport.runtime_state -ne 'synchronizing' -or -not $activeReport.backend_verification_required) {
             throw 'An active queue must retain the fresh completed cycle and its pending review.'
         }
         foreach($invalid in @('stale','future','error')) {
-            $script:syntheticCompletionMode=if($invalid -eq 'error') {'fresh'} else {$invalid}
-            $script:syntheticRuntimeState=if($invalid -eq 'error') {'temporary_error'} else {'synchronizing'}
+            $syntheticContext.mode=if($invalid -eq 'error') {'fresh'} else {$invalid}
+            $syntheticContext.state=if($invalid -eq 'error') {'temporary_error'} else {'synchronizing'}
+            Assert-SyntheticChildStatus
             $rejected=$false
             try { & (Join-Path $PSScriptRoot 'upgrade-active-queue.ps1') -MsiPath $target -ExpectedSha256 $targetHash -TimeoutSeconds 3 | Out-Null }
             catch { $rejected=$_.Exception.Message.StartsWith('Atualização instalada, mas ciclo saudável') }
@@ -96,7 +115,7 @@ try {
     } finally {
         Remove-Item Function:\Get-Content
     }
-    @{passed=$true;baseline_source=$baselineSource;from=$BaselineVersion;to='1.0.13';encrypted_bytes_preserved=$true;system_dpapi_reopened=$true;restart_verified=$true;source_review_required_handling_tested=$true;source_review_test_synthetic=$true;active_queue_status_tested=$true;stale_future_error_status_rejected=$true;network_erp_used=$false;source_sha=$env:GITHUB_SHA} |
+    @{passed=$true;baseline_source=$baselineSource;from=$BaselineVersion;to='1.0.13';encrypted_bytes_preserved=$true;system_dpapi_reopened=$true;restart_verified=$true;source_review_required_handling_tested=$true;source_review_test_synthetic=$true;active_queue_status_tested=$true;child_script_mock_scope_tested=$true;stale_future_error_status_rejected=$true;network_erp_used=$false;source_sha=$env:GITHUB_SHA} |
         ConvertTo-Json | Set-Content (Join-Path $folder 'upgrade-test.json') -Encoding UTF8
     Write-Host ('Upgrade '+$BaselineVersion+' -> 1.0.13 preserved encrypted configuration, SYSTEM DPAPI and restart.')
 } finally {
