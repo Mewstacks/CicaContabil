@@ -5487,3 +5487,39 @@ publicada pode ser ajustada e deve ser novamente ensaiada nas duas aliases.
 Não publicar/importar antes de ensaio representativo com arquivo real e app
 ativo na capacidade512MiB, preservando margem e todas as revisões. Novo leitor
 passaWindows antes de comando assistido. Não há novaVM/custo nem alteraçãoERP.
+
+
+Precisão D-373 de memória — a produção usa DB_PGBOUNCER=true por padrão e
+DISABLE_SERVER_SIDE_CURSORS, portanto QuerySet.iterator sozinho não limita a
+memória do driver. Scans de integridade/replay do catálogo e blocos devem usar
+páginas limitadas por chave ordenada, preservando hash/ordem, sem OFFSET crescente
+ou alteração global do pool. Ensaios512MiB precisam reproduzir cursores de servidor
+desabilitados; não inferir capacidade de testes PostgreSQL com outro modo.
+
+
+Refinamento D-373 de concorrência da origem — terceira tentativa real completou
+as duas leituras e retornou SOURCE_CHANGED; o recibo não identifica a seção que
+mudou, portanto não afirmar que houve alteração cadastral ou somente lançamentos.
+Adicionar diagnóstico seguro por seção (nomes das seções, contagens e hashes,
+sem valores/identificadores de linha). Manter recusa para qualquer diferença em
+cadastros, catálogos, metadados ou conjunto de chaves empresa/plano/filial/mês.
+
+A contagem agregada de lançamentos serve apenas como evidência de uso positivo;
+não define identidade do vínculo nem valor financeiro. Autoriza-se versão3 do
+manifesto que aceite diferença EXCLUSIVAMENTE nessas contagens quando os mesmos
+conjuntos de chaves, todos positivos, e todo conteúdo cadastral forem idênticos.
+Preservar as contagens das duas leituras e seus intervalos UTC, usando a segunda
+no snapshot final. `two_reads_identical` será verdadeiro somente quando também
+as contagens forem iguais; distinguir explicitamente identidade cadastral,
+identidade das chaves observadas e igualdade das contagens. Backend reconfere
+cada condição, flags e cronologia, sem aceitar simples declaração do leitor.
+Nenhuma transação/lock que bloqueie a operação no Domínio, mudança de configuração
+ERP, valor financeiro ou aprovação humana adicional. Leitor/contrato passam
+novamente pelos testes Windows/integração antes do próximo comando assistido.
+
+Precisão da verificação v3: a igualdade cadastral entre as duas passagens é
+calculada e atestada pelo leitor pinado; o pacote retém um catálogo e não duas
+cópias cadastrais. O backend confere os hashes dos arquivos e recalcula os fatos
+comparáveis fornecidos (dois arrays de uso, chaves, contagens, flags e cronologia),
+sem declarar que reconstruiu a primeira cópia cadastral. Esse limite de evidência
+não é substituído por presunção sobre a causa de SOURCE_CHANGED.

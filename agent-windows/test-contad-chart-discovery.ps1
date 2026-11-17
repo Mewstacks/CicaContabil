@@ -24,6 +24,9 @@ function Get-FixtureSourceText {
     if ($Scenario -eq 'uncompressed_limit') {$text=$text.Replace('1073741824','1')}
     if ($Scenario -eq 'package_limit') {$text=$text.Replace('134217728','1')}
     if ($Scenario -eq 'stream_failure') {$text=$text.Replace('$Sink.stream.Write($line,0,$line.Length);', '$Sink.stream.Write($line,0,$line.Length); Reject-Details ''SYNTHETIC_IO_FAILURE'';')}
+    if ($Scenario -eq 'chronology_reversed') {$text=$text.Replace('$secondReadStarted=[DateTime]::UtcNow','$secondReadStarted=$firstReadStarted.AddTicks(-1)')}
+    if ($Scenario -eq 'observed_time_reversed') {$text=$text.Replace('$observed=[DateTime]::UtcNow','$observed=$secondReadCompleted.AddTicks(-1)')}
+    if ($Scenario -eq 'descriptor_hash_changed') {$text=$text.Replace('$second=Read-Snapshot $secondDirectory', '$second=Read-Snapshot $secondDirectory; $second.chart_accounts.sha256=(''0''*64)')}
     return $text
 
 }
@@ -108,9 +111,20 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
    if(s=="equivalent_duplicate")t.ImportRow(t.Rows[0]);if(s=="equivalent_changed"&&CompanyReads>1)t.Rows[0][2]=12L;return t.CreateDataReader();
   }
   if(usage){
-   t=Table(typeof(long),typeof(long),typeof(long),typeof(long),typeof(long),typeof(long));if(s=="empty_details")return t.CreateDataReader();
+   t=Table(typeof(long),typeof(long),typeof(long),typeof(long),typeof(long),s=="usage_bool"?typeof(object):typeof(long));if(s=="empty_details")return t.CreateDataReader();
    int count=s=="usage_limit"?10001:2;for(int i=0;i<count;i++)t.Rows.Add(s=="usage_outside"?999L:1L,901L,(long)i,2026L,s=="usage_outside_month"?12L:(long)9+i%2,s=="usage_total_limit"?5000001L:1L);
-   if(s=="usage_duplicate")t.ImportRow(t.Rows[0]);if(s=="usage_changed"&&CompanyReads>1)t.Rows[0][5]=2L;return t.CreateDataReader();
+   if(s=="usage_duplicate")t.ImportRow(t.Rows[0]);
+   if((s=="usage_changed"||s=="usage_and_catalogue_changed")&&CompanyReads>1)t.Rows[0][5]=2L;
+   if(s=="usage_decreased")t.Rows[0][5]=CompanyReads>1?1L:3L;
+   if(CompanyReads>1){
+    if(s=="usage_reordered"){var row=t.Rows[0].ItemArray;t.Rows[0].ItemArray=t.Rows[1].ItemArray;t.Rows[1].ItemArray=row;}
+    if(s=="usage_key_changed")t.Rows[0][2]=2L;
+    if(s=="usage_key_removed")t.Rows.RemoveAt(0);
+    if(s=="usage_zero")t.Rows[0][5]=0L;
+    if(s=="usage_negative")t.Rows[0][5]=-1L;
+    if(s=="usage_bool")t.Rows[0][5]=true;
+   }
+   return t.CreateDataReader();
   }
   if(ownerQuery){
    if(nature){
@@ -195,6 +209,7 @@ public sealed class ChartDiscoveryFixtureCommand:IDisposable {
    case "text_type":return 123;
    case "text_high_surrogate":return "A\uD800B";
    case "text_low_surrogate":return "A\uDC00B";
+   case "usage_and_catalogue_changed":return CompanyReads>1?"changed-private-name":"synthetic-private-name";
    case "unicode_changed":return CompanyReads>1?"AB":"A\u200BB";
    default:return "synthetic-private-name";
   }
@@ -249,8 +264,8 @@ public sealed class RepeatedChartReader:IDataReader {
 $tokens=$null; $errors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if ($errors.Count) {throw ($errors | Out-String)}
-$success=@('large_catalogue','invalid_text','unicode_whitespace','unicode_format','unicode_private','unicode_unassigned','unicode_supplementary','unicode_combining','unicode_nul','unicode_utf16_limit','missing_parameters','empty_catalogues','empty_nature','multiple_templates','success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date','integration_null_start','integration_zero_codes','no_integrations')
-$cases=$success+@('large_source_changed','catalogue_out_of_order','catalogue_bytes_limit','template_bytes_limit','nature_bytes_limit','manifest_limit','uncompressed_limit','package_limit','stream_failure','text_utf16_overflow','text_length','text_diagnostic_limit','text_type','text_high_surrogate','text_low_surrogate','text_classification_limit','text_flag_limit','unicode_changed','parameter_changed','missing_plan_id','equivalent_limit','equivalent_outside','equivalent_duplicate','equivalent_changed','usage_limit','usage_outside','usage_outside_month','usage_total_limit','usage_duplicate','usage_changed','catalogue_limit','catalogue_outside','catalogue_null','catalogue_changed','catalogue_duplicate','template_limit','template_outside','template_name_limit','template_duplicate','nature_limit','nature_outside','nature_duplicate','nature_changed','metadata_missing_target','metadata_limit','metadata_changed','missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout','integration_limit','integration_outside','integration_duplicate','integration_null_code','integration_invalid_date','integration_changed')
+$success=@('usage_changed','usage_decreased','usage_reordered','large_catalogue','invalid_text','unicode_whitespace','unicode_format','unicode_private','unicode_unassigned','unicode_supplementary','unicode_combining','unicode_nul','unicode_utf16_limit','missing_parameters','empty_catalogues','empty_nature','multiple_templates','success','company_order_reversed','empty_details','no_bank_references','missing_chart','missing_bank','null_bank_id','null_cash_codes','orphan_cash','inactive_date','integration_null_start','integration_zero_codes','no_integrations')
+$cases=$success+@('usage_key_changed','usage_key_removed','usage_zero','usage_negative','usage_bool','usage_and_catalogue_changed','chronology_reversed','observed_time_reversed','descriptor_hash_changed','large_source_changed','catalogue_out_of_order','catalogue_bytes_limit','template_bytes_limit','nature_bytes_limit','manifest_limit','uncompressed_limit','package_limit','stream_failure','text_utf16_overflow','text_length','text_diagnostic_limit','text_type','text_high_surrogate','text_low_surrogate','text_classification_limit','text_flag_limit','unicode_changed','parameter_changed','missing_plan_id','equivalent_limit','equivalent_outside','equivalent_duplicate','equivalent_changed','usage_limit','usage_outside','usage_outside_month','usage_total_limit','usage_duplicate','catalogue_limit','catalogue_outside','catalogue_null','catalogue_changed','catalogue_duplicate','template_limit','template_outside','template_name_limit','template_duplicate','nature_limit','nature_outside','nature_duplicate','nature_changed','metadata_missing_target','metadata_limit','metadata_changed','missing_column','driver_failure','company_limit','company_count_changed','company_codes_changed','duplicate_company','number_type','account_limit','account_outside','account_fanout','source_changed','cash_limit','cash_outside','cash_duplicate','bank_limit','bank_outside','bank_fanout','integration_limit','integration_outside','integration_duplicate','integration_null_code','integration_invalid_date','integration_changed')
 $unicodeNames=@{
     invalid_text="synthetic-private-name`n"
     unicode_whitespace=" `tsynthetic-private-name`r`n "
@@ -288,7 +303,7 @@ foreach ($case in $cases) {
     if ($json.Count -ne 1) {throw ('Missing safe receipt: '+$case)}
     $receipt=$json[0] | ConvertFrom-Json
     if ($case -in $success) {
-        if ($code -ne 0 -or -not $receipt.completed -or -not $receipt.two_reads_identical -or $receipt.companies -ne 146) {
+        if ($code -ne 0 -or -not $receipt.completed -or $receipt.companies -ne 146) {
             throw ('Expected success: {0}; exit={1}; completed={2}; stage={3}; reason={4}; types={5}' -f $case,$code,$receipt.completed,$receipt.stage,$receipt.reason_code,($receipt.exception_types -join ','))
         }
         $report=$receipt.report_file; $folder=Split-Path $report
@@ -308,7 +323,7 @@ foreach ($case in $cases) {
                 if ($zip.Entries.Count -ne 4 -or @($zip.Entries | Where-Object {$_.FullName -cnotin $expectedFiles -or $_.Name -cne $_.FullName}).Count -or @($zip.Entries.FullName | Sort-Object -Unique).Count -ne 4) {throw 'Unsafe ZIP entry layout.'}
                 $stream=$zip.GetEntry('manifest.json').Open();$reader=[IO.StreamReader]::new($stream,[Text.UTF8Encoding]::new($false,$true),$false)
                 try {$data=$reader.ReadToEnd() | ConvertFrom-Json} finally {$reader.Dispose()}
-                if ($data.version -cne 'contad-chart-discovery-v2') {throw 'Wrong discovery version.'}
+                if ($data.version -cne 'contad-chart-discovery-v3') {throw 'Wrong discovery version.'}
                 $uncompressed=[long]$zip.GetEntry('manifest.json').Length
                 foreach ($kind in @('chart_accounts','plan_template_accounts','nature_rules')) {
                     $descriptor=$data.snapshot.$kind
@@ -345,6 +360,31 @@ foreach ($case in $cases) {
             if ($integrationProvenance.source -cne 'CTPARMTO_CONTAS_ICEBERG' -or $integrationProvenance.declared_foreign_keys_verified -ne $false -or $integrationProvenance.chart_owner_mapping_inferred -ne $false -or $integrationProvenance.bank_catalogue_link_inferred -ne $false) {throw 'Integration semantics inferred.'}
             if (@($data.snapshot.integration_account_configurations).Count -ne $receipt.integration_account_configurations) {throw 'Integration count mismatch.'}
             if ($data.period_start -cne '2026-09-01' -or $data.period_end_exclusive -cne '2026-12-01') {throw 'Usage period changed.'}
+            $consistency=$data.read_consistency
+            $expectedConsistencyKeys=@('cadastral_reads_identical','observed_usage_keys_identical','observed_usage_counts_identical','first_observed_chart_usage','first_read_started_at_utc','first_read_completed_at_utc','second_read_started_at_utc','second_read_completed_at_utc')
+            if ((@($consistency.PSObject.Properties.Name | Sort-Object) -join ',') -cne (@($expectedConsistencyKeys | Sort-Object) -join ',')) {throw 'Consistency schema changed.'}
+            if ($consistency.cadastral_reads_identical -ne $true -or $consistency.observed_usage_keys_identical -ne $true -or $receipt.cadastral_reads_identical -ne $true -or $receipt.observed_usage_keys_identical -ne $true) {throw 'Unsafe consistency flags.'}
+            $firstUsage=@{};$secondUsage=@{}
+            foreach ($pair in @(@{rows=$consistency.first_observed_chart_usage;map=$firstUsage},@{rows=$data.snapshot.observed_chart_usage;map=$secondUsage})) {
+                foreach ($row in $pair.rows) {
+                    $key='{0}:{1}:{2}:{3}:{4}' -f $row.company_code,$row.chart_company_code,$row.branch_code,$row.year,$row.month
+                    if ($pair.map.ContainsKey($key) -or $row.entry_count -lt 1) {throw 'Invalid observed usage.'}
+                    $pair.map[$key]=$row.entry_count
+                }
+            }
+            if ((@($firstUsage.Keys | Sort-Object) -join ',') -cne (@($secondUsage.Keys | Sort-Object) -join ',')) {throw 'Changed usage keys accepted.'}
+            $sameCounts=$true
+            foreach ($key in $firstUsage.Keys) {if ($firstUsage[$key] -ne $secondUsage[$key]) {$sameCounts=$false}}
+            if ($consistency.observed_usage_counts_identical -ne $sameCounts -or $data.two_reads_identical -ne $sameCounts -or $receipt.two_reads_identical -ne $sameCounts -or $receipt.observed_usage_counts_identical -ne $sameCounts) {throw 'Count variation misrepresented.'}
+            $times=@($consistency.first_read_started_at_utc,$consistency.first_read_completed_at_utc,$consistency.second_read_started_at_utc,$consistency.second_read_completed_at_utc,$data.observed_at_utc)
+            for ($i=0;$i -lt $times.Count;$i++) {
+                if ($times[$i] -is [DateTime]) {if ($times[$i].Kind -ne [DateTimeKind]::Utc) {throw 'UTC interval lost.'}} elseif ($times[$i] -notmatch 'Z$') {throw 'UTC interval lost.'}
+                if ($i -gt 0 -and ([DateTime]$times[$i-1]).Ticks -gt ([DateTime]$times[$i]).Ticks) {throw 'Invalid read chronology.'}
+            }
+            if ($case -in @('usage_changed','usage_decreased')) {
+                if ($sameCounts -or $firstUsage['1:901:0:2026:9'] -ne $(if ($case -eq 'usage_changed') {1} else {3}) -or $secondUsage['1:901:0:2026:9'] -ne $(if ($case -eq 'usage_changed') {2} else {1})) {throw 'Both observed counts not retained exactly.'}
+            }
+
             if ($unicodeNames.ContainsKey($case)) {
                 $literal=@($data.snapshot.chart_accounts | Where-Object {$_.chart_company_code -eq 1})[0].account_name_raw
                 if (-not [string]::Equals($literal,$unicodeNames[$case],[StringComparison]::Ordinal)) {throw ('Literal Unicode changed: '+$case)}
@@ -352,6 +392,10 @@ foreach ($case in $cases) {
                 # Framing scan rejects literal NUL; parsed value proves the escaped NUL round trip.
             }
             if ($case -eq 'large_catalogue' -and $receipt.chart_accounts -ne 100009) {throw 'Large catalogue truncated.'}
+            if ($case -eq 'usage_changed') {
+                $artifactFolder=Join-Path $PSScriptRoot 'artifacts\validation';[void][IO.Directory]::CreateDirectory($artifactFolder)
+                Copy-Item -LiteralPath $report -Destination (Join-Path $artifactFolder 'contad-chart-discovery-counts-changed-synthetic.zip') -Force
+            }
             if ($case -eq 'success') {
                 if ($data.snapshot.chart_owners.Count -ne 149 -or $data.snapshot.chart_accounts.Count -ne 5 -or $data.snapshot.plan_template_accounts.Count -ne 5) {throw 'Full shared-owner catalogue incomplete or multiplied.'}
                 if ($data.snapshot.observed_chart_usage.Count -ne 2 -or $data.snapshot.observed_chart_usage[1].month -ne 10 -or $data.snapshot.observed_chart_usage[1].branch_code -ne 1) {throw 'Observed month/branch multiplicity lost.'}
@@ -390,13 +434,28 @@ foreach ($case in $cases) {
         if ($case -in @('text_high_surrogate','text_low_surrogate') -and (@($diagnostic.nonprinting_positions).Count -ne 1 -or $diagnostic.nonprinting_positions[0].category -cne 'Surrogate' -or $diagnostic.nonprinting_positions[0].utf16_index -ne 1)) {throw 'Isolated surrogate diagnostic lost.'}
     }
     if ($case -in @('unicode_changed','large_source_changed') -and $receipt.reason_code -cne 'SOURCE_CHANGED') {throw 'Invisible source change accepted.'}
+    if ($receipt.reason_code -eq 'SOURCE_CHANGED') {
+        $diagnostic=$receipt.source_change
+        if ($receipt.stage -cne 'comparing_read_consistency' -or $null -eq $diagnostic -or @($diagnostic.sections).Count -lt 1) {throw ('Missing fine source diagnostic: '+$case)}
+        $allowedSections=@('companies','observed_chart_usage.keys','observed_chart_usage.entry_count','chart_owners','chart_accounts','plan_template_accounts','nature_rules','configured_accounts','equivalent_accounts','cash_accounts','bank_references','integration_account_configurations','metadata.targets','metadata.tables','metadata.key_columns','metadata.relation_columns')
+        foreach ($section in $diagnostic.sections) {
+            if ($section.section -notin $allowedSections -or (@($section.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'first,second,section') {throw 'Unsafe source diagnostic.'}
+            foreach ($side in @($section.first,$section.second)) {
+                if ((@($side.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'bytes,rows,sha256' -or $side.sha256 -notmatch '^[0-9a-f]{64}$' -or $side.rows -lt 0 -or $side.bytes -lt 0) {throw 'Source diagnostic exposed data.'}
+            }
+        }
+        if ($case -eq 'metadata_changed' -and @($diagnostic.sections | Where-Object {$_.section -eq 'metadata.relation_columns'}).Count -ne 1) {throw 'Exact metadata section missing.'}
+        if ($case -in @('usage_key_changed','usage_key_removed') -and $diagnostic.observed_usage_keys_identical -ne $false) {throw 'Changed keys hidden.'}
+        if ($case -eq 'usage_and_catalogue_changed' -and (@($diagnostic.sections).Count -ne 2 -or $diagnostic.cadastral_reads_identical -ne $false -or $diagnostic.observed_usage_keys_identical -ne $true -or $diagnostic.observed_usage_counts_identical -ne $false)) {throw 'Mixed changes hidden.'}
+    }
+    if ($case -in @('chronology_reversed','observed_time_reversed') -and $receipt.reason_code -cne 'READ_TIME_CONTRACT') {throw 'Clock regression accepted.'}
     $foldersAfter=@(Get-ChildItem -LiteralPath $downloads -Directory -Filter 'CICA-CONTAD-Planos-Contas-*' -ErrorAction SilentlyContinue | ForEach-Object FullName)
     if (@($foldersAfter | Where-Object {$_ -notin $foldersBefore}).Count) {throw ('Private temporary data remained: '+$case)}
     $evidence+=@{scenario=$case;passed=$true;exit_code=$code;real_erp=$false}
 }
 $folder=Join-Path $PSScriptRoot 'artifacts\validation'; [void][IO.Directory]::CreateDirectory($folder)
-@{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false;private_fixtures_removed=$true;fixture_company_scope_hash_replaced=$true;production_source_unchanged=$true;synthetic_package='contad-chart-discovery-synthetic.zip';large_catalogue_rows=100009;format='contad-chart-discovery-v2'} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-chart-discovery.json') -Encoding UTF8
-Write-Host 'Chart discovery: fixed SELECTs, scope, cardinality, two reads, private ACL, zero preservation, literal Unicode, bounded streaming ZIP and safe diagnostics passed.'
+@{passed=$true;windows=$PSVersionTable.PSVersion.ToString();source_sha256=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant();scenarios=$evidence;real_erp=$false;private_fixtures_removed=$true;fixture_company_scope_hash_replaced=$true;production_source_unchanged=$true;synthetic_package='contad-chart-discovery-synthetic.zip';synthetic_count_change_package='contad-chart-discovery-counts-changed-synthetic.zip';large_catalogue_rows=100009;format='contad-chart-discovery-v3'} | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $folder 'contad-chart-discovery.json') -Encoding UTF8
+Write-Host 'Chart discovery: fixed SELECTs, scope, cardinality, two reads, private ACL, zero preservation, literal Unicode, bounded streaming ZIP, exact cadastral identity, both positive usage counts and safe section diagnostics passed.'
 # The final negative subprocess must not determine the successful harness exit.
 $global:LASTEXITCODE=0
 exit 0

@@ -161,5 +161,6 @@ jobs:
             agent-windows/artifacts/validation/contad-account-details.json
             agent-windows/artifacts/validation/contad-chart-discovery.json
             agent-windows/artifacts/validation/contad-chart-discovery-synthetic.zip
+            agent-windows/artifacts/validation/contad-chart-discovery-counts-changed-synthetic.zip
           if-no-files-found: warn
           retention-days: 1

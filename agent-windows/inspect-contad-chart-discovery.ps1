@@ -10,7 +10,7 @@ Add-Type -AssemblyName System.IO.Compression
 $connection=$null; $builder=$null; $credential=$null; $timer=$null
 $stage='credential_prompt'; $reason='UNCLASSIFIED'; $outputDirectory=$null
 $completed=$false; $readDirectories=@()
-$textFailure=$null
+$textFailure=$null; $sourceChange=$null
 $periodStart=[DateTime]::new(2026,9,1); $periodEnd=[DateTime]::new(2026,12,1)
 $expectedCompanyCount=146
 $expectedCompanyCodeSha256='4ab91c9e80c1b20275c5878b3ec3f844deec7f6b155d94fdb90b79fbf6626f55'
@@ -257,6 +257,53 @@ function Close-CatalogueSink {
     if ($null -ne $Sink.stream) {$Sink.stream.Dispose();$Sink.stream=$null}
     return [ordered]@{file=$Sink.file;rows=$Sink.rows;bytes=$Sink.bytes;sha256=(Get-FileHash -LiteralPath $Sink.path -Algorithm SHA256).Hash.ToLowerInvariant()}
 }
+function Section-Evidence {
+    param([object]$Value,[bool]$Descriptor=$false)
+    if ($Descriptor) {return [ordered]@{rows=$Value.rows;bytes=$Value.bytes;sha256=$Value.sha256}}
+    $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $Value -Depth 10 -Compress))
+    $hasher=[Security.Cryptography.SHA256]::Create()
+    try {$sha=([BitConverter]::ToString($hasher.ComputeHash($bytes))).Replace('-','').ToLowerInvariant()}
+    finally {$hasher.Dispose()}
+    return [ordered]@{rows=@($Value).Count;bytes=$bytes.Length;sha256=$sha}
+}
+function Compare-ReadConsistency {
+    param([object]$First,[object]$Second)
+    $differences=New-Object 'System.Collections.Generic.List[object]'
+    $cadastral=$true
+    foreach ($section in $First.Keys) {
+        if ($section -eq 'observed_chart_usage') {continue}
+        $parts=if ($section -eq 'metadata') {@('targets','tables','key_columns','relation_columns')} else {@('')}
+        foreach ($part in $parts) {
+            $name=$section; $left=$First[$section];$right=$Second[$section]
+            if ($part) {$name+='.'+$part;$left=$left[$part];$right=$right[$part]}
+            if (-not [string]::Equals((ConvertTo-Json -InputObject $left -Depth 10 -Compress),(ConvertTo-Json -InputObject $right -Depth 10 -Compress),[StringComparison]::Ordinal)) {
+                $cadastral=$false;$isDescriptor=$section -in @('chart_accounts','plan_template_accounts','nature_rules')
+                $differences.Add([ordered]@{section=$name;first=(Section-Evidence $left $isDescriptor);second=(Section-Evidence $right $isDescriptor)})
+            }
+        }
+    }
+    $maps=@(@{},@{})
+    for ($pass=0;$pass -lt 2;$pass++) {
+        $snapshot=if ($pass -eq 0) {$First} else {$Second}
+        foreach ($row in $snapshot.observed_chart_usage) {
+            $key='{0}:{1}:{2}:{3}:{4}' -f $row.company_code,$row.chart_company_code,$row.branch_code,$row.year,$row.month
+            # Positive integer and duplicate-key guards have already run in each pass.
+            if ($maps[$pass].ContainsKey($key) -or $row.entry_count -lt 1) {Reject-Details 'USAGE_SCOPE'}
+            $maps[$pass][$key]=[long]$row.entry_count
+        }
+    }
+    $leftKeys=@($maps[0].Keys | Sort-Object);$rightKeys=@($maps[1].Keys | Sort-Object)
+    $keysIdentical=[string]::Equals((ConvertTo-Json -InputObject $leftKeys -Compress),(ConvertTo-Json -InputObject $rightKeys -Compress),[StringComparison]::Ordinal)
+    $countsIdentical=$keysIdentical
+    if ($keysIdentical) {foreach ($key in $leftKeys) {if ($maps[0][$key] -ne $maps[1][$key]) {$countsIdentical=$false}}}
+    if (-not $keysIdentical -or -not $countsIdentical) {
+        $name=if ($keysIdentical) {'observed_chart_usage.entry_count'} else {'observed_chart_usage.keys'}
+        $differences.Add([ordered]@{section=$name;first=(Section-Evidence $First.observed_chart_usage);second=(Section-Evidence $Second.observed_chart_usage)})
+    }
+    $script:sourceChange=[ordered]@{cadastral_reads_identical=$cadastral;observed_usage_keys_identical=$keysIdentical;observed_usage_counts_identical=$countsIdentical;sections=$differences.ToArray()}
+    if (-not $cadastral -or -not $keysIdentical) {Reject-Details 'SOURCE_CHANGED'}
+    return $countsIdentical
+}
 function Read-Snapshot {
     param([string]$Directory)
     $script:stage='reading_active_company_codes'
@@ -493,17 +540,34 @@ try {
     $firstDirectory=Join-Path $outputDirectory 'read-one'; $secondDirectory=Join-Path $outputDirectory 'read-two'
     $readDirectories=@($firstDirectory,$secondDirectory)
     foreach ($directory in $readDirectories) {[void][IO.Directory]::CreateDirectory($directory)}
+    $firstReadStarted=[DateTime]::UtcNow
     $first=Read-Snapshot $firstDirectory
+    $firstReadCompleted=[DateTime]::UtcNow
     $firstJson=$first | ConvertTo-Json -Depth 8 -Compress
     if ([Text.Encoding]::UTF8.GetByteCount($firstJson) -gt 8388608) {Reject-Details 'OUTPUT_LIMIT'}
+    $secondReadStarted=[DateTime]::UtcNow
     $second=Read-Snapshot $secondDirectory
-    if (-not [string]::Equals($firstJson,($second | ConvertTo-Json -Depth 8 -Compress),[StringComparison]::Ordinal)) {Reject-Details 'SOURCE_CHANGED'}
+    $secondReadCompleted=[DateTime]::UtcNow
+    $stage='comparing_read_consistency'
+    if ($firstReadStarted -gt $firstReadCompleted -or $firstReadCompleted -gt $secondReadStarted -or $secondReadStarted -gt $secondReadCompleted) {Reject-Details 'READ_TIME_CONTRACT'}
+    $countsIdentical=Compare-ReadConsistency $first $second
+    $consistency=[ordered]@{
+        cadastral_reads_identical=$true;observed_usage_keys_identical=$true;observed_usage_counts_identical=$countsIdentical
+        first_observed_chart_usage=$first.observed_chart_usage
+        first_read_started_at_utc=$firstReadStarted.ToString('o');first_read_completed_at_utc=$firstReadCompleted.ToString('o')
+        second_read_started_at_utc=$secondReadStarted.ToString('o');second_read_completed_at_utc=$secondReadCompleted.ToString('o')
+    }
+    # The emitted snapshot and all JSONL files belong to the second complete pass.
+    $first=$second; $packageDirectory=$secondDirectory
     Check-Deadline
     $connection.Close()
     $stage='writing_private_report'
+    $observed=[DateTime]::UtcNow
+    if ($secondReadCompleted -gt $observed) {Reject-Details 'READ_TIME_CONTRACT'}
     $result=[ordered]@{
-        version='contad-chart-discovery-v2';completed=$true;observed_at_utc=[DateTime]::UtcNow.ToString('o')
-        decision='D-373';period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';expected_company_count=$expectedCompanyCount;two_reads_identical=$true
+        version='contad-chart-discovery-v3';completed=$true;observed_at_utc=$observed.ToString('o')
+        decision='D-373';period_start=$periodStart.ToString('yyyy-MM-dd');period_end_exclusive=$periodEnd.ToString('yyyy-MM-dd');company_selector='A';expected_company_count=$expectedCompanyCount;two_reads_identical=$countsIdentical
+        read_consistency=$consistency
         company_codes_sha256=$expectedCompanyCodeSha256
         retained_portfolio_sha256='21136b2aaab37d28a85ac833001a039f6f100abde565101dbd3f8219099e1231'
         script_sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -535,7 +599,7 @@ try {
     if ($bytes.Length -gt 8388608) {Reject-Details 'OUTPUT_LIMIT'}
     $uncompressed=[long]$bytes.Length+$first.chart_accounts.bytes+$first.plan_template_accounts.bytes+$first.nature_rules.bytes
     if ($uncompressed -gt 1073741824) {Reject-Details 'OUTPUT_LIMIT'}
-    [IO.File]::WriteAllBytes((Join-Path $firstDirectory 'manifest.json'),$bytes)
+    [IO.File]::WriteAllBytes((Join-Path $packageDirectory 'manifest.json'),$bytes)
     $path=Join-Path $outputDirectory 'planos-contas.zip'; $temporary=$path+'.partial'
     $archive=$null; $zipStream=$null
     try {
@@ -547,7 +611,7 @@ try {
             $entry=$archive.CreateEntry($name,[IO.Compression.CompressionLevel]::Optimal)
             $inputStream=$null; $entryStream=$null
             try {
-                $inputStream=[IO.File]::OpenRead((Join-Path $firstDirectory $name)); $entryStream=$entry.Open()
+                $inputStream=[IO.File]::OpenRead((Join-Path $packageDirectory $name)); $entryStream=$entry.Open()
                 $buffer=New-Object byte[] 65536
                 while (($count=$inputStream.Read($buffer,0,$buffer.Length)) -gt 0) {
                     Check-Deadline; $entryStream.Write($buffer,0,$count)
@@ -569,14 +633,15 @@ try {
     foreach ($directory in $readDirectories) {Remove-Item -LiteralPath $directory -Recurse -Force}
     $completed=$true
     [ordered]@{
-        version='contad-chart-discovery-receipt-v2';completed=$true;companies=$first.companies.Count
+        version='contad-chart-discovery-receipt-v3';completed=$true;companies=$first.companies.Count
         chart_owners=$first.chart_owners.Count;chart_accounts=$first.chart_accounts.rows;plan_template_accounts=$first.plan_template_accounts.rows;nature_rules=$first.nature_rules.rows;observed_chart_usage=$first.observed_chart_usage.Count;equivalent_accounts=$first.equivalent_accounts.Count
         configured_accounts=$first.configured_accounts.Count;cash_accounts=$first.cash_accounts.Count;bank_references=$first.bank_references.Count
         integration_account_configurations=$first.integration_account_configurations.Count
         missing_chart_accounts=@($first.configured_accounts | Where-Object {$_.catalogue_matches -eq 0}).Count
         missing_bank_catalogue=@($first.bank_references | Where-Object {$_.bank_catalogue_matches -eq 0}).Count
         missing_cash_keys=@($first.bank_references | Where-Object {-not $_.cash_key_present}).Count
-        sha256=$sha;bytes=$packageBytes;uncompressed_bytes=$uncompressed;report_file=$path;two_reads_identical=$true;financial_values_selected=$false
+        sha256=$sha;bytes=$packageBytes;uncompressed_bytes=$uncompressed;report_file=$path;two_reads_identical=$countsIdentical
+        cadastral_reads_identical=$true;observed_usage_keys_identical=$true;observed_usage_counts_identical=$countsIdentical;financial_values_selected=$false
         uploaded=$false;human_reviewed=$false
     } | ConvertTo-Json -Depth 3 -Compress | Write-Output
 } catch {
@@ -589,7 +654,7 @@ try {
         }
         $exception=$exception.InnerException
     }
-    [ordered]@{version='contad-chart-discovery-receipt-v2';completed=$false;stage=$stage;reason_code=$reason;text_contract_failure=$textFailure;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 6 -Compress | Write-Output
+    [ordered]@{version='contad-chart-discovery-receipt-v3';completed=$false;stage=$stage;reason_code=$reason;text_contract_failure=$textFailure;source_change=$sourceChange;exception_types=@($types.ToArray());sql_states=@($states.ToArray() | Select-Object -Unique);uploaded=$false} | ConvertTo-Json -Depth 6 -Compress | Write-Output
     Write-Error 'Descoberta nao concluido. Retorne somente este diagnostico seguro; preserve credencial e agente.' -ErrorAction Continue
     exit 1
 } finally {
