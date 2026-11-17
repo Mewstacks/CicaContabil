@@ -5323,3 +5323,12 @@ contábil. Q-47/C01/C02 adiados mantêm critérios próprios. Registrar prévia,
 autoria técnica, provas antes/depois, contagens efetivas e limites; atualizar
 validações/checklists ao concluir. Se a automação AnyDesk continuar indisponível,
 preparar primeiro script concreto e validado para execução local assistida.
+
+
+Refinamento D-372 — execução pela tela autorizada: após a prévia e identificação
+do acesso disponível, o responsável instruiu “Faz tu pela tela, esta autorizado”.
+Autoriza o executor a acionar Buscar Razão na sessão CICA disponível com a
+conta212/8,setembro2026 e extrato já conferidos. A execução ocorre por delegação
+explícita nesta conversa; não é declaração de revisão contábil da cliente.
+A limitação anterior de D-365 não impede esse pedido expressamente autorizado
+agora. Não alterar identidade, permissões, vínculos ou decisões de conciliação.

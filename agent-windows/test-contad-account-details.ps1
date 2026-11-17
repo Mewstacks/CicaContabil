@@ -124,7 +124,9 @@ foreach ($case in $cases) {
     if ($json.Count -ne 1) {throw ('Missing safe receipt: '+$case)}
     $receipt=$json[0] | ConvertFrom-Json
     if ($case -in $success) {
-        if ($code -ne 0 -or -not $receipt.completed -or -not $receipt.two_reads_identical -or $receipt.companies -ne 146) {throw ('Expected success: '+$case)}
+        if ($code -ne 0 -or -not $receipt.completed -or -not $receipt.two_reads_identical -or $receipt.companies -ne 146) {
+            throw ('Expected success: {0}; exit={1}; completed={2}; stage={3}; reason={4}; types={5}' -f $case,$code,$receipt.completed,$receipt.stage,$receipt.reason_code,($receipt.exception_types -join ','))
+        }
         $report=$receipt.report_file; $folder=Split-Path $report
         $expectedRoot=Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
         if ((Split-Path $folder) -ne $expectedRoot -or (Split-Path $folder -Leaf) -notmatch '^CICA-CONTAD-Contas-Detalhes-[a-f0-9]{32}$') {throw 'Unexpected fixture report path.'}
