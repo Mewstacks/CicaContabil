@@ -1,3 +1,13 @@
+<!-- D373-V412-IN-PROGRESS-2026-11-17 -->
+**17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
+Ampliação autorizada para as146 empresas, consultando catálogo completo e relações
+empresa/plano/filial com proveniência, além da configuração de conciliação.
+Preparação em lote e confirmação apenas dos campos não comprovados pela fonte;
+release100 continua publicada até validação/publicação da nova candidata.
+Terceira consulta real completou as duas leituras e recusou SOURCE_CHANGED;
+a seção divergente ainda não é conhecida. Manifesto v3 distingue cadastro de
+contagens variáveis, com diagnóstico por seção. Testes e fonte real pendentes; ver V-412.
+
 <!-- D372-V411-PUBLISHED-2026-11-17 -->
 ## D-372/V-411 — preparação publicada e piloto real validado, 17/11/2026
 

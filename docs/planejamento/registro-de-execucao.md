@@ -1,3 +1,71 @@
+<!-- D375-V415-EXECUTING-2026-11-18 -->
+## 18/11/2026 — D-375/V-415: entrega CONTAD em execução
+
+A solicitação atual retoma **Q-47 e C01/C02**, superando somente seus adiamentos
+históricos. Escopo: CONTAD inteira,146 empresas desde setembro2026; infraestrutura
+preservada e importação na base real condicionada à aprovação do lote concreto.
+Os blocos anteriores são históricos; pendência não equivale a conclusão.
+
+- [x] Produção/release100, heartbeat/capacidades e ausência de migrações pendentes conferidos.
+- [x] Coleta real sem conta: empresa30/setembro e empresa25/setembro+outubro; fontes e hashes conferidos, sem revisão financeira presumida.
+- [x] Correção local da perda de guarda mensal e contingência com0088 testadas; publicação ainda pendente.
+- [x] ZIP real transferido/validado; ensaio512MiB com navegação concorrente aprovado na rodada3 nativa (rodadas1/2 reprovadas e preservadas) e complemento da imagem final91a67f0 com0089 aprovado em laboratório.
+- [x] UI e CI dos recibosQ-47 concluídos (CI44306412317 verde na candidata91a67f0).
+- [x] Publicada91a67f0 (imagem OCI ee47ad87) nas máquinas existentes com0088/0089; catálogo de217.891 contas/146 empresas importado com manifesto exato e revalidado somente leitura (replay com locks bloqueado por gravações do agente; ver V-415).
+- [x] Telas da descoberta conferidas em produção (somente leitura, sessão do responsável; ver V-415).
+- [ ] Identificar importador/versão reais do Domínio noSVAPL02 (sessão atual sem controle de desktop; prints solicitados) e obter aprovação do lote novo antes da importação.
+- [ ] Conferência humana C01/C02, vínculos das empresas, DE-PARA, amostra/recuperação D-73 e aceite da cliente.
+
+Encerramento 18/11: release91a67f0 publicada e catálogo importado; entrega à
+cliente como **uso assistido** ([comunicado](../pt-BR/contad-entrega-2026-11-18.md)),
+não como conclusão D-73. Pendências com responsável: formato real do importador
+Domínio e lote aprovado (responsável+CONTAD, Q-47); C01/C02 (Grazi); vínculos
+bancários (CONTAD); amostra200/aceite (CONTAD+CICA); janela de restauração do
+Neon (responsável, console exige login). Evidências em [V-415](../../VALIDACOES.md)
+e decisões em [D-375](../../DECISOES.md).
+
+<!-- D374-V414-PREPARED-2026-11-17 -->
+## 17/11/2026 — D-374/V-414: pacote da cliente e retomada técnica preparados
+
+- Registrado D-374 antes da execução; preservadas restrições de D-373 e decisões Q existentes.
+- Corrigido o guia público da release 100: retiradas instruções obsoletas de instalação/coleta;
+  sessão inicial no piloto existente e módulos complementares com limites explícitos.
+- Baixado CSV pelo botão real da sessão CONTAD às 17:02 BRT; conferência independente
+  offline aprovada, sem confirmar/desfazer movimentos ou solicitar nova coleta.
+- Preparados PDF de quatro páginas, versão texto e registro editável de nove cenários.
+  Todas as páginas renderizadas/inspecionadas, dois links PDF conferidos, resultados humanos
+  inicialmente não executados. Pacote privado em Downloads, sem envio externo.
+- Concluídos pins da configuração e verificadores/roteiro de retomada da descoberta;
+  21 testes locais aprovados, 775 hashes, três fontes retidas e 146 códigos conferidos.
+  Revisão independente sem bloqueadores; nenhuma execução Docker/banco/ERP nessa preparação.
+- Atualizados guia, plano, pendências, checklists, dúvidas e V-414; regressões V-413
+  reutilizadas, pois não houve alteração na aplicação.
+
+Resultado: roteiro pronto para iniciar hoje o piloto e a revisão das fichas disponíveis.
+A cliente ainda precisa executar e registrar os testes. Fonte real/capacidade/publicação
+da descoberta e aceite continuam pendentes. [Guia](../pt-BR/contad-conciliacao.md),
+[entrega vigente](pendencias-conclusao-2026-11-02.md) e [V-414](../../VALIDACOES.md).
+
+<!-- D370-V413-READINESS-2026-11-17 -->
+## 17/11/2026 — D-370/V-413: reanálise CONTAD concluída
+
+- Lidos registros canônicos/etapas/Q; escopo limitado à CONTAD D-301/D-302.
+- Fonte exata release100 isolada; 3.123 testes SQLite/54 skips/181 subtestes,
+  215 testes focados e checks Django/migrações aprovados, sem mudar aplicação.
+- Reconferidos runtime web/worker801 hashes,14 assets, HTTPS/banco/cache,
+  15 grupos preservados, agente recente,146 empresas/uma conta/43 fichas+complementos.
+- Relatório e conferência reais abertos em leitura na sessão CONTAD;162 movimentos
+  pendentes, saldos/cobertura honestamente não confirmados, nenhum POST realizado.
+- CI da candidata02c13b0 aprovado, PR32 rascunho; ZIP real ausente nos locais
+  verificados, migração/importação/publicação pendentes. Não repetir pedidoSVAPL02.
+- Atualizados parecer/roteiro vigentes, checklists, dúvidas, plano e V-413.
+
+Resultado: testes delimitados do piloto podem começar hoje; carteira146 e aceite
+integral não concluídos. Sem deploy, novas coletas, IA, mensagens ou decisão pela
+cliente. Evidências e limites em [V-413](../../VALIDACOES.md) e no
+[parecer vigente](pendencias-conclusao-2026-11-02.md).
+Os blocos seguintes conservam o histórico de seus respectivos horários.
+
 <!-- D371-V410-PUBLISHED-2026-11-17 -->
 **17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
 [PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
@@ -4625,3 +4693,72 @@ Cliente pode testar o piloto SURIA e revisar 43 fichas de 11 empresas. Coleta re
 163/163 compatível, diferença líquida zero; dois grupos ambíguos e 162 revisões
 pendentes. 145 empresas ainda sem conta operacional, devido às lacunas efetivas de
 extrato/plano/vínculo bancário. Carteira integral e homologação permanecem abertas.
+
+## 17/11/2026 — D-373/V-412: descoberta completa e preparação em lote
+
+- [x] Registrar autorização e preservar checkout/estado publicado.
+- [x] Identificar limitação da descoberta anterior e aprovar contrato completo com proveniência.
+- [ ] Validar leitor Windows ampliado e receber fonte real das146 empresas.
+- [ ] Preparar catálogo/vínculos em lote com prévia, replay e fatos/ambiguidades explícitos.
+- [x] Validar confirmação mínima e acesso por empresa/módulo, UI/UX e Playwright sintéticos; repetir fluxo real após fonte/publicação.
+- [ ] Aprovar CI da fonte exata, publicar e conferir dados/runtime/saúde/fluxo real.
+- [ ] Registrar cobertura efetiva e lacunas restantes, sem declarar homologação humana.
+
+Primeira tentativa real encerrou em TEXT_CONTRACT; correção do leitor e testes
+registrados em V-412. Código local preparado; fonte ampliada e deploy pendentes.
+
+Segunda tentativa: ROW_LIMIT acima de100mil contas. Ensaio confirmouOOM/rollback
+sem dadosreais; arquitetura de processamento emfluxo e migração0088quatro tabelas
+substituem protótipos anteriores. Ver D-373 e checkpoint de capacidadeV-412.
+
+
+Checkpoint D-373/V-412 de consistência e memória — terceira tentativa real,
+leitor5d62cd3, completou as duas passagens e recusou SOURCE_CHANGED. A seção
+divergente não foi informada; não afirmar que somente contagens mudaram.
+Manifesto v3 mantém cadastro/chaves idênticos, preserva as duas contagens e
+intervalos UTC e permite apenas variação em contagens positivas. Fonte70bb143,
+SHA2561cff13a2c964008acffa989d6a15a228669796e069beafb12454395379bc6e86;
+107 cenários locais do leitor aprovados. Windows44136610838 e cruzamento dos
+ZIPs PowerShell5.1 em andamento; ainda sem quarto comando liberado.
+
+Backend congelado:232 testes aprovados/5 exclusivosPG separados;39 testesv3
+PostgreSQL aprovados. Ruff global/MyPy focado aprovados. CI9fc parou em três
+apontamentos Ruff somente nos testes SQL; contagem passou a percorrer o cursor
+sem montar SQL adicional, mantendo as consultas do leitor;13 testes SQL passaram.
+CI integral final permanece pendente. Keyset LIMIT500 no catálogo/LIMIT2 nos
+blocos dispensa cursores de servidor; índicePG verificado. Ensaio100mil contas
+mais100mil modelos com app ativo/512MiB passou prévia/aplicação/replay/integridade/
+ficha, zeroOOM; pico398,6MiB.250mil e gate com fonte real permanecem pendentes.
+
+Migração0088 de QUATRO estruturas ensaiada no runtime100 e PostgreSQL isolado:
+prévia sem escrita, duas aliases, replay/retomada, rollback de DDL/recorder e
+recusa de divergências aprovados.195 linhas antigas preservadas. Hash migração
+7ab588371354697ab3199cbeae468b9756435b9217c9da9fb039cf5541655979;
+helper98b49b8a9e0406c26bd9f2be31677ed6a9b9970f4311717102f227fba48d5f45.
+Ensaios anteriores de três tabelas e imagens anteriores são superados.
+QA ZIP sintético:23 verificaçõesPlaywright, zeroJS; fluxo de banco reaproveitado
+no mês novo distingue confirmação humana da observação na fonte. Não houve
+fonte completa real recebida, importação real nem deploy: release100 preservada.
+
+
+Checkpoint final local v3 — Windows44136610838 aprovado,107/107 cenários
+(30 positivos/77 recusas), incluindo100.009 contas, ACL e limpeza. Os dois ZIPs
+gerados no PowerShell5.1 (leituras idênticas e contagens distintas) passaram no
+parser do backend, com override de hash apenas na fixture em memória. Pin de
+produto1cff13a2 mantido. Quarto comando, fonte70bb143, enviado ao responsável;
+resultado e arquivo real ainda pendentes. QA por navegador com ZIPv3 de
+contagens diferentes passou23 verificações, zeroJS; capturas desktop1440 em
+contextos novos claro/escuro inspecionadas, browser/servidor próprios encerrados.
+
+Revisão encontrou e corrigiu repetição de source_metadata nos joins de cobertura
+do replay: reutiliza-se a instância já validada do lote para todas as empresas.
+Isso evita146 cópias do manifesto em memória; três regressões focadas passaram,
+incluindo SQL sem join duplicador e identidade da instância. Helper operacional
+recebe a mesma correção; novo CI integral/candidata final continuam pendentes.
+
+Reconferência autenticada somente leitura em produção confirmou runtime100
+801arquivos/SHA1b09fc44,146empresas/43candidatas/43complementos/uma conta,
+agente oficial recente e pontas0087/0041 nas duas aliases. Prévia do runner
+0088 exato aprovada sem DDL/recorder: quatro estruturas ausentes, única migração
+prevista0088, estado antes/depois idêntico e diretório temporário removido.
+Sem aplicação, importação ou deploy; isso não libera a carteira completa.

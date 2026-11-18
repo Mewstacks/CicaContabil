@@ -5378,3 +5378,298 @@ classificações não substituem vínculo bancário. A consulta retornou zero re
 Manter Q-28/PC-19 e revisões pendentes; não anunciar “qualquer empresa pronta”.
 Canal preexistente 1.0.13 restaurado após deploy e configuração final conferida;
 próximos deploys devem preservar os overrides existentes verificados na prévia.
+
+## D-373 — Descoberta completa de planos e contas das 146 empresas (17/11/2026)
+
+Origem: responsável instruiu “Então complete a descoberta automática dos planos e
+contas das 146 empresas, prepare os vínculos em lote, valide e publique para a
+cliente testar hoje. Deixe para ela confirmar só o que realmente precisar de
+conferência.” Retoma Q-28/PC-19 e etapas03/09/12 após a entrega parcial D-372.
+
+Autoriza ampliar a leitura real, somente consulta no Domínio, além de
+CTCONCILIACAO_CONTA: descobrir os planos efetivamente utilizados e contas do
+catálogo completo no escopo das mesmas146 empresas, com relações verificadas
+no catálogo retido. Preparar em lote fatos e vínculos comprovados pela origem,
+sem fazer a cliente redigitar fatos já disponíveis. Ausência naquela configuração
+não é ausência de conta no plano; piloto212/8 é prova dessa diferença.
+
+Classificar com evidência os vínculos resolvidos e as ambiguidades reais; mostrar
+a confirmação apenas do que a origem não comprova. Não inventar banco, agência,
+conta, natureza, direção ou correspondência caixa→contábil por nome/código igual.
+Não rotular execução automática como revisão/aceite humano. Preservar fontes,
+revisões,43 candidatas/complementos e o piloto operacional existentes; importação
+com prévia atômica, escopo/hash e replay idempotente. Cobertura declarada por
+empresa, inclusive ausência de parâmetros/plano e multiplicidade de filiais.
+
+Implementar e validar o fluxo completo, com testes SQLite/PostgreSQL/Windows
+pertinentes, revisão independente, UI/UX/Playwright e verificação de produção.
+Publicação já autorizada nas máquinas/capacidade existentes, preservando canal
+1.0.13 ou publicando atualização de agente apenas se tecnicamente necessária e
+validada. Nenhum custo novo, IA, mensagem externa, alteração comercial, escrita
+ERP, exportação contábil ou confirmação de conciliação em nome da cliente.
+Reutilizar acessos/fontes disponíveis. Se AnyDesk continuar sem controle, preparar
+primeiro comando único concreto, testado e com hash para execução local assistida.
+Não declarar carteira pronta sem descoberta recebida, vínculos preparados e
+validação real. Registrar lacunas efetivas no mesmo Q-28, sem perguntas repetidas.
+
+Refinamento D-373 — contrato de descoberta aprovado antes da implementação:
+leitor independente `inspect-contad-chart-discovery.ps1`, sem novo MSI, com
+duas leituras completas, escopo/hash exatos, limites e arquivo privado. Além dos
+parâmetros cadastrais das146 empresas, consultar somente códigos empresa/plano/
+filial e contagens agregadas de CTLANCTO no intervalo 01/09/2026 a 01/12/2026
+(exclusivo). Nenhum valor, histórico ou movimento individual selecionado. Essa
+janela evidencia utilização; não prova semântica atual de parâmetros nem exclui
+planos fora do período. Catálogo CTCONTAS completo, sem filtro por nome/tipo ou
+configuração de conciliação, para proprietários próprios, CODI_PAD, utilizados
+e explicitamente configurados; incluir referências de proprietários fora do
+escopo146 sem ampliar empresas atendidas. CTPLANOCONTAS, CTNATUREZA_CONTA e
+metadados limitados mantêm fatos literais, sem inferência de natureza/precedência.
+
+Persistência aditiva separada: lote imutável por escritório/hash, catálogo
+deduplicado por lote/plano/conta e cobertura por lote/empresa. Preparar vínculos
+e campos a partir desses fatos, com proveniência; não multiplicar o catálogo
+por todas as empresas nem alterar fontes/revisões das43 candidatas antigas.
+Prévia/aplicação/replay atômicos, recusando escopo divergente e truncamento.
+Página de cobertura e busca por empresa/plano/conta deve permitir chegar ao
+vínculo a partir do catálogo completo. Campos comprovados são apresentados
+preenchidos; formulário pede somente evidência/associação/semântica ainda
+não comprovadas. Qualquer confirmação real registra o usuário da sessão e
+os campos efetivamente confirmados, distinguindo-os dos fatos técnicos da fonte.
+
+Complemento D-373 — catálogo retido comprova FK composta de
+CTCONTAS_EQUIVALENTES(CODI_EMP_PLANO,CODI_CTA) para CTCONTAS. Incluir códigos
+empresa/plano/conta literais em array separado e seus proprietários no catálogo
+completo; a referência não declara banco físico nem plano atualmente ativo.
+
+Precisão D-373 — o agregado de utilização preserva também ano/mês de competência
+(sem datas individuais), pois o Razão é solicitado por mês. Vínculo observado
+em uma competência não se transforma automaticamente em vínculo para qualquer
+período. Guardar multiplicidade e filiais por competência; a interface preserva
+o mês e solicita confirmação somente quando a fonte não comprovar aquele escopo.
+
+Refinamento D-373 após leitura real — o diagnóstico TEXT_CONTRACT ocorreu na
+leitura de CTCONTAS, sem subcausa conhecida. Preservar literalmente textos Unicode
+bem formados, inclusive controles, formatos e espaços; não aplicar trim, substituir,
+truncar ou inferir semântica. O arquivo JSON privado pode preservar U+0000 escapado;
+se presente na fonte recebida, a persistência exigirá representação reversível
+explícita antes de importar, pois JSONB não aceita esse caractere. Manter limites
+em unidades UTF-16 e bloquear tipo diferente de string ou surrogate isolado.
+Diagnósticos expõem somente campo, tipo, tamanho, limite e códigos/categorias de
+caracteres não imprimíveis, sem texto, nomes ou identificadores da linha. Revalidar
+no Windows antes de novo comando; falha anterior não comprova catálogo recebido.
+
+Precisão D-373 — referência configurada/equivalente não comprova plano no mês;
+somente uso observado na competência ou revisão humana íntegra daquele mês
+pode dispensar a confirmação. Filial observada zero permanece impedimento explícito
+para o agente atual, sem substituir por filial inventada. Uma candidata previamente
+descartada não pode ser reativada pela ficha do catálogo: apresentar a decisão
+existente e encaminhar sua reconsideração ao fluxo já previsto. Revisões dinâmicas
+incluem a revisão da candidata para detectar alteração entre leitura e envio.
+
+
+Refinamento D-373 de capacidade após segunda consulta real — v2 do comando
+superou TEXT_CONTRACT e parou em ROW_LIMIT na leitura de CTCONTAS: catálogo real
+ultrapassa100mil contas. Ensaio sintético confirmou OOM ao aplicar100mil com o
+aplicativo ativo em512MiB; transação desfeita, nenhum dado real alterado. Não
+resolver aumentando apenas limite ou memória/VM. Ampliar o formato do leitor para
+pacote privado ZIP com manifest.json e tabelas grandes JSONL, escritas/lidas em
+fluxo; duas consultas completas continuam comparadas por conteúdo exato/hash.
+CTCONTAS e CTPLANOCONTAS até1milhão de linhas cada, naturezas até100mil;
+limites explícitos por arquivo e pacote, sem truncamento. Metadados pequenos e
+relações preservados; consultas ainda somente leitura no mesmo escopo146.
+
+O backend valida e prepara em lotes de tamanho limitado, incluindo replay e
+checksums calculados em fluxo, sem materializar catálogo completo em RAM.
+Além das três estruturas previstas, admite estrutura imutável de blocos para
+modelos/regras de origem, com bytes comprimidos, contagem e hashes reversíveis;
+catálogo pesquisável permanece uma linha por conta. Migração0088 ainda não
+publicada pode ser ajustada e deve ser novamente ensaiada nas duas aliases.
+Não publicar/importar antes de ensaio representativo com arquivo real e app
+ativo na capacidade512MiB, preservando margem e todas as revisões. Novo leitor
+passaWindows antes de comando assistido. Não há novaVM/custo nem alteraçãoERP.
+
+
+Precisão D-373 de memória — a produção usa DB_PGBOUNCER=true por padrão e
+DISABLE_SERVER_SIDE_CURSORS, portanto QuerySet.iterator sozinho não limita a
+memória do driver. Scans de integridade/replay do catálogo e blocos devem usar
+páginas limitadas por chave ordenada, preservando hash/ordem, sem OFFSET crescente
+ou alteração global do pool. Ensaios512MiB precisam reproduzir cursores de servidor
+desabilitados; não inferir capacidade de testes PostgreSQL com outro modo.
+
+
+Refinamento D-373 de concorrência da origem — terceira tentativa real completou
+as duas leituras e retornou SOURCE_CHANGED; o recibo não identifica a seção que
+mudou, portanto não afirmar que houve alteração cadastral ou somente lançamentos.
+Adicionar diagnóstico seguro por seção (nomes das seções, contagens e hashes,
+sem valores/identificadores de linha). Manter recusa para qualquer diferença em
+cadastros, catálogos, metadados ou conjunto de chaves empresa/plano/filial/mês.
+
+A contagem agregada de lançamentos serve apenas como evidência de uso positivo;
+não define identidade do vínculo nem valor financeiro. Autoriza-se versão3 do
+manifesto que aceite diferença EXCLUSIVAMENTE nessas contagens quando os mesmos
+conjuntos de chaves, todos positivos, e todo conteúdo cadastral forem idênticos.
+Preservar as contagens das duas leituras e seus intervalos UTC, usando a segunda
+no snapshot final. `two_reads_identical` será verdadeiro somente quando também
+as contagens forem iguais; distinguir explicitamente identidade cadastral,
+identidade das chaves observadas e igualdade das contagens. Backend reconfere
+cada condição, flags e cronologia, sem aceitar simples declaração do leitor.
+Nenhuma transação/lock que bloqueie a operação no Domínio, mudança de configuração
+ERP, valor financeiro ou aprovação humana adicional. Leitor/contrato passam
+novamente pelos testes Windows/integração antes do próximo comando assistido.
+
+Precisão da verificação v3: a igualdade cadastral entre as duas passagens é
+calculada e atestada pelo leitor pinado; o pacote retém um catálogo e não duas
+cópias cadastrais. O backend confere os hashes dos arquivos e recalcula os fatos
+comparáveis fornecidos (dois arrays de uso, chaves, contagens, flags e cronologia),
+sem declarar que reconstruiu a primeira cópia cadastral. Esse limite de evidência
+não é substituído por presunção sobre a causa de SOURCE_CHANGED.
+
+
+## D-375 — Executar a entrega completa CONTAD até 18h de 18/11/2026
+
+Origem: plano discutido e integralmente aprovado pelo responsável nesta conversa,
+seguido de “PLEASE IMPLEMENT THIS PLAN”. Escopo: CONTAD inteira (D-301/D-302),
+etapas03/09/11/12 e PC-09/19/22/30; não ampliar para a suíte. Acesso remoto ao
+SVAPL02 e participação da cliente estão disponíveis hoje. A restrição de acesso
+de D-373/D-374 pertencia a17/11 e não impede a execução autorizada em18/11.
+
+Retomar Q-47 e os casos C01/retenções e C02/juros com fontes/evidências reais,
+superando seus adiamentos anteriores. O responsável escolheu a base REAL para
+importação contábil, condicionada a aprovação específica do lote concreto de
+lançamentos novos ainda não escriturados e do procedimento de recuperação.
+Preparar arquivo/prévia/hash antes de pedir essa aprovação. Não reutilizar o
+Razão já escriturado nem presumir autorização de escrita direta no ERP.
+
+Autoriza desenvolvimento, testes, publicação e coletas reais no escopo CONTAD,
+146 empresas desde09/2026, com novembro parcial e vínculos/fontes comprovados.
+Transferir o ZIP já gerado (4.810.865bytes/SHA7bbbd36bc5c78fffced81b8e79835701ea08c9f1d91477a023951cdb0565cf35),
+sem repetir descoberta concluída. Preservar o gate real512MiB de D-373,
+importação atômica/idempotente, fontes, revisões e configurações anteriores.
+Manter agente1.0.13 salvo defeito reproduzido que exija atualização validada.
+
+Implementar homologação da saída por escritório/destino/versão de adaptador e
+recibo imutável por arquivo/hash com resultados por item, autoria e evidência.
+Parcial/rejeitado/incerto não satisfaz confirmação integral. Não liberar flag
+global nem reimportar cegamente. Ajustar layout somente após conferir o
+importador real. Revisão de títulos, vínculos e DE-PARA cabe à cliente.
+
+Antes de ativar vínculos D-373, preparar e testar contingência release100 com
+0088 e guardas mensais compatíveis na solicitação/execução dos jobs. Preservar
+as decisões e tabelas; release100 original não é rollback seguro após ativação.
+Publicar árvore exata aprovada, nas máquinas existentes, conferindo aliases,
+runtime/assets/saúde, canal1.0.13 e15 grupos protegidos antes/depois.
+
+O responsável determinou “nao precisa mexer em infraestrutura agora”. Não
+alterar capacidade, retenção ou rotina de backup; verificar/provar o possível
+nos recursos existentes. RPO permanece sem valor aprovado; restore até4h e
+retomada até15min de D-73 não são declarados concluídos sem evidência.
+Nenhuma nova IA, custo, mensagem externa ou alteração comercial autorizada.
+
+Preservar checkout canônico e worktrees existentes, desenvolver em fonte isolada,
+aplicar UI/UX/Watermelon/pesquisa/diretrizes/Playwright nas interfaces afetadas e
+atualizar registros/checklists a cada entrega. Meta18h não dispensa D-73,
+evidências humanas nem gates. Pendência terá ação/responsável, não falso aceite.
+
+Refinamento D-375/Q-47 antes da implementação: homologação imutável por
+escritório/destino/versão, com evidência privada e autoria humana comprovada.
+Recibo imutável por exportação/hash/chave de requisição, resultado por partida
+(aceita/rejeitada/incerta), evidência e referência ERP dos itens aceitos.
+Somente todos aceitos e efetivamente conferidos permitem confirmação integral.
+Resultado parcial/incerto conserva o arquivo original e estado não confirmado,
+com situação explícita no recibo/interface; não autoriza reexportação corretiva
+automática. Repetição idêntica não duplica; mesma chave com conteúdo diferente
+é conflito. Correção/reenvio exige prova dos itens não importados e trilha de
+origem, nunca reimportação cega do lote. A flag global não libera outros tenants.
+
+Refinamento técnico D-375 de capacidade: harness privado separado preserva os
+helpers/pins D-374 e executa duas sessões GET autenticadas concorrentes durante
+prévia/aplicação/replay/integridade, sem POST. Gate de laboratório: zero OOM,
+erro HTTP ou timeout; memória anon+kernel+shmem até448MiB no limite512MiB,
+preservando ao menos64MiB; GETp95 até5s e máximo30s. Esses limites são critérios
+técnicos do ensaio emulado, não SLA nem estimativa das146 empresas. Não impor
+5min ao catálogo integral como se fosse uma empresa; watchdog15min por fase
+interrompe travamento e conserva os recibos. Fingerprints/replay continuam
+obrigatórios. Falha exige diagnóstico/ajuste no mesmo limite, não aumento de VM.
+
+Refinamento D-375 de vínculo descoberto: inspeção reproduziu caminho de edição
+genérica que pode substituir proveniência discovered_account_review por
+human_review sem competência, eliminando a guarda mensal. Recusar essa edição
+genérica para vínculos descobertos na candidata e na contingência, encaminhando
+na candidata ao fluxo próprio de revisão com competência/proveniência. Na
+contingência esse fluxo de alteração não existe: manter consulta/coleta válida,
+informar indisponibilidade de edição e preservar vínculos legados. Testar que
+nenhuma submissão genérica remove fatos, revisão ou proteção mensal.
+
+Execução delimitada D-375/títulos: primeira prova pela sessão CONTAD legítima
+é empresa Domínio30, setembro2026, sem conta operacional; prévia de uma busca
+mostra agente conectado e mesmo recorte. Solicitação técnica delegada pelo
+responsável nesta conversa, não revisão financeira da Grazi. Conferir recepção
+e hashes antes de ampliar a lote pequeno; nenhum título será aprovado ou
+normalizado por essa solicitação. Fonte/decisões anteriores permanecem intactas.
+
+Continuação D-375/títulos após captura bem-sucedida daempresa30: ampliar somente
+para empresa25/setembro eoutubro2026, duas buscas pela mesma interface/prévia,
+também sem conta operacional. Manter autoria técnica delegada e revisão humana
+pendente; conferir cada job/fonte independente antes de ampliar novamente.
+
+Precisão do ensaio D-375: comprovar concorrência pela interseção temporal real
+das duas sessões GET e da operação, com intervalos monotonic, não por flag.
+Fase menor que1s sem interseção observada será declarada sem prova completa
+de concorrência, sem repetir escrita apenas para prolongá-la. Fase de1s oumais
+sem interseção reprova; ao menos uma fase deve comprovar as duas sessões.
+Relatório distingue aprovação de capacidade e prova de cada fase, sem ocultar
+esse limite. Demais gates de memória, integridade, latência e fonte permanecem.
+
+Verificação D-375 de duplicidade: repetir tecnicamente apenas o lote já capturado
+6fad2950-4a96-417e-8f7e-7fa80dfa308b (empresa25, setembro/outubro), com a mesma
+chave/revisão e solicitante original. Exigir retorno dos dois jobs existentes,
+created=false e fingerprints de jobs/fontes/auditoria idênticos dentro da
+transação; qualquer divergência reverte a operação. Essa prova não fará nova
+coleta ERP nem atribuirá revisão contábil ao solicitante.
+
+Precisão D-375 para a candidata final: o ensaio pinado em02c13b0 comprova a
+descoberta original, não a memória da árvore que acrescenta Q-47/0089. Após
+concluir o ensaio real, medir também navegação/replay/integridade da imagem
+final no laboratório512MiB, com0089 aplicada somente no laboratório; preservar
+os pins e recibos originais. Na publicação/importação, conferir separadamente
+as novas tabelas de homologação/recibo além dos15 grupos anteriores. Nenhum
+resultado de capacidade/CI da fonte anterior será atribuído à árvore nova.
+
+Atualização humana D-375,18/11: responsável informou que o ZIP já foi copiado
+paraDownloads e SVAPL02 está em primeiro plano. Informou também que Grazi
+não pode conferir agora e determinou “confira tu” para C01/C02. O executor
+fará o confronto técnico dos casos com a fonte/ERP e registrará achados e
+limites com autoria técnica verdadeira, sem atribuir decisão à Grazi. A
+delegação não constitui aprovação de loteERP ainda não preparado nem aceite
+da cliente; esses requisitos permanecem explícitos. Mudança semântica deverá
+se apoiar em evidência observada, conservando incerteza onde não houver prova.
+
+Refinamento técnico D-375 após ensaio real reprovado (18/11, executor Claude Code):
+a rodada1 de capacidade (imagem amd64 emulada por qemu num host arm64, cliente
+HTTP do harness dentro do mesmo cgroup) concluiu a prévia sem OOM, mas na
+aplicação o worker web recebeu SIGKILL por memória (oom_kill=1, pico anon
+507MiB), com dois GETs em timeout no mesmo instante; transação revertida e
+banco isolado sem linhas da organização real. O p95 já excedia5s na prévia,
+antes de qualquer escrita. A rodada1 permanece REPROVADA e preservada.
+Rodada2 com proveniência própria: mesma fonte pinada02c13b0, ZIP, helpers,
+limites512MiB/1CPU/sem swap e gates sem relaxamento; cliente permanece no
+cgroup. Únicas mudanças: imagem linux/arm64 nativa construída da mesma árvore
+(mesmo conjunto de pacotes e Python) e cópia própria do banco isolado sem os
+artefatos sintéticos da rodada1. Resultado nativo não é SLA de produção; falha
+na rodada2 exige correção de código no mesmo limite, nunca aumento de VM.
+
+Execução D-375 da publicação (18/11, autorizada pelo responsável nesta sessão com
+“Sim, publicar tudo”; executor Claude Code). Desvios de procedimento decididos
+durante a execução, registrados logo após, sem alterar escopo nem gates:
+1) Migrações 0088/0089 aplicadas pelo release_command padrão do fly.toml
+   (migrate nos dois aliases antes de trocar máquinas; deploy aborta se falhar),
+   no lugar de runner avulso; ambas só criam estruturas novas.
+2) Imagem de produção reconstruída com o mesmo runtime (mapa e504e6c9…), um único
+   COPY e media types OCI: o push Docker v2 rebatizava as camadas zstd da base100
+   como tipo inválido e o Fly não conseguia baixar (duas tentativas abortadas sem
+   tocar máquinas). Usada a configuração de deploy das releases 99/100, que
+   preserva EDGE_AGENT_LATEST_VERSION=1.0.13 ausente do fly.toml do repositório.
+3) Repetição com locks substituída por revalidação somente leitura pela API pública
+   (apply=False, mesmo manifesto): o replay REPEATABLE READ colide com as gravações
+   periódicas do agente oficial (SerializationFailure), sem efeito parcial. A
+   primeira aplicação falhou pelo mesmo motivo e foi revertida; a segunda concluiu.

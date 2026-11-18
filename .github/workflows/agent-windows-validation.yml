@@ -121,7 +121,7 @@ jobs:
   contad-inventory:
     if: github.event.repository.private == false
     runs-on: windows-2022
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -144,6 +144,9 @@ jobs:
       - name: Validate account details with synthetic ODBC and private reports
         shell: powershell
         run: ./agent-windows/test-contad-account-details.ps1
+      - name: Validate complete chart discovery with synthetic ODBC and private reports
+        shell: powershell
+        run: ./agent-windows/test-contad-chart-discovery.ps1
       - name: Preserve inventory validation evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -156,5 +159,8 @@ jobs:
             agent-windows/artifacts/validation/contad-ledger-profile.json
             agent-windows/artifacts/validation/contad-lot-profile.json
             agent-windows/artifacts/validation/contad-account-details.json
+            agent-windows/artifacts/validation/contad-chart-discovery.json
+            agent-windows/artifacts/validation/contad-chart-discovery-synthetic.zip
+            agent-windows/artifacts/validation/contad-chart-discovery-counts-changed-synthetic.zip
           if-no-files-found: warn
           retention-days: 1

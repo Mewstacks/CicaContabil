@@ -1,0 +1,28 @@
+{% extends 'hub/workspace.html' %}
+{% load static l10n %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-discovery.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel discovery-panel" aria-labelledby="discovery-company-heading">
+  <header class="workspace-panel-head"><div><h2 id="discovery-company-heading">{{ discovery_company.name }}</h2></div><a class="button button-quiet" href="{{ discovery_back_url }}">Voltar às empresas</a></header>
+  <div class="discovery-plan-list">
+    {% for link in discovery_links %}<article><h3>{{ link.label }} <span class="discovery-plan-count">· {{ link.account_count }} conta{{ link.account_count|pluralize }}</span></h3><dl class="discovery-plan-facts"><dt>Uso na competência</dt><dd>{% if link.observed_in_month %}Identificado na origem{% else %}A conferir{% endif %}</dd></dl><details class="discovery-source-details"><summary>Como este plano foi identificado</summary><ul>{% for source in link.source_labels %}<li>{{ source }}</li>{% endfor %}</ul>{% if link.branches %}<p>Filiais observadas na competência: {% for code in link.branches %}<span translate="no">{{ code|unlocalize }}</span>{% if not forloop.last %}, {% endif %}{% endfor %}.</p>{% endif %}</details></article>{% empty %}<p>Nenhum plano foi referenciado na consulta desta empresa.</p>{% endfor %}
+  </div>
+  {% if discovery_gaps %}<details class="discovery-source-details discovery-gaps"><summary>O que ainda precisa de conferência</summary><ul>{% for gap in discovery_gaps %}<li>{{ gap }}</li>{% endfor %}</ul></details>{% endif %}
+</section>
+<section class="workspace-panel account-candidates discovery-panel" aria-labelledby="discovery-accounts-heading">
+  <header class="workspace-panel-head"><div><h2 id="discovery-accounts-heading">Contas do catálogo</h2></div></header>
+  {% if discovery_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in discovery_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <form method="get" class="account-candidate-filters" aria-label="Filtrar contas do Domínio">
+    <div class="field"><label for="discovery-query">Nome, código ou classificação da conta</label><input type="search" name="q" id="discovery-query" value="{{ discovery_filters.q }}" maxlength="100" autocomplete="off"></div>
+    <div class="field"><label for="discovery-month">Competência</label><input type="month" id="discovery-month" name="month" value="{{ discovery_filters.month }}" required></div>
+    <div class="field"><label for="discovery-chart">Plano de contas</label><select id="discovery-chart" name="chart"><option value="">Todos os planos referenciados</option>{% for link in discovery_links %}<option value="{{ link.chart_company_code|unlocalize }}"{% if discovery_filters.chart == link.chart_company_code %} selected{% endif %}>{{ link.label }}</option>{% endfor %}</select></div>
+    <button class="button" type="submit">Buscar contas</button><a class="button button-quiet" href="{{ discovery_clear_url }}">Limpar filtros</a>
+  </form>
+  <div class="account-list-count" role="status">{{ discovery_page.paginator.count }} conta{{ discovery_page.paginator.count|pluralize }} nesta consulta.</div>
+  {% if discovery_rows %}<div class="data-table-wrap"><table class="operational-table account-candidate-table discovery-account-table"><caption class="sr-only">Contas do Domínio disponíveis para conferência do vínculo</caption><thead><tr><th scope="col">Conta</th><th scope="col">Classificação</th><th scope="col">Plano</th><th scope="col">Ação</th></tr></thead><tbody>
+    {% for row in discovery_rows %}<tr><td data-label="Conta"><strong translate="no">{{ row.account.row.account_name_raw|default:'Nome não informado' }}</strong><small>Código <span translate="no">{{ row.account.account_code|unlocalize }}</span></small></td><td data-label="Classificação" translate="no">{{ row.account.row.classification_raw|default:'Não informada' }}</td><td data-label="Plano" translate="no">{{ row.account.chart_company_code|unlocalize }}</td><td data-label="Ação"><a class="row-action-button" href="{{ row.url }}">Conferir vínculo<span class="sr-only"> da conta {{ row.account.account_code|unlocalize }}</span></a></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-block operational-empty account-candidate-empty"><strong>Nenhuma conta corresponde à consulta.</strong><span>Revise o nome, código, classificação ou plano selecionado. A ausência no catálogo consultado não confirma ausência de conta bancária.</span><a class="button button-quiet" href="{{ discovery_clear_url }}">Rever filtros</a></div>{% endif %}
+</section>
+{% include 'hub/partials/discovery_pagination.html' %}
+<p class="account-candidate-note">Consulta em {{ discovery.source_observed_at|date:'d/m/Y H:i' }}. Nome e classificação vêm da origem; a correspondência com o banco do extrato será conferida na ficha.</p>
+{% endblock %}

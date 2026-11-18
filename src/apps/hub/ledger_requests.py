@@ -11,7 +11,7 @@ from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -343,6 +343,13 @@ def save_ledger_mapping(
         }
     )
     mapping = ReconciliationLedgerMapping.objects.filter(financial_account=account).first()
+    if mapping is not None and isinstance(mapping.provenance, dict) and (
+        mapping.provenance.get("kind") == "discovered_account_review"
+    ):
+        raise LedgerRequestError(
+            "Este vínculo foi confirmado por competência. "
+            "Use a ficha da descoberta para revisá-lo."
+        )
     history = []
     if mapping is not None:
         if not isinstance(mapping.review_history, list):
@@ -390,6 +397,90 @@ def _month(month: date) -> tuple[date, date]:
         raise LedgerRequestError("Confira a competência solicitada.")
     end = date(month.year + (month.month == 12), month.month % 12 + 1, 1)
     return month, end
+
+
+def discovery_mapping_month_allowed(
+    account: FinancialAccount,
+    mapping: ReconciliationLedgerMapping | None,
+    month: str,
+    *,
+    deep: bool = False,
+) -> bool:
+    """Discovery evidence is monthly. Legacy reviews retain their established scope."""
+    if mapping is None:
+        return True
+    provenance = mapping.provenance
+    if not isinstance(provenance, dict):
+        return False
+    if provenance.get("kind") != "discovered_account_review":
+        return True
+    from apps.hub.account_discovery_review import discovery_source_identity
+    from apps.hub.models import (
+        ReconciliationCompanyDiscovery,
+        ReconciliationDiscoveredChartAccount,
+    )
+
+    try:
+        period = provenance["period_scope"]
+        if (
+            mapping.organization_id != account.organization_id
+            or mapping.account_identity != _identity(account)
+            or mapping.revision != _stored_revision(mapping)
+            or period["version"] != 1
+            or month not in period["allowed_months"]
+            or period["branches"] != [mapping.scope["branch_code"]]
+        ):
+            return False
+        matches = [item for item in provenance["confirmations"] if item["month"] == month]
+        if len(matches) != 1:
+            return False
+        proof = matches[0]["source_identity"]
+        coverage = (
+            ReconciliationCompanyDiscovery.objects.select_related("discovery")
+            .defer(
+                "discovery__source_data",
+            )
+            .get(
+                pk=proof["company_discovery_id"],
+                organization_id=account.organization_id,
+                company_id=account.company_id,
+                discovery_id=proof["discovery_id"],
+                source_company_code=mapping.scope["company_code"],
+            )
+        )
+        chart = ReconciliationDiscoveredChartAccount.objects.get(
+            pk=proof["chart_account_id"],
+            organization_id=account.organization_id,
+            discovery_id=coverage.discovery_id,
+            chart_company_code=mapping.scope["chart_company_code"],
+            account_code=mapping.scope["bank_account_code"],
+        )
+        return bool(
+            coverage.discovery.organization_id == account.organization_id
+            and proof == discovery_source_identity(coverage, chart, deep=deep)
+            and coverage.source_company_code == _code(account.company.dominio_code, "a empresa")
+        )
+    except (
+        KeyError,
+        TypeError,
+        ValueError,
+        AttributeError,
+        ValidationError,
+        ReconciliationCompanyDiscovery.DoesNotExist,
+        ReconciliationDiscoveredChartAccount.DoesNotExist,
+    ):
+        return False
+
+
+def _mapping_month_allowed(account: FinancialAccount, month: str) -> bool:
+    return discovery_mapping_month_allowed(
+        account,
+        ReconciliationLedgerMapping.objects.filter(
+            financial_account=account,
+        ).first(),
+        month,
+        deep=True,
+    )
 
 
 def _source(account: FinancialAccount, source: Any) -> ReconciliationSourceFile | None:
@@ -459,6 +550,10 @@ def request_ledger(
         raise LedgerRequestConflict("O vínculo mudou. Confira os dados antes de solicitar.")
     if not mapping["ready"]:
         raise LedgerRequestError("Confira o vínculo com o Domínio antes de buscar o Razão.")
+    if not _mapping_month_allowed(account, start.strftime("%Y-%m")):
+        raise LedgerRequestError(
+            "Confira o vínculo desta conta para a competência solicitada antes de buscar o Razão."
+        )
     identifier = uuid4()
     scope = validate_scope(
         {
@@ -507,6 +602,7 @@ def validate_job_mapping(job: NativeLedgerCollection) -> bool:
             and mapping["ready"]
             and job.mapping_revision == mapping["revision"]
             and all(job.scope.get(key) == mapping["fields"].get(key) for key in MAPPING_FIELDS)
+            and _mapping_month_allowed(account, str(job.scope.get("period_start", ""))[:7])
             and (job.bank_source_id is None or _source(account, job.bank_source_id) is not None)
         )
     except (

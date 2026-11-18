@@ -3,6 +3,8 @@ from django.urls import path, reverse_lazy
 
 from apps.hub import (
     account_candidate_views,
+    account_discovery_views,
+    accounting_import_views,
     depara_review_views,
     ledger_request_views,
     native_title_views,
@@ -16,6 +18,11 @@ from apps.platform.legal import legal_document
 app_name = "hub"
 
 urlpatterns = [
+    path(
+        "app/conciliacao/exportacoes/<uuid:export_id>/conferencia/",
+        accounting_import_views.import_receipt,
+        name="reconciliation-import-receipt",
+    ),
     path(
         "app/conciliacao/razao/", ledger_request_views.ledger_request,
         name="reconciliation-ledger-request",
@@ -260,6 +267,18 @@ urlpatterns = [
         name="decide-dte-run",
     ),
     path("app/conciliacao/", views.reconciliation, name="reconciliation"),
+    path(
+        "app/conciliacao/contas/dominio/", account_discovery_views.account_discovery,
+        name="reconciliation-account-discovery",
+    ),
+    path(
+        "app/conciliacao/contas/dominio/<uuid:company_id>/",
+        account_discovery_views.discovered_company, name="reconciliation-discovered-company",
+    ),
+    path(
+        "app/conciliacao/contas/dominio/<uuid:company_id>/<uuid:account_id>/",
+        account_discovery_views.discovered_account, name="reconciliation-discovered-account",
+    ),
     path(
         "app/conciliacao/contas/", account_candidate_views.account_candidates,
         name="reconciliation-account-candidates",

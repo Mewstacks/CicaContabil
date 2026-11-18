@@ -1,0 +1,24 @@
+{% extends 'hub/workspace.html' %}
+{% load static l10n %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-discovery.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel account-candidates discovery-panel" aria-labelledby="discovery-heading">
+  <header class="workspace-panel-head"><div><h2 id="discovery-heading">Planos e contas do Domínio</h2></div><a class="button button-quiet" href="{{ discovery_portfolio_url }}">Voltar à carteira</a></header>
+  {% if discovery_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os filtros.</strong>{% for error in discovery_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <form method="get" class="account-candidate-filters" aria-label="Filtrar empresas e competência">
+    <div class="field"><label for="discovery-query">Nome ou código da empresa</label><input type="search" id="discovery-query" name="q" value="{{ discovery_filters.q }}" maxlength="100" autocomplete="off"></div>
+    <div class="field"><label for="discovery-month">Competência</label><input type="month" id="discovery-month" name="month" value="{{ discovery_filters.month }}" required></div>
+    <button class="button" type="submit">Aplicar filtros</button><a class="button button-quiet" href="{{ discovery_clear_url }}">Limpar busca</a>
+  </form>
+  {% if discovery %}
+  <div class="account-list-count" role="status">{{ discovery_scoped_count }} de {{ discovery_company_count }} empresa{{ discovery_company_count|pluralize }} disponíveis com consulta registrada. <span>Consulta em {{ discovery.source_observed_at|date:'d/m/Y H:i' }}.</span></div>
+  {% if discovery_rows %}
+  <div class="data-table-wrap"><table class="operational-table account-candidate-table"><caption class="sr-only">Cobertura da descoberta por empresa</caption><thead><tr><th scope="col">Empresa</th><th scope="col">Catálogo</th><th scope="col">Situação</th><th scope="col">Ação</th></tr></thead><tbody>
+    {% for row in discovery_rows %}<tr><td data-label="Empresa"><strong>{{ row.record.company.name }}</strong><small>Código <span translate="no">{{ row.record.source_company_code|unlocalize }}</span></small></td><td data-label="Catálogo">{{ row.account_count }} conta{{ row.account_count|pluralize }}<small>{{ row.plan_count }} plano{{ row.plan_count|pluralize }} com contas</small></td><td data-label="Situação"><span class="status-badge {% if row.record.coverage_state == 'catalogued' %}is-active{% else %}is-warning{% endif %}">{{ row.coverage_label }}</span></td><td data-label="Ação"><a class="row-action-button" href="{{ row.url }}">Consultar contas<span class="sr-only"> de {{ row.record.company.name }}</span></a></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-block operational-empty account-candidate-empty"><strong>Nenhuma empresa corresponde à busca.</strong><a class="button button-quiet" href="{{ discovery_clear_url }}">Rever filtros</a></div>{% endif %}
+  {% else %}<div class="empty-block operational-empty account-candidate-empty"><strong>Aguardando consulta dos planos e contas</strong><span>A descoberta completa ainda não está disponível para este escritório. Os vínculos já cadastrados continuam acessíveis.</span><a class="button button-quiet" href="{% url 'hub:reconciliation-account-candidates' %}">Consultar vínculos existentes</a></div>{% endif %}
+</section>
+{% include 'hub/partials/discovery_pagination.html' %}
+<p class="account-candidate-note">O catálogo inclui as contas dos planos referenciados. A conta bancária só fica disponível para comparação depois que os dados ainda não comprovados forem conferidos.</p>
+{% endblock %}

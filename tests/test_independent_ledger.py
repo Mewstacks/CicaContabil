@@ -7,6 +7,7 @@ from datetime import date
 import pytest
 from django.test import override_settings
 from django.urls import reverse
+from tests.accounting_import_fixtures import homologate_synthetic
 
 from apps.hub.ledger_import import LEDGER_COLUMNS, import_ledger_source
 from apps.hub.models import (
@@ -571,6 +572,7 @@ def test_ledger_confirmation_invalidates_derived_posting_without_reviving_on_und
 
 
 def test_historical_posting_is_revalidated_at_approval_and_export(account):
+    homologate_synthetic(account.organization)
     movement, record = _posting_case(account)
     derived = create_journal_entry_from_movement(movement=movement)
     confirm_reconciliation(
@@ -592,6 +594,7 @@ def test_historical_posting_is_revalidated_at_approval_and_export(account):
 
 
 def test_exported_posting_requires_explicit_import_review_before_ledger_match(account):
+    homologate_synthetic(account.organization)
     movement, record = _posting_case(account)
     derived = approve_journal_entry(entry=create_journal_entry_from_movement(movement=movement))
     with override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True):
@@ -658,6 +661,7 @@ def test_postgres_ledger_match_serializes_with_posting_generation_approval_and_e
         finally:
             connections.close_all()
 
+    homologate_synthetic(account.organization)
     with (
         override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True),
         ThreadPoolExecutor(max_workers=2) as pool,

@@ -44,6 +44,7 @@ from apps.hub.models import (
     LedgerAccount,
     MovementReconciliation,
     NormalizedMovement,
+    ProductModule,
     ReconciliationDecision,
     ReconciliationLayout,
     ReconciliationRule,
@@ -1985,17 +1986,23 @@ def create_export(
     target: str = AccountingExport.Target.DOMINIO,
     request: object = None,
 ) -> AccountingExport:
+    organization = Organization.objects.select_for_update(no_key=True).get(pk=organization.pk)
     ClientCompany.objects.select_for_update().get(pk=company.pk, organization=organization)
     if start > end:
         raise ReconciliationError("O início do período deve ser anterior ou igual ao fim.")
     adapter = get_accounting_export_adapter(target)
-    if (
-        target == AccountingExport.Target.DOMINIO
-        and not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
-    ):
+    from apps.hub.accounting_import import export_homologated
+    from apps.platform.operation_access import require_operation_access
+
+    approved_version = reexport_of.adapter_version if reexport_of else adapter.version
+    if not export_homologated(organization, target, approved_version):
         raise ReconciliationError(
-            "Exportação Domínio está bloqueada até a homologação real do adaptador."
+            "Exportação está bloqueada até a homologação real do adaptador neste escritório."
         )
+    try:
+        require_operation_access(organization, ProductModule.Code.RECONCILIATION)
+    except ValueError as exc:
+        raise ReconciliationError(str(exc)) from exc
     query = (
         # ``movement`` is optional, therefore this join is outer.  Locking the
         # entry alone keeps export serialization valid on PostgreSQL.
@@ -2012,6 +2019,8 @@ def create_export(
         query = query.filter(state=JournalEntry.State.APPROVED)
     else:
         reexport_of = AccountingExport.objects.select_for_update().get(pk=reexport_of.pk)
+        if not export_homologated(organization, target, reexport_of.adapter_version):
+            raise ReconciliationError("A versão original não está homologada neste escritório.")
         if (
             reexport_of.organization_id != organization.id
             or reexport_of.company_id != company.id

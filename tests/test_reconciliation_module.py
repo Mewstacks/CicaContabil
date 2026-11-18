@@ -18,6 +18,7 @@ from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import escape
+from tests.accounting_import_fixtures import homologate_synthetic
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -487,6 +488,7 @@ def test_identical_source_is_idempotent_and_keeps_original() -> None:
 @override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True)
 def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
     organization = Organization.objects.create(name="Exportação", slug="exportacao")
+    homologate_synthetic(organization)
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     LedgerAccount.objects.create(organization=organization, company=company, code="1", name="Banco")
     LedgerAccount.objects.create(
@@ -537,7 +539,7 @@ def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
 
 @pytest.mark.django_db
 @override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True)
-def test_export_confirmation_revalidates_hash_is_idempotent_and_keeps_download() -> None:
+def test_old_confirmation_requires_receipt_and_keeps_download() -> None:
     organization = Organization.objects.create(name="Entrega", slug="entrega-contabil")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     ProductModule.objects.create(
@@ -580,31 +582,11 @@ def test_export_confirmation_revalidates_hash_is_idempotent_and_keeps_download()
     export.refresh_from_db()
     assert confirmed.status_code == 302
     assert confirmed.url.endswith("#exportacoes")
-    assert export.state == AccountingExport.State.CONFIRMED
-    assert export.confirmed_by_id == user.id
-    assert export.confirmed_at is not None
-    assert (
-        AuditEvent.objects.filter(
-            organization=organization,
-            action="hub.reconciliation.export_import_confirmed",
-            target_id=str(export.id),
-        ).count()
-        == 1
-    )
-
-    repeated = client.post(
-        url,
-        {"content_hash": digest, "confirm_import": "yes"},
-    )
-    assert repeated.status_code == 302
-    assert (
-        AuditEvent.objects.filter(
-            organization=organization,
-            action="hub.reconciliation.export_import_confirmed",
-            target_id=str(export.id),
-        ).count()
-        == 1
-    )
+    assert export.state == AccountingExport.State.READY
+    assert export.confirmed_by_id is None and export.confirmed_at is None
+    assert not AuditEvent.objects.filter(
+        organization=organization, action="hub.reconciliation.export_import_confirmed",
+    ).exists()
 
     download = client.get(reverse("hub:reconciliation-export-download", args=[export.id]))
     assert download.status_code == 200
@@ -654,13 +636,14 @@ def test_export_confirmation_refuses_tampered_stored_content() -> None:
     export.refresh_from_db()
     assert response.status_code == 302
     assert export.state == AccountingExport.State.READY
-    assert AuditEvent.objects.filter(
+    assert not AuditEvent.objects.filter(
         organization=organization,
-        action="hub.reconciliation.export_integrity_failed",
+        action="hub.reconciliation.export_import_confirmed",
         target_id=str(export.id),
     ).exists()
     tampered_download = client.get(reverse("hub:reconciliation-export-download", args=[export.id]))
     assert tampered_download.status_code == 404
+
 
 
 @pytest.mark.django_db
