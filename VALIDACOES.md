@@ -11988,3 +11988,15 @@ responsável); Q-47 sem observação dos conjuntos de dados e sem lote aprovado;
 C01/C02, vínculos bancários, amostra D-73 e aceite seguem com a cliente.
 Comunicado: docs/pt-BR/contad-entrega-2026-11-18.md. Recursos locais dos ensaios
 (containers/redes r2/r3) preservados como evidência.
+
+Fechamento técnico V-415 (18/11, executor Claude Code, autorização ampla do responsável):
+PR #33 mesclado na main (8c9000a0e8dbd69c731d1914898d6c6adbe4b2b7); PR #32 marcado
+como mesclado por estar contido nele. Main agora corresponde ao código publicado.
+C01/C02: inspeção de native_title_translation/comparison/title_persistence confirma
+que o código não soma componentes nem interpreta dinheiro automaticamente; cada
+baixa exige decisão humana explícita de principal/componentes e recusa omissões.
+Logo não há defeito de cálculo a corrigir; a identidade C02 (tipo1 já inclui o
+juros do tipo2) é orientação para a revisão da cliente, não regra automática.
+Itens que a autorização ampla não supre: observar o importador no SVAPL02 (sem
+controle de desktop nesta sessão), login no console Neon (senha não é digitada
+pelo executor), vínculos bancários/decisões contábeis/aceite (autoria da cliente).
