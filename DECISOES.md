@@ -5634,3 +5634,12 @@ final no laboratório512MiB, com0089 aplicada somente no laboratório; preservar
 os pins e recibos originais. Na publicação/importação, conferir separadamente
 as novas tabelas de homologação/recibo além dos15 grupos anteriores. Nenhum
 resultado de capacidade/CI da fonte anterior será atribuído à árvore nova.
+
+Atualização humana D-375,18/11: responsável informou que o ZIP já foi copiado
+paraDownloads e SVAPL02 está em primeiro plano. Informou também que Grazi
+não pode conferir agora e determinou “confira tu” para C01/C02. O executor
+fará o confronto técnico dos casos com a fonte/ERP e registrará achados e
+limites com autoria técnica verdadeira, sem atribuir decisão à Grazi. A
+delegação não constitui aprovação de loteERP ainda não preparado nem aceite
+da cliente; esses requisitos permanecem explícitos. Mudança semântica deverá
+se apoiar em evidência observada, conservando incerteza onde não houver prova.
