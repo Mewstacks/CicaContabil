@@ -12000,3 +12000,16 @@ juros do tipo2) é orientação para a revisão da cliente, não regra automáti
 Itens que a autorização ampla não supre: observar o importador no SVAPL02 (sem
 controle de desktop nesta sessão), login no console Neon (senha não é digitada
 pelo executor), vínculos bancários/decisões contábeis/aceite (autoria da cliente).
+
+Prontidão de uso por empresa (18/11 ~13h20 BRT, leitura em produção):
+146 empresas visíveis à conta CONTAD (owner ativo, módulo conciliação, sem
+restrição por empresa). Vínculo pelo catálogo possível em132 empresas para
+09/10/11-2026; nenhum mês bloqueado por filial zero; 6/5/1 empresas com mais de
+uma filial observada em set/out/nov (formulário pede escolha). 14 empresas sem
+plano de contas e sem parâmetros contábeis no Domínio (220, 372, 378, 379, 382,
+430, 436, 439, 460, 463, 464, 481, 488, 489): sem Razão a conciliar; títulos
+continuam disponíveis. Meses adicionais são acrescentados reconfirmando a conta
+na competência. Razão aceita qualquer mês desde 09/2026 (inclui novembro
+parcial); títulos aceitam qualquer competência; período do escopo do agente
+(até 11/11) limita só a sincronização do cadastro, não as coletas. Nenhuma
+mudança de código necessária para o uso da cliente.
