@@ -343,6 +343,13 @@ def _check_receipt(row: AccountingImportReceipt, export: AccountingExport) -> No
         raise ImportReceiptError("O recibo precisa de revisão de integridade.")
 
 
+def verify_import_receipt(
+    *, receipt: AccountingImportReceipt, export: AccountingExport
+) -> None:
+    """Verify one receipt against its original export; authorization is the caller's duty."""
+    _check_receipt(receipt, export)
+
+
 def _items(value: Any, export: AccountingExport) -> tuple[list[dict[str, str]], str]:
     expected = export.entry_ids
     if (

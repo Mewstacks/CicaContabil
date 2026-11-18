@@ -21,6 +21,7 @@ from apps.hub.accounting_import import (
     export_homologated,
     import_receipt_context,
     record_import_receipt,
+    verify_import_receipt,
 )
 from apps.hub.models import (
     AccountingExport,
@@ -184,6 +185,17 @@ def test_complete_receipt_replays_without_duplicate_audit_or_confirmation(case):
         receipt.save()
     with pytest.raises(ValidationError):
         AccountingImportReceipt.objects.filter(pk=receipt.pk).update(outcome="rejected")
+
+
+def test_historical_receipt_verification_checks_its_own_fingerprint(case):
+    first, _ = record_import_receipt(**params(case, ("uncertain", "uncertain")))
+    next_args = params(case)
+    next_args["expected_previous_id"] = str(first.pk)
+    record_import_receipt(**next_args)
+    verify_import_receipt(receipt=first, export=case["export"])
+    first.items[0]["evidence_reference"] = "Altered after the receipt"
+    with pytest.raises(ImportReceiptError, match="integridade"):
+        verify_import_receipt(receipt=first, export=case["export"])
 
 
 def test_new_observation_preserves_accepted_items_and_requires_current_receipt(case):
