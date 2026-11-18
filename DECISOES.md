@@ -5643,3 +5643,33 @@ limites com autoria técnica verdadeira, sem atribuir decisão à Grazi. A
 delegação não constitui aprovação de loteERP ainda não preparado nem aceite
 da cliente; esses requisitos permanecem explícitos. Mudança semântica deverá
 se apoiar em evidência observada, conservando incerteza onde não houver prova.
+
+Refinamento técnico D-375 após ensaio real reprovado (18/11, executor Claude Code):
+a rodada1 de capacidade (imagem amd64 emulada por qemu num host arm64, cliente
+HTTP do harness dentro do mesmo cgroup) concluiu a prévia sem OOM, mas na
+aplicação o worker web recebeu SIGKILL por memória (oom_kill=1, pico anon
+507MiB), com dois GETs em timeout no mesmo instante; transação revertida e
+banco isolado sem linhas da organização real. O p95 já excedia5s na prévia,
+antes de qualquer escrita. A rodada1 permanece REPROVADA e preservada.
+Rodada2 com proveniência própria: mesma fonte pinada02c13b0, ZIP, helpers,
+limites512MiB/1CPU/sem swap e gates sem relaxamento; cliente permanece no
+cgroup. Únicas mudanças: imagem linux/arm64 nativa construída da mesma árvore
+(mesmo conjunto de pacotes e Python) e cópia própria do banco isolado sem os
+artefatos sintéticos da rodada1. Resultado nativo não é SLA de produção; falha
+na rodada2 exige correção de código no mesmo limite, nunca aumento de VM.
+
+Execução D-375 da publicação (18/11, autorizada pelo responsável nesta sessão com
+“Sim, publicar tudo”; executor Claude Code). Desvios de procedimento decididos
+durante a execução, registrados logo após, sem alterar escopo nem gates:
+1) Migrações 0088/0089 aplicadas pelo release_command padrão do fly.toml
+   (migrate nos dois aliases antes de trocar máquinas; deploy aborta se falhar),
+   no lugar de runner avulso; ambas só criam estruturas novas.
+2) Imagem de produção reconstruída com o mesmo runtime (mapa e504e6c9…), um único
+   COPY e media types OCI: o push Docker v2 rebatizava as camadas zstd da base100
+   como tipo inválido e o Fly não conseguia baixar (duas tentativas abortadas sem
+   tocar máquinas). Usada a configuração de deploy das releases 99/100, que
+   preserva EDGE_AGENT_LATEST_VERSION=1.0.13 ausente do fly.toml do repositório.
+3) Repetição com locks substituída por revalidação somente leitura pela API pública
+   (apply=False, mesmo manifesto): o replay REPEATABLE READ colide com as gravações
+   periódicas do agente oficial (SerializationFailure), sem efeito parcial. A
+   primeira aplicação falhou pelo mesmo motivo e foi revertida; a segunda concluiu.

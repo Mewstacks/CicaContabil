@@ -11555,3 +11555,436 @@ agente oficial recente e pontas0087/0041 nas duas aliases. Prévia do runner
 0088 exato aprovada sem DDL/recorder: quatro estruturas ausentes, única migração
 prevista0088, estado antes/depois idêntico e diretório temporário removido.
 Sem aplicação, importação ou deploy; isso não libera a carteira completa.
+
+
+## V-413 — Reanálise de prontidão CONTAD na release 100 (17/11/2026)
+
+Continuação de D-370 após V-411/V-412, limitada ao contrato CONTAD D-301/D-302.
+Três revisões paralelas cobriram escopo/aceite, fonte publicada e evidências da
+candidata. Sem implementação, importação, coleta ERP, revisão contábil, nova IA,
+mensagem ou publicação. O pedido é de análise, não de conclusão fictícia de D-373.
+
+**Fonte e testes novos.** A release 100 foi isolada por `git archive` do commit
+`91af8407feb230ffcfe537cd041912c5708bd8a3`; a árvore
+`ea85b9b635efac8cfe6dbb6987d3d914625abd7a` coincide com main `1b4511ba`.
+Checkout canônico e candidata não foram usados como substitutos dessa fonte.
+Regressão integral local: 3.123 aprovados, 54 skips, 181 subtestes, 143,89 s.
+Checks Django e `makemigrations --check --dry-run` passaram. Bateria independente:
+215 testes focados aprovados em 30,06 s, incluindo empresa E módulo, organização,
+revogação, CSRF, consulta sem escrita, histórico por competência antes de paginar,
+relatório, títulos, fontes ausentes/conflitantes e preservação de revisões/formulário.
+Não somar testes sobrepostos. Nenhum novo bloqueador do piloto foi reproduzido.
+
+Skips locais incluem locks/concorrência PostgreSQL e Playwright Python opcional.
+Esta rodada não executou PostgreSQL/Windows localmente nem QA visual integral;
+V-411 mantém as provas anteriores da release 100. O primeiro comando de check
+apontou um caminho `src/manage.py` inexistente; corrigido para `manage.py`, ambos
+checks aprovados. Não foi defeito da aplicação.
+
+**Produção reconferida somente leitura.** Em 17/11 às 16:51 BRT, web e worker
+apresentaram 801 arquivos/SHA
+`1b09fc44eb06584e7608646b094fd7faeef326fb60f331a3787684aa796210c2`, contratos,
+rotas e templates esperados. Os 14 assets HTTPS corresponderam em bytes/SHA.
+Liveness, readiness e login passaram nos dois domínios, com TLS verificado por
+curl; banco/cache `ok`. A primeira tentativa urllib local retornou URLError e
+não foi contada como disponibilidade comprovada; a conferência TLS por curl
+passou sem desabilitar validação. Não houve alteração de configuração TLS.
+
+Snapshot PostgreSQL `REPEATABLE READ READ ONLY`: dois aliases com pontas
+hub0087/intelligence0041, sem migração pendente da release publicada. Quinze
+grupos protegidos idênticos ao fechamento V-411; nenhuma execução de conciliação
+em espera/processamento. Agente oficial com heartbeat às 16:51:12 BRT. Dois jobs
+de Razão, um legado de títulos e zero de títulos por empresa; zero títulos
+normalizados, regras e contas lançáveis. Isso não significa ausência de registros
+na fonte fiscal bruta. Contagens adicionais às 16:53:146 empresas, uma conta
+operacional, 43 candidatas/11 empresas e 43 complementos. Web/worker started;
+legado stopped. A versão instalada 1.0.13 permanece comprovada pelo recibo V-410,
+não foi inferida de capability nem houve nova sessão Windows.
+
+**Interface real somente leitura.** CUA na sessão CONTAD existente do Chrome:
+relatório atualizado às 16:52:02 BRT, setembro/2026, 163 registros no extrato e
+163 no Razão, 162 a conferir em ambos; saldos não informados e cobertura/aceite
+pendentes explícitos. Navegação para conferência exibiu comparação/revisão,
+Buscar Razão, relatório e CSV. Nenhum POST, download, confirmação, desfazer ou
+novo pedido executado. Esta observação não substitui QA mobile/teclado/console
+nem prova autonomia de download da cliente. Página autenticada disponível.
+
+**Candidata de descoberta.** O GitHub confirmou
+[CI44139017509](https://github.com/Mewstacks/CicaContabil/actions/runs/44139017509)
+concluído com sucesso para `02c13b006cbdc03ff87bba922eae60c9188cda5c`: 3.309
+SQLite/58 skips e 3.365 PostgreSQL/dois skips, 181 subtestes em cada banco;
+179 Windows, instalação/upgrades e três imagens aprovados. [PR32](https://github.com/Mewstacks/CicaContabil/pull/32)
+permanece aberto/rascunho e não integrado. Supera somente o checkpoint de CI em
+execução de V-412. Treze recibos privados de release100 conferidos por tamanho/SHA.
+
+Busca limitada em Downloads e `.tmp` dos checkouts canônico e company-preparation
+não localizou o ZIP real de 4.810.865 bytes/SHA
+`7bbbd36bc5c78fffced81b8e79835701ea08c9f1d91477a023951cdb0565cf35`.
+Um `planos-contas.zip` de 4.165 bytes/protocolo v2 possui outro SHA e não serve
+como arquivo real. Recibo existente informa 217.891 contas/62.856 modelos/146
+empresas, mas importação e ensaio real não começaram (`benchmark_started=false`).
+Migração0088 não aplicada, descoberta não importada e candidata não publicada.
+D-373 impede repetir pedido de acesso/transferência dependente do SVAPL02 hoje.
+
+Ensaio sintético anterior de 250 mil contas: zero OOM, replay/fingerprints
+preservados, pico anônimo327,82MiB; total512MiB com cache recuperável. Limites:
+fixturev2 com poucos metadados, app aquecido sem tráfego concorrente, AMD64 emulado.
+Não prova margem de produção nem capacidade da fonte real no código final.
+
+**Parecer:** iniciar testes delimitados do piloto release100 e revisão de43
+fichas é possível hoje. Operação das146 empresas e contrato completo continuam
+sem conclusão. Saldo inicial/cobertura,162 revisões/dois grupos ambíguos,
+semânticaQ-46, vínculosQ-28, regras, D-73 e aceite continuam próprios.
+Q-47/C01/C02 adiados; backup fora da prioridade inicial sem concluir recuperação.
+O defeito antigo do histórico, a atualização pendente e a primeira coleta
+pela tela já foram resolvidos; não reapresentá-los como bloqueios atuais.
+
+Recibos desta rodada: `.tmp/contad-readiness-release100-20261117/`, incluindo
+`pytest-release100.log`, `public-health.json`, `runtime-and-data-verification.json`,
+`production-snapshot.json`, `coverage-current.json` e `machines-current.json`.
+Log focal independente em `/tmp/contad-audit-code-release100-20261117/audit-focused.log`.
+Parecer/roteiro no arquivo canônico de pendências; checklist, plano e execução
+atualizados. Nenhuma decisão humana/etapa funcional foi promovida a concluída.
+
+Fechamento documental: revisão independente do parecer aprovada, dez links locais
+novos conferidos e `git diff --check` dos nove documentos alterados sem problemas.
+Os 131 caminhos não Markdown do baseline canônico mantêm hashes idênticos;
+conteúdo anterior dos oito documentos de entrega preservado integralmente.
+O log focal foi também retido no diretório privado da auditoria. Manifesto e
+recibo de preservação acompanham as evidências; nenhum arquivo de aplicação mudou.
+
+
+## V-414 — Preparação independente e roteiro de testes CONTAD (17/11/2026)
+
+**Escopo D-374.** Concluir preparação independente do SVAPL02, a partir da release 100
+publicada e candidata `02c13b006cbdc03ff87bba922eae60c9188cda5c`, sem contornar os gates
+de D-373. Decisão registrada antes das ações. Nenhum arquivo da aplicação, dado
+financeiro, revisão humana, configuração publicada ou artefato de CI foi alterado.
+As regressões 3.123/215 de V-413 foram reutilizadas; não somar rodadas sobrepostas.
+
+**Guia e percurso.** `docs/pt-BR/contad-conciliacao.md` corrigido para a release 100,
+com cópia anterior privada preservada. Conferidos 42 rótulos na fonte publicada,
+quatro links locais e percurso de títulos mesmo sem normalizados: selecionar
+empresa/conta, Consultar e Conferir fontes recebidas. Revisão independente sem
+bloqueador. Retiradas instruções de atualização/coleta inicial já resolvidas.
+Confirmações e desfazer continuam condicionados a decisão humana comprovada.
+
+**Download real do CSV.** Na sessão CONTAD já autorizada do Chrome, botão Baixar CSV
+acionado; navegador confirmou download concluído. CSV gerado em 17/11 às 17:02:47 BRT,
+26.194 bytes/SHA `dac192cd143aba1cdcc98a023284f397bdeb604a33cf0d238a1890a0b99d8c69`,
+retido privadamente. Nenhuma confirmação, desfazer, coleta ERP ou POST financeiro.
+Conferência offline independente: UTF-8 BOM, separador ponto e vírgula, 345 linhas
+(18 metadados/avisos + cabeçalho + 163 extrato + 163 Razão), sete campos esperados,
+referências únicas por fonte, setembro/2026, centavos inteiros e alocado+pendente=valor.
+Hash da fonte igual ao piloto retido; multiconjuntos data/direção/valor compatíveis,
+dois grupos ambíguos, uma linha totalmente alocada/162 pendentes em cada lado,
+diferença líquida zero e saldos desconhecidos não convertidos em zero.
+
+Esse download foi realizado pelo executor técnico. Não comprova autonomia da
+cliente, identidade contábil par a par, cobertura integral, saldo inicial ou aceite.
+Há 163 movimentos do extrato; os dois lados não são 326 fatos para D-73.
+Históricos/nomes legíveis estão no relatório; CSV técnico mantém referências/hash.
+
+**Pacote entregue localmente.** PDF `output/pdf/CONTAD-roteiro-de-testes-2026-11-17.pdf`,
+quatro páginas/53.589 bytes/SHA `4dade18b265b0cad7201b6be5107f025f8390e3fbbc94787ae0c0c991cbf841c`.
+Renderização final e inspeção visual das quatro páginas aprovadas, sem corte ou
+sobreposição; dois destinos URI do piloto/carteira conferidos. Registro editável
+de nove cenários começa NÃO EXECUTADO, com esperado/observado/evidência/responsável.
+PDF, versão texto e ficha reunidos em `/Users/pedromachado/Downloads/CONTAD-testes-2026-11-17`
+(diretório0700/arquivos0600). Sessão inicial sugerida de 30–45 minutos não promete
+revisão integral dos 163 movimentos ou aceite nesse prazo. Não houve envio à cliente.
+
+**Retomada técnica independente.** No worktree `contad-company-preparation`, configuração
+privada preparada com fonte/hash/tamanho, runtime, identidade do banco, códigos146
+empresas e fontes anteriores. Preflight conferiu 775 hashes de fonte, três fontes
+retidas e 146 códigos. Não preencher baseline vigente, digest de registry ou aprovação
+sem evidência atual: `complete=false` mantido. Runner local complementado com fingerprints
+por fase, auditoria anterior e replay após commit; verificador de fechamento exige
+fonte real/217.891 contas/146 empresas, imagem/capacidade corretas, zero OOM e preservação.
+`capacity_approved=false` permanece até exame da margem de memória efetivamente medida.
+
+21 testes locais aprovados: 11 de recusa/execução (fonte ausente, tamanho/hash incorretos,
+symlink/diretório e zero chamadas Docker sem fonte) e dez de comparação dos recibos
+(OOM/mudança de fontes, auditoria, protegidos e replay, entre outros). Evidências de teste
+marcadas sintéticas/não confiáveis em diretório temporário; nenhuma aprovação real criada.
+Cinco helpers revisados independentemente, sem bloqueador novo. Nenhum banco acessado,
+container iniciado, rede de produção utilizada ou consulta ERP nessa frente.
+
+**Limites e continuidade.** ZIP real ainda ausente; `execution.json=INCOMPLETE`,
+`benchmark_started=false`, sem fechamento real de capacidade. Ensaio real512MiB,
+baseline/digest atuais, migração0088, importação/publicação/verificação continuam
+condicionados à fonte real e ao processo já autorizado. Cliente ainda deve executar
+roteiro e revisar vínculos/semântica/movimentos/regras, saldos/cobertura e aceite.
+Carteira145 sem conta operacional permanece conforme V-413. Q-47/C01/C02 adiados;
+backup fora da prioridade inicial não conclui recuperação/restore D-73.
+
+Evidências privadas: `.tmp/contad-preparacao-testes-20261117/` no checkout canônico
+(CSV e validação, revisão independente do guia, renderizações, manifesto do pacote)
+e diretório homônimo no worktree de descoberta (`preparation-receipt.json`,
+`RETOMADA-DESCOBERTA.txt`, configuração/contexto e logs dos21 testes). Helpers novos
+em `.tmp/discovery146/real-capacity/` somente no worktree, fora da fonte da aplicação.
+Plano, pendências, execução, dúvidas e checklists00/09/12 atualizados. Preparação
+concluída não equivale a homologação nem a encerramento das dependências reais.
+
+Fechamento documental D-374: revisão independente dos oito blocos canônicos aprovada;
+23 links locais novos/do guia válidos e diff check dos dez documentos sem problemas.
+Os 131 caminhos não Markdown preexistentes mantêm hashes idênticos, os oito documentos
+de fechamento preservam integralmente o conteúdo anterior e a cópia do guia anterior
+permanece privada. Três arquivos do pacote e 12 arquivos técnicos conferidos contra
+seus manifestos. Checagem textual final do PDF/TXT aprovada após corrigir duas
+expectativas de rótulo no próprio verificador, sem alteração dos artefatos.
+
+## V-415 — Execução da entrega CONTAD D-375 — EM ANDAMENTO (18/11/2026)
+
+Plano integral aprovado nesta conversa; decisões e refinamentos registrados
+antes do comportamento dependente. Checkout canônico preservado em manifesto
+privado de155 arquivos; fonte de integração isolada emcodex/contad-entrega-20261118,
+base02c13b0. Meta18h não significa conclusão nem aceite antecipado.
+
+Produção READ ONLY às09:11BRT: web/worker started, legado stopped; worker com
+801arquivos/SHA1b09fc44eb06584e7608646b094fd7faeef326fb60f331a3787684aa796210c2,
+igual àrelease100. Dois aliases conferidos sem migração pendente da fonte
+publicada;146 empresas/43 candidatas/43 complementos/uma conta preservados.
+Agente oficial com heartbeat recente e capacidades de títulos automáticas.
+
+Primeira coleta company_scope pela interface: empresa30/setembro2026, sem conta
+operacional, prévia exata e solicitação técnica delegada D-375. Job criado
+09:13:56, recebido pelo agente09:14:29 e capturado09:14:33BRT. Fonte privada
+SHA1048c1a8d81a30bbd7c80ca555c92d6bddfa3740cdd9ac688ecdab3af1e8b569;
+65 parcelas selecionadas emEntradas e225 emServiços,39+132 registros de pagamento,
+zero cabeçalhos/parcelas ausentes reportados. Consulta backend independente e
+tela Fonte recebida comprovadas. Zero títulos normalizados, alocações ou novos
+lançamentos; interpretação, banco e cobertura histórica continuam para revisão.
+Não contar essas linhas como amostra humana D-73 nem ausência de saldo comozero.
+
+Controle nativo AnyDesk retornou timeout-10005 emduas tentativas; nenhuma
+operação Windows observada. Solicitada somente transferência assistida do ZIP
+existente paraDownloads, sem nova descoberta. Sessão Chrome exigiu autenticação
+renovada e depois permitiu o percurso real. Candidata/contingência/Q-47 em
+desenvolvimento; ensaio real512MiB ainda aguarda arquivo. Nenhum deploy,
+importaçãoERP, regra/decisão contábil, chamadaIA ou mudança de infraestrutura.
+
+Evidências privadas: `.tmp/contad-entrega-20261118/` (baseline canônico, estadoFly,
+production-before, title-readiness e title-progress-1). Registro em andamento;
+testes locais novos e publicação terão recibos próprios antes do fechamento.
+
+Continuação V-415,18/11 pela manhã: lote empresa25/setembro+outubro solicitado
+pela prévia exata de duas buscas. Jobs capturados09:22:02 e09:22:05BRT, em
+24,46s e27,72s desde a solicitação.301 e316 parcelas selecionadas, sem pais
+ausentes reportados; fontes339.730 e363.145bytes. As três fontes novas
+(incluindo266.478bytes daempresa30) tiveram bytes/tamanho/SHA reconferidos
+no armazenamento privado, todos iguais aos jobs. Fonte de outubro aberta
+pela sessão autenticada:316 parcelas e aviso de revisão/conta pendentes,
+sem normalização automática. Treze dos15 grupos protegidos e todos os grupos
+extras idênticos ao baseline; somente fontes/jobs ganharam os três registros
+autorizados. Runtime e estado das migrações iguais.
+
+Os sete exemplos semânticos privados V-379 permanecem íntegros:28.371bytes e
+SHA original conferidos. Solicitada retomada humana de C01/C02 sob Q-46, sem
+montantes expostos ao chat; nenhuma resposta/decisão contábil registrada ainda.
+AnyDesk em execução confirmado pelo inventário, mas terceira tentativa de
+controle nativo também retornou timeout-10005; assistência ao acesso solicitada.
+
+Desenvolvimento isolado: correção da edição genérica de vínculo descoberto
+6d77d0d integrada como3fb9d2b;89 testesSQLite/2skips e91PostgreSQL aprovados.
+Contingência79c9be3 baseada na fonte release100, com0088 e guardas mensais:
+3.143 testesSQLite/54skips/181subtestes;153PostgreSQL focais e um teste adicional
+de blocos/limite. Modelos/migração originais e dois aliases conferidos. Imagem
+construída posteriormente, mas verificação/CI da contingência ainda em curso.
+Q-47 implementado isoladamente com homologação por escritório/destino/versão
+e recibo por hash/partida. Revisão root do serviço/modelos sem bloqueador novo;
+bateria concorrente detectou deadlock nas travas da organização, corrigido por
+FOR NO KEY UPDATE e90testesPostgreSQL finais aprovados. Commits7d07642/e0520b9
+integrados como75c1903/e2576fa. UI e CI da integração ainda em andamento; nenhum
+grant real ou loteERP criado por esses testes sintéticos.
+
+Harness D-375 preparado/revisado:34testes locais (24novos+10regressões), duas
+sessões GET com interseção temporal comprovável, margem64MiB e critérios
+registrados; nenhum ensaio real executado sem ZIP. Watermelon consultado pelo
+catálogo público oficial de blocos error/notification (ui.watermelon.sh); MCP
+não disponível, sem correspondência específica de conferência contábil. UI/UX
+Pro Max e guidelines oficiais aplicadas, referências primárias QuickBooks lidas;
+Playwright da interface nova ainda pendente. Não confundir pesquisa com QA.
+
+Recibos privados adicionais: title-source-proof-1/2, title-progress-2,
+evidence-readiness, production-after-titles e title-preservation. Revisão de
+vínculos/DE-PARA, contrato real Domínio, lote novo aprovado, ensaio real do
+catálogo, publicação e critérios humanos D-73/aceite continuam pendentes.
+
+Prova adicional de produção V-415: repetição técnica do lote2 existente pela
+API de domínio, mesma chave/revisão/solicitante, retornou created=false e os
+mesmos jobs. Fingerprints completos de jobs/fontes/auditoria idênticos dentro
+da transação; zero consultas ERP novas. Recibo privado title-replay.json.
+
+DE-PARA retido reconferido somente leitura: dois lotes existentes; um resultado
+unknown preservado sem retry, outro succeeded com duas sugestões e contexto
+atual íntegro/reutilizável. Duas contas exigidas ainda não estão no plano
+aprovado; zero regras existentes/ativadas. Pacote privado de conferência salvo
+em depara-readiness.json, sem chamada IA, sem criar conta e sem revisão humana.
+Esse resultado distingue dois lotes de duas sugestões válidas.
+
+
+Continuação V-415,18/11,09h54BRT: usuário confirmou transferência e ZIP foi
+localizado emDownloads/CICA-CONTAD-Planos-Contas-31a86b1c2d734ae594aafe205c8d2ac2/
+planos-contas.zip:4.810.865bytes, SHA-256
+7bbbd36bc5c78fffced81b8e79835701ea08c9f1d91477a023951cdb0565cf35.
+Retomada pinada conferiu775arquivos/3fontes/146empresas; ensaio real em
+andamento, sem aprovação antecipada de capacidade ou publicação.
+
+Contingência79c9be390c70f448bfb58392c2e587b86b7242ae validada: CI oficial
+44303425372 integral aprovado; SQLite3.143/55skips/181subtestes,
+PostgreSQL3.196/2skips/181subtestes, agenteLinux176/3skips eWindows179/0skips,
+instalação/atualizações e três builds. Imagem local
+sha256:11351e448a378f3857358d8e2c60933d86e35ca51927854100175aab04a74633
+preserva base100+6arquivos,805arquivos de runtime; mapa SHA
+ d85c24db5dba6a91ad6d51f6764d18060ec6618110df0d04bb4a64cde6f3b3c5.
+Ensaio na própria imagem readonly, sem src do host, passou21testes PostgreSQL:
+mês comprovado permitido; competência não provada, fonte adulterada,
+outra empresa/tenant e edição genérica recusados; legado preservado. Recursos
+locais próprios removidos. Não é rollback real nem medição de capacidade;
+imagem ainda não enviada ao registry. Recibos em worktree de contingência,
+.tmp/contingency-evidence/CONTINGENCY-HANDOFF.md e JSONs vinculados.
+
+Interface Q-47 integrada e verificada:21testes HTTP, testes de cópia e proteção
+de edição, Ruff/MyPy/Django; Playwright16checagens de fluxo+10checagens finais
+incluindo contas/valores, desktop/celular, teclado,200% e temas; sem erros
+JavaScript/console. Evidências privadas na worktree contad-q47-ui-20261118,
+.tmp/q47-ui/handoff.json. Candidata limpa91a67f07d0c250d766bc02ebc59aaf9b6682d1a7;
+CI44306412317 em andamento, SQLite aprovado e PostgreSQL ainda executando.
+
+Matriz técnica somente leitura gerada com146empresas/438linhas de competências
+setembro-novembro,1conta operacional,43candidatas em11empresas. Planilha privada
+contad-q47-20261118/CicaContabil/sheets/outputs/contad-20261118/
+contad-cobertura-pendencias-20261118.xlsx, SHA
+2ad81957e5869ff36fa36b68ccfaf840d9b3cdec6593ced4564ce1d42a898d4e,
+renderizada e conferida. Cadastro não foi convertido em operação comprovada.
+Recuperação: prefixo histórico Tigris listado vazio e manifesto conhecido404;
+snapshot Neon histórico expirado13/11. Isso não prova ausência dePITR;
+restore/RTO4h seguem não demonstrados. Console Neon exige nova autenticação.
+Nenhuma política, retenção, infraestrutura ou dump alterado/baixado.
+
+Confronto técnico delegado C01/C02: sete casos privados íntegros foram lidos
+com autoria Codex, sem revisão atribuída àGrazi. Modelos oficiais anexos das
+soluções Domínio6168/6169 foram baixados e inspecionados sem executar macros.
+Confirmam tipo2=juros em entradas/saídas; tipo9=CRF nas entradas eIRRF nas saídas.
+C01:tipo1=vlor; vbru-CRF-IRRF=vlor; tipo9=CRF. C02:tipo1>vlor e
+tipo1-tipo2=vlor; somar juros ao tipo1 duplicaria esse componente neste caso.
+São identidades aritméticas da fonte: saldo integral, vínculo bancário e
+semântica geral não foram presumidos. Cruzamento com Razão capturado em curso.
+Recibo privado title-cases-technical-review.json; ERP UI ainda não observado.
+AnyDesk continua em execução, mas todas as tentativas de controle, inclusive
+após nova mudança de foco do usuário, retornam timeout antes da janela.
+
+Documentação oficial Q-47: solução11916 aponta importação padrão com separador;
+solução672 documenta pipes e registros0000/6000/6100/6110, exemplo baixado usa
+vírgula decimal. O adaptador atual usa ponto-e-vírgula e depende de importador
+configurado; não equivale automaticamente ao formato padrão. Versão e opções
+efetivamente instaladas no SVAPL02 ainda precisam ser observadas. Nenhuma
+homologação real, exportação financeira ou importaçãoERP executada.
+
+Continuação V-415, 18/11 ~10h50 BRT — capacidade real D-375 (executor Claude Code).
+Rodada1 (Codex, imagem amd64 emulada por qemu, launcher interrompido junto da
+sessão anterior): prévia real ok em594s (217.891 contas/146 empresas, oom0), mas
+na aplicação o worker gunicorn recebeu SIGKILL às12:58:24Z (oom_kill=1, pico
+anon507MiB) e duas sessões GET expiraram em30s no mesmo instante. REPROVADA;
+container-final.json, execution.json FAILED e failure-analysis.json gravados em
+concurrent-capacity-d375/. Transação revertida: organização real sem linhas.
+Diagnóstico: emulação qemu infla RSS de cada processo; p95 já >5s na prévia.
+Rodada2 (imagem linux/arm64 nativa da mesma árvore02c13b0, mesmo conjunto de
+pacotes/Python, cópia própria do banco sem artefatos da rodada1, mesmos helpers,
+limites e gates): mecânica/integridade aprovadas, pico não recuperável246,6MiB,
+p95 0,15s, zero OOM; gate REPROVADO só por concorrência: em apply(20s) e get
+(1,4s) as sessões alternaram sem requisição simultânea (pausa fixa0,5s).
+Rodada3 (única mudança adicional: pausa aleatória0–50ms, carga mais pesada):
+APROVADA — mecânica, fingerprints protegidos, replay/leituras inalterados,
+1.614 GETs sem falha, p95 0,26s/máx0,47s, pico não recuperável261,7MiB
+(folga250MiB ao limite448MiB), oom/max0, concorrência simultânea comprovada
+nas cinco fases (apply33s). Recibo concurrent-capacity-d375-r3/capacity-closure.json
+SHA6f7b3715c1d1c1fa4ffc4fffa35c9dfc7994c326340ece2257dfc7554f8baae6;
+proveniência em concurrent-capacity-d375-r2/r2-provenance.json.
+Imagem final91a67f0 (D-375 precisão): imagem arm64 nativa do commit, 816
+arquivos canônicos idênticos após normalização LF (base de produção usa CRLF),
+82 assets e origens conferidos. Complemento sobre clone da rodada3: 0089 aplicada
+somente no clone; prévia/replay/deep/get com fingerprints idênticos, replay zero,
+novas estruturas vazias, banco da rodada3 preservado; pico não recuperável273MiB,
+p95 0,16s, 1.174 GETs, oom0, concorrência em todas as fases. APROVADO; recibo
+contad-q47-ui-20261118/.tmp/final-release-91a67f0-r3/capacity-closure.json SHA
+c6dec54a4cbf12a7da4157bdfb999d019aa92c447562a5a804eb2876341d940b.
+Limites: laboratório arm64 com CPU Apple mais rápida que shared-cpu-1x; tempos
+não são SLA. Memória CPython arm64/x86_64 comparável, não idêntica. Nenhuma
+produção, publicação, importação ERP ou decisão contábil executada.
+CI da candidata91a67f0 (44306412317) concluído com sucesso: verify, agent e
+agent-package. Q-47 segue sem observação do importador/versão no SVAPL02: esta
+sessão não possui controle de desktop/AnyDesk; solicitados prints ao responsável.
+
+Observação Q-47 por prints do responsável (18/11 ~10h20 BRT, SVAPL02, nenhuma
+importação executada): Domínio Contábil versão10.6A-10, atualização08, banco
+de dados2261, Sybase17.0.11 build7312, PowerBuilder19.0.0, produto Domínio
+Premium licenciado para a CONTAD. Tela "Importação de Arquivo" (Importador por
+Conjunto de dados) disponível: Tipo TXT, caminho padrão C:\Contabil, abas
+Geral/Argumentos/Opções e opção "Importar somente registros inexistentes"
+marcada; conjunto selecionado no print era "Ato Cotepe 17/04" (fiscal), não um
+conjunto de lançamentos contábeis. Ainda NÃO observados: lista completa de
+conjuntos de dados (se há conjunto de lançamentos e seu leiaute/separador) e
+existência do menu Importação Padrão → Leiaute Domínio Sistemas com Separador.
+O adaptador dominio-3.1-pending-homologation (10 colunas, ";") continua sem
+correspondência comprovada; nenhum ajuste de leiaute feito (D-375). Publicação
+da candidata não autorizada nesta sessão até o momento; produção permanece release100.
+
+Continuação V-415, 18/11 11h25–12h25 BRT — publicação autorizada (executor Claude Code).
+Baseline pré-deploy somente leitura web/worker: runtime801/1b09fc44…, hub0087,
+15 grupos iguais entre máquinas; desde09h11 só jobs/fontes das3 coletas de títulos.
+Registry: contingência79c9be3 sha256:11351e44… (índice OCI) e final enviada.
+Deploy1 (309f1cc5, Docker v2, 240 camadas) e deploy2 (13613312, 213 camadas):
+release_command não baixou a imagem; ambos abortaram sem migrar nem trocar
+máquinas. Causa: camadas zstd da base100 publicadas como
+application/vnd.docker.image.rootfs.diff.tar.zstd (tipo inválido); blobs íntegros.
+Deploy3 imagem sha256:ee47ad87dabd0b65a5db149152854ab9f7dd93ee84a058f0fa0b4a6c5cc2e359
+(OCI, 213 camadas, base100 preservada, 816 canônicos/82 assets, mapa e504e6c9…):
+release_command aplicou hub.0088/0089 em default e knowledge (exit0); web
+891e63ef665e58 e worker 1857691da097e8 atualizados, health ok; legado287e35db parado.
+Pós-deploy: runtime821/08b3ab07… nas duas máquinas, idêntico ao calculado na imagem
+verificada; hub0089 nos dois aliases, endpoints iguais; 15 grupos e extras idênticos
+ao pré-deploy; agente oficial ativo; EDGE_AGENT_LATEST_VERSION1.0.13 e instalador
+v1.0.13 preservados; live/ready/site200.
+Catálogo: fontes copiadas para diretório0700/arquivos0600 no web, SHA conferido;
+config.json gerado no web com runtime/identidade/baseline iguais ao pós-deploy.
+Prévia READ ONLY: 217.891 contas/146 empresas (115 catalogadas, 17 só opções,
+14 sem contas), zero escrita, manifesto
+d0e69c32db8d4b6175f09374c38e9649b74d70e2e6e3d0a577a258ba7fc80f32.
+Aplicação1: OperationalError, revertida (quatro modelos zero, sem auditoria).
+Aplicação2 (mesmo manifesto, instrumentada): concluída em259s — 1 descoberta,
+146 coberturas, 217.891 contas, 54 blocos; postchecks/protegidos ok; +1 auditoria.
+Replay com locks: SerializationFailure (concurrent update) — o operador calcula
+fingerprints por ~170s em REPEATABLE READ antes do SELECT FOR UPDATE e o agente
+grava varreduras de empresas a cada minuto; explica também a aplicação1.
+Revalidação READ ONLY pela API pública (690s): existing1, created0, mesmo manifesto,
+integridade profunda e por empresa, 1 evento sem ator, protegidos=baseline e nada
+alterado durante a checagem. Fontes privadas removidas do web. Recibos em
+.tmp/contad-entrega-20261118/{predeploy,postdeploy}-*.json e catalogue/
+(preview SHA286b6214…, apply-instrumented4ba17a9f…, revalidate-readonly e84d405c…).
+Limites: replay com locks não comprovado em produção (comprovado na rodada3);
+vínculos/coleta financeira não ativados; telas em produção ainda não conferidas
+(sessão do navegador exige login do responsável).
+
+Conferência das telas em produção (18/11 ~12h35 BRT, sessão autenticada do
+responsável no navegador embutido, somente leitura, nenhum formulário enviado):
+Planos e contas do Domínio: 146 de146 empresas com consulta registrada; busca
+por código e filtro de competência ok; 25 por página com paginação preservando
+month=2026-09; sem rolagem horizontal em1440px e legível em largura de celular.
+Empresa SURIA (Domínio212): plano212 com4.134 contas do catálogo importado.
+Conta7 (conta bancária do plano212): fatos da fonte (plano, classificação, filial, data
+da consulta) e formulário pedindo só banco/agência-conta/lado, com aviso de que
+o vínculo não confirma movimentos; não enviado. Carteira: 146 empresas "Sem conta
+cadastrada" (vínculos não ativados, correto). Vínculos de contas: 43 pendentes.
+Exportações: 0, "Exportação Domínio bloqueada" até homologação real (Q-47 sem
+concessão; recibo sem exportação para abrir). Console sem erros em todas as telas.
+Limite: não houve teclado/foco/200%/tema nem Playwright nesta conferência de
+produção; esses itens foram cobertos no Playwright da UI Q-47 em laboratório.
+
+Encerramento V-415 (18/11 tarde): entrega como uso assistido, sem declarar CONTAD
+concluída. Restauração/PITR do Neon não verificada (console exige login do
+responsável); Q-47 sem observação dos conjuntos de dados e sem lote aprovado;
+C01/C02, vínculos bancários, amostra D-73 e aceite seguem com a cliente.
+Comunicado: docs/pt-BR/contad-entrega-2026-11-18.md. Recursos locais dos ensaios
+(containers/redes r2/r3) preservados como evidência.
