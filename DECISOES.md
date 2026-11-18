@@ -5673,3 +5673,17 @@ durante a execução, registrados logo após, sem alterar escopo nem gates:
    (apply=False, mesmo manifesto): o replay REPEATABLE READ colide com as gravações
    periódicas do agente oficial (SerializationFailure), sem efeito parcial. A
    primeira aplicação falhou pelo mesmo motivo e foi revertida; a segunda concluiu.
+
+Refinamento D-375 de usabilidade (18/11 ~14h, pedido do responsável “deixe as
+telas o mais simples possível”, executor Claude Code): na conferência extrato×Razão,
+o operador pode confirmar em um clique os movimentos sem alocação cuja data,
+direção, valor integral e conta coincidem com um único registro livre do Razão.
+Dias/valores ambíguos, parciais e registros já usados continuam na revisão
+individual. Cada par usa o serviço de confirmação existente (travas, evidência
+“Confirmação em lote pelo operador”, autoria da sessão, auditoria por movimento e
+evento do lote); a contagem exibida precisa coincidir no envio, senão nada é
+gravado; cada confirmação continua desfazível na ficha. Sem confirmação automática,
+sem exportação e sem efeito no ERP; consistente com D-309 (revisão individual e
+em lote sob a mesma trava). Carteira reduzida a quatro atalhos (Extrato e Razão,
+Contas do Domínio, Títulos e baixas, Visão geral), datas da conferência em
+dd/mm/aaaa e dica para vincular conta quando ela não aparece na seleção.

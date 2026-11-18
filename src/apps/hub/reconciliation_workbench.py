@@ -61,6 +61,74 @@ def conference_return_url(request: HttpRequest, source_id: object) -> str:
     return candidate
 
 
+def exact_conference_pairs(
+    source: ReconciliationSourceFile, period: dict[str, Any], report: dict[str, Any] | None = None
+) -> list[tuple[Any, IndependentLedgerRecord]]:
+    """Unallocated movements whose date, direction and amount match exactly one free record.
+
+    Ambiguous days/amounts, partial allocations and records already used stay for the
+    individual review; this only shortens the obvious cases the operator chooses to confirm.
+    """
+    from apps.hub.models import MovementReconciliation
+
+    if report is None:
+        report = build_source_report(source, **period)
+    free = {
+        row["reference"]
+        for row in report["bank_rows"]
+        if row["amount_cents"] > 0 and row["allocated_cents"] == 0
+    }
+    movements = list(
+        source.movements.filter(pk__in=free).select_related("source_file", "financial_account")
+    )
+    if not movements:
+        return []
+    keys: dict[tuple[Any, str, int], list[Any]] = defaultdict(list)
+    for movement in movements:
+        keys[(movement.occurred_on, movement.direction, abs(movement.amount_cents))].append(
+            movement
+        )
+    used = set(
+        MovementReconciliation.objects.filter(
+            organization_id=source.organization_id,
+            state=MovementReconciliation.State.CONFIRMED,
+            entry__company_id=source.company_id,
+        ).values_list("entry_id", flat=True)
+    )
+    records: dict[tuple[Any, str, int], list[IndependentLedgerRecord]] = defaultdict(list)
+    for record in IndependentLedgerRecord.objects.filter(
+        organization_id=source.organization_id,
+        financial_account_id=source.financial_account_id,
+        source_file__company_id=source.company_id,
+        source_file__organization_id=source.organization_id,
+        source_file__origin="accounting",
+        entry__organization_id=source.organization_id,
+        entry__company_id=source.company_id,
+        entry__movement__isnull=True,
+        entry__occurred_on__in={key[0] for key in keys},
+        accounting_entry__company_id=source.company_id,
+        accounting_entry__organization_id=source.organization_id,
+        accounting_entry__data_source__organization_id=source.organization_id,
+    ).select_related(
+        "entry", "accounting_entry__data_source", "source_file", "financial_account", "bank_line"
+    ):
+        entry = record.accounting_entry
+        records[(entry.occurred_on, entry.direction, entry.amount_cents)].append(record)
+    pairs = []
+    for key, group in keys.items():
+        if len(group) != 1:
+            continue
+        movement = group[0]
+        matches = [
+            record
+            for record in records.get(key, [])
+            if record.entry_id not in used and compatible_record(movement, record)
+        ]
+        if len(matches) == 1 and len(records.get(key, [])) == 1:
+            pairs.append((movement, matches[0]))
+    return sorted(pairs, key=lambda pair: (pair[0].occurred_on, pair[0].source_key, pair[0].pk))
+
+
 def source_review_context(source: ReconciliationSourceFile, request: HttpRequest) -> dict[str, Any]:
     period = report_period_params(request.GET)
     report = build_source_report(source, **period)
@@ -172,4 +240,16 @@ def source_review_context(source: ReconciliationSourceFile, request: HttpRequest
         "conference_bank_net_brl": Decimal(report["bank_net_cents"]) / 100,
         "conference_ledger_net_brl": Decimal(report["ledger_net_cents"]) / 100,
         "conference_difference_brl": Decimal(report["period_difference_cents"]) / 100,
+        "conference_exact_count": len(exact_conference_pairs(source, period, report)),
+        "conference_period_label": (
+            f"{period_label(report.get('period_start'))} a {period_label(report.get('period_end'))}"
+        ),
     }
+
+
+def period_label(value: Any) -> str:
+    """Show ISO report dates as the customer reads them (dd/mm/aaaa)."""
+    text = str(value or "")
+    if len(text) == 10 and text[4] == "-" and text[7] == "-":
+        return f"{text[8:10]}/{text[5:7]}/{text[:4]}"
+    return text

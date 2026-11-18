@@ -197,6 +197,15 @@ trata contas lançáveis ausentes; **Revisar e ativar regras** é uma decisão h
 posterior, com revalidação do plano. Se faltar prova ou conta aprovada, registre
 a pendência. A tela reaproveita sugestões existentes e não faz nova chamada de IA.
 
+## Confirmar várias coincidências de uma vez
+
+Na conferência do extrato e do Razão, quando houver movimentos com data, valor,
+direção e conta iguais a um único registro do Razão, aparece o botão
+**Confirmar N coincidências**. Ele confirma somente esses casos, com sua autoria.
+Valores repetidos no mesmo dia, parciais ou com mais de uma possibilidade
+continuam na lista para revisão individual. Cada confirmação pode ser desfeita
+na ficha do movimento.
+
 ## Referência para outras contas e competências
 
 Os percursos abaixo explicam funções já publicadas. A sessão inicial de hoje
@@ -252,7 +261,7 @@ automática ainda em preparação nem criar conta provisória para contornar aus
 
 ### Solicitações de títulos e baixas
 
-**Buscar títulos e baixas** permite selecionar empresas e competência inicial
+Na carteira, **Títulos e baixas** abre a busca, que permite selecionar empresas e competência inicial
 e final, inclusive empresas ainda sem conta bancária. **Conferir lote** mostra
 empresas, intervalo e quantidade; o botão seguinte exibe **Solicitar N buscas**
 (ou **Solicitar 1 busca**). Cada empresa/mês representa uma solicitação.

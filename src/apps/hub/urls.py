@@ -342,6 +342,11 @@ urlpatterns = [
         name="reconciliation-source-preview",
     ),
     path(
+        "app/conciliacao/arquivos/<uuid:source_id>/confirmar-coincidencias/",
+        views.reconciliation_source_confirm_exact,
+        name="reconciliation-source-confirm-exact",
+    ),
+    path(
         "app/conciliacao/movimentos/<uuid:movement_id>/",
         views.reconciliation_movement_detail,
         name="reconciliation-movement",

@@ -15,10 +15,15 @@
 .conference-review-table td:nth-child(2),.conference-review-table td:nth-child(4){min-width:170px;max-width:38ch}
 .conference-review-table td small{display:block;margin-top:5px;color:var(--muted)}
 .conference-review-table .row-action-button{min-height:44px;white-space:normal}
+.conference-exact{display:flex;align-items:center;flex-wrap:wrap;gap:12px 16px;margin:20px 0 0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.conference-exact p{flex:1 1 320px;margin:0;max-width:70ch;line-height:1.5}
+.conference-exact .button{min-height:44px}
+.conference-exact small{flex-basis:100%;color:var(--muted);font-size:13px;line-height:1.5}
 @media(max-width:760px){
   .conference-intro .workspace-panel-head{align-items:stretch;flex-direction:column}
   .conference-filters{display:grid;grid-template-columns:1fr}.conference-filters .field{min-width:0}
   .conference-report-actions{align-items:stretch;flex-direction:column}
+  .conference-exact{align-items:stretch;flex-direction:column}.conference-exact .button{width:100%}
   .conference-review-table{display:block;width:100%;min-width:0}
   .conference-review-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
   .conference-review-table tbody{display:grid}
