@@ -25,7 +25,9 @@ from apps.organizations.models import Membership, Organization
 pytestmark = pytest.mark.django_db
 
 
-def make_case(organization, *, count=3, label="Conferência sintética", role="owner"):
+def make_case(organization, *, count=3, label="Conferência sintética", role="owner", amounts=None):
+    amounts = amounts or [10000 + i for i in range(count)]
+    count = len(amounts)
     user = User.objects.create_user(f"{organization.slug}@workbench.test", "safe-test-password-123")
     membership = Membership.objects.create(organization=organization, user=user, role=role)
     ProductModule.objects.create(organization=organization, code="reconciliation", enabled=True)
@@ -50,7 +52,7 @@ def make_case(organization, *, count=3, label="Conferência sintética", role="o
     bank = (
         "OFXHEADER:100\n<OFX><BANKID>001<ACCTID>123<BANKTRANLIST>"
         + "".join(
-            f"<STMTTRN><DTPOSTED>20260912<TRNAMT>{(10000 + i) / 100:.2f}"
+            f"<STMTTRN><DTPOSTED>20260912<TRNAMT>{amounts[i] / 100:.2f}"
             f"<FITID>test-{i}<MEMO>Recebimento sintético {i}</STMTTRN>"
             for i in range(count)
         )
@@ -71,9 +73,9 @@ def make_case(organization, *, count=3, label="Conferência sintética", role="o
     writer.writerow(LEDGER_COLUMNS)
     for i in range(count):
         common = [f"entry-{i}", "bank", "2026-09-12", f"Razão independente sintético {i}"]
-        writer.writerow([*common, "1.1", "debit", 10000 + i, "inflow", f"DOC-{i}"])
+        writer.writerow([*common, "1.1", "debit", amounts[i], "inflow", f"DOC-{i}"])
         writer.writerow(
-            [common[0], "other", *common[2:], "2.1", "credit", 10000 + i, "", f"DOC-{i}"]
+            [common[0], "other", *common[2:], "2.1", "credit", amounts[i], "", f"DOC-{i}"]
         )
     ledger, run, _ = create_source_file(
         organization=organization,

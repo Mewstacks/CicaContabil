@@ -13,6 +13,7 @@ Os blocos anteriores são históricos; pendência não equivale a conclusão.
 - [x] UI e CI dos recibosQ-47 concluídos (CI44306412317 verde na candidata91a67f0).
 - [x] Publicada91a67f0 (imagem OCI ee47ad87) nas máquinas existentes com0088/0089; catálogo de217.891 contas/146 empresas importado com manifesto exato e revalidado somente leitura (replay com locks bloqueado por gravações do agente; ver V-415).
 - [x] Telas da descoberta conferidas em produção (somente leitura, sessão do responsável; ver V-415).
+- [x] Simplificação das telas (PR #35: confirmação em lote de coincidências exatas, quatro atalhos na carteira, datas dd/mm/aaaa, dica de vínculo) publicada em v104 (imagem f04970bd) e conferida em produção sem acionar o lote (ver V-415).
 - [ ] Identificar importador/versão reais do Domínio noSVAPL02 (sessão atual sem controle de desktop; prints solicitados) e obter aprovação do lote novo antes da importação.
 - [ ] Conferência humana C01/C02, vínculos das empresas, DE-PARA, amostra/recuperação D-73 e aceite da cliente.
 

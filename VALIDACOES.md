@@ -12013,3 +12013,38 @@ na competência. Razão aceita qualquer mês desde 09/2026 (inclui novembro
 parcial); títulos aceitam qualquer competência; período do escopo do agente
 (até 11/11) limita só a sincronização do cadastro, não as coletas. Nenhuma
 mudança de código necessária para o uso da cliente.
+
+Testes em produção pelo executor (18/11 ~13h25–13h35 BRT, sessão autenticada do
+responsável, pedido explícito “testa tu”): busca de títulos FLORICULTURA BELL
+FLORES (Domínio22) set/2026 pela tela — job criado 16:27:41Z, capturado 16:28:51Z;
+fonte com 91 parcelas e 66 registros de baixa, aberta pela tela sem erros.
+Razão SURIA/Sicredi out/2026 pela tela — entregue ao agente e concluído como
+“Sem lançamentos neste período” em ~1 min. Conferência SURIA set/2026 aberta:
+163×163, diferença zero. Efeito colateral verificado: a chegada do Razão de
+outubro recalculou o horário das 162 sugestões legadas não resolvidas
+(ReconciliationMatch “ambiguous”); a única correspondência resolvida e nenhum
+lançamento foram alterados. Nenhuma confirmação, vínculo ou decisão contábil
+feita pelo executor.
+Simplificação (PR #35, head 5fce483): confirmação em lote de coincidências
+exatas, carteira com quatro atalhos, datas dd/mm/aaaa e dica de vínculo. 5 testes
+novos; 1.508 testes relacionados locais; CI 44350326378 aprovado na reexecução.
+A primeira execução falhou só em
+test_independent_ledger::...[export] (deadlock); o mesmo teste falha em 5 de 6
+execuções locais na main sem a mudança — instabilidade preexistente entre
+confirmação de Razão e exportação Domínio (exportação bloqueada para a cliente),
+registrada como pendência técnica. Imagem OCI f04970bdee93bc482e08bc7bcc4bd13edb01ded2d85695935253006a90cbb9aa
+(overlay sobre ee47ad87, 816 canônicos idênticos, 82 assets, runtime821/81852e4d…)
+enviada ao registry. Merge do PR #35 e deploy recusados pela permissão automática
+da sessão; produção segue ee47ad87 até execução pelo responsável.
+Publicação da simplificação (18/11 ~15h40 BRT): deploy v104 executado pelo
+responsável e PR #35 mesclado (18:40:59Z). Conferência somente leitura pelo
+executor: web 891e63ef665e58 e worker 1857691da097e8 com a imagem f04970bd…;
+runtime 821/81852e4d… nas duas máquinas; tips hub 0089 e intelligence 0041; os
+15 grupos protegidos idênticos a predeploy2-web e iguais entre web e worker;
+agente oficial ativo (last_seen 18:41:03Z). Telas em produção: carteira com 146
+empresas e os quatro atalhos; conferência SURIA set/2026 com datas dd/mm/aaaa e
+“Confirmar 158 coincidências” (não 162: quatro movimentos têm valor repetido no
+mesmo dia e ficam para revisão individual, como previsto na regra); dica “Conta
+não aparece?” em Extrato e Razão; link “Vínculos de contas” em Contas do
+Domínio; sem erros de console. O botão de lote não foi acionado pelo executor
+(decisão da cliente). PR #34 (registros) mesclado em seguida.
