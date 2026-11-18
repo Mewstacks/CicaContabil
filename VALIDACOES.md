@@ -11989,6 +11989,31 @@ C01/C02, vínculos bancários, amostra D-73 e aceite seguem com a cliente.
 Comunicado: docs/pt-BR/contad-entrega-2026-11-18.md. Recursos locais dos ensaios
 (containers/redes r2/r3) preservados como evidência.
 
+Fechamento técnico V-415 (18/11, executor Claude Code, autorização ampla do responsável):
+PR #33 mesclado na main (8c9000a0e8dbd69c731d1914898d6c6adbe4b2b7); PR #32 marcado
+como mesclado por estar contido nele. Main agora corresponde ao código publicado.
+C01/C02: inspeção de native_title_translation/comparison/title_persistence confirma
+que o código não soma componentes nem interpreta dinheiro automaticamente; cada
+baixa exige decisão humana explícita de principal/componentes e recusa omissões.
+Logo não há defeito de cálculo a corrigir; a identidade C02 (tipo1 já inclui o
+juros do tipo2) é orientação para a revisão da cliente, não regra automática.
+Itens que a autorização ampla não supre: observar o importador no SVAPL02 (sem
+controle de desktop nesta sessão), login no console Neon (senha não é digitada
+pelo executor), vínculos bancários/decisões contábeis/aceite (autoria da cliente).
+
+Prontidão de uso por empresa (18/11 ~13h20 BRT, leitura em produção):
+146 empresas visíveis à conta CONTAD (owner ativo, módulo conciliação, sem
+restrição por empresa). Vínculo pelo catálogo possível em132 empresas para
+09/10/11-2026; nenhum mês bloqueado por filial zero; 6/5/1 empresas com mais de
+uma filial observada em set/out/nov (formulário pede escolha). 14 empresas sem
+plano de contas e sem parâmetros contábeis no Domínio (220, 372, 378, 379, 382,
+430, 436, 439, 460, 463, 464, 481, 488, 489): sem Razão a conciliar; títulos
+continuam disponíveis. Meses adicionais são acrescentados reconfirmando a conta
+na competência. Razão aceita qualquer mês desde 09/2026 (inclui novembro
+parcial); títulos aceitam qualquer competência; período do escopo do agente
+(até 11/11) limita só a sincronização do cadastro, não as coletas. Nenhuma
+mudança de código necessária para o uso da cliente.
+
 Testes em produção pelo executor (18/11 ~13h25–13h35 BRT, sessão autenticada do
 responsável, pedido explícito “testa tu”): busca de títulos FLORICULTURA BELL
 FLORES (Domínio22) set/2026 pela tela — job criado 16:27:41Z, capturado 16:28:51Z;
@@ -12011,3 +12036,15 @@ registrada como pendência técnica. Imagem OCI f04970bdee93bc482e08bc7bcc4bd13e
 (overlay sobre ee47ad87, 816 canônicos idênticos, 82 assets, runtime821/81852e4d…)
 enviada ao registry. Merge do PR #35 e deploy recusados pela permissão automática
 da sessão; produção segue ee47ad87 até execução pelo responsável.
+Publicação da simplificação (18/11 ~15h40 BRT): deploy v104 executado pelo
+responsável e PR #35 mesclado (18:40:59Z). Conferência somente leitura pelo
+executor: web 891e63ef665e58 e worker 1857691da097e8 com a imagem f04970bd…;
+runtime 821/81852e4d… nas duas máquinas; tips hub 0089 e intelligence 0041; os
+15 grupos protegidos idênticos a predeploy2-web e iguais entre web e worker;
+agente oficial ativo (last_seen 18:41:03Z). Telas em produção: carteira com 146
+empresas e os quatro atalhos; conferência SURIA set/2026 com datas dd/mm/aaaa e
+“Confirmar 158 coincidências” (não 162: quatro movimentos têm valor repetido no
+mesmo dia e ficam para revisão individual, como previsto na regra); dica “Conta
+não aparece?” em Extrato e Razão; link “Vínculos de contas” em Contas do
+Domínio; sem erros de console. O botão de lote não foi acionado pelo executor
+(decisão da cliente). PR #34 (registros) mesclado em seguida.
