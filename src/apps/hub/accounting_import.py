@@ -168,7 +168,7 @@ def record_export_homologation(
     request: Any = None,
 ) -> tuple[AccountingExportHomologation, bool]:
     """Record technical evidence of an explicit human approval/revocation, never infer one."""
-    organization = Organization.objects.select_for_update().get(pk=organization.pk)
+    organization = Organization.objects.select_for_update(no_key=True).get(pk=organization.pk)
     if not organization.is_active or organization.is_demo:
         raise ImportReceiptError("Homologação indisponível para este escritório.")
     if (
@@ -424,7 +424,7 @@ def record_import_receipt(
     request: Any = None,
 ) -> tuple[AccountingImportReceipt, bool]:
     """Append one complete observation; partial/uncertain outcomes never confirm an export."""
-    Organization.objects.select_for_update().get(pk=export.organization_id)
+    Organization.objects.select_for_update(no_key=True).get(pk=export.organization_id)
     company = ClientCompany.objects.select_for_update().get(
         pk=export.company_id,
         organization_id=export.organization_id,

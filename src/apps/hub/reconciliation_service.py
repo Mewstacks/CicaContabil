@@ -1986,7 +1986,7 @@ def create_export(
     target: str = AccountingExport.Target.DOMINIO,
     request: object = None,
 ) -> AccountingExport:
-    organization = Organization.objects.select_for_update().get(pk=organization.pk)
+    organization = Organization.objects.select_for_update(no_key=True).get(pk=organization.pk)
     ClientCompany.objects.select_for_update().get(pk=company.pk, organization=organization)
     if start > end:
         raise ReconciliationError("O início do período deve ser anterior ou igual ao fim.")
