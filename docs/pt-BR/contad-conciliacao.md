@@ -325,7 +325,7 @@ importação. Use somente um lote novo, aprovado especificamente para a base rea
 com arquivo, hash, efeitos esperados e recuperação previamente conferidos. O
 Razão SURIA/setembro já escriturado não deve entrar nesse lote.
 
-1. Em **Arquivos exportados**, abra **Conferir importação**. Confira empresa,
+1. Em **Arquivos e histórico**, abra **Conferir importação**. Confira empresa,
    período e identificação do arquivo. Os detalhes mostram o destino, as versões
    e o SHA-256 para comparar com o arquivo efetivamente utilizado.
 2. Localize os lançamentos no Domínio e compare data, histórico, valores e contas.
