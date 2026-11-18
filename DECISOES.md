@@ -5523,3 +5523,114 @@ cópias cadastrais. O backend confere os hashes dos arquivos e recalcula os fato
 comparáveis fornecidos (dois arrays de uso, chaves, contagens, flags e cronologia),
 sem declarar que reconstruiu a primeira cópia cadastral. Esse limite de evidência
 não é substituído por presunção sobre a causa de SOURCE_CHANGED.
+
+
+## D-375 — Executar a entrega completa CONTAD até 18h de 18/11/2026
+
+Origem: plano discutido e integralmente aprovado pelo responsável nesta conversa,
+seguido de “PLEASE IMPLEMENT THIS PLAN”. Escopo: CONTAD inteira (D-301/D-302),
+etapas03/09/11/12 e PC-09/19/22/30; não ampliar para a suíte. Acesso remoto ao
+SVAPL02 e participação da cliente estão disponíveis hoje. A restrição de acesso
+de D-373/D-374 pertencia a17/11 e não impede a execução autorizada em18/11.
+
+Retomar Q-47 e os casos C01/retenções e C02/juros com fontes/evidências reais,
+superando seus adiamentos anteriores. O responsável escolheu a base REAL para
+importação contábil, condicionada a aprovação específica do lote concreto de
+lançamentos novos ainda não escriturados e do procedimento de recuperação.
+Preparar arquivo/prévia/hash antes de pedir essa aprovação. Não reutilizar o
+Razão já escriturado nem presumir autorização de escrita direta no ERP.
+
+Autoriza desenvolvimento, testes, publicação e coletas reais no escopo CONTAD,
+146 empresas desde09/2026, com novembro parcial e vínculos/fontes comprovados.
+Transferir o ZIP já gerado (4.810.865bytes/SHA7bbbd36bc5c78fffced81b8e79835701ea08c9f1d91477a023951cdb0565cf35),
+sem repetir descoberta concluída. Preservar o gate real512MiB de D-373,
+importação atômica/idempotente, fontes, revisões e configurações anteriores.
+Manter agente1.0.13 salvo defeito reproduzido que exija atualização validada.
+
+Implementar homologação da saída por escritório/destino/versão de adaptador e
+recibo imutável por arquivo/hash com resultados por item, autoria e evidência.
+Parcial/rejeitado/incerto não satisfaz confirmação integral. Não liberar flag
+global nem reimportar cegamente. Ajustar layout somente após conferir o
+importador real. Revisão de títulos, vínculos e DE-PARA cabe à cliente.
+
+Antes de ativar vínculos D-373, preparar e testar contingência release100 com
+0088 e guardas mensais compatíveis na solicitação/execução dos jobs. Preservar
+as decisões e tabelas; release100 original não é rollback seguro após ativação.
+Publicar árvore exata aprovada, nas máquinas existentes, conferindo aliases,
+runtime/assets/saúde, canal1.0.13 e15 grupos protegidos antes/depois.
+
+O responsável determinou “nao precisa mexer em infraestrutura agora”. Não
+alterar capacidade, retenção ou rotina de backup; verificar/provar o possível
+nos recursos existentes. RPO permanece sem valor aprovado; restore até4h e
+retomada até15min de D-73 não são declarados concluídos sem evidência.
+Nenhuma nova IA, custo, mensagem externa ou alteração comercial autorizada.
+
+Preservar checkout canônico e worktrees existentes, desenvolver em fonte isolada,
+aplicar UI/UX/Watermelon/pesquisa/diretrizes/Playwright nas interfaces afetadas e
+atualizar registros/checklists a cada entrega. Meta18h não dispensa D-73,
+evidências humanas nem gates. Pendência terá ação/responsável, não falso aceite.
+
+Refinamento D-375/Q-47 antes da implementação: homologação imutável por
+escritório/destino/versão, com evidência privada e autoria humana comprovada.
+Recibo imutável por exportação/hash/chave de requisição, resultado por partida
+(aceita/rejeitada/incerta), evidência e referência ERP dos itens aceitos.
+Somente todos aceitos e efetivamente conferidos permitem confirmação integral.
+Resultado parcial/incerto conserva o arquivo original e estado não confirmado,
+com situação explícita no recibo/interface; não autoriza reexportação corretiva
+automática. Repetição idêntica não duplica; mesma chave com conteúdo diferente
+é conflito. Correção/reenvio exige prova dos itens não importados e trilha de
+origem, nunca reimportação cega do lote. A flag global não libera outros tenants.
+
+Refinamento técnico D-375 de capacidade: harness privado separado preserva os
+helpers/pins D-374 e executa duas sessões GET autenticadas concorrentes durante
+prévia/aplicação/replay/integridade, sem POST. Gate de laboratório: zero OOM,
+erro HTTP ou timeout; memória anon+kernel+shmem até448MiB no limite512MiB,
+preservando ao menos64MiB; GETp95 até5s e máximo30s. Esses limites são critérios
+técnicos do ensaio emulado, não SLA nem estimativa das146 empresas. Não impor
+5min ao catálogo integral como se fosse uma empresa; watchdog15min por fase
+interrompe travamento e conserva os recibos. Fingerprints/replay continuam
+obrigatórios. Falha exige diagnóstico/ajuste no mesmo limite, não aumento de VM.
+
+Refinamento D-375 de vínculo descoberto: inspeção reproduziu caminho de edição
+genérica que pode substituir proveniência discovered_account_review por
+human_review sem competência, eliminando a guarda mensal. Recusar essa edição
+genérica para vínculos descobertos na candidata e na contingência, encaminhando
+na candidata ao fluxo próprio de revisão com competência/proveniência. Na
+contingência esse fluxo de alteração não existe: manter consulta/coleta válida,
+informar indisponibilidade de edição e preservar vínculos legados. Testar que
+nenhuma submissão genérica remove fatos, revisão ou proteção mensal.
+
+Execução delimitada D-375/títulos: primeira prova pela sessão CONTAD legítima
+é empresa Domínio30, setembro2026, sem conta operacional; prévia de uma busca
+mostra agente conectado e mesmo recorte. Solicitação técnica delegada pelo
+responsável nesta conversa, não revisão financeira da Grazi. Conferir recepção
+e hashes antes de ampliar a lote pequeno; nenhum título será aprovado ou
+normalizado por essa solicitação. Fonte/decisões anteriores permanecem intactas.
+
+Continuação D-375/títulos após captura bem-sucedida daempresa30: ampliar somente
+para empresa25/setembro eoutubro2026, duas buscas pela mesma interface/prévia,
+também sem conta operacional. Manter autoria técnica delegada e revisão humana
+pendente; conferir cada job/fonte independente antes de ampliar novamente.
+
+Precisão do ensaio D-375: comprovar concorrência pela interseção temporal real
+das duas sessões GET e da operação, com intervalos monotonic, não por flag.
+Fase menor que1s sem interseção observada será declarada sem prova completa
+de concorrência, sem repetir escrita apenas para prolongá-la. Fase de1s oumais
+sem interseção reprova; ao menos uma fase deve comprovar as duas sessões.
+Relatório distingue aprovação de capacidade e prova de cada fase, sem ocultar
+esse limite. Demais gates de memória, integridade, latência e fonte permanecem.
+
+Verificação D-375 de duplicidade: repetir tecnicamente apenas o lote já capturado
+6fad2950-4a96-417e-8f7e-7fa80dfa308b (empresa25, setembro/outubro), com a mesma
+chave/revisão e solicitante original. Exigir retorno dos dois jobs existentes,
+created=false e fingerprints de jobs/fontes/auditoria idênticos dentro da
+transação; qualquer divergência reverte a operação. Essa prova não fará nova
+coleta ERP nem atribuirá revisão contábil ao solicitante.
+
+Precisão D-375 para a candidata final: o ensaio pinado em02c13b0 comprova a
+descoberta original, não a memória da árvore que acrescenta Q-47/0089. Após
+concluir o ensaio real, medir também navegação/replay/integridade da imagem
+final no laboratório512MiB, com0089 aplicada somente no laboratório; preservar
+os pins e recibos originais. Na publicação/importação, conferir separadamente
+as novas tabelas de homologação/recibo além dos15 grupos anteriores. Nenhum
+resultado de capacidade/CI da fonte anterior será atribuído à árvore nova.
