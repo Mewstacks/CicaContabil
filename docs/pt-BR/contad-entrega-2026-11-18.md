@@ -9,7 +9,7 @@ confirmações descritas no fim deste documento.
 
 1. **Carteira das 146 empresas.** Em *Conciliação por empresa*, escolha a
    competência e veja a situação de cada empresa.
-2. **Planos e contas do Domínio.** Em *Planos e contas do Domínio*, consulte o
+2. **Contas do Domínio.** Em *Contas do Domínio*, consulte o
    plano de contas de cada empresa, conforme lido do Domínio em 17/11/2026.
 3. **Vínculo das contas bancárias.** Na conta contábil do banco, clique em
    *Conferir vínculo* e informe somente o que o sistema pede: código do banco,
@@ -18,9 +18,10 @@ confirmações descritas no fim deste documento.
 4. **Extrato e Razão.** Com a conta vinculada, envie o extrato e solicite o
    Razão da competência. A CICA compara os dois e mostra o que confere e o que
    precisa de revisão.
-5. **Conferência, relatório e CSV.** Revise os movimentos, gere o relatório e
-   baixe o CSV da conferência.
-6. **Títulos e baixas.** Em *Buscar títulos e baixas*, solicite a busca por
+5. **Conferência, relatório e CSV.** Use **Confirmar N coincidências** para os
+   movimentos que batem exatamente com o Razão, revise os demais, gere o relatório
+   e baixe o CSV da conferência.
+6. **Títulos e baixas.** Em *Títulos e baixas*, solicite a busca por
    empresa e competência. Ela funciona mesmo sem conta bancária vinculada; os
    títulos chegam para revisão e nada é aprovado automaticamente.
 

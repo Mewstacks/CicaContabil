@@ -8,7 +8,7 @@
   <form method="get" class="ledger-request-form" data-ledger-scope-form>
     <div class="ledger-request-fields">
       <div class="field company-picker" data-company-picker><label data-company-label for="{{ ledger_form.company.id_for_label }}">Empresa</label><input class="company-picker-search" data-company-search type="search" placeholder="Busque por nome" autocomplete="off" hidden>{{ ledger_form.company }}<ul class="company-picker-options" data-company-options role="listbox" hidden></ul><span class="company-picker-status" data-company-status role="status" aria-live="polite"></span>{{ ledger_form.company.errors }}</div>
-      <div class="field">{{ ledger_form.account.label_tag }}{{ ledger_form.account }}{{ ledger_form.account.errors }}</div>
+      <div class="field">{{ ledger_form.account.label_tag }}{{ ledger_form.account }}{{ ledger_form.account.errors }}<small class="ledger-account-hint">Conta não aparece? <a href="{% url 'hub:reconciliation-account-discovery' %}">Vincule em Contas do Domínio</a>.</small></div>
       <div class="field">{{ ledger_form.month.label_tag }}{{ ledger_form.month }}{{ ledger_form.month.errors }}</div>
     </div>
     <div class="ledger-request-actions"><button class="button{% if ledger_account %} button-quiet{% endif %}" type="submit">{% if ledger_account %}Atualizar seleção{% else %}Continuar{% endif %}</button></div>

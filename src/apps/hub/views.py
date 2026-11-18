@@ -10710,6 +10710,98 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
 
 
 @office_required
+@require_http_methods(["POST"])
+def reconciliation_source_confirm_exact(request: HttpRequest, source_id: str) -> HttpResponse:
+    """Confirm, by the operator's explicit choice, only unique exact bank/ledger pairs."""
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        raise Http404
+    source = get_object_or_404(
+        ReconciliationSourceFile.objects.select_related("company", "financial_account"),
+        pk=source_id, organization=context["office"], company__in=context["companies"],
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
+        return refuse(request, "Seu perfil pode consultar, mas não confirmar movimentos.")
+    from apps.hub.reconciliation_report import report_period_params
+    from apps.hub.reconciliation_workbench import exact_conference_pairs
+
+    try:
+        period = report_period_params(request.POST)
+    except ReconciliationError as exc:
+        messages.error(request, str(exc))
+        period = None
+    params = {
+        key: value
+        for key in ("start", "end", "portfolio_return")
+        if (value := request.POST.get(key, ""))
+    }
+    back = reverse("hub:reconciliation-source-review", kwargs={"source_id": source.pk})
+    back += ("?" + urlencode(params)) if params else ""
+    if period is None:
+        return redirect(back)
+    try:
+        expected = int(request.POST.get("expected_count", ""))
+    except ValueError:
+        expected = -1
+    office = cast(Organization, context["office"])
+    try:
+        with transaction.atomic():
+            ClientCompany.objects.select_for_update().get(pk=source.company_id, organization=office)
+            pairs = exact_conference_pairs(source, period)
+            if not pairs or len(pairs) != expected or len(pairs) > 1000:
+                raise ReconciliationError(
+                    "A conferência mudou desde que a página foi aberta. Revise os números e "
+                    "confirme novamente."
+                )
+            for movement, record in pairs:
+                reconciliation = confirm_normalized_reconciliation(
+                    movement=movement,
+                    entry=record.entry,
+                    amount_cents=abs(movement.amount_cents),
+                    evidence={
+                        "note": (
+                            "Confirmação em lote pelo operador: data, valor, direção e conta "
+                            "iguais a um único registro do Razão."
+                        ),
+                        "source": movement.source_reference,
+                        "batch": True,
+                    },
+                    actor=cast(User, request.user),
+                )
+                record_event(
+                    action="hub.reconciliation.reconciliation_confirmed",
+                    actor=request.user,
+                    organization=office,
+                    target=reconciliation,
+                    request=request,
+                    metadata={
+                        "movement_id": str(movement.id),
+                        "entry_id": str(reconciliation.entry_id),
+                        "amount_cents": reconciliation.amount_cents,
+                        "batch": True,
+                    },
+                )
+            record_event(
+                action="hub.reconciliation.exact_matches_confirmed",
+                actor=request.user,
+                organization=office,
+                target=source,
+                request=request,
+                metadata={"count": len(pairs), "period": {k: str(v) for k, v in period.items()}},
+            )
+    except ReconciliationError as exc:
+        messages.error(request, str(exc))
+        return redirect(back)
+    messages.success(
+        request,
+        f"{len(pairs)} movimento{'s' if len(pairs) != 1 else ''} conferido"
+        f"{'s' if len(pairs) != 1 else ''}. Cada um pode ser desfeito na própria ficha.",
+    )
+    return redirect(back)
+
+
+@office_required
 @require_http_methods(["GET"])
 def reconciliation_source_report(request: HttpRequest, source_id: str) -> HttpResponse:
     context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))

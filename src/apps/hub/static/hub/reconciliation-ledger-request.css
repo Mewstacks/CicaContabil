@@ -7,3 +7,5 @@
 .ledger-request-panel .ledger-request-table tbody tr{content-visibility:visible;contain-intrinsic-size:none}
 .ledger-history-count{margin:18px 22px;color:var(--muted);font-variant-numeric:tabular-nums}.ledger-history-pagination{padding:18px 22px;margin:0;border-top:1px solid var(--line);gap:12px;flex-wrap:wrap}.ledger-history-pagination .button{min-height:44px}.ledger-history-pagination .pagination-status{overflow-wrap:anywhere}.ledger-request-panel:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 @media(max-width:760px){.ledger-request-panel .ledger-request-table{min-width:0}.ledger-request-panel .ledger-request-table tr{width:100%;padding:16px}.ledger-request-panel .ledger-request-table td{min-width:0;overflow:visible}}
+.ledger-account-hint{display:block;margin-top:6px;color:var(--muted);font-size:13px;line-height:1.5}
+.ledger-account-hint a{display:inline-block;min-height:24px;color:var(--blue);font-weight:700}
