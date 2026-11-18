@@ -2347,6 +2347,97 @@ class AccountingExport(OrganizationScopedModel):
         indexes = [models.Index(fields=("organization", "company", "period_start", "period_end"))]
 
 
+class AccountingExportHomologation(ImmutableOrganizationModel):
+    """Append-only approval/revocation of one office's exact export adapter."""
+
+    target = models.CharField(max_length=24, choices=AccountingExport.Target.choices)
+    adapter_version = models.CharField(max_length=32)
+    request_key = models.UUIDField()
+    approved = models.BooleanField()
+    evidence = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="accounting_homologations",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "request_key"), name="hub_unique_homologation_request",
+        )]
+        indexes = [models.Index(
+            fields=("organization", "target", "adapter_version", "created_at"),
+            name="hub_homologation_scope",
+        )]
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class AccountingImportReceipt(ImmutableOrganizationModel):
+    """Human-observed import result; copies of an export share the original receipt chain."""
+
+    class Outcome(models.TextChoices):
+        ACCEPTED = "accepted", "Importação conferida"
+        PARTIAL = "partial", "Importação parcial"
+        REJECTED = "rejected", "Importação rejeitada"
+        UNCERTAIN = "uncertain", "Resultado a conferir"
+
+    export = models.ForeignKey(
+        AccountingExport, on_delete=models.PROTECT, related_name="import_receipts",
+    )
+    submitted_export = models.ForeignKey(
+        AccountingExport, on_delete=models.PROTECT, related_name="submitted_import_receipts",
+    )
+    previous = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="successors",
+    )
+    request_key = models.UUIDField()
+    content_hash = models.CharField(max_length=64)
+    outcome = models.CharField(max_length=16, choices=Outcome.choices)
+    items = models.JSONField()
+    evidence = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, on_delete=models.SET_NULL,
+        related_name="accounting_import_receipts",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "request_key"), name="hub_unique_import_receipt_request",
+            ),
+            models.UniqueConstraint(
+                fields=("previous",), condition=models.Q(previous__isnull=False),
+                name="hub_unique_import_receipt_successor",
+            ),
+            models.UniqueConstraint(
+                fields=("export",), condition=models.Q(previous__isnull=True),
+                name="hub_unique_import_receipt_root",
+            ),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            self.export.organization_id != self.organization_id
+            or self.submitted_export.organization_id != self.organization_id
+            or self.submitted_export.company_id != self.export.company_id
+            or self.content_hash != self.export.content_hash
+            or self.content_hash != self.submitted_export.content_hash
+            or (self.previous_id and self.previous.export_id != self.export_id)
+        ):
+            raise ValidationError("O recibo precisa pertencer ao mesmo arquivo e escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
 class AccountingExportPreview(ImmutableOrganizationModel):
     """Private, unhomologated evidence. Never an export or ERP import receipt."""
 

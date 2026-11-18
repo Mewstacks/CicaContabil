@@ -7,6 +7,7 @@ from threading import Barrier
 import pytest
 from django.db import close_old_connections, connection
 from django.test import override_settings
+from tests.accounting_import_fixtures import homologate_synthetic
 
 from apps.hub.models import (
     AccountingExport,
@@ -28,6 +29,7 @@ START, END = date(2026, 9, 1), date(2026, 9, 30)
 @pytest.fixture
 def posting(organization, tmp_path):
     with override_settings(MEDIA_ROOT=tmp_path, RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True):
+        homologate_synthetic(organization)
         company = ClientCompany.objects.create(organization=organization, name="Synthetic")
         entry = JournalEntry.objects.create(
             organization=organization,

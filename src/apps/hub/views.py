@@ -9146,6 +9146,9 @@ def _reconciliation_run_guidance(
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
+    from apps.hub.accounting_import import export_homologated
+    from apps.hub.reconciliation_service import get_accounting_export_adapter
+
     selected_source = None
     source_id = request.GET.get("source_file", "") if request else ""
     if source_id:
@@ -9458,8 +9461,9 @@ def _reconciliation_v2_context(
             conference_params.urlencode() if conference_params else ""
         ),
         "reconciliation_local_ocr_available": local_ocr_is_available,
-        "reconciliation_dominio_export_homologated": (
-            settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
+        "reconciliation_dominio_export_homologated": export_homologated(
+            office, AccountingExport.Target.DOMINIO,
+            get_accounting_export_adapter(AccountingExport.Target.DOMINIO).version,
         ),
         "reconciliation_dominio_preview_enabled": preview_enabled(office),
     }
@@ -11697,66 +11701,28 @@ def reconciliation_export_confirm(request: HttpRequest, export_id: str) -> HttpR
         return blocked
     if not context["support_can_mutate"] or not _can_manage_reconciliation(context):
         return refuse(request, "Seu perfil pode consultar, mas não confirmar importações.")
-    if not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED:
-        return refuse(
-            request,
-            "A confirmação continua bloqueada até a homologação real do layout Domínio.",
-            kind="unavailable",
-        )
+    from apps.hub.accounting_import import import_receipt_context
+
     office = cast(Organization, context["office"])
     companies = cast("QuerySet[ClientCompany]", context["companies"])
-    with transaction.atomic():
-        export = get_object_or_404(
-            AccountingExport.objects.select_for_update(),
-            id=export_id,
-            organization=office,
-            company__in=companies,
-            state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+    export = get_object_or_404(
+        AccountingExport, id=export_id, organization=office, company__in=companies,
+    )
+    try:
+        receipt = import_receipt_context(export=export, actor=cast(User, request.user))
+    except ValueError as exc:
+        return refuse(request, str(exc))
+    if (
+        receipt["outcome"] != "accepted"
+        or receipt["original"].state != AccountingExport.State.CONFIRMED
+    ):
+        messages.error(
+            request,
+            "Registre a conferência de todos os lançamentos e a evidência do retorno do ERP. "
+            "O arquivo e a marcação de confirmação, sozinhos, não comprovam a importação.",
         )
-        if export.state == AccountingExport.State.CONFIRMED:
-            messages.info(request, "Esta importação já estava confirmada.")
-            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
-        posted_hash = request.POST.get("content_hash", "")
-        if (
-            request.POST.get("confirm_import") != "yes"
-            or not posted_hash
-            or not secrets.compare_digest(posted_hash, export.content_hash)
-        ):
-            messages.error(request, "Confirme a importação do arquivo e o hash exibido.")
-            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
-        content_name = export.content.name if export.content else ""
-        if not content_name or not export.content.storage.exists(content_name):
-            messages.error(request, "O arquivo original não está disponível; nada foi confirmado.")
-            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
-        digest = hashlib.sha256()
-        export.content.open("rb")
-        for chunk in export.content.chunks():
-            digest.update(chunk)
-        export.content.close()
-        if not secrets.compare_digest(digest.hexdigest(), export.content_hash):
-            record_event(
-                action="hub.reconciliation.export_integrity_failed",
-                actor=request.user,
-                organization=office,
-                target=export,
-                request=request,
-                metadata={"expected_hash": export.content_hash[:12]},
-            )
-            messages.error(request, "O arquivo armazenado diverge do hash; nada foi confirmado.")
-            return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
-        export.state = AccountingExport.State.CONFIRMED
-        export.confirmed_at = timezone.now()
-        export.confirmed_by = cast(User, request.user)
-        export.save(update_fields=["state", "confirmed_at", "confirmed_by", "updated_at"])
-        record_event(
-            action="hub.reconciliation.export_import_confirmed",
-            actor=request.user,
-            organization=office,
-            target=export,
-            request=request,
-            metadata={"hash": export.content_hash[:12], "entry_count": len(export.entry_ids)},
-        )
-    messages.success(request, "Importação no Domínio confirmada e registrada na auditoria.")
+    else:
+        messages.info(request, "A importação já possui recibo integral conferido.")
     return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
 
 
