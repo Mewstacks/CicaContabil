@@ -22,6 +22,7 @@ from apps.hub.ledger_requests import (
     discovery_mapping_month_allowed,
     ledger_request_context,
     request_ledger,
+    save_ledger_mapping,
     validate_job_mapping,
 )
 from apps.hub.models import (
@@ -355,6 +356,40 @@ def test_month_guard_blocks_request_and_admission_but_allows_confirmed_month(rev
     NativeLedgerCollection.objects.filter(pk=job.pk).update(scope=changed)
     assert not validate_job_mapping(job)
     assert NativeLedgerCollection.objects.count() == 1
+
+
+def test_generic_mapping_review_cannot_remove_discovery_month_scope(review):
+    result = confirmed(review)
+    account = result["financial_account"]
+    current = ledger_request_context(account=account, actor=review["actor"])
+    before = snapshot()
+    with pytest.raises(LedgerRequestError, match="ficha da descoberta"):
+        save_ledger_mapping(
+            account=account,
+            actor=review["actor"],
+            expected_revision=current["mapping_revision"],
+            chart_company_code=212,
+            branch_code=212,
+            bank_inflow_side="debit",
+            evidence_reference="Synthetic generic review cannot broaden monthly scope",
+            confirmed=True,
+        )
+    assert snapshot() == before
+    result["mapping"].refresh_from_db()
+    assert discovery_mapping_month_allowed(account, result["mapping"], "2026-09")
+    assert not discovery_mapping_month_allowed(account, result["mapping"], "2026-10")
+
+
+@pytest.mark.parametrize("field", ["company_discovery_id", "chart_account_id", "discovery_id"])
+def test_malformed_discovery_identity_refuses_month_without_unhandled_validation(review, field):
+    from apps.hub.ledger_requests import _stored_revision
+
+    result = confirmed(review)
+    account, mapping = result["financial_account"], result["mapping"]
+    mapping.provenance["confirmations"][0]["source_identity"][field] = "invalid-uuid"
+    mapping.revision = _stored_revision(mapping)
+    mapping.save()
+    assert not discovery_mapping_month_allowed(account, mapping, "2026-09", deep=True)
 
 
 def test_extension_retains_confirmed_bank_fields_and_review_history(review):

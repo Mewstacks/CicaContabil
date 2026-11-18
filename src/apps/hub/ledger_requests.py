@@ -11,7 +11,7 @@ from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 from django.conf import settings
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -343,6 +343,13 @@ def save_ledger_mapping(
         }
     )
     mapping = ReconciliationLedgerMapping.objects.filter(financial_account=account).first()
+    if mapping is not None and isinstance(mapping.provenance, dict) and (
+        mapping.provenance.get("kind") == "discovered_account_review"
+    ):
+        raise LedgerRequestError(
+            "Este vínculo foi confirmado por competência. "
+            "Use a ficha da descoberta para revisá-lo."
+        )
     history = []
     if mapping is not None:
         if not isinstance(mapping.review_history, list):
@@ -458,6 +465,7 @@ def discovery_mapping_month_allowed(
         TypeError,
         ValueError,
         AttributeError,
+        ValidationError,
         ReconciliationCompanyDiscovery.DoesNotExist,
         ReconciliationDiscoveredChartAccount.DoesNotExist,
     ):
