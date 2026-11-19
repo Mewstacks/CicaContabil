@@ -12184,3 +12184,48 @@ em bem menos de 15 min, sem perda observada. Não prova interrupção no meio de
 coleta/importação longa nem restauração de banco (4 h); esses itens e o aceite
 D-73 continuam abertos. Recibos em .tmp/release-ofx-5be564a/ da worktree
 contad-finalizacao-20261119.
+
+## V-419 — D-380: exportação Domínio pelo leiaute oficial publicada na v107 (19/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, fazer”). Fonte oficial:
+XML do conjunto “Leiaute Domínio Sistemas” (código19) publicado pela Domínio na
+solução7584 para o Importador; 39 campos com posições conferidos e reproduzidos
+em `tests/test_dominio_lote19.py`. Falta de leitura anterior: o percurso
+movimento → lançamento → aprovação recusava qualquer contrapartida que não fosse
+LedgerAccount, e só a conta bancária existia para a CONTAD; não havia comando nem
+tela para registrar a homologação.
+
+Implementado (PR #42, merge 2e3cfb2): adaptador `dominio-lote19-v1` (.txt,
+Windows-1252, CRLF, registros 01/02/03/99 nos tamanhos oficiais, lote X por par
+débito/crédito, recusa de composições desiguais e de códigos não reduzidos);
+contas aceitas pelo plano Domínio da empresa (sintética/inativa recusadas) em
+edição do movimento, regras e validação; comando `record_dominio_homologation`
+(simulação por padrão, registra/revoga com hash da prévia); texto da prévia e guia.
+
+Testes: 11 novos; fixtures de exportação com código Domínio e contas numéricas.
+Local: SQLite completo 3.406 aprovados/59 skips; PostgreSQL das suítes afetadas
+220 aprovados. A rodada PostgreSQL completa anterior teve 8 erros de setup do
+fixture novo (inscrição com pontuação excede varchar14; corrigido) e uma falha
+pré-existente dependente do relógio (`test_only_recent_official_can_change[change5]`
+calcula +6 min na coleta e falha em execução >6 min; passa isolado). CI 3/3 aprovado.
+
+Publicação: imagem OCI sobre a v106 (base 32032648…),
+sha256:11bb27ca482fd8c580d52ecb442b90181a3e469943feb5f196c61b1638e08af1, 818
+canônicos idênticos a 2e3cfb2, 82 assets ok, adaptador e comando conferidos dentro
+da imagem. Configuração igual à ativa mais
+RECONCILIATION_DOMINIO_PREVIEW_ORGANIZATION_IDS = UUID do escritório CONTAD.
+**Release v107**: release_command ok, web/worker saudáveis, reserva parada; runtime
+823/fb2fee93… nas duas máquinas, igual à imagem; migrações e endpoints iguais; 15
+grupos protegidos e extras idênticos ao pré-deploy; agente ativo; site/live/ready 200.
+
+Produção, somente leitura: prévia liberada só para a CONTAD (zero outros escritórios),
+flag global false, exportação NÃO homologada (aguarda teste), conta bancária 8 da
+SURIA aceita, código inexistente recusado, zero lançamentos aprovados ainda. Contas
+só do plano Domínio: empresas 212/22/30 com 200/200 analíticas aceitas e 50/50
+sintéticas recusadas.
+
+Pendente para a exportação definitiva: a CONTAD gerar um lançamento novo (não
+escriturado), aprovar, gerar a prévia, importar no Domínio pelo Importador (conjunto
+19) e confirmar; então a CICA roda `record_dominio_homologation --apply` com a
+prévia importada. Recibos em .tmp/release-export-d380/ da worktree
+contad-finalizacao-20261119.
