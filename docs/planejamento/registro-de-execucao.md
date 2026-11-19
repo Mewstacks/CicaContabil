@@ -4782,3 +4782,10 @@ SQLite integral 3.395 aprovados; PostgreSQL 1.356 do recorte; Playwright 11
 verificações. Medição real de retomada em produção recusada pela permissão da
 sessão (script pronto). Não publicado. Pendências e roteiros em
 docs/pt-BR/contad-pendencias-2026-11-19.md.
+
+## 19/11/2026 — V-418: release v106 e retomada medida
+
+PR #38 (vínculo pelo OFX D-377 e amostra D-73 reprodutível D-378) publicado na
+release v106 após CI; produção conferida antes/depois. Retomada técnica medida em
+produção: após os reinícios de hoje o agente voltou em ~62 s, zero perda em 72 h.
+Restauração do banco, amostra de 200 e aceite continuam pendentes (V-418).

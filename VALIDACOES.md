@@ -12149,3 +12149,38 @@ Limites: nada publicado (merge/deploy exigem autorização do responsável); ví
 reais, Q-47, C01/C02, DE-PARA, amostra de 200, precisão, restauração, RPO,
 treinamento e aceite continuam com os responsáveis em
 `docs/pt-BR/contad-pendencias-2026-11-19.md`. CONTAD não está concluída.
+
+## V-418 — Publicação v106 (D-377/D-378) e medição técnica de retomada (19/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta conversa: “de o deploy e
+push na main”. PR #38 (D-377/D-378/V-417) com CI aprovado (verify, agent,
+agent-package) mesclado em 5be564a. Diff revisado antes do merge: leitura do OFX
+só pré-preenche banco/conta, arquivo não é gravado, confirmação continua humana;
+OFX sem transações é recusado pelo parser existente. Sem migração.
+
+Imagem OCI sobre a v105 (base 95e271a9…), oito arquivos de runtime e collectstatic:
+sha256:320326482f16aad2a9d55a3f00298d8c14942b3e8dc6f08e98dd2d3f9d1710d8 —
+manifesto OCI (207 gzip/11 zstd), 816 canônicos idênticos a 5be564a, 82 assets ok,
+runtime 821 arquivos 3490285c…. Primeiro push recusou por credencial do registro
+expirada; `fly auth docker` e novo push. Deploy com a configuração ativa (rolling,
+EDGE_AGENT_LATEST_VERSION 1.0.13): **release v106**, release_command concluído;
+web 891e63ef665e58 e worker 1857691da097e8 saudáveis, reserva parada (v106).
+Conferência somente leitura antes/depois: runtime 20dee00c…→3490285c… nas duas
+máquinas, igual à imagem; hub0089/intelligence0041 e endpoints iguais; 15 grupos
+protegidos e extras idênticos ao pré-deploy e entre web/worker; agente ativo
+(16:05:55Z). Site, live e ready 200. Tela nova em produção não aberta: exige login
+do responsável (senha não é digitada pelo executor); Playwright em laboratório
+registrado em V-417.
+
+Retomada D-73 — medição técnica real, somente leitura (`resume-check.py` de V-417,
+transação READ ONLY, só horários/estados): janela de 72 h com 4.071 varreduras do
+agente oficial, todas concluídas, zero abortadas/abertas/erros. Nos dois reinícios
+reais de web/worker de hoje, intervalo entre a última varredura antes e a primeira
+depois: v105 61,8 s; v106 61,8 s (cadência normal ~60 s). Maior intervalo em 72 h:
+304,5 s (deploy de 18/11). Jobs de Razão 3/3 importados e de títulos 4/4 capturados,
+zero abertos há mais de 15 min; uma execução de conciliação em revisão, zero leases
+expirados. Prova a retomada do canal do agente e da fila após reinício do backend
+em bem menos de 15 min, sem perda observada. Não prova interrupção no meio de uma
+coleta/importação longa nem restauração de banco (4 h); esses itens e o aceite
+D-73 continuam abertos. Recibos em .tmp/release-ofx-5be564a/ da worktree
+contad-finalizacao-20261119.
