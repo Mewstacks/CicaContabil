@@ -12350,3 +12350,6 @@ skips; ruff ok. Main `8d98d2f`; imagem OCI
 (“sim, faz confirmar sozinha e publica”): **release v112**, web e worker started, live/ready 200.
 SURIA (importada antes da v112): 159 pares exatos pendentes e nenhuma confirmação; aplicação
 retroativa recusada pela permissão automática da sessão, aguardando o responsável.
+Aplicação retroativa autorizada pelo responsável (“Sim, aplica”): SURIA set/2026, 159 pares
+exatos confirmados como automáticos (autoria de quem pediu o Razão); 159 confirmadas no total,
+restantes seguem para revisão humana.
