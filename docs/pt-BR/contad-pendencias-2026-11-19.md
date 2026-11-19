@@ -1,6 +1,6 @@
 # CICA × CONTAD — pendências para a conclusão (19/11/2026)
 
-Estado: **uso assistido** (release v105 em produção). Esta lista substitui a tabela
+Estado: **uso assistido** (release v106 em produção desde 19/11, V-418). Esta lista substitui a tabela
 de pendências do comunicado de 18/11 sem reabrir decisões já tomadas. A CONTAD só
 será declarada concluída quando os critérios D-73 estiverem cumpridos: 200 itens
 revisados pelo proprietário, precisão medida de pelo menos 95% onde houver
@@ -12,7 +12,7 @@ Evidências privadas ficam fora do Git, em `.tmp/` das worktrees indicadas em
 VALIDACOES (pastas 0700, arquivos 0600). Nenhum valor financeiro ou nome real
 aparece neste documento.
 
-## O que mudou nesta rodada (D-377/D-378, fonte isolada, ainda não publicada)
+## O que mudou nesta rodada (D-377/D-378, publicado na release v106)
 
 - **Vínculo pelo OFX:** em *Contas do Domínio → Conferir vínculo*, o OFX da conta
   preenche banco e agência/conta no formato que a importação exige. Antes, uma
@@ -32,7 +32,7 @@ aparece neste documento.
 | C. C01/C02 — retenções e juros nos títulos | Grazi (CONTAD) | Sete exemplos privados V-379 íntegros; confronto técnico V-415 (C01: vbru−CRF−IRRF=vlor; C02: tipo 1 já inclui os juros do tipo 2); o sistema não soma componentes sozinho | 1. Abrir *Títulos e baixas* nas empresas dos exemplos. 2. Conferir C01 (retenções) e C02 (juros) contra o Domínio. 3. Dizer se a leitura técnica está correta. 4. Registrar a decisão em cada baixa pela tela. |
 | D. DE-PARA | CONTAD | Duas sugestões válidas retidas; zero regras ativas; nenhuma nova chamada de IA | 1. Abrir *Revisão DE-PARA*. 2. Aprovar (ou recusar) as duas contas exigidas. 3. Só então revisar as duas sugestões e ativar manualmente, se for o caso. |
 | E1. Amostra D-73 (200 itens) | Grazi como proprietária + responsável CICA | 163 fatos SURIA congelados com ficha sem previsões; comando `select` para os demais | 1. Revisar a ficha dos 163 fatos. 2. Após novos vínculos (item A), CICA roda `select --seed <semente publicada> --size 37` e `prepare` numa segunda conta. 3. Revisar a nova ficha. 4. CICA roda `report` e registra o resultado; precisão automática só é medida se houver regra ativa (item D). |
-| E2. Retomada em até 15 min (medição real) | Responsável CICA | Script somente leitura `.tmp/retomada/resume-check.py` (worktree `contad-conclusao-20261119`); leitura em produção recusada pela permissão automática desta sessão | 1. Autorizar a leitura somente leitura em produção (ou executá-la). 2. Rodar `python3 run_remote.py resume-check.py resume-check-web 891e63ef665e58 180`. 3. Comparar os horários de reinício dos deploys v104/v105 com a próxima varredura concluída do agente e confirmar zero jobs presos. |
+| E2. Retomada em até 15 min (medição real) | Responsável CICA | **Medida em 19/11 (V-418):** após os reinícios reais das releases v105 e v106 o agente voltou em ~62 s; 72 h com 4.071 varreduras, zero perdas e zero jobs presos | Concluído tecnicamente para o canal do agente e a fila. Ainda não provado: interrupção no meio de uma coleta longa; restauração (F) segue aberta. |
 | F. Restauração e RPO | Responsável CICA (login no console Neon) | Snapshot histórico expirado em 13/11; prefixo Tigris vazio (V-415); nada alterado | 1. Entrar no console Neon. 2. Criar branch de restauração em um ponto no tempo (sem tocar a produção). 3. Conferir contagens dos 15 grupos protegidos e um documento. 4. Medir o tempo total (meta: até 4 h). 5. Excluir a branch de teste. |
 | H. Treinamento e aceite formal | CONTAD + CICA | Guia `docs/pt-BR/contad-conciliacao.md` atualizado com o vínculo por OFX | Depois de A–F: 1. Sessão curta com o percurso vínculo → extrato → Razão → conferência → relatório. 2. Revisar com a CONTAD os critérios D-73. 3. Registrar o aceite com a autoria real. |
 
