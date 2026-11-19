@@ -4770,3 +4770,4 @@ Corrigido o deadlock entre confirmação de Razão e exportação Domínio (trav
 arquivo-fonte deixava de incluir a organização). Reprodução 6/15 falhas antes,
 15/15 aprovadas depois; regressão determinística nova. Demais pendências CONTAD
 dependem da cliente, do SVAPL02 ou do login Neon do responsável (V-416).
+Publicado na release v105 após CI aprovado; produção conferida antes/depois.
