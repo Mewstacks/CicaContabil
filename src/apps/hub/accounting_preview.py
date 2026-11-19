@@ -186,7 +186,9 @@ def create_preview(
         created_by=actor,
     )
     try:
-        preview.content.save("previa-nao-homologada.csv", ContentFile(rendered), save=False)
+        preview.content.save(
+            f"previa-nao-homologada.{adapter.extension}", ContentFile(rendered), save=False
+        )
         preview.save()
         record_event(
             action="hub.reconciliation.preview_created",

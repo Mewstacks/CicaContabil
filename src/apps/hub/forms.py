@@ -1392,16 +1392,15 @@ class ReconciliationRuleForm(forms.Form):
             self.add_error(None, "Defina ao menos uma ação para a regra.")
         company = cleaned.get("company")
         if isinstance(company, ClientCompany):
+            from apps.hub.postable_accounts import account_accepts_entries
+
             for field_name in ("debit_account_code", "credit_account_code"):
                 code = str(cleaned.get(field_name) or "")
-                if (
-                    code
-                    and not LedgerAccount.objects.filter(
-                        company=company, code=code, active=True, accepts_entries=True
-                    ).exists()
-                ):
+                if code and not account_accepts_entries(company, code):
                     self.add_error(
-                        field_name, "Cadastre uma conta contábil ativa que aceite lançamentos."
+                        field_name,
+                        "Use o código reduzido de uma conta analítica e ativa do plano "
+                        "desta empresa no Domínio.",
                     )
             cost_center = str(cleaned.get("cost_center_code") or "")
             if (

@@ -489,7 +489,9 @@ def test_identical_source_is_idempotent_and_keeps_original() -> None:
 def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
     organization = Organization.objects.create(name="Exportação", slug="exportacao")
     homologate_synthetic(organization)
-    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa", dominio_code="101"
+    )
     LedgerAccount.objects.create(organization=organization, company=company, code="1", name="Banco")
     LedgerAccount.objects.create(
         organization=organization, company=company, code="2", name="Despesa"
@@ -522,7 +524,8 @@ def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
     )
 
     assert exported.content_hash
-    assert exported.content.read().startswith(b"\xef\xbb\xbfData;")
+    assert exported.content.read().startswith(b"01")
+    assert exported.content.name.endswith(".txt")
     entry.refresh_from_db()
     assert entry.state == JournalEntry.State.EXPORTED
     reexported = create_export(
@@ -2666,7 +2669,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         },
     )
     assert invalid_manual_edit.status_code == 200
-    assert b"Escolha uma conta ativa" in invalid_manual_edit.content
+    assert "conta analítica e ativa".encode() in invalid_manual_edit.content
     assert b"data-form-errors" in invalid_manual_edit.content
     movement.refresh_from_db()
     assert movement.debit_account_code == ""

@@ -41,7 +41,6 @@ from apps.hub.models import (
     ClientCompany,
     JournalEntry,
     JournalLine,
-    LedgerAccount,
     MovementReconciliation,
     NormalizedMovement,
     ProductModule,
@@ -1756,16 +1755,11 @@ def validate_journal_entry(entry: JournalEntry) -> list[str]:
     credit = sum(line.amount_cents for line in lines if line.side == JournalLine.Side.CREDIT)
     if debit != credit or debit <= 0:
         errors.append("Débitos e créditos devem ser iguais e maiores que zero.")
-    valid_accounts = set(
-        LedgerAccount.objects.filter(
-            organization=entry.organization,
-            company=entry.company,
-            active=True,
-            accepts_entries=True,
-        ).values_list("code", flat=True)
-    )
+    from apps.hub.postable_accounts import invalid_account_codes
+
+    invalid_accounts = invalid_account_codes(entry.company, [line.account_code for line in lines])
     for line in lines:
-        if line.account_code not in valid_accounts:
+        if str(line.account_code or "").strip() in invalid_accounts or not line.account_code:
             errors.append(f"Conta inválida ou inativa: {line.account_code}.")
     if AccountingPeriod.objects.filter(
         organization=entry.organization,
@@ -1943,6 +1937,110 @@ def render_dominio_csv(entries: Iterable[JournalEntry]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+# Official Domínio importer dataset "Leiaute Domínio Sistemas" (code 19, Lançamentos
+# Contábeis em Lote), published for the Importador in solution 7584 (D-380). Fixed
+# width, no field separator; numeric fields are zero-filled on the left, character
+# fields space-filled on the right, values carry two implied decimals.
+DOMINIO_LOTE19_WIDTHS = {"01": 54, "02": 150, "03": 664, "99": 100}
+_HISTORY_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]+")
+
+
+def _fixed_number(value: int | str, width: int, label: str) -> str:
+    text = str(value).strip()
+    if not text.isascii() or not text.isdecimal() or len(text.lstrip("0") or "0") > width:
+        raise ReconciliationError(f"{label} não cabe no leiaute Domínio: {value}.")
+    return text.zfill(width)[-width:]
+
+
+def _fixed_text(value: str, width: int) -> str:
+    text = _HISTORY_CONTROL.sub(" ", str(value or "")).strip()
+    text = text.encode("cp1252", errors="replace").decode("cp1252")
+    return text[:width].ljust(width)
+
+
+def _dominio_record(kind: str, body: str) -> str:
+    record = (kind + body).ljust(DOMINIO_LOTE19_WIDTHS[kind])
+    if len(record) != DOMINIO_LOTE19_WIDTHS[kind]:
+        raise ReconciliationError("Registro fora do tamanho oficial do leiaute Domínio.")
+    return record
+
+
+def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
+    """Render approved entries of one company as the official fixed-width lote file."""
+    entries = list(entries)
+    if not entries:
+        raise ReconciliationError("Não há lançamentos para o arquivo Domínio.")
+    companies = {entry.company_id for entry in entries}
+    if len(companies) != 1:
+        raise ReconciliationError("O arquivo Domínio deve conter uma única empresa.")
+    company = entries[0].company
+    if not company.dominio_code:
+        raise ReconciliationError("A empresa precisa do código Domínio para exportar.")
+    company_code = _fixed_number(company.dominio_code, 7, "Código da empresa")
+    registration = "".join(ch for ch in str(company.dominio_registration_raw or "") if ch.isdigit())
+    cnpj = registration if len(registration) == 14 else ""
+    start = min(entry.occurred_on for entry in entries)
+    end = max(entry.occurred_on for entry in entries)
+    lines = [
+        _dominio_record(
+            "01",
+            company_code
+            + cnpj.ljust(14)
+            + start.strftime("%d/%m/%Y")
+            + end.strftime("%d/%m/%Y")
+            + "N"
+            + "05"
+            + "00000"
+            + "1"
+            + "17",
+        )
+    ]
+    sequence = 0
+    for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
+        parts = list(entry.lines.all())
+        debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
+        credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
+        # Only the "X" lote type (one debit, one credit) is emitted until another type
+        # is proven on the destination importer; equal debit/credit pairs become one
+        # X lote each, preserving totals. Other compositions are refused.
+        if len(debits) != len(credits) or any(
+            debit.amount_cents != credit.amount_cents
+            for debit, credit in zip(debits, credits, strict=False)
+        ):
+            raise ReconciliationError(
+                "Partidas compostas com valores diferentes ainda não são aceitas no arquivo "
+                "Domínio; divida o lançamento em pares de débito e crédito."
+            )
+        for debit, credit in zip(debits, credits, strict=True):
+            if debit.amount_cents <= 0:
+                raise ReconciliationError("O valor do lançamento deve ser maior que zero.")
+            sequence += 1
+            lines.append(
+                _dominio_record(
+                    "02",
+                    _fixed_number(sequence, 7, "Sequencial")
+                    + "X"
+                    + entry.occurred_on.strftime("%d/%m/%Y")
+                    + _fixed_text("CICA", 30),
+                )
+            )
+            sequence += 1
+            lines.append(
+                _dominio_record(
+                    "03",
+                    _fixed_number(sequence, 7, "Sequencial")
+                    + _fixed_number(debit.account_code, 7, "Conta débito")
+                    + _fixed_number(credit.account_code, 7, "Conta crédito")
+                    + _fixed_number(debit.amount_cents, 15, "Valor")
+                    + "0" * 7
+                    + _fixed_text(entry.history, 512)
+                    + company_code,
+                )
+            )
+    lines.append(_dominio_record("99", "9" * 98))
+    return ("\r\n".join(lines) + "\r\n").encode("cp1252")
+
+
 @dataclass(frozen=True)
 class AccountingExportAdapter:
     """A reviewed target contract; no target falls back to another system."""
@@ -1950,13 +2048,17 @@ class AccountingExportAdapter:
     target: str
     version: str
     render: Callable[[Iterable[JournalEntry]], bytes]
+    extension: str = "csv"
+    content_type: str = "text/csv"
 
 
 ACCOUNTING_EXPORT_ADAPTERS: dict[str, AccountingExportAdapter] = {
     AccountingExport.Target.DOMINIO: AccountingExportAdapter(
         target=AccountingExport.Target.DOMINIO,
-        version="dominio-3.1-pending-homologation",
-        render=render_dominio_csv,
+        version="dominio-lote19-v1",
+        render=render_dominio_lote19,
+        extension="txt",
+        content_type="text/plain",
     ),
 }
 
@@ -2084,8 +2186,13 @@ def create_export(
         reexport_reason=reexport_reason[:240],
         created_by=actor if isinstance(actor, User) else None,
     )
+    # A reexport keeps the original bytes, therefore also the original file type.
+    original_suffix = PurePath(reexport_of.content.name or "").suffix if reexport_of else ""
+    extension = original_suffix.lstrip(".") or adapter.extension
     export.content.save(
-        f"lancamentos-{start.isoformat()}-{end.isoformat()}.csv", ContentFile(rendered), save=False
+        f"lancamentos-{start.isoformat()}-{end.isoformat()}.{extension}",
+        ContentFile(rendered),
+        save=False,
     )
     export.save()
     if reexport_of is None:
