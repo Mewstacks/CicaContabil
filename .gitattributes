@@ -25,3 +25,5 @@ agent-windows/inspect-contad-account-details.ps1 text eol=lf
 agent-windows/test-contad-account-details.ps1 text eol=lf
 agent-windows/inspect-contad-chart-discovery.ps1 text eol=lf
 agent-windows/test-contad-chart-discovery.ps1 text eol=lf
+agent-windows/inspect-contad-branch-accounts.ps1 text eol=lf
+agent-windows/test-contad-branch-accounts.ps1 text eol=lf

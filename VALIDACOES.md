@@ -12229,3 +12229,22 @@ escriturado), aprovar, gerar a prévia, importar no Domínio pelo Importador (co
 19) e confirmar; então a CICA roda `record_dominio_homologation --apply` com a
 prévia importada. Recibos em .tmp/release-export-d380/ da worktree
 contad-finalizacao-20261119.
+
+## V-420 — D-381: leitor de filial por conta bancária — EM ANDAMENTO (19/11/2026)
+
+Leitor `agent-windows/inspect-contad-branch-accounts.ps1` (somente SELECT em
+`bethadba.ctlancto`, empresas 25/42/129/147/280/293, setembro–outubro/2026,
+códigos e contagens por empresa/plano/filial/conta/lado, duas leituras idênticas,
+saída gzip-base64 com SHA-256) e teste sintético `test-contad-branch-accounts.ps1`
+(12 cenários: sucesso, vazio, saída grande, coluna ausente, empresa/período fora do
+escopo, duplicidade, contagem zero, nulo, limite de linhas, fonte alterada e falha
+de driver) incluído na CI Windows. PowerShell não disponível neste Mac: o teste
+sintético ainda não rodou; depende da CI Windows.
+
+Analisador `scripts/analyze_contad_branch_accounts.py` conferido localmente com
+contagens sintéticas sobre o catálogo real retido (SHA `7bbbd36b…cf35`): contas
+analíticas do grupo “Depósitos Bancários” separadas do caixa, filial sugerida por
+uso em setembro e indicação de escolha quando houver mais de uma filial.
+
+Pendente: CI Windows, execução no SVAPL02 pelo responsável, recepção e conferência
+do arquivo. Nenhuma consulta ao ERP, escrita em produção ou vínculo aprovado.

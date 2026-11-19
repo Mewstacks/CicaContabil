@@ -47,6 +47,10 @@ jobs:
         if: github.event.repository.private == false
         shell: powershell
         run: ./agent-windows/test-contad-portfolio-profile.ps1
+      - name: Validate branch account counts without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-branch-accounts.ps1
       - name: Validate account details with synthetic ODBC and private reports
         if: github.event.repository.private == false
         shell: powershell

@@ -5808,3 +5808,40 @@ Decisões:
    escritório (owner/admin) após importar o arquivo de teste no Domínio e conferir.
    Nada é escrito direto no ERP; a CICA só gera o arquivo. Razão já escriturado
    nunca é exportado. Sem custo, infraestrutura, IA ou mensagens externas.
+
+## D-381 — Descobrir a filial das contas bancárias nas matrizes com filiais (19/11/2026)
+
+Origem: responsável, 19/11/2026. Sobre os vínculos bancários (Q-28), respondeu
+“TODAS empresas, em setembro/2026”, pediu “DESCUBRA” a filial das contas e,
+diante da proposta de uma consulta somente leitura no Domínio, “Sim, consulta”.
+Executor Claude Code.
+
+Fatos de partida: o perfil de cobertura de 13/11 (V-397) e o catálogo real de 17/11
+(SHA `7bbbd36b…cf35`) agregam lançamentos só por empresa/plano/filial/mês, não por
+conta. Em setembro/2026 seis matrizes têm mais de uma filial: 25 (1002), 42 (355),
+129 (359), 147 (220), 280 (191, 192, 333, 362) e 293 (471, 472, 487, 491). As doze
+filiais são empresas ativas da carteira, sem lançamento próprio no período.
+
+Decisões:
+1. Novo leitor `inspect-contad-branch-accounts.ps1`, mesmo padrão dos leitores
+   anteriores: DSN `CICA_CONTAD`, credencial digitada localmente, SELECTs fixos,
+   duas leituras idênticas, limites de tempo/linhas/saída, JSON seguro na saída.
+2. Escopo fixo: empresas 25, 42, 129, 147, 280 e 293; lançamentos de setembro e
+   outubro/2026. Retorna somente códigos e contagens por empresa, plano, filial,
+   conta e lado (débito/crédito). Sem valores, históricos, nomes ou documentos.
+3. A identificação das contas de banco é feita no Mac, cruzando os códigos com o
+   catálogo real já retido (nome e classificação). O resultado é uma sugestão de
+   filial por conta para a tela de vínculo, não um vínculo aprovado: banco,
+   agência/conta continuam vindo do OFX e a confirmação continua humana.
+4. Execução no SVAPL02 pelo responsável, pois esta sessão não controla o desktop.
+   Nada é escrito no ERP ou na produção; sem custo, IA ou mensagens externas.
+
+## D-382 — DE-PARA adiado na comunicação de 19/11 (19/11/2026)
+
+Origem: responsável, 19/11/2026, “esquece essas duas contas agora”, sobre a aprovação
+das duas contas exigidas pelas sugestões DE-PARA retidas. A pendência D da lista de
+19/11 sai da comunicação à cliente e fica adiada, sem ativar regra nem aprovar conta.
+Na mesma mensagem o responsável pediu “de como certo a importação” (Q-47): isso
+conflita com D-380 item 4 (exportação definitiva só após homologação registrada pelo
+escritório depois de importar o arquivo de teste) e aguarda esclarecimento antes de
+qualquer registro de homologação em produção.
