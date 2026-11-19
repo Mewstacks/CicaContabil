@@ -12293,3 +12293,14 @@ catálogo retido, grupo “Depósitos Bancários”, setembro/2026:
 - 147 → nenhuma conta do grupo bancário com lançamento em setembro.
 Sugestão: vincular todas na filial da matriz; os lançamentos isolados de outras filiais
 aparecerão como pendência na conferência. Não é vínculo aprovado nem revisão humana.
+
+## V-422 — D-385: conta do banco na importação, release v109 (19/11/2026)
+
+Lista *Conta financeira* de *Importar arquivos* traz as contas do grupo bancário do plano
+Domínio ainda não vinculadas; com OFX, a CICA vincula e importa como extrato. 4 testes novos
+(`tests/test_upload_auto_link.py`) e 123 aprovados com conciliação/navegação/sugestão; ruff ok.
+Main `81a2183`; imagem OCI sobre a v108, digest
+`sha256:e48f4dbe882715acc651de7a61dabe81d49a08f06807de4b2be3093e1404cedb`. Deploy autorizado
+pelo responsável (“Sim, faz o deploy”): **release v109**, web e worker started na 109, reserva
+parada, live/ready 200. CI da v108 (`ac2a582`) aprovada integralmente. Não verificado: tela
+em produção com usuário logado e CI integral de `81a2183`.
