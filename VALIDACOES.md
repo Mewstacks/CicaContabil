@@ -12330,3 +12330,13 @@ empresa. Cópia privada (0600) em Downloads/CICA-SURIA-backup-antes-de-apagar-20
 1.351.809 bytes, SHA `13fc1b24…c189` conferido. Releitura: 0 fontes, 0 contas; catálogo
 (descoberta) e auditoria preservados; conta 8 pronta para vínculo novo (sem bloqueio,
 filial 212). Não verificado: arquivos brutos no armazenamento de objetos.
+
+## V-425 — Botão “Abrir conferência” nas importações, release v111 (19/11/2026)
+
+Primeiro uso real da v110 (SURIA, conta 8, OFX de setembro, login da Grazi): vínculo 18:55:28,
+OFX 18:55:30, pedido do Razão 18:55:42 e Razão importado 18:55:52 (163 registros); segundo
+pedido manual 18:56:03 sem duplicar registros. A tela de Importações não oferecia caminho
+para a conferência; cada linha de extrato com conta passa a ter “Abrir conferência”. 1 teste
+novo; 117 aprovados nas suítes de conciliação. Main `199fc4a`; imagem OCI
+`sha256:2ddeece58dd76bf8d6baf1e6c10822462a2ab9ea24ce72b31d370ae19227b2a7`; deploy autorizado
+(“Sim, publica”): **release v111**, web e worker started, live/ready 200.
