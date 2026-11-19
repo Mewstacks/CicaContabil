@@ -12268,3 +12268,14 @@ Navegador, servidor local com dados sintéticos: OFX anexado, “Mais provável�
 ficha aberta com banco/conta/lado preenchidos e confirmações desmarcadas, console sem
 erros, 375 px sem rolagem horizontal. Não verificado: teclado/leitor de tela, tema
 claro, produção. Publicação pendente de CI e deploy pelo responsável.
+
+Publicação V-421 (19/11, ~15h10 BRT, executor Claude Code, pedido explícito do responsável
+“só da o push direto pra main e faz o deploy”, sem esperar a CI): main avançado para
+`ac2a582`. A CI 44583230029 (commit anterior) tinha 1 falha em 3.414 testes, a regra
+D-277 de texto sob título, corrigida em `ac2a582` e aprovada localmente; a CI 44584586905
+de `ac2a582` ainda estava em andamento no deploy. Imagem OCI sobre a v107
+(`11bb27ca…`), só `src/` de `ac2a582` (4 arquivos alterados), digest
+`sha256:ebee1b160e87d9460cd851a9e9688195bc866eea8b69c47531724fdb85f0b7fa`, camadas OCI
+conferidas no registry. **Release v108**: release_command concluído, web e worker
+`started` na 108, reserva parada; live/ready 200; CSS novo servido. Tela em produção não
+aberta (sem sessão autenticada nesta execução).
