@@ -10569,6 +10569,19 @@ def _ledger_after_upload(
         .exists()
     )
     if already:
+        if NativeLedgerCollection.objects.filter(
+            financial_account=account,
+            scope__period_start=month.isoformat(),
+            state=NativeLedgerCollection.State.IMPORTED,
+        ).exists():
+            from apps.hub.auto_confirm import auto_confirm_exact
+
+            confirmed = auto_confirm_exact(source=source, month=month, actor=request.user)
+            if confirmed:
+                messages.success(
+                    request,
+                    f"{confirmed} movimento(s) conferido(s) automaticamente com o Razão.",
+                )
         return url
     try:
         revision = ledger_request_context(account=account, actor=cast(User, request.user))[

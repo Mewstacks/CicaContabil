@@ -5918,3 +5918,13 @@ Apagar da empresa Domínio 212: extrato OFX e seus movimentos, confirmações, f
 vínculo da conta Sicredi, os três Razões coletados, títulos e as duas sugestões DE-PARA.
 Preservar o catálogo de planos (descoberta) e a trilha de auditoria. Antes, cópia privada
 dos registros apagados e ensaio em transação revertida; nenhum dado de outra empresa.
+
+## D-388 — Coincidências exatas confirmadas pela própria CICA (19/11/2026)
+
+Origem: responsável, 19/11/2026, “sim, faz confirmar sozinha e publica”, após explicação de
+que as coincidências são pares únicos com mesma data, valor, direção e conta. Executor
+Claude Code. Quando o Razão chega, quando o extrato termina de processar ou quando o extrato
+é importado com Razão já existente, a CICA confirma os pares exatos únicos do mês, com nota
+“Confirmação automática (D-388)” e autoria de quem pediu o Razão. Ambíguos e sem par seguem
+para revisão humana; cada confirmação pode ser desfeita na ficha do movimento. Supera, para
+esses pares, o clique de confirmação da D-386.

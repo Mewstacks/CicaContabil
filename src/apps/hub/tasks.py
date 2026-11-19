@@ -171,9 +171,11 @@ def dispatch_active_nfse_syncs() -> int:
         last_error_at=now,
         updated_at=now,
     )
-    if _eligible_nfse_syncs().filter(
-        status__in=[NfseSync.Status.QUEUED, NfseSync.Status.RUNNING]
-    ).exists():
+    if (
+        _eligible_nfse_syncs()
+        .filter(status__in=[NfseSync.Status.QUEUED, NfseSync.Status.RUNNING])
+        .exists()
+    ):
         return 0
     sync_id = (
         _eligible_nfse_syncs()
@@ -223,9 +225,7 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
     acquired = (
         _eligible_nfse_syncs()
         .filter(pk=parsed_id)
-        .filter(
-            status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY, NfseSync.Status.QUEUED]
-        )
+        .filter(status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY, NfseSync.Status.QUEUED])
         .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
         .filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now))
         .update(
@@ -263,15 +263,11 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
         )
         if continue_same_company:
             try:
-                poll_nfse_sync.apply_async(
-                    args=[sync_id], countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
-                )
+                poll_nfse_sync.apply_async(args=[sync_id], countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS)
             except Exception:
                 logger.exception("Could not continue NFS-e sync %s", sync_id)
                 continue_same_company = False
-                NfseSync.objects.filter(
-                    pk=parsed_id, status=NfseSync.Status.QUEUED
-                ).update(
+                NfseSync.objects.filter(pk=parsed_id, status=NfseSync.Status.QUEUED).update(
                     status=NfseSync.Status.RETRY,
                     next_run_at=timezone.now() + timedelta(minutes=1),
                     last_error_code="queue_delivery",
@@ -310,9 +306,7 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
             lease_token=None, lease_until=None
         )
         if settings.NFSE_ADN_SYNC_ENABLED and not continue_same_company:
-            dispatch_active_nfse_syncs.apply_async(
-                countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
-            )
+            dispatch_active_nfse_syncs.apply_async(countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS)
 
 
 @shared_task(name="hub.refresh_reform_sources")  # type: ignore[untyped-decorator]
@@ -339,6 +333,10 @@ def process_reconciliation_run(self: Any, run_id: str) -> dict[str, int | str]:
     result = process_run(run_id, on_acquired=arm)
     if result["state"] == "not_ready" and arm is not None:
         recover_run(run_id)
+    elif result["state"] in {"review", "completed", "completed_alerts"}:
+        from apps.hub.auto_confirm import auto_confirm_after_run
+
+        auto_confirm_after_run(run_id)
     return result
 
 
@@ -562,8 +560,7 @@ def dispatch_dte_run(run_id: str) -> None:
             item.status = DteRunItem.Status.FAILED
             item.error_code = "authorization_revoked"
             item.error_message = (
-                "A autorização atual não permite consultar esta empresa "
-                "pela Integra."
+                "A autorização atual não permite consultar esta empresa pela Integra."
             )
             item.completed_at = timezone.now()
             item.save(

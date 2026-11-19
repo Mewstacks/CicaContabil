@@ -292,6 +292,10 @@ def complete_job(request: HttpRequest, job_id: str) -> JsonResponse:
                 "updated_at",
             ]
         )
+        if job.state == NativeLedgerCollection.State.IMPORTED:
+            from apps.hub.auto_confirm import auto_confirm_for_job
+
+            auto_confirm_for_job(job)
     except Exception:
         if saved:
             source.content.delete(save=False)
