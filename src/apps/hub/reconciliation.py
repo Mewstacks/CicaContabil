@@ -128,6 +128,36 @@ def parse_ofx(content: bytes) -> ParsedStatement:
     return ParsedStatement(account_reference=account_reference, transactions=tuple(transactions))
 
 
+@dataclass(frozen=True)
+class OfxAccountIdentity:
+    """Bank identification read from an OFX only to prefill a human review (D-377)."""
+
+    bank_id: str
+    branch_id: str
+    account_id: str
+    account_reference: str
+    transaction_count: int
+    first_date: date
+    last_date: date
+
+
+def read_ofx_account_identity(content: bytes) -> OfxAccountIdentity:
+    """Validate with the import parser and return the identity the import will require."""
+
+    statement = parse_ofx(content)
+    header = _tags(content.decode("utf-8", errors="replace"))
+    dates = [transaction.occurred_on for transaction in statement.transactions]
+    return OfxAccountIdentity(
+        bank_id=header.get("BANKID", ""),
+        branch_id=header.get("BRANCHID", ""),
+        account_id=header.get("ACCTID", ""),
+        account_reference=statement.account_reference,
+        transaction_count=len(statement.transactions),
+        first_date=min(dates),
+        last_date=max(dates),
+    )
+
+
 def validate_ofx_account(
     statement: ParsedStatement,
     *,

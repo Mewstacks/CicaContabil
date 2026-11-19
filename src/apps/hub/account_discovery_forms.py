@@ -44,7 +44,11 @@ class DiscoveryLinkForm(forms.Form):
             "account_reference": forms.CharField(
                 max_length=160,
                 label="Agência e conta bancária",
-                help_text="Copie a identificação do extrato, preservando os zeros e dígitos.",
+                help_text=(
+                    "Copie a identificação do extrato, preservando os zeros e dígitos. "
+                    "Se for enviar OFX, prefira ler o arquivo acima: a importação exige "
+                    "banco:agência:conta exatamente como no OFX."
+                ),
                 widget=forms.TextInput(attrs={"autocomplete": "off"}),
             ),
             "bank_inflow_side": forms.ChoiceField(
@@ -100,3 +104,20 @@ class DiscoveryLinkForm(forms.Form):
             ):
                 self.add_error(name, "Use uma identificação sem quebras de linha ou controles.")
         return cleaned
+
+
+class OfxPrefillForm(forms.Form):
+    """Upload read only to prefill bank identity; the file is never stored (D-377)."""
+
+    statement = forms.FileField(
+        label="Extrato OFX ou QFX desta conta",
+        help_text=(
+            "Preenche banco e conta como a importação exige. O arquivo não é gravado; "
+            "você confere e confirma abaixo."
+        ),
+        widget=forms.ClearableFileInput(attrs={"accept": ".ofx,.qfx"}),
+    )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs.setdefault("auto_id", "discovery-ofx-%s")
+        super().__init__(*args, **kwargs)

@@ -15,6 +15,7 @@
   </dl>
   <details class="account-provenance"><summary>Consultar detalhes da origem</summary><dl><div><dt>Tipo informado na origem</dt><dd translate="no">{{ discovery_account.row.account_type_raw|default:'Não informado' }}</dd></div><div><dt>Situação informada na origem</dt><dd translate="no">{{ discovery_account.row.account_status_raw|default:'Não informada' }}</dd></div><div><dt>Inativação informada na origem</dt><dd translate="no">{{ discovery_account.row.inactive_on_raw|default:'Não informada' }}</dd></div><div><dt>Identificação da fonte</dt><dd class="account-hash" translate="no">{{ discovery.source_file_sha256 }}</dd></div></dl></details>
 </section>
+{% if discovery_prefill_error and not discovery_can_confirm %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Extrato não lido.</strong><p>{{ discovery_prefill_error }}</p></div>{% endif %}
 {% if discovery_blocking_message %}
 <section class="workspace-panel discovery-panel discovery-result"><h2>Coleta aguardando revisão</h2><p>{{ discovery_blocking_message }}</p>{% if discovery_candidate_url %}<a class="button button-quiet" href="{{ discovery_candidate_url }}">Consultar conferência anterior</a>{% endif %}</section>
 {% elif discovery_prepared.collection_ready %}
@@ -22,6 +23,15 @@
 {% elif discovery_can_confirm %}
 <section class="workspace-panel account-candidate-review discovery-panel" aria-labelledby="discovery-confirm-heading">
   <header class="workspace-panel-head"><div><h2 id="discovery-confirm-heading">Complete somente o que falta</h2></div></header>
+  {% if discovery_prefill_available %}
+  <form method="post" action="{{ discovery_detail_url }}" enctype="multipart/form-data" class="discovery-ofx-prefill" id="discovery-ofx-form" aria-labelledby="discovery-ofx-heading">
+    {% csrf_token %}<input type="hidden" name="action" value="prefill">
+    <h3 id="discovery-ofx-heading">Tem o extrato OFX desta conta?</h3>
+    {% with field=discovery_prefill_form.statement %}<div class="field{% if discovery_prefill_error %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label><input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" accept=".ofx,.qfx" required aria-describedby="{{ field.id_for_label }}_helptext{% if discovery_prefill_error %} {{ field.id_for_label }}_error{% endif %}"{% if discovery_prefill_error %} aria-invalid="true"{% endif %}><p class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% if discovery_prefill_error %}<p class="field-error" id="{{ field.id_for_label }}_error" role="alert">{{ discovery_prefill_error }}</p>{% endif %}</div>{% endwith %}
+    <div class="account-review-actions"><button class="button button-quiet" type="submit" data-busy-label="Lendo…">Ler banco e conta do extrato</button></div>
+  </form>
+  {% if discovery_prefill %}<div class="discovery-prefill-result" role="status" tabindex="-1" data-prefill-result><strong>Dados lidos do extrato. Confira antes de confirmar.</strong><dl><div><dt>Banco</dt><dd translate="no">{{ discovery_prefill.bank_id }}</dd></div>{% if discovery_prefill.branch_id %}<div><dt>Agência</dt><dd translate="no">{{ discovery_prefill.branch_id }}</dd></div>{% endif %}<div><dt>Conta</dt><dd translate="no">{{ discovery_prefill.account_id }}</dd></div><div><dt>Período do arquivo</dt><dd>{{ discovery_prefill.first_date|date:'d/m/Y' }} a {{ discovery_prefill.last_date|date:'d/m/Y' }} · {{ discovery_prefill.transaction_count|unlocalize }} movimentos</dd></div></dl><p>O arquivo não foi guardado. Para conciliar, envie-o depois em Extrato e Razão.</p></div>{% endif %}
+  {% endif %}
   {% if discovery_prepared.branches|length > 1 %}<p class="discovery-branch-note">Há lançamentos de mais de uma filial na competência. Confirme a filial desta conta. Se o Razão incluir outras filiais no mesmo lote, a coleta precisará de revisão para preservar todos os lançamentos.</p>{% endif %}
   <form method="post" action="{{ discovery_detail_url }}" class="account-review-form" id="discovery-link-form" data-account-candidate-form>
     {% csrf_token %}

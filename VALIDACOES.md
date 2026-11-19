@@ -12094,3 +12094,58 @@ bancários, aprovação das duas contas do DE-PARA, amostra D-73 de200 e aceite
 (CONTAD/Grazi); restauração/PITR Neon (responsável, login no console); replay com
 locks da descoberta em produção (desnecessário; helper privado). CONTAD continua em
 uso assistido, não concluída.
+
+## V-417 — D-377/D-378: vínculo pelo OFX e seleção reprodutível D-73 (19/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-conclusao-20261119` a partir da
+main d29f5d7 (igual ao código da v105). Checkout canônico e demais worktrees
+preservados; nenhuma imagem, volume ou contêiner alheio removido. Produção não
+foi alterada: continua v105, uso assistido.
+
+Achado que motivou D-377 (confirmado por teste): `validate_ofx_account` exige
+`FinancialAccount.account_reference == "BANKID:BRANCHID:ACCTID"` do arquivo. A
+ficha “Conferir vínculo” aceitava referência livre; um vínculo com referência
+digitada naturalmente faria o primeiro OFX da conta ser recusado
+(`test_manual_reference_shape_is_what_prefill_prevents`).
+
+D-377 implementado: leitura do OFX/QFX (mesmo analisador, limite 25 MB) só
+pré-preenche código do banco e referência; lado, filial, confirmações e envio
+continuam humanos. Arquivo inválido, sem banco/conta únicos, fora do formato,
+duplicado, grande demais, perfil consultivo ou ficha já pronta: 400/403 e zero
+escrita (15 grupos protegidos, contas, vínculos, fontes, movimentos e auditoria
+idênticos antes/depois). Vínculo confirmado após o pré-preenchimento passa em
+`validate_ofx_account` com o mesmo arquivo. Ajuda do campo e guia da CONTAD
+atualizados; texto sob título removido para cumprir D-277 (`test_ui_copy_rule`).
+
+D-378 implementado: `reconciliation_acceptance select --seed --size [--month]
+--output` ordena por SHA-256(semente:id), um movimento por fato, exclui fatos
+já congelados (163 congelados ⇒ 37 restantes num conjunto de 200), grava só
+`{"movement_ids"}` em 0600 e imprime manifesto com impressão digital da
+população. Mesma semente/população ⇒ mesma seleção; zero auditoria criada.
+
+Testes: 13 novos de D-377 e 9 de D-378 (sintéticos). SQLite integral:
+3.395 aprovados, 59 skips, 187 subtestes, zero falhas (a primeira execução
+apontou a regra D-277, corrigida). PostgreSQL 17 descartável em tmpfs:
+139 focados e 1.356 do recorte conciliação/contas/Razão/títulos aprovados,
+24 subtestes; contêiner removido. Ruff, MyPy dos módulos alterados, `check` e
+`makemigrations --check` sem pendências; nenhuma migração.
+
+Playwright 1.62.1 + Chrome contra servidor de teste local com dados sintéticos:
+11 verificações — bloco antes do formulário, rótulo e botão de 44 px, teclado e
+foco visível, erro com `aria-invalid`/foco no campo, resultado lido focado e
+campos preenchidos sem tocar lado/confirmações, 1440/375 claro/escuro, paisagem,
+texto 200% sem rolagem horizontal e confirmação humana final. Sem erro JS/console
+além do registro do 400 intencional do arquivo inválido. Capturas inspecionadas.
+ui-ux-pro-max e Watermelon não estavam disponíveis nesta sessão (limite).
+Evidências privadas: `.tmp/qa-d377/` (result.json, capturas, logs das suítes).
+
+Retomada D-73 (≤15 min): medição real planejada sobre os reinícios de web/worker
+dos deploys v104/v105 (horário das máquinas × próxima varredura concluída do
+agente, jobs presos, leases vencidos), somente leitura. `flyctl machine status` e
+`fly ssh` foram recusados pela permissão automática da sessão e não foram
+contornados; script pronto em `.tmp/retomada/resume-check.py`. Não medido.
+
+Limites: nada publicado (merge/deploy exigem autorização do responsável); vínculos
+reais, Q-47, C01/C02, DE-PARA, amostra de 200, precisão, restauração, RPO,
+treinamento e aceite continuam com os responsáveis em
+`docs/pt-BR/contad-pendencias-2026-11-19.md`. CONTAD não está concluída.

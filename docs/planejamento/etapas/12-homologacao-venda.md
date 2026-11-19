@@ -1049,3 +1049,13 @@ bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável
 43 fichas implementada e em validação/publicação; nada ativado automaticamente.
 Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
 continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
+
+
+## Encaminhamento para a conclusão CONTAD — D-377/D-378/V-417 (19/11/2026)
+
+- [x] Pendências de terceiros com evidência, roteiro de até 5 passos e responsável em `docs/pt-BR/contad-pendencias-2026-11-19.md`.
+- [x] Pergunta única do RPO formulada com recomendação (até 24 h, sem mexer em infraestrutura).
+- [ ] Medição real de retomada em produção: script somente leitura pronto; execução recusada pela permissão automática da sessão, aguarda o responsável.
+- [ ] Q-47 (prints do Importador no SVAPL02), C01/C02 (Grazi), DE-PARA, vínculos, amostra 200/95%, restauração 4 h, treinamento e aceite D-73.
+
+CONTAD permanece em uso assistido; nada desta rodada é aceite ou homologação.

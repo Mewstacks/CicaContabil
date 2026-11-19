@@ -17,6 +17,7 @@ from apps.hub.reconciliation_acceptance import (
     acceptance_review_packet,
     prepare_acceptance_sample,
     review_acceptance_sample,
+    select_acceptance_movements,
 )
 from apps.intelligence.native_title_contract import strict_json
 
@@ -28,6 +29,13 @@ class Command(BaseCommand):
         for name in ("organization", "account", "actor"):
             parser.add_argument(f"--{name}", required=True)
         actions = parser.add_subparsers(dest="action", required=True)
+        select = actions.add_parser("select")
+        select.add_argument("--seed", required=True, help="Semente registrada no manifesto.")
+        select.add_argument("--size", type=int, default=200)
+        select.add_argument("--month", action="append", default=[], help="AAAA-MM; repetível.")
+        select.add_argument(
+            "--output", required=True, help="Arquivo privado com movement_ids para prepare."
+        )
         prepare = actions.add_parser("prepare")
         prepare.add_argument("--release", required=True)
         prepare.add_argument("--input", required=True, help="JSON com movement_ids.")
@@ -51,7 +59,18 @@ class Command(BaseCommand):
             if options.get("input"):
                 with Path(options["input"]).open("rb") as stream:
                     payload = strict_json(stream.read(1_000_001), maximum=1_000_000)
-            if options["action"] == "prepare":
+            if options["action"] == "select":
+                movement_ids, result = select_acceptance_movements(
+                    account=account,
+                    actor=actor,
+                    seed=options["seed"],
+                    size=options["size"],
+                    months=options["month"],
+                )
+                if not movement_ids:
+                    raise ValueError
+                write_private_json(options["output"], {"movement_ids": movement_ids})
+            elif options["action"] == "prepare":
                 if not isinstance(payload, dict) or set(payload) != {"movement_ids"}:
                     raise ValueError
                 sample = prepare_acceptance_sample(

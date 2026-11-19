@@ -21,7 +21,11 @@ from apps.hub.account_discovery import (
     latest_consistent_discovery,
     prepared_account_facts,
 )
-from apps.hub.account_discovery_forms import DiscoveryFiltersForm, DiscoveryLinkForm
+from apps.hub.account_discovery_forms import (
+    DiscoveryFiltersForm,
+    DiscoveryLinkForm,
+    OfxPrefillForm,
+)
 from apps.hub.account_discovery_review import (
     DiscoveryReviewConflict,
     DiscoveryReviewError,
@@ -34,6 +38,8 @@ from apps.hub.models import (
     ReconciliationDiscoveredChartAccount,
 )
 from apps.hub.module_catalog import definition
+from apps.hub.reconciliation import OfxAccountIdentity, OfxParseError, read_ofx_account_identity
+from apps.hub.reconciliation_service import MAX_BYTES
 from apps.hub.views import _can_manage_reconciliation, _module_page_context, office_required, refuse
 
 COVERAGE_LABELS = {
@@ -63,6 +69,29 @@ SOURCE_LABELS = {
     "equivalent_accounts": "Referência em contas equivalentes",
     "equivalent_reference": "Referência em contas equivalentes",
 }
+
+
+PREFILL_FIELDS = {"bank_code", "account_reference"}
+
+
+def _read_prefill(form: OfxPrefillForm) -> tuple[OfxAccountIdentity | None, str]:
+    """Read the bank identity of one uploaded OFX without storing or logging it (D-377)."""
+
+    if not form.is_valid():
+        return None, "Anexe um único extrato OFX ou QFX desta conta."
+    upload = form.cleaned_data["statement"]
+    name = str(getattr(upload, "name", "") or "")
+    if not name.lower().endswith((".ofx", ".qfx")):
+        return None, "Use o extrato no formato OFX ou QFX para ler banco e conta."
+    if (upload.size or 0) > MAX_BYTES:
+        return None, "O extrato excede 25 MB. Use o arquivo do período de uma competência."
+    content = upload.read(MAX_BYTES + 1)
+    if len(content) > MAX_BYTES:
+        return None, "O extrato excede 25 MB. Use o arquivo do período de uma competência."
+    try:
+        return read_ofx_account_identity(content), ""
+    except OfxParseError as exc:
+        return None, f"Não foi possível ler o extrato: {exc}"
 
 
 def _private(response: HttpResponse) -> HttpResponse:
@@ -346,13 +375,41 @@ def discovered_account(request: HttpRequest, company_id: str, account_id: str) -
         ),
     }.get(blocking_reason, "Esta conta precisa de revisão antes de preparar a coleta.")
     can_manage = bool(context["support_can_mutate"]) and _can_manage_reconciliation(context)
-    form = DiscoveryLinkForm(request.POST if request.method == "POST" else None, prepared=prepared)
-    status = 400 if errors else 200
+    prefilling = request.method == "POST" and request.POST.get("action") == "prefill"
+    prefill: OfxAccountIdentity | None = None
+    prefill_error = ""
+    prefill_form = OfxPrefillForm()
+    prefill_initial: dict[str, str] = {}
+    if prefilling:
+        if not can_manage:
+            return refuse(
+                request, "Seu perfil pode consultar, mas não confirmar vínculos de contas."
+            )
+        uploads = request.FILES.getlist("statement")
+        if len(request.POST.getlist("action")) != 1 or len(uploads) > 1:
+            prefill_error = "Anexe um único extrato OFX ou QFX desta conta."
+        elif blocking_reason or errors or not prepared.get("valid"):
+            prefill_error = "Esta ficha não aceita vínculo agora; nada foi lido."
+        elif not PREFILL_FIELDS & set(prepared.get("pending_fields", [])):
+            prefill_error = "Banco e conta desta ficha já foram conferidos; nada foi lido."
+        else:
+            prefill, prefill_error = _read_prefill(OfxPrefillForm(request.POST, request.FILES))
+        if prefill is not None:
+            prefill_initial = {
+                "bank_code": prefill.bank_id,
+                "account_reference": prefill.account_reference,
+            }
+    form = DiscoveryLinkForm(
+        request.POST if request.method == "POST" and not prefilling else None,
+        prepared=prepared,
+        initial=prefill_initial,
+    )
+    status = 400 if errors or prefill_error else 200
     detail_url = reverse("hub:reconciliation-discovered-account", args=[company_id, account_id])
     query = _query(filters, page=True)
     if query:
         detail_url += "?" + query
-    if request.method == "POST":
+    if request.method == "POST" and not prefilling:
         if not can_manage:
             return refuse(
                 request, "Seu perfil pode consultar, mas não confirmar vínculos de contas."
@@ -425,6 +482,10 @@ def discovered_account(request: HttpRequest, company_id: str, account_id: str) -
         discovery_known=known,
         discovery_errors=errors,
         discovery_form=form,
+        discovery_prefill=prefill,
+        discovery_prefill_error=prefill_error,
+        discovery_prefill_form=prefill_form,
+        discovery_prefill_available=bool(PREFILL_FIELDS & set(form.fields)),
         discovery_can_confirm=bool(
             can_manage
             and prepared.get("valid")
