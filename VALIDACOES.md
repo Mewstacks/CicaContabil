@@ -12279,3 +12279,17 @@ de `ac2a582` ainda estava em andamento no deploy. Imagem OCI sobre a v107
 conferidas no registry. **Release v108**: release_command concluído, web e worker
 `started` na 108, reserva parada; live/ready 200; CSS novo servido. Tela em produção não
 aberta (sem sessão autenticada nesta execução).
+
+Resultado V-420 (19/11, ~15h30 BRT): leitor executado pelo responsável no SVAPL02 a partir
+do commit `ac2a582` com hash conferido. Saída `contad-branch-accounts-transfer-v1`, 1.009.593
+bytes, SHA `d364f86bd7af…027c`, 4.089 linhas de débito e 4.068 de crédito, duas leituras
+iguais; integridade conferida no Mac (arquivo privado 0600 fora do Git). Cruzamento com o
+catálogo retido, grupo “Depósitos Bancários”, setembro/2026:
+- 25 → conta 2 na filial 25; 42 → conta 7 na filial 42; 129 → conta 8 na filial 129.
+- 280 → contas 1421 e 1424 só na filial 280; contas 5, 507 e 753 com 1.141, 2.417 e 33
+  lançamentos na 280 e um único lançamento em outra filial (333, 362, 333).
+- 293 → conta 17 só na 293; contas 2 e 3 com 691 e 286 lançamentos na 293 e de 1 a 4
+  lançamentos em cada filial 471/472/487/491.
+- 147 → nenhuma conta do grupo bancário com lançamento em setembro.
+Sugestão: vincular todas na filial da matriz; os lançamentos isolados de outras filiais
+aparecerão como pendência na conferência. Não é vínculo aprovado nem revisão humana.
