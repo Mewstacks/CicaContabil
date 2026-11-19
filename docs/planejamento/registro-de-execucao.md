@@ -4771,3 +4771,14 @@ arquivo-fonte deixava de incluir a organização). Reprodução 6/15 falhas ante
 15/15 aprovadas depois; regressão determinística nova. Demais pendências CONTAD
 dependem da cliente, do SVAPL02 ou do login Neon do responsável (V-416).
 Publicado na release v105 após CI aprovado; produção conferida antes/depois.
+
+## 19/11/2026 — D-377/D-378/V-417: vínculo pelo OFX e amostra D-73 reprodutível
+
+Fonte isolada a partir da main d29f5d7. O OFX da conta passa a pré-preencher banco
+e agência/conta no formato que a importação exige (antes, referência digitada à
+mão faria o primeiro OFX ser recusado); nada é gravado nem vinculado sozinho.
+Comando `select` escolhe fatos D-73 não congelados com semente registrada.
+SQLite integral 3.395 aprovados; PostgreSQL 1.356 do recorte; Playwright 11
+verificações. Medição real de retomada em produção recusada pela permissão da
+sessão (script pronto). Não publicado. Pendências e roteiros em
+docs/pt-BR/contad-pendencias-2026-11-19.md.

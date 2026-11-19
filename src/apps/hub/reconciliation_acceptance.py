@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any
 
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
+from django.db.models import Q
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -47,6 +50,86 @@ def _label(value: Any) -> str:
     if not isinstance(value, str) or not 1 <= len(value.strip()) <= 160:
         raise ValueError("Informe release ou evidência de revisão com até 160 caracteres.")
     return value.strip()
+
+
+_MONTH = re.compile(r"\A[0-9]{4}-(0[1-9]|1[0-2])\Z")
+
+
+def select_acceptance_movements(
+    *, account: FinancialAccount, actor: User, seed: str, size: int, months: list[str]
+) -> tuple[list[str], dict[str, Any]]:
+    """Reproducibly choose distinct bank facts not frozen before (D-378); read only.
+
+    The order is SHA-256(seed:movement_id). The result is only an input for
+    ``prepare_acceptance_sample``; it is not a frozen prediction or a review.
+    """
+
+    account = FinancialAccount.objects.select_related("company", "organization").get(pk=account.pk)
+    _access(account, actor)
+    seed = _label(seed)
+    if not isinstance(size, int) or not 1 <= size <= 1000:
+        raise ValueError("Selecione de 1 a 1000 movimentos.")
+    if len(set(months)) != len(months) or any(not _MONTH.match(m) for m in months):
+        raise ValueError("Informe competências AAAA-MM distintas.")
+    population = NormalizedMovement.objects.filter(
+        organization_id=account.organization_id,
+        company_id=account.company_id,
+        financial_account=account,
+        source_file__origin="bank_statement",
+        source_file__organization_id=account.organization_id,
+        source_file__company_id=account.company_id,
+        source_file__financial_account=account,
+    ).select_related("source_file")
+    if months:
+        period = Q()
+        for month in sorted(months):
+            period |= Q(occurred_on__year=int(month[:4]), occurred_on__month=int(month[5:]))
+        population = population.filter(period)
+    frozen_ids: set[str] = set()
+    frozen_keys: set[str] = set()
+    for metadata in AuditEvent.objects.filter(
+        organization_id=account.organization_id,
+        action=PREDICTION,
+        target_type="hub.financialaccount",
+        target_id=str(account.pk),
+    ).values_list("metadata", flat=True):
+        for fact in metadata.get("facts", []):
+            frozen_ids.add(str(fact.get("movement_id")))
+            frozen_keys.add(str(fact.get("fact_key")))
+
+    def rank(movement_id: str) -> str:
+        return hashlib.sha256(f"{seed}:{movement_id}".encode()).hexdigest()
+
+    candidates: dict[str, tuple[str, str]] = {}
+    population_keys: set[str] = set()
+    excluded = 0
+    for movement in population.iterator(chunk_size=500):
+        key = _bank_identity(movement)
+        population_keys.add(key)
+        movement_id = str(movement.pk)
+        if movement_id in frozen_ids or key in frozen_keys:
+            excluded += 1
+            continue
+        current = candidates.get(key)
+        ordering = rank(movement_id)
+        if current is None or ordering < current[0]:
+            candidates[key] = (ordering, movement_id)
+    chosen = sorted(candidates.values())[:size]
+    manifest = {
+        "account_id": str(account.pk),
+        "seed": seed,
+        "months": sorted(months),
+        "requested": size,
+        "selected": len(chosen),
+        "population_distinct_facts": len(population_keys),
+        "population_fingerprint": canonical_hash(sorted(population_keys)),
+        "excluded_already_frozen": excluded,
+        "available_after_exclusion": len(candidates),
+        "order": "sha256(seed:movement_id)",
+        "counts_as_d73_sample": False,
+        "next_step": "prepare + owner review",
+    }
+    return [movement_id for _, movement_id in chosen], manifest
 
 
 @transaction.atomic

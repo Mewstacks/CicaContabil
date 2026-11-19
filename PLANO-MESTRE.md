@@ -1,3 +1,14 @@
+<!-- D377-D378-V417-2026-11-19 -->
+**19/11/2026 — D-377/D-378/V-417: vínculo pelo OFX e amostra D-73 reprodutível (fonte isolada).**
+Produção segue na release v105 (uso assistido). Em `codex/contad-conclusao-20261119`:
+o OFX da conta pré-preenche banco e agência/conta no formato exigido pela importação,
+sem gravar nada e sem vincular sozinho; `reconciliation_acceptance select` escolhe
+fatos não congelados por semente registrada. Testes, PostgreSQL e Playwright
+sintéticos em V-417; merge/deploy dependem de autorização do responsável.
+Pendências de terceiros, roteiros e a pergunta única do RPO em
+[contad-pendencias-2026-11-19](docs/pt-BR/contad-pendencias-2026-11-19.md).
+CONTAD não está concluída: D-73, Q-47, C01/C02, DE-PARA, vínculos e restauração seguem abertos.
+
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->
 **17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
 Ampliação autorizada para as146 empresas, consultando catálogo completo e relações

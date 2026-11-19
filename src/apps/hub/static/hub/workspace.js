@@ -83,6 +83,17 @@
   else window.addEventListener('load', focusSummary, { once: true });
 })();
 
+/* D-377: after reading an OFX, move keyboard users to what was read (or to the
+   invalid file field) so they can review it before completing the link form. */
+(() => {
+  if (document.querySelector('[data-form-errors]')) return;
+  const target = document.querySelector('[data-prefill-result], .discovery-ofx-prefill [aria-invalid="true"]');
+  if (!(target instanceof HTMLElement)) return;
+  const focusTarget = () => requestAnimationFrame(() => target.focus());
+  if (document.readyState === 'complete') focusTarget();
+  else window.addEventListener('load', focusTarget, { once: true });
+})();
+
 /* Keep a server-rendered comparison responsive while its new page is loading. */
 (() => {
   document.querySelectorAll('[data-payroll-comparison-form]').forEach(form => {

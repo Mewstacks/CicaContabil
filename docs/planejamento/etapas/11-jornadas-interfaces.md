@@ -850,3 +850,11 @@ Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
 Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
 mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
 [V-410 e limites](../../../VALIDACOES.md).
+
+
+## Ficha “Conferir vínculo” com leitura do OFX — D-377/V-417 (19/11/2026)
+
+- [x] Bloco opcional antes do formulário, rótulo/ajuda associados, botão de 44 px, resultado com período e aviso de que o arquivo não foi guardado.
+- [x] Foco vai para o resultado lido ou para o campo inválido; erro com `aria-invalid` e `role=alert`.
+- [x] Playwright 1.62.1/Chrome sintético: 11 verificações — teclado, foco visível, 1440/375 claro/escuro, paisagem, texto 200% e confirmação humana final; sem erros JS/console além do 400 esperado.
+- [ ] ui-ux-pro-max e Watermelon não estavam disponíveis nesta sessão; diretrizes aplicadas pelos padrões já existentes da ficha (D-365). Conferência em produção após publicação.

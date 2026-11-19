@@ -5707,3 +5707,51 @@ foi recusado pela permissão da sessão), novo replay com locks da descoberta em
 produção (a importação já está registrada e idempotente; o conflito vem do helper
 privado em REPEATABLE READ, não do produto). Sem custo, infraestrutura, IA ou
 mensagem externa. Pendências continuam com ação/responsável, sem falso aceite.
+
+## D-377 — Pré-preencher o vínculo bancário pelo OFX da própria conta (19/11/2026)
+
+Origem: prompt de finalização de19/11 (pendência4A), recebido pela sessão do
+responsável e executado por Claude Code em fonte isolada
+`codex/contad-conclusao-20261119` a partir da main d29f5d7. Avaliação técnica:
+a importação OFX só aceita uma conta vinculada cuja referência seja exatamente
+`BANKID:BRANCHID:ACCTID` do arquivo (`validate_ofx_account`). O vínculo manual
+pede “agência e conta como aparecem no extrato”; uma digitação natural
+(“0101 12345-6”) seria gravada e o primeiro OFX dessa conta seria recusado.
+
+Decisão: na ficha “Conferir vínculo” da conta descoberta, quem pode gerenciar a
+conciliação pode anexar o OFX/QFX daquela conta para ler BANKID, BRANCHID e
+ACCTID e pré-preencher somente código do banco e referência (no formato exigido
+pela importação). Leitura limitada a MAX_BYTES, mesmo analisador da importação,
+sem gravar arquivo, movimentos, auditoria ou vínculo, e sem registrar os valores
+em log. A tela mostra o que foi lido e de qual arquivo; lado no Razão, filial,
+confirmações e o envio continuam escolhas explícitas da pessoa. Nunca vincular
+sozinho, nunca derivar banco/agência/conta de nome ou código contábil (D-365).
+Arquivo sem banco/conta únicos ou fora do OFX é recusado sem preencher nada.
+Ajuda do campo passa a avisar o formato exigido para OFX. Interface: mesma
+identidade/componentes da ficha (D-365), foco/erros acessíveis e QA em navegador
+desktop/celular, teclado, 200% e temas; ui-ux-pro-max/Watermelon só se
+disponíveis nesta sessão, com o limite registrado. Sem migração, custo, IA,
+mensagem ou mudança de infraestrutura. Merge/deploy só com autorização explícita
+do responsável na sessão.
+
+## D-378 — Seleção reprodutível da amostra D-73 para fatos adicionais (19/11/2026)
+
+Origem: mesma tarefa (pendência4E). A medição D-73 existente congela previsões,
+registra revisão imutável do proprietário e mede fatos/precisão/tempo
+(`reconciliation_acceptance prepare/review/report`), mas a escolha dos
+`movement_ids` era manual. Os163 fatos SURIA já congelados não somam200; os
+demais virão de contas vinculadas pela cliente.
+
+Decisão: acrescentar ao comando a ação `select`, somente leitura: população =
+movimentos de extrato bancário (origem bank_statement) da conta indicada,
+opcionalmente limitada por competências AAAA-MM e excluindo ids/fact_keys já
+congelados em amostras anteriores; ordem determinística por SHA-256 de
+`semente:movement_id`; grava em arquivo privado (0600) apenas `{"movement_ids"}`
+consumível por `prepare`, e imprime manifesto com semente, critérios, tamanho
+e impressão digital da população. Mesma conta, população e semente ⇒ mesma
+seleção. A seleção não congela previsão, não revisa, não aprova e não conta
+como amostra D-73 até `prepare` + revisão do proprietário. Testes sintéticos
+não contam como amostra. Precisão de classificação automática só existe para
+movimentos classificados por regra; enquanto não houver regra DE-PARA ativa
+na CONTAD (D-367/V-415), o relatório mostrará zero automáticos e esse critério
+continua não medido, sem ser declarado cumprido.

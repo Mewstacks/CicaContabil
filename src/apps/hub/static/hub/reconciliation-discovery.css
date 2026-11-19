@@ -26,3 +26,20 @@
 .discovery-plan-facts dt { color: var(--muted); }
 .discovery-plan-facts dd { margin: 0; }
 .discovery-result .button, .discovery-result > .status-badge { margin-top: 16px; }
+
+/* D-377: optional OFX read that only prefills the bank identity. */
+.discovery-ofx-prefill { margin: 16px 22px 0; padding: 16px; border: 1px dashed var(--line); border-radius: 8px; max-width: 76ch; }
+.discovery-ofx-prefill h3 { margin: 0 0 6px; font-size: 16px; line-height: 1.5; }
+.discovery-ofx-prefill p { margin: 6px 0; line-height: 1.6; }
+.discovery-ofx-prefill input[type="file"] { min-height: 44px; max-width: 100%; }
+.discovery-ofx-prefill .account-review-actions { padding: 0; margin-top: 12px; }
+.discovery-prefill-result { margin: 12px 22px 0; padding: 12px 16px; border-left: 4px solid var(--blue); max-width: 76ch; line-height: 1.6; }
+.discovery-prefill-result:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.discovery-prefill-result dl { margin: 8px 0; display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.discovery-prefill-result dt { color: var(--muted); }
+.discovery-prefill-result dd { margin: 0; overflow-wrap: anywhere; }
+.discovery-prefill-result p { margin: 4px 0 0; }
+@media (max-width: 760px) {
+  .discovery-ofx-prefill, .discovery-prefill-result { margin-left: 12px; margin-right: 12px; }
+  .discovery-ofx-prefill .button { width: 100%; }
+}

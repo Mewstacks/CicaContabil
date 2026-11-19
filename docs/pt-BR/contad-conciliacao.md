@@ -157,6 +157,25 @@ bancária/contábil já usada em fontes, lançamentos ou coletas não pode ser t
 silenciosamente. Contas originadas de um vínculo têm identidade preservada;
 a tela controla novos usos e exige cadastro completo para ativar.
 
+#### Vincular pela conta do Domínio usando o OFX (D-377)
+
+Para as demais empresas, abra **Contas do Domínio**, escolha a empresa e a conta
+bancária no plano e use **Conferir vínculo**. Se você tiver o extrato OFX (ou QFX)
+dessa conta:
+
+1. Em **Tem o extrato OFX desta conta?**, anexe o arquivo e use
+   **Ler banco e conta do extrato**. A CICA lê banco, agência e conta do próprio
+   arquivo e preenche **Código do banco** e **Agência e conta bancária** no formato
+   que a importação do OFX exige (`banco:agência:conta`). O arquivo não é guardado.
+2. Confira o quadro **Dados lidos do extrato** (banco, agência, conta e período)
+   com o extrato. Se não for a conta certa, não confirme.
+3. Escolha o lado da entrada no Razão, confira a filial e marque as verificações.
+   Só então use **Confirmar vínculo e preparar conta**. A CICA nunca vincula sozinha.
+4. Depois, envie o mesmo OFX em **Extrato e Razão** para conciliar.
+
+Sem OFX, preencha à mão; nesse caso, um OFX enviado depois só será aceito se a
+referência digitada for exatamente `banco:agência:conta` como no arquivo.
+
 ### Títulos e baixas
 
 1. Abra **Títulos e baixas**, selecione SURIA e a conta em **Empresa e conta**,

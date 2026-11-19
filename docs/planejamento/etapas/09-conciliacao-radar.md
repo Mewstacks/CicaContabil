@@ -1046,3 +1046,18 @@ bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável
 43 fichas implementada e em validação/publicação; nada ativado automaticamente.
 Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
 continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
+
+
+## Vínculo pelo OFX — D-377/V-417 (19/11/2026)
+
+- [x] Registrar decisão D-377 antes do comportamento: OFX só pré-preenche banco e referência; nada é gravado nem vinculado sozinho.
+- [x] Ler BANKID/BRANCHID/ACCTID com o mesmo analisador da importação; referência `banco:agência:conta` idêntica à exigida por `validate_ofx_account`.
+- [x] Recusar arquivo sem banco/conta únicos, fora de OFX/QFX, maior que 25 MB, duplicado, perfil consultivo e ficha já pronta, sem escrita.
+- [x] 13 testes novos; prova de que a referência digitada à mão seria recusada pelo primeiro OFX.
+- [ ] Publicar (merge/deploy autorizados pelo responsável) e CONTAD vincular as contas reais pela tela.
+
+## Amostra D-73 reprodutível — D-378/V-417 (19/11/2026)
+
+- [x] `reconciliation_acceptance select`: semente registrada, fatos distintos, exclusão dos já congelados, filtro por competência, arquivo 0600 consumível por `prepare`.
+- [x] Seleção não congela previsão, não revisa e não conta como amostra D-73.
+- [ ] Revisão do proprietário dos 163 fatos SURIA e de pelo menos 37 fatos de outra conta vinculada; precisão automática só com regra ativa.
