@@ -12048,3 +12048,33 @@ mesmo dia e ficam para revisão individual, como previsto na regra); dica “Con
 não aparece?” em Extrato e Razão; link “Vínculos de contas” em Contas do
 Domínio; sem erros de console. O botão de lote não foi acionado pelo executor
 (decisão da cliente). PR #34 (registros) mesclado em seguida.
+
+## V-416 — D-376: deadlock confirmação×exportação corrigido; demais frentes com a cliente (19/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-finalizacao-20261119` a partir da
+main ecfd35d (igual ao código da release v104). Produção conferida somente leitura:
+web891e63ef665e58 e worker1857691da097e8 na v104, health ok, reserva parada.
+
+Causa reproduzida em PostgreSQL17 descartável (dados em tmpfs; disco da VM Docker
+cheio, nenhuma imagem/volume/evidência apagada): `sync_reconciliation_activity`
+travava `ReconciliationSourceFile` com join em `Organization` (FOR UPDATE sem OF),
+depois da confirmação já deter a empresa; a exportação trava organização→empresa.
+Log do servidor: “deadlock detected”, um processo em `hub_clientcompany FOR UPDATE`,
+outro no select do arquivo-fonte com join da organização.
+Correção: `select_for_update(of=("self",))`, travando só o arquivo; a organização
+continua lida para `is_demo`. Ordem dos demais serviços inalterada.
+
+Antes: teste concorrente [generate/approve/export] 15 execuções, 6 falhas (40%),
+6 deadlocks no log. Depois: 15/15 aprovadas com a nova regressão, zero deadlocks.
+Nova regressão determinística exige `FOR UPDATE OF "hub_reconciliationsourcefile"`;
+falha sem a correção e passa com ela. Suítes relacionadas (independent_ledger,
+reconciliation_module, module_activities): PostgreSQL136 aprovados/24 subtestes;
+SQLite130 aprovados/6 skips de concorrência; Ruff ok. CI e publicação registrados
+abaixo quando executados; sem eles a correção não está em produção.
+
+Não executado por D-376 (ação/responsável): formato Q-47 no importador do SVAPL02
+(CONTAD+CICA, mostrar Conjunto de dados e menu Importação); C01/C02, vínculos
+bancários, aprovação das duas contas do DE-PARA, amostra D-73 de200 e aceite
+(CONTAD/Grazi); restauração/PITR Neon (responsável, login no console); replay com
+locks da descoberta em produção (desnecessário; helper privado). CONTAD continua em
+uso assistido, não concluída.

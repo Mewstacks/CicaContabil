@@ -5687,3 +5687,23 @@ sem exportação e sem efeito no ERP; consistente com D-309 (revisão individual
 em lote sob a mesma trava). Carteira reduzida a quatro atalhos (Extrato e Razão,
 Contas do Domínio, Títulos e baixas, Visão geral), datas da conferência em
 dd/mm/aaaa e dica para vincular conta quando ela não aparece na seleção.
+
+## D-376 — Concluir em19/11 as frentes CONTAD que não dependem da cliente
+
+Origem: pergunta do responsável em19/11/2026, “tu consegue finalizar hoje, todas
+as partes que tu pode fazer?”, executor Claude Code. Escopo: somente pendências
+técnicas de D-375/V-415 sem autoria da cliente, acesso a desktop ou login humano.
+
+Executar: correção do deadlock entre confirmação de Razão e exportação Domínio
+(instabilidade preexistente registrada em V-415), em fonte isolada a partir da main
+publicada, com testes PostgreSQL repetidos antes/depois, CI e registro. Publicação
+segue a mesma via de D-375 (imagem OCI, configuração das releases99/100, conferência
+antes/depois); merge/deploy só com execução autorizada na sessão.
+
+Não executar por inferência: layout Q-47 (exige observar o importador no SVAPL02),
+C01/C02, vínculos bancários, DE-PARA, amostra D-73 e aceite (autoria da cliente),
+restauração/PITR Neon (exige login do responsável; acesso local às credenciais Neon
+foi recusado pela permissão da sessão), novo replay com locks da descoberta em
+produção (a importação já está registrada e idempotente; o conflito vem do helper
+privado em REPEATABLE READ, não do produto). Sem custo, infraestrutura, IA ou
+mensagem externa. Pendências continuam com ação/responsável, sem falso aceite.
