@@ -66,8 +66,11 @@ def reconciliation_file_pending(source: ReconciliationSourceFile) -> tuple[int, 
 
 @transaction.atomic
 def sync_reconciliation_activity(source_id: UUID) -> OperationalActivity | None:
+    # Lock only the file row. The joined organization is read for ``is_demo``;
+    # locking it here (company -> organization) inverted the export order
+    # (organization -> company) and deadlocked confirmation against export.
     source = (
-        ReconciliationSourceFile.objects.select_for_update()
+        ReconciliationSourceFile.objects.select_for_update(of=("self",))
         .select_related("organization")
         .get(pk=source_id)
     )

@@ -677,6 +677,34 @@ def test_postgres_ledger_match_serializes_with_posting_generation_approval_and_e
         assert sorted(results) == ["done", "refused"]
 
 
+def test_postgres_activity_sync_locks_only_the_source_file_row(account):
+    """Confirmation holds the company lock; export takes organization -> company.
+
+    Locking the joined organization here inverted that order and deadlocked
+    ledger confirmation against export (D-376).
+    """
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from apps.hub.reconciliation_activities import sync_reconciliation_activity
+
+    if connection.vendor != "postgresql":
+        pytest.skip("Cláusula FOR UPDATE OF exige PostgreSQL.")
+    movement, _ = _posting_case(account)
+    with CaptureQueriesContext(connection) as queries:
+        sync_reconciliation_activity(movement.source_file_id)
+    source_locks = [
+        query["sql"]
+        for query in queries.captured_queries
+        if 'FROM "hub_reconciliationsourcefile"' in query["sql"] and "FOR UPDATE" in query["sql"]
+    ]
+    assert source_locks
+    assert all(
+        sql.rstrip().endswith('FOR UPDATE OF "hub_reconciliationsourcefile"')
+        for sql in source_locks
+    ), source_locks
+
+
 def test_reconciled_movement_guides_review_and_blocks_edit_and_bulk_actions(account, user):
     from django.test import Client
 

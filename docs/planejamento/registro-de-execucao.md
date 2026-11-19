@@ -4763,3 +4763,10 @@ agente oficial recente e pontas0087/0041 nas duas aliases. Prévia do runner
 0088 exato aprovada sem DDL/recorder: quatro estruturas ausentes, única migração
 prevista0088, estado antes/depois idêntico e diretório temporário removido.
 Sem aplicação, importação ou deploy; isso não libera a carteira completa.
+
+## 19/11/2026 — D-376/V-416: frentes técnicas sem dependência da cliente
+
+Corrigido o deadlock entre confirmação de Razão e exportação Domínio (trava do
+arquivo-fonte deixava de incluir a organização). Reprodução 6/15 falhas antes,
+15/15 aprovadas depois; regressão determinística nova. Demais pendências CONTAD
+dependem da cliente, do SVAPL02 ou do login Neon do responsável (V-416).
