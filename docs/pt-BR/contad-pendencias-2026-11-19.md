@@ -5,7 +5,7 @@ de pendências do comunicado de 18/11 sem reabrir decisões já tomadas. A CONTA
 será declarada concluída quando os critérios D-73 estiverem cumpridos: 200 itens
 revisados pelo proprietário, precisão medida de pelo menos 95% onde houver
 classificação automática, zero duplicidade/empresa errada/vazamento, retomada
-sem perda em até 15 minutos, restauração conferida em até 4 horas e importação
+sem perda em até 15 minutos e importação
 conferida no Domínio.
 
 Evidências privadas ficam fora do Git, em `.tmp/` das worktrees indicadas em
@@ -33,12 +33,10 @@ aparece neste documento.
 | D. DE-PARA | CONTAD | Duas sugestões válidas retidas; zero regras ativas; nenhuma nova chamada de IA | 1. Abrir *Revisão DE-PARA*. 2. Aprovar (ou recusar) as duas contas exigidas. 3. Só então revisar as duas sugestões e ativar manualmente, se for o caso. |
 | E1. Amostra D-73 (200 itens) | Grazi como proprietária + responsável CICA | 163 fatos SURIA congelados com ficha sem previsões; comando `select` para os demais | 1. Revisar a ficha dos 163 fatos. 2. Após novos vínculos (item A), CICA roda `select --seed <semente publicada> --size 37` e `prepare` numa segunda conta. 3. Revisar a nova ficha. 4. CICA roda `report` e registra o resultado; precisão automática só é medida se houver regra ativa (item D). |
 | E2. Retomada em até 15 min (medição real) | Responsável CICA | **Medida em 19/11 (V-418):** após os reinícios reais das releases v105 e v106 o agente voltou em ~62 s; 72 h com 4.071 varreduras, zero perdas e zero jobs presos | Concluído tecnicamente para o canal do agente e a fila. Ainda não provado: interrupção no meio de uma coleta longa; restauração (F) segue aberta. |
-| F. Restauração e RPO | Responsável CICA (login no console Neon) | Snapshot histórico expirado em 13/11; prefixo Tigris vazio (V-415); nada alterado | 1. Entrar no console Neon. 2. Criar branch de restauração em um ponto no tempo (sem tocar a produção). 3. Conferir contagens dos 15 grupos protegidos e um documento. 4. Medir o tempo total (meta: até 4 h). 5. Excluir a branch de teste. |
 | H. Treinamento e aceite formal | CONTAD + CICA | Guia `docs/pt-BR/contad-conciliacao.md` atualizado com o vínculo por OFX | Depois de A–F: 1. Sessão curta com o percurso vínculo → extrato → Razão → conferência → relatório. 2. Revisar com a CONTAD os critérios D-73. 3. Registrar o aceite com a autoria real. |
 
-## Única pergunta pendente para o responsável CICA
+## Restauração e RPO
 
-**Qual RPO (perda máxima de dados aceitável) devemos usar como critério?**
-Recomendação: **até 24 horas**, verificável com o PITR já existente no Neon, sem
-alterar retenção, backup ou capacidade (D-375: “não precisa mexer em
-infraestrutura agora”).
+Dispensados pelo responsável em 19/11 (D-379: “nao precisa disso, so tem que fazer
+funcionar”). Backup e PITR existentes continuam como estão; restauração não foi
+provada e não é critério de conclusão.

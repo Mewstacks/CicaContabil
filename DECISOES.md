@@ -5756,6 +5756,19 @@ movimentos classificados por regra; enquanto não houver regra DE-PARA ativa
 na CONTAD (D-367/V-415), o relatório mostrará zero automáticos e esse critério
 continua não medido, sem ser declarado cumprido.
 
+## D-379 — Dispensar RPO e prova formal de restauração; prioridade é funcionar (19/11/2026)
+
+Origem: resposta do responsável à pergunta de RPO em19/11/2026: “nao precisa
+disso, so tem que fazer funcionar”. Executor Claude Code.
+
+Decisão: a definição de RPO e a prova de restauração em até4h deixam de ser
+critério para a conclusão CONTAD; o item F das pendências é retirado. Isso não
+altera backup, retenção, PITR ou infraestrutura existentes (D-375) e não declara
+restauração comprovada. A prioridade passa a ser o funcionamento operacional do
+percurso da cliente (vínculo → extrato → Razão → conferência → relatório, títulos
+e exportação para o Domínio). Os demais itens de D-73 e Q-47 não foram dispensados
+por esta resposta; qualquer outra dispensa exige palavra do responsável.
+
 ## D-380 — Fazer a exportação para o Domínio funcionar (19/11/2026)
 
 Origem: responsável, 19/11/2026, “só tem que fazer funcionar” e “Sim, fazer” à
