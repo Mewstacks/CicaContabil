@@ -5907,3 +5907,14 @@ separadas”. Executor Claude Code.
 2. Essa tela acompanha o pedido e abre a conferência assim que o Razão chega (ou já existe).
 3. Movimentos já confirmados contra o Razão saem da lista *Movimentos*; ela mostra só o que
    falta. A confirmação das coincidências continua sendo um clique da pessoa.
+
+## D-387 — Apagar todo o piloto SURIA em produção para refazer do zero (19/11/2026)
+
+Origem: responsável, 19/11/2026, “cancela aquela importação já feita com o arquivo da SURIA
+em produção, quero fazer do zero” e, ao ser informado de que 159 confirmações da Grazi
+(158 de hoje) e a amostra D-73 seriam perdidas, escolheu “Tudo da SURIA”. Executor Claude Code.
+
+Apagar da empresa Domínio 212: extrato OFX e seus movimentos, confirmações, fila OFX×Domínio,
+vínculo da conta Sicredi, os três Razões coletados, títulos e as duas sugestões DE-PARA.
+Preservar o catálogo de planos (descoberta) e a trilha de auditoria. Antes, cópia privada
+dos registros apagados e ensaio em transação revertida; nenhum dado de outra empresa.

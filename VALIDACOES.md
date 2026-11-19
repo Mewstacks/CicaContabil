@@ -12316,3 +12316,17 @@ tela Extrato e Razão “Aguardando confirmação do agente”; console sem erro
 automática da conferência não provada (depende do agente real). Main `e70eecf`; imagem OCI
 `sha256:f4d7b81dfad645b5257c58d774f1e677775b059f8eca85f37fcbefb75bff42fe`; deploy autorizado
 (“Sim, publica”): **release v110**, web e worker started, live/ready 200, JS novo servido.
+
+## V-424 — D-387: piloto SURIA apagado em produção (19/11/2026)
+
+Levantamento somente leitura antes: 6 fontes (OFX de 06/11, 3 Razões, títulos e conferência
+técnica), conta Sicredi, 163 movimentos, 159 confirmações da Grazi (1 em 16/11, 158 em 19/11).
+Ensaio em transação revertida até ficar limpo (decisões, registros de Razão, vínculos e
+coletas protegidos apagados na ordem). Aplicação real na máquina web: 161 decisões, 159
+confirmações, 163 movimentos, 163 registros de Razão, 163+334 lançamentos/linhas, 326 itens
+da fila OFX×Domínio, 163 transações e 163 pareamentos, 2 lotes DE-PARA, 3 coletas de Razão,
+1 de títulos, 1 atividade, 1 processamento, 6 fontes e a conta; nenhum registro de outra
+empresa. Cópia privada (0600) em Downloads/CICA-SURIA-backup-antes-de-apagar-2026-11-19.json,
+1.351.809 bytes, SHA `13fc1b24…c189` conferido. Releitura: 0 fontes, 0 contas; catálogo
+(descoberta) e auditoria preservados; conta 8 pronta para vínculo novo (sem bloqueio,
+filial 212). Não verificado: arquivos brutos no armazenamento de objetos.
