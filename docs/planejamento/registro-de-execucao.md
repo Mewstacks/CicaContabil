@@ -4789,3 +4789,10 @@ PR #38 (vínculo pelo OFX D-377 e amostra D-73 reprodutível D-378) publicado na
 release v106 após CI; produção conferida antes/depois. Retomada técnica medida em
 produção: após os reinícios de hoje o agente voltou em ~62 s, zero perda em 72 h.
 Restauração do banco, amostra de 200 e aceite continuam pendentes (V-418).
+
+## 19/11/2026 — D-380/V-419: exportação Domínio na release v107
+
+Exportação pelo leiaute oficial do Importador do Domínio (conjunto 19), contas de
+contrapartida pelo plano Domínio da empresa e comando de liberação publicados na
+v107 com a prévia liberada para a CONTAD. Falta o teste de importação no Domínio
+pela CONTAD; depois a CICA registra a homologação e a exportação definitiva abre.
