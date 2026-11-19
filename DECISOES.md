@@ -5881,3 +5881,16 @@ dentro da entrega D-383. Executor Claude Code.
 3. Continua humano: escolha da conta, lado, filial e as quatro confirmações. Nada é
    vinculado sozinho; esta decisão supera, só como sugestão exibida, a vedação anterior
    de usar nome/classificação para indicar a conta bancária (D-372).
+
+## D-385 — Conta do banco escolhida e vinculada na própria importação (19/11/2026)
+
+Origem: responsável, 19/11/2026, “precisa ser algo prático” e “aparecer a conta logo ali,
+sem isso”, sobre o “Empresa sem conta cadastrada” em *Importar arquivos*. Executor Claude Code.
+
+1. A lista *Conta financeira* passa a trazer também as contas analíticas do grupo bancário
+   do plano Domínio de cada empresa ainda não vinculadas (“vincula pelo OFX”).
+2. Ao importar com uma dessas contas e um OFX, a CICA cria o vínculo sozinha com banco e
+   agência/conta do OFX, lado “Débito” para conta do ativo, filial da própria empresa
+   (ou a única observada) e competência do extrato, e importa como extrato bancário.
+   Sem OFX, nada é vinculado. Supera, para este caminho, a exigência de confirmação
+   humana campo a campo de D-377/D-384; a conferência dos movimentos segue humana.

@@ -39,15 +39,12 @@ class ReformAnalysisForm(forms.Form):
         queryset=ClientCompany.objects.none(),
         label="Empresa para análise",
         help_text="Escolha somente a empresa cujo possível impacto será conferido.",
-        widget=forms.Select(
-            attrs={"autocomplete": "off", "aria-describedby": "id_company_help"}
-        ),
+        widget=forms.Select(attrs={"autocomplete": "off", "aria-describedby": "id_company_help"}),
     )
     reason = forms.CharField(
         label="O que precisa ser conferido para esta empresa?",
         help_text=(
-            "Registre o indício e a verificação necessária; "
-            "não conclua que a norma se aplica."
+            "Registre o indício e a verificação necessária; não conclua que a norma se aplica."
         ),
         max_length=500,
         widget=forms.Textarea(
@@ -485,7 +482,6 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "requires_accepted_obligation": "Exige obrigação aceita para concluir",
         }
 
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # D-277: the work of competência M is normally due in the following month.
@@ -532,9 +528,7 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
     def clean_code(self) -> str:
         code = str(self.cleaned_data["code"]).strip().lower()
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", code):
-            raise forms.ValidationError(
-                "Use letras minúsculas, números e hífens, sem espaços."
-            )
+            raise forms.ValidationError("Use letras minúsculas, números e hífens, sem espaços.")
         return code
 
 
@@ -582,15 +576,13 @@ class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
             organization_memberships__organization=organization,
             organization_memberships__is_active=True,
         ).distinct()
-        self.fields["assigned_to"].help_text = (
-            "Somente pessoas com perfil operacional e acesso vigente à empresa."
-        )
-        self.fields["legal_due_day"].help_text = (
-            "Deixe vazio para usar o prazo legal do modelo."
-        )
-        self.fields["internal_due_day"].help_text = (
-            "Deixe vazio para usar o prazo interno do modelo."
-        )
+        self.fields[
+            "assigned_to"
+        ].help_text = "Somente pessoas com perfil operacional e acesso vigente à empresa."
+        self.fields["legal_due_day"].help_text = "Deixe vazio para usar o prazo legal do modelo."
+        self.fields[
+            "internal_due_day"
+        ].help_text = "Deixe vazio para usar o prazo interno do modelo."
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
@@ -864,6 +856,18 @@ class FinancialAccountSelect(forms.Select):
             option["attrs"]["data-company-id"] = str(instance.company_id)
         return option
 
+    def optgroups(self, name: str, value: Any, attrs: dict[str, Any] | None = None) -> Any:
+        groups = super().optgroups(name, value, attrs)
+        current = {str(item) for item in value if item is not None}
+        extra = getattr(self, "extra_options", [])
+        for index, item in enumerate(extra, start=len(groups)):
+            option = self.create_option(
+                name, item["value"], item["label"], item["value"] in current, index
+            )
+            option["attrs"]["data-company-id"] = item["company_id"]
+            groups.append((None, [option], index))
+        return groups
+
 
 class ReconciliationUploadForm(forms.Form):
     purpose = forms.ChoiceField(
@@ -901,7 +905,19 @@ class ReconciliationUploadForm(forms.Form):
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        from apps.hub.account_auto_link import AUTO_PREFIX, bank_chart_options
+
         self.independent_ledger_preview: list[dict[str, Any]] = []
+        self.auto_chart_account_id = ""
+        raw_account = str(self.data.get("financial_account") or "") if self.is_bound else ""
+        if raw_account.startswith(AUTO_PREFIX):
+            try:
+                self.auto_chart_account_id = str(UUID(raw_account[len(AUTO_PREFIX) :]))
+            except ValueError:
+                self.auto_chart_account_id = "invalid"
+            data = self.data.copy()
+            data["financial_account"] = ""
+            self.data = data
         company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         setattr(  # noqa: B010 - ModelChoiceField deliberately customizes visible labels.
@@ -935,6 +951,8 @@ class ReconciliationUploadForm(forms.Form):
             "label_from_instance",
             display_account,
         )
+        widget = cast(FinancialAccountSelect, financial_account_field.widget)
+        widget.extra_options = bank_chart_options(companies)
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
@@ -946,6 +964,8 @@ class ReconciliationUploadForm(forms.Form):
             self.add_error(None, "Informe cada campo do envio uma única vez.")
         company = cleaned.get("company")
         financial_account = cleaned.get("financial_account")
+        if self.auto_chart_account_id == "invalid":
+            self.add_error("financial_account", "Escolha uma conta da lista.")
         if (
             isinstance(company, ClientCompany)
             and isinstance(financial_account, FinancialAccount)
@@ -959,6 +979,7 @@ class ReconciliationUploadForm(forms.Form):
             and isinstance(company, ClientCompany)
             and FinancialAccount.objects.filter(company=company, active=True).exists()
             and financial_account is None
+            and not self.auto_chart_account_id
         ):
             self.add_error("financial_account", "Escolha a conta financeira do extrato.")
         if cleaned["purpose"] == "independent_ledger":
@@ -1172,7 +1193,8 @@ class AccountingPeriodForm(_ReconciliationCompanyScopedForm):
 
 class AccountingPreviewForm(forms.Form):
     financial_account = forms.ModelChoiceField(
-        queryset=FinancialAccount.objects.none(), label="Empresa e conta bancária",
+        queryset=FinancialAccount.objects.none(),
+        label="Empresa e conta bancária",
         empty_label="Escolha a conta para conferir…",
         error_messages={"invalid_choice": "Escolha uma conta disponível na sua carteira."},
     )
@@ -1182,7 +1204,8 @@ class AccountingPreviewForm(forms.Form):
         input_formats=["%Y-%m-%d"],
     )
     period_end = forms.DateField(
-        label="Fim do período", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        label="Fim do período",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
         input_formats=["%Y-%m-%d"],
     )
 
@@ -1197,8 +1220,11 @@ class AccountingPreviewForm(forms.Form):
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
-        if (cleaned.get("period_start") and cleaned.get("period_end")
-                and cleaned["period_start"] > cleaned["period_end"]):
+        if (
+            cleaned.get("period_start")
+            and cleaned.get("period_end")
+            and cleaned["period_start"] > cleaned["period_end"]
+        ):
             self.add_error("period_end", "O fim deve ser igual ou posterior ao início.")
         return cleaned
 
