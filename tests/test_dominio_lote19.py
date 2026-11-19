@@ -40,7 +40,7 @@ def company():
         organization=organization,
         name="Empresa sintética",
         dominio_code="212",
-        dominio_registration_raw="12.345.678/0001-90",
+        dominio_registration_raw="12345678000190",
     )
 
 
@@ -161,7 +161,7 @@ def test_company_code_is_required_and_files_hold_one_company(company):
 
 
 def test_cnpj_is_left_blank_unless_the_literal_registration_has_14_digits(company):
-    company.dominio_registration_raw = "123.456.789-01"
+    company.dominio_registration_raw = "12345678901"
     company.save(update_fields=["dominio_registration_raw"])
     item = entry(company, [("8", "debit", 100), ("41", "credit", 100)])
     item.company.refresh_from_db()
