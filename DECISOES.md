@@ -5768,3 +5768,43 @@ restauração comprovada. A prioridade passa a ser o funcionamento operacional d
 percurso da cliente (vínculo → extrato → Razão → conferência → relatório, títulos
 e exportação para o Domínio). Os demais itens de D-73 e Q-47 não foram dispensados
 por esta resposta; qualquer outra dispensa exige palavra do responsável.
+
+## D-380 — Fazer a exportação para o Domínio funcionar (19/11/2026)
+
+Origem: responsável, 19/11/2026, “só tem que fazer funcionar” e “Sim, fazer” à
+proposta de implementar a exportação pelo leiaute oficial. Executor Claude Code.
+Retoma Q-47; supera, nesta parte, a condição de D-375 de só ajustar o leiaute após
+observar o importador, porque o leiaute passa a vir da especificação oficial do
+próprio Domínio e a liberação continua dependendo da importação real de teste.
+
+Fonte oficial: conjunto de dados “Leiaute Domínio Sistemas” (código19, Lançamentos
+Contábeis em Lote), XML publicado pela Domínio na solução7584 para o Importador
+(Utilitários → Importação → Importador, Tipo TXT) — a mesma tela observada no
+SVAPL02 em18/11. Tamanho fixo, sem separador: 01 Cabeçalho (código e CNPJ da
+empresa, datas inicial/final, “N”, tipo de nota05, “00000”, sistema1, “17”),
+02 Lote (sequencial, tipo, data, usuário), 03 Partidas (sequencial, débito,
+crédito, valor13,2 sem separador, código de histórico, complemento512, filial),
+99 Finalizador.
+
+Decisões:
+1. Novo adaptador `dominio-lote19-v1` substitui o modelo CSV pendente como destino
+   Domínio. Cada lançamento vira um lote tipo X (um débito/um crédito); partidas
+   compostas só quando débitos e créditos formam pares de mesmo valor (um lote X
+   por par); outras composições são recusadas com mensagem, sem tipos D/C/V até
+   prova de importação. Contas pelo código reduzido; valor em centavos com 15
+   dígitos; histórico sem quebras/controles, até512, Windows-1252 com substituição
+   do que não for representável; CRLF; registros completados até o tamanho oficial;
+   filial = código Domínio da empresa; CNPJ do cabeçalho só quando a inscrição
+   literal tiver14 dígitos, senão em branco (sem inferir). Arquivo .txt.
+2. Contas de contrapartida: além de LedgerAccount ativa, aceitar o código que existe
+   no plano Domínio da própria empresa (última descoberta consistente, planos
+   vinculados à empresa), recusando conta marcada como sintética (S) ou inativa (I) na
+   origem. Vale
+   para edição do movimento, regras e validação do lançamento. A escolha da conta e
+   a aprovação do lançamento continuam humanas; o Domínio valida de novo ao importar.
+3. Liberar a prévia privada para a CONTAD (`RECONCILIATION_DOMINIO_PREVIEW_ORGANIZATION_IDS`
+   com o UUID do escritório) para gerar o arquivo de teste sem registrar exportação.
+4. A exportação definitiva continua exigindo a homologação registrada pelo próprio
+   escritório (owner/admin) após importar o arquivo de teste no Domínio e conferir.
+   Nada é escrito direto no ERP; a CICA só gera o arquivo. Razão já escriturado
+   nunca é exportado. Sem custo, infraestrutura, IA ou mensagens externas.

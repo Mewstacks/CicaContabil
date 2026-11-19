@@ -45,7 +45,9 @@ def case(db, settings, tmp_path):
     settings.MEDIA_ROOT = tmp_path
     settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = False
     organization = Organization.objects.create(name="Escritório sintético", slug="preview-office")
-    company = ClientCompany.objects.create(organization=organization, name="Empresa sintética")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa sintética", dominio_code="101"
+    )
     account = FinancialAccount.objects.create(
         organization=organization,
         company=company,
@@ -135,7 +137,8 @@ def test_immutable_photo_without_export_or_journal_transition(case, settings):
     assert preview.source_snapshot["entries"][0]["id"] == str(case["entry"].pk)
     with open_preview_content(preview) as stream:
         content = stream.read()
-    assert b"100.00" in content
+    # D-380: official fixed-width lote; R$ 100,00 as 15 digits with implied cents.
+    assert content.startswith(b"010000101") and b"000000000010000" in content
     assert hashlib.sha256(content).hexdigest() == preview.content_hash
     with pytest.raises(ValidationError):
         preview.save()
@@ -379,7 +382,7 @@ def test_auditor_can_download_but_not_generate_and_ungranted_company_is_private(
     assert client.post(reverse("hub:reconciliation-preview"), selection(case)).status_code == 403
     response = client.get(reverse("hub:reconciliation-preview-download", args=[preview.pk]))
     assert response.status_code == 200
-    assert b"100.00" in b"".join(response.streaming_content)
+    assert b"000000000010000" in b"".join(response.streaming_content)
     CompanyAccessGrant.objects.all().delete()
     assert (
         client.get(reverse("hub:reconciliation-preview-download", args=[preview.pk])).status_code

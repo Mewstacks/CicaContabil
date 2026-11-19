@@ -345,10 +345,31 @@ Documentação relacionada: [parecer e pendências vigentes](../planejamento/pen
 [fontes de títulos e baixas](../conciliacao-fontes-titulos.md),
 [formato do Razão](../conciliacao-razao-normalizado.md) e [validações](../../VALIDACOES.md).
 
+## Enviar lançamentos novos ao Domínio
+
+Use para movimentos do extrato que **ainda não estão no Razão** (por exemplo, um
+mês em que o Domínio não tem lançamentos da conta). O que já está escriturado
+nunca entra no arquivo.
+
+1. No movimento, informe a conta de débito e a de crédito pelo **código reduzido
+   do Domínio** (o mesmo número que aparece em *Contas do Domínio*). A CICA aceita
+   somente contas analíticas e ativas do plano desta empresa.
+2. Gere o lançamento, confira o histórico e aprove.
+3. Em *Exportações → Preparar arquivo de conferência*, escolha a conta e o período
+   e gere a prévia. O arquivo `.txt` segue o leiaute oficial do Domínio
+   (“Lançamentos Contábeis em Lote — Leiaute Domínio Sistemas”).
+4. **Teste uma vez:** no Domínio, *Utilitários → Importação → Importador*, Tipo
+   TXT, conjunto “Lançamentos Contábeis em Lote (Leiaute Domínio Sistemas)”.
+   Importe a prévia de poucos lançamentos e confira data, contas, valor e
+   histórico. Se o conjunto não aparecer na lista, a Domínio disponibiliza o
+   leiaute na solução 7584 da central de atendimento.
+5. Avise a equipe CICA com o resultado. Com o teste conferido, a exportação
+   definitiva é liberada para a CONTAD e os próximos arquivos já saem por
+   *Exportações*.
+
 ## Conferir o resultado da importação no Domínio
 
-Este percurso ficará disponível na nova versão, após a validação do importador
-utilizado pela CONTAD. A geração ou o download de um arquivo não comprovam sua
+Este percurso vale para os arquivos definitivos, depois do teste acima. A geração ou o download de um arquivo não comprovam sua
 importação. Use somente um lote novo, aprovado especificamente para a base real,
 com arquivo, hash, efeitos esperados e recuperação previamente conferidos. O
 Razão SURIA/setembro já escriturado não deve entrar nesse lote.

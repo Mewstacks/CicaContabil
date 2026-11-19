@@ -11229,21 +11229,15 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             messages.success(request, "Conciliação desfeita e valor liberado para nova revisão.")
             return detail_redirect(request, "hub:reconciliation-movement", movement_id=movement.id)
         if form.is_valid():
+            from apps.hub.postable_accounts import account_accepts_entries
+
             for field_name in ("debit_account_code", "credit_account_code"):
                 account_code = str(form.cleaned_data[field_name] or "").strip()
-                if (
-                    account_code
-                    and not LedgerAccount.objects.filter(
-                        organization=office,
-                        company=movement.company,
-                        code=account_code,
-                        active=True,
-                        accepts_entries=True,
-                    ).exists()
-                ):
+                if account_code and not account_accepts_entries(movement.company, account_code):
                     form.add_error(
                         field_name,
-                        "Escolha uma conta ativa que aceite lançamentos desta empresa.",
+                        "Use o código reduzido de uma conta analítica e ativa do plano "
+                        "desta empresa no Domínio.",
                     )
             cost_center_code = str(form.cleaned_data["cost_center_code"] or "").strip()
             if (
@@ -11685,8 +11679,13 @@ def reconciliation_preview_download(request: HttpRequest, preview_id: str) -> Ht
     response = FileResponse(
         stream, as_attachment=True,
         filename=(f"previa-nao-homologada-{preview.period_start.isoformat()}-"
-                  f"{preview.period_end.isoformat()}-{preview.content_hash[:12]}.csv"),
-        content_type="text/csv; charset=utf-8",
+                  f"{preview.period_end.isoformat()}-{preview.content_hash[:12]}"
+                  f"{PurePath(preview.content.name or 'previa.csv').suffix or '.csv'}"),
+        content_type=(
+            "text/plain; charset=windows-1252"
+            if PurePath(preview.content.name or "").suffix == ".txt"
+            else "text/csv; charset=utf-8"
+        ),
     )
     response["Cache-Control"] = "private, no-store"
     response["X-Content-Type-Options"] = "nosniff"

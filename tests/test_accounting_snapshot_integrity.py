@@ -30,7 +30,9 @@ START, END = date(2026, 9, 1), date(2026, 9, 30)
 def posting(organization, tmp_path):
     with override_settings(MEDIA_ROOT=tmp_path, RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True):
         homologate_synthetic(organization)
-        company = ClientCompany.objects.create(organization=organization, name="Synthetic")
+        company = ClientCompany.objects.create(
+            organization=organization, name="Synthetic", dominio_code="101"
+        )
         entry = JournalEntry.objects.create(
             organization=organization,
             company=company,

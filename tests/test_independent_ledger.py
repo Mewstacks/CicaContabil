@@ -48,15 +48,17 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def account(organization, tmp_path):
     with override_settings(MEDIA_ROOT=tmp_path):
-        company = ClientCompany.objects.create(organization=organization, name="Empresa sintética")
+        company = ClientCompany.objects.create(
+            organization=organization, name="Empresa sintética", dominio_code="101"
+        )
         account = FinancialAccount.objects.create(
             organization=organization,
             company=company,
             name="Banco de teste",
             account_reference="001:123",
-            ledger_code="1.1",
+            ledger_code="11",
         )
-        for code in ["1.1", "2.1", "3.1"]:
+        for code in ["11", "21", "31"]:
             LedgerAccount.objects.create(
                 organization=organization, company=company, code=code, name=code
             )
@@ -69,13 +71,13 @@ def ledger_bytes(count=1, *, compound=False):
     writer.writerow(LEDGER_COLUMNS)
     for i in range(count):
         common = [f"journal-{i}", "bank", "2026-09-12", f"Fonte independente {i}"]
-        writer.writerow([*common, "1.1", "debit", 10000 + i, "inflow", f"DOC-{i}"])
+        writer.writerow([*common, "11", "debit", 10000 + i, "inflow", f"DOC-{i}"])
         writer.writerow(
             [
                 common[0],
                 "other",
                 *common[2:],
-                "2.1",
+                "21",
                 "credit",
                 12000 + i if compound else 10000 + i,
                 "",
@@ -83,7 +85,7 @@ def ledger_bytes(count=1, *, compound=False):
             ]
         )
         if compound:
-            writer.writerow([common[0], "fee", *common[2:], "3.1", "debit", 2000, "", f"DOC-{i}"])
+            writer.writerow([common[0], "fee", *common[2:], "31", "debit", 2000, "", f"DOC-{i}"])
     return output.getvalue().encode()
 
 
@@ -190,7 +192,7 @@ def test_report_distinguishes_protection_notice_from_processing_error(
     [
         lambda b: b.replace(b"10000;;DOC", b"9999;;DOC"),
         lambda b: b.replace(b"inflow", b"D"),
-        lambda b: b.replace(b";2.1;", b";9.9;"),
+        lambda b: b.replace(b";21;", b";99;"),
         lambda b: b.replace(b";10000;", b";NaN;"),
         lambda b: b.replace(b";10000;", b";0;"),
         lambda b: b.replace(b";2026-09-12;", b";12/09/2026;"),
@@ -535,8 +537,8 @@ def _posting_case(account):
     import_ledger_source(ledger)
     bank, _ = bank_for(account)
     movement = bank.movements.get()
-    movement.debit_account_code = "1.1"
-    movement.credit_account_code = "2.1"
+    movement.debit_account_code = "11"
+    movement.credit_account_code = "21"
     movement.save(update_fields=["debit_account_code", "credit_account_code"])
     return movement, ledger.ledger_records.get()
 

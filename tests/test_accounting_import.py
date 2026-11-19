@@ -46,7 +46,9 @@ START, END = date(2026, 9, 1), date(2026, 9, 30)
 def case(organization, tmp_path, settings):
     settings.MEDIA_ROOT = tmp_path
     settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = False
-    company = ClientCompany.objects.create(organization=organization, name="Synthetic importer")
+    company = ClientCompany.objects.create(
+        organization=organization, name="Synthetic importer", dominio_code="101"
+    )
     actor = User.objects.create_user("receipt@example.test", "synthetic-password")
     member = Membership.objects.create(organization=organization, user=actor, role="owner")
     approval, _ = homologate_synthetic(organization)
@@ -322,7 +324,9 @@ def test_receipt_document_is_private_scoped_and_verified(case, change):
     content = b"SYNTHETIC ERP IMPORT REPORT / NO REAL TRANSACTION"
     company = case["company"]
     if change == "other_company":
-        company = ClientCompany.objects.create(organization=case["organization"], name="Other")
+        company = ClientCompany.objects.create(
+            organization=case["organization"], name="Other", dominio_code="102"
+        )
     source = ReconciliationSourceFile.objects.create(
         organization=case["organization"],
         company=company,
