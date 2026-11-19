@@ -176,15 +176,16 @@
       let available = 0;
       [...account.options].forEach(option => {
         const ownerId = option.dataset.companyId;
-        const permitted = !ownerId || !companyId || ownerId === companyId;
+        // Accounts no longer repeat the company name, so they only appear once a company is chosen.
+        const permitted = !ownerId || (Boolean(companyId) && ownerId === companyId);
         option.hidden = !permitted;
         option.disabled = !permitted;
         if (permitted && ownerId) available += 1;
       });
       if (account.selectedOptions[0]?.disabled) account.value = '';
-      account.disabled = Boolean(companyId) && available === 0;
+      account.disabled = !companyId || available === 0;
       if (!help) return;
-      help.textContent = !companyId ? '' : available
+      help.textContent = !companyId ? 'Escolha a empresa para ver as contas.' : available
         ? `${available} conta${available === 1 ? '' : 's'} da empresa`
         : 'Empresa sem conta cadastrada';
     };
@@ -235,7 +236,7 @@
       amount.max = maximum;
       const current = Number(amount.value.replace(',', '.'));
       if (!Number.isFinite(current) || current <= 0 || current > Number(maximum)) amount.value = maximum;
-      if (limit) limit.textContent = `Você pode alocar até R$ ${maximum} neste lançamento.`;
+      if (limit) limit.textContent = `Você pode alocar até R$ ${Number(maximum).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} neste lançamento.`;
     };
     entry.addEventListener('change', updateLimit);
     updateLimit();

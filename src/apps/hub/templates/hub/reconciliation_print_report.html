@@ -41,14 +41,7 @@
     </dl>
   </section>
 
-  <aside class="report-notice" aria-labelledby="report-scope-title">
-    <h2 id="report-scope-title">Escopo da conferência</h2>
-    <ul>
-      <li>Inclui todos os movimentos do extrato selecionado e os registros independentes do Razão recebidos para esta conta no período. Filtros de busca, situação e página não limitam este relatório.</li>
-      <li>Conferido indica alocação integral registrada. Valores parciais ou zerados continuam a conferir. Este relatório não confirma movimentos, cobertura ou aceite final.</li>
-      {% for warning in report_data.warnings %}<li>{{ warning }}</li>{% endfor %}
-    </ul>
-  </aside>
+
 
   {% for section in report_sections %}
   <section class="report-section" aria-labelledby="report-{{ section.key }}-title">
@@ -64,7 +57,7 @@
       {% for row in section.rows %}
         <tr>
           <td data-label="Data">{{ row.date_label }}</td>
-          <td data-label="Histórico e documento" class="report-history">{{ row.history|default:'Histórico não informado' }}<span class="report-subline">Documento: {{ row.document|default:'não informado' }}</span></td>
+          <td data-label="Histórico e documento" class="report-history">{{ row.history|default:'Histórico não informado' }}{% if row.document %}<span class="report-subline">Documento: {{ row.document }}</span>{% endif %}</td>
           <td data-label="Fonte" class="report-source">{{ row.source_name }}{% if row.source_position %}<span class="report-subline">{{ row.source_position }}</span>{% endif %}</td>
           <td data-label="Movimento" class="report-number">{{ row.amount_label }}<span class="report-subline">{{ row.direction_label }}</span></td>
           <td data-label="Alocado" class="report-number">{{ row.allocated_label }}</td>
@@ -79,6 +72,15 @@
     {% endif %}
   </section>
   {% endfor %}
+
+  <aside class="report-notice" aria-labelledby="report-scope-title">
+    <h2 id="report-scope-title">Observações da conferência</h2>
+    <ul>
+      <li>Inclui todos os movimentos do extrato selecionado e os registros independentes do Razão recebidos para esta conta no período. Filtros de busca, situação e página não limitam este relatório.</li>
+      <li>Conferido indica alocação integral registrada. Valores parciais ou zerados continuam a conferir. Este relatório não confirma movimentos, cobertura ou aceite final.</li>
+      {% for warning in report_data.warnings %}<li>{{ warning }}</li>{% endfor %}
+    </ul>
+  </aside>
 
   <section class="report-evidence" aria-labelledby="report-evidence-title">
     <h2 id="report-evidence-title">Fontes e integridade</h2>

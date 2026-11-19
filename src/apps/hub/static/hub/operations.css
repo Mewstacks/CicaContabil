@@ -1002,3 +1002,9 @@ html[data-theme="dark"] .dashboard-intro .text-action{color:var(--green)}
 .backup-portfolio-table .table-action-cell{white-space:nowrap}
 .backup-portfolio-table .table-action-cell .button{white-space:nowrap;overflow-wrap:normal}
 @media(max-width:520px){.backup-portfolio-table .table-action-cell .button{display:flex;align-items:center;justify-content:center;width:100%;min-height:44px}}
+
+/* Portfolio shortcuts: an even two-column grid on phones instead of ragged wrapped buttons. */
+@media (max-width: 620px) {
+  .reconciliation-header-actions { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; }
+  .reconciliation-header-actions .button { display: flex; align-items: center; justify-content: center; min-height: 52px; text-align: center; }
+}

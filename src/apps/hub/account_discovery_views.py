@@ -153,7 +153,10 @@ def _private(response: HttpResponse) -> HttpResponse:
 def _filters(request: HttpRequest) -> tuple[dict[str, Any], list[str]]:
     values = request.GET.copy()
     if "month" not in values:
-        values["month"] = timezone.localdate().strftime("%Y-%m")
+        # The last closed month: the current one is still being posted in Domínio.
+        values["month"] = (timezone.localdate().replace(day=1) - timedelta(days=1)).strftime(
+            "%Y-%m"
+        )
     form = DiscoveryFiltersForm(values)
     errors = []
     if any(len(values.getlist(name)) > 1 for name in form.fields):

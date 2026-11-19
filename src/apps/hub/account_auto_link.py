@@ -115,10 +115,7 @@ def bank_chart_options(companies: QuerySet[ClientCompany]) -> list[dict[str, str
                 options.append(
                     {
                         "value": f"{AUTO_PREFIX}{account.pk}",
-                        "label": (
-                            f"{record.company.name} — {name} · conta {account.account_code} "
-                            "(vincula pelo OFX)"
-                        ),
+                        "label": f"{name} · conta {account.account_code} (vincula pelo OFX)",
                         "company_id": str(record.company_id),
                     }
                 )

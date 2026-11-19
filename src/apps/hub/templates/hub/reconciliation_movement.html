@@ -1,5 +1,5 @@
 {% extends 'hub/workspace.html' %}
-{% load static ui_navigation %}
+{% load static ui_navigation nfse_format %}
 {% block workspace_content %}
 <section class="workspace-panel">
   <header class="workspace-panel-head">
@@ -79,8 +79,8 @@
       <dl class="triage-details">
         <div><dt>Arquivo</dt><dd><a href="{% url 'hub:reconciliation-source-download' movement.source_file.id %}">{{ movement.source_file.original_filename }}</a>{% if movement.source_file.kind == 'pdf' %}<br><a href="{% url 'hub:reconciliation-source-preview' movement.source_file.id %}#page={{ movement.source_reference.page|default:1 }}" target="_blank" rel="noopener">Abrir PDF na página indicada</a>{% endif %}</dd></div>
         <div><dt>Localização</dt><dd>{% if movement.source_reference.page %}Página {{ movement.source_reference.page }}{% if movement.source_reference.line %} · linha {{ movement.source_reference.line }}{% elif movement.source_reference.ocr_line %} · linha OCR {{ movement.source_reference.ocr_line }}{% endif %}{% elif movement.source_reference.row %}Linha {{ movement.source_reference.row }}{% elif movement.source_reference.fitid %}OFX {{ movement.source_reference.fitid }}{% else %}Origem registrada{% endif %}{% if movement.source_reference.bbox %}<br><small>Região: x {{ movement.source_reference.bbox.x0|floatformat:0 }}–{{ movement.source_reference.bbox.x1|floatformat:0 }}, y {{ movement.source_reference.bbox.top|floatformat:0 }}–{{ movement.source_reference.bbox.bottom|floatformat:0 }} ({{ movement.source_reference.bbox.unit }})</small>{% endif %}</dd></div>
-        <div><dt>Data original</dt><dd>{{ movement.original_date }}</dd></div>
-        <div><dt>Valor original</dt><dd>{{ movement.original_amount }}</dd></div>
+        <div><dt>Data original</dt><dd>{{ movement.original_date|source_date }}</dd></div>
+        <div><dt>Valor original</dt><dd>{{ movement.original_amount|source_brl }}</dd></div>
         <div><dt>Qualidade</dt><dd>{{ movement.confidence }}% · {{ movement.confidence_details.method|default:'extração estruturada' }}</dd></div>
         <div><dt>Regra</dt><dd>{{ movement.applied_rule.name|default:'nenhuma' }}</dd></div>
       </dl>

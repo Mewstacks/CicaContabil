@@ -944,7 +944,7 @@ class ReconciliationUploadForm(forms.Form):
         financial_account_field.queryset = accounts.order_by("company__name", "name")
 
         def display_account(account: FinancialAccount) -> str:
-            return f"{account.company.name} — {account.name} ({account.account_reference})"
+            return f"{account.name} ({account.account_reference})"
 
         setattr(  # noqa: B010 - Django deliberately lets a choice field customize this method.
             financial_account_field,
