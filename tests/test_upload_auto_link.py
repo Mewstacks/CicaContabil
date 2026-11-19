@@ -122,3 +122,16 @@ def test_without_agent_import_still_lands_on_the_razao_page(web, discovered):
     assert response.status_code == 302
     assert response["Location"].startswith(reverse("hub:reconciliation-ledger-request"))
     assert FinancialAccount.objects.count() == 1
+
+
+def test_imports_list_offers_the_conference(web, discovered):
+    send(
+        web["client"], web["coverage"], f"dominio:{bank(discovered).pk}", [upload(synthetic_ofx())]
+    )
+    from apps.hub.models import ReconciliationRun
+
+    ReconciliationRun.objects.update(state="review")
+    source = ReconciliationSourceFile.objects.get()
+    html = web["client"].get(reverse("hub:reconciliation")).content.decode()
+    assert reverse("hub:reconciliation-source-review", args=[source.pk]) in html
+    assert "Abrir conferência" in html
