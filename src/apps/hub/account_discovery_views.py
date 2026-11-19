@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime, timedelta
 from typing import Any, cast
 from urllib.parse import urlencode
 
@@ -31,6 +32,7 @@ from apps.hub.account_discovery_review import (
     DiscoveryReviewError,
     confirm_discovered_account,
 )
+from apps.hub.account_discovery_suggest import suggest_accounts, suggested_inflow_side
 from apps.hub.models import (
     ClientCompany,
     ProductModule,
@@ -72,6 +74,54 @@ SOURCE_LABELS = {
 
 
 PREFILL_FIELDS = {"bank_code", "account_reference"}
+SESSION_PREFILL = "discovery_ofx_prefill"
+SESSION_PREFILL_TTL = timedelta(minutes=30)
+
+
+def _remember_prefill(
+    request: HttpRequest, *, office: Any, company_id: str, identity: OfxAccountIdentity
+) -> None:
+    """Keep the OFX identity only in the server-side session, never the file (D-384)."""
+
+    request.session[SESSION_PREFILL] = {
+        "organization_id": str(office.pk),
+        "company_id": str(company_id),
+        "bank_id": identity.bank_id,
+        "branch_id": identity.branch_id,
+        "account_id": identity.account_id,
+        "account_reference": identity.account_reference,
+        "transaction_count": identity.transaction_count,
+        "first_date": identity.first_date.isoformat(),
+        "last_date": identity.last_date.isoformat(),
+        "stored_at": timezone.now().isoformat(),
+    }
+
+
+def _recalled_prefill(
+    request: HttpRequest, *, office: Any, company_id: str
+) -> OfxAccountIdentity | None:
+    data = request.session.get(SESSION_PREFILL)
+    if not isinstance(data, dict):
+        return None
+    try:
+        stored_at = datetime.fromisoformat(str(data["stored_at"]))
+        if (
+            data["organization_id"] != str(office.pk)
+            or data["company_id"] != str(company_id)
+            or timezone.now() - stored_at > SESSION_PREFILL_TTL
+        ):
+            return None
+        return OfxAccountIdentity(
+            bank_id=str(data["bank_id"]),
+            branch_id=str(data["branch_id"]),
+            account_id=str(data["account_id"]),
+            account_reference=str(data["account_reference"]),
+            transaction_count=int(data["transaction_count"]),
+            first_date=date.fromisoformat(str(data["first_date"])),
+            last_date=date.fromisoformat(str(data["last_date"])),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def _read_prefill(form: OfxPrefillForm) -> tuple[OfxAccountIdentity | None, str]:
@@ -260,7 +310,7 @@ def account_discovery(request: HttpRequest) -> HttpResponse:
 
 
 @office_required
-@require_http_methods(["GET"])
+@require_http_methods(["GET", "POST"])
 def discovered_company(request: HttpRequest, company_id: str) -> HttpResponse:
     page_context, blocked = _module_page_context(
         request, definition(ProductModule.Code.RECONCILIATION)
@@ -280,6 +330,52 @@ def discovered_company(request: HttpRequest, company_id: str) -> HttpResponse:
         organization=context["office"],
         chart_company_code__in=owners,
     ).order_by("chart_company_code", "row__classification_raw", "account_code", "pk")
+    can_manage = bool(context["support_can_mutate"]) and _can_manage_reconciliation(context)
+    suggest_identity: OfxAccountIdentity | None = None
+    suggest_error = ""
+    suggestions: list[dict[str, Any]] = []
+    if request.method == "POST":
+        if not can_manage:
+            return refuse(
+                request, "Seu perfil pode consultar, mas não confirmar vínculos de contas."
+            )
+        uploads = request.FILES.getlist("statement")
+        if request.POST.getlist("action") != ["suggest"] or len(uploads) != 1:
+            suggest_error = "Anexe um único extrato OFX ou QFX de uma conta desta empresa."
+        elif errors:
+            suggest_error = "Confira a competência antes de anexar o extrato."
+        else:
+            suggest_identity, suggest_error = _read_prefill(
+                OfxPrefillForm(request.POST, request.FILES)
+            )
+        if suggest_identity is not None:
+            _remember_prefill(
+                request,
+                office=context["office"],
+                company_id=company_id,
+                identity=suggest_identity,
+            )
+            month_query = urlencode({"month": filters["month"]})
+            suggestions = [
+                {
+                    "account": item.account,
+                    "reasons": item.reasons,
+                    "best": index == 0,
+                    "url": reverse(
+                        "hub:reconciliation-discovered-account",
+                        args=[record.company_id, item.account.pk],
+                    )
+                    + "?"
+                    + month_query,
+                }
+                for index, item in enumerate(
+                    suggest_accounts(
+                        accounts,
+                        bank_id=suggest_identity.bank_id,
+                        account_id=suggest_identity.account_id,
+                    )
+                )
+            ]
     if filters["chart"]:
         accounts = accounts.filter(chart_company_code=filters["chart"])
     if filters["q"] and not errors:
@@ -324,13 +420,23 @@ def discovered_company(request: HttpRequest, company_id: str) -> HttpResponse:
         discovery_back_url=reverse("hub:reconciliation-account-discovery")
         + "?"
         + urlencode({"month": filters["month"]}),
+        discovery_can_suggest=can_manage,
+        discovery_suggest_form=OfxPrefillForm(),
+        discovery_suggest_url=reverse(
+            "hub:reconciliation-discovered-company", args=[record.company_id]
+        )
+        + "?"
+        + urlencode({"month": filters["month"]}),
+        discovery_suggest_identity=suggest_identity,
+        discovery_suggest_error=suggest_error,
+        discovery_suggestions=suggestions,
     )
     return _private(
         render(
             request,
             "hub/reconciliation_discovered_company.html",
             context,
-            status=400 if errors else 200,
+            status=400 if errors or suggest_error else 200,
         )
     )
 
@@ -394,11 +500,24 @@ def discovered_account(request: HttpRequest, company_id: str, account_id: str) -
             prefill_error = "Banco e conta desta ficha já foram conferidos; nada foi lido."
         else:
             prefill, prefill_error = _read_prefill(OfxPrefillForm(request.POST, request.FILES))
-        if prefill is not None:
-            prefill_initial = {
-                "bank_code": prefill.bank_id,
-                "account_reference": prefill.account_reference,
-            }
+    elif (
+        request.method == "GET"
+        and can_manage
+        and not errors
+        and not blocking_reason
+        and prepared.get("valid")
+        and PREFILL_FIELDS & set(prepared.get("pending_fields", []))
+    ):
+        prefill = _recalled_prefill(request, office=context["office"], company_id=company_id)
+    if prefill is not None:
+        prefill_initial = {
+            "bank_code": prefill.bank_id,
+            "account_reference": prefill.account_reference,
+        }
+    if "bank_inflow_side" in prepared.get("pending_fields", []):
+        side = suggested_inflow_side(account.row or {})
+        if side:
+            prefill_initial["bank_inflow_side"] = side
     form = DiscoveryLinkForm(
         request.POST if request.method == "POST" and not prefilling else None,
         prepared=prepared,
@@ -451,6 +570,7 @@ def discovered_account(request: HttpRequest, company_id: str, account_id: str) -
                     form.add_error(None, str(exc))
                     status = 400
                 else:
+                    request.session.pop(SESSION_PREFILL, None)
                     messages.success(
                         request,
                         "Vínculo registrado. A fonte e sua conferência foram preservadas.",

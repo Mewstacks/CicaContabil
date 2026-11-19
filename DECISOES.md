@@ -5845,3 +5845,39 @@ Na mesma mensagem o responsável pediu “de como certo a importação” (Q-47)
 conflita com D-380 item 4 (exportação definitiva só após homologação registrada pelo
 escritório depois de importar o arquivo de teste) e aguarda esclarecimento antes de
 qualquer registro de homologação em produção.
+
+## D-383 — Entrega da CONTAD hoje, com pendências não bloqueantes (19/11/2026)
+
+Origem: responsável, 19/11/2026: “eu PRECISO entregar isso hoje, não tem saída […]
+mesmo que não esteja tudo perfeito – por exemplo (2 contas do de x para) – não precisa
+travar por conta disso”.
+
+1. A CONTAD é entregue hoje para uso, na release v107, com comunicado de entrega
+   (`docs/pt-BR/contad-entrega-2026-11-19.md`) que separa o que funciona das
+   pendências de implantação.
+2. Não bloqueiam a entrega: aprovação das duas contas do DE-PARA (D-382), teste
+   único de importação no Domínio (Q-47/D-380), filial das contas nas seis matrizes
+   (D-381), conferência C01/C02, amostra D-73 e treinamento. Seguem como
+   pendências de implantação com responsável.
+3. Esta entrega não registra homologação da exportação, não ativa regra DE-PARA,
+   não aprova vínculo e não declara aceite em nome da cliente. A D-73 continua como
+   critério de aceite, não de entrega.
+
+## D-384 — Sugerir a conta contábil do banco a partir do OFX (19/11/2026)
+
+Origem: responsável, 19/11/2026, “Sim, começa”, à proposta de a CICA sugerir qual conta
+contábil corresponde ao banco do extrato, para acelerar os vínculos das 132 empresas
+dentro da entrega D-383. Executor Claude Code.
+
+1. Em *Contas do Domínio → empresa*, a pessoa anexa o OFX. A CICA lê banco/agência/conta
+   (mesmo leitor da D-377) e ordena as contas analíticas dos planos da empresa: grupo
+   bancário do plano (sintética com “banc” no nome, exceto aplicações/investimentos/
+   empréstimos/financiamentos), nome compatível com o banco do código BANKID e dígitos
+   da conta presentes no nome. Mostra até cinco sugestões com o motivo de cada uma.
+2. Ao abrir a sugestão, a ficha da conta já vem com banco e agência/conta do OFX (guardados
+   só na sessão do servidor, por 30 minutos, sem gravar o arquivo) e com o lado
+   “Débito” pré-selecionado para conta do ativo (classificação iniciada por 1), como
+   sugestão editável.
+3. Continua humano: escolha da conta, lado, filial e as quatro confirmações. Nada é
+   vinculado sozinho; esta decisão supera, só como sugestão exibida, a vedação anterior
+   de usar nome/classificação para indicar a conta bancária (D-372).

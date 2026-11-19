@@ -43,3 +43,10 @@
   .discovery-ofx-prefill, .discovery-prefill-result { margin-left: 12px; margin-right: 12px; }
   .discovery-ofx-prefill .button { width: 100%; }
 }
+
+/* D-384: suggestions of the chart account from an OFX */
+.discovery-suggestion-list { list-style: none; margin: 0.75rem 0; padding: 0; display: grid; gap: 0.5rem; }
+.discovery-suggestion-list li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.625rem 0.75rem; border: 1px solid var(--line, #d9d4c7); border-radius: 8px; }
+.discovery-suggestion-list li.is-best { border-width: 2px; }
+.discovery-suggestion-list li > div { display: grid; gap: 0.125rem; min-width: 0; }
+.discovery-suggestion-list small { overflow-wrap: anywhere; }

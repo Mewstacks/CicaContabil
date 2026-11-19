@@ -157,6 +157,15 @@ bancária/contábil já usada em fontes, lançamentos ou coletas não pode ser t
 silenciosamente. Contas originadas de um vínculo têm identidade preservada;
 a tela controla novos usos e exige cadastro completo para ativar.
 
+#### Encontrar a conta pelo extrato (D-384)
+
+Na página da empresa em **Contas do Domínio**, use **Encontrar a conta pelo extrato**:
+anexe o OFX de uma conta bancária e clique em **Ler extrato e sugerir conta**. A CICA
+lista até cinco contas do plano, a mais provável primeiro, com o motivo de cada sugestão
+(grupo de bancos do plano, nome do banco, número da conta no nome). **Usar esta conta**
+abre a ficha com banco, agência/conta e o lado “Débito” já preenchidos; confira, escolha
+a filial se pedida, marque as confirmações e conclua. O arquivo não é gravado.
+
 #### Vincular pela conta do Domínio usando o OFX (D-377)
 
 Para as demais empresas, abra **Contas do Domínio**, escolha a empresa e a conta

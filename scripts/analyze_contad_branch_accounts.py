@@ -68,15 +68,17 @@ def bank_accounts(chart_path: Path, plans: set[int]) -> dict[tuple[int, int], di
 
 def analyse(profile: dict, chart_path: Path) -> dict:
     snapshot = profile["snapshot"]
-    usage: dict[tuple[int, int, int], dict] = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
+    usage: dict[tuple[int, int, int], dict] = defaultdict(
+        lambda: defaultdict(lambda: defaultdict(int))
+    )
     plans: set[int] = set()
     for side, key in (("debit", "debit_counts"), ("credit", "credit_counts")):
         for r in snapshot[key]:
             plans.add(r["chart_company_code"])
             month = f"{r['year']:04d}-{r['month']:02d}"
-            usage[(r["company_code"], r["chart_company_code"], r["account_code"])][r["branch_code"]][
-                f"{month}:{side}"
-            ] += r["entry_count"]
+            usage[(r["company_code"], r["chart_company_code"], r["account_code"])][
+                r["branch_code"]
+            ][f"{month}:{side}"] += r["entry_count"]
     banks = bank_accounts(chart_path, plans)
     companies = []
     for company in COMPANIES:
@@ -86,10 +88,12 @@ def analyse(profile: dict, chart_path: Path) -> dict:
                 continue
             meta = banks[(plan, account)]
             per_branch = {
-                str(branch): dict(sorted(counts.items())) for branch, counts in sorted(branches.items())
+                str(branch): dict(sorted(counts.items()))
+                for branch, counts in sorted(branches.items())
             }
             september = {
-                b: sum(v for k, v in c.items() if k.startswith("2026-09")) for b, c in per_branch.items()
+                b: sum(v for k, v in c.items() if k.startswith("2026-09"))
+                for b, c in per_branch.items()
             }
             used = [b for b, n in september.items() if n]
             accounts.append(
@@ -129,8 +133,14 @@ def main(argv: list[str]) -> int:
         if not company["bank_accounts"]:
             print("  nenhuma conta do grupo Depósitos Bancários com lançamento no período")
         for a in company["bank_accounts"]:
-            choice = a["suggested_branch"] if a["suggested_branch"] is not None else (
-                "mais de uma: " + ", ".join(a["september_branches"]) if a["needs_choice"] else "sem uso em setembro"
+            choice = (
+                a["suggested_branch"]
+                if a["suggested_branch"] is not None
+                else (
+                    "mais de uma: " + ", ".join(a["september_branches"])
+                    if a["needs_choice"]
+                    else "sem uso em setembro"
+                )
             )
             print(f"  conta {a['account_code']} {a['account_name']}: filial {choice}")
     return 0

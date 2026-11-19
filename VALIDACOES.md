@@ -12248,3 +12248,23 @@ uso em setembro e indicação de escolha quando houver mais de uma filial.
 
 Pendente: CI Windows, execução no SVAPL02 pelo responsável, recepção e conferência
 do arquivo. Nenhuma consulta ao ERP, escrita em produção ou vínculo aprovado.
+
+## V-421 — D-384: sugestão da conta contábil pelo OFX (19/11/2026)
+
+Implementado em `codex/contad-filial-contas`: `apps/hub/account_discovery_suggest.py`
+(ordenação por grupo bancário do plano, nome do banco pelo código BANKID e número da
+conta no nome; exclui sintéticas, inativas, aplicações, cotas, contratos e contas fora
+do ativo), envio do OFX na página da empresa em *Contas do Domínio*, identidade lida
+guardada só na sessão do servidor por 30 min e aplicada à ficha da conta sugerida, lado
+“Débito” pré-selecionado para conta do ativo. Vínculo continua exigindo as confirmações.
+
+Testes: 9 novos em `tests/test_discovery_ofx_suggest.py`; 45 aprovados com prefill e
+navegação; 153 aprovados/1 skip nas suítes de descoberta e candidatas (SQLite). ruff ok;
+mypy sem erros nos arquivos alterados (26 erros preexistentes em outros módulos).
+Catálogo real retido (SHA `7bbbd36b…cf35`), só leitura local: conta correta em primeiro
+em 7 de 7 amostras (ex.: plano 212/Sicredi → conta 8, a do piloto); 119 de 122 planos
+têm grupo bancário reconhecido.
+Navegador, servidor local com dados sintéticos: OFX anexado, “Mais provável” exibido,
+ficha aberta com banco/conta/lado preenchidos e confirmações desmarcadas, console sem
+erros, 375 px sem rolagem horizontal. Não verificado: teclado/leitor de tela, tema
+claro, produção. Publicação pendente de CI e deploy pelo responsável.
