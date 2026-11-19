@@ -12304,3 +12304,15 @@ Main `81a2183`; imagem OCI sobre a v108, digest
 pelo responsável (“Sim, faz o deploy”): **release v109**, web e worker started na 109, reserva
 parada, live/ready 200. CI da v108 (`ac2a582`) aprovada integralmente. Não verificado: tela
 em produção com usuário logado e CI integral de `81a2183`.
+
+## V-423 — D-386: importação como percurso único, release v110 (19/11/2026)
+
+Após importar OFX com conta vinculada, a CICA pede o Razão da competência, leva a *Extrato e
+Razão* e abre a conferência quando ele chega; movimentos já confirmados saem de *Movimentos*.
+Testes: 6 em `tests/test_upload_auto_link.py`; suíte SQLite completa 3.421 aprovados/59 skips.
+Navegador local com dados sintéticos: Nova importação → conta “vincula pelo OFX” → OFX →
+“Conta vinculada pelo extrato”, “1 processamento criado”, “Razão do Domínio solicitado”,
+tela Extrato e Razão “Aguardando confirmação do agente”; console sem erros. Abertura
+automática da conferência não provada (depende do agente real). Main `e70eecf`; imagem OCI
+`sha256:f4d7b81dfad645b5257c58d774f1e677775b059f8eca85f37fcbefb75bff42fe`; deploy autorizado
+(“Sim, publica”): **release v110**, web e worker started, live/ready 200, JS novo servido.
