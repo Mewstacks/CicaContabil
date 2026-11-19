@@ -12340,3 +12340,13 @@ para a conferência; cada linha de extrato com conta passa a ter “Abrir confer
 novo; 117 aprovados nas suítes de conciliação. Main `199fc4a`; imagem OCI
 `sha256:2ddeece58dd76bf8d6baf1e6c10822462a2ab9ea24ce72b31d370ae19227b2a7`; deploy autorizado
 (“Sim, publica”): **release v111**, web e worker started, live/ready 200.
+
+## V-426 — D-388: confirmação automática das coincidências exatas, release v112 (19/11/2026)
+
+`apps/hub/auto_confirm.py` chamado na chegada do Razão, no fim do processamento do extrato e
+na importação com Razão existente. 4 testes novos; suíte SQLite completa 3.426 aprovados/59
+skips; ruff ok. Main `8d98d2f`; imagem OCI
+`sha256:cc22c9efbaa89f4cca5f0ca421f98ba92bc3b6b7bb9fa28e8b3ecf9b92e9154a`; deploy autorizado
+(“sim, faz confirmar sozinha e publica”): **release v112**, web e worker started, live/ready 200.
+SURIA (importada antes da v112): 159 pares exatos pendentes e nenhuma confirmação; aplicação
+retroativa recusada pela permissão automática da sessão, aguardando o responsável.
