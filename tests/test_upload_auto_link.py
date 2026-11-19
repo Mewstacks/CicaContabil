@@ -80,3 +80,45 @@ def test_invalid_or_foreign_value_is_refused(web, discovered):
         response = send(web["client"], web["coverage"], value, [upload(synthetic_ofx())])
         assert response.status_code == 400
     assert not FinancialAccount.objects.exists()
+
+
+def test_import_requests_the_razao_and_follows_it_on_one_page(web, discovered, organization):
+    from django.utils import timezone
+
+    from apps.intelligence.models import EdgeAgent, NativeLedgerCollection
+
+    EdgeAgent.objects.create(
+        organization=organization,
+        label="Conexão sintética",
+        fingerprint="synthetic-auto-ledger",
+        shared_secret="synthetic-only",
+        status="active",
+        is_official=True,
+        last_seen_at=timezone.now(),
+    )
+    coverage = web["coverage"]
+    response = send(
+        web["client"], coverage, f"dominio:{bank(discovered).pk}", [upload(synthetic_ofx())]
+    )
+    assert response.status_code == 302
+    assert response["Location"].startswith(reverse("hub:reconciliation-ledger-request"))
+    assert "month=2026-09" in response["Location"] and "auto=1" in response["Location"]
+    job = NativeLedgerCollection.objects.get()
+    account = FinancialAccount.objects.get()
+    assert job.financial_account_id == account.pk
+    assert job.scope["period_start"] == "2026-09-01"
+    assert job.bank_source_id == ReconciliationSourceFile.objects.get().pk
+    page = web["client"].get(response["Location"])
+    assert page.status_code == 200
+    again = send(web["client"], coverage, str(account.pk), [upload(synthetic_ofx(rows=3), "c.ofx")])
+    assert again.status_code == 302
+    assert NativeLedgerCollection.objects.count() == 1
+
+
+def test_without_agent_import_still_lands_on_the_razao_page(web, discovered):
+    response = send(
+        web["client"], web["coverage"], f"dominio:{bank(discovered).pk}", [upload(synthetic_ofx())]
+    )
+    assert response.status_code == 302
+    assert response["Location"].startswith(reverse("hub:reconciliation-ledger-request"))
+    assert FinancialAccount.objects.count() == 1

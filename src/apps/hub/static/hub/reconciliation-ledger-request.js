@@ -58,6 +58,7 @@
     return target.href;
   };
   let rounds = 0;
+  const autoOpen = new URLSearchParams(window.location.search).get('auto') === '1';
   const refreshRow = async (row) => {
     if (!row.dataset.ledgerStatusUrl) return;
     const controller = new AbortController();
@@ -84,6 +85,10 @@
       const link = row.querySelector('[data-ledger-conference]');
       link.hidden = !conferenceUrl;
       if (conferenceUrl) link.href = conferenceUrl;
+      // D-386: after an import, open the conference as soon as the Razão arrives.
+      if (autoOpen && conferenceUrl && ['imported', 'empty'].includes(data.status)) {
+        window.location.assign(conferenceUrl);
+      }
       const actions = row.querySelector('[data-ledger-actions]');
       if (data.can_retry && !actions.querySelector('form')) {
         const csrf = document.querySelector('input[name=csrfmiddlewaretoken]');
@@ -117,5 +122,9 @@
       else announce('A atualização automática foi pausada. Use Atualizar situação para continuar acompanhando.');
     }
   };
-  if (rows.length) window.setTimeout(refresh, 10000);
+  if (rows.length) window.setTimeout(refresh, autoOpen ? 3000 : 10000);
+  else if (autoOpen) {
+    const ready = document.querySelector('[data-ledger-conference]:not([hidden])');
+    if (ready && ready.href) window.location.assign(ready.href);
+  }
 })();

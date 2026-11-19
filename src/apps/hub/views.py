@@ -9196,7 +9196,10 @@ def _reconciliation_v2_context(
     visible_runs = list(runs_page.object_list)
     for run in visible_runs:
         run.guidance = _reconciliation_run_guidance(run, local_ocr_available=local_ocr_is_available)
-    all_movements = NormalizedMovement.objects.filter(organization=office, company__in=companies)
+    # D-386: what already matched the Domínio Razão is done; the list shows only what is left.
+    all_movements = NormalizedMovement.objects.filter(
+        organization=office, company__in=companies
+    ).exclude(reconciliations__state=MovementReconciliation.State.CONFIRMED)
     if selected_source:
         all_movements = all_movements.filter(source_file=selected_source)
     movement_filters = {
@@ -10464,6 +10467,7 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
     created = 0
     duplicates = 0
     failures: list[str] = []
+    bank_statement: tuple[ReconciliationSourceFile, bytes] | None = None
     for upload in files:
         filename = upload.name
         if not filename:
@@ -10499,6 +10503,8 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
                         actor=request.user,
                         request=request,
                     )
+                if source.financial_account_id and bank_statement is None:
+                    bank_statement = (source, content)
             if was_created:
                 from apps.hub.tasks import process_reconciliation_run
 
@@ -10516,9 +10522,72 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
         )
     for failure in failures:
         messages.error(request, failure)
+    if bank_statement is not None:
+        return redirect(_ledger_after_upload(request, *bank_statement))
     if created or duplicates:
         return redirect(f"{reverse('hub:reconciliation')}#processamentos")
     return redirect("hub:reconciliation")
+
+
+def _ledger_after_upload(
+    request: HttpRequest, source: ReconciliationSourceFile, content: bytes
+) -> str:
+    """After an OFX, ask Domínio for the month's Razão and follow it on one page (D-386)."""
+
+    from apps.hub.ledger_requests import ledger_request_context, request_ledger
+    from apps.hub.reconciliation import read_ofx_account_identity
+    from apps.intelligence.models import NativeLedgerCollection
+
+    account = source.financial_account
+    assert account is not None
+    try:
+        first = read_ofx_account_identity(content).first_date
+    except OfxParseError:
+        first = timezone.localdate()
+    month = first.replace(day=1)
+    if month < date(2026, 9, 1):
+        month = date(2026, 9, 1)
+    url = (
+        reverse("hub:reconciliation-ledger-request")
+        + "?"
+        + urlencode(
+            {
+                "company": str(account.company_id),
+                "account": str(account.pk),
+                "month": month.strftime("%Y-%m"),
+                "bank_source": str(source.pk),
+                "auto": "1",
+            }
+        )
+        + "#ledger-requests"
+    )
+    already = (
+        NativeLedgerCollection.objects.filter(
+            financial_account=account, scope__period_start=month.isoformat()
+        )
+        .exclude(state=NativeLedgerCollection.State.FAILED)
+        .exists()
+    )
+    if already:
+        return url
+    try:
+        revision = ledger_request_context(account=account, actor=cast(User, request.user))[
+            "mapping_revision"
+        ]
+        request_ledger(
+            account=account,
+            actor=cast(User, request.user),
+            month=month,
+            request_key=uuid.uuid4(),
+            expected_mapping_revision=str(revision),
+            bank_source=source,
+            request=request,
+        )
+    except ValueError as exc:
+        messages.info(request, f"O Razão não foi pedido automaticamente: {exc}")
+    else:
+        messages.success(request, "Razão do Domínio solicitado. A conferência abre quando chegar.")
+    return url
 
 
 @office_required

@@ -5894,3 +5894,16 @@ sem isso”, sobre o “Empresa sem conta cadastrada” em *Importar arquivos*. 
    (ou a única observada) e competência do extrato, e importa como extrato bancário.
    Sem OFX, nada é vinculado. Supera, para este caminho, a exigência de confirmação
    humana campo a campo de D-377/D-384; a conferência dos movimentos segue humana.
+
+## D-386 — Importar o extrato vira um percurso único até a conferência (19/11/2026)
+
+Origem: responsável, 19/11/2026: “a cliente precisa anexar o arquivo e isso se tornar um
+processo corrido, onde as coisas aconteçam em ordem, e não eu precisar ficar abrindo telas
+separadas”. Executor Claude Code.
+
+1. Após importar um OFX com conta vinculada (inclusive a vinculada pela D-385), a CICA pede
+   sozinha o Razão do Domínio da competência do extrato, se ainda não houver pedido ativo
+   para essa conta e mês, e leva a pessoa à tela *Extrato e Razão* daquela conta e mês.
+2. Essa tela acompanha o pedido e abre a conferência assim que o Razão chega (ou já existe).
+3. Movimentos já confirmados contra o Razão saem da lista *Movimentos*; ela mostra só o que
+   falta. A confirmação das coincidências continua sendo um clique da pessoa.
