@@ -12069,8 +12069,24 @@ Antes: teste concorrente [generate/approve/export] 15 execuções, 6 falhas (40%
 Nova regressão determinística exige `FOR UPDATE OF "hub_reconciliationsourcefile"`;
 falha sem a correção e passa com ela. Suítes relacionadas (independent_ledger,
 reconciliation_module, module_activities): PostgreSQL136 aprovados/24 subtestes;
-SQLite130 aprovados/6 skips de concorrência; Ruff ok. CI e publicação registrados
-abaixo quando executados; sem eles a correção não está em produção.
+SQLite130 aprovados/6 skips de concorrência; Ruff ok.
+
+Publicação autorizada pelo responsável nesta sessão (“Sim, publicar”), 19/11:
+CI 44534764987 do PR #36 aprovado (verify, agent, agent-package); merge beaf98a,
+src idêntico a ef5b480. Imagem OCI de uma camada sobre a v104 (base f04970bd…),
+copiando só reconciliation_activities.py:
+sha256:95e271a9fb53011f85b262263ad974a7c9f8de5dd690a73ac0e8f3d6acf8a0be,
+manifesto OCI (205 gzip/11 zstd), 816 canônicos idênticos ao commit, 82 assets ok.
+Deploy com a configuração das releases99/100 (igual à configuração ativa da v104:
+rolling, EDGE_AGENT_LATEST_VERSION1.0.13): **release v105**, release_command
+concluído sem migração nova; web891e63ef665e58 e worker1857691da097e8 saudáveis.
+A reserva287e35db920e48 foi atualizada pela Fly para a v105 e continua parada.
+Conferência somente leitura antes/depois: runtime 821 arquivos 81852e4d…→20dee00c…,
+este igual ao calculado dentro da imagem; hub0089/intelligence0041 e endpoints
+iguais nos dois aliases; 15 grupos protegidos e extras idênticos ao pré-deploy e
+iguais entre web e worker; agente oficial ativo (14:01:53Z). Site, live e ready200.
+Sem migração, mudança de interface, custo ou alteração de infraestrutura.
+Recibos privados em .tmp/release-deadlock/ da worktree contad-finalizacao-20261119.
 
 Não executado por D-376 (ação/responsável): formato Q-47 no importador do SVAPL02
 (CONTAD+CICA, mostrar Conjunto de dados e menu Importação); C01/C02, vínculos
