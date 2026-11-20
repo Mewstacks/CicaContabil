@@ -4820,3 +4820,9 @@ Não publicado: merge/deploy aguardam autorização.
 D-389 publicada na release v114 após CI aprovada e merge (`6bd9e52`). Imagem OCI com os
 dois arquivos alterados sobre a v113; produção conferida antes e depois. O relatório da
 SURIA passou a mostrar os saldos do banco calculados pelo OFX.
+
+## 20/11/2026 — V-432: empresas sem conta de banco no plano
+
+129 das 146 empresas já oferecem a conta do banco na importação. As empresas 55, 252 e 264
+têm plano, mas só Caixa em Disponibilidades, sem conta de bancos; 14 não têm plano. Depende
+da CONTAD criar a conta no Domínio ou confirmar outra forma de escrituração.
