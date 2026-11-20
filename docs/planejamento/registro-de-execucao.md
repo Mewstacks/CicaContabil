@@ -4814,3 +4814,9 @@ a cobertura; conferido contra o PDF Sicredi do mesmo mês (saldos iguais). Suít
 completa aprovada. Telas da conciliação reabertas em produção (1366/375 px, só leitura):
 sem transbordo, sobreposição ou texto cortado; atalhos secundários com 39 px anotados.
 Não publicado: merge/deploy aguardam autorização.
+
+## 20/11/2026 — V-431: release v114 (saldos do banco pelo OFX)
+
+D-389 publicada na release v114 após CI aprovada e merge (`6bd9e52`). Imagem OCI com os
+dois arquivos alterados sobre a v113; produção conferida antes e depois. O relatório da
+SURIA passou a mostrar os saldos do banco calculados pelo OFX.
