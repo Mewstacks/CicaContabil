@@ -4805,3 +4805,12 @@ preparação, geração e aprovação dos lançamentos, prévia, importação no
 Guia e pendências corrigidos para o nome atual da tela (*Arquivos e histórico →
 Prévia para conferência*). O envio de extrato em um passo já estava em produção
 (D-384–D-388, v108–v112); o rascunho antigo sem commit foi preservado e não retomado.
+
+## 20/11/2026 — D-389/V-429/V-430: saldos pelo OFX e telas da v113
+
+O relatório de conferência passa a mostrar saldo inicial e final do banco também para
+OFX, a partir do saldo final informado no próprio arquivo, só quando o arquivo comprova
+a cobertura; conferido contra o PDF Sicredi do mesmo mês (saldos iguais). Suíte SQLite
+completa aprovada. Telas da conciliação reabertas em produção (1366/375 px, só leitura):
+sem transbordo, sobreposição ou texto cortado; atalhos secundários com 39 px anotados.
+Não publicado: merge/deploy aguardam autorização.

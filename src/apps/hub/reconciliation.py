@@ -128,6 +128,64 @@ def parse_ofx(content: bytes) -> ParsedStatement:
     return ParsedStatement(account_reference=account_reference, transactions=tuple(transactions))
 
 
+_LEDGER_BALANCE = re.compile(r"<LEDGERBAL>(?P<body>.*?)</LEDGERBAL>", re.IGNORECASE | re.DOTALL)
+
+
+@dataclass(frozen=True)
+class OfxStatementBalance:
+    """Bank-reported balance and covered window of an OFX statement (D-389)."""
+
+    balance_cents: int
+    as_of: date
+    period_start: date
+    period_end: date
+    transactions: tuple[ParsedTransaction, ...]
+
+    def balances_for(self, start: date, end: date) -> tuple[int, int] | None:
+        """Opening/closing for ``start..end`` when the file proves the coverage."""
+        if start < self.period_start or end > self.as_of or start > end:
+            return None
+        after_end = sum(t.amount_cents for t in self.transactions if t.occurred_on > end)
+        from_start = sum(t.amount_cents for t in self.transactions if t.occurred_on >= start)
+        return self.balance_cents - from_start, self.balance_cents - after_end
+
+
+def read_ofx_statement_balance(content: bytes) -> OfxStatementBalance | None:
+    """Return the LEDGERBAL balance only when the file proves what it covers."""
+
+    try:
+        statement = parse_ofx(content)
+    except OfxParseError:
+        return None
+    text = content.decode("utf-8", errors="replace")
+    blocks = list(_LEDGER_BALANCE.finditer(text))
+    starts = re.findall(r"<DTSTART>([^<\r\n]+)", text, re.IGNORECASE)
+    ends = re.findall(r"<DTEND>([^<\r\n]+)", text, re.IGNORECASE)
+    if len(blocks) != 1 or len(starts) != 1 or len(ends) != 1:
+        return None
+    fields = _tags(blocks[0]["body"])
+    try:
+        amount = Decimal(fields.get("BALAMT", "").replace(",", "."))
+        if not amount.is_finite() or abs(amount) > Decimal("92233720368547758.07"):
+            return None
+        balance = int((amount * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        as_of = _date(fields.get("DTASOF", ""))
+        period_start = _date(starts[0].strip())
+        period_end = _date(ends[0].strip())
+    except (InvalidOperation, OfxParseError):
+        return None
+    dates = [item.occurred_on for item in statement.transactions]
+    if not (period_start <= min(dates) and max(dates) <= as_of <= period_end):
+        return None
+    return OfxStatementBalance(
+        balance_cents=balance,
+        as_of=as_of,
+        period_start=period_start,
+        period_end=period_end,
+        transactions=statement.transactions,
+    )
+
+
 @dataclass(frozen=True)
 class OfxAccountIdentity:
     """Bank identification read from an OFX only to prefill a human review (D-377)."""
