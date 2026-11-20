@@ -12368,3 +12368,35 @@ Pendente: saldos do relatório a partir do OFX. Testes: 2 novos; suíte SQLite 3
 Main `c52c8c1`; imagem `sha256:644777b62abf254d733933193373d568a0f45efb8529bd1fbca197a3eba1e54e`;
 deploy autorizado (“Sim, publica”): **release v113**, web/worker started, live/ready 200, CSS e
 JS novos servidos. Telas não reabertas após o deploy: sessão do navegador expirada.
+
+## V-428 — Roteiro do teste único de importação no Domínio (20/11/2026)
+
+Executor Claude Code, pedido do responsável em 20/11 (“Sim, faz os dois”: terminar o
+envio de extrato em um passo e preparar o roteiro do teste no Domínio). Fonte isolada
+`codex/contad-roteiro-dominio` a partir da main `fbf90cd` (release v113).
+
+Envio em um passo: não executado de novo. O rascunho sem commit na worktree
+`contad-finalizacao-20261119` (título “D-381 — Enviar extrato em um passo”, telas
+`quick_statement*`) é anterior e foi superado pelo que já está na main e em produção:
+D-384 (conta sugerida pelo OFX, v108), D-385 (conta do banco escolhida e vinculada na
+importação, v109), D-386 (percurso único até a conferência, v110) e D-388 (coincidências
+exatas confirmadas pela CICA, v112). O ID D-381 na main é outra decisão (filial das contas
+bancárias). O rascunho foi preservado como está, sem merge, commit ou exclusão.
+
+Roteiro: `docs/pt-BR/contad-teste-importacao-dominio.md`, conferido contra o código da
+main: exigências de `create_journal_entry_from_movement`/`validate_journal_entry`
+(movimento sem par no Razão, contas analíticas ativas do plano, débito = crédito),
+`accounting_preview._prepared` (lançamento aprovado, extrato bancário da conta, sem
+exportação anterior), rótulos das telas (*Movimentos normalizados*, *Gerar lançamento
+rascunho*, *Validar e aprovar lançamento*, *Arquivos e histórico → Prévia para
+conferência*, *Baixar prévia não homologada*), adaptador `dominio-lote19-v1`
+(lote X por par, usuário “CICA”, CNPJ em branco sem 14 dígitos, histórico padrão zero,
+filial = código da empresa — listados como pontos a observar no Importador) e comando
+`record_dominio_homologation` (simulação, depois `--apply`). Guia e lista de pendências
+corrigidos: o caminho “Exportações → Preparar arquivo de conferência” não existe na tela
+atual. Somente documentação; sem código, teste, deploy, acesso a produção ou ao SVAPL02.
+
+Não verificado: existência, em produção, de movimentos sem par no Razão para o teste
+(depende do extrato que a CONTAD escolher); comportamento real do Importador. Conflito
+D-382 (“de como certo a importação”) × D-380 item 4 continua aberto: o roteiro segue
+D-380 e nenhuma homologação foi registrada.

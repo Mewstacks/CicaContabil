@@ -4796,3 +4796,12 @@ Exportação pelo leiaute oficial do Importador do Domínio (conjunto 19), conta
 contrapartida pelo plano Domínio da empresa e comando de liberação publicados na
 v107 com a prévia liberada para a CONTAD. Falta o teste de importação no Domínio
 pela CONTAD; depois a CICA registra a homologação e a exportação definitiva abre.
+
+## 20/11/2026 — V-428: roteiro do teste de importação no Domínio
+
+Roteiro da chamada de teste com a CONTAD (`docs/pt-BR/contad-teste-importacao-dominio.md`):
+preparação, geração e aprovação dos lançamentos, prévia, importação no Importador
+(conjunto 19), conferência, registro da liberação e o que fazer em caso de erro.
+Guia e pendências corrigidos para o nome atual da tela (*Arquivos e histórico →
+Prévia para conferência*). O envio de extrato em um passo já estava em produção
+(D-384–D-388, v108–v112); o rascunho antigo sem commit foi preservado e não retomado.
