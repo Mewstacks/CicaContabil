@@ -4826,3 +4826,11 @@ SURIA passou a mostrar os saldos do banco calculados pelo OFX.
 129 das 146 empresas já oferecem a conta do banco na importação. As empresas 55, 252 e 264
 têm plano, mas só Caixa em Disponibilidades, sem conta de bancos; 14 não têm plano. Depende
 da CONTAD criar a conta no Domínio ou confirmar outra forma de escrituração.
+
+## 20/11/2026 — D-390/V-433: precisão D-73 pelas confirmações automáticas
+
+A amostra D-378 não mediria nada na CONTAD (nenhum movimento classificado por regra). Por
+decisão do responsável, a precisão D-73 passa a ser medida nas confirmações automáticas D-388:
+a proprietária confere, desfaz as erradas e registra a revisão na conferência do extrato; o
+comando `auto_confirmation_acceptance` calcula mantidas/revisadas (mínimo 200, 95%).
+Implementado e testado; publicação pendente de autorização.

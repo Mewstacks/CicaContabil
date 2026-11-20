@@ -5948,3 +5948,30 @@ Decisão: para extrato OFX, o relatório usa o saldo informado pelo próprio arq
 3. O relatório avisa que os saldos do banco foram calculados pelo saldo final do OFX. Saldo
    do Razão, regras de conferência, contrato do CSV e PDF não mudam. Sem migração, custo,
    IA ou mensagem externa; merge/deploy só com autorização na sessão.
+
+## D-390 — Precisão D-73 das confirmações automáticas D-388 pela revisão da proprietária (20/11/2026)
+
+Origem: responsável, 20/11/2026, “Medir confirmações D-388”, após ser informado de que a
+amostra existente (`reconciliation_acceptance`, D-378) mede só a classificação contábil por
+regra — inexistente na CONTAD enquanto o DE-PARA está adiado (D-382) — e de que os 163
+movimentos da SURIA não têm conta prevista. Executor Claude Code. Retoma o item 9 das
+pendências de 20/11: as confirmações automáticas D-388 passam a ser a decisão automática
+medida pelo critério de precisão da D-73.
+
+1. População: alocações `MovementReconciliation` com `evidence.automatic = true` (D-388),
+   confirmadas ou desfeitas, dos movimentos de um extrato bancário (o arquivo inteiro).
+2. Revisão: na conferência do extrato, a proprietária do escritório confere as confirmações
+   automáticas, desfaz as incorretas na ficha do movimento (já existente) e registra
+   “Revisão das confirmações automáticas” com a declaração de que conferiu todas. O registro
+   congela, por alocação, o estado no momento (mantida = acerto; desfeita = erro), com autoria
+   de quem clicou. Só o papel proprietário registra; demais perfis veem a contagem. Registro
+   repetido com o mesmo estado não duplica; um novo registro substitui o anterior daquele
+   extrato.
+3. Medição: relatório somente leitura por escritório (comando `auto_confirmation_acceptance`)
+   com a última revisão de cada extrato: revisadas, mantidas, desfeitas,
+   precisão. Critério D-73 desta parte: pelo menos 200 confirmações revisadas e mantidas ×100
+   ≥ revisadas ×95 (aritmética inteira). Confirmação não revisada não conta.
+4. Não muda: a confirmação automática, o desfazer, a amostra de classificação D-378 e os
+   demais critérios D-73. Nada é revisado, aceito ou registrado em nome da cliente pela CICA.
+   Sem migração (registro em auditoria), custo, IA ou mensagem externa. Interface na mesma
+   identidade da conferência, com QA em navegador; merge/deploy só com autorização.

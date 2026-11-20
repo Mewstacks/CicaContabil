@@ -347,6 +347,11 @@ urlpatterns = [
         name="reconciliation-source-confirm-exact",
     ),
     path(
+        "app/conciliacao/arquivos/<uuid:source_id>/revisar-automaticas/",
+        views.reconciliation_source_auto_review,
+        name="reconciliation-source-auto-review",
+    ),
+    path(
         "app/conciliacao/movimentos/<uuid:movement_id>/",
         views.reconciliation_movement_detail,
         name="reconciliation-movement",
