@@ -12523,3 +12523,28 @@ reabre o formulário; botões com 44 px; sem rolagem horizontal nem texto cortad
 no celular os textos do bloco herdavam 320 px de altura da regra de linha; e um ponto final
 solto na linha de situação. ui-ux-pro-max e Watermelon não disponíveis nesta sessão (limite).
 Não publicado: merge e deploy aguardam autorização.
+
+## V-434 — Publicação da D-390 na release v115 (20/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, merge e deploy”). Falha de processo
+registrada: o PR #48 foi mesclado (`3ae5d22`) com `verify` e `agent-package` ainda em execução,
+porque a espera da CI terminou por erro de rede (`connection reset`) e o comando não propagou a
+falha. O deploy foi retido até a execução 44815786476 do PR concluir com as três verificações
+aprovadas (agent, agent-package, verify). `src/` da main idêntico ao do PR.
+
+Imagem OCI sobre a v114 (`b1c94dd6…`) com os seis arquivos alterados e collectstatic (937
+removidos/239 copiados/697 pós-processados, iguais às builds v112/v113):
+`sha256:6c8e378f27e29157b74f023d9b518877083e05f6faaf0494263e6e49f3fcf64e`; manifesto/config OCI,
+camadas 224 gzip/11 zstd; SHA-256 dos seis arquivos na imagem iguais aos da main; CSS novo
+presente em `staticfiles`. Antes: produção v114, configuração ativa igual à de deploy, live 200.
+
+Deploy com a mesma configuração: **release v115**, release_command concluído sem migração; web
+891e63ef665e58 e worker 1857691da097e8 `started` na nova imagem; live/ready 200; arquivos novos
+com o mesmo SHA-256 nas duas máquinas. A Fly substituiu a reserva parada 287e35db920e48 por
+18535e1c707538 (mesmo tamanho, parada, `standbys` = worker 1857691da097e8), sem efeito no serviço.
+
+Conferência somente leitura na sessão aberta pelo responsável: conferência SURIA set/2026 mostra
+“159 confirmações automáticas · 159 mantidas · 0 desfeitas”, “Sem revisão da proprietária” e o
+formulário de registro (sessão com papel de proprietária); CSS novo carregado, sem rolagem
+horizontal, console sem erros. O formulário não foi enviado: a revisão e o registro cabem à
+proprietária. Nenhuma revisão D-390 existe ainda; precisão D-73 continua não medida.
