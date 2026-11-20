@@ -5928,3 +5928,23 @@ Claude Code. Quando o Razão chega, quando o extrato termina de processar ou qua
 “Confirmação automática (D-388)” e autoria de quem pediu o Razão. Ambíguos e sem par seguem
 para revisão humana; cada confirmação pode ser desfeita na ficha do movimento. Supera, para
 esses pares, o clique de confirmação da D-386.
+
+## D-389 — Saldos do banco no relatório a partir do saldo final do OFX (20/11/2026)
+
+Origem: responsável, 20/11/2026, “faz os itens 5 e 6 da CICA” (item 5: saldos do relatório
+a partir do OFX, pendente em V-427). Executor Claude Code.
+
+Hoje o relatório de conferência só mostra saldo inicial/final do banco quando o extrato é
+PDF Sicredi; para OFX aparece “Não informado”, embora o arquivo traga o saldo do banco.
+
+Decisão: para extrato OFX, o relatório usa o saldo informado pelo próprio arquivo
+(`LEDGERBAL`: `BALAMT` em `DTASOF`) e os movimentos do mesmo arquivo:
+1. Saldo final do período = saldo do OFX − movimentos do arquivo com data posterior ao fim
+   do período; saldo inicial = saldo do OFX − movimentos do arquivo a partir do início.
+2. Só calcula quando o arquivo comprova a cobertura: exatamente um `LEDGERBAL` com valor e
+   data válidos; `DTSTART` e `DTEND` presentes; data do saldo entre o último movimento do
+   arquivo e `DTEND`; início do período não anterior a `DTSTART` e fim não posterior à data
+   do saldo. Fora disso, continua “Não informado” — nunca zero nem estimativa.
+3. O relatório avisa que os saldos do banco foram calculados pelo saldo final do OFX. Saldo
+   do Razão, regras de conferência, contrato do CSV e PDF não mudam. Sem migração, custo,
+   IA ou mensagem externa; merge/deploy só com autorização na sessão.

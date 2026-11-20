@@ -12400,3 +12400,53 @@ Não verificado: existência, em produção, de movimentos sem par no Razão par
 (depende do extrato que a CONTAD escolher); comportamento real do Importador. Conflito
 D-382 (“de como certo a importação”) × D-380 item 4 continua aberto: o roteiro segue
 D-380 e nenhuma homologação foi registrada.
+
+## V-429 — D-389: saldos do banco no relatório a partir do OFX (20/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-saldos-ofx` a partir da main `a950c31`.
+`read_ofx_statement_balance` (em `apps/hub/reconciliation.py`) lê o único `LEDGERBAL`
+(`BALAMT`/`DTASOF`) e a janela `DTSTART`/`DTEND`, reaproveitando `parse_ofx` para os
+movimentos; aceita saldo zero e negativo; recusa (sem saldo) arquivo sem esses campos,
+com mais de um `LEDGERBAL`, saldo anterior ao último movimento ou posterior a `DTEND`,
+ou janela que não contém todos os movimentos. `build_source_report` usa esses saldos em
+OFX quando o período pedido está dentro da cobertura, com aviso próprio; PDF, Razão,
+CSV e telas inalterados (só os valores deixam de ser “Não informado”).
+
+Testes: 16 novos em `tests/test_ofx_statement_balance.py` (leitor, períodos parciais,
+casos recusados, relatório e página impressa); 47 aprovados com
+`test_reconciliation_client_report.py`. Ruff ok; MyPy dos dois módulos com os mesmos 3
+erros preexistentes da main (`reconciliation_report.py`, TypedDict).
+SQLite completa: 3.443 aprovados, 59 skips, 187 subtestes, zero falhas (rodada antes do
+teste da página impressa, que foi acrescentado e aprovado em seguida no recorte de 47).
+
+Conferência com arquivo real, somente local e sem imprimir valores: OFX Sicredi de
+setembro/2026 (163 movimentos, o mesmo do piloto SURIA) tem `DTSTART`, `DTEND` e um
+`LEDGERBAL`, e o saldo é calculado; para o período do PDF Sicredi do mesmo mês, saldo
+inicial e final calculados pelo OFX são **iguais** aos lidos do PDF por `read_sicredi_pdf`.
+Outros bancos não foram conferidos: se o OFX não comprovar a cobertura, o relatório
+continua “Não informado”. Sem migração; tela de produção não aberta nesta etapa.
+
+## V-430 — Telas da conciliação reabertas em produção após a v113 (20/11/2026)
+
+Executor Claude Code, pedido do responsável (“faz os itens 5 e 6”), sessão do escritório
+aberta pelo próprio responsável no navegador do app (senha não digitada pelo executor).
+Somente leitura: apenas navegação GET, nenhum formulário enviado, nenhum download.
+
+12 telas em 1366 px e 375 px — Conciliação, Extrato e Razão, Conciliação por empresa,
+Títulos e baixas, Buscar títulos e baixas, Revisar DE-PARA, Contas do Domínio,
+Configuração da conciliação, Conferir extrato e Razão (SURIA), relatório impresso,
+Revisar movimento e Prévia para conferência — com checagem automática de rolagem
+horizontal da página, elementos fora da tela, sobreposição de botões visíveis e texto
+cortado. Resultado: zero rolagem horizontal, zero sobreposição real, zero texto cortado
+visível; console sem erros. Achados descartados após inspeção: botão dentro de painel
+`details` fechado (não exibido), legendas `report-sr-only` (só leitor de tela) e abas
+das barras `workspace-tabs`/`reconciliation-local-nav` com rolagem horizontal própria
+(corte proposital, D-277). Correções da V-427 presentes: botões principais do topo com
+44 px e “Atualizar Razão” na conferência.
+
+Observações sem correção nesta entrega: os atalhos secundários (`button button-quiet`
+nas barras de ações, por exemplo “Títulos e baixas”, “Contas do Domínio”, “Voltar à
+carteira”) medem 39 px de altura, abaixo dos 44 px usados nos botões principais. O
+relatório da SURIA em produção mostra os quatro saldos como “Não informado”; o lado do
+banco passa a ser preenchido quando a D-389 for publicada (mesmo OFX conferido em V-429).
+Não abertas: ficha de vínculo de conta e importação com envio de arquivo (exigiriam POST).

@@ -155,6 +155,11 @@ def build_source_report(
         from apps.hub.bank_evidence import read_sicredi_pdf
 
         bank_evidence = read_sicredi_pdf(content)
+    ofx_balance = None
+    if source.kind == "ofx":
+        from apps.hub.reconciliation import read_ofx_statement_balance
+
+        ofx_balance = read_ofx_statement_balance(content)
     basis = "reported_pdf_period" if bank_evidence else "imported_movement_dates"
     reported_start = bank_evidence.period_start if bank_evidence else min(dates)
     reported_end = bank_evidence.period_end if bank_evidence else max(dates)
@@ -302,6 +307,9 @@ def build_source_report(
     full_pdf_period = bank_evidence and start == reported_start and end == reported_end
     opening_bank = bank_evidence.opening_cents if bank_evidence and full_pdf_period else None
     closing_bank = bank_evidence.closing_cents if bank_evidence and full_pdf_period else None
+    ofx_balances = ofx_balance.balances_for(start, end) if ofx_balance else None
+    if ofx_balances is not None:
+        opening_bank, closing_bank = ofx_balances
     warnings = ["A cobertura do Razão depende da conferência da fonte pela contadora."]
     if protection_notice_only:
         warnings.append("A reaplicação preservou os movimentos com decisões humanas ou contábeis.")
@@ -314,6 +322,11 @@ def build_source_report(
     if opening_ledger_cents is None:
         warnings.append(
             "Saldo inicial do Razão não informado; fechamento de saldos não comprovado."
+        )
+    if ofx_balances is not None:
+        warnings.append(
+            "Saldos do banco calculados pelo saldo final informado no OFX e pelos "
+            "movimentos do próprio arquivo."
         )
     if source.kind == "pdf":
         warnings.append(
