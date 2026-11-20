@@ -364,7 +364,7 @@ nunca entra no arquivo.
    do Domínio** (o mesmo número que aparece em *Contas do Domínio*). A CICA aceita
    somente contas analíticas e ativas do plano desta empresa.
 2. Gere o lançamento, confira o histórico e aprove.
-3. Em *Exportações → Preparar arquivo de conferência*, escolha a conta e o período
+3. Em *Arquivos e histórico → Prévia para conferência*, escolha a conta e o período
    e gere a prévia. O arquivo `.txt` segue o leiaute oficial do Domínio
    (“Lançamentos Contábeis em Lote — Leiaute Domínio Sistemas”).
 4. **Teste uma vez:** no Domínio, *Utilitários → Importação → Importador*, Tipo
@@ -374,7 +374,8 @@ nunca entra no arquivo.
    leiaute na solução 7584 da central de atendimento.
 5. Avise a equipe CICA com o resultado. Com o teste conferido, a exportação
    definitiva é liberada para a CONTAD e os próximos arquivos já saem por
-   *Exportações*.
+   *Arquivos e histórico*. Roteiro completo da chamada de teste:
+   [teste único de importação no Domínio](contad-teste-importacao-dominio.md).
 
 ## Conferir o resultado da importação no Domínio
 
