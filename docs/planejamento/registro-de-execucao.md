@@ -4834,3 +4834,9 @@ decisão do responsável, a precisão D-73 passa a ser medida nas confirmações
 a proprietária confere, desfaz as erradas e registra a revisão na conferência do extrato; o
 comando `auto_confirmation_acceptance` calcula mantidas/revisadas (mínimo 200, 95%).
 Implementado e testado; publicação pendente de autorização.
+
+## 20/11/2026 — V-434: release v115 (revisão das confirmações automáticas)
+
+D-390 publicada na release v115 após CI aprovada. A conferência da SURIA mostra as 159
+confirmações automáticas aguardando a revisão da proprietária. O merge entrou antes do fim da
+CI por falha no comando de espera; o deploy esperou a CI aprovar.
