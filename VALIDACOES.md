@@ -12450,3 +12450,26 @@ carteira”) medem 39 px de altura, abaixo dos 44 px usados nos botões principa
 relatório da SURIA em produção mostra os quatro saldos como “Não informado”; o lado do
 banco passa a ser preenchido quando a D-389 for publicada (mesmo OFX conferido em V-429).
 Não abertas: ficha de vínculo de conta e importação com envio de arquivo (exigiriam POST).
+
+## V-431 — Publicação da D-389 na release v114 (20/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, merge e deploy”).
+PR #45 com CI aprovada (verify, agent, agent-package), mesclado em `6bd9e52`; `src/` da
+main idêntico ao do PR. Antes do deploy: produção na v113
+(`sha256:644777b6…`), configuração ativa igual à de deploy da v113 (env, deploy,
+processos e VMs), live 200.
+
+Imagem OCI de uma camada sobre a v113, copiando só `apps/hub/reconciliation.py` e
+`apps/hub/reconciliation_report.py` (sem static, sem collectstatic):
+`sha256:b1c94dd6cd4fe06ff644c020467a566eae3fedb531d79645087ddc517e022b09`; manifesto e
+config OCI, camadas 222 gzip/11 zstd; SHA-256 dos dois arquivos dentro da imagem iguais aos
+da main. Primeiro push recusado por login do registro expirado; `fly auth docker` e novo push.
+
+Deploy com a configuração da v113: **release v114**, release_command concluído sem migração
+nova; web 891e63ef665e58 e worker 1857691da097e8 `started` na nova imagem, reserva
+287e35db920e48 parada (atualizada pela Fly). Depois: live, ready e site 200; SHA-256 dos dois
+arquivos iguais nas máquinas web e worker. Relatório impresso da SURIA (set/2026) aberto na
+sessão do escritório, somente leitura: saldo inicial e final do banco preenchidos (antes
+“Não informado”, V-430), aviso “calculados pelo saldo final informado no OFX” exibido, saldos
+do Razão continuam “Não informado”, sem rolagem horizontal. Valores não reproduzidos aqui;
+igualdade com o PDF Sicredi do mesmo mês conferida localmente em V-429.
