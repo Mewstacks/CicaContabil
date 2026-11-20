@@ -35,3 +35,12 @@
   .workspace-panel .conference-review-table tbody tr{width:100%;padding:18px 16px;content-visibility:visible;contain-intrinsic-size:none}
   .workspace-panel .conference-review-table td{overflow:visible}
 }
+.conference-auto-review{display:flex;align-items:center;flex-wrap:wrap;gap:12px 16px;margin:20px 0 0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.conference-auto-review>p{flex:1 1 320px;margin:0;max-width:70ch;line-height:1.5}
+.conference-auto-review .conference-auto-review-status{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;color:var(--muted)}
+.conference-auto-review .button{min-height:44px}
+.conference-auto-review-form{display:flex;flex-basis:100%;flex-wrap:wrap;align-items:center;gap:12px 16px}
+.conference-auto-review-form .checkbox-field{display:flex;flex:1 1 320px;align-items:flex-start;gap:10px;margin:0}
+.conference-auto-review-form .checkbox-field input[type=checkbox]{flex:0 0 20px;width:20px;height:20px;min-height:20px;margin:2px 0 0;accent-color:var(--cica-forest)}
+.conference-auto-review-form .checkbox-field label{margin:0;line-height:1.5}
+@media(max-width:640px){.conference-auto-review,.conference-auto-review-form{align-items:stretch;flex-direction:column}.conference-auto-review>p,.conference-auto-review-form .checkbox-field{flex:0 0 auto}.conference-auto-review .button{width:100%}}

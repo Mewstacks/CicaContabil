@@ -10898,16 +10898,80 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
     except ReconciliationError as exc:
         messages.error(request, str(exc))
         return redirect(f"{reverse('hub:reconciliation')}#processamentos")
+    from apps.hub.auto_confirmation_review import DECLARATION, is_owner, review_summary
+
+    can_review_conference = bool(context["support_can_mutate"]) and _can_manage_reconciliation(
+        context
+    )
     context.update(
         {
             "page_title": "Conferir extrato e Razão",
-            "can_review_conference": bool(context["support_can_mutate"])
-            and _can_manage_reconciliation(context),
+            "can_review_conference": can_review_conference,
+            "auto_review": review_summary(source),
+            "auto_review_declaration": DECLARATION,
+            "can_register_auto_review": can_review_conference
+            and is_owner(source.organization_id, request.user),
         }
     )
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response
+
+
+@office_required
+@require_http_methods(["POST"])
+def reconciliation_source_auto_review(request: HttpRequest, source_id: str) -> HttpResponse:
+    """D-390: the office owner registers the review of the automatic confirmations."""
+    context, blocked = _module_page_context(request, definition(ProductModule.Code.RECONCILIATION))
+    if blocked:
+        raise Http404
+    source = get_object_or_404(
+        ReconciliationSourceFile.objects.select_related("company", "financial_account"),
+        pk=source_id,
+        organization=context["office"],
+        company__in=context["companies"],
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    from apps.hub.auto_confirmation_review import is_owner, record_owner_review
+
+    if (
+        not context["support_can_mutate"]
+        or not _can_manage_reconciliation(context)
+        or not is_owner(source.organization_id, request.user)
+    ):
+        return refuse(
+            request, "Somente a proprietária do escritório registra a revisão das confirmações."
+        )
+    params = {
+        key: value
+        for key in ("start", "end", "portfolio_return")
+        if (value := request.POST.get(key, ""))
+    }
+    back = reverse("hub:reconciliation-source-review", kwargs={"source_id": source.pk})
+    back += ("?" + urlencode(params)) if params else ""
+    try:
+        expected = int(request.POST.get("expected_total", ""))
+    except ValueError:
+        expected = -1
+    try:
+        event, created = record_owner_review(
+            source=source,
+            actor=request.user,
+            declaration=request.POST.get("declaration", ""),
+            expected_total=expected,
+            request=request,
+        )
+    except (ValueError, PermissionDenied) as exc:
+        messages.error(request, str(exc))
+        return redirect(back)
+    kept, undone = event.metadata["kept"], event.metadata["undone"]
+    messages.success(
+        request,
+        ("Revisão registrada" if created else "Revisão já registrada com o mesmo resultado")
+        + f": {kept} mantida{'s' if kept != 1 else ''} e {undone} desfeita"
+        + f"{'s' if undone != 1 else ''}.",
+    )
+    return redirect(back)
 
 
 @office_required

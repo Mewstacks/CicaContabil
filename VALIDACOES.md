@@ -12492,3 +12492,34 @@ do Domínio dessas empresas. Nada a corrigir na CICA. Para conciliar extrato del
 precisa criar a conta do banco no plano do Domínio (e a CICA reler os planos) ou indicar que
 o banco é escriturado no Caixa; vincular o OFX ao Caixa sem essa confirmação seria inferência
 (D-365).
+
+## V-433 — D-390: revisão das confirmações automáticas e medição D-73 (20/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-d73-confirmacoes` a partir da main `115d4b3`.
+
+Levantamento em produção (v114, somente leitura) que motivou a D-390: única conta financeira
+ativa da CONTAD é a SURIA (212/conta 8) com 163 movimentos de extrato, todos sem classificação
+(`classification_source` vazio) e sem débito/crédito — a amostra D-378 congelaria previsões
+vazias; 159 alocações `confirmed` com `evidence.automatic = true` (D-388); única pessoa ativa
+do escritório é a proprietária. Nenhuma amostra foi preparada.
+
+Implementado: `apps/hub/auto_confirmation_review.py` (população, resumo, registro da
+proprietária com estado por alocação e impressão digital, relatório), rota POST
+`reconciliation-source-auto-review`, bloco na conferência do extrato (contagem, situação da
+revisão, atalho para os movimentos conferidos, declaração obrigatória e “Registrar revisão”
+só para a proprietária) e comando somente leitura `auto_confirmation_acceptance`. Sem migração.
+
+Testes: 9 novos em `tests/test_auto_confirmation_review.py` (mantidas/desfeitas, repetição sem
+duplicar, revisão desatualizada após desfazer e substituída pela nova, declaração e contagem
+obrigatórias, extrato sem confirmações, perfil admin sem permissão 403, limite de 95% exato com
+200, comando sem escrita). Suíte SQLite completa 3.453 aprovados, 59 skips, zero falhas; Ruff e
+MyPy dos arquivos novos ok (`urls.py` já não seguia o formatador na main).
+
+Navegador local (servidor descartável em SQLite sob `.tmp/qa-d390`, dados sintéticos, sessão
+local sem senha): 1440 px escuro, 375 px claro e 640 px escuro (equivalente a 200% em 1280 px);
+declaração marcada e enviada só pelo teclado, mensagem de sucesso, situação “Revisão
+registrada”; desfazer uma confirmação na ficha do movimento leva a “Revisão desatualizada” e
+reabre o formulário; botões com 44 px; sem rolagem horizontal nem texto cortado. Corrigido no QA:
+no celular os textos do bloco herdavam 320 px de altura da regra de linha; e um ponto final
+solto na linha de situação. ui-ux-pro-max e Watermelon não disponíveis nesta sessão (limite).
+Não publicado: merge e deploy aguardam autorização.

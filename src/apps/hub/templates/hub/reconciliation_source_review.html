@@ -24,6 +24,22 @@
     <small>Casos com mais de uma possibilidade continuam abaixo para revisão. Cada confirmação pode ser desfeita na ficha do movimento.</small>
   </form>
   {% endif %}
+  {% if auto_review.total %}
+  <div class="conference-auto-review" role="group" aria-labelledby="auto-review-title">
+    <p id="auto-review-title"><strong>{{ auto_review.total }} confirmaç{{ auto_review.total|pluralize:"ão,ões" }} automática{{ auto_review.total|pluralize }}</strong> · {{ auto_review.kept }} mantida{{ auto_review.kept|pluralize }} · {{ auto_review.undone }} desfeita{{ auto_review.undone|pluralize }}</p>
+    <p class="conference-auto-review-status">{% if auto_review.review %}{% if auto_review.review_is_current %}<span class="status-badge is-active">Revisão registrada</span> <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}<span class="status-badge is-warning">Revisão desatualizada</span> <span>Mudou depois de <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time></span>{% endif %}{% else %}<span class="status-badge is-muted">Sem revisão da proprietária</span>{% endif %}</p>
+    <a class="button button-quiet" href="{% url 'hub:reconciliation-source-review' conference_source.id %}?state=confirmed{% if conference_report_querystring %}&amp;{{ conference_report_querystring }}{% endif %}#conference-movements-heading">Ver movimentos conferidos</a>
+    {% if can_register_auto_review and not auto_review.review_is_current %}
+    <form method="post" action="{% url 'hub:reconciliation-source-auto-review' conference_source.id %}" class="conference-auto-review-form">
+      {% csrf_token %}
+      {% if request.GET.start %}<input type="hidden" name="start" value="{{ request.GET.start }}">{% endif %}{% if request.GET.end %}<input type="hidden" name="end" value="{{ request.GET.end }}">{% endif %}{% if conference_portfolio_return_url %}<input type="hidden" name="portfolio_return" value="{{ conference_portfolio_return_url }}">{% endif %}
+      <input type="hidden" name="expected_total" value="{{ auto_review.total }}">
+      <div class="checkbox-field"><input id="auto-review-declaration" type="checkbox" name="declaration" value="{{ auto_review_declaration }}" required><label for="auto-review-declaration">{{ auto_review_declaration }}</label></div>
+      <button class="button" type="submit">Registrar revisão</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
   <div class="conference-report-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-ledger-request' %}?company={{ conference_source.company_id }}&amp;account={{ conference_source.financial_account_id }}&amp;bank_source={{ conference_source.id }}{% if conference_report.period_start %}&amp;month={{ conference_report.period_start|slice:':7' }}{% endif %}">{% if conference_report.ledger_count %}Atualizar Razão{% else %}Buscar Razão{% endif %}</a><a class="button" href="{% url 'hub:reconciliation-source-report' conference_source.id %}?format=print{% if conference_report_querystring %}&amp;{{ conference_report_querystring }}{% endif %}">Ver relatório</a><a class="button button-quiet" href="{% url 'hub:reconciliation-source-report' conference_source.id %}{% if conference_report_querystring %}?{{ conference_report_querystring }}{% endif %}">Baixar CSV técnico</a><span>Relatório completo do período, com extrato e Razão. A busca, a situação e a página não limitam o relatório.</span></div>
   <details class="conference-limits"><summary>Cobertura dos arquivos e saldos</summary><ul>{% for warning in conference_report.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>
 </section>
