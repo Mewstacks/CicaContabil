@@ -12353,3 +12353,18 @@ retroativa recusada pela permissão automática da sessão, aguardando o respons
 Aplicação retroativa autorizada pelo responsável (“Sim, aplica”): SURIA set/2026, 159 pares
 exatos confirmados como automáticos (autoria de quem pediu o Razão); 159 confirmadas no total,
 restantes seguem para revisão humana.
+
+## V-427 — Revisão das telas da conciliação e ajustes, release v113 (20/11/2026)
+
+Revisão em produção, somente leitura, com a sessão do escritório (19/11): 14 telas da
+conciliação em 1366 px e 375 px, com checagem automática de transbordo, sobreposição, texto
+cortado e botões desalinhados, mais leitura das telas. Sem transbordo nem sobreposição real.
+Corrigido: altura dos botões do topo (44 px), grade dos atalhos no celular, datas/valores de
+origem e limite de alocação em pt-BR, contas no Importar sem repetir a empresa (lista só após
+escolher a empresa), linhas “Documento: não informado” e avisos do relatório movidos para o
+fim, legenda da diferença e “Atualizar Razão” na conferência, atalho “Contas do Domínio” e
+competência padrão no último mês fechado. Mantido o corte proposital da última aba (D-277).
+Pendente: saldos do relatório a partir do OFX. Testes: 2 novos; suíte SQLite 3.426/59 skips.
+Main `c52c8c1`; imagem `sha256:644777b62abf254d733933193373d568a0f45efb8529bd1fbca197a3eba1e54e`;
+deploy autorizado (“Sim, publica”): **release v113**, web/worker started, live/ready 200, CSS e
+JS novos servidos. Telas não reabertas após o deploy: sessão do navegador expirada.
