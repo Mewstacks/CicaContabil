@@ -12473,3 +12473,22 @@ sessão do escritório, somente leitura: saldo inicial e final do banco preenchi
 “Não informado”, V-430), aviso “calculados pelo saldo final informado no OFX” exibido, saldos
 do Razão continuam “Não informado”, sem rolagem horizontal. Valores não reproduzidos aqui;
 igualdade com o PDF Sicredi do mesmo mês conferida localmente em V-429.
+
+## V-432 — Empresas com plano e sem conta de banco na importação (20/11/2026)
+
+Executor Claude Code, pedido do responsável (“Sim, investiga”). Produção v114, somente leitura
+na sessão do escritório (GET das telas *Contas do Domínio* e da conciliação).
+
+Formulário de importação: 146 empresas; 129 com ao menos uma conta de banco para escolher
+(128 com contas “vincula pelo OFX” e a SURIA já vinculada); 17 sem nenhuma. Dessas 17, 14 são
+as empresas sem plano no catálogo (V-412). As outras 3 têm plano: **55** (111 contas),
+**252** (115) e **264** (146). Correção do relato anterior desta sessão: a “CCM · Domínio 2”
+era o rótulo truncado da empresa 220 (sem plano); a terceira empresa é a 264.
+
+Causa: nos três planos, o grupo *Disponibilidades* (classificação 1101) tem apenas *Bens
+numerários → Caixa* (conta 1); não existe grupo nem conta de bancos. A regra de D-385
+(sintética com “banc” no nome dentro do plano) está correta: não há conta bancária no plano
+do Domínio dessas empresas. Nada a corrigir na CICA. Para conciliar extrato delas, a CONTAD
+precisa criar a conta do banco no plano do Domínio (e a CICA reler os planos) ou indicar que
+o banco é escriturado no Caixa; vincular o OFX ao Caixa sem essa confirmação seria inferência
+(D-365).
