@@ -1,0 +1,29 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-account-edit.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-titles.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-depara-ledger.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel setup-account-panel depara-ledger-panel" aria-labelledby="depara-ledger-heading">
+  <header class="workspace-panel-head"><div><h2 id="depara-ledger-heading">Sugestões pelo Razão</h2></div><a class="button button-quiet" href="{{ depara_ledger_back }}">Voltar ao DE-PARA</a></header>
+  <p class="operation-context">{{ depara_ledger_account.company.name }} · {{ depara_ledger_account.name }}</p>
+  <div class="metric-strip reconciliation-metrics" aria-label="Resumo das sugestões">
+    <article><span>Sugestões</span><strong>{{ depara_ledger_rows|length }}</strong></article>
+    <article><span>Ativas</span><strong>{{ depara_ledger_active }}</strong></article>
+  </div>
+  {% if depara_ledger_rows %}
+  <div class="data-table-wrap"><table class="operational-table depara-ledger-table"><caption class="sr-only">Regras sugeridas pelo histórico do Razão</caption><thead><tr><th scope="col">Padrão do extrato</th><th scope="col">Direção</th><th scope="col">Débito</th><th scope="col">Crédito</th><th scope="col">Evidência no Razão</th><th scope="col">Situação</th>{% if title_can_write %}<th scope="col"><span class="sr-only">Ação</span></th>{% endif %}</tr></thead><tbody>
+  {% for row in depara_ledger_rows %}<tr>
+    <td data-label="Padrão do extrato"><strong>{{ row.pattern }}</strong></td>
+    <td data-label="Direção">{{ row.direction }}</td>
+    <td data-label="Débito"><span class="source-code">{{ row.debit }}</span>{% if row.debit_name %}<small>{{ row.debit_name }}</small>{% endif %}</td>
+    <td data-label="Crédito"><span class="source-code">{{ row.credit }}</span>{% if row.credit_name %}<small>{{ row.credit_name }}</small>{% endif %}</td>
+    <td data-label="Evidência no Razão">{{ row.support }} movimento{{ row.support|pluralize }}<small>{{ row.months|join:', ' }}</small></td>
+    <td data-label="Situação"><span class="status-badge {% if row.rule.state == 'active' %}is-active{% elif row.rule.state == 'draft' %}is-warning{% else %}is-muted{% endif %}">{% if row.rule.state == 'active' %}Ativa{% elif row.rule.state == 'draft' %}A revisar{% else %}Descartada{% endif %}</span></td>
+    {% if title_can_write %}<td class="table-action-cell"><div class="depara-ledger-actions">
+      <form method="post">{% csrf_token %}<input type="hidden" name="rule_id" value="{{ row.rule.id }}"><input type="hidden" name="expected_state" value="{{ row.rule.state }}"><button class="row-action-button" type="submit" data-busy-label="Salvando…">{% if row.rule.state == 'active' %}Desativar{% else %}Ativar{% endif %}<span class="sr-only"> {{ row.pattern }}</span></button></form>
+      {% if row.rule.state == 'draft' %}<form method="post">{% csrf_token %}<input type="hidden" name="rule_id" value="{{ row.rule.id }}"><input type="hidden" name="action" value="discard"><button class="row-action-button button-quiet" type="submit" data-busy-label="Salvando…">Descartar<span class="sr-only"> {{ row.pattern }}</span></button></form>{% endif %}
+    </div></td>{% endif %}
+  </tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhuma sugestão pelo Razão para esta conta</strong></div>{% endif %}
+</section>
+{% endblock %}

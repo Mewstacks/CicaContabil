@@ -15,7 +15,6 @@ from apps.hub.models import (
     ClientCompany,
     CostCenter,
     FinancialAccount,
-    LedgerAccount,
     NormalizedMovement,
     ProductModule,
     ReconciliationRule,
@@ -97,12 +96,11 @@ def _actions(rule: ReconciliationRule) -> None:
     debit, credit = actions.get("debit_account_code"), actions.get("credit_account_code")
     if debit and debit == credit:
         raise ValueError("Débito e crédito precisam ser contas diferentes.")
-    for code in {debit, credit} - {None, ""}:
-        if not LedgerAccount.objects.filter(
-            organization_id=rule.organization_id, company_id=rule.company_id,
-            code=code, active=True, accepts_entries=True,
-        ).exists():
-            raise ValueError("As contas contábeis precisam estar ativas e aceitar lançamentos.")
+    from apps.hub.postable_accounts import invalid_account_codes
+
+    # D-380/D-391: local chart or the company's Domínio chart (analytic, active).
+    if invalid_account_codes(rule.company, {debit, credit} - {None, ""}):
+        raise ValueError("As contas contábeis precisam estar ativas e aceitar lançamentos.")
     if (code := actions.get("cost_center_code")) and not CostCenter.objects.filter(
         organization_id=rule.organization_id, company_id=rule.company_id, code=code, active=True,
     ).exists():

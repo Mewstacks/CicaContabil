@@ -4840,3 +4840,10 @@ Implementado e testado; publicação pendente de autorização.
 D-390 publicada na release v115 após CI aprovada. A conferência da SURIA mostra as 159
 confirmações automáticas aguardando a revisão da proprietária. O merge entrou antes do fim da
 CI por falha no comando de espera; o deploy esperou a CI aprovar.
+
+## 21/11/2026 — D-391/V-435: DE-PARA pelo Razão
+
+O DE-PARA passa a ser sugerido pelas contrapartidas que a própria CONTAD escriturou no Razão,
+só com evidência repetida e unânime e sem casar outra conta no histórico. Na SURIA, 14 regras
+cobririam 137 de 153 movimentos. A proprietária revisa e ativa cada regra na tela “Sugestões pelo
+Razão”. IA fica como segunda opinião, bloqueada até chave/limites e nova autorização de envio.

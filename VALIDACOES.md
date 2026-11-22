@@ -12548,3 +12548,43 @@ Conferência somente leitura na sessão aberta pelo responsável: conferência S
 formulário de registro (sessão com papel de proprietária); CSS novo carregado, sem rolagem
 horizontal, console sem erros. O formulário não foi enviado: a revisão e o registro cabem à
 proprietária. Nenhuma revisão D-390 existe ainda; precisão D-73 continua não medida.
+
+## V-435 — D-391: DE-PARA pelo Razão (21/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-depara-razao` a partir da main `ebfe22d` (v115).
+
+Produção, somente leitura: zero lotes DE-PARA e zero regras na CONTAD (as duas sugestões de
+19/11 foram apagadas com o piloto SURIA, D-387); IA desligada na plataforma (sem chave, sem
+modelo, `cloud_fallback_enabled=false`) e na CONTAD (`claude_fallback_enabled=false`; aprovação de
+envio de dados da proprietária de 13/11, limite R$ 0,20, revogada no mesmo dia). Nenhuma chamada
+de IA, nenhum custo.
+
+Implementado: `apps/hub/depara_ledger.py` (exemplos pelo Razão confirmado com contrapartida
+única; níveis exato/palavras/início com suporte mínimo 2/2/5; unanimidade; recusa de padrão que
+casaria movimento com outra contrapartida ou lote composto; regex pelas palavras originais, com
+acento; rascunhos com `require_review` e evidência em auditoria, ator técnico; descarte;
+avaliação fora da amostra por competência); comando `depara_razao propose|create|evaluate`;
+tela “Sugestões pelo Razão” por conta (padrão, direção, débito/crédito com nome do plano,
+evidência, situação, Ativar/Desativar/Descartar) e atalho em *Revisar DE-PARA*; ativação de regra
+passa a aceitar contas do plano Domínio da empresa (`invalid_account_codes`, D-380 item 2), como já
+fazia o formulário manual. Sem migração.
+
+Prévia somente leitura em produção (código enviado no script, transação READ ONLY), conta SURIA
+212/8: 153 exemplos com contrapartida única, 6 excluídos (compostos/parciais); 14 sugestões cobrindo
+137 movimentos (89,5%) com zero casos contrários no histórico; recusados: 3 divergentes, 1 que
+casaria outra conta, 5 padrões inválidos. Maiores: “LIQUIDACAO BOLETO” saída 4→8 (42), “LIQ
+COBRANCA” entrada 8→9 (21), “RESG APLIC” entrada 8→13 (20), “RECEBIMENTO PIX” entrada 8→9 (12),
+“APLICACAO FINANCEIRA” saída 13→8 (9). Nenhuma regra criada em produção.
+
+Testes: 6 novos em `tests/test_depara_ledger.py` (aprendizado só unânime e repetido, recusa por
+outra contrapartida, rascunho → tela → ativação → extrato novo classificado com revisão, descarte,
+avaliação fora da amostra 3/3 e regra da própria competência ignorada, perfil auditor sem
+alteração). Suíte SQLite completa 3.459 aprovados, 59 skips; Ruff/MyPy dos arquivos novos ok.
+Navegador local (dados sintéticos, `.tmp/qa-d391`): 1440/1366 escuro, 375 claro; ativação pelo
+teclado com mensagem; corrigidos no QA a coluna de ações cortada, o recuo do painel e a tabela no
+celular (regra global de 650 px; agora cartões); console sem erros. ui-ux-pro-max e Watermelon
+indisponíveis nesta sessão.
+
+Limites: precisão real fora da amostra só quando chegar o Razão de outra competência da SURIA
+(`depara_razao evaluate --month AAAA-MM`); uma única empresa/mês de evidência; IA aguardando chave
+e limites (responsável) e nova aprovação de envio de dados (proprietária). Não publicado.

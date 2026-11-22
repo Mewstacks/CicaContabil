@@ -5975,3 +5975,34 @@ medida pelo critério de precisão da D-73.
    demais critérios D-73. Nada é revisado, aceito ou registrado em nome da cliente pela CICA.
    Sem migração (registro em auditoria), custo, IA ou mensagem externa. Interface na mesma
    identidade da conferência, com QA em navegador; merge/deploy só com autorização.
+
+## D-391 — DE-PARA pelo Razão do Domínio, com IA como segunda opinião (21/11/2026)
+
+Origem: responsável, 21/11/2026, “Pelo razão e por IA, com o objetivo de ser extremamente
+preciso”, retomando o DE-PARA adiado em D-382. Executor Claude Code. Situação em produção
+(somente leitura): zero lotes e zero regras DE-PARA (as duas sugestões foram apagadas com o
+piloto SURIA, D-387); IA desligada na plataforma (sem chave/modelo) e na CONTAD (aprovação de
+envio de dados da proprietária revogada em 13/11). Medição nos 159 pares confirmados da SURIA
+(set/2026): 153 lançamentos com uma única contrapartida, 10 contas; padrões unânimes de
+histórico cobrem 119–122 movimentos com 119/121 e 122/122 acertos no teste deixa-um-fora.
+
+1. Fonte da verdade: a contrapartida que a própria CONTAD escriturou no Razão, nos movimentos já
+   conferidos (confirmados) da conta. Só lançamentos com uma única contrapartida entram; lote
+   composto fica fora. Nada é inferido do extrato (D-305).
+2. Regra sugerida só com evidência: pelo menos 2 ocorrências, todas com o mesmo débito e
+   crédito, e o padrão aplicado a todo o histórico da conta não pode casar nenhum movimento com
+   outra contrapartida. Níveis do mais específico ao mais geral: histórico exato; palavras sem
+   números; duas primeiras palavras (este só com 5+ ocorrências). Sempre com direção e conta
+   bancária. Contas aceitas pelo plano Domínio da empresa (D-380 item 2 passa a valer também
+   para DE-PARA e para a ativação de regras).
+3. As sugestões nascem como regras em rascunho, criadas pelo processo técnico da CICA com a
+   evidência registrada em auditoria; ficam na revisão DE-PARA com padrão, contas, quantidade e
+   resultado do teste. Ativar ou descartar é decisão da proprietária/gestão do escritório, regra
+   a regra. Regra ativa classifica com revisão obrigatória (`require_review`).
+4. Precisão medida fora da amostra: comando que aplica as regras a uma competência cujo Razão
+   chegou depois e compara com a contrapartida escriturada (acertos, erros, cobertura).
+5. IA (segunda opinião) fica para quando houver: chave e limites de custo configurados pelo
+   responsável e nova aprovação de envio de dados pela proprietária da CONTAD. Até lá, nenhuma
+   chamada paga. Quando habilitada, a IA será primeiro medida às cegas contra o Razão e só
+   sugere para padrões sem histórico, marcada como “IA — sem histórico”.
+6. Sem migração prevista; merge/deploy só com autorização.

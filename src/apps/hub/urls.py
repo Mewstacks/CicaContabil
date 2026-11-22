@@ -5,6 +5,7 @@ from apps.hub import (
     account_candidate_views,
     account_discovery_views,
     accounting_import_views,
+    depara_ledger_views,
     depara_review_views,
     ledger_request_views,
     native_title_views,
@@ -38,6 +39,11 @@ urlpatterns = [
     path(
         "app/conciliacao/de-para/", depara_review_views.depara_batches,
         name="reconciliation-depara",
+    ),
+    path(
+        "app/conciliacao/de-para/razao/<uuid:account_id>/",
+        depara_ledger_views.depara_ledger_review,
+        name="reconciliation-depara-ledger",
     ),
     path(
         "app/conciliacao/de-para/<uuid:batch_id>/",

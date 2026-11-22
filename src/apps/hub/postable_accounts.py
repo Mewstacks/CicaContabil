@@ -80,3 +80,34 @@ def invalid_account_codes(company: ClientCompany, codes: Iterable[str]) -> set[s
 
 def account_accepts_entries(company: ClientCompany, code: str) -> bool:
     return not invalid_account_codes(company, [code])
+
+
+def account_names(company: ClientCompany, codes: Iterable[str]) -> dict[str, str]:
+    """Display names for codes: local chart first, then the company's Domínio chart (D-391)."""
+    from apps.hub.account_discovery import discovery_company_facts, latest_consistent_discovery
+
+    wanted = {str(code).strip() for code in codes if str(code or "").strip()}
+    names = dict(
+        LedgerAccount.objects.filter(
+            organization_id=company.organization_id, company=company, code__in=wanted
+        ).values_list("code", "name")
+    )
+    numeric = {int(code) for code in wanted - set(names) if code.isascii() and code.isdecimal()}
+    discovery = latest_consistent_discovery(company.organization) if numeric else None
+    record = discovery_company_facts(company, discovery) if discovery is not None else None
+    if record is not None:
+        owners = [
+            item["chart_company_code"]
+            for item in record.facts.get("chart_links", [])
+            if isinstance(item, dict) and isinstance(item.get("chart_company_code"), int)
+        ]
+        for code, row in ReconciliationDiscoveredChartAccount.objects.filter(
+            discovery=discovery,
+            organization_id=company.organization_id,
+            chart_company_code__in=owners,
+            account_code__in=numeric,
+        ).values_list("account_code", "row"):
+            name = str((row or {}).get("account_name_raw") or "").strip()
+            if name:
+                names.setdefault(str(code), name)
+    return names
