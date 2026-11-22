@@ -34,6 +34,7 @@ MAX_TEXT_VALUE = 200
 MAX_OFFSET = 100_000
 MAX_JOINS = 2
 MAX_NAME = 200  # nome de tabela, coluna ou apelido.coluna; o que passa disso nem chega a ecoar
+PERSON_KEY = "i_empregados"  # chave da pessoa nas 298 tabelas por empregado do Dominio
 CELL_FETCH_CHARS = 400  # o servidor corta a celula de texto longo; a saida mostra 200
 _LONG_TEXT_TYPES = frozenset({"long varchar", "long nvarchar", "text"})
 _REF = re.compile(r"^(?:([A-Za-z0-9_]+)\.)?([A-Za-z0-9_]+)$")
@@ -137,6 +138,9 @@ class SelectItem:
     kind: Literal["col", "agg"]
     ref: ColRef | None  # None em count(*)
     func: AggFunc | None = None
+    # Chave da pessoa na tabela da medida (`i_empregados`): o agregado pessoal conta pessoas
+    # distintas, nao linhas (doze competencias de um empregado so nao formam um grupo).
+    person: ColRef | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,6 +345,13 @@ def _coerce_filter(ref: ColRef, op: FilterOp, raw: Any) -> tuple[tuple[Any, ...]
     return values, kind
 
 
+def _person_key(ref: ColRef, pack: Pack, policy: Policy, settings: Settings) -> ColRef | None:
+    column = pack.column(ref.table.row.key, PERSON_KEY)
+    if column is None:
+        return None
+    return ColRef(ref.table, column, policy.access(_column_policy(column), settings.allow_pii))
+
+
 def needs_cut(column: ColumnRow) -> bool:
     """Texto longo (ou de largura desconhecida): o servidor entrega so o comeco da celula."""
     if type_kind(column.type) != "text":
@@ -527,7 +538,10 @@ def validate_query(
                 "tabela filha (o lado 'muitos') ou use max, min ou count_distinct",
             )
         suppress = suppress or ref.access.suppress_small_groups
-        select.append(SelectItem(add_header(agg.alias), "agg", ref, agg.funcao))
+        person = (
+            _person_key(ref, pack, policy, settings) if ref.access.suppress_small_groups else None
+        )
+        select.append(SelectItem(add_header(agg.alias), "agg", ref, agg.funcao, person))
         agg_refs[agg.alias.lower()] = (agg.funcao, ref)
     if aggregated and not select:
         raise QueryRefused("sem_colunas", "a consulta agregada nao tem o que devolver")

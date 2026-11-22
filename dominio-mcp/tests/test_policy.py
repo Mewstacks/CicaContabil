@@ -359,7 +359,10 @@ def test_mask_document_lets_only_a_valid_cnpj_through() -> None:
 
 def test_mask_document_recovers_numeric_documents_that_lost_leading_zeros() -> None:
     assert mask_document(11222333000181.0, allow=False) == "11222333000181"
-    assert mask_document(191.0, allow=False) == "00000000000191"
+    assert mask_document(4252011000110.0, allow=False) == "04252011000110"
+    # CNPJ de base 000 cuja cauda tambem fecha como CPF (o do Banco do Brasil) e ambiguo com um CPF
+    # preenchido com zeros: sai mascarado (D-329)
+    assert mask_document(191.0, allow=False) == "***"
     assert mask_document(52998224725, allow=False) == "529.***.***-25"
     assert mask_document(5.5, allow=False) == "***"
 

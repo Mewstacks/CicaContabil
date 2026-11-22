@@ -42,13 +42,15 @@ def pack(tmp_path: Path) -> Pack:
     return build_demo_pack(tmp_path)
 
 
-def custom_pack(tmp_path: Path, tables: list[Any], fks: tuple[ForeignKey, ...] = ()) -> Pack:
+def custom_pack(
+    tmp_path: Path, tables: list[Any], fks: tuple[ForeignKey, ...] = (), *, policy: Any = POLICY
+) -> Pack:
     catalog = Catalog("bethadba", {t.key: t for t in tables}, fks)
     accepted = frozenset((k, c.name.lower()) for k, t in catalog.tables.items() for c in t.columns)
     build_pack(
         tmp_path / "custom.sqlite3",
         catalog=catalog,
-        policy=POLICY,
+        policy=policy,
         overlay=overlay_from_files({}),
         accepted=accepted,
         dsn="contabil",
@@ -154,7 +156,8 @@ def test_04_a_personal_sum_needs_three_non_null_contributions(pack: Pack) -> Non
         "agregacoes": [{"funcao": "sum", "coluna": "salario", "alias": "total"}],
     }
     compiled = compile_(pack, spec, allow_pii=frozenset({"folha"}))
-    assert 'COUNT("t0"."salario")' in compiled.sql
+    # a tabela tem chave de pessoa (`i_empregados`): conta pessoas distintas com valor (D-329)
+    assert 'THEN "t0"."i_empregados" END)' in compiled.sql
     raw = RawResult((), [[1, 9000.0, 3, 1], [2, 500.0, 3, 3]], False, 1.0, _now())
     out = shape_result(compiled, raw, ShapeContext(pack_version="abc"))
     assert out["linhas"] == [[2, 500.0]], "so o grupo com tres contribuicoes sai"
@@ -513,6 +516,24 @@ def test_r2_2_the_grain_table_can_still_be_summed_across_an_upward_join(pack: Pa
     assert compile_(pack, spec, scope=True).sql
 
 
+def _policy_without_free_text_rules() -> Any:
+    """A politica entregue classifica todo texto longo como texto livre (que ja nao agrupa nem
+    ordena); sem essas duas regras a coluna longa fica `normal`, e so entao `coluna_longa` vale:
+    defesa em profundidade para curadoria (override) ou politica de outro escritorio."""
+    from importlib import resources
+
+    import yaml
+
+    from dominio_mcp.policy import Policy
+
+    text = resources.files("dominio_mcp").joinpath("data/overlay/policy.yaml").read_text("utf-8")
+    data = yaml.safe_load(text)
+    data["column_rules"] = [
+        r for r in data["column_rules"] if r["id"] not in ("texto_livre", "texto_longo")
+    ]
+    return Policy.from_text(yaml.safe_dump(data, allow_unicode=True))
+
+
 @pytest.fixture
 def long_text_pack(tmp_path: Path) -> Pack:
     docs = table(
@@ -526,7 +547,7 @@ def long_text_pack(tmp_path: Path) -> Pack:
         ("codi_emp", "id_doc"),
         100,
     )
-    return custom_pack(tmp_path, [docs])
+    return custom_pack(tmp_path, [docs], policy=_policy_without_free_text_rules())
 
 
 @pytest.mark.parametrize(

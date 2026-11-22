@@ -16,7 +16,7 @@ from dominio_mcp.scope import check_scope
 
 POLICY = load_policy()
 VALID_CNPJ = "11.222.333/0001-81"
-OTHER_VALID_CNPJ = "00000000000191"
+OTHER_VALID_CNPJ = "11444777000161"
 
 
 def settings(allow_pii: frozenset[str] = frozenset(), **limits: int) -> Settings:

@@ -35,7 +35,9 @@ from dominio_mcp.pack_index import create_search_structures
 from dominio_mcp.policy import ColumnPolicy, Policy, PolicyClass
 from dominio_mcp.readable import ReadableReport
 
-PACK_FORMAT = 3
+# Sobe quando a classificacao de colunas muda de comportamento no codigo (nao so no YAML da
+# politica), senao um pack antigo seguiria "fresco" com classes antigas. 4: D-328 e D-329.
+PACK_FORMAT = 4
 _STALE_BUILD_SECONDS = 3600
 
 SCHEMA = """

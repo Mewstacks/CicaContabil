@@ -1,6 +1,6 @@
 # Progresso — dominio-mcp (Fase 1, núcleo)
 
-Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-328 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
+Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-329 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
 
 | Marco | Estado | Prova |
 |---|---|---|
@@ -14,7 +14,7 @@ Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plan
 | M7 prova no banco real | feito em parte (21/11/2026) | T7.1 [pack-real.md](pack-real.md); T7.2 [recall.md](recall.md) (A3 não atendido); T7.3: marcadores plantados em todas as saídas (`tests/test_markers_e2e.py`) e recusa por objeto no catálogo real ([privacidade.md](privacidade.md)) feitos, **revisão independente de 300 colunas (A7c) pendente (contadora)**; T7.4 conferência L1 × L2 viva em [conferencia.md](conferencia.md), **oficial e carga pendentes** |
 | M8 guia, registros e revisão | feito em parte (21/11/2026) | T8.1 guia do dono ([docs/dominio-mcp.md](../../docs/dominio-mcp.md), [README](../README.md)) e [clientes.md](clientes.md): **nenhum cliente real testado**, SDK `mcp` 2.3.0 e 1.30.0 testados por stdio. T8.2 revisão do Codex em duas rodadas: 18 achados, todos reproduzidos por teste que falhava e corrigidos (D-328). T8.3 registros: V-308 a V-310 em `VALIDACOES.md`, `registro-de-execucao.md`, ligações em `docs/README.md` e `docs/intelligence-mcp.md` |
 
-Verificação do pacote em 21/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 617 passam, 19 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 17 passam, 1 (carga) exige a janela do dono.
+Verificação do pacote em 21/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 635 passam, 19 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 17 passam, 1 (carga) exige a janela do dono.
 
 ## Desvios do plano (decisão técnica, sem mudar comportamento)
 
@@ -30,6 +30,10 @@ Verificação do pacote em 21/11/2026 (da raiz do repositório): `ruff check`, `
 - A execução recusa se o pack mudou entre a compilação e a execução; orçamento de frequência ilegível fecha uma janela; quarentena que não grava em disco mantém a trava de processo.
 - Texto de tabela por empregado passou de `texto_livre` para `pessoal/folha`: 84 colunas no banco real (pessoal 5.007 para 5.091, texto livre 2.157 para 2.073).
 - `conferir_numeracao` compara o próximo número com o maior fim acumulado, não só com a faixa vizinha.
+
+## Revisor de segurança automático (22/11/2026, D-329)
+
+Três pontos sobre o commit `0c9ab04f`, conferidos antes de decidir: agregado pessoal agora conta **pessoas distintas** (`i_empregados`), não linhas; largura desconhecida classifica pelo lado seguro (o banco real tem 0 colunas assim); CPF preenchido com zeros nunca vale como CNPJ (1,4% fechavam por acaso, medido). `PACK_FORMAT` subiu para 4. **Limite declarado:** com `allow_pii` ligado a subtração entre duas consultas ainda revela o valor de uma pessoa.
 
 ## Achados de execução
 

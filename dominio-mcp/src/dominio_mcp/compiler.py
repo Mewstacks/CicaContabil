@@ -177,7 +177,15 @@ def _build(
             ):
                 header = f"{COUNT_HEADER}{number}"
                 contrib.append(len(parts))
-                parts.append(f"COUNT({_column(item.ref)}) AS {quote_ident(header)}")
+                measure = _column(item.ref)
+                if item.person is not None:  # pessoas distintas com valor, nao linhas
+                    count = (
+                        f"COUNT(DISTINCT CASE WHEN {measure} IS NOT NULL "
+                        f"THEN {_column(item.person)} END)"
+                    )
+                else:
+                    count = f"COUNT({measure})"
+                parts.append(f"{count} AS {quote_ident(header)}")
                 columns.append(OutColumn(header, "none", None, "int", True, hidden=True))
 
     head = "SELECT " + ("DISTINCT " if vq.distinct else "")

@@ -54,6 +54,9 @@ class PolicyError(Exception):
     pass
 
 
+UNKNOWN_WIDTH = 10**9
+
+
 class PolicyClass(StrEnum):
     SEGREDO = "segredo"
     DOCUMENTO = "documento"
@@ -314,7 +317,9 @@ class Policy:
         for trule in self._table_rules:
             if trule.first and self._table_rule_hits(trule, tname_f, names, ckey, ctype, keys):
                 return ColumnPolicy(trule.klass, trule.category, trule.id, trule.blocked_reason)
-        width = column.width or 0
+        # Largura desconhecida (ou zero) conta como enorme: a regra de largura minima nao pode
+        # deixar texto longo ou documento sair como coluna normal por falta de metadado.
+        width = column.width if column.width is not None and column.width > 0 else UNKNOWN_WIDTH
         # Texto livre e a classe mais fraca: regra de tabela (por empregado) vence dela, senao a
         # observacao de uma tabela de folha sairia so com mascara de CPF, e-mail e telefone.
         deferred: list[_ColumnRule] = []
@@ -497,10 +502,27 @@ def _cnpj_digit(base: str, weights: tuple[int, ...]) -> int:
     return 0 if rest < 2 else 11 - rest
 
 
+def is_valid_cpf(value: str) -> bool:
+    """CPF com os dois digitos verificadores conferidos (pontuacao e ignorada)."""
+    digits = re.sub(r"[.\-\s]", "", value)
+    if not re.fullmatch(r"\d{11}", digits) or len(set(digits)) == 1:
+        return False
+    for size in (9, 10):
+        total = sum(int(d) * w for d, w in zip(digits[:size], range(size + 1, 1, -1), strict=True))
+        if digits[size] != str((total * 10) % 11 % 10):
+            return False
+    return True
+
+
 def is_valid_cnpj(value: str) -> bool:
     """CNPJ numerico ou alfanumerico (letra vale ASCII - 48), com os dois digitos conferidos."""
     text = re.sub(r"[.\-/\s]", "", value).upper()
     if not _CNPJ_SHAPE.fullmatch(text) or len(set(text)) == 1:
+        return False
+    if text.startswith("000") and is_valid_cpf(text[3:]):
+        # CPF preenchido com zeros ate 14 posicoes: cerca de 1,4% deles fecha como CNPJ por acaso
+        # (medido em 200 mil CPFs validos). Na duvida e CPF e sai mascarado; o CNPJ real que cai
+        # aqui (base 000xxxxx com final que tambem fecha como CPF) sai mascarado, sem dano.
         return False
     first = _cnpj_digit(text[:12], _CNPJ_W1)
     second = _cnpj_digit(text[:12] + str(first), _CNPJ_W2)

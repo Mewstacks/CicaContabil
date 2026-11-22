@@ -141,15 +141,18 @@ Como cada classe de coluna é tratada:
 | Classe | Tratamento |
 |---|---|
 | `segredo` | Nunca sai. Tabela de credencial inteira bloqueada. |
-| `documento` | Só passa, sem máscara, CNPJ válido (numérico ou alfanumérico). Nunca entra em agrupamento, ordenação ou agregação. |
-| `pessoal` (cpf, folha, endereco, contato, bancario, nascimento, nome) | Bloqueada até o dono liberar a categoria em `allow_pii`. Liberada, ainda sai mascarada, não serve de filtro e só agrega (soma, média, contagem) em grupos com pelo menos 3 contribuições não nulas. Tabela com coluna `i_empregados` só deixa livres as colunas de chave: o texto dela também é `pessoal/folha`. |
+| `documento` | Só passa, sem máscara, CNPJ válido (numérico ou alfanumérico). CPF preenchido com zeros até 14 posições nunca vale como CNPJ: sai mascarado e não serve de filtro (D-329). Nunca entra em agrupamento, ordenação ou agregação. |
+| `pessoal` (cpf, folha, endereco, contato, bancario, nascimento, nome) | Bloqueada até o dono liberar a categoria em `allow_pii`. Liberada, ainda sai mascarada, não serve de filtro e só agrega (soma, média, contagem) em grupos com pelo menos 3 **pessoas distintas** com valor (tabela com `i_empregados`) ou 3 linhas com valor (demais): doze competências de um empregado só não formam um grupo (D-329). Tabela com coluna `i_empregados` só deixa livres as colunas de chave: o texto dela também é `pessoal/folha`. |
 | `texto_livre` | **Só se lê**: nenhum filtro (`contém` e `começa com` confirmariam por contagem o que a máscara esconde). Padrões de CPF, e-mail e telefone (inclusive sem pontuação) saem mascarados e a célula é cortada em 200 caracteres. Texto de tabela de auditoria ou log fica bloqueado. A busca por conteúdo em observação e histórico não existe no L2 (D-328). |
 | `normal` | Sai como está, dentro dos limites. |
 | `nao_classificada` | Bloqueada até o aceite (`build-pack --aceitar`). |
 
 View do banco só abre depois de aprovada em `views_aprovadas.yaml`; sem aprovação todas as colunas dela ficam bloqueadas.
 
-**Limite declarado:** a classificação é uma heurística sobre nome e comentário de coluna. O que ela não reconhece fica fora da promessa de privacidade até a revisão independente (A7c) medir o falso-negativo.
+**Limites declarados:**
+
+- A classificação é uma heurística sobre nome e comentário de coluna. O que ela não reconhece fica fora da promessa de privacidade até a revisão independente (A7c) medir o falso-negativo.
+- O corte de 3 pessoas vale **por consulta**. Com `allow_pii` ligado, duas consultas que diferem por uma pessoa (excluir uma matrícula, mudar a janela de datas) deixam calcular o valor dela por subtração. Por isso `allow_pii` vem desligado e só o dono liga; a contenção que existe é a auditoria e o limite de consultas por minuto. Fechar isso de vez exige decisão nova (orçamento de consultas sobre dado pessoal, ou população mínima por filtro) (D-329).
 
 ## Limites de uso
 
