@@ -1,6 +1,6 @@
 # Progresso — dominio-mcp (Fase 1, núcleo)
 
-Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-328 de `DECISOES.md`. **Gate 2 (aprovação do diff) aberto; nada commitado.**
+Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-328 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
 
 | Marco | Estado | Prova |
 |---|---|---|
