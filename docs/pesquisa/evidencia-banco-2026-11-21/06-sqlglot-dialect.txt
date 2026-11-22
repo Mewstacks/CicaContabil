@@ -1,0 +1,69 @@
+# comando: python -I glot_test.py  (exit=0)
+
+=== dialect=tsql
+  OK  ['Select'] tabs=['bethadba.efsaidas'] :: SELECT TOP 10 * FROM bethadba.efsaidas WHERE codi_emp = 1 AND dsai_sai
+  OK  ['Select'] tabs=['bethadba.efsaidas'] :: SELECT YEAR(dsai_sai) AS y, SUM(vcon_sai) AS t FROM bethadba.efsaidas 
+  ERR ParseError :: SELECT * FROM bethadba.EFPARAMETRO_VIGENCIA WHERE VIGENCIA_PAR <= CURR :: Invalid expression / Unexpected token. Line 1, Col: 78.
+  SELECT * FRO
+  OK  ['Select'] tabs=['bethadba.efclientes', 'bethadba.efsaidas'] :: SELECT a.codi_emp, b.nome_cli FROM bethadba.efsaidas a LEFT JOIN betha
+  ERR ParseError :: SELECT TOP 10 START AT 5 codi_emp FROM bethadba.efsaidas ORDER BY codi :: Invalid expression / Unexpected token. Line 1, Col: 24.
+  SELECT TOP 1
+  OK  ['Select'] tabs=['bethadba.geempre', 'x'] :: WITH x AS (SELECT codi_emp FROM bethadba.geempre) SELECT * FROM x
+  OK  ['Select'] tabs=['bethadba.geempre'] :: SELECT nome_emp || ' - ' || cgce_emp FROM bethadba.geempre
+  ERR ParseError :: SELECT DATEADD(month, -18, CURRENT DATE) :: Expecting ). Line 1, Col: 39.
+  SELECT DATEADD(month, -18, CURRENT [4
+  ERR ParseError :: SELECT CAST(g.I_GUIAINSS AS VARCHAR(64)) AS source_id FROM bethadba.FO :: Expecting ). Line 1, Col: 137.
+  AR(64)) AS source_id FROM bethadba.FO
+  OK  ['Select'] tabs=['bethadba.efparametro_vigencia'] :: SELECT ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par 
+  OK  ['Select'] tabs=['bethadba.geempre'] :: SELECT codi_emp FROM bethadba.geempre LIMIT 5 OFFSET 2
+  OK  ['Select'] tabs=['bethadba.geempre', 't'] :: SELECT * INTO #t FROM bethadba.geempre
+  OK  ['Insert'] tabs=['bethadba.geempre'] :: INSERT INTO bethadba.geempre(codi_emp) VALUES (1)
+  OK  ['Delete'] tabs=['bethadba.efsaidas'] :: DELETE FROM bethadba.efsaidas
+  OK  ['Command'] tabs=[] :: CALL bethadba.sp_x()
+  OK  ['Select', 'Drop'] tabs=['bethadba.geempre'] :: SELECT 1; DROP TABLE bethadba.geempre
+  OK  ['Update'] tabs=['bethadba.geempre'] :: UPDATE bethadba.geempre SET nome_emp = 'x'
+=== dialect=sybase
+  ERR ValueError :: SELECT TOP 10 * FROM bethadba.efsaidas WHERE codi_emp = 1 AND dsai_sai :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT YEAR(dsai_sai) AS y, SUM(vcon_sai) AS t FROM bethadba.efsaidas  :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT * FROM bethadba.EFPARAMETRO_VIGENCIA WHERE VIGENCIA_PAR <= CURR :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT a.codi_emp, b.nome_cli FROM bethadba.efsaidas a LEFT JOIN betha :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT TOP 10 START AT 5 codi_emp FROM bethadba.efsaidas ORDER BY codi :: Unknown dialect 'sybase'.
+  ERR ValueError :: WITH x AS (SELECT codi_emp FROM bethadba.geempre) SELECT * FROM x :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT nome_emp || ' - ' || cgce_emp FROM bethadba.geempre :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT DATEADD(month, -18, CURRENT DATE) :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT CAST(g.I_GUIAINSS AS VARCHAR(64)) AS source_id FROM bethadba.FO :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par  :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT codi_emp FROM bethadba.geempre LIMIT 5 OFFSET 2 :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT * INTO #t FROM bethadba.geempre :: Unknown dialect 'sybase'.
+  ERR ValueError :: INSERT INTO bethadba.geempre(codi_emp) VALUES (1) :: Unknown dialect 'sybase'.
+  ERR ValueError :: DELETE FROM bethadba.efsaidas :: Unknown dialect 'sybase'.
+  ERR ValueError :: CALL bethadba.sp_x() :: Unknown dialect 'sybase'.
+  ERR ValueError :: SELECT 1; DROP TABLE bethadba.geempre :: Unknown dialect 'sybase'.
+  ERR ValueError :: UPDATE bethadba.geempre SET nome_emp = 'x' :: Unknown dialect 'sybase'.
+=== dialect=None
+  ERR ParseError :: SELECT TOP 10 * FROM bethadba.efsaidas WHERE codi_emp = 1 AND dsai_sai :: Invalid expression / Unexpected token. Line 1, Col: 13.
+  SELECT TOP 
+  OK  ['Select'] tabs=['bethadba.efsaidas'] :: SELECT YEAR(dsai_sai) AS y, SUM(vcon_sai) AS t FROM bethadba.efsaidas 
+  ERR ParseError :: SELECT * FROM bethadba.EFPARAMETRO_VIGENCIA WHERE VIGENCIA_PAR <= CURR :: Invalid expression / Unexpected token. Line 1, Col: 78.
+  SELECT * FRO
+  OK  ['Select'] tabs=['bethadba.efclientes', 'bethadba.efsaidas'] :: SELECT a.codi_emp, b.nome_cli FROM bethadba.efsaidas a LEFT JOIN betha
+  ERR ParseError :: SELECT TOP 10 START AT 5 codi_emp FROM bethadba.efsaidas ORDER BY codi :: Invalid expression / Unexpected token. Line 1, Col: 13.
+  SELECT TOP 
+  OK  ['Select'] tabs=['bethadba.geempre', 'x'] :: WITH x AS (SELECT codi_emp FROM bethadba.geempre) SELECT * FROM x
+  OK  ['Select'] tabs=['bethadba.geempre'] :: SELECT nome_emp || ' - ' || cgce_emp FROM bethadba.geempre
+  ERR ParseError :: SELECT DATEADD(month, -18, CURRENT DATE) :: Expecting ). Line 1, Col: 39.
+  SELECT DATEADD(month, -18, CURRENT [4
+  ERR ParseError :: SELECT CAST(g.I_GUIAINSS AS VARCHAR(64)) AS source_id FROM bethadba.FO :: Expecting ). Line 1, Col: 137.
+  AR(64)) AS source_id FROM bethadba.FO
+  OK  ['Select'] tabs=['bethadba.efparametro_vigencia'] :: SELECT ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par 
+  OK  ['Select'] tabs=['bethadba.geempre'] :: SELECT codi_emp FROM bethadba.geempre LIMIT 5 OFFSET 2
+  ERR ParseError :: SELECT * INTO #t FROM bethadba.geempre :: Expected table name but got <Token token_type: TokenType.HASH, text: #
+  OK  ['Insert'] tabs=['bethadba.geempre'] :: INSERT INTO bethadba.geempre(codi_emp) VALUES (1)
+  OK  ['Delete'] tabs=['bethadba.efsaidas'] :: DELETE FROM bethadba.efsaidas
+  OK  ['Command'] tabs=[] :: CALL bethadba.sp_x()
+  OK  ['Select', 'Drop'] tabs=['bethadba.geempre'] :: SELECT 1; DROP TABLE bethadba.geempre
+  OK  ['Update'] tabs=['bethadba.geempre'] :: UPDATE bethadba.geempre SET nome_emp = 'x'
+
+[stderr]
+'CALL bethadba.sp_x()' contains unsupported syntax. Falling back to parsing as a 'Command'.
+'CALL bethadba.sp_x()' contains unsupported syntax. Falling back to parsing as a 'Command'.

@@ -1,0 +1,16 @@
+# comando: python -I sysviews.py  (exit=0)
+
+server: {'v': '17.0.11.7312', 'n': 'SQL Anywhere', 'db': 'contabil', 'u': 'EXTERNO', 'cs': 'windows-1252', 'coll': '1252LATIN1', 'ps': '4096'}
+SYSTAB: table_id, dbspace_id, count, creator, table_page_count, ext_page_count, commit_action, share_type, object_id, last_modified_at, table_name, table_type, replicate, server_type, tab_page_list, ext_page_list, pct_free, clustered_index_id, encrypted, last_modified_tsn, current_schema, file_id, table_type_str, last_modified_at_utc
+SYSTABCOL: table_id, column_id, domain_id, nulls, width, scale, object_id, max_identity, column_name, default, user_type, column_type, compressed, collect_stats, inline_max, inline_long, lob_index, base_type_str, nonmaterialized_value, start_schema
+SYSREMARK: object_id, remarks
+SYSIDX: table_id, index_id, object_id, phys_index_id, dbspace_id, index_category, unique, index_name, not_enforced, file_id
+SYSIDXCOL: table_id, index_id, sequence, column_id, order, primary_column_id
+SYSFKEY: foreign_table_id, foreign_index_id, primary_table_id, primary_index_id, match_type, check_on_commit, nulls
+SYSVIEW: view_object_id, view_def, mv_build_type, mv_refresh_type, mv_use_in_optimization, mv_last_refreshed_at, mv_known_stale_at, mv_last_refreshed_tsn, mv_last_refreshed_at_utc, mv_known_stale_at_utc, check_option
+SYSUSER: user_id, object_id, user_name, password, login_policy_id, expire_password_on_login, password_creation_time, failed_login_attempts, last_login_time, user_type, user_dn, user_dn_cached_at, password_creation_time_utc, last_login_time_utc, dual_password
+SYSDOMAIN: domain_id, domain_name, type_id, precision
+SYSPROCEDURE: proc_id, creator, object_id, proc_name, proc_defn, remarks, replicate, srvid, source, avg_num_rows, avg_cost, stats, dialect, is_deterministic, is_external, external_language, external_name, sql_security
+SYSUSERPERM: user_id, object_id, user_name, password, resourceauth, dbaauth, scheduleauth, publishauth, remotedbaauth, user_group, remarks
+SYSOBJECT: object_id, status, object_type, creation_time, object_type_str, creation_time_utc
+perm: erro ProgrammingError ('42000', '[42000] [SAP][ODBC Driver][SQL Anywhere]Permission denied: you do not have permission to select from "SYSUSERPERM" (-121) (SQLExecDirectW)')

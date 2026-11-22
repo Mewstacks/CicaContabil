@@ -1,0 +1,115 @@
+# Consulta verificada: lacunas e duplicidades de numeracao (D-317, T5.5).
+# So notas EMITIDAS pela empresa (saidas e servicos): na entrada a numeracao e do fornecedor.
+version: 1
+name: conferir_numeracao
+titulo: Conferir numeracao das notas emitidas
+descricao: >-
+  Lacunas e duplicidades na numeracao das notas emitidas (`documento` = saidas ou servicos), por
+  especie e serie, numa janela de ate 13 meses. `lacuna`: numeros que faltam entre dois
+  consecutivos (`de` a `ate`); `duplicidade`: o mesmo numero aparecendo mais de uma vez no mesmo
+  segmento (`quantidade` vezes). O que fica fora da janela nao e avaliado.
+aviso: >-
+  Diagnostico: um numero cancelado conta como usado, mas a numeracao fora da janela nao e vista.
+  Confira no Dominio antes de agir.
+parametros:
+  - {nome: codi_emp, tipo: int, obrigatorio: true, descricao: "Codigo da empresa no Dominio"}
+  - {nome: documento, tipo: choice, valores: [saidas, servicos], obrigatorio: true, descricao: "Qual escrituracao conferir"}
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: serie, tipo: text, descricao: "Confere so esta serie"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+variante_por: documento
+# O SQL Anywhere 17.0.11 nao tem LAG/LEAD (erro -131 em OVER): a lacuna sai do pareamento de
+# numeros consecutivos por ROW_NUMBER. O numero de nota repetido entre segmentos conta uma vez.
+# Faixas que se sobrepoem (1 a 100 e depois 50): a lacuna compara o proximo numero com o MAIOR fim
+# de todas as faixas anteriores (MAX acumulado, `ROWS ... UNBOUNDED PRECEDING`, conferido no
+# 17.0.11), nao so com a faixa vizinha.
+variantes:
+  saidas:
+    dependencias:
+      efsaidas: {codi_emp: normal, codi_esp: normal, seri_sai: normal, nume_sai: normal, atex_sai: normal, segi_sai: normal, dsai_sai: normal}
+    sql: >-
+      SELECT TOP {top} tipo, especie, serie, de, ate, quantidade FROM (
+        SELECT 'lacuna' AS tipo, a.esp AS especie, a.serie AS serie, a.coberto + 1 AS de,
+               b.nume - 1 AS ate, b.nume - a.coberto - 1 AS quantidade
+        FROM (
+          SELECT esp, serie, nume,
+                 MAX(ultimo) OVER (PARTITION BY esp, serie ORDER BY nume ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS coberto,
+                 ROW_NUMBER() OVER (PARTITION BY esp, serie ORDER BY nume) AS rn
+          FROM (
+            SELECT codi_esp AS esp, TRIM(seri_sai) AS serie, nume_sai AS nume,
+                   MAX(CASE WHEN atex_sai > nume_sai THEN atex_sai ELSE nume_sai END) AS ultimo
+            FROM bethadba.efsaidas
+            WHERE codi_emp = ?codi_emp AND dsai_sai BETWEEN ?inicio AND ?fim
+              {?serie: AND TRIM(seri_sai) = ?serie}
+            GROUP BY codi_esp, TRIM(seri_sai), nume_sai
+          ) d1
+        ) a
+        JOIN (
+          SELECT esp, serie, nume,
+                 ROW_NUMBER() OVER (PARTITION BY esp, serie ORDER BY nume) AS rn
+          FROM (
+            SELECT codi_esp AS esp, TRIM(seri_sai) AS serie, nume_sai AS nume
+            FROM bethadba.efsaidas
+            WHERE codi_emp = ?codi_emp AND dsai_sai BETWEEN ?inicio AND ?fim
+              {?serie: AND TRIM(seri_sai) = ?serie}
+            GROUP BY codi_esp, TRIM(seri_sai), nume_sai
+          ) d2
+        ) b ON b.esp = a.esp AND b.serie = a.serie AND b.rn = a.rn + 1
+        WHERE b.nume - a.coberto > 1
+        UNION ALL
+        SELECT 'duplicidade', codi_esp, TRIM(seri_sai), nume_sai, nume_sai, COUNT(*)
+        FROM bethadba.efsaidas
+        WHERE codi_emp = ?codi_emp AND dsai_sai BETWEEN ?inicio AND ?fim
+          {?serie: AND TRIM(seri_sai) = ?serie}
+        GROUP BY codi_esp, TRIM(seri_sai), nume_sai, segi_sai
+        HAVING COUNT(*) > 1
+      ) r
+      ORDER BY tipo, especie, serie, de
+  servicos:
+    dependencias:
+      efservicos: {codi_emp: normal, codi_esp: normal, seri_ser: normal, nume_ser: normal, segi_ser: normal, dser_ser: normal}
+    sql: >-
+      SELECT TOP {top} tipo, especie, serie, de, ate, quantidade FROM (
+        SELECT 'lacuna' AS tipo, a.esp AS especie, a.serie AS serie, a.nume + 1 AS de,
+               b.nume - 1 AS ate, b.nume - a.nume - 1 AS quantidade
+        FROM (
+          SELECT esp, serie, nume,
+                 ROW_NUMBER() OVER (PARTITION BY esp, serie ORDER BY nume) AS rn
+          FROM (
+            SELECT codi_esp AS esp, TRIM(seri_ser) AS serie, nume_ser AS nume
+            FROM bethadba.efservicos
+            WHERE codi_emp = ?codi_emp AND dser_ser BETWEEN ?inicio AND ?fim
+              {?serie: AND TRIM(seri_ser) = ?serie}
+            GROUP BY codi_esp, TRIM(seri_ser), nume_ser
+          ) d1
+        ) a
+        JOIN (
+          SELECT esp, serie, nume,
+                 ROW_NUMBER() OVER (PARTITION BY esp, serie ORDER BY nume) AS rn
+          FROM (
+            SELECT codi_esp AS esp, TRIM(seri_ser) AS serie, nume_ser AS nume
+            FROM bethadba.efservicos
+            WHERE codi_emp = ?codi_emp AND dser_ser BETWEEN ?inicio AND ?fim
+              {?serie: AND TRIM(seri_ser) = ?serie}
+            GROUP BY codi_esp, TRIM(seri_ser), nume_ser
+          ) d2
+        ) b ON b.esp = a.esp AND b.serie = a.serie AND b.rn = a.rn + 1
+        WHERE b.nume - a.nume > 1
+        UNION ALL
+        SELECT 'duplicidade', codi_esp, TRIM(seri_ser), nume_ser, nume_ser, COUNT(*)
+        FROM bethadba.efservicos
+        WHERE codi_emp = ?codi_emp AND dser_ser BETWEEN ?inicio AND ?fim
+          {?serie: AND TRIM(seri_ser) = ?serie}
+        GROUP BY codi_esp, TRIM(seri_ser), nume_ser, segi_ser
+        HAVING COUNT(*) > 1
+      ) r
+      ORDER BY tipo, especie, serie, de
+saidas:
+  - {nome: tipo, tipo: text, classe: normal}
+  - {nome: especie, tipo: int, classe: normal}
+  - {nome: serie, tipo: text, classe: normal}
+  - {nome: de, tipo: int, classe: normal}
+  - {nome: ate, tipo: int, classe: normal}
+  - {nome: quantidade, tipo: int, classe: normal}

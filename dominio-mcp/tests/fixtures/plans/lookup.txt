@@ -1,0 +1,5 @@
+( Plan [ Estimated cost: 1e-005, Estimated rows: 1, Build optimization time: 5e-005, Preoptimization time: 3.39e-005, Optimization time: 6.87e-005, Postoptimization time: 5e-007, Plan build time: 4.22e-005, Algorithms: Left-deep trees, Costed best plans: 1, Costed plans: 3, Estimated Cache Pages: 2787960 ] 
+  ( RowLimit 
+    ( IndexScan ( geempre t0 ) geempre[ t0.codi_emp = 1 : 0.15873% Statistics | Bounded ] )
+  )
+)

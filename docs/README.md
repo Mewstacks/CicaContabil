@@ -29,3 +29,7 @@ The technical guides below have Brazilian Portuguese and English versions. Produ
 ## Memória de planejamento CICA
 
 Os planos antigos do Claude e do Codex, as decisões confirmadas, o estado operacional e as dúvidas abertas estão consolidados em [planejamento/README.md](planejamento/README.md). Essa memória de produto está em português; a documentação técnica bilíngue permanece nas seções acima.
+
+## MCP do Domínio (21/11/2026)
+
+Guia do dono do escritório: [dominio-mcp.md](dominio-mcp.md). Spec, plano e Fase 2: [specs/dominio-mcp.md](specs/dominio-mcp.md), [specs/dominio-mcp-plano.md](specs/dominio-mcp-plano.md), [specs/dominio-mcp-fase2.md](specs/dominio-mcp-fase2.md). Banco medido e pesquisa: [dominio-banco-mapa.md](dominio-banco-mapa.md), [pesquisa/dominio-mcp-pesquisa-externa.md](pesquisa/dominio-mcp-pesquisa-externa.md). Código e relatórios: [`dominio-mcp/`](../dominio-mcp/README.md). Decisões D-317 a D-328 em [DECISOES.md](../DECISOES.md); provas V-308 a V-310 em [VALIDACOES.md](../VALIDACOES.md).

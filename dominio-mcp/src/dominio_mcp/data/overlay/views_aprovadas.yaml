@@ -1,0 +1,4 @@
+# Views do banco aprovadas para consulta estruturada (L2), por nome e hash da definicao.
+# Sem entrada, a view fica so descritivel (L0). Definicao que mudou volta a bloqueada.
+# Cada item: {name: <nome da view>, sha256: <hash da definicao no pack>, nota: <por que e segura>}
+views: []

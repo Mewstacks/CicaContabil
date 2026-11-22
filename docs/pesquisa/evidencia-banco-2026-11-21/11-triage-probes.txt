@@ -1,0 +1,14 @@
+# comando: python -I probe2.py  (exit=0)
+
+--- 1) EXPLANATION()/PLAN() estimam custo sem executar a consulta interna?
+PLAN: ok em 0.002s, 534 chars
+   | ( Plan [ Estimated cost: 2.5917, Estimated rows: 1.0392e+005, Build optimization time: 6.63e-005, Preoptimizat
+   | ( IndexScan efsaidas IDX_DATA_SAI[  ( efsaidas.codi_emp = 560 : 73.487% Statistics )  AND  ( efsaidas.dsai_sai
+EXPLANATION: ok em 0.003s, 39 chars
+
+--- 2) cancel() em cursor ja fechado (corrida do watchdog atrasado)
+cancel() em cursor fechado -> ProgrammingError Attempt to use a closed cursor.
+cursor novo apos cancel tardio: True
+
+--- 3) sonda barata de frescor do catalogo
+em 0.026s -> ['5477', '63031', '6955', '12768', '61250', '2026-11-21 14:00:00', '256']

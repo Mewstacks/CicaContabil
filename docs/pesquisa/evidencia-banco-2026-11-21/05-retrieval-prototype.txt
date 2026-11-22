@@ -1,0 +1,16 @@
+# comando: python -I rag_proto2.py  (exit=0)
+
+objetos: 4946
+[base (sem prior)] top1=2/26 top5=4/26
+[so penalidade de nome longo p=0.6] top1=4/26 top5=13/26
+[centralidade FK a=1.0] top1=7/26 top5=12/26
+[FK+linhas a=1,b=0.3] top1=8/26 top5=13/26
+[FK+linhas+filhos a=1,b=.3,c=1] top1=9/26 top5=15/26
+[tudo + nome longo (p=.6)] top1=15/26 top5=21/26
+[tudo forte (a=1.5,b=.5,c=1.5,p=.8)] top1=16/26 top5=20/26
+   falha: ('cadastro das empresas do escrit�rio', ['usconfempresas', 'geraexecutar_empresas', 'aufiltroempresas'])
+   falha: ('lan�amentos cont�beis', ['efsaidas_lancto', 'folancamentos_eventos', 'efentradas_lancto'])
+   falha: ('regime tribut�rio da empresa', ['efplanejamento_tributario', 'fovigencia_regime', 'usconfempresas'])
+   falha: ('guia do INSS calculada', ['foguiainss', 'foguiainssserv', 'foguiainssemissao'])
+   falha: ('extrato banc�rio para concilia��o', ['ctlancto', 'ctconciliacao_bancaria', 'foempregados'])
+   falha: ('quais empresas est�o inativas', ['usconfempresas', 'geraexecutar_empresas', 'fosindicatos_empresas'])

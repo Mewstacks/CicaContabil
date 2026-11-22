@@ -1,0 +1,10 @@
+# comando: python -I charset_test5.py  (exit=0)
+
+dump antigo            : inscri+U+00E7 U+00E3
+default | CHAR=cp1252         : inscri+U+00E7 U+00E3 || inscri+U+00E7 U+00E3
+default | CHAR=latin-1        : inscri+U+00E7 U+00E3 || inscri+U+00E7 U+00E3
+default | WCHAR               : inscri+U+00E7 U+00E3 || inscri+U+00E7 U+00E3
+CharSet=UTF-8 | CHAR=cp1252   : inscri+U+00C3 U+00A7 || inscri+U+00C3 U+00A7
+CharSet=UTF-8 | CHAR=utf-8    : inscri+U+00E7 U+00E3 || inscri+U+00E7 U+00E3
+CharSet=UTF-8 | WCHAR         : inscri+U+00E7 U+00E3 || inscri+U+00E7 U+00E3
+esperado correto: inscri+ U+00E7 U+00E3  (c-cedilha, a-til)

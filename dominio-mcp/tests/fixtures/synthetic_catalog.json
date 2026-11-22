@@ -1,0 +1,57 @@
+{
+  "tables": [
+    {"table_id": 1, "owner": "bethadba", "table_name": "geempre", "kind": "BASE", "approx_rows": 100, "object_id": 100},
+    {"table_id": 2, "owner": "bethadba", "table_name": "audados", "kind": "BASE", "approx_rows": 5000, "object_id": 101},
+    {"table_id": 3, "owner": "bethadba", "table_name": "gecertificadosdigitais", "kind": "BASE", "approx_rows": 10, "object_id": 102},
+    {"table_id": 4, "owner": "bethadba", "table_name": "efobservacoes", "kind": "BASE", "approx_rows": 800, "object_id": 103},
+    {"table_id": 5, "owner": "bethadba", "table_name": "vw_dados", "kind": "VIEW", "approx_rows": 0, "object_id": 104},
+    {"table_id": 6, "owner": "bethadba", "table_name": "efnovas", "kind": "BASE", "approx_rows": 20, "object_id": 105}
+  ],
+  "columns": [
+    {"table_id": 1, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 200},
+    {"table_id": 1, "column_id": 2, "column_name": "nome_emp", "type": "varchar", "width": 60, "scale": 0, "nulls": "N", "dflt": null, "object_id": 201},
+    {"table_id": 1, "column_id": 3, "column_name": "senha_modulo_web", "type": "varchar", "width": 30, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 202},
+    {"table_id": 2, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 210},
+    {"table_id": 2, "column_id": 2, "column_name": "tabela", "type": "varchar", "width": 40, "scale": 0, "nulls": "N", "dflt": null, "object_id": 211},
+    {"table_id": 2, "column_id": 3, "column_name": "valor", "type": "varchar", "width": 250, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 212},
+    {"table_id": 3, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 220},
+    {"table_id": 3, "column_id": 2, "column_name": "nome", "type": "varchar", "width": 60, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 221},
+    {"table_id": 3, "column_id": 3, "column_name": "conteudo", "type": "long binary", "width": 32767, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 222},
+    {"table_id": 4, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 230},
+    {"table_id": 4, "column_id": 2, "column_name": "observacao", "type": "long varchar", "width": 32767, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 231},
+    {"table_id": 5, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 240},
+    {"table_id": 5, "column_id": 2, "column_name": "conteudo", "type": "varchar", "width": 250, "scale": 0, "nulls": "Y", "dflt": null, "object_id": 241},
+    {"table_id": 6, "column_id": 1, "column_name": "codi_emp", "type": "integer", "width": 4, "scale": 0, "nulls": "N", "dflt": null, "object_id": 250},
+    {"table_id": 6, "column_id": 2, "column_name": "coluna_nova", "type": "numeric", "width": 15, "scale": 2, "nulls": "Y", "dflt": null, "object_id": 251}
+  ],
+  "remarks": [
+    {"object_id": 100, "remarks": "Cadastro de empresas"},
+    {"object_id": 202, "remarks": "Senha do modulo web MARKER_COMENTARIO_SECRETO_55AA"},
+    {"object_id": 101, "remarks": "Auditoria de alteracoes"},
+    {"object_id": 212, "remarks": "Valor auditado"},
+    {"object_id": 102, "remarks": "Certificados digitais MARKER_COMENTARIO_TABELA_SECRETA_77CC"},
+    {"object_id": 222, "remarks": "Arquivo do certificado"},
+    {"object_id": 103, "remarks": "Observacoes de notas"},
+    {"object_id": 231, "remarks": "Observacao livre digitada pelo usuario"},
+    {"object_id": 104, "remarks": "Visao de dados auditados"},
+    {"object_id": 105, "remarks": "Tabela criada na versao nova"},
+    {"object_id": 251, "remarks": "Valor recem criado"}
+  ],
+  "indexes": [
+    {"table_id": 1, "index_id": 1, "index_name": "geempre", "category": 1, "uniq": 1},
+    {"table_id": 2, "index_id": 1, "index_name": "audados", "category": 1, "uniq": 1},
+    {"table_id": 4, "index_id": 1, "index_name": "efobservacoes", "category": 1, "uniq": 1},
+    {"table_id": 6, "index_id": 1, "index_name": "efnovas", "category": 1, "uniq": 1}
+  ],
+  "index_columns": [
+    {"table_id": 1, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 2, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 2, "index_id": 1, "sequence": 1, "column_id": 2, "ord": "A", "primary_column_id": null},
+    {"table_id": 4, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null},
+    {"table_id": 6, "index_id": 1, "sequence": 0, "column_id": 1, "ord": "A", "primary_column_id": null}
+  ],
+  "foreign_keys": [],
+  "views": [
+    {"view_object_id": 104, "view_def": "SELECT codi_emp, valor AS conteudo FROM bethadba.audados"}
+  ]
+}

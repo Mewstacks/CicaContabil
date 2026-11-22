@@ -1,0 +1,31 @@
+# comando: python -I driver_battery.py  (exit=0)
+
+
+--- T1 cursor.timeout=4 + WAITFOR 8s
+timeout RECUSADO ao definir: HYC00 [HYC00] [SAP][ODBC Driver]Driver not capable (0) (SQLSetConnectAttr)
+WAITFOR 3s executou normalmente em 3.0s
+
+--- T2 cancel() por watchdog em 3s + WAITFOR 10s
+cancelado apos 3.0s: HY001 [HY001] [SAP][ODBC Driver][SQL Anywhere]Statement interrupted by user (-299) (SQLExecDirec
+conexao reutilizavel apos cancel: True
+
+--- T3 SQL_ATTR_ACCESS_MODE read-only na conexao
+aceito; SELECT 1 ok
+
+--- T4 SET TEMPORARY OPTION isolation_level / read-only-ish
+ok: SET TEMPORARY OPTION isolation_level = 0 -> None
+ok: SELECT CONNECTION_PROPERTY('isolation_level') -> 0
+
+--- T5 TOP/START AT + fetchmany em loop
+empresa com mais notas de saida: codi_emp=560 linhas=283871
+fetchmany(500) leu 283871 linhas em 0.47s
+TOP 3 START AT 5 -> 3 linhas
+
+--- T6 decodificacao do comentario de geempre.tins_emp
+padrao+cp1252            'Tipo da inscri��o(1 - CNPJ/2 - CPF/3 - CEI/6 - CAEPF)'
+padrao+utf-8             ERRO UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe7 in position 14: invalid continuation byte
+CharSet=UTF-8+utf-8      'Tipo da inscri��o(1 - CNPJ/2 - CPF/3 - CEI/6 - CAEPF)'
+CharSet=UTF-8+cp1252     'Tipo da inscrição(1 - CNPJ/2 - CPF/3 - CEI/6 - CAEPF)'
+
+--- T7 bytes crus (HEX) do mesmo comentario
+54 69 70 6f 20 64 61 20 69 6e 73 63 72 69 e7 e3 6f 28 31 20 2d 20 43 4e 50 4a 2f 32 20 2d 20 43 50 46 2f 33 20 2d 20 43 45 49 2f 36 20 2d 20 43 41 45

@@ -1,0 +1,42 @@
+# comando: python -I an4.py  (exit=0)
+
+## efsaidas ~386290
+   PK unique=2 efsaidas: ['codi_emp', 'codi_sai']
+   IDX unique=4 IDX_NOTA_SERIE_SAI: ['codi_emp', 'codi_esp', 'SERI_IDX_SAI', 'sub_serie_sai', 'nume_sai', 'segi_sai', 'compte_sai']
+   IDX unique=4 IDX_CHAVE_NFE_SAI: ['chave_nfe_sai']
+   IDX unique=4 IDX_DATA_SAI: ['codi_emp', 'dsai_sai']
+   IDX unique=1 IDX_NOTA_SAI: ['codi_esp', 'codi_cli', 'codi_emp', 'segi_sai', 'nume_sai', 'seri_sai', 'sub_serie_sai', 'compte_sai', 'EMITENTE']
+   IDX unique=1 IDX_NOTA_SAI_02: ['codi_emp', 'codi_esp', 'seri_sai', 'sub_serie_sai', 'codi_cli', 'nume_sai', 'segi_sai', 'compte_sai']
+   IDX unique=4 IDX_NOTA_SAI_SEG: ['codi_emp', 'codi_esp', 'seri_sai', 'sub_serie_sai', 'codi_cli', 'nume_sai', 'compte_sai']
+## efentradas ~31691
+   PK unique=2 efentradas: ['codi_emp', 'codi_ent']
+   IDX unique=1 IDX_NOTA_ENT: ['codi_emp', 'codi_esp', 'seri_ent', 'sub_serie_ent', 'nume_ent', 'segi_ent', 'codi_for', 'compte_ent', 'emitente_ent']
+   IDX unique=4 IDX_CHAVE_NFE_ENT: ['chave_nfe_ent']
+   IDX unique=4 IDX_DATA_ENT: ['codi_emp', 'dent_ent']
+   IDX unique=4 IDX_NOTA_ENT_SEG: ['codi_emp', 'codi_esp', 'seri_ent', 'sub_serie_ent', 'emitente_ent', 'codi_for', 'nume_ent']
+## ctlancto ~269328
+   PK unique=2 ctlancto: ['codi_emp', 'nume_lan']
+   IDX unique=4 IDX_DOCTO: ['codi_emp', 'orig_lan', 'ndoc_lan', 'fili_lan']
+   IDX unique=4 IDX_CTLANCTO_K355_BUSCA_CDEB: ['codi_emp', 'DATA_LAN_BUSCA', 'cdeb_lan', 'CODI_EMP_PLANO', 'codi_lote', 'orig_lan']
+   IDX unique=4 IDX_CTLANCTO_K355_BUSCA_CCRED: ['codi_emp', 'DATA_LAN_BUSCA', 'ccre_lan', 'CODI_EMP_PLANO', 'codi_lote', 'orig_lan']
+   IDX unique=4 IDX_CTLANCTO_K355_BUSCA_ORIG_LAN_CDEB: ['codi_emp', 'nume_lan', 'cdeb_lan', 'codi_lote', 'orig_lan']
+   IDX unique=4 IDX_CTLANCTO_K355_BUSCA_ORIG_LAN_CCRED: ['codi_emp', 'nume_lan', 'ccre_lan', 'codi_lote', 'orig_lan']
+   IDX unique=4 IDX_CTLANCTO_SALDO_DEBITO_CREDITO: ['codi_emp', 'codi_lote', 'DATA_LAN_BUSCA', 'codi_usu', 'orig_lan', 'fili_lan']
+   IDX unique=4 IDX_CTLANCTO_RELBAL: ['codi_emp', 'fili_lan', 'data_lan', 'CODI_EMP_PLANO', 'ccre_lan', 'orig_lan']
+   IDX unique=4 IDX_PLANO_DEB_EMP: ['codi_emp', 'cdeb_lan', 'CODI_EMP_PLANO']
+   IDX unique=4 IDX_CTLANCTO_REGI155_DEB_PLANO_BUSCA: ['codi_emp', 'CODI_EMP_PLANO', 'cdeb_lan', 'DATA_LAN_BUSCA', 'codi_lote']
+   IDX unique=4 IDX_CTLANCTO_K355_CCU_DEB: ['codi_emp', 'data_lan', 'orig_lan', 'cdeb_lan', 'codi_lote']
+   IDX unique=4 IDX_CTLANCTO_REGI155_CCRED_PLANO_BUSCA: ['codi_emp', 'CODI_EMP_PLANO', 'ccre_lan', 'DATA_LAN_BUSCA', 'codi_lote']
+   IDX unique=4 IDX_CTLANCTO_K355_CCU_CRED: ['codi_emp', 'data_lan', 'orig_lan', 'ccre_lan', 'codi_lote']
+   IDX unique=4 IDX_PLANO_CRE_EMP: ['codi_emp', 'ccre_lan', 'CODI_EMP_PLANO']
+   IDX unique=4 IDX_CCRE_LAN: ['codi_emp', 'CODI_EMP_PLANO', 'ccre_lan', 'data_lan', 'fili_lan']
+   IDX unique=4 IDX_CDEB_LAN: ['codi_emp', 'CODI_EMP_PLANO', 'cdeb_lan', 'data_lan', 'fili_lan']
+## efservicos ~15534
+   PK unique=2 efservicos: ['codi_emp', 'codi_ser']
+   IDX unique=1 idx_nota_ser: ['codi_emp', 'codi_esp', 'seri_ser', 'sub_serie_ser', 'nume_ser', 'segi_ser', 'codi_cli']
+   IDX unique=4 IDX_DATA_SER: ['codi_esp', 'dser_ser']
+   IDX unique=4 IDX_NOTA_SERIE_SER: ['codi_emp', 'codi_esp', 'SERI_IDX_SER', 'SUB_SERIE_IDX_SER', 'nume_ser', 'segi_ser']
+   IDX unique=4 IDX_NOTA_SERIE_SER_02: ['codi_emp', 'codi_esp', 'seri_ser', 'sub_serie_ser', 'nume_ser', 'codi_cli']
+## HRFATURAMENTO ~4744
+   PK unique=2 HRFATURAMENTO: ['CODI_EMP', 'I_FATURAMENTO']
+   IDX unique=4 IDX_HRFATURAMENTO_CODI_EMP: ['CODI_EMP']

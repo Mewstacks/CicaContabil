@@ -1,0 +1,69 @@
+legiveis: 4844 tabelas base + 102 views
+
+## modulos (tabelas base legiveis)
+| ef | Escrita Fiscal | 2732 | 9.237.278 |
+| fo | Folha de Pagamento / eSocial | 745 | 9.460.022 |
+| ge | Geral (cadastros comuns. atendimento. usuarios) | 397 | 3.247.729 |
+| ct | Contabilidade | 389 | 2.448.046 |
+| hr | Honorarios (atual) | 147 | 81.904 |
+| lr | Lalur/LACS (novo) | 129 | 10.784 |
+| pm | Patrimonio (novo) | 52 | 3.040 |
+| po | Ponto Eletronico | 42 | 2.115 |
+| rg | Registro | 35 | 1.611 |
+| pc | Processos | 28 | 1.147 |
+| hn | Honorarios (legado) | 26 | 3 |
+| la | Lalur/LACS (antigo) | 24 | 1.634 |
+| au | Auditoria | 17 | 25.984 |
+| ho | Honorarios (legado) | 12 | 0 |
+| pa | Patrimonio (antigo) | 12 | 44 |
+| pr | Protocolos | 11 | 1 |
+
+## tabelas centrais (importancia = FKs que apontam + volume), so nome unico sem sufixo de filha
+| `geempre` | Empresa - Cadastro | 630 | 1139 |
+| `ctlancto` | Lancamentos Contabeis | 269.328 | 181 |
+| `EFACUMULADOR` | Acumuladores - Cadastro | 144.807 | 164 |
+| `efprodutos` | Produtos - Cadastro | 53.495 | 185 |
+| `efsaidas` | Notas Fiscais de Saida | 386.290 | 82 |
+| `efsdoimp` | Saldo dos Impostos | 37.539 | 136 |
+| `efmvspro` | Notas Fiscais de Saida - Produtos | 917.584 | 46 |
+| `efnatureza` | Naturezas - Cadastro | 1.545 | 220 |
+| `ctcontas` | Contas Contabeis - Cadastro | 308.751 | 42 |
+| `ctlanctolote` | Lancamento em lote | 263.873 | 43 |
+| `efentradas` | Notas Fiscais de Entrada | 31.691 | 73 |
+| `geimposto` | Impostos | 75.707 | 47 |
+| `efmvepro` | Notas Fiscais de Entrada - Produtos | 55.421 | 50 |
+| `foempregados` | Empregados - Cadastro | 995 | 135 |
+| `gemunicipio` | Cadastro de municipios | 5.571 | 71 |
+| `focalculos` | Calculo - Sequencia de calculos | 31.533 | 39 |
+| `efclientes` | Clientes - Cadastro | 19.916 | 44 |
+| `foeventos` | Eventos - Cadastro | 175.315 | 17 |
+| `effornece` | Fornecedores - Cadastro | 5.789 | 45 |
+| `efservicos` | Notas Fiscais de Servico | 15.534 | 33 |
+| `efajustes` | Ajustes - Cadastro | 13.510 | 31 |
+| `foservicos` | Servico - Cadastro | 736 | 42 |
+| `fomovtoserv` | Movimentacao - Calculo | 140.977 | 7 |
+| `efoutrosdados` | Outros dados | 1.108 | 32 |
+| `efgrupopdi` | Grupos de Produtos - Cadastro | 526 | 35 |
+| `efespecies` | Especies - Cadastro | 42 | 67 |
+| `efunidades` | Unidades de medida - Cadastro | 223 | 33 |
+| `gepais` | Cadastro de paises | 272 | 31 |
+| `fofiliais` | Filiais - Cadastro | 619 | 24 |
+| `GEATENDIMENTOACOES` | Ações a serem enviadas para o Domínio Atendimento | 607.444 | 2 |
+| `efsdopro` | Saldo dos Produtos | 451.764 | 2 |
+| `ctccusto` | Cadastro - Cadastro de centro de custos da contabilidade | 229 | 26 |
+| `rgeventos` | Eventos - Cadastro | 557 | 19 |
+| `fosindicatos` | Convenção Coletiva - Cadastro | 66 | 35 |
+| `fobasesserv` | Bases - Calculo | 26.199 | 5 |
+| `efinformativos` | Informativos | 82 | 31 |
+| `gecnae20` | Tabela do CNAE 20 | 1.350 | 11 |
+| `HRCONTRATO` | Contrato | 507 | 15 |
+| `foguiainss` | Guia de INSS | 4.911 | 7 |
+| `geestado` | Cadastro de estados | 28 | 36 |
+| `focalculosbases` | Calculos - Bases de calculos | 436.536 | 1 |
+| `FOAFASTAMENTOS` | AFASTAMENTOS DOS EMPREGADOS | 2.495 | 8 |
+| `foccustos` | Centro de Custos - Cadastro | 1.718 | 9 |
+| `fofilhos` | Empregados - Cadastro - Dependentes | 353 | 15 |
+| `HRCLIENTE` | Clientes Fixos e Eventuais | 508 | 13 |
+| `gesocios` | Socios - Cadastro | 797 | 11 |
+| `HRFATURAMENTO` | Faturamento | 4.744 | 6 |
+| `usConfUsuario` | usConfUsuario | 51 | 26 |

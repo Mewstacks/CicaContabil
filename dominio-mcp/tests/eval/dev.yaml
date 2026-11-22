@@ -1,0 +1,40 @@
+# Conjunto de DESENVOLVIMENTO da recuperacao do esquema (A3, T3.2).
+# Serve para ajustar o overlay (glossario, apelidos, modulos). NAO e prova: as 26 primeiras foram
+# usadas para escolher as variantes do prototipo (evidencia 05). O conjunto cego esta em blind.yaml.
+# Relevancia = tabelas aceitas; tabela que nao existe no pack e ignorada.
+questions:
+  - {q: "notas fiscais de saída", expected: [efsaidas], family: movimento, module: ef}
+  - {q: "notas fiscais de entrada", expected: [efentradas], family: movimento, module: ef}
+  - {q: "cadastro das empresas do escritório", expected: [geempre], family: cadastro, module: ge}
+  - {q: "fornecedores cadastrados", expected: [effornece], family: cadastro, module: ef}
+  - {q: "cadastro de clientes", expected: [efclientes], family: cadastro, module: ef}
+  - {q: "lançamentos contábeis", expected: [ctlancto], family: movimento, module: ct}
+  - {q: "plano de contas", expected: [ctcontas], family: cadastro, module: ct}
+  - {q: "regime tributário da empresa", expected: [efparametro_vigencia, efparametro], family: parametro, module: ef}
+  - {q: "acumuladores fiscais", expected: [efacumulador], family: cadastro, module: ef}
+  - {q: "serviços prestados pela empresa", expected: [efservicos], family: movimento, module: ef}
+  - {q: "faturamento de honorários do escritório", expected: [hrfaturamento, hrfaturamento_parcela], family: movimento, module: hr}
+  - {q: "cadastro de empregados", expected: [foempregados], family: cadastro, module: fo}
+  - {q: "guia do INSS calculada", expected: [fovguiainss, foguiainss], family: apuracao, module: fo}
+  - {q: "extrato bancário para conciliação", expected: [ctextrato_bancario_lancamento_item, ctextrato_bancario_lancamento, ctextrato_bancario, ctconciliacao_bancaria], family: movimento, module: ct}
+  - {q: "natureza da operação CFOP", expected: [efnatureza], family: cadastro, module: ef}
+  - {q: "produtos cadastrados", expected: [efprodutos], family: cadastro, module: ef}
+  - {q: "municípios", expected: [gemunicipio], family: tabela_apoio, module: ge}
+  - {q: "tabela de CNAE", expected: [gecnae20], family: tabela_apoio, module: ge}
+  - {q: "sócios da empresa", expected: [gesocio, gesocios, gesocio_empresa], family: cadastro, module: ge}
+  - {q: "eventos de folha de pagamento", expected: [foeventos], family: cadastro, module: fo}
+  - {q: "férias dos empregados", expected: [foferias, foferiasgozadas, foferias_gozadas, foferias_gozo], family: movimento, module: fo}
+  - {q: "marcações de ponto", expected: [pomarcacao], family: movimento, module: po}
+  - {q: "contas patrimoniais bens do imobilizado", expected: [pmconta_patrimonial, pacontas], family: cadastro, module: pm}
+  - {q: "quais empresas estão inativas", expected: [geempre], family: cadastro, module: ge}
+  - {q: "compras de fornecedores no mês", expected: [efentradas], family: movimento, module: ef}
+  - {q: "vendas para clientes por CFOP", expected: [efsaidas], family: movimento, module: ef}
+  # derivadas dos contratos de dataset (contracts/datasets/*.sql)
+  - {q: "horas dos usuários nas rotinas do sistema", expected: [geloguser], family: movimento, module: ge}
+  - {q: "eventos de faturamento dos honorários", expected: [hrfaturamento_parcela_item], family: movimento, module: hr}
+  - {q: "clientes do honorários", expected: [hrcliente], family: cadastro, module: hr}
+  - {q: "faturamento de serviços por cliente", expected: [efservicos], family: movimento, module: ef}
+  - {q: "atividades registradas por empresa", expected: [geatividades], family: movimento, module: ge}
+  - {q: "alterações de salário dos empregados", expected: [foaltesal], family: movimento, module: fo}
+  - {q: "usuários do sistema", expected: [usconfusuario], family: cadastro, module: us}
+  - {q: "estado dos clientes e fornecedores", expected: [geestado, efclientes, effornece], family: tabela_apoio, module: ge}

@@ -1,0 +1,17 @@
+# Legendas e avisos por coluna, com nivel de confianca (D-318). Valem acima do comentario do banco.
+# Confianca: confirmada (conferida em tela ou relatorio), media (comentario do banco), inferida
+# (evidencia de uso, sem fonte oficial no banco).
+version: 1
+legends:
+  # Sem legenda no banco; o Hub (apps/profitability/ingest.py) mapeia por evidencia de uso.
+  efparametro_vigencia.rfed_par:
+    confianca: inferida
+    fonte: "mapeamento do Hub por evidencia de uso; sem legenda no banco"
+    valores: {1: Lucro Real, 2: Microempresa, 4: Empresa de Pequeno Porte (EPP), 5: Lucro Presumido, 6: Regime Especial de Tributacao, 8: Imune do IRPJ, 9: Isenta do IRPJ}
+
+# Avisos para colunas cujo comentario do banco nao e confiavel (casam por nome, sem acento).
+warnings:
+  - pattern: '^situacao_'
+    aviso: "O comentario do banco para situacao_* costuma estar errado (a legenda oficial esta no leiaute de importacao da Central de Solucoes, artigo 672). Nao decodifique por ele."
+  - pattern: '^situ_(sai|ent|ser)$'
+    aviso: "Campo marcado como nao utilizado no banco: nao use."

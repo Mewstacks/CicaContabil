@@ -1,0 +1,65 @@
+# Consulta verificada: perfil de uma empresa (D-317, T5.3). So cadastro e volumes; nenhum dado pessoal.
+version: 1
+name: empresa_perfil
+titulo: Perfil da empresa
+descricao: >-
+  Perfil de uma empresa: cadastro (razao social, CNPJ, situacao, data de cadastro), regime
+  tributario vigente e o volume dos ultimos 12 meses: notas de saida, entrada e servico (sem as
+  canceladas) e lancamentos contabeis, com a quantidade e o valor contabil. Uma linha.
+aviso: >-
+  Diagnostico: contagens e valores sem confirmacao de transacao. Nota de saida e entrada pode ter
+  uma linha por segmento; `linhas` conta linhas, nao documentos.
+parametros:
+  - {nome: codi_emp, tipo: int, obrigatorio: true, descricao: "Codigo da empresa no Dominio"}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, cgce_emp: documento, stat_emp: normal, dcad_emp: normal}
+  efparametro_vigencia: {codi_emp: normal, vigencia_par: normal, rfed_par: normal}
+  efsaidas: {codi_emp: normal, dsai_sai: normal, vcon_sai: normal, cancelada_sai: normal}
+  efentradas: {codi_emp: normal, dent_ent: normal, vcon_ent: normal}
+  efservicos: {codi_emp: normal, dser_ser: normal, vcon_ser: normal, cancelada_ser: normal}
+  ctlancto: {codi_emp: normal, data_lan: normal, vlor_lan: normal}
+sql: >-
+  SELECT
+    g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, g.cgce_emp AS cnpj, g.stat_emp AS situacao,
+    g.dcad_emp AS cadastrada_em, p.rfed_par AS regime_codigo, p.vigencia_par AS regime_vigencia,
+    (SELECT COUNT(*) FROM bethadba.efsaidas s
+       WHERE s.codi_emp = g.codi_emp AND s.dsai_sai BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE
+         AND ISNULL(s.cancelada_sai, 'N') <> 'S') AS saidas_linhas_12m,
+    (SELECT SUM(ISNULL(s.vcon_sai, 0)) FROM bethadba.efsaidas s
+       WHERE s.codi_emp = g.codi_emp AND s.dsai_sai BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE
+         AND ISNULL(s.cancelada_sai, 'N') <> 'S') AS saidas_valor_12m,
+    (SELECT COUNT(*) FROM bethadba.efentradas e
+       WHERE e.codi_emp = g.codi_emp AND e.dent_ent BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE) AS entradas_linhas_12m,
+    (SELECT SUM(ISNULL(e.vcon_ent, 0)) FROM bethadba.efentradas e
+       WHERE e.codi_emp = g.codi_emp AND e.dent_ent BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE) AS entradas_valor_12m,
+    (SELECT COUNT(*) FROM bethadba.efservicos v
+       WHERE v.codi_emp = g.codi_emp AND v.dser_ser BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE
+         AND ISNULL(v.cancelada_ser, 'N') <> 'S') AS servicos_linhas_12m,
+    (SELECT SUM(ISNULL(v.vcon_ser, 0)) FROM bethadba.efservicos v
+       WHERE v.codi_emp = g.codi_emp AND v.dser_ser BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE
+         AND ISNULL(v.cancelada_ser, 'N') <> 'S') AS servicos_valor_12m,
+    (SELECT COUNT(*) FROM bethadba.ctlancto c
+       WHERE c.codi_emp = g.codi_emp AND c.data_lan BETWEEN DATEADD(month, -12, CURRENT DATE) AND CURRENT DATE) AS lancamentos_12m
+  FROM bethadba.geempre g
+  LEFT OUTER JOIN (
+    SELECT codi_emp, vigencia_par, rfed_par,
+           ROW_NUMBER() OVER (PARTITION BY codi_emp ORDER BY vigencia_par DESC) AS ordem
+    FROM bethadba.efparametro_vigencia
+    WHERE vigencia_par <= CURRENT DATE
+  ) p ON p.codi_emp = g.codi_emp AND p.ordem = 1
+  WHERE g.codi_emp = ?codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: cnpj, tipo: text, classe: documento}
+  - {nome: situacao, tipo: text, classe: normal, legenda: {tabela: geempre, coluna: stat_emp}}
+  - {nome: cadastrada_em, tipo: date, classe: normal}
+  - {nome: regime_codigo, tipo: int, classe: normal, legenda: {overlay: efparametro_vigencia.rfed_par}}
+  - {nome: regime_vigencia, tipo: date, classe: normal}
+  - {nome: saidas_linhas_12m, tipo: int, classe: normal}
+  - {nome: saidas_valor_12m, tipo: decimal, classe: normal}
+  - {nome: entradas_linhas_12m, tipo: int, classe: normal}
+  - {nome: entradas_valor_12m, tipo: decimal, classe: normal}
+  - {nome: servicos_linhas_12m, tipo: int, classe: normal}
+  - {nome: servicos_valor_12m, tipo: decimal, classe: normal}
+  - {nome: lancamentos_12m, tipo: int, classe: normal}

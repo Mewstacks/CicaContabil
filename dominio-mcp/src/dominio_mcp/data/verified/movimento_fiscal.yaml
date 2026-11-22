@@ -1,0 +1,56 @@
+# Consulta verificada: movimento fiscal mensal (D-317, T5.4).
+# Estado: SQL escrito a partir do catalogo real; PENDENTE conferir contra um relatorio oficial do
+# Dominio (a contadora). Ate la, a resposta leva o aviso de diagnostico.
+version: 1
+name: movimento_fiscal
+titulo: Movimento fiscal por mes
+descricao: >-
+  Totais mensais de saidas, entradas e servicos de uma empresa numa janela de ate 13 meses:
+  `linhas` (uma linha por segmento da nota), `documentos` (serie e numero distintos; vazio nas
+  entradas, cujos numeros sao de terceiros) e o valor contabil. Notas de saida e de servico
+  canceladas ficam de fora; a entrada nao tem marca de cancelamento no banco.
+aviso: >-
+  Diagnostico a conferir contra o relatorio do Dominio, nao apuracao: leitura sem confirmacao de
+  transacao e ainda sem conferencia oficial. `linhas` conta linhas (uma por segmento), nao notas.
+parametros:
+  - {nome: codi_emp, tipo: int, obrigatorio: true, descricao: "Codigo da empresa no Dominio"}
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+dependencias:
+  efsaidas: {codi_emp: normal, dsai_sai: normal, vcon_sai: normal, cancelada_sai: normal, seri_sai: normal, nume_sai: normal}
+  efentradas: {codi_emp: normal, dent_ent: normal, vcon_ent: normal}
+  efservicos: {codi_emp: normal, dser_ser: normal, vcon_ser: normal, cancelada_ser: normal, seri_ser: normal, nume_ser: normal}
+sql: >-
+  SELECT TOP {top} fonte, competencia, linhas, documentos, valor_contabil FROM (
+    SELECT 'saidas' AS fonte, YEAR(dsai_sai) * 100 + MONTH(dsai_sai) AS competencia,
+           COUNT(*) AS linhas,
+           COUNT(DISTINCT TRIM(seri_sai) || '/' || CAST(nume_sai AS VARCHAR(20))) AS documentos,
+           SUM(ISNULL(vcon_sai, 0)) AS valor_contabil
+    FROM bethadba.efsaidas
+    WHERE codi_emp = ?codi_emp AND dsai_sai BETWEEN ?inicio AND ?fim
+      AND ISNULL(cancelada_sai, 'N') <> 'S'
+    GROUP BY YEAR(dsai_sai) * 100 + MONTH(dsai_sai)
+    UNION ALL
+    SELECT 'entradas', YEAR(dent_ent) * 100 + MONTH(dent_ent), COUNT(*),
+           CAST(NULL AS INTEGER), SUM(ISNULL(vcon_ent, 0))
+    FROM bethadba.efentradas
+    WHERE codi_emp = ?codi_emp AND dent_ent BETWEEN ?inicio AND ?fim
+    GROUP BY YEAR(dent_ent) * 100 + MONTH(dent_ent)
+    UNION ALL
+    SELECT 'servicos', YEAR(dser_ser) * 100 + MONTH(dser_ser), COUNT(*),
+           COUNT(DISTINCT TRIM(seri_ser) || '/' || CAST(nume_ser AS VARCHAR(20))),
+           SUM(ISNULL(vcon_ser, 0))
+    FROM bethadba.efservicos
+    WHERE codi_emp = ?codi_emp AND dser_ser BETWEEN ?inicio AND ?fim
+      AND ISNULL(cancelada_ser, 'N') <> 'S'
+    GROUP BY YEAR(dser_ser) * 100 + MONTH(dser_ser)
+  ) m
+  ORDER BY fonte, competencia
+saidas:
+  - {nome: fonte, tipo: text, classe: normal}
+  - {nome: competencia, tipo: int, classe: normal}
+  - {nome: linhas, tipo: int, classe: normal}
+  - {nome: documentos, tipo: int, classe: normal}
+  - {nome: valor_contabil, tipo: decimal, classe: normal}

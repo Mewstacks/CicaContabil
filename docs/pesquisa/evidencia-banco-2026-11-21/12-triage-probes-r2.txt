@@ -1,0 +1,15 @@
+# comando: python -I probe3.py  (exit=0)  | rodada 2 da critica: PLAN(?) parametrizado, PLAN nao executa, sa_conn_info()
+
+--- 1) PLAN(?) com o SQL interno como parametro ligado
+ok em 0.003s | primeira linha: '( Plan [ Estimated cost: 2.5917, Estimated rows: 1.0392e+005, Build optimization time: 7.0'
+estimativa extraida (linhas, custo): (103920.0, 2.5917)
+
+--- 2) literal adversarial dentro do SQL interno (aspas duplicadas, ; e comentario), como parametro
+ok; plano gerado, comeca com: '( Plan [ Estimated cost: 1e-005, Estimat' | estimativa: (0.0037313, 1e-05)
+
+--- 3) PLAN de consulta patologica (auto-juncao de 917 mil linhas): precisa voltar na hora
+voltou em 0.002s (NAO executou) | linhas estimadas=1 custo=2.35e+06
+
+--- 4) o Externo enxerga as conexoes ativas do servidor?
+minha conexao: numero = 60324 | usuario = EXTERNO
+OK 'SELECT * FROM sa_conn_info()': 80 linha(s); colunas: ['Number', 'Name', 'Userid', 'DBNumber', 'LastReqTime', 'ReqType']
