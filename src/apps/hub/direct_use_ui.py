@@ -20,6 +20,8 @@ OUTCOMES: dict[str, tuple[str, str]] = {
     "confirmed": ("Conferido com o Razão", "is-active"),
     "exported": ("Enviado ao Domínio", "is-active"),
     "posted": ("Lançado pela CICA", "is-active"),
+    "repeated": ("No Razão · valor repetido", "is-active"),
+    "repeated_missing": ("Valor repetido · um pode faltar no Razão", "is-warning"),
     "similar": ("Parecido com o Razão · não lançado", "is-muted"),
     "no_rule": ("Sem regra · não lançado", "is-muted"),
     "no_razao": ("Aguardando o Razão do mês", "is-muted"),
@@ -30,6 +32,14 @@ HELP = {
     "confirmed": "Já está no Razão do Domínio.",
     "exported": "Lançado pela CICA e incluído num arquivo para o Domínio.",
     "posted": "Lançado pela CICA; vai no próximo arquivo para o Domínio.",
+    "repeated": (
+        "Está no Razão, mas com o mesmo valor e data em mais de um lançamento; a CICA não escolhe "
+        "qual é qual e não lança nada."
+    ),
+    "repeated_missing": (
+        "Há mais movimentos iguais (mesmo valor e data) no extrato do que no Razão; a CICA "
+        "não sabe qual falta e não lança nada."
+    ),
     "similar": "Há um registro parecido no Razão (mesmo valor, data próxima); não foi lançado.",
     "no_rule": "Nenhuma regra reconhece este histórico ainda; nada foi lançado.",
     "no_razao": "O Razão deste mês ainda não chegou; a CICA lança depois que ele chegar.",
@@ -82,6 +92,12 @@ def movement_outcomes(movements: Iterable[NormalizedMovement]) -> dict[str, dict
             occurred = movement.occurred_on
             if occurred is None or (occurred.year, occurred.month) not in months:
                 key = "no_razao"
+            elif _same_day_free(index, movement):
+                key = (
+                    "repeated"
+                    if _same_day_free(index, movement) >= _same_day_bank(movement)
+                    else "repeated_missing"
+                )
             elif is_similar(index, movement):
                 key = "similar"
             else:
@@ -89,6 +105,32 @@ def movement_outcomes(movements: Iterable[NormalizedMovement]) -> dict[str, dict
         label, css = OUTCOMES[key]
         result[str(movement.pk)] = {"key": key, "label": label, "css": css, "help": HELP[key]}
     return result
+
+
+def _same_day_free(index: Any, movement: NormalizedMovement) -> int:
+    """Free Razão records with the same day, direction and amount (repeated values)."""
+    return sum(
+        1
+        for occurred, used_by in index.get((movement.direction, abs(movement.amount_cents)), ())
+        if occurred == movement.occurred_on and not (used_by - {movement.pk})
+    )
+
+
+def _same_day_bank(movement: NormalizedMovement) -> int:
+    """Bank movements of the account still open with the same day, direction and amount."""
+    return (
+        NormalizedMovement.objects.filter(
+            organization_id=movement.organization_id,
+            financial_account_id=movement.financial_account_id,
+            source_file__origin="bank_statement",
+            occurred_on=movement.occurred_on,
+            direction=movement.direction,
+            amount_cents=movement.amount_cents,
+        )
+        .exclude(review_state=NormalizedMovement.ReviewState.IGNORED)
+        .exclude(reconciliations__state=MovementReconciliation.State.CONFIRMED)
+        .count()
+    )
 
 
 def outcome_counts(outcomes: dict[str, dict[str, str]]) -> list[dict[str, Any]]:

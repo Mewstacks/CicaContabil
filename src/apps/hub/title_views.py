@@ -170,6 +170,11 @@ def titles(request: HttpRequest) -> HttpResponse:
     if has_duplicate_fields(request.GET, FILTERS):
         return _error(context, request, "Informe cada filtro uma única vez.")
     context["titles_errors"] = []
+    if account is None and context.get("office_direct_use") and "account" not in request.GET:
+        # D-398: with a single bank account there is nothing to choose; open it directly.
+        only = list(context["title_accounts"][:2])
+        if len(only) == 1:
+            return redirect(f"{reverse('hub:reconciliation-titles')}?account={only[0].pk}")
     if account is None:
         return private_response(render(request, "hub/reconciliation_titles.html", context))
     data = _load_page(request, context, account)

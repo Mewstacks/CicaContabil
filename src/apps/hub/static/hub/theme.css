@@ -252,3 +252,22 @@ html[data-input-modality="pointer"] .workspace-shell input:focus-visible,html[da
 .export-pending-held{color:var(--muted)}
 .export-pending-held a{display:inline-flex;align-items:center;min-height:44px;font-weight:700}
 .reconciliation-movement-table td[data-label="Data"],.reconciliation-movement-table td[data-label="Valor"]{white-space:nowrap}
+/* D-398: simpler direct-use journey */
+.direct-use-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px;padding:0;list-style:none;counter-reset:none}
+.direct-use-steps li{display:grid;gap:3px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm,8px);background:var(--surface)}
+.direct-use-steps strong{color:var(--ink)}
+.direct-use-steps span{color:var(--muted);line-height:1.4}
+.direct-use-more{position:relative}
+.direct-use-more>summary{list-style:none;cursor:pointer}
+.direct-use-more>summary::-webkit-details-marker{display:none}
+.direct-use-more-menu{position:absolute;right:0;z-index:20;display:grid;min-width:260px;margin-top:6px;padding:6px;border:1px solid var(--line);border-radius:var(--radius-sm,8px);background:var(--surface-raised,var(--surface));box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.direct-use-more-menu a{display:flex;align-items:center;min-height:44px;padding:0 12px;border-radius:6px;color:var(--ink);font-weight:650;text-decoration:none}
+.direct-use-more-menu a:hover,.direct-use-more-menu a:focus-visible{background:var(--surface-subtle)}
+.direct-use-more-block{margin:16px 0 0}
+.direct-use-more-block>summary{display:inline-flex;align-items:center;min-height:44px;cursor:pointer;font-weight:700;color:var(--ink)}
+.conference-outcome a{display:grid;gap:2px;color:inherit;text-decoration:none}
+.conference-outcome:has(a:hover),.conference-outcome:has(a:focus-visible){border-color:var(--strong)}
+.conference-outcome--repeated{border-left:4px solid var(--green)}
+.conference-outcome--repeated_missing{border-left:4px solid var(--amber)}
+@media(max-width:760px){.direct-use-steps{grid-template-columns:1fr}.direct-use-more-menu{position:static;min-width:0}}
+.portfolio-account-table td small,.portfolio-table td small{white-space:nowrap}

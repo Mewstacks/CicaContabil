@@ -2356,6 +2356,13 @@ def dashboard(request: HttpRequest) -> HttpResponse:
         dashboard_summary_action = (
             "Ver carteira" if dashboard_view == "mine" else "Abrir central de atividades"
         )
+        from apps.hub.direct_use import direct_use_enabled
+
+        if direct_use_enabled(office) and ProductModule.Code.RECONCILIATION in enabled_codes:
+            # D-398: nothing to do here; the daily work of a direct-use office is the bank file.
+            dashboard_summary_title = "Conciliação bancária: importe o extrato e envie ao Domínio"
+            dashboard_summary_url = reverse("hub:reconciliation")
+            dashboard_summary_action = "Abrir conciliação"
     admin_workload: list[Membership] = []
     unassigned_activity_count = 0
     if dashboard_view == "management":
@@ -2491,14 +2498,33 @@ def dashboard(request: HttpRequest) -> HttpResponse:
                 ReconciliationMatch.Status.UNMATCHED,
             ],
         ).count()
-        work_areas.append(
-            {
-                "label": "Conciliação",
-                "count": reconciliation_count,
-                "note": "Lançamentos ambíguos ou sem correspondência",
-                "url": f"{reverse('hub:reconciliation')}?status=attention",
-            }
-        )
+        from apps.hub.direct_use import direct_use_enabled
+
+        if direct_use_enabled(office):  # D-398: what waits for the client is sending the file
+            work_areas.append(
+                {
+                    "label": "Conciliação bancária",
+                    "count": JournalEntry.objects.filter(
+                        organization=office,
+                        company__in=scope,
+                        state=JournalEntry.State.APPROVED,
+                        movement__isnull=False,
+                    )
+                    .exclude(purpose="source_ledger")
+                    .count(),
+                    "note": "Lançamentos da CICA para enviar ao Domínio",
+                    "url": f"{reverse('hub:reconciliation')}#exportacoes",
+                }
+            )
+        else:
+            work_areas.append(
+                {
+                    "label": "Conciliação",
+                    "count": reconciliation_count,
+                    "note": "Lançamentos ambíguos ou sem correspondência",
+                    "url": f"{reverse('hub:reconciliation')}?status=attention",
+                }
+            )
     if ProductModule.Code.PROFITABILITY in enabled_codes:
         from apps.profitability.models import ClienteCompetenciaMetrics, Competencia
 
@@ -8890,6 +8916,8 @@ def reconciliation(request: HttpRequest) -> HttpResponse:
             **_reconciliation_v2_context(office, companies, request),
         }
     )
+    if context.get("reconciliation_direct_use"):
+        context["page_title"] = "Conciliação bancária"  # D-398
     _reconciliation_upload_prefill(request, context)
     return render(request, "hub/reconciliation.html", context)
 
@@ -8899,6 +8927,9 @@ def _reconciliation_upload_prefill(request: HttpRequest, context: dict[str, Any]
     if not any(key in request.GET for key in keys):
         return
     if not context.get("can_upload_reconciliation"):
+        return
+    if request.GET.get("open_upload") == "1" and not request.GET.get("upload_company"):
+        context["upload_open"] = True  # D-398: open the import without a preselected company
         return
     try:
         if any(len(request.GET.getlist(key)) > 1 for key in keys):
@@ -9448,7 +9479,7 @@ def _reconciliation_v2_context(
     elif office_direct_use and stats.get("posted_ready"):
         next_action = {
             "kind": "link",
-            "eyebrow": "PRÓXIMA AÇÃO",
+            "eyebrow": "PASSO 3",
             "title": (
                 f"{stats['posted_ready']} lançamento{'s' if stats['posted_ready'] != 1 else ''} "
                 "da CICA para enviar ao Domínio"
@@ -9463,10 +9494,10 @@ def _reconciliation_v2_context(
     elif office_direct_use and ready_source is not None:
         next_action = {
             "kind": "link",
-            "eyebrow": "RESULTADO",
+            "eyebrow": "PASSO 2",
             "title": "Ver o resultado do extrato com o Razão",
             "description": "",
-            "label": "Abrir resultado",
+            "label": "Ver resultado",
             "href": reverse(
                 "hub:reconciliation-source-review", kwargs={"source_id": ready_source.pk}
             ),
@@ -11127,6 +11158,7 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
         for row in context.get("conference_rows", []):
             row["outcome"] = outcomes.get(str(row["movement"].pk))
         context["direct_use_outcomes"] = outcome_counts(outcomes)
+        context["page_title"] = "Resultado do extrato"  # D-398
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response

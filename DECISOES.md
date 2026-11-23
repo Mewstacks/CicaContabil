@@ -6207,3 +6207,26 @@ escritório em uso direto (D-393), salvo onde dito. Precisa, sem revogar, D-393 
    `uso_direto` informa se a IA está ligada e os tetos antes de aplicar.
 
 Sem migração, custo novo, IA ou mensagem externa; merge/deploy só com autorização explícita.
+
+## D-398 — Telas mais simples para a cliente em uso direto (23/11/2026)
+
+Origem: responsável, 23/11/2026, nesta sessão, depois de entrar na CICA no navegador do app: “pode ver as
+telas e revise todas, deixando o sistema o mais intuitivo e simples possível, onde a cliente com
+clareza pode ver cada uma das funcionalidades”. Executor Claude Code, com a delegação da D-393. Revisão
+feita em produção (v122) só por navegação. Vale apenas para escritório em uso direto; os demais
+mantêm as telas atuais. Nenhuma regra contábil muda; só apresentação e atalhos.
+
+1. **Caminho principal em evidência:** a Conciliação passa a se chamar “Conciliação bancária” e mostra
+   três passos (Importar extrato → Ver resultado → Enviar ao Domínio). Os atalhos secundários (buscar
+   títulos, regras DE-PARA, contas do Domínio, referências, Extrato e Razão) ficam em “Mais opções”.
+   O início (“Meu trabalho”) ganha um atalho para a Conciliação bancária.
+2. **Importação só do extrato:** o painel pede empresa, conta e arquivo; tipo de importação, origem,
+   lote físico e o caminho do Razão em CSV deixam de aparecer (o Razão vem do agente do Domínio).
+3. **Resultado do extrato:** título “Resultado do extrato”; os quadros do resultado filtram a lista;
+   confirmações automáticas, revisão opcional e CSV técnico ficam em “Mais opções”. Movimento que
+   está no Razão com o mesmo valor e data em mais de um lançamento aparece como “No Razão · valor
+   repetido” (a CICA não escolhe qual é qual e nada lança), separado do “parecido” por data próxima.
+4. **Carteira:** empresa sem conta mostra “Sem extrato importado” e o botão “Importar extrato”, que
+   abre a importação já com a empresa escolhida.
+5. **Títulos e DE-PARA:** havendo uma única conta com títulos, ela abre direto; DE-PARA sem “Revisar”
+   nem “lotes”.
