@@ -9,19 +9,20 @@ called: matching uses the office's own companies and naming catalogue only.
 from __future__ import annotations
 
 import hashlib
-import io
 import re
 import unicodedata
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from pathlib import PurePosixPath
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import ClientCompany
+from apps.triage import ocr
 from apps.triage.catalog import keyword_score
 from apps.triage.models import (
     CounterpartyAlias,
@@ -30,6 +31,7 @@ from apps.triage.models import (
     TriageItem,
     TriageSafetyScan,
 )
+from apps.triage.readers import IMAGE_SUFFIXES, needs_ocr, pdf_page_count, read_text
 from apps.triage.transitions import TriageStatus
 
 _TEXT_LIMIT = 256 * 1024
@@ -80,35 +82,67 @@ def _tokens(value: str) -> set[str]:
     return {token for token in re.split(r"[^a-z0-9]+", _fold(value)) if len(token) >= 3}
 
 
-def _payload_text(item: TriageItem) -> str:
-    """Read bounded text from formats that carry it; binary formats yield nothing."""
-    suffix = PurePosixPath(item.original_name).suffix.casefold()
+def _blob_bytes(item: TriageItem) -> bytes:
     with item.blob.content.open("rb") as stream:
         data: bytes = stream.read(25 * 1024 * 1024 + 1)
     if hashlib.sha256(data).hexdigest() != item.content_hash:
         raise ValidationError("O hash do anexo mudou depois da verificação.")
-    if suffix in {".xml", ".csv", ".ofx"}:
-        head = data[:_TEXT_LIMIT]
-        for encoding in ("utf-8", "latin-1"):
-            try:
-                return head.decode(encoding)
-            except UnicodeDecodeError:
-                continue
-        return ""
-    if suffix == ".pdf":
-        try:
-            from pypdf import PdfReader
+    return data
 
-            reader = PdfReader(io.BytesIO(data))
-            parts = []
-            for page in reader.pages[:_PDF_PAGES]:
-                parts.append(page.extract_text() or "")
-                if sum(len(part) for part in parts) > _TEXT_LIMIT:
-                    break
-            return "".join(parts)[:_TEXT_LIMIT]
-        except Exception:  # A malformed but format-valid PDF still goes to review.
-            return ""
-    return ""
+
+def _payload_text(item: TriageItem) -> str:
+    """Bounded text of the file (and of its OCR when it ran); nothing inside is executed."""
+    suffix = PurePosixPath(item.original_name).suffix.casefold()
+    text = read_text(_blob_bytes(item), suffix)
+    if item.ocr_text:
+        text = f"{text}\n{item.ocr_text}"
+    return text[:_TEXT_LIMIT]
+
+
+def _ocr_event(item: TriageItem, note: str) -> None:
+    TriageEvent.objects.create(
+        organization=item.organization,
+        triage_item=item,
+        from_status=item.status,
+        to_status=item.status,
+        note=note[:500],
+    )
+
+
+def _ocr_pending(item: TriageItem) -> bool:
+    """True while the file waits for the OCR queue; decides once whether OCR is wanted."""
+    suffix = PurePosixPath(item.original_name).suffix.casefold()
+    if suffix != ".pdf" and suffix not in IMAGE_SUFFIXES:
+        return False
+    if item.ocr_state == "queued":
+        if item.updated_at < timezone.now() - timedelta(minutes=ocr.STALE_QUEUED_MINUTES):
+            item.ocr_state = "failed"
+            item.save(update_fields=["ocr_state", "updated_at"])
+            _ocr_event(item, "OCR sem resposta; seguindo sem ele")
+            return False
+        return True
+    if item.ocr_state:
+        return False
+    data = _blob_bytes(item)
+    if not needs_ocr(suffix, read_text(data, suffix)):
+        return False
+    pages = 1 if suffix != ".pdf" else max(1, min(pdf_page_count(data), ocr.max_pages()))
+    blocker = ocr.ocr_blocker(item.organization, pages)
+    if blocker:
+        item.ocr_state = "skipped"
+        item.save(update_fields=["ocr_state", "updated_at"])
+        _ocr_event(item, f"Sem OCR: {blocker}")
+        return False
+    item.ocr_state = "queued"
+    item.save(update_fields=["ocr_state", "updated_at"])
+    _ocr_event(item, "Texto insuficiente; enviado ao OCR")
+    from apps.triage.tasks import ocr_triage_item
+
+    item_id = str(item.pk)
+    transaction.on_commit(
+        lambda: ocr_triage_item.apply_async(args=[item_id], queue=ocr.OCR_QUEUE)
+    )
+    return True
 
 
 def _match_company(
@@ -284,6 +318,8 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
             content_hash=item.content_hash,
         ).exists()
         if not released:
+            return item
+        if _ocr_pending(item):
             return item
         previous = item.status
         item.transition_to(TriageStatus.EXTRACTING)

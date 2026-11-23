@@ -190,3 +190,44 @@ def poll_activated_mailbox(mailbox_id: str) -> dict[str, object]:
         Mailbox.objects.filter(pk=parsed_id, poll_lease_token=token).update(
             poll_lease_until=None, poll_lease_token=None
         )
+
+
+@shared_task(name="triage.ocr_item")  # type: ignore[untyped-decorator]
+def ocr_triage_item(item_id: str) -> str:
+    """OCR one file on the dedicated queue, then resume extraction. Idempotent."""
+    from apps.triage import ocr
+    from apps.triage.extraction import _blob_bytes, extract_item
+    from apps.triage.models import TriageEvent, TriageItem, TriageOcrUsage
+    from apps.triage.readers import suffix_of
+    from apps.triage.transitions import TriageStatus
+
+    item = TriageItem.objects.select_related("blob", "organization").filter(pk=item_id).first()
+    if (
+        item is None
+        or item.status != TriageStatus.AWAITING_EXTRACTION
+        or item.ocr_state != "queued"
+    ):
+        return "skipped"
+    state, text, pages, note = "failed", "", 0, "OCR falhou; seguindo sem ele"
+    engine = ocr.get_engine()
+    if engine is not None and not item.organization.is_demo:
+        try:
+            text, pages = ocr.run_ocr(_blob_bytes(item), suffix_of(item.original_name), engine)
+            state, note = "done", f"OCR concluído: {pages} página{'s' if pages != 1 else ''}"
+        except Exception:  # an OCR failure must never strand the file
+            text, pages = "", 0
+    TriageItem.objects.filter(pk=item.pk, ocr_state="queued").update(
+        ocr_state=state, ocr_text=text
+    )
+    if pages:
+        TriageOcrUsage.objects.create(
+            organization=item.organization, triage_item=item, pages=pages
+        )
+    TriageEvent.objects.create(
+        organization=item.organization,
+        triage_item=item,
+        from_status=item.status,
+        to_status=item.status,
+        note=note,
+    )
+    return str(extract_item(item_id=item.pk).status)
