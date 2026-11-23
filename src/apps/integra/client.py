@@ -41,6 +41,7 @@ BASE_URLS = {
     "production": "https://gateway.apiserpro.serpro.gov.br/integra-contador/v1",
 }
 TIMEOUT_SECONDS = 30
+MAX_REQUEST_TAG = 32
 MAX_RESPONSE_BYTES = 4_000_000
 # The store reports expires_in around 2008 seconds. Retire the token early so a call is
 # never dispatched against one that expires in flight.
@@ -283,6 +284,7 @@ class IntegraClient:
         autor_pedido: str | None = None,
         dados: dict[str, Any] | str | None = None,
         autenticar_procurador_token: str | None = None,
+        request_tag: str | None = None,
     ) -> dict[str, Any]:
         """Dispatch one catalogued service. There is no way to name an arbitrary endpoint."""
 
@@ -294,13 +296,14 @@ class IntegraClient:
             contribuinte=Party(contribuinte),
             dados=dados,
         )
-        return self._dispatch(spec, envelope, autenticar_procurador_token)
+        return self._dispatch(spec, envelope, autenticar_procurador_token, request_tag)
 
     def _dispatch(
         self,
         spec: ServiceSpec,
         envelope: dict[str, Any],
         autenticar_procurador_token: str | None = None,
+        request_tag: str | None = None,
     ) -> dict[str, Any]:
         token = self.authenticate()
         headers = {
@@ -312,6 +315,10 @@ class IntegraClient:
             headers["jwt_token"] = token.jwt_token
         if autenticar_procurador_token:
             headers["autenticar_procurador_token"] = autenticar_procurador_token
+        if request_tag:
+            if len(request_tag) > MAX_REQUEST_TAG:
+                raise IntegraConfigurationError("O X-Request-Tag aceita até 32 caracteres.")
+            headers["X-Request-Tag"] = request_tag
         status, raw = self._transport(
             f"{self.credentials.base_url}/{spec.verb.value}",
             data=json.dumps(envelope, ensure_ascii=False).encode(),
