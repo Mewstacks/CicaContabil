@@ -18,6 +18,9 @@
 <section class="workspace-panel triage-mailboxes-panel" aria-labelledby="triage-mailboxes-summary">
   <header class="workspace-panel-head"><div><h2 id="triage-mailboxes-summary">Caixas de e-mail</h2><p>{{ mailbox_rows|length }} caixa{{ mailbox_rows|length|pluralize }} cadastrada{{ mailbox_rows|length|pluralize }}</p></div><a class="button button-quiet" href="{% url 'hub:triage-connections' %}">{% if office.is_demo %}Ver caixa de exemplo{% else %}Gerenciar caixas{% endif %}</a></header>
 </section>
+<section class="workspace-panel triage-upload-panel" aria-labelledby="triage-upload-summary">
+  <header class="workspace-panel-head"><div><h2 id="triage-upload-summary">Envio manual</h2></div><a class="button button-quiet" href="{% url 'hub:triage-upload' %}">Enviar arquivo</a></header>
+</section>
 <section class="workspace-panel triage-catalog-panel" aria-labelledby="triage-catalog-summary">
   <header class="workspace-panel-head"><div><h2 id="triage-catalog-summary">Catálogo</h2></div><a class="button button-quiet" href="{% url 'hub:triage-catalog' %}">Gerenciar tipos</a></header>
 </section>

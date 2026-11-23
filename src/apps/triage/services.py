@@ -48,7 +48,11 @@ def _require_verified_email_item(item: TriageItem) -> None:
         format_verdict=TriageSafetyScan.FormatVerdict.VALID,
         content_hash=item.content_hash,
     ).first()
-    if item.mailbox_id is None or verdict is None:
+    from_mailbox_or_upload = item.mailbox_id is not None or item.origin in {
+        TriageItem.Origin.UPLOAD,
+        TriageItem.Origin.ARCHIVE,
+    }
+    if not from_mailbox_or_upload or verdict is None:
         raise ValidationError(
             "Somente anexos de e-mail com antimalware e formato validados podem ser aprovados."
         )

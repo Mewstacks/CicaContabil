@@ -14,6 +14,7 @@ from apps.hub import (
     title_views,
     views,
     views_triage_catalog,
+    views_triage_upload,
 )
 from apps.platform.legal import legal_document
 
@@ -430,6 +431,7 @@ urlpatterns = [
         views.triage_mailbox_disconnect,
         name="triage-mailbox-disconnect",
     ),
+    path("app/triagem/enviar/", views_triage_upload.triage_upload, name="triage-upload"),
     path("app/triagem/catalogo/", views_triage_catalog.triage_catalog, name="triage-catalog"),
     path(
         "app/triagem/catalogo/salvar/",

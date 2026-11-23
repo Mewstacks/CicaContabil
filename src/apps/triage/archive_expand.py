@@ -10,11 +10,13 @@ outside the office's private storage.
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
+from functools import partial
 
 from django.core.files.base import ContentFile
 from django.db import transaction
 
-from apps.triage.archives import ArchiveRejected, Member, read_zip_members
+from apps.triage.archives import ArchiveRejected, Member, iter_zip_members
 from apps.triage.ingest import _content_original
 from apps.triage.intake_policy import policy_for
 from apps.triage.models import TriageBlob, TriageEvent, TriageItem
@@ -100,14 +102,30 @@ def expand_archive_item(item: TriageItem) -> TriageItem:
     if hashlib.sha256(data).hexdigest() != item.content_hash:
         _close(item, "O arquivo mudou depois da verificação.", "Pacote recusado")
         return item
+    ignored: Counter[str] = Counter()
+    children: list[TriageItem] = []
+    storage = TriageBlob._meta.get_field("content").storage
     try:
-        reading = read_zip_members(data, allowed_suffixes=policy_for(item.organization).suffixes)
+        # Savepoint: a header that lies is only detected mid-way, undo what was stored.
+        with transaction.atomic():
+            for index, member in enumerate(
+                iter_zip_members(
+                    data,
+                    allowed_suffixes=policy_for(item.organization).suffixes,
+                    ignored=ignored,
+                )
+            ):
+                children.append(_member_item(item, index, member))
     except ArchiveRejected as exc:
+        for child in children:
+            name = getattr(getattr(child, "blob", None), "content", None)
+            if name is not None and name.name:
+                storage.delete(name.name)
         _close(item, str(exc), f"Pacote recusado: {exc}")
         return item
-    children = [_member_item(item, index, member) for index, member in enumerate(reading.members)]
     count = len(children)
-    detail = f" Ignorados: {reading.summary()}." if reading.ignored else ""
+    summary = ", ".join(f"{n}x {label}" for label, n in ignored.most_common(6))
+    detail = f" Ignorados: {summary}." if summary else ""
     _close(
         item,
         f"Pacote aberto: {count} arquivo{'s' if count != 1 else ''}.",
@@ -118,6 +136,5 @@ def expand_archive_item(item: TriageItem) -> TriageItem:
 
         for child in children:
             if child.status == TriageStatus.QUARANTINED:
-                child_id = str(child.pk)
-                transaction.on_commit(lambda cid=child_id: process_triage_item.delay(cid))
+                transaction.on_commit(partial(process_triage_item.delay, str(child.pk)))
     return item

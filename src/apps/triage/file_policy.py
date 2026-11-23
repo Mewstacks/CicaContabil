@@ -80,10 +80,9 @@ def validate_supported_attachment(
         if b"\x00" in data:
             raise UnsupportedAttachment("Arquivo de texto contém dados binários.")
     elif suffix == ".xls":
-        if not data.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
-            raise UnsupportedAttachment("Arquivo .xls não é uma planilha do Excel válida.")
+        _check_xls(data)
     elif suffix in {".jpg", ".jpeg", ".png", ".webp"}:
-        _check_image(data)
+        _check_image(data, suffix)
     elif suffix == ".zip":
         try:
             inspect_zip(data, allowed_suffixes=allowed if allowed is not None else _BASE)
@@ -117,16 +116,36 @@ def validate_supported_attachment(
     return _MIME[suffix]
 
 
-def _check_image(data: bytes) -> None:
+def _check_image(data: bytes, suffix: str) -> None:
+    expected = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}[suffix]
     try:
         with Image.open(io.BytesIO(data)) as image:
             width, height = image.size
             if width * height > _MAX_IMAGE_PIXELS:
                 raise UnsupportedAttachment("Imagem grande demais.")
             image.verify()
-            if image.format not in {"JPEG", "PNG", "WEBP"}:
+            if image.format != expected:
                 raise UnsupportedAttachment("A extensão não corresponde ao conteúdo da imagem.")
     except UnsupportedAttachment:
         raise
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError, SyntaxError) as exc:
         raise UnsupportedAttachment("Imagem inválida ou grande demais.") from exc
+
+
+_OLE_MAGIC = bytes.fromhex("D0CF11E0A1B11AE1")
+# OLE directory names are UTF-16LE. The sheet is never opened by the product; these checks
+# keep macro and embedded-object carriers out, as the XLSX check does.
+_XLS_ACTIVE = tuple(
+    name.encode("utf-16-le")
+    for name in ("_VBA_PROJECT", "VBA", "Macros", "ObjectPool", "Ole10Native")
+)
+_XLS_BOOK = tuple(name.encode("utf-16-le") for name in ("Workbook", "Book"))
+
+
+def _check_xls(data: bytes) -> None:
+    if not data.startswith(_OLE_MAGIC):
+        raise UnsupportedAttachment("Arquivo .xls não é uma planilha do Excel válida.")
+    if any(marker in data for marker in _XLS_ACTIVE):
+        raise UnsupportedAttachment("Planilha .xls contém macro ou objeto embutido.")
+    if not any(marker in data for marker in _XLS_BOOK):
+        raise UnsupportedAttachment("Arquivo .xls sem pasta de trabalho do Excel.")

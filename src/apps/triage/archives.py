@@ -15,9 +15,10 @@ import io
 import re
 import zipfile
 from collections import Counter
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
-from typing import BinaryIO
+from typing import IO
 
 MAX_ARCHIVE_ENTRIES = 100
 MAX_RAW_ENTRIES = 1000  # directories and junk included: bounds the central directory parse
@@ -65,7 +66,7 @@ def _clean(value: str) -> str:
     return re.sub(r"[\x00-\x1f]", "", value).strip()
 
 
-def read_bounded(stream: BinaryIO, *, limit: int) -> bytes:
+def read_bounded(stream: IO[bytes], *, limit: int) -> bytes:
     """Read what the stream really holds; more than ``limit`` means the header lied."""
 
     buffer = bytearray()
@@ -167,16 +168,23 @@ def inspect_zip(data: bytes, *, allowed_suffixes: frozenset[str]) -> int:
     return len(planned)
 
 
-def read_zip_members(data: bytes, *, allowed_suffixes: frozenset[str]) -> ZipReading:
-    """Open the package in memory and return the accepted members plus what was ignored."""
+def iter_zip_members(
+    data: bytes, *, allowed_suffixes: frozenset[str], ignored: Counter[str]
+) -> Iterator[Member]:
+    """Yield accepted members one at a time so the caller never holds them all in memory.
 
-    reading = ZipReading()
+    ``ignored`` is filled by the planning step (before the first member) and by members that
+    turn out corrupted. ``ArchiveRejected`` can still surface mid-way (a header that lied):
+    the caller must be able to undo what it already stored.
+    """
+
     total = 0
+    yielded = 0
     with _open(data) as package:
-        planned, ignored = _plan(
+        planned, plan_ignored = _plan(
             package, archive_size=len(data), allowed_suffixes=allowed_suffixes
         )
-        reading.ignored = ignored
+        ignored.update(plan_ignored)
         _refuse_if_empty(list(planned), ignored)
         for info, path, name, folder in planned:
             try:
@@ -185,13 +193,23 @@ def read_zip_members(data: bytes, *, allowed_suffixes: frozenset[str]) -> ZipRea
             except ArchiveRejected:
                 raise
             except (zipfile.BadZipFile, OSError, RuntimeError, NotImplementedError, EOFError):
-                reading.ignored["corrompido"] += 1
+                ignored["corrompido"] += 1
                 continue
             total += len(content)
             if total > MAX_ARCHIVE_UNCOMPRESSED:
                 raise ArchiveRejected("Pacote descompactado passa de 100 MB.")
             if content:
-                reading.members.append(Member(path=path, name=name, folder=folder, data=content))
-    if not reading.members:
-        _refuse_if_empty([], reading.ignored)
+                yielded += 1
+                yield Member(path=path, name=name, folder=folder, data=content)
+    if not yielded:
+        _refuse_if_empty([], ignored)
+
+
+def read_zip_members(data: bytes, *, allowed_suffixes: frozenset[str]) -> ZipReading:
+    """All accepted members at once (small packages and tests)."""
+
+    reading = ZipReading()
+    reading.members = list(
+        iter_zip_members(data, allowed_suffixes=allowed_suffixes, ignored=reading.ignored)
+    )
     return reading
