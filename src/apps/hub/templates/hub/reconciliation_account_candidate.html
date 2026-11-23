@@ -1,0 +1,66 @@
+{% extends 'hub/workspace.html' %}
+{% load static l10n %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel account-candidate-detail" aria-labelledby="account-candidate-heading">
+  <header class="workspace-panel-head"><div><h2 id="account-candidate-heading">{{ candidate.company.name }}</h2><span class="account-company-name">Caso {{ candidate.case_reference }}</span></div><a class="button button-quiet" href="{{ candidate_list_url }}">Voltar aos vínculos</a></header>
+  {% if candidate_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira o vínculo.</strong>{% for error in candidate_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <dl class="account-known-data"><div><dt>Conta contábil</dt><dd>{{ candidate.account_code|unlocalize }}</dd></div><div><dt>Empresa do plano</dt><dd>{{ candidate.chart_company_code|unlocalize }}</dd></div><div><dt>Empresa na origem</dt><dd>{{ candidate.source_company_code|unlocalize }}</dd></div><div><dt>Situação</dt><dd><span class="status-badge {% if candidate_is_pending %}is-warning{% elif candidate.state == 'linked' %}is-active{% else %}is-muted{% endif %}">{{ candidate.get_state_display }}</span></dd></div></dl>
+  <details class="account-provenance"><summary>Origem dos dados</summary><dl><div><dt>Data da fonte</dt><dd>{{ candidate.source_observed_at|date:'d/m/Y H:i' }}</dd></div><div><dt>Referência na origem</dt><dd>{{ candidate.source_key }}</dd></div><div><dt>Hash do arquivo de contas</dt><dd class="account-hash">{{ candidate.source_file_sha256 }}</dd></div><div><dt>Hash do perfil da carteira</dt><dd class="account-hash">{{ candidate.portfolio_file_sha256 }}</dd></div></dl></details>
+</section>
+
+<section class="workspace-panel account-candidate-source" aria-labelledby="account-source-detail-heading">
+  <header class="workspace-panel-head"><div><h2 id="account-source-detail-heading">Dados consultados no Domínio</h2>{% if candidate_source_detail %}<span class="account-company-name">Cadastro de contas · Consulta em {{ candidate_source_detail.source_observed_at|date:'d/m/Y H:i' }}</span>{% endif %}</div></header>
+  {% if candidate_source_detail %}
+  <dl class="account-known-data">
+    <div><dt>Nome no plano de contas</dt><dd translate="no">{{ candidate_source_detail.row.account_name_raw|default:'Não informado' }}</dd></div>
+    <div><dt>Classificação contábil</dt><dd translate="no">{{ candidate_source_detail.row.classification_raw|default:'Não informada' }}</dd></div>
+    <div><dt>Tipo na origem</dt><dd translate="no">{{ candidate_source_detail.row.account_type_raw|default:'Não informado' }}</dd></div>
+    <div><dt>Situação na origem</dt><dd translate="no">{{ candidate_source_detail.row.account_status_raw|default:'Não informada' }}</dd></div>
+    <div><dt>Inativação informada</dt><dd>{{ candidate_source_inactive_on|date:'d/m/Y'|default:'Não informada' }}</dd></div>
+    <div class="account-evidence-field"><dt>Referência bancária</dt><dd>{% if candidate_source_bank_references == 0 %}A consulta não trouxe referências bancárias para esta empresa.{% else %}A consulta trouxe referências bancárias da empresa, sem confirmar a correspondência com esta conta contábil.{% endif %} Banco, agência, conta e direção no Razão dependem da conferência do extrato e do plano.</dd></div>
+  </dl>
+  <details class="account-provenance"><summary>Origem do complemento</summary><dl><div><dt>Fonte</dt><dd>Cadastro de contas do Domínio</dd></div><div><dt>Hash do arquivo consultado</dt><dd class="account-hash" translate="no">{{ candidate_source_detail.source_file_sha256 }}</dd></div></dl></details>
+  {% else %}
+  <div class="empty-block operational-empty account-candidate-empty"><strong>Não há complemento cadastral válido para esta conta.</strong><span>Confira nome e classificação no plano de contas. Os dados bancários continuam sujeitos à conferência do extrato.</span></div>
+  {% endif %}
+</section>
+
+{% if can_review_candidate %}
+<section class="workspace-panel account-candidate-review" aria-labelledby="account-link-heading">
+  <header class="workspace-panel-head"><div><h2 id="account-link-heading">Validar o vínculo bancário</h2></div></header>
+  <form method="post" action="{{ candidate_detail_url }}" class="account-review-form" id="candidate-link-form" data-account-candidate-form>
+    {% csrf_token %}<input type="hidden" name="action" value="link">
+    {% if review_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os dados do vínculo.</strong>{% for error in review_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in review_form %}{% if field.errors %}{% if field.is_hidden %}{% for error in field.errors %}<p>{{ error }}</p>{% endfor %}{% else %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endif %}{% endfor %}</div>{% endif %}
+    <div class="account-review-fields">
+    {% for field in review_form %}{% if field.is_hidden %}{{ field }}{% else %}<div class="field{% if field.field.widget.input_type == 'checkbox' %} account-confirmation{% elif field.name == 'evidence_reference' %} account-evidence-field{% endif %}{% if field.errors %} has-error{% endif %}">
+      {% if field.field.widget.input_type == 'checkbox' %}<label for="{{ field.id_for_label }}">{{ field }}<span>{{ field.label }}</span></label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+      {% if field.help_text %}<p class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% endif %}{% if field.errors %}<ul class="field-error" id="{{ field.id_for_label }}_error">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+    </div>{% endif %}{% endfor %}
+    </div>
+    <div class="account-review-actions"><button class="button" type="submit" data-busy-label="Vinculando…">Vincular conta</button></div>
+  </form>
+</section>
+<section class="workspace-panel account-candidate-dismiss"><details{% if dismiss_form.is_bound %} open{% endif %}><summary>Não utilizar esta conta</summary><form method="post" action="{{ candidate_detail_url }}" class="account-review-form" id="candidate-dismiss-form" data-account-candidate-form>
+  {% csrf_token %}<input type="hidden" name="action" value="dismiss">
+  {% if dismiss_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira o motivo.</strong>{% for error in dismiss_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in dismiss_form %}{% if field.errors %}{% if field.is_hidden %}{% for error in field.errors %}<p>{{ error }}</p>{% endfor %}{% else %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endif %}{% endfor %}</div>{% endif %}
+  {% for field in dismiss_form %}{% if field.is_hidden %}{{ field }}{% else %}<div class="field{% if field.errors %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<p class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% endif %}{% if field.errors %}<ul class="field-error" id="{{ field.id_for_label }}_error">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}</div>{% endif %}{% endfor %}
+  <div class="account-review-actions"><button class="button button-quiet" type="submit" data-busy-label="Registrando…">Registrar motivo</button></div>
+</form></details></section>
+{% elif candidate_is_pending %}
+<section class="workspace-panel"><div class="empty-block operational-empty account-candidate-empty"><strong>Vínculo aguardando revisão</strong><span>Um responsável com permissão precisa conferir o banco, a referência da conta e o vínculo contábil.</span></div></section>
+{% else %}
+<section class="workspace-panel account-candidate-result" aria-labelledby="account-review-result-heading"><header class="workspace-panel-head"><div><h2 id="account-review-result-heading">Revisão registrada</h2></div>{% if candidate.financial_account %}<a class="button button-quiet" href="{{ candidate_configuration_url }}">Consultar conta</a>{% endif %}</header>
+  <dl class="account-known-data">{% if candidate.financial_account %}<div><dt>Conta financeira</dt><dd>{{ candidate.financial_account.name }}</dd></div><div><dt>Banco</dt><dd>{{ candidate.financial_account.bank_code }}</dd></div><div><dt>Referência bancária</dt><dd>{{ candidate.financial_account.account_reference }}</dd></div><div><dt>Entrada bancária no Razão</dt><dd>{{ candidate_inflow_label }}</dd></div>{% endif %}<div><dt>Responsável</dt><dd>{{ candidate.reviewed_by.full_name|default:'Responsável registrado' }}</dd></div><div><dt>Data da revisão</dt><dd>{{ candidate.reviewed_at|date:'d/m/Y H:i'|default:'Não registrada' }}</dd></div><div class="account-evidence-field"><dt>{% if candidate.state == 'dismissed' %}Motivo{% else %}Evidência do vínculo{% endif %}</dt><dd>{{ candidate.review_evidence|linebreaksbr }}</dd></div></dl>
+</section>
+{% endif %}
+{% if can_correct_candidate %}
+<section class="workspace-panel account-candidate-review account-candidate-correction"><details{% if correction_form.is_bound or reopen_form.is_bound %} open{% endif %}>
+  <summary>{% if candidate.state == 'linked' %}Corrigir vínculo{% else %}Reconsiderar decisão{% endif %}</summary>
+  <p>A revisão anterior será preservada. Um vínculo já usado em fontes, lançamentos ou coletas precisa ser analisado pelo responsável.</p>
+  {% if candidate.state == 'linked' %}{% include 'hub/partials/candidate_correction_form.html' with form=correction_form action='correct' submit_label='Salvar correção' %}{% else %}{% include 'hub/partials/candidate_correction_form.html' with form=reopen_form action='reopen' submit_label='Reabrir para revisão' %}{% endif %}
+</details></section>
+{% endif %}
+{% if candidate_history %}<section class="workspace-panel account-candidate-history"><details><summary>Revisões anteriores ({{ candidate_history|length }})</summary>{% for review in candidate_history reversed %}<article><h3>{% if review.state == 'linked' %}Vínculo anterior{% else %}Decisão anterior{% endif %}</h3><dl class="account-known-data"><div><dt>Revisão registrada em</dt><dd>{{ review.reviewed_at_local|date:'d/m/Y H:i'|default:'Não registrada' }}</dd></div><div><dt>Evidência anterior</dt><dd>{{ review.review_evidence|linebreaksbr }}</dd></div><div><dt>Motivo da alteração</dt><dd>{{ review.reason|linebreaksbr }}</dd></div>{% if review.financial_account %}<div><dt>Referência anterior</dt><dd>{{ review.financial_account.account_reference }}</dd></div><div><dt>Nome anterior</dt><dd>{{ review.financial_account.name }}</dd></div>{% endif %}</dl></article>{% endfor %}</details></section>{% endif %}
+<p class="account-candidate-note">Para conciliar, a conta precisa do extrato e do Razão do período.</p>
+{% endblock %}

@@ -267,3 +267,6 @@ body:has(.workspace-shell) .skip-link:focus-visible { pointer-events: auto; colo
   .workspace-shell .page-header .page-help { order: 1; flex: 0 0 auto; width: auto; }
   .workspace-shell .page-header-actions > :not(.page-help) { order: 2; flex: 1 1 100%; }
 }
+
+/* Header actions share one height with "Como usar" (44px touch target). */
+.workspace-shell .page-header-actions > .button { min-height: 44px; }

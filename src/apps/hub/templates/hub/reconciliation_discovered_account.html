@@ -1,0 +1,50 @@
+{% extends 'hub/workspace.html' %}
+{% load static l10n %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/reconciliation-accounts.css' %}"><link rel="stylesheet" href="{% static 'hub/reconciliation-discovery.css' %}">{% endblock %}
+{% block workspace_content %}
+<section class="workspace-panel account-candidate-detail discovery-panel" aria-labelledby="discovered-account-heading">
+  <header class="workspace-panel-head"><div><h2 id="discovered-account-heading" translate="no">{{ discovery_account.row.account_name_raw|default:'Conta do Domínio' }}</h2><span class="account-company-name">{{ discovery_company.name }} · Competência {{ discovery_month }}</span></div><a class="button button-quiet" href="{{ discovery_back_url }}">Voltar às contas</a></header>
+  {% if discovery_errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira a fonte.</strong>{% for error in discovery_errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+  <dl class="account-known-data">
+    <div><dt>Código da conta contábil</dt><dd translate="no">{{ discovery_account.account_code|unlocalize }}</dd></div>
+    <div><dt>Plano de contas</dt><dd translate="no">{{ discovery_account.chart_company_code|unlocalize }}</dd></div>
+    <div><dt>Classificação contábil</dt><dd translate="no">{{ discovery_account.row.classification_raw|default:'Não informada' }}</dd></div>
+    <div><dt>Vínculo entre empresa e plano</dt><dd>{% if discovery_prepared.proof.chart_link.proven %}Identificado na fonte{% elif discovery_prepared.collection_ready %}Conferido no vínculo existente{% else %}Precisa de conferência{% endif %}</dd></div>
+    {% if discovery_known.branch_code %}<div><dt>{% if discovery_prepared.collection_ready %}Filial do vínculo{% else %}Filial observada na competência{% endif %}</dt><dd translate="no">{{ discovery_known.branch_code|unlocalize }}</dd></div>{% endif %}
+    <div><dt>Data da consulta</dt><dd>{{ discovery.source_observed_at|date:'d/m/Y H:i' }}</dd></div>
+  </dl>
+  <details class="account-provenance"><summary>Consultar detalhes da origem</summary><dl><div><dt>Tipo informado na origem</dt><dd translate="no">{{ discovery_account.row.account_type_raw|default:'Não informado' }}</dd></div><div><dt>Situação informada na origem</dt><dd translate="no">{{ discovery_account.row.account_status_raw|default:'Não informada' }}</dd></div><div><dt>Inativação informada na origem</dt><dd translate="no">{{ discovery_account.row.inactive_on_raw|default:'Não informada' }}</dd></div><div><dt>Identificação da fonte</dt><dd class="account-hash" translate="no">{{ discovery.source_file_sha256 }}</dd></div></dl></details>
+</section>
+{% if discovery_prefill_error and not discovery_can_confirm %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Extrato não lido.</strong><p>{{ discovery_prefill_error }}</p></div>{% endif %}
+{% if discovery_blocking_message %}
+<section class="workspace-panel discovery-panel discovery-result"><h2>Coleta aguardando revisão</h2><p>{{ discovery_blocking_message }}</p>{% if discovery_candidate_url %}<a class="button button-quiet" href="{{ discovery_candidate_url }}">Consultar conferência anterior</a>{% endif %}</section>
+{% elif discovery_prepared.collection_ready %}
+<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo já disponível</h2>{% if discovery_ledger_url %}<a class="button" href="{{ discovery_ledger_url }}">Buscar Razão desta competência</a>{% endif %}</section>
+{% elif discovery_can_confirm %}
+<section class="workspace-panel account-candidate-review discovery-panel" aria-labelledby="discovery-confirm-heading">
+  <header class="workspace-panel-head"><div><h2 id="discovery-confirm-heading">Complete somente o que falta</h2></div></header>
+  {% if discovery_prefill_available %}
+  <form method="post" action="{{ discovery_detail_url }}" enctype="multipart/form-data" class="discovery-ofx-prefill" id="discovery-ofx-form" aria-labelledby="discovery-ofx-heading">
+    {% csrf_token %}<input type="hidden" name="action" value="prefill">
+    <h3 id="discovery-ofx-heading">Tem o extrato OFX desta conta?</h3>
+    {% with field=discovery_prefill_form.statement %}<div class="field{% if discovery_prefill_error %} has-error{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label><input type="file" name="{{ field.html_name }}" id="{{ field.id_for_label }}" accept=".ofx,.qfx" required aria-describedby="{{ field.id_for_label }}_helptext{% if discovery_prefill_error %} {{ field.id_for_label }}_error{% endif %}"{% if discovery_prefill_error %} aria-invalid="true"{% endif %}><p class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% if discovery_prefill_error %}<p class="field-error" id="{{ field.id_for_label }}_error" role="alert">{{ discovery_prefill_error }}</p>{% endif %}</div>{% endwith %}
+    <div class="account-review-actions"><button class="button button-quiet" type="submit" data-busy-label="Lendo…">Ler banco e conta do extrato</button></div>
+  </form>
+  {% if discovery_prefill %}<div class="discovery-prefill-result" role="status" tabindex="-1" data-prefill-result><strong>Dados lidos do extrato. Confira antes de confirmar.</strong><dl><div><dt>Banco</dt><dd translate="no">{{ discovery_prefill.bank_id }}</dd></div>{% if discovery_prefill.branch_id %}<div><dt>Agência</dt><dd translate="no">{{ discovery_prefill.branch_id }}</dd></div>{% endif %}<div><dt>Conta</dt><dd translate="no">{{ discovery_prefill.account_id }}</dd></div><div><dt>Período do arquivo</dt><dd>{{ discovery_prefill.first_date|date:'d/m/Y' }} a {{ discovery_prefill.last_date|date:'d/m/Y' }} · {{ discovery_prefill.transaction_count|unlocalize }} movimentos</dd></div></dl><p>O arquivo não foi guardado. Para conciliar, envie-o depois em Extrato e Razão.</p></div>{% endif %}
+  {% endif %}
+  {% if discovery_prepared.branches|length > 1 %}<p class="discovery-branch-note">Há lançamentos de mais de uma filial na competência. Confirme a filial desta conta. Se o Razão incluir outras filiais no mesmo lote, a coleta precisará de revisão para preservar todos os lançamentos.</p>{% endif %}
+  <form method="post" action="{{ discovery_detail_url }}" class="account-review-form" id="discovery-link-form" data-account-candidate-form>
+    {% csrf_token %}
+    {% if discovery_form.errors %}<div class="form-errors" data-form-errors tabindex="-1" role="alert"><strong>Confira os dados do vínculo.</strong>{% for error in discovery_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in discovery_form %}{% if field.errors %}{% if field.is_hidden %}{% for error in field.errors %}<p>{{ error }}</p>{% endfor %}{% else %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endif %}{% endfor %}</div>{% endif %}
+    <div class="account-review-fields">
+      {% for field in discovery_form %}{% if field.is_hidden %}{{ field }}{% else %}<div class="field{% if field.field.widget.input_type == 'checkbox' %} account-confirmation{% elif field.name == 'evidence_reference' %} account-evidence-field{% endif %}{% if field.errors %} has-error{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}<label for="{{ field.id_for_label }}">{{ field }}<span>{{ field.label }}</span></label>{% else %}<label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% endif %}
+        {% if field.help_text %}<p class="field-help" id="{{ field.id_for_label }}_helptext">{{ field.help_text }}</p>{% endif %}{% if field.errors %}<ul class="field-error" id="{{ field.id_for_label }}_error">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+      </div>{% endif %}{% endfor %}
+    </div>
+    <div class="account-review-actions"><button class="button" type="submit" data-busy-label="Registrando…">Confirmar vínculo e preparar conta</button></div>
+  </form>
+</section>
+{% elif not discovery_errors %}<section class="workspace-panel discovery-panel discovery-result"><h2>Vínculo aguardando conferência</h2><span class="status-badge">Somente consulta</span></section>{% endif %}
+<p class="account-candidate-note">Confirmar o vínculo não confirma movimentos ou saldos. A comparação usa o extrato e o Razão da competência selecionada.</p>
+{% endblock %}

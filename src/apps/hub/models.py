@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Iterable
 from decimal import Decimal
-from typing import Any, NoReturn, Protocol
+from typing import Any, ClassVar, NoReturn, Protocol
 
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -158,6 +158,12 @@ class ClientCompany(OrganizationScopedModel):
     dominio_code = models.CharField(max_length=64, blank=True, db_index=True)
     active = models.BooleanField(default=True)
     last_dominio_sync_at = models.DateTimeField(null=True, blank=True)
+    dominio_status = models.CharField(max_length=16, blank=True, default="")
+    # Literal ERP registration, without inferring CPF/CNPJ or a commercial root (D-333).
+    dominio_registration_raw = models.CharField(
+        max_length=14, blank=True, default="", db_default=""
+    )
+    dominio_registration_type_code = models.PositiveSmallIntegerField(null=True, blank=True)
     data_source = models.ForeignKey(
         "DataSource", null=True, blank=True, on_delete=models.SET_NULL, related_name="companies"
     )
@@ -884,9 +890,10 @@ class AccountingEntry(OrganizationScopedModel):
     )
     external_key = models.CharField(max_length=160)
     occurred_on = models.DateField(db_index=True)
-    description = models.CharField(max_length=500, blank=True)
+    description = models.CharField(max_length=1000, blank=True)
     amount_cents = models.BigIntegerField()
     direction = models.CharField(max_length=8, blank=True)
+    account_reference = models.CharField(max_length=160, blank=True)
     is_linked = models.BooleanField(default=False)
     source_updated_at = models.DateTimeField(null=True, blank=True)
 
@@ -1412,6 +1419,23 @@ class BankStatementImport(OrganizationScopedModel):
         ]
 
 
+class OfxTransactionIdentity(OrganizationScopedModel):
+    """Reserve a bank FITID across both intake queues without merging source evidence."""
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.PROTECT)
+    account_reference = models.CharField(max_length=160)
+    external_id = models.CharField(max_length=160)
+    content_hash = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "account_reference", "external_id"),
+                name="hub_unique_ofx_identity",
+            )
+        ]
+
+
 class BankTransaction(OrganizationScopedModel):
     """Normalized OFX transaction ready to be matched to an approved Domínio ledger source."""
 
@@ -1513,6 +1537,7 @@ class ReconciliationSourceFile(OrganizationScopedModel):
         CSV = "csv", "CSV"
         XLSX = "xlsx", "XLSX"
         PDF = "pdf", "PDF"
+        JSON = "json", "Snapshot nativo JSON"
 
     class Origin(models.TextChoices):
         BANK_STATEMENT = "bank_statement", "Extrato bancário"
@@ -1615,6 +1640,7 @@ class ReconciliationRun(OrganizationScopedModel):
         "extracting": "Lendo arquivo",
         "mapping": "Mapear colunas",
         "financial_account_review": "Escolher conta",
+        "ledger_review": "Conferir Razão independente",
         "ocr_review": "Conferir leitura",
         "review": "Revisar movimentos",
         "rules_reapplied": "Regras reaplicadas",
@@ -1629,12 +1655,18 @@ class ReconciliationRun(OrganizationScopedModel):
 
         return self.STAGE_LABELS.get(self.stage, self.stage.replace("_", " ").capitalize())
 
+    @property
+    def can_reapply_rules(self) -> bool:
+        return self.stage != "ledger_review" and bool(self.created_count or self.updated_count)
+
 
 class ReconciliationLayout(OrganizationScopedModel):
     company = models.ForeignKey(
         "ClientCompany", on_delete=models.CASCADE, related_name="reconciliation_layouts"
     )
-    kind = models.CharField(max_length=12, choices=ReconciliationSourceFile.Kind.choices)
+    kind = models.CharField(
+        max_length=12, choices=[c for c in ReconciliationSourceFile.Kind.choices if c[0] != "json"]
+    )
     name = models.CharField(max_length=120)
     version = models.PositiveIntegerField(default=1)
     active = models.BooleanField(default=True)
@@ -1667,6 +1699,14 @@ class FinancialAccount(OrganizationScopedModel):
     account_reference = models.CharField(max_length=160, blank=True)
     ledger_code = models.CharField(max_length=64, blank=True)
     active = models.BooleanField(default=True)
+    review_history = models.JSONField(default=list, db_default=[], blank=True)
+    current_title_snapshot = models.ForeignKey(
+        "ReconciliationTitleSnapshot",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
 
     class Meta:
         constraints = [
@@ -1675,6 +1715,318 @@ class FinancialAccount(OrganizationScopedModel):
                 name="hub_unique_financial_account_reference",
             )
         ]
+
+
+class ReconciliationLedgerMapping(OrganizationScopedModel):
+    """Private, explicit review of the Domínio scope used by monthly collections."""
+
+    financial_account = models.OneToOneField(
+        FinancialAccount, on_delete=models.PROTECT, related_name="ledger_mapping",
+    )
+    scope = models.JSONField()
+    account_identity = models.JSONField()
+    revision = models.CharField(max_length=64)
+    evidence_reference = models.CharField(max_length=240)
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    reviewed_at = models.DateTimeField()
+    provenance = models.JSONField(default=dict)
+    review_history = models.JSONField(default=list)
+
+
+class ReconciliationAccountCandidate(OrganizationScopedModel):
+    """Retained account configuration, distinct from an operational bank account."""
+
+    class State(models.TextChoices):
+        PENDING = "pending", "Vínculo pendente"
+        LINKED = "linked", "Vínculo revisado"
+        DISMISSED = "dismissed", "Não utilizar"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="reconciliation_account_candidates"
+    )
+    source_company_code = models.PositiveIntegerField()
+    chart_company_code = models.PositiveIntegerField()
+    account_code = models.PositiveIntegerField()
+    case_reference = models.CharField(max_length=16)
+    source_key = models.CharField(max_length=96)
+    source_file_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    source_observed_at = models.DateTimeField()
+    evidence = models.JSONField(default=dict)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.PENDING)
+    financial_account = models.ForeignKey(
+        FinancialAccount, null=True, blank=True, on_delete=models.PROTECT,
+        related_name="source_candidates",
+    )
+    reviewed_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="reviewed_account_candidates",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_data = models.JSONField(default=dict, blank=True)
+    review_evidence = models.CharField(max_length=1000, blank=True)
+    review_history = models.JSONField(default=list, db_default=[], blank=True)
+
+    class Meta:
+        ordering = ("source_company_code", "chart_company_code", "account_code")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "company", "chart_company_code", "account_code"),
+                name="hub_unique_account_candidate_scope",
+            ),
+            models.UniqueConstraint(
+                fields=("organization", "source_key"), name="hub_unique_account_candidate_source"
+            ),
+        ]
+        indexes = [models.Index(
+            fields=("organization", "company", "state"), name="hub_account_candidate_state"
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.source_key != ":".join(str(value) for value in (
+            self.source_company_code, self.chart_company_code, self.account_code
+        )):
+            raise ValidationError({"source_key": "A chave precisa corresponder à origem da conta."})
+        if self.company_id and (
+            self.company.organization_id != self.organization_id
+            or self.company.dominio_code != str(self.source_company_code)
+        ):
+            raise ValidationError({"company": "Empresa fora do escritório ou da origem da conta."})
+        account = self.financial_account
+        if account is not None and (
+            account.organization_id != self.organization_id
+            or account.company_id != self.company_id
+        ):
+            raise ValidationError({"financial_account": "Conta financeira fora da empresa."})
+
+
+class ReconciliationAccountSourceDetail(ImmutableOrganizationModel):
+    """Technical source facts, separate from candidate origin and human review."""
+
+    candidate = models.ForeignKey(
+        ReconciliationAccountCandidate, on_delete=models.PROTECT, related_name="source_details"
+    )
+    source_file_sha256 = models.CharField(max_length=64)
+    source_size_bytes = models.PositiveIntegerField()
+    source_observed_at = models.DateTimeField()
+    candidate_source_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    row = models.JSONField()
+    provenance = models.JSONField()
+    request_reference = models.CharField(max_length=240)
+
+    class Meta:
+        ordering = ("-source_observed_at", "-created_at")
+        constraints = [models.UniqueConstraint(
+            fields=("candidate", "source_file_sha256"), name="hub_unique_candidate_source_detail"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "candidate", "source_observed_at"),
+            name="hub_candidate_detail_observed",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        if self.candidate_id and self.candidate.organization_id != self.organization_id:
+            raise ValidationError({"candidate": "Complemento fora do escritório da candidata."})
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class ReconciliationAccountDiscovery(ImmutableOrganizationModel):
+    """An entire technical discovery; its original candidates and reviews stay separate."""
+
+    source_file_sha256 = models.CharField(max_length=64)
+    source_size_bytes = models.PositiveIntegerField()
+    source_observed_at = models.DateTimeField()
+    script_sha256 = models.CharField(max_length=64)
+    portfolio_file_sha256 = models.CharField(max_length=64)
+    company_codes_sha256 = models.CharField(max_length=64)
+    company_count = models.PositiveIntegerField()
+    chart_account_count = models.PositiveIntegerField()
+    source_metadata = models.JSONField()
+    source_data = models.JSONField()
+    provenance = models.JSONField()
+    request_reference = models.CharField(max_length=240)
+
+    class Meta:
+        ordering = ("-source_observed_at", "source_file_sha256")
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "source_file_sha256"), name="hub_unique_account_discovery"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "source_observed_at"), name="hub_discovery_observed"
+        )]
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class DiscoveryChartQuerySet(AppendOnlyQuerySet[Any]):
+    """Permit validated inserts in batches, never upserts or changes to old evidence."""
+
+    def insert_validated(self, objs: Iterable[Any], batch_size: int = 500) -> list[Any]:
+        rows = list(objs)
+        for row in rows:
+            if not row._state.adding:
+                self._reject()
+            # The service supplies cached FK instances, and clean checks their scope.
+            # Database FKs and uniqueness remain enforced for the entire atomic insert.
+            row.full_clean(
+                exclude=("organization", "discovery"),
+                validate_unique=False, validate_constraints=False,
+            )
+        return models.QuerySet.bulk_create(self, rows, batch_size=batch_size)
+
+
+class ReconciliationDiscoveredChartAccount(ImmutableOrganizationModel):
+    """One literal account per shared chart, not one copy per customer company."""
+
+    objects: ClassVar[Any] = DiscoveryChartQuerySet.as_manager()
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="chart_accounts"
+    )
+    chart_company_code = models.PositiveIntegerField()
+    account_code = models.PositiveIntegerField()
+    row = models.JSONField()
+    row_sha256 = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ("chart_company_code", "account_code")
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "chart_company_code", "account_code"),
+            name="hub_unique_discovered_chart_account",
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "chart_company_code"),
+            name="hub_discovered_chart_scope",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        from apps.hub.account_discovery_contract import Invalid, digest, validate_chart_row
+
+        try:
+            validate_chart_row(self.row)
+            valid = (
+                self.discovery.organization_id == self.organization_id
+                and self.chart_company_code == self.row["chart_company_code"]
+                and self.account_code == self.row["account_code"]
+                and self.row_sha256 == digest(self.row)
+            )
+        except (Invalid, KeyError, TypeError, ValueError):
+            valid = False
+        if not valid:
+            raise ValidationError("Conta descoberta fora da fonte ou do escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class ReconciliationDiscoverySourceBlock(ImmutableOrganizationModel):
+    """Reversible source JSONL blocks, bounded independently of the full catalogue."""
+
+    objects: ClassVar[Any] = DiscoveryChartQuerySet.as_manager()
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="source_blocks"
+    )
+    table_name = models.CharField(max_length=32)
+    ordinal = models.PositiveIntegerField()
+    row_count = models.PositiveIntegerField()
+    raw_size_bytes = models.PositiveIntegerField()
+    raw_sha256 = models.CharField(max_length=64)
+    compressed_data = models.BinaryField()
+
+    class Meta:
+        ordering = ("table_name", "ordinal")
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "table_name", "ordinal"), name="hub_unique_discovery_block"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "table_name"), name="hub_discovery_block_scope"
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        import hashlib
+        import zlib
+
+        from apps.hub.account_discovery_archive import decompress_block
+        from apps.hub.account_discovery_contract import Invalid
+
+        try:
+            raw = decompress_block(bytes(self.compressed_data), self.raw_size_bytes)
+            valid = (
+                self.discovery.organization_id == self.organization_id
+                and self.table_name in {"plan_template_accounts", "nature_rules"}
+                and raw.endswith(b"\n")
+                and raw.count(b"\n") == self.row_count
+                and self.row_count > 0
+                and self.raw_sha256 == hashlib.sha256(raw).hexdigest()
+            )
+        except (Invalid, TypeError, ValueError, zlib.error):
+            valid = False
+        if not valid:
+            raise ValidationError("Bloco da descoberta fora da fonte ou do escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class ReconciliationCompanyDiscovery(ImmutableOrganizationModel):
+    """Explicit coverage for every company, including absent parameters and empty charts."""
+
+    class Coverage(models.TextChoices):
+        CATALOGUED = "catalogued", "Plano com referência na origem"
+        OPTIONS_ONLY = "options_only", "Opções de plano para conferir"
+        NO_ACCOUNTS = "no_accounts", "Sem contas no catálogo consultado"
+
+    discovery = models.ForeignKey(
+        ReconciliationAccountDiscovery, on_delete=models.PROTECT, related_name="company_coverage"
+    )
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="account_discoveries"
+    )
+    source_company_code = models.PositiveIntegerField()
+    coverage_state = models.CharField(max_length=20, choices=Coverage.choices)
+    facts = models.JSONField()
+    gaps = models.JSONField(default=list, blank=True)
+    facts_sha256 = models.CharField(max_length=64)
+
+    class Meta:
+        ordering = ("source_company_code",)
+        constraints = [models.UniqueConstraint(
+            fields=("discovery", "company"), name="hub_unique_company_discovery"
+        )]
+        indexes = [models.Index(
+            fields=("organization", "discovery", "coverage_state"),
+            name="hub_company_discovery_state",
+        )]
+
+    def clean(self) -> None:
+        super().clean()
+        from apps.hub.account_discovery_contract import digest
+
+        if (
+            self.discovery.organization_id != self.organization_id
+            or self.company.organization_id != self.organization_id
+            or self.company.dominio_code != str(self.source_company_code)
+            or not isinstance(self.facts, dict)
+            or self.facts.get("company", {}).get("company_code") != self.source_company_code
+            or digest({"facts": self.facts, "gaps": self.gaps, "state": self.coverage_state})
+            != self.facts_sha256
+        ):
+            raise ValidationError("Cobertura fora da fonte, da empresa ou do escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
 
 
 class LedgerAccount(OrganizationScopedModel):
@@ -1865,7 +2217,7 @@ class JournalEntry(OrganizationScopedModel):
     )
     source_movement_revision = models.PositiveIntegerField(null=True, blank=True)
     occurred_on = models.DateField()
-    history = models.CharField(max_length=500)
+    history = models.CharField(max_length=1000)
     purpose = models.CharField(max_length=24)
     state = models.CharField(max_length=12, choices=State.choices, default=State.DRAFT)
     revision = models.PositiveIntegerField(default=1)
@@ -1892,7 +2244,7 @@ class JournalLine(OrganizationScopedModel):
     side = models.CharField(max_length=8, choices=Side.choices)
     amount_cents = models.PositiveBigIntegerField()
     cost_center_code = models.CharField(max_length=64, blank=True)
-    history = models.CharField(max_length=500, blank=True)
+    history = models.CharField(max_length=1000, blank=True)
 
 
 class MovementReconciliation(OrganizationScopedModel):
@@ -1927,6 +2279,37 @@ class MovementReconciliation(OrganizationScopedModel):
         ]
 
 
+class IndependentLedgerRecord(OrganizationScopedModel):
+    """Complete source journal, with its explicitly identified bank effect (D-305)."""
+
+    source_file = models.ForeignKey(
+        ReconciliationSourceFile, on_delete=models.PROTECT, related_name="ledger_records"
+    )
+    financial_account = models.ForeignKey(
+        FinancialAccount, on_delete=models.PROTECT, related_name="ledger_records"
+    )
+    external_key = models.CharField(max_length=160)
+    fingerprint = models.CharField(max_length=64)
+    entry = models.OneToOneField(
+        JournalEntry, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    accounting_entry = models.OneToOneField(
+        AccountingEntry, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    bank_line = models.OneToOneField(
+        JournalLine, on_delete=models.PROTECT, related_name="independent_source"
+    )
+    source_reference = models.JSONField(default=dict)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "external_key"),
+                name="hub_unique_independent_ledger_key",
+            )
+        ]
+
+
 class ReconciliationDecision(ImmutableOrganizationModel):
     reconciliation = models.ForeignKey(
         MovementReconciliation, on_delete=models.PROTECT, related_name="decisions"
@@ -1940,6 +2323,94 @@ class ReconciliationDecision(ImmutableOrganizationModel):
 
     class Meta:
         indexes = [models.Index(fields=("organization", "created_at"))]
+
+
+class ReconciliationTitleSnapshot(ImmutableOrganizationModel):
+    """Reviewed normalized evidence; never a payment or an ERP posting."""
+
+    company = models.ForeignKey(ClientCompany, on_delete=models.PROTECT)
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    source_file = models.OneToOneField(ReconciliationSourceFile, on_delete=models.PROTECT)
+    fingerprint = models.CharField(max_length=64)
+    as_of = models.DateField()
+    settlements_complete = models.BooleanField()
+    evidence_reference = models.CharField(max_length=240)
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "fingerprint"),
+                name="hub_unique_title_snapshot",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "financial_account", "as_of"))]
+
+
+class ReconciliationTitleBatch(ImmutableOrganizationModel):
+    """Idempotency receipt for an explicitly reviewed allocation plan."""
+
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    snapshot = models.ForeignKey(ReconciliationTitleSnapshot, on_delete=models.PROTECT)
+    request_id = models.UUIDField()
+    preview_fingerprint = models.CharField(max_length=64)
+    request_fingerprint = models.CharField(max_length=64)
+    review_snapshot = models.JSONField(default=dict)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    reviewed_by = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    accepted_date_differences = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "request_id"),
+                name="hub_unique_title_batch_request",
+            )
+        ]
+
+
+class ReconciliationTitleAllocation(OrganizationScopedModel):
+    class State(models.TextChoices):
+        CONFIRMED = "confirmed", "Confirmada"
+        UNDONE = "undone", "Desfeita"
+
+    batch = models.ForeignKey(
+        ReconciliationTitleBatch, on_delete=models.PROTECT, related_name="allocations"
+    )
+    financial_account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT)
+    movement = models.ForeignKey(NormalizedMovement, on_delete=models.PROTECT)
+    movement_identity = models.CharField(max_length=64)
+    movement_fingerprint = models.CharField(max_length=64)
+    title_key = models.CharField(max_length=160)
+    installment_key = models.CharField(max_length=160)
+    settlement_key = models.CharField(max_length=160)
+    settlement_identity = models.CharField(max_length=64)
+    settlement_fingerprint = models.CharField(max_length=64)
+    cash_cents = models.PositiveBigIntegerField()
+    state = models.CharField(max_length=12, choices=State.choices, default=State.CONFIRMED)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("batch", "movement_identity", "settlement_identity"),
+                name="hub_unique_title_allocation_pair",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(cash_cents__gt=0), name="hub_title_allocation_positive"
+            ),
+        ]
+        indexes = [models.Index(fields=("organization", "financial_account", "state"))]
+
+
+class ReconciliationTitleDecision(ImmutableOrganizationModel):
+    allocation = models.ForeignKey(
+        ReconciliationTitleAllocation, on_delete=models.PROTECT, related_name="decisions"
+    )
+    state = models.CharField(max_length=12, choices=ReconciliationTitleAllocation.State.choices)
+    actor = models.ForeignKey("accounts.User", on_delete=models.PROTECT)
+    reason = models.CharField(max_length=240)
 
 
 class AccountingExport(OrganizationScopedModel):
@@ -1987,6 +2458,129 @@ class AccountingExport(OrganizationScopedModel):
     class Meta:
         ordering = ("-created_at",)
         indexes = [models.Index(fields=("organization", "company", "period_start", "period_end"))]
+
+
+class AccountingExportHomologation(ImmutableOrganizationModel):
+    """Append-only approval/revocation of one office's exact export adapter."""
+
+    target = models.CharField(max_length=24, choices=AccountingExport.Target.choices)
+    adapter_version = models.CharField(max_length=32)
+    request_key = models.UUIDField()
+    approved = models.BooleanField()
+    evidence = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="accounting_homologations",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [models.UniqueConstraint(
+            fields=("organization", "request_key"), name="hub_unique_homologation_request",
+        )]
+        indexes = [models.Index(
+            fields=("organization", "target", "adapter_version", "created_at"),
+            name="hub_homologation_scope",
+        )]
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class AccountingImportReceipt(ImmutableOrganizationModel):
+    """Human-observed import result; copies of an export share the original receipt chain."""
+
+    class Outcome(models.TextChoices):
+        ACCEPTED = "accepted", "Importação conferida"
+        PARTIAL = "partial", "Importação parcial"
+        REJECTED = "rejected", "Importação rejeitada"
+        UNCERTAIN = "uncertain", "Resultado a conferir"
+
+    export = models.ForeignKey(
+        AccountingExport, on_delete=models.PROTECT, related_name="import_receipts",
+    )
+    submitted_export = models.ForeignKey(
+        AccountingExport, on_delete=models.PROTECT, related_name="submitted_import_receipts",
+    )
+    previous = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.PROTECT, related_name="successors",
+    )
+    request_key = models.UUIDField()
+    content_hash = models.CharField(max_length=64)
+    outcome = models.CharField(max_length=16, choices=Outcome.choices)
+    items = models.JSONField()
+    evidence = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, on_delete=models.SET_NULL,
+        related_name="accounting_import_receipts",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "request_key"), name="hub_unique_import_receipt_request",
+            ),
+            models.UniqueConstraint(
+                fields=("previous",), condition=models.Q(previous__isnull=False),
+                name="hub_unique_import_receipt_successor",
+            ),
+            models.UniqueConstraint(
+                fields=("export",), condition=models.Q(previous__isnull=True),
+                name="hub_unique_import_receipt_root",
+            ),
+        ]
+
+    def clean(self) -> None:
+        super().clean()
+        if (
+            self.export.organization_id != self.organization_id
+            or self.submitted_export.organization_id != self.organization_id
+            or self.submitted_export.company_id != self.export.company_id
+            or self.content_hash != self.export.content_hash
+            or self.content_hash != self.submitted_export.content_hash
+            or (self.previous_id and self.previous.export_id != self.export_id)
+        ):
+            raise ValidationError("O recibo precisa pertencer ao mesmo arquivo e escritório.")
+
+    def save(self, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(**kwargs)
+
+
+class AccountingExportPreview(ImmutableOrganizationModel):
+    """Private, unhomologated evidence. Never an export or ERP import receipt."""
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.PROTECT, related_name="accounting_export_previews"
+    )
+    financial_account = models.ForeignKey(
+        FinancialAccount, on_delete=models.PROTECT, related_name="accounting_export_previews"
+    )
+    period_start = models.DateField()
+    period_end = models.DateField()
+    adapter_version = models.CharField(max_length=64)
+    source_snapshot = models.JSONField()
+    source_fingerprint = models.CharField(max_length=64)
+    content_hash = models.CharField(max_length=64)
+    content = models.FileField(upload_to=private_reconciliation_path)
+    created_by = models.ForeignKey(
+        "accounts.User", null=True, on_delete=models.SET_NULL,
+        related_name="accounting_export_previews",
+    )
+
+    class Meta:
+        ordering = ("-created_at", "-id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "source_fingerprint"),
+                name="hub_unique_accounting_preview_source",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "created_at"))]
 
 
 class OperationalTask(OrganizationScopedModel):

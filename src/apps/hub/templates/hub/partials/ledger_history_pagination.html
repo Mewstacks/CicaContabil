@@ -1,0 +1,7 @@
+{% if page.has_other_pages %}
+<nav class="pagination ledger-history-pagination" aria-label="{{ label }}">
+  {% if previous_url %}<a class="button button-quiet" href="{{ previous_url }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+  <span class="pagination-status" aria-current="page">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+  {% if next_url %}<a class="button button-quiet" href="{{ next_url }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+</nav>
+{% endif %}

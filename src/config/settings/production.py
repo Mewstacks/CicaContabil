@@ -11,7 +11,7 @@ DEBUG = False
 # TEMPORARY (testing phase): support sessions are mutable. Set the env var to
 # "false" to restore read-only support sessions.
 PLATFORM_DEVELOPER_FULL_ACCESS = env_bool("PLATFORM_DEVELOPER_FULL_ACCESS", True)
-EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", True)
+EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", False)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 
 fly_app_name = env_str("FLY_APP_NAME")

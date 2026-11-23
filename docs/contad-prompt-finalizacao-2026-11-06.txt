@@ -1,0 +1,260 @@
+PLANO/PROMPT CANÔNICO CONTAD — atualização12/11/2026, D-338/D-339 e V-360–V-362
+
+PARA CONTINUAR EM OUTRA SESSÃO, USE PRIMEIRO:
+docs/contad-prompt-continuidade-2026-11-12.txt
+O piloto real já foi coletado com oficial1.0.8/backend84:163 lançamentos/334 partidas.
+Os estados de preparação1.0.7/backend83 abaixo são históricos; V-361 prevalece.
+Este arquivo conserva o histórico e não substitui o plano/registro de decisões.
+
+
+**Continuidade D-336/D-337/V-356–V-359 — 11/11/2026:** contas do piloto
+conferidas sem multiplicação; fonte da conta8 comprovou163 lotes/177 registros
+completos e equilibrados. Normalizador local de partidas implementado,43 testes
+novos/89 focados aprovados e dois perfis Windows com16 cenários cada. PR9/main094a93d e CI43091250239/2d40869
+aprovados. Não houve importação real de valores/textos, MSI novo,
+dataset financeiro ou deploy. Próximo passo é integrar snapshot completo e revisado
+à coleta; Q-46/Q-47/D-73 e aceite continuam próprios. Não repetir perfis concluídos.
+
+
+**Relações reais conferidas — D-335/V-354, 11/11/2026:** JSON recebido por
+retorno textual compactado; SHA05f69122…34e8479 confere.9 tabelas/51 colunas de
+índices/1.496 relações analisadas contra o inventário original. PKs e vínculos
+de rateios/bancos comprovados; ligação lançamentos/caixa→plano de contas não
+aparece como FK e segue pendente de prova. Não repetir a consulta ou pedir JSON
+inteiro/transferência manual. Nenhuma fonte financeira foi habilitada.
+
+
+**Continuidade D-335/V-353 — 11/11/2026:** preparação das relações de contas/Razão
+implementada em [complemento de chaves](docs/contad-relacoes-fontes.md), sem alterar
+o oficial1.0.7 ou a carga A146. Consulta fixa de catálogos e análise local contra
+o inventário recebido;46 testes locais e12 cenários Windows5.1/Server2022, com
+interoperabilidade JSON, aprovados. HTTPS/commit fixo/hash conferidos byte a byte.
+PR8/CI43082799730 integral aprovado; retorno real conferido em V-354.
+Não confundir testes sintéticos com chave/semântica financeira comprovada.
+
+Sequência de conclusão: receber/conferir chaves → plano próprio/compartilhado e
+contas → partidas completas do Razão e confronto independente → títulos/parcelas/
+baixas com exemplos Q-46 → conciliação e importação homologada Q-47 → amostra
+D-73, recuperação, treinamento e aceite. Preservar exportação bloqueada até prova
+no destino; não contar empresas sincronizadas ou releituras como eventos financeiros.
+
+
+**Continuidade D-333/D-334/V-352 — 11/11/2026:** **SVAPL02/1.0.7** atualizado
+por download direto no servidor, Running/Auto/LocalSystem/ready, configuração
+protegida preservada e sem reboot às18:31:19 UTC. Backend **release83**, PR7/main
+1a0f30b, fonte ffe2be3/CI43071093213, migração aditiva0080 e665 hashes conferidos.
+**Primeira carga A concluída:146/146**,145 criações/uma atualização/zero ignorados,
+mesmo scan fc7eed16/revisão ebd69a73. Releituras reais sem duplicatas ou mudança
+nos valores/identidades; última conferida às18:34:23 UTC. Onze fingerprints
+protegidos e campos anteriores da SURIA/CNPJ/conta/163 movimentos preservados.
+Inscrição e tipo de origem ficam literais em campos próprios, sem inferir CPF/CNPJ,
+completar zeros ou derivar raiz comercial. Perfil0/11/14 coincide com a origem.
+**Não repetir upgrade, manifesto, corte, pareamento ou sondas já concluídas.**
+M=10 permanece não classificado/fora do primeiro recorte, sem ser marcado inativo.
+Download oficial por versão disponível, sem transferência manual de arquivos;
+a1.0.7 não implementa instalação automática de versões futuras. AnyDesk aceito,
+mas entrada falhou na ferramenta; instalação real foi feita pelo comando direto.
+Próximas dependências: M quando comprovado, relações/contas/Razão/títulos,
+Q-46/Q-47, IA/D-73, recuperação, treinamento e aceite. Projeto não concluído.
+Os estados anteriores abaixo registram a sequência histórica das entregas.
+
+
+
+
+
+**Agente oficial instalado e validado — D-324/D-330/V-345/V-346/V-347, 10/11/2026:**
+**SVAPL02** é o único oficial ativo desde **17:08:35 Brasília**, UUID
+0086bcf7-45a3-486b-b3ff-8b8f5e456385; anterior
+CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado/auditado.
+ODBC/SELECT mínimo sob SYSTEM/x64, ACL privada e DPAPI comprovados.
+Serviço **Running/Auto/LocalSystem**, versão **1.0.5**, estado **ready**,
+inclusive após reinício posterior ao corte: **17:23:26 Brasília / 20:23:26 UTC**.
+Recepção real posterior conferida às 20:24/20:25 UTC, conector healthy e
+heartbeat às 20:26:50 UTC. Anterior permanece revogado; assinatura recusada
+HTTP 401 em V-346. Mesmo manifesto e onze fingerprints anteriores idênticos;
+piloto com 163 movimentos preservado. MSI 1.0.5/.NET 10 e backend release 80
+mantidos, sem reinstalação/deploy ou alteração de recursos/configuração.
+Instalação, corte e teste complementar de reinício concluídos. Não emitir
+código, parear ou repetir provas concluídas por rotina. Carteira/fontes completas,
+Q-28/Q-46/Q-47, D-73, recuperação, treinamento e aceite seguem gates próprios.
+Registros anteriores são históricos.
+
+Preserve o SVAPL02 oficial/1.0.7, a carga A146 concluída e todos os históricos. Continue a finalização CONTAD no CICA por relações/contas/Razão/títulos, testes operacionais, recuperação, treinamento e aceite; não reinstale, repareie ou reaplique o manifesto por rotina. Workspace /Users/pedromachado/Documents/CicaContabil. M10 permanece pendente de prova; não atribua situação por inferência.
+
+A solicitação humana atual autoriza adaptar o plano e iniciar o desenvolvimento. Este documento organiza a entrega integral; seus imperativos não autorizam por si só deploy, custos, egressão ou escrita ERP. Execute o trabalho autorizado até concluir as entregas verificáveis. Leia o projeto antes de alterar, identifique lacunas, implemente, teste, corrija, publique e confira a operação real. Não encerre apenas com diagnóstico, checklist, pacote local, CI aprovado ou uma lista de pendências que você consegue resolver. Quando depender de resposta humana, avance nas frentes independentes e peça somente o dado ou a decisão que realmente faltar. Não marque bloqueio documentado como conclusão.
+
+1. LEITURA OBRIGATÓRIA E CONTROLE DO TRABALHO
+
+Leia nesta ordem:
+- AGENTS.md e PLANO-MESTRE.md na raiz.
+- DECISOES.md: registro canônico, especialmente D-73, D-301, D-309/D-310 e D-320 a D-330; D-324 define Windows Server oficial e D-325 aprova .NET 10 LTS.
+- VALIDACOES.md: principalmente V-322 a V-349; diferencie cada prova e seu limite.
+- docs/planejamento/etapas/03-agente-dominio.md, 09-conciliacao-radar.md e 12-homologacao-venda.md; consulte etapas 02/11 e demais dependências apenas quando pertinentes.
+- docs/planejamento/duvidas-abertas.md: reutilize Q-28, Q-46, Q-47, Q-08/Q-09 e os demais IDs aplicáveis.
+- docs/contad-continuidade-2026-11-06.md, docs/contad-release-2026-11-05.md, docs/planejamento/verificacao-conciliador-contad-2026-11-02.md, docs/conciliacao-razao-normalizado.md e docs/conciliacao-fontes-titulos.md.
+
+Registre decisões novas na raiz antes de executar seu comportamento dependente. Atualize plano, validações, checklists e execução a cada entrega. A restrição antiga à etapa 00 não limita esta execução, cujo pedido é concluir as entregas CONTAD. Use PC-19 e as etapas canônicas; mantenha uma sequência de execução única.
+
+Confira git status e a versão atual antes de editar. Preserve alterações locais anteriores D-316/D-317/V-318/V-319, etapa 00 e docs/planejamento/comparacao-cica-pandolfo-2026-11-05.md, além de qualquer trabalho novo encontrado. Não descarte, incorpore ao seu commit ou reescreva esses trabalhos por conveniência. Na leitura local de 09/11/2026, HEAD está em b65dfe7; a última fonte de aplicação comprovada é c8b0c50/release 75. Há alterações locais anteriores, inclusive neste prompt, que devem ser preservadas. Reconfira, pois outra sessão ou o usuário podem ter avançado.
+
+2. PRIORIDADE: WINDOWS SERVER OFICIAL, DEPOIS CARTEIRA COMPLETA
+
+Sequência por dependências, sem segundo plano paralelo:
+A. Preservar as verificações do novo Server já recebidas em V-331 a V-336: Windows Server 2022 Standard/21H2/build 20348.5761; PowerShell x64/Administrador; sem serviço/configuração CICA na captura; Contabil 64 usa SQL Anywhere 16. Operador informou conexão interativa bem-sucedida e confirmou limpeza de usuário/senha e salvamento do novo DSN de sistema CICA_CONTAD, com SrvContabil/Contabil e Host/Port vazios. Não repetir perguntas/testes sem motivo, trocar para driver 17 pela existência dele ou solicitar senhas. Network/Advanced não inspecionados; LocalSystem/ODBC/ACL/DPAPI comprovados em V-345/V-347. AnyDesk disponibilizado, mas a ferramenta nativa desta sessão retornou timeout; usar orientação ao operador enquanto isso. Não instalar Python/SDK: pacote autocontido.
+B. MSI 1.0.5/.NET 10 LTS e backend release 80 mantidos. SVAPL02 oficial em V-346; V-347 fecha Running/Auto/LocalSystem/ready/1.0.5 após reinício pós-corte e recepção real. Não repetir instalação, driver, runtime ou pareamento.
+C. Código consumido e identidades próprias preservadas. SVAPL02 0086bcf7-45a3-486b-b3ff-8b8f5e456385 ativo/oficial e anterior 3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado, mesma revisão/manifesto. Não emitir outro código ou reativar segredo antigo por rotina.
+D. V-345 comprova ODBC mínimo SYSTEM/x64, ACL, versão e limpeza; V-343 comprova DPAPI/HMAC após reinício pré-corte. V-346 comprova corte/primeiro ready; V-347 fecha teste pós-corte e recepção. Colagem corrigida executada com sucesso; não solicitar novamente a mesma prova.
+E. Corte administrativo concluído em V-346 às 17:08:35 Brasília, com auditoria e único oficial. Assinatura antiga 401, novo 200/coleta habilitada e recepção real. Preservar esse estado; não executar o corte novamente. Serviço antigo ainda não foi fisicamente parado nesta sessão.
+F. Se falhar antes do corte, revogar candidato e manter o anterior. Se falhar depois, diagnosticar sem reativar segredo revogado: retorno de máquina exige outra substituição explícita. Não transferir scans/cursor do agente antigo nem apagar dados/histórico.
+G. Inventário recebido/hash conferido (601 objetos/5.674 colunas/502 empresas). Atualizar SVAPL02 para1.0.6 usando o pacote testado, conferir JSON/heartbeat, depois prévia/aplicação administrativa do seletor A e scan real. M=10 permanece pendente de confirmação, sem ser marcado inativo. Troca de máquina e ampliação da coleta são operações separadas: não ampliar o recorte durante o pareamento. Depois seguir contas/referências, Razão/títulos, comparação, publicação/provas operacionais, recuperação, treinamento e aceite.
+
+Operação técnica dos comandos e do corte: docs/contad-agente-oficial-windows-server.md. O protocolo está publicado na release 80 e integrado na main em V-342. Conferir a versão corrente antes de emitir/renovar código; releases 75/76/78/79 não possuem o recurso. Publicação do backend não comprova instalação/pareamento/corte no Windows.
+
+OBJETIVO FUNCIONAL: TODAS AS EMPRESAS ATIVAS DA CONTAD
+
+Implemente a descoberta e sincronização automática, somente leitura no ERP, dos dados necessários ao conciliador contratado para todas as empresas ativas pertencentes ao escritório CONTAD, conforme D-332. A carteira deve aparecer no CICA com identidade e situação corretas; os dados devem permanecer isolados por escritório, empresa, conta e período. Preserve a situação das empresas inativas e a rastreabilidade dos dados históricos, sem reativá-las ou descartá-las por inferência.
+
+O escopo contratual D-301/PC-19 compreende conciliação extrato × registros contábeis, conferência dos fatos financeiros pertinentes, DE-PARA inicial com apoio de IA sob os gates existentes, implantação/testes e treinamento inicial. Conclua as dependências necessárias a esse resultado. Preserve as regras comerciais e os módulos atuais da CONTAD.
+
+Para a carteira inteira, complete:
+- Empresas: código estável do Domínio, nome, identificação necessária, situação, associação ao escritório e atualização automática.
+- Contas: contas bancárias/financeiras, banco/agência/conta quando disponíveis, vínculo efetivo com a conta contábil e identidade persistente. Preserve formatos originais e exponha vínculos ausentes ou ambíguos para revisão.
+- Referências: plano de contas próprio de cada empresa, contas analíticas/ativas que aceitam lançamentos e centros de custo aplicáveis.
+- Razão independente: lançamentos completos e respectivas partidas, contrapartidas compostas, datas, valores, históricos, documentos, saldos e cobertura do período. Um item do extrato e seu vínculo no Domínio não substituem o Razão.
+- Títulos: contas a pagar/receber, parcelas, fornecedores/clientes necessários, vencimentos, pagamentos/recebimentos efetivos, baixas parciais, agrupamentos, juros, multas, descontos, retenções e estornos conforme a fonte realmente representar esses fatos.
+- Atualizações: primeira carga paginada e acompanhamento de alterações, com retomada, idempotência, cobertura explícita e indicação de última sincronização/erros. Nada de corte silencioso em 500 registros ou duplicação a cada ciclo.
+
+A instrução desta execução é ampliar a integração para as ativas, com primeiro seletor A e M ainda não classificado, superando o objetivo funcional restrito à SURIA. O runtime atual ainda está protegido por um manifesto de uma empresa/conta/mês/extrato. Evolua o protocolo, a configuração e os validadores do agente e do servidor de forma compatível e auditada. Não transforme a ampliação em remoção geral de filtros ou em transmissão de uma base inteira sem seleção de campos e controle de volume. Mantenha a coleta vinculada ao escritório CONTAD e às finalidades acima.
+
+Inventarie competências, situações e volumes para planejar a primeira carga e a leitura incremental. O histórico financeiro já está definido em D-323: 01/09/2026 em diante, com cadastros/contas integrais. Se uma regra contábil essencial continuar ausente, faça uma pergunta concreta no Q existente e continue o desenvolvimento que não depender dela. Não escolha arbitrariamente um histórico ilimitado nem volte a perguntar se o objetivo é toda a carteira: isso está definido aqui.
+
+3. ESTADO JÁ COMPROVADO: REUTILIZE
+
+- Backend vigente: release 81, fonte d39acd0/CI 42900012334, PR 5/main 5cfa462; web e worker conferidos por 663 hashes. Imagem imutável a3b99dd7 e retorno na imagem anterior release 80, sem migração nova.
+- Site https://cicacontabil.com.br; app cica-contabil. Dois processos originais de 512 MB e reserva parada; default/knowledge Neon originais. Prévia e exportação permanecem desabilitadas, conforme configuração vigente preservada.
+- CONTAD ae13d06f-6461-43a8-a9cc-3e0e0eafde50 active/somente Conciliação; contrato individual R$ 200/mês travado, sem cobrança automática ou módulos novos.
+- Grazi já tem conta ativa, vínculo único Proprietária da CONTAD, sem acesso de plataforma. Não recriar/alterar senha; arquivo privado Downloads/CICA-Grazi-acesso.txt, sem conteúdo em Git/log/chat. Nenhum convite/e-mail foi autorizado.
+- Oficial SVAPL02 0086bcf7-45a3-486b-b3ff-8b8f5e456385, Windows Server 2022 x64, MSI 1.0.5/.NET 10 autocontido. Running/Auto/LocalSystem/ready e retomada já comprovados. Anterior CONTAD16/3cf6e4fb-c268-49e8-8905-be3afe7fa2e6 revogado; preservar histórico.
+- DSN CICA_CONTAD/SQL Anywhere 16 x64/SrvContabil/Contabil, autenticação Database/EXTERNO explícita configurada somente no Windows; dados protegidos por DPAPI/ACL. Não pedir senha, reinstalar driver ou recriar DSN. HTTPS/HMAC, sem CA privada obrigatória neste piloto.
+- Inventário corrigido foi executado no Server: 601 objetos, 5.674 colunas, 502 empresas; hash informado 4b7be104b2225b19cc922528d8d1cb65734f02d0b9f463f9e9d0d965652e3c69. JSON ainda no Windows, sem recebimento/validação do conteúdo no Mac; não inferir mapa de situações ou chaves desses totais.
+- Comando configure_agent_portfolio publicado: prévia padrão e aplicação explícita com inventário/revisão/CAS. Não aplicado. Se trocar para companies, a coleta financeira do piloto pausa; os dados recebidos ficam preservados. Somente cadastros implementados nesse modo, sem Razão/títulos/contas completos.
+
+4. PILOTO EXISTENTE E LIMITES
+
+O recorte executado e comprovado foi SURIA, código Domínio 212, conta contábil 8/Sicredi, setembro/2026 e extrato 55. Backend recebeu 163 DominioBankEntry e 163 AccountingEntry da mesma fonte, conector healthy, zero duplicações ou registros fora do recorte. Esses registros AccountingEntry são espelho bancário. Havia zero IndependentLedgerRecord/JournalEntry naquela prova. Os 151 is_linked refletem vínculos preexistentes no extrato Domínio, sem demonstrar aceite CICA ou partidas independentes.
+
+OFX, PDF Sicredi e Razão PDF fornecidos estão nos Downloads e referenciados na preparação privada. O confronto já comprovou 163 movimentos, 159 candidatos únicos, dois grupos ambíguos, igualdade de datas/valores e saldos dos PDFs, mantendo seis contrapartidas ausentes. Não confirme ambiguidades nem invente as contrapartidas faltantes. Não use plano de contas de outra empresa para completar a SURIA.
+
+O responsável informou que a empresa está fechada e os arquivos foram cedidos para teste: use esse corpus como evidência. Não repetir a pergunta de quem importou o extrato ou da origem do saldo da captura Domínio. A diferença histórica permanece registrada sem causa presumida. OFX/PDF, espelho, replay e reinício são os mesmos 163 eventos, não amostras novas.
+
+Evidências privadas no workspace:
+- .tmp/contad-development-2026-11-06/contad-suria-pilot-request.json e referências de provisionamento/sonda/fontes.
+- .tmp/contad-ledger-evidence-2026-11-06/conferencia-final.json e verification.json.
+- .tmp/contad-deployment-2026-11-06/: release, CI, hashes, ativação, manifesto e agent-final-verification.json.
+- .tmp/contad-grazi-access-2026-11-06/: testes Argon2, recibo de criação, https-access-verification.json e estado final.
+
+5. IMPLEMENTAÇÃO E DESCOBERTA DAS FONTES
+
+Comece confrontando a implementação com o resultado esperado; não confunda contrato normalizado/offline ou leitor de PDF com integração ODBC pronta. V-327/V-328 implementaram protocolo de carteira e recepção retomável de empresas; V-349 publica o comando auditado de transição na release 81. SVAPL02 já está no MSI 1.0.5 compatível, ainda no manifesto piloto, sem scan real da carteira. A conta financeira do piloto foi preparada previamente. Contas/referências/Razão/títulos reais continuam faltando; não reimplementar como se o protocolo de empresas não existisse. Complete a descoberta automática dos cadastros e as fontes contábeis/financeiras que ainda faltam no agente e no recebimento persistente do CICA.
+
+Reutilize o serviço único, os modelos, filas, APIs, controles de auditoria e contratos já existentes. Localize os arquivos responsáveis e registre uma sequência curta de execução por dependências.
+
+Descubra tabelas, chaves, tipos e relações por metadados, documentação oficial e confronto com relatórios reais do Domínio. Execute somente consultas de leitura parametrizadas e limitadas. Verifique o significado de débito/crédito, sinais, cancelamento, baixa, estorno, data efetiva e cobertura. Preserve chaves compostas por empresa/conta para não associar códigos iguais de empresas diferentes. Não invente SQL ou assuma que FCONT, extrato bancário ou lançamento fiscal sejam Razão completo.
+
+Faça a leitura, o transporte e a persistência com paginação estável, pontos de retomada, controle de falhas, compatibilidade, isolamento, correções de fonte e auditoria. Reimportar ou reaplicar regras não pode apagar decisão humana, reabrir lançamento já exportado ou gerar novo fato a partir do mesmo registro. Mostre fontes incompletas e vínculos em dúvida de modo útil ao operador.
+
+Complete a comparação banco/Razão/títulos, as faltas dos dois lados e o DE-PARA conforme exemplos e regras aprovadas. Resolva semântica pendente no Q-46, sem inventar tolerâncias, vencimento como pagamento ou baixa automática. Para IA contratual, valide Q-08/Q-09 antes de custo/egressão; regras determinísticas preparadas não equivalem a uma execução real de IA.
+
+6. TESTES FINAIS E CRITÉRIOS DE ACEITE
+
+Teste e corrija ao longo da implementação; use PostgreSQL para concorrência real. Rode as verificações do repositório aplicáveis à versão exata: testes focados e regressão, lint, tipagem, Django, migrações, agente .NET, builds e pacote Windows. CI antigo não cobre código novo. Declare skips e seu efeito.
+
+Comprove, no mínimo:
+- Todas as empresas da carteira identificadas, situação preservada, contas/referências corretas e cobertura/contagens confrontadas com o Domínio; dados separados entre empresas e escritórios.
+- Casos de códigos repetidos entre empresas, várias contas, empresas sem movimentação, registros incompletos, alterações, cancelamentos, múltiplas páginas, duplicidade e ambiguidade.
+- Razão/partidas e títulos/baixas reais com datas, saldos, componentes, estornos, parcelas e agrupamentos conferidos, sem fatos fabricados.
+- Carga, reenvio, falha de rede, interrupção de agente/worker, reinício, retomada e atualização sem perda, duplicação ou sobrescrita de revisão humana.
+- Fluxo real pela conta da Grazi: carteira automática, importação OFX/PDF/CSV/XLSX suportados, identificação da empresa/conta quando inequívoca, confirmação de dúvidas, processamento, revisão, relatório e saída prevista. Use os arquivos reais já aceitos e amostras complementares autorizadas; preserve os originais.
+- Permissões e acesso direto a URLs/APIs, isolamento, proteção de arquivos/credenciais, auditoria e recusa de autenticação inválida.
+- Quando houver impacto de interface, siga AGENTS.md: ui-ux-pro-max, Watermelon, pesquisa de produtos, web-design-guidelines e Playwright conforme aplicáveis. Confira desktop/celular, claro/escuro, teclado/foco, erro/carregamento/vazio, filtros/retorno, upload/download e console. Não declare teste visual a partir de um GET HTTP ou teste de template.
+- Novo agente 1.0.5 instalado no Windows Server com versão/hash corretos: candidato awaiting_activation antes do corte, novo oficial Running/Auto/LocalSystem/ready depois, DPAPI/ACL e DSN local conferidos. Provar anterior recusado, novo segredo/UUID, corte atômico/idempotente, falha de auditoria/concorrência e preservação dos dados; confronte ciclos reais com backend.
+
+Aplique D-73: 200 itens independentes revisados pelo proprietário por fluxo automatizado; precisão automática medida mínima de 95%; zero duplicidade, associação à empresa errada ou vazamento; retomada sem perda após queda em até 15 minutos; restauração de banco/documentos em até quatro horas; consultas/processamentos por empresa em até cinco minutos, salvo dependência externa registrada; exportação aprovada após importação e conferência no destino. Registre amostra, referência, resultado e medição reais, sem contar formatos/repetições como eventos independentes. Revisão ou aceite humanos devem ser realmente obtidos.
+
+7. PUBLICAÇÃO, RETORNO E RECUPERAÇÃO
+
+Complete os passos de publicação das alterações CONTAD: revisão da fonte, commit/push preservando trabalho alheio, CI da versão exata, artefato/manifesto/hashes, migrações, deploy no app existente e instalação nova no Windows Server/corte D-324, preservando o PC anterior até as provas. Mantenha release de retorno e um plano que preserve dados e esquema aditivo. Não encerre na publicação do código no GitHub.
+
+Antes da publicação, confira recuperação disponível e os gates existentes. Backup pontual D-320: snapshot/restore Neon e 53 objetos Tigris comprovados em V-322, expiração em 13/11/2026; V-324 somente reconferiu metadados. Confira a validade na data da execução. A chave temporária foi revogada. Isso não é agenda recorrente/RPO aprovado nem autorização de custo permanente.
+
+Meça a recuperação do conjunto banco/documentos e a retomada publicada. Reutilize autorizações já existentes no seu escopo; antes de recurso adicional, chamada paga, maior armazenamento/retencão ou agenda recorrente, resolva o custo específico e a reversão. Não aumente memória por inferência. Na configuração de acesso anterior, o processo administrativo extra no web sofreu OOM; preparar Argon2 localmente e usar transação reduzida no worker resolveu sem mudar recursos. Evite repetir essa carga extra no web.
+
+Após o deploy, confira versão/hashes no web/worker, ambos os aliases/migrações, readiness/banco/cache, worker, autenticação, acesso da Grazi e sincronização real de toda a carteira aprovada. Verifique que empresas/arquivos/decisões anteriores continuam íntegros e que a reserva permaneceu conforme a configuração autorizada.
+
+8. LIMITES QUE CONTINUAM VALENDO
+
+- Não enviar convite, e-mail, WhatsApp ou mensagem a terceiros sem instrução explícita; não iniciar cobrança nem mudar o contrato da CONTAD.
+- Não extrair senhas do registro, DSN ou configuração DPAPI, nem publicá-las no chat/Git/logs. Credenciais ERP continuam somente no Windows; a credencial CICA da Grazi já está no arquivo privado indicado.
+- O responsável disponibilizou acesso ao novo Server por AnyDesk em 09/11/2026. Nesta sessão, o app foi encontrado aberto, mas a ferramenta nativa falhou com timeout -10005 ao obter a janela; não afirmar que o acesso humano inexiste ou que o Server está offline. Use a sessão quando a ferramenta puder observá-la; não presuma controle alternativo do Mac. Peça ação local pontual quando indispensável e continue trabalho independente.
+- Não contratar recursos, consumir IA/API paga ou enviar dados a provedor externo por inferência. Apresente somente a aprovação específica que faltar em Q-08/Q-09 e demais gates, com escopo/custo/reversão; não volte a perguntar escolhas já respondidas.
+- Extração do Domínio permanece somente leitura. Alterar cadastros, efetuar baixas, escrever lançamentos ou importar arquivo no ERP exige autorização operacional específica e validação Q-47. Prepare e teste a saída possível, mantendo a proteção até o gate real estar cumprido.
+- RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED está false e a prévia está desabilitada na configuração efetiva atual. A configuração efetiva atual está preservada: exportação false e prévia sem escritórios habilitados; não reabrir a prévia por inferência. A mera ampliação da carteira ou o novo deploy não satisfaz os critérios de liberação da exportação. Não contorne validadores para demonstrar sucesso.
+- Dados ausentes permanecem ausentes. Não use mocks, dados sintéticos, testes locais ou hashes de espelho para alegar completude/aceite reais.
+
+9. TREINAMENTO, ACEITE E ENTREGA
+
+Prepare e execute o roteiro de treinamento inicial e o teste acompanhado da Grazi/quem o responsável indicar. Cubra carteira, contas, importação, revisão das diferenças/ambiguidades, evidências, relatórios, tratamento de falha e saída prevista. Disponibilize instruções simples dentro do escopo contratado, sem depender de comandos internos no uso normal.
+
+Feche cada requisito com evidência e mantenha a matriz de capacidade em estados distintos: implementado, testado localmente, publicado, comprovado com dados reais, homologado e aceito. Não altere preço, prazo contratual, papel ou aprovador por conta própria.
+
+Ao finalizar, entregue um resumo objetivo: versão/código implantados, Windows Server real, UUID do novo oficial/anterior revogado e momento do corte, empresas/contas/períodos e volumes sincronizados, fontes cobertas, testes e métricas D-73, recuperação/retorno, percurso da Grazi, saída ERP, treinamento e aceite efetivos. Atualize os documentos canônicos e os arquivos de continuidade, indicando qualquer dependência externa ainda não resolvida, sua causa e a próxima ação concreta. Não chame o projeto de concluído enquanto houver requisito contratual ou gate de aceite pendente.
+
+PRÓXIMA AÇÃO D-333/D-334/V-352: carga A146 concluída e1.0.7 real saudável.
+Não pedir outra execução do instalador, perfil, inventário ou contagem no Domínio.
+Avançar pelas chaves/relações e fontes contábeis/financeiras observadas no inventário;
+conferir plano próprio/compartilhado antes de joins e não confundir EF tributário
+com títulos. Manter M10 sem classificação até evidência. Q-46/Q-47/IA/D-73 e
+recuperação/treinamento/aceite continuam. Auto-instalação futura não foi implementada;
+download direto oficial por versão foi publicado/verificado para remover cópia manual.
+
+
+ATUALIZACAO PRIORITARIA 12/11/2026 — D-338/V-360
+PR10 integrada/main0f08388e6db91d61c2621b61abd15388121c9bac; CI43218624356/c327eae integral aprovado.
+Backend Fly release84, imagem e8dbffc8e404a54ef30c3e5cd49428c42efd14b445b0ef2ff2f636342ec19e22.
+693 arquivos, agregado9f361a1c436a221a7c01f441d4f8208e6d0ba309073dead040e27b43c17f0714,
+web/worker e duas conexoes originais conferidos; recursos/ambiente/reserva parada/gates preservados.
+1.984 SQLite/2.016 PG/163 subtestes;88 Windows; MSI/upgrade1.0.7->1.0.8 no Server2022 aprovado.
+Fonte do MSI bcf802e344ff602daf39cc22fa3aee673aae6b67, Windows43217493053.
+Pacote publico: https://github.com/Mewstacks/CicaContabil/releases/download/agent-v1.0.8/CicaAgent-1.0.8-win-x64.zip
+ZIP SHA14fb73d8b75241a435752b71a5b9baaa7e92b45733aa26773a1a7359c35e7eef.
+MSI SHA230dabcac9a762609ba99b691ae33974fa04465018671686929c4f54fdb61980.
+Download anonimo/TLS/hashes conferidos. Nao transferir arquivos manualmente nem refazer pareamento.
+Job nativo unico para212/plano212/filial212/conta8/setembro; ID no recibo privado queued-pilot.json.
+Scope SHAeee504f7733095d92e11b5d48a03b3ba910b1e65fd67e09e6a7de9cb840b3ba6; contrato70d6bf1e97f6e8bd35cdbf7507ecc7ab7b9e89ce7d280db48cc400497b65a475.
+SQL fixo incorporado, duas leituras identicas, arquivo JSON privado e rascunhos independentes;
+contas brutas nao sao classificadas/ativadas, texto/documento por partida preservados.
+Nenhum snapshot nativo financeiro real foi conferido ainda. Ultima instalacao comprovada1.0.7.
+AnyDesk cua.getApp retornou timeout; bootstrap1.0.8 unico enviado via pergunta assincrona, aguardando operador.
+Ao retomar, observar job/estado antes de pedir qualquer coisa. Nao repetir inventarios/perfis executados.
+Recibos privados .tmp/contad-native-ledger-2026-11-12 (inclui bootstrap.txt e observe_pilot.py).
+Apos receber snapshot: conferir cobertura/valores em privado, reimportacao idempotente, originais
+preservados e relatorio. Q-46/Q-47/D-73/revisao humana200 itens/importacao destino nao dispensados.
+
+
+ATUALIZACAO FINAL DESTA INTEGRACAO — V-361 / 12/11/2026
+Operador confirmou1.0.8 no SVAPL02:Running/Auto/LocalSystem/ready, DPAPI preservado,
+MSI0/sem reboot, observado12:58:19.6468005 UTC. Nao pedir novo upgrade/pareamento.
+Job concluiu12:58:19.602 UTC:177 registros,163 lancamentos,334 partidas,163 efeitos
+bancarios e18 contas brutas. Todos equilibrados/literais/em rascunho;157 registros
+bilaterais e20 unilaterais. Fonte privada original/hash conferidos.
+Reimportacao real criou0/ignorou163, mantendo163 lancamentos/334 partidas.
+Dez fingerprints dos dados originais preservados;163 espelhos anteriores mantidos.
+OFX163/Razao163:multiconjunto data/direcao/centavos identico e diferenca liquida zero.
+Nao foram confirmados movimentos/aprovados lancamentos/exportados dados ao ERP.
+Saldo inicial do Razao ausente; cobertura integral/saldos e aceite nao comprovados.
+Relatorios privados:Downloads/CICA-CONTAD-Conferencia-2026-11-12 (CSV/JSON/LEIA-ME).
+Recibos privados .tmp/contad-native-ledger-2026-11-12; observar estado antes de
+repetir qualquer acao. Nao repetir inventarios/perfis/atualizacao ja concluidos.
+Colecao nativa inicial do piloto concluida. Q-46 titulos/baixas, Q-47 layout
+e conferencia de importacao no Dominio, amostra humana200 e demais requisitos
+D-73 continuam pendentes; nao declarar sistema integralmente homologado.

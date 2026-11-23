@@ -10,9 +10,11 @@ from functools import partial
 from typing import Any
 
 from celery import shared_task
+from celery.exceptions import SoftTimeLimitExceeded
+from celery.signals import worker_ready
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Q, QuerySet
 from django.utils import timezone
 
@@ -33,6 +35,14 @@ from apps.hub.models import (
 )
 from apps.hub.nfse_adn import AdnClient, AdnError
 from apps.hub.nfse_sync import certificate_ssl_context, process_sync_pages, refresh_nfse_facts
+from apps.hub.reconciliation_recovery import (
+    TASK_HARD_LIMIT_SECONDS,
+    TASK_SOFT_LIMIT_SECONDS,
+    RecoveryDeliveryError,
+    recover_run,
+    resume_active_runs,
+    schedule_recovery,
+)
 from apps.hub.reconciliation_service import process_run
 from apps.hub.recurrence import generate_due_assignments
 from apps.hub.reform import refresh_reform_sources
@@ -131,8 +141,13 @@ def dispatch_active_nfse_syncs() -> int:
     if not settings.NFSE_ADN_SYNC_ENABLED:
         return 0
     now = timezone.now()
+    # D-319: the recovery sweeps below say "a coleta foi retomada" in the row they touch.
+    # An inactive company is never dispatched, so saying that about it would describe work
+    # that cannot happen. Both sweeps keep to the portfolio the office still serves; a
+    # company that comes back active is swept normally on the next run.
     NfseSync.objects.filter(
         enabled=True,
+        company__active=True,
         status=NfseSync.Status.RUNNING,
     ).filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now)).update(
         status=NfseSync.Status.RETRY,
@@ -145,6 +160,7 @@ def dispatch_active_nfse_syncs() -> int:
     )
     NfseSync.objects.filter(
         enabled=True,
+        company__active=True,
         status=NfseSync.Status.QUEUED,
         updated_at__lt=now - timedelta(minutes=5),
     ).update(
@@ -155,9 +171,11 @@ def dispatch_active_nfse_syncs() -> int:
         last_error_at=now,
         updated_at=now,
     )
-    if _eligible_nfse_syncs().filter(
-        status__in=[NfseSync.Status.QUEUED, NfseSync.Status.RUNNING]
-    ).exists():
+    if (
+        _eligible_nfse_syncs()
+        .filter(status__in=[NfseSync.Status.QUEUED, NfseSync.Status.RUNNING])
+        .exists()
+    ):
         return 0
     sync_id = (
         _eligible_nfse_syncs()
@@ -207,9 +225,7 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
     acquired = (
         _eligible_nfse_syncs()
         .filter(pk=parsed_id)
-        .filter(
-            status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY, NfseSync.Status.QUEUED]
-        )
+        .filter(status__in=[NfseSync.Status.IDLE, NfseSync.Status.RETRY, NfseSync.Status.QUEUED])
         .filter(Q(next_run_at__isnull=True) | Q(next_run_at__lte=now))
         .filter(Q(lease_until__isnull=True) | Q(lease_until__lt=now))
         .update(
@@ -247,15 +263,11 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
         )
         if continue_same_company:
             try:
-                poll_nfse_sync.apply_async(
-                    args=[sync_id], countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
-                )
+                poll_nfse_sync.apply_async(args=[sync_id], countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS)
             except Exception:
                 logger.exception("Could not continue NFS-e sync %s", sync_id)
                 continue_same_company = False
-                NfseSync.objects.filter(
-                    pk=parsed_id, status=NfseSync.Status.QUEUED
-                ).update(
+                NfseSync.objects.filter(pk=parsed_id, status=NfseSync.Status.QUEUED).update(
                     status=NfseSync.Status.RETRY,
                     next_run_at=timezone.now() + timedelta(minutes=1),
                     last_error_code="queue_delivery",
@@ -294,9 +306,7 @@ def poll_nfse_sync(sync_id: str) -> dict[str, int | str]:
             lease_token=None, lease_until=None
         )
         if settings.NFSE_ADN_SYNC_ENABLED and not continue_same_company:
-            dispatch_active_nfse_syncs.apply_async(
-                countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS
-            )
+            dispatch_active_nfse_syncs.apply_async(countdown=NFSE_SYNC_QUEUE_DELAY_SECONDS)
 
 
 @shared_task(name="hub.refresh_reform_sources")  # type: ignore[untyped-decorator]
@@ -308,10 +318,59 @@ def refresh_reform_sources_task() -> dict[str, int]:
     return {"created": created, "updated": updated, "failed": failed}
 
 
-@shared_task(name="hub.process_reconciliation_run")  # type: ignore[untyped-decorator]
-def process_reconciliation_run(run_id: str) -> dict[str, int | str]:
+@shared_task(  # type: ignore[untyped-decorator]
+    bind=True,
+    name="hub.process_reconciliation_run",
+    time_limit=TASK_HARD_LIMIT_SECONDS,
+    soft_time_limit=TASK_SOFT_LIMIT_SECONDS,
+    autoretry_for=(RecoveryDeliveryError, DatabaseError, SoftTimeLimitExceeded),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def process_reconciliation_run(self: Any, run_id: str) -> dict[str, int | str]:
     """Process one durable reconciliation run. Re-delivery is safe by source keys."""
-    return process_run(run_id)
+    # Synchronous/eager test and management calls have no future broker consumer.
+    arm = None if self.request.is_eager else partial(schedule_recovery, run_id)
+    result = process_run(run_id, on_acquired=arm)
+    if result["state"] == "not_ready" and arm is not None:
+        recover_run(run_id)
+    elif result["state"] in {"review", "completed", "completed_alerts"}:
+        from apps.hub.auto_confirm import auto_confirm_after_run
+
+        auto_confirm_after_run(run_id)
+    return result
+
+
+@shared_task(  # type: ignore[untyped-decorator]
+    name="hub.recover_reconciliation_run",
+    autoretry_for=(RecoveryDeliveryError, DatabaseError),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def recover_reconciliation_run(run_id: str, token: str) -> str:
+    """One watchdog for active work; an old token cannot reopen a newer attempt."""
+    return recover_run(run_id, token)
+
+
+@shared_task(  # type: ignore[untyped-decorator]
+    name="hub.resume_active_reconciliation_runs",
+    autoretry_for=(RecoveryDeliveryError, DatabaseError),
+    retry_kwargs={"max_retries": 12, "countdown": 30},
+)
+def resume_active_reconciliation_runs() -> dict[str, int]:
+    return resume_active_runs()
+
+
+@worker_ready.connect(weak=False)
+def resume_reconciliation_after_worker_start(**_kwargs: Any) -> None:
+    """Rebuild active watchdogs lost with a worker/broker, once the consumer is ready."""
+    try:
+        resume_active_reconciliation_runs.delay()
+    except Exception as exc:
+        # A broker outage remains an operational dependency. The unchanged
+        # periodic sweep is the fallback; never advertise an RPO from this hook.
+        logger.warning(
+            "Reconciliation startup recovery unavailable",
+            extra={"failure_type": type(exc).__name__},
+        )
 
 
 @shared_task(name="hub.dispatch_waiting_reconciliation_runs")  # type: ignore[untyped-decorator]
@@ -382,21 +441,15 @@ def recover_reconciliation_runs() -> int:
     now = timezone.now()
     from apps.hub.models import ReconciliationRun
 
-    with transaction.atomic():
-        run_ids = list(
-            ReconciliationRun.objects.filter(
-                state=ReconciliationRun.State.PROCESSING, lease_until__lt=now
-            ).values_list("id", flat=True)
-        )
-        ReconciliationRun.objects.filter(id__in=run_ids).update(
-            state=ReconciliationRun.State.WAITING,
-            stage="recovered",
-            lease_token=None,
-            lease_until=None,
-        )
-        for run_id in run_ids:
-            transaction.on_commit(partial(process_reconciliation_run.delay, str(run_id)))
-    return len(run_ids)
+    expired = list(
+        ReconciliationRun.objects.filter(
+            state=ReconciliationRun.State.PROCESSING, lease_until__lt=now
+        ).values_list("id", "lease_token")
+    )
+    return sum(
+        recover_run(str(run_id), str(token) if token is not None else None) == "recovered"
+        for run_id, token in expired
+    )
 
 
 def _value(row: dict[str, Any], *keys: str) -> str:
@@ -507,8 +560,7 @@ def dispatch_dte_run(run_id: str) -> None:
             item.status = DteRunItem.Status.FAILED
             item.error_code = "authorization_revoked"
             item.error_message = (
-                "A autorização atual não permite consultar esta empresa "
-                "pela Integra."
+                "A autorização atual não permite consultar esta empresa pela Integra."
             )
             item.completed_at = timezone.now()
             item.save(
@@ -1252,3 +1304,13 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         _dispatch_fiscal_guide(guide_id)
     finally:
         _sync_after_provider_work("guide", guide_id)
+
+
+@shared_task(name="hub.interpret_company_titles")  # type: ignore[untyped-decorator]
+def interpret_company_titles(company_id: str) -> list[dict[str, object]]:
+    """D-394: automatic title interpretation for a direct-use office (no-op elsewhere)."""
+    from apps.hub.models import ClientCompany
+    from apps.hub.title_auto import interpret_company
+
+    company = ClientCompany.objects.select_related("organization").filter(pk=company_id).first()
+    return interpret_company(company) if company else []

@@ -1,10 +1,22 @@
 from django.urls import path
 
 from apps.crosscheck import agent_api as crosscheck_agent
-from apps.intelligence import agent_v2
+from apps.intelligence import agent_v2, native_ledger, native_titles
+from apps.intelligence.portfolio import company_scan
 from apps.profitability import agent_api as profitability_agent
 
 urlpatterns = [
+    path("titles/next", native_titles.next_job, name="agent-v2-titles-next"),
+    path(
+        "titles/<uuid:job_id>/complete", native_titles.complete_job, name="agent-v2-titles-complete"
+    ),
+    path("titles/<uuid:job_id>/failure", native_titles.fail_job, name="agent-v2-titles-failure"),
+    path("ledger/next", native_ledger.next_job, name="agent-v2-ledger-next"),
+    path(
+        "ledger/<uuid:job_id>/complete", native_ledger.complete_job, name="agent-v2-ledger-complete"
+    ),
+    path("ledger/<uuid:job_id>/failure", native_ledger.fail_job, name="agent-v2-ledger-failure"),
+    path("dominio/portfolio/companies", company_scan, name="agent-v2-dominio-portfolio-companies"),
     path("enroll", agent_v2.enroll, name="agent-v2-enroll"),
     path("heartbeat", agent_v2.heartbeat, name="agent-v2-heartbeat"),
     path(

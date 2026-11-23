@@ -57,7 +57,7 @@ def test_ofx_import_is_idempotent() -> None:
 
 
 @pytest.mark.django_db
-def test_reconciliation_keeps_a_single_value_date_candidate_for_review() -> None:
+def test_reconciliation_does_not_offer_a_bank_mirror_as_a_ledger_candidate() -> None:
     organization = Organization.objects.create(name="Conciliação", slug="conciliacao")
     company = ClientCompany.objects.create(organization=organization, name="Cliente")
     statement, _ = import_ofx(
@@ -75,7 +75,7 @@ def test_reconciliation_keeps_a_single_value_date_candidate_for_review() -> None
     rebuild_reconciliation_matches(organization=organization)
 
     match = ReconciliationMatch.objects.get(transaction=transaction)
-    assert match.status == ReconciliationMatch.Status.AMBIGUOUS
+    assert match.status == ReconciliationMatch.Status.UNMATCHED
     assert match.dominio_entry is None
     assert match.is_manual is False
 
@@ -88,17 +88,26 @@ def test_manual_confirmation_preserves_an_ambiguous_choice_after_sync() -> None:
         organization=organization, company=company, filename="extrato.ofx", content=_OFX
     )
     transaction = statement.transactions.get()
-    first = DominioBankEntry.objects.create(
+    source = DataSource.objects.create(
+        organization=organization, kind="other_manual", label="Razão"
+    )
+    first = AccountingEntry.objects.create(
         organization=organization,
         company=company,
-        source_id="1|2|3",
+        data_source=source,
+        direction="outflow",
+        account_reference="001:123",
+        external_key="1|2|3",
         occurred_on=transaction.occurred_on,
         amount_cents=1234,
     )
-    selected = DominioBankEntry.objects.create(
+    selected = AccountingEntry.objects.create(
         organization=organization,
         company=company,
-        source_id="1|2|4",
+        data_source=source,
+        direction="outflow",
+        account_reference="001:123",
+        external_key="1|2|4",
         occurred_on=transaction.occurred_on,
         amount_cents=1234,
     )
@@ -107,13 +116,13 @@ def test_manual_confirmation_preserves_an_ambiguous_choice_after_sync() -> None:
     match = ReconciliationMatch.objects.get(transaction=transaction)
     assert match.status == ReconciliationMatch.Status.AMBIGUOUS
 
-    confirm_reconciliation_match(match=match, dominio_entry=selected)
+    confirm_reconciliation_match(match=match, accounting_entry=selected)
     rebuild_reconciliation_matches(organization=organization)
 
     match.refresh_from_db()
     assert match.is_manual is True
-    assert match.dominio_entry == selected
-    assert match.dominio_entry != first
+    assert match.accounting_entry == selected
+    assert match.accounting_entry != first
 
 
 @pytest.mark.django_db
@@ -125,17 +134,23 @@ def test_manual_confirmation_rejects_an_entry_from_another_company() -> None:
         organization=organization, company=company, filename="extrato.ofx", content=_OFX
     )
     transaction = statement.transactions.get()
-    entry = DominioBankEntry.objects.create(
+    source = DataSource.objects.create(
+        organization=organization, kind="other_manual", label="Razão"
+    )
+    entry = AccountingEntry.objects.create(
         organization=organization,
         company=other_company,
-        source_id="2|2|2",
+        data_source=source,
+        direction="outflow",
+        account_reference="001:123",
+        external_key="2|2|2",
         occurred_on=transaction.occurred_on,
         amount_cents=1234,
     )
     match = ReconciliationMatch.objects.get(transaction=transaction)
 
     with pytest.raises(ValueError, match="não corresponde"):
-        confirm_reconciliation_match(match=match, dominio_entry=entry)
+        confirm_reconciliation_match(match=match, accounting_entry=entry)
 
 
 @pytest.mark.django_db
@@ -155,6 +170,8 @@ def test_manual_accounting_confirmation_is_visible_and_survives_rebuild() -> Non
         organization=organization,
         data_source=source,
         company=company,
+        direction="outflow",
+        account_reference="001:123",
         external_key="contabil-1",
         occurred_on=bank_transaction.occurred_on,
         description="Recebimento identificado",
@@ -164,6 +181,8 @@ def test_manual_accounting_confirmation_is_visible_and_survives_rebuild() -> Non
         organization=organization,
         data_source=source,
         company=company,
+        direction="outflow",
+        account_reference="001:123",
         external_key="contabil-2",
         occurred_on=bank_transaction.occurred_on,
         description="Outro candidato",

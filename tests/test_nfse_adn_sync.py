@@ -423,3 +423,55 @@ def test_worker_finishes_the_same_company_before_dispatching_the_next() -> None:
     assert sync.checkpoint_nsu == "500"
     assert sync.max_nsu == "950"
     assert sync.lease_token is None
+
+
+@pytest.mark.django_db
+def test_the_recovery_sweep_leaves_an_inactive_company_alone() -> None:
+    """D-319: saying "a coleta foi retomada" about a company that is never dispatched."""
+
+    office = Organization.objects.create(name="Corte NFS-e", slug="corte-nfse")
+    company = ClientCompany.objects.create(
+        organization=office, name="Saiu da carteira", active=False
+    )
+    certificate = Certificate.objects.create(
+        organization=office,
+        company=company,
+        label="A1",
+        pfx_blob="dummy",
+        password="dummy",
+        fingerprint_sha256="a" * 64,
+        valid_until=timezone.now() + timedelta(days=30),
+    )
+    stuck = NfseSync.objects.create(
+        organization=office,
+        company=company,
+        certificate=certificate,
+        enabled=True,
+        status=NfseSync.Status.RUNNING,
+        lease_token=uuid.uuid4(),
+        lease_until=timezone.now() - timedelta(minutes=5),
+    )
+
+    from apps.hub.tasks import dispatch_active_nfse_syncs
+
+    with (
+        override_settings(NFSE_ADN_SYNC_ENABLED=True),
+        patch("apps.hub.tasks.poll_nfse_sync.delay") as queued,
+    ):
+        assert dispatch_active_nfse_syncs() == 0
+        queued.assert_not_called()
+
+    stuck.refresh_from_db()
+    assert stuck.status == NfseSync.Status.RUNNING
+    assert stuck.last_error_code == ""
+
+    company.active = True
+    company.save(update_fields=["active"])
+    with (
+        override_settings(NFSE_ADN_SYNC_ENABLED=True),
+        patch("apps.hub.tasks.poll_nfse_sync.delay"),
+    ):
+        dispatch_active_nfse_syncs()
+    stuck.refresh_from_db()
+    assert stuck.status == NfseSync.Status.QUEUED
+    assert stuck.last_error_code == "stale_lease"

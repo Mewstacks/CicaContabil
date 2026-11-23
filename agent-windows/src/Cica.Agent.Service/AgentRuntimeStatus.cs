@@ -6,18 +6,24 @@ internal sealed class AgentRuntimeStatus
 {
     private static readonly string FilePath = Path.Combine(AgentConfig.DirectoryPath, "agent-status.json");
 
+    private static readonly RuntimeCycleEvidence Completion = new();
+
     internal static void Write(string state, string detail)
     {
         try
         {
             Directory.CreateDirectory(AgentConfig.DirectoryPath);
             string temporary = FilePath + ".partial";
+            var observedAt = DateTimeOffset.UtcNow;
+            Completion.Observe(state, observedAt);
             byte[] content = JsonSerializer.SerializeToUtf8Bytes(new
             {
                 state,
                 detail,
-                observed_at_utc = DateTimeOffset.UtcNow.ToString("O"),
-                version = "1.0.0",
+                observed_at_utc = observedAt.ToString("O"),
+                last_completed_at_utc = Completion.CompletedAt?.ToString("O"),
+                last_completed_state = Completion.CompletedState,
+                version = typeof(AgentRuntimeStatus).Assembly.GetName().Version?.ToString(3) ?? "0.0.0",
             });
             try
             {

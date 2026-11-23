@@ -38,3 +38,20 @@ V-007: 83 testes de cadastro, convite, MFA, permissões, isolamento, contrato e 
 > Execute a etapa 02. Complete o ciclo de entrada e administração da CICA, incluindo permissões, MFA, empresas, certificados e suporte. Valide as jornadas por perfil e o isolamento entre escritórios. Consulte decisões existentes antes de perguntar regras comerciais ou de acesso.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+
+## Acesso pessoal CONTAD — D-321/V-325 (06/11/2026)
+
+- [x] Receber solicitação posterior para criar a conta da Grazi com o e-mail
+  já informado e senha inicial simples, mantendo ausência de convite.
+- [x] Criar usuário ativo/Proprietária somente da CONTAD, hash Argon2/política
+  vigente, sem staff/superusuário/plataforma ou alteração de contrato/módulos.
+- [x] Validar quatro testes isolados com Argon2 real, incluindo credencial
+  existente preservada, repetição recusada e rollback diante de falha de auditoria.
+- [x] Conferir login HTTPS real/CSRF, Conciliação 200/SURIA/Nova importação,
+  sem force_login, bypass MFA, envio de e-mail ou upload; encerrar sessão.
+- [x] Entregar credencial só em arquivo privado 0600 e registrar auditoria;
+  não declarar expiração/troca obrigatória da senha, pois não foram implementadas.
+
+Criação do acesso pessoal concluída. Isso não homologa a importação de arquivo
+nessa conta ou encerra os requisitos contábeis/operacionais das etapas 09/12.

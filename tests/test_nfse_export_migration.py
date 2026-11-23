@@ -8,9 +8,26 @@ from django.db.migrations.executor import MigrationExecutor
 @pytest.mark.django_db(transaction=True)
 def test_export_document_migration_preserves_legacy_manifest_and_rebuilds_links():
     executor = MigrationExecutor(connection)
-    other_apps = [node for node in executor.loader.graph.leaf_nodes() if node[0] != "hub"]
-    before = [*other_apps, ("hub", "0066_alter_nfsesync_status")]
-    after = [*other_apps, ("hub", "0067_nfseexport_documents")]
+    latest = executor.loader.graph.leaf_nodes()
+
+    def targets_at(name):
+        target = ("hub", name)
+        ancestors = set(executor.loader.graph.forwards_plan(target))
+        # A later migration in another app may depend on a newer hub schema. Keeping
+        # that leaf would make the requested historical state internally inconsistent.
+        independent = [
+            node
+            for node in latest
+            if node[0] != "hub"
+            and all(
+                parent[0] != "hub" or parent in ancestors
+                for parent in executor.loader.graph.forwards_plan(node)
+            )
+        ]
+        return [*independent, target]
+
+    before = targets_at("0066_alter_nfsesync_status")
+    after = targets_at("0067_nfseexport_documents")
     executor.migrate(before)
     try:
         old_apps = executor.loader.project_state(before).apps
@@ -70,4 +87,6 @@ def test_export_document_migration_preserves_legacy_manifest_and_rebuilds_links(
         assert preserved.snapshot == snapshot
         assert preserved.content.name == "private/legacy-package.zip"
     finally:
-        MigrationExecutor(connection).migrate(after)
+        # Restore the complete current schema for subsequent transactional tests,
+        # rather than leaving the database at this historical migration target.
+        MigrationExecutor(connection).migrate(latest)

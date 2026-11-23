@@ -19,6 +19,8 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         try
         {
             DatasetCatalog.SelfVerify();
+            NativeLedgerPlan.SelfVerify();
+            NativeTitlePlan.SelfVerify();
         }
         catch (InvalidOperationException error)
         {
@@ -29,12 +31,14 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         }
 
         TimeSpan retryDelay = TimeSpan.FromMinutes(1);
+        var nativeCycle = new NativeCollectionCycle();
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
                 if (!File.Exists(AgentConfig.FilePath))
                 {
+                    nativeCycle.Reset();
                     logger.LogInformation("CICA Agent is awaiting local configuration");
                     AgentRuntimeStatus.Write("awaiting_configuration",
                         "Aguardando configuração local no configurador CICA.");
@@ -47,13 +51,43 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 using var client = new AgentClient(config);
                 using JsonDocument heartbeat = await client.PostAsync("api/agent/v2/heartbeat",
                     new { version = AgentVersion }, stoppingToken);
-                string? archiveRoot = await client.GetWindowsArchiveRootAsync(stoppingToken);
-                if (!string.Equals(archiveRoot, config.WindowsArchiveRoot, StringComparison.OrdinalIgnoreCase))
+                var received = await client.GetConfigurationAsync(stoppingToken);
+                bool configurationChanged = config.WindowsArchiveRoot != received.ArchiveRoot
+                    || config.SyncScope?.Revision != received.Scope?.Revision;
+                config = config with { WindowsArchiveRoot = received.ArchiveRoot, SyncScope = received.Scope };
+                config.Validate();
+                if (config.EffectiveSourceSystem == "dominio" && !string.IsNullOrWhiteSpace(config.Dsn)
+                    && config.SyncScope is null)
+                    throw new InvalidDataException("Configure um recorte financeiro antes de sincronizar o Domínio Local.");
+                if (configurationChanged) config.Save();
+                nativeCycle.Prepare(received.CollectionEnabled, config.SyncScope?.IsActiveOnly == true, configurationChanged);
+                if (!received.CollectionEnabled)
                 {
-                    config = config with { WindowsArchiveRoot = archiveRoot };
-                    config.Validate();
-                    config.Save();
-                    AgentRuntimeStatus.Write("synchronizing", "Configuração de destino atualizada pela CICA.");
+                    AgentRuntimeStatus.Write("awaiting_activation",
+                        "Comunicação confirmada. Aguardando ativação como agente oficial pela operação CICA.");
+                    retryDelay = TimeSpan.FromMinutes(1);
+                    await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                    continue;
+                }
+                bool nativeReview = false;
+                if (config.SyncScope is not null)
+                {
+                    if (nativeCycle.SynchronizePortfolio)
+                        await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
+                    if (config.SyncScope.IsActiveOnly)
+                    {
+                        var result = await nativeCycle.RunAsync(
+                            cancellation => new NativeLedgerProcessor(config, client).RunOnce(cancellation),
+                            cancellation => new NativeTitleProcessor(config, client).RunOnce(cancellation),
+                            stoppingToken);
+                        nativeReview = result.RequiresReview;
+                    }
+                }
+                else
+                {
+                    await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
+                    await new BackupProcessor(config, client).RunOnce(stoppingToken);
+                    await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
                 }
                 // Fila própria e isolada: uma falha do Contraprova nunca derruba o ciclo
                 // nem os outros processadores (só o tipo da exceção vai ao log).
@@ -67,21 +101,20 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                     logger.LogWarning(
                         "CICA agent contraprova queue failed with code {Code}", error.GetType().Name);
                 }
-                await new DominioLocalProcessor(config, client).RunOnce(stoppingToken);
-                await new ProfitabilityProcessor(config, client).RunOnce(stoppingToken);
-                await new BackupProcessor(config, client).RunOnce(stoppingToken);
-                await new FileArchiveProcessor(config, client).RunOnce(stoppingToken);
                 await RenewCertificateIfNeeded(config, client, stoppingToken);
                 string serverVersion = heartbeat.RootElement.GetProperty("update").GetString() ?? "";
-                if (IsNewerVersion(serverVersion, AgentVersion))
+                if (nativeReview)
+                    AgentRuntimeStatus.Write("source_review_required", "Coleta nativa requer conferência no CICA. A sincronização de empresas foi preservada.");
+                else if (IsNewerVersion(serverVersion, AgentVersion))
                     AgentRuntimeStatus.Write("update_available",
                         $"Atualização {serverVersion} disponível. Baixe e execute o MSI pelo console CICA.");
                 else
                     AgentRuntimeStatus.Write("ready", "Último ciclo concluído com sucesso.");
                 retryDelay = TimeSpan.FromMinutes(1);
             }
-            catch (Exception error) when (error is not OperationCanceledException)
+            catch (Exception error) when (WorkerFailurePolicy.Recover(error, stoppingToken))
             {
+                nativeCycle.Reset();
                 logger.LogWarning("CICA agent cycle failed with code {Code}", error.GetType().Name);
                 string state = error switch
                 {
@@ -94,7 +127,8 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
                 retryDelay = TimeSpan.FromMinutes(Math.Min(retryDelay.TotalMinutes * 2, 5));
                 continue;
             }
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            if (!nativeCycle.ContinueImmediately)
+                await Task.Delay(NativeCollectionCycle.IdleDelay, stoppingToken);
         }
     }
 
@@ -104,15 +138,16 @@ internal sealed class Worker(ILogger<Worker> logger) : BackgroundService
         InvalidDataException => error.Message,
         CryptographicException => "A configuração local não pôde ser aberta neste computador. Execute o configurador novamente.",
         HttpRequestException => "Não foi possível alcançar o servidor CICA. O agente tentará novamente.",
-        TaskCanceledException => "A comunicação com a CICA excedeu o tempo limite. O agente tentará novamente.",
+        OperationCanceledException => "A comunicação com a CICA excedeu o tempo limite. O agente tentará novamente.",
         _ => "O ciclo não foi concluído. Consulte o Visualizador de Eventos e o arquivo de diagnóstico.",
     };
 
     private static async Task<AgentConfig> RenewCertificateIfNeeded(
         AgentConfig config, AgentClient client, CancellationToken token)
     {
+        if (config.AuthenticationMode == AgentAuthentication.Hmac) return config;
         byte[] existingPfx = Convert.FromBase64String(config.CertificatePfxBase64);
-        using var identity = new X509Certificate2(existingPfx, (string?)null,
+        using var identity = X509CertificateLoader.LoadPkcs12(existingPfx, (string?)null,
             X509KeyStorageFlags.MachineKeySet | X509KeyStorageFlags.EphemeralKeySet);
         if (identity.NotAfter.ToUniversalTime() > DateTime.UtcNow.AddDays(30)) return config;
         using RSA key = identity.GetRSAPrivateKey()

@@ -1,6 +1,135 @@
+<!-- D373-V412-IN-PROGRESS-2026-11-17 -->
+**17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
+Ampliação autorizada para as146 empresas, consultando catálogo completo e relações
+empresa/plano/filial com proveniência, além da configuração de conciliação.
+Preparação em lote e confirmação apenas dos campos não comprovados pela fonte;
+release100 continua publicada até validação/publicação da nova candidata.
+Terceira consulta real completou as duas leituras e recusou SOURCE_CHANGED;
+a seção divergente ainda não é conhecida. Manifesto v3 distingue cadastro de
+contagens variáveis, com diagnóstico por seção. Testes e fonte real pendentes; ver V-412.
+
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+**17/11/2026 — D-372/V-411: release 100 publicada; piloto real validado e 43 fichas preparadas.**
+O novo Razão da SURIA, conta 8, setembro/2026, foi coletado pelo agente 1.0.13 e
+comparado ao OFX: 163/163 movimentos compatíveis por data/direção/valor, diferença
+líquida zero. Há dois grupos ambíguos e 162 movimentos ainda sujeitos à revisão.
+Foram publicados e aplicados 43 complementos cadastrais em 11 empresas, com nomes
+e classificações reais do Domínio; repetição criou zero registros. Saúde, worker,
+14 assets, runtime e 15 grupos protegidos conferidos; revisões humanas preservadas.
+
+**Disponibilidade parcial:** a cliente pode testar o piloto e revisar as fichas.
+A consulta retornou zero referências bancárias; 145 empresas continuam sem conta
+operacional. Não foram inferidos banco, agência, conta, direção ou aprovação.
+Dessas 145 empresas, 11 têm candidatas e 134 ainda não têm candidata identificada.
+Q-28/PC-19 e critérios de homologação permanecem abertos. Evidência completa em V-411.
+Os checkpoints abaixo são históricos e não substituem este estado atual.
+
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+**Q-28/Q-46/D-73 — fechamento D-371/V-410:**
+
+**17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
+[PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
+
+CI integral: 3072 SQLite/54 skips, 3124 PostgreSQL/2 skips; 181/181 subtestes, respectivamente; 179 testes Windows aprovados.
+
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+> **Q-28/Q-46/D-73 — D-371/V-410 EM ANDAMENTO, 17/11/2026:** candidata
+> corrige histórico/polling e prepara agente1.0.13. SQLite3072/53 skips,
+> 27 regressões novas focadas, .NET176/três Windows reservados e QA17+POST
+> sintéticos aprovados; PostgreSQL integral, CI/Windows e publicação pendentes.
+> Produção comprovada permanece release98/canal1.0.12. Atualização/prova real
+> é responsabilidade técnica; vínculos/fontes/semântica/regras/aceite seguem
+> humanos. Não criar pergunta nova, presumir acesso Windows/homologação nem
+> reabrir treinamento/capturas recebidas. Q-47/C01/C02 adiados e backup fora
+> da prioridade mantidos. Orçamento30s entre pares não é prazo de coleta real.
+
+> **Q-28 — D-364/V-403, 16/11/2026:** carteira por empresa/conta/competência
+> e relatório legível/imprimível publicados na release 93 após CI integral
+> aprovado e conferência em produção; 146 empresas visíveis, 145 sem conta no CICA. A página inclui empresas sem
+> conta/dados e usa somente registros já recebidos, respeitando empresa E módulo.
+> Isso não resolve vínculos banco/conta/plano/direção, contagens mensais próprias,
+> lotes completos multi-filial ou recorrência. Não repetir sondas recebidas nem
+> criar conta/aprovação por inferência. Q-46/D-73, treinamento/backup/aceite e
+> Q-47/C01/C02 adiados mantêm seus critérios; nenhuma nova pergunta criada.
+
+> **Q-28 — D-363/V-402, 16/11/2026:** lote mensal revisado e isolamento da fila
+> publicados na release92/PR21/mainc053cc0 após CI integral43873060568.
+>732 hashes/14 grupos protegidos e prévia READ ONLY do piloto conferidos,
+> zero novos jobs; autoria/evidência/histórico preservados. Matriz dos perfis de13/11 mantém
+>146 empresas,43 candidatas em11,135 sem configuração,32 sem linhas e14 sem
+> parâmetros. Não repetir as sondas já recebidas nem inferir bancos das flags.
+> Ainda faltam vínculos banco/conta/plano/direção e contagens por conta/mês;
+> seis empresas com múltiplas filiais exigem conferir lotes completos, sem
+> filtrar partidas por inferência. A matriz não aprova coleta nem exclui o
+> piloto. Mesmo Q-28; Q-46/D-73 e Q-47/C01/C02 adiados mantêm seus critérios.
+> Roteiro TXT privado de16/11 usa nomes já cadastrados no CICA,146 códigos
+> conferidos e43 referências à ficha existente; não pede novamente as sondas,
+> não capturaERP nem atribui revisão humana. A publicação conclui os mecanismos
+> técnicos; carteira integral, recorrência, filiais e aceite permanecem abertos.
+
+> **Q-46 — conferência humana adiada em12/11/2026 (D-355/V-380):**
+> responsável está sem acesso ao Domínio. C01/retenções e C02/juros aguardam
+> retomada; não repetir a solicitação agora nem presumir resposta/aceite.
+> Captura e sete exemplos permanecem preservados. Desenvolvimento técnico
+> independente continua; semântica, banco e gates de homologação continuam abertos.
+
+> **Q-46 — captura recebida e exemplos prontos em12/11/2026 (V-378/V-379):**
+> oficial1.0.9 e fonte original privada conferidos. Sete casos preparados;
+> aguarda confronto humano de C01/retenções e C02/juros no Domínio. Informar
+> somente caso/campo/resultado, mantendo montantes e documentos privados.
+> Não repetir autorização, upgrade, captura, catálogos ou menus. Semântica
+> financeira, banco, Q-47 e D-73 permanecem próprios.
+
+> **Q-46 — operação autorizada/publicada em12/11/2026 (D-353/V-377):**
+> responsável autorizou coleta original e solicitação pela Grazi. Backend85 e
+> pacote1.0.9 publicados/conferidos; prévia atual aprovada sem criar job.
+> Aguardar JSON do upgrade saudável do SVAPL02 para enfileirar a captura.
+> Não repetir autorização, catálogos, perfis, DSN ou pareamento. Semântica,
+> vínculo bancário e revisão no Domínio continuam pendentes.
+
+> **Q-46 — vínculos reais e candidata conferidos em12/11/2026 (V-374–376):**
+> complemento completo recebido; nenhum vínculo direto ou por lote à conta8.
+> Referências já retidas conferidas em READ ONLY. Captura fiscal original privada
+> implementada na candidata1.0.9, CI integral/upgrade Windows aprovados; próximo
+> passo é a coleta original para revisão, com solicitante auditável confirmado.
+> Não repetir catálogos/perfis ou presumir principal/caixa/saldo/estorno.
+
+> **Q-46 — perfil real recebido em12/11/2026 (V-371/D-350):** parcelas e
+> componentes fiscais presentes, múltiplas ligações contábeis e vínculo direto
+> à conta8 zerado. Não pedir de novo o catálogo/perfil. Executor confere ligação
+> por lote/contas e multiplicidades antes de concluir correspondência bancária.
+> Semântica, saldo/estorno e exemplos humanos continuam próprios.
+
+> **Q-46 — estrutura fiscal real conferida em 12/11/2026 (V-368):** recebidas
+> chaves/FKs das15 tabelas fiscais; notas → parcelas → pagamentos → lançamentos
+> estão vinculados no catálogo. Não pedir esse complemento novamente. Faltam
+> tipos de pagamento/componentes, interpretação dos valores/estornos e exemplos
+> reais, com identificação técnica a cargo do executor por D-345.
+
+> **Q-39 — confirmação específica em 12/11/2026 (D-343/V-366):** o responsável
+> informou que a correção da espécie no conjunto de importação Domínio de
+> D-318/V-320 ainda está pendente. D-295 conserva a importação anterior aceita;
+> não exigir sua repetição genérica. Próximo trabalho desse caso: conferir o
+> conjunto próprio da base e observar o resultado da correção no destino em
+> teste autorizado. Isso não resolve Q-47, que trata da saída contábil CONTAD.
+
+> **Q-28 — estado comprovado em12/11/2026 (D-338/V-361; handoffD-339/V-362):**
+> SVAPL02/1.0.8 e backend84 concluíram a coleta nativa inicial:163 lançamentos/
+>334 partidas reais equilibradas,163 movimentos compatíveis comOFX, repetição
+>sem duplicatas. Instalação/corte/inventários/perfis e snapshot do piloto estão
+>concluídos. A146 já foi carregado. M/carteira e fontes completas, títulos/baixas
+>Q-46, layout/importação Q-47 e revisão humana D-73 continuam próprios.
+>Não repetir escolhas de período/origem/destino nem pedir novas senhas.
+>[Prompt atual](../contad-prompt-continuidade-2026-11-12.txt).
+
 > **Leitura vigente após auditoria de 05/10/2026 (D-275/V-275):** os IDs abaixo permanecem
 
 > **Atualização 10/10/2026 — D-295:** Q-39/PC-03 deixam de bloquear o plano: o responsável confirmou concluída a validação externa de importação NFS-e e pediu aceitar a informação sem solicitar comprovante ou repetir o teste. Textos históricos abaixo que pedem o retorno ficam superados por esta decisão. Não presumir detalhes técnicos não informados.
+
+> **Atualização 15/10/2026 — D-318:** identificado o importador realmente em uso: Importador por conjunto de dados (`Utilitários > Importação > Importador > Importar`), e não a tela `Configuração de Importação > NFS-e Arquivo XML - Padrão Nacional`. A espécie da nota é gravada pelo conjunto na coluna `codi_esp` com valor fixo, hoje 1; o valor correto varia por cliente (39 na base atual). Isso responde a parte "qual importador e onde entra a classificação" de Q-39, mas não a homologação do retorno. A CICA não escreve espécie e não gera conjunto de dados.
 
 > únicos, mas suas partes históricas precisam ser confrontadas com decisões posteriores.
 > D-109 substituiu o modelo incompatível de módulos/tokens por capacidade, IA em reais e custo
@@ -100,6 +229,53 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-44 | Resolvida em 22/09/2026 por D-290: o levantamento Siescon do Lucrums é aceito como base técnica, com o limite de que o layout foi inferido e não documentado pelo fornecedor. | O Lucrums já recuperou os layouts Btrieve por perfilamento estrutural e gerou os DDFs que habilitam SELECT por ODBC (`docs/ANALISE-SIESCON.md`, `docs/siescon/layout-v0.sql`). Se o responsável aceitar esse material como base, a etapa 04 deixa de estar bloqueada; se não aceitar, Q-33 continua valendo e o perfil Siescon do conector não é habilitado. |
 | Q-45 | Resolvida em 22/09/2026 por D-289: o conector unificado permanece em `net8.0-windows`, e o código do Lucrums é portado para trás. | A CICA está em `net8.0-windows` e o conector do Lucrums em `net10.0-windows`. A escolha precede qualquer movimentação de arquivo, porque define runtime instalado no servidor do escritório, matriz de build e assinatura do pacote. |
 
+## Conciliador do contrato — detalhamento em 27/10/2026
+
+**Continuidade 03/11/2026 — D-308/V-309:** o responsável esclareceu que a
+confirmação anterior veio do ODBC/Domínio. Teste .NET com DSN sem substituição
+de credenciais passou; corrigido o pacote para usar explicitamente essa
+autenticação. Atualização 1.0.1 no PC e teste do configurador confirmados.
+Não pedir senha/DSN novamente. Q-28 conserva pareamento/destino/recorte;
+endpoint CICA respondeu 503 por ausência da autoridade certificadora do agente.
+
+**Atualização 03/11/2026 — D-308/V-308:** PC de teste já acessível e agente
+instalado; configurador detectou DSN/driver existentes, mas o teste recebeu
+ODBC 28000 (usuário/senha inválidos). Solicitado preenchimento correto direto
+no RDP e novo teste, sem credenciais no chat ou recriação do DSN. Q-28 conserva
+o recorte/destino do pareamento e os dados independentes; testes HTTP locais
+não equivalem à sincronização do Windows nem resolvem Q-46/Q-47.
+
+**Atualização 03/11/2026 — D-305:** o responsável confirmou que os títulos a
+pagar/receber vêm do **Domínio** e que o piloto deve entregar **relatório e
+arquivo para importação no Domínio**. Não repetir origem ou tipo de saída.
+Q-28/Q-46 ainda exigem amostra/contrato de parcelas e baixas e recorte autorizado;
+Q-47 ainda exige layout e importação contábil conferida, sem escrita direta.
+Fornecidos PDF e OFX Sicredi para leitura/testes locais; não foi fornecido Razão,
+lista de títulos, plano de contas ou acesso ao PC.
+
+**Atualização 02/11/2026 — D-302:** Domínio **local**, agente **no computador da cliente**,
+acesso ainda a fornecer e **incluir contas a pagar/receber** confirmados pelo responsável.
+Não repetir essas escolhas. Q-28 conserva o acesso/recorte autorizado e a origem dos títulos;
+Q-46 conserva campos, chaves, regras e entradas/saídas do DE-PARA; Q-47 conserva a operação
+de destino. Inclusão não comprova implementação ou homologação. Correções locais e roteiro
+em [V-302](../../VALIDACOES.md) e na [verificação CONTAD](verificacao-conciliador-contad-2026-11-02.md).
+
+Escopo D-301, vinculado à etapa 09/PC-19. Perguntas operacionais no
+[roteiro do contrato](levantamento-contrato-conciliador-2026-10-27.md).
+Q-28 agora deve distinguir o ambiente da cliente deste contrato do ambiente
+Fedrizzi já conhecido por D-74; também reúne fonte de títulos, acesso autorizado,
+empresas/contas, volume, material e disponibilidade para implantação.
+
+| ID | Pergunta objetiva | Impacto e responsável |
+|---|---|---|
+| Q-46 | Para o conciliador do contrato, quais fatos serão comparados, quais faltas devem aparecer, quais regras de correspondência/parcelamento/agrupamento/tolerância valem e quais entradas/saídas compõem o DE-PARA inicial? | Cliente/contadora explica a rotina e fornece exemplos/mapa existente; executor especifica e valida. Sem essas respostas não presumir baixa, vencimento como pagamento, conta por histórico ou tolerância numérica. D-73 mantém critérios técnicos de aceite já decididos. |
+| Q-47 | Qual resultado deve voltar ao ERP: só conferência, arquivo para importação ou uma operação específica? Se a rota for fiscal, qual módulo, operação e retorno comprovam o resultado esperado? | Cliente/contadora demonstra o trabalho e o destino; técnico do ERP e executor conferem viabilidade, campos/layout e recuperação. A intenção de alternativa fiscal está em D-301, mas não há equivalência, escrita direta ou baixa automática autorizadas por inferência. O aceite NFS-e Q-39 não resolve esse contrato contábil/fiscal. |
+
+Não reabrir preços, prazo, carga contratada ou treinamento inicial já escritos
+no contrato. Apoio de IA ao DE-PARA também já está incluído; Q-08/Q-09 continuam
+valendo para custo/egressão quando houver execução real. Perguntas sobre os
+outros módulos não bloqueiam esta entrega por inferência.
+
 ## Contraprova (etapa 15)
 
 | ID | Pergunta objetiva | Por que altera a implementação |
@@ -110,6 +286,15 @@ As dúvidas nesta lista são independentes de autorização monetária. Quando u
 | Q-49 | Ao encerrar um contrato, o que o CICA apaga e o que retém? A evidência fiscal (`NfseDocument` e correlatos) é imutável por desenho no aplicativo; fatura e trilha de auditoria têm retenção contábil. | Aberta (20/11/2026, E4). Hoje só existe exportação (`office_export`). Recomendação: exportar, esperar o prazo contratual (A DEFINIR) e só então apagar tudo que não seja registro contábil da Mewstack, com comando próprio, confirmação digitada e revisão jurídica da retenção; não escrever o comando antes da resposta. |
 
 ## Donos, etapas e estado das perguntas
+
+**Detalhamento de Q-28 para PC-19 em 26/10/2026:** o
+[diagnóstico do conciliador](diagnostico-conciliador-2026-10-26.md) contém o roteiro
+de levantamento de ambiente, Razão, contas, arquivos, período, exceções e material
+de comparação. São desdobramentos operacionais de Q-28, não novas perguntas Q.
+D-74 já confirma Domínio local/ODBC na Fedrizzi; não pedir configuração ou
+credenciais novamente. Só confirmar modalidade local/Web para outra instalação
+ou mudança informada. D-73 mantém métricas e aprovador já decididos. D-295
+resolve o aceite NFS-e de Q-39; o layout contábil de PC-19 tem aceite próprio.
 
 Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono e etapa. O responsável pelo projeto responde produto, política, ambiente e autorização; o executor levanta fatos técnicos primeiro. Pedir acesso em meio protegido, nunca conteúdo de credenciais.
 
@@ -146,3 +331,485 @@ Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário p
 
 | Q-39 | Qual importador, layout/versionamento, pasta por empresa/competencia e retorno verificavel da rotina Domínio devem ser homologados para NFS-e e acumuladores? | Etapas 07 e 12: bloqueia transformar o pacote de conferencia em arquivo importavel ou registrar importacao concluida. Enviar somente documentacao tecnica e uma amostra descartavel pelo canal seguro; nao enviar backup, dados de clientes ou credenciais no chat. |
 | Q-40 | Na central, o PDF válido conclui somente a atividade Emitir guia, deixando conferência e pagamento separados quando previstos nos modelos, ou a tarefa de emissão exige também conferência humana? | Pergunta enviada ao proprietário em 24/09/2026. Recomendação: separar os três trabalhos; não implementar a conclusão dependente sem resposta. Não altera a definição do adicional de reemissão ainda pendente em D-149. |
+
+## Continuidade Q-28/Q-46/Q-47 — D-309/V-310 (04/11/2026)
+
+O responsável autorizou pesquisar e escolher o recorte na Fedrizzi por leitura.
+Foi selecionado candidato de uma empresa/conta bruta, janeiro/2026, com 115 itens
+no extrato escolhido; identificadores ficam na evidência privada ignorada.
+Não repetir a pergunta pelos identificadores já pesquisados. Ainda confrontar
+conta bancária e fechamento; zero itens reais independentes homologados.
+O recorte não autoriza envio da carteira ou infere Razão a partir de extrato.
+
+Q-28 mantém pareamento/destino concreto e fonte independente. CA/ingresso
+hospedados continuam sem validação: cadastro retorna 503. CLI Mac/Windows não
+acessa o app; o responsável confirmou nesta conversa que **ainda não tem esse
+acesso Fly**. Não solicitar novamente senha, DSN ou essa sessão nesta rodada.
+Preparação local de configuração/retorno está na etapa 12; não houve deploy.
+Q-46 mantém exemplos e semântica de parcelas/baixas/parciais/DE-PARA; Q-47 mantém
+layout/importação Domínio conferida. Títulos Domínio e relatório + arquivo de
+importação já estão decididos; Q-08/Q-09 continuam a reger IA real.
+
+## Atualização Q-28 — D-310/V-311 (04/11/2026)
+
+O responsável dispensou CA privada/certificado de cliente. Pareamento novo
+usa HTTPS + HMAC e não exige essa infraestrutura; o certificado HTTPS normal
+do servidor continua validado. Não reabrir a escolha ou pedir contratação.
+Backend e MSI 1.0.3 preparados/testados; falta sua publicação/instalação real.
+O responsável continua sem acesso Fly; não repetir a solicitação nesta rodada.
+Destino/recorte/fonte independente e demais condições Q-28/Q-46/Q-47 não mudam.
+
+## Continuidade Q-28/Q-46/Q-47 — D-311/V-312 (05/11/2026)
+
+O responsável esclareceu que os documentos de Razão/títulos/parcelas/baixas
+solicitados ainda não existem como arquivos. Não solicitar novamente caminhos
+em Downloads. Foi localizado o plano de contas e preparada extração privada,
+sem assumir código reduzido/classificação, atividade ou contas lançáveis.
+Relatórios bancários não substituem a fonte Domínio.
+
+RDP está acessível; login Domínio realizado diretamente pelo responsável.
+Ele autorizou atualização oficial e confirmou backup concluído/recuperável.
+O iniciador não encontrou `atualiza.exe` na rede, e o ajuste exigia 10.6A-10
+completa. Essa versão foi baixada do fornecedor, assinatura válida conferida e
+instalação base concluída, sem extras de nuvem/acesso remoto. Ajuste 2 concluído.
+Reabertura pediu nova autenticação, senha vazia: login direto solicitado ao
+responsável na janela preparada; não pedir credenciais no chat. Não repetir
+pedido de backup/pacote. Desenvolvimento obtém os
+relatórios do recorte já autorizado e contadora revisa
+campos/chaves/sinais/baixas e exemplos. Não repetir pedido de DSN/credenciais.
+
+Contrato normalizado offline de títulos e DE-PARA determinístico em rascunho
+preparados/testados, sem SQL novo/IA externa. Q-46 mantém exemplos/semântica
+e alocação real; Q-47 mantém layout/importação conferida. Q-08/Q-09 permanecem
+para IA real. Publicação/Fly não foi solicitada novamente ou realizada.
+
+### Continuidade Q-28/Q-46/Q-47 — D-312/V-313
+
+Novo login concluído; não solicitá-lo novamente por esse estado histórico.
+Razão do candidato original emitido e PDF observado no Windows. Conta contábil
+identificada na consulta de extrato; fechamento exibido 11/2023 e controle de
+títulos desmarcado. Transferência/extração e revisão semântica pendentes.
+Responsável autorizou procurar outro recorte na Fedrizzi somente leitura.
+Alternativa possui menu de títulos e fechamento fiscal 09/2026, porém contábil
+11/2014; pesquisa ainda não homologa competência. Não alterar fechamento,
+parâmetros ou parcelas. Não repetir DSN, credenciais, backup ou caminhos antigos.
+Prévia offline e CLI validam capacidade/escopo, sem resolver regras e fluxo
+persistido Q-46 ou importação Q-47. Os mesmos IDs continuam abertos.
+
+A alternativa emitiu A Pagar; PDF conferido no Windows, sem cópia Mac/extração.
+Não apresenta chave de baixa, conta bancária ou data efetiva de pagamento na
+visão consultada. Cinco consultas limitadas de emissão/recebimento/pagamento/
+situação parcial retornaram sem dados, conforme V-313; isso não prova ausência
+geral. Desenvolvimento ainda obtém fonte com chaves/baixas e recorte fechado;
+contadora revisa componentes/regras. Nenhuma nova pergunta ou autorização de
+escrita, transmissão ou homologação foi inferida dessa pesquisa somente leitura.
+
+Publicação D-313/V-314: responsável autorizou enviar código à main, realizado
+no commit 4fede1e com SHA remoto conferido. Isso resolve a autorização de
+commit/push dessa entrega; não resolve acesso/deploy hospedado, Q-28/Q-46/Q-47,
+IA Q-08/Q-09, corpus real ou aceite. Não perguntar novamente essa autorização
+de Git para o código e seus registros; não ampliá-la para dados/ERP/implantação.
+
+V-315, Q-28/Q-46/Q-47: os anexos PDF/OFX Sicredi permitem testar a etapa
+bancária da CONTAD. Reconferência local: 163 movimentos correspondentes e
+saldos coerentes. A ausência de Razão/títulos revisados limita a homologação
+contábil completa, não o início desses testes. Não solicitar novamente os
+extratos já disponíveis nem contar seus dois formatos como amostras distintas.
+
+D-314/V-316: responsável autorizou prosseguir; percurso bancário local executado
+com os anexos e 42 verificações finais aprovadas. Q-28/Q-46/Q-47 continuam para
+fontes contábeis/baixas, regras revisadas e importação conferida, sem bloquear
+essa prova já concluída da entrada bancária. Nenhuma pergunta repetida de
+extratos, login, DSN, backup, CA ou Fly nesta execução.
+
+## Continuidade Q-28/Q-46/Q-47 — D-320/V-322 (06/11/2026)
+
+Não repetir escolhas: serviço único .NET, HTTPS/HMAC, app Fly existente, arquivo
+sem importação efetiva e prévia privada não homologada. Acesso Fly agora funciona.
+AnyDesk disponibilizado, controle nativo falhou e responsável escolheu testes
+guiados. No PC CONTAD informou MSI 1.0.3 íntegro, Running/Automatic e estado
+awaiting_configuration. SQL Anywhere 17 é a versão do DSN original x86. O
+responsável agora informou possuir a credencial EXTERNO; não pedir novamente
+sua criação ou disponibilidade. Operador informou Test Connection successful
+no novo DSN CICA_CONTAD x64 e conexão confirmada no configurador instalado.
+Faltam confirmação de ausência de senha no DSN, modo efetivo de autenticação,
+permissões e LocalSystem, a executar diretamente no PC;
+não pedir senha no chat, ler segredo do registro ou recriar o DSN original.
+
+CONTAD é escritório distinto de Bianchi/Cobalchini, conforme confirmação. Cadastro
+próprio ae13d06f-6461-43a8-a9cc-3e0e0eafde50 provisionado em activation_pending,
+sem membros/ativação; futuro login indicado em evidência privada. Não pedir
+novamente qual escritório ou e-mail. Q-28 mantém ativação/acesso, recorte de
+empresa/conta/competência/IDs autorizados e fonte independente real antes de
+parear/enviar; não habilitar carteira inteira. Backup pontual Neon/Tigris e restore
+isolado dos dois bancos/53 arquivos agora conferidos, sete dias de retenção,
+compute suspenso e chave temporária CICA revogada; teto US$ 1,00 já autorizado,
+sem agenda recorrente. Release 72 publicada/verificada e prévia limitada ao UUID
+CONTAD, exportação false. Não repetir autorização pontual de custo/chave/deploy;
+recuperação recorrente/RPO/D-73 seguem abertos. Q-46 mantém exemplos/regras de
+títulos/baixas/DE-PARA; Q-47 mantém
+layout/importação conferida em autorização posterior, sem escrita direta ERP.
+
+Continuidade do mesmo Q-28: SURIA COMPONENTES E ACESSORIOS PARA MODA LTDA
+confirmada pelo responsável (nome inicial URIA), competência 09/2026; PDF/OFX
+Sicredi em Downloads identificados e iguais ao piloto anterior. Não perguntar
+novamente empresa/período/arquivos. Código Domínio **212** informado pelo
+operador; não perguntar novamente. Consultar apenas a conta existente em
+Movimentos > Lançamentos de Extrato Bancário, sem incluir/gravar/importar.
+Referência da conta/IDs internos
+de extrato, revisão e acesso/ativação CONTAD permanecem pendentes para emitir
+manifesto; não substituir por FITID do OFX ou contas de outro plano de contas.
+
+Captura posterior mostra BANCO SICREDI/09-2026, movimentos importados e linhas
+visíveis conciliadas. Operador depois transcreveu código contábil **8**;
+não perguntar novamente. Razão dessa conta em 01–30/09/2026 agora recebido,
+quatro páginas conferidas, 163 datas/valores iguais ao banco e saldos dos PDFs
+coerentes. Não pedir novamente esse relatório. Ainda faltam referência/vínculo
+bancário, IDs internos e partidas completas/revisão semântica. A captura não
+prova conciliação integral; demais pendências do recorte/acesso permanecem abertas.
+
+Conflito real do mesmo Q-28: saldos da janela de extrato Domínio na captura
+diferem dos dois PDFs. Operador confirmou a mesma SURIA/212; não perguntar
+novamente empresa ativa. Não sabe confirmar o vínculo da conta contábil 8 com
+a conta bancária; manter pendente, sem concluir que seja outra conta.
+Origem da diferença segue aberta, sem alterar saldos ou parear; valores privados.
+
+Responsável autorizou sonda pontual somente leitura de metadados/IDs/contagens
+na CONTAD, empresa 212/conta 8/09-2026, sem históricos/valores/envio ao CICA.
+Execução posterior informada pelo operador: um cabeçalho de 212/conta 8/09-2026,
+163 itens; candidato/limites conferidos, ID privado já disponível. Não pedir
+novamente o ID nem repetir a sonda/autorização sem motivo. Resultado informado
+do PC não é prova de LocalSystem, vínculo bancário ou aprovação final do recorte.
+A revisão da contadora ainda deve esclarecer vínculo e divergência de saldos.
+
+Cadastro da conta 8 já mostrado: BANCO SICREDI, Analítica, Ativa, sem agência/
+conta bancária visíveis na tela enviada. Não pedir novamente essa captura nem
+concluir vínculo pela descrição. Próxima evidência é identificação do arquivo
+original usado na importação/quem a realizou e origem do saldo inicial;
+existência de histórico acessível no Domínio não foi comprovada.
+
+**Atualização humana D-320/V-323, 06/11/2026:** responsável esclareceu que a
+empresa está fechada e os arquivos foram fornecidos para teste, determinando
+usá-los como evidência. Para o corpus local, não exigir origem do saldo da tela,
+identificação do importador ou nova confirmação dos arquivos; a orientação
+anterior acima deixa de ser o próximo passo obrigatório desses testes.
+Leitor repetível/CLI confrontaram 163 linhas bancárias com o Razão fornecido,
+sem sobras por data/valor e com dois grupos ambíguos preservados. Q-28 conserva
+acesso/ativação e recorte próprio para agente/transporte reais; não interpretar
+a aceitação dos arquivos como autorização de envio ou partidas faltantes.
+
+
+## Atualização Q-28/Q-46/Q-47 — D-321/V-324 (06/11/2026)
+
+Responsável confirmou PC disponível, ativação sem convite e autorização
+**somente** SURIA/212, conta contábil 8/Sicredi, 09/2026 e cabeçalho único já
+identificado. Esses pontos não aguardam nova aprovação. Manifesto aprovado e
+pareamento efetivo concluídos; não repetir sonda ou exigir origem do saldo.
+CONTAD active/Conciliação/contrato individual R$ 200 sem cobrança automática;
+login responsável ainda sem conta, por escolha de não emitir convite.
+
+Operador comprovou Running/Auto/LocalSystem/ready após reinícios, e ausência
+dos campos de senha do novo CICA_CONTAD x64 sem extração de valores. Backend
+healthy/163 movimentos, sem duplicação/fora do recorte, datas/valores conferidos.
+Falha ACL inicial corrigida com execução elevada e credencial órfã revogada.
+Release 73/fonte 651368c/CI aprovado, exportação false/prévia só CONTAD.
+
+Q-28 conserva fontes completas/adaptadores e semântica onde faltarem, além de
+provas reais de rede/paginação e acesso pessoal; não conserva a aprovação do
+recorte ou o pareamento já concluídos como bloqueio. Q-46: títulos/baixas/regras/
+DE-PARA reais e revisão. Q-47: layout/importação autorizada própria e homologada.
+D-73/200 eventos, recuperação recorrente, treinamento e aceite continuam abertos.
+
+
+Atualização posterior D-321/V-325 (06/11): responsável solicitou configurar a
+conta da Grazi com o e-mail já fornecido e senha inicial. Criada Proprietária
+somente CONTAD, sem convite/acesso de plataforma. Login HTTPS real aprovado,
+Conciliação 200 com SURIA/Nova importação disponíveis; sessão encerrada sem
+upload. A criação do acesso pessoal está concluída, sem repetir pergunta de
+login/e-mail/papel. Restam fontes/regras e demais gates contábeis/operacionais.
+
+
+## Próxima execução integral CONTAD — D-322/V-326 (06/11/2026)
+
+Responsável esclareceu que o objetivo é **todas as empresas do escritório**,
+com empresas/contas automáticas, e solicitou prompt para outra sessão finalizar
+coleta, testes e entrega. Não repetir a pergunta se a intenção se limita à SURIA.
+O objetivo funcional futuro está explícito no prompt; runtime continua com
+manifesto piloto D-321 e não teve autorização/configuração ampliada nesta
+entrega documental. Resolver evolução/cobertura/histórico no Q-28, regras em
+Q-46 e destino/validação em Q-47, preservando Q-08/Q-09 e demais gates reais.
+
+[Prompt canônico](../contad-prompt-finalizacao-2026-11-06.txt) contém sequência
+até publicação, Windows, recuperação, treinamento e aceite; não cria novo plano
+paralelo ou considera gate documentado como concluído.
+
+## Continuidade Q-28 — execução D-323/V-327 (06/11/2026)
+
+Responsável definiu **setembro/2026 em diante** para os dados financeiros da
+carteira completa; cadastros/contas integrais. Depois confirmou operador ainda
+indisponível. Não repetir período, intenção de carteira completa ou credenciais.
+Protocolo/recepção de empresas publicados na release 74, preservando o piloto.
+Inventário preparado e parser Windows aprovado; ainda não executado na CONTAD.
+Próximo insumo: metadados/situações reais para conferir fontes, contas e chaves.
+Mapa A/I sintético não é homologação; dados faltantes não serão fabricados.
+Pacote 1.0.4 pronto, PC permanece 1.0.3; último heartbeat anterior ao deploy.
+Q-46/Q-47, Q-08/Q-09, D-73, recuperação recorrente, treinamento e aceite seguem
+abertos com os mesmos IDs; nenhum gate resolvido por essa publicação.
+
+Continuidade Q-28/D-323/V-328 (07/11): correção de retomada e diagnóstico
+somente leitura publicados na release 75, mantendo manifesto piloto e zero
+scan real da carteira. Último relato de operador indisponível; inventário ainda
+não recebido. A correção não resolve fontes, Q-46/Q-47 ou gates de IA/aceite.
+Não repetir credenciais, período ou intenção de toda a carteira.
+
+## Atualização do mesmo Q-28 — D-324 (09/11/2026)
+
+Responsável determinou nova instalação em outro computador, **Windows Server**,
+como agente oficial, e informou acesso já disponibilizado por **AnyDesk**.
+Não perguntar novamente qual canal de acesso ou tratar o antigo relato de
+operador indisponível como estado atual. Ferramenta encontrou AnyDesk aberto,
+mas obter sua janela por nome/bundle ID falhou com timeout -10005: sem observação
+da versão/build/arquitetura/edição ou ODBC/serviço reais do Server nesta sessão.
+Esses fatos técnicos ainda precisam ser observados, sem solicitar senhas.
+
+Novo destino substitui o PC antigo no próximo passo. Código de substituição
+herda manifesto, novo candidato não coleta e só vira oficial no corte explícito
+que revoga o anterior. O início em 01/09/2026 e a carteira integral estão
+decididos; não reabrir. Inventário/fontes/situações Q-28, Q-46/Q-47 e demais gates
+continuam, agora a executar no novo agente após a troca comprovada.
+
+**Resposta Q-28/D-324, V-331 (10/11):** captura winver confirma Windows Server
+2022 Standard, 21H2/build 20348.5761. Não repetir ano/edição/build. Microsoft
+lista Server 2022 x64 no suporte .NET 10; continuam por conferir PowerShell
+x64/privilégios, instalação/configuração anterior, driver/DSN e leitura real.
+Imagem não resolve decisão D-289 ou pacote/backend/pareamento pendentes.
+
+**Complemento V-332:** PowerShell informa processo de 64 bits; janela aparece
+como Administrador, consulta de serviço sem listagem e configuração False.
+Há DSNs de sistema Contabil 64/SQL Anywhere 16 e e-Robo 17 64/SQL Anywhere 17,
+além de Contabil 32 selecionado. CICA_CONTAD ainda ausente na lista. Não pedir
+novamente prova do processo x64; conferir destino de Contabil 64 sem alterar
+DSN original, coletar credencial ou assumir que versões 16/17 usam o mesmo banco.
+
+**Complemento V-333:** Login recebido: servidor SrvContabil, banco Contabil,
+Host/Port vazios, Authentication Database, ação remota para banco em execução.
+Não repetir pergunta desses nomes nem inventar endereço/porta. Próximo passo:
+CICA_CONTAD dedicado x64/SQL Anywhere 16, sem salvar credencial nem alterar
+Contabil. Network/Advanced, criação e conexão ainda não comprovados.
+
+**Complemento V-334:** teste informado retornou Integrated recusado por
+login_mode. Conferir Database e credenciais explícitas apenas no teste local;
+limpar antes de salvar. Não mudar política do banco ou presumir senha/driver
+errados. Identidade do DSN usado e campos atuais não aparecem no erro;
+conexão/reteste seguem pendentes no mesmo Q-28.
+
+**Complemento V-335:** responsável informou sucesso no reteste ODBC orientado.
+Não repetir senha, servidor/banco ou esse teste sem novo motivo. Limpeza das
+credenciais temporárias/salvamento de CICA_CONTAD ainda por confirmar; serviço,
+LocalSystem, pacote/backend/pareamento e demais gates continuam pendentes.
+
+**Complemento V-336/D-325/V-337:** operador confirmou limpeza de User ID/
+Password e salvamento de CICA_CONTAD após o teste bem-sucedido. Não repetir
+essa tarefa ou pedir credenciais. Após confirmar Server 2022 compatível,
+responsável aprovou **.NET 10 LTS**: D-325 substitui o alvo de D-289 para novas
+compilações. Migração local verificada em V-337; não reabrir a decisão do runtime.
+Próximas dependências: MSI 1.0.5/CI Windows/backend compatível, instalação,
+ODBC sob LocalSystem e corte oficial. Q-28/fontes/carteira e demais gates
+permanecem abertos; relato de DSN não é homologação do serviço.
+
+**Complemento D-326/V-338:** MSI 1.0.5/.NET 10.0.15 e CI Windows da fonte
+53b834b aprovados (62 testes/26 checks), pacote/hash/relatório preservados.
+Próximo gate passa a ser backend compatível antes de instalar/parear no Server;
+Q-28 permanece aberto para instalação/ODBC real/LocalSystem/corte e fontes.
+Não repetir identificação do Server, decisão .NET ou preparação do DSN.
+
+**Complemento D-327/V-339:** backend publicado/conferido na release 77 e
+código privado emitido com manifesto herdado e validade até 15:48:07 de 10/11
+(Brasília). Prérequisitos de backend/pacote resolvidos. Próxima prova Q-28:
+instalação/pareamento e estado awaiting_activation no Server, mantendo o anterior
+ativo; ODBC/LocalSystem e corte continuam obrigatórios, sem inferir homologação.
+
+**Complemento D-329/V-342:** consolidação na main e backend release 80
+conferidos; ODBC interativo em SVAPL02 confirmado por captura V-340. Código
+antigo expirado sem uso e zero candidato; novo código privado emitido por
+60 minutos. Próximo passo Q-28: parear como candidato/passos 7–8, conferir
+serviço/LocalSystem/DPAPI e prova ODBC sob SYSTEM antes do corte. Sem nova
+pergunta, coleta ampliada ou alteração de manifesto.
+
+**Complemento D-330/V-343/V-344:** pareamento e serviço System/Auto/Running
+confirmados; código consumido, candidato SVAPL02 pending, anterior ativo e mesmo
+manifesto. Não repetir pareamento ou emitir código. Próxima prova Q-28 é executar
+a ferramenta testar-odbc-system.ps1 e enviar relatório seguro (ODBC real sob
+SYSTEM, versão/horário/ACL). CI Windows 2022 aprovou isolamento/limpeza, sem ERP
+real. Corte continua condicionado ao resultado, sem nova pergunta de decisão.
+
+**Complemento V-345/V-346:** ODBC SYSTEM/ACL/versão comprovados, SVAPL02 oficial,
+anterior revogado e primeiro ready/recepção reais, com dados preservados. Retorno
+do segundo reinício pós-corte ainda pendente; não afirmar teste concluído pela
+colagem que falhou. Q-28 continua para inventário/fontes/carteira, sem reabrir
+instalação/runtime/driver/pareamento. Demais gates preservados.
+
+**Complemento V-347:** retorno do segundo reinício pós-corte recebido e
+conferido: Running/Auto/LocalSystem/ready/1.0.5, novos ciclos/heartbeat reais,
+conector healthy, único oficial e dados preservados. Instalação/troca/teste
+complementar concluídos; Q-28 permanece somente para inventário/fontes/carteira.
+Não repetir a mesma prova ou perguntas já respondidas. Demais gates preservados.
+
+**Q-28/D-331/V-348:** instalação/corte não são reabertos. Inventário executado
+na cliente falhou com MethodInvocationException, sem resultado completo. Versão
+de diagnóstico com etapa/SQLState/nativo foi validada no CI Windows e entregue;
+aguarda retorno pontual. Não repetir pergunta de DSN/senha/runtime/histórico.
+Situações reais/revisão continuam condição para a carteira; novo comando não
+aplica mapa sintético nem presume semântica financeira.
+
+**Q-28/V-349 (11/11):** sonda corrigida concluída segundo operador: 601 objetos,
+5.674 colunas, 502 empresas, SHA 4b7be104…652e3c69. Não repetir a execução nem
+perguntas de credencial/driver. Falta receber o inventario.json do Windows para
+conferir hash, situações e fontes; resumo numérico não fornece esses campos.
+Backend de transição publicado/verificado na release 81; piloto ainda vigente.
+
+**Q-28/D-332/V-350 (11/11):** JSON recebido/hash reconferido; 601 objetos,
+5.674 colunas/502 empresas, A146/I346/M10. Pedido é buscar todas as ativas;
+responsável não sabe conferir a contagem. Não repetir pergunta de legenda/total:
+primeiro seletor técnico A existente, M pendente sem inativação. Backend82 e
+MSI1.0.6 testados/preparados; retorno do upgrade pontual já solicitado. Depois
+prévia/aplicação e cobertura real. Q-28 agora é relações/fontes e confirmação
+de M, sem reabrir inventário/instalação/DSN ou presumir semântica/aceite.
+
+**Q-28/D-333/V-351:** upgrade1.0.6 e seletor A reais comprovados, mas primeiro
+scan146/zero recebido parou no contrato14 dígitos. Sonda pontual real concluída:
+12 inscrições11/133 inscrições14/uma vazia; tipos1/2/3 sem legenda. Não pedir
+que a cliente classifique CPF/CNPJ por inferência nem repetir sonda/pareamento.
+D-333 guarda inscrição/tipo literais e preserva CNPJ anterior; validar correção
+1.0.7/upgrade/backend e retomar scan existente. M/fontes/aceite ainda pendentes.
+
+**Q-28/D-333/D-334/V-352:** falha de formato resolvida por espelho literal, sem
+classificar CPF/CNPJ ou preencher zeros. Backend83/1.0.7 real, carga A146/146 e
+releituras sem duplicação comprovadas. Não repetir perguntas/sondas/instalação.
+Q-28 permanece para M10 quando comprovado e relações/fontes financeiras reais;
+contas/Razão/títulos, Q-46/Q-47/D-73 e aceite não foram homologados. Download
+direto verificado elimina transferência manual; auto-instalação futura não existe.
+
+**Q-28/D-335/V-353:** complemento de chaves e análise local preparados/testados;
+aguarda JSON real do SVAPL02 pelo comando direto já enviado. Não repetir inventário
+completo, instalação ou seleção A. Q-46/Q-47/M/semântica financeira continuam próprios.
+
+**Q-28/D-335/V-354:** catálogo real recebido e conferido, nove PKs e1.496 relações.
+Não pedir novo envio ou repetir consulta. Faltam prova de vínculo com plano,
+partidas/sinais e fontes de títulos; ausência de FK não decide o JOIN.
+
+**Q-28/D-336/D-337/V-356/V-358/V-359:** perfis reais concluídos, contas
+correspondentes e163 lotes/177 registros íntegros. Não repetir consulta ou pedir
+contagens ao operador. Normalizador preparado; falta snapshot real completo/
+revisão e integração da coleta. Letras de tipo/situação, Q-46/Q-47/D-73 mantêm gates.
+
+**Q-28/Q-46/D-341/V-364 (12/11):** recorte offline de sete objetos e 52 FKs a
+partir dos catálogos já recebidos. Dois candidatos contábeis estão inventariados.
+Os cinco candidatos de títulos/baixas no recorte aparecem apenas por referências.
+Há vínculos declarados de alguns deles a fornecedor, cliente, empresa e
+lançamento contábil. Faltam as chaves próprias e o vínculo comprovado entre
+título, parcela e baixa, além de exemplos revisados de vencimento em aberto,
+baixa total/parcial e estorno. Preservar situação M e origem do plano compartilhado
+em Q-28. Q-47 continua condicionado a layout e importação conferidos no Domínio.
+
+
+**Q-08/Q-09/Q-11 — D-358/V-390 (13/11/2026):** responsável solicitou obter
+a chave e autenticou o console. Nova credencial específica criada/guardada
+localmente0600/0700, metadados HTTP200 e saldo promocional conferidos.
+Histórico de chave local não representa o estado atual: presença nas
+variáveis históricas era negativa e chaves antigas do console expiraram.
+Sem inferência, compra, ativação ou segredo implantado em produção. Teto,
+conteúdo e governança continuam próprios. Q-46: pedido de códigos passa a
+conferência orientada; responsável não soube selecionar sem guia.
+
+
+**Q-08/Q-09/Q-11/Q-46 — D-359/V-395 (13/11/2026):** duas autorizações
+específicas de uma chamada até R$0,10 cada foram utilizadas, sem compra/retry.
+Primeira unknown preservada; segunda succeeded/duas sugestões para três
+casos. Total estimado US$0,0004335 em créditos; política central/escritório
+desabilitados e aprovação revogada. Não repetir essas perguntas nem executar
+terceira chamada. Ficha humana privada com históricos originais entregue;
+contas ativas/analíticas, sugestões e condições literais de regra ainda
+exigem revisão. Governança recorrente/franquias gerais permanecem próprias;
+Q-47 e C01/C02 continuam adiados, e D-73 não foi homologado.
+
+
+**Q-28/D-73 — D-356/V-396 (13/11/2026):** sonda nova de cobertura das
+empresas A por códigos/configurações e contagens preparada, com22 cenários
+Windows específicos aprovados. Comando HTTPS/hash entregue; resultado real
+aguarda execução local após timeout AnyDesk. Não repetir inventários antigos,
+DSN, pareamento ou perguntas sobre número de empresas. Contas/plano/banco não
+são inferidos da presença no catálogo. Amostra real163 fatos congelada/ficha
+independente pronta; nenhuma revisão humana registrada, faltam no mínimo37
+fatos adicionais. Q-08/Q-09 não autorizam nova IA; Q-46/revisão e Q-47/C01/C02
+adiados continuam próprios.
+
+
+**Q-28 — D-356/V-397:** retorno da descoberta recebido/conferido,146 empresas A
+idênticas ao cadastro e matriz privada entregue. Não solicitar de novo.120
+cadastros de caixa não têm referência bancária nessa família; não supor que
+são bancos. Próxima evidência é o modo específico de contas configuradas de
+conciliação, baseado na chave declarada do catálogo retido. Valores financeiros,
+contas lançáveis, banco de operações e aceite continuam sem homologação.
+
+
+**Q-28 — D-356/V-398:** complemento real recebido/conferido:43 contas
+configuradas em11 empresas, todas no catálogo correspondente. Não solicitar
+novamente o retorno/sonda. Ficha guiada com nomes das empresas pronta;
+aguarda confirmação contábil efetiva de banco/atividade/lançamentos/direção.
+Não interpretar A/A, transformar configuração em banco ou excluir piloto
+por ausência. Os135 casos sem configuração não provam dispensa da carteira.
+
+
+V-399 — D-360 não cria nova pergunta: uso assistido da conta piloto disponível
+no backend90, sem exigir ficha43 para começar. Q-28/Q-46 continuam para a
+carteira completa e semântica/vínculos financeiros; Q-47/C01/C02 adiados.
+D-73 e revisão efetiva DE-PARA permanecem pendentes. Dois lotes específicos
+IA consumidos/política desabilitada, sem nova franquia ou autorização inferida.
+
+
+**D-361/V-400 — 13/11/2026:** execução autônoma não cria novas perguntas.
+Q-28/Q-46 mantêm revisão dos vínculos/contas/semântica e sugestões; auditoria
+offline preservou146/43/163 e zero revisões. D-73 recebeu correção de integridade
+do aceite, medição limitada real e ensaio PostgreSQL sintético; RPO de negócio
+e rotina/recuperação reais permanecem sem encerramento. Roteiro/ficha de treino
+prontos; não dependem da ficha43 para começar, mas participação e aceite não
+são inferidos. Q-47/C01/C02 e terceira chamadaIA continuam não autorizados.
+
+
+**D-362/V-401 — 16/11/2026:** não cria nova pergunta. Acesso e percurso do
+piloto conferidos; exercício humano desfeito e nova confirmação observados.
+Revisão real declarada, referência“documento” genérica; CSV atual baixado e
+verificado pelo executor. Complementar evidência/treinamento no mesmo Q-46/
+D-73; não contar a sessão como revisão da amostra ou aceite formal. Q-28,
+recuperação e adiamentos Q-47/C01/C02 preservados.
+
+
+**Q-28/Q-46/D-73 — D-370/V-409, 17/11/2026:** auditoria de prontidão não cria
+nova pergunta. Produção reconferida08:53 BRT:146 empresas,uma conta, 43 candidatas
+pendentes; capacidades atuais de Razão/títulos ainda exigem atualização 1.0.12.
+A atualização/prova real é pendência técnica; vínculos/fontes/semântica/regras
+mantêm revisão humana. P2 reproduzido no histórico do Razão e vazão limitada
+pertencem ao desenvolvimento/medição dePC-19, não a perguntas contábeis novas.
+Q-47/C01/C02 continuam adiados. Piloto já recebido pode iniciar testes sem
+repetir cadastro, pareamento, primeira IA ou treinamento inicial. Aceite integral
+permanece ausente e não é inferido de testes sintéticos ou saúde do serviço.
+
+<!-- D372-WINDOWS-CHECKPOINT-2026-11-17 -->
+**Q-28/PC-19 — D-372/V-411,17/11/2026:** primeira nova coleta pela tela
+comprovada às11:00BRT na conta212/8,setembro2026. Razão recebido e163/163
+movimentos compatíveis com OFX por data/direção/valor; diferença líquida zero,
+fontes/decisões preservadas. Dois grupos repetidos e162 movimentos seguem para
+conferência individual. Deixa de ser pendência técnica do piloto; não comprova
+coleta de qualquer empresa. Leitor cadastral das146 empresas passou no Windows,
+aguardando execução local assistida/recebimento do JSON real. Persistem43
+candidatas em11 empresas e145 sem conta operacional, com nomes/referências/
+vínculos ainda por completar conforme fonte. Sem aceite humano novo ou custo.
+
+<!-- D372-REAL-DETAILS-RECEIVED-2026-11-17 -->
+**D-372/V-411 — fonte cadastral real recebida e validada:**146 empresas,
+43 candidatas com nomes e catálogo comprovados,120 caixas,zero referências
+bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável das
+43 fichas implementada e em validação/publicação; nada ativado automaticamente.
+Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
+continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.

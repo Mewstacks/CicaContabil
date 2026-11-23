@@ -1,3 +1,29 @@
 # Query contracts are pinned by SHA-256 of their bytes (agent DatasetCatalog and
 # profitability catalog). A CRLF checkout on Windows would change the hash.
 contracts/datasets/** text eol=lf
+# The direct-download diagnostic must have exactly the bytes validated on Windows.
+agent-windows/inspect-contad-relations.ps1 text eol=lf
+agent-windows/test-contad-relations.ps1 text eol=lf
+agent-windows/inspect-contad-ledger-profile.ps1 text eol=lf
+agent-windows/test-contad-ledger-profile.ps1 text eol=lf
+agent-windows/inspect-contad-lot-profile.ps1 text eol=lf
+agent-windows/test-contad-lot-profile.ps1 text eol=lf
+
+contracts/ledger/** text eol=lf
+agent-windows/upgrade-ledger.ps1 text eol=lf
+agent-windows/test-ledger-upgrade.ps1 text eol=lf
+
+contracts/titles/** text eol=lf
+agent-windows/upgrade-titles.ps1 text eol=lf
+agent-windows/test-title-upgrade.ps1 text eol=lf
+
+agent-windows/upgrade-portfolio-ledger.ps1 text eol=lf
+agent-windows/test-portfolio-ledger-upgrade.ps1 text eol=lf
+
+# D-372: direct download must match the exact script tested by Windows CI.
+agent-windows/inspect-contad-account-details.ps1 text eol=lf
+agent-windows/test-contad-account-details.ps1 text eol=lf
+agent-windows/inspect-contad-chart-discovery.ps1 text eol=lf
+agent-windows/test-contad-chart-discovery.ps1 text eol=lf
+agent-windows/inspect-contad-branch-accounts.ps1 text eol=lf
+agent-windows/test-contad-branch-accounts.ps1 text eol=lf

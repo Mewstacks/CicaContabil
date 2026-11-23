@@ -1,3 +1,33 @@
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+## Fechamento D-371/V-410 — publicação técnica para testes, 17/11/2026
+
+- [x] Correções revisadas, regressão local/CI exato e QA sintético aprovados.
+- [x] Publicar release99/agente1.0.13 e conferir runtime797/assets/saúde/worker.
+- [x] Conferir15 grupos protegidos, configuração/capacidade e legado parado.
+- [x] Validar instalação limpa e upgrades1.0.10/11/12 em Windows descartável.
+- [x] Comprovar instalação1.0.13/conexão/capacidades no SVAPL02; recibo e backend autenticado.
+- [ ] Comprovar primeira nova coleta financeira pela tela no recorte autorizado.
+- [ ] Concluir revisões humanas e critérios Q-28/Q-46/D-73 próprios.
+
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+[Evidências V-410](../../../VALIDACOES.md).
+
+## D-364/V-403 — Carteira e relatório da conciliação, 16/11/2026
+
+- [x] Preservar identidade CICA, controles nativos, empresa/conta/competência e retorno previsível nas novas superfícies.
+- [x] Aplicar UI/UX Pro Max local, consultar Watermelon table/data-table, diretrizes Vercel e referência oficial QuickBooks sobre consultar/imprimir/exportar relatório.
+- [x] Validar HTTP por papel, interseção empresa/módulo, revogação, suporte restrito, filtro inválido e consulta sem criação de jobs/decisões.
+- [x] Preparar QA isolado com 27 empresas fictícias, quatro contas, dois meses e um Razão aguardando revisão; sessões Owner/Auditor/Operator separadas.
+- [x] Concluir QA visual sintético e retestes de tabela móvel, foco/modal/Escape, impressão, temas e zoom; cinco campos e ação visíveis no celular.
+- [x] CI integral e release93 concluídos; carteira, competência e relatório verificados na sessão existente da cliente, em consulta sem decisão.
+- [ ] Executar treinamento e aceite com a cliente; QA técnico não substitui participação humana.
+
+V-403 reúne provas e limites. Pesquisa orienta organização, tabela e relatório;
+nenhuma interface React, dado externo ou novo sistema visual foi copiado.
+
 ## Revisão de produto em 05/10/2026 — D-275/V-275
 
 **Acompanhamento 10/10/2026 — D-295/V-294:** [inventário e protocolo de revisão de todos os controles](../auditoria-fluxos-serpro-finalizacao-2026-10-10.md). A enumeração estática foi feita; a execução botão a botão por papel, estado e viewport permanece aberta. O checklist abaixo só se encerra após registrar resultado e reteste por controle aplicável.
@@ -745,3 +775,86 @@ a produção foi validada por HTTP autenticado na demo e não foi declarada como
   alvos, overflow e console pelo Playwright MCP.
 - [ ] Homologar sincronização e edição do cadastro com a fonte Domínio real autorizada; a prova local
   não decide quem pode alterar dados sincronizados nem substitui o piloto.
+
+
+### Entrega D-360/V-399 — conferência publicada, 13/11/2026
+
+- [x] CI integral da fonte451e129 aprovado e PR19 integrado com árvore idêntica.
+- [x] Backend90 implantado nas mesmas máquinas;729 hashes, readiness/worker e configuração conferidos.
+- [x] CONTAD autenticada: abrir conferência163+163, consultar revisão/candidatas e baixar CSV real.
+- [x] Confirmação/desfazer com evidência e histórico validados em ensaio sintético, sem decisões contábeis reais do executor.
+- [x] Desktop/celular, filtros/páginas/retorno, papéis e isolamento verificados no recorte desta entrega.
+- [x]14 grupos protegidos/política IA/agente preservados; guia e imagens privadas preparados, aba entregue aberta.
+- [ ] Carteira completa, semântica/vínculos de títulos, DE-PARA revisado e critérios de200 fatos/95%/desempenho/recuperação/treinamento/aceite reais.
+- [ ] Q-47/C01/C02 permanecem adiados conforme pedido humano.
+
+O percurso assistido do piloto está disponível para uso; esta prova parcial
+não encerra a etapa nem comprova homologação integral. [Limites em V-399](../../../VALIDACOES.md).
+
+
+### D-367/V-406 — Títulos/baixas e DE-PARA operáveis pela interface
+
+- [x] Fonte retida → revisão por parcela → prévia → publicação cumulativa.
+- [x] Baixas/extrato → prévia → confirmação → histórico/desfazer → relatório em reais.
+- [x] Sugestões DE-PARA existentes → revisão → rascunho → ativação humana validada.
+- [x] Percurso e estados de erro verificados com Playwright sintético, claro/escuro e mobile.
+- [x] CI43925999340, 0085 e release96: árvore/runtime/saúde e15 grupos preservados comprovados.
+
+Nenhum teste sintético substitui fonte/semântica/aceite reais. Backup fora da prioridade atual.
+
+
+### D-368/V-407 — Extrato e Razão
+
+- [x] Jornada nativa, erros no contexto, upload preservado e estado real do pedido.
+- [x] Referências UI/UX Pro Max, Watermelon Forms, Web Interface Guidelines/Conta Azul, mantendo CICA.
+- [x] Playwright375/1440, claro/escuro, troca de empresa, envio/coleta sintética/retomada/conferência/relatório, sem overflow/erros JS.
+- [x] Corrigidas tabelas ocultas no celular; release97 publicada.
+- [ ] Prova da nova coleta real após atualização do agente no servidor.
+
+
+### Fechamento D-369/V-408 — entrega publicada
+
+- [x] Implementação, testes, CI, migração, pacote1.0.12 e backend98 publicados/verificados.
+- [ ] Atualização1.0.12 no SVAPL02 e recepção real; dependência técnica de acesso.
+- [ ] Fontes, dados e conferência humana das contas/relações/regras aplicáveis.
+
+**Fechamento D-369/V-408 —16/11/2026:** release98/PR27 e agente1.0.12 publicados após CI43949218680; fonte integrada/testada com árvore idêntica. Migração0041,796 hashes/14 assets, saúde/worker e15 grupos protegidos verificados. Prévia somente leitura146×12 aprovada, incluindo empresas sem conta; fonte v1 intacta e zero novas coletas/normalizações/decisões de produção. A captura fora do piloto está implementada pela tela. Resta tecnicamente aplicar1.0.12 no SVAPL02 e comprovar recepção real, quando houver acesso. Dados, vínculos, semântica e regras reais permanecem humanos; Q-47/C01/C02 adiados e backup fora da prioridade. Pacote único substitui1.0.11 pendente; não refazer pareamento/DSN nem pedir acesso novamente hoje.
+
+
+### Inspeção de prontidão — D-370/V-409, 17/11/2026
+
+- [x] Smoke Playwright local de sete páginas, 375/1440 px, claro/escuro: 28 verificações e três de navegação/teclado aprovadas.
+- [x] Preservar 92 arquivos do QA anterior; usar cópias de bases, mídia e sessão inteiramente sintéticas; encerrar servidor/browser próprios.
+- [x] Reproduzir P2 do histórico do Razão: pedidos anteriores podem ficar invisíveis após o limite de 20, antes do filtro de competência.
+- [ ] Corrigir histórico antes do uso ampliado; nenhum código foi alterado nesta análise.
+- [ ] Cliente executar e avaliar seus cenários reais; smoke não constitui aceite contábil ou usabilidade homologada.
+
+DE-PARA coberto apenas na lista vazia neste smoke. Evidências completas e
+limites em V-409; roteiro vigente no documento canônico de pendências.
+
+
+## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
+
+- [x] Conferir43 pedidos/23 extratos sintéticos alcançáveis, páginas/mês/voltar/retomada.
+- [x] Validar375/1440px claro/escuro, paisagem, teclado e erro de página sem overflow.
+- [x] Comprovar503/JSON inválido/timeout10s, recuperação e pausa60rodadas aceleradas.
+- [x] Aprovar17 verificações mais POST pelo formulário real preservando fonte/páginas.
+- [x] Congelar QA, preservar quatro capturas375/1440px claro/escuro e encerrar browser/servidor próprios.
+- [ ] Cliente executar seus cenários reais; QA sintético não é homologação contábil.
+
+- [ ] Concluir PostgreSQL integral, CI da fonte exata, MSI limpo e upgrades diretos1.0.10/11/12.
+- [ ] Publicar e conferir hashes/assets/saúde/worker e preservação dos dados/configuração.
+- [ ] Comprovar atualização/capacidades/recepção reais no SVAPL02 antes de declarar autonomia.
+
+Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
+Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
+mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
+[V-410 e limites](../../../VALIDACOES.md).
+
+
+## Ficha “Conferir vínculo” com leitura do OFX — D-377/V-417 (19/11/2026)
+
+- [x] Bloco opcional antes do formulário, rótulo/ajuda associados, botão de 44 px, resultado com período e aviso de que o arquivo não foi guardado.
+- [x] Foco vai para o resultado lido ou para o campo inválido; erro com `aria-invalid` e `role=alert`.
+- [x] Playwright 1.62.1/Chrome sintético: 11 verificações — teclado, foco visível, 1440/375 claro/escuro, paisagem, texto 200% e confirmação humana final; sem erros JS/console além do 400 esperado.
+- [ ] ui-ux-pro-max e Watermelon não estavam disponíveis nesta sessão; diretrizes aplicadas pelos padrões já existentes da ficha (D-365). Conferência em produção após publicação.

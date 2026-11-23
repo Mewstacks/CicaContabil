@@ -1,5 +1,5 @@
 {% extends 'hub/workspace.html' %}
-{% load static ui_navigation %}
+{% load static ui_navigation nfse_format %}
 {% block workspace_content %}
 <section class="workspace-panel">
   <header class="workspace-panel-head">
@@ -7,16 +7,22 @@
       <h2>{{ movement.description|default:movement.original_description }}</h2>
       <p>{{ movement.company.name }} · origem {{ movement.source_file.original_filename }}</p>
     </div>
-    <a class="button button-quiet" href="{% back_url 'hub:reconciliation' %}#movimentos">Voltar aos movimentos</a>
+    {% if conference_return_url %}<a class="button button-quiet" href="{{ conference_return_url }}">Voltar à conferência</a>{% else %}<a class="button button-quiet" href="{% back_url 'hub:reconciliation' %}#movimentos">Voltar aos movimentos</a>{% endif %}
   </header>
   <div class="reconciliation-movement-next" data-workflow-state="{{ movement_workflow.state }}">
+    {% if conference_return_url %}
+    <div><p class="section-kicker">CONFERÊNCIA DO EXTRATO</p><h3>Comparar com o registro existente</h3></div>
+    <a class="button" href="#allocation-heading">Ver alocações e registros</a>
+    {% else %}
     <div><p class="section-kicker">{{ movement_workflow.eyebrow }}</p><h3>{{ movement_workflow.title }}</h3><p>{{ movement_workflow.description }}</p></div>
     <a class="button{% if movement_workflow.state == 'exported' or movement_workflow.state == 'approved' %} button-quiet{% endif %}" href="{{ movement_workflow.href }}">{{ movement_workflow.label }}</a>
+    {% endif %}
   </div>
   <div class="reconciliation-detail-grid">
     <article>
-      <h3 id="movement-review-heading">Dados para o lançamento</h3>
-      {% if can_review_movement %}
+      {% if not conference_return_url %}
+      <h3 id="movement-review-heading">{% if movement_posting_blocked %}Dados do movimento{% else %}Dados para o lançamento{% endif %}</h3>
+      {% if can_review_movement and not movement_posting_blocked %}
       <form id="movement-review-form" method="post" class="form-stack" aria-labelledby="movement-review-heading">
         {% csrf_token %}
         {% if movement_form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors><strong>Confira os dados da revisão.</strong>{% for error in movement_form.non_field_errors %}<p>{{ error }}</p>{% endfor %}{% for field in movement_form %}{% if field.errors %}<a href="#{{ field.id_for_label }}">{{ field.label }}</a>{% endif %}{% endfor %}</div>{% endif %}
@@ -40,13 +46,14 @@
       {% endif %}
       </div>{% endif %}
       {% else %}
-      <p>Seu acesso permite consultar este movimento e suas evidências.</p>
+      <p>{% if movement_posting_blocked %}Confira a evidência registrada. Para corrigir os dados, desfaça a conciliação primeiro.{% else %}Seu acesso permite consultar este movimento e suas evidências.{% endif %}</p>
       <dl class="triage-details">
         <div><dt>Histórico</dt><dd>{{ movement.description }}</dd></div>
         <div><dt>Data</dt><dd>{{ movement.occurred_on|date:'SHORT_DATE_FORMAT' }}</dd></div>
         <div><dt>Débito</dt><dd>{{ movement.debit_account_code|default:'Não informado' }}</dd></div>
         <div><dt>Crédito</dt><dd>{{ movement.credit_account_code|default:'Não informado' }}</dd></div>
       </dl>
+      {% endif %}
       {% endif %}
       <section class="reconciliation-allocation-summary" aria-labelledby="allocation-heading">
         <h3 id="allocation-heading">Alocações da conciliação</h3>
@@ -59,6 +66,7 @@
           {% csrf_token %}<input type="hidden" name="action" value="confirm_reconciliation">
           <h3>Conciliar com registro existente</h3>
           <div class="field"><label for="entry-id">Lançamento independente</label><select id="entry-id" name="entry_id" required>{% for suggestion in reconciliation_candidates %}<option value="{{ suggestion.entry.id }}" data-allocation-limit="{{ suggestion.allocation_limit_input }}">{{ suggestion.entry.occurred_on|date:'SHORT_DATE_FORMAT' }} · {{ suggestion.entry.history }} — {{ suggestion.reasons }} · disponível R$ {{ suggestion.allocation_limit_brl|floatformat:2 }}</option>{% endfor %}</select></div>
+          {% if conference_return_url %}<details class="reconciliation-secondary-actions"><summary>Consultar evidências dos registros desta página</summary><div>{% for suggestion in reconciliation_candidates %}<article><h4>{{ suggestion.entry.history }}</h4><p>{{ suggestion.entry.occurred_on|date:'SHORT_DATE_FORMAT' }} · Valor na fonte: R$ {{ suggestion.source_amount_brl|floatformat:2 }}</p>{% if suggestion.independent_record %}<p>Documento: {{ suggestion.independent_record.source_reference.document|default:'Não informado na fonte' }}</p><a href="{% url 'hub:reconciliation-source-download' suggestion.independent_record.source_file_id %}">Baixar {{ suggestion.independent_record.source_file.original_filename }}</a>{% else %}<p>Registro existente na CICA.</p>{% endif %}</article>{% endfor %}</div></details>{% endif %}
           <div class="field"><label for="amount-brl">Valor alocado</label><input id="amount-brl" name="amount_brl" type="number" min="0.01" max="{{ reconciliation_candidates.0.allocation_limit_input }}" step="0.01" inputmode="decimal" value="{{ reconciliation_candidates.0.allocation_limit_input }}" required><p class="field-help" data-reconciliation-allocation-limit>O limite considera o valor ainda disponível nos dois registros.</p></div>
           <div class="field"><label for="evidence-note">Evidência da relação</label><input id="evidence-note" name="evidence_note" maxlength="240" autocomplete="off" placeholder="Ex.: documento, número do título…" required></div>
           <button class="button button-quiet" type="submit">Confirmar conciliação</button>
@@ -71,8 +79,8 @@
       <dl class="triage-details">
         <div><dt>Arquivo</dt><dd><a href="{% url 'hub:reconciliation-source-download' movement.source_file.id %}">{{ movement.source_file.original_filename }}</a>{% if movement.source_file.kind == 'pdf' %}<br><a href="{% url 'hub:reconciliation-source-preview' movement.source_file.id %}#page={{ movement.source_reference.page|default:1 }}" target="_blank" rel="noopener">Abrir PDF na página indicada</a>{% endif %}</dd></div>
         <div><dt>Localização</dt><dd>{% if movement.source_reference.page %}Página {{ movement.source_reference.page }}{% if movement.source_reference.line %} · linha {{ movement.source_reference.line }}{% elif movement.source_reference.ocr_line %} · linha OCR {{ movement.source_reference.ocr_line }}{% endif %}{% elif movement.source_reference.row %}Linha {{ movement.source_reference.row }}{% elif movement.source_reference.fitid %}OFX {{ movement.source_reference.fitid }}{% else %}Origem registrada{% endif %}{% if movement.source_reference.bbox %}<br><small>Região: x {{ movement.source_reference.bbox.x0|floatformat:0 }}–{{ movement.source_reference.bbox.x1|floatformat:0 }}, y {{ movement.source_reference.bbox.top|floatformat:0 }}–{{ movement.source_reference.bbox.bottom|floatformat:0 }} ({{ movement.source_reference.bbox.unit }})</small>{% endif %}</dd></div>
-        <div><dt>Data original</dt><dd>{{ movement.original_date }}</dd></div>
-        <div><dt>Valor original</dt><dd>{{ movement.original_amount }}</dd></div>
+        <div><dt>Data original</dt><dd>{{ movement.original_date|source_date }}</dd></div>
+        <div><dt>Valor original</dt><dd>{{ movement.original_amount|source_brl }}</dd></div>
         <div><dt>Qualidade</dt><dd>{{ movement.confidence }}% · {{ movement.confidence_details.method|default:'extração estruturada' }}</dd></div>
         <div><dt>Regra</dt><dd>{{ movement.applied_rule.name|default:'nenhuma' }}</dd></div>
       </dl>

@@ -1,4 +1,274 @@
-﻿## V-140 - Visao administrativa de distribuicao de atividades
+<!-- D396-V447-2026-11-23 -->
+## 23/11/2026 — D-396/V-446/V-447: correções da revisão
+
+- [x] Decisão D-396 e correções dos itens 4.1, 4.3, 4.4 e rótulos de títulos, com testes que reproduzem cada defeito (V-446).
+- [x] Publicação v121 e merge do PR #61 (V-447).
+- [ ] Item 4.2 (lançamento em dobro) e itens médios/baixos — sessão da revisão, com decisão do responsável.
+
+<!-- D395-V445-2026-11-23 -->
+## 23/11/2026 — D-395/V-444/V-445: DE-PARA com IA
+
+- [x] Decisão D-395 com autorização de envio, teto e regra de ativação informados pelo responsável.
+- [x] Implementação, testes (SQLite completo, PostgreSQL) e uma chamada real sintética (V-444).
+- [x] Publicação v120, merge e `uso_direto --apply` (zero alvos, zero custo) (V-445).
+- [ ] Primeira medição às cegas e sugestões com dados reais — quando entrarem extratos novos.
+
+<!-- D394-V442-2026-11-23 -->
+## 23/11/2026 — D-394/V-442: interpretação automática de títulos (fonte isolada)
+
+- [x] Decisão D-394 registrada antes da implementação.
+- [x] Interpretação C01/C02 pelos tipos oficiais, autor técnico, gatilhos e comando `titulos_auto`.
+- [x] Testes SQLite completos, PostgreSQL dos títulos e verificação em navegador (V-442).
+- [x] Publicação v119, merge `758e0d6` e `titulos_auto --apply` (4 capturas sem conta; prova real em memória, V-443).
+
+<!-- D393-V440-2026-11-23 -->
+## 23/11/2026 — D-393/V-440: CONTAD em uso direto (fonte isolada)
+
+Responsável delegou as decisões das pendências: a cliente quer ver e usar os dados sem revisar.
+
+- [x] Decisão D-393 registrada antes da implementação (nove itens).
+- [x] Regras DE-PARA pelo Razão ativas sem revisão; lançamento automático só do que falta no Razão.
+- [x] Exportação Domínio liberada por escritório, sem homologação falsa; recibos inalterados.
+- [x] Extrato sem conta contábil para empresas sem banco no plano/sem plano.
+- [x] Revisão das confirmações automáticas opcional; aviso de títulos sem pendência.
+- [x] Guia [contad-uso-direto.md](../pt-BR/contad-uso-direto.md) no lugar do treinamento.
+- [x] Testes, lint e verificação em navegador (V-440).
+- [x] Merge (`c70d562`), deploy v118, `CICA_DIRECT_USE_ORGANIZATION_IDS` com o UUID da CONTAD e `uso_direto --apply` em produção (V-441).
+- [ ] Interpretação automática de títulos (C01/C02) — trabalho seguinte.
+
+<!-- D375-V415-EXECUTING-2026-11-18 -->
+## 18/11/2026 — D-375/V-415: entrega CONTAD em execução
+
+A solicitação atual retoma **Q-47 e C01/C02**, superando somente seus adiamentos
+históricos. Escopo: CONTAD inteira,146 empresas desde setembro2026; infraestrutura
+preservada e importação na base real condicionada à aprovação do lote concreto.
+Os blocos anteriores são históricos; pendência não equivale a conclusão.
+
+- [x] Produção/release100, heartbeat/capacidades e ausência de migrações pendentes conferidos.
+- [x] Coleta real sem conta: empresa30/setembro e empresa25/setembro+outubro; fontes e hashes conferidos, sem revisão financeira presumida.
+- [x] Correção local da perda de guarda mensal e contingência com0088 testadas; publicação ainda pendente.
+- [x] ZIP real transferido/validado; ensaio512MiB com navegação concorrente aprovado na rodada3 nativa (rodadas1/2 reprovadas e preservadas) e complemento da imagem final91a67f0 com0089 aprovado em laboratório.
+- [x] UI e CI dos recibosQ-47 concluídos (CI44306412317 verde na candidata91a67f0).
+- [x] Publicada91a67f0 (imagem OCI ee47ad87) nas máquinas existentes com0088/0089; catálogo de217.891 contas/146 empresas importado com manifesto exato e revalidado somente leitura (replay com locks bloqueado por gravações do agente; ver V-415).
+- [x] Telas da descoberta conferidas em produção (somente leitura, sessão do responsável; ver V-415).
+- [x] Simplificação das telas (PR #35: confirmação em lote de coincidências exatas, quatro atalhos na carteira, datas dd/mm/aaaa, dica de vínculo) publicada em v104 (imagem f04970bd) e conferida em produção sem acionar o lote (ver V-415).
+- [ ] Identificar importador/versão reais do Domínio noSVAPL02 (sessão atual sem controle de desktop; prints solicitados) e obter aprovação do lote novo antes da importação.
+- [ ] Conferência humana C01/C02, vínculos das empresas, DE-PARA, amostra/recuperação D-73 e aceite da cliente.
+
+Encerramento 18/11: release91a67f0 publicada e catálogo importado; entrega à
+cliente como **uso assistido** ([comunicado](../pt-BR/contad-entrega-2026-11-18.md)),
+não como conclusão D-73. Pendências com responsável: formato real do importador
+Domínio e lote aprovado (responsável+CONTAD, Q-47); C01/C02 (Grazi); vínculos
+bancários (CONTAD); amostra200/aceite (CONTAD+CICA); janela de restauração do
+Neon (responsável, console exige login). Evidências em [V-415](../../VALIDACOES.md)
+e decisões em [D-375](../../DECISOES.md).
+
+<!-- D374-V414-PREPARED-2026-11-17 -->
+## 17/11/2026 — D-374/V-414: pacote da cliente e retomada técnica preparados
+
+- Registrado D-374 antes da execução; preservadas restrições de D-373 e decisões Q existentes.
+- Corrigido o guia público da release 100: retiradas instruções obsoletas de instalação/coleta;
+  sessão inicial no piloto existente e módulos complementares com limites explícitos.
+- Baixado CSV pelo botão real da sessão CONTAD às 17:02 BRT; conferência independente
+  offline aprovada, sem confirmar/desfazer movimentos ou solicitar nova coleta.
+- Preparados PDF de quatro páginas, versão texto e registro editável de nove cenários.
+  Todas as páginas renderizadas/inspecionadas, dois links PDF conferidos, resultados humanos
+  inicialmente não executados. Pacote privado em Downloads, sem envio externo.
+- Concluídos pins da configuração e verificadores/roteiro de retomada da descoberta;
+  21 testes locais aprovados, 775 hashes, três fontes retidas e 146 códigos conferidos.
+  Revisão independente sem bloqueadores; nenhuma execução Docker/banco/ERP nessa preparação.
+- Atualizados guia, plano, pendências, checklists, dúvidas e V-414; regressões V-413
+  reutilizadas, pois não houve alteração na aplicação.
+
+Resultado: roteiro pronto para iniciar hoje o piloto e a revisão das fichas disponíveis.
+A cliente ainda precisa executar e registrar os testes. Fonte real/capacidade/publicação
+da descoberta e aceite continuam pendentes. [Guia](../pt-BR/contad-conciliacao.md),
+[entrega vigente](pendencias-conclusao-2026-11-02.md) e [V-414](../../VALIDACOES.md).
+
+<!-- D370-V413-READINESS-2026-11-17 -->
+## 17/11/2026 — D-370/V-413: reanálise CONTAD concluída
+
+- Lidos registros canônicos/etapas/Q; escopo limitado à CONTAD D-301/D-302.
+- Fonte exata release100 isolada; 3.123 testes SQLite/54 skips/181 subtestes,
+  215 testes focados e checks Django/migrações aprovados, sem mudar aplicação.
+- Reconferidos runtime web/worker801 hashes,14 assets, HTTPS/banco/cache,
+  15 grupos preservados, agente recente,146 empresas/uma conta/43 fichas+complementos.
+- Relatório e conferência reais abertos em leitura na sessão CONTAD;162 movimentos
+  pendentes, saldos/cobertura honestamente não confirmados, nenhum POST realizado.
+- CI da candidata02c13b0 aprovado, PR32 rascunho; ZIP real ausente nos locais
+  verificados, migração/importação/publicação pendentes. Não repetir pedidoSVAPL02.
+- Atualizados parecer/roteiro vigentes, checklists, dúvidas, plano e V-413.
+
+Resultado: testes delimitados do piloto podem começar hoje; carteira146 e aceite
+integral não concluídos. Sem deploy, novas coletas, IA, mensagens ou decisão pela
+cliente. Evidências e limites em [V-413](../../VALIDACOES.md) e no
+[parecer vigente](pendencias-conclusao-2026-11-02.md).
+Os blocos seguintes conservam o histórico de seus respectivos horários.
+
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+**17/11/2026 — D-371/V-410: correções publicadas para testes, release99.**
+[PR28](https://github.com/Mewstacks/CicaContabil/pull/28), main`b237e924` e [CI44086070065](https://github.com/Mewstacks/CicaContabil/actions/runs/44086070065) aprovados; head`1c9935745b45855c8c13e63e38d038a52a3beafa`, árvore exata`36f15b49e60a4c9a3b6208405d484019a1c5be19`. Backend797 arquivos/SHA`55585d53bb9812094edebc098201ae093928d5af0e674798b9cdfaaaf59645d0`, saúde/worker/assets e15 grupos de dados preservados conferidos. Agente1.0.13 [publicado](https://github.com/Mewstacks/CicaContabil/releases/tag/agent-v1.0.13), com instalação limpa e upgrades 1.0.10/11/12 aprovados no Windows sintético.
+
+CI integral: 3072 SQLite/54 skips, 3124 PostgreSQL/2 skips; 181/181 subtestes, respectivamente; 179 testes Windows aprovados.
+
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+Validação local:SQLite3072 aprovados/53 skips/181 subtestes e PostgreSQL3124/um skip/181 subtestes. A coleta integral começou antes do último POST:26 casos novos incluídos; 27 regressões novas focadas, incluindo o POST adicional, passaram. Não somar rodadas sobrepostas; as contagens CI acima correspondem à fonte final exata. .NET local176/três Windows reservados. QA Playwright17 verificações mais POST pelo formulário real, todos sintéticos, com43 pedidos/23 extratos,375/1440px claro/escuro, paisagem, teclado, erro/recuperação e contexto; erros400/503 induzidos. PostgreSQL temporário, servidor e browser próprios encerrados.
+
+## 17/11/2026 — D-371/V-410 EM ANDAMENTO, correções para testes
+
+Candidata isolada contad-test-fixes/main7d075261: histórico do Razão filtrado
+antes da paginação, extratos em páginas próprias, contexto/fonte preservados
+e polling com falha/timeout/pausa explícitos. Agente1.0.13 candidato com fila
+ativa sequencial, autenticação antes de cada par, orçamento quatro pares/30s
+observado entre pares, recuperação HTTP e diagnóstico do último ciclo.
+Revisão independente confirmou as correções de justiça entre famílias,
+timeout versus parada e seleção do extrato no vínculo, com regressões próprias.
+
+SQLite3072/53 skips/181 subtestes/167,27s passou;26 casos novos incluídos.
+Último POST acrescentado após coleta da suíte passou na rodada focada de27
+regressões novas. .NET176/três Windows reservados e checks globais aprovados.
+QA17 verificações mais POST pelo formulário real, todos sintéticos, aprovados;
+browser/servidor encerrados. PostgreSQL integral em andamento. CI exato,
+MSI/upgrades Windows, publicação e provas finais permanecem pendentes.
+
+Continuidade V-409 trazida da raiz à candidata sem substituir D-370/D-371.
+Orçamento esclarecido nos dois DECISOES como verificado entre pares; controle
+autenticado antes de cada par. Nenhuma nova coleta ERP, instalação SVAPL02,
+decisão contábil ou aceite foi demonstrado. Alcance/recibos/limites em V-410.
+
+## 16/11/2026 — D-366/V-405 concluída em produção, release95
+
+PR24/CI43912687677 aprovados e publicação nas duas máquinas existentes.
+Migração0084 ensaiada/aplicada, runtime idêntico, saúde/worker aprovados;
+15grupos protegidos preservados. Percurso de empresa nova e correções de
+contas/vínculos validados sinteticamente. Não houve nova confirmação humana,
+coleta financeira ou expansão fictícia de cobertura. Ver V-405 para números,
+provas e pendências de dados/backup/aceite que continuam abertas.
+
+## 16/11/2026 — D-366/V-405, fechamento dos bloqueios de uso
+
+Implementados no checkout isolado correção auditada de contas/vínculos,
+prontidão baseada em cadastro completo, entrada explícita do Razão com modelo
+/validação prévia e recuperação de trabalho interrompido. Revisão independente
+fechou escopo de conta/plano, concorrência e soft timeout; migração0084 mantém
+default no banco para compatibilidade com o runtime anterior. Ensaios locais
+usam somente fontes sintéticas. CI/publicação e prova final seguem pendentes
+nesta anotação;43 revisões e fontes das demais empresas não foram inventadas.
+
+## 16/11/2026 — D-364/V-403, carteira e relatório publicados na release 93
+
+No checkout isolado contad-client-operations, implementadas carteira por
+empresa/conta/mês, indicação de dados ausentes, importação preenchida e saída
+legível/imprimível em reais. CSV técnico preservado. Empresa E módulo delimitam
+o acesso, inclusive suporte/revogação; período acompanha conferência, detalhe,
+retorno e relatório, sem ampliar consultas com filtros inválidos.
+
+37 testes HTTP independentes aprovados, com papéis, escopo, 25+2 empresas,
+erros, período e GET sem jobs/auditoria/contas/decisões. Rodada agregada local:
+233 testes aprovados, cinco skips explícitos de concorrência PostgreSQL e
+24 subtestes. Rodadas auxiliares sobrepostas não somadas ao total. Ruff e
+diff-check do novo arquivo HTTP passaram. QA privado preparado com 27
+empresas fictícias, quatro contas, dois meses e um Razão pendente; três sessões
+de papel. QA visual e follow-up concluídos sem erros de console/requisições;
+foco/modal/Escape e tabela móvel corrigidos e retestados, com cinco campos
+e ação visíveis. PostgreSQL focado:160 testes aprovados, incluindo os cinco
+casos de concorrência. Ruff/check/diff-check locais aprovados.
+
+Guia e registros atualizados por deltas, preservando alterações existentes.
+CI43883885104 integral aprovado:2461 testes SQLite +38 skips e2497
+PostgreSQL +2 skips,175 subtestes em cada suíte e110 contratos Windows.
+PR22/main7a8af3b conservam a árvore testada. Release93 publicada nas duas
+máquinas ativas, mesma configuração/capacidade e legado parado preservado.
+Carteira e relatório autenticados conferidos:146 empresas,145 sem conta no
+CICA; piloto163+163, com162 a conferir em cada lado.14 grupos de dados
+inalterados; live/ready, banco/cache, cinco assets e worker aprovados.
+Consulta não cria treinamento/aceite, coletaERP, conta, aprovação humana ou IA. Q-28/Q-46/D-73, recuperação,
+treinamento/aceite e Q-47/C01/C02 adiados continuam próprios. Detalhes emV-403.
+
+## 16/11/2026 — D-363/V-402, mecanismos de expansão publicados na release92
+
+Checkout isolado contad-portfolio-expansion, fonte1a16f3c/PR21. Implementadas
+prévia sem escrita e gravação atômica de lotes mensais revisados; comando
+unitário compartilha o serviço. Fila deixa trabalhos válidos prosseguirem
+quando outra conta/escopo é inválido e ordena retries transitórios sem
+reativar jobs em revisão/falha.189 testes PostgreSQL, incluindo concorrência,
+Ruff/check e migrações sem alterações aprovados. CI43873060568 integral
+aprovado, PR21 integrado emmainc053cc0 com árvore idêntica à fonte1a16f3c;
+release92 publicada, sem novo MSI.
+
+Matriz offline privada0600 gerada dos dois perfis originais de13/11:146
+empresas,43 candidatas em11,135 ausências,32 sem linhas,14 sem parâmetros,
+seis com múltiplas filiais. Zero revisão/aptidão de captura atribuídas; piloto
+preservado separadamente. Contagens agregadas não viram escopos por conta.
+Detalhes/hash emV-402. Sem nova coletaERP, contas/regras, IA ou mensagens.
+Q-28/Q-46/D-73 e Q-47/C01/C02 adiados preservados; alterações locais anteriores
+mantidas. Esta entrega parcial não encerra carteira ou aceite do contrato.
+
+Complemento D-363/V-402: consulta READ ONLY ao cadastro CICA em16/11
+conferiu146/146 códigos da matriz e forneceu os nomes para roteiro privado
+com43 referências à ficha já existente. TXT70246bytes/SHAffaeb832…65b8ba,
+modo0600, sem capturaERP ou revisão humana. Candidata732 hashes/cinco
+overlays Python conferida; dependências/configuração/estáticos/esquema
+preservados e619 arquivos CRLF herdados da91 mantidos. CI integral aprovado:
+2357SQLite/38 skips/169 subtestes,2393PostgreSQL/2 skips/169 subtestes,
+110Windows/zero skips,107Linux/3 skips e três buildsDocker.
+
+Fechamento D-363/V-402: somente web/worker atualizados,732 hashes iguais à
+candidata; mesmos três IDs/capacidade/configuraçãoFly e legado integralmente
+igual/parado. Release command omitido após verificar ausência de migrações
+pendentes nos dois bancos.14 grupos protegidos e campos estáveis iguais
+antes/depois, incluindo autoria/evidência e histórico com uma confirmação.
+Liveness/readiness200/banco/cache ok e workerpong. Prévia real READ ONLY
+reutilizou o escopo legado do piloto sem novos jobs ou mudança de autor.
+Primeiro ensaio assumiu autor preenchido no job legado e falhou antes do
+serviço; corrigido somente o ensaio. FalhaCA local do urllib não reproduzida
+no curl com TLS verificado. Detalhes e limites emV-402. Publicação técnica
+concluída; carteira/Q-28, recorrência/filiais, Q-46/D-73, recuperação/treinamento
+e aceite permanecem abertos; Q-47/C01/C02 adiados. Sem nova conta, coletaERP ou IA.
+
+## 27/10/2026 — contrato e levantamento de contas a pagar/receber (V-301)
+
+- D-301 registrou o recorte do contrato fornecido, a intenção sobre títulos e
+  a alternativa fiscal. Quatro páginas lidas e inspecionadas visualmente;
+  original, assinaturas e identificadores não adicionados ao controle de versão.
+- A cliente do contrato não é o ambiente Fedrizzi de D-74. Q-28 foi detalhada
+  para esse ambiente e material; Q-46 registra regras/DE-PARA; Q-47 registra
+  resultado e operação de destino contábil/fiscal.
+- [Roteiro de dez perguntas e material mínimo](levantamento-contrato-conciliador-2026-10-27.md)
+  diferencia título, banco e ERP. Triagem e demais módulos da suíte não viram
+  exigência para a entrega específica. DE-PARA com apoio de IA, testes,
+  implantação e treinamento inicial permanecem no recorte contratual.
+- Inspeção estática mostrou que o importador de obrigações trata guias fiscais;
+  rótulo de títulos não prova parcelas/baixas comerciais. Nenhum teste de V-300
+  foi repetido, nenhuma lacuna corrigida ou integração externa executada.
+- Checklist/plano/validações atualizados, etapa 09 aberta. Próximo passo é obter
+  fontes, exemplos de faltas, regras e demonstração da operação desejada no ERP,
+  sem presumir escrita direta ou equivalência contábil/fiscal.
+
+## 26/10/2026 — projeto atualizado e diagnóstico do conciliador (V-300)
+
+- Escopo D-300: pull e verificação local/documental de PC-19; nenhuma implementação
+  ou homologação externa iniciada. Checkout inicialmente limpo, `main` atualizada
+  por fast-forward de `d501fbe` para `aad2f5a` (59 commits); comparação remota 0/0.
+- 94 testes e 24 subtestes aprovados, um skip de OCR português. Quatro sondas
+  fictícias reproduziram reutilização de candidato, ausência de validação de
+  natureza, duplicação entre arquivos e divergência de conta entre os fluxos.
+  As sondas não corrigem nem aprovam esses comportamentos; detalhes e falhas
+  iniciais da fixture em V-300. Django e dry-run de migrações sem pendências.
+- A consulta do agente fornece itens do extrato Domínio, sem comprovar partidas
+  independentes do Razão. Falta ligar o espelho à conciliação avançada e fechar
+  os controles de integridade antes do piloto. Nenhuma mudança na aplicação/UI.
+- [Diagnóstico e entrevista da cliente](diagnostico-conciliador-2026-10-26.md)
+  detalham Q-28, material mínimo e critérios D-73. D-74 já confirma Domínio
+  local/ODBC da Fedrizzi; D-295 aceita NFS-e, sem homologar o arquivo contábil.
+- Checklist e plano atualizados. Etapa 09 aberta. Próxima execução de PC-19:
+  corrigir as lacunas de integridade e confirmar a fonte independente permitida;
+  piloto só com empresas, recorte e amostras autorizados, sem custo inferido.
+
+## V-140 - Visao administrativa de distribuicao de atividades
 
 Proprietario e administrador passaram a ver atribuicoes abertas por membro ativo, com atrasos
 e impedimentos separados, e podem abrir a fila exata de cada pessoa ou as atividades sem
@@ -2408,6 +2678,2235 @@ GGBPLAST. Regressão local: 1.134 testes, mesmas duas falhas preexistentes.
 - Navegador integrado indisponível e módulo Node Playwright ausente. Os scripts locais de QA sintético foram localizados, mas não executados.
 - Verificação estática não encontrou os anti-padrões pesquisados. A matriz renderizada por botão, papel, estado e viewport continua pendente e não foi declarada validada.
 
+## 02/11/2026 — Verificação e correções do conciliador CONTAD (D-302/D-303, V-302)
+
+- PDF de quatro páginas extraído/renderizado/inspecionado; preservado fora do Git.
+  Responsável confirmou Domínio local, agente no PC da cliente com acesso ainda
+  a fornecer e inclusão de pagar/receber. Q-28/Q-46/Q-47 atualizadas.
+- Implementadas proteções de identidade, conta, natureza, fonte independente,
+  exclusividade e concorrência; migração aditiva 0076 e auditoria somente leitura.
+  Consulta .NET de vínculo alinhada ao `EXISTS` já allowlisted. A UI não apresenta
+  espelho bancário como lançamento do Razão.
+- Regressão SQLite: 1.415 aprovados, 10 skips, 145 subtestes. Bateria PostgreSQL:
+  125 aprovados, 1 skip OCR, 24 subtestes, incluindo três concorrências reais.
+  Ensaio de 200 transações sintéticas íntegro em 0,974 s. Builds serviço/configurador/
+  ponte e 23 testes .NET passaram. Ruff/check/migrações/diff passaram; quatro
+  arquivos passam no MyPy, e views conserva dez erros anteriores comprovados em HEAD.
+- Playwright Node isolado validou upload/erros/confirmar/auditor e seis combinações
+  de viewport/tema, teclado/foco/movimento reduzido, sem overflow ou erros JS;
+  capturas inspecionadas e browsers fechados. Corrigido o teste de migração NFS-e
+  para restaurar o esquema atual ao fim do teste.
+- [Relatório e próximo passo](verificacao-conciliador-contad-2026-11-02.md).
+  Etapa 09 permanece aberta: Razão/títulos/DE-PARA IA, integração dos fluxos e
+  piloto CONTAD ainda pendentes. Nenhum ERP real, instalação, custo ou deploy.
+
+Complemento V-302: regressão integral em PostgreSQL descartável concluída com
+**1.423 testes e 145 subtestes aprovados, 2 skips** (OCR e Playwright Python),
+em 178,68 s. Todas as concorrências locais passaram. Instância PostgreSQL e
+servidor de QA desta sessão encerrados ao fim; logs e capturas sintéticas
+mantidos em `.tmp/auditoria-conciliador-2026-11-02/`, ignorado pelo Git.
+
+## 02/11/2026 — Consolidação GitHub e pendências (D-304/V-303)
+
+- Responsável autorizou enviar todas as alterações atuais ao GitHub. `main`
+  estava alinhada com `origin/main` em `aad2f5a`; sem reset ou descarte.
+- Preparados código/testes/migração e documentos de diagnóstico, contrato e
+  verificação anteriores, além da [lista de conclusão](pendencias-conclusao-2026-11-02.md).
+- Workflow de push executa CI; deploy exige dispatch separado, não acionado.
+  Ruff global exigiu somente uma quebra de linha no docstring de um script,
+  que não foi executado. Testes funcionais permanecem os comprovados em V-302.
+- Envio confirmado: `main` avançou de `aad2f5a` para `1b978d4` com 27 arquivos
+  de código, testes e documentação. SHA conferido diretamente no remoto,
+  comparação local/remoto 0/0 e árvore limpa. Registro de confirmação em commit
+  documental adicional; nenhum deploy ou integração real foi executado.
+
+## 03/11/2026 — Continuidade CONTAD com Sicredi e Razão independente (D-305/V-304)
+
+- Base `b499cd1`, árvore inicialmente limpa. Registradas antes da implementação
+  as confirmações: títulos no Domínio; saída de relatório e arquivo de importação.
+  Acesso ao PC ainda prometido. PDF/OFX tratados como dados locais; assinatura
+  de e-mail não define regra contábil. Binários/identificadores fora do Git.
+- PDF de seis páginas renderizado/inspecionado; 163 movimentos coincidem com
+  OFX em data/valor/multiplicidade, saldos de 100 para 0 centavos. Não é Razão.
+- Entrada de partidas completas `ledger-csv-v1`, vínculo persistido da fonte
+  (0077), ponte das duas filas, confirmação/desfazimento/retry, auditoria de
+  projeção e relatório privado implementados. Fonte escriturada não é reexportada.
+  Sicredi preserva documento/página/região/saldo e valida sequência.
+- Regressão integral PostgreSQL: **1.452 testes/151 subtestes aprovados, 2 skips,
+  212,71 s**. Concorrência entre filas e importações concorrentes executadas.
+  Ensaio com 200 lançamentos sintéticos completos, retry e nenhuma sobra no
+  relatório; não é piloto/precisão/aceite real D-73.
+- Ruff/check/migrações/diff aprovados; seis serviços passam MyPy. Views conserva
+  os mesmos dez erros anteriores comprovados com HEAD. Playwright Node validou
+  percurso, download privado, auditor com carteira, teclado/foco, claro/escuro,
+  desktop/celular/paisagem sem overflow ou erros JS; capturas inspecionadas.
+- [Contrato e operação](../conciliacao-razao-normalizado.md), checklists e matriz
+  atualizados. Razão/títulos diretos, regras de parcelas/baixas, DE-PARA com IA,
+  importação contábil, recuperação operacional, treinamento e aceite permanecem
+  pendentes. Instalação depende do acesso prometido; não houve custo ou deploy.
+
+Encerrados servidor de QA e PostgreSQL descartável. Links, Ruff global e diff
+conferidos; logs MyPy atual/HEAD idênticos. Mudanças permanecem locais, sem
+commit/push e sem arquivos da cliente no conjunto de alterações.
+
+## 03/11/2026 — Pacote Windows do agente testado (D-306/V-305)
+
+- Preservadas alterações D-305; branch isolada `codex/agent-windows-validation`,
+  baseada em `b499cd1`, sem merge/deploy ou dados de cliente.
+- CI anterior gerava MSI sem disponibilizá-lo. Criados teste de ciclo instalado
+  e retenção de MSI/hash/manifesto/inventário/logs. Primeiro ensaio comprovou
+  ACL herdada indevida; corrigida no MSI para SYSTEM/Administradores.
+- Rodada final Windows Server 2022: 23 testes .NET e **25 verificações aprovadas**,
+  incluindo ACL, configurador, ponte, diagnóstico, DPAPI, reparo, reinício e remoção.
+  Ajuste de precisão de horário no roteiro manteve os critérios de frescura.
+- Run 41664064414, SHA `57acd4f9738209842f4d3be546859c164adcba88`; pacote 1.0.0
+  baixado e hash confrontado com manifesto/relatório. ZIP local de transferência
+  com instruções em `agent-windows/artifacts/`, ignorado pelo Git.
+- Repetidos localmente três builds sem avisos/erros, 23 testes .NET e 23 Python.
+  Pacote sem assinatura Authenticode, pronto para ensaio controlado; acesso ao
+  PC, driver/DSN, pareamento e ERP da cliente ainda pendentes. Não houve deploy.
+
+Encerramento: branch remota confirmada em `158e4ae`, sem merge em main. Pacote
+local novamente conferido, hashes dos 15 arquivos preexistentes preservados,
+Ruff/diff/CRC aprovados e worktree isolada arquivada com confirmação. Binários
+e evidência temporária continuam fora do Git.
+
+
+## 03/11/2026 — Teste Windows 11 Desktop (D-307/V-306)
+
+- Reutilizada branch isolada e artefato V-305, sem rebuild, merge ou alteração
+  no produto. Workflow público `windows-11-arm`, hash fixado antes de executar.
+- Run 41669715057 / commit 57427c7 aprovados: Windows 11 Enterprise cliente
+  build 26200 ARM64, 25 verificações de instalação, serviço, GUI, ponte,
+  diagnóstico, ACL/DPAPI, reparo, reinício e remoção. Mesmo MSI 1.0.0/SHA de V-305.
+- Relatórios e logs baixados; cópia JSON em `agent-windows/artifacts/windows-11-arm/`.
+  Evidência de Server 2022 preservada. Sem DSN, driver, pareamento ou ERP real.
+- Responsável confirmou PC de teste via RDP e sessão pronta. Interface continuou
+  recusando acesso com “Computer Use permissions are not granted”, mesmo após
+  recarregar o runtime. Não houve inspeção/instalação no PC. Orientação oficial
+  de permissões consultada; Windows 11 Intel/AMD continua pendente do acesso.
+- 15 hashes de arquivos preexistentes preservados; sem dados da cliente,
+  binários versionados, publicação, nova contratação ou custo presumido.
+
+
+## 03/11/2026 — Agente testado e mantido no Windows 11 Pro x64 (D-307/V-307)
+
+- Helper habilitado e permissões conferidas. PC por RDP: Windows 11 Pro,
+  build 26200, ProductType=1, AMD64, sem agente/configuração anterior.
+- Keyboard Mode Unicode autorizado temporariamente para corrigir os símbolos;
+  pacote original baixado e hash fixado conferido no PC. Sem nova integração.
+- Roteiro de PC preparado, com recusa de instalação preexistente e sem remover
+  o produto ao terminar. Corrigida resolução de caminhos no Windows PowerShell
+  antes da instalação; novo hash/parser conferidos e RunAs normal.
+- 24 verificações aprovadas, instalação/reparo saída 0, serviço final Running,
+  configuração sintética removida, agente em espera sem ERP. MSI inalterado.
+- JSON/logs preservados em Downloads do PC; SHA do relatório registrado em
+  V-307, resumo local em `agent-windows/artifacts/windows-11-x64/`.
+- Não houve pareamento, SQL, dados da cliente, aceite CONTAD, deploy ou custo.
+
+Encerramento V-307: Scancode/tela cheia restaurados; configurador deixado aberto
+sem salvar/parear. Hashes locais MSI/roteiro e os 15 arquivos preexistentes
+conferidos. Sem commit/push novo ou ampliação para integração real.
+
+## 03/11/2026 — Teste do conciliador com o PC disponível (D-308/V-308)
+
+- Pedido atual registrado antes da execução, mantendo D-74 e Q-28/Q-46/Q-47.
+- No configurador instalado, selecionado Domínio Local; DSN de sistema e
+  driver SQL Anywhere 16 encontrados. Botão de teste retornou ODBC 28000
+  (usuário/senha recusados). Solicitada correção direta no RDP, sem senha no chat.
+- Sem salvar/parear, enviar dados ou alterar DSN/segurança. Configurador
+  conservado aberto e tela cheia restaurada; teclado permaneceu Scancode.
+- Nova travessia local do endpoint bancário v2 até relatório/decisão das duas
+  filas: 7 cenários novos aprovados; regressão PostgreSQL dirigida com 157 testes
+  e 24 subtestes aprovados, um skip OCR, 30,32 s. São dados sintéticos, sem
+  executar o serviço Windows contra o servidor. Não recontar os sete testes.
+- Anexos Sicredi reconferidos localmente: 163 movimentos por arquivo, zero
+  sobras de data/valor, sequência de saldos válida. Sem prova de Razão/conta.
+- Evidências locais ignoradas pelo Git: XMLs `.tmp/agent-*results.xml` e
+  `.tmp/agent-conciliador-2026-11-03/sicredi-check.json`. Sem publicação ou custo.
+- Sincronização Windows real e piloto continuam pendentes; o erro de
+  autenticação não equivale a conclusão ou a credenciais alteradas.
+- PostgreSQL de QA encerrado; Ruff/diff-check finais limpos e 15 hashes
+  preexistentes preservados. Resumo local em `.tmp/agent-conciliador-2026-11-03/summary.json`.
+
+## 03/11/2026 — Conexão Domínio corrigida no Windows 11 (D-308/V-309)
+
+- Esclarecida resposta: confirmação anterior foi no ODBC/Domínio. Configurador
+  1.0.0 ainda retornava 28000. Diagnóstico .NET somente com DSN passou, sem
+  imprimir registro ou credencial.
+- Corrigida substituição de autenticação com opção explícita do DSN, compatível
+  com configuração antiga, helper compartilhado e sem fallback. UI nativa
+  conferida no Windows com mouse/teclado/estado dos campos.
+- Branch isolada reutilizada: código 605436b, roteiro 50c0463. Builds locais
+  sem avisos/erros e 28 testes; CI 41706460758 com 28 testes e 25 checks
+  aprovados. Sem merge/deploy do site.
+- MSI 1.0.1/hash conferidos no Mac e PC; atualização real aprovada, saída 0,
+  serviço Running automático LocalSystem e sem configuração. Roteiro recusa
+  configuração preexistente; sem bypass da política de execução.
+- Configurador atualizado confirmou conexão Domínio. Sem salvar/parear.
+  Scancode restaurado; resultado mantido aberto. ODBC LocalSystem pendente.
+- Sondagem vazia HTTPS retornou 503 por CA não configurada. Sem código/CSR,
+  dados financeiros ou alteração de produção. Fly CLI somente leitura não
+  forneceu configuração utilizável (saída 1).
+- Relatório/logs originais preservados no PC; hash e resumo transcrito local,
+  MSI/CI em `agent-windows/artifacts/windows-1.0.1/`, fora do Git. V-309 separa
+  relatório de atualização e sucesso visual posterior.
+- Checklists 03/09/12 e registro de dúvidas atualizados; continuam pendentes
+  autorização da configuração hospedada, destino/recorte, pareamento e piloto
+  real. O bloqueio não equivale a conclusão.
+
+Encerramento V-309: TRX local preservado; 15 hashes financeiros intactos,
+MSI/roteiro conferidos e diff-check aprovado. Worktree arquivada com confirmação
+depois de conservar código/evidência. Configurador aberto com sucesso visível,
+sem configuração salva ou pareamento. Alteração de produção não executada.
+
+## 04/11/2026 — Implementação do plano CONTAD, D-309/V-310
+
+- Lidos plano, decisões, validações e etapas/dúvidas na ordem exigida. Registrado
+  D-309 antes dos comportamentos dependentes; baseline preserva estado anterior.
+- Implementados bloqueios de duplicidade nas duas cadeias e revisão/exportação
+  sob trava de empresa. Auditoria histórica permanece somente leitura.
+- Recorte persistido em cadastro/agente com migração aditiva 0031, protocolo
+  compatível, filtros antes do envio e validação atômica da página no servidor.
+  Ausência de recorte impede financeiro v2. Piloto não aciona outros módulos.
+- Endurecidos CA/CSR/mTLS/gateway, com bootstrap separado e cabeçalhos públicos
+  sobrescritos; preparado procedimento da etapa 12. Não criado segredo/CA real.
+- Ajustados orientação de movimento conciliado, rótulo de candidatos e OCR no
+  runtime Linux. Testes de interface feitos com dados e sessão sintéticos.
+- Regressão PostgreSQL: 1.502 testes/151 subtestes aprovados, um skip opcional.
+  .NET: 38 testes e builds sem avisos/erros; CI MSI 1.0.2: 25 verificações.
+  Nginx/Django TLS real local, Redis/Celery e restauração sintética aprovados;
+  V-310 registra os tempos e limites sem equipará-los a produção/Windows.
+- Branch isolada `codex/agent-windows-validation`, commit fc7b378 e run
+  41845516300 preservados. MSI/hash conferido no Mac; transferência ao PC
+  não respondeu, nenhum instalador executado. PC conserva 1.0.1.0 e ausência de
+  configuração. Não alterados DSN, firewall, credenciais ou ERP. Scancode
+  restaurado; terminal de diagnóstico criado nesta rodada fechado.
+- Pesquisa somente leitura autorizada pelo responsável escolheu candidato
+  Fedrizzi de uma empresa/conta bruta/janeiro de 2026 com 115 itens. IDs só na
+  evidência ignorada; falta confronto bancário/contábil, zero itens independentes
+  homologados e nenhum envio. Não repetida pergunta pelos identificadores.
+- Cadastro hospedado permanece 503 por CA; sessões CLI não acessam o app e
+  responsável confirmou não dispor desse acesso. Não repetir solicitação nesta
+  rodada. Nenhuma alteração hospedada, importação ERP ou execução de IA.
+- Plano, decisões, validações, checklists 03/09/12, dúvidas Q existentes, matriz
+  CONTAD, pendências e instalação atualizados. Worktree do agente arquivada;
+  contêineres/rede/servidores temporários próprios encerrados após evidências.
+  PC-19 continua aberto para fontes/regras, pareamento, importação conferida,
+  recuperação real, treinamento e aceite. Bloqueio não constitui conclusão.
+
+Complemento V-310: a revisão de entrada mTLS acrescentou recusa segura de
+cabeçalho de gateway com caracteres não ASCII. A regressão final de cinco
+módulos aprovou **80 testes PostgreSQL em 58,71 s**, sem skips, depois dessa
+alteração; não se soma esse número aos testes únicos da suíte integral.
+A persistência DPAPI recebeu arquivo temporário criptografado, flush e troca
+atômica, mantendo o arquivo anterior em caso de falha; ciclos sem mudança de
+recorte/destino não regravam configuração. Serviço/configurador compilaram com
+zero avisos/erros. Mac: 37 testes .NET aprovados e um skip explicitamente Windows;
+revalidação do pacote Windows preparada no commit `fc7b378`.
+
+Fechamento do pacote V-310: run **41845516300** concluído com **38 testes .NET
+sem skips e 25 checks MSI aprovados**; checksum final `e5bef0da853b740d3286087a863ad74922e2252ab6d969a2d8e2e333512158cc`
+conferido contra o arquivo, manifesto e relatório CI. Artefato final em
+`agent-windows/artifacts/windows-1.0.2/run-41845516300/`; candidato anterior
+preservado por run. O CI registrou avisos não bloqueantes de runtime Node das
+ações e ICE61 de atualização da mesma versão; os builds .NET tiveram zero
+avisos/erros. Não houve execução do MSI no PC. Worktree arquivada, serviços de
+QA próprios encerrados e alterações anteriores preservadas.
+
+## 04/11/2026 — Dispensar CA privada do agente, D-310/V-311
+
+- Registrada a decisão do responsável antes de mudar o contrato: piloto passa
+  a HTTPS/HMAC explícito, mantendo recorte, segredo, revogação, DPAPI e TLS.
+- Backend deixa de consultar CA no novo modo; configurador não cria CSR/PFX;
+  serviço dispensa certificado/renovação. Legado certificado preservado, sem
+  fallback silencioso. Configurador também usa gravação atômica/ACL antes da escrita.
+- Regressão integral: 1.522 testes Python/151 subtestes aprovados, um skip.
+  CI final 41854423194: 44 .NET e 26 checks Windows, incluindo LocalSystem sem PFX.
+  Dez cenários HTTPS reais sintéticos sem CA de cliente aprovados; V-311 registra
+  tentativas/correções, tempos, arquivos, hash e limites.
+- MSI 1.0.3 preservado por run, checksum conferido. CI não inclui dados reais.
+  Nenhum MSI executado no PC; sem deploy/conta Fly disponível, sem novo pedido
+  de acesso. PC continua 1.0.1.0; nenhum dado transmitido, ERP alterado ou custo contratado.
+- Plano/decisões/validações, etapas 03/09/12, Q-28, matriz, pendências e instalação
+  atualizados. Exigência de CA/mTLS como gate superada; demais condições reais
+  continuam. Worktree e serviços de QA próprios encerrados após preservar evidência.
+
+## 05/11/2026 — Continuidade PC-19/CONTAD, D-311/V-312
+
+- Solicitação anexada lida com plano/decisões/validações/etapas e dependências.
+  Base main b499cd1, baseline privado de 7.199 arquivos. Nenhum reset, limpeza,
+  pull, commit geral, push ou deploy; trabalho anterior preservado.
+- Registrada D-311 antes das correções: snapshots exportados protegidos contra
+  reaprovação/exportação nova e reexportação a partir de fatos mutáveis.
+  Aplicação/reaplicação de regras usa trava comum e revalida decisão humana.
+- Preparados contrato offline de títulos/parcelas/baixas e DE-PARA determinístico
+  em rascunho com revisão/contas/conflitos/autorizações. Sem SQL novo, conta
+  inventada, ativação automática ou IA/custo. Q-46/Q-47 continuam abertas.
+- Regressão final PostgreSQL: 1.578 testes + 151 subtestes aprovados, um skip,
+  430,32 s. Ruff global, MyPy três módulos, Django/migrações/whitespace passaram.
+  Rodadas intermediárias não somadas ao total único. Sem QA Playwright novo.
+- .NET Mac: 43 aprovados/um skip Windows; 43 arquivos do agente comparados ao
+  commit 1bf8549 (somente documentação difere). MSI 1.0.3/hash reconferidos,
+  sem reinstalação/CI Windows nesta rodada. Evidência Windows V-311 é histórica.
+- ZIP local de 806 arquivos, SHA-256 em V-312/manifesto. Roteiro de configuração,
+  migrações aditivas e retorno preparado. Não é imagem/release hospedada.
+- PostgreSQL sintético restaurado em outro banco: 182 tabelas/15 sequências,
+  dois arquivos, 200 movimentos/200 fontes independentes/dez alocações iguais;
+  5,726 s. RPO, Neon/objetos/knowledge e rollback publicado não demonstrados.
+- Aplicada skill PDF para leitura/inspeção dos anexos locais. Encontrado plano
+  de contas de 14 páginas; 754 linhas candidatas extraídas em arquivo privado,
+  sem importação/semântica presumida. Relatórios bancários não viraram Razão.
+- Responsável confirmou que relatórios solicitados ainda não existem e RDP
+  está logado. Cancelar menu nativo/elevar janela superou a leitura transitória
+  desconectada. Domínio Contabilidade aberto; responsável fez login diretamente
+  e autorizou atualização oficial. Falhou por executável ausente no caminho
+  configurado; nenhuma instalação/conversão/consulta SQL nova. DSN e processos
+  de outros trabalhos preservados. Não pedir novamente documentos inexistentes.
+- Evidências reais em `.tmp/contad-delivery-2026-11-05/`, ignoradas/restritas.
+  Plano, validações, etapas 03/09/12, dúvidas únicas, matriz e pendências
+  atualizados. Publicação, transmissão, fonte contábil real, IA autorizada,
+  Q-46/Q-47, recuperação operacional, treinamento e aceite continuam abertos.
+
+Continuidade operacional: localizado ajuste assinado na rede; assinatura válida
+Thomson Reuters e recusa por exigir versão completa 10.6A-10 sobre 10.6A-09.
+Responsável confirmou backup concluído e recuperável. Baixado pacote completo
+do repositório oficial; assinatura válida conferida. Assistente completou a
+instalação base 10.6A-10 em `C:\Contabil`, somente componente Domínio Contábil,
+sem novos termos, fechamento forçado, backup em nuvem ou LogMeIn. Ajuste 2 de
+05/11 também completou. Aplicação reaberta até a tela de autenticação, com
+senha vazia; login direto solicitado ao responsável. Scancode restaurado.
+Sem consulta SQL nova, conversão de base observada ou relatórios obtidos.
+Registros iniciais de falha acima são históricos; não pedir novamente pacote,
+DSN ou confirmação de backup.
+
+## 05/11/2026 — Continuidade D-312/V-313
+
+- Nova solicitação para continuar a implementação; arquivos de continuidade
+  relidos, main b499cd1 preservada, sem reset/pull/limpeza/commit/push/deploy.
+- Login Domínio confirmado; versão 10.6A-10 -02. Conta contábil do candidato
+  identificada na consulta de extrato e Razão limitado emitido. PDF observado
+  no Windows (141 KB); cópia Mac não confirmada, nenhuma linha normalizada.
+- Consultados fechamento e parâmetros sem gravar: candidato original com
+  fechamento contábil 11/2023 e títulos desmarcados. Responsável autorizou
+  procurar outro recorte somente leitura. Alternativa com menu de títulos,
+  fechamento fiscal 09/2026 e contábil 11/2014; pesquisa não é homologação.
+- A Pagar limitado à emissão/posição de setembro gerado; PDF conferido no
+  Explorer (116 KB exibidos) e cabeçalho aberto no leitor, sem executar IA.
+  Não apresenta conta/chave de baixa/data de pagamento nessa visão. Cinco
+  consultas delimitadas de recebimentos/pagamentos/parciais sem dados,
+  registradas privadamente com filtros. Não inferida ausência geral. Consultas
+  fechadas sem gravar parâmetros/lançamentos; Scancode restaurado e sessão logada.
+- D-312 registrada antes do núcleo offline de prévia de alocações e da CLI:
+  seleções explícitas, escopo/capacidade dos dois lados, agrupamentos/parciais,
+  componentes/estornos; diferenças de data e revisão obrigatória preservadas.
+  Sem ORM, SQL novo, rede, IA, persistência, ativação no agente ou gate contábil.
+- 85 testes focados aprovados, cobertura combinada 97,44%, Ruff global/MyPy e
+  whitespace passaram; CLI executada com fontes sintéticas. Não somar repetições
+  ou apresentar a regressão completa V-312 como atual para esses módulos.
+- Nova candidata local de 809 arquivos, 2.022.148 bytes, SHA-256 em V-313;
+  todos os hashes de ZIP/workspace iguais, CLI incluída. Pacote V-312 preservado.
+- Evidências privadas ignoradas no diretório de 05/11; plano/validações/etapas,
+  dúvidas, matriz, pendências e contrato atualizados. Publicação/homologação/
+  liberação continuam pendentes dos gates PC-19.
+- Conferência final: 809 hashes ZIP/workspace iguais, 7.199 arquivos iniciais
+  presentes, base b499cd1 preservada e evidências privadas 0600; whitespace aprovado.
+
+## 05/11/2026 — Publicação na main D-313/V-314
+
+- Responsável autorizou expressamente “pode publicar na main”; D-313 registrada
+  antes do commit/push. Destino público Mewstacks/CicaContabil, main, mesma base
+  b499cd1. Sem divergência, force, reset, limpeza ou outras branches/worktrees.
+- Inventário revisado de 84 arquivos, sem dados/relatórios/configuração real ou
+  artefatos binários; nenhum padrão de segredo encontrado na verificação limitada.
+- Ruff global/whitespace aprovados; 809 hashes de fonte iguais à candidata
+  V-313, 40 arquivos não Markdown do agente iguais ao commit Windows 1bf8549.
+  Não repetida regressão completa local nem testes Windows nesta rodada.
+- Criado e enviado commit 4fede1e7f5b1bcfaec8b430a3b0f0d8c4d579b1d; push normal
+  b499cd1→4fede1e confirmado por ls-remote. CI 42067809017 iniciado para esse SHA.
+- CI 42067809017 terminou aprovado: SQLite 1.617 testes/151 subtestes e 18
+  skips; PostgreSQL 1.633/151 e dois skips Playwright/OCR. .NET Linux 43
+  aprovados/um skip Windows; build/manifesto MSI e três builds Docker aprovados.
+  Sem novo teste de instalação Windows, deploy ou imagens publicadas.
+- Confronto por git archive: 809 hashes do commit iguais à candidata V-313.
+  Registros do envio/CI preparados em commit documental separado, sem alterar
+  a implementação. Logs/resultados ignorados no diretório privado de publicação.
+- Evidências ignoradas em `.tmp/contad-main-publication-2026-11-05/`.
+  Código publicado no GitHub; aplicação hospedada, fontes reais, importação,
+  PC/serviço, D-73, treinamento, homologação e liberação continuam pendentes.
+
+## 05/11/2026 — Reconferência dos anexos CONTAD V-315
+
+- Pergunta do responsável sobre a possibilidade de testar com os anexos já
+  fornecidos. Leitura local no escopo existente D-305/D-311, base 8aeeff5.
+- Parsers publicados confirmaram 163 movimentos em cada PDF/OFX, zero sobras
+  por data/valor, FITIDs presentes/únicos, sequência de saldos e fechamento iguais.
+- PDF de seis páginas renderizado/inspecionado; imagem é assinatura de e-mail.
+  Nenhuma escrita em banco, ERP, transmissão, IA, interface ou alteração de código.
+- Evidências/hash/renderizações privados em `.tmp/contad-files-review-2026-11-05/`,
+  pasta 0700 e arquivos 0600. Teste real da entrada bancária é possível;
+  integração/homologação completa continua dependente de fontes contábeis,
+  regras revisadas e importação conferida. Não somar repetições ou duplicar
+  a amostra pelos dois formatos. Atualizados plano/validação/checklist/matriz/Q.
+
+## 05/11/2026 — Percurso bancário D-314/V-316
+
+- Responsável autorizou prosseguir após V-315; decisão D-314 antes de criar
+  banco/mídia isolados. Base 8aeeff5 e registros locais anteriores preservados.
+- Importação HTTP real dos 163 eventos por formato em cenários separados,
+  sem duplicar a amostra. Despacho suspenso/retomado em eager, reenvio idêntico/
+  renomeado, sobreposição/conta errada, revisão obsoleta, ignorar/restaurar,
+  reaplicação, retomada, relatórios e perfis: run-03 com 42/42 aprovadas.
+- Corrigidas duas falhas de produto: ignorar humano reaberto pela reaplicação
+  e aviso de proteção bloqueando relatório. Tentativas/fixtures intermediários
+  preservados e descritos em V-316, sem somar repetições ao total final.
+- PostgreSQL 17.11 descartável somente sintético: 134 testes/24 subtestes,
+  zero skips, 46,71 s; Ruff global/MyPy dois módulos/whitespace aprovados.
+- CUA/Playwright confirmou filtros/paginação, salvar fatos originais e download
+  de CSV com 163 linhas/zero Razão, zero erros de console; captura privada.
+  Limite de retorno ao filtro após salvar registrado, sem mudar interface.
+- Candidata de 809 arquivos/hashes conferidos, SHA-256 em V-316. Dados reais,
+  banco/mídia, relatórios e capturas ficam em `.tmp/contad-bank-pilot-2026-11-05/`.
+  Aba/servidor/contêiner próprios encerrados. Nenhum ERP, IA, deploy ou aceite.
+- Publicadas correções/testes/registros anônimos na main, commit 700b496,
+  15 arquivos revisados; SHA remoto conferido. CI 42079806454 iniciado, resultado
+  ainda separado da prova local. Dados/scripts/relatórios/captura privados fora
+  do envio. Registro documental de confirmação acompanha commit separado.
+
+
+## 05/11/2026 — Continuidade independente D-315/V-317
+
+- Responsável pediu avançar no que não exige interferência; D-315 registrada
+  antes da correção. PC-19/03/09/12 preservados, sem conexão nova à cliente.
+- Dez redirecionamentos do detalhe agora usam helper existente para conservar
+  origem da fila após ação; nenhuma regra contábil, permissão ou schema mudou.
+- 93 testes/24 subtestes aprovados, zero skips, 31,80 s; Ruff global, Django
+  check, migrações e whitespace aprovados. Nova regressão focada SQLite;
+  PostgreSQL/Windows não repetidos para essa navegação.
+- CUA/Playwright com 61 itens sintéticos em banco/mídia novos conferiu filtros,
+  página 2, salvar, ignorar/restaurar e teclado, desktop/celular e claro/escuro;
+  foco 3 px, sem overflow/console errors. Contas vazias; zero partidas/exportações.
+- UI/UX Pro Max e Web Design Guidelines aplicados; Watermelon indisponível.
+  Troca de tema perde painel do hash com query preservada; observado e não
+  alterado. Tentativas/limites em browser-results.json e V-317.
+- CI anterior 42079806454 aprovado para 700b496: SQLite 1.634/151 e 20 skips;
+  PostgreSQL 1.652/151 e dois skips; agente/build Windows/três imagens aprovados.
+  Não equivale a teste remoto da nova navegação ou implantação.
+- Preparada candidata de 809 arquivos, 2.023.623 bytes, hashes ZIP/workspace
+  iguais, SHA-256 em V-317. Evidências privadas ignoradas em
+  `.tmp/contad-navigation-2026-11-05/`; dados reais V-316 preservados.
+- Aba/servidor próprios encerrados, viewport restaurado. Publicação corretiva
+  de fonte/testes/registros segue a autorização D-313; nenhum deploy, ERP,
+  pareamento, transmissão, IA paga, treinamento ou aceite nesta execução.
+- Publicação concluída: `ed01dd51293be441ef7011763799ae557608cd5f`, 12 arquivos, push normal
+  e SHA remoto conferido. Confronto por git archive confirmou os 809 hashes
+  de fonte iguais ao ZIP. CI 42082634894 em execução; agente Linux já aprovado.
+  Resultado remoto novo ainda não é tratado como aprovado.
+- RDP existente observado desconectado por outra conexão (0x5); sem reconectar
+  ou interromper outro trabalho. AnyDesk CONTAD ainda não foi disponibilizado.
+- Captura normal de viewport `retorno-fila-confirmado.png` salva/inspecionada;
+  servidor/aba exclusivos de captura também encerrados.
+
+## 05/11/2026 — Comparação técnica CICA × Pandolfo D-316/V-318
+
+- Responsável pediu análise comparativa dos sistemas, incluindo Pandolfo
+  local e GitHub. Registrado D-316 antes da entrega documental dependente.
+- Lidos registros canônicos/etapa 00/dúvidas do CICA e inspecionados código,
+  arquitetura, planos e evidências dos dois sistemas. Preservado o trabalho
+  local: CICA inicialmente limpo; Pandolfo um commit adiante e `.review/`.
+- Conector GitHub sem acesso ao repositório privado; CLI autenticada permitiu
+  conferir main, árvore completa, blobs, arquivos, workflow, jobs e CI.
+  O delta local Pandolfo é um comando de cadastro e um teste, sem alteração
+  dos motores comparados; não houve pull/fetch ou escrita nesse projeto.
+- Medido código próprio rastreado com recortes e exclusões documentados;
+  Pandolfo Python 101.577/TSX+TS 28.404, CICA Python 68.224 e outras camadas
+  separadas. Não inferir esforço, produtividade ou qualidade só pelas linhas.
+- Na conferência final apareceram alterações concorrentes no leitor SPED/ECF
+  do Pandolfo; preservadas sem intervenção. Métricas reconferidas nos blobs
+  dos commits identificados para excluir esse estado parcial da comparação.
+- CI CICA b4a0b56/ed01dd5 aprovado agora confirmado; Pandolfo 7dceb17 com
+  instalação de navegador incompatível com runner, demais passos frontend
+  até build aprovados e backend cancelado. Não reexecutar nem corrigir por
+  inferência desta solicitação de análise.
+- Entregue `comparacao-cica-pandolfo-2026-11-05.md`, atualizados plano,
+  validações e checklist da etapa 00. Conferidos links locais, contagens,
+  whitespace e ausência de alteração de código de aplicação. Sem deploy,
+  produção, ERP, programa fiscal, IA, homologação ou mudança de aceite.
+- Conferência final: contagens iguais nos commits fixados, nove links locais
+  existentes e `git diff --check` aprovado. Evidência estática ignorada em
+  `.tmp/cica-pandolfo-comparison-2026-11-05/static-checks.json`.
+
+## 06/11/2026 — Banco legado Fly parado D-317/V-319
+
+- Pedido inicial: mover `cica-contabil-db` de CICA para mewstack. Responsável
+  depois autorizou cancelar ou somente parar se não estivesse mais em uso.
+  D-317 registrado antes da ação; escolhida parada, preservando rollback.
+- CLI Fly autenticada confirmou os dois destinos; aplicação/Valkey já na
+  mewstack. Consulta de plugins não encontrou conector Fly aplicável; usada CLI
+  disponível. Documentação oficial registra restrição de mover Fly Postgres.
+- SSH às máquinas web/worker confirmou quatro URLs e dois aliases efetivos
+  somente no Neon, sem exibir segredos. Sessões PostgreSQL em transação somente
+  leitura e TCP mostraram apenas clientes da própria máquina do legado naquele
+  instante, sem leitura de conteúdo contábil ou alegação sobre uso histórico.
+- Máquina `7817961a377e68` encontrada ligada, parada às 10:02:42 BRT; código
+  zero e estado `stopped` reconfirmado. Mesmo volume de 3 GB/retenção cinco dias
+  preservado. Nenhum banco recriado, volume excluído ou transferência tentada;
+  o app permanece em CICA pela alternativa autorizada mais recente.
+- Site e readiness 200 antes/depois, nos domínios público e Fly; banco/cache
+  `ok`, web/worker iniciados e worker reserva já parado preservado. urllib
+  inicial sem resposta HTTP (URLError); curl com validação TLS confirmou saúde.
+- Evidências privadas ignoradas em `.tmp/cica-db-move-2026-11-06/`; baseline
+  das alterações locais anteriores preservada. Atualizados plano, D-317, V-319
+  e checklist da etapa 12. Armazenamento/rootfs continuam sujeitos à cobrança;
+  sem contratação, destruição, deploy, commit/push, restore ou homologação nova.
+
+## 15/10/2026 — Origem da espécie na importação Domínio (D-318, V-320)
+
+- Investigação pedida pelo proprietário a partir de telas do cliente. A rota real de importação é o
+  Importador por conjunto de dados, não a tela de Configuração de Importação NFS-e Padrão Nacional.
+- Leitura dos três conjuntos do cliente, mantidos fora do repositório: `codi_esp` em `efentradas` com
+  `origem_coluna = F` e `valor_fixo = 1` nos três. A espécie é fixa no conjunto, não vem do XML.
+- O caminho de importação observado corresponde à estrutura de pastas de `create_nfse_export`.
+- Espécie correta na base atual: 39; valor por cliente, não embutido em nada da CICA.
+- Nenhum arquivo foi alterado, nenhum conjunto gerado ou reimportado, nenhum código da CICA tocado e
+  nenhuma importação homologada. Q-39 continua aberta quanto ao retorno verificável.
+
+## 15/10/2026 — Conjuntos gerados com espécie 39 (D-318, V-320)
+
+- Pedido explícito do proprietário: fixar a espécie 39 nas notas de serviço importadas.
+- Gerados `TOMADOS SEM ITENS V6`, `TOMADOS COM ITENS V6` e `PRESTADOS V4` a partir dos vigentes, com
+  `codi_esp` de 1 para 39 e `nome_conjunto` sufixado `ESP39`. Originais preservados.
+- Conferência por reversão das edições e comparação byte a byte: idêntica ao original nos três.
+- Não importados no Domínio, nenhuma nota reimportada, nada homologado. Q-39 segue aberta.
+
+## 05/11/2026 — Carteira de backup: ativar, desativar e corte por fotografia (D-319, V-321)
+
+- Pedido explícito do proprietário: escritório de origem backup não tem agente atualizando, então
+  precisa dizer quem ainda atende; e o backup novo deve tirar quem saiu. Conflito resolvido por ele:
+  o backup prevalece sobre a desativação manual.
+- Nova página `app/configuracoes/carteira/`, vinculada na navegação de Configurações apenas quando
+  a fonte é `dominio_web_backup` com capacidade `companies`, sem conector Domínio e sem controle
+  central. Ativar e desativar por empresa, com auditoria `hub.company.activation_changed`.
+- `complete_backup` passou a desativar as empresas da fonte que não vieram na fotografia, somente em
+  lote completo e sem erro de linha. Desativa, não exclui.
+- 14 testes novos; 35 de regressão dirigida aprovados. Verificação real no navegador em QA isolado
+  encontrou e corrigiu dois defeitos que os testes não pegavam (quebra do rótulo do botão e `action`
+  perdido pelo estado ocupado do botão).
+- Sem migração, sem deploy, sem custo e sem tocar em produção. Nada homologado.
+
+## 06/11/2026 — Merge do origin/main e renumeração dos registros locais
+
+- A `main` local estava oito commits atrás do remoto; o trabalho de NFS-e/espécie e o da carteira de
+  backup tinha sido escrito sobre essa base velha e recebeu IDs já ocupados no remoto.
+- `origin/main` incorporado por merge. Conflito em quatro documentos, todos do tipo "ambos
+  acrescentaram no fim": conteúdo remoto preservado e os blocos locais recolocados ao final.
+  `views.py` e `urls.py` mesclaram sozinhos; a rota e a view novas continuam íntegras.
+- Renumerados: espécie da NFS-e de D-300/V-300 para **D-318/V-320**; carteira de backup de
+  D-301/V-301 para **D-319/V-321**. As referências cruzadas foram ajustadas nas etapas 03 e 07, nas
+  dúvidas abertas, neste registro e nos comentários de `backup_bridge.py`, `views.py`,
+  `operations.css` e do arquivo de testes.
+- 200 testes aprovados e 26 subtestes nos dois lados do merge (carteira de backup, cadastro,
+  conciliação, agente), com quatro skips já documentados do ambiente. `manage.py check`,
+  `makemigrations --check` e Ruff limpos.
+- Observação não resolvida, anterior a esta sessão e também presente no remoto: `D-192` e `V-204`
+  aparecem duas vezes cada. Não foram tocados.
+- Nada foi enviado ao remoto.
+
+## 06/11/2026 — D-320: prévia CONTAD, instalação guiada e preflight
+
+- Plano aprovado colocado em execução para PC-19/03/09/12: arquivo privado de
+  conferência dentro do CICA, explicitamente não homologado, sem importar no ERP.
+- Main origin/d338abc incorporada por fast-forward com cópia/stash preservados;
+  três conflitos de apêndices resolvidos. Por escolha humana, IDs locais mantidos
+  e assuntos remotos renumerados por origem para D-318/D-319 e V-320/V-321.
+  Registros históricos acima conservam a perspectiva da execução que os escreveu.
+- Criados módulo/modelo/migração hub.0078, formulário, rotas e tela própria da
+  prévia; snapshot/arquivo imutáveis, dedupe, carteira, aprovação, integridade e
+  atualidade protegidos. Gate de exportação false e lista de UUIDs vazia.
+- 40 testes da prévia mais dois de linguagem aprovados em PostgreSQL sintético.
+  Regressão final 1.715/163 aprovada após a correção de auditoria, um skip
+  opcional, 291,22 s. Atalho Conciliação → Prévia também conferido no navegador. Ruff/check/makemigrations/MyPy do módulo
+  novo aprovados; limite anterior forms.py:523 mantido, sem alegar tipagem global.
+- PostgreSQL 18.6 descartável: migrações e 42 testes focados aprovados, 21,62 s;
+  imagem oficial fixada. Sem dado real ou restauração Neon/Tigris.
+- CUA/Playwright sintético cobriu desktop/celular, claro/escuro, envio/repetição,
+  período inválido, foco/Tab/Enter e download real íntegro; console sem erros.
+  Corrigidos texto sob título e histórico móvel; sem redesenho da interface.
+- AnyDesk não acessível pela ferramenta mesmo após nova instância e reinício;
+  responsável escolheu executar testes. Diagnóstico humano identificou SQL
+  Anywhere 17 no DSN x86 original, nenhum DSN de sistema x64 ou agente inicial.
+  Transferiu MSI/pasta, conferiu SHA256, instalou e informou 1.0.3, Running /
+  Automatic e awaiting_configuration. ACL preservada; sem ODBC/pareamento/envio.
+- Credencial somente leitura indisponível: configuração aguarda técnico Domínio.
+  Sem senha no chat, extração do registro, SQL novo, importação ERP ou IA paga.
+- Fly autenticado confirmou release 71, aliases Neon, hub.0075/intelligence.0030
+  e gates; metadados privados. Banco PostgreSQL 18.6, storage Tigris; recuperação
+  ainda não confirmada. Não houve deploy/migração remota ou dump local.
+- CONTAD confirmado como escritório próprio e provisionado em activation_pending,
+  UUID ae13d06f-6461-43a8-a9cc-3e0e0eafde50, auditoria e zero membros. Futuro login
+  indicado pelo responsável mantido fora do Git; nenhum convite/senha criados.
+- Candidata de 816 arquivos reaberta/hash conferido, manifesto atualiza migrações
+  de retorno. Pacote anterior preservado; checks/limites detalhados em V-322.
+  Publicação fonte/CI será registrada separadamente se concluída.
+
+Continuidade da publicação D-320: fonte enviada à main em f86ae4d, SHA remoto
+e 816 hashes conferidos. CI 42231907397 aprovado nos três jobs; contagens/skips
+em V-322. Preservados fora do commit os documentos locais anteriores. Acesso
+Neon resolvido pelo seletor da organização compartilhada; janela atual de seis
+horas, sem snapshots/agenda. Backup pontual de bancos/53 objetos e ensaio isolado
+com retenção de sete dias aprovados até US$ 1,00; execução em andamento, sem
+liberar o gate de deploy antes do resultado.
+
+Continuidade D-320, recuperação antes do deploy: custo pontual até US$ 1,00
+aprovado; snapshot snap-hidden-tree-b6xt5ssj e 53 cópias Tigris privadas
+pareadas, manifesto SHA-256 9cb388132280969bf4e43ef03cd8c60a82684f3a8782b1df613c5577d9453443.
+Restore isolado dos dois aliases PostgreSQL 18.6: esquemas/migrações e todas
+as contagens iguais; hashes de sete tabelas críticas do default e quatro do
+knowledge iguais. Todos os 53 arquivos referenciados restaurados em temporário
+no Fly e hashes iguais; limpeza concluída. Expiração em sete dias, compute
+idle, chave CICA temporária revogada/401 e tokens locais removidos. Produção
+preservada. Gate pontual cumprido; não conclui recuperação recorrente/D-73.
+Deploy com build local iniciado a partir do ZIP exato, após CI aprovado;
+primeira tentativa sem acesso ao socket Docker abortou antes do build, sem
+mudar aplicação; retentativa usa socket Colima já existente, sem builder pago.
+
+Entrega operacional D-320: deploy/release Fly 72 concluído, fonte f86ae4d/
+CI 42231907397 aprovado, imagem contad-f86ae4d-20261106. Migrações dos dois
+aliases hub.0078/intelligence.0031, endpoint original. Em web e worker, todos
+os 645 arquivos do runtime iguais à candidata. HTTP health nos dois domínios
+200/banco/cache ok, worker ready, check Fly passing, agente inválido 401 e
+prévia/download anônimos redirecionados ao login. Somente UUID CONTAD na lista
+de prévia, exportação false. Reserva parada e 512 MB preservados. CONTAD sem
+membros/activation_pending; agente Windows 1.0.3 ainda em espera, sem ODBC,
+pareamento, envio ou importação. Faltam técnico/credencial somente leitura,
+DSN x64/recorte, acesso/ativação e gates Q-28/Q-46/Q-47/D-73/treinamento/aceite.
+Registros documentais não substituem esses resultados pendentes.
+
+Continuidade D-320 em 06/11/2026: responsável informou disponibilidade da
+credencial EXTERNO; registro/checklist atualizados para não repetir o pedido.
+Preparada próxima instrução guiada: abrir ODBC x64/driver SQL Anywhere 17.
+Nenhum segredo recebido, DSN modificado, conexão testada ou pareamento executado
+nesta mensagem; faltam os resultados próprios, recorte e ativação já registrados.
+
+D-320, continuidade guiada: operador abriu a tela SQL Anywhere 17. Orientado
+nome novo CICA_CONTAD e consulta somente leitura do parâmetro Server name na
+conexão x86, sem gravar alterações nela. DSN/teste ODBC continuam pendentes.
+
+D-320: Server name srvContabil confirmado pelo operador; preparado teste do
+novo DSN CICA_CONTAD com EXTERNO digitado localmente, sem gravar antes do
+resultado. Host/porta/banco não inferidos, conexão original preservada.
+
+D-320: operador informou Test Connection successful no novo CICA_CONTAD x64/
+SQL Anywhere 17, servidor srvContabil e EXTERNO local. Sucesso interativo
+informado, sem prova do configurador/LocalSystem ou permissões. Preparado
+próximo passo: novo DSN salvo sem senha e teste explícito no configurador;
+sem Conectar à CICA/pareamento/salvamento de configuração do serviço nesta fase.
+
+D-320: captura confirma CICA_CONTAD no configurador x64. Operador clicou
+Testar e não percebeu retorno; orientada leitura do status abaixo dos botões,
+confirmado no código instalado. Sem prova de sucesso/falha do configurador,
+sem novo pareamento ou envio. Serviço LocalSystem ainda não validado.
+
+D-320: operador informou conexão confirmada no configurador CICA instalado,
+depois da orientação de autenticação EXTERNO explícita. Registrado sucesso
+local informado, sem prova de serviço LocalSystem/pareamento/envio. Próximo
+passo Q-28: obter empresa/código, conta e competência do piloto; consultar
+somente o estado do CONTAD no backend antes de preparar manifesto restrito.
+
+Q-28/D-320: responsável confirmou SURIA (nome inicial URIA), competência 09/2026,
+com fontes bancárias em Downloads. PDF/OFX Sicredi conferidos por cabeçalho e
+hash, mesmos do piloto V-316 e período 09/2026; originais preservados. OFX
+usa conta com identificador longo, mesmo sufixo do PDF; relação requer conferência.
+Preparação privada gerada, sem usar plano de contas de outra empresa ou emitir
+código genérico. Preflight READ ONLY do CONTAD ainda sem empresas/contas/membros/
+contratos/agentes. Operador não sabe código Domínio; próximo passo é consulta
+Controle > Empresas, sem alteração do ERP. Sem upload financeiro/pareamento.
+
+Q-28/D-320: operador informou código Domínio 212 para SURIA/09-2026.
+Decisão, preparação privada, dúvidas e checklists atualizados. Removida somente
+a pendência do código da empresa; conta/referência, relação bancária, IDs
+internos, acesso/ativação e prova do serviço continuam pendentes. Preparada
+orientação de consulta da conta existente em Lançamentos de Extrato Bancário,
+sem incluir/gravar/importar. Nenhuma alteração remota, transmissão ou novo teste.
+
+Q-28/D-320: captura de Escrita Fiscal seguida de captura de Lançamentos de
+Extrato Bancário aberta pelo operador. Campo da conta vazio e mês 11/2026;
+não classificado como ausência de movimentos do piloto. Orientação preparada:
+SURIA/212, consulta de contas existentes por F2 e filtro 09/2026; sem cadastrar,
+gravar ou importar. Conta/referência/IDs seguem pendentes; atalho conferido em
+fonte oficial Domínio (6705). Nenhuma mudança remota, pareamento ou envio.
+
+Q-28/D-320: recebida captura com BANCO SICREDI/09-2026, origem Importação e
+linhas visíveis conciliadas. Ampliado localmente o campo da conta para inspeção,
+sem leitura segura do número destacado; preparada solicitação de transcrição
+somente do código. Observação adicionada à preparação privada, preservando
+pendências de referência/IDs/relação bancária e acesso. Nenhuma alteração ERP,
+consulta SQL, pareamento ou transmissão; não houve novo teste funcional.
+
+Q-28/D-320: operador transcreveu conta contábil 8 — BANCO SICREDI, SURIA/212,
+09/2026. Atualizados decisão, preparação privada, plano, checklists e dúvidas;
+mantidas pendências de vínculo da conta bancária, IDs e acesso/ativação.
+Preparada consulta local do Razão somente dessa conta em 01–30/09/2026,
+conforme soluções oficiais 1817/3132, sem consolidar outras empresas.
+Razão ainda não recebido, nenhum SQL novo, alteração ERP, pareamento ou envio.
+
+Q-28/D-320: Razão.pdf localizado em Downloads, quatro páginas da SURIA/conta 8/
+09-2026, hash af1ca6b11f558765531bb8009538ce585bbe781629732b281d355427273889d9.
+Preservado original; inspecionadas quatro renderizações, 163 linhas extraídas
+por coordenadas, números distintos, datas, saldos sucessivos e totais conferidos.
+Fontes bancárias com hashes iguais a V-316; normalização histórica reutilizada.
+Multiconjuntos de data/valor iguais (163), duas chaves repetidas; não confirmadas
+alocações, partidas completas, homologação ou 200 eventos independentes.
+Detectada divergência entre saldos da captura de extrato Domínio e os PDFs;
+solicitada conferência da empresa ativa/origem e vínculo da conta, sem alterar
+saldos. Atualizados decisão, plano, checklists, dúvidas e preparação privada.
+Derivados financeiros ignorados/restritos; nenhum dado financeiro enviado,
+SQL novo, alteração ERP/remota, IA paga, configuração, pareamento ou teste do agente.
+
+Q-28/D-320: operador confirmou a janela de extrato na SURIA/212 e não sabe
+confirmar o vínculo bancário da conta contábil 8. Registradas respostas sem
+repetir perguntas; divergência de saldos permanece sem causa, sem alteração.
+Pesquisadas soluções oficiais Domínio 1878/238 e APIs Microsoft GetSchema/
+ConnectionTimeout. Preparado roteiro restrito CICA-Consulta-Recorte-SURIA.ps1,
+dois SELECTs parametrizados/cabeçalhos e contagens, schema exato e máximo
+20 candidatos, senha EXTERNO digitada apenas no PC; sem históricos/valores/envio.
+Recebida autorização específica para execução manual guiada dessa sonda.
+Revisão estática passou; não há PowerShell no Mac, consulta ou resultado do PC.
+Hash final 054d736be382097ad6c76d15eb240d7aeff84895c7e097603c12e632c1f4ed4a.
+Atualizados registros/preparação privada e preparada transferência/comando com
+conferência de hash. Pareamento, transmissão, vínculo/IDs e demais gates pendentes.
+
+Q-28/D-320: tentativa humana da sonda parou no Get-FileHash, roteiro não
+encontrado no caminho esperado em Downloads/Windows; não executou ODBC.
+Reconferido arquivo original do Mac, 7.093 bytes/hash final idêntico. Preparada
+localização restrita pelo nome nas subpastas de Downloads, com execução somente
+de cópia com hash aprovado; se não localizada, transferir do Mac. Nenhuma
+alteração de roteiro, conexão, credencial, ERP ou backend; resultado da sonda pendente.
+
+Q-28/D-320: operador retornou resultado posterior de sucesso da sonda autorizada:
+um cabeçalho de empresa 212/conta contábil 8/09-2026 com 163 itens. ID e JSON
+guardados na evidência privada; revisão técnica do candidato consistente com
+os PDFs/recorte. Tentativa de caminho inexistente superada. scope_reviewed=false
+preservado, sem promover candidato a manifesto aprovado. Vínculo bancário,
+origem da diferença de saldos, acesso/ativação e LocalSystem continuam pendentes.
+Nenhuma senha recebida, dado financeiro enviado ao CICA, alteração ERP/remota,
+configuração ou pareamento; não repetir sonda ou pedir ID novamente.
+
+Q-28/D-320: responsável quer verificar os pontos pela interface. Conferida
+documentação oficial 43/1878; preparada consulta da conta 8 existente em
+Arquivos > Contas Contábeis, sem alteração. Cadastro pode não informar conta
+bancária; nome genérico não comprova vínculo. Causa do saldo inicial não
+determinada por esses artigos, sem inventar log/auditoria ou preenchimento
+automático. Ainda sem captura do cadastro ou nova ação ERP/SQL; gates mantidos.
+
+Q-28/D-320: recebida captura do cadastro da conta 8 — BANCO SICREDI, Analítica,
+Ativa, classificação compatível com o Razão. Agência/conta bancária e origem
+do saldo não aparecem. Registrada evidência privada e limite, sem repetir
+captura ou inferir vínculo. Preparada orientação de saída sem gravar e revisão
+do arquivo de importação/quem a realizou. Nenhuma alteração ERP, novo SQL,
+configuração, pareamento ou envio; pendências preservadas.
+
+Entrega documental D-320 solicitada pelo responsável: criado resumo simples
+docs/contad-continuidade-2026-11-06.md e prompt privado
+/Users/pedromachado/Downloads/CONTAD-prompt-continuidade.txt para outra sessão
+retomar no mesmo workspace. Registrados implantação e testes já feitos,
+evidências do PC versus verificações locais, pendências e próximo dado útil.
+Dados financeiros/identificador de extrato/login continuam fora do Git;
+prompt restrito, sem credenciais. Conferidos caminhos, links e consistência
+com a preparação privada; atualização apenas documental, sem testes funcionais,
+SQL, alteração remota, deploy, commit/push ou criação de sessão. Alterações
+anteriores preservadas; bloqueios não marcados como conclusão.
+
+## Retomada CONTAD — D-320/V-323 (06/11/2026)
+
+Responsável solicitou continuar pelos dois arquivos de continuidade. Conferidos
+HEAD 9057ca4, alterações locais preexistentes e preparação privada. A pergunta
+de origem do saldo foi corrigida após resposta humana: empresa fechada e arquivos
+fornecidos para teste são evidência autorizada do corpus; não bloqueá-lo por
+essa pergunta nem presumir dissolução legal ou causa da diferença observada.
+
+Implementados leitor do Razão PDF observado e CLI privada de confronto com
+OFX/PDF bancário, sem interface/banco/ERP. Corrigidas no desenvolvimento duas
+particularidades do layout: histórico sobreposto mistura as palavras com
+tolerância vertical ampla e deduplicação de glifos pode remover zeros distintos.
+Leitura preserva a camada numérica, colunas e totais explícitos. Arquivos de
+teste sintéticos cobrem essas falhas, escopo, ambiguidade e gravação segura.
+
+Rodada final: 139 testes aprovados/cinco skips de concorrência PostgreSQL,
+Ruff global/MyPy dos dois módulos/Django/migrações aprovados. CLI real final
+executada com conexão de banco e sockets bloqueados, originais intactos/hashes
+anteriores iguais e 163 linhas iguais à extração independente anterior.
+Relatório privado 0600: 159 candidatos únicos, dois grupos ambíguos, zero sobras
+por data/valor e saldos dos PDFs coincidentes; seis contrapartidas vazias mantidas.
+
+Atualizados decisões, plano, validações, dúvidas/checklists e continuidade.
+Evidências em .tmp/contad-ledger-evidence-2026-11-06, fora do Git. Sem novo acesso
+externo, SQL, pareamento, transmissão, liberação, custo, publicação ou aceite;
+nenhum trabalho anterior descartado. Novos eventos independentes: zero.
+
+## Deploy e pendências CONTAD — D-321/V-324 (06/11/2026)
+
+Responsável solicitou publicação/conclusão, confirmou PC disponível e escolheu
+ativação sem convite, somente Conciliação/perfil Proprietária/contrato R$ 200
+existente, sem iniciar cobrança automática. Preflight somente leitura confirmou
+release 72 e cadastro vazio; login informado ainda sem conta. Testado roteiro
+de ativação em banco isolado, com/sem usuário existente, incluindo fechamento
+financeiro sem gerar invoice. Corrigida chave proibida de metadados no ensaio
+local antes da produção. Executada ativação com auditoria: office active,
+contrato individual sem plano, módulo reconciliation; sem fatura/Asaas/convite/
+senha/usuário novos. Acesso pessoal permanece pendente, respeitando a escolha.
+
+Comando administrativo de conferência incluído no runtime e CLI no manifesto;
+100 testes focados sem skips, Ruff global/MyPy aprovados. Publicação main
+651368c/SHA remoto idêntico, candidata 820 arquivos/hashes e imagem amd64
+conferidas; ensaio do comando sintético na imagem sem rede/banco, 0600 aprovado.
+Registro Docker recebeu imagem. CI 42282953292 em execução; deploy ainda
+aguarda aprovação do CI. Configuração atual/tamanhos/reserva preservados.
+
+Metadados do backup D-320 reconferidos no Tigris: manifesto/hash, 53 objetos
+e expiração sete dias, sem nova cópia/recurso/restore. Trabalhos anteriores
+locais D-316/D-317/V-318/V-319 e etapa 00 permaneceram fora do commit.
+Recorte de pareamento apresentado ao responsável em Q-28; ainda sem resposta
+na observação, sem código emitido ou dado financeiro transmitido.
+
+
+Conclusão da publicação D-321: CI 42282953292 aprovado para 651368c (PostgreSQL
+1.755 testes/163 subtestes, dois skips; agente/pacote e três imagens aprovados).
+Deploy pela imagem conferida concluído na release 73. Conferidos web/worker,
+647 fontes/hashes, migrações/endpoint Neon, 512 MB, reserva parada, health e
+proteção de acesso; sem ampliar recursos ou gates. V-324 registra os detalhes.
+
+Resposta humana posterior autorizou somente SURIA/212/conta 8/09-2026/extrato
+identificado. Empresa/conta e manifesto preparados e código temporário entregue
+em arquivo privado. No PC, operador precisou do HTTPS e depois do código;
+orientações fornecidas. Captura posterior revelou falha icacls antes de salvar
+configuração. Backend confirmou consumo do código sem heartbeat/conector/
+linhas. Registrada correção em D-321 antes de revogar credencial órfã e
+substituir código, preservando recorte/DSN/MSI; configurador deve abrir elevado.
+Prova LocalSystem/sincronização continua em andamento, sem homologação presumida.
+
+
+Resultado final do PC e backend: “Recorte configurado”, Running/LocalSystem/
+ready; após reinício Running/Auto/LocalSystem/ready. Campo de senha encontrado
+por nome no DSN dedicado; remoção restrita orientada após D-321, sem ler valores.
+Novo reinício retornou false/Running/ready às 20:17:39 UTC. Conferência final
+backend posterior: agente/conector saudáveis, 163 itens/espelho, zero duplicados
+ou fora do recorte; datas/valores iguais ao corpus aceito, fatos contábeis
+independentes continuam zero. Credencial órfã revogada e códigos consumidos;
+arquivo de pareamento agora contém só comprovante, sem código reutilizável.
+Atualizados plano, V-324, checklists, dúvidas e continuidade; publicação final
+somente documental sem repetir CI/deploy. Gates remanescentes explicitados,
+sem marcar homologação ou acesso pessoal como concluídos.
+
+
+## Acesso pessoal Grazi — D-321/V-325 (06/11/2026)
+
+Responsável solicitou conta com o e-mail já informado e senha simples. Registrada
+autorização posterior antes de criar credencial/vínculo; papel Proprietária já
+aprovado, ausência de convite mantida. Preflight confirmou login inexistente e
+estado do escritório/agente/contrato preservado. Quatro testes iniciais aprovados;
+processo extra no web foi morto por OOM, sem usuário/vínculo/auditoria parcial,
+com health/agente seguindo 200. Preparação de senha/política/Argon2 movida ao Mac,
+transação reduzida executada no worker existente, sem ampliar recursos.
+
+Quatro testes finais com Argon2 real aprovados, 15,01 s, incluindo login, acesso
+à importação, proteção de conta existente/repetição e rollback de auditoria.
+Conta ativa Grazi/owner somente CONTAD criada com auditoria, sem staff/plataforma,
+convite/e-mail/fatura ou alteração de módulos/contrato/agente. Senha só no arquivo
+privado 0600 de entrega; cópias transitórias privadas limpas após verificação.
+
+Conferência HTTPS real com senha/CSRF: login 302 para app, Conciliação 200,
+CONTAD/Grazi/SURIA 212 e Nova importação/campo de arquivo/origem disponíveis.
+Sessão de verificação encerrada por POST, anônimo 302 ao login. Estado remoto
+final confirma vínculo único, último login, Argon2, 163 movimentos/healthy,
+zero arquivos importados/convites/faturas. Nenhum bypass MFA ou teste visual
+novo. Atualizados plano/checklists/continuidade/V-325; publicação documental
+sem novo código/deploy, preservando alterações locais anteriores. Acesso pessoal
+concluído; fontes/regras/Q-47/D-73/recuperação/treinamento e aceite seguem abertos.
+
+## Prompt de finalização CONTAD — D-322/V-326 (06/11/2026)
+
+Responsável esclareceu objetivo de todas as empresas do escritório e pediu
+prompt para outra sessão concluir o sistema, extração Domínio, testes e passos
+contratuais. Registrada D-322 antes de produzir instrução dependente; relidos
+plano/decisões/validações, etapas 03/09/12, matriz PC-19 e contratos de fontes.
+
+Criado prompt canônico de 2.546 palavras/nove seções, com escopo de carteira
+completa, estado operacional real V-324/V-325, cadastros/contas/Razão/títulos,
+evolução do protocolo, testes e critérios D-73, publicação, Windows, recuperação,
+treinamento/aceite e limites de custo/escrita. Inclui credencial por caminho
+privado, sem seu conteúdo, e orientação de não repetir decisões respondidas.
+
+Cópias privadas idênticas nos dois nomes de prompt em Downloads; anterior
+preservado em .tmp. Conferidos hash/UTF-8/estrutura/referências e ausência de
+login/senha reais. Atualizados plano, checklists/dúvidas e continuidade, sem
+nova sessão, execução externa, mudança funcional, publicação ou homologação.
+Trabalhos anteriores preservados; coleta atual permanece no piloto restrito.
+
+## 06/11/2026 — Carteira CONTAD publicada parcialmente, D-323/V-327
+
+Fonte e9311eb enviada à main, CI 42294764025 aprovado e backend release 74
+publicado/verificado. 825 blobs iguais ao commit; imagem sobre base imutável 73
+com onze arquivos Python aditivos/alterados, configuração e camadas preservadas,
+651 hashes runtime iguais em web/worker. Migrações/Neon original, recursos,
+worker/readiness, acesso Grazi e doze fingerprints CONTAD conferidos. Nenhum
+upload ou decisão contábil na verificação HTTPS. Alterações locais anteriores
+D-316/D-317/D-322/etapa 00 preservadas fora do índice e commits próprios.
+
+PostgreSQL local final: 1.788/163, um skip; CI PostgreSQL 1.787/163, dois skips;
+Windows 52 testes/26 checks, MSI 1.0.4 e parser PowerShell aprovados. Tentativas
+locais anteriores falharam por sobreposição de banco de teste e disco Docker;
+provas finais/limites discriminados em V-327, sem apagar resultados anteriores.
+
+Histórico financeiro desde 09/2026 confirmado. Operador respondeu ainda
+indisponível; inventário/upgrade reais aguardam essa ação. PC permanece 1.0.3,
+manifesto piloto, 163 eventos preservados e zero scan de carteira. Protocolo e
+cadastros não substituem contas, Razão/títulos, IA, Q-46/Q-47, D-73, recuperação
+recorrente, treinamento ou aceite. Guia preparado, sem execução humana. Projeto
+permanece aberto; próximo insumo: metadados/situações do PC, roteiro em Downloads.
+
+## 07/11/2026 — Recuperação da carteira, release 75, D-323/V-328
+
+Corrigido cursor preso após cobertura inconsistente; recusa abandona somente
+leitura aberta, preserva dados e reinicia na próxima abertura. Erro/horário
+persistidos e diagnóstico administrativo somente leitura implementados. Foco
+PostgreSQL 62 aprovados; regressão final local 1.801/163, um skip; CI exato
+1.800/163, dois skips. Falha inicial de transação aninhada corrigida e registrada.
+
+Fonte c8b0c50 publicada, CI 42355490505 aprovado, release 75 verificada: 828 blobs
+da candidata, 653 hashes runtime, dois aliases/migrações, recursos/saúde/worker,
+acesso Grazi e doze fingerprints CONTAD iguais. Túnel SSH falhou em duas leituras;
+organização permaneceu acessível e mesma prova concluída por Fly Machines exec,
+sem mudar permissões/infra. Backup original reconferido após observar término
+do processo anterior. Fonte/imagem, tentativas e limites detalhados em V-328.
+
+Sem alterar manifesto real, agente/MSI, UI ou SQL ERP. Inventário ainda não
+recebido; último relato do operador indisponível. Carteira real, fontes de
+contas/Razão/títulos, IA, Q-46/Q-47, D-73, recuperação recorrente, treinamento e
+aceite continuam pendentes. Trabalhos locais anteriores preservados fora dos
+commits. Não declarar conclusão do projeto por esta correção operacional.
+
+## 09/11/2026 — Windows Server oficial: plano e desenvolvimento local, D-324/V-329
+
+Adaptado prompt canônico anexado, incluindo avanços release 75 e sequência:
+Server observado → instalação/candidato sem coleta → provas LocalSystem/ODBC/
+ACL/DPAPI/reinício → corte atômico/oficial e anterior revogado → inventário e
+carteira completa desde 09/2026 → fontes/aceite. Três cópias privadas idênticas
+em Downloads, originais preservados; guia técnico e checklists atualizados.
+
+Implementados vínculo de substituição e candidato pending, proteção contra
+coleta/cliente antigo, oficial único/ativo, emissão privada sem overwrite e
+ativação explícita com revisão/heartbeat, auditoria/rollback/idempotência.
+Piloto/carteira serializam ingestão com o corte, preservando fatos/scans e
+reiniciando leitura própria no novo agente. Fonte/workflows preparam 1.0.5.
+
+Regressão final PostgreSQL 17 tmpfs: **1.837 testes/163 subtestes aprovados,
+um skip** (357,06 s). Foco SQLite: 30/seis skips de concorrência cobertos no
+PostgreSQL. .NET: 59/um skip Windows; alvo net8, execução Mac/runtime 10.0.11
+por RollForward. Serviço/configurador/ponte compilados sem erros/avisos; Ruff,
+MyPy seis módulos, Django e ausência de migrações faltantes aprovados. Falhas
+iniciais de nome de rota, trava excessiva/deadlock e contexto MyPy corrigidas;
+não foram omitidas nem contabilizadas como aprovação (V-329). Container desta
+rodada removido; demais projetos não alterados.
+
+Responsável disponibilizou AnyDesk, mas ferramenta retornou timeout -10005 ao
+obter a janela por três mecanismos. Sem observação/ação no Server. Ao recomendar
+revisão .NET 8 (D-289, suporte termina em 10/11/2026), responsável pediu conferir
+compatibilidade do Server provavelmente antigo. Consultada matriz Microsoft;
+solicitado texto winver sem senha/mudança. Versão real ainda desconhecida,
+alvo preservado; não houve autorização incondicional/migração para .NET 10.
+
+Sem commit/push/CI remoto/deploy, MSI 1.0.5 emitido ou instalação/corte reais,
+SQL ERP, custos ou IA externos. Última publicação provada é release 75/V-328;
+esta rodada não reconferiu produção live. Dez arquivos preexistentes preservados
+por confronto com snapshot HEAD+diff; dezenove arquivos fonte/teste/workflow
+com hashes privados. PC-19, Q-28/Q-46/Q-47, D-73, recuperação, treinamento e
+aceite permanecem abertos; implantação oficial exige primeiro identificar Server.
+
+## 10/11/2026 — Passo a passo do operador no Server, D-324/V-330
+
+Entregue roteiro de instalação/testes no procedimento técnico canônico, sem
+criar outro plano: passos 1–3 de preparação agora; demais passos condicionados
+a Windows compatível, MSI novo validado e backend de substituição publicado.
+Conferidos serviço/pastas/campos/estados no código e manifestos disponíveis:
+Downloads ainda 1.0.4 e artefato genérico 1.0.0 não substituem 1.0.5. Corrigido
+nome do arquivo protegido para agent.config. ODBC interativo, reabertura DPAPI,
+heartbeat e leitura real LocalSystem são evidências distintas. Roteiro não
+manda instalar SDK/Python, copiar segredos, desligar a rede do Server ou executar
+ensaio destrutivo de CI. Estado real do Windows ainda não informado.
+
+Entrega somente documental, conferência estática/git diff --check, sem execução
+de comandos no Server, instalação/pareamento/promoção, publicação ou teste de
+aplicação novo. Preservados trabalhos locais e gates D-324/Q-28/Q-46/Q-47/D-73.
+
+## 10/11/2026 — Windows Server identificado, D-324/V-331
+
+Captura winver fornecida pelo operador identifica Server 2022 Standard,
+21H2/build 20348.5761. Reconsultada matriz .NET 10: Server 2022 x64 incluído;
+compatibilidade de plataforma confirmada, sem validar agente/ODBC ou trocar
+runtime. Imagem privada preservada, registros/guia/checklists atualizados.
+Próximo passo guiado: PowerShell x64, serviço/configuração existentes, depois
+ODBC. Sem ação remota, instalação, pareamento, código ou teste de aplicação novo.
+
+## 10/11/2026 — DSNs do Server observados, D-324/V-332
+
+Segunda captura mostra PowerShell elevado/processo x64, consulta sem serviço
+listado e configuração ausente. Aba DSN de Sistema do ODBC 64 bits lista
+Contabil 32/SQL Anywhere 17, Contabil 64/SQL Anywhere 16 e duas conexões e-Robo
+64 (drivers 16/17). A linha selecionada é 32 e não configurável nesse gerenciador;
+orientação seguinte seleciona Contabil 64 apenas para conferir servidor/banco,
+sem salvar/alterar/extrair senha. CICA_CONTAD não aparece; teste de conexão
+continua pendente. Sem ação remota, instalação, pareamento ou troca de runtime.
+
+## 10/11/2026 — Identificadores ODBC recebidos, D-324/V-333
+
+Imagem de Login mostra servidor SrvContabil, banco Contabil e Host/Port vazios,
+Authentication Database/ação remota para banco em execução. Credenciais vazias
+na tela. Orientação prepara novo CICA_CONTAD de sistema x64/SQL Anywhere 16,
+preservando o original e sem senha no DSN. Não foram criados DSN, testada conexão
+ou instalados componentes nesta sessão; aguardar resultado local. Network e
+Advanced desconhecidos; não declarar clone integral, destino homologado ou
+LocalSystem validado por esses campos. Evidência privada/continuidade atualizadas.
+
+## 10/11/2026 — Falha de autenticação no teste ODBC, D-324/V-334
+
+Teste informado pelo operador retornou login Integrated recusado por login_mode.
+Documentação SAP conferida; próximo passo corrige somente Authentication para
+Database no DSN dedicado e fornece EXTERNO/senha temporariamente no Windows para
+Test Connection, limpando antes de salvar. Sem alterar política do banco ou
+DSN original. DSN/driver e tela Login atuais não visíveis nessa mensagem;
+resultado do reteste continua pendente. Sem ação remota/instalação/pareamento.
+
+## 10/11/2026 — Teste ODBC bem-sucedido informado, D-324/V-335
+
+Operador confirmou sucesso no reteste após orientar Database/EXTERNO no Windows.
+Próximo passo local é limpar credenciais temporárias e salvar CICA_CONTAD;
+sem confirmação de limpeza/persistência por enquanto. Teste interativo não
+prova serviço/LocalSystem, instalação ou sincronização. Mantidos pacote/backend
+novos pendentes e dados/DSN original preservados. Entrega desta rodada é
+registro/orientação, sem executar comandos remotos ou novo teste de aplicação.
+
+## 10/11/2026 — DSN salvo e .NET 10 LTS aprovado, D-325/V-336/V-337
+
+Operador confirmou limpeza das credenciais temporárias/salvamento de CICA_CONTAD;
+não repetido teste ou leitura de segredos. Responsável aprovou .NET 10 LTS
+depois da identificação do Server 2022. D-325 registrado antes de migrar os
+cinco projetos e CI; pacotes Microsoft/runtime autocontido em 10.0.15, produto
+1.0.5 e arquiteturas x64/x64/x86 preservados. Adaptado carregamento de PFX
+à API atual, mantendo chave efêmera e validação HTTPS.
+
+Testes .NET: 59 aprovados, três exclusivos de Windows pendentes. Dois testes
+novos não executam no Mac por EphemeralKeySet; exigidos no fluxo Windows.
+Três publicações Windows locais aprovadas sem avisos/erros, PE e runtimes
+conferidos; auditoria NuGet não apontou vulnerabilidades. Evidências privadas
+em `.tmp/contad-net10-2026-11-10/`. Regressão Python V-329 preservada, sem
+alteração de backend nesta migração. Documentação/prompt e cópias sincronizados.
+
+Sem MSI novo, CI remoto, publicação, deploy ou operação na cliente. Próximo
+gate: gerar/homologar MSI da fonte exata em Windows e backend compatível antes
+do pareamento. Instalação/LocalSystem/corte e demais gates permanecem abertos;
+a aprovação do runtime não os resolve nem autoriza custos/publicação por inferência.
+
+## 10/11/2026 — Branch e MSI .NET 10 homologados em Windows descartável, D-326/V-338
+
+Autorização humana registrada antes do envio. Branch isolada
+codex/contad-official-agent-net10 preserva os trabalhos locais anteriores.
+CI inicial 42862054949 aprovado; referência ProtectedData redundante do
+configurador removida e CI final 42863201809/fonte 53b834b aprovado novamente:
+62 testes .NET, zero skips, 26 checks do ciclo instalado. Serviço LocalSystem,
+ACL/DPAPI, configurador, ponte x86, reparo, reinício e remoção testados com dados
+sintéticos. Aviso NU1510 resolvido; aviso WiX ICE61 preexistente documentado.
+MSI 1.0.5 autocontido 10.0.15 sem assinatura de editor, SHA-256 e artefatos
+conferidos e preservados em Downloads junto do roteiro e relatório.
+
+Plano/checklists/prompts atualizados, commits restritos à entrega na branch.
+Sem merge, release ou deploy em produção, instalação na cliente, ODBC real,
+pareamento/corte. Próximo gate é publicar/conferir backend compatível no escopo
+que vier a ser autorizado; somente depois instalar/parear e testar no Server.
+
+## 10/11/2026 — Backend pronto para instalar/parear o Server, D-327/V-339
+
+Responsável autorizou os processos necessários após entrega do MSI. Registrado
+D-327 antes da publicação; CI completo 42865006431/fonte 03ed5b0 aprovado:
+1.836 testes PostgreSQL/163 subtestes, dois skips, três imagens e agente Windows.
+Release externa 76 reconciliada e preservada como base/retorno; oito arquivos
+Python acrescentados/alterados, 661 hashes e camadas/configuração conferidos.
+
+Publicada release 77 sem mudar recursos/manifesto; intelligence.0035 nos dois
+aliases, web/worker/HTTPS/banco/cache e doze fingerprints CONTAD aprovados.
+Agente anterior ativo, dados/usuários/contrato preservados. Código novo emitido
+em arquivo privado de uso único, válido até 15:48:07 de 10/11 (Brasília), sem
+valor em logs/Git/ZIP; temporário remoto removido. Pacote MSI original mantido,
+roteiro e cópias atualizados. Sem acesso ao Windows, instalação/candidato/corte
+ou coleta nova; usuário deve instalar e devolver estados seguros para a próxima
+verificação. ODBC sob LocalSystem e demais gates não foram considerados cumpridos.
+
+## 10/11/2026 — 502 no login por falta de memória (D-328, V-341)
+
+- O proprietário relatou 502 ao enviar a senha. Diagnóstico pelos logs do Fly: o kernel matava o
+  worker Gunicorn por OOM, três vezes em 86 segundos, com ~216 MB de RSS cada, em uma máquina web
+  de 512 MB rodando `--workers 2`.
+- O `fly status` enganava: máquina `started` e health check passando, porque o processo morto e
+  recriado era o worker dentro dela.
+- Escolha do proprietário entre as saídas apresentadas: reduzir para `--workers 1`, sem custo novo.
+  A alternativa de dobrar a memória foi descartada por envolver custo.
+- Não é conserto da causa: `reportlab` é importado no nível do módulo em `nfse_reports.py`, e a
+  imagem ainda traz `pdfminer`, `pypdfium2` e `boto3`. Tornar esses imports preguiçosos continua
+  pendente.
+
+## 10/11/2026 — "Empresas atendidas" vai para o menu Configurações (D-319, V-321)
+
+- O proprietário abriu o menu Configurações na Bianchi & Rizzotto procurando a função de inativar
+  empresa e não achou: o link estava na barra interna da página de Integrações, um nível abaixo.
+- A entrada passou para o menu de navegação, logo abaixo de "Integrações", e saiu do rodapé da
+  página, para existir em um lugar só. A condição de exibição é a mesma.
+- `_backup_managed_source` saiu de `views.py` e virou `backup_managed_source` em
+  `apps.hub.services`, compartilhada por navegação e view. A ordem das consultas foi invertida para
+  a mais seletiva primeiro, porque a navegação roda em toda página: escritório sem fonte de backup
+  custa uma consulta.
+- 16 testes do módulo aprovados, três deles novos sobre o menu renderizado. Conferência no servidor
+  QA isolado confirmou a entrada no lugar certo, apontando para `/app/configuracoes/carteira/`.
+- Os IDs locais haviam sido renumerados na main remota: o que estava como D-317/V-319 é agora
+  D-319/V-321. Duas referências que eu havia escrito em `services.py` e `navigation.py` foram
+  corrigidas para D-319.
+
+## 10/11/2026 — Conexão SVAPL02 confirmada e consolidação autorizada, D-329/V-340
+
+Imagem confirma ODBC no configurador; código anterior expirou. Releases 78/79
+retiraram a implementação que estava somente na branch técnica. Detectadas
+colisões de IDs e obtida autorização humana para consolidar/main preservando
+ambas as frentes. Aplicação sem sobreposição de arquivos; próximo passo é
+integrar/testar/publicar antes de emitir outro código. Sem corte ou coleta nova.
+
+## 10/11/2026 — Integração do agente e liberação consolidada (D-329/V-342)
+
+- PR 3 integrado em main 272f977, árvore idêntica à fonte validada 5c20766;
+  CI 42882756516 aprovado. Registros renumerados, demais correções preservadas.
+- Imagem sobre a release 79, somente oito arquivos do agente; 661 hashes,
+  migrações, saúde, worker, 12 fingerprints e recursos conferidos na release 80.
+- Código anterior expirado sem uso/zero candidato; novo código privado 0600
+  entregue até 17:30:50, temporário remoto removido, fora de Git/ZIP.
+- MSI 1.0.5 mantido; pacote/roteiro/prompt e cópias atualizados. ODBC interativo
+  já comprovado em V-340; próxima ação operador é parear e devolver estados.
+- Sem acesso/ação no Windows, corte oficial, nova coleta, custo ou aceite.
+  Provas LocalSystem/DPAPI/ODBC e demais gates continuam abertos.
+
+## 10/11/2026 — Candidato pareado e prova ODBC SYSTEM preparada (D-330/V-343/V-344)
+
+- Captura humana: Running/Auto/LocalSystem/awaiting_activation após reinício.
+  Backend confirmou SVAPL02 pending, novo fingerprint e manifesto herdado,
+  código consumido e anterior ativo. Onze conjuntos de dados anteriores intactos.
+- Preparada ferramenta sem ler configuração/senhas existentes: senha digitada
+  só no Windows, DPAPI/ACL temporária, tarefa SYSTEM com SELECT mínimo, relatório
+  seguro, remoção da tarefa/credencial. Teste CI usa DSN inexistente/credencial sintética.
+- CI exato 42890385615/fonte 05fc97d aprovado em Windows 2022/PowerShell 5.1;
+  PR 4 integrado, script/hash/roteiro entregues. Fonte inicial de teste usava DSN
+  sintético longo e falhou na asserção; encurtado e versão final revalidada.
+- MSI 1.0.5/backend release 80 preservados; sem reinstalação/deploy/corte/coleta.
+  Próximo passo operador: executar teste e devolver JSON seguro; conferir ODBC,
+  ACL/versão/horário e heartbeat antes de corte. Q-28 e demais gates abertos.
+
+## 10/11/2026 — SVAPL02 oficial e primeiro ciclo comprovado (V-345/V-346)
+
+- Prova humana ODBC SYSTEM/x64/ACL/versão/limpeza aceita; preflight live aprovado.
+- Corte transacional às 17:08:35 Brasília: único oficial ativo SVAPL02, anterior
+  revogado e auditoria única. Assinaturas reais: anterior 401, novo 200/coleta true.
+- Recepção real e ready/1.0.5 às 20:09:33 UTC, onze fingerprints/piloto preservados;
+  MSI/backend/recursos/saúde intactos. Nenhum lote ou heartbeat artificial enviado.
+- Reinício complementar pós-corte solicitado. Colagem sem separadores falhou
+  antes da ação; versão em linha única enviada, JSON ainda aguardado. AnyDesk
+  novamente retornou timeout -10005, sem observar/controlar Server.
+- Documentação/pacote/relatório atualizados para estado real; prova pendente não
+  marcada concluída. Carteira/fontes/aceite e demais gates continuam abertos.
+
+## 10/11/2026 — Reinício pós-corte aprovado e instalação encerrada (V-347)
+
+- Operador devolveu os dois JSONs após linha corrigida com separadores:
+  Running/Auto/LocalSystem, ready/1.0.5 às 20:23:26 UTC, ciclo concluído.
+- Backend conferido somente leitura: ciclos reais às 20:24/20:25, conector
+  healthy, heartbeat 20:26:50, único oficial e anterior revogado/sem novo heartbeat.
+- Onze fingerprints anteriores idênticos; mesmo manifesto/piloto, zero scan,
+  release 80/configuração/imagens/recursos/estados de Machines preservados.
+- Plano/checklists/validações/relatório/prompt/cópias e pacotes atualizados.
+  MSI/script intactos; nenhuma reinstalação, nova coleta ampliada ou deploy.
+- Fecha o retorno pendente em V-346. Instalação, troca oficial e teste de
+  retomada do serviço concluídos; carteira/fontes/aceite continuam nos seus gates.
+
+## 10/11/2026 — Carteira preparada e inventário real em diagnóstico (D-331/V-348)
+
+- Backend: prévia/aplicação administrativa com evidência/CAS/revisão/auditoria,
+  identidade/dados preservados e bloqueio de corte concorrente.
+- PostgreSQL: 112 focados; regressão 1.881/163, um skip opcional. Estáticas e
+  imagem candidata de 663 hashes offline aprovadas; CI integral ainda em curso.
+- Windows CI 42897681292 validou sonda; tentativa real no SVAPL02 falhou sem
+  inventário. CI 42898977773 validou diagnóstico seguro/etapas/IM002; entregue
+  script de hash dc5e9b19 e solicitado retorno. Sem hipótese de causa presumida.
+- Publicação/carteira reais não declaradas por essa preparação. Piloto/manifesto/
+  MSI/instalação preservados; fontes/gates contábeis e aceite continuam abertos.
+
+## 11/11/2026 — Inventário concluído e backend da carteira publicado (V-349)
+
+- Retorno humano: 601 objetos/5.674 colunas/502 empresas e hash; JSON completo
+  ainda no Windows. Registrada conclusão sem aprovar situações ou nova coleta.
+- CI final 42900012334/d39acd0 aprovado, PR 5/main 5cfa462 integrado com árvore
+  idêntica. Nova imagem de dois módulos/663 hashes sobre release 80, mesma base.
+- Release 81: dois processos/aliases/runtime, worker, readiness, recusa de agente
+  inválido, doze fingerprints e recursos/configuração/reserva conferidos.
+- SVAPL02 permanece único oficial; ciclo real pós-deploy e conector healthy,
+  mesmo piloto/163 movimentos e zero scan. Não foi aplicado configure_agent_portfolio.
+- Registro Docker exigiu renovar autenticação existente; um download GitHub 502
+  foi repetido. Sem novo recurso/backup/chave, MSI/driver/DSN ou custo de IA.
+- Atualizados plano/prompt/cópias/contrato/checklists/pacotes. Próximo insumo:
+  JSON completo/revisão das situações/fontes, sem repetir a sonda concluída.
+
+## 11/11/2026 — Seleção de ativas na origem e atualização preparada (D-332/V-350)
+
+- Original recebido/hash reconferido; estrutura e contagens conferidas, sem aprovar
+  M ou relações financeiras. Responsável não sabe conferir A/M: primeiro recorte A,
+  sem atribuir revisão à Grazi nem classificar M como inativo.
+- Agente1.0.6 e backend v2/v3 implementados/testados, contagem/paginação filtradas,
+  protocolo anterior preservado e recepção recusa registros fora da seleção.
+- Regressão local PostgreSQL isolada1.893/163; CI integral43061206044 aprovado;
+  Windows2022/67 testes/26 checks e upgrade1.0.5→1.0.6 DPAPI/retomada aprovados.
+- PR6/main7a02775 integrado; release82/664 hashes web-worker, recursos/configuração,
+  doze fingerprints, piloto/agentes e backup preservados; saúde/worker conferidos.
+- Pacote1.0.6 entregue e execução pontual solicitada. Falta JSON real do SVAPL02;
+  manifesto não ampliado e nenhum scan da carteira. Não declarar projeto concluído.
+- Entrada AnyDesk não verificável/limite de licença respeitado; sem consulta ERP
+  comprovada ou contratação. Fonte financeira continua nos gates Q-28/Q-46/Q-47.
+
+## 11/11/2026 — Upgrade real e recusa de formato localizada (V-351/D-333)
+
+- Recebido upgrade1.0.6/ready/bytes preservados; oficial/heartbeat/backend82 conferidos.
+- Prévia e aplicação única A às17:15:17 UTC, auditoria técnica; staging privado removido.
+- Scan146/cursor0 abriu, sem enviar cadastros. Erro real às17:18:30 aponta limite14 dígitos.
+- Sonda agregada Windows/seis cenários validada e executada na cliente às17:27:45:
+  12 inscrições11,133 inscrições14 e uma vazia, sem divulgar documentos/nomes/valores.
+- Onze fingerprints originais preservados, nenhuma fonte financeira nova.
+- D-333 registrado antes do código: espelho literal em campos próprios, sem
+  interpretação de TIPOI_EMP/CNPJ/CPF ou mudança de UI/regra comercial.
+- Correção1.0.7 em validação; coleta ainda incompleta, não marcar projeto concluído.
+
+## 11/11/2026 — Inscrição literal e146 empresas sincronizadas (V-352)
+
+- D-333: campos de origem sem inferir espécie fiscal;143 testes PG focados,
+  CI integral1.872 SQLite/1.903 PG/163 subtestes, Windows74 e upgrade aprovados.
+- PR7/main1a0f30b integrado; release83/665 hashes e migração0080 nos dois aliases,
+  recursos/configuração/backup/original financeiro conferidos.
+- AnyDesk aceito, mas entrada não funcionou. D-334 publicou ZIP genérico por HTTPS
+  no repositório oficial; hash/TLS/artefatos verificados, sem dados da cliente.
+- Operador usou um comando de download/verificação/extração/upgrade: ready1.0.7
+  às18:31:19 UTC, bytes protegidos preservados, sem reboot ou novo pareamento.
+- Scan original concluiu146/146,145 criações/uma atualização/zero ignorados.
+  Releituras reais mantiveram146/IDs/valores, zero duplicatas, último ciclo18:34:23 UTC.
+- Onze fingerprints protegidos e campos originais da SURIA/CNPJ/contato iguais;
+  nenhuma fonte financeira nova ou classificação de M. Não declarar projeto concluído.
+- Plano/checklists/prompt/cópias/relatório e entrega atualizados; download direto
+  não é auto-instalação permanente. Próximo trabalho: relações/fontes e demais gates.
+
+## 11/11/2026 — Relações das fontes preparadas (D-335/V-353)
+
+- Preservado1.0.7/carga146; inventário original/hash reutilizado, sem nova descoberta.
+- Criada consulta fixa e limitada de chaves/relações, sem linhas financeiras.
+- Análise local valida ordem composta/IDs/pares FK e confronta nomes com o inventário.
+-46 testes locais e12 cenários Windows5.1 aprovados, incluindo JSON PowerShell→Python.
+- HTTPS/commit fixo/hash iguais aos bytes testados; comando sem transferência manual
+enviado ao operador. Retorno real ainda pendente, sem novo pareamento ou MSI.
+- PR8 criada e anexada; CI integral em andamento. Sem deploy ou fonte financeira nova.
+
+Retorno de operação D-335: responsável informou JSON grande aberto no AnyDesk,
+mas conteúdo ainda não recebido/conferido. Ferramenta CUA retorna timeoutReached
+na vinculação e observação da janela; não afirmar leitura remota. Solicitada cópia
+GZip/Base64 com SHA do relacoes.json já salvo, por clipboard para este chat;
+sem refazer consulta, senha, instalação ou transferência manual do script.
+
+## 11/11/2026 — Catálogo real recuperado (V-354)
+
+Envelope GZip do operador recuperado/hash conferido; JSON1.950.830 bytes privado.
+Nove tabelas/51 colunas de índices/1.496 relações analisadas sem inconsistências.
+FK de rateio usa nume_ccu→nume_lan; relação bancária usa I_CONTA_CAIXA→codi_cta.
+Não há FK lançamentos/caixa→CTCONTAS; continuar prova de plano e partidas,
+sem habilitar fonte financeira ou repetir a consulta já concluída.
+
+Fechamento técnico V-353: CI integral43082799730/fa980f5 aprovado, sem
+alterar backend83/serviço1.0.7 ou recursos de produção. Integração PR8 segue
+a autorização D-329; D-336 prepara conferência pontual, sem coleta financeira.
+
+## 11/11/2026 — Perfil real e próximo agrupamento (V-355/V-356)
+
+Perfil/16 cenários Windows aprovados e download exato conferido. Retorno real:
+1.405 registros/163 banco8,contas correspondentes/zero fanout,567 unilaterais.
+D-337 registrado antes do normalizador: preservar partidas e conferir lotes,
+sem importar registro unilateral como lançamento completo ou ativar financeiro.
+
+## 11/11/2026 — Lotes reais e normalizador (V-357/V-358/V-359)
+
+16 cenários Windows dos lotes aprovados, script HTTPS/hash conferido e executado.
+163 lotes/177 registros reais equilibrados/completos no período e um efeito por lote.
+Normalizador local preserva registros e exige cobertura/escopo/balanço;43 testes
+novos e89 focados aprovados. PR9/CI integral em andamento; sem dados financeiros
+importados, alteração do oficial1.0.7/backend83, dataset novo ou escrita ERP.
+
+Fechamento V-359: PR9/main094a93d integrado após CI43091250239/2d40869 integral
+aprovado:1.961 SQLite/1.992 PG/163 subtestes,74 Windows, instalação/upgrade e
+três builds. Nove arquivos próprios sincronizados ao diretório principal sem
+substituir alterações anteriores; seis recibos privados preservados fora do Git.
+Normalizador ainda não recebeu snapshot real com textos/valores. Sem deploy ou
+novo MSI; não declarar projeto concluído, fonte financeira ativada ou homologação.
+
+
+## 12/11/2026 — Integração nativa e nova versão (D-338/V-360)
+
+Implementados contrato SQL fixo incorporado/hasheado, job do oficial sem alterar
+carteira A, fonte JSON privada, importação idempotente/atômica e migrações aditivas.
+Texto/documento por partida preservados; banco usa histórico literal de sua partida.
+Preparado upgrade1.0.7→1.0.8 com DPAPI/identidade/DSN preservados e bootstrap HTTPS.
+Preflight confirmou oficial/conta8/zero Razão independente antes desta coleta.
+Testes locais/PG focados aprovados; validação integral final/Windows/publicação
+e snapshot real ainda em execução, sem homologação ou aprovação/exportação.
+
+
+Fechamento técnico D-338/V-360: PR10/main0f08388e e CI43218624356 aprovados.
+MSI1.0.8/upgrade Server2022 validados, pacote oficial publicado/hash conferido.
+Backend84 saudável em ambas as máquinas, migrações aditivas confirmadas,693
+arquivos/12 fingerprints/ambiente/recursos/reserva/gates preservados. Job único
+212/8/setembro enfileirado e repetição idempotente. Bootstrap único enviado ao
+operador por indisponibilidade da ferramenta AnyDesk; aguarda execução e coleta
+real. D-73/Q-46/Q-47 e aceite seguem pendentes, sem declaração de conclusão.
+
+
+## 12/11/2026 — Oficial1.0.8 e conferência real (V-361)
+
+Upgrade confirmado pelo operador; job concluiu163 lançamentos/334 partidas a
+partir de177 registros reais. Todos equilibrados/literais/em rascunho. OFX163 e
+Razão163 coincidem por data/direção/valor; diferença líquida zero. Repetição criou0
+e ignorou163; originais e gates preservados. Relatório privado entregue com
+limites de cobertura/saldo e revisão humana explícitos. Sem novo pareamento,
+escrita ERP, classificação de contas, aprovação ou exportação. Integração/coleta
+inicial concluídas; Q-46/Q-47/D-73 não foram convertidos em aceite por inferência.
+
+
+## 12/11/2026 — Prompt para outra sessão e publicação documental (D-339/V-362)
+
+Consolidado prompt atual com leitura obrigatória, Git/worktrees, estado1.0.8/84,
+carteira A146,177 registros/163 lançamentos/334 partidas reais, conferência OFX,
+replay0/163, testes, infraestrutura e fontes privadas. Explicita que a1.0.8 cobre
+o job inicial fixo e não a sincronização financeira recorrente da carteira inteira.
+Q-46/Q-47/M/D-73/recuperação e aceite não foram presumidos concluídos.
+
+Novo atalho no plano, aviso no prompt histórico e atualização vigente de Q-28
+evitarão reabrir provas superadas. Cópia TXT privada preparada nos Downloads.
+Commit/push somente desta documentação pelo checkout isolado atualizado; código
+anterior já publicado. Preservado o diretório principal com trabalho preexistente.
+Sem nova sessão, deploy, coleta ERP, consumo de IA, alteração de configuração ou
+novos testes de aplicação nesta entrega documental.
+
+## 12/11/2026 — Retomada da bateria CONTAD (D-340/V-363)
+
+Main remota 7114caa conferida. Quatro cenários sintéticos acrescentados
+para duas falhas transitórias, falha de contrato e interrupção antes do recibo.
+Reenvio e rollback de banco/arquivo passaram. SQLite focado 167/4 skips.
+SQLite integral 1.987 aprovados, 163 subtestes, 33 skips e duas falhas de porta
+loopback. PostgreSQL descartável bloqueado por memória compartilhada. xUnit em
+processo aprovou 85 testes com três skips Windows. Recibos de V-361 conferidos.
+A rodada não altera os critérios pendentes de recuperação e aceite D-73.
+
+## 12/11/2026 — Recorte de evidência Q-28/Q-46 (D-341/V-364)
+
+O analisador ganhou seleção local de objetos e preservou a saída legada.
+Recorte real privado de sete objetos e 52 relações a partir dos mesmos
+insumos de V-350/V-354. Cinco candidatos de títulos/baixas exigem suas
+chaves próprias e provas de semântica. SQLite focado com 173 aprovados e
+quatro skips. Regressão com 1.993 aprovados, 163 subtestes, 33 skips e dois
+testes de porta local desmarcados. Docker local bloqueado e envio ao GitHub
+recusado pela revisão automática. CI PostgreSQL pendente.
+
+## 12/11/2026 — Regressão pública e recuperação sintética CONTAD (D-342/V-365)
+
+PR #11 em rascunho, head e38c9f2, quatro arquivos conferidos por hash.
+CI 43233720276 aprovado. SQLite 1.994, PostgreSQL 2.026 e 163 subtestes
+em cada suíte. Agente Linux 85, Windows 88 e três construções Docker.
+Ensaio local restaurou os aliases SQLite e a fonte privada, verificou
+hash e repetiu o recibo sem duplicar lançamentos. Guia CONTAD atualizado
+com as provas para Q-28/Q-46/Q-47/D-73. AnyDesk expirou sem acesso à sessão.
+
+## 12/11/2026 — Verificação do que falta para finalizar (D-343/V-366)
+
+Pedido atual limitado a verificação; conciliados plano, registros, etapas e
+Q existentes. Fonte nativa ainda fixa no piloto212/8/setembro, com seis
+arquivos críticos idênticos por hash à referência origin/main local7114caa.
+Identificados como restantes carteira financeira/contas completas, títulos/
+baixas, DE-PARA com IA, saldos/regras, leiaute/importação, métricas operacionais,
+treinamento e aceite; suíte conserva os demais pacotes aplicáveis.
+
+Responsável confirmou correção da espécie NFS-e ainda pendente. Registrado
+em D-343/Q-39 específico, sem revogar D-295 ou confundir com Q-47 contábil.
+Atualizados a lista de pendências vigente, plano, dúvidas e resumos/checklists
+das etapas 00/03/07/09/12. O histórico foi preservado, inclusive as provas
+concluídas de instalação/corte, A146, fonte inicial e CI V-365.
+
+Preservado HEAD b65dfe7 e as alterações locais anteriores. Sem implementação,
+testes funcionais novos, fetch/push, serviço externo, deploy, coleta, escrita
+ERP, custo ou novo aceite. CI/produção citados somente pelas evidências
+anteriores; recuperação pontual/sintética não encerra recuperação recorrente.
+
+Conferência final: 11 documentos atualizados somente por inserções, com todos
+os trechos anteriores preservados; 12 links locais novos existentes, IDs D/Q/V/PC
+resolvidos e definições D-343/V-366 únicas. `git diff --no-index --check` entre
+as cópias anteriores e os documentos atualizados passou. Os 94 arquivos com
+alterações preexistentes fora desta entrega conservaram seus hashes SHA-256.
+
+
+## 12/11/2026 — Desenvolvimento iniciado para concluir hoje (D-344–346/V-367)
+
+Checkout isolado atualizado pela main7114caa; diretório principal preservado.
+Implementados modelos/migração, fonte privada, alocações revisadas persistidas,
+recibos de reenvio, desfazimento auditado e CLI. SQLite integral do primeiro
+recorte:2017/163,34 skips; bateria final PostgreSQL de títulos/catálogos:181
+aprovados, incluindo concorrência, identidade, fontes e revogação de acesso.
+Ruff/MyPy/Django/migrações/diff aprovados; sem fonte real ou novo deploy.
+
+Responsável pode acompanhar testes hoje, mas não conhece o menu dos títulos;
+descoberta ficou com o executor. Pesquisa oficial identificou o fluxo da
+Escrita; seletor antigo excluía nomes abreviados. Preparado complemento fixo
+apenas de metadados, testes Windows sintéticos e analisador privado com hash.
+D-346 autoriza publicação em branch/PR rascunho/CI padrão. Windows e CI final
+aguardam execução. Q-46/Q-47/D-73 e aceite continuam próprios, sem novo plano.
+
+
+Refinamento: PR12 aberto pela CLI após403 do conector. O teste Windows foi
+corrigido para ler JSON completo e limpar o exit do cenário negativo final;
+os dez cenários já haviam passado em c5307ef. Conferência adicional recarrega
+a fonte persistida, com27 testes SQLite aprovados/um skip. Registros documentais
+preexistentes fora do recorte foram retirados somente da branch; raiz preservada.
+
+
+## 12/11/2026 — Estrutura fiscal real recebida (V-368)
+
+Transporte humano conferido por SHA/bytes e descompressão. Catálogo fiscal:
+15 objetos/557 colunas/189 linhas de índice/536 pares de FK/242 relações.
+Chaves de nota/parcela/pagamento e vínculo contábil comprovados estruturalmente;
+empresa fiscal por fili_lan preservada distinta de codi_emp contábil. Valores,
+tipos/componentes/estorno e fonte financeira ainda exigem prova própria.
+Originais/análise privados fora do Git; sem nova leitura ERP nesta análise.
+
+
+### 12/11/2026 — Perfil fiscal agregado preparado (D-348/V-369)
+
+Catálogo real V-368 usado para preservar chaves completas e empresa fiscal no
+JOIN. Nove testes de consultas e78 de consultas/catálogos, Ruff aprovados.
+Harness12 cenários no CI padrão; aguardar prova Windows antes do comando.
+CI anterior43265387462/fdbda60 integral aprovado,2071 PostgreSQL/2038 SQLite,
+163 subtestes,88 testes Windows, agente e três imagens. Sem merge/deploy ou
+nova consulta ERP. Perfil só conta códigos/sinais/vínculos; não homologa Q-46.
+
+
+### 12/11/2026 — Perfil Windows aprovado e referências oficiais (V-369/V-370)
+
+Corrigida medição PowerShell5.1 de dicionários ordenados;12 cenários aprovaram
+na etapa específica43270180630/a560b7d. HTTPS/12813 bytes/SHAbe28c75b…576e4
+conferidos; comando enviado ao operador, aguardando JSON real. Regressão integral
+desse run ainda em andamento; run43265387462/fdbda60 anterior integral aprovado.
+Conjuntos oficiais6168/6169 lidos estaticamente sem macros/importação: mapas por
+família, código9 diferente. Não infere Serviços, principal/líquido ou estorno.
+Arquivos próprios do perfil/workflow sincronizados por baseline/hash na raiz;
+trabalho local alheio preservado. Sem nova consulta ERP/deploy/homologação.
+
+
+### 12/11/2026 — Perfil real e conferência por lote (D-350/V-371/V-372)
+
+JSON real SVAPL02 recebido: duas leituras idênticas e ligações diretas à conta8
+zeradas, com multiplicidades contábeis presentes. Original/contagens detalhadas
+privados; contratos/flags/partições/limites conferidos, sem semântica homologada.
+Complemento fixo por lote/contas preparado,12 cenários relacionais/90 testes e
+Ruff aprovados.15 cenários Windows ainda aguardam CI exato antes do comando.
+Nenhuma nova consulta ERP, montante, agente/DSN alterado, deploy ou aceite.
+
+
+### 12/11/2026 — Complemento de lotes Windows aprovado (V-372)
+
+Etapa específica43274063310/54ba2fb aprovada,15 cenários. HTTPS/13659 bytes/
+SHA c9ad8b44…11e5d conferidos; comando fixado/hash enviado. Retorno novo aguarda
+operador; perfis anteriores preservados. CI integral desse run ainda em andamento.
+CI anterior43270180630/a560b7d integral aprovado:2080 PostgreSQL/2047 SQLite,
+163 subtestes,88 Windows,12 cenários e três imagens. Sem novo ERP/deploy/aceite.
+
+
+### 12/11/2026 — Recusa real e correção limitada dos vínculos (V-373)
+
+Retorno completed=false em reading_saidas_account_shapes, RuntimeException sem
+SQLState. Nenhum recorte completo ou lotes homologados. Não inferir a causa;
+novos códigos estáticos de recusa,1024 grupos de contas/sem truncamento e
+transporte gzip/hash4MiB preparados.90 testes locais/Ruff aprovados;17 cenários
+Windows aguardam CI exato. Mesma fonte/recorte, sem montantes ou ERP escrito.
+
+
+### 12/11/2026 — Revisão dos vínculos aprovada no Windows (V-373)
+
+Etapa específica43275171024/0effa47 aprovada com17 cenários:129 grupos,
+limite1024/recusa1025, transporte e códigos exatos. HTTPS/14597 bytes/
+SHA369312e1…7ef41 conferidos, comando revisado enviado e retorno aguardado.
+Regressão integral desse run ainda em andamento. Falha anterior preservada;
+causa não inferida e nenhuma fonte/baixa contábil homologada.
+
+
+### 12/11/2026 — Vínculos reais e captura fiscal preparada (V-374–376)
+
+Recebido e conferido o transporte revisado: duas leituras idênticas, hash e
+42.100 bytes completos; nenhum vínculo direto ou no lote à conta8. Catálogo
+de contas já retido consultado em READ ONLY, sem nova consulta ERP. Referências
+continuam brutas e não demonstram caixa ou natureza contábil por nome.
+
+Implementada candidata1.0.9/contrato fiscal com consultas fixas, fila explícita,
+recepção privada autenticada e revisão obrigatória. 89 testes focados PostgreSQL,
+86 SQLite e guarda adicional de replay aprovados; .NET97/3 skips locais, Ruff,
+MyPy e Django aprovados. Upgrade preservando DPAPI/identidade/SYSTEM preparado
+para CI Windows. Não foi instalado ou enfileirado job real; Q-46/Q-47/D-73 e
+carteira financeira seguem pendentes. CI anterior0effa47 concluído integralmente.
+
+
+Continuidade V-376: CI43284808251/2ef5769 recusou seis testes Windows por
+hash divergente antes do ODBC; Linux97/3 skips aprovado. Reproduzida conversão
+CRLF com core.autocrlf=true. Regra LF explícita adicionada aos contratos de
+títulos e scripts de upgrade, mantendo os hashes e SQL originais. Conferidos
+os bytes do manifesto e as doze consultas sob a conversão Windows simulada.
+Essa correção aguarda novo CI exato; a candidata anterior não é distribuível.
+
+
+### 12/11/2026 — Candidata1.0.9 pronta para etapa operacional (D-352/V-376)
+
+CI43285420180/84a3190 integral aprovado:2092 SQLite,2126 PostgreSQL,163
+subtestes por ambiente e100 Windows, incluindo MSI/upgrade1.0.8→1.0.9 com
+DPAPI/SYSTEM/reinício preservados. Artefato/merge de teste/árvore/hash conferidos.
+Imagem local714 hashes preserva base/configuração da release84; smoke sem rede
+ou banco aprovado. Backup53 objetos e configuração atual reconferidos.
+Restauração sintética dos dois aliases e fonte privada, seguida de replay sem
+duplicação/revisão mantida, aprovada; não substitui D-73 operacional.
+
+Pacote e proposta concretos preparados nos Downloads. Próxima captura Q-46
+contém valores originais e exige confirmar atribuição do solicitante; ainda
+sem job, publicação, instalação, coleta monetária, normalização ou aceite.
+
+
+### 12/11/2026 — Backend85 publicado; aguardando upgrade do SVAPL02 (D-353/V-377)
+
+Responsável autorizou operação/coleta original pela Grazi. PR12 integrado,
+pacote1.0.9 publicado e download HTTPS/hash conferido. Release85 aplicada
+sobre base84,714 hashes/migrações conferidos no web/worker; saúde e mesmas
+máquinas/capacidade preservadas.14 grupos de dados anteriores inalterados.
+Prévia da fila com acesso atual da Grazi aprovada, sem criar pedido.
+
+AnyDesk voltou a falhar por timeout; comando x64 elevado do pacote testado
+solicitado ao responsável. Aguardar JSON1.0.9 saudável para enfileirar a
+captura já autorizada; não pedir novamente consentimento/DSN/pareamento.
+Fonte original será privada e pendente de revisão; Q-46/Q-47/D-73 abertos.
+
+
+### 12/11/2026 — Captura real concluída e exemplos Q-46 disponíveis (V-378/V-379)
+
+Operador confirmou1.0.9 pronto/DPAPI preservado/sem reboot; backend revalidou
+oficial/heartbeat/contrato. Job autorizado pela Grazi enfileirado uma vez e
+capturado:822 parcelas/546 componentes/590 vínculos, fonte/hash conferidos,
+zero normalizações ou lançamentos novos e14 fingerprints anteriores iguais.
+
+Recorte técnico JSON privado de sete casos preparado com origem/hash, campos
+literais e perguntas de juros/retenções. Repetição não duplicou documento/
+auditoria; download exige login. Confirmação humana de C01/C02 solicitada;
+montantes e documentos permanecem privados na CICA. Sem nova implantação
+ou consultas ERP adicionais. Q-46 semântico e demais gates ainda abertos.
+
+
+### 12/11/2026 — Adiamento do confronto humano Q-46 (D-355/V-380)
+
+Responsável sem acesso ao Domínio; C01/C02 adiados, sem data presumida.
+Captura/exemplos preservados e semântica pendente. Continuar o desenvolvimento
+independente por comparação técnica de fontes retidas, sem coleta adicional
+ou ativação financeira. Não repetir a solicitação de conferência agora.
+
+
+### 12/11/2026 — Comparador de fontes retidas preparado (D-355/V-381)
+
+Implementados módulo/comando administrativo de comparação por chaves completas,
+sem interpretação financeira ou alterações de dados.88 testes locais/duas
+verificações PostgreSQL pendentes, Ruff/MyPy/Django/migrações aprovados.
+Código genérico e fixtures sintéticas preparados para CI D-346. Nenhuma nova
+coleta, consulta ERP, interface, dado privado público ou aceite C01/C02.
+
+
+### 12/11/2026 — Comparador publicado com conferência humana adiada (V-382)
+
+CI43335886670/e3a968f integral aprovado e PR13 integrado por árvore idêntica.
+Backend86 publicado sobre85 com somente dois arquivos novos;716 hashes em
+web/worker, configuração/máquinas/schemas e saúde conferidos. Autocomparação
+READ ONLY da fonte retida repetida com1958 linhas inalteradas; recibo,
+auditorias,14 grupos de dados e sete exemplos preservados. Nenhuma coleta
+ERP, captura, normalização, alocação ou lançamento novo. C01/retenções e
+C02/juros continuam adiados por D-355, sem nova solicitação, data ou aceite.
+Limites Q-46/Q-47/D-73 e demais pendências conservados.
+
+
+### 13/11/2026 — Pendências além do Domínio reconciliadas (V-383)
+
+Revisão documental/estática distingue desenvolvimento, homologação e aceite
+da CONTAD e preserva pendências próprias da suíte. Atualizado o documento
+canônico existente com V-367–382; instalação/carga/captura/persistência e
+comparador não são reabertos. C01/C02 seguem adiados. Sem nova operação
+externa, teste funcional, custo ou autorização presumida.
+
+
+## 13/11/2026 — D-356/V-384: execução dos cinco pontos CONTAD
+
+Pedido: finalizar carteira financeira, títulos, DE-PARA IA, retorno e aceite.
+Responsável orientou menor custo de IA (sem teto/dados definidos) e pular
+por agora o teste Domínio. Decisão registrada antes do código.
+
+Entrega técnica local `ecdb9a7`, branch/worktree
+`codex/contad-cinco-pontos` em
+`/Users/pedromachado/.codex/worktrees/contad-five-points/CicaContabil`.
+Escopos explícitos do Razão/candidata1.0.10, ponte revisada de títulos, IA
+com governança/revisão e aferição D-73 por fatos. Guias atualizados; nenhuma
+interface alterada, fonte real normalizada por inferência ou operação publicada.
+
+Executados pytest integral SQLite(2169/35 skips/163 subtestes), integral
+PostgreSQL(2207/um skip/163 subtestes) e bateria final PostgreSQL(54/zero skips),
+.NET(101/três skips Windows), três builds, Ruff, MyPy10 módulos, Django e
+migrações/diff. Tempos/árvores e limites detalhados emV-384. PostgreSQL
+descartável encerrado; produção, oficial e fontes privadas preservados.
+
+Continuam por executar: coleta/recorrência/contas reais da carteira, fonte
+financeira/banco/saldos Q-46, IA com dados/teto autorizados, retorno Q-47 e
+200 fatos revisados/precisão/desempenho/recuperação/aceite D-73. C01/C02 não
+foram solicitados novamente. A próxima operação exige candidata Windows e
+backend exatos verificados; fonte publicada1.0.9/backend86 não contém estes
+avanços. Código preparado/testado não encerra o contrato.
+
+
+### Continuidade V-385 — validação externa da candidata
+
+D-346 reaproveitada para branch pública de código/fixtures genéricos. PR14/
+CI43426219942 e artefato14037727378; Windows104/zero skips, MSI e ensaio
+1.0.9→1.0.10 conferidos. Fonte/code tree idênticos ao mergeCI. Imagem candidata
+local preserva base86/configuração/20 camadas e14 arquivos da alteração;
+719 hashes e smoke sem rede/banco conferidos. CRLF antigo diagnosticado e
+preservado. Pasta privada da proposta em Downloads/CICA-CONTAD-1.0.10-ecdb9a7.
+RegressõesCI aprovadas; três builds Docker ainda em andamento neste registro.
+Sem operação real ou aceite; detalhes e encerramento do CI emV-385.
+
+
+### D-357 — operação autorizada após a candidata concreta
+
+CI43426219942 integral aprovado, Windows104/zero skips e três imagens.
+Responsável autorizou publicação, implantação e atualização1.0.10. Iniciar
+preflight/backup/fingerprints e preservar a base86/configuração/recursos;
+registrar resultado real próprio. Não repetir autorização nem presumir
+upgrade/aceite. IA paga/coleta ampliada/retorno mantêm seus requisitos.
+
+
+## 13/11/2026 — D-357/V-386–387: publicação autorizada executada
+
+PR14/main dbb9ab4; imagem680b16… na release87,725 hashes iguais emweb/
+worker, aliases e0038/0039, configuração e recursos preservados. Treze grupos
+financeiros/operacionais idênticos; identidade cadastral contra baseline
+validada e timestamps rotineiros separados, conformeV-386. HTTP200/401
+conferidos. Backup antigo/53 objetos reconferido sem novo snapshot/RPO/restore.
+Medição READ ONLY do piloto: leitura/validação1,537s, zero fatos novos.
+
+Antes de instalar, corrigida negociação para rollback86 (somente400 permite
+pedido legado). Seis testes novos, PR15/mainc2bfb60, CI43431911165 integral,
+Windows110/zero skips. MSI final5fa4c7… e pacote3f2f56… publicados por versão
+e download HTTPS conferido; candidata inicial05f36b… superada, não publicada
+no canal oficial. Backend Python não mudou na correção do agente.
+
+AnyDesk retornou timeout por nome/bundleID; inventário confirma app em execução.
+Comando privado de upgrade1.0.10 entregue ao responsável para PowerShellx64
+elevado noSVAPL02 e retorno somente do JSON seguro. Autorização não foi
+repetida. Não há instalação/ciclo1.0.10 comprovados até o retorno.
+Carteira inteira, semântica/saldos/banco, IA real/cotas/dados, Q-47 e D-73
+seguem abertos; não declarar os cinco pontos finalizados.
+
+
+### 13/11/2026 — D-357/V-388: oficial1.0.10 instalado
+
+Recibo real MSI final/exit0, configuração cifrada preservada, Running/Auto/
+LocalSystem e sem reboot. Conferência READ ONLY posterior do mesmo oficial
+com heartbeat13:53:31UTC e conector healthy. source_review_required é revisão
+semântica da fonte fiscal capturada, preservada; não reinstalar. Cinco pontos
+financeiros/IA/retorno/aceite permanecem abertos; Domínio adiado.
+
+
+### 13/11/2026 — D-356/V-389: ficha privada DE-PARA
+
+Preparadas18 contas literais da fonte retida para seleção humana, arquivo
+local0600 em Downloads. Metadados atuais sem provedor/chave central/modelo
+e política/aprovação do escritório; nenhum gasto/API. Sem contas ativadas
+por inferência ou fonte enviada. Q-08/Q-09 e revisão humana permanecem.
+
+
+### 13/11/2026 — D-358/V-390: credencial Claude e guia assistido
+
+Titular autenticou o console e chave específica foi criada/guardada
+localmente0600/0700. GET de modelos HTTP200/14, sem inferência/dados CONTAD;
+saldo promocionalUS$20,87 observado, sem compra/meio de pagamento novo.
+Guia privado0600 com proposta de12 contas/uso retido e consulta dos campos
+Tipo/Situação preparado; sem ativação ou novo acesso ERP. Q-08/Q-09/Q-11,
+conferência humana e critérios operacionais seguem pendentes.
+
+
+### 13/11/2026 — D-359/V-391: preparo DE-PARA pelo catálogo retido
+
+Autorização genérica recebida; lote privado3 projeções técnicas/12 candidatas
+preparado e teto numérico R$0,10 apresentado. Correção1af4937/PR16 permite
+sugerir sem criar contas; regras ainda exigem plano confirmado.70 SQLite/
+41 PostgreSQL e candidata local725 hashes/dois arquivos aprovados. CI
+43453526955 em execução; sem inferência, merge/deploy, nova coleta ou MSI.
+
+
+### 13/11/2026 — D-359/V-392: backend88 e tentativa única IA
+
+PR16/1af4937 integrado em8a3a533; CI integral2183SQLite/2218PG/110Windows
+aprovado após repetição isolada da falha de janela. Backend88/725 hashes/
+secret store/saúde e14 grupos protegidos antes/depois da inferência
+conferidos com limites emV-392. Uma chamadaHTTP200/973entrada/420saída,
+sem sugestões; lote unknown e reserva10centavos mantidos, política restaurada
+e uso externo desabilitado. Consumo estimadoUS$0,0003073, sem compra.
+Correção de configuração/metadata em preparo; outra inferência exige nova
+aprovação. Sem MSI/coleta/contas/regras/ERP ou aceite.
+
+
+### 13/11/2026 — D-359/V-393: correção Haiku sem nova chamada
+
+Fonte dea3868/PR17/CI43462110728 iniciado;52 SQLite/53 PostgreSQL, Ruff/
+MyPy e candidata local725 hashes aprovados. Correção controla raciocínio
+apenas na classificação curta e preserva usage da resposta vazia. Espera
+do teste Windows agora verifica readiness por até20s, sem mudar a aplicação.
+Payload corrigido privado preparado, sem nova inferência/autorização ou
+deploy. Produção88 permanece com política externa desabilitada.
+
+
+### 13/11/2026 — D-359/V-394: correção publicada, nova chamada não executada
+
+PR17/dea3868 integrado em7bd1bd5, CI integral2190SQLite/2225PG/110Windows
+aprovado. Backend89/725 hashes/saúde e14 grupos protegidos conferidos,
+sem recursos/migração/MSI novos. Novo lotev2 prepared por hash634fa811…,
+primeiro unknown/reserva/custo preservados, política externa desabilitada.
+Proposta de outra única chamada atéR$0,10 adicionais pronta para resposta
+humana; nenhuma inferência nova executada. Demais gates seguem próprios.
+
+
+### 13/11/2026 — D-359/V-395: segunda chamada concluída e revisão preparada
+
+Após autorização específica de mais uma chamada por até R$0,10, lotev2
+bf56d148-f1f6-42c3-a604-338b1972cfa7 succeeded: duas sugestões/três casos,
+HTTP200/972entrada/58saída/zero cache. Consumo estimado desta chamada
+US$0,0001262, total das duas US$0,0004335 em créditos, sem compra/retry.
+Primeiro unknown e duas reservas preservados; conferência READ ONLY provou
+somente duas egressões, política central/escritório desabilitados e aprovação
+revogada. Executor voltou a ALLOW_NEW_INFERENCE=False.
+Ficha privada0600 dos três casos/históricos originais entregue, SHA925e5799…a243309;
+envoltório de evidência não pronto para criar regras.14 grupos protegidos,
+bancos/migrações e oficial preservados, worker respondeu; zero contas/regras
+ou novas fontes ERP. Revisão contábil/ativação separada e demais quatro
+frentes/cobertura/aceite ainda pendentes; Q-47 permanece adiado.
+
+
+### 13/11/2026 — D-356/V-396: descoberta financeira e amostra de aceite
+
+PR18/c8147ba: sonda de códigos/contagens das empresas A e análise offline,
+sem valores/nomes/documentos ou criação de contas/jobs.70 testes novos/102
+com regressão local, Ruff/MyPy e22 cenários Windows específicos aprovados;
+CI43473250820 integral em execução. HTTPS/hashb33cc662…1d546f8 conferidos e
+comando comentado entregue para execução local após timeout AnyDesk-10005.
+Amostra real f0429066…3280:163 fatos distintos congelados por identidade/hash,
+referência humana vazia e previsões ocultas; ficha/pacote0600 entregues.
+Zero revisados; faltam no mínimo37 fatos adicionais, sem precisão/aceite
+atribuídos.14 grupos protegidos/endpoints/migrações preservados. Backend89/
+1.0.10, IA desabilitada e adiamentos Q-47/C01/C02 mantidos; sem compra,
+inferência, nova coleta financeira ou intervenção no ERP.
+
+
+### 13/11/2026 — D-356/V-397: retorno real da cobertura e complemento de contas
+
+Perfil70728bytes/SHA21136b2a…9e1231 conferido,146 códigos A coincidentes
+com o cadastro no backend READ ONLY.94566 linhas contábeis agregadas em242
+grupos de09/10-2026,32 empresas sem linhas,14 sem parâmetros e120 cadastros
+de caixa sem referência bancária. Fonte/análise/matriz privadas0600 entregues;
+nenhum valor financeiro, conta, job ou regra criado. CI inicial43473250820
+integral aprovado,2260SQLite/2295PG e três builds. Complemento de contas
+configuradas pela chave declarada do catálogo, fonte2df61a8 no PR18, com80
+local/115 regressão, Ruff/MyPy e HTTPS/hash conferidos; CI43475605920 iniciado.
+Aguardará Windows específico antes da execução local. Backend89/1.0.10,
+amostra163 ainda sem revisão, IA desabilitada e adiamentos preservados.
+
+
+### 13/11/2026 — D-356/V-398:43 contas configuradas e ficha guiada
+
+Retorno21668bytes/SHA99c90475…16d01cfa conferido,43 contas em11 empresas e
+135 sem essa configuração. Todas correspondem à chave do catálogo, flags
+A/A literais; configurações146 idênticas entre perfis. Piloto212/8 ausente
+dessa lista e preservado, sem nova pergunta de banco/instalação. Fonte/análise
+0600 guardadas, nomes já retidos recuperados READ ONLY e ficha guiada43 casos
+entregue, SHAbd8b1e3b…05a9ba86, sem revisão humana/contas/jobs/regras.
+CI43475605920:2270SQLite/2305PG/163 subtestes/três builds e30 cenários
+Windows específicos aprovados; upgrade/empacotamento Windows integral ainda
+termina. Revisão contábil real solicitada; valor/coleta, títulos, IA revisada,
+Q-47 adiado e200/95%/demais D-73 permanecem abertos. Produção89/1.0.10 mantida.
+
+
+Fechamento V-398: CI integral43475605920/110Windows e30 cenários aprovados;
+PR18 integrado em1b85ed9, árvore final idêntica à fonte/merge de teste e
+oito arquivos efetivos sobre a main anterior. Sem deploy/MSI novo, memória
+ou dado privado no Git. Esclarecida a revisão na ficha privada; nenhuma
+confirmação contábil foi recebida. Demais gates permanecem abertos.
+
+
+### D-360/V-399 — Uso operacional no aplicativo, 13/11/2026
+
+- [x] Inspecionar sessão CONTAD autenticada e identificar desvio para classificação sem plano.
+- [x] Preparar conferência de extrato/Razão no início, revisão de registros existentes, relatório e retorno, sem ficha externa como porta de entrada.
+- [x] Validar confirmação/desfazer/CSV em dados sintéticos e isolamento/papéis na regressão local.
+- [ ] Concluir CI integral da candidata exata, implantação compatível e prova autenticada da interface publicada.
+- [ ] Manter revisão humana real, carteira ampliada, títulos/saldos/banco, DE-PARA revisado e critérios D-73 como pendências próprias.
+
+Candidata2a5ddfc/PR19, CI43487952368 em execução; release89 ainda vigente.
+Sem novo consumo IA, agente ou importação Domínio. D-360 altera prioridade
+da entrega, não cria homologação ou decisão em nome da contadora.
+
+
+Complemento V-399: CI43487952368 aprovou2280 testes/169 subtestes, mas falhou
+na regra D-277 de prosa sob títulos;37 skips. Dois textos removidos e dados/
+período mantidos sem explicação sob o título.13 testes de conferência+copy
+aprovados em68,01s. Fonte final451e129/CI43489092702 em execução. Imagem
+finala6a8660c47da/729 hashes SHA6c34c72bdc7b409c7c42d88685ca24947b5a9846ebf33764ffaa37864c269cfa,
+configuração/camadas89 preservadas e724 arquivos rastreados conferidos contra
+a fonte após normalizar finais de linha. Sem mudança de dependências/agente.
+QA final confirmou documento DOC-0/fonte, confirmar e desfazer, sem plano de contas
+ativo; desktop e390px sem overflow e zero erros de console. Prévia
+real anterior à implantação:163 extrato/163 Razão,163 pendentes/zero plano,
+relatório1,516s e três avisos de cobertura. Isso é leitura limitada do piloto,
+não desempenho D-73 nem comprovação de saldo/cobertura integral. Produção89
+continua preservada enquanto CI final termina.
+
+
+Fechamento V-399 — entrega operacional publicada às19:28UTC de13/11/2026.
+CI43489092702/fonte451e129 aprovado integralmente:2281 SQLite/37 skips/
+169 subtestes em379,93s;2316 PostgreSQL/2 skips/169 subtestes em491,70s;
+110 Windows/zero skips, diagnóstico ODBC e instalação/upgrade descartáveis,
+três imagens. PR19 integrado em12f6f561372dea55bfb529a74bb628e4121c3274 às19:27:17UTC,
+mesma árvore62654f132569561a975c7c923a0993702c153a29 da fonte validada.
+Os dois CIs anteriores falhos permanecem registrados, sem ampliar baseline.
+
+Backend90 complete, imagem a6a8660c47da360099e7f676877947d6ae0751869c40a0c53c44c77f7a7206cb;
+729 hashes SHA6c34c72bdc7b409c7c42d88685ca24947b5a9846ebf33764ffaa37864c269cfa
+conferidos em web891e63ef665e58 e worker1857691da097e8, inclusive rota e CSS
+manifestado. Configuração da aplicação idêntica; mesmas três máquinas,
+capacidade, comandos, serviços e volumes. Só imagem/metadados de release
+mudaram nos dois processos; legado287e35db920e48 continua parado/intacto.
+Release command e readiness banco/cache aprovados; worker responde ao ping.
+Nenhum novo MSI publicado/instalado, agente oficial1.0.10 preservado.
+
+Sessão real CONTAD permaneceu autenticada. CUA/Playwright verificou ação
+principal Abrir conferência, página163 extrato/163 Razão,50 movimentos por
+página/quatro páginas, revisão de registro existente sem formulário de nova
+escrituração e botão de confirmação habilitado. Primeiro movimento tem duas
+opções; nenhuma correspondência foi confirmada pelo executor. CSV real baixado e
+conferido com163 linhas bank e163 ledger, cópia privada em Downloads.
+Após download houve referência de nó obsoleta na automação; árvore completa
+atualizada permitiu abrir a revisão normalmente. Não foi erro de aplicação.
+Retorno à conferência aprovado, zero erros de console e viewport real330px
+sem overflow. Aba foi deixada aberta como entrega para a cliente.
+
+Leitura limitada do contexto real:1,098s/0,102s/0,196s,163+163 registros,
+zero confirmados/contas contábeis/exportações. Nas50 linhas visíveis48 possuem
+uma candidata exata e duas possuem duas; são sugestões sem revisão humana.
+Não são métricas de classificação95%,200 fatos aceitos, cobertura de toda a
+carteira ou desempenho de todas as empresas.14 grupos protegidos, endpoints/
+versões/tips dos dois bancos e mesmo oficial conferidos inalterados após a
+implantação/consulta. Heartbeat19:29:55UTC. Recibos/política IA idênticos,
+zero novo consumo, política desabilitada e aprovação revogada preservadas.
+
+Artefatos privados0600: CONTAD-comecar-a-usar-2026-11-13.txt,
+CONTAD-relatorio-conferencia-2026-11-13.csv, CONTAD-conciliacao-publicada-2026-11-13.png,
+imagens de ensaio desktop/mobile e recibo da entrega, em Downloads deste Mac.
+Nenhum relatório, dado financeiro, imagem privada ou memória local publicado
+no Git. Guia genérico atualizado em docs/pt-BR/contad-conciliacao.md.
+
+Concluído o percurso técnico para uso assistido da conta piloto já carregada,
+sem ficha43 como condição geral. Não concluir os cinco pontos integrais:
+carteira ampliada, títulos/baixas/saldos/banco, revisão/ativação DE-PARA,
+200 fatos revisados/95%, medições representativas/recuperação, treinamento e
+aceite reais continuam pendentes. Q-47/C01/C02 seguem adiados pelo responsável.
+
+
+## 13/11/2026 — D-361/V-400, sete pontos autônomos
+
+Fonteff3bac3 em checkout isolado/PR20, CI43498802673 em execução. Corrigidos
+vínculos imutáveis do aceite;69+2 testes financeiros e11 do percurso aprovados.
+Ensaio PostgreSQL sintético195 tabelas/1objeto/restore1,283s e9 guardas; fontes
+reais offline163+163 e saldos iguais, relatórios1,17–1,63s. Guia/ficha de
+treinamento prontos, nenhum treino/aceite humano realizado. Memória, checklist
+e limites emV-400 atualizados; demais dados/alterações locais preservados.
+Produção90 preservada até CI. Sem novaIA, coleta, regra, conta, importaçãoERP
+ou mensagem. Q-28/Q-46/D-73 continuam; Q-47/C01/C02 adiados.
+
+
+Fechamento D-361/V-400: PR20/main1f8d9c5 e release91 publicados após CI integral
+2297SQLite/2332PostgreSQL/110Windows e três imagens.729 hashes/14 grupos e
+configuração final preservados; máquina legada foi restaurada exatamente após
+Fly atualizar sua imagem/metadados, permanecendo parada. Readiness/pingworker
+e ficha163 READ ONLY aprovados, zero revisões humanas. MetadadosTigris atuais
+conferidos com limites; RPO/recuperação real não encerrados. Ficha91/recibo e
+resultado privados emDownloads; fonte em checkoutisolado. Sete pontos permanecem
+com suas dependências humanas/externas, descritas emV-400, sem bloqueio concluído.
+
+
+## 16/11/2026 — D-362/V-401, entrega assistida do piloto
+
+Plano de uso assistido aprovado; decisão registrada antes da execução.
+Preparados roteiro/ficha/recibo privados, guia canônico atualizado com
+instruções da árvore publicada.11 testes do percurso aprovados na análise
+anterior deste chat; readiness atual200/banco/cache ok. Sessão existente
+reautenticada pelo humano e piloto163+163 aberto no Chrome.
+
+Confirmação humana de exercício observada; responsável esclareceu que não
+foi revisão das fontes reais. Filtro mostra1 conferido/162 pendentes.
+Desfazer aberto para execução pela operadora; relatório de hoje ainda sem
+prova. Treinamento completo, correção/relatório e primeira operação real
+permanecem pendentes nesta anotação; não há aceite D-73. Sem código/deploy,
+MSI, IA, importaçãoERP ou mensagens; alterações locais preservadas.
+
+
+Fechamento D-362/V-401: exercício desfeito e nova confirmação humana observados
+às09:48, histórico preservado; resumo1 conferido/162 pendentes. Revisão real
+foi declarada pelo responsável, nota“documento” continua genérica. Executor
+baixou e conferiu CSV163+163/uma alocação em cada lado, guardado0600 na pasta
+privada da entrega. Não atribuir esse download à cliente. Roteiro/ficha/resultado/
+recibo prontos; checklists, plano, pendências e validações atualizados.
+Treinamento completo depende de referência auditável, download autônomo e
+explicação do CSV; nenhum aceite formal ou conclusão D-73. Sem código/deploy,
+consumo, coletaERP ou mensagem; alterações anteriores preservadas.
+
+
+### 16/11/2026 — Pré-cadastro das demais contas preparado (D-365/V-404)
+
+43 candidatas/11 empresas identificadas nos perfis existentes, sem dados
+bancários/revisões completos. Implementadas persistência separada, importação
+atômica e revisão pela cliente; carteira aponta o próximo passo. Pré-cadastro
+não cria fonte financeira ou conta utilizável. Validação local/QA em andamento;
+CI/publicação/importação real ainda pendentes. Fontes privadas e piloto preservados.
+
+
+### 16/11/2026 — Contas pré-cadastradas na release94 (D-365/V-404)
+
+CI43895994663 aprovado, PR23/main055a0db com árvore idêntica; migração0083
+conferida nos dois aliases e imagem748 hashes igual em web/worker. Mesma
+infraestrutura, legado parado, saúde/assets/worker aprovados. Prévia real
+146/43/11 conferida;43 candidatas pendentes importadas, um evento técnico
+com ator nulo; replay criou zero.14 grupos anteriores e piloto163/163 intactos.
+Cliente dispõe de lista/detalhe para informar banco/referência/nome/direção
+com prova; nenhuma validação humana atribuída.134 demais empresas sem
+candidata identificada nas fontes. Ficha existente e guia atualizados.
+Navegador estava em uso e não foi alterado; interface ensaiada com dados
+sintéticos, produção conferida READ ONLY no servidor. Demais gates abertos.
+
+
+### 16/11/2026 — D-367/V-406: fechar uso da cliente em títulos/baixas
+
+Checkout isolado da95, fontes reais preservadas. Construído percurso semCLI
+e revisão DE-PARA sem novas chamadas. Corrigidos capacidade global, revisão
+cumulativa, restauração da fotografia vigente, rollback de fontes e ativação
+de regras concorrente/auditada. PostgreSQL238+3focados e QA sintético passaram;
+0085 ensaiada no runtime95. CI/publicação final seguem antes da entrega.
+
+
+### 16/11/2026 — D-367/V-406 publicado, release96
+
+PR25 integrado após CI43925999340; árvore exata e imagem verificadas.0085
+aplicada nos dois recorders; web/worker preservam capacidade/configuração,
+legado parado.15 grupos protegidos idênticos, saúde/worker/assets e leitura
+do novo percurso aprovados. Entrega técnica encerrada; somente dependências
+reais de fontes, revisão humana e itens adiados permanecem. Backup não foi
+usado como bloqueio. Evidências e limites completos em V-406.
+
+
+### 16/11/2026 — Esclarecimento da autonomia extrato × Domínio (V-406)
+
+Conferido o código publicado: formatos limitados a OFX/QFX/CSV/XLSX/PDF;
+upload não aciona coleta do Razão. Registrada lacuna técnica de solicitação
+e acompanhamento pela interface, separada das validações da cliente.
+Somente leitura; nenhuma nova captura ERP ou alteração de runtime.
+
+
+### 16/11/2026 — D-368/V-407: extrato e coleta mensal pela interface
+
+Implementação em checkout isolado da96, preservando raiz suja. Após testes/QA e correções das tabelas móveis, CI43937515442 aprovou84e62cb; PR26 integrado como17660ea com árvore idêntica. Pacote1.0.11 publicado a partir do artefato Windows testado. Hub0086/intelligence0040 aplicadas e backend97 publicado só nas duas máquinas existentes, com dois parâmetros do canal do agente.
+
+Web/worker,787 hashes,12 assets, saúde e15 grupos de dados anteriores verificados. Carteira:146 empresas,43 candidatas/11 empresas,134 sem candidata; piloto163+163 preservado. Leitura de acesso/reutilização do vínculo do piloto sem gravação aprovada. Agente oficial real ainda informa automatic_counts=false; nenhuma coleta financeira nova foi solicitada.
+
+Responsável sem acesso ao SVAPL02 hoje; não repetir pedido. Atualização e primeira coleta real pendentes de acesso. Registrada lacuna técnica adicional: títulos de outras empresas/períodos ainda precisam de captura generalizada/autônoma; a interface de revisão D-367 não equivale a essa coleta. Dados de contas, plano, semântica, DE-PARA e aceite permanecem humanos; Q-47/C01/C02 adiados. Backup fora da prioridade.
+
+
+### 16/11/2026 — D-369/V-408: ampliar a captura de títulos e baixas
+
+Pedido explícito de implementar/publicar. Checkout isolado da97, controles/alterações locais preservados. Contrato v2 mantém consultas fixas e amplia empresa/competência sem contagens humanas; captura por empresa não cria vínculo bancário. Registro de captura separado protege rollback97. Revisão financeira posterior mantém capacidade global da baixa entre contas. Acesso ao servidor indisponível hoje; sem nova solicitação de acesso.
+
+
+**Fechamento D-369/V-408 —16/11/2026:** release98/PR27 e agente1.0.12 publicados após CI43949218680; fonte integrada/testada com árvore idêntica. Migração0041,796 hashes/14 assets, saúde/worker e15 grupos protegidos verificados. Prévia somente leitura146×12 aprovada, incluindo empresas sem conta; fonte v1 intacta e zero novas coletas/normalizações/decisões de produção. A captura fora do piloto está implementada pela tela. Resta tecnicamente aplicar1.0.12 no SVAPL02 e comprovar recepção real, quando houver acesso. Dados, vínculos, semântica e regras reais permanecem humanos; Q-47/C01/C02 adiados e backup fora da prioridade. Pacote único substitui1.0.11 pendente; não refazer pareamento/DSN nem pedir acesso novamente hoje.
+
+
+### 17/11/2026 — Análise de prontidão para testes da cliente (D-370/V-409)
+
+Pedido de análise completa atendido com auditoria documental, três revisões
+paralelas, código exato da release98 e novas validações. Checkout principal
+b65dfe7 e alterações anteriores preservados; fonte auditada32bc89d/tree1cc5f9c
+em worktree isolado, sem mudança de aplicação.
+
+Produção somente leitura às08:53BRT: web/worker796 hashes exatos, site/login,
+banco/cache e ping do worker aprovados.146 empresas/uma conta/43 candidatas
+pendentes; agente com heartbeat recente ainda sem capacidades das novas
+coletas. PR27/CI43949218680 e artefatos1.0.12 reconferidos; sem instalação ou
+nova consultaERP. Atualização1.0.12 e recepção real continuam pendência técnica.
+
+SQLite3046/53 skips e PostgreSQL3098/um skip,181 subtestes em cada base,
+aprovados; .NET149/três Windows reservados e checks Django/migrações/Ruff
+aprovados. SmokePlaywright28+3 navegação/teclado, somente sintético, sem erros;
+92 arquivos anteriores preservados. Container de teste, servidor e navegador
+próprios encerrados. Nenhum recurso alheio foi parado.
+
+P2 reproduzido: histórico do Razão corta20 pedidos antes de filtrar competência,
+escondendo pedidos anteriores sem apagar dados. Sem correção nesta análise.
+Cadência de um job por tipo/ciclo com pausa1min limita lote grande; estimativa
+estrutural de29h para1752 títulos não é benchmark real. Parecer e roteiro
+consolidados no documento canônico de pendências, plano e checklists atualizados.
+
+Piloto retido pode iniciar testes hoje. Autonomia da carteira, revisões humanas,
+amostra/métricas/recuperação e aceite integral continuam abertos; Q-47/C01/C02
+adiados e backup fora da prioridade do início dos testes. Sem deploy, chamadaIA,
+mensagem, alteração comercial ou decisão contábil em nome da cliente.
+
+
+## 17/11/2026 — D-372/V-411: preparação publicada e coleta real validada; carteira parcial
+
+- [x] Registrar nova autorização e preservar checkout canônico/alterações existentes.
+- [x] Reconciliar fontes146/43 e validar em READ ONLY o piloto/extrato/setembro:163 movimentos, vínculo íntegro e agente conectado.
+- [x] Receber complemento cadastral real:43 nomes/classificações comprovados; zero referências bancárias nas tabelas consultadas (17/11,11:28BRT; V-411).
+- [x] Preparar 43 fichas com nomes/classificações comprovados, proveniência e lacunas explícitas.
+- [ ] Concluir vínculos bancários efetivos das demais empresas com extrato/plano; 145 ainda sem conta operacional.
+- [x] Receber novo snapshot automático e comparar ao OFX retido, preservando decisões (17/11,11:00BRT; V-411).
+- [x] Fechar evidências, checklist e disponibilidade parcial para testes da cliente (V-411/release 100).
+
+Autoria: única membership habilitada da cliente; pedido de coleta solicitado via URL preenchida ao responsável. Sem emprestar identidade, criar permissões ou declarar aceite contábil. Automação AnyDesk ainda timeout.
+
+
+**D-372/V-411 — coleta real concluída em17/11 às11:00BRT:** solicitação pela tela autorizada, novo Razão recebido pelo agente1.0.13 e163/163 movimentos compatíveis com o OFX por data/direção/valor, diferença líquida zero. Fontes e decisões anteriores preservadas; dois grupos repetidos e162 movimentos aguardam conferência individual. Preparação das demais empresas permanece em andamento, aguardando complemento cadastral; não declarar carteira integral pronta.
+
+<!-- D372-WINDOWS-CHECKPOINT-2026-11-17 -->
+**D-372/V-411 — complemento cadastral preparado:** leitor independente com
+37 cenários Windows aprovados no step do CI44101060487; download imutável
+e SHA conferidos, comando entregue para execução local no SVAPL02 porque
+AnyDesk retorna timeout. Fonte real ainda não recebida; nenhuma conta nova
+ativada. A coleta/comparação SURIA está concluída; carteira integral continua
+em preparação, sem inferir referências bancárias ou aprovação humana.
+
+<!-- D372-REAL-DETAILS-RECEIVED-2026-11-17 -->
+**D-372/V-411 — fonte cadastral real recebida e validada:**146 empresas,
+43 candidatas com nomes e catálogo comprovados,120 caixas,zero referências
+bancárias/Iceberg. Leitor PR29/CI44101060487 concluído. Preparação imutável das
+43 fichas implementada e em validação/publicação; nada ativado automaticamente.
+Piloto SURIA segue com coleta real/comparação concluídas. Carteira integral
+continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
+
+<!-- D372-V411-PUBLISHED-2026-11-17 -->
+### Fechamento técnico — release 100, 17/11/2026
+
+PR30/main 1b4511ba e CI44106692496 aprovados; migração 0087 aplicada sem alterar
+15 grupos protegidos. Imagem/runtime 801 verificados em web/worker, health live/ready,
+worker e 14 assets aprovados. Capacidade, legado parado e canal 1.0.13 preservados
+após restauração dos dois overrides removidos pelo deploy genérico.
+
+43 complementos aplicados às 12:25 BRT com fonte real validada e autoria técnica;
+replay interno/externo zero. Ficha real conferida pela tela, nenhuma confirmação
+submetida. Arquivos temporários de origem retirados do servidor. Detalhes e hashes
+em V-411; fontes/recibos privados retidos. Não há novo comando Windows necessário.
+
+Cliente pode testar o piloto SURIA e revisar 43 fichas de 11 empresas. Coleta real
+163/163 compatível, diferença líquida zero; dois grupos ambíguos e 162 revisões
+pendentes. 145 empresas ainda sem conta operacional, devido às lacunas efetivas de
+extrato/plano/vínculo bancário. Carteira integral e homologação permanecem abertas.
+
+## 17/11/2026 — D-373/V-412: descoberta completa e preparação em lote
+
+- [x] Registrar autorização e preservar checkout/estado publicado.
+- [x] Identificar limitação da descoberta anterior e aprovar contrato completo com proveniência.
+- [ ] Validar leitor Windows ampliado e receber fonte real das146 empresas.
+- [ ] Preparar catálogo/vínculos em lote com prévia, replay e fatos/ambiguidades explícitos.
+- [x] Validar confirmação mínima e acesso por empresa/módulo, UI/UX e Playwright sintéticos; repetir fluxo real após fonte/publicação.
+- [ ] Aprovar CI da fonte exata, publicar e conferir dados/runtime/saúde/fluxo real.
+- [ ] Registrar cobertura efetiva e lacunas restantes, sem declarar homologação humana.
+
+Primeira tentativa real encerrou em TEXT_CONTRACT; correção do leitor e testes
+registrados em V-412. Código local preparado; fonte ampliada e deploy pendentes.
+
+Segunda tentativa: ROW_LIMIT acima de100mil contas. Ensaio confirmouOOM/rollback
+sem dadosreais; arquitetura de processamento emfluxo e migração0088quatro tabelas
+substituem protótipos anteriores. Ver D-373 e checkpoint de capacidadeV-412.
+
+
+Checkpoint D-373/V-412 de consistência e memória — terceira tentativa real,
+leitor5d62cd3, completou as duas passagens e recusou SOURCE_CHANGED. A seção
+divergente não foi informada; não afirmar que somente contagens mudaram.
+Manifesto v3 mantém cadastro/chaves idênticos, preserva as duas contagens e
+intervalos UTC e permite apenas variação em contagens positivas. Fonte70bb143,
+SHA2561cff13a2c964008acffa989d6a15a228669796e069beafb12454395379bc6e86;
+107 cenários locais do leitor aprovados. Windows44136610838 e cruzamento dos
+ZIPs PowerShell5.1 em andamento; ainda sem quarto comando liberado.
+
+Backend congelado:232 testes aprovados/5 exclusivosPG separados;39 testesv3
+PostgreSQL aprovados. Ruff global/MyPy focado aprovados. CI9fc parou em três
+apontamentos Ruff somente nos testes SQL; contagem passou a percorrer o cursor
+sem montar SQL adicional, mantendo as consultas do leitor;13 testes SQL passaram.
+CI integral final permanece pendente. Keyset LIMIT500 no catálogo/LIMIT2 nos
+blocos dispensa cursores de servidor; índicePG verificado. Ensaio100mil contas
+mais100mil modelos com app ativo/512MiB passou prévia/aplicação/replay/integridade/
+ficha, zeroOOM; pico398,6MiB.250mil e gate com fonte real permanecem pendentes.
+
+Migração0088 de QUATRO estruturas ensaiada no runtime100 e PostgreSQL isolado:
+prévia sem escrita, duas aliases, replay/retomada, rollback de DDL/recorder e
+recusa de divergências aprovados.195 linhas antigas preservadas. Hash migração
+7ab588371354697ab3199cbeae468b9756435b9217c9da9fb039cf5541655979;
+helper98b49b8a9e0406c26bd9f2be31677ed6a9b9970f4311717102f227fba48d5f45.
+Ensaios anteriores de três tabelas e imagens anteriores são superados.
+QA ZIP sintético:23 verificaçõesPlaywright, zeroJS; fluxo de banco reaproveitado
+no mês novo distingue confirmação humana da observação na fonte. Não houve
+fonte completa real recebida, importação real nem deploy: release100 preservada.
+
+
+Checkpoint final local v3 — Windows44136610838 aprovado,107/107 cenários
+(30 positivos/77 recusas), incluindo100.009 contas, ACL e limpeza. Os dois ZIPs
+gerados no PowerShell5.1 (leituras idênticas e contagens distintas) passaram no
+parser do backend, com override de hash apenas na fixture em memória. Pin de
+produto1cff13a2 mantido. Quarto comando, fonte70bb143, enviado ao responsável;
+resultado e arquivo real ainda pendentes. QA por navegador com ZIPv3 de
+contagens diferentes passou23 verificações, zeroJS; capturas desktop1440 em
+contextos novos claro/escuro inspecionadas, browser/servidor próprios encerrados.
+
+Revisão encontrou e corrigiu repetição de source_metadata nos joins de cobertura
+do replay: reutiliza-se a instância já validada do lote para todas as empresas.
+Isso evita146 cópias do manifesto em memória; três regressões focadas passaram,
+incluindo SQL sem join duplicador e identidade da instância. Helper operacional
+recebe a mesma correção; novo CI integral/candidata final continuam pendentes.
+
+Reconferência autenticada somente leitura em produção confirmou runtime100
+801arquivos/SHA1b09fc44,146empresas/43candidatas/43complementos/uma conta,
+agente oficial recente e pontas0087/0041 nas duas aliases. Prévia do runner
+0088 exato aprovada sem DDL/recorder: quatro estruturas ausentes, única migração
+prevista0088, estado antes/depois idêntico e diretório temporário removido.
+Sem aplicação, importação ou deploy; isso não libera a carteira completa.
+
+## 19/11/2026 — D-376/V-416: frentes técnicas sem dependência da cliente
+
+Corrigido o deadlock entre confirmação de Razão e exportação Domínio (trava do
+arquivo-fonte deixava de incluir a organização). Reprodução 6/15 falhas antes,
+15/15 aprovadas depois; regressão determinística nova. Demais pendências CONTAD
+dependem da cliente, do SVAPL02 ou do login Neon do responsável (V-416).
+Publicado na release v105 após CI aprovado; produção conferida antes/depois.
+
+## 19/11/2026 — D-377/D-378/V-417: vínculo pelo OFX e amostra D-73 reprodutível
+
+Fonte isolada a partir da main d29f5d7. O OFX da conta passa a pré-preencher banco
+e agência/conta no formato que a importação exige (antes, referência digitada à
+mão faria o primeiro OFX ser recusado); nada é gravado nem vinculado sozinho.
+Comando `select` escolhe fatos D-73 não congelados com semente registrada.
+SQLite integral 3.395 aprovados; PostgreSQL 1.356 do recorte; Playwright 11
+verificações. Medição real de retomada em produção recusada pela permissão da
+sessão (script pronto). Não publicado. Pendências e roteiros em
+docs/pt-BR/contad-pendencias-2026-11-19.md.
+
+## 19/11/2026 — V-418: release v106 e retomada medida
+
+PR #38 (vínculo pelo OFX D-377 e amostra D-73 reprodutível D-378) publicado na
+release v106 após CI; produção conferida antes/depois. Retomada técnica medida em
+produção: após os reinícios de hoje o agente voltou em ~62 s, zero perda em 72 h.
+Restauração do banco, amostra de 200 e aceite continuam pendentes (V-418).
+
+## 19/11/2026 — D-380/V-419: exportação Domínio na release v107
+
+Exportação pelo leiaute oficial do Importador do Domínio (conjunto 19), contas de
+contrapartida pelo plano Domínio da empresa e comando de liberação publicados na
+v107 com a prévia liberada para a CONTAD. Falta o teste de importação no Domínio
+pela CONTAD; depois a CICA registra a homologação e a exportação definitiva abre.
+
+## 20/11/2026 — V-428: roteiro do teste de importação no Domínio
+
+Roteiro da chamada de teste com a CONTAD (`docs/pt-BR/contad-teste-importacao-dominio.md`):
+preparação, geração e aprovação dos lançamentos, prévia, importação no Importador
+(conjunto 19), conferência, registro da liberação e o que fazer em caso de erro.
+Guia e pendências corrigidos para o nome atual da tela (*Arquivos e histórico →
+Prévia para conferência*). O envio de extrato em um passo já estava em produção
+(D-384–D-388, v108–v112); o rascunho antigo sem commit foi preservado e não retomado.
+
+## 20/11/2026 — D-389/V-429/V-430: saldos pelo OFX e telas da v113
+
+O relatório de conferência passa a mostrar saldo inicial e final do banco também para
+OFX, a partir do saldo final informado no próprio arquivo, só quando o arquivo comprova
+a cobertura; conferido contra o PDF Sicredi do mesmo mês (saldos iguais). Suíte SQLite
+completa aprovada. Telas da conciliação reabertas em produção (1366/375 px, só leitura):
+sem transbordo, sobreposição ou texto cortado; atalhos secundários com 39 px anotados.
+Não publicado: merge/deploy aguardam autorização.
+
+## 20/11/2026 — V-431: release v114 (saldos do banco pelo OFX)
+
+D-389 publicada na release v114 após CI aprovada e merge (`6bd9e52`). Imagem OCI com os
+dois arquivos alterados sobre a v113; produção conferida antes e depois. O relatório da
+SURIA passou a mostrar os saldos do banco calculados pelo OFX.
+
+## 20/11/2026 — V-432: empresas sem conta de banco no plano
+
+129 das 146 empresas já oferecem a conta do banco na importação. As empresas 55, 252 e 264
+têm plano, mas só Caixa em Disponibilidades, sem conta de bancos; 14 não têm plano. Depende
+da CONTAD criar a conta no Domínio ou confirmar outra forma de escrituração.
+
+## 20/11/2026 — D-390/V-433: precisão D-73 pelas confirmações automáticas
+
+A amostra D-378 não mediria nada na CONTAD (nenhum movimento classificado por regra). Por
+decisão do responsável, a precisão D-73 passa a ser medida nas confirmações automáticas D-388:
+a proprietária confere, desfaz as erradas e registra a revisão na conferência do extrato; o
+comando `auto_confirmation_acceptance` calcula mantidas/revisadas (mínimo 200, 95%).
+Implementado e testado; publicação pendente de autorização.
+
+## 20/11/2026 — V-434: release v115 (revisão das confirmações automáticas)
+
+D-390 publicada na release v115 após CI aprovada. A conferência da SURIA mostra as 159
+confirmações automáticas aguardando a revisão da proprietária. O merge entrou antes do fim da
+CI por falha no comando de espera; o deploy esperou a CI aprovar.
+
+## 21/11/2026 — D-391/V-435: DE-PARA pelo Razão
+
+O DE-PARA passa a ser sugerido pelas contrapartidas que a própria CONTAD escriturou no Razão,
+só com evidência repetida e unânime e sem casar outra conta no histórico. Na SURIA, 14 regras
+cobririam 137 de 153 movimentos. A proprietária revisa e ativa cada regra na tela “Sugestões pelo
+Razão”. IA fica como segunda opinião, bloqueada até chave/limites e nova autorização de envio.
+
+## 22/11/2026 — V-436: release v116 e 14 sugestões DE-PARA da SURIA
+
+D-391 publicada na release v116. As 14 regras sugeridas pelo Razão da SURIA foram criadas em
+rascunho, nenhuma ativa; a proprietária revisa e ativa em *Revisar DE-PARA → Sugestões pelo Razão*.
+
+## 22/11/2026 — D-392/V-437: DE-PARA automático para todas as contas
+
+As sugestões pelo Razão passam a ser recalculadas sozinhas sempre que pares extrato × Razão são
+confirmados em qualquer conta, e rascunhos sem evidência são retirados. Regras continuam sendo
+ativadas só por pessoa. Pendente: publicação e rodar `create-all` uma vez.
+
+## 22/11/2026 — V-438: release v117 (DE-PARA automático)
+
+D-392 publicada na release v117; `create-all` rodado (1 conta, nada novo). O teste dependente do
+relógio `test_only_recent_official_can_change[change5]` falhou em duas CIs seguidas e precisou de
+reexecução: correção pendente.
+
+## 22/11/2026 — V-439: teste instável do relógio corrigido
+
+O teste que falhava quando a CI passava de 6 minutos calculava os horários na coleta; agora calcula
+na execução. Só teste; sem deploy.
 
 ## 21–22/10/2026 — Contraprova, sucessor do Tax Envel (D-300 a D-302, V-300)
 

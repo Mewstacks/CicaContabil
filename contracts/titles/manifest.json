@@ -1,0 +1,1541 @@
+{
+  "version": "dominio-title-snapshot-v1",
+  "maximum_bytes": 4000000,
+  "families": {
+    "entradas": {
+      "note_field": "codi_ent",
+      "installment_field": "parc_entp",
+      "due_field": "vcto_entp",
+      "payment_date_field": "pgto_entp",
+      "payment_type_field": "tipo_entp",
+      "payment_number_field": "nropag_entp",
+      "queries": [
+        "entradas_control",
+        "entradas_installments",
+        "entradas_payments",
+        "entradas_accounting_links"
+      ]
+    },
+    "saidas": {
+      "note_field": "codi_sai",
+      "installment_field": "parc_saip",
+      "due_field": "vcto_saip",
+      "payment_date_field": "pgto_saip",
+      "payment_type_field": "tipo_saip",
+      "payment_number_field": "nropag_saip",
+      "queries": [
+        "saidas_control",
+        "saidas_installments",
+        "saidas_payments",
+        "saidas_accounting_links"
+      ]
+    },
+    "servicos": {
+      "note_field": "codi_ser",
+      "installment_field": "parc_serp",
+      "due_field": "vcto_serp",
+      "payment_date_field": "pgto_serp",
+      "payment_type_field": "tipo_serp",
+      "payment_number_field": "nropag_serp",
+      "queries": [
+        "servicos_control",
+        "servicos_installments",
+        "servicos_payments",
+        "servicos_accounting_links"
+      ]
+    }
+  },
+  "queries": {
+    "entradas_control": {
+      "file": "entradas_control.sql",
+      "sha256": "ff7d7c67c7eacc8c4a757956a88a751cdb1f7af3f2a55930bbc9225ad9e941e0",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end",
+        "start",
+        "end"
+      ],
+      "family": "entradas",
+      "kind": "control",
+      "columns": [
+        {
+          "name": "due_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "payments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "selected_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "accounting_links",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_headers",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        }
+      ],
+      "row_limit": 1
+    },
+    "entradas_installments": {
+      "file": "entradas_installments.sql",
+      "sha256": "dcebfa0123be73b6643b3a39a6bb001b24d3bffa4e7d337b8b4a9f0c290ca87c",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "entradas",
+      "kind": "installments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ent",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "vcto_entp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "vlor_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "tipo_entp",
+          "nullable": true,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "acrf_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcrf_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "virrf_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vissr_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vbru_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vinss_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vfunrural_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "vpisret_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcofret_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcsocret_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "virrfpf_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_juros_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_ndias_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "icms_antecipado",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "fethab",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "fundesa",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "apiscrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vpiscrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acofcrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcofcrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acsoccrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcsoccrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "airpjcrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "virpjcrfop_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "go_fundepec",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "numero_titulo_entp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        },
+        {
+          "name": "base_irrf_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "tipo_isencao",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      ],
+      "row_limit": 50000
+    },
+    "entradas_payments": {
+      "file": "entradas_payments.sql",
+      "sha256": "b69636b2ff0a881e9cc43ad0b5932fc0653234695062a1c3e4af58a3ebcc8629",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "entradas",
+      "kind": "payments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ent",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_entp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "vpag_entp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "nlan_entp",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origempg_entp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nropag_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "codigo_recolhimento",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 6
+        },
+        {
+          "name": "i_recolhimento",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_sai",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "i_nota_devolvida",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "numero_titulo_entp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        },
+        {
+          "name": "base_irrf_entp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "tipo_isencao",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      ],
+      "row_limit": 50000
+    },
+    "entradas_accounting_links": {
+      "file": "entradas_accounting_links.sql",
+      "sha256": "94f90f048d1bf9344e980ce604f98f34e4477d4a34feb09007f2564325a5eb0f",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "entradas",
+      "kind": "accounting_links",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nume_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "fili_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ent",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_entp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nropag_entp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "grupo",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "tipo",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "contra_partida",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origem_lan",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        }
+      ],
+      "row_limit": 50000
+    },
+    "saidas_control": {
+      "file": "saidas_control.sql",
+      "sha256": "a7265f4275b9acefd2b8b5c52d4703d6c69555ccabfbb49bd8ce854e30fb262e",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end",
+        "start",
+        "end"
+      ],
+      "family": "saidas",
+      "kind": "control",
+      "columns": [
+        {
+          "name": "due_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "payments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "selected_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "accounting_links",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_headers",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        }
+      ],
+      "row_limit": 1
+    },
+    "saidas_installments": {
+      "file": "saidas_installments.sql",
+      "sha256": "9697fc3ae564fd7d572335d50d4f1416435966ecb1f0033cc55e90101d445bf9",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "saidas",
+      "kind": "installments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_sai",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "vcto_saip",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "vlor_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "tipo_saip",
+          "nullable": true,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "acrf_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcrf_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vbru_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "virrf_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vissr_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vinss_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "apiscrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vpiscrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acofcrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcofcrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acsoccrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcsoccrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "airpjcrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "virpjcrfop_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "virrfp_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vpisret_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcofret_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcsocret_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vfunrural_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_juros_saip",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_ndias_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "numero_titulo_saip",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        },
+        {
+          "name": "fethab",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_icms_st",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        }
+      ],
+      "row_limit": 50000
+    },
+    "saidas_payments": {
+      "file": "saidas_payments.sql",
+      "sha256": "031caa5713a376bdf5e5f1c0d7c7621b03683cbddee3dbeb202d270ee4b923de",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "saidas",
+      "kind": "payments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_sai",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_saip",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "vpag_saip",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "nlan_saip",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origempg_saip",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nropag_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "numero_titulo_saip",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        },
+        {
+          "name": "codi_ent",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "i_nota_devolvida",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        }
+      ],
+      "row_limit": 50000
+    },
+    "saidas_accounting_links": {
+      "file": "saidas_accounting_links.sql",
+      "sha256": "08baec87b8d33913d59d6789b2304e1883e9ad8e616bbb9f381f552551a76bb4",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "saidas",
+      "kind": "accounting_links",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nume_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "fili_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_sai",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_saip",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nropag_saip",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "grupo",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "tipo",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "contra_partida",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origem_lan",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        }
+      ],
+      "row_limit": 50000
+    },
+    "servicos_control": {
+      "file": "servicos_control.sql",
+      "sha256": "91c5b5d1fc3fbcd1f0b52ed0a86b627c9f575b1cf60b004dc72352c0ebc7b825",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end",
+        "start",
+        "end"
+      ],
+      "family": "servicos",
+      "kind": "control",
+      "columns": [
+        {
+          "name": "due_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "payments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "selected_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "accounting_links",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_headers",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        },
+        {
+          "name": "missing_installments",
+          "type": "int",
+          "nullable": false,
+          "minimum": 0,
+          "maximum": 50000
+        }
+      ],
+      "row_limit": 1
+    },
+    "servicos_installments": {
+      "file": "servicos_installments.sql",
+      "sha256": "7e1bd3edd30c9b0b25b42a580659c9af747b1974e43cda62ae778a9d56b41c90",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "servicos",
+      "kind": "installments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ser",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "vcto_serp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "vlor_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "tipo_serp",
+          "nullable": true,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "acrf_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcrf_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "virrf_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vissr_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vbru_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vinss_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "apiscrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vpiscrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acofcrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcofcrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "acsoccrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "vcsoccrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "airpjcrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 3,
+          "scale": 2
+        },
+        {
+          "name": "virpjcrfop_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "virrfp_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vpisret_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcofret_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "vcsocret_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_juros_serp",
+          "nullable": false,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "valor_presente_ndias_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "numero_titulo_serp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        }
+      ],
+      "row_limit": 50000
+    },
+    "servicos_payments": {
+      "file": "servicos_payments.sql",
+      "sha256": "04489ed7a6436ec87999c2330e8116eeb5ec26898fbf97e7c6fe6c24503542f6",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "servicos",
+      "kind": "payments",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ser",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_serp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "vpag_serp",
+          "nullable": true,
+          "type": "decimal",
+          "integer_digits": 11,
+          "scale": 2
+        },
+        {
+          "name": "nlan_serp",
+          "nullable": true,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origempg_serp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        },
+        {
+          "name": "origem_reg",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "nropag_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "numero_titulo_serp",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 60
+        }
+      ],
+      "row_limit": 50000
+    },
+    "servicos_accounting_links": {
+      "file": "servicos_accounting_links.sql",
+      "sha256": "a69d4e017420ea5599ae1cd901d87fa61e568c78c02550d89c46d2133eb0aa0d",
+      "parameters": [
+        "company",
+        "start",
+        "end"
+      ],
+      "family": "servicos",
+      "kind": "accounting_links",
+      "columns": [
+        {
+          "name": "codi_emp",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "nume_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "fili_lan",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "codi_ser",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "pgto_serp",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "name": "tipo_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "parc_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "nropag_serp",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "grupo",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "tipo",
+          "nullable": false,
+          "type": "int",
+          "minimum": 0,
+          "maximum": 255
+        },
+        {
+          "name": "contra_partida",
+          "nullable": false,
+          "type": "int",
+          "minimum": -2147483648,
+          "maximum": 2147483647
+        },
+        {
+          "name": "origem_lan",
+          "nullable": true,
+          "type": "text",
+          "maximum_length": 1
+        }
+      ],
+      "row_limit": 50000
+    }
+  },
+  "coverage": {
+    "installments": "due_in_period_or_paid_in_period",
+    "payments": "posted_in_period",
+    "settlements_complete": false,
+    "bank_linkage": "unproven",
+    "normalization": "none"
+  }
+}

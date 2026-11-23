@@ -31,6 +31,7 @@ class EdgeAgentTests(TestCase):
                 {"code": enrollment.code, "label": "Servidor Domínio", "fingerprint": "device-fp"}
             ),
             content_type="application/json",
+            secure=True,
         )
         self.assertEqual(enrolled.status_code, 200)
         credentials = enrolled.json()
@@ -40,6 +41,7 @@ class EdgeAgentTests(TestCase):
                 {"code": enrollment.code, "label": "Outro", "fingerprint": "device-fp-2"}
             ),
             content_type="application/json",
+            secure=True,
         )
         self.assertEqual(reused.status_code, 403)
 
@@ -63,6 +65,7 @@ class EdgeAgentTests(TestCase):
                 "X-Hub-Agent-Timestamp": timestamp,
                 "X-Hub-Agent-Signature": signature,
             },
+            secure=True,
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["created"], 1)
@@ -73,7 +76,7 @@ class EdgeAgentTests(TestCase):
             reverse("intelligence-agent-enroll"),
             data=json.dumps({"code": enrollment.code, "label": "Servidor", "fingerprint": "fp"}),
             content_type="application/json",
-        ).json()
+         secure=True).json()
         connector = IntelligenceConnector.objects.create(
             organization=self.organization,
             mode=IntelligenceConnector.Mode.EDGE_AGENT,
@@ -95,6 +98,7 @@ class EdgeAgentTests(TestCase):
                 "X-Hub-Agent-Timestamp": timestamp,
                 "X-Hub-Agent-Signature": signature,
             },
+            secure=True,
         )
 
         connector.refresh_from_db()
@@ -103,35 +107,56 @@ class EdgeAgentTests(TestCase):
         self.assertIsNotNone(connector.sync_request_completed_at)
 
     def test_native_agent_syncs_bounded_local_companies_without_deactivation(self) -> None:
-        enrollment = issue_enrollment(organization=self.organization)
-        credentials = self.client.post(
-            reverse("intelligence-agent-enroll"),
-            data=json.dumps({"code": enrollment.code, "label": "Servidor", "fingerprint": "fp"}),
-            content_type="application/json",
-        ).json()
+        from datetime import date
+
+        from apps.hub.models import ClientCompany, FinancialAccount
+        from apps.intelligence.agent_scope import build_sync_scope
+
+        company = ClientCompany.objects.create(
+            organization=self.organization, name="Anterior", dominio_code="001"
+        )
+        account = FinancialAccount.objects.create(
+            organization=self.organization,
+            company=company,
+            name="Banco",
+            account_reference="001:123",
+        )
+        scope = build_sync_scope(
+            account=account, start=date(2026, 9, 1), end=date(2026, 9, 30), statement_ids=["1"]
+        )
+        enrollment = issue_enrollment(organization=self.organization, sync_scope=scope)
+        from apps.intelligence.agents import redeem_enrollment
+
+        credentials = redeem_enrollment(
+            code=enrollment.code, label="Servidor", fingerprint="fp", allow_scoped=True
+        )
         body = json.dumps(
             {
+                "scope_revision": scope["revision"],
                 "companies": [
                     {"codigo": "001", "nome": "Empresa local", "cnpj_masked": "12.345.678/0001-90"}
-                ]
+                ],
             }
         ).encode()
         timestamp = str(int(timezone.now().timestamp()))
         signature = hmac.new(
-            credentials["shared_secret"].encode(), timestamp.encode() + b"." + body, hashlib.sha256
+            credentials.shared_secret.encode(), timestamp.encode() + b"." + body, hashlib.sha256
         ).hexdigest()
         response = self.client.post(
             reverse("agent-v2-dominio-companies"),
             data=body,
             content_type="application/json",
             headers={
-                "X-Hub-Agent-ID": credentials["agent_id"],
+                "X-Hub-Agent-Protocol": "scoped-v1",
+                "X-Hub-Agent-ID": credentials.agent_id,
                 "X-Hub-Agent-Timestamp": timestamp,
                 "X-Hub-Agent-Signature": signature,
             },
+            secure=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["created"], 1)
+        self.assertEqual(response.json()["created"], 0)
+        self.assertEqual(response.json()["updated"], 1)
         connector = IntelligenceConnector.objects.get(
             organization=self.organization, mode=IntelligenceConnector.Mode.EDGE_AGENT
         )
@@ -143,7 +168,7 @@ class EdgeAgentTests(TestCase):
             reverse("intelligence-agent-enroll"),
             data=json.dumps({"code": enrollment.code, "label": "Servidor", "fingerprint": "fp"}),
             content_type="application/json",
-        ).json()
+         secure=True).json()
         agent = EdgeAgent.objects.get(id=enrolled["agent_id"])
         revoke_agent(agent=agent)
         body = b'{"companies": []}'
@@ -161,6 +186,7 @@ class EdgeAgentTests(TestCase):
                 "X-Hub-Agent-Timestamp": timestamp,
                 "X-Hub-Agent-Signature": signature,
             },
+            secure=True,
         )
 
         self.assertEqual(response.status_code, 401)
@@ -188,7 +214,10 @@ class EdgeAgentTests(TestCase):
             certificate.fingerprint(hashes.SHA256()).hex(),
         )
 
-    @override_settings(EDGE_AGENT_MTLS_REQUIRED=True)
+    @override_settings(
+        EDGE_AGENT_MTLS_REQUIRED=True,
+        EDGE_AGENT_MTLS_PROXY_SECRET="synthetic-gateway-secret-32-characters",
+    )
     def test_sync_requires_the_proxy_verified_enrolled_client_certificate(self) -> None:
         certificate_pem, certificate_sha256 = self._client_certificate()
         enrollment = issue_enrollment(organization=self.organization)
@@ -203,7 +232,7 @@ class EdgeAgentTests(TestCase):
                 }
             ),
             content_type="application/json",
-        ).json()
+         secure=True).json()
         body = b'{"companies": []}'
         timestamp = str(int(timezone.now().timestamp()))
         signature = hmac.new(
@@ -219,6 +248,7 @@ class EdgeAgentTests(TestCase):
             data=body,
             content_type="application/json",
             headers=headers,
+            secure=True,
         )
         accepted = self.client.post(
             reverse("intelligence-agent-sync"),
@@ -226,9 +256,11 @@ class EdgeAgentTests(TestCase):
             content_type="application/json",
             headers={
                 **headers,
+                "X-Hub-MTLS-Gateway": "synthetic-gateway-secret-32-characters",
                 "X-Hub-MTLS-Verified": "SUCCESS",
                 "X-Hub-MTLS-Client-Cert": quote(certificate_pem),
             },
+            secure=True,
         )
 
         self.assertEqual(without_certificate.status_code, 401)

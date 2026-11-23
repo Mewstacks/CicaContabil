@@ -1,0 +1,60 @@
+.accounting-preview-panel {
+  min-width: 0;
+  margin-bottom: 18px;
+  padding: 22px;
+}
+.accounting-preview-panel .workspace-panel-head {
+  gap: 16px;
+  padding: 0 0 18px;
+}
+.accounting-preview-panel h2 { margin-top: 0; }
+.accounting-preview-form.workspace-filter-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 22px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.accounting-preview-form.workspace-filter-form > div { min-width: 0; }
+.accounting-preview-form > button { grid-column: 1 / -1; justify-self: start; }
+.accounting-preview-form select,
+.accounting-preview-form input { box-sizing: border-box; min-width: 0; width: 100%; }
+.accounting-preview-panel .row-action-button { min-height: 44px; }
+@media (max-width: 680px) {
+  .accounting-preview-panel .data-table-wrap { overflow: visible; }
+  .accounting-preview-table.operational-table { display: block; width: 100%; min-width: 0; }
+  .accounting-preview-table thead {
+    position: absolute; width: 1px; height: 1px; padding: 0;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap;
+  }
+  .accounting-preview-table tbody { display: grid; width: 100%; }
+  .accounting-preview-table tbody tr {
+    box-sizing: border-box; display: grid; width: 100%; gap: 12px;
+    padding: 16px 0; border-top: 1px solid var(--line);
+    content-visibility: visible; contain-intrinsic-size: none;
+  }
+  .accounting-preview-table td {
+    box-sizing: border-box; display: grid; width: 100%; max-width: none;
+    grid-template-columns: minmax(90px, .35fr) minmax(0, 1fr);
+    gap: 4px 12px; padding: 0; border: 0; overflow-wrap: anywhere;
+  }
+  .accounting-preview-table td::before {
+    content: attr(data-label); grid-column: 1; grid-row: 1 / span 2;
+    color: var(--muted); font-size: 11px; font-weight: 700;
+  }
+  .accounting-preview-table td > * { grid-column: 2; }
+  .accounting-preview-table .table-action-cell { display: block; margin-top: 4px; }
+  .accounting-preview-table .table-action-cell::before { content: none; }
+  .accounting-preview-table .row-action-button {
+    box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+    width: 100%; white-space: normal;
+  }
+}
+@media (max-width: 640px) {
+  .accounting-preview-panel { padding: 16px; }
+  .accounting-preview-panel .workspace-panel-head { align-items: start; flex-direction: column; }
+  .accounting-preview-form.workspace-filter-form { grid-template-columns: minmax(0, 1fr); }
+  .accounting-preview-form > button { justify-self: stretch; white-space: normal; }
+}

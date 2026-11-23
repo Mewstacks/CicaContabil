@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <AssemblyName>Cica.Agent.Contracts</AssemblyName>
     <RootNamespace>Cica.Agent.Service</RootNamespace>
   </PropertyGroup>
@@ -8,6 +8,8 @@
        o hash antes de executar. O caminho é relativo à raiz do repositório: o
        manifesto que o servidor lê e o que o agente carrega são o mesmo arquivo. -->
   <ItemGroup>
+    <EmbeddedResource Include="../../../contracts/titles/*" LogicalName="Cica.Titles.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../../../contracts/ledger/*" LogicalName="Cica.Ledger.%(Filename)%(Extension)" />
     <EmbeddedResource Include="../../../contracts/datasets/manifest.json" LogicalName="Cica.Datasets.manifest.json" />
     <EmbeddedResource Include="../../../contracts/datasets/*.sql">
       <LogicalName>Cica.Datasets.%(Filename)%(Extension)</LogicalName>

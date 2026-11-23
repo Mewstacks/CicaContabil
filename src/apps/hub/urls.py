@@ -1,12 +1,99 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from apps.hub import views, views_procuracao, views_roster, views_subscription
+from apps.hub import (
+    account_candidate_views,
+    account_discovery_views,
+    accounting_import_views,
+    depara_ledger_views,
+    depara_review_views,
+    ledger_request_views,
+    native_title_views,
+    setup_views,
+    title_request_views,
+    title_views,
+    views,
+    views_procuracao,
+    views_roster,
+    views_subscription,
+)
 from apps.platform.legal import legal_document
 
 app_name = "hub"
 
 urlpatterns = [
+    path(
+        "app/conciliacao/exportacoes/<uuid:export_id>/conferencia/",
+        accounting_import_views.import_receipt,
+        name="reconciliation-import-receipt",
+    ),
+    path(
+        "app/conciliacao/razao/", ledger_request_views.ledger_request,
+        name="reconciliation-ledger-request",
+    ),
+    path(
+        "app/conciliacao/razao/<uuid:job_id>/situacao/", ledger_request_views.ledger_status,
+        name="reconciliation-ledger-status",
+    ),
+    path(
+        "app/conciliacao/razao/<uuid:job_id>/retomar/", ledger_request_views.ledger_retry,
+        name="reconciliation-ledger-retry",
+    ),
+    path(
+        "app/conciliacao/de-para/", depara_review_views.depara_batches,
+        name="reconciliation-depara",
+    ),
+    path(
+        "app/conciliacao/de-para/razao/<uuid:account_id>/",
+        depara_ledger_views.depara_ledger_review,
+        name="reconciliation-depara-ledger",
+    ),
+    path(
+        "app/conciliacao/de-para/<uuid:batch_id>/",
+        depara_review_views.depara_batch, name="reconciliation-depara-batch",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/", title_request_views.title_requests,
+        name="reconciliation-title-requests",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/situacao/", title_request_views.title_request_status,
+        name="reconciliation-title-request-status",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/<uuid:job_id>/fonte/", title_request_views.title_source,
+        name="reconciliation-title-source",
+    ),
+    path(
+        "app/conciliacao/titulos/coletas/<uuid:job_id>/retomar/",
+        title_request_views.title_request_retry,
+        name="reconciliation-title-request-retry",
+    ),
+    path("app/conciliacao/titulos/", title_views.titles, name="reconciliation-titles"),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/vincular/",
+        title_views.title_plan, name="reconciliation-title-plan",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/confirmar/",
+        title_views.title_confirm, name="reconciliation-title-confirm",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/vinculos/<uuid:allocation_id>/desfazer/",
+        title_views.title_undo, name="reconciliation-title-undo",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/relatorio/",
+        title_views.title_report, name="reconciliation-title-report",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/fontes/",
+        native_title_views.native_titles, name="reconciliation-native-titles",
+    ),
+    path(
+        "app/conciliacao/titulos/<uuid:account_id>/fontes/<uuid:capture_id>/<str:installment_reference>/",
+        native_title_views.native_title_review, name="reconciliation-native-title-review",
+    ),
     path("app/radar/<uuid:alert_id>/analisar/", views.reform_analysis, name="reform-analysis"),
     path("legal/<slug:document>/", legal_document, name="legal"),
     path("", views.home, name="home"),
@@ -200,11 +287,43 @@ urlpatterns = [
     ),
     path("app/conciliacao/", views.reconciliation, name="reconciliation"),
     path(
+        "app/conciliacao/contas/dominio/", account_discovery_views.account_discovery,
+        name="reconciliation-account-discovery",
+    ),
+    path(
+        "app/conciliacao/contas/dominio/<uuid:company_id>/",
+        account_discovery_views.discovered_company, name="reconciliation-discovered-company",
+    ),
+    path(
+        "app/conciliacao/contas/dominio/<uuid:company_id>/<uuid:account_id>/",
+        account_discovery_views.discovered_account, name="reconciliation-discovered-account",
+    ),
+    path(
+        "app/conciliacao/contas/", account_candidate_views.account_candidates,
+        name="reconciliation-account-candidates",
+    ),
+    path(
+        "app/conciliacao/contas/<uuid:candidate_id>/", account_candidate_views.account_candidate,
+        name="reconciliation-account-candidate",
+    ),
+    path(
+        "app/conciliacao/carteira/", views.reconciliation_portfolio,
+        name="reconciliation-portfolio",
+    ),
+    path(
         "app/conciliacao/configuracao/",
         views.reconciliation_configuration,
         name="reconciliation-configuration",
     ),
     path("app/conciliacao/auditoria/", views.reconciliation_audit, name="reconciliation-audit"),
+    path(
+        "app/conciliacao/contas-financeiras/<uuid:account_id>/",
+        setup_views.financial_account_edit, name="reconciliation-financial-account-edit",
+    ),
+    path(
+        "app/conciliacao/modelo-razao/", views.reconciliation_ledger_template,
+        name="reconciliation-ledger-template",
+    ),
     path("app/conciliacao/importar/", views.reconciliation_upload, name="reconciliation-upload"),
     path(
         "app/conciliacao/processamentos/<uuid:run_id>/",
@@ -222,6 +341,16 @@ urlpatterns = [
         name="reconciliation-mapping",
     ),
     path(
+        "app/conciliacao/arquivos/<uuid:source_id>/revisao/",
+        views.reconciliation_source_review,
+        name="reconciliation-source-review",
+    ),
+    path(
+        "app/conciliacao/arquivos/<uuid:source_id>/conferencia/",
+        views.reconciliation_source_report,
+        name="reconciliation-source-report",
+    ),
+    path(
         "app/conciliacao/arquivos/<uuid:source_id>/download/",
         views.reconciliation_source_download,
         name="reconciliation-source-download",
@@ -232,6 +361,16 @@ urlpatterns = [
         name="reconciliation-source-preview",
     ),
     path(
+        "app/conciliacao/arquivos/<uuid:source_id>/confirmar-coincidencias/",
+        views.reconciliation_source_confirm_exact,
+        name="reconciliation-source-confirm-exact",
+    ),
+    path(
+        "app/conciliacao/arquivos/<uuid:source_id>/revisar-automaticas/",
+        views.reconciliation_source_auto_review,
+        name="reconciliation-source-auto-review",
+    ),
+    path(
         "app/conciliacao/movimentos/<uuid:movement_id>/",
         views.reconciliation_movement_detail,
         name="reconciliation-movement",
@@ -240,6 +379,14 @@ urlpatterns = [
         "app/conciliacao/movimentos/acoes-em-lote/",
         views.reconciliation_movement_bulk_action,
         name="reconciliation-movement-bulk-action",
+    ),
+    path(
+        "app/conciliacao/previas/", views.reconciliation_preview,
+        name="reconciliation-preview",
+    ),
+    path(
+        "app/conciliacao/previas/<uuid:preview_id>/download/",
+        views.reconciliation_preview_download, name="reconciliation-preview-download",
     ),
     path(
         "app/conciliacao/exportar/",
@@ -327,6 +474,7 @@ urlpatterns = [
     ),
     path("app/revisoes/<uuid:case_id>/resolver/", views.resolve_review, name="resolve-review"),
     path("app/configuracoes/", views.settings_view, name="settings"),
+    path("app/configuracoes/carteira/", views.backup_portfolio, name="backup-portfolio"),
     path("app/configuracao/mapa-dre/", views.dre_mapping_editor, name="dre-mapping-editor"),
     path("app/configuracao/", views.setup_center, name="setup"),
     path(

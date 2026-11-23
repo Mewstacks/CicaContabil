@@ -1,0 +1,53 @@
+{% extends 'hub/workspace.html' %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:settings' %}">Voltar às configurações</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel registry-panel" aria-labelledby="backup-portfolio-heading">
+  <header class="workspace-panel-head">
+    <div>
+      <h2 id="backup-portfolio-heading">Empresas atendidas</h2>
+      <p data-copy="required">O próximo backup reescreve esta coluna a partir da situação no Domínio.</p>
+    </div>
+    <div class="company-heading-meta">
+      <span class="record-count" role="status" aria-atomic="true">{{ active_count }} de {{ portfolio_total }} ativas</span>
+      {% if backup_source.source_snapshot_at %}<span class="status-badge">Backup de {{ backup_source.source_snapshot_at|date:"d/m/Y H:i" }}</span>{% endif %}
+    </div>
+  </header>
+
+  <form method="get" class="toolbar company-toolbar" role="search" data-auto-filter>
+    <div class="toolbar-search">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 4a6 6 0 1 0 3.7 10.7l4.3 4.3 1.4-1.4-4.3-4.3A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z"/></svg>
+      <label class="sr-only" for="filtro-busca">Buscar empresa</label>
+      <input id="filtro-busca" type="search" name="q" maxlength="100" value="{{ filters.q }}" placeholder="Nome, CNPJ ou código…" autocomplete="off" spellcheck="false">
+    </div>
+    <div><label for="filtro-situacao">Situação</label><select id="filtro-situacao" name="situacao" autocomplete="off"><option value="">Todas</option><option value="ativa"{% if filters.situacao == 'ativa' %} selected{% endif %}>Ativa</option><option value="inativa"{% if filters.situacao == 'inativa' %} selected{% endif %}>Inativa</option></select></div>
+    <noscript><button class="button button-quiet button-small" type="submit">Filtrar</button></noscript>
+  </form>
+
+  {% if companies %}
+    <div class="data-table-wrap">
+      <table class="operational-table company-table backup-portfolio-table">
+        <thead><tr><th scope="col">Empresa</th><th scope="col">Código Domínio</th><th scope="col">Situação</th><th scope="col"><span class="sr-only">Ação</span></th></tr></thead>
+        <tbody>{% for company in companies %}<tr>
+          <td data-label="Empresa"><strong><a class="text-action" href="{% url 'hub:company-detail' company.id %}?return_to={{ request.get_full_path|urlencode }}">{{ company.name }}</a></strong><small>{% if company.cnpj_masked %}{{ company.cnpj_masked }}{% else %}CNPJ não informado{% endif %}</small></td>
+          <td data-label="Código Domínio">{% if company.dominio_code %}<b>{{ company.dominio_code }}</b>{% else %}<span class="table-warning">Sem código</span>{% endif %}</td>
+          <td data-label="Situação">{% if company.active %}<span class="module-state is-active">Ativa</span>{% else %}<span class="module-state is-muted">Inativa</span>{% endif %}</td>
+          <td class="table-action-cell">{% if can_manage_backup_portfolio %}<form method="post">{% csrf_token %}<input type="hidden" name="company_id" value="{{ company.id }}"><input type="hidden" name="q" value="{{ filters.q }}"><input type="hidden" name="situacao" value="{{ filters.situacao }}"><input type="hidden" name="action" value="{% if company.active %}deactivate{% else %}activate{% endif %}"><button class="button button-quiet button-small" type="submit" data-busy-label="Salvando…">{% if company.active %}Desativar{% else %}Ativar{% endif %}<span class="sr-only"> {{ company.name }}</span></button></form>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+      <nav class="pagination" aria-label="Paginação">
+        {% if page_obj.has_previous %}<a class="button button-quiet button-small" href="?pagina={{ page_obj.previous_page_number }}{% if query_without_page %}&{{ query_without_page }}{% endif %}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+        <span class="pagination-status">Página {{ page_obj.number }} de {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}<a class="button button-quiet button-small" href="?pagina={{ page_obj.next_page_number }}{% if query_without_page %}&{{ query_without_page }}{% endif %}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}
+      </nav>
+    {% endif %}
+  {% elif filters_applied %}
+    {% url 'hub:backup-portfolio' as portfolio_clear_url %}{% include 'hub/partials/empty_state.html' with title="Nenhuma empresa encontrada" description="Revise a pesquisa ou o filtro de situação." action_url=portfolio_clear_url action_label="Ver todas" %}
+  {% else %}
+    {% include 'hub/partials/empty_state.html' with title="Nenhuma empresa veio do backup" description="Importe um backup do Domínio para formar a carteira." %}
+  {% endif %}
+</section>
+{% endblock %}

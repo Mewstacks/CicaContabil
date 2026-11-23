@@ -71,9 +71,10 @@ document.querySelectorAll('[data-modal]').forEach((modal) => {
   });
 });
 
-document.querySelectorAll('[data-modal-invalid]').forEach((modal) => {
+document.querySelectorAll('[data-modal-invalid], [data-modal-initial-open]').forEach((modal) => {
   const trigger = document.querySelector(`[data-modal-open="${modal.id}"]`);
-  openModal(modal, trigger);
+  // Finish enhancing company selectors before choosing the initial focus target.
+  queueMicrotask(() => openModal(modal, trigger));
 });
 
 document.querySelectorAll('[data-certificate-files]').forEach((input) => {
@@ -1492,7 +1493,7 @@ document.querySelectorAll('.scope-picker').forEach((picker, index) => {
   update();
 });
 
-document.querySelectorAll('[data-modal] form, .team-form, .review-detail-panel form, [data-dre-mapping-form], .activity-actions form, .activity-assignment-panel form').forEach(form => {
+document.querySelectorAll('[data-modal] form, .team-form, .review-detail-panel form, [data-account-candidate-form], [data-setup-review-form], [data-dre-mapping-form], .activity-actions form, .activity-assignment-panel form').forEach(form => {
   form.addEventListener('input', event => {
     if (event.target.type !== 'search') dirtyForms.add(form);
   });

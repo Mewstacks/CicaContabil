@@ -1,0 +1,74 @@
+name: Validate existing agent on Windows 11 Desktop
+
+on:
+  push:
+    branches: [codex/agent-windows-validation]
+    paths:
+      - .github/workflows/agent-windows-11-validation.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  windows-11-desktop:
+    # Free standard public runner. This proves ARM64 compatibility, not Intel/AMD.
+    if: github.event.repository.private == false
+    runs-on: windows-11-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Require Windows 11 client and record architecture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $os = Get-CimInstance Win32_OperatingSystem
+          $directory = 'agent-windows/artifacts/validation'
+          New-Item -ItemType Directory -Force -Path $directory | Out-Null
+          [ordered]@{
+            caption = $os.Caption
+            version = $os.Version
+            build = $os.BuildNumber
+            product_type = $os.ProductType
+            os_architecture = [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
+            process_architecture = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString()
+            runner_architecture = $env:RUNNER_ARCH
+            artifact_run_id = '41664064414'
+            artifact_source_sha = '57acd4f9738209842f4d3be546859c164adcba88'
+            installer_architecture = 'x64 (ODBC bridge x86)'
+            intel_amd_tested = $false
+          } | ConvertTo-Json | Tee-Object -FilePath "$directory/windows-11-environment.json"
+          if ($os.ProductType -ne 1 -or $os.Caption -notmatch 'Windows 11' -or [int]$os.BuildNumber -lt 22000) {
+            throw 'This test requires Windows 11 client, never Windows Server.'
+          }
+          if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -ne 'Arm64') {
+            throw 'Unexpected architecture for windows-11-arm.'
+          }
+      - name: Download the exact previously tested MSI
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: CicaAgent-tested-windows-x64
+          path: agent-windows/artifacts
+          run-id: 41664064414
+          github-token: ${{ github.token }}
+      - name: Verify pinned MSI bytes before execution
+        shell: pwsh
+        run: |
+          $expected = '0f2877a5872452506d94b770e51f8d95c03f9dec908da2af907ab0da54612393'
+          $actual = (Get-FileHash -Algorithm SHA256 agent-windows/artifacts/CicaAgent.msi).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw 'MSI differs from the approved Server 2022 artifact.' }
+          Write-Host "Verified original MSI SHA-256: $actual"
+      - name: Install, run, repair, restart, diagnose and uninstall
+        shell: pwsh
+        run: ./agent-windows/test-installer.ps1
+      - name: Preserve Windows 11 evidence separately
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: CicaAgent-windows-11-arm-validation
+          path: agent-windows/artifacts/validation/
+          if-no-files-found: error
+          retention-days: 1

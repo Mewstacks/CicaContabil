@@ -17,7 +17,8 @@ import subprocess
 import tempfile
 import uuid
 import zipfile
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -25,6 +26,7 @@ from itertools import islice
 from pathlib import Path, PurePath
 from typing import Any, cast
 
+from celery.exceptions import SoftTimeLimitExceeded
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, transaction
@@ -36,11 +38,12 @@ from apps.audit.services import record_event
 from apps.hub.models import (
     AccountingExport,
     AccountingPeriod,
+    ClientCompany,
     JournalEntry,
     JournalLine,
-    LedgerAccount,
     MovementReconciliation,
     NormalizedMovement,
+    ProductModule,
     ReconciliationDecision,
     ReconciliationLayout,
     ReconciliationRule,
@@ -48,6 +51,8 @@ from apps.hub.models import (
     ReconciliationSourceFile,
 )
 from apps.hub.reconciliation_activities import sync_reconciliation_activity
+from apps.hub.reconciliation_bridge import movement_has_ledger_match
+from apps.hub.reconciliation_recovery import LEASE_SECONDS
 from apps.organizations.models import Organization
 
 MAX_BYTES = 25 * 1024 * 1024
@@ -182,6 +187,27 @@ def create_source_file(
             )
         sync_reconciliation_activity(existing.pk)
         return existing, run, False
+    if kind == ReconciliationSourceFile.Kind.OFX:
+        from apps.hub.reconciliation import (
+            OfxParseError,
+            claim_ofx_transactions,
+            parse_ofx,
+            validate_ofx_account,
+        )
+
+        try:
+            statement = parse_ofx(content)
+            validate_ofx_account(
+                statement,
+                organization=organization,
+                company=company,
+                financial_account=financial_account,
+            )
+            claim_ofx_transactions(
+                organization=organization, company=company, statement=statement, digest=digest
+            )
+        except OfxParseError as exc:
+            raise ReconciliationError(str(exc)) from exc
     source = ReconciliationSourceFile(
         organization=organization,
         company=company,
@@ -629,6 +655,30 @@ def _records_from_ofx(source: ReconciliationSourceFile) -> list[ExtractedRecord]
 
 def _records_from_pdf(source: ReconciliationSourceFile) -> list[ExtractedRecord]:
     content = _source_bytes(source)
+    if source.origin == ReconciliationSourceFile.Origin.BANK_STATEMENT:
+        from apps.hub.bank_evidence import read_sicredi_pdf
+
+        statement = read_sicredi_pdf(content)
+        if statement is not None:
+            return [
+                ExtractedRecord(
+                    source_key=f"pdf:{line.reference['page']}:{line.reference['line']}",
+                    occurred_on=line.occurred_on,
+                    original_date=line.occurred_on.isoformat(),
+                    amount_cents=line.amount_cents,
+                    original_amount=str(Decimal(line.amount_cents) / 100),
+                    description=line.description,
+                    document_number=line.document,
+                    source_reference=line.reference,
+                    confidence=100,
+                    confidence_details={
+                        "method": "native_pdf_text",
+                        "layout": "sicredi-text-v1",
+                        "running_balances_valid": True,
+                    },
+                )
+                for line in statement.lines
+            ]
     try:
         import pdfplumber
 
@@ -856,7 +906,19 @@ def _matches_condition(condition: dict[str, Any], movement: NormalizedMovement) 
     return False
 
 
+@transaction.atomic
 def apply_rules(movement: NormalizedMovement, *, actor: object = None) -> NormalizedMovement:
+    ClientCompany.objects.select_for_update().get(
+        pk=movement.company_id, organization_id=movement.organization_id
+    )
+    movement.refresh_from_db(from_queryset=NormalizedMovement.objects.select_for_update())
+    if (
+        movement.classification_source == NormalizedMovement.ClassificationSource.MANUAL
+        or movement.edited_by_id is not None
+        or movement_has_ledger_match(movement)
+        or movement.journal_entries.exclude(state=JournalEntry.State.INVALID).exists()
+    ):
+        return movement
     rules = ReconciliationRule.objects.filter(
         organization=movement.organization,
         company=movement.company,
@@ -1059,7 +1121,10 @@ def _entry_capacity(entry: JournalEntry) -> int:
     credit = sum(line.amount_cents for line in entry.lines.filter(side=JournalLine.Side.CREDIT))
     if debit <= 0 or debit != credit:
         raise ReconciliationError("O lançamento de comparação não está equilibrado.")
-    return debit
+    from apps.hub.reconciliation_bridge import independent_record
+
+    record = independent_record(entry)
+    return record.bank_line.amount_cents if record is not None else debit
 
 
 @transaction.atomic
@@ -1072,6 +1137,16 @@ def confirm_reconciliation(
     actor: User | None = None,
 ) -> MovementReconciliation:
     """Confirm an evidence-backed allocation without consuming either side twice."""
+    from apps.hub.models import ClientCompany
+    from apps.hub.reconciliation_bridge import (
+        compatible_record,
+        independent_record,
+        project_confirmed_allocation,
+    )
+
+    ClientCompany.objects.select_for_update().get(
+        pk=movement.company_id, organization_id=movement.organization_id
+    )
     movement = NormalizedMovement.objects.select_for_update().get(pk=movement.pk)
     entry = JournalEntry.objects.select_for_update().get(pk=entry.pk)
     if movement.organization_id != entry.organization_id or movement.company_id != entry.company_id:
@@ -1080,11 +1155,20 @@ def confirm_reconciliation(
         raise ReconciliationError(
             "O lançamento gerado pelo próprio movimento não é evidência independente."
         )
+    record = independent_record(entry)
+    if (entry.purpose == "source_ledger" or record is not None) and (
+        record is None or not compatible_record(movement, record)
+    ):
+        raise ReconciliationError("Confira conta, data, direção e evidência independente do Razão.")
     if amount_cents <= 0:
         raise ReconciliationError("Informe uma alocação positiva.")
     if not evidence:
         raise ReconciliationError("Informe a evidência que justifica a conciliação.")
     entry_capacity = _entry_capacity(entry)
+    if movement.journal_entries.filter(state=JournalEntry.State.EXPORTED).exists():
+        raise ReconciliationError(
+            "O movimento já foi exportado; confira a importação e a retificação antes de conciliar."
+        )
     movement_used = sum(
         MovementReconciliation.objects.select_for_update()
         .filter(movement=movement, state=MovementReconciliation.State.CONFIRMED)
@@ -1131,6 +1215,13 @@ def confirm_reconciliation(
             ]
         )
     _record_reconciliation_decision(reconciliation, actor=actor)
+    # Company lock also serializes generation, approval and export. A match proves
+    # that this amount already exists in the ledger; derived drafts cannot post it again.
+    movement.journal_entries.filter(
+        state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
+    ).update(state=JournalEntry.State.INVALID, updated_at=timezone.now())
+    if record is not None:
+        project_confirmed_allocation(movement)
     sync_reconciliation_activity(movement.source_file_id)
     return reconciliation
 
@@ -1167,6 +1258,12 @@ def _record_reconciliation_decision(
 def undo_reconciliation(
     *, reconciliation: MovementReconciliation, actor: User | None = None
 ) -> None:
+    from apps.hub.models import ClientCompany
+    from apps.hub.reconciliation_bridge import clear_legacy_projection
+
+    ClientCompany.objects.select_for_update().get(
+        pk=reconciliation.movement.company_id, organization_id=reconciliation.organization_id
+    )
     NormalizedMovement.objects.select_for_update().get(pk=reconciliation.movement_id)
     JournalEntry.objects.select_for_update().get(pk=reconciliation.entry_id)
     locked = MovementReconciliation.objects.select_for_update().get(pk=reconciliation.pk)
@@ -1178,16 +1275,44 @@ def undo_reconciliation(
     locked.confirmed_by = actor
     locked.save(update_fields=["state", "confirmed_at", "confirmed_by", "updated_at"])
     _record_reconciliation_decision(locked, actor=actor)
+    clear_legacy_projection(locked)
     sync_reconciliation_activity(locked.movement.source_file_id)
 
 
-def process_run(run_id: str) -> dict[str, int | str]:
+class ReconciliationLeaseLost(Exception):
+    """This attempt can no longer write or finish the durable run."""
+
+
+@contextmanager
+def _owned_run_write(run: ReconciliationRun, token: uuid.UUID) -> Iterator[None]:
+    """Serialize financial writes with human company work and lease recovery."""
+    with transaction.atomic():
+        ClientCompany.objects.select_for_update().get(
+            pk=run.source_file.company_id, organization_id=run.organization_id
+        )
+        owned = ReconciliationRun.objects.select_for_update().filter(
+            pk=run.pk,
+            state=ReconciliationRun.State.PROCESSING,
+            lease_token=token,
+            lease_until__gt=timezone.now(),
+        ).first()
+        if owned is None:
+            raise ReconciliationLeaseLost
+        yield
+
+
+def process_run(
+    run_id: str,
+    *,
+    on_acquired: Callable[[uuid.UUID, datetime], None] | None = None,
+) -> dict[str, int | str]:
     try:
         parsed_id = uuid.UUID(str(run_id))
     except ValueError:
         return {"state": "invalid_id"}
     token = uuid.uuid4()
     now = timezone.now()
+    deadline = now + timedelta(seconds=LEASE_SECONDS)
     acquired = (
         ReconciliationRun.objects.filter(
             id=parsed_id,
@@ -1198,12 +1323,30 @@ def process_run(run_id: str) -> dict[str, int | str]:
             state=ReconciliationRun.State.PROCESSING,
             stage="extracting",
             lease_token=token,
-            lease_until=now + timedelta(minutes=20),
+            lease_until=deadline,
             started_at=now,
         )
     )
     if not acquired:
         return {"state": "not_ready"}
+    if on_acquired is not None:
+        try:
+            # Publish before parsing or financial writes. A broker failure leaves
+            # durable WAITING work for retry/startup/the unchanged periodic sweep.
+            on_acquired(token, deadline)
+        except Exception:
+            ReconciliationRun.objects.filter(
+                pk=parsed_id,
+                state=ReconciliationRun.State.PROCESSING,
+                lease_token=token,
+                lease_until=deadline,
+            ).update(
+                state=ReconciliationRun.State.WAITING,
+                stage="queued",
+                lease_token=None,
+                lease_until=None,
+            )
+            raise
     try:
         run = ReconciliationRun.objects.select_related(
             "source_file", "source_file__company", "source_file__financial_account"
@@ -1214,6 +1357,21 @@ def process_run(run_id: str) -> dict[str, int | str]:
             return {"state": "canceled"}
         if run.checkpoint.get("mode") == "rules":
             return _reapply_rules_for_source(run, token)
+        from apps.hub.ledger_import import import_ledger_source, is_ledger_csv
+
+        if is_ledger_csv(source):
+            with _owned_run_write(run, token):
+                result = import_ledger_source(source)
+            _finish_run(
+                run,
+                token,
+                ReconciliationRun.State.REVIEW,
+                "ledger_review",
+                processed=result["processed"],
+                created=result["created"],
+                ignored=result["ignored"],
+            )
+            return {"state": "review", **result}
         if source.kind == ReconciliationSourceFile.Kind.OFX:
             records = _records_from_ofx(source)
             financial_account = source.financial_account
@@ -1242,6 +1400,17 @@ def process_run(run_id: str) -> dict[str, int | str]:
                         ],
                     )
                     return {"state": "review", "created": 0}
+            # Revalidate historical files too; an interrupted worker may resume
+            # a source uploaded before the shared identity boundary existed.
+            from apps.hub.reconciliation import claim_ofx_transactions, parse_ofx
+
+            with _owned_run_write(run, token):
+                claim_ofx_transactions(
+                    organization=run.organization,
+                    company=source.company,
+                    statement=parse_ofx(_source_bytes(source)),
+                    digest=source.content_hash,
+                )
         elif source.kind in {ReconciliationSourceFile.Kind.CSV, ReconciliationSourceFile.Kind.XLSX}:
             if run.layout_version_id is None:
                 _finish_run(
@@ -1300,46 +1469,47 @@ def process_run(run_id: str) -> dict[str, int | str]:
                 )
                 return {"state": "canceled", "created": created}
             try:
-                movement, was_created = NormalizedMovement.objects.get_or_create(
-                    organization=run.organization,
-                    source_file=source,
-                    source_key=record.source_key,
-                    defaults={
-                        "run": run,
-                        "company": source.company,
-                        "financial_account": source.financial_account,
-                        "source_reference": record.source_reference or {},
-                        "original_date": record.original_date,
-                        "occurred_on": record.occurred_on,
-                        "original_amount": record.original_amount,
-                        "amount_cents": record.amount_cents,
-                        "direction": _record_direction(record.amount_cents),
-                        "original_description": record.description,
-                        "description": record.description,
-                        "document_number": record.document_number,
-                        "counterparty": record.counterparty,
-                        "confidence": record.confidence,
-                        "confidence_details": record.confidence_details or {},
-                    },
-                )
-                if was_created:
-                    created += 1
-                    apply_rules(movement)
-                    require_review_for_low_quality_extraction(movement)
-                    # Evaluate automatic reconciliation only after every record in
-                    # this source has been persisted.  A duplicate later in the
-                    # same input must make the candidate ambiguous.
-                    if movement.review_state == NormalizedMovement.ReviewState.READY:
-                        auto_reconciliation_candidates.append(movement.id)
-                    if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
-                        ignored += 1
+                with _owned_run_write(run, token):
+                    movement, was_created = NormalizedMovement.objects.get_or_create(
+                        organization=run.organization,
+                        source_file=source,
+                        source_key=record.source_key,
+                        defaults={
+                            "run": run,
+                            "company": source.company,
+                            "financial_account": source.financial_account,
+                            "source_reference": record.source_reference or {},
+                            "original_date": record.original_date,
+                            "occurred_on": record.occurred_on,
+                            "original_amount": record.original_amount,
+                            "amount_cents": record.amount_cents,
+                            "direction": _record_direction(record.amount_cents),
+                            "original_description": record.description,
+                            "description": record.description,
+                            "document_number": record.document_number,
+                            "counterparty": record.counterparty,
+                            "confidence": record.confidence,
+                            "confidence_details": record.confidence_details or {},
+                        },
+                    )
+                    if was_created:
+                        created += 1
+                        apply_rules(movement)
+                        require_review_for_low_quality_extraction(movement)
+                        # Only evaluate matches once every record was persisted.
+                        # A later duplicate must still make a candidate ambiguous.
+                        if movement.review_state == NormalizedMovement.ReviewState.READY:
+                            auto_reconciliation_candidates.append(movement.id)
+                        if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
+                            ignored += 1
             except (IntegrityError, ReconciliationError) as exc:
                 errors.append(
                     {"line": str(index), "code": "record_invalid", "message": str(exc)[:240]}
                 )
         for movement_id in auto_reconciliation_candidates:
             try:
-                auto_reconcile_unique_movement(NormalizedMovement.objects.get(id=movement_id))
+                with _owned_run_write(run, token):
+                    auto_reconcile_unique_movement(NormalizedMovement.objects.get(id=movement_id))
             except ReconciliationError:
                 # A concurrent review may have consumed the candidate after this
                 # run's deterministic check. Leave it pending for manual review.
@@ -1364,6 +1534,13 @@ def process_run(run_id: str) -> dict[str, int | str]:
             errors=errors,
         )
         return {"state": state, "created": created, "errors": len(errors)}
+    except ReconciliationLeaseLost:
+        return {"state": "not_ready"}
+    except SoftTimeLimitExceeded:
+        # The per-record transaction has rolled back. Retain PROCESSING and its
+        # lease for the watchdog; treating interruption as FAILED would turn the
+        # watchdog into a no-op and strand an otherwise recoverable run.
+        raise
     except Exception as exc:
         failed_run = ReconciliationRun.objects.filter(id=parsed_id).first()
         if failed_run:
@@ -1384,6 +1561,7 @@ def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[
     all_movements = NormalizedMovement.objects.filter(source_file=source)
     eligible = (
         all_movements.exclude(classification_source=NormalizedMovement.ClassificationSource.MANUAL)
+        .filter(edited_by__isnull=True)
         .exclude(
             journal_entries__state__in=[
                 JournalEntry.State.DRAFT,
@@ -1414,8 +1592,25 @@ def _reapply_rules_for_source(run: ReconciliationRun, token: uuid.UUID) -> dict[
                 updated=changed,
             )
             return {"state": "canceled", "updated": changed}
-        with transaction.atomic():
+        with _owned_run_write(run, token):
             movement = NormalizedMovement.objects.select_for_update().get(id=movement_id)
+            # The initial query is only a work list. A human may have reviewed or
+            # reconciled the movement while this worker waited for the company.
+            if (
+                movement.classification_source == NormalizedMovement.ClassificationSource.MANUAL
+                or movement.edited_by_id is not None
+                or movement_has_ledger_match(movement)
+                or movement.journal_entries.filter(
+                    state__in=[
+                        JournalEntry.State.DRAFT,
+                        JournalEntry.State.APPROVED,
+                        JournalEntry.State.EXPORTED,
+                    ]
+                ).exists()
+            ):
+                protected_count += 1
+                eligible_count -= 1
+                continue
             before = (
                 movement.debit_account_code,
                 movement.credit_account_code,
@@ -1514,7 +1709,12 @@ def _finish_run(
     errors: list[dict[str, str]] | None = None,
 ) -> None:
     errors = errors or []
-    updated_rows = ReconciliationRun.objects.filter(id=run.id, lease_token=token).update(
+    updated_rows = ReconciliationRun.objects.filter(
+        id=run.id,
+        state=ReconciliationRun.State.PROCESSING,
+        lease_token=token,
+        lease_until__gt=timezone.now(),
+    ).update(
         state=state,
         stage=stage,
         processed_count=processed,
@@ -1534,8 +1734,14 @@ def _finish_run(
 
 def validate_journal_entry(entry: JournalEntry) -> list[str]:
     errors: list[str] = []
+    if entry.purpose == "source_ledger":
+        errors.append("O Razão recebido é fonte de comparação; não deve ser escriturado novamente.")
     if entry.movement_id:
         movement = entry.movement
+        if movement is not None and movement_has_ledger_match(movement):
+            errors.append(
+                "O movimento já possui conciliação; não pode gerar nova escrituração."
+            )
         if entry.source_movement_revision is None:
             errors.append("O lançamento não possui a revisão de origem para validação.")
         elif movement is None or movement.revision != entry.source_movement_revision:
@@ -1549,16 +1755,11 @@ def validate_journal_entry(entry: JournalEntry) -> list[str]:
     credit = sum(line.amount_cents for line in lines if line.side == JournalLine.Side.CREDIT)
     if debit != credit or debit <= 0:
         errors.append("Débitos e créditos devem ser iguais e maiores que zero.")
-    valid_accounts = set(
-        LedgerAccount.objects.filter(
-            organization=entry.organization,
-            company=entry.company,
-            active=True,
-            accepts_entries=True,
-        ).values_list("code", flat=True)
-    )
+    from apps.hub.postable_accounts import invalid_account_codes
+
+    invalid_accounts = invalid_account_codes(entry.company, [line.account_code for line in lines])
     for line in lines:
-        if line.account_code not in valid_accounts:
+        if str(line.account_code or "").strip() in invalid_accounts or not line.account_code:
             errors.append(f"Conta inválida ou inativa: {line.account_code}.")
     if AccountingPeriod.objects.filter(
         organization=entry.organization,
@@ -1576,7 +1777,14 @@ def create_journal_entry_from_movement(
     *, movement: NormalizedMovement, actor: User | None = None
 ) -> JournalEntry:
     """Create one balanced draft from an explicitly classified movement."""
+    ClientCompany.objects.select_for_update().get(
+        pk=movement.company_id, organization_id=movement.organization_id
+    )
     movement = NormalizedMovement.objects.select_for_update().get(pk=movement.pk)
+    if movement_has_ledger_match(movement):
+        raise ReconciliationError(
+            "O movimento já possui conciliação; confira a evidência antes de gerar lançamento."
+        )
     if movement.review_state == NormalizedMovement.ReviewState.IGNORED:
         raise ReconciliationError("Desfaça o ignorar antes de gerar um lançamento.")
     if (
@@ -1632,6 +1840,9 @@ def approve_journal_entry(
 
     failure = ""
     with transaction.atomic():
+        ClientCompany.objects.select_for_update().get(
+            pk=entry.company_id, organization_id=entry.organization_id
+        )
         locked = (
             # ``movement`` is optional.  PostgreSQL rejects a blanket ``FOR UPDATE``
             # when ``select_related`` introduces that outer join, so lock only the
@@ -1640,6 +1851,16 @@ def approve_journal_entry(
             .select_related("company", "movement")
             .get(id=entry.id)
         )
+        prior_ids = AccountingExport.objects.filter(
+            organization_id=locked.organization_id, company_id=locked.company_id,
+            state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+        ).values_list("entry_ids", flat=True)
+        if locked.state == JournalEntry.State.EXPORTED or any(
+            str(locked.pk) in ids for ids in prior_ids.iterator()
+        ):
+            raise ReconciliationError(
+                "Lançamento já exportado; confira o arquivo original ou use reexportação explícita."
+            )
         errors = validate_journal_entry(locked)
         if errors:
             locked.state = JournalEntry.State.INVALID
@@ -1716,6 +1937,110 @@ def render_dominio_csv(entries: Iterable[JournalEntry]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+# Official Domínio importer dataset "Leiaute Domínio Sistemas" (code 19, Lançamentos
+# Contábeis em Lote), published for the Importador in solution 7584 (D-380). Fixed
+# width, no field separator; numeric fields are zero-filled on the left, character
+# fields space-filled on the right, values carry two implied decimals.
+DOMINIO_LOTE19_WIDTHS = {"01": 54, "02": 150, "03": 664, "99": 100}
+_HISTORY_CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]+")
+
+
+def _fixed_number(value: int | str, width: int, label: str) -> str:
+    text = str(value).strip()
+    if not text.isascii() or not text.isdecimal() or len(text.lstrip("0") or "0") > width:
+        raise ReconciliationError(f"{label} não cabe no leiaute Domínio: {value}.")
+    return text.zfill(width)[-width:]
+
+
+def _fixed_text(value: str, width: int) -> str:
+    text = _HISTORY_CONTROL.sub(" ", str(value or "")).strip()
+    text = text.encode("cp1252", errors="replace").decode("cp1252")
+    return text[:width].ljust(width)
+
+
+def _dominio_record(kind: str, body: str) -> str:
+    record = (kind + body).ljust(DOMINIO_LOTE19_WIDTHS[kind])
+    if len(record) != DOMINIO_LOTE19_WIDTHS[kind]:
+        raise ReconciliationError("Registro fora do tamanho oficial do leiaute Domínio.")
+    return record
+
+
+def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
+    """Render approved entries of one company as the official fixed-width lote file."""
+    entries = list(entries)
+    if not entries:
+        raise ReconciliationError("Não há lançamentos para o arquivo Domínio.")
+    companies = {entry.company_id for entry in entries}
+    if len(companies) != 1:
+        raise ReconciliationError("O arquivo Domínio deve conter uma única empresa.")
+    company = entries[0].company
+    if not company.dominio_code:
+        raise ReconciliationError("A empresa precisa do código Domínio para exportar.")
+    company_code = _fixed_number(company.dominio_code, 7, "Código da empresa")
+    registration = "".join(ch for ch in str(company.dominio_registration_raw or "") if ch.isdigit())
+    cnpj = registration if len(registration) == 14 else ""
+    start = min(entry.occurred_on for entry in entries)
+    end = max(entry.occurred_on for entry in entries)
+    lines = [
+        _dominio_record(
+            "01",
+            company_code
+            + cnpj.ljust(14)
+            + start.strftime("%d/%m/%Y")
+            + end.strftime("%d/%m/%Y")
+            + "N"
+            + "05"
+            + "00000"
+            + "1"
+            + "17",
+        )
+    ]
+    sequence = 0
+    for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
+        parts = list(entry.lines.all())
+        debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
+        credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
+        # Only the "X" lote type (one debit, one credit) is emitted until another type
+        # is proven on the destination importer; equal debit/credit pairs become one
+        # X lote each, preserving totals. Other compositions are refused.
+        if len(debits) != len(credits) or any(
+            debit.amount_cents != credit.amount_cents
+            for debit, credit in zip(debits, credits, strict=False)
+        ):
+            raise ReconciliationError(
+                "Partidas compostas com valores diferentes ainda não são aceitas no arquivo "
+                "Domínio; divida o lançamento em pares de débito e crédito."
+            )
+        for debit, credit in zip(debits, credits, strict=True):
+            if debit.amount_cents <= 0:
+                raise ReconciliationError("O valor do lançamento deve ser maior que zero.")
+            sequence += 1
+            lines.append(
+                _dominio_record(
+                    "02",
+                    _fixed_number(sequence, 7, "Sequencial")
+                    + "X"
+                    + entry.occurred_on.strftime("%d/%m/%Y")
+                    + _fixed_text("CICA", 30),
+                )
+            )
+            sequence += 1
+            lines.append(
+                _dominio_record(
+                    "03",
+                    _fixed_number(sequence, 7, "Sequencial")
+                    + _fixed_number(debit.account_code, 7, "Conta débito")
+                    + _fixed_number(credit.account_code, 7, "Conta crédito")
+                    + _fixed_number(debit.amount_cents, 15, "Valor")
+                    + "0" * 7
+                    + _fixed_text(entry.history, 512)
+                    + company_code,
+                )
+            )
+    lines.append(_dominio_record("99", "9" * 98))
+    return ("\r\n".join(lines) + "\r\n").encode("cp1252")
+
+
 @dataclass(frozen=True)
 class AccountingExportAdapter:
     """A reviewed target contract; no target falls back to another system."""
@@ -1723,13 +2048,17 @@ class AccountingExportAdapter:
     target: str
     version: str
     render: Callable[[Iterable[JournalEntry]], bytes]
+    extension: str = "csv"
+    content_type: str = "text/csv"
 
 
 ACCOUNTING_EXPORT_ADAPTERS: dict[str, AccountingExportAdapter] = {
     AccountingExport.Target.DOMINIO: AccountingExportAdapter(
         target=AccountingExport.Target.DOMINIO,
-        version="dominio-3.1-pending-homologation",
-        render=render_dominio_csv,
+        version="dominio-lote19-v1",
+        render=render_dominio_lote19,
+        extension="txt",
+        content_type="text/plain",
     ),
 }
 
@@ -1759,14 +2088,23 @@ def create_export(
     target: str = AccountingExport.Target.DOMINIO,
     request: object = None,
 ) -> AccountingExport:
+    organization = Organization.objects.select_for_update(no_key=True).get(pk=organization.pk)
+    ClientCompany.objects.select_for_update().get(pk=company.pk, organization=organization)
+    if start > end:
+        raise ReconciliationError("O início do período deve ser anterior ou igual ao fim.")
     adapter = get_accounting_export_adapter(target)
-    if (
-        target == AccountingExport.Target.DOMINIO
-        and not settings.RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED
-    ):
+    from apps.hub.accounting_import import export_allowed
+    from apps.platform.operation_access import require_operation_access
+
+    approved_version = reexport_of.adapter_version if reexport_of else adapter.version
+    if not export_allowed(organization, target, approved_version):
         raise ReconciliationError(
-            "Exportação Domínio está bloqueada até a homologação real do adaptador."
+            "Exportação está bloqueada até a homologação real do adaptador neste escritório."
         )
+    try:
+        require_operation_access(organization, ProductModule.Code.RECONCILIATION)
+    except ValueError as exc:
+        raise ReconciliationError(str(exc)) from exc
     query = (
         # ``movement`` is optional, therefore this join is outer.  Locking the
         # entry alone keeps export serialization valid on PostgreSQL.
@@ -1777,32 +2115,60 @@ def create_export(
             company=company,
             occurred_on__range=(start, end),
         )
+        .exclude(purpose="source_ledger")
     )
     if reexport_of is None:
         query = query.filter(state=JournalEntry.State.APPROVED)
     else:
+        reexport_of = AccountingExport.objects.select_for_update().get(pk=reexport_of.pk)
+        if not export_allowed(organization, target, reexport_of.adapter_version):
+            raise ReconciliationError("A versão original não está homologada neste escritório.")
         if (
             reexport_of.organization_id != organization.id
             or reexport_of.company_id != company.id
             or not reexport_reason.strip()
+            or len(reexport_reason.strip()) > 240
+            or reexport_of.target != target
+            or reexport_of.period_start != start
+            or reexport_of.period_end != end
+            or reexport_of.state not in {
+                AccountingExport.State.READY, AccountingExport.State.CONFIRMED
+            }
         ):
-            raise ReconciliationError("Reexportação exige exportação original da empresa e motivo.")
-        query = query.filter(id__in=reexport_of.entry_ids, state=JournalEntry.State.EXPORTED)
+            raise ReconciliationError(
+                "Reexportação exige original íntegro da empresa, mesmo destino/período e motivo."
+            )
+        if not reexport_of.entry_ids or len(set(reexport_of.entry_ids)) != len(
+            reexport_of.entry_ids
+        ):
+            raise ReconciliationError("Reexportação: lista original de lançamentos inválida.")
+        query = query.filter(id__in=reexport_of.entry_ids)
     entries = list(query.prefetch_related("lines").order_by("occurred_on", "id"))
     if not entries:
         raise ReconciliationError("Não há lançamentos aprovados novos para exportar.")
-    if (
-        reexport_of is None
-        and JournalEntry.objects.filter(
-            id__in=[entry.id for entry in entries], state=JournalEntry.State.EXPORTED
-        ).exists()
-    ):
-        raise ReconciliationError("Há lançamentos já exportados; use reexportação explícita.")
-    for entry in entries:
-        errors = validate_journal_entry(entry)
-        if errors:
-            raise ReconciliationError(" ".join(errors))
-    rendered = adapter.render(entries)
+    if reexport_of is None:
+        selected_ids = {str(entry.pk) for entry in entries}
+        prior_ids = AccountingExport.objects.filter(
+            organization=organization, company=company,
+            state__in=[AccountingExport.State.READY, AccountingExport.State.CONFIRMED],
+        ).values_list("entry_ids", flat=True)
+        if any(selected_ids.intersection(ids) for ids in prior_ids.iterator()):
+            raise ReconciliationError("Há lançamentos já exportados; use reexportação explícita.")
+        for entry in entries:
+            errors = validate_journal_entry(entry)
+            if errors:
+                raise ReconciliationError(" ".join(errors))
+        rendered = adapter.render(entries)
+    else:
+        if {str(entry.pk) for entry in entries} != set(reexport_of.entry_ids):
+            raise ReconciliationError("Reexportação: conjunto original de lançamentos incompleto.")
+        try:
+            with reexport_of.content.open("rb") as original:
+                rendered = original.read()
+        except (OSError, ValueError) as exc:
+            raise ReconciliationError("Arquivo original indisponível para reexportação.") from exc
+        if hashlib.sha256(rendered).hexdigest() != reexport_of.content_hash:
+            raise ReconciliationError("O arquivo original diverge do hash; nada foi reexportado.")
     digest = hashlib.sha256(rendered).hexdigest()
     export = AccountingExport(
         organization=organization,
@@ -1810,21 +2176,29 @@ def create_export(
         period_start=start,
         period_end=end,
         target=adapter.target,
-        adapter_version=adapter.version,
+        adapter_version=reexport_of.adapter_version if reexport_of else adapter.version,
         state=AccountingExport.State.READY,
         content_hash=digest,
-        entry_ids=[str(entry.id) for entry in entries],
+        entry_ids=(
+            list(reexport_of.entry_ids) if reexport_of else [str(entry.id) for entry in entries]
+        ),
         reexport_of=reexport_of,
         reexport_reason=reexport_reason[:240],
         created_by=actor if isinstance(actor, User) else None,
     )
+    # A reexport keeps the original bytes, therefore also the original file type.
+    original_suffix = PurePath(reexport_of.content.name or "").suffix if reexport_of else ""
+    extension = original_suffix.lstrip(".") or adapter.extension
     export.content.save(
-        f"lancamentos-{start.isoformat()}-{end.isoformat()}.csv", ContentFile(rendered), save=False
+        f"lancamentos-{start.isoformat()}-{end.isoformat()}.{extension}",
+        ContentFile(rendered),
+        save=False,
     )
     export.save()
-    JournalEntry.objects.filter(id__in=[entry.id for entry in entries]).update(
-        state=JournalEntry.State.EXPORTED
-    )
+    if reexport_of is None:
+        JournalEntry.objects.filter(id__in=[entry.id for entry in entries]).update(
+            state=JournalEntry.State.EXPORTED
+        )
     record_event(
         action="hub.reconciliation.export_created",
         actor=actor,

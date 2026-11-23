@@ -1,6 +1,8 @@
 # Agente CICA para Windows
 
-Native .NET 8 Windows service and guided configurator. The MSI supports:
+Serviço Windows e configurador nativos em .NET 10 LTS (D-325), com runtime
+autocontido: não é necessário instalar o SDK ou runtime no servidor da cliente.
+O MSI oferece:
 
 - Sincronização de leitura do Domínio Local por SQL Anywhere de 64 bits.
 - Sincronização de leitura do Siescon por Pervasive/PSQL de 32 bits, isolada na ponte x86.
@@ -82,3 +84,32 @@ The deterministic outputs are written to `artifacts/`, including a SHA-256 check
 inventory. O build recusa o pacote se serviço, configurador, ponte x86 ou diagnóstico estiverem
 ausentes, e o CI repete a geração completa em `windows-latest`. Publish the checksum alongside the stable MSI download URL. Existing Python agents keep
 using `/api/v1/intelligence/agent/*` during migration.
+
+### Prova pontual ODBC sob LocalSystem
+
+Quando o candidato está em `awaiting_activation`, ele ainda não consulta o ERP.
+`testar-odbc-system.ps1` é uma ferramenta separada do MSI para essa prova:
+Windows PowerShell 5.1 x64/elevado, DSN CICA_CONTAD e usuário EXTERNO por padrão.
+Solicita a senha localmente com entrada oculta, protege o transporte temporário
+com DPAPI/ACL Administradores-SYSTEM, executa somente a consulta mínima do
+configurador por tarefa SYSTEM e remove a tarefa/credencial ao terminar.
+Não lê `agent.config`; o relatório contém apenas indicadores/SQLState, versão,
+estado e ACL. O script deve ser copiado separadamente; não exige reinstalação.
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\CICA-Instalacao\testar-odbc-system.ps1"
+```
+
+A política acima vale só para esse processo. Não executar
+`test-system-odbc-probe.ps1` na cliente: é o ensaio do CI descartável com DSN
+inexistente e senha sintética, sem prova de acesso ao ERP real.
+
+### Inventário CONTAD após o corte oficial (D-331/V-349)
+
+inspect-contad-schema.ps1 é uma sonda separada, sem reinstalação, leitura de
+segredos existentes ou mudança de manifesto. Tables/Views usam três restrições
+ODBC e Columns quatro. test-contad-inventory.ps1 é exclusivo do CI descartável:
+confere o contrato real embutido no System.Data e usa metadados sintéticos,
+incluindo limites, erro DSN real, redação e ACL. Nunca executar o teste CI na cliente.
+Operador informou inventário de 601 objetos/5.674 colunas/502 empresas; JSON
+completo/revisão e primeira carga ainda pendentes. Não repetir a sonda por rotina.

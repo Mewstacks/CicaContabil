@@ -1,3 +1,75 @@
+<!-- D371-V410-PUBLISHED-2026-11-17 -->
+## Fechamento D-371/V-410 — publicação técnica para testes, 17/11/2026
+
+- [x] Correções revisadas, regressão local/CI exato e QA sintético aprovados.
+- [x] Publicar release99/agente1.0.13 e conferir runtime797/assets/saúde/worker.
+- [x] Conferir15 grupos protegidos, configuração/capacidade e legado parado.
+- [x] Validar instalação limpa e upgrades1.0.10/11/12 em Windows descartável.
+- [x] Comprovar instalação1.0.13/conexão/capacidades no SVAPL02; recibo e backend autenticado.
+- [ ] Comprovar primeira nova coleta financeira pela tela no recorte autorizado.
+- [ ] Concluir revisões humanas e critérios Q-28/Q-46/D-73 próprios.
+
+**SVAPL02 atualizado em17/11/2026:** recibo do atualizador fornecido pelo responsável confirma1.0.10→1.0.13 às10:17BRT, MSIexit0, configuração protegida preservada, serviço Running/Auto/LocalSystem e ciclo recente, sem reinício pendente. Conferência independente no backend autenticado às10:17/10:19BRT confirma o mesmo agente oficial, Razão/títulos online, automatic_counts=true em ambos, portfolio_scope=true no Razão e company_scope=true nos títulos. Instalação/conexão/capacidades estão comprovadas; a primeira nova coleta financeira pela tela continua sem prova. source_review_required corresponde ao título legado já capturado aguardando revisão; fonte e decisões anteriores permanecem preservadas.
+
+Publicação técnica para testes; não é homologação contábil, aceite contratual ou conclusão da suíte. Fontes/vínculos/semântica/plano/regras e Q-28/Q-46/D-73 mantêm provas próprias. Q-47/C01/C02 continuam adiados; backup fora da prioridade do início dos testes. Não reabrir pareamento, carga inicial, fontes recebidas ou primeiro treinamento. Nenhuma nova consulta financeira ERP, revisão contábil em nome da cliente, chamada IA, mensagem ou alteração comercial foi executada nesta publicação.
+
+[Evidências V-410](../../../VALIDACOES.md).
+
+## Correções para testes — D-371/V-410 EM ANDAMENTO (17/11/2026)
+
+- [x] Trazer continuidade V-409 da raiz à candidata, preservando D-370/D-371.
+- [x] Separar correção implementada, teste sintético, publicação e prova real.
+- [x] Registrar SQLite/.NET/QA e ressalva do último POST fora da coleta integral.
+- [x] Esclarecer orçamento30s entre pares e controle autenticado por par nos dois DECISOES.
+
+- [ ] Concluir PostgreSQL integral, CI da fonte exata, MSI limpo e upgrades diretos1.0.10/11/12.
+- [ ] Publicar e conferir hashes/assets/saúde/worker e preservação dos dados/configuração.
+- [ ] Comprovar atualização/capacidades/recepção reais no SVAPL02 antes de declarar autonomia.
+
+Produção comprovada release98/canal1.0.12; candidata ainda não publicada.
+Piloto, autonomia, contrato e suíte permanecem distintos. Q-28/Q-46/D-73
+mantêm critérios próprios; Q-47/C01/C02 adiados e backup fora da prioridade.
+[V-410 e limites](../../../VALIDACOES.md).
+
+## Prontidão para testes da cliente — D-370/V-409 (17/11/2026)
+
+- [x] Ler registros canônicos, etapas e dúvidas na ordem definida pelo AGENTS.
+- [x] Distinguir piloto, novas coletas, contrato CONTAD e suíte completa.
+- [x] Auditar fonte 32bc89d/tree 1cc5f9c da release 98 em worktree isolado; preservar alterações existentes.
+- [x] Reconferir CI/PR, artefatos e estado de produção somente leitura; sem consulta financeira ao ERP.
+- [x] Reproduzir P2 do histórico do Razão e avaliar limite de processamento do agente.
+- [x] Executar checks locais e smoke Playwright sintético, sem decisões/dados novos em produção.
+- [x] Fechar registro das regressões locais e conferir links/diff da documentação.
+- [x] Consolidar parecer e roteiro no documento canônico de pendências, sem criar plano concorrente.
+
+Entrega: [análise de prontidão e próximos responsáveis](../pendencias-conclusao-2026-11-02.md).
+Testes controlados do piloto podem começar; atualização/prova de coleta real,
+correção do histórico para uso ampliado e critérios humanos continuam abertos.
+Nenhuma etapa funcional ou aceite integral foi encerrado por esta análise.
+
+## Verificação de conclusão — D-343/V-366 (12/11/2026)
+
+- [x] Ler registros canônicos e confrontar etapas/Q com as provas até V-365.
+- [x] Inspecionar os caminhos críticos de coleta, títulos, DE-PARA e exportação, distinguindo o piloto da carteira financeira completa.
+- [x] Registrar a confirmação humana da correção de espécie NFS-e ainda pendente, preservando D-295.
+- [x] Atualizar lista de conclusão, plano, dúvidas e checklists atuais, mantendo o histórico e as alterações anteriores.
+- [x] Conferir links/IDs e o diff desta entrega documental; nenhuma mudança de aplicação ou homologação nova.
+
+Entrega: [pendências reconciliadas](../pendencias-conclusao-2026-11-02.md).
+A auditoria documental foi concluída; etapas funcionais, recuperação,
+treinamento e aceite continuam pendentes. Não há percentual ou prazo de
+conclusão comprovado pela quantidade de testes/cadastros.
+
+## Comparação técnica CICA × Pandolfo — D-316/V-318 (05/11/2026)
+
+- [x] Confrontar escopo, arquitetura, algoritmos e evidências dos dois projetos.
+- [x] Conferir Pandolfo local e GitHub, preservando o commit local adicional e `.review/`.
+- [x] Medir código próprio com dependências, migrações e testes separados.
+- [x] Registrar conclusão, fontes, CI e limites, sem declarar homologação nova.
+
+Entrega: comparação e metodologia (registro local `comparacao-cica-pandolfo-2026-11-05.md`, preservado no checkout principal).
+Somente documentação; etapas funcionais e perguntas existentes permanecem.
+
 ## Guia funcional para QA em 09/10/2026 — V-293
 
 - [x] Inventariar áreas e entradas atuais do sistema em um guia na raiz.
@@ -64,3 +136,28 @@ Nenhuma homologação externa foi executada. Os resultados V-001 são da anális
 > Execute a etapa 00 do plano mestre da CICA. Materialize os documentos e prompts deste plano, consolide as decisões já confirmadas e elimine contradições documentais sem apagar o histórico. Confira o código atual. Não pergunte novamente decisões registradas; apresente somente lacunas ou conflitos concretos.
 
 > Leia PLANO-MESTRE.md, DECISOES.md, VALIDACOES.md e o arquivo da etapa antes de trabalhar. Não refaça decisões confirmadas. Pergunte ao responsável somente o que estiver ausente ou em conflito e documente a resposta antes de implementar o comportamento dependente. Preserve alterações existentes. Não incorra em custos sem aprovação específica imediatamente anterior. Ao terminar, atualize os .md com mudanças, testes executados, evidências, limitações, bloqueios e próximo passo. Não marque como homologado o que foi apenas simulado. Respeite o escopo autorizado na solicitação atual; a existência do próximo prompt não autoriza iniciar outra etapa.
+
+## Consolidação para GitHub e pendências — D-304/V-303 (02/11/2026)
+
+- [x] Consolidar as pendências atuais pelas etapas/PC e Q existentes, distinguindo
+  contrato CONTAD, suíte e IA local posterior; preservar decisões resolvidas.
+- [x] Preparar todas as alterações de projeto para o envio autorizado ao GitHub,
+  excluindo temporários, dados de cliente e segredos.
+- [x] Conferir preflight, workflows e links, sem acionar deploy ou integração real.
+- [x] Enviar ao `main` e conferir SHA remoto/árvore limpa; implementação enviada em `1b978d4` (V-303).
+
+Entrega: [lista de conclusão](../pendencias-conclusao-2026-11-02.md).
+A preparação/envio do repositório não fecha nenhuma etapa funcional.
+
+
+## Handoff consolidado CONTAD — D-339/V-362 (12/11/2026)
+
+- [x] Consolidar a prova real1.0.8/backend84 e distinguir piloto de conclusão integral.
+- [x] Preparar prompt atual, contexto Git/worktrees, próximos trabalhos e limites.
+- [x] Atualizar atalhos de continuidade e Q-28, preservando decisões/histórico.
+- [x] Publicar somente documentos próprios e conferir SHA remoto/cópia Downloads.
+
+Entrega:[prompt de continuidade](../../contad-prompt-continuidade-2026-11-12.txt).
+Código/provas anteriores já estão na main(PR10/0f08388e e3b8903a). Esta entrega
+não altera código/runtime ou aceita Q-46/Q-47/D-73. Alterações locais anteriores
+no checkout principal são preservadas e não entram por atalho no commit.

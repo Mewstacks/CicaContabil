@@ -1,3 +1,12 @@
+> **Situação reconciliada em 12/11/2026 — D-343/V-366:** há coleta NFS-e
+> real e a importação anterior foi aceita pelo responsável em D-295; não
+> reabrir sua prova genérica. Nesta verificação o responsável confirmou
+> que a correção posterior da espécie no conjunto do Domínio (D-318/V-320)
+> **ainda está pendente**. Manter esse caso específico em Q-39/PC-03,
+> além da qualidade/cobertura/recuperação aplicáveis. Não tratar checklists
+> antigos de coleta/layout como ausência de toda integração NFS-e.
+> [Lista vigente](../pendencias-conclusao-2026-11-02.md).
+
 ## V-132 - Acesso exclusivo NFS-e
 
 - [x] Abrir a assinatura NFS-e exclusiva diretamente na central NFS-e.
@@ -177,3 +186,18 @@ Em 29/09/2026, a release 21 colocou em produção a fila global de uma empresa p
 - [ ] Tratar as 24.386 notas sem correspondência única por regra adicional homologada ou revisão
   contábil; a rotina não pode inventar acumulador.
 - [ ] Homologar a importação e o retorno no Domínio conforme Q-39.
+
+### V-320 — Origem da espécie na importação Domínio (D-318)
+
+- [x] Identificar a rota real: Importador por conjunto de dados, não a tela de Configuração de
+  Importação NFS-e Padrão Nacional.
+- [x] Localizar a espécie no conjunto: coluna `codi_esp` em `efentradas` ("Grava Nota"), com
+  `origem_coluna = F` e `valor_fixo = 1` nos três conjuntos lidos.
+- [x] Confirmar que a estrutura de pastas importada corresponde à gerada por `create_nfse_export`.
+- [x] Registrar que a espécie correta varia por cliente (39 na base atual) e não entra em código,
+  leiaute ou padrão da CICA.
+- [ ] Abrir uma nota efetivamente importada e confirmar a espécie resultante; a nota conferida até
+  aqui era `Lançamento Manual` e não comprova o importador.
+- [ ] Obter do Domínio, por chamado, conjunto com a espécie desejada, preservando a leitura de
+  `infNFSe/valores/acum`; testar em uma empresa e uma competência antes de ampliar.
+- [ ] Homologar a importação e o retorno conforme Q-39; esta leitura não encerra a dúvida.

@@ -881,6 +881,9 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
                         "description": _pick(row, "descricao", "historico", "description")[:500],
                         "amount_cents": abs(_cents(_pick(row, "valor", "amount"))),
                         "direction": _pick(row, "natureza", "direction")[:8],
+                        "account_reference": _pick(row, "conta_bancaria", "account_reference")[
+                            :160
+                        ],
                         "source_updated_at": batch.source_snapshot_at,
                     }
                     _, was_created = AccountingEntry.objects.update_or_create(

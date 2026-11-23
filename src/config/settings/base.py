@@ -56,6 +56,11 @@ TOKEN_BILLING_ENABLED = env_bool("TOKEN_BILLING_ENABLED", False)
 RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = env_bool(
     "RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED", False
 )
+RECONCILIATION_DOMINIO_PREVIEW_ORGANIZATION_IDS = env_list(
+    "RECONCILIATION_DOMINIO_PREVIEW_ORGANIZATION_IDS"
+)
+# D-393: offices (UUIDs) that use the data directly, without human review steps.
+CICA_DIRECT_USE_ORGANIZATION_IDS = env_list("CICA_DIRECT_USE_ORGANIZATION_IDS")
 RECONCILIATION_TESSERACT_PATH = os.environ.get("RECONCILIATION_TESSERACT_PATH", "")
 RECONCILIATION_TESSDATA_PATH = os.environ.get("RECONCILIATION_TESSDATA_PATH", "")
 DEMO_ENTRY_ENABLED = env_bool("DEMO_ENTRY_ENABLED", False)
@@ -501,6 +506,11 @@ INTEGRA_CERTIFICATE_PASSWORD = env_str("INTEGRA_CERTIFICATE_PASSWORD")
 INTEGRA_CONTRATANTE_CNPJ = env_str("INTEGRA_CONTRATANTE_CNPJ")
 INTEGRA_AUTOR_PEDIDO_CNPJ = env_str("INTEGRA_AUTOR_PEDIDO_CNPJ")
 CICA_CLAUDE_API_KEY = env_str("CICA_CLAUDE_API_KEY")
+# D-395: DE-PARA second opinion, only for listed offices in direct use, with a global spend cap.
+CICA_DEPARA_AI_ORGANIZATION_IDS = env_list("CICA_DEPARA_AI_ORGANIZATION_IDS")
+CICA_DEPARA_AI_MODEL = env_str("CICA_DEPARA_AI_MODEL", "claude-haiku-5-5")
+CICA_DEPARA_AI_DAILY_CENTS = env_int("CICA_DEPARA_AI_DAILY_CENTS", 100)
+CICA_DEPARA_AI_MONTHLY_CENTS = env_int("CICA_DEPARA_AI_MONTHLY_CENTS", 500)
 
 # The product owns provider apps; each office only consents to its own mailbox.
 # Keep both providers off until Mewstack has registered and homologated the apps.
@@ -561,6 +571,7 @@ PRIVACY_REQUEST_TARGET_DAYS = env_int("PRIVACY_REQUEST_TARGET_DAYS", 15)
 # The reverse proxy must verify the certificate and overwrite the two forwarded
 # headers; Django then binds that verified client certificate to one EdgeAgent.
 EDGE_AGENT_MTLS_REQUIRED = env_bool("EDGE_AGENT_MTLS_REQUIRED", False)
+EDGE_AGENT_MTLS_PROXY_SECRET = env_str("EDGE_AGENT_MTLS_PROXY_SECRET")
 EDGE_AGENT_CA_CERT_PATH = env_str("EDGE_AGENT_CA_CERT_PATH")
 EDGE_AGENT_CA_KEY_PATH = env_str("EDGE_AGENT_CA_KEY_PATH")
 EDGE_AGENT_INSTALLER_URL = env_str("EDGE_AGENT_INSTALLER_URL")

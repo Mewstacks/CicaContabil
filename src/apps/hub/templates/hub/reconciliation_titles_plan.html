@@ -1,0 +1,26 @@
+{% extends 'hub/reconciliation_titles_base.html' %}
+{% block titles_content %}
+<section class="workspace-panel titles-panel">
+  <header class="workspace-panel-head"><div><h2>Vincular baixas ao extrato</h2><p>{{ title_account.company.name }} · {{ title_account.name }}</p></div><a class="button button-quiet" href="{{ titles_catalog_url }}">Voltar aos títulos</a></header>
+  <p class="titles-notice">Selecione a baixa e o movimento que comprovadamente representam o mesmo pagamento ou recebimento. Datas ou valores iguais não confirmam a relação.</p>
+  {% for warning in title_data.warnings %}<p class="field-help">{{ warning }}</p>{% endfor %}
+  <form method="get" class="titles-form titles-fields" aria-label="Filtrar registros disponíveis">
+    {% for field in titles_period_form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+    <div class="field"><label for="bank-search">Histórico do extrato</label><input id="bank-search" type="search" name="bank_q" value="{{ titles_bank_query }}" maxlength="100"></div>
+    <div class="field"><label for="title-search">Referência do título ou baixa</label><input id="title-search" type="search" name="title_q" value="{{ titles_title_query }}" maxlength="100"></div>
+    <div class="field"><label for="cash-direction">Direção</label><select id="cash-direction" name="direction"><option value="">Todas</option><option value="inflow"{% if titles_direction == 'inflow' %} selected{% endif %}>Entrada</option><option value="outflow"{% if titles_direction == 'outflow' %} selected{% endif %}>Saída</option></select></div>
+    <button class="button button-quiet" type="submit">Filtrar registros</button>
+  </form>
+</section>
+<section class="workspace-panel titles-panel">
+  {% if titles_movement_options and titles_settlement_options %}
+  <form method="post" class="titles-form" data-title-review-form>
+    {% csrf_token %}{{ titles_formset.management_form }}
+    {% if titles_formset.non_form_errors %}<div class="form-errors" role="alert">{{ titles_formset.non_form_errors }}</div>{% endif %}
+    {% for form in titles_formset %}<fieldset class="titles-data"><legend>Vínculo {{ forloop.counter }}</legend><div class="titles-fields">{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}</div>{{ form.non_field_errors }}</fieldset>{% endfor %}
+    <p class="field-help">Um pagamento pode ser distribuído entre movimentos ou baixas em linhas diferentes. Informe somente o valor desta alocação. Linhas extras vazias não serão usadas.</p>
+    <div class="titles-actions">{% if titles_can_add %}<button class="button button-quiet" name="action" value="add" type="submit" formnovalidate>Adicionar vínculo</button>{% endif %}<button class="button" name="action" value="preview" type="submit" data-busy-label="Preparando…">Revisar vínculos</button></div>
+  </form>
+  {% else %}<div class="empty-block operational-empty"><strong>Nenhum conjunto disponível para vincular</strong><span>Confira o período, os filtros, os valores já alocados e as fontes recebidas.</span><a class="button button-quiet" href="{{ titles_catalog_url }}">Consultar títulos e histórico</a><a class="button button-quiet" href="{{ titles_sources_url }}">Conferir fontes recebidas</a></div>{% endif %}
+</section>
+{% endblock %}

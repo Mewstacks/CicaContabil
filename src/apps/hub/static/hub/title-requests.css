@@ -1,0 +1,12 @@
+/* Company collection extends the existing CICA financial workspace. */
+.collection-companies{max-height:320px;overflow:auto;overscroll-behavior:contain;margin-top:16px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 12px}
+.collection-companies>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 20px}
+.collection-companies label{padding:8px 0;overflow-wrap:anywhere}.collection-companies [hidden]{display:none!important}
+.collection-selection-actions{margin-top:12px!important}.collection-selection-actions output{color:var(--muted);font-variant-numeric:tabular-nums}
+.collection-preview-companies{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 24px;max-height:320px;overflow:auto;padding:12px 12px 12px 28px;line-height:1.6}
+.collection-connection{margin:18px 22px 0;padding:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface-soft,var(--surface))}.collection-connection p{margin:8px 0 0;line-height:1.6;color:var(--muted)}
+.collection-job-actions{display:flex;flex-wrap:wrap;gap:10px}.collection-job-actions [hidden]{display:none!important}.collection-job-actions form{margin:0}.collection-table td{max-width:none}
+.titles-panel [data-poll-notice]:empty{display:none}.titles-panel [tabindex='-1']:focus{outline:3px solid var(--focus);outline-offset:3px}
+@media(max-width:760px){.collection-companies>div,.collection-preview-companies{grid-template-columns:1fr}.collection-companies{max-height:300px}.collection-selection-actions{gap:10px}.collection-connection{margin:16px}.collection-job-actions>*{flex:1}.collection-job-actions button{width:100%}}
+
+.collection-raw{min-width:0;margin-top:10px}.collection-raw summary{font-weight:500;font-size:13px}.collection-raw dl{margin:12px 0 20px;display:grid;gap:10px}.collection-raw dt{font-size:12px;color:var(--muted);overflow-wrap:anywhere}.collection-raw dd{margin:3px 0 0;overflow-wrap:anywhere}

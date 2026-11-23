@@ -1,0 +1,166 @@
+name: Validate Windows agent installer
+
+on:
+  push:
+    branches: [codex/agent-windows-validation]
+    paths:
+      - agent-windows/**
+      - contracts/datasets/**
+      - .github/workflows/agent-windows-validation.yml
+  workflow_dispatch:
+    inputs:
+      inventory_only:
+        description: Validate only the bounded CONTAD metadata inventory
+        type: boolean
+        default: false
+      probe_only:
+        description: Validate only the temporary SYSTEM ODBC diagnostic
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  install-test:
+    # Standard public runner only; never install on a customer's/self-hosted machine.
+    if: github.event.repository.private == false && inputs.probe_only != true && inputs.inventory_only != true
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: 10.0.x
+      - name: Test contracts
+        shell: pwsh
+        run: >-
+          dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj
+          -c Release --logger 'trx;LogFileName=contracts.trx'
+          --results-directory agent-windows/artifacts/validation
+      - name: Build MSI
+        shell: pwsh
+        run: ./agent-windows/build.ps1 -Version 1.0.13
+      - name: Install, repair, restart, diagnose and uninstall
+        shell: pwsh
+        run: ./agent-windows/test-installer.ps1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5
+          path: baseline-agent
+          persist-credentials: false
+      - name: Build baseline and verify configured upgrade
+        shell: pwsh
+        run: |
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2
+          path: baseline-ledger-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.11 to 1.0.13
+        shell: pwsh
+        run: |
+          ./baseline-ledger-agent/agent-windows/build.ps1 -Version 1.0.11
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7d075261c88408ec3ef5b93ba1c276478dc33971
+          path: baseline-title-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.12 to 1.0.13
+        shell: pwsh
+        run: |
+          ./baseline-title-agent/agent-windows/build.ps1 -Version 1.0.12
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-title-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.12
+      - name: Preserve tested installer
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: CicaAgent-tested-windows-x64
+          path: |
+            agent-windows/artifacts/CicaAgent.msi
+            agent-windows/artifacts/CicaAgent.msi.sha256
+            agent-windows/artifacts/release.json
+            agent-windows/artifacts/upgrade-active-queue.ps1
+            agent-windows/artifacts/dependency-inventory.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Preserve test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: CicaAgent-windows-validation
+          path: agent-windows/artifacts/validation/
+          if-no-files-found: warn
+          retention-days: 1
+
+  system-odbc-probe:
+    if: github.event.repository.private == false && inputs.inventory_only != true
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate SYSTEM task, credential isolation, failure and cleanup
+        shell: powershell
+        run: ./agent-windows/test-system-odbc-probe.ps1
+      - name: Preserve diagnostic test evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: system-odbc-probe-validation
+          path: agent-windows/artifacts/validation/system-odbc-probe.json
+          if-no-files-found: warn
+          retention-days: 1
+
+  contad-inventory:
+    if: github.event.repository.private == false
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Validate bounded metadata inventory, errors and private report
+        shell: powershell
+        run: ./agent-windows/test-contad-inventory.ps1
+      - name: Validate document shape aggregates and safe failures
+        shell: powershell
+        run: ./agent-windows/test-contad-document-profile.ps1
+      - name: Validate bounded relation metadata and credential isolation
+        shell: powershell
+        run: ./agent-windows/test-contad-relations.ps1
+      - name: Validate scoped ledger shape counts and candidate link checks
+        shell: powershell
+        run: ./agent-windows/test-contad-ledger-profile.ps1
+      - name: Validate complete lot counts and internal balance checks
+        shell: powershell
+        run: ./agent-windows/test-contad-lot-profile.ps1
+      - name: Validate account details with synthetic ODBC and private reports
+        shell: powershell
+        run: ./agent-windows/test-contad-account-details.ps1
+      - name: Validate complete chart discovery with synthetic ODBC and private reports
+        shell: powershell
+        run: ./agent-windows/test-contad-chart-discovery.ps1
+      - name: Preserve inventory validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: contad-inventory-validation
+          path: |
+            agent-windows/artifacts/validation/contad-inventory.json
+            agent-windows/artifacts/validation/contad-document-profile.json
+            agent-windows/artifacts/validation/contad-relations.json
+            agent-windows/artifacts/validation/contad-ledger-profile.json
+            agent-windows/artifacts/validation/contad-lot-profile.json
+            agent-windows/artifacts/validation/contad-account-details.json
+            agent-windows/artifacts/validation/contad-chart-discovery.json
+            agent-windows/artifacts/validation/contad-chart-discovery-synthetic.zip
+            agent-windows/artifacts/validation/contad-chart-discovery-counts-changed-synthetic.zip
+          if-no-files-found: warn
+          retention-days: 1

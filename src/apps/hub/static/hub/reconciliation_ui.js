@@ -143,8 +143,32 @@
     const account = form.querySelector('[data-financial-account-select]');
     if (!(company instanceof HTMLSelectElement) || !(account instanceof HTMLSelectElement)) return;
     const help = form.querySelector('[data-financial-account-help]');
+    const purpose = form.querySelector('select[name="purpose"]');
+    const origin = form.querySelector('select[name="origin"]');
+    const files = form.querySelector('input[type="file"]');
+    const ledgerHelp = form.querySelector('[data-ledger-help]');
+    const planLink = form.querySelector('[data-ledger-plan-link]');
+    const updatePurpose = () => {
+      const independent = purpose?.value === 'independent_ledger';
+      if (independent && origin) origin.value = 'accounting';
+      if (files) files.accept = independent ? '.csv' : '.ofx,.qfx,.csv,.xlsx,.pdf';
+      if (independent && ledgerHelp) ledgerHelp.open = true;
+      const label = form.querySelector('.reconciliation-dropzone-copy small');
+      if (label) label.textContent = independent
+        ? 'CSV de partidas completas · até 20 arquivos de 25 MiB'
+        : 'OFX, CSV, XLSX ou PDF · até 20 arquivos de 25 MiB';
+    };
+    purpose?.addEventListener('change', updatePurpose);
+    updatePurpose();
+
     const updateAccounts = () => {
       const companyId = company.value;
+      if (planLink) {
+        const target = new URL(planLink.href);
+        if (companyId) target.searchParams.set('company', companyId);
+        else target.searchParams.delete('company');
+        planLink.href = target.href;
+      }
       if (companyId) {
         company.removeAttribute('aria-invalid');
         form.querySelector('[data-company-search]')?.removeAttribute('aria-invalid');
@@ -152,15 +176,16 @@
       let available = 0;
       [...account.options].forEach(option => {
         const ownerId = option.dataset.companyId;
-        const permitted = !ownerId || !companyId || ownerId === companyId;
+        // Accounts no longer repeat the company name, so they only appear once a company is chosen.
+        const permitted = !ownerId || (Boolean(companyId) && ownerId === companyId);
         option.hidden = !permitted;
         option.disabled = !permitted;
         if (permitted && ownerId) available += 1;
       });
       if (account.selectedOptions[0]?.disabled) account.value = '';
-      account.disabled = Boolean(companyId) && available === 0;
+      account.disabled = !companyId || available === 0;
       if (!help) return;
-      help.textContent = !companyId ? '' : available
+      help.textContent = !companyId ? 'Escolha a empresa para ver as contas.' : available
         ? `${available} conta${available === 1 ? '' : 's'} da empresa`
         : 'Empresa sem conta cadastrada';
     };
@@ -211,7 +236,7 @@
       amount.max = maximum;
       const current = Number(amount.value.replace(',', '.'));
       if (!Number.isFinite(current) || current <= 0 || current > Number(maximum)) amount.value = maximum;
-      if (limit) limit.textContent = `Você pode alocar até R$ ${maximum} neste lançamento.`;
+      if (limit) limit.textContent = `Você pode alocar até R$ ${Number(maximum).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} neste lançamento.`;
     };
     entry.addEventListener('change', updateLimit);
     updateLimit();

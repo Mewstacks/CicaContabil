@@ -8,7 +8,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.db import transaction
 from django.utils import timezone
@@ -192,10 +192,15 @@ def sync_companies(
     actor: object = None,
     request: object = None,
     full_snapshot: bool = False,
+    honor_source_active: bool = False,
+    honor_source_registration: bool = False,
 ) -> SyncResult:
     """Mirror operational company metadata from the authenticated Domínio agent."""
     if connector.organization_id != organization.id:
         raise ValueError("Conector não pertence ao escritório informado.")
+    rows = list(rows)
+    if honor_source_active and any(type(row.get("active")) is not bool for row in rows):
+        raise ValueError("Situação de origem inválida; nenhum cadastro foi alterado.")
     created = updated = ignored = deactivated = 0
     now = timezone.now()
     active_codes: set[str] = set()
@@ -223,6 +228,16 @@ def sync_companies(
                     "data_source": data_source,
                     "external_key": code,
                     "source_updated_at": now,
+                    "active": cast(bool, row["active"]) if honor_source_active else True,
+                    "dominio_status": str(row["status"]) if honor_source_active else "",
+                    **(
+                        {
+                            "dominio_registration_raw": row["registration_raw"],
+                            "dominio_registration_type_code": row.get("registration_type_code"),
+                        }
+                        if honor_source_registration
+                        else {}
+                    ),
                 },
             )
             if was_created:
@@ -235,8 +250,18 @@ def sync_companies(
             if cnpj and company.cnpj_masked != cnpj:
                 company.cnpj_masked = cnpj
                 changes.append("cnpj_masked")
-            if not company.active:
-                company.active = True
+            if honor_source_active:
+                company.dominio_status = str(row["status"])
+                changes.append("dominio_status")
+            if honor_source_registration:
+                company.dominio_registration_raw = cast(str, row["registration_raw"])
+                company.dominio_registration_type_code = cast(
+                    int | None, row.get("registration_type_code")
+                )
+                changes.extend(["dominio_registration_raw", "dominio_registration_type_code"])
+            source_active = cast(bool, row["active"]) if honor_source_active else True
+            if company.active != source_active:
+                company.active = source_active
                 changes.append("active")
             company.last_dominio_sync_at = now
             company.data_source = data_source

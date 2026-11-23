@@ -63,6 +63,7 @@ class AgentApiTests(TestCase):
                 "X-Hub-Agent-Timestamp": timestamp,
                 "X-Hub-Agent-Signature": signature,
             },
+            secure=True,
         )
 
     def _datasets(self, **payload: Any) -> Any:

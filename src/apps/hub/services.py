@@ -38,6 +38,8 @@ from apps.hub.models import (
     ClientCompany,
     Connector,
     ConsumptionConfirmation,
+    ControlPlaneBinding,
+    DataSource,
     DctfWebDocument,
     DteRun,
     DteRunItem,
@@ -1859,3 +1861,34 @@ def cancel_dte_run(
         metadata={"companies": run.total_companies},
     )
     return run
+
+
+def backup_managed_source(office: Any) -> DataSource | None:
+    """The office whose portfolio is a manual backup, and nothing else writes it (D-319).
+
+    A live Domínio connector or the central control plane keeps rewriting the registry on
+    its own schedule, so offering a manual switch there would promise control the next
+    sync takes back. The navigation calls this on every page, so the most selective query
+    runs first: an office with no backup source at all costs one query and stops there.
+    """
+
+    from apps.intelligence.models import IntelligenceConnector
+
+    if office is None:
+        return None
+    source = (
+        DataSource.objects.filter(organization=office, kind=DataSource.Kind.DOMINIO_WEB_BACKUP)
+        .exclude(status=DataSource.Status.DISABLED)
+        .first()
+    )
+    if source is None or "companies" not in set(source.capabilities or []):
+        return None
+    if (
+        IntelligenceConnector.objects.filter(organization=office)
+        .exclude(status="not_configured")
+        .exists()
+    ):
+        return None
+    if ControlPlaneBinding.objects.filter(organization=office).exists():
+        return None
+    return source

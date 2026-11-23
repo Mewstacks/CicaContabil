@@ -1,0 +1,8 @@
+{% extends 'hub/workspace.html' %}
+{% block workspace_content %}
+<section class="workspace-panel">
+  <header class="workspace-panel-head"><h2>Revise o período do relatório</h2></header>
+  <div class="form-errors" data-form-errors tabindex="-1" role="alert"><p>{{ period_error }}</p></div>
+  <div class="empty-block operational-empty"><a class="button button-quiet" href="{% url 'hub:reconciliation-portfolio' %}">Escolher empresa e competência</a></div>
+</section>
+{% endblock %}

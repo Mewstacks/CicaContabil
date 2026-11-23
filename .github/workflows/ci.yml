@@ -12,7 +12,7 @@ permissions:
 jobs:
   # O agente Windows não era construído por nenhum fluxo, e por isso um erro de
   # compilação em `AgentClient` sobreviveu no ramo principal sem ninguém notar.
-  # A construção roda em Linux: o serviço tem alvo `net8.0-windows` e só compila,
+  # A construção roda em Linux: o serviço tem alvo `net10.0-windows` e só compila,
   # não executa, aqui — o que já basta para o erro aparecer. Os testes ficam na
   # biblioteca de contratos, que não depende do Windows.
   agent:
@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
       - run: dotnet build agent-windows/src/Cica.Agent.Service/Cica.Agent.Service.csproj -c Release
       - run: dotnet build agent-windows/src/Cica.Agent.Configurator/Cica.Agent.Configurator.csproj -c Release
       - run: dotnet build agent-windows/src/Cica.Agent.OdbcBridge/Cica.Agent.OdbcBridge.csproj -c Release
@@ -35,20 +35,125 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           persist-credentials: false
+      - name: Validate fiscal title profile without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-profile.ps1
+      - name: Validate fiscal title lot links without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-links.ps1
+      - name: Validate active-company financial coverage without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-portfolio-profile.ps1
+      - name: Validate branch account counts without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-branch-accounts.ps1
+      - name: Validate account details with synthetic ODBC and private reports
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-account-details.ps1
+      - name: Validate complete chart discovery with synthetic ODBC and private reports
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-chart-discovery.ps1
       - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
         with:
-          dotnet-version: "8.0.x"
+          dotnet-version: "10.0.x"
+      - name: Test Windows contracts
+        shell: pwsh
+        run: dotnet test agent-windows/tests/Cica.Agent.Tests/Cica.Agent.Tests.csproj -c Release
       - name: Build unified Windows package
         shell: pwsh
-        run: ./agent-windows/build.ps1 -Version 1.0.0
+        run: ./agent-windows/build.ps1 -Version 1.0.13
+      - name: Parse Windows operational scripts without executing ERP queries
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Get-ChildItem agent-windows -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) { throw ($_.Name + ': ' + ($errors | Out-String)) }
+          }
       - name: Verify package manifest
+        # The probe uses only a missing DSN and synthetic credentials in disposable CI.
         shell: pwsh
         run: |
           $release = Get-Content ./agent-windows/artifacts/release.json -Raw | ConvertFrom-Json
           $msi = Resolve-Path ./agent-windows/artifacts/CicaAgent.msi
           $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $msi).Hash.ToLowerInvariant()
-          if ($release.version -ne '1.0.0') { throw 'Unexpected package version.' }
+          if ($release.version -ne '1.0.13') { throw 'Unexpected package version.' }
           if ($release.sha256 -ne $actual) { throw 'Package checksum differs from release.json.' }
+      - name: Validate SYSTEM diagnostic isolation and cleanup
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-system-odbc-probe.ps1
+      - name: Validate CONTAD inventory with bounded synthetic metadata
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-inventory.ps1
+      - name: Validate fiscal title catalog without ERP access
+        if: github.event.repository.private == false
+        shell: powershell
+        run: ./agent-windows/test-contad-title-catalog.ps1
+      - name: Verify installed package on disposable Windows
+        if: github.event.repository.private == false
+        shell: pwsh
+        run: ./agent-windows/test-installer.ps1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: github.event.repository.private == false
+        with:
+          ref: 57bcfe26065b800336ccb23e90ad0c2d0ed3b9b5
+          path: baseline-agent
+          persist-credentials: false
+      - name: Build baseline 1.0.10 and verify configured upgrade to 1.0.13
+        if: github.event.repository.private == false
+        shell: pwsh
+        run: |
+          ./baseline-agent/agent-windows/build.ps1 -Version 1.0.10
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.10
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: github.event.repository.private == false
+        with:
+          ref: 17660ea62e90e9dfe4ffaebf6328e97d3ed5d1c2
+          path: baseline-ledger-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.11 to 1.0.13
+        if: github.event.repository.private == false
+        shell: pwsh
+        run: |
+          ./baseline-ledger-agent/agent-windows/build.ps1 -Version 1.0.11
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-ledger-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.11
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: github.event.repository.private == false
+        with:
+          ref: 7d075261c88408ec3ef5b93ba1c276478dc33971
+          path: baseline-title-agent
+          persist-credentials: false
+      - name: Verify configured upgrade from 1.0.12 to 1.0.13
+        if: github.event.repository.private == false
+        shell: pwsh
+        run: |
+          ./baseline-title-agent/agent-windows/build.ps1 -Version 1.0.12
+          ./agent-windows/test-active-queue-upgrade.ps1 -BaselineMsi ./baseline-title-agent/agent-windows/artifacts/CicaAgent.msi -BaselineVersion 1.0.12
+      - name: Preserve tested agent and evidence
+        if: success() && github.event.repository.private == false
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: CicaAgent-tested-windows-x64
+          path: |
+            agent-windows/artifacts/CicaAgent.msi
+            agent-windows/artifacts/CicaAgent.msi.sha256
+            agent-windows/artifacts/release.json
+            agent-windows/artifacts/upgrade-active-queue.ps1
+            agent-windows/artifacts/dependency-inventory.json
+            agent-windows/artifacts/validation/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
 
   verify:
     runs-on: ubuntu-24.04

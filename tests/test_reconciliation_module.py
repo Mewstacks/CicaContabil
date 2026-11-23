@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import pytest
 from django.conf import settings
@@ -16,6 +17,8 @@ from django.core.management import call_command
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.html import escape
+from tests.accounting_import_fixtures import homologate_synthetic
 
 from apps.accounts.models import User
 from apps.audit.models import AuditEvent
@@ -448,7 +451,10 @@ def test_upload_validation_keeps_errors_visible_in_the_assistant() -> None:
     assert b"data-form-errors" in response.content
     assert b"Selecione ao menos um arquivo" in response.content
     content = response.content.decode()
-    assert 'id="reconciliation-upload-dialog" class="modal-backdrop" data-modal>' in content
+    modal = re.search(r'<div\b[^>]*\bid="reconciliation-upload-dialog"[^>]*>', content)
+    assert modal is not None
+    assert re.search(r"\bdata-modal-initial-open(?:\s|>)", modal[0])
+    assert not re.search(r"\bhidden(?:\s|>|=)", modal[0])
     assert 'id="id_company-error"' in content
 
 
@@ -482,7 +488,10 @@ def test_identical_source_is_idempotent_and_keeps_original() -> None:
 @override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True)
 def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
     organization = Organization.objects.create(name="Exportação", slug="exportacao")
-    company = ClientCompany.objects.create(organization=organization, name="Empresa")
+    homologate_synthetic(organization)
+    company = ClientCompany.objects.create(
+        organization=organization, name="Empresa", dominio_code="101"
+    )
     LedgerAccount.objects.create(organization=organization, company=company, code="1", name="Banco")
     LedgerAccount.objects.create(
         organization=organization, company=company, code="2", name="Despesa"
@@ -515,7 +524,8 @@ def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
     )
 
     assert exported.content_hash
-    assert exported.content.read().startswith(b"\xef\xbb\xbfData;")
+    assert exported.content.read().startswith(b"01")
+    assert exported.content.name.endswith(".txt")
     entry.refresh_from_db()
     assert entry.state == JournalEntry.State.EXPORTED
     reexported = create_export(
@@ -532,7 +542,7 @@ def test_export_is_immutable_and_rejects_unbalanced_entry() -> None:
 
 @pytest.mark.django_db
 @override_settings(RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED=True)
-def test_export_confirmation_revalidates_hash_is_idempotent_and_keeps_download() -> None:
+def test_old_confirmation_requires_receipt_and_keeps_download() -> None:
     organization = Organization.objects.create(name="Entrega", slug="entrega-contabil")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     ProductModule.objects.create(
@@ -575,31 +585,11 @@ def test_export_confirmation_revalidates_hash_is_idempotent_and_keeps_download()
     export.refresh_from_db()
     assert confirmed.status_code == 302
     assert confirmed.url.endswith("#exportacoes")
-    assert export.state == AccountingExport.State.CONFIRMED
-    assert export.confirmed_by_id == user.id
-    assert export.confirmed_at is not None
-    assert (
-        AuditEvent.objects.filter(
-            organization=organization,
-            action="hub.reconciliation.export_import_confirmed",
-            target_id=str(export.id),
-        ).count()
-        == 1
-    )
-
-    repeated = client.post(
-        url,
-        {"content_hash": digest, "confirm_import": "yes"},
-    )
-    assert repeated.status_code == 302
-    assert (
-        AuditEvent.objects.filter(
-            organization=organization,
-            action="hub.reconciliation.export_import_confirmed",
-            target_id=str(export.id),
-        ).count()
-        == 1
-    )
+    assert export.state == AccountingExport.State.READY
+    assert export.confirmed_by_id is None and export.confirmed_at is None
+    assert not AuditEvent.objects.filter(
+        organization=organization, action="hub.reconciliation.export_import_confirmed",
+    ).exists()
 
     download = client.get(reverse("hub:reconciliation-export-download", args=[export.id]))
     assert download.status_code == 200
@@ -649,13 +639,14 @@ def test_export_confirmation_refuses_tampered_stored_content() -> None:
     export.refresh_from_db()
     assert response.status_code == 302
     assert export.state == AccountingExport.State.READY
-    assert AuditEvent.objects.filter(
+    assert not AuditEvent.objects.filter(
         organization=organization,
-        action="hub.reconciliation.export_integrity_failed",
+        action="hub.reconciliation.export_import_confirmed",
         target_id=str(export.id),
     ).exists()
     tampered_download = client.get(reverse("hub:reconciliation-export-download", args=[export.id]))
     assert tampered_download.status_code == 404
+
 
 
 @pytest.mark.django_db
@@ -1510,7 +1501,7 @@ def test_rule_reapplication_preserves_manual_and_posting_decisions() -> None:
 
 
 @pytest.mark.django_db
-def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
+def test_historical_ofx_account_mismatch_waits_for_review_without_creating_movements() -> None:
     organization = Organization.objects.create(name="OFX conta", slug="ofx-conta")
     company = ClientCompany.objects.create(organization=organization, name="Empresa")
     account = FinancialAccount.objects.create(
@@ -1522,7 +1513,6 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
     source, run, _ = create_source_file(
         organization=organization,
         company=company,
-        financial_account=account,
         filename="outra-conta.ofx",
         content=(
             b"OFXHEADER:100\n<OFX><BANKMSGSRSV1><STMTRS><BANKACCTFROM>"
@@ -1532,6 +1522,10 @@ def test_ofx_account_mismatch_waits_for_review_without_creating_movements() -> N
         ),
         origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
     )
+    # Historical sources may predate the intake account guard. Retain the
+    # worker guard as well, without using a new invalid upload to reach it.
+    source.financial_account = account
+    source.save(update_fields=["financial_account"])
 
     result = process_run(str(run.id))
     run.refresh_from_db()
@@ -1950,9 +1944,21 @@ def test_scanned_pdf_without_local_ocr_stays_in_review(monkeypatch: pytest.Monke
 
 @pytest.mark.django_db
 def test_scanned_pdf_uses_local_portuguese_ocr_when_available() -> None:
-    font_path = Path(r"C:\Windows\Fonts\arial.ttf")
-    if not local_ocr_available() or not font_path.is_file():
+    font_path = next(
+        (
+            font
+            for font in (
+                Path(r"C:\Windows\Fonts\arial.ttf"),
+                Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+                Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+            )
+            if font.is_file()
+        ),
+        None,
+    )
+    if not local_ocr_available():
         pytest.skip("OCR local em português não está disponível neste ambiente.")
+    assert font_path is not None, "Runtime OCR exige uma fonte local para a prova digitalizada."
     from PIL import Image, ImageDraw, ImageFont
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfgen.canvas import Canvas
@@ -2408,6 +2414,12 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     session["hub_organization_id"] = str(organization.id)
     session.save()
 
+    from apps.platform.models import TenantContract
+
+    TenantContract.objects.create(
+        organization=organization, status="active", selected_modules=["reconciliation"],
+    )
+
     page = client.get(reverse("hub:reconciliation-configuration"))
 
     assert page.status_code == 200
@@ -2503,9 +2515,25 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         },
     )
     assert deactivate.status_code == 302
-    assert deactivate.url.endswith("#contas-financeiras")
+    assert deactivate.url == reverse(
+        "hub:reconciliation-financial-account-edit", args=[financial_account.pk],
+    )
+    financial_account.refresh_from_db()
+    assert financial_account.active is True
+    edit_page = client.get(deactivate.url)
+    edit_form = edit_page.context["setup_form"]
+    changed = client.post(deactivate.url, {
+        "name": financial_account.name, "bank_code": financial_account.bank_code,
+        "account_reference": financial_account.account_reference,
+        "ledger_code": financial_account.ledger_code,
+        "expected_revision": edit_form["expected_revision"].value(),
+        "reason": "Conta sintética encerrada para novos usos.",
+    })
+    assert changed.status_code == 302, changed.context["setup_form"].errors
+    assert changed.url.endswith("#contas-financeiras")
     financial_account.refresh_from_db()
     assert financial_account.active is False
+    assert len(financial_account.review_history) == 1
     assert FinancialAccount.objects.filter(
         organization=organization,
         company=company,
@@ -2565,7 +2593,8 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     rule = ReconciliationRule.objects.get(organization=organization, name="Banco principal")
     toggle_response = client.post(
         reverse("hub:reconciliation-configuration"),
-        {"action": "toggle_rule", "company": str(company.id), "rule_id": str(rule.id)},
+        {"action": "toggle_rule", "company": str(company.id), "rule_id": str(rule.id),
+         "expected_rule_state": rule.state},
     )
     assert toggle_response.status_code == 302
     assert toggle_response.url.endswith("#regras-layouts")
@@ -2640,7 +2669,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
         },
     )
     assert invalid_manual_edit.status_code == 200
-    assert b"Escolha uma conta ativa" in invalid_manual_edit.content
+    assert "conta analítica e ativa".encode() in invalid_manual_edit.content
     assert b"data-form-errors" in invalid_manual_edit.content
     movement.refresh_from_db()
     assert movement.debit_account_code == ""
@@ -2792,7 +2821,7 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization,
-        action="hub.reconciliation.financial_account.state_changed",
+        action="hub.reconciliation.financial_account.corrected",
     ).exists()
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_ignored"
@@ -2800,10 +2829,12 @@ def test_owner_configures_accounting_references_inside_reconciliation(
     assert AuditEvent.objects.filter(
         organization=organization, action="hub.reconciliation.movement_restored"
     ).exists()
-    assert AuditEvent.objects.filter(
+    # An export without reviewed ERP import cannot acquire a second ledger association.
+    assert not AuditEvent.objects.filter(
         organization=organization,
         action="hub.reconciliation.reconciliation_confirmed",
     ).exists()
+    assert not MovementReconciliation.objects.filter(movement=movement, state="confirmed").exists()
     audit = client.get(reverse("hub:reconciliation-audit"))
     assert audit.status_code == 200
     assert b"hub.reconciliation.financial_account.created" in audit.content
@@ -3107,7 +3138,7 @@ def test_reconciliation_exposes_searchable_company_pickers_and_real_workflow() -
     central = client.get(reverse("hub:reconciliation")).content.decode()
     configuration = client.get(reverse("hub:reconciliation-configuration")).content.decode()
 
-    for step in ("1. Importar", "2. Processar", "3. Revisar", "4. Exportar"):
+    for step in ("Visão geral", "Importações", "Movimentos", "Exportações"):
         assert step in central
     assert "Importar o primeiro extrato ou documento" in central
     assert "Selecionar arquivos" in central
@@ -3135,3 +3166,62 @@ def test_upload_form_no_longer_requires_a_period() -> None:
     )
     assert "period_start" not in form.fields
     assert form.is_valid(), form.errors
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "action, reason",
+    [
+        ("save", ""),
+        ("ignore_movement", "Conferência sintética"),
+        ("ignore_movement", ""),
+        ("restore_movement", ""),
+        ("generate_entry", ""),
+        ("save_rule", ""),
+        ("approve_entry", ""),
+        ("confirm_reconciliation", ""),
+    ],
+)
+def test_movement_action_keeps_the_originating_queue_after_success_or_refusal(
+    action: str, reason: str,
+) -> None:
+    organization, company, client = _upload_client("retorno-movimento")
+    source, run, _created = create_source_file(
+        organization=organization,
+        company=company,
+        filename="fila.csv",
+        content=CSV,
+        origin=ReconciliationSourceFile.Origin.BANK_STATEMENT,
+    )
+    _map_and_process(source, run)
+    movement = source.movements.get(source_key="row:2")
+    queue_url = reverse("hub:reconciliation") + "?" + urlencode(
+        {
+            "source_file": str(source.pk),
+            "movement_company": str(company.pk),
+            "movement_q": "Fornecedor & revisão 100%",
+            "movement_review": "pending",
+            "movement_classification": "none",
+            "movement_page": "2",
+        }
+    )
+    detail_url = reverse("hub:reconciliation-movement", args=[movement.pk])
+    detail_url += "?" + urlencode({"return_to": queue_url})
+
+    response = client.post(
+        detail_url,
+        {
+            "action": action,
+            "reason": reason,
+            "expected_revision": movement.revision,
+            "occurred_on": movement.occurred_on.isoformat(),
+            "description": movement.description,
+            "document_number": movement.document_number,
+        },
+        follow=True,
+    )
+
+    assert response.status_code == 200
+    assert response.redirect_chain == [(detail_url, 302)]
+    assert f'href="{escape(queue_url)}#movimentos"' in response.content.decode()
+    assert AccountingExport.objects.filter(organization=organization).count() == 0

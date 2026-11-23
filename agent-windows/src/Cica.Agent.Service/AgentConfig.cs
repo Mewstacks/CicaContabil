@@ -18,7 +18,10 @@ internal sealed record AgentConfig(
     // configuração e não compilado no binário como fazia o conector de origem.
     // Instalação antiga não tem o campo, e é do Domínio: era o único perfil que
     // existia, e ninguém recompila o que já está em campo para ganhar uma marca.
-    string? SourceSystem = null)
+    string? SourceSystem = null,
+    bool UseDsnAuthentication = false,
+    AgentSyncScope? SyncScope = null,
+    string AuthenticationMode = AgentAuthentication.Mtls)
 {
     internal string EffectiveSourceSystem =>
         string.IsNullOrWhiteSpace(SourceSystem) ? "dominio" : SourceSystem;
@@ -40,9 +43,10 @@ internal sealed record AgentConfig(
         if (!Uri.TryCreate(ServerUrl, UriKind.Absolute, out Uri? server)
             || !string.Equals(server.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("O endereço do servidor CICA precisa usar HTTPS.");
-        if (string.IsNullOrWhiteSpace(AgentId) || string.IsNullOrWhiteSpace(SharedSecret)
-            || string.IsNullOrWhiteSpace(CertificatePfxBase64))
-            throw new InvalidDataException("O pareamento do agente está incompleto. Execute o configurador novamente.");
+        AgentAuthentication.Validate(AuthenticationMode, AgentId, SharedSecret, CertificatePfxBase64);
+        SyncScope?.Validate();
+        if (SyncScope is not null && (EffectiveSourceSystem != "dominio" || string.IsNullOrWhiteSpace(Dsn)))
+            throw new InvalidDataException("O recorte do piloto exige Domínio Local.");
         SourceSystemProfile profile;
         try { profile = SourceSystemProfiles.Get(EffectiveSourceSystem); }
         catch (ArgumentOutOfRangeException error)
@@ -91,7 +95,7 @@ internal sealed record AgentConfig(
         try
         {
             byte[] encrypted = ProtectedData.Protect(plain, null, DataProtectionScope.LocalMachine);
-            File.WriteAllBytes(FilePath, encrypted);
+            AtomicConfigurationFile.Write(FilePath, encrypted);
         }
         finally { CryptographicOperations.ZeroMemory(plain); }
     }

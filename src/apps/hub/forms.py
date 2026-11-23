@@ -1,10 +1,11 @@
 import re
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, cast
+from uuid import UUID
 
 from django import forms
 from django.contrib.auth.forms import SetPasswordForm
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.forms import BaseFormSet, formset_factory
 
 from apps.accounts.models import User
@@ -38,15 +39,12 @@ class ReformAnalysisForm(forms.Form):
         queryset=ClientCompany.objects.none(),
         label="Empresa para análise",
         help_text="Escolha somente a empresa cujo possível impacto será conferido.",
-        widget=forms.Select(
-            attrs={"autocomplete": "off", "aria-describedby": "id_company_help"}
-        ),
+        widget=forms.Select(attrs={"autocomplete": "off", "aria-describedby": "id_company_help"}),
     )
     reason = forms.CharField(
         label="O que precisa ser conferido para esta empresa?",
         help_text=(
-            "Registre o indício e a verificação necessária; "
-            "não conclua que a norma se aplica."
+            "Registre o indício e a verificação necessária; não conclua que a norma se aplica."
         ),
         max_length=500,
         widget=forms.Textarea(
@@ -484,7 +482,6 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
             "requires_accepted_obligation": "Exige obrigação aceita para concluir",
         }
 
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         # D-277: the work of competência M is normally due in the following month.
@@ -531,9 +528,7 @@ class ActivityTemplateForm(forms.ModelForm):  # type: ignore[type-arg]
     def clean_code(self) -> str:
         code = str(self.cleaned_data["code"]).strip().lower()
         if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", code):
-            raise forms.ValidationError(
-                "Use letras minúsculas, números e hífens, sem espaços."
-            )
+            raise forms.ValidationError("Use letras minúsculas, números e hífens, sem espaços.")
         return code
 
 
@@ -581,15 +576,13 @@ class ActivityTemplateAssignmentForm(forms.ModelForm):  # type: ignore[type-arg]
             organization_memberships__organization=organization,
             organization_memberships__is_active=True,
         ).distinct()
-        self.fields["assigned_to"].help_text = (
-            "Somente pessoas com perfil operacional e acesso vigente à empresa."
-        )
-        self.fields["legal_due_day"].help_text = (
-            "Deixe vazio para usar o prazo legal do modelo."
-        )
-        self.fields["internal_due_day"].help_text = (
-            "Deixe vazio para usar o prazo interno do modelo."
-        )
+        self.fields[
+            "assigned_to"
+        ].help_text = "Somente pessoas com perfil operacional e acesso vigente à empresa."
+        self.fields["legal_due_day"].help_text = "Deixe vazio para usar o prazo legal do modelo."
+        self.fields[
+            "internal_due_day"
+        ].help_text = "Deixe vazio para usar o prazo interno do modelo."
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
@@ -863,8 +856,29 @@ class FinancialAccountSelect(forms.Select):
             option["attrs"]["data-company-id"] = str(instance.company_id)
         return option
 
+    def optgroups(self, name: str, value: Any, attrs: dict[str, Any] | None = None) -> Any:
+        groups = super().optgroups(name, value, attrs)
+        current = {str(item) for item in value if item is not None}
+        extra = getattr(self, "extra_options", [])
+        for index, item in enumerate(extra, start=len(groups)):
+            option = self.create_option(
+                name, item["value"], item["label"], item["value"] in current, index
+            )
+            option["attrs"]["data-company-id"] = item["company_id"]
+            groups.append((None, [option], index))
+        return groups
+
 
 class ReconciliationUploadForm(forms.Form):
+    purpose = forms.ChoiceField(
+        label="O que você vai importar?",
+        required=False,
+        initial="general",
+        choices=[
+            ("general", "Arquivos gerais — não formam Razão independente"),
+            ("independent_ledger", "Razão independente — CSV de partidas completas"),
+        ],
+    )
     company = forms.ModelChoiceField(
         queryset=ClientCompany.objects.none(),
         label="Empresa",
@@ -891,6 +905,33 @@ class ReconciliationUploadForm(forms.Form):
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        from apps.hub.account_auto_link import (
+            AUTO_PREFIX,
+            STATEMENT_PREFIX,
+            bank_chart_options,
+            statement_only_options,
+        )
+
+        self.independent_ledger_preview: list[dict[str, Any]] = []
+        self.auto_chart_account_id = ""
+        self.statement_only_company_id = ""
+        raw_account = str(self.data.get("financial_account") or "") if self.is_bound else ""
+        if raw_account.startswith(STATEMENT_PREFIX):
+            try:
+                self.statement_only_company_id = str(UUID(raw_account[len(STATEMENT_PREFIX) :]))
+            except ValueError:
+                self.statement_only_company_id = "invalid"
+            data = self.data.copy()
+            data["financial_account"] = ""
+            self.data = data
+        elif raw_account.startswith(AUTO_PREFIX):
+            try:
+                self.auto_chart_account_id = str(UUID(raw_account[len(AUTO_PREFIX) :]))
+            except ValueError:
+                self.auto_chart_account_id = "invalid"
+            data = self.data.copy()
+            data["financial_account"] = ""
+            self.data = data
         company = cast("forms.ModelChoiceField[ClientCompany]", self.fields["company"])
         company.queryset = companies
         setattr(  # noqa: B010 - ModelChoiceField deliberately customizes visible labels.
@@ -903,28 +944,54 @@ class ReconciliationUploadForm(forms.Form):
         company_id = self.data.get("company") if self.is_bound else None
         accounts = FinancialAccount.objects.filter(
             company__in=companies,
+            organization_id=F("company__organization_id"),
             active=True,
         ).select_related("company")
         if company_id:
-            accounts = accounts.filter(company_id=company_id)
+            try:
+                accounts = accounts.filter(company_id=UUID(str(company_id)))
+            except (ValueError, TypeError, AttributeError):
+                accounts = accounts.none()
         financial_account_field = cast(
             "forms.ModelChoiceField[FinancialAccount]", self.fields["financial_account"]
         )
         financial_account_field.queryset = accounts.order_by("company__name", "name")
 
         def display_account(account: FinancialAccount) -> str:
-            return f"{account.company.name} — {account.name} ({account.account_reference})"
+            return f"{account.name} ({account.account_reference})"
 
         setattr(  # noqa: B010 - Django deliberately lets a choice field customize this method.
             financial_account_field,
             "label_from_instance",
             display_account,
         )
+        widget = cast(FinancialAccountSelect, financial_account_field.widget)
+        chart_options = bank_chart_options(companies)
+        widget.extra_options = [
+            *chart_options,
+            *statement_only_options(companies, chart_options),
+        ]
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
+        cleaned["purpose"] = cleaned.get("purpose") or "general"
+        if hasattr(self.data, "getlist") and any(
+            len(self.data.getlist(field)) > 1
+            for field in ("purpose", "company", "financial_account", "origin", "physical_batch")
+        ):
+            self.add_error(None, "Informe cada campo do envio uma única vez.")
         company = cleaned.get("company")
         financial_account = cleaned.get("financial_account")
+        if self.auto_chart_account_id == "invalid" or self.statement_only_company_id == "invalid":
+            self.add_error("financial_account", "Escolha uma conta da lista.")
+        if (
+            self.statement_only_company_id
+            and isinstance(company, ClientCompany)
+            and str(company.pk) != self.statement_only_company_id
+        ):
+            self.add_error(
+                "financial_account", "Escolha uma conta financeira da empresa selecionada."
+            )
         if (
             isinstance(company, ClientCompany)
             and isinstance(financial_account, FinancialAccount)
@@ -938,8 +1005,28 @@ class ReconciliationUploadForm(forms.Form):
             and isinstance(company, ClientCompany)
             and FinancialAccount.objects.filter(company=company, active=True).exists()
             and financial_account is None
+            and not self.auto_chart_account_id
+            and not self.statement_only_company_id
         ):
             self.add_error("financial_account", "Escolha a conta financeira do extrato.")
+        if cleaned["purpose"] == "independent_ledger":
+            if cleaned.get("origin") != ReconciliationSourceFile.Origin.ACCOUNTING:
+                self.add_error("origin", "Para Razão independente, selecione Registros contábeis.")
+            if not isinstance(financial_account, FinancialAccount):
+                self.add_error("financial_account", "Escolha a conta financeira do Razão.")
+            if not self.errors and isinstance(company, ClientCompany):
+                from apps.hub.ledger_import import preview_ledger_uploads
+                from apps.hub.reconciliation_service import ReconciliationError
+
+                try:
+                    self.independent_ledger_preview = preview_ledger_uploads(
+                        organization=company.organization,
+                        company=company,
+                        financial_account=financial_account,
+                        uploads=cleaned["files"],
+                    )
+                except ReconciliationError as exc:
+                    self.add_error("files", str(exc))
         return cleaned
 
 
@@ -1128,6 +1215,44 @@ class AccountingPeriodForm(_ReconciliationCompanyScopedForm):
             and cleaned["ends_on"] < cleaned["starts_on"]
         ):
             self.add_error("ends_on", "O fim do período deve ser igual ou posterior ao início.")
+        return cleaned
+
+
+class AccountingPreviewForm(forms.Form):
+    financial_account = forms.ModelChoiceField(
+        queryset=FinancialAccount.objects.none(),
+        label="Empresa e conta bancária",
+        empty_label="Escolha a conta para conferir…",
+        error_messages={"invalid_choice": "Escolha uma conta disponível na sua carteira."},
+    )
+    period_start = forms.DateField(
+        label="Início do período",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
+    period_end = forms.DateField(
+        label="Fim do período",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        input_formats=["%Y-%m-%d"],
+    )
+
+    def __init__(self, *args: Any, accounts: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["financial_account"].queryset = accounts  # type: ignore[attr-defined]
+        self.fields["financial_account"].label_from_instance = (  # type: ignore[attr-defined]
+            lambda account: f"{account.company.name} · {account.name} · {account.account_reference}"
+        )
+        for field in self.fields.values():
+            field.widget.attrs["autocomplete"] = "off"
+
+    def clean(self) -> dict[str, Any]:
+        cleaned = super().clean() or {}
+        if (
+            cleaned.get("period_start")
+            and cleaned.get("period_end")
+            and cleaned["period_start"] > cleaned["period_end"]
+        ):
+            self.add_error("period_end", "O fim deve ser igual ou posterior ao início.")
         return cleaned
 
 
@@ -1320,16 +1445,15 @@ class ReconciliationRuleForm(forms.Form):
             self.add_error(None, "Defina ao menos uma ação para a regra.")
         company = cleaned.get("company")
         if isinstance(company, ClientCompany):
+            from apps.hub.postable_accounts import account_accepts_entries
+
             for field_name in ("debit_account_code", "credit_account_code"):
                 code = str(cleaned.get(field_name) or "")
-                if (
-                    code
-                    and not LedgerAccount.objects.filter(
-                        company=company, code=code, active=True, accepts_entries=True
-                    ).exists()
-                ):
+                if code and not account_accepts_entries(company, code):
                     self.add_error(
-                        field_name, "Cadastre uma conta contábil ativa que aceite lançamentos."
+                        field_name,
+                        "Use o código reduzido de uma conta analítica e ativa do plano "
+                        "desta empresa no Domínio.",
                     )
             cost_center = str(cleaned.get("cost_center_code") or "")
             if (

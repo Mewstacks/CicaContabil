@@ -1,0 +1,44 @@
+{
+  "version": "dominio-ledger-snapshot-v1",
+  "queries": {
+    "lots": {
+      "file": "lots.sql",
+      "sha256": "8396fa570e4a7771cda82eb01842da50e7b1540382a1e7292e55f082b184afcb",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "bank",
+        "bank"
+      ]
+    },
+    "records": {
+      "file": "records.sql",
+      "sha256": "5f93880991dd2ae48df14639e9e6fb346766159f0785cecd57c6a1598fe22181",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "start",
+        "end",
+        "bank",
+        "bank"
+      ]
+    },
+    "accounts": {
+      "file": "accounts.sql",
+      "sha256": "f806add58f7d5c7bf1a0892d69799094d9ce5a2618dc085a73c62d6f85af1e70",
+      "parameters": [
+        "company",
+        "start",
+        "end",
+        "start",
+        "end",
+        "bank",
+        "bank",
+        "chart",
+        "absent"
+      ]
+    }
+  }
+}

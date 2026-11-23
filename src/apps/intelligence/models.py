@@ -18,9 +18,7 @@ class IntelligenceArea(models.TextChoices):
     PAYROLL = "payroll", "Folha"
 
 
-def _validate_company_scope(
-    *, organization_id: object, company: object | None
-) -> None:
+def _validate_company_scope(*, organization_id: object, company: object | None) -> None:
     if company is not None and getattr(company, "organization_id", None) != organization_id:
         raise ValidationError({"company": "A empresa precisa pertencer ao mesmo escritório."})
 
@@ -388,29 +386,89 @@ class AgentEnrollment(OrganizationScopedModel):
     """Single-use bootstrap code; only its digest is stored."""
 
     code_digest = models.CharField(max_length=64, unique=True)
+    sync_scope = models.JSONField(default=dict, blank=True)
     expires_at = models.DateTimeField(db_index=True)
     used_at = models.DateTimeField(null=True, blank=True)
     issued_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    replaces_agent = models.ForeignKey(
+        "EdgeAgent",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="replacement_enrollments",
     )
 
 
 class EdgeAgent(OrganizationScopedModel):
     class Status(models.TextChoices):
         ACTIVE = "active", "Ativo"
+        PENDING_ACTIVATION = "pending", "Aguardando ativação"
         REVOKED = "revoked", "Revogado"
 
     label = models.CharField(max_length=120)
     fingerprint = models.CharField(max_length=128)
     mtls_certificate_sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+    sync_scope = models.JSONField(default=dict, blank=True)
     shared_secret = EncryptedTextField()
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.ACTIVE)
     enrolled_at = models.DateTimeField(auto_now_add=True)
     last_seen_at = models.DateTimeField(null=True, blank=True)
+    ledger_capabilities = models.JSONField(default=dict, db_default={}, blank=True)
+    ledger_capabilities_observed_at = models.DateTimeField(null=True, blank=True)
+    title_capabilities = models.JSONField(default=dict, db_default={}, blank=True)
+    title_capabilities_observed_at = models.DateTimeField(null=True, blank=True)
     revoked_at = models.DateTimeField(null=True, blank=True)
+    is_official = models.BooleanField(default=False)
+    replaces_agent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="replacement_candidates",
+    )
 
     class Meta:
         indexes = [models.Index(fields=("organization", "status", "last_seen_at"))]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization",),
+                condition=models.Q(is_official=True),
+                name="intelligence_one_official_agent",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(is_official=False) | models.Q(status="active"),
+                name="intelligence_official_agent_active",
+            ),
+        ]
+
+
+class AgentCompanyScan(OrganizationScopedModel):
+    """Durable keyset scan; completion describes coverage, never accounting acceptance."""
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="company_scans")
+    scope_revision = models.CharField(max_length=64)
+    expected_count = models.PositiveIntegerField()
+    received_count = models.PositiveIntegerField(default=0)
+    page_count = models.PositiveIntegerField(default=0)
+    cursor = models.CharField(max_length=18, default="0")
+    last_after = models.CharField(max_length=18, blank=True)
+    last_digest = models.CharField(max_length=64, blank=True)
+    last_result = models.JSONField(default=dict)
+    last_error_code = models.CharField(max_length=48, blank=True, default="")
+    last_error_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    aborted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("agent", "scope_revision"),
+                condition=models.Q(completed_at__isnull=True, aborted_at__isnull=True),
+                name="intelligence_one_open_company_scan",
+            )
+        ]
 
 
 class Conversation(OrganizationScopedModel):
@@ -631,3 +689,170 @@ class EgressAudit(OrganizationScopedModel):
     cache_creation_input_tokens = models.PositiveIntegerField(default=0)
     cache_read_input_tokens = models.PositiveIntegerField(default=0)
     completed_at = models.DateTimeField(null=True, blank=True)
+
+
+class DeparaAiBatch(OrganizationScopedModel):
+    """One bounded request, reusable suggestions and separate human review."""
+
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    fingerprint = models.CharField(max_length=64)
+    context = models.JSONField()
+    suggestions = models.JSONField(default=list)
+    state = models.CharField(max_length=16, default="prepared")
+    egress = models.OneToOneField(EgressAudit, null=True, blank=True, on_delete=models.PROTECT)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "financial_account", "fingerprint"),
+                name="intelligence_unique_depara_ai_batch",
+            )
+        ]
+
+
+class NativeLedgerCollection(OrganizationScopedModel):
+    """One explicitly queued, immutable native snapshot; never a general SQL job."""
+
+    class State(models.TextChoices):
+        QUEUED = "queued", "Aguardando agente"
+        IMPORTED = "imported", "Rascunhos importados"
+        REVIEW = "review", "Revisão necessária"
+        FAILED = "failed", "Falha de coleta"
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="ledger_jobs")
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.PROTECT
+    )
+    evidence_reference = models.CharField(max_length=240, blank=True)
+    request_key = models.UUIDField(null=True, blank=True)
+    mapping_revision = models.CharField(max_length=64, blank=True, default="", db_default="")
+    bank_source = models.ForeignKey(
+        "hub.ReconciliationSourceFile",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="requested_ledger_collections",
+    )
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("agent", "financial_account", "scope_revision"),
+                name="intelligence_unique_native_ledger_scope",
+            ),
+            models.UniqueConstraint(
+                fields=("organization", "request_key"),
+                name="intelligence_unique_ledger_request_key",
+            ),
+        ]
+
+
+class NativeTitleCollection(OrganizationScopedModel):
+    """Explicit raw fiscal capture, kept private and pending semantic review."""
+
+    class State(models.TextChoices):
+        QUEUED = "queued", "Aguardando agente"
+        CAPTURED = "captured", "Fonte recebida para revisão"
+        REVIEW = "review", "Contrato da fonte requer revisão"
+
+    agent = models.ForeignKey(EdgeAgent, on_delete=models.PROTECT, related_name="title_jobs")
+    financial_account = models.ForeignKey("hub.FinancialAccount", on_delete=models.PROTECT)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+
+class CompanyTitleCollection(OrganizationScopedModel):
+    """Monthly company-wide raw fiscal source; no bank association is implied."""
+
+    State = NativeTitleCollection.State
+    company = models.ForeignKey("hub.ClientCompany", on_delete=models.PROTECT)
+    agent = models.ForeignKey(
+        EdgeAgent, on_delete=models.PROTECT, related_name="company_title_jobs"
+    )
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    evidence_reference = models.CharField(max_length=240)
+    request_key = models.UUIDField()
+    batch_key = models.UUIDField(db_index=True)
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    scope = models.JSONField()
+    scope_revision = models.CharField(max_length=64)
+    contract_hash = models.CharField(max_length=64)
+    state = models.CharField(max_length=16, choices=State.choices, default=State.QUEUED)
+    source_file = models.ForeignKey(
+        "hub.ReconciliationSourceFile", null=True, blank=True, on_delete=models.PROTECT
+    )
+    content_hash = models.CharField(max_length=64, blank=True)
+    result = models.JSONField(default=dict)
+    error_code = models.CharField(max_length=48, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "request_key"),
+                name="intelligence_unique_company_title_request",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "created_at"))]
+
+
+class NativeTitleSettlementProvenance(OrganizationScopedModel):
+    """Immutable native references behind one explicitly reviewed cash interpretation."""
+
+    company = models.ForeignKey("hub.ClientCompany", on_delete=models.PROTECT)
+    snapshot = models.ForeignKey(
+        "hub.ReconciliationTitleSnapshot",
+        on_delete=models.PROTECT,
+        related_name="native_provenance",
+    )
+    source_file = models.ForeignKey("hub.ReconciliationSourceFile", on_delete=models.PROTECT)
+    capture_id = models.UUIDField()
+    source_sha256 = models.CharField(max_length=64)
+    title_key = models.CharField(max_length=160)
+    installment_key = models.CharField(max_length=160)
+    settlement_key = models.CharField(max_length=160)
+    payment_references = models.JSONField()
+    interpretation = models.JSONField()
+    fingerprint = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("snapshot", "title_key", "installment_key", "settlement_key"),
+                name="intelligence_unique_native_settlement_provenance",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "company", "settlement_key"))]
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self._state.adding:
+            raise ValidationError("A proveniência nativa da baixa é imutável.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args: Any, **kwargs: Any) -> NoReturn:
+        raise ValidationError("A proveniência nativa da baixa é imutável.")
