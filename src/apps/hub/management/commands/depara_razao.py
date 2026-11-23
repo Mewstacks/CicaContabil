@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
@@ -38,7 +39,9 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: Any) -> None:
         parser.add_argument("action", choices=["propose", "create", "evaluate", "create-all"])
-        parser.add_argument("--organization", required=True)
+        parser.add_argument(
+            "--organization", required=True, type=uuid.UUID, help="UUID do escritório."
+        )
         parser.add_argument("--account", help="Obrigatório, exceto em create-all.")
         parser.add_argument("--month", help="AAAA-MM, para evaluate.")
 

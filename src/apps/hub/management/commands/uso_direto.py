@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
@@ -25,7 +26,9 @@ class Command(BaseCommand):
     help = "Uso direto (D-393): ativa regras pelo Razão e gera lançamentos do que falta."
 
     def add_arguments(self, parser: Any) -> None:
-        parser.add_argument("--organization", required=True)
+        parser.add_argument(
+            "--organization", required=True, type=uuid.UUID, help="UUID do escritório."
+        )
         parser.add_argument("--apply", action="store_true")
 
     def handle(self, *args: Any, **options: Any) -> None:
@@ -36,6 +39,15 @@ class Command(BaseCommand):
             raise CommandError(
                 "Escritório fora de CICA_DIRECT_USE_ORGANIZATION_IDS (ou demo/inativo)."
             )
+        from django.conf import settings
+
+        from apps.hub.depara_ai_auto import ai_enabled
+
+        ai = {  # D-397: the operator sees whether --apply may call the paid AI
+            "ai_enabled": bool(ai_enabled(organization)),
+            "ai_daily_cents": int(getattr(settings, "CICA_DEPARA_AI_DAILY_CENTS", 100)),
+            "ai_monthly_cents": int(getattr(settings, "CICA_DEPARA_AI_MONTHLY_CENTS", 500)),
+        }
         accounts = list(
             FinancialAccount.objects.filter(organization=organization, active=True).select_related(
                 "company", "organization"
@@ -51,6 +63,7 @@ class Command(BaseCommand):
                     {
                         "apply": False,
                         "accounts": len(accounts),
+                        **ai,
                         "razao_rules": states,
                         "approved_entries": JournalEntry.objects.filter(
                             organization=organization, state=JournalEntry.State.APPROVED
@@ -79,5 +92,7 @@ class Command(BaseCommand):
             if rule.state == ReconciliationRule.State.ACTIVE
         )
         self.stdout.write(
-            json.dumps({"apply": True, "accounts": len(accounts), **totals}, sort_keys=True)
+            json.dumps(
+                {"apply": True, "accounts": len(accounts), **ai, **totals}, sort_keys=True
+            )
         )

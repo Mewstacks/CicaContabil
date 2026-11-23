@@ -52,7 +52,12 @@ def native_titles(request: HttpRequest, account_id: UUID) -> HttpResponse:
 
     context, account = title_workspace(request, account_id, write=True)
     assert account is not None
-    context.update(page_title="Revisar fontes de títulos", native_catalog_url=_catalog_url(account))
+    context.update(
+        page_title=(
+            "Fontes de títulos" if context.get("office_direct_use") else "Revisar fontes de títulos"
+        ),
+        native_catalog_url=_catalog_url(account),
+    )
     captures = captures_for_account(account)
     context["native_captures"] = captures
     context["native_list_url"] = reverse("hub:reconciliation-native-titles", args=[account.pk])
@@ -103,6 +108,14 @@ def native_title_review(
     context, account = title_workspace(request, account_id, write=True)
     assert account is not None
     actor = cast(User, request.user)
+    if context.get("office_direct_use"):
+        # D-397: in direct use the CICA interprets every installment (D-394); a manual review
+        # would be replaced by the next automatic reading, so it is not offered.
+        return redirect(
+            reverse("hub:reconciliation-native-titles", args=[account.pk])
+            + "?"
+            + urlencode({"capture": str(capture_id)})
+        )
     back = (
         reverse("hub:reconciliation-native-titles", args=[account.pk])
         + "?"

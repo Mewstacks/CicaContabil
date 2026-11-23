@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import calendar
 from contextlib import suppress
-from datetime import date
+from datetime import date, timedelta
 from functools import partial
 from typing import Any, cast
 from urllib.parse import urlencode
@@ -328,7 +328,10 @@ def ledger_request(request: HttpRequest) -> HttpResponse:
     if request.method == "GET" or action == "mapping":
         values["request_key"] = str(uuid4())
     if "month" not in values:
-        values["month"] = timezone.localdate().strftime("%Y-%m")
+        # D-397: the last closed month; the current one is still being booked in Domínio.
+        values["month"] = (timezone.localdate().replace(day=1) - timedelta(days=1)).strftime(
+            "%Y-%m"
+        )
     form = LedgerRequestForm(
         values if values.get("account") or request.method == "POST" else None,
         request.FILES or None,

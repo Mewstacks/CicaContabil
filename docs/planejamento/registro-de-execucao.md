@@ -1,3 +1,12 @@
+<!-- D397-V448-2026-11-23 -->
+## 23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão
+
+- [x] Revisão completa da CONTAD (relatório `docs/planejamento/revisao-contad-2026-11-23.md`, 24 prints).
+- [x] Decisão D-397 registrada antes do código (proteção contra lançamento em dobro e itens médios/baixos).
+- [x] Implementação, testes SQLite completos (3.512) e PostgreSQL 17 local (458), navegador em 1366/375 px (V-448).
+- [x] Janela de 5 dias do “parecido com o Razão” confirmada pelo responsável (“Sim, 5 dias”).
+- [ ] PR, merge, deploy e conferência somente leitura das contas reais — com autorização do responsável.
+
 <!-- D396-V447-2026-11-23 -->
 ## 23/11/2026 — D-396/V-446/V-447: correções da revisão
 

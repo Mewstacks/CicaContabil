@@ -156,7 +156,9 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
     months = _ledger_months(account)
     if not months:
         return {"posted": 0, "skipped_similar": 0, "failed": 0}
-    keys = _ledger_keys(account)
+    from apps.hub.double_booking import is_similar, ledger_index, statement_complement
+
+    index = ledger_index(account)  # D-397: free Razão records within a date window
     posted = similar = failed = 0
     candidates = (
         NormalizedMovement.objects.filter(
@@ -179,7 +181,7 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
             continue
         if movement.journal_entries.exclude(state=JournalEntry.State.INVALID).exists():
             continue
-        if (occurred, movement.direction, abs(movement.amount_cents)) in keys:
+        if is_similar(index, movement):
             similar += 1
             continue
         try:
@@ -197,6 +199,10 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
                 ):
                     continue
                 entry = create_journal_entry_from_movement(movement=movement)
+                complement = statement_complement(entry.history, movement.description)
+                if complement != entry.history:  # D-397: the office sees the document
+                    entry.history = complement
+                    entry.save(update_fields=["history", "updated_at"])
                 entry = approve_journal_entry(entry=entry)
                 if entry.state != JournalEntry.State.APPROVED:
                     failed += 1
@@ -288,6 +294,9 @@ def run_for_account(account: FinancialAccount) -> dict[str, int]:
     except Exception:  # spend cap, provider or parsing: posting still runs
         logger.exception("DE-PARA com IA (D-395) não executado na conta %s", account.pk)
         result["ai_failed"] = 1
+    from apps.hub.double_booking import withdraw_covered
+
+    result["withdrawn"] = withdraw_covered(account)  # D-397
     return {**result, **post_unbooked(account)}
 
 

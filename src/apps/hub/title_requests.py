@@ -406,10 +406,7 @@ def title_job_context(*, job: TitleJob, actor: User) -> dict[str, Any]:
         from apps.hub.direct_use import direct_use_enabled
 
         label, detail = (
-            (
-                "Fonte recebida",
-                "Títulos e baixas interpretados automaticamente pelos tipos oficiais do Domínio.",
-            )
+            ("Fonte recebida", _direct_use_detail(job, company))
             if direct_use_enabled(company.organization)
             else (
                 "Fonte recebida",
@@ -519,3 +516,18 @@ def captures_for_account(account: FinancialAccount) -> list[TitleJob]:
     return sorted(
         jobs, key=lambda job: (job.completed_at or job.created_at, str(job.pk)), reverse=True
     )[:100]
+
+
+def _direct_use_detail(job: Any, company: ClientCompany) -> str:
+    """D-397: say what really happened to the capture, not what should happen."""
+    from apps.audit.models import AuditEvent
+    from apps.hub.title_auto import ACTION
+
+    if AuditEvent.objects.filter(action=ACTION, metadata__capture_id=str(job.pk)).exists():
+        return "Títulos e baixas interpretados automaticamente pelos tipos oficiais do Domínio."
+    if not FinancialAccount.objects.filter(company=company, active=True).exists():
+        return (
+            "Recebidos. Aparecem em Títulos e baixas quando a empresa tiver uma conta bancária: "
+            "importe o extrato OFX dela."
+        )
+    return "Recebidos. A interpretação automática está em andamento."

@@ -489,13 +489,42 @@ def retire_contradicted(account: FinancialAccount) -> int:
     return retired
 
 
+def demote_after_failed_measurement(account: FinancialAccount, measured: dict[str, int]) -> int:
+    """D-397: below 90% the routine's active AI rules return to draft; entries are withdrawn."""
+    from apps.hub.direct_use import routine_owns, withdraw_rule_entries
+
+    demoted = 0
+    for rule in _ai_rules(account):
+        if rule.state != ReconciliationRule.State.ACTIVE or not routine_owns(rule):
+            continue
+        rule.state = ReconciliationRule.State.DRAFT
+        rule.actions = {**rule.actions, "require_review": True}
+        rule.save(update_fields=["state", "actions", "updated_at"])
+        record_event(
+            action=STATE_ACTION,
+            actor=None,
+            organization=account.organization,
+            target=rule,
+            metadata={
+                "state": "draft",
+                "reason": "medicao_abaixo_de_90",
+                "decision": "D-397",
+                "precision": measured["precision"],
+            },
+        )
+        withdraw_rule_entries(rule)  # D-396 helper: unexported routine entries go back
+        demoted += 1
+    return demoted
+
+
 def _targets(account: FinancialAccount) -> dict[tuple[str, str], NormalizedMovement]:
     """One sample movement per pattern still without rule, Razão match or entry."""
-    from apps.hub.direct_use import _ledger_keys, _ledger_months
+    from apps.hub.direct_use import _ledger_months
+    from apps.hub.double_booking import is_similar, ledger_index
     from apps.hub.reconciliation_service import apply_rules
 
     months = _ledger_months(account)
-    keys = _ledger_keys(account)
+    index = ledger_index(account)  # D-397: same date window as the automatic posting
     asked = {
         fingerprint
         for metadata in AuditEvent.objects.filter(
@@ -519,7 +548,7 @@ def _targets(account: FinancialAccount) -> dict[tuple[str, str], NormalizedMovem
         occurred = movement.occurred_on
         if occurred is None or (occurred.year, occurred.month) not in months:
             continue
-        if (occurred, movement.direction, abs(movement.amount_cents)) in keys:
+        if is_similar(index, movement):
             continue
         if movement.journal_entries.exclude(state=JournalEntry.State.INVALID).exists():
             continue
@@ -550,6 +579,8 @@ def suggest(account: FinancialAccount) -> dict[str, int]:
         return {"ai_targets": len(targets), "ai_sem_contas": 1}
     measured = measure(account, accounts)
     activate = measured["measured"] >= MIN_MEASURED and measured["precision"] >= MIN_PRECISION
+    if measured["measured"] >= MIN_MEASURED and not activate:
+        demote_after_failed_measurement(account, measured)
     items, by_id = [], {}
     for index, (key, movement) in enumerate(targets.items(), 1):
         item_id = f"p{index}"

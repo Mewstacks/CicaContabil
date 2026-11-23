@@ -283,7 +283,32 @@ MODULE_TOURS: tuple[Tour, ...] = (
 )
 
 ALL_TOURS: tuple[Tour, ...] = (WELCOME, *MODULE_TOURS)
-TOURS_BY_ID = {tour.identifier: tour for tour in ALL_TOURS}
+# D-397: offices in direct use (D-393) do not review; the guide says what the CICA does.
+RECONCILIATION_DIRECT_USE = Tour(
+    identifier="reconciliation-direct-use",
+    version=1,
+    label="Como usar a Conciliação",
+    title="Conciliação OFX x Domínio",
+    steps=(
+        TourStep(
+            "1. Importe o OFX",
+            "Em Nova importação, escolha a empresa, a conta e anexe o extrato do mês. A CICA "
+            "pede o Razão do Domínio sozinha.",
+        ),
+        TourStep(
+            "2. A CICA faz o resto",
+            "Quando o Razão chega, ela confere o que já está nele e lança o que falta, quando "
+            "uma regra reconhece o histórico. Nada espera revisão.",
+        ),
+        TourStep(
+            "3. Envie ao Domínio",
+            "Em Exportações, gere o arquivo e importe no Domínio (Utilitários → Importação). "
+            "Os resultados ficam em Abrir conferência.",
+        ),
+    ),
+    url_names=frozenset({"reconciliation"}),
+)
+TOURS_BY_ID = {tour.identifier: tour for tour in (*ALL_TOURS, RECONCILIATION_DIRECT_USE)}
 
 
 def tour_for_url_name(url_name: str | None) -> Tour | None:

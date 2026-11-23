@@ -6,6 +6,7 @@ Without ``--apply`` it only counts captures per company, writing nothing.
 from __future__ import annotations
 
 import json
+import uuid
 from collections import Counter
 from typing import Any
 
@@ -21,7 +22,9 @@ class Command(BaseCommand):
     help = "Interpretação automática de títulos e baixas (D-394) para escritório em uso direto."
 
     def add_arguments(self, parser: Any) -> None:
-        parser.add_argument("--organization", required=True)
+        parser.add_argument(
+            "--organization", required=True, type=uuid.UUID, help="UUID do escritório."
+        )
         parser.add_argument("--apply", action="store_true")
 
     def handle(self, *args: Any, **options: Any) -> None:
@@ -32,9 +35,9 @@ class Command(BaseCommand):
             raise CommandError(
                 "Escritório fora de CICA_DIRECT_USE_ORGANIZATION_IDS (ou demo/inativo)."
             )
-        companies = ClientCompany.objects.filter(organization=organization).select_related(
-            "organization"
-        )
+        companies = ClientCompany.objects.filter(
+            organization=organization, active=True
+        ).select_related("organization")
         if not options["apply"]:
             captures = {str(c.pk): len(_captures(c)) for c in companies}
             self.stdout.write(

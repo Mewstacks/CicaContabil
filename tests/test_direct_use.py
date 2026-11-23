@@ -178,6 +178,16 @@ def test_export_is_allowed_only_for_the_listed_office(
     assert export_allowed(org, "dominio", VERSION)
     assert not export_allowed(org, "dominio", "outra-versao")
     assert not export_allowed(org, "siescon", VERSION)
+    # D-397: the automatic entry waits for a Razão read after its approval.
+    with pytest.raises(ReconciliationError, match="aguardam o Razão atualizado"):
+        create_export(
+            organization=org,
+            company=enabled["company"],
+            start=date(2026, 10, 1),
+            end=date(2026, 10, 31),
+            actor=enabled["user"],
+        )
+    _fresh_razao(enabled)
     export = create_export(
         organization=org,
         company=enabled["company"],
@@ -213,6 +223,26 @@ def test_export_panel_shows_the_form_in_direct_use(enabled):
     assert response.status_code == 200
     assert "Exportação Domínio bloqueada" not in content
     assert "Validar e gerar arquivo" in content
+
+
+def _fresh_razao(office, rows=(("OUTRO LANCAMENTO", 777, "3.1"),), day="2026-10-28"):
+    """A newer Razão of the account arrives (any content), as after the office books more."""
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter=";")
+    writer.writerow(LEDGER_COLUMNS)
+    for i, (text, cents, contra) in enumerate(rows):
+        key = f"fresh-{day}-{i}"
+        side, other, direction = (
+            ("debit", "credit", "inflow") if cents > 0 else ("credit", "debit", "outflow")
+        )
+        writer.writerow([key, "bank", day, f"Razão {text}", "1.1", side, abs(cents), direction, ""])
+        writer.writerow([key, "other", day, f"Razão {text}", contra, other, abs(cents), "", ""])
+    _source, run, _ = create_source_file(
+        organization=office["org"], company=office["company"],
+        financial_account=office["account"], filename=f"razao-{day}.csv",
+        content=output.getvalue().encode(), origin="accounting",
+    )
+    process_run(str(run.pk))
 
 
 def _send_statement(client, company, value, content):

@@ -29,7 +29,9 @@ class Command(BaseCommand):
     help = "Registra (ou revoga) a homologação Domínio a partir de uma prévia importada."
 
     def add_arguments(self, parser: Any) -> None:
-        parser.add_argument("--organization", required=True)
+        parser.add_argument(
+            "--organization", required=True, type=uuid.UUID, help="UUID do escritório."
+        )
         parser.add_argument("--preview", required=True, help="ID da prévia importada no Domínio.")
         parser.add_argument(
             "--importer-version", required=True, help="Versão do Domínio onde foi importada."
@@ -40,6 +42,11 @@ class Command(BaseCommand):
             help="Quem confirmou a importação, quando e onde está a evidência.",
         )
         parser.add_argument("--revoke", action="store_true")
+        parser.add_argument(
+            "--allow-direct-use",
+            action="store_true",
+            help="Confirma homologação real em escritório de uso direto (D-397).",
+        )
         parser.add_argument("--apply", action="store_true")
 
     def handle(self, *args: Any, **options: Any) -> None:
@@ -89,6 +96,17 @@ class Command(BaseCommand):
             "applied": False,
         }
         if options["apply"]:
+            from apps.hub.direct_use import direct_use_enabled
+
+            if (
+                approved
+                and direct_use_enabled(preview.organization)
+                and not options["allow_direct_use"]
+            ):
+                raise CommandError(
+                    "Escritório em uso direto (D-393) exporta sem homologação; registre só uma "
+                    "importação real conferida, com --allow-direct-use. Nada foi registrado."
+                )
             try:
                 _, created = record_export_homologation(
                     organization=preview.organization,
