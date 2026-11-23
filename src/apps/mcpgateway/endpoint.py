@@ -130,7 +130,8 @@ def _call(
     arguments = params.get("arguments", {})
     if not isinstance(name, str) or not isinstance(arguments, dict):
         return _rpc_error(request_id, -32602, "Ferramenta ou argumentos inválidos.")
-    if name not in EXTERNAL_TOOLS:
+    # a mesma lista que `tools/list` mostra: lista e chamada nao podem divergir
+    if name not in {tool["name"] for tool in _tools_for(caller.membership)}:
         return _rpc_error(request_id, -32602, "Ferramenta não disponível neste conector.")
     try:
         structured = call_tool(

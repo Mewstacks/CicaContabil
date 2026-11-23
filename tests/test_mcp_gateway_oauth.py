@@ -888,3 +888,21 @@ def test_the_chatgpt_callback_is_one_safe_segment_on_the_exact_host(
 
     assert redirect_allowed(uri) is False
     assert redirect_allowed("https://chatgpt.com/connector/oauth/Ab-9_x") is True
+
+
+def test_a_call_without_the_read_capability_never_reaches_the_tool(
+    gateway: None, office_a: Organization
+) -> None:
+    _, access, _ = full_flow(browser(make_user("a@example.test", office_a)), office_a)
+    with (
+        patch(f"{ENDPOINT}.membership_has_capability", return_value=False),
+        patch(f"{ENDPOINT}.call_tool") as call,
+    ):
+        out = rpc(
+            Client(),
+            access,
+            "tools/call",
+            {"name": "search_data_catalog", "arguments": {"query": "x"}},
+        ).json()
+    assert out["error"]["code"] == -32602
+    call.assert_not_called()
