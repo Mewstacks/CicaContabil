@@ -1,3 +1,11 @@
+<!-- D395-V445-2026-11-23 -->
+## 23/11/2026 — D-395/V-444/V-445: DE-PARA com IA
+
+- [x] Decisão D-395 com autorização de envio, teto e regra de ativação informados pelo responsável.
+- [x] Implementação, testes (SQLite completo, PostgreSQL) e uma chamada real sintética (V-444).
+- [x] Publicação v120, merge e `uso_direto --apply` (zero alvos, zero custo) (V-445).
+- [ ] Primeira medição às cegas e sugestões com dados reais — quando entrarem extratos novos.
+
 <!-- D394-V442-2026-11-23 -->
 ## 23/11/2026 — D-394/V-442: interpretação automática de títulos (fonte isolada)
 

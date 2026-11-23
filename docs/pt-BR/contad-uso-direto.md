@@ -36,4 +36,6 @@ nada fica esperando revisão de ninguém. Este guia substitui o treinamento.
 - Títulos e baixas: cada busca no Domínio é interpretada sozinha (juros, multa, desconto e retenções
   pelos tipos oficiais) e aparece em *Títulos e baixas*. Serviços e casos fora do padrão (estorno,
   tipo desconhecido) ficam só como fonte recebida.
-- IA como segunda opinião continua desligada (depende de chave e limite de custo).
+- IA (Claude Haiku 5.5): para movimentos que nunca apareceram no Razão, sugere a conta entre as que a
+  empresa já usa; só vira regra ativa se acertar 90% ou mais num teste às cegas contra o Razão.
+  Teto de US$ 1/dia e US$ 5/mês.
