@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from apps.audit.services import record_event
 from apps.triage.file_policy import UnsupportedAttachment, validate_supported_attachment
+from apps.triage.intake_policy import policy_for
 from apps.triage.models import TriageEvent, TriageItem, TriageSafetyScan
 from apps.triage.transitions import TriageStatus
 
@@ -136,7 +137,9 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
             try:
                 with item.blob.content.open("rb") as stream:
                     detected_type = validate_supported_attachment(
-                        cast(BinaryIO, stream), filename=item.original_name
+                        cast(BinaryIO, stream),
+                        filename=item.original_name,
+                        allowed=policy_for(item.organization).suffixes,
                     )
                 format_verdict = TriageSafetyScan.FormatVerdict.VALID
             except UnsupportedAttachment as exc:
@@ -181,6 +184,20 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
                 to_status=item.status,
                 note="Antimalware sem detecção e formato validado; aguardando extração",
             )
+        elif format_verdict == TriageSafetyScan.FormatVerdict.INVALID:
+            # Not a supported document: say why and close it, nothing to wait for.
+            previous = item.status
+            item.transition_to(TriageStatus.REJECTED)
+            item.rejection_reason = (format_note or "Formato não aceito.")[:500]
+            item.save(update_fields=["status", "rejection_reason", "updated_at"])
+            TriageEvent.objects.create(
+                organization=item.organization,
+                triage_item=item,
+                actor=None,
+                from_status=previous,
+                to_status=item.status,
+                note=item.rejection_reason,
+            )
         else:
             TriageEvent.objects.create(
                 organization=item.organization,
@@ -188,11 +205,7 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
                 actor=None,
                 from_status=item.status,
                 to_status=item.status,
-                note=(
-                    "Formato recusado; anexo permanece em quarentena"
-                    if format_verdict == TriageSafetyScan.FormatVerdict.INVALID
-                    else "Varredura falhou; anexo permanece em quarentena"
-                ),
+                note="Varredura falhou; anexo permanece em quarentena",
             )
         from apps.hub.module_activities import sync_triage_activity
 

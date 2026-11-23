@@ -70,6 +70,8 @@ def receive_email_attachment(
     subject: str = "",
     received_at: datetime | None = None,
     declared_type: str = "",
+    body_excerpt: str = "",
+    original_sender: str = "",
 ) -> AttachmentReceipt:
     """Persist one bounded binary, with delivery and content deduplication.
 
@@ -106,6 +108,9 @@ def receive_email_attachment(
                 sender=sender[:255],
                 subject=subject[:500],
                 received_at=received_at,
+                origin=TriageItem.Origin.EMAIL,
+                body_excerpt=body_excerpt.replace("\x00", "")[:6000],
+                original_sender=original_sender[:254],
                 original_name=safe_name,
                 content_hash=digest,
                 byte_size=len(payload),
@@ -177,4 +182,88 @@ def receive_email_attachment(
 
         item_id = str(item.id)
         transaction.on_commit(lambda: process_triage_item.delay(item_id))
+    return AttachmentReceipt(item, True)
+
+
+def record_rejected_attachment(
+    *,
+    mailbox: Mailbox,
+    message_id: str,
+    part_id: str,
+    filename: str,
+    size: int,
+    reason: str,
+    sender: str = "",
+    subject: str = "",
+    received_at: datetime | None = None,
+    declared_type: str = "",
+    body_excerpt: str = "",
+    original_sender: str = "",
+) -> AttachmentReceipt:
+    """Register an attachment the office will not process, as *Rejeitado* with its reason.
+
+    No byte is stored: only the metadata the provider already gave. Replays are idempotent
+    (same mailbox, message and part). The caller keeps polling: a refusal is not a failure.
+    """
+    if not mailbox.active or mailbox.status != Mailbox.Status.ACTIVE:
+        raise ValidationError("Ative e autorize esta caixa antes de receber anexos.")
+    if not message_id or len(message_id) > 255 or not part_id or len(part_id) > 64:
+        raise ValidationError("O provedor não identificou a mensagem e o anexo.")
+    existing = TriageItem.objects.filter(
+        mailbox=mailbox, message_id=message_id, part_id=part_id
+    ).first()
+    if existing is not None:
+        return AttachmentReceipt(existing, False, "delivery")
+    safe_name = PurePosixPath(filename.replace("\\", "/")).name[:255] or "anexo-sem-nome.bin"
+    organization = mailbox.organization
+    try:
+        with transaction.atomic():
+            item = TriageItem.objects.create(
+                organization=organization,
+                mailbox=mailbox,
+                message_id=message_id,
+                part_id=part_id,
+                sender=sender[:255],
+                subject=subject[:500],
+                received_at=received_at,
+                origin=TriageItem.Origin.EMAIL,
+                body_excerpt=body_excerpt.replace("\x00", "")[:6000],
+                original_sender=original_sender[:254],
+                original_name=safe_name,
+                byte_size=max(0, size),
+                declared_type=declared_type[:100],
+            )
+            for target, note in (
+                (TriageStatus.QUARANTINED, "Anexo recebido da caixa"),
+                (TriageStatus.REJECTED, reason[:500]),
+            ):
+                previous = item.status
+                item.transition_to(target)
+                if target == TriageStatus.REJECTED:
+                    item.rejection_reason = reason[:500]
+                    item.save(update_fields=["status", "rejection_reason", "updated_at"])
+                else:
+                    item.save(update_fields=["status", "updated_at"])
+                TriageEvent.objects.create(
+                    organization=organization,
+                    triage_item=item,
+                    actor=None,
+                    from_status=previous,
+                    to_status=target,
+                    note=note,
+                )
+    except IntegrityError:
+        same = TriageItem.objects.filter(
+            mailbox=mailbox, message_id=message_id, part_id=part_id
+        ).first()
+        if same is not None:
+            return AttachmentReceipt(same, False, "delivery")
+        raise
+    record_event(
+        action="triage.item.rejected_at_intake",
+        actor=None,
+        organization=organization,
+        target=item,
+        metadata={"mailbox_id": str(mailbox.id), "byte_size": max(0, size)},
+    )
     return AttachmentReceipt(item, True)

@@ -1,0 +1,21 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=1">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="tv2-policy-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-policy-title">Formatos</h2></div></header>
+  <form class="tv2-form" method="post" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise os campos indicados.</div>{% endif %}
+    <label class="tv2-check">{{ form.extended_formats }}<span>{{ form.extended_formats.label }}</span></label>
+    <label class="tv2-check">{{ form.open_archives }}<span>{{ form.open_archives.label }}</span></label>
+    <label class="tv2-check">{{ form.ocr_enabled }}<span>{{ form.ocr_enabled.label }}</span></label>
+    <div class="field{% if form.ocr_monthly_pages.errors %} has-error{% endif %}"><label for="{{ form.ocr_monthly_pages.id_for_label }}">{{ form.ocr_monthly_pages.label }}</label>{{ form.ocr_monthly_pages }}{% if form.ocr_monthly_pages.errors %}<p class="field-error">{{ form.ocr_monthly_pages.errors|striptags }}</p>{% endif %}</div>
+    {% if can_manage_policy %}<div class="tv2-actions"><button class="button" type="submit">Guardar</button></div>{% endif %}
+  </form>
+</section>
+{% endblock %}

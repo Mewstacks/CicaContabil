@@ -10,7 +10,7 @@ Flow (see the plan doc for the full rationale of each state):
     recebido -> em_quarentena
     em_quarentena -> rejeitado | aguardando_extracao
     aguardando_extracao -> em_extracao
-    em_extracao -> aguardando_revisao | pronto_para_arquivar | falha
+    em_extracao -> aguardando_revisao | pronto_para_arquivar | falha | rejeitado (pacote aberto)
     aguardando_revisao -> pronto_para_arquivar | rejeitado
     pronto_para_arquivar -> arquivando
     arquivando -> arquivado | falha_de_arquivamento
@@ -48,8 +48,14 @@ _ALLOWED_TRANSITIONS: dict[TriageStatus, frozenset[TriageStatus]] = {
     TriageStatus.RECEIVED: frozenset({TriageStatus.QUARANTINED}),
     TriageStatus.QUARANTINED: frozenset({TriageStatus.REJECTED, TriageStatus.AWAITING_EXTRACTION}),
     TriageStatus.AWAITING_EXTRACTION: frozenset({TriageStatus.EXTRACTING}),
+    # REJECTED: an opened package closes here, its files continue as items of their own.
     TriageStatus.EXTRACTING: frozenset(
-        {TriageStatus.AWAITING_REVIEW, TriageStatus.READY_TO_ARCHIVE, TriageStatus.FAILED}
+        {
+            TriageStatus.AWAITING_REVIEW,
+            TriageStatus.READY_TO_ARCHIVE,
+            TriageStatus.FAILED,
+            TriageStatus.REJECTED,
+        }
     ),
     TriageStatus.AWAITING_REVIEW: frozenset({TriageStatus.READY_TO_ARCHIVE, TriageStatus.REJECTED}),
     TriageStatus.READY_TO_ARCHIVE: frozenset({TriageStatus.ARCHIVING}),

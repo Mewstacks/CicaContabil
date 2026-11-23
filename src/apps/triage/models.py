@@ -132,6 +132,13 @@ class DocumentType(OrganizationScopedModel):
     )
     active = models.BooleanField(default=True)
     revision = models.PositiveIntegerField(default=1)
+    # Words that identify the type. ``@word`` only counts in the file name and the subject
+    # (it is too common in running text). Matching is whole-word and accent-blind.
+    keywords = models.JSONField(default=list, blank=True, db_default=[])
+    # Expected in the checklist: for every company, or only for these tax regimes
+    # (``ClientCompany.TaxRegime`` values). A ``ChecklistExpectation`` of one company wins.
+    expected_default = models.BooleanField(default=False, db_default=False)
+    expected_regimes = models.JSONField(default=list, blank=True, db_default=[])
 
     class Meta:
         ordering = ("label",)
@@ -189,10 +196,33 @@ class DestinationProfile(OrganizationScopedModel):
         return f"{self.organization_id} -> {self.get_mode_display()}"
 
 
+class TriagePolicy(OrganizationScopedModel):
+    """Per-office switches for the v2 intake. Every default keeps the v1 behaviour."""
+
+    organization = models.OneToOneField(
+        "organizations.Organization", on_delete=models.CASCADE, related_name="triage_policy"
+    )
+    # Images, HTML, TXT and legacy XLS beside the base PDF/CSV/XML/OFX/XLSX set.
+    extended_formats = models.BooleanField(default=False, db_default=False)
+    # Open ZIP packages (bounded: entries, bytes, ratio, depth) into one item per file.
+    open_archives = models.BooleanField(default=False, db_default=False)
+    # OCR for scanned PDFs and images; also needs ``TRIAGE_OCR_ENABLED`` and a free budget.
+    ocr_enabled = models.BooleanField(default=False, db_default=False)
+    ocr_monthly_pages = models.PositiveIntegerField(default=100, db_default=100)
+
+    def __str__(self) -> str:
+        return f"triage policy {self.organization_id}"
+
+
 class TriageItem(OrganizationScopedModel):
     """One received attachment moving through quarantine, classification and archiving."""
 
     Status = TriageStatus
+
+    class Origin(models.TextChoices):
+        EMAIL = "email", "E-mail"
+        UPLOAD = "upload", "Envio manual"
+        ARCHIVE = "archive", "Pacote"
 
     mailbox = models.ForeignKey(
         Mailbox, null=True, blank=True, on_delete=models.SET_NULL, related_name="items"
@@ -202,6 +232,17 @@ class TriageItem(OrganizationScopedModel):
     sender = models.CharField(max_length=255, blank=True)
     subject = models.CharField(max_length=500, blank=True)
     received_at = models.DateTimeField(null=True, blank=True)
+    origin = models.CharField(
+        max_length=16, choices=Origin.choices, blank=True, default="", db_default=""
+    )
+    # Plain-text start of the e-mail body (bounded) and, for a forwarded message, the one
+    # external author found in it. Personal data: never logged, never sent out.
+    body_excerpt = models.TextField(blank=True, default="", db_default="")
+    original_sender = models.CharField(max_length=254, blank=True, default="", db_default="")
+    # The package this file was opened from (one level only).
+    archive_parent = models.ForeignKey(
+        "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="archive_members"
+    )
 
     original_name = models.CharField(max_length=255)
     content_hash = models.CharField(max_length=64, blank=True, db_index=True)
@@ -234,6 +275,10 @@ class TriageItem(OrganizationScopedModel):
 
     # {campo: {"valor": ..., "confianca": 0.0-1.0, "evidencia": "...", "pagina": int}}
     ai_fields = models.JSONField(default=dict, blank=True)
+    # OCR runs on its own queue: "" never needed, queued, done, skipped (flag/budget/engine),
+    # failed. ``ocr_text`` keeps the bounded result so reclassifying never repeats the OCR.
+    ocr_state = models.CharField(max_length=12, blank=True, default="", db_default="")
+    ocr_text = models.TextField(blank=True, default="", db_default="")
 
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -273,7 +318,7 @@ class TriageItem(OrganizationScopedModel):
 
     def clean(self) -> None:
         errors: dict[str, str] = {}
-        for field in ("mailbox", "company", "document_type", "duplicate_of"):
+        for field in ("mailbox", "company", "document_type", "duplicate_of", "archive_parent"):
             related = getattr(self, field, None)
             if related is not None and related.organization_id != self.organization_id:
                 errors[field] = "Este registro pertence a outro escritório."
@@ -405,6 +450,23 @@ class ChecklistEntry(OrganizationScopedModel):
 
     def __str__(self) -> str:
         return f"{self.company_id}/{self.document_type_id}/{self.period_label}"
+
+
+class TriageOcrUsage(OrganizationScopedModel):
+    """Pages sent to OCR, the unit of the office's monthly budget."""
+
+    triage_item = models.ForeignKey(
+        TriageItem, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    pages = models.PositiveSmallIntegerField()
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "created_at"))]
+
+    def clean(self) -> None:
+        item = self.triage_item
+        if item is not None and item.organization_id != self.organization_id:
+            raise ValidationError({"triage_item": "O arquivo pertence a outro escritório."})
 
 
 class AgentFileJob(OrganizationScopedModel):

@@ -521,6 +521,12 @@ TRIAGE_GOOGLE_PERSONAL_VERIFIED = env_bool("TRIAGE_GOOGLE_PERSONAL_VERIFIED", Fa
 TRIAGE_CLAMD_SOCKET = env_str("TRIAGE_CLAMD_SOCKET")
 TRIAGE_CLAMD_PORT = env_int("TRIAGE_CLAMD_PORT", 0)
 TRIAGE_EMAIL_POLL_ENABLED = env_bool("TRIAGE_EMAIL_POLL_ENABLED", False)
+# OCR of scanned PDFs and images runs on its own Celery queue (triage_ocr) and costs worker
+# time: off by default; each office also needs TriagePolicy.ocr_enabled and a monthly budget.
+TRIAGE_OCR_ENABLED = env_bool("TRIAGE_OCR_ENABLED", False)
+TRIAGE_TESSERACT_CMD = env_str("TRIAGE_TESSERACT_CMD")
+TRIAGE_OCR_TIMEOUT = max(10, env_int("TRIAGE_OCR_TIMEOUT", 120))
+TRIAGE_OCR_MAX_PAGES = max(1, env_int("TRIAGE_OCR_MAX_PAGES", 10))
 TRIAGE_EMAIL_POLL_INTERVAL_MINUTES = max(1, env_int("TRIAGE_EMAIL_POLL_INTERVAL_MINUTES", 5))
 
 # Contributor distribution in the official NFS-e ADN. Disabled until the first
