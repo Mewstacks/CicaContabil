@@ -108,7 +108,9 @@ class SelfServiceSignupForm(forms.Form):
     cnpj = forms.CharField(
         max_length=18,
         label="CNPJ do escritório",
-        widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "off"}),
+        widget=forms.TextInput(
+            attrs={"autocapitalize": "characters", "autocomplete": "off", "spellcheck": "false"}
+        ),
     )
     accept_terms = forms.BooleanField(
         label="Li e aceito os Termos de Uso e a Política de Privacidade."

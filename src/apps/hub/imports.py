@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
+from apps.common.cnpj import strip_document
 from apps.hub.financial import AccountingBalanceInput, record_accounting_balance_snapshot
 from apps.hub.models import (
     AccountingBalanceSnapshot,
@@ -290,14 +291,14 @@ def _company_for_row(
     organization: Organization, data_source: DataSource, row: dict[str, str]
 ) -> ClientCompany | None:
     external = _pick(row, "codigo", "codigo_empresa", "external_key")
-    cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
+    cnpj = strip_document(_pick(row, "cnpj", "cnpj_empresa"))
     query = ClientCompany.objects.filter(organization=organization)
     if external:
         found = query.filter(data_source=data_source, external_key=external).first()
         if found:
             return found
     if len(cnpj) == 14:
-        matches = [company for company in query if re.sub(r"\D", "", company.cnpj_masked) == cnpj]
+        matches = [company for company in query if strip_document(company.cnpj_masked) == cnpj]
         same_source = next(
             (company for company in matches if company.data_source_id == data_source.id), None
         )
@@ -376,7 +377,7 @@ def validate_payroll_preview(
     for number, row in enumerate(rows, 2):
         messages_for_row: list[str] = []
         external = _pick(row, "codigo", "codigo_empresa", "external_key")
-        cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
+        cnpj = strip_document(_pick(row, "cnpj", "cnpj_empresa"))
         cache_key = (external, cnpj)
         cached = company_cache.get(cache_key)
         if cache_key not in company_cache:
@@ -793,7 +794,7 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
                 if batch.kind == ImportBatch.Kind.COMPANIES:
                     name = _pick(row, "nome", "razao_social", "empresa")
                     external = _pick(row, "codigo", "codigo_empresa", "external_key")
-                    cnpj = re.sub(r"\D", "", _pick(row, "cnpj", "cnpj_empresa"))
+                    cnpj = strip_document(_pick(row, "cnpj", "cnpj_empresa"))
                     if not name or (cnpj and len(cnpj) != 14):
                         raise ValueError("Informe nome e um CNPJ válido quando presente.")
                     defaults = {
@@ -803,7 +804,7 @@ def confirm_import(*, batch: ImportBatch, actor: User, request: object = None) -
                         "source_updated_at": batch.source_snapshot_at,
                     }
                     if cnpj and any(
-                        re.sub(r"\D", "", existing.cnpj_masked) == cnpj
+                        strip_document(existing.cnpj_masked) == cnpj
                         for existing in ClientCompany.objects.filter(
                             organization=batch.organization
                         )

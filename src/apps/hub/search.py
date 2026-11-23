@@ -36,6 +36,11 @@ def _digits(value: str) -> str:
     return re.sub(r"\D", "", value)
 
 
+def _alnum(value: str) -> str:
+    """Letters and digits of a query, for the alphanumeric CNPJ (Receita, jul/2026)."""
+    return re.sub(r"[^0-9A-Za-z]", "", value).upper()
+
+
 def search_workspace(
     *,
     query: str,
@@ -47,9 +52,10 @@ def search_workspace(
     if len(query) < MIN_QUERY_LENGTH:
         return []
     digits = _digits(query)
+    needle = _alnum(query)
     company_match = Q(name__icontains=query) | Q(dominio_code__iexact=query)
     company_rows = companies
-    if len(digits) >= 3:
+    if len(digits) >= 3 or len(needle) >= 3:
         company_rows = company_rows.annotate(
             cnpj_digits=Replace(
                 Replace(Replace("cnpj_masked", Value("."), Value("")), Value("/"), Value("")),
@@ -57,7 +63,10 @@ def search_workspace(
                 Value(""),
             )
         )
-        company_match |= Q(cnpj_digits__contains=digits)
+        if len(digits) >= 3:
+            company_match |= Q(cnpj_digits__contains=digits)
+        if len(needle) >= 3 and needle != digits:
+            company_match |= Q(cnpj_digits__icontains=needle)
     groups: list[SearchGroup] = []
     found_companies = [
         SearchResult(

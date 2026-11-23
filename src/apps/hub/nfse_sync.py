@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import os
-import re
 import ssl
 import tempfile
 from datetime import timedelta
@@ -26,7 +25,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from apps.common.cnpj import normalize_cnpj
+from apps.common.cnpj import cnpj_candidates, normalize_cnpj, strip_document
 from apps.hub.models import Certificate, NfseDocument, NfseDocumentSide, NfseSync
 from apps.hub.nfse_adn import AdnClient, AdnDocument, AdnPayloadError
 from apps.hub.nfse_facts import (
@@ -79,12 +78,7 @@ def _validate_certificate_company(parsed: x509.Certificate, stored: Certificate)
     company_cnpj = normalize_cnpj(stored.company.cnpj_masked)
     candidates: set[str] = set()
     for attribute in parsed.subject:
-        raw_value = str(attribute.value)
-        digits = re.sub(r"\D", "", raw_value)
-        if len(digits) == 14:
-            candidates.add(digits)
-        elif len(digits) > 14:
-            candidates.update(re.findall(r"(?<!\d)\d{14}(?!\d)", raw_value))
+        candidates |= cnpj_candidates(attribute.value)
     if not candidates:
         raise ValidationError(
             "O A1 não informa um CNPJ verificável. Use um e-CNPJ ICP-Brasil "
@@ -116,7 +110,7 @@ def _party_identifier(root: Any, group_names: set[str]) -> str:
                 continue
             if element.tag.rsplit("}", 1)[-1].casefold() not in {"cnpj", "cpf", "nif"}:
                 continue
-            identifier = re.sub(r"\D", "", element.text or "")
+            identifier = strip_document(element.text)
             if len(identifier) in {11, 14}:
                 return identifier
     return ""
@@ -330,7 +324,7 @@ def _first(values: dict[str, list[str]], *names: str) -> str:
 def _counterparty(values: dict[str, list[str]]) -> str:
     for name in ("CNPJ", "CPF", "NIF"):
         for value in values.get(name, []):
-            digits = re.sub(r"\D", "", value)
+            digits = strip_document(value)
             if len(digits) in {11, 14}:
                 return hashlib.sha256(digits.encode()).hexdigest()[:24]
     return ""

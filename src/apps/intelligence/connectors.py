@@ -137,7 +137,14 @@ def _metadata_value(row: object, name: str, position: int, default: object = "")
 
 def _format_cnpj(value: object) -> str:
     """Normalize a company identifier for authorized operational use."""
-    digits = "".join(character for character in str(value or "") if character.isdigit())
+    text = str(value or "").upper()
+    compact = re.sub(r"[./\-\s]", "", text)
+    # Alphanumeric CNPJ (Receita, jul/2026): letters in root and order, numeric check digits.
+    digits = (
+        compact
+        if re.fullmatch(r"[0-9A-Z]{12}[0-9]{2}", compact)
+        else "".join(character for character in text if character.isdigit())
+    )
     if len(digits) != 14:
         return ""
     return f"{digits[:2]}.{digits[2:5]}.{digits[5:8]}/{digits[8:12]}-{digits[12:]}"
