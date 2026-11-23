@@ -13052,3 +13052,12 @@ Confira uma fonte recebida”, e o quadro “Sem lançamento” da Conciliação
 esta empresa” com o botão “Buscar títulos e baixas”, e “Valores repetidos ou parecidos no Razão, sem regra
 ou aguardando o Razão”. Testes: `tests/test_direct_use_screens.py` ampliado; suíte SQLite completa 3.519
 aprovados, 59 skips, 0 falhas. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).
+
+## V-454 — Publicação da V-453 na release v124 (23/11/2026)
+
+PR #69 com CI aprovada (agent, agent-package, verify), mesclado em `7fd21cb`; `src/` da main idêntico ao
+commit publicado `75c614e`. Imagem OCI sobre a v123 (`67ea3396…`) só com os 2 templates alterados (sem
+estáticos, sem collectstatic): `sha256:d09cc290d4f8dce2a6fac9f33396f650749461f3210cfb1b865ecc92118adbb0`;
+247 camadas; os 2 arquivos iguais aos do commit. Configuração da v123 (`release-d396`), igual à ativa.
+**Release v124**: release_command sem migração; web e worker `started`, reserva parada; live, ready e
+site 200; logs sem erro. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).
