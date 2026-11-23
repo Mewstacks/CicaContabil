@@ -250,3 +250,80 @@ def test_review_page_requires_manager_permission(organization, settings, tmp_pat
     assert response.status_code in {403, 404}
     rule.refresh_from_db()
     assert rule.state == "draft"
+
+
+def test_confirmations_create_suggestions_automatically(setup, django_capture_on_commit_callbacks):
+    with django_capture_on_commit_callbacks(execute=True):
+        _load(setup, BASE)
+    labels = {evidence["label"] for _rule, evidence in ledger_rules(setup["account"])}
+    assert labels == {"LIQUIDACAO BOLETO", "RECEBIMENTO PIX JOSE"}
+    assert {rule.state for rule, _ in ledger_rules(setup["account"])} == {"draft"}
+
+
+def test_draft_without_current_evidence_is_retired_but_active_rules_stay(
+    setup, django_capture_on_commit_callbacks
+):
+    _load(setup, BASE)
+    create_drafts(setup["account"])
+    rules = dict((e["label"], r) for r, e in ledger_rules(setup["account"]))
+    pix = rules["RECEBIMENTO PIX JOSE"]
+    pix.state = "active"
+    pix.save(update_fields=["state"])
+    with django_capture_on_commit_callbacks(execute=True):
+        _load(
+            setup,
+            [
+                ("LIQUIDACAO BOLETO 1", -8001, "6.1"),
+                ("Recebimento Pix José 9", 8002, "5.1"),
+            ],
+            month="10",
+            tag="c",
+        )
+    boleto = rules["LIQUIDACAO BOLETO"]
+    boleto.refresh_from_db()
+    pix.refresh_from_db()
+    assert boleto.state == ReconciliationRule.State.DISABLED
+    assert pix.state == "active"  # a person activated it; the routine never changes it
+    assert AuditEvent.objects.filter(
+        target_id=str(boleto.pk), metadata__reason="sem_evidencia_atual"
+    ).exists()
+
+
+def test_refresh_failure_never_breaks_the_confirmation(
+    setup, django_capture_on_commit_callbacks, monkeypatch
+):
+    import apps.hub.depara_ledger as module
+
+    def boom(account):
+        raise RuntimeError("falha simulada")
+
+    monkeypatch.setattr(module, "create_drafts", boom)
+    with django_capture_on_commit_callbacks(execute=True):
+        source = _load(setup, BASE)
+    assert NormalizedMovement.objects.filter(
+        source_file=source, reconciliations__state="confirmed"
+    ).count() == len(BASE)
+    assert not ledger_rules(setup["account"])
+
+
+def test_create_all_covers_every_active_account(setup):
+    import io as _io
+    import json as _json
+
+    from django.core.management import call_command
+
+    _load(setup, BASE)
+    other_company = ClientCompany.objects.create(
+        organization=setup["org"], name="Outra", dominio_code="T2"
+    )
+    FinancialAccount.objects.create(
+        organization=setup["org"],
+        company=other_company,
+        name="Outro banco",
+        account_reference="001:999",
+        ledger_code="1.1",
+    )
+    output = _io.StringIO()
+    call_command("depara_razao", "create-all", organization=str(setup["org"].pk), stdout=output)
+    totals = _json.loads(output.getvalue())
+    assert totals == {"accounts": 2, "created": 2, "retired": 0, "failed": 0}

@@ -6006,3 +6006,22 @@ histórico cobrem 119–122 movimentos com 119/121 e 122/122 acertos no teste de
    chamada paga. Quando habilitada, a IA será primeiro medida às cegas contra o Razão e só
    sugere para padrões sem histórico, marcada como “IA — sem histórico”.
 6. Sem migração prevista; merge/deploy só com autorização.
+
+## D-392 — Sugestões DE-PARA pelo Razão geradas sozinhas para todas as contas (22/11/2026)
+
+Origem: responsável, 22/11/2026, “faz as sugestões aparecerem sozinhas, para todas empresas, e
+não somente para a SURIA”. Executor Claude Code. Complementa D-391.
+
+1. Sempre que pares extrato × Razão forem confirmados numa conta bancária — confirmação
+   automática D-388, “Confirmar coincidências” ou confirmação individual na ficha do movimento —,
+   a CICA recalcula, depois de gravada a confirmação, as sugestões DE-PARA daquela conta com as
+   mesmas regras de evidência da D-391 e cria em rascunho as que forem novas. Vale para qualquer
+   empresa e conta; não há lista fixa.
+2. Rascunho que deixou de ter evidência (passou a divergir, ou casaria movimento lançado em outra
+   conta) é retirado automaticamente (fica “Descartada”, com motivo em auditoria). Regra ativa ou
+   descartada por pessoa não é alterada pela rotina.
+3. A rotina nunca ativa regra, nunca reclassifica movimento e nunca interrompe a confirmação: uma
+   falha é registrada e a confirmação permanece.
+4. Para as contas que já têm pares confirmados antes desta mudança, rodar uma vez o comando para
+   todas as contas ativas do escritório. Sem migração, custo ou IA; merge/deploy só com
+   autorização explícita na sessão.

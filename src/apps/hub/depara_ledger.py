@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import unicodedata
 from collections import Counter, defaultdict
@@ -30,6 +31,7 @@ from apps.hub.models import (
 from apps.hub.reconciliation_bridge import independent_record
 from apps.hub.reconciliation_service import _matches_condition
 
+logger = logging.getLogger(__name__)
 SUGGESTED_ACTION = "hub.reconciliation.depara_ledger_suggested"
 RULE_PREFIX = "DE-PARA Razão"
 LEVELS = (
@@ -319,7 +321,38 @@ def create_drafts(account: FinancialAccount) -> dict[str, Any]:
             },
         )
         created.append(rule)
-    return {**result, "created": len(created), "existing": existing}
+    valid_names = {_rule_name(suggestion) for suggestion in result["suggestions"]}
+    retired = 0
+    for rule, _evidence in ledger_rules(account):
+        if rule.state != ReconciliationRule.State.DRAFT or rule.name in valid_names:
+            continue
+        rule.state = ReconciliationRule.State.DISABLED
+        rule.save(update_fields=["state", "updated_at"])
+        record_event(
+            action="hub.reconciliation.rule.state_changed",
+            actor=None,
+            organization=account.organization,
+            target=rule,
+            metadata={"state": "disabled", "reason": "sem_evidencia_atual", "decision": "D-392"},
+        )
+        retired += 1
+    return {**result, "created": len(created), "existing": existing, "retired": retired}
+
+
+def refresh_ledger_suggestions(account_id: Any) -> None:
+    """D-392: after confirmations commit, refresh this account's suggestions; never raises."""
+
+    def run() -> None:
+        try:
+            account = FinancialAccount.objects.select_related("company", "organization").get(
+                pk=account_id, active=True
+            )
+            create_drafts(account)
+        except Exception:
+            logger.exception("DE-PARA pelo Razão não atualizado para a conta %s", account_id)
+
+    if account_id:
+        transaction.on_commit(run)
 
 
 def suggestion_evidence(rule: ReconciliationRule) -> dict[str, Any] | None:

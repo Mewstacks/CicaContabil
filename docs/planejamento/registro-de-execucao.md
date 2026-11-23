@@ -4852,3 +4852,9 @@ Razão”. IA fica como segunda opinião, bloqueada até chave/limites e nova au
 
 D-391 publicada na release v116. As 14 regras sugeridas pelo Razão da SURIA foram criadas em
 rascunho, nenhuma ativa; a proprietária revisa e ativa em *Revisar DE-PARA → Sugestões pelo Razão*.
+
+## 22/11/2026 — D-392/V-437: DE-PARA automático para todas as contas
+
+As sugestões pelo Razão passam a ser recalculadas sozinhas sempre que pares extrato × Razão são
+confirmados em qualquer conta, e rascunhos sem evidência são retirados. Regras continuam sendo
+ativadas só por pessoa. Pendente: publicação e rodar `create-all` uma vez.
