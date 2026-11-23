@@ -6159,3 +6159,49 @@ Claude Code. O risco de lançamento em dobro (item 4.2, correção nº 4) fica f
    como a revisão humana, para a tela, o relatório e o CSV mostrarem “Entradas · título/nota” e o número
    da parcela; sem fonte legível, a parcela mostra só o código curto, sem “Parcela” repetido.
 Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
+## D-397 — Proteção contra lançamento em dobro e demais correções da revisão de 23/11/2026
+
+Origem: revisão completa da CONTAD (`docs/planejamento/revisao-contad-2026-11-23.md`) e responsável,
+23/11/2026, nesta sessão: “Sim, corrige tudo”, depois de lhe ser apresentada a recomendação de combinar
+releitura do Razão antes de exportar com janela de datas no “parecido”, e “Divide como proposto” para
+deixar com a D-396 (outra sessão) os itens 4.1, 4.3, 4.4 e os rótulos de títulos. Executor Claude Code,
+com a delegação de decisão da D-393 (“finalize tu o sistema, onde tu decidirá as questões”). Vale só para
+escritório em uso direto (D-393), salvo onde dito. Precisa, sem revogar, D-393 itens 1 e 3, D-394 e D-395.
+
+1. **“Parecido com o Razão” por janela de datas (D-393 item 3):** um movimento do extrato não gera
+   lançamento automático se houver registro do Razão da mesma conta, mesma direção e mesmo valor com data
+   até **5 dias corridos** antes ou depois, desde que esse registro não esteja confirmado com outro
+   movimento. Vale também para a escolha dos movimentos que a IA consulta (D-395).
+2. **Razão relido antes de exportar:** o lançamento automático (D-393) só entra no arquivo do Domínio
+   quando existir, para a conta e o mês dele, um Razão recebido **depois** da aprovação do lançamento. Os
+   demais ficam aguardando, com aviso e atalho para atualizar o Razão daquele mês. Na geração do arquivo, o
+   lançamento automático que passou a ter registro parecido (item 1) ou conferência com o Razão é
+   invalidado e não exportado. Lançamento aprovado por pessoa não muda.
+3. **Histórico com o documento:** o histórico do lançamento automático é o da regra seguido do histórico
+   do extrato (por exemplo “LIQUIDACAO BOLETO · LIQUIDACAO BOLETO 777”), limitado a 500 caracteres, para a
+   CONTAD reconhecer o documento no Domínio.
+4. **OFX de outra empresa (todos os escritórios):** importar com vínculo automático um OFX cuja conta
+   bancária já está cadastrada em outra empresa do escritório é recusado com o nome dessa empresa; nada é
+   vinculado nem importado. Leitura do OFX respeita `CHARSET:1252` (e tenta UTF-8, depois Windows-1252),
+   como já faz o CSV.
+5. **IA e rotina fora do clique:** a rotina D-393/D-395 disparada por confirmação ou chegada do Razão roda
+   em tarefa de fundo; só uma rodada por conta por vez (sem pagar duas vezes pela mesma pergunta). Se a
+   medição às cegas mais recente ficar abaixo de 90%, as regras da IA ativadas pela rotina voltam a
+   rascunho e seus lançamentos aprovados e não exportados são invalidados.
+6. **Títulos (D-394):** parcela com `vlor_*` negativo ou malformado fica sem interpretação (não usa
+   `vbru_*`); a lista de buscas só diz “interpretados automaticamente” quando houve fotografia, e diz que
+   falta conta bancária quando for o caso; criar conta bancária por qualquer caminho (descoberta, ficha ou
+   configuração) dispara a interpretação. Fica registrado o que o código já fazia: sem conta vinculada ao
+   Razão, usa a conta bancária ativa mais antiga (inclusive a lida do OFX sem Razão).
+7. **Opção “Conta do extrato, lida do OFX (sem Razão)”:** só para empresa sem conta de banco no plano do
+   Domínio (ou sem plano) e sem conta financeira ativa vinculada ao Razão, como diz D-393 item 6.
+8. **Telas no uso direto:** estados reais no lugar de “Aguardando revisão”/“conferência humana”/“A conferir”
+   (lançado pela CICA, exportado, parecido com o Razão, sem regra, conferido com o Razão); contagens de
+   lançados e de prontos para exportar; atalhos sem saída (fila “Conferir OFX”, registro de resultado de
+   importação sem homologação) ocultos; textos sem jargão nem IDs de decisão. Outros escritórios mantêm as
+   telas atuais.
+9. **Comandos:** escritório inválido gera erro claro; `titulos_auto` ignora empresa inativa;
+   `record_dominio_homologation --apply` recusa escritório em uso direto sem `--allow-direct-use`;
+   `uso_direto` informa se a IA está ligada e os tetos antes de aplicar.
+
+Sem migração, custo novo, IA ou mensagem externa; merge/deploy só com autorização explícita.

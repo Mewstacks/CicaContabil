@@ -86,6 +86,10 @@ def _decision(
 
     rule = RULES[family]
     suffix = spec["payment_type_field"].split("_", 1)[1]
+    net_raw = part.get(f"vlor_{suffix}")
+    net = _cents(net_raw)
+    if isinstance(net_raw, str) and net_raw.strip() and (net is None or net < 0):
+        return None  # D-397: negative or malformed net value is not proven; never fall back
     principal_field = next(
         (
             field

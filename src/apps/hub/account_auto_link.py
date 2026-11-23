@@ -150,6 +150,7 @@ def link_from_ofx(
     from apps.hub.reconciliation import read_ofx_account_identity
 
     identity = read_ofx_account_identity(content)
+    refuse_foreign_account(office, company, identity.account_reference)  # D-397
     discovery = latest_consistent_discovery(office)
     record = (
         ReconciliationCompanyDiscovery.objects.filter(
@@ -296,6 +297,13 @@ def statement_only_options(
     if company is None or not direct_use_enabled(company.organization):
         return []
     with_chart = {item["company_id"] for item in chart_options}
+    # D-397 item 7: a company already linked to the Razão keeps using its bank account.
+    with_chart |= {
+        str(pk)
+        for pk in FinancialAccount.objects.filter(
+            company__in=companies, active=True
+        ).exclude(ledger_code="").values_list("company_id", flat=True)
+    }
     return [
         {
             "value": f"{STATEMENT_PREFIX}{item.pk}",
@@ -321,6 +329,7 @@ def link_statement_only(
     identity = read_ofx_account_identity(content)
     if not identity.account_reference:
         raise AutoLinkError("O OFX não informa a conta bancária; nada foi importado.")
+    refuse_foreign_account(office, company, identity.account_reference)  # D-397
     existing = FinancialAccount.objects.filter(
         organization=office, company=company, account_reference=identity.account_reference
     ).first()
@@ -354,3 +363,20 @@ def link_statement_only(
         metadata={"decision": "D-393", "company_id": str(company.pk)},
     )
     return account
+
+
+def refuse_foreign_account(office: Any, company: ClientCompany, account_reference: str) -> None:
+    """D-397: an OFX whose bank account belongs to another company of the office is refused."""
+    if not account_reference:
+        return
+    other = (
+        FinancialAccount.objects.filter(organization=office, account_reference=account_reference)
+        .exclude(company=company)
+        .select_related("company")
+        .first()
+    )
+    if other is not None:
+        raise AutoLinkError(
+            f"Este extrato é da conta bancária já cadastrada na empresa {other.company.name}. "
+            "Confira a empresa escolhida; nada foi importado."
+        )

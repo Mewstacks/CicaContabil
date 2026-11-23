@@ -1314,3 +1314,24 @@ def interpret_company_titles(company_id: str) -> list[dict[str, object]]:
 
     company = ClientCompany.objects.select_related("organization").filter(pk=company_id).first()
     return interpret_company(company) if company else []
+
+
+@shared_task(name="hub.refresh_account_automation", bind=True)  # type: ignore[untyped-decorator]
+def refresh_account_automation(self: Any, account_id: str) -> str:
+    """D-392/D-393/D-395 after confirmations or a Razão arrival, outside the web request (D-397).
+
+    One run per bank account at a time: a concurrent trigger waits and runs afterwards, so the AI
+    is never asked twice for the same pattern and the person's click never waits for the provider.
+    """
+    from django.core.cache import cache
+
+    from apps.hub.depara_ledger import refresh_now
+
+    lock = f"hub:account-automation:{account_id}"
+    if not cache.add(lock, "1", timeout=900):
+        raise self.retry(countdown=60, max_retries=30)
+    try:
+        refresh_now(account_id)
+    finally:
+        cache.delete(lock)
+    return "ok"
