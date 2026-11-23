@@ -139,6 +139,8 @@ class DocumentType(OrganizationScopedModel):
     # (``ClientCompany.TaxRegime`` values). A ``ChecklistExpectation`` of one company wins.
     expected_default = models.BooleanField(default=False, db_default=False)
     expected_regimes = models.JSONField(default=list, blank=True, db_default=[])
+    # Day of the month after the period by which the document should have arrived.
+    due_day = models.PositiveSmallIntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ("label",)
@@ -209,6 +211,14 @@ class TriagePolicy(OrganizationScopedModel):
     # OCR for scanned PDFs and images; also needs ``TRIAGE_OCR_ENABLED`` and a free budget.
     ocr_enabled = models.BooleanField(default=False, db_default=False)
     ocr_monthly_pages = models.PositiveIntegerField(default=100, db_default=100)
+    # Raising it reclassifies this office's pending items with the current engine rules.
+    engine_version = models.PositiveSmallIntegerField(default=1, db_default=1)
+    # Opt-in: approve by itself only what the engine accepted. Default is review everything.
+    auto_approve = models.BooleanField(default=False, db_default=False)
+    # One in N auto-approvals still goes to a person (audit sample); 1 = every one.
+    auto_sample_every = models.PositiveSmallIntegerField(default=20, db_default=20)
+    # No auto-approval before this many documents were archived after a person's review.
+    auto_warmup = models.PositiveSmallIntegerField(default=30, db_default=30)
 
     def __str__(self) -> str:
         return f"triage policy {self.organization_id}"
@@ -279,6 +289,13 @@ class TriageItem(OrganizationScopedModel):
     # failed. ``ocr_text`` keeps the bounded result so reclassifying never repeats the OCR.
     ocr_state = models.CharField(max_length=12, blank=True, default="", db_default="")
     ocr_text = models.TextField(blank=True, default="", db_default="")
+    # Engine rules version this item was classified with, and the persisted confidence:
+    # {"company": {"score": 140, "margin": 90, "status": "accepted"}, "type": {...}}.
+    engine_version = models.PositiveSmallIntegerField(default=0, db_default=0)
+    scores = models.JSONField(default=dict, blank=True, db_default={})
+    # "" (a person decided), "auto" (approved by the engine), "sampled" (auto-eligible but kept
+    # for an audit review).
+    auto_decision = models.CharField(max_length=8, blank=True, default="", db_default="")
 
     reviewed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
@@ -467,6 +484,108 @@ class TriageOcrUsage(OrganizationScopedModel):
         item = self.triage_item
         if item is not None and item.organization_id != self.organization_id:
             raise ValidationError({"triage_item": "O arquivo pertence a outro escritório."})
+
+
+class LearnedLink(OrganizationScopedModel):
+    """A link an office taught the engine: a sender or a bank account belongs to a company.
+
+    Learned only from hard proofs (``LinkProof``). A person's correction of an archived
+    document blocks the link for good. Never crosses offices: the key is per office.
+    """
+
+    class Kind(models.TextChoices):
+        SENDER = "sender", "Remetente"
+        ACCOUNT = "account", "Conta bancária"
+
+    kind = models.CharField(max_length=8, choices=Kind.choices)
+    key = models.CharField(max_length=254)
+    company = models.ForeignKey(
+        "hub.ClientCompany", on_delete=models.CASCADE, related_name="triage_links"
+    )
+    blocked = models.BooleanField(default=False, db_default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "kind", "key", "company"), name="triage_unique_learned_link"
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "kind", "key"))]
+
+    def clean(self) -> None:
+        if self.company_id and self.company.organization_id != self.organization_id:
+            raise ValidationError({"company": "A empresa pertence a outro escritório."})
+
+
+class LinkProof(OrganizationScopedModel):
+    """One e-mail and one file that carried a hard proof for a ``LearnedLink`` (idempotent)."""
+
+    link = models.ForeignKey(LearnedLink, on_delete=models.CASCADE, related_name="proofs")
+    message_id = models.CharField(max_length=255, blank=True)
+    content_hash = models.CharField(max_length=64)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("link", "message_id", "content_hash"), name="triage_unique_link_proof"
+            )
+        ]
+
+    def clean(self) -> None:
+        if self.link_id and self.link.organization_id != self.organization_id:
+            raise ValidationError({"link": "O vínculo pertence a outro escritório."})
+
+
+class SenderRule(OrganizationScopedModel):
+    """A sender usually sends one type: each person's confirmation counts, three activate it."""
+
+    sender = models.CharField(max_length=254)
+    document_type = models.ForeignKey(
+        DocumentType, on_delete=models.CASCADE, related_name="sender_rules"
+    )
+    # Ids of the items whose confirmation was counted (bounded): replays never double count.
+    confirmed_items = models.JSONField(default=list, blank=True, db_default=[])
+    blocked = models.BooleanField(default=False, db_default=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "sender", "document_type"), name="triage_unique_sender_rule"
+            )
+        ]
+
+    def clean(self) -> None:
+        if self.document_type_id and self.document_type.organization_id != self.organization_id:
+            raise ValidationError({"document_type": "O tipo pertence a outro escritório."})
+
+
+class ExtractionRule(OrganizationScopedModel):
+    """Field rule taught by an operator: the text after an anchor names a company."""
+
+    class Mode(models.TextChoices):
+        COLON = "dois_pontos", "Depois de dois pontos"
+        NEXT_LINE = "linha_seguinte", "Linha seguinte"
+        CONTAINS = "contem", "Contém"
+
+    mode = models.CharField(max_length=16, choices=Mode.choices)
+    anchor = models.CharField(max_length=120, blank=True)
+    value = models.CharField(max_length=200)
+    company = models.ForeignKey(
+        "hub.ClientCompany", on_delete=models.CASCADE, related_name="triage_field_rules"
+    )
+    source_item = models.ForeignKey(
+        TriageItem, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    # Times a person corrected the company this rule produced; three switch it off.
+    errors = models.PositiveSmallIntegerField(default=0, db_default=0)
+    active = models.BooleanField(default=True, db_default=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "active"))]
+
+    def clean(self) -> None:
+        if self.company_id and self.company.organization_id != self.organization_id:
+            raise ValidationError({"company": "A empresa pertence a outro escritório."})
 
 
 class AgentFileJob(OrganizationScopedModel):
