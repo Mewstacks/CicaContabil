@@ -292,6 +292,8 @@ Critério: um fixture com CNPJ alfanumérico passa por cadastro, importação po
 
 **Fases.** A (agora): E0b, depois E13a, preparo do piloto E1b, E10 (T10.1–T10.2) e E11 (itens 1–3) em dois worktrees, E14 fatia 1. B: E10 (T10.3–T10.6), E11 (itens 4–8), E12. C: E15 e E16. No máximo 2 frentes de implementação ao mesmo tempo (regra de cota).
 
+**Estado E14 (23/11/2026).** Fatia 1 pronta na `integ/origin-main-sync`, tudo atrás de `SIMPLES_RADAR_ENABLED` (desligada): `hub/simples_radar.py` (receita de serviço por NFS-e ativa contra o teto, 80/90/100% sobre a razão exata, teto proporcional do MEI na abertura, Fator R só com 12 meses de folha), tela `app/nfse/teto/` com aba, planilha e filtro, e aviso diário para dono e administrador (`hub.notify_simples_radar`, 07:40). Limites em tabela com fonte e `confirmed=False`: conferir no portal oficial antes de ligar. O aviso usa a chave `simples_ceiling` fora do enum `Notification.Kind` porque o enum novo exige migração `AlterField`, barrada pela guarda L1; rótulo bonito depende de OK do dono. Falta: RBT12 oficial (PGDAS-D, E10) e declarado × apurado × pago.
+
 Divisão com a outra sessão: ela fica com `dominio-mcp/`, OAuth, `mcpgateway/`, relay, `intelligence/mcp.py` e `gateway.py`; esta frente fica com `integra/`, `triage/`, NFS-e por procuração e módulos novos, entregando as ferramentas como funções que o registro dela consome. **[N] A outra sessão ainda não respondeu à proposta.** Para não colidir no mesmo checkout, cada épico implementado vai para worktree próprio e views novas vão para módulos novos (`hub/views.py` tem mais de 12 mil linhas).
 
 ### Critérios de aceitação (nível de título; detalhar ao iniciar cada épico)
