@@ -4864,3 +4864,8 @@ ativadas só por pessoa. Pendente: publicação e rodar `create-all` uma vez.
 D-392 publicada na release v117; `create-all` rodado (1 conta, nada novo). O teste dependente do
 relógio `test_only_recent_official_can_change[change5]` falhou em duas CIs seguidas e precisou de
 reexecução: correção pendente.
+
+## 22/11/2026 — V-439: teste instável do relógio corrigido
+
+O teste que falhava quando a CI passava de 6 minutos calculava os horários na coleta; agora calcula
+na execução. Só teste; sem deploy.

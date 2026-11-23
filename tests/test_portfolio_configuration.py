@@ -208,11 +208,17 @@ def test_review_requires_exact_binding_coverage_and_compatible_version(prepared,
         {"status": "pending", "is_official": False},
         {"is_official": False},
         {"last_seen_at": None},
-        {"last_seen_at": timezone.now() - timedelta(minutes=6)},
-        {"last_seen_at": timezone.now() + timedelta(minutes=6)},
+        {"last_seen_at": timedelta(minutes=-6)},
+        {"last_seen_at": timedelta(minutes=6)},
     ],
 )
 def test_only_recent_official_can_change(prepared, change):
+    # Offsets are resolved when the test runs, not at collection: a long suite must not turn
+    # "six minutes ahead" into the past before this case executes.
+    change = {
+        key: timezone.now() + value if isinstance(value, timedelta) else value
+        for key, value in change.items()
+    }
     EdgeAgent.objects.filter(pk=prepared[0].pk).update(**change)
     with pytest.raises(ValueError):
         configure(prepared, apply=True)
