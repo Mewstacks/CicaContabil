@@ -345,21 +345,32 @@ def create_drafts(account: FinancialAccount) -> dict[str, Any]:
     return {**result, "created": len(created), "existing": existing, "retired": retired}
 
 
+def refresh_now(account_id: Any) -> None:
+    """D-392 suggestions, then the direct-use routine (D-393/D-395); never raises."""
+    try:
+        account = FinancialAccount.objects.select_related("company", "organization").get(
+            pk=account_id, active=True
+        )
+        create_drafts(account)
+    except Exception:
+        # D-397: a failure here no longer skips the direct-use routine.
+        logger.exception("DE-PARA pelo Razão não atualizado para a conta %s", account_id)
+    from apps.hub.direct_use import run_for_account_safely
+
+    run_for_account_safely(account_id)  # D-393; no-op outside direct-use offices
+
+
 def refresh_ledger_suggestions(account_id: Any) -> None:
-    """D-392: after confirmations commit, refresh this account's suggestions; never raises."""
+    """D-392: after confirmations commit, refresh in the worker (D-397: never in the request)."""
 
     def run() -> None:
         try:
-            account = FinancialAccount.objects.select_related("company", "organization").get(
-                pk=account_id, active=True
-            )
-            create_drafts(account)
-        except Exception:
-            logger.exception("DE-PARA pelo Razão não atualizado para a conta %s", account_id)
-            return
-        from apps.hub.direct_use import run_for_account_safely
+            from apps.hub.tasks import refresh_account_automation
 
-        run_for_account_safely(account_id)  # D-393; no-op outside direct-use offices
+            refresh_account_automation.delay(str(account_id))
+        except Exception:
+            logger.exception("Rotina da conta %s não agendada; executando agora", account_id)
+            refresh_now(account_id)
 
     if account_id:
         transaction.on_commit(run)

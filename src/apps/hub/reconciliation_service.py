@@ -2117,8 +2117,15 @@ def create_export(
         )
         .exclude(purpose="source_ledger")
     )
+    held = None
     if reexport_of is None:
-        query = query.filter(state=JournalEntry.State.APPROVED)
+        from apps.hub.double_booking import check_export
+
+        # D-397: automatic entries wait for a newer Razão; the ones it now covers are withdrawn.
+        held = check_export(
+            organization=organization, company=company, start=start, end=end, withdraw=True
+        )
+        query = query.filter(state=JournalEntry.State.APPROVED).exclude(id__in=held.held_ids)
     else:
         reexport_of = AccountingExport.objects.select_for_update().get(pk=reexport_of.pk)
         if not export_allowed(organization, target, reexport_of.adapter_version):
@@ -2145,6 +2152,8 @@ def create_export(
         query = query.filter(id__in=reexport_of.entry_ids)
     entries = list(query.prefetch_related("lines").order_by("occurred_on", "id"))
     if not entries:
+        if held is not None and held.held:
+            raise ReconciliationError(held.message())
         raise ReconciliationError("Não há lançamentos aprovados novos para exportar.")
     if reexport_of is None:
         selected_ids = {str(entry.pk) for entry in entries}

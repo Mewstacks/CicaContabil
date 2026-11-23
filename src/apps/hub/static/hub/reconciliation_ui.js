@@ -80,7 +80,8 @@
       }
       input.setCustomValidity(problems.join(' '));
       if (submit instanceof HTMLButtonElement) {
-        submit.textContent = files.length > 1 ? `Importar ${files.length} arquivos` : 'Importar arquivos';
+        const single = submit.dataset.singleLabel || 'Importar arquivos';
+        submit.textContent = files.length > 1 ? `Importar ${files.length} arquivos` : single;
       }
     };
     input.addEventListener('change', update);
@@ -154,7 +155,8 @@
       if (files) files.accept = independent ? '.csv' : '.ofx,.qfx,.csv,.xlsx,.pdf';
       if (independent && ledgerHelp) ledgerHelp.open = true;
       const label = form.querySelector('.reconciliation-dropzone-copy small');
-      if (label) label.textContent = independent
+      // D-398: the direct-use form has no purpose choice; keep its own help text.
+      if (label && purpose) label.textContent = independent
         ? 'CSV de partidas completas · até 20 arquivos de 25 MiB'
         : 'OFX, CSV, XLSX ou PDF · até 20 arquivos de 25 MiB';
     };

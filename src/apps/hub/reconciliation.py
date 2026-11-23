@@ -74,10 +74,18 @@ def _cents(value: str) -> int:
         raise OfxParseError("OFX sem valor válido em uma transação.") from exc
 
 
+def decode_ofx(content: bytes) -> str:
+    """D-397: Brazilian bank OFX is often Windows-1252 (``CHARSET:1252``); keep the accents."""
+    try:
+        return content.decode("utf-8")
+    except UnicodeDecodeError:
+        return content.decode("cp1252", errors="replace")
+
+
 def parse_ofx(content: bytes) -> ParsedStatement:
     """Parse OFX 1.x/2.x transaction tags without retaining the source file."""
 
-    text = content.decode("utf-8", errors="replace")
+    text = decode_ofx(content)
     if "OFX" not in text.upper():
         raise OfxParseError("Envie um arquivo OFX válido.")
     header = _tags(text)
@@ -157,7 +165,7 @@ def read_ofx_statement_balance(content: bytes) -> OfxStatementBalance | None:
         statement = parse_ofx(content)
     except OfxParseError:
         return None
-    text = content.decode("utf-8", errors="replace")
+    text = decode_ofx(content)
     blocks = list(_LEDGER_BALANCE.finditer(text))
     starts = re.findall(r"<DTSTART>([^<\r\n]+)", text, re.IGNORECASE)
     ends = re.findall(r"<DTEND>([^<\r\n]+)", text, re.IGNORECASE)
@@ -203,7 +211,7 @@ def read_ofx_account_identity(content: bytes) -> OfxAccountIdentity:
     """Validate with the import parser and return the identity the import will require."""
 
     statement = parse_ofx(content)
-    header = _tags(content.decode("utf-8", errors="replace"))
+    header = _tags(decode_ofx(content))
     dates = [transaction.occurred_on for transaction in statement.transactions]
     return OfxAccountIdentity(
         bank_id=header.get("BANKID", ""),

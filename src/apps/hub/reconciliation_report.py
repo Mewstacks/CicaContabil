@@ -444,9 +444,34 @@ def report_presentation_context(
                 "hash_label": "Hash registrado na importação",
             },
         )
+    from apps.hub.direct_use import direct_use_enabled
+
+    direct_use = direct_use_enabled(source.organization)
+    warnings = list(report["warnings"])
+    if direct_use:  # D-397: what the CICA did, not a pending human review
+        from apps.hub.direct_use_ui import movement_outcomes
+
+        outcomes = movement_outcomes(source.movements.select_related("financial_account"))
+        for section in sections:
+            if section["key"] != "bank":
+                continue
+            for row in section["rows"]:
+                outcome = outcomes.get(row["reference"])
+                if outcome and row["state"] != "confirmed":
+                    row["state_label"] = outcome["label"]
+                    row["state"] = "confirmed" if outcome["css"] == "is-active" else row["state"]
+            section["pending_count"] = sum(row["state"] != "confirmed" for row in section["rows"])
+        warnings = [
+            "Uso direto: o Razão é o recebido do Domínio; a CICA lança só o que falta nele."
+            if warning.startswith("A cobertura do Razão depende")
+            else warning
+            for warning in warnings
+        ]
     return {
         "report_source": source,
         "report_data": report,
+        "report_warnings": warnings,
+        "report_direct_use": direct_use,
         "report_sections": sections,
         "report_balances": balances,
         "report_sources": list(sources.values()),

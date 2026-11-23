@@ -146,7 +146,11 @@ def _ledger_links(
 @require_http_methods(["GET"])
 def depara_batches(request: HttpRequest) -> HttpResponse:
     context, account = title_workspace(request)
-    context.update(page_title="Revisar DE-PARA", depara_errors=[], depara_rows=[])
+    context.update(
+        page_title="Regras DE-PARA" if context.get("office_direct_use") else "Revisar DE-PARA",
+        depara_errors=[],
+        depara_rows=[],
+    )
     status = 200
     try:
         if has_duplicate_fields(request.GET, ("account", "page")):

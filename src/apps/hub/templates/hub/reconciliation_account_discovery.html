@@ -20,5 +20,5 @@
   {% else %}<div class="empty-block operational-empty account-candidate-empty"><strong>Aguardando consulta dos planos e contas</strong><span>A descoberta completa ainda não está disponível para este escritório. Os vínculos já cadastrados continuam acessíveis.</span><a class="button button-quiet" href="{% url 'hub:reconciliation-account-candidates' %}">Consultar vínculos existentes</a></div>{% endif %}
 </section>
 {% include 'hub/partials/discovery_pagination.html' %}
-<p class="account-candidate-note">O catálogo inclui as contas dos planos referenciados. A conta bancária só fica disponível para comparação depois que os dados ainda não comprovados forem conferidos.</p>
+{% if office_direct_use %}<p class="account-candidate-note">O catálogo inclui as contas dos planos referenciados. A conta do banco é vinculada sozinha quando você importa o OFX dela em Nova importação.</p>{% else %}<p class="account-candidate-note">O catálogo inclui as contas dos planos referenciados. A conta bancária só fica disponível para comparação depois que os dados ainda não comprovados forem conferidos.</p>{% endif %}
 {% endblock %}

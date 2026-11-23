@@ -47,7 +47,7 @@
   <section class="report-section" aria-labelledby="report-{{ section.key }}-title">
     <div class="report-section-heading">
       <h2 id="report-{{ section.key }}-title">{{ section.label }}</h2>
-      <span>{{ section.count }} registro{{ section.count|pluralize:'s' }} · {{ section.pending_count }} a conferir</span>
+      <span>{{ section.count }} registro{{ section.count|pluralize:'s' }} · {% if report_direct_use and section.key == 'bank' %}{{ section.pending_count }} sem lançamento{% else %}{{ section.pending_count }} a conferir{% endif %}</span>
     </div>
     {% if section.rows %}
     <table class="report-table">
@@ -78,7 +78,7 @@
     <ul>
       <li>Inclui todos os movimentos do extrato selecionado e os registros independentes do Razão recebidos para esta conta no período. Filtros de busca, situação e página não limitam este relatório.</li>
       <li>Conferido indica alocação integral registrada. Valores parciais ou zerados continuam a conferir. Este relatório não confirma movimentos, cobertura ou aceite final.</li>
-      {% for warning in report_data.warnings %}<li>{{ warning }}</li>{% endfor %}
+      {% for warning in report_warnings %}<li>{{ warning }}</li>{% endfor %}
     </ul>
   </aside>
 
@@ -90,6 +90,6 @@
       {% endfor %}
     </dl>
   </section>
-  <footer class="report-footer">Gerado em {{ report_generated_label }} · Consulta sem alteração de dados · Cobertura e aceite pendentes</footer>
+  <footer class="report-footer">Gerado em {{ report_generated_label }} · Consulta sem alteração de dados{% if not report_direct_use %} · Cobertura e aceite pendentes{% endif %}</footer>
 </main>
 {% endblock %}

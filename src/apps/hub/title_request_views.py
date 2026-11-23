@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -101,7 +101,8 @@ def _row(data: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
 
 
 def _initial(context: dict[str, Any], request: HttpRequest) -> TitleRequestForm:
-    month = _month_text(timezone.localdate())
+    # D-397: the last closed month by default, as in Extrato e Razão.
+    month = _month_text(timezone.localdate().replace(day=1) - timedelta(days=1))
     return TitleRequestForm(
         companies=context["companies"],
         initial={

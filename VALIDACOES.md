@@ -12896,3 +12896,161 @@ Conferência somente leitura: a única conta ativa da CONTAD (SURIA, empresa 212
 importação (evidência D-385) com `allowed_months = ["2026-09"]` — exatamente o caso do defeito 4.1.
 A partir da v121, o próximo OFX dela confirma e pede o Razão de cada mês coberto. Nenhum dado foi
 alterado nesta publicação; o item 4.2 (lançamento em dobro) segue com a sessão da revisão.
+## V-448 — D-397: lançamento em dobro e demais correções da revisão (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-revisao-restante` sobre `b60e4dd` (D-396, outra sessão),
+divisão autorizada pelo responsável (“Divide como proposto”). Base: relatório
+`docs/planejamento/revisao-contad-2026-11-23.md`, item 4.2 e seção 7 (itens 4 e 7–18).
+
+Implementado:
+1. `apps/hub/double_booking.py`: “parecido com o Razão” = registro livre (não confirmado com outro
+   movimento) da mesma conta, direção e valor até 5 dias; usado em `post_unbooked` e na escolha dos
+   alvos da IA. `check_export` (chamado em `create_export`) segura o lançamento automático sem Razão
+   lido depois da aprovação e invalida o que passou a ser coberto; `withdraw_covered` faz o mesmo a
+   cada rodada do uso direto. Histórico do lançamento automático = regra + texto do extrato.
+2. `decode_ofx` (UTF-8, senão Windows-1252); `refuse_foreign_account` em `link_from_ofx` e
+   `link_statement_only` (todos os escritórios); opção “sem Razão” omitida para empresa com conta
+   vinculada ao Razão.
+3. Tarefa `hub.refresh_account_automation` (sugestões D-392 + rotina D-393/D-395) fora da requisição,
+   com trava por conta em cache e nova tentativa; falha de `create_drafts` não impede mais a rotina.
+   IA: medição nova abaixo de 90% devolve a rascunho as regras da IA ativadas pela rotina e retira
+   seus lançamentos não exportados (`withdraw_rule_entries` da D-396).
+4. Títulos: `vlor_*` negativo ou malformado fica sem interpretação; lista de buscas diz o que
+   aconteceu (interpretado, sem conta, em andamento); sinal `post_save` de `FinancialAccount` agenda a
+   D-394 em qualquer criação de conta; revisão manual de parcela não é oferecida no uso direto.
+5. Comandos: `--organization` validado como UUID; `titulos_auto` só empresas ativas;
+   `record_dominio_homologation --apply` exige `--allow-direct-use` em escritório de uso direto;
+   `uso_direto` mostra se a IA está ligada e os tetos.
+6. Telas no uso direto (`apps/hub/direct_use_ui.py`): conferência, relatório e lista de movimentos
+   com o estado real de cada movimento (conferido com o Razão, lançado pela CICA, enviado ao Domínio,
+   parecido com o Razão, sem regra, aguardando o Razão, extrato sem Razão) e a regra pelo padrão em vez
+   do código; Visão geral com conferidos/lançados/sem lançamento e próxima ação de envio; Importações
+   sem “Aguardando revisão”; Exportações com prontos, aguardando Razão (com atalho), período padrão no
+   último mês fechado, mensagem sem hash e volta à lista; aba “Conferir OFX” e “Conferir importação”
+   ocultas; guia “Como usar” próprio; rodapés da carteira e de Contas do Domínio; “Regras DE-PARA”;
+   títulos sem “fotografia revisada” nem ID de decisão; competência padrão no último mês fechado em
+   Extrato e Razão e Buscar títulos; após importar, a página abre no topo com os avisos. Contador
+   “Conciliados” passa a contar os movimentos confirmados (antes sempre zero, todos os escritórios).
+   Anel de foco dos campos com 70% (antes 28%); datas e valores sem quebra na lista de movimentos.
+
+Testes: `tests/test_double_booking.py` (10: janela de datas e registro livre em duas empresas do mesmo
+escritório, `run_for_organization` idempotente, exportação segurada até Razão relido e retirada do
+que o escritório lançou um dia depois, arquivo lote 19 real com o histórico do extrato, aprovação
+por pessoa não segurada, escritório fora da lista inalterado, OFX 1252, OFX de outra empresa, opção sem
+Razão, trava da tarefa, UUID nos comandos) e `tests/test_review_remaining.py` (4: IA rebaixada,
+`vlor` negativo, mensagem da busca, sinal de conta nova); `test_direct_use.py` ajustado para exigir o
+Razão relido antes de exportar. Suíte SQLite completa: **3.512 aprovados, 59 skips, 0 falhas**;
+PostgreSQL 17 local descartável: **458 aprovados, 0 skips** em 21 módulos de uso direto, IA, títulos,
+importação, confirmação, exportação e Razão (inclui os testes de concorrência que o SQLite pula).
+Ruff ok; MyPy sem erro nos arquivos novos.
+
+Navegador (laboratório sintético, três escritórios em uso direto, 1366 px escuro e 375 px claro):
+Visão geral 22 = 17 conferidos + 1 lançado + 4 sem lançamento; exportação recusada com aviso até um
+Razão novo, depois gerada com 1 lançamento (“LIQUIDACAO BOLETO · LIQUIDACAO BOLETO 777”); conferência
+e relatório com os estados reais; títulos com “Entradas · título 0001/A · Parcela 1”; OFX da empresa
+212 recusado na 214 com o nome da 212; importação abre no topo com “Razão não foi pedido…” visível;
+zero rolagem horizontal e contraste de texto ok. Prints `depois-*` em
+`docs/planejamento/revisao-contad-2026-11-23/`.
+
+Limites: não publicado; nada lido ou escrito em produção; sem chamada à IA; leiaute do Domínio segue
+sem importação real (D-380); a regra de “Razão relido” exige um novo pedido do Razão antes de cada
+envio, o que depende do agente oficial ativo; janela de 5 dias pode deixar de lançar movimentos
+legítimos de mesmo valor em datas próximas (ficam como “parecido com o Razão”).
+
+## V-449 — Publicação da D-397 na release v122 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, 5 dias” para a janela da D-397 e
+“Pode fazer merge e deploy quando a CI passar”). PR #63 com CI aprovada nas três verificações (agent,
+agent-package, verify — esta com a regressão PostgreSQL completa, 27 min); mesclado em `cbe1724`, `src/`
+da main idêntico ao commit publicado `6e2321a`.
+
+Imagem OCI sobre a v121 (`fd73df43…`) com os 33 arquivos alterados de `src/` e collectstatic (941
+removidos, 240 copiados, 700 pós-processados, como nas releases com CSS):
+`sha256:b9c35b87dae7065b7b7e6caf6938e93719ad1f926bd802952efd5fb8b28fc0ae`; manifesto OCI, 233 gzip/11 zstd;
+SHA-256 dos 33 arquivos dentro da imagem iguais aos do commit; `manage.py check` sem problemas e
+`makemigrations --check` sem mudanças. Configuração de deploy = a da v121
+(`release-d396/config-deploy.toml`), conferida igual à configuração ativa (env, deploy, processos e VM;
+inclui `CICA_DIRECT_USE_ORGANIZATION_IDS` e `CICA_DEPARA_AI_ORGANIZATION_IDS`). Antes: v121, live/ready 200.
+
+**Release v122**: release_command concluído sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started` na nova imagem, reserva 18535e1c707538 parada; live, ready e site 200; CSS novo
+(`theme.ea671f03c97a.css`, com os blocos da D-397) servido; logs recentes sem erro.
+
+Não verificado: telas com sessão do escritório em produção (sem sessão no navegador) e a conferência
+somente leitura das contas da CONTAD pelo console (acesso ao shell de produção não autorizado nesta
+sessão). A tarefa `hub.refresh_account_automation` passa a rodar no worker a cada confirmação; os
+lançamentos automáticos já existentes ficam aguardando um Razão relido antes de entrar no arquivo.
+
+## V-450 — Conferência somente leitura da CONTAD em produção após a v122 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, libera” o console de produção para
+conferência somente leitura). Script enviado pelo `fly ssh console`, executado com `manage.py shell`
+dentro de `transaction.atomic()` com `SET TRANSACTION READ ONLY` e `set_rollback(True)`; escritório
+passado como `uuid.UUID`; nenhuma escrita, chamada à IA ou mensagem.
+
+Resultado: uso direto e IA habilitados para a CONTAD; 146 empresas ativas; **uma única conta financeira**
+(SURIA, Domínio 212), vinculada pela importação (D-385), com Razão só de 2026-09 e `allowed_months`
+= ["2026-09"] (a D-396 amplia no próximo OFX dela). Dos 163 movimentos: 159 conferidos com o Razão e
+4 “parecidos com o Razão” (mesma data e valor; já ficavam de fora antes da janela de 5 dias). Zero
+lançamentos da CICA, zero exportações, zero confirmações desfeitas, 14 regras DE-PARA ativas, nenhuma
+regra da IA e nenhuma conta bancária repetida entre empresas. Portanto a v122 não altera nenhum dado
+existente: nada fica retido pela regra do Razão relido e nada é retirado; as mudanças valem a partir dos
+próximos extratos.
+
+## V-451 — D-398: telas mais simples para a cliente em uso direto (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-telas-simples` a partir da main `1a4a120` (v122).
+Revisão das telas em produção com a sessão aberta pelo responsável no navegador do app (senha não
+digitada pelo executor), somente navegação GET: início, Conciliação (abas), importação (painel aberto e
+fechado sem envio), resultado do extrato da SURIA, carteira das 146 empresas, Contas do Domínio,
+títulos, buscas de títulos e DE-PARA.
+
+Achados que motivaram a D-398: início vazio (“Nenhuma atividade aberta”) sem caminho para a
+conciliação; 11 botões/atalhos concorrendo na Conciliação; painel de importação com tipo, origem, lote
+físico e Razão em CSV; bloco técnico de confirmações no resultado; os 4 movimentos não conferidos da
+SURIA estão no Razão com valores repetidos (dois pares de 912,00 e 200,00 no mesmo dia), mas
+apareciam como “parecido · escolha a correspondência”; 145 cartões “Sem conta cadastrada · Conferir
+configuração” na carteira; títulos exigindo escolher a única conta; DE-PARA com “Revisar” e “lotes”.
+
+Implementado (só em uso direto): “Conciliação bancária” com três passos e “Mais opções”; botão
+“Importar extrato” e painel só com empresa, conta e arquivo; “Resultado do extrato” com quadros que
+filtram a lista, “Mais opções” para confirmações/revisão opcional/CSV técnico, “No Razão · valor
+repetido” (registros do Razão do mesmo dia ≥ movimentos iguais) e “Valor repetido · um pode faltar no
+Razão” (menos registros que movimentos); carteira com “Sem extrato importado” e “Importar extrato”
+(abre a importação com a empresa escolhida), sem aviso de pré-cadastro; Títulos abre direto quando há
+uma só conta; DE-PARA “Regras DE-PARA / Do Razão / Ver regras”; início com “Conciliação
+bancária: importe o extrato e envie ao Domínio” e área de trabalho com os lançamentos para enviar.
+
+Testes: `tests/test_direct_use_screens.py` (7: jornada e importação simplificadas, outro escritório
+inalterado, valor repetido com um faltando, carteira com importação pré-preenchida, títulos direto,
+início, DE-PARA). Navegador (laboratório sintético, 1366 px escuro e 375 px claro): zero rolagem
+horizontal e zero falha de contraste nas telas alteradas; menu “Mais opções”, painel de importação,
+resultado, carteira, início e títulos conferidos. Prints `simples-*` em
+`docs/planejamento/revisao-contad-2026-11-23/`. Não publicado.
+
+## V-452 — Publicação da D-398 na release v123 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, publica”). PR #67 com CI aprovada
+nas três verificações (agent, agent-package, verify); mesclado em `6c91912`, `src/` da main idêntico ao
+commit publicado `d293c10`. Suíte SQLite completa antes do PR: 3.519 aprovados, 59 skips, 0 falhas.
+
+Imagem OCI sobre a v122 (`b9c35b87…`) com os 12 arquivos alterados e collectstatic (941 removidos, 240
+copiados, 700 pós-processados): `sha256:67ea339670d64db575a9082c644912f893753da606e8d010f1fc6062944a269a`;
+manifesto OCI, 246 camadas; SHA-256 dos 12 arquivos na imagem iguais aos do commit; `manage.py check` sem
+problemas e `makemigrations --check` sem mudanças. Configuração de deploy = a da v122 (`release-d396`),
+igual à ativa (env, deploy, processos, VM). Antes: v122, live/ready 200.
+
+**Release v123**: release_command concluído sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started` na nova imagem, reserva 18535e1c707538 parada; live, ready e site 200; CSS novo
+(`theme.b56acd437639.css`, com os blocos da D-398) servido; logs recentes sem erro. Telas com sessão do
+escritório não reabertas após o deploy: a sessão do navegador expirou (senha não digitada).
+
+## V-453 — D-398: dois textos restantes após a conferência da v123 (23/11/2026)
+
+Conferência em produção da v123 com a sessão aberta pelo responsável (somente navegação) mostrou dois
+textos ainda antigos no uso direto: *Títulos e baixas* sem títulos dizia “Ainda não há títulos revisados…
+Confira uma fonte recebida”, e o quadro “Sem lançamento” da Conciliação não citava os valores repetidos
+(caso dos 4 movimentos da SURIA). Corrigido, só no uso direto: “Ainda não há títulos lidos do Domínio para
+esta empresa” com o botão “Buscar títulos e baixas”, e “Valores repetidos ou parecidos no Razão, sem regra
+ou aguardando o Razão”. Testes: `tests/test_direct_use_screens.py` ampliado; suíte SQLite completa 3.519
+aprovados, 59 skips, 0 falhas. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).

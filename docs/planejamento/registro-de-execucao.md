@@ -1,3 +1,20 @@
+<!-- D398-V451-2026-11-23 -->
+## 23/11/2026 — D-398/V-451: telas mais simples no uso direto
+
+- [x] Revisão das telas em produção (somente navegação, sessão aberta pelo responsável).
+- [x] Decisão D-398 e simplificação da jornada (importar → resultado → enviar), com testes e navegador (V-451).
+- [x] PR #67 (CI aprovada), merge `6c91912` e publicação na release v123 (V-452).
+
+<!-- D397-V448-2026-11-23 -->
+## 23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão
+
+- [x] Revisão completa da CONTAD (relatório `docs/planejamento/revisao-contad-2026-11-23.md`, 24 prints).
+- [x] Decisão D-397 registrada antes do código (proteção contra lançamento em dobro e itens médios/baixos).
+- [x] Implementação, testes SQLite completos (3.512) e PostgreSQL 17 local (458), navegador em 1366/375 px (V-448).
+- [x] Janela de 5 dias do “parecido com o Razão” confirmada pelo responsável (“Sim, 5 dias”).
+- [x] PR #63 (CI aprovada), merge `cbe1724` e publicação na release v122 (V-449).
+- [x] Conferência somente leitura das contas reais em produção (V-450): só a SURIA tem conta; nada muda nos dados existentes.
+
 <!-- D396-V447-2026-11-23 -->
 ## 23/11/2026 — D-396/V-446/V-447: correções da revisão
 

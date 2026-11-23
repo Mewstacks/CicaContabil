@@ -1073,3 +1073,16 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 
 - [x] Captura de títulos interpretada sem revisão humana no uso direto (C01/C02 pelos tipos oficiais).
 - [x] Publicação v119 e `titulos_auto --apply` em produção (V-443); gravação depende de conta bancária na empresa.
+
+## Correções da revisão — D-396/D-397, V-446/V-448 (23/11/2026)
+
+- [x] Razão pedido para cada mês coberto pelo OFX em conta vinculada pela importação (D-396).
+- [x] Desfazer de confirmação automática não é refeito; uma falha não anula o mês (D-396).
+- [x] Regra retirada (Razão ou IA) invalida seus lançamentos não exportados (D-396).
+- [x] “Parecido com o Razão” por janela de 5 dias e lançamento da CICA exportado só após Razão relido (D-397).
+- [x] OFX Windows-1252, OFX de outra empresa recusado, rotina fora da requisição, IA rebaixada abaixo de 90% (D-397).
+- [x] Telas no uso direto com estados reais, contagens de lançados/enviados e pendências de exportação (D-397).
+- [x] D-396 publicada na release v121 (V-447, outra sessão).
+- [x] D-397 publicada na release v122 (V-449).
+- [x] Conferência somente leitura das contas da CONTAD em produção (V-450).
+

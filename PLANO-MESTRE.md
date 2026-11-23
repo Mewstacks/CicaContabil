@@ -1,3 +1,16 @@
+<!-- D398-V451-2026-11-23 -->
+**23/11/2026 — D-398/V-451/V-452: telas mais simples para a CONTAD, publicada na v123.**
+Depois de revisar as telas em produção: Conciliação bancária em três passos, importação só do extrato,
+resultado com quadros que filtram e valores repetidos explicados, carteira com “Importar extrato”,
+títulos direto e início com atalho. Só no uso direto. Publicada na v123 (imagem `sha256:67ea3396…`).
+
+<!-- D397-V448-2026-11-23 -->
+**23/11/2026 — D-397/V-448/V-449: lançamento em dobro e demais correções da revisão, publicada na v122.**
+Complementa a D-396 (v121). “Parecido com o Razão” em janela de 5 dias; lançamento da CICA só vai no
+arquivo após Razão relido; histórico com o texto do extrato; OFX Windows-1252; OFX de outra empresa
+recusado; rotina em tarefa de fundo; IA volta a rascunho abaixo de 90%; telas com os estados reais
+do uso direto. Publicada na v122 (imagem `sha256:b9c35b87…`); falta só conferir as contas reais.
+
 <!-- D396-V447-2026-11-23 -->
 **23/11/2026 — D-396/V-446/V-447: defeitos graves da revisão corrigidos e publicados na v121.**
 Razão pedido em todo mês do OFX (a SURIA estava presa só em setembro), desfazer que vale,
