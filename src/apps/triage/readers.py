@@ -17,6 +17,11 @@ TEXT_LIMIT = 256 * 1024
 PDF_PAGES = 3
 XLSX_SHEETS = 10
 XLSX_ROWS = 500
+XLSX_COLS = 50
+XLSX_CELL_CHARS = 500
+XLSX_MAX_PARTS = 500
+XLSX_MAX_EXPANDED = 50 * 1024 * 1024
+XLSX_MAX_RATIO = 100
 OCR_TEXT_THRESHOLD = 80  # characters of PDF text below which the page is a scan
 IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp"})
 _PLAIN = frozenset({".xml", ".csv", ".ofx", ".txt"})
@@ -60,7 +65,28 @@ def pdf_page_count(data: bytes) -> int:
         return 0
 
 
+def _xlsx_is_bounded(data: bytes) -> bool:
+    """Declared sizes and ratio checked before the parser inflates anything."""
+
+    import zipfile
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as package:
+            infos = package.infolist()
+    except (zipfile.BadZipFile, OSError, RuntimeError, NotImplementedError, EOFError):
+        return False
+    if len(infos) > XLSX_MAX_PARTS or sum(i.file_size for i in infos) > XLSX_MAX_EXPANDED:
+        return False
+    return not any(
+        i.file_size > 1024 * 1024
+        and (i.compress_size <= 0 or i.file_size / i.compress_size > XLSX_MAX_RATIO)
+        for i in infos
+    )
+
+
 def xlsx_text(data: bytes) -> str:
+    if not _xlsx_is_bounded(data):
+        return ""
     try:
         from openpyxl import load_workbook  # type: ignore[import-untyped]
 
@@ -68,13 +94,20 @@ def xlsx_text(data: bytes) -> str:
     except Exception:
         return ""
     rows: list[str] = []
+    size = 0
     try:
         for sheet in workbook.worksheets[:XLSX_SHEETS]:
             rows.append(f"PLANILHA: {sheet.title}")
-            for row in sheet.iter_rows(max_row=XLSX_ROWS, values_only=True):
-                rows.append(" | ".join(str(value) for value in row if value is not None))
-            if sum(len(row) for row in rows) > TEXT_LIMIT:
-                break
+            for row in sheet.iter_rows(
+                max_row=XLSX_ROWS, max_col=XLSX_COLS, values_only=True
+            ):
+                line = " | ".join(
+                    str(value)[:XLSX_CELL_CHARS] for value in row if value is not None
+                )
+                rows.append(line)
+                size += len(line)
+                if size > TEXT_LIMIT:
+                    return "\n".join(rows)[:TEXT_LIMIT]
     except Exception:  # noqa: S110 - a truncated sheet only loses hints
         pass
     finally:

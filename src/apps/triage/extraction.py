@@ -22,6 +22,7 @@ from django.utils import timezone
 
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import ClientCompany
+from apps.organizations.models import Organization
 from apps.triage import ocr
 from apps.triage.catalog import keyword_score
 from apps.triage.models import (
@@ -29,9 +30,10 @@ from apps.triage.models import (
     DocumentType,
     TriageEvent,
     TriageItem,
+    TriageOcrUsage,
     TriageSafetyScan,
 )
-from apps.triage.readers import IMAGE_SUFFIXES, needs_ocr, pdf_page_count, read_text
+from apps.triage.readers import IMAGE_SUFFIXES, needs_ocr, read_text
 from apps.triage.transitions import TriageStatus
 
 _TEXT_LIMIT = 256 * 1024
@@ -118,6 +120,7 @@ def _ocr_pending(item: TriageItem) -> bool:
         if item.updated_at < timezone.now() - timedelta(minutes=ocr.STALE_QUEUED_MINUTES):
             item.ocr_state = "failed"
             item.save(update_fields=["ocr_state", "updated_at"])
+            TriageOcrUsage.objects.filter(organization=item.organization, triage_item=item).delete()
             _ocr_event(item, "OCR sem resposta; seguindo sem ele")
             return False
         return True
@@ -126,8 +129,10 @@ def _ocr_pending(item: TriageItem) -> bool:
     data = _blob_bytes(item)
     if not needs_ocr(suffix, read_text(data, suffix)):
         return False
-    pages = 1 if suffix != ".pdf" else max(1, min(pdf_page_count(data), ocr.max_pages()))
-    blocker = ocr.ocr_blocker(item.organization, pages)
+    pages = 1 if suffix != ".pdf" else ocr.pdf_pages_for_ocr(data)
+    # Serialise the budget per office: check and reserve under one lock.
+    Organization.objects.select_for_update().filter(pk=item.organization_id).first()
+    blocker = "PDF ilegível para OCR." if pages < 1 else ocr.ocr_blocker(item.organization, pages)
     if blocker:
         item.ocr_state = "skipped"
         item.save(update_fields=["ocr_state", "updated_at"])
@@ -135,6 +140,7 @@ def _ocr_pending(item: TriageItem) -> bool:
         return False
     item.ocr_state = "queued"
     item.save(update_fields=["ocr_state", "updated_at"])
+    TriageOcrUsage.objects.create(organization=item.organization, triage_item=item, pages=pages)
     _ocr_event(item, "Texto insuficiente; enviado ao OCR")
     from apps.triage.tasks import ocr_triage_item
 

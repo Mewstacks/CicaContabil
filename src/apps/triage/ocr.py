@@ -136,9 +136,24 @@ def image_as_png(data: bytes) -> bytes:
     return output.getvalue()
 
 
-def run_ocr(data: bytes, suffix: str, engine: OcrEngine) -> tuple[str, int]:
-    """(text, pages read)."""
+def pdf_pages_for_ocr(data: bytes) -> int:
+    """Pages OCR would read, counted by the same engine that renders them (0 = refuse)."""
 
-    images = [image_as_png(data)] if suffix != ".pdf" else render_pdf_pages(data, max_pages())
+    import pypdfium2 as pdfium
+
+    try:
+        document = pdfium.PdfDocument(data)
+    except Exception:
+        return 0
+    try:
+        return int(min(len(document), max_pages()))
+    finally:
+        document.close()
+
+
+def run_ocr(data: bytes, suffix: str, engine: OcrEngine, limit: int) -> tuple[str, int]:
+    """(text, pages read); never more pages than the ``limit`` the budget approved."""
+
+    images = [image_as_png(data)] if suffix != ".pdf" else render_pdf_pages(data, limit)
     text = "\n\n".join(engine.read(image) for image in images)
     return text.replace("\x00", "")[:MAX_OCR_TEXT], len(images)

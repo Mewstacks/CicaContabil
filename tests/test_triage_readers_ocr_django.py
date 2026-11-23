@@ -182,6 +182,7 @@ class OcrGateTests(OcrCase):
         self.assertEqual(item.ocr_state, "skipped")
 
 
+@override_settings(TRIAGE_OCR_ENABLED=True)
 class OcrRunTests(OcrCase):
     def test_ocr_text_finds_the_company_and_the_item_reaches_review(self) -> None:
         self.enable()
@@ -270,3 +271,69 @@ class OcrRunTests(OcrCase):
         again = extract_item(item_id=item.pk)
         self.assertEqual(again.status, TriageStatus.AWAITING_REVIEW)
         self.assertEqual(again.ocr_state, "failed")
+
+
+class OcrReservationTests(OcrCase):
+    def test_pages_are_reserved_when_queued_so_two_items_cannot_overspend(self) -> None:
+        self.enable(ocr_monthly_pages=1)
+        first = self.run_extract(self.scanned("r1.pdf"), FakeEngine("x"))
+        second = self.run_extract(self.scanned("r2.pdf"), FakeEngine("x"))
+        self.assertEqual(first.ocr_state, "queued")
+        self.assertEqual(second.ocr_state, "skipped")
+        self.assertEqual(TriageOcrUsage.objects.get().pages, 1)
+
+    def test_failure_gives_the_reserved_pages_back(self) -> None:
+        self.enable(ocr_monthly_pages=1)
+        item = self.run_extract(self.scanned("r3.pdf"), FakeEngine("x"))
+        with (
+            override_settings(TRIAGE_OCR_ENABLED=True),
+            patch("apps.triage.ocr.get_engine", return_value=FakeEngine(fail=True)),
+        ):
+            ocr_triage_item(str(item.pk))
+        self.assertFalse(TriageOcrUsage.objects.exists())
+
+    def test_task_never_reads_more_pages_than_were_reserved(self) -> None:
+        self.enable()
+        item = self.run_extract(self.scanned("r4.pdf", pages=3), FakeEngine("x"))
+        TriageOcrUsage.objects.filter(triage_item=item).update(pages=1)
+        engine = FakeEngine("texto")
+        with (
+            override_settings(TRIAGE_OCR_ENABLED=True),
+            patch("apps.triage.ocr.get_engine", return_value=engine),
+        ):
+            ocr_triage_item(str(item.pk))
+        self.assertEqual(engine.calls, 1)
+
+    def test_switches_turned_off_while_queued_stop_the_run(self) -> None:
+        self.enable()
+        item = self.run_extract(self.scanned("r5.pdf"), FakeEngine("x"))
+        TriagePolicy.objects.filter(organization=self.office).update(ocr_enabled=False)
+        engine = FakeEngine("texto")
+        with (
+            override_settings(TRIAGE_OCR_ENABLED=True),
+            patch("apps.triage.ocr.get_engine", return_value=engine),
+        ):
+            ocr_triage_item(str(item.pk))
+        self.assertEqual(engine.calls, 0)
+        self.assertFalse(TriageOcrUsage.objects.exists())
+
+
+class XlsxBoundTests(TriageV2Case):
+    def test_expansion_bomb_is_not_parsed(self) -> None:
+        import zipfile
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as package:
+            package.writestr("[Content_Types].xml", "<a/>")
+            package.writestr("xl/sharedStrings.xml", "0" * (8 * 1024 * 1024))
+        with patch("openpyxl.load_workbook", side_effect=AssertionError("parsed")):
+            self.assertEqual(read_text(buffer.getvalue(), ".xlsx"), "")
+
+    def test_wide_rows_and_long_cells_are_capped(self) -> None:
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["x" * 5000] + ["c"] * 80)
+        buffer = io.BytesIO()
+        book.save(buffer)
+        text = read_text(buffer.getvalue(), ".xlsx")
+        self.assertLess(len(text), 1200)

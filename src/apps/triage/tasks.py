@@ -208,21 +208,30 @@ def ocr_triage_item(item_id: str) -> str:
         or item.ocr_state != "queued"
     ):
         return "skipped"
+    reservation = TriageOcrUsage.objects.filter(
+        organization=item.organization, triage_item=item
+    ).first()
+    approved = reservation.pages if reservation is not None else 0
     state, text, pages, note = "failed", "", 0, "OCR falhou; seguindo sem ele"
     engine = ocr.get_engine()
-    if engine is not None and not item.organization.is_demo:
+    # Switches may have changed while queued; the budget was reserved when it was queued.
+    still_allowed = not ocr.ocr_blocker(item.organization, 0)
+    if engine is not None and approved and still_allowed and not item.organization.is_demo:
         try:
-            text, pages = ocr.run_ocr(_blob_bytes(item), suffix_of(item.original_name), engine)
+            text, pages = ocr.run_ocr(
+                _blob_bytes(item), suffix_of(item.original_name), engine, approved
+            )
             state, note = "done", f"OCR concluído: {pages} página{'s' if pages != 1 else ''}"
         except Exception:  # an OCR failure must never strand the file
             text, pages = "", 0
     TriageItem.objects.filter(pk=item.pk, ocr_state="queued").update(
         ocr_state=state, ocr_text=text
     )
-    if pages:
-        TriageOcrUsage.objects.create(
-            organization=item.organization, triage_item=item, pages=pages
-        )
+    if reservation is not None:
+        if pages:
+            TriageOcrUsage.objects.filter(pk=reservation.pk).update(pages=pages)
+        else:
+            reservation.delete()  # nothing was read: give the pages back
     TriageEvent.objects.create(
         organization=item.organization,
         triage_item=item,
