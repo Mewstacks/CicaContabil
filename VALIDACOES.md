@@ -13025,3 +13025,20 @@ início, DE-PARA). Navegador (laboratório sintético, 1366 px escuro e 375 px c
 horizontal e zero falha de contraste nas telas alteradas; menu “Mais opções”, painel de importação,
 resultado, carteira, início e títulos conferidos. Prints `simples-*` em
 `docs/planejamento/revisao-contad-2026-11-23/`. Não publicado.
+
+## V-452 — Publicação da D-398 na release v123 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, publica”). PR #67 com CI aprovada
+nas três verificações (agent, agent-package, verify); mesclado em `6c91912`, `src/` da main idêntico ao
+commit publicado `d293c10`. Suíte SQLite completa antes do PR: 3.519 aprovados, 59 skips, 0 falhas.
+
+Imagem OCI sobre a v122 (`b9c35b87…`) com os 12 arquivos alterados e collectstatic (941 removidos, 240
+copiados, 700 pós-processados): `sha256:67ea339670d64db575a9082c644912f893753da606e8d010f1fc6062944a269a`;
+manifesto OCI, 246 camadas; SHA-256 dos 12 arquivos na imagem iguais aos do commit; `manage.py check` sem
+problemas e `makemigrations --check` sem mudanças. Configuração de deploy = a da v122 (`release-d396`),
+igual à ativa (env, deploy, processos, VM). Antes: v122, live/ready 200.
+
+**Release v123**: release_command concluído sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started` na nova imagem, reserva 18535e1c707538 parada; live, ready e site 200; CSS novo
+(`theme.b56acd437639.css`, com os blocos da D-398) servido; logs recentes sem erro. Telas com sessão do
+escritório não reabertas após o deploy: a sessão do navegador expirou (senha não digitada).

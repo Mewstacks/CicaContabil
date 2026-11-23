@@ -3,7 +3,7 @@
 
 - [x] Revisão das telas em produção (somente navegação, sessão aberta pelo responsável).
 - [x] Decisão D-398 e simplificação da jornada (importar → resultado → enviar), com testes e navegador (V-451).
-- [ ] PR, merge e publicação — com autorização do responsável.
+- [x] PR #67 (CI aprovada), merge `6c91912` e publicação na release v123 (V-452).
 
 <!-- D397-V448-2026-11-23 -->
 ## 23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão

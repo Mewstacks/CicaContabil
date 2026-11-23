@@ -1,8 +1,8 @@
 <!-- D398-V451-2026-11-23 -->
-**23/11/2026 — D-398/V-451: telas mais simples para a CONTAD (não publicada).**
+**23/11/2026 — D-398/V-451/V-452: telas mais simples para a CONTAD, publicada na v123.**
 Depois de revisar as telas em produção: Conciliação bancária em três passos, importação só do extrato,
 resultado com quadros que filtram e valores repetidos explicados, carteira com “Importar extrato”,
-títulos direto e início com atalho. Só no uso direto. Publicação depende de autorização.
+títulos direto e início com atalho. Só no uso direto. Publicada na v123 (imagem `sha256:67ea3396…`).
 
 <!-- D397-V448-2026-11-23 -->
 **23/11/2026 — D-397/V-448/V-449: lançamento em dobro e demais correções da revisão, publicada na v122.**
