@@ -5,7 +5,9 @@ nada fica esperando revisão de ninguém. Este guia substitui o treinamento.
 
 ## O dia a dia em 4 passos
 
-1. **Conciliação → Nova importação.** Escolha a empresa, a conta e anexe o **OFX** do mês.
+1. **Conciliação bancária → Importar extrato.** Escolha a empresa, a conta e anexe o **OFX** do mês.
+   (No início, “Abrir conciliação” leva direto para lá; na *Conciliação por empresa*, cada empresa sem
+   extrato tem o botão “Importar extrato”.)
    - Se a conta ainda não existe, escolha a conta do Domínio marcada “vincula pelo OFX”.
    - Se a empresa não tem conta de banco no plano do Domínio (ou não tem plano), escolha
      **“Conta do extrato, lida do OFX (sem Razão)”**. O extrato entra e pode ser consultado,
@@ -15,11 +17,12 @@ nada fica esperando revisão de ninguém. Este guia substitui o treinamento.
    - aprende com o Razão as regras DE-PARA e já as deixa **ativas**;
    - para os movimentos que **não estão no Razão** e que uma regra reconhece, gera e aprova o
      lançamento sozinha.
-3. **Abrir conferência** do extrato: cada movimento diz o que aconteceu — *Conferido com o Razão*,
-   *Lançado pela CICA*, *Enviado ao Domínio*, *Parecido com o Razão · não lançado* (há registro do
-   mesmo valor até 5 dias de diferença) ou *Sem regra · não lançado*. O relatório mostra saldos e
-   diferenças do mês.
-4. **Conciliação → Exportações → Validar e gerar arquivo.** O painel mostra quantos lançamentos estão
+3. **Ver resultado** do extrato: cada quadro mostra quantos movimentos tiveram cada destino (clique
+   para filtrar a lista) e cada movimento diz o que aconteceu — *Conferido com o Razão*,
+   *Lançado pela CICA*, *Enviado ao Domínio*, *No Razão · valor repetido*, *Parecido com o Razão · não
+   lançado* (há registro do mesmo valor até 5 dias de diferença) ou *Sem regra · não lançado*.
+   O relatório mostra saldos e diferenças do mês.
+4. **Conciliação bancária → Exportações → Validar e gerar arquivo.** O painel mostra quantos lançamentos estão
    prontos e quais aguardam o **Razão atualizado** daquele mês: antes de ir no arquivo, cada lançamento
    da CICA espera um Razão lido depois dele, para não duplicar o que o escritório já lançou à mão
    (clique em *Atualizar Razão*). Baixe o .txt e importe no Domínio: *Utilitários → Importação →

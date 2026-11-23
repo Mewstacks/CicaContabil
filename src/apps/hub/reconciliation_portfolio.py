@@ -348,6 +348,12 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
                 "label": "Revisar vínculos" if can_manage else "Ver vínculos pendentes",
                 "url": candidate_url,
             }]
+        if direct_use and not company_accounts and can_manage:
+            # D-398: in direct use the OFX itself links the account; import is the next step.
+            actions = [{"label": "Importar extrato", "url": _url("hub:reconciliation", {
+                "open_upload": "1", "upload_company": company.pk,
+                "upload_origin": "bank_statement",
+            })}]
         row = {
             "company": company, "accounts": company_accounts,
             "status": ordered_statuses[0], "status_label": STATUS_LABELS[ordered_statuses[0]],

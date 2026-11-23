@@ -1,3 +1,10 @@
+<!-- D398-V451-2026-11-23 -->
+## 23/11/2026 — D-398/V-451: telas mais simples no uso direto
+
+- [x] Revisão das telas em produção (somente navegação, sessão aberta pelo responsável).
+- [x] Decisão D-398 e simplificação da jornada (importar → resultado → enviar), com testes e navegador (V-451).
+- [ ] PR, merge e publicação — com autorização do responsável.
+
 <!-- D397-V448-2026-11-23 -->
 ## 23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão
 

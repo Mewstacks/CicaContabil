@@ -12994,3 +12994,34 @@ lançamentos da CICA, zero exportações, zero confirmações desfeitas, 14 regr
 regra da IA e nenhuma conta bancária repetida entre empresas. Portanto a v122 não altera nenhum dado
 existente: nada fica retido pela regra do Razão relido e nada é retirado; as mudanças valem a partir dos
 próximos extratos.
+
+## V-451 — D-398: telas mais simples para a cliente em uso direto (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-telas-simples` a partir da main `1a4a120` (v122).
+Revisão das telas em produção com a sessão aberta pelo responsável no navegador do app (senha não
+digitada pelo executor), somente navegação GET: início, Conciliação (abas), importação (painel aberto e
+fechado sem envio), resultado do extrato da SURIA, carteira das 146 empresas, Contas do Domínio,
+títulos, buscas de títulos e DE-PARA.
+
+Achados que motivaram a D-398: início vazio (“Nenhuma atividade aberta”) sem caminho para a
+conciliação; 11 botões/atalhos concorrendo na Conciliação; painel de importação com tipo, origem, lote
+físico e Razão em CSV; bloco técnico de confirmações no resultado; os 4 movimentos não conferidos da
+SURIA estão no Razão com valores repetidos (dois pares de 912,00 e 200,00 no mesmo dia), mas
+apareciam como “parecido · escolha a correspondência”; 145 cartões “Sem conta cadastrada · Conferir
+configuração” na carteira; títulos exigindo escolher a única conta; DE-PARA com “Revisar” e “lotes”.
+
+Implementado (só em uso direto): “Conciliação bancária” com três passos e “Mais opções”; botão
+“Importar extrato” e painel só com empresa, conta e arquivo; “Resultado do extrato” com quadros que
+filtram a lista, “Mais opções” para confirmações/revisão opcional/CSV técnico, “No Razão · valor
+repetido” (registros do Razão do mesmo dia ≥ movimentos iguais) e “Valor repetido · um pode faltar no
+Razão” (menos registros que movimentos); carteira com “Sem extrato importado” e “Importar extrato”
+(abre a importação com a empresa escolhida), sem aviso de pré-cadastro; Títulos abre direto quando há
+uma só conta; DE-PARA “Regras DE-PARA / Do Razão / Ver regras”; início com “Conciliação
+bancária: importe o extrato e envie ao Domínio” e área de trabalho com os lançamentos para enviar.
+
+Testes: `tests/test_direct_use_screens.py` (7: jornada e importação simplificadas, outro escritório
+inalterado, valor repetido com um faltando, carteira com importação pré-preenchida, títulos direto,
+início, DE-PARA). Navegador (laboratório sintético, 1366 px escuro e 375 px claro): zero rolagem
+horizontal e zero falha de contraste nas telas alteradas; menu “Mais opções”, painel de importação,
+resultado, carteira, início e títulos conferidos. Prints `simples-*` em
+`docs/planejamento/revisao-contad-2026-11-23/`. Não publicado.
