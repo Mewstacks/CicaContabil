@@ -12824,3 +12824,24 @@ Chamada real única à API (dados sintéticos, chave lida do arquivo 0600 de V-3
 HTTP 200, `claude-haiku-5-5`, `end_turn`, JSON no esquema (tarifa → conta de tarifas, Pix recebido
 → receita, histórico sem sentido → “nenhuma”); 113 tokens de entrada + 566 em criação de cache e 58
 de saída (≈ US$ 0,0001). Nenhum dado da CONTAD enviado neste teste.
+
+## V-445 — Publicação da D-395 na release v120 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, publicar tudo”, depois de o primeiro
+deploy ter sido barrado pela proteção de permissões da sessão por falta dessa autorização). Deploy e
+merge (`PR #59`) com o CI em andamento, apoiados na suíte SQLite completa (3.491) e nos 66 testes
+em PostgreSQL local; src/ da main idêntico ao commit publicado `e359428`.
+
+Segredo `CICA_CLAUDE_API_KEY` já estava instalado no Fly; conferido por resumo SHA-256 (16 primeiros
+hexadecimais, sem exibir o valor) que é a mesma chave de V-390. Não foi alterado.
+
+Imagem OCI sobre a v119 (`031fb773…`) com os 3 arquivos alterados:
+`sha256:91d1902f446b681e26fa4bb1200c18e305607fdb626072a77045fccc36779594`; 230 gzip/11 zstd; os 3
+arquivos idênticos ao commit e `title_auto.py` da v119 preservado. Configuração de deploy da v119 +
+`CICA_DEPARA_AI_ORGANIZATION_IDS` (UUID da CONTAD). **Release v120**: release_command ok sem migração;
+web e worker `started`, reserva parada; live/ready 200; arquivo e variável nas duas máquinas.
+
+`uso_direto --apply` em produção: 1 conta (SURIA), 0 alvos para a IA (os 4 movimentos não
+confirmados têm registro parecido no Razão), 0 chamadas, 0 `EgressAudit depara_auto`, 0 regras de
+IA; 14 regras do Razão seguem ativas. A IA passa a ser consultada quando entrarem extratos novos com
+movimentos sem regra e fora do Razão. Medição às cegas em dados reais ainda não ocorreu.

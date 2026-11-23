@@ -1,3 +1,10 @@
+<!-- D395-V445-2026-11-23 -->
+**23/11/2026 — D-395/V-444/V-445: DE-PARA com IA (Haiku 5.5) publicado na v120.**
+Para movimentos sem regra e fora do Razão, a IA escolhe a contrapartida entre as contas que a
+empresa já usa; só ativa sozinha se acertar ≥90% às cegas contra o Razão. Teto US$ 1/dia e
+US$ 5/mês; Grazi autorizou o envio (informado pelo responsável). Na publicação não havia
+movimento a perguntar: zero chamadas e zero custo.
+
 <!-- D394-V442-2026-11-23 -->
 **23/11/2026 — D-394/V-442/V-443: títulos e baixas interpretados automaticamente, publicado na v119.**
 No uso direto, cada captura de títulos vira fotografia sem revisão humana, pela leitura oficial
