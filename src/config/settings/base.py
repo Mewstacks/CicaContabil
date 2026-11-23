@@ -409,6 +409,11 @@ INTEGRA_CERTIFICATE_PASSWORD = env_str("INTEGRA_CERTIFICATE_PASSWORD")
 INTEGRA_CONTRATANTE_CNPJ = env_str("INTEGRA_CONTRATANTE_CNPJ")
 INTEGRA_AUTOR_PEDIDO_CNPJ = env_str("INTEGRA_AUTOR_PEDIDO_CNPJ")
 CICA_CLAUDE_API_KEY = env_str("CICA_CLAUDE_API_KEY")
+# D-395: DE-PARA second opinion, only for listed offices in direct use, with a global spend cap.
+CICA_DEPARA_AI_ORGANIZATION_IDS = env_list("CICA_DEPARA_AI_ORGANIZATION_IDS")
+CICA_DEPARA_AI_MODEL = env_str("CICA_DEPARA_AI_MODEL", "claude-haiku-5-5")
+CICA_DEPARA_AI_DAILY_CENTS = env_int("CICA_DEPARA_AI_DAILY_CENTS", 100)
+CICA_DEPARA_AI_MONTHLY_CENTS = env_int("CICA_DEPARA_AI_MONTHLY_CENTS", 500)
 
 # The product owns provider apps; each office only consents to its own mailbox.
 # Keep both providers off until Mewstack has registered and homologated the apps.

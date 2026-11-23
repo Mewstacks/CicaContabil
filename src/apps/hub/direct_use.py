@@ -59,7 +59,7 @@ def _activated_by_routine(rule: ReconciliationRule) -> bool:
     return bool(
         event is not None
         and event.actor_id is None
-        and (event.metadata or {}).get("decision") == DECISION
+        and (event.metadata or {}).get("decision") in {DECISION, "D-395"}
     )
 
 
@@ -221,10 +221,19 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
 
 
 def run_for_account(account: FinancialAccount) -> dict[str, int]:
-    """Activate this account's Razão rules and post what the Razão does not have."""
+    """Razão rules first, then the AI second opinion (D-395), then post what is missing."""
     if not direct_use_enabled(account.organization):
         return {}
-    return {**activate_ledger_rules(account), **post_unbooked(account)}
+    from apps.hub.depara_ai_auto import retire_contradicted, suggest
+
+    retired = retire_contradicted(account)
+    result: dict[str, int] = {"ai_retired": retired, **activate_ledger_rules(account)}
+    try:
+        result.update(suggest(account))
+    except Exception:  # spend cap, provider or parsing: posting still runs
+        logger.exception("DE-PARA com IA (D-395) não executado na conta %s", account.pk)
+        result["ai_failed"] = 1
+    return {**result, **post_unbooked(account)}
 
 
 def run_for_account_safely(account_id: Any) -> None:
