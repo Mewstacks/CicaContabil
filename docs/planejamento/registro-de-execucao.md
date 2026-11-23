@@ -1,3 +1,11 @@
+<!-- PLANO-LOTES-2026-11-23 -->
+## 23/11/2026 — Plano de entrada das empresas em lotes (proposta)
+
+- [x] Verificação do que falta para a CONTAD usar todas as empresas, feita só com leitura de documentos e código da main (v122).
+- [x] Distribuição das 146 empresas a partir do catálogo real de 17/11 (SHA `7bbbd36b…cf35`), conferida contra V-432 e D-381: [plano](../pt-BR/contad-plano-entrada-empresas.md).
+- [ ] Aprovação do responsável e registro da decisão antes do lote 0.
+- [ ] Lote 0 (arquivo no Domínio) e lotes 1–7 com conferência técnica registrada em VALIDACOES.
+
 <!-- D397-V448-2026-11-23 -->
 ## 23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão
 
