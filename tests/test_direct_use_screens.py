@@ -27,6 +27,7 @@ def test_overview_and_import_show_only_the_main_journey(enabled):  # noqa: F811
     assert 'name="origin" value="bank_statement"' in html
     assert "Lote físico" not in html and "Como preparar o Razão" not in html
     assert "Prévia para conferência" not in html
+    assert "Valores repetidos ou parecidos no Razão" in html
 
 
 def test_other_offices_keep_the_current_screens(setup):  # noqa: F811
@@ -70,6 +71,8 @@ def test_titles_open_the_only_account_directly(enabled):  # noqa: F811
     response = enabled["client"].get(reverse("hub:reconciliation-titles"))
     assert response.status_code == 302
     assert response["Location"].endswith(f"?account={enabled['account'].pk}")
+    html = enabled["client"].get(response["Location"]).content.decode()
+    assert "Ainda não há títulos lidos do Domínio" in html and "revisados" not in html
 
 
 def test_home_points_to_the_bank_reconciliation(enabled):  # noqa: F811
