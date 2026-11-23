@@ -1,3 +1,10 @@
+<!-- D396-V447-2026-11-23 -->
+## 23/11/2026 — D-396/V-446/V-447: correções da revisão
+
+- [x] Decisão D-396 e correções dos itens 4.1, 4.3, 4.4 e rótulos de títulos, com testes que reproduzem cada defeito (V-446).
+- [x] Publicação v121 e merge do PR #61 (V-447).
+- [ ] Item 4.2 (lançamento em dobro) e itens médios/baixos — sessão da revisão, com decisão do responsável.
+
 <!-- D395-V445-2026-11-23 -->
 ## 23/11/2026 — D-395/V-444/V-445: DE-PARA com IA
 
