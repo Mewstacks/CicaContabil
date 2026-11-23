@@ -135,3 +135,60 @@ def test_imports_list_offers_the_conference(web, discovered):
     html = web["client"].get(reverse("hub:reconciliation")).content.decode()
     assert reverse("hub:reconciliation-source-review", args=[source.pk]) in html
     assert "Abrir conferência" in html
+
+
+def _ofx_dates(dates, prefix="D396"):
+    transactions = "".join(
+        f"<STMTTRN><TRNTYPE>DEBIT<DTPOSTED>{day}<TRNAMT>-1{index}.50"
+        f"<FITID>{prefix}-{index}<MEMO>Movimento sintetico {index}</STMTTRN>"
+        for index, day in enumerate(dates)
+    )
+    return (
+        "OFXHEADER:100\nDATA:OFXSGML\n<OFX><BANKMSGSRSV1><STMTTRNRS><STMTRS>"
+        "<BANKACCTFROM><BANKID>748<BRANCHID>0101<ACCTID>00012345-6"
+        f"<ACCTTYPE>CHECKING</BANKACCTFROM><BANKTRANLIST>{transactions}</BANKTRANLIST>"
+        "</STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>"
+    ).encode()
+
+
+def test_second_month_and_crossing_months_request_every_razao(web, discovered, organization):
+    """D-396: an import-made link (D-385) extends itself to each month the OFX covers."""
+    from django.utils import timezone
+
+    from apps.intelligence.models import EdgeAgent, NativeLedgerCollection
+
+    EdgeAgent.objects.create(
+        organization=organization,
+        label="Conexão sintética",
+        fingerprint="synthetic-auto-ledger",
+        shared_secret="synthetic-only",
+        status="active",
+        is_official=True,
+        last_seen_at=timezone.now(),
+    )
+    coverage = web["coverage"]
+    send(web["client"], coverage, f"dominio:{bank(discovered).pk}", [upload(synthetic_ofx())])
+    account = FinancialAccount.objects.get()
+    response = send(
+        web["client"],
+        coverage,
+        str(account.pk),
+        [upload(_ofx_dates(["20260928", "20261002"]), "cruza.ofx")],
+        origin="bank_statement",
+    )
+    assert response.status_code == 302
+    months = sorted(NativeLedgerCollection.objects.values_list("scope__period_start", flat=True))
+    assert months == ["2026-09-01", "2026-10-01"]
+    mapping = ReconciliationLedgerMapping.objects.get(financial_account=account)
+    assert mapping.provenance["period_scope"]["allowed_months"] == ["2026-09", "2026-10"]
+    assert mapping.scope["bank_account_code"] == 901
+    response = send(
+        web["client"],
+        coverage,
+        str(account.pk),
+        [upload(_ofx_dates(["20261105", "20261110"], "NOV"), "nov.ofx")],
+        origin="bank_statement",
+    )
+    assert response.status_code == 302
+    assert "month=2026-11" in response["Location"]
+    assert NativeLedgerCollection.objects.filter(scope__period_start="2026-11-01").exists()

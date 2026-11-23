@@ -188,8 +188,9 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
                     continue
                 movement = apply_rules(movement)
                 if (
-                    movement.classification_source
-                    != NormalizedMovement.ClassificationSource.RULE
+                    movement.classification_source != NormalizedMovement.ClassificationSource.RULE
+                    or movement.applied_rule is None
+                    or movement.applied_rule.state != ReconciliationRule.State.ACTIVE
                     or movement.review_state != NormalizedMovement.ReviewState.READY
                     or not movement.debit_account_code
                     or not movement.credit_account_code
@@ -218,6 +219,60 @@ def post_unbooked(account: FinancialAccount) -> dict[str, int]:
             failed += 1
             logger.exception("Lançamento D-393 não gerado para o movimento %s", movement.pk)
     return {"posted": posted, "skipped_similar": similar, "failed": failed}
+
+
+def withdraw_rule_entries(rule: ReconciliationRule) -> int:
+    """D-396: a rule the routine retired takes back its unexported automatic entries.
+
+    Only entries approved by the routine (no person) and not exported are invalidated; the
+    movement returns to "no classification" so a current rule (or the AI) can classify it again.
+    """
+    withdrawn = 0
+    movements = NormalizedMovement.objects.filter(
+        organization_id=rule.organization_id,
+        applied_rule=rule,
+        classification_source=NormalizedMovement.ClassificationSource.RULE,
+        edited_by__isnull=True,
+    )
+    for movement in movements:
+        entries = movement.journal_entries.all()
+        if entries.filter(state=JournalEntry.State.EXPORTED).exists():
+            continue
+        if entries.filter(state=JournalEntry.State.APPROVED, approved_by__isnull=False).exists():
+            continue  # a person approved it: never undone by the routine
+        for entry in entries.filter(
+            state__in=[JournalEntry.State.DRAFT, JournalEntry.State.APPROVED]
+        ):
+            entry.state = JournalEntry.State.INVALID
+            entry.save(update_fields=["state", "updated_at"])
+            record_event(
+                action="hub.reconciliation.direct_use_withdrawn",
+                actor=None,
+                organization=rule.organization,
+                target=entry,
+                metadata={"decision": "D-396", "rule_id": str(rule.pk)},
+            )
+            withdrawn += 1
+        movement.classification_source = NormalizedMovement.ClassificationSource.NONE
+        movement.applied_rule = None
+        movement.debit_account_code = ""
+        movement.credit_account_code = ""
+        movement.cost_center_code = ""
+        movement.accounting_history = ""
+        movement.review_state = NormalizedMovement.ReviewState.PENDING
+        movement.save(
+            update_fields=[
+                "classification_source",
+                "applied_rule",
+                "debit_account_code",
+                "credit_account_code",
+                "cost_center_code",
+                "accounting_history",
+                "review_state",
+                "updated_at",
+            ]
+        )
+    return withdrawn
 
 
 def run_for_account(account: FinancialAccount) -> dict[str, int]:

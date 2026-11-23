@@ -18,6 +18,7 @@ from apps.intelligence.native_title_review import load_native_source, source_ins
 ACTIONS = (
     "hub.reconciliation.native_title_ui_reviewed",
     "hub.reconciliation.native_titles_translated",
+    "hub.reconciliation.native_titles_auto_interpreted",  # D-394/D-396
 )
 
 
@@ -35,7 +36,12 @@ def enrich_title_labels(*, data: dict[str, Any], account: FinancialAccount, acto
     rows = [*data["installment_rows"], *data["settlement_rows"]]
     for row in rows:
         row["title_label"] = _short(row["title_key"], "Título")
-        row["installment_label"] = _short(row["installment_key"], "Parcela")
+        # The templates already say "Parcela"; the fallback is only the short code (D-396).
+        row["installment_label"] = (
+            row["installment_key"][:8]
+            if re.fullmatch(r"[0-9a-f]{64}", row["installment_key"])
+            else row["installment_key"]
+        )
         if "settlement_key" in row:
             row["settlement_label"] = _short(row["settlement_key"], "Baixa")
         row["label"] = f"{row['title_label']} · parcela {row['installment_label']}"

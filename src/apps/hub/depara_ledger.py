@@ -338,6 +338,9 @@ def create_drafts(account: FinancialAccount) -> dict[str, Any]:
             target=rule,
             metadata={"state": "disabled", "reason": "sem_evidencia_atual", "decision": "D-392"},
         )
+        from apps.hub.direct_use import withdraw_rule_entries
+
+        withdraw_rule_entries(rule)  # D-396
         retired += 1
     return {**result, "created": len(created), "existing": existing, "retired": retired}
 

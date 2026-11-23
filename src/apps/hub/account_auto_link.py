@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from datetime import timedelta
 from typing import Any
 
 from django.db.models import Q, QuerySet
@@ -131,8 +132,14 @@ def link_from_ofx(
     actor: Any,
     authorized_companies: QuerySet[ClientCompany],
     request: Any = None,
+    month: str | None = None,
+    linked_scope: dict[str, Any] | None = None,
 ) -> FinancialAccount:
-    """Create the bank link of one chart account from the OFX identity (D-385)."""
+    """Create the bank link of one chart account from the OFX identity (D-385).
+
+    ``month``/``linked_scope`` (D-396) confirm one more month of an existing link with the
+    branch and bank side that link already uses.
+    """
 
     from apps.hub.account_discovery import (
         _consistent_company,
@@ -161,7 +168,7 @@ def link_from_ofx(
     ).first()
     if account is None:
         raise AutoLinkError("Escolha uma conta do plano desta empresa.")
-    month = max(identity.last_date.strftime("%Y-%m"), "2026-09")
+    month = month or max(identity.last_date.strftime("%Y-%m"), "2026-09")
     prepared = prepared_account_facts(record, account, month=month)
     if not prepared.get("valid") or prepared.get("blocking_reason"):
         raise AutoLinkError("Esta conta precisa de revisão antes do vínculo; nada foi importado.")
@@ -171,10 +178,14 @@ def link_from_ofx(
     branches = [int(code) for code in prepared.get("branches") or []]
     own = int(company.dominio_code) if re.fullmatch(r"[0-9]+", company.dominio_code or "") else 0
     branch = own if own in branches or not branches else branches[0]
+    inflow_side = suggested_inflow_side(account.row or {}) or "debit"
+    if linked_scope is not None:
+        branch = int(linked_scope["branch_code"])
+        inflow_side = str(linked_scope["bank_inflow_side"])
     values: dict[str, Any] = {
         "bank_code": identity.bank_id,
         "account_reference": identity.account_reference,
-        "bank_inflow_side": suggested_inflow_side(account.row or {}) or "debit",
+        "bank_inflow_side": inflow_side,
         "branch_code": branch,
         "chart_owner_confirmed": True,
         "branch_scope_confirmed": True,
@@ -194,6 +205,81 @@ def link_from_ofx(
         request=request,
     )
     return result["financial_account"]
+
+
+def ofx_months(content: bytes) -> list[str]:
+    """Every month the OFX covers, from September/2026 on (D-396)."""
+    from apps.hub.reconciliation import read_ofx_account_identity
+
+    identity = read_ofx_account_identity(content)
+    months, current = [], identity.first_date.replace(day=1)
+    while current <= identity.last_date:
+        if current.strftime("%Y-%m") >= "2026-09":
+            months.append(current.strftime("%Y-%m"))
+        current = (current.replace(day=28) + timedelta(days=4)).replace(day=1)
+        if len(months) > 24:
+            break
+    return months
+
+
+def confirm_ofx_months(
+    *,
+    office: Any,
+    account: FinancialAccount,
+    content: bytes,
+    actor: Any,
+    authorized_companies: QuerySet[ClientCompany],
+    request: Any = None,
+) -> list[str]:
+    """D-396: confirm the months of this OFX for a link made by the import itself (D-385) or of
+    a direct-use office, so the Razão of every covered month can be requested."""
+    from apps.hub.account_discovery import latest_consistent_discovery
+    from apps.hub.account_discovery_review import KIND
+    from apps.hub.direct_use import direct_use_enabled
+    from apps.hub.ledger_requests import discovery_mapping_month_allowed
+    from apps.hub.reconciliation import read_ofx_account_identity
+
+    mapping = ReconciliationLedgerMapping.objects.filter(financial_account=account).first()
+    if mapping is None:
+        return []
+    provenance = mapping.provenance
+    if not isinstance(provenance, dict) or provenance.get("kind") != KIND:
+        return []
+    automatic = any(
+        isinstance(item, dict) and item.get("note") == AUTO_EVIDENCE
+        for item in provenance.get("confirmations", [])
+    )
+    if not (automatic or direct_use_enabled(office)):
+        return []
+    if read_ofx_account_identity(content).account_reference != account.account_reference:
+        return []
+    discovery = latest_consistent_discovery(office)
+    chart = ReconciliationDiscoveredChartAccount.objects.filter(
+        discovery=discovery,
+        organization=office,
+        chart_company_code=mapping.scope.get("chart_company_code"),
+        account_code=mapping.scope.get("bank_account_code"),
+    ).first()
+    if discovery is None or chart is None:
+        return []
+    confirmed = []
+    for month in ofx_months(content):
+        mapping.refresh_from_db()
+        if discovery_mapping_month_allowed(account, mapping, month):
+            continue
+        link_from_ofx(
+            office=office,
+            company=account.company,
+            chart_account_id=str(chart.pk),
+            content=content,
+            actor=actor,
+            authorized_companies=authorized_companies,
+            request=request,
+            month=month,
+            linked_scope=mapping.scope,
+        )
+        confirmed.append(month)
+    return confirmed
 
 
 STATEMENT_PREFIX = "extrato:"
@@ -243,8 +329,13 @@ def link_statement_only(
             raise AutoLinkError("Esta conta está inativa nesta empresa; nada foi importado.")
         return existing
     label = " ".join(
-        part for part in (f"Banco {identity.bank_id}" if identity.bank_id else "Banco",
-                          identity.branch_id, identity.account_id) if part
+        part
+        for part in (
+            f"Banco {identity.bank_id}" if identity.bank_id else "Banco",
+            identity.branch_id,
+            identity.account_id,
+        )
+        if part
     )
     account = FinancialAccount.objects.create(
         organization=office,

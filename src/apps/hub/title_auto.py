@@ -334,6 +334,7 @@ def interpret_capture(capture_id: Any, organization_id: Any) -> dict[str, Any]:
                         "source_sha256": evidence.expected_sha256,
                         "interpreted": len(provenance),
                         "skipped": skipped,
+                        "provenance": provenance,  # D-396: readable note/installment labels
                         "previous_snapshot_id": str(latest.pk) if latest else None,
                         "bank_linkage": "unproven",
                         "settlements_complete": False,

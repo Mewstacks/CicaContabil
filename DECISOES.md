@@ -6134,3 +6134,28 @@ D-391 item 5 e D-393.
 6. A IA só é consultada para padrões de movimentos sem regra, fora do Razão, cada padrão uma vez.
    Regra da IA que o Razão contradizer é retirada sozinha; a do Razão prevalece. Regra mexida por
    pessoa nunca é alterada. Conta sem código contábil (extrato sem Razão) não usa IA.
+
+## D-396 — Correções dos defeitos graves da revisão de 23/11/2026
+
+Origem: revisão completa da CONTAD (sessão separada, relatório
+`docs/planejamento/revisao-contad-2026-11-23.md`, itens 4.1, 4.3, 4.4 e 6c/§5) e responsável,
+23/11/2026, “Sim, corrigir”, para os cinco defeitos graves que não dependem de decisão nova. Executor
+Claude Code. O risco de lançamento em dobro (item 4.2, correção nº 4) fica fora: exige decisão própria.
+
+1. **Razão a partir do 2º mês (D-386/D-385):** ao importar OFX numa conta cujo vínculo veio da própria
+   importação (evidência D-385) ou de escritório em uso direto, a CICA confirma sozinha cada mês coberto
+   pelo arquivo (setembro/2026 em diante), com o mesmo procedimento e os mesmos dados do vínculo
+   original (filial e lado do banco já vinculados), e pede o Razão de cada um desses meses. Conta com
+   vínculo revisado por pessoa fora do uso direto continua exigindo a confirmação mensal humana.
+2. **Desfazer que vale (D-388):** a confirmação automática nunca refaz um par que alguém desfez; o
+   botão “Confirmar coincidências” continua podendo confirmar de novo por decisão da pessoa.
+3. **Confirmação automática tolerante (D-388):** cada par é confirmado isoladamente; o que falhar (por
+   exemplo, movimento já exportado) é pulado e registrado em log, sem anular os demais.
+4. **Regra retirada (D-392/D-395):** quando a rotina retira uma regra (sem evidência ou contradita pelo
+   Razão), os lançamentos aprovados por ela e ainda não exportados são invalidados e o movimento volta
+   a “sem classificação”; o exportado é preservado. O lançamento automático (D-393) também passa a exigir
+   que a regra do movimento esteja ativa.
+5. **Títulos com nota e parcela (D-394):** o evento da interpretação automática grava a proveniência
+   como a revisão humana, para a tela, o relatório e o CSV mostrarem “Entradas · título/nota” e o número
+   da parcela; sem fonte legível, a parcela mostra só o código curto, sem “Parcela” repetido.
+Sem migração, custo, IA ou mensagem externa; publicação só com autorização.
