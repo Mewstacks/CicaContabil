@@ -17,6 +17,7 @@ from apps.hub import (
     views_roster,
     views_subscription,
     views_triage_catalog,
+    views_triage_checklist,
     views_triage_policy,
     views_triage_upload,
 )
@@ -444,6 +445,14 @@ urlpatterns = [
         "app/triagem/caixas/<uuid:mailbox_id>/desconectar/",
         views.triage_mailbox_disconnect,
         name="triage-mailbox-disconnect",
+    ),
+    path(
+        "app/triagem/checklist/", views_triage_checklist.triage_checklist, name="triage-checklist"
+    ),
+    path(
+        "app/triagem/checklist/<uuid:company_id>/pedido/",
+        views_triage_checklist.triage_checklist_request,
+        name="triage-checklist-request",
     ),
     path("app/triagem/entrada/", views_triage_policy.triage_policy, name="triage-policy"),
     path("app/triagem/enviar/", views_triage_upload.triage_upload, name="triage-upload"),

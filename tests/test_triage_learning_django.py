@@ -232,12 +232,18 @@ class PoisoningTests(LearningCase):
         item.refresh_from_db()
         self.assertEqual(learning.item_sender_keys(item), ["stranger@evil.example"])
 
+    def test_a_colleague_domain_alone_is_not_staff(self) -> None:
+        item = self.mail("x", sender="colega@e11-office.test", message="f3")
+        TriageItem.objects.filter(pk=item.pk).update(original_sender="victim@padaria.example")
+        item.refresh_from_db()
+        self.assertEqual(learning.item_sender_keys(item), ["colega@e11-office.test"])
+
     def test_staff_forward_uses_the_original_author(self) -> None:
-        item = self.mail("x", sender="ana@e11-office.test", message="f2")
+        item = self.mail("x", sender="owner-e11@office.test", message="f2")
         TriageItem.objects.filter(pk=item.pk).update(original_sender="cliente@padaria.example")
         item.refresh_from_db()
         self.assertEqual(
-            learning.item_sender_keys(item), ["cliente@padaria.example", "ana@e11-office.test"]
+            learning.item_sender_keys(item), ["cliente@padaria.example", "owner-e11@office.test"]
         )
 
 

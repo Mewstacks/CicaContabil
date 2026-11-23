@@ -61,6 +61,9 @@ def evaluate(item: TriageItem, identification: object, scores: dict[str, object]
         or company.pk != identification.company.pk
         or document_type is None
         or not accepted_type
+        # A sender link alone is a header anyone can forge: the document itself must carry
+        # a hard proof (CNPJ, Domínio code, field rule, known OFX account).
+        or not any(signal.hard for signal in identification.signals)
         or not item.period_label
         or not item.final_name
         or item.duplicate_of_id is not None

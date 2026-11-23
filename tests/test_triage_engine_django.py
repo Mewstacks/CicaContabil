@@ -144,7 +144,7 @@ class ScoreboardTests(TriageV2Case):
         self.assertIsNone(got.company)
 
     def test_a_forwarded_original_sender_is_the_key(self) -> None:
-        item = self.item(sender="ana@e11-office.test", original_sender="cliente@padaria.example")
+        item = self.item(sender="owner-e11@office.test", original_sender="cliente@padaria.example")
         link = LearnedLink.objects.create(
             organization=self.office,
             kind="sender",

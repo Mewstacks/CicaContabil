@@ -17,7 +17,7 @@ from email.utils import parseaddr
 from django.db import transaction
 
 from apps.hub.models import ClientCompany
-from apps.organizations.models import Organization
+from apps.organizations.models import Membership, Organization
 from apps.triage.catalog import words
 from apps.triage.models import (
     DocumentType,
@@ -46,16 +46,22 @@ def sender_key(value: str) -> str:
 
 
 def _internal_forward(item: TriageItem, outer: str) -> bool:
-    """Is the outer sender staff of the office that owns the mailbox (a real forward)?
+    """Is the outer sender known staff of this office (the mailbox itself or a member)?
 
     Only then is the author named in the body worth anything: any outside sender can write
-    ``De: someone@victim`` in a message, so that name is never a key on its own.
+    ``De: someone@victim`` in a message, and a domain match proves nothing (the From header is
+    spoofable and DKIM/DMARC results are not available here). Staff means the mailbox address
+    or the e-mail of a person with a membership in this office.
     """
 
     mailbox = item.mailbox if item.mailbox_id else None
-    if mailbox is None or "@" not in mailbox.address or "@" not in outer:
+    if mailbox is None or "@" not in outer:
         return False
-    return outer.rsplit("@", 1)[1] == mailbox.address.rsplit("@", 1)[1].casefold()
+    if outer == mailbox.address.strip().casefold():
+        return True
+    return Membership.objects.filter(
+        organization_id=item.organization_id, user__email__iexact=outer
+    ).exists()
 
 
 def item_sender_keys(item: TriageItem) -> list[str]:
