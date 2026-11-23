@@ -224,8 +224,10 @@ def open_envelope(
             raw = json.loads(raw)
         except json.JSONDecodeError as exc:
             raise IntegraPayloadError("dados não contém JSON válido.") from exc
-    if not isinstance(raw, dict | list):
-        raise IntegraPayloadError("dados deve ser um objeto ou uma lista.")
+    if isinstance(raw, bool) or not (
+        raw is None or isinstance(raw, dict | list | int | float | str)
+    ):
+        raise IntegraPayloadError("dados tem um tipo inesperado.")
     return Envelope(status, messages, raw)
 
 
@@ -433,8 +435,14 @@ def _read_object(cls: type, data: Any, where: str, depth: int) -> Any:
     return cls(**kwargs)
 
 
+def read_int(data: Any, where: str = "dados") -> int:
+    """A `dados` that is a bare integer (a count, for instance)."""
+
+    return _integer(data, where)
+
+
 class Model:
-    """Base of the response models: frozen, keyword-only dataclasses declared with `j()`."""
+    """Base of the response models: frozen, keyword-only dataclasses declared with `J`."""
 
     @classmethod
     def parse(cls, data: Any, *, where: str = "dados") -> Self:

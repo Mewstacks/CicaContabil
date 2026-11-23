@@ -1,0 +1,59 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-pagamento/pagtoweb/exemplos/retorno_consulta_pagamento/",
+  "servico": "PAGTOWEB.PAGAMENTOS71",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PAGTOWEB-00000",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": [
+    {
+      "numeroDocumento": "9999999999",
+      "tipo": {
+        "codigo": "4",
+        "descricao": "DOCUMENTO DE ARRECADAÇÃO DE RECEITAS FEDERAIS",
+        "descricaoAbreviada": "DARF"
+      },
+      "periodoApuracao": "2019-09-30T00:00:00-03:00",
+      "dataArrecadacao": "2019-09-30T00:00:00-03:00",
+      "dataVencimento": "2019-09-30T00:00:00-03:00",
+      "receitaPrincipal": {
+        "codigo": "481",
+        "descricao": "IRRF - Juros e Comissões em Geral - Residentes no Exterior",
+        "extensaoReceita": null
+      },
+      "referencia": null,
+      "valorTotal": 369176.53,
+      "valorPrincipal": 369176.53,
+      "valorMulta": null,
+      "valorJuros": null,
+      "valorSaldoTotal": null,
+      "valorSaldoPrincipal": null,
+      "valorSaldoMulta": null,
+      "valorSaldoJuros": null,
+      "desmembramentos": [
+        {
+          "sequencial": "1",
+          "receitaPrincipal": {
+            "codigo": "481",
+            "descricao": "IRRF - Juros e Comissões em Geral - Residentes no Exterior",
+            "extensaoReceita": null
+          },
+          "periodoApuracao": "2019-09-30T00:00:00-03:00",
+          "dataVencimento": "2019-09-30T00:00:00-03:00",
+          "valorTotal": null,
+          "valorPrincipal": null,
+          "valorMulta": null,
+          "valorJuros": null,
+          "valorSaldoTotal": null,
+          "valorSaldoPrincipal": null,
+          "valorSaldoMulta": null,
+          "valorSaldoJuros": null
+        }
+      ]
+    }
+  ]
+}
