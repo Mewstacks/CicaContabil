@@ -12652,3 +12652,14 @@ igual à de deploy, live 200. **Release v117**: release_command ok sem migraçã
 as 14 sugestões de V-436 continuam em rascunho; zero regras ativas e zero movimentos classificados.
 A partir desta release, cada confirmação extrato × Razão em qualquer conta recalcula as sugestões
 daquela conta. Ainda não observado com uma segunda empresa real (nenhuma outra conta vinculada).
+
+## V-439 — Teste dependente do relógio corrigido (22/11/2026)
+
+Executor Claude Code, pedido do responsável (“Sim, corrige”). Causa de
+`test_portfolio_configuration.py::test_only_recent_official_can_change[change4/change5]`: os
+horários `agora ± 6 min` eram calculados na coleta do pytest; quando o caso rodava mais de 6 min
+depois (CI PostgreSQL), “6 min no futuro” já estava dentro da janela de 5 min e o serviço aceitava
+(“DID NOT RAISE”, V-419/V-436/V-438). Correção: o parâmetro passa a ser o deslocamento e o horário é
+calculado na execução do caso. Só o teste mudou; o serviço não. Prova com relógio simulado 7 min
+à frente (teste temporário, removido): o valor do jeito antigo é aceito e o novo continua recusado.
+`tests/test_portfolio_configuration.py`: 59 aprovados, 3 skips; Ruff ok.
