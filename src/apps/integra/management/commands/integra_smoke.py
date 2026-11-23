@@ -5,7 +5,7 @@ from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.integra.catalog import SERVICES, service
+from apps.integra.catalog import SERVICES, EffectClass, service
 from apps.integra.client import IntegraClient, credentials_from_settings
 from apps.integra.errors import IntegraError
 
@@ -27,6 +27,11 @@ class Command(BaseCommand):
             action="store_true",
             help="Confirma custo para serviço faturável no ambiente de produção.",
         )
+        parser.add_argument(
+            "--confirm-effect",
+            action="store_true",
+            help="Confirma efeito jurídico (ciência da intimação) em produção.",
+        )
 
     def handle(self, *args: Any, **options: Any) -> None:
         try:
@@ -39,6 +44,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Ambiente:    {credentials.environment}")
         self.stdout.write(f"Serviço:     {spec.label} ({spec.id_sistema}/{spec.id_servico})")
         self.stdout.write(f"Verbo:       {spec.verb.value}")
+        self.stdout.write(f"Classe:      {spec.effect_class.value}")
         self.stdout.write(f"Faturável:   {'sim' if spec.billable else 'não'}")
         if spec.billable:
             self.stdout.write(
@@ -51,6 +57,10 @@ class Command(BaseCommand):
                 )
             )
             return
+        if spec.effect_class in (EffectClass.WRITE, EffectClass.DECLARE):
+            raise CommandError(
+                f"{spec.label} altera a situação fiscal; use o fluxo do Hub, com aprovação."
+            )
         if (
             credentials.environment == "production"
             and spec.billable
@@ -58,6 +68,14 @@ class Command(BaseCommand):
         ):
             raise CommandError(
                 "Serviço faturável em produção exige --approve-billable-production."
+            )
+        if (
+            credentials.environment == "production"
+            and spec.effect_class is EffectClass.READ_LEGAL
+            and not options["confirm_effect"]
+        ):
+            raise CommandError(
+                f"{spec.label} registra ciência da intimação; em produção exige --confirm-effect."
             )
 
         try:

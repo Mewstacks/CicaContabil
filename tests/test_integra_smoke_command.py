@@ -77,3 +77,77 @@ def test_smoke_command_calls_only_after_explicit_confirmation(
     client.return_value.call.assert_called_once_with(
         "dte.situacao", contribuinte="11.111.111/1111-11", dados=None
     )
+
+
+@pytest.mark.parametrize("key", ["pgdasd.transmitir", "pgmei.beneficio", "mit.encerrar"])
+@pytest.mark.parametrize("environment", ["trial", "production"])
+@patch("apps.integra.management.commands.integra_smoke.credentials_from_settings")
+@patch("apps.integra.management.commands.integra_smoke.IntegraClient")
+def test_smoke_command_never_declares_or_records_anything(
+    client: MagicMock,
+    configured_credentials: MagicMock,
+    credentials: Credentials,
+    key: str,
+    environment: str,
+) -> None:
+    configured_credentials.return_value = replace(credentials, environment=environment)
+
+    with pytest.raises(CommandError, match="altera a situação fiscal"):
+        call_command(
+            "integra_smoke",
+            "--contribuinte",
+            "11.111.111/1111-11",
+            "--service",
+            key,
+            "--execute",
+            "--approve-billable-production",
+            "--confirm-effect",
+        )
+
+    client.assert_not_called()
+
+
+@patch("apps.integra.management.commands.integra_smoke.credentials_from_settings")
+@patch("apps.integra.management.commands.integra_smoke.IntegraClient")
+def test_smoke_command_asks_for_a_confirmation_before_registering_a_ciencia_in_production(
+    client: MagicMock, configured_credentials: MagicMock, credentials: Credentials
+) -> None:
+    configured_credentials.return_value = replace(credentials, environment="production")
+    client.return_value.call.return_value = {"status": 200}
+    arguments = [
+        "integra_smoke",
+        "--contribuinte",
+        "11.111.111/1111-11",
+        "--service",
+        "caixapostal.detalhe",
+        "--execute",
+        "--approve-billable-production",
+    ]
+
+    with pytest.raises(CommandError, match="confirm-effect"):
+        call_command(*arguments)
+    client.assert_not_called()
+
+    call_command(*arguments, "--confirm-effect", stdout=StringIO())
+    client.return_value.call.assert_called_once()
+
+
+@patch("apps.integra.management.commands.integra_smoke.credentials_from_settings")
+@patch("apps.integra.management.commands.integra_smoke.IntegraClient")
+def test_smoke_command_previews_a_declaration_service_without_calling(
+    client: MagicMock, configured_credentials: MagicMock, credentials: Credentials
+) -> None:
+    configured_credentials.return_value = credentials
+    output = StringIO()
+
+    call_command(
+        "integra_smoke",
+        "--contribuinte",
+        "11.111.111/1111-11",
+        "--service",
+        "pgdasd.transmitir",
+        stdout=output,
+    )
+
+    client.assert_not_called()
+    assert "Classe:      F" in output.getvalue()
