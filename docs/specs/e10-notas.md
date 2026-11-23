@@ -23,7 +23,8 @@ Fontes: catálogo oficial de 15/10/2026 e a página de cada serviço, https://ap
 - Fixtures em `tests/fixtures/integra/serpro/`: exemplos oficiais com a página de origem e a nota de cada correção. Os exemplos oficiais costumam trazer vírgulas faltando ou caracteres perdidos; só entram os que são JSON válido ou que a tabela da doc reconstrói sem inventar valor.
 - Parcelamento: lista de pedidos, parcelas disponíveis e detalhe de pagamento têm os mesmos campos nas 8 modalidades (conferido tabela a tabela), então um leitor serve todas e o registro tipado (32 consultas) sai da tabela de modalidades. Só o bloco de consolidação do detalhe do parcelamento muda por modalidade; é lido quando traz os nomes do PARCSN e fica vazio nas outras.
 - Correção em leitor existente: `parcelamento.detalhe()` exigia o envelope `parcelamento`, mas todo exemplo oficial válido responde o parcelamento direto. Passou a ler as duas formas; `numero_esperado` virou opcional.
-- Estado de cada sistema: ver o relatório final da sessão.
+- Estado: 59 leituras tipadas em `integra/typed_registry.py` (27 serviços de 10 sistemas + 32 consultas de parcelamento); as 9 leituras antigas sem leitor tipado estão listadas em `LEGACY_UNTYPED_READS` e o teste de cobertura exige que seja só essas.
+- Divergências doc × exemplo (campos com duas grafias, `textoResolucao` do regime que vem em texto puro, status `"200"` em texto no e-Processo, exemplos com valores perdidos reconstruídos da tabela) estão registradas em `notes` de cada fixture e nas docstrings dos módulos. Palpites: DEFIS 142 (ano e tipo de dois itens) e a fixture 202 do EVENTOS 133.
 
 ## Pendências e pré-requisitos
 
