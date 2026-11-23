@@ -20,7 +20,7 @@ O dono usa o MCP no **Claude web e celular** e no **ChatGPT web** entrando com o
 
 ## Escolhas que dependem de pesquisa de versão (regra do repo)
 
-Biblioteca do servidor de autorização (Authlib, django-oauth-toolkit ou mínimo próprio): requisitos são DCR, CIMD, PKCE S256 único, `resource`, metadados RFC 9728 e 8414. Consultar a documentação da versão antes de decidir; nenhuma está no repo.
+Biblioteca do servidor de autorização: decidida em D-333 (`django-oauth-toolkit` 3.4.1, que cobre DCR, CIMD, PKCE S256 único, `resource` e os metadados RFC 9728 e 8414).
 
 ## Critérios de aceitação (rascunho)
 
@@ -46,7 +46,7 @@ Nada aplicado. Qualquer chamada paga ao Serpro, VM, worker ou deploy exige confi
 |---|---|
 | 3 Repasse, lado do pacote | feito e testado (D-332, V-313): contrato, allowlist das dez ferramentas, sem campo de SQL, perfil `remote` fixo |
 | 3 Repasse, fila no Hub e agente em C# | pendente: o agente chama `dominio-mcp relay-job`; precisa do pacote Python no computador do escritório e de teste com o agente real |
-| 1 OAuth e 2 endpoint externo | pendente: biblioteca ainda sem decisão (Authlib, django-oauth-toolkit ou mínimo próprio); revisão adversarial do Codex obrigatória (auth e dado de cliente) |
+| 1 OAuth e 2 endpoint externo | **feito no Hub, atrás de flag desligada (D-333, V-314)**: `django-oauth-toolkit` 3.4.1, app `apps/mcpgateway`, `/mcp` só com as seis ferramentas de leitura do Hub. Pendente: ferramentas do Domínio no endpoint (dependem da peça 3), tela de conectores para revogar, limpeza agendada de tokens (`cleartokens`), teste com Claude e ChatGPT reais, ligar em produção (OK explícito) |
 | 4 a 6 Serpro, governador de custo e cruzamentos | pendente: **nenhuma chamada paga sem confirmação com valor** (regra de custo) |
 | 7 Copiloto | pendente: depende do endpoint |
 

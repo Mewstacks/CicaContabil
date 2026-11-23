@@ -76,6 +76,7 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "rest_framework",
     "drf_spectacular",
+    "oauth2_provider",
 ]
 LOCAL_APPS = [
     "apps.common",
@@ -92,6 +93,7 @@ LOCAL_APPS = [
     "apps.triage",
     "apps.profitability",
     "apps.crosscheck",
+    "apps.mcpgateway",
 ]
 INSTALLED_APPS = [*DJANGO_APPS, *THIRD_PARTY_APPS, *LOCAL_APPS]
 
@@ -410,6 +412,81 @@ REST_FRAMEWORK = {
 # Plain Django views that reach a database, an ODBC link or a paid API are outside DRF's
 # throttles, so they carry their own budget.
 MCP_RATE_LIMIT_PER_MINUTE = env_int("MCP_RATE_LIMIT_PER_MINUTE", 60)
+
+# Gateway MCP externo (Fase 2 do MCP do Domínio, D-333): Claude e ChatGPT entram com o login
+# do CICA por OAuth 2.1. Desligado por padrão: com a chave em falso todas as rotas respondem
+# 404 e nada muda para o resto do sistema. A URL pública é a origem (https://host, sem barra
+# no fim); sem ela o gateway não liga, porque `resource` e `iss` precisam ser fixos.
+MCP_GATEWAY_ENABLED = env_bool("MCP_GATEWAY_ENABLED", False)
+MCP_GATEWAY_PUBLIC_URL = env_str("MCP_GATEWAY_PUBLIC_URL", "").rstrip("/")
+MCP_GATEWAY_ALLOWED_ORIGINS = env_list("MCP_GATEWAY_ALLOWED_ORIGINS")
+MCP_GATEWAY_RATE_LIMIT_PER_MINUTE = env_int("MCP_GATEWAY_RATE_LIMIT_PER_MINUTE", 60)
+MCP_GATEWAY_ORG_RATE_LIMIT_PER_MINUTE = env_int("MCP_GATEWAY_ORG_RATE_LIMIT_PER_MINUTE", 240)
+MCP_GATEWAY_REGISTRATION_PER_HOUR = env_int("MCP_GATEWAY_REGISTRATION_PER_HOUR", 30)
+# Redirecionamentos aceitos no cadastro do cliente (comparação exata, RFC 9700 §2.1). Os
+# loopbacks sem porta cobrem o Claude Code e o MCP Inspector (RFC 8252 §7.3).
+MCP_GATEWAY_REDIRECT_URIS = [
+    "https://claude.ai/api/mcp/auth_callback",
+    "https://claude.com/api/mcp/auth_callback",
+    "https://chatgpt.com/connector_platform_oauth_redirect",
+    *env_list("MCP_GATEWAY_EXTRA_REDIRECT_URIS"),
+]
+MCP_GATEWAY_REDIRECT_PREFIXES = [
+    "https://chatgpt.com/connector/oauth/",
+    "http://127.0.0.1",
+    "http://[::1]",
+    "http://localhost",
+]
+# Modelos do DOT: nomes fixos (sem troca de modelo); as migracoes de `mcpgateway` leem estes.
+OAUTH2_PROVIDER_APPLICATION_MODEL = "oauth2_provider.Application"
+OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = "oauth2_provider.AccessToken"
+OAUTH2_PROVIDER_ID_TOKEN_MODEL = "oauth2_provider.IDToken"
+OAUTH2_PROVIDER_GRANT_MODEL = "oauth2_provider.Grant"
+OAUTH2_PROVIDER_REFRESH_TOKEN_MODEL = "oauth2_provider.RefreshToken"
+OAUTH2_PROVIDER_DEVICE_GRANT_MODEL = "oauth2_provider.DeviceGrant"
+MCP_GATEWAY_CIMD_HOSTS = env_list("MCP_GATEWAY_EXTRA_CIMD_HOSTS")
+MCP_GATEWAY_SCOPE = "mcp:read"
+OAUTH2_PROVIDER = {
+    "SCOPES": {MCP_GATEWAY_SCOPE: "Consultar dados do escritório"},
+    "DEFAULT_SCOPES": [MCP_GATEWAY_SCOPE],
+    "PKCE_REQUIRED": True,
+    "COMPLIANT_BCP_RFC9700_PKCE_METHOD": True,
+    "COMPLIANT_BCP_RFC9700_TOKEN_STORAGE": True,
+    "COMPLIANT_BCP_RFC9700_AUTHZ_RESPONSE_ISS": True,
+    "COMPLIANT_BCP_RFC9700_ACCESS_TOKEN_TRANSPORT": True,
+    "COMPLIANT_BCP_RFC9700_PASSWORD_GRANT": True,
+    "COMPLIANT_BCP_RFC9700_IMPLICIT_GRANT": True,
+    "COMPLIANT_BCP_RFC9700_REFRESH_TOKEN": True,
+    "AUTHORIZATION_CODE_EXPIRE_SECONDS": 60,
+    "ACCESS_TOKEN_EXPIRE_SECONDS": 3600,
+    "REFRESH_TOKEN_EXPIRE_SECONDS": 60 * 60 * 24 * 30,
+    "ROTATE_REFRESH_TOKEN": True,
+    "REFRESH_TOKEN_REUSE_PROTECTION": True,
+    "REFRESH_TOKEN_GRACE_PERIOD_SECONDS": 0,
+    "REQUEST_APPROVAL_PROMPT": "force",
+    "ALLOWED_REDIRECT_URI_SCHEMES": ["https", "http"],
+    "ALLOW_LOCALHOST_LOOPBACK": True,
+    "OAUTH2_RESPONSE_TYPES_SUPPORTED": ["code"],
+    "OAUTH2_GRANT_TYPES_SUPPORTED": ["authorization_code", "refresh_token"],
+    "OAUTH2_TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED": ["none"],
+    "DCR_ENABLED": True,
+    "DCR_REGISTRATION_TOKEN_EXPIRE_SECONDS": 3600,
+    "DCR_REGISTRATION_PERMISSION_CLASSES": ("apps.mcpgateway.registration.RegistrationPermission",),
+    "CIMD_ENABLED": True,
+    "CIMD_METADATA_FETCHER": "apps.mcpgateway.registration.RedirectCheckedFetcher",
+    "OAUTH2_VALIDATOR_CLASS": "apps.mcpgateway.validators.McpValidator",
+    "CIMD_REGISTRATION_PERMISSION_CLASSES": ("oauth2_provider.cimd.HostAllowlistCIMDPermission",),
+    "CIMD_ALLOWED_HOSTS": ["claude.ai", "claude.com", "chatgpt.com", *MCP_GATEWAY_CIMD_HOSTS],
+    "RESOURCE_SERVER_TOKEN_RESOURCE_VALIDATOR": "apps.mcpgateway.conf.resource_matches",
+    "OIDC_ISS_ENDPOINT": f"{MCP_GATEWAY_PUBLIC_URL}/oauth" if MCP_GATEWAY_PUBLIC_URL else "",
+    "OAUTH2_PROTECTED_RESOURCE_IDENTIFIER": (
+        f"{MCP_GATEWAY_PUBLIC_URL}/mcp" if MCP_GATEWAY_PUBLIC_URL else ""
+    ),
+    "OAUTH2_PROTECTED_RESOURCE_AUTHORIZATION_SERVERS": (
+        [f"{MCP_GATEWAY_PUBLIC_URL}/oauth"] if MCP_GATEWAY_PUBLIC_URL else []
+    ),
+    "OAUTH2_PROTECTED_RESOURCE_NAME": "CICA",
+}
 LEAD_RATE_LIMIT_PER_HOUR = env_int("LEAD_RATE_LIMIT_PER_HOUR", 5)
 MFA_ATTEMPTS_PER_MINUTE = env_int("MFA_ATTEMPTS_PER_MINUTE", 8)
 
