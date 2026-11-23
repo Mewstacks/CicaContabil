@@ -1068,3 +1068,8 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [x] Extrato sem Razão para empresas sem conta de banco no plano ou sem plano.
 - [x] Revisão das confirmações automáticas opcional; amostra D-73 deixa de ser condição de uso da CONTAD.
 - [x] Publicação v118, habilitação do UUID e `uso_direto --apply` em produção (V-441).
+
+## Títulos automáticos — D-394/V-442 (23/11/2026)
+
+- [x] Captura de títulos interpretada sem revisão humana no uso direto (C01/C02 pelos tipos oficiais).
+- [ ] Publicação e `titulos_auto --apply` em produção (autorização do responsável).

@@ -192,8 +192,13 @@ def import_title_snapshot(
     actor: User,
     evidence_reference: str,
     activate_existing: bool = False,
+    routine: bool = False,
 ) -> tuple[ReconciliationTitleSnapshot, bool]:
-    """Retain a complete reviewed contract atomically; a replay never duplicates it."""
+    """Retain a complete reviewed contract atomically; a replay never duplicates it.
+
+    ``routine`` (D-394) is the direct-use automatic interpretation: the technical actor has no
+    membership, so only the office, account and contract checks apply.
+    """
     saved_source: ReconciliationSourceFile | None = None
     try:
         with transaction.atomic():
@@ -207,7 +212,20 @@ def import_title_snapshot(
                 or account.organization_id != scope.organization_id
             ):
                 raise TitleContractError("A conta mudou de empresa. Reabra a revisão.")
-            authorize_title_account(account, actor)
+            if routine:
+                from apps.hub.direct_use import direct_use_enabled
+                from apps.hub.title_robot import is_title_robot
+
+                if (
+                    not is_title_robot(actor)
+                    or not direct_use_enabled(account.organization)
+                    or not account.active
+                    or not account.account_reference
+                ):
+                    raise PermissionDenied("Interpretação automática indisponível nesta conta.")
+                require_operation_access(account.organization, ProductModule.Code.RECONCILIATION)
+            else:
+                authorize_title_account(account, actor)
             reason = _reason(evidence_reference)
             if type(activate_existing) is not bool:
                 raise TitleContractError("A ativação de uma revisão exige decisão explícita.")

@@ -1304,3 +1304,13 @@ def dispatch_fiscal_guide(guide_id: str) -> None:
         _dispatch_fiscal_guide(guide_id)
     finally:
         _sync_after_provider_work("guide", guide_id)
+
+
+@shared_task(name="hub.interpret_company_titles")  # type: ignore[untyped-decorator]
+def interpret_company_titles(company_id: str) -> list[dict[str, object]]:
+    """D-394: automatic title interpretation for a direct-use office (no-op elsewhere)."""
+    from apps.hub.models import ClientCompany
+    from apps.hub.title_auto import interpret_company
+
+    company = ClientCompany.objects.select_related("organization").filter(pk=company_id).first()
+    return interpret_company(company) if company else []

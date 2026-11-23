@@ -168,6 +168,19 @@ def _account(identifier: UUID, organization_id: UUID, actor: User) -> FinancialA
 def _load(
     identifier: UUID, organization_id: UUID, actor: User
 ) -> tuple[NativeTitleCollection | CompanyTitleCollection, TitleSourceEvidence]:
+    return _load_checked(identifier, organization_id, actor=actor)
+
+
+def load_capture_for_routine(
+    identifier: UUID, organization_id: UUID
+) -> tuple[NativeTitleCollection | CompanyTitleCollection, TitleSourceEvidence]:
+    """D-394: same integrity checks, without a person's membership (direct-use routine only)."""
+    return _load_checked(identifier, organization_id, actor=None)
+
+
+def _load_checked(
+    identifier: UUID, organization_id: UUID, *, actor: User | None
+) -> tuple[NativeTitleCollection | CompanyTitleCollection, TitleSourceEvidence]:
     legacy = (
         NativeTitleCollection.objects.select_related("source_file", "financial_account__company")
         .filter(pk=identifier, organization_id=organization_id)
@@ -185,12 +198,27 @@ def _load(
     job = legacy if legacy is not None else company_job
     assert job is not None
     company = title_job_company(job)
-    authorize_title_company(company, actor, write=False)
-    account = (
-        _account(job.financial_account_id, organization_id, actor)
-        if isinstance(job, NativeTitleCollection)
-        else None
-    )
+    if actor is None:
+        from apps.hub.direct_use import direct_use_enabled
+
+        if not direct_use_enabled(company.organization):
+            raise NativeTitleComparisonError("Fonte disponível só para revisão humana.")
+        account = (
+            FinancialAccount.objects.select_related("company", "organization").get(
+                pk=job.financial_account_id,
+                organization_id=organization_id,
+                company__organization_id=organization_id,
+            )
+            if isinstance(job, NativeTitleCollection)
+            else None
+        )
+    else:
+        authorize_title_company(company, actor, write=False)
+        account = (
+            _account(job.financial_account_id, organization_id, actor)
+            if isinstance(job, NativeTitleCollection)
+            else None
+        )
     scope = validate_scope(job.scope)
     source = job.source_file
     if (
