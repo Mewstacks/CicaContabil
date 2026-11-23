@@ -1,0 +1,83 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-parcelamento/parcmei_esp/servicos/exemplos/retorno_consulta_parcelamento/",
+  "servico": "PARCMEI-ESP.OBTERPARC214",
+  "notes": [
+    "detalhesConsolidacao reduzida de 61 para 3 itens e demonstrativoPagamentos de 53 para 5 itens do exemplo oficial"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-PARCMEI-ESP]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "numero": 9001,
+    "dataDoPedido": 20171002,
+    "situacao": "Em parcelamento",
+    "dataDaSituacao": 20171007,
+    "consolidacaoOriginal": {
+      "valorTotalConsolidado": 3524.16,
+      "quantidadeParcelas": 70,
+      "primeiraParcela": 50.35,
+      "parcelaBasica": 50.35,
+      "dataConsolidacao": 20171002112724,
+      "detalhesConsolidacao": [
+        {
+          "periodoApuracao": 201105,
+          "vencimento": 20110620,
+          "numeroProcesso": "",
+          "saldoDevedorOriginal": 28.25,
+          "valorAtualizado": 52.71
+        },
+        {
+          "periodoApuracao": 201106,
+          "vencimento": 20110720,
+          "numeroProcesso": "",
+          "saldoDevedorOriginal": 28.25,
+          "valorAtualizado": 52.44
+        },
+        {
+          "periodoApuracao": 201107,
+          "vencimento": 20110822,
+          "numeroProcesso": "",
+          "saldoDevedorOriginal": 28.25,
+          "valorAtualizado": 52.14
+        }
+      ]
+    },
+    "alteracoesDivida": [],
+    "demonstrativoPagamentos": [
+      {
+        "mesDaParcela": 201710,
+        "vencimentoDoDas": 20171004,
+        "dataDeArrecadacao": 20171004,
+        "valorPago": 50.35
+      },
+      {
+        "mesDaParcela": 201711,
+        "vencimentoDoDas": 20171130,
+        "dataDeArrecadacao": 20171128,
+        "valorPago": 50.85
+      },
+      {
+        "mesDaParcela": 201712,
+        "vencimentoDoDas": 20171228,
+        "dataDeArrecadacao": 20171227,
+        "valorPago": 51.14
+      },
+      {
+        "mesDaParcela": 201801,
+        "vencimentoDoDas": 20180131,
+        "dataDeArrecadacao": 20180220,
+        "valorPago": 51.7
+      },
+      {
+        "mesDaParcela": 201802,
+        "vencimentoDoDas": 20180228,
+        "dataDeArrecadacao": 20180427,
+        "valorPago": 52.2
+      }
+    ]
+  }
+}

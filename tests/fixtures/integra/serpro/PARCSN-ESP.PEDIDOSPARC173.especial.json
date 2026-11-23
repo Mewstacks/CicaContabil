@@ -1,0 +1,22 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-parcelamento/parcsn_esp/servicos/exemplos/retorno_consulta_pedidos/",
+  "servico": "PARCSN-ESP.PEDIDOSPARC173",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-PARCSN-ESP]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "parcelamentos": [
+      {
+        "numero": 9001,
+        "dataDoPedido": 20161222,
+        "situacao": "Em parcelamento",
+        "dataDaSituacao": 20161227
+      }
+    ]
+  }
+}

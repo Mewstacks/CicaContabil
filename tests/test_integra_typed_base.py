@@ -20,6 +20,7 @@ from apps.integra.typed.base import (
     Request,
     normalize_cpf,
     open_envelope,
+    read_int,
 )
 
 BRT = timezone(timedelta(hours=-3))
@@ -107,6 +108,12 @@ def test_dados_may_already_be_an_object_a_list_or_empty() -> None:
     assert open_envelope({"status": 200, "dados": ""}).dados is None
     assert open_envelope({"status": 200, "dados": None}).dados is None
     assert open_envelope({"status": 200}).dados is None
+    assert open_envelope({"status": 200, "dados": "12"}).dados == 12
+    assert open_envelope({"status": 200, "dados": 12}).dados == 12
+    assert open_envelope({"status": 200, "dados": "null"}).dados is None
+    assert read_int(open_envelope({"status": 200, "dados": "12"}).dados) == 12
+    with pytest.raises(IntegraPayloadError, match="dados"):
+        read_int("doze")
 
 
 def test_only_the_accepted_statuses_open() -> None:
@@ -122,9 +129,8 @@ def test_only_the_accepted_statuses_open() -> None:
     [
         [],
         "texto",
-        {"status": 200, "dados": 12},
+        {"status": 200, "dados": True},
         {"status": 200, "dados": "{quebrado"},
-        {"status": 200, "dados": "12"},
         {"status": 200, "dados": "x" * 2_100_000},
         {"status": 200, "dados": "{}", "mensagens": {"codigo": "x"}},
         {"status": 200, "dados": "{}", "mensagens": [1]},
