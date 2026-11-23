@@ -9,6 +9,55 @@ from urllib.request import Request, urlopen
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 
+# A CNPJ since the alphanumeric format (Receita Federal, IN RFB 2.229/2024, issued from
+# jul/2026): root and branch order accept letters, the two check digits stay numeric.
+_CNPJ_TOKEN = re.compile(
+    r"(?<![A-Z0-9])([A-Z0-9]{2})\.?([A-Z0-9]{3})\.?([A-Z0-9]{3})/?([A-Z0-9]{4})-?([0-9]{2})(?![A-Z0-9])"
+)
+
+
+def strip_document(value: object) -> str:
+    """The document of a CPF/CNPJ field, without separators.
+
+    Numeric documents give exactly what `re.sub(r"\\D", "", value)` gave before the
+    alphanumeric CNPJ, so nothing that worked changes. A token shaped like an alphanumeric
+    CNPJ keeps its letters, uppercased. Check digits are not verified here: call
+    `normalize_cnpj` wherever validity matters.
+    """
+
+    text = str(value or "").upper()
+    token = _CNPJ_TOKEN.search(text)
+    if token is not None:
+        compact = "".join(token.groups())
+        if not compact.isdigit():
+            return compact
+    return re.sub(r"\D", "", text)
+
+
+def cnpj_candidates(value: object) -> set[str]:
+    """CNPJs written inside free text, such as a certificate subject.
+
+    Keeps the old 14-digit match and adds alphanumeric CNPJs whose check digits verify, so a
+    word that merely has the same shape is not taken for a company.
+    """
+
+    text = str(value or "").upper()
+    found: set[str] = set()
+    digits = re.sub(r"\D", "", text)
+    if len(digits) == 14:
+        found.add(digits)
+    elif len(digits) > 14:
+        found.update(re.findall(r"(?<!\d)\d{14}(?!\d)", text))
+    for match in _CNPJ_TOKEN.finditer(text):
+        compact = "".join(match.groups())
+        if compact.isdigit():
+            continue
+        try:
+            found.add(normalize_cnpj(compact))
+        except ValidationError:
+            continue
+    return found
+
 
 def normalize_cnpj(value: str) -> str:
     cnpj = re.sub(r"[./\-\s]", "", value).upper()

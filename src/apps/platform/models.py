@@ -11,6 +11,7 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django.utils import timezone
 
+from apps.common.cnpj import strip_document
 from apps.common.encryption import EncryptedTextField
 from apps.common.models import UUIDTimeStampedModel
 
@@ -81,7 +82,7 @@ class PlatformConfiguration(UUIDTimeStampedModel):
 
     @property
     def provider_cnpj_display(self) -> str:
-        value = "".join(character for character in self.provider_cnpj if character.isdigit())
+        value = strip_document(self.provider_cnpj)
         if len(value) != 14:
             return self.provider_cnpj
         return f"{value[:2]}.{value[2:5]}.{value[5:8]}/{value[8:12]}-{value[12:]}"
