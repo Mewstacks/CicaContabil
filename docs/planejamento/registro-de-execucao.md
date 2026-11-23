@@ -4858,3 +4858,9 @@ rascunho, nenhuma ativa; a proprietária revisa e ativa em *Revisar DE-PARA → 
 As sugestões pelo Razão passam a ser recalculadas sozinhas sempre que pares extrato × Razão são
 confirmados em qualquer conta, e rascunhos sem evidência são retirados. Regras continuam sendo
 ativadas só por pessoa. Pendente: publicação e rodar `create-all` uma vez.
+
+## 22/11/2026 — V-438: release v117 (DE-PARA automático)
+
+D-392 publicada na release v117; `create-all` rodado (1 conta, nada novo). O teste dependente do
+relógio `test_only_recent_official_can_change[change5]` falhou em duas CIs seguidas e precisou de
+reexecução: correção pendente.

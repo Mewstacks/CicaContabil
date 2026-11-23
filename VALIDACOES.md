@@ -12633,3 +12633,22 @@ rascunho retirado quando outra competência passa a contradizer e regra ativa pr
 rotina não desfaz a confirmação; `create-all` em duas contas). Suíte SQLite completa 3.463
 aprovados, 59 skips, zero falhas; Ruff/MyPy ok. Sem mudança de interface (a tela da D-391 mostra as
 sugestões novas). Não publicado: merge/deploy aguardam autorização.
+
+## V-438 — Publicação da D-392 na release v117 (22/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, faz tudo”: merge, deploy e `create-all`).
+CI do PR #52: `verify` falhou de novo só em
+`test_portfolio_configuration.py::test_only_recent_official_can_change[change5]` (falha dependente do
+relógio, V-419/V-436, agora repetida em duas publicações seguidas); reexecutada, as três
+verificações aprovaram antes do merge (`3785993`, `src/` idêntico ao PR).
+
+Imagem OCI sobre a v116 (`c201337b…`) com os quatro arquivos Python alterados, sem collectstatic:
+`sha256:3c4a29a7898808f7f275688361e90c9393a96ef9f9c7f3a9bf347e29c6ef23cd`; manifesto/config OCI,
+227 gzip/11 zstd; SHA-256 dos quatro arquivos iguais aos da main. Antes: v116, configuração ativa
+igual à de deploy, live 200. **Release v117**: release_command ok sem migração; web e worker
+`started` na nova imagem, reserva parada; live/ready 200; arquivos iguais nas duas máquinas.
+
+`depara_razao create-all` em produção: 1 conta ativa (SURIA), 0 criadas, 0 retiradas, 0 falhas —
+as 14 sugestões de V-436 continuam em rascunho; zero regras ativas e zero movimentos classificados.
+A partir desta release, cada confirmação extrato × Razão em qualquer conta recalcula as sugestões
+daquela conta. Ainda não observado com uma segunda empresa real (nenhuma outra conta vinculada).
