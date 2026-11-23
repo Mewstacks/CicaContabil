@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from email import message_from_bytes, policy
 from email.message import Message
-from typing import cast
+from typing import Any, cast
 
 from django.core.exceptions import ValidationError
 
@@ -26,9 +26,16 @@ from apps.triage.imap import (
     public_imap_address,
 )
 from apps.triage.ingest import (
-    MAX_EMAIL_ATTACHMENT_BYTES,
     mailbox_accepts_message,
     receive_email_attachment,
+    record_rejected_attachment,
+)
+from apps.triage.intake_policy import decide_attachment
+from apps.triage.mailtext import (
+    attached_message,
+    body_from_message,
+    mailbox_domain,
+    original_sender,
 )
 from apps.triage.models import Mailbox
 from apps.triage.poll_state import mark_failure, mark_success
@@ -95,32 +102,60 @@ def _metadata(connection: imaplib.IMAP4_SSL, uid: int) -> tuple[int, datetime]:
     return int(match.group(1)), _internal_date(response[0])
 
 
-def _raw_message(connection: imaplib.IMAP4_SSL, uid: int) -> bytes:
+def _raw_message(connection: imaplib.IMAP4_SSL, uid: int) -> bytes | None:
+    """The whole message, or None when the server hands back more than the cap."""
     status, response = connection.uid("fetch", str(uid), "(BODY.PEEK[])")
     if status != "OK" or not response:
         raise MailboxIMAPError("Não foi possível ler a mensagem. Tente novamente.")
     for row in response:
         if isinstance(row, tuple) and len(row) == 2 and isinstance(row[1], bytes):
-            if len(row[1]) > MAX_IMAP_MESSAGE_BYTES:
-                raise MailboxIMAPError(
-                    "Mensagem acima de 40 MB; sincronização pausada para revisão."
-                )
-            return row[1]
+            return row[1] if len(row[1]) <= MAX_IMAP_MESSAGE_BYTES else None
     raise MailboxIMAPError("O provedor não retornou o conteúdo da mensagem.")
 
 
-def _named_attachments(message: Message) -> list[tuple[str, str, bytes, str]]:
-    result: list[tuple[str, str, bytes, str]] = []
+@dataclass(frozen=True)
+class RawAttachment:
+    part_id: str
+    filename: str
+    payload: bytes
+    content_type: str
+    inline: bool
+    has_content_id: bool
+
+
+def _named_attachments(message: Message) -> list[RawAttachment]:
+    result: list[RawAttachment] = []
     for index, part in enumerate(message.walk()):
         if part.is_multipart() or not part.get_filename():
             continue
         payload = part.get_payload(decode=True)
         if not isinstance(payload, bytes) or not payload:
             continue
-        if len(payload) > MAX_EMAIL_ATTACHMENT_BYTES:
-            raise MailboxIMAPError("Anexo acima de 25 MB; sincronização pausada para revisão.")
-        result.append((str(index), str(part.get_filename()), payload, part.get_content_type()))
+        result.append(
+            RawAttachment(
+                part_id=str(index),
+                filename=str(part.get_filename()),
+                payload=payload,
+                content_type=part.get_content_type(),
+                inline=part.get_content_disposition() == "inline",
+                has_content_id=bool(part.get("Content-ID")),
+            )
+        )
     return result
+
+
+def _reject_whole_message(
+    mailbox: Mailbox, validity: int, uid: int, size: int, received_at: datetime
+) -> None:
+    record_rejected_attachment(
+        mailbox=mailbox,
+        message_id=f"imap:{validity}:{uid}",
+        part_id="0",
+        filename="mensagem-acima-do-limite",
+        size=size,
+        reason="Mensagem acima de 40 MB; não foi lida.",
+        received_at=received_at,
+    )
 
 
 def poll_imap_mailbox(
@@ -170,35 +205,62 @@ def poll_imap_mailbox(
             if examined >= max_messages:
                 break
             size, received_at = _metadata(connection, uid)
-            if size > MAX_IMAP_MESSAGE_BYTES:
-                raise MailboxIMAPError(
-                    "Mensagem acima de 40 MB; sincronização pausada para revisão."
-                )
             if received_at >= mailbox.since:
-                message = message_from_bytes(_raw_message(connection, uid), policy=policy.default)
-                sender = str(message.get("From", ""))
-                subject = str(message.get("Subject", ""))
-                attachments = (
-                    _named_attachments(message)
-                    if mailbox_accepts_message(
-                        mailbox=mailbox, sender=sender, subject=subject
+                raw = None if size > MAX_IMAP_MESSAGE_BYTES else _raw_message(connection, uid)
+                if raw is None:
+                    # Too big to read: a visible refusal, and the mailbox moves on.
+                    _reject_whole_message(mailbox, validity, uid, size, received_at)
+                    created += 1
+                else:
+                    message = message_from_bytes(raw, policy=policy.default)
+                    sender = str(message.get("From", ""))
+                    subject = str(message.get("Subject", ""))
+                    body = body_from_message(message)
+                    author = original_sender(
+                        body,
+                        {mailbox_domain(mailbox.address)},
+                        attached=attached_message(message),
                     )
-                    else []
-                )
-                for part_id, filename, payload, declared_type in attachments:
-                    receipt = receive_email_attachment(
-                        mailbox=mailbox,
-                        message_id=f"imap:{validity}:{uid}",
-                        part_id=part_id,
-                        filename=filename,
-                        payload=payload,
-                        sender=sender,
-                        subject=subject,
-                        received_at=received_at,
-                        declared_type=declared_type,
+                    attachments = (
+                        _named_attachments(message)
+                        if mailbox_accepts_message(
+                            mailbox=mailbox, sender=sender, subject=subject
+                        )
+                        else []
                     )
-                    created += int(receipt.created)
-                    duplicates += int(not receipt.created)
+                    for attachment in attachments:
+                        decision = decide_attachment(
+                            organization=mailbox.organization,
+                            filename=attachment.filename,
+                            size=len(attachment.payload),
+                            inline=attachment.inline,
+                            content_id=attachment.has_content_id,
+                            content_type=attachment.content_type,
+                        )
+                        if decision.action == "ignore":
+                            continue
+                        common: dict[str, Any] = {
+                            "mailbox": mailbox,
+                            "message_id": f"imap:{validity}:{uid}",
+                            "part_id": attachment.part_id,
+                            "filename": attachment.filename,
+                            "sender": sender,
+                            "subject": subject,
+                            "received_at": received_at,
+                            "declared_type": attachment.content_type,
+                            "body_excerpt": body,
+                            "original_sender": author,
+                        }
+                        if decision.action == "reject":
+                            receipt = record_rejected_attachment(
+                                size=len(attachment.payload), reason=decision.reason, **common
+                            )
+                        else:
+                            receipt = receive_email_attachment(
+                                payload=attachment.payload, **common
+                            )
+                        created += int(receipt.created)
+                        duplicates += int(not receipt.created)
             last_uid = uid
             examined += 1
             mailbox.cursor = json.dumps(

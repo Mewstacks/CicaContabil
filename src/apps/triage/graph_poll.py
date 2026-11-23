@@ -12,7 +12,7 @@ import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import cast
+from typing import Any, cast
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -24,7 +24,10 @@ from apps.triage.ingest import (
     MAX_EMAIL_ATTACHMENT_BYTES,
     mailbox_accepts_message,
     receive_email_attachment,
+    record_rejected_attachment,
 )
+from apps.triage.intake_policy import decide_attachment
+from apps.triage.mailtext import clean_body, mailbox_domain, original_sender
 from apps.triage.models import Mailbox
 from apps.triage.oauth import MailboxOAuthError, MailboxOAuthTemporaryError, refresh_access_token
 from apps.triage.poll_state import mark_failure, mark_success, retry_hint_seconds
@@ -138,7 +141,7 @@ def _initial_delta_url(mailbox: Mailbox) -> str:
     assert mailbox.since is not None
     cutoff = mailbox.since.astimezone(UTC).isoformat(timespec="seconds")
     params = {
-        "$select": "id,receivedDateTime,hasAttachments,from,subject",
+        "$select": "id,receivedDateTime,hasAttachments,from,subject,bodyPreview",
         "$top": "20",
         "$filter": f"receivedDateTime ge {cutoff}",
     }
@@ -205,6 +208,10 @@ def _attachments(
     subject = str(message.get("subject", ""))
     if not mailbox_accepts_message(mailbox=mailbox, sender=sender, subject=subject):
         return 0, 0
+    # ``bodyPreview`` is the provider's own bounded plain-text start of the body.
+    body = clean_body(str(message.get("bodyPreview") or ""))
+    author = original_sender(body, {mailbox_domain(mailbox.address)})
+    delivery_id = _opaque_identity("graph:", message_id)
     encoded_message_id = quote(message_id, safe="")
     path = f"/v1.0/me/messages/{encoded_message_id}/attachments"
     url = f"{_GRAPH_ORIGIN}{path}?{urlencode({'$select': 'id,name,size,contentType,isInline'})}"
@@ -221,9 +228,6 @@ def _attachments(
         for attachment in rows:
             if not isinstance(attachment, dict):
                 raise GraphMailboxError("O Graph retornou metadados de anexo inválidos.")
-            kind = attachment.get("@odata.type")
-            if kind not in {"#microsoft.graph.fileAttachment", "microsoft.graph.fileAttachment"}:
-                raise GraphMailboxError("Esta mensagem contém anexo Graph não suportado.")
             identifier, name, size = (
                 attachment.get("id"),
                 attachment.get("name"),
@@ -231,34 +235,55 @@ def _attachments(
             )
             if not isinstance(identifier, str) or not isinstance(name, str) or not name:
                 raise GraphMailboxError("O Graph retornou anexo sem identificação/nome.")
-            if (
-                isinstance(size, bool)
-                or not isinstance(size, int)
-                or size <= 0
-                or size > MAX_EMAIL_ATTACHMENT_BYTES
-            ):
-                raise GraphMailboxError("Anexo Graph sem tamanho válido ou acima de 25 MB.")
+            if isinstance(size, bool) or not isinstance(size, int) or size < 0:
+                raise GraphMailboxError("O Graph retornou anexo sem tamanho válido.")
             part_id = _opaque_identity("", identifier)
-            delivery_id = _opaque_identity("graph:", message_id)
             if mailbox.items.filter(message_id=delivery_id, part_id=part_id).exists():
                 duplicates += 1
+                continue
+            common: dict[str, Any] = {
+                "mailbox": mailbox,
+                "message_id": delivery_id,
+                "part_id": part_id,
+                "filename": name,
+                "sender": sender,
+                "subject": subject,
+                "received_at": received_at,
+                "declared_type": str(attachment.get("contentType", "")),
+                "body_excerpt": body,
+                "original_sender": author,
+            }
+            kind = attachment.get("@odata.type")
+            if kind not in {"#microsoft.graph.fileAttachment", "microsoft.graph.fileAttachment"}:
+                # An attached message or a cloud link carries no file here: say so, move on.
+                receipt = record_rejected_attachment(
+                    size=size,
+                    reason="Anexo que não é arquivo (mensagem ou link) não aceito.",
+                    **common,
+                )
+                created += int(receipt.created)
+                duplicates += int(not receipt.created)
+                continue
+            decision = decide_attachment(
+                organization=mailbox.organization,
+                filename=name,
+                size=size,
+                inline=attachment.get("isInline") is True,
+                content_type=str(attachment.get("contentType", "")),
+            )
+            if decision.action == "ignore":
+                continue
+            if decision.action == "reject":
+                receipt = record_rejected_attachment(size=size, reason=decision.reason, **common)
+                created += int(receipt.created)
+                duplicates += int(not receipt.created)
                 continue
             attachment_path = f"{path}/{quote(identifier, safe='')}/$value"
             raw_url = _validated_url(f"{_GRAPH_ORIGIN}{attachment_path}", attachment_path)
             payload = get_bytes(raw_url, access_token, MAX_EMAIL_ATTACHMENT_BYTES + 1)
             if len(payload) != size:
                 raise GraphMailboxError("O tamanho do anexo Graph não confere; cursor preservado.")
-            receipt = receive_email_attachment(
-                mailbox=mailbox,
-                message_id=delivery_id,
-                part_id=part_id,
-                filename=name,
-                payload=payload,
-                sender=sender,
-                subject=subject,
-                received_at=received_at,
-                declared_type=str(attachment.get("contentType", "")),
-            )
+            receipt = receive_email_attachment(payload=payload, **common)
             created += int(receipt.created)
             duplicates += int(not receipt.created)
         next_link = data.get("@odata.nextLink")
