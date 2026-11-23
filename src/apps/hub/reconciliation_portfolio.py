@@ -261,12 +261,21 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
             total=Count("pk"), valid=Count("pk", filter=valid_record),
         )
     }
+    from apps.hub.direct_use import direct_use_enabled
+
+    direct_use = direct_use_enabled(office)
     accounts_by_company: dict[Any, list[dict[str, Any]]] = defaultdict(list)
     for account in accounts:
         issues: list[str] = []
+        # D-393: account read from the OFX for a company without a bank account in its chart.
+        statement_only = bool(
+            direct_use and account.account_reference.strip() and not account.ledger_code.strip()
+        )
         if not account.active:
             issues.append("Conta desativada; revise a configuração antes de novos usos.")
-        if not account.account_reference.strip() or not account.ledger_code.strip():
+        if (
+            not account.account_reference.strip() or not account.ledger_code.strip()
+        ) and not statement_only:
             issues.append("A conta precisa de referência bancária e vínculo contábil explícitos.")
         ledger = ledger_counts.get(account.pk, {"total": 0, "valid": 0})
         if ledger["total"] != ledger["valid"]:
@@ -290,6 +299,7 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
             })
         bank_count = sum(source["bank_count"] for source in source_rows)
         status = ("review" if issues else "missing_bank" if not bank_count
+                  else "available" if statement_only
                   else "missing_ledger" if not ledger["valid"] else "available")
         actions = []
         if status == "available":
@@ -301,7 +311,7 @@ def portfolio_context(*, office: Any, companies: Any, params: Any,
                 actions.append({"label": "Conferir configuração", "url": _url(
                     "hub:reconciliation-configuration", {"company": account.company_id},
                 )})
-            if account.active and (not bank_count or not ledger["valid"]):
+            if account.active and (not bank_count or (not ledger["valid"] and not statement_only)):
                 origin = "bank_statement" if not bank_count else "accounting"
                 actions.append({
                     "label": "Enviar extrato" if origin == "bank_statement" else "Buscar Razão",

@@ -1061,3 +1061,10 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [x] `reconciliation_acceptance select`: semente registrada, fatos distintos, exclusão dos já congelados, filtro por competência, arquivo 0600 consumível por `prepare`.
 - [x] Seleção não congela previsão, não revisa e não conta como amostra D-73.
 - [ ] Revisão do proprietário dos 163 fatos SURIA e de pelo menos 37 fatos de outra conta vinculada; precisão automática só com regra ativa.
+
+## Uso direto — D-393/V-440 (23/11/2026)
+
+- [x] Regras DE-PARA pelo Razão ativas sem revisão no escritório habilitado; lançamento aprovado só do que falta no Razão.
+- [x] Extrato sem Razão para empresas sem conta de banco no plano ou sem plano.
+- [x] Revisão das confirmações automáticas opcional; amostra D-73 deixa de ser condição de uso da CONTAD.
+- [ ] Publicação, habilitação do UUID e `uso_direto --apply` em produção (autorização do responsável).

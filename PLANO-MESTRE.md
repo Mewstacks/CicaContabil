@@ -1,3 +1,11 @@
+<!-- D393-V440-2026-11-23 -->
+**23/11/2026 — D-393/V-440: CONTAD em uso direto (fonte isolada, não publicada).**
+A cliente vê e usa os dados sem etapas de revisão: regras DE-PARA pelo Razão nascem ativas,
+o que falta no Razão vira lançamento aprovado, exportação Domínio liberada para o escritório
+(sem homologação gravada), extrato sem Razão para empresas sem banco no plano, revisões opcionais.
+IA segue desligada; aceite D-73 deixa de ser condição de uso. Publicação e habilitação aguardam
+autorização. [Guia](docs/pt-BR/contad-uso-direto.md).
+
 <!-- D377-D378-V417-2026-11-19 -->
 **19/11/2026 — D-377/D-378/V-417: vínculo pelo OFX e amostra D-73 reprodutível (fonte isolada).**
 Produção segue na release v105 (uso assistido). Em `codex/contad-conclusao-20261119`:

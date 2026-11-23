@@ -12663,3 +12663,50 @@ depois (CI PostgreSQL), “6 min no futuro” já estava dentro da janela de 5 m
 calculado na execução do caso. Só o teste mudou; o serviço não. Prova com relógio simulado 7 min
 à frente (teste temporário, removido): o valor do jeito antigo é aceito e o novo continua recusado.
 `tests/test_portfolio_configuration.py`: 59 aprovados, 3 skips; Ruff ok.
+
+## V-440 — D-393: CONTAD em uso direto, sem etapas de revisão (23/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-uso-direto` a partir da main `ec92e5b` (v117 +
+V-439). Habilitação só pela lista `CICA_DIRECT_USE_ORGANIZATION_IDS`; fora dela nada muda.
+
+Implementado:
+- `apps/hub/direct_use.py`: ativa as sugestões DE-PARA pelo Razão sem revisão obrigatória (mesmas
+  validações de ativação; a que falha fica em rascunho, com evento D-393 e ator técnico); gera e
+  aprova o lançamento de movimento classificado por regra, sem par confirmado e **sem nenhum registro
+  do Razão da conta com mesma data, direção e valor**, só em mês cujo Razão já chegou.
+- Gatilho: depois de cada confirmação (D-392) e, em uso direto, também quando o Razão chega sem par
+  exato. Falha só registrada em log; a confirmação permanece.
+- `create_drafts` retira também a regra que a própria rotina ativou e perdeu a evidência; regra
+  mexida por pessoa (último evento com ator) nunca é tocada.
+- Exportação: `export_allowed` = homologação real **ou** escritório em uso direto no adaptador atual
+  `dominio-lote19-v1`. Nenhuma homologação é gravada; recibos continuam exigindo a real. Siescon,
+  outra versão, demo e escritório fora da lista continuam bloqueados. Painel mostra o formulário e
+  “Pronto para importar no Domínio”.
+- Conferência: confirmações automáticas aparecem “Valendo como confirmadas”; o registro de revisão
+  fica recolhido como “(opcional)”.
+- Importação: para empresa sem conta de banco no plano (ou sem plano), opção “Conta do extrato,
+  lida do OFX (sem Razão)” cria a conta só com banco/conta do OFX (sem código contábil nem
+  vínculo Razão), importa e leva a *Extratos para conferir*; a carteira mostra “Abrir conferência”
+  sem pedir Razão. Reenvio do mesmo OFX reaproveita a conta.
+- Títulos: fonte recebida passa a dizer “Títulos e baixas do Domínio disponíveis como vieram da
+  fonte”. A visão estruturada continua dependendo de interpretação por parcela (não automatizada).
+- Comando `uso_direto --organization <uuid> [--apply]` (sem `--apply` só lista): atualiza sugestões,
+  ativa e lança para todas as contas ativas.
+
+Testes: `tests/test_direct_use.py` (9): escritório fora da lista mantém rascunhos e não lança; regras
+ativas sem revisão e só o movimento ausente do Razão lançado (o confirmado, os dois ambíguos de mesmo
+valor e o sem regra ficam de fora); repetição não duplica; regra desativada por pessoa não é
+reativada; exportação permitida só ao escritório listado, sem homologação gravada, lançamento passa a
+`exported`; escritório fora da lista continua “bloqueada”; painel sem o aviso de bloqueio; empresa sem
+banco no plano importa e abre conferência/carteira; opção ausente fora do uso direto. Suíte SQLite
+completa na árvore final: 3.472 aprovados, 59 skips, 193 subtestes, zero falhas (PostgreSQL só no CI). Ruff ok; MyPy sem erro nos arquivos novos (erros preexistentes do
+ambiente local inalterados).
+
+Navegador (servidor local descartável, dados sintéticos, SQLite no scratchpad, sessão criada no
+banco sintético): painel *Exportações* com formulário e sem “bloqueada”; lista de contas com a opção
+sem Razão para as duas empresas sem plano; conferência com “9 confirmações automáticas · Valendo como
+confirmadas” e “Registrar revisão (opcional)” recolhido, também em 375 px sem rolagem horizontal.
+
+Limites: não publicado; UUID da CONTAD não habilitado em produção; `uso_direto --apply` não executado
+nos dados reais (14 regras da SURIA continuam em rascunho até lá). Leiaute do arquivo continua sem
+importação real observada no Domínio (D-380). Não houve IA, custo, mensagem externa ou acesso ao ERP.

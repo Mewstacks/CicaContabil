@@ -905,12 +905,26 @@ class ReconciliationUploadForm(forms.Form):
 
     def __init__(self, *args: Any, companies: QuerySet[ClientCompany], **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        from apps.hub.account_auto_link import AUTO_PREFIX, bank_chart_options
+        from apps.hub.account_auto_link import (
+            AUTO_PREFIX,
+            STATEMENT_PREFIX,
+            bank_chart_options,
+            statement_only_options,
+        )
 
         self.independent_ledger_preview: list[dict[str, Any]] = []
         self.auto_chart_account_id = ""
+        self.statement_only_company_id = ""
         raw_account = str(self.data.get("financial_account") or "") if self.is_bound else ""
-        if raw_account.startswith(AUTO_PREFIX):
+        if raw_account.startswith(STATEMENT_PREFIX):
+            try:
+                self.statement_only_company_id = str(UUID(raw_account[len(STATEMENT_PREFIX) :]))
+            except ValueError:
+                self.statement_only_company_id = "invalid"
+            data = self.data.copy()
+            data["financial_account"] = ""
+            self.data = data
+        elif raw_account.startswith(AUTO_PREFIX):
             try:
                 self.auto_chart_account_id = str(UUID(raw_account[len(AUTO_PREFIX) :]))
             except ValueError:
@@ -952,7 +966,11 @@ class ReconciliationUploadForm(forms.Form):
             display_account,
         )
         widget = cast(FinancialAccountSelect, financial_account_field.widget)
-        widget.extra_options = bank_chart_options(companies)
+        chart_options = bank_chart_options(companies)
+        widget.extra_options = [
+            *chart_options,
+            *statement_only_options(companies, chart_options),
+        ]
 
     def clean(self) -> dict[str, Any]:
         cleaned = super().clean() or {}
@@ -964,8 +982,16 @@ class ReconciliationUploadForm(forms.Form):
             self.add_error(None, "Informe cada campo do envio uma única vez.")
         company = cleaned.get("company")
         financial_account = cleaned.get("financial_account")
-        if self.auto_chart_account_id == "invalid":
+        if self.auto_chart_account_id == "invalid" or self.statement_only_company_id == "invalid":
             self.add_error("financial_account", "Escolha uma conta da lista.")
+        if (
+            self.statement_only_company_id
+            and isinstance(company, ClientCompany)
+            and str(company.pk) != self.statement_only_company_id
+        ):
+            self.add_error(
+                "financial_account", "Escolha uma conta financeira da empresa selecionada."
+            )
         if (
             isinstance(company, ClientCompany)
             and isinstance(financial_account, FinancialAccount)
@@ -980,6 +1006,7 @@ class ReconciliationUploadForm(forms.Form):
             and FinancialAccount.objects.filter(company=company, active=True).exists()
             and financial_account is None
             and not self.auto_chart_account_id
+            and not self.statement_only_company_id
         ):
             self.add_error("financial_account", "Escolha a conta financeira do extrato.")
         if cleaned["purpose"] == "independent_ledger":

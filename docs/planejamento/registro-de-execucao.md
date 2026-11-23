@@ -1,3 +1,18 @@
+<!-- D393-V440-2026-11-23 -->
+## 23/11/2026 — D-393/V-440: CONTAD em uso direto (fonte isolada)
+
+Responsável delegou as decisões das pendências: a cliente quer ver e usar os dados sem revisar.
+
+- [x] Decisão D-393 registrada antes da implementação (nove itens).
+- [x] Regras DE-PARA pelo Razão ativas sem revisão; lançamento automático só do que falta no Razão.
+- [x] Exportação Domínio liberada por escritório, sem homologação falsa; recibos inalterados.
+- [x] Extrato sem conta contábil para empresas sem banco no plano/sem plano.
+- [x] Revisão das confirmações automáticas opcional; aviso de títulos sem pendência.
+- [x] Guia [contad-uso-direto.md](../pt-BR/contad-uso-direto.md) no lugar do treinamento.
+- [x] Testes, lint e verificação em navegador (V-440).
+- [ ] Merge, deploy, `CICA_DIRECT_USE_ORGANIZATION_IDS` com o UUID da CONTAD e `uso_direto --apply` em produção — aguardam autorização.
+- [ ] Interpretação automática de títulos (C01/C02) — trabalho seguinte.
+
 <!-- D375-V415-EXECUTING-2026-11-18 -->
 ## 18/11/2026 — D-375/V-415: entrega CONTAD em execução
 

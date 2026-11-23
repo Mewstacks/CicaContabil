@@ -9159,7 +9159,8 @@ def _reconciliation_run_guidance(
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
-    from apps.hub.accounting_import import export_homologated
+    from apps.hub.accounting_import import export_allowed
+    from apps.hub.direct_use import direct_use_enabled
     from apps.hub.reconciliation_service import get_accounting_export_adapter
 
     selected_source = None
@@ -9440,7 +9441,10 @@ def _reconciliation_v2_context(
             "eyebrow": "CARTEIRA EM DIA",
             "title": "Nenhuma exceção exige revisão agora",
             "description": (
-                "Você pode trazer novos arquivos. A exportação continua bloqueada até a "
+                "Você pode trazer novos arquivos e gerar o arquivo de lançamentos para o "
+                "Domínio em Arquivos e histórico."
+                if direct_use_enabled(office)
+                else "Você pode trazer novos arquivos. A exportação continua bloqueada até a "
                 "homologação real do layout Domínio."
             ),
             "label": "Nova importação",
@@ -9486,11 +9490,12 @@ def _reconciliation_v2_context(
             conference_params.urlencode() if conference_params else ""
         ),
         "reconciliation_local_ocr_available": local_ocr_is_available,
-        "reconciliation_dominio_export_homologated": export_homologated(
+        "reconciliation_dominio_export_homologated": export_allowed(
             office,
             AccountingExport.Target.DOMINIO,
             get_accounting_export_adapter(AccountingExport.Target.DOMINIO).version,
         ),
+        "reconciliation_direct_use": direct_use_enabled(office),
         "reconciliation_dominio_preview_enabled": preview_enabled(office),
     }
 
@@ -10402,6 +10407,37 @@ def _link_upload_account(
     return True
 
 
+def _link_statement_account(
+    request: HttpRequest, form: ReconciliationUploadForm, files: list[Any], office: Organization
+) -> bool:
+    """D-393: company without a bank account in its Domínio chart; account read from the OFX."""
+
+    from apps.hub.account_auto_link import AutoLinkError, link_statement_only
+
+    statement = next(
+        (item for item in files if str(item.name or "").lower().endswith((".ofx", ".qfx"))), None
+    )
+    if statement is None:
+        form.add_error("financial_account", "Para esta opção, envie o extrato em OFX.")
+        return False
+    content = statement.read()
+    statement.seek(0)
+    try:
+        account = link_statement_only(
+            office=office,
+            company=form.cleaned_data["company"],
+            content=content,
+            actor=request.user,
+            request=request,
+        )
+    except (AutoLinkError, OfxParseError) as exc:
+        form.add_error("financial_account", str(exc))
+        return False
+    form.cleaned_data["financial_account"] = account
+    form.cleaned_data["origin"] = ReconciliationSourceFile.Origin.BANK_STATEMENT
+    return True
+
+
 @office_required
 @require_http_methods(["POST"])
 def reconciliation_upload(request: HttpRequest) -> HttpResponse:
@@ -10419,6 +10455,8 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
     valid = form.is_valid()
     if valid and files and form.auto_chart_account_id:
         valid = _link_upload_account(request, form, files, office, companies)
+    elif valid and files and form.statement_only_company_id:
+        valid = _link_statement_account(request, form, files, office)
     if not valid or not files:
         if not files:
             form.add_error("files", "Selecione ao menos um arquivo.")
@@ -10540,6 +10578,16 @@ def _ledger_after_upload(
 
     account = source.financial_account
     assert account is not None
+    from apps.hub.direct_use import direct_use_enabled
+
+    if not hasattr(account, "ledger_mapping") and direct_use_enabled(account.organization):
+        # D-393: statement-only account (no bank account in the Domínio chart): no Razão.
+        messages.info(
+            request,
+            "Extrato importado sem Razão: esta empresa não tem conta de banco no plano do "
+            "Domínio. Os movimentos e o relatório do extrato ficam em Extratos para conferir.",
+        )
+        return f"{reverse('hub:reconciliation')}#processamentos"
     try:
         first = read_ofx_account_identity(content).first_date
     except OfxParseError:
@@ -10899,6 +10947,7 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
         messages.error(request, str(exc))
         return redirect(f"{reverse('hub:reconciliation')}#processamentos")
     from apps.hub.auto_confirmation_review import DECLARATION, is_owner, review_summary
+    from apps.hub.direct_use import direct_use_enabled
 
     can_review_conference = bool(context["support_can_mutate"]) and _can_manage_reconciliation(
         context
@@ -10911,6 +10960,7 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
             "auto_review_declaration": DECLARATION,
             "can_register_auto_review": can_review_conference
             and is_owner(source.organization_id, request.user),
+            "direct_use": direct_use_enabled(source.organization),
         }
     )
     response = render(request, "hub/reconciliation_source_review.html", context)

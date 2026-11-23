@@ -27,9 +27,10 @@
   {% if auto_review.total %}
   <div class="conference-auto-review" role="group" aria-labelledby="auto-review-title">
     <p id="auto-review-title"><strong>{{ auto_review.total }} confirmaç{{ auto_review.total|pluralize:"ão,ões" }} automática{{ auto_review.total|pluralize }}</strong> · {{ auto_review.kept }} mantida{{ auto_review.kept|pluralize }} · {{ auto_review.undone }} desfeita{{ auto_review.undone|pluralize }}</p>
-    <p class="conference-auto-review-status">{% if auto_review.review %}{% if auto_review.review_is_current %}<span class="status-badge is-active">Revisão registrada</span> <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}<span class="status-badge is-warning">Revisão desatualizada</span> <span>Mudou depois de <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time></span>{% endif %}{% else %}<span class="status-badge is-muted">Sem revisão da proprietária</span>{% endif %}</p>
+    <p class="conference-auto-review-status">{% if auto_review.review %}{% if auto_review.review_is_current %}<span class="status-badge is-active">Revisão registrada</span> <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time>{% else %}<span class="status-badge is-warning">Revisão desatualizada</span> <span>Mudou depois de <time datetime="{{ auto_review.review.occurred_at|date:'c' }}">{{ auto_review.review.occurred_at|date:'SHORT_DATETIME_FORMAT' }}</time></span>{% endif %}{% elif direct_use %}<span class="status-badge is-active">Valendo como confirmadas</span>{% else %}<span class="status-badge is-muted">Sem revisão da proprietária</span>{% endif %}</p>
     <a class="button button-quiet" href="{% url 'hub:reconciliation-source-review' conference_source.id %}?state=confirmed{% if conference_report_querystring %}&amp;{{ conference_report_querystring }}{% endif %}#conference-movements-heading">Ver movimentos conferidos</a>
     {% if can_register_auto_review and not auto_review.review_is_current %}
+    {% if direct_use %}<details class="conference-auto-review-optional"><summary>Registrar revisão (opcional)</summary>{% endif %}
     <form method="post" action="{% url 'hub:reconciliation-source-auto-review' conference_source.id %}" class="conference-auto-review-form">
       {% csrf_token %}
       {% if request.GET.start %}<input type="hidden" name="start" value="{{ request.GET.start }}">{% endif %}{% if request.GET.end %}<input type="hidden" name="end" value="{{ request.GET.end }}">{% endif %}{% if conference_portfolio_return_url %}<input type="hidden" name="portfolio_return" value="{{ conference_portfolio_return_url }}">{% endif %}
@@ -37,6 +38,7 @@
       <div class="checkbox-field"><input id="auto-review-declaration" type="checkbox" name="declaration" value="{{ auto_review_declaration }}" required><label for="auto-review-declaration">{{ auto_review_declaration }}</label></div>
       <button class="button" type="submit">Registrar revisão</button>
     </form>
+    {% if direct_use %}</details>{% endif %}
     {% endif %}
   </div>
   {% endif %}
