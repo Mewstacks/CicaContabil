@@ -1083,5 +1083,6 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [x] OFX Windows-1252, OFX de outra empresa recusado, rotina fora da requisição, IA rebaixada abaixo de 90% (D-397).
 - [x] Telas no uso direto com estados reais, contagens de lançados/enviados e pendências de exportação (D-397).
 - [x] D-396 publicada na release v121 (V-447, outra sessão).
-- [ ] D-397: merge, deploy e conferência somente leitura de todas as contas da CONTAD em produção (autorização).
+- [x] D-397 publicada na release v122 (V-449).
+- [ ] Conferência somente leitura de todas as contas da CONTAD em produção (autorização de acesso ao console).
 
