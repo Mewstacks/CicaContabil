@@ -12796,3 +12796,31 @@ empresa 30 fora pela regra; 36 baixas com juros e 40 com componentes além do ti
 fotografia aceitou as 773 (zero recusadas), em 733 títulos. Um primeiro script de prova passou o
 escritório como texto em vez de UUID e foi recusado pela checagem de integridade — erro do script,
 não do código publicado (que usa o UUID); repetido corretamente.
+
+## V-444 — D-395: DE-PARA com IA (Haiku 5.5) no uso direto (23/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-depara-ia` a partir da main `c9db69d` (v119).
+
+Implementado `apps/hub/depara_ai_auto.py`, ligado à rotina D-393 na ordem: retirar regra da IA
+contradita pelo Razão → ativar regras do Razão → aplicar regras aos movimentos (para nunca pagar por
+padrão já coberto) → consultar a IA só por padrões novos → lançar o que falta. Candidatas = até 80
+contrapartidas que a empresa usa no Razão, com nome/classificação do plano; esquema JSON com `enum`
+desses códigos + “nenhuma”. Medição às cegas cacheada por conjunto; ≥10 padrões e ≥90% ativam as
+regras da IA (prioridade 200, depois das do Razão), senão rascunho com revisão. Reserva de gasto em
+`EgressAudit` (`depara_auto`, só hash) antes da chamada, custo real gravado depois; tetos
+100/500 centavos. Configurações `CICA_DEPARA_AI_ORGANIZATION_IDS`, `CICA_DEPARA_AI_MODEL`,
+`CICA_DEPARA_AI_DAILY_CENTS`, `CICA_DEPARA_AI_MONTHLY_CENTS`; chave em `CICA_CLAUDE_API_KEY`.
+
+Testes `tests/test_depara_ai_auto.py` (7, provedor simulado): medição aprovada ativa e lança o
+movimento sem Razão; esquema só aceita contrapartidas do Razão; cada padrão perguntado uma vez;
+medição reprovada deixa rascunho sem lançamento; teto zerado bloqueia a chamada mas o lançamento do
+Razão continua; escritório sem autorização nunca chama; Razão contraditório retira a regra da IA;
+payload sem valores/datas/empresa e com CPF mascarado. Achado e corrigido na escrita dos testes: sem
+reaplicar as regras do Razão recém-ativadas, a IA seria consultada (e paga) por padrão já coberto.
+Suíte SQLite: 3.491 aprovados, 59 skips, zero falhas; PostgreSQL local: 66 testes de IA/uso
+direto/títulos aprovados; Ruff ok; MyPy sem erro nos arquivos novos.
+
+Chamada real única à API (dados sintéticos, chave lida do arquivo 0600 de V-390 sem exibir):
+HTTP 200, `claude-haiku-5-5`, `end_turn`, JSON no esquema (tarifa → conta de tarifas, Pix recebido
+→ receita, histórico sem sentido → “nenhuma”); 113 tokens de entrada + 566 em criação de cache e 58
+de saída (≈ US$ 0,0001). Nenhum dado da CONTAD enviado neste teste.

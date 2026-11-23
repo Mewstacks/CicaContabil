@@ -6105,3 +6105,32 @@ Regra de interpretação (tipos oficiais do Domínio, soluções 6168/6169, V-37
 7. Gatilho: chegada de cada captura de títulos (tarefa assíncrona), criação de conta bancária e
    comando `titulos_auto` para o que já foi capturado. O vínculo baixa × extrato continua sendo
    a conferência existente. Sem migração, custo, IA ou mensagem externa.
+
+## D-395 — DE-PARA com IA (Haiku 5.5) no uso direto da CONTAD (23/11/2026)
+
+Origem: responsável, 23/11/2026, “pode fazer o DExPARA com IA, utilizando o modelo mais barato -
+pode gerar a chave do claude”, e respostas na mesma sessão: **“Grazi já autorizou”** o envio dos
+dados da CONTAD à Anthropic (renova a aprovação revogada em 13/11 exigida por D-391 item 5, por
+informação do responsável; não foi coletada na tela pela proprietária), teto **US$ 1/dia e US$ 5/mês**,
+e regra da IA **ativa sozinha só se acertar ≥90%** contra o Razão. Executor Claude Code. Completa
+D-391 item 5 e D-393.
+
+1. Chave: reaproveitar a chave `CICA-CONTAD-DEPARA-2026-11-13` já criada pelo titular (V-390,
+   válida até 13/12/2026), instalada como segredo `CICA_CLAUDE_API_KEY` no Fly sem passar o valor
+   pela conversa. Não se cria outra chave. A presença da chave não liga o Copiloto (continua exigindo
+   a configuração e a aprovação próprias dele).
+2. Modelo: `claude-haiku-5-5` (US$ 0,10/M entrada, US$ 0,50/M saída), esforço baixo, saída em JSON
+   com esquema que só aceita códigos da lista enviada. Chamada HTTP no mesmo padrão do gateway
+   existente (o SDK não é dependência do projeto).
+3. Escritórios: lista explícita `CICA_DEPARA_AI_ORGANIZATION_IDS` (só a CONTAD), além do uso direto.
+   Teto global desta finalidade: 100 centavos/dia e 500/mês, reservados antes de cada chamada em
+   `EgressAudit` (finalidade `depara_auto`, só hash do conteúdo); estourado o teto, a IA para.
+4. Dados enviados: histórico do movimento (mascarado para CPF/CNPJ, e-mail e segredos, até 120
+   caracteres) e direção; contas candidatas = contrapartidas que a própria empresa usa no Razão
+   (código, nome e classificação, até 80). Sem valores, datas, nome da empresa ou dados bancários.
+5. Medição às cegas: os padrões já conferidos com o Razão vão sem a resposta; acerto = mesma
+   contrapartida escriturada. Com pelo menos 10 padrões e acerto ≥90%, as sugestões da IA nascem
+   **ativas** (sem revisão, geram lançamento pela D-393); senão ficam em rascunho “IA — sem histórico”.
+6. A IA só é consultada para padrões de movimentos sem regra, fora do Razão, cada padrão uma vez.
+   Regra da IA que o Razão contradizer é retirada sozinha; a do Razão prevalece. Regra mexida por
+   pessoa nunca é alterada. Conta sem código contábil (extrato sem Razão) não usa IA.
