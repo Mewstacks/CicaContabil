@@ -4,7 +4,7 @@
 
 Spec e critérios (A1 a A13): [dominio-mcp.md](dominio-mcp.md). Um gate de aprovação (spec e plano) antes de implementar, outro no diff. Tudo novo mora em `dominio-mcp/` (pacote Python próprio, `uv`), sem editar o legado nem os módulos da frente "produto vendável". Todos os caminhos das tabelas abaixo são relativos a `dominio-mcp/` (`src/…`, `tests/…`, `overlay/…`, `verified/…`, `reports/…`), exceto `DECISOES.md`, `VALIDACOES.md` e `docs/…`. Sem estimativa de calendário (AGENTS.md): P, M e G são tamanhos relativos. Cada tarefa começa pelo teste vermelho.
 
-**Núcleo da Fase 1:** stdio, L0, quatro ferramentas L1 e L2 (M0 a M8). **Fase 1b**, cada incremento com OK próprio: L3 (M9), HTTP em loopback (M10), `.mcpb` (M11). **Fase 2** (gateway no CICA, Serpro): [dominio-mcp-fase2.md](dominio-mcp-fase2.md).
+**Núcleo da Fase 1:** stdio, L0, quatro ferramentas L1 e L2 (M0 a M8). **Fase 1b**: L3 (M9), HTTP em loopback (M10), `.mcpb` (M11), feitos em 23/11/2026 por autorização do responsável (D-330); falta só o teste manual do `.mcpb` no Claude Desktop. **Fase 2** (gateway no CICA, Serpro): [dominio-mcp-fase2.md](dominio-mcp-fase2.md).
 
 ## Ordem e dependências
 

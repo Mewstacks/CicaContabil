@@ -1,6 +1,6 @@
-# Progresso — dominio-mcp (Fase 1, núcleo)
+# Progresso — dominio-mcp (Fase 1 núcleo e Fase 1b)
 
-Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-329 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
+Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-330 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
 
 | Marco | Estado | Prova |
 |---|---|---|
@@ -13,8 +13,11 @@ Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plan
 | M6 servidor, auditoria e CLI | feito (21/11/2026) | `audit.py`, `server.py` (SDK `mcp` 2.3.0, 10 ferramentas, 3 anotações, erros estruturados, perfil), `cli.py` (`serve`, `build-pack`, `doctor`, `reset`); e2e por stdio real com ODBC falso e pelo CLI real |
 | M7 prova no banco real | feito em parte (21/11/2026) | T7.1 [pack-real.md](pack-real.md); T7.2 [recall.md](recall.md) (A3 não atendido); T7.3: marcadores plantados em todas as saídas (`tests/test_markers_e2e.py`) e recusa por objeto no catálogo real ([privacidade.md](privacidade.md)) feitos, **revisão independente de 300 colunas (A7c) pendente (contadora)**; T7.4 conferência L1 × L2 viva em [conferencia.md](conferencia.md), **oficial e carga pendentes** |
 | M8 guia, registros e revisão | feito em parte (21/11/2026) | T8.1 guia do dono ([docs/dominio-mcp.md](../../docs/dominio-mcp.md), [README](../README.md)) e [clientes.md](clientes.md): **nenhum cliente real testado**, SDK `mcp` 2.3.0 e 1.30.0 testados por stdio. T8.2 revisão do Codex em duas rodadas: 18 achados, todos reproduzidos por teste que falhava e corrigidos (D-328). T8.3 registros: V-308 a V-310 em `VALIDACOES.md`, `registro-de-execucao.md`, ligações em `docs/README.md` e `docs/intelligence-mcp.md` |
+| M9 L3 (Fase 1b) | feito (23/11/2026) | `rawsql.py` (gramática mínima, traduz para L2), `tools_rawsql.py` (só perfil `local` com `raw_sql`, checado no registro e no despacho); `tests/test_rawsql_attack.py` (100 ataques recusados, 13 de política, 12 de junção, 13 consultas legítimas que passam), `tests/test_tools_rawsql.py`; vivo: 3 testes no banco real (D-330, V-312) |
+| M10 HTTP em loopback (Fase 1b) | feito (23/11/2026) | `http_app.py`, `serve --http`, `http-token`; `tests/test_http_security.py` (33): bind, `Host`, `Origin`, token, teto de tentativas, corpo, cliente MCP real em porta efêmera |
+| M11 `.mcpb` (Fase 1b) | feito em parte (23/11/2026) | `mcpb/manifest.json`, `mcpb/server/main.py`, `scripts/build_mcpb.py` (15,2 MiB, `mcpb validate` ok), `scripts/prove_mcpb.py` (instalação em pasta nova do sistema com venv vazio, `pyodbc` e `pywintypes` do pacote, 10 ferramentas, glossário empacotado). **Falta o teste manual no Claude Desktop em perfil Windows limpo**: só depois conta como entregue |
 
-Verificação do pacote em 21/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 635 passam, 19 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 17 passam, 1 (carga) exige a janela do dono.
+Verificação do pacote em 23/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 835 passam, 22 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 20 passam, 1 (carga) exige a janela do dono.
 
 ## Desvios do plano (decisão técnica, sem mudar comportamento)
 
@@ -65,3 +68,10 @@ Três pontos sobre o commit `0c9ab04f`, conferidos antes de decidir: agregado pe
 - Lote cego da contadora (A3), revisão independente de 300 colunas (A7c) e conferência de `movimento_fiscal` contra o relatório oficial.
 - OK para a Fase 1b (L3 local, HTTP em loopback, `.mcpb`) e para a Fase 2 (gateway no CICA, Serpro); plano do ChatGPT e custo do túnel a confirmar.
 - Teste real de Claude Desktop, Claude Code e ChatGPT (usa cota; matriz em [clientes.md](clientes.md)).
+
+## Fase 1b (23/11/2026, D-330)
+
+- L3 não é filtro de SQL: é uma gramática mínima que **converte** o `SELECT` em consulta L2, então herda a política inteira e não abre nada que L2 não abra. O `ON` tem que ser exatamente a FK declarada.
+- O HTTP só escuta em `127.0.0.1` ou `::1`, é sempre perfil `remote` e fica atrás de `Host` fixo, recusa de `Origin`, token de 256 bits e teto de tentativas.
+- A prova de instalação do `.mcpb` achou um defeito que nenhum teste de manifesto acharia: `PYTHONPATH` não lê `.pth` e o SDK exige `pywintypes` no Windows. `main.py` passou a chamar `site.addsitedir`.
+- Pendente: teste manual do `.mcpb` no Claude Desktop em perfil limpo; cliente HTTP real (só o SDK foi testado).

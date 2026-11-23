@@ -50,9 +50,13 @@ class StubGuard:
         return self._pack
 
 
-def make_deps(tmp_path: Path) -> tuple[Deps, FakeDriver]:
+def make_deps(
+    tmp_path: Path, *, profile: Profile = Profile.REMOTE, raw_sql: bool = False
+) -> tuple[Deps, FakeDriver]:
     pack = build_demo_pack(tmp_path)
-    settings = Settings(dsn="contabil", home=tmp_path, limits=Limits())
+    settings = Settings(
+        dsn="contabil", home=tmp_path, limits=Limits(), profile=profile, raw_sql=raw_sql
+    )
     overlay = load_overlay()
     auditor = JsonlAuditor(tmp_path / "audit")
     driver = FakeDriver()

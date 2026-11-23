@@ -1,6 +1,6 @@
 # Matriz por cliente (A12)
 
-Data da matriz: 21/11/2026. Regra: o guia do dono ([docs/dominio-mcp.md](../../docs/dominio-mcp.md)) só declara compatibilidade com o cliente que tem linha "testado em <data e versão>" abaixo. Os demais ficam "pendente de teste real" e não entram em promessa.
+Data da matriz: 23/11/2026. Regra: o guia do dono ([docs/dominio-mcp.md](../../docs/dominio-mcp.md)) só declara compatibilidade com o cliente que tem linha "testado em <data e versão>" abaixo. Os demais ficam "pendente de teste real" e não entram em promessa.
 
 ## Resultado
 
@@ -10,7 +10,9 @@ Itens: **inicialização** (conecta, `instructions` chegam), **descoberta** (10 
 |---|---|---|---|---|---|---|---|
 | Cliente do SDK `mcp` 2.3.0, stdio | ok | ok | ok | não se aplica | ok | ok | 21/11/2026, `mcp` 2.3.0 |
 | Cliente do SDK `mcp` 1.30.0, stdio | ok | ok | ok | não se aplica | ok | ok | 21/11/2026, `mcp` 1.30.0 |
-| Claude Desktop | pendente de teste real | pendente | pendente | pendente | pendente | pendente | não testado |
+| Cliente do SDK `mcp` 2.3.0, HTTP em loopback com token (`serve --http`) | ok | ok | ok | não se aplica | não medido | não medido | 23/11/2026, `mcp` 2.3.0 |
+| Cliente do SDK `mcp` 2.3.0, stdio, servidor do pacote `.mcpb` em pasta nova com venv vazio | ok | ok | `pack_ausente` estruturado (sem pack) | não se aplica | não medido | não medido | 23/11/2026, `mcp` 2.3.0 |
+| Claude Desktop (também instalando o `.mcpb`) | pendente de teste real | pendente | pendente | pendente | pendente | pendente | não testado |
 | Claude Code | pendente de teste real | pendente | pendente | pendente | pendente | pendente | não testado |
 | ChatGPT por túnel seguro | pendente de teste real | pendente | pendente | pendente | pendente | pendente | não testado |
 | Claude na web e no celular | fora da Fase 1 (gateway da Fase 2) | | | | | | não testado |

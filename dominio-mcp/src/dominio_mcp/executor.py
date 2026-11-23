@@ -31,7 +31,12 @@ from dominio_mcp.freshness import Executor, PackStale
 from dominio_mcp.odbc import Auditor, Session
 from dominio_mcp.pack import Pack
 from dominio_mcp.policy import Policy
-from dominio_mcp.query_spec import ConsultaEstruturada, QueryRefused, validate_query
+from dominio_mcp.query_spec import (
+    ConsultaEstruturada,
+    QueryRefused,
+    ValidatedQuery,
+    validate_query,
+)
 from dominio_mcp.scope import check_scope
 from dominio_mcp.shaping import ShapeContext, shape_result
 
@@ -100,7 +105,14 @@ class QueryEngine:
     def precheck(self) -> Pack:
         return self._guard.precheck()
 
-    def run(self, spec_input: dict[str, Any] | ConsultaEstruturada) -> dict[str, Any]:
+    def run(
+        self,
+        spec_input: dict[str, Any] | ConsultaEstruturada,
+        *,
+        tool: str = "consulta_estruturada",
+        verify: Callable[[ValidatedQuery], None] | None = None,
+    ) -> dict[str, Any]:
+        """Valida, compila e executa. `verify` roda sobre a consulta validada (L3 confere o ON)."""
         started = self._clock()
         spec: ConsultaEstruturada | None = None
         tables: tuple[str, ...] = ()
@@ -110,12 +122,14 @@ class QueryEngine:
             pack = self._guard.precheck()
             pack_short = pack.meta.short
             vq = validate_query(spec, pack, self._settings, self._policy)
+            if verify is not None:
+                verify(vq)
             check_scope(vq)
             compiled = compile_query(vq, pack.meta.owner)
             tables = compiled.tables
         except QueryRefused as refusal:
             self._audit_failure(
-                "consulta_estruturada",
+                tool,
                 None if spec is None else args_hash(spec),
                 tables,
                 f"recusada:{refusal.code}",
@@ -125,7 +139,7 @@ class QueryEngine:
             raise
         except Exception as exc:
             self._audit_failure(
-                "consulta_estruturada",
+                tool,
                 None if spec is None else args_hash(spec),
                 tables,
                 f"erro:{type(exc).__name__}",
@@ -133,9 +147,7 @@ class QueryEngine:
                 pack_short,
             )
             raise
-        return self.execute_compiled(
-            compiled, tool="consulta_estruturada", args=args_hash(spec), pack=pack
-        )
+        return self.execute_compiled(compiled, tool=tool, args=args_hash(spec), pack=pack)
 
     def _audit_failure(
         self,

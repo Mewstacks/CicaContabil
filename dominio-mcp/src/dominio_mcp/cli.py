@@ -1,5 +1,8 @@
 """CLI do dominio-mcp: `serve`, `build-pack`, `doctor`, `reset` e `version` (T6.4).
 
+- `serve --http [--port N]`: o mesmo servidor em HTTP no loopback, com token (`http_app.py`);
+  sempre perfil `remote`;
+- `http-token`: mostra o token do HTTP (cria na primeira vez);
 - `serve [--profile remote|local]`: servidor MCP por stdio. O perfil so vem daqui (D-326): o padrao
   `remote` vale para tunel, gateway e qualquer processo iniciado por terceiro;
 - `build-pack [--aceitar]`: gera o pack do catalogo vivo (`buildpack.py`);
@@ -27,6 +30,16 @@ from dominio_mcp.budget import quarantine_for
 from dominio_mcp.catalog import CatalogError
 from dominio_mcp.config import ConfigError, Profile, Settings, load_settings
 from dominio_mcp.freshness import PackStale
+from dominio_mcp.http_app import (
+    DEFAULT_PORT,
+    MCP_PATH,
+    HttpConfigError,
+    check_bind,
+    check_port,
+    load_or_create_token,
+    serve_http,
+    token_path,
+)
 from dominio_mcp.odbc import DbError, OdbcUnavailable, build_session
 from dominio_mcp.overlay import load_overlay
 from dominio_mcp.pack import PackError, pack_store_for
@@ -171,6 +184,8 @@ def cmd_serve(args: argparse.Namespace) -> int:
     from dominio_mcp.server import build_deps, build_server
 
     profile = Profile(args.profile)
+    if args.http and profile is not Profile.REMOTE:
+        raise ConfigError("o HTTP so existe no perfil remote (L3 nunca passa por HTTP)")
     settings = load_settings(profile=profile)
     deps = build_deps(settings)
     try:
@@ -182,7 +197,26 @@ def cmd_serve(args: argparse.Namespace) -> int:
         )
     except Exception as exc:
         print(f"dominio-mcp: {exc}", file=sys.stderr)
-    build_server(deps, profile).run(transport="stdio")
+    server = build_server(deps, profile)
+    if args.http:
+        host = check_bind(args.host)
+        port = check_port(args.port)
+        token = load_or_create_token(token_path(settings.home))
+        print(
+            f"dominio-mcp: HTTP em http://{host}:{port}{MCP_PATH} (token: dominio-mcp http-token)",
+            file=sys.stderr,
+        )
+        serve_http(server, host=host, port=port, token=token)
+        return 0
+    server.run(transport="stdio")
+    return 0
+
+
+def cmd_http_token(_args: argparse.Namespace) -> int:
+    settings = load_settings()
+    path = token_path(settings.home)
+    print(load_or_create_token(path))
+    print(f"arquivo: {path}", file=sys.stderr)
     return 0
 
 
@@ -201,7 +235,14 @@ def build_parser() -> argparse.ArgumentParser:
         default=Profile.REMOTE.value,
         help="remote (padrao) para tunel e gateway; local so em stdio do proprio computador",
     )
+    serve.add_argument(
+        "--http", action="store_true", help="HTTP em 127.0.0.1 com token, em vez de stdio"
+    )
+    serve.add_argument("--host", default="127.0.0.1", help="so 127.0.0.1 ou ::1")
+    serve.add_argument("--port", type=int, default=DEFAULT_PORT, help="porta do HTTP")
     serve.set_defaults(func=cmd_serve)
+    token = sub.add_parser("http-token", help="mostra o token do HTTP (cria na primeira vez)")
+    token.set_defaults(func=cmd_http_token)
     build = sub.add_parser("build-pack", help="gera o pack do catalogo do banco")
     build.add_argument("--aceitar", action="store_true", help="aprova o catalogo atual como base")
     build.set_defaults(func=lambda a: buildpack_cli.main(["--aceitar"] if a.aceitar else []))
@@ -217,7 +258,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-_EXPECTED = (ConfigError, DbError, OdbcUnavailable, CatalogError, PackError, PackStale)
+_EXPECTED = (
+    ConfigError,
+    HttpConfigError,
+    DbError,
+    OdbcUnavailable,
+    CatalogError,
+    PackError,
+    PackStale,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -102,7 +102,7 @@ A D-18 continua valendo para o MCP interno do Hub e para o agente ("o agente nã
 | ChatGPT (web) | **Secure MCP Tunnel**: `tunnel-client` no escritório, só saída HTTPS, repassa a stdio ou HTTP local (`--profile remote`); exige conta de Plataforma e permissão de workspace, planos a confirmar | developers.openai.com/api/docs/guides/secure-mcp-tunnels |
 | Claude web e celular | URL pública com OAuth: só pelo gateway da Fase 2 (o túnel do Claude é Enterprise, por pedido) | claude.com/docs/connectors/mcp-tunnels |
 
-**Fase 1b (incrementos, cada um com OK próprio):** L3 no perfil `local`; HTTP em `127.0.0.1` com token e checagem de `Origin`; extensão `.mcpb` para Claude Desktop (dados do pacote por `importlib.resources`; prova de instalação em ambiente limpo fora do checkout).
+**Fase 1b (feita em 23/11/2026 por autorização do responsável, D-330; `.mcpb` falta o teste manual no Claude Desktop):** L3 no perfil `local`, como SQL traduzido para L2 (`rawsql.py`); HTTP em `127.0.0.1` com token e checagem de `Origin`; extensão `.mcpb` para Claude Desktop (dados do pacote por `importlib.resources`; prova de instalação em ambiente limpo fora do checkout).
 
 **Fase 2 (spec própria): gateway no CICA.** Rascunho em [dominio-mcp-fase2.md](dominio-mcp-fase2.md). É a peça mais sensível de segurança: revisão adversarial obrigatória.
 
@@ -165,6 +165,7 @@ Escrita no Domínio (nunca). Domínio Web (a Central confirma que não há conex
 | DM-10 | Perfis `remote` (padrão) e `local`; L3 só em `local` com flag, checada no despacho | Aprovada em 21/11/2026; D-326 |
 | DM-11 | Orçamento de carga por custo estimado (`SELECT PLAN(?)`, parâmetro ligado), trava entre processos, janela de datas e junções limitadas | Aprovada em 21/11/2026, medida; D-327 |
 | DM-12 | Revisão adversarial do código: texto livre só se lê; junção só por chave normal e sem multiplicar linhas; agregado pessoal com 3 contribuições; execução presa ao pack da compilação; quarentena que não grava mantém a trava | Registrada em 21/11/2026 depois da revisão do Codex (duas rodadas, 18 achados); D-328 |
+| DM-14 | Fase 1b: L3 é SQL traduzido para L2 (herda a política), HTTP só loopback com token, `.mcpb` só Windows x64 | Autorizada em 23/11/2026 ("faz tudo"); D-330 |
 
 ## Riscos
 

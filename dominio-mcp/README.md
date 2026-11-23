@@ -22,6 +22,9 @@ uv run dominio-mcp serve
 - `doctor` confere DSN, driver, legibilidade, pack e quarentena. Rode antes de ligar um cliente: baixa as dependências e mostra o que falta.
 - `build-pack` lê o catálogo do banco (≈ 33 s no banco real) e gera o pack local. **Sem `--aceitar`** as colunas que nenhuma regra classificou ficam bloqueadas; aceitar o catálogo é decisão do dono (ver o guia).
 - `serve` fala MCP por stdio. É o comando que Claude Desktop, Claude Code e o túnel do ChatGPT executam.
+- `serve --http` fala o mesmo MCP em `http://127.0.0.1:8765/mcp` com token (`http-token`): só loopback, sempre perfil `remote`.
+- L3 (`sql_somente_leitura`) só existe com `serve --profile local` e `raw_sql = true`: é SQL em gramática mínima convertido em consulta L2, com a mesma política.
+- `scripts/build_mcpb.py` monta `dist/dominio-mcp-<versão>.mcpb` (Windows x64, Python 3.12) e `scripts/prove_mcpb.py` o instala numa pasta nova com venv vazio e conversa com ele. O teste no Claude Desktop em perfil limpo ainda é manual.
 
 Cada cliente tem o seu passo a passo no guia. **Nenhum cliente real foi testado ainda** (só o cliente do SDK `mcp` por stdio): veja [reports/clientes.md](reports/clientes.md).
 
@@ -48,7 +51,8 @@ Testes vivos (somente leitura, sem imprimir valor de negócio) só rodam com `DO
 | Catálogo, política e pack | `catalog`, `enums`, `policy`, `readable`, `overlay`, `pack`, `pack_index`, `freshness`, `buildpack` |
 | Recuperação do esquema | `textnorm`, `search`, `evaluation`, `joins` |
 | Consulta estruturada (L2) | `query_spec`, `compiler`, `scope`, `literals`, `admission`, `shaping`, `executor` |
+| SQL de leitura (L3, só local) | `rawsql` (gramática mínima, traduz para L2), `tools_rawsql` |
 | Ferramentas | `tools_schema` (L0), `verified` (L1, YAML em `data/verified/`) |
-| Servidor | `server`, `audit`, `cli`, `config` |
+| Servidor | `server`, `http_app` (loopback com token), `audit`, `cli`, `config` |
 
 Conhecimento curado (política, glossário, tabelas centrais, módulos, legendas, views aprovadas) fica em `src/dominio_mcp/data/overlay/`. Mudar a política ou o overlay muda a versão do pack e exige `build-pack`.

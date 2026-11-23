@@ -1,0 +1,84 @@
+{
+  "manifest_version": "0.3",
+  "name": "dominio-mcp",
+  "display_name": "Domínio (somente leitura)",
+  "version": "0.1.0",
+  "description": "Lê o banco do Domínio sem escrever nada: mapa do esquema, consultas verificadas e consulta estruturada, sem expor segredo.",
+  "long_description": "Servidor MCP local e somente leitura para o banco do Domínio (SAP SQL Anywhere 17). Usa o DSN de sistema ODBC de 64 bits do próprio computador; a credencial fica no DSN e nunca passa por este pacote. Segredo e dado pessoal não saem. O que o Claude lê vai para o provedor da IA: os limites estão no guia do dono (docs/dominio-mcp.md). Rode `dominio-mcp doctor` e `dominio-mcp build-pack` antes do primeiro uso.",
+  "author": {
+    "name": "HubContador"
+  },
+  "license": "UNLICENSED",
+  "keywords": ["dominio", "contabilidade", "sql-anywhere", "somente-leitura"],
+  "server": {
+    "type": "python",
+    "entry_point": "server/main.py",
+    "mcp_config": {
+      "command": "python",
+      "args": ["${__dirname}/server/main.py"],
+      "env": {
+        "PYTHONPATH": "${__dirname}/server/lib",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "DOMINIO_MCP_DSN": "${user_config.dsn}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "mapa_do_banco",
+      "description": "Visão geral do banco: módulos, tabelas centrais e convenções."
+    },
+    {
+      "name": "buscar_esquema",
+      "description": "Acha tabelas pelo assunto em português."
+    },
+    {
+      "name": "descrever_tabela",
+      "description": "Chaves, FKs, índices e colunas de uma tabela, com a classe de cada coluna."
+    },
+    {
+      "name": "caminho_entre_tabelas",
+      "description": "Junção por chave estrangeira declarada entre duas tabelas."
+    },
+    {
+      "name": "valores_do_campo",
+      "description": "Legenda dos valores de uma coluna, sem ler dados."
+    },
+    {
+      "name": "empresas",
+      "description": "Carteira de empresas: código, razão social, CNPJ, situação e regime."
+    },
+    {
+      "name": "empresa_perfil",
+      "description": "Cadastro, regime e volume dos últimos 12 meses de uma empresa."
+    },
+    {
+      "name": "movimento_fiscal",
+      "description": "Totais mensais de saídas, entradas e serviços (janela de até 13 meses)."
+    },
+    {
+      "name": "conferir_numeracao",
+      "description": "Lacunas e duplicidades na numeração de notas emitidas."
+    },
+    {
+      "name": "consulta_estruturada",
+      "description": "Consulta em JSON validada contra o catálogo e a política de dados."
+    }
+  ],
+  "user_config": {
+    "dsn": {
+      "type": "string",
+      "title": "DSN de sistema ODBC",
+      "description": "Nome do DSN de sistema de 64 bits que aponta para o banco do Domínio.",
+      "required": true,
+      "default": "contabil"
+    }
+  },
+  "compatibility": {
+    "platforms": ["win32"],
+    "runtimes": {
+      "python": ">=3.12,<3.13"
+    }
+  }
+}

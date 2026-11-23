@@ -13,10 +13,11 @@ Um servidor MCP que roda **no computador do escritório**, lê o banco do Domín
 | L0 conhecimento | `mapa_do_banco`, `buscar_esquema`, `descrever_tabela`, `caminho_entre_tabelas`, `valores_do_campo` | Só do pack local (um SQLite gerado do catálogo do banco). Não consulta dado de negócio. |
 | L1 rotinas verificadas | `empresas`, `empresa_perfil`, `movimento_fiscal`, `conferir_numeracao` | SQL fixo e revisado, em YAML dentro do pacote. |
 | L2 consulta estruturada | `consulta_estruturada` | A IA manda JSON (tabela, colunas, filtros, agrupamento, agregação, junção por chave estrangeira); o programa valida e monta o SQL parametrizado. |
+| L3 SQL de leitura (só local, desligado por padrão) | `sql_somente_leitura` | Um `SELECT` em gramática mínima, **traduzido** para L2: vale a mesma política de dados. Só existe no perfil `local` com `raw_sql` ligado (abaixo). |
 
 Também expõe os recursos `dominio://mapa` e `dominio://glossario` e os roteiros `conferir_empresa` e `explorar_assunto`.
 
-- **A IA nunca envia SQL.** Nenhum texto SQL de terceiro chega ao banco. SQL livre (L3) não existe nesta fase; fica para a Fase 1b, só no perfil `local` e com decisão própria.
+- **Nenhum texto SQL de terceiro chega ao banco.** Em L1 o SQL é fixo; em L2 o programa monta o SQL de um JSON validado; em L3 o SQL escrito pela IA é lido por uma gramática mínima e **convertido** em consulta L2, nunca repassado. O que a gramática não reconhece é recusado (`sql_recusado`).
 - Toda ferramenta declara `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`. Isso é dica para o cliente, não autorização: a autorização real é a do despacho.
 - Todo resultado traz `lido_em`, `tabelas`, `pack`, `truncado` e `consistencia: leitura_nao_confirmada`. A leitura roda sem trava de transação (`isolation_level = 0`), então pode ver dado ainda não confirmado. **Número fiscal é diagnóstico a conferir no Domínio, não apuração.**
 
@@ -56,7 +57,7 @@ Troque `C:\caminho\HubContador` pelo caminho real. `--no-dev` evita instalar as 
 
 ## Ligar no cliente
 
-Em todos os casos o cliente inicia o processo `dominio-mcp serve`. O perfil padrão é `remote`, o correto para qualquer processo iniciado por terceiro. Nesta fase `--profile local` não muda nenhuma ferramenta (só aparece na auditoria e prepara o L3 da Fase 1b), então não é preciso passá-lo.
+Em todos os casos o cliente inicia o processo `dominio-mcp serve`. O perfil padrão é `remote`, o correto para qualquer processo iniciado por terceiro, túnel ou HTTP. `--profile local` só serve para ligar L3 (abaixo); sem `raw_sql = true` no `config.toml` ele não muda nenhuma ferramenta.
 
 Se o cliente não achar `uv`, ponha o caminho completo no lugar de `uv`: `(Get-Command uv).Source` mostra.
 
@@ -110,6 +111,48 @@ O ChatGPT na web não chama um programa do seu computador: precisa do **Secure M
 
 Os passos acima vêm da documentação da OpenAI; **nada disso foi rodado**. O `tunnel-client` com caminho que tem espaço (`--mcp-command`) também não foi testado.
 
+### Claude Desktop pelo pacote `.mcpb` (provado fora do repositório, não instalado no Claude Desktop)
+
+Alternativa ao `uv run`: um arquivo `dominio-mcp-<versão>.mcpb` com as dependências dentro. Montar, da pasta `dominio-mcp`:
+
+```powershell
+uv run python scripts/build_mcpb.py
+uv run python scripts/prove_mcpb.py
+```
+
+O primeiro gera `dist\dominio-mcp-<versão>.mcpb` (≈ 15 MiB, SHA-256 no final da saída); o segundo descompacta numa pasta nova do sistema, cria um venv vazio, sobe o servidor e confere as 10 ferramentas, o glossário empacotado e o `import pyodbc`. Para instalar, abra o arquivo no Claude Desktop e informe o nome do DSN (padrão `contabil`).
+
+- Só Windows 64 bits e **Python 3.12 de 64 bits no `PATH` como `python`** (o pacote leva `pyodbc` e `pydantic-core` compilados para essa versão).
+- O pacote usa sempre o perfil `remote`: L3 não existe nele. Rode `uv run dominio-mcp doctor` e `build-pack` uma vez; o pacote lê o mesmo pack da pasta de dados.
+- **Falta** o teste manual num perfil Windows limpo com o Claude Desktop instalando o arquivo: só depois dele o `.mcpb` conta como entregue.
+
+### HTTP no próprio computador (`serve --http`)
+
+Para um cliente local que só fala HTTP (por exemplo o `tunnel-client` apontando para `127.0.0.1`):
+
+```powershell
+uv run --no-dev --directory C:\caminho\HubContador\dominio-mcp dominio-mcp http-token
+uv run --no-dev --directory C:\caminho\HubContador\dominio-mcp dominio-mcp serve --http --port 8765
+```
+
+O endereço é `http://127.0.0.1:8765/mcp` e o cliente manda `Authorization: Bearer <token>`. O token (256 bits) é criado na primeira vez em `state\http-token`; apagar o arquivo gera outro. O servidor **só escuta em `127.0.0.1` ou `::1`**, recusa `Host` que não seja ele mesmo (`421`), qualquer `Origin` de navegador (`403`), pedido sem token (`401`) e mais de 20 tentativas erradas por minuto (`429`). É sempre perfil `remote`. Não use isto para expor o servidor na rede: para isso existe o túnel ou, na Fase 2, o gateway.
+
+### SQL somente leitura (L3, só no perfil local)
+
+Desligado por padrão. Para ligar: `raw_sql = true` no `config.toml` **e** `serve --profile local` (processo `stdio` iniciado pelo próprio cliente local). A decisão é tomada duas vezes: a ferramenta só é listada nessas condições e é recusada de novo ao ser chamada. Túnel, HTTP e `.mcpb` nunca a têm.
+
+A IA escreve um `SELECT` e o programa o converte em consulta estruturada. Aceita:
+
+```sql
+SELECT [DISTINCT] [TOP n] coluna {, coluna} {, SUM|AVG|MIN|MAX|COUNT([DISTINCT] coluna | *) AS apelido}
+FROM tabela [apelido]
+[JOIN tabela [apelido] ON a.c = b.c {AND ...}]   -- no máximo 2, exatamente a FK declarada
+[WHERE coluna (= <> < <= > >=) valor | IN (...) | BETWEEN x AND y | IS [NOT] NULL | LIKE 'x%' | LIKE '%x%' {AND ...}]
+[GROUP BY ...] [ORDER BY coluna|apelido [ASC|DESC]] [LIMIT n [OFFSET m]]
+```
+
+Recusado: `*`, expressão, função escalar, subconsulta, `WITH`, `UNION`, `OR`, `NOT`, parênteses no filtro, `HAVING`, `LEFT JOIN`, identificador entre aspas, comentário, `;`, qualquer coisa que não seja ASCII fora de texto entre aspas simples. **L3 não abre nada que L2 não abra**: segredo, dado pessoal, documento, tabela grande sem empresa e janela de datas, custo estimado e limite de linhas valem igual. A auditoria guarda a ferramenta e um hash da consulta, nunca o texto SQL nem os valores.
+
 ### Claude na web e no celular
 
 Precisam de URL pública com OAuth. Só pelo gateway do CICA, na Fase 2 ([specs/dominio-mcp-fase2.md](specs/dominio-mcp-fase2.md)). O túnel do Claude é Enterprise, por pedido.
@@ -121,7 +164,9 @@ Só é declarado como compatível o cliente com linha "testado em <data e versã
 | Cliente | Estado |
 |---|---|
 | Cliente do SDK `mcp` 2.3.0 e 1.30.0, por stdio | testado em 21/11/2026 |
-| Claude Desktop | não testado |
+| Servidor HTTP em loopback, cliente do SDK `mcp` 2.3.0 | testado em 23/11/2026 |
+| Pacote `.mcpb`, instalado em pasta nova com venv vazio, cliente do SDK por stdio | testado em 23/11/2026 |
+| Claude Desktop (inclusive instalando o `.mcpb`) | não testado |
 | Claude Code | não testado |
 | ChatGPT (túnel) | não testado |
 
@@ -220,6 +265,7 @@ Variáveis de ambiente (vencem o arquivo): `DOMINIO_MCP_DSN`, `DOMINIO_MCP_ALLOW
 | `pack_ausente` ou `pack_desatualizado` | Sem pack, ou o banco, a política ou o overlay mudaram | `build-pack` (e decidir o aceite de novo, se houver coluna nova) |
 | `coluna_bloqueada` ou `tabela_bloqueada` | Classe bloqueada, view não aprovada, sem aceite, ou uso que a classe não permite (filtro em texto livre, `distinto` em documento) | `descrever_tabela` mostra o motivo por coluna; liberar só categoria pessoal ou aceite, por decisão do dono |
 | `juncao_bloqueada`, `juncao_multiplicadora`, `agregacao_multiplicada`, `coluna_longa` | Junção por chave que a política não libera, junção que multiplicaria as linhas, agregado do lado "um" da junção, ou texto longo usado para agrupar ou ordenar | Juntar de uma tabela de cada vez; agregar a coluna da tabela filha; só ler o texto longo |
+| `sql_recusado` ou `juncao_diferente_da_fk` (L3) | O SQL tem construção fora da gramática, ou o `ON` não é a FK declarada (ou o caminho passa por tabela não juntada) | Reescrever dentro da gramática, ou usar `consulta_estruturada`; `caminho_entre_tabelas` mostra a FK |
 | `sem_filtro_de_empresa`, `sem_janela_de_datas`, `janela_de_datas_longa` | Regra de escopo da tabela grande | Filtrar por `codi_emp` e por período de até 13 meses numa data da tabela grande |
 | `resposta_grande_demais` | Rede de segurança dos 12 KB (não deveria aparecer) | Pedir menos colunas ou linhas e avisar quem mantém o pacote |
 | `custo_estimado_alto` ou `linhas_estimadas_demais` | O banco estimou a consulta acima do orçamento | Estreitar filtro e período |
@@ -231,6 +277,8 @@ Variáveis de ambiente (vencem o arquivo): `DOMINIO_MCP_DSN`, `DOMINIO_MCP_ALLOW
 | `erro_do_banco` | O banco recusou a consulta (SQLSTATE e código nativo vão no detalhe) | Procurar o código; se for permissão, o usuário do DSN não lê o objeto |
 | `ferramenta_desligada` | Dependência da rotina sumiu ou ficou mais restrita no pack novo | A mensagem traz o motivo; `build-pack` e reavaliar |
 | `erro_interno` | Falha inesperada do programa | Ver `audit.jsonl` e o stderr do servidor |
+| HTTP responde `401`, `421`, `403` ou `429` | Sem token (ou errado), `Host` que não é `127.0.0.1:<porta>`, `Origin` de navegador, ou 20 tentativas erradas em um minuto | `dominio-mcp http-token`; apontar para `http://127.0.0.1:<porta>/mcp`; esperar 60 s |
+| `.mcpb` instala mas o servidor não sobe | `python` do `PATH` não é o 3.12 de 64 bits | `python --version`; instalar o 3.12 de 64 bits |
 | Cliente não lista a ferramenta | Claude Desktop não foi fechado por completo, ou `uv` fora do PATH | Reabrir por completo; caminho completo do `uv`; ver `mcp-server-dominio.log` |
 
 ## Pendências e limites da prova
@@ -250,8 +298,9 @@ Ainda **não** provado:
 
 ## O que não existe nesta fase
 
+- SQL que não passe pela gramática de L3 e pela política de L2. L3 nunca chega a túnel, HTTP, `.mcpb` ou gateway.
+
 - Escrita no Domínio (nunca).
-- SQL livre (L3), HTTP em `127.0.0.1` e extensão `.mcpb` para Claude Desktop (Fase 1b, cada incremento com OK próprio).
 - Gateway no CICA, OAuth, repasse pelo agente e API do Serpro (Fase 2, com spec própria e custo a confirmar antes de qualquer chamada paga).
 
 ## Fontes

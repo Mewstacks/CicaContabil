@@ -47,6 +47,8 @@ from dominio_mcp.overlay import Overlay, load_overlay
 from dominio_mcp.pack import pack_store_for
 from dominio_mcp.policy import Policy, load_policy
 from dominio_mcp.query_spec import ConsultaEstruturada, QueryRefused
+from dominio_mcp.tools_rawsql import TOOL_NAME as RAW_SQL_TOOL
+from dominio_mcp.tools_rawsql import raw_sql_available, run_raw_sql
 from dominio_mcp.tools_schema import SchemaTools, ToolError
 from dominio_mcp.verified import ToolDisabled, VerifiedRunner, load_shipped_tools
 from dominio_mcp.watchdog import QueryTimeout
@@ -312,6 +314,19 @@ def build_server(deps: Deps, profile: Profile = Profile.REMOTE) -> MCPServer:
         return await dispatch(
             deps, "consulta_estruturada", profile, lambda: deps.engine.run(consulta)
         )
+
+    if raw_sql_available(deps.settings, profile):
+
+        @mcp.tool(annotations=ANNOTATIONS)
+        async def sql_somente_leitura(sql: str) -> CallToolResult:
+            """SQL de leitura em gramática mínima (SELECT/JOIN por FK/WHERE/GROUP BY/ORDER BY).
+
+            Vira consulta estruturada e passa pela mesma política de dados; o que não for
+            reconhecido é recusado.
+            """
+            return await dispatch(
+                deps, RAW_SQL_TOOL, profile, lambda: run_raw_sql(deps.engine, profile, sql)
+            )
 
     @mcp.resource("dominio://mapa", mime_type="application/json")
     def recurso_mapa() -> str:
