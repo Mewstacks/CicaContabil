@@ -4,6 +4,22 @@ Continua [produto-vendavel.md](produto-vendavel.md) (E0–E9, aprovado em 20/11/
 
 Legenda: **[C]** confirmado em código ou fonte · **[I]** inferência · **[N]** não achei ou não verifiquei.
 
+## 0. Estado de execução (23/11/2026, fim do dia)
+
+**Achado que explica "o CICA está desatualizado".** A produção (`cica-contabil` no Fly) está na **release v121**, publicada 34 minutos antes da medição por `pedro@mewstack.com.br`, saindo de `origin/main` (`2cc9c5c8`, PR #62). Essa linha tem 207 commits e 100 mil linhas novas desde `aad2f5a6` (10/10/2026): conciliação CONTAD (OFX × Razão, DE-PARA com IA, exportação para o Domínio, uma filial por conta), agente Windows até a 1.0.9, releases v105–v121, decisões até D-396 e validações até V-447. A linha local do dono (`feat/produto-vendavel`) tem 13+ commits sobre a mesma base e **nunca foi integrada**: procuração, cobrança, Contraprova e MCP não estão no ar. As duas linhas só tocam 21 arquivos em comum. [C: `git rev-list`, `flyctl releases`]
+
+| Item | Estado |
+|---|---|
+| Gate 1 (plano) | aprovado pelo dono em 23/11 ("plano completo"): inclui commit local; push, merge e deploy seguem com OK próprio |
+| E0b | feito: `442c32af` docs, `115ec032` portão de qualidade, `83a67cf9` código (E0–E5), só arquivos desta frente. Em worktree limpo: `ruff`, `manage.py check`, `makemigrations --check` limpos e **2.557 testes passaram** (6 ignorados), 10 min. A verificação achou e corrigiu um defeito meu antes de qualquer push: patch de contexto zero tinha encaixado blocos de `settings/base.py` no lugar errado. |
+| E13a | feito e testado (`tests/test_cnpj_alfanumerico.py`, 419 testes de regressão verdes); commit `46d44f0d`. `AdnClient.fetch_page` (L3) não foi tocado. |
+| **E0c** (novo) | integração com `origin/main` em branch **separada** `integ/origin-main-sync` (a `feat/produto-vendavel` não foi alterada): merge com 10 conflitos textuais resolvidos (imports de `hub/urls.py` e `urls_agent_v2.py`, `navigation.py`, CSS, `Worker.cs` do agente com a fila isolada do Contraprova, três docs); migração de junção `hub/0090` (as duas linhas ramificaram em `0075`; `makemigrations --check` sem desvio). **D-300 a D-333 e V-300 a V-314 foram usados pelas duas linhas com significados diferentes** (e Q-46 e Q-47): `DECISOES.md` e `VALIDACOES.md` ficaram com o texto da produção; o nosso foi para `DECISOES-produto-vendavel.md` e `VALIDACOES-produto-vendavel.md`, sem renumerar (312 referências em código, testes, specs e dados do `dominio-mcp`). Verificação completa da branch em andamento. |
+| E10, E11 | sessões `e10-serpro` e `e11-triagem` abertas em worktrees cortados de `origin/main` (base correta: `integra/` e `triage/` não mudaram nessa linha); decisões vão em `docs/specs/e10-notas.md` e `e11-notas.md`, sem D-/V-. |
+| E12 | proposta de divisão enviada à sessão do MCP; sem resposta. |
+| E1b | lacunas listadas na seção 9; correção não iniciada. |
+
+**Antes de qualquer PR ou deploy:** (1) o dono decide se abre PR de `integ/origin-main-sync` para `main` (push de branch e PR são ações externas; o Pedro publica várias releases por dia e a base vai se mover: reintegrar logo antes); (2) cadastro novo nasce em modo procuração (`platform/signup.py:203`) e, com `NFSE_PROCURACAO_SYNC_ENABLED` desligada, esse escritório vê a tela de procurações e nada coleta: ligar a flag junto do piloto, bloquear o cadastro público até lá ou aceitar; (3) conferir com o Pedro o que ele já tem em produção que se sobrepõe (nenhuma mudança dele em `integra/`, `triage/` ou procuração foi vista).
+
 ## 1. Pedido do dono (23/11/2026)
 
 1. O CICA está desatualizado; a baixa de NFS-e precisa ser por procuração.
@@ -15,7 +31,7 @@ Legenda: **[C]** confirmado em código ou fonte · **[I]** inferência · **[N]*
 
 ## 2. Resumo
 
-1. **Produção está atrás do código.** `main` está 9 commits atrás de `feat/produto-vendavel`; a maior parte de E0–E8 (procuração, cobrança, segurança, qualidade) está no working tree sem commit (28 arquivos modificados, 67 novos em 23/11). Nada disso está no ar. [C]
+1. **A linha local do dono nunca chegou à produção.** A produção está na release v121, saindo de `origin/main`, que tem 207 commits e 100 mil linhas que a nossa branch não tem (e vice-versa: 13+ commits dela, 366 arquivos). Procuração, cobrança, Contraprova e MCP não estão no ar. Integração feita em branch separada (seção 0). [C]
 2. **NFS-e por procuração já existe, falta prova.** A faixa E1 passa nos testes com transporte falso (161 testes de procuração, contrato do legado, migração segura e isolamento passaram em 23/11, de 2.656 coletados), com a flag desligada e sem piloto real. [C]
 3. **Serpro: 19 de 99.** O catálogo oficial tem 99 serviços em produção; o registro do CICA tem 19. Faltam 80: 56 de leitura, 16 de emissão de documento ou guia, 7 que declaram ou gravam e 1 de autenticação. [C]
 4. **Há um pré-requisito do Serpro que o código não tem.** O CICA manda o CNPJ do escritório como autor do pedido e o da Mewstack como contratante, mas não implementa o Termo de Autorização (`autenticar_procurador_token`) que a doc exige quando autor ≠ contratante. [C no código, I sobre o efeito: provável 403]
@@ -30,7 +46,7 @@ Legenda: **[C]** confirmado em código ou fonte · **[I]** inferência · **[N]*
 
 | Área | Fato | Fonte |
 |---|---|---|
-| Produção | `main` = `aad2f5a6`; branch 9 commits à frente. Fly: `SENTRY_ENABLED=false`, `EDGE_AGENT_MTLS_REQUIRED=false`, worker `--concurrency=1`, `DEMO_ENTRY_ENABLED=true` | `git rev-list`, `fly.toml` |
+| Produção | Fly `cica-contabil` na **v121** (23/11), de `origin/main` `2cc9c5c8`; o `main` local parou em `aad2f5a6` (10/10). Fly: `SENTRY_ENABLED=false`, `EDGE_AGENT_MTLS_REQUIRED=false`, worker `--concurrency=1`, `DEMO_ENTRY_ENABLED=true` | `flyctl releases`, `git rev-list`, `fly.toml` |
 | Testes | 2.656 coletados; `pytest -k procuracao` → 161 passaram em 81 s (inclui `test_legacy_contract`, `test_migration_safety`, `test_tenant_isolation_matrix`) | execução de 23/11 |
 | Módulos oferecidos | 9: NFS-e, Guias/DCTFWeb, Integra, Conciliação, Radar da Reforma, Copiloto, Rentabilidade, Triagem, Contraprova | `hub/module_catalog.py:19-114` |
 | Serpro, registro | 19 serviços; PARCSN só na modalidade ordinária | `integra/catalog.py:53-149`, `README.md:49` |
@@ -261,6 +277,7 @@ Critério: um fixture com CNPJ alfanumérico passa por cadastro, importação po
 
 | Épico | Conteúdo | Depende de | Paralelo com |
 |---|---|---|---|
+| **E0c** | **integrar com `origin/main`** (produção v121): branch `integ/origin-main-sync`, conflitos resolvidos, migração de junção, verificação completa; reintegrar logo antes do PR porque a base se move | OK do dono para push da branch e PR; combinar com o Pedro | nada: pré-requisito do PR |
 | **E0b** | **entregar o que já está pronto** (E0–E8): separar a árvore em commits por épico só com arquivos desta frente, suíte inteira e PostgreSQL, PR para `main`, `legacy_snapshot` antes e depois, deploy canário | OK do dono para commitar e para fazer deploy (dois gates) | nada: é pré-requisito dos worktrees |
 | **E1b** | piloto real da NFS-e por procuração e ligar a flag | E0b; e-CNPJ e cliente reais (gate) | tudo |
 | **E13a** | varredura do CNPJ alfanumérico | decisão sobre `nfse_adn.py:102` | curta, antes dos demais |
