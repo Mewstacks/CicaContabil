@@ -376,6 +376,30 @@ def seed_procuracao_syncs(*, organization_id: Any = None) -> dict[str, int]:
     return {"created": created, "skipped": skipped, "relinked": relinked}
 
 
+def rearm_errored_syncs(*, organization_id: Any) -> int:
+    """A new e-CNPJ gives the rows that stopped on an error another chance.
+
+    Rows waiting for a procuração, queued or running are left as they are; only a row the
+    lane had given up on (`error`) goes back to the line.
+    """
+
+    return NfseSync.objects.filter(
+        organization_id=organization_id,
+        credential_mode=NfseSync.CredentialMode.PROCURACAO,
+        status=NfseSync.Status.ERROR,
+    ).update(
+        status=NfseSync.Status.IDLE,
+        next_run_at=timezone.now(),
+        failure_count=0,
+        last_error_code="",
+        last_error_message="",
+        last_error_at=None,
+        procuracao_status=NfseSync.ProcuracaoStatus.UNKNOWN,
+        lease_token=None,
+        lease_until=None,
+    )
+
+
 def recover_stale_procuracao_syncs(*, now: datetime | None = None) -> int:
     """Put rows of this lane back in line after a worker died holding them."""
 
@@ -577,7 +601,9 @@ def run_procuracao_sync(
         )
     except AdnRateLimited as exc:
         result.update(state=_mark_failure(parsed_id, exc), pause_seconds=RATE_LIMIT_PAUSE_SECONDS)
-    except AdnCertificateProblem as exc:
+    except (AdnCertificateProblem, AdnAuthenticationError) as exc:
+        # A refused e-CNPJ (401/403) is refused for every company of the office: the chain must
+        # stop instead of testing the whole portfolio with it, one company per second.
         _quarantine(certificate_id, CERTIFICATE_PROBLEM_QUARANTINE_MINUTES)
         result.update(state=_mark_failure(parsed_id, exc), quarantined=True)
     except (AdnError, ValidationError, ValueError) as exc:

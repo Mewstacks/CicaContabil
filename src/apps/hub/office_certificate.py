@@ -112,9 +112,10 @@ def store_office_certificate(
         request=request,
         metadata={"fingerprint_prefix": fingerprint[:12]},
     )
-    from apps.hub.nfse_procuracao import seed_procuracao_syncs
+    from apps.hub.nfse_procuracao import rearm_errored_syncs, seed_procuracao_syncs
 
     seed_procuracao_syncs(organization_id=organization.pk)
+    rearm_errored_syncs(organization_id=organization.pk)
     if settings.NFSE_PROCURACAO_SYNC_ENABLED:
         from apps.hub.tasks_procuracao import dispatch_procuracao_syncs
 
