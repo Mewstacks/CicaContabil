@@ -1,0 +1,20 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-parcelamento/pertmei/servicos/exemplos/retorno_consulta_parcelas_impressao/",
+  "servico": "PERTMEI.PARCELASPARAGERAR222",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-PERTMEI]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "listaParcelas": [
+      {
+        "parcela": 202306,
+        "valor": 68.13
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sn/pgdasd/servicos/consultar_declaracao_por_ano_pa/",
+  "servico": "PGDASD.CONSDECLARACAO13",
+  "notes": [
+    "Montada da tabela 'Dados de Saída' (a página não traz exemplo de resposta por período): o objeto periodo substitui a lista periodos, com valores fictícios.",
+    "Usa as grafias da tabela (anoCalendario, dataHoraEmissaoDas); o exemplo por ano usa minúsculas.",
+    "Traz uma malha preenchida e um DAS pago, casos que o exemplo por ano não mostra."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PGDASD",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "anoCalendario": 2018,
+    "periodo": {
+      "periodoApuracao": 201801,
+      "operacoes": [
+        {
+          "tipoOperacao": "Original",
+          "indiceDeclaracao": {
+            "numeroDeclaracao": "00000000201801001",
+            "dataHoraTransmissao": "20220331032512",
+            "malha": "Retida em Malha"
+          },
+          "indiceDas": null
+        },
+        {
+          "tipoOperacao": "Geração de DAS",
+          "indiceDeclaracao": null,
+          "indiceDas": {
+            "numeroDas": "07202219799007800",
+            "dataHoraEmissaoDas": "20220606033456",
+            "dasPago": true
+          }
+        }
+      ]
+    }
+  }
+}

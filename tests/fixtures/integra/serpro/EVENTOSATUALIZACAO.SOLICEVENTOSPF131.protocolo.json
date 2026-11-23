@@ -1,0 +1,23 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-contador-gerenciador/eventosatualizacao/exemplos/retorno_monitorar_solicitar_eventos_pf/",
+  "servico": "EVENTOSATUALIZACAO.SOLICEVENTOSPF131",
+  "notes": [
+    "dados: vírgula ou aspas faltando no exemplo oficial, corrigidas à mão (aspas e vírgula entre protocolo e TempoEsperaMedioEmMs)"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-EVENTOSATUALIZACAO]",
+      "texto": "Requisição efetuada com sucesso."
+    },
+    {
+      "codigo": "[Aviso-EVENTOSATUALIZACAO-001]",
+      "texto": "209 requisições restantes para consultas de eventos dtipo E0301 para PF."
+    }
+  ],
+  "dados": {
+    "protocolo": "a65f3455-fa91-419b-b0ad-c4ac50695abf",
+    "TempoEsperaMedioEmMs": 5000,
+    "TempoLimiteEmMin": 20
+  }
+}

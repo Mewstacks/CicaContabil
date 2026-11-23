@@ -1,0 +1,52 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-parcelamento/parcsn/servicos/exemplos/retorno_consulta_pedidos/",
+  "servico": "PARCSN.PEDIDOSPARC163",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-PARCSN]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "parcelamentos": [
+      {
+        "numero": 1,
+        "dataDoPedido": 20160211,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20170125
+      },
+      {
+        "numero": 2,
+        "dataDoPedido": 20170126,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20180108
+      },
+      {
+        "numero": 3,
+        "dataDoPedido": 20180109,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20180625
+      },
+      {
+        "numero": 4,
+        "dataDoPedido": 20190102,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20220511
+      },
+      {
+        "numero": 5,
+        "dataDoPedido": 20220929,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20230117
+      },
+      {
+        "numero": 6,
+        "dataDoPedido": 20230131,
+        "situacao": "Encerrado a Pedido do Contribuinte",
+        "dataDaSituacao": 20230209
+      }
+    ]
+  }
+}

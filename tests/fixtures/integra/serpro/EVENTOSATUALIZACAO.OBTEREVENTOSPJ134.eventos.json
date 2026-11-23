@@ -1,0 +1,36 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-contador-gerenciador/eventosatualizacao/exemplos/retorno_monitorar_obter_eventos_pj/",
+  "servico": "EVENTOSATUALIZACAO.OBTEREVENTOSPJ134",
+  "notes": [
+    "dados: vírgula faltando entre a segunda e a terceira linha da matriz, corrigida à mão"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-EVENTOSATUALIZACAO]",
+      "texto": "Requisição efetuada com sucesso."
+    },
+    {
+      "codigo": "[Aviso-EVENTOSATUALIZACAO-001]",
+      "texto": "195 requisições restantes para consultas de eventos do tipE0301 para PF."
+    }
+  ],
+  "dados": [
+    [
+      "00000000000000",
+      ""
+    ],
+    [
+      "11111111111111",
+      "230327"
+    ],
+    [
+      "22222222222222",
+      "230328"
+    ],
+    [
+      "33333333333333",
+      "x"
+    ]
+  ]
+}

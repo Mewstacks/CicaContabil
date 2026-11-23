@@ -1,0 +1,15 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-e-processo/eprocesso/servicos/consultar_processos/",
+  "servico": "EPROCESSO.CONSPROCPORINTER271",
+  "notes": [
+    "montada da seção Regras da página (dados vem como [] e a mensagem é Sucesso-EPROCESSO-SC_002); o status em texto segue o exemplo oficial"
+  ],
+  "status": "200",
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-EPROCESSO-SC_002]",
+      "texto": "Nenhum dado encontrado."
+    }
+  ],
+  "dados": []
+}

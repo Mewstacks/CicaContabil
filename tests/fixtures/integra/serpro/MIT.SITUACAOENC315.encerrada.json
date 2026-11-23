@@ -1,0 +1,19 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_situacao_encerramento/",
+  "servico": "MIT.SITUACAOENC315",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "idApuracao": 0,
+    "situacaoApuracao": 3,
+    "textoSituacao": "ENCERRADA",
+    "avisosDctf": null,
+    "dataEncerramento": "20250305"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_apuracao/",
+  "servico": "MIT.CONSAPURACAO316",
+  "notes": [
+    "dadosApuracaoMit: a tabela da página diz Array de Object, o exemplo oficial traz um objeto."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "situacaoApuracao": 3,
+    "textoSituacao": "ENCERRADA",
+    "dadosApuracaoMit": {
+      "PeriodoApuracao": {
+        "MesApuracao": 2,
+        "AnoApuracao": 2025
+      },
+      "DadosIniciais": {
+        "SemMovimento": true,
+        "QualificacaoPj": 1,
+        "ResponsavelApuracao": {
+          "CpfResponsavel": "00000000000"
+        }
+      },
+      "TransmissaoImediata": false
+    }
+  }
+}

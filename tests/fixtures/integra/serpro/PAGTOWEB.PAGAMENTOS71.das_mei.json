@@ -1,0 +1,290 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-pagamento/pagtoweb/exemplos/retorno_consulta_pagamento/",
+  "servico": "PAGTOWEB.PAGAMENTOS71",
+  "notes": [
+    "lista reduzida aos 3 primeiros documentos do exemplo (15)"
+  ],
+  "status": 200,
+  "mensagens": [],
+  "dados": [
+    {
+      "dataArrecadacao": "2022-04-20T00:00:00-03:00",
+      "dataVencimento": "2022-04-20T00:00:00-03:00",
+      "desmembramentos": [
+        {
+          "cib": null,
+          "dataVencimento": "2022-04-20T00:00:00-03:00",
+          "periodoApuracao": "2022-03-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "151",
+            "descricao": "INSS - SImples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "1",
+              "descricao": "INSS - SIMPLES NACIONAL - MEI"
+            }
+          },
+          "sequencial": "1",
+          "valorJuros": 0,
+          "valorMulta": 0,
+          "valorPrincipal": 60.6,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 60.6
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-04-20T00:00:00-03:00",
+          "periodoApuracao": "2022-03-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "83",
+            "descricao": "ICMS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "1",
+              "descricao": "ICMS - SIMPLES NACIONAL - MEI"
+            }
+          },
+          "sequencial": "2",
+          "valorJuros": 0,
+          "valorMulta": 0,
+          "valorPrincipal": 1,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 1
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-04-20T00:00:00-03:00",
+          "periodoApuracao": "2022-03-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "125",
+            "descricao": "ISS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "1",
+              "descricao": "ISS - SIMPLES NACIONAL - MEI"
+            }
+          },
+          "sequencial": "3",
+          "valorJuros": 0,
+          "valorMulta": 0,
+          "valorPrincipal": 5,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 5
+        }
+      ],
+      "numeroDocumento": "7082207696788000",
+      "periodoApuracao": "2022-03-01T00:00:00-03:00",
+      "receitaPrincipal": {
+        "codigo": "55",
+        "descricao": null,
+        "extensaoReceita": null
+      },
+      "referencia": null,
+      "tipo": {
+        "codigo": "9",
+        "descricao": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL",
+        "descricaoAbreviada": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL"
+      },
+      "valorJuros": null,
+      "valorMulta": null,
+      "valorPrincipal": 66.6,
+      "valorSaldoJuros": 0,
+      "valorSaldoMulta": 0,
+      "valorSaldoPrincipal": 0,
+      "valorSaldoTotal": 0,
+      "valorTotal": 66.6
+    },
+    {
+      "dataArrecadacao": "2022-09-26T00:00:00-03:00",
+      "dataVencimento": "2022-09-20T00:00:00-03:00",
+      "desmembramentos": [
+        {
+          "cib": null,
+          "dataVencimento": "2022-09-20T00:00:00-03:00",
+          "periodoApuracao": "2022-08-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "151",
+            "descricao": "INSS - SImples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "INSS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "1",
+          "valorJuros": 0,
+          "valorMulta": 2.88,
+          "valorPrincipal": 145.44,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 148.32
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-09-20T00:00:00-03:00",
+          "periodoApuracao": "2022-08-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "83",
+            "descricao": "ICMS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "ICMS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "2",
+          "valorJuros": 0,
+          "valorMulta": 0.02,
+          "valorPrincipal": 1,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 1.02
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-09-20T00:00:00-03:00",
+          "periodoApuracao": "2022-08-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "125",
+            "descricao": "ISS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "ISS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "3",
+          "valorJuros": 0,
+          "valorMulta": 0.1,
+          "valorPrincipal": 5,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 5.1
+        }
+      ],
+      "numeroDocumento": "7082226956119000",
+      "periodoApuracao": "2022-08-01T00:00:00-03:00",
+      "receitaPrincipal": {
+        "codigo": "55",
+        "descricao": null,
+        "extensaoReceita": null
+      },
+      "referencia": null,
+      "tipo": {
+        "codigo": "9",
+        "descricao": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL",
+        "descricaoAbreviada": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL"
+      },
+      "valorJuros": null,
+      "valorMulta": 3,
+      "valorPrincipal": 151.44,
+      "valorSaldoJuros": 0,
+      "valorSaldoMulta": 0,
+      "valorSaldoPrincipal": 0,
+      "valorSaldoTotal": 0,
+      "valorTotal": 154.44
+    },
+    {
+      "dataArrecadacao": "2022-07-29T00:00:00-03:00",
+      "dataVencimento": "2022-07-20T00:00:00-03:00",
+      "desmembramentos": [
+        {
+          "cib": null,
+          "dataVencimento": "2022-07-20T00:00:00-03:00",
+          "periodoApuracao": "2022-06-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "151",
+            "descricao": "INSS - SImples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "INSS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "1",
+          "valorJuros": 0,
+          "valorMulta": 4.32,
+          "valorPrincipal": 145.44,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 149.76
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-07-20T00:00:00-03:00",
+          "periodoApuracao": "2022-06-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "83",
+            "descricao": "ICMS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "ICMS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "2",
+          "valorJuros": 0,
+          "valorMulta": 0.03,
+          "valorPrincipal": 1,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 1.03
+        },
+        {
+          "cib": null,
+          "dataVencimento": "2022-07-20T00:00:00-03:00",
+          "periodoApuracao": "2022-06-01T00:00:00-03:00",
+          "receitaPrincipal": {
+            "codigo": "125",
+            "descricao": "ISS - Simples Nacional - MEI",
+            "extensaoReceita": {
+              "codigo": "11",
+              "descricao": "ISS - SIMPLES NACIONAL - MEI - CAMINHONEIRO"
+            }
+          },
+          "sequencial": "3",
+          "valorJuros": 0,
+          "valorMulta": 0.15,
+          "valorPrincipal": 5,
+          "valorSaldoJuros": 0,
+          "valorSaldoMulta": 0,
+          "valorSaldoPrincipal": 0,
+          "valorSaldoTotal": 0,
+          "valorTotal": 5.15
+        }
+      ],
+      "numeroDocumento": "7082221013370000",
+      "periodoApuracao": "2022-06-01T00:00:00-03:00",
+      "receitaPrincipal": {
+        "codigo": "55",
+        "descricao": null,
+        "extensaoReceita": null
+      },
+      "referencia": null,
+      "tipo": {
+        "codigo": "9",
+        "descricao": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL",
+        "descricaoAbreviada": "DOCUMENTO DE ARRECADAÇÃO DO SIMPLES NACIONAL"
+      },
+      "valorJuros": null,
+      "valorMulta": 4.5,
+      "valorPrincipal": 151.44,
+      "valorSaldoJuros": 0,
+      "valorSaldoMulta": 0,
+      "valorSaldoPrincipal": 0,
+      "valorSaldoTotal": 0,
+      "valorTotal": 155.94
+    }
+  ]
+}

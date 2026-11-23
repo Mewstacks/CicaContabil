@@ -1,0 +1,76 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-redesim/pnrcontador/exemplos/retorno_consultar_vinculos/",
+  "servico": "PNRCONTADOR.CONSVINCULOS261",
+  "notes": [
+    "dados: aspas e vírgulas faltando em cnpj, codigo, codigoMunicipio e totalInTheDatabase do exemplo oficial, corrigidas à mão"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PNRCONTADOR",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "cnpjs": [
+      {
+        "cnpj": "99999999999999",
+        "tipoEstabelecimento": "Matriz",
+        "situacaoCadastral": {
+          "codigo": "02",
+          "descricao": "Ativa"
+        },
+        "uf": "BA",
+        "codigoMunicipio": "3287",
+        "nomeMunicipio": null
+      },
+      {
+        "cnpj": "99999999999999",
+        "tipoEstabelecimento": "Matriz",
+        "situacaoCadastral": {
+          "codigo": "02",
+          "descricao": "Ativa"
+        },
+        "uf": "AP",
+        "codigoMunicipio": "0667",
+        "nomeMunicipio": null
+      },
+      {
+        "cnpj": "99999999999999",
+        "tipoEstabelecimento": "Matriz",
+        "situacaoCadastral": {
+          "codigo": "02",
+          "descricao": "Ativa"
+        },
+        "uf": "AP",
+        "codigoMunicipio": "0667",
+        "nomeMunicipio": null
+      },
+      {
+        "cnpj": "99999999999999",
+        "tipoEstabelecimento": "Matriz",
+        "situacaoCadastral": {
+          "codigo": "02",
+          "descricao": "Ativa"
+        },
+        "uf": "AM",
+        "codigoMunicipio": "0255",
+        "nomeMunicipio": null
+      },
+      {
+        "cnpj": "99999999999999",
+        "tipoEstabelecimento": "Matriz",
+        "situacaoCadastral": {
+          "codigo": "02",
+          "descricao": "Ativa"
+        },
+        "uf": "AM",
+        "codigoMunicipio": "0255",
+        "nomeMunicipio": null
+      }
+    ],
+    "totalInThePage": 5,
+    "totalInTheDatabase": 16,
+    "lastCnpj": "99999999999999"
+  }
+}

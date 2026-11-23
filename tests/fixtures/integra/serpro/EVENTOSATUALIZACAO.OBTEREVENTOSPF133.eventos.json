@@ -1,0 +1,36 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-contador-gerenciador/eventosatualizacao/exemplos/retorno_monitorar_obter_eventos_pf/",
+  "servico": "EVENTOSATUALIZACAO.OBTEREVENTOSPF133",
+  "notes": [
+    "dados: vírgula faltando entre a segunda e a terceira linha da matriz, corrigida à mão"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-EVENTOSATUALIZACAO]",
+      "texto": "Requisição efetuada com sucesso."
+    },
+    {
+      "codigo": "[Aviso-EVENTOSATUALIZACAO-001]",
+      "texto": "998 requisições restantes para consultas de eventos do tipE0301 para PF."
+    }
+  ],
+  "dados": [
+    [
+      "00000000000",
+      ""
+    ],
+    [
+      "11111111111",
+      "230407"
+    ],
+    [
+      "22222222222",
+      "230408"
+    ],
+    [
+      "33333333333",
+      "x"
+    ]
+  ]
+}
