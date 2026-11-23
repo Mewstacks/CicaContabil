@@ -12954,3 +12954,27 @@ Limites: não publicado; nada lido ou escrito em produção; sem chamada à IA; 
 sem importação real (D-380); a regra de “Razão relido” exige um novo pedido do Razão antes de cada
 envio, o que depende do agente oficial ativo; janela de 5 dias pode deixar de lançar movimentos
 legítimos de mesmo valor em datas próximas (ficam como “parecido com o Razão”).
+
+## V-449 — Publicação da D-397 na release v122 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, 5 dias” para a janela da D-397 e
+“Pode fazer merge e deploy quando a CI passar”). PR #63 com CI aprovada nas três verificações (agent,
+agent-package, verify — esta com a regressão PostgreSQL completa, 27 min); mesclado em `cbe1724`, `src/`
+da main idêntico ao commit publicado `6e2321a`.
+
+Imagem OCI sobre a v121 (`fd73df43…`) com os 33 arquivos alterados de `src/` e collectstatic (941
+removidos, 240 copiados, 700 pós-processados, como nas releases com CSS):
+`sha256:b9c35b87dae7065b7b7e6caf6938e93719ad1f926bd802952efd5fb8b28fc0ae`; manifesto OCI, 233 gzip/11 zstd;
+SHA-256 dos 33 arquivos dentro da imagem iguais aos do commit; `manage.py check` sem problemas e
+`makemigrations --check` sem mudanças. Configuração de deploy = a da v121
+(`release-d396/config-deploy.toml`), conferida igual à configuração ativa (env, deploy, processos e VM;
+inclui `CICA_DIRECT_USE_ORGANIZATION_IDS` e `CICA_DEPARA_AI_ORGANIZATION_IDS`). Antes: v121, live/ready 200.
+
+**Release v122**: release_command concluído sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started` na nova imagem, reserva 18535e1c707538 parada; live, ready e site 200; CSS novo
+(`theme.ea671f03c97a.css`, com os blocos da D-397) servido; logs recentes sem erro.
+
+Não verificado: telas com sessão do escritório em produção (sem sessão no navegador) e a conferência
+somente leitura das contas da CONTAD pelo console (acesso ao shell de produção não autorizado nesta
+sessão). A tarefa `hub.refresh_account_automation` passa a rodar no worker a cada confirmação; os
+lançamentos automáticos já existentes ficam aguardando um Razão relido antes de entrar no arquivo.
