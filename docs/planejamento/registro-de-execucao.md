@@ -6,7 +6,7 @@
 - [x] Implementação, testes SQLite completos (3.512) e PostgreSQL 17 local (458), navegador em 1366/375 px (V-448).
 - [x] Janela de 5 dias do “parecido com o Razão” confirmada pelo responsável (“Sim, 5 dias”).
 - [x] PR #63 (CI aprovada), merge `cbe1724` e publicação na release v122 (V-449).
-- [ ] Conferência somente leitura das contas reais pelo console de produção (acesso não autorizado nesta sessão).
+- [x] Conferência somente leitura das contas reais em produção (V-450): só a SURIA tem conta; nada muda nos dados existentes.
 
 <!-- D396-V447-2026-11-23 -->
 ## 23/11/2026 — D-396/V-446/V-447: correções da revisão

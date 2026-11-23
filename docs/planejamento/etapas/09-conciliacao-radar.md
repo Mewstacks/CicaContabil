@@ -1084,5 +1084,5 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [x] Telas no uso direto com estados reais, contagens de lançados/enviados e pendências de exportação (D-397).
 - [x] D-396 publicada na release v121 (V-447, outra sessão).
 - [x] D-397 publicada na release v122 (V-449).
-- [ ] Conferência somente leitura de todas as contas da CONTAD em produção (autorização de acesso ao console).
+- [x] Conferência somente leitura das contas da CONTAD em produção (V-450).
 
