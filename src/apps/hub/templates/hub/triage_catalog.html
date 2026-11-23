@@ -3,7 +3,7 @@
 
 {% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=1">{% endblock %}
 
-{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% if can_manage_catalog and not editor_open %}<a class="button" href="{% url 'hub:triage-catalog' %}?novo=1">Novo tipo</a>{% endif %}{% endblock %}
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% if can_manage_catalog and not editor_open and types %}<a class="button" href="{% url 'hub:triage-catalog' %}?novo=1">Novo tipo</a>{% endif %}{% endblock %}
 
 {% block workspace_content %}
 {% if editor_open and form %}

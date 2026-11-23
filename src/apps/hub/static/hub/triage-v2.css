@@ -14,7 +14,7 @@
 .tv2-expected{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm)}
 .tv2-expected legend{padding:0 6px}
 .tv2-check{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-weight:500!important;cursor:pointer}
-.tv2-check input{width:20px;height:20px;margin:0;accent-color:var(--accent)}
+.tv2-check input{width:24px;height:24px;margin:0;accent-color:var(--accent)}
 .tv2-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .tv2-actions form{margin:0}
 .tv2-inline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:end;gap:12px}
