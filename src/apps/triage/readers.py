@@ -78,10 +78,8 @@ def _xlsx_is_bounded(data: bytes) -> bool:
         return False
     if len(infos) > XLSX_MAX_PARTS or sum(i.file_size for i in infos) > XLSX_MAX_EXPANDED:
         return False
-    if any(
-        i.file_size > XLSX_MAX_PART and i.filename.startswith(("xl/sharedStrings", "xl/worksheets/"))
-        for i in infos
-    ):
+    heavy = ("xl/sharedStrings", "xl/worksheets/")
+    if any(i.file_size > XLSX_MAX_PART and i.filename.startswith(heavy) for i in infos):
         return False
     return not any(
         i.file_size > 1024 * 1024
