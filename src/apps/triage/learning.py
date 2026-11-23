@@ -60,7 +60,10 @@ def _internal_forward(item: TriageItem, outer: str) -> bool:
     if outer == mailbox.address.strip().casefold():
         return True
     return Membership.objects.filter(
-        organization_id=item.organization_id, user__email__iexact=outer
+        organization_id=item.organization_id,
+        is_active=True,
+        user__is_active=True,
+        user__email__iexact=outer,
     ).exists()
 
 
