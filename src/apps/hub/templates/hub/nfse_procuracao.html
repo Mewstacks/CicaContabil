@@ -1,0 +1,85 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/procuracao.css' %}?v=6">{% endblock %}
+
+{% block page_action %}
+  {% if roster_available %}<a class="button{% if certificate_summary.state != 'valid' or total_rows %} button-quiet{% endif %}" href="{% url 'hub:roster' %}">Importar carteira</a>{% endif %}
+  {% if can_manage_certificate %}<button class="button{% if certificate_summary.certificate and certificate_summary.state == 'valid' %} button-quiet{% endif %}" type="button" data-modal-open="office-certificate-dialog">{% if certificate_summary.certificate %}Trocar e-CNPJ{% else %}Enviar e-CNPJ{% endif %}</button>{% endif %}
+{% endblock %}
+
+{% block workspace_content %}
+{% include 'hub/nfse_navigation.html' %}
+<aside class="procuracao-state" role="status" aria-label="Estado da coleta">
+  <span class="module-state {{ certificate_summary.tone }}">e-CNPJ {{ certificate_summary.label }}</span>
+  {% if certificate_summary.certificate %}
+    <div><strong>{{ certificate_summary.cnpj }}</strong><small>Vence em {{ certificate_summary.certificate.valid_until|date:"d/m/Y" }} · {{ certificate_summary.days_left }} dia{{ certificate_summary.days_left|pluralize }}</small></div>
+  {% elif certificate_summary.cnpj %}
+    <div><strong>{{ certificate_summary.cnpj }}</strong></div>
+  {% endif %}
+  {% if certificate_summary.quarantined %}<span class="module-state is-warning">Bloqueado por alguns minutos</span>{% endif %}
+  <span class="module-state {{ lane.tone }}">{{ lane.label }}</span>
+  {% if can_manage_certificate and certificate_summary.certificate %}
+    <form class="state-actions" method="post">{% csrf_token %}<input type="hidden" name="action" value="revoke-certificate"><button class="button button-quiet button-small" type="submit">Revogar e-CNPJ</button></form>
+  {% endif %}
+</aside>
+
+<section id="procuracoes" class="workspace-panel procuracao-panel" aria-labelledby="procuracoes-title">
+  <header class="workspace-panel-head"><div><h2 id="procuracoes-title">Empresas</h2></div><span class="record-count">{{ total_rows }} empresa{{ total_rows|pluralize }}</span></header>
+  <nav class="workspace-tabs procuracao-tabs" aria-label="Situação da procuração">
+    {% for item in tabs %}<a href="?{% if item.key != 'all' %}status={{ item.key }}{% endif %}{% if search %}{% if item.key != 'all' %}&amp;{% endif %}q={{ search|urlencode }}{% endif %}"{% if item.current %} aria-current="page"{% endif %}>{{ item.label }} <span class="tab-count">{{ item.count }}</span></a>{% endfor %}
+  </nav>
+  <form class="workspace-filter-form" method="get" aria-label="Pesquisar empresas">
+    {% if tab != 'all' %}<input type="hidden" name="status" value="{{ tab }}">{% endif %}
+    <div class="workspace-filter-search"><label for="procuracao-search">Empresa ou CNPJ</label><input id="procuracao-search" type="search" name="q" maxlength="100" value="{{ search }}" autocomplete="off" spellcheck="false" placeholder="Padaria ou 12.345"></div>
+    <button class="button button-small" type="submit">Pesquisar</button>
+    {% if filtered %}<a class="button button-quiet button-small" href="{% url 'hub:procuracoes' %}">Limpar</a>{% endif %}
+  </form>
+  {% if can_request %}
+  <form id="bulk-form" class="procuracao-bulk" method="post">{% csrf_token %}
+    <input type="hidden" name="status" value="{{ tab }}">{% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}
+    <button class="button button-small" type="submit" name="action" value="request">Pedir aos selecionados</button>
+    <button class="button button-quiet button-small" type="submit" name="action" value="request-pending">Pedir a todos sem procuração</button>
+    <button class="button button-quiet button-small" type="submit" name="action" value="verify">Verificar selecionados</button>
+    <a class="button button-quiet button-small" href="?export=pendentes">Baixar pendentes</a>
+  </form>
+  <form id="verify-form" method="post">{% csrf_token %}<input type="hidden" name="status" value="{{ tab }}">{% if search %}<input type="hidden" name="q" value="{{ search }}">{% endif %}<input type="hidden" name="action" value="verify"></form>
+  {% endif %}
+  {% if page.object_list %}
+  <div class="data-table-wrap">
+    <table class="operational-table nfse-sync-table procuracao-table">
+      <thead><tr>{% if can_request %}<th class="select-cell"><span class="sr-only">Selecionar</span></th>{% endif %}<th>Empresa</th><th>Procuração</th><th>Verificada</th><th>Notas</th><th>Pedido</th>{% if can_request %}<th><span class="sr-only">Ação</span></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for row in page.object_list %}
+        <tr>
+          {% if can_request %}<td class="select-cell" data-label="Selecionar"><label class="select-box"><input type="checkbox" name="company" value="{{ row.company_id }}" form="bulk-form"><span class="sr-only">Selecionar {{ row.company.name }}</span></label></td>{% endif %}
+          <td data-label="Empresa"><strong>{{ row.company.name }}</strong><small>{{ row.cnpj_display }}</small></td>
+          <td data-label="Procuração"><span class="module-state {{ row.badge }}">{{ row.get_procuracao_status_display }}</span>{% if row.procuracao_status == 'error' and row.last_error_message %}<small class="procuracao-notice">{{ row.last_error_message }}</small>{% endif %}</td>
+          <td data-label="Verificada">{% if row.procuracao_checked_at %}{{ row.procuracao_checked_at|date:"d/m/Y H:i" }}{% else %}<span class="table-muted">Ainda não</span>{% endif %}</td>
+          <td data-label="Notas">{{ row.documents|default:0 }}</td>
+          <td data-label="Pedido">{% if row.requested_at %}{{ row.requested_at|date:"d/m/Y" }}{% else %}<span class="table-muted">Nenhum</span>{% endif %}</td>
+          {% if can_request %}<td class="table-action-cell"><button class="row-action-button" type="submit" form="verify-form" name="company" value="{{ row.company_id }}">Verificar<span class="sr-only"> {{ row.company.name }}</span></button></td>{% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}<nav class="pagination" aria-label="Páginas">{% if page.has_previous %}<a class="button button-quiet button-small" href="?page={{ page.previous_page_number }}{% if tab != 'all' %}&amp;status={{ tab }}{% endif %}{% if search %}&amp;q={{ search|urlencode }}{% endif %}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="button button-quiet button-small" href="?page={{ page.next_page_number }}{% if tab != 'all' %}&amp;status={{ tab }}{% endif %}{% if search %}&amp;q={{ search|urlencode }}{% endif %}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  {% else %}
+  <div class="empty-block operational-empty"><strong>{% if filtered %}Nenhuma empresa corresponde{% else %}Nenhuma empresa na carteira{% endif %}</strong>{% if filtered %}<a class="button button-quiet button-small" href="{% url 'hub:procuracoes' %}">Ver tudo</a>{% elif roster_available %}<a class="button button-small" href="{% url 'hub:roster' %}">Importar carteira</a>{% else %}<a class="button button-small" href="{% url 'hub:companies' %}">Ver empresas</a>{% endif %}</div>
+  {% endif %}
+</section>
+
+{% if can_manage_certificate %}
+<div id="office-certificate-dialog" class="modal-backdrop" data-modal hidden>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="office-certificate-title">
+    <header class="modal-head"><div><h2 id="office-certificate-title">{% if certificate_summary.certificate %}Trocar e-CNPJ{% else %}Enviar e-CNPJ{% endif %}</h2></div><button class="icon-control" type="button" data-modal-close aria-label="Fechar">×</button></header>
+    <form method="post" enctype="multipart/form-data" class="form-stack">{% csrf_token %}
+      <input type="hidden" name="action" value="upload-certificate">
+      <div class="field"><label for="office-pfx">Arquivo .pfx ou .p12</label><input id="office-pfx" type="file" name="pfx" accept=".pfx,.p12" required></div>
+      <div class="field certificate-password-field"><label for="office-pfx-password">Senha</label><div class="certificate-password-control"><input id="office-pfx-password" type="password" name="password" autocomplete="off" spellcheck="false"><button type="button" data-password-toggle="office-pfx-password" aria-pressed="false">Mostrar</button></div></div>
+      <div class="modal-actions"><button class="button" type="submit">Enviar</button><button class="button button-quiet" type="button" data-modal-close>Cancelar</button></div>
+    </form>
+  </section>
+</div>
+{% endif %}
+{% endblock %}

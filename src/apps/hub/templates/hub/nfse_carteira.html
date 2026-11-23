@@ -1,0 +1,115 @@
+{% extends 'hub/workspace.html' %}
+{% load static procuracao_tags %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/procuracao.css' %}?v=6">{% endblock %}
+
+{% block page_action %}
+  {% if can_import and mode == 'upload' and history %}<a class="button button-quiet" href="{% url 'hub:roster-template' %}">Baixar modelo</a>{% endif %}
+{% endblock %}
+
+{% block workspace_content %}
+{% include 'hub/nfse_navigation.html' %}
+
+{% if mode == 'upload' %}
+<section class="workspace-panel roster-panel" aria-labelledby="roster-upload-title">
+  <header class="workspace-panel-head"><div><h2 id="roster-upload-title">Planilha</h2></div>{% if plan_notice %}<span class="module-state is-warning" role="status">{{ plan_notice }}</span>{% endif %}</header>
+  {% if can_import %}
+  <form class="roster-upload" method="post" enctype="multipart/form-data">{% csrf_token %}
+    <div class="field"><label for="roster-file">Arquivo .csv ou .xlsx</label><input id="roster-file" type="file" name="planilha" accept=".csv,.xlsx" required></div>
+    <button class="button" type="submit">Analisar</button>
+  </form>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>{{ blocked_reason }}</strong></div>
+  {% endif %}
+</section>
+
+<section class="workspace-panel roster-panel" aria-labelledby="roster-history-title">
+  <header class="workspace-panel-head"><div><h2 id="roster-history-title">Envios</h2></div></header>
+  {% if history %}
+  <div class="data-table-wrap">
+    <table class="operational-table nfse-sync-table roster-table">
+      <thead><tr><th>Arquivo</th><th>Enviado</th><th>Situação</th><th>Novas</th><th>Atualizadas</th><th><span class="sr-only">Abrir</span></th></tr></thead>
+      <tbody>
+      {% for item in history %}
+        <tr>
+          <td data-label="Arquivo"><strong>{{ item.original_filename }}</strong></td>
+          <td data-label="Enviado">{{ item.created_at|date:"d/m/Y H:i" }}</td>
+          <td data-label="Situação"><span class="module-state {% if item.status == 'completed' %}is-active{% else %}is-warning{% endif %}">{% if item.status == 'completed' %}Importada{% else %}Aguarda confirmação{% endif %}</span></td>
+          <td data-label="Novas">{{ item.created_count }}</td>
+          <td data-label="Atualizadas">{{ item.updated_count }}</td>
+          <td class="table-action-cell"><a class="row-action-button" href="{% url 'hub:roster-batch' item.pk %}">Abrir<span class="sr-only"> {{ item.original_filename }}</span></a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Nenhuma planilha enviada</strong>{% if can_import %}<a class="button button-small" href="{% url 'hub:roster-template' %}">Baixar modelo</a>{% endif %}</div>
+  {% endif %}
+</section>
+
+{% else %}
+<section class="workspace-panel roster-panel" aria-labelledby="roster-batch-title">
+  <header class="workspace-panel-head">
+    <div><h2 id="roster-batch-title">{% if mode == 'preview' %}Prévia{% else %}Resultado{% endif %}</h2></div>
+    <span class="record-count">{{ batch.original_filename }}</span>
+  </header>
+  <div class="roster-counts" role="status">
+    {% if mode == 'preview' %}
+      <span class="module-state is-active">{{ counts.create }} nova{{ counts.create|pluralize }}</span>
+      {% if counts.update %}<span class="module-state is-active">{{ counts.update }} atualiza{{ counts.update|pluralize:",m" }} e-mail</span>{% endif %}
+      {% if counts.same %}<span class="module-state is-muted">{{ counts.same }} já existe{{ counts.same|pluralize:",m" }}</span>{% endif %}
+    {% else %}
+      <span class="module-state is-active">{{ counts.create }} importada{{ counts.create|pluralize }}</span>
+      {% if counts.update %}<span class="module-state is-active">{{ counts.update }} e-mail{{ counts.update|pluralize:",s" }} atualizado{{ counts.update|pluralize }}</span>{% endif %}
+    {% endif %}
+    {% if counts.problem %}<span class="module-state is-danger">{{ counts.problem }} com problema</span>{% endif %}
+    {% if counts.without_email %}<span class="module-state is-warning">{{ counts.without_email }} sem e-mail</span>{% endif %}
+  </div>
+
+  {% if has_report %}
+  <nav class="workspace-tabs procuracao-tabs" aria-label="Linhas">
+    <a href="?situacao=todas"{% if tab == 'todas' %} aria-current="page"{% endif %}>{% if mode == 'preview' %}Todas{% else %}Ocorrências{% endif %} <span class="tab-count">{{ total_lines }}</span></a>
+    <a href="?situacao=problemas"{% if tab == 'problemas' %} aria-current="page"{% endif %}>Com problema <span class="tab-count">{{ problem_lines }}</span></a>
+  </nav>
+  {% endif %}
+
+  {% if page.object_list %}
+  <div class="data-table-wrap">
+    <table class="operational-table nfse-sync-table roster-table">
+      <thead><tr><th>Empresa</th><th>E-mail</th><th>Situação</th><th>Linha</th></tr></thead>
+      <tbody>
+      {% for line in page.object_list %}
+        <tr>
+          <td data-label="Empresa"><strong>{{ line.name|default:"—" }}</strong>{% if line.cnpj %}<small>{{ line.cnpj|cnpj_mask }}</small>{% endif %}</td>
+          <td data-label="E-mail">{% if line.email %}{{ line.email }}{% else %}<span class="table-muted">—</span>{% endif %}</td>
+          <td data-label="Situação"><div><span class="module-state {% if line.action == 'problem' %}is-danger{% elif line.action == 'same' %}is-muted{% else %}is-active{% endif %}">{{ line.status_label }}</span>{% if line.reason %}<small class="roster-reason">{{ line.reason }}</small>{% endif %}</div></td>
+          <td data-label="Linha">{{ line.number }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}<nav class="pagination" aria-label="Páginas">{% if page.has_previous %}<a class="button button-quiet button-small" href="?page={{ page.previous_page_number }}&amp;situacao={{ tab }}" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ page.number }} de {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="button button-quiet button-small" href="?page={{ page.next_page_number }}&amp;situacao={{ tab }}" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
+  {% elif tab == 'problemas' %}
+  <div class="empty-block operational-empty"><strong>Nenhuma linha com problema</strong><a class="button button-quiet button-small" href="?situacao=todas">Ver tudo</a></div>
+  {% else %}
+  <div class="empty-block operational-empty"><strong>Sem ocorrências</strong></div>
+  {% endif %}
+
+  <div class="roster-actions">
+    {% if mode == 'preview' and can_import %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm">
+        {% if counts.importable %}<button class="button" type="submit">Importar {{ counts.importable }}</button>{% else %}<span class="module-state is-muted">Nada a importar</span>{% endif %}
+      </form>
+    {% elif mode == 'result' %}
+      <a class="button" href="{% url 'hub:procuracoes' %}">Pedir procurações</a>
+    {% endif %}
+    {% if has_report and can_import %}<a class="button button-quiet" href="{{ errors_url }}">Baixar erros</a>{% endif %}
+    <a class="button button-quiet" href="{% url 'hub:roster' %}">Outra planilha</a>
+    {% if mode == 'preview' and can_import %}
+      <form method="post">{% csrf_token %}<input type="hidden" name="action" value="discard"><button class="button button-quiet" type="submit">Descartar</button></form>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

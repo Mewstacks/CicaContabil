@@ -26,6 +26,7 @@
         </div>
       {% endfor %}
       <div class="registry-result" id="registry-result" hidden><p id="registry-status" role="status" aria-live="polite"></p><strong id="registry-name"></strong><p id="registry-place"></p></div>
+      {% if turnstile_site_key %}<div class="field"><div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="auto"></div></div>{% endif %}
       <button class="button" type="submit">Enviar confirmação</button>
     </form>
     <p class="form-progress">Teste os módulos disponíveis por 14 dias. Não há cobrança automática.</p>
@@ -33,4 +34,5 @@
   </section>
 </main>
 <script src="{% static 'hub/cica-signup.js' %}?v=4" defer></script>
+{% if turnstile_site_key %}<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endif %}
 {% endblock %}

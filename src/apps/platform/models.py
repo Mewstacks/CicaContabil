@@ -265,6 +265,19 @@ class TenantContract(UUIDTimeStampedModel):
     asaas_subscription_id = models.CharField(max_length=80, blank=True)
     notes = models.CharField(max_length=240, blank=True)
 
+    class BillingMode(models.TextChoices):
+        MANUAL = "manual", "Manual (console)"
+        AUTOMATIC = "automatic", "Automática (Asaas)"
+
+    # E3: only a contract the office itself converted to a plan is billed and enforced by
+    # the automation. Every contract that exists today stays manual and is never touched by it.
+    billing_mode = models.CharField(
+        max_length=12,
+        choices=BillingMode.choices,
+        default=BillingMode.MANUAL,
+        db_default=BillingMode.MANUAL,
+    )
+
 
 class TokenPriceBook(UUIDTimeStampedModel):
     """A contract-specific, versioned token offer; drafts cannot dispatch usage."""
@@ -649,6 +662,9 @@ class PaymentAttempt(UUIDTimeStampedModel):
     idempotency_key = models.CharField(max_length=160, unique=True)
     external_id = models.CharField(max_length=160, blank=True, db_index=True)
     checkout_url = models.URLField(blank=True)
+    # E3: Asaas does not order webhook deliveries. The provider timestamp of the last event
+    # that changed this attempt lets a late, older event be ignored instead of regressing it.
+    last_event_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [

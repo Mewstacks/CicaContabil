@@ -304,6 +304,14 @@ def settle_usage(
         return event
 
 
+def prorate_first_month(amount_cents: int, start: date, end: date, starts_on: date) -> int:
+    """Amount for the days from `starts_on` to the end of the month, rounded to the cent."""
+
+    days_in_month = (end - start).days + 1
+    days_in_force = (end - starts_on).days + 1
+    return round(amount_cents * days_in_force / days_in_month)
+
+
 def close_competence(
     *, period_start: date, deferred_organization_ids: list[str] | None = None
 ) -> list[Invoice]:
@@ -395,6 +403,16 @@ def close_competence(
                 if token_book is not None
                 else contract.monthly_price_cents
             )
+            starts_on = contract.starts_on
+            prorated = (
+                token_book is None
+                and contract.billing_mode == TenantContract.BillingMode.AUTOMATIC
+                and starts_on is not None
+                and start < starts_on <= end
+            )
+            if prorated and starts_on is not None:
+                # D-79: the first month is proportional to the days the plan was in force.
+                base_amount = prorate_first_month(base_amount, start, end, starts_on)
             invoice, created = Invoice.objects.get_or_create(
                 organization=contract.organization,
                 period_start=start,
@@ -417,9 +435,12 @@ def close_competence(
                 InvoiceLine.objects.create(
                     invoice=invoice,
                     kind=InvoiceLine.Kind.SUBSCRIPTION,
-                    description=f"Mensalidade {contract.plan.name}",
+                    description=(
+                        f"Mensalidade {contract.plan.name}"
+                        + (" (proporcional)" if prorated else "")
+                    ),
                     unit_amount_cents=contract.monthly_price_cents,
-                    total_amount_cents=contract.monthly_price_cents,
+                    total_amount_cents=base_amount,
                 )
             else:
                 for rate in TokenModuleRate.objects.filter(book=token_book).order_by(

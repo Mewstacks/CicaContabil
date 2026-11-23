@@ -47,6 +47,11 @@ CICA_REPORTING_SHARED_SECRET = env_str("CICA_REPORTING_SHARED_SECRET")
 CICA_REPORTING_PREVIOUS_SHARED_SECRET = env_str("CICA_REPORTING_PREVIOUS_SHARED_SECRET")
 CICA_REPORTING_TIMEOUT_SECONDS = env_int("CICA_REPORTING_TIMEOUT_SECONDS", 30)
 ASAAS_WEBHOOK_TOKEN = env_str("ASAAS_WEBHOOK_TOKEN")
+# E3: cobrança automática por Asaas. Desligada por padrão; sem chave nada é chamado. A chave é
+# segredo do ambiente (Fly secrets), nunca banco nem log. Sandbox até a homologação.
+ASAAS_API_KEY = env_str("ASAAS_API_KEY", "")
+ASAAS_ENVIRONMENT = env_str("ASAAS_ENVIRONMENT", "sandbox")
+BILLING_COLLECTION_ENABLED = env_bool("BILLING_COLLECTION_ENABLED", False)
 TOKEN_BILLING_ENABLED = env_bool("TOKEN_BILLING_ENABLED", False)
 RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED = env_bool(
     "RECONCILIATION_DOMINIO_EXPORT_HOMOLOGATED", False
@@ -353,6 +358,12 @@ SECURE_CSP = {
     "style-src": [CSP.SELF, CSP.UNSAFE_INLINE],
 }
 
+# Cloudflare Turnstile no cadastro de escritório novo (E2). Chave vazia = desligado e o cadastro
+# fica como era; a página só abre a CSP para a Cloudflare quando as duas chaves existem.
+TURNSTILE_SITE_KEY = env_str("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = env_str("TURNSTILE_SECRET_KEY", "")
+TURNSTILE_CHECK_HOSTNAME = env_bool("TURNSTILE_CHECK_HOSTNAME", True)
+
 CORS_ALLOWED_ORIGINS = env_list("DJANGO_CORS_ALLOWED_ORIGINS")
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
@@ -437,6 +448,13 @@ NFSE_ADN_SYNC_ENABLED = env_bool("NFSE_ADN_SYNC_ENABLED", False)
 NFSE_ADN_ENVIRONMENT = env_str("NFSE_ADN_ENVIRONMENT", "trial")
 NFSE_ADN_POLL_INTERVAL_MINUTES = max(5, env_int("NFSE_ADN_POLL_INTERVAL_MINUTES", 15))
 
+# D-304/D-305: collection by procuração for offices created after D-304. Off by default;
+# with it off the beat schedule and every legacy task stay exactly as they were. The lane
+# only runs against the production ADN (procurações are not registered in the restricted
+# environment) and never touches an office that collects with each company's A1.
+NFSE_PROCURACAO_SYNC_ENABLED = env_bool("NFSE_PROCURACAO_SYNC_ENABLED", False)
+NFSE_PROCURACAO_POLL_INTERVAL_MINUTES = max(1, env_int("NFSE_PROCURACAO_POLL_INTERVAL_MINUTES", 2))
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
     "DESCRIPTION": "Versioned API for the reusable SaaS backend.",
@@ -496,6 +514,8 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.security.axes_lockout_response"
 CELERY_BROKER_URL = env_str("CELERY_BROKER_URL", redis_url or "memory://")
 CELERY_RESULT_BACKEND = env_str("CELERY_RESULT_BACKEND", redis_url or "cache+memory://")
 CELERY_TASK_DEFAULT_QUEUE = env_str("CELERY_QUEUE_NAME", f"{deployment_name}-default")
+# Task modules that autodiscovery (`<app>.tasks`) does not reach.
+CELERY_IMPORTS = ("apps.hub.tasks_procuracao",)
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
@@ -626,6 +646,42 @@ if TRIAGE_EMAIL_POLL_ENABLED:
     CELERY_BEAT_SCHEDULE["dispatch-active-triage-mailboxes"] = {
         "task": "triage.dispatch_active_mailboxes",
         "schedule": aligned_periodic_minutes(TRIAGE_EMAIL_POLL_INTERVAL_MINUTES),
+    }
+
+# E5: alarms of the procuração collection. Cheap and harmless for an office on A1 per company.
+CELERY_BEAT_SCHEDULE["notify-office-certificates"] = {
+    "task": "hub.notify_office_certificates",
+    "schedule": crontab(hour=7, minute=40),
+}
+CELERY_BEAT_SCHEDULE["notify-lost-procuracoes"] = {
+    "task": "hub.notify_lost_procuracoes",
+    "schedule": crontab(hour=7, minute=45),
+}
+
+# E4: retention of roster uploads. Cheap and harmless for an office that never imported one.
+CELERY_BEAT_SCHEDULE["purge-roster-artifacts"] = {
+    "task": "hub.purge_roster_artifacts",
+    "schedule": crontab(hour=3, minute=50),
+}
+
+if BILLING_COLLECTION_ENABLED:
+    CELERY_BEAT_SCHEDULE["platform-enforce-payment-policy"] = {
+        "task": "platform.enforce_payment_policy",
+        "schedule": crontab(hour=0, minute=10),
+    }
+    CELERY_BEAT_SCHEDULE["platform-reconcile-payments"] = {
+        "task": "platform.reconcile_payments",
+        "schedule": aligned_periodic_minutes(10),
+    }
+
+if NFSE_PROCURACAO_SYNC_ENABLED:
+    CELERY_BEAT_SCHEDULE["dispatch-procuracao-syncs"] = {
+        "task": "hub.dispatch_procuracao_syncs",
+        "schedule": aligned_periodic_minutes(NFSE_PROCURACAO_POLL_INTERVAL_MINUTES),
+    }
+    CELERY_BEAT_SCHEDULE["check-procuracao-lane"] = {
+        "task": "hub.check_procuracao_lane",
+        "schedule": crontab(minute=17),
     }
 
 LOGGING = {

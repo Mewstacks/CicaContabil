@@ -16,7 +16,7 @@ from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import User
 from apps.audit.services import record_event
-from apps.hub.models import ControlPlaneBinding, ProductModule, RemoteSupportGrant
+from apps.hub.models import ControlPlaneBinding, OfficeProfile, ProductModule, RemoteSupportGrant
 from apps.hub.module_catalog import OFFERED_MODULE_CHOICES, OFFERED_MODULE_CODES
 from apps.intelligence.models import AssistantSettings, ClaudeFallbackApproval, EgressAudit
 from apps.organizations.models import Membership, Organization
@@ -193,6 +193,12 @@ def tenants(request: HttpRequest) -> HttpResponse:
         else:
             with transaction.atomic():
                 organization = Organization.objects.create(name=name, slug=slug)
+                # D-304: an office created now collects NFS-e by procuração. Existing
+                # offices keep `certificate`; the console can switch a tenant explicitly.
+                OfficeProfile.objects.get_or_create(
+                    organization=organization,
+                    defaults={"nfse_collection_mode": OfficeProfile.NfseCollectionMode.PROCURACAO},
+                )
                 TenantLifecycle.objects.create(
                     organization=organization,
                     state=TenantLifecycle.State.ACTIVATION_PENDING,

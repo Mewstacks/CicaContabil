@@ -1,5 +1,5 @@
 {% extends 'hub/workspace.html' %}
-{% load static ui_navigation profitability_extras %}
+{% load static ui_navigation profitability_extras procuracao_tags %}
 
 {% block extra_head %}{{ block.super }}{% if profitability_enabled %}<link rel="stylesheet" href="{% static 'profitability/profitability.css' %}?v=1">{% endif %}{% endblock %}
 
@@ -206,7 +206,7 @@
       <td data-label="Revisão">{% if document.review_case %}<span class="module-state is-warning">{{ document.review_case.get_status_display }}</span>{% else %}<span class="table-muted">—</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>{% if document_page.has_other_pages %}<nav class="pagination" aria-label="Páginas dos documentos NFS-e">{% if document_page.has_previous %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.previous_page_number }}#documentos-nfse" rel="prev">Anterior</a>{% else %}<span class="pagination-spacer"></span>{% endif %}<span class="pagination-status">Página {{ document_page.number }} de {{ document_page.paginator.num_pages }}</span>{% if document_page.has_next %}<a class="button button-quiet button-small" href="?{% if document_querystring %}{{ document_querystring }}&amp;{% endif %}documents_page={{ document_page.next_page_number }}#documentos-nfse" rel="next">Próxima</a>{% else %}<span class="pagination-spacer"></span>{% endif %}</nav>{% endif %}
   {% else %}
-    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong><p>Os documentos aparecerão aqui depois da conexão NFS-e desta empresa ser homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a></div>
+    <div class="empty-block operational-empty"><strong>Nenhuma NFS-e desta empresa</strong>{% procuracao_mode as pm %}{% if pm %}<a class="button button-small button-quiet" href="{% url 'hub:procuracoes' %}?q={{ company.name|urlencode }}">Ver procuração</a>{% else %}<p>Os documentos aparecerão aqui depois da conexão NFS-e desta empresa ser homologada.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Ver certificados</a>{% endif %}</div>
   {% endif %}
 </section>
 
@@ -239,7 +239,7 @@
       <td>{% if certificate.valid_until and certificate.valid_until < today %}<span class="module-state is-danger">Vencido</span>{% else %}<span class="module-state is-active">Guardado</span>{% endif %}</td>
     </tr>{% endfor %}</tbody></table></div>
   {% else %}
-    <div class="empty-block operational-empty"><strong>Sem certificado A1</strong><p>Envie um A1 válido para iniciar a coleta automática desta empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a></div>
+    <div class="empty-block operational-empty">{% procuracao_mode as pm %}{% if pm %}{% procuracao_state company as ps %}<strong>Procuração</strong><span class="module-state {{ ps.tone }}">{{ ps.label }}</span><a class="button button-small button-quiet" href="{% url 'hub:procuracoes' %}?q={{ company.name|urlencode }}">Abrir procurações</a>{% else %}<strong>Sem certificado A1</strong><p>Envie um A1 válido para iniciar a coleta automática desta empresa.</p><a class="button button-small button-quiet" href="{% url 'hub:certificates' %}">Enviar certificado</a>{% endif %}</div>
   {% endif %}
 </section>
 </div></details>

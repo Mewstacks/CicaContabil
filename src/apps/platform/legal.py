@@ -22,9 +22,10 @@ DOCUMENTS = {
                 "Cadastro e acesso",
                 "O responsável pelo cadastro deve estar autorizado a representar o escritório, "
                 "informar dados corretos e manter seus acessos protegidos. A confirmação do "
-                "e-mail é necessária. O teste dura 14 dias e não exige cartão nem segundo fator "
-                "obrigatório. Após o teste ou contratação, o segundo fator será exigido. Contas "
-                "administrativas da plataforma possuem proteção adicional.",
+                "e-mail é necessária. O teste dura 14 dias e não exige cartão. O segundo fator "
+                "(aplicativo autenticador) é altamente recomendado e pode ser ativado a qualquer "
+                "momento; depois de ativado, protege os acessos seguintes. Contas administrativas "
+                "da plataforma têm segundo fator obrigatório.",
             ),
             (
                 "Teste e contratação",

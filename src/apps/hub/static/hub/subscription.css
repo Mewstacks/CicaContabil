@@ -1,0 +1,32 @@
+/* Assinatura (E3). Só acrescenta; usa os tokens e componentes do hub. */
+.subscription-banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:16px;padding:14px 18px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.subscription-banner p{flex:1 1 260px;min-width:0;margin:0;color:var(--ink);font-size:14px;line-height:1.45}
+.subscription-banner .module-state{margin-left:0}
+.subscription-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0;padding:14px 19px 19px}
+.subscription-facts div{min-width:0}
+.subscription-facts dt{color:var(--muted);font-size:12px;font-weight:700}
+.subscription-facts dd{margin:2px 0 0;color:var(--ink);font-size:16px;font-weight:700;overflow-wrap:anywhere}
+.subscription-limits,.subscription-plans{display:grid;gap:14px;margin:0;padding:14px 19px 19px;list-style:none}
+.limit-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.limit-head strong{color:var(--ink)}
+.limit-head span:not(.module-state){color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+.limit-head .module-state{margin-left:0}
+.limit-track{height:8px;margin-top:8px;overflow:hidden;border-radius:99px;background:var(--surface-subtle)}
+.limit-fill{display:block;height:100%;border-radius:99px;background:var(--blue)}
+.limit-fill.is-warn{background:var(--amber)}
+.limit-fill.is-full{background:var(--red)}
+.subscription-plans li{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-sm)}
+.subscription-plans li div{display:grid;gap:2px;min-width:0}
+.subscription-plans li span{color:var(--muted);font-size:13px}
+.subscription-plans form{margin:0}
+.subscription-table .pay-form{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.subscription-table .row-action-button{min-height:36px;font:inherit}
+@media (max-width:680px){
+  .subscription-banner .button,.subscription-plans .button{width:100%;min-height:44px}
+  .subscription-plans form{flex:1 1 100%}
+  .subscription-table .pay-form{width:100%}
+  .subscription-table .row-action-button{flex:1 1 30%;min-height:44px}
+}
+
+/* Anel de foco opaco: o token global é translúcido (cerca de 2:1 no tema escuro) e não chega a 3:1. */
+.workspace-panel :focus-visible,.procuracao-state :focus-visible,.subscription-banner :focus-visible{outline:3px solid var(--ink);outline-offset:2px}

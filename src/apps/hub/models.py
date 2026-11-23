@@ -81,6 +81,21 @@ class OfficeProfile(OrganizationScopedModel):
     # registered without the key that makes it addressable.
     require_dominio_code = models.BooleanField(default=False)
 
+    class NfseCollectionMode(models.TextChoices):
+        CERTIFICATE = "certificate", "A1 por empresa"
+        PROCURACAO = "procuracao", "Procuração"
+
+    # D-304: how this office obtains NFS-e from the ADN. Every office that exists today
+    # collects with each company's own A1 and keeps doing so (`certificate`, enforced by
+    # the database default so code from before this column keeps inserting valid rows);
+    # only offices created after D-304 start in `procuracao`.
+    nfse_collection_mode = models.CharField(
+        max_length=16,
+        choices=NfseCollectionMode.choices,
+        default=NfseCollectionMode.CERTIFICATE,
+        db_default=NfseCollectionMode.CERTIFICATE,
+    )
+
 
 class ProductModule(OrganizationScopedModel):
     class Code(models.TextChoices):
@@ -360,6 +375,41 @@ class Certificate(OrganizationScopedModel):
         indexes = [models.Index(fields=("organization", "valid_until"))]
 
 
+class OfficeCertificate(OrganizationScopedModel):
+    """The office's own e-CNPJ A1 (D-305): the attorney that the ADN checks procurações
+    against. Same custody as `Certificate`; raw PFX and password never reach the UI."""
+
+    label = models.CharField(max_length=120)
+    subject_name = models.CharField(max_length=240, blank=True)
+    cnpj = models.CharField(max_length=14)
+    valid_from = models.DateTimeField(null=True, blank=True)
+    valid_until = models.DateTimeField(null=True, blank=True, db_index=True)
+    pfx_blob = EncryptedTextField()
+    password = EncryptedTextField()
+    fingerprint_sha256 = models.CharField(max_length=64)
+    uploaded_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="uploaded_office_certificates",
+    )
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    # HTTP 495 from the ADN: the certificate sits out for a while before the next call.
+    quarantined_until = models.DateTimeField(null=True, blank=True)
+    last_call_at = models.DateTimeField(null=True, blank=True)
+    lease_token = models.UUIDField(null=True, blank=True, editable=False)
+    lease_until = models.DateTimeField(null=True, blank=True, editable=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "fingerprint_sha256"),
+                name="hub_unique_office_certificate_fingerprint",
+            )
+        ]
+        indexes = [models.Index(fields=("organization", "valid_until"))]
+
+
 class NfseSync(OrganizationScopedModel):
     class Status(models.TextChoices):
         PAUSED = "paused", "Pausada"
@@ -386,12 +436,74 @@ class NfseSync(OrganizationScopedModel):
     lease_token = models.UUIDField(null=True, blank=True, editable=False)
     lease_until = models.DateTimeField(null=True, blank=True, editable=False)
 
+    class CredentialMode(models.TextChoices):
+        CERTIFICATE = "certificate", "A1 da empresa"
+        PROCURACAO = "procuracao", "Procuração"
+
+    class ProcuracaoStatus(models.TextChoices):
+        UNKNOWN = "unknown", "A verificar"
+        OK = "ok", "Em dia"
+        MISSING = "missing", "Sem procuração"
+        ERROR = "error", "Com erro"
+
+    # D-304/D-305. Rows created before the procuração mode keep `certificate` through the
+    # database default; the legacy dispatcher also ignores any row without `certificate`.
+    credential_mode = models.CharField(
+        max_length=16,
+        choices=CredentialMode.choices,
+        default=CredentialMode.CERTIFICATE,
+        db_default=CredentialMode.CERTIFICATE,
+    )
+    office_certificate = models.ForeignKey(
+        OfficeCertificate,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="nfse_syncs",
+    )
+    procuracao_status = models.CharField(
+        max_length=16,
+        choices=ProcuracaoStatus.choices,
+        default=ProcuracaoStatus.UNKNOWN,
+        db_default=ProcuracaoStatus.UNKNOWN,
+    )
+    procuracao_checked_at = models.DateTimeField(null=True, blank=True)
+    procuracao_ok_at = models.DateTimeField(null=True, blank=True)
+    procuracao_notice = models.CharField(max_length=500, blank=True, default="", db_default="")
+    # `TipoConsulta` of the last ADN answer: InscricaoCertificado, CnpjBase or Procuracao.
+    query_type = models.CharField(max_length=32, blank=True, default="", db_default="")
+
     class Meta:
         constraints = [
             models.UniqueConstraint(
                 fields=("organization", "company"), name="hub_unique_nfse_sync_company"
             )
         ]
+
+
+class NfseProcuracaoRequest(OrganizationScopedModel):
+    """One e-mail asking a client company to grant the office the NFS-e procuração."""
+
+    class Status(models.TextChoices):
+        SENT = "sent", "Enviado"
+        FAILED = "failed", "Falhou"
+
+    company = models.ForeignKey(
+        ClientCompany, on_delete=models.CASCADE, related_name="procuracao_requests"
+    )
+    requested_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="procuracao_requests",
+    )
+    recipient_masked = models.CharField(max_length=254, blank=True)
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.SENT)
+    error = models.CharField(max_length=240, blank=True)
+    sent_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "company", "sent_at"))]
 
 
 class ImmutableOrganizationModel(OrganizationScopedModel):

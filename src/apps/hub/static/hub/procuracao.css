@@ -1,0 +1,61 @@
+/* Tela de procurações da NFS-e (D-304). Só acrescenta; usa os tokens e componentes do hub. */
+.procuracao-state{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:16px;padding:14px 18px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.procuracao-state strong{display:block;color:var(--ink);font-size:15px}
+.procuracao-state small{display:block;color:var(--muted);font-size:13px}
+.procuracao-state .module-state{margin-left:0}
+.procuracao-state .state-actions{margin-left:auto}
+.procuracao-panel .workspace-filter-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.procuracao-panel .workspace-filter-search{flex:1 1 260px;min-width:0}
+.procuracao-panel .workspace-filter-form .button{flex:0 0 auto;width:auto}
+.procuracao-table td[data-label="Verificada"],.procuracao-table td[data-label="Pedido"]{white-space:nowrap}
+.procuracao-tabs{margin:0 0 12px}
+.procuracao-tabs .tab-count{display:inline-block;min-width:22px;margin-left:4px;padding:1px 6px;border-radius:99px;background:var(--surface-subtle);color:var(--muted);font-size:12px;font-weight:700;text-align:center}
+.procuracao-bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+#verify-form{display:none}
+.procuracao-table td small{display:block;margin-top:2px;color:var(--muted);font-size:12px;line-height:1.4}
+.procuracao-table .procuracao-notice{max-width:46ch;overflow-wrap:anywhere}
+.procuracao-table .select-cell{width:44px}
+.select-box{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;cursor:pointer}
+.select-box input{width:20px;height:20px;margin:0}
+.procuracao-table .row-action-button{min-height:36px;font:inherit}
+@media (max-width:680px){
+  .procuracao-table td[data-label="Verificada"],.procuracao-table td[data-label="Pedido"]{white-space:normal}
+  .procuracao-panel .workspace-filter-form .button{flex:1 1 100%;min-height:44px}
+  .procuracao-state{padding:12px 14px}
+  .procuracao-state .state-actions{margin-left:0;width:100%}
+  .procuracao-state .state-actions .button{width:100%}
+  .procuracao-bulk .button{flex:1 1 100%;min-height:44px}
+  .procuracao-table .select-cell{width:auto}
+  .procuracao-table .row-action-button{width:100%;min-height:44px}
+}
+
+/* Carteira por planilha (E2): mesmos tokens, só o que a tela de procurações ainda não tem. */
+.roster-upload{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;padding:0 19px 19px}
+.roster-upload .field{flex:1 1 280px;min-width:0}
+.roster-upload .button{flex:0 0 auto}
+.roster-counts{display:flex;flex-wrap:wrap;gap:8px;padding:0 19px 14px}
+.roster-counts .module-state{margin-left:0;font-size:12px}
+.roster-table td[data-label="Linha"]{font-variant-numeric:tabular-nums;color:var(--muted)}
+.roster-table td[data-label="Empresa"],.roster-table td[data-label="E-mail"],.roster-table td[data-label="Situação"]{white-space:normal;overflow-wrap:anywhere}
+.roster-table td small{display:block;margin-top:2px;color:var(--muted);font-size:12px;line-height:1.4}
+.roster-table td[data-label="Empresa"] small{white-space:nowrap}
+.roster-table td[data-label="Situação"] .roster-reason{max-width:34ch}
+.roster-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 19px 19px}
+.roster-actions form{margin:0}
+@media (max-width:680px){
+  .roster-upload .button,.roster-actions .button{flex:1 1 100%;min-height:44px}
+  .roster-actions form{flex:1 1 100%}
+  .roster-actions form .button{width:100%}
+  .roster-table td[data-label="Empresa"] small{white-space:normal}
+}
+
+/* 681 a 960 px: sete colunas não cabem em uma linha por coluna; o nome da empresa ganha largura mínima. */
+@media (min-width:681px) and (max-width:960px){
+  .procuracao-table td[data-label="Verificada"]{white-space:normal;overflow-wrap:normal}
+  .procuracao-table td[data-label="Pedido"]{white-space:nowrap}
+  .procuracao-table td[data-label="Empresa"]{min-width:170px;white-space:normal;overflow-wrap:anywhere}
+  .procuracao-table th,.procuracao-table td{padding-left:10px;padding-right:10px}
+}
+
+/* Anel de foco opaco: o token global é translúcido (cerca de 2:1 no tema escuro) e não chega a 3:1. */
+.workspace-panel :focus-visible,.procuracao-state :focus-visible,.subscription-banner :focus-visible{outline:3px solid var(--ink);outline-offset:2px}

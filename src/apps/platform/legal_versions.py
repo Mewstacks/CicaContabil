@@ -1,3 +1,3 @@
 """Published legal-document versions used by both presentation and acceptance records."""
 
-LEGAL_VERSION = "cica-2026-09-draft-2"
+LEGAL_VERSION = "cica-2026-11-draft-3"

@@ -1,7 +1,7 @@
 from django.contrib.auth import views as auth_views
 from django.urls import path, reverse_lazy
 
-from apps.hub import views
+from apps.hub import views, views_procuracao, views_roster, views_subscription
 from apps.platform.legal import legal_document
 
 app_name = "hub"
@@ -118,6 +118,16 @@ urlpatterns = [
         name="collaborator-deactivate",
     ),
     path("app/nfse/", views.nfse_center, name="nfse-center"),
+    path("app/assinatura/", views_subscription.subscription_page, name="subscription"),
+    path("app/nfse/procuracoes/", views_procuracao.nfse_procuracoes, name="procuracoes"),
+    path("app/nfse/carteira/", views_roster.roster, name="roster"),
+    path("app/nfse/carteira/modelo.csv", views_roster.roster_template, name="roster-template"),
+    path("app/nfse/carteira/<uuid:batch_id>/", views_roster.roster_batch, name="roster-batch"),
+    path(
+        "app/nfse/carteira/<uuid:batch_id>/erros.csv",
+        views_roster.roster_errors,
+        name="roster-errors",
+    ),
     path("app/nfse/fila/", views.nfse_queue_status, name="nfse-queue-status"),
     path("app/nfse/fila/repetir/", views.nfse_queue_retry, name="nfse-queue-retry"),
     path(

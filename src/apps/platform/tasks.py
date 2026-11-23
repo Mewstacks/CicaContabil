@@ -7,6 +7,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.utils import timezone
 
+from apps.platform import collection, dunning
 from apps.platform.billing import close_competence
 from apps.platform.models import OperationalRun, TenantContract, TenantLifecycle
 from apps.platform.operations import track_scheduled_operation
@@ -21,9 +22,7 @@ def close_previous_competence() -> dict[str, object]:
     previous_day = current_month_start - timedelta(days=1)
     previous_month = previous_day.replace(day=1)
     deferred: list[str] = []
-    invoices = close_competence(
-        period_start=previous_month, deferred_organization_ids=deferred
-    )
+    invoices = close_competence(period_start=previous_month, deferred_organization_ids=deferred)
     return {
         "competencia": f"{previous_month:%m/%Y}",
         "faturas_concluidas": len(invoices),
@@ -59,3 +58,21 @@ def advance_tenant_lifecycles() -> int:
         lifecycle.save(update_fields=["state", "reason", "updated_at"])
         changed += 1
     return changed
+
+
+@shared_task(name="platform.enforce_payment_policy")  # type: ignore[untyped-decorator]
+def enforce_payment_policy() -> dict[str, int]:
+    """D-79 every day: the 7-day carência ends on a date, with or without a provider event."""
+
+    if not collection.enabled():
+        return {"skipped": 1}
+    return dunning.enforce_all()
+
+
+@shared_task(name="platform.reconcile_payments")  # type: ignore[untyped-decorator]
+def reconcile_payments() -> dict[str, int]:
+    """Find Asaas charges whose creation response was lost (no idempotency header exists)."""
+
+    if not collection.enabled():
+        return {"skipped": 1}
+    return collection.reconcile_unconfirmed()

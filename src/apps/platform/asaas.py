@@ -234,6 +234,26 @@ class AsaasClient:
             email=email,
         )
 
+    def find_payment_by_reference(self, external_reference: str) -> Payment | None:
+        """Asaas has no idempotency header; a lost response is reconciled by this lookup.
+
+        `GET /v3/payments` accepts the `externalReference` filter (docs.asaas.com, "Listar
+        cobranças", lida em 20/11/2026).
+        """
+
+        reference = _text(external_reference, field="referência externa", limit=255)
+        response = self._request(
+            method="GET",
+            path=f"/payments?{urlencode({'externalReference': reference, 'limit': 1})}",
+        )
+        rows = response.get("data")
+        if not isinstance(rows, list) or not rows:
+            return None
+        first = rows[0]
+        if not isinstance(first, dict):
+            raise AsaasResponseError(200, " Cobrança retornada em formato inválido.")
+        return _payment(first)
+
     def create_payment(
         self,
         *,
