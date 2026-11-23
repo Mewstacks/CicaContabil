@@ -1,3 +1,10 @@
+<!-- D396-V447-2026-11-23 -->
+**23/11/2026 — D-396/V-446/V-447: defeitos graves da revisão corrigidos e publicados na v121.**
+Razão pedido em todo mês do OFX (a SURIA estava presa só em setembro), desfazer que vale,
+confirmação que não trava o mês, regra retirada cancela seus lançamentos não exportados e títulos
+com nota/parcela. Pendente: proteção contra lançamento em dobro (decisão do responsável) e itens
+médios/baixos da revisão, em andamento na sessão da revisão.
+
 <!-- D395-V445-2026-11-23 -->
 **23/11/2026 — D-395/V-444/V-445: DE-PARA com IA (Haiku 5.5) publicado na v120.**
 Para movimentos sem regra e fora do Razão, a IA escolhe a contrapartida entre as contas que a

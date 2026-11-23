@@ -12876,3 +12876,21 @@ sem erro novo. Navegador (laboratório sintético): *Títulos e baixas* mostra �
 
 Não corrigido (exige decisão): lançamento em dobro com Razão incompleto ou data diferente (item 4.2).
 Demais itens médios/baixos do relatório seguem pendentes. Não publicado.
+
+## V-447 — Publicação da D-396 na release v121 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, publicar tudo”). Deploy e merge (PR #61) com
+o CI em andamento, apoiados na suíte SQLite completa (3.498) e em 108 testes em PostgreSQL local; src/
+da main idêntico ao commit publicado `b60e4dd`.
+
+Imagem OCI sobre a v120 (`91d1902f…`) com os 9 arquivos alterados (8 Python e 1 template, sem
+collectstatic): `sha256:fd73df438d4fbf0552b412f8c1bcb57ae1f5731fbba99f11e854da30b3687a1d`; 231 gzip/11
+zstd; os 9 arquivos idênticos ao commit. Configuração de deploy da v120, sem mudança. **Release v121**:
+release_command ok sem migração; web e worker `started`, reserva parada; live/ready 200;
+`auto_confirm.py` e as variáveis `CICA_DIRECT_USE_ORGANIZATION_IDS`/`CICA_DEPARA_AI_ORGANIZATION_IDS`
+iguais nas duas máquinas.
+
+Conferência somente leitura: a única conta ativa da CONTAD (SURIA, empresa 212) tem vínculo feito pela
+importação (evidência D-385) com `allowed_months = ["2026-09"]` — exatamente o caso do defeito 4.1.
+A partir da v121, o próximo OFX dela confirma e pede o Razão de cada mês coberto. Nenhum dado foi
+alterado nesta publicação; o item 4.2 (lançamento em dobro) segue com a sessão da revisão.
