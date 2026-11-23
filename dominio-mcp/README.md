@@ -23,6 +23,7 @@ uv run dominio-mcp serve
 - `build-pack` lê o catálogo do banco (≈ 33 s no banco real) e gera o pack local. **Sem `--aceitar`** as colunas que nenhuma regra classificou ficam bloqueadas; aceitar o catálogo é decisão do dono (ver o guia).
 - `serve` fala MCP por stdio. É o comando que Claude Desktop, Claude Code e o túnel do ChatGPT executam.
 - `serve --http` fala o mesmo MCP em `http://127.0.0.1:8765/mcp` com token (`http-token`): só loopback, sempre perfil `remote`.
+- `relay-job` (stdin JSON, stdout JSON) é o repasse do gateway pelo agente: só as dez ferramentas L0 a L2, perfil `remote`, sem SQL.
 - L3 (`sql_somente_leitura`) só existe com `serve --profile local` e `raw_sql = true`: é SQL em gramática mínima convertido em consulta L2, com a mesma política.
 - `scripts/build_mcpb.py` monta `dist/dominio-mcp-<versão>.mcpb` (Windows x64, Python 3.12) e `scripts/prove_mcpb.py` o instala numa pasta nova com venv vazio e conversa com ele. O teste no Claude Desktop em perfil limpo ainda é manual.
 

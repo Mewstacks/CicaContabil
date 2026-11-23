@@ -1,4 +1,4 @@
-"""Monta o pacote `.mcpb` do dominio-mcp (M11, D-332).
+"""Monta o pacote `.mcpb` do dominio-mcp (M11, D-330).
 
 Fluxo, sempre a partir do lock do projeto (nada de resolver versao nova):
 

@@ -1,6 +1,6 @@
 # Progresso — dominio-mcp (Fase 1 núcleo e Fase 1b)
 
-Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-330 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
+Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plano.md). Gate 1 aprovado pelo responsável em 21/11/2026. Decisões em D-317 a D-332 de `DECISOES.md`. **Gate 2 aprovado pelo responsável em 22/11/2026; commit local `0c9ab04f`, sem push, merge nem deploy.**
 
 | Marco | Estado | Prova |
 |---|---|---|
@@ -17,7 +17,7 @@ Plano: [../../docs/specs/dominio-mcp-plano.md](../../docs/specs/dominio-mcp-plan
 | M10 HTTP em loopback (Fase 1b) | feito (23/11/2026) | `http_app.py`, `serve --http`, `http-token`; `tests/test_http_security.py` (33): bind, `Host`, `Origin`, token, teto de tentativas, corpo, cliente MCP real em porta efêmera |
 | M11 `.mcpb` (Fase 1b) | feito em parte (23/11/2026) | `mcpb/manifest.json`, `mcpb/server/main.py`, `scripts/build_mcpb.py` (15,2 MiB, `mcpb validate` ok), `scripts/prove_mcpb.py` (instalação em pasta nova do sistema com venv vazio, `pyodbc` e `pywintypes` do pacote, 10 ferramentas, glossário empacotado). **Falta o teste manual no Claude Desktop em perfil Windows limpo**: só depois conta como entregue |
 
-Verificação do pacote em 23/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 835 passam, 22 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 20 passam, 1 (carga) exige a janela do dono.
+Verificação do pacote em 23/11/2026 (da raiz do repositório): `ruff check`, `ruff format --check`, `mypy src` limpos; `pytest -q`: 864 passam, 22 vivos pulados, 2 de avaliação fora do padrão; vivos com `DOMINIO_MCP_LIVE=1`: 20 passam, 1 (carga) exige a janela do dono.
 
 ## Desvios do plano (decisão técnica, sem mudar comportamento)
 
@@ -74,4 +74,6 @@ Três pontos sobre o commit `0c9ab04f`, conferidos antes de decidir: agregado pe
 - L3 não é filtro de SQL: é uma gramática mínima que **converte** o `SELECT` em consulta L2, então herda a política inteira e não abre nada que L2 não abra. O `ON` tem que ser exatamente a FK declarada.
 - O HTTP só escuta em `127.0.0.1` ou `::1`, é sempre perfil `remote` e fica atrás de `Host` fixo, recusa de `Origin`, token de 256 bits e teto de tentativas.
 - A prova de instalação do `.mcpb` achou um defeito que nenhum teste de manifesto acharia: `PYTHONPATH` não lê `.pth` e o SDK exige `pywintypes` no Windows. `main.py` passou a chamar `site.addsitedir`.
+- Revisor automático (23/11): o teto de tentativas do HTTP deixava um processo local travar o cliente legítimo; agora só o token errado conta (D-331).
+- Fase 2, peça 3 (lado do pacote, D-332): `relay.py` e `dominio-mcp relay-job` (trabalho JSON no stdin, envelope no stdout), 29 testes; L3 e SQL não existem nesse caminho. Falta a fila no Hub, o agente em C# e o teste com o agente real.
 - Pendente: teste manual do `.mcpb` no Claude Desktop em perfil limpo; cliente HTTP real (só o SDK foi testado).

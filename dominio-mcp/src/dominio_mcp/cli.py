@@ -8,6 +8,8 @@
 - `build-pack [--aceitar]`: gera o pack do catalogo vivo (`buildpack.py`);
 - `doctor [--completo]`: confere DSN, driver, versao do servidor, legibilidade, pack e quarentena.
   Nunca imprime credencial nem valor de linha;
+- `relay-job`: repasse pelo agente (Fase 2, D-332): um trabalho `{contrato, id, ferramenta,
+  argumentos}` no stdin vira uma chamada das dez ferramentas L0 a L2 e um envelope no stdout;
 - `reset`: libera a quarentena de execucao incerta, depois de o dono conferir no servidor.
 
 Saida do console so em ASCII: o terminal do Windows nem sempre desenha acento.
@@ -220,6 +222,25 @@ def cmd_http_token(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_relay_job(_args: argparse.Namespace) -> int:
+    """Um trabalho do gateway (JSON no stdin) vira um envelope JSON no stdout; perfil remote."""
+    import json
+
+    from dominio_mcp.relay import MAX_JOB_BYTES, RelayRefused, refusal_envelope, run_job
+    from dominio_mcp.server import build_deps
+
+    data = sys.stdin.buffer.read(MAX_JOB_BYTES + 1)
+    if len(data) > MAX_JOB_BYTES:
+        envelope = refusal_envelope(
+            None, RelayRefused("trabalho_grande_demais", "o trabalho passa do teto")
+        )
+    else:
+        deps = build_deps(load_settings(profile=Profile.REMOTE))
+        envelope = run_job(deps, data)
+    sys.stdout.write(json.dumps(envelope, ensure_ascii=False, separators=(",", ":")) + "\n")
+    return 0
+
+
 def cmd_version(_args: argparse.Namespace) -> int:
     print(__version__)
     return 0
@@ -253,6 +274,10 @@ def build_parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=cmd_doctor)
     reset = sub.add_parser("reset", help="libera a quarentena depois de conferir no servidor")
     reset.set_defaults(func=cmd_reset)
+    relay = sub.add_parser(
+        "relay-job", help="executa um trabalho do gateway (JSON no stdin, JSON no stdout)"
+    )
+    relay.set_defaults(func=cmd_relay_job)
     version = sub.add_parser("version", help="mostra a versao")
     version.set_defaults(func=cmd_version)
     return parser

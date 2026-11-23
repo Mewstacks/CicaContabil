@@ -12,7 +12,7 @@ O dono usa o MCP no **Claude web e celular** e no **ChatGPT web** entrando com o
 |---|---|---|---|
 | 1 | Autenticação OAuth 2.1 (servidor de autorização e recurso protegido) | `mcp_endpoint` em `src/apps/intelligence/api.py:32` (rota `intelligence/mcp/` em `src/config/urls_api.py:25`) usa só sessão Django; não há biblioteca de servidor OAuth em `requirements.txt` | `401` com `WWW-Authenticate` apontando os metadados do recurso (RFC 9728); metadados do servidor (RFC 8414) com PKCE somente S256, `client_id_metadata_document_supported` e `none` no endpoint de token; CIMD e DCR; `resource` (RFC 8707) obrigatório e igual à URL do gateway; token opaco com hash no banco (revogação imediata), refresh rotativo; login e MFA do CICA; tela de consentimento; redirecionamentos fixos (`https://claude.ai/api/mcp/auth_callback`, callbacks do ChatGPT, loopback do Claude Code). Claude só usa o primeiro `authorization_servers` e exige `401` para iniciar o login |
 | 2 | Endpoint MCP externo | `call_tool` em `intelligence/mcp.py` já aplica `authorization_is_fresh`, `companies_for_membership` e `company_has_capability` | Streamable HTTP em rota nova; mesmas permissões; `tools/list` filtrada por capacidade; limite por token e por escritório; auditoria por `record_event` sem conteúdo |
-| 3 | Repasse ao agente | Agente só sai, só consultas fixas, ciclo de 60 s (`HUB_AGENT_INTERVAL_SECONDS`) | Fila de trabalho assinada (HMAC já existente), `job = {ferramenta, argumentos, versão do contrato, versão do pack}` só L0 a L2, nunca L3 nem SQL (a consulta estruturada amplia o modelo atual de consultas fixas: pede contrato próprio e teste de recusa); o agente compila contra o pack local e devolve o resultado moldado; modo de espera longa para p95 ≤ 5 s; fila própria, sem disputar a dos tenants atuais (L5) |
+| 3 | Repasse ao agente | Agente só sai, só consultas fixas, ciclo de 60 s (`HUB_AGENT_INTERVAL_SECONDS`) | Fila de trabalho assinada (HMAC já existente), `job = {contrato, id, ferramenta, argumentos}` só L0 a L2, nunca L3 nem SQL. **Lado do pacote feito (D-332, `relay.py`, `dominio-mcp relay-job`)**: o agente passa o JSON no stdin e lê o envelope no stdout (a consulta estruturada amplia o modelo atual de consultas fixas: pede contrato próprio e teste de recusa); o agente compila contra o pack local e devolve o resultado moldado; modo de espera longa para p95 ≤ 5 s; fila própria, sem disputar a dos tenants atuais (L5) |
 | 4 | Serpro | `apps/integra/catalog.py` é registro fechado com verbo e `billable` | Ferramentas só de consulta por `idServico` (Apêndice A da pesquisa), acrescentadas ao registro de forma aditiva (PGDAS-D 13 a 16, DEFIS 142 a 144, MIT 316 e 317, PAGTOWEB 71 e 73, EVENTOS 131 a 134, SICALC 54); cada uma declara custo, procuração exigida e se cobra |
 | 5 | Governador de custo | 200, 202 e 403 são cobrados; faixa mensal por categoria | Teto por escritório e por conversa; pré-checagem de procuração (`OBTERPROCURACAO41`, cache curto) porque 403 cobra; evento gratuito antes da consulta paga; contador por `X-Request-Tag`; sem laço de modelo |
 | 6 | Cruzamentos | 9 cruzamentos viáveis só com leitura (pesquisa, 3.2) | Motor determinístico (Python) que combina L1 e Serpro e devolve achados estruturados (id, severidade, evidência, fonte, data e hora da consulta); a IA explica e prioriza. Ordem: procuração × vigência, mensagens DTE (só metadados), SITFIS, índice do PGDAS-D |
@@ -39,3 +39,15 @@ Escrita, guias, declarações e ciência de intimação (`MSGDETALHAMENTO62` só
 ## Custo e perguntas abertas
 
 Nada aplicado. Qualquer chamada paga ao Serpro, VM, worker ou deploy exige confirmação com valor (regra de custo). Perguntas à Serpro (relatório, seção 4): armazenamento e retenção, repasse a LLM de terceiros, TTL de cache, reuso de credencial por produto, vigência máxima do Termo de Autorização. Quem contrata: no piloto cada escritório com o próprio e-CNPJ; o contrato do Integra Contador não é público e precisa ser lido.
+
+## Estado em 23/11/2026
+
+| Peça | Estado |
+|---|---|
+| 3 Repasse, lado do pacote | feito e testado (D-332, V-313): contrato, allowlist das dez ferramentas, sem campo de SQL, perfil `remote` fixo |
+| 3 Repasse, fila no Hub e agente em C# | pendente: o agente chama `dominio-mcp relay-job`; precisa do pacote Python no computador do escritório e de teste com o agente real |
+| 1 OAuth e 2 endpoint externo | pendente: biblioteca ainda sem decisão (Authlib, django-oauth-toolkit ou mínimo próprio); revisão adversarial do Codex obrigatória (auth e dado de cliente) |
+| 4 a 6 Serpro, governador de custo e cruzamentos | pendente: **nenhuma chamada paga sem confirmação com valor** (regra de custo) |
+| 7 Copiloto | pendente: depende do endpoint |
+
+O loopback HTTP e o `.mcpb` da Fase 1b não substituem o gateway: servem ao dono no próprio computador.

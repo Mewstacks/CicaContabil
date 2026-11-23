@@ -1,4 +1,4 @@
-"""Prova de instalacao do `.mcpb` fora do checkout (M11, D-332).
+"""Prova de instalacao do `.mcpb` fora do checkout (M11, D-330).
 
 Faz o que o Claude Desktop faz, sem o Claude Desktop: descompacta o pacote numa pasta nova do
 sistema, cria um venv **vazio** (so a biblioteca padrao) e executa `server/main.py` com o `env`

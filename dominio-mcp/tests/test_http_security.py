@@ -155,7 +155,7 @@ def test_other_paths_and_methods_never_reach_the_app() -> None:
             assert c.request(method, "/mcp", headers=AUTH).status_code == 405
 
 
-def test_guessing_is_capped_per_minute_and_the_cap_frees_itself() -> None:
+def test_wrong_tokens_are_capped_per_minute_but_the_right_one_always_passes() -> None:
     now = [0.0]
     limiter = FailureLimiter(AUTH_FAILURES_PER_MINUTE, clock=lambda: now[0])
     wrong = {"Authorization": "Bearer x"}
@@ -166,9 +166,12 @@ def test_guessing_is_capped_per_minute_and_the_cap_frees_itself() -> None:
         ]
         assert codes[:AUTH_FAILURES_PER_MINUTE] == [401] * AUTH_FAILURES_PER_MINUTE
         assert codes[AUTH_FAILURES_PER_MINUTE:] == [429] * 3
-        # durante o bloqueio nem o token certo passa: o teto vale para o palpite que acertar
-        assert c.post("/mcp", headers=AUTH, json={}).status_code == 429
+        # o token certo passa sempre: o teto e so para o erro, senao qualquer processo local
+        # travaria o cliente legitimo (o palpite de 256 bits nao e viavel de qualquer jeito)
+        assert c.post("/mcp", headers=AUTH, json={}).status_code == 200
+        assert c.post("/mcp", headers=wrong, json={}).status_code == 429
         now[0] = 61.0
+        assert c.post("/mcp", headers=wrong, json={}).status_code == 401
         assert c.post("/mcp", headers=AUTH, json={}).status_code == 200
 
 

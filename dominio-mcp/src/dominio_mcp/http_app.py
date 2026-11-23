@@ -1,4 +1,4 @@
-"""HTTP em loopback para o MCP do Dominio (M10, D-331).
+"""HTTP em loopback para o MCP do Dominio (M10, D-330, D-331).
 
 Para clientes que so falam HTTP no proprio computador (um agente local, o `tunnel-client` da
 OpenAI apontando para `127.0.0.1`). Nao e um servico de rede: e a mesma porta do stdio, atras de
@@ -13,7 +13,8 @@ quatro travas independentes, todas antes do SDK:
    nao manda.
 4. **Token.** `Authorization: Bearer <token>` com comparacao de tempo constante; token de 256
    bits gerado no primeiro uso e guardado em `<pasta de dados>/state/http-token`. Tentativas
-   erradas tem teto por minuto (`429`).
+   erradas tem teto por minuto (`429`); o token certo nunca e barrado pelo teto (D-331: o teto
+   limita ruido e log, nao palpite, e nao pode servir para travar o cliente).
 
 O perfil e sempre `remote` (D-326): HTTP nunca registra nem despacha L3. O corpo do pedido
 tem teto de 256 KiB e o numero de sessoes e baixo. O log de acesso do servidor fica desligado
@@ -167,14 +168,16 @@ class LoopbackGate:
         if scope["method"] not in ("POST", "GET", "DELETE"):
             await _reply(send, 405, "metodo_nao_aceito", {"allow": "POST, GET, DELETE"})
             return
+        if self._authorized(headers.get("authorization", "")):
+            # o token certo passa sempre: o teto e so para o erro, senao qualquer processo local
+            # travaria o cliente legitimo (palpitar 256 bits nao e viavel de qualquer jeito)
+            await self._app(scope, receive, send)
+            return
         if self._limiter.blocked():
             await _reply(send, 429, "muitas_tentativas", {"retry-after": "60"})
             return
-        if not self._authorized(headers.get("authorization", "")):
-            self._limiter.record()
-            await _reply(send, 401, "nao_autorizado", {"www-authenticate": "Bearer"})
-            return
-        await self._app(scope, receive, send)
+        self._limiter.record()
+        await _reply(send, 401, "nao_autorizado", {"www-authenticate": "Bearer"})
 
     def _authorized(self, header: str) -> bool:
         scheme, _, value = header.partition(" ")
