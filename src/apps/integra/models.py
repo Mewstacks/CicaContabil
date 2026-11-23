@@ -59,3 +59,41 @@ class IntegraCall(OrganizationScopedModel):
             models.Index(fields=("organization", "created_at"), name="integra_call_org_month"),
             models.Index(fields=("organization", "conversation_id"), name="integra_call_conv"),
         ]
+
+
+class RadarRequest(OrganizationScopedModel):
+    """One batch request of update events (EVENTOSATUALIZACAO, free of charge) and its protocol."""
+
+    class State(models.TextChoices):
+        REQUESTED = "requested", "Pedido"
+        COLLECTED = "collected", "Coletado"
+        EXPIRED = "expired", "Vencido"
+
+    evento = models.CharField(max_length=5)
+    protocolo = models.CharField(max_length=36)
+    ready_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    state = models.CharField(max_length=12, choices=State.choices, default=State.REQUESTED)
+    companies_count = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        indexes = [models.Index(fields=("organization", "state"), name="integra_radar_req_state")]
+
+
+class RadarSignal(OrganizationScopedModel):
+    """The last update event seen for one company: a date, or no power of attorney."""
+
+    company = models.ForeignKey(
+        "hub.ClientCompany", on_delete=models.CASCADE, related_name="radar_signals"
+    )
+    evento = models.CharField(max_length=5)
+    event_date = models.DateField(null=True, blank=True)
+    sem_procuracao = models.BooleanField(default=False)
+    observed_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("company", "evento"), name="integra_one_radar_signal_per_event"
+            )
+        ]

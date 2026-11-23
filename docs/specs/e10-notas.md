@@ -41,8 +41,16 @@ Fontes: catálogo oficial de 15/10/2026 e a página de cada serviço, https://ap
 - **Migração**: `integra/0001_initial` (duas tabelas novas, aditiva). O app `integra` ganhou `apps.py` e `models.py`.
 - **`integra/tools.py`**: 59 ferramentas `serpro_<chave>` (leituras tipadas com `copilot_allowed`), com schema, custo, validação de argumentos, auditoria sem o número do contribuinte e retorno sem documento (PDF e XML viram tipo, tamanho e hash). É dado do Serpro: fora de LLM externo até a resposta do Serpro (pergunta 3 de `perguntas-serpro.md`).
 
+## T10.5 e T10.6 (fase 3, sem chamada ao Serpro)
+
+- **Radar** (`integra/radar.py`, modelos `RadarRequest` e `RadarSignal`, migração `integra/0002`, depende só de `hub/0001`): pede E0301, E0601 e E0701 em lote de até 1.000 CNPJs (`BatchParty`, tipo 4, em `envelope.py`), espera o tempo médio que o gateway informa, coleta uma vez (a entrega é única) e grava um sinal por empresa e evento: data do último evento ou "sem procuração" (`x`). Gratuito (`/Monitorar`); nunca abre mensagem da Caixa Postal. Só lê.
+- **Tarefa** `integra.radar_tick` (`integra/tasks.py`): no-op com a flag desligada e só visita escritório que tem linha em `OfficeSerproIdentity`; falha de um escritório não para os outros. **Sem entrada no beat**: agendar no deploy que ligar a flag.
+- **Telas** (`integra/views.py`, templates em `integra/templates/integra/`): `/app/serpro/` (modo, estado do Termo, custo por mês e % do limite, só dono e administrador) e `/app/serpro/radar/` (empresa × DCTFWeb, Caixa Postal, Pagamentos). Sem entrada no menu: acesso por URL até a decisão. Molde do módulo de procurações (classes e estados existentes), sem CSS novo, sem parágrafo explicativo; **não verificado em navegador a 375 px**.
+- **Flags novas, todas desligadas por padrão e lidas com `getattr(settings, ..., False)`** (ainda não declaradas em `settings/base.py`): `INTEGRA_OFFICE_IDENTITY_ENABLED`, `INTEGRA_RADAR_ENABLED`, `INTEGRA_SCREENS_ENABLED`; mais `INTEGRA_CONTRATANTE_NAME` (texto).
+- **Rotas novas**: `hub:serpro` e `hub:serpro-radar` (duas linhas em `hub/urls.py`).
+
 ## Não feito nesta fase
 
-- **T10.5** radar fiscal (EVENTOSATUALIZACAO em lote, agregador por empresa, tarefa Celery, tela "o que fazer hoje"). Depende do lote de contribuintes (tipos 3 e 4) no `envelope.Party`.
-- **T10.6** telas do Hub (demais parcelamentos, MIT, PGDAS-D, DEFIS, CCMEI, SICALC, comprovante) com cotação, confirmação humana e PDF persistido. Exigem o pipeline de UI do CLAUDE.md (referência de mercado, 375 px, contraste) e não foram começadas.
+- **Agregador de situação por empresa** (SITFIS, DTE, parcelamentos, pagamentos, índice PGDAS-D `dasPago`/`malha`) e a tela "o que fazer hoje": o radar só traz os três eventos; o agregador consulta serviços pagos e depende do governador ligado nos chamadores.
+- **T10.6, telas de operação** (demais parcelamentos, MIT, PGDAS-D, DEFIS, CCMEI, SICALC, comprovante) com cotação, confirmação humana e PDF persistido: não começadas. Pedem o pipeline de UI do CLAUDE.md (referência de mercado, 375 px, contraste).
 - Ligar o governador e os modos nos chamadores atuais do hub, e a flag em `settings/base.py`.

@@ -26,7 +26,7 @@ from django.core.exceptions import SuspiciousOperation
 from django.db import DatabaseError
 
 from apps.integra.catalog import ServiceSpec, service
-from apps.integra.envelope import Party, build
+from apps.integra.envelope import BatchParty, Party, build
 from apps.integra.errors import (
     IntegraAuthenticationError,
     IntegraConfigurationError,
@@ -280,7 +280,7 @@ class IntegraClient:
         self,
         service_key: str,
         *,
-        contribuinte: str,
+        contribuinte: str | BatchParty,
         autor_pedido: str | None = None,
         dados: dict[str, Any] | str | None = None,
         autenticar_procurador_token: str | None = None,
@@ -293,7 +293,7 @@ class IntegraClient:
             spec=spec,
             contratante=Party(self.credentials.contratante),
             autor_pedido=Party(autor_pedido or self.credentials.autor_pedido),
-            contribuinte=Party(contribuinte),
+            contribuinte=Party(contribuinte) if isinstance(contribuinte, str) else contribuinte,
             dados=dados,
         )
         return self._dispatch(spec, envelope, autenticar_procurador_token, request_tag)

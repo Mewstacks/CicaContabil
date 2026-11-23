@@ -20,6 +20,7 @@ from apps.hub import (
     views_triage_policy,
     views_triage_upload,
 )
+from apps.integra import views as integra_views
 from apps.platform.legal import legal_document
 
 app_name = "hub"
@@ -210,6 +211,8 @@ urlpatterns = [
     path("app/nfse/", views.nfse_center, name="nfse-center"),
     path("app/assinatura/", views_subscription.subscription_page, name="subscription"),
     path("app/nfse/procuracoes/", views_procuracao.nfse_procuracoes, name="procuracoes"),
+    path("app/serpro/", integra_views.serpro_status, name="serpro"),
+    path("app/serpro/radar/", integra_views.serpro_radar, name="serpro-radar"),
     path("app/nfse/carteira/", views_roster.roster, name="roster"),
     path("app/nfse/carteira/modelo.csv", views_roster.roster_template, name="roster-template"),
     path("app/nfse/carteira/<uuid:batch_id>/", views_roster.roster_batch, name="roster-batch"),

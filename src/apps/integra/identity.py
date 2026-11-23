@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from apps.hub.models import OfficeCertificate
 from apps.integra.client import IntegraClient, credentials_from_settings
+from apps.integra.envelope import BatchParty
 from apps.integra.errors import IntegraConfigurationError
 from apps.integra.governor import GovernedClient
 from apps.integra.models import OfficeSerproIdentity
@@ -62,7 +63,7 @@ class OfficeAccess:
         self,
         service_key: str,
         *,
-        contribuinte: str,
+        contribuinte: str | BatchParty,
         dados: dict[str, Any] | str | None = None,
         autor_pedido: str | None = None,
     ) -> dict[str, Any]:

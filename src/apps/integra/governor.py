@@ -28,6 +28,7 @@ from django.utils import timezone
 
 from apps.integra.catalog import ServiceSpec, Verb, service
 from apps.integra.client import IntegraClient
+from apps.integra.envelope import BatchParty
 from apps.integra.errors import (
     IntegraBudgetExceeded,
     IntegraNotAuthorized,
@@ -151,7 +152,7 @@ class GovernedClient:
     def _send(
         self,
         key: str,
-        contribuinte: str,
+        contribuinte: str | BatchParty,
         dados: dict[str, Any] | str | None,
         autenticar_procurador_token: str | None,
         autor_pedido: str | None = None,
@@ -215,12 +216,13 @@ class GovernedClient:
         self,
         service_key: str,
         *,
-        contribuinte: str,
+        contribuinte: str | BatchParty,
         dados: dict[str, Any] | str | None = None,
         autenticar_procurador_token: str | None = None,
         autor_pedido: str | None = None,
     ) -> dict[str, Any]:
         spec = service(service_key)
         if self.check_procuracao and spec.billable and spec.key != PROCURACAO_KEY:
+            assert isinstance(contribuinte, str)
             self._ensure_procuracao(contribuinte, autor_pedido)
         return self._send(spec.key, contribuinte, dados, autenticar_procurador_token, autor_pedido)
