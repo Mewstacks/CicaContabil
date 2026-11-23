@@ -503,7 +503,11 @@ def windows_relative_destination(item: TriageItem, profile: DestinationProfile) 
     )
     period = _windows_component(item.period_label or "Sem período", fallback="Sem período")
     filename = _windows_component(item.final_name, fallback="documento")
-    template = profile.folder_template or "{company_name} [Domínio {dominio_code}]"
+    # A folder set on the document type (the office's catalogue) wins over the office default.
+    type_folder = item.document_type.folder_template if item.document_type else ""
+    template = (
+        type_folder or profile.folder_template or "{company_name} [Domínio {dominio_code}]"
+    )
     try:
         folder = template.format(
             company_name=company,

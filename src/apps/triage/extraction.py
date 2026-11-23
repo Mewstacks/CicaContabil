@@ -22,6 +22,7 @@ from django.db import transaction
 
 from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import ClientCompany
+from apps.triage.catalog import keyword_score
 from apps.triage.models import (
     CounterpartyAlias,
     DocumentType,
@@ -32,6 +33,7 @@ from apps.triage.models import (
 from apps.triage.transitions import TriageStatus
 
 _TEXT_LIMIT = 256 * 1024
+_RANK_TEXT_LIMIT = 100_000
 _PDF_PAGES = 3
 # Candidate CNPJ in running text: root and branch accept letters since jul/2026 (IN RFB
 # 2.229/2024), the two check digits stay numeric. A candidate only counts after
@@ -147,18 +149,32 @@ def _match_company(
 def _match_document_type(
     item: TriageItem, sources: dict[str, str]
 ) -> tuple[DocumentType | None, dict[str, object]]:
+    """Rank the office's active types: keywords (name/subject 2, text 1) plus the label tokens.
+
+    A type without keywords still matches by the words of its code and label in the file
+    name and subject, as before. A tie for the top score suggests nothing.
+    """
+
     types = list(DocumentType.objects.filter(organization=item.organization, active=True))
-    haystack = _tokens(" ".join([sources.get("nome", ""), sources.get("assunto", "")]))
-    scored: list[tuple[int, DocumentType]] = []
+    name_subject = " ".join([sources.get("nome", ""), sources.get("assunto", "")])
+    text = " ".join(
+        sources.get(key, "") for key in ("conteúdo", "corpo")
+    )[:_RANK_TEXT_LIMIT]
+    haystack = _tokens(name_subject)
+    scored: list[tuple[int, DocumentType, list[str]]] = []
     for document_type in types:
         wanted = _tokens(document_type.code.replace("-", " ")) | _tokens(document_type.label)
-        score = len(wanted & haystack)
-        if score:
-            scored.append((score, document_type))
-    scored.sort(key=lambda pair: pair[0], reverse=True)
+        points, matched = keyword_score(
+            document_type.keywords or [], name_subject=name_subject, text=text
+        )
+        points += len(wanted & haystack)
+        if points:
+            scored.append((points, document_type, matched))
+    scored.sort(key=lambda row: row[0], reverse=True)
     if scored and (len(scored) == 1 or scored[0][0] > scored[1][0]):
-        document_type = scored[0][1]
-        return document_type, {"valor": document_type.label, "evidencia": "Palavras do nome"}
+        _, document_type, matched = scored[0]
+        evidence = "Palavras-chave: " + ", ".join(matched[:5]) if matched else "Palavras do nome"
+        return document_type, {"valor": document_type.label, "evidencia": evidence}
     return None, {}
 
 
@@ -225,6 +241,7 @@ def suggest(item: TriageItem) -> Suggestion:
         "nome": item.original_name,
         "assunto": item.subject,
         "conteúdo": _payload_text(item),
+        "corpo": item.body_excerpt,
     }
     result = Suggestion()
     result.company, evidence = _match_company(item, sources)
