@@ -282,6 +282,7 @@ class IntegraClient:
         contribuinte: str,
         autor_pedido: str | None = None,
         dados: dict[str, Any] | str | None = None,
+        autenticar_procurador_token: str | None = None,
     ) -> dict[str, Any]:
         """Dispatch one catalogued service. There is no way to name an arbitrary endpoint."""
 
@@ -293,9 +294,14 @@ class IntegraClient:
             contribuinte=Party(contribuinte),
             dados=dados,
         )
-        return self._dispatch(spec, envelope)
+        return self._dispatch(spec, envelope, autenticar_procurador_token)
 
-    def _dispatch(self, spec: ServiceSpec, envelope: dict[str, Any]) -> dict[str, Any]:
+    def _dispatch(
+        self,
+        spec: ServiceSpec,
+        envelope: dict[str, Any],
+        autenticar_procurador_token: str | None = None,
+    ) -> dict[str, Any]:
         token = self.authenticate()
         headers = {
             "Authorization": f"Bearer {token.access_token}",
@@ -304,6 +310,8 @@ class IntegraClient:
         }
         if token.jwt_token:
             headers["jwt_token"] = token.jwt_token
+        if autenticar_procurador_token:
+            headers["autenticar_procurador_token"] = autenticar_procurador_token
         status, raw = self._transport(
             f"{self.credentials.base_url}/{spec.verb.value}",
             data=json.dumps(envelope, ensure_ascii=False).encode(),
