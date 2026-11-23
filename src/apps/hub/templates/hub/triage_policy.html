@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=1">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
 
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% endblock %}
 
@@ -15,7 +15,14 @@
     <label class="tv2-check">{{ form.open_archives }}<span>{{ form.open_archives.label }}</span></label>
     <label class="tv2-check">{{ form.ocr_enabled }}<span>{{ form.ocr_enabled.label }}</span></label>
     <div class="field{% if form.ocr_monthly_pages.errors %} has-error{% endif %}"><label for="{{ form.ocr_monthly_pages.id_for_label }}">{{ form.ocr_monthly_pages.label }}</label>{{ form.ocr_monthly_pages }}{% if form.ocr_monthly_pages.errors %}<p class="field-error">{{ form.ocr_monthly_pages.errors|striptags }}</p>{% endif %}</div>
+    <label class="tv2-check">{{ form.auto_approve }}<span>{{ form.auto_approve.label }}</span></label>
+    <div class="field{% if form.auto_sample_every.errors %} has-error{% endif %}"><label for="{{ form.auto_sample_every.id_for_label }}">{{ form.auto_sample_every.label }}</label>{{ form.auto_sample_every }}{% if form.auto_sample_every.errors %}<p class="field-error">{{ form.auto_sample_every.errors|striptags }}</p>{% endif %}</div>
+    <div class="field{% if form.auto_warmup.errors %} has-error{% endif %}"><label for="{{ form.auto_warmup.id_for_label }}">{{ form.auto_warmup.label }}</label>{{ form.auto_warmup }}{% if form.auto_warmup.errors %}<p class="field-error">{{ form.auto_warmup.errors|striptags }}</p>{% endif %}</div>
     {% if can_manage_policy %}<div class="tv2-actions"><button class="button" type="submit">Guardar</button></div>{% endif %}
   </form>
+</section>
+<section class="workspace-panel" aria-labelledby="tv2-engine-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-engine-title">Motor</h2><p>v{{ engine_version }}</p></div></header>
+  {% if can_manage_policy %}<form class="tv2-form" method="post" data-submit-once>{% csrf_token %}<input type="hidden" name="action" value="reclassify"><div class="tv2-actions"><button class="button button-secondary" type="submit">Reclassificar pendências</button></div></form>{% endif %}
 </section>
 {% endblock %}

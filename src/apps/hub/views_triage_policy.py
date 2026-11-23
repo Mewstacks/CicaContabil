@@ -17,6 +17,7 @@ from apps.hub.module_catalog import definition
 from apps.hub.views import _can_manage_collaborators, _module_page_context, office_required, refuse
 from apps.organizations.models import Organization
 from apps.triage.models import TriagePolicy
+from apps.triage.reclassify import bump_engine_version
 
 
 class PolicyForm(forms.Form):
@@ -25,6 +26,13 @@ class PolicyForm(forms.Form):
     ocr_enabled = forms.BooleanField(required=False, label="OCR")
     ocr_monthly_pages = forms.IntegerField(
         min_value=0, max_value=100_000, required=False, label="Páginas de OCR por mês"
+    )
+    auto_approve = forms.BooleanField(required=False, label="Aprovar sozinho")
+    auto_sample_every = forms.IntegerField(
+        min_value=1, max_value=1000, required=False, label="Amostra para revisão (1 a cada)"
+    )
+    auto_warmup = forms.IntegerField(
+        min_value=0, max_value=10_000, required=False, label="Revisões humanas antes"
     )
 
 
@@ -42,10 +50,25 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
         "open_archives": current.open_archives if current else False,
         "ocr_enabled": current.ocr_enabled if current else False,
         "ocr_monthly_pages": current.ocr_monthly_pages if current else 100,
+        "auto_approve": current.auto_approve if current else False,
+        "auto_sample_every": current.auto_sample_every if current else 20,
+        "auto_warmup": current.auto_warmup if current else 30,
     }
     if request.method == "POST":
         if not can_manage:
             return refuse(request, "Somente o administrador altera a entrada.")
+        if request.POST.get("action") == "reclassify":
+            version = bump_engine_version(office)
+            record_event(
+                action="triage.engine.reclassified",
+                actor=cast(User, request.user),
+                organization=office,
+                target=office,
+                request=request,
+                metadata={"engine_version": version},
+            )
+            messages.success(request, f"Reclassificado. Motor v{version}.")
+            return redirect("hub:triage-policy")
         form = PolicyForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
@@ -57,6 +80,9 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
                     "open_archives": data["open_archives"],
                     "ocr_enabled": data["ocr_enabled"],
                     "ocr_monthly_pages": pages if pages is not None else 100,
+                    "auto_approve": data["auto_approve"],
+                    "auto_sample_every": data["auto_sample_every"] or 20,
+                    "auto_warmup": (data["auto_warmup"] if data["auto_warmup"] is not None else 30),
                 },
             )
             record_event(
@@ -70,6 +96,9 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
                     "open_archives": policy.open_archives,
                     "ocr_enabled": policy.ocr_enabled,
                     "ocr_monthly_pages": policy.ocr_monthly_pages,
+                    "auto_approve": policy.auto_approve,
+                    "auto_sample_every": policy.auto_sample_every,
+                    "auto_warmup": policy.auto_warmup,
                 },
             )
             messages.success(request, "Entrada guardada.")
@@ -78,5 +107,12 @@ def triage_policy(request: HttpRequest) -> HttpResponse:
     else:
         form = PolicyForm(initial=initial)
         status = 200
-    context.update({"page_title": "Entrada", "form": form, "can_manage_policy": can_manage})
+    context.update(
+        {
+            "page_title": "Entrada",
+            "form": form,
+            "can_manage_policy": can_manage,
+            "engine_version": current.engine_version if current else 1,
+        }
+    )
     return render(request, "hub/triage_policy.html", context, status=status)

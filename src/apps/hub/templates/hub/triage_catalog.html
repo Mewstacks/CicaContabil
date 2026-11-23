@@ -1,7 +1,7 @@
 {% extends 'hub/workspace.html' %}
 {% load static %}
 
-{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=1">{% endblock %}
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
 
 {% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% if can_manage_catalog and not editor_open and types %}<a class="button" href="{% url 'hub:triage-catalog' %}?novo=1">Novo tipo</a>{% endif %}{% endblock %}
 
