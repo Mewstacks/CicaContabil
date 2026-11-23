@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import re
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import SplitResult, urlsplit
 
 from django.conf import settings
 from django.http import HttpRequest
@@ -25,6 +25,7 @@ MAX_BODY = 8 * 1024
 MAX_REDIRECTS = 5
 PUBLIC_CLIENT = "none"  # RFC 7591: sem segredo; a protecao vem do PKCE
 _LOOPBACK_HOSTS = frozenset({"127.0.0.1", "::1", "localhost"})
+_CHATGPT_PATH = re.compile(r"/connector/oauth/[A-Za-z0-9_-]{1,100}")
 _UNSAFE = re.compile(r"[\s\x00-\x1f\x7f]")
 
 
@@ -43,10 +44,16 @@ def redirect_allowed(uri: str) -> bool:
         return False
     if parts.scheme == "http" and parts.hostname in _LOOPBACK_HOSTS:
         return True
-    return any(
-        uri.startswith(prefix)
-        for prefix in settings.MCP_GATEWAY_REDIRECT_PREFIXES
-        if prefix.startswith("https://")
+    return _chatgpt_callback(parts)
+
+
+def _chatgpt_callback(parts: SplitResult) -> bool:
+    """`https://chatgpt.com/connector/oauth/<id>`: host exato, porta padrao, um segmento seguro."""
+    return (
+        parts.scheme == "https"
+        and parts.hostname == "chatgpt.com"
+        and parts.port is None
+        and _CHATGPT_PATH.fullmatch(parts.path) is not None
     )
 
 

@@ -866,3 +866,25 @@ def test_the_audience_check_is_plain_string_equality(gateway: None, stored: str)
 
     assert resource_matches("", [stored]) is False
     assert resource_matches("", [RESOURCE]) is True
+
+
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "https://chatgpt.com/connector/oauth/../admin",
+        "https://chatgpt.com/connector/oauth/%2e%2e/admin",
+        "https://chatgpt.com/connector/oauth/a/b",
+        "https://chatgpt.com/connector/oauth/",
+        "https://chatgpt.com/connector/oauth/a%2fb",
+        "https://chatgpt.com/connector/oauth/a.b",
+        "https://chatgpt.com:8443/connector/oauth/abc",
+        "http://chatgpt.com/connector/oauth/abc",
+    ],
+)
+def test_the_chatgpt_callback_is_one_safe_segment_on_the_exact_host(
+    gateway: None, uri: str
+) -> None:
+    from apps.mcpgateway.registration import redirect_allowed
+
+    assert redirect_allowed(uri) is False
+    assert redirect_allowed("https://chatgpt.com/connector/oauth/Ab-9_x") is True
