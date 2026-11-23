@@ -15,7 +15,9 @@ from pathlib import Path
 from typing import Any
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "integra" / "serpro"
-MINIMAL_PDF = b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+MINIMAL_PDF = (
+    b"%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n"
+)
 MINIMAL_PDF_B64 = base64.b64encode(MINIMAL_PDF).decode()
 
 
