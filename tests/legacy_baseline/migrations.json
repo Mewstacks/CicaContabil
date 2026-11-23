@@ -125,8 +125,22 @@
     "0073_notification",
     "0074_nfse_document_facts",
     "0075_productmodule_code_profitability",
+    "0076_accountingentry_account_reference_and_more",
     "0076_productmodule_code_crosscheck",
-    "0077_crosscheck_module_rows"
+    "0077_crosscheck_module_rows",
+    "0077_independent_ledger_record",
+    "0078_accountingexportpreview",
+    "0079_clientcompany_dominio_status",
+    "0080_clientcompany_dominio_registration_raw_and_more",
+    "0081_alter_accountingentry_description_and_more",
+    "0082_reconciliationtitlebatch_and_more",
+    "0083_reconciliationaccountcandidate",
+    "0084_candidate_review_history",
+    "0085_financial_account_current_title_snapshot",
+    "0086_ledger_self_service",
+    "0087_account_source_detail",
+    "0088_account_discovery",
+    "0089_accounting_import_evidence"
   ],
   "intelligence": [
     "0001_initial",
@@ -158,7 +172,18 @@
     "0027_knowledgesource_area_knowledgesource_company_and_more",
     "0028_evaluationrun_adapter_artifact_sha256_and_more",
     "0029_evaluationrun_evaluation_manifest_sha256_and_more",
-    "0030_report_export_records"
+    "0030_report_export_records",
+    "0031_agent_sync_scope",
+    "0032_agentcompanyscan",
+    "0033_remove_agentcompanyscan_intelligence_one_open_company_scan_and_more",
+    "0034_agentcompanyscan_last_error_at_and_more",
+    "0035_official_agent_replacement",
+    "0036_nativeledgercollection",
+    "0037_nativetitlecollection",
+    "0038_nativeledgercollection_evidence_reference_and_more",
+    "0039_deparaaibatch",
+    "0040_ledger_self_service",
+    "0041_company_title_self_service"
   ],
   "knowledge": [
     "0001_initial"
