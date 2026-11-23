@@ -1,0 +1,74 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=1">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% if can_manage_catalog and not editor_open %}<a class="button" href="{% url 'hub:triage-catalog' %}?novo=1">Novo tipo</a>{% endif %}{% endblock %}
+
+{% block workspace_content %}
+{% if editor_open and form %}
+<section class="workspace-panel tv2-editor" aria-labelledby="tv2-editor-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-editor-title">{% if editing %}{{ editing.label }}{% else %}Novo tipo{% endif %}</h2></div></header>
+  <form class="tv2-form" method="post" action="{% url 'hub:triage-catalog-save' %}" novalidate>
+    {% csrf_token %}
+    {% if editing %}<input type="hidden" name="type_id" value="{{ editing.pk }}">{% endif %}
+    {% if form.errors %}<div class="form-errors" role="alert" tabindex="-1" data-form-errors>Revise os campos indicados.</div>{% endif %}
+    <div class="tv2-grid">
+      <div class="field{% if form.label.errors %} has-error{% endif %}"><label for="{{ form.label.id_for_label }}">{{ form.label.label }}</label>{{ form.label }}{% if form.label.errors %}<p class="field-error">{{ form.label.errors|striptags }}</p>{% endif %}</div>
+      <div class="field{% if form.code.errors %} has-error{% endif %}"><label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>{% if editing %}<input id="{{ form.code.id_for_label }}" type="text" value="{{ editing.code }}" readonly aria-readonly="true">{% else %}{{ form.code }}{% endif %}{% if form.code.errors %}<p class="field-error">{{ form.code.errors|striptags }}</p>{% endif %}</div>
+      <div class="field tv2-wide{% if form.keywords.errors %} has-error{% endif %}"><label for="{{ form.keywords.id_for_label }}">{{ form.keywords.label }}</label>{{ form.keywords }}{% if form.keywords.errors %}<p class="field-error">{{ form.keywords.errors|striptags }}</p>{% endif %}</div>
+      <div class="field{% if form.name_template.errors %} has-error{% endif %}"><label for="{{ form.name_template.id_for_label }}">{{ form.name_template.label }}</label>{{ form.name_template }}{% if form.name_template.errors %}<p class="field-error">{{ form.name_template.errors|striptags }}</p>{% endif %}</div>
+      <div class="field{% if form.folder_template.errors %} has-error{% endif %}"><label for="{{ form.folder_template.id_for_label }}">{{ form.folder_template.label }}</label>{{ form.folder_template }}{% if form.folder_template.errors %}<p class="field-error">{{ form.folder_template.errors|striptags }}</p>{% endif %}</div>
+      <div class="field"><label for="{{ form.period_kind.id_for_label }}">{{ form.period_kind.label }}</label>{{ form.period_kind }}</div>
+      <div class="field"><label for="{{ form.counterparty_kind.id_for_label }}">{{ form.counterparty_kind.label }}</label>{{ form.counterparty_kind }}</div>
+      <fieldset class="tv2-expected tv2-wide{% if form.expected_regimes.errors %} has-error{% endif %}">
+        <legend>Esperado</legend>
+        <label class="tv2-check">{{ form.expected_default }}<span>{{ form.expected_default.label }}</span></label>
+        {% for choice in form.expected_regimes %}<label class="tv2-check">{{ choice.tag }}<span>{{ choice.choice_label }}</span></label>{% endfor %}
+        {% if form.expected_regimes.errors %}<p class="field-error">{{ form.expected_regimes.errors|striptags }}</p>{% endif %}
+      </fieldset>
+    </div>
+    <div class="tv2-actions"><button class="button" type="submit">Guardar</button><a class="button button-quiet" href="{% url 'hub:triage-catalog' %}">Cancelar</a></div>
+  </form>
+  {% if editing and exception_form %}
+  <div class="tv2-exceptions">
+    <h3>Exceções</h3>
+    {% if exceptions %}<ul class="tv2-list">{% for row in exceptions %}<li class="tv2-row"><div class="tv2-main"><strong>{{ row.company.name }}</strong><span class="tv2-meta">{{ row.get_requirement_display }}</span></div><form method="post" action="{% url 'hub:triage-catalog-exception' editing.pk %}">{% csrf_token %}<input type="hidden" name="company" value="{{ row.company_id }}"><input type="hidden" name="action" value="remove"><button class="button button-quiet" type="submit" aria-label="Remover exceção de {{ row.company.name }}">Remover</button></form></li>{% endfor %}</ul>{% endif %}
+    <form class="tv2-inline" method="post" action="{% url 'hub:triage-catalog-exception' editing.pk %}">
+      {% csrf_token %}<input type="hidden" name="action" value="save">
+      {% if exception_form.errors %}<div class="form-errors" role="alert">Escolha empresa e regra.</div>{% endif %}
+      <div class="field"><label for="{{ exception_form.company.id_for_label }}">{{ exception_form.company.label }}</label>{{ exception_form.company }}</div>
+      <div class="field"><label for="{{ exception_form.requirement.id_for_label }}">{{ exception_form.requirement.label }}</label>{{ exception_form.requirement }}</div>
+      <button class="button button-secondary" type="submit">Guardar</button>
+    </form>
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="workspace-panel" aria-labelledby="tv2-list-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-list-title">Tipos</h2><p>{{ types|length }}</p></div></header>
+  {% if type_rows %}
+  <ul class="tv2-list">
+    {% for row in type_rows %}
+    <li class="tv2-row{% if not row.type.active %} is-off{% endif %}">
+      <div class="tv2-main">
+        <strong>{{ row.type.label }}</strong> <span class="tv2-code">{{ row.type.code }}</span>
+        {% if row.shown_keywords %}<ul class="tv2-chips" aria-label="Palavras-chave">{% for word in row.shown_keywords %}<li>{{ word }}</li>{% endfor %}{% if row.more_keywords %}<li class="tv2-more">+{{ row.more_keywords }}</li>{% endif %}</ul>{% endif %}
+        <p class="tv2-meta"><span class="tv2-label">Esperado</span> {% if row.type.expected_default %}Todas as empresas{% elif row.regimes %}{{ row.regimes|join:", " }}{% else %}—{% endif %}{% if row.type.folder_template %} · <span class="tv2-label">Pasta</span> <code>{{ row.type.folder_template }}</code>{% endif %}</p>
+      </div>
+      <div class="tv2-side">
+        <span class="tv2-state{% if not row.type.active %} is-off{% endif %}">{% if row.type.active %}Ativo{% else %}Inativo{% endif %}</span>
+        {% if can_manage_catalog %}
+        <a class="button button-quiet" href="{% url 'hub:triage-catalog' %}?editar={{ row.type.pk }}" aria-label="Editar {{ row.type.label }}">Editar</a>
+        <form method="post" action="{% url 'hub:triage-catalog-toggle' row.type.pk %}">{% csrf_token %}<button class="button button-quiet" type="submit" aria-label="{% if row.type.active %}Desativar{% else %}Ativar{% endif %} {{ row.type.label }}">{% if row.type.active %}Desativar{% else %}Ativar{% endif %}</button></form>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nenhum tipo</h3>{% if can_manage_catalog %}<div class="tv2-actions"><form method="post" action="{% url 'hub:triage-catalog-seed' %}">{% csrf_token %}<button class="button" type="submit">Carregar modelo contábil</button></form><a class="button button-quiet" href="{% url 'hub:triage-catalog' %}?novo=1">Novo tipo</a></div>{% endif %}</div>
+  {% endif %}
+</section>
+{% endblock %}

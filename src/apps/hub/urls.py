@@ -13,6 +13,7 @@ from apps.hub import (
     title_request_views,
     title_views,
     views,
+    views_triage_catalog,
 )
 from apps.platform.legal import legal_document
 
@@ -428,6 +429,27 @@ urlpatterns = [
         "app/triagem/caixas/<uuid:mailbox_id>/desconectar/",
         views.triage_mailbox_disconnect,
         name="triage-mailbox-disconnect",
+    ),
+    path("app/triagem/catalogo/", views_triage_catalog.triage_catalog, name="triage-catalog"),
+    path(
+        "app/triagem/catalogo/salvar/",
+        views_triage_catalog.triage_catalog_save,
+        name="triage-catalog-save",
+    ),
+    path(
+        "app/triagem/catalogo/modelo/",
+        views_triage_catalog.triage_catalog_seed,
+        name="triage-catalog-seed",
+    ),
+    path(
+        "app/triagem/catalogo/<uuid:type_id>/estado/",
+        views_triage_catalog.triage_catalog_toggle,
+        name="triage-catalog-toggle",
+    ),
+    path(
+        "app/triagem/catalogo/<uuid:type_id>/excecao/",
+        views_triage_catalog.triage_catalog_exception,
+        name="triage-catalog-exception",
     ),
     path("app/triagem/<uuid:item_id>/", views.triage_item_detail, name="triage-item"),
     path("app/triagem/<uuid:item_id>/arquivo/", views.triage_download, name="triage-download"),
