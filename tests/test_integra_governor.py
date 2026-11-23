@@ -241,3 +241,47 @@ def test_the_defaults_apply_when_the_office_has_no_identity_row(
 
     assert not OfficeSerproIdentity.objects.exists()
     assert IntegraCall.objects.count() == 3
+
+
+def test_a_call_in_flight_already_counts_against_the_limit(organization: Organization) -> None:
+    """Two calls that arrive together cannot both pass a limit that only one fits."""
+
+    OfficeSerproIdentity.objects.create(organization=organization, monthly_cap_cents=30)
+    seen: list[str] = []
+
+    class Reentrant(Gateway):
+        def __call__(self, url: str, **kwargs: Any) -> tuple[int, bytes]:
+            if not url.endswith("/authenticate") and not seen:
+                seen.append("first in flight")
+                with pytest.raises(IntegraBudgetExceeded):
+                    _governed(organization, Gateway(), check=False).call(
+                        "pgdasd.declaracoes", contribuinte=CLIENT_CNPJ
+                    )
+            return super().__call__(url, **kwargs)
+
+    _governed(organization, Reentrant(), check=False).call(
+        "pgdasd.declaracoes", contribuinte=CLIENT_CNPJ
+    )
+
+    assert seen == ["first in flight"]
+    assert IntegraCall.objects.filter(charged=True).count() == 1
+
+
+def test_a_call_that_never_reached_the_gateway_gives_the_booked_cost_back(
+    organization: Organization,
+) -> None:
+    class Down(Gateway):
+        def __call__(self, url: str, **kwargs: Any) -> tuple[int, bytes]:
+            if url.endswith("/authenticate"):
+                return super().__call__(url, **kwargs)
+            raise OSError("rede fora")
+
+    from apps.integra.errors import IntegraTransportError
+
+    with pytest.raises((IntegraTransportError, OSError)):
+        _governed(organization, Down(), check=False).call(
+            "pgdasd.declaracoes", contribuinte=CLIENT_CNPJ
+        )
+
+    call = IntegraCall.objects.get()
+    assert (call.charged, call.cost_cents) == (False, 0)

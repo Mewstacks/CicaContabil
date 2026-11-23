@@ -22,6 +22,7 @@ from datetime import datetime
 from typing import Any
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -117,17 +118,35 @@ class GovernedClient:
 
     # -- one call ----------------------------------------------------------------------------
 
-    def _record(self, spec: ServiceSpec, status: int) -> None:
+    def _reserve(self, spec: ServiceSpec) -> IntegraCall:
+        """Check the limits and book the cost of the call in one step.
+
+        The row of the office is locked while the limits are read and the provisional call is
+        written, so two calls that arrive together cannot both pass a limit that only one fits.
+        The booked cost counts for the next check right away and is settled after the answer.
+        """
+
+        with transaction.atomic():
+            Organization.objects.select_for_update().get(pk=self.organization.pk)
+            cost = call_cost_cents(spec)
+            self._ensure_budget(cost)
+            return IntegraCall.objects.create(
+                organization=self.organization,
+                service_key=spec.key,
+                http_status=0,
+                charged=cost > 0,
+                cost_cents=cost,
+                conversation_id=self.conversation_id,
+                request_tag=request_tag(self.organization),
+            )
+
+    @staticmethod
+    def _settle(call: IntegraCall, spec: ServiceSpec, status: int) -> None:
         charged = spec.billable and charged_status(status)
-        IntegraCall.objects.create(
-            organization=self.organization,
-            service_key=spec.key,
-            http_status=status,
-            charged=charged,
-            cost_cents=call_cost_cents(spec) if charged else 0,
-            conversation_id=self.conversation_id,
-            request_tag=request_tag(self.organization),
-        )
+        call.http_status = status
+        call.charged = charged
+        call.cost_cents = call_cost_cents(spec) if charged else 0
+        call.save(update_fields=["http_status", "charged", "cost_cents", "updated_at"])
 
     def _send(
         self,
@@ -135,22 +154,28 @@ class GovernedClient:
         contribuinte: str,
         dados: dict[str, Any] | str | None,
         autenticar_procurador_token: str | None,
+        autor_pedido: str | None = None,
     ) -> dict[str, Any]:
         spec = service(key)
-        self._ensure_budget(call_cost_cents(spec))
+        call = self._reserve(spec)
         try:
             payload = self.client.call(
                 key,
                 contribuinte=contribuinte,
                 dados=dados,
+                autor_pedido=autor_pedido,
                 autenticar_procurador_token=autenticar_procurador_token,
                 request_tag=request_tag(self.organization),
             )
         except IntegraServiceError as exc:
-            self._record(spec, exc.status)
+            self._settle(call, spec, exc.status)
+            raise
+        except BaseException:
+            # Nothing reached the gateway or nothing was charged: give the booked cost back.
+            self._settle(call, spec, 0)
             raise
         status = payload.get("status", 200)
-        self._record(spec, status if isinstance(status, int) else 200)
+        self._settle(call, spec, status if isinstance(status, int) else 200)
         return payload
 
     # -- procuração --------------------------------------------------------------------------
@@ -158,14 +183,14 @@ class GovernedClient:
     def _procuracao_key(self, contribuinte: str) -> str:
         return f"integra:procuracao:{self.organization.pk.hex}:{contribuinte}"
 
-    def _ensure_procuracao(self, contribuinte: str) -> None:
+    def _ensure_procuracao(self, contribuinte: str, autor_pedido: str | None) -> None:
         key = self._procuracao_key(contribuinte)
         known = cache.get(key)
         if known == "missing":
             raise IntegraProcuracaoMissing("O cliente não tem procuração para o escritório.")
         if known == "ok":
             return
-        author = self.client.credentials.autor_pedido
+        author = autor_pedido or self.client.credentials.autor_pedido
         dados = {
             "outorgante": contribuinte,
             "tipoOutorgante": "1" if len(contribuinte) == 11 else "2",
@@ -173,7 +198,7 @@ class GovernedClient:
             "tipoOutorgado": "1" if len(author) == 11 else "2",
         }
         try:
-            payload = self._send(PROCURACAO_KEY, contribuinte, dados, None)
+            payload = self._send(PROCURACAO_KEY, contribuinte, dados, None, autor_pedido)
         except IntegraNotAuthorized:
             cache.set(key, "missing", PROCURACAO_MISSING_SECONDS)
             raise IntegraProcuracaoMissing(
@@ -193,8 +218,9 @@ class GovernedClient:
         contribuinte: str,
         dados: dict[str, Any] | str | None = None,
         autenticar_procurador_token: str | None = None,
+        autor_pedido: str | None = None,
     ) -> dict[str, Any]:
         spec = service(service_key)
         if self.check_procuracao and spec.billable and spec.key != PROCURACAO_KEY:
-            self._ensure_procuracao(contribuinte)
-        return self._send(spec.key, contribuinte, dados, autenticar_procurador_token)
+            self._ensure_procuracao(contribuinte, autor_pedido)
+        return self._send(spec.key, contribuinte, dados, autenticar_procurador_token, autor_pedido)
