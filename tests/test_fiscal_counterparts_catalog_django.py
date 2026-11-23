@@ -78,6 +78,7 @@ class OnDemandNotListedTests(TestCase):
             reverse("agent-v2-profitability-datasets"),
             data=body,
             content_type="application/json",
+            secure=True,
             headers={
                 "X-Hub-Agent-ID": str(self.agent_id),
                 "X-Hub-Agent-Timestamp": timestamp,

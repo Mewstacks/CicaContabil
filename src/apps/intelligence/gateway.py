@@ -105,7 +105,7 @@ def claude_fallback_payload(
     }
     payload: dict[str, object] = {
         "model": model,
-        "max_tokens": 900 if model == "claude-sonnet-5" else 420,
+        "max_tokens": 900 if model.startswith("claude-sonnet-5") else 420,
         "system": [
             {
                 "type": "text",
@@ -120,7 +120,7 @@ def claude_fallback_payload(
             }
         ],
     }
-    if model == "claude-sonnet-5":
+    if model.startswith("claude-sonnet-5"):
         payload["output_config"] = {"effort": "low"}
     if model == "claude-haiku-5-5" and minimal_reasoning:
         payload["thinking"] = {"type": "disabled"}

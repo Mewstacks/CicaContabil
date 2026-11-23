@@ -339,3 +339,28 @@ Valem para todos: migração só adiciona (L1), comportamento novo atrás de fla
 - CNPJ alfanumérico: https://www.gov.br/receitafederal/pt-br/centrais-de-conteudo/publicacoes/perguntas-e-respostas/cnpj/cnpj-alfanumerico.pdf · https://serpro.gov.br/menu/noticias/noticias-2024/cnpj-alfanumerico
 - Basis.ai (rodada de US$ 100 mi, fev/2026, segundo CPA Trendlines): https://cpatrendlines.com/?p=154482
 - Autorização de XML de NF-e por contador (autXML), com ressalvas de fóruns: https://conteudo.fiscal.io/blog/como-baixar-nfe-e-cte-certificado-contabilidade-procuracao-eletronica
+
+## 15. Auditoria do produto completo (23/11/2026)
+
+Inventário da linha integrada (`integ/origin-main-sync`): 160 templates, 148 rotas do `hub`, 25 automações agendadas (Celery beat), 14 módulos de app. Leitura de código e testes; nenhuma tela foi aberta no navegador e nenhuma chamada real foi feita nesta rodada. [C]
+
+**Jornadas do contador e onde estão**
+
+| Jornada | Hoje | Lacuna para ser disruptivo | Épico |
+|---|---|---|---|
+| Entrada de documento | Triagem (3 caixas, quarentena, revisão) | motor com aprendizado, checklist, lote, atalhos | E11 (feito 1–3; 4–8 em andamento) |
+| Coleta de NFS-e | A1 por empresa (produção) e procuração (opcional, flag) | piloto real, 3 lacunas corrigidas, falta ritmo 429 e pedido a quem já tem | E1b |
+| Obrigações e guias | Guias, DCTFWeb, PARCSN, DTE | 80 serviços do Serpro, radar por evento, "o que fazer hoje" | E10 |
+| Conferência | Conciliação OFX × Domínio, DE-PARA com IA (produção), Contraprova | declarado × apurado × pago, Radar Simples/MEI | E14 |
+| Fechamento | calendário e dashboard | checklist com baixa por recibo do Serpro | E15 |
+| Copiloto | busca + 1 chamada Claude, MCP interno e externo (6 leituras) | registro único (feito), laço com ferramentas, aprovação e custo à vista | E12 |
+| Reforma | Radar de notícias | validador cClassTrib/NCM, impacto por cliente | E16 |
+| Comunicação | e-mails de procuração | rascunho de e-mail ao cliente com o impacto, enviado por humano | E16 |
+| Negócio do escritório | Rentabilidade (desligada), assinatura e limites (flags) | reajuste de honorários, painel consultivo | E16 |
+| Confiança | isolamento por escritório (matriz), auditoria, retenção | página de status, relatório de coleta, política de IA pronta | E13 |
+
+**Automações que rodam sem humano (revisar antes de ligar para novos escritórios):** coleta de NFS-e A1 e procuração, DTE, conciliação, triagem de caixas, DE-PARA com IA (produção), cobrança Asaas, lifecycle de tenant, retenção, alarmes de e-CNPJ e procuração. Regra: tudo novo nasce desligado e por escritório; nenhum cliente atual muda.
+
+**O que tornaria o CICA único** (todas as pontas existem ou estão em andamento): procuração em vez de guardar certificado de cliente; Serpro oficial por evento (barato) com custo à vista; copiloto sobre Domínio, Serpro, NFS-e e documentos, aberto por MCP, com aprovação e evidência; triagem que aprende por escritório; checklist de fechamento; governança de IA por escritório. O que falta para fechar a tese: laço do copiloto com ferramentas (E12), Radar Simples/MEI (E14), fechamento por API (E15), captura de NF-e/CT-e por `autXML` ou integração com SIEG/Qive (decisão do dono).
+
+**Pendências que dependem do dono** (nada disso se resolve só com código): perguntas ao Serpro, e-CNPJ real do piloto, custos (OCR, segundo worker), PR para `main` combinado com o Pedro, revisão jurídica de termos e DPA, grade de preços.

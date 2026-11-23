@@ -557,6 +557,7 @@ class AgentePayloadsInvalidosTests(AgentCase):
             reverse(name, args=args),
             data=corpo,
             content_type="application/json",
+            secure=True,
             headers={
                 "X-Hub-Agent-ID": str(self.agent_id),
                 "X-Hub-Agent-Timestamp": timestamp,

@@ -176,6 +176,7 @@ class AgentCase(CrosscheckCase):
             reverse(name, args=args),
             data=body,
             content_type="application/json",
+            secure=True,
             headers={
                 "X-Hub-Agent-ID": str(agent_id or self.agent_id),
                 "X-Hub-Agent-Timestamp": timestamp,
