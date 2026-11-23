@@ -403,9 +403,15 @@ def title_job_context(*, job: TitleJob, actor: User) -> dict[str, Any]:
             "Aguardando o resultado da leitura do Domínio.",
         )
     elif status == "captured":
+        from apps.hub.direct_use import direct_use_enabled
+
         label, detail = (
-            "Fonte recebida",
-            "Confira os dados recebidos. A interpretação e o vínculo à conta exigem revisão.",
+            ("Fonte recebida", "Títulos e baixas do Domínio disponíveis como vieram da fonte.")
+            if direct_use_enabled(company.organization)
+            else (
+                "Fonte recebida",
+                "Confira os dados recebidos. A interpretação e o vínculo à conta exigem revisão.",
+            )
         )
         if not source_available:
             status, label, detail = (

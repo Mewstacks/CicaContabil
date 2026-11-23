@@ -78,7 +78,10 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
                         "period": {key: str(value) for key, value in period.items()},
                     },
                 )
-            if pairs:
+            from apps.hub.direct_use import direct_use_enabled
+
+            # D-393: in direct use, a Razão month with no exact pair still posts what is missing.
+            if pairs or direct_use_enabled(source.organization):
                 from apps.hub.depara_ledger import refresh_ledger_suggestions
 
                 refresh_ledger_suggestions(source.financial_account_id)

@@ -194,3 +194,72 @@ def link_from_ofx(
         request=request,
     )
     return result["financial_account"]
+
+
+STATEMENT_PREFIX = "extrato:"
+
+
+def statement_only_options(
+    companies: QuerySet[ClientCompany], chart_options: list[dict[str, str]]
+) -> list[dict[str, str]]:
+    """D-393: companies without a bank account in the Domínio chart (or without a chart)."""
+
+    from apps.hub.direct_use import direct_use_enabled
+
+    company = companies.select_related("organization").first()
+    if company is None or not direct_use_enabled(company.organization):
+        return []
+    with_chart = {item["company_id"] for item in chart_options}
+    return [
+        {
+            "value": f"{STATEMENT_PREFIX}{item.pk}",
+            "label": "Conta do extrato, lida do OFX (sem Razão)",
+            "company_id": str(item.pk),
+        }
+        for item in companies.order_by("name")
+        if str(item.pk) not in with_chart
+    ]
+
+
+def link_statement_only(
+    *, office: Any, company: ClientCompany, content: bytes, actor: Any, request: Any = None
+) -> FinancialAccount:
+    """D-393: bank account identified only by the OFX, with no ledger code nor Razão mapping."""
+
+    from apps.audit.services import record_event
+    from apps.hub.direct_use import direct_use_enabled
+    from apps.hub.reconciliation import read_ofx_account_identity
+
+    if not direct_use_enabled(office) or company.organization_id != office.pk:
+        raise AutoLinkError("Escolha uma conta da lista.")
+    identity = read_ofx_account_identity(content)
+    if not identity.account_reference:
+        raise AutoLinkError("O OFX não informa a conta bancária; nada foi importado.")
+    existing = FinancialAccount.objects.filter(
+        organization=office, company=company, account_reference=identity.account_reference
+    ).first()
+    if existing is not None:
+        if not existing.active:
+            raise AutoLinkError("Esta conta está inativa nesta empresa; nada foi importado.")
+        return existing
+    label = " ".join(
+        part for part in (f"Banco {identity.bank_id}" if identity.bank_id else "Banco",
+                          identity.branch_id, identity.account_id) if part
+    )
+    account = FinancialAccount.objects.create(
+        organization=office,
+        company=company,
+        name=f"{label} (extrato)"[:160],
+        bank_code=identity.bank_id[:20],
+        account_reference=identity.account_reference,
+        ledger_code="",
+    )
+    record_event(
+        action="hub.reconciliation.statement_account_created",
+        actor=actor,
+        organization=office,
+        target=account,
+        request=request,
+        metadata={"decision": "D-393", "company_id": str(company.pk)},
+    )
+    return account

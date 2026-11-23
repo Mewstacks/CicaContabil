@@ -1059,3 +1059,10 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [ ] Q-47 (prints do Importador no SVAPL02), C01/C02 (Grazi), DE-PARA, vínculos, amostra 200/95%, restauração 4 h, treinamento e aceite D-73.
 
 CONTAD permanece em uso assistido; nada desta rodada é aceite ou homologação.
+
+## Uso direto — D-393/V-440 (23/11/2026)
+
+- [x] Aceite formal D-73 (200/95%) e treinamento deixam de ser condição de uso da CONTAD; guia `docs/pt-BR/contad-uso-direto.md`.
+- [x] Exportação Domínio liberada ao escritório habilitado sem registro de homologação; recibos continuam exigindo homologação real.
+- [ ] Publicação e habilitação em produção (autorização do responsável).
+- [ ] Interpretação automática de títulos C01/C02 (trabalho seguinte). IA continua desligada (custo não autorizado).

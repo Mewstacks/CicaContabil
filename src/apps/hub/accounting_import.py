@@ -151,6 +151,25 @@ def export_homologated(organization: Organization, target: str, adapter_version:
     return _active_homologation(organization, target, adapter_version) is not None
 
 
+def export_allowed(organization: Organization, target: str, adapter_version: str) -> bool:
+    """Homologated, or (D-393) an office in direct use on the current Domínio adapter.
+
+    Direct use never creates a homologation: import receipts keep requiring a real one.
+    """
+    if export_homologated(organization, target, adapter_version):
+        return True
+    from apps.hub.direct_use import direct_use_enabled
+    from apps.hub.reconciliation_service import get_accounting_export_adapter
+
+    if target != AccountingExport.Target.DOMINIO:
+        return False
+    current = Organization.objects.filter(pk=organization.pk).first()
+    return bool(
+        direct_use_enabled(current)
+        and adapter_version == get_accounting_export_adapter(target).version
+    )
+
+
 @transaction.atomic
 def record_export_homologation(
     *,

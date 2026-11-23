@@ -323,8 +323,11 @@ def create_drafts(account: FinancialAccount) -> dict[str, Any]:
         created.append(rule)
     valid_names = {_rule_name(suggestion) for suggestion in result["suggestions"]}
     retired = 0
+    from apps.hub.direct_use import routine_owns
+
     for rule, _evidence in ledger_rules(account):
-        if rule.state != ReconciliationRule.State.DRAFT or rule.name in valid_names:
+        # D-393: rules the direct-use routine activated are retired like drafts.
+        if rule.name in valid_names or not routine_owns(rule):
             continue
         rule.state = ReconciliationRule.State.DISABLED
         rule.save(update_fields=["state", "updated_at"])
@@ -350,6 +353,10 @@ def refresh_ledger_suggestions(account_id: Any) -> None:
             create_drafts(account)
         except Exception:
             logger.exception("DE-PARA pelo Razão não atualizado para a conta %s", account_id)
+            return
+        from apps.hub.direct_use import run_for_account_safely
+
+        run_for_account_safely(account_id)  # D-393; no-op outside direct-use offices
 
     if account_id:
         transaction.on_commit(run)

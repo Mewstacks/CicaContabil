@@ -6025,3 +6025,54 @@ não somente para a SURIA”. Executor Claude Code. Complementa D-391.
 4. Para as contas que já têm pares confirmados antes desta mudança, rodar uma vez o comando para
    todas as contas ativas do escritório. Sem migração, custo ou IA; merge/deploy só com
    autorização explícita na sessão.
+
+## D-393 — CONTAD em uso direto, sem etapas de revisão da cliente (23/11/2026)
+
+Origem: responsável, 23/11/2026, sobre a lista de pendências (envio ao Domínio, 14 regras
+DE-PARA em rascunho, 159 confirmações sem revisão, C01/C02, empresas 55/252/264 sem conta de
+banco no plano, 14 empresas sem plano, IA, aceite formal e treinamento): “finalize tu o sistema,
+onde tu decidirá as questões, a cliente precisa ver os dados, independente de certo ou não, então
+ela não quer revisar nada, apenas usar, estando certo ou não”. Executor Claude Code, que decide
+cada item abaixo por delegação expressa. Resolve o conflito deixado aberto em D-382 (“de como
+certo a importação”) a favor do uso direto. Supera, só para o escritório habilitado, D-380 item 4,
+D-391 item 3, D-392 item 3 e a revisão da proprietária como condição (D-390/D-73).
+
+Habilitação por escritório: lista explícita de UUIDs `CICA_DIRECT_USE_ORGANIZATION_IDS`
+(vazia por padrão; demo e escritório inativo nunca entram), no mesmo padrão da prévia D-380.
+Nenhum outro escritório muda de comportamento.
+
+1. **Envio ao Domínio:** a exportação definitiva (.txt `dominio-lote19-v1`) fica liberada sem
+   registro de homologação. Não se cria homologação falsa: o recibo de importação continua
+   exigindo homologação real e as exportações ficam “prontas”, não “confirmadas”. Continua valendo
+   tudo o que evita lançamento em dobro: Razão já escriturado nunca é exportado, movimento já
+   conferido com o Razão não gera lançamento, nada é exportado duas vezes, hash/reexportação
+   preservados. A CICA só gera o arquivo; a importação no Domínio é feita pela própria CONTAD.
+2. **Regras DE-PARA pelo Razão:** as sugestões que passam nos critérios de evidência D-391 nascem
+   e ficam **ativas**, sem revisão obrigatória (as 14 da SURIA são ativadas pela mesma rotina).
+   Continuam as validações de ativação (contas analíticas ativas do plano Domínio, condições,
+   conflito com regra ativa); a que falhar fica em rascunho. Regra ativada pela rotina que perder
+   a evidência é retirada pela própria rotina; regra mexida por pessoa nunca é alterada.
+3. **Lançamentos:** movimento classificado por regra ativa sem revisão, sem confirmação com o Razão
+   e sem nenhum registro do Razão na mesma conta com mesma data, direção e valor, numa competência
+   cujo Razão já chegou, gera e aprova o lançamento sozinho (autoria técnica, evento D-393). Antes
+   de o Razão chegar nada é lançado, para não duplicar o que a CONTAD já escriturou. Casos
+   ambíguos (há registro parecido no Razão) não são lançados.
+4. **159 confirmações automáticas (D-388):** valem como estão. A revisão da proprietária deixa de ser
+   pedida e de aparecer como pendência; o registro de revisão continua disponível, opcional.
+5. **C01/C02 (retenções e juros nos títulos):** a fonte de títulos e baixas recebida aparece com os
+   valores do Domínio como vieram, sem aviso de conferência pendente. Nada é somado ou recalculado.
+   A visão estruturada (títulos × banco) depende de interpretar cada parcela; não se grava revisão
+   com autoria de pessoa que não revisou. A interpretação automática pela leitura técnica de V-415
+   (tipo1 já inclui juros; tipo9 = retenção) fica como trabalho seguinte, com prova própria.
+6. **Empresas 55, 252 e 264 (sem conta de banco no plano) e as 14 sem plano de contas:** a cliente
+   vê o extrato importado; sem conta contábil não há Razão a comparar nem lançamento a exportar.
+   Não se inventa conta no plano do Domínio. Detalhe do comportamento registrado em V-440.
+7. **IA como segunda opinião:** continua desligada. Exige chave e limite de custo, que não são
+   autorizados por inferência (regra global de custos), e o sistema funciona sem ela.
+8. **Aceite formal:** o critério de 200 revisões com 95% (D-73) deixa de ser condição de uso da
+   CONTAD; a entrega é o uso direto. Não se registra aceite nem revisão em nome da cliente.
+9. **Treinamento:** substituído por um guia curto de uso direto (`docs/pt-BR/contad-uso-direto.md`).
+   Reunião continua opcional.
+
+Sem migração, custo, IA ou mensagem externa. Merge, deploy, habilitação do UUID em produção e a
+execução da rotina sobre os dados reais dependem de autorização explícita do responsável na sessão.

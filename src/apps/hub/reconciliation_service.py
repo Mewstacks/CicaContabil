@@ -2093,11 +2093,11 @@ def create_export(
     if start > end:
         raise ReconciliationError("O início do período deve ser anterior ou igual ao fim.")
     adapter = get_accounting_export_adapter(target)
-    from apps.hub.accounting_import import export_homologated
+    from apps.hub.accounting_import import export_allowed
     from apps.platform.operation_access import require_operation_access
 
     approved_version = reexport_of.adapter_version if reexport_of else adapter.version
-    if not export_homologated(organization, target, approved_version):
+    if not export_allowed(organization, target, approved_version):
         raise ReconciliationError(
             "Exportação está bloqueada até a homologação real do adaptador neste escritório."
         )
@@ -2121,7 +2121,7 @@ def create_export(
         query = query.filter(state=JournalEntry.State.APPROVED)
     else:
         reexport_of = AccountingExport.objects.select_for_update().get(pk=reexport_of.pk)
-        if not export_homologated(organization, target, reexport_of.adapter_version):
+        if not export_allowed(organization, target, reexport_of.adapter_version):
             raise ReconciliationError("A versão original não está homologada neste escritório.")
         if (
             reexport_of.organization_id != organization.id
