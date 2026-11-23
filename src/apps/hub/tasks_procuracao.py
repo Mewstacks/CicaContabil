@@ -112,9 +112,13 @@ def purge_roster_artifacts() -> dict[str, int]:
 
 @shared_task(name="hub.notify_office_certificates")  # type: ignore[untyped-decorator]
 def notify_office_certificates() -> int:
-    """Daily: the e-CNPJ of a procuração office is about to expire (30, 15, 7, 3, 1 days)."""
+    """Daily: the e-CNPJ of a procuração office is about to expire (30, 15, 7, 3, 1 days) or has
+    already expired and collection stopped."""
 
-    return procuracao_alerts.notify_office_certificate_expiring()
+    return (
+        procuracao_alerts.notify_office_certificate_expiring()
+        + procuracao_alerts.notify_office_certificate_expired()
+    )
 
 
 @shared_task(name="hub.notify_lost_procuracoes")  # type: ignore[untyped-decorator]

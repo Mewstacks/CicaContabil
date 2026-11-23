@@ -11,6 +11,7 @@ import logging
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.hub.models import NfseSync, Notification, OfficeCertificate, OfficeProfile
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 EXPIRY_THRESHOLDS = (30, 15, 7, 3, 1)
 LOST_WINDOW = timedelta(days=2)
 STALLED_AFTER = timedelta(hours=6)
+EXPIRED_WINDOW = timedelta(days=30)
 
 
 def _administrators(organization: Organization) -> list[Any]:
@@ -77,6 +79,47 @@ def notify_office_certificate_expiring(*, today: date | None = None) -> int:
     return created
 
 
+def notify_office_certificate_expired(*, now: datetime | None = None) -> int:
+    """The e-CNPJ already expired: collection stopped for the whole office and nothing said so.
+
+    The "about to expire" notices stop on the day of the expiry. Announces once per certificate,
+    for 30 days after the expiry, and only while the office has no newer valid e-CNPJ.
+    """
+
+    now = now or timezone.now()
+    created = 0
+    expired = OfficeCertificate.objects.filter(
+        revoked_at__isnull=True,
+        valid_until__lt=now,
+        valid_until__gte=now - EXPIRED_WINDOW,
+        organization__is_active=True,
+        organization__is_demo=False,
+        organization__hub_profile__nfse_collection_mode=OfficeProfile.NfseCollectionMode.PROCURACAO,
+    ).select_related("organization")
+    for certificate in expired:
+        assert certificate.valid_until is not None
+        if OfficeCertificate.objects.filter(
+            organization_id=certificate.organization_id,
+            revoked_at__isnull=True,
+            valid_until__gt=now,
+        ).exists():
+            continue
+        for person in _administrators(certificate.organization):
+            notice = notify(
+                organization=certificate.organization,
+                recipient=person,
+                kind=Notification.Kind.CERTIFICATE_EXPIRING,
+                title=(
+                    "e-CNPJ do escritório venceu em "
+                    f"{timezone.localtime(certificate.valid_until):%d/%m/%Y}: "
+                    "a coleta de NFS-e está parada"
+                ),
+                dedupe_key=f"office-cert-expired:{certificate.pk}",
+            )
+            created += int(notice is not None)
+    return created
+
+
 def notify_lost_procuracoes(*, now: datetime | None = None) -> int:
     """A company that had a valid procuração and now answers E2245 stopped being collected."""
 
@@ -121,14 +164,32 @@ def lane_health(*, now: datetime | None = None) -> dict[str, Any]:
     count = overdue.count()
     oldest = overdue.order_by("next_run_at").values_list("next_run_at", flat=True).first()
     minutes = int((now - oldest).total_seconds() // 60) if oldest is not None else 0
+    # Rows an expired or revoked e-CNPJ keeps out of the line: they are not "eligible", so the
+    # count above never sees them and the lane looked healthy while collecting nothing.
+    blocked = NfseSync.objects.filter(
+        credential_mode=NfseSync.CredentialMode.PROCURACAO,
+        enabled=True,
+        organization__is_active=True,
+        organization__is_demo=False,
+        organization__hub_profile__nfse_collection_mode=OfficeProfile.NfseCollectionMode.PROCURACAO,
+        company__active=True,
+        office_certificate__isnull=False,
+    ).filter(
+        Q(office_certificate__revoked_at__isnull=False)
+        | Q(office_certificate__valid_until__lte=now)
+    )
+    blocked_count = blocked.count()
     health = {
         "enabled": True,
         "paused": lane_paused(),
-        "stalled": count > 0,
+        "stalled": count > 0 or blocked_count > 0,
         "overdue": count,
+        "blocked": blocked_count,
         "oldest_minutes": minutes,
     }
     if count:
         # Sentry picks a warning up once the monitoring is on (E4); until then it is in the log.
         logger.warning("procuracao.lane_stalled overdue=%s oldest_minutes=%s", count, minutes)
+    if blocked_count:
+        logger.warning("procuracao.lane_blocked_by_certificate rows=%s", blocked_count)
     return health

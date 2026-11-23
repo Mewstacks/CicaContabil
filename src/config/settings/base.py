@@ -436,12 +436,6 @@ MCP_GATEWAY_REDIRECT_URIS = [
     "https://chatgpt.com/connector_platform_oauth_redirect",
     *env_list("MCP_GATEWAY_EXTRA_REDIRECT_URIS"),
 ]
-MCP_GATEWAY_REDIRECT_PREFIXES = [
-    "https://chatgpt.com/connector/oauth/",
-    "http://127.0.0.1",
-    "http://[::1]",
-    "http://localhost",
-]
 # Modelos do DOT: nomes fixos (sem troca de modelo); as migracoes de `mcpgateway` leem estes.
 OAUTH2_PROVIDER_APPLICATION_MODEL = "oauth2_provider.Application"
 OAUTH2_PROVIDER_ACCESS_TOKEN_MODEL = "oauth2_provider.AccessToken"
