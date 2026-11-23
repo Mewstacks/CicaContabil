@@ -246,3 +246,50 @@ def withdraw_covered(account: FinancialAccount) -> int:
         )
         count += 1
     return count
+
+
+def pending_export_summary(office: Any, companies: Any) -> list[dict[str, Any]]:
+    """Per company: approved entries ready for the Domínio file and the ones awaiting the Razão."""
+    from django.db.models import Max, Min
+
+    from apps.hub.direct_use import direct_use_enabled
+
+    if not direct_use_enabled(office):
+        return []
+    rows = []
+    approved = (
+        JournalEntry.objects.filter(
+            organization=office, company__in=companies, state=JournalEntry.State.APPROVED
+        )
+        .exclude(purpose="source_ledger")
+        .values("company_id")
+        .annotate(first=Min("occurred_on"), last=Max("occurred_on"))
+    )
+    for item in approved:
+        company = companies.get(pk=item["company_id"])
+        check = check_export(
+            organization=office,
+            company=company,
+            start=item["first"],
+            end=item["last"],
+            withdraw=False,
+        )
+        total = (
+            JournalEntry.objects.filter(
+                organization=office,
+                company=company,
+                state=JournalEntry.State.APPROVED,
+            )
+            .exclude(purpose="source_ledger")
+            .count()
+        )
+        rows.append(
+            {
+                "company": company,
+                "ready": max(total - len(check.held_ids), 0),
+                "held": check.held_months(),
+                "first": item["first"],
+                "last": item["last"],
+            }
+        )
+    return sorted(rows, key=lambda row: row["company"].name)

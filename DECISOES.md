@@ -6171,7 +6171,9 @@ escritório em uso direto (D-393), salvo onde dito. Precisa, sem revogar, D-393 
 1. **“Parecido com o Razão” por janela de datas (D-393 item 3):** um movimento do extrato não gera
    lançamento automático se houver registro do Razão da mesma conta, mesma direção e mesmo valor com data
    até **5 dias corridos** antes ou depois, desde que esse registro não esteja confirmado com outro
-   movimento. Vale também para a escolha dos movimentos que a IA consulta (D-395).
+   movimento. Vale também para a escolha dos movimentos que a IA consulta (D-395). O tamanho da
+   janela (5 dias) foi proposto pelo executor e confirmado pelo responsável nesta sessão (“Sim, 5
+   dias”, 23/11/2026).
 2. **Razão relido antes de exportar:** o lançamento automático (D-393) só entra no arquivo do Domínio
    quando existir, para a conta e o mês dele, um Razão recebido **depois** da aprovação do lançamento. Os
    demais ficam aguardando, com aviso e atalho para atualizar o Razão daquele mês. Na geração do arquivo, o

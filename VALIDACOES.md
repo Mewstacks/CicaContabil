@@ -12894,3 +12894,63 @@ Conferência somente leitura: a única conta ativa da CONTAD (SURIA, empresa 212
 importação (evidência D-385) com `allowed_months = ["2026-09"]` — exatamente o caso do defeito 4.1.
 A partir da v121, o próximo OFX dela confirma e pede o Razão de cada mês coberto. Nenhum dado foi
 alterado nesta publicação; o item 4.2 (lançamento em dobro) segue com a sessão da revisão.
+## V-448 — D-397: lançamento em dobro e demais correções da revisão (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-revisao-restante` sobre `b60e4dd` (D-396, outra sessão),
+divisão autorizada pelo responsável (“Divide como proposto”). Base: relatório
+`docs/planejamento/revisao-contad-2026-11-23.md`, item 4.2 e seção 7 (itens 4 e 7–18).
+
+Implementado:
+1. `apps/hub/double_booking.py`: “parecido com o Razão” = registro livre (não confirmado com outro
+   movimento) da mesma conta, direção e valor até 5 dias; usado em `post_unbooked` e na escolha dos
+   alvos da IA. `check_export` (chamado em `create_export`) segura o lançamento automático sem Razão
+   lido depois da aprovação e invalida o que passou a ser coberto; `withdraw_covered` faz o mesmo a
+   cada rodada do uso direto. Histórico do lançamento automático = regra + texto do extrato.
+2. `decode_ofx` (UTF-8, senão Windows-1252); `refuse_foreign_account` em `link_from_ofx` e
+   `link_statement_only` (todos os escritórios); opção “sem Razão” omitida para empresa com conta
+   vinculada ao Razão.
+3. Tarefa `hub.refresh_account_automation` (sugestões D-392 + rotina D-393/D-395) fora da requisição,
+   com trava por conta em cache e nova tentativa; falha de `create_drafts` não impede mais a rotina.
+   IA: medição nova abaixo de 90% devolve a rascunho as regras da IA ativadas pela rotina e retira
+   seus lançamentos não exportados (`withdraw_rule_entries` da D-396).
+4. Títulos: `vlor_*` negativo ou malformado fica sem interpretação; lista de buscas diz o que
+   aconteceu (interpretado, sem conta, em andamento); sinal `post_save` de `FinancialAccount` agenda a
+   D-394 em qualquer criação de conta; revisão manual de parcela não é oferecida no uso direto.
+5. Comandos: `--organization` validado como UUID; `titulos_auto` só empresas ativas;
+   `record_dominio_homologation --apply` exige `--allow-direct-use` em escritório de uso direto;
+   `uso_direto` mostra se a IA está ligada e os tetos.
+6. Telas no uso direto (`apps/hub/direct_use_ui.py`): conferência, relatório e lista de movimentos
+   com o estado real de cada movimento (conferido com o Razão, lançado pela CICA, enviado ao Domínio,
+   parecido com o Razão, sem regra, aguardando o Razão, extrato sem Razão) e a regra pelo padrão em vez
+   do código; Visão geral com conferidos/lançados/sem lançamento e próxima ação de envio; Importações
+   sem “Aguardando revisão”; Exportações com prontos, aguardando Razão (com atalho), período padrão no
+   último mês fechado, mensagem sem hash e volta à lista; aba “Conferir OFX” e “Conferir importação”
+   ocultas; guia “Como usar” próprio; rodapés da carteira e de Contas do Domínio; “Regras DE-PARA”;
+   títulos sem “fotografia revisada” nem ID de decisão; competência padrão no último mês fechado em
+   Extrato e Razão e Buscar títulos; após importar, a página abre no topo com os avisos. Contador
+   “Conciliados” passa a contar os movimentos confirmados (antes sempre zero, todos os escritórios).
+   Anel de foco dos campos com 70% (antes 28%); datas e valores sem quebra na lista de movimentos.
+
+Testes: `tests/test_double_booking.py` (10: janela de datas e registro livre em duas empresas do mesmo
+escritório, `run_for_organization` idempotente, exportação segurada até Razão relido e retirada do
+que o escritório lançou um dia depois, arquivo lote 19 real com o histórico do extrato, aprovação
+por pessoa não segurada, escritório fora da lista inalterado, OFX 1252, OFX de outra empresa, opção sem
+Razão, trava da tarefa, UUID nos comandos) e `tests/test_review_remaining.py` (4: IA rebaixada,
+`vlor` negativo, mensagem da busca, sinal de conta nova); `test_direct_use.py` ajustado para exigir o
+Razão relido antes de exportar. Suíte SQLite completa: **3.512 aprovados, 59 skips, 0 falhas**;
+PostgreSQL 17 local descartável: **458 aprovados, 0 skips** em 21 módulos de uso direto, IA, títulos,
+importação, confirmação, exportação e Razão (inclui os testes de concorrência que o SQLite pula).
+Ruff ok; MyPy sem erro nos arquivos novos.
+
+Navegador (laboratório sintético, três escritórios em uso direto, 1366 px escuro e 375 px claro):
+Visão geral 22 = 17 conferidos + 1 lançado + 4 sem lançamento; exportação recusada com aviso até um
+Razão novo, depois gerada com 1 lançamento (“LIQUIDACAO BOLETO · LIQUIDACAO BOLETO 777”); conferência
+e relatório com os estados reais; títulos com “Entradas · título 0001/A · Parcela 1”; OFX da empresa
+212 recusado na 214 com o nome da 212; importação abre no topo com “Razão não foi pedido…” visível;
+zero rolagem horizontal e contraste de texto ok. Prints `depois-*` em
+`docs/planejamento/revisao-contad-2026-11-23/`.
+
+Limites: não publicado; nada lido ou escrito em produção; sem chamada à IA; leiaute do Domínio segue
+sem importação real (D-380); a regra de “Razão relido” exige um novo pedido do Razão antes de cada
+envio, o que depende do agente oficial ativo; janela de 5 dias pode deixar de lançar movimentos
+legítimos de mesmo valor em datas próximas (ficam como “parecido com o Razão”).

@@ -888,6 +888,12 @@ def _onboarding_context(
 
     url_name = request.resolver_match.url_name if request.resolver_match else None
     tour = tour_for_url_name(url_name)
+    if tour is not None and tour.identifier == "reconciliation" and office is not None:
+        from apps.hub.direct_use import direct_use_enabled
+        from apps.hub.onboarding import RECONCILIATION_DIRECT_USE
+
+        if direct_use_enabled(office):
+            tour = RECONCILIATION_DIRECT_USE
     role = membership.role if isinstance(membership, Membership) else None
     if tour is None or support_session is not None or not tour.visible_for(role):
         return {"onboarding_tour": None, "onboarding_tour_done": True}
@@ -5854,6 +5860,10 @@ def _module_page_context(
         context["companies"] = cast("QuerySet[ClientCompany]", context["companies"]).filter(
             pk__in=company_queryset_for_module(membership, module.code)
         )
+    if module.code == ProductModule.Code.RECONCILIATION:
+        from apps.hub.direct_use import direct_use_enabled
+
+        context["office_direct_use"] = direct_use_enabled(office)  # D-397 screen copy
     if module.code == ProductModule.Code.INTEGRA:
         # The platform is the sole Serpro contractor.  A tenant never configures
         # credentials, certificate, endpoint, or a duplicate connector record.
@@ -9156,6 +9166,26 @@ def _reconciliation_run_guidance(
     return {"summary": "", "label": "", "href": ""}
 
 
+def _direct_use_run_copy(run: ReconciliationRun) -> None:
+    """D-397: imports in direct use show what happens next, not a pending human review."""
+    if run.stage == "ledger_review":
+        run.direct_use_state = ("Razão recebido", "is-active")
+        run.direct_use_stage = "Razão do Domínio"
+        run.guidance = {
+            "summary": "A CICA compara este Razão com os extratos da conta.",
+            "label": "",
+            "href": "",
+        }
+    elif run.state == ReconciliationRun.State.REVIEW and run.stage == "review":
+        run.direct_use_state = ("Importado", "is-active")
+        run.direct_use_stage = "Extrato importado"
+        run.guidance = {
+            "summary": "Abra a conferência para ver o que foi conferido, lançado ou ficou de fora.",
+            "label": "",
+            "href": "",
+        }
+
+
 def _reconciliation_v2_context(
     office: Organization, companies: QuerySet[ClientCompany], request: HttpRequest | None = None
 ) -> dict[str, object]:
@@ -9195,14 +9225,18 @@ def _reconciliation_v2_context(
     ).get_page(request.GET.get("processing_page") if request else 1)
     local_ocr_is_available = local_ocr_available()
     visible_runs = list(runs_page.object_list)
+    office_direct_use = direct_use_enabled(office)
     for run in visible_runs:
         run.guidance = _reconciliation_run_guidance(run, local_ocr_available=local_ocr_is_available)
+        if office_direct_use:
+            _direct_use_run_copy(run)
     # D-386: what already matched the Domínio Razão is done; the list shows only what is left.
-    all_movements = NormalizedMovement.objects.filter(
-        organization=office, company__in=companies
-    ).exclude(reconciliations__state=MovementReconciliation.State.CONFIRMED)
+    base_movements = NormalizedMovement.objects.filter(organization=office, company__in=companies)
     if selected_source:
-        all_movements = all_movements.filter(source_file=selected_source)
+        base_movements = base_movements.filter(source_file=selected_source)
+    all_movements = base_movements.exclude(
+        reconciliations__state=MovementReconciliation.State.CONFIRMED
+    )
     movement_filters = {
         "company": request.GET.get("movement_company", "") if request else "",
         "review": request.GET.get("movement_review", "") if request else "",
@@ -9265,13 +9299,28 @@ def _reconciliation_v2_context(
     movements = list(movement_page.object_list)
     for movement in movements:
         movement.amount_brl = Decimal(abs(movement.amount_cents)) / 100
+    if office_direct_use:  # D-397: real outcome and readable rule instead of review states
+        from apps.hub.direct_use_ui import movement_outcomes, rule_label
+
+        outcomes = movement_outcomes(
+            NormalizedMovement.objects.filter(pk__in=[m.pk for m in movements]).select_related(
+                "financial_account"
+            )
+        )
+        labels: dict[Any, str] = {}
+        for movement in movements:
+            movement.outcome = outcomes.get(str(movement.pk))
+            if movement.applied_rule_id and movement.applied_rule_id not in labels:
+                labels[movement.applied_rule_id] = rule_label(movement.applied_rule)
+            movement.rule_label = labels.get(movement.applied_rule_id, "")
     exports_page = Paginator(
         AccountingExport.objects.filter(organization=office, company__in=companies)
         .select_related("company", "confirmed_by")
         .order_by("-created_at"),
         20,
     ).get_page(request.GET.get("export_page") if request else 1)
-    allocation_stats = all_movements.annotate(
+    # Confirmed movements leave the list (D-386) but still count as reconciled.
+    allocation_stats = base_movements.annotate(
         confirmed_allocation=Coalesce(
             Sum(
                 "reconciliations__amount_cents",
@@ -9329,6 +9378,23 @@ def _reconciliation_v2_context(
         "dominio_entries": dominio_entries.count(),
         "dominio_amount": _total_brl(dominio_entries),
     }
+    if office_direct_use:
+        movement_entries = JournalEntry.objects.filter(
+            organization=office, company__in=companies, movement__in=all_movements
+        ).exclude(purpose="source_ledger")
+        stats["posted_ready"] = movement_entries.filter(state=JournalEntry.State.APPROVED).count()
+        stats["posted_exported"] = movement_entries.filter(
+            state=JournalEntry.State.EXPORTED
+        ).count()
+        stats["imported_total"] = base_movements.count()
+        stats["imported_total_amount"] = _total_brl(base_movements)
+        stats["without_entry"] = max(
+            stats["imported_total"]
+            - stats["reconciled"]
+            - stats["posted_ready"]
+            - stats["posted_exported"],
+            0,
+        )
     active_run_count = runs.filter(
         state__in=[ReconciliationRun.State.WAITING, ReconciliationRun.State.PROCESSING]
     ).count()
@@ -9379,7 +9445,33 @@ def _reconciliation_v2_context(
             "label": guidance["label"],
             "href": guidance["href"],
         }
-    elif stats["conflicts"]:
+    elif office_direct_use and stats.get("posted_ready"):
+        next_action = {
+            "kind": "link",
+            "eyebrow": "PRÓXIMA AÇÃO",
+            "title": (
+                f"{stats['posted_ready']} lançamento{'s' if stats['posted_ready'] != 1 else ''} "
+                "da CICA para enviar ao Domínio"
+            ),
+            "description": (
+                "Em Exportações, gere o arquivo e importe no Domínio (Utilitários → "
+                "Importação). Lá também aparece o que ainda espera o Razão atualizado."
+            ),
+            "label": "Gerar arquivo",
+            "href": "#exportacoes",
+        }
+    elif office_direct_use and ready_source is not None:
+        next_action = {
+            "kind": "link",
+            "eyebrow": "RESULTADO",
+            "title": "Ver o resultado do extrato com o Razão",
+            "description": "",
+            "label": "Abrir resultado",
+            "href": reverse(
+                "hub:reconciliation-source-review", kwargs={"source_id": ready_source.pk}
+            ),
+        }
+    elif stats["conflicts"] and not office_direct_use:
         next_action = {
             "kind": "link",
             "eyebrow": "COMECE PELOS CONFLITOS",
@@ -9402,7 +9494,7 @@ def _reconciliation_v2_context(
                 "hub:reconciliation-source-review", kwargs={"source_id": ready_source.pk}
             ),
         }
-    elif stats["pending"]:
+    elif stats["pending"] and not office_direct_use:
         next_action = {
             "kind": "link",
             "eyebrow": "PRÓXIMA AÇÃO",
@@ -9497,6 +9589,22 @@ def _reconciliation_v2_context(
         ),
         "reconciliation_direct_use": direct_use_enabled(office),
         "reconciliation_dominio_preview_enabled": preview_enabled(office),
+        **_direct_use_export_context(office, companies),
+    }
+
+
+def _direct_use_export_context(
+    office: Organization, companies: QuerySet[ClientCompany]
+) -> dict[str, object]:
+    """D-397: what is ready for the Domínio file, what waits for a newer Razão, default period."""
+    from apps.hub.double_booking import pending_export_summary
+
+    today = timezone.localdate()
+    last_closed_end = today.replace(day=1) - timedelta(days=1)
+    return {
+        "export_default_start": last_closed_end.replace(day=1),
+        "export_default_end": last_closed_end,
+        "export_pending_summary": pending_export_summary(office, companies),
     }
 
 
@@ -10641,7 +10749,7 @@ def _ledger_after_upload(
                 "auto": "1",
             }
         )
-        + "#ledger-requests"
+        # D-397: open at the top, where the messages (Razão requested or not) are visible.
     )
     requested, failures = [], []
     for month in months:
@@ -10710,11 +10818,15 @@ def reconciliation_run_status(request: HttpRequest, run_id: str) -> JsonResponse
         organization=office,
         source_file__company__in=companies,
     )
+    from apps.hub.direct_use import direct_use_enabled
+
+    if direct_use_enabled(office):
+        _direct_use_run_copy(run)
     return JsonResponse(
         {
             "id": str(run.id),
             "state": run.state,
-            "state_label": run.get_state_display(),
+            "state_label": getattr(run, "direct_use_state", (run.get_state_display(),))[0],
             "stage": run.stage,
             "total": run.total_count,
             "processed": run.processed_count,
@@ -11008,6 +11120,13 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
             "direct_use": direct_use_enabled(source.organization),
         }
     )
+    if context["direct_use"]:  # D-397: what really happened to each movement
+        from apps.hub.direct_use_ui import movement_outcomes, outcome_counts
+
+        outcomes = movement_outcomes(source.movements.select_related("financial_account"))
+        for row in context.get("conference_rows", []):
+            row["outcome"] = outcomes.get(str(row["movement"].pk))
+        context["direct_use_outcomes"] = outcome_counts(outcomes)
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response
@@ -12142,8 +12261,21 @@ def reconciliation_export_create(request: HttpRequest) -> HttpResponse:
     except (ValueError, ReconciliationError) as exc:
         messages.error(request, str(exc) or "Período inválido.")
     else:
-        messages.success(request, f"Arquivo gerado com hash {export.content_hash[:12]}.")
-    return redirect("hub:reconciliation")
+        count = len(export.entry_ids or [])
+        messages.success(
+            request,
+            f"Arquivo para o Domínio gerado com {count} lançamento{'s' if count != 1 else ''}. "
+            "Baixe abaixo e importe no Domínio.",
+        )
+        if not reexport_of:
+            from apps.hub.double_booking import check_export
+
+            held = check_export(
+                organization=office, company=company, start=start, end=end, withdraw=False
+            )
+            if held.held:
+                messages.info(request, held.message())
+    return redirect(f"{reverse('hub:reconciliation')}#exportacoes")
 
 
 @office_required

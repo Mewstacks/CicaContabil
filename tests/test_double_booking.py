@@ -87,8 +87,12 @@ def _month(office, key, bank, ledger, *, month, tag):
     source = None
     if bank:
         source, run, _ = create_source_file(
-            organization=org, company=company, financial_account=account,
-            filename=f"extrato-{tag}.ofx", content=ofx.encode(), origin="bank_statement",
+            organization=org,
+            company=company,
+            financial_account=account,
+            filename=f"extrato-{tag}.ofx",
+            content=ofx.encode(),
+            origin="bank_statement",
         )
         process_run(str(run.pk))
     output = io.StringIO()
@@ -102,8 +106,12 @@ def _month(office, key, bank, ledger, *, month, tag):
         writer.writerow([*row, "8", side, abs(cents), direction, ""])
         writer.writerow([row[0], "other", *row[2:], contra, other, abs(cents), "", ""])
     _l, run, _ = create_source_file(
-        organization=org, company=company, financial_account=account,
-        filename=f"razao-{tag}.csv", content=output.getvalue().encode(), origin="accounting",
+        organization=org,
+        company=company,
+        financial_account=account,
+        filename=f"razao-{tag}.csv",
+        content=output.getvalue().encode(),
+        origin="accounting",
     )
     process_run(str(run.pk))
     if source is not None:
@@ -115,16 +123,20 @@ def _history(office, capture):
     """September teaches the rules of both companies (D-391), confirmed one by one."""
     with capture(execute=True):
         _month(
-            office, "alfa",
+            office,
+            "alfa",
             [(f"LIQUIDACAO BOLETO {900 + i}", -(10_000 + i), 1 + i) for i in range(5)],
             [(f"BOLETO {900 + i}", -(10_000 + i), "4", 1 + i) for i in range(5)],
-            month=9, tag="a9",
+            month=9,
+            tag="a9",
         )
         _month(
-            office, "beta",
+            office,
+            "beta",
             [("TARIFA PACOTE", -(500 + i), 3 + i) for i in range(3)],
             [("TARIFA", -(500 + i), "51", 3 + i) for i in range(3)],
-            month=9, tag="b9",
+            month=9,
+            tag="b9",
         )
 
 
@@ -133,13 +145,12 @@ def _entry(text):
     return movement.journal_entries.exclude(state=JournalEntry.State.INVALID).first()
 
 
-def test_similar_window_free_records_and_every_company(
-    office, django_capture_on_commit_callbacks
-):
+def test_similar_window_free_records_and_every_company(office, django_capture_on_commit_callbacks):
     _history(office, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         _month(
-            office, "alfa",
+            office,
+            "alfa",
             [
                 ("LIQUIDACAO BOLETO 701", -5_000, 10),  # Razão 2 days later -> similar
                 ("LIQUIDACAO BOLETO 702", -6_000, 10),  # Razão 10 days later -> posted
@@ -151,13 +162,16 @@ def test_similar_window_free_records_and_every_company(
                 ("BOLETO", -6_000, "4", 10 + SIMILAR_DAYS + 5),
                 ("BOLETO", -7_000, "4", 14),
             ],
-            month=10, tag="a10",
+            month=10,
+            tag="a10",
         )
         _month(
-            office, "beta",
+            office,
+            "beta",
             [("TARIFA PACOTE", -900, 8)],
             [("OUTRA COISA", 1_234, "9", 20)],
-            month=10, tag="b10",
+            month=10,
+            tag="b10",
         )
     assert _entry("LIQUIDACAO BOLETO 701") is None
     assert _entry("LIQUIDACAO BOLETO 702").state == JournalEntry.State.APPROVED
@@ -187,10 +201,12 @@ def test_export_waits_for_a_newer_razao_and_withdraws_what_it_covers(
     _history(office, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         _month(
-            office, "alfa",
+            office,
+            "alfa",
             [("LIQUIDACAO BOLETO 702", -6_000, 10), ("LIQUIDACAO BOLETO 704", -7_000, 16)],
             [("OUTRA", 3_000, "9", 25)],
-            month=10, tag="a10",
+            month=10,
+            tag="a10",
         )
     alfa = office["alfa"]
     period = dict(start=date(2026, 10, 1), end=date(2026, 10, 31))
@@ -203,9 +219,12 @@ def test_export_waits_for_a_newer_razao_and_withdraws_what_it_covers(
     assert JournalEntry.objects.filter(
         movement__description="LIQUIDACAO BOLETO 702", state=JournalEntry.State.INVALID
     ).exists()
-    assert AuditEvent.objects.filter(
-        action=WITHDRAWN_ACTION, metadata__reason="parecido_com_o_razao"
-    ).count() == 1
+    assert (
+        AuditEvent.objects.filter(
+            action=WITHDRAWN_ACTION, metadata__reason="parecido_com_o_razao"
+        ).count()
+        == 1
+    )
     export = create_export(organization=office["org"], company=alfa["company"], **period)
     assert export.state == AccountingExport.State.READY
     [exported] = JournalEntry.objects.filter(pk__in=export.entry_ids)
@@ -223,8 +242,12 @@ def test_entries_approved_by_a_person_are_not_held(office, django_capture_on_com
     _history(office, django_capture_on_commit_callbacks)
     with django_capture_on_commit_callbacks(execute=True):
         _month(
-            office, "alfa", [("LIQUIDACAO BOLETO 702", -6_000, 10)], [("X", 1, "9", 25)],
-            month=10, tag="a10",
+            office,
+            "alfa",
+            [("LIQUIDACAO BOLETO 702", -6_000, 10)],
+            [("X", 1, "9", 25)],
+            month=10,
+            tag="a10",
         )
     from apps.hub.reconciliation_service import (
         approve_journal_entry,
@@ -237,8 +260,11 @@ def test_entries_approved_by_a_person_are_not_held(office, django_capture_on_com
     manual = approve_journal_entry(entry=manual, actor=office["user"])
     assert manual.state == JournalEntry.State.APPROVED
     check = check_export(
-        organization=office["org"], company=office["alfa"]["company"],
-        start=date(2026, 10, 1), end=date(2026, 10, 31), withdraw=False,
+        organization=office["org"],
+        company=office["alfa"]["company"],
+        start=date(2026, 10, 1),
+        end=date(2026, 10, 31),
+        withdraw=False,
     )
     assert not check.held_ids
 
@@ -248,8 +274,11 @@ def test_offices_outside_direct_use_are_unchanged(office, settings):
 
     settings.CICA_DIRECT_USE_ORGANIZATION_IDS = []
     check = check_export(
-        organization=office["org"], company=office["alfa"]["company"],
-        start=date(2026, 10, 1), end=date(2026, 10, 31), withdraw=True,
+        organization=office["org"],
+        company=office["alfa"]["company"],
+        start=date(2026, 10, 1),
+        end=date(2026, 10, 31),
+        withdraw=True,
     )
     assert not check.held and not check.withdrawn
 

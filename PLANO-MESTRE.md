@@ -1,3 +1,10 @@
+<!-- D397-V448-2026-11-23 -->
+**23/11/2026 — D-397/V-448: lançamento em dobro e demais correções da revisão (não publicada).**
+Complementa a D-396 (v121). “Parecido com o Razão” em janela de 5 dias; lançamento da CICA só vai no
+arquivo após Razão relido; histórico com o texto do extrato; OFX Windows-1252; OFX de outra empresa
+recusado; rotina em tarefa de fundo; IA volta a rascunho abaixo de 90%; telas com os estados reais
+do uso direto. Merge e deploy dependem de autorização do responsável.
+
 <!-- D396-V447-2026-11-23 -->
 **23/11/2026 — D-396/V-446/V-447: defeitos graves da revisão corrigidos e publicados na v121.**
 Razão pedido em todo mês do OFX (a SURIA estava presa só em setembro), desfazer que vale,

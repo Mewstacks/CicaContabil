@@ -28,7 +28,9 @@ pytestmark = pytest.mark.django_db
 
 
 def test_ai_rules_go_back_to_draft_when_the_new_measurement_fails(
-    ai_on, monkeypatch, django_capture_on_commit_callbacks  # noqa: F811
+    ai_on,  # noqa: F811
+    monkeypatch,
+    django_capture_on_commit_callbacks,
 ):
     _run(ai_on, monkeypatch, GOOD, django_capture_on_commit_callbacks)
     [rule] = ReconciliationRule.objects.filter(name__startswith=ai.RULE_PREFIX)
@@ -41,8 +43,12 @@ def test_ai_rules_go_back_to_draft_when_the_new_measurement_fails(
         "<TRNAMT>-15.00<FITID>new-1<MEMO>SAQUE CAIXA ELETRONICO</STMTTRN></BANKTRANLIST></OFX>"
     )
     _source, run, _ = create_source_file(
-        organization=ai_on["org"], company=ai_on["company"], financial_account=ai_on["account"],
-        filename="extrato-novo.ofx", content=ofx.encode(), origin="bank_statement",
+        organization=ai_on["org"],
+        company=ai_on["company"],
+        financial_account=ai_on["account"],
+        filename="extrato-novo.ofx",
+        content=ofx.encode(),
+        origin="bank_statement",
     )
     process_run(str(run.pk))
     failing = {"measured": 12, "correct": 6, "precision": 50}
@@ -75,7 +81,10 @@ def test_capture_message_says_what_really_happened(organization, settings):
     )
     assert "em andamento" in _direct_use_detail(job, company)
     record_event(
-        action=ACTION, actor=None, organization=organization, target=company,
+        action=ACTION,
+        actor=None,
+        organization=organization,
+        target=company,
         metadata={"capture_id": str(job.pk)},
     )
     assert "interpretados automaticamente" in _direct_use_detail(job, company)
