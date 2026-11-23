@@ -1,0 +1,15 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-contador-gerenciador/eventosatualizacao/mensagens/",
+  "servico": "EVENTOSATUALIZACAO.OBTEREVENTOSPF133",
+  "notes": [
+    "montada da tabela de mensagens de negócio (status 202, Aviso-007) e do changelog 1.0.1; a página não traz um exemplo de resposta 202 e o dados vazio é suposição"
+  ],
+  "status": 202,
+  "mensagens": [
+    {
+      "codigo": "[Aviso-EVENTOSATUALIZACAO-007]",
+      "texto": "Solicitação para o protocolo a65f3455-fa91-419b-b0ad-c4ac50695abf em processamento. Tempo estimado: 1 minuto. Tente novamente em instantes."
+    }
+  ],
+  "dados": ""
+}

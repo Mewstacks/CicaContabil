@@ -1,0 +1,22 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_situacao_encerramento/",
+  "servico": "MIT.SITUACAOENC315",
+  "notes": [
+    "Montada da tabela 'Dados de Saída' e do domínio situacaoApuracao (2 = EM_EDICAO): a página diz que a DCTFWeb pode recusar a apuração e que o motivo vem em avisosDctf. Texto do aviso fictício; dataEncerramento ausente porque a apuração não foi encerrada."
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "idApuracao": 0,
+    "situacaoApuracao": 2,
+    "textoSituacao": "EM_EDICAO",
+    "avisosDctf": [
+      "Aviso fictício da DCTFWeb."
+    ]
+  }
+}

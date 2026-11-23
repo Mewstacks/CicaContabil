@@ -1,0 +1,96 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sicalc/sicalc/exemplos/retorno_apoio_consulta_receitas_do_sicalc/",
+  "servico": "SICALC.CONSULTAAPOIORECEITAS52",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-SICALC]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "receita": {
+      "codigoReceita": 6106,
+      "descricaoReceita": "Simples - Pagamento de Micro Empresa e Empresa de Pequeno Porte",
+      "extensoes": [
+        {
+          "obrigatorios": {
+            "codigoReceita": true,
+            "codigoReceitaExtensao": true,
+            "cota": false,
+            "dataConsolidacao": true,
+            "dataPA": true,
+            "referencia": false,
+            "tipoPA": true,
+            "valorImposto": true,
+            "vencimento": false
+          },
+          "informacoes": {
+            "calculado": true,
+            "codigoBarras": true,
+            "codigoReceitaExtensao": 1,
+            "criacao": "1997-01-01T00:00:00",
+            "descricaoReceitaExtensao": "SIMPLES - PAGAMENTO ME/EPP",
+            "descricaoReferencia": "SEM REFERÊNCIA",
+            "exigeMatriz": true,
+            "extincao": "2007-06-30T00:00:00",
+            "manual": false,
+            "pf": false,
+            "pj": false,
+            "tipoPeriodoApuracao": "ME",
+            "vedaValor": true
+          },
+          "opcionais": {
+            "cno": false,
+            "cnpjPrestador": false,
+            "municipio": true,
+            "observacao": true,
+            "referencia": true,
+            "uf": true,
+            "valorJuros": false,
+            "valorMulta": false
+          }
+        },
+        {
+          "obrigatorios": {
+            "codigoReceita": true,
+            "codigoReceitaExtensao": true,
+            "cota": false,
+            "dataConsolidacao": true,
+            "dataPA": true,
+            "referencia": false,
+            "tipoPA": true,
+            "valorImposto": true,
+            "vencimento": true
+          },
+          "informacoes": {
+            "calculado": true,
+            "codigoBarras": true,
+            "codigoReceitaExtensao": 2,
+            "criacao": "2006-07-01T00:00:00",
+            "descricaoReceitaExtensao": "SIMPLES - PAGAMENTO ME-EPP",
+            "descricaoReferencia": "SEM REFERÊNCIA",
+            "exigeMatriz": true,
+            "extincao": "2007-06-30T00:00:00",
+            "manual": false,
+            "pf": false,
+            "pj": false,
+            "tipoPeriodoApuracao": "ME",
+            "vedaValor": true
+          },
+          "opcionais": {
+            "cno": false,
+            "cnpjPrestador": false,
+            "municipio": true,
+            "observacao": true,
+            "referencia": true,
+            "uf": true,
+            "valorJuros": false,
+            "valorMulta": false
+          }
+        }
+      ]
+    }
+  }
+}

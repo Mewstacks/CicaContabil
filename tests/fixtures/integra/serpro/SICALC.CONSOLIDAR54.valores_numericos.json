@@ -1,0 +1,27 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-sicalc/sicalc/servicos/consolidar_emitir_um_darf/",
+  "servico": "SICALC.CONSOLIDAR54",
+  "notes": [
+    "montada do objeto consolidado do exemplo de saída do serviço 51: a página diz que o 54 devolve só o consolidado (seção Diferença entre serviços); darf e numeroDocumento foram retirados"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-SICALC]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "consolidado": {
+      "valorPrincipalMoedaCorrente": 1000.0,
+      "valorTotalConsolidado": 1250.0,
+      "valorMultaMora": 150.0,
+      "percentualMultaMora": 15.0,
+      "valorJuros": 100.0,
+      "percentualJuros": 10.0,
+      "termoInicialJuros": "2018-02-01T00:00:00",
+      "dataArrecadacaoConsolidacao": "2022-08-08T00:00:00",
+      "dataValidadeCalculo": "2022-08-09T00:00:00"
+    }
+  }
+}

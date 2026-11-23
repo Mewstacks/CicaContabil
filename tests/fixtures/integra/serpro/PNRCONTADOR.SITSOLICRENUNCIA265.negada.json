@@ -1,0 +1,19 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-redesim/pnrcontador/servicos/situacao_solicitar_renuncia/",
+  "servico": "PNRCONTADOR.SITSOLICRENUNCIA265",
+  "notes": [
+    "montada da tabela Dados de Saída (renuncia pode ser nula quando a renúncia ainda não foi efetivada ou foi negada); o texto de mensagemRetorno é fictício"
+  ],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PNRCONTADOR",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "resultado": false,
+    "mensagemRetorno": "A solicitação de renúncia não foi efetivada.",
+    "renuncia": null
+  }
+}

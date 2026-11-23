@@ -1,0 +1,51 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-redesim/pnrcontador/exemplos/retorno_consultar_renuncias/",
+  "servico": "PNRCONTADOR.CONSRENUNCIA263",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "Sucesso-PNRCONTADOR",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "content": [
+      {
+        "id": 1234,
+        "cnpjRenunciada": "99999999999999",
+        "dataRenuncia": "1739242800000",
+        "cnpjSolicitante": null,
+        "cnpjRenunciante": null,
+        "cpfSolicitante": "00000000011",
+        "cpfRenunciante": "00000000011",
+        "cpfLogado": "00000000011"
+      }
+    ],
+    "pageable": {
+      "pageNumber": 0,
+      "pageSize": 10,
+      "sort": {
+        "sorted": false,
+        "empty": true,
+        "unsorted": true
+      },
+      "offset": 0,
+      "paged": true,
+      "unpaged": false
+    },
+    "last": false,
+    "totalElements": 1,
+    "totalPages": 1,
+    "size": 10,
+    "number": 0,
+    "sort": {
+      "sorted": false,
+      "empty": true,
+      "unsorted": true
+    },
+    "numberOfElements": 1,
+    "first": true,
+    "empty": false
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "source": "https://apicenter.estaleiro.serpro.gov.br/documentacao/api-integra-contador/pt/solucoes/integra-dctfweb/mit/servicos/consultar_apuracao_ano_mes/",
+  "servico": "MIT.LISTAAPURACOES317",
+  "notes": [],
+  "status": 200,
+  "mensagens": [
+    {
+      "codigo": "[Sucesso-MIT]",
+      "texto": "Requisição efetuada com sucesso."
+    }
+  ],
+  "dados": {
+    "Apuracoes": [
+      {
+        "periodoApuracao": 202512,
+        "idApuracao": 0,
+        "situacao": 3,
+        "dataEncerramento": "20250218",
+        "eventoEspecial": false,
+        "valorTotalApurado": 1000.0
+      },
+      {
+        "periodoApuracao": 202512,
+        "idApuracao": 1,
+        "situacao": 3,
+        "dataEncerramento": "20250219",
+        "eventoEspecial": false,
+        "valorTotalApurado": 1500.0
+      }
+    ]
+  }
+}
