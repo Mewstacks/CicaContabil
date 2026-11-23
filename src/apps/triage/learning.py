@@ -45,14 +45,27 @@ def sender_key(value: str) -> str:
     return address if "@" in address else ""
 
 
-def item_sender_keys(item: TriageItem) -> list[str]:
-    """Original author of a forwarded message first, then the sender."""
+def _internal_forward(item: TriageItem, outer: str) -> bool:
+    """Is the outer sender staff of the office that owns the mailbox (a real forward)?
 
-    keys: list[str] = []
-    for raw in (item.original_sender, item.sender):
-        key = sender_key(raw)
-        if key and key not in keys:
-            keys.append(key)
+    Only then is the author named in the body worth anything: any outside sender can write
+    ``De: someone@victim`` in a message, so that name is never a key on its own.
+    """
+
+    mailbox = item.mailbox if item.mailbox_id else None
+    if mailbox is None or "@" not in mailbox.address or "@" not in outer:
+        return False
+    return outer.rsplit("@", 1)[1] == mailbox.address.rsplit("@", 1)[1].casefold()
+
+
+def item_sender_keys(item: TriageItem) -> list[str]:
+    """The authenticated-looking sender, plus the original author of an internal forward."""
+
+    outer = sender_key(item.sender)
+    keys = [outer] if outer else []
+    original = sender_key(item.original_sender)
+    if original and original not in keys and _internal_forward(item, outer):
+        keys.insert(0, original)
     return keys
 
 
@@ -119,7 +132,7 @@ def record_hard_proof(item: TriageItem, company: ClientCompany) -> bool:
 
 
 def record_account_proof(item: TriageItem, company: ClientCompany, text: str) -> bool:
-    """Same as ``record_hard_proof`` for the account key found in the document text."""
+    """Same as ``record_hard_proof`` for the account key of a structured OFX document."""
 
     key = ofx_account_key(text)
     if not key or company.organization_id != item.organization_id:
@@ -141,6 +154,32 @@ def record_account_proof(item: TriageItem, company: ClientCompany, text: str) ->
         content_hash=item.content_hash,
     )
     return not was_active and link_is_active(link)
+
+
+def learn_from_approval(item: TriageItem) -> bool:
+    """A person approved ``item``: its company is the truth the sender/account links learn.
+
+    Auto-approved items never teach (no self-reinforcement) and nothing is learned before a
+    person decided, so a crafted e-mail cannot poison the links by itself. Returns True when a
+    link just became active (pending items then deserve a fresh look).
+    """
+
+    company = item.company
+    if (
+        item.auto_decision == "auto"
+        or company is None
+        or company.organization_id != item.organization_id
+    ):
+        return False
+    activated = record_hard_proof(item, company)
+    account = str((item.scores or {}).get("account", ""))
+    if account:
+        bank, _, number = account.partition(":")
+        activated = (
+            record_account_proof(item, company, f"<BANKID>{bank}</BANKID><ACCTID>{number}</ACCTID>")
+            or activated
+        )
+    return activated
 
 
 # ---- sender rule: a person's confirmation, three activate -----------------------------------

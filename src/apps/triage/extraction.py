@@ -23,6 +23,7 @@ from django.utils import timezone
 from apps.hub.models import ClientCompany
 from apps.organizations.models import Organization
 from apps.triage import learning, ocr
+from apps.triage.auto import evaluate as evaluate_auto
 from apps.triage.catalog import keyword_score
 from apps.triage.identification import Identification, identify_company
 from apps.triage.intake_policy import engine_version_for
@@ -141,9 +142,7 @@ def _ocr_pending(item: TriageItem) -> bool:
     from apps.triage.tasks import ocr_triage_item
 
     item_id = str(item.pk)
-    transaction.on_commit(
-        lambda: ocr_triage_item.apply_async(args=[item_id], queue=ocr.OCR_QUEUE)
-    )
+    transaction.on_commit(lambda: ocr_triage_item.apply_async(args=[item_id], queue=ocr.OCR_QUEUE))
     return True
 
 
@@ -158,9 +157,7 @@ def _match_document_type(
 
     types = list(DocumentType.objects.filter(organization=item.organization, active=True))
     name_subject = " ".join([sources.get("nome", ""), sources.get("assunto", "")])
-    text = " ".join(
-        sources.get(key, "") for key in ("conteúdo", "corpo")
-    )[:_RANK_TEXT_LIMIT]
+    text = " ".join(sources.get(key, "") for key in ("conteúdo", "corpo"))[:_RANK_TEXT_LIMIT]
     haystack = _tokens(name_subject)
     taught = {document_type.pk for document_type in learning.sender_rule_types(item)}
     scored: list[tuple[int, DocumentType, list[str]]] = []
@@ -248,10 +245,15 @@ def render_final_name(
 
 
 def suggest(item: TriageItem) -> Suggestion:
+    return suggest_text(item, _payload_text(item))
+
+
+def suggest_text(item: TriageItem, content: str) -> Suggestion:
+    """The suggestion for an item whose readable text is ``content`` (nothing is saved)."""
     sources = {
         "nome": item.original_name,
         "assunto": item.subject,
-        "conteúdo": _payload_text(item),
+        "conteúdo": content,
         "corpo": item.body_excerpt,
     }
     result = Suggestion()
@@ -269,7 +271,11 @@ def suggest(item: TriageItem) -> Suggestion:
             "margem": result.identification.margin,
         }
     result.scores["company"] = result.identification.as_scores()
-    account = learning.ofx_account_key(sources.get("conteúdo", ""))
+    account = (
+        learning.ofx_account_key(sources.get("conteúdo", ""))
+        if item.original_name.casefold().endswith(".ofx")
+        else ""
+    )
     if account:
         result.scores["account"] = account
     result.document_type, evidence, type_scores = _match_document_type(item, sources)
@@ -291,24 +297,6 @@ def suggest(item: TriageItem) -> Suggestion:
             suffix=PurePosixPath(item.original_name).suffix.casefold(),
         )
     return result
-
-
-def _learn_from_proofs(item: TriageItem, result: Suggestion) -> bool:
-    """A hard proof for a company teaches the sender/account link (idempotent).
-
-    Returns True when a link just became active, so pending items get reclassified.
-    """
-    ident = result.identification
-    if ident is None or ident.company is None or ident.status != "accepted":
-        return False
-    if not any(signal.hard for signal in ident.signals):
-        return False
-    activated = learning.record_hard_proof(item, ident.company)
-    account = str(result.scores.get("account", ""))
-    if account:
-        bank_text = "<BANKID>" + account.replace(":", "</BANKID><ACCTID>", 1)
-        activated = learning.record_account_proof(item, ident.company, bank_text) or activated
-    return activated
 
 
 def extract_item(*, item_id: UUID | str) -> TriageItem:
@@ -377,23 +365,37 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
         if not item.final_name and result.final_name:
             item.final_name = result.final_name
             updates.append("final_name")
+        verdict = evaluate_auto(item, result.identification, result.scores)
+        item.auto_decision = verdict.decision
+        updates.append("auto_decision")
+        if verdict.reason:
+            result.evidence["Auto"] = {
+                "valor": "aprovado" if verdict.decision == "auto" else "amostra",
+                "evidencia": verdict.reason,
+            }
         item.ai_fields = result.evidence
-        item.transition_to(TriageStatus.AWAITING_REVIEW)
+        if verdict.decision == "auto":
+            item.reviewed_at = timezone.now()
+            updates.append("reviewed_at")
+            item.transition_to(TriageStatus.READY_TO_ARCHIVE)
+        else:
+            item.transition_to(TriageStatus.AWAITING_REVIEW)
         item.save(update_fields=updates)
-        link_activated = _learn_from_proofs(item, result)
         found = ", ".join(result.evidence) or "nenhum campo"
         TriageEvent.objects.create(
             organization=item.organization,
             triage_item=item,
             from_status=TriageStatus.EXTRACTING,
             to_status=item.status,
-            note=f"Sugestão automática: {found}. Revisão humana necessária",
+            note=(
+                f"Aprovado automaticamente: {verdict.reason}"
+                if verdict.decision == "auto"
+                else f"Amostra de auditoria: {verdict.reason}. Revisão humana necessária"
+                if verdict.decision == "sampled"
+                else f"Sugestão automática: {found}. Revisão humana necessária"
+            )[:500],
         )
     from apps.hub.module_activities import sync_triage_activity
 
     sync_triage_activity(item.pk)
-    if link_activated:
-        from apps.triage.reclassify import reclassify_pending
-
-        reclassify_pending(item.organization, exclude=item.pk)
     return item

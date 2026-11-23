@@ -144,7 +144,7 @@ class ScoreboardTests(TriageV2Case):
         self.assertIsNone(got.company)
 
     def test_a_forwarded_original_sender_is_the_key(self) -> None:
-        item = self.item(sender="ana@office.test", original_sender="cliente@padaria.example")
+        item = self.item(sender="ana@e11-office.test", original_sender="cliente@padaria.example")
         link = LearnedLink.objects.create(
             organization=self.office,
             kind="sender",
@@ -161,7 +161,7 @@ class ScoreboardTests(TriageV2Case):
         self.assertEqual(self.identify(item).company, self.company)
 
     def test_account_link_with_two_proofs_is_a_hard_proof(self) -> None:
-        item = self.item()
+        item = self.item("conta.ofx")
         link = LearnedLink.objects.create(
             organization=self.office, kind="account", key="1:12345-6", company=self.company
         )

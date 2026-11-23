@@ -31,6 +31,29 @@ CNPJ = "12.345.678/0001-95"
 class LearningCase(TriageV2Case):
     counter = 0
 
+    def setUp(self) -> None:
+        super().setUp()
+        self.type = DocumentType.objects.create(
+            organization=self.office,
+            code="extrato",
+            label="Extrato",
+            name_template="{codigo}_E_{periodo}",
+            period_kind="competencia",
+        )
+
+    def approve(self, item: TriageItem) -> TriageItem:
+        """A person confirms the item: the only moment anything is learned."""
+        item = update_review_fields(
+            item=item,
+            actor=self.owner,
+            company=item.company,
+            document_type=self.type,
+            period_label="2026-09",
+            counterparty_token="",
+            final_name="x.xml",
+        )
+        return decide_item(item=item, actor=self.owner, decision="archive", reason="")
+
     def mail(
         self,
         body: str,
@@ -39,11 +62,12 @@ class LearningCase(TriageV2Case):
         message: str,
         mailbox: Any = None,
         raw: bool = False,
+        suffix: str | None = None,
     ) -> TriageItem:
         LearningCase.counter += 1
         number = LearningCase.counter
-        suffix, payload = (
-            (".csv", f"{body}\n#{number}\n".encode())
+        ext, payload = (
+            (suffix or ".csv", f"{body}\n#{number}\n".encode())
             if raw
             else (".xml", f"<a>{body} #{number}</a>".encode())
         )
@@ -51,7 +75,7 @@ class LearningCase(TriageV2Case):
             mailbox=mailbox or self.mailbox,
             message_id=message,
             part_id=str(number),
-            filename=f"doc{number}{suffix}",
+            filename=f"doc{number}{ext}",
             payload=payload,
             sender=sender,
             received_at=timezone.now(),
@@ -65,7 +89,7 @@ class SenderLinkTests(LearningCase):
         for number in range(emails):
             message = f"m{sender}{number}-{LearningCase.counter}"
             for _ in range(per_email):
-                self.mail(f"CNPJ {CNPJ}", sender=sender, message=message)
+                self.approve(self.mail(f"CNPJ {CNPJ}", sender=sender, message=message))
 
     def test_three_emails_and_three_files_activate_the_sender_link(self) -> None:
         self.teach(2)
@@ -156,15 +180,18 @@ class SenderLinkTests(LearningCase):
 
 
 class AccountLinkTests(LearningCase):
-    def ofx(self, with_cnpj: bool, message: str) -> TriageItem:
+    def ofx(self, with_cnpj: bool, message: str, *, approve: bool = False) -> TriageItem:
         text = "<OFX><BANKID>0001</BANKID><ACCTID>12345-6</ACCTID>"
         text += f"CNPJ {CNPJ}" if with_cnpj else ""
-        return self.mail(text + "</OFX>", sender="banco@x.example", message=message)
+        item = self.mail(
+            text + "</OFX>", sender="banco@x.example", message=message, raw=True, suffix=".ofx"
+        )
+        return self.approve(item) if approve else item
 
-    def test_two_proofs_teach_the_account(self) -> None:
-        self.ofx(True, "o1")
+    def test_two_approved_proofs_teach_the_account(self) -> None:
+        self.ofx(True, "o1", approve=True)
         self.assertEqual(learning.active_link_companies(self.office, "account", "1:12345-6"), [])
-        self.ofx(True, "o2")
+        self.ofx(True, "o2", approve=True)
         self.assertEqual(
             learning.active_link_companies(self.office, "account", "1:12345-6"), [self.company]
         )
@@ -172,18 +199,49 @@ class AccountLinkTests(LearningCase):
         self.assertEqual(later.company, self.company)
         self.assertEqual(later.ai_fields["Empresa"]["evidencia"], "Conta bancária conhecida")
 
+    def test_nothing_is_learned_before_a_person_approves(self) -> None:
+        self.ofx(True, "p1")
+        self.ofx(True, "p2")
+        self.assertFalse(LearnedLink.objects.exists())
 
-class SenderRuleTests(LearningCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.type = DocumentType.objects.create(
-            organization=self.office,
-            code="relatorio",
-            label="Relatório interno",
-            name_template="{codigo}_REL_{periodo}",
-            period_kind="competencia",
+    def test_account_tags_in_a_non_ofx_file_never_count(self) -> None:
+        for number in range(3):
+            body = "<OFX><BANKID>0001</BANKID><ACCTID>12345-6</ACCTID></OFX>"
+            self.approve(
+                self.mail(f"CNPJ {CNPJ} {body}", sender="b@x.example", message=f"x{number}")
+            )
+        self.assertFalse(LearnedLink.objects.filter(kind="account").exists())
+
+
+class PoisoningTests(LearningCase):
+    def test_extraction_alone_never_teaches_a_sender_link(self) -> None:
+        for number in range(4):
+            self.mail(f"CNPJ {CNPJ}", sender="evil@x.example", message=f"e{number}")
+        self.assertFalse(LearnedLink.objects.exists())
+
+    def test_auto_approved_items_never_teach(self) -> None:
+        item = self.mail(f"CNPJ {CNPJ}", sender="auto@x.example", message="au1")
+        TriageItem.objects.filter(pk=item.pk).update(auto_decision="auto")
+        item.refresh_from_db()
+        self.assertFalse(learning.learn_from_approval(item))
+        self.assertFalse(LearnedLink.objects.exists())
+
+    def test_outside_sender_cannot_name_an_author_in_the_body(self) -> None:
+        item = self.mail("x", sender="stranger@evil.example", message="f1")
+        TriageItem.objects.filter(pk=item.pk).update(original_sender="victim@padaria.example")
+        item.refresh_from_db()
+        self.assertEqual(learning.item_sender_keys(item), ["stranger@evil.example"])
+
+    def test_staff_forward_uses_the_original_author(self) -> None:
+        item = self.mail("x", sender="ana@e11-office.test", message="f2")
+        TriageItem.objects.filter(pk=item.pk).update(original_sender="cliente@padaria.example")
+        item.refresh_from_db()
+        self.assertEqual(
+            learning.item_sender_keys(item), ["cliente@padaria.example", "ana@e11-office.test"]
         )
 
+
+class SenderRuleTests(LearningCase):
     def approve(self, sender: str, message: str) -> TriageItem:
         item = self.mail("conteudo livre", sender=sender, message=message)
         item = update_review_fields(
@@ -302,13 +360,7 @@ class FieldRuleTests(LearningCase):
 
 class CorrectionTests(LearningCase):
     def archived_item(self) -> TriageItem:
-        document_type = DocumentType.objects.create(
-            organization=self.office,
-            code="extrato",
-            label="Extrato",
-            name_template="{codigo}_E_{periodo}",
-            period_kind="competencia",
-        )
+        document_type = self.type
         item = self.mail(f"CNPJ {CNPJ}", sender="err@padaria.example", message="c1")
         item = update_review_fields(
             item=item,
@@ -327,7 +379,9 @@ class CorrectionTests(LearningCase):
     ) -> None:
         item = self.archived_item()
         for number in range(2, 5):
-            self.mail(f"CNPJ {CNPJ}", sender="err@padaria.example", message=f"c{number}")
+            self.approve(
+                self.mail(f"CNPJ {CNPJ}", sender="err@padaria.example", message=f"c{number}")
+            )
         self.assertEqual(
             learning.active_link_companies(self.office, "sender", "err@padaria.example"),
             [self.company],

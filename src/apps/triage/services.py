@@ -473,6 +473,10 @@ def decide_item(
         from apps.triage import learning
 
         learning.confirm_sender_rule(item)
+        if learning.learn_from_approval(item):
+            from apps.triage.reclassify import reclassify_pending
+
+            reclassify_pending(item.organization, exclude=item.pk)
     record_event(
         action=f"triage.item.{decision}",
         actor=actor,

@@ -100,7 +100,6 @@ def identify_company(item: TriageItem, sources: dict[str, str]) -> Identificatio
             ):
                 add(company, "code", HARD_POINTS, "Código Domínio no nome", hard=True)
 
-    text_all = " ".join(sources.values())
     for company in companies:
         phrase = _name_phrase(company.name)
         if not phrase:
@@ -115,7 +114,11 @@ def identify_company(item: TriageItem, sources: dict[str, str]) -> Identificatio
             item.organization, LearnedLink.Kind.SENDER, key
         ):
             add(company, "sender", HARD_POINTS, "Remetente conhecido", hard=False)
-    account = learning.ofx_account_key(text_all)
+    account = (
+        learning.ofx_account_key(sources.get("conteúdo", ""))
+        if item.original_name.casefold().endswith(".ofx")
+        else ""
+    )
     for company in learning.active_link_companies(
         item.organization, LearnedLink.Kind.ACCOUNT, account
     ):
