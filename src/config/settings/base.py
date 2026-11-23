@@ -542,6 +542,10 @@ NFSE_ADN_POLL_INTERVAL_MINUTES = max(5, env_int("NFSE_ADN_POLL_INTERVAL_MINUTES"
 NFSE_PROCURACAO_SYNC_ENABLED = env_bool("NFSE_PROCURACAO_SYNC_ENABLED", False)
 NFSE_PROCURACAO_POLL_INTERVAL_MINUTES = max(1, env_int("NFSE_PROCURACAO_POLL_INTERVAL_MINUTES", 2))
 
+# E14: radar Simples/MEI (tela e aba). Só lê NFS-e já coletada; desligado, a aba não aparece e a
+# rota devolve 404, então nenhum escritório atual vê diferença.
+SIMPLES_RADAR_ENABLED = env_bool("SIMPLES_RADAR_ENABLED", False)
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "SaaS Backend API",
     "DESCRIPTION": "Versioned API for the reusable SaaS backend.",

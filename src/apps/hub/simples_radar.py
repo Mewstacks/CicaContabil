@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 
 from apps.hub.models import ClientCompany, NfseDocumentSide, PayrollPeriodSnapshot
 from apps.organizations.models import Organization
@@ -163,15 +163,17 @@ def radar_row(
     )
 
 
-def portfolio(organization: Organization, today: date) -> list[RadarRow]:
-    """Carteira do escritório, da mais perto do teto para a mais longe."""
+def portfolio(
+    organization: Organization,
+    today: date,
+    companies: QuerySet[ClientCompany] | None = None,
+) -> list[RadarRow]:
+    """Carteira do escritório, da mais perto do teto para a mais longe.
 
-    rows = []
-    companies = ClientCompany.objects.filter(
-        organization=organization, active=True, tax_regime__in=list(LIMITS)
-    )
-    for company in companies:
-        row = radar_row(company, today)
-        if row is not None:
-            rows.append(row)
+    `companies` restringe ao escopo do colaborador; sem ele vale o escritório inteiro.
+    """
+
+    scope = companies if companies is not None else ClientCompany.objects.all()
+    scope = scope.filter(organization=organization, active=True, tax_regime__in=list(LIMITS))
+    rows = [row for company in scope if (row := radar_row(company, today)) is not None]
     return sorted(rows, key=lambda row: row.percent, reverse=True)
