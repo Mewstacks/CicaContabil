@@ -12615,3 +12615,21 @@ de evidência com ator técnico (sem usuário). Conferência: 14 regras, todas `
 classificados por regra. Nenhuma regra ativada; ativação cabe à proprietária na tela “Sugestões
 pelo Razão”. Tela não reaberta em produção: a sessão do navegador expirou (senha não digitada);
 interface verificada em laboratório (V-435).
+
+## V-437 — D-392: sugestões DE-PARA pelo Razão geradas sozinhas (22/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-depara-automatico` a partir da main `c5055cf` (v116).
+
+Implementado: `refresh_ledger_suggestions` (após o commit, por `transaction.on_commit`; erro só
+registrado em log) chamado na confirmação automática D-388 (`auto_confirm_exact`), em “Confirmar
+coincidências” e na confirmação individual da ficha do movimento; `create_drafts` passa a retirar
+(“Descartada”, motivo `sem_evidencia_atual` em auditoria, ator técnico) os rascunhos que deixaram de
+ter evidência, sem tocar regra ativa ou descartada por pessoa; comando
+`depara_razao create-all --organization` para todas as contas ativas (uma falha não interrompe as
+demais). Sem migração, sem IA.
+
+Testes: 4 novos em `tests/test_depara_ledger.py` (sugestões criadas pela própria confirmação;
+rascunho retirado quando outra competência passa a contradizer e regra ativa preservada; falha da
+rotina não desfaz a confirmação; `create-all` em duas contas). Suíte SQLite completa 3.463
+aprovados, 59 skips, zero falhas; Ruff/MyPy ok. Sem mudança de interface (a tela da D-391 mostra as
+sugestões novas). Não publicado: merge/deploy aguardam autorização.

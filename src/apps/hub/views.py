@@ -11057,6 +11057,9 @@ def reconciliation_source_confirm_exact(request: HttpRequest, source_id: str) ->
                 request=request,
                 metadata={"count": len(pairs), "period": {k: str(v) for k, v in period.items()}},
             )
+            from apps.hub.depara_ledger import refresh_ledger_suggestions
+
+            refresh_ledger_suggestions(source.financial_account_id)
     except ReconciliationError as exc:
         messages.error(request, str(exc))
         return redirect(back)
@@ -11473,6 +11476,9 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
                         "amount_cents": reconciliation.amount_cents,
                     },
                 )
+                from apps.hub.depara_ledger import refresh_ledger_suggestions
+
+                refresh_ledger_suggestions(movement.financial_account_id)
                 messages.success(
                     request,
                     (

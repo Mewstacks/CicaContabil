@@ -78,6 +78,10 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
                         "period": {key: str(value) for key, value in period.items()},
                     },
                 )
+            if pairs:
+                from apps.hub.depara_ledger import refresh_ledger_suggestions
+
+                refresh_ledger_suggestions(source.financial_account_id)
             return len(pairs)
     except Exception:
         return 0
