@@ -49,7 +49,7 @@ class ZipReading:
     ignored: Counter[str] = field(default_factory=Counter)
 
     def summary(self) -> str:
-        return ", ".join(f"{count}× {label}" for label, count in self.ignored.most_common(6))
+        return ", ".join(f"{count}x {label}" for label, count in self.ignored.most_common(6))
 
 
 def _is_junk(parts: list[str]) -> bool:
@@ -150,7 +150,7 @@ def _plan(
 
 def _refuse_if_empty(planned: list[object], ignored: Counter[str]) -> None:
     if not planned:
-        detail = ", ".join(f"{count}× {label}" for label, count in ignored.most_common(6))
+        detail = ", ".join(f"{count}x {label}" for label, count in ignored.most_common(6))
         raise ArchiveRejected(
             "Nenhum arquivo aceito no pacote" + (f" (ignorados: {detail})." if detail else ".")
         )

@@ -20,6 +20,7 @@ from django.utils import timezone
 
 from apps.audit.services import record_event
 from apps.triage.file_policy import UnsupportedAttachment, validate_supported_attachment
+from apps.triage.intake_policy import policy_for
 from apps.triage.models import TriageEvent, TriageItem, TriageSafetyScan
 from apps.triage.transitions import TriageStatus
 
@@ -136,7 +137,9 @@ def scan_quarantined_item(*, item: TriageItem, scanner: Scanner | None = None) -
             try:
                 with item.blob.content.open("rb") as stream:
                     detected_type = validate_supported_attachment(
-                        cast(BinaryIO, stream), filename=item.original_name
+                        cast(BinaryIO, stream),
+                        filename=item.original_name,
+                        allowed=policy_for(item.organization).suffixes,
                     )
                 format_verdict = TriageSafetyScan.FormatVerdict.VALID
             except UnsupportedAttachment as exc:

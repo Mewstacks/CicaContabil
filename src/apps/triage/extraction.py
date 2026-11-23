@@ -295,6 +295,11 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
             to_status=item.status,
             note="Identificação automática iniciada",
         )
+        from apps.triage.archive_expand import expand_archive_item, is_archive
+
+        if is_archive(item):
+            expand_archive_item(item)
+            return item
         try:
             result = suggest(item)
         except ValidationError as exc:
