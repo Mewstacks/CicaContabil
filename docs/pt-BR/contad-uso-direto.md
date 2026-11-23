@@ -33,5 +33,7 @@ nada fica esperando revisão de ninguém. Este guia substitui o treinamento.
 - Movimento sem regra (por exemplo, um tipo de pagamento que nunca apareceu no Razão) fica sem
   lançamento até existir histórico suficiente; nada impede consultar ou classificar à mão.
 - “Registrar revisão (opcional)” na conferência continua disponível, sem obrigação.
-- Títulos e baixas: a fonte recebida do Domínio aparece como veio, sem aviso de conferência.
+- Títulos e baixas: cada busca no Domínio é interpretada sozinha (juros, multa, desconto e retenções
+  pelos tipos oficiais) e aparece em *Títulos e baixas*. Serviços e casos fora do padrão (estorno,
+  tipo desconhecido) ficam só como fonte recebida.
 - IA como segunda opinião continua desligada (depende de chave e limite de custo).

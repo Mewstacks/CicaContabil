@@ -6076,3 +6076,32 @@ Nenhum outro escritório muda de comportamento.
 
 Sem migração, custo, IA ou mensagem externa. Merge, deploy, habilitação do UUID em produção e a
 execução da rotina sobre os dados reais dependem de autorização explícita do responsável na sessão.
+
+## D-394 — Interpretação automática dos títulos e baixas (C01/C02) no uso direto (23/11/2026)
+
+Origem: responsável, 23/11/2026, “faz a interpretação automática dos títulos C01/C02”, depois de
+D-393 deixar a visão estruturada de títulos dependente de interpretação por parcela. Executor
+Claude Code. Vale só para escritório em uso direto (D-393); os demais continuam com a revisão
+humana por parcela. Supera, nesse escopo, D-375 (“revisão de títulos cabe à cliente”) e a nota de
+V-415 de que a leitura técnica C01/C02 era só orientação.
+
+Regra de interpretação (tipos oficiais do Domínio, soluções 6168/6169, V-370/V-415):
+1. Natureza: Entradas = a pagar (saída do banco); Saídas = a receber (entrada no banco). Serviços
+   ficam sem interpretação automática: não há prova dos códigos nem da natureza (V-370).
+2. Principal da parcela: `vlor_*` (valor líquido, C01: vbru − retenções = vlor); `vbru_*` só se
+   `vlor_*` estiver vazio ou zerado.
+3. Cada baixa = linhas de pagamento da parcela com a mesma data e o mesmo número de pagamento.
+   Tipo 1 = valor pago/recebido = **caixa**; tipo 2 = juros; tipo 3 = multa; tipo 4 = desconto;
+   principal da baixa = caixa − juros − multa + desconto (C02: tipo 1 já inclui os juros; somar
+   duplicaria). Tipos 6, 7, 8, 9 e 10 (Entradas) / 6, 7, 8 e 9 (Saídas) são retenções: entram na
+   proveniência da baixa, não no caixa.
+4. Fica sem interpretação automática (continua só como fonte recebida) a parcela com tipo fora da
+   lista, valor negativo (estorno não comprovado), baixa sem tipo 1, principal negativo, soma das
+   baixas acima do principal, ou que já tenha vínculo confirmado com o banco diferente do novo.
+5. Conta: os títulos ficam na conta bancária ativa da empresa (a com vínculo ao Razão; havendo
+   mais de uma, a mais antiga). Empresa sem conta recebe a interpretação quando ganhar uma.
+6. Autoria: usuário técnico sem acesso “CICA — interpretação automática”, nunca uma pessoa. As
+   fotografias seguem acumulando por competência, sem substituir competência mais recente.
+7. Gatilho: chegada de cada captura de títulos (tarefa assíncrona), criação de conta bancária e
+   comando `titulos_auto` para o que já foi capturado. O vínculo baixa × extrato continua sendo
+   a conferência existente. Sem migração, custo, IA ou mensagem externa.

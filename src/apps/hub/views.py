@@ -10457,6 +10457,13 @@ def reconciliation_upload(request: HttpRequest) -> HttpResponse:
         valid = _link_upload_account(request, form, files, office, companies)
     elif valid and files and form.statement_only_company_id:
         valid = _link_statement_account(request, form, files, office)
+    if valid and files and (form.auto_chart_account_id or form.statement_only_company_id):
+        from apps.hub.direct_use import direct_use_enabled
+
+        if direct_use_enabled(office):
+            from apps.hub.title_auto import schedule_company
+
+            schedule_company(form.cleaned_data["company"].pk)  # D-394: titles of the new account
     if not valid or not files:
         if not files:
             form.add_error("files", "Selecione ao menos um arquivo.")

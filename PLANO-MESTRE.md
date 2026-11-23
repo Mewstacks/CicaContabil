@@ -1,3 +1,10 @@
+<!-- D394-V442-2026-11-23 -->
+**23/11/2026 — D-394/V-442: títulos e baixas interpretados automaticamente (fonte isolada, não publicada).**
+No uso direto, cada captura de títulos vira fotografia sem revisão humana, pela leitura oficial
+dos tipos do Domínio (C01: retenções fora do caixa; C02: juros dentro do tipo 1), com autoria
+técnica “CICA — interpretação automática”. Serviços e casos não comprovados ficam como fonte.
+Publicação aguarda autorização.
+
 <!-- D393-V440-2026-11-23 -->
 **23/11/2026 — D-393/V-440/V-441: CONTAD em uso direto, publicado na release v118.**
 A cliente vê e usa os dados sem etapas de revisão: regras DE-PARA pelo Razão nascem ativas,

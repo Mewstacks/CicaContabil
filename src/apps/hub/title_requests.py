@@ -406,7 +406,10 @@ def title_job_context(*, job: TitleJob, actor: User) -> dict[str, Any]:
         from apps.hub.direct_use import direct_use_enabled
 
         label, detail = (
-            ("Fonte recebida", "Títulos e baixas do Domínio disponíveis como vieram da fonte.")
+            (
+                "Fonte recebida",
+                "Títulos e baixas interpretados automaticamente pelos tipos oficiais do Domínio.",
+            )
             if direct_use_enabled(company.organization)
             else (
                 "Fonte recebida",

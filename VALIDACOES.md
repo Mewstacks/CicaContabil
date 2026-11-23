@@ -12737,3 +12737,37 @@ Conferência somente leitura: uso direto e exportação liberados só para a CON
 escritório), zero homologações gravadas, 14 regras ativas com `require_review=false`; os 163
 lançamentos em rascunho são o Razão importado (nunca exportado). Telas não reabertas em produção
 (sem sessão do responsável no navegador); interface conferida em laboratório (V-440).
+
+## V-442 — D-394: interpretação automática de títulos e baixas (23/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-titulos-auto` a partir da main `2450492` (v118).
+
+Implementado: `apps/hub/title_auto.py` lê a captura retida (mesmas checagens de integridade de
+`_load`, sem vínculo de pessoa, só em escritório de uso direto) e monta a decisão de cada parcela
+pela regra D-394 (Entradas = a pagar, Saídas = a receber; principal `vlor_*`; baixa por data+número;
+tipo 1 = caixa, 2 juros, 3 multa, 4 desconto; 6–10/6–9 retenções na proveniência). Tradução pelo
+`translate_reviewed_titles` existente em lotes de 100, com divisão até isolar a parcela recusada pelo
+contrato; acumula na fotografia anterior da conta como a revisão por parcela, sem substituir
+competência mais recente nem parcela com vínculo confirmado. Autor: usuário técnico
+`interpretacao-automatica@cica.invalid` (inativo, sem senha utilizável, sem vínculo a escritório);
+`import_title_snapshot(routine=True)` aceita só esse autor em escritório de uso direto. Gatilhos:
+tarefa `hub.interpret_company_titles` após cada captura e após vincular conta na importação;
+comando `titulos_auto --organization <uuid> [--apply]`.
+
+Testes `tests/test_title_auto.py` (12): C01 (retenção fora do caixa, na proveniência), C02 (juros
+dentro do tipo 1: caixa 502, juros 2, principal 500, entrada), cinco casos não comprovados ficam sem
+interpretação (estorno, tipo desconhecido, retenção sem caixa, soma acima do principal, baixa após o
+mês), Serviços fora; captura sintética interpretada pela própria chegada (tarefa), autor técnico,
+Saídas negativa pulada, repetição idempotente, tela com linhas; escritório fora do uso direto
+continua sem fotografia e a leitura técnica é recusada; robô sem login nem vínculo; comando lista e
+aplica. Suíte SQLite completa: 3.484 aprovados, 59 skips, zero falhas; PostgreSQL 17 local: 172
+testes de títulos/uso direto aprovados. Ruff ok; MyPy sem erro nos arquivos novos.
+
+Navegador (servidor local descartável, captura sintética): *Títulos e baixas* mostra a parcela a
+pagar de R$ 100,00 com 2 baixas sem nenhuma revisão humana; relatório indica “Interpretação
+automática D-394 … · CICA — interpretação automática”. Observado, sem mudança nesta entrega: a
+tela identifica título e parcela por referência técnica (hash), não pelo número da nota.
+
+Limites: sem prova em fonte real da CONTAD até a publicação; tipos 3/4 seguem a mesma leitura do
+tipo 2 por analogia com C02 (não houve exemplo real); Serviços sem interpretação; o vínculo baixa ×
+extrato continua sendo a conferência existente.

@@ -327,6 +327,12 @@ def complete_job(request: HttpRequest, job_id: str) -> JsonResponse:
                 "updated_at",
             ]
         )
+        from apps.hub.direct_use import direct_use_enabled
+
+        if direct_use_enabled(agent.organization):
+            from apps.hub.title_auto import schedule_company
+
+            schedule_company(title_job_company(job).pk)  # D-394, after commit, in the worker
         record_event(
             action="intelligence.native_titles_captured",
             organization=agent.organization,

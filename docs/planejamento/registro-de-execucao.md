@@ -1,3 +1,11 @@
+<!-- D394-V442-2026-11-23 -->
+## 23/11/2026 — D-394/V-442: interpretação automática de títulos (fonte isolada)
+
+- [x] Decisão D-394 registrada antes da implementação.
+- [x] Interpretação C01/C02 pelos tipos oficiais, autor técnico, gatilhos e comando `titulos_auto`.
+- [x] Testes SQLite completos, PostgreSQL dos títulos e verificação em navegador (V-442).
+- [ ] Publicação e `titulos_auto --apply` em produção — aguardam autorização.
+
 <!-- D393-V440-2026-11-23 -->
 ## 23/11/2026 — D-393/V-440: CONTAD em uso direto (fonte isolada)
 
