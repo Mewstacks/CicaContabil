@@ -416,5 +416,8 @@ def build_zip(files: dict[str, bytes], *, compress: bool = True) -> bytes:
     method = zipfile.ZIP_DEFLATED if compress else zipfile.ZIP_STORED
     with zipfile.ZipFile(buffer, "w", method) as archive:
         for name, data in files.items():
-            archive.writestr(name, data)
+            # data fixa: o hash do zip entra na impressao digital da conferencia (reaproveitamento)
+            info = zipfile.ZipInfo(name, date_time=(2020, 1, 1, 0, 0, 0))
+            info.compress_type = method
+            archive.writestr(info, data)
     return buffer.getvalue()
