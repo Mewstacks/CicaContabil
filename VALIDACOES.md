@@ -12710,3 +12710,30 @@ confirmadas” e “Registrar revisão (opcional)” recolhido, também em 375 p
 Limites: não publicado; UUID da CONTAD não habilitado em produção; `uso_direto --apply` não executado
 nos dados reais (14 regras da SURIA continuam em rascunho até lá). Leiaute do arquivo continua sem
 importação real observada no Domínio (D-380). Não houve IA, custo, mensagem externa ou acesso ao ERP.
+
+## V-441 — Publicação da D-393 na release v118 e uso direto da CONTAD (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, publicar tudo”, depois “Continuar” duas
+vezes com o CI do PR #55 ainda em andamento). Por isso o deploy foi feito **antes** do fim do CI,
+apoiado na suíte SQLite completa local (3.472 aprovados, zero falhas) e em 85 testes dos módulos
+alterados em PostgreSQL 17 local descartável (tmpfs); o merge (`c70d562`) foi feito com o CI ainda em andamento, a pedido do responsável;
+src/ da main idêntico ao commit publicado.
+
+Imagem OCI sobre a v117 (`3c4a29a7…`) com os 14 arquivos de `src/` alterados, sem collectstatic
+(nenhum estático mudou): `sha256:2cc53822085f177b7cf874d2fcafaf69a6c001310332d7dcff0d4fe7a6acb144`;
+manifesto/config OCI, 228 gzip/11 zstd; SHA-256 dos 14 arquivos na imagem iguais aos do commit
+`1afa657`. Configuração de deploy = a da v117 + `CICA_DIRECT_USE_ORGANIZATION_IDS` com o UUID da
+CONTAD (o mesmo da prévia D-380); deploy/processos/vm iguais à configuração ativa. Antes: v117,
+live/ready 200.
+
+**Release v118**: release_command ok sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started`, reserva 18535e1c707538 parada; live/ready 200; `direct_use.py` e `views.py` com o mesmo
+SHA-256 e a variável presente nas duas máquinas.
+
+`uso_direto` em produção: sem `--apply`, 1 conta ativa (SURIA 212/8), 14 regras em rascunho, zero
+lançamentos aprovados. Com `--apply`: 14 ativadas, 0 mantidas em rascunho, 0 lançamentos gerados,
+4 movimentos pulados por terem registro parecido no Razão (os não confirmados de setembro), 0 erros.
+Conferência somente leitura: uso direto e exportação liberados só para a CONTAD (nenhum outro
+escritório), zero homologações gravadas, 14 regras ativas com `require_review=false`; os 163
+lançamentos em rascunho são o Razão importado (nunca exportado). Telas não reabertas em produção
+(sem sessão do responsável no navegador); interface conferida em laboratório (V-440).

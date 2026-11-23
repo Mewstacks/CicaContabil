@@ -1067,4 +1067,4 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 - [x] Regras DE-PARA pelo Razão ativas sem revisão no escritório habilitado; lançamento aprovado só do que falta no Razão.
 - [x] Extrato sem Razão para empresas sem conta de banco no plano ou sem plano.
 - [x] Revisão das confirmações automáticas opcional; amostra D-73 deixa de ser condição de uso da CONTAD.
-- [ ] Publicação, habilitação do UUID e `uso_direto --apply` em produção (autorização do responsável).
+- [x] Publicação v118, habilitação do UUID e `uso_direto --apply` em produção (V-441).
