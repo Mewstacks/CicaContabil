@@ -11,9 +11,8 @@ from datetime import date
 from django.utils import timezone
 
 from apps.hub import simples_radar
-from apps.hub.models import ProductModule
-from apps.hub.notifications import notify
-from apps.hub.procuracao_alerts import _administrators
+from apps.hub.models import ClientCompany, ProductModule
+from apps.hub.notifications import _administrators, notify
 from apps.organizations.models import Organization
 
 # Valor fora de `Notification.Kind`: o enum novo exige migração de `choices` (AlterField),
@@ -23,7 +22,11 @@ KIND = "simples_ceiling"
 
 
 def notify_simples_radar(*, today: date | None = None) -> int:
-    """Cria os avisos novos e devolve quantos criou."""
+    """Cria os avisos novos e devolve quantos criou.
+
+    Quem recebe é dono ou administrador COM acesso àquela empresa (escritório com plano de
+    controle limita o administrador por concessão); o aviso fica preso à empresa.
+    """
 
     today = today or timezone.localdate()
     created = 0
@@ -35,19 +38,21 @@ def notify_simples_radar(*, today: date | None = None) -> int:
         ),
     )
     for office in offices:
-        administrators = _administrators(office)
-        if not administrators:
-            continue
-        for row in simples_radar.portfolio(office, today):
-            if row.alert is None:
+        companies = ClientCompany.objects.filter(
+            organization=office, active=True, tax_regime__in=list(simples_radar.LIMITS)
+        )
+        for company in companies:
+            row = simples_radar.radar_row(company, today)
+            if row is None or row.alert is None:
                 continue
-            for person in administrators:
+            for person in _administrators(office, company):
                 notice = notify(
                     organization=office,
                     recipient=person,
                     kind=KIND,
                     title=f"{row.company_name} a {row.alert}% do teto",
                     dedupe_key=f"simples-ceiling:{row.company_id}:{today.year}:{row.alert}",
+                    company=company,
                 )
                 created += int(notice is not None)
     return created

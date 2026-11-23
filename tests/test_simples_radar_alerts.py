@@ -11,6 +11,8 @@ import pytest
 from apps.hub import simples_radar_alerts
 from apps.hub.models import (
     ClientCompany,
+    CompanyAccessGrant,
+    ControlPlaneBinding,
     NfseDocument,
     NfseDocumentSide,
     Notification,
@@ -97,3 +99,30 @@ def test_the_task_does_nothing_while_the_flag_is_off(world: World, settings: obj
     settings.SIMPLES_RADAR_ENABLED = True  # type: ignore[attr-defined]
     assert notify_simples_radar_task() >= 1
     assert Membership.objects.filter(organization=world.office).exists()
+
+
+def test_with_a_control_plane_the_admin_without_a_grant_gets_no_notice(world: World) -> None:
+    revenue(world.padaria, "70000.00")
+    from datetime import timedelta
+    from uuid import uuid4
+
+    from django.utils import timezone
+
+    ControlPlaneBinding.objects.create(
+        organization=world.office,
+        remote_installation_id=uuid4(),
+        controller_url="https://crmew.example.test",
+        device_private_key="x",
+        controller_public_key="x",
+        cache_expires_at=timezone.now() + timedelta(hours=1),
+    )
+    owner = Membership.objects.get(organization=world.office, user=world.owner)
+    # Com plano de controle, nem o dono vê empresa sem concessão.
+    assert simples_radar_alerts.notify_simples_radar(today=TODAY) == 0
+
+    CompanyAccessGrant.objects.create(
+        organization=world.office, membership=owner, company=world.padaria
+    )
+    assert simples_radar_alerts.notify_simples_radar(today=TODAY) == 1
+    notice = Notification.objects.get()
+    assert notice.company == world.padaria and notice.recipient == world.owner
