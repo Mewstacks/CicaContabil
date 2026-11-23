@@ -78,6 +78,17 @@ BY_KEY = {route.key: route for route in ROUTES}
 # Modelos de tenant que o povoador genérico não conseguiu montar (chave = modelo ou receita).
 UNBUILDABLE: frozenset[str] = frozenset()
 
+# Modelos da linha de produção (CONTAD, integrados em 23/11/2026) cujo `clean()` exige uma linha
+# coerente entre fonte, empresa e escritório que o povoador genérico não monta. Todos carregam
+# `organization` e o `clean()` recusa linha de outro escritório; falta a receita para o controle
+# positivo (pendência do E0c).
+PRODUCTION_LINE_MODELS = (
+    "hub.AccountingImportReceipt",
+    "hub.ReconciliationCompanyDiscovery",
+    "hub.ReconciliationDiscoveredChartAccount",
+    "hub.ReconciliationDiscoverySourceBlock",
+)
+
 # Modelos ligados a escritório que o mundo de teste não cria, e por quê (ver o suporte).
 SKIPPED_MODELS = frozenset(
     {
@@ -86,6 +97,7 @@ SKIPPED_MODELS = frozenset(
         "platform.PlatformAccess",
         "platform.SupportSession",
         "platform.PlatformConfiguration",
+        *PRODUCTION_LINE_MODELS,
     }
 )
 
@@ -136,7 +148,24 @@ EXCLUDED_ROUTES: dict[str, str] = {
 }
 
 # Rotas com id no caminho sem controle positivo e o motivo provável. Vazio é o ideal.
-ACCEPTED_UNPAIRED: dict[str, str] = {}
+_PRODUCTION_ROUTE = (
+    "rota da linha de produção (CONTAD, 23/11/2026) sem linha de controle positivo no povoador "
+    "da matriz; o isolamento vem do filtro por escritório da view (pendência do E0c)"
+)
+ACCEPTED_UNPAIRED: dict[str, str] = {
+    "agent-v2-ledger-complete": _PRODUCTION_ROUTE,
+    "agent-v2-ledger-failure": _PRODUCTION_ROUTE,
+    "agent-v2-titles-complete": _PRODUCTION_ROUTE,
+    "agent-v2-titles-failure": _PRODUCTION_ROUTE,
+    "hub:reconciliation-discovered-account": _PRODUCTION_ROUTE,
+    "hub:reconciliation-discovered-company": _PRODUCTION_ROUTE,
+    "hub:reconciliation-ledger-retry": _PRODUCTION_ROUTE,
+    "hub:reconciliation-ledger-status": _PRODUCTION_ROUTE,
+    "hub:reconciliation-native-title-review": _PRODUCTION_ROUTE,
+    "hub:reconciliation-preview-download": _PRODUCTION_ROUTE,
+    "hub:reconciliation-title-request-retry": _PRODUCTION_ROUTE,
+    "hub:reconciliation-title-source": _PRODUCTION_ROUTE,
+}
 
 # O mesmo para ids no corpo ou na consulta: o campo só é lido depois de uma validação que o
 # POST mínimo da matriz não atravessa (a rota em si já tem prova pelo id do caminho).

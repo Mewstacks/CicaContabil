@@ -105,6 +105,11 @@ WORLD_SKIP_MODELS = frozenset(
         "platform.SupportSession",
         # Singleton global semeado por migração, sem ligação com escritório.
         "platform.PlatformConfiguration",
+        # Linha de produção (CONTAD): `clean()` exige fonte, empresa e escritório coerentes.
+        "hub.AccountingImportReceipt",
+        "hub.ReconciliationCompanyDiscovery",
+        "hub.ReconciliationDiscoveredChartAccount",
+        "hub.ReconciliationDiscoverySourceBlock",
     }
 )
 
@@ -496,7 +501,8 @@ class Factory:
         if isinstance(f, models.UUIDField):
             return uuid.uuid4()
         if isinstance(f, models.JSONField):
-            return {}
+            # A field that may not be blank rejects `{}` (production models of the CONTAD line).
+            return {} if f.blank else {"matrix": self.tenant.mark}
         if isinstance(f, models.BinaryField):
             return b"x"
         if isinstance(f, models.GenericIPAddressField):
@@ -1081,6 +1087,7 @@ class AgentActor(Actor):
             path,
             data=body,
             content_type="application/json",
+            secure=True,  # a produção recusa o agente fora de HTTPS (`_agent`)
             headers={
                 "X-Hub-Agent-ID": self.agent_id,
                 "X-Hub-Agent-Timestamp": stamp,
