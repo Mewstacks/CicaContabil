@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import calendar
+import logging
 from datetime import date
 from typing import Any
 
@@ -10,6 +11,7 @@ from django.db import transaction
 
 from apps.audit.services import record_event
 
+logger = logging.getLogger(__name__)
 AUTO_NOTE = (
     "Confirmação automática (D-388): data, valor, direção e conta iguais a um único "
     "registro do Razão."
@@ -24,7 +26,7 @@ def _month_period(month: date) -> dict[str, date]:
 def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
     """Confirm every unique exact pair of one bank statement in one month; never raises."""
 
-    from apps.hub.models import ClientCompany, ReconciliationSourceFile
+    from apps.hub.models import ClientCompany, MovementReconciliation, ReconciliationSourceFile
     from apps.hub.reconciliation_service import confirm_reconciliation
     from apps.hub.reconciliation_workbench import exact_conference_pairs
 
@@ -39,33 +41,50 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
     try:
         with transaction.atomic():
             ClientCompany.objects.select_for_update().get(pk=source.company_id)
-            pairs = exact_conference_pairs(source, period)[:1000]
-            for movement, record in pairs:
-                reconciliation = confirm_reconciliation(
-                    movement=movement,
-                    entry=record.entry,
-                    amount_cents=abs(movement.amount_cents),
-                    evidence={
-                        "note": AUTO_NOTE,
-                        "source": movement.source_reference,
-                        "batch": True,
-                        "automatic": True,
-                    },
-                    actor=actor,
-                )
-                record_event(
-                    action="hub.reconciliation.reconciliation_confirmed",
-                    actor=actor,
-                    organization=source.organization,
-                    target=reconciliation,
-                    metadata={
-                        "movement_id": str(movement.id),
-                        "entry_id": str(reconciliation.entry_id),
-                        "amount_cents": reconciliation.amount_cents,
-                        "batch": True,
-                        "automatic": True,
-                    },
-                )
+            candidates = exact_conference_pairs(source, period)[:1000]
+            undone = set(
+                MovementReconciliation.objects.filter(
+                    movement_id__in=[movement.pk for movement, _record in candidates],
+                    state=MovementReconciliation.State.UNDONE,
+                ).values_list("movement_id", flat=True)
+            )
+            pairs = []
+            for movement, record in candidates:
+                if movement.pk in undone:
+                    continue  # D-396: a person undid it; the routine never redoes it
+                try:
+                    with transaction.atomic():  # D-396: one failing pair never voids the others
+                        reconciliation = confirm_reconciliation(
+                            movement=movement,
+                            entry=record.entry,
+                            amount_cents=abs(movement.amount_cents),
+                            evidence={
+                                "note": AUTO_NOTE,
+                                "source": movement.source_reference,
+                                "batch": True,
+                                "automatic": True,
+                            },
+                            actor=actor,
+                        )
+                        record_event(
+                            action="hub.reconciliation.reconciliation_confirmed",
+                            actor=actor,
+                            organization=source.organization,
+                            target=reconciliation,
+                            metadata={
+                                "movement_id": str(movement.id),
+                                "entry_id": str(reconciliation.entry_id),
+                                "amount_cents": reconciliation.amount_cents,
+                                "batch": True,
+                                "automatic": True,
+                            },
+                        )
+                except Exception:
+                    logger.exception(
+                        "Confirmação automática pulada para o movimento %s", movement.pk
+                    )
+                    continue
+                pairs.append((movement, record))
             if pairs:
                 record_event(
                     action="hub.reconciliation.exact_matches_confirmed",
@@ -87,6 +106,7 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
                 refresh_ledger_suggestions(source.financial_account_id)
             return len(pairs)
     except Exception:
+        logger.exception("Confirmação automática não executada para o extrato %s", source.pk)
         return 0
 
 

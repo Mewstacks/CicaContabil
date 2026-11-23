@@ -148,3 +148,24 @@ def test_command_lists_then_applies(fiscal, settings):
     totals = json.loads(out.getvalue())
     assert totals["interpretado"] == 1 and totals.get("erro", 0) == 0
     assert latest_title_snapshot(account) is not None
+
+
+def test_automatic_titles_show_note_and_installment(
+    fiscal, settings, django_capture_on_commit_callbacks
+):
+    """D-396: the screen, report and CSV read the note/installment, not the hash."""
+    from apps.hub.title_labels import enrich_title_labels
+
+    agent, account, user, job, data, _ = fiscal
+    settings.CICA_DIRECT_USE_ORGANIZATION_IDS = [str(account.organization_id)]
+    with django_capture_on_commit_callbacks(execute=True):
+        assert complete(agent, job, data).status_code == 200
+    workspace = build_title_workspace(
+        account=account, actor=user, start=date(2026, 9, 1), end=date(2026, 9, 30)
+    )
+    enrich_title_labels(data=workspace, account=account, actor=user)
+    [row] = workspace["installment_rows"]
+    assert row["title_label"].startswith("Entradas · ")
+    assert "0001/A" in row["title_label"]  # numero_titulo of the synthetic source
+    assert row["installment_label"] == "1"
+    assert all(s["settlement_label"].startswith("Baixa ") for s in workspace["settlement_rows"])

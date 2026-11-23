@@ -482,6 +482,9 @@ def retire_contradicted(account: FinancialAccount) -> int:
                     "decision": DECISION,
                 },
             )
+            from apps.hub.direct_use import withdraw_rule_entries
+
+            withdraw_rule_entries(rule)  # D-396
             retired += 1
     return retired
 

@@ -12845,3 +12845,34 @@ web e worker `started`, reserva parada; live/ready 200; arquivo e variável nas 
 confirmados têm registro parecido no Razão), 0 chamadas, 0 `EgressAudit depara_auto`, 0 regras de
 IA; 14 regras do Razão seguem ativas. A IA passa a ser consultada quando entrarem extratos novos com
 movimentos sem regra e fora do Razão. Medição às cegas em dados reais ainda não ocorreu.
+
+## V-446 — D-396: correções dos defeitos graves da revisão (23/11/2026)
+
+Executor Claude Code, fonte isolada `codex/contad-correcoes-revisao` a partir da main `e1b1040`
+(v120). Base: relatório da revisão `docs/planejamento/revisao-contad-2026-11-23.md` (sessão separada,
+branch `claude/contad-revisao-de59d3`, itens 4.1, 4.3, 4.4 e §5).
+
+Corrigido:
+1. `account_auto_link.confirm_ofx_months`/`ofx_months` + `_ledger_after_upload`: a importação de OFX
+   numa conta vinculada pela D-385 (ou de escritório em uso direto) confirma cada mês coberto pelo
+   arquivo com a filial e o lado do vínculo existente e pede o Razão de todos esses meses; falhas por
+   mês aparecem como aviso.
+2. `auto_confirm_exact`: par com alocação desfeita nunca é refeito pela rotina.
+3. `auto_confirm_exact`: cada par em savepoint próprio; falha vira log e não anula os demais; erro
+   geral também vai para o log.
+4. `direct_use.withdraw_rule_entries`, chamado na retirada D-392 e D-395: invalida os lançamentos
+   aprovados pela rotina e não exportados da regra e devolve o movimento a “sem classificação”;
+   exportado ou aprovado por pessoa é preservado. `post_unbooked` exige regra ativa.
+5. `title_labels.ACTIONS` inclui a interpretação automática e `title_auto` grava `provenance`: tela,
+   relatório e CSV mostram “Entradas · título 0001/A” e “Parcela 1”; sem fonte, só o código curto
+   (sem “Parcela Parcela”).
+
+Testes novos: `tests/test_review_fixes.py` (5), `test_upload_auto_link.py` (2º mês e OFX que cruza
+setembro/outubro), `test_title_auto.py` (nota e parcela). Cada correção foi conferida falhando sem o
+código novo e passando com ele (defeito reproduzido). Suíte SQLite completa: 3.498 aprovados, 59
+skips, zero falhas; PostgreSQL 17 local: 108 testes dos módulos afetados aprovados; Ruff ok; MyPy
+sem erro novo. Navegador (laboratório sintético): *Títulos e baixas* mostra “Entradas · título
+0001/A · Parcela 1”.
+
+Não corrigido (exige decisão): lançamento em dobro com Razão incompleto ou data diferente (item 4.2).
+Demais itens médios/baixos do relatório seguem pendentes. Não publicado.
