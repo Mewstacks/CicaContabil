@@ -10,7 +10,7 @@ Responsável delegou as decisões das pendências: a cliente quer ver e usar os 
 - [x] Revisão das confirmações automáticas opcional; aviso de títulos sem pendência.
 - [x] Guia [contad-uso-direto.md](../pt-BR/contad-uso-direto.md) no lugar do treinamento.
 - [x] Testes, lint e verificação em navegador (V-440).
-- [ ] Merge, deploy, `CICA_DIRECT_USE_ORGANIZATION_IDS` com o UUID da CONTAD e `uso_direto --apply` em produção — aguardam autorização.
+- [x] Merge (`c70d562`), deploy v118, `CICA_DIRECT_USE_ORGANIZATION_IDS` com o UUID da CONTAD e `uso_direto --apply` em produção (V-441).
 - [ ] Interpretação automática de títulos (C01/C02) — trabalho seguinte.
 
 <!-- D375-V415-EXECUTING-2026-11-18 -->
