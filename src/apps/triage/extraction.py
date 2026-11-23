@@ -20,6 +20,7 @@ from uuid import UUID
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
+from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import ClientCompany
 from apps.triage.models import (
     CounterpartyAlias,
@@ -32,7 +33,13 @@ from apps.triage.transitions import TriageStatus
 
 _TEXT_LIMIT = 256 * 1024
 _PDF_PAGES = 3
-_CNPJ = re.compile(r"(?<!\d)(\d{2})\.?(\d{3})\.?(\d{3})/?(\d{4})-?(\d{2})(?!\d)")
+# Candidate CNPJ in running text: root and branch accept letters since jul/2026 (IN RFB
+# 2.229/2024), the two check digits stay numeric. A candidate only counts after
+# ``normalize_cnpj`` validates the check digits AND it equals a company of this office.
+_CNPJ = re.compile(
+    r"(?<![A-Za-z0-9])([A-Za-z0-9]{2})\.?([A-Za-z0-9]{3})\.?([A-Za-z0-9]{3})/?"
+    r"([A-Za-z0-9]{4})-?(\d{2})(?![A-Za-z0-9])"
+)
 _MONTH_YEAR = re.compile(r"(?<!\d)(0[1-9]|1[0-2])[/._-](20\d{2})(?!\d)")
 _YEAR_MONTH = re.compile(r"(?<!\d)(20\d{2})[/._-]?(0[1-9]|1[0-2])(?!\d)")
 _MONTHS = {
@@ -110,14 +117,20 @@ def _match_company(
             "id", "name", "cnpj_masked", "dominio_code"
         )
     )
-    by_cnpj = {
-        re.sub(r"\D", "", company.cnpj_masked): company
-        for company in companies
-        if len(re.sub(r"\D", "", company.cnpj_masked)) == 14
-    }
+    by_cnpj: dict[str, ClientCompany] = {}
+    for company in companies:
+        try:
+            by_cnpj[normalize_cnpj(company.cnpj_masked)] = company
+        except ValidationError:
+            continue  # blank or malformed registration: this company is found by code only
     for source, text in sources.items():
-        found = {"".join(match.groups()) for match in _CNPJ.finditer(text)}
-        hits = {by_cnpj[digits] for digits in found if digits in by_cnpj}
+        found: set[str] = set()
+        for match in _CNPJ.finditer(text):
+            try:
+                found.add(normalize_cnpj("".join(match.groups())))
+            except ValidationError:
+                continue
+        hits = {by_cnpj[cnpj] for cnpj in found if cnpj in by_cnpj}
         if len(hits) == 1:
             company = hits.pop()
             return company, {"valor": company.name, "evidencia": f"CNPJ no {source}"}
