@@ -607,7 +607,7 @@ CELERY_BROKER_URL = env_str("CELERY_BROKER_URL", redis_url or "memory://")
 CELERY_RESULT_BACKEND = env_str("CELERY_RESULT_BACKEND", redis_url or "cache+memory://")
 CELERY_TASK_DEFAULT_QUEUE = env_str("CELERY_QUEUE_NAME", f"{deployment_name}-default")
 # Task modules that autodiscovery (`<app>.tasks`) does not reach.
-CELERY_IMPORTS = ("apps.hub.tasks_procuracao",)
+CELERY_IMPORTS = ("apps.hub.tasks_procuracao", "apps.hub.tasks_radar")
 CELERY_TASK_SERIALIZER = "json"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_RESULT_SERIALIZER = "json"
@@ -764,6 +764,12 @@ if BILLING_COLLECTION_ENABLED:
     CELERY_BEAT_SCHEDULE["platform-reconcile-payments"] = {
         "task": "platform.reconcile_payments",
         "schedule": aligned_periodic_minutes(10),
+    }
+
+if SIMPLES_RADAR_ENABLED:
+    CELERY_BEAT_SCHEDULE["notify-simples-radar"] = {
+        "task": "hub.notify_simples_radar",
+        "schedule": crontab(hour=7, minute=40),
     }
 
 if NFSE_PROCURACAO_SYNC_ENABLED:
