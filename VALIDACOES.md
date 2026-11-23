@@ -13042,3 +13042,13 @@ igual à ativa (env, deploy, processos, VM). Antes: v122, live/ready 200.
 `started` na nova imagem, reserva 18535e1c707538 parada; live, ready e site 200; CSS novo
 (`theme.b56acd437639.css`, com os blocos da D-398) servido; logs recentes sem erro. Telas com sessão do
 escritório não reabertas após o deploy: a sessão do navegador expirou (senha não digitada).
+
+## V-453 — D-398: dois textos restantes após a conferência da v123 (23/11/2026)
+
+Conferência em produção da v123 com a sessão aberta pelo responsável (somente navegação) mostrou dois
+textos ainda antigos no uso direto: *Títulos e baixas* sem títulos dizia “Ainda não há títulos revisados…
+Confira uma fonte recebida”, e o quadro “Sem lançamento” da Conciliação não citava os valores repetidos
+(caso dos 4 movimentos da SURIA). Corrigido, só no uso direto: “Ainda não há títulos lidos do Domínio para
+esta empresa” com o botão “Buscar títulos e baixas”, e “Valores repetidos ou parecidos no Razão, sem regra
+ou aguardando o Razão”. Testes: `tests/test_direct_use_screens.py` ampliado; suíte SQLite completa 3.519
+aprovados, 59 skips, 0 falhas. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).
