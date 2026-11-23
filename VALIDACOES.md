@@ -12588,3 +12588,30 @@ indisponíveis nesta sessão.
 Limites: precisão real fora da amostra só quando chegar o Razão de outra competência da SURIA
 (`depara_razao evaluate --month AAAA-MM`); uma única empresa/mês de evidência; IA aguardando chave
 e limites (responsável) e nova aprovação de envio de dados (proprietária). Não publicado.
+
+## V-436 — Publicação da D-391 na release v116 e sugestões da SURIA (22/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, faz tudo”: merge, deploy e criar as
+sugestões da SURIA). CI do PR #50: `verify` falhou na primeira execução só em
+`test_portfolio_configuration.py::test_only_recent_official_can_change[change5]`, a falha
+dependente do relógio já registrada em V-419 (sem relação com a mudança); reexecutada a etapa,
+as três verificações aprovaram antes do merge (`4276c81`, `src/` idêntico ao PR).
+
+Imagem OCI sobre a v115 (`6c8e378f…`) com os dez arquivos alterados e collectstatic (240 copiados,
+700 pós-processados: o CSS novo a mais):
+`sha256:c201337bb5e2c0589b3eed4e2d11cdf5ac75932b529661d30dbe65319ed26dcd`; manifesto/config OCI,
+226 gzip/11 zstd; SHA-256 dos dez arquivos na imagem iguais aos da main. O Docker local (colima)
+estava parado após reinício do Mac e foi iniciado só para a build. Antes: v115, configuração
+ativa igual à de deploy, live 200.
+
+**Release v116**: release_command ok sem migração; web 891e63ef665e58 e worker 1857691da097e8
+`started` na nova imagem, reserva 18535e1c707538 parada; live/ready 200; arquivos novos com o
+mesmo SHA-256 nas duas máquinas.
+
+Sugestões em produção (`depara_razao propose` e depois `create`, conta SURIA 212/8): 153 exemplos,
+6 excluídos, 14 sugestões cobrindo 137 movimentos, recusados 3 divergentes/1 que casaria outra
+conta/5 padrões inválidos — igual à prévia V-435. Criadas 14 regras em **rascunho** e 14 eventos
+de evidência com ator técnico (sem usuário). Conferência: 14 regras, todas `draft`, zero movimentos
+classificados por regra. Nenhuma regra ativada; ativação cabe à proprietária na tela “Sugestões
+pelo Razão”. Tela não reaberta em produção: a sessão do navegador expirou (senha não digitada);
+interface verificada em laboratório (V-435).

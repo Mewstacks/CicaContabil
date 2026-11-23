@@ -4847,3 +4847,8 @@ O DE-PARA passa a ser sugerido pelas contrapartidas que a própria CONTAD escrit
 só com evidência repetida e unânime e sem casar outra conta no histórico. Na SURIA, 14 regras
 cobririam 137 de 153 movimentos. A proprietária revisa e ativa cada regra na tela “Sugestões pelo
 Razão”. IA fica como segunda opinião, bloqueada até chave/limites e nova autorização de envio.
+
+## 22/11/2026 — V-436: release v116 e 14 sugestões DE-PARA da SURIA
+
+D-391 publicada na release v116. As 14 regras sugeridas pelo Razão da SURIA foram criadas em
+rascunho, nenhuma ativa; a proprietária revisa e ativa em *Revisar DE-PARA → Sugestões pelo Razão*.
