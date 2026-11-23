@@ -21,7 +21,7 @@ XLSX_COLS = 50
 XLSX_CELL_CHARS = 500
 XLSX_MAX_PARTS = 500
 XLSX_MAX_EXPANDED = 30 * 1024 * 1024
-XLSX_MAX_PART = 10 * 1024 * 1024  # sharedStrings and sheets: only 500x50 cells are ever used
+XLSX_MAX_PART = 10 * 1024 * 1024  # any single part: only 500x50 cells are ever used
 XLSX_MAX_RATIO = 100
 OCR_TEXT_THRESHOLD = 80  # characters of PDF text below which the page is a scan
 IMAGE_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp"})
@@ -78,8 +78,8 @@ def _xlsx_is_bounded(data: bytes) -> bool:
         return False
     if len(infos) > XLSX_MAX_PARTS or sum(i.file_size for i in infos) > XLSX_MAX_EXPANDED:
         return False
-    heavy = ("xl/sharedStrings", "xl/worksheets/")
-    if any(i.file_size > XLSX_MAX_PART and i.filename.startswith(heavy) for i in infos):
+    # By size, not by name: a part's role comes from the rels, which a crafted file controls.
+    if any(i.file_size > XLSX_MAX_PART for i in infos):
         return False
     return not any(
         i.file_size > 1024 * 1024
