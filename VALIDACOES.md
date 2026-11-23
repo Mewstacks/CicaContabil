@@ -12978,3 +12978,19 @@ Não verificado: telas com sessão do escritório em produção (sem sessão no 
 somente leitura das contas da CONTAD pelo console (acesso ao shell de produção não autorizado nesta
 sessão). A tarefa `hub.refresh_account_automation` passa a rodar no worker a cada confirmação; os
 lançamentos automáticos já existentes ficam aguardando um Razão relido antes de entrar no arquivo.
+
+## V-450 — Conferência somente leitura da CONTAD em produção após a v122 (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável nesta sessão (“Sim, libera” o console de produção para
+conferência somente leitura). Script enviado pelo `fly ssh console`, executado com `manage.py shell`
+dentro de `transaction.atomic()` com `SET TRANSACTION READ ONLY` e `set_rollback(True)`; escritório
+passado como `uuid.UUID`; nenhuma escrita, chamada à IA ou mensagem.
+
+Resultado: uso direto e IA habilitados para a CONTAD; 146 empresas ativas; **uma única conta financeira**
+(SURIA, Domínio 212), vinculada pela importação (D-385), com Razão só de 2026-09 e `allowed_months`
+= ["2026-09"] (a D-396 amplia no próximo OFX dela). Dos 163 movimentos: 159 conferidos com o Razão e
+4 “parecidos com o Razão” (mesma data e valor; já ficavam de fora antes da janela de 5 dias). Zero
+lançamentos da CICA, zero exportações, zero confirmações desfeitas, 14 regras DE-PARA ativas, nenhuma
+regra da IA e nenhuma conta bancária repetida entre empresas. Portanto a v122 não altera nenhum dado
+existente: nada fica retido pela regra do Razão relido e nada é retirado; as mudanças valem a partir dos
+próximos extratos.
