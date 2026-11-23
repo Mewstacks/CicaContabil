@@ -4,7 +4,7 @@
 - [x] Decisão D-394 registrada antes da implementação.
 - [x] Interpretação C01/C02 pelos tipos oficiais, autor técnico, gatilhos e comando `titulos_auto`.
 - [x] Testes SQLite completos, PostgreSQL dos títulos e verificação em navegador (V-442).
-- [ ] Publicação e `titulos_auto --apply` em produção — aguardam autorização.
+- [x] Publicação v119, merge `758e0d6` e `titulos_auto --apply` (4 capturas sem conta; prova real em memória, V-443).
 
 <!-- D393-V440-2026-11-23 -->
 ## 23/11/2026 — D-393/V-440: CONTAD em uso direto (fonte isolada)

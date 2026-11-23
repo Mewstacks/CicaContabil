@@ -12771,3 +12771,28 @@ tela identifica título e parcela por referência técnica (hash), não pelo nú
 Limites: sem prova em fonte real da CONTAD até a publicação; tipos 3/4 seguem a mesma leitura do
 tipo 2 por analogia com C02 (não houve exemplo real); Serviços sem interpretação; o vínculo baixa ×
 extrato continua sendo a conferência existente.
+
+## V-443 — Publicação da D-394 na release v119 e prova em capturas reais (23/11/2026)
+
+Executor Claude Code, autorizado pelo responsável (“Sim, publicar tudo”). Como na v118, deploy e
+merge (`758e0d6`) foram feitos com o CI do PR #57 em andamento, apoiados na suíte SQLite completa
+(3.484 aprovados) e nos 172 testes de títulos/uso direto em PostgreSQL local; src/ da main idêntico
+ao commit publicado `4f6b88c`.
+
+Imagem OCI sobre a v118 (`2cc53822…`) com os 9 arquivos alterados, sem collectstatic:
+`sha256:031fb7737ee59f33ab6d0b68ab65322267b63ae000214cb7a9841c5c7ebb8ed5`; 229 gzip/11 zstd; os 9
+arquivos com o mesmo SHA-256 do commit e `direct_use.py` da v118 preservado. Configuração de deploy
+da v118 (com `CICA_DIRECT_USE_ORGANIZATION_IDS`). **Release v119**: release_command ok sem migração;
+web e worker `started`, reserva parada; live/ready 200; `title_auto.py` e a variável presentes nas
+duas máquinas.
+
+`titulos_auto` em produção: 4 capturas em 3 empresas (Domínio 22, 25 set+out, 30); `--apply` gravou
+nada (`sem_conta` nas 4: nenhuma dessas empresas tem conta bancária ativa). A interpretação roda
+sozinha quando a empresa ganhar conta na importação do OFX.
+
+Prova somente leitura nas capturas reais (em memória, conta fictícia, nada gravado): 998 parcelas,
+773 interpretáveis (todas as de Entradas e Saídas: 345 a pagar, 428 a receber) e 225 de Serviços da
+empresa 30 fora pela regra; 36 baixas com juros e 40 com componentes além do tipo 1; o contrato da
+fotografia aceitou as 773 (zero recusadas), em 733 títulos. Um primeiro script de prova passou o
+escritório como texto em vez de UUID e foi recusado pela checagem de integridade — erro do script,
+não do código publicado (que usa o UUID); repetido corretamente.

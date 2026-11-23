@@ -1072,4 +1072,4 @@ continua com lacunas bancárias e de vínculo, sem aceite contábil presumido.
 ## Títulos automáticos — D-394/V-442 (23/11/2026)
 
 - [x] Captura de títulos interpretada sem revisão humana no uso direto (C01/C02 pelos tipos oficiais).
-- [ ] Publicação e `titulos_auto --apply` em produção (autorização do responsável).
+- [x] Publicação v119 e `titulos_auto --apply` em produção (V-443); gravação depende de conta bancária na empresa.
