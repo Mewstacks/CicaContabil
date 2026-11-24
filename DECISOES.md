@@ -6277,3 +6277,25 @@ amplia a confirmação automática D-388/D-396.
    importações e Razões usam a regra sozinhas.
 
 Sem migração, custo, IA ou mensagem externa.
+
+## D-401 — Resultado do extrato que diz onde a cliente está e o que fazer (24/11/2026)
+
+Origem: responsável, 24/11/2026, nesta sessão, ao importar de novo o OFX da SURIA e cair no resultado
+163/163: “mas eu nao deveria poder baixar um arquivo nessa tela? se esta finalizado” e “acho que poderia ser
+mais explicativa e intuitiva essa tela, nao da pra saber muito onde estou”. Executor Claude Code, com a
+delegação da D-393, no escopo da D-398/D-399 (só apresentação, só uso direto; nenhuma regra contábil muda).
+
+1. **Onde estou:** caminho no topo (Conciliação bancária › empresa · conta › mês) e uma frase dizendo o que
+   a tela mostra.
+2. **Situação do mês com a ação certa**, uma só por vez, nesta ordem:
+   - Razão do mês ainda não chegou → “Aguardando o Razão do Domínio”, ação **Atualizar Razão**;
+   - há lançamentos da CICA não enviados → “N prontos para enviar ao Domínio”, ação **Enviar ao Domínio**;
+   - há movimentos sem lançamento → “N movimentos sem lançamento”, ação **Ver esses movimentos**;
+   - extrato sem Razão (conta sem código no Domínio) → “Só consulta”;
+   - senão → “Mês conciliado: nada a enviar ao Domínio”, ação **Baixar relatório (PDF)**.
+3. **Os 3 passos** (Importar extrato → Conferir com o Razão → Enviar ao Domínio) aparecem nesta tela com a
+   situação de cada um, para a cliente ver em qual está.
+4. O botão “Ver relatório” passa a se chamar **“Relatório (imprimir ou PDF)”**. O arquivo do Domínio só
+   existe quando a CICA lança algo que falta no Razão; a tela diz isso em vez de deixar a dúvida.
+
+Sem migração, custo, IA ou mensagem; publicação pedida pelo responsável antes da reunião.

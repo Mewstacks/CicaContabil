@@ -1,3 +1,9 @@
+<!-- D401-V459-2026-11-24 -->
+## 24/11/2026 — D-401/V-459: resultado do extrato mais explicativo
+
+- [x] Decisão D-401, caminho, situação do mês com uma ação e os 3 passos na tela de resultado (V-459).
+- [ ] PR, CI, publicação v127 e conferência em produção.
+
 <!-- D399-V455-2026-11-23 -->
 ## 23/11/2026 — D-399/V-455: análise e testes curtos antes da reunião com a CONTAD
 
