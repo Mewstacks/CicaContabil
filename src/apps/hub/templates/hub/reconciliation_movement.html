@@ -7,10 +7,13 @@
       <h2>{{ movement.description|default:movement.original_description }}</h2>
       <p>{{ movement.company.name }} · origem {{ movement.source_file.original_filename }}</p>
     </div>
-    {% if conference_return_url %}<a class="button button-quiet" href="{{ conference_return_url }}">Voltar à conferência</a>{% else %}<a class="button button-quiet" href="{% back_url 'hub:reconciliation' %}#movimentos">Voltar aos movimentos</a>{% endif %}
+    {% if conference_return_url %}<a class="button button-quiet" href="{{ conference_return_url }}">{% if movement_direct_use %}Voltar ao resultado{% else %}Voltar à conferência{% endif %}</a>{% else %}<a class="button button-quiet" href="{% back_url 'hub:reconciliation' %}#movimentos">Voltar aos movimentos</a>{% endif %}
   </header>
-  <div class="reconciliation-movement-next" data-workflow-state="{{ movement_workflow.state }}">
-    {% if conference_return_url %}
+  <div class="reconciliation-movement-next" data-workflow-state="{% if movement_direct_outcome %}direct-{{ movement_direct_outcome.key }}{% else %}{{ movement_workflow.state }}{% endif %}">
+    {% if movement_direct_outcome %}
+    <div><p class="section-kicker">O QUE A CICA FEZ</p><h3><span class="status-badge {{ movement_direct_outcome.css }}">{{ movement_direct_outcome.label }}</span></h3><p>{{ movement_direct_outcome.help }} {{ movement_direct_outcome.hint }}</p></div>
+    <a class="button button-quiet" href="{{ movement_direct_outcome.href }}">{{ movement_direct_outcome.action }}</a>
+    {% elif conference_return_url %}
     <div><p class="section-kicker">CONFERÊNCIA DO EXTRATO</p><h3>Comparar com o registro existente</h3></div>
     <a class="button" href="#allocation-heading">Ver alocações e registros</a>
     {% else %}

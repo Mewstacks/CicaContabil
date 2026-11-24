@@ -250,10 +250,15 @@ def _populate(request: HttpRequest, context: dict[str, Any], form: LedgerRequest
                 _url(account, month, source, **{**pages, parameter: number}) + "#" + anchor
                 if available else ""
             )
+    from apps.hub.direct_use import direct_use_enabled
+
+    direct_use = direct_use_enabled(account.organization)
     source_rows = []
     for item in sources_page:
         run = item.runs.order_by("-created_at", "-id").first()
         label = run.get_state_display() if run else "Arquivo recebido"
+        if direct_use and run and run.state == ReconciliationRun.State.REVIEW:
+            label = "Importado"  # D-393/D-399: nothing waits for a review in direct use
         target, action = "", ""
         if run and run.state in {
             ReconciliationRun.State.WAITING,
@@ -268,7 +273,8 @@ def _populate(request: HttpRequest, context: dict[str, Any], form: LedgerRequest
         ):
             target, action = reverse("hub:reconciliation") + "#processamentos", "Revisar importação"
         else:
-            target, action = _conference(item, month), "Abrir conferência"
+            target = _conference(item, month)
+            action = "Ver resultado" if direct_use else "Abrir conferência"
         source_rows.append({"source": item, "label": label, "url": target, "action": action})
     context["ledger_bank_sources"] = source_rows
 

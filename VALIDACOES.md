@@ -13061,3 +13061,35 @@ estáticos, sem collectstatic): `sha256:d09cc290d4f8dce2a6fac9f33396f650749461f3
 247 camadas; os 2 arquivos iguais aos do commit. Configuração da v123 (`release-d396`), igual à ativa.
 **Release v124**: release_command sem migração; web e worker `started`, reserva parada; live, ready e
 site 200; logs sem erro. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).
+
+## V-455 — Análise e testes curtos em produção antes da reunião com a CONTAD; D-399 (23/11/2026)
+
+Executor Claude Code, worktree `claude/contad-reuniao-demo` a partir da main `dc1c706` (v124). O checkout
+local `main` estava em `b65dfe7` com alterações antigas não versionadas, preservadas e não usadas.
+
+**Produção (v124), somente leitura:** health live/ready 200; web e worker `started`, reserva parada; logs
+sem erro. Telas percorridas com a sessão da Grazi aberta pelo responsável no navegador do app (senha não
+digitada pelo executor; só GET, nenhum botão de importar/confirmar/exportar/buscar acionado): início,
+Conciliação bancária e abas, resultado do extrato da SURIA (163/163, 159 conferidos, 4 “No Razão · valor
+repetido”, diferença R$ 0,00), relatório para impressão, movimento, Extrato e Razão, carteira (146
+empresas), Títulos e buscas (4 capturas sem conta), DE-PARA (14 regras ativas), painel de importação com a
+empresa pré-escolhida (5 contas da SURIA) e o guia “Como usar”. Console autorizado pelo responsável nesta
+sessão (“Sim, somente leitura”): script em `transaction.atomic()` com `SET TRANSACTION READ ONLY` e
+rollback — uso direto e IA habilitados só para a CONTAD, chave presente; 146 empresas ativas; uma conta
+financeira (SURIA); agente oficial SVAPL02 ativo, visto 0,5 min antes; 163 movimentos; 163 lançamentos
+`draft/source_ledger` (espelho do Razão) e zero da CICA; 14 regras ativas; coletas de Razão 2 importadas,
+nenhuma aberta há mais de 1 h; 4 capturas de títulos; zero chamadas `depara_auto`.
+
+**Achados e D-399:** (1) as 159 linhas conferidas diziam também “não confirmado sozinho por haver mais de
+uma possibilidade”; (2) quadro “4 fora do Razão” contra “No Razão · valor repetido”; (3) página do movimento
+pedia “conta de débito, conta de crédito” para movimento já no Razão; (4) “Aguardando revisão” na tela
+Extrato e Razão; (5) “Como usar” com nomes antigos de botões. Corrigidos só no uso direto. Observados e
+não alterados: os 4 movimentos de valor repetido têm históricos distintos no Razão (dois PIX de R$ 912,00
+para pessoas diferentes; dois R$ 200,00 iguais), o que permitiria conferi-los — decisão do responsável;
+a regra “DEB FOLHA PAGTO → 4 PAGAMENTO DE FORNECEDORES” reproduz como a CONTAD escriturou setembro.
+
+**Testes:** `tests/test_direct_use_screens.py` com 4 testes novos (linhas conferidas sem o aviso, página do
+movimento com “O que a CICA fez”, tela Extrato e Razão “Importado”, outro escritório mantém “Revisar
+movimento”): 11 aprovados. Laboratório local sintético (banco em memória, `live_server`) em 1366 px:
+resultado, movimento com valor repetido e Extrato e Razão conferidos visualmente. Suíte SQLite completa:
+3.523 aprovados, 59 skips, 0 falhas (193 subtestes); ruff sem achados. Não publicado.

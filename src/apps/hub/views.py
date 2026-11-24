@@ -12066,9 +12066,28 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "label": "Gerar lançamento",
             "href": "#movement-entry-action",
         }
+    from apps.hub.direct_use import direct_use_enabled
+
+    direct_use = direct_use_enabled(office)
+    direct_outcome = None
+    if direct_use:
+        # D-399: in direct use the movement page says what the CICA did, instead of asking
+        # for debit/credit accounts of a movement that is already in the Razão (double booking).
+        from apps.hub.direct_use_ui import movement_outcomes
+
+        direct_outcome = movement_outcomes([movement]).get(str(movement.pk))
+        if direct_outcome:
+            direct_outcome = {**direct_outcome, **_DIRECT_USE_MOVEMENT_NEXT[direct_outcome["key"]]}
+            if direct_outcome["href"] == "exports":
+                direct_outcome["href"] = reverse("hub:reconciliation") + "#exportacoes"
+            elif direct_outcome["href"] in {"#movement-review-form", "#movement-secondary-actions"}:
+                # The form only shows outside the conference context (no return_to).
+                direct_outcome["href"] = request.path + direct_outcome["href"]
     context.update(
         {
-            "page_title": "Revisar movimento",
+            "page_title": "Movimento do extrato" if direct_use else "Revisar movimento",
+            "movement_direct_use": direct_use,
+            "movement_direct_outcome": direct_outcome,
             "conference_return_url": conference_return_url(request, movement.source_file_id),
             "can_review_movement": bool(context["support_can_mutate"])
             and _can_manage_reconciliation(context),
@@ -12091,6 +12110,62 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
         }
     )
     return render(request, "hub/reconciliation_movement.html", context)
+
+
+_DIRECT_USE_MOVEMENT_NEXT: dict[str, dict[str, str]] = {
+    "confirmed": {
+        "hint": "Nada a fazer.",
+        "action": "Ver o registro do Razão",
+        "href": "#allocation-heading",
+    },
+    "exported": {"hint": "Nada a fazer.", "action": "Ver exportações", "href": "exports"},
+    "posted": {
+        "hint": "Vai no próximo arquivo; gere-o em Exportações.",
+        "action": "Ver exportações",
+        "href": "exports",
+    },
+    "repeated": {
+        "hint": (
+            "Não precisa lançar. Se quiser, escolha abaixo qual registro do Razão é este e "
+            "confirme."
+        ),
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "repeated_missing": {
+        "hint": "Confira no Domínio se falta um lançamento.",
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "similar": {
+        "hint": (
+            "Não foi lançado para não duplicar. Se for o mesmo, confirme abaixo com o registro "
+            "do Razão."
+        ),
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "no_rule": {
+        "hint": "Se quiser lançar agora, informe as contas de débito e crédito abaixo.",
+        "action": "Classificar à mão",
+        "href": "#movement-review-form",
+    },
+    "no_razao": {
+        "hint": "Nada a fazer agora.",
+        "action": "Ver evidências",
+        "href": "#allocation-heading",
+    },
+    "statement_only": {
+        "hint": "Só consulta.",
+        "action": "Ver evidências",
+        "href": "#allocation-heading",
+    },
+    "ignored": {
+        "hint": "Pode ser restaurado em Outras ações.",
+        "action": "Outras ações",
+        "href": "#movement-secondary-actions",
+    },
+}
 
 
 @office_required

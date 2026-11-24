@@ -292,7 +292,7 @@ RECONCILIATION_DIRECT_USE = Tour(
     steps=(
         TourStep(
             "1. Importe o OFX",
-            "Em Nova importação, escolha a empresa, a conta e anexe o extrato do mês. A CICA "
+            "Em Importar extrato, escolha a empresa, a conta e anexe o extrato do mês. A CICA "
             "pede o Razão do Domínio sozinha.",
         ),
         TourStep(
@@ -303,7 +303,7 @@ RECONCILIATION_DIRECT_USE = Tour(
         TourStep(
             "3. Envie ao Domínio",
             "Em Exportações, gere o arquivo e importe no Domínio (Utilitários → Importação). "
-            "Os resultados ficam em Abrir conferência.",
+            "O que a CICA fez com cada movimento fica em Ver resultado.",
         ),
     ),
     url_names=frozenset({"reconciliation"}),
