@@ -26,7 +26,7 @@ from pydantic import ValidationError
 
 from dominio_mcp.admission import admit, estimate_plan
 from dominio_mcp.compiler import CompiledQuery, compile_query
-from dominio_mcp.config import Settings
+from dominio_mcp.config import HARD_TOOL_PLAN_COST_BUDGET, HARD_TOOL_PLAN_ROWS_BUDGET, Settings
 from dominio_mcp.freshness import Executor, PackStale
 from dominio_mcp.odbc import Auditor, Session
 from dominio_mcp.pack import Pack
@@ -175,10 +175,13 @@ class QueryEngine:
         args: str,
         pack: Pack,
         extra: Mapping[str, Any] | None = None,
+        budget: tuple[float, float] | None = None,
     ) -> dict[str, Any]:
         """Frescor, estimativa de custo, admissao, execucao e moldagem sob UMA admissao.
 
         `extra` sao campos que o chamador acrescenta ao envelope; entram na conta dos 12 KB.
+        `budget` (custo, linhas) e o orcamento proprio de uma consulta verificada (DC-1); sem ele
+        valem os limites provisorios de `Limits`.
         """
         started = self._clock()
         limits = self._settings.limits
@@ -190,11 +193,15 @@ class QueryEngine:
                     # a consulta foi compilada com a politica do pack antigo: nao executa com ela
                     raise PackStale("o pack mudou durante a consulta; tente de novo")
                 estimate = estimate_plan(slot.execute, compiled.literal_sql)
-                admit(
-                    estimate,
-                    cost_budget=limits.plan_cost_budget,
-                    rows_budget=limits.plan_rows_budget,
+                cost_budget, rows_budget = (
+                    (
+                        min(budget[0], HARD_TOOL_PLAN_COST_BUDGET),
+                        min(budget[1], HARD_TOOL_PLAN_ROWS_BUDGET),
+                    )
+                    if budget
+                    else (limits.plan_cost_budget, limits.plan_rows_budget)
                 )
+                admit(estimate, cost_budget=cost_budget, rows_budget=rows_budget)
                 raw = slot.execute(compiled.sql, compiled.params, max_rows=compiled.limit)
             result = shape_result(
                 compiled,

@@ -1,0 +1,77 @@
+# Consulta verificada de carteira: taxa de notas canceladas por empresa (DC-1).
+# Pergunta real: o Dominio distribui os .bgr "Relatorio PIS/COFINS notas canceladas, denegadas ou
+# devolucoes" e "Notas Canceladas com Estoque" para conferir o que a EFD Contribuicoes espera; a taxa
+# de cancelamento por cliente e o primeiro filtro barato antes de abrir nota a nota.
+# Cancelada = `cancelada_* = 'S'` (so saida e servico) OU `situacao_*` 2 (cancelado), 7 (denegado) ou
+# 8 (inutilizado), legenda do leiaute de importacao da Central de Solucoes (artigo 672). As duas marcas
+# sao independentes: no banco real 630 saidas de 2026 tem situacao 2 e `cancelada_sai = 'N'`, todas com
+# valor zero; so `cancelada_sai` deixaria a taxa em zero. A entrada nao tem `cancelada_ent`.
+version: 1
+name: carteira_notas_canceladas
+titulo: Taxa de cancelamento de notas, por empresa
+descricao: >-
+  Por empresa ativa que usa escrita fiscal e por segmento (saidas, entradas e servicos): notas da
+  janela, quantas estao canceladas, denegadas ou inutilizadas (`canceladas`) e o percentual. So
+  entram segmentos com pelo menos `documentos_minimos` notas e percentual a partir de
+  `percentual_minimo`. Ordenado pelo maior percentual.
+aviso: >-
+  Sinal, nao conclusao: cancelamento alto pode ser erro de emissao, teste ou retrabalho; cancelar
+  nota ja escriturada afeta a apuracao. Nota e a unidade (especie, serie e numero; na entrada tambem
+  o fornecedor). A legenda de `situacao_*` vem do leiaute de importacao do Dominio; o comentario do
+  banco para essa coluna nao e confiavel. Confira as notas no Dominio antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 4.8; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 25, linhas: 1000000, medido_ms: 500}
+parametros:
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: percentual_minimo, tipo: int, padrao: 5, minimo: 0, maximo: 100, descricao: "Percentual minimo de cancelamento"}
+  - {nome: documentos_minimos, tipo: int, padrao: 20, minimo: 1, maximo: 1000000, descricao: "Notas minimas no segmento"}
+  - {nome: codi_emp, tipo: int, descricao: "So esta empresa (codigo no Dominio)"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, uefi_emp: normal}
+  efsaidas: {codi_emp: normal, codi_esp: normal, seri_sai: normal, nume_sai: normal, dsai_sai: normal, cancelada_sai: normal, situacao_sai: normal}
+  efentradas: {codi_emp: normal, codi_esp: normal, seri_ent: normal, nume_ent: normal, codi_for: normal, dent_ent: normal, situacao_ent: normal}
+  efservicos: {codi_emp: normal, codi_esp: normal, seri_ser: normal, nume_ser: normal, dser_ser: normal, cancelada_ser: normal, situacao_ser: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} codi_emp, razao_emp, segmento, documentos, canceladas, percentual_cancelamento FROM (
+    SELECT g.codi_emp AS codi_emp, g.razao_emp AS razao_emp, d.segmento AS segmento,
+           COUNT(*) AS documentos, SUM(d.cancelada) AS canceladas,
+           ROUND(100.0 * SUM(d.cancelada) / COUNT(*), 1) AS percentual_cancelamento
+    FROM bethadba.geempre g
+    JOIN (
+      SELECT 'saidas' AS segmento, s.codi_emp AS codi_emp,
+             MAX(CASE WHEN s.cancelada_sai = 'S' OR ISNULL(s.situacao_sai, 0) IN (2, 7, 8) THEN 1 ELSE 0 END) AS cancelada
+      FROM bethadba.efsaidas s
+      WHERE s.dsai_sai BETWEEN ?inicio AND ?fim
+        {?codi_emp: AND s.codi_emp = ?codi_emp}
+      GROUP BY s.codi_emp, s.codi_esp, TRIM(s.seri_sai), s.nume_sai
+      UNION ALL
+      SELECT 'entradas', e.codi_emp,
+             MAX(CASE WHEN ISNULL(e.situacao_ent, 0) IN (2, 7, 8) THEN 1 ELSE 0 END)
+      FROM bethadba.efentradas e
+      WHERE e.dent_ent BETWEEN ?inicio AND ?fim
+        {?codi_emp: AND e.codi_emp = ?codi_emp}
+      GROUP BY e.codi_emp, e.codi_esp, TRIM(e.seri_ent), e.nume_ent, e.codi_for
+      UNION ALL
+      SELECT 'servicos', v.codi_emp,
+             MAX(CASE WHEN v.cancelada_ser = 'S' OR ISNULL(v.situacao_ser, 0) IN (2, 7, 8) THEN 1 ELSE 0 END)
+      FROM bethadba.efservicos v
+      WHERE v.dser_ser BETWEEN ?inicio AND ?fim
+        {?codi_emp: AND v.codi_emp = ?codi_emp}
+      GROUP BY v.codi_emp, v.codi_esp, TRIM(v.seri_ser), v.nume_ser
+    ) d ON d.codi_emp = g.codi_emp
+    WHERE g.stat_emp = 'A' AND g.uefi_emp = 1
+    GROUP BY g.codi_emp, g.razao_emp, d.segmento
+    HAVING COUNT(*) >= ?documentos_minimos
+  ) r
+  WHERE percentual_cancelamento >= ?percentual_minimo AND canceladas > 0
+  ORDER BY percentual_cancelamento DESC, canceladas DESC, codi_emp, segmento
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: segmento, tipo: text, classe: normal}
+  - {nome: documentos, tipo: int, classe: normal}
+  - {nome: canceladas, tipo: int, classe: normal}
+  - {nome: percentual_cancelamento, tipo: decimal, classe: normal}

@@ -11,6 +11,8 @@ descricao: >-
 aviso: >-
   Diagnostico: um numero cancelado conta como usado, mas a numeracao fora da janela nao e vista.
   Confira no Dominio antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga e na maior empresa = 177; orcamento ~4,5x, nunca acima do teto duro.
+orcamento: {custo: 800, linhas: 10000000, medido_ms: 320}
 parametros:
   - {nome: codi_emp, tipo: int, obrigatorio: true, descricao: "Codigo da empresa no Dominio"}
   - {nome: documento, tipo: choice, valores: [saidas, servicos], obrigatorio: true, descricao: "Qual escrituracao conferir"}

@@ -1,0 +1,48 @@
+# Consulta verificada de carteira: lancamentos contabeis por empresa na janela (DC-1).
+# Pergunta real: o Dominio distribui o .bgr "Relatorio com totais de lancamentos contabeis" (quantidade
+# por empresa) e "Relatorio de empresas com Zeramento"; o fechamento contabil mensal e o maior gargalo
+# citado pelos escritorios. Esta consulta mostra quem esta sem contabilidade na janela.
+version: 1
+name: carteira_lancamentos_contabeis
+titulo: Lancamentos contabeis por empresa na janela
+descricao: >-
+  Por empresa ativa que usa contabilidade: quantidade de lancamentos contabeis na janela, a data do
+  ultimo lancamento de toda a historia e a quantidade total. Ordenado pelas empresas com menos
+  lancamentos na janela. Use `so_zeradas` para ver so as empresas sem nenhum lancamento na janela.
+aviso: >-
+  Diagnostico, nao apuracao: lancamento e contagem de linhas de partida, nao de fatos contabeis, e
+  empresa sem lancamento pode ser empresa sem operacao. Datas de lancamento fora do intervalo
+  plausivel (digitacao) nao entram em `ultimo_lancamento`. Confira no Dominio antes de agir.
+# Orcamento (DC-1): custo estimado medido na janela mais larga = 0.041; orcamento ~4x, nunca acima do teto duro.
+orcamento: {custo: 10, linhas: 1000000, medido_ms: 300}
+parametros:
+  - {nome: inicio, tipo: date, obrigatorio: true, descricao: "Primeiro dia da janela (AAAA-MM-DD)"}
+  - {nome: fim, tipo: date, obrigatorio: true, descricao: "Ultimo dia da janela, no maximo 13 meses depois do inicio"}
+  - {nome: so_zeradas, tipo: int, minimo: 1, maximo: 1, descricao: "Use 1 para ver so as empresas sem lancamento na janela"}
+  - {nome: limite, tipo: int, padrao: 100, minimo: 1, maximo: 500, descricao: "Linhas a devolver"}
+janela: {inicio: inicio, fim: fim}
+dependencias:
+  geempre: {codi_emp: normal, razao_emp: texto_livre, stat_emp: normal, ucta_emp: normal}
+  ctlancto: {codi_emp: normal, data_lan: normal}
+sql: >-
+  SELECT TOP {top} START AT {start} g.codi_emp AS codi_emp, g.razao_emp AS razao_emp,
+         ISNULL(j.qtd, 0) AS lancamentos_na_janela, t.ultimo AS ultimo_lancamento,
+         ISNULL(t.qtd, 0) AS lancamentos_total
+  FROM bethadba.geempre g
+  LEFT OUTER JOIN (
+    SELECT codi_emp, COUNT(*) AS qtd FROM bethadba.ctlancto
+    WHERE data_lan BETWEEN ?inicio AND ?fim GROUP BY codi_emp
+  ) j ON j.codi_emp = g.codi_emp
+  LEFT OUTER JOIN (
+    SELECT codi_emp, COUNT(*) AS qtd, MAX(CASE WHEN data_lan <= CURRENT DATE THEN data_lan END) AS ultimo
+    FROM bethadba.ctlancto GROUP BY codi_emp
+  ) t ON t.codi_emp = g.codi_emp
+  WHERE g.stat_emp = 'A' AND g.ucta_emp = 1
+    {?so_zeradas: AND ISNULL(j.qtd, 0) = 0}
+  ORDER BY ISNULL(j.qtd, 0), g.codi_emp
+saidas:
+  - {nome: codi_emp, tipo: int, classe: normal}
+  - {nome: razao_emp, tipo: text, classe: texto_livre}
+  - {nome: lancamentos_na_janela, tipo: int, classe: normal}
+  - {nome: ultimo_lancamento, tipo: date, classe: normal}
+  - {nome: lancamentos_total, tipo: int, classe: normal}

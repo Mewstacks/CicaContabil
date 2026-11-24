@@ -269,7 +269,7 @@ def test_resources_and_prompts_are_exposed(tmp_path: Path) -> None:
     uris, mapa_text, names, prompt_text = run(go)
     assert uris == ["dominio://mapa", "dominio://glossario"]
     assert json.loads(mapa_text)["banco"].startswith("Dominio")
-    assert names == ["conferir_empresa", "explorar_assunto"]
+    assert names == ["conferir_empresa", "briefing_da_carteira", "explorar_assunto"]
     assert "560" in prompt_text and "movimento_fiscal" in prompt_text
 
 

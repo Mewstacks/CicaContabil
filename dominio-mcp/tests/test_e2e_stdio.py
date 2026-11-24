@@ -45,7 +45,7 @@ def test_fake_backend_server_answers_over_real_stdio(tmp_path: Path) -> None:
         }
 
     out = anyio.run(lambda: session_run(params, steps))
-    assert len(out["tools"]) == 10 and out["tools"][0] == "mapa_do_banco"
+    assert len(out["tools"]) == 11 and out["tools"][0] == "mapa_do_banco"
     assert out["mapa"]["banco"].startswith("Dominio")
     assert out["consulta"]["linhas"] == [[1, "ACME"], [2, "BETA"]]
     assert out["bloqueada_erro"] is True
@@ -76,7 +76,7 @@ def test_big_result_is_truncated_over_stdio_and_a_new_process_reconnects(tmp_pat
     assert out["corpo"]["truncado"] is True and out["corpo"]["proximo_passo"]
     assert len(out["corpo"]["linhas"]) < 120
     # reconexao: o processo anterior terminou com a sessao; um novo processo atende do zero
-    assert anyio.run(lambda: session_run(server(tmp_path / "segunda"), count_tools)) == 10
+    assert anyio.run(lambda: session_run(server(tmp_path / "segunda"), count_tools)) == 11
 
 
 def test_real_cli_serves_without_pack_or_database(tmp_path: Path) -> None:
@@ -96,5 +96,5 @@ def test_real_cli_serves_without_pack_or_database(tmp_path: Path) -> None:
         }
 
     out = anyio.run(lambda: session_run(params, steps))
-    assert out["n"] == 10 and out["erro"] is True
+    assert out["n"] == 11 and out["erro"] is True
     assert out["corpo"]["erro"]["codigo"] == "pack_ausente"

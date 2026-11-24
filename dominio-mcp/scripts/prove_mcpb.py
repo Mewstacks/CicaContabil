@@ -41,6 +41,7 @@ EXPECTED_TOOLS = (
     "empresa_perfil",
     "movimento_fiscal",
     "conferir_numeracao",
+    "analise_da_carteira",
     "consulta_estruturada",
 )
 
