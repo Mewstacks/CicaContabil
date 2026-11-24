@@ -13093,3 +13093,22 @@ movimento com “O que a CICA fez”, tela Extrato e Razão “Importado”, out
 movimento”): 11 aprovados. Laboratório local sintético (banco em memória, `live_server`) em 1366 px:
 resultado, movimento com valor repetido e Extrato e Razão conferidos visualmente. Suíte SQLite completa:
 3.523 aprovados, 59 skips, 0 falhas (193 subtestes); ruff sem achados. Não publicado.
+
+## V-456 — Publicação da D-399 na release v125 (23/11/2026)
+
+Autorizado pelo responsável nesta sessão (“Sim, publica”; depois “verifica tu” para acompanhar a CI).
+PR #71 com CI aprovada nas três verificações (agent, agent-package, verify); mesclado em `8512024`,
+`src/` da main idêntico ao commit publicado `67c1d62`.
+
+Imagem OCI sobre a v124 (`d09cc290…`) só com os 5 arquivos alterados de `src/` (sem estáticos, sem
+collectstatic): `sha256:73344c79fc4307502df3d44049a06167bffe500ef8df1860831edaf3bc0b7c86`; manifesto OCI,
+237 camadas gzip e 11 zstd; SHA-256 dos 5 arquivos na imagem iguais aos do commit; `manage.py check` sem
+problemas e `makemigrations --check` sem mudanças. Configuração de deploy = a da v124 (`release-d396`),
+conferida igual à ativa (env, deploy, processos, VM). O login do registro havia expirado (`fly auth docker`).
+
+**Release v125**: release_command concluído; web 891e63ef665e58 e worker 1857691da097e8 `started` na nova
+imagem, reserva 18535e1c707538 parada; live, ready e site 200; logs sem erro. Telas conferidas na sessão
+da Grazi aberta pelo responsável (somente GET): resultado da SURIA com 50 linhas conferidas por página,
+nenhuma com o aviso contraditório, quadro “159 · 4 não conferidos” e filtro “Não conferidos”; movimento
+de R$ 912,00 com “O que a CICA fez · No Razão · valor repetido”; Extrato e Razão com “Importado · Ver
+resultado”. Nenhum dado alterado.
