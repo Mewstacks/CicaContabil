@@ -13127,3 +13127,20 @@ Texto do estado “No Razão · valor repetido” e guia de uso direto atualizad
 Testes: `tests/test_repeated_values.py` (5: grupos iguais conferidos e grupo desigual mantido; outro
 escritório inalterado; grupo desfeito não é refeito; histórico igual pareado primeiro; comando com prévia,
 aplicação e repetição sem efeito). Suíte SQLite completa: 3.528 aprovados, 59 skips, 0 falhas.
+
+## V-458 — Publicação da D-400 na release v126 e conferência dos 4 da SURIA (24/11/2026)
+
+Autorizado pelo responsável nesta sessão (“pode fazer a conferência automática dos 4 de valor repetido”).
+PR #73 com CI aprovada (agent, agent-package, verify); mesclado em `71b900e`, `src/` da main idêntico ao
+commit publicado. Imagem OCI sobre a v125 (`73344c79…`) só com os 4 arquivos alterados de `src/`:
+`sha256:e9d430b316b4725df61b228e46c9d607978f313df11af285e4df68f7adc3e862`, 249 camadas; SHA-256 na imagem
+iguais aos do commit; `manage.py check` sem problemas, `makemigrations --check` sem mudanças e comando
+`conferir_repetidos` presente. Configuração = a da v125.
+
+**Release v126**: release_command concluído; web e worker `started`, reserva parada; live, ready e site
+200; logs sem erro. `conferir_repetidos` na CONTAD: prévia com exatamente 4 pares (04/09 R$ 912,00
+Alessandra↔Alessandra e Luana↔Luana pelo histórico; 21/09 R$ 200,00 SHPP ×2); `--apply` → 4 confirmados;
+nova prévia sem pares. Conferência somente leitura depois: 163 lançamentos `draft/source_ledger` e
+nenhum da CICA, 14 regras ativas, nenhuma coleta aberta. Tela (sessão da Grazi, só GET): resultado da
+SURIA **163/163 conferidos, 0 não conferidos, diferença R$ 0,00**, “Todos os movimentos foram
+conferidos com o Razão”.

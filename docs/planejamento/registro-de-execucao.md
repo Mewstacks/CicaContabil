@@ -4,7 +4,7 @@
 - [x] Leitura do estado (v124), testes curtos em produção somente leitura (telas e console READ ONLY).
 - [x] Decisão D-399 e correção de cinco textos contraditórios no uso direto, com testes e laboratório (V-455).
 - [x] PR #71 (CI aprovada), merge `8512024` e publicação na release v125, conferida em produção (V-456).
-- [x] Conferir sozinho os grupos de “valor repetido” — decidido pelo responsável (D-400), implementado e testado (V-457).
+- [x] Conferir sozinho os grupos de “valor repetido” — decidido pelo responsável (D-400), implementado e testado (V-457); v126 publicada e 4 da SURIA conferidos, 163/163 (V-458).
 
 <!-- D398-V451-2026-11-23 -->
 ## 23/11/2026 — D-398/V-451: telas mais simples no uso direto
