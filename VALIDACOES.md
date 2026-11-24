@@ -13159,3 +13159,20 @@ movimentos; só consulta; conciliado → Baixar relatório (PDF)), os 3 passos c
 Testes: `tests/test_direct_use_screens.py` com 4 novos (pronto para enviar; tudo no Razão; aguardando o
 Razão; outro escritório) — 15 aprovados. Laboratório local sintético: 1366 px e 375 px sem rolagem
 horizontal, quadro e passos legíveis.
+
+## V-460 — Publicação da D-401 na release v127 (24/11/2026)
+
+Pedido pelo responsável nesta sessão (“ok, me avisa quando publicar”, após a proposta de ajustar e publicar
+antes da reunião). PR #75 com CI aprovada (agent, agent-package, verify); mesclado em `dc2e1ff`, `src/` da
+main idêntico ao commit publicado. Imagem OCI sobre a v126 (`e9d430b3…`) só com os 2 arquivos alterados:
+`sha256:fd6aa9551f0acfe41d58512d08339acd81ecdc6c5f9e02e1d4935581abc8f041`; SHA-256 na imagem iguais aos do
+commit; `manage.py check` sem problemas, sem migrações. Configuração = a da v126.
+
+**Release v127**: o Fly demorou ~15 min para iniciar a máquina do release_command (criada 04:23 UTC,
+iniciada 04:38); o comando concluiu sem migrações e web/worker passaram para a v127 às 04:39 UTC,
+reserva parada. O `flyctl` perdeu o token na verificação final (“token expired”, conexões redefinidas),
+por isso o Fly registra a v127 como `failed`, embora as 3 máquinas estejam na imagem `fd6aa955…`, web com
+health check passando, live/ready/site 200 e logs sem erro. Tela conferida na sessão da Grazi (só GET):
+“Conciliação bancária › Por empresa › Resultado de setembro de 2026”, “Setembro de 2026 conciliado: nada
+a enviar ao Domínio” com “Baixar relatório (PDF)”, passos ✓ OFX SICREDI.ofx / ✓ 163 de 163 conferidos /
+✓ Nada a enviar.
