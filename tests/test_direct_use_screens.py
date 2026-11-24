@@ -151,3 +151,71 @@ def test_other_offices_keep_the_review_movement_page(setup, django_capture_on_co
     movement = NormalizedMovement.objects.get(source_file=source, amount_cents=9000)
     html = _html(setup["client"], "hub:reconciliation-movement", movement.pk)
     assert "Revisar movimento" in html and "O QUE A CICA FEZ" not in html
+
+
+def test_result_page_says_where_the_client_is_and_what_to_do(
+    enabled,  # noqa: F811
+    django_capture_on_commit_callbacks,
+):
+    """D-401: path, month situation with one action, and the three steps on the result page."""
+    source = _october_source(enabled, django_capture_on_commit_callbacks)
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert 'aria-label="Você está em"' in html and "Resultado de outubro de 2026" in html
+    assert "SITUAÇÃO DO MÊS" in html
+    # One CICA entry posted and not sent: sending comes first.
+    assert "1 lançamento da CICA pronto para enviar ao Domínio" in html
+    assert ">Enviar ao Domínio</a>" in html
+    assert "1. Extrato importado" in html and "3. Envio ao Domínio" in html
+    assert "1 pronto para enviar" in html
+    assert "Relatório (imprimir ou PDF)" in html
+
+
+def test_result_page_when_everything_is_in_the_razao(
+    enabled,  # noqa: F811
+    django_capture_on_commit_callbacks,
+):
+    with django_capture_on_commit_callbacks(execute=True):
+        _load(enabled, BASE)
+        source = _october(
+            enabled, [("LIQUIDACAO BOLETO 778", -4322)], [("LIQUIDACAO BOLETO 778", -4322, "4.1")]
+        )
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert "Outubro de 2026 conciliado: nada a enviar ao Domínio" in html
+    assert "O movimento do extrato está no Razão" in html
+    assert ">Baixar relatório (PDF)</a>" in html and "format=print" in html
+    assert "1 de 1 conferidos" in html and "Nada a enviar" in html
+
+
+def test_result_page_without_the_razao_waits_for_it(
+    enabled,  # noqa: F811
+    django_capture_on_commit_callbacks,
+):
+    from apps.hub.reconciliation_service import create_source_file, process_run
+
+    with django_capture_on_commit_callbacks(execute=True):
+        _load(enabled, BASE)
+        ofx = (
+            "OFXHEADER:100\n<OFX><BANKID>748<ACCTID>123<BANKTRANLIST>"
+            "<STMTTRN><DTPOSTED>20261215<TRNAMT>-12.34<FITID>dez-1<MEMO>TARIFA</STMTTRN>"
+            "</BANKTRANLIST></OFX>"
+        )
+        source, run, _ = create_source_file(
+            organization=enabled["org"],
+            company=enabled["company"],
+            financial_account=enabled["account"],
+            filename="extrato-dez.ofx",
+            content=ofx.encode(),
+            origin="bank_statement",
+        )
+        process_run(str(run.pk))
+    html = _html(enabled["client"], "hub:reconciliation-source-review", source.pk)
+    assert "Aguardando o Razão do Domínio" in html and ">Atualizar Razão</a>" in html
+    assert "dezembro de 2026" in html and "Depois do Razão" in html
+
+
+def test_other_offices_keep_the_conference_page(setup, django_capture_on_commit_callbacks):  # noqa: F811
+    with django_capture_on_commit_callbacks(execute=True):
+        _load(setup, BASE)
+        source = _october(setup, OCTOBER_BANK, OCTOBER_LEDGER)
+    html = _html(setup["client"], "hub:reconciliation-source-review", source.pk)
+    assert "SITUAÇÃO DO MÊS" not in html and "Ver relatório" in html

@@ -4,10 +4,19 @@
 {% block workspace_content %}
 <section class="workspace-panel conference-intro">
   <header class="workspace-panel-head">
-    <div><h2>{{ conference_source.company.name }}</h2><p>{{ conference_source.financial_account.name }} · {{ conference_source.original_filename }}</p></div>
+    <div>{% if direct_use_summary %}<nav class="operation-context" aria-label="Você está em"><a href="{% url 'hub:reconciliation' %}">Conciliação bancária</a> › <a href="{% url 'hub:reconciliation-portfolio' %}">Por empresa</a> › <span aria-current="page">Resultado{% if direct_use_summary.month_label %} de {{ direct_use_summary.month_label }}{% endif %}</span></nav>{% endif %}<h2>{{ conference_source.company.name }}</h2><p>{{ conference_source.financial_account.name }} · {{ conference_source.original_filename }}</p></div>
     {% if conference_portfolio_return_url %}<a class="button button-quiet" href="{{ conference_portfolio_return_url }}">Voltar à carteira</a>{% else %}<a class="button button-quiet" href="{% url 'hub:reconciliation' %}">Voltar à conciliação</a>{% endif %}
   </header>
+  {% if direct_use_summary %}
+  <p class="operation-context">Aqui você vê o que a CICA fez com cada movimento deste extrato, comparando com o Razão do Domínio. Período: {{ conference_period_label }}.</p>
+  <div class="reconciliation-movement-next" data-workflow-state="month-{{ direct_use_summary.state }}" role="region" aria-labelledby="direct-use-summary-title">
+    <div><p class="section-kicker">SITUAÇÃO DO MÊS</p><h3 id="direct-use-summary-title">{{ direct_use_summary.title }}</h3><p>{{ direct_use_summary.text }}</p></div>
+    <a class="button" href="{{ direct_use_summary.href }}">{{ direct_use_summary.action }}</a>
+  </div>
+  <ol class="direct-use-steps" aria-label="Os três passos da conciliação">{% for step in direct_use_summary.steps %}<li{% if step.done %} data-step-done{% endif %}><strong>{{ step.title }}</strong><span>{% if step.done %}✓ {% endif %}{{ step.detail }}</span></li>{% endfor %}</ol>
+  {% else %}
   <p class="operation-context">Período dos movimentos: {{ conference_period_label }}.</p>
+  {% endif %}
   <div class="metric-strip reconciliation-metrics" aria-label="Resumo da conferência">
     <article><span>Movimentos do extrato</span><strong>{{ conference_report.bank_count }}</strong><small>Variação: R$ {{ conference_bank_net_brl|floatformat:2 }}</small></article>
     <article><span>Registros do Razão</span><strong>{{ conference_report.ledger_count }}</strong><small>{% if conference_report.ledger_count %}Variação: R$ {{ conference_ledger_net_brl|floatformat:2 }}{% else %}Sem registros no período{% endif %}</small></article>
@@ -44,7 +53,7 @@
     {% if direct_use %}<a class="button button-quiet" href="{% url 'hub:reconciliation-source-report' conference_source.id %}{% if conference_report_querystring %}?{{ conference_report_querystring }}{% endif %}">Baixar CSV técnico</a>{% endif %}
   </div>
   {% if direct_use %}</details>{% endif %}{% endif %}
-  <div class="conference-report-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-ledger-request' %}?company={{ conference_source.company_id }}&amp;account={{ conference_source.financial_account_id }}&amp;bank_source={{ conference_source.id }}{% if conference_report.period_start %}&amp;month={{ conference_report.period_start|slice:':7' }}{% endif %}">{% if conference_report.ledger_count %}Atualizar Razão{% else %}Buscar Razão{% endif %}</a><a class="button" href="{% url 'hub:reconciliation-source-report' conference_source.id %}?format=print{% if conference_report_querystring %}&amp;{{ conference_report_querystring }}{% endif %}">Ver relatório</a>{% if not direct_use %}<a class="button button-quiet" href="{% url 'hub:reconciliation-source-report' conference_source.id %}{% if conference_report_querystring %}?{{ conference_report_querystring }}{% endif %}">Baixar CSV técnico</a><span>Relatório completo do período, com extrato e Razão. A busca, a situação e a página não limitam o relatório.</span>{% endif %}</div>
+  <div class="conference-report-actions"><a class="button button-quiet" href="{% url 'hub:reconciliation-ledger-request' %}?company={{ conference_source.company_id }}&amp;account={{ conference_source.financial_account_id }}&amp;bank_source={{ conference_source.id }}{% if conference_report.period_start %}&amp;month={{ conference_report.period_start|slice:':7' }}{% endif %}">{% if conference_report.ledger_count %}Atualizar Razão{% else %}Buscar Razão{% endif %}</a><a class="button" href="{% url 'hub:reconciliation-source-report' conference_source.id %}?format=print{% if conference_report_querystring %}&amp;{{ conference_report_querystring }}{% endif %}">{% if direct_use %}Relatório (imprimir ou PDF){% else %}Ver relatório{% endif %}</a>{% if not direct_use %}<a class="button button-quiet" href="{% url 'hub:reconciliation-source-report' conference_source.id %}{% if conference_report_querystring %}?{{ conference_report_querystring }}{% endif %}">Baixar CSV técnico</a><span>Relatório completo do período, com extrato e Razão. A busca, a situação e a página não limitam o relatório.</span>{% endif %}</div>
   <details class="conference-limits"><summary>Cobertura dos arquivos e saldos</summary><ul>{% for warning in conference_report.warnings %}<li>{{ warning }}</li>{% endfor %}</ul></details>
 </section>
 <section class="workspace-panel" aria-labelledby="conference-movements-heading">

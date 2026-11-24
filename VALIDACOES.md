@@ -13144,3 +13144,18 @@ nova prévia sem pares. Conferência somente leitura depois: 163 lançamentos `d
 nenhum da CICA, 14 regras ativas, nenhuma coleta aberta. Tela (sessão da Grazi, só GET): resultado da
 SURIA **163/163 conferidos, 0 não conferidos, diferença R$ 0,00**, “Todos os movimentos foram
 conferidos com o Razão”.
+
+## V-459 — D-401: resultado do extrato com caminho, situação do mês e passos (24/11/2026)
+
+Executor Claude Code, branch `claude/contad-tela-resultado` a partir da main `48b3a86` (v126). Motivado
+pelo responsável ao reimportar o OFX da SURIA (o sistema reconheceu o arquivo e abriu o resultado
+163/163, sem duplicar: 1 extrato, 163 movimentos, conferido somente leitura). Só no uso direto, sem CSS
+novo (reaproveita `.reconciliation-movement-next` e `.direct-use-steps`): caminho “Conciliação bancária ›
+Por empresa › Resultado de <mês>”, frase do que a tela mostra, quadro “Situação do mês” com uma ação
+(aguardando Razão → Atualizar Razão; lançamentos da CICA → Enviar ao Domínio; sem lançamento → Ver esses
+movimentos; só consulta; conciliado → Baixar relatório (PDF)), os 3 passos com a situação de cada um e
+“Relatório (imprimir ou PDF)”. Outros escritórios inalterados. Suíte SQLite completa: 3.532 aprovados, 59 skips, 0 falhas.
+
+Testes: `tests/test_direct_use_screens.py` com 4 novos (pronto para enviar; tudo no Razão; aguardando o
+Razão; outro escritório) — 15 aprovados. Laboratório local sintético: 1366 px e 375 px sem rolagem
+horizontal, quadro e passos legíveis.

@@ -11159,9 +11159,138 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
             row["outcome"] = outcomes.get(str(row["movement"].pk))
         context["direct_use_outcomes"] = outcome_counts(outcomes)
         context["page_title"] = "Resultado do extrato"  # D-398
+        context["direct_use_summary"] = _direct_use_source_summary(source, outcomes, context)
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response
+
+
+_MONTHS_PT = (
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+)  # fmt: skip
+
+
+def _direct_use_source_summary(
+    source: ReconciliationSourceFile, outcomes: dict[str, dict[str, str]], context: dict[str, Any]
+) -> dict[str, Any]:
+    """D-401: where the client is, how the month ended and the one next action (direct use)."""
+    from collections import Counter
+
+    counts = Counter(item["key"] for item in outcomes.values())
+    total = len(outcomes)
+    report = context.get("conference_report") or {}
+    start = str(report.get("period_start") or context.get("conference_period_start") or "")
+    month_label = ""
+    month_param = ""
+    if len(start) >= 7:
+        year, month = int(start[:4]), int(start[5:7])
+        month_label = f"{_MONTHS_PT[month - 1]} de {year}"
+        month_param = start[:7]
+    query = str(context.get("conference_report_querystring") or "")
+    report_url = reverse("hub:reconciliation-source-report", args=[source.pk]) + "?format=print"
+    if query:
+        report_url += "&" + query
+    review_url = reverse("hub:reconciliation-source-review", args=[source.pk])
+    ledger_url = (
+        reverse("hub:reconciliation-ledger-request")
+        + "?"
+        + urlencode(
+            {
+                "company": str(source.company_id),
+                "account": str(source.financial_account_id or ""),
+                "bank_source": str(source.pk),
+                **({"month": month_param} if month_param else {}),
+            }
+        )
+    )
+    exports_url = reverse("hub:reconciliation") + "#exportacoes"
+    posted, exported = counts["posted"], counts["exported"]
+    attention = sum(counts[key] for key in ("repeated", "repeated_missing", "similar", "no_rule"))
+    period = month_label or "este período"
+    if counts["no_razao"]:
+        state, title = "waiting", "Aguardando o Razão do Domínio"
+        text = (
+            f"A CICA pediu ao Domínio o Razão de {period}. Quando ele chegar, ela confere os "
+            "movimentos e lança o que faltar; esta tela se atualiza sozinha."
+        )
+        action, href = "Atualizar Razão", ledger_url
+    elif posted:
+        state = "send"
+        plural = "s" if posted != 1 else ""
+        title = f"{posted} lançamento{plural} da CICA pronto{plural} para enviar ao Domínio"
+        text = (
+            "São movimentos do extrato que não estavam no Razão e que uma regra reconheceu. "
+            "Gere o arquivo em Exportações e importe no Domínio."
+        )
+        action, href = "Enviar ao Domínio", exports_url
+    elif attention:
+        state = "attention"
+        title = f"{attention} movimento{'s' if attention != 1 else ''} sem lançamento"
+        text = (
+            "A CICA não lançou esses movimentos para não duplicar ou por não reconhecer o "
+            "histórico. Veja cada um e, se precisar, lance no Domínio."
+        )
+        action, href = (
+            "Ver esses movimentos",
+            review_url + "?state=pending#conference-movements-heading",
+        )
+    elif counts["statement_only"] and counts["statement_only"] == total:
+        state, title = "consult", "Extrato só para consulta"
+        text = (
+            "Esta conta não tem conta contábil no Domínio, então não há Razão para comparar nem "
+            "arquivo para enviar."
+        )
+        action, href = "Relatório (imprimir ou PDF)", report_url
+    else:
+        state = "done"
+        title = f"{period[:1].upper()}{period[1:]} conciliado: nada a enviar ao Domínio"
+        sent = f" {exported} já foram enviados ao Domínio pela CICA." if exported else ""
+        subject = (
+            "O movimento do extrato está"
+            if total == 1
+            else f"Os {total} movimentos do extrato estão"
+        )
+        text = (
+            f"{subject} no Razão do Domínio.{sent} O arquivo do "
+            "Domínio só é gerado quando a CICA lança algo que falta no Razão; aqui, baixe o "
+            "relatório para guardar a conciliação."
+        )
+        action, href = "Baixar relatório (PDF)", report_url
+    step2 = (
+        "Aguardando o Razão"
+        if counts["no_razao"]
+        else "Sem Razão (só consulta)"
+        if state == "consult"
+        else f"{counts['confirmed']} de {total} conferidos"
+    )
+    step3 = (
+        f"{posted} pronto{'s' if posted != 1 else ''} para enviar"
+        if posted
+        else f"{exported} enviado{'s' if exported != 1 else ''}"
+        if exported
+        else "Depois do Razão"
+        if counts["no_razao"]
+        else "Nada a enviar"
+    )
+    return {
+        "state": state,
+        "title": title,
+        "text": text,
+        "action": action,
+        "href": href,
+        "month_label": month_label,
+        "report_url": report_url,
+        "steps": [
+            {"title": "1. Extrato importado", "detail": source.original_filename, "done": True},
+            {
+                "title": "2. Conferência com o Razão",
+                "detail": step2,
+                "done": not counts["no_razao"],
+            },
+            {"title": "3. Envio ao Domínio", "detail": step3, "done": state in {"done", "consult"}},
+        ],
+    }
 
 
 @office_required
