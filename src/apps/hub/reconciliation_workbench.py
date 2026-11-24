@@ -62,12 +62,17 @@ def conference_return_url(request: HttpRequest, source_id: object) -> str:
 
 
 def exact_conference_pairs(
-    source: ReconciliationSourceFile, period: dict[str, Any], report: dict[str, Any] | None = None
+    source: ReconciliationSourceFile,
+    period: dict[str, Any],
+    report: dict[str, Any] | None = None,
+    *,
+    repeated: bool = False,
 ) -> list[tuple[Any, IndependentLedgerRecord]]:
     """Unallocated movements whose date, direction and amount match exactly one free record.
 
     Ambiguous days/amounts, partial allocations and records already used stay for the
     individual review; this only shortens the obvious cases the operator chooses to confirm.
+    With ``repeated`` (D-400, direct use) it returns instead the pairs of repeated-value groups.
     """
     from apps.hub.models import MovementReconciliation
 
@@ -116,6 +121,10 @@ def exact_conference_pairs(
         records[(entry.occurred_on, entry.direction, entry.amount_cents)].append(record)
     pairs = []
     for key, group in keys.items():
+        if repeated:
+            if len(group) >= 2:
+                pairs.extend(_repeated_group_pairs(group, records.get(key, []), used))
+            continue
         if len(group) != 1:
             continue
         movement = group[0]
@@ -127,6 +136,43 @@ def exact_conference_pairs(
         if len(matches) == 1 and len(records.get(key, [])) == 1:
             pairs.append((movement, matches[0]))
     return sorted(pairs, key=lambda pair: (pair[0].occurred_on, pair[0].source_key, pair[0].pk))
+
+
+def _history_key(text: str) -> str:
+    import unicodedata
+
+    plain = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+    return " ".join(plain.upper().split())
+
+
+def _repeated_group_pairs(
+    group: list[Any], records: list[IndependentLedgerRecord], used: set[Any]
+) -> list[tuple[Any, IndependentLedgerRecord]]:
+    """D-400: n equal bank movements and exactly n free equal Razão records are paired.
+
+    Same history first (when unique on both sides), then statement order with Razão order.
+    Any pairing gives the same reconciliation; a group of different sizes is left alone.
+    """
+    free = [record for record in records if record.entry_id not in used]
+    if len(free) != len(group):
+        return []
+    movements = sorted(group, key=lambda m: (m.source_key, str(m.pk)))
+    free.sort(key=lambda r: (r.entry.occurred_on, str(r.entry_id)))
+    if not all(compatible_record(m, r) for m in movements for r in free):
+        return []
+    bank_keys = [_history_key(m.original_description or m.description) for m in movements]
+    ledger_keys = [_history_key(r.entry.history) for r in free]
+    pairs: list[tuple[Any, IndependentLedgerRecord]] = []
+    left_m, left_r = list(movements), list(free)
+    for movement, bank_key in zip(movements, bank_keys, strict=True):
+        if not bank_key or bank_keys.count(bank_key) != 1 or ledger_keys.count(bank_key) != 1:
+            continue
+        record = free[ledger_keys.index(bank_key)]
+        pairs.append((movement, record))
+        left_m.remove(movement)
+        left_r.remove(record)
+    pairs.extend(zip(left_m, left_r, strict=True))
+    return pairs
 
 
 def source_review_context(source: ReconciliationSourceFile, request: HttpRequest) -> dict[str, Any]:

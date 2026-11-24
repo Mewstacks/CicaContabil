@@ -33,8 +33,8 @@ HELP = {
     "exported": "Lançado pela CICA e incluído num arquivo para o Domínio.",
     "posted": "Lançado pela CICA; vai no próximo arquivo para o Domínio.",
     "repeated": (
-        "Está no Razão, mas com o mesmo valor e data em mais de um lançamento; a CICA não escolhe "
-        "qual é qual e não lança nada."
+        "Está no Razão, mas há mais registros de mesmo valor e data do que movimentos (ou uma "
+        "conferência do grupo foi desfeita); a CICA não escolhe qual é qual e não lança nada."
     ),
     "repeated_missing": (
         "Há mais movimentos iguais (mesmo valor e data) no extrato do que no Razão; a CICA "

@@ -13112,3 +13112,18 @@ da Grazi aberta pelo responsável (somente GET): resultado da SURIA com 50 linha
 nenhuma com o aviso contraditório, quadro “159 · 4 não conferidos” e filtro “Não conferidos”; movimento
 de R$ 912,00 com “O que a CICA fez · No Razão · valor repetido”; Extrato e Razão com “Importado · Ver
 resultado”. Nenhum dado alterado.
+
+## V-457 — D-400: conferência automática de valores repetidos (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-valor-repetido` a partir da main `27381a3` (v125).
+`exact_conference_pairs(..., repeated=True)` devolve os pares de grupos de mesma data, direção e valor
+em que o extrato e o Razão (registros livres e compatíveis) têm o mesmo tamanho, pareando primeiro pelo
+histórico igual (sem acentos/caixa/espaços, único nos dois lados) e o resto pela ordem. A confirmação
+automática D-388 usa esses pares só no uso direto, com nota própria (D-400), e não refaz grupo em que
+alguém desfez uma confirmação. Comando `conferir_repetidos --organization <uuid> [--apply]` para os dados
+já recebidos (prévia sem escrita; `--apply` reexecuta a rotina em cada extrato e mês com Razão).
+Texto do estado “No Razão · valor repetido” e guia de uso direto atualizados.
+
+Testes: `tests/test_repeated_values.py` (5: grupos iguais conferidos e grupo desigual mantido; outro
+escritório inalterado; grupo desfeito não é refeito; histórico igual pareado primeiro; comando com prévia,
+aplicação e repetição sem efeito). Suíte SQLite completa: 3.528 aprovados, 59 skips, 0 falhas.
