@@ -6253,3 +6253,27 @@ mesmo escopo da D-398 (só apresentação, só escritório em uso direto; nenhum
 Fica para o responsável, por contrariar a D-398 item 3 registrada hoje: conferir sozinho grupos de
 “valor repetido” (mesma data, valor e direção, mesmo número de movimentos e de registros do Razão), por
 exemplo pelo histórico igual. Sem migração, custo, IA ou mensagem; publicação só com autorização.
+
+## D-400 — Conferência automática de valores repetidos no uso direto (23/11/2026)
+
+Origem: responsável, 23/11/2026, nesta sessão, depois de lhe ser apresentado o caso da SURIA (dois PIX de
+R$ 912,00 e dois de R$ 200,00 no mesmo dia, cada par com dois registros iguais no Razão): “pode fazer a
+conferência automática dos 4 de valor repetido”. Executor Claude Code. Vale só para escritório em uso
+direto (D-393). Supera, nesse escopo, D-398 item 3 (“a CICA não escolhe qual é qual e nada lança”) e
+amplia a confirmação automática D-388/D-396.
+
+1. **Quando:** na mesma conta e no mesmo mês, um grupo de movimentos do extrato ainda sem alocação com a
+   mesma data, direção e valor, e o grupo de registros livres do Razão compatíveis com a mesma data,
+   direção e valor, têm **o mesmo tamanho (dois ou mais)**. Qualquer pareamento dá o mesmo resultado na
+   conciliação; o grupo inteiro é conferido.
+2. **Como parear:** primeiro movimento e registro com o mesmo histórico (comparado sem acentos, caixa ou
+   espaços repetidos), quando esse histórico é único em cada lado; o restante, na ordem do extrato e do
+   Razão. A nota da confirmação diz que foi por valor repetido.
+3. **Quando não:** grupo com quantidades diferentes (“Valor repetido · um pode faltar no Razão”) continua
+   sem conferência e sem lançamento; grupo em que alguém desfez uma confirmação nunca é refeito (D-396);
+   escritório fora do uso direto continua só com os pares únicos.
+4. **Dados atuais:** os 4 movimentos da SURIA são conferidos por um comando próprio com prévia
+   (`conferir_repetidos`), executado após a publicação, como pedido na mesma mensagem; as próximas
+   importações e Razões usam a regra sozinhas.
+
+Sem migração, custo, IA ou mensagem externa.
