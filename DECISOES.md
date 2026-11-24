@@ -6341,3 +6341,32 @@ pedido em dobro; nenhuma regra contábil muda. Vale para todos os escritórios.
    revisão não bloqueia (continua valendo “Tentar novamente”).
 
 Sem migração, custo, IA ou mensagem externa. Merge e publicação dependem de autorização do responsável na sessão.
+
+## D-409 — PC-33, Fase 1: conciliação multifontes CONTAD em modo simulação (24/11/2026)
+
+Origem: responsável, 24/11/2026, “pode iniciar o desenvolvimento”, depois de aprovar o plano
+[`docs/planejamento/contad-multifontes-2026-11-24.md`](docs/planejamento/contad-multifontes-2026-11-24.md)
+(PC-33, Q-50 a Q-66, V-465), que nasceu da reunião com a CONTAD de 24/11/2026. Executor Claude Code.
+Vale só para o desenvolvimento descrito abaixo; não registra estimativa, preço ou prazo comercial.
+
+1. A Fase 1 roda em **modo simulação**: lê as fontes, decompõe movimentos, casa recebimentos e pagamentos com
+   títulos, calcula a posição de títulos e gera relatório. Não cria lançamento, regra, conciliação nem
+   exportação, não grava no banco e não muda o uso direto (D-393) nem dados de produção. Tornar as sinalizações
+   bloqueantes no uso real (risco de conflito com a D-393) exige decisão própria.
+2. Fontes da Fase 1: extrato Sicredi (leitor existente), francesinha Sicredi em PDF, posição de contas a
+   receber e a pagar do Domínio em `.xls` e planilha de caixa do cliente em `.xlsx`. Por linha de comando, com
+   arquivos locais; sem tela e sem migração nesta fase (telas seguem o protocolo de UI do AGENTS.md depois).
+3. Regras explícitas da cliente aplicadas: decompor a cobrança do extrato pela data de lançamento em c/c da
+   francesinha; baixar o valor nominal e separar juros e multa; com vários títulos de valor exato, baixar o de
+   vencimento mais antigo; pagamento de fornecedor por documento citado no caixa, um por documento; sem
+   documento, título aberto de valor exato; tudo o que não fecha vira **sinalização com motivo**.
+4. Sem presumir respostas abertas: tolerância de valor zero (Q-58); o “Seu Nº” da francesinha não é usado
+   como número da nota (Q-52) — a nota vem do caixa do cliente ou do casamento pagador + valor; juros ficam
+   “a classificar”, sem conta (Q-53); diferença no “Total Geral” dos `.xls` vira aviso (Q-59); nenhuma conta
+   contábil é atribuída (Q-50).
+5. Nova dependência `xlrd` (somente leitura de `.xls` BIFF). Arquivos reais da cliente nunca entram no
+   repositório; os testes usam réplicas sintéticas dos layouts.
+6. Fora desta decisão: período configurável do agente (C-01), aplicação/resgate, documentos escaneados,
+   marketplace com comissão, empréstimo e cartão.
+
+Sem custo, IA, deploy ou mensagem externa. Commit, merge e publicação dependem de autorização na sessão.

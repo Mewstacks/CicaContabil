@@ -13213,3 +13213,70 @@ revisão/falha/importado liberam o botão); 568 aprovados e 13 skips (PostgreSQL
 direto. HTML real renderizado pelo teste, aberto no navegador: 820 px e 375 px sem rolagem horizontal, barra
 animada no estado em andamento e parada no estado sem conexão. Não verificado: comportamento em produção com
 o agente real.
+
+## V-465 — Análise da reunião CONTAD de 24/11/2026 e dos arquivos de outubro da SURIA (PC-33)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0` a partir da main `565773d`. Somente análise e
+registro; nenhum código, deploy, escrita em produção, chamada à IA ou mensagem externa. Plano em
+[`docs/planejamento/contad-multifontes-2026-11-24.md`](docs/planejamento/contad-multifontes-2026-11-24.md).
+
+Verificado (arquivos recebidos pelo responsável, lidos fora do repositório; nenhum foi copiado para cá):
+- Vídeo de 46 min: transcrição automática local (Whisper small, sem envio externo) e 93 quadros a cada 30 s;
+  25 pedidos explícitos com o minuto de origem. Trechos ruidosos viraram perguntas (Q-50 a Q-66), não regras.
+- Francesinha Sicredi 10/2026: 87 títulos, R$ 131.360,65, juros R$ 89,06 (cabeçalho do relatório).
+  Cobrança de 01/10 no extrato (5.917,99) = soma da francesinha com lançamento em c/c nesse dia
+  (1.411,20 + 4.456,67 + 50,12).
+- Relatórios Domínio .xls (BIFF) de contas a receber e a pagar 09 e 10/2026, recalculados linha a linha:
+  CR 09 231 parcelas/151 clientes/saldo 244.631,35; CR 10 230/136/282.869,56; CP 09 82/19/70.103,88;
+  CP 10 89/20/68.055,28. O saldo fecha com o "Total Geral"; valor da parcela e valor pago não fecham
+  (CP 09 −793,40; CR 10 −9.110,46) — causa desconhecida (Q-59). O documento é o nº da NF, sem sufixo de parcela.
+- Planilha de caixa do cliente (abas SICREDI, CAIXA, CEF): histórico com NF/parcela e CT-e; uma linha do
+  banco pode corresponder a várias da planilha (débito de folha de 15.096,34 = 7 linhas); cabeçalhos de mês
+  da planilha não são confiáveis.
+- Extrato de aplicação (saldo 228.016,06 → 187.469,40, rendimentos e IRRF separados), cronograma de
+  empréstimo (sem separação de juros), fatura do cartão (210,42) e extrato CEF em .docx (3 movimentos).
+- Scans (7 e 50 páginas) vistos no navegador do app, sem download: boletos, CT-e, DANFE e recibos de
+  outubro; um boleto traz a razão social antiga com o mesmo CNPJ.
+- Código em `origin/main`: o CICA não lê .xls, .docx, francesinha, aplicação nem documentos escaneados de
+  pagamento; o vínculo título × extrato é só manual; as consultas nativas do agente estão fixas em 09/2026.
+
+Não verificado: nada foi executado contra produção, o agente ou o Domínio; o Razão manual de outubro não foi
+lido; as respostas da CONTAD (Q-50 a Q-66), a estimativa e a decisão de escopo (D-409) estão pendentes.
+
+## V-466 — D-409: simulação multifontes de outubro/2026 da SURIA (PC-33, Fase 1)
+
+Executor Claude Code, branch `claude/contad-multifontes-fase0` (base `565773d`). Sem migração, tela, deploy,
+escrita em banco, chamada à IA ou mensagem externa. Nova dependência `xlrd==2.0.2` (`pyproject.toml`,
+`uv.lock`, `requirements.txt`).
+
+Entregue: pacote `src/apps/hub/multisource/` (leitores da posição CP/CR do Domínio em `.xls`, da francesinha
+Sicredi em PDF e do caixa do cliente em `.xlsx`; motor de casamento; relatórios) e o comando
+`manage.py simular_multifontes`, que grava `resumo.md`, `movimentos.csv`, `posicao.csv` e
+`diferencas-posicao.csv` (0600) numa pasta indicada.
+
+Verificado com os arquivos reais de outubro, fora do repositório (saída em pasta temporária privada):
+- Leitores: posição CR/CP 09 e 10 com o saldo fechando com o "Total Geral" (parcelas de saldo zero
+  listadas pelo Domínio viram aviso); francesinha com 87 títulos e totais (131.360,65; juros 89,06)
+  conferidos; nomes de pagador quebrados em até 3 linhas reunidos; caixa com 3 abas e saldos conferidos.
+- Extrato Sicredi + francesinha + CR/CP 09 + caixa (abas SICREDI, CAIXA e CEF): 184 movimentos;
+  48 com baixa automática de títulos (26,1%), 126 identificados pelo caixa sem baixa (natureza ou nota do
+  próprio mês fora da posição de abertura) e 7 sinalizados: 4 recebimentos marketplace com comissão (Q-51),
+  1 pagamento parcial (título aberto de valor maior) e 2 notas digitadas no caixa com número diferente do
+  título aberto de mesmo fornecedor e valor (sugestão mostrada, sem baixa). 82 recebimentos e 32
+  pagamentos baixados; 6 títulos com juros (89,06) separados "a classificar" (Q-53).
+- Cada cobrança do extrato fechou exatamente com a soma da francesinha do dia (nenhum título sobrando);
+  débito de folha decomposto nas 7 linhas do caixa; resgates parciais da aplicação ligados à linha única do
+  caixa.
+- Sem o caixa do cliente: 22,9% com baixa automática (cobrança pela francesinha e pagamento pelo nome
+  após o CNPJ no extrato).
+- Comparação com a posição CR/CP 10 do Domínio (emitida em 23/11, pode conter baixas de novembro):
+  receber — 91 parcelas abertas na simulação e baixadas no Domínio (89 de consumidores com valor abaixo de
+  300, ligadas aos recebimentos marketplace sinalizados), 1 baixada na simulação e aberta no Domínio (NF 29984:
+  o caixa indica a parcela 3, de 3.317,46; o Domínio baixou a parcela 2, de 3.317,47); pagar — 6 abertas na
+  simulação e baixadas no Domínio (inclui as 2 notas com número divergente e notas da empresa do marketplace) e 2 com saldo
+  diferente (pagamentos parciais).
+- Testes: 38 novos em `tests/test_multisource_readers.py` e `tests/test_multisource_matching.py`, com
+  dados sintéticos; `ruff check .` e `makemigrations --check` limpos.
+
+Não verificado: comparação com o Razão manual de outubro (o agente só lê setembro, C-01); aplicação e
+resgate com rendimento/IRRF (Fase 2); documentos escaneados; contas contábeis (Q-50/Q-53); tela.

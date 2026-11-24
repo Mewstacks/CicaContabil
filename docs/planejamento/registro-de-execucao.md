@@ -1,3 +1,19 @@
+<!-- D409-V466-2026-11-24 -->
+## 24/11/2026 — D-409/V-466: simulação multifontes de outubro (PC-33, Fase 1)
+
+- [x] Decisão D-409 registrada antes do código (modo simulação, sem presumir Q-50 a Q-66).
+- [x] Leitores CP/CR `.xls`, francesinha e caixa do cliente; motor de casamento; comando `simular_multifontes`.
+- [x] Outubro da SURIA simulado com os arquivos reais: 26,1% com baixa automática, 96,2% identificados, 7 sinalizações (V-466).
+- [ ] Commit, PR e publicação — dependem de autorização. Comparação com o Razão manual depende do agente (C-01).
+
+<!-- PC33-V465-2026-11-24 -->
+## 24/11/2026 — PC-33/V-465: plano da conciliação multifontes CONTAD (Fase 0)
+
+- [x] Análise da reunião de 24/11 e dos arquivos de outubro da SURIA, sem copiar dados da cliente para o repositório (V-465).
+- [x] Plano `docs/planejamento/contad-multifontes-2026-11-24.md`, PC-33, Q-50 a Q-66 e checklist da etapa 09.
+- [x] Rascunhos (não enviados): mensagem à CONTAD e explicação do agente instalado (pedido R-23).
+- [ ] Estimativa, autorização de envio e decisão de escopo D-409 — responsável. Sem código, deploy ou mensagem externa.
+
 <!-- D401-V459-2026-11-24 -->
 ## 24/11/2026 — D-401/V-459: resultado do extrato mais explicativo
 

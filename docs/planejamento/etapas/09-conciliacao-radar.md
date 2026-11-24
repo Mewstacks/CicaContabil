@@ -1,3 +1,20 @@
+<!-- PC33-V465-2026-11-24 -->
+## PC-33/V-465 — Conciliação multifontes CONTAD: plano e perguntas, 24/11/2026
+
+Reunião com a CONTAD: para lançar outubro da SURIA, o extrato precisa ser cruzado com francesinha,
+posição CP/CR do mês anterior, caixa do cliente, extrato de aplicação e documentos escaneados, e a CICA
+passa a manter os títulos em aberto. Plano em [contad-multifontes-2026-11-24.md](../contad-multifontes-2026-11-24.md).
+
+- [x] Análise do vídeo e dos arquivos; plano com requisitos rastreáveis, critérios de aceite e riscos (V-465).
+- [x] PC-33 e perguntas Q-50 a Q-66 registrados; rascunhos da mensagem à CONTAD e da explicação do agente.
+- [ ] Estimativa ao cliente e autorização do envio das perguntas (responsável).
+- [ ] Decisão de escopo D-409, inclusive o ajuste da D-393 para sinalizações bloqueantes.
+- [ ] Respostas bloqueantes Q-50, Q-52, Q-53, Q-58 e Q-59.
+- [x] D-409: Fase 1 em modo simulação autorizada e registrada.
+- [x] Fase 1 (linha de comando): leitores CP/CR .xls, francesinha e caixa do cliente; posição de títulos; motor e sinalizações; outubro simulado com os arquivos reais (V-466).
+- [ ] Fase 1 restante: comparação com o Razão manual (depende do agente, C-01) e tela de fechamento do mês (protocolo de UI).
+- [ ] Agente com período configurável (consultas nativas fixas em 09/2026) e nova versão no SVAPL02.
+
 <!-- D373-V412-IN-PROGRESS-2026-11-17 -->
 **17/11/2026 — D-373/V-412 em execução: descoberta completa de planos e contas.**
 Ampliação autorizada para as146 empresas, consultando catálogo completo e relações

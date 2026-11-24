@@ -276,6 +276,35 @@ no contrato. Apoio de IA ao DE-PARA também já está incluído; Q-08/Q-09 conti
 valendo para custo/egressão quando houver execução real. Perguntas sobre os
 outros módulos não bloqueiam esta entrega por inferência.
 
+## CONTAD — conciliação multifontes (PC-33, etapa 09)
+
+Origem: reunião de 24/11/2026 com a CONTAD e arquivos de outubro da SURIA; análise em
+[contad-multifontes-2026-11-24.md](contad-multifontes-2026-11-24.md) (V-465). Não reabrem
+Q-28/Q-46/Q-47: são desdobramentos novos do uso com várias fontes (francesinha, posição CP/CR,
+caixa do cliente, aplicação, documentos escaneados). Bloqueiam o início da Fase 1: Q-50, Q-52,
+Q-53, Q-58 e Q-59. Envio à cliente só com autorização do responsável
+([rascunho](../pt-BR/contad-mensagem-multifontes-2026-11-24.md)).
+
+| ID | Pergunta objetiva | Impacto e responsável |
+|---|---|---|
+| Q-50 | O plano de contas da SURIA tem **conta analítica por cliente e por fornecedor**, ou conta única com histórico por NF? ("cada razão de cliente diga quem são as notas", [24:26]) | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-03, N-05, exportação. Até a resposta, não presumir a regra. |
+| Q-51 | marketplace: como ratear a comissão por NF? Qual documento traz a comissão? Quais contas usar (fornecedor ou adiantamento)? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-05 marketplace. Até a resposta, não presumir a regra. |
+| Q-52 | Na francesinha, o que significa Seu Nº no formato `XX0000xxxx`? Ele aponta para a NF e a parcela em algum relatório? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-04.2. Até a resposta, não presumir a regra. |
+| Q-53 | Contas de juros recebidos, multa recebida e desconto concedido da SURIA | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-05. Até a resposta, não presumir a regra. |
+| Q-54 | Contas de aplicação, rendimento e imposto. O imposto é o IRRF que aparece no extrato, ou também IOF? O lançamento é por resgate ou mensal? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-05. Até a resposta, não presumir a regra. |
+| Q-55 | Empréstimo: separar juros e principal? Com que fonte (o cronograma só traz o total)? Há cronograma do empréstimo da CEF? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: P2. Até a resposta, não presumir a regra. |
+| Q-56 | Fatura do cartão: lançar o total ou cada despesa da fatura? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: P2. Até a resposta, não presumir a regra. |
+| Q-57 | Escopo das contas: entram o caixa físico (aba CAIXA) e a CEF? Como lançar as transferências entre elas? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-04.5. Até a resposta, não presumir a regra. |
+| Q-58 | Existe alguma **tolerância de valor** (centavos) ou baixa parcial automática, ou toda diferença é sinalizada? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-04. Até a resposta, não presumir a regra. |
+| Q-59 | Por que o "Total Geral" de valor da parcela e valor pago nos .xls não fecha com as linhas (o saldo fecha)? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: Leitor .xls. Até a resposta, não presumir a regra. |
+| Q-60 | Critério de aceite: % automático mínimo e taxa de erro tolerada? Novembro roda em paralelo com a operadora ou só no sistema? Quem valida? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: Homologação. Até a resposta, não presumir a regra. |
+| Q-61 | Daqui em diante, qual é a **posição oficial** dos títulos: a da CICA ou a do Domínio? O fiscal seguirá emitindo o CP/CR do mês anterior, ou a CICA o substitui? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-03, S-06. Até a resposta, não presumir a regra. |
+| Q-62 | Quem importa o `.txt` no Domínio e quando dá para fazer a importação real de teste? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: Exportação. Até a resposta, não presumir a regra. |
+| Q-63 | É possível obter o extrato CEF em OFX ou PDF, em vez de texto copiado no Word? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: Leitor CEF. Até a resposta, não presumir a regra. |
+| Q-64 | O "Conciliador Contábil" citado como referência: qual produto ou tela é? Quais funções eram usadas? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: UI/UX, escopo. Até a resposta, não presumir a regra. |
+| Q-65 | Como os arquivos chegarão todo mês (envio pela tela do CICA, por quem, até que dia) e por quanto tempo guardar? | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-01, LGPD. Até a resposta, não presumir a regra. |
+| Q-66 | Folha, guias, distribuição de lucros e adiantamentos de cliente (cliente D, pago por terceiro; cliente E): contas e documentos de suporte | CONTAD (contadora responsável pela SURIA) responde; executor confere nos arquivos. Bloqueia: N-04.5. Até a resposta, não presumir a regra. |
+
 ## Contraprova (etapa 15)
 
 | ID | Pergunta objetiva | Por que altera a implementação |
@@ -325,6 +354,7 @@ Cada pergunta tem uma única definição acima. Esta tabela apenas atribui dono 
 | Rentabilidade — conector: Q-45 | Já decidido | 03, 14 | Resolvido por D-289 |
 | Contraprova — regras fiscais: Q-46 | Responsável pelo projeto / responsável fiscal indicado | 15 | Aberto; as regras padrão de D-301 valem até a resposta |
 | Contraprova — contrato do agente: Q-47 | Responsável pelo projeto / administrador do ambiente Domínio indicado | 03, 12, 15 | Aberto; a consulta nasce `validated: false` e desligada |
+| CONTAD multifontes: Q-50–Q-66 | Contadora CONTAD responsável pela SURIA; responsável pelo projeto autoriza o envio | 09, 11, 12 | Aberto (24/11/2026); Q-50, Q-52, Q-53, Q-58 e Q-59 bloqueiam a Fase 1 do PC-33 |
 
 Não reapresentar toda esta lista a cada etapa. Perguntar apenas o necessário para a ação seguinte que não possa ser resolvido por inspeção nem pelas decisões existentes. Atualizar o ID original quando respondido, com referência ao novo registro D.
 | Q-38 | Onde estará o backup Domínio Web `.dom` autorizado para contingência e qual será o canal seguro da chave correspondente? | Etapa 12: D-82 transferiu a homologação do backup para a liberação final. Recomenda-se usar um único backup de teste em pasta temporária e chave por canal seguro; o agente nunca registra nem exibe a chave. |
