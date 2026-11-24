@@ -134,6 +134,17 @@ def test_equal_pairs_become_separate_x_lotes_and_other_compositions_are_refused(
         render_dominio_lote19([split])
 
 
+def test_equal_pairs_are_matched_by_value_whatever_the_line_order(company):
+    # O banco não garante a ordem das linhas (PostgreSQL difere do SQLite); o pareamento
+    # débito/crédito não pode depender dela.
+    shuffled = entry(
+        company,
+        [("9", "debit", 300), ("41", "credit", 500), ("8", "debit", 500), ("42", "credit", 300)],
+    )
+    rows = records(render_dominio_lote19([shuffled]))
+    assert [row[:2] for row in rows] == ["01", "02", "03", "02", "03", "99"]
+
+
 @pytest.mark.parametrize("code", ["1.1", "ABC", "12345678"])
 def test_account_codes_must_be_domínio_reduced_codes(company, code):
     item = entry(company, [(code, "debit", 100), ("41", "credit", 100)])

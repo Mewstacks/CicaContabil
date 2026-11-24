@@ -1997,7 +1997,12 @@ def render_dominio_lote19(entries: Iterable[JournalEntry]) -> bytes:
     ]
     sequence = 0
     for entry in sorted(entries, key=lambda item: (item.occurred_on, str(item.pk))):
-        parts = list(entry.lines.all())
+        # The database returns lines in no guaranteed order (PostgreSQL differs from SQLite);
+        # pairing by value and account keeps equal debit/credit pairs together everywhere.
+        parts = sorted(
+            entry.lines.all(),
+            key=lambda line: (-line.amount_cents, line.account_code, str(line.pk)),
+        )
         debits = [line for line in parts if line.side == JournalLine.Side.DEBIT]
         credits = [line for line in parts if line.side == JournalLine.Side.CREDIT]
         # Only the "X" lote type (one debit, one credit) is emitted until another type
