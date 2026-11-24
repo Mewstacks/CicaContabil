@@ -20,11 +20,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.common.cnpj import normalize_cnpj
 from apps.hub.models import ClientCompany
 from apps.organizations.models import Organization
-from apps.triage import ocr
+from apps.triage import learning, ocr
+from apps.triage.auto import evaluate as evaluate_auto
 from apps.triage.catalog import keyword_score
+from apps.triage.identification import Identification, identify_company
+from apps.triage.intake_policy import engine_version_for
 from apps.triage.models import (
     CounterpartyAlias,
     DocumentType,
@@ -39,13 +41,6 @@ from apps.triage.transitions import TriageStatus
 _TEXT_LIMIT = 256 * 1024
 _RANK_TEXT_LIMIT = 100_000
 _PDF_PAGES = 3
-# Candidate CNPJ in running text: root and branch accept letters since jul/2026 (IN RFB
-# 2.229/2024), the two check digits stay numeric. A candidate only counts after
-# ``normalize_cnpj`` validates the check digits AND it equals a company of this office.
-_CNPJ = re.compile(
-    r"(?<![A-Za-z0-9])([A-Za-z0-9]{2})\.?([A-Za-z0-9]{3})\.?([A-Za-z0-9]{3})/?"
-    r"([A-Za-z0-9]{4})-?(\d{2})(?![A-Za-z0-9])"
-)
 _MONTH_YEAR = re.compile(r"(?<!\d)(0[1-9]|1[0-2])[/._-](20\d{2})(?!\d)")
 _YEAR_MONTH = re.compile(r"(?<!\d)(20\d{2})[/._-]?(0[1-9]|1[0-2])(?!\d)")
 _MONTHS = {
@@ -73,6 +68,8 @@ class Suggestion:
     counterparty_token: str = ""
     final_name: str = ""
     evidence: dict[str, dict[str, object]] = field(default_factory=dict)
+    scores: dict[str, object] = field(default_factory=dict)
+    identification: Identification | None = None
 
 
 def _fold(value: str) -> str:
@@ -145,50 +142,13 @@ def _ocr_pending(item: TriageItem) -> bool:
     from apps.triage.tasks import ocr_triage_item
 
     item_id = str(item.pk)
-    transaction.on_commit(
-        lambda: ocr_triage_item.apply_async(args=[item_id], queue=ocr.OCR_QUEUE)
-    )
+    transaction.on_commit(lambda: ocr_triage_item.apply_async(args=[item_id], queue=ocr.OCR_QUEUE))
     return True
-
-
-def _match_company(
-    item: TriageItem, sources: dict[str, str]
-) -> tuple[ClientCompany | None, dict[str, object]]:
-    companies = list(
-        ClientCompany.objects.filter(organization=item.organization, active=True).only(
-            "id", "name", "cnpj_masked", "dominio_code"
-        )
-    )
-    by_cnpj: dict[str, ClientCompany] = {}
-    for company in companies:
-        try:
-            by_cnpj[normalize_cnpj(company.cnpj_masked)] = company
-        except ValidationError:
-            continue  # blank or malformed registration: this company is found by code only
-    for source, text in sources.items():
-        found: set[str] = set()
-        for match in _CNPJ.finditer(text):
-            try:
-                found.add(normalize_cnpj("".join(match.groups())))
-            except ValidationError:
-                continue
-        hits = {by_cnpj[cnpj] for cnpj in found if cnpj in by_cnpj}
-        if len(hits) == 1:
-            company = hits.pop()
-            return company, {"valor": company.name, "evidencia": f"CNPJ no {source}"}
-    filename = PurePosixPath(item.original_name).stem
-    prefix = re.match(r"\s*([A-Za-z0-9]+)[_\s-]", filename)
-    if prefix:
-        by_code = {company.dominio_code.casefold(): company for company in companies}
-        coded = by_code.get(prefix.group(1).casefold())
-        if coded is not None and coded.dominio_code:
-            return coded, {"valor": coded.name, "evidencia": "Código Domínio no nome"}
-    return None, {}
 
 
 def _match_document_type(
     item: TriageItem, sources: dict[str, str]
-) -> tuple[DocumentType | None, dict[str, object]]:
+) -> tuple[DocumentType | None, dict[str, object], dict[str, object]]:
     """Rank the office's active types: keywords (name/subject 2, text 1) plus the label tokens.
 
     A type without keywords still matches by the words of its code and label in the file
@@ -197,10 +157,9 @@ def _match_document_type(
 
     types = list(DocumentType.objects.filter(organization=item.organization, active=True))
     name_subject = " ".join([sources.get("nome", ""), sources.get("assunto", "")])
-    text = " ".join(
-        sources.get(key, "") for key in ("conteúdo", "corpo")
-    )[:_RANK_TEXT_LIMIT]
+    text = " ".join(sources.get(key, "") for key in ("conteúdo", "corpo"))[:_RANK_TEXT_LIMIT]
     haystack = _tokens(name_subject)
+    taught = {document_type.pk for document_type in learning.sender_rule_types(item)}
     scored: list[tuple[int, DocumentType, list[str]]] = []
     for document_type in types:
         wanted = _tokens(document_type.code.replace("-", " ")) | _tokens(document_type.label)
@@ -208,14 +167,23 @@ def _match_document_type(
             document_type.keywords or [], name_subject=name_subject, text=text
         )
         points += len(wanted & haystack)
+        if document_type.pk in taught:
+            # The office confirmed this sender sends this type (three times).
+            points += 100
+            matched = [*matched, "remetente"]
         if points:
             scored.append((points, document_type, matched))
     scored.sort(key=lambda row: row[0], reverse=True)
     if scored and (len(scored) == 1 or scored[0][0] > scored[1][0]):
-        _, document_type, matched = scored[0]
+        top, document_type, matched = scored[0]
         evidence = "Palavras-chave: " + ", ".join(matched[:5]) if matched else "Palavras do nome"
-        return document_type, {"valor": document_type.label, "evidencia": evidence}
-    return None, {}
+        margin = top - (scored[1][0] if len(scored) > 1 else 0)
+        return (
+            document_type,
+            {"valor": document_type.label, "evidencia": evidence},
+            {"score": top, "margin": margin, "status": "accepted"},
+        )
+    return None, {}, {"score": scored[0][0] if scored else 0, "margin": 0, "status": "none"}
 
 
 def _match_period(sources: dict[str, str]) -> tuple[str, dict[str, object]]:
@@ -277,17 +245,41 @@ def render_final_name(
 
 
 def suggest(item: TriageItem) -> Suggestion:
+    return suggest_text(item, _payload_text(item))
+
+
+def suggest_text(item: TriageItem, content: str) -> Suggestion:
+    """The suggestion for an item whose readable text is ``content`` (nothing is saved)."""
     sources = {
         "nome": item.original_name,
         "assunto": item.subject,
-        "conteúdo": _payload_text(item),
+        "conteúdo": content,
         "corpo": item.body_excerpt,
     }
     result = Suggestion()
-    result.company, evidence = _match_company(item, sources)
-    if evidence:
-        result.evidence["Empresa"] = evidence
-    result.document_type, evidence = _match_document_type(item, sources)
+    result.identification = identify_company(item, sources)
+    result.company = result.identification.company
+    if result.identification.signals:
+        top_signals = result.identification.signals[:3]
+        why = " · ".join(signal.text for signal in top_signals)
+        if result.company is None:
+            why = f"Sem decisão ({result.identification.status}): {why}"
+        result.evidence["Empresa"] = {
+            "valor": result.company.name if result.company else "",
+            "evidencia": why,
+            "pontos": result.identification.score,
+            "margem": result.identification.margin,
+        }
+    result.scores["company"] = result.identification.as_scores()
+    account = (
+        learning.ofx_account_key(sources.get("conteúdo", ""))
+        if item.original_name.casefold().endswith(".ofx")
+        else ""
+    )
+    if account:
+        result.scores["account"] = account
+    result.document_type, evidence, type_scores = _match_document_type(item, sources)
+    result.scores["type"] = type_scores
     if evidence:
         result.evidence["Tipo"] = evidence
     result.period_label, evidence = _match_period(sources)
@@ -355,7 +347,9 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
                 note=exc.messages[0][:500],
             )
             return item
-        updates = ["status", "ai_fields", "updated_at"]
+        updates = ["status", "ai_fields", "scores", "engine_version", "updated_at"]
+        item.scores = result.scores
+        item.engine_version = engine_version_for(item.organization)
         if item.company_id is None and result.company is not None:
             item.company = result.company
             updates.append("company")
@@ -371,8 +365,21 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
         if not item.final_name and result.final_name:
             item.final_name = result.final_name
             updates.append("final_name")
+        verdict = evaluate_auto(item, result.identification, result.scores)
+        item.auto_decision = verdict.decision
+        updates.append("auto_decision")
+        if verdict.reason:
+            result.evidence["Auto"] = {
+                "valor": "aprovado" if verdict.decision == "auto" else "amostra",
+                "evidencia": verdict.reason,
+            }
         item.ai_fields = result.evidence
-        item.transition_to(TriageStatus.AWAITING_REVIEW)
+        if verdict.decision == "auto":
+            item.reviewed_at = timezone.now()
+            updates.append("reviewed_at")
+            item.transition_to(TriageStatus.READY_TO_ARCHIVE)
+        else:
+            item.transition_to(TriageStatus.AWAITING_REVIEW)
         item.save(update_fields=updates)
         found = ", ".join(result.evidence) or "nenhum campo"
         TriageEvent.objects.create(
@@ -380,7 +387,13 @@ def extract_item(*, item_id: UUID | str) -> TriageItem:
             triage_item=item,
             from_status=TriageStatus.EXTRACTING,
             to_status=item.status,
-            note=f"Sugestão automática: {found}. Revisão humana necessária",
+            note=(
+                f"Aprovado automaticamente: {verdict.reason}"
+                if verdict.decision == "auto"
+                else f"Amostra de auditoria: {verdict.reason}. Revisão humana necessária"
+                if verdict.decision == "sampled"
+                else f"Sugestão automática: {found}. Revisão humana necessária"
+            )[:500],
         )
     from apps.hub.module_activities import sync_triage_activity
 

@@ -1,0 +1,106 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{% url 'hub:triage' %}">Triagem</a>{% if can_write %}<a class="button" href="{% url 'hub:triage-upload' %}">Enviar arquivo</a>{% endif %}{% endblock %}
+
+{% block workspace_content %}
+<div class="tv2-inbox" data-inbox>
+  <section class="workspace-panel tv2-queue" aria-labelledby="tv2-queue-title">
+    <header class="workspace-panel-head"><div><h2 id="tv2-queue-title">Fila</h2><p>{{ shown }}{% if shown != total %}/{{ total }}{% endif %}</p></div></header>
+    <form class="tv2-filter" method="get" role="search">
+      <div class="field"><label for="tv2-sender">Remetente</label><input id="tv2-sender" type="search" name="remetente" value="{{ sender_filter }}" maxlength="254" autocomplete="off"></div>
+      <button class="button button-secondary" type="submit">Filtrar</button>
+      {% if sender_filter %}<a href="{% url 'hub:triage-inbox' %}">Limpar</a>{% endif %}
+    </form>
+    {% if groups and can_write %}
+    <form id="tv2-batch" class="tv2-batch" method="post" action="{% url 'hub:triage-inbox-batch' %}" data-submit-once>
+      {% csrf_token %}
+      <label class="tv2-check"><input type="checkbox" data-select-all><span>Todos</span></label>
+      <button class="button button-secondary" type="submit" name="action" value="approve" data-batch-button disabled>Aprovar selecionados</button>
+      <input class="tv2-reason" type="text" name="reason" maxlength="500" placeholder="Motivo" aria-label="Motivo da rejeição em lote" autocomplete="off">
+      <button class="button button-quiet" type="submit" name="action" value="reject" data-batch-button disabled>Rejeitar selecionados</button>
+    </form>
+    {% endif %}
+    {% if groups %}
+    {% for group in groups %}
+    <section class="tv2-group" aria-label="{{ group.sender }}">
+      <h3>{{ group.sender }} <span class="tv2-count">{{ group.count }}</span></h3>
+      <ul class="tv2-list">
+        {% for item in group.items %}
+        <li class="tv2-row tv2-qrow{% if selected and item.pk == selected.pk %} is-selected{% endif %}" data-row>
+          {% if can_write %}<label class="tv2-check tv2-pick"><input type="checkbox" name="ids" value="{{ item.pk }}" form="tv2-batch" data-pick aria-label="Selecionar {{ item.original_name }}"></label>{% endif %}
+          <div class="tv2-main"><a class="tv2-link" href="?item={{ item.pk }}{% if sender_filter %}&amp;remetente={{ sender_filter|urlencode }}{% endif %}#painel"{% if selected and item.pk == selected.pk %} aria-current="true"{% endif %}>{{ item.original_name }}</a>
+            <p class="tv2-meta">{{ item.company.name|default:"Sem empresa" }}{% if item.document_type %} · {{ item.document_type.label }}{% endif %}{% if item.period_label %} · {{ item.period_label }}{% endif %}</p></div>
+          {% if item.auto_decision == 'sampled' %}<span class="tv2-state">Amostra</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endfor %}
+    {% else %}
+    <div class="module-clean-empty"><h3>{% if sender_filter %}Nenhum remetente corresponde{% else %}Nenhuma pendência{% endif %}</h3>{% if sender_filter %}<a class="button button-quiet" href="{% url 'hub:triage-inbox' %}">Limpar</a>{% else %}<a class="button" href="{% url 'hub:triage-upload' %}">Enviar arquivo</a>{% endif %}</div>
+    {% endif %}
+  </section>
+
+  {% if selected %}
+  <section class="workspace-panel tv2-panel" id="painel" aria-labelledby="tv2-panel-title" data-panel>
+    <header class="workspace-panel-head">
+      <div><h2 id="tv2-panel-title" class="tv2-title">{{ selected.original_name }}</h2><p>{{ selected.sender|default:"Envio manual" }}{% if selected.original_sender %} · de {{ selected.original_sender }}{% endif %}</p></div>
+      <nav class="tv2-step" aria-label="Navegar na fila">
+        {% if previous_url %}<a class="button button-quiet" href="{{ previous_url }}#painel" data-shortcut="k" aria-keyshortcuts="k">Anterior <kbd>K</kbd></a>{% endif %}
+        {% if next_url %}<a class="button button-quiet" href="{{ next_url }}#painel" data-shortcut="j" aria-keyshortcuts="j">Próximo <kbd>J</kbd></a>{% endif %}
+      </nav>
+    </header>
+
+    <div class="tv2-body">
+      <div class="tv2-reader">
+        {% if previewable %}<iframe class="tv2-frame" src="{% url 'hub:triage-preview' selected.pk %}" title="Conteúdo de {{ selected.original_name }}" loading="lazy"></iframe>{% else %}<p class="tv2-meta">Sem leitor para este formato</p>{% endif %}
+        {% if text %}
+        <details class="tv2-text-box"{% if not previewable %} open{% endif %}>
+          <summary>Texto lido</summary>
+          <pre id="tv2-text" class="tv2-text" tabindex="0" data-text>{{ text }}</pre>
+          {% if can_write %}
+          <form class="tv2-rule" method="post" action="{% url 'hub:triage-inbox-rule' selected.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="selected_text" data-selected-input>
+            <input type="hidden" name="company" value="{{ selected.company_id|default:'' }}">
+            <output class="tv2-selected" data-selected-output aria-live="polite">Selecione um trecho</output>
+            <button class="button button-quiet" type="submit" data-rule-button disabled>Criar regra</button>
+          </form>
+          {% endif %}
+        </details>
+        {% endif %}
+      </div>
+
+      <div class="tv2-side-panel">
+        <h3>Por quê</h3>
+        {% if why %}
+        <ul class="tv2-why">{% for entry in why %}<li><strong>{{ entry.label }}</strong>{% if entry.value %} {{ entry.value }}{% endif %}<span class="tv2-meta">{{ entry.why }}{% if entry.points %} · {{ entry.points }} pontos{% endif %}{% if entry.margin is not None and entry.margin != '' %} · margem {{ entry.margin }}{% endif %}</span></li>{% endfor %}</ul>
+        {% else %}<p class="tv2-meta">Sem evidência</p>{% endif %}
+
+        {% if can_write %}
+        <form class="tv2-form tv2-decide" method="post" action="{% url 'hub:triage-inbox-approve' selected.pk %}" data-submit-once>
+          {% csrf_token %}
+          <div class="field"><label for="{{ form.company.id_for_label }}">{{ form.company.label }}</label>{{ form.company }}</div>
+          <div class="field"><label for="{{ form.document_type.id_for_label }}">{{ form.document_type.label }}</label>{{ form.document_type }}</div>
+          <div class="field"><label for="{{ form.period_label.id_for_label }}">{{ form.period_label.label }}</label>{{ form.period_label }}</div>
+          <div class="field"><label for="{{ form.counterparty_token.id_for_label }}">{{ form.counterparty_token.label }}</label>{{ form.counterparty_token }}</div>
+          <div class="field"><label for="{{ form.final_name.id_for_label }}">{{ form.final_name.label }}</label>{{ form.final_name }}</div>
+          {% if selected.company_id or selected.document_type_id %}<div class="field"><label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>{{ form.reason }}</div>{% endif %}
+          <div class="tv2-actions"><button class="button" type="submit" data-shortcut="a" aria-keyshortcuts="a" data-approve>Aprovar <kbd>A</kbd></button></div>
+        </form>
+        <form class="tv2-form tv2-reject" method="post" action="{% url 'hub:triage-inbox-reject' selected.pk %}" data-submit-once>
+          {% csrf_token %}
+          <div class="field"><label for="tv2-reject-reason">Motivo</label><input id="tv2-reject-reason" type="text" name="reason" maxlength="500" autocomplete="off" data-reject-reason></div>
+          <div class="tv2-actions"><button class="button button-quiet" type="submit" data-shortcut="r" aria-keyshortcuts="r">Rejeitar <kbd>R</kbd></button></div>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+<script src="{% static 'hub/triage-inbox.js' %}?v=1" defer></script>
+{% endblock %}

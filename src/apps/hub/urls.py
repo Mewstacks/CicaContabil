@@ -18,6 +18,8 @@ from apps.hub import (
     views_roster,
     views_subscription,
     views_triage_catalog,
+    views_triage_checklist,
+    views_triage_inbox,
     views_triage_policy,
     views_triage_upload,
 )
@@ -449,6 +451,35 @@ urlpatterns = [
         "app/triagem/caixas/<uuid:mailbox_id>/desconectar/",
         views.triage_mailbox_disconnect,
         name="triage-mailbox-disconnect",
+    ),
+    path(
+        "app/triagem/checklist/", views_triage_checklist.triage_checklist, name="triage-checklist"
+    ),
+    path(
+        "app/triagem/checklist/<uuid:company_id>/pedido/",
+        views_triage_checklist.triage_checklist_request,
+        name="triage-checklist-request",
+    ),
+    path("app/triagem/pendencias/", views_triage_inbox.triage_inbox, name="triage-inbox"),
+    path(
+        "app/triagem/pendencias/lote/",
+        views_triage_inbox.triage_inbox_batch,
+        name="triage-inbox-batch",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/aprovar/",
+        views_triage_inbox.triage_inbox_approve,
+        name="triage-inbox-approve",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/rejeitar/",
+        views_triage_inbox.triage_inbox_reject,
+        name="triage-inbox-reject",
+    ),
+    path(
+        "app/triagem/pendencias/<uuid:item_id>/regra/",
+        views_triage_inbox.triage_inbox_rule,
+        name="triage-inbox-rule",
     ),
     path("app/triagem/entrada/", views_triage_policy.triage_policy, name="triage-policy"),
     path("app/triagem/enviar/", views_triage_upload.triage_upload, name="triage-upload"),

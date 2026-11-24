@@ -66,3 +66,42 @@ class PolicyViewTests(TriageV2Case):
         self.office.is_demo = True
         self.office.save()
         self.assertEqual(self.client.post(self.url, {"open_archives": "on"}).status_code, 403)
+
+
+class PolicyAutoAndEngineTests(TriageV2Case):
+    databases = {"default", "knowledge"}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login()
+        self.url = reverse("hub:triage-policy")
+
+    def test_auto_approval_defaults_off_and_is_saved_per_office(self) -> None:
+        self.assertFalse(policy_for(self.office).auto_approve)
+        self.client.post(
+            self.url, {"auto_approve": "on", "auto_sample_every": "5", "auto_warmup": "12"}
+        )
+        policy = policy_for(self.office)
+        self.assertEqual(
+            (policy.auto_approve, policy.auto_sample_every, policy.auto_warmup), (True, 5, 12)
+        )
+        other = self.make_office("e11-policy-auto-other")
+        self.assertFalse(policy_for(other).auto_approve)
+
+    def test_invalid_sample_is_refused(self) -> None:
+        self.assertEqual(self.client.post(self.url, {"auto_sample_every": "0"}).status_code, 400)
+
+    def test_reclassify_bumps_the_engine_version_of_this_office_only(self) -> None:
+        other = self.make_office("e11-policy-engine-other")
+        self.client.post(self.url, {"action": "reclassify"})
+        self.assertEqual(policy_for(self.office).engine_version, 2)
+        self.assertEqual(policy_for(other).engine_version, 1)
+
+    def test_reclassify_is_admin_only(self) -> None:
+        user = User.objects.create_user("op-eng@office.test", "safe-password-123")
+        Membership.objects.create(
+            organization=self.office, user=user, role=Membership.Role.OPERATOR
+        )
+        self.login(user)
+        self.assertEqual(self.client.post(self.url, {"action": "reclassify"}).status_code, 403)
+        self.assertEqual(policy_for(self.office).engine_version, 1)

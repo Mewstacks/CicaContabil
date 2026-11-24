@@ -34,6 +34,10 @@ class IntakePolicy:
     open_archives: bool = False
     ocr_enabled: bool = False
     ocr_monthly_pages: int = 100
+    engine_version: int = 1
+    auto_approve: bool = False
+    auto_sample_every: int = 20
+    auto_warmup: int = 30
 
     @property
     def suffixes(self) -> frozenset[str]:
@@ -56,7 +60,15 @@ def policy_for(organization: Organization) -> IntakePolicy:
         open_archives=row.open_archives,
         ocr_enabled=row.ocr_enabled,
         ocr_monthly_pages=row.ocr_monthly_pages,
+        engine_version=row.engine_version,
+        auto_approve=row.auto_approve,
+        auto_sample_every=row.auto_sample_every,
+        auto_warmup=row.auto_warmup,
     )
+
+
+def engine_version_for(organization: Organization) -> int:
+    return policy_for(organization).engine_version
 
 
 @dataclass(frozen=True)

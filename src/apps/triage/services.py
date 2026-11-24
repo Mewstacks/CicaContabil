@@ -468,6 +468,15 @@ def decide_item(
             )
         else:
             raise ValidationError("Decisão de revisão inválida.")
+    if decision == "archive":
+        # A person approved: count it once toward this sender's rule (three activate it).
+        from apps.triage import learning
+
+        learning.confirm_sender_rule(item)
+        if learning.learn_from_approval(item):
+            from apps.triage.reclassify import reclassify_pending
+
+            reclassify_pending(item.organization, exclude=item.pk)
     record_event(
         action=f"triage.item.{decision}",
         actor=actor,

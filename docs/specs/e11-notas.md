@@ -23,5 +23,21 @@ Base: worktree em `origin/main` (2cc9c5c8), confirmada pela sessão coordenadora
 ## Para ligar o OCR (decisão de custo do dono)
 Definir `TRIAGE_OCR_ENABLED=true`, `TRIAGE_TESSERACT_CMD` e um worker que consuma `-Q celery,triage_ocr`. Nada disso foi alterado em `fly.toml`.
 
-## Fora (fase B, itens 4 a 8 da seção 7)
-Motor de empresa por placar, aprendizado, auto-aprovação, tela de checklist e Pendências, assinaturas/banco/período, regras ensinadas, backtest.
+## Fase B (itens 4 a 8 da seção 7), entregue
+
+- **Motor de empresa por placar** (`identification.py`): CNPJ (letras aceitas), código Domínio, regra de campo e conta OFX conhecida valem 100 (provas duras); remetente aprendido 100; nome da empresa 40. Aceita com 100 pontos e margem 50; duas provas duras para empresas diferentes viram `conflict` e vão a pessoa. Pontos e margem ficam em `TriageItem.scores`, a versão em `engine_version` (por escritório, `TriagePolicy.engine_version`; `reclassify.py`, comando `triagem_reclassificar`).
+- **Aprendizado por escritório** (`learning.py`, `corrections.py`): vínculo remetente→empresa (3 e-mails e 3 arquivos), conta (2 provas), regra de remetente (3 confirmações), regra de campo (seleção do operador no texto lido: `dois_pontos`, `linha_seguinte`, `contem`), correção de arquivado bloqueia o vínculo errado. Tudo por escritório; teste de isolamento em `test_triage_learning_django.py`.
+- **Auto-aprovação opt-in** (`auto.py`): padrão revisar tudo; exige empresa aceita com prova dura no próprio documento, tipo, período, nome, aquecimento de N revisões humanas e amostra determinística de 1 em N que vai a pessoa; porquê gravado no evento e em `ai_fields["Auto"]`; para em *pronto para arquivar*.
+- **Backtest** (`backtest.py`, comando `triagem_backtest`): acurácia do que respondeu e cobertura, por campo, mais contagem de empresa errada.
+- **Pendências** (`views_triage_inbox.py`): agrupadas por remetente, menor margem primeiro, painel com leitor, texto lido, "por quê", atalhos (a, r, j, k), lote, regra de campo.
+- **Checklist** (`checklist.py`, `views_triage_checklist.py`): empresa x tipo x competência, `DocumentType.due_day`, % completo, "falta há N dias", rascunho de pedido com `mailto:` (a pessoa envia).
+
+### Decisões da fase B
+- **E11-D8** Nada é aprendido na extração: só depois que uma pessoa aprova (`decide_item`), e item auto-aprovado nunca ensina. Revisão de segurança automática: um e-mail forjado não envenena vínculos.
+- **E11-D9** O autor original citado no corpo só vale como chave se o remetente for equipe do escritório (a própria caixa ou membro ativo); domínio sozinho não prova nada (From é forjável; DKIM/DMARC não estão disponíveis aqui).
+- **E11-D10** Conta bancária só de arquivo `.ofx`, só do conteúdo.
+- **E11-D11** Auto-aprovação não conta sinal de remetente sozinho: precisa de prova dura no documento.
+- **E11-D12** Regra de campo: só administrador cria; a trava "contém aparece em arquivado de outra empresa" não foi feita (o texto lido não é guardado); mitigada exigindo trecho com 4 caracteres ou mais e não numérico.
+
+## Fora (continua para depois)
+Modos de regra `colunas`, `ofx_conta` e `entre` do HubFedrizzi; IA externa e sua amostra; PDF.js (usa o leitor do navegador via a prévia existente); janela de prazo por feriado no checklist; cobrança automática de cliente (só rascunho).

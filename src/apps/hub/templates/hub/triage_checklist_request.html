@@ -1,0 +1,22 @@
+{% extends 'hub/workspace.html' %}
+{% load static %}
+
+{% block extra_head %}{{ block.super }}<link rel="stylesheet" href="{% static 'hub/triage-v2.css' %}?v=5">{% endblock %}
+
+{% block page_action %}<a class="button button-quiet" href="{{ back_url }}">Checklist</a>{% endblock %}
+
+{% block workspace_content %}
+<section class="workspace-panel" aria-labelledby="tv2-req-title">
+  <header class="workspace-panel-head"><div><h2 id="tv2-req-title">{{ row.company.name }}</h2><p>{{ period_label }}</p></div></header>
+  {% if draft.body %}
+  <div class="tv2-form">
+    <div class="field"><label for="tv2-req-subject">Assunto</label><input id="tv2-req-subject" type="text" value="{{ draft.subject }}" readonly></div>
+    <div class="field"><label for="tv2-req-to">Para</label><input id="tv2-req-to" type="text" value="{{ draft.to }}" readonly></div>
+    <div class="field"><label for="tv2-req-body">Texto</label><textarea id="tv2-req-body" rows="10" readonly>{{ draft.body }}</textarea></div>
+    <div class="tv2-actions">{% if mailto %}<a class="button" href="{{ mailto }}">Abrir no e-mail</a>{% else %}<span class="tv2-meta">Sem e-mail cadastrado</span>{% endif %}</div>
+  </div>
+  {% else %}
+  <div class="module-clean-empty"><h3>Nada pendente</h3><a class="button button-quiet" href="{{ back_url }}">Checklist</a></div>
+  {% endif %}
+</section>
+{% endblock %}
