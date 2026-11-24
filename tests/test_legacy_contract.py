@@ -268,7 +268,8 @@ def test_every_existing_row_and_every_default_is_legacy() -> None:
 def test_the_procuracao_lane_adds_nothing_to_the_schedule_while_its_flag_is_off() -> None:
     assert settings.NFSE_PROCURACAO_SYNC_ENABLED is False
     assert "dispatch-procuracao-syncs" not in settings.CELERY_BEAT_SCHEDULE
-    assert settings.CELERY_IMPORTS == ("apps.hub.tasks_procuracao",)
+    # `tasks_radar` (E14) only registers a task that returns 0 while its own flag is off.
+    assert settings.CELERY_IMPORTS == ("apps.hub.tasks_procuracao", "apps.hub.tasks_radar")
 
 
 def test_the_procuracao_beat_entry_exists_only_when_the_flag_is_on() -> None:
