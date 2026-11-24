@@ -6230,3 +6230,26 @@ mantêm as telas atuais. Nenhuma regra contábil muda; só apresentação e atal
    abre a importação já com a empresa escolhida.
 5. **Títulos e DE-PARA:** havendo uma única conta com títulos, ela abre direto; DE-PARA sem “Revisar”
    nem “lotes”.
+
+## D-399 — Textos coerentes no resultado e no movimento antes da reunião com a CONTAD (23/11/2026)
+
+Origem: responsável, 23/11/2026, nesta sessão: “faça uma analise breve do sistema, e curtos testes em
+producao do sistema da CONTAD, amanha terei uma reuniao com ela para mostrar o sistema, e em seguida, ela
+começar a usar […] ajuste cada ponto se necessário”. Executor Claude Code, com a delegação da D-393 e no
+mesmo escopo da D-398 (só apresentação, só escritório em uso direto; nenhuma regra contábil muda).
+
+1. **Resultado do extrato:** linha conferida mostra o registro do Razão e “Conferido: mesma data, valor e
+   direção no Razão.”; deixa de dizer “não confirmado sozinho por haver mais de uma possibilidade” ao lado
+   de “Conferido com o Razão” (aparecia nas 159 linhas conferidas da SURIA). O quadro diz “N não
+   conferidos” e o filtro “Não conferidos”, em vez de “fora do Razão” (os 4 da SURIA estão no Razão, com
+   valor repetido).
+2. **Movimento do extrato:** a página passa a se chamar “Movimento do extrato” e mostra “O que a CICA fez”
+   (a mesma situação do resultado) com a orientação seguinte, em vez de “Completar os dados obrigatórios —
+   falta informar conta de débito, conta de crédito”, que convidava a lançar à mão um movimento já
+   escriturado no Razão (risco de lançamento em dobro). A classificação manual continua disponível.
+3. **Extrato e Razão:** extrato importado aparece como “Importado · Ver resultado”, não “Aguardando revisão”.
+4. **Como usar (Conciliação):** cita “Importar extrato” e “Ver resultado”, nomes atuais dos botões (D-398).
+
+Fica para o responsável, por contrariar a D-398 item 3 registrada hoje: conferir sozinho grupos de
+“valor repetido” (mesma data, valor e direção, mesmo número de movimentos e de registros do Razão), por
+exemplo pelo histórico igual. Sem migração, custo, IA ou mensagem; publicação só com autorização.

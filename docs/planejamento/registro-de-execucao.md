@@ -1,3 +1,11 @@
+<!-- D399-V455-2026-11-23 -->
+## 23/11/2026 — D-399/V-455: análise e testes curtos antes da reunião com a CONTAD
+
+- [x] Leitura do estado (v124), testes curtos em produção somente leitura (telas e console READ ONLY).
+- [x] Decisão D-399 e correção de cinco textos contraditórios no uso direto, com testes e laboratório (V-455).
+- [ ] PR, CI e publicação (v125) — dependem de autorização do responsável.
+- [ ] Conferir sozinho os grupos de “valor repetido” — decisão do responsável (contraria D-398 item 3).
+
 <!-- D398-V451-2026-11-23 -->
 ## 23/11/2026 — D-398/V-451: telas mais simples no uso direto
 
