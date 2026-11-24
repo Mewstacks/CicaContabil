@@ -11214,9 +11214,138 @@ def reconciliation_source_review(request: HttpRequest, source_id: str) -> HttpRe
             row["outcome"] = outcomes.get(str(row["movement"].pk))
         context["direct_use_outcomes"] = outcome_counts(outcomes)
         context["page_title"] = "Resultado do extrato"  # D-398
+        context["direct_use_summary"] = _direct_use_source_summary(source, outcomes, context)
     response = render(request, "hub/reconciliation_source_review.html", context)
     response["Cache-Control"] = "no-store, private"
     return response
+
+
+_MONTHS_PT = (
+    "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+    "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+)  # fmt: skip
+
+
+def _direct_use_source_summary(
+    source: ReconciliationSourceFile, outcomes: dict[str, dict[str, str]], context: dict[str, Any]
+) -> dict[str, Any]:
+    """D-401: where the client is, how the month ended and the one next action (direct use)."""
+    from collections import Counter
+
+    counts = Counter(item["key"] for item in outcomes.values())
+    total = len(outcomes)
+    report = context.get("conference_report") or {}
+    start = str(report.get("period_start") or context.get("conference_period_start") or "")
+    month_label = ""
+    month_param = ""
+    if len(start) >= 7:
+        year, month = int(start[:4]), int(start[5:7])
+        month_label = f"{_MONTHS_PT[month - 1]} de {year}"
+        month_param = start[:7]
+    query = str(context.get("conference_report_querystring") or "")
+    report_url = reverse("hub:reconciliation-source-report", args=[source.pk]) + "?format=print"
+    if query:
+        report_url += "&" + query
+    review_url = reverse("hub:reconciliation-source-review", args=[source.pk])
+    ledger_url = (
+        reverse("hub:reconciliation-ledger-request")
+        + "?"
+        + urlencode(
+            {
+                "company": str(source.company_id),
+                "account": str(source.financial_account_id or ""),
+                "bank_source": str(source.pk),
+                **({"month": month_param} if month_param else {}),
+            }
+        )
+    )
+    exports_url = reverse("hub:reconciliation") + "#exportacoes"
+    posted, exported = counts["posted"], counts["exported"]
+    attention = sum(counts[key] for key in ("repeated", "repeated_missing", "similar", "no_rule"))
+    period = month_label or "este período"
+    if counts["no_razao"]:
+        state, title = "waiting", "Aguardando o Razão do Domínio"
+        text = (
+            f"A CICA pediu ao Domínio o Razão de {period}. Quando ele chegar, ela confere os "
+            "movimentos e lança o que faltar; esta tela se atualiza sozinha."
+        )
+        action, href = "Atualizar Razão", ledger_url
+    elif posted:
+        state = "send"
+        plural = "s" if posted != 1 else ""
+        title = f"{posted} lançamento{plural} da CICA pronto{plural} para enviar ao Domínio"
+        text = (
+            "São movimentos do extrato que não estavam no Razão e que uma regra reconheceu. "
+            "Gere o arquivo em Exportações e importe no Domínio."
+        )
+        action, href = "Enviar ao Domínio", exports_url
+    elif attention:
+        state = "attention"
+        title = f"{attention} movimento{'s' if attention != 1 else ''} sem lançamento"
+        text = (
+            "A CICA não lançou esses movimentos para não duplicar ou por não reconhecer o "
+            "histórico. Veja cada um e, se precisar, lance no Domínio."
+        )
+        action, href = (
+            "Ver esses movimentos",
+            review_url + "?state=pending#conference-movements-heading",
+        )
+    elif counts["statement_only"] and counts["statement_only"] == total:
+        state, title = "consult", "Extrato só para consulta"
+        text = (
+            "Esta conta não tem conta contábil no Domínio, então não há Razão para comparar nem "
+            "arquivo para enviar."
+        )
+        action, href = "Relatório (imprimir ou PDF)", report_url
+    else:
+        state = "done"
+        title = f"{period[:1].upper()}{period[1:]} conciliado: nada a enviar ao Domínio"
+        sent = f" {exported} já foram enviados ao Domínio pela CICA." if exported else ""
+        subject = (
+            "O movimento do extrato está"
+            if total == 1
+            else f"Os {total} movimentos do extrato estão"
+        )
+        text = (
+            f"{subject} no Razão do Domínio.{sent} O arquivo do "
+            "Domínio só é gerado quando a CICA lança algo que falta no Razão; aqui, baixe o "
+            "relatório para guardar a conciliação."
+        )
+        action, href = "Baixar relatório (PDF)", report_url
+    step2 = (
+        "Aguardando o Razão"
+        if counts["no_razao"]
+        else "Sem Razão (só consulta)"
+        if state == "consult"
+        else f"{counts['confirmed']} de {total} conferidos"
+    )
+    step3 = (
+        f"{posted} pronto{'s' if posted != 1 else ''} para enviar"
+        if posted
+        else f"{exported} enviado{'s' if exported != 1 else ''}"
+        if exported
+        else "Depois do Razão"
+        if counts["no_razao"]
+        else "Nada a enviar"
+    )
+    return {
+        "state": state,
+        "title": title,
+        "text": text,
+        "action": action,
+        "href": href,
+        "month_label": month_label,
+        "report_url": report_url,
+        "steps": [
+            {"title": "1. Extrato importado", "detail": source.original_filename, "done": True},
+            {
+                "title": "2. Conferência com o Razão",
+                "detail": step2,
+                "done": not counts["no_razao"],
+            },
+            {"title": "3. Envio ao Domínio", "detail": step3, "done": state in {"done", "consult"}},
+        ],
+    }
 
 
 @office_required
@@ -12121,9 +12250,28 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
             "label": "Gerar lançamento",
             "href": "#movement-entry-action",
         }
+    from apps.hub.direct_use import direct_use_enabled
+
+    direct_use = direct_use_enabled(office)
+    direct_outcome = None
+    if direct_use:
+        # D-399: in direct use the movement page says what the CICA did, instead of asking
+        # for debit/credit accounts of a movement that is already in the Razão (double booking).
+        from apps.hub.direct_use_ui import movement_outcomes
+
+        direct_outcome = movement_outcomes([movement]).get(str(movement.pk))
+        if direct_outcome:
+            direct_outcome = {**direct_outcome, **_DIRECT_USE_MOVEMENT_NEXT[direct_outcome["key"]]}
+            if direct_outcome["href"] == "exports":
+                direct_outcome["href"] = reverse("hub:reconciliation") + "#exportacoes"
+            elif direct_outcome["href"] in {"#movement-review-form", "#movement-secondary-actions"}:
+                # The form only shows outside the conference context (no return_to).
+                direct_outcome["href"] = request.path + direct_outcome["href"]
     context.update(
         {
-            "page_title": "Revisar movimento",
+            "page_title": "Movimento do extrato" if direct_use else "Revisar movimento",
+            "movement_direct_use": direct_use,
+            "movement_direct_outcome": direct_outcome,
             "conference_return_url": conference_return_url(request, movement.source_file_id),
             "can_review_movement": bool(context["support_can_mutate"])
             and _can_manage_reconciliation(context),
@@ -12146,6 +12294,62 @@ def reconciliation_movement_detail(request: HttpRequest, movement_id: str) -> Ht
         }
     )
     return render(request, "hub/reconciliation_movement.html", context)
+
+
+_DIRECT_USE_MOVEMENT_NEXT: dict[str, dict[str, str]] = {
+    "confirmed": {
+        "hint": "Nada a fazer.",
+        "action": "Ver o registro do Razão",
+        "href": "#allocation-heading",
+    },
+    "exported": {"hint": "Nada a fazer.", "action": "Ver exportações", "href": "exports"},
+    "posted": {
+        "hint": "Vai no próximo arquivo; gere-o em Exportações.",
+        "action": "Ver exportações",
+        "href": "exports",
+    },
+    "repeated": {
+        "hint": (
+            "Não precisa lançar. Se quiser, escolha abaixo qual registro do Razão é este e "
+            "confirme."
+        ),
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "repeated_missing": {
+        "hint": "Confira no Domínio se falta um lançamento.",
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "similar": {
+        "hint": (
+            "Não foi lançado para não duplicar. Se for o mesmo, confirme abaixo com o registro "
+            "do Razão."
+        ),
+        "action": "Ver registros do Razão",
+        "href": "#allocation-heading",
+    },
+    "no_rule": {
+        "hint": "Se quiser lançar agora, informe as contas de débito e crédito abaixo.",
+        "action": "Classificar à mão",
+        "href": "#movement-review-form",
+    },
+    "no_razao": {
+        "hint": "Nada a fazer agora.",
+        "action": "Ver evidências",
+        "href": "#allocation-heading",
+    },
+    "statement_only": {
+        "hint": "Só consulta.",
+        "action": "Ver evidências",
+        "href": "#allocation-heading",
+    },
+    "ignored": {
+        "hint": "Pode ser restaurado em Outras ações.",
+        "action": "Outras ações",
+        "href": "#movement-secondary-actions",
+    },
+}
 
 
 @office_required

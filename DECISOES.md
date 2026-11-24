@@ -6232,3 +6232,91 @@ mantêm as telas atuais. Nenhuma regra contábil muda; só apresentação e atal
    abre a importação já com a empresa escolhida.
 5. **Títulos e DE-PARA:** havendo uma única conta com títulos, ela abre direto; DE-PARA sem “Revisar”
    nem “lotes”.
+
+## D-399 — Textos coerentes no resultado e no movimento antes da reunião com a CONTAD (23/11/2026)
+
+Origem: responsável, 23/11/2026, nesta sessão: “faça uma analise breve do sistema, e curtos testes em
+producao do sistema da CONTAD, amanha terei uma reuniao com ela para mostrar o sistema, e em seguida, ela
+começar a usar […] ajuste cada ponto se necessário”. Executor Claude Code, com a delegação da D-393 e no
+mesmo escopo da D-398 (só apresentação, só escritório em uso direto; nenhuma regra contábil muda).
+
+1. **Resultado do extrato:** linha conferida mostra o registro do Razão e “Conferido: mesma data, valor e
+   direção no Razão.”; deixa de dizer “não confirmado sozinho por haver mais de uma possibilidade” ao lado
+   de “Conferido com o Razão” (aparecia nas 159 linhas conferidas da SURIA). O quadro diz “N não
+   conferidos” e o filtro “Não conferidos”, em vez de “fora do Razão” (os 4 da SURIA estão no Razão, com
+   valor repetido).
+2. **Movimento do extrato:** a página passa a se chamar “Movimento do extrato” e mostra “O que a CICA fez”
+   (a mesma situação do resultado) com a orientação seguinte, em vez de “Completar os dados obrigatórios —
+   falta informar conta de débito, conta de crédito”, que convidava a lançar à mão um movimento já
+   escriturado no Razão (risco de lançamento em dobro). A classificação manual continua disponível.
+3. **Extrato e Razão:** extrato importado aparece como “Importado · Ver resultado”, não “Aguardando revisão”.
+4. **Como usar (Conciliação):** cita “Importar extrato” e “Ver resultado”, nomes atuais dos botões (D-398).
+
+Fica para o responsável, por contrariar a D-398 item 3 registrada hoje: conferir sozinho grupos de
+“valor repetido” (mesma data, valor e direção, mesmo número de movimentos e de registros do Razão), por
+exemplo pelo histórico igual. Sem migração, custo, IA ou mensagem; publicação só com autorização.
+
+## D-400 — Conferência automática de valores repetidos no uso direto (23/11/2026)
+
+Origem: responsável, 23/11/2026, nesta sessão, depois de lhe ser apresentado o caso da SURIA (dois PIX de
+R$ 912,00 e dois de R$ 200,00 no mesmo dia, cada par com dois registros iguais no Razão): “pode fazer a
+conferência automática dos 4 de valor repetido”. Executor Claude Code. Vale só para escritório em uso
+direto (D-393). Supera, nesse escopo, D-398 item 3 (“a CICA não escolhe qual é qual e nada lança”) e
+amplia a confirmação automática D-388/D-396.
+
+1. **Quando:** na mesma conta e no mesmo mês, um grupo de movimentos do extrato ainda sem alocação com a
+   mesma data, direção e valor, e o grupo de registros livres do Razão compatíveis com a mesma data,
+   direção e valor, têm **o mesmo tamanho (dois ou mais)**. Qualquer pareamento dá o mesmo resultado na
+   conciliação; o grupo inteiro é conferido.
+2. **Como parear:** primeiro movimento e registro com o mesmo histórico (comparado sem acentos, caixa ou
+   espaços repetidos), quando esse histórico é único em cada lado; o restante, na ordem do extrato e do
+   Razão. A nota da confirmação diz que foi por valor repetido.
+3. **Quando não:** grupo com quantidades diferentes (“Valor repetido · um pode faltar no Razão”) continua
+   sem conferência e sem lançamento; grupo em que alguém desfez uma confirmação nunca é refeito (D-396);
+   escritório fora do uso direto continua só com os pares únicos.
+4. **Dados atuais:** os 4 movimentos da SURIA são conferidos por um comando próprio com prévia
+   (`conferir_repetidos`), executado após a publicação, como pedido na mesma mensagem; as próximas
+   importações e Razões usam a regra sozinhas.
+
+Sem migração, custo, IA ou mensagem externa.
+
+## D-401 — Resultado do extrato que diz onde a cliente está e o que fazer (24/11/2026)
+
+Origem: responsável, 24/11/2026, nesta sessão, ao importar de novo o OFX da SURIA e cair no resultado
+163/163: “mas eu nao deveria poder baixar um arquivo nessa tela? se esta finalizado” e “acho que poderia ser
+mais explicativa e intuitiva essa tela, nao da pra saber muito onde estou”. Executor Claude Code, com a
+delegação da D-393, no escopo da D-398/D-399 (só apresentação, só uso direto; nenhuma regra contábil muda).
+
+1. **Onde estou:** caminho no topo (Conciliação bancária › empresa · conta › mês) e uma frase dizendo o que
+   a tela mostra.
+2. **Situação do mês com a ação certa**, uma só por vez, nesta ordem:
+   - Razão do mês ainda não chegou → “Aguardando o Razão do Domínio”, ação **Atualizar Razão**;
+   - há lançamentos da CICA não enviados → “N prontos para enviar ao Domínio”, ação **Enviar ao Domínio**;
+   - há movimentos sem lançamento → “N movimentos sem lançamento”, ação **Ver esses movimentos**;
+   - extrato sem Razão (conta sem código no Domínio) → “Só consulta”;
+   - senão → “Mês conciliado: nada a enviar ao Domínio”, ação **Baixar relatório (PDF)**.
+3. **Os 3 passos** (Importar extrato → Conferir com o Razão → Enviar ao Domínio) aparecem nesta tela com a
+   situação de cada um, para a cliente ver em qual está.
+4. O botão “Ver relatório” passa a se chamar **“Relatório (imprimir ou PDF)”**. O arquivo do Domínio só
+   existe quando a CICA lança algo que falta no Razão; a tela diz isso em vez de deixar a dúvida.
+
+Sem migração, custo, IA ou mensagem; publicação pedida pelo responsável antes da reunião.
+
+## D-402 — Apagar de novo a SURIA em produção para a conciliação começar do zero (24/11/2026)
+
+Origem: responsável, 24/11/2026, antes da reunião com a cliente: “quero começar a conciliação da SURIA do
+zero, e não eu anexar ela no sistema e ele já dar como concluído”. Ao ser informado de que o mês fica 163/163
+porque o Razão de 09/2026 já está na CICA e as confirmações automáticas (D-388/D-400) rodam na importação,
+escolheu “Apagar dados da SURIA” (não desligar a conferência automática) e “Só o plano de contas” como o que
+preservar. Executor Claude Code. Repete o critério da D-387 sobre os dados atuais.
+
+Apagar da empresa Domínio 212: extrato OFX e seus 163 movimentos, as 163 confirmações automáticas, fila
+OFX×Domínio, vínculo e mapeamento da conta Sicredi, as duas coletas de Razão (registros e lançamentos lidos),
+as 14 regras DE-PARA e a atividade de conferência. Preservar a empresa, o plano de contas (conta 8 —
+BANCO SICREDI e o catálogo da descoberta) e a trilha de auditoria. Antes, ensaio em transação revertida e
+cópia privada dos registros apagados; nenhum dado de outra empresa.
+
+Efeito esperado: ao anexar o OFX, a conta é vinculada de novo (D-385), a CICA pede sozinha o Razão de 09/2026
+(D-386) e o mês mostra “Aguardando o Razão do Domínio” (D-401) até o agente da CONTAD entregá-lo; só então as
+confirmações automáticas rodam. Regras D-386/D-388/D-393/D-400 não mudam.
+Sem migração, custo, IA ou mensagem externa.

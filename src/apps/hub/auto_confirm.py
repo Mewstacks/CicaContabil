@@ -16,6 +16,10 @@ AUTO_NOTE = (
     "Confirmação automática (D-388): data, valor, direção e conta iguais a um único "
     "registro do Razão."
 )
+REPEATED_NOTE = (
+    "Confirmação automática (D-400): valor repetido — data, valor, direção e conta iguais, com o "
+    "mesmo número de movimentos no extrato e de registros no Razão."
+)
 
 
 def _month_period(month: date) -> dict[str, date]:
@@ -23,9 +27,14 @@ def _month_period(month: date) -> dict[str, date]:
     return {"start": month.replace(day=1), "end": month.replace(day=last)}
 
 
+def _group_key(movement: Any) -> tuple[Any, str, int]:
+    return (movement.occurred_on, movement.direction, abs(movement.amount_cents))
+
+
 def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
     """Confirm every unique exact pair of one bank statement in one month; never raises."""
 
+    from apps.hub.direct_use import direct_use_enabled
     from apps.hub.models import ClientCompany, MovementReconciliation, ReconciliationSourceFile
     from apps.hub.reconciliation_service import confirm_reconciliation
     from apps.hub.reconciliation_workbench import exact_conference_pairs
@@ -41,17 +50,33 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
     try:
         with transaction.atomic():
             ClientCompany.objects.select_for_update().get(pk=source.company_id)
-            candidates = exact_conference_pairs(source, period)[:1000]
-            undone = set(
+            candidates = [
+                (movement, record, AUTO_NOTE)
+                for movement, record in exact_conference_pairs(source, period)[:1000]
+            ]
+            if direct_use_enabled(source.organization):  # D-400: repeated-value groups
+                candidates += [
+                    (movement, record, REPEATED_NOTE)
+                    for movement, record in exact_conference_pairs(source, period, repeated=True)
+                ][:1000]
+            undone_rows = list(
                 MovementReconciliation.objects.filter(
-                    movement_id__in=[movement.pk for movement, _record in candidates],
+                    movement_id__in=[movement.pk for movement, _record, _note in candidates],
                     state=MovementReconciliation.State.UNDONE,
                 ).values_list("movement_id", flat=True)
             )
+            undone = set(undone_rows)
+            undone_keys = {  # D-400: a group where someone undid a pair is left to the person
+                _group_key(movement)
+                for movement, _record, note in candidates
+                if note == REPEATED_NOTE and movement.pk in undone
+            }
             pairs = []
-            for movement, record in candidates:
+            for movement, record, note in candidates:
                 if movement.pk in undone:
                     continue  # D-396: a person undid it; the routine never redoes it
+                if note == REPEATED_NOTE and _group_key(movement) in undone_keys:
+                    continue
                 try:
                     with transaction.atomic():  # D-396: one failing pair never voids the others
                         reconciliation = confirm_reconciliation(
@@ -59,7 +84,7 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
                             entry=record.entry,
                             amount_cents=abs(movement.amount_cents),
                             evidence={
-                                "note": AUTO_NOTE,
+                                "note": note,
                                 "source": movement.source_reference,
                                 "batch": True,
                                 "automatic": True,
@@ -97,8 +122,6 @@ def auto_confirm_exact(*, source: Any, month: date, actor: Any) -> int:
                         "period": {key: str(value) for key, value in period.items()},
                     },
                 )
-            from apps.hub.direct_use import direct_use_enabled
-
             # D-393: in direct use, a Razão month with no exact pair still posts what is missing.
             if pairs or direct_use_enabled(source.organization):
                 from apps.hub.depara_ledger import refresh_ledger_suggestions

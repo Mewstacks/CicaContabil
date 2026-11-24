@@ -13,7 +13,8 @@ nada fica esperando revisão de ninguém. Este guia substitui o treinamento.
      **“Conta do extrato, lida do OFX (sem Razão)”**. O extrato entra e pode ser consultado,
      mas não há Razão para comparar nem lançamento para enviar.
 2. **Espere o Razão chegar.** A CICA pede o Razão do mês sozinha e, quando ele chega:
-   - confirma tudo o que bate exatamente (data, valor, direção e conta);
+   - confirma tudo o que bate exatamente (data, valor, direção e conta), inclusive valores repetidos
+     no mesmo dia quando o extrato e o Razão têm a mesma quantidade deles;
    - aprende com o Razão as regras DE-PARA e já as deixa **ativas**;
    - para os movimentos que **não estão no Razão** e que uma regra reconhece, gera e aprova o
      lançamento sozinha.

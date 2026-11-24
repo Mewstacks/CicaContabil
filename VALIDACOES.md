@@ -13063,3 +13063,132 @@ estáticos, sem collectstatic): `sha256:d09cc290d4f8dce2a6fac9f33396f650749461f3
 247 camadas; os 2 arquivos iguais aos do commit. Configuração da v123 (`release-d396`), igual à ativa.
 **Release v124**: release_command sem migração; web e worker `started`, reserva parada; live, ready e
 site 200; logs sem erro. Autorizado pelo responsável (“Sim, corrige”, para corrigir e publicar).
+
+## V-455 — Análise e testes curtos em produção antes da reunião com a CONTAD; D-399 (23/11/2026)
+
+Executor Claude Code, worktree `claude/contad-reuniao-demo` a partir da main `dc1c706` (v124). O checkout
+local `main` estava em `b65dfe7` com alterações antigas não versionadas, preservadas e não usadas.
+
+**Produção (v124), somente leitura:** health live/ready 200; web e worker `started`, reserva parada; logs
+sem erro. Telas percorridas com a sessão da Grazi aberta pelo responsável no navegador do app (senha não
+digitada pelo executor; só GET, nenhum botão de importar/confirmar/exportar/buscar acionado): início,
+Conciliação bancária e abas, resultado do extrato da SURIA (163/163, 159 conferidos, 4 “No Razão · valor
+repetido”, diferença R$ 0,00), relatório para impressão, movimento, Extrato e Razão, carteira (146
+empresas), Títulos e buscas (4 capturas sem conta), DE-PARA (14 regras ativas), painel de importação com a
+empresa pré-escolhida (5 contas da SURIA) e o guia “Como usar”. Console autorizado pelo responsável nesta
+sessão (“Sim, somente leitura”): script em `transaction.atomic()` com `SET TRANSACTION READ ONLY` e
+rollback — uso direto e IA habilitados só para a CONTAD, chave presente; 146 empresas ativas; uma conta
+financeira (SURIA); agente oficial SVAPL02 ativo, visto 0,5 min antes; 163 movimentos; 163 lançamentos
+`draft/source_ledger` (espelho do Razão) e zero da CICA; 14 regras ativas; coletas de Razão 2 importadas,
+nenhuma aberta há mais de 1 h; 4 capturas de títulos; zero chamadas `depara_auto`.
+
+**Achados e D-399:** (1) as 159 linhas conferidas diziam também “não confirmado sozinho por haver mais de
+uma possibilidade”; (2) quadro “4 fora do Razão” contra “No Razão · valor repetido”; (3) página do movimento
+pedia “conta de débito, conta de crédito” para movimento já no Razão; (4) “Aguardando revisão” na tela
+Extrato e Razão; (5) “Como usar” com nomes antigos de botões. Corrigidos só no uso direto. Observados e
+não alterados: os 4 movimentos de valor repetido têm históricos distintos no Razão (dois PIX de R$ 912,00
+para pessoas diferentes; dois R$ 200,00 iguais), o que permitiria conferi-los — decisão do responsável;
+a regra “DEB FOLHA PAGTO → 4 PAGAMENTO DE FORNECEDORES” reproduz como a CONTAD escriturou setembro.
+
+**Testes:** `tests/test_direct_use_screens.py` com 4 testes novos (linhas conferidas sem o aviso, página do
+movimento com “O que a CICA fez”, tela Extrato e Razão “Importado”, outro escritório mantém “Revisar
+movimento”): 11 aprovados. Laboratório local sintético (banco em memória, `live_server`) em 1366 px:
+resultado, movimento com valor repetido e Extrato e Razão conferidos visualmente. Suíte SQLite completa:
+3.523 aprovados, 59 skips, 0 falhas (193 subtestes); ruff sem achados. Não publicado.
+
+## V-456 — Publicação da D-399 na release v125 (23/11/2026)
+
+Autorizado pelo responsável nesta sessão (“Sim, publica”; depois “verifica tu” para acompanhar a CI).
+PR #71 com CI aprovada nas três verificações (agent, agent-package, verify); mesclado em `8512024`,
+`src/` da main idêntico ao commit publicado `67c1d62`.
+
+Imagem OCI sobre a v124 (`d09cc290…`) só com os 5 arquivos alterados de `src/` (sem estáticos, sem
+collectstatic): `sha256:73344c79fc4307502df3d44049a06167bffe500ef8df1860831edaf3bc0b7c86`; manifesto OCI,
+237 camadas gzip e 11 zstd; SHA-256 dos 5 arquivos na imagem iguais aos do commit; `manage.py check` sem
+problemas e `makemigrations --check` sem mudanças. Configuração de deploy = a da v124 (`release-d396`),
+conferida igual à ativa (env, deploy, processos, VM). O login do registro havia expirado (`fly auth docker`).
+
+**Release v125**: release_command concluído; web 891e63ef665e58 e worker 1857691da097e8 `started` na nova
+imagem, reserva 18535e1c707538 parada; live, ready e site 200; logs sem erro. Telas conferidas na sessão
+da Grazi aberta pelo responsável (somente GET): resultado da SURIA com 50 linhas conferidas por página,
+nenhuma com o aviso contraditório, quadro “159 · 4 não conferidos” e filtro “Não conferidos”; movimento
+de R$ 912,00 com “O que a CICA fez · No Razão · valor repetido”; Extrato e Razão com “Importado · Ver
+resultado”. Nenhum dado alterado.
+
+## V-457 — D-400: conferência automática de valores repetidos (23/11/2026)
+
+Executor Claude Code, branch `claude/contad-valor-repetido` a partir da main `27381a3` (v125).
+`exact_conference_pairs(..., repeated=True)` devolve os pares de grupos de mesma data, direção e valor
+em que o extrato e o Razão (registros livres e compatíveis) têm o mesmo tamanho, pareando primeiro pelo
+histórico igual (sem acentos/caixa/espaços, único nos dois lados) e o resto pela ordem. A confirmação
+automática D-388 usa esses pares só no uso direto, com nota própria (D-400), e não refaz grupo em que
+alguém desfez uma confirmação. Comando `conferir_repetidos --organization <uuid> [--apply]` para os dados
+já recebidos (prévia sem escrita; `--apply` reexecuta a rotina em cada extrato e mês com Razão).
+Texto do estado “No Razão · valor repetido” e guia de uso direto atualizados.
+
+Testes: `tests/test_repeated_values.py` (5: grupos iguais conferidos e grupo desigual mantido; outro
+escritório inalterado; grupo desfeito não é refeito; histórico igual pareado primeiro; comando com prévia,
+aplicação e repetição sem efeito). Suíte SQLite completa: 3.528 aprovados, 59 skips, 0 falhas.
+
+## V-458 — Publicação da D-400 na release v126 e conferência dos 4 da SURIA (24/11/2026)
+
+Autorizado pelo responsável nesta sessão (“pode fazer a conferência automática dos 4 de valor repetido”).
+PR #73 com CI aprovada (agent, agent-package, verify); mesclado em `71b900e`, `src/` da main idêntico ao
+commit publicado. Imagem OCI sobre a v125 (`73344c79…`) só com os 4 arquivos alterados de `src/`:
+`sha256:e9d430b316b4725df61b228e46c9d607978f313df11af285e4df68f7adc3e862`, 249 camadas; SHA-256 na imagem
+iguais aos do commit; `manage.py check` sem problemas, `makemigrations --check` sem mudanças e comando
+`conferir_repetidos` presente. Configuração = a da v125.
+
+**Release v126**: release_command concluído; web e worker `started`, reserva parada; live, ready e site
+200; logs sem erro. `conferir_repetidos` na CONTAD: prévia com exatamente 4 pares (04/09 R$ 912,00
+Alessandra↔Alessandra e Luana↔Luana pelo histórico; 21/09 R$ 200,00 SHPP ×2); `--apply` → 4 confirmados;
+nova prévia sem pares. Conferência somente leitura depois: 163 lançamentos `draft/source_ledger` e
+nenhum da CICA, 14 regras ativas, nenhuma coleta aberta. Tela (sessão da Grazi, só GET): resultado da
+SURIA **163/163 conferidos, 0 não conferidos, diferença R$ 0,00**, “Todos os movimentos foram
+conferidos com o Razão”.
+
+## V-459 — D-401: resultado do extrato com caminho, situação do mês e passos (24/11/2026)
+
+Executor Claude Code, branch `claude/contad-tela-resultado` a partir da main `48b3a86` (v126). Motivado
+pelo responsável ao reimportar o OFX da SURIA (o sistema reconheceu o arquivo e abriu o resultado
+163/163, sem duplicar: 1 extrato, 163 movimentos, conferido somente leitura). Só no uso direto, sem CSS
+novo (reaproveita `.reconciliation-movement-next` e `.direct-use-steps`): caminho “Conciliação bancária ›
+Por empresa › Resultado de <mês>”, frase do que a tela mostra, quadro “Situação do mês” com uma ação
+(aguardando Razão → Atualizar Razão; lançamentos da CICA → Enviar ao Domínio; sem lançamento → Ver esses
+movimentos; só consulta; conciliado → Baixar relatório (PDF)), os 3 passos com a situação de cada um e
+“Relatório (imprimir ou PDF)”. Outros escritórios inalterados. Suíte SQLite completa: 3.532 aprovados, 59 skips, 0 falhas.
+
+Testes: `tests/test_direct_use_screens.py` com 4 novos (pronto para enviar; tudo no Razão; aguardando o
+Razão; outro escritório) — 15 aprovados. Laboratório local sintético: 1366 px e 375 px sem rolagem
+horizontal, quadro e passos legíveis.
+
+## V-460 — Publicação da D-401 na release v127 (24/11/2026)
+
+Pedido pelo responsável nesta sessão (“ok, me avisa quando publicar”, após a proposta de ajustar e publicar
+antes da reunião). PR #75 com CI aprovada (agent, agent-package, verify); mesclado em `dc2e1ff`, `src/` da
+main idêntico ao commit publicado. Imagem OCI sobre a v126 (`e9d430b3…`) só com os 2 arquivos alterados:
+`sha256:fd6aa9551f0acfe41d58512d08339acd81ecdc6c5f9e02e1d4935581abc8f041`; SHA-256 na imagem iguais aos do
+commit; `manage.py check` sem problemas, sem migrações. Configuração = a da v126.
+
+**Release v127**: o Fly demorou ~15 min para iniciar a máquina do release_command (criada 04:23 UTC,
+iniciada 04:38); o comando concluiu sem migrações e web/worker passaram para a v127 às 04:39 UTC,
+reserva parada. O `flyctl` perdeu o token na verificação final (“token expired”, conexões redefinidas),
+por isso o Fly registra a v127 como `failed`, embora as 3 máquinas estejam na imagem `fd6aa955…`, web com
+health check passando, live/ready/site 200 e logs sem erro. Tela conferida na sessão da Grazi (só GET):
+“Conciliação bancária › Por empresa › Resultado de setembro de 2026”, “Setembro de 2026 conciliado: nada
+a enviar ao Domínio” com “Baixar relatório (PDF)”, passos ✓ OFX SICREDI.ofx / ✓ 163 de 163 conferidos /
+✓ Nada a enviar.
+
+## V-461 — D-402: SURIA apagada de novo em produção para começar do zero (24/11/2026)
+
+Levantamento somente leitura antes (máquina web): 1 OFX importado (19/11), 163 movimentos, 163 confirmações,
+todas automáticas (D-388/D-400), 2 coletas de Razão (163 registros e 163 lançamentos lidos), 14 regras
+DE-PARA, conta BANCO SICREDI vinculada com mapeamento e 1 atividade “Conferir movimentos da Conciliação”
+concluída em 24/11. Ensaio em transação revertida limpo, com travas para outra empresa, plano de contas,
+descoberta e auditoria. Aplicação real: 163 decisões, 163 confirmações, 163 movimentos, 163 registros de
+Razão, 163 lançamentos lidos + 334 linhas, 163 lançamentos contábeis, 163 identidades OFX, 1 importação,
+163 transações, 163 pareamentos, 2 coletas de Razão, 14 regras, 1 atividade (3 eventos, 1 evidência),
+1 processamento, 3 fontes, 1 mapeamento e a conta; nenhum registro de outra empresa. Cópia privada (0600)
+em Downloads/CICA-SURIA-backup-antes-de-apagar-2026-11-24.json, 1.191.675 bytes, SHA `b7934d93…216a`
+conferido. Releitura: só restam a empresa, a conta 8 — BANCO SICREDI do plano e a descoberta.
+Não verificado: arquivos brutos no armazenamento de objetos; nova importação pela tela ainda não feita.
