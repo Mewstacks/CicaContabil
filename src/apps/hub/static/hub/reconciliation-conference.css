@@ -44,3 +44,17 @@
 .conference-auto-review-form .checkbox-field input[type=checkbox]{flex:0 0 20px;width:20px;height:20px;min-height:20px;margin:2px 0 0;accent-color:var(--cica-forest)}
 .conference-auto-review-form .checkbox-field label{margin:0;line-height:1.5}
 @media(max-width:640px){.conference-auto-review,.conference-auto-review-form{align-items:stretch;flex-direction:column}.conference-auto-review>p,.conference-auto-review-form .checkbox-field{flex:0 0 auto}.conference-auto-review .button{width:100%}}
+
+/* D-406: Domínio file and DE-PARA rules on the result page */
+.direct-use-export-action{flex:none;margin:0}.direct-use-export-action .button{min-height:44px}
+.direct-use-file,.direct-use-rules{margin-top:20px}
+.direct-use-file .workspace-panel-head p,.direct-use-rules .workspace-panel-head p{margin:6px 0 0;max-width:72ch;color:var(--muted);line-height:1.5}
+.direct-use-file-empty{margin:0;padding:18px 22px;color:var(--muted);line-height:1.6}
+.direct-use-file-table,.direct-use-rules-table{width:100%}
+.direct-use-file-table :is(th,td),.direct-use-rules-table :is(th,td){white-space:normal;overflow-wrap:anywhere;vertical-align:top;max-width:none}
+.direct-use-rules-table small{display:block;margin-top:4px;color:var(--muted);line-height:1.5}
+.direct-use-file-table .button{min-height:40px;white-space:nowrap}
+.direct-use-file:focus-visible,.direct-use-rules:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+@media(max-width:760px){.direct-use-export-action,.direct-use-export-action .button{width:100%}.direct-use-file .workspace-panel-head,.direct-use-rules .workspace-panel-head{flex-direction:column;align-items:stretch}.direct-use-file-table thead,.direct-use-rules-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.direct-use-file-table,.direct-use-file-table tbody,.direct-use-rules-table,.direct-use-rules-table tbody{display:block}.direct-use-file-table tr,.direct-use-rules-table tr{display:grid;gap:8px;padding:14px 16px;border-top:1px solid var(--line)}.direct-use-file-table td,.direct-use-rules-table td{display:block;border:0;padding:0}.direct-use-file-table td::before,.direct-use-rules-table td::before{content:attr(data-label);display:block;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:2px}.direct-use-file-table .table-action-cell::before{content:none}}
+.direct-use-rules-table th:last-child,.direct-use-file-table th:nth-child(4){white-space:nowrap;overflow-wrap:normal;width:1%}
+@media(max-width:760px){.data-table-wrap .direct-use-file-table,.data-table-wrap .direct-use-rules-table{min-width:0}.direct-use-file-table .table-action-cell,.direct-use-file-table .table-action-cell .button{width:100%;max-width:none}.direct-use-rules-table th:last-child,.direct-use-file-table th:nth-child(4){width:auto}}

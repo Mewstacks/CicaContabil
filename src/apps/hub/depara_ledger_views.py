@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import cast
+from typing import Any, cast
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -66,6 +66,20 @@ def depara_ledger_review(request: HttpRequest, account_id: str) -> HttpResponse:
             messages.error(request, str(exc))
         return redirect(back)
     rows = ledger_rules(account)
+    context.update(
+        page_title="Sugestões DE-PARA pelo Razão",
+        depara_ledger_account=account,
+        depara_ledger_rows=ledger_rule_rows(account, rows),
+        depara_ledger_active=sum(rule.state == "active" for rule, _ in rows),
+        depara_ledger_back=reverse("hub:reconciliation-depara"),
+    )
+    return private_response(render(request, "hub/reconciliation_depara_ledger.html", context))
+
+
+def ledger_rule_rows(account: Any, rows: list[Any] | None = None) -> list[dict[str, Any]]:
+    """Razão-derived rules of one bank account, ready for display (also used by D-406)."""
+    if rows is None:
+        rows = ledger_rules(account)
     codes = {
         code
         for rule, _evidence in rows
@@ -76,28 +90,21 @@ def depara_ledger_review(request: HttpRequest, account_id: str) -> HttpResponse:
         if code
     }
     names = account_names(account.company, codes)
-    context.update(
-        page_title="Sugestões DE-PARA pelo Razão",
-        depara_ledger_account=account,
-        depara_ledger_rows=[
-            {
-                "rule": rule,
-                "pattern": f"{LEVEL_LABELS.get(evidence.get('level', ''), 'Padrão')} "
-                f"“{evidence.get('label', '')}”",
-                "direction": DIRECTION_LABELS.get(evidence.get("direction", ""), "—"),
-                "debit": rule.actions.get("debit_account_code", ""),
-                "debit_name": names.get(str(rule.actions.get("debit_account_code", "")), ""),
-                "credit": rule.actions.get("credit_account_code", ""),
-                "credit_name": names.get(str(rule.actions.get("credit_account_code", "")), ""),
-                "support": evidence.get("support", 0),
-                "months": [f"{m[5:]}/{m[:4]}" for m in evidence.get("months", [])],
-            }
-            for rule, evidence in rows
-        ],
-        depara_ledger_active=sum(rule.state == "active" for rule, _ in rows),
-        depara_ledger_back=reverse("hub:reconciliation-depara"),
-    )
-    return private_response(render(request, "hub/reconciliation_depara_ledger.html", context))
+    return [
+        {
+            "rule": rule,
+            "pattern": f"{LEVEL_LABELS.get(evidence.get('level', ''), 'Padrão')} "
+            f"“{evidence.get('label', '')}”",
+            "direction": DIRECTION_LABELS.get(evidence.get("direction", ""), "—"),
+            "debit": rule.actions.get("debit_account_code", ""),
+            "debit_name": names.get(str(rule.actions.get("debit_account_code", "")), ""),
+            "credit": rule.actions.get("credit_account_code", ""),
+            "credit_name": names.get(str(rule.actions.get("credit_account_code", "")), ""),
+            "support": evidence.get("support", 0),
+            "months": [f"{m[5:]}/{m[:4]}" for m in evidence.get("months", [])],
+        }
+        for rule, evidence in rows
+    ]
 
 
 def _is_uuid(value: str) -> bool:

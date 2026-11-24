@@ -363,3 +363,14 @@ def test_finished_search_releases_the_button(case, state):
     assert page.context["ledger_active_job"] is None
     assert "data-ledger-progress" not in page.content.decode()
     assert page.context["ledger_can_request"]
+
+
+def test_request_from_the_result_page_follows_the_search(case):
+    """D-406: asked from the result page, the search page reopens the result when it arrives."""
+    online(case)
+    mapping(case)
+    response = case["client"].post(endpoint(), command(case, auto="1"))
+    assert response.status_code == 302 and response["Location"].endswith("&auto=1")
+    again = case["client"].post(endpoint(), command(case, auto="1"))
+    assert again["Location"].endswith("&auto=1")  # already running: still follows it
+    assert NativeLedgerCollection.objects.count() == 1
